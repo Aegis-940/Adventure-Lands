@@ -1,33 +1,5 @@
 
 // -------------------------------------------------------------------- //
-// CONFIG VARIABLES
-// -------------------------------------------------------------------- //
-
-let attack_mode = true;
-
-const SELLABLE_ITEMS = ["hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "wbook0", "wshoes", "wcap", "cclaw", "crabclaw", "slimestaff", "stinger", "coat1", "helmet1"];
-const BANKABE_ITEMS = [];
-
-const INVENTORY_CHECK_INTERVAL = 10 * 60 * 1000; // 20 minutes in ms
-let lastInventoryCheck = 0;
-
-const _cmListeners = [];
-
-const floatingButtonIds = [];
-
-const merchantTaskQueue = [];
-let merchantBusy = false;
-
-// Start in inactive state
-let inventoryCheckEnabled = true;
-
-let lastDeathTime = 0;
-
-load_code(99);
-load_code(98);
-load_code(97);
-
-// -------------------------------------------------------------------- //
 // TASK QUEUE
 // -------------------------------------------------------------------- //
 
