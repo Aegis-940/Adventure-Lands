@@ -39,7 +39,7 @@ setInterval(function () {
 
 	pots();
 	loot();
-	manage_party();
+	party_manager();
 	check_and_request_pots();
 	fight_solo_or_group(group_or_solo_button_title);
 
