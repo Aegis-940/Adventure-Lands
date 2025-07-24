@@ -1,11 +1,3 @@
-// -------------------------------------------------------------------- //
-// PERSISTENCE FUNCTION - MUST BE FIRST
-// -------------------------------------------------------------------- //
-
-function init_persistent_state() {
-	who_is_tank = get("who_is_tank") ?? 0;
-	tank_name = get("tank_name") ?? "Ulric";
-}
 
 // -------------------------------------------------------------------- //
 // CONFIG VARIABLES
@@ -52,6 +44,15 @@ Object.defineProperty(window, "tank_name", {
 
 function get_merchant() {
 	return get_player("Riff");
+}
+
+// -------------------------------------------------------------------- //
+// PERSISTENCE FUNCTION - MUST BE FIRST
+// -------------------------------------------------------------------- //
+
+function init_persistent_state() {
+	who_is_tank = get("who_is_tank") ?? 0;
+	tank_name = get("tank_name") ?? "Ulric";
 }
 
 // -------------------------------------------------------------------- //
