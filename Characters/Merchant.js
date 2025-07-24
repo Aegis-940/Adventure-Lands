@@ -1,27 +1,8 @@
 // -------------------------------------------------------------------- //
-// TASK QUEUE
+// PERSISTENT STATE
 // -------------------------------------------------------------------- //
 
-function enqueue_merchant_task(taskFn) {
-	MERCHANT_TASK_QUEUE.push(taskFn);
-	process_merchant_queue();
-}
-
-async function process_merchant_queue() {
-	if (merchant_busy || MERCHANT_TASK_QUEUE.length === 0) return;
-
-	merchant_busy = true;
-
-	const task = MERCHANT_TASK_QUEUE.shift();
-	try {
-		await task(); // Run the task
-	} catch (e) {
-		console.error("❌ Merchant task error:", e);
-	}
-	
-	merchant_busy = false;
-	process_merchant_queue(); // Continue with the next task
-}
+//init_persistent_state();
 
 // -------------------------------------------------------------------- //
 // BUTTONS AND WINDOWS
