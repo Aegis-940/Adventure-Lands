@@ -111,7 +111,7 @@ parent.socket.on('hit', data => {
         if (data.reflect && get_player(data.id) && !get_player(data.hid)) {
             reflect += data.reflect;
             const e = getPlayerEntry(data.id);
-            e.sumReflection ??= 0;
+            if (e.sumReflection == null) e.sumReflection = 0;
             e.sumReflection += data.reflect;
         }
 
