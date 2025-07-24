@@ -12,8 +12,8 @@ removeAllFloatingStatsWindows();
 removeAllFloatingButtons();
 
 createTeamStatsWindow();
-hookGoldTrackingToStatsWindow("teamStatsWindow");
-hookDPSTrackingToStatsWindow("teamStatsWindow");
+hook_gold_tracking_to_stats_window("teamStatsWindow");
+hook_dps_tracking_to_stats_window("teamStatsWindow");
 
 createMapMovementWindow([
 	{ id: "SendToMerchant", label: "Deposit", onClick: () => send_to_merchant() },
@@ -111,12 +111,6 @@ setInterval(() => {
 				character.y + (target.y - character.y) / 2
 			);
 		}
-	} else if (character.ctype === "warrior" && can_use("cleave")) {
-		if (is_in_range(target, "cleave")) {
-			use_skill("cleave", target);
-		}
-	} else if (can_attack(target)) {
-		set_message("Attacking");
-		attack(target);
 	}
-}, 250);
+	// ...rest of your loop logic...
+});
