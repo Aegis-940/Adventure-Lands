@@ -71,6 +71,7 @@ setInterval(function () {
 	}
 
 	pots();
+	buy_pots();
 	party_manager();
 	
 }, 250);
