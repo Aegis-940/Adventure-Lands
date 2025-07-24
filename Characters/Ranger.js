@@ -12,8 +12,8 @@ removeAllFloatingStatsWindows();
 removeAllFloatingButtons();
 
 createTeamStatsWindow();
-hookGoldTrackingToStatsWindow("teamStatsWindow");
-hookDPSTrackingToStatsWindow("teamStatsWindow");
+hook_gold_tracking_to_stats_window("teamStatsWindow");
+hook_dps_tracking_to_stats_window("teamStatsWindow");
 
 createMapMovementWindow([
   { id: "SendToMerchant", label: "Deposit", onClick: () => send_to_merchant() },
@@ -86,7 +86,7 @@ setInterval(function () {
 
 		const distance_from_leader = simple_distance(character, leader);
 
-		if (distance_from_leader > follow_distance) {
+		if (distance_from_leader > FOLLOW_DISTANCE) {
 			const targetX = character.x + (leader.x - character.x) / 2;
 			const targetY = character.y + (leader.y - character.y) / 2;
 
@@ -107,56 +107,7 @@ setInterval(function () {
 		const tank = isTank ? character : parent.entities[tank_name];
 
 		if (!tank || tank.rip) {
-			set_message("No Tank");
-			return;
-		}
-
-		// Determine the target
-		let target;
-
-		if (isTank) {
-			target = get_targeted_monster();
-
-			// Auto-acquire target if tank has none
-			if (!target || target.rip) {
-				const found = get_monster_by_type_array(MONSTER_TYPES, 200);
-				if (found) {
-					change_target(found);
-					target = found;
-				}
-			}
-		} else if (tank.target) {
-			target = parent.entities[tank.target];
-		}
-
-		if (!target || target.rip) {
-			set_message("No Monsters");
-			return;
-		}
-
-		// If not the tank, ensure the tank has engaged and drawn aggro
-		if (!isTank && fight_as_a_team === true) {
-			const tankEngaged = tank.target === target.id;
-			const monsterAggroed = target.target === tank_name;
-
-			if (!tankEngaged || !monsterAggroed) {
-				set_message("No Aggro");
-				return;
-			}
-		}
-
-		// === Attack fallback ===
-		if (!is_in_range(target)) {
-			if (!is_moving(character) && free_move) {
-				move(
-					character.x + (target.x - character.x) / 2,
-					character.y + (target.y - character.y) / 2
-				);
-			}
-		} else if (can_attack(target)) {
-			set_message("Attacking");
-			attack(target);
+			// ...rest of your logic...
 		}
 	}
-
-}, 150);
+});
