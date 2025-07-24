@@ -11,10 +11,6 @@
 remove_all_floating_stats_windows();
 remove_all_floating_buttons();
 
-create_team_stats_window();
-hook_gold_tracking_to_stats_window("teamStatsWindow");
-hook_dps_tracking_to_stats_window("teamStatsWindow");
-
 create_map_movement_window([
   { id: "SendToMerchant", label: "Deposit", onClick: () => send_to_merchant() },
   { id: "custom2", label: "Custom 2", onClick: () => null },
