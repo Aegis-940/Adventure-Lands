@@ -4,6 +4,7 @@
 
 let taunt_mode = true;
 let taunt_button_title = "Taunt";
+let attack_mode = true;
 
 const TAUNT_RANGE = 320;
 
@@ -13,10 +14,6 @@ let lastPartyCheck = 0;
 const floatingButtonIds = [];
 const _cmListeners      = [];
 let goldHistory = [];
-
-load_code(99);
-load_code(98);
-load_code(97);
 
 init_persistent_state();
 
