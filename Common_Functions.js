@@ -11,8 +11,8 @@ let inventoryCheckEnabled       = true;
 let group_or_solo_button_title  = "Solo";
 let taunt_button_title          = "Taunt";
 
-const SELLABLE_ITEMS            = ["hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "wbook0", "wshoes", "wcap", "cclaw", "crabclaw", "slimestaff", "stinger", "coat1", "helmet1"];
-const BANKABE_ITEMS             = [];
+const SELLABLE_ITEMS 		= ["hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "wbook0", "wshoes", "wcap", "cclaw", "crabclaw", "slimestaff", "stinger", "coat1", "helmet1"];
+const BANKABLE_ITEMS            = [];
 
 const INVENTORY_CHECK_INTERVAL  = 10 * 60 * 1000;  // 20 minutes in ms
 let lastInventoryCheck          = 0;
@@ -20,31 +20,31 @@ let lastInventoryCheck          = 0;
 const PARTY_CHECK_INTERVAL      = 5000;
 let lastPartyCheck              = 0;
 
-const REQUEST_COOLDOWN           = 30000;           // 30 seconds
+const REQUEST_COOLDOWN          = 30000;           // 30 seconds
 let lastPotionRequest           = 0;
 
-const HP_THRESHOLD               = 500;
-const MP_THRESHOLD               = 500;
-const HEAL_THRESHOLD             = 800;
-const HEAL_COOLDOWN              = 200;
+const HP_THRESHOLD              = 500;
+const MP_THRESHOLD              = 500;
+const HEAL_THRESHOLD            = 800;
+const HEAL_COOLDOWN             = 200;
 
-const TAUNT_RANGE                = 320;
+const TAUNT_RANGE               = 320;
 
-const PARTY_LEADER               = "Ulric";
-const PARTY_MEMBERS              = ["Riva", "Myras", "Riff"];
-const FOLLOW_DISTANCE            = 150;
+const PARTY_LEADER              = "Ulric";
+const PARTY_MEMBERS             = ["Riva", "Myras", "Riff"];
+const FOLLOW_DISTANCE           = 150;
 
-const MONSTER_TYPES              = ["goo", "bee", "crab", "snake", "osnake", "bat", "goldenbat", "croc", "arcticbee", "spider", "prat", "cgoo", "stoneworm", "jr"];
-const MERCHANT_NAME              = "Riff";
+const MONSTER_TYPES             = ["goo", "bee", "crab", "snake", "osnake", "bat", "goldenbat", "croc", "arcticbee", "spider", "prat", "cgoo", "stoneworm", "jr"];
+const MERCHANT_NAME             = "Riff";
 
 let lastDeathTime               = 0;
 
-const _cmListeners               = [];
-const floatingButtonIds          = [];
+const _cmListeners              = [];
+const floatingButtonIds         = [];
 let goldHistory                 = [];
 
-const merchantTaskQueue          = [];
-let merchantBusy                 = false;
+const merchantTaskQueue         = [];
+let merchantBusy                = false;
 
 // -------------------------------------------------------------------- //
 // TANK ROLE CONFIG / PERSISTENCE
