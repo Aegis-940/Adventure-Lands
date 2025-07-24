@@ -34,7 +34,6 @@ const TAUNT_RANGE               = 320;
 
 const PARTY_LEADER              = "Ulric";
 const PARTY_MEMBERS             = ["Riva", "Myras", "Riff"];
-const FOLLOW_DISTANCE           = 150;
 
 const follow_distance           = 150;
 
