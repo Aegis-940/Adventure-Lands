@@ -76,13 +76,13 @@ Object.defineProperty(window, "tank_name", {
 
 // Utility to add CM listeners
 function add_cm_listener(fn) {
-    if (!_cmlisteners.includes(fn)) _cmlisteners.push(fn);
+    if (!_cmListeners.includes(fn)) _cmListeners.push(fn);
 }
 
 // Utility to remove CM listeners
 function remove_cm_listener(fn) {
-    const index = _cmlisteners.indexOf(fn);
-    if (index !== -1) _cmlisteners.splice(index, 1);
+    const index = _cmListeners.indexOf(fn);
+    if (index !== -1) _cmListeners.splice(index, 1);
 }
 
 // Preserve existing handler
@@ -90,7 +90,7 @@ const original_on_cm = typeof on_cm === "function" ? on_cm : () => {};
 
 // Global handler dispatcher
 on_cm = function (name, data) {
-    _cmlisteners.forEach(fn => {
+    _cmListeners.forEach(fn => {
         try {
             fn(name, data);
         } catch (e) {
