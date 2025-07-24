@@ -1,12 +1,12 @@
 var ui_gamelog = function() {
     var gamelog_data = {
       kills: {
-        show: true,
+        show: false,
         regex: /killed/,
         tab_name: 'Kills'
       },
       gold: {
-        show: true,
+        show: false,
         regex: /gold/,
         tab_name: 'Gold'
       },
