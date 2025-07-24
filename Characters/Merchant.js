@@ -27,9 +27,8 @@ async function process_merchant_queue() {
 // BUTTONS AND WINDOWS
 // -------------------------------------------------------------------- //
 
-removeAllFloatingButtons();
-
-removeAllFloatingStatsWindows();
+remove_all_floating_stats_windows();
+remove_all_floating_buttons();
 
 createMapMovementWindow([
   { id: "SellBank", label: "Sell / Bank", onClick: () => sell_and_bank() },
