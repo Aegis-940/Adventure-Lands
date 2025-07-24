@@ -12,7 +12,7 @@ const PARTY_CHECK_INTERVAL = 5000;
 let lastPartyCheck = 0;
 
 const floatingButtonIds = [];
-const _cmListeners      = [];
+const _cmListeners = [];
 let goldHistory = [];
 
 init_persistent_state();
@@ -30,11 +30,11 @@ hookDPSTrackingToStatsWindow("teamStatsWindow");
 
 createMapMovementWindow([
 	{ id: "SendToMerchant", label: "Deposit", onClick: () => send_to_merchant() },
-	{ id: "custom2",        label: "Custom 2", onClick: () => null },
-	{ id: "custom3",        label: "Custom 3", onClick: () => null },
-	{ id: "custom4",        label: "Custom 4", onClick: () => null },
-	{ id: "custom5",        label: "Custom 5", onClick: () => null },
-	{ id: "custom6",        label: "Custom 6", onClick: () => null }
+	{ id: "custom2", label: "Custom 2", onClick: () => null },
+	{ id: "custom3", label: "Custom 3", onClick: () => null },
+	{ id: "custom4", label: "Custom 4", onClick: () => null },
+	{ id: "custom5", label: "Custom 5", onClick: () => null },
+	{ id: "custom6", label: "Custom 6", onClick: () => null }
 ]);
 
 toggle_combat();
