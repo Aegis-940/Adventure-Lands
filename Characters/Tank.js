@@ -2,7 +2,7 @@
 // PERSISTENT STATE
 // -------------------------------------------------------------------- //
 
-//init_persistent_state();
+init_persistent_state();
 
 // -------------------------------------------------------------------- //
 // BUTTONS AND WINDOWS
@@ -16,12 +16,12 @@ hook_gold_tracking_to_stats_window("teamStatsWindow");
 hook_dps_tracking_to_stats_window("teamStatsWindow");
 
 createMapMovementWindow([
-	{ id: "SendToMerchant", label: "Deposit", onClick: () => send_to_merchant() },
-	{ id: "custom2", label: "Custom 2", onClick: () => null },
-	{ id: "custom3", label: "Custom 3", onClick: () => null },
-	{ id: "custom4", label: "Custom 4", onClick: () => null },
-	{ id: "custom5", label: "Custom 5", onClick: () => null },
-	{ id: "custom6", label: "Custom 6", onClick: () => null }
+	{ id: "SendToMerchant", label: "Deposit",    onClick: () => send_to_merchant() },
+	{ id: "custom2",        label: "Custom 2",   onClick: () => null },
+	{ id: "custom3",        label: "Custom 3",   onClick: () => null },
+	{ id: "custom4",        label: "Custom 4",   onClick: () => null },
+	{ id: "custom5",        label: "Custom 5",   onClick: () => null },
+	{ id: "custom6",        label: "Custom 6",   onClick: () => null }
 ]);
 
 toggle_combat();
@@ -45,13 +45,19 @@ setInterval(() => {
 	party_manager();
 	check_and_request_pots();
 
-	// TAUNT - pull aggro from monsters targeting allies
-	if (taunt_mode && can_use("taunt") && !is_moving(character) && tank_name === "Ulric") {
+	// TAUNT — pull aggro from monsters targeting allies
+	if (
+		taunt_mode &&
+		can_use("taunt") &&
+		!is_moving(character) &&
+		tank_name === "Ulric"
+	) {
 		for (const id in parent.entities) {
 			const e = parent.entities[id];
 			if (
 				e?.type === "monster" &&
-				e.target && e.target !== character.name &&
+				e.target &&
+				e.target !== character.name &&
 				is_in_party(e.target) &&
 				is_in_range(e, "taunt")
 			) {
@@ -61,8 +67,8 @@ setInterval(() => {
 		}
 	}
 
-	const isTank = character.name === tank_name;
-	const tank   = isTank ? character : parent.entities[tank_name];
+	const is_tank = character.name === tank_name;
+	const tank    = is_tank ? character : parent.entities[tank_name];
 
 	if (!tank || tank.rip) {
 		set_message("No Tank");
@@ -72,7 +78,7 @@ setInterval(() => {
 	// Determine the target
 	let target;
 
-	if (isTank) {
+	if (is_tank) {
 		target = get_targeted_monster();
 
 		// Auto-acquire target if tank has none
@@ -93,11 +99,11 @@ setInterval(() => {
 	}
 
 	// If not the tank, ensure the tank has engaged and drawn aggro
-	if (!isTank) {
-		const tankEngaged    = tank.target === target.id;
-		const monsterAggroed = target.target === tank_name;
+	if (!is_tank) {
+		const tank_engaged    = tank.target === target.id;
+		const monster_aggroed = target.target === tank_name;
 
-		if (!tankEngaged || !monsterAggroed) {
+		if (!tank_engaged || !monster_aggroed) {
 			set_message("No Aggro");
 			return;
 		}
@@ -111,6 +117,14 @@ setInterval(() => {
 				character.y + (target.y - character.y) / 2
 			);
 		}
+	} else if (
+		character.ctype === "warrior" &&
+		can_use("cleave") &&
+		is_in_range(target, "cleave")
+	) {
+		use_skill("cleave", target);
+	} else if (can_attack(target)) {
+		set_message("Attacking");
+		attack(target);
 	}
-	// ...rest of your loop logic...
-});
+}, 250);
