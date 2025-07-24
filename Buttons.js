@@ -326,12 +326,12 @@ function toggle_stats_window() {
 function toggle_inventory_check() {
 	// Floating toggle button for inventory transfer
 	createFloatingButton("ToggleInventoryCheck", "🔁✅", async () => {
-		inventoryCheckEnabled = !inventoryCheckEnabled;
+		inventory_check_enabled = !inventory_check_enabled;
 
 		const btn = window.top.document.getElementById("ToggleInventoryCheck");
-		if (btn) btn.innerText = inventoryCheckEnabled ? "🔁✅" : "🔁❌";
+		if (btn) btn.innerText = inventory_check_enabled ? "🔁✅" : "🔁❌";
 
-		if (inventoryCheckEnabled) {
+		if (inventory_check_enabled) {
 			game_log("🔁 Inventory check ENABLED");
 
 			// Kick off the function immediately
