@@ -59,7 +59,7 @@ setInterval(() => {
 	check_and_request_pots();
 
 	// === Follow logic ===
-	const leader = parent.entities[party_leader];
+	const leader = parent.entities[PARTY_LEADER];
 	const distance_from_leader = leader ? simple_distance(character, leader) : Infinity;
 
 	if (!leader || leader.rip || leader.map !== character.map) {
