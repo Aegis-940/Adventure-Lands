@@ -42,7 +42,6 @@ const MERCHANT_NAME             = "Riff";
 
 let lastDeathTime               = 0;
 
-const _cmListeners              = [];
 const floatingButtonIds         = [];
 let goldHistory                 = [];
 
