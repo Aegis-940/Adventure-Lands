@@ -2,9 +2,10 @@
 // CONFIG VARIABLES
 // -------------------------------------------------------------------- //
 
+let attack_mode = true;
+
 let taunt_mode = true;
 let taunt_button_title = "Taunt";
-let attack_mode = true;
 
 const TAUNT_RANGE = 320;
 
