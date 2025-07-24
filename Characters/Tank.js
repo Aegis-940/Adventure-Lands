@@ -24,6 +24,7 @@ toggle_combat();
 toggle_tank_role();
 toggle_follow_tank();
 toggle_free_move();
+hide_skills_tab();
 // toggle_stats_window();
 
 // -------------------------------------------------------------------- //
