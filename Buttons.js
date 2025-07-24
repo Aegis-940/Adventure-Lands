@@ -5,18 +5,26 @@
 function fight_solo_or_group(title) {
 	if (!parent.caracAL) {
 		add_bottom_button("ToggleFightMode", title, () => {
-			// Flip the mode
-			fight_as_a_team = !fight_as_a_team;
+			FIGHT_AS_A_TEAM = !FIGHT_AS_A_TEAM;
+			set_button_value("ToggleFightMode", FIGHT_AS_A_TEAM ? "Group" : "Solo");
 
-			// Update button text
-			set_button_value("ToggleFightMode", fight_as_a_team ? "Group" : "Solo");
+			title = FIGHT_AS_A_TEAM ? "Group" : "Solo";
+			log("Fight mode now: " + (FIGHT_AS_A_TEAM ? "GROUP" : "SOLO"));
 
-			title = fight_as_a_team ? "Group" : "Solo";
+			GROUP_OR_SOLO_BUTTON_TITLE = title;
+			return GROUP_OR_SOLO_BUTTON_TITLE;
+		});
+	}
+}
 
-			// Feedback
-			log("Fight mode now: " + (fight_as_a_team ? "GROUP" : "SOLO"));
-			group_or_solo_button_title = title;
-			return group_or_solo_button_title;
+function taunt_active() {
+	if (!parent.caracAL) {
+		add_bottom_button("ToggleTauntMode", TAUNT_BUTTON_TITLE, () => {
+			TAUNT_MODE = !TAUNT_MODE;
+			TAUNT_BUTTON_TITLE = TAUNT_MODE ? "Taunt" : "No Taunt";
+			set_button_value("ToggleTauntMode", TAUNT_BUTTON_TITLE);
+			log("Taunt mode now: " + (TAUNT_MODE ? "Active" : "Inactive"));
+			return TAUNT_MODE;
 		});
 	}
 }
@@ -31,8 +39,8 @@ function remove_floating_button(id) {
 }
 
 function remove_all_floating_buttons() {
-	floating_button_ids.forEach(id => remove_floating_button(id));
-	floating_button_ids.length = 0;
+	FLOATING_BUTTON_IDS.forEach(id => remove_floating_button(id));
+	FLOATING_BUTTON_IDS.length = 0;
 }
 
 // -------------------------------------------------------------------- //
@@ -42,15 +50,15 @@ function remove_all_floating_buttons() {
 function create_floating_button(id, label, on_click, style_overrides = {}) {
 	remove_floating_button(id);
 
-	if (!floating_button_ids.includes(id)) {
-		floating_button_ids.push(id);
+	if (!FLOATING_BUTTON_IDS.includes(id)) {
+		FLOATING_BUTTON_IDS.push(id);
 	}
 
 	const {
 		top = "50vh",
 		right = "20px",
-		font_size = "14px",
-		min_width = "120px",
+		fontSize = "14px",
+		minWidth = "120px",
 		height = "35px",
 		border = "2px solid #888",
 		title = ""
@@ -71,14 +79,14 @@ function create_floating_button(id, label, on_click, style_overrides = {}) {
 		alignItems: "center",
 		justifyContent: "center",
 		padding: "0",
-		fontSize: font_size,
+		fontSize,
 		zIndex: "9999",
 		background: "#000",
 		color: "#fff",
 		border,
 		borderRadius: "4px",
 		cursor: "pointer",
-		minWidth: min_width,
+		minWidth,
 		height
 	});
 
@@ -112,7 +120,7 @@ function create_map_movement_window(custom_actions = []) {
 		zIndex: 9999,
 		fontFamily: "sans-serif",
 		fontSize: "14px",
-		cursor: "move"
+		cursor: "move",
 	});
 
 	win.innerHTML = `
@@ -140,21 +148,24 @@ function create_map_movement_window(custom_actions = []) {
 			border: "2px solid rgba(255, 255, 255, 0.3)",
 			borderRadius: "3px",
 			cursor: "pointer",
-			flex: "1 1 30%"
+			flex: "1 1 30%",
 		});
 
 		container.appendChild(btn);
 	}
 
+	// Region buttons
 	add_button("map-btns", "btnMainland", "🌍 Main", () => smart_move({ map: "main", x: -36, y: -153 }));
 	add_button("map-btns", "btnDesertland", "☀️ Desert", () => smart_move("desertland"));
 	add_button("map-btns", "btnSnowland", "❄️ Snow", () => smart_move("winterland"));
 
+	// Character buttons
 	add_button("char-btns", "btnUlric", "🛡️ Ulric", () => move_to_character("Ulric"));
 	add_button("char-btns", "btnMyras", "🧪 Myras", () => move_to_character("Myras"));
 	add_button("char-btns", "btnRiva", "🏹 Riva", () => move_to_character("Riva"));
 	add_button("char-btns", "btnRiff", "💰 Riff", () => move_to_character("Riff"));
 
+	// Custom buttons
 	custom_actions.forEach(({ id, label, onClick }) => {
 		add_button("custom-btns", id, label, onClick);
 	});
