@@ -18,7 +18,7 @@ const init_xp_timer = () => {
         display: 'table',
         overflow: 'hidden',
         marginBottom: '-5px',
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
     });
 
     $('<div id="xptimercontent"></div>')
