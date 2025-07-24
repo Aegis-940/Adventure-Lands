@@ -11,7 +11,6 @@ function init_persistent_state() {
 // CONFIG VARIABLES
 // -------------------------------------------------------------------- //
 
-
 let attack_mode = true;
 
 let taunt_mode = true;
