@@ -59,7 +59,7 @@ setInterval(() => {
 	party_manager();
 	check_and_request_pots();
 
-	// TAUNT — pull aggro from monsters targeting allies
+	// TAUNT - pull aggro from monsters targeting allies
 	if (taunt_mode && can_use("taunt") && !is_moving(character) && tank_name === "Ulric") {
 		for (const id in parent.entities) {
 			const e = parent.entities[id];
