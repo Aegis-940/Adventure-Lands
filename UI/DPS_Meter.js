@@ -68,7 +68,7 @@ function initDPSMeter() {
     const brc = $('#bottomrightcorner');
     brc.find('#dpsmeter').remove();
     const container = $("<div id='dpsmeter'></div>").css({
-        fontSize: '20px', color: 'white', textAlign: 'center', display: 'table', overflow: 'hidden', marginBottom: '-3px', width: '100%', backgroundColor: 'rgba(0,0,0,1)'
+        fontSize: '20px', color: 'white', textAlign: 'center', display: 'table', overflow: 'hidden', marginBottom: '-3px', width: '100%', backgroundColor: 'rgba(0,0,0,0.7)'
     });
     container.append(
         $("<div id='dpsmetercontent'></div>").css({ display: 'table-cell', verticalAlign: 'middle', padding: '2px', border: '4px solid grey' })
