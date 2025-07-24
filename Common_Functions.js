@@ -902,13 +902,25 @@ function hook_dps_tracking_to_stats_window() {
     }, 500);
 }
 
-const hide_skills_tab = () => {
-    const $ = parent.$;
-    const skills_panel = $("#rightcorner");
+function hide_skills_ui() {
+    const doc = parent.document;
 
-    if (skills_panel && skills_panel.length) {
-        skills_panel.hide(); // Hides the entire right panel (skills + UI tabs)
-    } else {
-        console.warn("❗ Skills panel not found.");
+    // Hide skill buttons (bottom right grid)
+    const skill_buttons = doc.querySelector("#skillbar");
+    if (skill_buttons) skill_buttons.style.display = "none";
+
+    // Hide the right panel (contains skills, info, etc.)
+    const right_panel = doc.querySelector("#rightcorner");
+    if (right_panel) right_panel.style.display = "none";
+
+    // Optional: Hide the "Stats", "Skills", "Inventory" tab buttons
+    const tabs = [
+        "#rightcornerbuttonskills",
+        "#rightcornerbuttonstats",
+        "#rightcornerbuttoninventory"
+    ];
+    for (const selector of tabs) {
+        const btn = doc.querySelector(selector);
+        if (btn) btn.style.display = "none";
     }
-};
+}
