@@ -38,7 +38,7 @@ const updateGoldDisplay = () => {
 	const averageGold = calculateAverageGold(); // Calculate average gold based on the selected interval
 	$('#goldtimercontent').html(formatGoldString(averageGold)).css({
 		background: 'black',
-		backgroundColor: 'rgba(0, 0, 0, 0.7)',
+		backgroundColor: 'rgba(0, 0, 0, 0.6)',
 		//backgroundColor: 'rgba(0, 0, 0, 1)', // This is black background
 		border: 'solid gray',
 		borderWidth: '4px 4px',
