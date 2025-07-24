@@ -44,7 +44,7 @@ setInterval(function () {
 	check_and_request_pots();
 	fight_solo_or_group(group_or_solo_button_title);
 
-	const leader = parent.entities[party_leader];
+	const leader = parent.entities[PARTY_LEADER];
 
 	if (!fight_as_a_team) {
 
