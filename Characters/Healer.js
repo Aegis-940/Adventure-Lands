@@ -67,7 +67,7 @@ setInterval(() => {
 		return;
 	}
 
-	if (distance_from_leader > follow_distance) {
+	if (distance_from_leader > FOLLOW_DISTANCE) {
 		const target_x = character.x + (leader.x - character.x) / 2;
 		const target_y = character.y + (leader.y - character.y) / 2;
 
