@@ -47,7 +47,7 @@ const updateXpTracker = () => {
     if (xp_history.length < 2) return;
 
     const first = xp_history[0];
-    const last = xp_history.at(-1);
+    const last = xp_history[xp_history.length - 1];
     const elapsed_sec = (last.time - first.time) / 1000;
     const gained_xp = last.xp - first.xp;
 
