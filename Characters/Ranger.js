@@ -37,7 +37,7 @@ toggle_free_move();
 setInterval(function () {
 	if (!attack_mode || character.rip || is_moving(character)) return;
 
-	use_pots();
+	pots();
 	loot_items();
 	manage_party();
 	check_and_request_pots();
