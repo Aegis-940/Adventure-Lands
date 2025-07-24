@@ -1,9 +1,8 @@
-
 // ───────────────────────────────────────
 // GENERIC WINDOW
 // ───────────────────────────────────────
 
-function createFloatingStatsWindow(
+function create_floating_stats_window(
   id,
   { top = "20px", left = "20px", width = "150px", minHeight = "50px" } = {}
 ) {
@@ -12,7 +11,7 @@ function createFloatingStatsWindow(
 
   const win = window.top.document.createElement("div");
   win.id = id;
-  win.className = "floating-stats-window"; // ✅ So we can query it later
+  win.className = "floating-stats-window";
 
   Object.assign(win.style, {
     position: "fixed",
@@ -28,22 +27,22 @@ function createFloatingStatsWindow(
     border: "1px solid #888",
     borderRadius: "4px",
     zIndex: "9999",
-    overflow: "hidden",  
+    overflow: "hidden",
     cursor: "move"
   });
 
-  // ✅ Required for dragging to work: must have pixel units
-  win.style.top = parseInt(parseFloat(top)) + "px";
+  // pixel units required for dragging
+  win.style.top  = parseInt(parseFloat(top)) + "px";
   win.style.left = parseInt(parseFloat(left)) + "px";
 
-  makeDraggable(win);
+  make_draggable(win);
   win.innerText = "Stats loading…";
 
   window.top.document.body.appendChild(win);
   return win;
 }
 
-function removeAllFloatingStatsWindows() {
+function remove_all_floating_stats_windows() {
   const wins = window.top.document.querySelectorAll(".floating-stats-window");
   wins.forEach(win => win.remove());
 }
@@ -52,28 +51,30 @@ function removeAllFloatingStatsWindows() {
 // WINDOW DRAGGER
 // ───────────────────────────────────────
 
-function makeDraggable(el) {
-  let isDragging = false, startX, startY, startTop, startLeft;
+function make_draggable(el) {
+  let is_dragging = false,
+      start_x, start_y,
+      start_top, start_left;
 
   el.addEventListener("mousedown", e => {
-    isDragging = true;
-    startX = e.clientX;
-    startY = e.clientY;
-    startTop  = parseInt(el.style.top);
-    startLeft = parseInt(el.style.left);
+    is_dragging = true;
+    start_x      = e.clientX;
+    start_y      = e.clientY;
+    start_top    = parseInt(el.style.top);
+    start_left   = parseInt(el.style.left);
     e.preventDefault();
   });
 
   window.top.addEventListener("mousemove", e => {
-    if (!isDragging) return;
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    el.style.top  = `${startTop + dy}px`;
-    el.style.left = `${startLeft + dx}px`;
+    if (!is_dragging) return;
+    const dx = e.clientX - start_x;
+    const dy = e.clientY - start_y;
+    el.style.top  = `${start_top + dy}px`;
+    el.style.left = `${start_left + dx}px`;
   });
 
   window.top.addEventListener("mouseup", () => {
-    isDragging = false;
+    is_dragging = false;
   });
 }
 
@@ -81,7 +82,7 @@ function makeDraggable(el) {
 // GLOBAL STATS WINDOW
 // ───────────────────────────────────────
 
-function createTeamStatsWindow() {
+function create_team_stats_window() {
   const id = "teamStatsWindow";
   const doc = window.top.document;
   doc.getElementById(id)?.remove();
@@ -90,32 +91,40 @@ function createTeamStatsWindow() {
   win.id = id;
   win.className = "floating-stats-window";
   Object.assign(win.style, {
-    position: "fixed", top: "160px", right: "2px",
-    width: "300px", minHeight: "200px", padding: "8px",
-    background: "rgba(0,0,0,0.5)", color: "#fff",
-    fontFamily: "sans-serif", fontSize: "14px",
-    border: "3px solid rgba(255,255,255,0.2)",
-    borderRadius: "5px",
+    position:       "fixed",
+    top:            "160px",
+    right:          "2px",
+    width:          "300px",
+    minHeight:      "200px",
+    padding:        "8px",
+    background:     "rgba(0,0,0,0.5)",
+    color:          "#fff",
+    fontFamily:     "sans-serif",
+    fontSize:       "14px",
+    border:         "3px solid rgba(255,255,255,0.2)",
+    borderRadius:   "5px",
     backdropFilter: "blur(1px)",
-    zIndex: "9999", overflow: "auto",
-    whiteSpace: "pre-line", cursor: "move"
+    zIndex:         "9999",
+    overflow:       "auto",
+    whiteSpace:     "pre-line",
+    cursor:         "move"
   });
 
   // Header
   win.innerText = "📊 Team Performance Summary\n────────────────────────────";
 
-  // Placeholder for other stats
+  // Stats body placeholder
   const body = doc.createElement("div");
   body.id = "statsBody";
   win.appendChild(body);
 
-  // —— NEW: DPS container —— 
-  const dpsDiv = doc.createElement("div");
-  dpsDiv.id = "teamDpsContainer";
-  dpsDiv.style.marginTop = "8px";
-  win.appendChild(dpsDiv);
+  // DPS container
+  const dps_div = doc.createElement("div");
+  dps_div.id = "teamDpsContainer";
+  dps_div.style.marginTop = "8px";
+  win.appendChild(dps_div);
 
-  makeDraggable(win);
+  make_draggable(win);
   doc.body.appendChild(win);
-  window._teamStatsWin = win;
+  window._team_stats_win = win;
 }
