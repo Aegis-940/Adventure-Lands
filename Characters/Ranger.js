@@ -38,7 +38,7 @@ setInterval(function () {
 	if (!attack_mode || character.rip || is_moving(character)) return;
 
 	pots();
-	loot_items();
+	loot();
 	manage_party();
 	check_and_request_pots();
 	fight_solo_or_group(group_or_solo_button_title);
