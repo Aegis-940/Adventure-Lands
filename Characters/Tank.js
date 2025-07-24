@@ -16,10 +16,6 @@ const floatingButtonIds = [];
 const _cmListeners      = [];
 let goldHistory = [];
 ​
-load_code(99);
-load_code(98);
-load_code(97);
-​
 init_persistent_state();
 ​
 // -------------------------------------------------------------------- //
