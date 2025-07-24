@@ -9,7 +9,6 @@
 // -------------------------------------------------------------------- //
 
 removeAllFloatingStatsWindows();
-removeAllFloatingButtons();
 
 createTeamStatsWindow();
 hook_gold_tracking_to_stats_window("teamStatsWindow");
