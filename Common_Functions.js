@@ -36,6 +36,8 @@ const PARTY_LEADER              = "Ulric";
 const PARTY_MEMBERS             = ["Riva", "Myras", "Riff"];
 const FOLLOW_DISTANCE           = 150;
 
+const follow_distance           = 150;
+
 const MONSTER_TYPES             = ["goo", "bee", "crab", "snake", "osnake", "bat", "goldenbat", "croc", "arcticbee", "spider", "prat", "cgoo", "stoneworm", "jr"];
 const MERCHANT_NAME             = "Riff";
 
