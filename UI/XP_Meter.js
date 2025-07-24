@@ -1,15 +1,12 @@
-let xpHistory = []; // Store XP data over time
-const XP_ROLLING_WINDOW = 5 * 60 * 1000; // 5 minutes in milliseconds
-let largestXPGain = 0;
-let xpInterval = 'minute'; // Keep this for display; it's now always a 5-min rolling window
-let targetXpRate = 40000; // Set your target XP rate
+let xp_history = []; // Store XP data over time
+const XP_ROLLING_WINDOW = 5 * 60 * 1000; // 5 minutes
+let target_xp_rate = 40000; // Your goal XP rate (per minute)
 
-// Initialize the XP timer display
-const initXpTimer = () => {
+const init_xp_timer = () => {
     const $ = parent.$;
     $('#bottomrightcorner').find('#xptimer').remove();
-    
-    const xpContainer = $('<div id="xptimer"></div>').css({
+
+    const xp_container = $('<div id="xptimer"></div>').css({
         background: 'black',
         border: 'solid gray',
         borderWidth: '4px 4px',
@@ -27,68 +24,57 @@ const initXpTimer = () => {
     $('<div id="xptimercontent"></div>')
         .css({ display: 'table-cell', verticalAlign: 'middle' })
         .html('Estimated time until level up:<br><span id="xpcounter" style="font-size: 30px;">Loading...</span><br><span id="xprate">(Kill something!)</span>')
-        .appendTo(xpContainer);
-    
-    $('#bottomrightcorner').children().first().after(xpContainer);
+        .appendTo(xp_container);
+
+    $('#bottomrightcorner').children().first().after(xp_container);
 };
 
-// Update the XP timer display
-const updateXpTimer = () => {
+const update_xp_timer = () => {
     const $ = parent.$;
     const now = Date.now();
 
-    // Update XP history and trim to last 5 minutes
-    xpHistory.push({ t: now, xp: character.xp });
-    xpHistory = xpHistory.filter(entry => entry.t >= now - XP_ROLLING_WINDOW);
+    // Push current XP state
+    xp_history.push({ t: now, xp: character.xp });
 
-    if (xpHistory.length < 2) return; // Not enough data to calculate
+    // Keep only the last 5 minutes
+    xp_history = xp_history.filter(entry => entry.t >= now - XP_ROLLING_WINDOW);
 
-    const elapsedTime = (xpHistory.at(-1).t - xpHistory[0].t) / 1000;
-    const xpGain = xpHistory.at(-1).xp - xpHistory[0].xp;
+    if (xp_history.length < 2) return; // Not enough data
 
-    if (elapsedTime <= 0 || xpGain <= 0) return;
+    const first_entry = xp_history[0];
+    const last_entry = xp_history[xp_history.length - 1];
+    const elapsed_time = (last_entry.t - first_entry.t) / 1000; // seconds
+    const xp_gain = last_entry.xp - first_entry.xp;
 
-    const averageXP = xpGain / (elapsedTime / 60); // XP per minute
+    if (elapsed_time <= 0 || xp_gain <= 0) return;
 
-    const xpMissing = parent.G.levels[character.level] - character.xp;
-    const secondsRemaining = Math.round(xpMissing / (xpGain / elapsedTime));
-    const counter = formatRemainingTime(secondsRemaining);
+    const xp_per_minute = xp_gain / (elapsed_time / 60);
+    const xp_remaining = parent.G.levels[character.level] - character.xp;
+    const seconds_remaining = Math.round(xp_remaining / (xp_gain / elapsed_time));
 
-    $('#xpcounter').css('color', '#87CEEB').text(counter);
+    $('#xpcounter').css('color', '#87CEEB').text(format_remaining_time(seconds_remaining));
 
-    const xpRateColor = getXpRateColor(averageXP, targetXpRate);
-    $('#xprate').css('color', xpRateColor).html(`<span class="xprate-container">${ncomma(Math.round(averageXP))} XP/min</span>`);
+    const color = get_xp_rate_color(xp_per_minute, target_xp_rate);
+    $('#xprate').css('color', color).html(`<span class="xprate-container">${ncomma(Math.round(xp_per_minute))} XP/min</span>`);
 };
 
-// Format remaining time
-const formatRemainingTime = (seconds) => {
+const format_remaining_time = (seconds) => {
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     return `${days}d ${hours}h ${minutes}min`;
 };
 
-// Determine XP color
-const getXpRateColor = (averageXP, targetXpRate) => {
-    if (averageXP < targetXpRate * 0.5) return '#FF0000';
-    if (averageXP < targetXpRate) return '#FFA500';
-    if (averageXP <= targetXpRate * 1.2) return '#FFFF00';
-    if (averageXP <= targetXpRate * 1.5) return '#90EE90';
+const get_xp_rate_color = (avg, target) => {
+    if (avg < target * 0.5) return '#FF0000';
+    if (avg < target) return '#FFA500';
+    if (avg <= target * 1.2) return '#FFFF00';
+    if (avg <= target * 1.5) return '#90EE90';
     return '#00FF00';
 };
 
 const ncomma = (x) => x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
-// Optional interval selector (no longer used directly, but preserved for compatibility)
-const setXPInterval = (newInterval) => {
-    if (['second', 'minute', 'hour', 'day'].includes(newInterval)) {
-        xpInterval = newInterval;
-        console.log(`XP interval label set to ${xpInterval} (logic is now fixed at 5 min)`);
-    } else {
-        console.warn(`Invalid interval: ${newInterval}`);
-    }
-};
-
-// Init and start
-initXpTimer();
-setInterval(updateXpTimer, 500);
+// Initialize and loop
+init_xp_timer();
+setInterval(update_xp_timer, 500);
