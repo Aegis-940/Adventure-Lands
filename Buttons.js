@@ -103,4 +103,59 @@ function create_map_movement_window(custom_actions = []) {
 		top: "380px",
 		right: "2px",
 		width: "300px",
-		pa
+		padding: "8px",
+		background: "rgba(0, 0, 0, 0.5)",
+		color: "#fff",
+		border: "3px solid rgba(255, 255, 255, 0.2)",
+		borderRadius: "5px",
+		backdropFilter: "blur(1px)",
+		zIndex: 9999,
+		fontFamily: "sans-serif",
+		fontSize: "14px",
+		cursor: "move"
+	});
+
+	win.innerHTML = `
+		<div style="font-weight: bold; margin-bottom: 10px;">🧭 Map Movement</div>
+		<div id="map-btns" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px;"></div>
+		<div id="char-btns" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; margin-bottom: 8px;"></div>
+		<div id="custom-btns" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>
+	`;
+
+	window.top.document.body.appendChild(win);
+	make_draggable(win);
+
+	function add_button(container_id, id, label, on_click) {
+		const container = win.querySelector(`#${container_id}`);
+		const btn = window.top.document.createElement("button");
+		btn.id = id;
+		btn.innerText = label;
+		btn.addEventListener("click", on_click);
+
+		Object.assign(btn.style, {
+			padding: "6px 10px",
+			fontSize: "13px",
+			background: "rgba(0, 0, 0, 0.5)",
+			color: "#fff",
+			border: "2px solid rgba(255, 255, 255, 0.3)",
+			borderRadius: "3px",
+			cursor: "pointer",
+			flex: "1 1 30%"
+		});
+
+		container.appendChild(btn);
+	}
+
+	add_button("map-btns", "btnMainland", "🌍 Main", () => smart_move({ map: "main", x: -36, y: -153 }));
+	add_button("map-btns", "btnDesertland", "☀️ Desert", () => smart_move("desertland"));
+	add_button("map-btns", "btnSnowland", "❄️ Snow", () => smart_move("winterland"));
+
+	add_button("char-btns", "btnUlric", "🛡️ Ulric", () => move_to_character("Ulric"));
+	add_button("char-btns", "btnMyras", "🧪 Myras", () => move_to_character("Myras"));
+	add_button("char-btns", "btnRiva", "🏹 Riva", () => move_to_character("Riva"));
+	add_button("char-btns", "btnRiff", "💰 Riff", () => move_to_character("Riff"));
+
+	custom_actions.forEach(({ id, label, onClick }) => {
+		add_button("custom-btns", id, label, onClick);
+	});
+}
