@@ -3,6 +3,26 @@
 // CONFIG VARIABLES
 // -------------------------------------------------------------------- //
 
+let attack_mode			= true;
+
+const HEAL_THRESHOLD		= 800;
+const HEAL_COOLDOWN			= 200;
+
+const party_leader			= "Ulric";
+
+const HP_THRESHOLD			= 500;
+const MP_THRESHOLD			= 500;
+const MERCHANT_NAME			= "Riff";
+
+const _cmListeners			= [];
+const floatingButtonIds		= [];
+
+let goldHistory = [];
+
+load_code(99);
+load_code(98);
+load_code(97);
+
 let attack_mode = true;
 
 let taunt_mode = true;
