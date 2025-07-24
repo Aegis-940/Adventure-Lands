@@ -194,13 +194,13 @@ function toggle_combat() {
 // -------------------------------------------------------------------- //
 
 function toggle_tank_role() {
-	create_floating_button("toggle_role_mode", tank_roles[who_is_tank].label, () => {
-		who_is_tank = (who_is_tank + 1) % tank_roles.length;
-		tank_name = tank_roles[who_is_tank].name;
+	create_floating_button("toggle_role_mode", TANK_ROLES[who_is_tank].label, () => {
+		who_is_tank = (who_is_tank + 1) % TANK_ROLES.length;
+		tank_name = TANK_ROLES[who_is_tank].name;
 
 		set("who_is_tank", who_is_tank);
 		set("tank_name", tank_name);
-		const label = tank_roles[who_is_tank].label;
+		const label = TANK_ROLES[who_is_tank].label;
 
 		const btn = window.top.document.getElementById("toggle_role_mode");
 		if (btn) btn.innerText = label;
