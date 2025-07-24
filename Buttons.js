@@ -16,18 +16,6 @@ function fight_solo_or_group(title) {
 	}
 }
 
-function taunt_active() {
-	if (!parent.caracAL) {
-		add_bottom_button("toggle_taunt_mode", taunt_button_title, () => {
-			taunt_mode = !taunt_mode;
-			taunt_button_title = taunt_mode ? "Taunt" : "No Taunt";
-			set_button_value("toggle_taunt_mode", taunt_button_title);
-			game_log("Taunt mode now: " + (taunt_mode ? "Active" : "Inactive"));
-			return taunt_mode;
-		});
-	}
-}
-
 // -------------------------------------------------------------------- //
 // REMOVING BUTTONS
 // -------------------------------------------------------------------- //
@@ -171,6 +159,7 @@ function create_map_movement_window(custom_actions = []) {
 // COMBAT TOGGLE
 // -------------------------------------------------------------------- //
 
+// Create a toggle button for Combat / Peace
 function toggle_combat() {
 	create_floating_button("toggle_combat", "⚔️", () => {
 		attack_mode = !attack_mode;
@@ -193,6 +182,7 @@ function toggle_combat() {
 // TOGGLE WHICH CHARACTER IS TANKING
 // -------------------------------------------------------------------- //
 
+// Create a toggle button to determine who the tank is and broadcast it
 function toggle_tank_role() {
 	create_floating_button("toggle_role_mode", TANK_ROLES[who_is_tank].label, () => {
 		who_is_tank = (who_is_tank + 1) % TANK_ROLES.length;
