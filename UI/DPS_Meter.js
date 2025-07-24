@@ -103,7 +103,7 @@ parent.socket.on('hit', data => {
         if (data.dreturn && get_player(data.id) && !get_player(data.hid)) {
             dreturn += data.dreturn;
             const e = getPlayerEntry(data.id);
-            e.sumDamageReturn ??= 0;
+            if (e.sumDamageReturn == null) e.sumDamageReturn = 0;
             e.sumDamageReturn += data.dreturn;
         }
 
