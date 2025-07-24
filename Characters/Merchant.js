@@ -30,7 +30,7 @@ async function process_merchant_queue() {
 remove_all_floating_stats_windows();
 remove_all_floating_buttons();
 
-createMapMovementWindow([
+create_map_movement_window([
   { id: "SellBank", label: "Sell / Bank", onClick: () => sell_and_bank() },
   { id: "CollectLoot", label: "Take Loot", onClick: () => check_remote_inventories()  },
   { id: "GoFish", label: "Go Fish", onClick: () => go_fish() },
