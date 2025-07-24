@@ -29,12 +29,12 @@ hookGoldTrackingToStatsWindow("teamStatsWindow");
 hookDPSTrackingToStatsWindow("teamStatsWindow");
 
 createMapMovementWindow([
-  { id: "SendToMerchant", label: "Deposit", onClick: () => send_to_merchant() },
-  { id: "custom2", label: "Custom 2", onClick: () => null },
-  { id: "custom3", label: "Custom 3", onClick: () => null },
-  { id: "custom4", label: "Custom 4", onClick: () => null },
-  { id: "custom5", label: "Custom 5", onClick: () => null },
-  { id: "custom6", label: "Custom 6", onClick: () => null }
+	{ id: "SendToMerchant", label: "Deposit", onClick: () => send_to_merchant() },
+	{ id: "custom2",        label: "Custom 2", onClick: () => null },
+	{ id: "custom3",        label: "Custom 3", onClick: () => null },
+	{ id: "custom4",        label: "Custom 4", onClick: () => null },
+	{ id: "custom5",        label: "Custom 5", onClick: () => null },
+	{ id: "custom6",        label: "Custom 6", onClick: () => null }
 ]);
 
 toggle_combat();
@@ -75,7 +75,7 @@ setInterval(() => {
 	}
 
 	const isTank = character.name === tank_name;
-	const tank = isTank ? character : parent.entities[tank_name];
+	const tank   = isTank ? character : parent.entities[tank_name];
 
 	if (!tank || tank.rip) {
 		set_message("No Tank");
@@ -107,7 +107,7 @@ setInterval(() => {
 
 	// If not the tank, ensure the tank has engaged and drawn aggro
 	if (!isTank) {
-		const tankEngaged = tank.target === target.id;
+		const tankEngaged    = tank.target === target.id;
 		const monsterAggroed = target.target === tank_name;
 
 		if (!tankEngaged || !monsterAggroed) {
@@ -132,6 +132,4 @@ setInterval(() => {
 		set_message("Attacking");
 		attack(target);
 	}
-	
-
 }, 250);
