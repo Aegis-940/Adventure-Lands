@@ -50,8 +50,8 @@ toggle_inventory_check();
 setInterval(function () {
 	
 	const now = Date.now();
-	if (now - lastInventoryCheck >= INVENTORY_CHECK_INTERVAL) {
-		lastInventoryCheck = now;
+	if (now - last_inventory_check >= INVENTORY_CHECK_INTERVAL) {
+		last_inventory_check = now;
 		game_log("*** Checking for loot ***")
 		checkRemoteInventories();
 	}
