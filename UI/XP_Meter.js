@@ -1,16 +1,16 @@
-let sumXP = 0;
-let largestXPGain = 0;
-const timeStart = new Date(); // Record the start time for XP calculation
-const startXP = character.xp; // Record the starting XP
-let xpInterval = 'second'; // Default interval (options: 'second', 'minute', 'hour', 'day')
-let targetXpRate = 40000; // Set as the target xp rate you want to be achieving and the color will automatically update
+// === XP Tracker with 5-Minute Rolling Average === //
 
-// Initialize the XP timer display
-const initXpTimer = () => {
+let xp_history = [];
+let xp_interval = 'minute'; // Options: 'second', 'minute', 'hour'
+let target_xp_rate = 40000; // Customize your goal
+const XP_TRACK_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+
+// === Init UI === //
+const initXpTracker = () => {
     const $ = parent.$;
     $('#bottomrightcorner').find('#xptimer').remove();
-    
-    const xpContainer = $('<div id="xptimer"></div>').css({
+
+    const xp_container = $('<div id="xptimer"></div>').css({
         background: 'black',
         border: 'solid gray',
         borderWidth: '4px 4px',
@@ -27,91 +27,71 @@ const initXpTimer = () => {
 
     $('<div id="xptimercontent"></div>')
         .css({ display: 'table-cell', verticalAlign: 'middle' })
-        .html('Estimated time until level up:<br><span id="xpcounter" style="font-size: 30px;">Loading...</span><br><span id="xprate">(Kill something!)</span>')
-        .appendTo(xpContainer);
-    
-    $('#bottomrightcorner').children().first().after(xpContainer);
+        .html('Rolling XP Rate:<br><span id="xpcounter" style="font-size: 30px;">Loading...</span><br><span id="xprate">(Waiting for data)</span>')
+        .appendTo(xp_container);
+
+    $('#bottomrightcorner').children().first().after(xp_container);
 };
 
-// Update the XP timer display
-const updateXpTimer = () => {
-    if (character.xp === startXP) return;
-
+// === Format XP Rate Display === //
+const updateXpTracker = () => {
+    const now = Date.now();
     const $ = parent.$;
-    const now = new Date();
-    const elapsedTime = Math.round((now - timeStart) / 1000);
-    if (elapsedTime < 1) return;
 
-    const xpGain = character.xp - startXP;
-    const xpMissing = parent.G.levels[character.level] - character.xp;
-    const seconds = Math.round(xpMissing / calculateXpRate(elapsedTime, xpGain));
+    // Track current XP
+    xp_history.push({ time: now, xp: character.xp });
 
-    const counter = formatRemainingTime(seconds);
-    $('#xpcounter').css('color', '#87CEEB').text(counter);
+    // Clean history to 5-minute window
+    xp_history = xp_history.filter(entry => entry.time >= now - XP_TRACK_WINDOW_MS);
 
-    // Calculate average XP based on the selected interval
-    const averageXP = calculateAverageXP(elapsedTime, xpGain);
-    const xpRateColor = getXpRateColor(averageXP, targetXpRate);
-    $('#xprate').css('color', xpRateColor).html(`<span class="xprate-container">${ncomma(Math.round(averageXP))} XP/${xpInterval.charAt(0).toUpperCase() + xpInterval.slice(1)}</span>`);
-};
+    if (xp_history.length < 2) return;
 
-// Function to calculate XP rate
-const calculateXpRate = (elapsedTime, xpGain) => {
-    return Math.round(xpGain / elapsedTime);
-};
+    const first = xp_history[0];
+    const last = xp_history.at(-1);
+    const elapsed_sec = (last.time - first.time) / 1000;
+    const gained_xp = last.xp - first.xp;
 
-// Function to format the remaining time based on seconds
-const formatRemainingTime = (seconds) => {
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    return `${days}d ${hours}h ${minutes}min`;
-};
-
-// Function to calculate average XP based on the selected interval
-const calculateAverageXP = (elapsedTime, xpGain) => {
-    switch (xpInterval) {
+    let rate = 0;
+    switch (xp_interval) {
         case 'second':
-            return Math.round(xpGain / elapsedTime); // XP per second
+            rate = gained_xp / elapsed_sec;
+            break;
         case 'minute':
-            return Math.round(xpGain / (elapsedTime / 60)); // XP per minute
+            rate = gained_xp / (elapsed_sec / 60);
+            break;
         case 'hour':
-            return Math.round(xpGain / (elapsedTime / 3600)); // XP per hour
-        case 'day':
-            return Math.round(xpGain / (elapsedTime / 86400)); // XP per day
-        default:
-            console.warn(`Invalid interval: ${xpInterval}. Use 'second', 'minute', 'hour', or 'day'.`);
-            return 0; 
+            rate = gained_xp / (elapsed_sec / 3600);
+            break;
     }
+
+    // Format & Display
+    const color = getXpRateColor(rate, target_xp_rate);
+    $('#xpcounter').css('color', '#87CEEB').text(`${(elapsed_sec / 60).toFixed(1)} min tracked`);
+    $('#xprate').css('color', color).html(`${ncomma(Math.round(rate))} XP/${xp_interval}`);
 };
 
-// Function to determine the color based on average XP rate
-const getXpRateColor = (averageXP, targetXpRate) => {
-    if (averageXP < targetXpRate * 0.5) {
-        return '#FF0000'; // Dark Red for way below target
-    } else if (averageXP < targetXpRate) {
-        return '#FFA500'; // Orange for below target
-    } else if (averageXP >= targetXpRate && averageXP <= targetXpRate * 1.2) {
-        return '#FFFF00'; // Yellow for at target
-    } else if (averageXP <= targetXpRate * 1.5) {
-        return '#90EE90'; // Light Green for above target
-    } else {
-        return '#00FF00'; // Green for way above target
-    }
+// === Color Indicator === //
+const getXpRateColor = (avg, target) => {
+    if (avg < target * 0.5) return '#FF0000';      // Red
+    if (avg < target) return '#FFA500';            // Orange
+    if (avg <= target * 1.2) return '#FFFF00';      // Yellow
+    if (avg <= target * 1.5) return '#90EE90';      // Light Green
+    return '#00FF00';                              // Bright Green
 };
 
+// === Helper: Comma Format === //
 const ncomma = (x) => x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
-// Function to change the interval (can be called externally)
-const setXPInterval = (newInterval) => {
-    if (['second', 'minute', 'hour', 'day'].includes(newInterval)) {
-        xpInterval = newInterval;
-        console.log(`XP interval set to ${xpInterval}.`);
+// === External: Change Interval if needed === //
+const setXpInterval = (interval) => {
+    if (['second', 'minute', 'hour'].includes(interval)) {
+        xp_interval = interval;
+        console.log(`XP interval set to '${interval}'.`);
     } else {
-        console.warn(`Invalid interval: ${newInterval}. Use 'second', 'minute', 'hour', or 'day'.`);
+        console.warn(`Invalid interval: ${interval}`);
     }
 };
 
-// Initialize XP timer and set interval to update
-initXpTimer();
-setInterval(updateXpTimer, 500);
+// === Activate Tracker === //
+initXpTracker();
+setInterval(updateXpTracker, 1000); // update every second
