@@ -901,3 +901,14 @@ function hook_dps_tracking_to_stats_window() {
         container.innerHTML = html;
     }, 500);
 }
+
+const hide_skills_tab = () => {
+    const $ = parent.$;
+    const skills_panel = $("#rightcorner");
+
+    if (skills_panel && skills_panel.length) {
+        skills_panel.hide(); // Hides the entire right panel (skills + UI tabs)
+    } else {
+        console.warn("❗ Skills panel not found.");
+    }
+};
