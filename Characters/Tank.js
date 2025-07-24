@@ -8,9 +8,9 @@
 // BUTTONS AND WINDOWS
 // -------------------------------------------------------------------- //
 
-removeAllFloatingStatsWindows();
+remove_all_floating_stats_windows()
 
-createTeamStatsWindow();
+create_team_stats_window();
 hook_gold_tracking_to_stats_window("teamStatsWindow");
 hook_dps_tracking_to_stats_window("teamStatsWindow");
 
