@@ -3,6 +3,23 @@
 // CONFIG VARIABLES
 // -------------------------------------------------------------------- //
 
+var attack_mode = true;
+
+const party_leader = "Ulric";
+
+var fight_as_a_team = false;
+let group_or_solo_button_title = "Solo";
+
+const _cmListeners = [];
+
+const floatingButtonIds = [];
+
+let goldHistory = [];
+
+load_code(99);
+load_code(98);
+load_code(97);
+
 let attack_mode			= true;
 
 const HEAL_THRESHOLD		= 800;
