@@ -58,28 +58,19 @@ const tankRoles = [
 	{ name: "Myras", label: "🛡️✨" },
 	{ name: "Riva",  label: "🛡️🏹" }
 ];
-let who_is_tank                  = 0;  // default index
+let who_is_tank = 0;  // default index
 
 Object.defineProperty(window, "tank_name", {
-	get: () => tankRoles[who_is_tank].name
+	get() {
+		// whenever you read tank_name, return the name at the current index
+		return tankRoles[who_is_tank].name;
+	},
+	set(newName) {
+		// whenever you write tank_name = "Myras", update who_is_tank to match
+		const idx = tankRoles.findIndex(r => r.name === newName);
+		if (idx !== -1) who_is_tank = idx;
+	}
 });
-
-// -------------------------------------------------------------------- //
-// HELPERS
-// -------------------------------------------------------------------- //
-
-function get_merchant() {
-	return get_player(MERCHANT_NAME);
-}
-
-// -------------------------------------------------------------------- //
-// PERSISTENCE FUNCTION - MUST BE FIRST
-// -------------------------------------------------------------------- //
-
-function init_persistent_state() {
-	who_is_tank = get("who_is_tank") ?? 0;
-	tank_name = get("tank_name") ?? "Ulric";
-}
 
 // -------------------------------------------------------------------- //
 // CM HANDLERS
