@@ -22,6 +22,8 @@ let lastPartyCheck              = 0;
 
 const REQUEST_COOLDOWN          = 30000;           // 30 seconds
 let lastPotionRequest           = 0;
+const HP_POT_THRESHOLD		= 3000;
+const MP_POT_THRESHOLD		= 3000;
 
 const HP_THRESHOLD              = 500;
 const MP_THRESHOLD              = 500;
