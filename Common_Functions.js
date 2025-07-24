@@ -1,3 +1,76 @@
+
+// -------------------------------------------------------------------- //
+// CONFIG VARIABLES
+// -------------------------------------------------------------------- //
+
+let attack_mode                 = true;
+let taunt_mode                  = true;
+let fight_as_a_team             = false;
+let inventoryCheckEnabled       = true;
+
+let group_or_solo_button_title  = "Solo";
+let taunt_button_title          = "Taunt";
+
+const SELLABLE_ITEMS 		= ["hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "wbook0", "wshoes", "wcap", "cclaw", "crabclaw", "slimestaff", "stinger", "coat1", "helmet1"];
+const BANKABLE_ITEMS            = [];
+
+const INVENTORY_CHECK_INTERVAL  = 10 * 60 * 1000;  // 20 minutes in ms
+let lastInventoryCheck          = 0;
+
+const PARTY_CHECK_INTERVAL      = 5000;
+let lastPartyCheck              = 0;
+
+const REQUEST_COOLDOWN          = 30000;           // 30 seconds
+let lastPotionRequest           = 0;
+const HP_POT_THRESHOLD		= 3000;
+const MP_POT_THRESHOLD		= 3000;
+
+const HP_THRESHOLD              = 500;
+const MP_THRESHOLD              = 500;
+const HEAL_THRESHOLD            = 800;
+const HEAL_COOLDOWN             = 200;
+
+const TAUNT_RANGE               = 320;
+
+const PARTY_LEADER              = "Ulric";
+const PARTY_MEMBERS             = ["Riva", "Myras", "Riff"];
+const FOLLOW_DISTANCE           = 150;
+
+const MONSTER_TYPES             = ["goo", "bee", "crab", "snake", "osnake", "bat", "goldenbat", "croc", "arcticbee", "spider", "prat", "cgoo", "stoneworm", "jr"];
+const MERCHANT_NAME             = "Riff";
+
+let lastDeathTime               = 0;
+
+const _cmListeners              = [];
+const floatingButtonIds         = [];
+let goldHistory                 = [];
+
+const merchantTaskQueue         = [];
+let merchantBusy                = false;
+
+// -------------------------------------------------------------------- //
+// TANK ROLE CONFIG / PERSISTENCE
+// -------------------------------------------------------------------- //
+
+const tankRoles = [
+	{ name: "Ulric", label: "🛡️🗡️" },
+	{ name: "Myras", label: "🛡️✨" },
+	{ name: "Riva",  label: "🛡️🏹" }
+];
+let who_is_tank                  = 0;  // default index
+
+Object.defineProperty(window, "tank_name", {
+	get: () => tankRoles[who_is_tank].name
+});
+
+// -------------------------------------------------------------------- //
+// HELPERS
+// -------------------------------------------------------------------- //
+
+function get_merchant() {
+	return get_player(MERCHANT_NAME);
+}
+
 // -------------------------------------------------------------------- //
 // PERSISTENCE FUNCTION - MUST BE FIRST
 // -------------------------------------------------------------------- //
@@ -5,53 +78,6 @@
 function init_persistent_state() {
 	who_is_tank = get("who_is_tank") ?? 0;
 	tank_name = get("tank_name") ?? "Ulric";
-}
-
-// -------------------------------------------------------------------- //
-// CONFIG VARIABLES
-// -------------------------------------------------------------------- //
-
-let attack_mode = true;
-
-let taunt_mode = true;
-let taunt_button_title = "Taunt";
-
-const TAUNT_RANGE = 320;
-
-const PARTY_CHECK_INTERVAL = 5000;
-let lastPartyCheck = 0;
-
-const floatingButtonIds = [];
-const _cmListeners = [];
-let goldHistory = [];
-
-// follow_party_leader
-const PARTY_LEADER  = "Ulric";
-const PARTY_MEMBERS = ["Riva","Myras","Riff"];
-const follow_distance = 150;
-
-let lastPotionRequest = 0;
-const REQUEST_COOLDOWN = 30000; // 30 seconds
-const HP_POT_THRESHOLD = 2000;
-const MP_POT_THRESHOLD = 2000;
-
-const MONSTER_TYPES = ["goo", "bee", "crab", "snake", "osnake", "bat", "goldenbat", "croc", "arcticbee", "spider", "prat", "cgoo", "stoneworm", "jr"];
-// Assuming this exists globally
-var tankRoles = [
-	{ name: "Ulric", label: "🛡️🗡️" },
-	{ name: "Myras", label: "🛡️✨" },
-	{ name: "Riva",  label: "🛡️🏹" }
-];
-
-var who_is_tank = 0; // Example default index
-
-// Define dynamic getter for party_tank
-Object.defineProperty(window, "tank_name", {
-	get: () => tankRoles[who_is_tank].name
-});
-
-function get_merchant() {
-	return get_player("Riff");
 }
 
 // -------------------------------------------------------------------- //
