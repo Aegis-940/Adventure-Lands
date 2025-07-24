@@ -1,84 +1,106 @@
 // -------------------------------------------------------------------- //
-// COMBAT TOGGLE
+// BOTTOM BUTTONS - TODO: CHANGE TO REGULAR BUTTONS
 // -------------------------------------------------------------------- //
 
-function toggle_combat() {
-	createFloatingButton("ToggleCombat", "⚔️", () => {
-	  attack_mode = !attack_mode;
-	  const btn = window.top.document.getElementById("ToggleCombat");
-	  btn.innerText = attack_mode ? "⚔️" : "🕊️";
-		set_message(attack_mode ? "Enabled" : "Combat Off");
-		game_log(attack_mode ? "Combat Enabled" : "Combat Disabled")
-	}, {
-	  top: "2.1vh",
-	  right: "523px",
-	  minWidth: "57px",
-	  height: "57px",
-	  fontSize: "24px",
-	  border: "4px solid #888",
-	  title: "Toggle Combat Mode"
-	});
+function fight_solo_or_group(title) {
+	if (!parent.caracAL) {
+		add_bottom_button("ToggleFightMode", title, () => {
+			// Flip the mode
+			fight_as_a_team = !fight_as_a_team;
+
+			// Update button text
+			set_button_value("ToggleFightMode", fight_as_a_team ? "Group" : "Solo");
+
+			title = fight_as_a_team ? "Group" : "Solo";
+
+			// Feedback
+			log("Fight mode now: " + (fight_as_a_team ? "GROUP" : "SOLO"));
+			group_or_solo_button_title = title;
+			return group_or_solo_button_title;
+		});
+	}
 }
 
 // -------------------------------------------------------------------- //
-// TOGGLE WHICH CHARACTER IS TANKING
+// REMOVING BUTTONS
 // -------------------------------------------------------------------- //
 
-function toggle_tank_role() {
-	// Floating toggle button with sync broadcast
-	createFloatingButton("ToggleRoleMode", TANK_ROLES[who_is_tank].label, () => {
-		who_is_tank = (who_is_tank + 1) % TANK_ROLES.length;
-		tank_name = TANK_ROLES[who_is_tank].name;
+function remove_floating_button(id) {
+	const btn = window.top.document.getElementById(id);
+	if (btn) btn.remove();
+}
 
-		set("who_is_tank", who_is_tank);
-		set("tank_name", tank_name);
-		const label = TANK_ROLES[who_is_tank].label;
-
-		// Update local button
-		const btn = window.top.document.getElementById("ToggleRoleMode");
-		if (btn) btn.innerText = label;
-
-		// Broadcast new tank info and label
-		for (const name of ["Ulric", "Myras", "Riva"]) {
-			if (name !== character.name) {
-				send_cm(name, {
-					type: "set_tank",
-					tank_name,
-					who_is_tank,
-					label
-				});
-			}
-		}
-	}, {
-		top: "2.1vh",
-		right: "585px",
-		minWidth: "57px",
-		height: "57px",
-		fontSize: "24px",
-		border: "4px solid #888",
-		title: "Toggle Tank Role"
-	});
+function remove_all_floating_buttons() {
+	floating_button_ids.forEach(id => remove_floating_button(id));
+	floating_button_ids.length = 0;
 }
 
 // -------------------------------------------------------------------- //
-// TOGGLE FOLLOW TANK
+// CREATE FLOATING BUTTONS
 // -------------------------------------------------------------------- //
 
-let follow_tank = true;
+function create_floating_button(id, label, on_click, style_overrides = {}) {
+	remove_floating_button(id);
 
-function toggle_follow_tank() {
-	createFloatingButton("ToggleFollowTank", "➡️", () => {
-	  follow_tank = !follow_tank;
-	  const btn = window.top.document.getElementById("ToggleFollowTank");
-	  btn.innerText = follow_tank ? "➡️" : "⏸️";
-		game_log(follow_tank ? "Follow Tank" : "Don't Follow Tank");
-	}, {
-	  top: "2.1vh",
-	  right: "663px",
-	  minWidth: "57px",
-	  height: "57px",
-	  fontSize: "24px",
-	  border: "4px solid #888",
-	  title: "Toggle Follow-Tank Mode"
+	if (!floating_button_ids.includes(id)) {
+		floating_button_ids.push(id);
+	}
+
+	const {
+		top = "50vh",
+		right = "20px",
+		font_size = "14px",
+		min_width = "120px",
+		height = "35px",
+		border = "2px solid #888",
+		title = ""
+	} = style_overrides;
+
+	const btn = window.top.document.createElement("button");
+	btn.id = id;
+	btn.innerText = label;
+	btn.title = title;
+	btn.addEventListener("click", on_click);
+
+	Object.assign(btn.style, {
+		position: "fixed",
+		top,
+		right,
+		transform: "translateY(-50%)",
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+		padding: "0",
+		fontSize: font_size,
+		zIndex: "9999",
+		background: "#000",
+		color: "#fff",
+		border,
+		borderRadius: "4px",
+		cursor: "pointer",
+		minWidth: min_width,
+		height
 	});
+
+	window.top.document.body.appendChild(btn);
 }
+
+// -------------------------------------------------------------------- //
+// GENERAL BUTTONS
+// -------------------------------------------------------------------- //
+
+function create_map_movement_window(custom_actions = []) {
+	const id = "mapMovementWindow";
+	const existing = window.top.document.getElementById(id);
+	if (existing) existing.remove();
+
+	const win = window.top.document.createElement("div");
+	win.id = id;
+	win.className = "floating-map-window";
+
+	Object.assign(win.style, {
+		position: "fixed",
+		top: "380px",
+		right: "2px",
+		width: "300px",
+		pa
