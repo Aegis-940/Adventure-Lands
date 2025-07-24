@@ -28,24 +28,6 @@ function fight_solo_or_group(title) {
 
 }
 
-function taunt_active() {
-	if (!parent.caracAL) {
-		add_bottom_button("ToggleTauntMode", taunt_button_title, () => {
-			// flip the mode
-			taunt_mode = !taunt_mode;
-
-			// update global title
-			taunt_button_title = taunt_mode ? "Taunt" : "No Taunt";
-
-			// update button
-			set_button_value("ToggleTauntMode", taunt_button_title);
-
-			log("Taunt mode now: " + (taunt_mode ? "Active" : "Inactive"));
-			return taunt_mode;
-		});
-	}
-}
-
 // -------------------------------------------------------------------- //
 // REMOVING BUTTONS
 // -------------------------------------------------------------------- //
