@@ -70,8 +70,7 @@ setInterval(function () {
 		last_death_time = 0;
 	}
 
-    pots();
-	buy_pots();
+	pots();
 	party_manager();
 	
 }, 250);
