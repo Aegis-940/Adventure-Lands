@@ -11,6 +11,21 @@ function init_persistent_state() {
 // CONFIG VARIABLES
 // -------------------------------------------------------------------- //
 
+
+let attack_mode = true;
+
+let taunt_mode = true;
+let taunt_button_title = "Taunt";
+
+const TAUNT_RANGE = 320;
+
+const PARTY_CHECK_INTERVAL = 5000;
+let lastPartyCheck = 0;
+
+const floatingButtonIds = [];
+const _cmListeners = [];
+let goldHistory = [];
+
 // follow_party_leader
 const PARTY_LEADER  = "Ulric";
 const PARTY_MEMBERS = ["Riva","Myras","Riff"];
