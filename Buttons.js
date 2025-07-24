@@ -38,8 +38,8 @@ function remove_floating_button(id) {
 }
 
 function remove_all_floating_buttons() {
-	floating_button_ids.forEach(id => remove_floating_button(id));
-	floating_button_ids.length = 0;
+	FLOATING_BUTTON_IDS.forEach(id => remove_floating_button(id));
+	FLOATING_BUTTON_IDS.length = 0;
 }
 
 // -------------------------------------------------------------------- //
@@ -49,8 +49,8 @@ function remove_all_floating_buttons() {
 function create_floating_button(id, label, on_click, style_overrides = {}) {
 	remove_floating_button(id);
 
-	if (!floating_button_ids.includes(id)) {
-		floating_button_ids.push(id);
+	if (!FLOATING_BUTTON_IDS.includes(id)) {
+		FLOATING_BUTTON_IDS.push(id);
 	}
 
 	const {
