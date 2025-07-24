@@ -2,20 +2,6 @@
 // CONFIG VARIABLES
 // -------------------------------------------------------------------- //
 
-let attack_mode = true;
-
-let taunt_mode = true;
-let taunt_button_title = "Taunt";
-
-const TAUNT_RANGE = 320;
-
-const PARTY_CHECK_INTERVAL = 5000;
-let lastPartyCheck = 0;
-
-const floatingButtonIds = [];
-const _cmListeners = [];
-let goldHistory = [];
-
 init_persistent_state();
 
 // -------------------------------------------------------------------- //
