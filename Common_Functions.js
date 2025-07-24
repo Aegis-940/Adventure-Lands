@@ -39,6 +39,8 @@ const FOLLOW_DISTANCE           = 150;
 const MONSTER_TYPES             = ["goo", "bee", "crab", "snake", "osnake", "bat", "goldenbat", "croc", "arcticbee", "spider", "prat", "cgoo", "stoneworm", "jr"];
 const MERCHANT_NAME             = "Riff";
 
+let tank_name 			= "Ulric";
+
 let lastDeathTime               = 0;
 
 const _cmListeners              = [];
