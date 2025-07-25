@@ -56,16 +56,44 @@ async function process_merchant_queue() {
 // MAIN LOOP
 // -------------------------------------------------------------------- //
 
-setInterval(function () {
-	
+let last_check_inventories = 0;
+const INVENTORY_CHECK_INTERVAL = 5 * 60000;  // every 5 mins
+
+setInterval(async () => {
 	const now = Date.now();
-	if (now - last_inventory_check >= INVENTORY_CHECK_INTERVAL) {
-		last_inventory_check = now;
-		game_log("*** Checking for loot ***")
-		check_remote_inventories();
+
+	// ─────────────────────────────────────
+	// Priority 1: Check Remote Inventories
+	// ─────────────────────────────────────
+	if (now - last_check_inventories >= INVENTORY_CHECK_INTERVAL) {
+		last_check_inventories = now;
+
+		queue_merchant_action("[PRIORITY] Check Inventories", async () => {
+			await check_remote_inventories();
+		});
 	}
-	
-	// Detect death and record time
+
+	// ─────────────────────────────────────
+	// Priority 2: Mine if Possible
+	// ─────────────────────────────────────
+	if (can_use("mining") && character.slots.mainhand?.name === "pickaxe") {
+		queue_merchant_action("Go Mine", async () => {
+			await go_mine();
+		});
+	}
+
+	// ─────────────────────────────────────
+	// Priority 3: Fish if Possible
+	// ─────────────────────────────────────
+	else if (can_use("fishing") && character.slots.mainhand?.name === "rod") {
+		queue_merchant_action("Go Fish", async () => {
+			await go_fish();
+		});
+	}
+
+	// Other non-critical tasks could go here…
+
+		// Detect death and record time
 	if (character.rip && last_death_time === 0) {
 		last_death_time = Date.now();
 	}
@@ -84,5 +112,6 @@ setInterval(function () {
 	pots();
 	buy_pots();
 	party_manager();
-	
-}, 250);
+
+}, 1000); // Check every second
+
