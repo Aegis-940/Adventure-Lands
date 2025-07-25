@@ -21,6 +21,7 @@ create_map_movement_window([
 ]);
 
 toggle_inventory_check();
+hide_skills_ui();
 
 // -------------------------------------------------------------------- //
 // MAIN LOOP
