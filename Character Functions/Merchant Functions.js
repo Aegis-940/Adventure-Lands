@@ -310,7 +310,7 @@ async function go_fish() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function go_mine() {
-	const MINING_SPOT = { map: "tunnel", x: 232, y: -157 };
+	const MINING_SPOT = { map: "tunnel", x: 244, y: -153 };
 
 	// Check if mining is available
 	if (!can_use("mining")) {
