@@ -105,13 +105,9 @@ async function attack_loop() {
 		//smartEquip("dead");
 	    //    await use_skill("5shot", outOfRange.slice(0, 5).map(e => e.id));
 	    if (sortedByHP.length >= 2) {
-		    
-	    game_log("check 1");
 		//smartEquip("dead");
-		await use_skill("3shot", sortedByHP.slice(0, 3).map(e => e.id));
+		await use_skill("3shot");
 	    } else if (sortedByHP.length === 1 && is_in_range(sortedByHP[0])) {
-		    
-	    game_log("check 2");
 		//smartEquip("single");
 		await attack(sortedByHP[0]);
 	    }
