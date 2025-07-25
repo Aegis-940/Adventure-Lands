@@ -3,15 +3,21 @@
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+let lastSwitchTime = 0, state = "attacking";
+const switchCooldown = 750;
+const rangeThreshold = 45;
+const X = locations[home][0].x, Y = locations[home][0].y;
+let lastEquippedSet = null;
+
 async function attack_loop() {
     const now = performance.now();
     const entities = Object.values(parent.entities);
-    const healer = get_entity("CrownPriest");
+    const healer = get_entity("Myras");
     const healThreshold = (!healer || healer.rip) ? 0.9 : 0.4;
 
     const sortedByHP = [];
     for (const e of entities) {
-        if (e.type === "monster" && (e.target === targetNames[0] || e.target === targetNames[1])) {
+        if (e.type === "monster" && (e.target === MONSTER_TYPES[0] || e.target === MONSTER_TYPES[1])) {
             sortedByHP.push(e);
         }
     }
