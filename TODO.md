@@ -5,5 +5,5 @@ TODO
 	# Return to town after dying
 	# Improve Fishing Loop & implement it into main loop
 	# Add queue for concurrent tasks
-  # Mining
-  #
+ 	# Mining
+  	#
