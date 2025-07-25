@@ -101,7 +101,7 @@ function get_nearest_monster_v2(args = {}) {
 			}
 			continue;
 		}
-
+		
 		if (c_dist < min_d) {
 			min_d = c_dist;
 			target = current;
