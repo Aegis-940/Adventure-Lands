@@ -221,7 +221,7 @@ function pots() {
 // -------------------------------------------------------------------- //
 
 function send_to_merchant() {
-    const merchant = get_merchant();
+    const merchant = "Riff";
 
     // Check if merchant is valid and nearby
     if (!merchant || merchant.rip || merchant.map !== character.map || distance(character, merchant) > 400) {
