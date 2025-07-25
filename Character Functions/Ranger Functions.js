@@ -80,9 +80,8 @@ async function attack_loop() {
     const sortedByHP = [];
     for (const e of entities) {
 	    game_log("check 1");
-        if (e.type === "monster" && (e.target === MONSTER_TYPES[0] || e.target === MONSTER_TYPES[1])) {
+        if (e.type === "monster") {
             sortedByHP.push(e);
-		
 	    game_log("check 2");
         }
     }
