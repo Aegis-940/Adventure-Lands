@@ -69,10 +69,10 @@ function get_nearest_monster_v2(args = {}) {
 let lastSwitchTime = 0, state = "attacking";
 const switchCooldown = 750;
 const rangeThreshold = 45;
-const X = character.x, Y = character.y;
 let lastEquippedSet = null;
 
 async function attack_loop() {
+	const X = character.x, Y = character.y;
     let delay = 1;
     const now = performance.now();
     const entities = Object.values(parent.entities);
@@ -80,7 +80,7 @@ async function attack_loop() {
     const sortedByHP = [];
     for (const e of entities) {
 	    game_log("check 1");
-        if (e.type === "monster" && (e.mtype === MONSTER_TYPES[0] || e.mtype === MONSTER_TYPES[1])) {
+        if (e.type === "monster" && (e.target === MONSTER_TYPES[0] || e.target === MONSTER_TYPES[1])) {
             sortedByHP.push(e);
 		
 	    game_log("check 2");
