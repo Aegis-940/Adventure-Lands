@@ -24,7 +24,7 @@ const locations = {
     prat: [{ x: -296, y: 558 }], //[{ x: 6, y: 430 }]
     pppompom: [{ x: 292, y: -189 }],
     plantoid: [{ x: -780, y: -387 }], // [{ x: -840, y: -340 }]
-    rat: [{ x: 6, y: 430 }],
+    rat: [{ x: -223, y: -313 }],
     scorpion: [{ x: -495, y: 685 }],
     stoneworm: [{ x: 830, y: 7 }],
     spider: [{ x: 1247, y: -91 }],
