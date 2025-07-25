@@ -150,10 +150,11 @@ async function move_loop() {
 	let delay = 100;
 
 	try {
-		
-		game_log("move_loop");
 
-		if (character.moving || smart.moving) return;
+		if (character.moving || smart.moving) {
+			// Skip movement logic, but continue the loop
+			return setTimeout(move_loop, delay);
+		}
 
 		let heal_target = lowest_health_partymember();
 
