@@ -148,9 +148,10 @@ async function attack_loop() {
 
 async function move_loop() {
 	let delay = 100;
-	game_log("move_loop");
 
 	try {
+		
+		game_log("move_loop");
 
 		if (character.moving || smart.moving) return;
 
