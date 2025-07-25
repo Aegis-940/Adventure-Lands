@@ -343,25 +343,6 @@ function check_and_request_pots() {
     }
 }
 
-async function sell_and_bank() {
-    // Only run when not moving
-    if (character.moving) return;
-
-    await smart_move({ x: -210, y: -107, map: "main" });
-    await new Promise(resolve => setTimeout(resolve, 3000));
-
-    // === SELLING ===
-    for (let i = 0; i < character.items.length; i++) {
-        let item = character.items[i];
-        if (!item) continue;
-
-        if (SELLABLE_ITEMS.includes(item.name)) {
-            sell(i, item.q || 1);
-            game_log(`Sold ${item.name}`);
-        }
-    }
-}
-
 function move_to_character(name, timeout_ms = 10000) {
     // Prevent multiple overlapping handlers
     let responded = false;
