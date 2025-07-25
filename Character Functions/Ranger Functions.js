@@ -109,7 +109,7 @@ async function attack_loop() {
 	    game_log("check 1");
 		//smartEquip("dead");
 		await use_skill("3shot", sortedByHP.slice(0, 3).map(e => e.id));
-	    } else if (sortedByHP.length === 1 && is_in_range(sortedByHP[0])) {\
+	    } else if (sortedByHP.length === 1 && is_in_range(sortedByHP[0])) {
 		    
 	    game_log("check 2");
 		//smartEquip("single");
