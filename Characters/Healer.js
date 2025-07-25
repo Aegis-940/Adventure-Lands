@@ -28,6 +28,167 @@ hide_skills_ui();
 // toggle_stats_window();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// SUPPORT FUNCTIONS
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function lowest_health_partymember() {
+    let party_mems = Object.keys(parent.party).filter(e => parent.entities[e] && !parent.entities[e].rip);
+    let the_party = [];
+
+    for (let key of party_mems)
+        the_party.push(parent.entities[key]);
+
+    the_party.push(character);
+
+    // Search for fieldgen0 and add it to the array if it exists and its health is below 60%
+    let fieldgen0 = get_nearest_monster({ type: "fieldgen0" });
+    if (fieldgen0 && (fieldgen0.hp / fieldgen0.max_hp) <= 0.6) {
+        the_party.push(fieldgen0);
+    }
+
+    // Populate health percentages
+    let res = the_party.sort(function (a, b) {
+        let a_rat = a.hp / a.max_hp;
+        let b_rat = b.hp / b.max_hp;
+        return a_rat - b_rat;
+    });
+
+    return res[0];
+}
+
+function ms_to_next_skill(skill) {
+    const next_skill = parent.next_skill[skill]
+    if (next_skill == undefined) return 0
+    const ms = parent.next_skill[skill].getTime() - Date.now() - Math.min(...parent.pings) - character.ping;
+    return ms < 0 ? 0 : ms;
+}
+
+function get_nearest_monster_v2(args = {}) {
+    let min_d = 999999, target = null;
+    let optimal_hp = args.check_max_hp ? 0 : 999999999; // Set initial optimal HP based on whether we're checking for max or min HP
+
+    for (let id in parent.entities) {
+        let current = parent.entities[id];
+        if (current.type != "monster" || !current.visible || current.dead) continue;
+
+        // Allow type to be an array for multiple types
+        if (args.type) {
+            if (Array.isArray(args.type)) {
+                if (!args.type.includes(current.mtype)) continue; // Check if monster type is in the provided list
+            } else {
+                if (current.mtype !== args.type) continue;
+            }
+        }
+
+        if (args.min_level !== undefined && current.level < args.min_level) continue;
+        if (args.max_level !== undefined && current.level > args.max_level) continue;
+        if (args.target && !args.target.includes(current.target)) continue;
+        if (args.no_target && current.target && current.target != character.name) continue;
+
+        // Status effects (debuffs/buffs) check
+        if (args.statusEffects && !args.statusEffects.every(effect => current.s[effect])) continue;
+
+        // Min/max XP check
+        if (args.min_xp !== undefined && current.xp < args.min_xp) continue;
+        if (args.max_xp !== undefined && current.xp > args.max_xp) continue;
+
+        // Attack power limit
+        if (args.max_att !== undefined && current.attack > args.max_att) continue;
+
+        // Path check
+        if (args.path_check && !can_move_to(current)) continue;
+
+        // Distance calculation
+        let c_dist = args.point_for_distance_check
+            ? Math.hypot(args.point_for_distance_check[0] - current.x, args.point_for_distance_check[1] - current.y)
+            : parent.distance(character, current);
+
+        if (args.max_distance !== undefined && c_dist > args.max_distance) continue;
+
+        // Generalized HP check (min or max)
+        if (args.check_min_hp || args.check_max_hp) {
+            let c_hp = current.hp;
+            if ((args.check_min_hp && c_hp < optimal_hp) || (args.check_max_hp && c_hp > optimal_hp)) {
+                optimal_hp = c_hp;
+                target = current;
+            }
+            continue;
+        }
+
+        // If no specific HP check, choose the closest monster
+        if (c_dist < min_d) {
+            min_d = c_dist;
+            target = current;
+        }
+    }
+    return target;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// ATTACK LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+async function attack_loop() {
+    let delay = 1;
+    let disabled = (parent.is_disabled(character) === undefined);
+    let bosses = ["troll", "grinch"];
+    try {
+        if (disabled) {
+            let heal_target = lowest_health_partymember();
+            if (heal_target && heal_target.hp < heal_target.max_hp - (character.heal / 1.33) && is_in_range(heal_target)) {
+                await heal(heal_target);
+                delay = ms_to_next_skill('attack');
+            } else {
+                let target = null;
+                let bossMonster = null;
+
+		/*
+                //Prioritize Bosses
+                if (!target) {
+                    for (let i = 0; i < bosses.length; i++) {
+                        bossMonster = get_nearest_monster_v2({
+                            type: bosses[i],
+                            max_distance: 250, // Higher range for bosses
+                        });
+                        if (bossMonster) break;
+                    }
+                }
+		*/
+
+                // If no Bosses, find regular mobs
+                for (let i = 0; i < MONSTER_TYPES.length; i++) {
+                    target = get_nearest_monster_v2({
+                        target: targetNames[i],
+                        check_min_hp: true,
+                        max_distance: 50, // Only consider monsters within 50 units
+                    });
+                    if (target) break;
+                }
+
+		/*
+                // Prioritize boss target if found, otherwise use regular target
+                if (bossMonster) {
+                    target = bossMonster;
+                }
+		*/
+
+                if (target) {
+                    if (is_in_range(target)) {
+                        await attack(target);
+                        delay = ms_to_next_skill('attack');
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        //console.error(e);
+    }
+    setTimeout(attack_loop, delay);
+}
+
+attack_loop();
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -35,19 +196,6 @@ let last_curse_time = 0;
 const CURSE_COOLDOWN = 5250;
 
 setInterval(() => {
-	const now = Date.now();
-
-	if (!attack_mode || character.rip || is_moving(character)) return;
-
-	// === Gold/hr tracking ===
-	const stats_win = window._stats_win;
-	if (stats_win) {
-		const gph = Math.round(get_gold_per_hour());
-		stats_win.innerHTML = `<strong>Gold/hr (5m avg)</strong><br>${gph.toLocaleString()} g/h`;
-	}
-
-	gold_history.push({ t: now, gold: character.gold });
-	gold_history = gold_history.filter(entry => entry.t >= now - 5 * 60 * 1000);
 
 	// === Core utility loops ===
 	pots();
@@ -55,121 +203,6 @@ setInterval(() => {
 	party_manager();
 	check_and_request_pots();
 
-	// === Follow logic ===
-	const leader = parent.entities[PARTY_LEADER];
-	const distance_from_leader = leader ? simple_distance(character, leader) : Infinity;
-
-	if (!leader || leader.rip || leader.map !== character.map) {
-		if (character.moving) stop();
-		return;
-	}
-
-	if (distance_from_leader > FOLLOW_DISTANCE) {
-		const target_x = character.x + (leader.x - character.x) / 2;
-		const target_y = character.y + (leader.y - character.y) / 2;
-
-		change_target(null);
-		if (can_move_to(target_x, target_y)) {
-			move(target_x, target_y);
-		} else if (!smart.moving && !character.moving) {
-			smart_move({ x: leader.x, y: leader.y });
-		}
-		return;
-	}
-
-	// === Healing logic ===
-	if (can_use("heal")) {
-		let lowest = null;
-
-		for (const name in parent.entities) {
-			const entity = parent.entities[name];
-			if (
-				entity?.type === "character" &&
-				entity.visible &&
-				is_in_range(entity, "heal") &&
-				entity.hp < entity.max_hp - HEAL_THRESHOLD
-			) {
-				if (!lowest || entity.hp / entity.max_hp < lowest.hp / lowest.max_hp) {
-					lowest = entity;
-				}
-			}
-		}
-
-		if (
-			character.hp < character.max_hp - HEAL_THRESHOLD &&
-			(!lowest || character.hp / character.max_hp < lowest.hp / lowest.max_hp)
-		) {
-			lowest = character;
-		}
-
-		if (lowest) {
-			heal(lowest);
-		}
-	}
-
-	// === Get Target ===
-	const is_tank = character.name === tank_name;
-	const tank = is_tank ? character : parent.entities[tank_name];
-
-	if (!tank || tank.rip) {
-		set_message("No Tank");
-		return;
-	}
-
-	let target;
-
-	if (is_tank) {
-		target = get_targeted_monster();
-		if (!target || target.rip) {
-			const found = get_monster_by_type_array(MONSTER_TYPES, 200);
-			if (found) {
-				change_target(found);
-				target = found;
-			}
-		}
-	} else if (tank.target) {
-		const maybe_target = parent.entities[tank.target];
-		if (maybe_target && maybe_target.type === "monster" && !maybe_target.rip) {
-			target = maybe_target;
-		}
-	}
-
-	if (!target || target.rip || target.type !== "monster") {
-		set_message("No Monsters");
-		return;
-	}
-
-	if (!is_tank) {
-		const tank_engaged = tank.target === target.id;
-		const monster_aggroed = target.target === tank_name;
-		if (!tank_engaged || !monster_aggroed) {
-			set_message("No Aggro");
-			return;
-		}
-	}
-
-	// === Curse before attacking ===
-	if (
-		can_use("curse") &&
-		now - last_curse_time > CURSE_COOLDOWN &&
-		is_in_range(target, "curse")
-	) {
-		use_skill("curse", target);
-		last_curse_time = now;
-		set_message("Cursing");
-	}
-
-	// === Attack fallback ===
-	if (!is_in_range(target)) {
-		if (!is_moving(character) && free_move) {
-			move(
-				character.x + (target.x - character.x) / 2,
-				character.y + (target.y - character.y) / 2
-			);
-		}
-	} else if (can_attack(target)) {
-		set_message("Attacking");
-		attack(target);
-	}
+	if (!attack_mode || character.rip || is_moving(character)) return;
 
 }, 250);
