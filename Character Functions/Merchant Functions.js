@@ -59,16 +59,16 @@ async function sell_and_bank() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // Global cooldown tracker
-let last_buy_time = 0;
+let last_buy_time 	= 0;
+const MAX_POTS 		= 9999;
+const POT_TYPES 	= ["hpot1", "mpot1"];
+const TARGET_MAP 	= "main";
+const TARGET_X 		= -36;
+const TARGET_Y 		= -153;
+const RANGE 		= 300;
+const COOLDOWN 		= 2000;
 
 function buy_pots() {
-    const MAX_POTS      = 9999;
-    const POT_TYPES     = ["hpot1", "mpot1"];
-    const TARGET_MAP    = "main";
-    const TARGET_X      = -36;
-    const TARGET_Y      = -153;
-    const RANGE         = 300;
-    const COOLDOWN      = 2000;
 
     // === Pre-check: If both hpot and mpot are at or above max, skip ===
     let hpot_total = 0;
@@ -126,17 +126,16 @@ function buy_pots() {
 // CHECK FOR LOOT AND TRANSFER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const INVENTORY_QUEUE       = ["Ulric", "Myras", "Riva"];
-let currently_processing    = false;
-const INVENTORY_THRESHOLD  = 15;
-const SELLING_LOCATION     = { map: "main", x: -20, y: -100 };
+const INVENTORY_QUEUE		= ["Ulric", "Myras", "Riva"];
+const INVENTORY_THRESHOLD  	= 15;
+const SELLING_LOCATION     	= { map: "main", x: -20, y: -100 };
+const INVENTORY_LOCK_DURATION  	= 5000; // 5 seconds max lock
+let currently_processing    	= false;
+let inventory_lock_timestamp    = 0;
 
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-let inventory_lock_timestamp    = 0;
-const INVENTORY_LOCK_DURATION  = 5000; // 5 seconds max lock
 
 async function check_remote_inventories() {
     const now = Date.now();
