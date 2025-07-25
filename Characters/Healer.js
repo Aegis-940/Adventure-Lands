@@ -27,6 +27,10 @@ toggle_free_move();
 hide_skills_ui();
 // toggle_stats_window();
 
+attack_loop();
+move_loop();
+skill_loop();
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -38,13 +42,6 @@ setInterval(() => {
 	loot();
 	party_manager();
 	check_and_request_pots();
-
-	if (!globalThis._attackLoopStarted) {
-		globalThis._attackLoopStarted = true;
-		attack_loop();
-		move_loop();
-		skill_loop();
-	}
 
 	if (!attack_mode || character.rip || is_moving(character)) return;
 
