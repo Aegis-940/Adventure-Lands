@@ -23,8 +23,6 @@ const MP_POT_THRESHOLD            = 3000;
 
 const HP_THRESHOLD                = 500;
 const MP_THRESHOLD                = 500;
-const HEAL_THRESHOLD              = 800;
-const HEAL_COOLDOWN               = 200;
 
 const TAUNT_RANGE                 = 320;
 
