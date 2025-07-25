@@ -10,7 +10,6 @@ let inventory_check_enabled       = true;
 let group_or_solo_button_title    = "Solo";
 let taunt_button_title            = "Taunt";
 
-const INVENTORY_CHECK_INTERVAL    = 10 * 60 * 1000;  // 20 minutes in ms
 let last_inventory_check          = 0;
 
 const PARTY_CHECK_INTERVAL        = 5000;
@@ -40,7 +39,6 @@ const FLOATING_BUTTON_IDS         = [];
 let gold_history                  = [];
 
 const MERCHANT_TASK_QUEUE         = [];
-let merchant_busy                 = false;
 
 // -------------------------------------------------------------------- //
 // TANK ROLE CONFIG / PERSISTENCE
