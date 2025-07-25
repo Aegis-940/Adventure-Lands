@@ -3,7 +3,7 @@
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function attackLoop() {
+async function attack_loop() {
     const now = performance.now();
     const entities = Object.values(parent.entities);
     const healer = get_entity("CrownPriest");
