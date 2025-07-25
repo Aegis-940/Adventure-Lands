@@ -73,15 +73,17 @@ const X = character.x, Y = character.y;
 let lastEquippedSet = null;
 
 async function attack_loop() {
-	game_log("check 1");
     let delay = 1;
     const now = performance.now();
     const entities = Object.values(parent.entities);
 
     const sortedByHP = [];
     for (const e of entities) {
+	    game_log("check 1");
         if (e.type === "monster" && (e.target === MONSTER_TYPES[0] || e.target === MONSTER_TYPES[1])) {
             sortedByHP.push(e);
+		
+	    game_log("check 2");
         }
     }
     sortedByHP.sort((a, b) => b.hp - a.hp);
@@ -92,17 +94,13 @@ async function attack_loop() {
     }
 
     try {
-	    game_log("check 2");
 	if (sortedByHP.length) {
-		game_log("check 3");
 	    const cursed = get_nearest_monster_v2({ statusEffects: ["cursed"] });
 	    if (cursed) {
 		change_target(cursed);
 		if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", cursed);
 		if (!is_on_cooldown("supershot")) await use_skill("supershot", cursed);
 	    }
-		game_log("check 4");
-
 	    //if (inRange.length >= 4) {
 		//smartEquip("boom");
 		//await use_skill("5shot", inRange.slice(0, 5).map(e => e.id));
