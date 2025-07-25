@@ -152,7 +152,7 @@ async function attack_loop() {
                 // If no Bosses, find regular mobs
                 for (let i = 0; i < MONSTER_TYPES.length; i++) {
                     target = get_nearest_monster_v2({
-                        target: MONSTER_TYPES[i],
+                        type: MONSTER_TYPES[i],
                         check_min_hp: true,
                         max_distance: 150, // Only consider monsters within 50 units
                     });
