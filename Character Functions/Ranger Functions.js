@@ -30,7 +30,6 @@ async function attack_loop() {
     let delay;
 
     try {
-            case "attacking":
                 if (sortedByHP.length) {
                     const cursed = get_nearest_monster_v2({ statusEffects: ["cursed"] });
                     if (cursed) {
