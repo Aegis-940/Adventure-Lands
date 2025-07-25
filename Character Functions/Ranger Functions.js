@@ -22,7 +22,7 @@ async function attackLoop() {
         (Math.hypot(mob.x - X, mob.y - Y) <= rangeThreshold ? inRange : outOfRange).push(mob);
     }
 
-    const healTarget = lowest_health_partymember(); // Still using external func here
+    const healTarget = null; //lowest_health_partymember(); // Still using external func here
     if (healTarget && healTarget.hp < healTarget.max_hp * healThreshold) {
         state = "healing";
     } else {
@@ -48,17 +48,17 @@ async function attackLoop() {
                         if (!is_on_cooldown("supershot")) await use_skill("supershot", cursed);
                     }
 
-                    if (inRange.length >= 4) {
-                        smartEquip("boom");
-                        await use_skill("5shot", inRange.slice(0, 5).map(e => e.id));
-                    } else if (outOfRange.length >= 4) {
-                        smartEquip("dead");
-                        await use_skill("5shot", outOfRange.slice(0, 5).map(e => e.id));
-                    } else if (sortedByHP.length >= 2) {
-                        smartEquip("dead");
+                    //if (inRange.length >= 4) {
+                        //smartEquip("boom");
+                        //await use_skill("5shot", inRange.slice(0, 5).map(e => e.id));
+                    //} else if (outOfRange.length >= 4) {
+                        //smartEquip("dead");
+                    //    await use_skill("5shot", outOfRange.slice(0, 5).map(e => e.id));
+                    if (sortedByHP.length >= 2) {
+                        //smartEquip("dead");
                         await use_skill("3shot", sortedByHP.slice(0, 3).map(e => e.id));
                     } else if (sortedByHP.length === 1 && is_in_range(sortedByHP[0])) {
-                        smartEquip("single");
+                        //smartEquip("single");
                         await attack(sortedByHP[0]);
                     }
                     delay = ms_to_next_skill("attack");
@@ -85,24 +85,7 @@ async function move_loop() {
 
 	try {
 
-		if (character.moving || smart.moving) {
-			// Skip movement logic, but continue the loop
-			return setTimeout(move_loop, delay);
-		}
-
-		let heal_target = lowest_health_partymember();
-
-		if (
-			heal_target &&
-			heal_target.hp < heal_target.max_hp - (character.heal / 1.33) &&
-			!is_in_range(heal_target) &&
-			can_move_to(heal_target)
-		) {
-			await move(
-				character.real_x + (heal_target.real_x - character.real_x) / 2,
-				character.real_y + (heal_target.real_y - character.real_y) / 2
-			);
-		} else {
+		if {
 			let monster = null;
 
 			for (let i = 0; i < MONSTER_TYPES.length; i++) {
