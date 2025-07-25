@@ -15,7 +15,7 @@ create_map_movement_window([
   { id: "SellBank", label: "Sell / Bank", onClick: () => sell_and_bank() },
   { id: "CollectLoot", label: "Take Loot", onClick: () => check_remote_inventories()  },
   { id: "GoFish", label: "Go Fish", onClick: () => go_fish() },
-  { id: "custom4", label: "Custom 4", onClick: () => null },
+  { id: "GoMine", label: "Go Mine", onClick: () => go_mine() },
   { id: "custom5", label: "Custom 5", onClick: () => null },
   { id: "custom6", label: "Custom 6", onClick: () => null }
 ]);
