@@ -32,6 +32,9 @@ async function process_merchant_queue() {
 // MERCHANT SELL AND BANK ITEMS
 // -------------------------------------------------------------------- //
 
+const SELLABLE_ITEMS = ["hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "wbook0", "wshoes", "wcap", "cclaw", "crabclaw", "slimestaff", "stinger", "coat1", "helmet1"];
+const BANKABLE_ITEMS = [];
+
 async function sell_and_bank() {
     // Only run when not moving
     if (character.moving) return;
