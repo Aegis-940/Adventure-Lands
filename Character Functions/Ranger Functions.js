@@ -94,13 +94,14 @@ async function attack_loop() {
     try {
 	    game_log("check 2");
 	if (sortedByHP.length) {
+		game_log("check 3");
 	    const cursed = get_nearest_monster_v2({ statusEffects: ["cursed"] });
 	    if (cursed) {
 		change_target(cursed);
 		if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", cursed);
 		if (!is_on_cooldown("supershot")) await use_skill("supershot", cursed);
 	    }
-		game_log("check 3");
+		game_log("check 4");
 
 	    //if (inRange.length >= 4) {
 		//smartEquip("boom");
