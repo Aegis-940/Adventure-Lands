@@ -189,7 +189,12 @@ attack_loop();
 async function move_loop() {
     let delay = 100;
 
+    
+
     try {
+
+	if (character.moving || smart.moving) return;
+	    
         // Prioritize healing target
         let heal_target = lowest_health_partymember();
 
