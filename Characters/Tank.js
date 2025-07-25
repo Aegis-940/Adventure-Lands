@@ -42,41 +42,21 @@ setInterval(() => {
 	party_manager();
 	check_and_request_pots();
 
-	
-
 	// Determine the target
 	let target;
 
-	if (is_tank) {
-		target = get_targeted_monster();
-
-		// Auto-acquire target if tank has none
-		if (!target || target.rip) {
-			const found = get_monster_by_type_array(MONSTER_TYPES, 200);
-			if (found) {
-				change_target(found);
-				target = found;
+	var target=get_targeted_monster();
+		if(!target)
+		{
+			target=get_nearest_monster();
+			if(target) change_target(target);
+			else
+			{
+				set_message("No Monsters");
+				return;
 			}
 		}
-	} else if (tank.target) {
-		target = parent.entities[tank.target];
-	}
-
-	if (!target || target.rip) {
-		set_message("No Monsters");
-		return;
-	}
-
-	// If not the tank, ensure the tank has engaged and drawn aggro
-	if (!is_tank) {
-		const tank_engaged    = tank.target === target.id;
-		const monster_aggroed = target.target === tank_name;
-
-		if (!tank_engaged || !monster_aggroed) {
-			set_message("No Aggro");
-			return;
-		}
-	}
+	
 
 	// Move or attack
 	if (!is_in_range(target)) {
