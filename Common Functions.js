@@ -30,8 +30,7 @@ const PARTY_MEMBERS               = ["Riva", "Myras", "Riff"];
 
 const FOLLOW_DISTANCE             = 150;
 
-const MONSTER_TYPES               = ["goo", "bee", "crab", "snake", "osnake", "bat", "goldenbat", "croc", "arcticbee", "spider", "prat", "cgoo", "stoneworm", "jr", "minimush", "rat",
-                                    "gloves1", "mushroomstaff", "wbreeches", "coat1"];
+const MONSTER_TYPES               = ["goo", "bee", "crab", "snake", "osnake", "bat", "goldenbat", "croc", "arcticbee", "spider", "prat", "cgoo", "stoneworm", "jr", "minimush", "rat"];
 const MERCHANT_NAME               = "Riff";
 
 let last_death_time               = 0;
