@@ -53,3 +53,71 @@ async function sell_and_bank() {
         }
     }
 }
+
+// -------------------------------------------------------------------- //
+// MERCHANT BUY POTS FOR DISTRIBUTION
+// -------------------------------------------------------------------- //
+
+// Global cooldown tracker
+let last_buy_time = 0;
+
+function buy_pots() {
+    const MAX_POTS      = 9999;
+    const POT_TYPES     = ["hpot1", "mpot1"];
+    const TARGET_MAP    = "main";
+    const TARGET_X      = -36;
+    const TARGET_Y      = -153;
+    const RANGE         = 300;
+    const COOLDOWN      = 2000;
+
+    // === Pre-check: If both hpot and mpot are at or above max, skip ===
+    let hpot_total = 0;
+    let mpot_total = 0;
+
+    for (const item of character.items) {
+        if (!item) continue;
+        if (item.name === "hpot1") hpot_total += item.q || 1;
+        if (item.name === "mpot1") mpot_total += item.q || 1;
+    }
+
+    if (hpot_total >= MAX_POTS && mpot_total >= MAX_POTS) {
+        return;
+    }
+
+    const now = Date.now();
+    if (now - last_buy_time < COOLDOWN) {
+        return;
+    }
+
+    last_buy_time = now;
+
+    // Check if we're on the correct map and within distance
+    if (character.map !== TARGET_MAP) return;
+
+    const dx = character.x - TARGET_X;
+    const dy = character.y - TARGET_Y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist > RANGE) {
+        return;
+    }
+
+    for (const pot of POT_TYPES) {
+        let total = 0;
+
+        for (const item of character.items) {
+            if (item && item.name === pot) {
+                total += item.q || 1;
+            }
+        }
+
+        const to_buy = Math.max(0, MAX_POTS - total);
+
+        if (to_buy > 0) {
+            game_log(`🧪 Buying ${to_buy} x ${pot} (you have ${total})`);
+            buy(pot, to_buy);
+        } else {
+            game_log(`✅ You already have enough ${pot} (${total})`);
+        }
+    }
+}
