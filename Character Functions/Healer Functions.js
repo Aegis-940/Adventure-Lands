@@ -148,6 +148,7 @@ async function attack_loop() {
 
 async function move_loop() {
 	let delay = 100;
+	game_log("move_loop");
 
 	try {
 
@@ -198,6 +199,8 @@ async function move_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function skill_loop() {
+	
+	game_log("skill_loop");
 	const X = locations[home][0].x;
 	const Y = locations[home][0].y;
 	const delay = 40;
