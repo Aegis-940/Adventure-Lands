@@ -598,157 +598,177 @@ async function wait_for_merchant_and_send() {
 }
 
 // -------------------------------------------------------------------- //
-// SIMPLE FISHING SCRIPT
+// SIMPLE FISHING SCRIPT WITH AUTO-EQUIP
 // -------------------------------------------------------------------- //
 
 async function go_fish() {
-    const FISHING_SPOT = { map: "main", x: -1116, y: -285 };
+	const FISHING_SPOT = { map: "main", x: -1116, y: -285 };
 
-    // Check if fishing is available and rod is equipped
-    if (!can_use("fishing")) {
-        game_log("*** Fishing cooldown active ***");
-        return;
-    }
+	// Check if fishing skill is available
+	if (!can_use("fishing")) {
+		game_log("*** Fishing cooldown active ***");
+		return;
+	}
 
-    if (character.slots.mainhand?.name !== "rod") {
-        game_log("*** Fishing rod not equipped or broken ***");
-        return;
-    }
+	// Ensure fishing rod is equipped or try to equip it
+	if (character.slots.mainhand?.name !== "rod") {
+		const rod_index = character.items.findIndex(item => item?.name === "rod");
+		if (rod_index === -1) {
+			game_log("*** No fishing rod equipped or in inventory ***");
+			return;
+		}
+		game_log("*** Equipping fishing rod... ***");
+		await equip(rod_index);
+		await delay(500);
+	}
 
-    // Move to fishing spot
-    await smart_move(FISHING_SPOT);
+	// Double check it's now equipped
+	if (character.slots.mainhand?.name !== "rod") {
+		game_log("*** Failed to equip fishing rod ***");
+		return;
+	}
 
-    while (true) {
-        // Final pre-fishing checks
-        if (!can_use("fishing")) {
-            await delay(500);
-            game_log("*** Fishing cooldown active ***");
-            break;
-        }
+	// Move to fishing spot
+	await smart_move(FISHING_SPOT);
 
-        if (character.slots.mainhand?.name !== "rod") {
-            await delay(500);
-            game_log("*** Fishing rod not equipped or broken ***");
-            break;
-        }
+	while (true) {
+		// Final pre-fishing checks
+		if (!can_use("fishing")) {
+			await delay(500);
+			game_log("*** Fishing cooldown active ***");
+			break;
+		}
 
-        // Snapshot inventory before casting
-        const before_items = character.items.map(i => i?.name || null);
-        await delay(500);
-        game_log("*** Casting line... ***");
-        use_skill("fishing");
+		if (character.slots.mainhand?.name !== "rod") {
+			await delay(500);
+			game_log("*** Fishing rod not equipped or broken ***");
+			break;
+		}
 
-        let success = false;
-        let attempts = 0;
+		// Snapshot inventory before casting
+		const before_items = character.items.map(i => i?.name || null);
+		await delay(500);
+		game_log("*** Casting line... ***");
+		use_skill("fishing");
 
-        while (attempts < 30) { // wait up to 30s
-            await delay(500);
-            attempts++;
+		let success = false;
+		let attempts = 0;
 
-            const after_items = character.items.map(i => i?.name || null);
-            let changed = false;
+		while (attempts < 30) { // wait up to 30s
+			await delay(500);
+			attempts++;
 
-            for (let i = 0; i < after_items.length; i++) {
-                if (after_items[i] !== before_items[i]) {
-                    changed = true;
-                    break;
-                }
-            }
+			const after_items = character.items.map(i => i?.name || null);
+			let changed = false;
 
-            if (changed) {
-                success = true;
-                break;
-            }
-        }
+			for (let i = 0; i < after_items.length; i++) {
+				if (after_items[i] !== before_items[i]) {
+					changed = true;
+					break;
+				}
+			}
 
-        if (success) {
-            game_log("*** 🎣 Caught something! ***");
-        } else {
-            game_log("*** ⚠️ No catch or timeout. ***");
-        }
+			if (changed) {
+				success = true;
+				break;
+			}
+		}
 
-        // Wait a moment before next cast
-        await delay(500);
-    }
+		if (success) {
+			game_log("*** 🎣 Caught something! ***");
+		} else {
+			game_log("*** ⚠️ No catch or timeout. ***");
+		}
+
+		await delay(500);
+	}
 }
 
 // -------------------------------------------------------------------- //
-// SIMPLE FISHING SCRIPT
-// -------------------------------------------------------------------- //
-
-// -------------------------------------------------------------------- //
-// SIMPLE MINING SCRIPT
+// SIMPLE MINING SCRIPT WITH AUTO-EQUIP
 // -------------------------------------------------------------------- //
 
 async function go_mine() {
-    const MINING_SPOT = { map: "tunnel", x: 232, y: -157 };
+	const MINING_SPOT = { map: "tunnel", x: 232, y: -157 };
 
-    // Check if mining is available and pickaxe is equipped
-    if (!can_use("mining")) {
-        game_log("*** Mining cooldown active ***");
-        return;
-    }
+	// Check if mining is available
+	if (!can_use("mining")) {
+		game_log("*** Mining cooldown active ***");
+		return;
+	}
 
-    if (character.slots.mainhand?.name !== "pickaxe") {
-        game_log("*** Pickaxe not equipped or broken ***");
-        return;
-    }
+	// Ensure pickaxe is equipped or try to equip it
+	if (character.slots.mainhand?.name !== "pickaxe") {
+		const pickaxe_index = character.items.findIndex(item => item?.name === "pickaxe");
+		if (pickaxe_index === -1) {
+			game_log("*** No pickaxe equipped or in inventory ***");
+			return;
+		}
+		game_log("*** Equipping pickaxe... ***");
+		await equip(pickaxe_index);
+		await delay(500);
+	}
 
-    // Move to mining spot
-    await smart_move(MINING_SPOT);
+	// Confirm it's now equipped
+	if (character.slots.mainhand?.name !== "pickaxe") {
+		game_log("*** Failed to equip pickaxe ***");
+		return;
+	}
 
-    while (true) {
-        // Final pre-mining checks
-        if (!can_use("mining")) {
-            await delay(500);
-            game_log("*** Mining cooldown active ***");
-            break;
-        }
+	// Move to mining spot
+	await smart_move(MINING_SPOT);
 
-        if (character.slots.mainhand?.name !== "pickaxe") {
-            await delay(500);
-            game_log("*** Pickaxe not equipped or broken ***");
-            break;
-        }
+	while (true) {
+		// Final pre-mining checks
+		if (!can_use("mining")) {
+			await delay(500);
+			game_log("*** Mining cooldown active ***");
+			break;
+		}
 
-        // Snapshot inventory before mining
-        const before_items = character.items.map(i => i?.name || null);
-        await delay(500);
-        game_log("*** Starting mining attempt... ***");
-        use_skill("mining");
+		if (character.slots.mainhand?.name !== "pickaxe") {
+			await delay(500);
+			game_log("*** Pickaxe not equipped or broken ***");
+			break;
+		}
 
-        let success = false;
-        let attempts = 0;
+		// Snapshot inventory before mining
+		const before_items = character.items.map(i => i?.name || null);
+		await delay(500);
+		game_log("*** Starting mining attempt... ***");
+		use_skill("mining");
 
-        while (attempts < 30) { // wait up to 30s
-            await delay(500);
-            attempts++;
+		let success = false;
+		let attempts = 0;
 
-            const after_items = character.items.map(i => i?.name || null);
-            let changed = false;
+		while (attempts < 30) { // wait up to 30s
+			await delay(500);
+			attempts++;
 
-            for (let i = 0; i < after_items.length; i++) {
-                if (after_items[i] !== before_items[i]) {
-                    changed = true;
-                    break;
-                }
-            }
+			const after_items = character.items.map(i => i?.name || null);
+			let changed = false;
 
-            if (changed) {
-                success = true;
-                break;
-            }
-        }
+			for (let i = 0; i < after_items.length; i++) {
+				if (after_items[i] !== before_items[i]) {
+					changed = true;
+					break;
+				}
+			}
 
-        if (success) {
-            game_log("*** ⛏️ Mined something! ***");
-        } else {
-            game_log("*** ⚠️ No ore mined or timeout. ***");
-        }
+			if (changed) {
+				success = true;
+				break;
+			}
+		}
 
-        // Wait a moment before next attempt
-        await delay(500);
-    }
+		if (success) {
+			game_log("*** ⛏️ Mined something! ***");
+		} else {
+			game_log("*** ⚠️ No ore mined or timeout. ***");
+		}
+
+		await delay(500);
+	}
 }
 
 // -------------------------------------------------------------------- //
