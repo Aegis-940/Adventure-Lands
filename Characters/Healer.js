@@ -40,12 +40,6 @@ function lowest_health_partymember() {
 
     the_party.push(character);
 
-    // Search for fieldgen0 and add it to the array if it exists and its health is below 60%
-    let fieldgen0 = get_nearest_monster({ type: "fieldgen0" });
-    if (fieldgen0 && (fieldgen0.hp / fieldgen0.max_hp) <= 0.6) {
-        the_party.push(fieldgen0);
-    }
-
     // Populate health percentages
     let res = the_party.sort(function (a, b) {
         let a_rat = a.hp / a.max_hp;
@@ -158,9 +152,9 @@ async function attack_loop() {
                 // If no Bosses, find regular mobs
                 for (let i = 0; i < MONSTER_TYPES.length; i++) {
                     target = get_nearest_monster_v2({
-                        target: targetNames[i],
+                        target: MONSTER_TYPES[i],
                         check_min_hp: true,
-                        max_distance: 50, // Only consider monsters within 50 units
+                        max_distance: 150, // Only consider monsters within 50 units
                     });
                     if (target) break;
                 }
@@ -189,11 +183,61 @@ async function attack_loop() {
 attack_loop();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// MAIN LOOP
+// MOVE LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let last_curse_time = 0;
-const CURSE_COOLDOWN = 5250;
+async function move_loop() {
+    let delay = 100;
+
+    try {
+        // Prioritize healing target
+        let heal_target = lowest_health_partymember();
+
+        if (
+            heal_target &&
+            heal_target.hp < heal_target.max_hp - (character.heal / 1.33) &&
+            !is_in_range(heal_target) &&
+            can_move_to(heal_target)
+        ) {
+            // Move halfway to the healing target
+            await move(
+                character.real_x + (heal_target.real_x - character.real_x) / 2,
+                character.real_y + (heal_target.real_y - character.real_y) / 2
+            );
+        } else {
+            // Fallback: move toward the nearest monster of valid types
+            let monster = null;
+
+            for (let i = 0; i < MONSTER_TYPES.length; i++) {
+                monster = get_nearest_monster_v2({
+                    type: MONSTER_TYPES[i],
+                    check_min_hp: true,
+                    path_check: true,
+                });
+
+                if (monster && !is_in_range(monster)) break;
+                monster = null;
+            }
+
+            if (monster) {
+                await move(
+                    character.real_x + (monster.real_x - character.real_x) / 2,
+                    character.real_y + (monster.real_y - character.real_y) / 2
+                );
+            }
+        }
+    } catch (e) {
+        console.error(e);
+    }
+
+    setTimeout(move_loop, delay);
+}
+
+move_loop();
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// MAIN LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
 setInterval(() => {
 
