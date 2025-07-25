@@ -119,7 +119,7 @@ setInterval(() => {
 		can_use("cleave") &&
 		is_in_range(target, "cleave")
 	) {
-		use_skill("cleave", target);
+		//use_skill("cleave", target);
 	} else if (can_attack(target)) {
 		set_message("Attacking");
 		attack(target);
