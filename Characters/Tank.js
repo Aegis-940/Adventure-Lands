@@ -42,9 +42,6 @@ setInterval(() => {
 	party_manager();
 	check_and_request_pots();
 
-	// Determine the target
-	let target;
-
 	var target=get_targeted_monster();
 		if(!target)
 		{
