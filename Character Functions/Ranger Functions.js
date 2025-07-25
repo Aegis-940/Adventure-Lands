@@ -79,17 +79,19 @@ async function attack_loop() {
 
     const sortedByHP = [];
     for (const e of entities) {
-	    game_log("check 1");
         if (e.type === "monster") {
             sortedByHP.push(e);
-	    game_log("check 2");
         }
     }
     sortedByHP.sort((a, b) => b.hp - a.hp);
 
     const inRange = [], outOfRange = [];
     for (const mob of sortedByHP) {
+	    
+	    game_log("check 1");
         (Math.hypot(mob.x - X, mob.y - Y) <= rangeThreshold ? inRange : outOfRange).push(mob);
+	    
+	    game_log("check 2");
     }
 
     try {
