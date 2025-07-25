@@ -27,23 +27,9 @@ async function attack_loop() {
         (Math.hypot(mob.x - X, mob.y - Y) <= rangeThreshold ? inRange : outOfRange).push(mob);
     }
 
-    const healTarget = null; //lowest_health_partymember(); // Still using external func here
-    if (healTarget && healTarget.hp < healTarget.max_hp * healThreshold) {
-        state = "healing";
-    } else {
-        state = "attacking";
-    }
-
     let delay;
 
     try {
-        switch (state) {
-            case "healing":
-                smartEquip("heal");
-                await attack(healTarget);
-                delay = ms_to_next_skill("attack");
-                break;
-
             case "attacking":
                 if (sortedByHP.length) {
                     const cursed = get_nearest_monster_v2({ statusEffects: ["cursed"] });
