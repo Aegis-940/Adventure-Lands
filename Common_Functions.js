@@ -221,7 +221,8 @@ function pots() {
 // -------------------------------------------------------------------- //
 
 function send_to_merchant() {
-    const merchant = "Riff";
+    const merchant_name = "Riff";
+    const merchant = parent.entities[merchant_name];
 
     // Check if merchant is valid and nearby
     if (!merchant || merchant.rip || merchant.map !== character.map || distance(character, merchant) > 400) {
@@ -232,11 +233,11 @@ function send_to_merchant() {
     for (let i = 2; i < character.items.length; i++) {
         const item = character.items[i];
         if (item) {
-            send_item(merchant, i, item.q || 1);
+            send_item(merchant_name, i, item.q || 1);
         }
     }
 
-    send_gold(merchant, 999999999);
+    send_gold(merchant_name, character.gold);
 }
 
 // -------------------------------------------------------------------- //
