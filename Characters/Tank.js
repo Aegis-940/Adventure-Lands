@@ -42,35 +42,7 @@ setInterval(() => {
 	party_manager();
 	check_and_request_pots();
 
-	// TAUNT — pull aggro from monsters targeting allies
-	if (
-		taunt_mode &&
-		can_use("taunt") &&
-		!is_moving(character) &&
-		tank_name === "Ulric"
-	) {
-		for (const id in parent.entities) {
-			const e = parent.entities[id];
-			if (
-				e?.type === "monster" &&
-				e.target &&
-				e.target !== character.name &&
-				is_in_party(e.target) &&
-				is_in_range(e, "taunt")
-			) {
-				use_skill("taunt", e);
-				break;
-			}
-		}
-	}
-
-	const is_tank = character.name === tank_name;
-	const tank    = is_tank ? character : parent.entities[tank_name];
-
-	if (!tank || tank.rip) {
-		set_message("No Tank");
-		return;
-	}
+	
 
 	// Determine the target
 	let target;
