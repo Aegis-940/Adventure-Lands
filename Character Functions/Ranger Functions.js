@@ -85,26 +85,29 @@ async function move_loop() {
 
 	try {
 
-		if {
-			let monster = null;
+		if (character.moving || smart.moving) {
+			// Skip movement logic, but continue the loop
+			return setTimeout(move_loop, delay);
+		}
 
-			for (let i = 0; i < MONSTER_TYPES.length; i++) {
-				monster = get_nearest_monster_v2({
-					type: MONSTER_TYPES[i],
-					check_min_hp: true,
-					path_check: true,
-				});
+		let monster = null;
 
-				if (monster && !is_in_range(monster)) break;
-				monster = null;
-			}
+		for (let i = 0; i < MONSTER_TYPES.length; i++) {
+			monster = get_nearest_monster_v2({
+				type: MONSTER_TYPES[i],
+				check_min_hp: true,
+				path_check: true,
+			});
 
-			if (monster) {
-				await move(
-					character.real_x + (monster.real_x - character.real_x) / 2,
-					character.real_y + (monster.real_y - character.real_y) / 2
-				);
-			}
+			if (monster && !is_in_range(monster)) break;
+			monster = null;
+		}
+
+		if (monster) {
+			await move(
+				character.real_x + (monster.real_x - character.real_x) / 2,
+				character.real_y + (monster.real_y - character.real_y) / 2
+			);
 		}
 	} catch (e) {
 		console.error(e);
