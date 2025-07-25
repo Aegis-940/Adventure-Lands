@@ -226,6 +226,123 @@ async function move_loop() {
 move_loop();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// SKILL LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+async function skill_loop() {
+	const X = locations[home][0].x;
+	const Y = locations[home][0].y;
+	const delay = 40;
+	const dead = character.rip;
+	const disabled = parent.is_disabled(character) === undefined;
+	const mapsToExclude = ["level2n", "level2w"];
+	const eventMaps = ["desertland", "halloween"];
+	const eventMobs = ["rgoo", "bgoo", "snowman", "icegolem", "franky", "grinch", "dragold", "wabbit", "mrgreen", "mrpumpkin"];
+	try {
+		if (character.ctype === "priest") {
+			handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps);
+		}
+	} catch (e) {
+		console.error(e);
+	}
+	setTimeout(() => skill_loop(), delay);
+}
+
+skill_loop();
+
+async function safe_call(fn, name) {
+	try {
+		await fn();
+	} catch (e) {
+		console.error(`Error in ${name}:`, e);
+	}
+}
+
+async function handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps, zapperMobs) {
+	if (dead || !disabled) return;
+
+	safe_call(() => handle_cursing(X, Y), "handleCursing");
+	//safe_call(() => handle_absorb(mapsToExclude, eventMobs, eventMaps), "handleAbsorb");
+	safe_call(() => handle_party_heal(), "handlePartyHeal");
+	safe_call(() => handle_dark_blessing(), "handleDarkBlessing");
+	// await safe_call(() => handleZapSpam(zapperMobs), "handleZapSpam");
+}
+
+async function handle_cursing(X, Y) {
+	const ctarget = get_nearest_monster_v2({
+		target: "CrownPriest",
+		check_max_hp: true,
+		max_distance: 75,
+		point_for_distance_check: [X, Y],
+	}) || get_targeted_monster();
+
+	if (ctarget && ctarget.hp >= ctarget.max_hp * 0.2 && !ctarget.immune) {
+		if (!is_on_cooldown("curse")) {
+			try {
+				await use_skill("curse", ctarget);
+			} catch (e) {
+				if (e?.reason !== "cooldown") throw e;
+			}
+		}
+	}
+}
+
+async function handle_absorb(mapsToExclude) {
+	if (!character.party) return;
+	if (mapsToExclude.includes(character.map)) return;
+	if (is_on_cooldown("absorb")) return;
+
+	const partyNames = Object.keys(get_party()).filter(name => name !== character.name);
+
+	const attackers = {};
+	for (const id in parent.entities) {
+		const monster = parent.entities[id];
+		if (monster.type !== "monster" || monster.dead || !monster.visible) continue;
+		if (partyNames.includes(monster.target)) attackers[monster.target] = true;
+	}
+
+	for (const name of partyNames) {
+		if (attackers[name]) {
+			try {
+				await use_skill("absorb", name);
+				game_log(`Absorbing ${name}`, "#FFA600");
+			} catch (e) {
+				if (e?.reason !== "cooldown") throw e;
+			}
+			return;
+		}
+	}
+}
+
+async function handle_party_heal(healThreshold = 0.65, minMp = 2000) {
+	if (!character.party || character.mp <= minMp) return;
+	if (is_on_cooldown("partyheal")) return;
+
+	const partyNames = Object.keys(get_party());
+	for (const name of partyNames) {
+		const ally = get_player(name);
+		if (!ally || ally.rip) continue;
+		if (ally.hp >= ally.max_hp * healThreshold) continue;
+
+		try {
+			await use_skill("partyheal");
+		} catch (e) {
+			if (e?.reason !== "cooldown") throw e;
+		}
+		break;
+	}
+}
+
+async function handle_dark_blessing() {
+	const nearbyHome = get_nearest_monster({ type: "home" });
+	if (!nearbyHome) return;
+
+	if (!is_on_cooldown("darkblessing")) {
+		await use_skill("darkblessing");
+	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
