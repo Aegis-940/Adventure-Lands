@@ -673,6 +673,85 @@ async function go_fish() {
 }
 
 // -------------------------------------------------------------------- //
+// SIMPLE FISHING SCRIPT
+// -------------------------------------------------------------------- //
+
+// -------------------------------------------------------------------- //
+// SIMPLE MINING SCRIPT
+// -------------------------------------------------------------------- //
+
+async function go_mine() {
+    const MINING_SPOT = { map: "tunnel", x: 232, y: -157 };
+
+    // Check if mining is available and pickaxe is equipped
+    if (!can_use("mining")) {
+        game_log("*** Mining cooldown active ***");
+        return;
+    }
+
+    if (character.slots.mainhand?.name !== "pickaxe") {
+        game_log("*** Pickaxe not equipped or broken ***");
+        return;
+    }
+
+    // Move to mining spot
+    await smart_move(MINING_SPOT);
+
+    while (true) {
+        // Final pre-mining checks
+        if (!can_use("mining")) {
+            await delay(500);
+            game_log("*** Mining cooldown active ***");
+            break;
+        }
+
+        if (character.slots.mainhand?.name !== "pickaxe") {
+            await delay(500);
+            game_log("*** Pickaxe not equipped or broken ***");
+            break;
+        }
+
+        // Snapshot inventory before mining
+        const before_items = character.items.map(i => i?.name || null);
+        await delay(500);
+        game_log("*** Starting mining attempt... ***");
+        use_skill("mining");
+
+        let success = false;
+        let attempts = 0;
+
+        while (attempts < 30) { // wait up to 30s
+            await delay(500);
+            attempts++;
+
+            const after_items = character.items.map(i => i?.name || null);
+            let changed = false;
+
+            for (let i = 0; i < after_items.length; i++) {
+                if (after_items[i] !== before_items[i]) {
+                    changed = true;
+                    break;
+                }
+            }
+
+            if (changed) {
+                success = true;
+                break;
+            }
+        }
+
+        if (success) {
+            game_log("*** ⛏️ Mined something! ***");
+        } else {
+            game_log("*** ⚠️ No ore mined or timeout. ***");
+        }
+
+        // Wait a moment before next attempt
+        await delay(500);
+    }
+}
+
+// -------------------------------------------------------------------- //
 // EXCHANGE ITEMS FOR LOOT
 // -------------------------------------------------------------------- //
 
@@ -722,185 +801,6 @@ async function exchange_item(item_name) {
         exchange(slot);
 
     }, EXCHANGE_INTERVAL);
-}
-
-// -------------------------------------------------------------------- //
-// GOLD PER HOUR FOR STATS WINDOW
-// -------------------------------------------------------------------- //
-
-function hook_gold_tracking_to_stats_window() {
-    let sum_gold = 0;
-    let largest_gold_drop = 0;
-    const start_time = Date.now();
-
-    // Every time you loot, accumulate
-    character.on("loot", (data) => {
-        if (data.gold && typeof data.gold === "number" && !isNaN(data.gold)) {
-            const share = parent.party[character.name]?.share || 1;
-            const full = Math.round(data.gold / share);
-            sum_gold += full;
-            if (full > largest_gold_drop) largest_gold_drop = full;
-        }
-    });
-
-    // Every 500ms, recompute and write into #statsBody
-    setInterval(() => {
-        // Find the <div id="statsBody"> we reserved in createTeamStatsWindow()
-        const stats_body = window.top.document.getElementById("statsBody");
-        if (!stats_body) return;
-
-        const elapsed_ms = Date.now() - start_time;
-        const elapsed_hrs = elapsed_ms / 3_600_000;
-        const avg = elapsed_hrs > 0 ? Math.round(sum_gold / elapsed_hrs) : 0;
-
-        // Build the two lines
-        const gold_line = `💰 Gold/hr: ${avg.toLocaleString()} g/h 🎲 Jackpot: ${largest_gold_drop.toLocaleString()} g`;
-
-        // Overwrite the contents of statsBody
-        stats_body.innerText = gold_line + "\n";
-    }, 500);
-}
-
-// -------------------------------------------------------------------- //
-// DPS FOR STATS WINDOW (Reload‐Safe, Floating‐Text Friendly, All Columns)
-// -------------------------------------------------------------------- //
-
-// Which columns to show
-const DAMAGE_TYPES = ["Base", "Burn", "DPS"];
-
-// Color mappings
-const DAMAGE_TYPE_COLORS = {
-    Base: "#A92000",
-    Burn: "#FF7F27",
-    HPS:  "#9A1D27",
-    DPS:  "#FFD700"
-};
-const CLASS_COLORS = {
-    mage:    "#3FC7EB",
-    paladin: "#F48C4BA",
-    priest:  "#FFFFFF",
-    ranger:  "#AAD372",
-    rogue:   "#FFF468",
-    warrior: "#C69B6D"
-};
-
-// Durable per‐player history on parent.socket:
-parent.socket._dps_history = parent.socket._dps_history || {};
-
-// Remove any old handler on reload:
-if (parent.socket._dps_handler_ref) {
-    if (typeof parent.socket.off === "function") {
-        parent.socket.off("hit", parent.socket._dps_handler_ref);
-    } else if (typeof parent.socket.removeListener === "function") {
-        parent.socket.removeListener("hit", parent.socket._dps_handler_ref);
-    }
-}
-
-// Define and remember the handler:
-parent.socket._dps_handler_ref = function dps_hit_handler(data) {
-    // Only once per event
-    if (data.__dps_seen) return;
-    data.__dps_seen = true;
-
-    // Only track party members
-    const in_party = id => parent.party_list.indexOf(id) >= 0;
-    if (!in_party(data.hid) && !in_party(data.id)) return;
-
-    // Derive fields
-    const raw   = data.damage || 0;
-    const base  = raw && data.source !== "burn" && !data.splash ? raw : 0;
-    const burn  = data.source === "burn" ? raw : 0;
-    const heal  = (data.heal || 0) + (data.lifesteal || 0);
-    const ret   = data.dreturn || 0;
-    const refl  = data.reflect  || 0;
-    const total = raw;
-
-    // Skip if nothing to track
-    if (!base && !burn && !heal && !ret && !refl) return;
-
-    // Record timestamped entry
-    const now = Date.now();
-    const hist = parent.socket._dps_history[data.hid] || [];
-    hist.push({ t: now, base, burn, heal, ret, refl, total });
-
-    // Trim to last 60s
-    const cutoff = now - 60000;
-    parent.socket._dps_history[data.hid] = hist.filter(e => e.t >= cutoff);
-};
-
-// Attach once
-parent.socket.on("hit", parent.socket._dps_handler_ref);
-
-function compute_stats_array() {
-    const out = {};
-    for (const name in parent.socket._dps_history) {
-        const hist = parent.socket._dps_history[name];
-        if (!hist || hist.length < 2) {
-            out[name] = { Base:0, Burn:0, HPS:0, DPS:0 };
-            continue;
-        }
-        const first = hist[0].t, last = hist[hist.length-1].t;
-        const elapsed = Math.max(1, last - first);
-        let sum_base=0, sum_burn=0, sum_heal=0, sum_dps=0;
-        hist.forEach(e => {
-            sum_base += e.base;
-            sum_burn += e.burn;
-            sum_heal += e.heal;
-            sum_dps  += e.total + e.ret + e.refl;
-        });
-        const scale = 1000/elapsed;
-        out[name] = {
-            Base: Math.floor(sum_base * scale),
-            Burn: Math.floor(sum_burn * scale),
-            HPS:  Math.floor(sum_heal * scale),
-            DPS:  Math.floor(sum_dps  * scale)
-        };
-    }
-    return out;
-}
-
-function hook_dps_tracking_to_stats_window() {
-    setInterval(() => {
-        const container = window.top.document.getElementById("teamDpsContainer");
-        if (!container) return;
-
-        const stats = compute_stats_array();
-
-        // Build table header
-        let html = "<table style='width:100%;text-align:left;border-collapse:collapse'><tr><th></th>";
-        DAMAGE_TYPES.forEach(t => {
-            html += `<th style="color:${DAMAGE_TYPE_COLORS[t]}">${t}</th>`;
-        });
-        html += "</tr>";
-
-        // Fixed player order: Ulric, Riva, Myras
-        ["Ulric", "Riva", "Myras"].forEach(name => {
-            const vals = stats[name] || { Base:0, Burn:0, HPS:0, DPS:0 };
-            const p = get_player(name);
-            if (!p) return;
-            const color = CLASS_COLORS[p.ctype.toLowerCase()] || "#fff";
-
-            html += `<tr><td style="color:${color}">${name}</td>`;
-            DAMAGE_TYPES.forEach(t => {
-                html += `<td>${vals[t].toLocaleString()}</td>`;
-            });
-            html += "</tr>";
-        });
-
-        // Total row
-        html += `<tr><td style="color:${DAMAGE_TYPE_COLORS.DPS}">Total</td>`;
-        DAMAGE_TYPES.forEach(t => {
-            let sum = 0;
-            ["Ulric", "Riva", "Myras"].forEach(name => {
-                const v = (stats[name] || {})[t] || 0;
-                sum += v;
-            });
-            html += `<td>${sum.toLocaleString()}</td>`;
-        });
-        html += "</tr></table>";
-
-        container.innerHTML = html;
-    }, 500);
 }
 
 function hide_skills_ui() {
