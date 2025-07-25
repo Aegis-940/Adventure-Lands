@@ -30,35 +30,30 @@ async function attack_loop() {
     let delay;
 
     try {
-                if (sortedByHP.length) {
-                    const cursed = get_nearest_monster_v2({ statusEffects: ["cursed"] });
-                    if (cursed) {
-                        change_target(cursed);
-                        if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", cursed);
-                        if (!is_on_cooldown("supershot")) await use_skill("supershot", cursed);
-                    }
+	if (sortedByHP.length) {
+	    const cursed = get_nearest_monster_v2({ statusEffects: ["cursed"] });
+	    if (cursed) {
+		change_target(cursed);
+		if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", cursed);
+		if (!is_on_cooldown("supershot")) await use_skill("supershot", cursed);
+	    }
 
-                    //if (inRange.length >= 4) {
-                        //smartEquip("boom");
-                        //await use_skill("5shot", inRange.slice(0, 5).map(e => e.id));
-                    //} else if (outOfRange.length >= 4) {
-                        //smartEquip("dead");
-                    //    await use_skill("5shot", outOfRange.slice(0, 5).map(e => e.id));
-                    if (sortedByHP.length >= 2) {
-                        //smartEquip("dead");
-                        await use_skill("3shot", sortedByHP.slice(0, 3).map(e => e.id));
-                    } else if (sortedByHP.length === 1 && is_in_range(sortedByHP[0])) {
-                        //smartEquip("single");
-                        await attack(sortedByHP[0]);
-                    }
-                    delay = ms_to_next_skill("attack");
-                }
-                break;
-
-            default:
-                console.error("Unknown state:", state);
-                break;
-        }
+	    //if (inRange.length >= 4) {
+		//smartEquip("boom");
+		//await use_skill("5shot", inRange.slice(0, 5).map(e => e.id));
+	    //} else if (outOfRange.length >= 4) {
+		//smartEquip("dead");
+	    //    await use_skill("5shot", outOfRange.slice(0, 5).map(e => e.id));
+	    if (sortedByHP.length >= 2) {
+		//smartEquip("dead");
+		await use_skill("3shot", sortedByHP.slice(0, 3).map(e => e.id));
+	    } else if (sortedByHP.length === 1 && is_in_range(sortedByHP[0])) {
+		//smartEquip("single");
+		await attack(sortedByHP[0]);
+	    }
+	    delay = ms_to_next_skill("attack");
+	}
+	    
     } catch (err) {
         console.error(err);
     }
