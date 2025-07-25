@@ -6,7 +6,6 @@
 let lastSwitchTime = 0, state = "attacking";
 const switchCooldown = 750;
 const rangeThreshold = 45;
-const X = locations[home][0].x, Y = locations[home][0].y;
 let lastEquippedSet = null;
 
 async function attack_loop() {
