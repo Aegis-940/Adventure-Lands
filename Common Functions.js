@@ -198,16 +198,17 @@ function follow_party_leader(party_leader) {
 // -------------------------------------------------------------------- //
 
 function pots() {
-    // Use mana potion if needed
-    if ((character.max_mp - character.mp >= 500 || character.mp < 720) && can_use("mp")) {
-        use("mp"); // small mana potion
-        // use("mpot1") or use("mpot0") for specific types
-    }
 
     // Use health potion if needed
     if (character.max_hp - character.hp >= 400 && can_use("hp")) {
         use("hp"); // small health potion
         // use("hpot1") or use("hpot0") for specific types
+    }
+    
+    // Use mana potion if needed
+    if ((character.max_mp - character.mp >= 500 || character.mp < 720) && can_use("mp")) {
+        use("mp"); // small mana potion
+        // use("mpot1") or use("mpot0") for specific types
     }
 }
 
