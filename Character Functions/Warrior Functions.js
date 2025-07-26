@@ -108,35 +108,38 @@ async function attack_loop() {
 
 async function move_loop() {
   try {
-    // 1. Find the closest monster among all types in MONSTER_TYPES
+    // 1. Find the absolute closest monster among your approved types
     let closest = null;
     let minDist = Infinity;
 
     for (const mtype of MONSTER_TYPES) {
-      const candidate = get_nearest_monster_v2({ type: mtype });
-      if (!candidate) continue;
-
-      const d = parent.distance(character, candidate);
+      const monster = get_nearest_monster_v2({ type: mtype });
+      if (!monster) continue;
+      const d = parent.distance(character, monster);
       if (d < minDist) {
         minDist = d;
-        closest = candidate;
+        closest = monster;
       }
     }
 
-    // 2. If we found one, move toward it until we're in attack range
-    if (closest) {
-      // use the distance we already computed
-      if (minDist > character.range * 0.9) {
-        await move({ x: closest.x, y: closest.y });
+    // 2. If we’ve actually got a target and we’re out of attack range, move toward it
+    if (closest && minDist > character.range * 0.9) {
+      // only queue one smart_move at a time
+      if (!smart.moving) {
+        await smart_move({ x: closest.x, y: closest.y });
       }
     }
-  } catch (e) {
-    console.error("move_loop error:", e);
+  } catch (err) {
+    console.error("move_loop error:", err);
+  } finally {
+    // 3. Schedule the next tick
+    setTimeout(move_loop, 100);
   }
-
-  // 3. Schedule next tick
-  setTimeout(move_loop, 50);
 }
+
+// don’t forget to start it once:
+move_loop();
+
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SKILL LOOP
