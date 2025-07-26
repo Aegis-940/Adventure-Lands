@@ -284,3 +284,20 @@ function boundary_loop() {
   enforce_boundary().catch(console.error);
   setTimeout(boundary_loop, 200);  // check 5×/sec
 }
+
+// --------------------------------------------------------------------------------
+// CLICK-HOOK FOR UPDATING HOME POINT
+// --------------------------------------------------------------------------------
+
+// Wait until the canvas exists, then bind
+function bindManualClick() {
+  const gameCanvas = document.querySelector("canvas");
+  if (!gameCanvas) {
+    // Try again in a bit if the canvas isn't ready yet
+    return setTimeout(bindManualClick, 500);
+  }
+  // Now hook mousedown on the canvas to reset your home
+  gameCanvas.addEventListener("mousedown", set_last_manual);
+  console.log("✨ boundary home-point will reset on canvas clicks");
+}
+bindManualClick();
