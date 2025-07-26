@@ -104,6 +104,8 @@ async function attack_loop() {
 // MOVE LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+let lastTarPosition = null; // Store the last known position of the monster
+
 async function move_loop() {
     let delay = 50;
     try {
