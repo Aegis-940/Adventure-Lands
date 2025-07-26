@@ -108,21 +108,33 @@ async function attack_loop() {
 
 async function move_loop() {
   try {
-    // Try to grab ANY monster within 1.5× attack range:
-    const tar = get_nearest_monster_v2();
-    console.log("move_loop target:", tar);  // <-- debug: should print an entity or null
+    // 1. Find the closest monster among all types in MONSTER_TYPES
+    let closest = null;
+    let minDist = Infinity;
 
-    if (tar) {
-      const dist = parent.distance(character, tar);
-      // If we’re out of melee range, move in:
-      if (dist > character.range * 0.9) {
-        // Use tar.x / tar.y instead of real_x/real_y
-        await move({ x: tar.x, y: tar.y });
+    for (const mtype of MONSTER_TYPES) {
+      const candidate = get_nearest_monster_v2({ type: mtype });
+      if (!candidate) continue;
+
+      const d = parent.distance(character, candidate);
+      if (d < minDist) {
+        minDist = d;
+        closest = candidate;
+      }
+    }
+
+    // 2. If we found one, move toward it until we're in attack range
+    if (closest) {
+      // use the distance we already computed
+      if (minDist > character.range * 0.9) {
+        await move({ x: closest.x, y: closest.y });
       }
     }
   } catch (e) {
     console.error("move_loop error:", e);
   }
+
+  // 3. Schedule next tick
   setTimeout(move_loop, 50);
 }
 
