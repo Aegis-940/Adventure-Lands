@@ -22,40 +22,46 @@ setInterval(function() {
 }, 75);
 
 function upgrade() {
-	for (let i = 0; i < character.items.length; i++) 
-	{
-		let c = character.items[i];
+  for (let i = 0; i < character.items.length; i++) {
+    let c = character.items[i];
+    if (!c) continue;
 
-		if (c) {
-			var level = upgradeWhitelist[c.name];
-			if(level && c.level < level)
-			{
-				let grades = get_grade(c);
-				let scrollname;
-				if (c.level < grades[0])
-					scrollname = 'scroll0';
-				else if (c.level < grades[1])
-					scrollname = 'scroll1';
-				else
-					scrollname = 'scroll2';
+    const maxLevel = upgradeWhitelist[c.name];
+    if (!maxLevel || c.level >= maxLevel) continue;
 
-				let [scroll_slot, scroll] = find_item(i => i.name == scrollname);
-				if (!scroll) {
-					parent.buy(scrollname);
-				return;
-			  }
+    // Determine which scroll to use:
+    let scrollname;
+    if (c.level >= 5) {
+      scrollname = "scroll1";
+    } else {
+      const grades = get_grade(c);
+      if (c.level < grades[0]) {
+        scrollname = "scroll0";
+      } else if (c.level < grades[1]) {
+        scrollname = "scroll1";
+      } else {
+        scrollname = "scroll2";
+      }
+    }
 
-			  parent.socket.emit('upgrade', {
-				item_num: i,
-				scroll_num: scroll_slot,
-				offering_num: null,
-				clevel: c.level
-			  });
-			  return;
-			}
-    	}
-  	}
+    // Find or buy the scroll
+    const [scroll_slot, scroll] = find_item((itm) => itm.name === scrollname);
+    if (!scroll) {
+      parent.buy(scrollname);
+      return;
+    }
+
+    // Send the upgrade packet
+    parent.socket.emit("upgrade", {
+      item_num: i,
+      scroll_num: scroll_slot,
+      offering_num: null,
+      clevel: c.level,
+    });
+    return;
+  }
 }
+
 
 function compound_items() {
   let to_compound = character.items.reduce((collection, item, index) => {
