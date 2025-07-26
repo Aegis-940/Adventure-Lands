@@ -33,7 +33,7 @@ async function process_merchant_queue() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const SELLABLE_ITEMS = ["hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "wbook0", "wshoes", "wcap", "cclaw", "crabclaw", "slimestaff", "stinger", "coat1", "helmet1",
-		       "gloves1", "pants1", "mushroomstaff", "wbreeches"];
+		       "gloves1", "pants1", "mushroomstaff", "wbreeches", "shoes1"];
 const BANKABLE_ITEMS = [];
 
 async function sell_and_bank() {
