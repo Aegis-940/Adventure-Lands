@@ -1,5 +1,5 @@
 //The items we want to craft.
-var craftList = ["wingedboots"];
+var craftList = ["pouchbow"];
 
 setInterval(function()
 			{
