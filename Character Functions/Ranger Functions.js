@@ -1,35 +1,33 @@
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // PERSISTENT STATE HANDLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Save current loop flags to localStorage.
+// Save current loop flags using native set().
 function save_persistent_state() {
   try {
-    localStorage.setItem("ranger_attack_enabled", JSON.stringify(attack_enabled));
-    localStorage.setItem("ranger_move_enabled",   JSON.stringify(move_enabled));
+    set("ranger_attack_enabled", attack_enabled);
+    set("ranger_move_enabled",   move_enabled);
   } catch (e) {
     console.error("Error saving persistent state:", e);
   }
 }
 
-// Load loop flags from localStorage (if present), apply them, and start/stop loops accordingly. Call this once at script init.
+// Load saved flags with native get(), then start/stop loops accordingly. Call this once at script init.
 function init_persistent_state() {
   try {
-    const atk = localStorage.getItem("ranger_attack_enabled");
-    if (atk !== null) {
-      attack_enabled = JSON.parse(atk);
-    }
-    const mv = localStorage.getItem("ranger_move_enabled");
-    if (mv !== null) {
-      move_enabled = JSON.parse(mv);
-    }
+    const atk = get("ranger_attack_enabled");
+    if (atk !== undefined) attack_enabled = atk;
 
-    // Ensure loops reflect loaded flags
+    const mv = get("ranger_move_enabled");
+    if (mv !== undefined) move_enabled = mv;
+
+    // Reflect loaded flags in the loop state
     if (attack_enabled) start_attack_loop();
-    else stop_attack_loop();
+    else                stop_attack_loop();
 
     if (move_enabled)   start_move_loop();
-    else stop_move_loop();
+    else                stop_move_loop();
   } catch (e) {
     console.error("Error loading persistent state:", e);
   }
