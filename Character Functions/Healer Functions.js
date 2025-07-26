@@ -369,34 +369,30 @@ async function handle_cursing(X, Y) {
 	}
 }
 
-async function handle_absorb(mapsToExclude) {
-	if (!character.party) return;
-	if (mapsToExclude.includes(character.map)) return;
-	if (is_on_cooldown("absorb")) return;
+async function handle_absorb() {
+  // 1) Don’t run on cooldown
+  if (is_on_cooldown("absorb")) return;
 
-	const partyNames = Object.keys(get_party()).filter(name => name !== character.name);
+  // 2) Build a list of all players: party members + yourself
+  const party = get_party() || {};
+  const names = Object.keys(party);
+  names.push(character.name);
 
-	const attackers = {};
-	for (const id in parent.entities) {
-		const monster = parent.entities[id];
-		if (monster.type !== "monster" || monster.dead || !monster.visible) continue;
-		if (partyNames.includes(monster.target)) attackers[monster.target] = true;
-	}
+  // 3) Look for anyone with s.sinner
+  for (const name of names) {
+    const member = name === character.name 
+      ? character 
+      : get_player(name);
+    if (!member || member.rip) continue;
 
-	for (const name of partyNames) {
-		if (attackers[name]) {
-			try {
-				const ally = get_player(name);
-				if (ally) {
-				  await use_skill("absorb", ally);
-				}
-				game_log(`Absorbing ${name}`, "#FFA600");
-			} catch (e) {
-				if (e?.reason !== "cooldown") throw e;
-			}
-			return;
-		}
-	}
+    // `s.sinner` is the buff key for “Sins” on a player
+    if (member.s && member.s.sinner) {
+      // 4) Cast absorb on them
+      await use_skill("absorb", member);
+      game_log(`Absorbing sins from ${member.name}`, "#FFA600");
+      return;
+    }
+  }
 }
 
 async function handle_party_heal(healThreshold = 0.65, minMp = 2000) {
