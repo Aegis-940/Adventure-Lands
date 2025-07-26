@@ -370,25 +370,22 @@ async function handle_cursing(X, Y) {
 }
 
 async function handle_absorb() {
-  // 1) Don’t run on cooldown
+  // 1) Skill off‐cooldown?
   if (is_on_cooldown("absorb")) return;
 
-  // 2) Build a list of all players: party members + yourself
-  const party = get_party() || {};
+  // 2) Gather all player names: your party plus yourself
+  const party = parent.party || {};
   const names = Object.keys(party);
   names.push(character.name);
 
-  // 3) Look for anyone with s.sinner
+  // 3) Scan each person for the sinner debuff (s.sinner)
   for (const name of names) {
-    const member = name === character.name 
-      ? character 
-      : get_player(name);
+    const member = name === character.name ? character : get_player(name);
     if (!member || member.rip) continue;
-
-    // `s.sinner` is the buff key for “Sins” on a player
     if (member.s && member.s.sinner) {
       // 4) Cast absorb on them
       await use_skill("absorb", member);
+      reduce_cooldown("absorb", character.ping * 0.95);
       game_log(`Absorbing sins from ${member.name}`, "#FFA600");
       return;
     }
