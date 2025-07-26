@@ -33,7 +33,7 @@ function upgrade_once() {
     // Choose scroll
     let scrollname;
     if (c.level >= 4) {
-      scrollname = "scroll111";       // new rule for +5+
+      scrollname = "scroll1";       // new rule for +5+
     } else {
       const grades = get_grade(c);
       if (c.level < grades[0]) {
