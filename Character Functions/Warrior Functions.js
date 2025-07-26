@@ -15,25 +15,25 @@ let move_timer_id    = null;
 function start_attack_loop() {
   attack_enabled = true;     // always set it
   attack_loop();             // always call it
-  console.log("▶️ Attack loop started");
+  game_log("▶️ Attack loop started");
 }
 
 function stop_attack_loop() {
   attack_enabled = false;
   clearTimeout(attack_timer_id);
-  console.log("⏹ Attack loop stopped");
+  game_log("⏹ Attack loop stopped");
 }
 
 function start_move_loop() {
     move_enabled = true;
     move_loop();
-    console.log("▶️ Move loop started");
+    game_log("▶️ Move loop started");
 }
 
 function stop_move_loop() {
   move_enabled = false;
   clearTimeout(move_timer_id);
-  console.log("⏹ Move loop stopped");
+  game_log("⏹ Move loop stopped");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
