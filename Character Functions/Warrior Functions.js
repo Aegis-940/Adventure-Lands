@@ -126,7 +126,7 @@ async function move_loop() {
     if (closest && minDist > character.range * 0.9) {
       // only queue one smart_move at a time
       if (!smart.moving) {
-        await smart_move({ x: closest.x, y: closest.y });
+        await move({ x: closest.x, y: closest.y });
       }
     }
   } catch (err) {
