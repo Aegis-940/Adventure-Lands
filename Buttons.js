@@ -144,20 +144,15 @@ function create_map_movement_window(custom_actions = []) {
 
 function toggle_combat() {
   create_floating_button("toggle_combat", "⚔️", () => {
-    // Flip the flag and start/stop the loop
     attack_enabled = !attack_enabled;
-    if (attack_enabled) {
-      start_attack_loop();
-    } else {
-      stop_attack_loop();
-    }
+    if (attack_enabled) start_attack_loop();
+    else                stop_attack_loop();
 
-    // Update the button & UI using attack_enabled
     const btn = window.top.document.getElementById("toggle_combat");
     btn.innerText = attack_enabled ? "⚔️" : "🕊️";
     set_message(attack_enabled ? "Combat On" : "Combat Off");
     game_log(attack_enabled ? "Combat Enabled" : "Combat Disabled");
-  }, {
+  },{
     top: "2.1vh",
     right: "523px",
     minWidth: "57px",
