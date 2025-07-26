@@ -155,7 +155,7 @@ function toggle_combat() {
     set_message(attack_enabled ? "Combat On" : "Combat Off");
     game_log(attack_enabled ? "Combat Enabled" : "Combat Disabled");
   },{
-    top: "2.1vh",
+    top: "2vh",
     right: "523px",
     minWidth: "56px",
     height: "56px",
