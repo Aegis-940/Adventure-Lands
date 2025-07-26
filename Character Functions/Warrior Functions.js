@@ -247,38 +247,23 @@ function can_cleave(aoe, cc, maps, monsters, tank, time_since, has_untargeted) {
 
 const BOUNDARY_RADIUS = 150;
 
-// 1) Keep the timer ID in a variable
-let _boundaryTimer = null;
-
-function startBoundaryGuard(radius = 150, interval = 200) {
+function startBoundaryGuard(radius = BOUNDARY_RADIUS, interval = 200) {
+  // Capture the “home” point at invocation
   const homeX = character.real_x;
   const homeY = character.real_y;
 
+  // Enforcement loop
   async function boundaryLoop() {
     const dx   = character.real_x - homeX;
     const dy   = character.real_y - homeY;
     const dist = Math.hypot(dx, dy);
 
     if (dist > radius) {
-      // move halfway back
+      // Compute midpoint between current pos and home
       const targetX = character.real_x + (homeX - character.real_x) / 2;
       const targetY = character.real_y + (homeY - character.real_y) / 2;
       await move(targetX, targetY);
     }
 
-    // reschedule and save the ID
-    _boundaryTimer = setTimeout(boundaryLoop, interval);
+    setTimeout(boundaryLoop, interval);
   }
-
-  // kick it off
-  boundaryLoop();
-}
-
-// 2) To stop it:
-function stopBoundaryGuard() {
-  if (_boundaryTimer != null) {
-    clearTimeout(_boundaryTimer);
-    _boundaryTimer = null;
-    console.log("Boundary guard stopped.");
-  }
-}
