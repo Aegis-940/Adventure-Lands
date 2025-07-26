@@ -15,7 +15,7 @@ let move_timer_id     	= null;
 function start_attack_loop() {
   if (!attack_enabled) {
     attack_enabled = true;
-    _attack_loop();
+    attack_loop();
     console.log("▶️ Attack loop started");
   }
 }
@@ -29,7 +29,7 @@ function stop_attack_loop() {
 function start_move_loop() {
   if (!move_enabled) {
     move_enabled = true;
-    _move_loop();
+    move_loop();
     console.log("▶️ Move loop started");
   }
 }
