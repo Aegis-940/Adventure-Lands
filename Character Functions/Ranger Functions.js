@@ -33,6 +33,32 @@ function init_persistent_state() {
   }
 }
 
+// Hook state-saving into your start/stop functions:
+const _origStartAttack = start_attack_loop;
+start_attack_loop = function() {
+  _origStartAttack();
+  save_persistent_state();
+};
+const _origStopAttack = stop_attack_loop;
+stop_attack_loop = function() {
+  _origStopAttack();
+  save_persistent_state();
+};
+
+const _origStartMove = start_move_loop;
+start_move_loop = function() {
+  _origStartMove();
+  save_persistent_state();
+};
+const _origStopMove = stop_move_loop;
+stop_move_loop = function() {
+  _origStopMove();
+  save_persistent_state();
+};
+
+// Ensure state is saved if the script unloads
+window.addEventListener("beforeunload", save_persistent_state);
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // PERSISTENT STATE
 // --------------------------------------------------------------------------------------------------------------------------------- //
