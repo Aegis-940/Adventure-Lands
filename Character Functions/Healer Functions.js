@@ -147,53 +147,54 @@ async function attack_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function move_loop() {
-	let delay = 100;
+  const delay = 100;
 
-	try {
+  try {
+    // Don’t override an in-progress move
+    if (character.moving || smart.moving) {
+      return setTimeout(move_loop, delay);
+    }
 
-		if (character.moving || smart.moving) {
-			// Skip movement logic, but continue the loop
-			return setTimeout(move_loop, delay);
-		}
+    // 1) Determine if anyone needs healing
+    const healTarget = lowest_health_partymember();
+    let moveTarget = null;
 
-		let heal_target = lowest_health_partymember();
+    if (
+      healTarget &&
+      healTarget.hp < healTarget.max_hp - (character.heal / 1.33) &&
+      !is_in_range(healTarget) &&
+      can_move_to(healTarget)
+    ) {
+      moveTarget = healTarget;
+    } else {
+      // 2) Otherwise, find the absolute closest monster in MONSTER_TYPES
+      let bestDist = Infinity;
+      for (const mtype of MONSTER_TYPES) {
+        const mon = get_nearest_monster_v2({ type: mtype, path_check: true });
+        if (!mon) continue;
+        const d = parent.distance(character, mon);
+        if (d < bestDist) {
+          bestDist = d;
+          moveTarget = mon;
+        }
+      }
+      // If monster is already in attack range, we don’t need to move
+      if (moveTarget && parent.distance(character, moveTarget) <= character.range) {
+        moveTarget = null;
+      }
+    }
 
-		if (
-			heal_target &&
-			heal_target.hp < heal_target.max_hp - (character.heal / 1.33) &&
-			!is_in_range(heal_target) &&
-			can_move_to(heal_target)
-		) {
-			await move(
-				character.real_x + (heal_target.real_x - character.real_x) / 2,
-				character.real_y + (heal_target.real_y - character.real_y) / 2
-			);
-		} else {
-			let monster = null;
+    // 3) If we’ve picked someone to follow, move directly to them
+    if (moveTarget) {
+      await move(moveTarget.real_x, moveTarget.real_y);
+    }
 
-			for (let i = 0; i < MONSTER_TYPES.length; i++) {
-				monster = get_nearest_monster_v2({
-					type: MONSTER_TYPES[i],
-					check_min_hp: true,
-					path_check: true,
-				});
+  } catch (err) {
+    console.error("move_loop error:", err);
+  }
 
-				if (monster && !is_in_range(monster)) break;
-				monster = null;
-			}
-
-			if (monster) {
-				await move(
-					character.real_x + (monster.real_x - character.real_x) / 2,
-					character.real_y + (monster.real_y - character.real_y) / 2
-				);
-			}
-		}
-	} catch (e) {
-		console.error(e);
-	}
-
-	setTimeout(move_loop, delay);
+  // schedule next tick
+  setTimeout(move_loop, delay);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
