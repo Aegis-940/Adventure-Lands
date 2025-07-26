@@ -196,8 +196,8 @@ function toggle_free_move() {
         : "Remain Stationary During Combat"
     );
   }, {
-    top:     "2.1vh",
-    right:   "665px",
+    top:     "2vh",
+    right:   "605px",
     minWidth:"56px",
     height:  "56px",
     fontSize:"24px",
