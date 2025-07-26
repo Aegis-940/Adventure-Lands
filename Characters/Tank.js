@@ -27,18 +27,22 @@ toggle_free_move();
 hide_skills_ui();
 // toggle_stats_window();
 
+attack_loop();
+move_loop();
+skill_loop();
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 setInterval(() => {
 
-	if (!attack_mode || character.rip || smart.moving) return;
-
-	// Utility logic
+	// === Core utility loops ===
 	pots();
 	loot();
 	party_manager();
 	check_and_request_pots();
+	
+	if (!attack_mode || character.rip || is_moving(character)) return;
 
 }, 250);
