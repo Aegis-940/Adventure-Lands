@@ -129,37 +129,34 @@ async function attack_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function move_loop() {
-	let delay = 100;
+  try {
+    // 1) Find the absolute closest monster among your approved types
+    let closest = null;
+    let minDist  = Infinity;
 
-	try {
+    for (const mtype of MONSTER_TYPES) {
+      const mon = get_nearest_monster_v2({ type: mtype });
+      if (!mon) continue;
+      const d = parent.distance(character, mon);
+      if (d < minDist) {
+        minDist  = d;
+        closest = mon;
+      }
+    }
 
-		if (character.moving || smart.moving) {
-			// Skip movement logic, but continue the loop
-			return setTimeout(move_loop, delay);
-		}
-
-		let monster = null;
-
-		for (let i = 0; i < MONSTER_TYPES.length; i++) {
-			monster = get_nearest_monster_v2({
-				type: MONSTER_TYPES[i],
-				check_min_hp: true,
-				path_check: true,
-			});
-
-			if (monster && !is_in_range(monster)) break;
-			monster = null;
-		}
-
-		if (monster) {
-			await move(
-				character.real_x + (monster.real_x - character.real_x) / 2,
-				character.real_y + (monster.real_y - character.real_y) / 2
-			);
-		}
-	} catch (e) {
-		console.error(e);
-	}
-
-	setTimeout(move_loop, delay);
+    // 2) If there is one and we're out of range, walk straight at it
+    if (
+      closest &&
+      minDist > character.range * 0.9 &&
+      !character.moving   // optional: don’t spam move() if we're already walking
+    ) {
+      // Use real_x/real_y for smooth coords, and pass them as two args
+      await move(closest.real_x, closest.real_y);
+    }
+  } catch (err) {
+    console.error("move_loop error:", err);
+  } finally {
+    // 3) schedule the next tick
+    setTimeout(move_loop, 50);
+  }
 }
