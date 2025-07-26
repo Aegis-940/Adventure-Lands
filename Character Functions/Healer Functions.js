@@ -314,16 +314,16 @@ async function move_loop() {
 async function skill_loop() {
 	
 	game_log("skill_loop called");
-	/*
+	
 	const mapLocations = locations[character.map] || locations[home] || [];
 	const X = mapLocations[0]?.x ?? character.real_x;
 	const Y = mapLocations[0]?.y ?? character.real_y;
 	const delay = 40;
 	const dead = character.rip;
 	const disabled = !parent.is_disabled(character);
-	const mapsToExclude = ["level2n", "level2w"];
-	const eventMaps = ["desertland", "halloween"];
-	const eventMobs = ["rgoo", "bgoo", "snowman", "icegolem", "franky", "grinch", "dragold", "wabbit", "mrgreen", "mrpumpkin"];
+	const mapsToExclude = [];
+	const eventMaps = [];
+	const eventMobs = [];
 	try {
 		if (character.ctype === "priest") {
 			handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps);
@@ -331,8 +331,8 @@ async function skill_loop() {
 	} catch (e) {
 		console.error(e);
 	}
-	setTimeout(() => skill_loop(), delay);
- */
+	setTimeout(skill_loop, delay);
+ 
 }
 
 async function safe_call(fn, name) {
