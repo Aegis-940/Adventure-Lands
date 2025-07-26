@@ -129,34 +129,29 @@ async function attack_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function move_loop() {
-  try {
-    // 1) Find the absolute closest monster among your approved types
-    let closest = null;
-    let minDist  = Infinity;
-
-    for (const mtype of MONSTER_TYPES) {
-      const mon = get_nearest_monster_v2({ type: mtype });
-      if (!mon) continue;
-      const d = parent.distance(character, mon);
-      if (d < minDist) {
-        minDist  = d;
-        closest = mon;
-      }
+    let delay = 50;
+    try {
+        let tar = get_nearest_monster({ type: home });
+        if (tar && !smart.moving) {
+            if (!is_in_range(tar)) {
+                if (can_move_to(tar.real_x, tar.real_y)) {
+                    // Calculate halfway point and move there
+                    let halfway_x = character.real_x + (tar.real_x - character.real_x) / 2;
+                    let halfway_y = character.real_y + (tar.real_y - character.real_y) / 2;
+                    await move(halfway_x, halfway_y);
+                } else {
+                    if (!smart.moving) {
+                        // Use smart_move if direct path is not possible
+                        smart_move({
+                            x: tar.real_x,
+                            y: tar.real_y
+                        });
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.error(e);
     }
-
-    // 2) If there is one and we're out of range, walk straight at it
-    if (
-      closest &&
-      minDist > character.range * 0.9 &&
-      !character.moving   // optional: don’t spam move() if we're already walking
-    ) {
-      // Use real_x/real_y for smooth coords, and pass them as two args
-      await move(closest.real_x, closest.real_y);
-    }
-  } catch (err) {
-    console.error("move_loop error:", err);
-  } finally {
-    // 3) schedule the next tick
-    setTimeout(move_loop, 50);
-  }
+    setTimeout(move_loop, delay);
 }
