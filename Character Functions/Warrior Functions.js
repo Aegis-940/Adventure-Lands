@@ -66,11 +66,9 @@ function get_nearest_monster_v2(args = {}) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function attack_loop() {
-    game_log("Check 1");
     let delay = null;
     try {
         let target = null;
-	    game_log("Check 2")
 
         // Single loop, prioritized targeting
         for (const name of MONSTER_TYPES) {
@@ -81,7 +79,6 @@ async function attack_loop() {
                 statusEffects: ["cursed"],
             });
             if (target) break;
-		game_log("Check 3")
 
             // If no cursed target nearby, check wider range
             target = get_nearest_monster_v2({
@@ -90,16 +87,17 @@ async function attack_loop() {
                 max_distance: character.range,
             });
 		
-		    game_log("Check 4")
             if (target) break;
 		
-		    game_log("Check 5")
         }
 
         if (target) {
+	    game_log("Check 1")
             await attack(target);
+		game_log("Check 2")
 			reduce_cooldown("attack", character.ping * 0.95);
             delay = ms_to_next_skill("attack");
+		game_log("Check 3")
         }
     } catch (e) {
         // optional error logging
