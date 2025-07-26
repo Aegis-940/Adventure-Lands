@@ -311,7 +311,7 @@ async function move_loop() {
 // SKILL LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function priest_skill_loop() {
+async function skill_loop() {
 	
 	game_log("skill_loop called");
 	const X = locations[home][0].x;
@@ -329,7 +329,7 @@ async function priest_skill_loop() {
 	} catch (e) {
 		console.error(e);
 	}
-	setTimeout(() => priest_skill_loop(), delay);
+	setTimeout(() => skill_loop(), delay);
 }
 
 async function safe_call(fn, name) {
