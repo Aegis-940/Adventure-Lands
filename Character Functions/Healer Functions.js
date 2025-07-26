@@ -315,7 +315,7 @@ async function skill_loop() {
 	
 	game_log("skill_loop called");
 	
-	const mapLocations = locations[character.map] || locations[home] || [];
+	const mapLocations = locations[character.map] || [];
 	const X = mapLocations[0]?.x ?? character.real_x;
 	const Y = mapLocations[0]?.y ?? character.real_y;
 	const delay = 40;
