@@ -30,7 +30,6 @@ function start_move_loop() {
     console.log("▶️ Move loop started");
 }
 
-
 function stop_move_loop() {
   move_enabled = false;
   clearTimeout(move_timer_id);
@@ -264,7 +263,7 @@ async function skill_loop() {
         const aoe = character.mp >= character.mp_cost * 2 + G.skills.cleave.mp + 50;
         const cc = character.cc < 135;
         const zapper_mobs = ["plantoid"];
-        const st_maps = ["", "winter_cove", "arena", "",];
+        const st_maps = [];
         const aoe_maps = ["mansion", "main"];
         let tank = get_entity("Ulric");
 
