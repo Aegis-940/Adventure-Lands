@@ -340,13 +340,14 @@ async function safe_call(fn, name) {
 	}
 }
 
-async function handle_priest_skills(X, Y, dead, disabled /*, other args dropped */) {
-  if (dead || !disabled) return;
+async function handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps, zapperMobs) {
+	if (dead || !disabled) return;
 
-  safe_call(() => handle_cursing(X, Y),  "handle_cursing");
-  safe_call(handle_absorb,               "handle_absorb");    // ← no args now
-  safe_call(() => handle_party_heal(),   "handle_party_heal");
-  safe_call(() => handle_dark_blessing(),"handle_dark_blessing");
+	safe_call(() => handle_cursing(X, Y), "handle_cursing");
+	safe_call(() => handle_absorb(mapsToExclude, eventMobs, eventMaps), "handle_absorb");
+	safe_call(() => handle_party_heal(), "handle_party_heal");
+	safe_call(() => handle_dark_blessing(), "handle_dark_blessing");
+	// await safe_call(() => handleZapSpam(zapperMobs), "handleZapSpam");
 }
 
 async function handle_cursing(X, Y) {
@@ -368,46 +369,31 @@ async function handle_cursing(X, Y) {
 	}
 }
 
-async function handle_absorb() {
-  console.log("🔍 handle_absorb() running…");
+async function handle_absorb(mapsToExclude) {
+	if (!character.party) return;
+	if (mapsToExclude.includes(character.map)) return;
+	if (is_on_cooldown("absorb")) return;
 
-  // Use can_use to check cooldown, mana, and unlocked
-  if (!can_use("absorb")) {
-    console.log("⏱ absorb unavailable (cooldown/mp/locked).");
-    return;
-  }
+	const partyNames = Object.keys(get_party()).filter(name => name !== character.name);
 
-  // Build list of names: party + self
-  const partyObj = parent.party || {};
-  const names = Object.keys(partyObj).filter(n => n !== character.name);
-  names.push(character.name);
-  console.log("🧑‍🤝‍🧑 Checking targets:", names);
+	const attackers = {};
+	for (const id in parent.entities) {
+		const monster = parent.entities[id];
+		if (monster.type !== "monster" || monster.dead || !monster.visible) continue;
+		if (partyNames.includes(monster.target)) attackers[monster.target] = true;
+	}
 
-  // Who’s under attack?
-  const underAttack = new Set();
-  for (const ent of Object.values(parent.entities)) {
-    if (
-      ent.type === "monster" &&
-      !ent.dead &&
-      ent.visible &&
-      names.includes(ent.target)
-    ) {
-      underAttack.add(ent.target);
-    }
-  }
-  console.log("⚔️ Under attack:", Array.from(underAttack));
-
-  // Absorb the first one found
-  for (const name of underAttack) {
-    const ally = name === character.name ? character : get_player(name);
-    if (!ally) continue;
-    console.log("✨ Casting absorb on", ally.name);
-    await use_skill("absorb", ally);
-    reduce_cooldown("absorb", character.ping * 0.95);
-    return;
-  }
-
-  console.log("🚫 No valid absorb target found.");
+	for (const name of partyNames) {
+		if (attackers[name]) {
+			try {
+				await use_skill("absorb", name);
+				game_log(`Absorbing ${name}`, "#FFA600");
+			} catch (e) {
+				if (e?.reason !== "cooldown") throw e;
+			}
+			return;
+		}
+	}
 }
 
 async function handle_party_heal(healThreshold = 0.65, minMp = 2000) {
