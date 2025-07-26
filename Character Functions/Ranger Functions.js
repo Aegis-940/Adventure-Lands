@@ -1,4 +1,39 @@
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// PERSISTENT STATE HANDLER
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
+// Save current loop flags to localStorage.
+function save_persistent_state() {
+  try {
+    localStorage.setItem("ranger_attack_enabled", JSON.stringify(attack_enabled));
+    localStorage.setItem("ranger_move_enabled",   JSON.stringify(move_enabled));
+  } catch (e) {
+    console.error("Error saving persistent state:", e);
+  }
+}
+
+// Load loop flags from localStorage (if present), apply them, and start/stop loops accordingly. Call this once at script init.
+function init_persistent_state() {
+  try {
+    const atk = localStorage.getItem("ranger_attack_enabled");
+    if (atk !== null) {
+      attack_enabled = JSON.parse(atk);
+    }
+    const mv = localStorage.getItem("ranger_move_enabled");
+    if (mv !== null) {
+      move_enabled = JSON.parse(mv);
+    }
+
+    // Ensure loops reflect loaded flags
+    if (attack_enabled) start_attack_loop();
+    else stop_attack_loop();
+
+    if (move_enabled)   start_move_loop();
+    else stop_move_loop();
+  } catch (e) {
+    console.error("Error loading persistent state:", e);
+  }
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // GLOBAL SWITCHES & TIMERS
