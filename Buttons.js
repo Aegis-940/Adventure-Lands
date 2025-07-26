@@ -157,10 +157,11 @@ function toggle_combat() {
   },{
     top: "2.1vh",
     right: "523px",
-    minWidth: "57px",
-    height: "57px",
+    minWidth: "56px",
+    height: "56px",
     fontSize: "24px",
     border: "4px solid #888",
+    borderRadius: "0px",
     title: "Toggle Combat Mode"
   });
 }
