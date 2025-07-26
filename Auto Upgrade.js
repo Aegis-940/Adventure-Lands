@@ -31,7 +31,7 @@ function upgrade() {
 
     // Determine which scroll to use:
     let scrollname;
-    if (c.level >= 5) {
+    if (c.level >= 4) {
       scrollname = "scroll1";
     } else {
       const grades = get_grade(c);
