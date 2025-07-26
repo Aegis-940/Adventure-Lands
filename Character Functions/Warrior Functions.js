@@ -117,7 +117,7 @@ async function move_loop() {
       // If we’re out of melee range, move in:
       if (dist > character.range * 0.9) {
         // Use tar.x / tar.y instead of real_x/real_y
-        await smart_move({ x: tar.x, y: tar.y });
+        await move({ x: tar.x, y: tar.y });
       }
     }
   } catch (e) {
