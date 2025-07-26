@@ -85,16 +85,18 @@ async function attack_loop() {
 
             // If no cursed target nearby, check wider range
             target = get_nearest_monster_v2({
-		    game_log("Check 4")
                 target: name,
                 check_max_hp: true,
                 max_distance: character.range,
             });
+		
+		    game_log("Check 4")
             if (target) break;
+		
+		    game_log("Check 5")
         }
 
         if (target) {
-		
             await attack(target);
 			reduce_cooldown("attack", character.ping * 0.95);
             delay = ms_to_next_skill("attack");
