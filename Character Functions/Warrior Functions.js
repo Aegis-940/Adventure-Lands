@@ -11,6 +11,7 @@ function ms_to_next_skill(skill) {
 }
 
 function get_nearest_monster_v2(args = {}) {
+	game_log("Check 1")
     let min_d = 999999, target = null;
     let optimal_hp = args.check_max_hp ? 0 : 999999999; // Set initial optimal HP based on whether we're checking for max or min HP
 
@@ -88,7 +89,6 @@ async function attack_loop() {
             });
 		
             if (target) break;
-	    game_log("Check 1");
 		
         }
 
