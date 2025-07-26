@@ -167,6 +167,40 @@ function toggle_combat() {
 }
 
 // -------------------------------------------------------------------- //
+// TOGGLE FREE MOVE
+// -------------------------------------------------------------------- //
+
+function toggle_free_move() {
+  // Determine initial icon based on current state
+  const initialIcon = move_enabled ? "🚶" : "🧍";
+
+  create_floating_button("toggle_free_move", initialIcon, () => {
+    // Flip the flag and start/stop the loop
+    move_enabled = !move_enabled;
+    if (move_enabled) start_move_loop();
+    else stop_move_loop();
+
+    // Update button icon & log
+    const btn = window.top.document.getElementById("toggle_free_move");
+    btn.innerText = move_enabled ? "🚶" : "🧍";
+    game_log(
+      move_enabled
+        ? "Free Move During Combat"
+        : "Remain Stationary During Combat"
+    );
+  }, {
+    top:     "2.1vh",
+    right:   "665px",
+    minWidth:"56px",
+    height:  "56px",
+    fontSize:"24px",
+    border:  "4px solid #888",
+    borderRadius: "0px",
+    title:   "Toggle Stationary / Free Move"
+  });
+}
+
+// -------------------------------------------------------------------- //
 // TOGGLE WHICH CHARACTER IS TANKING
 // -------------------------------------------------------------------- //
 
@@ -225,39 +259,6 @@ function toggle_follow_tank() {
 		border: "4px solid #888",
 		title: "Toggle Follow-Tank Mode"
 	});
-}
-
-// -------------------------------------------------------------------- //
-// TOGGLE FREE MOVE
-// -------------------------------------------------------------------- //
-
-function toggle_free_move() {
-  // Determine initial icon based on current state
-  const initialIcon = move_enabled ? "🚶" : "🧍";
-
-  create_floating_button("toggle_free_move", initialIcon, () => {
-    // Flip the flag and start/stop the loop
-    move_enabled = !move_enabled;
-    if (move_enabled) start_move_loop();
-    else stop_move_loop();
-
-    // Update button icon & log
-    const btn = window.top.document.getElementById("toggle_free_move");
-    btn.innerText = move_enabled ? "🚶" : "🧍";
-    game_log(
-      move_enabled
-        ? "Free Move During Combat"
-        : "Remain Stationary During Combat"
-    );
-  }, {
-    top:     "2.1vh",
-    right:   "725px",
-    minWidth:"57px",
-    height:  "57px",
-    fontSize:"24px",
-    border:  "4px solid #888",
-    title:   "Toggle Stationary / Free Move"
-  });
 }
 
 // -------------------------------------------------------------------- //
