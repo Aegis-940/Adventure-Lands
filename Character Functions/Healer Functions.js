@@ -318,7 +318,7 @@ async function skill_loop() {
 	const Y = locations[home][0].y;
 	const delay = 40;
 	const dead = character.rip;
-	const disabled = parent.is_disabled(character) === undefined;
+	const disabled = !parent.is_disabled(character);
 	const mapsToExclude = ["level2n", "level2w"];
 	const eventMaps = ["desertland", "halloween"];
 	const eventMobs = ["rgoo", "bgoo", "snowman", "icegolem", "franky", "grinch", "dragold", "wabbit", "mrgreen", "mrpumpkin"];
