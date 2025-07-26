@@ -173,6 +173,7 @@ async function attack_loop() {
 
 async function move_loop() {
     let delay = 50;
+    if (!move_enabled) return;
     try {
         let tar = get_nearest_monster({ type: home });
         if (tar && !smart.moving) {
@@ -196,5 +197,7 @@ async function move_loop() {
     } catch (e) {
         console.error(e);
     }
-    setTimeout(move_loop, delay);
+    if (move_enabled) {
+        move_timer_id = setTimeout(move_loop, delay);
+    }
 }
