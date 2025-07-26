@@ -248,44 +248,27 @@ function can_cleave(aoe, cc, maps, monsters, tank, time_since, has_untargeted) {
 const BOUNDARY_RADIUS = 100
 
 // 1) Track your last manual-click position
+// --------------------------------------------------------------------------------
+// BOUNDARY GUARD
+// --------------------------------------------------------------------------------
+
+// 1) Track the last “home” position
 let last_manual_pos = { x: character.real_x, y: character.real_y };
+
+/**
+ * Call this *manually* whenever you click to move yourself.
+ * It resets your allowed-center to wherever you are right now.
+ */
 function set_last_manual() {
   last_manual_pos.x = character.real_x;
   last_manual_pos.y = character.real_y;
 }
 
-// 2) Helper to draw a circle as a 64-segment polyline
-function draw_circle_poly(cx, cy, radius, segments = 64, color = 0xffffff, width = 2) {
-  const step = (2 * Math.PI) / segments;
-  for (let i = 0; i < segments; i++) {
-    const theta1 = i * step;
-    const theta2 = (i + 1) * step;
-    const x1 = cx + Math.cos(theta1) * radius;
-    const y1 = cy + Math.sin(theta1) * radius;
-    const x2 = cx + Math.cos(theta2) * radius;
-    const y2 = cy + Math.sin(theta2) * radius;
-    draw_line(x1, y1, x2, y2, color, width);
-  }
-}
-
-// 3) Throttle redraw to once per second
-let _lastDraw = 0;
-function draw_boundary_circles(radius = 100) {
-  const now = Date.now();
-  if (now - _lastDraw < 1000) return;
-  _lastDraw = now;
-
-  clear_drawings();
-  // Green circle at last manual click spot
-  draw_circle_poly(last_manual_pos.x, last_manual_pos.y, radius, 64, 0x00ff00, 2);
-  // Red circle at map origin (0,0)
-  draw_circle_poly(0, 0, radius, 64, 0xff0000, 2);
-}
-
-// 4) Enforcement: if you stray past radius, walk you back
-async function enforce_boundary(radius = 100) {
-  draw_boundary_circles(radius);
-
+/**
+ * If you’ve wandered more than `radius` units from last_manual_pos,
+ * walks you back.
+ */
+async function enforce_boundary(radius = BOUNDARY_RADIUS) {
   const dx = character.real_x - last_manual_pos.x;
   const dy = character.real_y - last_manual_pos.y;
   const dist = Math.hypot(dx, dy);
@@ -294,8 +277,10 @@ async function enforce_boundary(radius = 100) {
   }
 }
 
-// 5) Standalone loop
+/**
+ * Stand-alone loop.  Just call `boundary_loop()` once after your script loads.
+ */
 function boundary_loop() {
   enforce_boundary().catch(console.error);
-  setTimeout(boundary_loop, 200);
+  setTimeout(boundary_loop, 200);  // check 5×/sec
 }
