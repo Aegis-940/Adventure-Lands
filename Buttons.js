@@ -146,7 +146,7 @@ function toggle_combat() {
   create_floating_button("toggle_combat", "⚔️", () => {
     attack_enabled = !attack_enabled;
     if (attack_enabled) start_attack_loop();
-    else                stop_attack_loop();
+    else stop_attack_loop();
 
     const btn = window.top.document.getElementById("toggle_combat");
     btn.innerText = attack_enabled ? "⚔️" : "🕊️";
@@ -233,6 +233,9 @@ let free_move = true;
 function toggle_free_move() {
 	create_floating_button("toggle_free_move", "🚶", () => {
 		free_move = !free_move;
+		if (attack_enabled) start_attack_loop();
+    		else stop_attack_loop();
+		
 		const btn = window.top.document.getElementById("toggle_free_move");
 		btn.innerText = free_move ? "🚶" : "🧍";
 		game_log(free_move ? "Free Move During Combat" : "Remain Stationary During Combat");
