@@ -267,3 +267,4 @@ function start_boundary_guard(radius = BOUNDARY_RADIUS, interval = 200) {
 
     setTimeout(boundaryLoop, interval);
   }
+}
