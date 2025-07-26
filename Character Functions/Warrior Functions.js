@@ -245,7 +245,7 @@ function can_cleave(aoe, cc, maps, monsters, tank, time_since, has_untargeted) {
 // BOUNDARY ENFORCER
 // --------------------------------------------------------------------------------
 
-const BOUNDARY_RADIUS = 100
+const BOUNDARY_RADIUS = 150
 
 // 1) Track your last manual-click position
 // --------------------------------------------------------------------------------
