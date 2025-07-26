@@ -234,12 +234,6 @@ function toggle_free_move() {
 		const btn = window.top.document.getElementById("toggle_free_move");
 		btn.innerText = free_move ? "🚶" : "🧍";
 		game_log(free_move ? "Free Move During Combat" : "Remain Stationary During Combat");
-
-		if (free_move) {
-			startBoundaryGuard(150, 200);
-		} else if (!free_move) {
-			stopBoundaryGuard();
-		}
 	}, {
 		top: "2.1vh",
 		right: "725px",
