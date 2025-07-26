@@ -59,6 +59,7 @@ function get_nearest_monster_v2(args = {}) {
             target = current;
         }
     }
+	game_log(target);
     return target;
 }
 
@@ -72,7 +73,7 @@ const rangeThreshold = 45;
 let lastEquippedSet = null;
 
 async function attack_loop() {
-	const X = character.x, Y = character.y;
+    const X = character.x, Y = character.y;
     let delay = 1;
     const now = performance.now();
     const entities = Object.values(parent.entities);
