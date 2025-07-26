@@ -188,8 +188,7 @@ let last_cleave_time = 0;
 const CLEAVE_THRESHOLD = 500;
 const CLEAVE_RANGE = G.skills.cleave.range;
 const MAPS_TO_INCLUDE = new Set([
-    "desertland", "goobrawl", "main", "level2w", "cave", "halloween",
-    "spookytown", "tunnel", "winterland", "level2n", "uhills", "mforest"
+    "mansion"
 ]);
 
 function handle_cleave(Mainhand, aoe, cc, stMaps, aoeMaps, tank) {
