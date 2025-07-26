@@ -197,7 +197,7 @@ function toggle_free_move() {
     );
   }, {
     top:     "2.05vh",
-    right:   "585px",
+    right:   "582px",
     minWidth:"56px",
     height:  "56px",
     fontSize:"24px",
