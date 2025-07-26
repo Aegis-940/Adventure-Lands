@@ -15,7 +15,6 @@ function get_nearest_monster_v2(args = {}) {
     let optimal_hp = args.check_max_hp ? 0 : 999999999; // Set initial optimal HP based on whether we're checking for max or min HP
 
     for (let id in parent.entities) {
-	game_log("Check 1");
         let current = parent.entities[id];
         if (current.type != "monster" || !current.visible || current.dead) continue;
         if (args.type && current.mtype != args.type) continue;
@@ -43,7 +42,6 @@ function get_nearest_monster_v2(args = {}) {
             : parent.distance(character, current);
 
         if (args.max_distance !== undefined && c_dist > args.max_distance) continue;
-	    game_log("Check 2");
 
         // Generalized HP check (min or max)
         if (args.check_min_hp || args.check_max_hp) {
@@ -53,7 +51,6 @@ function get_nearest_monster_v2(args = {}) {
                 target = current;
             }
             continue;
-		game_log("Check 3");
         }
 
         // If no specific HP check, choose the closest monster
