@@ -1,5 +1,109 @@
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// 1) GLOBAL SWITCHES & TIMERS
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let attack_enabled   = true;
+let attack_timer_id  = null;
+let move_enabled     = true;
+let move_timer_id    = null;
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// 2) START/STOP HELPERS
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function start_attack_loop() {
+  attack_enabled = true;     // always set it
+  attack_loop();             // always call it
+  console.log("▶️ Attack loop started");
+}
+
+function stop_attack_loop() {
+  attack_enabled = false;
+  clearTimeout(attack_timer_id);
+  console.log("⏹ Attack loop stopped");
+}
+
+function start_move_loop() {
+    move_enabled = true;
+    move_loop();
+    console.log("▶️ Move loop started");
+}
+
+
+function stop_move_loop() {
+  move_enabled = false;
+  clearTimeout(move_timer_id);
+  console.log("⏹ Move loop stopped");
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// 3) PERSISTENT STATE HANDLER
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+// Save current loop flags using native set().
+function save_persistent_state() {
+  try {
+    set("healer_attack_enabled", attack_enabled);
+    set("healer_move_enabled",   move_enabled);
+  } catch (e) {
+    console.error("Error saving persistent state:", e);
+  }
+}
+
+// Load saved flags with native get(), then start/stop loops accordingly. Call this once at script init.
+function init_persistent_state() {
+  try {
+    const atk = get("healer_attack_enabled");
+    if (atk !== undefined) attack_enabled = atk;
+
+    const mv = get("healer_move_enabled");
+    if (mv !== undefined) move_enabled = mv;
+
+    // Reflect loaded flags in the loop state
+    if (attack_enabled) start_attack_loop();
+    else                stop_attack_loop();
+
+    if (move_enabled)   start_move_loop();
+    else                stop_move_loop();
+  } catch (e) {
+    console.error("Error loading persistent state:", e);
+  }
+}
+
+// Hook state-saving into your start/stop functions:
+const _origStartAttack = start_attack_loop;
+start_attack_loop = function() {
+  _origStartAttack();
+  save_persistent_state();
+};
+const _origStopAttack = stop_attack_loop;
+stop_attack_loop = function() {
+  _origStopAttack();
+  save_persistent_state();
+};
+
+const _origStartMove = start_move_loop;
+start_move_loop = function() {
+  _origStartMove();
+  save_persistent_state();
+};
+const _origStopMove = stop_move_loop;
+stop_move_loop = function() {
+  _origStopMove();
+  save_persistent_state();
+};
+
+// Ensure state is saved if the script unloads
+window.addEventListener("beforeunload", save_persistent_state);
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// 4) PERSISTENT STATE
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+init_persistent_state();
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // SUPPORT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -87,6 +191,7 @@ function get_nearest_monster_v2(args = {}) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function attack_loop() {
+    	if (!attack_enabled) return;
 	let delay = 1;
 	let disabled = (parent.is_disabled(character) === undefined);
 	let bosses = ["troll", "grinch"];
@@ -139,7 +244,11 @@ async function attack_loop() {
 	} catch (e) {
 		//console.error(e);
 	}
-	setTimeout(attack_loop, delay);
+
+	// only re-schedule if still enabled
+	if (attack_enabled) {
+	attack_timer_id = setTimeout(attack_loop, delay);
+	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -147,6 +256,7 @@ async function attack_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function move_loop() {
+  if (!move_enabled) return;
   const delay = 100;
 
   try {
@@ -193,8 +303,9 @@ async function move_loop() {
     console.error("move_loop error:", err);
   }
 
-  // schedule next tick
-  setTimeout(move_loop, delay);
+    if (move_enabled) {
+        move_timer_id = setTimeout(move_loop, delay);
+    }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
