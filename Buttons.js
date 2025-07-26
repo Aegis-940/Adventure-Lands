@@ -164,6 +164,13 @@ function toggle_combat() {
     borderRadius: "0px",
     title: "Toggle Combat Mode"
   });
+  // Immediately zero out any border-radius on the new button
+  setTimeout(() => {
+    const btn = window.top.document.getElementById("toggle_combat");
+    if (btn) {
+      btn.style.borderRadius = "0px";
+    }
+  }, 0);
 }
 
 // -------------------------------------------------------------------- //
