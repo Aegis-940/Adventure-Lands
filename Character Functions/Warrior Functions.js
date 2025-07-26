@@ -310,7 +310,7 @@ function handle_weapon_swap(stMaps, aoeMaps) {
 let last_cleave_time = 0;
 const CLEAVE_THRESHOLD = 500;
 const CLEAVE_RANGE = G.skills.cleave.range;
-const MAPS_TO_INCLUDE = aoe_maps;
+const MAPS_TO_INCLUDE = ["mansion", "main"];
 
 function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
     const now = performance.now();
