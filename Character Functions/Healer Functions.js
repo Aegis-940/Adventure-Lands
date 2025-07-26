@@ -234,7 +234,7 @@ async function handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMo
 	if (dead || !disabled) return;
 
 	safe_call(() => handle_cursing(X, Y), "handle_cursing");
-	//safe_call(() => handle_absorb(mapsToExclude, eventMobs, eventMaps), "handleAbsorb");
+	safe_call(() => handle_absorb(mapsToExclude, eventMobs, eventMaps), "handle_absorb");
 	safe_call(() => handle_party_heal(), "handle_party_heal");
 	safe_call(() => handle_dark_blessing(), "handle_dark_blessing");
 	// await safe_call(() => handleZapSpam(zapperMobs), "handleZapSpam");
