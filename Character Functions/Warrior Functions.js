@@ -73,7 +73,7 @@ async function attack_loop() {
         // Single loop, prioritized targeting
         for (const name of MONSTER_TYPES) {
             target = get_nearest_monster_v2({
-                target: name,
+                type: name,
                 check_max_hp: true,
                 max_distance: character.range,
                 statusEffects: ["cursed"],
@@ -82,7 +82,7 @@ async function attack_loop() {
 
             // If no cursed target nearby, check wider range
             target = get_nearest_monster_v2({
-                target: name,
+                type: name,
                 check_max_hp: true,
                 max_distance: character.range,
             });
