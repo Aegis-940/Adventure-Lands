@@ -109,7 +109,7 @@ async function attack_loop() {
 async function move_loop() {
   try {
     // Try to grab ANY monster within 1.5× attack range:
-    const tar = get_nearest_monster_v2({ max_distance: character.range * 1.5 });
+    const tar = get_nearest_monster_v2();
     console.log("move_loop target:", tar);  // <-- debug: should print an entity or null
 
     if (tar) {
