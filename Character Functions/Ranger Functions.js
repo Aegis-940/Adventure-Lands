@@ -3,9 +3,9 @@
 // GLOBAL SWITCHES & TIMERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let attack_enabled 	= false;
+let attack_enabled 	= true;
 let attack_timer_id   	= null;
-let move_enabled     	= false;
+let move_enabled     	= true;
 let move_timer_id     	= null;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
