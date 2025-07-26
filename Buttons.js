@@ -228,12 +228,10 @@ function toggle_follow_tank() {
 // TOGGLE FREE MOVE
 // -------------------------------------------------------------------- //
 
-let free_move = true;
-
 function toggle_free_move() {
 	create_floating_button("toggle_free_move", "🚶", () => {
-		free_move = !free_move;
-		if (attack_enabled) start_attack_loop();
+		move_enabled = !move_enabled;
+		if (move_enabled) start_attack_loop();
     		else stop_attack_loop();
 		
 		const btn = window.top.document.getElementById("toggle_free_move");
