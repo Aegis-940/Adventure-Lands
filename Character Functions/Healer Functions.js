@@ -314,6 +314,7 @@ async function move_loop() {
 async function skill_loop() {
 	
 	game_log("skill_loop called");
+	/*
 	const mapLocations = locations[character.map] || locations[home] || [];
 	const X = mapLocations[0]?.x ?? character.real_x;
 	const Y = mapLocations[0]?.y ?? character.real_y;
@@ -331,6 +332,7 @@ async function skill_loop() {
 		console.error(e);
 	}
 	setTimeout(() => skill_loop(), delay);
+ */
 }
 
 async function safe_call(fn, name) {
