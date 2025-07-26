@@ -240,3 +240,45 @@ function can_cleave(aoe, cc, maps, monsters, tank, time_since, has_untargeted) {
         ms_to_next_skill("attack") > 75
     );
 }
+
+// --------------------------------------------------------------------------------
+// BOUNDARY ENFORCER
+// --------------------------------------------------------------------------------
+
+// 1) Store the last manual position
+let last_manual_pos = {
+  x: character.real_x,
+  y: character.real_y
+};
+
+/**
+ * Call this *once* whenever you manually move your character
+ * (e.g. in your UI click handler).
+ */
+function set_last_manual() {
+  last_manual_pos.x = character.real_x;
+  last_manual_pos.y = character.real_y;
+}
+
+/**
+ * If character is more than `radius` away from last_manual_pos,
+ * move them back. Otherwise do nothing.
+ */
+async function enforce_boundary(radius = 100) {
+  const dx = character.real_x - last_manual_pos.x;
+  const dy = character.real_y - last_manual_pos.y;
+  const dist = Math.hypot(dx, dy);
+
+  if (dist > radius) {
+    // you can swap smart_move → move if you really want “move only”
+    await smart_move({ x: last_manual_pos.x, y: last_manual_pos.y });
+  }
+}
+
+/**
+ * Kick off a standalone loop that never blocks your other loops.
+ */
+function boundary_loop() {
+  enforce_boundary().catch(console.error);
+  setTimeout(boundary_loop, 200);  // check 5×/sec
+}
