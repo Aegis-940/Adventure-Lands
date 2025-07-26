@@ -1,6 +1,44 @@
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// PERSISTENT STATE HANDLER
+// 1) GLOBAL SWITCHES & TIMERS
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let attack_enabled   = true;
+let attack_timer_id  = null;
+let move_enabled     = true;
+let move_timer_id    = null;
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// 2) START/STOP HELPERS
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function start_attack_loop() {
+  attack_enabled = true;     // always set it
+  attack_loop();             // always call it
+  console.log("▶️ Attack loop started");
+}
+
+function stop_attack_loop() {
+  attack_enabled = false;
+  clearTimeout(attack_timer_id);
+  console.log("⏹ Attack loop stopped");
+}
+
+function start_move_loop() {
+    move_enabled = true;
+    move_loop();
+    console.log("▶️ Move loop started");
+}
+
+
+function stop_move_loop() {
+  move_enabled = false;
+  clearTimeout(move_timer_id);
+  console.log("⏹ Move loop stopped");
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// 3) PERSISTENT STATE HANDLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // Save current loop flags using native set().
@@ -60,48 +98,10 @@ stop_move_loop = function() {
 window.addEventListener("beforeunload", save_persistent_state);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// PERSISTENT STATE
+// 4) PERSISTENT STATE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 init_persistent_state();
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// GLOBAL SWITCHES & TIMERS
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-let attack_enabled 	= true;
-let attack_timer_id   	= null;
-let move_enabled     	= true;
-let move_timer_id     	= null;
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// START/STOP HELPERS
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-function start_attack_loop() {
-  attack_enabled = true;     // always set it
-  attack_loop();             // always call it
-  console.log("▶️ Attack loop started");
-}
-
-function stop_attack_loop() {
-  attack_enabled = false;
-  clearTimeout(attack_timer_id);
-  console.log("⏹ Attack loop stopped");
-}
-
-function start_move_loop() {
-    move_enabled = true;
-    move_loop();
-    console.log("▶️ Move loop started");
-}
-
-
-function stop_move_loop() {
-  move_enabled = false;
-  clearTimeout(move_timer_id);
-  console.log("⏹ Move loop stopped");
-}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SUPPORT FUNCTIONS
