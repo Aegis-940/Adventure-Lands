@@ -144,21 +144,29 @@ function create_map_movement_window(custom_actions = []) {
 
 // Create a toggle button for Combat / Peace
 function toggle_combat() {
-	create_floating_button("toggle_combat", "⚔️", () => {
-		attack_mode = !attack_mode;
-		const btn = window.top.document.getElementById("toggle_combat");
-		btn.innerText = attack_mode ? "⚔️" : "🕊️";
-		set_message(attack_mode ? "Enabled" : "Combat Off");
-		game_log(attack_mode ? "Combat Enabled" : "Combat Disabled");
-	}, {
-		top: "2.1vh",
-		right: "523px",
-		minWidth: "57px",
-		height: "57px",
-		fontSize: "24px",
-		border: "4px solid #888",
-		title: "Toggle Combat Mode"
-	});
+  create_floating_button("toggle_combat", "⚔️", () => {
+    // Flip combat mode and loop state
+    attack_enabled = !attack_enabled;
+    if (attack_enabled) {
+      start_attack_loop();
+    } else {
+      stop_attack_loop();
+    }
+
+    // Update button & UI
+    const btn = window.top.document.getElementById("toggle_combat");
+    btn.innerText = attack_mode ? "⚔️" : "🕊️";
+    set_message(attack_mode ? "Enabled" : "Combat Off");
+    game_log(attack_mode ? "Combat Enabled" : "Combat Disabled");
+  }, {
+    top: "2.1vh",
+    right: "523px",
+    minWidth: "57px",
+    height: "57px",
+    fontSize: "24px",
+    border: "4px solid #888",
+    title: "Toggle Combat Mode"
+  });
 }
 
 // -------------------------------------------------------------------- //
