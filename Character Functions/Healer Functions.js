@@ -233,16 +233,16 @@ async function safe_call(fn, name) {
 async function handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps, zapperMobs) {
 	if (dead || !disabled) return;
 
-	safe_call(() => handle_cursing(X, Y), "handleCursing");
+	safe_call(() => handle_cursing(X, Y), "handle_cursing");
 	//safe_call(() => handle_absorb(mapsToExclude, eventMobs, eventMaps), "handleAbsorb");
-	safe_call(() => handle_party_heal(), "handlePartyHeal");
-	safe_call(() => handle_dark_blessing(), "handleDarkBlessing");
+	safe_call(() => handle_party_heal(), "handle_party_heal");
+	safe_call(() => handle_dark_blessing(), "handle_dark_blessing");
 	// await safe_call(() => handleZapSpam(zapperMobs), "handleZapSpam");
 }
 
 async function handle_cursing(X, Y) {
 	const ctarget = get_nearest_monster_v2({
-		target: "CrownPriest",
+		target: "Myras",
 		check_max_hp: true,
 		max_distance: 75,
 		point_for_distance_check: [X, Y],
