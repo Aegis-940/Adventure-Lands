@@ -32,7 +32,6 @@ hide_skills_ui();
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 setInterval(() => {
-	const now = Date.now();
 
 	if (!attack_mode || character.rip || smart.moving) return;
 
@@ -42,35 +41,4 @@ setInterval(() => {
 	party_manager();
 	check_and_request_pots();
 
-	var target=get_targeted_monster();
-		if(!target)
-		{
-			target=get_nearest_monster();
-			if(target) change_target(target);
-			else
-			{
-				set_message("No Monsters");
-				return;
-			}
-		}
-	
-
-	// Move or attack
-	if (!is_in_range(target)) {
-		if (!is_moving(character)) {
-			move(
-				character.x + (target.x - character.x) / 2,
-				character.y + (target.y - character.y) / 2
-			);
-		}
-	} else if (
-		character.ctype === "warrior" &&
-		can_use("cleave") &&
-		is_in_range(target, "cleave")
-	) {
-		use_skill("cleave", target);
-	} else if (can_attack(target)) {
-		set_message("Attacking");
-		attack(target);
-	}
 }, 250);
