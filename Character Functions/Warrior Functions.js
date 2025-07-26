@@ -216,6 +216,8 @@ async function attack_loop() {
 
 async function move_loop() {
   if (!move_enabled) return;
+  // How often to run
+  const delay = 50;
   try {
     // 1) Find the absolute closest monster among your approved types
     let closest = null;
