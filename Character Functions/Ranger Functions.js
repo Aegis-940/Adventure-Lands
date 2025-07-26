@@ -172,31 +172,33 @@ async function attack_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function move_loop() {
-    let delay = 50;
     if (!move_enabled) return;
+    let delay = 50;
+
     try {
-        let tar = get_nearest_monster({ type: home });
-        if (tar && !smart.moving) {
-            if (!is_in_range(tar)) {
-                if (can_move_to(tar.real_x, tar.real_y)) {
-                    // Calculate halfway point and move there
-                    let halfway_x = character.real_x + (tar.real_x - character.real_x) / 2;
-                    let halfway_y = character.real_y + (tar.real_y - character.real_y) / 2;
-                    await move(halfway_x, halfway_y);
-                } else {
-                    if (!smart.moving) {
-                        // Use smart_move if direct path is not possible
-                        smart_move({
-                            x: tar.real_x,
-                            y: tar.real_y
-                        });
-                    }
-                }
+        // 1) Find the nearest valid monster
+        let closest = null;
+        let minDist  = Infinity;
+        for (const mtype of MONSTER_TYPES) {
+            const m = get_nearest_monster_v2({ type: mtype, path_check: true });
+            if (!m) continue;
+            const d = parent.distance(character, m);
+            if (d < minDist) {
+                minDist = d;
+                closest = m;
             }
+        }
+
+        // 2) If we actually found one, and we're out of attack range, move half-way toward it
+        if (closest && minDist > character.range) {
+            const halfway_x = character.real_x + (closest.real_x - character.real_x) / 2;
+            const halfway_y = character.real_y + (closest.real_y - character.real_y) / 2;
+            await move(halfway_x, halfway_y);
         }
     } catch (e) {
         console.error(e);
     }
+
     if (move_enabled) {
         move_timer_id = setTimeout(move_loop, delay);
     }
