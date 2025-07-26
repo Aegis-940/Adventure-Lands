@@ -3,40 +3,40 @@
 // GLOBAL SWITCHES & TIMERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let attackEnabled   = false;
-let attackTimerId   = null;
-let moveEnabled     = false;
-let moveTimerId     = null;
+let attack_enabled 	= false;
+let attack_timer_id   	= null;
+let move_enabled     	= false;
+let move_timer_id     	= null;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // START/STOP HELPERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function startAttackLoop() {
-  if (!attackEnabled) {
-    attackEnabled = true;
+function start_attack_loop() {
+  if (!attack_enabled) {
+    attack_enabled = true;
     _attack_loop();
     console.log("▶️ Attack loop started");
   }
 }
 
-function stopAttackLoop() {
-  attackEnabled = false;
-  clearTimeout(attackTimerId);
+function stop_attack_loop() {
+  attack_enabled = false;
+  clearTimeout(attack_timer_id);
   console.log("⏹ Attack loop stopped");
 }
 
-function startMoveLoop() {
-  if (!moveEnabled) {
-    moveEnabled = true;
+function start_move_loop() {
+  if (!move_enabled) {
+    move_enabled = true;
     _move_loop();
     console.log("▶️ Move loop started");
   }
 }
 
-function stopMoveLoop() {
-  moveEnabled = false;
-  clearTimeout(moveTimerId);
+function stop_move_loop() {
+  move_enabled = false;
+  clearTimeout(move_timer_id);
   console.log("⏹ Move loop stopped");
 }
 
@@ -113,7 +113,7 @@ const rangeThreshold = 45;
 let lastEquippedSet = null;
 
 async function attack_loop() {
-    if (!attackEnabled) return;
+    if (!attack_enabled) return;
     const X = character.x, Y = character.y;
     let delay = 1;
     const now = performance.now();
@@ -164,7 +164,7 @@ async function attack_loop() {
     }
 
     // only re-schedule if still enabled
-    if (attackEnabled) {
+    if (attack_enabled) {
         attackTimerId = setTimeout(attack_loop, delay);
     }
 }
