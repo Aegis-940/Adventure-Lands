@@ -142,10 +142,9 @@ function create_map_movement_window(custom_actions = []) {
 // COMBAT TOGGLE
 // -------------------------------------------------------------------- //
 
-// Create a toggle button for Combat / Peace
 function toggle_combat() {
   create_floating_button("toggle_combat", "⚔️", () => {
-    // Flip combat mode and loop state
+    // Flip the flag and start/stop the loop
     attack_enabled = !attack_enabled;
     if (attack_enabled) {
       start_attack_loop();
@@ -153,11 +152,11 @@ function toggle_combat() {
       stop_attack_loop();
     }
 
-    // Update button & UI
+    // Update the button & UI using attack_enabled
     const btn = window.top.document.getElementById("toggle_combat");
-    btn.innerText = attack_mode ? "⚔️" : "🕊️";
-    set_message(attack_mode ? "Enabled" : "Combat Off");
-    game_log(attack_mode ? "Combat Enabled" : "Combat Disabled");
+    btn.innerText = attack_enabled ? "⚔️" : "🕊️";
+    set_message(attack_enabled ? "Combat On" : "Combat Off");
+    game_log(attack_enabled ? "Combat Enabled" : "Combat Disabled");
   }, {
     top: "2.1vh",
     right: "523px",
