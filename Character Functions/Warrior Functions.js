@@ -271,7 +271,7 @@ async function enforce_boundary(radius = 100) {
 
   if (dist > radius) {
     // step back toward last_manual_pos
-    await smart_move({ x: last_manual_pos.x, y: last_manual_pos.y });
+    await move({ x: last_manual_pos.x, y: last_manual_pos.y });
   }
 }
 
