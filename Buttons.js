@@ -207,7 +207,7 @@ function toggle_free_move() {
   });
   // Immediately zero out any border-radius on the new button
   setTimeout(() => {
-    const btn = window.top.document.getElementById("toggle_combat");
+    const btn = window.top.document.getElementById("toggle_free_move");
     if (btn) {
       btn.style.borderRadius = "0px";
     }
