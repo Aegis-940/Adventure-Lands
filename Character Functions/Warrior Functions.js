@@ -1,9 +1,53 @@
-async function moveLoop() {
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// ATTACK LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+async function attack_loop() {
+    let delay = null;
+    try {
+        let target = null;
+
+        // Single loop, prioritized targeting
+        for (const name of MONSTER_TYPES) {
+            target = get_nearest_monster_v2({
+                target: name,
+                check_max_hp: true,
+                max_distance: character.range,
+                statusEffects: ["cursed"],
+            });
+            if (target) break;
+
+            // If no cursed target nearby, check wider range
+            target = get_nearest_monster_v2({
+                target: name,
+                check_max_hp: true,
+                max_distance: character.range,
+            });
+            if (target) break;
+        }
+
+        if (target) {
+            await attack(target);
+			reduce_cooldown("attack", character.ping * 0.95);
+            delay = ms_to_next_skill("attack");
+        }
+    } catch (e) {
+        // optional error logging
+    }
+    setTimeout(attack_loop, delay ?? 50); // Retry sooner if no attack
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// MOVE LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+async function move_loop() {
     let delay = 50;
     try {
         let tar = get_nearest_monster_v2({ type: home });
-        const eventMaps = ["desertland"];
-        if (eventMaps.includes(character.map)) {
+        const event_maps = ["desertland"];
+        if (event_maps.includes(character.map)) {
             if (tar) {
                 // Get the monster's current position and velocity
                 let targetX = tar.real_x;
@@ -66,5 +110,108 @@ async function moveLoop() {
     } catch (e) {
         console.error(e);
     }
-    setTimeout(moveLoop, delay);
+    setTimeout(move_loop, delay);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// SKILL LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+async function skill_loop() {
+    let delay = 10;
+    try {
+        let zap = false;
+        const dead = character.rip;
+        const Mainhand = character.slots?.mainhand?.name;
+        const offhand = character.slots?.offhand?.name;
+        const aoe = character.mp >= character.mp_cost * 2 + G.skills.cleave.mp + 320;
+        const cc = character.cc < 135;
+        const zapper_mobs = ["plantoid"];
+        const st_maps = ["", "winter_cove", "arena", "",];
+        const aoe_maps = ["mansion"];
+        let tank = get_entity("Ulric");
+
+        if (character.ctype === "warrior") {
+            try {
+                if (tank && tank.hp < tank.max_hp * 0.4 && character.name === "REPLACE_WITH_ULRIC_IF_NEEDED") {
+                    //console.log("Calling handleStomp");
+                    handle_stomp(Mainhand, st_maps, aoe_maps, tank);
+                }
+                if (character.ctype === "warrior") {
+                    //console.log("Calling handleCleave");
+                    handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank);
+                    //console.log("Calling handleWarriorSkills");
+                    handle_warrior_skills(tank);
+                }
+            } catch (e) {
+                //console.error("Error in warrior section:", e);
+            }
+        }
+
+    } catch (e) {
+        //console.error("Error in skillLoop:", e);
+    }
+    setTimeout(skill_loop, delay);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// HANDLE SKILLS
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function handle_weapon_swap(stMaps, aoeMaps) {
+    const now = performance.now();
+    if (now - eTime <= 50) return;
+
+    if (stMaps.includes(character.map)) {
+        //equipSet("single");
+        //eTime = now;
+    } else if (aoe_maps.includes(character.map)) {
+        //equipSet("aoe");
+        //eTime = now;
+    }
+}
+
+let last_cleave_time = 0;
+const CLEAVE_THRESHOLD = 500;
+const CLEAVE_RANGE = G.skills.cleave.range;
+const MAPS_TO_INCLUDE = new Set([
+    "desertland", "goobrawl", "main", "level2w", "cave", "halloween",
+    "spookytown", "tunnel", "winterland", "level2n", "uhills", "mforest"
+]);
+
+function handle_cleave(Mainhand, aoe, cc, stMaps, aoeMaps, tank) {
+    const now = performance.now();
+    const time_since_last = now - last_cleave_time;
+
+    const monsters = Object.values(parent.entities).filter(e =>
+        e?.type === "monster" &&
+        !e.dead &&
+        e.visible &&
+        distance(character, e) <= CLEAVE_RANGE
+    );
+
+    const untargeted = monsters.some(m => !m.target);
+
+    if (can_cleave(aoe, cc, MAPS_TO_INCLUDE, monsters, tank, time_since_last, untargeted)) {
+        if (Mainhand !== "bataxe") return;
+        use_skill("cleave");
+        reduce_cooldown("cleave", character.ping * 0.95);
+        last_cleave_time = now;
+    }
+
+    // Swap back instantly (don't delay this)
+    //handleWeaponSwap(stMaps, aoeMaps);
+}
+
+function can_cleave(aoe, cc, maps, monsters, tank, time_since, has_untargeted) {
+    return (
+        !smart.moving &&
+        cc && aoe && tank &&
+        time_since >= CLEAVE_THRESHOLD &&
+        monsters.length > 0 &&
+        //!hasUntargeted &&
+        maps.has(character.map) &&
+        !is_on_cooldown("cleave") &&
+        ms_to_next_skill("attack") > 75
+    );
 }
