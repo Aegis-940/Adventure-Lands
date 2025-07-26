@@ -197,7 +197,7 @@ function toggle_free_move() {
     );
   }, {
     top:     "2.05vh",
-    right:   "583px",
+    right:   "584px",
     minWidth:"56px",
     height:  "56px",
     fontSize:"24px",
@@ -205,6 +205,13 @@ function toggle_free_move() {
     borderRadius: "0px",
     title:   "Toggle Stationary / Free Move"
   });
+  // Immediately zero out any border-radius on the new button
+  setTimeout(() => {
+    const btn = window.top.document.getElementById("toggle_combat");
+    if (btn) {
+      btn.style.borderRadius = "0px";
+    }
+  }, 0);
 }
 
 // -------------------------------------------------------------------- //
