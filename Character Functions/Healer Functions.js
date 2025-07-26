@@ -313,7 +313,7 @@ async function move_loop() {
 
 async function skill_loop() {
 	
-	game_log("skill_loop");
+	game_log("skill_loop called");
 	const X = locations[home][0].x;
 	const Y = locations[home][0].y;
 	const delay = 40;
@@ -341,6 +341,7 @@ async function safe_call(fn, name) {
 }
 
 async function handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps, zapperMobs) {
+	game_log("handle_priest_skills called");
 	if (dead || !disabled) return;
 
 	safe_call(() => handle_cursing(X, Y), "handle_cursing");
@@ -370,6 +371,7 @@ async function handle_cursing(X, Y) {
 }
 
 async function handle_absorb(mapsToExclude) {
+	game_log("handle_absorb called");
 	if (!character.party) return;
 	if (mapsToExclude.includes(character.map)) return;
 	if (is_on_cooldown("absorb")) return;
