@@ -25,11 +25,11 @@ toggle_tank_role();
 toggle_follow_tank();
 toggle_free_move();
 hide_skills_ui();
-// toggle_stats_window();
 
 attack_loop();
 move_loop();
 skill_loop();
+boundary_loop();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN LOOP
