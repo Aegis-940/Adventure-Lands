@@ -245,7 +245,7 @@ function can_cleave(aoe, cc, maps, monsters, tank, time_since, has_untargeted) {
 // MAINTAIN POSITION
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const BOUNDARY_RADIUS = 150;
+const BOUNDARY_RADIUS = 200;
 
 function start_boundary_guard(radius = BOUNDARY_RADIUS, interval = 200) {
   // 1) Capture the home point
