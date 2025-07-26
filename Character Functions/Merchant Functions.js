@@ -222,6 +222,14 @@ async function check_remote_inventories() {
 // SIMPLE FISHING SCRIPT WITH AUTO-EQUIP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+function hasTool(toolName) {
+  return (
+    character.slots.mainhand?.name === toolName ||
+    character.slots.offhand?.name === toolName ||
+    character.items.some(item => item && item.name === toolName)
+  );
+}
+
 async function go_fish() {
 	const FISHING_SPOT = { map: "main", x: -1116, y: -285 };
 
