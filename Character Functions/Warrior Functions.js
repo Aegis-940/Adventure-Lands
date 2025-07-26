@@ -253,7 +253,7 @@ function start_boundary_guard(radius = BOUNDARY_RADIUS, interval = 200) {
   const homeY = character.real_y;
 
   // Enforcement loop
-  async function boundaryLoop() {
+  async function boundary_loop() {
     const dx   = character.real_x - homeX;
     const dy   = character.real_y - homeY;
     const dist = Math.hypot(dx, dy);
@@ -265,6 +265,6 @@ function start_boundary_guard(radius = BOUNDARY_RADIUS, interval = 200) {
       await move(targetX, targetY);
     }
 
-    setTimeout(boundaryLoop, interval);
+    setTimeout(boundary_loop, interval);
   }
 }
