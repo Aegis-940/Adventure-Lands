@@ -213,12 +213,12 @@ async function attack_loop() {
 		const threeTargets = sortedByHP.filter(m => is_in_range(m)).slice(0, 3);
 		if (threeTargets.length >= 2) {
 			await use_skill("3shot", threeTargets.map(m => m.id));
-			reduce_cooldown("attack", character.ping * 0.95);
+			delay = ms_to_next_skill('attack');
 		}
 	    } else if (sortedByHP.length === 1 && is_in_range(sortedByHP[0])) {
 		//smartEquip("single");
 		await attack(sortedByHP[0]);
-		reduce_cooldown("attack", character.ping * 0.95);
+		delay = ms_to_next_skill('attack');
 	    }
 	}
 	    
