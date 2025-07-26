@@ -340,14 +340,13 @@ async function safe_call(fn, name) {
 	}
 }
 
-async function handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps, zapperMobs) {
-	if (dead || !disabled) return;
+async function handle_priest_skills(X, Y, dead, disabled /*, other args dropped */) {
+  if (dead || !disabled) return;
 
-	safe_call(() => handle_cursing(X, Y), "handle_cursing");
-	safe_call(handle_absorb, "handle_absorb");
-	safe_call(() => handle_party_heal(), "handle_party_heal");
-	safe_call(() => handle_dark_blessing(), "handle_dark_blessing");
-	// await safe_call(() => handleZapSpam(zapperMobs), "handleZapSpam");
+  safe_call(() => handle_cursing(X, Y),  "handle_cursing");
+  safe_call(handle_absorb,               "handle_absorb");    // ← no args now
+  safe_call(() => handle_party_heal(),   "handle_party_heal");
+  safe_call(() => handle_dark_blessing(),"handle_dark_blessing");
 }
 
 async function handle_cursing(X, Y) {
@@ -370,15 +369,21 @@ async function handle_cursing(X, Y) {
 }
 
 async function handle_absorb() {
-  // 1) Only run if off‐cooldown
-  if (is_on_cooldown("absorb")) return;
+  console.log("🔍 handle_absorb() running…");
 
-  // 2) Gather party names (plus yourself)
-  const party = get_party() || {};
-  const names = Object.keys(party).filter(n => n !== character.name);
+  // Use can_use to check cooldown, mana, and unlocked
+  if (!can_use("absorb")) {
+    console.log("⏱ absorb unavailable (cooldown/mp/locked).");
+    return;
+  }
+
+  // Build list of names: party + self
+  const partyObj = parent.party || {};
+  const names = Object.keys(partyObj).filter(n => n !== character.name);
   names.push(character.name);
+  console.log("🧑‍🤝‍🧑 Checking targets:", names);
 
-  // 3) See who’s being attacked
+  // Who’s under attack?
   const underAttack = new Set();
   for (const ent of Object.values(parent.entities)) {
     if (
@@ -390,16 +395,19 @@ async function handle_absorb() {
       underAttack.add(ent.target);
     }
   }
+  console.log("⚔️ Under attack:", Array.from(underAttack));
 
-  // 4) Absorb the first one we find
+  // Absorb the first one found
   for (const name of underAttack) {
     const ally = name === character.name ? character : get_player(name);
     if (!ally) continue;
+    console.log("✨ Casting absorb on", ally.name);
     await use_skill("absorb", ally);
     reduce_cooldown("absorb", character.ping * 0.95);
-    game_log(`Absorbing sins from ${ally.name}`, "#FFA600");
     return;
   }
+
+  console.log("🚫 No valid absorb target found.");
 }
 
 async function handle_party_heal(healThreshold = 0.65, minMp = 2000) {
