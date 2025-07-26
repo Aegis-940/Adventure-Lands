@@ -143,7 +143,9 @@ function create_map_movement_window(custom_actions = []) {
 // -------------------------------------------------------------------- //
 
 function toggle_combat() {
-  create_floating_button("toggle_combat", "⚔️", () => {
+  const initialIcon = attack_enabled ? "⚔️" : "🕊️";
+
+  create_floating_button("toggle_combat", initialIcon, () => {
     attack_enabled = !attack_enabled;
     if (attack_enabled) start_attack_loop();
     else stop_attack_loop();
@@ -229,23 +231,32 @@ function toggle_follow_tank() {
 // -------------------------------------------------------------------- //
 
 function toggle_free_move() {
-	create_floating_button("toggle_free_move", "🚶", () => {
-		move_enabled = !move_enabled;
-		if (move_enabled) start_move_loop();
-    		else stop_move_loop();
-		
-		const btn = window.top.document.getElementById("toggle_free_move");
-		btn.innerText = move_enabled ? "🚶" : "🧍";
-		game_log(move_enabled ? "Free Move During Combat" : "Remain Stationary During Combat");
-	}, {
-		top: "2.1vh",
-		right: "725px",
-		minWidth: "57px",
-		height: "57px",
-		fontSize: "24px",
-		border: "4px solid #888",
-		title: "Toggle Stationary / Free Move"
-	});
+  // Determine initial icon based on current state
+  const initialIcon = move_enabled ? "🚶" : "🧍";
+
+  create_floating_button("toggle_free_move", initialIcon, () => {
+    // Flip the flag and start/stop the loop
+    move_enabled = !move_enabled;
+    if (move_enabled) start_move_loop();
+    else stop_move_loop();
+
+    // Update button icon & log
+    const btn = window.top.document.getElementById("toggle_free_move");
+    btn.innerText = move_enabled ? "🚶" : "🧍";
+    game_log(
+      move_enabled
+        ? "Free Move During Combat"
+        : "Remain Stationary During Combat"
+    );
+  }, {
+    top:     "2.1vh",
+    right:   "725px",
+    minWidth:"57px",
+    height:  "57px",
+    fontSize:"24px",
+    border:  "4px solid #888",
+    title:   "Toggle Stationary / Free Move"
+  });
 }
 
 // -------------------------------------------------------------------- //
