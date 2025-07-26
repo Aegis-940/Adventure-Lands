@@ -23,7 +23,6 @@ create_map_movement_window([
 toggle_combat();
 toggle_free_move();
 hide_skills_ui();
-// toggle_stats_window();
 
 attack_loop();
 move_loop();
