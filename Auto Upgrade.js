@@ -1,38 +1,39 @@
-var upgradeMaxLevel = 8; //Max level it will stop upgrading items at if enabled
-var upgradeWhitelist = 
-	{
-		//ItemName, Max Level
-    pouchbow: 7
-	};
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// CONFIG
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
-var combineWhitelist = 
-	{
-		//ItemName, Max Level
-		wbook0: 3,
-	}
+const UPGRADE_INTERVAL = 75;  // ms between attempts
 
+var upgradeWhitelist = {
+  // itemName: maxLevel
+  pouchbow: 7
+};
 
-setInterval(function() {
-	if(parent != null && parent.socket != null)
-	{
-		upgrade();
-		compound_items();
-	}
+var combineWhitelist = {
+  // itemName: maxLevel
+  wbook0: 3
+};
 
-}, 75);
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// UPGRADE & COMPOUND – single‐pass versions
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
-function upgrade() {
+/**
+ * Attempts one upgrade.  Returns true if it found an upgradable item
+ * (and sent the packet or bought a scroll), false if nothing to do.
+ */
+function upgrade_once() {
   for (let i = 0; i < character.items.length; i++) {
-    let c = character.items[i];
+    const c = character.items[i];
     if (!c) continue;
 
     const maxLevel = upgradeWhitelist[c.name];
     if (!maxLevel || c.level >= maxLevel) continue;
 
-    // Determine which scroll to use:
+    // Choose scroll
     let scrollname;
-    if (c.level >= 4) {
-      scrollname = "scroll1";
+    if (c.level >= 5) {
+      scrollname = "scroll111";       // new rule for +5+
     } else {
       const grades = get_grade(c);
       if (c.level < grades[0]) {
@@ -44,71 +45,110 @@ function upgrade() {
       }
     }
 
-    // Find or buy the scroll
-    const [scroll_slot, scroll] = find_item((itm) => itm.name === scrollname);
+    // Find or buy scroll
+    const [slot, scroll] = find_item(itm => itm.name === scrollname);
     if (!scroll) {
       parent.buy(scrollname);
-      return;
+      return true;
     }
 
-    // Send the upgrade packet
+    // Send upgrade
     parent.socket.emit("upgrade", {
-      item_num: i,
-      scroll_num: scroll_slot,
+      item_num:     i,
+      scroll_num:   slot,
       offering_num: null,
-      clevel: c.level,
+      clevel:       c.level
     });
-    return;
+    return true;
   }
+  return false;
 }
 
+/**
+ * Attempts one compound.  Returns true if it sent a compound packet 
+ * (or bought a cscroll), false if nothing to do.
+ */
+function compound_once() {
+  // Group items by name+level
+  const buckets = new Map();
+  character.items.forEach((item, idx) => {
+    if (!item) return;
+    const maxLvl = combineWhitelist[item.name];
+    if (maxLvl == null || item.level >= maxLvl) return;
 
-function compound_items() {
-  let to_compound = character.items.reduce((collection, item, index) => {
-    if (item && combineWhitelist[item.name] != null && item.level < combineWhitelist[item.name]) {
-      let key = item.name + item.level;
-      !collection.has(key) ? collection.set(key, [item.level, item_grade(item), index]) : collection.get(key).push(index);
+    const key = item.name + item.level;
+    if (!buckets.has(key)) {
+      buckets.set(key, [item.level, item_grade(item), idx]);
+    } else {
+      buckets.get(key).push(idx);
     }
-    return collection;
-  }, new Map());
+  });
 
-  for (var c of to_compound.values()) {
-    let scroll_name = "cscroll" + c[1];
+  // For each bucket of ≥3 items, do one compound
+  for (const [lvl, grade, ...slots] of buckets.values()) {
+    if (slots.length < 3) continue;
+    const scrollName = `cscroll${grade}`;
+    const [sSlot, scroll] = find_item(itm => itm.name === scrollName);
 
-    for (let i = 2; i + 2 < c.length; i += 3) {
-      let [scroll, _] = find_item(i => i.name == scroll_name);
-      if (scroll == -1) {
-        parent.buy(scroll_name);
-        return;
-      }
-		
-		game_log(scroll_name);
-		game_log(c[i]);
-		game_log(c[i+1]);
-		game_log(c[i+2]);
-      parent.socket.emit('compound', {
-        items: [c[i], c[i + 1], c[i + 2]],
-        scroll_num: scroll,
-        offering_num: null,
-        clevel: c[0]
-      });
-	  return;
+    if (!scroll) {
+      parent.buy(scrollName);
+      return true;
     }
+
+    // take first three in slots
+    const itemsToCompound = slots.slice(0, 3);
+    parent.socket.emit("compound", {
+      items:         itemsToCompound,
+      scroll_num:    sSlot,
+      offering_num:  null,
+      clevel:        lvl
+    });
+    return true;
   }
+
+  return false;
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// AUTO–RUN LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let _auto_running = false;
+
+/**
+ * Starts the auto-upgrade/compound process.  It will repeat
+ * every UPGRADE_INTERVAL ms until both upgrade_once() and
+ * compound_once() return false.
+ */
+function run_auto_upgrade() {
+  if (_auto_running) return;  // only one runner at a time
+  _auto_running = true;
+
+  (function loop() {
+    // Try upgrade first, then compound
+    if (upgrade_once() || compound_once()) {
+      // still work to do → schedule next tick
+      setTimeout(loop, UPGRADE_INTERVAL);
+    } else {
+      // nothing left → stop
+      _auto_running = false;
+      console.log("🔧 auto upgrade/compound done");
+    }
+  })();
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// UTILITIES
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
 function get_grade(item) {
   return parent.G.items[item.name].grades;
 }
 
-// Returns the item slot and the item given the slot to start from and a filter.
 function find_item(filter) {
   for (let i = 0; i < character.items.length; i++) {
-    let item = character.items[i];
-
-    if (item && filter(item))
-      return [i, character.items[i]];
+    const it = character.items[i];
+    if (it && filter(it)) return [i, it];
   }
-
   return [-1, null];
 }
