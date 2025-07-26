@@ -13,11 +13,9 @@ let move_timer_id     	= null;
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function start_attack_loop() {
-  if (!attack_enabled) {
-    attack_enabled = true;
-    attack_loop();
-    console.log("▶️ Attack loop started");
-  }
+  attack_enabled = true;     // always set it
+  attack_loop();             // always call it
+  console.log("▶️ Attack loop started");
 }
 
 function stop_attack_loop() {
@@ -27,7 +25,6 @@ function stop_attack_loop() {
 }
 
 function start_move_loop() {
-  if (!move_enabled) {
     move_enabled = true;
     move_loop();
     console.log("▶️ Move loop started");
@@ -165,7 +162,7 @@ async function attack_loop() {
 
     // only re-schedule if still enabled
     if (attack_enabled) {
-        attackTimerId = setTimeout(attack_loop, delay);
+        attack_timer_id = setTimeout(attack_loop, delay);
     }
 }
 
