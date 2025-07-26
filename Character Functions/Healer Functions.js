@@ -315,22 +315,22 @@ async function skill_loop() {
 	
 	game_log("skill_loop called");
 	
-	const mapLocations = locations[character.map] || [];
-	const X = mapLocations[0]?.x ?? character.real_x;
-	const Y = mapLocations[0]?.y ?? character.real_y;
+	//const mapLocations = locations[character.map] || [];
+	//const X = mapLocations[0]?.x ?? character.real_x;
+	//const Y = mapLocations[0]?.y ?? character.real_y;
 	const delay = 40;
-	const dead = character.rip;
-	const disabled = !parent.is_disabled(character);
-	const mapsToExclude = [];
-	const eventMaps = [];
-	const eventMobs = [];
-	try {
-		if (character.ctype === "priest") {
-			handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps);
-		}
-	} catch (e) {
-		console.error(e);
-	}
+	//const dead = character.rip;
+	//const disabled = !parent.is_disabled(character);
+	//const mapsToExclude = [];
+	//const eventMaps = [];
+	//const eventMobs = [];
+	//try {
+	//	if (character.ctype === "priest") {
+	//		handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps);
+	//	}
+	//} catch (e) {
+	//	console.error(e);
+	//}
 	setTimeout(skill_loop, delay);
  
 }
