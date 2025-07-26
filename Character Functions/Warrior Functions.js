@@ -175,7 +175,7 @@ function handle_weapon_swap(stMaps, aoeMaps) {
     const now = performance.now();
     if (now - eTime <= 50) return;
 
-    if (stMaps.includes(character.map)) {
+    if (st_maps.includes(character.map)) {
         //equipSet("single");
         //eTime = now;
     } else if (aoe_maps.includes(character.map)) {
@@ -191,7 +191,7 @@ const MAPS_TO_INCLUDE = new Set([
     "mansion"
 ]);
 
-function handle_cleave(Mainhand, aoe, cc, stMaps, aoeMaps, tank) {
+function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
     const now = performance.now();
     const time_since_last = now - last_cleave_time;
 
