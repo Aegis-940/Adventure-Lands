@@ -245,6 +245,8 @@ function can_cleave(aoe, cc, maps, monsters, tank, time_since, has_untargeted) {
 // BOUNDARY ENFORCER
 // --------------------------------------------------------------------------------
 
+const BOUNDARY_RADIUS = 100
+
 // 1) Store the last manual position
 let last_manual_pos = {
   x: character.real_x,
@@ -264,7 +266,7 @@ function set_last_manual() {
  * If character is more than `radius` away from last_manual_pos,
  * move them back. Otherwise do nothing.
  */
-async function enforce_boundary(radius = 100) {
+async function enforce_boundary(radius = BOUNDARY_RADIUS) {
   const dx = character.real_x - last_manual_pos.x;
   const dy = character.real_y - last_manual_pos.y;
   const dist = Math.hypot(dx, dy);
