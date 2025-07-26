@@ -240,3 +240,30 @@ function can_cleave(aoe, cc, maps, monsters, tank, time_since, has_untargeted) {
         ms_to_next_skill("attack") > 75
     );
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// MAINTAIN POSITION
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const BOUNDARY_RADIUS = 150;
+
+function start_boundary_guard(radius = BOUNDARY_RADIUS, interval = 200) {
+  // Capture the “home” point at invocation
+  const homeX = character.real_x;
+  const homeY = character.real_y;
+
+  // Enforcement loop
+  async function boundary_loop() {
+    const dx   = character.real_x - homeX;
+    const dy   = character.real_y - homeY;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist > radius) {
+      // Compute midpoint between current pos and home
+      const targetX = character.real_x + (homeX - character.real_x) / 2;
+      const targetY = character.real_y + (homeY - character.real_y) / 2;
+      await move(targetX, targetY);
+    }
+
+    setTimeout(boundary_loop, interval);
+  }
