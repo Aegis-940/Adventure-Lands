@@ -111,9 +111,10 @@ let lastTarPosition = null; // Store the last known position of the monster
 async function move_loop() {
     let delay = 50;
     try {
-        let tar = get_nearest_monster_v2({ type: home });
-        const event_maps = ["desertland"];
-        if (event_maps.includes(character.map)) {
+        let tar = get_nearest_monster_v2({
+	  type: MONSTER_TYPES[0],
+	  max_distance: character.range * 1.5
+	});
             if (tar) {
                 // Get the monster's current position and velocity
                 let targetX = tar.real_x;
@@ -172,7 +173,6 @@ async function move_loop() {
                     }
                 }
             }
-        }
     } catch (e) {
         console.error(e);
     }
