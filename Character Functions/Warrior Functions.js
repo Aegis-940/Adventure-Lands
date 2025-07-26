@@ -247,35 +247,61 @@ function can_cleave(aoe, cc, maps, monsters, tank, time_since, has_untargeted) {
 
 const BOUNDARY_RADIUS = 100
 
+// 1) Track last manual position
 let last_manual_pos = { x: character.real_x, y: character.real_y };
 
-/**
- * Call this whenever you manually move your character.
- */
+// Call this whenever you manually move your character (e.g. in your click handler)
 function set_last_manual() {
   last_manual_pos.x = character.real_x;
   last_manual_pos.y = character.real_y;
 }
 
-async function enforce_boundary(radius = 100) {
-  // 1) Draw the allowed‐area circles
-  //    - green around your last manual point
-  //    - red around the map origin (0,0)
-  draw_circle(last_manual_pos.x, last_manual_pos.y, radius, 0x00FF00, 2);
-  draw_circle(0, 0, radius,                  0xFF0000, 2);
+// 2) Draw two circles (origin + last manual) as 8-segment polygons, once per second
+let _lastDraw = 0;
+function draw_boundary_circles(radius = 100, segments = 8, lineWidth = 2) {
+  const now = Date.now();
+  if (now - _lastDraw < 1000) return;  // only redraw every 1s
+  _lastDraw = now;
 
-  // 2) Enforce it
+  // clear previous drawings
+  clear_drawings();
+
+  // helper to draw one circle by connecting segments
+  function polyCircle(cx, cy, color) {
+    let prev = null;
+    for (let i = 0; i <= segments; i++) {
+      const theta = (2 * Math.PI * i) / segments;
+      const x = cx + radius * Math.cos(theta);
+      const y = cy + radius * Math.sin(theta);
+      if (prev) {
+        draw_line(prev.x, prev.y, x, y, color, lineWidth);
+      }
+      prev = { x, y };
+    }
+  }
+
+  // green around last manual, red around origin
+  polyCircle(last_manual_pos.x, last_manual_pos.y, 0x00ff00);
+  polyCircle(0, 0,                       0xff0000);
+}
+
+// 3) Enforcement + drawing loop
+async function enforce_boundary(radius = 100) {
+  // draw the two circles (throttled)
+  draw_boundary_circles(radius);
+
+  // if we’ve strayed too far, walk back
   const dx   = character.real_x - last_manual_pos.x;
   const dy   = character.real_y - last_manual_pos.y;
   const dist = Math.hypot(dx, dy);
-
   if (dist > radius) {
-    // step back toward last_manual_pos
-    await move({ x: last_manual_pos.x, y: last_manual_pos.y });
+    // Use move(...) or smart_move(...) as you prefer
+    await smart_move({ x: last_manual_pos.x, y: last_manual_pos.y });
   }
 }
 
+// 4) Standalone loop
 function boundary_loop() {
   enforce_boundary().catch(console.error);
-  setTimeout(boundary_loop, 200);
+  setTimeout(boundary_loop, 200);  // run 5×/sec
 }
