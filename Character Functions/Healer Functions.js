@@ -190,6 +190,7 @@ function get_nearest_monster_v2(args = {}) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function attack_loop() {
+	game_log("priest test");
     	if (!attack_enabled) return;
 	let delay = 1;
 	let disabled = (parent.is_disabled(character) === undefined);
