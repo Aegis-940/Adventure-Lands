@@ -349,34 +349,3 @@ function can_cleave(aoe, cc, maps, monsters, tank, time_since, has_untargeted) {
     );
 }
 
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// MAINTAIN POSITION
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-const BOUNDARY_RADIUS = 200;
-
-function start_boundary_guard(radius = BOUNDARY_RADIUS, interval = 200) {
-  // 1) Capture the home point
-  const homeX = character.real_x;
-  const homeY = character.real_y;
-
-  // 2) The enforcement loop
-  async function boundary_loop() {
-    const dx   = character.real_x - homeX;
-    const dy   = character.real_y - homeY;
-    const dist = Math.hypot(dx, dy);
-
-    if (dist > radius) {
-      // Move halfway back toward home
-      const targetX = character.real_x + (homeX - character.real_x) / 2;
-      const targetY = character.real_y + (homeY - character.real_y) / 2;
-      await move(targetX, targetY);
-    }
-
-    // Schedule the next check
-    setTimeout(boundary_loop, interval);
-  }
-
-  // 3) *Start* the loop
-  boundary_loop();
-}
