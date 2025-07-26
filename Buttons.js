@@ -1,20 +1,3 @@
-// -------------------------------------------------------------------- //
-// BOTTOM BUTTONS - TODO: CHANGE TO REGULAR BUTTONS
-// -------------------------------------------------------------------- //
-
-function fight_solo_or_group(title) {
-	if (!parent.caracAL) {
-		add_bottom_button("toggle_fight_mode", title, () => {
-			fight_as_a_team = !fight_as_a_team;
-			set_button_value("toggle_fight_mode", fight_as_a_team ? "Group" : "Solo");
-
-			title = fight_as_a_team ? "Group" : "Solo";
-			game_log("Fight mode now: " + (fight_as_a_team ? "GROUP" : "SOLO"));
-			group_or_solo_button_title = title;
-			return group_or_solo_button_title;
-		});
-	}
-}
 
 // -------------------------------------------------------------------- //
 // REMOVING BUTTONS
