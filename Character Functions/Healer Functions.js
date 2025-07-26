@@ -370,25 +370,35 @@ async function handle_cursing(X, Y) {
 }
 
 async function handle_absorb() {
-  // 1) Skill off‐cooldown?
+  // 1) Only run if off‐cooldown
   if (is_on_cooldown("absorb")) return;
 
-  // 2) Gather all player names: your party plus yourself
-  const party = parent.party || {};
-  const names = Object.keys(party);
+  // 2) Gather party names (plus yourself)
+  const party = get_party() || {};
+  const names = Object.keys(party).filter(n => n !== character.name);
   names.push(character.name);
 
-  // 3) Scan each person for the sinner debuff (s.sinner)
-  for (const name of names) {
-    const member = name === character.name ? character : get_player(name);
-    if (!member || member.rip) continue;
-    if (member.s && member.s.sinner) {
-      // 4) Cast absorb on them
-      await use_skill("absorb", member);
-      reduce_cooldown("absorb", character.ping * 0.95);
-      game_log(`Absorbing sins from ${member.name}`, "#FFA600");
-      return;
+  // 3) See who’s being attacked
+  const underAttack = new Set();
+  for (const ent of Object.values(parent.entities)) {
+    if (
+      ent.type === "monster" &&
+      !ent.dead &&
+      ent.visible &&
+      names.includes(ent.target)
+    ) {
+      underAttack.add(ent.target);
     }
+  }
+
+  // 4) Absorb the first one we find
+  for (const name of underAttack) {
+    const ally = name === character.name ? character : get_player(name);
+    if (!ally) continue;
+    await use_skill("absorb", ally);
+    reduce_cooldown("absorb", character.ping * 0.95);
+    game_log(`Absorbing sins from ${ally.name}`, "#FFA600");
+    return;
   }
 }
 
