@@ -88,16 +88,14 @@ async function attack_loop() {
             });
 		
             if (target) break;
+	    game_log("Check 1");
 		
         }
 
         if (target) {
-	    game_log("Check 1")
             await attack(target);
-		game_log("Check 2")
 			reduce_cooldown("attack", character.ping * 0.95);
             delay = ms_to_next_skill("attack");
-		game_log("Check 3")
         }
     } catch (e) {
         // optional error logging
