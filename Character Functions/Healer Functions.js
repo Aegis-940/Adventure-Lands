@@ -190,7 +190,6 @@ function get_nearest_monster_v2(args = {}) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function attack_loop() {
-	game_log("priest test");
     	if (!attack_enabled) return;
 	let delay = 1;
 	let disabled = (parent.is_disabled(character) === undefined);
@@ -315,8 +314,9 @@ async function move_loop() {
 async function skill_loop() {
 	
 	game_log("skill_loop called");
-	const X = locations[home][0].x;
-	const Y = locations[home][0].y;
+	const mapLocations = locations[character.map] || locations[home] || [];
+	const X = mapLocations[0]?.x ?? character.real_x;
+	const Y = mapLocations[0]?.y ?? character.real_y;
 	const delay = 40;
 	const dead = character.rip;
 	const disabled = !parent.is_disabled(character);
