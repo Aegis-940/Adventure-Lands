@@ -175,23 +175,6 @@ add_cm_listener((name, data) => {
 });
 
 // -------------------------------------------------------------------- //
-// FOLLOW PARTY LEADER
-// -------------------------------------------------------------------- //
-
-function follow_party_leader(party_leader) {
-    setInterval(() => {
-        if (!attack_mode || character.rip) return;
-
-        const leader = parent.entities[party_leader];
-
-        // Move if leader is not on screen, dead, or too far
-        if (!leader || leader.rip || leader.map !== character.map || simple_distance(character, leader) > FOLLOW_DISTANCE) {
-            move_to_character(party_leader);
-        }
-    }, 500); // Adjusted interval to reduce spamming
-}
-
-// -------------------------------------------------------------------- //
 // CONSUME POTS
 // -------------------------------------------------------------------- //
 
@@ -232,58 +215,6 @@ function send_to_merchant() {
     }
 
     send_gold(merchant_name, character.gold);
-}
-
-// -------------------------------------------------------------------- //
-// TARGET TANK'S TARGET
-// -------------------------------------------------------------------- //
-
-function target_tanks_target() {
-    const tank = parent.entities[tank_name];
-    if (!tank || tank.rip || tank.map !== character.map) {
-        change_target(null);
-        return null;
-    }
-
-    const tank_target_id = tank.target;
-    if (!tank_target_id) {
-        change_target(null);
-        return null;
-    }
-
-    const monster = parent.entities[tank_target_id];
-    if (monster && !monster.rip) {
-        if (character.target !== monster.id) {
-            change_target(monster);
-        }
-        return monster; // ✅ You must return this
-    } else {
-        change_target(null);
-        return null;
-    }
-}
-
-function get_monster_by_type_array(types, radius = 500) {
-    const candidates = [];
-
-    for (const id in parent.entities) {
-        const m = parent.entities[id];
-
-        if (
-            m &&
-            m.type === "monster" &&
-            !m.rip &&
-            types.includes(m.mtype) &&
-            distance(character, m) <= radius
-        ) {
-            candidates.push(m);
-        }
-    }
-
-    // Sort by distance to pick the closest
-    candidates.sort((a, b) => distance(character, a) - distance(character, b));
-
-    return candidates[0] || null;
 }
 
 function is_in_party(name) {
