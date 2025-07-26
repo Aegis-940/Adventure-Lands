@@ -386,7 +386,10 @@ async function handle_absorb(mapsToExclude) {
 	for (const name of partyNames) {
 		if (attackers[name]) {
 			try {
-				await use_skill("absorb", name);
+				const ally = get_player(name);
+				if (ally) {
+				  await use_skill("absorb", ally);
+				}
 				game_log(`Absorbing ${name}`, "#FFA600");
 			} catch (e) {
 				if (e?.reason !== "cooldown") throw e;
