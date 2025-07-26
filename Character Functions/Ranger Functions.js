@@ -187,7 +187,7 @@ async function attack_loop() {
             sortedByHP.push(e);
         }
     }
-    sortedByHP.sort((a, b) => a.hp - b.hp);
+    sortedByHP.sort((a, b) => b.hp - a.hp);
 
     const inRange = [], outOfRange = [];
     for (const mob of sortedByHP) {
