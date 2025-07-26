@@ -235,8 +235,8 @@ function toggle_free_move() {
     		else stop_attack_loop();
 		
 		const btn = window.top.document.getElementById("toggle_free_move");
-		btn.innerText = free_move ? "🚶" : "🧍";
-		game_log(free_move ? "Free Move During Combat" : "Remain Stationary During Combat");
+		btn.innerText = move_enabled ? "🚶" : "🧍";
+		game_log(move_enabled ? "Free Move During Combat" : "Remain Stationary During Combat");
 	}, {
 		top: "2.1vh",
 		right: "725px",
