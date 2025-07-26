@@ -265,7 +265,7 @@ async function skill_loop() {
         const cc = character.cc < 135;
         const zapper_mobs = ["plantoid"];
         const st_maps = ["", "winter_cove", "arena", "",];
-        const aoe_maps = ["mansion"];
+        const aoe_maps = ["mansion", "main"];
         let tank = get_entity("Ulric");
 
         if (character.ctype === "warrior") {
