@@ -30,7 +30,6 @@ function start_move_loop() {
     console.log("▶️ Move loop started");
 }
 
-
 function stop_move_loop() {
   move_enabled = false;
   clearTimeout(move_timer_id);
