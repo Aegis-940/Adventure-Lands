@@ -170,6 +170,7 @@ function get_nearest_monster_v2(args = {}) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function attack_loop() {
+	game_log("check1");
     if (!attack_enabled) return;
     const X = character.x, Y = character.y;
     let delay = 1;
