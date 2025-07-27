@@ -354,46 +354,54 @@ const PRIEST_SKILL_TOGGLES = {
 	absorb: true,
 	party_heal: true,
 	dark_blessing: true,
-	zap_spam: false // initially disabled
 };
 
-function create_priest_skill_toggles() {
-	const ICONS = {
-		curse: "💀",
-		absorb: "🛡️",
-		party_heal: "💖",
-		dark_blessing: "🌑"
-	};
+function create_priest_skill_buttons() {
+	const SKILLS = [
+		{ key: "curse", icon: "🧿", title: "Curse" },
+		{ key: "absorb", icon: "🌀", title: "Absorb" },
+		{ key: "party_heal", icon: "💖", title: "Party Heal" },
+		{ key: "dark_blessing", icon: "🕯️", title: "Dark Blessing" },
+	];
 
-	const TITLES = {
-		curse: "Toggle Curse",
-		absorb: "Toggle Absorb",
-		party_heal: "Toggle Party Heal",
-		dark_blessing: "Toggle Dark Blessing"
-	};
+	const container_id = "priest_skill_button_container";
+	if (window.top.document.getElementById(container_id)) return; // Prevent duplicates
 
-	let left = 100; // Starting X position
+	// Create container
+	const container = window.top.document.createElement("div");
+	container.id = container_id;
+	container.style.position = "absolute";
+	container.style.top = "2vh";
+	container.style.left = "50%";
+	container.style.transform = "translateX(-50%)";
+	container.style.display = "flex";
+	container.style.gap = "4px";
+	container.style.zIndex = 999;
 
-	for (const skill of ["curse", "absorb", "party_heal", "dark_blessing"]) {
-		const id = `toggle_priest_${skill}`;
+	// Create buttons
+	for (const { key, icon, title } of SKILLS) {
+		const btn = window.top.document.createElement("button");
+		btn.id = `toggle_${key}`;
+		btn.innerText = icon;
+		btn.title = title;
+		btn.style.width = "40px";
+		btn.style.height = "40px";
+		btn.style.fontSize = "22px";
+		btn.style.cursor = "pointer";
+		btn.style.border = "3px solid";
+		btn.style.borderColor = PRIEST_SKILL_TOGGLES[key] ? "#4CAF50" : "#888";
+		btn.style.background = "#111";
+		btn.style.color = "white";
+		btn.style.borderRadius = "4px";
 
-		if (window.top.document.getElementById(id)) continue; // Don't re-create
+		btn.onclick = () => {
+			PRIEST_SKILL_TOGGLES[key] = !PRIEST_SKILL_TOGGLES[key];
+			btn.style.borderColor = PRIEST_SKILL_TOGGLES[key] ? "#4CAF50" : "#888";
+			game_log(`${title} is now ${PRIEST_SKILL_TOGGLES[key] ? "✅ ENABLED" : "🚫 DISABLED"}`);
+		};
 
-		create_floating_button(id, ICONS[skill], () => {
-			PRIEST_SKILL_TOGGLES[skill] = !PRIEST_SKILL_TOGGLES[skill];
-			const btn = window.top.document.getElementById(id);
-			btn.innerText = PRIEST_SKILL_TOGGLES[skill] ? ICONS[skill] : "❌";
-			game_log(`${TITLES[skill]}: ${PRIEST_SKILL_TOGGLES[skill] ? "✅ Enabled" : "❌ Disabled"}`);
-		}, {
-			top: "3.5vh",
-			left: `${left}px`,
-			minWidth: "40px",
-			height: "40px",
-			fontSize: "20px",
-			border: "2px solid gray",
-			title: TITLES[skill]
-		});
-
-		left += 48; // Space between buttons
+		container.appendChild(btn);
 	}
+
+	window.top.document.body.appendChild(container);
 }
