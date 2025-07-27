@@ -169,63 +169,64 @@ function get_nearest_monster_v2(args = {}) {
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+let last_switch_time = 0, state = "attacking";
+const SWITCH_COOLDOWN = 750;
+const RANGE_THRESHOLD = 45;
+const X = character.x, Y = character.y;;
+let lastEquippedSet = null;
+
 async function attack_loop() {
-    game_log("check1");
-    if (!attack_enabled) return;
-    const X = character.x, Y = character.y;
-    let delay = 1;
     const now = performance.now();
     const entities = Object.values(parent.entities);
+    const healer = get_entity("Myras");
+    const heal_threshold = (!healer || healer.rip) ? 0.9 : 0.4;
 
-    // 1) build & sort
-    const sortedByHP = [];
+    const SORTED_BY_HP = [];
     for (const e of entities) {
-        if (e.type === "monster") sortedByHP.push(e);
+        if (e.type === "monster" && (e.target === MONSTER_TYPES[0] || e.target === MONSTER_TYPES[1])) {
+            SORTED_BY_HP.push(e);
+        }
     }
-    sortedByHP.sort((a, b) => a.hp - b.hp);
+    SORTED_BY_HP.sort((a, b) => b.hp - a.hp);
 
-    // 2) split by range
-    const inRange = [], outOfRange = [];
-    for (const mob of sortedByHP) {
-        (Math.hypot(mob.x - X, mob.y - Y) <= rangeThreshold
-         ? inRange
-         : outOfRange
-        ).push(mob);
+    const IN_RANGE = [], OUT_OF_RANGE = [];
+    for (const mob of SORTED_BY_HP) {
+        (Math.hypot(mob.x - X, mob.y - Y) <= RANGE_THRESHOLD ? IN_RANGE : OUT_OF_RANGE).push(mob);
     }
+
+    let delay;
 
     try {
-        if (sortedByHP.length) {
-            // a) cursed priority
-            const cursed = get_nearest_monster_v2({ statusEffects: ["cursed"] });
-            if (cursed) {
-                change_target(cursed);
-                if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", cursed);
-                if (!is_on_cooldown("supershot"))   await use_skill("supershot",   cursed);
-            }
+	if (SORTED_BY_HP.length) {
+	    const cursed = get_nearest_monster_v2({ statusEffects: ["cursed"] });
+	    if (cursed) {
+		change_target(cursed);
+		if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", cursed);
+		if (!is_on_cooldown("supershot")) await use_skill("supershot", cursed);
+	    }
 
-            // b) only if no cursed, fall back to your 3‑shot / single‑shot logic
-            if (!cursed) {
-                if (sortedByHP.length >= 2) {
-                    game_log("3shot");
-                    await use_skill("3shot", sortedByHP.slice(0, 3).map(e => e.id));
-                }
-                else if (sortedByHP.length === 1 && is_in_range(sortedByHP[0])) {
-                    game_log("1shot");
-                    await attack(sortedByHP[0]);
-                }
-            }
-        }
+	    if (IN_RANGE.length >= 4) {
+		//smartEquip("boom");
+		await use_skill("5shot", IN_RANGE.slice(0, 5).map(e => e.id));
+	    } else if (OUT_OF_RANGE.length >= 4) {
+		//smartEquip("dead");
+		await use_skill("5shot", OUT_OF_RANGE.slice(0, 5).map(e => e.id));
+	    } else if (SORTED_BY_HP.length >= 2) {
+		//smartEquip("dead");
+		await use_skill("3shot", SORTED_BY_HP.slice(0, 3).map(e => e.id));
+	    } else if (SORTED_BY_HP.length === 1 && is_in_range(SORTED_BY_HP[0])) {
+		//smartEquip("single");
+		await attack(SORTED_BY_HP[0]);
+	    }
+	    delay = ms_to_next_skill("attack");
+	}
+	break;
+	    
     } catch (err) {
         console.error(err);
     }
 
-    // DEBUG: confirm we always schedule
-    game_log(`scheduling next attack_loop in ${delay}ms`);
-
-    // 3) re‑schedule
-    if (attack_enabled) {
-        attack_timer_id = setTimeout(attack_loop, delay);
-    }
+    setTimeout(attack_loop, delay);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
