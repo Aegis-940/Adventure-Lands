@@ -174,8 +174,6 @@ const RANGE_THRESHOLD = 45;
 //let lastEquippedSet = null;
 
 async function attack_loop() {
-
-    game_log("Check 1");
 	
     if (!attack_enabled) return;
     let delay = 50; 
@@ -197,9 +195,7 @@ async function attack_loop() {
     }
 
     try {
-	game_log("Attack Choice Check - " + SORTED_BY_HP.length);
 	if (SORTED_BY_HP.length) {
-	    game_log("SORTED_BY_HP.length = true");
 	    const cursed = get_nearest_monster_v2({ statusEffects: ["cursed"] });
 	    if (cursed) {
 		change_target(cursed);
@@ -215,11 +211,9 @@ async function attack_loop() {
 		//await use_skill("5shot", OUT_OF_RANGE.slice(0, 5).map(e => e.id));
 	    const threeTargets = SORTED_BY_HP.filter(mob => is_in_range(mob)).slice(0, 3);
 	    if (SORTED_BY_HP.length >= 2) {
-                game_log("3 Shot");
 		//smartEquip("dead");
 		await use_skill("3shot", threeTargets.map(m => m.id));
 	    } else if (SORTED_BY_HP.length === 1 && is_in_range(SORTED_BY_HP[0])) {
-                game_log("1 Shot");
 		//smartEquip("single");
 		await attack(SORTED_BY_HP[0]);
 	    }
