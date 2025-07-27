@@ -362,3 +362,29 @@ function hide_skills_ui() {
         if (btn) btn.style.display = "none";
     }
 }
+
+// -------------------------------------------------------------------- //
+// MAINTAIN POSITION
+// -------------------------------------------------------------------- //
+
+function maintain_position(radius = 200, check_interval = 500) {
+	const ORIGIN = { x: character.x, y: character.y };
+
+	async function monitor() {
+		while (true) {
+			const dist = Math.hypot(character.x - ORIGIN.x, character.y - ORIGIN.y);
+
+			if (dist > radius) {
+				const mid_x = ORIGIN.x + (character.x - ORIGIN.x) / 2;
+				const mid_y = ORIGIN.y + (character.y - ORIGIN.y) / 2;
+
+				game_log(`🚨 Outside radius (${Math.round(dist)} units)! Returning halfway...`);
+				await move(mid_x, mid_y);
+			}
+
+			await delay(check_interval);
+		}
+	}
+
+	monitor(); // kick off async monitoring loop
+}
