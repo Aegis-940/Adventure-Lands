@@ -175,7 +175,8 @@ const X = character.x, Y = character.y;
 //let lastEquippedSet = null;
 
 async function attack_loop() {
-
+	
+    if (!attack_enabled) return;
     let delay = 50; 
     const X = character.x, Y = character.y;
     const now = performance.now();
@@ -195,8 +196,6 @@ async function attack_loop() {
     for (const mob of SORTED_BY_HP) {
         (Math.hypot(mob.x - X, mob.y - Y) <= RANGE_THRESHOLD ? IN_RANGE : OUT_OF_RANGE).push(mob);
     }
-
-    let delay;
 
     try {
 	if (SORTED_BY_HP.length) {
@@ -227,7 +226,9 @@ async function attack_loop() {
         console.error(err);
     }
 
-    setTimeout(attack_loop, delay);
+    if (attack_enabled) {
+        attack_timer_id = setTimeout(attack_loop, delay);
+    }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
