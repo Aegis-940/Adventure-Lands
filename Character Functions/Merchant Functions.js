@@ -232,6 +232,12 @@ function hasTool(toolName) {
 
 async function go_fish() {
 	const FISHING_SPOT = { map: "main", x: -1116, y: -285 };
+	const POSITION_TOLERANCE = 10; // how close is “close enough”
+
+	function atFishingSpot() {
+		return character.map === FISHING_SPOT.map &&
+			Math.hypot(character.x - FISHING_SPOT.x, character.y - FISHING_SPOT.y) <= POSITION_TOLERANCE;
+	}
 
 	// Check if fishing skill is available
 	if (!can_use("fishing")) {
@@ -258,20 +264,39 @@ async function go_fish() {
 	}
 
 	// Move to fishing spot
+	game_log("*** Moving to fishing spot... ***");
 	await smart_move(FISHING_SPOT);
+
+	// Make sure we're actually there
+	if (!atFishingSpot()) {
+		game_log("*** Not at fishing spot. Aborting. ***");
+		return;
+	}
+
+	game_log("*** Arrived at fishing spot. Starting to fish... ***");
 
 	while (true) {
 		// Final pre-fishing checks
 		if (!can_use("fishing")) {
 			await delay(500);
 			game_log("*** Fishing cooldown active ***");
-			break;
+			continue;
 		}
 
 		if (character.slots.mainhand?.name !== "rod") {
 			await delay(500);
 			game_log("*** Fishing rod not equipped or broken ***");
 			break;
+		}
+
+		if (!atFishingSpot()) {
+			game_log("*** Moved away from fishing spot. Re-walking... ***");
+			await smart_move(FISHING_SPOT);
+			if (!atFishingSpot()) {
+				game_log("*** Failed to return to fishing spot. Aborting. ***");
+				break;
+			}
+			continue;
 		}
 
 		// Snapshot inventory before casting
