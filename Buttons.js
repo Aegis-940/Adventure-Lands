@@ -378,7 +378,7 @@ function create_priest_skill_buttons() {
 	container.style.flexDirection = "row";
 	container.style.justifyContent = "center";
 	container.style.alignItems = "center";
-	container.style.columnGap = "6px";
+	container.style.columnGap = "20px";
 	container.style.zIndex = 999;
 
 	for (const { key, icon, title } of SKILLS) {
