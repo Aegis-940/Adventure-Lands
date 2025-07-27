@@ -47,19 +47,19 @@ setInterval(async () => {
 	// ─────────────────────────────────────
 	// Priority 2: Mine if Possible
 	// ─────────────────────────────────────
-	if (can_use("mining") && hasTool("pickaxe")) {
-	  queue_merchant_action("Go Mine", async () => {
-	    await go_mine();
-	  });
+	if (!is_on_cooldown("mining") && hasTool("pickaxe")) {
+		queue_merchant_action("Go Mine", async () => {
+			await go_mine();
+		});
 	}
 	
 	// ─────────────────────────────────────
 	// Priority 3: Fish if Possible
 	// ─────────────────────────────────────
-	else if (can_use("fishing") && hasTool("rod")) {
-	  queue_merchant_action("Go Fish", async () => {
-	    await go_fish();
-	  });
+	else if (!is_on_cooldown("fishing") && hasTool("rod")) {
+		queue_merchant_action("Go Fish", async () => {
+			await go_fish();
+		});
 	}
 
 	// Other non-critical tasks could go here…
