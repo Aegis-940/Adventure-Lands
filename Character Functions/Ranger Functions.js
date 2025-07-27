@@ -209,13 +209,13 @@ async function attack_loop() {
 	   // } else if (OUT_OF_RANGE.length >= 4) {
 		//smartEquip("dead");
 		//await use_skill("5shot", OUT_OF_RANGE.slice(0, 5).map(e => e.id));
-	    const threeTargets = SORTED_BY_HP.filter(mob => is_in_range(mob)).slice(0, 3);
-	    if (SORTED_BY_HP.length >= 2) {
+	    const three_targets = SORTED_BY_HP.filter(mob => is_in_range(mob)).slice(0, 3);
+	    if (three_targets.length >= 2) {
 		//smartEquip("dead");
-		await use_skill("3shot", threeTargets.map(m => m.id));
-	    } else if (SORTED_BY_HP.length === 1 && is_in_range(SORTED_BY_HP[0])) {
+		await use_skill("3shot", three_targets.map(m => m.id));
+	    } else if (three_targets.length === 1) {
 		//smartEquip("single");
-		await attack(SORTED_BY_HP[0]);
+		await attack(three_targets[0]);
 	    }
 	    delay = ms_to_next_skill("attack");
 	}
