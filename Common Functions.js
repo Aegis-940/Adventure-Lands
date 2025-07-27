@@ -371,40 +371,42 @@ let radius_lock_enabled = false;
 let radius_lock_origin = null;
 let radius_lock_loop = null;
 
-/**
- * Enables/disables a movement radius lock.
- * When enabled, stores the character’s current position as the origin
- * and continuously checks if the character strays more than `radius` units away.
- * If so, it cancels any movement and moves them halfway back to the origin.
- */
-function toggle_radius_lock(radius = 200, check_interval = 500, jitter_buffer = 5) {
+function toggle_radius_lock(radius = 200, check_interval = 500) {
 	if (radius_lock_enabled) {
-		// Disable radius lock
 		radius_lock_enabled = false;
 		radius_lock_origin = null;
 		game_log("🔓 Radius lock disabled.");
 	} else {
-		// Enable and set origin
 		radius_lock_enabled = true;
 		radius_lock_origin = { x: character.x, y: character.y };
 		game_log(`🔒 Radius lock enabled. Origin set to (${radius_lock_origin.x}, ${radius_lock_origin.y})`);
 
-		// Start monitoring loop
-		radius_lock_loop = (async () => {
-			while (radius_lock_enabled) {
-				const dist = Math.hypot(character.x - radius_lock_origin.x, character.y - radius_lock_origin.y);
+		if (radius_lock_loop) clearInterval(radius_lock_loop);
 
-				if (dist > radius + jitter_buffer) {
-					const mid_x = radius_lock_origin.x + (character.x - radius_lock_origin.x) / 2;
-					const mid_y = radius_lock_origin.y + (character.y - radius_lock_origin.y) / 2;
+		radius_lock_loop = setInterval(async () => {
+			if (!radius_lock_enabled) return;
 
-					game_log(`🚨 Outside radius (${Math.round(dist)} units)! Returning halfway...`);
-					stop(); // cancel any smart_move or movement
+			const dx = character.x - radius_lock_origin.x;
+			const dy = character.y - radius_lock_origin.y;
+			const dist = Math.hypot(dx, dy);
+
+			if (dist > radius) {
+				game_log(`🚨 Out of bounds (${Math.round(dist)} units)! Returning halfway...`);
+
+				// Cancel any ongoing smart_move or movement
+				parent.stop();
+
+				// Move halfway back to origin
+				const mid_x = character.x - dx / 2;
+				const mid_y = character.y - dy / 2;
+
+				// Force movement — retry until position changes
+				try {
 					await move(mid_x, mid_y);
+				} catch (e) {
+					game_log("⚠️ Move failed:", e);
 				}
-
-				await delay(check_interval);
 			}
-		})();
+		}, check_interval);
 	}
 }
