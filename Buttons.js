@@ -344,3 +344,56 @@ function toggle_maintain_position() {
 		btn.click();
 	}
 }
+
+// -------------------------------------------------------------------- //
+// TOGGLE MAINTAIN POSITION
+// -------------------------------------------------------------------- //
+
+const PRIEST_SKILL_TOGGLES = {
+	curse: true,
+	absorb: true,
+	party_heal: true,
+	dark_blessing: true,
+	zap_spam: false // initially disabled
+};
+
+function create_priest_skill_toggles() {
+	const ICONS = {
+		curse: "💀",
+		absorb: "🛡️",
+		party_heal: "💖",
+		dark_blessing: "🌑"
+	};
+
+	const TITLES = {
+		curse: "Toggle Curse",
+		absorb: "Toggle Absorb",
+		party_heal: "Toggle Party Heal",
+		dark_blessing: "Toggle Dark Blessing"
+	};
+
+	let left = 100; // Starting X position
+
+	for (const skill of ["curse", "absorb", "party_heal", "dark_blessing"]) {
+		const id = `toggle_priest_${skill}`;
+
+		if (window.top.document.getElementById(id)) continue; // Don't re-create
+
+		create_floating_button(id, ICONS[skill], () => {
+			PRIEST_SKILL_TOGGLES[skill] = !PRIEST_SKILL_TOGGLES[skill];
+			const btn = window.top.document.getElementById(id);
+			btn.innerText = PRIEST_SKILL_TOGGLES[skill] ? ICONS[skill] : "❌";
+			game_log(`${TITLES[skill]}: ${PRIEST_SKILL_TOGGLES[skill] ? "✅ Enabled" : "❌ Disabled"}`);
+		}, {
+			top: "3.5vh",
+			left: `${left}px`,
+			minWidth: "40px",
+			height: "40px",
+			fontSize: "20px",
+			border: "2px solid gray",
+			title: TITLES[skill]
+		});
+
+		left += 48; // Space between buttons
+	}
+}
