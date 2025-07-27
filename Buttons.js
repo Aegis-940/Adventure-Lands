@@ -308,11 +308,16 @@ function toggle_inventory_check() {
 // -------------------------------------------------------------------- //
 
 function toggle_maintain_position() {
-	if (!window.top.document.getElementById("toggle_maintain_position")) {
-		create_floating_button("toggle_maintain_position", "🌐", async () => {
+	const BUTTON_ID = "toggle_maintain_position";
+
+	let btn = window.top.document.getElementById(BUTTON_ID);
+
+	if (!btn) {
+		// Create button if it doesn't exist
+		create_floating_button(BUTTON_ID, "🌐", () => {
 			toggle_radius_lock();
 
-			const btn = window.top.document.getElementById("toggle_maintain_position");
+			const btn = window.top.document.getElementById(BUTTON_ID);
 			btn.innerText = radius_lock_enabled ? "🌐" : "🎯";
 
 			if (radius_lock_enabled) {
@@ -331,11 +336,11 @@ function toggle_maintain_position() {
 		});
 
 		setTimeout(() => {
-			const btn = window.top.document.getElementById("toggle_maintain_position");
-			if (btn) {
-				btn.style.borderRadius = "0px";
-			}
+			const btn = window.top.document.getElementById(BUTTON_ID);
+			if (btn) btn.style.borderRadius = "0px";
 		}, 0);
+	} else {
+		// Button already exists, simulate a click to toggle
+		btn.click();
 	}
 }
-
