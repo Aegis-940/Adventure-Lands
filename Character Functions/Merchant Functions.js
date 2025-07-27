@@ -344,6 +344,12 @@ async function go_fish() {
 
 async function go_mine() {
 	const MINING_SPOT = { map: "tunnel", x: 244, y: -153 };
+	const POSITION_TOLERANCE = 10; // how close is “close enough”
+
+	function atMiningSpot() {
+		return character.map === MINING_SPOT.map &&
+			Math.hypot(character.x - MINING_SPOT.x, character.y - MINING_SPOT.y) <= POSITION_TOLERANCE;
+	}
 
 	// Check if mining is available
 	if (!can_use("mining")) {
@@ -370,20 +376,39 @@ async function go_mine() {
 	}
 
 	// Move to mining spot
+	game_log("*** Moving to mining spot... ***");
 	await smart_move(MINING_SPOT);
+
+	// Check arrival
+	if (!atMiningSpot()) {
+		game_log("*** Not at mining spot. Aborting. ***");
+		return;
+	}
+
+	game_log("*** Arrived at mining spot. Starting to mine... ***");
 
 	while (true) {
 		// Final pre-mining checks
 		if (!can_use("mining")) {
 			await delay(500);
 			game_log("*** Mining cooldown active ***");
-			break;
+			continue;
 		}
 
 		if (character.slots.mainhand?.name !== "pickaxe") {
 			await delay(500);
 			game_log("*** Pickaxe not equipped or broken ***");
 			break;
+		}
+
+		if (!atMiningSpot()) {
+			game_log("*** Moved away from mining spot. Re-walking... ***");
+			await smart_move(MINING_SPOT);
+			if (!atMiningSpot()) {
+				game_log("*** Failed to return to mining spot. Aborting. ***");
+				break;
+			}
+			continue;
 		}
 
 		// Snapshot inventory before mining
