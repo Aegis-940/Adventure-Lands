@@ -19,9 +19,8 @@ toggle_combat();
 toggle_free_move();
 hide_skills_ui();
 
-start_attack_loop();
-start_move_loop();
-skill_loop();  
+attack_loop();
+move_loop();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN LOOP
