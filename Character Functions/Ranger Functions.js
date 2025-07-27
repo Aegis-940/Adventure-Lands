@@ -181,51 +181,51 @@ async function attack_loop() {
     const now = performance.now();
     const entities = Object.values(parent.entities);
 
-    // 1) Gather and sort all monsters by HP
-    const sortedByHP = entities
-        .filter(e => e.type === "monster")
-        .sort((a, b) => a.hp - b.hp);
+    const sortedByHP = [];
+    for (const e of entities) {
+        if (e.type === "monster") {
+            sortedByHP.push(e);
+        }
+    }
+    sortedByHP.sort((a, b) => a.hp - b.hp);
 
-    // 2) Split into in‑range and out‑of‑range
     const inRange = [], outOfRange = [];
     for (const mob of sortedByHP) {
-        if (Math.hypot(mob.x - X, mob.y - Y) <= rangeThreshold) inRange.push(mob);
-        else outOfRange.push(mob);
+        (Math.hypot(mob.x - X, mob.y - Y) <= rangeThreshold ? inRange : outOfRange).push(mob);
     }
 
     try {
-        if (sortedByHP.length) {
-            // a) Handle cursed priority
-            const cursed = get_nearest_monster_v2({ statusEffects: ["cursed"] });
-            if (cursed) {
-                change_target(cursed);
-                if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", cursed);
-                if (!is_on_cooldown("supershot"))   await use_skill("supershot",   cursed);
-            }
-
-            // b) If we have 2+ in‑range, do a 3‑shot
-            if (inRange.length >= 2) {
-                const ids = inRange.slice(0, 3).map(m => m.id);
-                await use_skill("3shot", ids);
-                delay = ms_to_next_skill('attack');
-
-            // c) Otherwise, if exactly one is in‑range, do a normal attack on it
-            } else if (inRange.length === 1) {
-                await attack(inRange[0]);
-                delay = ms_to_next_skill('attack');
-            }
-            // (else: no valid targets in range → skip)
-        }
+	if (sortedByHP.length) {
+	    const cursed = get_nearest_monster_v2({ statusEffects: ["cursed"] });
+	    if (cursed) {
+		change_target(cursed);
+		if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", cursed);
+		if (!is_on_cooldown("supershot")) await use_skill("supershot", cursed);
+	    }
+	    //if (inRange.length >= 4) {
+		//smartEquip("boom");
+		//await use_skill("5shot", inRange.slice(0, 5).map(e => e.id));
+	    //} else if (outOfRange.length >= 4) {
+		//smartEquip("dead");
+	    //    await use_skill("5shot", outOfRange.slice(0, 5).map(e => e.id));
+	    } else if (sortedByHP.length >= 2) {
+		//smartEquip("dead");
+		await use_skill("3shot", sortedByHP.slice(0, 3).map(e => e.id));
+	    } else if (sortedByHP.length === 1 && is_in_range(sortedByHP[0])) {
+		//smartEquip("single");
+		await attack(sortedByHP[0]);
+	    }
+	}
+	    
     } catch (err) {
         console.error(err);
     }
 
-    // reschedule
+    // only re-schedule if still enabled
     if (attack_enabled) {
         attack_timer_id = setTimeout(attack_loop, delay);
     }
 }
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MOVE LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
