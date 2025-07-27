@@ -358,10 +358,10 @@ const PRIEST_SKILL_TOGGLES = {
 
 function create_priest_skill_buttons() {
 	const SKILLS = [
-		{ key: "curse", icon: "🧿", title: "Curse" },
-		{ key: "absorb", icon: "🌀", title: "Absorb" },
+		{ key: "curse", icon: "☠️", title: "Curse" },
+		{ key: "absorb", icon: "🛡️", title: "Absorb" },
 		{ key: "party_heal", icon: "💖", title: "Party Heal" },
-		{ key: "dark_blessing", icon: "🕯️", title: "Dark Blessing" },
+		{ key: "dark_blessing", icon: "✝️", title: "Dark Blessing" },
 	];
 
 	const container_id = "priest_skill_button_container";
@@ -371,11 +371,11 @@ function create_priest_skill_buttons() {
 	const container = window.top.document.createElement("div");
 	container.id = container_id;
 	container.style.position = "absolute";
-	container.style.top = "2vh";
+	container.style.top = "1vh";
 	container.style.left = "50%";
 	container.style.transform = "translateX(-50%)";
 	container.style.display = "flex";
-	container.style.gap = "4px";
+	container.style.gap = "6px";
 	container.style.zIndex = 999;
 
 	// Create buttons
@@ -388,7 +388,7 @@ function create_priest_skill_buttons() {
 		btn.style.height = "40px";
 		btn.style.fontSize = "22px";
 		btn.style.cursor = "pointer";
-		btn.style.border = "3px solid";
+		btn.style.border = "2px solid";
 		btn.style.borderColor = PRIEST_SKILL_TOGGLES[key] ? "#4CAF50" : "#888";
 		btn.style.background = "#111";
 		btn.style.color = "white";
