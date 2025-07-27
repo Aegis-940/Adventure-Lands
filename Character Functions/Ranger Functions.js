@@ -211,11 +211,9 @@ async function attack_loop() {
 		//await use_skill("5shot", OUT_OF_RANGE.slice(0, 5).map(e => e.id));
 	    const three_targets = SORTED_BY_HP.filter(mob => is_in_range(mob)).slice(0, 3);
 	    if (three_targets.length >= 2) {
-		game_log(three_targets.length);
 		//smartEquip("dead");
 		await use_skill("3shot", three_targets.map(m => m.id));
 	    } else if (three_targets.length === 1) {
-		game_log(three_targets.length);
 		//smartEquip("single");
 		await attack(three_targets[0]);
 	    }
