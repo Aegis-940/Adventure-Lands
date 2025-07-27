@@ -371,25 +371,38 @@ let radius_lock_enabled = false;
 let radius_lock_origin = null;
 let radius_lock_loop = null;
 
-function toggle_radius_lock(radius = 200, check_interval = 500) {
+/**
+ * Enables/disables a movement radius lock.
+ * When enabled, stores the character’s current position as the origin
+ * and continuously checks if the character strays more than `radius` units away.
+ * If so, it cancels any movement and moves them halfway back to the origin.
+ */
+function toggle_radius_lock(radius = 200, check_interval = 500, jitter_buffer = 5) {
 	if (radius_lock_enabled) {
+		// Disable radius lock
 		radius_lock_enabled = false;
 		radius_lock_origin = null;
 		game_log("🔓 Radius lock disabled.");
 	} else {
+		// Enable and set origin
 		radius_lock_enabled = true;
 		radius_lock_origin = { x: character.x, y: character.y };
 		game_log(`🔒 Radius lock enabled. Origin set to (${radius_lock_origin.x}, ${radius_lock_origin.y})`);
 
+		// Start monitoring loop
 		radius_lock_loop = (async () => {
 			while (radius_lock_enabled) {
 				const dist = Math.hypot(character.x - radius_lock_origin.x, character.y - radius_lock_origin.y);
-				if (dist > radius) {
+
+				if (dist > radius + jitter_buffer) {
 					const mid_x = radius_lock_origin.x + (character.x - radius_lock_origin.x) / 2;
 					const mid_y = radius_lock_origin.y + (character.y - radius_lock_origin.y) / 2;
+
 					game_log(`🚨 Outside radius (${Math.round(dist)} units)! Returning halfway...`);
+					stop(); // cancel any smart_move or movement
 					await move(mid_x, mid_y);
 				}
+
 				await delay(check_interval);
 			}
 		})();
