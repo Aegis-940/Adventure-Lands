@@ -169,13 +169,15 @@ function get_nearest_monster_v2(args = {}) {
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let last_switch_time = 0, state = "attacking";
 const SWITCH_COOLDOWN = 750;
 const RANGE_THRESHOLD = 45;
-const X = character.x, Y = character.y;;
-let lastEquippedSet = null;
+const X = character.x, Y = character.y;
+//let lastEquippedSet = null;
 
 async function attack_loop() {
+
+    let delay = 50; 
+    const X = character.x, Y = character.y;
     const now = performance.now();
     const entities = Object.values(parent.entities);
     const healer = get_entity("Myras");
