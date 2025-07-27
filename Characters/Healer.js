@@ -22,7 +22,7 @@ create_map_movement_window([
 
 toggle_combat();
 toggle_free_move();
-create_priest_skill_toggles();
+create_priest_skill_buttons();
 hide_skills_ui();
 
 attack_loop();
