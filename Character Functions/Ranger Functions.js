@@ -215,7 +215,6 @@ async function attack_loop() {
 		//smartEquip("single");
 		await attack(sortedByHP[0]);
 	    }
-	}
 	    
     } catch (err) {
         console.error(err);
