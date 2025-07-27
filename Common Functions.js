@@ -371,14 +371,12 @@ let radius_lock_enabled = false;
 let radius_lock_origin = null;
 let radius_lock_loop = null;
 
-function maintain_position(radius = 200, check_interval = 500) {
+function toggle_radius_lock(radius = 200, check_interval = 500) {
 	if (radius_lock_enabled) {
-		// Turn off
 		radius_lock_enabled = false;
 		radius_lock_origin = null;
 		game_log("🔓 Radius lock disabled.");
 	} else {
-		// Turn on and reset origin
 		radius_lock_enabled = true;
 		radius_lock_origin = { x: character.x, y: character.y };
 		game_log(`🔒 Radius lock enabled. Origin set to (${radius_lock_origin.x}, ${radius_lock_origin.y})`);
