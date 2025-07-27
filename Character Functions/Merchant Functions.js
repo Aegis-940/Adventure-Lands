@@ -128,7 +128,7 @@ function buy_pots() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const INVENTORY_QUEUE		= ["Ulric", "Myras", "Riva"];
-const INVENTORY_THRESHOLD  	= 15;
+const INVENTORY_THRESHOLD  	= 20;
 const SELLING_LOCATION     	= { map: "main", x: -20, y: -100 };
 const INVENTORY_LOCK_DURATION  	= 5000; // 5 seconds max lock
 let currently_processing    	= false;
