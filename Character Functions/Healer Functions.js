@@ -341,14 +341,18 @@ async function safe_call(fn, name) {
 }
 
 async function handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps, zapperMobs) {
-	
 	if (dead || !disabled) return;
 
-	//safe_call(() => handle_cursing(X, Y), "handle_cursing");
-	safe_call(() => handle_absorb(mapsToExclude, eventMobs, eventMaps), "handle_absorb");
-	safe_call(() => handle_party_heal(), "handle_party_heal");
-	safe_call(() => handle_dark_blessing(), "handle_dark_blessing");
-	// await safe_call(() => handleZapSpam(zapperMobs), "handleZapSpam");
+	if (PRIEST_SKILL_TOGGLES.curse)
+		safe_call(() => handle_cursing(X, Y), "handle_cursing");
+	if (PRIEST_SKILL_TOGGLES.absorb)
+		safe_call(() => handle_absorb(mapsToExclude, eventMobs, eventMaps), "handle_absorb");
+	if (PRIEST_SKILL_TOGGLES.party_heal)
+		safe_call(() => handle_party_heal(), "handle_party_heal");
+	if (PRIEST_SKILL_TOGGLES.dark_blessing)
+		safe_call(() => handle_dark_blessing(), "handle_dark_blessing");
+	if (PRIEST_SKILL_TOGGLES.zap_spam)
+		safe_call(() => handleZapSpam(zapperMobs), "handleZapSpam");
 }
 
 async function handle_cursing(X, Y) {
