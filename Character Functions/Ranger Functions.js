@@ -185,7 +185,7 @@ async function attack_loop() {
 
     const SORTED_BY_HP = [];
     for (const e of entities) {
-        if (e.type === "monster" && (e.mtype === MONSTER_TYPES[0] || e.mtype === MONSTER_TYPES[1])) {
+        if (e.type === "monster" && MONSTER_TYPES.includes(e.mtype)) {
             SORTED_BY_HP.push(e);
         }
     }
