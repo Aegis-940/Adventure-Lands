@@ -371,17 +371,19 @@ function create_priest_skill_buttons() {
 	const container = window.top.document.createElement("div");
 	container.id = container_id;
 	container.style.position = "absolute";
-	container.style.top = "1vh";
+	container.style.top = "0";
 	container.style.left = "50%";
 	container.style.transform = "translateX(-50%)";
 	container.style.display = "flex";
 	container.style.flexDirection = "row";
 	container.style.justifyContent = "center";
 	container.style.alignItems = "center";
-	container.style.columnGap = "20px";
 	container.style.zIndex = 999;
 
-	for (const { key, icon, title } of SKILLS) {
+	// Create buttons
+	for (let i = 0; i < SKILLS.length; i++) {
+		const { key, icon, title } = SKILLS[i];
+
 		const btn = window.top.document.createElement("button");
 		btn.id = `toggle_${key}`;
 		btn.innerText = icon;
@@ -389,8 +391,8 @@ function create_priest_skill_buttons() {
 		btn.style.width = "40px";
 		btn.style.height = "40px";
 		btn.style.fontSize = "24px";
-		btn.style.lineHeight = "40px"; // Ensures vertical centering
-		btn.style.textAlign = "center"; // Ensures horizontal centering
+		btn.style.lineHeight = "40px";
+		btn.style.textAlign = "center";
 		btn.style.verticalAlign = "middle";
 		btn.style.display = "inline-block";
 		btn.style.cursor = "pointer";
@@ -400,6 +402,7 @@ function create_priest_skill_buttons() {
 		btn.style.color = "white";
 		btn.style.borderRadius = "4px";
 		btn.style.padding = "0";
+		if (i > 0) btn.style.marginLeft = "6px"; // 6px gap after the first button
 
 		btn.onclick = () => {
 			PRIEST_SKILL_TOGGLES[key] = !PRIEST_SKILL_TOGGLES[key];
@@ -412,4 +415,5 @@ function create_priest_skill_buttons() {
 
 	window.top.document.body.appendChild(container);
 }
+
 
