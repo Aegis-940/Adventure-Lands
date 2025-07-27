@@ -17,6 +17,7 @@ create_map_movement_window([
 
 toggle_combat();
 toggle_free_move();
+toggle_maintain_position();
 hide_skills_ui();
 
 attack_loop();
