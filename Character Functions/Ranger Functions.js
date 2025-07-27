@@ -220,8 +220,7 @@ async function attack_loop() {
 	    }
 	    delay = ms_to_next_skill("attack");
 	}
-	break;
-	    
+    
     } catch (err) {
         console.error(err);
     }
