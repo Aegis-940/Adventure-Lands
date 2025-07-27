@@ -40,34 +40,43 @@ function stop_move_loop() {
 // 3) PERSISTENT STATE HANDLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Save current loop flags using native set().
-function save_persistent_state() {
-  try {
-    set("healer_attack_enabled", attack_enabled);
-    set("healer_move_enabled",   move_enabled);
-  } catch (e) {
-    console.error("Error saving persistent state:", e);
-  }
+function init_persistent_state() {
+	try {
+		// Load attack and move loop flags
+		const atk = get("healer_attack_enabled");
+		if (atk !== undefined) attack_enabled = atk;
+
+		const mv = get("healer_move_enabled");
+		if (mv !== undefined) move_enabled = mv;
+
+		// Load skill toggles
+		for (const key in PRIEST_SKILL_TOGGLES) {
+			const val = get(`priest_skill_${key}`);
+			if (val !== undefined) PRIEST_SKILL_TOGGLES[key] = val;
+		}
+
+		// Start/stop loops based on restored state
+		if (attack_enabled) start_attack_loop();
+		else                stop_attack_loop();
+
+		if (move_enabled)   start_move_loop();
+		else                stop_move_loop();
+	} catch (e) {
+		console.error("Error loading persistent state:", e);
+	}
 }
 
-// Load saved flags with native get(), then start/stop loops accordingly. Call this once at script init.
-function init_persistent_state() {
-  try {
-    const atk = get("healer_attack_enabled");
-    if (atk !== undefined) attack_enabled = atk;
+function save_persistent_state() {
+	try {
+		set("healer_attack_enabled", attack_enabled);
+		set("healer_move_enabled", move_enabled);
 
-    const mv = get("healer_move_enabled");
-    if (mv !== undefined) move_enabled = mv;
-
-    // Reflect loaded flags in the loop state
-    if (attack_enabled) start_attack_loop();
-    else                stop_attack_loop();
-
-    if (move_enabled)   start_move_loop();
-    else                stop_move_loop();
-  } catch (e) {
-    console.error("Error loading persistent state:", e);
-  }
+		for (const key in PRIEST_SKILL_TOGGLES) {
+			set(`priest_skill_${key}`, PRIEST_SKILL_TOGGLES[key]);
+		}
+	} catch (e) {
+		console.error("Error saving persistent state:", e);
+	}
 }
 
 // Hook state-saving into your start/stop functions:
