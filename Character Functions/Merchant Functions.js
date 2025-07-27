@@ -223,29 +223,29 @@ async function check_remote_inventories() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function hasTool(toolName) {
-  return (
-    character.slots.mainhand?.name === toolName ||
-    character.slots.offhand?.name === toolName ||
-    character.items.some(item => item && item.name === toolName)
-  );
+	return (
+		character.slots.mainhand?.name === toolName ||
+		character.slots.offhand?.name === toolName ||
+		character.items.some(item => item && item.name === toolName)
+	);
 }
 
 async function go_fish() {
 	const FISHING_SPOT = { map: "main", x: -1116, y: -285 };
-	const POSITION_TOLERANCE = 10; // how close is “close enough”
+	const POSITION_TOLERANCE = 10;
 
 	function atFishingSpot() {
 		return character.map === FISHING_SPOT.map &&
 			Math.hypot(character.x - FISHING_SPOT.x, character.y - FISHING_SPOT.y) <= POSITION_TOLERANCE;
 	}
 
-	// Check if fishing skill is available
-	if (!can_use("fishing")) {
+	// Skip if still on cooldown
+	if (is_on_cooldown("fishing")) {
 		game_log("*** Fishing cooldown active ***");
 		return;
 	}
 
-	// Ensure fishing rod is equipped or try to equip it
+	// Equip rod if needed
 	if (character.slots.mainhand?.name !== "rod") {
 		const rod_index = character.items.findIndex(item => item?.name === "rod");
 		if (rod_index === -1) {
@@ -257,17 +257,15 @@ async function go_fish() {
 		await delay(500);
 	}
 
-	// Double check it's now equipped
+	// Confirm rod equipped
 	if (character.slots.mainhand?.name !== "rod") {
 		game_log("*** Failed to equip fishing rod ***");
 		return;
 	}
 
-	// Move to fishing spot
 	game_log("*** Moving to fishing spot... ***");
 	await smart_move(FISHING_SPOT);
 
-	// Make sure we're actually there
 	if (!atFishingSpot()) {
 		game_log("*** Not at fishing spot. Aborting. ***");
 		return;
@@ -276,10 +274,9 @@ async function go_fish() {
 	game_log("*** Arrived at fishing spot. Starting to fish... ***");
 
 	while (true) {
-		// Final pre-fishing checks
-		if (!can_use("fishing")) {
+		// Pre-cast checks
+		if (is_on_cooldown("fishing")) {
 			await delay(500);
-			game_log("*** Fishing cooldown active ***");
 			continue;
 		}
 
@@ -299,7 +296,6 @@ async function go_fish() {
 			continue;
 		}
 
-		// Snapshot inventory before casting
 		const before_items = character.items.map(i => i?.name || null);
 		await delay(500);
 		game_log("*** Casting line... ***");
@@ -308,21 +304,12 @@ async function go_fish() {
 		let success = false;
 		let attempts = 0;
 
-		while (attempts < 30) { // wait up to 30s
+		while (attempts < 30) {
 			await delay(500);
 			attempts++;
 
 			const after_items = character.items.map(i => i?.name || null);
-			let changed = false;
-
-			for (let i = 0; i < after_items.length; i++) {
-				if (after_items[i] !== before_items[i]) {
-					changed = true;
-					break;
-				}
-			}
-
-			if (changed) {
+			if (after_items.some((name, i) => name !== before_items[i])) {
 				success = true;
 				break;
 			}
@@ -337,6 +324,7 @@ async function go_fish() {
 		await delay(500);
 	}
 }
+
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SIMPLE MINING SCRIPT WITH AUTO-EQUIP
