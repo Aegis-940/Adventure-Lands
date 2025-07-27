@@ -215,7 +215,7 @@ async function attack_loop() {
 			await use_skill("3shot", threeTargets.map(m => m.id));
 			delay = ms_to_next_skill('attack');
 		}
-	    } else if (is_in_range(sortedByHP[0])) {
+	    } else if (inRange.length === 1)  {
 		//smartEquip("single");
 		await attack(sortedByHP[0]);
 		delay = ms_to_next_skill('attack');
