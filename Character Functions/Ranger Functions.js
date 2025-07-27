@@ -175,8 +175,6 @@ const X = character.x, Y = character.y;
 //let lastEquippedSet = null;
 
 async function attack_loop() {
-
-    game_log("Check 1");
 	
     if (!attack_enabled) return;
     let delay = 50; 
@@ -208,13 +206,13 @@ async function attack_loop() {
 		if (!is_on_cooldown("supershot")) await use_skill("supershot", cursed);
 	    }
 
-	    if (IN_RANGE.length >= 4) {
+	    //if (IN_RANGE.length >= 4) {
 		//smartEquip("boom");
-		await use_skill("5shot", IN_RANGE.slice(0, 5).map(e => e.id));
-	    } else if (OUT_OF_RANGE.length >= 4) {
+		//await use_skill("5shot", IN_RANGE.slice(0, 5).map(e => e.id));
+	   // } else if (OUT_OF_RANGE.length >= 4) {
 		//smartEquip("dead");
-		await use_skill("5shot", OUT_OF_RANGE.slice(0, 5).map(e => e.id));
-	    } else if (SORTED_BY_HP.length >= 2) {
+		//await use_skill("5shot", OUT_OF_RANGE.slice(0, 5).map(e => e.id));
+	    if (SORTED_BY_HP.length >= 2) {
 		//smartEquip("dead");
 		await use_skill("3shot", SORTED_BY_HP.slice(0, 3).map(e => e.id));
 	    } else if (SORTED_BY_HP.length === 1 && is_in_range(SORTED_BY_HP[0])) {
