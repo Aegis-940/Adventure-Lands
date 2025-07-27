@@ -169,11 +169,6 @@ function get_nearest_monster_v2(args = {}) {
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let lastSwitchTime = 0, state = "attacking";
-const switchCooldown = 750;
-const rangeThreshold = 45;
-let lastEquippedSet = null;
-
 async function attack_loop() {
     if (!attack_enabled) return;
     const X = character.x, Y = character.y;
@@ -195,27 +190,30 @@ async function attack_loop() {
     }
 
     try {
-	if (sortedByHP.length) {
-	    const cursed = get_nearest_monster_v2({ statusEffects: ["cursed"] });
-	    if (cursed) {
-		change_target(cursed);
-		if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", cursed);
-		if (!is_on_cooldown("supershot")) await use_skill("supershot", cursed);
-	    }
-	    //if (inRange.length >= 4) {
-		//smartEquip("boom");
-		//await use_skill("5shot", inRange.slice(0, 5).map(e => e.id));
-	    //} else if (outOfRange.length >= 4) {
-		//smartEquip("dead");
-	    //    await use_skill("5shot", outOfRange.slice(0, 5).map(e => e.id));
-	    } else if (sortedByHP.length >= 2) {
-		//smartEquip("dead");
-		await use_skill("3shot", sortedByHP.slice(0, 3).map(e => e.id));
-	    } else if (sortedByHP.length === 1 && is_in_range(sortedByHP[0])) {
-		//smartEquip("single");
-		await attack(sortedByHP[0]);
-	    }
-	    
+        if (sortedByHP.length) {
+            const cursed = get_nearest_monster_v2({ statusEffects: ["cursed"] });
+            if (cursed) {
+                change_target(cursed);
+                if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", cursed);
+                if (!is_on_cooldown("supershot"))   await use_skill("supershot", cursed);
+            }
+            //if (inRange.length >= 4) {
+            //    smartEquip("boom");
+            //    await use_skill("5shot", inRange.slice(0, 5).map(e => e.id));
+            //} else if (outOfRange.length >= 4) {
+            //    smartEquip("dead");
+            //    await use_skill("5shot", outOfRange.slice(0, 5).map(e => e.id));
+            //}
+
+            // ← now keep the else‑ifs inside this same block
+            else if (sortedByHP.length >= 2) {
+                //smartEquip("dead");
+                await use_skill("3shot", sortedByHP.slice(0, 3).map(e => e.id));
+            } else if (sortedByHP.length === 1 && is_in_range(sortedByHP[0])) {
+                //smartEquip("single");
+                await attack(sortedByHP[0]);
+            }
+        }
     } catch (err) {
         console.error(err);
     }
@@ -225,6 +223,7 @@ async function attack_loop() {
         attack_timer_id = setTimeout(attack_loop, delay);
     }
 }
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MOVE LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
