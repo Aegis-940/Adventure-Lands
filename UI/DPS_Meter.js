@@ -1,6 +1,6 @@
 // All currently supported damageTypes: "Base", "Blast", "Burn", "HPS", "MPS", "DR", "RF", "DPS", "Dmg Taken"
 // Displaying too many "Types" will result in a really wide meter that will effect the game_log window. i reccomend only tracking 4/5 things at a time for general use
-const damageTypes = ["Base", "Burn", "HPS", "DPS"];
+const damageTypes = ["Base", "Burn", "Blast", "DPS"];
 
 // Toggle settings
 let displayClassTypeColors = true;
