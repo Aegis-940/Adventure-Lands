@@ -207,9 +207,11 @@ async function attack_loop() {
 
             // ← now keep the else‑ifs inside this same block
             else if (sortedByHP.length >= 2) {
+		    game_log("3shot");
                 //smartEquip("dead");
                 await use_skill("3shot", sortedByHP.slice(0, 3).map(e => e.id));
             } else if (sortedByHP.length === 1 && is_in_range(sortedByHP[0])) {
+		    game_log("1shot");
                 //smartEquip("single");
                 await attack(sortedByHP[0]);
             }
