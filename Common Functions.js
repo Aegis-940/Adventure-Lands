@@ -331,12 +331,7 @@ async function wait_for_merchant_and_send() {
     if (merchant && !merchant.rip && merchant.map === character.map &&
         distance(character, merchant) <= 400
     ) {
-        for (let i = 2; i < character.items.length; i++) {
-            const item = character.items[i];
-            if (item) {
-                send_item("Riff", i, item.q || 1);
-            }
-        }
+        send_to_merchant()
 
         send_gold("Riff", 999999999); // Optional
         game_log("✅ Sent inventory and gold to merchant");
