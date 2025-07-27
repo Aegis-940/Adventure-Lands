@@ -370,19 +370,37 @@ function hide_skills_ui() {
 let radius_lock_enabled = false;
 let radius_lock_origin = null;
 let radius_lock_loop = null;
+let radius_lock_circle_id = "radius_lock_visual";
 
 function toggle_radius_lock(radius = 200, check_interval = 500) {
 	if (radius_lock_enabled) {
+		// Disable
 		radius_lock_enabled = false;
 		radius_lock_origin = null;
+		clear_drawings(radius_lock_circle_id);
+		if (radius_lock_loop) clearInterval(radius_lock_loop);
 		game_log("🔓 Radius lock disabled.");
 	} else {
+		// Enable
 		radius_lock_enabled = true;
-		radius_lock_origin = { x: character.x, y: character.y };
+		radius_lock_origin = {
+			x: Math.round(character.x),
+			y: Math.round(character.y)
+		};
 		game_log(`🔒 Radius lock enabled. Origin set to (${radius_lock_origin.x}, ${radius_lock_origin.y})`);
 
-		if (radius_lock_loop) clearInterval(radius_lock_loop);
+		// Draw circle (circumference only)
+		clear_drawings(radius_lock_circle_id);
+		draw_circle(
+			radius_lock_origin.x,
+			radius_lock_origin.y,
+			radius,
+			1,
+			0x00FFFF,
+			radius_lock_circle_id
+		);
 
+		// Start loop
 		radius_lock_loop = setInterval(async () => {
 			if (!radius_lock_enabled) return;
 
@@ -393,14 +411,11 @@ function toggle_radius_lock(radius = 200, check_interval = 500) {
 			if (dist > radius) {
 				game_log(`🚨 Out of bounds (${Math.round(dist)} units)! Returning halfway...`);
 
-				// Cancel any ongoing smart_move or movement
 				parent.stop();
 
-				// Move halfway back to origin
 				const mid_x = character.x - dx / 2;
 				const mid_y = character.y - dy / 2;
 
-				// Force movement — retry until position changes
 				try {
 					await move(mid_x, mid_y);
 				} catch (e) {
