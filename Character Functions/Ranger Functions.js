@@ -182,12 +182,10 @@ async function attack_loop() {
     const X = character.x, Y = character.y;
     const now = performance.now();
     const entities = Object.values(parent.entities);
-    const healer = get_entity("Myras");
-    const heal_threshold = (!healer || healer.rip) ? 0.9 : 0.4;
 
     const SORTED_BY_HP = [];
     for (const e of entities) {
-        if (e.type === "monster" && (e.mtype === MONSTER_TYPES[0] || e.mtype === MONSTER_TYPES[1])) {
+        if (e.type === "monster" && (e.target === MONSTER_TYPES[0] || e.target === MONSTER_TYPES[1])) {
             SORTED_BY_HP.push(e);
         }
     }
