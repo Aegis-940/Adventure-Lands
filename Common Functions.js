@@ -367,24 +367,33 @@ function hide_skills_ui() {
 // MAINTAIN POSITION
 // -------------------------------------------------------------------- //
 
+let radius_lock_enabled = false;
+let radius_lock_origin = null;
+let radius_lock_loop = null;
+
 function maintain_position(radius = 200, check_interval = 500) {
-	const ORIGIN = { x: character.x, y: character.y };
+	if (radius_lock_enabled) {
+		// Turn off
+		radius_lock_enabled = false;
+		radius_lock_origin = null;
+		game_log("🔓 Radius lock disabled.");
+	} else {
+		// Turn on and reset origin
+		radius_lock_enabled = true;
+		radius_lock_origin = { x: character.x, y: character.y };
+		game_log(`🔒 Radius lock enabled. Origin set to (${radius_lock_origin.x}, ${radius_lock_origin.y})`);
 
-	async function monitor() {
-		while (true) {
-			const dist = Math.hypot(character.x - ORIGIN.x, character.y - ORIGIN.y);
-
-			if (dist > radius) {
-				const mid_x = ORIGIN.x + (character.x - ORIGIN.x) / 2;
-				const mid_y = ORIGIN.y + (character.y - ORIGIN.y) / 2;
-
-				game_log(`🚨 Outside radius (${Math.round(dist)} units)! Returning halfway...`);
-				await move(mid_x, mid_y);
+		radius_lock_loop = (async () => {
+			while (radius_lock_enabled) {
+				const dist = Math.hypot(character.x - radius_lock_origin.x, character.y - radius_lock_origin.y);
+				if (dist > radius) {
+					const mid_x = radius_lock_origin.x + (character.x - radius_lock_origin.x) / 2;
+					const mid_y = radius_lock_origin.y + (character.y - radius_lock_origin.y) / 2;
+					game_log(`🚨 Outside radius (${Math.round(dist)} units)! Returning halfway...`);
+					await move(mid_x, mid_y);
+				}
+				await delay(check_interval);
 			}
-
-			await delay(check_interval);
-		}
+		})();
 	}
-
-	monitor(); // kick off async monitoring loop
 }
