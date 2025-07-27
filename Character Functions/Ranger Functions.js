@@ -171,11 +171,12 @@ function get_nearest_monster_v2(args = {}) {
 
 const SWITCH_COOLDOWN = 750;
 const RANGE_THRESHOLD = 45;
+//let lastEquippedSet = null;
 
 async function attack_loop() {
 
     game_log("Check 1");
-    
+	
     if (!attack_enabled) return;
     let delay = 50; 
     const X = character.x, Y = character.y;
@@ -198,37 +199,35 @@ async function attack_loop() {
     }
 
     try {
-        game_log("Attack Choice Check");
-        if (SORTED_BY_HP.length) {
-            game_log("SORTED_BY_HP.length = true");
-            const cursed = get_nearest_monster_v2({ statusEffects: ["cursed"] });
-            if (cursed) {
-                change_target(cursed);
-                if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", cursed);
-                if (!is_on_cooldown("supershot"))   await use_skill("supershot",   cursed);
-            }
+	game_log("Attack Choice Check");
+	if (SORTED_BY_HP.length) {
+	    game_log("SORTED_BY_HP.length = true");
+	    const cursed = get_nearest_monster_v2({ statusEffects: ["cursed"] });
+	    if (cursed) {
+		change_target(cursed);
+		if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", cursed);
+		if (!is_on_cooldown("supershot")) await use_skill("supershot", cursed);
+	    }
 
-            // 5‑shot logic still commented out
-            //if (IN_RANGE.length >= 4) { … }
-            //else if (OUT_OF_RANGE.length >= 4) { … }
-
-            // ← NEW 3‑shot / single‑shot block based on IN_RANGE
-            const threeTargets = IN_RANGE.slice(0, 3);
-            game_log(`inRange count: ${IN_RANGE.length}, threeTargets: ${threeTargets.length}`);
-
-            if (threeTargets.length >= 3) {
+	    //if (IN_RANGE.length >= 4) {
+		//smartEquip("boom");
+		//await use_skill("5shot", IN_RANGE.slice(0, 5).map(e => e.id));
+	   // } else if (OUT_OF_RANGE.length >= 4) {
+		//smartEquip("dead");
+		//await use_skill("5shot", OUT_OF_RANGE.slice(0, 5).map(e => e.id));
+	    const threeTargets = SORTED_BY_HP.filter(mob => is_in_range(mob)).slice(0, 3);
+	    if (SORTED_BY_HP.length >= 2) {
                 game_log("3 Shot");
-                //smartEquip("dead");
-                await use_skill("3shot", threeTargets.map(m => m.id));
-            } else if (threeTargets.length === 1) {
+		//smartEquip("dead");
+		await use_skill("3shot", threeTargets.map(m => m.id));
+	    } else if (SORTED_BY_HP.length === 1 && is_in_range(SORTED_BY_HP[0])) {
                 game_log("1 Shot");
-                //smartEquip("single");
-                await attack(threeTargets[0]);
-            }
-
-            delay = ms_to_next_skill("attack");
-        }
-
+		//smartEquip("single");
+		await attack(SORTED_BY_HP[0]);
+	    }
+	    delay = ms_to_next_skill("attack");
+	}
+    
     } catch (err) {
         console.error(err);
     }
