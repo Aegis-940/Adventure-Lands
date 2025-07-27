@@ -197,7 +197,7 @@ async function attack_loop() {
     }
 
     try {
-	game_log("Attack Choice Check - ", SORTED_BY_HP.length);
+	game_log("Attack Choice Check - " + SORTED_BY_HP.length);
 	if (SORTED_BY_HP.length) {
 	    game_log("SORTED_BY_HP.length = true");
 	    const cursed = get_nearest_monster_v2({ statusEffects: ["cursed"] });
