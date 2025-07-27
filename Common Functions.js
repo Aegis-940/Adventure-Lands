@@ -209,7 +209,7 @@ function send_to_merchant() {
         return;
     }
 
-    for (let i = 3; i < character.items.length; i++) {
+    for (let i = 7; i < character.items.length; i++) {
         const item = character.items[i];
         if (item) {
             send_item(merchant_name, i, item.q || 1);
