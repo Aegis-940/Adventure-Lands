@@ -302,3 +302,30 @@ function toggle_inventory_check() {
 		title: "Toggle Inventory Transfer"
 	});
 }
+
+// -------------------------------------------------------------------- //
+// TOGGLE MAINTAIN POSITION
+// -------------------------------------------------------------------- //
+
+function toggle_maintain_position() {
+	create_floating_button("toggle_maintain_position", "🌐", async () => {
+		toggle_radius_lock();
+
+		const btn = window.top.document.getElementById("toggle_maintain_position");
+		btn.innerText = radius_lock_enabled  ? "🌐" : "🎯";
+
+		if (radius_lock_enabled) {
+			game_log("🌐 Maintain Position ENABLED");
+		} else {
+			game_log("🎯 Maintain Position DISABLED");
+		}
+	}, {
+		top: "2.1vh",
+		right: "645px",
+		minWidth: "56px",
+		height: "56px",
+		fontSize: "24px",
+		border: "4px solid #888",
+		title: "Toggle Maintain Position"
+	});
+}
