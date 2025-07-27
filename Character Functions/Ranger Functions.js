@@ -170,58 +170,59 @@ function get_nearest_monster_v2(args = {}) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function attack_loop() {
-	game_log("check1");
+    game_log("check1");
     if (!attack_enabled) return;
     const X = character.x, Y = character.y;
     let delay = 1;
     const now = performance.now();
     const entities = Object.values(parent.entities);
 
+    // 1) build & sort
     const sortedByHP = [];
     for (const e of entities) {
-        if (e.type === "monster") {
-            sortedByHP.push(e);
-        }
+        if (e.type === "monster") sortedByHP.push(e);
     }
     sortedByHP.sort((a, b) => a.hp - b.hp);
 
+    // 2) split by range
     const inRange = [], outOfRange = [];
     for (const mob of sortedByHP) {
-        (Math.hypot(mob.x - X, mob.y - Y) <= rangeThreshold ? inRange : outOfRange).push(mob);
+        (Math.hypot(mob.x - X, mob.y - Y) <= rangeThreshold
+         ? inRange
+         : outOfRange
+        ).push(mob);
     }
 
     try {
         if (sortedByHP.length) {
+            // a) cursed priority
             const cursed = get_nearest_monster_v2({ statusEffects: ["cursed"] });
             if (cursed) {
                 change_target(cursed);
                 if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", cursed);
-                if (!is_on_cooldown("supershot"))   await use_skill("supershot", cursed);
+                if (!is_on_cooldown("supershot"))   await use_skill("supershot",   cursed);
             }
-            //if (inRange.length >= 4) {
-            //    smartEquip("boom");
-            //    await use_skill("5shot", inRange.slice(0, 5).map(e => e.id));
-            //} else if (outOfRange.length >= 4) {
-            //    smartEquip("dead");
-            //    await use_skill("5shot", outOfRange.slice(0, 5).map(e => e.id));
-            //}
 
-            // ← now keep the else‑ifs inside this same block
-            else if (sortedByHP.length >= 2) {
-		    game_log("3shot");
-                //smartEquip("dead");
-                await use_skill("3shot", sortedByHP.slice(0, 3).map(e => e.id));
-            } else if (sortedByHP.length === 1 && is_in_range(sortedByHP[0])) {
-		    game_log("1shot");
-                //smartEquip("single");
-                await attack(sortedByHP[0]);
+            // b) only if no cursed, fall back to your 3‑shot / single‑shot logic
+            if (!cursed) {
+                if (sortedByHP.length >= 2) {
+                    game_log("3shot");
+                    await use_skill("3shot", sortedByHP.slice(0, 3).map(e => e.id));
+                }
+                else if (sortedByHP.length === 1 && is_in_range(sortedByHP[0])) {
+                    game_log("1shot");
+                    await attack(sortedByHP[0]);
+                }
             }
         }
     } catch (err) {
         console.error(err);
     }
 
-    // only re-schedule if still enabled
+    // DEBUG: confirm we always schedule
+    game_log(`scheduling next attack_loop in ${delay}ms`);
+
+    // 3) re‑schedule
     if (attack_enabled) {
         attack_timer_id = setTimeout(attack_loop, delay);
     }
