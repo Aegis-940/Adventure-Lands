@@ -34,6 +34,7 @@ async function process_merchant_queue() {
 
 const POTION_DELIVERY_INTERVAL = 60 * 60 * 1000; // 1 hour
 const POTION_CAP = 6000;
+const MINIMUM_DELIVERED = 100;
 const PARTY = ["Ulric", "Myras", "Riva"];
 const DELIVERY_RADIUS = 400;
 const HOME = { map: "main", x: -89, y: -116 };
@@ -51,7 +52,7 @@ async function request_location(name) {
 		if (location_responses[name]) return location_responses[name];
 	}
 
-	game_log(⚠️ No location received from ${name});
+	game_log(`⚠️ No location received from ${name}`);
 	return null;
 }
 
@@ -65,7 +66,7 @@ async function request_potion_counts(name) {
 		if (potion_counts[name]) return potion_counts[name];
 	}
 
-	game_log(⚠️ No potion count received from ${name});
+	game_log(`⚠️ No potion count received from ${name}`);
 	return null;
 }
 
@@ -98,26 +99,41 @@ async function deliver_potions_loop() {
 			}
 
 			if (!needs_delivery) {
-				game_log(📭 ${name} does not need potions.);
+				game_log(`📭 ${name} does not need potions.`);
 				continue;
 			}
 
 			const destination = await request_location(name);
 			if (!destination) continue;
 
-			game_log(➡️ Walking to ${name} at ${destination.map}...);
-			smart_move(destination); // Do not await
+			game_log(`➡️ Walking to ${name} at ${destination.map}...`);
+			smart_move(destination); // Don't await
 
-			let all_sent = false;
+			let delivered_total = 0;
 			let attempts = 0;
+			let has_retried_move = false;
 
-			const sent_totals = { mpot1: 0, hpot1: 0 };
-
-			while (!all_sent && attempts < 400) {
+			while (attempts < 40) {
 				await delay(300);
+
 				const target_char = get_player(name);
-				if (!target_char || distance(character, target_char) > DELIVERY_RADIUS) {
+				const in_range = target_char && distance(character, target_char) <= DELIVERY_RADIUS;
+
+				if (!in_range) {
 					attempts++;
+
+					if (attempts === 10 && !has_retried_move) {
+						game_log(`🔁 ${name} moved away. Re-approaching...`);
+						const new_dest = await request_location(name);
+						if (new_dest) {
+							await smart_move(new_dest);
+							has_retried_move = true;
+							attempts = 0;
+						} else {
+							break;
+						}
+					}
+
 					continue;
 				}
 
@@ -139,9 +155,9 @@ async function deliver_potions_loop() {
 
 						const send_qty = Math.min(my_item.q || 1, to_send);
 						send_item(name, i, send_qty);
-						sent_totals[pot] += send_qty;
 						to_send -= send_qty;
-						await delay(200); // Allow inventory update
+						delivered_total += send_qty;
+						await delay(200);
 						any_delivered = true;
 
 						if (to_send <= 0) break;
@@ -149,24 +165,27 @@ async function deliver_potions_loop() {
 				}
 
 				if (any_delivered) {
-					game_log(🧃 Sent potions to ${name}, checking inventory...);
-					await delay(1000); // Wait longer for recipient inventory to sync
+					game_log(`🧃 Sent potions to ${name}, total so far: ${delivered_total}`);
+					await delay(1000);
 				}
 
 				const check_again = await request_potion_counts(name);
-				if (!check_again) break;
-
-				all_sent = POTION_TYPES.every(pot =>
+				const is_full = check_again && POTION_TYPES.every(pot =>
 					(check_again[pot] || 0) >= POTION_CAP
 				);
+
+				if (is_full || delivered_total >= MINIMUM_DELIVERED) {
+					stop();
+					game_log(`✅ Delivery to ${name} complete. Total sent: ${delivered_total}`);
+					delivered_to.add(name);
+					break;
+				}
+
+				attempts++;
 			}
 
-			if (all_sent) {
-				stop();
-				game_log(✅ Successfully delivered all potions to ${name});
-				delivered_to.add(name);
-			} else {
-				game_log(⚠️ Could not fully deliver to ${name} after timeout);
+			if (!delivered_to.has(name)) {
+				game_log(`⚠️ Could not fully deliver to ${name}. Sent: ${delivered_total}`);
 			}
 
 			await delay(500);
@@ -179,7 +198,6 @@ async function deliver_potions_loop() {
 		await delay(POTION_DELIVERY_INTERVAL);
 	}
 }
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MERCHANT SELL AND BANK ITEMS
 // --------------------------------------------------------------------------------------------------------------------------------- //
