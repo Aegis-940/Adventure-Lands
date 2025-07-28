@@ -40,6 +40,8 @@ const HOME = { map: main, x: -89, y: -116 };
 
 async function check_and_deliver_pots() {
 
+	game_log("Checking for pots");
+
 	for (const name of PARTY) {
 		const target = get_player(name);
 		if (!target) continue;
