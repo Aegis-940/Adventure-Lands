@@ -376,6 +376,7 @@ async function go_mine() {
 	game_log("*** Arrived at mining spot. Starting to mine... ***");
 
 	while (true) {
+		if (is_on_cooldown("mining")) return;
 		// Final pre-mining checks
 		if (!can_use("mining")) {
 			await delay(500);
