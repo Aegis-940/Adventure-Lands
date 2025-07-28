@@ -70,6 +70,16 @@ async function request_potion_counts(name) {
     return null;
 }
 
+// CM listener for potion counts
+add_cm_listener((name, data) => {
+    if (data.type === "my_potions" && PARTY.includes(name)) {
+        potion_counts[name] = {
+            hpot1: data.hpot1 || 0,
+            mpot1: data.mpot1 || 0
+        };
+    }
+});
+
 async function deliver_potions_loop() {
     while (true) {
         const delivered_to = new Set();
