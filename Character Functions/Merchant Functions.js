@@ -207,48 +207,41 @@ async function try_deliver_to(name, hpot_needed, mpot_needed) {
 			continue;
 		}
 
-		let delivered = false;
+		let hpot_remaining = hpot_needed;
+		let mpot_remaining = mpot_needed;
 
-		if (hpot_needed > 0) {
-			let remaining = hpot_needed;
-			for (let i = 0; i < character.items.length && remaining > 0; i++) {
-				const item = character.items[i];
-				if (!item || item.name !== "hpot1") continue;
+		for (let i = 0; i < character.items.length && (hpot_remaining > 0 || mpot_remaining > 0); i++) {
+			const item = character.items[i];
+			if (!item) continue;
 
-				const send_qty = Math.min(item.q || 1, remaining);
+			if (item.name === "hpot1" && hpot_remaining > 0) {
+				const send_qty = Math.min(item.q || 1, hpot_remaining);
 				send_item(name, i, send_qty);
 				await delay(200);
-				remaining -= send_qty;
-				delivered = true;
+				hpot_remaining -= send_qty;
+			}
+
+			if (item.name === "mpot1" && mpot_remaining > 0) {
+				const send_qty = Math.min(item.q || 1, mpot_remaining);
+				send_item(name, i, send_qty);
+				await delay(200);
+				mpot_remaining -= send_qty;
 			}
 		}
 
-		if (mpot_needed > 0) {
-			let remaining = mpot_needed;
-			for (let i = 0; i < character.items.length && remaining > 0; i++) {
-				const item = character.items[i];
-				if (!item || item.name !== "mpot1") continue;
+		const fully_delivered = hpot_remaining <= 0 && mpot_remaining <= 0;
 
-				const send_qty = Math.min(item.q || 1, remaining);
-				send_item(name, i, send_qty);
-				await delay(200);
-				remaining -= send_qty;
-				delivered = true;
-			}
-		}
-
-		if (delivered) {
-		  game_log(`✅ Delivered potions to ${name}`);
-		  recent_deliveries[name] = Date.now(); // Track this character only
-		  stop();
-		  return true;
+		if (fully_delivered) {
+			game_log(`✅ Fully delivered potions to ${name}`);
+			recent_deliveries[name] = Date.now();
+			return true;
 		} else {
-			game_log(`⚠️ Attempted delivery to ${name} but had nothing to send`);
-			return false;
+			game_log(`⚠️ Partial delivery to ${name}, retrying...`);
+			await delay(300);
 		}
 	}
 
-	game_log(`⚠️ Could not deliver potions to ${name} (out of range or missing after 10 tries)`);
+	game_log(`❌ Could not fully deliver potions to ${name} after 10 attempts`);
 	return false;
 }
 
