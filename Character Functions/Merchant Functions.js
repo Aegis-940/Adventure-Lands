@@ -116,7 +116,6 @@ add_cm_listener((name, data) => {
 });
 
 async function deliver_potions() {
-	merchant_task = "Delivering Potions";
 
 	for (const name of PARTY) {
 		let target_pots = await request_potion_counts(name);
@@ -170,7 +169,6 @@ async function deliver_potions() {
 	await smart_move(HOME);
 
 	game_log("⏳ Potion delivery task complete.");
-	merchant_task = "Idle";
 }
 
 async function try_deliver_to(name, hpot_needed, mpot_needed) {
