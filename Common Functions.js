@@ -109,7 +109,7 @@ const CM_HANDLERS = {
 	},
 
 	"send_loot": async (name) => {
-		for (let i = character.items.length - 1; i >= 6; i--) {
+		for (let i = character.items.length - 1; i >= 7; i--) {
 			const item = character.items[i];
 			if (item) {
 				send_item(name, i);
