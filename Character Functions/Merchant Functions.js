@@ -98,28 +98,36 @@ async function deliver_potions_loop() {
 			if (!destination) continue;
 
 			game_log(`🚶 Moving to ${name}...`);
-			smart_move(destination); // don't await
-
-			let attempts = 0;
+			let arrived = false;
 			let delivered = false;
-
-			while (attempts < 40 && !delivered) {
+			
+			// Start moving toward the target
+			smart_move(destination);
+			
+			// Try delivering while moving
+			while (!arrived && !delivered) {
 				await delay(300);
-
+			
+				// Check if we're within delivery range
 				const target = get_player(name);
 				if (target && distance(character, target) <= DELIVERY_RADIUS) {
 					delivered = await try_deliver_to(name, hpot_missing, mpot_missing);
+				}
+			
+				// Check if we've arrived at smart_move destination
+				if (smart.moving === false) {
+					arrived = true;
 					break;
 				}
-
-				attempts++;
 			}
-
+			
+			// If we reached destination but still didn’t deliver, try once more
 			if (!delivered) {
-				game_log(`🔁 First delivery failed. Retrying for ${name}...`);
-				destination = await request_location(name);
-				if (destination) {
-					await smart_move(destination);
+				game_log(`🔁 Delivery failed en route. Rechecking position for ${name}...`);
+			
+				const new_dest = await request_location(name);
+				if (new_dest) {
+					await smart_move(new_dest);
 					await delay(300);
 					await try_deliver_to(name, hpot_missing, mpot_missing);
 				}
