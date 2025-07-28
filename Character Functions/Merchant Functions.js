@@ -78,7 +78,6 @@ async function request_location(name) {
 	location_responses[name] = null;
 
 	send_cm(name, { type: "where_are_you" });
-	game_log(`📨 Sent 'where_are_you' CM to ${name}`);
 
 	return await new Promise((resolve) => {
 		let checks = 0;
@@ -86,7 +85,6 @@ async function request_location(name) {
 			checks++;
 			if (location_responses[name]) {
 				clearInterval(checkInterval);
-				game_log(`📍 [DEBUG] location_responses[${name}] = ${JSON.stringify(location_responses[name])}`);
 				resolve(location_responses[name]);
 			} else if (checks > 10) {
 				clearInterval(checkInterval);
@@ -108,7 +106,6 @@ async function request_potion_counts(name) {
             checks++;
             if (potion_counts[name]) {
                 clearInterval(checkInterval);
-                game_log(`🧪 [Debug] potion_counts[${name}] received: ${JSON.stringify(potion_counts[name])}`);
                 resolve(potion_counts[name]);
             } else if (checks > 10) {
                 clearInterval(checkInterval);
@@ -126,7 +123,6 @@ add_cm_listener((name, data) => {
 				hpot1: data.hpot1 || 0,
 				mpot1: data.mpot1 || 0
 			};
-			game_log(`🐞 [DEBUG] Potion CM from ${name}: hpot1=${data.hpot1}, mpot1=${data.mpot1}`);
 		}
 	} catch (e) {
 		game_log("🔥 CM listener threw an error:", e.message);
@@ -138,7 +134,6 @@ async function deliver_potions() {
 	for (const name of PARTY) {
 		game_log(`🔍 Starting delivery check for ${name}`);
 		let target_pots = await request_potion_counts(name);
-		game_log(`📬 Got potion counts for ${name}:`, target_pots);
 		if (!target_pots) continue;
 
 		const hpot_missing = POTION_CAP - (target_pots.hpot1 || 0);
@@ -149,23 +144,17 @@ async function deliver_potions() {
 			continue;
 		}
 
-		game_log(`📍 Requesting location for ${name}`);
 		let destination = await request_location(name);
-		game_log(`📍 Got location for ${name}:`, destination);
 		if (!destination) continue;
 
-		game_log(`🚶 Moving to ${name}...`);
 		let arrived = false;
 		let delivered = false;
 
 		smart_move(destination); // fire-and-forget
 
-		game_log(`🚶 Smart Moving to ${name}...`);
 
 		while (!arrived && !delivered) {
-			game_log("Check 1");
 			await delay(300);
-			game_log("Check 2");
 			const target = get_player(name);
 			if (target && distance(character, target) <= DELIVERY_RADIUS) {
 				delivered = await try_deliver_to(name, hpot_missing, mpot_missing);
@@ -237,6 +226,7 @@ async function try_deliver_to(name, hpot_needed, mpot_needed) {
 
 		if (delivered) {
 			game_log(`✅ Delivered potions to ${name}`);
+			stop();
 			return true;
 		} else {
 			game_log(`⚠️ Attempted delivery to ${name} but had nothing to send`);
@@ -301,6 +291,7 @@ async function collect_loot() {
 			const target = get_player(name);
 			if (target && distance(character, target) <= DELIVERY_RADIUS) {
 				send_cm(name, { type: "send_loot" });
+				await delay(1000);
 				collected = true;
 			}
 			if (!smart.moving) arrived = true;
