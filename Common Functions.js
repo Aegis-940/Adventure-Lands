@@ -138,16 +138,6 @@ add_cm_listener((name, data) => {
     handler(name, data);
 });
 
-// CM listener for potion counts
-add_cm_listener((name, data) => {
-    if (data.type === "my_potions" && PARTY.includes(name)) {
-        potion_counts[name] = {
-            hpot1: data.hpot1 || 0,
-            mpot1: data.mpot1 || 0
-        };
-    }
-});
-
 // -------------------------------------------------------------------- //
 // CONSUME POTS
 // -------------------------------------------------------------------- //
