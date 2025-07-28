@@ -92,7 +92,6 @@ const CM_HANDLERS = {
 		send_cm(name, { type: "my_potions", ...counts });
 	},
 
-	// ✅ Loot request logic
 	"do_you_have_loot": (name) => {
 		const has_loot = character.items.slice(7).some(item => item);
 		if (has_loot) {
@@ -100,12 +99,12 @@ const CM_HANDLERS = {
 		}
 	},
 
-	"send_loot": (name) => {
+	"send_loot": async (name) => {
 		for (let i = 7; i < character.items.length; i++) {
 			const item = character.items[i];
 			if (item) {
 				send_item(name, i);
-				await delay(200); // ensure transfer time
+				await delay(200);
 			}
 		}
 	}
@@ -119,7 +118,17 @@ add_cm_listener((name, data) => {
 	}
 
 	const handler = CM_HANDLERS[data.type] || CM_HANDLERS["default"];
-	if (handler) handler(name, data);
+	if (handler) {
+		if (handler.constructor.name === "AsyncFunction") {
+			handler(name, data).catch(e => console.error("CM async handler error:", e));
+		} else {
+			try {
+				handler(name, data);
+			} catch (e) {
+				console.error("CM handler error:", e);
+			}
+		}
+	}
 });
 
 // -------------------------------------------------------------------- //
