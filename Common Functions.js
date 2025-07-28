@@ -102,9 +102,9 @@ const CM_HANDLERS = {
 	},
 
 	"do_you_have_loot": (name) => {
-		const has_loot = character.items.slice(7).some(item => item);
-		if (has_loot) {
-			send_cm(name, { type: "yes_i_have_loot" });
+		const count = character.items.slice(6).filter(Boolean).length;
+		if (count > 0) {
+			send_cm(name, { type: "yes_i_have_loot", count });
 		}
 	},
 
