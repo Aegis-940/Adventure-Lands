@@ -113,6 +113,8 @@ add_cm_listener((name, data) => {
 });
 
 async function deliver_potions() {
+	merchant_task = "Delivering Potions";
+
 	for (const name of PARTY) {
 		let target_pots = await request_potion_counts(name);
 		if (!target_pots) continue;
@@ -132,12 +134,10 @@ async function deliver_potions() {
 		let arrived = false;
 		let delivered = false;
 
-		smart_move(destination); // don't await
+		smart_move(destination); // fire-and-forget
 
-		let attempts = 0;
-		while (!arrived && !delivered && attempts < 100) {
+		while (!arrived && !delivered) {
 			await delay(300);
-			attempts++;
 
 			const target = get_player(name);
 			if (target && distance(character, target) <= DELIVERY_RADIUS) {
@@ -146,11 +146,12 @@ async function deliver_potions() {
 
 			if (!smart.moving) {
 				arrived = true;
+				break;
 			}
 		}
 
 		if (!delivered) {
-			game_log(`🔁 Final retry for ${name}`);
+			game_log(`🔁 Delivery failed en route. Rechecking position for ${name}...`);
 			const new_dest = await request_location(name);
 			if (new_dest) {
 				await smart_move(new_dest);
@@ -162,10 +163,13 @@ async function deliver_potions() {
 		await delay(500);
 	}
 
+	game_log("🏠 Returning to home base...");
 	await smart_move(HOME);
-	game_log("✅ Potion delivery complete.");
+
+	game_log("⏳ Potion delivery task complete.");
 	merchant_task = "Idle";
 }
+
 async function try_deliver_to(name, hpot_needed, mpot_needed) {
 	const target = get_player(name);
 	if (!target || distance(character, target) > DELIVERY_RADIUS) return false;
