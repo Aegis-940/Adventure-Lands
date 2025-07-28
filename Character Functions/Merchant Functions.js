@@ -429,7 +429,6 @@ async function go_fish() {
 
 	const hasRodEquipped = () => character.slots.mainhand?.name === "rod";
 
-	// Ensure rod is equipped
 	if (!hasRodEquipped()) {
 		const rod_index = character.items.findIndex(item => item?.name === "rod");
 		if (rod_index === -1) {
@@ -441,11 +440,10 @@ async function go_fish() {
 	}
 
 	if (!hasRodEquipped()) {
-		game_log("❌ Failed to equip fishing rod.");
+		game_log("❌ Failed to equip rod.");
 		return;
 	}
 
-	// Move to fishing spot
 	if (!atFishingSpot()) {
 		game_log("📍 Heading to fishing spot...");
 		await smart_move(FISHING_SPOT);
@@ -457,33 +455,46 @@ async function go_fish() {
 	}
 
 	game_log("🎣 At fishing spot. Starting loop...");
+	merchant_task = "Fishing";
 
 	while (true) {
-		const is_fishing = !!character.q?.fishing;
-		game_log(is_fishing);
+		// Stop conditions
+		if (!hasRodEquipped() || !atFishingSpot()) break;
+		if (character.items.filter(Boolean).length >= character.items.length) break;
 
-		// End if not equipped, moved, or inventory full
-		if (!hasRodEquipped()) {
-			game_log("❌ Rod not equipped. Stopping.");
-			break;
-		}
-		if (!atFishingSpot()) {
-			game_log("❌ Moved away from fishing spot.");
-			break;
-		}
-		if (character.items.filter(Boolean).length >= character.items.length) {
-			game_log("📦 Inventory full. Ending fishing.");
-			break;
+		// Wait for cooldown
+		while (is_on_cooldown("fishing")) {
+			await delay(200);
 		}
 
-		// Recast as soon as fishing is allowed and not already casting
-		if (!is_on_cooldown("fishing") && !is_fishing) {
-			use_skill("fishing");
-			game_log("🎣 Cast line!");
+		// Cast
+		game_log("🎣 Casting...");
+		use_skill("fishing");
+
+		// Wait for fishing to start or timeout
+		let cast_started = false;
+		for (let i = 0; i < 10; i++) {
+			if (character.q?.fishing) {
+				cast_started = true;
+				break;
+			}
+			await delay(100);
 		}
 
-		await delay(100); // small polling delay
+		// Wait for fishing to finish or timeout (~9s default)
+		if (cast_started) {
+			while (character.q?.fishing) {
+				await delay(200);
+			}
+			game_log("✅ Fishing complete.");
+		} else {
+			game_log("⚠️ Fishing cast did not register.");
+			await delay(1000);
+		}
 	}
+
+	merchant_task = "Idle";
+	game_log("🛑 Stopping fishing loop.");
 }
 
 
