@@ -39,75 +39,54 @@ const PARTY = ["Ulric", "Myras", "Riva"];
 const HOME = { map: "main", x: -89, y: -116 };
 
 async function check_and_deliver_pots() {
-	game_log("🔍 Starting potion check...");
-	let delivered_any = false;
+  let delivered_any = false;
 
-	for (const name of PARTY) {
-		game_log(`📦 Checking ${name}'s inventory...`);
-		const target = parent.party[name];
-		if (!target || !target.items) {
-			game_log(`⚠️ ${name} not found or has no items. Skipping.`);
-			continue;
-		}
+  game_log("🧪 Checking potion statuses remotely...");
 
-		let needs_pots = [];
+  for (const name of PARTY) {
+    const status = remote_potion_status[name];
+    if (!status || Date.now() - status.updated > 30000) {
+      game_log(`⚠️ No recent data for ${name}`);
+      continue;
+    }
 
-		for (const pot of POTION_TYPES) {
-			let count = 0;
-			for (const item of target.items) {
-				if (item?.name === pot) count += item.q || 1;
-			}
-			game_log(`   ➤ ${name} has ${count} ${pot}`);
-			if (count < POTION_THRESHOLD) {
-				game_log(`   🔴 Needs ${pot}`);
-				needs_pots.push(pot);
-			}
-		}
+    const needs = POTION_TYPES.filter(type => status[type] < POTION_THRESHOLD);
+    if (needs.length === 0) {
+      game_log(`${name} is stocked.`);
+      continue;
+    }
 
-		if (needs_pots.length === 0) {
-			game_log(`✅ ${name} has enough potions. Skipping.`);
-			continue;
-		}
+    game_log(`📦 Delivering to ${name}: ${needs.join(", ")}`);
+    await move_to_character(name);
+    await delay(500);
 
-		game_log(`🚚 Moving to ${name} to deliver potions...`);
-		await move_to_character(name);
-		await delay(500);
+    for (const pot of needs) {
+      let qty_left = POTION_AMOUNT;
 
-		for (const pot of needs_pots) {
-			let qty_left = POTION_AMOUNT;
-			game_log(`📦 Delivering ${POTION_AMOUNT} of ${pot} to ${name}`);
+      for (let i = 0; i < character.items.length; i++) {
+        const item = character.items[i];
+        if (!item || item.name !== pot) continue;
 
-			for (let i = 0; i < character.items.length; i++) {
-				const item = character.items[i];
-				if (!item || item.name !== pot) continue;
+        const send_qty = Math.min(qty_left, item.q || 1);
+        send_item(name, i, send_qty);
+        qty_left -= send_qty;
+        await delay(100);
+        delivered_any = true;
 
-				const send_qty = Math.min(qty_left, item.q || 1);
-				game_log(`   ➤ Sending ${send_qty} ${pot} (slot ${i})`);
-				send_item(name, i, send_qty);
-				qty_left -= send_qty;
-				delivered_any = true;
-				await delay(100);
+        if (qty_left <= 0) break;
+      }
+    }
 
-				if (qty_left <= 0) break;
-			}
+    await delay(250);
+  }
 
-			if (qty_left > 0) {
-				game_log(`⚠️ Not enough ${pot} to send full amount`);
-			}
-		}
-
-		await delay(250);
-	}
-
-	if (delivered_any) {
-		game_log("🏠 Returning to home after delivery...");
-		await smart_move(HOME);
-	} else {
-		game_log("📭 No deliveries needed. Staying put.");
-	}
+  if (delivered_any) {
+    game_log("🏠 Returning home.");
+    await smart_move(HOME);
+  } else {
+    game_log("✅ No delivery needed.");
+  }
 }
-
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MERCHANT SELL AND BANK ITEMS
 // --------------------------------------------------------------------------------------------------------------------------------- //
