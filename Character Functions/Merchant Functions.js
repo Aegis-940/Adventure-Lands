@@ -234,6 +234,7 @@ async function try_deliver_to(name, hpot_needed, mpot_needed) {
 		if (fully_delivered) {
 			game_log(`✅ Fully delivered potions to ${name}`);
 			recent_deliveries[name] = Date.now();
+			halt_movement();
 			return true;
 		} else {
 			game_log(`⚠️ Partial delivery to ${name}, retrying...`);
