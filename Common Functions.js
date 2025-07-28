@@ -35,6 +35,8 @@ let gold_history                  = [];
 
 const MERCHANT_TASK_QUEUE         = [];
 
+
+// Critical function. Must be declared early.
 function delay(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
