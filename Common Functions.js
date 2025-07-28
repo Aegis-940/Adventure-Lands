@@ -96,6 +96,8 @@ on_cm = function (name, data) {
     original_on_cm(name, data);
 };
 
+const remote_potion_status = {}; // Store latest potion counts from party members
+
 // Central CM message handlers
 const CM_HANDLERS = {
     "my_location": (name, data) => {
@@ -122,17 +124,14 @@ const CM_HANDLERS = {
 
         game_log(`📦 Potion request received from ${name}...`);
 
-        // Move to the player
         move_to_character(name);
 
-        // Wait until we're close enough to transfer
         let attempts = 0;
         while (distance(character, get_player(name)) > 400 && attempts < 20) {
             await new Promise(res => setTimeout(res, 500));
             attempts++;
         }
 
-        // Check again after moving
         if (distance(character, get_player(name)) <= 400) {
             send_item(name, slot, data.quantity);
             game_log(`✅ Sent ${data.quantity} x ${data.item} to ${name}`);
@@ -150,10 +149,6 @@ const CM_HANDLERS = {
         wait_for_merchant_and_send();
     },
 
-    "default": (name, data) => {
-        console.warn("Unhandled CM message:", data);
-    },
-
     "set_tank": (name, data) => {
         who_is_tank = data.who_is_tank;
 
@@ -161,6 +156,20 @@ const CM_HANDLERS = {
         if (btn) btn.innerText = data.label;
 
         game_log(`📡 New tank set by ${name}: ${data.tank_name}`);
+    },
+
+    // 📦 NEW: Remote potion tracking
+    "potion_status": (name, data) => {
+        remote_potion_status[name] = {
+            mpot1: data.mpot1 || 0,
+            hpot1: data.hpot1 || 0,
+            updated: Date.now()
+        };
+        game_log(`📨 Potion status received from ${name}: HP ${data.hpot1}, MP ${data.mpot1}`);
+    },
+
+    "default": (name, data) => {
+        console.warn("Unhandled CM message:", data);
     }
 };
 
