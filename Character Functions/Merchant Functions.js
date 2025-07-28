@@ -460,6 +460,7 @@ async function go_fish() {
 
 	while (true) {
 		const is_fishing = !!character.q?.fishing;
+		game_log(is_fishing);
 
 		// End if not equipped, moved, or inventory full
 		if (!hasRodEquipped()) {
