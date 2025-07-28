@@ -298,6 +298,7 @@ async function collect_loot() {
 		}
 
 		game_log(`🏠 Returning to town to sell loot...`);
+		stop();
 		await smart_move(HOME);
 		await sell_and_bank();
 		await delay(500);
