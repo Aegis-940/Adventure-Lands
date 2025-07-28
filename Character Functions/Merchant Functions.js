@@ -242,6 +242,7 @@ async function try_deliver_to(name, hpot_needed, mpot_needed) {
 // CHECK FOR LOOT AND COLLECT
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+const ITEM_THRESHOLD = 15;
 const loot_responses = {};
 
 function request_loot_status(name) {
@@ -249,9 +250,12 @@ function request_loot_status(name) {
 	send_cm(name, { type: "do_you_have_loot" });
 }
 
+// Modify CM listener to include count
 add_cm_listener((name, data) => {
 	if (data.type === "yes_i_have_loot" && PARTY.includes(name)) {
-		loot_responses[name] = true;
+		if (typeof data.count === "number") {
+			loot_responses[name] = data.count;
+		}
 	}
 });
 
@@ -268,7 +272,7 @@ async function collect_loot() {
 	for (let i = 0; i < 10; i++) {
 		await delay(300);
 		for (const name of PARTY) {
-			if (loot_responses[name]) {
+			if (loot_responses[name] !== null && loot_responses[name] >= ITEM_THRESHOLD) {
 				targets.push(name);
 				loot_responses[name] = null; // Reset after handling
 			}
