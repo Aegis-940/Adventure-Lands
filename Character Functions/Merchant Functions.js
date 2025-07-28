@@ -29,6 +29,60 @@ async function process_merchant_queue() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// CHECK OTHER CHARACTERS FOR HOW MANY POTS THEY HAVE AND DELIVER MORE IF REQUIRED
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const MAIN_POSITION = { map: "main", x: -89, y: -116 }; // <- Set your preferred return spot
+const POT_THRESHOLD = 1000;
+const POT_DELIVER_AMOUNT = 3300;
+const RECIPIENTS = ["Ulric", "Myras", "Riva"]; // Replace with your actual character names
+
+async function check_and_deliver_pots() {
+  for (const name of RECIPIENTS) {
+    const char = parent.entities[name];
+    if (!char || char.rip || char.name === character.name) continue;
+
+    const hpot_count = get_potion_count(char, "hpot1");
+    const mpot_count = get_potion_count(char, "mpot1");
+
+    if (hpot_count >= POT_THRESHOLD && mpot_count >= POT_THRESHOLD) continue;
+
+    game_log(`📦 Delivering pots to ${name}...`);
+    await move_to_character(name);
+    await delay(200);
+
+    if (hpot_count < POT_THRESHOLD) await deliver_pots(name, "hpot1");
+    if (mpot_count < POT_THRESHOLD) await deliver_pots(name, "mpot1");
+
+    await delay(500);
+  }
+
+  game_log("🏠 Returning to main position...");
+  await smart_move(MAIN_POSITION);
+}
+
+// Helper to count potions a character has
+function get_potion_count(char, pot_type) {
+  return Object.values(parent.entities)
+    .filter(e => e && e.name === char.name)
+    .flatMap(e => e.items || [])
+    .filter(i => i?.name === pot_type)
+    .reduce((sum, i) => sum + (i.q || 1), 0);
+}
+
+// Deliver a specific potion to target
+async function deliver_pots(target_name, pot_type) {
+  const slot = character.items.findIndex(i => i && i.name === pot_type && i.q >= POT_DELIVER_AMOUNT);
+  if (slot === -1) {
+    game_log(`⚠️ Not enough ${pot_type} to give`);
+    return;
+  }
+
+  game_log(`🎁 Giving ${POT_DELIVER_AMOUNT} ${pot_type} to ${target_name}`);
+  send_item(get_player(target_name), slot, POT_DELIVER_AMOUNT);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // MERCHANT SELL AND BANK ITEMS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
