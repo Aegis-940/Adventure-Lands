@@ -7,6 +7,7 @@ const UPGRADE_INTERVAL = 75;  // ms between attempts
 const upgradeProfile = {
   pouchbow:   {scroll0_until: 3, scroll1_until: 6, scroll2_until: 8, primling_from: 7},
   fireblade:  {scroll0_until: 2, scroll1_until: 5, scroll2_until: 7, primling_from: 6},
+  hbow:       {scroll0_until: 3, scroll1_until: 6, scroll2_until: 8, primling_from: 7},
   // Add more items as needed
 };
 
