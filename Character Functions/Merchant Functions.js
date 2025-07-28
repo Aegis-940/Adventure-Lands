@@ -270,19 +270,27 @@ add_cm_listener((name, data) => {
 });
 
 async function collect_loot() {
+	game_log("📦 Starting loot collection task...");
 	merchant_task = "Collecting Loot";
 	const targets = [];
 
 	// Send CM requests
+	game_log("📨 Requesting loot status from party members...");
 	for (const name of PARTY) {
+		game_log(`📨 Requesting from ${name}...`);
 		request_loot_status(name);
 	}
 
 	// Wait up to 3 seconds for all responses
+	game_log("⏳ Waiting for loot responses...");
 	await delay(3000);
 
+	game_log("🔎 Processing loot responses...");
 	for (const name of PARTY) {
-		if (loot_responses[name] !== null && loot_responses[name] >= ITEM_THRESHOLD) {
+		const count = loot_responses[name];
+		game_log(`🔍 ${name} responded with ${count} items.`);
+		if (count !== null && count >= ITEM_THRESHOLD) {
+			game_log(`✅ ${name} added to loot targets.`);
 			targets.push(name);
 		}
 		loot_responses[name] = null; // Safe to clear here
@@ -296,10 +304,14 @@ async function collect_loot() {
 
 	// Visit each target and collect loot
 	for (const name of targets) {
+		game_log(`📍 Preparing to collect from ${name}...`);
 		const destination = await request_location(name);
-		if (!destination) continue;
+		if (!destination) {
+			game_log(`⚠️ Failed to get location for ${name}, skipping.`);
+			continue;
+		}
 
-		game_log(`🚶 Moving to ${name} for loot pickup...`);
+		game_log(`🚶 Moving to ${name} at (${destination.map}, ${destination.x}, ${destination.y})`);
 		let arrived = false;
 		let collected = false;
 
@@ -309,16 +321,22 @@ async function collect_loot() {
 			await delay(300);
 			const target = get_player(name);
 			if (target && distance(character, target) <= DELIVERY_RADIUS) {
+				game_log(`🎁 In range of ${name}, requesting loot transfer...`);
 				send_cm(name, { type: "send_loot" });
 				await delay(1000);
 				collected = true;
+				game_log(`✅ Loot requested from ${name}.`);
 			}
-			if (!smart.moving) arrived = true;
+			if (!smart.moving) {
+				arrived = true;
+				game_log(`🛑 Movement stopped. Arrived near ${name}.`);
+			}
 		}
 
 		game_log(`🏠 Returning to town to sell loot...`);
 		stop();
 		await smart_move(HOME);
+		game_log(`💰 Selling and banking items...`);
 		await sell_and_bank();
 		await delay(500);
 	}
@@ -326,7 +344,6 @@ async function collect_loot() {
 	game_log("✅ Loot collection task complete.");
 	merchant_task = "Idle";
 }
-
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MERCHANT SELL AND BANK ITEMS
