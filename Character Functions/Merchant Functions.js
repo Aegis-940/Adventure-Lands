@@ -32,8 +32,8 @@ async function process_merchant_queue() {
 // DELIVER POTS ON A LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const POTION_DELIVERY_INTERVAL = 20 * 60 * 1000; // 20 minutes
-const POTION_CAP = 3000;
+const POTION_DELIVERY_INTERVAL = 60 * 60 * 1000; // 20 minutes
+const POTION_CAP = 6000;
 const PARTY = ["Ulric", "Myras", "Riva"];
 const DELIVERY_RADIUS = 400;
 const HOME = { map: "main", x: -89, y: -116 };
@@ -72,7 +72,6 @@ async function request_potion_counts(name) {
 // CM listener for potion counts
 add_cm_listener((name, data) => {
 	if (data.type === "my_potions" && PARTY.includes(name)) {
-		game_log(`📬 Got potion count from ${name}: HP=${data.hpot1}, MP=${data.mpot1}`);
 		potion_counts[name] = {
 			hpot1: data.hpot1 || 0,
 			mpot1: data.mpot1 || 0
@@ -99,7 +98,6 @@ async function deliver_potions_loop() {
 			}
 
 			if (!needs_delivery) {
-				game_log(`📭 ${name} does not need potions.`);
 				continue;
 			}
 
@@ -144,7 +142,6 @@ async function deliver_potions_loop() {
 					}
 
 					if (delivered) {
-						game_log(`✅ Delivered potions early to ${name}`);
 						delivered_to.add(name);
 					}
 				}
@@ -191,7 +188,6 @@ async function deliver_potions_loop() {
 				}
 
 				if (local_delivery) {
-					game_log(`✅ Delivered potions to ${other}`);
 					delivered_to.add(other);
 				}
 			}
@@ -202,7 +198,7 @@ async function deliver_potions_loop() {
 		game_log("🏠 Returning to home base...");
 		await smart_move(HOME);
 
-		game_log("⏳ Potion delivery loop done. Waiting 20 minutes...");
+		game_log("⏳ Potion delivery loop done. Resting...");
 		await delay(POTION_DELIVERY_INTERVAL);
 	}
 }
