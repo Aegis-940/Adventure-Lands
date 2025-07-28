@@ -24,7 +24,7 @@ create_map_movement_window([
 add_bank_buttons();
 hide_skills_ui();
 
-deliver_potions_loop();
+//deliver_potions_loop();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN LOOP
