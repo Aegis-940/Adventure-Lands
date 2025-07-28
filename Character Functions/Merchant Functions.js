@@ -89,19 +89,23 @@ async function request_location(name) {
 }
 
 async function request_potion_counts(name) {
-	potion_counts[name] = undefined;
-	send_cm(name, { type: "what_potions" });
+    potion_counts[name] = null;
+    send_cm(name, { type: "what_potions" });
 
-	for (let i = 0; i < 10; i++) {
-		await delay(300);
-		if (potion_counts[name] !== undefined) {
-			game_log(`🧪 [Debug] potion_counts[${name}] received:`, potion_counts[name]);
-			return potion_counts[name];
-		}
-	}
+    for (let i = 0; i < 10; i++) {
+        await delay(300);
 
-	game_log(`⚠️ No potion count received from ${name}`);
-	return null;
+        // 🔍 DEBUG: trace the current value
+        game_log(`🐞 [TRACE] potion_counts[${name}] = ${JSON.stringify(potion_counts[name])}`);
+
+        if (potion_counts[name]) {
+            game_log(`🧪 [Debug] potion_counts[${name}] received: ${JSON.stringify(potion_counts[name])}`);
+            return potion_counts[name];
+        }
+    }
+
+    game_log(`⚠️ No potion count received from ${name}`);
+    return null;
 }
 
 // CM listener for potion counts
