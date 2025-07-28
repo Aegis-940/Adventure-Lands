@@ -194,23 +194,21 @@ async function deliver_potions() {
 }
 
 async function try_deliver_to(name, hpot_needed, mpot_needed) {
-	return await new Promise((resolve) => {
-		let attempts = 0;
+	let attempts = 0;
 
-		const interval = setInterval(async () => {
+	return await new Promise((resolve) => {
+		const attempt_delivery = async () => {
 			attempts++;
 			const target = get_player(name);
 
 			if (!target || distance(character, target) > DELIVERY_RADIUS) {
 				if (attempts > 10) {
-					clearInterval(interval);
 					game_log(`⚠️ Could not deliver potions to ${name} (out of range or missing)`);
-					resolve(false);
+					return resolve(false);
 				}
-				return;
+				return setTimeout(attempt_delivery, 300);
 			}
 
-			clearInterval(interval);
 			let delivered = false;
 
 			if (hpot_needed > 0) {
@@ -252,7 +250,9 @@ async function try_deliver_to(name, hpot_needed, mpot_needed) {
 			}
 
 			resolve(delivered);
-		}, 300);
+		};
+
+		attempt_delivery();
 	});
 }
 
