@@ -88,14 +88,13 @@ async function request_location(name) {
 	return null;
 }
 
-// Request potion counts via CM
 async function request_potion_counts(name) {
-	potion_counts[name] = null;
+	potion_counts[name] = undefined;
 	send_cm(name, { type: "what_potions" });
 
 	for (let i = 0; i < 10; i++) {
 		await delay(300);
-		if (potion_counts[name]) {
+		if (potion_counts[name] !== undefined) {
 			game_log(`🧪 [Debug] potion_counts[${name}] received:`, potion_counts[name]);
 			return potion_counts[name];
 		}
