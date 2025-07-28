@@ -82,6 +82,7 @@ add_cm_listener((name, data) => {
 
 async function deliver_potions_loop() {
 	while (true) {
+		merchant_busy = true;
 		for (const name of PARTY) {
 			let target_pots = await request_potion_counts(name);
 			if (!target_pots) continue;
@@ -140,6 +141,7 @@ async function deliver_potions_loop() {
 		await smart_move(HOME);
 
 		game_log("⏳ Potion delivery loop complete. Resting...");
+		merchant_busy = false;
 		await delay(POTION_DELIVERY_INTERVAL);
 	}
 }
