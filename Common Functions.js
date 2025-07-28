@@ -73,13 +73,13 @@ const _cmListeners = []; // unified naming
 
 // Utility to add CM listeners
 function add_cm_listener(fn) {
-    if (!_cmListeners.includes(fn)) _cmListeners.push(fn);
+	if (!_cmListeners.includes(fn)) _cmListeners.push(fn);
 }
 
 // Utility to remove CM listeners
 function remove_cm_listener(fn) {
-    const index = _cmListeners.indexOf(fn);
-    if (index !== -1) _cmListeners.splice(index, 1);
+	const index = _cmListeners.indexOf(fn);
+	if (index !== -1) _cmListeners.splice(index, 1);
 }
 
 // Preserve existing handler
@@ -87,53 +87,54 @@ const original_on_cm = typeof on_cm === "function" ? on_cm : () => {};
 
 // Global handler dispatcher
 on_cm = function (name, data) {
-    _cmListeners.forEach(fn => {
-        try {
-            fn(name, data);
-        } catch (e) {
-            console.error("CM listener error:", e);
-        }
-    });
+	_cmListeners.forEach(fn => {
+		try {
+			fn(name, data);
+		} catch (e) {
+			console.error("CM listener error:", e);
+		}
+	});
 
-    original_on_cm(name, data);
+	original_on_cm(name, data);
 };
 
 // Central CM message handlers
 const CM_HANDLERS = {
-    "my_location": (name, data) => {
-        location_responses[name] = { map: data.map, x: data.x, y: data.y };
-    },
+	"my_location": (name, data) => {
+		location_responses[name] = { map: data.map, x: data.x, y: data.y };
+	},
 
-    "where_are_you": (name) => {
-        send_cm(name, {
-            type: "my_location",
-            map: character.map,
-            x: character.x,
-            y: character.y
-        });
-    },
-	
-    "what_potions": (name) => {
-	    game_log(`📦 Got 'what_potions' from ${name}`);
-    const counts = {};
-    for (const pot of POTION_TYPES) {
-        counts[pot] = character.items.reduce((sum, item) =>
-            item?.name === pot ? sum + (item.q || 1) : sum, 0);
-    }
-    send_cm(name, { type: "my_potions", ...counts });
-},
+	"where_are_you": (name) => {
+		send_cm(name, {
+			type: "my_location",
+			map: character.map,
+			x: character.x,
+			y: character.y
+		});
+	},
+
+	"what_potions": (name) => {
+		game_log(`📦 Got 'what_potions' from ${name}`);
+		const counts = {};
+		for (const pot of POTION_TYPES) {
+			counts[pot] = character.items.reduce((sum, item) =>
+				item?.name === pot ? sum + (item.q || 1) : sum, 0);
+		}
+		send_cm(name, { type: "my_potions", ...counts });
+	},
 };
 
 // Register the handler dispatcher
 add_cm_listener((name, data) => {
-    if (!["Ulric", "Riva", "Myras", "Riff"].includes(name)) {
-        game_log("❌ Unauthorized CM from " + name);
-        return;
-    }
+	if (!["Ulric", "Riva", "Myras", "Riff"].includes(name)) {
+		game_log("❌ Unauthorized CM from " + name);
+		return;
+	}
 
-    const handler = CM_HANDLERS[data.type] || CM_HANDLERS["default"];
-    handler(name, data);
+	const handler = CM_HANDLERS[data.type] || CM_HANDLERS["default"];
+	handler(name, data);
 });
+
 
 // -------------------------------------------------------------------- //
 // CONSUME POTS
