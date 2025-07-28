@@ -16,10 +16,8 @@ let last_inventory_check          = 0;
 const PARTY_CHECK_INTERVAL        = 5000;
 let last_party_check              = 0;
 
-const REQUEST_COOLDOWN            = 30000;           // 30 seconds
-let last_potion_request           = 0;
-const HP_POT_THRESHOLD            = 3000;
-const MP_POT_THRESHOLD            = 3000;
+// For potion deliveries from merchant
+const POTION_TYPES = ["mpot1", "hpot1"];
 
 const HP_THRESHOLD                = 500;
 const MP_THRESHOLD                = 500;
