@@ -231,11 +231,10 @@ async function try_deliver_to(name, hpot_needed, mpot_needed) {
 		}
 
 		if (delivered) {
-			game_log(`✅ Delivered potions to ${name}`);
-			recent_delivery_target = name;
-			recent_delivery_time = Date.now();
-			stop();
-			return true;
+		  game_log(`✅ Delivered potions to ${name}`);
+		  recent_deliveries[name] = Date.now(); // Track this character only
+		  stop();
+		  return true;
 		} else {
 			game_log(`⚠️ Attempted delivery to ${name} but had nothing to send`);
 			return false;
