@@ -23,18 +23,14 @@ const combineProfile = {
 // UPGRADE & COMPOUND – single‐pass versions
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-/**
- * Attempts one upgrade.  Returns true if it found an upgradable item
- * (and sent the packet or bought a scroll), false if nothing to do.
- */
+// Return: "wait", "done", or "none"
 function upgrade_once() {
   for (let i = 0; i < character.items.length; i++) {
     const item = character.items[i];
     if (!item) continue;
 
     const profile = upgradeProfile[item.name];
-    if (!profile) continue;
-    if (profile.max_level !== undefined && item.level >= profile.max_level) continue;
+    if (!profile || (profile.max_level !== undefined && item.level >= profile.max_level)) continue;
 
     let scrollname = null;
     if (item.level < profile.scroll0_until) {
@@ -59,7 +55,7 @@ function upgrade_once() {
     if (!scroll) {
       game_log(`📦 Need ${scrollname}, buying...`);
       parent.buy(scrollname);
-      return false; // Wait for scroll to arrive
+      return "wait"; // Wait for scroll to arrive
     }
 
     parent.socket.emit("upgrade", {
@@ -69,24 +65,18 @@ function upgrade_once() {
       clevel: item.level,
     });
 
-    return true;
+    return "done";
   }
-  return false;
+  return "none";
 }
 
-/**
- * Attempts one compound.  Returns true if it sent a compound packet 
- * (or bought a cscroll), false if nothing to do.
- */
 function compound_once() {
   const buckets = new Map();
 
   character.items.forEach((item, idx) => {
     if (!item) return;
-
     const profile = combineProfile[item.name];
-    if (!profile) return;
-    if (profile.max_level !== undefined && item.level >= profile.max_level) return;
+    if (!profile || (profile.max_level !== undefined && item.level >= profile.max_level)) return;
 
     const key = `${item.name}:${item.level}`;
     if (!buckets.has(key)) {
@@ -119,25 +109,25 @@ function compound_once() {
       if (prim) offering_slot = pSlot;
     }
 
-   const [scroll_slot, scroll] = find_item(it => it.name === scrollname);
+    const [scroll_slot, scroll] = find_item(it => it.name === scrollname);
     if (!scroll) {
       game_log(`📦 Need ${scrollname}, buying...`);
       parent.buy(scrollname);
-      return false;
+      return "wait";
     }
 
     const itemsToCompound = slots.slice(0, 3);
     parent.socket.emit("compound", {
-      items:         itemsToCompound,
-      scroll_num:    scroll_slot,
-      offering_num:  offering_slot,
-      clevel:        level
+      items: itemsToCompound,
+      scroll_num: scroll_slot,
+      offering_num: offering_slot,
+      clevel: level
     });
 
-    return true;
+    return "done";
   }
 
-  return false;
+  return "none";
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -146,24 +136,19 @@ function compound_once() {
 
 let auto_upgrade = false;
 
-/**
- * Starts the auto-upgrade/compound process.  It will repeat
- * every UPGRADE_INTERVAL ms until both upgrade_once() and
- * compound_once() return false.
- */
 function run_auto_upgrade() {
-  if (auto_upgrade) return;  // only one runner at a time
+  if (auto_upgrade) return; // prevent duplicate loops
   auto_upgrade = true;
 
   (function loop() {
-    // Try upgrade first, then compound
-    if (upgrade_once() || compound_once()) {
-      // still work to do → schedule next tick
+    const resultU = upgrade_once();
+    const resultC = compound_once();
+
+    if (resultU === "done" || resultC === "done" || resultU === "wait" || resultC === "wait") {
       setTimeout(loop, UPGRADE_INTERVAL);
     } else {
-      // nothing left → stop
       auto_upgrade = false;
-      console.log("🔧 auto upgrade/compound done");
+      console.log("🔧 Auto upgrade/compound complete.");
     }
   })();
 }
