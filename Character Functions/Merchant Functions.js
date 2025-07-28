@@ -41,12 +41,14 @@ const HOME = { map: "main", x: -89, y: -116 };
 
 const location_responses = {};
 
+// Listen for location responses
 add_cm_listener((name, data) => {
     if (data.type === "my_location" && PARTY.includes(name)) {
         location_responses[name] = { map: data.map, x: data.x, y: data.y };
     }
 });
 
+// Request location and wait for response
 async function request_location(name) {
     location_responses[name] = null;
     send_cm(name, { type: "where_are_you" });
@@ -106,6 +108,8 @@ async function deliver_potions_loop() {
                         needed -= send_qty;
                         await delay(100);
                         delivered = true;
+
+                        if (needed <= 0) break;
                     }
                 }
 
