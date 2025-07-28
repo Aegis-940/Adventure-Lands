@@ -113,7 +113,6 @@ const CM_HANDLERS = {
 			const item = character.items[i];
 			if (item) {
 				send_item(name, i);
-				await delay(50);
 			}
 		}
 	}
