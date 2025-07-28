@@ -137,11 +137,12 @@ async function deliver_potions() {
 		const target = get_player(name);
 		if (
 			recent_delivery_target &&
-			target &&
-			distance(character, target) <= DELIVERY_RADIUS &&
+			recent_delivery_target.name !== name &&
+			recent_delivery_target.x === character.x &&
+			recent_delivery_target.y === character.y &&
 			Date.now() - recent_delivery_time < DELIVERY_COOLDOWN
 		) {
-			game_log(`⏳ Skipping ${name} due to recent nearby delivery`);
+			game_log(`⏳ Skipping ${name} due to recent delivery at same location`);
 			continue;
 		}
 
@@ -236,7 +237,11 @@ async function try_deliver_to(name, hpot_needed, mpot_needed) {
 
 		if (delivered) {
 			game_log(`✅ Delivered potions to ${name}`);
-			recent_delivery_target = name;
+			recent_delivery_target = {
+				name,
+				x: character.x,
+				y: character.y
+			};
 			recent_delivery_time = Date.now();
 			stop();
 			return true;
