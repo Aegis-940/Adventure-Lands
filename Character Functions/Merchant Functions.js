@@ -197,66 +197,55 @@ async function deliver_potions() {
 }
 
 async function try_deliver_to(name, hpot_needed, mpot_needed) {
-	let attempts = 0;
+	for (let attempts = 0; attempts <= 10; attempts++) {
+		const target = get_player(name);
 
-	return await new Promise((resolve) => {
-		const attempt_delivery = async () => {
-			attempts++;
-			const target = get_player(name);
+		if (!target || distance(character, target) > DELIVERY_RADIUS) {
+			await delay(300);
+			continue;
+		}
 
-			if (!target || distance(character, target) > DELIVERY_RADIUS) {
-				if (attempts > 10) {
-					game_log(`⚠️ Could not deliver potions to ${name} (out of range or missing)`);
-					return resolve(false);
-				}
-				return setTimeout(attempt_delivery, 300);
+		let delivered = false;
+
+		if (hpot_needed > 0) {
+			let remaining = hpot_needed;
+			for (let i = 0; i < character.items.length && remaining > 0; i++) {
+				const item = character.items[i];
+				if (!item || item.name !== "hpot1") continue;
+
+				const send_qty = Math.min(item.q || 1, remaining);
+				send_item(name, i, send_qty);
+				await delay(200);
+				remaining -= send_qty;
+				delivered = true;
 			}
+		}
 
-			let delivered = false;
+		if (mpot_needed > 0) {
+			let remaining = mpot_needed;
+			for (let i = 0; i < character.items.length && remaining > 0; i++) {
+				const item = character.items[i];
+				if (!item || item.name !== "mpot1") continue;
 
-			if (hpot_needed > 0) {
-				let remaining = hpot_needed;
-				for (let i = 0; i < character.items.length && remaining > 0; i++) {
-					const item = character.items[i];
-					if (!item || item.name !== "hpot1") continue;
-
-					const send_qty = Math.min(item.q || 1, remaining);
-					send_item(name, i, send_qty);
-					await delay(200);
-					remaining -= send_qty;
-					delivered = true;
-
-					if (remaining <= 0) break;
-				}
+				const send_qty = Math.min(item.q || 1, remaining);
+				send_item(name, i, send_qty);
+				await delay(200);
+				remaining -= send_qty;
+				delivered = true;
 			}
+		}
 
-			if (mpot_needed > 0) {
-				let remaining = mpot_needed;
-				for (let i = 0; i < character.items.length && remaining > 0; i++) {
-					const item = character.items[i];
-					if (!item || item.name !== "mpot1") continue;
+		if (delivered) {
+			game_log(`✅ Delivered potions to ${name}`);
+			return true;
+		} else {
+			game_log(`⚠️ Attempted delivery to ${name} but had nothing to send`);
+			return false;
+		}
+	}
 
-					const send_qty = Math.min(item.q || 1, remaining);
-					send_item(name, i, send_qty);
-					await delay(200);
-					remaining -= send_qty;
-					delivered = true;
-
-					if (remaining <= 0) break;
-				}
-			}
-
-			if (delivered) {
-				game_log(`✅ Delivered potions to ${name}`);
-			} else {
-				game_log(`⚠️ Attempted delivery to ${name} but had nothing to send`);
-			}
-
-			resolve(delivered);
-		};
-
-		attempt_delivery();
-	});
+	game_log(`⚠️ Could not deliver potions to ${name} (out of range or missing after 10 tries)`);
+	return false;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
