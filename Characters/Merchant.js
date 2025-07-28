@@ -20,7 +20,8 @@ create_map_movement_window([
   { id: "custom6", label: "Custom 6", onClick: () => null }
 ]);
 
-toggle_inventory_check();
+//toggle_inventory_check();
+add_bank_buttons();
 hide_skills_ui();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
