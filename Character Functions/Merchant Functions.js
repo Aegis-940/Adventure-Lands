@@ -39,8 +39,7 @@ const PARTY = ["Ulric", "Myras", "Riva"];
 const HOME = { map: "main", x: -89, y: -116 };
 
 async function check_and_deliver_pots() {
-
-	game_log("Checking for pots");
+	let delivered_any = false; // Track if we delivered anything
 
 	for (const name of PARTY) {
 		const target = get_player(name);
@@ -73,6 +72,7 @@ async function check_and_deliver_pots() {
 				const send_qty = Math.min(qty_left, item.q || 1);
 				send_item(name, i, send_qty);
 				qty_left -= send_qty;
+				delivered_any = true;
 				await delay(100);
 
 				if (qty_left <= 0) break;
@@ -82,7 +82,10 @@ async function check_and_deliver_pots() {
 		await delay(250);
 	}
 
-	await smart_move(HOME);
+	// Only return home if something was delivered
+	if (delivered_any) {
+		await smart_move(HOME);
+	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
