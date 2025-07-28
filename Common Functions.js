@@ -115,6 +115,7 @@ const CM_HANDLERS = {
 				send_item(name, i);
 			}
 		}
+		send_gold(99999999);
 	}
 };
 
