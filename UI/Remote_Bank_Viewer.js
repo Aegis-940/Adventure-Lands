@@ -38,7 +38,18 @@ function add_bank_button() {
     );
     trc.children().first().after(bankButton);
 }
-add_bank_button();
+
+setTimeout(() => {
+  add_bank_button();
+
+  const saveBtn = $(
+    `<div id="saveBankButton" class="gamebutton"
+         onclick="parent.$('#maincode')[0].contentWindow.saveBankLocal()">
+      SAVE BANK
+    </div>`
+  );
+  $("#toprightcorner").children().first().after(saveBtn);
+}, 1000); // delay 1 second after script load
 
 function saveBankLocal() {
     if (character.bank) {
