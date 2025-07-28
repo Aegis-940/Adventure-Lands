@@ -29,64 +29,78 @@ async function process_merchant_queue() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// CHECK OTHER CHARACTERS FOR HOW MANY POTS THEY HAVE AND DELIVER MORE IF REQUIRED
+// DELIVER POTS ON A LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const POTION_THRESHOLD = 3000;
-const POTION_AMOUNT = 3000;
+const POTION_DELIVERY_INTERVAL = 20 * 60 * 1000; // 20 minutes
+const POTION_CAP = 6000;
 const POTION_TYPES = ["mpot1", "hpot1"];
 const PARTY = ["Ulric", "Myras", "Riva"];
-const HOME = { map: "main", x: -89, y: -116 };
+const DELIVERY_RADIUS = 400;
 
-async function check_and_deliver_pots() {
-  let delivered_any = false;
+async function deliver_potions_loop() {
+	while (true) {
+		const delivered_to = new Set();
 
-  game_log("🧪 Checking potion statuses remotely...");
+		for (const name of PARTY) {
+			if (delivered_to.has(name)) continue;
 
-  for (const name of PARTY) {
-    const status = remote_potion_status[name];
-    if (!status || Date.now() - status.updated > 30000) {
-      game_log(`⚠️ No recent data for ${name}`);
-      continue;
-    }
+			const target = get_player(name);
+			if (!target) continue;
 
-    const needs = POTION_TYPES.filter(type => status[type] < POTION_THRESHOLD);
-    if (needs.length === 0) {
-      game_log(`${name} is stocked.`);
-      continue;
-    }
+			game_log(`🧃 Moving to ${name}...`);
+			await move_to_character(name);
+			await delay(500);
 
-    game_log(`📦 Delivering to ${name}: ${needs.join(", ")}`);
-    await move_to_character(name);
-    await delay(500);
+			// Gather all nearby characters within radius
+			const nearby = PARTY.filter(other =>
+				!delivered_to.has(other) &&
+				get_player(other) &&
+				distance(character, get_player(other)) <= DELIVERY_RADIUS
+			);
 
-    for (const pot of needs) {
-      let qty_left = POTION_AMOUNT;
+			for (const other of nearby) {
+				const other_char = get_player(other);
+				if (!other_char) continue;
 
-      for (let i = 0; i < character.items.length; i++) {
-        const item = character.items[i];
-        if (!item || item.name !== pot) continue;
+				let delivered = false;
 
-        const send_qty = Math.min(qty_left, item.q || 1);
-        send_item(name, i, send_qty);
-        qty_left -= send_qty;
-        await delay(100);
-        delivered_any = true;
+				for (const pot of POTION_TYPES) {
+					let current = 0;
 
-        if (qty_left <= 0) break;
-      }
-    }
+					for (const item of other_char.items || []) {
+						if (item?.name === pot) current += item.q || 1;
+					}
 
-    await delay(250);
-  }
+					let needed = POTION_CAP - current;
+					if (needed <= 0) continue;
 
-  if (delivered_any) {
-    game_log("🏠 Returning home.");
-    await smart_move(HOME);
-  } else {
-    game_log("✅ No delivery needed.");
-  }
+					for (let i = 0; i < character.items.length && needed > 0; i++) {
+						const my_item = character.items[i];
+						if (!my_item || my_item.name !== pot) continue;
+
+						const send_qty = Math.min(my_item.q || 1, needed);
+						send_item(other, i, send_qty);
+						needed -= send_qty;
+						await delay(100);
+						delivered = true;
+					}
+				}
+
+				if (delivered) {
+					game_log(`✅ Delivered potions to ${other}`);
+					delivered_to.add(other);
+				}
+		 }
+
+			await delay(250);
+		}
+
+		game_log("📦 Potion delivery loop done. Waiting for next cycle...");
+		await delay(POTION_DELIVERY_INTERVAL);
+	}
 }
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MERCHANT SELL AND BANK ITEMS
 // --------------------------------------------------------------------------------------------------------------------------------- //
