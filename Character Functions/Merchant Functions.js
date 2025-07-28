@@ -89,7 +89,7 @@ async function deliver_potions_loop() {
 			const hpot_missing = POTION_CAP - (target_pots.hpot1 || 0);
 			const mpot_missing = POTION_CAP - (target_pots.mpot1 || 0);
 
-			if (hpot_missing < MINIMUM_DELIVERED || mpot_missing < MINIMUM_DELIVERED) {
+			if (hpot_missing < MINIMUM_DELIVERED && mpot_missing < MINIMUM_DELIVERED) {
 				game_log(`📭 ${name} doesn't need enough potions. Skipping.`);
 				continue;
 			}
