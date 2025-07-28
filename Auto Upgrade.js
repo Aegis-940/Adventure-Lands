@@ -34,10 +34,8 @@ function upgrade_once() {
 
     const profile = upgradeProfile[item.name];
     if (!profile) continue;
-
     if (profile.max_level !== undefined && item.level >= profile.max_level) continue;
 
-    // Choose scroll based on level thresholds
     let scrollname = null;
     if (item.level < profile.scroll0_until) {
       scrollname = "scroll0";
@@ -47,7 +45,6 @@ function upgrade_once() {
       scrollname = "scroll2";
     }
 
-    // Use primling if specified and item qualifies
     let offering_slot = null;
     if (profile.primling_from !== undefined && item.level >= profile.primling_from) {
       const [pSlot, prim] = find_item(it => it.name === "offeringp");
@@ -60,8 +57,9 @@ function upgrade_once() {
 
     const [scroll_slot, scroll] = find_item(it => it.name === scrollname);
     if (!scroll) {
+      game_log(`📦 Need ${scrollname}, buying...`);
       parent.buy(scrollname);
-      return true;
+      return false; // Wait for scroll to arrive
     }
 
     parent.socket.emit("upgrade", {
@@ -121,10 +119,11 @@ function compound_once() {
       if (prim) offering_slot = pSlot;
     }
 
-    const [scroll_slot, scroll] = find_item(it => it.name === scrollname);
+   const [scroll_slot, scroll] = find_item(it => it.name === scrollname);
     if (!scroll) {
+      game_log(`📦 Need ${scrollname}, buying...`);
       parent.buy(scrollname);
-      return true;
+      return false;
     }
 
     const itemsToCompound = slots.slice(0, 3);
