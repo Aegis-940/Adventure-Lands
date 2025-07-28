@@ -69,6 +69,8 @@ Object.defineProperty(window, "tank_name", {
 // CM HANDLERS
 // -------------------------------------------------------------------- //
 
+const _cmListeners = []; // unified naming
+
 // Utility to add CM listeners
 function add_cm_listener(fn) {
     if (!_cmListeners.includes(fn)) _cmListeners.push(fn);
@@ -99,7 +101,7 @@ on_cm = function (name, data) {
 // Central CM message handlers
 const CM_HANDLERS = {
     "my_location": (name, data) => {
-    location_responses[name] = { map: data.map, x: data.x, y: data.y };
+        location_responses[name] = { map: data.map, x: data.x, y: data.y };
     },
 
     "where_are_you": (name) => {
@@ -111,24 +113,20 @@ const CM_HANDLERS = {
         });
     },
 	
-	"what_potions": (name) => {
-	    const counts = {};
-	
-	    for (const pot of POTION_TYPES) {
-	        counts[pot] = character.items.reduce((sum, item) => {
-	            return item?.name === pot ? sum + (item.q || 1) : sum;
-	        }, 0);
-	    }
-	
-	    send_cm(name, { type: "my_potions", ...counts });
-	},
+    "what_potions": (name) => {
+        const counts = {};
+        for (const pot of POTION_TYPES) {
+            counts[pot] = character.items.reduce((sum, item) =>
+                item?.name === pot ? sum + (item.q || 1) : sum, 0);
+        }
+        send_cm(name, { type: "my_potions", ...counts });
+    },
 
     "default": (name, data) => {
         console.warn("Unhandled CM message:", data);
     }
 };
 
-const _cm_listeners = [];
 // Register the handler dispatcher
 add_cm_listener((name, data) => {
     if (!["Ulric", "Riva", "Myras", "Riff"].includes(name)) {
