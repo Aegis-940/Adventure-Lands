@@ -64,7 +64,7 @@ async function merchant_task_loop() {
 // DELIVER POTIONS AS NEEDED
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const POTION_DELIVERY_INTERVAL = 30 * 60 * 1000; // 1 hour
+const POTION_DELIVERY_INTERVAL = 30 * 60 * 1000; // 30 minutes
 const POTION_CAP = 6000;
 const MINIMUM_DELIVERED = 1000;
 const PARTY = ["Ulric", "Myras", "Riva"];
@@ -74,9 +74,12 @@ const HOME = { map: "main", x: -89, y: -116 };
 const location_responses = {};
 const potion_counts = {};
 
+let recent_delivery_target = null;
+let recent_delivery_time = 0;
+const DELIVERY_COOLDOWN = 3000; // ms
+
 async function request_location(name) {
 	location_responses[name] = null;
-
 	send_cm(name, { type: "where_are_you" });
 
 	return await new Promise((resolve) => {
@@ -96,24 +99,23 @@ async function request_location(name) {
 }
 
 async function request_potion_counts(name) {
-    potion_counts[name] = null;
+	potion_counts[name] = null;
+	send_cm(name, { type: "what_potions" });
 
-    send_cm(name, { type: "what_potions" });
-
-    return await new Promise((resolve) => {
-        let checks = 0;
-        const checkInterval = setInterval(() => {
-            checks++;
-            if (potion_counts[name]) {
-                clearInterval(checkInterval);
-                resolve(potion_counts[name]);
-            } else if (checks > 10) {
-                clearInterval(checkInterval);
-                game_log(`⚠️ No potion count received from ${name}`);
-                resolve(null);
-            }
-        }, 300);
-    });
+	return await new Promise((resolve) => {
+		let checks = 0;
+		const checkInterval = setInterval(() => {
+			checks++;
+			if (potion_counts[name]) {
+				clearInterval(checkInterval);
+				resolve(potion_counts[name]);
+			} else if (checks > 10) {
+				clearInterval(checkInterval);
+				game_log(`⚠️ No potion count received from ${name}`);
+				resolve(null);
+			}
+		}, 300);
+	});
 }
 
 add_cm_listener((name, data) => {
@@ -130,8 +132,19 @@ add_cm_listener((name, data) => {
 });
 
 async function deliver_potions() {
-
 	for (const name of PARTY) {
+		// Avoid delivering again too soon to the same location
+		const target = get_player(name);
+		if (
+			recent_delivery_target &&
+			target &&
+			distance(character, target) <= DELIVERY_RADIUS &&
+			Date.now() - recent_delivery_time < DELIVERY_COOLDOWN
+		) {
+			game_log(`⏳ Skipping ${name} due to recent nearby delivery`);
+			continue;
+		}
+
 		game_log(`🔍 Starting delivery check for ${name}`);
 		let target_pots = await request_potion_counts(name);
 		if (!target_pots) continue;
@@ -152,14 +165,12 @@ async function deliver_potions() {
 
 		smart_move(destination); // fire-and-forget
 
-
 		while (!arrived && !delivered) {
 			await delay(300);
 			const target = get_player(name);
 			if (target && distance(character, target) <= DELIVERY_RADIUS) {
 				delivered = await try_deliver_to(name, hpot_missing, mpot_missing);
 			}
-
 			if (!smart.moving) {
 				arrived = true;
 				break;
@@ -181,7 +192,6 @@ async function deliver_potions() {
 
 	game_log("🏠 Returning to home base...");
 	await smart_move(HOME);
-
 	game_log("⏳ Potion delivery task complete.");
 }
 
@@ -226,6 +236,8 @@ async function try_deliver_to(name, hpot_needed, mpot_needed) {
 
 		if (delivered) {
 			game_log(`✅ Delivered potions to ${name}`);
+			recent_delivery_target = name;
+			recent_delivery_time = Date.now();
 			stop();
 			return true;
 		} else {
