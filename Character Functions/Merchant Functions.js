@@ -74,8 +74,7 @@ const HOME = { map: "main", x: -89, y: -116 };
 const location_responses = {};
 const potion_counts = {};
 
-let recent_delivery_target = null;
-let recent_delivery_time = 0;
+const recent_deliveries = {}; // New
 const DELIVERY_COOLDOWN = 3000; // ms
 
 async function request_location(name) {
@@ -134,15 +133,12 @@ add_cm_listener((name, data) => {
 async function deliver_potions() {
 	for (const name of PARTY) {
 		// Avoid delivering again too soon to the same location
-		const target = get_player(name);
 		if (
-			recent_delivery_target &&
-			target &&
-			distance(character, target) <= DELIVERY_RADIUS &&
-			Date.now() - recent_delivery_time < DELIVERY_COOLDOWN
+		  recent_deliveries[name] &&
+		  Date.now() - recent_deliveries[name] < DELIVERY_COOLDOWN
 		) {
-			game_log(`⏳ Skipping ${name} due to recent nearby delivery`);
-			continue;
+		  game_log(`⏳ Skipping ${name} due to recent delivery`);
+		  continue;
 		}
 
 		game_log(`🔍 Starting delivery check for ${name}`);
