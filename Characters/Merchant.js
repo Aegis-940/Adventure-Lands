@@ -30,23 +30,34 @@ hide_skills_ui();
 
 let last_check_inventories = 0;
 const INVENTORY_CHECK_INTERVAL = 5 * 60000;  // every 5 mins
+const POTION_DELIVERY_INTERVAL = 60000;
+let last_potion_delivery_check = 0;
 
 setInterval(async () => {
 	const now = Date.now();
 
 	// ─────────────────────────────────────
-	// Priority 1: Check Remote Inventories
+	// Priority 1: Check Potions & Deliver
+	// ─────────────────────────────────────
+	if (now - last_potion_delivery_check >= POTION_DELIVERY_INTERVAL) {
+		last_potion_delivery_check = now;
+		queue_merchant_action("[PRIORITY] Deliver Potions", async () => {
+			await check_and_deliver_pots();
+		});
+	}
+	
+	// ─────────────────────────────────────
+	// Priority 2: Check Remote Inventories
 	// ─────────────────────────────────────
 	if (now - last_check_inventories >= INVENTORY_CHECK_INTERVAL) {
 		last_check_inventories = now;
-
 		queue_merchant_action("[PRIORITY] Check Inventories", async () => {
 			await check_remote_inventories();
 		});
 	}
-
+	
 	// ─────────────────────────────────────
-	// Priority 2: Mine if Possible
+	// Priority 3: Mine if Possible
 	// ─────────────────────────────────────
 	if (!is_on_cooldown("mining") && hasTool("pickaxe")) {
 		queue_merchant_action("Go Mine", async () => {
@@ -55,7 +66,7 @@ setInterval(async () => {
 	}
 	
 	// ─────────────────────────────────────
-	// Priority 3: Fish if Possible
+	// Priority 4: Fish if Possible
 	// ─────────────────────────────────────
 	else if (!is_on_cooldown("fishing") && hasTool("rod")) {
 		queue_merchant_action("Go Fish", async () => {
