@@ -66,7 +66,7 @@ async function merchant_task_loop() {
 
 const POTION_DELIVERY_INTERVAL = 30 * 60 * 1000; // 30 minutes
 const POTION_CAP = 6000;
-const MINIMUM_DELIVERED = 1000;
+const MINIMUM_DELIVERED = 10;
 const PARTY = ["Ulric", "Myras", "Riva"];
 const DELIVERY_RADIUS = 400;
 const HOME = { map: "main", x: -89, y: -116 };
