@@ -95,7 +95,10 @@ async function request_potion_counts(name) {
 
 	for (let i = 0; i < 10; i++) {
 		await delay(300);
-		if (potion_counts[name]) return potion_counts[name];
+		if (potion_counts[name]) {
+			game_log(`🧪 [Debug] potion_counts[${name}] received:`, potion_counts[name]);
+			return potion_counts[name];
+		}
 	}
 
 	game_log(`⚠️ No potion count received from ${name}`);
