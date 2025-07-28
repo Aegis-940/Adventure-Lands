@@ -37,6 +37,7 @@ const POTION_CAP = 6000;
 const POTION_TYPES = ["mpot1", "hpot1"];
 const PARTY = ["Ulric", "Myras", "Riva"];
 const DELIVERY_RADIUS = 400;
+const HOME = { map: "main", x: -89, y: -116 };
 
 async function deliver_potions_loop() {
 	while (true) {
@@ -91,10 +92,14 @@ async function deliver_potions_loop() {
 					game_log(`✅ Delivered potions to ${other}`);
 					delivered_to.add(other);
 				}
-		 }
+			}
 
 			await delay(250);
 		}
+
+		// Return to home base after deliveries
+		game_log("🏠 Returning to home base...");
+		await smart_move(HOME);
 
 		game_log("📦 Potion delivery loop done. Waiting for next cycle...");
 		await delay(POTION_DELIVERY_INTERVAL);
