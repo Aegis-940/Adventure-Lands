@@ -32,54 +32,55 @@ async function process_merchant_queue() {
 // CHECK OTHER CHARACTERS FOR HOW MANY POTS THEY HAVE AND DELIVER MORE IF REQUIRED
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const MAIN_POSITION = { map: "main", x: -89, y: -116 }; // <- Set your preferred return spot
-const POT_THRESHOLD = 3000;
-const POT_DELIVER_AMOUNT = 3300;
-const RECIPIENTS = ["Ulric", "Myras", "Riva"]; // Replace with your actual character names
+const POTION_THRESHOLD = 3000;
+const POTION_AMOUNT = 3000;
+const POTION_TYPES = ["mpot1", "hpot1"];
+const PARTY = ["Ulric", "Myras", "Riva"];
+const HOME = { map: main, x: -89, y: -116 };
 
-async function check_and_deliver_pots() {
-  for (const name of RECIPIENTS) {
-    const char = parent.entities[name];
-    if (!char || char.rip || char.name === character.name) continue;
+async function check_remote_inventories() {
 
-    const hpot_count = get_potion_count(char, "hpot1");
-    const mpot_count = get_potion_count(char, "mpot1");
+	for (const name of PARTY) {
+		const target = get_player(name);
+		if (!target) continue;
 
-    if (hpot_count >= POT_THRESHOLD && mpot_count >= POT_THRESHOLD) continue;
+		let needs_pots = [];
 
-    game_log(`📦 Delivering pots to ${name}...`);
-    await move_to_character(name);
-    await delay(200);
+		// Count each potion type in their inventory
+		for (const pot of POTION_TYPES) {
+			let count = 0;
+			for (const item of target.items || []) {
+				if (item?.name === pot) count += item.q || 1;
+			}
+			if (count < POTION_THRESHOLD) needs_pots.push(pot);
+		}
 
-    if (hpot_count < POT_THRESHOLD) await deliver_pots(name, "hpot1");
-    if (mpot_count < POT_THRESHOLD) await deliver_pots(name, "mpot1");
+		if (needs_pots.length === 0) continue;
 
-    await delay(500);
-  }
+		// Move to character and deliver
+		await move_to_character(name);
+		await delay(500);
 
-  game_log("🏠 Returning to main position...");
-  await smart_move(MAIN_POSITION);
-}
+		for (const pot of needs_pots) {
+			let qty_left = POTION_AMOUNT;
 
-// Helper to count potions a character has
-function get_potion_count(char, pot_type) {
-  return Object.values(parent.entities)
-    .filter(e => e && e.name === char.name)
-    .flatMap(e => e.items || [])
-    .filter(i => i?.name === pot_type)
-    .reduce((sum, i) => sum + (i.q || 1), 0);
-}
+			for (let i = 0; i < character.items.length; i++) {
+				const item = character.items[i];
+				if (!item || item.name !== pot) continue;
 
-// Deliver a specific potion to target
-async function deliver_pots(target_name, pot_type) {
-  const slot = character.items.findIndex(i => i && i.name === pot_type && i.q >= POT_DELIVER_AMOUNT);
-  if (slot === -1) {
-    game_log(`⚠️ Not enough ${pot_type} to give`);
-    return;
-  }
+				const send_qty = Math.min(qty_left, item.q || 1);
+				send_item(name, i, send_qty);
+				qty_left -= send_qty;
+				await delay(100);
 
-  game_log(`🎁 Giving ${POT_DELIVER_AMOUNT} ${pot_type} to ${target_name}`);
-  send_item(get_player(target_name), slot, POT_DELIVER_AMOUNT);
+				if (qty_left <= 0) break;
+			}
+		}
+
+		await delay(250);
+	}
+
+	await smart_move(HOME);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
