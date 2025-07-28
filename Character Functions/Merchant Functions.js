@@ -66,7 +66,7 @@ async function merchant_task_loop() {
 
 const POTION_DELIVERY_INTERVAL = 30 * 60 * 1000; // 1 hour
 const POTION_CAP = 6000;
-const MINIMUM_DELIVERED = 10;
+const MINIMUM_DELIVERED = 1000;
 const PARTY = ["Ulric", "Myras", "Riva"];
 const DELIVERY_RADIUS = 400;
 const HOME = { map: "main", x: -89, y: -116 };
@@ -130,6 +130,7 @@ add_cm_listener((name, data) => {
 });
 
 async function deliver_potions() {
+
 	for (const name of PARTY) {
 		game_log(`🔍 Starting delivery check for ${name}`);
 		let target_pots = await request_potion_counts(name);
@@ -146,37 +147,41 @@ async function deliver_potions() {
 		let destination = await request_location(name);
 		if (!destination) continue;
 
+		let arrived = false;
 		let delivered = false;
-		let attempts = 0;
-		game_log(`🚶 Moving toward ${name}...`);
+
 		smart_move(destination); // fire-and-forget
 
-		while (attempts < 25 && !delivered) {
+
+		while (!arrived && !delivered) {
 			await delay(300);
 			const target = get_player(name);
-
 			if (target && distance(character, target) <= DELIVERY_RADIUS) {
 				delivered = await try_deliver_to(name, hpot_missing, mpot_missing);
 			}
 
-			if (!smart.moving && !delivered) {
-				game_log(`⚠️ Stopped short of ${name}. Retrying move...`);
-				destination = await request_location(name);
-				if (destination) smart_move(destination);
+			if (!smart.moving) {
+				arrived = true;
+				break;
 			}
-
-			attempts++;
 		}
 
 		if (!delivered) {
-			game_log(`❌ Could not deliver potions to ${name} after multiple attempts`);
+			game_log(`🔁 Delivery failed en route. Rechecking position for ${name}...`);
+			const new_dest = await request_location(name);
+			if (new_dest) {
+				await smart_move(new_dest);
+				await delay(300);
+				await try_deliver_to(name, hpot_missing, mpot_missing);
+			}
 		}
 
-		await delay(500); // give breathing room before next character
+		await delay(500);
 	}
 
 	game_log("🏠 Returning to home base...");
 	await smart_move(HOME);
+
 	game_log("⏳ Potion delivery task complete.");
 }
 
