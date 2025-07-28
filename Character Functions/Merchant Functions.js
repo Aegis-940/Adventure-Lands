@@ -113,7 +113,7 @@ async function deliver_potions_loop() {
 
 			const sent_totals = { mpot1: 0, hpot1: 0 };
 
-			while (!all_sent && attempts < 40) {
+			while (!all_sent && attempts < 400) {
 				await delay(300);
 				const target_char = get_player(name);
 				if (!target_char || distance(character, target_char) > DELIVERY_RADIUS) {
