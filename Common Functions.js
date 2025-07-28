@@ -99,7 +99,7 @@ on_cm = function (name, data) {
 // Central CM message handlers
 const CM_HANDLERS = {
     "my_location": (name, data) => {
-        smart_move({ map: data.map, x: data.x, y: data.y });
+    location_responses[name] = { map: data.map, x: data.x, y: data.y };
     },
 
     "where_are_you": (name) => {
