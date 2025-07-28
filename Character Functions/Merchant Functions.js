@@ -82,110 +82,35 @@ add_cm_listener((name, data) => {
 
 async function deliver_potions_loop() {
 	while (true) {
-		const delivered_to = new Set();
-
 		for (const name of PARTY) {
-			if (delivered_to.has(name)) continue;
+			let target_pots = await request_potion_counts(name);
+			if (!target_pots) continue;
 
-			const potions = await request_potion_counts(name);
-			if (!potions) continue;
+			const hpot_missing = POTION_CAP - (target_pots.hpot1 || 0);
+			const mpot_missing = POTION_CAP - (target_pots.mpot1 || 0);
 
-			let needs_delivery = false;
-			for (const pot of POTION_TYPES) {
-				if ((potions[pot] || 0) < POTION_CAP) {
-					needs_delivery = true;
-					break;
-				}
-			}
-
-			if (!needs_delivery) {
-				game_log(`📭 ${name} does not need potions.`);
+			if (hpot_missing < 1000 && mpot_missing < 1000) {
+				game_log(`📭 ${name} doesn't need enough potions. Skipping.`);
 				continue;
 			}
 
-			const destination = await request_location(name);
+			let destination = await request_location(name);
 			if (!destination) continue;
 
-			game_log(`➡️ Walking to ${name} at ${destination.map}...`);
-			smart_move(destination); // Don't await
+			game_log(`🚶 Moving to ${name}...`);
+			await smart_move(destination);
+			await delay(300);
 
-			let delivered_total = 0;
-			let attempts = 0;
-			let has_retried_move = false;
+			const success = await try_deliver_to(name, hpot_missing, mpot_missing);
+			if (!success) {
+				game_log(`🔁 First delivery failed. Retrying for ${name}...`);
+				destination = await request_location(name);
+				if (!destination) continue;
 
-			while (attempts < 40) {
+				await smart_move(destination);
 				await delay(300);
 
-				const target_char = get_player(name);
-				const in_range = target_char && distance(character, target_char) <= DELIVERY_RADIUS;
-
-				if (!in_range) {
-					attempts++;
-
-					if (attempts === 10 && !has_retried_move) {
-						game_log(`🔁 ${name} moved away. Re-approaching...`);
-						const new_dest = await request_location(name);
-						if (new_dest) {
-							await smart_move(new_dest);
-							has_retried_move = true;
-							attempts = 0;
-						} else {
-							break;
-						}
-					}
-
-					continue;
-				}
-
-				const target_pots = await request_potion_counts(name);
-				if (!target_pots) break;
-
-				let any_delivered = false;
-
-				for (const pot of POTION_TYPES) {
-					const current_qty = target_pots[pot] || 0;
-					const needed = POTION_CAP - current_qty;
-					if (needed <= 0) continue;
-
-					let to_send = needed;
-
-					for (let i = 0; i < character.items.length && to_send > 0; i++) {
-						const my_item = character.items[i];
-						if (!my_item || my_item.name !== pot) continue;
-
-						const send_qty = Math.min(my_item.q || 1, to_send);
-						send_item(name, i, send_qty);
-						to_send -= send_qty;
-						delivered_total += send_qty;
-						await delay(200);
-						any_delivered = true;
-
-						if (to_send <= 0) break;
-					}
-				}
-
-				if (any_delivered) {
-					game_log(`🧃 Sent potions to ${name}, total so far: ${delivered_total}`);
-					await delay(1000);
-				}
-
-				const check_again = await request_potion_counts(name);
-				const is_full = check_again && POTION_TYPES.every(pot =>
-					(check_again[pot] || 0) >= POTION_CAP
-				);
-
-				if (is_full || delivered_total >= MINIMUM_DELIVERED) {
-					stop();
-					game_log(`✅ Delivery to ${name} complete. Total sent: ${delivered_total}`);
-					delivered_to.add(name);
-					break;
-				}
-
-				attempts++;
-			}
-
-			if (!delivered_to.has(name)) {
-				game_log(`⚠️ Could not fully deliver to ${name}. Sent: ${delivered_total}`);
+				await try_deliver_to(name, hpot_missing, mpot_missing);
 			}
 
 			await delay(500);
@@ -194,10 +119,56 @@ async function deliver_potions_loop() {
 		game_log("🏠 Returning to home base...");
 		await smart_move(HOME);
 
-		game_log("⏳ Potion delivery loop done. Resting...");
+		game_log("⏳ Potion delivery loop complete. Resting...");
 		await delay(POTION_DELIVERY_INTERVAL);
 	}
 }
+
+async function try_deliver_to(name, hpot_needed, mpot_needed) {
+	const target = get_player(name);
+	if (!target || distance(character, target) > DELIVERY_RADIUS) return false;
+
+	let delivered = false;
+
+	if (hpot_needed > 0) {
+		let remaining = hpot_needed;
+		for (let i = 0; i < character.items.length && remaining > 0; i++) {
+			const item = character.items[i];
+			if (!item || item.name !== "hpot1") continue;
+
+			const send_qty = Math.min(item.q || 1, remaining);
+			send_item(name, i, send_qty);
+			await delay(200);
+			remaining -= send_qty;
+			delivered = true;
+
+			if (remaining <= 0) break;
+		}
+	}
+
+	if (mpot_needed > 0) {
+		let remaining = mpot_needed;
+		for (let i = 0; i < character.items.length && remaining > 0; i++) {
+			const item = character.items[i];
+			if (!item || item.name !== "mpot1") continue;
+
+			const send_qty = Math.min(item.q || 1, remaining);
+			send_item(name, i, send_qty);
+			await delay(200);
+			remaining -= send_qty;
+			delivered = true;
+
+			if (remaining <= 0) break;
+		}
+	}
+
+	if (delivered) {
+		game_log(`✅ Delivered potions to ${name}`);
+	}
+
+	return delivered;
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MERCHANT SELL AND BANK ITEMS
 // --------------------------------------------------------------------------------------------------------------------------------- //
