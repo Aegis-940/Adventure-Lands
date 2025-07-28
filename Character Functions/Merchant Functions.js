@@ -84,116 +84,74 @@ async function deliver_potions_loop() {
 		const delivered_to = new Set();
 
 		for (const name of PARTY) {
-			if (delivered_to.has(name)) continue;
+	if (delivered_to.has(name)) continue;
 
-			const potions = await request_potion_counts(name);
-			if (!potions) continue;
+	const potions = await request_potion_counts(name);
+	if (!potions) continue;
 
-			let needs_delivery = false;
-			for (const pot of POTION_TYPES) {
-				if ((potions[pot] || 0) < POTION_CAP) {
-					needs_delivery = true;
-					break;
-				}
-			}
-
-			if (!needs_delivery) {
-				continue;
-			}
-
-			const destination = await request_location(name);
-			if (!destination) continue;
-
-			game_log(`📍 Moving to ${name} at ${destination.map}...`);
-
-			let delivered = false;
-
-			// 🔁 NEW: Step toward target and check for delivery along the way
-			await smart_move({
-				map: destination.map,
-				x: destination.x,
-				y: destination.y,
-				callback: async () => {
-					const target_char = get_player(name);
-					if (!target_char || distance(character, target_char) > DELIVERY_RADIUS) return;
-
-					const target_pots = await request_potion_counts(name);
-					if (!target_pots) return;
-
-					for (const pot of POTION_TYPES) {
-						const current_qty = target_pots[pot] || 0;
-						const needed = POTION_CAP - current_qty;
-						if (needed <= 0) continue;
-
-						let to_send = needed;
-
-						for (let i = 0; i < character.items.length && to_send > 0; i++) {
-							const my_item = character.items[i];
-							if (!my_item || my_item.name !== pot) continue;
-
-							const send_qty = Math.min(my_item.q || 1, to_send);
-							send_item(name, i, send_qty);
-							to_send -= send_qty;
-							await delay(100);
-							delivered = true;
-
-							if (to_send <= 0) break;
-						}
-					}
-
-					if (delivered) {
-						delivered_to.add(name);
-					}
-				}
-			});
-
-			if (delivered_to.has(name)) {
-				await delay(250);
-				continue; // Skip normal delivery block
-			}
-
-			// 🧃 Fallback if delivery didn't happen en route
-			await delay(500);
-
-			for (const other of PARTY) {
-				if (delivered_to.has(other)) continue;
-
-				const other_char = get_player(other);
-				if (!other_char || distance(character, other_char) > DELIVERY_RADIUS) continue;
-
-				const other_pots = await request_potion_counts(other);
-				if (!other_pots) continue;
-
-				let local_delivery = false;
-
-				for (const pot of POTION_TYPES) {
-					const current_qty = other_pots[pot] || 0;
-					const needed = POTION_CAP - current_qty;
-					if (needed <= 0) continue;
-
-					let to_send = needed;
-
-					for (let i = 0; i < character.items.length && to_send > 0; i++) {
-						const my_item = character.items[i];
-						if (!my_item || my_item.name !== pot) continue;
-
-						const send_qty = Math.min(my_item.q || 1, to_send);
-						send_item(other, i, send_qty);
-						to_send -= send_qty;
-						await delay(100);
-						local_delivery = true;
-
-						if (to_send <= 0) break;
-					}
-				}
-
-				if (local_delivery) {
-					delivered_to.add(other);
-				}
-			}
-
-			await delay(500);
+	let needs_delivery = false;
+	for (const pot of POTION_TYPES) {
+		if ((potions[pot] || 0) < POTION_CAP) {
+			needs_delivery = true;
+			break;
 		}
+	}
+
+	if (!needs_delivery) {
+		game_log(`📭 ${name} does not need potions.`);
+		continue;
+	}
+
+	const destination = await request_location(name);
+	if (!destination) continue;
+
+	game_log(`➡️ Walking to ${name} at ${destination.map}...`);
+	smart_move(destination); // no await
+
+	let delivered = false;
+	let attempts = 0;
+
+	while (!delivered && attempts < 40) { // ~12 seconds max
+		await delay(300);
+		const target_char = get_player(name);
+		if (!target_char || distance(character, target_char) > DELIVERY_RADIUS) {
+			attempts++;
+			continue;
+		}
+
+		const target_pots = await request_potion_counts(name);
+		if (!target_pots) break;
+
+		for (const pot of POTION_TYPES) {
+			const current_qty = target_pots[pot] || 0;
+			const needed = POTION_CAP - current_qty;
+			if (needed <= 0) continue;
+
+			let to_send = needed;
+
+			for (let i = 0; i < character.items.length && to_send > 0; i++) {
+				const my_item = character.items[i];
+				if (!my_item || my_item.name !== pot) continue;
+
+				const send_qty = Math.min(my_item.q || 1, to_send);
+				send_item(name, i, send_qty);
+				to_send -= send_qty;
+				await delay(100);
+				delivered = true;
+
+				if (to_send <= 0) break;
+			}
+		}
+
+		if (delivered) {
+			stop(); // ⛔ Cancel smart_move
+			game_log(`✅ Delivered potions to ${name} en route`);
+			delivered_to.add(name);
+		}
+	}
+
+	await delay(500);
+}
 
 		game_log("🏠 Returning to home base...");
 		await smart_move(HOME);
