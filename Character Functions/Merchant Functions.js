@@ -408,12 +408,6 @@ function buy_pots() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// CHECK FOR LOOT AND TRANSFER
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
 // SIMPLE FISHING SCRIPT WITH AUTO-EQUIP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -429,101 +423,66 @@ async function go_fish() {
 	const FISHING_SPOT = { map: "main", x: -1116, y: -285 };
 	const POSITION_TOLERANCE = 10;
 
-	function atFishingSpot() {
-		return character.map === FISHING_SPOT.map &&
-			Math.hypot(character.x - FISHING_SPOT.x, character.y - FISHING_SPOT.y) <= POSITION_TOLERANCE;
-	}
+	const atFishingSpot = () =>
+		character.map === FISHING_SPOT.map &&
+		Math.hypot(character.x - FISHING_SPOT.x, character.y - FISHING_SPOT.y) <= POSITION_TOLERANCE;
 
-	// Skip if still on cooldown
-	if (is_on_cooldown("fishing")) {
-		game_log("*** Fishing cooldown active ***");
-		return;
-	}
+	const hasRodEquipped = () => character.slots.mainhand?.name === "rod";
 
-	// Equip rod if needed
-	if (character.slots.mainhand?.name !== "rod") {
+	// Ensure rod is equipped
+	if (!hasRodEquipped()) {
 		const rod_index = character.items.findIndex(item => item?.name === "rod");
 		if (rod_index === -1) {
-			game_log("*** No fishing rod equipped or in inventory ***");
+			game_log("❌ No fishing rod found.");
 			return;
 		}
-		game_log("*** Equipping fishing rod... ***");
 		await equip(rod_index);
-		await delay(500);
+		await delay(400);
 	}
 
-	// Confirm rod equipped
-	if (character.slots.mainhand?.name !== "rod") {
-		game_log("*** Failed to equip fishing rod ***");
+	if (!hasRodEquipped()) {
+		game_log("❌ Failed to equip fishing rod.");
 		return;
 	}
 
-	merchant_task = "Fishing"
-	game_log("*** Moving to fishing spot... ***");
-	await smart_move(FISHING_SPOT);
-
+	// Move to fishing spot
 	if (!atFishingSpot()) {
-		game_log("*** Not at fishing spot. Aborting. ***");
-		merchant_task = "Idle"
-		return;
+		game_log("📍 Heading to fishing spot...");
+		await smart_move(FISHING_SPOT);
+		await delay(200);
+		if (!atFishingSpot()) {
+			game_log("❌ Failed to reach fishing spot.");
+			return;
+		}
 	}
 
-	game_log("*** Arrived at fishing spot. Starting to fish... ***");
+	game_log("🎣 At fishing spot. Starting loop...");
 
 	while (true) {
-		// Pre-cast checks
-		if (is_on_cooldown("fishing")) {
-			merchant_task = "Idle"
-			return;
-		}
+		const is_fishing = !!character.q?.fishing;
 
-		if (character.slots.mainhand?.name !== "rod") {
-			await delay(500);
-			game_log("*** Fishing rod not equipped or broken ***");
-			merchant_task = "Idle"
+		// End if not equipped, moved, or inventory full
+		if (!hasRodEquipped()) {
+			game_log("❌ Rod not equipped. Stopping.");
+			break;
+		}
+		if (!atFishingSpot()) {
+			game_log("❌ Moved away from fishing spot.");
+			break;
+		}
+		if (character.items.filter(Boolean).length >= character.items.length) {
+			game_log("📦 Inventory full. Ending fishing.");
 			break;
 		}
 
-		if (!atFishingSpot()) {
-			game_log("*** Moved away from fishing spot. Re-walking... ***");
-			await smart_move(FISHING_SPOT);
-			if (!atFishingSpot()) {
-				game_log("*** Failed to return to fishing spot. Aborting. ***");
-				merchant_task = "Idle"
-				break;
-			}
-			continue;
+		// Recast as soon as fishing is allowed and not already casting
+		if (!is_on_cooldown("fishing") && !is_fishing) {
+			use_skill("fishing");
+			game_log("🎣 Cast line!");
 		}
 
-		const before_items = character.items.map(i => i?.name || null);
-		await delay(500);
-		game_log("*** Casting line... ***");
-		use_skill("fishing");
-
-		let success = false;
-		let attempts = 0;
-
-		while (attempts < 30) {
-			await delay(500);
-			attempts++;
-
-			const after_items = character.items.map(i => i?.name || null);
-			if (after_items.some((name, i) => name !== before_items[i])) {
-				success = true;
-				break;
-			}
-		}
-
-		if (success) {
-			game_log("*** 🎣 Caught something! ***");
-		} else {
-			game_log("*** ⚠️ No catch or timeout. ***");
-		}
-
-		await delay(500);
+		await delay(100); // small polling delay
 	}
-
-	merchant_task = "Idle"
 }
 
 
