@@ -184,6 +184,7 @@ async function try_deliver_to(name, hpot_needed, mpot_needed) {
 
 	if (delivered) {
 		game_log(`✅ Delivered potions to ${name}`);
+		stop();
 	}
 
 	return delivered;
