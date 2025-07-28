@@ -41,6 +41,10 @@ function delay(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function halt_movement() {
+	parent.socket.emit("move", { to: { x: character.x, y: character.y } });
+}
+
 // -------------------------------------------------------------------- //
 // CM HANDLERS
 // -------------------------------------------------------------------- //
