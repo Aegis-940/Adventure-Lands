@@ -275,10 +275,7 @@ async function go_fish() {
 
 	while (true) {
 		// Pre-cast checks
-		if (is_on_cooldown("fishing")) {
-			await delay(500);
-			continue;
-		}
+		if (is_on_cooldown("fishing")) return;
 
 		if (character.slots.mainhand?.name !== "rod") {
 			await delay(500);
