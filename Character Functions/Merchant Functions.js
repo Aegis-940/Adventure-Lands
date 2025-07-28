@@ -33,7 +33,7 @@ async function process_merchant_queue() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const MAIN_POSITION = { map: "main", x: -89, y: -116 }; // <- Set your preferred return spot
-const POT_THRESHOLD = 1000;
+const POT_THRESHOLD = 3000;
 const POT_DELIVER_AMOUNT = 3300;
 const RECIPIENTS = ["Ulric", "Myras", "Riva"]; // Replace with your actual character names
 
