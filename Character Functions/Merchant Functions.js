@@ -95,9 +95,6 @@ async function request_potion_counts(name) {
     for (let i = 0; i < 10; i++) {
         // 🔍 FAULT-FIND: trace each loop entry
         game_log(`🐞 [TRACE] loop ${i} before delay, potion_counts[${name}] = ${JSON.stringify(potion_counts[name])}`);
-
-        await delay(300);
-
 	game_log("delay");
 
         if (potion_counts[name]) {
