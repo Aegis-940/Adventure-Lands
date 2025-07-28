@@ -79,7 +79,7 @@ async function request_location(name) {
 	send_cm(name, { type: "where_are_you" });
 	game_log(`📨 Sent 'where_are_you' CM to ${name}`);
 
-	for (let i = 0; i < 10; i++) {
+	for (let i = 0; i < 20; i++) { // Extended from 10 to 20
 		await delay(300);
 		if (location_responses[name]) {
 			game_log(`📍 [DEBUG] location_responses[${name}] =`, location_responses[name]);
