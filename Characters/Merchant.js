@@ -33,7 +33,7 @@ deliver_potions_loop();
 setInterval(async () => {
 	const now = Date.now();
 
-
+/*
 	// ─────────────────────────────────────
 	// Priority 3: Mine if Possible
 	// ─────────────────────────────────────
@@ -51,7 +51,7 @@ setInterval(async () => {
 			await go_fish();
 		});
 	}
-
+*/
 	// Other non-critical tasks could go here…
 
 		// Detect death and record time
