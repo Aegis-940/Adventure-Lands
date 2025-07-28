@@ -422,6 +422,8 @@ function hasTool(toolName) {
 async function go_fish() {
 	const FISHING_SPOT = { map: "main", x: -1116, y: -285 };
 	const POSITION_TOLERANCE = 10;
+	const MAX_FISHING_WAIT = 9000; // Max wait duration in ms (failsafe)
+	const POLL_INTERVAL = 200;
 
 	const atFishingSpot = () =>
 		character.map === FISHING_SPOT.map &&
@@ -429,6 +431,7 @@ async function go_fish() {
 
 	const hasRodEquipped = () => character.slots.mainhand?.name === "rod";
 
+	// Equip rod if not already
 	if (!hasRodEquipped()) {
 		const rod_index = character.items.findIndex(item => item?.name === "rod");
 		if (rod_index === -1) {
@@ -438,65 +441,67 @@ async function go_fish() {
 		await equip(rod_index);
 		await delay(400);
 	}
-
 	if (!hasRodEquipped()) {
 		game_log("❌ Failed to equip rod.");
 		return;
 	}
 
+	// Move to spot
 	if (!atFishingSpot()) {
 		game_log("📍 Heading to fishing spot...");
 		await smart_move(FISHING_SPOT);
 		await delay(200);
 		if (!atFishingSpot()) {
-			game_log("❌ Failed to reach fishing spot.");
+			game_log("❌ Could not reach fishing spot.");
 			return;
 		}
 	}
 
 	game_log("🎣 At fishing spot. Starting loop...");
-	merchant_task = "Fishing";
 
 	while (true) {
-		// Stop conditions
-		if (!hasRodEquipped() || !atFishingSpot()) break;
-		if (character.items.filter(Boolean).length >= character.items.length) break;
+		// Exit conditions
+		if (!hasRodEquipped()) break;
+		if (!atFishingSpot()) break;
+		if (character.items.filter(Boolean).length >= character.items.length) {
+			game_log("📦 Inventory full. Stopping fishing.");
+			break;
+		}
 
 		// Wait for cooldown
 		while (is_on_cooldown("fishing")) {
-			await delay(200);
+			await delay(POLL_INTERVAL);
 		}
 
 		// Cast
 		game_log("🎣 Casting...");
 		use_skill("fishing");
 
-		// Wait for fishing to start or timeout
-		let cast_started = false;
-		for (let i = 0; i < 10; i++) {
-			if (character.q?.fishing) {
-				cast_started = true;
-				break;
-			}
-			await delay(100);
+		// Wait for cast to register
+		let wait_for_start = 0;
+		while (!character.q?.fishing && wait_for_start < 2000) {
+			await delay(POLL_INTERVAL);
+			wait_for_start += POLL_INTERVAL;
 		}
 
-		// Wait for fishing to finish or timeout (~9s default)
-		if (cast_started) {
-			while (character.q?.fishing) {
-				await delay(200);
-			}
-			game_log("✅ Fishing complete.");
-		} else {
-			game_log("⚠️ Fishing cast did not register.");
-			await delay(1000);
+		// If no q.fishing, fallback to static wait
+		if (!character.q?.fishing) {
+			game_log("⚠️ Fishing did not register, fallback wait...");
+			await delay(MAX_FISHING_WAIT);
+			continue;
 		}
+		
+		// Wait for q.fishing to end or max timeout
+		let total_wait = 0;
+		while (character.q?.fishing && total_wait < MAX_FISHING_WAIT) {
+			await delay(POLL_INTERVAL);
+			total_wait += POLL_INTERVAL;
+		}
+
+		game_log("✅ Fishing cast complete.");
 	}
-
-	merchant_task = "Idle";
-	game_log("🛑 Stopping fishing loop.");
+	game_log("🛑 Stopped fishing.");
 }
-
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SIMPLE MINING SCRIPT WITH AUTO-EQUIP
