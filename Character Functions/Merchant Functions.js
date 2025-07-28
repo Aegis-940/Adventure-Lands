@@ -422,8 +422,10 @@ function hasTool(toolName) {
 async function go_fish() {
 	const FISHING_SPOT = { map: "main", x: -1116, y: -285 };
 	const POSITION_TOLERANCE = 10;
-	const MAX_FISHING_WAIT = 9000; // Max wait duration in ms (failsafe)
+	const MAX_FISHING_WAIT = 9000; // Max wait for one fishing cast
 	const POLL_INTERVAL = 200;
+
+	const HOME = { map: "main", x: -89, y: -116 }; // Customize if needed
 
 	const atFishingSpot = () =>
 		character.map === FISHING_SPOT.map &&
@@ -431,7 +433,7 @@ async function go_fish() {
 
 	const hasRodEquipped = () => character.slots.mainhand?.name === "rod";
 
-	// Equip rod if not already
+	// Equip rod if not equipped
 	if (!hasRodEquipped()) {
 		const rod_index = character.items.findIndex(item => item?.name === "rod");
 		if (rod_index === -1) {
@@ -446,7 +448,7 @@ async function go_fish() {
 		return;
 	}
 
-	// Move to spot
+	// Move to fishing spot
 	if (!atFishingSpot()) {
 		game_log("📍 Heading to fishing spot...");
 		await smart_move(FISHING_SPOT);
@@ -473,34 +475,37 @@ async function go_fish() {
 			await delay(POLL_INTERVAL);
 		}
 
-		// Cast
+		// Cast fishing
 		game_log("🎣 Casting...");
 		use_skill("fishing");
 
-		// Wait for cast to register
+		// Wait for q.fishing to appear
 		let wait_for_start = 0;
 		while (!character.q?.fishing && wait_for_start < 2000) {
 			await delay(POLL_INTERVAL);
 			wait_for_start += POLL_INTERVAL;
 		}
 
-		// If no q.fishing, fallback to static wait
+		// If it never started, fallback to full wait
 		if (!character.q?.fishing) {
-			game_log("⚠️ Fishing did not register, fallback wait...");
+			game_log("⚠️ Fishing did not start. Waiting fallback duration.");
 			await delay(MAX_FISHING_WAIT);
 			continue;
 		}
-		
-		// Wait for q.fishing to end or max timeout
+
+		// Wait for fishing to end or timeout
 		let total_wait = 0;
 		while (character.q?.fishing && total_wait < MAX_FISHING_WAIT) {
 			await delay(POLL_INTERVAL);
 			total_wait += POLL_INTERVAL;
 		}
 
-		game_log("✅ Fishing cast complete.");
+		game_log("✅ Fishing attempt complete.");
 	}
-	game_log("🛑 Stopped fishing.");
+
+	game_log("🏠 Returning home after fishing...");
+	await smart_move(HOME);
+	game_log("✅ Arrived at home.");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
