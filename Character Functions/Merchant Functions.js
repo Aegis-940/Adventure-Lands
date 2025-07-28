@@ -89,18 +89,15 @@ async function request_location(name) {
 }
 
 async function request_potion_counts(name) {
-    // 🔍 DEBUG: confirm function entry
-    game_log(`🐞 [TRACE] request_potion_counts() called for ${name}`);
-
     potion_counts[name] = null;
     send_cm(name, { type: "what_potions" });
     game_log(`🐞 [TRACE] Sent 'what_potions' CM to ${name}`);
 
     for (let i = 0; i < 10; i++) {
-        await delay(300);
+        // 🔍 FAULT-FIND: trace each loop entry
+        game_log(`🐞 [TRACE] loop ${i} before delay, potion_counts[${name}] = ${JSON.stringify(potion_counts[name])}`);
 
-        // 🔍 DEBUG: trace each iteration
-        game_log(`🐞 [TRACE] Iteration ${i}, potion_counts[${name}] = ${JSON.stringify(potion_counts[name])}`);
+        await delay(300);
 
         if (potion_counts[name]) {
             game_log(`🧪 [Debug] potion_counts[${name}] received: ${JSON.stringify(potion_counts[name])}`);
