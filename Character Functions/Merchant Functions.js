@@ -3,16 +3,13 @@
 // MERCHANT ACTIVITY QUEUE SYSTEM
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let merchant_task = "Idle";
-let merchant_task_list = ["Delivering Potions", "Fishing", "Mining", "Idle"];
-const merchant_queue = [];
 
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // DELIVER POTS ON A LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const POTION_DELIVERY_INTERVAL = 60 * 60 * 1000; // 1 hour
+const POTION_DELIVERY_INTERVAL = 30 * 60 * 1000; // 1 hour
 const POTION_CAP = 6000;
 const MINIMUM_DELIVERED = 1000;
 const PARTY = ["Ulric", "Myras", "Riva"];
@@ -60,70 +57,62 @@ add_cm_listener((name, data) => {
 	}
 });
 
-async function deliver_potions_loop() {
-	while (true) {
-		merchant_task = "Delivering Potions"
-		for (const name of PARTY) {
-			let target_pots = await request_potion_counts(name);
-			if (!target_pots) continue;
+async function deliver_potions() {
+	merchant_task = "Delivering Potions";
 
-			const hpot_missing = POTION_CAP - (target_pots.hpot1 || 0);
-			const mpot_missing = POTION_CAP - (target_pots.mpot1 || 0);
+	for (const name of PARTY) {
+		let target_pots = await request_potion_counts(name);
+		if (!target_pots) continue;
 
-			if (hpot_missing < MINIMUM_DELIVERED && mpot_missing < MINIMUM_DELIVERED) {
-				game_log(`📭 ${name} doesn't need enough potions. Skipping.`);
-				continue;
-			}
+		const hpot_missing = POTION_CAP - (target_pots.hpot1 || 0);
+		const mpot_missing = POTION_CAP - (target_pots.mpot1 || 0);
 
-			let destination = await request_location(name);
-			if (!destination) continue;
-
-			game_log(`🚶 Moving to ${name}...`);
-			let arrived = false;
-			let delivered = false;
-			
-			// Start moving toward the target
-			smart_move(destination);
-			
-			// Try delivering while moving
-			while (!arrived && !delivered) {
-				await delay(300);
-			
-				// Check if we're within delivery range
-				const target = get_player(name);
-				if (target && distance(character, target) <= DELIVERY_RADIUS) {
-					delivered = await try_deliver_to(name, hpot_missing, mpot_missing);
-				}
-			
-				// Check if we've arrived at smart_move destination
-				if (smart.moving === false) {
-					arrived = true;
-					break;
-				}
-			}
-			
-			// If we reached destination but still didn’t deliver, try once more
-			if (!delivered) {
-				game_log(`🔁 Delivery failed en route. Rechecking position for ${name}...`);
-			
-				const new_dest = await request_location(name);
-				if (new_dest) {
-					await smart_move(new_dest);
-					await delay(300);
-					await try_deliver_to(name, hpot_missing, mpot_missing);
-				}
-			}
-
-			await delay(500);
+		if (hpot_missing < MINIMUM_DELIVERED && mpot_missing < MINIMUM_DELIVERED) {
+			game_log(`📭 ${name} doesn't need enough potions. Skipping.`);
+			continue;
 		}
 
-		game_log("🏠 Returning to home base...");
-		await smart_move(HOME);
+		let destination = await request_location(name);
+		if (!destination) continue;
 
-		game_log("⏳ Potion delivery loop complete. Resting...");
-		merchant_task = "Idle"
-		await delay(POTION_DELIVERY_INTERVAL);
+		game_log(`🚶 Moving to ${name}...`);
+		let arrived = false;
+		let delivered = false;
+
+		smart_move(destination); // fire-and-forget
+
+		while (!arrived && !delivered) {
+			await delay(300);
+
+			const target = get_player(name);
+			if (target && distance(character, target) <= DELIVERY_RADIUS) {
+				delivered = await try_deliver_to(name, hpot_missing, mpot_missing);
+			}
+
+			if (!smart.moving) {
+				arrived = true;
+				break;
+			}
+		}
+
+		if (!delivered) {
+			game_log(`🔁 Delivery failed en route. Rechecking position for ${name}...`);
+			const new_dest = await request_location(name);
+			if (new_dest) {
+				await smart_move(new_dest);
+				await delay(300);
+				await try_deliver_to(name, hpot_missing, mpot_missing);
+			}
+		}
+
+		await delay(500);
 	}
+
+	game_log("🏠 Returning to home base...");
+	await smart_move(HOME);
+
+	game_log("⏳ Potion delivery task complete.");
+	merchant_task = "Idle";
 }
 
 async function try_deliver_to(name, hpot_needed, mpot_needed) {
