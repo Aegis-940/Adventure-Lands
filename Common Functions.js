@@ -35,6 +35,10 @@ let gold_history                  = [];
 
 const MERCHANT_TASK_QUEUE         = [];
 
+function delay(ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // -------------------------------------------------------------------- //
 // CM HANDLERS
 // -------------------------------------------------------------------- //
