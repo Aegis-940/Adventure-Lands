@@ -114,17 +114,14 @@ const CM_HANDLERS = {
     },
 	
     "what_potions": (name) => {
-        const counts = {};
-        for (const pot of POTION_TYPES) {
-            counts[pot] = character.items.reduce((sum, item) =>
-                item?.name === pot ? sum + (item.q || 1) : sum, 0);
-        }
-        send_cm(name, { type: "my_potions", ...counts });
-    },
-
-    "default": (name, data) => {
-        console.warn("Unhandled CM message:", data);
+	    game_log(`📦 Got 'what_potions' from ${name}`);
+    const counts = {};
+    for (const pot of POTION_TYPES) {
+        counts[pot] = character.items.reduce((sum, item) =>
+            item?.name === pot ? sum + (item.q || 1) : sum, 0);
     }
+    send_cm(name, { type: "my_potions", ...counts });
+},
 };
 
 // Register the handler dispatcher
