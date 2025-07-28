@@ -26,7 +26,16 @@ move_loop();
 // MAIN LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-setInterval(function () {
+let last_update_time = 0;
+
+setInterval(() => {
+	
+	// Throttle to every 20 seconds (20,000 ms)
+	const now = Date.now();
+	if (now - last_update_time >= 20000) {
+		parent.socket.emit("send_updates", {});
+		last_update_time = now;
+	}
 
 	// === Core utility loops ===
 	pots();
