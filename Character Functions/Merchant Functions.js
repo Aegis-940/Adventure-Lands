@@ -71,7 +71,6 @@ async function merchant_task_loop() {
 // DELIVER POTIONS AS NEEDED
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const POTION_DELIVERY_INTERVAL = 30 * 60 * 1000; // 30 minutes
 const POTION_CAP = 6000;
 const MINIMUM_DELIVERED = 10;
 const PARTY = ["Ulric", "Myras", "Riva"];
@@ -81,8 +80,12 @@ const HOME = { map: "main", x: -89, y: -116 };
 const location_responses = {};
 const potion_counts = {};
 
-const recent_deliveries = {}; // New
+const recent_deliveries = {};
 const DELIVERY_COOLDOWN = 3000; // ms
+
+function halt_movement() {
+	parent.socket.emit("move", { to: { x: character.x, y: character.y } });
+}
 
 async function request_location(name) {
 	location_responses[name] = null;
@@ -139,13 +142,12 @@ add_cm_listener((name, data) => {
 
 async function deliver_potions() {
 	for (const name of PARTY) {
-		// Avoid delivering again too soon to the same location
 		if (
-		  recent_deliveries[name] &&
-		  Date.now() - recent_deliveries[name] < DELIVERY_COOLDOWN
+			recent_deliveries[name] &&
+			Date.now() - recent_deliveries[name] < DELIVERY_COOLDOWN
 		) {
-		  game_log(`⏳ Skipping ${name} due to recent delivery`);
-		  continue;
+			game_log(`⏳ Skipping ${name} due to recent delivery`);
+			continue;
 		}
 
 		game_log(`🔍 Starting delivery check for ${name}`);
