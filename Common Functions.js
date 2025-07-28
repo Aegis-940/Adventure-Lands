@@ -202,30 +202,36 @@ function pots() {
 let bank_inventory = [];
 
 /**
- * Scans all bank tabs and records the location and info of each item.
- * Populates the global `bank_inventory` array.
+ * Scans all bank tabs using Adventure Land's native `bank` object.
+ * Populates `bank_inventory` with structured item metadata:
+ * - name: item ID string
+ * - level: + level of the item
+ * - q: quantity of the item (if stackable)
+ * - tab: bank tab index (number)
+ * - slot: slot index within the tab
  */
-function scan_bank_items() {
-  bank_inventory = []; // reset before scanning
+function scan_bank_inventory() {
+  bank_inventory = []; // clear existing
 
-  for (const [tab_name, items] of Object.entries(bank)) {
-    if (!items) continue;
+  for (let tab = 0; tab < bank.length; tab++) {
+    const tab_items = bank[tab];
+    if (!Array.isArray(tab_items)) continue;
 
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
+    for (let slot = 0; slot < tab_items.length; slot++) {
+      const item = tab_items[slot];
       if (!item) continue;
 
       bank_inventory.push({
         name: item.name,
-        level: item.level || 0,
-        q: item.q || 1,
-        tab: tab_name,
-        slot: i,
+        level: item.level ?? 0,
+        q: item.q ?? 1,
+        tab: tab,
+        slot: slot
       });
     }
   }
 
-  game_log(`📦 Scanned ${bank_inventory.length} bank items`);
+  game_log(`📦 Bank scan complete: ${bank_inventory.length} items recorded`);
 }
 
 // -------------------------------------------------------------------- //
