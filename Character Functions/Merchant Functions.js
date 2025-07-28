@@ -39,71 +39,91 @@ const PARTY = ["Ulric", "Myras", "Riva"];
 const DELIVERY_RADIUS = 400;
 const HOME = { map: "main", x: -89, y: -116 };
 
+const location_responses = {};
+
+add_cm_listener((name, data) => {
+    if (data.type === "my_location" && PARTY.includes(name)) {
+        location_responses[name] = { map: data.map, x: data.x, y: data.y };
+    }
+});
+
+async function request_location(name) {
+    location_responses[name] = null;
+    send_cm(name, { type: "where_are_you" });
+
+    let attempts = 0;
+    while (attempts < 10) {
+        await delay(300);
+        if (location_responses[name]) return location_responses[name];
+        attempts++;
+    }
+
+    game_log(`⚠️ No location received from ${name}`);
+    return null;
+}
+
 async function deliver_potions_loop() {
-	while (true) {
-		const delivered_to = new Set();
+    while (true) {
+        const delivered_to = new Set();
 
-		for (const name of PARTY) {
-			if (delivered_to.has(name)) continue;
+        for (const name of PARTY) {
+            if (delivered_to.has(name)) continue;
 
-			const target = get_player(name);
-			if (!target) continue;
+            const destination = await request_location(name);
+            if (!destination) continue;
 
-			game_log(`🧃 Moving to ${name}...`);
-			await move_to_character(name);
-			await delay(500);
+            game_log(`🧃 Moving to ${name} at ${destination.map}...`);
+            await smart_move(destination);
+            await delay(500);
 
-			// Gather all nearby characters within radius
-			const nearby = PARTY.filter(other =>
-				!delivered_to.has(other) &&
-				get_player(other) &&
-				distance(character, get_player(other)) <= DELIVERY_RADIUS
-			);
+            const nearby = PARTY.filter(other =>
+                !delivered_to.has(other) &&
+                get_player(other) &&
+                distance(character, get_player(other)) <= DELIVERY_RADIUS
+            );
 
-			for (const other of nearby) {
-				const other_char = get_player(other);
-				if (!other_char) continue;
+            for (const other of nearby) {
+                const other_char = get_player(other);
+                if (!other_char) continue;
 
-				let delivered = false;
+                let delivered = false;
 
-				for (const pot of POTION_TYPES) {
-					let current = 0;
+                for (const pot of POTION_TYPES) {
+                    let current = 0;
+                    for (const item of other_char.items || []) {
+                        if (item?.name === pot) current += item.q || 1;
+                    }
 
-					for (const item of other_char.items || []) {
-						if (item?.name === pot) current += item.q || 1;
-					}
+                    let needed = POTION_CAP - current;
+                    if (needed <= 0) continue;
 
-					let needed = POTION_CAP - current;
-					if (needed <= 0) continue;
+                    for (let i = 0; i < character.items.length && needed > 0; i++) {
+                        const my_item = character.items[i];
+                        if (!my_item || my_item.name !== pot) continue;
 
-					for (let i = 0; i < character.items.length && needed > 0; i++) {
-						const my_item = character.items[i];
-						if (!my_item || my_item.name !== pot) continue;
+                        const send_qty = Math.min(my_item.q || 1, needed);
+                        send_item(other, i, send_qty);
+                        needed -= send_qty;
+                        await delay(100);
+                        delivered = true;
+                    }
+                }
 
-						const send_qty = Math.min(my_item.q || 1, needed);
-						send_item(other, i, send_qty);
-						needed -= send_qty;
-						await delay(100);
-						delivered = true;
-					}
-				}
+                if (delivered) {
+                    game_log(`✅ Delivered potions to ${other}`);
+                    delivered_to.add(other);
+                }
+            }
 
-				if (delivered) {
-					game_log(`✅ Delivered potions to ${other}`);
-					delivered_to.add(other);
-				}
-			}
+            await delay(250);
+        }
 
-			await delay(250);
-		}
+        game_log("🏠 Returning to home base...");
+        await smart_move(HOME);
 
-		// Return to home base after deliveries
-		game_log("🏠 Returning to home base...");
-		await smart_move(HOME);
-
-		game_log("📦 Potion delivery loop done. Waiting for next cycle...");
-		await delay(POTION_DELIVERY_INTERVAL);
-	}
+        game_log("📦 Potion delivery loop done. Waiting for next cycle...");
+        await delay(POTION_DELIVERY_INTERVAL);
+    }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
