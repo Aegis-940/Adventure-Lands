@@ -107,7 +107,55 @@ async function deliver_potions_loop() {
 			if (!destination) continue;
 
 			game_log(`📍 Moving to ${name} at ${destination.map}...`);
-			await smart_move(destination);
+
+			let delivered = false;
+
+			// 🔁 NEW: Step toward target and check for delivery along the way
+			await smart_move({
+				map: destination.map,
+				x: destination.x,
+				y: destination.y,
+				callback: async () => {
+					const target_char = get_player(name);
+					if (!target_char || distance(character, target_char) > DELIVERY_RADIUS) return;
+
+					const target_pots = await request_potion_counts(name);
+					if (!target_pots) return;
+
+					for (const pot of POTION_TYPES) {
+						const current_qty = target_pots[pot] || 0;
+						const needed = POTION_CAP - current_qty;
+						if (needed <= 0) continue;
+
+						let to_send = needed;
+
+						for (let i = 0; i < character.items.length && to_send > 0; i++) {
+							const my_item = character.items[i];
+							if (!my_item || my_item.name !== pot) continue;
+
+							const send_qty = Math.min(my_item.q || 1, to_send);
+							send_item(name, i, send_qty);
+							to_send -= send_qty;
+							await delay(100);
+							delivered = true;
+
+							if (to_send <= 0) break;
+						}
+					}
+
+					if (delivered) {
+						game_log(`✅ Delivered potions early to ${name}`);
+						delivered_to.add(name);
+					}
+				}
+			});
+
+			if (delivered_to.has(name)) {
+				await delay(250);
+				continue; // Skip normal delivery block
+			}
+
+			// 🧃 Fallback if delivery didn't happen en route
 			await delay(500);
 
 			for (const other of PARTY) {
@@ -119,7 +167,7 @@ async function deliver_potions_loop() {
 				const other_pots = await request_potion_counts(other);
 				if (!other_pots) continue;
 
-				let delivered = false;
+				let local_delivery = false;
 
 				for (const pot of POTION_TYPES) {
 					const current_qty = other_pots[pot] || 0;
@@ -136,13 +184,13 @@ async function deliver_potions_loop() {
 						send_item(other, i, send_qty);
 						to_send -= send_qty;
 						await delay(100);
-						delivered = true;
+						local_delivery = true;
 
 						if (to_send <= 0) break;
 					}
 				}
 
-				if (delivered) {
+				if (local_delivery) {
 					game_log(`✅ Delivered potions to ${other}`);
 					delivered_to.add(other);
 				}
