@@ -38,7 +38,7 @@ const POTION_TYPES = ["mpot1", "hpot1"];
 const PARTY = ["Ulric", "Myras", "Riva"];
 const HOME = { map: main, x: -89, y: -116 };
 
-async function check_remote_inventories() {
+async function check_and_deliver_pots() {
 
 	for (const name of PARTY) {
 		const target = get_player(name);
