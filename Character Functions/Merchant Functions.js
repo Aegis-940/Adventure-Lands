@@ -39,18 +39,18 @@ const PARTY = ["Ulric", "Myras", "Riva"];
 const HOME = { map: "main", x: -89, y: -116 };
 
 async function check_and_deliver_pots() {
-	let delivered_any = false; // Track if we delivered anything
+	let delivered_any = false;
 
 	for (const name of PARTY) {
-		const target = get_player(name);
-		if (!target) continue;
+		const target = parent.party[name];
+		if (!target || !target.items) continue;
 
 		let needs_pots = [];
 
-		// Count each potion type in their inventory
+		// Count potions remotely using party data
 		for (const pot of POTION_TYPES) {
 			let count = 0;
-			for (const item of target.items || []) {
+			for (const item of target.items) {
 				if (item?.name === pot) count += item.q || 1;
 			}
 			if (count < POTION_THRESHOLD) needs_pots.push(pot);
@@ -82,11 +82,11 @@ async function check_and_deliver_pots() {
 		await delay(250);
 	}
 
-	// Only return home if something was delivered
 	if (delivered_any) {
 		await smart_move(HOME);
 	}
 }
+
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MERCHANT SELL AND BANK ITEMS
