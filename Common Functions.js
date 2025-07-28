@@ -202,19 +202,19 @@ function pots() {
 let bank_inventory = [];
 
 /**
- * Scans all bank tabs using Adventure Land's native `bank` object.
- * Populates `bank_inventory` with structured item metadata:
- * - name: item ID string
- * - level: + level of the item
- * - q: quantity of the item (if stackable)
- * - tab: bank tab index (number)
- * - slot: slot index within the tab
+ * Scans all available bank tabs using `parent.bank`, if available.
+ * Fills `bank_inventory` with metadata: name, level, quantity, tab, slot.
  */
 function scan_bank_inventory() {
-  bank_inventory = []; // clear existing
+  if (!parent.bank || !Array.isArray(parent.bank)) {
+    game_log("❌ Bank data not available. Open the bank first.");
+    return;
+  }
 
-  for (let tab = 0; tab < bank.length; tab++) {
-    const tab_items = bank[tab];
+  bank_inventory = [];
+
+  for (let tab = 0; tab < parent.bank.length; tab++) {
+    const tab_items = parent.bank[tab];
     if (!Array.isArray(tab_items)) continue;
 
     for (let slot = 0; slot < tab_items.length; slot++) {
