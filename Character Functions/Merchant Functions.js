@@ -118,7 +118,9 @@ add_cm_listener((name, data) => {
 async function deliver_potions() {
 
 	for (const name of PARTY) {
+		game_log(`🔍 Starting delivery check for ${name}`);
 		let target_pots = await request_potion_counts(name);
+		game_log(`📬 Got potion counts for ${name}:`, target_pots);
 		if (!target_pots) continue;
 
 		const hpot_missing = POTION_CAP - (target_pots.hpot1 || 0);
@@ -129,7 +131,9 @@ async function deliver_potions() {
 			continue;
 		}
 
+		game_log(`📍 Requesting location for ${name}`);
 		let destination = await request_location(name);
+		game_log(`📍 Got location for ${name}:`, destination);
 		if (!destination) continue;
 
 		game_log(`🚶 Moving to ${name}...`);
