@@ -176,4 +176,3 @@ function add_bank_buttons() {
   trc.children().first().after(saveBtn).after(bankBtn);
 }
 
-add_bank_buttons();
