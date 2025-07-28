@@ -91,11 +91,11 @@ async function request_location(name) {
 async function request_potion_counts(name) {
     potion_counts[name] = null;
     send_cm(name, { type: "what_potions" });
-
-	if (potion_counts[name]) {
-	    return potion_counts[name];
-	}
-
+    await delay(500);
+    if (potion_counts[name]) {
+        return potion_counts[name];
+    }
+    
     game_log(`⚠️ No potion count received from ${name}`);
     return null;
 }
