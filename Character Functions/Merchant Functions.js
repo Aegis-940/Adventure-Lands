@@ -90,20 +90,24 @@ async function request_location(name) {
 
 async function request_potion_counts(name) {
     potion_counts[name] = null;
+
     send_cm(name, { type: "what_potions" });
 
-    for (let i = 0; i < 10; i++) {
-	game_log("Count 1 - pre-delay");
-        await delay(300);
-	game_log("Count 1 - post-delay");
-        if (potion_counts[name]) {
-            game_log(`🧪 [Debug] potion_counts[${name}] received: ${JSON.stringify(potion_counts[name])}`);
-            return potion_counts[name];
-        }
-    }
-
-    game_log(`⚠️ No potion count received from ${name}`);
-    return null;
+    return await new Promise((resolve) => {
+        let checks = 0;
+        const checkInterval = setInterval(() => {
+            checks++;
+            if (potion_counts[name]) {
+                clearInterval(checkInterval);
+                game_log(`🧪 [Debug] potion_counts[${name}] received: ${JSON.stringify(potion_counts[name])}`);
+                resolve(potion_counts[name]);
+            } else if (checks > 10) {
+                clearInterval(checkInterval);
+                game_log(`⚠️ No potion count received from ${name}`);
+                resolve(null);
+            }
+        }, 300);
+    });
 }
 
 add_cm_listener((name, data) => {
