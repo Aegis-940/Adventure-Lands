@@ -30,34 +30,10 @@ deliver_potions_loop();
 // MAIN LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let last_check_inventories = 0;
-const INVENTORY_CHECK_INTERVAL = 5 * 60000;  // every 5 mins
-const POTION_DELIVERY_INTERVAL = 60000;
-let last_potion_delivery_check = 0;
-
 setInterval(async () => {
 	const now = Date.now();
 
-	// ─────────────────────────────────────
-	// Priority 1: Check Potions & Deliver
-	// ─────────────────────────────────────
-	if (now - last_potion_delivery_check >= POTION_DELIVERY_INTERVAL) {
-		last_potion_delivery_check = now;
-		queue_merchant_action("[PRIORITY] Deliver Potions", async () => {
-			await check_and_deliver_pots();
-		});
-	}
-	
-	// ─────────────────────────────────────
-	// Priority 2: Check Remote Inventories
-	// ─────────────────────────────────────
-	if (now - last_check_inventories >= INVENTORY_CHECK_INTERVAL) {
-		last_check_inventories = now;
-		queue_merchant_action("[PRIORITY] Check Inventories", async () => {
-			await check_remote_inventories();
-		});
-	}
-	
+
 	// ─────────────────────────────────────
 	// Priority 3: Mine if Possible
 	// ─────────────────────────────────────
