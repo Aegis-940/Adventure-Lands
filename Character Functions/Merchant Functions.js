@@ -163,9 +163,9 @@ async function deliver_potions() {
 		game_log(`🚶 Smart Moving to ${name}...`);
 
 		while (!arrived && !delivered) {
-			game_log("Check 1);
+			game_log("Check 1");
 			await delay(300);
-			game_log("Check 2);
+			game_log("Check 2");
 			const target = get_player(name);
 			if (target && distance(character, target) <= DELIVERY_RADIUS) {
 				delivered = await try_deliver_to(name, hpot_missing, mpot_missing);
