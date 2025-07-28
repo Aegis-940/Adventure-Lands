@@ -36,7 +36,7 @@ const POTION_THRESHOLD = 3000;
 const POTION_AMOUNT = 3000;
 const POTION_TYPES = ["mpot1", "hpot1"];
 const PARTY = ["Ulric", "Myras", "Riva"];
-const HOME = { map: main, x: -89, y: -116 };
+const HOME = { map: "main", x: -89, y: -116 };
 
 async function check_and_deliver_pots() {
 
