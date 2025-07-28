@@ -44,105 +44,122 @@ const potion_counts = {};
 
 // Request location via CM
 async function request_location(name) {
-    location_responses[name] = null;
-    send_cm(name, { type: "where_are_you" });
+	location_responses[name] = null;
+	send_cm(name, { type: "where_are_you" });
 
-    for (let i = 0; i < 10; i++) {
-        await delay(300);
-        if (location_responses[name]) return location_responses[name];
-    }
+	for (let i = 0; i < 10; i++) {
+		await delay(300);
+		if (location_responses[name]) return location_responses[name];
+	}
 
-    game_log(`⚠️ No location received from ${name}`);
-    return null;
+	game_log(`⚠️ No location received from ${name}`);
+	return null;
 }
 
 // Request potion counts via CM
 async function request_potion_counts(name) {
-    potion_counts[name] = null;
-    send_cm(name, { type: "what_potions" });
+	potion_counts[name] = null;
+	send_cm(name, { type: "what_potions" });
 
-    for (let i = 0; i < 10; i++) {
-        await delay(300);
-        if (potion_counts[name]) return potion_counts[name];
-    }
+	for (let i = 0; i < 10; i++) {
+		await delay(300);
+		if (potion_counts[name]) return potion_counts[name];
+	}
 
-    game_log(`⚠️ No potion count received from ${name}`);
-    return null;
+	game_log(`⚠️ No potion count received from ${name}`);
+	return null;
 }
 
 // CM listener for potion counts
 add_cm_listener((name, data) => {
-    if (data.type === "my_potions" && PARTY.includes(name)) {
-	    game_log(`📬 Got potion count from ${name}: HP=${data.hpot1}, MP=${data.mpot1}`);
-        potion_counts[name] = {
-            hpot1: data.hpot1 || 0,
-            mpot1: data.mpot1 || 0
-        };
-    }
+	if (data.type === "my_potions" && PARTY.includes(name)) {
+		game_log(`📬 Got potion count from ${name}: HP=${data.hpot1}, MP=${data.mpot1}`);
+		potion_counts[name] = {
+			hpot1: data.hpot1 || 0,
+			mpot1: data.mpot1 || 0
+		};
+	}
 });
 
 async function deliver_potions_loop() {
-    while (true) {
-        const delivered_to = new Set();
+	while (true) {
+		const delivered_to = new Set();
 
-        for (const name of PARTY) {
-            if (delivered_to.has(name)) continue;
+		for (const name of PARTY) {
+			if (delivered_to.has(name)) continue;
 
-            const destination = await request_location(name);
-            if (!destination) continue;
+			const potions = await request_potion_counts(name);
+			if (!potions) continue;
 
-            game_log(`📍 Moving to ${name} at ${destination.map}...`);
-            await smart_move(destination);
-            await delay(500);
+			let needs_delivery = false;
+			for (const pot of POTION_TYPES) {
+				if ((potions[pot] || 0) < POTION_CAP) {
+					needs_delivery = true;
+					break;
+				}
+			}
 
-            for (const other of PARTY) {
-                if (delivered_to.has(other)) continue;
+			if (!needs_delivery) {
+				game_log(`📭 ${name} does not need potions.`);
+				continue;
+			}
 
-                const other_char = get_player(other);
-                if (!other_char || distance(character, other_char) > DELIVERY_RADIUS) continue;
+			const destination = await request_location(name);
+			if (!destination) continue;
 
-                const potions = await request_potion_counts(other);
-                if (!potions) continue;
+			game_log(`📍 Moving to ${name} at ${destination.map}...`);
+			await smart_move(destination);
+			await delay(500);
 
-                let delivered = false;
+			for (const other of PARTY) {
+				if (delivered_to.has(other)) continue;
 
-                for (const pot of POTION_TYPES) {
-                    const current_qty = potions[pot] || 0;
-                    const needed = POTION_CAP - current_qty;
-                    if (needed <= 0) continue;
+				const other_char = get_player(other);
+				if (!other_char || distance(character, other_char) > DELIVERY_RADIUS) continue;
 
-                    let to_send = needed;
+				const other_pots = await request_potion_counts(other);
+				if (!other_pots) continue;
 
-                    for (let i = 0; i < character.items.length && to_send > 0; i++) {
-                        const my_item = character.items[i];
-                        if (!my_item || my_item.name !== pot) continue;
+				let delivered = false;
 
-                        const send_qty = Math.min(my_item.q || 1, to_send);
-                        send_item(other, i, send_qty);
-                        to_send -= send_qty;
-                        await delay(100);
-                        delivered = true;
+				for (const pot of POTION_TYPES) {
+					const current_qty = other_pots[pot] || 0;
+					const needed = POTION_CAP - current_qty;
+					if (needed <= 0) continue;
 
-                        if (to_send <= 0) break;
-                    }
-                }
+					let to_send = needed;
 
-                if (delivered) {
-                    game_log(`✅ Delivered potions to ${other}`);
-                    delivered_to.add(other);
-                }
-            }
+					for (let i = 0; i < character.items.length && to_send > 0; i++) {
+						const my_item = character.items[i];
+						if (!my_item || my_item.name !== pot) continue;
 
-            await delay(500); // slight delay before next target
-        }
+						const send_qty = Math.min(my_item.q || 1, to_send);
+						send_item(other, i, send_qty);
+						to_send -= send_qty;
+						await delay(100);
+						delivered = true;
 
-        game_log("🏠 Returning to home base...");
-        await smart_move(HOME);
+						if (to_send <= 0) break;
+					}
+				}
 
-        game_log("⏳ Potion delivery loop done. Waiting 20 minutes...");
-        await delay(POTION_DELIVERY_INTERVAL);
-    }
+				if (delivered) {
+					game_log(`✅ Delivered potions to ${other}`);
+					delivered_to.add(other);
+				}
+			}
+
+			await delay(500);
+		}
+
+		game_log("🏠 Returning to home base...");
+		await smart_move(HOME);
+
+		game_log("⏳ Potion delivery loop done. Waiting 20 minutes...");
+		await delay(POTION_DELIVERY_INTERVAL);
+	}
 }
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MERCHANT SELL AND BANK ITEMS
 // --------------------------------------------------------------------------------------------------------------------------------- //
