@@ -40,7 +40,9 @@ const DELIVERY_RADIUS = 400;
 const HOME = { map: "main", x: -89, y: -116 };
 
 const location_responses = {};
+const potion_counts = {};
 
+// Request location via CM
 async function request_location(name) {
     location_responses[name] = null;
     send_cm(name, { type: "where_are_you" });
@@ -53,6 +55,30 @@ async function request_location(name) {
     game_log(`⚠️ No location received from ${name}`);
     return null;
 }
+
+// Request potion counts via CM
+async function request_potion_counts(name) {
+    potion_counts[name] = null;
+    send_cm(name, { type: "what_potions" });
+
+    for (let i = 0; i < 10; i++) {
+        await delay(300);
+        if (potion_counts[name]) return potion_counts[name];
+    }
+
+    game_log(`⚠️ No potion count received from ${name}`);
+    return null;
+}
+
+// CM listener for potion counts
+add_cm_listener((name, data) => {
+    if (data.type === "my_potions" && PARTY.includes(name)) {
+        potion_counts[name] = {
+            hpot1: data.hpot1 || 0,
+            mpot1: data.mpot1 || 0
+        };
+    }
+});
 
 async function deliver_potions_loop() {
     while (true) {
@@ -68,25 +94,19 @@ async function deliver_potions_loop() {
             await smart_move(destination);
             await delay(500);
 
-            // Filter players within range who haven't been delivered to yet
             for (const other of PARTY) {
                 if (delivered_to.has(other)) continue;
 
                 const other_char = get_player(other);
-                if (!other_char) continue;
+                if (!other_char || distance(character, other_char) > DELIVERY_RADIUS) continue;
 
-                const dist = distance(character, other_char);
-                if (dist > DELIVERY_RADIUS) continue;
+                const potions = await request_potion_counts(other);
+                if (!potions) continue;
 
                 let delivered = false;
 
                 for (const pot of POTION_TYPES) {
-                    let current_qty = 0;
-
-                    for (const item of other_char.items || []) {
-                        if (item?.name === pot) current_qty += item.q || 1;
-                    }
-
+                    const current_qty = potions[pot] || 0;
                     const needed = POTION_CAP - current_qty;
                     if (needed <= 0) continue;
 
