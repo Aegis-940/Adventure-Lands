@@ -108,13 +108,11 @@ async function request_potion_counts(name) {
 // CM listener for potion counts
 add_cm_listener((name, data) => {
 	if (data.type === "my_potions" && PARTY.includes(name)) {
-		// 🔍 DEBUG LOG: Show what the character replied with
-		game_log(`🐞 [DEBUG] Potion CM from ${name}: hpot1=${data.hpot1}, mpot1=${data.mpot1}`);
-
 		potion_counts[name] = {
 			hpot1: data.hpot1 || 0,
 			mpot1: data.mpot1 || 0
 		};
+		game_log(`🐞 [DEBUG] Potion CM from ${name}: hpot1=${data.hpot1}, mpot1=${data.mpot1}`);
 	}
 });
 
