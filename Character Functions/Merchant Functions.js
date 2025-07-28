@@ -74,14 +74,17 @@ const HOME = { map: "main", x: -89, y: -116 };
 const location_responses = {};
 const potion_counts = {};
 
-// Request location via CM
 async function request_location(name) {
 	location_responses[name] = null;
 	send_cm(name, { type: "where_are_you" });
+	game_log(`📨 Sent 'where_are_you' CM to ${name}`);
 
 	for (let i = 0; i < 10; i++) {
 		await delay(300);
-		if (location_responses[name]) return location_responses[name];
+		if (location_responses[name]) {
+			game_log(`📍 [DEBUG] location_responses[${name}] =`, location_responses[name]);
+			return location_responses[name];
+		}
 	}
 
 	game_log(`⚠️ No location received from ${name}`);
