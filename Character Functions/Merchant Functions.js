@@ -76,19 +76,25 @@ const potion_counts = {};
 
 async function request_location(name) {
 	location_responses[name] = null;
+
 	send_cm(name, { type: "where_are_you" });
 	game_log(`📨 Sent 'where_are_you' CM to ${name}`);
 
-	for (let i = 0; i < 20; i++) { // Extended from 10 to 20
-		await delay(300);
-		if (location_responses[name]) {
-			game_log(`📍 [DEBUG] location_responses[${name}] =`, location_responses[name]);
-			return location_responses[name];
-		}
-	}
-
-	game_log(`⚠️ No location received from ${name}`);
-	return null;
+	return await new Promise((resolve) => {
+		let checks = 0;
+		const checkInterval = setInterval(() => {
+			checks++;
+			if (location_responses[name]) {
+				clearInterval(checkInterval);
+				game_log(`📍 [DEBUG] location_responses[${name}] = ${JSON.stringify(location_responses[name])}`);
+				resolve(location_responses[name]);
+			} else if (checks > 10) {
+				clearInterval(checkInterval);
+				game_log(`⚠️ No location received from ${name}`);
+				resolve(null);
+			}
+		}, 300);
+	});
 }
 
 async function request_potion_counts(name) {
