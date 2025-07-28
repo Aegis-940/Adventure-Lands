@@ -196,6 +196,39 @@ function pots() {
 }
 
 // -------------------------------------------------------------------- //
+// SCAN BANK
+// -------------------------------------------------------------------- //
+
+let bank_inventory = [];
+
+/**
+ * Scans all bank tabs and records the location and info of each item.
+ * Populates the global `bank_inventory` array.
+ */
+function scan_bank_items() {
+  bank_inventory = []; // reset before scanning
+
+  for (const [tab_name, items] of Object.entries(bank)) {
+    if (!items) continue;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (!item) continue;
+
+      bank_inventory.push({
+        name: item.name,
+        level: item.level || 0,
+        q: item.q || 1,
+        tab: tab_name,
+        slot: i,
+      });
+    }
+  }
+
+  game_log(`📦 Scanned ${bank_inventory.length} bank items`);
+}
+
+// -------------------------------------------------------------------- //
 // TRANSFER LOOT TO MERCHANT
 // -------------------------------------------------------------------- //
 
