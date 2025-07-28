@@ -4,20 +4,15 @@
 // -------------------------------------------------------------------- //
 
 let attack_mode                   = true;
-let taunt_mode                    = true;
-let fight_as_a_team               = false;
-let inventory_check_enabled       = true;
-
-let group_or_solo_button_title    = "Solo";
-let taunt_button_title            = "Taunt";
-
-let last_inventory_check          = 0;
 
 const PARTY_CHECK_INTERVAL        = 5000;
 let last_party_check              = 0;
 
 // For potion deliveries from merchant
 const POTION_TYPES = ["mpot1", "hpot1"];
+
+// Merchant collects nth item and above when collecting loot.
+const LOOT_THRESHOLD = 7;
 
 const HP_THRESHOLD                = 500;
 const MP_THRESHOLD                = 500;
