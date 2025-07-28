@@ -33,7 +33,7 @@ async function process_merchant_queue() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const POTION_DELIVERY_INTERVAL = 20 * 60 * 1000; // 20 minutes
-const POTION_CAP = 6000;
+const POTION_CAP = 3000;
 const PARTY = ["Ulric", "Myras", "Riva"];
 const DELIVERY_RADIUS = 400;
 const HOME = { map: "main", x: -89, y: -116 };
