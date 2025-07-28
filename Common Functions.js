@@ -83,12 +83,15 @@ const CM_HANDLERS = {
 	},
 
 	"what_potions": (name) => {
-		game_log(`📦 Got 'what_potions' from ${name}`);
+		game_log(`📦 Got 'what_potions' from ${name}`);  // Already here
+	
 		const counts = {};
 		for (const pot of POTION_TYPES) {
 			counts[pot] = character.items.reduce((sum, item) =>
 				item?.name === pot ? sum + (item.q || 1) : sum, 0);
 		}
+	
+		game_log(`📤 Replying to ${name} with potions: hpot1=${counts.hpot1}, mpot1=${counts.mpot1}`);
 		send_cm(name, { type: "my_potions", ...counts });
 	},
 
