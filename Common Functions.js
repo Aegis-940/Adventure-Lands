@@ -36,29 +36,6 @@ let gold_history                  = [];
 const MERCHANT_TASK_QUEUE         = [];
 
 // -------------------------------------------------------------------- //
-// TANK ROLE CONFIG / PERSISTENCE
-// -------------------------------------------------------------------- //
-
-const TANK_ROLES = [
-    { name: "Ulric", label: "🛡️🗡️" },
-    { name: "Myras", label: "🛡️✨" },
-    { name: "Riva",  label: "🛡️🏹" }
-];
-let who_is_tank                   = 0;  // default index
-
-Object.defineProperty(window, "tank_name", {
-    get() {
-        // whenever you read tank_name, return the name at the current index
-        return TANK_ROLES[who_is_tank].name;
-    },
-    set(new_name) {
-        // whenever you write tank_name = "Myras", update who_is_tank to match
-        const idx = TANK_ROLES.findIndex(r => r.name === new_name);
-        if (idx !== -1) who_is_tank = idx;
-    }
-});
-
-// -------------------------------------------------------------------- //
 // CM HANDLERS
 // -------------------------------------------------------------------- //
 
@@ -87,7 +64,6 @@ on_cm = function (name, data) {
 			console.error("CM listener error:", e);
 		}
 	});
-
 	original_on_cm(name, data);
 };
 
@@ -113,9 +89,26 @@ const CM_HANDLERS = {
 			counts[pot] = character.items.reduce((sum, item) =>
 				item?.name === pot ? sum + (item.q || 1) : sum, 0);
 		}
-		game_log("Sending pot reply");
 		send_cm(name, { type: "my_potions", ...counts });
 	},
+
+	// ✅ Loot request logic
+	"do_you_have_loot": (name) => {
+		const has_loot = character.items.slice(7).some(item => item);
+		if (has_loot) {
+			send_cm(name, { type: "yes_i_have_loot" });
+		}
+	},
+
+	"send_loot": (name) => {
+		for (let i = 7; i < character.items.length; i++) {
+			const item = character.items[i];
+			if (item) {
+				send_item(name, i);
+				await delay(200); // ensure transfer time
+			}
+		}
+	}
 };
 
 // Register the handler dispatcher
@@ -126,9 +119,8 @@ add_cm_listener((name, data) => {
 	}
 
 	const handler = CM_HANDLERS[data.type] || CM_HANDLERS["default"];
-	handler(name, data);
+	if (handler) handler(name, data);
 });
-
 
 // -------------------------------------------------------------------- //
 // CONSUME POTS
