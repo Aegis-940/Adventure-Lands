@@ -7,9 +7,9 @@ let merchant_task = "Idle";
 let merchant_busy = false;
 
 let last_potion_delivery = 0;
-const POTION_DELIVERY_DELAY = 30 * 60 * 1000;
+const POTION_DELIVERY_DELAY = 10 * 60 * 1000;
 let last_loot_collection = 0;
-const LOOT_COLLECTION_DELAY = 15 * 60 * 1000;
+const LOOT_COLLECTION_DELAY = 10 * 60 * 1000;
 
 async function merchant_task_loop() {
 	while (true) {
@@ -137,12 +137,11 @@ async function deliver_potions() {
 		const target = get_player(name);
 		if (
 			recent_delivery_target &&
-			recent_delivery_target.name !== name &&
-			recent_delivery_target.x === character.x &&
-			recent_delivery_target.y === character.y &&
+			target &&
+			distance(character, target) <= DELIVERY_RADIUS &&
 			Date.now() - recent_delivery_time < DELIVERY_COOLDOWN
 		) {
-			game_log(`⏳ Skipping ${name} due to recent delivery at same location`);
+			game_log(`⏳ Skipping ${name} due to recent nearby delivery`);
 			continue;
 		}
 
@@ -237,11 +236,7 @@ async function try_deliver_to(name, hpot_needed, mpot_needed) {
 
 		if (delivered) {
 			game_log(`✅ Delivered potions to ${name}`);
-			recent_delivery_target = {
-				name,
-				x: character.x,
-				y: character.y
-			};
+			recent_delivery_target = name;
 			recent_delivery_time = Date.now();
 			stop();
 			return true;
