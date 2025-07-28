@@ -92,10 +92,14 @@ async function request_location(name) {
 async function request_potion_counts(name) {
 	potion_counts[name] = null;
 	send_cm(name, { type: "what_potions" });
+	game_log(`📨 Sent potion request to ${name}`);
 
 	for (let i = 0; i < 10; i++) {
 		await delay(300);
-		if (potion_counts[name]) return potion_counts[name];
+		if (potion_counts[name]) {
+			game_log(`📥 Received potion counts from ${name}`);
+			return potion_counts[name];
+		}
 	}
 
 	game_log(`⚠️ No potion count received from ${name}`);
@@ -127,26 +131,35 @@ async function deliver_potions() {
 			continue;
 		}
 
-		let destination = await request_location(name);
+		// Check if enough pots are needed
+		if (hpot_missing < MINIMUM_DELIVERED && mpot_missing < MINIMUM_DELIVERED) {
+			game_log(`📭 ${name} doesn't need enough potions. Skipping.`);
+			continue; // skip to next character
+		}
+		
+		// Get location and validate
+		const destination = await request_location(name);
 		if (!destination) continue;
-
+		
 		game_log(`🚶 Moving to ${name}...`);
-		let arrived = false;
 		let delivered = false;
-
-		smart_move(destination); // fire-and-forget
-
-		while (!arrived && !delivered) {
-			await delay(300);
-
-			const target = get_player(name);
-			if (target && distance(character, target) <= DELIVERY_RADIUS) {
-				delivered = await try_deliver_to(name, hpot_missing, mpot_missing);
-			}
-
-			if (!smart.moving) {
-				arrived = true;
-				break;
+		
+		await smart_move(destination); // await so we don't enter busy-loop
+		
+		// Check if in range and deliver
+		const target = get_player(name);
+		if (target && distance(character, target) <= DELIVERY_RADIUS) {
+			delivered = await try_deliver_to(name, hpot_missing, mpot_missing);
+		}
+		
+		// Fallback retry if delivery failed
+		if (!delivered) {
+			game_log(`🔁 Delivery failed for ${name}. Rechecking position...`);
+			const retry_dest = await request_location(name);
+			if (retry_dest) {
+				await smart_move(retry_dest);
+				await delay(300);
+				await try_deliver_to(name, hpot_missing, mpot_missing);
 			}
 		}
 
