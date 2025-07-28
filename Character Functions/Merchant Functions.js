@@ -108,10 +108,10 @@ async function deliver_potions_loop() {
 	game_log(`➡️ Walking to ${name} at ${destination.map}...`);
 	smart_move(destination); // no await
 
-	let delivered = false;
+	let all_sent = false;
 	let attempts = 0;
 
-	while (!delivered && attempts < 40) { // ~12 seconds max
+	while (!all_sent && attempts < 40) { // ~12 seconds max
 		await delay(300);
 		const target_char = get_player(name);
 		if (!target_char || distance(character, target_char) > DELIVERY_RADIUS) {
@@ -121,6 +121,8 @@ async function deliver_potions_loop() {
 
 		const target_pots = await request_potion_counts(name);
 		if (!target_pots) break;
+
+		let any_delivered = false;
 
 		for (const pot of POTION_TYPES) {
 			const current_qty = target_pots[pot] || 0;
@@ -137,17 +139,27 @@ async function deliver_potions_loop() {
 				send_item(name, i, send_qty);
 				to_send -= send_qty;
 				await delay(100);
-				delivered = true;
+				any_delivered = true;
 
 				if (to_send <= 0) break;
 			}
 		}
 
-		if (delivered) {
-			stop(); // ⛔ Cancel smart_move
-			game_log(`✅ Delivered potions to ${name} en route`);
-			delivered_to.add(name);
+		// Recheck if *all* potion types are now topped up
+		const check_again = await request_potion_counts(name);
+		all_sent = check_again && POTION_TYPES.every(pot => (check_again[pot] || 0) >= POTION_CAP);
+
+		if (any_delivered) {
+			game_log(`🧃 Sent potions to ${name}... checking if full`);
 		}
+	}
+
+	if (all_sent) {
+		stop();
+		game_log(`✅ Delivered all potions to ${name}`);
+		delivered_to.add(name);
+	} else {
+		game_log(`⚠️ Could not fully deliver to ${name} after timeout`);
 	}
 
 	await delay(500);
