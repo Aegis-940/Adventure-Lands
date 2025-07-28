@@ -41,7 +41,6 @@ setInterval(() => {
 	pots();
 	loot();
 	party_manager();
-	check_and_request_pots();
 	
 	if (!attack_mode || character.rip || is_moving(character)) return;
 
