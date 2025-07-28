@@ -3,10 +3,65 @@
 // MERCHANT ACTIVITY QUEUE SYSTEM
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+let merchant_task = "Idle";
+let merchant_busy = false;
 
+let last_potion_delivery = 0;
+const POTION_DELIVERY_DELAY = 30 * 60 * 1000;
+let last_loot_collection = 0;
+const LOOT_COLLECTION_DELAY = 15 * 60 * 1000;
+
+async function merchant_task_loop() {
+	while (true) {
+		const now = Date.now();
+
+		// Priority 1: Deliver Potions (every 30 min)
+		if (!merchant_busy && (now - last_potion_delivery > POTION_DELIVERY_DELAY)) {
+			merchant_busy = true;
+			merchant_task = "Delivering Potions";
+			await deliver_potions();
+			last_potion_delivery = Date.now();
+			merchant_busy = false;
+			continue;
+		}
+
+		// Priority 2: Collect Loot (every 15 min)
+		if (!merchant_busy && (now - last_loot_collection > LOOT_COLLECTION_DELAY)) {
+			merchant_busy = true;
+			merchant_task = "Collecting Loot";
+			await collect_loot();
+			last_loot_collection = Date.now();
+			merchant_busy = false;
+			continue;
+		}
+
+		// Priority 3: Fishing (whenever not on cooldown)
+		if (!merchant_busy && !is_on_cooldown("fishing")) {
+			merchant_busy = true;
+			merchant_task = "Fishing";
+			await go_fish();
+			merchant_busy = false;
+			continue;
+		}
+
+		// Priority 4: Mining (whenever not on cooldown)
+		if (!merchant_busy && can_use("mining")) {
+			merchant_busy = true;
+			merchant_task = "Mining";
+			await go_mine();
+			merchant_busy = false;
+			continue;
+		}
+
+		// Default to Idle
+		if (!merchant_busy) merchant_task = "Idle";
+
+		await delay(500); // check periodically
+	}
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// DELIVER POTS ON A LOOP
+// DELIVER POTIONS AS NEEDED
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const POTION_DELIVERY_INTERVAL = 30 * 60 * 1000; // 1 hour
@@ -162,6 +217,77 @@ async function try_deliver_to(name, hpot_needed, mpot_needed) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// CHECK FOR LOOT AND COLLECT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const PARTY = ["Ulric", "Myras", "Riva"];
+const DELIVERY_RADIUS = 400;
+const HOME = { map: "main", x: -89, y: -116 };
+const loot_responses = {};
+
+function request_loot_status(name) {
+	loot_responses[name] = null;
+	send_cm(name, { type: "do_you_have_loot" });
+}
+
+add_cm_listener((name, data) => {
+	if (data.type === "yes_i_have_loot" && PARTY.includes(name)) {
+		loot_responses[name] = true;
+	}
+});
+
+async function collect_loot() {
+	merchant_task = "Collecting Loot";
+	const targets = [];
+
+	// Ask each party member if they have loot
+	for (const name of PARTY) {
+		request_loot_status(name);
+	}
+
+	// Wait for responses
+	for (let i = 0; i < 10; i++) {
+		await delay(300);
+		for (const name of PARTY) {
+			if (loot_responses[name]) {
+				targets.push(name);
+				loot_responses[name] = null; // Reset after handling
+			}
+		}
+	}
+
+	// Visit each target and collect loot
+	for (const name of targets) {
+		const destination = await request_location(name);
+		if (!destination) continue;
+
+		game_log(`🚶 Moving to ${name} for loot pickup...`);
+		let arrived = false;
+		let collected = false;
+
+		smart_move(destination); // async walk
+
+		while (!arrived && !collected) {
+			await delay(300);
+			const target = get_player(name);
+			if (target && distance(character, target) <= DELIVERY_RADIUS) {
+				send_cm(name, { type: "send_loot" });
+				collected = true;
+			}
+			if (!smart.moving) arrived = true;
+		}
+
+		game_log(`🏠 Returning to town to sell loot...`);
+		await smart_move(HOME);
+		await sell_and_bank();
+		await delay(500);
+	}
+
+	game_log("✅ Loot collection task complete.");
+	merchant_task = "Idle";
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // MERCHANT SELL AND BANK ITEMS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -260,96 +386,7 @@ function buy_pots() {
 // CHECK FOR LOOT AND TRANSFER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const INVENTORY_QUEUE		= ["Ulric", "Myras", "Riva"];
-const INVENTORY_THRESHOLD  	= 20;
-const SELLING_LOCATION     	= { map: "main", x: -20, y: -100 };
-const INVENTORY_LOCK_DURATION  	= 5000; // 5 seconds max lock
-let currently_processing    	= false;
-let inventory_lock_timestamp    = 0;
 
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function check_remote_inventories() {
-    const now = Date.now();
-
-    // Prevent overlapping calls
-    if (currently_processing && now - inventory_lock_timestamp < INVENTORY_LOCK_DURATION) {
-        game_log("⏳ Inventory check already in progress.");
-        return;
-    }
-
-    currently_processing = true;
-    inventory_lock_timestamp = now;
-
-    const initial_count = character.items.filter(Boolean).length;
-    let resolved = false;
-
-    const cleanup = () => {
-        for (const t of INVENTORY_QUEUE) remove_cm_listener(listeners[t]);
-        currently_processing = false;
-        inventory_lock_timestamp = 0;
-        INVENTORY_QUEUE.length = 0;
-        INVENTORY_QUEUE.push("Ulric", "Myras", "Riva");
-    };
-
-    const listeners = {};
-
-    for (const target of INVENTORY_QUEUE) {
-        listeners[target] = (name, data) => {
-            if (resolved || name !== target || data?.type !== "inventory_status") return;
-            if (data.count <= INVENTORY_THRESHOLD) return;
-
-            resolved = true;
-
-            (async () => {
-                try {
-                    game_log(`📦 ${target} has ${data.count} items. Transferring...`);
-                    move_to_character(target);
-                    await delay(3000);
-                    send_cm(target, { type: "send_inventory" });
-
-                    // Wait for item increase
-                    while (character.items.filter(Boolean).length <= initial_count) {
-                        await delay(500);
-                    }
-
-                    // Wait for stable inventory
-                    let stable_ticks = 0, last = character.items.filter(Boolean).length;
-                    while (stable_ticks < 4) {
-                        await delay(500);
-                        const current = character.items.filter(Boolean).length;
-                        if (current === last) {
-                            stable_ticks++;
-                        } else {
-                            last = current;
-                            stable_ticks = 0;
-                        }
-                    }
-
-                    await smart_move(SELLING_LOCATION);
-                    await sell_and_bank();
-                } catch (e) {
-                    console.error("❌ Inventory transfer error:", e);
-                } finally {
-                    cleanup();
-                }
-            })();
-        };
-
-        add_cm_listener(listeners[target]);
-        send_cm(target, { type: "check_inventory" });
-    }
-
-    // Global timeout fallback
-    setTimeout(() => {
-        if (!resolved) {
-            game_log("⚠️ No valid inventory responses received. Skipping.");
-            cleanup();
-        }
-    }, INVENTORY_LOCK_DURATION);
-}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SIMPLE FISHING SCRIPT WITH AUTO-EQUIP
