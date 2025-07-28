@@ -273,20 +273,25 @@ async function collect_loot() {
 	merchant_task = "Collecting Loot";
 	const targets = [];
 
-	// Ask each party member if they have loot
+	// Send CM requests
 	for (const name of PARTY) {
 		request_loot_status(name);
 	}
 
-	// Wait for responses
-	for (let i = 0; i < 10; i++) {
-		await delay(300);
-		for (const name of PARTY) {
-			if (loot_responses[name] !== null && loot_responses[name] >= ITEM_THRESHOLD) {
-				targets.push(name);
-				loot_responses[name] = null; // Reset after handling
-			}
+	// Wait up to 3 seconds for all responses
+	await delay(3000);
+
+	for (const name of PARTY) {
+		if (loot_responses[name] !== null && loot_responses[name] >= ITEM_THRESHOLD) {
+			targets.push(name);
 		}
+		loot_responses[name] = null; // Safe to clear here
+	}
+
+	if (targets.length === 0) {
+		game_log("📭 No party members had enough loot to collect.");
+		merchant_task = "Idle";
+		return;
 	}
 
 	// Visit each target and collect loot
@@ -321,6 +326,7 @@ async function collect_loot() {
 	game_log("✅ Loot collection task complete.");
 	merchant_task = "Idle";
 }
+
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MERCHANT SELL AND BANK ITEMS
