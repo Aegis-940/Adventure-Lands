@@ -39,37 +39,50 @@ const PARTY = ["Ulric", "Myras", "Riva"];
 const HOME = { map: "main", x: -89, y: -116 };
 
 async function check_and_deliver_pots() {
+	game_log("🔍 Starting potion check...");
 	let delivered_any = false;
 
 	for (const name of PARTY) {
+		game_log(`📦 Checking ${name}'s inventory...`);
 		const target = parent.party[name];
-		if (!target || !target.items) continue;
+		if (!target || !target.items) {
+			game_log(`⚠️ ${name} not found or has no items. Skipping.`);
+			continue;
+		}
 
 		let needs_pots = [];
 
-		// Count potions remotely using party data
 		for (const pot of POTION_TYPES) {
 			let count = 0;
 			for (const item of target.items) {
 				if (item?.name === pot) count += item.q || 1;
 			}
-			if (count < POTION_THRESHOLD) needs_pots.push(pot);
+			game_log(`   ➤ ${name} has ${count} ${pot}`);
+			if (count < POTION_THRESHOLD) {
+				game_log(`   🔴 Needs ${pot}`);
+				needs_pots.push(pot);
+			}
 		}
 
-		if (needs_pots.length === 0) continue;
+		if (needs_pots.length === 0) {
+			game_log(`✅ ${name} has enough potions. Skipping.`);
+			continue;
+		}
 
-		// Move to character and deliver
+		game_log(`🚚 Moving to ${name} to deliver potions...`);
 		await move_to_character(name);
 		await delay(500);
 
 		for (const pot of needs_pots) {
 			let qty_left = POTION_AMOUNT;
+			game_log(`📦 Delivering ${POTION_AMOUNT} of ${pot} to ${name}`);
 
 			for (let i = 0; i < character.items.length; i++) {
 				const item = character.items[i];
 				if (!item || item.name !== pot) continue;
 
 				const send_qty = Math.min(qty_left, item.q || 1);
+				game_log(`   ➤ Sending ${send_qty} ${pot} (slot ${i})`);
 				send_item(name, i, send_qty);
 				qty_left -= send_qty;
 				delivered_any = true;
@@ -77,13 +90,20 @@ async function check_and_deliver_pots() {
 
 				if (qty_left <= 0) break;
 			}
+
+			if (qty_left > 0) {
+				game_log(`⚠️ Not enough ${pot} to send full amount`);
+			}
 		}
 
 		await delay(250);
 	}
 
 	if (delivered_any) {
+		game_log("🏠 Returning to home after delivery...");
 		await smart_move(HOME);
+	} else {
+		game_log("📭 No deliveries needed. Staying put.");
 	}
 }
 
