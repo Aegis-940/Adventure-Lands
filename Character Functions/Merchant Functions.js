@@ -110,14 +110,17 @@ async function request_potion_counts(name) {
     return null;
 }
 
-// CM listener for potion counts
 add_cm_listener((name, data) => {
-	if (data.type === "my_potions" && PARTY.includes(name)) {
-		potion_counts[name] = {
-			hpot1: data.hpot1 || 0,
-			mpot1: data.mpot1 || 0
-		};
-		game_log(`🐞 [DEBUG] Potion CM from ${name}: hpot1=${data.hpot1}, mpot1=${data.mpot1}`);
+	try {
+		if (data.type === "my_potions" && PARTY.includes(name)) {
+			potion_counts[name] = {
+				hpot1: data.hpot1 || 0,
+				mpot1: data.mpot1 || 0
+			};
+			game_log(`🐞 [DEBUG] Potion CM from ${name}: hpot1=${data.hpot1}, mpot1=${data.mpot1}`);
+		}
+	} catch (e) {
+		game_log("🔥 CM listener threw an error:", e.message);
 	}
 });
 
@@ -221,7 +224,6 @@ async function try_deliver_to(name, hpot_needed, mpot_needed) {
 
 	if (delivered) {
 		game_log(`✅ Delivered potions to ${name}`);
-		stop();
 	}
 
 	return delivered;
