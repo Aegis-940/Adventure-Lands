@@ -92,17 +92,9 @@ async function request_potion_counts(name) {
     potion_counts[name] = null;
     send_cm(name, { type: "what_potions" });
 
-    for (let i = 0; i < 10; i++) {
-        // 🔍 FAULT-FIND: trace each loop entry
-        game_log(`🐞 [TRACE] loop ${i} before delay, potion_counts[${name}] = ${JSON.stringify(potion_counts[name])}`);
-	await delay(300);
-	game_log("delay");
-
-        if (potion_counts[name]) {
-            game_log(`🧪 [Debug] potion_counts[${name}] received: ${JSON.stringify(potion_counts[name])}`);
-            return potion_counts[name];
-        }
-    }
+	if (potion_counts[name]) {
+	    return potion_counts[name];
+	}
 
     game_log(`⚠️ No potion count received from ${name}`);
     return null;
