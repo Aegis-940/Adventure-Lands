@@ -220,7 +220,6 @@ async function try_deliver_to(name, hpot_needed, mpot_needed) {
 // CHECK FOR LOOT AND COLLECT
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const PARTY = ["Ulric", "Myras", "Riva"];
 const DELIVERY_RADIUS = 400;
 const HOME = { map: "main", x: -89, y: -116 };
 const loot_responses = {};
