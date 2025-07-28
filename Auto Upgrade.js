@@ -2,20 +2,20 @@
 // CONFIG
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const UPGRADE_INTERVAL = 75;  // ms between attempts
+const UPGRADE_INTERVAL = 75;
 
 const upgradeProfile = {
-  pouchbow:    {scroll0_until: 3, scroll1_until: 6, scroll2_until: 8, primling_from: 7},
-  fireblade:   {scroll0_until: 2, scroll1_until: 5, scroll2_until: 7, primling_from: 6},
-  hbow:        {scroll0_until: 3, scroll1_until: 6, scroll2_until: 8, primling_from: 7},
+  pouchbow:  { scroll0_until: 3, scroll1_until: 6, scroll2_until: 8, primling_from: 7, max_level: 8 },
+  fireblade: { scroll0_until: 2, scroll1_until: 5, scroll2_until: 7, primling_from: 6, max_level: 7 },
+  hbow:      { scroll0_until: 3, scroll1_until: 6, scroll2_until: 8, primling_from: 7, max_level: 8 },
   // Add more items as needed
 };
 
 const combineProfile = {
-  wbook0:      {scroll0_until: 2, scroll1_until: 4, scroll2_until: 6, primling_from: 4},
-  dexring:     {scroll0_until: 2, scroll1_until: 4, scroll2_until: 6, primling_from: 4},
-  strring:     {scroll0_until: 2, scroll1_until: 4, scroll2_until: 6, primling_from: 4},
-  intring:     {scroll0_until: 2, scroll1_until: 4, scroll2_until: 6, primling_from: 4},
+  wbook0:  { scroll0_until: 2, scroll1_until: 4, scroll2_until: 6, primling_from: 4, max_level: 4 },
+  dexring: { scroll0_until: 2, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 3 },
+  strring: { scroll0_until: 2, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 3 },
+  intring: { scroll0_until: 2, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 3 },
   // Add more items as needed
 };
 
@@ -33,7 +33,9 @@ function upgrade_once() {
     if (!item) continue;
 
     const profile = upgradeProfile[item.name];
-    if (!profile || item.level >= profile.scroll2_until) continue;
+    if (!profile) continue;
+
+    if (profile.max_level !== undefined && item.level >= profile.max_level) continue;
 
     // Choose scroll based on level thresholds
     let scrollname = null;
@@ -51,7 +53,7 @@ function upgrade_once() {
       const [pSlot, prim] = find_item(it => it.name === "offeringp");
       if (!prim) {
         game_log("⚠️ Missing primling, skipping upgrade");
-        continue; // Or return false;
+        continue;
       }
       offering_slot = pSlot;
     }
@@ -68,6 +70,7 @@ function upgrade_once() {
       offering_num: offering_slot,
       clevel: item.level,
     });
+
     return true;
   }
   return false;
@@ -80,12 +83,12 @@ function upgrade_once() {
 function compound_once() {
   const buckets = new Map();
 
-  // Step 1: Build buckets by item name and level
   character.items.forEach((item, idx) => {
     if (!item) return;
 
     const profile = combineProfile[item.name];
-    if (!profile || item.level >= profile.scroll2_until) return;
+    if (!profile) return;
+    if (profile.max_level !== undefined && item.level >= profile.max_level) return;
 
     const key = `${item.name}:${item.level}`;
     if (!buckets.has(key)) {
@@ -95,13 +98,13 @@ function compound_once() {
     }
   });
 
-  // Step 2: Attempt compound from bucketed items
   for (const [key, entries] of buckets) {
     const [level, grade, slots] = entries;
     if (slots.length < 3) continue;
 
     const [itemName] = key.split(":");
     const profile = combineProfile[itemName];
+    if (!profile) continue;
 
     let scrollname = null;
     if (level < profile.scroll0_until) {
@@ -112,7 +115,6 @@ function compound_once() {
       scrollname = "cscroll2";
     }
 
-    // Look for primling
     let offering_slot = null;
     if (profile.primling_from !== undefined && level >= profile.primling_from) {
       const [pSlot, prim] = find_item(it => it.name === "offeringp");
