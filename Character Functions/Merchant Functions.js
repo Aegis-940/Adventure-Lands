@@ -3,30 +3,10 @@
 // MERCHANT ACTIVITY QUEUE SYSTEM
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let merchant_busy = false;
+let merchant_activity = null;
+let merchant_activity_list = ["Delivering Potions", "Fishing", "Mining"];
 const merchant_queue = [];
 
-function queue_merchant_action(action_name, action_fn) {
-    merchant_queue.push({ name: action_name, fn: action_fn });
-    process_merchant_queue();
-}
-
-async function process_merchant_queue() {
-    if (merchant_busy || merchant_queue.length === 0) return;
-
-    merchant_busy = true;
-    const { name, fn } = merchant_queue.shift();
-
-    try {
-        game_log(`🔁 Executing: ${name}`);
-        await fn();
-    } catch (err) {
-        game_log(`⚠️ Error in action "${name}": ${err.message}`);
-    }
-
-    merchant_busy = false;
-    setTimeout(process_merchant_queue, 100); // small delay before next
-}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // DELIVER POTS ON A LOOP
@@ -427,11 +407,13 @@ async function go_fish() {
 		return;
 	}
 
+	merchant_busy = true; // ✅ Start of fishing activity
 	game_log("*** Moving to fishing spot... ***");
 	await smart_move(FISHING_SPOT);
 
 	if (!atFishingSpot()) {
 		game_log("*** Not at fishing spot. Aborting. ***");
+		merchant_busy = false; // ✅ Abort early
 		return;
 	}
 
@@ -439,11 +421,15 @@ async function go_fish() {
 
 	while (true) {
 		// Pre-cast checks
-		if (is_on_cooldown("fishing")) return;
+		if (is_on_cooldown("fishing")) {
+			merchant_busy = false; // ✅ Exit due to cooldown
+			return;
+		}
 
 		if (character.slots.mainhand?.name !== "rod") {
 			await delay(500);
 			game_log("*** Fishing rod not equipped or broken ***");
+			merchant_busy = false; // ✅ Exit due to rod failure
 			break;
 		}
 
@@ -452,6 +438,7 @@ async function go_fish() {
 			await smart_move(FISHING_SPOT);
 			if (!atFishingSpot()) {
 				game_log("*** Failed to return to fishing spot. Aborting. ***");
+				merchant_busy = false; // ✅ Failed to return
 				break;
 			}
 			continue;
@@ -484,6 +471,8 @@ async function go_fish() {
 
 		await delay(500);
 	}
+
+	merchant_busy = false; // ✅ End of fishing loop
 }
 
 
@@ -493,7 +482,7 @@ async function go_fish() {
 
 async function go_mine() {
 	const MINING_SPOT = { map: "tunnel", x: 244, y: -153 };
-	const POSITION_TOLERANCE = 10; // how close is “close enough”
+	const POSITION_TOLERANCE = 10;
 
 	function atMiningSpot() {
 		return character.map === MINING_SPOT.map &&
@@ -524,20 +513,24 @@ async function go_mine() {
 		return;
 	}
 
-	// Move to mining spot
+	merchant_busy = true; // ✅ Begin mining process
 	game_log("*** Moving to mining spot... ***");
 	await smart_move(MINING_SPOT);
 
-	// Check arrival
 	if (!atMiningSpot()) {
 		game_log("*** Not at mining spot. Aborting. ***");
+		merchant_busy = false; // ✅ Failed to arrive
 		return;
 	}
 
 	game_log("*** Arrived at mining spot. Starting to mine... ***");
 
 	while (true) {
-		if (is_on_cooldown("mining")) return;
+		if (is_on_cooldown("mining")) {
+			merchant_busy = false; // ✅ Mining cooldown hit
+			return;
+		}
+
 		// Final pre-mining checks
 		if (!can_use("mining")) {
 			await delay(500);
@@ -548,6 +541,7 @@ async function go_mine() {
 		if (character.slots.mainhand?.name !== "pickaxe") {
 			await delay(500);
 			game_log("*** Pickaxe not equipped or broken ***");
+			merchant_busy = false; // ✅ Exit due to equipment fail
 			break;
 		}
 
@@ -556,12 +550,12 @@ async function go_mine() {
 			await smart_move(MINING_SPOT);
 			if (!atMiningSpot()) {
 				game_log("*** Failed to return to mining spot. Aborting. ***");
+				merchant_busy = false; // ✅ Failed to re-arrive
 				break;
 			}
 			continue;
 		}
 
-		// Snapshot inventory before mining
 		const before_items = character.items.map(i => i?.name || null);
 		await delay(500);
 		game_log("*** Starting mining attempt... ***");
@@ -570,7 +564,7 @@ async function go_mine() {
 		let success = false;
 		let attempts = 0;
 
-		while (attempts < 30) { // wait up to 30s
+		while (attempts < 30) {
 			await delay(500);
 			attempts++;
 
@@ -598,6 +592,8 @@ async function go_mine() {
 
 		await delay(500);
 	}
+
+	merchant_busy = false; // ✅ End of mining loop
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
