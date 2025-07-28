@@ -34,6 +34,7 @@ async function process_merchant_queue() {
 
 const POTION_DELIVERY_INTERVAL = 60 * 60 * 1000; // 1 hour
 const POTION_CAP = 6000;
+const MINIMUM_DELIVERED = 100; // new: must send at least 100 total
 const PARTY = ["Ulric", "Myras", "Riva"];
 const DELIVERY_RADIUS = 400;
 const HOME = { map: "main", x: -89, y: -116 };
@@ -106,18 +107,33 @@ async function deliver_potions_loop() {
 			if (!destination) continue;
 
 			game_log(`➡️ Walking to ${name} at ${destination.map}...`);
-			smart_move(destination); // Do not await
+			smart_move(destination); // Don't await
 
 			let all_sent = false;
 			let attempts = 0;
+			let has_retried_move = false;
 
 			const sent_totals = { mpot1: 0, hpot1: 0 };
 
-			while (!all_sent && attempts < 400) {
+			while (!all_sent && attempts < 40) {
 				await delay(300);
 				const target_char = get_player(name);
-				if (!target_char || distance(character, target_char) > DELIVERY_RADIUS) {
+				const in_range = target_char && distance(character, target_char) <= DELIVERY_RADIUS;
+
+				if (!in_range) {
 					attempts++;
+
+					// Retry move once if the target drifted away
+					if (attempts === 10 && !has_retried_move) {
+						game_log(`🔁 ${name} moved. Attempting re-approach...`);
+						const new_dest = await request_location(name);
+						if (new_dest) {
+							await smart_move(new_dest);
+							has_retried_move = true;
+							attempts = 0;
+						}
+					}
+
 					continue;
 				}
 
@@ -141,7 +157,7 @@ async function deliver_potions_loop() {
 						send_item(name, i, send_qty);
 						sent_totals[pot] += send_qty;
 						to_send -= send_qty;
-						await delay(200); // Allow inventory update
+						await delay(200);
 						any_delivered = true;
 
 						if (to_send <= 0) break;
@@ -150,7 +166,7 @@ async function deliver_potions_loop() {
 
 				if (any_delivered) {
 					game_log(`🧃 Sent potions to ${name}, checking inventory...`);
-					await delay(1000); // Wait longer for recipient inventory to sync
+					await delay(1000); // Allow CM to update
 				}
 
 				const check_again = await request_potion_counts(name);
@@ -161,9 +177,11 @@ async function deliver_potions_loop() {
 				);
 			}
 
-			if (all_sent) {
+			const total_delivered = sent_totals.hpot1 + sent_totals.mpot1;
+
+			if (all_sent || total_delivered >= MINIMUM_DELIVERED) {
 				stop();
-				game_log(`✅ Successfully delivered all potions to ${name}`);
+				game_log(`✅ Delivered ${total_delivered} potions to ${name}`);
 				delivered_to.add(name);
 			} else {
 				game_log(`⚠️ Could not fully deliver to ${name} after timeout`);
