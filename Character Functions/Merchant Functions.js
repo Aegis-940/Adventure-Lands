@@ -3,8 +3,8 @@
 // MERCHANT ACTIVITY QUEUE SYSTEM
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let merchant_activity = null;
-let merchant_activity_list = ["Delivering Potions", "Fishing", "Mining"];
+let merchant_task = "Idle";
+let merchant_task_list = ["Delivering Potions", "Fishing", "Mining", "Idle"];
 const merchant_queue = [];
 
 
@@ -62,7 +62,7 @@ add_cm_listener((name, data) => {
 
 async function deliver_potions_loop() {
 	while (true) {
-		merchant_busy = true;
+		merchant_task = "Delivering Potions"
 		for (const name of PARTY) {
 			let target_pots = await request_potion_counts(name);
 			if (!target_pots) continue;
@@ -121,7 +121,7 @@ async function deliver_potions_loop() {
 		await smart_move(HOME);
 
 		game_log("⏳ Potion delivery loop complete. Resting...");
-		merchant_busy = false;
+		merchant_task = "Idle"
 		await delay(POTION_DELIVERY_INTERVAL);
 	}
 }
@@ -407,13 +407,13 @@ async function go_fish() {
 		return;
 	}
 
-	merchant_busy = true; // ✅ Start of fishing activity
+	merchant_task = "Fishing"
 	game_log("*** Moving to fishing spot... ***");
 	await smart_move(FISHING_SPOT);
 
 	if (!atFishingSpot()) {
 		game_log("*** Not at fishing spot. Aborting. ***");
-		merchant_busy = false; // ✅ Abort early
+		merchant_task = "Idle"
 		return;
 	}
 
@@ -422,14 +422,14 @@ async function go_fish() {
 	while (true) {
 		// Pre-cast checks
 		if (is_on_cooldown("fishing")) {
-			merchant_busy = false; // ✅ Exit due to cooldown
+			merchant_task = "Idle"
 			return;
 		}
 
 		if (character.slots.mainhand?.name !== "rod") {
 			await delay(500);
 			game_log("*** Fishing rod not equipped or broken ***");
-			merchant_busy = false; // ✅ Exit due to rod failure
+			merchant_task = "Idle"
 			break;
 		}
 
@@ -438,7 +438,7 @@ async function go_fish() {
 			await smart_move(FISHING_SPOT);
 			if (!atFishingSpot()) {
 				game_log("*** Failed to return to fishing spot. Aborting. ***");
-				merchant_busy = false; // ✅ Failed to return
+				merchant_task = "Idle"
 				break;
 			}
 			continue;
@@ -472,7 +472,7 @@ async function go_fish() {
 		await delay(500);
 	}
 
-	merchant_busy = false; // ✅ End of fishing loop
+	merchant_task = "Idle"
 }
 
 
@@ -513,13 +513,13 @@ async function go_mine() {
 		return;
 	}
 
-	merchant_busy = true; // ✅ Begin mining process
+	merchant_task = "Mining"
 	game_log("*** Moving to mining spot... ***");
 	await smart_move(MINING_SPOT);
 
 	if (!atMiningSpot()) {
 		game_log("*** Not at mining spot. Aborting. ***");
-		merchant_busy = false; // ✅ Failed to arrive
+		merchant_task = "Idle"
 		return;
 	}
 
@@ -527,7 +527,7 @@ async function go_mine() {
 
 	while (true) {
 		if (is_on_cooldown("mining")) {
-			merchant_busy = false; // ✅ Mining cooldown hit
+			merchant_task = "Idle"
 			return;
 		}
 
@@ -541,7 +541,7 @@ async function go_mine() {
 		if (character.slots.mainhand?.name !== "pickaxe") {
 			await delay(500);
 			game_log("*** Pickaxe not equipped or broken ***");
-			merchant_busy = false; // ✅ Exit due to equipment fail
+			merchant_task = "Idle"
 			break;
 		}
 
@@ -550,7 +550,7 @@ async function go_mine() {
 			await smart_move(MINING_SPOT);
 			if (!atMiningSpot()) {
 				game_log("*** Failed to return to mining spot. Aborting. ***");
-				merchant_busy = false; // ✅ Failed to re-arrive
+				merchant_task = "Idle"
 				break;
 			}
 			continue;
@@ -593,7 +593,7 @@ async function go_mine() {
 		await delay(500);
 	}
 
-	merchant_busy = false; // ✅ End of mining loop
+	merchant_task = "Idle"
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
