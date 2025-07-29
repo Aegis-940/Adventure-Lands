@@ -280,7 +280,6 @@ async function collect_loot() {
 
 	for (const name of PARTY) {
 		const count = loot_responses[name];
-		game_log(`🔍 ${name} responded with ${count} items.`);
 		if (count !== null && count >= ITEM_THRESHOLD) {
 			targets.push(name);
 		}
@@ -300,7 +299,6 @@ async function collect_loot() {
 			continue;
 		}
 
-		game_log(`🚶 Moving to ${name} at (${destination.map}, ${destination.x}, ${destination.y})`);
 		let arrived = false;
 		let collected = false;
 
