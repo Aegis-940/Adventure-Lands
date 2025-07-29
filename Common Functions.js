@@ -109,14 +109,7 @@ const CM_HANDLERS = {
 	},
 
 	"send_loot": async (name) => {
-		send_gold(99999999);
-		for (let i = character.items.length - 1; i >= 7; i--) {
-			const item = character.items[i];
-			if (item) {
-				await delay(50);
-				send_item(name, i);
-			}
-		}
+		send_to_merchant()
 	}
 };
 
@@ -213,7 +206,7 @@ function send_to_merchant() {
         return;
     }
 
-    for (let i = 7; i < character.items.length; i++) {
+    for (let i = LOOT_THRESHOLD; i < character.items.length; i++) {
         const item = character.items[i];
         if (item) {
             send_item(merchant_name, i, item.q || 1);
