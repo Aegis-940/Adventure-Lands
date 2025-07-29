@@ -6,7 +6,7 @@ let css = `
         .party-container {
             position: absolute;
             top: 55px;
-            left: -15%;
+            left: 0%;
             width: 1000px; 
             height: 300px;
             transform: translate(0%, 0);
