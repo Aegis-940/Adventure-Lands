@@ -72,7 +72,7 @@ async function merchant_task_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const POTION_CAP = 6000;
-const MINIMUM_DELIVERED = 1000;
+const MINIMUM_DELIVERED = 2000;
 const PARTY = ["Ulric", "Myras", "Riva"];
 const DELIVERY_RADIUS = 400;
 const HOME = { map: "main", x: -89, y: -116 };
