@@ -111,6 +111,7 @@ const CM_HANDLERS = {
 	},
 
 	"send_loot": async (name) => {
+		send_gold(99999999);
 		for (let i = character.items.length - 1; i >= 7; i--) {
 			const item = character.items[i];
 			if (item) {
@@ -118,7 +119,6 @@ const CM_HANDLERS = {
 				send_item(name, i);
 			}
 		}
-		send_gold(99999999);
 	}
 };
 
