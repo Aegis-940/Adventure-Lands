@@ -63,7 +63,7 @@ async function merchant_task_loop() {
 			merchant_task = "Idle";
 		}
 
-		await delay(500); // check periodically
+		await delay(1000); // check periodically
 	}
 }
 
