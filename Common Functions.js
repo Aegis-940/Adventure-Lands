@@ -196,7 +196,7 @@ function scan_bank_inventory() {
 // TRANSFER LOOT TO MERCHANT
 // -------------------------------------------------------------------- //
 
-function send_to_merchant() {
+asynch function send_to_merchant() {
     const merchant_name = MERCHANT_NAME;          // "Riff"
     const merchant = get_player(merchant_name);   // ← use get_player, not parent.entities
 
