@@ -141,6 +141,7 @@ add_cm_listener((name, data) => {
 });
 
 async function deliver_potions() {
+	game_log("Starting Potions Delivery...");
 	for (const name of PARTY) {
 		if (
 			recent_deliveries[name] &&
@@ -149,7 +150,6 @@ async function deliver_potions() {
 			continue;
 		}
 
-		game_log(`🔍 Starting delivery check for ${name}`);
 		let target_pots = await request_potion_counts(name);
 		if (!target_pots) continue;
 
