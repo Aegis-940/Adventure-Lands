@@ -92,9 +92,7 @@ const CM_HANDLERS = {
 		});
 	},
 
-	"what_potions": (name) => {
-		game_log(`📦 Got 'what_potions' from ${name}`);  // Already here
-	
+	"what_potions": (name) => {	
 		const counts = {};
 		for (const pot of POTION_TYPES) {
 			counts[pot] = character.items.reduce((sum, item) =>
@@ -250,32 +248,6 @@ function party_manager() {
     }
 }
 
-function check_and_request_pots() {
-    if (new Date() - last_potion_request < REQUEST_COOLDOWN) return;
-    last_potion_request = new Date();
-
-    const hp_pot_index = locate_item("hpot1");
-    const mp_pot_index = locate_item("mpot1");
-    const hp_count = hp_pot_index !== -1 ? character.items[hp_pot_index].q : 0;
-    const mp_count = mp_pot_index !== -1 ? character.items[mp_pot_index].q : 0;
-
-    if (hp_count < HP_POT_THRESHOLD) {
-        send_cm("Riff", {
-            type: "request_pots",
-            item: "hpot1",
-            quantity: 3000
-        });
-    }
-
-    if (mp_count < MP_POT_THRESHOLD) {
-        send_cm("Riff", {
-            type: "request_pots",
-            item: "mpot1",
-            quantity: 3000 // Adjust as needed
-        });
-    }
-}
-
 function move_to_character(name, timeout_ms = 10000) {
     // Prevent multiple overlapping handlers
     let responded = false;
@@ -309,41 +281,6 @@ function move_to_character(name, timeout_ms = 10000) {
             game_log(`⚠️ No location response from ${name} within ${timeout_ms / 1000}s`);
         }
     }, timeout_ms);
-}
-
-// -------------------------------------------------------------------- //
-// WAIT FOR MERCHANT AND SEND LOOT
-// -------------------------------------------------------------------- //
-
-async function wait_for_merchant_and_send() {
-    game_log("📦 Waiting for merchant...");
-
-    let attempts = 0;
-    let merchant = null;
-
-    while (attempts < 40) {
-        merchant = get_player("Riff");
-
-        if (merchant && !merchant.rip && merchant.map === character.map &&
-            distance(character, merchant) <= 400
-        ) {
-            break; // Merchant is ready
-        }
-
-        await delay(5000);
-        attempts++;
-    }
-
-    if (merchant && !merchant.rip && merchant.map === character.map &&
-        distance(character, merchant) <= 400
-    ) {
-        send_to_merchant()
-
-        send_gold("Riff", 999999999); // Optional
-        game_log("✅ Sent inventory and gold to merchant");
-    } else {
-        game_log("⚠️ Merchant not reachable after 10 seconds");
-    }
 }
 
 function hide_skills_ui() {
