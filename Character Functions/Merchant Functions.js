@@ -440,10 +440,10 @@ function hasTool(toolName) {
 async function go_fish() {
 	const FISHING_SPOT = { map: "main", x: -1116, y: -285 };
 	const POSITION_TOLERANCE = 10;
-	const MAX_FISHING_WAIT = 9000; // Max wait for one fishing cast
+	const MAX_FISHING_WAIT = 9000;
 	const POLL_INTERVAL = 200;
 
-	const HOME = { map: "main", x: -89, y: -116 }; // Customize if needed
+	const HOME = { map: "main", x: -89, y: -116 };
 
 	const atFishingSpot = () =>
 		character.map === FISHING_SPOT.map &&
@@ -451,7 +451,6 @@ async function go_fish() {
 
 	const hasRodEquipped = () => character.slots.mainhand?.name === "rod";
 
-	// Equip rod if not equipped
 	if (!hasRodEquipped()) {
 		const rod_index = character.items.findIndex(item => item?.name === "rod");
 		if (rod_index === -1) {
@@ -466,7 +465,6 @@ async function go_fish() {
 		return;
 	}
 
-	// Move to fishing spot
 	if (!atFishingSpot()) {
 		game_log("📍 Heading to fishing spot...");
 		await smart_move(FISHING_SPOT);
@@ -479,8 +477,7 @@ async function go_fish() {
 
 	game_log("🎣 At fishing spot. Starting loop...");
 
-	while (true) {
-		// Exit conditions
+	while (!is_on_cooldown("fishing")) {
 		if (!hasRodEquipped()) break;
 		if (!atFishingSpot()) break;
 		if (character.items.filter(Boolean).length >= character.items.length) {
@@ -488,36 +485,13 @@ async function go_fish() {
 			break;
 		}
 
-		// Wait for cooldown
 		while (is_on_cooldown("fishing")) {
 			await delay(POLL_INTERVAL);
 		}
 
-		// Cast fishing
 		game_log("🎣 Casting...");
 		use_skill("fishing");
-
-		// Wait for q.fishing to appear
-		let wait_for_start = 0;
-		while (!character.q?.fishing && wait_for_start < 2000) {
-			await delay(POLL_INTERVAL);
-			wait_for_start += POLL_INTERVAL;
-		}
-
-		// If it never started, fallback to full wait
-		if (!character.q?.fishing) {
-			game_log("⚠️ Fishing did not start. Waiting fallback duration.");
-			await delay(MAX_FISHING_WAIT);
-			continue;
-		}
-
-		// Wait for fishing to end or timeout
-		let total_wait = 0;
-		while (character.q?.fishing && total_wait < MAX_FISHING_WAIT) {
-			await delay(POLL_INTERVAL);
-			total_wait += POLL_INTERVAL;
-		}
-
+		await delay(MAX_FISHING_WAIT);
 		game_log("✅ Fishing attempt complete.");
 	}
 
