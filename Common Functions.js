@@ -100,8 +100,6 @@ const CM_HANDLERS = {
 			counts[pot] = character.items.reduce((sum, item) =>
 				item?.name === pot ? sum + (item.q || 1) : sum, 0);
 		}
-	
-		game_log(`📤 Replying to ${name} with potions: hpot1=${counts.hpot1}, mpot1=${counts.mpot1}`);
 		send_cm(name, { type: "my_potions", ...counts });
 	},
 
