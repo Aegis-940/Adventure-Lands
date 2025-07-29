@@ -197,23 +197,27 @@ function scan_bank_inventory() {
 // -------------------------------------------------------------------- //
 
 function send_to_merchant() {
-    const merchant_name = "Riff";
-    const merchant = parent.entities[merchant_name];
+    const merchant_name = MERCHANT_NAME;          // "Riff"
+    const merchant = get_player(merchant_name);   // ← use get_player, not parent.entities
 
-    // Check if merchant is valid and nearby
-    if (!merchant || merchant.rip || merchant.map !== character.map || distance(character, merchant) > 400) {
-        game_log("Merchant not nearby or unavailable");
-        return;
+    if (!merchant || merchant.rip) {
+        return game_log("❌ Merchant not found or dead");
+    }
+    if (merchant.map !== character.map || distance(character, merchant) > DELIVERY_RADIUS) {
+        return game_log("❌ Merchant not nearby");
     }
 
+    // Send every item in slots ≥ LOOT_THRESHOLD
     for (let i = LOOT_THRESHOLD; i < character.items.length; i++) {
         const item = character.items[i];
         if (item) {
             send_item(merchant_name, i, item.q || 1);
         }
     }
-
-    send_gold(merchant_name, character.gold);
+    // Then send all gold
+    if (character.gold > 0) {
+        send_gold(merchant_name, character.gold);
+    }
 }
 
 function is_in_party(name) {
