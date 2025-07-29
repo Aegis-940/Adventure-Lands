@@ -20,7 +20,6 @@ create_map_movement_window([
   { id: "custom6", label: "Custom 6", onClick: () => null }
 ]);
 
-//toggle_inventory_check();
 add_bank_buttons();
 hide_skills_ui();
 
@@ -33,28 +32,9 @@ merchant_task_loop();
 setInterval(async () => {
 	const now = Date.now();
 
-/*
-	// ─────────────────────────────────────
-	// Priority 3: Mine if Possible
-	// ─────────────────────────────────────
-	if (!is_on_cooldown("mining") && hasTool("pickaxe")) {
-		queue_merchant_action("Go Mine", async () => {
-			await go_mine();
-		});
-	}
-	
-	// ─────────────────────────────────────
-	// Priority 4: Fish if Possible
-	// ─────────────────────────────────────
-	else if (!is_on_cooldown("fishing") && hasTool("rod")) {
-		queue_merchant_action("Go Fish", async () => {
-			await go_fish();
-		});
-	}
-*/
-	// Other non-critical tasks could go here…
 
-		// Detect death and record time
+
+	// Detect death and record time
 	if (character.rip && last_death_time === 0) {
 		last_death_time = Date.now();
 	}
