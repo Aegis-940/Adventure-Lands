@@ -109,7 +109,7 @@ const CM_HANDLERS = {
 	},
 
 	"send_loot": async (name) => {
-		send_to_merchant()
+    		await send_to_merchant();
 	}
 };
 
