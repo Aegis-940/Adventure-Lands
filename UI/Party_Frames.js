@@ -3,16 +3,19 @@ if (parent.party_style_prepared) {
 }
 
 let css = `
-        .party-container {
-            position: absolute;
-            top: 55px;
-            left: -55%;
-            width: 1000px; 
-            height: 300px;
-            transform: translate(0%, 0);
-			fontFamily: 'pixel';
-        }
-    `;
+    .party-container {
+        position: absolute;
+        top: 55px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 480px;
+        height: auto;
+        font-family: 'pixel';
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+    }
+`;
 //width normal is 480px, translate 8% normal
 parent.$('head').append(`<style id="style-party-frames">${css}</style>`);
 parent.party_style_prepared = true;
