@@ -114,6 +114,7 @@ const CM_HANDLERS = {
 		for (let i = character.items.length - 1; i >= 7; i--) {
 			const item = character.items[i];
 			if (item) {
+				await delay(50);
 				send_item(name, i);
 			}
 		}
