@@ -203,7 +203,7 @@ async function send_to_merchant() {
     if (!merchant || merchant.rip) {
         return game_log("❌ Merchant not found or dead");
     }
-    if (merchant.map !== character.map || distance(character, merchant) > DELIVERY_RADIUS) {
+    if (merchant.map !== character.map || distance(character, merchant) > 400) {
         return game_log("❌ Merchant not nearby");
     }
 
