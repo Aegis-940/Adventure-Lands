@@ -335,6 +335,7 @@ async function collect_loot() {
 const SELLABLE_ITEMS = ["hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "wbook0", "wshoes", "wcap", "cclaw", "crabclaw", "slimestaff", "stinger", "coat1", "helmet1",
 		       "gloves1", "pants1", "mushroomstaff", "wbreeches", "shoes1", "vitring", "helmet", "shoes", "pants", "gloves", "coat"];
 const BANKABLE_ITEMS = ["dexring", "strring", "intring", "dexbelt", "strbelt", "intbelt", "dexamulet", "stramulet", "intamulet", "dexearring", "strearring", "intearring"];
+const BANK_LOCATION = { map: "bank", x: 0, y: -37 };
 
 async function sell_and_bank() {
 	// Only run when not moving
@@ -356,9 +357,10 @@ async function sell_and_bank() {
 
 	// === BANKING ===
 	// Move to bank NPC (adjust coords as needed)
-	const BANK_LOCATION = { map: "bank", x: 0, y: -37 };
 	await smart_move(BANK_LOCATION);
-	await delay(3000);
+	await delay(1000);
+
+	game_log("Check 1");
 
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
