@@ -405,7 +405,7 @@ function toggle_radius_lock(radius = 200, check_interval = 500) {
 async function withdraw_item(itemName, level = null, total = null) {
 	const BANK_LOC = { map: "bank", x: 0, y: -37 };
 	await smart_move(BANK_LOC);
-	await delay(1000);
+	await delay(500);
 
 	// 1) Grab live bank data
 	let bankData = character.bank;
@@ -439,8 +439,7 @@ async function withdraw_item(itemName, level = null, total = null) {
 
 			for (let i = 0; i < takeCount; i++) {
 				await bank_retrieve(packKey, slot, -1);
-				game_log(`🏧 Retrieved ${itemName} (pack=${packKey}, slot=${slot})`);
-				await delay(200);
+				await delay(100);
 				remaining--;
 				if (remaining <= 0) break;
 			}
