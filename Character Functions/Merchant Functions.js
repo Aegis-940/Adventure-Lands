@@ -608,7 +608,7 @@ async function go_mine() {
 		let success = false;
 		let attempts = 0;
 
-		while (attempts < 30) {
+		while (attempts < 18) {
 			await delay(500);
 			attempts++;
 
@@ -630,8 +630,6 @@ async function go_mine() {
 
 		if (success) {
 			game_log("*** ⛏️ Mined something! ***");
-		} else {
-			game_log("*** ⚠️ No ore mined or timeout. ***");
 		}
 
 		await delay(500);
