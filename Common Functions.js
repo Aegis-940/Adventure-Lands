@@ -395,7 +395,8 @@ function toggle_radius_lock(radius = 200, check_interval = 500) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 /**
- * Withdraws items from your bank. Call this while standing at your bank.
+ * Withdraws items from your bank using the native `bank_retrieve` call.
+ * Call this while standing at your bank.
  *
  * @param {string} itemName         – The name of the item to withdraw.
  * @param {number|null} level       – (optional) Only withdraw items at this exact level.
@@ -419,17 +420,17 @@ async function withdraw_item(itemName, level = null, total = null) {
     let remaining = (total != null ? total : Infinity);
     let foundAny  = false;
 
-    // 2) Iterate each "items<N>" tab
-    for (const key of Object.keys(bankData)) {
-        if (!key.startsWith("items")) continue;
-        const slotArr = bankData[key];
+    // 2) Iterate each "items<N>" pack in character.bank
+    for (const packKey of Object.keys(bankData)) {
+        if (!packKey.startsWith("items")) continue;
+        const slotArr = bankData[packKey];
         if (!Array.isArray(slotArr)) continue;
 
-        // parse tab number out of "items<N>"
-        const tabIndex = parseInt(key.slice(5), 10);
+        // parse the numeric tab index for UI switching
+        const tabIndex = parseInt(packKey.slice(5), 10);
         if (!Number.isInteger(tabIndex)) continue;
 
-        // switch UI to this tab
+        // switch UI to this bank tab
         bank_move(tabIndex);
         await delay(200);
 
@@ -444,9 +445,10 @@ async function withdraw_item(itemName, level = null, total = null) {
             const takeQty   = Math.min(qtyInSlot, remaining);
             if (takeQty <= 0) continue;
 
-            // 4) Withdraw!
-            await bank_retrieve(slot, takeQty);
-            game_log(`🏧 Withdrew ${itemName} x${takeQty} (tab ${tabIndex} slot ${slot})`);
+            // 4) Retrieve using native bank_retrieve
+            //    bank_retrieve(packKey, slot, -1) → places into first free inventory slot
+            await bank_retrieve(packKey, slot, -1);
+            game_log(`🏧 Retrieved ${itemName} x${takeQty} from ${packKey}[${slot}]`);
 
             remaining -= takeQty;
         }
