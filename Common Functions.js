@@ -406,33 +406,37 @@ async function withdraw_item(itemName, level = null, total = null) {
     await smart_move(BANK_LOC);
     await delay(1000);
 
-    // 1) Grab live bank data (must have opened bank UI this session)
-    const bankData = parent.bank;
-    if (!Array.isArray(bankData) || bankData.length === 0) {
-        game_log("⚠️ parent.bank is empty. Open your bank chest to populate it.");
-        return;
+    // 1) Grab live bank data
+    let bankData = character.bank;
+    if (!bankData || Object.keys(bankData).length === 0) {
+        bankData = load_bank_from_local_storage();
+        if (!bankData) {
+            game_log("⚠️ No bank data available. Open your bank or save it first.");
+            return;
+        }
     }
-    game_log(`🔍 Found ${bankData.length} bank tabs`);
 
     let remaining = (total != null ? total : Infinity);
     let foundAny  = false;
 
-    // 2) Iterate each tab
-    for (let tabIndex = 0; tabIndex < bankData.length && remaining > 0; tabIndex++) {
-        const slotArr = bankData[tabIndex];
+    // 2) Iterate each "items<N>" tab
+    for (const key of Object.keys(bankData)) {
+        if (!key.startsWith("items")) continue;
+        const slotArr = bankData[key];
         if (!Array.isArray(slotArr)) continue;
 
-        game_log(`🔍 Checking tab ${tabIndex} (${slotArr.length} slots)`);
+        // parse tab number out of "items<N>"
+        const tabIndex = parseInt(key.slice(5), 10);
+        if (!Number.isInteger(tabIndex)) continue;
+
+        // switch UI to this tab
         bank_move(tabIndex);
         await delay(200);
 
-        // 3) Scan slots
+        // 3) Scan all slots in this tab
         for (let slot = 0; slot < slotArr.length && remaining > 0; slot++) {
             const itm = slotArr[slot];
-            if (!itm) continue;
-            game_log(`  • slot ${slot}: ${itm.name} lvl=${itm.level} q=${itm.q}`);
-
-            if (itm.name.toLowerCase() !== itemName.toLowerCase()) continue;
+            if (!itm || itm.name !== itemName) continue;
             if (level != null && itm.level !== level) continue;
 
             foundAny = true;
@@ -440,11 +444,14 @@ async function withdraw_item(itemName, level = null, total = null) {
             const takeQty   = Math.min(qtyInSlot, remaining);
             if (takeQty <= 0) continue;
 
-            // 4) Withdraw
-            game_log(`🏧 Withdrawing ${itemName} x${takeQty} (tab ${tabIndex} slot ${slot})`);
+            // 4) Withdraw!
             await bank_withdraw(slot, takeQty);
+            game_log(`🏧 Withdrew ${itemName} x${takeQty} (tab ${tabIndex} slot ${slot})`);
+
             remaining -= takeQty;
         }
+
+        if (remaining <= 0) break;
     }
 
     // 5) Summarize
