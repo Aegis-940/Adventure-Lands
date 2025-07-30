@@ -337,22 +337,44 @@ const SELLABLE_ITEMS = ["hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "w
 const BANKABLE_ITEMS = ["dexring", "strring", "intring", "dexbelt", "strbelt", "intbelt", "dexamulet", "stramulet", "intamulet", "dexearring", "strearring", "intearring"];
 
 async function sell_and_bank() {
-    // Only run when not moving
-    if (character.moving) return;
+	// Only run when not moving
+	if (character.moving) return;
 
-    await smart_move({ x: -210, y: -107, map: "main" });
-    await new Promise(resolve => setTimeout(resolve, 3000));
+	// === SELLING ===
+	// Move to vendor
+	await smart_move(HOME);
+	await delay(3000);
 
-    // === SELLING ===
-    for (let i = 0; i < character.items.length; i++) {
-        let item = character.items[i];
-        if (!item) continue;
+	for (let i = 0; i < character.items.length; i++) {
+		const item = character.items[i];
+		if (!item) continue;
+		if (SELLABLE_ITEMS.includes(item.name)) {
+			sell(i, item.q || 1);
+			game_log(`💰 Sold ${item.name} x${item.q || 1}`);
+		}
+	}
 
-        if (SELLABLE_ITEMS.includes(item.name)) {
-            sell(i, item.q || 1);
-            game_log(`Sold ${item.name}`);
-        }
-    }
+	// === BANKING ===
+	// Move to bank NPC (adjust coords as needed)
+	const BANK_LOCATION = { map: "bank", x: 0, y: -37 };
+	await smart_move(BANK_LOCATION);
+	await delay(3000);
+
+	for (let i = 0; i < character.items.length; i++) {
+		const item = character.items[i];
+		if (!item) continue;
+		if (BANKABLE_ITEMS.includes(item.name)) {
+			await bank_store(i, item.q || 1);
+			game_log(`🏦 Deposited ${item.name} x${item.q || 1} to bank`);
+		}
+	}
+
+	// === RETURN HOME ===
+	// HOME must be defined elsewhere, e.g.:
+	// const HOME = { map: "main", x: -89, y: -116 };
+	await smart_move(HOME);
+	await delay(1000);
+	game_log("🏠 Returned home after banking.");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
