@@ -362,7 +362,7 @@ async function sell_and_bank() {
 
 	game_log("Check 1");
 
-	for (let i = 0; i < character.items.length; i++) {
+	for (let i = 0; i < 36; i++) {
 		game_log("Check " + i);
 		const item = character.items[i];
 		if (!item) continue;
