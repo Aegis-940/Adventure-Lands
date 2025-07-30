@@ -3,25 +3,25 @@ if (parent.party_style_prepared) {
 }
 
 let css = `
-    .party-container {
-        position: absolute;
-        top: 55px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 480px;
-        height: auto;
-        font-family: 'pixel';
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-    }
+	.party-container {
+		position: absolute;
+		top: 55px;
+		right: 2px;
+		transform: translateX(-50%);
+		width: 480px;
+		height: auto;
+		font-family: 'pixel';
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+	}
 `;
-//width normal is 480px, translate 8% normal
 parent.$('head').append(`<style id="style-party-frames">${css}</style>`);
 parent.party_style_prepared = true;
 
+const PARTY_ORDER = ["Ulric", "Myras", "Riva", "Riff"];
 const includeThese = ['mp', 'max_mp', 'hp', 'max_hp', 'name', 'max_xp', 'name', 'xp', 'level', 'share', 'cc'];
-const partyFrameWidth = 80; // Set the desired width for the party frames
+const partyFrameWidth = 80;
 
 function updatePartyData() {
 	let myInfo = Object.fromEntries(Object.entries(character).filter(current => { return character.read_only.includes(current[0]) || includeThese.includes(current[0]); }));
@@ -34,7 +34,7 @@ setInterval(updatePartyData, 200);
 function getIFramedCharacter(name) {
 	for (const iframe of top.$('iframe')) {
 		const char = iframe.contentWindow.character;
-		if (!char) continue; // Character isn't loaded yet
+		if (!char) continue;
 		if (char.name == name) return char;
 	}
 	return null;
@@ -68,12 +68,12 @@ function addPartyFramePropertiesToggles() {
 	toggles.id = 'party-props-toggles';
 	toggles.classList.add('hidden');
 	toggles.style = `
-    display: flex; 
-    flex-wrap: wrap;
-    width: 100%;
-    max-width: 480px;
-    background-color: black;
-    margin-top: 2px;
+	display: flex; 
+	flex-wrap: wrap;
+	width: 100%;
+	max-width: 480px;
+	background-color: black;
+	margin-top: 2px;
 `;
 
 	function create_toggle(key) {
@@ -81,15 +81,15 @@ function addPartyFramePropertiesToggles() {
 		toggle.id = 'party-props-toggles-' + key;
 		toggle.setAttribute('data-key', key);
 		toggle.style = `
-        border: 1px #ccc solid; 
-        background-color: #000; 
-        color: #ccc;
-        width: 20%;
-        margin: 0px;
+		border: 1px #ccc solid; 
+		background-color: #000; 
+		color: #ccc;
+		width: 20%;
+		margin: 0px;
 		font-size: 9px;
-        padding: 5px;
+		padding: 5px;
 		cursor: pointer;
-    `;
+	`;
 		toggle.setAttribute(
 			'onclick',
 			`parent.code_eval(show_party_frame_property['${key}'] = !show_party_frame_property['${key}']; update_toggle_text('${key}'));`
@@ -101,15 +101,6 @@ function addPartyFramePropertiesToggles() {
 	for (let key of ['img', 'hp', 'mp', 'xp', 'cc']) {
 		toggles.appendChild(create_toggle(key));
 	}
-
-	//let party = parent.document.getElementById('newparty');
-	//let party_parent = party.parentNode;
-	//party_parent.append(toggles);
-
-	const rightBottomMenu = parent.document.getElementById("bottomrightcorner");
-	const gameLogUi = parent.document.getElementById("gamelog");
-	//rightBottomMenu.insertBefore(toggles, gameLogUi);
-	// reactivate if you want toggle buttons ^^^^
 }
 
 function updatePartyFrames() {
@@ -120,8 +111,10 @@ function updatePartyFrames() {
 	if (partyFrame) {
 		addPartyFramePropertiesToggles();
 
-		for (let x = 0; x < partyFrame.children().length; x++) {
-			let party_member_name = Object.keys(parent.party)[x];
+		for (let x = 0; x < PARTY_ORDER.length; x++) {
+			let party_member_name = PARTY_ORDER[x];
+			if (!parent.party[party_member_name]) continue;
+
 			let info = get(party_member_name + '_newparty_info');
 			if (!info || Date.now() - info.lastSeen > 1000) {
 				let iframed_party_member = getIFramedCharacter(party_member_name);
@@ -159,9 +152,6 @@ function updatePartyFrames() {
 				let max_xp = G.levels[lvl];
 				xpWidth = info.xp / max_xp * 100;
 				xp = xpWidth.toFixed(2) + '%';
-
-				//const billion = 1_000_000_000;
-				//xp = (info.xp / billion).toFixed(1) + 'b/' + (max_xp / billion).toFixed(0) + 'b';
 			}
 
 			let ccWidth = 0;
@@ -182,7 +172,7 @@ function updatePartyFrames() {
 			let share = '??';
 			if (parent.party[party_member_name] && parent.party[party_member_name].share !== undefined) {
 				shareWidth = parent.party[party_member_name].share * 100;
-				share = (parent.party[party_member_name].share * 100).toFixed(2) + '%'; // Display share percentage with % sign
+				share = (parent.party[party_member_name].share * 100).toFixed(2) + '%';
 			}
 
 			let data = {
@@ -206,15 +196,15 @@ function updatePartyFrames() {
 				shareColor: 'teal',
 			};
 
-			for (let key of ['hp', 'mp', 'xp']) { // add what you want to see here ['hp', 'mp', 'xp', 'cc', 'ping', 'share']
+			for (let key of ['hp', 'mp', 'xp']) {
 				const text = key.toUpperCase();
 				const value = data[key];
 				const width = data[key + 'Width'];
 				const color = data[key + 'Color'];
 				if (show_party_frame_property[key]) {
 					infoHTML += `<div style="position: relative; width: 100%; height: 20px; text-align: center; margin-top: 3px;">
-    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 17px; z-index: 1; white-space: nowrap; text-shadow: -1px 0 black, 0 2px black, 2px 0 black, 0 -1px black;">${text}: ${value}</div>
-    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: ${color}; width: ${width}%; height: 20px; transform: translate(0, 0); border: 1px solid grey;"></div>
+	<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 17px; z-index: 1; white-space: nowrap; text-shadow: -1px 0 black, 0 2px black, 2px 0 black, 0 -1px black;">${text}: ${value}</div>
+	<div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: ${color}; width: ${width}%; height: 20px; transform: translate(0, 0); border: 1px solid grey;"></div>
 </div>`;
 				}
 			}
