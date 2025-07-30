@@ -360,7 +360,7 @@ async function sell_and_bank() {
 	await smart_move(BANK_LOCATION);
 	await delay(1000);
 
-	for (let i = 0; i < character.items.length; i++) {
+	for (let i = 8; i < character.items.length; i++) {
 		const item = character.items[i];
 		if (!item) continue;
 		if (BANKABLE_ITEMS.includes(item.name)) {
