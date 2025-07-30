@@ -419,6 +419,7 @@ async function withdraw_item(itemName, level = null, total = null) {
 
     let remaining = (total != null ? total : Infinity);
     let foundAny  = false;
+    game_log("Check 1");	
 
     // 2) Iterate each "items<N>" pack in character.bank
     for (const packKey of Object.keys(bankData)) {
@@ -431,8 +432,10 @@ async function withdraw_item(itemName, level = null, total = null) {
         if (!Number.isInteger(tabIndex)) continue;
 
         // switch UI to this bank tab
+	game_log("Check 2");
         bank_move(tabIndex);
         await delay(200);
+	game_log("Check 3");
 
         // 3) Scan all slots in this tab
         for (let slot = 0; slot < slotArr.length && remaining > 0; slot++) {
@@ -447,6 +450,7 @@ async function withdraw_item(itemName, level = null, total = null) {
 
             // 4) Retrieve using native bank_retrieve
             //    bank_retrieve(packKey, slot, -1) → places into first free inventory slot
+	    game_log("Check 4");
             await bank_retrieve(packKey, slot, -1);
             game_log(`🏧 Retrieved ${itemName} x${takeQty} from ${packKey}[${slot}]`);
 
