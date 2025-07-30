@@ -362,12 +362,12 @@ async function sell_and_bank() {
 
 	game_log("Check 1");
 
-	for (let i = 0; i < 36; i++) {
+	for (let i = 0; i < character.items.length; i++) {
 		game_log("Check " + i);
 		const item = character.items[i];
 		if (!item) continue;
 		if (BANKABLE_ITEMS.includes(item.name)) {
-			await bank_store(i, item.q || 1);
+			await bank_store(i);
 			game_log(`🏦 Deposited ${item.name} x${item.q || 1} to bank`);
 		}
 	}
