@@ -210,7 +210,7 @@ async function attack_loop() {
 		//smartEquip("dead");
 		//await use_skill("5shot", OUT_OF_RANGE.slice(0, 5).map(e => e.id));
 	    const three_targets = SORTED_BY_HP.filter(mob => is_in_range(mob)).slice(0, 3);
-	    if (three_targets.length >= 2 && get_player("Myras")) {
+	    if (three_targets.length >= 2) {
 	    // Only fire 3shot if Myras is present on this map
 	        use_skill("3shot", three_targets.map(m => m.id));
 	    } else if (three_targets.length === 1) {
