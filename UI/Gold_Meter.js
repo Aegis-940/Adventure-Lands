@@ -1,22 +1,27 @@
-let sumGold = 0;
-let largestGoldDrop = 0;
-const startTime = new Date(); // Start time to calculate elapsed time
-let interval = 'hour'; // Set default interval (options: 'minute', 'hour', 'day')
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// GOLD METER WITH 5-MINUTE ROLLING AVERAGE
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let goldEvents       = [];                            // array of { t: timestamp, amount: gold }
+let largestGoldDrop  = 0;
+const startTime      = Date.now();                    // for initial window growth
+const WINDOW_MS      = 5 * 60 * 1000;                 // 5 minutes in ms
+let interval         = 'hour';                        // 'minute' | 'hour' | 'day'
 
 // Initialize the gold meter UI
 const initGoldMeter = () => {
-	const $ = parent.$;
+	const $   = parent.$;
 	const brc = $('#bottomrightcorner');
 	brc.find('#goldtimer').remove();
 
 	const goldContainer = $('<div id="goldtimer"></div>').css({
-		fontSize: '25px',
-		color: 'white',
-		textAlign: 'center',
-		display: 'table',
-		overflow: 'hidden',
+		fontSize:     '25px',
+		color:        'white',
+		textAlign:    'center',
+		display:      'table',
+		overflow:     'hidden',
 		marginBottom: '-5px',
-		width: "100%",
+		width:        "100%",
 	});
 
 	$('<div id="goldtimercontent"></div>')
@@ -28,41 +33,42 @@ const initGoldMeter = () => {
 
 // Format gold string to display
 const formatGoldString = (averageGold) => `
-    <div>${averageGold.toLocaleString('en')} Gold/${interval.charAt(0).toUpperCase() + interval.slice(1)}</div>
-    <div>${largestGoldDrop.toLocaleString('en')} Jackpot</div>
+	<div>${averageGold.toLocaleString('en')} Gold/${interval.charAt(0).toUpperCase() + interval.slice(1)}</div>
+	<div>${largestGoldDrop.toLocaleString('en')} Jackpot</div>
 `;
 
 // Update the gold display with current data
 const updateGoldDisplay = () => {
-	const $ = parent.$;
-	const averageGold = calculateAverageGold(); // Calculate average gold based on the selected interval
+	const $           = parent.$;
+	const averageGold = calculateAverageGold();
 	$('#goldtimercontent').html(formatGoldString(averageGold)).css({
-		background: 'black',
+		background:      'black',
 		backgroundColor: 'rgba(0, 0, 0, 0.6)',
-		//backgroundColor: 'rgba(0, 0, 0, 1)', // This is black background
-		border: 'solid gray',
-		borderWidth: '4px 4px',
-		height: '50px',
-		lineHeight: '25px',
-		fontSize: '25px',
-		color: '#FFD700',
-		textAlign: 'center',
+		border:          'solid gray',
+		borderWidth:     '4px 4px',
+		height:          '50px',
+		lineHeight:      '25px',
+		fontSize:        '25px',
+		color:           '#FFD700',
+		textAlign:       'center',
 	});
 };
 
-// Set up a timer to update the display
+// Refresh display twice a second
 setInterval(updateGoldDisplay, 500);
 
-// Initialize gold meter
+// Kick things off
 initGoldMeter();
 
+// Listen for loot events
 character.on("loot", (data) => {
-	// Ensure the gold received is valid
 	if (data.gold && typeof data.gold === 'number' && !Number.isNaN(data.gold)) {
-		const partyShare = parent.party[character.name]?.share || 1; // Default to 1 if not in a party
-		const totalGoldInChest = Math.round(data.gold / partyShare); // Calculate total chest gold
+		const partyShare        = parent.party[character.name]?.share || 1;
+		const totalGoldInChest  = Math.round(data.gold / partyShare);
+		const now               = Date.now();
 
-		sumGold += totalGoldInChest; // Track the actual total gold received
+		// Record this drop
+		goldEvents.push({ t: now, amount: totalGoldInChest });
 
 		// Track the largest gold drop
 		if (totalGoldInChest > largestGoldDrop) {
@@ -73,26 +79,32 @@ character.on("loot", (data) => {
 	}
 });
 
-
-// Function to visualize the loot stored in localStorage (optional)
-function logLoot() {
-	let savedLoot = JSON.parse(localStorage.getItem("lootItems") || "{}");
-	console.log(savedLoot);
-}
-
-// Calculate average gold based on the selected interval
+// Calculate rolling-average gold over the past up to 5 minutes
 const calculateAverageGold = () => {
-	const elapsedTime = (new Date() - startTime) / 1000; // Elapsed time in seconds
-	const divisor = elapsedTime / (interval === 'minute' ? 60 : interval === 'hour' ? 3600 : 86400);
+	const now       = Date.now();
+	const elapsedMs = now - startTime;
+	// window grows from 0 up to WINDOW_MS
+	const windowMs  = Math.min(elapsedMs, WINDOW_MS);
+	const cutoff    = now - windowMs;
 
-	// Prevent division by zero or near-zero values
-	if (divisor <= 0) return 0;
+	// Discard events older than our window
+	goldEvents = goldEvents.filter(e => e.t >= cutoff);
 
-	return Math.round(sumGold / divisor); // Return gold per the specified interval
+	// Sum the gold in that window
+	const sumWindow = goldEvents.reduce((sum, e) => sum + e.amount, 0);
+
+	const divisorSeconds = windowMs / 1000;
+	if (divisorSeconds <= 0) return 0;
+
+	// Convert to per-interval rate
+	const unitSeconds = interval === 'minute' ? 60
+	                    : interval === 'hour'   ? 3600
+	                    :                          86400;
+
+	return Math.round(sumWindow / divisorSeconds * unitSeconds);
 };
 
-
-// Function to change the interval (can be called externally)
+// Change the display interval: 'minute', 'hour', or 'day'
 const setGoldInterval = (newInterval) => {
 	if (['minute', 'hour', 'day'].includes(newInterval)) {
 		interval = newInterval;
