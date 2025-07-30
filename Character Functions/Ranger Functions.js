@@ -211,8 +211,11 @@ async function attack_loop() {
 		//await use_skill("5shot", OUT_OF_RANGE.slice(0, 5).map(e => e.id));
 	    const three_targets = SORTED_BY_HP.filter(mob => is_in_range(mob)).slice(0, 3);
 	    if (three_targets.length >= 2) {
-		//smartEquip("dead");
-		await use_skill("3shot", three_targets.map(m => m.id));
+	    // Only fire 3shot if Myras is present on this map
+	    if (!get_player("Myras")) {
+	        game_log("✋ Skipping 3shot because Myras is not online");
+	    } else {
+	        await use_skill("3shot", three_targets.map(m => m.id));
 	    } else if (three_targets.length === 1) {
 		//smartEquip("single");
 		await attack(three_targets[0]);
