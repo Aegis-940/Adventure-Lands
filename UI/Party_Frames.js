@@ -7,7 +7,6 @@ let css = `
 		position: absolute;
 		top: 55px;
 		right: 2px;
-		transform: translateX(-50%);
 		width: 480px;
 		height: auto;
 		font-family: 'pixel';
