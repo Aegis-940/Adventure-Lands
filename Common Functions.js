@@ -445,7 +445,7 @@ async function withdraw_item(itemName, level = null, total = null) {
             if (takeQty <= 0) continue;
 
             // 4) Withdraw!
-            await bank_withdraw(slot, takeQty);
+            await bank_retrieve(slot, takeQty);
             game_log(`🏧 Withdrew ${itemName} x${takeQty} (tab ${tabIndex} slot ${slot})`);
 
             remaining -= takeQty;
