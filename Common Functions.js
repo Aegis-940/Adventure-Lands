@@ -403,68 +403,57 @@ function toggle_radius_lock(radius = 200, check_interval = 500) {
  * @param {number|null} total       – (optional) Max total quantity to withdraw; omit to take all.
  */
 async function withdraw_item(itemName, level = null, total = null) {
-    const BANK_LOC = { map: "bank", x: 0, y: -37 };
-    await smart_move(BANK_LOC);
-    await delay(1000);
+	const BANK_LOC = { map: "bank", x: 0, y: -37 };
+	await smart_move(BANK_LOC);
+	await delay(1000);
 
-    // 1) Grab live bank data
-    let bankData = character.bank;
-    if (!bankData || Object.keys(bankData).length === 0) {
-        bankData = load_bank_from_local_storage();
-        if (!bankData) {
-            game_log("⚠️ No bank data available. Open your bank or save it first.");
-            return;
-        }
-    }
+	// 1) Grab live bank data
+	let bankData = character.bank;
+	if (!bankData || Object.keys(bankData).length === 0) {
+		bankData = load_bank_from_local_storage();
+		if (!bankData) {
+			game_log("⚠️ No bank data available. Open your bank or save it first.");
+			return;
+		}
+	}
 
-    let remaining = (total != null ? total : Infinity);
-    let foundAny  = false;
-    game_log("Check 1");	
+	let remaining = (total != null ? total : Infinity);
+	let foundAny  = false;
 
-    // 2) Iterate each "items<N>" pack in character.bank
-    for (const packKey of Object.keys(bankData)) {
-        if (!packKey.startsWith("items")) continue;
-        const slotArr = bankData[packKey];
-        if (!Array.isArray(slotArr)) continue;
+	// 2) Iterate each "items<N>" pack
+	for (const packKey of Object.keys(bankData)) {
+		if (!packKey.startsWith("items")) continue;
+		const slotArr = bankData[packKey];
+		if (!Array.isArray(slotArr)) continue;
 
-        // parse the numeric tab index for UI switching
-        const tabIndex = parseInt(packKey.slice(5), 10);
-        if (!Number.isInteger(tabIndex)) continue;
+		// 3) Scan slots in this pack
+		for (let slot = 0; slot < slotArr.length && remaining > 0; slot++) {
+			const itm = slotArr[slot];
+			if (!itm || itm.name !== itemName) continue;
+			if (level != null && itm.level !== level) continue;
 
-        // switch UI to this bank tab
-	game_log("Check 2");
-        bank_move(tabIndex);
-        await delay(200);
-	game_log("Check 3");
+			foundAny = true;
+			// Decide how many to retrieve (bank_retrieve pulls the entire stack or single item)
+			// For non-stackable gear it'll always be 1; remaining logic still honored.
+			const takeCount = Math.min(itm.q || 1, remaining);
 
-        // 3) Scan all slots in this tab
-        for (let slot = 0; slot < slotArr.length && remaining > 0; slot++) {
-            const itm = slotArr[slot];
-            if (!itm || itm.name !== itemName) continue;
-            if (level != null && itm.level !== level) continue;
+			for (let i = 0; i < takeCount; i++) {
+				await bank_retrieve(packKey, slot, -1);
+				game_log(`🏧 Retrieved ${itemName} (pack=${packKey}, slot=${slot})`);
+				await delay(200);
+				remaining--;
+				if (remaining <= 0) break;
+			}
+		}
 
-            foundAny = true;
-            const qtyInSlot = itm.q || 0;
-            const takeQty   = Math.min(qtyInSlot, remaining);
-            if (takeQty <= 0) continue;
+		if (remaining <= 0) break;
+	}
 
-            // 4) Retrieve using native bank_retrieve
-            //    bank_retrieve(packKey, slot, -1) → places into first free inventory slot
-	    game_log("Check 4");
-            await bank_retrieve(packKey, slot, -1);
-            game_log(`🏧 Retrieved ${itemName} x${takeQty} from ${packKey}[${slot}]`);
-
-            remaining -= takeQty;
-        }
-
-        if (remaining <= 0) break;
-    }
-
-    // 5) Summarize
-    if (!foundAny) {
-        game_log(`⚠️ No "${itemName}"${level != null ? ` level ${level}` : ""} found in bank.`);
-    } else if (total != null && remaining > 0) {
-        const got = total - remaining;
-        game_log(`⚠️ Only retrieved ${got}/${total} of ${itemName}.`);
-    }
+	// 4) Summarize
+	if (!foundAny) {
+		game_log(`⚠️ No "${itemName}"${level != null ? ` level ${level}` : ""} found in bank.`);
+	} else if (total != null && remaining > 0) {
+		const got = total - remaining;
+		game_log(`⚠️ Only retrieved ${got}/${total} of ${itemName}.`);
+	}
 }
