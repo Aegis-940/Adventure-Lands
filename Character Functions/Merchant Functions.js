@@ -363,10 +363,10 @@ async function sell_and_bank() {
 	for (let i = 8; i < character.items.length; i++) {
 		const item = character.items[i];
 		if (!item) continue;
-		if (BANKABLE_ITEMS.includes(item.name)) {
-			await bank_store(i);
-			game_log(`🏦 Deposited ${item.name} x${item.q || 1} to bank`);
-		}
+		//if (BANKABLE_ITEMS.includes(item.name)) {
+		await bank_store(i);
+		game_log(`🏦 Deposited ${item.name} x${item.q || 1} to bank`);
+		//}
 	}
 
 	// === RETURN HOME ===
