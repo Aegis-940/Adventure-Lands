@@ -402,59 +402,56 @@ function toggle_radius_lock(radius = 200, check_interval = 500) {
  * @param {number|null} total       – (optional) Max total quantity to withdraw; omit to take all.
  */
 async function withdraw_item(itemName, level = null, total = null) {
-    
-    const BANK_LOC = { map: "bank", x: 0, y: -37 };  // unchanged
+    const BANK_LOC = { map: "bank", x: 0, y: -37 };
     await smart_move(BANK_LOC);
     await delay(1000);
-	
+
     // 1) Grab live bank data (must have opened bank UI this session)
-    let bankData = character.bank;
-    if (!bankData || Object.keys(bankData).length === 0) {
-        // fall back to saved local copy
-        bankData = load_bank_from_local_storage();
-        if (!bankData) {
-            game_log("⚠️ No bank data available. Open your bank or save it first.");
-            return;
-        }
+    const bankData = parent.bank;
+    if (!Array.isArray(bankData) || bankData.length === 0) {
+        game_log("⚠️ parent.bank is empty. Open your bank chest to populate it.");
+        return;
     }
+    game_log(`🔍 Found ${bankData.length} bank tabs`);
 
     let remaining = (total != null ? total : Infinity);
     let foundAny  = false;
 
-    // 2) Iterate each tab by numeric index
-    for (let tabIndex = 0; tabIndex < Object.keys(bankData).length && remaining > 0; tabIndex++) {
+    // 2) Iterate each tab
+    for (let tabIndex = 0; tabIndex < bankData.length && remaining > 0; tabIndex++) {
         const slotArr = bankData[tabIndex];
         if (!Array.isArray(slotArr)) continue;
 
-        // switch UI to this tab
+        game_log(`🔍 Checking tab ${tabIndex} (${slotArr.length} slots)`);
         bank_move(tabIndex);
         await delay(200);
 
-        // 3) Scan all slots in this tab
+        // 3) Scan slots
         for (let slot = 0; slot < slotArr.length && remaining > 0; slot++) {
             const itm = slotArr[slot];
-            if (!itm || itm.name !== itemName) continue;
+            if (!itm) continue;
+            game_log(`  • slot ${slot}: ${itm.name} lvl=${itm.level} q=${itm.q}`);
+
+            if (itm.name.toLowerCase() !== itemName.toLowerCase()) continue;
             if (level != null && itm.level !== level) continue;
 
             foundAny = true;
-            // determine how many to take
             const qtyInSlot = itm.q || 0;
             const takeQty   = Math.min(qtyInSlot, remaining);
             if (takeQty <= 0) continue;
 
-            // 4) Withdraw!
+            // 4) Withdraw
+            game_log(`🏧 Withdrawing ${itemName} x${takeQty} (tab ${tabIndex} slot ${slot})`);
             await bank_withdraw(slot, takeQty);
-            game_log(`🏧 Withdrew ${itemName} x${takeQty} (tab ${tabIndex} slot ${slot})`);
-
             remaining -= takeQty;
         }
     }
 
     // 5) Summarize
     if (!foundAny) {
-        game_log(`⚠️ No "${itemName}"${level!=null?` level ${level}`:""} found in bank.`);
+        game_log(`⚠️ No "${itemName}"${level != null ? ` level ${level}` : ""} found in bank.`);
     } else if (total != null && remaining > 0) {
-        const gotten = total - remaining;
-        game_log(`⚠️ Only retrieved ${gotten}/${total} of ${itemName}.`);
+        const got = total - remaining;
+        game_log(`⚠️ Only retrieved ${got}/${total} of ${itemName}.`);
     }
 }
