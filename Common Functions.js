@@ -402,8 +402,7 @@ function toggle_radius_lock(radius = 200, check_interval = 500) {
  * @param {number|null} total – (optional) The total quantity to withdraw; omit or null to take all.
  */
 async function retrieve_item(item_name, level = null, total = null) {
-    const BANK_LOC = { map: "main", x: -300, y: -110 };
-    const HOME     = { map: "main", x:  -89, y: -116 };
+    const BANK_LOC = { map: "bank", x: 0, y: -37 };
 
     // 1) Move to bank and open it
     await smart_move(BANK_LOC);
@@ -456,7 +455,4 @@ async function retrieve_item(item_name, level = null, total = null) {
 
     // 5) Close bank and return home
     parent.bank_close();
-    await smart_move(HOME);
-    await delay(500);
-    game_log("🏠 Returned home after retrieving items.");
 }
