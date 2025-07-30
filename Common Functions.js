@@ -389,3 +389,64 @@ function toggle_radius_lock(radius = 200, check_interval = 500) {
 		}, check_interval);
 	}
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BANK ITEM WITHDRAW FUNCTION
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+/**
+ * Retrieves items from your bank and brings them back home.
+ *
+ * @param {string} item_name  – The name of the item to withdraw.
+ * @param {number|null} level – (optional) If provided, only withdraw items at this level.
+ * @param {number|null} total – (optional) The total quantity to withdraw; omit or null to take all.
+ */
+async function retrieve_item(item_name, level = null, total = null) {
+    const BANK_LOC = { map: "main", x: -300, y: -110 };  // adjust to your bank NPC
+    const HOME     = { map: "main", x:  -89, y: -116 };  // your home coords
+
+    // 1) Move to bank
+    await smart_move(BANK_LOC);
+    await delay(1000);
+
+    // 2) Ensure we have bank data
+    const bankData = character.bank;
+    if (!bankData) {
+        game_log("⚠️ No bank data available. Did you open the bank?");
+        return;
+    }
+
+    let remaining = (total != null) ? total : Infinity;
+    // 3) Iterate through each tab in the bank
+    for (const pack in bankData) {
+        const slotArr = bankData[pack];
+        if (!Array.isArray(slotArr)) continue;
+
+        for (let slot = 0; slot < slotArr.length && remaining > 0; slot++) {
+            const itm = slotArr[slot];
+            if (!itm || itm.name !== item_name) continue;
+            if (level != null && itm.level !== level) continue;
+
+            // how much to take
+            const takeQty = Math.min(itm.q || 0, remaining);
+            if (takeQty <= 0) continue;
+
+            // 4) Withdraw from bank
+            bank_withdraw(slot, takeQty);
+            game_log(`🏧 Withdrew ${item_name} x${takeQty} from bank slot ${slot}`);
+
+            remaining -= takeQty;
+        }
+        if (remaining <= 0) break;
+    }
+
+    if (remaining > 0 && total != null && total !== Infinity) {
+        const got = total - remaining;
+        game_log(`⚠️ Only retrieved ${got}/${total} of ${item_name}`);
+    }
+
+    // 5) Return home
+    await smart_move(HOME);
+    await delay(500);
+    game_log("🏠 Returned home after retrieving items.");
+}
