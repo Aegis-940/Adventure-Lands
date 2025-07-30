@@ -623,11 +623,11 @@ async function go_mine() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function exchange_item(item_name) {
-    const TARGET_MAP = "main";
-    const TARGET_X = -21;
-    const TARGET_Y = -422;
-    const RANGE = 50;
-    const EXCHANGE_INTERVAL = 6000; // 10 seconds
+    const TARGET_MAP         = "main";
+    const TARGET_X           = -21;
+    const TARGET_Y           = -422;
+    const RANGE              = 50;
+    const EXCHANGE_INTERVAL  = 6000; // 6 seconds
 
     // === Move to exchange NPC ===
     await smart_move({ map: TARGET_MAP, x: TARGET_X, y: TARGET_Y });
@@ -642,25 +642,33 @@ async function exchange_item(item_name) {
         await delay(500);
     }
 
-    game_log("📍 At exchange location. Starting exchange loop...");
+    game_log("📍 At exchange location. Starting exchange & sell loop...");
 
-    // === Main exchange loop ===
-    const interval = setInterval(() => {
+    // === Main loop: exchange specified item and sell approved items ===
+    const intervalId = setInterval(async () => {
         if (character.moving) return; // Skip while moving
 
+        // --- 1) Sell off any approved items ---
+        for (let i = 0; i < character.items.length; i++) {
+            const itm = character.items[i];
+            if (itm && SELLABLE_ITEMS.includes(itm.name)) {
+                sell(i, itm.q || 1);
+                game_log(`💰 Sold ${itm.name} x${itm.q || 1}`);
+            }
+        }
+
+        // --- 2) Exchange the target item ---
         // Stop if inventory is full
         if (character.items.filter(Boolean).length >= character.items.length) {
             game_log("⚠️ Inventory full. Stopping exchange.");
-            clearInterval(interval);
+            clearInterval(intervalId);
             return;
         }
 
-        // Find the slot of the item
         const slot = locate_item(item_name);
-
         if (slot === -1 || !character.items[slot]) {
             game_log(`✅ No more ${item_name} to exchange. Done.`);
-            clearInterval(interval);
+            clearInterval(intervalId);
             return;
         }
 
