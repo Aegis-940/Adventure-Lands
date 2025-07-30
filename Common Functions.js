@@ -402,10 +402,9 @@ function toggle_radius_lock(radius = 200, check_interval = 500) {
  * @param {number|null} total – (optional) The total quantity to withdraw; omit or null to take all.
  */
 async function retrieve_item(item_name, level = null, total = null) {
-    const BANK_LOC = { map: "bank", x: -0, y: -37 };  // adjust to your bank NPC
 
     // 1) Move to bank
-    await smart_move(BANK_LOC);
+    await smart_move({ map: "bank", x: -0, y: -37 });
     await delay(1000);
 
     // 2) Ensure we have bank data
