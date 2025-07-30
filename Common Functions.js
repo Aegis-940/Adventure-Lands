@@ -395,64 +395,57 @@ function toggle_radius_lock(radius = 200, check_interval = 500) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 /**
- * Retrieves items from your bank and brings them back home.
+ * Retrieves items from your bank (character.bank) and brings them back home.
  *
- * @param {string} item_name  – The name of the item to withdraw.
- * @param {number|null} level – (optional) If provided, only withdraw items at this level.
- * @param {number|null} total – (optional) The total quantity to withdraw; omit or null to take all.
+ * @param {string} item_name        – Name of the item to withdraw.
+ * @param {number|null} level       – (optional) Only withdraw items at this level.
+ * @param {number|null} total       – (optional) Max total to withdraw; omit to take all.
  */
 async function retrieve_item(item_name, level = null, total = null) {
-    const BANK_LOC = { map: "bank", x: 0, y: -37 };
+	const BANK_LOC = { map: "bank", x: -0, y: -137 };  // your bank NPC coords
 
-    // 1) Move to bank and open it
-    await smart_move(BANK_LOC);
-    await delay(1000);
-    parent.bank_open();  // open the bank UI in-game
+	// 1) Move to bank
+	await smart_move(BANK_LOC);
+	await delay(1000);
 
-    // 2) Load bank data (live or saved)
-    let bankData = character.bank;
-    if (!bankData || Object.keys(bankData).length === 0) {
-        bankData = load_bank_from_local_storage();
-        if (!bankData) {
-            game_log("⚠️ No bank data available");
-            return;
-        }
-    }
+	// 2) Grab the live bank data
+	const bankData = character.bank;
+	if (!bankData || Object.keys(bankData).length === 0) {
+		game_log("⚠️ No bank data available on character.bank. Open your bank first.");
+		return;
+	}
 
-    let remaining = (total != null) ? total : Infinity;
+	let remaining = (total != null) ? total : Infinity;
 
-    // 3) Iterate through each tab
-    for (const packKey of Object.keys(bankData)) {
-        const tabIndex = parseInt(packKey, 10);
-        const slotArr  = bankData[packKey];
-        if (!Array.isArray(slotArr)) continue;
+	// 3) Iterate through each tab
+	for (const packKey of Object.keys(bankData)) {
+		const tabIndex = parseInt(packKey, 10);
+		const slotArr  = bankData[packKey];
+		if (!Array.isArray(slotArr)) continue;
 
-        // Switch to this tab
-        await bank_move(tabIndex);
-        await delay(200);
+		// switch UI to this tab
+		bank_move(tabIndex);
+		await delay(200);
 
-        for (let slot = 0; slot < slotArr.length && remaining > 0; slot++) {
-            const itm = slotArr[slot];
-            if (!itm || itm.name !== item_name) continue;
-            if (level != null && itm.level !== level) continue;
+		// 4) Scan slots in this tab
+		for (let slot = 0; slot < slotArr.length && remaining > 0; slot++) {
+			const itm = slotArr[slot];
+			if (!itm || itm.name !== item_name) continue;
+			if (level != null && itm.level !== level) continue;
 
-            const takeQty = Math.min(itm.q || 0, remaining);
-            if (takeQty <= 0) continue;
+			const takeQty = Math.min(itm.q || 0, remaining);
+			if (takeQty <= 0) continue;
 
-            // 4) Withdraw from this slot
-            await bank_withdraw(slot, takeQty);
-            game_log(`🏧 Withdrew ${item_name} x${takeQty} from tab ${tabIndex}, slot ${slot}`);
+			// 5) Withdraw from bank
+			bank_withdraw(slot, takeQty);
+			game_log(`🏧 Withdrew ${item_name} x${takeQty} from tab ${tabIndex}, slot ${slot}`);
+			remaining -= takeQty;
+		}
+		if (remaining <= 0) break;
+	}
 
-            remaining -= takeQty;
-        }
-        if (remaining <= 0) break;
-    }
-
-    if (remaining > 0 && total != null && total !== Infinity) {
-        const got = total - remaining;
-        game_log(`⚠️ Only retrieved ${got}/${total} of ${item_name}`);
-    }
-
-    // 5) Close bank and return home
-    parent.bank_close();
+	if (remaining > 0 && total != null && total !== Infinity) {
+		const got = total - remaining;
+		game_log(`⚠️ Only retrieved ${got}/${total} of ${item_name}`);
+	}
 }
