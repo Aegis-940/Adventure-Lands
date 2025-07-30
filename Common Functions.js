@@ -144,19 +144,34 @@ add_cm_listener((name, data) => {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function pots() {
+	// Calculate missing HP/MP
+	const hpMissing = character.max_hp - character.hp;
+	const mpMissing = character.max_mp - character.mp;
 
-    // Use health potion if needed
-    if (character.max_hp - character.hp >= 400 && can_use("hp")) {
-        use("hp"); // small health potion
-        // use("hpot1") or use("hpot0") for specific types
-    }
-    
-    // Use mana potion if needed
-    if ((character.max_mp - character.mp >= 500 || character.mp < 720) && can_use("mp")) {
-        use("mp"); // small mana potion
-        // use("mpot1") or use("mpot0") for specific types
-    }
+	// Use health logic (or priest special)
+	if (hpMissing >= 400) {
+		if (character.ctype === 'priest') {
+			// Priest: top up MP then partyheal
+			if (mpMissing >= 500 && can_use("mp")) {
+				use("mp");
+			}
+			if (can_use("partyheal")) {
+				use_skill("partyheal");
+			}
+		} else if (can_use("hp")) {
+			// Everyone else: normal HP potion
+			use("hp");
+		}
+	}
+
+	// Use mana potion if needed (non-priest or extra MP for priests)
+	if (mpMissing >= 500 || character.mp < 720) {
+		if (can_use("mp")) {
+			use("mp");
+		}
+	}
 }
+
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SCAN BANK
