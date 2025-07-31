@@ -460,11 +460,19 @@ async function withdraw_item(itemName, level = null, total = null) {
 }
 
 let follow_priest_enabled = false;
-let last_priest_location = null;
+let follow_priest_interval = null;
+let currently_smart_moving = false;
 
 function toggle_follow_priest(state) {
     follow_priest_enabled = state;
-    if (state) follow_priest_loop();
+
+    if (state && !follow_priest_interval) {
+        follow_priest_loop(); // run immediately
+        follow_priest_interval = setInterval(follow_priest_loop, 500);
+    } else if (!state && follow_priest_interval) {
+        clearInterval(follow_priest_interval);
+        follow_priest_interval = null;
+    }
 }
 
 function request_priest_location() {
@@ -472,31 +480,32 @@ function request_priest_location() {
 }
 
 async function follow_priest_loop() {
-    if (!follow_priest_enabled) return;
+    if (!follow_priest_enabled || character.name === "Myras" || currently_smart_moving) return;
 
-    const DIST_THRESHOLD = 100;
+    request_priest_location();
 
-    try {
-        request_priest_location();
-        await delay(500); // wait for CM reply
+    const priest_location = location_responses["Myras"];
+    if (!priest_location) return;
 
-        const priest_location = location_responses["Myras"];
-        if (priest_location) {
-            const { map, x, y } = priest_location;
+    const { map, x, y } = priest_location;
 
-            if (character.map === map) {
-                const dist = Math.hypot(x - character.x, y - character.y);
-                if (dist > DIST_THRESHOLD) {
-                    move(x, y);
-                }
-            } else {
-                await smart_move(priest_location);
-            }
+    if (character.map === map) {
+        const dist = Math.hypot(x - character.x, y - character.y);
+
+        if (dist > 50) {
+            // Cancel existing move command
+            if (character.moving) stop();
+
+            // Move toward priest
+            move(x, y);
         }
-    } catch (e) {
-        // optional error logging
-        // log("Failed to follow Myras:", e);
+    } else {
+        currently_smart_moving = true;
+        try {
+            await smart_move({ map, x, y });
+        } catch (e) {
+            // Smart move failed (e.g. can't path), ignore
+        }
+        currently_smart_moving = false;
     }
-
-    setTimeout(follow_priest_loop, 1000);
 }
