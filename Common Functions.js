@@ -492,7 +492,7 @@ async function follow_priest_loop() {
     if (character.map === map) {
         const dist = Math.hypot(x - character.x, y - character.y);
 
-        if (dist > 25) {
+        if (dist > 15) {
             // Cancel existing move command
             if (character.moving) stop();
 
