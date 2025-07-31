@@ -51,7 +51,10 @@ function render_items(categories, used, total) {
       const onclick = `
         parent.$('#maincode')[0].contentWindow
           .withdraw_item('${item.name}', ${lvlArg})
-          .then(() => parent.$('#maincode')[0].contentWindow.render_bank_items());
+          .then(() => {
+            parent.hide_modal();
+            parent.$('#maincode')[0].contentWindow.render_bank_items();
+          });
       `;
       let opts = {
         skin: G.items[item.name].skin,
