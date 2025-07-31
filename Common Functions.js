@@ -458,3 +458,51 @@ async function withdraw_item(itemName, level = null, total = null) {
 		game_log(`⚠️ Only retrieved ${got}/${total} of ${itemName}.`);
 	}
 }
+
+let follow_priest_enabled = false;
+let last_priest_location = null;
+
+function toggle_follow_priest(state) {
+    follow_priest_enabled = state;
+    if (state) follow_myras_loop();
+}
+
+function request_priest_location() {
+    send_cm("Myras", { type: "where_are_you" });
+}
+
+// Handle Myras CM response
+add_cm_listener("my_location", (name, data) => {
+    if (name === "Myras") {
+        last_priest_location = { map: data.map, x: data.x, y: data.y };
+    }
+});
+
+async function follow_priest_loop() {
+    if (!follow_priest_enabled) return;
+
+    const DIST_THRESHOLD = 100;
+
+    try {
+        request_myras_location();
+        await delay(500); // wait for CM reply
+
+        if (last_myras_location) {
+            const { map, x, y } = last_myras_location;
+
+            if (character.map === map) {
+                const dist = Math.hypot(x - character.x, y - character.y);
+                if (dist > DIST_THRESHOLD) {
+                    move(x, y);
+                }
+            } else {
+                await smart_move(last_myras_location);
+            }
+        }
+    } catch (e) {
+        // optional error log
+        // log("Failed to follow Myras:", e);
+    }
+
+    setTimeout(follow_priest_loop, 1000);
+}
