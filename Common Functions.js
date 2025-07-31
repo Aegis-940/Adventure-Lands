@@ -464,7 +464,7 @@ let last_priest_location = null;
 
 function toggle_follow_priest(state) {
     follow_priest_enabled = state;
-    if (state) follow_myras_loop();
+    if (state) follow_priest_loop();
 }
 
 function request_priest_location() {
@@ -484,11 +484,11 @@ async function follow_priest_loop() {
     const DIST_THRESHOLD = 100;
 
     try {
-        request_myras_location();
+        request_priest_location();
         await delay(500); // wait for CM reply
 
-        if (last_myras_location) {
-            const { map, x, y } = last_myras_location;
+        if (last_priest_location) {
+            const { map, x, y } = last_priest_location;
 
             if (character.map === map) {
                 const dist = Math.hypot(x - character.x, y - character.y);
@@ -496,7 +496,7 @@ async function follow_priest_loop() {
                     move(x, y);
                 }
             } else {
-                await smart_move(last_myras_location);
+                await smart_move(last_priest_location);
             }
         }
     } catch (e) {
