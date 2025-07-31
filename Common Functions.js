@@ -470,6 +470,7 @@ function toggle_follow_priest(state) {
 function request_priest_location() {
     send_cm("Myras", { type: "where_are_you" });
 }
+game_log("Myras location:", location_responses["Myras"]);
 
 async function follow_priest_loop() {
     if (!follow_priest_enabled) return;
