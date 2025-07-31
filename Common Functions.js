@@ -471,13 +471,6 @@ function request_priest_location() {
     send_cm("Myras", { type: "where_are_you" });
 }
 
-// Handle Myras CM response
-add_cm_listener("my_location", (name, data) => {
-    if (name === "Myras") {
-        last_priest_location = { map: data.map, x: data.x, y: data.y };
-    }
-});
-
 async function follow_priest_loop() {
     if (!follow_priest_enabled) return;
 
@@ -487,8 +480,9 @@ async function follow_priest_loop() {
         request_priest_location();
         await delay(500); // wait for CM reply
 
-        if (last_priest_location) {
-            const { map, x, y } = last_priest_location;
+        const priest_location = location_responses["Myras"];
+        if (priest_location) {
+            const { map, x, y } = priest_location;
 
             if (character.map === map) {
                 const dist = Math.hypot(x - character.x, y - character.y);
@@ -496,11 +490,11 @@ async function follow_priest_loop() {
                     move(x, y);
                 }
             } else {
-                await smart_move(last_priest_location);
+                await smart_move(priest_location);
             }
         }
     } catch (e) {
-        // optional error log
+        // optional error logging
         // log("Failed to follow Myras:", e);
     }
 
