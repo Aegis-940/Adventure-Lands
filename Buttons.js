@@ -346,7 +346,7 @@ function toggle_maintain_position() {
 }
 
 // -------------------------------------------------------------------- //
-// TOGGLE MAINTAIN POSITION
+// PRIEST SKILL TOGGLES
 // -------------------------------------------------------------------- //
 
 const PRIEST_SKILL_TOGGLES = {
