@@ -85,12 +85,10 @@ on_cm = function (name, data) {
 // Central CM message handlers
 const CM_HANDLERS = {
 	"my_location": (name, data) => {
-		game_log(`Received location from ${name}: ${data.map} (${data.x}, ${data.y})`);
 		location_responses[name] = { map: data.map, x: data.x, y: data.y };
 	},
 
 	"where_are_you": (name) => {
-		game_log(`Got request from ${name}`);
 		send_cm(name, {
 			type: "my_location",
 			map: character.map,
@@ -489,6 +487,7 @@ async function follow_priest_loop() {
     request_priest_location();
 game_log("Check 3");
     const priest_location = location_responses["Myras"];
+	game_logpriest_location);
     if (!priest_location) return;
 game_log("Check 4");
     const { map, x, y } = priest_location;
