@@ -170,7 +170,7 @@ function get_nearest_monster_v2(args = {}) {
 
 async function attack_loop() {
     if (!attack_enabled) return;
-    const priest_check = character.party && parent.party_list.includes("Myras") && parent.entities["Myras"];
+    var priest_check = character.party && parent.party_list.includes("Myras") && parent.entities["Myras"];
     if (!priest_check) return;
     let delay = null;
     try {
