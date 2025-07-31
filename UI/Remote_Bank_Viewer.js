@@ -44,12 +44,19 @@ function render_items(categories, used, total) {
     `;
 
     items.forEach(item => {
-      // UPDATED: clicking the icon now withdraws the item instead of just showing info
+      // ← UPDATED: onclick now targets the iframe's withdraw_item
       const lvlArg = item.level != null ? item.level : null;
+      const clickFn = `
+        parent.$('#maincode')[0].contentWindow.withdraw_item(
+          '${item.name}',
+          ${lvlArg},
+          ${item.q && Number(item.q.replace(/[mk]/, '')) || 'null'}
+        )
+      `;
       let opts = {
         skin: G.items[item.name].skin,
-        onclick: `withdraw_item('${item.name}', ${lvlArg})`,
-        title: `Withdraw ${item.name}${lvlArg !== null ? ' (lvl ' + lvlArg + ')' : ''}`
+        onclick: clickFn,
+        title: `Withdraw ${item.name}${lvlArg!=null? ' (lvl '+lvlArg+')':''}`
       };
       let itemDiv = parent.item_container(opts, item);
 
@@ -72,6 +79,7 @@ function render_items(categories, used, total) {
   });
 
   html += `<div style='clear:both;'></div></div>`;
+
   parent.show_modal(html, {
     wrap: false,
     hideinbackground: true,
@@ -84,42 +92,41 @@ function render_bank_items() {
   if (!bankData) return;
 
   const slot_ids = [
-    "helmet", "chest", "pants", "gloves", "shoes", "cape", "ring",
-    "earring", "amulet", "belt", "orb", "weapon", "shield",
-    "offhand", "elixir", "pot", "scroll", "material", "exchange", ""
+    "helmet","chest","pants","gloves","shoes","cape","ring",
+    "earring","amulet","belt","orb","weapon","shield",
+    "offhand","elixir","pot","scroll","material","exchange",""
   ];
   const categories = [
-    ["Helmets", []], ["Armors", []], ["Underarmors", []],
-    ["Gloves", []], ["Shoes", []], ["Capes", []],
-    ["Rings", []], ["Earrings", []], ["Amulets", []],
-    ["Belts", []], ["Orbs", []], ["Weapons", []],
-    ["Shields", []], ["Offhands", []], ["Elixirs", []],
-    ["Potions", []], ["Scrolls", []],
-    ["Crafting and Collecting", []],
-    ["Exchangeables", []], ["Others", []]
+    ["Helmets",[]],["Armors",[]],["Underarmors",[]],
+    ["Gloves",[]],["Shoes",[]],["Capes",[]],
+    ["Rings",[]],["Earrings",[]],["Amulets",[]],
+    ["Belts",[]],["Orbs",[]],["Weapons",[]],
+    ["Shields",[]],["Offhands",[]],["Elixirs",[]],
+    ["Potions",[]],["Scrolls",[]],
+    ["Crafting and Collecting",[]],
+    ["Exchangeables",[]],["Others",[]]
   ];
 
   function itm_cmp(a, b) {
-    return (a == null) - (b == null)
-        || (a && (a.name < b.name ? -1 : +(a.name > b.name)))
-        || (a && b.level - a.level);
+    return (a==null)-(b==null) ||
+      (a && (a.name<b.name?-1:+(a.name>b.name))) ||
+      (a && b.level-a.level);
   }
 
   object_sort(G.items, "gold_value").forEach(([id, def]) => {
     if (def.ignore) return;
     for (let ci = 0; ci < categories.length; ci++) {
       let type = slot_ids[ci];
-      if (
-        !type || def.type === type ||
-        (type === "offhand" && ["source", "quiver", "misc_offhand"].includes(def.type)) ||
-        (type === "scroll" && ["cscroll", "uscroll", "pscroll", "offering"].includes(def.type)) ||
-        (type === "exchange" && def.e)
+      if (!type || def.type===type ||
+          (type==="offhand" && ["source","quiver","misc_offhand"].includes(def.type)) ||
+          (type==="scroll" && ["cscroll","uscroll","pscroll","offering"].includes(def.type)) ||
+          (type==="exchange" && def.e)
       ) {
         let slice = [];
         for (let pack in bankData) {
           let arr = bankData[pack];
           if (!Array.isArray(arr)) continue;
-          arr.forEach(it => { if (it && it.name === id) slice.push(it); });
+          arr.forEach(it => { if (it && it.name===id) slice.push(it); });
         }
         slice.sort(itm_cmp);
         categories[ci][1].push(slice);
@@ -128,31 +135,27 @@ function render_bank_items() {
     }
   });
 
-  // Stack or flatten
   categories.forEach(cat => {
     const flat = cat[1].flat();
     if (stackBankItems) {
       const map = new Map();
       flat.forEach(item => {
-        const key = `${item.name}:${item.level}:${item.p || ""}`;
-        if (!map.has(key)) {
-          map.set(key, { ...item, q: item.q || 1 });
-        } else {
-          map.get(key).q += item.q || 1;
-        }
+        const key = `${item.name}:${item.level}:${item.p||""}`;
+        if (!map.has(key)) map.set(key, {...item, q:item.q||1});
+        else map.get(key).q += item.q||1;
       });
-      cat[1] = Array.from(map.values()).map(it => ({ ...it, q: pretty3(it.q) }));
+      cat[1] = Array.from(map.values()).map(it => ({...it, q:pretty3(it.q)}));
     } else {
-      cat[1] = flat.map(it => ({ ...it, q: it.q != null ? pretty3(it.q) : undefined }));
+      cat[1] = flat.map(it => ({...it, q:it.q!=null?pretty3(it.q):undefined}));
     }
-    cat[1].sort((a, b) => a.name > b.name ? 1 : -1);
+    cat[1].sort((a,b)=>a.name>b.name?1:-1);
   });
 
-  let used = 0, total = 0;
-  Object.values(bankData).forEach(arr => {
-    if (Array.isArray(arr)) {
-      total += arr.length;
-      used += arr.filter(x => !!x).length;
+  let used=0, total=0;
+  Object.values(bankData).forEach(arr=>{
+    if(Array.isArray(arr)){
+      total+=arr.length;
+      used+=arr.filter(x=>!!x).length;
     }
   });
 
@@ -162,26 +165,23 @@ function render_bank_items() {
 function add_bank_buttons() {
   const $ = parent.$;
   const trc = $("#toprightcorner");
-  if (!trc.length) return setTimeout(add_bank_buttons, 500); // Try again if not ready
+  if (!trc.length) return setTimeout(add_bank_buttons, 500);
 
-  $("#bankbutton").remove();
-  $("#saveBankButton").remove();
+  $("#bankbutton,#saveBankButton").remove();
 
   const bankBtn = $(`
     <div id="bankbutton" class="gamebutton"
          onclick="parent.$('#maincode')[0].contentWindow.render_bank_items()">
       🏧
-    </div>
-  `);
+    </div>`);
 
   const saveBtn = $(`
     <div id="saveBankButton" class="gamebutton"
          onclick="parent.$('#maincode')[0].contentWindow.saveBankLocal()">
       💾
-    </div>
-  `);
+    </div>`);
 
   trc.children().first().after(saveBtn).after(bankBtn);
 }
 
-// Remember to load your withdraw_item(...) script beforehand so it's available when you click!
+// Make sure withdraw_item() is defined in your maincode iframe before clicking 🏧!
