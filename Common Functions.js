@@ -85,10 +85,12 @@ on_cm = function (name, data) {
 // Central CM message handlers
 const CM_HANDLERS = {
 	"my_location": (name, data) => {
+		game_log(`Received location from ${name}: ${data.map} (${data.x}, ${data.y})`);
 		location_responses[name] = { map: data.map, x: data.x, y: data.y };
 	},
 
 	"where_are_you": (name) => {
+		game_log(`Got request from ${name}`);
 		send_cm(name, {
 			type: "my_location",
 			map: character.map,
