@@ -404,7 +404,9 @@ function toggle_radius_lock(radius = 200, check_interval = 500) {
  */
 async function withdraw_item(itemName, level = null, total = null) {
 	const BANK_LOC = { map: "bank", x: 0, y: -37 };
-	await smart_move(BANK_LOC);
+	if (character.map !== "bank") {
+		await smart_move(BANK_LOC);
+	}
 	await delay(500);
 
 	// 1) Grab live bank data
