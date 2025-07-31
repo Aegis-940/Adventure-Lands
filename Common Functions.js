@@ -469,8 +469,8 @@ function toggle_follow_priest(state) {
 
 function request_priest_location() {
     send_cm("Myras", { type: "where_are_you" });
+    game_log(location_responses["Myras"]);
 }
-game_log("Myras location:", location_response["Myras"]);
 
 async function follow_priest_loop() {
     if (!follow_priest_enabled) return;
@@ -482,7 +482,6 @@ async function follow_priest_loop() {
         await delay(500); // wait for CM reply
 
         const priest_location = location_responses["Myras"];
-	    game_log("Myras location:", location_response["Myras"]);
         if (priest_location) {
             const { map, x, y } = priest_location;
 
