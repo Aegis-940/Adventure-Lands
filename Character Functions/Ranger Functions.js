@@ -176,8 +176,6 @@ const RANGE_THRESHOLD = 45;
 async function attack_loop() {
 	
     if (!attack_enabled) return;
-    const myras_online = parent.party_list.includes("Myras") && parent.entities["Myras"];
-    if (!myras_online) return;
     let delay = 50; 
     const X = character.x, Y = character.y;
     const now = performance.now();
