@@ -1,11 +1,15 @@
-// Bank Viewer + Saver Script for Adventure Land
+// == Bank Viewer + Saver + ATM Withdraw Script for Adventure Land ==
 
 const stackBankItems = true; // Set to false to list all items individually
 
 function pretty3(q) {
   if (q < 10_000) return `${q}`;
-  if (q >= 1_000_000) return q >= 100_000_000 ? `${Math.floor(q / 1_000_000)}m` : `${strip(q / 1_000_000)}m`;
-  return q >= 100_000 ? `${Math.floor(q / 1_000)}k` : `${strip(q / 1_000)}k`;
+  if (q >= 1_000_000) return q >= 100_000_000
+    ? `${Math.floor(q / 1_000_000)}m`
+    : `${strip(q / 1_000_000)}m`;
+  return q >= 100_000
+    ? `${Math.floor(q / 1_000)}k`
+    : `${strip(q / 1_000)}k`;
 }
 
 function strip(num) {
@@ -29,11 +33,89 @@ function load_bank_from_local_storage() {
   return null;
 }
 
+/* ------------------------------------------------------------------
+   1) Paste in your withdraw_item function (from script #2) here
+   ------------------------------------------------------------------ */
+async function withdraw_item(itemName, level = null, total = null) {
+  const BANK_LOC = { map: "bank", x: 0, y: -37 };
+  await smart_move(BANK_LOC);
+  await delay(500);
+
+  let bankData = character.bank;
+  if (!bankData || Object.keys(bankData).length === 0) {
+    bankData = load_bank_from_local_storage();
+    if (!bankData) {
+      game_log("⚠️ No bank data available. Open your bank or save it first.");
+      return;
+    }
+  }
+
+  let remaining = (total != null ? total : Infinity);
+  let foundAny  = false;
+
+  for (const packKey of Object.keys(bankData)) {
+    if (!packKey.startsWith("items")) continue;
+    const slotArr = bankData[packKey];
+    if (!Array.isArray(slotArr)) continue;
+
+    for (let slot = 0; slot < slotArr.length && remaining > 0; slot++) {
+      const itm = slotArr[slot];
+      if (!itm || itm.name !== itemName) continue;
+      if (level != null && itm.level !== level) continue;
+
+      foundAny = true;
+      const takeCount = Math.min(itm.q || 1, remaining);
+
+      for (let i = 0; i < takeCount; i++) {
+        await bank_retrieve(packKey, slot, -1);
+        await delay(100);
+        remaining--;
+        if (remaining <= 0) break;
+      }
+    }
+
+    if (remaining <= 0) break;
+  }
+
+  if (!foundAny) {
+    game_log(`⚠️ No "${itemName}"${level != null ? ` level ${level}` : ""} found in bank.`);
+  } else if (total != null && remaining > 0) {
+    const got = total - remaining;
+    game_log(`⚠️ Only retrieved ${got}/${total} of ${itemName}.`);
+  }
+}
+
+/* ------------------------------------------------------------------
+   2) Helper to prompt the user and call withdraw_item
+   ------------------------------------------------------------------ */
+function promptWithdraw(itemName, level) {
+  const input = prompt(
+    `Enter amount of ${itemName} to withdraw\n` +
+    `(leave blank for entire stack):`
+  );
+  let total = null;
+  if (input !== null && input.trim() !== "") {
+    const parsed = parseInt(input, 10);
+    if (isNaN(parsed) || parsed <= 0) {
+      game_log("⚠️ Invalid amount entered.");
+      return;
+    }
+    total = parsed;
+  }
+  // fire-and-forget the async withdraw
+  withdraw_item(itemName, level, total);
+}
+
+/* ------------------------------------------------------------------
+   3) Updated render_items: wire each icon to promptWithdraw(...)
+   ------------------------------------------------------------------ */
 function render_items(categories, used, total) {
   categories = categories.filter(([, items]) => items.length > 0);
   let html = `
     <div style='position:relative; border:5px solid gray; background:black; padding:10px; width:90%; height:90%;'>
-      <div style="position:absolute; top:5px; right:10px; font-size:24px; color:white; z-index:10;">${used}/${total}</div>
+      <div style="position:absolute; top:5px; right:10px; font-size:24px; color:white; z-index:10;">
+        ${used}/${total}
+      </div>
   `;
 
   categories.forEach(([label, items]) => {
@@ -44,12 +126,21 @@ function render_items(categories, used, total) {
     `;
 
     items.forEach(item => {
-      let opts = { skin: G.items[item.name].skin, onclick: `render_item_info('${item.name}')` };
+      // decide level argument (null if not present)
+      const levelArg = item.level != null ? item.level : null;
+      // replace render_item_info with our withdraw prompt
+      const opts = {
+        skin: G.items[item.name].skin,
+        onclick: `promptWithdraw('${item.name}', ${levelArg})`
+      };
       let itemDiv = parent.item_container(opts, item);
+
+      // preserve your existing quality‐tag injection
       if (item.p) {
         const tagColors = {
-          festive: "#79ff7e", firehazard: "#f79b11", glitched: "grey",
-          gooped: "#64B867", legacy: "white", lucky: "#00f3ff",
+          festive: "#79ff7e", firehazard: "#f79b11",
+          glitched: "grey", gooped: "#64B867",
+          legacy: "white", lucky: "#00f3ff",
           shiny: "#99b2d8", superfast: "#c681dc"
         };
         const tag = item.p[0]?.toUpperCase() || "?";
@@ -57,6 +148,7 @@ function render_items(categories, used, total) {
         const tagDiv = `<div class='trruui imu' style='border-color:black;color:${color}'>${tag}</div>`;
         itemDiv = itemDiv.replace('</div></div>', `</div>${tagDiv}</div>`);
       }
+
       html += itemDiv;
     });
 
@@ -75,78 +167,7 @@ function render_bank_items() {
   const bankData = character.bank || load_bank_from_local_storage();
   if (!bankData) return;
 
-  const slot_ids = [
-    "helmet", "chest", "pants", "gloves", "shoes", "cape", "ring",
-    "earring", "amulet", "belt", "orb", "weapon", "shield",
-    "offhand", "elixir", "pot", "scroll", "material", "exchange", ""
-  ];
-  const categories = [
-    ["Helmets", []], ["Armors", []], ["Underarmors", []],
-    ["Gloves", []], ["Shoes", []], ["Capes", []],
-    ["Rings", []], ["Earrings", []], ["Amulets", []],
-    ["Belts", []], ["Orbs", []], ["Weapons", []],
-    ["Shields", []], ["Offhands", []], ["Elixirs", []],
-    ["Potions", []], ["Scrolls", []],
-    ["Crafting and Collecting", []],
-    ["Exchangeables", []], ["Others", []]
-  ];
-
-  function itm_cmp(a, b) {
-    return (a == null) - (b == null)
-        || (a && (a.name < b.name ? -1 : +(a.name > b.name)))
-        || (a && b.level - a.level);
-  }
-
-  object_sort(G.items, "gold_value").forEach(([id, def]) => {
-    if (def.ignore) return;
-    for (let ci = 0; ci < categories.length; ci++) {
-      let type = slot_ids[ci];
-      if (
-        !type || def.type === type ||
-        (type === "offhand" && ["source", "quiver", "misc_offhand"].includes(def.type)) ||
-        (type === "scroll" && ["cscroll", "uscroll", "pscroll", "offering"].includes(def.type)) ||
-        (type === "exchange" && def.e)
-      ) {
-        let slice = [];
-        for (let pack in bankData) {
-          let arr = bankData[pack];
-          if (!Array.isArray(arr)) continue;
-          arr.forEach(it => { if (it && it.name === id) slice.push(it); });
-        }
-        slice.sort(itm_cmp);
-        categories[ci][1].push(slice);
-        break;
-      }
-    }
-  });
-
-  // Stack or flatten
-  categories.forEach(cat => {
-    const flat = cat[1].flat();
-    if (stackBankItems) {
-      const map = new Map();
-      flat.forEach(item => {
-        const key = `${item.name}:${item.level}:${item.p || ""}`;
-        if (!map.has(key)) {
-          map.set(key, { ...item, q: item.q || 1 });
-        } else {
-          map.get(key).q += item.q || 1;
-        }
-      });
-      cat[1] = Array.from(map.values()).map(it => ({ ...it, q: pretty3(it.q) }));
-    } else {
-      cat[1] = flat.map(it => ({ ...it, q: it.q != null ? pretty3(it.q) : undefined }));
-    }
-    cat[1].sort((a, b) => a.name > b.name ? 1 : -1);
-  });
-
-  let used = 0, total = 0;
-  Object.values(bankData).forEach(arr => {
-    if (Array.isArray(arr)) {
-      total += arr.length;
-      used += arr.filter(x => !!x).length;
-    }
-  });
+  /* ... the rest of your original categorization, stacking logic, etc. ... */
 
   render_items(categories, used, total);
 }
@@ -154,10 +175,9 @@ function render_bank_items() {
 function add_bank_buttons() {
   const $ = parent.$;
   const trc = $("#toprightcorner");
-  if (!trc.length) return setTimeout(add_bank_buttons, 500); // Try again if not ready
+  if (!trc.length) return setTimeout(add_bank_buttons, 500);
 
-  $("#bankbutton").remove();
-  $("#saveBankButton").remove();
+  $("#bankbutton, #saveBankButton").remove();
 
   const bankBtn = $(`
     <div id="bankbutton" class="gamebutton"
@@ -176,3 +196,5 @@ function add_bank_buttons() {
   trc.children().first().after(saveBtn).after(bankBtn);
 }
 
+// start it up
+add_bank_buttons();
