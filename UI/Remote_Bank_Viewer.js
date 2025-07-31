@@ -50,7 +50,7 @@ function render_items(categories, used, total) {
       const lvlArg = item.level != null ? item.level : null;
       const onclick = `
         parent.$('#maincode')[0].contentWindow
-          .withdraw_item('${item.name}', ${lvlArg})
+          .withdraw_item('${item.name}', ${lvlArg}, ${1})
           .then(() => {
             parent.hide_modal();
             parent.$('#maincode')[0].contentWindow.render_bank_items();
