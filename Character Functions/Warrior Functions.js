@@ -170,8 +170,6 @@ function get_nearest_monster_v2(args = {}) {
 
 async function attack_loop() {
     if (!attack_enabled) return;
-    const myras_online = parent.party_list.includes("Myras") && parent.entities["Myras"];
-    if (!myras_online) return;
     let delay = null;
     try {
         let target = null;
