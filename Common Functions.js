@@ -407,7 +407,7 @@ async function withdraw_item(itemName, level = null, total = null) {
 	if (character.map !== "bank") {
 		await smart_move(BANK_LOC);
 	}
-	await delay(500);
+	await delay(200);
 
 	// 1) Grab live bank data
 	let bankData = character.bank;
