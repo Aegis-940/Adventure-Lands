@@ -77,7 +77,6 @@ const PARTY = ["Ulric", "Myras", "Riva"];
 const DELIVERY_RADIUS = 350;
 const HOME = { map: "main", x: -89, y: -116 };
 
-const location_responses = {};
 const potion_counts = {};
 
 const recent_deliveries = {};
