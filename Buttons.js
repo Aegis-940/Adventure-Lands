@@ -253,29 +253,6 @@ function toggle_tank_role() {
 }
 
 // -------------------------------------------------------------------- //
-// TOGGLE FOLLOW TANK
-// -------------------------------------------------------------------- //
-
-let follow_tank = true;
-
-function toggle_follow_tank() {
-	create_floating_button("toggle_follow_tank", "➡️", () => {
-		follow_tank = !follow_tank;
-		const btn = window.top.document.getElementById("toggle_follow_tank");
-		btn.innerText = follow_tank ? "➡️" : "⏸️";
-		game_log(follow_tank ? "Follow Tank" : "Don't Follow Tank");
-	}, {
-		top: "2.1vh",
-		right: "663px",
-		minWidth: "57px",
-		height: "57px",
-		fontSize: "24px",
-		border: "4px solid #888",
-		title: "Toggle Follow-Tank Mode"
-	});
-}
-
-// -------------------------------------------------------------------- //
 // TOGGLE AUTO COLLECT LOOT
 // -------------------------------------------------------------------- //
 
@@ -416,4 +393,45 @@ function create_priest_skill_buttons() {
 	window.top.document.body.appendChild(container);
 }
 
+// -------------------------------------------------------------------- //
+// FOLLOW PRIEST TOGGLE
+// -------------------------------------------------------------------- //
 
+function toggle_follow_priest_button() {
+	const BUTTON_ID = "toggle_follow_priest";
+
+	let btn = window.top.document.getElementById(BUTTON_ID);
+
+	if (!btn) {
+		// Create button if it doesn't exist
+		create_floating_button(BUTTON_ID, "❌", () => {
+			follow_priest_enabled = !follow_priest_enabled;
+			toggle_follow_priest(follow_priest_enabled);
+
+			const btn = window.top.document.getElementById(BUTTON_ID);
+			btn.innerText = follow_priest_enabled ? "👣" : "❌";
+
+			if (follow_priest_enabled) {
+				game_log("👣 Follow Myras ENABLED");
+			} else {
+				game_log("❌ Follow Myras DISABLED");
+			}
+		}, {
+			top: "2.1vh",
+			right: "710px",
+			minWidth: "56px",
+			height: "56px",
+			fontSize: "24px",
+			border: "4px solid #888",
+			title: "Toggle Follow Myras"
+		});
+
+		setTimeout(() => {
+			const btn = window.top.document.getElementById(BUTTON_ID);
+			if (btn) btn.style.borderRadius = "0px";
+		}, 0);
+	} else {
+		// Button already exists, simulate a click to toggle
+		btn.click();
+	}
+}
