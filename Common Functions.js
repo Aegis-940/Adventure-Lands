@@ -481,6 +481,7 @@ async function follow_priest_loop() {
         await delay(500); // wait for CM reply
 
         const priest_location = location_responses["Myras"];
+	    game_log("Myras location:", location_responses["Myras"]);
         if (priest_location) {
             const { map, x, y } = priest_location;
 
