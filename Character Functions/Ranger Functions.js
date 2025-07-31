@@ -176,6 +176,8 @@ const RANGE_THRESHOLD = 45;
 async function attack_loop() {
 	
     if (!attack_enabled) return;
+    const priest_check = character.party && parent.party_list.includes("Myras") && parent.entities["Myras"];
+    if (!priest_check) return;
     let delay = 50; 
     const X = character.x, Y = character.y;
     const now = performance.now();
