@@ -480,13 +480,15 @@ function request_priest_location() {
 }
 
 async function follow_priest_loop() {
+    game_log("Check 1");
     if (!follow_priest_enabled || character.name === "Myras" || currently_smart_moving) return;
+	game_log("Check 2");
 
     request_priest_location();
-
+game_log("Check 3");
     const priest_location = location_responses["Myras"];
     if (!priest_location) return;
-
+game_log("Check 4");
     const { map, x, y } = priest_location;
 
     if (character.map === map) {
