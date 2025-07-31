@@ -351,3 +351,53 @@ function can_cleave(aoe, cc, maps, monsters, tank, time_since, has_untargeted) {
     );
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// PANIC BUTTON!!!
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+async function panic_button_loop() {
+	const CHECK_INTERVAL = 500;
+	const PRIEST_NAME = "Myras";
+	const PANIC_WEAPON = "jacko";
+	const NORMAL_WEAPON = "orbg";
+
+	while (true) {
+		let myras_online = parent.party_list.includes(PRIEST_NAME) && parent.entities[PRIEST_NAME];
+
+		if (!myras_online) {
+			if (attack_enabled) {
+				// Trigger panic
+				attack_enabled = false;
+				game_log("⚠️ Panic triggered: Myras is offline!");
+
+				// Equip panic weapon if available
+				const jacko_slot = locate_item(PANIC_WEAPON);
+				if (jacko_slot !== -1) {
+					equip(jacko_slot);
+					await delay(100); // slight delay for equip to process
+				}
+
+				// Try to cast scare
+				if (can_use("scare")) {
+					use_skill("scare");
+				}
+			}
+		} else {
+			// Myras is back — restore normal state
+			if (!attack_enabled) {
+				game_log("✅ Myras is back online — resuming attack!");
+
+				// Equip normal weapon if available
+				const orbg_slot = locate_item(NORMAL_WEAPON);
+				if (orbg_slot !== -1) {
+					equip(orbg_slot);
+					await delay(100);
+				}
+
+				attack_enabled = true;
+			}
+		}
+
+		await delay(CHECK_INTERVAL);
+	}
+}
