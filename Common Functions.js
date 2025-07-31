@@ -485,12 +485,13 @@ async function follow_priest_loop() {
 	game_log("Check 2");
 
     request_priest_location();
-game_log("Check 3");
+    game_log("Check 3");
     const priest_location = location_responses["Myras"];
+    game_log("Check 4");
     game_log(location_responses["Myras"]);
     game_log(priest_location);
     if (!priest_location) return;
-    game_log("Check 4");
+    game_log("Check 5");
     const { map, x, y } = priest_location;
 
     if (character.map === map) {
