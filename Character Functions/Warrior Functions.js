@@ -335,9 +335,7 @@ function single_target_set() {
 function handle_weapon_swap(stMaps, aoeMaps) {
     const now = performance.now();
     if (now - eTime <= 50) return;
-    game_log("Check 1");
     equip_set("single");
-    game_log("Check 2");
     eTime = now;
 }
 
@@ -368,7 +366,7 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
         use_skill("cleave");
         last_cleave_time = now;
     }
-    handle_weapon_swap();
+    single_target_set();
 }
 
 function can_cleave(aoe, cc, maps, monsters, tank, time_since, has_untargeted) {
@@ -443,12 +441,9 @@ async function panic_button_loop() {
 
 function equip_set(setName) {
 	
-    game_log("Check 1.1");
     const set = equipment_sets[setName];
     if (set) {    
-        game_log("Check 1.2");
         equip_batch(set);	
-        game_log("Check 1.3");
     } else {
         console.error(`Set "${setName}" not found.`);
     }
