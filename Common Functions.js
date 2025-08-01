@@ -235,91 +235,99 @@ async function send_to_merchant() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function is_in_party(name) {
-    return !!(parent.party && parent.party[name] !== undefined);
+	return !!(parent.party && parent.party[name] !== undefined);
 }
 
 function party_manager() {
-    const am_leader = character.name === PARTY_LEADER;
-    const am_member = PARTY_MEMBERS.includes(character.name);
-    const current_party = Object.keys(parent.party || {});
+	const am_leader = character.name === PARTY_LEADER;
+	const am_member = PARTY_MEMBERS.includes(character.name);
+	const current_party = Object.keys(parent.party || {});
 
-    if (am_leader) {
-        PARTY_MEMBERS.forEach(name => {
-            if (name === character.name) return;
-            if (!current_party.includes(name)) {
-                send_party_invite(name);
-                accept_party_request(name); // Optional, in case of mutual sending
-            }
-        });
-    } else if (am_member) {
-        if (!current_party.includes(PARTY_LEADER)) {
-            send_party_request(PARTY_LEADER);
-            accept_party_invite(PARTY_LEADER);
-        }
-    }
+	if (am_leader) {
+		PARTY_MEMBERS.forEach(name => {
+			if (name === character.name) return;
+			if (!current_party.includes(name)) {
+				send_party_invite(name);
+				accept_party_request(name); // Optional, in case of mutual sending
+			}
+		});
+	} else if (am_member) {
+		if (!current_party.includes(PARTY_LEADER)) {
+			send_party_request(PARTY_LEADER);
+			accept_party_invite(PARTY_LEADER);
+		}
+	}
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// MOVE TO CHARACTER'S LOCATION
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
 function move_to_character(name, timeout_ms = 10000) {
-    // Prevent multiple overlapping handlers
-    let responded = false;
+	// Prevent multiple overlapping handlers
+	let responded = false;
 
-    function handle_response(n, data) {
-        if (n !== name || !data || data.type !== "my_location") return;
+	function handle_response(n, data) {
+		if (n !== name || !data || data.type !== "my_location") return;
 
-        responded = true;
-        remove_cm_listener(handle_response);
-        clearTimeout(timeout_id);
+		responded = true;
+		remove_cm_listener(handle_response);
+		clearTimeout(timeout_id);
 
-        const { map, x, y } = data;
-        if (!map || x == null || y == null) {
-            game_log(`❌ Invalid location data from ${name}`);
-            return;
-        }
+		const { map, x, y } = data;
+		if (!map || x == null || y == null) {
+			game_log(`❌ Invalid location data from ${name}`);
+			return;
+		}
 
-        smart_move({ map, x, y });
-    }
+		smart_move({ map, x, y });
+	}
 
-    // Add listener
-    add_cm_listener(handle_response);
+	// Add listener
+	add_cm_listener(handle_response);
 
-    // Send request
-    send_cm(name, { type: "where_are_you" });
+	// Send request
+	send_cm(name, { type: "where_are_you" });
 
-    // Timeout fallback
-    const timeout_id = setTimeout(() => {
-        if (!responded) {
-            remove_cm_listener(handle_response);
-            game_log(`⚠️ No location response from ${name} within ${timeout_ms / 1000}s`);
-        }
-    }, timeout_ms);
+	// Timeout fallback
+	const timeout_id = setTimeout(() => {
+		if (!responded) {
+			remove_cm_listener(handle_response);
+			game_log(`⚠️ No location response from ${name} within ${timeout_ms / 1000}s`);
+		}
+	}, timeout_ms);
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// HIDE THE USELESS SKILLS BAR
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
 function hide_skills_ui() {
-    const doc = parent.document;
+	const doc = parent.document;
 
-    // Hide skill buttons (bottom right grid)
-    const skill_buttons = doc.querySelector("#skillbar");
-    if (skill_buttons) skill_buttons.style.display = "none";
+	// Hide skill buttons (bottom right grid)
+	const skill_buttons = doc.querySelector("#skillbar");
+	if (skill_buttons) skill_buttons.style.display = "none";
 
-    // Hide the right panel (contains skills, info, etc.)
-    const right_panel = doc.querySelector("#rightcorner");
-    if (right_panel) right_panel.style.display = "none";
+	// Hide the right panel (contains skills, info, etc.)
+	const right_panel = doc.querySelector("#rightcorner");
+	if (right_panel) right_panel.style.display = "none";
 
-    // Optional: Hide the "Stats", "Skills", "Inventory" tab buttons
-    const tabs = [
-        "#rightcornerbuttonskills",
-        "#rightcornerbuttonstats",
-        "#rightcornerbuttoninventory"
-    ];
-    for (const selector of tabs) {
-        const btn = doc.querySelector(selector);
-        if (btn) btn.style.display = "none";
-    }
+	// Optional: Hide the "Stats", "Skills", "Inventory" tab buttons
+	const tabs = [
+		"#rightcornerbuttonskills",
+		"#rightcornerbuttonstats",
+		"#rightcornerbuttoninventory"
+	];
+	for (const selector of tabs) {
+		const btn = doc.querySelector(selector);
+		if (btn) btn.style.display = "none";
+	}
 }
 
-// -------------------------------------------------------------------- //
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // MAINTAIN POSITION
-// -------------------------------------------------------------------- //
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
 let radius_lock_enabled = false;
 let radius_lock_origin = null;
@@ -464,6 +472,10 @@ function toggle_follow_priest(state) {
         follow_priest_interval = null;
     }
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// FOLLOW PRIEST
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
 function request_priest_location() {
     send_cm("Myras", { type: "where_are_you" });
