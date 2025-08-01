@@ -329,7 +329,7 @@ function single_target_set() {
     setTimeout(() => {
         equip_batch([
             { itemName: "fireblade", slot: "mainhand", level: 7},
-            { itemName: "fireblade", slot: "mainhand", level: 7}
+            { itemName: "fireblade", slot: "offhand", level: 7}
         ]);
     }, 25);
 }
