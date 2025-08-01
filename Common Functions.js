@@ -19,8 +19,6 @@ const LOOT_THRESHOLD = 7;
 const HP_THRESHOLD                = 500;
 const MP_THRESHOLD                = 500;
 
-const TAUNT_RANGE                 = 320;
-
 const PARTY_LEADER                = "Ulric";
 const PARTY_MEMBERS               = ["Riva", "Myras", "Riff"];
 
@@ -31,11 +29,6 @@ const MONSTER_TYPES               = ["goo", "bee", "crab", "snake", "osnake", "b
 const MERCHANT_NAME               = "Riff";
 
 let last_death_time               = 0;
-
-const FLOATING_BUTTON_IDS         = [];
-let gold_history                  = [];
-
-const MERCHANT_TASK_QUEUE         = [];
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // GLOBAL FUNCTIONS
@@ -172,46 +165,6 @@ function pots() {
 			use("mp");
 		}
 	}
-}
-
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// SCAN BANK
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-let bank_inventory = [];
-
-/**
- * Scans all available bank tabs using `parent.bank`, if available.
- * Fills `bank_inventory` with metadata: name, level, quantity, tab, slot.
- */
-function scan_bank_inventory() {
-  if (!parent.bank || !Array.isArray(parent.bank)) {
-    game_log("❌ Bank data not available. Open the bank first.");
-    return;
-  }
-
-  bank_inventory = [];
-
-  for (let tab = 0; tab < parent.bank.length; tab++) {
-    const tab_items = parent.bank[tab];
-    if (!Array.isArray(tab_items)) continue;
-
-    for (let slot = 0; slot < tab_items.length; slot++) {
-      const item = tab_items[slot];
-      if (!item) continue;
-
-      bank_inventory.push({
-        name: item.name,
-        level: item.level ?? 0,
-        q: item.q ?? 1,
-        tab: tab,
-        slot: slot
-      });
-    }
-  }
-
-  game_log(`📦 Bank scan complete: ${bank_inventory.length} items recorded`);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
