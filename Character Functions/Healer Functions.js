@@ -229,7 +229,7 @@ async function attack_loop() {
 				for (let i = 0; i < MONSTER_TYPES.length; i++) {
 					target = get_nearest_monster_v2({
 						type: MONSTER_TYPES[i],
-						check_min_hp: true,
+						check_min_hp: false,
 						no_target: true,
 						max_distance: 190,
 					});
