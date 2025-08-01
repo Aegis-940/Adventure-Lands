@@ -271,13 +271,10 @@ async function skill_loop() {
         if (character.ctype === "warrior") {
             try {
                 if (tank && tank.hp < tank.max_hp * 0.4 && character.name === "REPLACE_WITH_ULRIC_IF_NEEDED") {
-                    //console.log("Calling handleStomp");
                     handle_stomp(Mainhand, st_maps, aoe_maps, tank);
                 }
                 if (character.ctype === "warrior") {
-                    //console.log("Calling handleCleave");
                     handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank);
-                    //console.log("Calling handleWarriorSkills");
                     handle_warrior_skills(tank);
                 }
             } catch (e) {
@@ -289,6 +286,63 @@ async function skill_loop() {
         //console.error("Error in skillLoop:", e);
     }
     setTimeout(skill_loop, delay);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// EQUIPMENT SETS
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const equipmentSets = {
+
+    dps: [
+        { itemName: "strearring", slot: "earring1", level: 1, l: "l" },
+        { itemName: "strearring", slot: "earring2", level: 2, l: "l" },
+        { itemName: "orbg", slot: "orb", level: 2, l: "l" },
+        //{ itemName: "orbofstr", slot: "orb", level: 5, l: "l" },
+        { itemName: "strring", slot: "ring1", level: 2, l: "l" },
+        { itemName: "suckerpunch", slot: "ring2", level: 1, l: "u" },
+    ],
+    single: [
+        { itemName: "fireblade", slot: "mainhand", level: 7, l: "s" },
+        { itemName: "fireblade", slot: "offhand", level: 7, l: "s" },
+    ],
+    cleave: [
+        { itemName: "bataxe", slot: "mainhand", level: 5, l: "s" }
+    ],
+};
+
+function cleave_set() {
+    unequip("mainhand");
+    unequip("offhand");
+    equipBatch([
+        { itemName: "bataxe", slot: "mainhand", level: 5, l: "l" },
+    ]);
+}
+
+function single_target_set() {
+    unequip("mainhand");
+    unequip("offhand");
+    equipBatch([
+        { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
+	{ itemName: "fireblade", slot: "offhand", level: 7, l: "l" }
+    ]);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// WEAPON SWAPPING
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function handleWeaponSwap(stMaps, aoeMaps) {
+    const now = performance.now();
+    if (now - eTime <= 50) return;
+
+    if (stMaps.includes(character.map)) {
+        equipSet("single");
+        eTime = now;
+    } else if (aoeMaps.includes(character.map)) {
+        equipSet("aoe");
+        eTime = now;
+    }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -401,4 +455,66 @@ async function panic_button_loop() {
 
 		await delay(CHECK_INTERVAL);
 	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BATCH EQUIP ITEMS
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+async function equipBatch(data) {
+    if (!Array.isArray(data)) {
+        game_log("Can't equipBatch non-array");
+        return handleEquipBatchError("Invalid input: not an array");
+    }
+    if (data.length > 15) {
+        game_log("Can't equipBatch more than 15 items");
+        return handleEquipBatchError("Too many items");
+    }
+
+    let validItems = [];
+
+    for (let i = 0; i < data.length; i++) {
+        let itemName = data[i].itemName;
+        let slot = data[i].slot;
+        let level = data[i].level;
+        let l = data[i].l;
+
+        if (!itemName) {
+            game_log("Item name not provided. Skipping.");
+            continue;
+        }
+
+        let found = false;
+        if (parent.character.slots[slot]) {
+            let slotItem = parent.character.items[parent.character.slots[slot]];
+            if (slotItem && slotItem.name === itemName && slotItem.level === level && slotItem.l === l) {
+                found = true;
+            }
+        }
+
+        if (found) {
+            game_log("Item " + itemName + " is already equipped in " + slot + " slot. Skipping.");
+            continue;
+        }
+
+        for (let j = 0; j < parent.character.items.length; j++) {
+            const item = parent.character.items[j];
+            if (item && item.name === itemName && item.level === level && item.l === l) {
+                validItems.push({ num: j, slot: slot });
+                break;
+            }
+        }
+    }
+
+    if (validItems.length === 0) {
+        return //handleEquipBatchError("No valid items to equip");
+    }
+
+    try {
+        parent.socket.emit("equip_batch", validItems);
+        parent.push_deferred("equip_batch");
+    } catch (error) {
+        console.error('Error in equipBatch:', error);
+        return handleEquipBatchError("Failed to equip items");
+    }
 }
