@@ -311,6 +311,7 @@ async function panic_button_loop() {
 				}
 
 				attack_enabled = true;
+				start_attack_loop();
 			}
 		}
 
