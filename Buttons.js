@@ -215,44 +215,6 @@ function toggle_free_move() {
 }
 
 // -------------------------------------------------------------------- //
-// TOGGLE WHICH CHARACTER IS TANKING
-// -------------------------------------------------------------------- //
-
-// Create a toggle button to determine who the tank is and broadcast it
-function toggle_tank_role() {
-	create_floating_button("toggle_role_mode", TANK_ROLES[who_is_tank].label, () => {
-		who_is_tank = (who_is_tank + 1) % TANK_ROLES.length;
-		tank_name = TANK_ROLES[who_is_tank].name;
-
-		set("who_is_tank", who_is_tank);
-		set("tank_name", tank_name);
-		const label = TANK_ROLES[who_is_tank].label;
-
-		const btn = window.top.document.getElementById("toggle_role_mode");
-		if (btn) btn.innerText = label;
-
-		for (const name of ["Ulric", "Myras", "Riva"]) {
-			if (name !== character.name) {
-				send_cm(name, {
-					type: "set_tank",
-					tank_name,
-					who_is_tank,
-					label
-				});
-			}
-		}
-	}, {
-		top: "2.1vh",
-		right: "585px",
-		minWidth: "57px",
-		height: "57px",
-		fontSize: "24px",
-		border: "4px solid #888",
-		title: "Toggle Tank Role"
-	});
-}
-
-// -------------------------------------------------------------------- //
 // TOGGLE AUTO COLLECT LOOT
 // -------------------------------------------------------------------- //
 
