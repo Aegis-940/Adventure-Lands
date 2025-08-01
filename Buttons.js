@@ -221,38 +221,38 @@ function toggle_free_move() {
 // -------------------------------------------------------------------- //
 
 function toggle_maintain_position() {
-	const BUTTON_ID = "toggle_maintain_position";
+  // Determine initial icon based on current state
+  const initialIcon = radius_lock_enabled ? "🌐" : "🎯";
 
-	let btn = window.top.document.getElementById(BUTTON_ID);
+  create_floating_button("toggle_maintain_position", initialIcon, () => {
+    // Flip the flag and start/stop the loop
+    radius_lock_enabled = !radius_lock_enabled;
+    toggle_radius_lock();
 
-	if (!btn) {
-		// Create as a floating button
-		create_floating_button(BUTTON_ID, "🌐", () => {
-			toggle_radius_lock();
-
-			const btn = window.top.document.getElementById(BUTTON_ID);
-			btn.innerText = radius_lock_enabled ? "🌐" : "🎯";
-
-			game_log(radius_lock_enabled ? "🌐 Maintain Position ENABLED" : "🎯 Maintain Position DISABLED");
-		}, {
-			top: "2.1vh",
-			right: "645px",
-			minWidth: "56px",
-			height: "56px",
-			fontSize: "24px",
-			border: "4px solid #888",
-			title: "Toggle Maintain Position"
-		});
-
-		// Round off styling after creation
-		setTimeout(() => {
-			const btn = window.top.document.getElementById(BUTTON_ID);
-			if (btn) btn.style.borderRadius = "0px";
-		}, 0);
-	} else {
-		// Toggle if button already exists
-		btn.click();
-	}
+    // Update button icon & log
+    const btn = window.top.document.getElementById("toggle_maintain_position");
+    btn.innerText = radius_lock_enabled ? "🌐" : "🎯";
+    game_log(
+      radius_lock_enabled
+        ? "Free Moving During Combat"
+        : "Maintain Position During Combat"
+    );
+  }, {
+    top: "2.1vh",
+right: "645px",
+minWidth: "56px",
+height: "56px",
+fontSize: "24px",
+border: "4px solid #888",
+title: "Toggle Maintain Position"
+  });
+  // Immediately zero out any border-radius on the new button
+  setTimeout(() => {
+    const btn = window.top.document.getElementById("radius_lock_enabled");
+    if (btn) {
+      btn.style.borderRadius = "0px";
+    }
+  }, 0);
 }
 
 // -------------------------------------------------------------------- //
