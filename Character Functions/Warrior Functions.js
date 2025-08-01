@@ -315,7 +315,7 @@ function cleave_set() {
     unequip("mainhand");
     unequip("offhand");
     equipBatch([
-        { itemName: "bataxe", slot: "mainhand", level: 5, l: "l" },
+        { itemName: "bataxe", slot: "mainhand", level: 5},
     ]);
 }
 
@@ -323,8 +323,8 @@ function single_target_set() {
     unequip("mainhand");
     unequip("offhand");
     equipBatch([
-        { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
-	{ itemName: "fireblade", slot: "offhand", level: 7, l: "l" }
+        { itemName: "fireblade", slot: "mainhand", level: 7},
+	{ itemName: "fireblade", slot: "offhand", level: 7}
     ]);
 }
 
