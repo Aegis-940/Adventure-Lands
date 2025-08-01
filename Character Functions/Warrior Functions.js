@@ -314,24 +314,24 @@ const equipment_sets = {
 async function cleave_set() {
     unequip("mainhand");
     unequip("offhand");
-    await delay(50);
+    await delay(150);
 
     equip_batch([
         { itemName: "bataxe", slot: "mainhand", level: 5 }
     ]);
-    await delay(50);
+    await delay(150);
 }
 
 async function single_target_set() {
     unequip("mainhand");
     unequip("offhand");
-    await delay(50);
+    await delay(150);
 
     equip_batch([
         { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
         { itemName: "fireblade", slot: "offhand", level: 7, l: "u" }
     ]);
-    await delay(50);
+    await delay(150);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -360,7 +360,7 @@ async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
         if (Mainhand !== "bataxe") await cleave_set();
         await use_skill("cleave");
         last_cleave_time = performance.now();
-        await delay(50); // give server a tick to breathe
+        await delay(150); // give server a tick to breathe
         await single_target_set();
     }
 }
