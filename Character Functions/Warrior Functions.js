@@ -318,8 +318,8 @@ function cleave_set() {
         unequip("offhand");
 
         setTimeout(() => {
-            equipBatch([
-                { itemName: "bataxe", slot: "mainhand", level: 5 },
+            equip_batch([
+                { itemName: "bataxe", slot: "mainhand", level: 5 }
             ]);
         }, 50); // Delay after offhand unequip
 
@@ -333,7 +333,7 @@ function single_target_set() {
         unequip("offhand");
 
         setTimeout(() => {
-            equipBatch([
+            equip_batch([
 	        { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
 		{ itemName: "fireblade", slot: "offhand", level: 7, l: "u" }
             ]);
