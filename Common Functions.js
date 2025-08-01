@@ -233,12 +233,14 @@ async function send_to_merchant() {
     for (let i = LOOT_THRESHOLD; i < character.items.length; i++) {
         const item = character.items[i];
         if (item) {
-            send_item(merchant_name, i, item.q || 1);
+	    await delay(50);
+            await send_item(merchant_name, i, item.q || 1);
         }
     }
     // Then send all gold
     if (character.gold > 0) {
-        send_gold(merchant_name, character.gold);
+	    await delay(50);
+            await send_gold(merchant_name, character.gold);
     }
 }
 
