@@ -145,76 +145,78 @@ function create_map_movement_window(custom_actions = []) {
 // -------------------------------------------------------------------- //
 
 function toggle_combat() {
-  const initialIcon = attack_enabled ? "⚔️" : "🕊️";
+	const initialIcon = attack_enabled ? "⚔️" : "🕊️";
 
-  create_floating_button("toggle_combat", initialIcon, () => {
-    attack_enabled = !attack_enabled;
-    if (attack_enabled) start_attack_loop();
-    else stop_attack_loop();
+	create_floating_button("toggle_combat", initialIcon, () => {
+		attack_enabled = !attack_enabled;
+		if (attack_enabled) start_attack_loop();
+		else stop_attack_loop();
 
-    const btn = window.top.document.getElementById("toggle_combat");
-    btn.innerText = attack_enabled ? "⚔️" : "🕊️";
-    set_message(attack_enabled ? "Combat On" : "Combat Off");
-    game_log(attack_enabled ? "Combat Enabled" : "Combat Disabled");
-  },{
-    top: "2.05vh",
-    right: "523px",
-    minWidth: "56px",
-    height: "56px",
-    fontSize: "24px",
-    border: "4px solid #888",
-    borderRadius: "0px",
-    title: "Toggle Combat Mode"
-  });
-  // Immediately zero out any border-radius on the new button
-  setTimeout(() => {
-    const btn = window.top.document.getElementById("toggle_combat");
-    if (btn) {
-      btn.style.borderRadius = "0px";
-    }
-  }, 0);
+		const btn = window.top.document.getElementById("toggle_combat");
+		btn.innerText = attack_enabled ? "⚔️" : "🕊️";
+		set_message(attack_enabled ? "Combat On" : "Combat Off");
+		game_log(attack_enabled ? "Combat Enabled" : "Combat Disabled");
+	}, {
+		top: "2.05vh",
+		right: "523px",
+		minWidth: "56px",
+		height: "56px",
+		fontSize: "24px",
+		border: "4px solid #888",
+		borderRadius: "0px",
+		title: "Toggle Combat Mode"
+	});
+	// Immediately zero out any border-radius on the new button
+	setTimeout(() => {
+		const btn = window.top.document.getElementById("toggle_combat");
+		if (btn) {
+			btn.style.borderRadius = "0px";
+		}
+	}, 0);
 }
+
 
 // -------------------------------------------------------------------- //
 // TOGGLE FREE MOVE
 // -------------------------------------------------------------------- //
 
 function toggle_free_move() {
-  // Determine initial icon based on current state
-  const initialIcon = move_enabled ? "🚶" : "🧍";
+	// Determine initial icon based on current state
+	const initialIcon = move_enabled ? "🚶" : "🧍";
 
-  create_floating_button("toggle_free_move", initialIcon, () => {
-    // Flip the flag and start/stop the loop
-    move_enabled = !move_enabled;
-    if (move_enabled) start_move_loop();
-    else stop_move_loop();
+	create_floating_button("toggle_free_move", initialIcon, () => {
+		// Flip the flag and start/stop the loop
+		move_enabled = !move_enabled;
+		if (move_enabled) start_move_loop();
+		else stop_move_loop();
 
-    // Update button icon & log
-    const btn = window.top.document.getElementById("toggle_free_move");
-    btn.innerText = move_enabled ? "🚶" : "🧍";
-    game_log(
-      move_enabled
-        ? "Free Move During Combat"
-        : "Remain Stationary During Combat"
-    );
-  }, {
-    top:     "2.05vh",
-    right:   "584px",
-    minWidth:"56px",
-    height:  "56px",
-    fontSize:"24px",
-    border:  "4px solid #888",
-    borderRadius: "0px",
-    title:   "Toggle Stationary / Free Move"
-  });
-  // Immediately zero out any border-radius on the new button
-  setTimeout(() => {
-    const btn = window.top.document.getElementById("toggle_free_move");
-    if (btn) {
-      btn.style.borderRadius = "0px";
-    }
-  }, 0);
+		// Update button icon & log
+		const btn = window.top.document.getElementById("toggle_free_move");
+		btn.innerText = move_enabled ? "🚶" : "🧍";
+		game_log(
+			move_enabled
+				? "Free Move During Combat"
+				: "Remain Stationary During Combat"
+		);
+	}, {
+		top:     "2.05vh",
+		right:   "584px",
+		minWidth:"56px",
+		height:  "56px",
+		fontSize:"24px",
+		border:  "4px solid #888",
+		borderRadius: "0px",
+		title:   "Toggle Stationary / Free Move"
+	});
+	// Immediately zero out any border-radius on the new button
+	setTimeout(() => {
+		const btn = window.top.document.getElementById("toggle_free_move");
+		if (btn) {
+			btn.style.borderRadius = "0px";
+		}
+	}, 0);
 }
+
 
 // -------------------------------------------------------------------- //
 // TOGGLE MAINTAIN POSITION
@@ -331,37 +333,39 @@ function create_priest_skill_buttons() {
 // FOLLOW PRIEST TOGGLE
 // -------------------------------------------------------------------- //
 
-function toggle_follow_priest_button() {
-	const BUTTON_ID = "toggle_follow_priest";
+function toggle_follow_priest() {
+	// Determine initial icon based on current state
+	const initialIcon = follow_priest_enabled ? "👣" : "❌";
 
-	let btn = window.top.document.getElementById(BUTTON_ID);
+	create_floating_button("toggle_follow_priest", initialIcon, () => {
+		// Flip the flag and start/stop the loop
+		follow_priest_enabled = !follow_priest_enabled;
+		toggle_follow_priest(follow_priest_enabled);
 
-	if (!btn) {
-		create_floating_button(BUTTON_ID, "❌", () => {
-			follow_priest_enabled = !follow_priest_enabled;
-			toggle_follow_priest(follow_priest_enabled);
+		// Update button icon & log
+		const btn = window.top.document.getElementById("toggle_follow_priest");
+		btn.innerText = follow_priest_enabled ? "👣" : "❌";
+		game_log(
+			radius_lock_enabled
+				? "Follow Myras ENABLED
+				: "Follow Myras DISABLED"
+		);
+	}, {
+		top: "2.1vh",
+		right: "710px",
+		minWidth: "56px",
+		height: "56px",
+		fontSize: "24px",
+		border: "4px solid #888",
+		title: "Toggle Follow Myras"
+	});
 
-			const btn = window.top.document.getElementById(BUTTON_ID);
-			btn.innerText = follow_priest_enabled ? "👣" : "❌";
-
-			game_log(follow_priest_enabled ? "👣 Follow Myras ENABLED" : "❌ Follow Myras DISABLED");
-		}, {
-			top: "2.1vh",
-			right: "710px",
-			minWidth: "56px",
-			height: "56px",
-			fontSize: "24px",
-			border: "4px solid #888",
-			title: "Toggle Follow Myras"
-		});
-
-		// Optional style patch
-		setTimeout(() => {
-			const btn = window.top.document.getElementById(BUTTON_ID);
-			if (btn) btn.style.borderRadius = "0px";
-		}, 0);
-	} else {
-		btn.click();
-	}
+	// Immediately zero out any border-radius on the new button
+	setTimeout(() => {
+		const btn = window.top.document.getElementById("toggle_follow_priest");
+		if (btn) {
+			btn.style.borderRadius = "0px";
+		}
+	}, 0);
 }
 
