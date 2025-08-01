@@ -321,6 +321,7 @@ function cleave_set() {
 
 function single_target_set() {
     unequip("mainhand");
+    unequip("offhand");
     equipBatch([
         { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
 	{ itemName: "fireblade", slot: "offhand", level: 7, l: "u" }
@@ -334,7 +335,9 @@ function single_target_set() {
 function handle_weapon_swap(stMaps, aoeMaps) {
     const now = performance.now();
     if (now - eTime <= 50) return;
+    game_log("Check 1");
     equip_set("single");
+    game_log("Check 2");
     eTime = now;
 }
 
@@ -439,9 +442,13 @@ async function panic_button_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function equip_set(setName) {
+	
+    game_log("Check 1.1");
     const set = equipment_sets[setName];
-    if (set) {
-        equip_batch(set);
+    if (set) {    
+        game_log("Check 1.2");
+        equip_batch(set);	
+        game_log("Check 1.3");
     } else {
         console.error(`Set "${setName}" not found.`);
     }
