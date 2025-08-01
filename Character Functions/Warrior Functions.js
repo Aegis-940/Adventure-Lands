@@ -323,8 +323,7 @@ function single_target_set() {
     unequip("mainhand");
     unequip("offhand");
     equip_batch([
-        { itemName: "fireblade", slot: "mainhand", level: 7},
-        { itemName: "fireblade", slot: "offhand", level: 7}
+        { itemName: "fireblade", slot: "mainhand", level: 7}
     ]);
 }
 
@@ -354,6 +353,7 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
         if (Mainhand !== "bataxe") cleave_set();
 	use_skill("cleave");
 	last_cleave_time = performance.now();
+	single_target_set();
     }
 }
 
