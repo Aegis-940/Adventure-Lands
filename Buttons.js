@@ -222,7 +222,7 @@ function toggle_free_move() {
 
 function toggle_maintain_position() {
 	// Determine initial icon based on current state
-	const initialIcon = radius_lock_enabled ? "🌐" : "🎯";
+	const initialIcon = radius_lock_enabled ? "🎯" : "🌐";
 
 	create_floating_button("toggle_maintain_position", initialIcon, () => {
 		// Flip the flag and start/stop the loop
@@ -230,7 +230,7 @@ function toggle_maintain_position() {
 
 		// Update button icon & log
 		const btn = window.top.document.getElementById("toggle_maintain_position");
-		btn.innerText = radius_lock_enabled ? "🌐" : "🎯";
+		btn.innerText = radius_lock_enabled ? "🎯" : "🌐";
 		game_log(
 			radius_lock_enabled
 				? "Free Moving During Combat"
