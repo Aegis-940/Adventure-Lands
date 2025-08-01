@@ -360,7 +360,7 @@ async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
         if (Mainhand !== "bataxe") await cleave_set();
         await use_skill("cleave");
         last_cleave_time = performance.now();
-        await delay(100); // give server a tick to breathe
+        await delay(50); // give server a tick to breathe
         await single_target_set();
     }
 }
