@@ -274,6 +274,8 @@ function toggle_maintain_position() {
 			title: "Toggle Maintain Position"
 		});
 
+		FLOATING_BUTTON_IDS.push(BUTTON_ID);
+
 		setTimeout(() => {
 			const btn = window.top.document.getElementById(BUTTON_ID);
 			if (btn) btn.style.borderRadius = "0px";
@@ -387,6 +389,8 @@ function toggle_follow_priest_button() {
 			border: "4px solid #888",
 			title: "Toggle Follow Myras"
 		});
+
+		FLOATING_BUTTON_IDS.push(BUTTON_ID);
 
 		setTimeout(() => {
 			const btn = window.top.document.getElementById(BUTTON_ID);
