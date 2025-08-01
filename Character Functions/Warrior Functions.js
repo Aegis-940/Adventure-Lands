@@ -311,42 +311,21 @@ const equipment_sets = {
     ],
 };
 
-async function cleave_set() {
-    await delay(150);
+function cleave_set() {
     unequip("mainhand");
     unequip("offhand");
-    await wait_until_unequipped(["mainhand", "offhand"]);
-    await delay(150);
-
     equip_batch([
         { itemName: "bataxe", slot: "mainhand", level: 5 }
     ]);
-    await delay(150);
 }
 
-async function single_target_set() {
-    await delay(150);
+function single_target_set() {
     unequip("mainhand");
     unequip("offhand");
-    await wait_until_unequipped(["mainhand", "offhand"]);
-    await delay(150);
-
     equip_batch([
         { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
         { itemName: "fireblade", slot: "offhand", level: 7, l: "u" }
     ]);
-    await delay(150);
-}
-
-async function wait_until_unequipped(slots, timeout = 1000) {
-    const start = Date.now();
-    while (slots.some(slot => character.slots[slot])) {
-        if (Date.now() - start > timeout) {
-            game_log("⏳ Timeout waiting for unequip");
-            break;
-        }
-        await delay(50);
-    }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
