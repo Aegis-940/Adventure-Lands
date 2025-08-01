@@ -358,7 +358,7 @@ const CLEAVE_THRESHOLD = 500;
 const CLEAVE_RANGE = G.skills.cleave.range;
 const MAPS_TO_INCLUDE = ["mansion", "main"];
 
-async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
+function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
     const now = performance.now();
     const time_since_last = now - last_cleave_time;
 
@@ -373,7 +373,7 @@ async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
 
     if (can_cleave(aoe, cc, new Set(aoe_maps), monsters, tank, time_since_last, untargeted)) {
         if (Mainhand !== "bataxe") return;
-	await use_skill("cleave");
+	use_skill("cleave");
 	last_cleave_time = performance.now();
     }
 }
