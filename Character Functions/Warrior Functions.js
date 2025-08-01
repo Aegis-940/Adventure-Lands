@@ -372,13 +372,14 @@ async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
     const untargeted = monsters.some(m => !m.target);
 
     if (can_cleave(aoe, cc, new Set(aoe_maps), monsters, tank, time_since_last, untargeted)) {
-        if (Mainhand !== "bataxe");
-	stop_attack_loop();
-	await cleave_set();
-	await use_skill("cleave");
-        last_cleave_time = performance.now();
-	await single_target_set();
-	start_attack_loop();
+        if (Mainhand !== "bataxe") {
+		stop_attack_loop();
+		await cleave_set();
+		await use_skill("cleave");
+	        last_cleave_time = performance.now();
+		await single_target_set();
+		start_attack_loop();
+	}
     }
 }
 
