@@ -230,7 +230,8 @@ async function attack_loop() {
 					target = get_nearest_monster_v2({
 						type: MONSTER_TYPES[i],
 						check_min_hp: true,
-						max_distance: 150,
+						no_target: true,
+						max_distance: 190,
 					});
 					if (target) break;
 				}
