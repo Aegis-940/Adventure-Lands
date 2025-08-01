@@ -312,7 +312,9 @@ const equipment_sets = {
 };
 
 async function cleave_set() {
+    await delay(150);
     unequip("mainhand");
+    await delay(150);
     unequip("offhand");
     await delay(150);
 
@@ -323,7 +325,9 @@ async function cleave_set() {
 }
 
 async function single_target_set() {
+    await delay(150);
     unequip("mainhand");
+    await delay(150);
     unequip("offhand");
     await delay(150);
 
