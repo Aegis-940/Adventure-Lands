@@ -333,9 +333,7 @@ function single_target_set() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function handle_weapon_swap(stMaps, aoeMaps) {
-    const now = performance.now();
-    if (now - eTime <= 50) return;
-
+    await delay(50);
     equip_set("single");
     eTime = now;
 }
