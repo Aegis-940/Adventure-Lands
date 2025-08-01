@@ -323,8 +323,8 @@ function single_target_set() {
     unequip("mainhand");
     unequip("offhand");
     equip_batch([
-        { itemName: "fireblade", slot: "mainhand", level: 7},
-        { itemName: "fireblade", slot: "mainhand", level: 7}
+        { itemName: "fireblade", slot: "mainhand", level: 7, l: "l"},
+        { itemName: "fireblade", slot: "mainhand", level: 7, l: "u"}
     ]);
 }
 
