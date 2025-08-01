@@ -313,38 +313,19 @@ const equipment_sets = {
 
 function cleave_set() {
     unequip("mainhand");
-
-    setTimeout(() => {
-        unequip("offhand");
-
-        setTimeout(() => {
-            equip_batch([
-                { itemName: "bataxe", slot: "mainhand", level: 5 }
-            ]);
-        }, 50); // Delay after offhand unequip
-
-    }, 50); // Delay after mainhand unequip
+    unequip("offhand");
+    equip_batch([
+         { itemName: "bataxe", slot: "mainhand", level: 5 }
+    ]);
 }
 
 function single_target_set() {
-    const SWITCH_DELAY = 50;
-
-    setTimeout(() => {
-        unequip("mainhand");
-
-        setTimeout(() => {
-            unequip("offhand");
-
-            setTimeout(() => {
-                equip_batch([
-                    { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
-                    { itemName: "fireblade", slot: "offhand", level: 7, l: "u" }
-                ]);
-            }, SWITCH_DELAY); // Delay after offhand unequip
-
-        }, SWITCH_DELAY); // Delay after mainhand unequip
-
-    }, SWITCH_DELAY); // Initial delay before unequipping mainhand
+    unequip("mainhand");
+    unequip("offhand");
+    equip_batch([
+        { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
+        { itemName: "fireblade", slot: "offhand", level: 7, l: "u" }
+    ]);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -383,7 +364,6 @@ function can_cleave(aoe, cc, maps, monsters, tank, time_since, has_untargeted) {
         cc && aoe && tank &&
         time_since >= CLEAVE_THRESHOLD &&
         monsters.length > 0 &&
-        //!hasUntargeted &&
         maps.has(character.map) &&
         !is_on_cooldown("cleave") &&
         ms_to_next_skill("attack") > 75
