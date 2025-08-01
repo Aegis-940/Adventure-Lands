@@ -16,11 +16,6 @@ const POTION_TYPES = ["mpot1", "hpot1"];
 // Merchant collects nth item and above when collecting loot.
 const LOOT_THRESHOLD = 7;
 
-const HP_THRESHOLD                = 500;
-const MP_THRESHOLD                = 500;
-
-const TAUNT_RANGE                 = 320;
-
 const PARTY_LEADER                = "Ulric";
 const PARTY_MEMBERS               = ["Riva", "Myras", "Riff"];
 
