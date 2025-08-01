@@ -314,18 +314,23 @@ const equipment_sets = {
 function cleave_set() {
     unequip("mainhand");
     unequip("offhand");
-    equip_batch([
-        { itemName: "bataxe", slot: "mainhand", level: 5 }
-    ]);
+
+    setTimeout(() => {
+        equip_batch([
+            { itemName: "bataxe", slot: "mainhand", level: 5 }
+        ]);
+    }, 100);
 }
 
 function single_target_set() {
     unequip("mainhand");
     unequip("offhand");
-    equip_batch([
-        { itemName: "fireblade", slot: "mainhand", level: 7, l: "l"},
-        { itemName: "fireblade", slot: "offhand", level: 7, l: "u"}
-    ]);
+
+    setTimeout(() => {
+        equip_batch([
+            { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" }
+        ]);
+    }, 100);
 }
 
 function handleWeaponSwap(stMaps, aoeMaps) {
