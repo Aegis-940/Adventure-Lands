@@ -333,7 +333,8 @@ function single_target_set() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function handle_weapon_swap(stMaps, aoeMaps) {
-    await delay(50);
+    const now = performance.now();
+    if (now - eTime <= 50) return;
     equip_set("single");
     eTime = now;
 }
@@ -363,7 +364,6 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
     if (can_cleave(aoe, cc, new Set(aoe_maps), monsters, tank, time_since_last, untargeted)) {
         if (Mainhand !== "bataxe") cleave_set();
         use_skill("cleave");
-        reduce_cooldown("cleave", character.ping * 0.95);
         last_cleave_time = now;
     }
     handle_weapon_swap();
