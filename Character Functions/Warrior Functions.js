@@ -303,8 +303,8 @@ const equipmentSets = {
         { itemName: "suckerpunch", slot: "ring2", level: 1, l: "u" },
     ],
     single: [
-        { itemName: "fireblade", slot: "mainhand", level: 7, l: "s" },
-        { itemName: "fireblade", slot: "offhand", level: 7, l: "s" },
+        { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
+        { itemName: "fireblade", slot: "offhand", level: 7, l: "u" },
     ],
     cleave: [
         { itemName: "bataxe", slot: "mainhand", level: 5, l: "s" }
@@ -336,31 +336,13 @@ function handleWeaponSwap(stMaps, aoeMaps) {
     const now = performance.now();
     if (now - eTime <= 50) return;
 
-    if (stMaps.includes(character.map)) {
-        equipSet("single");
-        eTime = now;
-    } else if (aoeMaps.includes(character.map)) {
-        equipSet("aoe");
-        eTime = now;
-    }
+    equipSet("single");
+    eTime = now;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // HANDLE SKILLS
 // --------------------------------------------------------------------------------------------------------------------------------- //
-
-function handle_weapon_swap(stMaps, aoeMaps) {
-    const now = performance.now();
-    if (now - eTime <= 50) return;
-
-    if (st_maps.includes(character.map)) {
-        //equipSet("single");
-        //eTime = now;
-    } else if (aoe_maps.includes(character.map)) {
-        //equipSet("aoe");
-        //eTime = now;
-    }
-}
 
 let last_cleave_time = 0;
 const CLEAVE_THRESHOLD = 500;
