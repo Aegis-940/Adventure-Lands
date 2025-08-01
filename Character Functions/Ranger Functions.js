@@ -302,7 +302,6 @@ async function panic_button_loop() {
 			if (panic_triggered) {
 				// Exit panic state
 				game_log("✅ Myras is back online — exiting panic mode!");
-				attack_enabled = true;
 				panic_triggered = false;
 
 				const orbg_slot = locate_item(NORMAL_WEAPON);
@@ -310,6 +309,8 @@ async function panic_button_loop() {
 					equip(orbg_slot);
 					await delay(100);
 				}
+
+				attack_enabled = true;
 			}
 		}
 
