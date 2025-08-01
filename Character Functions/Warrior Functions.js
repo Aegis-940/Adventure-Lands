@@ -323,8 +323,30 @@ function single_target_set() {
     unequip("mainhand");
     unequip("offhand");
     equip_batch([
+        { itemName: "fireblade", slot: "mainhand", level: 7},
         { itemName: "fireblade", slot: "mainhand", level: 7}
     ]);
+}
+
+function handleWeaponSwap(stMaps, aoeMaps) {
+    const now = performance.now();
+    if (now - eTime <= 50) return;
+    if (stMaps.includes(character.map)) {
+        equipSet("single");
+        eTime = now;
+    } else if (aoeMaps.includes(character.map)) {
+        equipSet("aoe");
+        eTime = now;
+    }
+}
+
+function equipSet(setName) {
+    const set = equipmentSets[setName];
+    if (set) {
+        equipBatch(set);
+    } else {
+        console.error(`Set "${setName}" not found.`);
+    }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
