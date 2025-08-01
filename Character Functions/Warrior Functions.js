@@ -509,13 +509,11 @@ async function equip_batch(data) {
                 validItems.push({ num: i, slot });
                 used_slots.add(i);
                 matched = true;
-                game_log(`🧤 Queued: ${itemName} (slot ${i}) → ${slot}`);
                 break;
             }
         }
 
         if (!matched) {
-            game_log(`❌ No available match found for ${itemName} (level ${level}, l: ${l}) → ${slot}`);
         }
     }
 
