@@ -347,7 +347,7 @@ function toggle_follow_priest() {
 		btn.innerText = follow_priest_enabled ? "👣" : "❌";
 		game_log(
 			radius_lock_enabled
-				? "Follow Myras ENABLED
+				? "Follow Myras ENABLED"
 				: "Follow Myras DISABLED"
 		);
 	}, {
