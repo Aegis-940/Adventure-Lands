@@ -328,9 +328,9 @@ function single_target_set() {
 
     setTimeout(() => {
         equip_batch([
-            { itemName: "fireblade", slot: "mainhand", level: 7},
-            { itemName: "fireblade", slot: "offhand", level: 7}
-        ]);
+	    { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
+	    { itemName: "fireblade", slot: "offhand", level: 7, l: "u" }
+	]);
     }, 25);
 }
 
@@ -465,6 +465,7 @@ async function equip_batch(data) {
         game_log("Can't equipBatch non-array");
         return handleEquipBatchError("Invalid input: not an array");
     }
+
     if (data.length > 15) {
         game_log("Can't equipBatch more than 15 items");
         return handleEquipBatchError("Too many items");
@@ -473,47 +474,48 @@ async function equip_batch(data) {
     const used_slots = new Set();
     const validItems = [];
 
-    for (let i = 0; i < data.length; i++) {
-        const { itemName, slot, level, l } = data[i];
+    for (const equipRequest of data) {
+        const { itemName, slot, level, l } = equipRequest;
 
         if (!itemName) {
             game_log("Item name not provided. Skipping.");
             continue;
         }
 
-        // Skip if item is already equipped in that slot
+        // Check if already equipped
         const equipped_index = parent.character.slots[slot];
         const equipped_item = parent.character.items[equipped_index];
         if (
             equipped_item &&
             equipped_item.name === itemName &&
             equipped_item.level === level &&
-            equipped_item.l === l
+            (!l || equipped_item.l === l)
         ) {
-            game_log(`Item ${itemName} is already equipped in ${slot}. Skipping.`);
+            game_log(`✅ Already equipped in ${slot}: ${itemName}`);
             continue;
         }
 
-        // Look for an unused matching item in inventory
-        let found = false;
-        for (let j = 0; j < parent.character.items.length; j++) {
-            const item = parent.character.items[j];
+        // Find matching item in inventory that hasn't been used yet
+        let matched = false;
+        for (let i = 0; i < parent.character.items.length; i++) {
+            const item = parent.character.items[i];
             if (
                 item &&
                 item.name === itemName &&
                 item.level === level &&
-                item.l === l &&
-                !used_slots.has(j)
+                (!l || item.l === l) &&
+                !used_slots.has(i)
             ) {
-                validItems.push({ num: j, slot: slot });
-                used_slots.add(j);
-                found = true;
+                validItems.push({ num: i, slot });
+                used_slots.add(i);
+                matched = true;
+                game_log(`🧤 Queued: ${itemName} (slot ${i}) → ${slot}`);
                 break;
             }
         }
 
-        if (!found) {
-            game_log(`❌ No matching inventory item found for ${itemName} (${slot})`);
+        if (!matched) {
+            game_log(`❌ No available match found for ${itemName} (level ${level}, l: ${l}) → ${slot}`);
         }
     }
 
@@ -523,7 +525,8 @@ async function equip_batch(data) {
         parent.socket.emit("equip_batch", validItems);
         parent.push_deferred("equip_batch");
     } catch (error) {
-        console.error("Error in equipBatch:", error);
+        console.error("Error in equip_batch:", error);
         return handleEquipBatchError("Failed to equip items");
     }
 }
+
