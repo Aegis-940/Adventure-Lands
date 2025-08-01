@@ -279,14 +279,16 @@ async function panic_button_loop() {
 	const NORMAL_WEAPON = "orbg";
 
 	while (true) {
-		let myras_online = parent.party_list.includes(PRIEST_NAME) && parent.entities[PRIEST_NAME];
+		const myras_online = parent.party_list.includes(PRIEST_NAME) && parent.entities[PRIEST_NAME];
+		const low_health = character.hp < character.max_hp / 3;
+		const high_health = character.hp >= 2 * character.max_hp / 3;
 
-		if (!myras_online) {
+		if (!myras_online || low_health) {
 			if (!panic_triggered) {
 				// Enter panic state
 				panic_triggered = true;
 				attack_enabled = false;
-				game_log("⚠️ Panic triggered: Myras is offline!");
+				game_log("⚠️ Panic triggered:", !myras_online ? "Myras is offline!" : "Low health!");
 
 				const jacko_slot = locate_item(PANIC_WEAPON);
 				if (jacko_slot !== -1) {
@@ -299,9 +301,9 @@ async function panic_button_loop() {
 				}
 			}
 		} else {
-			if (panic_triggered) {
+			if (panic_triggered && high_health) {
 				// Exit panic state
-				game_log("✅ Myras is back online — exiting panic mode!");
+				game_log("✅ Panic over — resuming normal operations.");
 				panic_triggered = false;
 
 				const orbg_slot = locate_item(NORMAL_WEAPON);
@@ -311,10 +313,11 @@ async function panic_button_loop() {
 				}
 
 				attack_enabled = true;
-				start_attack_loop();
+				start_attack_loop?.(); // Optional chaining if defined
 			}
 		}
 
 		await delay(CHECK_INTERVAL);
 	}
 }
+
