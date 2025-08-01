@@ -160,7 +160,7 @@ function get_nearest_monster_v2(args = {}) {
 		if (args.min_level !== undefined && current.level < args.min_level) continue;
 		if (args.max_level !== undefined && current.level > args.max_level) continue;
 		if (args.target && !args.target.includes(current.target)) continue;
-		if (args.no_target && current.target && current.target != character.name) continue;
+		if (args.no_target && current.target) continue;
 
 		if (args.statusEffects && !args.statusEffects.every(effect => current.s[effect])) continue;
 
