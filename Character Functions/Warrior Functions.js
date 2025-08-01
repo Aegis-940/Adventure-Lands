@@ -314,8 +314,8 @@ const equipment_sets = {
 async function cleave_set() {
     await delay(150);
     unequip("mainhand");
-    await delay(150);
     unequip("offhand");
+    await wait_until_unequipped(["mainhand", "offhand"]);
     await delay(150);
 
     equip_batch([
@@ -327,8 +327,8 @@ async function cleave_set() {
 async function single_target_set() {
     await delay(150);
     unequip("mainhand");
-    await delay(150);
     unequip("offhand");
+    await wait_until_unequipped(["mainhand", "offhand"]);
     await delay(150);
 
     equip_batch([
@@ -336,6 +336,17 @@ async function single_target_set() {
         { itemName: "fireblade", slot: "offhand", level: 7, l: "u" }
     ]);
     await delay(150);
+}
+
+async function wait_until_unequipped(slots, timeout = 1000) {
+    const start = Date.now();
+    while (slots.some(slot => character.slots[slot])) {
+        if (Date.now() - start > timeout) {
+            game_log("⏳ Timeout waiting for unequip");
+            break;
+        }
+        await delay(50);
+    }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -361,11 +372,13 @@ async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
     const untargeted = monsters.some(m => !m.target);
 
     if (can_cleave(aoe, cc, new Set(aoe_maps), monsters, tank, time_since_last, untargeted)) {
-        if (Mainhand !== "bataxe") await cleave_set();
-        await use_skill("cleave");
+        if (Mainhand !== "bataxe");
+	stop_attack_loop();
+	await cleave_set();
+	await use_skill("cleave");
         last_cleave_time = performance.now();
-        await delay(150); // give server a tick to breathe
-        await single_target_set();
+	await single_target_set();
+	start_attack_loop();
     }
 }
 
