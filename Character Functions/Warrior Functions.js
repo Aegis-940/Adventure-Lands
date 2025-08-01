@@ -320,8 +320,9 @@ function cleave_set() {
 }
 
 function single_target_set() {
+    const now = performance.now();
+    if (now - eTime <= 50) return;  
     unequip("mainhand");
-    unequip("offhand");
     equipBatch([
         { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
 	{ itemName: "fireblade", slot: "offhand", level: 7, l: "u" }
