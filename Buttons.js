@@ -226,7 +226,6 @@ function toggle_maintain_position() {
 
 	create_floating_button("toggle_maintain_position", initialIcon, () => {
 		// Flip the flag and start/stop the loop
-		radius_lock_enabled = !radius_lock_enabled;
 		toggle_radius_lock();
 
 		// Update button icon & log
