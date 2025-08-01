@@ -292,7 +292,7 @@ async function skill_loop() {
 // EQUIPMENT SETS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const equipmentSets = {
+const equipment_sets = {
 
     dps: [
         { itemName: "strearring", slot: "earring1", level: 1, l: "l" },
@@ -336,7 +336,7 @@ function handle_weapon_swap(stMaps, aoeMaps) {
     const now = performance.now();
     if (now - eTime <= 50) return;
 
-    equipSet("single");
+    equip_set("single");
     eTime = now;
 }
 
@@ -441,7 +441,22 @@ async function panic_button_loop() {
 // BATCH EQUIP ITEMS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function equipBatch(data) {
+function equip_set(setName) {
+    const set = equipment_sets[setName];
+    if (set) {
+        equip_batch(set);
+    } else {
+        console.error(`Set "${setName}" not found.`);
+    }
+}
+
+function handleEquipBatchError(message) {
+    game_log(message);
+    // You may decide to implement a delay or other error handling mechanism here
+    return Promise.reject({ reason: "invalid", message });
+}
+
+async function equip_batch(data) {
     if (!Array.isArray(data)) {
         game_log("Can't equipBatch non-array");
         return handleEquipBatchError("Invalid input: not an array");
