@@ -319,7 +319,7 @@ function cleave_set() {
         equip_batch([
             { itemName: "bataxe", slot: "mainhand", level: 5 }
         ]);
-    }, 25);
+    }, 1);
 }
 
 function single_target_set() {
@@ -331,7 +331,7 @@ function single_target_set() {
 	    { itemName: "fireblade", slot: "mainhand", level: 7},
 	    { itemName: "fireblade", slot: "offhand", level: 7}
 	]);
-    }, 25);
+    }, 1);
 }
 
 function handleWeaponSwap(stMaps, aoeMaps) {
