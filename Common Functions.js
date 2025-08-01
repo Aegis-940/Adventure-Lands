@@ -161,7 +161,6 @@ function pots() {
 	}
 }
 
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SCAN BANK
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -173,32 +172,32 @@ let bank_inventory = [];
  * Fills `bank_inventory` with metadata: name, level, quantity, tab, slot.
  */
 function scan_bank_inventory() {
-  if (!parent.bank || !Array.isArray(parent.bank)) {
-    game_log("❌ Bank data not available. Open the bank first.");
-    return;
-  }
+	if (!parent.bank || !Array.isArray(parent.bank)) {
+		game_log("❌ Bank data not available. Open the bank first.");
+		return;
+	}
 
-  bank_inventory = [];
+	bank_inventory = [];
 
-  for (let tab = 0; tab < parent.bank.length; tab++) {
-    const tab_items = parent.bank[tab];
-    if (!Array.isArray(tab_items)) continue;
+	for (let tab = 0; tab < parent.bank.length; tab++) {
+		const tab_items = parent.bank[tab];
+		if (!Array.isArray(tab_items)) continue;
 
-    for (let slot = 0; slot < tab_items.length; slot++) {
-      const item = tab_items[slot];
-      if (!item) continue;
+		for (let slot = 0; slot < tab_items.length; slot++) {
+			const item = tab_items[slot];
+			if (!item) continue;
 
-      bank_inventory.push({
-        name: item.name,
-        level: item.level ?? 0,
-        q: item.q ?? 1,
-        tab: tab,
-        slot: slot
-      });
-    }
-  }
+			bank_inventory.push({
+				name: item.name,
+				level: item.level ?? 0,
+				q: item.q ?? 1,
+				tab: tab,
+				slot: slot
+			});
+		}
+	}
 
-  game_log(`📦 Bank scan complete: ${bank_inventory.length} items recorded`);
+	game_log(`📦 Bank scan complete: ${bank_inventory.length} items recorded`);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -206,29 +205,29 @@ function scan_bank_inventory() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function send_to_merchant() {
-    const merchant_name = MERCHANT_NAME;          // "Riff"
-    const merchant = get_player(merchant_name);   // ← use get_player, not parent.entities
+	const merchant_name = MERCHANT_NAME;          // "Riff"
+	const merchant = get_player(merchant_name);   // ← use get_player, not parent.entities
 
-    if (!merchant || merchant.rip) {
-        return game_log("❌ Merchant not found or dead");
-    }
-    if (merchant.map !== character.map || distance(character, merchant) > 400) {
-        return game_log("❌ Merchant not nearby");
-    }
+	if (!merchant || merchant.rip) {
+		return game_log("❌ Merchant not found or dead");
+	}
+	if (merchant.map !== character.map || distance(character, merchant) > 400) {
+		return game_log("❌ Merchant not nearby");
+	}
 
-    // Send every item in slots ≥ LOOT_THRESHOLD
-    for (let i = LOOT_THRESHOLD; i < character.items.length; i++) {
-        const item = character.items[i];
-        if (item) {
-	    await delay(50);
-            await send_item(merchant_name, i, item.q || 1);
-        }
-    }
-    // Then send all gold
-    if (character.gold > 0) {
-	    await delay(50);
-            await send_gold(merchant_name, character.gold);
-    }
+	// Send every item in slots ≥ LOOT_THRESHOLD
+	for (let i = LOOT_THRESHOLD; i < character.items.length; i++) {
+		const item = character.items[i];
+		if (item) {
+			await delay(50);
+			await send_item(merchant_name, i, item.q || 1);
+		}
+	}
+	// Then send all gold
+	if (character.gold > 0) {
+		await delay(50);
+		await send_gold(merchant_name, character.gold);
+	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
