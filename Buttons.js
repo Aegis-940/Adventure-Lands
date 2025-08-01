@@ -21,9 +21,10 @@ function remove_all_floating_buttons() {
 function create_floating_button(id, label, on_click, style_overrides = {}) {
 	remove_floating_button(id);
 
-	if (!FLOATING_BUTTON_IDS.includes(id)) {
-		FLOATING_BUTTON_IDS.push(id);
-	}
+    // ✅ Add ID only if not already present
+    if (!FLOATING_BUTTON_IDS.includes(id)) {
+        FLOATING_BUTTON_IDS.push(id);
+    }
 
 	const {
 		top = "50vh",
@@ -216,34 +217,6 @@ function toggle_free_move() {
 }
 
 // -------------------------------------------------------------------- //
-// TOGGLE AUTO COLLECT LOOT
-// -------------------------------------------------------------------- //
-
-function toggle_inventory_check() {
-	create_floating_button("toggle_inventory_check", "🔁✅", async () => {
-		inventory_check_enabled = !inventory_check_enabled;
-
-		const btn = window.top.document.getElementById("toggle_inventory_check");
-		btn.innerText = inventory_check_enabled ? "🔁✅" : "🔁❌";
-
-		if (inventory_check_enabled) {
-			game_log("🔁 Inventory check ENABLED");
-			check_remote_inventories();
-		} else {
-			game_log("⛔ Inventory check DISABLED");
-		}
-	}, {
-		top: "2.1vh",
-		right: "523px",
-		minWidth: "57px",
-		height: "57px",
-		fontSize: "24px",
-		border: "4px solid #888",
-		title: "Toggle Inventory Transfer"
-	});
-}
-
-// -------------------------------------------------------------------- //
 // TOGGLE MAINTAIN POSITION
 // -------------------------------------------------------------------- //
 
@@ -253,18 +226,14 @@ function toggle_maintain_position() {
 	let btn = window.top.document.getElementById(BUTTON_ID);
 
 	if (!btn) {
-		// Create button if it doesn't exist
+		// Create as a floating button
 		create_floating_button(BUTTON_ID, "🌐", () => {
 			toggle_radius_lock();
 
 			const btn = window.top.document.getElementById(BUTTON_ID);
 			btn.innerText = radius_lock_enabled ? "🌐" : "🎯";
 
-			if (radius_lock_enabled) {
-				game_log("🌐 Maintain Position ENABLED");
-			} else {
-				game_log("🎯 Maintain Position DISABLED");
-			}
+			game_log(radius_lock_enabled ? "🌐 Maintain Position ENABLED" : "🎯 Maintain Position DISABLED");
 		}, {
 			top: "2.1vh",
 			right: "645px",
@@ -275,14 +244,13 @@ function toggle_maintain_position() {
 			title: "Toggle Maintain Position"
 		});
 
-		FLOATING_BUTTON_IDS.push(BUTTON_ID);
-
+		// Round off styling after creation
 		setTimeout(() => {
 			const btn = window.top.document.getElementById(BUTTON_ID);
 			if (btn) btn.style.borderRadius = "0px";
 		}, 0);
 	} else {
-		// Button already exists, simulate a click to toggle
+		// Toggle if button already exists
 		btn.click();
 	}
 }
@@ -368,7 +336,6 @@ function toggle_follow_priest_button() {
 	let btn = window.top.document.getElementById(BUTTON_ID);
 
 	if (!btn) {
-		// Create button if it doesn't exist
 		create_floating_button(BUTTON_ID, "❌", () => {
 			follow_priest_enabled = !follow_priest_enabled;
 			toggle_follow_priest(follow_priest_enabled);
@@ -376,11 +343,7 @@ function toggle_follow_priest_button() {
 			const btn = window.top.document.getElementById(BUTTON_ID);
 			btn.innerText = follow_priest_enabled ? "👣" : "❌";
 
-			if (follow_priest_enabled) {
-				game_log("👣 Follow Myras ENABLED");
-			} else {
-				game_log("❌ Follow Myras DISABLED");
-			}
+			game_log(follow_priest_enabled ? "👣 Follow Myras ENABLED" : "❌ Follow Myras DISABLED");
 		}, {
 			top: "2.1vh",
 			right: "710px",
@@ -391,14 +354,13 @@ function toggle_follow_priest_button() {
 			title: "Toggle Follow Myras"
 		});
 
-		FLOATING_BUTTON_IDS.push(BUTTON_ID);
-
+		// Optional style patch
 		setTimeout(() => {
 			const btn = window.top.document.getElementById(BUTTON_ID);
 			if (btn) btn.style.borderRadius = "0px";
 		}, 0);
 	} else {
-		// Button already exists, simulate a click to toggle
 		btn.click();
 	}
 }
+
