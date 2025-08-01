@@ -327,19 +327,24 @@ function cleave_set() {
 }
 
 function single_target_set() {
-    unequip("mainhand");
+    const SWITCH_DELAY = 50;
 
     setTimeout(() => {
-        unequip("offhand");
+        unequip("mainhand");
 
         setTimeout(() => {
-            equip_batch([
-	        { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
-		{ itemName: "fireblade", slot: "offhand", level: 7, l: "u" }
-            ]);
-        }, 50); // Delay after offhand unequip
+            unequip("offhand");
 
-    }, 50); // Delay after mainhand unequip
+            setTimeout(() => {
+                equipBatch([
+                    { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
+                    { itemName: "fireblade", slot: "offhand", level: 7, l: "u" }
+                ]);
+            }, SWITCH_DELAY); // Delay after offhand unequip
+
+        }, SWITCH_DELAY); // Delay after mainhand unequip
+
+    }, SWITCH_DELAY); // Initial delay before unequipping mainhand
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
