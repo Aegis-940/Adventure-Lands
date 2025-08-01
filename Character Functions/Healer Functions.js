@@ -236,6 +236,16 @@ async function attack_loop() {
 					if (target) break;
 				}
 
+				if (!target) {
+					for (let i = 0; i < MONSTER_TYPES.length; i++) {
+						target = get_nearest_monster_v2({
+							type: MONSTER_TYPES[i],
+							max_distance: 190,
+						});
+						if (target) break;
+					}
+				}
+
 				/*
 				if (bossMonster) {
 					target = bossMonster;
