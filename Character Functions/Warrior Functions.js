@@ -197,7 +197,6 @@ async function attack_loop() {
 
         if (target) {
             await attack(target);
-			reduce_cooldown("attack", character.ping * 0.95);
             delay = ms_to_next_skill("attack");
         }
     } catch (e) {
@@ -206,7 +205,7 @@ async function attack_loop() {
 
 	// only re-schedule if still enabled
 	if (attack_enabled) {
-	attack_timer_id = setTimeout(attack_loop, delay);
+	    attack_timer_id = setTimeout(attack_loop, delay);
 	}
 }
 
