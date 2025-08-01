@@ -332,7 +332,7 @@ function single_target_set() {
 // WEAPON SWAPPING
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function handleWeaponSwap(stMaps, aoeMaps) {
+function handle_weapon_swap(stMaps, aoeMaps) {
     const now = performance.now();
     if (now - eTime <= 50) return;
 
@@ -368,7 +368,7 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
         reduce_cooldown("cleave", character.ping * 0.95);
         last_cleave_time = now;
     }
-    single_target_set();
+    handle_weapon_swap();
 }
 
 function can_cleave(aoe, cc, maps, monsters, tank, time_since, has_untargeted) {
