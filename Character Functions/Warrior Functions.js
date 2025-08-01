@@ -313,6 +313,8 @@ const equipment_sets = {
 
 function cleave_set() {
     unequip("mainhand");
+    const now = performance.now();
+    if (now - eTime <= 50) return;  
     unequip("offhand");
     equipBatch([
         { itemName: "bataxe", slot: "mainhand", level: 5},
