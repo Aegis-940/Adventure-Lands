@@ -221,39 +221,41 @@ function toggle_free_move() {
 // -------------------------------------------------------------------- //
 
 function toggle_maintain_position() {
-  // Determine initial icon based on current state
-  const initialIcon = radius_lock_enabled ? "🌐" : "🎯";
+	// Determine initial icon based on current state
+	const initialIcon = radius_lock_enabled ? "🌐" : "🎯";
 
-  create_floating_button("toggle_maintain_position", initialIcon, () => {
-    // Flip the flag and start/stop the loop
-    radius_lock_enabled = !radius_lock_enabled;
-    toggle_radius_lock();
+	create_floating_button("toggle_maintain_position", initialIcon, () => {
+		// Flip the flag and start/stop the loop
+		radius_lock_enabled = !radius_lock_enabled;
+		toggle_radius_lock();
 
-    // Update button icon & log
-    const btn = window.top.document.getElementById("toggle_maintain_position");
-    btn.innerText = radius_lock_enabled ? "🌐" : "🎯";
-    game_log(
-      radius_lock_enabled
-        ? "Free Moving During Combat"
-        : "Maintain Position During Combat"
-    );
-  }, {
-    top: "2.1vh",
-right: "645px",
-minWidth: "56px",
-height: "56px",
-fontSize: "24px",
-border: "4px solid #888",
-title: "Toggle Maintain Position"
-  });
-  // Immediately zero out any border-radius on the new button
-  setTimeout(() => {
-    const btn = window.top.document.getElementById("radius_lock_enabled");
-    if (btn) {
-      btn.style.borderRadius = "0px";
-    }
-  }, 0);
+		// Update button icon & log
+		const btn = window.top.document.getElementById("toggle_maintain_position");
+		btn.innerText = radius_lock_enabled ? "🌐" : "🎯";
+		game_log(
+			radius_lock_enabled
+				? "Free Moving During Combat"
+				: "Maintain Position During Combat"
+		);
+	}, {
+		top: "2.1vh",
+		right: "645px",
+		minWidth: "56px",
+		height: "56px",
+		fontSize: "24px",
+		border: "4px solid #888",
+		title: "Toggle Maintain Position"
+	});
+
+	// Immediately zero out any border-radius on the new button
+	setTimeout(() => {
+		const btn = window.top.document.getElementById("toggle_maintain_position");
+		if (btn) {
+			btn.style.borderRadius = "0px";
+		}
+	}, 0);
 }
+
 
 // -------------------------------------------------------------------- //
 // PRIEST SKILL TOGGLES
