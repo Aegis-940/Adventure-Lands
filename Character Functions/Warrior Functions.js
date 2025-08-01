@@ -390,7 +390,7 @@ function can_cleave(aoe, cc, maps, monsters, tank, time_since, has_untargeted) {
         !smart.moving &&
         cc && aoe && tank &&
         time_since >= CLEAVE_THRESHOLD &&
-        monsters.length > 0 &&
+        monsters.length > 2 &&
         maps.has(character.map) &&
         !is_on_cooldown("cleave") &&
         ms_to_next_skill("attack") > 75
