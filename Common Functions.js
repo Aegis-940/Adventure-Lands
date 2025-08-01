@@ -7,9 +7,6 @@
 
 let attack_mode                   = true;
 
-const PARTY_CHECK_INTERVAL        = 5000;
-let last_party_check              = 0;
-
 // For potion deliveries from merchant
 const POTION_TYPES = ["mpot1", "hpot1"];
 
