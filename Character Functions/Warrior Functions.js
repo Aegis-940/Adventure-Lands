@@ -321,7 +321,6 @@ function cleave_set() {
 
 function single_target_set() {
     unequip("mainhand");
-    unequip("offhand");
     equipBatch([
         { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
 	{ itemName: "fireblade", slot: "offhand", level: 7, l: "u" }
