@@ -238,7 +238,7 @@ function toggle_follow_priest() {
 				: "Follow Myras DISABLED"
 		);
 	}, {
-		top: "2.1vh",
+		top: "2.05vh",
 		right: "645px",
 		minWidth: "56px",
 		height: "56px",
@@ -277,8 +277,8 @@ function toggle_maintain_position() {
 				: "Maintain Position During Combat"
 		);
 	}, {
-		top: "2.1vh",
-		right: "705px",
+		top: "2.05vh",
+		right: "706px",
 		minWidth: "56px",
 		height: "56px",
 		fontSize: "24px",
