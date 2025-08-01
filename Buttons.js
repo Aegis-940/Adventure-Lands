@@ -1,8 +1,7 @@
 
-
-// -------------------------------------------------------------------- //
-// REMOVING BUTTONS
-// -------------------------------------------------------------------- //
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// REMOVING BUTTONS AND WINDOWS
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
 function remove_floating_button(id) {
 	const btn = window.top.document.getElementById(id);
@@ -14,9 +13,9 @@ function remove_all_floating_buttons() {
 	FLOATING_BUTTON_IDS.length = 0;
 }
 
-// -------------------------------------------------------------------- //
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // CREATE FLOATING BUTTONS
-// -------------------------------------------------------------------- //
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
 function create_floating_button(id, label, on_click, style_overrides = {}) {
 	remove_floating_button(id);
@@ -65,9 +64,9 @@ function create_floating_button(id, label, on_click, style_overrides = {}) {
 	window.top.document.body.appendChild(btn);
 }
 
-// -------------------------------------------------------------------- //
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // GENERAL BUTTONS
-// -------------------------------------------------------------------- //
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
 function create_map_movement_window(custom_actions = []) {
 	const id = "map_movement_window";
@@ -140,9 +139,9 @@ function create_map_movement_window(custom_actions = []) {
 	});
 }
 
-// -------------------------------------------------------------------- //
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // COMBAT TOGGLE
-// -------------------------------------------------------------------- //
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
 function toggle_combat() {
 	const initialIcon = attack_enabled ? "⚔️" : "🕊️";
@@ -176,9 +175,9 @@ function toggle_combat() {
 }
 
 
-// -------------------------------------------------------------------- //
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // TOGGLE FREE MOVE
-// -------------------------------------------------------------------- //
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
 function toggle_free_move() {
 	// Determine initial icon based on current state
@@ -217,10 +216,49 @@ function toggle_free_move() {
 	}, 0);
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// FOLLOW PRIEST TOGGLE
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
-// -------------------------------------------------------------------- //
+function toggle_follow_priest() {
+	// Determine initial icon based on current state
+	const initialIcon = follow_priest_enabled ? "👣" : "❌";
+
+	create_floating_button("toggle_follow_priest", initialIcon, () => {
+		// Flip the flag and start/stop the loop
+		follow_priest_enabled = !follow_priest_enabled;
+		toggle_follow_priest(follow_priest_enabled);
+
+		// Update button icon & log
+		const btn = window.top.document.getElementById("toggle_follow_priest");
+		btn.innerText = follow_priest_enabled ? "👣" : "❌";
+		game_log(
+			radius_lock_enabled
+				? "Follow Myras ENABLED"
+				: "Follow Myras DISABLED"
+		);
+	}, {
+		top: "2.1vh",
+		right: "645px",
+		minWidth: "56px",
+		height: "56px",
+		fontSize: "24px",
+		border: "4px solid #888",
+		title: "Toggle Follow Myras"
+	});
+
+	// Immediately zero out any border-radius on the new button
+	setTimeout(() => {
+		const btn = window.top.document.getElementById("toggle_follow_priest");
+		if (btn) {
+			btn.style.borderRadius = "0px";
+		}
+	}, 0);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // TOGGLE MAINTAIN POSITION
-// -------------------------------------------------------------------- //
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
 function toggle_maintain_position() {
 	// Determine initial icon based on current state
@@ -240,7 +278,7 @@ function toggle_maintain_position() {
 		);
 	}, {
 		top: "2.1vh",
-		right: "645px",
+		right: "705px",
 		minWidth: "56px",
 		height: "56px",
 		fontSize: "24px",
@@ -258,9 +296,9 @@ function toggle_maintain_position() {
 }
 
 
-// -------------------------------------------------------------------- //
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // PRIEST SKILL TOGGLES
-// -------------------------------------------------------------------- //
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
 const PRIEST_SKILL_TOGGLES = {
 	curse: true,
@@ -328,44 +366,3 @@ function create_priest_skill_buttons() {
 
 	window.top.document.body.appendChild(container);
 }
-
-// -------------------------------------------------------------------- //
-// FOLLOW PRIEST TOGGLE
-// -------------------------------------------------------------------- //
-
-function toggle_follow_priest() {
-	// Determine initial icon based on current state
-	const initialIcon = follow_priest_enabled ? "👣" : "❌";
-
-	create_floating_button("toggle_follow_priest", initialIcon, () => {
-		// Flip the flag and start/stop the loop
-		follow_priest_enabled = !follow_priest_enabled;
-		toggle_follow_priest(follow_priest_enabled);
-
-		// Update button icon & log
-		const btn = window.top.document.getElementById("toggle_follow_priest");
-		btn.innerText = follow_priest_enabled ? "👣" : "❌";
-		game_log(
-			radius_lock_enabled
-				? "Follow Myras ENABLED"
-				: "Follow Myras DISABLED"
-		);
-	}, {
-		top: "2.1vh",
-		right: "710px",
-		minWidth: "56px",
-		height: "56px",
-		fontSize: "24px",
-		border: "4px solid #888",
-		title: "Toggle Follow Myras"
-	});
-
-	// Immediately zero out any border-radius on the new button
-	setTimeout(() => {
-		const btn = window.top.document.getElementById("toggle_follow_priest");
-		if (btn) {
-			btn.style.borderRadius = "0px";
-		}
-	}, 0);
-}
-
