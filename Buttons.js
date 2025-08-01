@@ -1,4 +1,5 @@
 
+
 // -------------------------------------------------------------------- //
 // REMOVING BUTTONS
 // -------------------------------------------------------------------- //
@@ -144,9 +145,6 @@ function create_map_movement_window(custom_actions = []) {
 
 function toggle_combat() {
   const initialIcon = attack_enabled ? "⚔️" : "🕊️";
-	if (!FLOATING_BUTTON_IDS.includes(id)) {
-		FLOATING_BUTTON_IDS.push(id);
-	}
 
   create_floating_button("toggle_combat", initialIcon, () => {
     attack_enabled = !attack_enabled;
@@ -183,9 +181,6 @@ function toggle_combat() {
 function toggle_free_move() {
   // Determine initial icon based on current state
   const initialIcon = move_enabled ? "🚶" : "🧍";
-	if (!FLOATING_BUTTON_IDS.includes(id)) {
-		FLOATING_BUTTON_IDS.push(id);
-	}
 
   create_floating_button("toggle_free_move", initialIcon, () => {
     // Flip the flag and start/stop the loop
@@ -221,15 +216,39 @@ function toggle_free_move() {
 }
 
 // -------------------------------------------------------------------- //
+// TOGGLE AUTO COLLECT LOOT
+// -------------------------------------------------------------------- //
+
+function toggle_inventory_check() {
+	create_floating_button("toggle_inventory_check", "🔁✅", async () => {
+		inventory_check_enabled = !inventory_check_enabled;
+
+		const btn = window.top.document.getElementById("toggle_inventory_check");
+		btn.innerText = inventory_check_enabled ? "🔁✅" : "🔁❌";
+
+		if (inventory_check_enabled) {
+			game_log("🔁 Inventory check ENABLED");
+			check_remote_inventories();
+		} else {
+			game_log("⛔ Inventory check DISABLED");
+		}
+	}, {
+		top: "2.1vh",
+		right: "523px",
+		minWidth: "57px",
+		height: "57px",
+		fontSize: "24px",
+		border: "4px solid #888",
+		title: "Toggle Inventory Transfer"
+	});
+}
+
+// -------------------------------------------------------------------- //
 // TOGGLE MAINTAIN POSITION
 // -------------------------------------------------------------------- //
 
 function toggle_maintain_position() {
 	const BUTTON_ID = "toggle_maintain_position";
-
-	if (!FLOATING_BUTTON_IDS.includes(id)) {
-		FLOATING_BUTTON_IDS.push(id);
-	}
 
 	let btn = window.top.document.getElementById(BUTTON_ID);
 
@@ -345,10 +364,6 @@ function create_priest_skill_buttons() {
 
 function toggle_follow_priest_button() {
 	const BUTTON_ID = "toggle_follow_priest";
-
-	if (!FLOATING_BUTTON_IDS.includes(id)) {
-		FLOATING_BUTTON_IDS.push(id);
-	}
 
 	let btn = window.top.document.getElementById(BUTTON_ID);
 
