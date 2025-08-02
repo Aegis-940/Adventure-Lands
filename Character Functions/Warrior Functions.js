@@ -231,7 +231,6 @@ async function attack_loop() {
 
         if (target) {
             await attack(target);
-	          reduce_cooldown("attack", character.ping * 0.95);
             delay = ms_to_next_skill("attack");
             if (delay < 100) delay = 100;
         }
