@@ -171,7 +171,7 @@ function get_nearest_monster_v2(args = {}) {
 
 async function attack_loop() {
     if (!attack_enabled) return;
-    let delay = null;
+    let delay = 10;
     try {
         let target = null;
 
@@ -218,7 +218,7 @@ async function attack_loop() {
 async function move_loop() {
   if (!move_enabled) return;
   // How often to run
-  const delay = 50;
+  const delay = 200;
   try {
     // 1) Find the absolute closest monster among your approved types
     let closest = null;
@@ -259,7 +259,7 @@ async function move_loop() {
 let eTime = 0;
 
 async function skill_loop() {
-    let delay = 10;
+    let delay = 50;
     try {
         let zap = false;
         const dead = character.rip;
