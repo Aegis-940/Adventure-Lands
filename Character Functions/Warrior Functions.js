@@ -393,43 +393,37 @@ function handleEquipBatchError(message) {
 }
 
 async function equip_batch(data) {
-	if (!Array.isArray(data)) return handleEquipBatchError("Invalid input: not an array");
-	if (data.length > 15) return handleEquipBatchError("Too many items");
+	if (!Array.isArray(data)) return handleEquipBatchError("Input is not an array.");
+	if (data.length > 15) return handleEquipBatchError("Too many items in equip batch.");
 
 	const used_slots = new Set();
 
 	for (const equipRequest of data) {
 		const { itemName, slot, level, l } = equipRequest;
+		if (!itemName || !slot) continue;
 
-		if (!itemName) continue;
-
-		// Skip if already equipped
-		const equipped_index = parent.character.slots[slot];
-		const equipped_item = parent.character.items[equipped_index];
+		// Check if the slot already has the desired item equipped
+		const equipped = character.slots[slot];
 		if (
-			equipped_item &&
-			equipped_item.name === itemName &&
-			equipped_item.level === level &&
-			(!l || equipped_item.l === l)
-		) {
-			continue;
-		}
+			equipped &&
+			equipped.name === itemName &&
+			equipped.level === level &&
+			(!l || equipped.l === l)
+		) continue;
 
-		// Find matching item in inventory
-		for (let i = 0; i < parent.character.items.length; i++) {
-			const item = parent.character.items[i];
-			if (
-				item &&
-				item.name === itemName &&
-				item.level === level &&
-				(!l || item.l === l) &&
-				!used_slots.has(i)
-			) {
-				used_slots.add(i);
-				equip(i, slot);
-				await delay(10);
-				break;
-			}
+		// Search inventory for matching item
+		const item_index = parent.character.items.findIndex((item, idx) =>
+			item &&
+			item.name === itemName &&
+			item.level === level &&
+			(!l || item.l === l) &&
+			!used_slots.has(idx)
+		);
+
+		if (item_index !== -1) {
+			used_slots.add(item_index);
+			equip(item_index, slot);
+			await delay(20); // just enough time for server sync
 		}
 	}
 }
