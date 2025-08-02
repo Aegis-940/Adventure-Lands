@@ -392,71 +392,45 @@ function handleEquipBatchError(message) {
 }
 
 async function equip_batch(data) {
-    if (!Array.isArray(data)) {
-        game_log("Can't equipBatch non-array");
-        return handleEquipBatchError("Invalid input: not an array");
-    }
+	if (!Array.isArray(data)) return handleEquipBatchError("Invalid input: not an array");
+	if (data.length > 15) return handleEquipBatchError("Too many items");
 
-    if (data.length > 15) {
-        game_log("Can't equipBatch more than 15 items");
-        return handleEquipBatchError("Too many items");
-    }
+	const used_slots = new Set();
 
-    const used_slots = new Set();
-    const validItems = [];
+	for (const equipRequest of data) {
+		const { itemName, slot, level, l } = equipRequest;
 
-    for (const equipRequest of data) {
-        const { itemName, slot, level, l } = equipRequest;
+		if (!itemName) continue;
 
-        if (!itemName) {
-            game_log("Item name not provided. Skipping.");
-            continue;
-        }
+		// Skip if already equipped
+		const equipped_index = parent.character.slots[slot];
+		const equipped_item = parent.character.items[equipped_index];
+		if (
+			equipped_item &&
+			equipped_item.name === itemName &&
+			equipped_item.level === level &&
+			(!l || equipped_item.l === l)
+		) {
+			continue;
+		}
 
-        // Check if already equipped
-        const equipped_index = parent.character.slots[slot];
-        const equipped_item = parent.character.items[equipped_index];
-        if (
-            equipped_item &&
-            equipped_item.name === itemName &&
-            equipped_item.level === level &&
-            (!l || equipped_item.l === l)
-        ) {
-            game_log(`✅ Already equipped in ${slot}: ${itemName}`);
-            continue;
-        }
-
-        // Find matching item in inventory that hasn't been used yet
-        let matched = false;
-        for (let i = 0; i < parent.character.items.length; i++) {
-            const item = parent.character.items[i];
-            if (
-                item &&
-                item.name === itemName &&
-                item.level === level &&
-                (!l || item.l === l) &&
-                !used_slots.has(i)
-            ) {
-                validItems.push({ num: i, slot });
-                used_slots.add(i);
-                matched = true;
-                break;
-            }
-        }
-
-        if (!matched) {
-        }
-    }
-
-    if (validItems.length === 0) return;
-
-    try {
-        parent.socket.emit("equip_batch", validItems);
-        parent.push_deferred("equip_batch");
-    } catch (error) {
-        console.error("Error in equip_batch:", error);
-        return handleEquipBatchError("Failed to equip items");
-    }
+		// Find matching item in inventory
+		for (let i = 0; i < parent.character.items.length; i++) {
+			const item = parent.character.items[i];
+			if (
+				item &&
+				item.name === itemName &&
+				item.level === level &&
+				(!l || item.l === l) &&
+				!used_slots.has(i)
+			) {
+				used_slots.add(i);
+				equip(i, slot);
+				await delay(100); // Wait for server to process it
+				break;
+			}
+		}
+	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
