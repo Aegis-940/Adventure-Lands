@@ -86,7 +86,7 @@ function init_persistent_state() {
     if (move_enabled)   start_move_loop();
     else                stop_move_loop();
 
-    if (skills_enabled)  start_skill_loop();
+    if (skills_enabled) start_skill_loop();
     else                stop_skill_loop();
   } catch (e) {
     console.error("Error loading persistent state:", e);
@@ -204,7 +204,7 @@ function get_nearest_monster_v2(args = {}) {
 
 async function attack_loop() {
     if (!attack_enabled) return;
-    let delay = 10;
+    let delay = 100;
     try {
         let target = null;
 
@@ -219,11 +219,13 @@ async function attack_loop() {
             if (target) break;
 
             // If no cursed target nearby, check wider range
-            target = get_nearest_monster_v2({
+            if (!target || target.dead || parent.distance(character, target) > character.range) {
+              target = get_nearest_monster_v2({
                 type: name,
                 check_max_hp: false,
                 max_distance: character.range,
-            });
+              });
+            }
 		
             if (target) break;
 		
@@ -233,6 +235,7 @@ async function attack_loop() {
             await attack(target);
 	    reduce_cooldown("cleave", character.ping * 0.95);
             delay = ms_to_next_skill("attack");
+            if (delay < 100) delay = 100;
         }
     } catch (e) {
         // optional error logging
