@@ -329,33 +329,28 @@ const equipment_sets = {
 
 };
 
-let last_weapon_swap = 0;
-let current_weapon_mode = "single"; // or "cleave"
-
 function cleave_set() {
-    if (current_weapon_mode === "cleave") return;
     unequip("offhand");
     equip_batch([
-        { itemName: "bataxe", slot: "mainhand", level: 5 },
+        { itemName: "bataxe", slot: "mainhand", level: 5},
     ]);
-    current_weapon_mode = "cleave";
-    last_weapon_swap = performance.now();
 }
 
 function equip_set(setName) {
     const set = equipment_sets[setName];
     if (set) {
-        equip_batch(set);
-        current_weapon_mode = setName;
-        last_weapon_swap = performance.now();
+       equip_batch(set);
     } else {
         console.error(`Set "${setName}" not found.`);
     }
 }
 
 function handle_weapon_swap() {
-    const now = performance.now();
-    equip_set("single");
+	const now = performance.now();
+	if (now - eTime <= 50) return;
+
+        equip_set("single");
+        eTime = now;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -378,6 +373,8 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
         distance(character, e) <= CLEAVE_RANGE
     );
 
+    const untargeted = monsters.some(m => !m.target);
+
     if (can_cleave(aoe, cc, monsters, time_since_last)) {
         if (Mainhand !== "bataxe") cleave_set();
         use_skill("cleave");
@@ -385,9 +382,7 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
         last_cleave_time = now;	  
     }
     // Swap back instantly (don't delay this)
-    if (current_weapon_mode !== "single") {
-      handle_weapon_swap();
-    }
+    handle_weapon_swap();
 }
 
 function can_cleave(aoe, cc, monsters, time_since) {
