@@ -9,6 +9,8 @@ let attack_enabled   = true;
 let attack_timer_id  = null;
 let move_enabled     = true;
 let move_timer_id    = null;
+let skill_enabled     = true;
+let skill_timer_id    = null;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS
@@ -38,6 +40,17 @@ function stop_move_loop() {
   game_log("⏹ Move loop stopped");
 }
 
+function start_skill_loop() {
+    skill_enabled = true;
+    skill_loop();
+    game_log("▶️ Skill loop started");
+}
+
+function stop_skill_loop() {
+  skill_enabled = false;
+  clearTimeout(skill_timer_id);
+  game_log("⏹ Skill loop stopped");
+}
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 3) PERSISTENT STATE HANDLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -260,7 +273,7 @@ async function move_loop() {
 let eTime = 0;
 
 async function skill_loop() {
-    //game_log("Skill Loop Trigger!");
+    if (!skill_enabled) return;
     let delay = 200;
     try {
         let zap = false;
