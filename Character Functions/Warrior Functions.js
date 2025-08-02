@@ -364,10 +364,10 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
         if (Mainhand !== "bataxe") cleave_set();
         use_skill("cleave");
         //reduce_cooldown("cleave", character.ping * 0.95);
-        last_cleave_time = now;
-    }	
-    // Swap back instantly (don't delay this)
-    handle_weapon_swap();
+        last_cleave_time = now;	
+	    // Swap back instantly (don't delay this)
+	    handle_weapon_swap();
+    }
 }
 
 function can_cleave(aoe, monsters, tank, time_since) {
@@ -426,7 +426,7 @@ async function equip_batch(data) {
 			) {
 				used_slots.add(i);
 				equip(i, slot);
-				await delay(25);
+				await delay(50);
 				break;
 			}
 		}
