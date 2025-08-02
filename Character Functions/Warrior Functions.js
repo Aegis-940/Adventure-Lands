@@ -393,44 +393,64 @@ function handleEquipBatchError(message) {
 }
 
 async function equip_batch(data) {
-	if (!Array.isArray(data)) return handleEquipBatchError("Invalid input: not an array");
-	if (data.length > 15) return handleEquipBatchError("Too many items");
+    if (!Array.isArray(data)) return handleEquipBatchError("Invalid input: not an array");
+    if (data.length > 15) return handleEquipBatchError("Too many items");
 
-	const used_slots = new Set();
+    const used_slots = new Set();
 
-	for (const equipRequest of data) {
-		const { itemName, slot, level, l } = equipRequest;
+    // Index inventory by name+level+l for fast lookup
+    const inventory = parent.character.items;
+    const inventory_index = {};
+    for (let i = 0; i < inventory.length; i++) {
+        const item = inventory[i];
+        if (!item) continue;
+        const key = `${item.name}_${item.level}_${item.l || ''}`;
+        if (!inventory_index[key]) inventory_index[key] = [];
+        inventory_index[key].push(i);
+    }
 
-		if (!itemName) continue;
+    const equips = [];
 
-		// Skip if already equipped
-		const equipped_index = parent.character.slots[slot];
-		const equipped_item = parent.character.items[equipped_index];
-		if (
-			equipped_item &&
-			equipped_item.name === itemName &&
-			equipped_item.level === level &&
-			(!l || equipped_item.l === l)
-		) {
-			continue;
-		}
+    for (const { itemName, slot, level, l } of data) {
+        if (!itemName) continue;
 
-		// Find matching item in inventory
-		for (let i = 0; i < parent.character.items.length; i++) {
-			const item = parent.character.items[i];
-			if (
-				item &&
-				item.name === itemName &&
-				item.level === level &&
-				(!l || item.l === l) &&
-				!used_slots.has(i)
-			) {
-				used_slots.add(i);
-				equip(i, slot);
-				break;
-			}
-		}
-	}
+        const equipped_index = parent.character.slots[slot];
+        const equipped_item = parent.character.items[equipped_index];
+
+        if (
+            equipped_item &&
+            equipped_item.name === itemName &&
+            equipped_item.level === level &&
+            (!l || equipped_item.l === l)
+        ) continue;
+
+        const key = `${itemName}_${level}_${l || ''}`;
+        const candidates = inventory_index[key] || [];
+
+        let found = false;
+        for (const i of candidates) {
+            if (!used_slots.has(i)) {
+                equips.push({ num: i, slot });
+                used_slots.add(i);
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) game_log(`⚠️ No match found for ${itemName} level ${level} ${l || ''}`);
+    }
+
+    if (equips.length === 0) return;
+
+    // Do all equips at once
+    try {
+        parent.socket.emit("equip_batch", equips);
+        parent.push_deferred("equip_batch");
+        await delay(25); // small delay to let server register change
+    } catch (error) {
+        console.error("equip_batch failed:", error);
+        return handleEquipBatchError("Failed to equip items");
+    }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
