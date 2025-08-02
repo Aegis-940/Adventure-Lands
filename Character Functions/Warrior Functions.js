@@ -365,10 +365,11 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
         use_skill("cleave");
         //reduce_cooldown("cleave", character.ping * 0.95);
         last_cleave_time = now;
-	
-    }
-	// Swap back instantly (don't delay this)
-    	handle_weapon_swap();
+	setTimeout(() => {
+		// Swap back instantly (don't delay this)
+	    	handle_weapon_swap();
+	}, 50);
+    }	
 }
 
 function can_cleave(monsters, tank, time_since) {
