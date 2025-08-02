@@ -314,8 +314,8 @@ const equipment_sets = {
 };
 
 function cleave_set() {
-    unequip("offhand");
-    equip_batch([
+    await unequip("offhand");
+    await equip_batch([
         { itemName: "bataxe", slot: "mainhand", level: 5},
     ]);
 }
@@ -426,7 +426,7 @@ async function equip_batch(data) {
 			) {
 				used_slots.add(i);
 				equip(i, slot);
-				await delay(100); // Wait for server to process it
+				await delay(50); // Wait for server to process it
 				break;
 			}
 		}
