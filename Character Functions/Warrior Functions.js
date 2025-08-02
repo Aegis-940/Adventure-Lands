@@ -390,7 +390,7 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
 
     const untargeted = monsters.some(m => !m.target);
 
-    if (can_cleave(aoe, cc, monsters, tank, time_since_last)) {
+    if (can_cleave(aoe, cc, monsters, time_since_last)) {
         if (Mainhand !== "bataxe") cleave_set();
         use_skill("cleave");
         reduce_cooldown("cleave", character.ping * 0.95);
