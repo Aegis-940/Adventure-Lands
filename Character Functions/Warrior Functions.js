@@ -312,8 +312,10 @@ const equipment_sets = {
 };
 
 async function cleave_set_async() {
-	unequip("mainhand");
-	unequip("offhand");
+	await sleep(250); // Let unequip settle
+	await unequip("mainhand");
+	await sleep(250); // Let unequip settle
+	await unequip("offhand");
 	await sleep(250); // Let unequip settle
 
 	await equip_batch([
@@ -324,8 +326,10 @@ async function cleave_set_async() {
 }
 
 async function single_target_set_async() {
-	unequip("mainhand");
-	unequip("offhand");
+	await sleep(250); // Let unequip settle
+	await unequip("mainhand");
+	await sleep(250); // Let unequip settle
+	await unequip("offhand");
 	await sleep(50);
 
 	await equip_batch([
