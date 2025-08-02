@@ -176,7 +176,7 @@ const RANGE_THRESHOLD = 45;
 async function attack_loop() {
 	
     if (!attack_enabled) return;
-    let delay = 50; 
+    let delay = 10; 
     const X = character.x, Y = character.y;
     const now = performance.now();
     const entities = Object.values(parent.entities);
@@ -235,7 +235,7 @@ async function attack_loop() {
 
 async function move_loop() {
     if (!move_enabled) return;
-    let delay = 50;
+    let delay = 100;
 
     try {
         // 1) Find the nearest valid monster
