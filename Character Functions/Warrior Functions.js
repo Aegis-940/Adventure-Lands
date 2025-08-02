@@ -437,7 +437,7 @@ async function equip_batch(data) {
 		if (item_index !== -1) {
 			used_slots.add(item_index);
 			equip(item_index, slot);
-			await delay(10); // just enough time for server sync
+			await delay(50); // just enough time for server sync
 		}
 	}
 }
