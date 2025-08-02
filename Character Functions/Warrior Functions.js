@@ -362,7 +362,7 @@ async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
 
     if (can_cleave(monsters, tank, time_since_last)) {
         if (Mainhand !== "bataxe") cleave_set();
-        await use_skill("cleave");
+        use_skill("cleave");
         //reduce_cooldown("cleave", character.ping * 0.95);
         last_cleave_time = now;
 	// Swap back instantly (don't delay this)
