@@ -235,7 +235,7 @@ async function attack_loop() {
 
 async function move_loop() {
     if (!move_enabled) return;
-    let delay = 100;
+    let delay = 200;
 
     try {
         // 1) Find the nearest valid monster
