@@ -297,16 +297,13 @@ async function skill_loop() {
     let delay = 100;
     try {
       
-        let zap = false;
         const dead = character.rip;
         const Mainhand = character.slots?.mainhand?.name;
         const offhand = character.slots?.offhand?.name;
         const aoe = character.mp >= character.mp_cost * 2 + G.skills.cleave.mp + 50;
         const cc = character.cc < 135;
-        const zapper_mobs = ["plantoid"];
         const st_maps = [];
         const aoe_maps = ["mansion", "main", "cave", "level2s"];
-        let tank = get_entity("Ulric");
 
         if (character.ctype === "warrior") {
             try {
@@ -380,7 +377,7 @@ const CLEAVE_THRESHOLD = 500;
 const CLEAVE_RANGE = G.skills.cleave.range;
 const MAPS_TO_INCLUDE = ["mansion", "main"];
 
-function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
+function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
     const now = performance.now();
     const time_since_last = now - last_cleave_time;
 
@@ -403,10 +400,10 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
     handle_weapon_swap();
 }
 
-function can_cleave(aoe, cc, monsters, tank, time_since) {
+function can_cleave(aoe, cc, monsters, time_since) {
     return (
         !smart.moving &&
-	      aoe && tank && cc &&
+	      aoe && cc &&
         time_since >= CLEAVE_THRESHOLD &&
         monsters.length > 2 &&
         !is_on_cooldown("cleave") &&
