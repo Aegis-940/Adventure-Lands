@@ -397,34 +397,39 @@ async function equip_batch(data) {
 	if (data.length > 15) return handleEquipBatchError("Too many items");
 
 	const used_slots = new Set();
-	const inventory = parent.character.items;
 
-	for (const { itemName, slot, level, l } of data) {
+	for (const equipRequest of data) {
+		const { itemName, slot, level, l } = equipRequest;
+
 		if (!itemName) continue;
 
-		// Already equipped?
+		// Skip if already equipped
 		const equipped_index = parent.character.slots[slot];
-		const equipped_item = inventory[equipped_index];
+		const equipped_item = parent.character.items[equipped_index];
 		if (
 			equipped_item &&
 			equipped_item.name === itemName &&
 			equipped_item.level === level &&
 			(!l || equipped_item.l === l)
-		) continue;
+		) {
+			continue;
+		}
 
-		// Find and equip matching item (only first match)
-		const index = inventory.findIndex((item, i) =>
-			item &&
-			item.name === itemName &&
-			item.level === level &&
-			(!l || item.l === l) &&
-			!used_slots.has(i)
-		);
-
-		if (index !== -1) {
-			used_slots.add(index);
-			equip(index, slot);
-			await delay(10); // Minimal delay to reduce desync risk
+		// Find matching item in inventory
+		for (let i = 0; i < parent.character.items.length; i++) {
+			const item = parent.character.items[i];
+			if (
+				item &&
+				item.name === itemName &&
+				item.level === level &&
+				(!l || item.l === l) &&
+				!used_slots.has(i)
+			) {
+				used_slots.add(i);
+				equip(i, slot);
+				await delay(10);
+				break;
+			}
 		}
 	}
 }
