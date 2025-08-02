@@ -347,7 +347,7 @@ function equip_set(setName) {
         console.error(`Set "${setName}" not found.`);
     }
     
-    current_weapon_mode = "single";
+    current_weapon_mode = setName;
 }
 
 function handle_weapon_swap() {
