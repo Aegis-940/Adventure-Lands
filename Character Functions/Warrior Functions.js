@@ -9,8 +9,8 @@ let attack_enabled   = true;
 let attack_timer_id  = null;
 let move_enabled     = true;
 let move_timer_id    = null;
-let skill_enabled     = true;
-let skill_timer_id    = null;
+let skills_enabled   = true;
+let skill_timer_id   = null;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS
@@ -41,13 +41,13 @@ function stop_move_loop() {
 }
 
 function start_skill_loop() {
-    skill_enabled = true;
+    skills_enabled = true;
     skill_loop();
     game_log("▶️ Skill loop started");
 }
 
 function stop_skill_loop() {
-  skill_enabled = false;
+  skills_enabled = false;
   clearTimeout(skill_timer_id);
   game_log("⏹ Skill loop stopped");
 }
@@ -61,7 +61,7 @@ function save_persistent_state() {
   try {
     set("warrior_attack_enabled", attack_enabled);
     set("warrior_move_enabled",  move_enabled);
-    set("warrior_skill_enabled",  skill_enabled);
+    set("warrior_skill_enabled",  skills_enabled);
   } catch (e) {
     console.error("Error saving persistent state:", e);
   }
@@ -77,7 +77,7 @@ function init_persistent_state() {
     if (mv !== undefined) move_enabled = mv;
 
     const sk = get("warrior_skill_enabled");
-    if (sk !== undefined) skill_enabled = sk;
+    if (sk !== undefined) skills_enabled = sk;
 
     // Reflect loaded flags in the loop state
     if (attack_enabled) start_attack_loop();
@@ -86,7 +86,7 @@ function init_persistent_state() {
     if (move_enabled)   start_move_loop();
     else                stop_move_loop();
 
-    if (skill_enabled)  start_skill_loop();
+    if (skills_enabled)  start_skill_loop();
     else                stop_skill_loop();
   } catch (e) {
     console.error("Error loading persistent state:", e);
@@ -126,8 +126,6 @@ stop_skill_loop = function() {
   _origStopSkill();
   save_persistent_state();
 };
-
-//sasdfasdfasdfasdf
 
 // Ensure state is saved if the script unloads
 window.addEventListener("beforeunload", save_persistent_state);
@@ -294,7 +292,7 @@ async function move_loop() {
 let eTime = 0;
 
 async function skill_loop() {
-    if (!skill_enabled) return;
+    if (!skills_enabled) return;
     let delay = 200;
     try {
         let zap = false;
