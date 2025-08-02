@@ -127,6 +127,8 @@ stop_skill_loop = function() {
   save_persistent_state();
 };
 
+//sasdfasdfasdfasdf
+
 // Ensure state is saved if the script unloads
 window.addEventListener("beforeunload", save_persistent_state);
 
