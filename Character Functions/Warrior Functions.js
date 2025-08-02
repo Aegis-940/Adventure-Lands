@@ -208,32 +208,30 @@ async function attack_loop() {
     try {
         let target = null;
 
-        // Single loop, prioritized targeting
-        for (const name of MONSTER_TYPES) {
-            target = get_nearest_monster_v2({
-                type: name,
-                check_max_hp: false,
-                max_distance: character.range,
-                statusEffects: ["cursed"],
-            });
-            if (target) break;
+        // Only search for a new target if needed
+        if (!attack_loop.currentTarget || attack_loop.currentTarget.dead ||
+            parent.distance(character, attack_loop.currentTarget) > character.range) {
+            for (const name of MONSTER_TYPES) {
+                target = get_nearest_monster_v2({
+                    type: name,
+                    check_max_hp: false,
+                    max_distance: character.range,
+                    statusEffects: ["cursed"],
+                });
+                if (target) break;
 
-            // If no cursed target nearby, check wider range
-            if (!target || target.dead || parent.distance(character, target) > character.range) {
-              target = get_nearest_monster_v2({
-                type: name,
-                check_max_hp: false,
-                max_distance: character.range,
-              });
+                target = get_nearest_monster_v2({
+                    type: name,
+                    check_max_hp: false,
+                    max_distance: character.range,
+                });
+                if (target) break;
             }
-		
-            if (target) break;
-		
         }
 
         if (target) {
             await attack(target);
-	    reduce_cooldown("cleave", character.ping * 0.95);
+	          reduce_cooldown("attack", character.ping * 0.95);
             delay = ms_to_next_skill("attack");
             if (delay < 100) delay = 100;
         }
@@ -296,25 +294,28 @@ let eTime = 0;
 
 async function skill_loop() {
     if (!skills_enabled) return;
-    let delay = 200;
+    let delay = 100;
     try {
-        let zap = false;
+
+        // Cache tank lookup for 2 seconds
+        const now = Date.now();
+        if (now - last_tank_check > 2000) {
+            cached_tank = get_entity("Ulric");
+            last_tank_check = now;
+        }
+
+        const tank = cached_tank;
         const dead = character.rip;
         const Mainhand = character.slots?.mainhand?.name;
         const offhand = character.slots?.offhand?.name;
         const aoe = character.mp >= character.mp_cost * 2 + G.skills.cleave.mp + 50;
         const cc = character.cc < 135;
-        const zapper_mobs = ["plantoid"];
         const st_maps = [];
         const aoe_maps = ["mansion", "main", "cave", "level2s"];
-        let tank = get_entity("Ulric");
 
         if (character.ctype === "warrior") {
             try {
-                if (tank && tank.hp < tank.max_hp * 0.4 && character.name === "REPLACE_WITH_ULRIC_IF_NEEDED") {
-                    handle_stomp(Mainhand, st_maps, aoe_maps, tank);
-                }
-                if (character.ctype === "warrior") {
+                if (!is_on_cooldown("cleave")) {
                     handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank);
                 }
             } catch (e) {
@@ -369,7 +370,7 @@ function equip_set(setName) {
 
 function handle_weapon_swap() {
 	const now = performance.now();
-	if (now - eTime <= 300) return;
+	if (now - eTime <= 50) return;
 
         equip_set("single");
         eTime = now;
@@ -397,7 +398,7 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
 
     const untargeted = monsters.some(m => !m.target);
 
-    if (can_cleave(aoe, monsters, tank, time_since_last)) {
+    if (can_cleave(aoe, cc, monsters, tank, time_since_last)) {
         if (Mainhand !== "bataxe") cleave_set();
         use_skill("cleave");
         reduce_cooldown("cleave", character.ping * 0.95);
@@ -407,10 +408,10 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
     handle_weapon_swap();
 }
 
-function can_cleave(aoe, monsters, tank, time_since) {
+function can_cleave(aoe, cc, monsters, tank, time_since) {
     return (
         !smart.moving &&
-	aoe && tank &&
+	      aoe && tank && cc &&
         time_since >= CLEAVE_THRESHOLD &&
         monsters.length > 2 &&
         !is_on_cooldown("cleave") &&
