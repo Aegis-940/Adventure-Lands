@@ -341,7 +341,7 @@ function equip_set(setName) {
     if (set) {
       equip_batch(set);
     } else {
-        console.error(`Set "${setName}" not found.`);
+      console.error(`Set "${setName}" not found.`);
     }
 }
 
