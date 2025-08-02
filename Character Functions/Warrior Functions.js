@@ -334,7 +334,10 @@ function cleave_set() {
     equip_batch([
         { itemName: "bataxe", slot: "mainhand", level: 5},
     ]);
+    current_weapon_mode = "cleave";
 }
+
+let current_weapon_mode = "single";
 
 function equip_set(setName) {
     const set = equipment_sets[setName];
@@ -350,6 +353,7 @@ function handle_weapon_swap() {
 	if (now - eTime <= 50) return;
 
         equip_set("single");
+        current_weapon_mode = "single";
         eTime = now;
 }
 
@@ -382,7 +386,10 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
         last_cleave_time = now;	  
     }
     // Swap back instantly (don't delay this)
-    handle_weapon_swap();
+    if (current_weapon_mode !== "single"){
+        handle_weapon_swap();
+    }
+    
 }
 
 function can_cleave(aoe, cc, monsters, time_since) {
