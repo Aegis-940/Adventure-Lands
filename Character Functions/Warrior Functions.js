@@ -329,7 +329,7 @@ async function equip_set(setName) {
     }
 }
 
-asynch function handle_weapon_swap() {
+async function handle_weapon_swap() {
 	const now = performance.now();
 	if (now - eTime <= 50) return;
 
