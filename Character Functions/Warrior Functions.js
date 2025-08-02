@@ -313,7 +313,7 @@ const equipment_sets = {
     ],
 };
 
-function cleave_set() {
+async function cleave_set() {
     await unequip("offhand");
     await equip_batch([
         { itemName: "bataxe", slot: "mainhand", level: 5},
@@ -370,7 +370,7 @@ async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
     }	
 }
 
-function can_cleave(monsters, tank, time_since) {
+async function can_cleave(monsters, tank, time_since) {
     return (
         !smart.moving &&
 	tank &&
