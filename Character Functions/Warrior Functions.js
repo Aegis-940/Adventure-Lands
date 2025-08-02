@@ -356,7 +356,6 @@ function equip_set(setName) {
 
 function handle_weapon_swap() {
     const now = performance.now();
-    if (now - last_weapon_swap < 50) return; // 300ms debounce
     equip_set("single");
 }
 
