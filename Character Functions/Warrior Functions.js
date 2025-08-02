@@ -302,7 +302,7 @@ async function skill_loop() {
     try {
         if (!character.rip) {
             const Mainhand = character.slots?.mainhand?.name;
-            const aoe = character.mp >= character.mp_cost * 2 + G.skills.cleave.mp + 50;
+            const aoe = character.mp >= 760;
             const cc = character.cc < 135;
 
             // Only check cleave if it's off cooldown
