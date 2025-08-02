@@ -385,12 +385,12 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
 
 function can_cleave(aoe, cc, monsters, time_since) {
   return (
-      !smart.moving &&
-      aoe && cc &&
-      time_since >= CLEAVE_THRESHOLD &&
-      monsters.length > 2 &&
-      !is_on_cooldown("cleave") &&
-      ms_to_next_skill("attack") > 25
+    !smart.moving &&
+    aoe && cc &&
+    time_since >= CLEAVE_THRESHOLD &&
+    monsters.length > 2 &&
+    !is_on_cooldown("cleave") &&
+    ms_to_next_skill("attack") > 25
   );
 }
 
