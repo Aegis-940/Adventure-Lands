@@ -60,4 +60,4 @@ setInterval(() => {
 		profile.avg_time = 0;
 		profile.avg_cc = 0;
 	}
-}, 60000);
+}, 30000);
