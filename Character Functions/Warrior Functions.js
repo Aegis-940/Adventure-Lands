@@ -277,7 +277,6 @@ async function skill_loop() {
                     handle_stomp(Mainhand, st_maps, aoe_maps, tank);
                 }
                 if (character.ctype === "warrior") {
-		    game_log("Check 1");
                     handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank);
                 }
             } catch (e) {
@@ -372,12 +371,20 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
     );
 
     const untargeted = monsters.some(m => !m.target);
+	
+		    game_log("Check 1");
 
     if (can_cleave(aoe, cc, MAPS_TO_INCLUDE, monsters, tank, time_since_last, untargeted)) {
+	    
+		    game_log("Check 2");
         if (Mainhand !== "bataxe") cleave_set();
+	    
+		    game_log("Check 3");
         use_skill("cleave");
         reduce_cooldown("cleave", character.ping * 0.95);
         last_cleave_time = now;
+	    
+		    game_log("Check 4");
     }
 
     // Swap back instantly (don't delay this)
