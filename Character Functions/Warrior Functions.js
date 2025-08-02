@@ -347,7 +347,7 @@ function equip_set(setName) {
         console.error(`Set "${setName}" not found.`);
     }
     
-    current_weapon_mode = set;
+    current_weapon_mode = "single";
 }
 
 function handle_weapon_swap() {
@@ -377,8 +377,6 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
         e.visible &&
         distance(character, e) <= CLEAVE_RANGE
     );
-
-    const untargeted = monsters.some(m => !m.target);
 
     if (can_cleave(aoe, cc, monsters, time_since_last)) {
         if (Mainhand !== "bataxe") cleave_set();
