@@ -95,32 +95,28 @@ const update_cc_display = () => {
 	const current_cc = Math.min(character.cc, MAX_CC);
 	const percent = Math.floor((current_cc / MAX_CC) * 100);
 
-	// Update fill and text
-	$('#ccfill').css('width', `${percent}%`);
-	$('#cctext').text(`CC: ${Math.floor(current_cc)}/${MAX_CC}`);
-
-	// Update history
+	// Update history: add new value, remove old
 	CC_HISTORY.push({ timestamp: now, value: current_cc });
 	while (CC_HISTORY.length && CC_HISTORY[0].timestamp < now - 60000) {
 		CC_HISTORY.shift();
 	}
 
-	// Calculate min, max, and average
+	// Calculate rolling min, max, and average
 	const values = CC_HISTORY.map(e => e.value);
 	const min = Math.min(...values);
 	const max = Math.max(...values);
 	const avg = Math.floor(values.reduce((a, b) => a + b, 0) / values.length || 0);
 
-	// Update marker positions
 	const min_percent = Math.floor((min / MAX_CC) * 100);
 	const max_percent = Math.floor((max / MAX_CC) * 100);
 
+	// Update visual display
+	$('#ccfill').css('width', `${percent}%`);
+	$('#cctext').text(`CC: ${Math.floor(current_cc)}/${MAX_CC} (Avg: ${avg})`);
 	$('#low_mark').css('left', `${min_percent}%`);
 	$('#high_mark').css('left', `${max_percent}%`);
-
-	// Update average display
-	$('#ccaverage').text(`60s Avg: ${avg}`);
 };
+
 
 // Refresh the CC bar 20 times per second
 setInterval(update_cc_display, 50);
