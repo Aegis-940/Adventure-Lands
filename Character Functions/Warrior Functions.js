@@ -342,6 +342,7 @@ function cleave_set() {
 function equip_set(setName) {
     const set = equipment_sets[setName];
     if (set) {
+      game_log("equip_set: " + current_set);
       current_set = setName;
       equip_batch(set);
     } else {
@@ -385,7 +386,7 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
   }
   // Swap back instantly (don't delay this)
   if (current_set !== "single") {
-    game_log("1");
+    game_log("handle_weapon_swap: " + current_set);
     handle_weapon_swap();	  
   }
 }
