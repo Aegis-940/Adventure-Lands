@@ -329,11 +329,11 @@ async function equip_set(setName) {
     }
 }
 
-function handle_weapon_swap() {
+asynch function handle_weapon_swap() {
 	const now = performance.now();
 	if (now - eTime <= 50) return;
 
-        equip_set("single");
+        await equip_set("single");
         eTime = now;
 
 }
