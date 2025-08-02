@@ -297,7 +297,7 @@ const aoe_maps = ["mansion", "main", "cave", "level2s"];
 
 async function skill_loop() {
     if (!skills_enabled) return;
-    let delay = 100; // Start with a higher delay
+    let delay = 10; // Start with a higher delay
 
     try {
         if (!character.rip) {
@@ -330,10 +330,17 @@ const equipment_sets = {
 };
 
 function cleave_set() {
-    unequip("offhand");
-    equip_batch([
-        { itemName: "bataxe", slot: "mainhand", level: 5},
-    ]);
+    // Only unequip if offhand is not already empty
+    if (character.slots.offhand) {
+        unequip("offhand");
+    }
+    // Only equip bataxe if not already equipped
+    const mainhand = character.slots.mainhand;
+    if (!mainhand || mainhand.name !== "bataxe" || mainhand.level !== 5) {
+        equip_batch([
+            { itemName: "bataxe", slot: "mainhand", level: 5 },
+        ]);
+    }
 }
 
 function equip_set(setName) {
@@ -347,7 +354,7 @@ function equip_set(setName) {
 
 function handle_weapon_swap() {
 	const now = performance.now();
-	if (now - eTime <= 500) return;
+	if (now - eTime <= 50) return;
 
         equip_set("single");
         eTime = now;
