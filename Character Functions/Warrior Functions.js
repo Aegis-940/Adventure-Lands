@@ -320,7 +320,7 @@ function cleave_set() {
         equip_batch([
             { itemName: "bataxe", slot: "mainhand", level: 5 }
         ]);
-    }, 5);
+    }, 50);
 }
 
 function single_target_set() {
@@ -332,7 +332,7 @@ function single_target_set() {
 	    { itemName: "fireblade", slot: "mainhand", level: 7},
 	    { itemName: "fireblade", slot: "offhand", level: 7}
 	]);
-    }, 5);
+    }, 50);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -366,9 +366,9 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
 		// Wait longer before swapping back (cleave needs to cast first)
 		setTimeout(() => {
 			single_target_set();
-		}, 30);
+		}, 300);
 
-	}, 15);
+	}, 150);
     }
 }
 
