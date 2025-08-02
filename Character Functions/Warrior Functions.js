@@ -277,7 +277,7 @@ async function skill_loop() {
                 if (tank && tank.hp < tank.max_hp * 0.4 && character.name === "REPLACE_WITH_ULRIC_IF_NEEDED") {
                     handle_stomp(Mainhand, st_maps, aoe_maps, tank);
                 }
-                if (character.ctype === "warrior") {
+                if (can_cleave(aoe, monsters, tank, time_since_last)) {
                     handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank);
                 }
             } catch (e) {
@@ -348,26 +348,24 @@ const CLEAVE_RANGE = G.skills.cleave.range;
 const MAPS_TO_INCLUDE = ["mansion", "main"];
 
 function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
-    const now = performance.now();
-    const time_since_last = now - last_cleave_time;
+	const now = performance.now();
+	const time_since_last = now - last_cleave_time;
+	
+	const monsters = Object.values(parent.entities).filter(e =>
+	        e?.type === "monster" &&
+	        !e.dead &&
+	        e.visible &&
+	        distance(character, e) <= CLEAVE_RANGE
+    	);
 
-    const monsters = Object.values(parent.entities).filter(e =>
-        e?.type === "monster" &&
-        !e.dead &&
-        e.visible &&
-        distance(character, e) <= CLEAVE_RANGE
-    );
+    	const untargeted = monsters.some(m => !m.target);
 
-    const untargeted = monsters.some(m => !m.target);
-
-    if (can_cleave(aoe, monsters, tank, time_since_last)) {
-        if (Mainhand !== "bataxe") cleave_set();
-        use_skill("cleave");
-        reduce_cooldown("cleave", character.ping * 0.95);
-        last_cleave_time = now;	  
-    }
-    // Swap back instantly (don't delay this)
-    handle_weapon_swap();
+	if (Mainhand !== "bataxe") cleave_set();
+	use_skill("cleave");
+	reduce_cooldown("cleave", character.ping * 0.95);
+	last_cleave_time = now;	  
+    	// Swap back instantly (don't delay this)
+    	handle_weapon_swap();
 }
 
 function can_cleave(aoe, monsters, tank, time_since) {
