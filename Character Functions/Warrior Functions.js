@@ -305,8 +305,8 @@ const equipment_sets = {
         { itemName: "suckerpunch", slot: "ring2", level: 1, l: "u" },
     ],
     single: [
-        { itemName: "fireblade", slot: "mainhand", level: 7, l: "u" },
-        { itemName: "fireblade", slot: "offhand", level: 7, l: "l" },
+        { itemName: "fireblade", slot: "mainhand", level: 7, l: "s" },
+        { itemName: "fireblade", slot: "offhand", level: 7, l: "s" },
     ],
     cleave: [
         { itemName: "bataxe", slot: "mainhand", level: 5, l: "s" }
@@ -318,18 +318,6 @@ function cleave_set() {
     equip_batch([
         { itemName: "bataxe", slot: "mainhand", level: 5},
     ]);
-}
-
-function single_target_set() {
-	unequip("mainhand");
-	unequip("offhand");
-
-	setTimeout(() => {
-		equip_batch([
-		    { itemName: "fireblade", slot: "mainhand", level: 7},
-		    { itemName: "fireblade", slot: "offhand", level: 7}
-		]);
-	}, 25);
 }
 
 function equip_set(setName) {
@@ -377,11 +365,9 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
         use_skill("cleave");
         //reduce_cooldown("cleave", character.ping * 0.95);
         last_cleave_time = now;
-	  // Swap back instantly (don't delay this)
+	// Swap back instantly (don't delay this)
     	handle_weapon_swap();
     }
-
-  
 }
 
 function can_cleave(monsters, tank, time_since) {
