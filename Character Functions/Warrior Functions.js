@@ -391,7 +391,7 @@ function can_cleave(monsters, tank, time_since) {
         time_since >= CLEAVE_THRESHOLD &&
         monsters.length > 2 &&
         !is_on_cooldown("cleave") &&
-        ms_to_next_skill("attack") > 75
+        ms_to_next_skill("attack") > 25
     );
 }
 
