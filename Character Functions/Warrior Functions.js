@@ -378,7 +378,7 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
 	game_log("Check 2");
         use_skill("cleave");
 	game_log("Check 3");
-        reduce_cooldown("cleave", character.ping * 0.95);
+        //reduce_cooldown("cleave", character.ping * 0.95);
 	game_log("Check 4");
         last_cleave_time = now;
     }
