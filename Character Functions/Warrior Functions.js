@@ -343,7 +343,7 @@ function equip_set(setName) {
     const set = equipment_sets[setName];
     if (set) {
       game_log("equip_set: " + current_set);
-      current_set = setName;
+      current_set = "single";
       equip_batch(set);
     } else {
         console.error(`Set "${setName}" not found.`);
