@@ -205,8 +205,8 @@ function scan_bank_inventory() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function send_to_merchant() {
-	const merchant_name = MERCHANT_NAME;          // "Riff"
-	const merchant = get_player(merchant_name);   // ← use get_player, not parent.entities
+	const merchant_name = MERCHANT_NAME;          // e.g., "Riff"
+	const merchant = get_player(merchant_name);   // use get_player for live info
 
 	if (!merchant || merchant.rip) {
 		return game_log("❌ Merchant not found or dead");
@@ -218,18 +218,27 @@ async function send_to_merchant() {
 	// Send every unlocked item in slots ≥ LOOT_THRESHOLD
 	for (let i = LOOT_THRESHOLD; i < character.items.length; i++) {
 		const item = character.items[i];
-		if (item && item.l !== "l") { // Skip locked items
+		if (item && !item.l) { // Skip locked items
 			await delay(50);
-			await send_item(merchant_name, i, item.q || 1);
+			try {
+				await send_item(merchant_name, i, item.q || 1);
+			} catch (e) {
+				game_log(`⚠️ Could not send item in slot ${i}: ${item.name}`);
+			}
 		}
 	}
 
 	// Then send all gold
 	if (character.gold > 0) {
 		await delay(50);
-		await send_gold(merchant_name, character.gold);
+		try {
+			await send_gold(merchant_name, character.gold);
+		} catch (e) {
+			game_log("⚠️ Could not send gold");
+		}
 	}
 }
+
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // PARTY MANAGER
