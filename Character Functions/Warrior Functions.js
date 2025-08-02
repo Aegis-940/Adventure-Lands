@@ -366,7 +366,7 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
         //reduce_cooldown("cleave", character.ping * 0.95);
         last_cleave_time = now;
 	// Swap back instantly (don't delay this)
-	await handle_weapon_swap();
+	handle_weapon_swap();
     }	
 }
 
