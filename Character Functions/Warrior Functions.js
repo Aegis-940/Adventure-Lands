@@ -372,10 +372,14 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
 
     const untargeted = monsters.some(m => !m.target);
 
-    if (can_cleave(monsters, time_since_last)) {
+    if (can_cleave(monsters, tank, time_since_last)) {
+	game_log("Check 1");
         if (Mainhand !== "bataxe") cleave_set();
+	game_log("Check 2");
         use_skill("cleave");
+	game_log("Check 3");
         reduce_cooldown("cleave", character.ping * 0.95);
+	game_log("Check 4");
         last_cleave_time = now;
     }
 
@@ -383,9 +387,10 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
     handle_weapon_swap();
 }
 
-function can_cleave(monsters, time_since) {
+function can_cleave(monsters, tank, time_since) {
     return (
         !smart.moving &&
+	tank &&
         time_since >= CLEAVE_THRESHOLD &&
         monsters.length > 2 &&
         !is_on_cooldown("cleave") &&
