@@ -329,8 +329,11 @@ const equipment_sets = {
 
 };
 
+let current_set = "";
+
 function cleave_set() {
     unequip("offhand");
+    current_set = "cleave";
     equip_batch([
         { itemName: "bataxe", slot: "mainhand", level: 5},
     ]);
@@ -339,7 +342,8 @@ function cleave_set() {
 function equip_set(setName) {
     const set = equipment_sets[setName];
     if (set) {
-       equip_batch(set);
+      current_set = setName;
+      equip_batch(set);
     } else {
         console.error(`Set "${setName}" not found.`);
     }
@@ -380,7 +384,7 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
     last_cleave_time = now;
   }
   // Swap back instantly (don't delay this)
-  if (character.slots?.mainhand?.name !== "fireblade") {
+  if (current_set = "single") {
     handle_weapon_swap();	  
   }
 }
