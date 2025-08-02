@@ -347,7 +347,7 @@ function equip_set(setName) {
 
 function handle_weapon_swap() {
 	const now = performance.now();
-	if (now - eTime <= 200) return;
+	if (now - eTime <= 50) return;
 
         equip_set("single");
         eTime = now;
@@ -380,7 +380,9 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
     last_cleave_time = now;
   }
   // Swap back instantly (don't delay this)
-  handle_weapon_swap();
+  if (Mainhand === "bataxe") {
+      handle_weapon_swap();
+  }
 }
 
 function can_cleave(aoe, cc, monsters, time_since) {
