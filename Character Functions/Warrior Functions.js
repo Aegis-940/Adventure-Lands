@@ -315,7 +315,7 @@ async function skill_loop() {
 
         if (character.ctype === "warrior") {
             try {
-                if (!is_on_cooldown("cleave")) {
+                if (character.ctype === "warrior") {
                     handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank);
                 }
             } catch (e) {
