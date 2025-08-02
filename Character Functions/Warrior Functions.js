@@ -384,10 +384,10 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
         if (Mainhand !== "bataxe") cleave_set();
         use_skill("cleave");
         reduce_cooldown("cleave", character.ping * 0.95);
-        last_cleave_time = now;
-        // Only swap back if enough time has passed
-        handle_weapon_swap();
+        last_cleave_time = now;	  
     }
+    // Swap back instantly (don't delay this)
+    handle_weapon_swap();
 }
 
 function can_cleave(aoe, cc, monsters, time_since) {
