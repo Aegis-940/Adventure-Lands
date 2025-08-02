@@ -362,13 +362,12 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
 	setTimeout(() => {
 		use_skill("cleave");
 		last_cleave_time = performance.now();
+	}, 150);
 
 		// Wait longer before swapping back (cleave needs to cast first)
-		setTimeout(() => {
-			single_target_set();
-		}, 300);
-
-	}, 150);
+	setTimeout(() => {
+		single_target_set();
+	}, 250);
     }
 }
 
