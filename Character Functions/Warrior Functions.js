@@ -371,30 +371,25 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
     );
 
     const untargeted = monsters.some(m => !m.target);
-	
-		    game_log("Check 1");
 
-    if (can_cleave(aoe, cc, MAPS_TO_INCLUDE, monsters, tank, time_since_last, untargeted)) {
-	    
-		    game_log("Check 2");
+    if (can_cleave(MAPS_TO_INCLUDE, monsters, tank, time_since_last, untargeted)) {
+	game_log("Check 1");
         if (Mainhand !== "bataxe") cleave_set();
-	    
-		    game_log("Check 3");
+	game_log("Check 2");
         use_skill("cleave");
         reduce_cooldown("cleave", character.ping * 0.95);
         last_cleave_time = now;
-	    
-		    game_log("Check 4");
+	game_log("Check 3");
     }
 
     // Swap back instantly (don't delay this)
     handle_weapon_swap();
 }
 
-function can_cleave(aoe, cc, maps, monsters, tank, time_since, hasUntargeted) {
+function can_cleave(maps, monsters, tank, time_since, hasUntargeted) {
     return (
         !smart.moving &&
-        cc && aoe && tank &&
+        tank &&
         time_since >= CLEAVE_THRESHOLD &&
         monsters.length > 0 &&
         //!hasUntargeted &&
