@@ -343,12 +343,15 @@ function cleave_set() {
 }
 
 function equip_set(setName) {
+    game_log("Check 1");
     if (current_weapon_mode === setName) return;
     const set = equipment_sets[setName];
     if (set) {
+        game_log("Check 2");
         equip_batch(set);
         current_weapon_mode = setName;
         last_weapon_swap = performance.now();
+        game_log("Check 3");
     } else {
         console.error(`Set "${setName}" not found.`);
     }
