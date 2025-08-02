@@ -360,9 +360,10 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
     if (can_cleave(aoe, cc, new Set(aoe_maps), monsters, tank, time_since_last, untargeted)) {
         if (Mainhand !== "bataxe") cleave_set();
 	use_skill("cleave");
-	last_cleave_time = performance.now();
-	single_target_set();
+        reduce_cooldown("cleave", character.ping * 0.95);
+        lastCleaveTime = now;
     }
+    single_target_set();
 }
 
 function can_cleave(aoe, cc, maps, monsters, tank, time_since, has_untargeted) {
