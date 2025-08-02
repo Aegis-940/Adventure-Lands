@@ -277,6 +277,7 @@ async function skill_loop() {
                     handle_stomp(Mainhand, st_maps, aoe_maps, tank);
                 }
                 if (character.ctype === "warrior") {
+		    game_log("Check 1");
                     handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank);
                 }
             } catch (e) {
