@@ -331,7 +331,7 @@ function equip_set(setName) {
 
 function handle_weapon_swap() {
 	const now = performance.now();
-	if (now - eTime <= 50) return;
+	if (now - eTime <= 150) return;
 
         equip_set("single");
         eTime = now;
