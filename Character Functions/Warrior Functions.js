@@ -363,37 +363,35 @@ const CLEAVE_RANGE = G.skills.cleave.range;
 const MAPS_TO_INCLUDE = ["mansion", "main"];
 
 function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
-    const now = performance.now();
-    const time_since_last = now - last_cleave_time;
+  const now = performance.now();
+  const time_since_last = now - last_cleave_time;
 
-    const monsters = Object.values(parent.entities).filter(e =>
-        e?.type === "monster" &&
-        !e.dead &&
-        e.visible &&
-        distance(character, e) <= CLEAVE_RANGE
-    );
+  const monsters = Object.values(parent.entities).filter(e =>
+    e?.type === "monster" &&
+    !e.dead &&
+    e.visible &&
+    distance(character, e) <= CLEAVE_RANGE
+  );
 
-    if (can_cleave(aoe, cc, monsters, time_since_last)) {
-        if (Mainhand !== "bataxe") cleave_set();
-        use_skill("cleave");
-        reduce_cooldown("cleave", character.ping * 0.95);
-        last_cleave_time = now;	  
-    }
+  if (can_cleave(aoe, cc, monsters, time_since_last)) {
+    if (Mainhand !== "bataxe") cleave_set();
+    use_skill("cleave");
+    reduce_cooldown("cleave", character.ping * 0.95);
+    last_cleave_time = now;
     // Swap back instantly (don't delay this)
-    handle_weapon_swap();
-
-    
+    handle_weapon_swap();	  
+  }
 }
 
 function can_cleave(aoe, cc, monsters, time_since) {
-    return (
-        !smart.moving &&
-	      aoe && cc &&
-        time_since >= CLEAVE_THRESHOLD &&
-        monsters.length > 2 &&
-        !is_on_cooldown("cleave") &&
-        ms_to_next_skill("attack") > 25
-    );
+  return (
+      !smart.moving &&
+      aoe && cc &&
+      time_since >= CLEAVE_THRESHOLD &&
+      monsters.length > 2 &&
+      !is_on_cooldown("cleave") &&
+      ms_to_next_skill("attack") > 25
+  );
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
