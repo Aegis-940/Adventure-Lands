@@ -22,7 +22,7 @@ toggle_maintain_position();
 hide_skills_ui();
 
 //attack_loop();
-move_loop();
+//move_loop();
 skill_loop();
 panic_button_loop();
 
