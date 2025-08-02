@@ -306,7 +306,7 @@ const equipment_sets = {
     ],
     single: [
         { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
-        { itemName: "ololipop", slot: "offhand", level: 5, l: "l" },
+        { itemName: "ololipop", slot: "offhand", level: 5},
     ],
     cleave: [
         { itemName: "bataxe", slot: "mainhand", level: 5, l: "s" }
