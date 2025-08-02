@@ -200,7 +200,7 @@ function get_nearest_monster_v2(args = {}) {
 
 async function attack_loop() {
     	if (!attack_enabled) return;
-	let delay = 1;
+	let delay = 10;
 	let disabled = (parent.is_disabled(character) === undefined);
 	let bosses = ["troll", "grinch"];
 	try {
@@ -335,7 +335,7 @@ async function skill_loop() {
 	
 	const X = character.real_x;
 	const Y = character.real_y;
-	const delay = 40;
+	const delay = 100;
 	const dead = character.rip;
 	const disabled = !parent.is_disabled(character);
 	const mapsToExclude = [];
