@@ -1,10 +1,10 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// CC METER DISPLAY (0 - 200)
+// CC METER DISPLAY (0 - 200) with rolling min/max markers (60s)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const MAX_CC = 200;
+const CC_HISTORY = []; // { timestamp: number, value: number }
 
-// Initialize the CC meter UI
 const cc_meter = () => {
 	const $ = parent.$;
 	const brc = $('#bottomrightcorner');
@@ -54,22 +54,63 @@ const cc_meter = () => {
 		pointerEvents:  'none',
 	});
 
-	cc_bar.append(cc_fill).append(cc_text);
+	// Marker for lowest value
+	const low_mark = $('<div id="low_mark"></div>').css({
+		position:       'absolute',
+		top:            '0px',
+		width:          '2px',
+		height:         '100%',
+		background:     'red',
+		opacity:        0.6,
+		pointerEvents:  'none',
+	});
+
+	// Marker for highest value
+	const high_mark = $('<div id="high_mark"></div>').css({
+		position:       'absolute',
+		top:            '0px',
+		width:          '2px',
+		height:         '100%',
+		background:     'lime',
+		opacity:        0.6,
+		pointerEvents:  'none',
+	});
+
+	cc_bar.append(cc_fill).append(low_mark).append(high_mark).append(cc_text);
 	cc_container.append(cc_bar);
 	brc.children().first().after(cc_container);
 };
 
-// Update the cc meter display
 const update_cc_display = () => {
 	const $ = parent.$;
+	const now = Date.now();
 	const current_cc = Math.min(character.cc, MAX_CC);
 	const percent = Math.floor((current_cc / MAX_CC) * 100);
 
+	// Update fill and text
 	$('#ccfill').css('width', `${percent}%`);
 	$('#cctext').text(`CC: ${Math.floor(current_cc)}/${MAX_CC}`);
+
+	// Update history: add new value, remove old
+	CC_HISTORY.push({ timestamp: now, value: current_cc });
+	while (CC_HISTORY.length && CC_HISTORY[0].timestamp < now - 60000) {
+		CC_HISTORY.shift();
+	}
+
+	// Determine min/max in last 60s
+	const values = CC_HISTORY.map(e => e.value);
+	const min = Math.min(...values);
+	const max = Math.max(...values);
+
+	const min_percent = Math.floor((min / MAX_CC) * 100);
+	const max_percent = Math.floor((max / MAX_CC) * 100);
+
+	$('#low_mark').css('left', `${min_percent}%`);
+	$('#high_mark').css('left', `${max_percent}%`);
 };
 
 // Refresh the CC bar 10 times per second
 setInterval(update_cc_display, 100);
 
-cc_meter()
+// Start
+cc_meter();
