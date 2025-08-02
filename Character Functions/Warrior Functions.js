@@ -320,10 +320,10 @@ function cleave_set() {
     ]);
 }
 
-function equip_set(setName) {
+async function equip_set(setName) {
     const set = equipment_sets[setName];
     if (set) {
-        equip_batch(set);
+       await equip_batch(set);
     } else {
         console.error(`Set "${setName}" not found.`);
     }
@@ -365,10 +365,8 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
         use_skill("cleave");
         //reduce_cooldown("cleave", character.ping * 0.95);
         last_cleave_time = now;
-	setTimeout(() => {
-		// Swap back instantly (don't delay this)
-	    	handle_weapon_swap();
-	}, 50);
+	// Swap back instantly (don't delay this)
+	handle_weapon_swap();
     }	
 }
 
