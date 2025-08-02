@@ -313,26 +313,22 @@ const equipment_sets = {
 };
 
 function cleave_set() {
-    unequip("mainhand");
-    unequip("offhand");
-
-    setTimeout(() => {
-        equip_batch([
-            { itemName: "bataxe", slot: "mainhand", level: 5 }
-        ]);
-    }, 10);
+	unequip("mainhand");
+	unequip("offhand");
+	
+	equip_batch([
+	    { itemName: "bataxe", slot: "mainhand", level: 5 }
+	]);
 }
 
 function single_target_set() {
-    unequip("mainhand");
-    unequip("offhand");
-
-    setTimeout(() => {
-        equip_batch([
+	unequip("mainhand");
+	unequip("offhand");
+	
+	equip_batch([
 	    { itemName: "fireblade", slot: "mainhand", level: 7},
 	    { itemName: "fireblade", slot: "offhand", level: 7}
 	]);
-    }, 10);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -360,7 +356,7 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
     if (can_cleave(aoe, cc, new Set(aoe_maps), monsters, tank, time_since_last, untargeted)) {
         if (Mainhand !== "bataxe") cleave_set();
 	setTimeout(() => {
-		use_skill("cleave");\
+		use_skill("cleave");
 	}, 200);
         reduce_cooldown("cleave", character.ping * 0.95);
         lastCleaveTime = now;
