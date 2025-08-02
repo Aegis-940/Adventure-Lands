@@ -341,7 +341,7 @@ function equip_set(setName) {
     if (set) {
       equip_batch(set);
     } else {
-        console.error(`Set "${setName}" not found.`);
+      console.error(`Set "${setName}" not found.`);
     }
 }
 
@@ -349,8 +349,8 @@ function handle_weapon_swap() {
 	const now = performance.now();
 	if (now - eTime <= 100) return;
 
-        equip_set("single");
-        eTime = now;
+    equip_set("single");
+    eTime = now;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -385,12 +385,12 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
 
 function can_cleave(aoe, cc, monsters, time_since) {
   return (
-      !smart.moving &&
-      aoe && cc &&
-      time_since >= CLEAVE_THRESHOLD &&
-      monsters.length > 2 &&
-      !is_on_cooldown("cleave") &&
-      ms_to_next_skill("attack") > 25
+    !smart.moving &&
+    aoe && cc &&
+    time_since >= CLEAVE_THRESHOLD &&
+    monsters.length > 2 &&
+    !is_on_cooldown("cleave") &&
+    ms_to_next_skill("attack") > 75
   );
 }
 
