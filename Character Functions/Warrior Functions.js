@@ -341,7 +341,7 @@ function equip_set(setName) {
     if (set) {
       equip_batch(set);
     } else {
-      console.error(`Set "${setName}" not found.`);
+        console.error(`Set "${setName}" not found.`);
     }
 }
 
@@ -385,12 +385,12 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
 
 function can_cleave(aoe, cc, monsters, time_since) {
   return (
-    !smart.moving &&
-    aoe && cc &&
-    time_since >= CLEAVE_THRESHOLD &&
-    monsters.length > 2 &&
-    !is_on_cooldown("cleave") &&
-    ms_to_next_skill("attack") > 25
+      !smart.moving &&
+      aoe && cc &&
+      time_since >= CLEAVE_THRESHOLD &&
+      monsters.length > 2 &&
+      !is_on_cooldown("cleave") &&
+      ms_to_next_skill("attack") > 25
   );
 }
 
@@ -405,61 +405,39 @@ function handleEquipBatchError(message) {
 }
 
 async function equip_batch(data) {
-    if (!Array.isArray(data)) {
-        game_log("Can't equipBatch non-array");
-        return handleEquipBatchError("Invalid input: not an array");
-    }
-    if (data.length > 15) {
-        game_log("Can't equipBatch more than 15 items");
-        return handleEquipBatchError("Too many items");
-    }
+	if (!Array.isArray(data)) return handleEquipBatchError("Input is not an array.");
+	if (data.length > 15) return handleEquipBatchError("Too many items in equip batch.");
 
-    let validItems = [];
+	const used_slots = new Set();
 
-    for (let i = 0; i < data.length; i++) {
-        let itemName = data[i].itemName;
-        let slot = data[i].slot;
-        let level = data[i].level;
-        let l = data[i].l;
+	for (const equipRequest of data) {
+		const { itemName, slot, level, l } = equipRequest;
+		if (!itemName || !slot) continue;
 
-        if (!itemName) {
-            game_log("Item name not provided. Skipping.");
-            continue;
-        }
+		// Check if the slot already has the desired item equipped
+		const equipped = character.slots[slot];
+		if (
+			equipped &&
+			equipped.name === itemName &&
+			equipped.level === level &&
+			(!l || equipped.l === l)
+		) continue;
 
-        let found = false;
-        if (parent.character.slots[slot]) {
-            let slotItem = parent.character.items[parent.character.slots[slot]];
-            if (slotItem && slotItem.name === itemName && slotItem.level === level && slotItem.l === l) {
-                found = true;
-            }
-        }
+		// Search inventory for matching item
+		const item_index = parent.character.items.findIndex((item, idx) =>
+			item &&
+			item.name === itemName &&
+			item.level === level &&
+			(!l || item.l === l) &&
+			!used_slots.has(idx)
+		);
 
-        if (found) {
-            game_log("Item " + itemName + " is already equipped in " + slot + " slot. Skipping.");
-            continue;
-        }
-
-        for (let j = 0; j < parent.character.items.length; j++) {
-            const item = parent.character.items[j];
-            if (item && item.name === itemName && item.level === level && item.l === l) {
-                validItems.push({ num: j, slot: slot });
-                break;
-            }
-        }
-    }
-
-    if (validItems.length === 0) {
-        return //handleEquipBatchError("No valid items to equip");
-    }
-
-    try {
-        parent.socket.emit("equip_batch", validItems);
-        parent.push_deferred("equip_batch");
-    } catch (error) {
-        console.error('Error in equipBatch:', error);
-        return handleEquipBatchError("Failed to equip items");
-    }
+		if (item_index !== -1) {
+			used_slots.add(item_index);
+			equip(item_index, slot);
+			await delay(50); // just enough time for server sync
+		}
+	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
