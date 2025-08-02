@@ -1,3 +1,37 @@
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// CONFIG
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const UPGRADE_INTERVAL = 75;
+
+const upgradeProfile = {
+  pouchbow:    { scroll0_until: 3, scroll1_until: 6, scroll2_until: 8, primling_from: 7, max_level: 8 },
+  fireblade:   { scroll0_until: 0, scroll1_until: 4, scroll2_until: 7, primling_from: 6, max_level: 7 },
+  firebow:     { scroll0_until: 0, scroll1_until: 4, scroll2_until: 7, primling_from: 6, max_level: 7 },
+  firestaff:   { scroll0_until: 0, scroll1_until: 4, scroll2_until: 7, primling_from: 6, max_level: 7 },
+  hbow:        { scroll0_until: 3, scroll1_until: 6, scroll2_until: 8, primling_from: 7, max_level: 7 },
+  // Add more items as needed
+};
+
+const combineProfile = {
+  wbook0:      { scroll0_until: 2, scroll1_until: 4, scroll2_until: 6, primling_from: 4, max_level: 3 },
+  dexring:     { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
+  strring:     { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
+  intring:     { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
+  dexbelt:     { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
+  strbelt:     { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
+  intbelt:     { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
+  dexamulet:   { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
+  stramulet:   { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
+  intamulet:   { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
+  dexearring:  { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
+  strearring:  { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
+  intearring:  { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
+  // Add more items as needed
+};
+
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // CONFIG
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -31,151 +65,146 @@ const combineProfile = {
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// UPGRADE & COMPOUND – single‐pass versions
+// UPGRADE / COMPOUND LOGIC
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Return: "wait", "done", or "none"
-function upgrade_once() {
-  for (let i = 0; i < character.items.length; i++) {
-    const item = character.items[i];
-    if (!item) continue;
+function upgrade_once_by_level(level) {
+	for (let i = 0; i < character.items.length; i++) {
+		const item = character.items[i];
+		if (!item || item.level !== level) continue;
 
-    const profile = upgradeProfile[item.name];
-    if (!profile || (profile.max_level !== undefined && item.level >= profile.max_level)) continue;
+		const profile = upgradeProfile[item.name];
+		if (!profile || item.level >= profile.max_level) continue;
 
-    let scrollname = null;
-    if (item.level < profile.scroll0_until) {
-      scrollname = "scroll0";
-    } else if (item.level < profile.scroll1_until) {
-      scrollname = "scroll1";
-    } else {
-      scrollname = "scroll2";
-    }
+		let scrollname = item.level < profile.scroll0_until ? "scroll0"
+			: item.level < profile.scroll1_until ? "scroll1"
+				: "scroll2";
 
-    let offering_slot = null;
-    if (profile.primling_from !== undefined && item.level >= profile.primling_from) {
-      const [pSlot, prim] = find_item(it => it.name === "offeringp");
-      if (!prim) {
-        game_log("⚠️ Missing primling, skipping upgrade");
-        continue;
-      }
-      offering_slot = pSlot;
-    }
+		const [scroll_slot, scroll] = find_item(it => it.name === scrollname);
+		if (!scroll) {
+			parent.buy(scrollname);
+			return "wait";
+		}
 
-    const [scroll_slot, scroll] = find_item(it => it.name === scrollname);
-    if (!scroll) {
-      game_log(`📦 Need ${scrollname}, buying...`);
-      parent.buy(scrollname);
-      return "wait"; // Wait for scroll to arrive
-    }
+		let offering_slot = null;
+		if (profile.primling_from !== undefined && item.level >= profile.primling_from) {
+			const [pSlot, prim] = find_item(it => it.name === "offeringp");
+			if (!prim) return "wait";
+			offering_slot = pSlot;
+		}
 
-    parent.socket.emit("upgrade", {
-      item_num: i,
-      scroll_num: scroll_slot,
-      offering_num: offering_slot,
-      clevel: item.level,
-    });
+		parent.socket.emit("upgrade", {
+			item_num: i,
+			scroll_num: scroll_slot,
+			offering_num: offering_slot,
+			clevel: item.level,
+		});
 
-    return "done";
-  }
-  return "none";
+		return "done";
+	}
+	return "none";
 }
 
-function compound_once() {
-  const buckets = new Map();
+function compound_once_by_level(level) {
+	const buckets = new Map();
 
-  character.items.forEach((item, idx) => {
-    if (!item) return;
-    const profile = combineProfile[item.name];
-    if (!profile || (profile.max_level !== undefined && item.level >= profile.max_level)) return;
+	character.items.forEach((item, idx) => {
+		if (!item || item.level !== level) return;
 
-    const key = `${item.name}:${item.level}`;
-    if (!buckets.has(key)) {
-      buckets.set(key, [item.level, item_grade(item), [idx]]);
-    } else {
-      buckets.get(key)[2].push(idx);
-    }
-  });
+		const profile = combineProfile[item.name];
+		if (!profile || item.level >= profile.max_level) return;
 
-  for (const [key, entries] of buckets) {
-    const [level, grade, slots] = entries;
-    if (slots.length < 3) continue;
+		const key = `${item.name}:${item.level}`;
+		if (!buckets.has(key)) {
+			buckets.set(key, [item.level, item_grade(item), [idx]]);
+		} else {
+			buckets.get(key)[2].push(idx);
+		}
+	});
 
-    const [itemName] = key.split(":");
-    const profile = combineProfile[itemName];
-    if (!profile) continue;
+	for (const [key, entries] of buckets) {
+		const [lvl, grade, slots] = entries;
+		if (slots.length < 3) continue;
 
-    let scrollname = null;
-    if (level < profile.scroll0_until) {
-      scrollname = "cscroll0";
-    } else if (level < profile.scroll1_until) {
-      scrollname = "cscroll1";
-    } else {
-      scrollname = "cscroll2";
-    }
+		const itemName = key.split(":")[0];
+		const profile = combineProfile[itemName];
+		if (!profile) continue;
 
-    let offering_slot = null;
-    if (profile.primling_from !== undefined && level >= profile.primling_from) {
-      const [pSlot, prim] = find_item(it => it.name === "offeringp");
-      if (prim) offering_slot = pSlot;
-    }
+		let scrollname = lvl < profile.scroll0_until ? "cscroll0"
+			: lvl < profile.scroll1_until ? "cscroll1"
+				: "cscroll2";
 
-    const [scroll_slot, scroll] = find_item(it => it.name === scrollname);
-    if (!scroll) {
-      game_log(`📦 Need ${scrollname}, buying...`);
-      parent.buy(scrollname);
-      return "wait";
-    }
+		const [scroll_slot, scroll] = find_item(it => it.name === scrollname);
+		if (!scroll) {
+			parent.buy(scrollname);
+			return "wait";
+		}
 
-    const itemsToCompound = slots.slice(0, 3);
-    parent.socket.emit("compound", {
-      items: itemsToCompound,
-      scroll_num: scroll_slot,
-      offering_num: offering_slot,
-      clevel: level
-    });
+		let offering_slot = null;
+		if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
+			const [pSlot, prim] = find_item(it => it.name === "offeringp");
+			if (!prim) return "wait";
+			offering_slot = pSlot;
+		}
 
-    return "done";
-  }
+		parent.socket.emit("compound", {
+			items: slots.slice(0, 3),
+			scroll_num: scroll_slot,
+			offering_num: offering_slot,
+			clevel: lvl,
+		});
 
-  return "none";
+		return "done";
+	}
+
+	return "none";
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// AUTO–RUN LOOP
+// MAIN LOOP — LEVEL-BY-LEVEL
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 let auto_upgrade = false;
 
 function run_auto_upgrade() {
-  if (auto_upgrade) return; // prevent duplicate loops
-  auto_upgrade = true;
+	if (auto_upgrade) return;
+	auto_upgrade = true;
 
-  (function loop() {
-    const resultU = upgrade_once();
-    const resultC = compound_once();
+	const max_upgrade_level = 10;
+	const max_compound_level = 5;
+	let current_level = 0;
 
-    if (resultU === "done" || resultC === "done" || resultU === "wait" || resultC === "wait") {
-      setTimeout(loop, UPGRADE_INTERVAL);
-    } else {
-      auto_upgrade = false;
-      console.log("🔧 Auto upgrade/compound complete.");
-    }
-  })();
+	(function loop() {
+		if (current_level > max_upgrade_level && current_level > max_compound_level) {
+			auto_upgrade = false;
+			console.log("✅ All upgrades/compounds finished.");
+			return;
+		}
+
+		const resultU = upgrade_once_by_level(current_level);
+		const resultC = compound_once_by_level(current_level);
+
+		if (resultU === "done" || resultC === "done" || resultU === "wait" || resultC === "wait") {
+			setTimeout(loop, UPGRADE_INTERVAL);
+		} else {
+			current_level++;
+			setTimeout(loop, UPGRADE_INTERVAL);
+		}
+	})();
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // UTILITIES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function get_grade(item) {
-  return parent.G.items[item.name].grades;
+function find_item(filter) {
+	for (let i = 0; i < character.items.length; i++) {
+		const it = character.items[i];
+		if (it && filter(it)) return [i, it];
+	}
+	return [-1, null];
 }
 
-function find_item(filter) {
-  for (let i = 0; i < character.items.length; i++) {
-    const it = character.items[i];
-    if (it && filter(it)) return [i, it];
-  }
-  return [-1, null];
+function get_grade(item) {
+  return parent.G.items[item.name].grades;
 }
