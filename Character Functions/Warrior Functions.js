@@ -315,20 +315,24 @@ const equipment_sets = {
 function cleave_set() {
 	unequip("mainhand");
 	unequip("offhand");
-	
-	equip_batch([
-	    { itemName: "bataxe", slot: "mainhand", level: 5 }
-	]);
+
+	setTimeout(() => {
+		equip_batch([
+		    { itemName: "bataxe", slot: "mainhand", level: 5 }
+		]);
+	}, 25);
 }
 
 function single_target_set() {
 	unequip("mainhand");
 	unequip("offhand");
-	
-	equip_batch([
-	    { itemName: "fireblade", slot: "mainhand", level: 7},
-	    { itemName: "fireblade", slot: "offhand", level: 7}
-	]);
+
+	setTimeout(() => {
+		equip_batch([
+		    { itemName: "fireblade", slot: "mainhand", level: 7},
+		    { itemName: "fireblade", slot: "offhand", level: 7}
+		]);
+	}, 25);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
