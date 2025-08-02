@@ -255,6 +255,8 @@ async function move_loop() {
 // SKILL LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+let eTime = 0;
+
 async function skill_loop() {
     let delay = 10;
     try {
@@ -276,7 +278,6 @@ async function skill_loop() {
                 }
                 if (character.ctype === "warrior") {
                     handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank);
-                    handle_warrior_skills(tank);
                 }
             } catch (e) {
                 //console.error("Error in warrior section:", e);
@@ -313,14 +314,10 @@ const equipment_sets = {
 };
 
 function cleave_set() {
-	unequip("mainhand");
-	unequip("offhand");
-
-	setTimeout(() => {
-		equip_batch([
-		    { itemName: "bataxe", slot: "mainhand", level: 5 }
-		]);
-	}, 25);
+    unequip("offhand");
+    equip_batch([
+        { itemName: "bataxe", slot: "mainhand", level: 5},
+    ]);
 }
 
 function single_target_set() {
@@ -335,6 +332,24 @@ function single_target_set() {
 	}, 25);
 }
 
+function equip_set(setName) {
+    const set = equipment_sets[setName];
+    if (set) {
+        equip_batch(set);
+    } else {
+        console.error(`Set "${setName}" not found.`);
+    }
+}
+
+function handle_weapon_swap() {
+	const now = performance.now();
+	if (now - eTime <= 50) return;
+
+        equip_set("single");
+        eTime = now;
+
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // HANDLE SKILLS
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -344,7 +359,7 @@ const CLEAVE_THRESHOLD = 500;
 const CLEAVE_RANGE = G.skills.cleave.range;
 const MAPS_TO_INCLUDE = ["mansion", "main"];
 
-function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
+function handle_cleave(Mainhand, aoe, cc, stMaps, aoeMaps, tank) {
     const now = performance.now();
     const time_since_last = now - last_cleave_time;
 
@@ -357,78 +372,28 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
 
     const untargeted = monsters.some(m => !m.target);
 
-    if (can_cleave(aoe, cc, new Set(aoe_maps), monsters, tank, time_since_last, untargeted)) {
+    if (can_cleave(aoe, cc, MAPS_TO_INCLUDE, monsters, tank, time_since_last, untargeted)) {
         if (Mainhand !== "bataxe") cleave_set();
-	use_skill("cleave");
-        //reduce_cooldown("cleave", character.ping * 0.95);
-        lastCleaveTime = now;
+        use_skill("cleave");
+        reduce_cooldown("cleave", character.ping * 0.95);
+        last_cleave_time = now;
     }
-    single_target_set();
+
+    // Swap back instantly (don't delay this)
+    handle_weapon_swap();
 }
 
-function can_cleave(aoe, cc, maps, monsters, tank, time_since, has_untargeted) {
+function can_cleave(aoe, cc, maps, monsters, tank, time_since, hasUntargeted) {
     return (
         !smart.moving &&
         cc && aoe && tank &&
         time_since >= CLEAVE_THRESHOLD &&
-        monsters.length > 2 &&
+        monsters.length > 0 &&
+        //!hasUntargeted &&
         maps.has(character.map) &&
         !is_on_cooldown("cleave") &&
         ms_to_next_skill("attack") > 75
     );
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// PANIC BUTTON!!!
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-let panic_triggered = false;
-
-async function panic_button_loop() {
-	const CHECK_INTERVAL = 500;
-	const PRIEST_NAME = "Myras";
-	const PANIC_WEAPON = "jacko";
-	const NORMAL_WEAPON = "orbg";
-
-	while (true) {
-		let myras_online = parent.party_list.includes(PRIEST_NAME) && parent.entities[PRIEST_NAME];
-
-		if (!myras_online) {
-			if (!panic_triggered) {
-				// Enter panic state
-				panic_triggered = true;
-				attack_enabled = false;
-				game_log("⚠️ Panic triggered: Myras is offline!");
-
-				const jacko_slot = locate_item(PANIC_WEAPON);
-				if (jacko_slot !== -1) {
-					equip(jacko_slot);
-					await delay(100);
-				}
-
-				if (can_use("scare")) {
-					use_skill("scare");
-				}
-			}
-		} else {
-			if (panic_triggered) {
-				// Exit panic state
-				game_log("✅ Myras is back online — exiting panic mode!");
-				panic_triggered = false;
-
-				const orbg_slot = locate_item(NORMAL_WEAPON);
-				if (orbg_slot !== -1) {
-					equip(orbg_slot);
-					await delay(100);
-				}
-
-				attack_enabled = true;
-				start_attack_loop();
-			}
-		}
-
-		await delay(CHECK_INTERVAL);
-	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -507,4 +472,57 @@ async function equip_batch(data) {
         console.error("Error in equip_batch:", error);
         return handleEquipBatchError("Failed to equip items");
     }
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// PANIC BUTTON!!!
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let panic_triggered = false;
+
+async function panic_button_loop() {
+	const CHECK_INTERVAL = 500;
+	const PRIEST_NAME = "Myras";
+	const PANIC_WEAPON = "jacko";
+	const NORMAL_WEAPON = "orbg";
+
+	while (true) {
+		let myras_online = parent.party_list.includes(PRIEST_NAME) && parent.entities[PRIEST_NAME];
+
+		if (!myras_online) {
+			if (!panic_triggered) {
+				// Enter panic state
+				panic_triggered = true;
+				attack_enabled = false;
+				game_log("⚠️ Panic triggered: Myras is offline!");
+
+				const jacko_slot = locate_item(PANIC_WEAPON);
+				if (jacko_slot !== -1) {
+					equip(jacko_slot);
+					await delay(100);
+				}
+
+				if (can_use("scare")) {
+					use_skill("scare");
+				}
+			}
+		} else {
+			if (panic_triggered) {
+				// Exit panic state
+				game_log("✅ Myras is back online — exiting panic mode!");
+				panic_triggered = false;
+
+				const orbg_slot = locate_item(NORMAL_WEAPON);
+				if (orbg_slot !== -1) {
+					equip(orbg_slot);
+					await delay(100);
+				}
+
+				attack_enabled = true;
+				start_attack_loop();
+			}
+		}
+
+		await delay(CHECK_INTERVAL);
+	}
 }
