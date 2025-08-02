@@ -118,8 +118,8 @@ const update_cc_display = () => {
 };
 
 
-// Refresh the CC bar 20 times per second
-setInterval(update_cc_display, 50);
+// Refresh the CC bar 10 times per second
+setInterval(update_cc_display, 10);
 
 // Start
 cc_meter();
