@@ -328,11 +328,14 @@ const equipment_sets = {
 
 };
 
+let weapon_set_equipped = "";
+
 async function cleave_set() {
     unequip("offhand");
     equip_batch([
         { itemName: "bataxe", slot: "mainhand", level: 5},
     ]);
+    weapon_set_equipped = "cleave";
 }
 
 async function equip_set(setName) {
@@ -342,6 +345,7 @@ async function equip_set(setName) {
     } else {
       console.error(`Set "${setName}" not found.`);
     }
+    weapon_set_equipped = "single";
 }
 
 async function handle_weapon_swap() {
@@ -379,7 +383,9 @@ async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
     last_cleave_time = now;
   }
   // Swap back instantly (don't delay this)
-  await handle_weapon_swap();
+  if (weapon_set_equipped !== "single") {
+    await handle_weapon_swap();
+  }
 }
 
 function can_cleave(aoe, cc, monsters, time_since) {
