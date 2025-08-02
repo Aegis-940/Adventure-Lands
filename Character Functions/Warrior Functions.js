@@ -297,7 +297,7 @@ const aoe_maps = ["mansion", "main", "cave", "level2s"];
 
 async function skill_loop() {
     if (!skills_enabled) return;
-    let delay = 10; // Start with a higher delay
+    let delay = 50; // Start with a higher delay
 
     try {
         if (!character.rip) {
@@ -347,7 +347,7 @@ function equip_set(setName) {
 
 function handle_weapon_swap() {
 	const now = performance.now();
-	if (now - eTime <= 1000) return;
+	if (now - eTime <= 50) return;
 
     equip_set("single");
     eTime = now;
