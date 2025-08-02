@@ -342,9 +342,9 @@ function cleave_set() {
 function equip_set(setName) {
     const set = equipment_sets[setName];
     if (set) {
+      equip_batch(set);
       current_set = "single";
       game_log("equip_set: " + current_set);
-      equip_batch(set);
     } else {
         console.error(`Set "${setName}" not found.`);
     }
