@@ -26,6 +26,13 @@ move_loop();
 skill_loop();
 panic_button_loop();
 
+profile_cc([
+	{ fn: attack_loop, label: "attack_loop" },
+	{ fn: move_loop, label: "move_loop" },
+	{ fn: skill_loop, label: "skill_loop" },
+	{ fn: panic_button_loop, label: "panic_button_loop" },
+]);
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
