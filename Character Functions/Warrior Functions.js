@@ -306,7 +306,7 @@ async function skill_loop() {
 
             // Only check cleave if it's off cooldown
             if (!is_on_cooldown("cleave") && aoe && cc) {
-                handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps);
+                await handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps);
             }
         }
     } catch (e) {
@@ -361,7 +361,7 @@ const CLEAVE_THRESHOLD = 500;
 const CLEAVE_RANGE = G.skills.cleave.range;
 const MAPS_TO_INCLUDE = ["mansion", "main"];
 
-function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
+async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
   const now = performance.now();
   const time_since_last = now - last_cleave_time;
 
