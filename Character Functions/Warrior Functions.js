@@ -361,9 +361,11 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
         if (Mainhand !== "bataxe") cleave_set();
 	setTimeout(() => {
 		use_skill("cleave");
-	}, 100);
+	}, 20);
 	last_cleave_time = performance.now();
-	single_target_set();
+	setTimeout(() => {
+		single_target_set();
+	}, 40);
     }
 }
 
