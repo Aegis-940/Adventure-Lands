@@ -343,17 +343,11 @@ function cleave_set() {
 }
 
 function equip_set(setName) {
-    game_log("Check 1");
-    if (current_weapon_mode === setName) return;
-    
-    game_log("Check 2");
     const set = equipment_sets[setName];
     if (set) {
-        game_log("Check 3");
         equip_batch(set);
         current_weapon_mode = setName;
         last_weapon_swap = performance.now();
-        game_log("Check 4");
     } else {
         console.error(`Set "${setName}" not found.`);
     }
@@ -391,7 +385,9 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
         last_cleave_time = now;	  
     }
     // Swap back instantly (don't delay this)
-    handle_weapon_swap();
+    if (current_weapon_mode !== "single") {
+      handle_weapon_swap();
+    }
 }
 
 function can_cleave(aoe, cc, monsters, time_since) {
