@@ -338,28 +338,10 @@ function cleave_set() {
 
 function equip_set(setName) {
     const set = equipment_sets[setName];
-    if (!set) {
-        console.error(`Set "${setName}" not found.`);
-        return;
-    }
-
-    // Only call equip_batch if at least one item is not already equipped
-    let needs_equip = false;
-    for (const equipRequest of set) {
-        const { itemName, slot, level, l } = equipRequest;
-        const equipped = character.slots[slot];
-        if (
-            !equipped ||
-            equipped.name !== itemName ||
-            equipped.level !== level ||
-            (l && equipped.l !== l)
-        ) {
-            needs_equip = true;
-            break;
-        }
-    }
-    if (needs_equip) {
-        equip_batch(set);
+    if (set) {
+      equip_batch(set);
+    } else {
+      console.error(`Set "${setName}" not found.`);
     }
 }
 
@@ -423,39 +405,47 @@ function handleEquipBatchError(message) {
 }
 
 async function equip_batch(data) {
-	if (!Array.isArray(data)) return handleEquipBatchError("Input is not an array.");
-	if (data.length > 15) return handleEquipBatchError("Too many items in equip batch.");
+    if (!Array.isArray(data)) return handleEquipBatchError("Input is not an array.");
+    if (data.length > 15) return handleEquipBatchError("Too many items in equip batch.");
 
-	const used_slots = new Set();
+    const used_slots = new Set();
+    // Clone the current equipment state to simulate what will be equipped
+    const virtual_slots = { ...character.slots };
 
-	for (const equipRequest of data) {
-		const { itemName, slot, level, l } = equipRequest;
-		if (!itemName || !slot) continue;
+    for (const equipRequest of data) {
+        const { itemName, slot, level, l } = equipRequest;
+        if (!itemName || !slot) continue;
 
-		// Check if the slot already has the desired item equipped
-		const equipped = character.slots[slot];
-		if (
-			equipped &&
-			equipped.name === itemName &&
-			equipped.level === level &&
-			(!l || equipped.l === l)
-		) continue;
+        // Check if the slot already has the desired item equipped (using virtual state)
+        const equipped = virtual_slots[slot];
+        if (
+            equipped &&
+            equipped.name === itemName &&
+            equipped.level === level &&
+            (!l || equipped.l === l)
+        ) continue;
 
-		// Search inventory for matching item
-		const item_index = parent.character.items.findIndex((item, idx) =>
-			item &&
-			item.name === itemName &&
-			item.level === level &&
-			(!l || item.l === l) &&
-			!used_slots.has(idx)
-		);
+        // Search inventory for matching item
+        const item_index = parent.character.items.findIndex((item, idx) =>
+            item &&
+            item.name === itemName &&
+            item.level === level &&
+            (!l || item.l === l) &&
+            !used_slots.has(idx)
+        );
 
-		if (item_index !== -1) {
-			used_slots.add(item_index);
-			equip(item_index, slot);
-			await delay(50); // just enough time for server sync
-		}
-	}
+        if (item_index !== -1) {
+            used_slots.add(item_index);
+            equip(item_index, slot);
+            // Update the virtual state to reflect the intended equip
+            virtual_slots[slot] = {
+                name: itemName,
+                level: level,
+                l: l
+            };
+            await delay(100); // allow more time for server sync
+        }
+    }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
