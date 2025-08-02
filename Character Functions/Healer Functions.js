@@ -276,7 +276,7 @@ async function attack_loop() {
 
 async function move_loop() {
   if (!move_enabled) return;
-  const delay = 100;
+  const delay = 200;
 
   try {
     // Don’t override an in-progress move
