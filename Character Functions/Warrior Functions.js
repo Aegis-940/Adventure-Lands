@@ -404,7 +404,7 @@ function handleEquipBatchError(message) {
     return Promise.reject({ reason: "invalid", message });
 }
 
-async function equip_batch(data) {
+function equip_batch(data) {
     if (!Array.isArray(data)) {
         game_log("Can't equipBatch non-array");
         return handleEquipBatchError("Invalid input: not an array");
