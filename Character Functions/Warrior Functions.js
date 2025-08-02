@@ -306,10 +306,8 @@ async function skill_loop() {
             const cc = character.cc < 135;
 
             // Only check cleave if it's off cooldown
-            if (!is_on_cooldown("cleave")) {
+            if (true) {
                 handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps);
-                delay = ms_to_next_skill("cleave");
-                if (delay < 200) delay = 200;
             }
         }
     } catch (e) {
@@ -328,7 +326,7 @@ const equipment_sets = {
         { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
         { itemName: "fireblade", slot: "offhand", level: 7, l: "l" }
     ]
-    
+
 };
 
 function cleave_set() {
