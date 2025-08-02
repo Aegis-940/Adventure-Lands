@@ -338,10 +338,28 @@ function cleave_set() {
 
 function equip_set(setName) {
     const set = equipment_sets[setName];
-    if (set) {
-      equip_batch(set);
-    } else {
-      console.error(`Set "${setName}" not found.`);
+    if (!set) {
+        console.error(`Set "${setName}" not found.`);
+        return;
+    }
+
+    // Only call equip_batch if at least one item is not already equipped
+    let needs_equip = false;
+    for (const equipRequest of set) {
+        const { itemName, slot, level, l } = equipRequest;
+        const equipped = character.slots[slot];
+        if (
+            !equipped ||
+            equipped.name !== itemName ||
+            equipped.level !== level ||
+            (l && equipped.l !== l)
+        ) {
+            needs_equip = true;
+            break;
+        }
+    }
+    if (needs_equip) {
+        equip_batch(set);
     }
 }
 
