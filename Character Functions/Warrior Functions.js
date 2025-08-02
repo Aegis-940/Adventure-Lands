@@ -371,8 +371,6 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
     );
 
     const untargeted = monsters.some(m => !m.target);
-    
-    game_log("Check 0");
 
     if (can_cleave(monsters, time_since_last)) {
 	game_log("Check 1");
@@ -389,7 +387,6 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
 }
 
 function can_cleave(monsters, time_since) {
-	game_log("Check 0.1");
     return (
         !smart.moving &&
         time_since >= CLEAVE_THRESHOLD &&
