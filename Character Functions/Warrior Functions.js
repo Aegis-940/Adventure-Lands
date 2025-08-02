@@ -296,22 +296,16 @@ async function skill_loop() {
     if (!skills_enabled) return;
     let delay = 100;
     try {
-
-        // Cache tank lookup for 2 seconds
-        const now = Date.now();
-        if (now - last_tank_check > 2000) {
-            cached_tank = get_entity("Ulric");
-            last_tank_check = now;
-        }
-
-        const tank = cached_tank;
+        let zap = false;
         const dead = character.rip;
         const Mainhand = character.slots?.mainhand?.name;
         const offhand = character.slots?.offhand?.name;
         const aoe = character.mp >= character.mp_cost * 2 + G.skills.cleave.mp + 50;
         const cc = character.cc < 135;
+        const zapper_mobs = ["plantoid"];
         const st_maps = [];
         const aoe_maps = ["mansion", "main", "cave", "level2s"];
+        let tank = get_entity("Ulric");
 
         if (character.ctype === "warrior") {
             try {
