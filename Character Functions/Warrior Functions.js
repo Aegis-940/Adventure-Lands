@@ -347,7 +347,7 @@ const CLEAVE_THRESHOLD = 500;
 const CLEAVE_RANGE = G.skills.cleave.range;
 const MAPS_TO_INCLUDE = ["mansion", "main"];
 
-function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
+async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
     const now = performance.now();
     const time_since_last = now - last_cleave_time;
 
@@ -362,11 +362,11 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
 
     if (can_cleave(monsters, tank, time_since_last)) {
         if (Mainhand !== "bataxe") cleave_set();
-        use_skill("cleave");
+        await use_skill("cleave");
         //reduce_cooldown("cleave", character.ping * 0.95);
         last_cleave_time = now;
 	// Swap back instantly (don't delay this)
-	handle_weapon_swap();
+	await handle_weapon_swap();
     }	
 }
 
