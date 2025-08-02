@@ -305,7 +305,7 @@ async function skill_loop() {
             const cc = character.cc < 135;
 
             // Only check cleave if it's off cooldown
-            if (!is_on_cooldown("cleave") && Mainhand === "bataxe" && aoe && cc) {
+            if (!is_on_cooldown("cleave") && aoe && cc) {
                 handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps);
             }
         }
