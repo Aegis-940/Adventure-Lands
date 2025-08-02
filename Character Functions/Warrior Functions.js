@@ -311,19 +311,19 @@ const equipment_sets = {
     ],
 };
 
-async function cleave_set() {
+async function cleave_set_async() {
 	unequip("mainhand");
 	unequip("offhand");
-	await sleep(50); // Let unequip settle
+	await sleep(250); // Let unequip settle
 
 	await equip_batch([
 		{ itemName: "bataxe", slot: "mainhand", level: 5 }
 	]);
 
-	await sleep(50); // Give server time to register
+	await sleep(250); // Give server time to register
 }
 
-async function single_target_set() {
+async function single_target_set_async() {
 	unequip("mainhand");
 	unequip("offhand");
 	await sleep(50);
@@ -333,7 +333,7 @@ async function single_target_set() {
 		{ itemName: "fireblade", slot: "offhand", level: 7 }
 	]);
 
-	await sleep(50);
+	await sleep(250);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -359,10 +359,10 @@ async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
 	const untargeted = monsters.some(m => !m.target);
 
 	if (can_cleave(aoe, cc, new Set(aoe_maps), monsters, tank, time_since_last, untargeted)) {
-		if (Mainhand !== "bataxe") await cleave_set();
+		if (Mainhand !== "bataxe") await cleave_set_async();
 		await use_skill("cleave");
 		last_cleave_time = performance.now();
-		await single_target_setc();
+		await single_target_set_async();
 	}
 }
 
@@ -508,4 +508,3 @@ async function equip_batch(data) {
         return handleEquipBatchError("Failed to equip items");
     }
 }
-
