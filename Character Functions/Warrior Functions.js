@@ -343,8 +343,6 @@ function equip_set(setName) {
     const set = equipment_sets[setName];
     if (set) {
       equip_batch(set);
-      current_set = "single";
-      game_log("equip_set: " + current_set);
     } else {
         console.error(`Set "${setName}" not found.`);
     }
@@ -355,6 +353,8 @@ function handle_weapon_swap() {
 	if (now - eTime <= 200) return;
 
         equip_set("single");
+        current_set = "single";
+        game_log("equip_set: " + current_set);
         eTime = now;
 }
 
