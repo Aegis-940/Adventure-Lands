@@ -292,29 +292,26 @@ async function move_loop() {
 
 let eTime = 0;
 
+const st_maps = [];
+const aoe_maps = ["mansion", "main", "cave", "level2s"];
+
 async function skill_loop() {
     if (!skills_enabled) return;
-    let delay = 100;
-    try {
-      
-        const dead = character.rip;
-        const Mainhand = character.slots?.mainhand?.name;
-        const offhand = character.slots?.offhand?.name;
-        const aoe = character.mp >= character.mp_cost * 2 + G.skills.cleave.mp + 50;
-        const cc = character.cc < 135;
-        const st_maps = [];
-        const aoe_maps = ["mansion", "main", "cave", "level2s"];
+    let delay = 100; // Start with a higher delay
 
-        if (character.ctype === "warrior") {
-            try {
-                if (!dead) {
-                    handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps);
-                }
-            } catch (e) {
-                //console.error("Error in warrior section:", e);
+    try {
+        if (!character.rip) {
+            const Mainhand = character.slots?.mainhand?.name;
+            const aoe = character.mp >= character.mp_cost * 2 + G.skills.cleave.mp + 50;
+            const cc = character.cc < 135;
+
+            // Only check cleave if it's off cooldown
+            if (!is_on_cooldown("cleave")) {
+                handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps);
+                delay = ms_to_next_skill("cleave");
+                if (delay < 200) delay = 200;
             }
         }
-
     } catch (e) {
         //console.error("Error in skillLoop:", e);
     }
@@ -327,21 +324,11 @@ async function skill_loop() {
 
 const equipment_sets = {
 
-    dps: [
-        { itemName: "strearring", slot: "earring1", level: 1, l: "l" },
-        { itemName: "strearring", slot: "earring2", level: 2, l: "l" },
-        { itemName: "orbg", slot: "orb", level: 2, l: "l" },
-        //{ itemName: "orbofstr", slot: "orb", level: 5, l: "l" },
-        { itemName: "strring", slot: "ring1", level: 2, l: "l" },
-        { itemName: "suckerpunch", slot: "ring2", level: 1, l: "u" },
-    ],
     single: [
         { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
         { itemName: "fireblade", slot: "offhand", level: 7, l: "l" }
-    ],
-    cleave: [
-        { itemName: "bataxe", slot: "mainhand", level: 5, l: "s" }
-    ],
+    ]
+    
 };
 
 function cleave_set() {
