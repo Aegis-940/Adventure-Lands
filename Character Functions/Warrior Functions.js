@@ -1,4 +1,5 @@
 
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 1) GLOBAL SWITCHES & TIMERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -311,33 +312,27 @@ const equipment_sets = {
     ],
 };
 
-async function cleave_set_async() {
-	await sleep(250); // Let unequip settle
-	await unequip("mainhand");
-	await sleep(250); // Let unequip settle
-	await unequip("offhand");
-	await sleep(250); // Let unequip settle
+function cleave_set() {
+    unequip("mainhand");
+    unequip("offhand");
 
-	await equip_batch([
-		{ itemName: "bataxe", slot: "mainhand", level: 5 }
-	]);
-
-	await sleep(250); // Give server time to register
+    setTimeout(() => {
+        equip_batch([
+            { itemName: "bataxe", slot: "mainhand", level: 5 }
+        ]);
+    }, 10);
 }
 
-async function single_target_set_async() {
-	await sleep(250); // Let unequip settle
-	await unequip("mainhand");
-	await sleep(250); // Let unequip settle
-	await unequip("offhand");
-	await sleep(50);
+function single_target_set() {
+    unequip("mainhand");
+    unequip("offhand");
 
-	await equip_batch([
-		{ itemName: "fireblade", slot: "mainhand", level: 7 },
-		{ itemName: "fireblade", slot: "offhand", level: 7 }
+    setTimeout(() => {
+        equip_batch([
+	    { itemName: "fireblade", slot: "mainhand", level: 7},
+	    { itemName: "fireblade", slot: "offhand", level: 7}
 	]);
-
-	await sleep(250);
+    }, 10);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -349,25 +344,27 @@ const CLEAVE_THRESHOLD = 500;
 const CLEAVE_RANGE = G.skills.cleave.range;
 const MAPS_TO_INCLUDE = ["mansion", "main"];
 
-async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
-	const now = performance.now();
-	const time_since_last = now - last_cleave_time;
+function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
+    const now = performance.now();
+    const time_since_last = now - last_cleave_time;
 
-	const monsters = Object.values(parent.entities).filter(e =>
-		e?.type === "monster" &&
-		!e.dead &&
-		e.visible &&
-		distance(character, e) <= CLEAVE_RANGE
-	);
+    const monsters = Object.values(parent.entities).filter(e =>
+        e?.type === "monster" &&
+        !e.dead &&
+        e.visible &&
+        distance(character, e) <= CLEAVE_RANGE
+    );
 
-	const untargeted = monsters.some(m => !m.target);
+    const untargeted = monsters.some(m => !m.target);
 
-	if (can_cleave(aoe, cc, new Set(aoe_maps), monsters, tank, time_since_last, untargeted)) {
-		if (Mainhand !== "bataxe") await cleave_set_async();
-		await use_skill("cleave");
-		last_cleave_time = performance.now();
-		await single_target_set_async();
-	}
+    if (can_cleave(aoe, cc, new Set(aoe_maps), monsters, tank, time_since_last, untargeted)) {
+        if (Mainhand !== "bataxe") cleave_set();
+	setTimeout(() => {
+		use_skill("cleave");
+	}, 100);
+	last_cleave_time = performance.now();
+	single_target_set();
+    }
 }
 
 function can_cleave(aoe, cc, maps, monsters, tank, time_since, has_untargeted) {
