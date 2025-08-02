@@ -359,7 +359,7 @@ const CLEAVE_THRESHOLD = 500;
 const CLEAVE_RANGE = G.skills.cleave.range;
 const MAPS_TO_INCLUDE = ["mansion", "main"];
 
-function handle_cleave(Mainhand, aoe, cc, stMaps, aoeMaps, tank) {
+function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
     const now = performance.now();
     const time_since_last = now - last_cleave_time;
 
