@@ -320,20 +320,20 @@ function cleave_set() {
     ]);
 }
 
-async function equip_set(setName) {
+function equip_set(setName) {
     const set = equipment_sets[setName];
     if (set) {
-       await equip_batch(set);
+       equip_batch(set);
     } else {
         console.error(`Set "${setName}" not found.`);
     }
 }
 
-async function handle_weapon_swap() {
+function handle_weapon_swap() {
 	const now = performance.now();
 	if (now - eTime <= 50) return;
 
-        await equip_set("single");
+        equip_set("single");
         eTime = now;
 
 }
@@ -347,7 +347,7 @@ const CLEAVE_THRESHOLD = 500;
 const CLEAVE_RANGE = G.skills.cleave.range;
 const MAPS_TO_INCLUDE = ["mansion", "main"];
 
-async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
+function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
     const now = performance.now();
     const time_since_last = now - last_cleave_time;
 
@@ -370,7 +370,7 @@ async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps, tank) {
     }	
 }
 
-async function can_cleave(monsters, tank, time_since) {
+function can_cleave(monsters, tank, time_since) {
     return (
         !smart.moving &&
 	tank &&
