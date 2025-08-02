@@ -380,9 +380,7 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
     last_cleave_time = now;
   }
   // Swap back instantly (don't delay this)
-  if (Mainhand === "bataxe") {
-      handle_weapon_swap();
-  }
+  handle_weapon_swap();
 }
 
 function can_cleave(aoe, cc, monsters, time_since) {
