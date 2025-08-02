@@ -385,6 +385,7 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
   }
   // Swap back instantly (don't delay this)
   if (current_set = "single") {
+    game_log("1");
     handle_weapon_swap();	  
   }
 }
