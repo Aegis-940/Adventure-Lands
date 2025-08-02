@@ -218,7 +218,7 @@ async function attack_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function move_loop() {
-	game_log("Move Loop Trigger!");
+  //game_log("Move Loop Trigger!");
   if (!move_enabled) return;
   // How often to run
   const delay = 200;
@@ -262,7 +262,7 @@ async function move_loop() {
 let eTime = 0;
 
 async function skill_loop() {
-	game_log("Skill Loop Trigger!");
+    //game_log("Skill Loop Trigger!");
     let delay = 50;
     try {
         let zap = false;
