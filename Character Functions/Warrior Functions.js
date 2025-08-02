@@ -305,7 +305,7 @@ const equipment_sets = {
         { itemName: "suckerpunch", slot: "ring2", level: 1, l: "u" },
     ],
     single: [
-        { itemName: "fireblade", slot: "mainhand", level: 7, l: "s" },
+        { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
         { itemName: "fireblade", slot: "offhand", level: 7, l: "u" },
     ],
     cleave: [
