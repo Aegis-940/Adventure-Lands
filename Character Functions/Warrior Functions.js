@@ -347,7 +347,7 @@ function equip_set(setName) {
 
 function handle_weapon_swap() {
 	const now = performance.now();
-	if (now - eTime <= 100) return;
+	if (now - eTime <= 50) return;
 
         equip_set("single");
         eTime = now;
@@ -380,7 +380,6 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
     last_cleave_time = now;
   }
   if (Mainhand === "bataxe") {
-  game_log(Mainhand)
   // Swap back instantly (don't delay this)
   handle_weapon_swap();
   }
@@ -438,7 +437,7 @@ async function equip_batch(data) {
 		if (item_index !== -1) {
 			used_slots.add(item_index);
 			equip(item_index, slot);
-			await delay(20); // just enough time for server sync
+			await delay(10); // just enough time for server sync
 		}
 	}
 }
