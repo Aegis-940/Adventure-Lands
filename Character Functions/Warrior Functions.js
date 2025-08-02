@@ -297,7 +297,7 @@ const aoe_maps = ["mansion", "main", "cave", "level2s"];
 
 async function skill_loop() {
     if (!skills_enabled) return;
-    let delay = 100; // Start with a higher delay
+    let delay = 10; // Start with a higher delay
 
     try {
         if (!character.rip) {
@@ -347,7 +347,7 @@ function equip_set(setName) {
 
 function handle_weapon_swap() {
 	const now = performance.now();
-	if (now - eTime <= 1000) return;
+	if (now - eTime <= 200) return;
 
         equip_set("single");
         eTime = now;
@@ -380,7 +380,9 @@ function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
     last_cleave_time = now;
   }
   // Swap back instantly (don't delay this)
-  handle_weapon_swap();	  
+  if (character.slots?.mainhand?.name !== "fireblade") {
+    handle_weapon_swap();	  
+  }
 }
 
 function can_cleave(aoe, cc, monsters, time_since) {
