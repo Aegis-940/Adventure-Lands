@@ -215,14 +215,15 @@ async function send_to_merchant() {
 		return game_log("❌ Merchant not nearby");
 	}
 
-	// Send every item in slots ≥ LOOT_THRESHOLD
+	// Send every unlocked item in slots ≥ LOOT_THRESHOLD
 	for (let i = LOOT_THRESHOLD; i < character.items.length; i++) {
 		const item = character.items[i];
-		if (item) {
+		if (item && item.l !== "l") { // Skip locked items
 			await delay(50);
 			await send_item(merchant_name, i, item.q || 1);
 		}
 	}
+
 	// Then send all gold
 	if (character.gold > 0) {
 		await delay(50);
