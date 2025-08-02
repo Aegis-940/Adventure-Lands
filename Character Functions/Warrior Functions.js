@@ -329,6 +329,8 @@ const equipment_sets = {
 
 };
 
+let current_weapon_mode = "single";
+
 function cleave_set() {
     unequip("offhand");
     equip_batch([
@@ -337,8 +339,6 @@ function cleave_set() {
     current_weapon_mode = "cleave";
 }
 
-let current_weapon_mode = "single";
-
 function equip_set(setName) {
     const set = equipment_sets[setName];
     if (set) {
@@ -346,6 +346,8 @@ function equip_set(setName) {
     } else {
         console.error(`Set "${setName}" not found.`);
     }
+    
+    current_weapon_mode = set;
 }
 
 function handle_weapon_swap() {
@@ -353,7 +355,6 @@ function handle_weapon_swap() {
 	if (now - eTime <= 50) return;
 
         equip_set("single");
-        current_weapon_mode = "single";
         eTime = now;
 }
 
