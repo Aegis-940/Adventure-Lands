@@ -427,7 +427,7 @@ async function equip_batch(data) {
 			) {
 				used_slots.add(i);
 				equip(i, slot);
-				await delay(50);
+				await delay(10);
 				break;
 			}
 		}
