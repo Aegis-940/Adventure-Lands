@@ -338,7 +338,7 @@ function draw_range_circle() {
     if (range_circle_draw_id !== null) {
         clear_drawings(range_circle_draw_id);
     }
-    // Draw a dashed circle centered at the character's current position
+    // Use your custom draw_circle from Common Functions
     range_circle_draw_id = draw_circle(
         character.real_x,
         character.real_y,
