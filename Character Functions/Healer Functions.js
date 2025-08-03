@@ -395,13 +395,14 @@ async function handle_cursing(X, Y) {
 }
 
 let absorb_last_used = 0;
+const ABSORB_COOLDOWN = 2000; // 1 second cooldown for absorb
 
 async function handle_absorb(mapsToExclude) {
 	const now = Date.now();
 	if (!character.party) return;
 	if (mapsToExclude.includes(character.map)) return;
 	if (is_on_cooldown("absorb")) return;
-	if (now - absorb_last_used < 1000) return;
+	if (now - absorb_last_used < ABSORB_COOLDOWN) return;
 
 	const partyNames = Object.keys(get_party()).filter(name => name !== character.name);
 
