@@ -462,8 +462,10 @@ async function handle_dark_blessing() {
 let circle_move_enabled = false;
 let circle_move_timer_id = null;
 let circle_origin = null;
-let circle_angle = 0;
-let circle_move_radius = 20; // Default radius, can be changed dynamically
+let circle_move_radius = 20;
+let circle_path_points = [];
+let circle_path_index = 0;
+const CIRCLE_STEPS = 24; // 15 degrees per step
 
 function set_circle_move_radius(r) {
     if (typeof r === "number" && r > 0) {
@@ -472,12 +474,25 @@ function set_circle_move_radius(r) {
     }
 }
 
+function compute_circle_path(origin, radius, steps) {
+    const points = [];
+    for (let i = 0; i < steps; i++) {
+        const angle = (2 * Math.PI * i) / steps;
+        points.push({
+            x: origin.x + radius * Math.cos(angle),
+            y: origin.y + radius * Math.sin(angle)
+        });
+    }
+    return points;
+}
+
 function start_circle_move(radius = circle_move_radius) {
     if (circle_move_enabled) return;
     circle_move_enabled = true;
     circle_origin = { x: character.real_x, y: character.real_y };
-    circle_angle = 0;
     set_circle_move_radius(radius);
+    circle_path_points = compute_circle_path(circle_origin, circle_move_radius, CIRCLE_STEPS);
+    circle_path_index = 0;
     circle_move_loop();
     console.log("🔵 Circle move started");
 }
@@ -490,23 +505,17 @@ function stop_circle_move() {
 
 async function circle_move_loop() {
     if (!circle_move_enabled) return;
-    const radius = circle_move_radius;
-    const step = Math.PI / 12; // 15 degrees per step
-    circle_angle += step;
-    if (circle_angle > 2 * Math.PI) circle_angle -= 2 * Math.PI;
-
-    const target_x = circle_origin.x + radius * Math.cos(circle_angle);
-    const target_y = circle_origin.y + radius * Math.sin(circle_angle);
+    const point = circle_path_points[circle_path_index];
+    circle_path_index = (circle_path_index + 1) % circle_path_points.length;
 
     try {
         if (!character.moving && !smart.moving) {
-            await move(target_x, target_y);
+            await move(point.x, point.y);
         }
     } catch (e) {
         console.error("Circle move error:", e);
     }
 
-    // Await movement before scheduling next step
     if (circle_move_enabled) {
         // Wait until movement is finished before next step
         const waitForMove = () =>
