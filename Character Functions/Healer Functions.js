@@ -395,36 +395,35 @@ async function handle_cursing(X, Y) {
 }
 
 let absorb_last_used = 0;
-const ABSORB_COOLDOWN = 2000; // Cooldown for absorb skill
 
 async function handle_absorb(mapsToExclude) {
-    const now = Date.now();
-    if (!character.party) return;
-    if (mapsToExclude.includes(character.map)) return;
-    if (is_on_cooldown("absorb")) return;
-    if (now - ABSORB_COOLDOWN < absorb_cooldown) return;
+	const now = Date.now();
+	if (!character.party) return;
+	if (mapsToExclude.includes(character.map)) return;
+	if (is_on_cooldown("absorb")) return;
+	if (now - absorb_last_used < 1000) return;
 
-    const partyNames = Object.keys(get_party()).filter(name => name !== character.name);
+	const partyNames = Object.keys(get_party()).filter(name => name !== character.name);
 
-    const attackers = {};
-    for (const id in parent.entities) {
-        const monster = parent.entities[id];
-        if (monster.type !== "monster" || monster.dead || !monster.visible) continue;
-        if (partyNames.includes(monster.target)) attackers[monster.target] = true;
-    }
+	const attackers = {};
+	for (const id in parent.entities) {
+		const monster = parent.entities[id];
+		if (monster.type !== "monster" || monster.dead || !monster.visible) continue;
+		if (partyNames.includes(monster.target)) attackers[monster.target] = true;
+	}
 
-    for (const name of partyNames) {
-        if (attackers[name]) {
-            try {
-                await use_skill("absorb", name);
-                game_log(`Absorbing ${name}`, "#FFA600");
-                absorb_last_used = now;
-            } catch (e) {
-                if (e?.reason !== "cooldown") throw e;
-            }
-            return;
-        }
-    }
+	for (const name of partyNames) {
+		if (attackers[name]) {
+			try {
+				await use_skill("absorb", name);
+				game_log(`Absorbing ${name}`, "#FFA600");
+				absorb_last_used = now;
+			} catch (e) {
+				if (e?.reason !== "cooldown") throw e;
+			}
+			return;
+		}
+	}
 }
 
 async function handle_party_heal(healThreshold = 0.65, minMp = 2000) {
