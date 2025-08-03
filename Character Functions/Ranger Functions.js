@@ -170,7 +170,7 @@ function get_nearest_monster_v2(args = {}) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const SWITCH_COOLDOWN = 750;
-const RANGE_THRESHOLD = 45;
+const RANGE_THRESHOLD = character.range;
 //let lastEquippedSet = null;
 
 async function attack_loop() {
