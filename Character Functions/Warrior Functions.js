@@ -341,7 +341,7 @@ async function cleave_set() {
 async function single_set() {
     batch_equip([
         { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
-        { itemName: "fireblade", slot: "offhand", level: 7, l: "l" }
+        { itemName: "ololipop", slot: "offhand", level: 5, l: "l" }
     ]);
     weapon_set_equipped = "single";
 }
