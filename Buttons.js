@@ -227,6 +227,7 @@ function toggle_follow_priest() {
 	create_floating_button("toggle_follow_priest", initialIcon, () => {
 		// Flip the flag and start/stop the loop
 		follow_priest_enabled = !follow_priest_enabled;
+		follow_priest_loop(follow_priest_enabled);
 
 		// Update button icon & log
 		const btn = window.top.document.getElementById("toggle_follow_priest");
