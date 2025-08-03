@@ -458,13 +458,21 @@ let circle_move_enabled = false;
 let circle_move_timer_id = null;
 let circle_origin = null;
 let circle_angle = 0;
-let priest_radius = 20;
+let circle_move_radius = 20; // Default radius, can be changed dynamically
 
-function start_circle_move() {
+function set_circle_move_radius(r) {
+    if (typeof r === "number" && r > 0) {
+        circle_move_radius = r;
+        game_log(`Circle move radius set to ${circle_move_radius}`);
+    }
+}
+
+function start_circle_move(radius = circle_move_radius) {
     if (circle_move_enabled) return;
     circle_move_enabled = true;
     circle_origin = { x: character.real_x, y: character.real_y };
     circle_angle = 0;
+    set_circle_move_radius(radius);
     circle_move_loop();
     console.log("🔵 Circle move started");
 }
@@ -477,7 +485,7 @@ function stop_circle_move() {
 
 async function circle_move_loop() {
     if (!circle_move_enabled) return;
-    const radius = priest_radius;
+    const radius = circle_move_radius;
     const step = Math.PI / 12; // 15 degrees per step
     circle_angle += step;
     if (circle_angle > 2 * Math.PI) circle_angle -= 2 * Math.PI;
@@ -493,11 +501,18 @@ async function circle_move_loop() {
         console.error("Circle move error:", e);
     }
 
-    circle_move_timer_id = setTimeout(circle_move_loop, 100);
-}
-
-// Example toggle function (call this to toggle on/off)
-function toggle_circle_move() {
-    if (circle_move_enabled) stop_circle_move();
-    else start_circle_move();
+    // Await movement before scheduling next step
+    if (circle_move_enabled) {
+        // Wait until movement is finished before next step
+        const waitForMove = () =>
+            new Promise(resolve => {
+                const check = () => {
+                    if (!character.moving && !smart.moving) resolve();
+                    else setTimeout(check, 40);
+                };
+                check();
+            });
+        await waitForMove();
+        circle_move_timer_id = setTimeout(circle_move_loop, 0);
+    }
 }

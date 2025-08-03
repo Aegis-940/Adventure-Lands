@@ -219,7 +219,7 @@ async function send_to_merchant() {
 	for (let i = LOOT_THRESHOLD; i < character.items.length; i++) {
 		const item = character.items[i];
 		if (item && !item.l) { // Skip locked items
-			await delay(50);
+			await delay(10);
 			try {
 				await send_item(merchant_name, i, item.q || 1);
 			} catch (e) {
@@ -230,7 +230,7 @@ async function send_to_merchant() {
 
 	// Then send all gold
 	if (character.gold > 0) {
-		await delay(50);
+		await delay(10);
 		try {
 			await send_gold(merchant_name, character.gold);
 		} catch (e) {
