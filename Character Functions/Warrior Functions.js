@@ -306,7 +306,7 @@ async function skill_loop() {
 
             // Only check cleave if it's off cooldown
             if (!is_on_cooldown("cleave") && aoe && cc) {
-                await handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps);
+                //await handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps);
             }
         }
     } catch (e) {
@@ -384,7 +384,6 @@ async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
   }
   // Swap back instantly (don't delay this)
   if (weapon_set_equipped !== "single") {
-    game_log("Weapon Swap!");
     await handle_weapon_swap();
   }
 }
