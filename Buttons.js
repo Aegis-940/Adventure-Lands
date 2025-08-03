@@ -233,7 +233,7 @@ function toggle_follow_priest() {
 		const btn = window.top.document.getElementById("toggle_follow_priest");
 		btn.innerText = follow_priest_enabled ? "👣" : "❌";
 		game_log(
-			radius_lock_enabled
+			follow_priest_enabled
 				? "Follow Priest ENABLED"
 				: "Follow Priest DISABLED"
 		);
