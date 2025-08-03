@@ -486,6 +486,7 @@ function toggle_follow_priest(state) {
         follow_priest_interval = null;
     }
 }
+
 function request_priest_location() {
     send_cm("Myras", { type: "where_are_you" });
 }

@@ -220,7 +220,7 @@ function toggle_free_move() {
 // FOLLOW PRIEST TOGGLE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function toggle_follow_priest() {
+function toggle_follow_priest_button() {
 	// Determine initial icon based on current state
 	const initialIcon = follow_priest_enabled ? "👣" : "❌";
 
