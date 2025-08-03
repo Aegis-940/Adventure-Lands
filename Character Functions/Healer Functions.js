@@ -458,6 +458,7 @@ let circle_move_enabled = false;
 let circle_move_timer_id = null;
 let circle_origin = null;
 let circle_angle = 0;
+let priest_radius = 20;
 
 function start_circle_move() {
     if (circle_move_enabled) return;
@@ -476,7 +477,7 @@ function stop_circle_move() {
 
 async function circle_move_loop() {
     if (!circle_move_enabled) return;
-    const radius = 10;
+    const radius = priest_radius;
     const step = Math.PI / 12; // 15 degrees per step
     circle_angle += step;
     if (circle_angle > 2 * Math.PI) circle_angle -= 2 * Math.PI;
@@ -492,7 +493,7 @@ async function circle_move_loop() {
         console.error("Circle move error:", e);
     }
 
-    circle_move_timer_id = setTimeout(circle_move_loop, 400);
+    circle_move_timer_id = setTimeout(circle_move_loop, 100);
 }
 
 // Example toggle function (call this to toggle on/off)
