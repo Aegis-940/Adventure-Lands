@@ -338,6 +338,14 @@ async function cleave_set() {
     weapon_set_equipped = "cleave";
 }
 
+async function single_set() {
+    equip_batch([
+        { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
+        { itemName: "fireblade", slot: "offhand", level: 7, l: "l" }
+    ]);
+    weapon_set_equipped = "single";
+}
+
 async function equip_set(setName) {
     const set = equipment_sets[setName];
     if (set) {
@@ -375,7 +383,7 @@ async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
     e.visible &&
     distance(character, e) <= CLEAVE_RANGE
   );
-/*
+
   if (can_cleave(aoe, cc, monsters, time_since_last)) {
     if (Mainhand !== "bataxe") await cleave_set();
     await use_skill("cleave");
@@ -384,8 +392,8 @@ async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
   }
   // Swap back instantly (don't delay this)
   if (weapon_set_equipped !== "single") {
-    await handle_weapon_swap();
-  }*/
+    await single_set();
+  }
 }
 
 function can_cleave(aoe, cc, monsters, time_since) {
