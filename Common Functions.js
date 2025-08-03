@@ -138,18 +138,16 @@ function pots() {
 	const mpMissing = character.max_mp - character.mp;
 
 	// Use health logic (or priest special)
-	if (hpMissing >= 400) {
-		if (character.ctype === 'priest') {
-			// Priest: top up MP then partyheal
-			if (mpMissing >= 500 && can_use("mp")) {
-				use("mp");
-			}
-			if (can_use("partyheal")) {
-				use_skill("partyheal");
-			}
-		} else if (can_use("hp")) {
+	if (hpMissing >= 400 && character.ctype !== 'priest') {
+		if (can_use("hp")) {
 			// Everyone else: normal HP potion
 			use("hp");
+		}
+	}
+
+	if (hpMissing >= 720 && character.ctype === 'priest') {
+		if (can_use("partyheal")) {
+			use_skill("partyheal");
 		}
 	}
 

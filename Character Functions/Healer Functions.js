@@ -200,9 +200,11 @@ function get_nearest_monster_v2(args = {}) {
 
 async function attack_loop() {
     	if (!attack_enabled) return;
-	let delay = 10;
+	let delay = 100;
 	let disabled = (parent.is_disabled(character) === undefined);
 	let bosses = ["troll", "grinch"];
+	let character_max_distance = character.range;
+
 	try {
 		if (disabled) {
 			let heal_target = lowest_health_partymember();
@@ -231,19 +233,9 @@ async function attack_loop() {
 						type: MONSTER_TYPES[i],
 						check_min_hp: false,
 						no_target: true,
-						max_distance: 190,
+						max_distance: character_max_distance,
 					});
 					if (target) break;
-				}
-
-				if (!target) {
-					for (let i = 0; i < MONSTER_TYPES.length; i++) {
-						target = get_nearest_monster_v2({
-							type: MONSTER_TYPES[i],
-							max_distance: 190,
-						});
-						if (target) break;
-					}
 				}
 
 				/*
@@ -264,10 +256,7 @@ async function attack_loop() {
 		//console.error(e);
 	}
 
-	// only re-schedule if still enabled
-	if (attack_enabled) {
 	attack_timer_id = setTimeout(attack_loop, delay);
-	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -284,34 +273,21 @@ async function move_loop() {
       return setTimeout(move_loop, delay);
     }
 
-    // 1) Determine if anyone needs healing
-    const healTarget = lowest_health_partymember();
-    let moveTarget = null;
-
-    if (
-      healTarget &&
-      healTarget.hp < healTarget.max_hp - (character.heal / 1.33) &&
-      !is_in_range(healTarget) &&
-      can_move_to(healTarget)
-    ) {
-      moveTarget = healTarget;
-    } else {
-      // 2) Otherwise, find the absolute closest monster in MONSTER_TYPES
-      let bestDist = Infinity;
-      for (const mtype of MONSTER_TYPES) {
-        const mon = get_nearest_monster_v2({ type: mtype, path_check: true });
-        if (!mon) continue;
-        const d = parent.distance(character, mon);
-        if (d < bestDist) {
-          bestDist = d;
-          moveTarget = mon;
-        }
-      }
-      // If monster is already in attack range, we don’t need to move
-      if (moveTarget && parent.distance(character, moveTarget) <= character.range) {
-        moveTarget = null;
-      }
-    }
+	// 1) Otherwise, find the absolute closest monster in MONSTER_TYPES
+	let bestDist = Infinity;
+	for (const mtype of MONSTER_TYPES) {
+	const mon = get_nearest_monster_v2({ type: mtype, path_check: true });
+	if (!mon) continue;
+	const d = parent.distance(character, mon);
+	if (d < bestDist) {
+		bestDist = d;
+		moveTarget = mon;
+	}
+	}
+	// If monster is already in attack range, we don’t need to move
+	if (moveTarget && parent.distance(character, moveTarget) <= character.range) {
+	moveTarget = null;
+	}
 
     // 3) If we’ve picked someone to follow, move directly to them
     if (moveTarget) {
@@ -322,9 +298,8 @@ async function move_loop() {
     console.error("move_loop error:", err);
   }
 
-    if (move_enabled) {
-        move_timer_id = setTimeout(move_loop, delay);
-    }
+	move_timer_id = setTimeout(move_loop, delay);
+
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -341,6 +316,7 @@ async function skill_loop() {
 	const mapsToExclude = [];
 	const eventMaps = [];
 	const eventMobs = [];
+
 	try {
 		if (character.ctype === "priest") {
 			handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps);
@@ -395,13 +371,10 @@ async function handle_cursing(X, Y) {
 }
 
 let absorb_last_used = 0;
-const ABSORB_COOLDOWN = 2000; // 1 second cooldown for absorb
+const ABSORB_COOLDOWN = 2000; // 2 second cooldown for absorb
 
 async function handle_absorb(mapsToExclude) {
 	const now = Date.now();
-	if (!character.party) return;
-	if (mapsToExclude.includes(character.map)) return;
-	if (is_on_cooldown("absorb")) return;
 	if (now - absorb_last_used < ABSORB_COOLDOWN) return;
 
 	const partyNames = Object.keys(get_party()).filter(name => name !== character.name);
