@@ -434,56 +434,6 @@ async function batch_equip(data) {
 	}
 }
 
-/**
- * Efficiently equips only the items that are not already equipped.
- * - Only equips if the slot does not already have the correct item.
- * - Uses a local "virtual" slots state to avoid redundant equips in the same call.
- * - Uses a slightly longer delay to ensure server sync.
- */
-async function efficient_equip(equipList) {
-    if (!Array.isArray(equipList)) return handleEquipBatchError("Input is not an array.");
-    if (equipList.length > 10) return handleEquipBatchError("Too many items in equip batch.");
-
-    // Clone the current equipment state to simulate what will be equipped
-    const virtual_slots = { ...character.slots };
-    const used_inventory = new Set();
-
-    for (const req of equipList) {
-        const { itemName, slot, level, l } = req;
-        if (!itemName || !slot) continue;
-
-        // Check if the slot already has the desired item equipped (using virtual state)
-        const equipped = virtual_slots[slot];
-        if (
-            equipped &&
-            equipped.name === itemName &&
-            equipped.level === level &&
-            (!l || equipped.l === l)
-        ) continue;
-
-        // Find the item in inventory that hasn't been used in this batch
-        const item_index = parent.character.items.findIndex((item, idx) =>
-            item &&
-            item.name === itemName &&
-            item.level === level &&
-            (!l || item.l === l) &&
-            !used_inventory.has(idx)
-        );
-
-        if (item_index !== -1) {
-            used_inventory.add(item_index);
-            equip(item_index, slot);
-            // Update the virtual state to reflect the intended equip
-            virtual_slots[slot] = {
-                name: itemName,
-                level: level,
-                l: l
-            };
-            await delay(100); // allow time for server sync
-        }
-    }
-}
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // PANIC BUTTON!!!
 // --------------------------------------------------------------------------------------------------------------------------------- //

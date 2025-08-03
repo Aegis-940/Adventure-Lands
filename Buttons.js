@@ -227,15 +227,14 @@ function toggle_follow_priest() {
 	create_floating_button("toggle_follow_priest", initialIcon, () => {
 		// Flip the flag and start/stop the loop
 		follow_priest_enabled = !follow_priest_enabled;
-		toggle_follow_priest(follow_priest_enabled);
 
 		// Update button icon & log
 		const btn = window.top.document.getElementById("toggle_follow_priest");
 		btn.innerText = follow_priest_enabled ? "👣" : "❌";
 		game_log(
 			radius_lock_enabled
-				? "Follow Myras ENABLED"
-				: "Follow Myras DISABLED"
+				? "Follow Priest ENABLED"
+				: "Follow Priest DISABLED"
 		);
 	}, {
 		top: "2.05vh",
