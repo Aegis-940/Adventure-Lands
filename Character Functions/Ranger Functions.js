@@ -338,11 +338,14 @@ function toggle_range_circle(radius = character.range, check_interval = 100) {
             character.x,
             character.y,
             radius,
-            1,
-            0x00aaff,
-            range_circle_id,
-            false,
-            [8, 8] // dashed
+            {
+                color: "#888888",      // grey
+                fill: false,
+                width: 2,
+                alpha: 0.5,            // 50% opacity
+                dash: [8, 8],          // dashed line: 8px dash, 8px gap
+                id: range_circle_id
+            }
         );
 
         // Start loop to update circle position as character moves
@@ -353,21 +356,15 @@ function toggle_range_circle(radius = character.range, check_interval = 100) {
                 character.x,
                 character.y,
                 radius,
-                1,
-                0x00aaff,
-                range_circle_id,
-                false,
-                [8, 8]
+                {
+                    color: "#888888",
+                    fill: false,
+                    width: 2,
+                    alpha: 0.5,
+                    dash: [8, 8],
+                    id: range_circle_id
+                }
             );
         }, check_interval);
-    }
-}
-
-// Utility to clear a drawing by id (compatible with Common Functions)
-function clear_drawings(id) {
-    if (typeof remove_drawings === "function") {
-        remove_drawings(id);
-    } else if (typeof clear_draw === "function") {
-        clear_draw(id);
     }
 }
