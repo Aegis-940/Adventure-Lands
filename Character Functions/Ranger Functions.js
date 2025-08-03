@@ -316,46 +316,54 @@ async function panic_button_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 let show_range_circle = false;
-let range_circle_draw_id = null;
+let range_circle_id = "ranger_range_circle";
+let range_circle_loop = null;
 
-function toggle_range_circle() {
-    show_range_circle = !show_range_circle;
+function toggle_range_circle(radius = character.range, check_interval = 100) {
     if (show_range_circle) {
-        draw_range_circle();
-        game_log("🔵 Range circle ON");
-    } else {
-        if (range_circle_draw_id !== null) {
-            clear_drawings(range_circle_draw_id);
-            range_circle_draw_id = null;
-        }
+        // Disable
+        show_range_circle = false;
+        clear_drawings(range_circle_id);
+        if (range_circle_loop) clearInterval(range_circle_loop);
+        range_circle_loop = null;
         game_log("⚪ Range circle OFF");
+    } else {
+        // Enable
+        show_range_circle = true;
+        game_log("🔵 Range circle ON");
+
+        // Draw circle (circumference only)
+        clear_drawings(range_circle_id);
+        draw_circle(
+            character.x,
+            character.y,
+            radius,
+            1,
+            0x00aaff,
+            range_circle_id,
+            false,
+            [8, 8] // dashed
+        );
+
+        // Start loop to update circle position as character moves
+        range_circle_loop = setInterval(() => {
+            if (!show_range_circle) return;
+            clear_drawings(range_circle_id);
+            draw_circle(
+                character.x,
+                character.y,
+                radius,
+                1,
+                0x00aaff,
+                range_circle_id,
+                false,
+                [8, 8]
+            );
+        }, check_interval);
     }
 }
 
-function draw_range_circle() {
-    if (!show_range_circle) return;
-    // Remove previous drawing if exists
-    if (range_circle_draw_id !== null) {
-        clear_drawings(range_circle_draw_id);
-    }
-    // Use your custom draw_circle from Common Functions
-    range_circle_draw_id = draw_circle(
-        character.real_x,
-        character.real_y,
-        character.range,
-        {
-            color: "#00aaff",
-            fill: false,
-            width: 2,
-            dash: [8, 8], // 8px dash, 8px gap
-            layer: 1
-        }
-    );
-    // Schedule next update to follow the character
-    setTimeout(draw_range_circle, 100);
-}
-
-// Utility to clear a drawing by id (if your environment doesn't have this, replace with your own)
+// Utility to clear a drawing by id (compatible with Common Functions)
 function clear_drawings(id) {
     if (typeof remove_drawings === "function") {
         remove_drawings(id);
