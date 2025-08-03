@@ -11,7 +11,7 @@ let attack_mode                   = true;
 const POTION_TYPES = ["mpot1", "hpot1"];
 
 // Merchant collects nth item and above when collecting loot.
-const LOOT_THRESHOLD = 7;
+const LOOT_THRESHOLD = 5;
 
 const PARTY_LEADER                = "Ulric";
 const PARTY_MEMBERS               = ["Riva", "Myras", "Riff"];
