@@ -224,13 +224,13 @@ function toggle_follow_priest_button() {
 	// Determine initial icon based on current state
 	const initialIcon = follow_priest_enabled ? "👣" : "❌";
 
-	create_floating_button("toggle_follow_priest", initialIcon, () => {
+	create_floating_button("toggle_follow_priest_button", initialIcon, () => {
 		// Flip the flag and start/stop the loop
 		follow_priest_enabled = !follow_priest_enabled;
 		toggle_follow_priest(follow_priest_enabled);
 
 		// Update button icon & log
-		const btn = window.top.document.getElementById("toggle_follow_priest");
+		const btn = window.top.document.getElementById("toggle_follow_priest_button");
 		btn.innerText = follow_priest_enabled ? "👣" : "❌";
 		game_log(
 			follow_priest_enabled
@@ -249,7 +249,7 @@ function toggle_follow_priest_button() {
 
 	// Immediately zero out any border-radius on the new button
 	setTimeout(() => {
-		const btn = window.top.document.getElementById("toggle_follow_priest");
+		const btn = window.top.document.getElementById("toggle_follow_priest_button");
 		if (btn) {
 			btn.style.borderRadius = "0px";
 		}
