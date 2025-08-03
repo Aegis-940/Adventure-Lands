@@ -332,14 +332,14 @@ let weapon_set_equipped = "";
 
 async function cleave_set() {
     unequip("offhand");
-    efficient_equip([
+    batch_equip([
         { itemName: "bataxe", slot: "mainhand", level: 5},
     ]);
     weapon_set_equipped = "cleave";
 }
 
 async function single_set() {
-    efficient_equip([
+    batch_equip([
         { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
         { itemName: "fireblade", slot: "offhand", level: 7, l: "l" }
     ]);
