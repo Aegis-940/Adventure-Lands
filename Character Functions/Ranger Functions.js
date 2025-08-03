@@ -338,11 +338,12 @@ function toggle_range_circle(radius = character.range, check_interval = 100) {
             character.x,
             character.y,
             radius,
-            2,              // width
+            1,              // width
             0x888888,       // grey color as hex
             range_circle_id,
             false,          // not filled
-            [8, 8]          // dashed line: 8px dash, 8px gap
+            [8, 8],         // dashed line: 8px dash, 8px gap
+            0.5             // opacity (alpha)
         );
 
         // Start loop to update circle position as character moves
@@ -353,11 +354,12 @@ function toggle_range_circle(radius = character.range, check_interval = 100) {
                 character.x,
                 character.y,
                 radius,
-                2,
+                1,
                 0x888888,
                 range_circle_id,
                 false,
-                [8, 8]
+                [8, 8],
+                0.5         // opacity (alpha)
             );
         }, check_interval);
     }
