@@ -332,36 +332,18 @@ let weapon_set_equipped = "";
 
 async function cleave_set() {
     unequip("offhand");
-    equip_batch([
+    batch_equip([
         { itemName: "bataxe", slot: "mainhand", level: 5},
     ]);
     weapon_set_equipped = "cleave";
 }
 
 async function single_set() {
-    equip_batch([
+    batch_equip([
         { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
         { itemName: "fireblade", slot: "offhand", level: 7, l: "l" }
     ]);
     weapon_set_equipped = "single";
-}
-
-async function equip_set(setName) {
-    const set = equipment_sets[setName];
-    if (set) {
-      equip_batch(set);
-    } else {
-      console.error(`Set "${setName}" not found.`);
-    }
-    weapon_set_equipped = "single";
-}
-
-async function handle_weapon_swap() {
-	const now = performance.now();
-	if (now - eTime <= 50) return;
-
-    equip_set("single");
-    eTime = now;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -417,7 +399,7 @@ function handleEquipBatchError(message) {
     return Promise.reject({ reason: "invalid", message });
 }
 
-async function equip_batch(data) {
+async function batch_equip(data) {
 	if (!Array.isArray(data)) return handleEquipBatchError("Input is not an array.");
 	if (data.length > 15) return handleEquipBatchError("Too many items in equip batch.");
 
