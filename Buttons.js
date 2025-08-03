@@ -366,3 +366,39 @@ function create_priest_skill_buttons() {
 
 	window.top.document.body.appendChild(container);
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// PRIEST COMBAT MOVEMEMENT BUTTON
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function toggle_circle_move_button() {
+    const initialIcon = circle_move_enabled ? "⭕" : "⚪";
+
+    create_floating_button("toggle_circle_move", initialIcon, () => {
+        if (circle_move_enabled) {
+            stop_circle_move();
+        } else {
+            start_circle_move();
+        }
+
+        const btn = window.top.document.getElementById("toggle_circle_move");
+        btn.innerText = circle_move_enabled ? "⭕" : "⚪";
+        set_message(circle_move_enabled ? "Circle Move On" : "Circle Move Off");
+        game_log(circle_move_enabled ? "Circle Move ENABLED" : "Circle Move DISABLED");
+    }, {
+        top: "2.05vh",
+        right: "767px",
+        minWidth: "56px",
+        height: "56px",
+        fontSize: "24px",
+        border: "4px solid #888",
+        borderRadius: "0px",
+        title: "Toggle Circle Move"
+    });
+    setTimeout(() => {
+        const btn = window.top.document.getElementById("toggle_circle_move");
+        if (btn) {
+            btn.style.borderRadius = "0px";
+        }
+    }, 0);
+}

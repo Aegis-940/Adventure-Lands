@@ -449,3 +449,54 @@ async function handle_dark_blessing() {
 		await use_skill("darkblessing");
 	}
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// COMBAT MOVEMENT TO GROUP UP ENEMIES
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let circle_move_enabled = false;
+let circle_move_timer_id = null;
+let circle_origin = null;
+let circle_angle = 0;
+
+function start_circle_move() {
+    if (circle_move_enabled) return;
+    circle_move_enabled = true;
+    circle_origin = { x: character.real_x, y: character.real_y };
+    circle_angle = 0;
+    circle_move_loop();
+    console.log("🔵 Circle move started");
+}
+
+function stop_circle_move() {
+    circle_move_enabled = false;
+    clearTimeout(circle_move_timer_id);
+    console.log("⏹ Circle move stopped");
+}
+
+async function circle_move_loop() {
+    if (!circle_move_enabled) return;
+    const radius = 10;
+    const step = Math.PI / 12; // 15 degrees per step
+    circle_angle += step;
+    if (circle_angle > 2 * Math.PI) circle_angle -= 2 * Math.PI;
+
+    const target_x = circle_origin.x + radius * Math.cos(circle_angle);
+    const target_y = circle_origin.y + radius * Math.sin(circle_angle);
+
+    try {
+        if (!character.moving && !smart.moving) {
+            await move(target_x, target_y);
+        }
+    } catch (e) {
+        console.error("Circle move error:", e);
+    }
+
+    circle_move_timer_id = setTimeout(circle_move_loop, 400);
+}
+
+// Example toggle function (call this to toggle on/off)
+function toggle_circle_move() {
+    if (circle_move_enabled) stop_circle_move();
+    else start_circle_move();
+}
