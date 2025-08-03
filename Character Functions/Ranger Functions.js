@@ -311,3 +311,55 @@ async function panic_button_loop() {
     }
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// RANGE CIRCLE
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let show_range_circle = false;
+let range_circle_draw_id = null;
+
+function toggle_range_circle() {
+    show_range_circle = !show_range_circle;
+    if (show_range_circle) {
+        draw_range_circle();
+        game_log("🔵 Range circle ON");
+    } else {
+        if (range_circle_draw_id !== null) {
+            clear_drawings(range_circle_draw_id);
+            range_circle_draw_id = null;
+        }
+        game_log("⚪ Range circle OFF");
+    }
+}
+
+function draw_range_circle() {
+    if (!show_range_circle) return;
+    // Remove previous drawing if exists
+    if (range_circle_draw_id !== null) {
+        clear_drawings(range_circle_draw_id);
+    }
+    // Draw a dashed circle centered at the character's current position
+    range_circle_draw_id = draw_circle(
+        character.real_x,
+        character.real_y,
+        character.range,
+        {
+            color: "#00aaff",
+            fill: false,
+            width: 2,
+            dash: [8, 8], // 8px dash, 8px gap
+            layer: 1
+        }
+    );
+    // Schedule next update to follow the character
+    setTimeout(draw_range_circle, 100);
+}
+
+// Utility to clear a drawing by id (if your environment doesn't have this, replace with your own)
+function clear_drawings(id) {
+    if (typeof remove_drawings === "function") {
+        remove_drawings(id);
+    } else if (typeof clear_draw === "function") {
+        clear_draw(id);
+    }
+}
