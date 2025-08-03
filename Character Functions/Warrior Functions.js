@@ -384,6 +384,7 @@ async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
   }
   // Swap back instantly (don't delay this)
   if (weapon_set_equipped !== "single") {
+    game_log("Weapon Swap!");
     await handle_weapon_swap();
   }
 }
