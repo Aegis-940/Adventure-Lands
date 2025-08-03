@@ -465,7 +465,7 @@ let circle_origin = null;
 let circle_move_radius = 20;
 let circle_path_points = [];
 let circle_path_index = 0;
-const CIRCLE_STEPS = 24; // 15 degrees per step
+const CIRCLE_STEPS = 12; // 15 degrees per step
 
 function set_circle_move_radius(r) {
     if (typeof r === "number" && r > 0) {
@@ -527,6 +527,7 @@ async function circle_move_loop() {
                 check();
             });
         await waitForMove();
-        circle_move_timer_id = setTimeout(circle_move_loop, 0);
+        // Add a 100ms delay before the next step
+        circle_move_timer_id = setTimeout(circle_move_loop, 100);
     }
 }
