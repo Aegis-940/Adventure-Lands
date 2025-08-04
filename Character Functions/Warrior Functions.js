@@ -342,14 +342,24 @@ async function batch_equip(data) {
     if (data.length > 15) return handleEquipBatchError("Too many items in equip batch.");
 
     // Prepare equip_batch data: find inventory slot numbers for each item
+    // Only include items that are not already equipped in the correct slot
     const batch = [];
     const used_slots = new Set();
+
+    // Build a quick lookup for inventory items by name/level/l
+    const inventoryLookup = {};
+    parent.character.items.forEach((item, idx) => {
+        if (!item) return;
+        const key = `${item.name}|${item.level}|${item.l || ""}`;
+        if (!inventoryLookup[key]) inventoryLookup[key] = [];
+        inventoryLookup[key].push(idx);
+    });
 
     for (const equipRequest of data) {
         const { itemName, slot, level, l } = equipRequest;
         if (!itemName || !slot) continue;
 
-        // Check if the slot already has the desired item equipped
+        // Skip if already equipped
         const equipped = character.slots[slot];
         if (
             equipped &&
@@ -358,18 +368,16 @@ async function batch_equip(data) {
             (!l || equipped.l === l)
         ) continue;
 
-        // Find inventory index for the item
-        const item_index = parent.character.items.findIndex((item, idx) =>
-            item &&
-            item.name === itemName &&
-            item.level === level &&
-            (!l || item.l === l) &&
-            !used_slots.has(idx)
-        );
-
-        if (item_index !== -1) {
-            used_slots.add(item_index);
-            batch.push({ num: item_index, slot });
+        // Find inventory index for the item (using lookup for speed)
+        const key = `${itemName}|${level}|${l || ""}`;
+        const possibleSlots = inventoryLookup[key];
+        if (possibleSlots) {
+            // Find the first unused slot
+            const item_index = possibleSlots.find(idx => !used_slots.has(idx));
+            if (item_index !== undefined) {
+                used_slots.add(item_index);
+                batch.push({ num: item_index, slot });
+            }
         }
     }
 
