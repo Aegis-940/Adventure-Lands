@@ -282,24 +282,24 @@ async function panic_button_loop() {
 
                 const jacko_slot = locate_item(PANIC_WEAPON);
                 if (jacko_slot !== -1) {
-                    equip(jacko_slot);
-                    await delay(100);
+                    await equip(jacko_slot);
+                    await delay(500);
                 }
 
                 if (can_use("scare")) {
-                    use_skill("scare");
+                    await use_skill("scare");
                 }
             }
         } else {
-            if (panic_triggered && high_health) {
+            if (panic_triggered && high_health && myras_online) {
                 // Exit panic state
                 game_log("✅ Panic over — resuming normal operations.");
                 panic_triggered = false;
 
                 const orbg_slot = locate_item(NORMAL_WEAPON);
                 if (orbg_slot !== -1) {
-                    equip(orbg_slot);
-                    await delay(100);
+                    await equip(orbg_slot);
+                    await delay(500);
                 }
 
                 attack_enabled = true;

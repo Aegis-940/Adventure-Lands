@@ -261,18 +261,18 @@ async function skill_loop() {
 let weapon_set_equipped = "";
 
 async function cleave_set() {
-    unequip("offhand");
-    batch_equip([
-        { itemName: "bataxe", slot: "mainhand", level: 5},
-    ]);
+    // unequip("offhand");
+    // batch_equip([
+    //     { itemName: "bataxe", slot: "mainhand", level: 5},
+    // ]);
     weapon_set_equipped = "cleave";
 }
 
 async function single_set() {
-    batch_equip([
-        { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
-        { itemName: "ololipop", slot: "offhand", level: 5, l: "l" }
-    ]);
+    // batch_equip([
+    //     { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
+    //     { itemName: "ololipop", slot: "offhand", level: 5, l: "l" }
+    // ]);
     weapon_set_equipped = "single";
 }
 
@@ -386,24 +386,24 @@ async function panic_button_loop() {
 
 				const jacko_slot = locate_item(PANIC_WEAPON);
 				if (jacko_slot !== -1) {
-					equip(jacko_slot);
-					await delay(100);
+					await equip(jacko_slot);
+					await delay(500);
 				}
 
 				if (can_use("scare")) {
-					use_skill("scare");
+					await use_skill("scare");
 				}
 			}
 		} else {
-			if (panic_triggered) {
+			if (panic_triggered && myras_online) {
 				// Exit panic state
 				game_log("✅ Myras is back online — exiting panic mode!");
 				panic_triggered = false;
 
 				const orbg_slot = locate_item(NORMAL_WEAPON);
 				if (orbg_slot !== -1) {
-					equip(orbg_slot);
-					await delay(100);
+					await equip(orbg_slot);
+					await delay(500);
 				}
 
 				attack_enabled = true;
