@@ -153,8 +153,8 @@ function get_nearest_monster_v2(args = {}) {
         let current = parent.entities[id];
         if (current.type != "monster" || !current.visible || current.dead) continue;
         if (args.type && current.mtype != args.type) continue;
-        if (args.min_level !== undefined && current.level < args.min_level) continue;
-        if (args.max_level !== undefined && current.level > args.max_level) continue;
+        //if (args.min_level !== undefined && current.level < args.min_level) continue;
+        //if (args.max_level !== undefined && current.level > args.max_level) continue;
         if (args.target && !args.target.includes(current.target)) continue;
         if (args.no_target && current.target && current.target != character.name) continue;
 
@@ -162,11 +162,11 @@ function get_nearest_monster_v2(args = {}) {
         if (args.statusEffects && !args.statusEffects.every(effect => current.s[effect])) continue;
 
         // Min/max XP check
-        if (args.min_xp !== undefined && current.xp < args.min_xp) continue;
-        if (args.max_xp !== undefined && current.xp > args.max_xp) continue;
+        //if (args.min_xp !== undefined && current.xp < args.min_xp) continue;
+        //if (args.max_xp !== undefined && current.xp > args.max_xp) continue;
 
         // Attack power limit
-        if (args.max_att !== undefined && current.attack > args.max_att) continue;
+        //if (args.max_att !== undefined && current.attack > args.max_att) continue;
 
         // Path check
         if (args.path_check && !can_move_to(current)) continue;
@@ -204,29 +204,24 @@ async function attack_loop() {
     if (!attack_enabled) return;
     let delay = 100;
     try {
-        let target = null;
 
-        // Only search for a new target if needed
-        if (!attack_loop.currentTarget || attack_loop.currentTarget.dead ||
-            parent.distance(character, attack_loop.currentTarget) > character.range) {
-            for (const name of MONSTER_TYPES) {
-                target = get_nearest_monster_v2({
-                    type: name,
-                    check_max_hp: false,
-                    max_distance: character.range,
-                    statusEffects: ["cursed"],
-                });
-                if (target) break;
+        // 1. Filter all relevant monsters ONCE
+        const monsters = Object.values(parent.entities).filter(e =>
+            e.type === "monster" &&
+            MONSTER_TYPES.includes(e.mtype) &&
+            !e.dead &&
+            e.visible &&
+            parent.distance(character, e) <= character.range
+        );
 
-                target = get_nearest_monster_v2({
-                    type: name,
-                    check_max_hp: false,
-                    max_distance: character.range,
-                });
-                if (target) break;
-            }
+        // 2. Prioritize cursed monsters if any
+        let target = monsters.find(m => m.s && m.s.cursed);
+
+        // 3. Otherwise, pick the lowest HP monster in range
+        if (!target && monsters.length) {
+            target = monsters.reduce((a, b) => (a.hp < b.hp ? a : b));
         }
-
+        
         if (target) {
             await attack(target);
             delay = ms_to_next_skill("attack");
@@ -235,11 +230,7 @@ async function attack_loop() {
     } catch (e) {
         // optional error logging
     }
-
-	// only re-schedule if still enabled
-	if (attack_enabled) {
-	    attack_timer_id = setTimeout(attack_loop, delay);
-	}
+    attack_timer_id = setTimeout(attack_loop, delay);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -247,40 +238,41 @@ async function attack_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function move_loop() {
-  if (!move_enabled) return;
-  // How often to run
-  const delay = 200;
-  try {
-    // 1) Find the absolute closest monster among your approved types
-    let closest = null;
-    let minDist  = Infinity;
+    if (!move_enabled) return;
+    const delay = 200;
+    try {
+        // Filter all relevant monsters ONCE
+        const monsters = Object.values(parent.entities).filter(e =>
+            e.type === "monster" &&
+            MONSTER_TYPES.includes(e.mtype) &&
+            !e.dead &&
+            e.visible
+        );
 
-    for (const mtype of MONSTER_TYPES) {
-      const mon = get_nearest_monster_v2({ type: mtype });
-      if (!mon) continue;
-      const d = parent.distance(character, mon);
-      if (d < minDist) {
-        minDist  = d;
-        closest = mon;
-      }
-    }
+        // Find the closest monster
+        let closest = null;
+        let minDist = Infinity;
+        for (const mon of monsters) {
+            const d = parent.distance(character, mon);
+            if (d < minDist) {
+                minDist = d;
+                closest = mon;
+            }
+        }
 
-    // 2) If there is one and we're out of range, walk straight at it
-    if (
-      closest &&
-      minDist > character.range * 0.9 &&
-      !character.moving   // optional: don’t spam move() if we're already walking
-    ) {
-      // Use real_x/real_y for smooth coords, and pass them as two args
-      await move(closest.real_x, closest.real_y);
-    }
-  } catch (err) {
-    console.error("move_loop error:", err);
-  } finally {
-   if (move_enabled) {
+        // If there is one and we're out of range, walk straight at it
+        if (
+            closest &&
+            minDist > character.range * 0.9 &&
+            !character.moving
+        ) {
+            await move(closest.real_x, closest.real_y);
+        }
+    } catch (err) {
+        console.error("move_loop error:", err);
+    } finally {
         move_timer_id = setTimeout(move_loop, delay);
     }
-  }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
