@@ -245,7 +245,7 @@ async function skill_loop() {
 
             // Only check cleave if it's off cooldown
             if (!is_on_cooldown("cleave") && aoe && cc) {
-                await handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps);
+                await handle_cleave(Mainhand);
             }
         }
     } catch (e) {
@@ -258,30 +258,21 @@ async function skill_loop() {
 // EQUIPMENT SETS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const equipment_sets = {
-
-    single: [
-        { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
-        { itemName: "fireblade", slot: "offhand", level: 7, l: "l" }
-    ]
-
-};
-
 let weapon_set_equipped = "";
 
 async function cleave_set() {
-    unequip("offhand");
-    batch_equip([
-        { itemName: "bataxe", slot: "mainhand", level: 5},
-    ]);
+    // unequip("offhand");
+    // batch_equip([
+    //     { itemName: "bataxe", slot: "mainhand", level: 5},
+    // ]);
     weapon_set_equipped = "cleave";
 }
 
 async function single_set() {
-    batch_equip([
-        { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
-        { itemName: "ololipop", slot: "offhand", level: 5, l: "l" }
-    ]);
+    // batch_equip([
+    //     { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
+    //     { itemName: "ololipop", slot: "offhand", level: 5, l: "l" }
+    // ]);
     weapon_set_equipped = "single";
 }
 
@@ -294,7 +285,7 @@ const CLEAVE_THRESHOLD = 500;
 const CLEAVE_RANGE = G.skills.cleave.range;
 const MAPS_TO_INCLUDE = ["mansion", "main"];
 
-async function handle_cleave(Mainhand, st_maps, aoe_maps) {
+async function handle_cleave(Mainhand) {
     const now = performance.now();
     const time_since_last = now - last_cleave_time;
 
@@ -314,8 +305,8 @@ async function handle_cleave(Mainhand, st_maps, aoe_maps) {
 
         if (monsters.length > 4) {
             if (Mainhand !== "bataxe") await cleave_set();
-            await use_skill("cleave");
-            reduce_cooldown("cleave", character.ping * 0.95);
+            //await use_skill("cleave");
+            //reduce_cooldown("cleave", character.ping * 0.95);
             last_cleave_time = now;
             // Swap back instantly (don't delay this)
             if (weapon_set_equipped !== "single") {
@@ -336,8 +327,6 @@ async function handle_cleave(Mainhand, st_maps, aoe_maps) {
  * @returns {Promise} Resolves/rejects with the result of equip_batch.
  */
 async function batch_equip(data) {
-
-    game_log("Batch Equipping!");
 
     const batch = [];
 
