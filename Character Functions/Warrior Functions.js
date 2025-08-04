@@ -275,7 +275,6 @@ async function cleave_set() {
         { itemName: "bataxe", slot: "mainhand", level: 5},
     ]);
     weapon_set_equipped = "cleave";
-    game_log(weapon_set_equipped);
 }
 
 async function single_set() {
@@ -284,7 +283,6 @@ async function single_set() {
         { itemName: "ololipop", slot: "offhand", level: 5, l: "l" }
     ]);
     weapon_set_equipped = "single";
-    game_log(weapon_set_equipped);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
