@@ -334,64 +334,43 @@ async function handle_cleave(Mainhand, st_maps, aoe_maps) {
 
 function handleEquipBatchError(message) {
     game_log(message);
+    // You may decide to implement a delay or other error handling mechanism here
     return Promise.reject({ reason: "invalid", message });
 }
 
 async function batch_equip(data) {
-    if (!Array.isArray(data)) return handleEquipBatchError("Input is not an array.");
-    if (data.length > 15) return handleEquipBatchError("Too many items in equip batch.");
+	if (!Array.isArray(data)) return handleEquipBatchError("Input is not an array.");
+	if (data.length > 15) return handleEquipBatchError("Too many items in equip batch.");
 
-    // Prepare equip_batch data: find inventory slot numbers for each item
-    // Only include items that are not already equipped in the correct slot
-    const batch = [];
-    const used_slots = new Set();
+	const used_slots = new Set();
 
-    // Build a quick lookup for inventory items by name/level/l
-    const inventoryLookup = {};
-    parent.character.items.forEach((item, idx) => {
-        if (!item) return;
-        const key = `${item.name}|${item.level}|${item.l || ""}`;
-        if (!inventoryLookup[key]) inventoryLookup[key] = [];
-        inventoryLookup[key].push(idx);
-    });
+	for (const equipRequest of data) {
+		const { itemName, slot, level, l } = equipRequest;
+		if (!itemName || !slot) continue;
 
-    for (const equipRequest of data) {
-        const { itemName, slot, level, l } = equipRequest;
-        if (!itemName || !slot) continue;
+		// Check if the slot already has the desired item equipped
+		const equipped = character.slots[slot];
+		if (
+			equipped &&
+			equipped.name === itemName &&
+			equipped.level === level &&
+			(!l || equipped.l === l)
+		) continue;
 
-        // Skip if already equipped
-        const equipped = character.slots[slot];
-        if (
-            equipped &&
-            equipped.name === itemName &&
-            equipped.level === level &&
-            (!l || equipped.l === l)
-        ) continue;
+		// Search inventory for matching item
+		const item_index = parent.character.items.findIndex((item, idx) =>
+			item &&
+			item.name === itemName &&
+			item.level === level &&
+			(!l || item.l === l) &&
+			!used_slots.has(idx)
+		);
 
-        // Find inventory index for the item (using lookup for speed)
-        const key = `${itemName}|${level}|${l || ""}`;
-        const possibleSlots = inventoryLookup[key];
-        if (possibleSlots) {
-            // Find the first unused slot
-            const item_index = possibleSlots.find(idx => !used_slots.has(idx));
-            if (item_index !== undefined) {
-                used_slots.add(item_index);
-                batch.push({ num: item_index, slot });
-            }
-        }
-    }
-
-    if (!batch.length) return Promise.resolve(); // Nothing to equip
-
-    // Use the native equip_batch function
-    return equip_batch(batch).then(
-        function(data) {
-            game_log("Batch equip sent!");
-        },
-        function(data) {
-            game_log("equip_batch failed: " + data.reason);
-        }
-    );
+		if (item_index !== -1) {
+			used_slots.add(item_index);
+			equip(item_index, slot);
+		}
+	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
