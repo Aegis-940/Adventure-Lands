@@ -337,6 +337,8 @@ async function handle_cleave(Mainhand, st_maps, aoe_maps) {
  */
 async function batch_equip(data) {
 
+    game_log("Batch Equipping!");
+
     const batch = [];
 
     for (const equipRequest of data) {
