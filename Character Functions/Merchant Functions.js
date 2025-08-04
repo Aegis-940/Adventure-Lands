@@ -10,40 +10,40 @@ let last_potion_delivery = 0;
 const POTION_DELIVERY_DELAY = 10 * 60 * 1000;
 let last_loot_collection = 0;
 const LOOT_COLLECTION_DELAY = 10 * 60 * 1000;
-/*
+
 async function merchant_task_loop() {
 	while (true) {
 		try {
 			const now = Date.now();
 
-			// Priority 1: Deliver Potions (every 10 min)
-			if (!merchant_busy && (now - last_potion_delivery > POTION_DELIVERY_DELAY)) {
-				merchant_busy = true;
-				merchant_task = "Delivering Potions";
-				await deliver_potions();
-				last_potion_delivery = Date.now();
-				merchant_busy = false;
-				continue;
-			}
+			// // Priority 1: Deliver Potions (every 10 min)
+			// if (!merchant_busy && (now - last_potion_delivery > POTION_DELIVERY_DELAY)) {
+			// 	merchant_busy = true;
+			// 	merchant_task = "Delivering Potions";
+			// 	await deliver_potions();
+			// 	last_potion_delivery = Date.now();
+			// 	merchant_busy = false;
+			// 	continue;
+			// }
 
-			// Priority 2: Collect Loot (every 10 min)
-			if (!merchant_busy && (now - last_loot_collection > LOOT_COLLECTION_DELAY)) {
-				merchant_busy = true;
-				merchant_task = "Collecting Loot";
-				await collect_loot();
-				last_loot_collection = Date.now();
-				merchant_busy = false;
-				continue;
-			}
+			// // Priority 2: Collect Loot (every 10 min)
+			// if (!merchant_busy && (now - last_loot_collection > LOOT_COLLECTION_DELAY)) {
+			// 	merchant_busy = true;
+			// 	merchant_task = "Collecting Loot";
+			// 	await collect_loot();
+			// 	last_loot_collection = Date.now();
+			// 	merchant_busy = false;
+			// 	continue;
+			// }
 
-			// Priority 3: Fishing (whenever not on cooldown)
-			if (!merchant_busy && !is_on_cooldown("fishing")) {
-				merchant_busy = true;
-				merchant_task = "Fishing";
-				await go_fish();
-				merchant_busy = false;
-				continue;
-			}
+			// // Priority 3: Fishing (whenever not on cooldown)
+			// if (!merchant_busy && !is_on_cooldown("fishing")) {
+			// 	merchant_busy = true;
+			// 	merchant_task = "Fishing";
+			// 	await go_fish();
+			// 	merchant_busy = false;
+			// 	continue;
+			// }
 
 			// Priority 4: Mining (whenever not on cooldown)
 			if (!merchant_busy && can_use("mining")) {
@@ -66,7 +66,7 @@ async function merchant_task_loop() {
 		await delay(1000); // check periodically
 	}
 }
-	*/
+
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // DELIVER POTIONS AS NEEDED
