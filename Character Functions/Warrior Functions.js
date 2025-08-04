@@ -330,45 +330,45 @@ async function handle_cleave(Mainhand, st_maps, aoe_maps) {
 // BATCH EQUIP ITEMS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function handleEquipBatchError(message) {
-    game_log(message);
-    // You may decide to implement a delay or other error handling mechanism here
-    return Promise.reject({ reason: "invalid", message });
-}
-
+/**
+ * Finds inventory indices for the requested items and calls the game's native equip_batch.
+ * @param {Array} data - Array of { itemName, slot, level, l } objects.
+ * @returns {Promise} Resolves/rejects with the result of equip_batch.
+ */
 async function batch_equip(data) {
-	if (!Array.isArray(data)) return handleEquipBatchError("Input is not an array.");
-	if (data.length > 15) return handleEquipBatchError("Too many items in equip batch.");
 
-	const used_slots = new Set();
+    const batch = [];
 
-	for (const equipRequest of data) {
-		const { itemName, slot, level, l } = equipRequest;
-		if (!itemName || !slot) continue;
+    for (const equipRequest of data) {
+        const { itemName, slot, level, l } = equipRequest;
+        if (!itemName || !slot) continue;
 
-		// Check if the slot already has the desired item equipped
-		const equipped = character.slots[slot];
-		if (
-			equipped &&
-			equipped.name === itemName &&
-			equipped.level === level &&
-			(!l || equipped.l === l)
-		) continue;
+        // Check if the slot already has the desired item equipped
+        const equipped = character.slots[slot];
+        if (
+            equipped &&
+            equipped.name === itemName &&
+            equipped.level === level &&
+            (!l || equipped.l === l)
+        ) continue;
 
-		// Search inventory for matching item
-		const item_index = parent.character.items.findIndex((item, idx) =>
-			item &&
-			item.name === itemName &&
-			item.level === level &&
-			(!l || item.l === l) &&
-			!used_slots.has(idx)
-		);
+        // Find the first matching item in inventory
+        const item_index = parent.character.items.findIndex(item =>
+            item &&
+            item.name === itemName &&
+            item.level === level &&
+            (!l || item.l === l)
+        );
 
-		if (item_index !== -1) {
-			used_slots.add(item_index);
-			equip(item_index, slot);
-		}
-	}
+        if (item_index !== -1) {
+            batch.push({ num: item_index, slot });
+        }
+    }
+
+    if (!batch.length) return handleEquipBatchError("No items to equip.");
+
+    // Use the game's native equip_batch
+    return equip_batch(batch);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
