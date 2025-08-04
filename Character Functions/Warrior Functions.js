@@ -326,6 +326,7 @@ async function cleave_set() {
         { itemName: "bataxe", slot: "mainhand", level: 5},
     ]);
     weapon_set_equipped = "cleave";
+    game_log(weapon_set_equipped);
 }
 
 async function single_set() {
@@ -334,6 +335,7 @@ async function single_set() {
         { itemName: "ololipop", slot: "offhand", level: 5, l: "l" }
     ]);
     weapon_set_equipped = "single";
+    game_log(weapon_set_equipped);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -345,39 +347,37 @@ const CLEAVE_THRESHOLD = 500;
 const CLEAVE_RANGE = G.skills.cleave.range;
 const MAPS_TO_INCLUDE = ["mansion", "main"];
 
-async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
-  const now = performance.now();
-  const time_since_last = now - last_cleave_time;
+async function handle_cleave(Mainhand, st_maps, aoe_maps) {
+    const now = performance.now();
+    const time_since_last = now - last_cleave_time;
 
-  const monsters = Object.values(parent.entities).filter(e =>
-    e?.type === "monster" &&
-    !e.dead &&
-    e.visible &&
-    distance(character, e) <= CLEAVE_RANGE
-  );
+    // Only proceed if all other conditions are met
+    if (
+        !smart.moving &&
+        time_since_last >= CLEAVE_THRESHOLD &&
+        ms_to_next_skill("attack") > 75
+    ) {
+        // Only now filter monsters
+        const monsters = Object.values(parent.entities).filter(e =>
+            e?.type === "monster" &&
+            !e.dead &&
+            e.visible &&
+            distance(character, e) <= CLEAVE_RANGE
+        );
 
-  if (can_cleave(aoe, cc, monsters, time_since_last)) {
-    // if (Mainhand !== "bataxe") await cleave_set();
-    // await use_skill("cleave");
-    // reduce_cooldown("cleave", character.ping * 0.95);
-    // last_cleave_time = now;
-  }
-  // Swap back instantly (don't delay this)
-  // if (weapon_set_equipped !== "single") {
-  //   await single_set();
-  // }
+        if (monsters.length > 4) {
+            if (Mainhand !== "bataxe") await cleave_set();
+            await use_skill("cleave");
+            reduce_cooldown("cleave", character.ping * 0.95);
+            last_cleave_time = now;
+            // Swap back instantly (don't delay this)
+            if (weapon_set_equipped !== "single") {
+                await single_set();
+            }
+        }
+    }
 }
 
-function can_cleave(aoe, cc, monsters, time_since) {
-  return (
-    !smart.moving &&
-    aoe && cc &&
-    time_since >= CLEAVE_THRESHOLD &&
-    monsters.length > 4 &&
-    !is_on_cooldown("cleave") &&
-    ms_to_next_skill("attack") > 75
-  );
-}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // BATCH EQUIP ITEMS
