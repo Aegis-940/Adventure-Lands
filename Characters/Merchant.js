@@ -15,7 +15,7 @@ create_map_movement_window([
   { id: "custom6", label: "Custom 6", onClick: () => null }
 ]);
 
-//add_bank_buttons();
+add_bank_buttons();
 hide_skills_ui();
 
 //merchant_task_loop();
