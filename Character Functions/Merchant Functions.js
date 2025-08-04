@@ -10,7 +10,7 @@ let last_potion_delivery = 0;
 const POTION_DELIVERY_DELAY = 10 * 60 * 1000;
 let last_loot_collection = 0;
 const LOOT_COLLECTION_DELAY = 10 * 60 * 1000;
-
+/*
 async function merchant_task_loop() {
 	while (true) {
 		try {
@@ -66,6 +66,7 @@ async function merchant_task_loop() {
 		await delay(1000); // check periodically
 	}
 }
+	*/
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // DELIVER POTIONS AS NEEDED
