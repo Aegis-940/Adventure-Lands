@@ -296,7 +296,7 @@ async function skill_loop() {
 
             // Only check cleave if it's off cooldown
             if (!is_on_cooldown("cleave") && aoe && cc) {
-                //await handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps);
+                await handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps);
             }
         }
     } catch (e) {
@@ -357,15 +357,15 @@ async function handle_cleave(Mainhand, aoe, cc, st_maps, aoe_maps) {
   );
 
   if (can_cleave(aoe, cc, monsters, time_since_last)) {
-    if (Mainhand !== "bataxe") await cleave_set();
-    await use_skill("cleave");
-    reduce_cooldown("cleave", character.ping * 0.95);
-    last_cleave_time = now;
+    // if (Mainhand !== "bataxe") await cleave_set();
+    // await use_skill("cleave");
+    // reduce_cooldown("cleave", character.ping * 0.95);
+    // last_cleave_time = now;
   }
   // Swap back instantly (don't delay this)
-  if (weapon_set_equipped !== "single") {
-    await single_set();
-  }
+  // if (weapon_set_equipped !== "single") {
+  //   await single_set();
+  // }
 }
 
 function can_cleave(aoe, cc, monsters, time_since) {
