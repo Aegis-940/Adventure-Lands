@@ -145,57 +145,6 @@ function ms_to_next_skill(skill) {
 	return ms < 0 ? 0 : ms;
 }
 
-function get_nearest_monster_v2(args = {}) {
-    let min_d = 999999, target = null;
-    let optimal_hp = args.check_max_hp ? 0 : 999999999; // Set initial optimal HP based on whether we're checking for max or min HP
-
-    for (let id in parent.entities) {
-        let current = parent.entities[id];
-        if (current.type != "monster" || !current.visible || current.dead) continue;
-        if (args.type && current.mtype != args.type) continue;
-        //if (args.min_level !== undefined && current.level < args.min_level) continue;
-        //if (args.max_level !== undefined && current.level > args.max_level) continue;
-        if (args.target && !args.target.includes(current.target)) continue;
-        if (args.no_target && current.target && current.target != character.name) continue;
-
-        // Status effects (debuffs/buffs) check
-        if (args.statusEffects && !args.statusEffects.every(effect => current.s[effect])) continue;
-
-        // Min/max XP check
-        //if (args.min_xp !== undefined && current.xp < args.min_xp) continue;
-        //if (args.max_xp !== undefined && current.xp > args.max_xp) continue;
-
-        // Attack power limit
-        //if (args.max_att !== undefined && current.attack > args.max_att) continue;
-
-        // Path check
-        if (args.path_check && !can_move_to(current)) continue;
-
-        // Distance calculation
-        let c_dist = args.point_for_distance_check
-            ? Math.hypot(args.point_for_distance_check[0] - current.x, args.point_for_distance_check[1] - current.y)
-            : parent.distance(character, current);
-
-        if (args.max_distance !== undefined && c_dist > args.max_distance) continue;
-
-        // Generalized HP check (min or max)
-        if (args.check_min_hp || args.check_max_hp) {
-            let c_hp = current.hp;
-            if ((args.check_min_hp && c_hp < optimal_hp) || (args.check_max_hp && c_hp > optimal_hp)) {
-                optimal_hp = c_hp;
-                target = current;
-            }
-            continue;
-        }
-
-        // If no specific HP check, choose the closest monster
-        if (c_dist < min_d) {
-            min_d = c_dist;
-            target = current;
-        }
-    }
-    return target;
-}
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -385,43 +334,56 @@ async function handle_cleave(Mainhand, st_maps, aoe_maps) {
 
 function handleEquipBatchError(message) {
     game_log(message);
-    // You may decide to implement a delay or other error handling mechanism here
     return Promise.reject({ reason: "invalid", message });
 }
 
 async function batch_equip(data) {
-	if (!Array.isArray(data)) return handleEquipBatchError("Input is not an array.");
-	if (data.length > 15) return handleEquipBatchError("Too many items in equip batch.");
+    if (!Array.isArray(data)) return handleEquipBatchError("Input is not an array.");
+    if (data.length > 15) return handleEquipBatchError("Too many items in equip batch.");
 
-	const used_slots = new Set();
+    // Prepare equip_batch data: find inventory slot numbers for each item
+    const batch = [];
+    const used_slots = new Set();
 
-	for (const equipRequest of data) {
-		const { itemName, slot, level, l } = equipRequest;
-		if (!itemName || !slot) continue;
+    for (const equipRequest of data) {
+        const { itemName, slot, level, l } = equipRequest;
+        if (!itemName || !slot) continue;
 
-		// Check if the slot already has the desired item equipped
-		const equipped = character.slots[slot];
-		if (
-			equipped &&
-			equipped.name === itemName &&
-			equipped.level === level &&
-			(!l || equipped.l === l)
-		) continue;
+        // Check if the slot already has the desired item equipped
+        const equipped = character.slots[slot];
+        if (
+            equipped &&
+            equipped.name === itemName &&
+            equipped.level === level &&
+            (!l || equipped.l === l)
+        ) continue;
 
-		// Search inventory for matching item
-		const item_index = parent.character.items.findIndex((item, idx) =>
-			item &&
-			item.name === itemName &&
-			item.level === level &&
-			(!l || item.l === l) &&
-			!used_slots.has(idx)
-		);
+        // Find inventory index for the item
+        const item_index = parent.character.items.findIndex((item, idx) =>
+            item &&
+            item.name === itemName &&
+            item.level === level &&
+            (!l || item.l === l) &&
+            !used_slots.has(idx)
+        );
 
-		if (item_index !== -1) {
-			used_slots.add(item_index);
-			equip(item_index, slot);
-		}
-	}
+        if (item_index !== -1) {
+            used_slots.add(item_index);
+            batch.push({ num: item_index, slot });
+        }
+    }
+
+    if (!batch.length) return Promise.resolve(); // Nothing to equip
+
+    // Use the native equip_batch function
+    return equip_batch(batch).then(
+        function(data) {
+            game_log("Batch equip sent!");
+        },
+        function(data) {
+            game_log("equip_batch failed: " + data.reason);
+        }
+    );
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
