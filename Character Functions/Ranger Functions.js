@@ -174,6 +174,7 @@ const ATTACK_ONLY_TARGETED = true; // Toggle: true = only attack monsters with a
 
 async function attack_loop() {
     if (!attack_enabled) return;
+    game_log("Check 1");
     let delay = 10;
     const X = character.x, Y = character.y;
     const monsters = Object.values(parent.entities).filter(e =>
