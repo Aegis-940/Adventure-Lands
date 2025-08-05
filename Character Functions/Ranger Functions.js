@@ -188,9 +188,16 @@ async function attack_loop() {
 
     // Optionally skip monsters that don't have a target
     const filteredMonsters = ATTACK_ONLY_TARGETED
-        ? monsters.filter(m => m.target)
+        ? monsters.filter(m => m && typeof m === "object" && !!m.target)
         : monsters;
     game_log("Check 3");
+
+    if (!Array.isArray(monsters)) {
+        console.error("monsters is not an array!", monsters);
+    }
+    if (!Array.isArray(filteredMonsters)) {
+        console.error("filteredMonsters is not an array!", filteredMonsters);
+    }
 
     // Find all monsters in range
     const inRange = [];
