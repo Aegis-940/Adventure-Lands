@@ -44,4 +44,4 @@ setInterval(() => {
 	
 	if (!attack_mode || character.rip || is_moving(character)) return;
 
-}, 150);
+}, 250);
