@@ -261,7 +261,7 @@ async function skill_loop() {
 let weapon_set_equipped = "";
 
 async function cleave_set() {
-    unequip("offhand");
+    //unequip("offhand");
     batch_equip([
         { itemName: "bataxe", slot: "mainhand", level: 5},
     ]);
