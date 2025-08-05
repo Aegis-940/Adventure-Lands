@@ -263,7 +263,7 @@ let weapon_set_equipped = "";
 async function cleave_set() {
     // Only unequip offhand if it's not already empty
     if (character.slots.offhand) {
-        await unequip("offhand");
+        unequip("offhand");
     }
     // Only equip bataxe if not already equipped
     const mainhand = character.slots.mainhand;
