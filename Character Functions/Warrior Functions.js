@@ -296,8 +296,8 @@ async function handle_cleave(Mainhand) {
     // Only proceed if all other conditions are met
     if (
         !smart.moving &&
-        time_since_last >= CLEAVE_THRESHOLD &&
-        ms_to_next_skill("attack") > 75
+        time_since_last >= CLEAVE_THRESHOLD //&&
+        //ms_to_next_skill("attack") > 75
     ) {
         // Only now filter monsters
         const monsters = Object.values(parent.entities).filter(e =>
