@@ -181,9 +181,7 @@ function get_grade(item) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function simple_grace_upgrade() {
-
-	let response = await upgrade(7, null /* null for no scrolls */, 8, true);
-
-	return response;
-
+    let response = await upgrade(7, null, 8, true);
+    game_log("Upgrade response: " + JSON.stringify(response));
+    return response;
 }
