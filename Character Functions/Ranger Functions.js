@@ -171,7 +171,7 @@ function get_nearest_monster_v2(args = {}) {
 
 const SWITCH_COOLDOWN = 750;
 const RANGE_THRESHOLD = character.range;
-const ATTACK_ONLY_TARGETED = fatruelse; // Toggle: true = only attack monsters with a target
+const ATTACK_ONLY_TARGETED = true; // Toggle: true = only attack monsters with a target
 
 async function attack_loop() {
     if (!attack_enabled) return;
