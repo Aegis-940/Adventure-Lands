@@ -176,7 +176,7 @@ async function attack_loop() {
     let ATTACK_TARGETED = true; // Toggle: true = only attack monsters with a target
     const RANGE_THRESHOLD = character.range;
 
-    let delay = 10;
+    let delay = 50;
     const X = character.x, Y = character.y;
     const monsters = Object.values(parent.entities).filter(e =>
             e.type === "monster" &&
@@ -222,10 +222,8 @@ async function attack_loop() {
 
         if (sorted_targets.length >= 2 && character.mp >= 250 && !is_on_cooldown("attack")) {
             await use_skill("3shot", sorted_targets.map(m => m.id));
-            delay = ms_to_next_skill("attack");
         } else if (sorted_targets.length >= 1 && !is_on_cooldown("attack")) {
             await attack(sorted_targets[0]);
-            delay = ms_to_next_skill("attack");
         }
         //delay = ms_to_next_skill("attack");
     } catch (e) {
