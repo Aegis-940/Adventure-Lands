@@ -377,7 +377,7 @@ async function batch_equip(data) {
     let result = await equip_batch(batch);
 
     batch_equip_lock = false;
-    return result;
+    //return result;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
