@@ -169,7 +169,6 @@ function get_nearest_monster_v2(args = {}) {
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const SWITCH_COOLDOWN = 750;
 const RANGE_THRESHOLD = character.range;
 const ATTACK_ONLY_TARGETED = true; // Toggle: true = only attack monsters with a target
 
@@ -316,59 +315,5 @@ async function panic_button_loop() {
         }
 
         await delay(CHECK_INTERVAL);
-    }
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// RANGE CIRCLE
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-let show_range_circle = false;
-let range_circle_id = "ranger_range_circle";
-let range_circle_loop = null;
-
-function toggle_range_circle(radius = character.range, check_interval = 100) {
-    if (show_range_circle) {
-        // Disable
-        show_range_circle = false;
-        clear_drawings(range_circle_id);
-        if (range_circle_loop) clearInterval(range_circle_loop);
-        range_circle_loop = null;
-        game_log("⚪ Range circle OFF");
-    } else {
-        // Enable
-        show_range_circle = true;
-        game_log("🔵 Range circle ON");
-
-        // Draw circle (circumference only)
-        clear_drawings(range_circle_id);
-        draw_circle(
-            character.x,
-            character.y,
-            radius,
-            1,              // width
-            0x888888,       // grey color as hex
-            range_circle_id,
-            false,          // not filled
-            [8, 8],         // dashed line: 8px dash, 8px gap
-            0.5             // opacity (alpha)
-        );
-
-        // Start loop to update circle position as character moves
-        range_circle_loop = setInterval(() => {
-            if (!show_range_circle) return;
-            clear_drawings(range_circle_id);
-            draw_circle(
-                character.x,
-                character.y,
-                radius,
-                1,
-                0x888888,
-                range_circle_id,
-                false,
-                [8, 8],
-                0.5         // opacity (alpha)
-            );
-        }, check_interval);
     }
 }
