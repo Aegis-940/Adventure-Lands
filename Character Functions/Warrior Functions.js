@@ -239,11 +239,12 @@ async function skill_loop() {
     try {
         if (!character.rip) {
             const Mainhand = character.slots?.mainhand?.name;
-            const aoe = character.mp >= 760;
-            const cc = character.cc < 135;
+            const mp_check = character.mp >= 760;
+            const code_cost_check = character.cc < 135;
+            let cleave_cooldown = is_on_cooldown("cleave");
 
             // Only check cleave if it's off cooldown
-            if (!is_on_cooldown("cleave") && aoe && cc) {
+            if (!cleave_cooldown && mp_check && code_cost_check) {
                 tempCC0 = character.cc;
                 await game_log("Check 1: " + tempCC0);
                 await handle_cleave(Mainhand);
