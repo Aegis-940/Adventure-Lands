@@ -221,11 +221,13 @@ async function attack_loop() {
         }
 
         if (sorted_targets.length >= 2 && character.mp >= 250) {
-            use_skill("3shot", sorted_targets.map(m => m.id));
+            await use_skill("3shot", sorted_targets.map(m => m.id));
+            delay = ms_to_next_skill("attack");
         } else if (sorted_targets.length >= 1) {
             await attack(sorted_targets[0]);
+            delay = ms_to_next_skill("attack");
         }
-        delay = ms_to_next_skill("attack");
+        //delay = ms_to_next_skill("attack");
     } catch (e) {
         console.error(e);
     }
