@@ -170,15 +170,12 @@ function get_nearest_monster_v2(args = {}) {
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const RANGE_THRESHOLD = character.range;
-
 
 async function attack_loop() {
     if (!attack_enabled) return;
-    game_log("Check 1");
     let ATTACK_TARGETED = true; // Toggle: true = only attack monsters with a target
-    game_log("Check 2");
-
+    const RANGE_THRESHOLD = character.range;
+    
     let delay = 10;
     const X = character.x, Y = character.y;
     const monsters = Object.values(parent.entities).filter(e =>
