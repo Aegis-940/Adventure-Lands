@@ -248,7 +248,7 @@ async function skill_loop() {
                 await game_log("Check 1");
                 await handle_cleave(Mainhand);
                 tempCC3 = character.cc;
-                await game_log("Check 4");
+                await game_log("Check 8");
             }
         }
     } catch (e) {
