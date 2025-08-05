@@ -175,10 +175,11 @@ let ATTACK_TARGETED = true; // Toggle: true = only attack monsters with a target
 
 async function attack_loop() {
     if (!attack_enabled) return;
-    if (ATTACK_TARGETED === undefined) {
-        ATTACK_TARGETED = true; // Default to true if not set
-    };
-    game_log("Check 1");
+
+    if (typeof ATTACK_TARGETED === "undefined") {
+        ATTACK_TARGETED = true; // or false, as your default
+    }
+
     let delay = 10;
     const X = character.x, Y = character.y;
     const monsters = Object.values(parent.entities).filter(e =>
@@ -188,9 +189,6 @@ async function attack_loop() {
             e.visible &&
             parent.distance(character, e) <= character.range
         );
-    game_log("Check 2");
-
-    game_log(ATTACK_TARGETED);
 
     let filteredMonsters;
     if (ATTACK_TARGETED) {
