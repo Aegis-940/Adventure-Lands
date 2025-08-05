@@ -220,10 +220,10 @@ async function attack_loop() {
             if (!is_on_cooldown("supershot")) await use_skill("supershot", cursed);
         }
 
-        if (sorted_targets.length >= 2 && character.mp >= 250) {
+        if (sorted_targets.length >= 2 && character.mp >= 250 && !is_on_cooldown("attack")) {
             await use_skill("3shot", sorted_targets.map(m => m.id));
             delay = ms_to_next_skill("attack");
-        } else if (sorted_targets.length >= 1) {
+        } else if (sorted_targets.length >= 1 && !is_on_cooldown("attack")) {
             await attack(sorted_targets[0]);
             delay = ms_to_next_skill("attack");
         }
