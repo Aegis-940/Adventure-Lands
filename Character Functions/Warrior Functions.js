@@ -418,7 +418,7 @@ async function batch_equip(data) {
     game_log("Check 3: " + tempCC2);
 
     // Use the game's native equip_batch
-    return equip_batch(batch);
+    return await equip_batch(batch);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
