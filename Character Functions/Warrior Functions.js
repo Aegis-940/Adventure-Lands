@@ -326,11 +326,6 @@ async function handle_cleave(Mainhand) {
  * @returns {Promise} Resolves/rejects with the result of equip_batch.
  */
 
-let tempCC0 = 0;
-let tempCC1 = 0;
-let tempCC2 = 0;
-let tempCC3 = 0;
-
 let batch_equip_lock = false;
 
 async function batch_equip(data) {
