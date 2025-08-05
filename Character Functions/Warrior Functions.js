@@ -329,49 +329,49 @@ async function handle_cleave(Mainhand) {
 let batch_equip_lock = false;
 
 async function batch_equip(data) {
-    // if (batch_equip_lock) {
-    //     game_log("batch_equip: Skipped due to lock");
-    //     return;
-    // }
-    // batch_equip_lock = true;
+    if (batch_equip_lock) {
+        game_log("batch_equip: Skipped due to lock");
+        return;
+    }
+    batch_equip_lock = true;
 
-    // const batch = [];
+    const batch = [];
 
-    // for (const equipRequest of data) {
-    //     const { itemName, slot, level, l } = equipRequest;
-    //     if (!itemName || !slot) continue;
+    for (const equipRequest of data) {
+        const { itemName, slot, level, l } = equipRequest;
+        if (!itemName || !slot) continue;
 
-    //     // Check if the slot already has the desired item equipped
-    //     const equipped = character.slots[slot];
-    //     if (
-    //         equipped &&
-    //         equipped.name === itemName &&
-    //         equipped.level === level &&
-    //         (!l || equipped.l === l)
-    //     ) continue;
+        // Check if the slot already has the desired item equipped
+        const equipped = character.slots[slot];
+        if (
+            equipped &&
+            equipped.name === itemName &&
+            equipped.level === level &&
+            (!l || equipped.l === l)
+        ) continue;
 
-    //     // Find the first matching item in inventory
-    //     const item_index = parent.character.items.findIndex(item =>
-    //         item &&
-    //         item.name === itemName &&
-    //         item.level === level &&
-    //         (!l || item.l === l)
-    //     );
+        // Find the first matching item in inventory
+        const item_index = parent.character.items.findIndex(item =>
+            item &&
+            item.name === itemName &&
+            item.level === level &&
+            (!l || item.l === l)
+        );
 
-    //     if (item_index !== -1) {
-    //         batch.push({ num: item_index, slot });
-    //     }
-    // }
+        if (item_index !== -1) {
+            batch.push({ num: item_index, slot });
+        }
+    }
 
-    // if (!batch.length) {
-    //     batch_equip_lock = false;
-    //     return handleEquipBatchError("No items to equip.");
-    // }
+    if (!batch.length) {
+        batch_equip_lock = false;
+        return handleEquipBatchError("No items to equip.");
+    }
 
-    // // Use the game's native equip_batch
-    // let result = equip_batch(batch);
+    // Use the game's native equip_batch
+    let result = equip_batch(batch);
 
-    // batch_equip_lock = false;
+    batch_equip_lock = false;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
