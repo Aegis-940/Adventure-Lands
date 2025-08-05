@@ -14,6 +14,7 @@ let move_timer_id    = null;
 
 function start_attack_loop() {
     attack_enabled = true;     // always set it
+    clearTimeout(attack_timer_id);
     attack_loop();             // always call it
     game_log("▶️ Attack loop started");
 }
