@@ -20,7 +20,7 @@ toggle_free_move();
 toggle_follow_priest_button();
 hide_skills_ui();
 
-panic_button_loop();
+//panic_button_loop();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN LOOP
