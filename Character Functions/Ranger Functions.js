@@ -171,35 +171,43 @@ function get_nearest_monster_v2(args = {}) {
 
 const SWITCH_COOLDOWN = 750;
 const RANGE_THRESHOLD = character.range;
-//let lastEquippedSet = null;
+const ATTACK_ONLY_TARGETED = fatruelse; // Toggle: true = only attack monsters with a target
 
 async function attack_loop() {
     if (!attack_enabled) return;
-    let delay = 10; 
+    let delay = 10;
     const X = character.x, Y = character.y;
-    const now = performance.now();
     const monsters = Object.values(parent.entities).filter(e =>
-        e.type === "monster" && MONSTER_TYPES.includes(e.mtype)
+        e.type === "monster" &&
+        MONSTER_TYPES.includes(e.mtype) &&
+        !e.dead &&
+        e.visible
     );
 
-    if (!monsters.length) {
-        delay = 150; // Slow down if nothing to do
-        attack_timer_id = setTimeout(attack_loop, delay);
-        return;
-    }
+    // Optionally skip monsters that don't have a target
+    const filteredMonsters = ATTACK_ONLY_TARGETED
+        ? monsters.filter(m => m.target)
+        : monsters;
 
-    // Find up to 3 lowest-HP monsters in range
+    // Find all monsters in range
     const inRange = [];
-    for (const mob of monsters) {
+    let cursed = null;
+    for (const mob of filteredMonsters) {
         const dist = Math.hypot(mob.x - X, mob.y - Y);
-        if (dist <= RANGE_THRESHOLD) inRange.push(mob);
+        if (dist <= RANGE_THRESHOLD) {
+            inRange.push(mob);
+            // Find a cursed monster in range (prioritize lowest HP if multiple)
+            if (mob.s && mob.s.cursed) {
+                if (!cursed || mob.hp < cursed.hp) cursed = mob;
+            }
+        }
     }
 
+    // Sort by HP (lowest first)
     inRange.sort((a, b) => a.hp - b.hp);
     const sorted_targets = inRange.slice(0, 5);
 
     try {
-        const cursed = get_nearest_monster_v2({ statusEffects: ["cursed"] });
         if (cursed) {
             change_target(cursed);
             if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", cursed);

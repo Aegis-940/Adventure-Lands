@@ -198,65 +198,59 @@ function get_nearest_monster_v2(args = {}) {
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+// Toggle options
+let ATTACK_TARGET_LOWEST_HP = true;      // true: lowest HP, false: highest HP
+let ATTACK_PRIORITIZE_UNTARGETED = true; // true: prefer monsters with no target first
+
 async function attack_loop() {
-    	if (!attack_enabled) return;
-	let delay = 100;
-	let disabled = (parent.is_disabled(character) === undefined);
-	let bosses = ["troll", "grinch"];
-	let character_max_distance = character.range;
+    if (!attack_enabled) return;
+    let delay = 100;
+    let disabled = (parent.is_disabled(character) === undefined);
 
-	try {
-		if (disabled) {
-			let heal_target = lowest_health_partymember();
-			if (heal_target && heal_target.hp < heal_target.max_hp - (character.heal / 1.33) && is_in_range(heal_target)) {
-				await heal(heal_target);
-				delay = ms_to_next_skill('attack');
-			} else {
-				let target = null;
-				let bossMonster = null;
+    try {
+        if (disabled) {
+            let heal_target = lowest_health_partymember();
+            if (
+                heal_target &&
+                heal_target.hp < heal_target.max_hp - (character.heal / 1.11) &&
+                is_in_range(heal_target)
+            ) {
+                await heal(heal_target);
+                delay = ms_to_next_skill('attack');
+            } else {
+                // Filter all relevant monsters ONCE
+                const monsters = Object.values(parent.entities).filter(e =>
+                    e.type === "monster" &&
+                    MONSTER_TYPES.includes(e.mtype) &&
+                    !e.dead &&
+                    e.visible &&
+                    parent.distance(character, e) <= character.range
+                );
 
-				/*
-				//Prioritize Bosses
-				if (!target) {
-					for (let i = 0; i < bosses.length; i++) {
-						bossMonster = get_nearest_monster_v2({
-							type: bosses[i],
-							max_distance: 250,
-						});
-						if (bossMonster) break;
-					}
-				}
-				*/
+                let target = null;
 
-				for (let i = 0; i < MONSTER_TYPES.length; i++) {
-					target = get_nearest_monster_v2({
-						type: MONSTER_TYPES[i],
-						check_min_hp: false,
-						no_target: true,
-						max_distance: character_max_distance,
-					});
-					if (target) break;
-				}
+                if (monsters.length) {
+                    let untargeted = monsters.filter(m => !m.target);
+                    let candidates = (ATTACK_PRIORITIZE_UNTARGETED && untargeted.length) ? untargeted : monsters;
 
-				/*
-				if (bossMonster) {
-					target = bossMonster;
-				}
-				*/
+                    if (ATTACK_TARGET_LOWEST_HP) {
+                        target = candidates.reduce((a, b) => (a.hp < b.hp ? a : b));
+                    } else {
+                        target = candidates.reduce((a, b) => (a.hp > b.hp ? a : b));
+                    }
+                }
 
-				if (target) {
-					if (is_in_range(target)) {
-						await attack(target);
-						delay = ms_to_next_skill('attack');
-					}
-				}
-			}
-		}
-	} catch (e) {
-		//console.error(e);
-	}
+                if (target && is_in_range(target)) {
+                    await attack(target);
+                    delay = ms_to_next_skill('attack');
+                }
+            }
+        }
+    } catch (e) {
+        //console.error(e);
+    }
 
-	attack_timer_id = setTimeout(attack_loop, delay);
+    attack_timer_id = setTimeout(attack_loop, delay);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
