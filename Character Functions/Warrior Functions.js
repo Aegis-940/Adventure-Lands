@@ -262,14 +262,14 @@ let weapon_set_equipped = "";
 
 async function cleave_set() {
     unequip("offhand");
-    await batch_equip([
+    batch_equip([
         { itemName: "bataxe", slot: "mainhand", level: 5},
     ]);
     weapon_set_equipped = "cleave";
 }
 
 async function single_set() {
-    await batch_equip([
+    batch_equip([
         { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
         { itemName: "ololipop", slot: "offhand", level: 5, l: "l" }
     ]);
@@ -305,7 +305,7 @@ async function handle_cleave(Mainhand) {
 
         if (monsters.length > 4) {
             if (Mainhand !== "bataxe") await cleave_set();
-            await use_skill("cleave");
+            use_skill("cleave");
             reduce_cooldown("cleave", character.ping * 0.95);
             last_cleave_time = now;
             // Swap back instantly (don't delay this)
