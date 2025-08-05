@@ -460,41 +460,39 @@ function start_circle_move(radius = circle_move_radius) {
     set_circle_move_radius(radius);
     circle_path_points = compute_circle_path(circle_origin, circle_move_radius, CIRCLE_STEPS);
     circle_path_index = 0;
-    circle_move_loop();
+    circle_move_loop(); // No timer needed, just start the async loop
     console.log("🔵 Circle move started");
 }
 
 function stop_circle_move() {
     circle_move_enabled = false;
-    clearTimeout(circle_move_timer_id);
     console.log("⏹ Circle move stopped");
 }
 
+const MOVE_CHECK_INTERVAL = 120; // ms
+const MOVE_TOLERANCE = 5; // pixels
+
 async function circle_move_loop() {
-    if (!circle_move_enabled) return;
-    const point = circle_path_points[circle_path_index];
-    circle_path_index = (circle_path_index + 1) % circle_path_points.length;
+    while (circle_move_enabled) {
+        const point = circle_path_points[circle_path_index];
+        circle_path_index = (circle_path_index + 1) % circle_path_points.length;
 
-    try {
-        if (!character.moving && !smart.moving) {
-            await move(point.x, point.y);
+        // Only move if not already close to the next point
+        const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
+        if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
+            try {
+                await move(point.x, point.y);
+            } catch (e) {
+                console.error("Circle move error:", e);
+            }
         }
-    } catch (e) {
-        console.error("Circle move error:", e);
-    }
 
-    if (circle_move_enabled) {
-        // Wait until movement is finished before next step
-        const waitForMove = () =>
-            new Promise(resolve => {
-                const check = () => {
-                    if (!character.moving && !smart.moving) resolve();
-                    else setTimeout(check, 40);
-                };
-                check();
-            });
-        await waitForMove();
-        // Add a 100ms delay before the next step
-        circle_move_timer_id = setTimeout(circle_move_loop, 50);
+        // Wait until movement is finished or interrupted
+        while (circle_move_enabled && (character.moving || smart.moving)) {
+            await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
+        }
+
+        // Small delay before next step to reduce CPU usage
+        await new Promise(resolve => setTimeout(resolve, 100));
     }
 }
