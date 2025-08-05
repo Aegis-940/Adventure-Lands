@@ -179,25 +179,21 @@ async function attack_loop() {
     let delay = 10;
     const X = character.x, Y = character.y;
     const monsters = Object.values(parent.entities).filter(e =>
-        e.type === "monster" &&
-        MONSTER_TYPES.includes(e.mtype) &&
-        !e.dead &&
-        e.visible
-    );
+            e.type === "monster" &&
+            MONSTER_TYPES.includes(e.mtype) &&
+            !e.dead &&
+            e.visible &&
+            parent.distance(character, e) <= character.range
+        );
     game_log("Check 2");
 
     // Optionally skip monsters that don't have a target
     const filteredMonsters = ATTACK_ONLY_TARGETED
-        ? monsters.filter(m => m && typeof m === "object" && !!m.target)
-        : monsters;
+            ? monsters.filter(m => m && typeof m === "object" && !!m.target)
+            : monsters;
     game_log("Check 3");
 
-    if (!Array.isArray(monsters)) {
-        console.error("monsters is not an array!", monsters);
-    }
-    if (!Array.isArray(filteredMonsters)) {
-        console.error("filteredMonsters is not an array!", filteredMonsters);
-    }
+    
 
     // Find all monsters in range
     const inRange = [];
