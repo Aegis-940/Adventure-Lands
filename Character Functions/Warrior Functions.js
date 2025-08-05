@@ -151,7 +151,7 @@ function ms_to_next_skill(skill) {
 
 async function attack_loop() {
     if (!attack_enabled) return;
-    let delay = 100;
+    let delay = 10;
     try {
 
         // 1. Filter all relevant monsters ONCE
@@ -173,7 +173,6 @@ async function attack_loop() {
         
         if (target) {
             await attack(target);
-            reduce_cooldown("attack", character.ping * 0.95);
             delay = ms_to_next_skill("attack");
         }
     } catch (e) {
