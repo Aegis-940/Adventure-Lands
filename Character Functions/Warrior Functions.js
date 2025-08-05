@@ -305,7 +305,7 @@ async function handle_cleave(Mainhand) {
 
         if (monsters.length > 4) {
             if (Mainhand !== "bataxe") await cleave_set();
-            use_skill("cleave");
+            await use_skill("cleave");
             reduce_cooldown("cleave", character.ping * 0.95);
             last_cleave_time = now;
             // Swap back instantly (don't delay this)
