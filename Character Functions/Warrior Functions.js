@@ -268,7 +268,7 @@ async function cleave_set() {
     // Only equip bataxe if not already equipped
     const mainhand = character.slots.mainhand;
     if (!mainhand || mainhand.name !== "bataxe" || mainhand.level !== 5) {
-        await batch_equip([
+        batch_equip([
             { itemName: "bataxe", slot: "mainhand", level: 5 }
         ]);
     }
@@ -281,7 +281,7 @@ async function single_set() {
     const needs_main = !mainhand || mainhand.name !== "fireblade" || mainhand.level !== 7 || mainhand.l !== "l";
     const needs_off = !offhand || offhand.name !== "ololipop" || offhand.level !== 5 || offhand.l !== "l";
     if (needs_main || needs_off) {
-        await batch_equip([
+        batch_equip([
             { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
             { itemName: "ololipop", slot: "offhand", level: 5, l: "l" }
         ]);
