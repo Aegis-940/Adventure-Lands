@@ -287,8 +287,6 @@ async function panic_button_loop() {
         const low_health = character.hp < character.max_hp / 3;
         const high_health = character.hp >= 2 * character.max_hp / 3;
 
-        game_log(`panic_triggered: ${panic_triggered}, myras_online: ${!!myras_online}, low_health: ${low_health}, high_health: ${high_health}`);
-
         if (!myras_online || low_health) {
             if (!panic_triggered) {
                 // Enter panic state
