@@ -265,15 +265,15 @@ async function skill_loop() {
 let weapon_set_equipped = "";
 
 async function cleave_set() {
-    unequip("offhand");
-    batch_equip([
+    await unequip("offhand");
+    await batch_equip([
         { itemName: "bataxe", slot: "mainhand", level: 5},
     ]);
     weapon_set_equipped = "cleave";
 }
 
 async function single_set() {
-    batch_equip([
+    await batch_equip([
         { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
         { itemName: "ololipop", slot: "offhand", level: 5, l: "l" }
     ]);
