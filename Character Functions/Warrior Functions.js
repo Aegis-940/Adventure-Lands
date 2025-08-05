@@ -379,7 +379,14 @@ let tempCC1 = 0;
 let tempCC2 = 0;
 let tempCC3 = 0;
 
+let batch_equip_lock = false;
+
 async function batch_equip(data) {
+    if (batch_equip_lock) {
+        game_log("batch_equip: Skipped due to lock");
+        return;
+    }
+    batch_equip_lock = true;
 
     tempCC1 = character.cc;
     game_log("Check 2: " + tempCC1);
@@ -412,13 +419,19 @@ async function batch_equip(data) {
         }
     }
 
-    if (!batch.length) return handleEquipBatchError("No items to equip.");
+    if (!batch.length) {
+        batch_equip_lock = false;
+        return handleEquipBatchError("No items to equip.");
+    }
 
     tempCC2 = character.cc;
     game_log("Check 3: " + tempCC2);
 
     // Use the game's native equip_batch
-    return await equip_batch(batch);
+    let result = await equip_batch(batch);
+
+    batch_equip_lock = false;
+    return result;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
