@@ -178,8 +178,9 @@ async function attack_loop() {
 
     if (typeof ATTACK_TARGETED === "undefined") {
         ATTACK_TARGETED = true; // or false, as your default
+        game_log("Check 1");
     }
-
+    game_log("Check 2");
     let delay = 10;
     const X = character.x, Y = character.y;
     const monsters = Object.values(parent.entities).filter(e =>
@@ -189,7 +190,7 @@ async function attack_loop() {
             e.visible &&
             parent.distance(character, e) <= character.range
         );
-
+        game_log("Check 3");
     let filteredMonsters;
     if (ATTACK_TARGETED) {
         // Only attack monsters that already have a target
