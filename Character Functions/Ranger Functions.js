@@ -184,11 +184,13 @@ async function attack_loop() {
         !e.dead &&
         e.visible
     );
+    game_log("Check 2");
 
     // Optionally skip monsters that don't have a target
     const filteredMonsters = ATTACK_ONLY_TARGETED
         ? monsters.filter(m => m.target)
         : monsters;
+    game_log("Check 3");
 
     // Find all monsters in range
     const inRange = [];
@@ -203,6 +205,7 @@ async function attack_loop() {
             }
         }
     }
+    game_log("Check 4");
 
     // Sort by HP (lowest first)
     inRange.sort((a, b) => a.hp - b.hp);
