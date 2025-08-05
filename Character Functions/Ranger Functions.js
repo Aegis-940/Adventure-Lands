@@ -209,7 +209,6 @@ async function attack_loop() {
             }
         }
     }
-    game_log("Check 8");
 
     // Sort by HP (lowest first)
     inRange.sort((a, b) => a.hp - b.hp);
