@@ -108,10 +108,10 @@ init_persistent_state();
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function ms_to_next_skill(skill) {
-    const next_skill = parent.next_skill[skill];
-    if (next_skill == undefined) return 0;
-    const ms = parent.next_skill[skill].getTime() - Date.now() - Math.min(...parent.pings) - character.ping;
-    return ms < 0 ? 0 : ms;
+	const next_skill = parent.next_skill[skill]
+	if (next_skill == undefined) return 0
+	const ms = parent.next_skill[skill].getTime() - Date.now() - Math.min(...parent.pings) - character.ping;
+	return ms < 0 ? 0 : ms;
 }
 
 function get_nearest_monster_v2(args = {}) {
@@ -223,12 +223,11 @@ async function attack_loop() {
         if (sorted_targets.length >= 2 && character.mp >= 250) {
             await use_skill("3shot", sorted_targets.map(m => m.id));
             delay = ms_to_next_skill("attack");
+            game_log(delay);
         } else if (sorted_targets.length >= 1) {
             await attack(sorted_targets[0]);
             delay = ms_to_next_skill("attack");
-        } else {
-            // Wait until attack is ready
-            delay = ms > 0 ? ms : 50;
+            game_log(delay);
         }
     } catch (e) {
         console.error(e);
