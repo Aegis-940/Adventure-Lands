@@ -187,13 +187,19 @@ async function attack_loop() {
         );
     game_log("Check 2");
 
-    // Optionally skip monsters that don't have a target
-    const filteredMonsters = ATTACK_ONLY_TARGETED
-            ? monsters.filter(m => m && typeof m === "object" && !!m.target)
-            : monsters;
+    let filteredMonsters;
     game_log("Check 3");
-
-    
+    if (ATTACK_ONLY_TARGETED) {
+    game_log("Check 4");
+        // Only attack monsters that already have a target
+        filteredMonsters = monsters.filter(m => m && typeof m === "object" && !!m.target);
+    game_log("Check 5");
+    } else {
+    game_log("Check 6");
+        // Attack the closest monster (all monsters in range)
+        filteredMonsters = monsters;
+    game_log("Check 7");
+    }
 
     // Find all monsters in range
     const inRange = [];
@@ -208,7 +214,7 @@ async function attack_loop() {
             }
         }
     }
-    game_log("Check 4");
+    game_log("Check 8");
 
     // Sort by HP (lowest first)
     inRange.sort((a, b) => a.hp - b.hp);
