@@ -174,6 +174,7 @@ async function attack_loop() {
         if (target) {
             await attack(target);
             delay = ms_to_next_skill("attack");
+            game_log(delay);
         }
     } catch (e) {
         console.error(e);
