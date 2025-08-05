@@ -245,11 +245,10 @@ async function skill_loop() {
 
             // Only check cleave if it's off cooldown
             if (!cleave_cooldown && mp_check && code_cost_check) {
-                tempCC0 = character.cc;
-                await game_log("Check 1: " + tempCC0);
+                await game_log("Check 1");
                 await handle_cleave(Mainhand);
                 tempCC3 = character.cc;
-                await game_log("Check 4: " + tempCC3);
+                await game_log("Check 4");
             }
         }
     } catch (e) {
@@ -289,15 +288,18 @@ const CLEAVE_THRESHOLD = 500;
 const CLEAVE_RANGE = G.skills.cleave.range;
 const MAPS_TO_INCLUDE = ["mansion", "main"];
 
-/*async function handle_cleave(Mainhand) {
+async function handle_cleave(Mainhand) {
     const now = performance.now();
     const time_since_last = now - last_cleave_time;
+
+    await game_log("Check 2");
 
     // Only proceed if all other conditions are met
     if (
         !smart.moving &&
         time_since_last >= CLEAVE_THRESHOLD //&&
         //ms_to_next_skill("attack") > 75
+        game_log("HANDLE CLEAVE FAILED!!!");
     ) {
         // Only now filter monsters
         const monsters = Object.values(parent.entities).filter(e =>
@@ -307,62 +309,24 @@ const MAPS_TO_INCLUDE = ["mansion", "main"];
             distance(character, e) <= CLEAVE_RANGE
         );
 
+        await game_log("Check 3");
+
         if (monsters.length > 4) {
             if (Mainhand !== "bataxe") await cleave_set();
+            await game_log("Check 4");
             await use_skill("cleave");
-            reduce_cooldown("cleave", character.ping * 0.95);
+            await game_log("Check 5");
+            //reduce_cooldown("cleave", character.ping * 0.95);
             last_cleave_time = now;
             // Swap back instantly (don't delay this)
             if (weapon_set_equipped !== "single") {
+                await game_log("Check 6");
                 await single_set();
-            }
-        }
-    }
-}*/
-
-async function handle_cleave(Mainhand) {
-    const now = performance.now();
-    const time_since_last = now - last_cleave_time;
-
-    if (
-        !smart.moving &&
-        time_since_last >= CLEAVE_THRESHOLD &&
-        !is_on_cooldown("cleave") &&
-        character.mp >= G.skills.cleave.mp
-    ) {
-        const monsters = Object.values(parent.entities).filter(e =>
-            e?.type === "monster" &&
-            !e.dead &&
-            e.visible &&
-            distance(character, e) <= CLEAVE_RANGE
-        );
-
-        if (monsters.length > 4) {
-            if (Mainhand !== "bataxe") await cleave_set();
-
-            // Try to use cleave and check the result
-            let result;
-            try {
-                result = await use_skill("cleave");
-            } catch (e) {
-                game_log("Cleave failed: " + e.reason || e);
-                return; // Don't proceed if cleave failed
-            }
-
-            if (result && !result.failed) {
-                reduce_cooldown("cleave", character.ping * 0.95);
-                last_cleave_time = now;
-                // Swap back instantly (don't delay this)
-                if (weapon_set_equipped !== "single") {
-                    await single_set();
-                }
-            } else {
-                game_log("Cleave did not trigger: " + (result && result.reason ? result.reason : "unknown reason"));
+                await game_log("Check 7");
             }
         }
     }
 }
-
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // BATCH EQUIP ITEMS
@@ -388,8 +352,7 @@ async function batch_equip(data) {
     }
     batch_equip_lock = true;
 
-    tempCC1 = character.cc;
-    game_log("Check 2: " + tempCC1);
+    game_log("BATCH EQUIP 1");
 
     const batch = [];
 
@@ -424,8 +387,7 @@ async function batch_equip(data) {
         return handleEquipBatchError("No items to equip.");
     }
 
-    tempCC2 = character.cc;
-    game_log("Check 3: " + tempCC2);
+    game_log("BATCH EQUIP 2");
 
     // Use the game's native equip_batch
     let result = await equip_batch(batch);
