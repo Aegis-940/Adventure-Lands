@@ -39,7 +39,7 @@ setInterval(() => {
 
 	// === Core utility loops ===
 	pots();
-	//loot();
+	loot();
 	party_manager();
 	
 	if (!attack_mode || character.rip || is_moving(character)) return;
