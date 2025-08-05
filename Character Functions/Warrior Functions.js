@@ -299,7 +299,6 @@ async function handle_cleave(Mainhand) {
         !smart.moving &&
         time_since_last >= CLEAVE_THRESHOLD //&&
         //ms_to_next_skill("attack") > 75
-        game_log("HANDLE CLEAVE FAILED!!!");
     ) {
         // Only now filter monsters
         const monsters = Object.values(parent.entities).filter(e =>
@@ -325,6 +324,10 @@ async function handle_cleave(Mainhand) {
                 await game_log("Check 7");
             }
         }
+    } else {
+        
+        game_log("HANDLE CLEAVE FAILED!!!");
+
     }
 }
 
