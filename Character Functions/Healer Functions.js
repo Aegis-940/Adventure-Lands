@@ -432,7 +432,7 @@ let circle_origin = null;
 let circle_move_radius = 20;
 let circle_path_points = [];
 let circle_path_index = 0;
-const CIRCLE_STEPS = 24; // 15 degrees per step
+const CIRCLE_STEPS = 12; // 30 degrees per step
 
 function set_circle_move_radius(r) {
     if (typeof r === "number" && r > 0) {
