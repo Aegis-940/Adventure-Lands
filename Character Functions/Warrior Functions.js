@@ -249,7 +249,7 @@ async function skill_loop() {
                 await game_log("Check 1: " + tempCC0);
                 await handle_cleave(Mainhand);
                 tempCC3 = character.cc;
-                await game_log("Check 2: " + tempCC3);
+                await game_log("Check 4: " + tempCC3);
             }
         }
     } catch (e) {
@@ -382,7 +382,7 @@ let tempCC3 = 0;
 async function batch_equip(data) {
 
     tempCC1 = character.cc;
-    game_log("Check 3: " + tempCC1);
+    game_log("Check 2: " + tempCC1);
 
     const batch = [];
 
@@ -415,7 +415,7 @@ async function batch_equip(data) {
     if (!batch.length) return handleEquipBatchError("No items to equip.");
 
     tempCC2 = character.cc;
-    game_log("Check 4: " + tempCC2);
+    game_log("Check 3: " + tempCC2);
 
     // Use the game's native equip_batch
     return equip_batch(batch);
