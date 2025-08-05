@@ -175,3 +175,15 @@ function find_item(filter) {
 function get_grade(item) {
   return parent.G.items[item.name].grades;
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// SIMPLE GRACE UPGRADE
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+async function simple_grace_upgrade() {
+
+	let response = await upgrade(7, null /* null for no scrolls */, 8, true);
+
+	return response;
+
+}
