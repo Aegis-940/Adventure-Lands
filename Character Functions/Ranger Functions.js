@@ -171,7 +171,7 @@ function get_nearest_monster_v2(args = {}) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const RANGE_THRESHOLD = character.range;
-let ATTACK_ONLY_TARGETED = true; // Toggle: true = only attack monsters with a target
+let ATTACK_ONLY_TARGETEDDD = true; // Toggle: true = only attack monsters with a target
 
 async function attack_loop() {
     if (!attack_enabled) return;
@@ -189,8 +189,8 @@ async function attack_loop() {
 
     let filteredMonsters;
     game_log("Check 3");
-    game_log("ATTACK_ONLY_TARGETED is", ATTACK_ONLY_TARGETED);
-    if (ATTACK_ONLY_TARGETED) {
+    game_log("ATTACK_ONLY_TARGETED is", ATTACK_ONLY_TARGETEDDD);
+    if (ATTACK_ONLY_TARGETEDDD) {
     game_log("Check 4");
         // Only attack monsters that already have a target
         filteredMonsters = monsters.filter(m => m && typeof m === "object" && !!m.target);
