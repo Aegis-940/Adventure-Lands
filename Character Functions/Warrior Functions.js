@@ -369,7 +369,7 @@ async function batch_equip(data) {
     }
 
     // Use the game's native equip_batch
-    let result = await equip_batch(batch);
+    let result = equip_batch(batch);
 
     batch_equip_lock = false;
     return result;
