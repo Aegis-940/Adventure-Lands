@@ -261,18 +261,31 @@ async function skill_loop() {
 let weapon_set_equipped = "";
 
 async function cleave_set() {
-    // unequip("offhand");
-    // batch_equip([
-    //     { itemName: "bataxe", slot: "mainhand", level: 5},
-    // ]);
+    // Only unequip offhand if it's not already empty
+    if (character.slots.offhand) {
+        await unequip("offhand");
+    }
+    // Only equip bataxe if not already equipped
+    const mainhand = character.slots.mainhand;
+    if (!mainhand || mainhand.name !== "bataxe" || mainhand.level !== 5) {
+        await batch_equip([
+            { itemName: "bataxe", slot: "mainhand", level: 5 }
+        ]);
+    }
     weapon_set_equipped = "cleave";
 }
 
 async function single_set() {
-    // batch_equip([
-    //     { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
-    //     { itemName: "ololipop", slot: "offhand", level: 5, l: "l" }
-    // ]);
+    const mainhand = character.slots.mainhand;
+    const offhand = character.slots.offhand;
+    const needs_main = !mainhand || mainhand.name !== "fireblade" || mainhand.level !== 7 || mainhand.l !== "l";
+    const needs_off = !offhand || offhand.name !== "ololipop" || offhand.level !== 5 || offhand.l !== "l";
+    if (needs_main || needs_off) {
+        await batch_equip([
+            { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
+            { itemName: "ololipop", slot: "offhand", level: 5, l: "l" }
+        ]);
+    }
     weapon_set_equipped = "single";
 }
 
@@ -365,12 +378,10 @@ async function batch_equip(data) {
 
     if (!batch.length) {
         batch_equip_lock = false;
-        return handleEquipBatchError("No items to equip.");
+        return; // Nothing to equip, return early
     }
 
-    // Use the game's native equip_batch
-    let result = equip_batch(batch);
-
+    await equip_batch(batch); // Await the batch equip
     batch_equip_lock = false;
 }
 
