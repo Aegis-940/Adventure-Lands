@@ -166,6 +166,7 @@ function render_bank_items() {
   });
 
   render_items(categories, used, total);
+  saveBankLocal()
 }
 
 function add_bank_buttons() {
