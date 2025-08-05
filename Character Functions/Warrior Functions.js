@@ -245,10 +245,10 @@ async function skill_loop() {
             // Only check cleave if it's off cooldown
             if (!is_on_cooldown("cleave") && aoe && cc) {
                 tempCC0 = character.cc;
-                game_log("Pre-handle_cleave", tempCC0);
+                game_log("Pre-handle_cleave" + tempCC0);
                 await handle_cleave(Mainhand);
                 tempCC3 = character.cc;
-                game_log("Post-handle_cleave", tempCC3);
+                game_log("Post-handle_cleave" + tempCC3);
             }
         }
     } catch (e) {
