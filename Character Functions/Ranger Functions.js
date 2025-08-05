@@ -175,7 +175,7 @@ async function attack_loop() {
     if (!attack_enabled) return;
     let ATTACK_TARGETED = true; // Toggle: true = only attack monsters with a target
     const RANGE_THRESHOLD = character.range;
-    
+
     let delay = 10;
     const X = character.x, Y = character.y;
     const monsters = Object.values(parent.entities).filter(e =>
@@ -286,6 +286,8 @@ async function panic_button_loop() {
         const myras_online = parent.party_list.includes(PRIEST_NAME) && parent.entities[PRIEST_NAME];
         const low_health = character.hp < character.max_hp / 3;
         const high_health = character.hp >= 2 * character.max_hp / 3;
+
+        game_log(`panic_triggered: ${panic_triggered}, myras_online: ${!!myras_online}, low_health: ${low_health}, high_health: ${high_health}`);
 
         if (!myras_online || low_health) {
             if (!panic_triggered) {
