@@ -325,7 +325,7 @@ async function handle_cleave(Mainhand) {
  * @param {Array} data - Array of { itemName, slot, level, l } objects.
  * @returns {Promise} Resolves/rejects with the result of equip_batch.
  */
-async function batch_equip(data) {
+/*async function batch_equip(data) {
 
     const batch = [];
 
@@ -359,6 +359,42 @@ async function batch_equip(data) {
 
     // Use the game's native equip_batch
     return equip_batch(batch);
+}*/
+
+async function batch_equip(data) {
+    const promises = [];
+
+    for (const equipRequest of data) {
+        const { itemName, slot, level, l } = equipRequest;
+        if (!itemName || !slot) continue;
+
+        // Check if the slot already has the desired item equipped
+        const equipped = character.slots[slot];
+        if (
+            equipped &&
+            equipped.name === itemName &&
+            equipped.level === level &&
+            (!l || equipped.l === l)
+        ) continue;
+
+        // Find the first matching item in inventory
+        const item_index = parent.character.items.findIndex(item =>
+            item &&
+            item.name === itemName &&
+            item.level === level &&
+            (!l || item.l === l)
+        );
+
+        if (item_index !== -1) {
+            // Use the game's native equip function
+            promises.push(equip(item_index, slot));
+        }
+    }
+
+    if (!promises.length) return Promise.resolve("No items to equip.");
+
+    // Wait for all equip actions to complete
+    return Promise.all(promises);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
