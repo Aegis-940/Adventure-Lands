@@ -189,6 +189,7 @@ async function attack_loop() {
 
     let filteredMonsters;
     game_log("Check 3");
+    game_log("ATTACK_ONLY_TARGETED is", ATTACK_ONLY_TARGETED);
     if (ATTACK_ONLY_TARGETED) {
     game_log("Check 4");
         // Only attack monsters that already have a target
