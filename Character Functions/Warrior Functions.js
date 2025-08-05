@@ -245,10 +245,7 @@ async function skill_loop() {
 
             // Only check cleave if it's off cooldown
             if (!cleave_cooldown && mp_check && code_cost_check) {
-                await game_log("Check 1");
                 await handle_cleave(Mainhand);
-                tempCC3 = character.cc;
-                await game_log("Check 8");
             }
         }
     } catch (e) {
@@ -292,8 +289,6 @@ async function handle_cleave(Mainhand) {
     const now = performance.now();
     const time_since_last = now - last_cleave_time;
 
-    await game_log("Check 2");
-
     // Only proceed if all other conditions are met
     if (
         !smart.moving &&
@@ -308,27 +303,17 @@ async function handle_cleave(Mainhand) {
             distance(character, e) <= CLEAVE_RANGE
         );
 
-        await game_log("Check 3");
-
         if (monsters.length > 4) {
             if (Mainhand !== "bataxe") await cleave_set();
-            await game_log("Check 4");
             await use_skill("cleave");
-            await game_log("Check 5");
             //reduce_cooldown("cleave", character.ping * 0.95);
             last_cleave_time = now;
             // Swap back instantly (don't delay this)
             if (weapon_set_equipped !== "single") {
-                await game_log("Check 6");
                 await single_set();
-                await game_log("Check 7");
             }
         }
-    } else {
-        
-        game_log("HANDLE CLEAVE FAILED!!!");
-
-    }
+    } 
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -354,8 +339,6 @@ async function batch_equip(data) {
         return;
     }
     batch_equip_lock = true;
-
-    game_log("BATCH EQUIP 1");
 
     const batch = [];
 
@@ -389,8 +372,6 @@ async function batch_equip(data) {
         batch_equip_lock = false;
         return handleEquipBatchError("No items to equip.");
     }
-
-    game_log("BATCH EQUIP 2");
 
     // Use the game's native equip_batch
     let result = await equip_batch(batch);
