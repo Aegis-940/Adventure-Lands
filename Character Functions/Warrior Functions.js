@@ -292,8 +292,8 @@ async function handle_cleave(Mainhand) {
     // Only proceed if all other conditions are met
     if (
         !smart.moving &&
-        time_since_last >= CLEAVE_THRESHOLD //&&
-        //ms_to_next_skill("attack") > 75
+        time_since_last >= CLEAVE_THRESHOLD &&
+        ms_to_next_skill("attack") > 75
     ) {
         // Only now filter monsters
         const monsters = Object.values(parent.entities).filter(e =>
@@ -306,7 +306,7 @@ async function handle_cleave(Mainhand) {
         if (monsters.length > 4) {
             if (Mainhand !== "bataxe") await cleave_set();
             await use_skill("cleave");
-            //reduce_cooldown("cleave", character.ping * 0.95);
+            reduce_cooldown("cleave", character.ping * 0.95);
             last_cleave_time = now;
             // Swap back instantly (don't delay this)
             if (weapon_set_equipped !== "single") {
