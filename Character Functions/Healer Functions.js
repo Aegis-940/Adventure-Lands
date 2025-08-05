@@ -247,7 +247,7 @@ async function attack_loop() {
             }
         }
     } catch (e) {
-        //console.error(e);
+        console.error(e);
     }
 
     attack_timer_id = setTimeout(attack_loop, delay);

@@ -220,8 +220,8 @@ async function attack_loop() {
             await attack(sorted_targets[0]);
         }
         delay = ms_to_next_skill("attack");
-    } catch (err) {
-        console.error(err);
+    } catch (e) {
+        console.error(e);
     }
     attack_timer_id = setTimeout(attack_loop, delay);
 }
