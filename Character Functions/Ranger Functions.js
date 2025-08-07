@@ -290,6 +290,54 @@ async function move_loop() {
         move_timer_id = setTimeout(move_loop, delay);
     }
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// LOOT LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let lastLoot = null;
+let tryLoot = false;
+const chestThreshold = 12;
+
+// Count the number of available chests
+function getNumChests() {
+    return Object.keys(get_chests()).length;
+}
+
+// Async function to loot up to chestThreshold chests
+async function loot_chests() {
+    let looted = 0;
+    for (const id in get_chests()) {
+        if (looted >= chestThreshold) break;
+        parent.open_chest(id);
+        looted++;
+        await delay(60); // Small delay to avoid server spam
+    }
+    lastLoot = Date.now();
+    tryLoot = true;
+}
+
+// Main async optimized loot loop
+async function loot_loop() {
+    while (true) {
+        const now = Date.now();
+
+        // If enough time has passed since last loot, and enough chests are present, and not feared
+        if ((lastLoot ?? 0) + 500 < now) {
+            if (getNumChests() >= chestThreshold && character.fear < 6) {
+                await loot_chests();
+            }
+        }
+
+        // If chests drop below threshold after looting, reset tryLoot
+        if (getNumChests() < chestThreshold && tryLoot) {
+            tryLoot = false;
+        }
+
+        await delay(100); // Check every 100ms
+    }
+}
+
 /*
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // HANDLE BOSSES
