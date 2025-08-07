@@ -20,6 +20,7 @@ toggle_free_move();
 toggle_follow_priest_button();
 hide_skills_ui();
 
+potions_loop();
 //panic_button_loop();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

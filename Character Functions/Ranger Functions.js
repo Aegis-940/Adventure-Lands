@@ -271,6 +271,38 @@ async function move_loop() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// POTIONS LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+async function potions_loop() {
+    while (true) {
+        // Calculate missing HP/MP
+        const hpMissing = character.max_hp - character.hp;
+        const mpMissing = character.max_mp - character.mp;
+
+        let used_potion = false;
+
+        // Use health potion if needed (non-priest)
+        if (hpMissing >= 400) {
+                use("hp");
+                used_potion = true;
+        }
+
+        // Use mana potion if needed
+        if (mpMissing >= 500) {
+                use("mp");
+                used_potion = true;
+        }
+
+        if (used_potion) {
+            await delay(2005); // Wait 2 seconds after using a potion
+        } else {
+            await delay(10);   // Otherwise, check again in 10ms
+        }
+    }
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // PANIC BUTTON!!!
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
