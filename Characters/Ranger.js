@@ -39,7 +39,7 @@ setInterval(() => {
 	}
 
 	// === Core utility loops ===
-	pots();
+	//pots();
 	loot();
 	party_manager();
 	
