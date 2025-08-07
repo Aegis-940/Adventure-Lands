@@ -278,7 +278,6 @@ async function move_loop() {
 const BOSSES = ["phoenix"]; // Add more boss mtypes as needed
 
 async function handle_bosses() {
-    // Search for bosses in the current entities
     const boss = Object.values(parent.entities).find(e =>
         e.type === "monster" &&
         BOSSES.includes(e.mtype) &&
@@ -287,17 +286,15 @@ async function handle_bosses() {
     );
 
     if (boss) {
-        // If a boss is found, attack it with single target attack and special skills
         change_target(boss);
         if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
         if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
         if (!is_on_cooldown("attack")) {
             await attack(boss);
         }
-        delay = ms_to_next_skill("attack");
-        return delay; // Indicate that a boss was handled
+        return true; // Always return boolean
     }
-    return false; // No boss found
+    return false;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
