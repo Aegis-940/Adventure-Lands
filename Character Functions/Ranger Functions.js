@@ -200,13 +200,13 @@ async function attack_loop() {
     // }
     // // --- End boss logic ---
     
-    // const monsters = Object.values(parent.entities).filter(e =>
-    //         e.type === "monster" &&
-    //         MONSTER_TYPES.includes(e.mtype) &&
-    //         !e.dead &&
-    //         e.visible &&
-    //         parent.distance(character, e) <= character.range
-    //     );
+    const monsters = Object.values(parent.entities).filter(e =>
+            e.type === "monster" &&
+            MONSTER_TYPES.includes(e.mtype) &&
+            !e.dead &&
+            e.visible &&
+            parent.distance(character, e) <= character.range
+        );
 
     let filteredMonsters;
     if (ATTACK_TARGETED) {
