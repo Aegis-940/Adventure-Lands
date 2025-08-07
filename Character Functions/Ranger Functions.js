@@ -180,33 +180,33 @@ async function attack_loop() {
     let delay = 50;
     const X = character.x, Y = character.y;
 
-    // --- Boss priority logic ---
-    const boss = Object.values(parent.entities).find(e =>
-        e.type === "monster" &&
-        BOSSES.includes(e.mtype) &&
-        !e.dead &&
-        e.visible
-    );
-    if (boss) {
-        change_target(boss);
-        if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
-        if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
-        if (!is_on_cooldown("attack")) {
-            await attack(boss);
-        }
-        delay = ms_to_next_skill("attack");
-        attack_timer_id = setTimeout(attack_loop, delay);
-        return;
-    }
-    // --- End boss logic ---
+    // // --- Boss priority logic ---
+    // const boss = Object.values(parent.entities).find(e =>
+    //     e.type === "monster" &&
+    //     BOSSES.includes(e.mtype) &&
+    //     !e.dead &&
+    //     e.visible
+    // );
+    // if (boss) {
+    //     change_target(boss);
+    //     if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
+    //     if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
+    //     if (!is_on_cooldown("attack")) {
+    //         await attack(boss);
+    //     }
+    //     delay = ms_to_next_skill("attack");
+    //     attack_timer_id = setTimeout(attack_loop, delay);
+    //     return;
+    // }
+    // // --- End boss logic ---
     
-    const monsters = Object.values(parent.entities).filter(e =>
-            e.type === "monster" &&
-            MONSTER_TYPES.includes(e.mtype) &&
-            !e.dead &&
-            e.visible &&
-            parent.distance(character, e) <= character.range
-        );
+    // const monsters = Object.values(parent.entities).filter(e =>
+    //         e.type === "monster" &&
+    //         MONSTER_TYPES.includes(e.mtype) &&
+    //         !e.dead &&
+    //         e.visible &&
+    //         parent.distance(character, e) <= character.range
+    //     );
 
     let filteredMonsters;
     if (ATTACK_TARGETED) {
