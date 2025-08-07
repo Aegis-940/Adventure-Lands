@@ -175,7 +175,7 @@ async function attack_loop() {
     let ATTACK_TARGETED = false; // Toggle: true = only attack monsters with a target
     const RANGE_THRESHOLD = character.range;
 
-    handle_bosses();
+    if (await handle_bosses()) return;
 
     let delay = 50;
     const X = character.x, Y = character.y;
