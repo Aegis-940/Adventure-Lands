@@ -276,6 +276,7 @@ async function move_loop() {
 
 async function potions_loop() {
     while (true) {
+        let delay = 10;
         // Calculate missing HP/MP
         const hpMissing = character.max_hp - character.hp;
         const mpMissing = character.max_mp - character.mp;
@@ -286,16 +287,18 @@ async function potions_loop() {
         if (hpMissing >= 400) {
                 use("hp");
                 used_potion = true;
+                delay = ms_to_next_skill("use_hp");
         }
 
         // Use mana potion if needed
         if (mpMissing >= 500) {
                 use("mp");
                 used_potion = true;
+                delay = ms_to_next_skill("use_mp");
         }
 
         if (used_potion) {
-            await delay(2005); // Wait 2 seconds after using a potion
+            await delay; // Wait 2 seconds after using a potion
         } else {
             await delay(10);   // Otherwise, check again in 10ms
         }
