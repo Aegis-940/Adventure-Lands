@@ -309,7 +309,7 @@ async function collect_loot() {
 			const target = get_player(name);
 			if (target && distance(character, target) <= DELIVERY_RADIUS) {
 				send_cm(name, { type: "send_loot" });
-				await delay(1000);
+				await delay(5000);
 				collected = true;
 			}
 			if (!smart.moving) {
