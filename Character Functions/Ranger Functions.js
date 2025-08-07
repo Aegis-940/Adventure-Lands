@@ -299,7 +299,7 @@ async function potions_loop() {
         }
 
         if (used_potion) {
-            await delay(2000); // Wait 2 seconds after using a potion
+            await delay(2010); // Wait 2 seconds after using a potion
         } else {
             await delay(10);   // Otherwise, check again in 10ms
         }
