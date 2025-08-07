@@ -170,11 +170,12 @@ function get_nearest_monster_v2(args = {}) {
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-
 async function attack_loop() {
     if (!attack_enabled) return;
     let ATTACK_TARGETED = false; // Toggle: true = only attack monsters with a target
     const RANGE_THRESHOLD = character.range;
+
+    handle_bosses();
 
     let delay = 50;
     const X = character.x, Y = character.y;
@@ -268,6 +269,35 @@ async function move_loop() {
     if (move_enabled) {
         move_timer_id = setTimeout(move_loop, delay);
     }
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// HANDLE BOSSES
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const BOSSES = ["phoenix"]; // Add more boss mtypes as needed
+
+async function handle_bosses() {
+    // Search for bosses in the current entities
+    const boss = Object.values(parent.entities).find(e =>
+        e.type === "monster" &&
+        BOSSES.includes(e.mtype) &&
+        !e.dead &&
+        e.visible
+    );
+
+    if (boss) {
+        // If a boss is found, attack it with single target attack and special skills
+        change_target(boss);
+        if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
+        if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
+        if (!is_on_cooldown("attack")) {
+            await attack(boss);
+        }
+        delay = ms_to_next_skill("attack");
+        return delay; // Indicate that a boss was handled
+    }
+    return false; // No boss found
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
