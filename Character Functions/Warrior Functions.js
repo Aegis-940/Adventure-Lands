@@ -11,121 +11,91 @@ let skills_enabled   = true;
 let skill_timer_id   = null;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// 2) START/STOP HELPERS
+// 2) START/STOP HELPERS (with persistent state saving)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function start_attack_loop() {
-  attack_enabled = true;     // always set it
-  attack_loop();             // always call it
-  game_log("▶️ Attack loop started");
+    attack_enabled = true;
+    attack_loop();
+    save_persistent_state();
+    game_log("▶️ Attack loop started");
 }
 
 function stop_attack_loop() {
-  attack_enabled = false;
-  clearTimeout(attack_timer_id);
-  game_log("⏹ Attack loop stopped");
+    attack_enabled = false;
+    clearTimeout(attack_timer_id);
+    save_persistent_state();
+    game_log("⏹ Attack loop stopped");
 }
 
 function start_move_loop() {
     move_enabled = true;
     move_loop();
+    save_persistent_state();
     game_log("▶️ Move loop started");
 }
 
 function stop_move_loop() {
-  move_enabled = false;
-  clearTimeout(move_timer_id);
-  game_log("⏹ Move loop stopped");
+    move_enabled = false;
+    clearTimeout(move_timer_id);
+    save_persistent_state();
+    game_log("⏹ Move loop stopped");
 }
 
 function start_skill_loop() {
     skills_enabled = true;
     skill_loop();
+    save_persistent_state();
     game_log("▶️ Skill loop started");
 }
 
 function stop_skill_loop() {
-  skills_enabled = false;
-  clearTimeout(skill_timer_id);
-  game_log("⏹ Skill loop stopped");
+    skills_enabled = false;
+    clearTimeout(skill_timer_id);
+    save_persistent_state();
+    game_log("⏹ Skill loop stopped");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 3) PERSISTENT STATE HANDLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Save current loop flags using native set().
 function save_persistent_state() {
-  try {
-    set("warrior_attack_enabled", attack_enabled);
-    set("warrior_move_enabled",  move_enabled);
-    set("warrior_skill_enabled",  skills_enabled);
-  } catch (e) {
-    console.error("Error saving persistent state:", e);
-  }
+    try {
+        set("warrior_attack_enabled", attack_enabled);
+        set("warrior_move_enabled",  move_enabled);
+        set("warrior_skill_enabled", skills_enabled);
+    } catch (e) {
+        console.error("Error saving persistent state:", e);
+    }
 }
 
-// Load saved flags with native get(), then start/stop loops accordingly. Call this once at script init.
 function init_persistent_state() {
-  try {
-    const atk = get("warrior_attack_enabled");
-    if (atk !== undefined) attack_enabled = atk;
+    try {
+        const atk = get("warrior_attack_enabled");
+        if (atk !== undefined) attack_enabled = atk;
 
-    const mv = get("warrior_move_enabled");
-    if (mv !== undefined) move_enabled = mv;
+        const mv = get("warrior_move_enabled");
+        if (mv !== undefined) move_enabled = mv;
 
-    const sk = get("warrior_skill_enabled");
-    if (sk !== undefined) skills_enabled = sk;
+        const sk = get("warrior_skill_enabled");
+        if (sk !== undefined) skills_enabled = sk;
 
-    // Reflect loaded flags in the loop state
-    if (attack_enabled) start_attack_loop();
-    else                stop_attack_loop();
+        // Reflect loaded flags in the loop state
+        if (attack_enabled) start_attack_loop();
+        else               stop_attack_loop();
 
-    if (move_enabled)   start_move_loop();
-    else                stop_move_loop();
+        if (move_enabled)   start_move_loop();
+        else               stop_move_loop();
 
-    if (skills_enabled) start_skill_loop();
-    else                stop_skill_loop();
-  } catch (e) {
-    console.error("Error loading persistent state:", e);
-  }
+        if (skills_enabled) start_skill_loop();
+        else               stop_skill_loop();
+    } catch (e) {
+        console.error("Error loading persistent state:", e);
+    }
 }
 
-// Hook state-saving into your start/stop functions:
-const _origStartAttack = start_attack_loop;
-start_attack_loop = function() {
-  _origStartAttack();
-  save_persistent_state();
-};
-const _origStopAttack = stop_attack_loop;
-stop_attack_loop = function() {
-  _origStopAttack();
-  save_persistent_state();
-};
-
-const _origStartMove = start_move_loop;
-start_move_loop = function() {
-  _origStartMove();
-  save_persistent_state();
-};
-const _origStopMove = stop_move_loop;
-stop_move_loop = function() {
-  _origStopMove();
-  save_persistent_state();
-};
-
-const _origStartSkill = start_skill_loop;
-start_skill_loop = function() {
-  _origStartSkill();
-  save_persistent_state();
-};
-const _origStopSkill = stop_skill_loop;
-stop_skill_loop = function() {
-  _origStopSkill();
-  save_persistent_state();
-};
-
-// Ensure state is saved if the script unloads
+// Save state on script unload
 window.addEventListener("beforeunload", save_persistent_state);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -252,6 +222,53 @@ async function skill_loop() {
         //console.error("Error in skillLoop:", e);
     }
     setTimeout(skill_loop, delay);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// LOOT LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let lastLoot = null;
+let tryLoot = false;
+const chestThreshold = 12;
+
+// Count the number of available chests
+function getNumChests() {
+    return Object.keys(get_chests()).length;
+}
+
+// Async function to loot up to chestThreshold chests
+async function loot_chests() {
+    let looted = 0;
+    for (const id in get_chests()) {
+        if (looted >= chestThreshold) break;
+        parent.open_chest(id);
+        looted++;
+        await delay(60); // Small delay to avoid server spam
+    }
+    lastLoot = Date.now();
+    tryLoot = true;
+}
+
+// Main async optimized loot loop
+async function loot_loop() {
+    while (true) {
+        const now = Date.now();
+
+        // If enough time has passed since last loot, and enough chests are present, and not feared
+        if ((lastLoot ?? 0) + 500 < now) {
+            if (getNumChests() >= chestThreshold && character.fear < 6) {
+                await loot_chests();
+            }
+        }
+
+        // If chests drop below threshold after looting, reset tryLoot
+        if (getNumChests() < chestThreshold && tryLoot) {
+            tryLoot = false;
+        }
+
+        await delay(100); // Check every 100ms
+    }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

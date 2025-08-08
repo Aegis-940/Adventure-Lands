@@ -13,27 +13,30 @@ let move_timer_id    = null;
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function start_attack_loop() {
-    attack_enabled = true;     // always set it
-    clearTimeout(attack_timer_id);
-    attack_loop();             // always call it
+    attack_enabled = true;
+    attack_loop();
+    save_persistent_state();
     game_log("▶️ Attack loop started");
 }
 
 function stop_attack_loop() {
     attack_enabled = false;
     clearTimeout(attack_timer_id);
+    save_persistent_state();
     game_log("⏹ Attack loop stopped");
-    }
+}
 
 function start_move_loop() {
     move_enabled = true;
     move_loop();
+    save_persistent_state();
     game_log("▶️ Move loop started");
 }
 
 function stop_move_loop() {
     move_enabled = false;
     clearTimeout(move_timer_id);
+    save_persistent_state();
     game_log("⏹ Move loop stopped");
 }
 
@@ -41,7 +44,6 @@ function stop_move_loop() {
 // 3) PERSISTENT STATE HANDLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Save current loop flags using native set().
 function save_persistent_state() {
     try {
         set("ranger_attack_enabled", attack_enabled);
@@ -51,7 +53,6 @@ function save_persistent_state() {
     }
 }
 
-// Load saved flags with native get(), then start/stop loops accordingly. Call this once at script init.
 function init_persistent_state() {
     try {
         const atk = get("ranger_attack_enabled");
@@ -62,39 +63,16 @@ function init_persistent_state() {
 
         // Reflect loaded flags in the loop state
         if (attack_enabled) start_attack_loop();
-        else                stop_attack_loop();
+        else               stop_attack_loop();
 
-        if (move_enabled)   start_move_loop();
-        else                stop_move_loop();
+        if (move_enabled)  start_move_loop();
+        else               stop_move_loop();
     } catch (e) {
         console.error("Error loading persistent state:", e);
     }
 }
 
-// Hook state-saving into your start/stop functions:
-const _origStartAttack = start_attack_loop;
-start_attack_loop = function() {
-  _origStartAttack();
-  save_persistent_state();
-};
-const _origStopAttack = stop_attack_loop;
-stop_attack_loop = function() {
-  _origStopAttack();
-  save_persistent_state();
-};
-
-const _origStartMove = start_move_loop;
-start_move_loop = function() {
-  _origStartMove();
-  save_persistent_state();
-};
-const _origStopMove = stop_move_loop;
-stop_move_loop = function() {
-  _origStopMove();
-  save_persistent_state();
-};
-
-// Ensure state is saved if the script unloads
+// Save state on script unload
 window.addEventListener("beforeunload", save_persistent_state);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -179,25 +157,11 @@ async function attack_loop() {
     let delay = 50;
     const X = character.x, Y = character.y;
 
-    // --- Boss priority logic ---
-    const boss = Object.values(parent.entities).find(e =>
-        e.type === "monster" &&
-        BOSSES.includes(e.mtype) &&
-        !e.dead &&
-        e.visible
-    );
-    if (boss) {
-        change_target(boss);
-        if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
-        if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
-        if (!is_on_cooldown("attack")) {
-            await attack(boss);
-        }
+    if (await handle_bosses()) {
         delay = ms_to_next_skill("attack");
         attack_timer_id = setTimeout(attack_loop, delay);
         return;
     }
-    // --- End boss logic ---
     
     const monsters = Object.values(parent.entities).filter(e =>
             e.type === "monster" &&
@@ -338,7 +302,7 @@ async function loot_loop() {
     }
 }
 
-/*
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // HANDLE BOSSES
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -350,7 +314,6 @@ async function handle_bosses() {
         !e.dead &&
         e.visible
     );
-
     if (boss) {
         change_target(boss);
         if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
@@ -358,11 +321,11 @@ async function handle_bosses() {
         if (!is_on_cooldown("attack")) {
             await attack(boss);
         }
-        return true; // Always return boolean
+        return true; // Boss handled
     }
-    return false;
+    return false; // No boss
 }
-*/
+
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // POTIONS LOOP

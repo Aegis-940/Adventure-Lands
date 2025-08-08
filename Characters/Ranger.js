@@ -21,7 +21,9 @@ toggle_follow_priest_button();
 hide_skills_ui();
 
 potions_loop();
+
 loot_loop();
+
 //panic_button_loop();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -40,7 +42,6 @@ setInterval(() => {
 	}
 
 	// === Core utility loops ===
-	//pots();
 	party_manager();
 	
 	if (!attack_mode || character.rip || is_moving(character)) return;

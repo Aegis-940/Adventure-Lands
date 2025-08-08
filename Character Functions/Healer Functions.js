@@ -9,100 +9,80 @@ let move_enabled     = true;
 let move_timer_id    = null;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// 2) START/STOP HELPERS
+// 2) START/STOP HELPERS (with persistent state saving)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function start_attack_loop() {
-  attack_enabled = true;     // always set it
-  attack_loop();             // always call it
-  console.log("▶️ Attack loop started");
+    attack_enabled = true;
+    attack_loop();
+    save_persistent_state();
+    console.log("▶️ Attack loop started");
 }
 
 function stop_attack_loop() {
-  attack_enabled = false;
-  clearTimeout(attack_timer_id);
-  console.log("⏹ Attack loop stopped");
+    attack_enabled = false;
+    clearTimeout(attack_timer_id);
+    save_persistent_state();
+    console.log("⏹ Attack loop stopped");
 }
 
 function start_move_loop() {
     move_enabled = true;
     move_loop();
+    save_persistent_state();
     console.log("▶️ Move loop started");
 }
 
 function stop_move_loop() {
-  move_enabled = false;
-  clearTimeout(move_timer_id);
-  console.log("⏹ Move loop stopped");
+    move_enabled = false;
+    clearTimeout(move_timer_id);
+    save_persistent_state();
+    console.log("⏹ Move loop stopped");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 3) PERSISTENT STATE HANDLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function init_persistent_state() {
-	try {
-		// Load attack and move loop flags
-		const atk = get("healer_attack_enabled");
-		if (atk !== undefined) attack_enabled = atk;
-
-		const mv = get("healer_move_enabled");
-		if (mv !== undefined) move_enabled = mv;
-
-		// Load skill toggles
-		for (const key in PRIEST_SKILL_TOGGLES) {
-			const val = get(`priest_skill_${key}`);
-			if (val !== undefined) PRIEST_SKILL_TOGGLES[key] = val;
-		}
-
-		// Start/stop loops based on restored state
-		if (attack_enabled) start_attack_loop();
-		else                stop_attack_loop();
-
-		if (move_enabled)   start_move_loop();
-		else                stop_move_loop();
-	} catch (e) {
-		console.error("Error loading persistent state:", e);
-	}
-}
-
 function save_persistent_state() {
-	try {
-		set("healer_attack_enabled", attack_enabled);
-		set("healer_move_enabled", move_enabled);
-
-		for (const key in PRIEST_SKILL_TOGGLES) {
-			set(`priest_skill_${key}`, PRIEST_SKILL_TOGGLES[key]);
-		}
-	} catch (e) {
-		console.error("Error saving persistent state:", e);
-	}
+    try {
+        set("healer_attack_enabled", attack_enabled);
+        set("healer_move_enabled", move_enabled);
+        for (const key in PRIEST_SKILL_TOGGLES) {
+            set(`priest_skill_${key}`, PRIEST_SKILL_TOGGLES[key]);
+        }
+    } catch (e) {
+        console.error("Error saving persistent state:", e);
+    }
 }
 
-// Hook state-saving into your start/stop functions:
-const _origStartAttack = start_attack_loop;
-start_attack_loop = function() {
-  _origStartAttack();
-  save_persistent_state();
-};
-const _origStopAttack = stop_attack_loop;
-stop_attack_loop = function() {
-  _origStopAttack();
-  save_persistent_state();
-};
+function init_persistent_state() {
+    try {
+        // Load attack and move loop flags
+        const atk = get("healer_attack_enabled");
+        if (atk !== undefined) attack_enabled = atk;
 
-const _origStartMove = start_move_loop;
-start_move_loop = function() {
-  _origStartMove();
-  save_persistent_state();
-};
-const _origStopMove = stop_move_loop;
-stop_move_loop = function() {
-  _origStopMove();
-  save_persistent_state();
-};
+        const mv = get("healer_move_enabled");
+        if (mv !== undefined) move_enabled = mv;
 
-// Ensure state is saved if the script unloads
+        // Load skill toggles
+        for (const key in PRIEST_SKILL_TOGGLES) {
+            const val = get(`priest_skill_${key}`);
+            if (val !== undefined) PRIEST_SKILL_TOGGLES[key] = val;
+        }
+
+        // Start/stop loops based on restored state
+        if (attack_enabled) start_attack_loop();
+        else               stop_attack_loop();
+
+        if (move_enabled)  start_move_loop();
+        else               stop_move_loop();
+    } catch (e) {
+        console.error("Error loading persistent state:", e);
+    }
+}
+
+// Save state on script unload
 window.addEventListener("beforeunload", save_persistent_state);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -420,6 +400,53 @@ async function handle_dark_blessing() {
 	if (!is_on_cooldown("darkblessing")) {
 		await use_skill("darkblessing");
 	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// LOOT LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let lastLoot = null;
+let tryLoot = false;
+const chestThreshold = 12;
+
+// Count the number of available chests
+function getNumChests() {
+    return Object.keys(get_chests()).length;
+}
+
+// Async function to loot up to chestThreshold chests
+async function loot_chests() {
+    let looted = 0;
+    for (const id in get_chests()) {
+        if (looted >= chestThreshold) break;
+        parent.open_chest(id);
+        looted++;
+        await delay(60); // Small delay to avoid server spam
+    }
+    lastLoot = Date.now();
+    tryLoot = true;
+}
+
+// Main async optimized loot loop
+async function loot_loop() {
+    while (true) {
+        const now = Date.now();
+
+        // If enough time has passed since last loot, and enough chests are present, and not feared
+        if ((lastLoot ?? 0) + 500 < now) {
+            if (getNumChests() >= chestThreshold && character.fear < 6) {
+                await loot_chests();
+            }
+        }
+
+        // If chests drop below threshold after looting, reset tryLoot
+        if (getNumChests() < chestThreshold && tryLoot) {
+            tryLoot = false;
+        }
+
+        await delay(100); // Check every 100ms
+    }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
