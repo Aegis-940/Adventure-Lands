@@ -21,6 +21,8 @@ toggle_follow_priest_button();
 toggle_maintain_position();
 hide_skills_ui();
 
+potions_loop();
+
 panic_button_loop();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -39,7 +41,7 @@ setInterval(() => {
 	}
 
 	// === Core utility loops ===
-	pots();
+	//pots();
 	//loot();
 	party_manager();
 	
