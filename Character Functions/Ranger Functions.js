@@ -107,15 +107,6 @@ init_persistent_state();
 // SUPPORT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function item_quantity(name) {
-    for (let i = 0; i < 42; i++) {
-        if (character.items[i]?.name === name) {
-            return character.items[i].q;
-        }
-    }
-    return 0;
-}
-
 function ms_to_next_skill(skill) {
 	const next_skill = parent.next_skill[skill]
 	if (next_skill == undefined) return 0
@@ -377,39 +368,36 @@ async function handle_bosses() {
 // POTIONS LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let lastPotion = 0; // Track the time of the last potion usage
-let lastBuy = 0; // Track the time of the last purchase
-
 async function potions_loop() {
-    const hpThreshold = character.max_hp - 400;
-    const mpThreshold = character.max_mp - 500;
-    const potionCooldown = 1000; // Minimum time between potion usages
-    const buyCooldown = 1000; // Minimum time between purchases
-    let delay = null; // Shorter delay to handle frequent checks
+    while (true) {
+        // Calculate missing HP/MP
+        const hpMissing = character.max_hp - character.hp;
+        const mpMissing = character.max_mp - character.mp;
 
-    try {
-        const currentTime = Date.now();
+        let used_potion = false;
 
-        // Use MP potion if needed
-        if (character.mp <= mpThreshold && !is_on_cooldown('use_mp') && item_quantity("mpot1") > 0 && currentTime - lastPotion > potionCooldown) {
-            await use('use_mp');
-            reduce_cooldown("use_mp", character.ping)
-            lastPotion = currentTime;
+        // Use health potion if needed (non-priest)
+        if (hpMissing >= 400) {
+            if (can_use("hp")) {
+                await use("hp");
+                used_potion = true;
+            }
         }
 
-        // Use HP potion if needed
-        if (character.hp <= hpThreshold && !is_on_cooldown('use_hp') && item_quantity("hpot1") > 0 && currentTime - lastPotion > potionCooldown) {
-            await use('use_hp');
-            reduce_cooldown("use_hp", character.ping)
-            lastPotion = currentTime;
+        // Use mana potion if needed
+        if (mpMissing >= 500) {
+            if (can_use("mp")) {
+                await use("mp");
+                used_potion = true;
+            }
         }
-        delay = ms_to_next_skill("use_mp");
 
-    } catch (e) {
-        console.error("Error in handle_potions function:", e);
+        if (used_potion) {
+            await delay(2010); // Wait 2 seconds after using a potion
+        } else {
+            await delay(10);   // Otherwise, check again in 10ms
+        }
     }
-
-    setTimeout(potions_loop, delay);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
