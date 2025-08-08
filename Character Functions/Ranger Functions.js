@@ -371,7 +371,7 @@ async function handle_bosses() {
 let lastPotion = 0; // Track the time of the last potion usage
 let lastBuy = 0; // Track the time of the last purchase
 
-async function handle_potions() {
+async function potions_loop() {
     const hpThreshold = character.max_hp - 400;
     const mpThreshold = character.max_mp - 500;
     const potionCooldown = 1000; // Minimum time between potion usages
