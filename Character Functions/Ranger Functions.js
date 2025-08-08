@@ -400,7 +400,7 @@ async function potions_loop() {
         console.error("Error in handle_potions function:", e);
     }
 
-    setTimeout(handle_potions, delay);
+    setTimeout(potions_loop, delay);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
