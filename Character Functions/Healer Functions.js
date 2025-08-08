@@ -496,3 +496,59 @@ async function circle_move_loop() {
         await new Promise(resolve => setTimeout(resolve, 100));
     }
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// PANIC BUTTON!!!
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let panic_triggered = false;
+
+const CHECK_INTERVAL = 500;
+const PRIEST_NAME = "Myras";
+const PANIC_WEAPON = "jacko";
+const NORMAL_WEAPON = "orbg";
+
+async function panic_button_loop() {
+
+    while (true) {
+        const myras_online = parent.party_list.includes(PRIEST_NAME) && parent.entities[PRIEST_NAME];
+        const low_health = character.hp < character.max_hp / 3;
+        const high_health = character.hp >= 2 * character.max_hp / 3;
+
+        if (low_health) {
+            if (!panic_triggered) {
+                // Enter panic state
+                panic_triggered = true;
+                attack_enabled = false;
+                game_log("⚠️ Panic triggered:Low health!");
+
+                const jacko_slot = locate_item(PANIC_WEAPON);
+                if (jacko_slot !== -1) {
+                    await equip(jacko_slot);
+                    await delay(500);
+                }
+
+                if (can_use("scare")) {
+                    await use_skill("scare");
+                }
+            }
+        } else {
+            if (panic_triggered && high_health) {
+                // Exit panic state
+                game_log("✅ Panic over — resuming normal operations.");
+                panic_triggered = false;
+
+                const orbg_slot = locate_item(NORMAL_WEAPON);
+                if (orbg_slot !== -1) {
+                    await equip(orbg_slot);
+                    await delay(500);
+                }
+
+                attack_enabled = true;
+                start_attack_loop?.(); // Optional chaining if defined
+            }
+        }
+
+        await delay(CHECK_INTERVAL);
+    }
+}

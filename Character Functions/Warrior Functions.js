@@ -400,8 +400,10 @@ async function panic_button_loop() {
 
     while (true) {
         const myras_online = parent.party_list.includes(PRIEST_NAME) && parent.entities[PRIEST_NAME];
-        const low_health = character.hp < character.max_hp / 3;
-        const high_health = character.hp >= 2 * character.max_hp / 3;
+        const low_health = character.hp < (character.max_hp / 3);
+        const high_health = character.hp >= ((2 * character.max_hp) / 3);
+
+        game_log(`Panic check: HP=${character.hp}/${character.max_hp} low_health=${low_health} panic_triggered=${panic_triggered}`);
 
         if (!myras_online || low_health) {
             if (!panic_triggered) {
