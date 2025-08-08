@@ -437,8 +437,8 @@ async function potions_loop() {
         // Use health potion if needed (non-priest)
         if (hpMissing >= 720) {
             if (can_use("mp")) {
-                await use("mp");
-				await use_skill("partyheal");
+                use("mp");
+				use_skill("partyheal");
                 used_potion = true;
             }
         }
@@ -446,7 +446,7 @@ async function potions_loop() {
         // Use mana potion if needed
         if (mpMissing >= 500) {
             if (can_use("mp")) {
-                await use("mp");
+                use("mp");
                 used_potion = true;
             }
         }
