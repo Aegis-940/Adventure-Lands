@@ -196,6 +196,7 @@ async function attack_loop() {
                 is_in_range(heal_target)
             ) {
                 await heal(heal_target);
+				game_log(`Healing ${heal_target.name}`, "#00FF00");
                 delay = ms_to_next_skill('attack');
             } else {
                 // Filter all relevant monsters ONCE
