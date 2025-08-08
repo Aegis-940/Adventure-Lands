@@ -107,6 +107,15 @@ init_persistent_state();
 // SUPPORT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+function item_quantity(name) {
+    for (let i = 0; i < 42; i++) {
+        if (character.items[i]?.name === name) {
+            return character.items[i].q;
+        }
+    }
+    return 0;
+}
+
 function ms_to_next_skill(skill) {
 	const next_skill = parent.next_skill[skill]
 	if (next_skill == undefined) return 0
