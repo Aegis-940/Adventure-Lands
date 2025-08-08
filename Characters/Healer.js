@@ -21,6 +21,8 @@ create_priest_skill_buttons();
 toggle_circle_move_button();
 hide_skills_ui();
 
+potions_loop();
+
 attack_loop();
 move_loop();
 skill_loop();
@@ -43,7 +45,7 @@ setInterval(() => {
 	}
 
 	// === Core utility loops ===
-	pots();
+	//pots();
 	loot();
 	party_manager();
 
