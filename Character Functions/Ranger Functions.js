@@ -152,7 +152,6 @@ async function attack_loop() {
     if (!attack_enabled) return;
     let ATTACK_TARGETED = false; // Toggle: true = only attack monsters with a target
     const RANGE_THRESHOLD = character.range;
-    const BOSSES = ["phoenix"]; // Add more boss mtypes as needed
 
     let delay = 50;
     const X = character.x, Y = character.y;
@@ -308,6 +307,9 @@ async function loot_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function handle_bosses() {
+
+    const BOSSES = ["phoenix"]; // Add more boss mtypes as needed
+
     const boss = Object.values(parent.entities).find(e =>
         e.type === "monster" &&
         BOSSES.includes(e.mtype) &&
