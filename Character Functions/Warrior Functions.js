@@ -284,7 +284,7 @@ async function potions_loop() {
         let used_potion = false;
 
         // Use health potion if needed (non-priest)
-        if (hpMissing >= 400) {
+        if (hpMissing >= character.max_hp - (character.max_hp / 2)) {
             if (can_use("hp")) {
                 await use("hp");
                 used_potion = true;
