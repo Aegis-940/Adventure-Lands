@@ -292,6 +292,14 @@ async function skill_loop() {
 	const eventMaps = [];
 	const eventMobs = [];
 
+    let PRIEST_SKILL_TOGGLES = {
+        curse: true,
+        absorb: true,
+        party_heal: true,
+        dark_blessing: false,
+        zap_spam: false
+    };
+
 	try {
 		if (character.ctype === "priest") {
 			handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps);
