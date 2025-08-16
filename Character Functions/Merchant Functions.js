@@ -334,7 +334,7 @@ async function collect_loot() {
 
 const SELLABLE_ITEMS = ["hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "wbook0", "wshoes", "wcap", "cclaw", "crabclaw", "slimestaff", "stinger", "coat1", "helmet1",
 		       			"gloves1", "pants1", "mushroomstaff", "wbreeches", "shoes1", "vitring", "helmet", "shoes", "pants", "gloves", "coat", "pmace", "throwingstars", "t2bow",
-						 "spear", "dagger", "rapier", "sword", "fireblade", "firestaff", "firebow", "cape"];
+						 "spear", "dagger", "rapier", "sword", "fireblade", "firestaff", "firebow"];
 const BANKABLE_ITEMS = [];
 const BANK_LOCATION = { map: "bank", x: 0, y: -37 };
 
