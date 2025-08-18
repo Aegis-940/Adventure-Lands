@@ -204,12 +204,10 @@ async function attack_loop() {
             if (!is_on_cooldown("supershot")) await use_skill("supershot", cursed);
         }
 
-        if (sorted_targets.length >= 5 && character.mp >= 250) {
-            game_log("Targets: " + sorted_targets.length + " Using 3shot");
+        if (sorted_targets.length >= 5 && character.mp >= 380) {
             await use_skill("5shot", sorted_targets.map(m => m.id));
             delay = ms_to_next_skill("attack");
         } else if (sorted_targets.length >= 2 && character.mp >= 250) {
-            game_log("Targets: " + sorted_targets.length + " Using 5shot");
             await use_skill("3shot", sorted_targets.map(m => m.id));
             delay = ms_to_next_skill("attack");
         } else if (sorted_targets.length >= 1) {
