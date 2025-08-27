@@ -48,6 +48,8 @@ function save_persistent_state() {
     try {
         set("healer_attack_enabled", attack_enabled);
         set("healer_move_enabled", move_enabled);
+        set("circle_move_enabled", circle_move_enabled);
+        set("circle_path_points", JSON.stringify(circle_path_points));
         for (const key in PRIEST_SKILL_TOGGLES) {
             set(`priest_skill_${key}`, PRIEST_SKILL_TOGGLES[key]);
         }
@@ -65,6 +67,19 @@ function init_persistent_state() {
         const mv = get("healer_move_enabled");
         if (mv !== undefined) move_enabled = mv;
 
+        // Load circle move state
+        const circle_enabled = get("circle_move_enabled");
+        if (circle_enabled !== undefined) circle_move_enabled = circle_enabled;
+
+        const saved_points = get("circle_path_points");
+        if (saved_points) {
+            try {
+                circle_path_points = JSON.parse(saved_points);
+            } catch (e) {
+                circle_path_points = [];
+            }
+        }
+
         // Load skill toggles
         for (const key in PRIEST_SKILL_TOGGLES) {
             const val = get(`priest_skill_${key}`);
@@ -77,6 +92,12 @@ function init_persistent_state() {
 
         if (move_enabled)  start_move_loop();
         else               stop_move_loop();
+
+        // Start circle move loop if enabled and points exist
+        if (circle_move_enabled && circle_path_points.length > 0) {
+            circle_move_loop();
+            game_log("🔵 Circle move loop resumed from persistent state");
+        }
     } catch (e) {
         console.error("Error loading persistent state:", e);
     }
@@ -582,44 +603,37 @@ const PANIC_WEAPON = "jacko";
 const NORMAL_WEAPON = "orbg";
 
 async function panic_button_loop() {
-
     while (true) {
-        const myras_online = parent.party_list.includes(PRIEST_NAME) && parent.entities[PRIEST_NAME];
         const low_health = character.hp < character.max_hp / 3;
         const high_health = character.hp >= 2 * character.max_hp / 3;
 
-        if (low_health) {
-            if (!panic_triggered) {
-                // Enter panic state
-                panic_triggered = true;
-                attack_enabled = false;
-                game_log("⚠️ Panic triggered:Low health!");
+        if (low_health && !panic_triggered) {
+            // Enter panic state
+            panic_triggered = true;
+            stop_attack_loop();
+            game_log("⚠️ Panic triggered: Low health!");
 
-                const jacko_slot = locate_item(PANIC_WEAPON);
-                if (jacko_slot !== -1) {
-                    await equip(jacko_slot);
-                    await delay(500);
-                }
-
-                if (can_use("scare")) {
-                    await use_skill("scare");
-                }
+            const jacko_slot = locate_item(PANIC_WEAPON);
+            if (jacko_slot !== -1) {
+                await equip(jacko_slot);
+                await delay(500);
             }
-        } else {
-            if (panic_triggered && high_health) {
-                // Exit panic state
-                game_log("✅ Panic over — resuming normal operations.");
-                panic_triggered = false;
 
-                const orbg_slot = locate_item(NORMAL_WEAPON);
-                if (orbg_slot !== -1) {
-                    await equip(orbg_slot);
-                    await delay(500);
-                }
-
-                attack_enabled = true;
-                start_attack_loop?.(); // Optional chaining if defined
+            if (can_use("scare")) {
+                await use_skill("scare");
             }
+        } else if (panic_triggered && high_health) {
+            // Exit panic state
+            game_log("✅ Panic over — resuming normal operations.");
+            panic_triggered = false;
+
+            const orbg_slot = locate_item(NORMAL_WEAPON);
+            if (orbg_slot !== -1) {
+                await equip(orbg_slot);
+                await delay(500);
+            }
+
+            start_attack_loop();
         }
 
         await delay(CHECK_INTERVAL);

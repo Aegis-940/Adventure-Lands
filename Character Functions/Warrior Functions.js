@@ -450,7 +450,6 @@ const PANIC_WEAPON = "jacko";
 const NORMAL_WEAPON = "orbg";
 
 async function panic_button_loop() {
-
     while (true) {
         const myras_online = parent.party_list.includes(PRIEST_NAME) && parent.entities[PRIEST_NAME];
         const low_health = character.hp < (character.max_hp / 3);
@@ -460,7 +459,7 @@ async function panic_button_loop() {
             if (!panic_triggered) {
                 // Enter panic state
                 panic_triggered = true;
-                attack_enabled = false;
+                stop_attack_loop();
                 game_log("⚠️ Panic triggered:", !myras_online ? "Myras is offline!" : "Low health!");
 
                 const jacko_slot = locate_item(PANIC_WEAPON);
@@ -473,21 +472,18 @@ async function panic_button_loop() {
                     await use_skill("scare");
                 }
             }
-        } else {
-            if (panic_triggered && high_health && myras_online) {
-                // Exit panic state
-                game_log("✅ Panic over — resuming normal operations.");
-                panic_triggered = false;
+        } else if (panic_triggered && high_health && myras_online) {
+            // Exit panic state
+            game_log("✅ Panic over — resuming normal operations.");
+            panic_triggered = false;
 
-                const orbg_slot = locate_item(NORMAL_WEAPON);
-                if (orbg_slot !== -1) {
-                    await equip(orbg_slot);
-                    await delay(500);
-                }
-
-                attack_enabled = true;
-                start_attack_loop?.(); // Optional chaining if defined
+            const orbg_slot = locate_item(NORMAL_WEAPON);
+            if (orbg_slot !== -1) {
+                await equip(orbg_slot);
+                await delay(500);
             }
+
+            start_attack_loop();
         }
 
         await delay(CHECK_INTERVAL);
