@@ -1,122 +1,5 @@
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// 1) GLOBAL SWITCHES & TIMERS
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-let attack_enabled   = true;
-let attack_timer_id  = null;
-let move_enabled     = true;
-let move_timer_id    = null;
-
-let circle_move_enabled = false;
-let circle_path_points = [];
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// 2) START/STOP HELPERS (with persistent state saving)
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-function start_attack_loop() {
-    attack_enabled = true;
-    clearTimeout(attack_timer_id); // Ensure no duplicate timers
-    attack_loop();
-    save_persistent_state();
-    game_log("▶️ Attack loop started");
-}
-
-function stop_attack_loop() {
-    attack_enabled = false;
-    clearTimeout(attack_timer_id);
-    save_persistent_state();
-    game_log("⏹ Attack loop stopped");
-}
-
-function start_move_loop() {
-    move_enabled = true;
-    move_loop();
-    save_persistent_state();
-    game_log("▶️ Move loop started");
-}
-
-function stop_move_loop() {
-    move_enabled = false;
-    clearTimeout(move_timer_id);
-    save_persistent_state();
-    game_log("⏹ Move loop stopped");
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// 3) PERSISTENT STATE HANDLER
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-function save_persistent_state() {
-    try {
-        set("healer_attack_enabled", attack_enabled);
-        set("healer_move_enabled", move_enabled);
-        set("circle_move_enabled", circle_move_enabled);
-        set("circle_path_points", JSON.stringify(circle_path_points));
-        for (const key in PRIEST_SKILL_TOGGLES) {
-            set(`priest_skill_${key}`, PRIEST_SKILL_TOGGLES[key]);
-        }
-    } catch (e) {
-        console.error("Error saving persistent state:", e);
-    }
-}
-
-function init_persistent_state() {
-    try {
-        // Load attack and move loop flags
-        const atk = get("healer_attack_enabled");
-        if (atk !== undefined) attack_enabled = atk;
-
-        const mv = get("healer_move_enabled");
-        if (mv !== undefined) move_enabled = mv;
-
-        // Load circle move state
-        const circle_enabled = get("circle_move_enabled");
-        if (circle_enabled !== undefined) circle_move_enabled = circle_enabled;
-
-        const saved_points = get("circle_path_points");
-        if (saved_points) {
-            try {
-                circle_path_points = JSON.parse(saved_points);
-            } catch (e) {
-                circle_path_points = [];
-            }
-        }
-
-        // Load skill toggles
-        for (const key in PRIEST_SKILL_TOGGLES) {
-            const val = get(`priest_skill_${key}`);
-            if (val !== undefined) PRIEST_SKILL_TOGGLES[key] = val;
-        }
-
-        // Start/stop loops based on restored state
-        if (attack_enabled) start_attack_loop();
-        else               stop_attack_loop();
-
-        if (move_enabled)  start_move_loop();
-        else               stop_move_loop();
-
-        // Start circle move loop if enabled and points exist
-        if (circle_move_enabled && circle_path_points.length > 0) {
-            circle_move_loop();
-            game_log("🔵 Circle move loop resumed from persistent state");
-        }
-    } catch (e) {
-        console.error("Error loading persistent state:", e);
-    }
-}
-
-// Save state on script unload
-window.addEventListener("beforeunload", save_persistent_state);
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// 4) PERSISTENT STATE
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-init_persistent_state();
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
 // SUPPORT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -524,10 +407,11 @@ async function potions_loop() {
 // COMBAT MOVEMENT TO GROUP UP ENEMIES - SEMI OPTIMIZED
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-
+let circle_move_enabled = false;
 let circle_move_timer_id = null;
 let circle_origin = null;
 let circle_move_radius = 20;
+let circle_path_points = [];
 let circle_path_index = 0;
 const CIRCLE_STEPS = 12; // 30 degrees per step
 
@@ -642,3 +526,118 @@ async function panic_button_loop() {
         await delay(CHECK_INTERVAL);
     }
 }
+
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// 1) GLOBAL SWITCHES & TIMERS
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let attack_enabled   = true;
+let attack_timer_id  = null;
+let move_enabled     = true;
+let move_timer_id    = null;
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// 2) START/STOP HELPERS (with persistent state saving)
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function start_attack_loop() {
+    attack_enabled = true;
+    clearTimeout(attack_timer_id); // Ensure no duplicate timers
+    attack_loop();
+    save_persistent_state();
+    game_log("▶️ Attack loop started");
+}
+
+function stop_attack_loop() {
+    attack_enabled = false;
+    clearTimeout(attack_timer_id);
+    save_persistent_state();
+    game_log("⏹ Attack loop stopped");
+}
+
+function start_move_loop() {
+    move_enabled = true;
+    move_loop();
+    save_persistent_state();
+    game_log("▶️ Move loop started");
+}
+
+function stop_move_loop() {
+    move_enabled = false;
+    clearTimeout(move_timer_id);
+    save_persistent_state();
+    game_log("⏹ Move loop stopped");
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// 3) PERSISTENT STATE HANDLER
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function save_persistent_state() {
+    try {
+        set("healer_attack_enabled", attack_enabled);
+        set("healer_move_enabled", move_enabled);
+        set("circle_move_enabled", circle_move_enabled);
+        set("circle_path_points", JSON.stringify(circle_path_points));
+        for (const key in PRIEST_SKILL_TOGGLES) {
+            set(`priest_skill_${key}`, PRIEST_SKILL_TOGGLES[key]);
+        }
+    } catch (e) {
+        console.error("Error saving persistent state:", e);
+    }
+}
+
+function init_persistent_state() {
+    try {
+        // Load attack and move loop flags
+        const atk = get("healer_attack_enabled");
+        if (atk !== undefined) attack_enabled = atk;
+
+        const mv = get("healer_move_enabled");
+        if (mv !== undefined) move_enabled = mv;
+
+        // Load circle move state
+        const circle_enabled = get("circle_move_enabled");
+        if (circle_enabled !== undefined) circle_move_enabled = circle_enabled;
+
+        const saved_points = get("circle_path_points");
+        if (saved_points) {
+            try {
+                circle_path_points = JSON.parse(saved_points);
+            } catch (e) {
+                circle_path_points = [];
+            }
+        }
+
+        // Load skill toggles
+        for (const key in PRIEST_SKILL_TOGGLES) {
+            const val = get(`priest_skill_${key}`);
+            if (val !== undefined) PRIEST_SKILL_TOGGLES[key] = val;
+        }
+
+        // Start/stop loops based on restored state
+        if (attack_enabled) start_attack_loop();
+        else               stop_attack_loop();
+
+        if (move_enabled)  start_move_loop();
+        else               stop_move_loop();
+
+        // Start circle move loop if enabled and points exist
+        if (circle_move_enabled && circle_path_points.length > 0) {
+            circle_move_loop();
+            game_log("🔵 Circle move loop resumed from persistent state");
+        }
+    } catch (e) {
+        console.error("Error loading persistent state:", e);
+    }
+}
+
+// Save state on script unload
+window.addEventListener("beforeunload", save_persistent_state);
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// 4) PERSISTENT STATE
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+init_persistent_state();
