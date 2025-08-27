@@ -16,6 +16,7 @@ let skill_timer_id   = null;
 
 function start_attack_loop() {
     attack_enabled = true;
+    clearTimeout(attack_timer_id); // Ensure no duplicate timers
     attack_loop();
     save_persistent_state();
     game_log("▶️ Attack loop started");
