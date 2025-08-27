@@ -8,6 +8,9 @@ let attack_timer_id  = null;
 let move_enabled     = true;
 let move_timer_id    = null;
 
+let circle_move_enabled = false;
+let circle_path_points = [];
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS (with persistent state saving)
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -521,11 +524,10 @@ async function potions_loop() {
 // COMBAT MOVEMENT TO GROUP UP ENEMIES - SEMI OPTIMIZED
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let circle_move_enabled = false;
+
 let circle_move_timer_id = null;
 let circle_origin = null;
 let circle_move_radius = 20;
-let circle_path_points = [];
 let circle_path_index = 0;
 const CIRCLE_STEPS = 12; // 30 degrees per step
 
