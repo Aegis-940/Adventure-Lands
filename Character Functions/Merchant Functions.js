@@ -36,23 +36,23 @@ async function merchant_task_loop() {
 				continue;
 			}
 
-			// Priority 3: Fishing (whenever not on cooldown)
-			if (!merchant_busy && !is_on_cooldown("fishing")) {
-				merchant_busy = true;
-				merchant_task = "Fishing";
-				await go_fish();
-				merchant_busy = false;
-				continue;
-			}
+			// // Priority 3: Fishing (whenever not on cooldown)
+			// if (!merchant_busy && !is_on_cooldown("fishing")) {
+			// 	merchant_busy = true;
+			// 	merchant_task = "Fishing";
+			// 	await go_fish();
+			// 	merchant_busy = false;
+			// 	continue;
+			// }
 
-			// Priority 4: Mining (whenever not on cooldown)
-			if (!merchant_busy && can_use("mining")) {
-				merchant_busy = true;
-				merchant_task = "Mining";
-				await go_mine();
-				merchant_busy = false;
-				continue;
-			}
+			// // Priority 4: Mining (whenever not on cooldown)
+			// if (!merchant_busy && can_use("mining")) {
+			// 	merchant_busy = true;
+			// 	merchant_task = "Mining";
+			// 	await go_mine();
+			// 	merchant_busy = false;
+			// 	continue;
+			// }
 
 			// Default to Idle
 			if (!merchant_busy) merchant_task = "Idle";
