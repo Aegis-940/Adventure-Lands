@@ -1,111 +1,5 @@
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// 1) GLOBAL SWITCHES & TIMERS
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-let attack_enabled   = true;
-let attack_timer_id  = null;
-let move_enabled     = true;
-let move_timer_id    = null;
-let skills_enabled   = true;
-let skill_timer_id   = null;
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// 2) START/STOP HELPERS (with persistent state saving)
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-function start_attack_loop() {
-    attack_enabled = true;
-    clearTimeout(attack_timer_id); // Ensure no duplicate timers
-    attack_loop();
-    save_persistent_state();
-    game_log("▶️ Attack loop started");
-}
-
-function stop_attack_loop() {
-    attack_enabled = false;
-    clearTimeout(attack_timer_id);
-    save_persistent_state();
-    game_log("⏹ Attack loop stopped");
-}
-
-function start_move_loop() {
-    move_enabled = true;
-    move_loop();
-    save_persistent_state();
-    game_log("▶️ Move loop started");
-}
-
-function stop_move_loop() {
-    move_enabled = false;
-    clearTimeout(move_timer_id);
-    save_persistent_state();
-    game_log("⏹ Move loop stopped");
-}
-
-function start_skill_loop() {
-    skills_enabled = true;
-    skill_loop();
-    save_persistent_state();
-    game_log("▶️ Skill loop started");
-}
-
-function stop_skill_loop() {
-    skills_enabled = false;
-    clearTimeout(skill_timer_id);
-    save_persistent_state();
-    game_log("⏹ Skill loop stopped");
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// 3) PERSISTENT STATE HANDLER
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-function save_persistent_state() {
-    try {
-        set("warrior_attack_enabled", attack_enabled);
-        set("warrior_move_enabled",  move_enabled);
-        set("warrior_skill_enabled", skills_enabled);
-    } catch (e) {
-        console.error("Error saving persistent state:", e);
-    }
-}
-
-function init_persistent_state() {
-    try {
-        const atk = get("warrior_attack_enabled");
-        if (atk !== undefined) attack_enabled = atk;
-
-        const mv = get("warrior_move_enabled");
-        if (mv !== undefined) move_enabled = mv;
-
-        const sk = get("warrior_skill_enabled");
-        if (sk !== undefined) skills_enabled = sk;
-
-        // Reflect loaded flags in the loop state
-        if (attack_enabled) start_attack_loop();
-        else               stop_attack_loop();
-
-        if (move_enabled)   start_move_loop();
-        else               stop_move_loop();
-
-        if (skills_enabled) start_skill_loop();
-        else               stop_skill_loop();
-    } catch (e) {
-        console.error("Error loading persistent state:", e);
-    }
-}
-
-// Save state on script unload
-window.addEventListener("beforeunload", save_persistent_state);
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// 4) PERSISTENT STATE
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-init_persistent_state();
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
 // SUPPORT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -309,6 +203,69 @@ async function potions_loop() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// MAINTAIN POSITION
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let radius_lock_enabled = false;
+let radius_lock_origin = null;
+let radius_lock_loop = null;
+let radius_lock_circle_id = "radius_lock_visual";
+
+function toggle_radius_lock(radius = 200, check_interval = 500) {
+	if (radius_lock_enabled) {
+		// Disable
+		radius_lock_enabled = false;
+		radius_lock_origin = null;
+		clear_drawings(radius_lock_circle_id);
+		if (radius_lock_loop) clearInterval(radius_lock_loop);
+		game_log("🔓 Radius lock disabled.");
+	} else {
+		// Enable
+		radius_lock_enabled = true;
+		radius_lock_origin = {
+			x: Math.round(character.x),
+			y: Math.round(character.y)
+		};
+		game_log(`🔒 Radius lock enabled. Origin set to (${radius_lock_origin.x}, ${radius_lock_origin.y})`);
+
+		// Draw circle (circumference only)
+		clear_drawings(radius_lock_circle_id);
+		draw_circle(
+			radius_lock_origin.x,
+			radius_lock_origin.y,
+			radius,
+			1,
+			0x00FFFF,
+			radius_lock_circle_id
+		);
+
+		// Start loop
+		radius_lock_loop = setInterval(async () => {
+			if (!radius_lock_enabled) return;
+
+			const dx = character.x - radius_lock_origin.x;
+			const dy = character.y - radius_lock_origin.y;
+			const dist = Math.hypot(dx, dy);
+
+			if (dist > radius) {
+				game_log(`🚨 Out of bounds (${Math.round(dist)} units)! Returning halfway...`);
+
+				parent.stop();
+
+				const mid_x = character.x - dx / 2;
+				const mid_y = character.y - dy / 2;
+
+				try {
+					await move(mid_x, mid_y);
+				} catch (e) {
+					game_log("⚠️ Move failed:", e);
+				}
+			}
+		}, check_interval);
+	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // EQUIPMENT SETS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -490,3 +447,109 @@ async function panic_button_loop() {
         await delay(CHECK_INTERVAL);
     }
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// 1) GLOBAL SWITCHES & TIMERS
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let attack_enabled   = true;
+let attack_timer_id  = null;
+let move_enabled     = true;
+let move_timer_id    = null;
+let skills_enabled   = true;
+let skill_timer_id   = null;
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// 2) START/STOP HELPERS (with persistent state saving)
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function start_attack_loop() {
+    attack_enabled = true;
+    clearTimeout(attack_timer_id); // Ensure no duplicate timers
+    attack_loop();
+    save_persistent_state();
+    game_log("▶️ Attack loop started");
+}
+
+function stop_attack_loop() {
+    attack_enabled = false;
+    clearTimeout(attack_timer_id);
+    save_persistent_state();
+    game_log("⏹ Attack loop stopped");
+}
+
+function start_move_loop() {
+    move_enabled = true;
+    move_loop();
+    save_persistent_state();
+    game_log("▶️ Move loop started");
+}
+
+function stop_move_loop() {
+    move_enabled = false;
+    clearTimeout(move_timer_id);
+    save_persistent_state();
+    game_log("⏹ Move loop stopped");
+}
+
+function start_skill_loop() {
+    skills_enabled = true;
+    skill_loop();
+    save_persistent_state();
+    game_log("▶️ Skill loop started");
+}
+
+function stop_skill_loop() {
+    skills_enabled = false;
+    clearTimeout(skill_timer_id);
+    save_persistent_state();
+    game_log("⏹ Skill loop stopped");
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// 3) PERSISTENT STATE HANDLER
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function save_persistent_state() {
+    try {
+        set("warrior_attack_enabled", attack_enabled);
+        set("warrior_move_enabled",  move_enabled);
+        set("warrior_skill_enabled", skills_enabled);
+    } catch (e) {
+        console.error("Error saving persistent state:", e);
+    }
+}
+
+function init_persistent_state() {
+    try {
+        const atk = get("warrior_attack_enabled");
+        if (atk !== undefined) attack_enabled = atk;
+
+        const mv = get("warrior_move_enabled");
+        if (mv !== undefined) move_enabled = mv;
+
+        const sk = get("warrior_skill_enabled");
+        if (sk !== undefined) skills_enabled = sk;
+
+        // Reflect loaded flags in the loop state
+        if (attack_enabled) start_attack_loop();
+        else               stop_attack_loop();
+
+        if (move_enabled)   start_move_loop();
+        else               stop_move_loop();
+
+        if (skills_enabled) start_skill_loop();
+        else               stop_skill_loop();
+    } catch (e) {
+        console.error("Error loading persistent state:", e);
+    }
+}
+
+// Save state on script unload
+window.addEventListener("beforeunload", save_persistent_state);
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// 4) PERSISTENT STATE
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+init_persistent_state();

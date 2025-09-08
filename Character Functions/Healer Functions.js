@@ -496,8 +496,8 @@ const NORMAL_WEAPON = "orbg";
 
 async function panic_button_loop() {
     while (true) {
-        const low_health = character.hp < character.max_hp / 3;
-        const high_health = character.hp >= 2 * character.max_hp / 3;
+        const low_health = character.hp < (character.max_hp / 3);
+        const high_health = character.hp >= ((2 * character.max_hp) / 3);
 
         if (low_health && !panic_triggered) {
             // Enter panic state
