@@ -90,13 +90,14 @@ function get_nearest_monster_v2(args = {}) {
 let ATTACK_TARGET_LOWEST_HP = true;      // true: lowest HP, false: highest HP
 let ATTACK_PRIORITIZE_UNTARGETED = true; // true: prefer monsters with no target first
 
+
 async function attack_loop() {
-    if (!attack_enabled) return;
     let delay = 100;
     let disabled = (parent.is_disabled(character) === undefined);
 
     try {
         if (disabled) {
+            // Always heal, regardless of attack_enabled
             let heal_target = lowest_health_partymember();
             if (
                 heal_target &&
@@ -104,9 +105,12 @@ async function attack_loop() {
                 is_in_range(heal_target)
             ) {
                 await heal(heal_target);
-				game_log(`Healing ${heal_target.name}`, "#00FF00");
+                game_log(`Healing ${heal_target.name}`, "#00FF00");
                 delay = ms_to_next_skill('attack');
-            } else {
+            }
+
+            // Only attack if attack_enabled is true
+            if (attack_enabled) {
                 // Filter all relevant monsters ONCE
                 const monsters = Object.values(parent.entities).filter(e =>
                     e.type === "monster" &&
@@ -141,6 +145,7 @@ async function attack_loop() {
 
     attack_timer_id = setTimeout(attack_loop, delay);
 }
+
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MOVE LOOP - UNOPTIMIZED
