@@ -487,9 +487,8 @@ async function circle_move_loop() {
 // PANIC BUTTON!!!
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let panic_triggered = false;
-
 const CHECK_INTERVAL = 500;
+const PANIC_INTERVAL = 5100;
 const PRIEST_NAME = "Myras";
 const PANIC_WEAPON = "jacko";
 const NORMAL_WEAPON = "orbg";
@@ -499,36 +498,43 @@ async function panic_button_loop() {
         const low_health = character.hp < (character.max_hp / 3);
         const high_health = character.hp >= ((2 * character.max_hp) / 3);
 
-        if (low_health && !panic_triggered) {
-            // Enter panic state
-            panic_triggered = true;
+        // PANIC CONDITION
+        if (low_health) {
             stop_attack_loop();
             game_log("⚠️ Panic triggered: Low health!");
 
+            // Ensure jacko is equipped
             const jacko_slot = locate_item(PANIC_WEAPON);
-            if (jacko_slot !== -1) {
+            if (character.slots.mainhand?.name !== PANIC_WEAPON && jacko_slot !== -1) {
                 await equip(jacko_slot);
                 await delay(500);
             }
 
+            // Recast scare if possible
             if (can_use("scare")) {
                 await use_skill("scare");
             }
-        } else if (panic_triggered && high_health) {
-            // Exit panic state
-            game_log("✅ Panic over — resuming normal operations.");
-            panic_triggered = false;
 
+            // Wait 5.1 seconds before rechecking panic state
+            await delay(PANIC_INTERVAL);
+        } else {
+            // SAFE CONDITION
+            // Ensure orbg is equipped
             const orbg_slot = locate_item(NORMAL_WEAPON);
-            if (orbg_slot !== -1) {
+            if (character.slots.mainhand?.name !== NORMAL_WEAPON && orbg_slot !== -1) {
                 await equip(orbg_slot);
                 await delay(500);
             }
 
-            start_attack_loop();
-        }
+            // Ensure attack loop is running
+            if (!attack_enabled) {
+                game_log("✅ Panic over — resuming normal operations.");
+                start_attack_loop();
+            }
 
-        await delay(CHECK_INTERVAL);
+            // Wait 500ms before rechecking
+            await delay(CHECK_INTERVAL);
+        }
     }
 }
 
