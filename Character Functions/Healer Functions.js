@@ -523,7 +523,7 @@ async function panic_button_loop() {
 
             // Wait 5.1 seconds before rechecking panic state
             await delay(PANIC_INTERVAL);
-        } elseif (high_health && warrior_alive && warrior_online && warrior_near) {
+        } else if (high_health && warrior_alive && warrior_online && warrior_near) {
             // SAFE CONDITION
             // Ensure orbg is equipped
             const orbg_slot = locate_item(NORMAL_WEAPON);
