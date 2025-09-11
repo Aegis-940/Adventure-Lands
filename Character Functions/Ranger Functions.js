@@ -396,7 +396,7 @@ async function panic_button_loop() {
 
             // Ensure jacko is equipped
             const jacko_slot = locate_item(PANIC_WEAPON);
-            if (character.slots.mainhand?.name !== PANIC_WEAPON && jacko_slot !== -1) {
+            if (character.slots.orb?.name !== PANIC_WEAPON && jacko_slot !== -1) {
                 await equip(jacko_slot);
                 await delay(500);
             }
@@ -412,7 +412,7 @@ async function panic_button_loop() {
             // SAFE CONDITION
             // Ensure orbg is equipped
             const orbg_slot = locate_item(NORMAL_WEAPON);
-            if (character.slots.mainhand?.name !== NORMAL_WEAPON && orbg_slot !== -1) {
+            if (character.slots.orb?.name !== NORMAL_WEAPON && orbg_slot !== -1) {
                 await equip(orbg_slot);
                 await delay(500);
             }

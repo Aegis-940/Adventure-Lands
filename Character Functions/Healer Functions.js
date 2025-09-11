@@ -489,23 +489,29 @@ async function circle_move_loop() {
 
 const CHECK_INTERVAL = 500;
 const PANIC_INTERVAL = 5100;
-const PRIEST_NAME = "Myras";
+const WARRIOR_NAME = "Ulric";
 const PANIC_WEAPON = "jacko";
 const NORMAL_WEAPON = "orbg";
 
 async function panic_button_loop() {
     while (true) {
+        const warrior_entity = parent.entities[WARRIOR_NAME];
+        const warrior_online = parent.party_list.includes(WARRIOR_NAME) && warrior_entity;
+        const warrior_alive = warrior_online && !warrior_entity.rip;
+        const warrior_near = warrior_online && parent.distance(character, warrior_entity) <= 500;
         const low_health = character.hp < (character.max_hp / 3);
         const high_health = character.hp >= ((2 * character.max_hp) / 3);
 
         // PANIC CONDITION
-        if (low_health) {
+        if (!warrior_alive || !warrior_online || !warrior_near || low_health) {
             stop_attack_loop();
-            game_log("⚠️ Panic triggered: Low health!");
+            let reason = !warrior_online ? "Warrior is offline!" : !warrior_alive ? "Warrior is dead!" : !warrior_near
+                        ? "Warrior is too far!" : "Low health!";
+            game_log("⚠️ Panic triggered:", reason);
 
             // Ensure jacko is equipped
             const jacko_slot = locate_item(PANIC_WEAPON);
-            if (character.slots.mainhand?.name !== PANIC_WEAPON && jacko_slot !== -1) {
+            if (character.slots.orb?.name !== PANIC_WEAPON && jacko_slot !== -1) {
                 await equip(jacko_slot);
                 await delay(500);
             }
@@ -517,11 +523,11 @@ async function panic_button_loop() {
 
             // Wait 5.1 seconds before rechecking panic state
             await delay(PANIC_INTERVAL);
-        } else {
+        } elseif (high_health && warrior_alive && warrior_online && warrior_near) {
             // SAFE CONDITION
             // Ensure orbg is equipped
             const orbg_slot = locate_item(NORMAL_WEAPON);
-            if (character.slots.mainhand?.name !== NORMAL_WEAPON && orbg_slot !== -1) {
+            if (character.slots.orb?.name !== NORMAL_WEAPON && orbg_slot !== -1) {
                 await equip(orbg_slot);
                 await delay(500);
             }
