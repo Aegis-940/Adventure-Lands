@@ -479,7 +479,7 @@ async function circle_move_loop() {
         }
 
         // Small delay before next step to reduce CPU usage
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 10));
     }
 }
 
