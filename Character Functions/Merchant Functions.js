@@ -54,6 +54,24 @@ async function merchant_task_loop() {
 			// 	continue;
 			// }
 
+			// Priority 5: Exchange items (try each in order)
+			if (!merchant_busy) {
+				const items_to_exchange = ["seashell"]; // Example list, edit as needed
+				let exchanged = false;
+				for (const item of items_to_exchange) {
+					const slot = locate_item(item);
+					if (slot !== -1) {
+						merchant_busy = true;
+						merchant_task = `Exchanging ${item}`;
+						await exchange_item(item);
+						merchant_busy = false;
+						exchanged = true;
+						break; // Stop after exchanging the first available item
+					}
+				}
+				if (exchanged) continue;
+			}
+
 			// Default to Idle
 			if (!merchant_busy) merchant_task = "Idle";
 
