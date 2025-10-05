@@ -779,5 +779,5 @@ async function target_upgrade() {
 
     await buy(TARGET_ITEM, 32);
 
-    await exchange_items();
+    await run_auto_upgrade();
 }
