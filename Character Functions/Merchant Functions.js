@@ -678,7 +678,7 @@ async function go_mine() {
 
 let exchange_item_running = false;
 
-async function exchange_item(item_name) {
+async function exchange_item(item_name, min_count = 1) {
     if (exchange_item_running) {
         game_log("⚠️ Exchange already running, skipping duplicate call.");
         return;
@@ -737,14 +737,22 @@ async function exchange_item(item_name) {
                 break;
             }
 
-            const slot = locate_item(item_name);
-            if (slot === -1 || !character.items[slot]) {
-                game_log(`✅ No more ${item_name} to exchange. Done.`);
-                break;
+            // Find a stack that meets the minimum count
+            let found_stack = false;
+            for (let i = 0; i < character.items.length; i++) {
+                const itm = character.items[i];
+                if (itm && itm.name === item_name && (itm.q || 1) >= min_count) {
+                    game_log(`🔁 Exchanging slot ${i} (${item_name})`);
+                    exchange(i);
+                    found_stack = true;
+                    break;
+                }
             }
 
-            game_log(`🔁 Exchanging slot ${slot} (${item_name})`);
-            exchange(slot);
+            if (!found_stack) {
+                game_log(`✅ No more ${item_name} stacks with at least ${min_count}. Done.`);
+                break;
+            }
 
             await delay(EXCHANGE_INTERVAL);
         }
