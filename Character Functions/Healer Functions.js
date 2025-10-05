@@ -529,11 +529,8 @@ async function panic_button_loop() {
             if (character.slots.orb?.name !== NORMAL_WEAPON && orbg_slot !== -1) {
                 await equip(orbg_slot);
                 await delay(500);
-            } else if (orbg_slot === -1) {
-                game_log("⚠️ Normal weapon not found in inventory!");
             }
 
-            game_log("✅ Panic over — resuming normal operations.");
             start_attack_loop();
 
             await delay(CHECK_INTERVAL);
