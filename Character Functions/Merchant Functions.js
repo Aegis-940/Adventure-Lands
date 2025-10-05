@@ -334,7 +334,7 @@ async function collect_loot() {
 
 const SELLABLE_ITEMS = ["hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "wbook0", "wshoes", "wcap", "cclaw", "crabclaw", "slimestaff", "stinger", "coat1", "helmet1",
 		       			"gloves1", "pants1", "mushroomstaff", "wbreeches", "shoes1", "vitring", "helmet", "shoes", "pants", "gloves", "coat", "pmace", "throwingstars", "t2bow",
-						 "spear", "dagger", "rapier", "sword", "fireblade", "firestaff", "firebow"];
+						 "spear", "dagger", "rapier", "sword", "fireblade", "firestaff", "firebow", "rfangs"];
 const BANKABLE_ITEMS = [];
 const BANK_LOCATION = { map: "bank", x: 0, y: -37 };
 
@@ -645,8 +645,10 @@ async function go_mine() {
 
 async function exchange_item(item_name) {
     const TARGET_MAP         = "main";
-    const TARGET_X           = -21;
-    const TARGET_Y           = -422;
+    // const TARGET_X           = -21;
+    // const TARGET_Y           = -422;
+    const TARGET_X           = -1594;
+    const TARGET_Y           = -581;
     const RANGE              = 50;
     const EXCHANGE_INTERVAL  = 6000; // 6 seconds
 
