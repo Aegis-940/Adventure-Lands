@@ -56,11 +56,22 @@ async function merchant_task_loop() {
 
 			// Priority 5: Exchange items (try each in order)
 			if (!merchant_busy) {
+				// Define minimum counts for each item
+				const min_counts = {
+					seashell: 20,
+					// Add more items and their minimums as needed
+					// candycane: 5,
+					// mistletoe: 3,
+				};
 				const items_to_exchange = ["seashell"]; // Example list, edit as needed
 				let exchanged = false;
 				for (const item of items_to_exchange) {
 					const slot = locate_item(item);
-					if (slot !== -1) {
+					if (
+						slot !== -1 &&
+						character.items[slot] &&
+						(character.items[slot].q || 1) >= (min_counts[item] || 1)
+					) {
 						merchant_busy = true;
 						merchant_task = `Exchanging ${item}`;
 						await exchange_item(item);
