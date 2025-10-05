@@ -767,17 +767,28 @@ async function exchange_items() {
 // UPGRADE ARMOUR
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-
-
 async function target_upgrade() {
-    const TARGET_MAP = "main"; // Add this line if not defined globally
-    let XLOC = -209;
-    let YLOC = -117;
+    const TARGET_MAP = "main";
+    const XLOC = -209;
+    const YLOC = -117;
     const TARGET_ITEM = "coat";
+    const TARGET_AMOUNT = 32;
 
     await smart_move({ map: TARGET_MAP, x: XLOC, y: YLOC });
 
-    await buy(TARGET_ITEM, 32);
+    // Count how many you already have
+    let owned = 0;
+    for (const itm of character.items) {
+        if (itm && itm.name === TARGET_ITEM) owned += itm.q || 1;
+    }
+    const to_buy = Math.max(0, TARGET_AMOUNT - owned);
+
+    if (to_buy > 0) {
+        await buy(TARGET_ITEM, to_buy);
+        game_log(`🛒 Bought ${to_buy} ${TARGET_ITEM}(s)`);
+    } else {
+        game_log(`✅ Already have at least ${TARGET_AMOUNT} ${TARGET_ITEM}(s)`);
+    }
 
     await run_auto_upgrade();
 }
