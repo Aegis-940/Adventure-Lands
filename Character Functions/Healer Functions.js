@@ -533,10 +533,8 @@ async function panic_button_loop() {
                 game_log("⚠️ Normal weapon not found in inventory!");
             }
 
-            if (!attack_enabled) {
-                game_log("✅ Panic over — resuming normal operations.");
-                start_attack_loop();
-            }
+            game_log("✅ Panic over — resuming normal operations.");
+            start_attack_loop();
 
             await delay(CHECK_INTERVAL);
         } else {
