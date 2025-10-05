@@ -66,19 +66,23 @@ async function merchant_task_loop() {
 				const items_to_exchange = ["seashell"]; // Example list, edit as needed
 				let exchanged = false;
 				for (const item of items_to_exchange) {
-					const slot = locate_item(item);
-					if (
-						slot !== -1 &&
-						character.items[slot] &&
-						(character.items[slot].q || 1) >= (min_counts[item] || 1)
-					) {
-						merchant_busy = true;
-						merchant_task = `Exchanging ${item}`;
-						await exchange_item(item);
-						merchant_busy = false;
-						exchanged = true;
-						break; // Stop after exchanging the first available item
+					// Loop through all stacks of this item
+					for (let i = 0; i < character.items.length; i++) {
+						const itm = character.items[i];
+						if (
+							itm &&
+							itm.name === item &&
+							(itm.q || 1) >= (min_counts[item] || 1)
+						) {
+							merchant_busy = true;
+							merchant_task = `Exchanging ${item}`;
+							await exchange_item(item);
+							merchant_busy = false;
+							exchanged = true;
+							break; // Stop after exchanging the first available stack for this item
+						}
 					}
+					if (exchanged) break; // Stop after exchanging the first available item in the list
 				}
 				if (exchanged) continue;
 			}
