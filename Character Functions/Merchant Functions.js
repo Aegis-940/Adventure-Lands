@@ -675,7 +675,7 @@ async function exchange_item(item_name) {
     const TARGET_Y           = 581;
     const RANGE              = 50;
     const MAX_DIST           = 500;
-    const EXCHANGE_INTERVAL  = 6000; // 6 seconds
+    const EXCHANGE_INTERVAL  = 500; // 0.5 seconds
 
     try {
         // === Move to exchange NPC ===
