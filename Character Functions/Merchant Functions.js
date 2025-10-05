@@ -62,6 +62,14 @@ async function merchant_task_loop() {
 			// 	continue;
 			// }
 
+			if (!merchant_busy) {
+				merchant_busy = true;
+				merchant_task = "Upgrading";
+				await run_auto_upgrade();
+				merchant_busy = false;
+				continue;
+			}
+
 			// Default to Idle
 			if (!merchant_busy) merchant_task = "Idle";
 
@@ -753,4 +761,23 @@ async function exchange_items() {
         game_log("🔥 exchange_items error:", e.message);
     }
     exchange_items_running = false;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// UPGRADE ARMOUR
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+
+
+async function target_upgrade() {
+    const TARGET_MAP = "main"; // Add this line if not defined globally
+    let XLOC = -209;
+    let YLOC = -117;
+    const TARGET_ITEM = "coat";
+
+    await smart_move({ map: TARGET_MAP, x: XLOC, y: YLOC });
+
+    await buy(TARGET_ITEM, 32);
+
+    await exchange_items();
 }
