@@ -65,7 +65,7 @@ async function merchant_task_loop() {
 			if (!merchant_busy) {
 				merchant_busy = true;
 				merchant_task = "Upgrading";
-				await run_auto_upgrade();
+				await target_upgrade();
 				merchant_busy = false;
 				continue;
 			}
