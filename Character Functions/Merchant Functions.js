@@ -54,37 +54,12 @@ async function merchant_task_loop() {
 			// 	continue;
 			// }
 
-			// Priority 5: Exchange items (try each in order)
 			if (!merchant_busy) {
-				// Define minimum counts for each item
-				const min_counts = {
-					seashell: 20,
-					// Add more items and their minimums as needed
-					// candycane: 5,
-					// mistletoe: 3,
-				};
-				const items_to_exchange = ["seashell"]; // Example list, edit as needed
-				let exchanged = false;
-				for (const item of items_to_exchange) {
-					// Loop through all stacks of this item
-					for (let i = 0; i < character.items.length; i++) {
-						const itm = character.items[i];
-						if (
-							itm &&
-							itm.name === item &&
-							(itm.q || 1) >= (min_counts[item] || 1)
-						) {
-							merchant_busy = true;
-							merchant_task = `Exchanging ${item}`;
-							await exchange_item(item);
-							merchant_busy = false;
-							exchanged = true;
-							break; // Stop after exchanging the first available stack for this item
-						}
-					}
-					if (exchanged) break; // Stop after exchanging the first available item in the list
-				}
-				if (exchanged) continue;
+				merchant_busy = true;
+				merchant_task = "Exchanging Items";
+				await exchange_items();
+				merchant_busy = false;
+				continue;
 			}
 
 			// Default to Idle
@@ -676,14 +651,14 @@ async function go_mine() {
 // EXCHANGE ITEMS FOR LOOT
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let exchange_item_running = false;
+let exchange_items_running = false;
 
-async function exchange_item(item_name, min_count = 1) {
-    if (exchange_item_running) {
+async function exchange_items() {
+    if (exchange_items_running) {
         game_log("⚠️ Exchange already running, skipping duplicate call.");
         return;
     }
-    exchange_item_running = true;
+    exchange_items_running = true;
 
     const TARGET_MAP         = "main";
     const TARGET_X           = -1594;
@@ -692,8 +667,17 @@ async function exchange_item(item_name, min_count = 1) {
     const MAX_DIST           = 500;
     const EXCHANGE_INTERVAL  = 500; // 0.5 seconds
 
+    // Define minimum counts for each item
+    const min_counts = {
+        seashell: 20,
+        // Add more items and their minimums as needed
+        // candycane: 5,
+        // mistletoe: 3,
+    };
+    const items_to_exchange = ["seashell"]; // Example list, edit as needed
+
     try {
-        // === Move to exchange NPC ===
+        // Move to exchange NPC
         await smart_move({ map: TARGET_MAP, x: TARGET_X, y: TARGET_Y });
 
         // Wait until we're in correct spot and not moving
@@ -708,56 +692,65 @@ async function exchange_item(item_name, min_count = 1) {
 
         game_log("📍 At exchange location. Starting exchange & sell loop...");
 
-        while (true) {
-            // Stop if character is too far from exchange NPC
-            const dist = Math.hypot(character.x - TARGET_X, character.y - TARGET_Y);
-            if (dist > MAX_DIST) {
-                game_log("❌ Too far from exchange NPC. Stopping exchange.");
-                break;
-            }
-
-            if (character.moving) {
-                await delay(500);
-                continue;
-            }
-
-            // --- 1) Sell off any approved items ---
-            for (let i = 0; i < character.items.length; i++) {
-                const itm = character.items[i];
-                if (itm && SELLABLE_ITEMS.includes(itm.name)) {
-                    sell(i, itm.q || 1);
-                    game_log(`💰 Sold ${itm.name} x${itm.q || 1}`);
-                }
-            }
-
-            // --- 2) Exchange the target item ---
-            // Stop if inventory is full
-            if (character.items.filter(Boolean).length >= character.items.length) {
-                game_log("⚠️ Inventory full. Stopping exchange.");
-                break;
-            }
-
-            // Find a stack that meets the minimum count
-            let found_stack = false;
-            for (let i = 0; i < character.items.length; i++) {
-                const itm = character.items[i];
-                if (itm && itm.name === item_name && (itm.q || 1) >= min_count) {
-                    game_log(`🔁 Exchanging slot ${i} (${item_name})`);
-                    exchange(i);
-                    found_stack = true;
+        let exchanged_any = false;
+        for (const item of items_to_exchange) {
+            let keep_going = true;
+            while (keep_going) {
+                // Stop if character is too far from exchange NPC
+                const dist = Math.hypot(character.x - TARGET_X, character.y - TARGET_Y);
+                if (dist > MAX_DIST) {
+                    game_log("❌ Too far from exchange NPC. Stopping exchange.");
+                    keep_going = false;
                     break;
                 }
-            }
 
-            if (!found_stack) {
-                game_log(`✅ No more ${item_name} stacks with at least ${min_count}. Done.`);
-                break;
-            }
+                if (character.moving) {
+                    await delay(500);
+                    continue;
+                }
 
-            await delay(EXCHANGE_INTERVAL);
+                // Sell off any approved items
+                for (let i = 0; i < character.items.length; i++) {
+                    const itm = character.items[i];
+                    if (itm && SELLABLE_ITEMS.includes(itm.name)) {
+                        sell(i, itm.q || 1);
+                        game_log(`💰 Sold ${itm.name} x${itm.q || 1}`);
+                    }
+                }
+
+                // Stop if inventory is full
+                if (character.items.filter(Boolean).length >= character.items.length) {
+                    game_log("⚠️ Inventory full. Stopping exchange.");
+                    keep_going = false;
+                    break;
+                }
+
+                // Find a stack that meets the minimum count
+                let found_stack = false;
+                for (let i = 0; i < character.items.length; i++) {
+                    const itm = character.items[i];
+                    if (itm && itm.name === item && (itm.q || 1) >= (min_counts[item] || 1)) {
+                        game_log(`🔁 Exchanging slot ${i} (${item})`);
+                        exchange(i);
+                        found_stack = true;
+                        exchanged_any = true;
+                        break;
+                    }
+                }
+
+                if (!found_stack) {
+                    game_log(`✅ No more ${item} stacks with at least ${min_counts[item] || 1}.`);
+                    keep_going = false;
+                }
+
+                await delay(EXCHANGE_INTERVAL);
+            }
+        }
+        if (!exchanged_any) {
+            game_log("✅ No items to exchange.");
         }
     } catch (e) {
-        game_log("🔥 exchange_item error:", e.message);
+        game_log("🔥 exchange_items error:", e.message);
     }
-    exchange_item_running = false;
+    exchange_items_running = false;
 }
