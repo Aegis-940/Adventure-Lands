@@ -648,7 +648,7 @@ async function exchange_item(item_name) {
     // const TARGET_X           = -21;
     // const TARGET_Y           = -422;
     const TARGET_X           = -1594;
-    const TARGET_Y           = -581;
+    const TARGET_Y           = 581;
     const RANGE              = 50;
     const EXCHANGE_INTERVAL  = 6000; // 6 seconds
 
