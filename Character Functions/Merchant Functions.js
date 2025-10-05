@@ -62,11 +62,16 @@ async function merchant_task_loop() {
 			// 	continue;
 			// }
 
-			if (!merchant_busy) {
+			// Add at the top of your script
+			let upgrade_complete = false;
+
+			// In your merchant_task_loop:
+			if (!merchant_busy && !upgrade_complete) {
 				merchant_busy = true;
 				merchant_task = "Upgrading";
 				await target_upgrade();
 				merchant_busy = false;
+				upgrade_complete = true; // Mark as done
 				continue;
 			}
 
