@@ -784,4 +784,6 @@ async function target_upgrade(target_item, target_amount) {
     }
 
     await run_auto_upgrade();
+
+	await sell_and_bank();
 }

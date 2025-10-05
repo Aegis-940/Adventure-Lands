@@ -39,7 +39,7 @@ const combineProfile = {
 // UPGRADE / COMPOUND LOGIC
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function upgrade_once_by_level(level) {
+async function upgrade_once_by_level(level) {
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
 		if (!item || item.level !== level) continue;
@@ -64,6 +64,10 @@ function upgrade_once_by_level(level) {
 			offering_slot = pSlot;
 		}
 
+		if (can_use("massproduction")) {
+			await use_skill("massproduction");
+		}
+
 		parent.socket.emit("upgrade", {
 			item_num: i,
 			scroll_num: scroll_slot,
@@ -76,7 +80,7 @@ function upgrade_once_by_level(level) {
 	return "none";
 }
 
-function compound_once_by_level(level) {
+async function compound_once_by_level(level) {
 	const buckets = new Map();
 
 	character.items.forEach((item, idx) => {
@@ -137,7 +141,7 @@ function compound_once_by_level(level) {
 
 let auto_upgrade = false;
 
-function run_auto_upgrade() {
+async function run_auto_upgrade() {
 	if (auto_upgrade) return;
 	auto_upgrade = true;
 
