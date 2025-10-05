@@ -693,18 +693,18 @@ async function exchange_item(item_name) {
 
         game_log("📍 At exchange location. Starting exchange & sell loop...");
 
-        // === Main loop: exchange specified item and sell approved items ===
-        const intervalId = setInterval(async () => {
+        while (true) {
             // Stop if character is too far from exchange NPC
             const dist = Math.hypot(character.x - TARGET_X, character.y - TARGET_Y);
             if (dist > MAX_DIST) {
                 game_log("❌ Too far from exchange NPC. Stopping exchange.");
-                clearInterval(intervalId);
-                exchange_item_running = false;
-                return;
+                break;
             }
 
-            if (character.moving) return; // Skip while moving
+            if (character.moving) {
+                await delay(500);
+                continue;
+            }
 
             // --- 1) Sell off any approved items ---
             for (let i = 0; i < character.items.length; i++) {
@@ -719,25 +719,22 @@ async function exchange_item(item_name) {
             // Stop if inventory is full
             if (character.items.filter(Boolean).length >= character.items.length) {
                 game_log("⚠️ Inventory full. Stopping exchange.");
-                clearInterval(intervalId);
-                exchange_item_running = false;
-                return;
+                break;
             }
 
             const slot = locate_item(item_name);
             if (slot === -1 || !character.items[slot]) {
                 game_log(`✅ No more ${item_name} to exchange. Done.`);
-                clearInterval(intervalId);
-                exchange_item_running = false;
-                return;
+                break;
             }
 
             game_log(`🔁 Exchanging slot ${slot} (${item_name})`);
             exchange(slot);
 
-        }, EXCHANGE_INTERVAL);
+            await delay(EXCHANGE_INTERVAL);
+        }
     } catch (e) {
         game_log("🔥 exchange_item error:", e.message);
-        exchange_item_running = false;
     }
+    exchange_item_running = false;
 }
