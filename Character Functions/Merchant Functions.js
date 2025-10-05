@@ -661,60 +661,83 @@ async function go_mine() {
 // EXCHANGE ITEMS FOR LOOT
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+let exchange_item_running = false;
+
 async function exchange_item(item_name) {
+    if (exchange_item_running) {
+        game_log("⚠️ Exchange already running, skipping duplicate call.");
+        return;
+    }
+    exchange_item_running = true;
+
     const TARGET_MAP         = "main";
-    // const TARGET_X           = -21;
-    // const TARGET_Y           = -422;
     const TARGET_X           = -1594;
     const TARGET_Y           = 581;
     const RANGE              = 50;
+    const MAX_DIST           = 500;
     const EXCHANGE_INTERVAL  = 6000; // 6 seconds
 
-    // === Move to exchange NPC ===
-    await smart_move({ map: TARGET_MAP, x: TARGET_X, y: TARGET_Y });
+    try {
+        // === Move to exchange NPC ===
+        await smart_move({ map: TARGET_MAP, x: TARGET_X, y: TARGET_Y });
 
-    // Wait until we're in correct spot and not moving
-    while (
-        character.map !== TARGET_MAP ||
-        Math.abs(character.x - TARGET_X) > RANGE ||
-        Math.abs(character.y - TARGET_Y) > RANGE ||
-        character.moving
-    ) {
-        await delay(500);
-    }
+        // Wait until we're in correct spot and not moving
+        while (
+            character.map !== TARGET_MAP ||
+            Math.abs(character.x - TARGET_X) > RANGE ||
+            Math.abs(character.y - TARGET_Y) > RANGE ||
+            character.moving
+        ) {
+            await delay(500);
+        }
 
-    game_log("📍 At exchange location. Starting exchange & sell loop...");
+        game_log("📍 At exchange location. Starting exchange & sell loop...");
 
-    // === Main loop: exchange specified item and sell approved items ===
-    const intervalId = setInterval(async () => {
-        if (character.moving) return; // Skip while moving
-
-        // --- 1) Sell off any approved items ---
-        for (let i = 0; i < character.items.length; i++) {
-            const itm = character.items[i];
-            if (itm && SELLABLE_ITEMS.includes(itm.name)) {
-                sell(i, itm.q || 1);
-                game_log(`💰 Sold ${itm.name} x${itm.q || 1}`);
+        // === Main loop: exchange specified item and sell approved items ===
+        const intervalId = setInterval(async () => {
+            // Stop if character is too far from exchange NPC
+            const dist = Math.hypot(character.x - TARGET_X, character.y - TARGET_Y);
+            if (dist > MAX_DIST) {
+                game_log("❌ Too far from exchange NPC. Stopping exchange.");
+                clearInterval(intervalId);
+                exchange_item_running = false;
+                return;
             }
-        }
 
-        // --- 2) Exchange the target item ---
-        // Stop if inventory is full
-        if (character.items.filter(Boolean).length >= character.items.length) {
-            game_log("⚠️ Inventory full. Stopping exchange.");
-            clearInterval(intervalId);
-            return;
-        }
+            if (character.moving) return; // Skip while moving
 
-        const slot = locate_item(item_name);
-        if (slot === -1 || !character.items[slot]) {
-            game_log(`✅ No more ${item_name} to exchange. Done.`);
-            clearInterval(intervalId);
-            return;
-        }
+            // --- 1) Sell off any approved items ---
+            for (let i = 0; i < character.items.length; i++) {
+                const itm = character.items[i];
+                if (itm && SELLABLE_ITEMS.includes(itm.name)) {
+                    sell(i, itm.q || 1);
+                    game_log(`💰 Sold ${itm.name} x${itm.q || 1}`);
+                }
+            }
 
-        game_log(`🔁 Exchanging slot ${slot} (${item_name})`);
-        exchange(slot);
+            // --- 2) Exchange the target item ---
+            // Stop if inventory is full
+            if (character.items.filter(Boolean).length >= character.items.length) {
+                game_log("⚠️ Inventory full. Stopping exchange.");
+                clearInterval(intervalId);
+                exchange_item_running = false;
+                return;
+            }
 
-    }, EXCHANGE_INTERVAL);
+            const slot = locate_item(item_name);
+            if (slot === -1 || !character.items[slot]) {
+                game_log(`✅ No more ${item_name} to exchange. Done.`);
+                clearInterval(intervalId);
+                exchange_item_running = false;
+                return;
+            }
+
+            game_log(`🔁 Exchanging slot ${slot} (${item_name})`);
+            exchange(slot);
+
+        }, EXCHANGE_INTERVAL);
+    } catch (e) {
+        game_log("🔥 exchange_item error:", e.message);
+        exchange_item_running = false;
+    }
 }
