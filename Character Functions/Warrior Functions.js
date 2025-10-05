@@ -327,7 +327,7 @@ async function handle_cleave(Mainhand) {
             distance(character, e) <= CLEAVE_RANGE
         );
 
-        if (monsters.length > 4) {
+        if (monsters.length > 3) {
             if (Mainhand !== "bataxe") cleave_set();
             await use_skill("cleave");
             //reduce_cooldown("cleave", character.ping * 0.95);
