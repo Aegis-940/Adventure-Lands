@@ -524,7 +524,7 @@ async function panic_button_loop() {
 
             await delay(PANIC_INTERVAL);
 
-        } else if (high_health && warrior_alive && warrior_online && warrior_near) {
+        } else if (high_health && warrior_alive && warrior_online && warrior_near && panic_flag) {
             panic_flag = false;
             game_log("✅ Panic over — resuming normal operations.");
 
