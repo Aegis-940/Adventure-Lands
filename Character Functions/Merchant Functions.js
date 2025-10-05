@@ -774,7 +774,10 @@ async function target_upgrade(target_item, target_amount) {
     const to_buy = Math.max(0, target_amount - owned);
 
     if (to_buy > 0) {
-        await buy(target_item, to_buy);
+        for (let i = 0; i < to_buy; i++) {
+            await buy(target_item, 1);
+            await delay(200); // Small delay to avoid server rate limits
+        }
         game_log(`🛒 Bought ${to_buy} ${target_item}(s)`);
     } else {
         game_log(`✅ Already have at least ${target_amount} ${target_item}(s)`);
