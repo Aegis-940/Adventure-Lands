@@ -492,6 +492,7 @@ const PANIC_INTERVAL = 5100;
 const WARRIOR_NAME = "Ulric";
 const PANIC_WEAPON = "jacko";
 const NORMAL_WEAPON = "orbg";
+let panic_flag = false;
 
 async function panic_button_loop() {
     while (true) {
@@ -503,6 +504,7 @@ async function panic_button_loop() {
         const high_health = character.hp >= ((2 * character.max_hp) / 3);
 
         if (!warrior_alive || !warrior_online || !warrior_near || low_health) {
+            panic_flag = true;
             stop_attack_loop();
             let reason = !warrior_online ? "Warrior is offline!" : !warrior_alive ? "Warrior is dead!" : !warrior_near
                         ? "Warrior is too far!" : "Low health!";
@@ -523,6 +525,8 @@ async function panic_button_loop() {
             await delay(PANIC_INTERVAL);
 
         } else if (high_health && warrior_alive && warrior_online && warrior_near) {
+            panic_flag = false;
+            game_log("✅ Panic over — resuming normal operations.");
 
             const orbg_slot = locate_item(NORMAL_WEAPON);
 
