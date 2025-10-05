@@ -54,13 +54,13 @@ async function merchant_task_loop() {
 			// 	continue;
 			// }
 
-			if (!merchant_busy) {
-				merchant_busy = true;
-				merchant_task = "Exchanging Items";
-				await exchange_items();
-				merchant_busy = false;
-				continue;
-			}
+			// if (!merchant_busy) {
+			// 	merchant_busy = true;
+			// 	merchant_task = "Exchanging Items";
+			// 	await exchange_items();
+			// 	merchant_busy = false;
+			// 	continue;
+			// }
 
 			// Default to Idle
 			if (!merchant_busy) merchant_task = "Idle";
