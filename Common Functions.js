@@ -18,8 +18,7 @@ const PARTY_MEMBERS               = ["Riva", "Myras", "Riff"];
 
 const MONSTER_TYPES               = ["goo", "bee", "crab", "snake", "osnake", "bat", "goldenbat", "croc", "arcticbee", "spider", "cgoo", "stoneworm", "jr", "minimush", 
                                      "rat", "bbpompom", "tortoise", "crabx", "porcupine", "armadillo", "squig", "ghost", "phoenix", "iceroamer", "skeletor", "snowman",
-									"prat", "booboo", "bigbird", "poisio", "boar", "target_a500", "targer_a750", "targer_ar900", "targer_r500", "target_r750", "target_ar500red",
-									"target"];
+									"prat", "booboo", "bigbird", "poisio", "boar", "mechagnome"];
 const MERCHANT_NAME               = "Riff";
 
 let last_death_time               = 0;
