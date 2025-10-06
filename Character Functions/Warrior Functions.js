@@ -230,13 +230,13 @@ async function boss_handler() {
         await delay(300);
     }
 
-    // Only smart_move if boss is more than 100 units away
-    let boss_entity = Object.values(parent.entities).find(e =>
+    // Only smart_move if boss is far away
+    const boss_entity = Object.values(parent.entities).find(e =>
         e.type === "monster" && e.mtype === boss_name && !e.dead
     );
-    let boss_dist = boss_entity ? parent.distance(character, boss_entity) : Infinity;
+    const boss_dist = boss_entity ? parent.distance(character, boss_entity) : Infinity;
 
-    if (boss_dist > 100) {
+    if (boss_dist > character.range + 50) { // Only smart_move if not already close
         let moving = true;
         smart_move(boss_name).then(() => { moving = false; });
         while (moving) {
