@@ -220,6 +220,15 @@ async function boss_handler() {
     }
     let boss_name = lowest_hp_boss || alive_bosses[0].name;
 
+    // Equip flameblade +7 in offhand before moving to boss
+    const flameblade7_slot = parent.character.items.findIndex(item =>
+        item && item.name === "flameblade" && item.level === 7
+    );
+    if (flameblade7_slot !== -1 && (!character.slots.offhand || character.slots.offhand.name !== "flameblade" || character.slots.offhand.level !== 7)) {
+        await equip(flameblade7_slot, "offhand");
+        await delay(300);
+    }
+
     // Equip jacko before moving to boss
     const jacko_slot = locate_item("jacko");
     if (jacko_slot !== -1 && character.slots.orb?.name !== "jacko") {
@@ -227,38 +236,29 @@ async function boss_handler() {
         await delay(300);
     }
 
-    // Equip fireblade +7 to offhand before moving to boss
-    const fireblade7_slot = parent.character.items.findIndex(item =>
-        item && item.name === "fireblade" && item.level === 7
+    // Only smart_move if boss is far away
+    const boss_entity = Object.values(parent.entities).find(e =>
+        e.type === "monster" && e.mtype === boss_name && !e.dead
     );
-    if (fireblade7_slot !== -1 && (!character.slots.offhand || character.slots.offhand.name !== "fireblade" || character.slots.offhand.level !== 7)) {
-        await equip(fireblade7_slot, "offhand");
-        await delay(300);
+    const boss_dist = boss_entity ? parent.distance(character, boss_entity) : Infinity;
+
+    if (boss_dist > character.range + 50) { // Only smart_move if not already close
+        let moving = true;
+        smart_move(boss_name).then(() => { moving = false; });
+        while (moving) {
+            const aggro = Object.values(parent.entities).some(e =>
+                e.type === "monster" && e.target === character.name && !e.dead
+            );
+            if (aggro && can_use("scare")) {
+                await use_skill("scare");
+            }
+            await delay(100);
+        }
     }
 
-    // // Only smart_move if boss is far away
-    // const boss_entity = Object.values(parent.entities).find(e =>
-    //     e.type === "monster" && e.mtype === boss_name && !e.dead
-    // );
-    // const boss_dist = boss_entity ? parent.distance(character, boss_entity) : Infinity;
-
-    // if (boss_dist > character.range + 50) { // Only smart_move if not already close
-    //     let moving = true;
-    //     smart_move(boss_name).then(() => { moving = false; });
-    //     while (moving) {
-    //         const aggro = Object.values(parent.entities).some(e =>
-    //             e.type === "monster" && e.target === character.name && !e.dead
-    //         );
-    //         if (aggro && can_use("scare")) {
-    //             await use_skill("scare");
-    //         }
-    //         await delay(100);
-    //     }
-    // }
-
-    // Now, engage boss until dead (do NOT smart_move again in this loop)
+    // Engage boss until dead
     while (parent.S[boss_name] && parent.S[boss_name].live) {
-        boss_entity = Object.values(parent.entities).find(e =>
+        const boss = Object.values(parent.entities).find(e =>
             e.type === "monster" &&
             e.mtype === boss_name &&
             !e.dead &&
@@ -268,13 +268,13 @@ async function boss_handler() {
         if (!boss) break;
 
         // Maintain distance: character.range - 5
-        const dist = parent.distance(character, boss_entity);
+        const dist = parent.distance(character, boss);
         if (dist > character.range - 5 || dist < character.range - 20) {
-            const dx = boss_entity.x - character.x;
-            const dy = boss_entity.y - character.y;
+            const dx = boss.x - character.x;
+            const dy = boss.y - character.y;
             const d = Math.hypot(dx, dy);
-            const target_x = boss_entity.x - (dx / d) * (character.range - 5);
-            const target_y = boss_entity.y - (dy / d) * (character.range - 5);
+            const target_x = boss.x - (dx / d) * (character.range - 5);
+            const target_y = boss.y - (dy / d) * (character.range - 5);
             move(target_x, target_y);
         }
 
@@ -305,7 +305,7 @@ async function boss_handler() {
         if (aggro && can_use("scare")) {
             await use_skill("scare");
         }
-        await delay(100);
+        await delay(100); // Prevent infinite tight loop
     }
 
     // Equip orbg once home
