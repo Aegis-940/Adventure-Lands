@@ -783,7 +783,11 @@ async function target_upgrade(target_item, target_amount) {
         game_log(`✅ Already have at least ${target_amount} ${target_item}(s)`);
     }
 
+	await delay(500);
+
     await run_auto_upgrade();
+
+	await delay(500);
 
 	await sell_and_bank();
 }
