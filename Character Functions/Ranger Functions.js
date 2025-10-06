@@ -156,7 +156,7 @@ async function attack_loop() {
     let delay = 50;
     const X = character.x, Y = character.y;
 
-    if (await handle_bosses()) {
+    if (await boss_handler()) {
         delay = ms_to_next_skill("attack");
         attack_timer_id = setTimeout(attack_loop, delay);
         return;
@@ -311,7 +311,7 @@ async function loot_loop() {
 
 async function handle_bosses() {
 
-    const BOSSES = ["phoenix"]; // Add more boss mtypes as needed
+    const BOSSES = ["mrpumpkin", "mrgreen"]; // Add more boss mtypes as needed
 
     const boss = Object.values(parent.entities).find(e =>
         e.type === "monster" &&
@@ -331,6 +331,33 @@ async function handle_bosses() {
     return false; // No boss
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOSS HANDLER
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let mrpumpkin_alive = parent.S.mrpumpkin.live;
+let mrgreen_alive   = parent.S.mrgreen.live;
+
+const BOSSES = ["mrpumpkin", "mrgreen"];
+
+
+async function boss_handler() {
+
+    if (mrpumpkin_alive) {
+
+        await smart_move("mrpumpkin");
+
+        change_target("mrpumpkin");
+
+        if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
+        if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
+        if (!is_on_cooldown("attack")) {
+            await attack(boss);
+        }
+
+    }
+
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // POTIONS LOOP
