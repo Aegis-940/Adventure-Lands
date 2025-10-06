@@ -50,117 +50,6 @@ async function attack_loop() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// BOSS HANDLER
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-const BOSSES = ["mrpumpkin", "mrgreen"];
-
-async function boss_handler() {
-
-    // 1. Find all alive bosses and pick the one that spawned first
-    let alive_bosses = BOSSES
-        .filter(name => parent.S[name] && parent.S[name].live)
-        .map(name => ({ name, live: parent.S[name].live }));
-
-    if (alive_bosses.length === 0) return false; // No boss alive, return to attack_loop
-
-    // Sort by spawn time (oldest first)
-    alive_bosses.sort((a, b) => a.live - b.live);
-
-    // Now, check for lowest health among all alive bosses (visible or not)
-    let lowest_hp_boss = null;
-    let lowest_hp = Infinity;
-    for (const boss of alive_bosses) {
-        // Prefer entity HP if visible, otherwise use parent.S
-        let hp = Infinity;
-        const entity = Object.values(parent.entities).find(e =>
-            e.type === "monster" &&
-            e.mtype === boss.name &&
-            !e.dead
-        );
-        if (entity) {
-            hp = entity.hp;
-        } else if (parent.S[boss.name] && typeof parent.S[boss.name].hp === "number") {
-            hp = parent.S[boss.name].hp;
-        }
-        if (hp < lowest_hp) {
-            lowest_hp = hp;
-            lowest_hp_boss = boss.name;
-        }
-    }
-
-    // If a boss with lowest HP was found, use it; otherwise, use the oldest spawn
-    let boss_name = lowest_hp_boss || alive_bosses[0].name;
-
-    // Save current location before moving to boss
-    const prev_location = { map: character.map, x: character.x, y: character.y };
-
-    // Equip fireblade +8 in mainhand and fireblade +7 in offhand
-    const mainhand_slot = character.slots.mainhand;
-    const offhand_slot = character.slots.offhand;
-    const fireblade8_slot = parent.character.items.findIndex(item => item && item.name === "fireblade" && item.level === 8);
-    const fireblade7_slot = parent.character.items.findIndex(item => item && item.name === "fireblade" && item.level === 7);
-
-    if ((!mainhand_slot || mainhand_slot.name !== "fireblade" || mainhand_slot.level !== 8) && fireblade8_slot !== -1) {
-        await equip(fireblade8_slot, "mainhand");
-        await delay(300);
-    }
-    if ((!offhand_slot || offhand_slot.name !== "fireblade" || offhand_slot.level !== 7) && fireblade7_slot !== -1) {
-        await equip(fireblade7_slot, "offhand");
-        await delay(300);
-    }
-
-    // 3. Equip jacko and use scare
-    const jacko_slot = locate_item("jacko");
-    if (jacko_slot !== -1 && character.slots.orb?.name !== "jacko") {
-        await equip(jacko_slot, "orb");
-        await delay(300);
-    }
-    if (can_use("scare")) await use_skill("scare");
-
-    // 4. smart_move to the boss's location
-    await smart_move(boss_name);
-
-    // 5-9. Engage boss until dead
-    while (parent.S[boss_name] && parent.S[boss_name].live) {
-        // Find the boss entity
-        let boss = Object.values(parent.entities).find(e =>
-            e.type === "monster" &&
-            e.mtype === boss_name &&
-            !e.dead &&
-            e.visible
-        );
-
-        if (!boss) {
-            await delay(100);
-            continue;
-        }
-
-        // Maintain distance if desired (for warrior, usually melee, so you may want to skip this)
-        // If you want to approach, you can uncomment below:
-        const dist = parent.distance(character, boss);
-        if (dist > character.range - 5) {
-            await move(boss.x, boss.y);
-        }
-
-        // Target boss and attack if not self-targeted
-        change_target(boss);
-
-        if (boss.target && boss.target !== character.name) {
-            if (!is_on_cooldown("attack")) await attack(boss);
-        }
-
-        await delay(50);
-    }
-
-    // Smart move back to previous location after boss is dead
-    await smart_move(prev_location);
-
-    // Boss is dead, return to regular attack loop
-    return true;
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
 // MOVE LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -282,6 +171,117 @@ async function loot_loop() {
 
         await delay(100); // Check every 100ms
     }
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOSS HANDLER
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const BOSSES = ["mrpumpkin", "mrgreen"];
+
+async function boss_handler() {
+
+    // 1. Find all alive bosses and pick the one that spawned first
+    let alive_bosses = BOSSES
+        .filter(name => parent.S[name] && parent.S[name].live)
+        .map(name => ({ name, live: parent.S[name].live }));
+
+    if (alive_bosses.length === 0) return false; // No boss alive, return to attack_loop
+
+    // Sort by spawn time (oldest first)
+    alive_bosses.sort((a, b) => a.live - b.live);
+
+    // Now, check for lowest health among all alive bosses (visible or not)
+    let lowest_hp_boss = null;
+    let lowest_hp = Infinity;
+    for (const boss of alive_bosses) {
+        // Prefer entity HP if visible, otherwise use parent.S
+        let hp = Infinity;
+        const entity = Object.values(parent.entities).find(e =>
+            e.type === "monster" &&
+            e.mtype === boss.name &&
+            !e.dead
+        );
+        if (entity) {
+            hp = entity.hp;
+        } else if (parent.S[boss.name] && typeof parent.S[boss.name].hp === "number") {
+            hp = parent.S[boss.name].hp;
+        }
+        if (hp < lowest_hp) {
+            lowest_hp = hp;
+            lowest_hp_boss = boss.name;
+        }
+    }
+
+    // If a boss with lowest HP was found, use it; otherwise, use the oldest spawn
+    let boss_name = lowest_hp_boss || alive_bosses[0].name;
+
+    // Save current location before moving to boss
+    const prev_location = { map: character.map, x: character.x, y: character.y };
+
+    // Equip fireblade +8 in mainhand and fireblade +7 in offhand
+    const mainhand_slot = character.slots.mainhand;
+    const offhand_slot = character.slots.offhand;
+    const fireblade8_slot = parent.character.items.findIndex(item => item && item.name === "fireblade" && item.level === 8);
+    const fireblade7_slot = parent.character.items.findIndex(item => item && item.name === "fireblade" && item.level === 7);
+
+    if ((!mainhand_slot || mainhand_slot.name !== "fireblade" || mainhand_slot.level !== 8) && fireblade8_slot !== -1) {
+        await equip(fireblade8_slot, "mainhand");
+        await delay(300);
+    }
+    if ((!offhand_slot || offhand_slot.name !== "fireblade" || offhand_slot.level !== 7) && fireblade7_slot !== -1) {
+        await equip(fireblade7_slot, "offhand");
+        await delay(300);
+    }
+
+    // 3. Equip jacko and use scare
+    const jacko_slot = locate_item("jacko");
+    if (jacko_slot !== -1 && character.slots.orb?.name !== "jacko") {
+        await equip(jacko_slot, "orb");
+        await delay(300);
+    }
+    if (can_use("scare")) await use_skill("scare");
+
+    // 4. smart_move to the boss's location
+    await smart_move(boss_name);
+
+    // 5-9. Engage boss until dead
+    while (parent.S[boss_name] && parent.S[boss_name].live) {
+        // Find the boss entity
+        let boss = Object.values(parent.entities).find(e =>
+            e.type === "monster" &&
+            e.mtype === boss_name &&
+            !e.dead &&
+            e.visible
+        );
+
+        if (!boss) {
+            await delay(100);
+            continue;
+        }
+
+        // Maintain distance if desired (for warrior, usually melee, so you may want to skip this)
+        // If you want to approach, you can uncomment below:
+        const dist = parent.distance(character, boss);
+        if (dist > character.range - 5) {
+            await move(boss.x, boss.y);
+        }
+
+        // Target boss and attack if not self-targeted
+        change_target(boss);
+
+        if (boss.target && boss.target !== character.name) {
+            if (!is_on_cooldown("attack")) await attack(boss);
+        }
+
+        await delay(50);
+    }
+
+    // Smart move back to previous location after boss is dead
+    await smart_move(prev_location);
+
+    // Boss is dead, return to regular attack loop
+    return true;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

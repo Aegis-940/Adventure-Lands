@@ -306,6 +306,7 @@ async function loot_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const BOSSES = ["mrpumpkin", "mrgreen"];
+const GRIND_HOME = { map: "main", x: -1196, y: -172 };
 
 async function boss_handler() {
 
@@ -344,9 +345,6 @@ async function boss_handler() {
     // If a boss with lowest HP was found, use it; otherwise, use the oldest spawn
     let boss_name = lowest_hp_boss || alive_bosses[0].name;
 
-    // Save current location before moving to boss
-    const prev_location = { map: character.map, x: character.x, y: character.y };
-
     // Store currently equipped bow
     const current_bow = character.slots.mainhand?.name;
 
@@ -357,16 +355,28 @@ async function boss_handler() {
         await delay(300);
     }
 
-    // 3. Equip jacko and use scare
+    // 3. Equip jacko before moving
     const jacko_slot = locate_item("jacko");
     if (jacko_slot !== -1 && character.slots.mainhand?.name !== "jacko") {
         await equip(jacko_slot);
         await delay(300);
     }
-    if (can_use("scare")) await use_skill("scare");
 
-    // 4. smart_move to the boss's location
-    await smart_move(boss_name);
+    // 4. smart_move to the boss's location, using scare if targeted during movement
+    let moving = true;
+    const movePromise = smart_move(boss_name).then(() => { moving = false; });
+    while (moving) {
+        // If any monster targets me, use scare if possible
+        const aggro = Object.values(parent.entities).some(e =>
+            e.type === "monster" &&
+            e.target === character.name &&
+            !e.dead
+        );
+        if (aggro && can_use("scare")) {
+            await use_skill("scare");
+        }
+        await delay(100);
+    }
 
     // Re-equip orbg after smart_move
     const orbg_slot = locate_item("orbg");
@@ -437,8 +447,35 @@ async function boss_handler() {
 
     await loot_chests();
 
-    // Smart move back to previous location after boss is dead
-    await smart_move(prev_location);
+    // 3. Equip jacko before moving
+    const jacko_slot = locate_item("jacko");
+    if (jacko_slot !== -1 && character.slots.mainhand?.name !== "jacko") {
+        await equip(jacko_slot);
+        await delay(300);
+    }
+
+    // 4. smart_move to the boss's location, using scare if targeted during movement
+    let moving = true;
+    const movePromise = smart_move(GRIND_HOME).then(() => { moving = false; });
+    while (moving) {
+        // If any monster targets me, use scare if possible
+        const aggro = Object.values(parent.entities).some(e =>
+            e.type === "monster" &&
+            e.target === character.name &&
+            !e.dead
+        );
+        if (aggro && can_use("scare")) {
+            await use_skill("scare");
+        }
+        await delay(100);
+    }
+
+    // Re-equip orbg after smart_move
+    const orbg_slot = locate_item("orbg");
+    if (orbg_slot !== -1 && character.slots.mainhand?.name !== "orbg") {
+        await equip(orbg_slot);
+        await delay(300);
+    }
 
     // Re-equip original bow if it has changed
     if (current_bow && character.slots.mainhand?.name !== current_bow) {
