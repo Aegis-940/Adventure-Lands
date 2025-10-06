@@ -224,7 +224,7 @@ async function attack_loop() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// BOSS LOOP
+// BOSS LOOP - HALLOWEEN EDITION
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const BOSSES = ["mrpumpkin", "mrgreen"];
@@ -233,8 +233,6 @@ const GRIND_WEAPON = "hbow";
 
 async function boss_loop() {
     let boss_active = true;
-
-    game_log("Check 1");
 
     // Find all alive bosses and pick the one with the lowest HP (fallback: oldest spawn)
     let alive_bosses = BOSSES
