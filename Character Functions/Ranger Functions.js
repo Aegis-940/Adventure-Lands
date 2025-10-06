@@ -157,7 +157,7 @@ async function attack_loop() {
     let delay = 50;
     const X = character.x, Y = character.y;
 
-    boss_handler().catch(console.error);
+    await boss_handler().catch(console.error);
 
     const monsters = Object.values(parent.entities).filter(e =>
             e.type === "monster" &&

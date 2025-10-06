@@ -18,8 +18,8 @@ async function attack_loop() {
     if (!attack_enabled) return;
     let delay = 10;
 
-    boss_handler().catch(console.error);
-    
+    await boss_handler().catch(console.error);
+
     try {
 
         // 1. Filter all relevant monsters ONCE
