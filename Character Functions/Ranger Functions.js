@@ -356,16 +356,16 @@ async function boss_handler() {
     }
 
     // 3. Equip jacko before moving
-    const jacko_slot = locate_item("jacko");
-    if (jacko_slot !== -1 && character.slots.mainhand?.name !== "jacko") {
-        await equip(jacko_slot);
+    const jacko_slot1 = locate_item("jacko");
+    if (jacko_slot1 !== -1 && character.slots.mainhand?.name !== "jacko") {
+        await equip(jacko_slot1);
         await delay(300);
     }
 
     // 4. smart_move to the boss's location, using scare if targeted during movement
-    let moving = true;
-    const movePromise = smart_move(boss_name).then(() => { moving = false; });
-    while (moving) {
+    let is_moving1 = true;
+    const movePromise1 = smart_move(boss_name).then(() => { is_moving1 = false; });
+    while (is_moving1) {
         // If any monster targets me, use scare if possible
         const aggro = Object.values(parent.entities).some(e =>
             e.type === "monster" &&
@@ -379,9 +379,9 @@ async function boss_handler() {
     }
 
     // Re-equip orbg after smart_move
-    const orbg_slot = locate_item("orbg");
-    if (orbg_slot !== -1 && character.slots.mainhand?.name !== "orbg") {
-        await equip(orbg_slot);
+    const orbg_slot1 = locate_item("orbg");
+    if (orbg_slot1 !== -1 && character.slots.mainhand?.name !== "orbg") {
+        await equip(orbg_slot1);
         await delay(300);
     }
 
@@ -448,16 +448,16 @@ async function boss_handler() {
     await loot_chests();
 
     // 3. Equip jacko before moving
-    const jacko_slot = locate_item("jacko");
-    if (jacko_slot !== -1 && character.slots.mainhand?.name !== "jacko") {
-        await equip(jacko_slot);
+    const jacko_slot2 = locate_item("jacko");
+    if (jacko_slot2 !== -1 && character.slots.mainhand?.name !== "jacko") {
+        await equip(jacko_slot2);
         await delay(300);
     }
 
     // 4. smart_move to the boss's location, using scare if targeted during movement
-    let moving = true;
-    const movePromise = smart_move(GRIND_HOME).then(() => { moving = false; });
-    while (moving) {
+    let is_moving2 = true;
+    const movePromise2 = smart_move(GRIND_HOME).then(() => { is_moving2 = false; });
+    while (is_moving2) {
         // If any monster targets me, use scare if possible
         const aggro = Object.values(parent.entities).some(e =>
             e.type === "monster" &&
@@ -471,9 +471,9 @@ async function boss_handler() {
     }
 
     // Re-equip orbg after smart_move
-    const orbg_slot = locate_item("orbg");
-    if (orbg_slot !== -1 && character.slots.mainhand?.name !== "orbg") {
-        await equip(orbg_slot);
+    const orbg_slot2 = locate_item("orbg");
+    if (orbg_slot2 !== -1 && character.slots.mainhand?.name !== "orbg") {
+        await equip(orbg_slot2);
         await delay(300);
     }
 
