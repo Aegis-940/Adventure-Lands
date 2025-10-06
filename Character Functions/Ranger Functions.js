@@ -409,9 +409,7 @@ async function boss_handler() {
         await delay(50);
     }
 
-    if (getNumChests() >= chestThreshold && character.fear < 6) {
-        await loot_chests();
-    }
+    await loot_chests();
 
     // Smart move back to previous location after boss is dead
     await smart_move(prev_location);
