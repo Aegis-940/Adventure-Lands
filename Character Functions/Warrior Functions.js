@@ -236,25 +236,25 @@ async function boss_handler() {
         await delay(300);
     }
 
-    // Only smart_move if boss is far away
-    const boss_entity = Object.values(parent.entities).find(e =>
-        e.type === "monster" && e.mtype === boss_name && !e.dead
-    );
-    const boss_dist = boss_entity ? parent.distance(character, boss_entity) : Infinity;
+    // // Only smart_move if boss is far away
+    // const boss_entity = Object.values(parent.entities).find(e =>
+    //     e.type === "monster" && e.mtype === boss_name && !e.dead
+    // );
+    // const boss_dist = boss_entity ? parent.distance(character, boss_entity) : Infinity;
 
-    if (boss_dist > character.range + 50) { // Only smart_move if not already close
-        let moving = true;
-        smart_move(boss_name).then(() => { moving = false; });
-        while (moving) {
-            const aggro = Object.values(parent.entities).some(e =>
-                e.type === "monster" && e.target === character.name && !e.dead
-            );
-            if (aggro && can_use("scare")) {
-                await use_skill("scare");
-            }
-            await delay(100);
-        }
-    }
+    // if (boss_dist > character.range + 50) { // Only smart_move if not already close
+    //     let moving = true;
+    //     smart_move(boss_name).then(() => { moving = false; });
+    //     while (moving) {
+    //         const aggro = Object.values(parent.entities).some(e =>
+    //             e.type === "monster" && e.target === character.name && !e.dead
+    //         );
+    //         if (aggro && can_use("scare")) {
+    //             await use_skill("scare");
+    //         }
+    //         await delay(100);
+    //     }
+    // }
 
     // Now, engage boss until dead (do NOT smart_move again in this loop)
     while (parent.S[boss_name] && parent.S[boss_name].live) {
