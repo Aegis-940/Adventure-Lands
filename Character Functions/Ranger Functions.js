@@ -308,46 +308,60 @@ async function loot_loop() {
 // BOSS HANDLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let mrpumpkin_alive = parent.S.mrpumpkin.live;
-let mrgreen_alive   = parent.S.mrgreen.live;
-
 const BOSSES = ["mrpumpkin", "mrgreen"];
 
 async function boss_handler() {
-    // Find the first alive boss using parent.S[...].live
-    let boss = null;
-    for (const boss_name of BOSSES) {
-        if (parent.S[boss_name] && parent.S[boss_name].live) {
-            boss = Object.values(parent.entities).find(e =>
-                e.type === "monster" &&
-                e.mtype === boss_name &&
-                !e.dead &&
-                e.visible
-            );
-            if (boss) break;
+    // 1. Find the first alive boss from BOSSES using parent.S.BOSSNAME.live
+    let boss_name = null;
+    for (const name of BOSSES) {
+        if (parent.S[name] && parent.S[name].live) {
+            boss_name = name;
+            break;
         }
     }
-    if (!boss) return false;
+    if (!boss_name) return false; // No boss alive, return to attack_loop
 
-   if (dist > character.range - 5) {
-        // Move toward boss, but don't await so attack_loop continues
-        const dx = boss.x - character.x;
-        const dy = boss.y - character.y;
-        const d = Math.hypot(dx, dy);
-        const target_x = boss.x - (dx / d) * character.range * 0.95;
-        const target_y = boss.y - (dy / d) * character.range * 0.95;
-        move(target_x, target_y); // Do not await!
-        return false; // Not in range yet, allow normal monster logic
-    }
-    // In range: attack and use skills
-    change_target(boss);
-    if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
-    if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
-    if (!is_on_cooldown("attack")) {
-        await attack(boss);
+    // 2. Loop until boss is dead
+    while (parent.S[boss_name] && parent.S[boss_name].live) {
+        // 3. Try to find the boss entity
+        let boss = Object.values(parent.entities).find(e =>
+            e.type === "monster" &&
+            e.mtype === boss_name &&
+            !e.dead &&
+            e.visible
+        );
+
+        // 4. If boss not visible or not in same map, smart_move to boss's spawn location
+        if (!boss || character.map !== boss?.map) {
+            await smart_move(boss_name);
+            await delay(100); // Small delay to avoid tight loop
+            continue;
+        }
+
+        // 5. If boss is visible but out of range, move closer (but not closer than range-5)
+        const dist = parent.distance(character, boss);
+        if (dist > character.range - 5) {
+            const dx = boss.x - character.x;
+            const dy = boss.y - character.y;
+            const d = Math.hypot(dx, dy);
+            const target_x = boss.x - (dx / d) * character.range * 0.95;
+            const target_y = boss.y - (dy / d) * character.range * 0.95;
+            move(target_x, target_y); // Do not await!
+            await delay(100); // Allow time for movement and entity updates
+            continue;
+        }
+
+        // 6. In range: stop moving and attack
+        change_target(boss);
+        if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
+        if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
+        if (!is_on_cooldown("attack")) await attack(boss);
+
+        await delay(50); // Short delay to avoid spamming
     }
 
-    return true; // Boss handled (in range)
+    // 7. Boss is dead or gone, return to regular attack loop
+    return true;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
