@@ -185,7 +185,7 @@ async function loot_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const BOSSES = ["mrpumpkin", "mrgreen"];
-const GRIND_HOME = { map: "main", x: 871, y: -172 };
+const GRIND_HOME = { map: "main", x: 866, y: -172 };
 
 async function boss_handler() {
     // Find all alive bosses and pick the one with the lowest HP (fallback: oldest spawn)

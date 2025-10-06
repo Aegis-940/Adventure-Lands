@@ -306,7 +306,7 @@ async function loot_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const BOSSES = ["mrpumpkin", "mrgreen"];
-const GRIND_HOME = { map: "main", x: -1196, y: -172 };
+const GRIND_HOME = { map: "main", x: -1193, y: -80 };
 const GRIND_WEAPON = "hbow";
 
 async function boss_handler() {
