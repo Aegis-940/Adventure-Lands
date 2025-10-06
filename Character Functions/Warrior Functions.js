@@ -56,6 +56,14 @@ async function attack_loop() {
 async function move_loop() {
     if (!move_enabled) return;
     const delay = 200;
+
+    // At the top of move_loop
+    if (BOSSES.some(name => parent.S[name] && parent.S[name].live)) {
+        // Boss is alive, let boss_handler handle movement
+        move_timer_id = setTimeout(move_loop, 200);
+        return;
+    }
+
     try {
         // Filter all relevant monsters ONCE
         const monsters = Object.values(parent.entities).filter(e =>
