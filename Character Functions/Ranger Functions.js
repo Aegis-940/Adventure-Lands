@@ -429,6 +429,7 @@ async function boss_handler() {
         if (aggro && can_use("scare")) {
             await use_skill("scare");
         }
+        await delay(100); // Prevent infinite tight loop
     }
 
     // Equip orbg once home
