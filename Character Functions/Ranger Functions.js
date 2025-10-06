@@ -428,7 +428,7 @@ async function boss_handler() {
             if (!is_on_cooldown("attack")) await attack(boss);
         }
 
-        await delay(ms_to_next_skill("attack"));
+        await delay(10);
     }
 
     // Loot chests if needed
