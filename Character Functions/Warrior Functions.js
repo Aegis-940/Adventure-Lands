@@ -259,10 +259,7 @@ async function boss_handler() {
             e.visible
         );
 
-        if (!boss_entity) {
-            await delay(100);
-            continue;
-        }
+        if (!boss) break;
 
         // Maintain distance: character.range - 5
         const dist = parent.distance(character, boss_entity);
