@@ -396,7 +396,7 @@ async function boss_handler() {
         const dist = parent.distance(character, boss);
         const desired_range = character.range - 5;
         const tolerance = 5;
-        if (dist > desired_range + tolerance || dist < desired_range - tolerance) {
+        if ((dist > desired_range + tolerance || dist < desired_range - tolerance) && !character.moving) {
             const dx = boss.x - character.x;
             const dy = boss.y - character.y;
             const d = Math.hypot(dx, dy);
