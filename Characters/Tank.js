@@ -16,8 +16,8 @@ create_map_movement_window([
 ]);
 
 // toggle_combat();
-toggle_free_move();
-toggle_follow_priest_button();
+// toggle_free_move();
+// toggle_follow_priest_button();
 // toggle_maintain_position();
 hide_skills_ui();
 
