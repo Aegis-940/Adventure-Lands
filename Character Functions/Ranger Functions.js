@@ -321,6 +321,16 @@ async function boss_handler() {
     // Save current location before moving to boss
     const prev_location = { map: character.map, x: character.x, y: character.y };
 
+    // Store currently equipped bow
+    const current_bow = character.slots.mainhand?.name;
+
+    // Attempt to equip firebow before moving to boss
+    const firebow_slot = locate_item("firebow");
+    if (firebow_slot !== -1 && character.slots.mainhand?.name !== "firebow") {
+        await equip(firebow_slot);
+        await delay(300);
+    }
+
     // 3. Equip jacko and use scare
     const jacko_slot = locate_item("jacko");
     if (jacko_slot !== -1 && character.slots.mainhand?.name !== "jacko") {
@@ -405,6 +415,15 @@ async function boss_handler() {
 
     // Smart move back to previous location after boss is dead
     await smart_move(prev_location);
+
+    // Re-equip original bow if it has changed
+    if (current_bow && character.slots.mainhand?.name !== current_bow) {
+        const orig_bow_slot = locate_item(current_bow);
+        if (orig_bow_slot !== -1) {
+            await equip(orig_bow_slot);
+            await delay(300);
+        }
+    }
 
     // 9. Boss is dead, return to regular attack loop
     return true;
