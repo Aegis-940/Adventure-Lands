@@ -17,6 +17,9 @@ function ms_to_next_skill(skill) {
 async function attack_loop() {
     if (!attack_enabled) return;
     let delay = 10;
+
+    boss_handler().catch(console.error);
+    
     try {
 
         // 1. Filter all relevant monsters ONCE
@@ -44,6 +47,91 @@ async function attack_loop() {
         console.error(e);
     }
     attack_timer_id = setTimeout(attack_loop, delay);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOSS HANDLER
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const BOSSES = ["mrpumpkin", "mrgreen"];
+
+async function boss_handler() {
+    // 1. Find the first alive boss from BOSSES using parent.S.BOSSNAME.live
+    let boss_name = null;
+    for (const name of BOSSES) {
+        if (parent.S[name] && parent.S[name].live) {
+            boss_name = name;
+            break;
+        }
+    }
+    if (!boss_name) return false; // No boss alive, return to attack_loop
+
+    // Save current location before moving to boss
+    const prev_location = { map: character.map, x: character.x, y: character.y };
+
+    // Equip fireblade +8 in mainhand and fireblade +7 in offhand
+    const mainhand_slot = character.slots.mainhand;
+    const offhand_slot = character.slots.offhand;
+    const fireblade8_slot = parent.character.items.findIndex(item => item && item.name === "fireblade" && item.level === 8);
+    const fireblade7_slot = parent.character.items.findIndex(item => item && item.name === "fireblade" && item.level === 7);
+
+    if ((!mainhand_slot || mainhand_slot.name !== "fireblade" || mainhand_slot.level !== 8) && fireblade8_slot !== -1) {
+        await equip(fireblade8_slot, "mainhand");
+        await delay(300);
+    }
+    if ((!offhand_slot || offhand_slot.name !== "fireblade" || offhand_slot.level !== 7) && fireblade7_slot !== -1) {
+        await equip(fireblade7_slot, "offhand");
+        await delay(300);
+    }
+
+    // 3. Equip jacko and use scare
+    const jacko_slot = locate_item("jacko");
+    if (jacko_slot !== -1 && character.slots.orb?.name !== "jacko") {
+        await equip(jacko_slot, "orb");
+        await delay(300);
+    }
+    if (can_use("scare")) await use_skill("scare");
+
+    // 4. smart_move to the boss's location
+    await smart_move(boss_name);
+
+    // 5-9. Engage boss until dead
+    while (parent.S[boss_name] && parent.S[boss_name].live) {
+        // Find the boss entity
+        let boss = Object.values(parent.entities).find(e =>
+            e.type === "monster" &&
+            e.mtype === boss_name &&
+            !e.dead &&
+            e.visible
+        );
+
+        if (!boss) {
+            await delay(100);
+            continue;
+        }
+
+        // Maintain distance if desired (for warrior, usually melee, so you may want to skip this)
+        // If you want to approach, you can uncomment below:
+        const dist = parent.distance(character, boss);
+        if (dist > character.range - 5) {
+            await move(boss.x, boss.y);
+        }
+
+        // Target boss and attack if not self-targeted
+        change_target(boss);
+
+        if (boss.target && boss.target !== character.name) {
+            if (!is_on_cooldown("attack")) await attack(boss);
+        }
+
+        await delay(50);
+    }
+
+    // Smart move back to previous location after boss is dead
+    await smart_move(prev_location);
+
+    // Boss is dead, return to regular attack loop
+    return true;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
