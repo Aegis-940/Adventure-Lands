@@ -307,24 +307,23 @@ async function loot_loop() {
 
 const BOSSES = ["mrpumpkin", "mrgreen"];
 const GRIND_HOME = { map: "main", x: -1196, y: -172 };
+const GRIND_WEAPON = "hbow";
 
 async function boss_handler() {
-
-    // 1. Find all alive bosses and pick the one that spawned first
+    // Find all alive bosses and pick the one with the lowest HP (fallback: oldest spawn)
     let alive_bosses = BOSSES
         .filter(name => parent.S[name] && parent.S[name].live)
         .map(name => ({ name, live: parent.S[name].live }));
 
-    if (alive_bosses.length === 0) return false; // No boss alive, return to attack_loop
+    if (alive_bosses.length === 0) return false;
 
     // Sort by spawn time (oldest first)
     alive_bosses.sort((a, b) => a.live - b.live);
 
-    // Now, check for lowest health among all alive bosses (visible or not)
+    // Find boss with lowest HP (visible or not)
     let lowest_hp_boss = null;
     let lowest_hp = Infinity;
     for (const boss of alive_bosses) {
-        // Prefer entity HP if visible, otherwise use parent.S
         let hp = Infinity;
         const entity = Object.values(parent.entities).find(e =>
             e.type === "monster" &&
@@ -341,36 +340,21 @@ async function boss_handler() {
             lowest_hp_boss = boss.name;
         }
     }
-
-    // If a boss with lowest HP was found, use it; otherwise, use the oldest spawn
     let boss_name = lowest_hp_boss || alive_bosses[0].name;
 
-    // Store currently equipped bow
-    const current_bow = character.slots.mainhand?.name;
-
-    // Attempt to equip firebow before moving to boss
-    const firebow_slot = locate_item("firebow");
-    if (firebow_slot !== -1 && character.slots.mainhand?.name !== "firebow") {
-        await equip(firebow_slot);
+    // Equip jacko before moving to boss
+    const jacko_slot = locate_item("jacko");
+    if (jacko_slot !== -1 && character.slots.mainhand?.name !== "jacko") {
+        await equip(jacko_slot);
         await delay(300);
     }
 
-    // 3. Equip jacko before moving
-    const jacko_slot1 = locate_item("jacko");
-    if (jacko_slot1 !== -1 && character.slots.mainhand?.name !== "jacko") {
-        await equip(jacko_slot1);
-        await delay(300);
-    }
-
-    // 4. smart_move to the boss's location, using scare if targeted during movement
-    let is_moving1 = true;
-    const movePromise1 = smart_move(boss_name).then(() => { is_moving1 = false; });
-    while (is_moving1) {
-        // If any monster targets me, use scare if possible
+    // Move to boss, using scare if targeted during movement
+    let moving = true;
+    smart_move(boss_name).then(() => { moving = false; });
+    while (moving) {
         const aggro = Object.values(parent.entities).some(e =>
-            e.type === "monster" &&
-            e.target === character.name &&
-            !e.dead
+            e.type === "monster" && e.target === character.name && !e.dead
         );
         if (aggro && can_use("scare")) {
             await use_skill("scare");
@@ -378,17 +362,9 @@ async function boss_handler() {
         await delay(100);
     }
 
-    // Re-equip orbg after smart_move
-    const orbg_slot1 = locate_item("orbg");
-    if (orbg_slot1 !== -1 && character.slots.mainhand?.name !== "orbg") {
-        await equip(orbg_slot1);
-        await delay(300);
-    }
-
-    // 5-9. Engage boss until dead
+    // Engage boss until dead
     while (parent.S[boss_name] && parent.S[boss_name].live) {
-        // Find the boss entity
-        let boss = Object.values(parent.entities).find(e =>
+        const boss = Object.values(parent.entities).find(e =>
             e.type === "monster" &&
             e.mtype === boss_name &&
             !e.dead &&
@@ -400,43 +376,28 @@ async function boss_handler() {
             continue;
         }
 
-        // Actively maintain distance character.range - 5
+        // Maintain distance: character.range - 5
         const dist = parent.distance(character, boss);
         if (dist > character.range - 5 || dist < character.range - 20) {
             const dx = boss.x - character.x;
             const dy = boss.y - character.y;
             const d = Math.hypot(dx, dy);
-            // Clamp to stay at character.range - 5
             const target_x = boss.x - (dx / d) * (character.range - 5);
             const target_y = boss.y - (dy / d) * (character.range - 5);
-            move(target_x, target_y); // Do not await!
+            move(target_x, target_y);
         }
 
-        // If aggro from any monster, use jacko + scare, then re-equip orbg
+        // Use scare if aggroed by any monster
         const aggro = Object.values(parent.entities).some(e =>
-            e.type === "monster" &&
-            e.target === character.name &&
-            !e.dead
+            e.type === "monster" && e.target === character.name && !e.dead
         );
-        if (aggro) {
-            const jacko_slot = locate_item("jacko");
-            if (jacko_slot !== -1 && character.slots.mainhand?.name !== "jacko") {
-                await equip(jacko_slot);
-                await delay(300);
-            }
-            if (can_use("scare")) await use_skill("scare");
-            if (orbg_slot !== -1 && character.slots.mainhand?.name !== "orbg") {
-                await equip(orbg_slot);
-                await delay(300);
-            }
+        if (aggro && can_use("scare")) {
+            await use_skill("scare");
         }
 
-        // 6. Target boss
+        // Target boss and attack if not tanking
         change_target(boss);
-
-        // 7. Only attack if boss's target is not self
         if (boss.target && boss.target !== character.name) {
-            // 8. Use skills as available
             if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
             if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
             if (!is_on_cooldown("attack")) await attack(boss);
@@ -445,24 +406,22 @@ async function boss_handler() {
         await delay(50);
     }
 
+    // Loot chests if needed
     await loot_chests();
 
-    // 3. Equip jacko before moving
-    const jacko_slot2 = locate_item("jacko");
-    if (jacko_slot2 !== -1 && character.slots.mainhand?.name !== "jacko") {
-        await equip(jacko_slot2);
+    // Equip grind weapon before returning home
+    const grind_slot = locate_item(GRIND_WEAPON);
+    if (grind_slot !== -1 && character.slots.mainhand?.name !== GRIND_WEAPON) {
+        await equip(grind_slot);
         await delay(300);
     }
 
-    // 4. smart_move to the boss's location, using scare if targeted during movement
-    let is_moving2 = true;
-    const movePromise2 = smart_move(GRIND_HOME).then(() => { is_moving2 = false; });
-    while (is_moving2) {
-        // If any monster targets me, use scare if possible
+    // Move back to grind home, using scare if targeted during movement
+    let moving_home = true;
+    smart_move(GRIND_HOME).then(() => { moving_home = false; });
+    while (moving_home) {
         const aggro = Object.values(parent.entities).some(e =>
-            e.type === "monster" &&
-            e.target === character.name &&
-            !e.dead
+            e.type === "monster" && e.target === character.name && !e.dead
         );
         if (aggro && can_use("scare")) {
             await use_skill("scare");
@@ -470,23 +429,13 @@ async function boss_handler() {
         await delay(100);
     }
 
-    // Re-equip orbg after smart_move
-    const orbg_slot2 = locate_item("orbg");
-    if (orbg_slot2 !== -1 && character.slots.mainhand?.name !== "orbg") {
-        await equip(orbg_slot2);
+    // Equip orbg once home
+    const orbg_slot = locate_item("orbg");
+    if (orbg_slot !== -1 && character.slots.mainhand?.name !== "orbg") {
+        await equip(orbg_slot);
         await delay(300);
     }
 
-    // Re-equip original bow if it has changed
-    if (current_bow && character.slots.mainhand?.name !== current_bow) {
-        const orig_bow_slot = locate_item(current_bow);
-        if (orig_bow_slot !== -1) {
-            await equip(orig_bow_slot);
-            await delay(300);
-        }
-    }
-
-    // 9. Boss is dead, return to regular attack loop
     return true;
 }
 
