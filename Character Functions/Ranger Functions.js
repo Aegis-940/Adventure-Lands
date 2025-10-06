@@ -342,6 +342,13 @@ async function boss_handler() {
     }
     let boss_name = lowest_hp_boss || alive_bosses[0].name;
 
+    // Equip flamebow before moving to boss
+    const flamebow_slot = locate_item("flamebow");
+    if (flamebow_slot !== -1 && character.slots.mainhand?.name !== "flamebow") {
+        await equip(flamebow_slot);
+        await delay(300);
+    }
+
     // Equip jacko before moving to boss
     const jacko_slot = locate_item("jacko");
     if (jacko_slot !== -1 && character.slots.mainhand?.name !== "jacko") {
