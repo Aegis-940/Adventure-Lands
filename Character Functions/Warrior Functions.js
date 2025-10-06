@@ -178,24 +178,23 @@ async function loot_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const BOSSES = ["mrpumpkin", "mrgreen"];
+const GRIND_HOME = { map: "main", x: 871, y: -172 };
 
 async function boss_handler() {
-
-    // 1. Find all alive bosses and pick the one that spawned first
+    // Find all alive bosses and pick the one with the lowest HP (fallback: oldest spawn)
     let alive_bosses = BOSSES
         .filter(name => parent.S[name] && parent.S[name].live)
         .map(name => ({ name, live: parent.S[name].live }));
 
-    if (alive_bosses.length === 0) return false; // No boss alive, return to attack_loop
+    if (alive_bosses.length === 0) return false;
 
     // Sort by spawn time (oldest first)
     alive_bosses.sort((a, b) => a.live - b.live);
 
-    // Now, check for lowest health among all alive bosses (visible or not)
+    // Find boss with lowest HP (visible or not)
     let lowest_hp_boss = null;
     let lowest_hp = Infinity;
     for (const boss of alive_bosses) {
-        // Prefer entity HP if visible, otherwise use parent.S
         let hp = Infinity;
         const entity = Object.values(parent.entities).find(e =>
             e.type === "monster" &&
@@ -212,43 +211,31 @@ async function boss_handler() {
             lowest_hp_boss = boss.name;
         }
     }
-
-    // If a boss with lowest HP was found, use it; otherwise, use the oldest spawn
     let boss_name = lowest_hp_boss || alive_bosses[0].name;
 
-    // Save current location before moving to boss
-    const prev_location = { map: character.map, x: character.x, y: character.y };
-
-    // Equip fireblade +8 in mainhand and fireblade +7 in offhand
-    const mainhand_slot = character.slots.mainhand;
-    const offhand_slot = character.slots.offhand;
-    const fireblade8_slot = parent.character.items.findIndex(item => item && item.name === "fireblade" && item.level === 8);
-    const fireblade7_slot = parent.character.items.findIndex(item => item && item.name === "fireblade" && item.level === 7);
-
-    if ((!mainhand_slot || mainhand_slot.name !== "fireblade" || mainhand_slot.level !== 8) && fireblade8_slot !== -1) {
-        await equip(fireblade8_slot, "mainhand");
-        await delay(300);
-    }
-    if ((!offhand_slot || offhand_slot.name !== "fireblade" || offhand_slot.level !== 7) && fireblade7_slot !== -1) {
-        await equip(fireblade7_slot, "offhand");
-        await delay(300);
-    }
-
-    // 3. Equip jacko and use scare
+    // Equip jacko before moving to boss
     const jacko_slot = locate_item("jacko");
-    if (jacko_slot !== -1 && character.slots.orb?.name !== "jacko") {
-        await equip(jacko_slot, "orb");
+    if (jacko_slot !== -1 && character.slots.mainhand?.name !== "jacko") {
+        await equip(jacko_slot);
         await delay(300);
     }
-    if (can_use("scare")) await use_skill("scare");
 
-    // 4. smart_move to the boss's location
-    await smart_move(boss_name);
+    // Move to boss, using scare if targeted during movement
+    let moving = true;
+    smart_move(boss_name).then(() => { moving = false; });
+    while (moving) {
+        const aggro = Object.values(parent.entities).some(e =>
+            e.type === "monster" && e.target === character.name && !e.dead
+        );
+        if (aggro && can_use("scare")) {
+            await use_skill("scare");
+        }
+        await delay(100);
+    }
 
-    // 5-9. Engage boss until dead
+    // Engage boss until dead
     while (parent.S[boss_name] && parent.S[boss_name].live) {
-        // Find the boss entity
-        let boss = Object.values(parent.entities).find(e =>
+        const boss = Object.values(parent.entities).find(e =>
             e.type === "monster" &&
             e.mtype === boss_name &&
             !e.dead &&
@@ -260,16 +247,27 @@ async function boss_handler() {
             continue;
         }
 
-        // Maintain distance if desired (for warrior, usually melee, so you may want to skip this)
-        // If you want to approach, you can uncomment below:
+        // Maintain distance: character.range - 5
         const dist = parent.distance(character, boss);
-        if (dist > character.range - 5) {
-            await move(boss.x, boss.y);
+        if (dist > character.range - 5 || dist < character.range - 20) {
+            const dx = boss.x - character.x;
+            const dy = boss.y - character.y;
+            const d = Math.hypot(dx, dy);
+            const target_x = boss.x - (dx / d) * (character.range - 5);
+            const target_y = boss.y - (dy / d) * (character.range - 5);
+            move(target_x, target_y);
         }
 
-        // Target boss and attack if not self-targeted
-        change_target(boss);
+        // Use scare if aggroed by any monster
+        const aggro = Object.values(parent.entities).some(e =>
+            e.type === "monster" && e.target === character.name && !e.dead
+        );
+        if (aggro && can_use("scare")) {
+            await use_skill("scare");
+        }
 
+        // Target boss and attack if not tanking
+        change_target(boss);
         if (boss.target && boss.target !== character.name) {
             if (!is_on_cooldown("attack")) await attack(boss);
         }
@@ -277,10 +275,26 @@ async function boss_handler() {
         await delay(50);
     }
 
-    // Smart move back to previous location after boss is dead
-    await smart_move(prev_location);
+    // Move back to grind home, using scare if targeted during movement
+    let moving_home = true;
+    smart_move(GRIND_HOME).then(() => { moving_home = false; });
+    while (moving_home) {
+        const aggro = Object.values(parent.entities).some(e =>
+            e.type === "monster" && e.target === character.name && !e.dead
+        );
+        if (aggro && can_use("scare")) {
+            await use_skill("scare");
+        }
+        await delay(100);
+    }
 
-    // Boss is dead, return to regular attack loop
+    // Equip orbg once home
+    const orbg_slot = locate_item("orbg");
+    if (orbg_slot !== -1 && character.slots.mainhand?.name !== "orbg") {
+        await equip(orbg_slot);
+        await delay(300);
+    }
+
     return true;
 }
 
