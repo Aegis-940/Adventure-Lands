@@ -149,15 +149,15 @@ async function run_auto_upgrade() {
 	const max_compound_level = 5;
 	let current_level = 0;
 
-	(function loop() {
+	(async function loop() {
 		if (current_level > max_upgrade_level && current_level > max_compound_level) {
 			auto_upgrade = false;
 			console.log("✅ All upgrades/compounds finished.");
 			return;
 		}
 
-		const resultU = upgrade_once_by_level(current_level);
-		const resultC = compound_once_by_level(current_level);
+		const resultU = await upgrade_once_by_level(current_level);
+		const resultC = await compound_once_by_level(current_level);
 
 		if (resultU === "done" || resultC === "done" || resultU === "wait" || resultC === "wait") {
 			setTimeout(loop, UPGRADE_INTERVAL);
