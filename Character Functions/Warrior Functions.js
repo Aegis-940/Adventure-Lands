@@ -55,45 +55,33 @@ async function attack_loop() {
 
 async function move_loop() {
     if (!move_enabled) return;
-    const delay = 200;
-
-    // Pause move_loop if a boss is alive
-    if (BOSSES.some(name => parent.S[name] && parent.S[name].live)) {
-        move_timer_id = setTimeout(move_loop, delay);
-        return;
-    }
+    let delay = 200;
 
     try {
-        // Filter all relevant monsters ONCE
-        const monsters = Object.values(parent.entities).filter(e =>
-            e.type === "monster" &&
-            MONSTER_TYPES.includes(e.mtype) &&
-            !e.dead &&
-            e.visible
-        );
-
-        // Find the closest monster
+        // 1) Find the nearest valid monster
         let closest = null;
-        let minDist = Infinity;
-        for (const mon of monsters) {
-            const d = parent.distance(character, mon);
+        let minDist  = Infinity;
+        for (const mtype of MONSTER_TYPES) {
+            const m = get_nearest_monster_v2({ type: mtype, path_check: true });
+            if (!m) continue;
+            const d = parent.distance(character, m);
             if (d < minDist) {
                 minDist = d;
-                closest = mon;
+                closest = m;
             }
         }
 
-        // If there is one and we're out of range, walk straight at it
-        if (
-            closest &&
-            minDist > character.range * 0.9 &&
-            !character.moving
-        ) {
-            await move(closest.real_x, closest.real_y);
+        // 2) If we actually found one, and we're out of attack range, move half-way toward it
+        if (closest && minDist > character.range) {
+            const halfway_x = character.real_x + (closest.real_x - character.real_x) / 2;
+            const halfway_y = character.real_y + (closest.real_y - character.real_y) / 2;
+            await move(halfway_x, halfway_y);
         }
-    } catch (err) {
-        console.error("move_loop error:", err);
-    } finally {
+    } catch (e) {
+        console.error(e);
+    }
+
+    if (move_enabled) {
         move_timer_id = setTimeout(move_loop, delay);
     }
 }
