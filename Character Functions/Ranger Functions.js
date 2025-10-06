@@ -356,17 +356,24 @@ async function boss_handler() {
         await delay(300);
     }
 
-    // Move to boss, using scare if targeted during movement
-    let moving = true;
-    smart_move(boss_name).then(() => { moving = false; });
-    while (moving) {
-        const aggro = Object.values(parent.entities).some(e =>
-            e.type === "monster" && e.target === character.name && !e.dead
-        );
-        if (aggro && can_use("scare")) {
-            await use_skill("scare");
+    // Only smart_move if boss is more than 100 units away
+    let boss_entity = Object.values(parent.entities).find(e =>
+        e.type === "monster" && e.mtype === boss_name && !e.dead
+    );
+    let boss_dist = boss_entity ? parent.distance(character, boss_entity) : Infinity;
+
+    if (boss_dist > 100) {
+        let moving = true;
+        smart_move(boss_name).then(() => { moving = false; });
+        while (moving) {
+            const aggro = Object.values(parent.entities).some(e =>
+                e.type === "monster" && e.target === character.name && !e.dead
+            );
+            if (aggro && can_use("scare")) {
+                await use_skill("scare");
+            }
+            await delay(100);
         }
-        await delay(100);
     }
 
     // Engage boss until dead

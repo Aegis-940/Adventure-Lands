@@ -216,7 +216,7 @@ async function boss_handler() {
 
     // Equip jacko before moving to boss
     const jacko_slot = locate_item("jacko");
-    if (jacko_slot !== -1 && character.slots.mainhand?.name !== "jacko") {
+    if (jacko_slot !== -1 && character.slots.orb?.name !== "jacko") {
         await equip(jacko_slot);
         await delay(300);
     }
@@ -304,7 +304,7 @@ async function boss_handler() {
 
     // Equip orbg once home
     const orbg_slot = locate_item("orbg");
-    if (orbg_slot !== -1 && character.slots.mainhand?.name !== "orbg") {
+    if (orbg_slot !== -1 && character.slots.orb?.name !== "orbg") {
         await equip(orbg_slot);
         await delay(300);
     }
