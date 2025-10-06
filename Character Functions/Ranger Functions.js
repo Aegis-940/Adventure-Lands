@@ -371,10 +371,7 @@ async function boss_handler() {
             e.visible
         );
 
-        if (!boss) {
-            await delay(100);
-            continue;
-        }
+        if (!boss) break;
 
         // Maintain distance: character.range - 5
         const dist = parent.distance(character, boss);
@@ -413,7 +410,6 @@ async function boss_handler() {
     const grind_slot = locate_item(GRIND_WEAPON);
     if (grind_slot !== -1 && character.slots.mainhand?.name !== GRIND_WEAPON) {
         await equip(grind_slot);
-        await delay(300);
     }
 
     // Move back to grind home, using scare if targeted during movement
@@ -426,7 +422,6 @@ async function boss_handler() {
         if (aggro && can_use("scare")) {
             await use_skill("scare");
         }
-        await delay(100);
     }
 
     // Equip orbg once home
