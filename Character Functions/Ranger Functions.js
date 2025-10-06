@@ -308,15 +308,16 @@ async function loot_loop() {
 const BOSSES = ["mrpumpkin", "mrgreen"];
 
 async function boss_handler() {
-    // 1. Find the first alive boss from BOSSES using parent.S.BOSSNAME.live
-    let boss_name = null;
-    for (const name of BOSSES) {
-        if (parent.S[name] && parent.S[name].live) {
-            boss_name = name;
-            break;
-        }
-    }
-    if (!boss_name) return false; // No boss alive, return to attack_loop
+    // 1. Find all alive bosses and pick the one that spawned first
+    let alive_bosses = BOSSES
+        .filter(name => parent.S[name] && parent.S[name].live)
+        .map(name => ({ name, live: parent.S[name].live }));
+
+    if (alive_bosses.length === 0) return false; // No boss alive, return to attack_loop
+
+    // Sort by spawn time (oldest first)
+    alive_bosses.sort((a, b) => a.live - b.live);
+    let boss_name = alive_bosses[0].name;
 
     // Save current location before moving to boss
     const prev_location = { map: character.map, x: character.x, y: character.y };
