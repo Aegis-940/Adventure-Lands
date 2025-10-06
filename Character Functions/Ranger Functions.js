@@ -327,19 +327,14 @@ async function boss_handler() {
             if (boss) break;
         }
     }
-    if (!boss) return false;
+    if (!boss) return false; // No boss entity, allow normal monster logic
 
-    // Move toward boss until within range, then stop
+    // Only handle the boss if in range
     const dist = parent.distance(character, boss);
     if (dist > character.range - 5) {
-        // Move to a point at the edge of your range from the boss
-        const dx = boss.x - character.x;
-        const dy = boss.y - character.y;
-        const d = Math.hypot(dx, dy);
-        const target_x = boss.x - (dx / d) * character.range * 0.95;
-        const target_y = boss.y - (dy / d) * character.range * 0.95;
-        await move(target_x, target_y);
-        return false; // Not in range yet, allow normal monster logic
+        // Optionally move toward boss, but don't block normal monster logic
+        // await move(...) // You can move here if you want, but don't return true
+        return false; // Not in range, allow normal monster logic
     }
 
     // In range: attack and use skills
