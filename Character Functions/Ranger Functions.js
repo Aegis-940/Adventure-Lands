@@ -304,33 +304,6 @@ async function loot_loop() {
     }
 }
 
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// HANDLE BOSSES
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-async function handle_bosses() {
-
-    const BOSSES = ["mrpumpkin", "mrgreen"]; // Add more boss mtypes as needed
-
-    const boss = Object.values(parent.entities).find(e =>
-        e.type === "monster" &&
-        BOSSES.includes(e.mtype) &&
-        !e.dead &&
-        e.visible
-    );
-    if (boss) {
-        change_target(boss);
-        if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
-        if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
-        if (!is_on_cooldown("attack")) {
-            await attack(boss);
-        }
-        return true; // Boss handled
-    }
-    return false; // No boss
-}
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // BOSS HANDLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -360,7 +333,7 @@ async function boss_handler() {
         const target_x = boss.x - (dx / d) * character.range * 0.95;
         const target_y = boss.y - (dy / d) * character.range * 0.95;
         await move(target_x, target_y);
-        return true; // Still moving, don't attack yet
+        return false; // Not in range yet, allow normal monster logic
     }
 
     // In range: attack and use skills
@@ -371,7 +344,7 @@ async function boss_handler() {
         await attack(boss);
     }
 
-    return true; // Boss handled
+    return true; // Boss handled (in range)
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
