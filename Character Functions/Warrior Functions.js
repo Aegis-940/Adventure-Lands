@@ -246,6 +246,8 @@ async function boss_handler() {
 
     // Engage boss until dead
     while (parent.S[boss_name] && parent.S[boss_name].live) {
+        let delay = 1;
+
         const boss = Object.values(parent.entities).find(e =>
             e.type === "monster" &&
             e.mtype === boss_name &&
@@ -259,7 +261,6 @@ async function boss_handler() {
         const dist = parent.distance(character, boss);
         const desired_range = character.range - 5;
         const tolerance = 5;
-
         if (
             (dist > desired_range + tolerance || dist < desired_range - tolerance) &&
             !character.moving
@@ -269,7 +270,6 @@ async function boss_handler() {
             const d = Math.hypot(dx, dy);
             const target_x = boss.x - (dx / d) * desired_range;
             const target_y = boss.y - (dy / d) * desired_range;
-            // Only move if the target is at least 10 units away from current position
             if (Math.hypot(target_x - character.x, target_y - character.y) > 10) {
                 move(target_x, target_y);
             }
@@ -283,13 +283,22 @@ async function boss_handler() {
             await use_skill("scare");
         }
 
-        // Target boss and attack if not tanking
-        change_target(boss);
-        if (boss.target && boss.target !== character.name) {
-            if (!is_on_cooldown("attack")) await attack(boss);
+        try {
+            change_target(boss);
+
+            // Only use skills/attack if boss is targeting something other than self
+            if (boss.target && boss.target !== character.name) {
+
+                if (!is_on_cooldown("attack")) {
+                    await attack(boss);
+                    delay = ms_to_next_skill("attack");
+                }
+            }
+        } catch (e) {
+            console.error(e);
         }
 
-        await delay(ms_to_next_skill("attack"));
+        await delay(delay);
     }
 
     // Move back to grind home, using scare if targeted during movement
