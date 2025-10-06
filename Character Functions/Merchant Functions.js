@@ -789,5 +789,5 @@ async function target_upgrade(target_item, target_amount) {
 
 	await delay(500);
 
-	await sell_and_bank();
+	// await sell_and_bank();
 }
