@@ -423,12 +423,15 @@ async function boss_handler() {
         try {
             change_target(boss);
 
-            if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
-            if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
+            // Only use skills/attack if boss is targeting something other than self
+            if (boss.target && boss.target !== character.name) {
+                if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
+                if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
 
-            if (!is_on_cooldown("attack")) {
-                await attack(boss);
-                delay = ms_to_next_skill("attack");
+                if (!is_on_cooldown("attack")) {
+                    await attack(boss);
+                    delay = ms_to_next_skill("attack");
+                }
             }
         } catch (e) {
             console.error(e);
