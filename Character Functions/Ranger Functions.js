@@ -340,23 +340,38 @@ let mrgreen_alive   = parent.S.mrgreen.live;
 
 const BOSSES = ["mrpumpkin", "mrgreen"];
 
-
 async function boss_handler() {
+    // Find the first alive boss
+    const boss = Object.values(parent.entities).find(e =>
+        e.type === "monster" &&
+        BOSSES.includes(e.mtype) &&
+        !e.dead &&
+        e.visible
+    );
+    if (!boss) return false;
 
-    if (mrpumpkin_alive) {
-
-        await smart_move("mrpumpkin");
-
-        change_target("mrpumpkin");
-
-        if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
-        if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
-        if (!is_on_cooldown("attack")) {
-            await attack(boss);
-        }
-
+    // Move toward boss until within range, then stop
+    const dist = parent.distance(character, boss);
+    if (dist > character.range - 5) {
+        // Move to a point at the edge of your range from the boss
+        const dx = boss.x - character.x;
+        const dy = boss.y - character.y;
+        const d = Math.hypot(dx, dy);
+        const target_x = boss.x - (dx / d) * character.range * 0.95;
+        const target_y = boss.y - (dy / d) * character.range * 0.95;
+        await move(target_x, target_y);
+        return true; // Still moving, don't attack yet
     }
 
+    // In range: attack and use skills
+    change_target(boss);
+    if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
+    if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
+    if (!is_on_cooldown("attack")) {
+        await attack(boss);
+    }
+
+    return true; // Boss handled
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
