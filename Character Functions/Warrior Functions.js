@@ -220,6 +220,15 @@ async function boss_handler() {
         await delay(300);
     }
 
+    // Equip fireblade +7 to offhand before moving to boss
+    const fireblade7_slot = parent.character.items.findIndex(item =>
+        item && item.name === "fireblade" && item.level === 7
+    );
+    if (fireblade7_slot !== -1 && (!character.slots.offhand || character.slots.offhand.name !== "fireblade" || character.slots.offhand.level !== 7)) {
+        await equip(fireblade7_slot, "offhand");
+        await delay(300);
+    }
+
     // Move to boss, using scare if targeted during movement
     let moving = true;
     smart_move(boss_name).then(() => { moving = false; });
