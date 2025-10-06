@@ -396,13 +396,20 @@ async function boss_handler() {
         const dist = parent.distance(character, boss);
         const desired_range = character.range - 5;
         const tolerance = 5;
-        if ((dist > desired_range + tolerance || dist < desired_range - tolerance) && !character.moving) {
+
+        if (
+            (dist > desired_range + tolerance || dist < desired_range - tolerance) &&
+            !character.moving
+        ) {
             const dx = boss.x - character.x;
             const dy = boss.y - character.y;
             const d = Math.hypot(dx, dy);
             const target_x = boss.x - (dx / d) * desired_range;
             const target_y = boss.y - (dy / d) * desired_range;
-            move(target_x, target_y);
+            // Only move if the target is at least 10 units away from current position
+            if (Math.hypot(target_x - character.x, target_y - character.y) > 10) {
+                move(target_x, target_y);
+            }
         }
 
         // Use scare if aggroed by any monster
