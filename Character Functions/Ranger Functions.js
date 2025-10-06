@@ -383,6 +383,8 @@ async function boss_handler() {
 
     // Engage boss until dead
     while (parent.S[boss_name] && parent.S[boss_name].live) {
+        let delay = 1;
+
         const boss = Object.values(parent.entities).find(e =>
             e.type === "monster" &&
             e.mtype === boss_name &&
@@ -396,7 +398,6 @@ async function boss_handler() {
         const dist = parent.distance(character, boss);
         const desired_range = character.range - 5;
         const tolerance = 5;
-
         if (
             (dist > desired_range + tolerance || dist < desired_range - tolerance) &&
             !character.moving
@@ -406,7 +407,6 @@ async function boss_handler() {
             const d = Math.hypot(dx, dy);
             const target_x = boss.x - (dx / d) * desired_range;
             const target_y = boss.y - (dy / d) * desired_range;
-            // Only move if the target is at least 10 units away from current position
             if (Math.hypot(target_x - character.x, target_y - character.y) > 10) {
                 move(target_x, target_y);
             }
@@ -420,19 +420,21 @@ async function boss_handler() {
             await use_skill("scare");
         }
 
-        // Target boss and attack if not tanking
-        change_target(boss);
-        if (boss.target && boss.target !== character.name) {
+        try {
+            change_target(boss);
+
             if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
             if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
+
             if (!is_on_cooldown("attack")) {
                 await attack(boss);
-                await delay(ms_to_next_skill("attack"));
-                continue;
+                delay = ms_to_next_skill("attack");
             }
+        } catch (e) {
+            console.error(e);
         }
 
-        await delay(1);
+        await delay(delay);
     }
 
     // Loot chests if needed
