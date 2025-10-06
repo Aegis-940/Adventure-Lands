@@ -56,6 +56,7 @@ async function attack_loop() {
 const BOSSES = ["mrpumpkin", "mrgreen"];
 
 async function boss_handler() {
+    
     // 1. Find all alive bosses and pick the one that spawned first
     let alive_bosses = BOSSES
         .filter(name => parent.S[name] && parent.S[name].live)
@@ -65,7 +66,25 @@ async function boss_handler() {
 
     // Sort by spawn time (oldest first)
     alive_bosses.sort((a, b) => a.live - b.live);
-    let boss_name = alive_bosses[0].name;
+
+    // Now, check for lowest health among visible bosses
+    let lowest_hp_boss = null;
+    let lowest_hp = Infinity;
+    for (const boss of alive_bosses) {
+        const entity = Object.values(parent.entities).find(e =>
+            e.type === "monster" &&
+            e.mtype === boss.name &&
+            !e.dead &&
+            e.visible
+        );
+        if (entity && entity.hp < lowest_hp) {
+            lowest_hp = entity.hp;
+            lowest_hp_boss = boss.name;
+        }
+    }
+
+    // If a visible boss with lowest HP was found, use it; otherwise, use the oldest spawn
+    let boss_name = lowest_hp_boss || alive_bosses[0].name;
 
     // Save current location before moving to boss
     const prev_location = { map: character.map, x: character.x, y: character.y };
