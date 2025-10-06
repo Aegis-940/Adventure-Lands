@@ -319,23 +319,29 @@ async function boss_handler() {
     // Sort by spawn time (oldest first)
     alive_bosses.sort((a, b) => a.live - b.live);
 
-    // Now, check for lowest health among visible bosses
+    // Now, check for lowest health among all alive bosses (visible or not)
     let lowest_hp_boss = null;
     let lowest_hp = Infinity;
     for (const boss of alive_bosses) {
+        // Prefer entity HP if visible, otherwise use parent.S
+        let hp = Infinity;
         const entity = Object.values(parent.entities).find(e =>
             e.type === "monster" &&
             e.mtype === boss.name &&
-            !e.dead &&
-            e.visible
+            !e.dead
         );
-        if (entity && entity.hp < lowest_hp) {
-            lowest_hp = entity.hp;
+        if (entity) {
+            hp = entity.hp;
+        } else if (parent.S[boss.name] && typeof parent.S[boss.name].hp === "number") {
+            hp = parent.S[boss.name].hp;
+        }
+        if (hp < lowest_hp) {
+            lowest_hp = hp;
             lowest_hp_boss = boss.name;
         }
     }
 
-    // If a visible boss with lowest HP was found, use it; otherwise, use the oldest spawn
+    // If a boss with lowest HP was found, use it; otherwise, use the oldest spawn
     let boss_name = lowest_hp_boss || alive_bosses[0].name;
 
     // Save current location before moving to boss
