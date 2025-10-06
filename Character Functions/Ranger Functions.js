@@ -157,7 +157,7 @@ async function attack_loop() {
     let delay = 50;
     const X = character.x, Y = character.y;
 
-    await boss_handler();
+    boss_handler().catch(console.error);
 
     const monsters = Object.values(parent.entities).filter(e =>
             e.type === "monster" &&
@@ -354,17 +354,35 @@ async function boss_handler() {
             continue;
         }
 
-        // Move to maintain distance character.range - 5
+        // Actively maintain distance character.range - 5
         const dist = parent.distance(character, boss);
-        if (dist > character.range - 5) {
+        if (dist > character.range - 5 || dist < character.range - 20) {
             const dx = boss.x - character.x;
             const dy = boss.y - character.y;
             const d = Math.hypot(dx, dy);
-            const target_x = boss.x - (dx / d) * character.range * 0.95;
-            const target_y = boss.y - (dy / d) * character.range * 0.95;
+            // Clamp to stay at character.range - 5
+            const target_x = boss.x - (dx / d) * (character.range - 5);
+            const target_y = boss.y - (dy / d) * (character.range - 5);
             move(target_x, target_y); // Do not await!
-            await delay(100);
-            continue;
+        }
+
+        // If aggro from any monster, use jacko + scare, then re-equip orbg
+        const aggro = Object.values(parent.entities).some(e =>
+            e.type === "monster" &&
+            e.target === character.name &&
+            !e.dead
+        );
+        if (aggro) {
+            const jacko_slot = locate_item("jacko");
+            if (jacko_slot !== -1 && character.slots.mainhand?.name !== "jacko") {
+                await equip(jacko_slot);
+                await delay(300);
+            }
+            if (can_use("scare")) await use_skill("scare");
+            if (orbg_slot !== -1 && character.slots.mainhand?.name !== "orbg") {
+                await equip(orbg_slot);
+                await delay(300);
+            }
         }
 
         // 6. Target boss

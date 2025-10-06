@@ -289,11 +289,11 @@ async function cleave_set() {
 async function single_set() {
     const mainhand = character.slots.mainhand;
     const offhand = character.slots.offhand;
-    const needs_main = !mainhand || mainhand.name !== "fireblade" || mainhand.level !== 7 || mainhand.l !== "l";
+    const needs_main = !mainhand || mainhand.name !== "fireblade" || mainhand.level !== 8 || mainhand.l !== "l";
     const needs_off = !offhand || offhand.name !== "ololipop" || offhand.level !== 8 || offhand.l !== "l";
     if (needs_main || needs_off) {
         batch_equip([
-            { itemName: "fireblade", slot: "mainhand", level: 7, l: "l" },
+            { itemName: "fireblade", slot: "mainhand", level: 8, l: "l" },
             { itemName: "ololipop", slot: "offhand", level: 8, l: "l" }
         ]);
     }
