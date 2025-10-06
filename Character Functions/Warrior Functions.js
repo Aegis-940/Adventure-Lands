@@ -57,6 +57,12 @@ async function move_loop() {
     if (!move_enabled) return;
     const delay = 200;
 
+    // Pause move_loop if a boss is alive
+    if (BOSSES.some(name => parent.S[name] && parent.S[name].live)) {
+        move_timer_id = setTimeout(move_loop, delay);
+        return;
+    }
+
     try {
         // Filter all relevant monsters ONCE
         const monsters = Object.values(parent.entities).filter(e =>
