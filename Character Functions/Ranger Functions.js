@@ -156,12 +156,8 @@ async function attack_loop() {
     let delay = 50;
     const X = character.x, Y = character.y;
 
-    if (await boss_handler()) {
-        delay = ms_to_next_skill("attack");
-        attack_timer_id = setTimeout(attack_loop, delay);
-        return;
-    }
-    
+    await boss_handler();
+
     const monsters = Object.values(parent.entities).filter(e =>
             e.type === "monster" &&
             MONSTER_TYPES.includes(e.mtype) &&
