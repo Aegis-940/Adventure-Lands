@@ -231,10 +231,10 @@ async function boss_handler() {
     }
 
     // Only smart_move if boss is more than 100 units away
-    const boss_entity = Object.values(parent.entities).find(e =>
+    let boss_entity = Object.values(parent.entities).find(e =>
         e.type === "monster" && e.mtype === boss_name && !e.dead
     );
-    const boss_dist = boss_entity ? parent.distance(character, boss_entity) : Infinity;
+    let boss_dist = boss_entity ? parent.distance(character, boss_entity) : Infinity;
 
     if (boss_dist > 100) {
         let moving = true;
@@ -250,28 +250,28 @@ async function boss_handler() {
         }
     }
 
-    // Engage boss until dead
+    // Now, engage boss until dead (do NOT smart_move again in this loop)
     while (parent.S[boss_name] && parent.S[boss_name].live) {
-        const boss = Object.values(parent.entities).find(e =>
+        boss_entity = Object.values(parent.entities).find(e =>
             e.type === "monster" &&
             e.mtype === boss_name &&
             !e.dead &&
             e.visible
         );
 
-        if (!boss) {
+        if (!boss_entity) {
             await delay(100);
             continue;
         }
 
         // Maintain distance: character.range - 5
-        const dist = parent.distance(character, boss);
+        const dist = parent.distance(character, boss_entity);
         if (dist > character.range - 5 || dist < character.range - 20) {
-            const dx = boss.x - character.x;
-            const dy = boss.y - character.y;
+            const dx = boss_entity.x - character.x;
+            const dy = boss_entity.y - character.y;
             const d = Math.hypot(dx, dy);
-            const target_x = boss.x - (dx / d) * (character.range - 5);
-            const target_y = boss.y - (dy / d) * (character.range - 5);
+            const target_x = boss_entity.x - (dx / d) * (character.range - 5);
+            const target_y = boss_entity.y - (dy / d) * (character.range - 5);
             move(target_x, target_y);
         }
 
