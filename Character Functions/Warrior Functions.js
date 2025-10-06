@@ -196,8 +196,12 @@ async function skill_loop() {
             const code_cost_check = character.cc < 135;
             let cleave_cooldown = is_on_cooldown("cleave");
 
-            // Only check cleave if it's off cooldown
-            if (!cleave_cooldown && mp_check && code_cost_check) {
+            // Exclude cleave if current target is a boss
+            const current_target = get_target();
+            const is_boss_target = current_target && BOSSES.includes(current_target.mtype);
+
+            // Only check cleave if it's off cooldown and not targeting a boss
+            if (!cleave_cooldown && mp_check && code_cost_check && !is_boss_target) {
                 await handle_cleave(Mainhand);
             }
         }
