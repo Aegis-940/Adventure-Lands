@@ -301,7 +301,7 @@ async function boss_handler() {
             if (!is_on_cooldown("attack")) await attack(boss);
         }
 
-        await delay(50);
+        await delay(ms_to_next_skill("attack"));
     }
 
     // Move back to grind home, using scare if targeted during movement
