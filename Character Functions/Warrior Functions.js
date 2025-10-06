@@ -220,12 +220,12 @@ async function boss_handler() {
     }
     let boss_name = lowest_hp_boss || alive_bosses[0].name;
 
-    // Equip flameblade +7 in offhand before moving to boss
-    const flameblade7_slot = parent.character.items.findIndex(item =>
-        item && item.name === "flameblade" && item.level === 7
+    // Equip fireblade +7 in offhand before moving to boss
+    const fireblade7_slot = parent.character.items.findIndex(item =>
+        item && item.name === "fireblade" && item.level === 7
     );
-    if (flameblade7_slot !== -1 && (!character.slots.offhand || character.slots.offhand.name !== "flameblade" || character.slots.offhand.level !== 7)) {
-        await equip(flameblade7_slot, "offhand");
+    if (fireblade7_slot !== -1 && (!character.slots.offhand || character.slots.offhand.name !== "fireblade" || character.slots.offhand.level !== 7)) {
+        await equip(fireblade7_slot, "offhand");
         await delay(300);
     }
 
@@ -267,14 +267,16 @@ async function boss_handler() {
 
         if (!boss) break;
 
-        // Maintain distance: character.range - 5
+        // Maintain distance: character.range - 5, with a tolerance of ±5
         const dist = parent.distance(character, boss);
-        if (dist > character.range - 5 || dist < character.range - 20) {
+        const desired_range = character.range - 5;
+        const tolerance = 5;
+        if (dist > desired_range + tolerance || dist < desired_range - tolerance) {
             const dx = boss.x - character.x;
             const dy = boss.y - character.y;
             const d = Math.hypot(dx, dy);
-            const target_x = boss.x - (dx / d) * (character.range - 5);
-            const target_y = boss.y - (dy / d) * (character.range - 5);
+            const target_x = boss.x - (dx / d) * desired_range;
+            const target_y = boss.y - (dy / d) * desired_range;
             move(target_x, target_y);
         }
 
