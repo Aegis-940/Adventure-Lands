@@ -234,6 +234,8 @@ const GRIND_WEAPON = "hbow";
 async function boss_loop() {
     let boss_active = true;
 
+    game_log("Check 1");
+
     // Find all alive bosses and pick the one with the lowest HP (fallback: oldest spawn)
     let alive_bosses = BOSSES
         .filter(name => parent.S[name] && parent.S[name].live)
