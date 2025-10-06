@@ -321,9 +321,30 @@ async function boss_handler() {
     }
     if (!boss_name) return false; // No boss alive, return to attack_loop
 
-    // 2. Loop until boss is dead
+    // Save current location before moving to boss
+    const prev_location = { map: character.map, x: character.x, y: character.y };
+
+    // 3. Equip jacko and use scare
+    const jacko_slot = locate_item("jacko");
+    if (jacko_slot !== -1 && character.slots.mainhand?.name !== "jacko") {
+        await equip(jacko_slot);
+        await delay(300);
+    }
+    if (can_use("scare")) await use_skill("scare");
+
+    // 4. smart_move to the boss's location
+    await smart_move(boss_name);
+
+    // Re-equip orbg after smart_move
+    const orbg_slot = locate_item("orbg");
+    if (orbg_slot !== -1 && character.slots.mainhand?.name !== "orbg") {
+        await equip(orbg_slot);
+        await delay(300);
+    }
+
+    // 5-9. Engage boss until dead
     while (parent.S[boss_name] && parent.S[boss_name].live) {
-        // 3. Try to find the boss entity
+        // Find the boss entity
         let boss = Object.values(parent.entities).find(e =>
             e.type === "monster" &&
             e.mtype === boss_name &&
@@ -331,14 +352,12 @@ async function boss_handler() {
             e.visible
         );
 
-        // 4. If boss not visible or not in same map, smart_move to boss's spawn location
-        if (!boss || character.map !== boss?.map) {
-            await smart_move(boss_name);
-            await delay(100); // Small delay to avoid tight loop
+        if (!boss) {
+            await delay(100);
             continue;
         }
 
-        // 5. If boss is visible but out of range, move closer (but not closer than range-5)
+        // Move to maintain distance character.range - 5
         const dist = parent.distance(character, boss);
         if (dist > character.range - 5) {
             const dx = boss.x - character.x;
@@ -347,20 +366,32 @@ async function boss_handler() {
             const target_x = boss.x - (dx / d) * character.range * 0.95;
             const target_y = boss.y - (dy / d) * character.range * 0.95;
             move(target_x, target_y); // Do not await!
-            await delay(100); // Allow time for movement and entity updates
+            await delay(100);
             continue;
         }
 
-        // 6. In range: stop moving and attack
+        // 6. Target boss
         change_target(boss);
-        if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
-        if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
-        if (!is_on_cooldown("attack")) await attack(boss);
 
-        await delay(50); // Short delay to avoid spamming
+        // 7. Only attack if boss's target is not self
+        if (boss.target && boss.target !== character.name) {
+            // 8. Use skills as available
+            if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
+            if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
+            if (!is_on_cooldown("attack")) await attack(boss);
+        }
+
+        await delay(50);
     }
 
-    // 7. Boss is dead or gone, return to regular attack loop
+    if (getNumChests() >= chestThreshold && character.fear < 6) {
+        await loot_chests();
+    }
+
+    // Smart move back to previous location after boss is dead
+    await smart_move(prev_location);
+
+    // 9. Boss is dead, return to regular attack loop
     return true;
 }
 
