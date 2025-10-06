@@ -314,13 +314,19 @@ let mrgreen_alive   = parent.S.mrgreen.live;
 const BOSSES = ["mrpumpkin", "mrgreen"];
 
 async function boss_handler() {
-    // Find the first alive boss
-    const boss = Object.values(parent.entities).find(e =>
-        e.type === "monster" &&
-        BOSSES.includes(e.mtype) &&
-        !e.dead &&
-        e.visible
-    );
+    // Find the first alive boss using parent.S[...].live
+    let boss = null;
+    for (const boss_name of BOSSES) {
+        if (parent.S[boss_name] && parent.S[boss_name].live) {
+            boss = Object.values(parent.entities).find(e =>
+                e.type === "monster" &&
+                e.mtype === boss_name &&
+                !e.dead &&
+                e.visible
+            );
+            if (boss) break;
+        }
+    }
     if (!boss) return false;
 
     // Move toward boss until within range, then stop
