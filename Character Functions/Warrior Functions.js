@@ -116,6 +116,7 @@ const GRIND_HOME = { map: "main", x: 866, y: -172 };
 
 async function boss_loop() {
     let boss_active = true;
+    let delay = 50;
 
     // Find all alive bosses and pick the one with the lowest HP (fallback: oldest spawn)
     let alive_bosses = BOSSES
