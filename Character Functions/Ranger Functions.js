@@ -382,7 +382,7 @@ async function boss_loop() {
                     else if (!is_on_cooldown("supershot")) {
                         await use_skill("supershot", boss);
                     }
-                    else if (!is_on_cooldown("attack")) {
+                    else {
                         await attack(boss);
                         wait_time = ms_to_next_skill("attack");
                     }
@@ -390,17 +390,9 @@ async function boss_loop() {
             } catch (e) {
                 console.error(e);
             }
-            
-            if (typeof wait_time !== "number" || isNaN(wait_time) || wait_time < 0) {
-                game_log("Invalid delay value:", wait_time, "— defaulting to 10ms");
-                wait_time = 10;
-            }
-            try {
-                await delay(wait_time/2);
-            } catch (e) {
-                game_log("delay() failed, falling back to setTimeout:", e);
-                await new Promise(resolve => setTimeout(resolve, typeof wait_time === "number" && wait_time > 0 ? wait_time : 10));
-            }
+
+            await delay(wait_time/2);
+  
         }
 
         // Loot chests if needed
