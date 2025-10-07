@@ -235,13 +235,13 @@ async function schedule_upgrade() {
         return (Date.now() - last_change_time) > timeout;
     }
 
-    // --- UPGRADE: Withdraw by item, only below max_level ---
+    // --- UPGRADE: Withdraw by item+level, only below max_level ---
     for (const itemName in upgradeProfile) {
         if (free_slots <= 0 || timed_out()) break;
         const maxLevel = upgradeProfile[itemName].max_level;
 
-        // Gather all items of this name and below maxLevel
-        let items = [];
+        // Gather all items of this name and below maxLevel, grouped by level
+        let levelMap = {};
         for (const pack in bank_data) {
             if (!Array.isArray(bank_data[pack])) continue;
             for (const item of bank_data[pack]) {
@@ -251,21 +251,24 @@ async function schedule_upgrade() {
                 ) {
                     const lvl = typeof item.level === "number" ? item.level : 0;
                     if (lvl < maxLevel) {
-                        let qty = item.q || 1;
-                        for (let i = 0; i < qty; i++) {
-                            items.push({ level: lvl });
-                        }
+                        if (!levelMap[lvl]) levelMap[lvl] = 0;
+                        levelMap[lvl] += item.q || 1;
                     }
                 }
             }
         }
 
-        const to_withdraw = Math.min(items.length, free_slots);
-        if (to_withdraw >= 1) {
-            game_log(`[Bank] Withdrawing ${to_withdraw} ${itemName}(s) for upgrade (any level below ${maxLevel}).`);
-            await withdraw_item(itemName, null, to_withdraw);
-            any_withdrawn = true;
-            free_slots -= to_withdraw;
+        // Withdraw by level, up to free_slots
+        for (const levelStr of Object.keys(levelMap).sort((a, b) => a - b)) {
+            if (free_slots <= 0 || timed_out()) break;
+            const level = Number(levelStr);
+            const count = Math.min(levelMap[level], free_slots);
+            if (count > 0) {
+                game_log(`[Bank] Withdrawing ${count} ${itemName}(s) at level ${level} for upgrade (below level ${maxLevel}).`);
+                await withdraw_item(itemName, level, count);
+                any_withdrawn = true;
+                free_slots -= count;
+            }
         }
     }
 
