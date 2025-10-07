@@ -95,6 +95,14 @@ async function attack_loop() {
     let delay = 100;
     let disabled = (parent.is_disabled(character) === undefined);
 
+    // Boss detection logic
+    const boss_alive = BOSSES.some(name => parent.S[name] && parent.S[name].live);
+    if (boss_alive) {
+        stop_attack_loop();
+        boss_loop();
+        return;
+    }
+
     try {
         if (disabled) {
             // Always heal, regardless of attack_enabled
@@ -146,6 +154,198 @@ async function attack_loop() {
     attack_timer_id = setTimeout(attack_loop, delay);
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOSS LOOP - HALLOWEEN EDITION
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const BOSSES = ["mrpumpkin", "mrgreen"];
+const GRIND_HOME = { map: "main", x: 907, y: -174 };
+
+async function boss_loop() {
+
+    let wait_time = 50;
+
+    let boss_active = true;
+
+    // Find all alive bosses and pick the one with the lowest HP (fallback: oldest spawn)
+    let alive_bosses = BOSSES
+        .filter(name => parent.S[name] && parent.S[name].live)
+        .map(name => ({ name, live: parent.S[name].live }));
+
+    if (alive_bosses.length === 0) {
+        boss_active = false;
+    } else {
+        // Sort by spawn time (oldest first)
+        alive_bosses.sort((a, b) => a.live - b.live);
+
+        // Find boss with lowest HP (visible or not)
+        let lowest_hp_boss = null;
+        let lowest_hp = Infinity;
+        for (const boss of alive_bosses) {
+            let hp = Infinity;
+            const entity = Object.values(parent.entities).find(e =>
+                e.type === "monster" &&
+                e.mtype === boss.name &&
+                !e.dead
+            );
+            if (entity) {
+                hp = entity.hp;
+            } else if (parent.S[boss.name] && typeof parent.S[boss.name].hp === "number") {
+                hp = parent.S[boss.name].hp;
+            }
+            if (hp < lowest_hp) {
+                lowest_hp = hp;
+                lowest_hp_boss = boss.name;
+            }
+        }
+        let boss_name = lowest_hp_boss || alive_bosses[0].name;
+
+        // Equip jacko before moving to boss
+        const jacko_slot = locate_item("jacko");
+        if (jacko_slot !== -1 && character.slots.orb?.name !== "jacko") {
+            await equip(jacko_slot);
+            await delay(300);
+        }
+
+        // Only smart_move if boss spawn is known
+        const boss_spawn = parent.S[boss_name] && parent.S[boss_name].x !== undefined && parent.S[boss_name].y !== undefined
+            ? { map: parent.S[boss_name].map, x: parent.S[boss_name].x, y: parent.S[boss_name].y }
+            : null;
+
+        if (boss_spawn) {
+            let moving = true;
+
+            // Start smart_move and scan for aggro in parallel
+            const movePromise = smart_move(boss_spawn).then(() => { moving = false; });
+
+            // Aggro scan loop runs until smart_move finishes or boss dies
+            while (moving && boss_active && parent.S[boss_name] && parent.S[boss_name].live) {
+                const aggro = Object.values(parent.entities).some(e =>
+                    e.type === "monster" && e.target === character.name && !e.dead
+                );
+                if (aggro && can_use("scare")) {
+                    await use_skill("scare");
+                }
+                await delay(100);
+            }
+
+            // Ensure smart_move is awaited (in case loop exited early)
+            await movePromise;
+        }
+
+        // Engage boss until dead
+        while (boss_active && parent.S[boss_name] && parent.S[boss_name].live) {
+
+            const boss = Object.values(parent.entities).find(e =>
+                e.type === "monster" &&
+                e.mtype === boss_name &&
+                !e.dead &&
+                e.visible
+            );
+
+            if (!boss) {
+                await delay(100);
+                if (parent.S[boss_name].live) {
+                    await smart_move(boss_spawn);
+                }
+                continue;
+            }
+
+            if (!parent.S[boss_name].live){
+                break;
+            }
+
+            // Maintain distance: character.range - 5, with a tolerance of ±5
+            const dist = parent.distance(character, boss);
+            const desired_range = character.range - 5;
+            const tolerance = 5;
+            if (
+                (dist > desired_range + tolerance || dist < desired_range - tolerance) &&
+                !character.moving
+            ) {
+                const dx = boss.x - character.x;
+                const dy = boss.y - character.y;
+                const d = Math.hypot(dx, dy);
+                const target_x = boss.x - (dx / d) * desired_range;
+                const target_y = boss.y - (dy / d) * desired_range;
+                if (Math.hypot(target_x - character.x, target_y - character.y) > 10) {
+                    move(target_x, target_y);
+                }
+            }
+
+            // Use scare if aggroed by any monster
+            const aggro = Object.values(parent.entities).some(e =>
+                e.type === "monster" && e.target === character.name && !e.dead
+            );
+            if (aggro && can_use("scare")) {
+                await use_skill("scare");
+            }
+
+            try {
+                change_target(boss);
+
+                if (disabled) {
+                    // Always heal, regardless of attack_enabled
+                    let heal_target = lowest_health_partymember();
+                    if (
+                        heal_target &&
+                        heal_target.hp < heal_target.max_hp - (character.heal / 1.11) &&
+                        is_in_range(heal_target)
+                    ) {
+                        await heal(heal_target);
+                        game_log(`Healing ${heal_target.name}`, "#00FF00");
+                        delay = ms_to_next_skill('attack');
+                    }
+
+
+                    if (
+                        boss.target &&
+                        boss.target !== character.name &&
+                        boss.target !== "Myras" &&
+                        boss.target !== "Ulric" &&
+                        boss.target !== "Riva"
+                    ) {
+                        await attack(target);
+                        wait_time = ms_to_next_skill('attack');
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+            
+            await delay((wait_time/2)+10);
+
+        }
+
+        // Move back to grind home, using scare if targeted during movement
+        let moving_home = true;
+        smart_move(GRIND_HOME).then(() => { moving_home = false; });
+        while (moving_home) {
+            const aggro = Object.values(parent.entities).some(e =>
+                e.type === "monster" && e.target === character.name && !e.dead
+            );
+            if (aggro && can_use("scare")) {
+                await use_skill("scare");
+            }
+            // If boss respawns while returning, break and restart boss loop
+            if (BOSSES.some(name => parent.S[name] && parent.S[name].live)) {
+                boss_active = false;
+                break;
+            }
+            await delay(100);
+        }
+
+        // Equip orbg once home
+        const orbg_slot = locate_item("orbg");
+        if (orbg_slot !== -1 && character.slots.orb?.name !== "orbg") {
+            await equip(orbg_slot);
+            await delay(300);
+        }
+    }
+
+    // Restart attack loop after boss loop finishes
+    start_attack_loop();
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MOVE LOOP - UNOPTIMIZED
@@ -562,28 +762,28 @@ function start_attack_loop() {
     attack_enabled = true;
     clearTimeout(attack_timer_id); // Ensure no duplicate timers
     attack_loop();
-    save_persistent_state();
+    // save_persistent_state();
     game_log("▶️ Attack loop started");
 }
 
 function stop_attack_loop() {
     attack_enabled = false;
     clearTimeout(attack_timer_id);
-    save_persistent_state();
+    // save_persistent_state();
     game_log("⏹ Attack loop stopped");
 }
 
 function start_move_loop() {
     move_enabled = true;
     move_loop();
-    save_persistent_state();
+    // save_persistent_state();
     game_log("▶️ Move loop started");
 }
 
 function stop_move_loop() {
     move_enabled = false;
     clearTimeout(move_timer_id);
-    save_persistent_state();
+    // save_persistent_state();
     game_log("⏹ Move loop stopped");
 }
 
@@ -591,70 +791,70 @@ function stop_move_loop() {
 // 3) PERSISTENT STATE HANDLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function save_persistent_state() {
-    try {
-        set("healer_attack_enabled", attack_enabled);
-        set("healer_move_enabled", move_enabled);
-        set("circle_move_enabled", circle_move_enabled);
-        set("circle_path_points", JSON.stringify(circle_path_points));
-        for (const key in PRIEST_SKILL_TOGGLES) {
-            set(`priest_skill_${key}`, PRIEST_SKILL_TOGGLES[key]);
-        }
-    } catch (e) {
-        console.error("Error saving persistent state:", e);
-    }
-}
+// function save_persistent_state() {
+//     try {
+//         set("healer_attack_enabled", attack_enabled);
+//         set("healer_move_enabled", move_enabled);
+//         set("circle_move_enabled", circle_move_enabled);
+//         set("circle_path_points", JSON.stringify(circle_path_points));
+//         for (const key in PRIEST_SKILL_TOGGLES) {
+//             set(`priest_skill_${key}`, PRIEST_SKILL_TOGGLES[key]);
+//         }
+//     } catch (e) {
+//         console.error("Error saving persistent state:", e);
+//     }
+// }
 
-function init_persistent_state() {
-    try {
-        // Load attack and move loop flags
-        const atk = get("healer_attack_enabled");
-        if (atk !== undefined) attack_enabled = atk;
+// function init_persistent_state() {
+//     try {
+//         // Load attack and move loop flags
+//         const atk = get("healer_attack_enabled");
+//         if (atk !== undefined) attack_enabled = atk;
 
-        const mv = get("healer_move_enabled");
-        if (mv !== undefined) move_enabled = mv;
+//         const mv = get("healer_move_enabled");
+//         if (mv !== undefined) move_enabled = mv;
 
-        // Load circle move state
-        const circle_enabled = get("circle_move_enabled");
-        if (circle_enabled !== undefined) circle_move_enabled = circle_enabled;
+//         // Load circle move state
+//         const circle_enabled = get("circle_move_enabled");
+//         if (circle_enabled !== undefined) circle_move_enabled = circle_enabled;
 
-        const saved_points = get("circle_path_points");
-        if (saved_points) {
-            try {
-                circle_path_points = JSON.parse(saved_points);
-            } catch (e) {
-                circle_path_points = [];
-            }
-        }
+//         const saved_points = get("circle_path_points");
+//         if (saved_points) {
+//             try {
+//                 circle_path_points = JSON.parse(saved_points);
+//             } catch (e) {
+//                 circle_path_points = [];
+//             }
+//         }
 
-        // Load skill toggles
-        for (const key in PRIEST_SKILL_TOGGLES) {
-            const val = get(`priest_skill_${key}`);
-            if (val !== undefined) PRIEST_SKILL_TOGGLES[key] = val;
-        }
+//         // Load skill toggles
+//         for (const key in PRIEST_SKILL_TOGGLES) {
+//             const val = get(`priest_skill_${key}`);
+//             if (val !== undefined) PRIEST_SKILL_TOGGLES[key] = val;
+//         }
 
-        // Start/stop loops based on restored state
-        if (attack_enabled) start_attack_loop();
-        else               stop_attack_loop();
+//         // Start/stop loops based on restored state
+//         if (attack_enabled) start_attack_loop();
+//         else               stop_attack_loop();
 
-        if (move_enabled)  start_move_loop();
-        else               stop_move_loop();
+//         if (move_enabled)  start_move_loop();
+//         else               stop_move_loop();
 
-        // Start circle move loop if enabled and points exist
-        if (circle_move_enabled && circle_path_points.length > 0) {
-            circle_move_loop();
-            game_log("🔵 Circle move loop resumed from persistent state");
-        }
-    } catch (e) {
-        console.error("Error loading persistent state:", e);
-    }
-}
+//         // Start circle move loop if enabled and points exist
+//         if (circle_move_enabled && circle_path_points.length > 0) {
+//             circle_move_loop();
+//             game_log("🔵 Circle move loop resumed from persistent state");
+//         }
+//     } catch (e) {
+//         console.error("Error loading persistent state:", e);
+//     }
+// }
 
-// Save state on script unload
-window.addEventListener("beforeunload", save_persistent_state);
+// // Save state on script unload
+// window.addEventListener("beforeunload", save_persistent_state);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 4) PERSISTENT STATE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-init_persistent_state();
+// init_persistent_state();
