@@ -599,7 +599,7 @@ async function handle_absorb(mapsToExclude, eventMobs, eventMaps, blacklist) {
 }
 
 async function handle_party_heal(healThreshold = 0.65, minMp = 2000) {
-    if (!character.party || character.mp <= minMp) return;
+    if (!parent.party || character.mp <= minMp) return;
     if (is_on_cooldown("partyheal")) return;
 
     // Use parent.party to get all party members, even if not on the same map
