@@ -405,7 +405,7 @@ async function boss_loop() {
             }
 
             game_log("Check 3g");
-            await delay(delay);
+            await delay(50);
             game_log("Check 4");
         }
 
