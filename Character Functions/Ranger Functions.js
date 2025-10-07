@@ -299,44 +299,23 @@ async function boss_loop() {
 
         if (boss_spawn) {
             let moving = true;
-            smart_move(boss_spawn).then(() => { moving = false; });
 
-            while (moving && boss_active) {
-                // Recalculate distances
-                const boss_entity = Object.values(parent.entities).find(e =>
-                    e.type === "monster" && e.mtype === boss_name && !e.dead
-                );
-                const dist_to_boss = boss_entity ? parent.distance(character, boss_entity) : Infinity;
-                const dist_to_spawn = Math.hypot(character.x - boss_spawn.x, character.y - boss_spawn.y);
+            // Start smart_move and scan for aggro in parallel
+            const movePromise = smart_move(boss_spawn).then(() => { moving = false; });
 
-                // Stop smart moving if within 400 of spawn or within 200 of boss
-                if (dist_to_spawn <= 400 || dist_to_boss <= 200) {
-                    if (character.moving) {
-                        stop();
-                        while (character.moving) {
-                            await delay(20);
-                        }
-                    }
-                    moving = false;
-                    break;
-                }
-
-                // Scan for aggro and cast scare if needed
+            // Aggro scan loop runs until smart_move finishes or boss dies
+            while (moving && boss_active && parent.S[boss_name] && parent.S[boss_name].live) {
                 const aggro = Object.values(parent.entities).some(e =>
                     e.type === "monster" && e.target === character.name && !e.dead
                 );
                 if (aggro && can_use("scare")) {
                     await use_skill("scare");
                 }
-
-                // If boss dies while moving, break out
-                if (!(parent.S[boss_name] && parent.S[boss_name].live)) {
-                    boss_active = false;
-                    break;
-                }
-
                 await delay(100);
             }
+
+            // Ensure smart_move is awaited (in case loop exited early)
+            await movePromise;
         }
 
         // Engage boss until dead

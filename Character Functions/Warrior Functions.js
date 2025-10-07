@@ -117,8 +117,9 @@ const GRIND_HOME = { map: "main", x: 866, y: -172 };
 
 async function boss_loop() {
 
+    let wait_time = 50;
+
     let boss_active = true;
-    let delay = 50;
 
     // Find all alive bosses and pick the one with the lowest HP (fallback: oldest spawn)
     let alive_bosses = BOSSES
@@ -176,44 +177,23 @@ async function boss_loop() {
 
         if (boss_spawn) {
             let moving = true;
-            smart_move(boss_spawn).then(() => { moving = false; });
 
-            while (moving && boss_active) {
-                // Recalculate distances
-                const boss_entity = Object.values(parent.entities).find(e =>
-                    e.type === "monster" && e.mtype === boss_name && !e.dead
-                );
-                const dist_to_boss = boss_entity ? parent.distance(character, boss_entity) : Infinity;
-                const dist_to_spawn = Math.hypot(character.x - boss_spawn.x, character.y - boss_spawn.y);
+            // Start smart_move and scan for aggro in parallel
+            const movePromise = smart_move(boss_spawn).then(() => { moving = false; });
 
-                // Stop smart moving if within 400 of spawn or within 200 of boss
-                if (dist_to_spawn <= 400 || dist_to_boss <= 200) {
-                    if (character.moving) {
-                        stop();
-                        while (character.moving) {
-                            await delay(20);
-                        }
-                    }
-                    moving = false;
-                    break;
-                }
-
-                // Scan for aggro and cast scare if needed
+            // Aggro scan loop runs until smart_move finishes or boss dies
+            while (moving && boss_active && parent.S[boss_name] && parent.S[boss_name].live) {
                 const aggro = Object.values(parent.entities).some(e =>
                     e.type === "monster" && e.target === character.name && !e.dead
                 );
                 if (aggro && can_use("scare")) {
                     await use_skill("scare");
                 }
-
-                // If boss dies while moving, break out
-                if (!(parent.S[boss_name] && parent.S[boss_name].live)) {
-                    boss_active = false;
-                    break;
-                }
-
                 await delay(100);
             }
+
+            // Ensure smart_move is awaited (in case loop exited early)
+            await movePromise;
         }
 
         // Engage boss until dead
@@ -267,27 +247,26 @@ async function boss_loop() {
             try {
                 change_target(boss);
 
-                if (boss.target !== character.name) {
+                if (boss.target && boss.target !== character.name) {
                     if (!is_on_cooldown("attack")) {
                         await attack(boss);
-                        delay = ms_to_next_skill("attack");
+                        wait_time = ms_to_next_skill("attack");
                     }
                 }
             } catch (e) {
-                console.error(e);
+                    console.error(e);
             }
-            
-            if (typeof delay !== "number" || isNaN(delay) || delay < 0) {
-                game_log("Invalid delay value:", delay, "— defaulting to 10ms");
-                delay = 10;
+                
+            if (typeof wait_time !== "number" || isNaN(wait_time) || wait_time < 0) {
+                game_log("Invalid delay value:", wait_time, "— defaulting to 10ms");
+                wait_time = 10;
             }
             try {
-                await delay(delay);
+                await delay(wait_time);
             } catch (e) {
                 game_log("delay() failed, falling back to setTimeout:", e);
-                await new Promise(resolve => setTimeout(resolve, typeof delay === "number" && delay > 0 ? delay : 10));
+                await new Promise(resolve => setTimeout(resolve, typeof wait_time === "number" && wait_time > 0 ? wait_time : 10));
             }
-            game_log("Check 4");
         }
 
         // Move back to grind home, using scare if targeted during movement
