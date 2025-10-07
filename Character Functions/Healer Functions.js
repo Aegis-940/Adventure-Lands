@@ -60,6 +60,10 @@ function stop_skill_loop() {
 }
 
 function start_panic_loop() {
+    if (panic_loop_running) {
+        game_log("⚠️ Panic loop already running.");
+        return;
+    }
     panic_enabled = true;
     panic_loop();
     // save_persistent_state();
@@ -791,59 +795,69 @@ const WARRIOR_NAME = "Ulric";
 const PANIC_WEAPON = "jacko";
 const NORMAL_WEAPON = "orbg";
 
+let panic_loop_running = false;
+
 async function panic_loop() {
+    if (panic_loop_running) {
+        game_log("⚠️ Panic loop already running.");
+        return;
+    }
     if (!panic_enabled) return;
-    while (true) {
-        const warrior_entity = parent.entities[WARRIOR_NAME];
-        const warrior_online = parent.party_list.includes(WARRIOR_NAME) && warrior_entity;
-        const warrior_alive = warrior_online && !warrior_entity.rip;
-        const warrior_near = warrior_online && parent.distance(character, warrior_entity) <= 400;
-        const low_health = character.hp < (character.max_hp / 3);
-        const high_health = character.hp >= ((2 * character.max_hp) / 3);
+    panic_loop_running = true;
 
-        // PANIC CONDITION
-        if (!warrior_online || !warrior_alive || low_health && panic_enabled) {
-            stop_attack_loop();
-            let reason = !warrior_online ? "Ulric is offline!" : !warrior_alive ? "Ulric is dead!" : "Low health!";
-            game_log("⚠️ Panic triggered:", reason);
+    try {
+        while (panic_enabled) {
+            const warrior_entity = parent.entities[WARRIOR_NAME];
+            const warrior_online = parent.party_list.includes(WARRIOR_NAME) && warrior_entity;
+            const warrior_alive = warrior_online && !warrior_entity.rip;
+            const warrior_near = warrior_online && parent.distance(character, warrior_entity) <= 400;
+            const low_health = character.hp < (character.max_hp / 3);
+            const high_health = character.hp >= ((2 * character.max_hp) / 3);
 
-            // Ensure jacko is equipped
-            const jacko_slot = locate_item(PANIC_WEAPON);
-            if (character.slots.orb?.name !== PANIC_WEAPON && jacko_slot !== -1) {
-                await equip(jacko_slot);
-                await delay(500);
+            // PANIC CONDITION
+            if (!warrior_online || !warrior_alive || low_health) {
+                stop_attack_loop();
+                let reason = !warrior_online ? "Ulric is offline!" : !warrior_alive ? "Ulric is dead!" : "Low health!";
+                game_log("⚠️ Panic triggered:", reason);
+
+                // Ensure jacko is equipped
+                const jacko_slot = locate_item(PANIC_WEAPON);
+                if (character.slots.orb?.name !== PANIC_WEAPON && jacko_slot !== -1) {
+                    await equip(jacko_slot);
+                    await delay(500);
+                }
+
+                // Recast scare if possible
+                if (can_use("scare")) {
+                    await use_skill("scare");
+                }
+
+                // Wait 5.1 seconds before rechecking panic state
+                await delay(PANIC_INTERVAL);
+            } else if (high_health && warrior_alive && warrior_online) {
+                // SAFE CONDITION
+                const orbg_slot = locate_item(NORMAL_WEAPON);
+                if (character.slots.orb?.name !== NORMAL_WEAPON && orbg_slot !== -1) {
+                    await equip(orbg_slot);
+                    await delay(500);
+                }
+
+                if (!attack_enabled) {
+                    game_log("✅ Panic over — resuming normal operations.");
+                    start_attack_loop();
+                }
+
+                await delay(CHECK_INTERVAL);
+            } else {
+                await delay(200);
             }
-
-            // Recast scare if possible
-            if (can_use("scare")) {
-                await use_skill("scare");
-            }
-
-            // Wait 5.1 seconds before rechecking panic state
-            await delay(PANIC_INTERVAL);
-        } else if (high_health && warrior_alive && warrior_online && panic_enabled) {
-            // SAFE CONDITION
-            // Ensure orbg is equipped
-            const orbg_slot = locate_item(NORMAL_WEAPON);
-            if (character.slots.orb?.name !== NORMAL_WEAPON && orbg_slot !== -1) {
-                await equip(orbg_slot);
-                await delay(500);
-            }
-
-            // Ensure attack loop is running
-            if (!attack_enabled) {
-                game_log("✅ Panic over — resuming normal operations.");
-                start_attack_loop();
-            }
-
-            // Wait 500ms before rechecking
-            await delay(CHECK_INTERVAL);
-        } else {
-            // Neither panic nor safe: wait a bit before next check
-            await delay(200);
         }
+    } finally {
+        panic_loop_running = false;
+        game_log("⏹ Panic loop exited.");
     }
 }
+
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 3) PERSISTENT STATE HANDLER

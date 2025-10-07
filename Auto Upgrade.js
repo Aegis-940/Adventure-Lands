@@ -335,6 +335,7 @@ async function schedule_upgrade() {
         game_log("Items withdrawn from bank. Starting auto upgrade/compound process...");
 		await smart_move(HOME);
         await run_auto_upgrade();
+		await delay(30000);
 		await sell_and_bank();
     } else {
         game_log("No items withdrawn from bank. Nothing to upgrade or compound.");
