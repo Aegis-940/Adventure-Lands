@@ -438,68 +438,76 @@ async function safe_call(fn, name) {
 	}
 }
 
-async function handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps, zapperMobs) {
-	if (dead || !disabled) return;
+const CURSE_WHITELIST = ["mrpumpkin", "mrgreen", "phoenix"];
+const ABSORB_BLACKLIST = ["mrpumpkin", "mrgreen"];
 
-	if (PRIEST_SKILL_TOGGLES.curse)
-		safe_call(() => handle_cursing(X, Y), "handle_cursing");
-	if (PRIEST_SKILL_TOGGLES.absorb)
-		safe_call(() => handle_absorb(mapsToExclude, eventMobs, eventMaps), "handle_absorb");
-	if (PRIEST_SKILL_TOGGLES.party_heal)
-		safe_call(() => handle_party_heal(), "handle_party_heal");
-	if (PRIEST_SKILL_TOGGLES.dark_blessing)
-		safe_call(() => handle_dark_blessing(), "handle_dark_blessing");
-	if (PRIEST_SKILL_TOGGLES.zap_spam)
-		safe_call(() => handleZapSpam(zapperMobs), "handleZapSpam");
+async function handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps, zapperMobs) {
+    if (dead || !disabled) return;
+
+    if (PRIEST_SKILL_TOGGLES.curse)
+        safe_call(() => handle_cursing(X, Y, CURSE_WHITELIST), "handle_cursing");
+    if (PRIEST_SKILL_TOGGLES.absorb)
+        safe_call(() => handle_absorb(mapsToExclude, eventMobs, eventMaps, ABSORB_BLACKLIST), "handle_absorb");
+    if (PRIEST_SKILL_TOGGLES.party_heal)
+        safe_call(() => handle_party_heal(), "handle_party_heal");
+    if (PRIEST_SKILL_TOGGLES.dark_blessing)
+        safe_call(() => handle_dark_blessing(), "handle_dark_blessing");
+    if (PRIEST_SKILL_TOGGLES.zap_spam)
+        safe_call(() => handleZapSpam(zapperMobs), "handleZapSpam");
 }
 
-async function handle_cursing(X, Y) {
-	const ctarget = get_nearest_monster_v2({
-		target: "Myras",
-		check_max_hp: true,
-		max_distance: 75,
-		point_for_distance_check: [X, Y],
-	}) || get_targeted_monster();
+async function handle_cursing(X, Y, whitelist) {
+    const ctarget = get_nearest_monster_v2({
+        type: whitelist,
+        check_max_hp: true,
+        max_distance: 75,
+        point_for_distance_check: [X, Y],
+    }) || get_targeted_monster();
 
-	if (ctarget && ctarget.hp >= ctarget.max_hp * 0.2 && !ctarget.immune) {
-		if (!is_on_cooldown("curse")) {
-			try {
-				await use_skill("curse", ctarget);
-			} catch (e) {
-				if (e?.reason !== "cooldown") throw e;
-			}
-		}
-	}
+    if (ctarget && ctarget.hp >= ctarget.max_hp * 0.2 && !ctarget.immune) {
+        if (!is_on_cooldown("curse")) {
+            try {
+                await use_skill("curse", ctarget);
+            } catch (e) {
+                if (e?.reason !== "cooldown") throw e;
+            }
+        }
+    }
 }
 
 let absorb_last_used = 0;
 const ABSORB_COOLDOWN = 2000; // 2 second cooldown for absorb
 
-async function handle_absorb(mapsToExclude) {
-	const now = Date.now();
-	if (now - absorb_last_used < ABSORB_COOLDOWN) return;
+async function handle_absorb(mapsToExclude, eventMobs, eventMaps, blacklist) {
+    const now = Date.now();
+    if (now - absorb_last_used < ABSORB_COOLDOWN) return;
 
-	const partyNames = Object.keys(get_party()).filter(name => name !== character.name);
+    const partyNames = Object.keys(get_party()).filter(name => name !== character.name);
 
-	const attackers = {};
-	for (const id in parent.entities) {
-		const monster = parent.entities[id];
-		if (monster.type !== "monster" || monster.dead || !monster.visible) continue;
-		if (partyNames.includes(monster.target)) attackers[monster.target] = true;
-	}
+    const attackers = {};
+    for (const id in parent.entities) {
+        const monster = parent.entities[id];
+        if (
+            monster.type !== "monster" ||
+            monster.dead ||
+            !monster.visible ||
+            blacklist.includes(monster.mtype)
+        ) continue;
+        if (partyNames.includes(monster.target)) attackers[monster.target] = true;
+    }
 
-	for (const name of partyNames) {
-		if (attackers[name]) {
-			try {
-				await use_skill("absorb", name);
-				game_log(`Absorbing ${name}`, "#FFA600");
-				absorb_last_used = now;
-			} catch (e) {
-				if (e?.reason !== "cooldown") throw e;
-			}
-			return;
-		}
-	}
+    for (const name of partyNames) {
+        if (attackers[name]) {
+            try {
+                await use_skill("absorb", name);
+                game_log(`Absorbing ${name}`, "#FFA600");
+                absorb_last_used = now;
+            } catch (e) {
+                if (e?.reason !== "cooldown") throw e;
+            }
+            return;
+        }
+    }
 }
 
 async function handle_party_heal(healThreshold = 0.65, minMp = 2000) {
