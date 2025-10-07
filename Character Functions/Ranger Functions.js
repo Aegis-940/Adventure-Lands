@@ -344,6 +344,8 @@ async function boss_loop() {
                 e.visible
             );
 
+            game_log("Check 1");
+
             if (!boss) {
                 await delay(100);
                 continue;
