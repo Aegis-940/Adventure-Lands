@@ -598,16 +598,16 @@ async function handle_absorb(mapsToExclude, eventMobs, eventMaps, blacklist) {
     }
 }
 
-async function handle_party_heal(healThreshold = 0.99, minMp = 2000) {
-    if (!parent.party || character.mp <= minMp) return;
+async function handle_party_heal(healThreshold = 0.65, minMp = 2000) {
+    if (character.mp <= minMp) return;
     if (is_on_cooldown("partyheal")) return;
 
-    // Use parent.party to get all party members, even if not on the same map
-    const partyNames = ["Myras", "Ulric", "Riva", "Riff"].filter(name => name !== character.name);
-    for (const name of partyNames) {
-        const member = parent.party[name];
-        if (!member || member.rip) continue;
-        if (member.hp < member.max_hp * healThreshold) {
+    // Use remote party info for up-to-date HP/MP, even across maps
+    for (const name of Object.keys(parent.party)) {
+        if (name === character.name) continue;
+        const info = get(name + '_newparty_info');
+        if (!info || info.rip) continue;
+        if (info.hp < info.max_hp * healThreshold) {
             try {
                 await use_skill("partyheal");
             } catch (e) {
