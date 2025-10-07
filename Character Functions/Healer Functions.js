@@ -599,22 +599,23 @@ async function handle_absorb(mapsToExclude, eventMobs, eventMaps, blacklist) {
 }
 
 async function handle_party_heal(healThreshold = 0.65, minMp = 2000) {
-	if (!character.party || character.mp <= minMp) return;
-	if (is_on_cooldown("partyheal")) return;
+    if (!character.party || character.mp <= minMp) return;
+    if (is_on_cooldown("partyheal")) return;
 
-	const partyNames = Object.keys(get_party());
-	for (const name of partyNames) {
-		const ally = get_player(name);
-		if (!ally || ally.rip) continue;
-		if (ally.hp >= ally.max_hp * healThreshold) continue;
-
-		try {
-			await use_skill("partyheal");
-		} catch (e) {
-			if (e?.reason !== "cooldown") throw e;
-		}
-		break;
-	}
+    // Use parent.party to get all party members, even if not on the same map
+    const partyNames = Object.keys(parent.party);
+    for (const name of partyNames) {
+        const member = parent.party[name];
+        if (!member || member.rip) continue;
+        if (member.hp < member.max_hp * healThreshold) {
+            try {
+                await use_skill("partyheal");
+            } catch (e) {
+                if (e?.reason !== "cooldown") throw e;
+            }
+            break;
+        }
+    }
 }
 
 async function handle_dark_blessing() {
