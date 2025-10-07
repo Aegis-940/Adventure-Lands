@@ -390,14 +390,12 @@ async function boss_loop() {
             try {
                 change_target(boss);
 
-                if (boss.target !== character.name) {
+                if (boss.target && boss.target !== character.name) {
                     if (!is_on_cooldown("huntersmark")) {
                         await use_skill("huntersmark", boss);
-                        wait_time = ms_to_next_skill("attack");
                     }
                     else if (!is_on_cooldown("supershot")) {
                         await use_skill("supershot", boss);
-                        wait_time = ms_to_next_skill("attack");
                     }
                     else if (!is_on_cooldown("attack")) {
                         await attack(boss);
