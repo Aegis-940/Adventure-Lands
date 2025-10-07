@@ -254,16 +254,14 @@ async function boss_loop() {
                     boss.target !== "Ulric" &&
                     boss.target !== "Riva"
                 ) {
-                    if (!is_on_cooldown("attack")) {
-                        await attack(boss);
-                        wait_time = ms_to_next_skill("attack");
-                    }
+                    await attack(boss);
+                    wait_time = ms_to_next_skill("attack");
                 }
             } catch (e) {
                     console.error(e);
             }
             
-            await delay(wait_time-100);
+            await delay(wait_time);
 
         }
 
