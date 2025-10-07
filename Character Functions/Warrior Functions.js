@@ -68,6 +68,7 @@ function get_nearest_monster_v2(args = {}) {
 
 async function attack_loop() {
     if (!attack_enabled) return;
+    if (smart.moving) return;
     let delay = 10;
 
     // Boss detection logic
