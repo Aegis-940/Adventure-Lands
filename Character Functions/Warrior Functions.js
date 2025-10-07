@@ -745,7 +745,7 @@ async function panic_loop() {
         const high_health = character.hp >= ((2 * character.max_hp) / 3);
 
         // PANIC CONDITION
-        if (!myras_online || !myras_alive || !myras_near || low_health) {
+        if (!myras_online || !myras_alive || !myras_near || low_health && panic_enabled) {
             stop_attack_loop();
             let reason = !myras_online ? "Myras is offline!" : !myras_alive ? "Myras is dead!" : !myras_near
                         ? "Myras is too far!" : "Low health!";
@@ -765,7 +765,7 @@ async function panic_loop() {
 
             // Wait 5.1 seconds before rechecking panic state
             await delay(PANIC_INTERVAL);
-        } else {
+        } else if (high_health && myras_alive && myras_online && myras_near && panic_enabled) {
             // SAFE CONDITION
             // Ensure orbg is equipped
             const orbg_slot = locate_item(NORMAL_WEAPON);
