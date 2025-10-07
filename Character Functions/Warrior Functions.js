@@ -75,6 +75,7 @@ async function attack_loop() {
     const boss_alive = BOSSES.some(name => parent.S[name] && parent.S[name].live);
     if (boss_alive) {
         stop_attack_loop();
+        stop_panic_loop();
         boss_loop();
         return;
     }
@@ -293,6 +294,7 @@ async function boss_loop() {
 
     // Restart attack loop after boss loop finishes
     start_attack_loop();
+    start_panic_loop();
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -655,6 +657,7 @@ const PANIC_WEAPON = "jacko";
 const NORMAL_WEAPON = "orbg";
 
 async function panic_button_loop() {
+    if (!panic_enabled) return;
     while (true) {
         const myras_entity = parent.entities[PRIEST_NAME];
         const myras_online = parent.party_list.includes(PRIEST_NAME) && myras_entity;
@@ -761,6 +764,20 @@ function stop_skill_loop() {
     clearTimeout(skill_timer_id);
     // save_persistent_state();
     game_log("⏹ Skill loop stopped");
+}
+
+function start_panic_loop() {
+    panic_enabled = true;
+    panic_loop();
+    // save_persistent_state();
+    game_log("▶️ Panic loop started");
+}
+
+function stop_panic_loop() {
+    panic_enabled = false;
+    clearTimeout(panic_timer_id);
+    // save_persistent_state();
+    game_log("⏹ Panic loop stopped");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
