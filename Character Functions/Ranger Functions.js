@@ -403,7 +403,8 @@ async function boss_loop() {
             } catch (e) {
                 console.error(e);
             }
-
+            
+            game_log("Check 3g");
             game_log("Delaying for", delay, "ms");
             await delay(delay);
             game_log("Check 4");
