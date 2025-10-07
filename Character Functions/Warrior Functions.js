@@ -238,19 +238,19 @@ async function boss_loop() {
         }
         let boss_name = lowest_hp_boss || alive_bosses[0].name;
 
+        // Equip jacko before moving to boss
+        const jacko_slot = locate_item("jacko");
+        if (jacko_slot !== -1 && character.slots.orb?.name !== "jacko") {
+            await equip(jacko_slot);
+            await delay(300);
+        }
+
         // Equip fireblade +7 in offhand before moving to boss
         const fireblade7_slot = parent.character.items.findIndex(item =>
             item && item.name === "fireblade" && item.level === 7
         );
         if (fireblade7_slot !== -1 && (!character.slots.offhand || character.slots.offhand.name !== "fireblade" || character.slots.offhand.level !== 7)) {
             await equip(fireblade7_slot, "offhand");
-            await delay(300);
-        }
-
-        // Equip jacko before moving to boss
-        const jacko_slot = locate_item("jacko");
-        if (jacko_slot !== -1 && character.slots.orb?.name !== "jacko") {
-            await equip(jacko_slot);
             await delay(300);
         }
 
