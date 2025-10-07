@@ -375,15 +375,15 @@ async function sell_and_bank() {
 		//if (BANKABLE_ITEMS.includes(item.name)) {
 		await bank_store(i);
 		game_log(`🏦 Deposited ${item.name} x${item.q || 1} to bank`);
-		await parent.$('#maincode')[0].contentWindow.render_bank_items();
-		await delay(1000);
-		await parent.hide_modal();
 		//}
 	}
 
 	// === RETURN HOME ===
 	// HOME must be defined elsewhere, e.g.:
 	// const HOME = { map: "main", x: -89, y: -116 };
+	await parent.$('#maincode')[0].contentWindow.render_bank_items();
+	await delay(1000);
+	await parent.hide_modal();
 	await smart_move(HOME);
 	await delay(1000);
 	game_log("🏠 Returned home after banking.");
