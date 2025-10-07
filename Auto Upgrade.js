@@ -213,24 +213,6 @@ async function schedule_upgrade() {
         return;
     }
 
-    // Helper to count items in bank data, only those below max_level
-    function count_in_bank(itemName, maxLevel) {
-        let count = 0;
-        for (const pack in bank_data) {
-            if (!Array.isArray(bank_data[pack])) continue;
-            for (const item of bank_data[pack]) {
-                if (
-                    item &&
-                    item.name === itemName &&
-                    (typeof item.level !== "number" || item.level < maxLevel)
-                ) {
-                    count += item.q || 1;
-                }
-            }
-        }
-        return count;
-    }
-
     // Helper to count empty inventory slots
     function count_empty_inventory() {
         return character.items.filter(it => !it).length;
@@ -239,33 +221,89 @@ async function schedule_upgrade() {
     let any_withdrawn = false;
     let free_slots = count_empty_inventory();
 
-    // Upgrade items: withdraw in multiples of 1, only below max_level
+    // --- UPGRADE: Withdraw by item, only below max_level ---
     for (const itemName in upgradeProfile) {
         if (free_slots <= 0) break;
         const maxLevel = upgradeProfile[itemName].max_level;
-        const count = count_in_bank(itemName, maxLevel);
-        const to_withdraw = Math.min(count, free_slots);
+
+        // Gather all items of this name and below maxLevel
+        let items = [];
+        for (const pack in bank_data) {
+            if (!Array.isArray(bank_data[pack])) continue;
+            for (const item of bank_data[pack]) {
+                if (
+                    item &&
+                    item.name === itemName &&
+                    (typeof item.level !== "number" || item.level < maxLevel)
+                ) {
+                    // If stackable, add each as a separate item for withdrawal
+                    let qty = item.q || 1;
+                    for (let i = 0; i < qty; i++) {
+                        items.push({ level: item.level || 0 });
+                    }
+                }
+            }
+        }
+
+        // Withdraw as many as possible up to free_slots
+        const to_withdraw = Math.min(items.length, free_slots);
         if (to_withdraw >= 1) {
             game_log(`[Bank] Withdrawing ${to_withdraw} ${itemName}(s) for upgrade (below level ${maxLevel}).`);
-            await withdraw_item(itemName, null, to_withdraw);
+            // Withdraw by level, lowest first
+            const levelCounts = {};
+            for (const { level } of items) {
+                levelCounts[level] = (levelCounts[level] || 0) + 1;
+            }
+            let withdrawn = 0;
+            for (const levelStr of Object.keys(levelCounts).sort((a, b) => a - b)) {
+                const level = Number(levelStr);
+                const count = Math.min(levelCounts[level], to_withdraw - withdrawn);
+                if (count > 0) {
+                    await withdraw_item(itemName, level, count);
+                    withdrawn += count;
+                    if (withdrawn >= to_withdraw) break;
+                }
+            }
             any_withdrawn = true;
             free_slots -= to_withdraw;
         }
     }
 
-    // Combine items: withdraw in multiples of 3, only below max_level
+    // --- COMBINE: Withdraw by item+level, only below max_level, in multiples of 3 ---
     for (const itemName in combineProfile) {
         if (free_slots <= 0) break;
         const maxLevel = combineProfile[itemName].max_level;
-        const count = count_in_bank(itemName, maxLevel);
-        let to_withdraw = Math.floor(count / 3) * 3;
-        // Don't withdraw more than available inventory slots
-        to_withdraw = Math.min(to_withdraw, Math.floor(free_slots / 3) * 3);
-        if (to_withdraw >= 3) {
-            game_log(`[Bank] Withdrawing ${to_withdraw} ${itemName}(s) for compounding (below level ${maxLevel}).`);
-            await withdraw_item(itemName, null, to_withdraw);
-            any_withdrawn = true;
-            free_slots -= to_withdraw;
+
+        // Gather all items of this name and below maxLevel, grouped by level
+        let levelMap = {};
+        for (const pack in bank_data) {
+            if (!Array.isArray(bank_data[pack])) continue;
+            for (const item of bank_data[pack]) {
+                if (
+                    item &&
+                    item.name === itemName &&
+                    (typeof item.level !== "number" || item.level < maxLevel)
+                ) {
+                    const lvl = item.level || 0;
+                    if (!levelMap[lvl]) levelMap[lvl] = 0;
+                    levelMap[lvl] += item.q || 1;
+                }
+            }
+        }
+
+        // For each level, withdraw in multiples of 3, up to available inventory space
+        for (const levelStr of Object.keys(levelMap).sort((a, b) => a - b)) {
+            if (free_slots < 3) break;
+            const level = Number(levelStr);
+            let count = levelMap[level];
+            let to_withdraw = Math.floor(count / 3) * 3;
+            to_withdraw = Math.min(to_withdraw, Math.floor(free_slots / 3) * 3);
+            if (to_withdraw >= 3) {
+                game_log(`[Bank] Withdrawing ${to_withdraw} ${itemName}(s) at level ${level} for compounding (below level ${maxLevel}).`);
+                await withdraw_item(itemName, level, to_withdraw);
+                any_withdrawn = true;
+                free_slots -= to_withdraw;
+            }
         }
     }
 
