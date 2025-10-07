@@ -107,7 +107,7 @@ async function attack_loop() {
     }
 
     try {
-        if (disabled) {
+        if (true) {
             // Always heal, regardless of attack_enabled
             let heal_target = lowest_health_partymember();
             if (
