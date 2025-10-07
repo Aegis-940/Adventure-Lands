@@ -160,7 +160,7 @@ async function attack_loop() {
     // Boss detection logic
     const boss_alive = BOSSES.some(name => parent.S[name] && parent.S[name].live);
     if (boss_alive) {
-        stop_attack_loop();
+        // stop_attack_loop();
         boss_loop();
         return;
     }
