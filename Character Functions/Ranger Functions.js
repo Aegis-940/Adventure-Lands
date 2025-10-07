@@ -369,6 +369,8 @@ async function boss_loop() {
                 }
             }
 
+            game_log("Check 2");
+
             // Use scare if aggroed by any monster
             const aggro = Object.values(parent.entities).some(e =>
                 e.type === "monster" && e.target === character.name && !e.dead
@@ -379,6 +381,8 @@ async function boss_loop() {
 
             try {
                 change_target(boss);
+
+                game_log("Check 3");
 
                 // Attack if boss is not targeting you (or has no target)
                 if (!boss.target || boss.target !== character.name) {
@@ -395,6 +399,8 @@ async function boss_loop() {
             }
 
             await delay(delay);
+
+            game_log("Check 4");
         }
 
         // Loot chests if needed
