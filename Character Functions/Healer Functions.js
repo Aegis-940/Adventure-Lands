@@ -598,7 +598,7 @@ async function handle_absorb(mapsToExclude, eventMobs, eventMaps, blacklist) {
     }
 }
 
-async function handle_party_heal(healThreshold = 0.65, minMp = 2000) {
+async function handle_party_heal(healThreshold = 0.99, minMp = 2000) {
     if (character.mp <= minMp) return;
     if (is_on_cooldown("partyheal")) return;
 
