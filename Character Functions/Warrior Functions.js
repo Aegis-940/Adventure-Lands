@@ -880,13 +880,10 @@ async function panic_loop() {
         }
     } finally {
         panic_loop_running = false;
-        if (!suppress_attack_restart) {
+        if (!boss_active) {
             start_attack_loop();
-            game_log("⏹ Panic loop exited.");
-        } else {
-            game_log("⏹ Panic loop exited (attack restart suppressed).");
-            suppress_attack_restart = false; // Reset for next time
         }
+        game_log("⏹ Panic loop exited.");
     }
 }
 
