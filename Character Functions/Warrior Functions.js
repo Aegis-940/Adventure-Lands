@@ -750,9 +750,9 @@ async function panic_loop() {
 
     try {
         while (panic_enabled) {
-            const myras_online = parent.party_list.includes(PRIEST_NAME);
             const myras_entity = parent.entities[PRIEST_NAME];
-            const myras_alive = myras_online && !myras_entity.rip;
+            const myras_online = parent.party_list.includes(PRIEST_NAME);
+            const myras_alive = myras_entity && !myras_entity.rip;
             const myras_near = myras_online && parent.distance(character, myras_entity) <= 500;
             const low_health = character.hp < (character.max_hp / 3);
             const high_health = character.hp >= ((2 * character.max_hp) / 3);
@@ -760,9 +760,10 @@ async function panic_loop() {
             // PANIC CONDITION
             if (!myras_online || !myras_alive || low_health) {
                 stop_attack_loop();
-                let reason = !myras_online ? "Myras is offline!" 
-                    : !myras_alive ? "Myras is dead!"  
-                    : "Low health!";
+                let reason = low_health ? "Low health!"
+                    : !myras_online ? "Myras is offline!"
+                    : !myras_alive ? "Myras is dead!"
+                    : "Unknown panic reason!";
 
                 game_log(`⚠️ Panic triggered: ${reason}`);
 
