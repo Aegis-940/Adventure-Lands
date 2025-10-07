@@ -45,36 +45,36 @@ function stop_move_loop() {
 // 3) PERSISTENT STATE HANDLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function save_persistent_state() {
-    try {
-        set("ranger_attack_enabled", attack_enabled);
-        set("ranger_move_enabled",   move_enabled);
-    } catch (e) {
-        console.error("Error saving persistent state:", e);
-    }
-}
+// function save_persistent_state() {
+//     try {
+//         set("ranger_attack_enabled", attack_enabled);
+//         set("ranger_move_enabled",   move_enabled);
+//     } catch (e) {
+//         console.error("Error saving persistent state:", e);
+//     }
+// }
 
-function init_persistent_state() {
-    try {
-        const atk = get("ranger_attack_enabled");
-        if (atk !== undefined) attack_enabled = atk;
+// function init_persistent_state() {
+//     try {
+//         const atk = get("ranger_attack_enabled");
+//         if (atk !== undefined) attack_enabled = atk;
 
-        const mv = get("ranger_move_enabled");
-        if (mv !== undefined) move_enabled = mv;
+//         const mv = get("ranger_move_enabled");
+//         if (mv !== undefined) move_enabled = mv;
 
-        // Reflect loaded flags in the loop state
-        if (attack_enabled) start_attack_loop();
-        else               stop_attack_loop();
+//         // Reflect loaded flags in the loop state
+//         if (attack_enabled) start_attack_loop();
+//         else               stop_attack_loop();
 
-        if (move_enabled)  start_move_loop();
-        else               stop_move_loop();
-    } catch (e) {
-        console.error("Error loading persistent state:", e);
-    }
-}
+//         if (move_enabled)  start_move_loop();
+//         else               stop_move_loop();
+//     } catch (e) {
+//         console.error("Error loading persistent state:", e);
+//     }
+// }
 
-// Save state on script unload
-window.addEventListener("beforeunload", save_persistent_state);
+// // Save state on script unload
+// window.addEventListener("beforeunload", save_persistent_state);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 4) PERSISTENT STATE
@@ -347,8 +347,6 @@ async function boss_loop() {
                 e.visible
             );
 
-            game_log("Check 1");
-
             if (!boss) {
                 await delay(100);
                 if (parent.S[boss_name].live) {
@@ -379,8 +377,6 @@ async function boss_loop() {
                 }
             }
 
-            game_log("Check 2");
-
             // Use scare if aggroed by any monster
             const aggro = Object.values(parent.entities).some(e =>
                 e.type === "monster" && e.target === character.name && !e.dead
@@ -391,30 +387,25 @@ async function boss_loop() {
 
             try {
                 change_target(boss);
-                game_log("Check 3a");
 
                 if (boss.target !== character.name) {
-                    game_log("Check 3b");
                     if (!is_on_cooldown("huntersmark")) {
-                        game_log("Check 3c");
                         await use_skill("huntersmark", boss);
+                        delay = ms_to_next_skill("attack");
                     }
-                    if (!is_on_cooldown("supershot")) {
-                        game_log("Check 3d");
+                    else if (!is_on_cooldown("supershot")) {
                         await use_skill("supershot", boss);
+                        delay = ms_to_next_skill("attack");
                     }
-                    if (!is_on_cooldown("attack")) {
-                        game_log("Check 3e");
+                    else if (!is_on_cooldown("attack")) {
                         await attack(boss);
                         delay = ms_to_next_skill("attack");
                     }
                 }
-                game_log("Check 3f");
             } catch (e) {
                 console.error(e);
             }
             
-            game_log("Check 3g");
             if (typeof delay !== "number" || isNaN(delay) || delay < 0) {
                 game_log("Invalid delay value:", delay, "— defaulting to 10ms");
                 delay = 10;
