@@ -10,6 +10,58 @@ function ms_to_next_skill(skill) {
 	return ms < 0 ? 0 : ms;
 }
 
+function get_nearest_monster_v2(args = {}) {
+    let min_d = 999999, target = null;
+    let optimal_hp = args.check_max_hp ? 0 : 999999999; // Set initial optimal HP based on whether we're checking for max or min HP
+
+    for (let id in parent.entities) {
+        let current = parent.entities[id];
+        if (current.type != "monster" || !current.visible || current.dead) continue;
+        if (args.type && current.mtype != args.type) continue;
+        if (args.min_level !== undefined && current.level < args.min_level) continue;
+        if (args.max_level !== undefined && current.level > args.max_level) continue;
+        if (args.target && !args.target.includes(current.target)) continue;
+        if (args.no_target && current.target && current.target != character.name) continue;
+
+        // Status effects (debuffs/buffs) check
+        if (args.statusEffects && !args.statusEffects.every(effect => current.s[effect])) continue;
+
+        // Min/max XP check
+        if (args.min_xp !== undefined && current.xp < args.min_xp) continue;
+        if (args.max_xp !== undefined && current.xp > args.max_xp) continue;
+
+        // Attack power limit
+        if (args.max_att !== undefined && current.attack > args.max_att) continue;
+
+        // Path check
+        if (args.path_check && !can_move_to(current)) continue;
+
+        // Distance calculation
+        let c_dist = args.point_for_distance_check
+            ? Math.hypot(args.point_for_distance_check[0] - current.x, args.point_for_distance_check[1] - current.y)
+            : parent.distance(character, current);
+
+        if (args.max_distance !== undefined && c_dist > args.max_distance) continue;
+
+        // Generalized HP check (min or max)
+        if (args.check_min_hp || args.check_max_hp) {
+            let c_hp = current.hp;
+            if ((args.check_min_hp && c_hp < optimal_hp) || (args.check_max_hp && c_hp > optimal_hp)) {
+                optimal_hp = c_hp;
+                target = current;
+            }
+            continue;
+        }
+
+        // If no specific HP check, choose the closest monster
+        if (c_dist < min_d) {
+            min_d = c_dist;
+            target = current;
+        }
+    }
+    return target;
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -18,7 +70,13 @@ async function attack_loop() {
     if (!attack_enabled) return;
     let delay = 10;
 
-    await boss_handler().catch(console.error);
+    // Boss detection logic
+    const boss_alive = BOSSES.some(name => parent.S[name] && parent.S[name].live);
+    if (boss_alive) {
+        stop_attack_loop();
+        boss_loop();
+        return;
+    }
 
     try {
 
@@ -47,6 +105,207 @@ async function attack_loop() {
         console.error(e);
     }
     attack_timer_id = setTimeout(attack_loop, delay);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOSS LOOP - HALLOWEEN EDITION
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const BOSSES = ["mrpumpkin", "mrgreen"];
+const GRIND_HOME = { map: "main", x: 866, y: -172 };
+
+async function boss_loop() {
+    let boss_active = true;
+
+    // Find all alive bosses and pick the one with the lowest HP (fallback: oldest spawn)
+    let alive_bosses = BOSSES
+        .filter(name => parent.S[name] && parent.S[name].live)
+        .map(name => ({ name, live: parent.S[name].live }));
+
+    if (alive_bosses.length === 0) {
+        boss_active = false;
+    } else {
+        // Sort by spawn time (oldest first)
+        alive_bosses.sort((a, b) => a.live - b.live);
+
+        // Find boss with lowest HP (visible or not)
+        let lowest_hp_boss = null;
+        let lowest_hp = Infinity;
+        for (const boss of alive_bosses) {
+            let hp = Infinity;
+            const entity = Object.values(parent.entities).find(e =>
+                e.type === "monster" &&
+                e.mtype === boss.name &&
+                !e.dead
+            );
+            if (entity) {
+                hp = entity.hp;
+            } else if (parent.S[boss.name] && typeof parent.S[boss.name].hp === "number") {
+                hp = parent.S[boss.name].hp;
+            }
+            if (hp < lowest_hp) {
+                lowest_hp = hp;
+                lowest_hp_boss = boss.name;
+            }
+        }
+        let boss_name = lowest_hp_boss || alive_bosses[0].name;
+
+        // Equip fireblade +7 in offhand before moving to boss
+        const fireblade7_slot = parent.character.items.findIndex(item =>
+            item && item.name === "fireblade" && item.level === 7
+        );
+        if (fireblade7_slot !== -1 && (!character.slots.offhand || character.slots.offhand.name !== "fireblade" || character.slots.offhand.level !== 7)) {
+            await equip(fireblade7_slot, "offhand");
+            await delay(300);
+        }
+
+        // Equip jacko before moving to boss
+        const jacko_slot = locate_item("jacko");
+        if (jacko_slot !== -1 && character.slots.orb?.name !== "jacko") {
+            await equip(jacko_slot);
+            await delay(300);
+        }
+
+        // Only smart_move if boss spawn is known
+        const boss_spawn = parent.S[boss_name] && parent.S[boss_name].x !== undefined && parent.S[boss_name].y !== undefined
+            ? { map: parent.S[boss_name].map, x: parent.S[boss_name].x, y: parent.S[boss_name].y }
+            : null;
+
+        if (boss_spawn) {
+            let moving = true;
+            smart_move(boss_spawn).then(() => { moving = false; });
+
+            while (moving && boss_active) {
+                // Recalculate distances
+                const boss_entity = Object.values(parent.entities).find(e =>
+                    e.type === "monster" && e.mtype === boss_name && !e.dead
+                );
+                const dist_to_boss = boss_entity ? parent.distance(character, boss_entity) : Infinity;
+                const dist_to_spawn = Math.hypot(character.x - boss_spawn.x, character.y - boss_spawn.y);
+
+                // Stop smart moving if within 400 of spawn or within 200 of boss
+                if (dist_to_spawn <= 400 || dist_to_boss <= 200) {
+                    if (character.moving) {
+                        stop();
+                        while (character.moving) {
+                            await delay(20);
+                        }
+                    }
+                    moving = false;
+                    break;
+                }
+
+                // Scan for aggro and cast scare if needed
+                const aggro = Object.values(parent.entities).some(e =>
+                    e.type === "monster" && e.target === character.name && !e.dead
+                );
+                if (aggro && can_use("scare")) {
+                    await use_skill("scare");
+                }
+
+                // If boss dies while moving, break out
+                if (!(parent.S[boss_name] && parent.S[boss_name].live)) {
+                    boss_active = false;
+                    break;
+                }
+
+                await delay(100);
+            }
+        }
+
+        // Engage boss until dead
+        while (boss_active && parent.S[boss_name] && parent.S[boss_name].live) {
+            let delay = 1;
+
+            const boss = Object.values(parent.entities).find(e =>
+                e.type === "monster" &&
+                e.mtype === boss_name &&
+                !e.dead &&
+                e.visible
+            );
+
+            if (!boss) break;
+
+            // Maintain distance: character.range - 5, with a tolerance of ±5
+            const dist = parent.distance(character, boss);
+            const desired_range = character.range - 5;
+            const tolerance = 5;
+            if (
+                (dist > desired_range + tolerance || dist < desired_range - tolerance) &&
+                !character.moving
+            ) {
+                const dx = boss.x - character.x;
+                const dy = boss.y - character.y;
+                const d = Math.hypot(dx, dy);
+                const target_x = boss.x - (dx / d) * desired_range;
+                const target_y = boss.y - (dy / d) * desired_range;
+                if (Math.hypot(target_x - character.x, target_y - character.y) > 10) {
+                    move(target_x, target_y);
+                }
+            }
+
+            // Use scare if aggroed by any monster
+            const aggro = Object.values(parent.entities).some(e =>
+                e.type === "monster" && e.target === character.name && !e.dead
+            );
+            if (aggro && can_use("scare")) {
+                await use_skill("scare");
+            }
+
+            try {
+                change_target(boss);
+
+                // Only use skills/attack if boss is targeting something other than self
+                if (boss.target && boss.target !== character.name) {
+                    if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
+                    if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
+
+                    if (!is_on_cooldown("attack")) {
+                        await attack(boss);
+                        delay = ms_to_next_skill("attack");
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+
+            // If boss dies during fight, break out
+            if (!(parent.S[boss_name] && parent.S[boss_name].live)) {
+                boss_active = false;
+                break;
+            }
+
+            await delay(delay);
+        }
+
+        // Move back to grind home, using scare if targeted during movement
+        let moving_home = true;
+        smart_move(GRIND_HOME).then(() => { moving_home = false; });
+        while (moving_home) {
+            const aggro = Object.values(parent.entities).some(e =>
+                e.type === "monster" && e.target === character.name && !e.dead
+            );
+            if (aggro && can_use("scare")) {
+                await use_skill("scare");
+            }
+            // If boss respawns while returning, break and restart boss loop
+            if (BOSSES.some(name => parent.S[name] && parent.S[name].live)) {
+                boss_active = false;
+                break;
+            }
+            await delay(100);
+        }
+
+        // Equip orbg once home
+        const orbg_slot = locate_item("orbg");
+        if (orbg_slot !== -1 && character.slots.orb?.name !== "orbg") {
+            await equip(orbg_slot);
+            await delay(300);
+        }
+    }
+
+    // Restart attack loop after boss loop finishes
+    start_attack_loop();
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -172,8 +431,7 @@ async function loot_loop() {
 // BOSS HANDLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const BOSSES = ["mrpumpkin", "mrgreen"];
-const GRIND_HOME = { map: "main", x: 866, y: -172 };
+
 
 async function boss_handler() {
     // Find all alive bosses and pick the one with the lowest HP (fallback: oldest spawn)
@@ -719,4 +977,4 @@ window.addEventListener("beforeunload", save_persistent_state);
 // 4) PERSISTENT STATE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-init_persistent_state();
+// init_persistent_state();
