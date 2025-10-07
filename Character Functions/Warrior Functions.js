@@ -76,6 +76,7 @@ async function attack_loop() {
     if (boss_alive) {
         game_log("Check 1");
         stop_attack_loop();
+        game_log("Check 1a");
         stop_panic_loop();
         game_log("Check 2");
         boss_loop();
