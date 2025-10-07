@@ -74,7 +74,6 @@ async function attack_loop() {
     // Boss detection logic
     const boss_alive = BOSSES.some(name => parent.S[name] && parent.S[name].live);
     if (boss_alive) {
-        game_log("Check 1: Boss detected, switching to boss loop");
         stop_attack_loop();
         stop_panic_loop();
         boss_loop();
@@ -123,6 +122,8 @@ async function boss_loop() {
 
     let boss_active = true;
 
+    game_log("Check 1");
+
     // Find all alive bosses and pick the one with the lowest HP (fallback: oldest spawn)
     let alive_bosses = BOSSES
         .filter(name => parent.S[name] && parent.S[name].live)
@@ -155,6 +156,8 @@ async function boss_loop() {
             }
         }
         let boss_name = lowest_hp_boss || alive_bosses[0].name;
+
+        game_log("Check 2");
 
         // Equip fireblade +7 in offhand before moving to boss
         const fireblade7_slot = parent.character.items.findIndex(item =>
