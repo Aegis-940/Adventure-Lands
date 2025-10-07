@@ -98,15 +98,10 @@ async function attack_loop() {
     // Boss detection logic
     const boss_alive = BOSSES.some(name => parent.S[name] && parent.S[name].live);
     if (boss_alive) {
-        game_log("Check 1");
         stop_attack_loop();
-        game_log("Check 2");
         stop_skill_loop();
-        game_log("Check 3");
         stop_circle_move();
-        game_log("Check 4");
         stop_panic_loop();
-        game_log("Check 5");
         boss_loop();
         return;
     }
@@ -294,7 +289,7 @@ async function boss_loop() {
             try {
                 change_target(boss);
 
-                if (disabled) {
+                if (true) {
                     // Always heal, regardless of attack_enabled
                     let heal_target = lowest_health_partymember();
                     if (
