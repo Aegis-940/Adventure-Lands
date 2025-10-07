@@ -16,28 +16,28 @@ function start_attack_loop() {
     attack_enabled = true;
     clearTimeout(attack_timer_id); // Always clear any previous timer
     attack_loop();
-    save_persistent_state();
+    // save_persistent_state();
     game_log("▶️ Attack loop started");
 }
 
 function stop_attack_loop() {
     attack_enabled = false;
     clearTimeout(attack_timer_id);
-    save_persistent_state();
+    // save_persistent_state();
     game_log("⏹ Attack loop stopped");
 }
 
 function start_move_loop() {
     move_enabled = true;
     move_loop();
-    save_persistent_state();
+    // save_persistent_state();
     game_log("▶️ Move loop started");
 }
 
 function stop_move_loop() {
     move_enabled = false;
     clearTimeout(move_timer_id);
-    save_persistent_state();
+    // save_persistent_state();
     game_log("⏹ Move loop stopped");
 }
 
@@ -45,36 +45,36 @@ function stop_move_loop() {
 // 3) PERSISTENT STATE HANDLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function save_persistent_state() {
-    try {
-        set("ranger_attack_enabled", attack_enabled);
-        set("ranger_move_enabled",   move_enabled);
-    } catch (e) {
-        console.error("Error saving persistent state:", e);
-    }
-}
+// function save_persistent_state() {
+//     try {
+//         set("ranger_attack_enabled", attack_enabled);
+//         set("ranger_move_enabled",   move_enabled);
+//     } catch (e) {
+//         console.error("Error saving persistent state:", e);
+//     }
+// }
 
-function init_persistent_state() {
-    try {
-        const atk = get("ranger_attack_enabled");
-        if (atk !== undefined) attack_enabled = atk;
+// function init_persistent_state() {
+//     try {
+//         const atk = get("ranger_attack_enabled");
+//         if (atk !== undefined) attack_enabled = atk;
 
-        const mv = get("ranger_move_enabled");
-        if (mv !== undefined) move_enabled = mv;
+//         const mv = get("ranger_move_enabled");
+//         if (mv !== undefined) move_enabled = mv;
 
-        // Reflect loaded flags in the loop state
-        if (attack_enabled) start_attack_loop();
-        else               stop_attack_loop();
+//         // Reflect loaded flags in the loop state
+//         if (attack_enabled) start_attack_loop();
+//         else               stop_attack_loop();
 
-        if (move_enabled)  start_move_loop();
-        else               stop_move_loop();
-    } catch (e) {
-        console.error("Error loading persistent state:", e);
-    }
-}
+//         if (move_enabled)  start_move_loop();
+//         else               stop_move_loop();
+//     } catch (e) {
+//         console.error("Error loading persistent state:", e);
+//     }
+// }
 
-// Save state on script unload
-window.addEventListener("beforeunload", save_persistent_state);
+// // Save state on script unload
+// window.addEventListener("beforeunload", save_persistent_state);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 4) PERSISTENT STATE
