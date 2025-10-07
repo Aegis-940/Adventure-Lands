@@ -263,7 +263,7 @@ async function boss_loop() {
                     console.error(e);
             }
             
-            await delay(wait_time);
+            await delay(wait_time-100);
 
         }
 
