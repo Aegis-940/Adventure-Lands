@@ -179,7 +179,7 @@ async function attack_loop() {
 
         // 3. Otherwise, pick the lowest HP monster in range
         if (!target && monsters.length) {
-            target = monsters.reduce((a, b) => (a.hp < b.hp ? a : b));
+            target = monsters.reduce((a, b) => (b.hp < a.hp ? a : b));
         }
         
         if (target) {
