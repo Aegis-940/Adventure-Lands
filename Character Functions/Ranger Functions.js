@@ -344,7 +344,10 @@ async function boss_loop() {
                 e.visible
             );
 
-            if (!boss) break;
+            if (!boss) {
+                await delay(100);
+                continue;
+            }
 
             // Maintain distance: character.range - 5, with a tolerance of ±5
             const dist = parent.distance(character, boss);
@@ -375,8 +378,8 @@ async function boss_loop() {
             try {
                 change_target(boss);
 
-                // Only use skills/attack if boss is targeting something other than self
-                if (boss.target && boss.target !== character.name) {
+                // Attack if boss is not targeting you (or has no target)
+                if (!boss.target || boss.target !== character.name) {
                     if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
                     if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
 
