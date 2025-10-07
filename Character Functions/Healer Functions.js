@@ -169,6 +169,9 @@ let ATTACK_PRIORITIZE_UNTARGETED = true; // true: prefer monsters with no target
 
 
 async function attack_loop() {
+
+    if (smart.moving) return;
+
     let delay = 100;
     let disabled = (parent.is_disabled(character) === undefined);
 

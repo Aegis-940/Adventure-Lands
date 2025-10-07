@@ -737,7 +737,7 @@ async function batch_equip(data) {
 let circle_move_enabled = false;
 let circle_move_timer_id = null;
 let circle_origin = null;
-let circle_move_radius = 27;
+let circle_move_radius = character.range - 1;
 let circle_path_points = [];
 let circle_path_index = 0;
 const CIRCLE_STEPS = 12; // 30 degrees per step
