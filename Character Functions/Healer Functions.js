@@ -710,7 +710,7 @@ const PANIC_WEAPON = "jacko";
 const NORMAL_WEAPON = "orbg";
 let panic_flag = false;
 
-async function panic_button_loop() {
+async function panic_loop() {
     if (!panic_enabled) return;
     while (true) {
         const warrior_entity = parent.entities[WARRIOR_NAME];

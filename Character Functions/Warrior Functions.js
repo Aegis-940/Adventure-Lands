@@ -656,7 +656,7 @@ const PRIEST_NAME = "Myras";
 const PANIC_WEAPON = "jacko";
 const NORMAL_WEAPON = "orbg";
 
-async function panic_button_loop() {
+async function panic_loop() {
     if (!panic_enabled) return;
     while (true) {
         const myras_entity = parent.entities[PRIEST_NAME];
