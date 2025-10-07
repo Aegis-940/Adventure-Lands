@@ -23,15 +23,15 @@ const combineProfile = {
   dexring:     { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 3 },
   strring:     { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 3 },
   intring:     { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 3 },
-  dexbelt:     { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
-  strbelt:     { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
-  intbelt:     { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
-  dexamulet:   { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
-  stramulet:   { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
-  intamulet:   { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
-  dexearring:  { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
-  strearring:  { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
-  intearring:  { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 2 },
+  dexbelt:     { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 3 },
+  strbelt:     { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 3 },
+  intbelt:     { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 3 },
+  dexamulet:   { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 3 },
+  stramulet:   { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 3 },
+  intamulet:   { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 3 },
+  dexearring:  { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 3 },
+  strearring:  { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 3 },
+  intearring:  { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 3 },
   // Add more items as needed
 };
 
@@ -195,3 +195,82 @@ async function simple_grace_upgrade() {
 }
 
 //simple_grace_upgrade().then(r => game_log("Returned: " + JSON.stringify(r)));
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// AUTO UPGRADE
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+async function auto_upgrade() {
+    // === BANKING ===
+    // Move to bank NPC (adjust coords as needed)
+    await smart_move(BANK_LOCATION);
+    await delay(1000);
+
+    // --- Use Remote_Bank_Viewer.js data ---
+    const bank_data = get("bank_data");
+    if (!bank_data) {
+        game_log("No remote bank data found. Please run Remote_Bank_Viewer.js first.");
+        return;
+    }
+
+    // Helper to count items in remote bank data
+    function count_in_remote_bank(itemName) {
+        let count = 0;
+        for (const pack in bank_data) {
+            if (!Array.isArray(bank_data[pack])) continue;
+            for (const item of bank_data[pack]) {
+                if (item && item.name === itemName) count++;
+            }
+        }
+        return count;
+    }
+
+    // Helper to withdraw items from live bank (not remote data)
+    async function withdraw_item(itemName, amount) {
+        let withdrawn = 0;
+        for (const pack in character.bank) {
+            if (!Array.isArray(character.bank[pack])) continue;
+            for (let i = 0; i < character.bank[pack].length; i++) {
+                const item = character.bank[pack][i];
+                if (item && item.name === itemName) {
+                    await withdraw(pack, i);
+                    withdrawn++;
+                    amount--;
+                    if (amount <= 0) return withdrawn;
+                }
+            }
+        }
+        return withdrawn;
+    }
+
+    let any_withdrawn = false;
+
+    // Upgrade items: withdraw in multiples of 1
+    for (const itemName in upgradeProfile) {
+        const count = count_in_remote_bank(itemName);
+        if (count >= 1) {
+            game_log(`[Remote Bank] Withdrawing ${count} ${itemName}(s) for upgrade.`);
+            const withdrawn = await withdraw_item(itemName, count);
+            if (withdrawn > 0) any_withdrawn = true;
+        }
+    }
+
+    // Combine items: withdraw in multiples of 3
+    for (const itemName in combineProfile) {
+        const count = count_in_remote_bank(itemName);
+        const to_withdraw = Math.floor(count / 3) * 3;
+        if (to_withdraw >= 3) {
+            game_log(`[Remote Bank] Withdrawing ${to_withdraw} ${itemName}(s) for compounding.`);
+            const withdrawn = await withdraw_item(itemName, to_withdraw);
+            if (withdrawn > 0) any_withdrawn = true;
+        }
+    }
+
+    // If any items were withdrawn, start the upgrade/compound process
+    if (any_withdrawn) {
+        game_log("Items withdrawn from bank. Starting auto upgrade/compound process...");
+        run_auto_upgrade();
+    } else {
+        game_log("No items withdrawn from bank. Nothing to upgrade or compound.");
+    }
+}

@@ -248,16 +248,12 @@ async function boss_loop() {
     let wait_time = 50;
     let boss_active = true;
 
-    game_log("🟣 [Boss Loop] Starting boss loop...");
-
     // Find all alive bosses and pick the one with the lowest HP (fallback: oldest spawn)
-    game_log("🟣 [Boss Loop] Checking for alive bosses...");
     let alive_bosses = BOSSES
         .filter(name => parent.S[name] && parent.S[name].live)
         .map(name => ({ name, live: parent.S[name].live }));
 
     if (alive_bosses.length === 0) {
-        game_log("🟣 [Boss Loop] No alive bosses found. Exiting boss loop.");
         boss_active = false;
     } else {
         // Sort by spawn time (oldest first)
@@ -285,10 +281,7 @@ async function boss_loop() {
         }
         let boss_name = lowest_hp_boss || alive_bosses[0].name;
 
-        game_log(`🟣 [Boss Loop] Targeting boss: ${boss_name}`);
-
         // Equip jacko before moving to boss
-        game_log("🟣 [Boss Loop] Equipping jacko orb if needed...");
         const jacko_slot = locate_item("jacko");
         if (jacko_slot !== -1 && character.slots.orb?.name !== "jacko") {
             await equip(jacko_slot);
@@ -301,7 +294,6 @@ async function boss_loop() {
             : null;
 
         if (boss_spawn) {
-            game_log("🟣 [Boss Loop] Moving to boss spawn...");
             let moving = true;
 
             // Start smart_move and scan for aggro in parallel
@@ -313,7 +305,6 @@ async function boss_loop() {
                     e.type === "monster" && e.target === character.name && !e.dead
                 );
                 if (aggro && can_use("scare")) {
-                    game_log("🟣 [Boss Loop] Aggro detected during move, casting scare!");
                     await use_skill("scare");
                 }
                 await delay(100);
@@ -321,11 +312,9 @@ async function boss_loop() {
 
             // Ensure smart_move is awaited (in case loop exited early)
             await movePromise;
-            game_log("🟣 [Boss Loop] Arrived at boss spawn.");
         }
 
         // Engage boss until dead
-        game_log("🟣 [Boss Loop] Engaging boss...");
         while (boss_active && parent.S[boss_name] && parent.S[boss_name].live) {
 
             const boss = Object.values(parent.entities).find(e =>
@@ -336,7 +325,6 @@ async function boss_loop() {
             );
 
             if (!boss) {
-                game_log("🟣 [Boss Loop] Boss not visible, waiting and smart moving if needed...");
                 await delay(100);
                 if (parent.S[boss_name].live) {
                     await smart_move(boss_spawn);
@@ -345,7 +333,6 @@ async function boss_loop() {
             }
 
             if (!parent.S[boss_name].live){
-                game_log("🟣 [Boss Loop] Boss is dead or despawned. Exiting boss engagement.");
                 break;
             }
 
@@ -357,7 +344,6 @@ async function boss_loop() {
                 (dist > desired_range + tolerance || dist < desired_range - tolerance) &&
                 !character.moving
             ) {
-                game_log("🟣 [Boss Loop] Adjusting distance to boss...");
                 const dx = boss.x - character.x;
                 const dy = boss.y - character.y;
                 const d = Math.hypot(dx, dy);
@@ -373,7 +359,6 @@ async function boss_loop() {
                 e.type === "monster" && e.target === character.name && !e.dead
             );
             if (aggro && can_use("scare")) {
-                game_log("🟣 [Boss Loop] Aggro detected during boss fight, casting scare!");
                 await use_skill("scare");
             }
 
@@ -388,7 +373,6 @@ async function boss_loop() {
                         heal_target.hp < heal_target.max_hp - (character.heal / 1.11) &&
                         is_in_range(heal_target)
                     ) {
-                        game_log(`🟣 [Boss Loop] Healing ${heal_target.name}`);
                         await heal(heal_target);
                         delay = ms_to_next_skill('attack');
                     }
@@ -400,7 +384,6 @@ async function boss_loop() {
                         boss.target !== "Ulric" &&
                         boss.target !== "Riva"
                     ) {
-                        game_log("🟣 [Boss Loop] Attacking boss!");
                         await attack(boss);
                         wait_time = ms_to_next_skill('attack');
                     }
@@ -414,7 +397,6 @@ async function boss_loop() {
         }
 
         // Move back to grind home, using scare if targeted during movement
-        game_log("🟣 [Boss Loop] Returning to grind home...");
         let moving_home = true;
         smart_move(GRIND_HOME).then(() => { moving_home = false; });
         while (moving_home) {
@@ -422,12 +404,10 @@ async function boss_loop() {
                 e.type === "monster" && e.target === character.name && !e.dead
             );
             if (aggro && can_use("scare")) {
-                game_log("🟣 [Boss Loop] Aggro detected while returning home, casting scare!");
                 await use_skill("scare");
             }
             // If boss respawns while returning, break and restart boss loop
             if (BOSSES.some(name => parent.S[name] && parent.S[name].live)) {
-                game_log("🟣 [Boss Loop] Boss respawned while returning home, breaking to restart boss loop.");
                 boss_active = false;
                 break;
             }
@@ -435,7 +415,6 @@ async function boss_loop() {
         }
 
         // Equip orbg once home
-        game_log("🟣 [Boss Loop] Equipping orbg orb if needed...");
         const orbg_slot = locate_item("orbg");
         if (orbg_slot !== -1 && character.slots.orb?.name !== "orbg") {
             await equip(orbg_slot);
@@ -443,7 +422,6 @@ async function boss_loop() {
         }
     }
 
-    game_log("🟣 [Boss Loop] Boss loop finished. Restarting normal loops...");
     // Restart attack loop after boss loop finishes
     start_panic_loop();
     start_skill_loop();
