@@ -80,7 +80,7 @@ window.addEventListener("beforeunload", save_persistent_state);
 // 4) PERSISTENT STATE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-init_persistent_state();
+// init_persistent_state();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SUPPORT FUNCTIONS
@@ -334,7 +334,7 @@ async function boss_loop() {
         }
 
         // Engage boss until dead
-        while (boss_active && parent.S[boss_name] && parent.S[boss_name].live) {
+        while (parent.S[boss_name].live) {
             let delay = 1;
 
             const boss = Object.values(parent.entities).find(e =>
