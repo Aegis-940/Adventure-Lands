@@ -101,6 +101,7 @@ async function attack_loop() {
         stop_attack_loop();
         stop_skill_loop();
         stop_circle_move();
+        stop_panic_loop();
         boss_loop();
         return;
     }
@@ -349,6 +350,7 @@ async function boss_loop() {
     start_attack_loop();
     start_skill_loop();
     start_circle_move();
+    start_panic_loop();
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -709,6 +711,7 @@ const NORMAL_WEAPON = "orbg";
 let panic_flag = false;
 
 async function panic_button_loop() {
+    if (!panic_enabled) return;
     while (true) {
         const warrior_entity = parent.entities[WARRIOR_NAME];
         const warrior_online = parent.party_list.includes(WARRIOR_NAME) && warrior_entity;
@@ -813,6 +816,20 @@ function stop_skill_loop() {
     clearTimeout(skill_timer_id);
     // save_persistent_state();
     game_log("⏹ Skill loop stopped");
+}
+
+function start_panic_loop() {
+    panic_enabled = true;
+    panic_loop();
+    // save_persistent_state();
+    game_log("▶️ Panic loop started");
+}
+
+function stop_panic_loop() {
+    panic_enabled = false;
+    clearTimeout(panic_timer_id);
+    // save_persistent_state();
+    game_log("⏹ Panic loop stopped");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
