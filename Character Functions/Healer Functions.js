@@ -466,7 +466,12 @@ async function handle_cursing(X, Y, whitelist) {
         point_for_distance_check: [X, Y],
     }) || get_targeted_monster();
 
-    if (ctarget && ctarget.hp >= ctarget.max_hp * 0.2 && !ctarget.immune) {
+    if (
+        ctarget &&
+        ctarget.hp >= ctarget.max_hp * 0.2 &&
+        !ctarget.immune &&
+        whitelist.includes(ctarget.mtype)
+    ) {
         if (!is_on_cooldown("curse")) {
             try {
                 await use_skill("curse", ctarget);
