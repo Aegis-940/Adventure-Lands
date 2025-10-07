@@ -96,7 +96,13 @@ async function attack_loop() {
     let disabled = (parent.is_disabled(character) === undefined);
 
     // Boss detection logic
-    const boss_alive = BOSSES.some(name => parent.S[name] && parent.S[name].live);
+    const boss_alive = BOSSES.some(name =>
+        parent.S[name] &&
+        parent.S[name].live &&
+        typeof parent.S[name].hp === "number" &&
+        typeof parent.S[name].max_hp === "number" &&
+        (parent.S[name].max_hp - parent.S[name].hp) > 100000
+    );
     if (boss_alive) {
         stop_attack_loop();
         stop_skill_loop();
@@ -238,8 +244,6 @@ async function boss_loop() {
 
         // Engage boss until dead
         while (boss_active && parent.S[boss_name] && parent.S[boss_name].live) {
-
-            game_log("Check 1");
 
             const boss = Object.values(parent.entities).find(e =>
                 e.type === "monster" &&

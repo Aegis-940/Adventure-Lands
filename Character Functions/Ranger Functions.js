@@ -159,7 +159,13 @@ async function attack_loop() {
     const X = character.x, Y = character.y;
 
     // Boss detection logic
-    const boss_alive = BOSSES.some(name => parent.S[name] && parent.S[name].live);
+    const boss_alive = BOSSES.some(name =>
+        parent.S[name] &&
+        parent.S[name].live &&
+        typeof parent.S[name].hp === "number" &&
+        typeof parent.S[name].max_hp === "number" &&
+        (parent.S[name].max_hp - parent.S[name].hp) > 100000
+    );
     if (boss_alive) {
         stop_attack_loop();
         boss_loop();
