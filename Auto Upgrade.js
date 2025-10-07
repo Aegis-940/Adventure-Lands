@@ -200,6 +200,8 @@ async function simple_grace_upgrade() {
 // AUTO UPGRADE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+let timeout = 5000;
+
 async function schedule_upgrade() {
     // === BANKING ===
     await smart_move(BANK_LOCATION);
@@ -228,7 +230,7 @@ async function schedule_upgrade() {
 
     // Helper to check for timeout
     function timed_out() {
-        return (Date.now() - last_change_time) > 5000;
+        return (Date.now() - last_change_time) > timeout;
     }
 
     // --- UPGRADE: Withdraw by item, only below max_level ---
@@ -333,7 +335,10 @@ async function schedule_upgrade() {
         game_log("Items withdrawn from bank. Starting auto upgrade/compound process...");
 		await smart_move(HOME);
         run_auto_upgrade();
+		timeout = 20000;
+		if (timed_out()) await smart_move(HOME);
     } else {
         game_log("No items withdrawn from bank. Nothing to upgrade or compound.");
+		await smart_move(HOME);
     }
 }
