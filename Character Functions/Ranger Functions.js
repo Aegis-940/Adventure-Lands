@@ -410,7 +410,12 @@ async function boss_loop() {
                 game_log("Invalid delay value:", delay, "— defaulting to 10ms");
                 delay = 10;
             }
-            await delay(delay);
+            try {
+                await delay(delay);
+            } catch (e) {
+                game_log("delay() failed, falling back to setTimeout:", e);
+                await new Promise(resolve => setTimeout(resolve, typeof delay === "number" && delay > 0 ? delay : 10));
+            }
             game_log("Check 4");
         }
 
