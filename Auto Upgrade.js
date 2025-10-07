@@ -249,7 +249,6 @@ async function schedule_upgrade() {
                     item &&
                     item.name === itemName
                 ) {
-                    // Treat undefined level as 0
                     const lvl = typeof item.level === "number" ? item.level : 0;
                     if (lvl < maxLevel) {
                         let qty = item.q || 1;
@@ -262,12 +261,12 @@ async function schedule_upgrade() {
         }
 
         const to_withdraw = Math.min(items.length, free_slots);
-		if (to_withdraw >= 1) {
-			game_log(`[Bank] Withdrawing ${to_withdraw} ${itemName}(s) for upgrade (any level below ${maxLevel}).`);
-			await withdraw_item(itemName, null, to_withdraw);
-			any_withdrawn = true;
-			free_slots -= to_withdraw;
-		}
+        if (to_withdraw >= 1) {
+            game_log(`[Bank] Withdrawing ${to_withdraw} ${itemName}(s) for upgrade (any level below ${maxLevel}).`);
+            await withdraw_item(itemName, null, to_withdraw);
+            any_withdrawn = true;
+            free_slots -= to_withdraw;
+        }
     }
 
     // --- COMBINE: Withdraw by item+level, only below max_level, in multiples of 3 ---
