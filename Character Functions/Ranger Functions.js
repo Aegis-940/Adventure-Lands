@@ -336,7 +336,6 @@ async function boss_loop() {
 
         // Engage boss until dead
         while (boss_active && parent.S[boss_name] && parent.S[boss_name].live) {
-            let delay = 1;
 
             const boss = Object.values(parent.entities).find(e =>
                 e.type === "monster" &&
@@ -349,6 +348,7 @@ async function boss_loop() {
 
             if (!boss) {
                 await delay(100);
+                await smart_move(boss_spawn)
                 continue;
             }
 
