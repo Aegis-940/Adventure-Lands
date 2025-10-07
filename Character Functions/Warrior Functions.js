@@ -366,7 +366,7 @@ async function skill_loop() {
     } catch (e) {
         //console.error("Error in skillLoop:", e);
     }
-    setTimeout(skill_loop, delay);
+    skill_timer_id = setTimeout(skill_loop, delay);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
