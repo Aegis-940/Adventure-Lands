@@ -234,6 +234,8 @@ const GRIND_WEAPON = "hbow";
 
 async function boss_loop() {
 
+    let wait_time = 50;
+
     game_log("Boss Hunting Mode!!!");
 
     let boss_active = true;
@@ -391,27 +393,27 @@ async function boss_loop() {
                 if (boss.target !== character.name) {
                     if (!is_on_cooldown("huntersmark")) {
                         await use_skill("huntersmark", boss);
-                        delay = ms_to_next_skill("attack");
+                        wait_time = ms_to_next_skill("attack");
                     }
                     else if (!is_on_cooldown("supershot")) {
                         await use_skill("supershot", boss);
-                        delay = ms_to_next_skill("attack");
+                        wait_time = ms_to_next_skill("attack");
                     }
                     else if (!is_on_cooldown("attack")) {
                         await attack(boss);
-                        delay = ms_to_next_skill("attack");
+                        wait_time = ms_to_next_skill("attack");
                     }
                 }
             } catch (e) {
                 console.error(e);
             }
             
-            if (typeof delay !== "number" || isNaN(delay) || delay < 0) {
-                game_log("Invalid delay value:", delay, "— defaulting to 10ms");
+            if (typeof wait_time !== "number" || isNaN(wait_time) || wait_time < 0) {
+                game_log("Invalid delay value:", wait_time, "— defaulting to 10ms");
                 delay = 10;
             }
             try {
-                await delay(delay);
+                await delay(wait_time);
             } catch (e) {
                 game_log("delay() failed, falling back to setTimeout:", e);
                 await new Promise(resolve => setTimeout(resolve, typeof delay === "number" && delay > 0 ? delay : 10));
