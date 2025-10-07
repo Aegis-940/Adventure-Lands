@@ -161,7 +161,7 @@ async function attack_loop() {
     // Boss detection logic
     const boss_alive = BOSSES.some(name => parent.S[name] && parent.S[name].live);
     if (boss_alive) {
-        // stop_attack_loop();
+        stop_attack_loop();
         boss_loop();
         return;
     }
@@ -234,10 +234,9 @@ const GRIND_WEAPON = "hbow";
 
 async function boss_loop() {
 
-    stop_attack_loop();
+    game_log("Boss Hunting Mode!!!");
 
     let boss_active = true;
-    let delay = 50;
 
     // Find all alive bosses and pick the one with the lowest HP (fallback: oldest spawn)
     let alive_bosses = BOSSES
@@ -417,7 +416,6 @@ async function boss_loop() {
                 game_log("delay() failed, falling back to setTimeout:", e);
                 await new Promise(resolve => setTimeout(resolve, typeof delay === "number" && delay > 0 ? delay : 10));
             }
-            game_log("Check 4");
         }
 
         // Loot chests if needed
