@@ -826,8 +826,8 @@ async function panic_loop() {
         // PANIC CONDITION
         if (!warrior_online || !warrior_alive || !warrior_near || low_health && panic_enabled) {
             stop_attack_loop();
-            let reason = !myras_online ? "Myras is offline!" : !myras_alive ? "Myras is dead!" : !myras_near
-                        ? "Myras is too far!" : "Low health!";
+            let reason = !warrior_online ? "Ulric is offline!" : !warrior_alive ? "Ulric is dead!" : !warrior_near
+                        ? "Ulric is too far!" : "Low health!";
             game_log("⚠️ Panic triggered:", reason);
 
             // Ensure jacko is equipped
