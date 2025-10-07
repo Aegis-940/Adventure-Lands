@@ -151,7 +151,7 @@ function get_nearest_monster_v2(args = {}) {
 
 async function attack_loop() {
     if (!attack_enabled) return;
-    if (smart_moving) return;
+    // if (smart_moving) return;
     let ATTACK_TARGETED = false; // Toggle: true = only attack monsters with a target
     const RANGE_THRESHOLD = character.range;
 
@@ -160,13 +160,13 @@ async function attack_loop() {
     let delay = 50;
     const X = character.x, Y = character.y;
 
-    // // Boss detection logic
-    // const boss_alive = BOSSES.some(name => parent.S[name] && parent.S[name].live);
-    // if (boss_alive) {
-    //     stop_attack_loop();
-    //     boss_loop();
-    //     return;
-    // }
+    // Boss detection logic
+    const boss_alive = BOSSES.some(name => parent.S[name] && parent.S[name].live);
+    if (boss_alive) {
+        stop_attack_loop();
+        boss_loop();
+        return;
+    }
 
     game_log("Check 2");
 
