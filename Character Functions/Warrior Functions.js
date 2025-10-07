@@ -158,6 +158,7 @@ async function attack_loop() {
         stop_attack_loop();
         stop_panic_loop();
         stop_skill_loop();
+        stop_circle_move();
         boss_loop();
         return;
     }
@@ -196,7 +197,7 @@ async function attack_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const BOSSES = ["mrpumpkin", "mrgreen"];
-const GRIND_HOME = { map: "main", x: 866, y: -172 };
+const GRIND_HOME = { map: "main", x: 907, y: -174 };
 
 async function boss_loop() {
 
@@ -377,6 +378,7 @@ async function boss_loop() {
     start_panic_loop();
     start_skill_loop();
     start_attack_loop();
+    start_circle_move();
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -726,6 +728,81 @@ async function batch_equip(data) {
 
     await equip_batch(batch); // Await the batch equip
     batch_equip_lock = false;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// COMBAT MOVEMENT TO GROUP UP ENEMIES - SEMI OPTIMIZED
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let circle_move_enabled = false;
+let circle_move_timer_id = null;
+let circle_origin = null;
+let circle_move_radius = 27;
+let circle_path_points = [];
+let circle_path_index = 0;
+const CIRCLE_STEPS = 12; // 30 degrees per step
+
+function set_circle_move_radius(r) {
+    if (typeof r === "number" && r > 0) {
+        circle_move_radius = r;
+        game_log(`Circle move radius set to ${circle_move_radius}`);
+    }
+}
+
+function compute_circle_path(origin, radius, steps) {
+    const points = [];
+    for (let i = 0; i < steps; i++) {
+        const angle = (2 * Math.PI * i) / steps;
+        points.push({
+            x: origin.x + radius * Math.cos(angle),
+            y: origin.y + radius * Math.sin(angle)
+        });
+    }
+    return points;
+}
+
+function start_circle_move(radius = circle_move_radius) {
+    if (circle_move_enabled) return;
+    circle_move_enabled = true;
+    circle_origin = { x: character.real_x, y: character.real_y };
+    set_circle_move_radius(radius);
+    circle_path_points = compute_circle_path(circle_origin, circle_move_radius, CIRCLE_STEPS);
+    circle_path_index = 0;
+    circle_move_loop(); // No timer needed, just start the async loop
+    console.log("🔵 Circle move started");
+}
+
+function stop_circle_move() {
+    circle_move_enabled = false;
+    console.log("⏹ Circle move stopped");
+}
+
+const MOVE_CHECK_INTERVAL = 120; // ms
+const MOVE_TOLERANCE = 5; // pixels
+
+async function circle_move_loop() {
+    while (circle_move_enabled) {
+        const point = circle_path_points[circle_path_index];
+        circle_path_index = (circle_path_index + 1) % circle_path_points.length;
+
+        // Only move if not already close to the next point
+        const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
+        if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
+            try {
+                await move(point.x, point.y);
+            } catch (e) {
+                console.error("Circle move error:", e);
+            }
+        }
+
+        // Wait until movement is finished or interrupted
+        while (circle_move_enabled && (character.moving || smart.moving)) {
+            await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
+        }
+
+        // Small delay before next step to reduce CPU usage
+        await new Promise(resolve => setTimeout(resolve, 10));
+    }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
