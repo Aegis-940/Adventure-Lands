@@ -809,7 +809,7 @@ async function panic_loop() {
         while (panic_enabled) {
             const warrior_online = parent.party_list.includes(WARRIOR_NAME);
             const warrior_entity = parent.entities[WARRIOR_NAME];
-            const warrior_alive = warrior_entity && !warrior_entity.rip;
+            const warrior_alive = warrior_online && !warrior_entity.rip;
             const warrior_near = warrior_entity && parent.distance(character, warrior_entity) <= 400;
             const low_health = character.hp < (character.max_hp / 3);
             const high_health = character.hp >= ((2 * character.max_hp) / 3);
