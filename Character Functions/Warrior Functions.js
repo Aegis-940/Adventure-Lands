@@ -1,5 +1,76 @@
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// 1) GLOBAL SWITCHES & TIMERS
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let attack_enabled   = true;
+let attack_timer_id  = null;
+let move_enabled     = true;
+let move_timer_id    = null;
+let skills_enabled   = true;
+let skill_timer_id   = null;
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// 2) START/STOP HELPERS (with persistent state saving)
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function start_attack_loop() {
+    attack_enabled = true;
+    clearTimeout(attack_timer_id); // Ensure no duplicate timers
+    attack_loop();
+    // save_persistent_state();
+    game_log("▶️ Attack loop started");
+}
+
+function stop_attack_loop() {
+    attack_enabled = false;
+    clearTimeout(attack_timer_id);
+    // save_persistent_state();
+    game_log("⏹ Attack loop stopped");
+}
+
+function start_move_loop() {
+    move_enabled = true;
+    move_loop();
+    // save_persistent_state();
+    game_log("▶️ Move loop started");
+}
+
+function stop_move_loop() {
+    move_enabled = false;
+    clearTimeout(move_timer_id);
+    // save_persistent_state();
+    game_log("⏹ Move loop stopped");
+}
+
+function start_skill_loop() {
+    skills_enabled = true;
+    skill_loop();
+    // save_persistent_state();
+    game_log("▶️ Skill loop started");
+}
+
+function stop_skill_loop() {
+    skills_enabled = false;
+    clearTimeout(skill_timer_id);
+    // save_persistent_state();
+    game_log("⏹ Skill loop stopped");
+}
+
+function start_panic_loop() {
+    panic_enabled = true;
+    panic_loop();
+    // save_persistent_state();
+    game_log("▶️ Panic loop started");
+}
+
+function stop_panic_loop() {
+    panic_enabled = false;
+    // save_persistent_state();
+    game_log("⏹ Panic loop stopped");
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // SUPPORT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -713,77 +784,6 @@ async function panic_loop() {
             await delay(CHECK_INTERVAL);
         }
     }
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// 1) GLOBAL SWITCHES & TIMERS
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-let attack_enabled   = true;
-let attack_timer_id  = null;
-let move_enabled     = true;
-let move_timer_id    = null;
-let skills_enabled   = true;
-let skill_timer_id   = null;
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// 2) START/STOP HELPERS (with persistent state saving)
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-function start_attack_loop() {
-    attack_enabled = true;
-    clearTimeout(attack_timer_id); // Ensure no duplicate timers
-    attack_loop();
-    // save_persistent_state();
-    game_log("▶️ Attack loop started");
-}
-
-function stop_attack_loop() {
-    attack_enabled = false;
-    clearTimeout(attack_timer_id);
-    // save_persistent_state();
-    game_log("⏹ Attack loop stopped");
-}
-
-function start_move_loop() {
-    move_enabled = true;
-    move_loop();
-    // save_persistent_state();
-    game_log("▶️ Move loop started");
-}
-
-function stop_move_loop() {
-    move_enabled = false;
-    clearTimeout(move_timer_id);
-    // save_persistent_state();
-    game_log("⏹ Move loop stopped");
-}
-
-function start_skill_loop() {
-    skills_enabled = true;
-    skill_loop();
-    // save_persistent_state();
-    game_log("▶️ Skill loop started");
-}
-
-function stop_skill_loop() {
-    skills_enabled = false;
-    clearTimeout(skill_timer_id);
-    // save_persistent_state();
-    game_log("⏹ Skill loop stopped");
-}
-
-function start_panic_loop() {
-    panic_enabled = true;
-    panic_loop();
-    // save_persistent_state();
-    game_log("▶️ Panic loop started");
-}
-
-function stop_panic_loop() {
-    panic_enabled = false;
-    // save_persistent_state();
-    game_log("⏹ Panic loop stopped");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
