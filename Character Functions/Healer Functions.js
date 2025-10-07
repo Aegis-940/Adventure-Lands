@@ -817,8 +817,13 @@ async function panic_loop() {
             // PANIC CONDITION
             if (!warrior_online || !warrior_alive || low_health) {
                 stop_attack_loop();
-                let reason = !warrior_online ? "Ulric is offline!" : !warrior_alive ? "Ulric is dead!" : "Low health!";
-                game_log("⚠️ Panic triggered:", reason);
+                let reason = !warrior_online
+                    ? "Ulric is offline!"
+                    : !warrior_alive
+                        ? "Ulric is dead!"
+                        : "Low health!";
+
+                game_log(`⚠️ Panic triggered: ${reason}`);
 
                 // Ensure jacko is equipped
                 const jacko_slot = locate_item(PANIC_WEAPON);
