@@ -334,7 +334,7 @@ async function boss_loop() {
         }
 
         // Engage boss until dead
-        while (parent.S[boss_name].live) {
+        while (boss_active && parent.S[boss_name] && parent.S[boss_name].live) {
             let delay = 1;
 
             const boss = Object.values(parent.entities).find(e =>
@@ -390,12 +390,6 @@ async function boss_loop() {
                 }
             } catch (e) {
                 console.error(e);
-            }
-
-            // If boss dies during fight, break out
-            if (!(parent.S[boss_name] && parent.S[boss_name].live)) {
-                boss_active = false;
-                break;
             }
 
             await delay(delay);
