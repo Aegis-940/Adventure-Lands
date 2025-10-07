@@ -200,7 +200,7 @@ async function simple_grace_upgrade() {
 // AUTO UPGRADE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function auto_upgrade() {
+async function schedule_upgrade() {
     // === BANKING ===
     // Move to bank NPC (adjust coords as needed)
     await smart_move(BANK_LOCATION);
