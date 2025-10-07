@@ -259,32 +259,12 @@ async function schedule_upgrade() {
         }
 
         const to_withdraw = Math.min(items.length, free_slots);
-        if (to_withdraw >= 1) {
-            game_log(`[Bank] Withdrawing ${to_withdraw} ${itemName}(s) for upgrade (below level ${maxLevel}).`);
-            const levelCounts = {};
-            for (const { level } of items) {
-				levelCounts[level] = (levelCounts[level] || 0) + 1;
-			}
-			let withdrawn = 0;
-			for (const levelStr of Object.keys(levelCounts).sort((a, b) => a - b)) {
-				if (timed_out()) break;
-				const level = Number(levelStr);
-				const count = Math.min(levelCounts[level], to_withdraw - withdrawn);
-				if (count > 0) {
-					game_log(`[DEBUG] Attempting to withdraw ${count} ${itemName}(s) at level ${level} for upgrade.`);
-					await withdraw_item(itemName, level, count);
-					withdrawn += count;
-					let current_count = count_inventory_items();
-					if (current_count !== last_inventory_count) {
-						last_inventory_count = current_count;
-						last_change_time = Date.now();
-					}
-					if (withdrawn >= to_withdraw) break;
-				}
-			}
-            any_withdrawn = true;
-            free_slots -= to_withdraw;
-        }
+		if (to_withdraw >= 1) {
+			game_log(`[Bank] Withdrawing ${to_withdraw} ${itemName}(s) for upgrade (any level below ${maxLevel}).`);
+			await withdraw_item(itemName, null, to_withdraw);
+			any_withdrawn = true;
+			free_slots -= to_withdraw;
+		}
     }
 
     // --- COMBINE: Withdraw by item+level, only below max_level, in multiples of 3 ---
