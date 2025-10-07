@@ -337,26 +337,6 @@ async function schedule_upgrade() {
 		game_log("Items withdrawn from bank. Starting auto upgrade/compound process...");
 		await smart_move(HOME);
 		await run_auto_upgrade();
-
-		// Wait until inventory count hasn't changed for 10 seconds, or 30 seconds max
-		let last_count = character.items.filter(it => !!it).length;
-		let last_change = Date.now();
-		const max_wait = 30000;
-		const stable_wait = 10000;
-		let start = Date.now();
-
-		while (true) {
-			await delay(500);
-			let current_count = character.items.filter(it => !!it).length;
-			if (current_count !== last_count) {
-				last_count = current_count;
-				last_change = Date.now();
-			}
-			if ((Date.now() - last_change) > stable_wait) break; // Stable for 10s
-			if ((Date.now() - start) > max_wait) break; // Max 30s wait
-		}
-
-		await sell_and_bank();
 	} else {
         game_log("No items withdrawn from bank. Nothing to upgrade or compound.");
 		await smart_move(HOME);
