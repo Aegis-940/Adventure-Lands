@@ -16,28 +16,28 @@ function start_attack_loop() {
     attack_enabled = true;
     clearTimeout(attack_timer_id); // Always clear any previous timer
     attack_loop();
-    save_persistent_state();
+    // save_persistent_state();
     game_log("▶️ Attack loop started");
 }
 
 function stop_attack_loop() {
     attack_enabled = false;
     clearTimeout(attack_timer_id);
-    save_persistent_state();
+    // save_persistent_state();
     game_log("⏹ Attack loop stopped");
 }
 
 function start_move_loop() {
     move_enabled = true;
     move_loop();
-    save_persistent_state();
+    // save_persistent_state();
     game_log("▶️ Move loop started");
 }
 
 function stop_move_loop() {
     move_enabled = false;
     clearTimeout(move_timer_id);
-    save_persistent_state();
+    // save_persistent_state();
     game_log("⏹ Move loop stopped");
 }
 
