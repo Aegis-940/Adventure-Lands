@@ -823,41 +823,43 @@ async function panic_loop() {
         const low_health = character.hp < (character.max_hp / 3);
         const high_health = character.hp >= ((2 * character.max_hp) / 3);
 
-        if (!warrior_alive || !warrior_online || !warrior_near || low_health) {
+        // PANIC CONDITION
+        if (!warrior_online || !warrior_alive || !warrior_near || low_health && panic_enabled) {
             stop_attack_loop();
-            let reason = !warrior_online ? "Warrior is offline!" : !warrior_alive ? "Warrior is dead!" : !warrior_near
-                        ? "Warrior is too far!" : "Low health!";
+            let reason = !myras_online ? "Myras is offline!" : !myras_alive ? "Myras is dead!" : !myras_near
+                        ? "Myras is too far!" : "Low health!";
             game_log("⚠️ Panic triggered:", reason);
 
+            // Ensure jacko is equipped
             const jacko_slot = locate_item(PANIC_WEAPON);
             if (character.slots.orb?.name !== PANIC_WEAPON && jacko_slot !== -1) {
                 await equip(jacko_slot);
                 await delay(500);
-            } else if (jacko_slot === -1) {
-                game_log("⚠️ Panic weapon not found in inventory!");
             }
 
+            // Recast scare if possible
             if (can_use("scare")) {
                 await use_skill("scare");
             }
 
+            // Wait 5.1 seconds before rechecking panic state
             await delay(PANIC_INTERVAL);
-
         } else if (high_health && warrior_alive && warrior_online && warrior_near && panic_enabled) {
-            game_log("✅ Panic over — resuming normal operations.");
-
+            // SAFE CONDITION
+            // Ensure orbg is equipped
             const orbg_slot = locate_item(NORMAL_WEAPON);
-
             if (character.slots.orb?.name !== NORMAL_WEAPON && orbg_slot !== -1) {
                 await equip(orbg_slot);
                 await delay(500);
             }
 
-            start_attack_loop();
+            // Ensure attack loop is running
+            if (!attack_enabled) {
+                game_log("✅ Panic over — resuming normal operations.");
+                start_attack_loop();
+            }
 
-            await delay(CHECK_INTERVAL);
-        } else {
-            // Not in panic, not fully safe: wait to avoid tight loop
+            // Wait 500ms before rechecking
             await delay(CHECK_INTERVAL);
         }
     }
