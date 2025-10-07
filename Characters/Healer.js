@@ -25,6 +25,8 @@ potions_loop();
 
 loot_loop();
 
+start_attack_loop();
+
 start_skill_loop()
 
 start_panic_loop();
