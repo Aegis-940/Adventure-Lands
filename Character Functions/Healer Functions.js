@@ -807,9 +807,9 @@ async function panic_loop() {
 
     try {
         while (panic_enabled) {
-            const warrior_online = parent.party_list.includes(WARRIOR_NAME);
             const warrior_entity = parent.entities[WARRIOR_NAME];
-            const warrior_alive = warrior_online && !warrior_entity.rip;
+            const warrior_online = parent.party_list.includes(WARRIOR_NAME);
+            const warrior_alive = warrior_online && parent.party[WARRIOR_NAME] && !parent.party[WARRIOR_NAME].rip;
             const warrior_near = warrior_entity && parent.distance(character, warrior_entity) <= 400;
             const low_health = character.hp < (character.max_hp / 3);
             const high_health = character.hp >= ((2 * character.max_hp) / 3);
@@ -817,9 +817,10 @@ async function panic_loop() {
             // PANIC CONDITION
             if (!warrior_online || !warrior_alive || low_health) {
                 stop_attack_loop();
-                let reason = !warrior_online ? "Ulric is offline!"
+                let reason = low_health ? "Low health!"
+                    : !warrior_online ? "Ulric is offline!"
                     : !warrior_alive ? "Ulric is dead!"
-                    : "Low health!";
+                    : "Unknown panic reason!";
 
                 game_log(`⚠️ Panic triggered: ${reason}`);
 
