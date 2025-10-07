@@ -750,9 +750,9 @@ async function panic_loop() {
 
     try {
         while (panic_enabled) {
+            const myras_online = parent.party_list.includes(PRIEST_NAME);
             const myras_entity = parent.entities[PRIEST_NAME];
-            const myras_online = parent.party_list.includes(PRIEST_NAME) && myras_entity;
-            const myras_alive = myras_online && !myras_entity.rip;
+            const myras_alive = myras_entity && !myras_entity.rip;
             const myras_near = myras_online && parent.distance(character, myras_entity) <= 500;
             const low_health = character.hp < (character.max_hp / 3);
             const high_health = character.hp >= ((2 * character.max_hp) / 3);
