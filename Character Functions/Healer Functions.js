@@ -412,7 +412,7 @@ async function skill_loop() {
 	const eventMobs = [];
 
     let PRIEST_SKILL_TOGGLES = {
-        curse: true,
+        curse: false,
         absorb: true,
         party_heal: true,
         dark_blessing: false,
