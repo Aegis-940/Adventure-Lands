@@ -369,7 +369,13 @@ async function boss_loop() {
             try {
                 change_target(boss);
 
-                if (boss.target && boss.target !== character.name) {
+                if (
+                    boss.target &&
+                    boss.target !== character.name &&
+                    boss.target !== "Myras" &&
+                    boss.target !== "Ulric" &&
+                    boss.target !== "Riva"
+                ) {
                     if (!is_on_cooldown("huntersmark")) {
                         await use_skill("huntersmark", boss);
                     }

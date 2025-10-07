@@ -247,7 +247,13 @@ async function boss_loop() {
             try {
                 change_target(boss);
 
-                if (boss.target && boss.target !== character.name) {
+                if (
+                    boss.target &&
+                    boss.target !== character.name &&
+                    boss.target !== "Myras" &&
+                    boss.target !== "Ulric" &&
+                    boss.target !== "Riva"
+                ) {
                     if (!is_on_cooldown("attack")) {
                         await attack(boss);
                         wait_time = ms_to_next_skill("attack");
@@ -256,17 +262,9 @@ async function boss_loop() {
             } catch (e) {
                     console.error(e);
             }
-                
-            if (typeof wait_time !== "number" || isNaN(wait_time) || wait_time < 0) {
-                game_log("Invalid delay value:", wait_time, "— defaulting to 10ms");
-                wait_time = 10;
-            }
-            try {
-                await delay(wait_time);
-            } catch (e) {
-                game_log("delay() failed, falling back to setTimeout:", e);
-                await new Promise(resolve => setTimeout(resolve, typeof wait_time === "number" && wait_time > 0 ? wait_time : 10));
-            }
+            
+            await delay(wait_time);
+
         }
 
         // Move back to grind home, using scare if targeted during movement
