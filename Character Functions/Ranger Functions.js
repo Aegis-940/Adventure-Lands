@@ -410,13 +410,13 @@ async function boss_loop() {
             
             if (typeof wait_time !== "number" || isNaN(wait_time) || wait_time < 0) {
                 game_log("Invalid delay value:", wait_time, "— defaulting to 10ms");
-                delay = 10;
+                wait_time = 10;
             }
             try {
                 await delay(wait_time);
             } catch (e) {
                 game_log("delay() failed, falling back to setTimeout:", e);
-                await new Promise(resolve => setTimeout(resolve, typeof delay === "number" && delay > 0 ? delay : 10));
+                await new Promise(resolve => setTimeout(resolve, typeof wait_time === "number" && wait_time > 0 ? wait_time : 10));
             }
         }
 
