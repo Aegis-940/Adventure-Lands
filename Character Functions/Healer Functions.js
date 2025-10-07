@@ -260,7 +260,7 @@ async function boss_loop() {
 
             // Maintain distance: character.range - 5, with a tolerance of ±5
             const dist = parent.distance(character, boss);
-            const desired_range = character.range - 5;
+            const desired_range = 100;
             const tolerance = 5;
             if (
                 (dist > desired_range + tolerance || dist < desired_range - tolerance) &&
