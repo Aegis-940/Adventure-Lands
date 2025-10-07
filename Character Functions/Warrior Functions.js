@@ -801,6 +801,7 @@ async function panic_loop() {
         }
     } finally {
         panic_loop_running = false;
+        start_attack_loop();
         game_log("⏹ Panic loop exited.");
     }
 }
