@@ -396,7 +396,7 @@ async function boss_loop() {
                 wait_time = 10;
             }
             try {
-                await delay(wait_time);
+                await delay(wait_time/2);
             } catch (e) {
                 game_log("delay() failed, falling back to setTimeout:", e);
                 await new Promise(resolve => setTimeout(resolve, typeof wait_time === "number" && wait_time > 0 ? wait_time : 10));
