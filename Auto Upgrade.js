@@ -336,7 +336,7 @@ async function schedule_upgrade() {
 		await smart_move(HOME);
         run_auto_upgrade();
 		timeout = 20000;
-		if (timed_out()) await smart_move(HOME);
+		if (timed_out()) await sell_and_bank();
     } else {
         game_log("No items withdrawn from bank. Nothing to upgrade or compound.");
 		await smart_move(HOME);
