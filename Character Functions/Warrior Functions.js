@@ -755,35 +755,35 @@ function start_attack_loop() {
 function stop_attack_loop() {
     attack_enabled = false;
     clearTimeout(attack_timer_id);
-    save_persistent_state();
+    // save_persistent_state();
     game_log("⏹ Attack loop stopped");
 }
 
 function start_move_loop() {
     move_enabled = true;
     move_loop();
-    save_persistent_state();
+    // save_persistent_state();
     game_log("▶️ Move loop started");
 }
 
 function stop_move_loop() {
     move_enabled = false;
     clearTimeout(move_timer_id);
-    save_persistent_state();
+    // save_persistent_state();
     game_log("⏹ Move loop stopped");
 }
 
 function start_skill_loop() {
     skills_enabled = true;
     skill_loop();
-    save_persistent_state();
+    // save_persistent_state();
     game_log("▶️ Skill loop started");
 }
 
 function stop_skill_loop() {
     skills_enabled = false;
     clearTimeout(skill_timer_id);
-    save_persistent_state();
+    // save_persistent_state();
     game_log("⏹ Skill loop stopped");
 }
 
@@ -791,43 +791,43 @@ function stop_skill_loop() {
 // 3) PERSISTENT STATE HANDLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function save_persistent_state() {
-    try {
-        set("warrior_attack_enabled", attack_enabled);
-        set("warrior_move_enabled",  move_enabled);
-        set("warrior_skill_enabled", skills_enabled);
-    } catch (e) {
-        console.error("Error saving persistent state:", e);
-    }
-}
+// function save_persistent_state() {
+//     try {
+//         set("warrior_attack_enabled", attack_enabled);
+//         set("warrior_move_enabled",  move_enabled);
+//         set("warrior_skill_enabled", skills_enabled);
+//     } catch (e) {
+//         console.error("Error saving persistent state:", e);
+//     }
+// }
 
-function init_persistent_state() {
-    try {
-        const atk = get("warrior_attack_enabled");
-        if (atk !== undefined) attack_enabled = atk;
+// function init_persistent_state() {
+//     try {
+//         const atk = get("warrior_attack_enabled");
+//         if (atk !== undefined) attack_enabled = atk;
 
-        const mv = get("warrior_move_enabled");
-        if (mv !== undefined) move_enabled = mv;
+//         const mv = get("warrior_move_enabled");
+//         if (mv !== undefined) move_enabled = mv;
 
-        const sk = get("warrior_skill_enabled");
-        if (sk !== undefined) skills_enabled = sk;
+//         const sk = get("warrior_skill_enabled");
+//         if (sk !== undefined) skills_enabled = sk;
 
-        // Reflect loaded flags in the loop state
-        if (attack_enabled) start_attack_loop();
-        else               stop_attack_loop();
+//         // Reflect loaded flags in the loop state
+//         if (attack_enabled) start_attack_loop();
+//         else               stop_attack_loop();
 
-        if (move_enabled)   start_move_loop();
-        else               stop_move_loop();
+//         if (move_enabled)   start_move_loop();
+//         else               stop_move_loop();
 
-        if (skills_enabled) start_skill_loop();
-        else               stop_skill_loop();
-    } catch (e) {
-        console.error("Error loading persistent state:", e);
-    }
-}
+//         if (skills_enabled) start_skill_loop();
+//         else               stop_skill_loop();
+//     } catch (e) {
+//         console.error("Error loading persistent state:", e);
+//     }
+// }
 
-// Save state on script unload
-window.addEventListener("beforeunload", save_persistent_state);
+// // Save state on script unload
+// window.addEventListener("beforeunload", save_persistent_state);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 4) PERSISTENT STATE
