@@ -233,6 +233,7 @@ const GRIND_WEAPON = "hbow";
 
 async function boss_loop() {
     let boss_active = true;
+    let delay = 50;
 
     // Find all alive bosses and pick the one with the lowest HP (fallback: oldest spawn)
     let alive_bosses = BOSSES
@@ -383,7 +384,7 @@ async function boss_loop() {
                 change_target(boss);
                 game_log("Check 3a");
 
-                if (!boss.target || boss.target !== character.name) {
+                if (boss.target !== character.name) {
                     game_log("Check 3b");
                     if (!is_on_cooldown("huntersmark")) {
                         game_log("Check 3c");
