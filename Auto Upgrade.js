@@ -152,7 +152,7 @@ async function run_auto_upgrade() {
 	(async function loop() {
 		if (current_level > max_upgrade_level && current_level > max_compound_level) {
 			auto_upgrade = false;
-			console.log("✅ All upgrades/compounds finished.");
+			game_log("✅ All upgrades/compounds finished.");
 			return;
 		}
 
@@ -335,8 +335,6 @@ async function schedule_upgrade() {
         game_log("Items withdrawn from bank. Starting auto upgrade/compound process...");
 		await smart_move(HOME);
         run_auto_upgrade();
-		timeout = 20000;
-		if (timed_out()) await sell_and_bank();
     } else {
         game_log("No items withdrawn from bank. Nothing to upgrade or compound.");
 		await smart_move(HOME);
