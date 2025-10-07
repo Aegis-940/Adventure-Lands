@@ -161,7 +161,7 @@ async function attack_loop() {
     // Boss detection logic
     const boss_alive = BOSSES.some(name => parent.S[name].live);
     if (boss_alive) {
-        // stop_attack_loop();
+        stop_attack_loop();
         boss_loop();
         return;
     }
@@ -233,8 +233,6 @@ const GRIND_HOME = { map: "main", x: -1193, y: -80 };
 const GRIND_WEAPON = "hbow";
 
 async function boss_loop() {
-
-    stop_attack_loop();
 
     let boss_active = true;
     let delay = 50;
