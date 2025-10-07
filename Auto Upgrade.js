@@ -247,12 +247,15 @@ async function schedule_upgrade() {
             for (const item of bank_data[pack]) {
                 if (
                     item &&
-                    item.name === itemName &&
-                    (typeof item.level !== "number" || item.level < maxLevel)
+                    item.name === itemName
                 ) {
-                    let qty = item.q || 1;
-                    for (let i = 0; i < qty; i++) {
-                        items.push({ level: item.level || 0 });
+                    // Treat undefined level as 0
+                    const lvl = typeof item.level === "number" ? item.level : 0;
+                    if (lvl < maxLevel) {
+                        let qty = item.q || 1;
+                        for (let i = 0; i < qty; i++) {
+                            items.push({ level: lvl });
+                        }
                     }
                 }
             }
