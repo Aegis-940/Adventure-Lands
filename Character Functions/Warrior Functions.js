@@ -263,7 +263,7 @@ async function boss_loop() {
                     console.error(e);
             }
             
-            await delay(wait_time);
+            boss_attack_timer_id = setTimeout(boss_loop, wait_time);
 
         }
 
