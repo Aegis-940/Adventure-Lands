@@ -783,6 +783,10 @@ let attack_enabled   = true;
 let attack_timer_id  = null;
 let move_enabled     = true;
 let move_timer_id    = null;
+let skill_enabled     = true;
+let skill_timer_id    = null;
+let panic_enabled     = true;
+let panic_timer_id    = null;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS (with persistent state saving)
