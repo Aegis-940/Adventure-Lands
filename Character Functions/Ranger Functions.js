@@ -381,25 +381,31 @@ async function boss_loop() {
 
             try {
                 change_target(boss);
+                game_log("Check 3a");
 
-                game_log("Check 3");
-
-                // Attack if boss is not targeting you (or has no target)
                 if (!boss.target || boss.target !== character.name) {
-                    if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
-                    if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
-
+                    game_log("Check 3b");
+                    if (!is_on_cooldown("huntersmark")) {
+                        game_log("Check 3c");
+                        await use_skill("huntersmark", boss);
+                    }
+                    if (!is_on_cooldown("supershot")) {
+                        game_log("Check 3d");
+                        await use_skill("supershot", boss);
+                    }
                     if (!is_on_cooldown("attack")) {
+                        game_log("Check 3e");
                         await attack(boss);
                         delay = ms_to_next_skill("attack");
                     }
                 }
+                game_log("Check 3f");
             } catch (e) {
                 console.error(e);
             }
 
+            game_log("Check 3g");
             await delay(delay);
-
             game_log("Check 4");
         }
 
