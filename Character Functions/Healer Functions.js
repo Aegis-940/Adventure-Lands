@@ -239,6 +239,8 @@ async function boss_loop() {
         // Engage boss until dead
         while (boss_active && parent.S[boss_name] && parent.S[boss_name].live) {
 
+            game_log("Check 1");
+
             const boss = Object.values(parent.entities).find(e =>
                 e.type === "monster" &&
                 e.mtype === boss_name &&
