@@ -781,6 +781,9 @@ async function panic_loop() {
 
             // Wait 500ms before rechecking
             await delay(CHECK_INTERVAL);
+        } else {
+            // Neither panic nor safe: wait a bit before next check
+            await delay(200);
         }
     }
 }
