@@ -782,7 +782,6 @@ function start_panic_loop() {
 
 function stop_panic_loop() {
     panic_enabled = false;
-    clearTimeout(panic_timer_id);
     // save_persistent_state();
     game_log("⏹ Panic loop stopped");
 }
