@@ -348,8 +348,14 @@ async function boss_loop() {
 
             if (!boss) {
                 await delay(100);
-                await smart_move(boss_spawn)
+                if (parent.S[boss_name].live) {
+                    await smart_move(boss_spawn);
+                }
                 continue;
+            }
+
+            if (!parent.S[boss_name].live){
+                break;
             }
 
             // Maintain distance: character.range - 5, with a tolerance of ±5

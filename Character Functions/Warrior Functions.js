@@ -216,7 +216,6 @@ async function boss_loop() {
 
         // Engage boss until dead
         while (boss_active && parent.S[boss_name] && parent.S[boss_name].live) {
-            let delay = 1;
 
             const boss = Object.values(parent.entities).find(e =>
                 e.type === "monster" &&
@@ -225,7 +224,19 @@ async function boss_loop() {
                 e.visible
             );
 
-            if (!boss) break;
+            game_log("Check 1");
+
+            if (!boss) {
+                await delay(100);
+                if (parent.S[boss_name].live) {
+                    await smart_move(boss_spawn);
+                }
+                continue;
+            }
+
+            if (!parent.S[boss_name].live){
+                break;
+            }
 
             // Maintain distance: character.range - 5, with a tolerance of ±5
             const dist = parent.distance(character, boss);
@@ -245,6 +256,8 @@ async function boss_loop() {
                 }
             }
 
+            game_log("Check 2");
+
             // Use scare if aggroed by any monster
             const aggro = Object.values(parent.entities).some(e =>
                 e.type === "monster" && e.target === character.name && !e.dead
@@ -255,26 +268,33 @@ async function boss_loop() {
 
             try {
                 change_target(boss);
+                game_log("Check 3a");
 
-                // Only use skills/attack if boss is targeting something other than self
-                if (boss.target && boss.target !== character.name) {
+                if (boss.target !== character.name) {
 
                     if (!is_on_cooldown("attack")) {
+                        game_log("Check 3b");
                         await attack(boss);
                         delay = ms_to_next_skill("attack");
                     }
                 }
+                game_log("Check 3v");
             } catch (e) {
                 console.error(e);
             }
-
-            // If boss dies during fight, break out
-            if (!(parent.S[boss_name] && parent.S[boss_name].live)) {
-                boss_active = false;
-                break;
+            
+            game_log("Check 3d");
+            if (typeof delay !== "number" || isNaN(delay) || delay < 0) {
+                game_log("Invalid delay value:", delay, "— defaulting to 10ms");
+                delay = 10;
             }
-
-            await delay(delay);
+            try {
+                await delay(delay);
+            } catch (e) {
+                game_log("delay() failed, falling back to setTimeout:", e);
+                await new Promise(resolve => setTimeout(resolve, typeof delay === "number" && delay > 0 ? delay : 10));
+            }
+            game_log("Check 4");
         }
 
         // Move back to grind home, using scare if targeted during movement
