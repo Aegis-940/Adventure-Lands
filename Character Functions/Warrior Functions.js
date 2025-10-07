@@ -115,6 +115,7 @@ const BOSSES = ["mrpumpkin", "mrgreen"];
 const GRIND_HOME = { map: "main", x: 866, y: -172 };
 
 async function boss_loop() {
+
     let boss_active = true;
     let delay = 50;
 
@@ -224,8 +225,6 @@ async function boss_loop() {
                 e.visible
             );
 
-            game_log("Check 1");
-
             if (!boss) {
                 await delay(100);
                 if (parent.S[boss_name].live) {
@@ -256,8 +255,6 @@ async function boss_loop() {
                 }
             }
 
-            game_log("Check 2");
-
             // Use scare if aggroed by any monster
             const aggro = Object.values(parent.entities).some(e =>
                 e.type === "monster" && e.target === character.name && !e.dead
@@ -268,22 +265,17 @@ async function boss_loop() {
 
             try {
                 change_target(boss);
-                game_log("Check 3a");
 
                 if (boss.target !== character.name) {
-
                     if (!is_on_cooldown("attack")) {
-                        game_log("Check 3b");
                         await attack(boss);
                         delay = ms_to_next_skill("attack");
                     }
                 }
-                game_log("Check 3v");
             } catch (e) {
                 console.error(e);
             }
             
-            game_log("Check 3d");
             if (typeof delay !== "number" || isNaN(delay) || delay < 0) {
                 game_log("Invalid delay value:", delay, "— defaulting to 10ms");
                 delay = 10;
