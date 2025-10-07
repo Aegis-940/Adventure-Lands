@@ -219,28 +219,10 @@ async function schedule_upgrade() {
         for (const pack in bank_data) {
             if (!Array.isArray(bank_data[pack])) continue;
             for (const item of bank_data[pack]) {
-                if (item && item.name === itemName) count++;
+                if (item && item.name === itemName) count += item.q || 1;
             }
         }
         return count;
-    }
-
-    // Helper to withdraw items from live bank (not remote data)
-    async function withdraw_item(itemName, amount) {
-        let withdrawn = 0;
-        for (const pack in character.bank) {
-            if (!Array.isArray(character.bank[pack])) continue;
-            for (let i = 0; i < character.bank[pack].length; i++) {
-                const item = character.bank[pack][i];
-                if (item && item.name === itemName) {
-                    await withdraw(pack, i);
-                    withdrawn++;
-                    amount--;
-                    if (amount <= 0) return withdrawn;
-                }
-            }
-        }
-        return withdrawn;
     }
 
     let any_withdrawn = false;
@@ -250,8 +232,8 @@ async function schedule_upgrade() {
         const count = count_in_bank(itemName);
         if (count >= 1) {
             game_log(`[Bank] Withdrawing ${count} ${itemName}(s) for upgrade.`);
-            const withdrawn = await withdraw_item(itemName, count);
-            if (withdrawn > 0) any_withdrawn = true;
+            await withdraw_item(itemName, null, count);
+            any_withdrawn = true;
         }
     }
 
@@ -261,8 +243,8 @@ async function schedule_upgrade() {
         const to_withdraw = Math.floor(count / 3) * 3;
         if (to_withdraw >= 3) {
             game_log(`[Bank] Withdrawing ${to_withdraw} ${itemName}(s) for compounding.`);
-            const withdrawn = await withdraw_item(itemName, to_withdraw);
-            if (withdrawn > 0) any_withdrawn = true;
+            await withdraw_item(itemName, null, to_withdraw);
+            any_withdrawn = true;
         }
     }
 
