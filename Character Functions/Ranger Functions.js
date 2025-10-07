@@ -405,7 +405,10 @@ async function boss_loop() {
             }
             
             game_log("Check 3g");
-            game_log("Delaying for", delay, "ms");
+            if (typeof delay !== "number" || isNaN(delay) || delay < 0) {
+                game_log("Invalid delay value:", delay, "— defaulting to 10ms");
+                delay = 10;
+            }
             await delay(delay);
             game_log("Check 4");
         }
