@@ -824,10 +824,9 @@ async function panic_loop() {
         const high_health = character.hp >= ((2 * character.max_hp) / 3);
 
         // PANIC CONDITION
-        if (!warrior_online || !warrior_alive || !warrior_near || low_health && panic_enabled) {
+        if (!warrior_online || !warrior_alive || low_health && panic_enabled) {
             stop_attack_loop();
-            let reason = !warrior_online ? "Ulric is offline!" : !warrior_alive ? "Ulric is dead!" : !warrior_near
-                        ? "Ulric is too far!" : "Low health!";
+            let reason = !warrior_online ? "Ulric is offline!" : !warrior_alive ? "Ulric is dead!" : "Low health!";
             game_log("⚠️ Panic triggered:", reason);
 
             // Ensure jacko is equipped
@@ -844,7 +843,7 @@ async function panic_loop() {
 
             // Wait 5.1 seconds before rechecking panic state
             await delay(PANIC_INTERVAL);
-        } else if (high_health && warrior_alive && warrior_online && warrior_near && panic_enabled) {
+        } else if (high_health && warrior_alive && warrior_online && panic_enabled) {
             // SAFE CONDITION
             // Ensure orbg is equipped
             const orbg_slot = locate_item(NORMAL_WEAPON);
