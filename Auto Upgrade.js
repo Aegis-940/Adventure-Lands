@@ -213,38 +213,59 @@ async function schedule_upgrade() {
         return;
     }
 
-    // Helper to count items in bank data
-    function count_in_bank(itemName) {
+    // Helper to count items in bank data, only those below max_level
+    function count_in_bank(itemName, maxLevel) {
         let count = 0;
         for (const pack in bank_data) {
             if (!Array.isArray(bank_data[pack])) continue;
             for (const item of bank_data[pack]) {
-                if (item && item.name === itemName) count += item.q || 1;
+                if (
+                    item &&
+                    item.name === itemName &&
+                    (typeof item.level !== "number" || item.level < maxLevel)
+                ) {
+                    count += item.q || 1;
+                }
             }
         }
         return count;
     }
 
-    let any_withdrawn = false;
+    // Helper to count empty inventory slots
+    function count_empty_inventory() {
+        return character.items.filter(it => !it).length;
+    }
 
-    // Upgrade items: withdraw in multiples of 1
+    let any_withdrawn = false;
+    let free_slots = count_empty_inventory();
+
+    // Upgrade items: withdraw in multiples of 1, only below max_level
     for (const itemName in upgradeProfile) {
-        const count = count_in_bank(itemName);
-        if (count >= 1) {
-            game_log(`[Bank] Withdrawing ${count} ${itemName}(s) for upgrade.`);
-            await withdraw_item(itemName, null, count);
+        if (free_slots <= 0) break;
+        const maxLevel = upgradeProfile[itemName].max_level;
+        const count = count_in_bank(itemName, maxLevel);
+        const to_withdraw = Math.min(count, free_slots);
+        if (to_withdraw >= 1) {
+            game_log(`[Bank] Withdrawing ${to_withdraw} ${itemName}(s) for upgrade (below level ${maxLevel}).`);
+            await withdraw_item(itemName, null, to_withdraw);
             any_withdrawn = true;
+            free_slots -= to_withdraw;
         }
     }
 
-    // Combine items: withdraw in multiples of 3
+    // Combine items: withdraw in multiples of 3, only below max_level
     for (const itemName in combineProfile) {
-        const count = count_in_bank(itemName);
-        const to_withdraw = Math.floor(count / 3) * 3;
+        if (free_slots <= 0) break;
+        const maxLevel = combineProfile[itemName].max_level;
+        const count = count_in_bank(itemName, maxLevel);
+        let to_withdraw = Math.floor(count / 3) * 3;
+        // Don't withdraw more than available inventory slots
+        to_withdraw = Math.min(to_withdraw, Math.floor(free_slots / 3) * 3);
         if (to_withdraw >= 3) {
-            game_log(`[Bank] Withdrawing ${to_withdraw} ${itemName}(s) for compounding.`);
+            game_log(`[Bank] Withdrawing ${to_withdraw} ${itemName}(s) for compounding (below level ${maxLevel}).`);
             await withdraw_item(itemName, null, to_withdraw);
             any_withdrawn = true;
+            free_slots -= to_withdraw;
         }
     }
 
