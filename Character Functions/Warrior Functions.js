@@ -76,6 +76,7 @@ async function attack_loop() {
     if (boss_alive) {
         stop_attack_loop();
         stop_panic_loop();
+        stop_skill_loop();
         boss_loop();
         return;
     }
@@ -293,8 +294,9 @@ async function boss_loop() {
     }
 
     // Restart attack loop after boss loop finishes
-    start_attack_loop();
     start_panic_loop();
+    start_skill_loop();
+    start_attack_loop();
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

@@ -349,10 +349,10 @@ async function boss_loop() {
     }
 
     // Restart attack loop after boss loop finishes
-    start_attack_loop();
-    start_skill_loop();
-    start_circle_move();
     start_panic_loop();
+    start_skill_loop();
+    start_attack_loop();
+    start_circle_move();
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
