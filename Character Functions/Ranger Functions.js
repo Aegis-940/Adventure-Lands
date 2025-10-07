@@ -378,7 +378,6 @@ async function boss_loop() {
                 if (
                     boss.target &&
                     boss.target !== character.name &&
-                    boss.target !== "Myras" &&
                     boss.target !== "Ulric" &&
                     boss.target !== "Riva"
                 ) {

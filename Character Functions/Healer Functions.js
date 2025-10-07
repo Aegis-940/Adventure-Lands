@@ -314,7 +314,7 @@ async function boss_loop() {
                         boss.target !== "Ulric" &&
                         boss.target !== "Riva"
                     ) {
-                        await attack(target);
+                        await attack(boss);
                         wait_time = ms_to_next_skill('attack');
                     }
                 }
