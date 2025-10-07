@@ -869,6 +869,8 @@ async function panic_loop() {
                 if (!attack_enabled) {
                     game_log("✅ Panic over — resuming normal operations.");
                     start_attack_loop();
+                    panic_loop_running = false;
+                    return;
                 }
 
                 await delay(CHECK_INTERVAL);
@@ -878,8 +880,13 @@ async function panic_loop() {
         }
     } finally {
         panic_loop_running = false;
-        start_attack_loop();
-        game_log("⏹ Panic loop exited.");
+        if (!suppress_attack_restart) {
+            start_attack_loop();
+            game_log("⏹ Panic loop exited.");
+        } else {
+            game_log("⏹ Panic loop exited (attack restart suppressed).");
+            suppress_attack_restart = false; // Reset for next time
+        }
     }
 }
 
