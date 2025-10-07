@@ -74,6 +74,7 @@ async function attack_loop() {
     // Boss detection logic
     const boss_alive = BOSSES.some(name => parent.S[name] && parent.S[name].live);
     if (boss_alive) {
+        game_log("Check 1: Boss detected, switching to boss loop");
         stop_attack_loop();
         stop_panic_loop();
         boss_loop();
