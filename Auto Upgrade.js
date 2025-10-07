@@ -202,28 +202,38 @@ async function simple_grace_upgrade() {
 
 async function schedule_upgrade() {
     // === BANKING ===
-    // Move to bank NPC (adjust coords as needed)
     await smart_move(BANK_LOCATION);
     await delay(1000);
 
-    // Try live bank first, then fallback to saved bank data
     let bank_data = character.bank || load_bank_from_local_storage();
     if (!bank_data) {
         game_log("No bank data available. Please open the bank or save bank data first.");
         return;
     }
 
-    // Helper to count empty inventory slots
     function count_empty_inventory() {
         return character.items.filter(it => !it).length;
+    }
+
+    function count_inventory_items() {
+        return character.items.filter(it => !!it).length;
     }
 
     let any_withdrawn = false;
     let free_slots = count_empty_inventory();
 
+    // Track inventory for timeout logic
+    let last_inventory_count = count_inventory_items();
+    let last_change_time = Date.now();
+
+    // Helper to check for timeout
+    function timed_out() {
+        return (Date.now() - last_change_time) > 5000;
+    }
+
     // --- UPGRADE: Withdraw by item, only below max_level ---
     for (const itemName in upgradeProfile) {
-        if (free_slots <= 0) break;
+        if (free_slots <= 0 || timed_out()) break;
         const maxLevel = upgradeProfile[itemName].max_level;
 
         // Gather all items of this name and below maxLevel
@@ -236,7 +246,6 @@ async function schedule_upgrade() {
                     item.name === itemName &&
                     (typeof item.level !== "number" || item.level < maxLevel)
                 ) {
-                    // If stackable, add each as a separate item for withdrawal
                     let qty = item.q || 1;
                     for (let i = 0; i < qty; i++) {
                         items.push({ level: item.level || 0 });
@@ -245,22 +254,27 @@ async function schedule_upgrade() {
             }
         }
 
-        // Withdraw as many as possible up to free_slots
         const to_withdraw = Math.min(items.length, free_slots);
         if (to_withdraw >= 1) {
             game_log(`[Bank] Withdrawing ${to_withdraw} ${itemName}(s) for upgrade (below level ${maxLevel}).`);
-            // Withdraw by level, lowest first
             const levelCounts = {};
             for (const { level } of items) {
                 levelCounts[level] = (levelCounts[level] || 0) + 1;
             }
             let withdrawn = 0;
             for (const levelStr of Object.keys(levelCounts).sort((a, b) => a - b)) {
+                if (timed_out()) break;
                 const level = Number(levelStr);
                 const count = Math.min(levelCounts[level], to_withdraw - withdrawn);
                 if (count > 0) {
                     await withdraw_item(itemName, level, count);
                     withdrawn += count;
+                    // Check if inventory changed
+                    let current_count = count_inventory_items();
+                    if (current_count !== last_inventory_count) {
+                        last_inventory_count = current_count;
+                        last_change_time = Date.now();
+                    }
                     if (withdrawn >= to_withdraw) break;
                 }
             }
@@ -271,10 +285,9 @@ async function schedule_upgrade() {
 
     // --- COMBINE: Withdraw by item+level, only below max_level, in multiples of 3 ---
     for (const itemName in combineProfile) {
-        if (free_slots <= 0) break;
+        if (free_slots <= 0 || timed_out()) break;
         const maxLevel = combineProfile[itemName].max_level;
 
-        // Gather all items of this name and below maxLevel, grouped by level
         let levelMap = {};
         for (const pack in bank_data) {
             if (!Array.isArray(bank_data[pack])) continue;
@@ -291,9 +304,8 @@ async function schedule_upgrade() {
             }
         }
 
-        // For each level, withdraw in multiples of 3, up to available inventory space
         for (const levelStr of Object.keys(levelMap).sort((a, b) => a - b)) {
-            if (free_slots < 3) break;
+            if (free_slots < 3 || timed_out()) break;
             const level = Number(levelStr);
             let count = levelMap[level];
             let to_withdraw = Math.floor(count / 3) * 3;
@@ -301,13 +313,22 @@ async function schedule_upgrade() {
             if (to_withdraw >= 3) {
                 game_log(`[Bank] Withdrawing ${to_withdraw} ${itemName}(s) at level ${level} for compounding (below level ${maxLevel}).`);
                 await withdraw_item(itemName, level, to_withdraw);
+                // Check if inventory changed
+                let current_count = count_inventory_items();
+                if (current_count !== last_inventory_count) {
+                    last_inventory_count = current_count;
+                    last_change_time = Date.now();
+                }
                 any_withdrawn = true;
                 free_slots -= to_withdraw;
             }
         }
     }
 
-    // If any items were withdrawn, start the upgrade/compound process
+    if (timed_out()) {
+        game_log("⏱️ Withdrawal timed out: inventory did not change for 5 seconds.");
+    }
+
     if (any_withdrawn) {
         game_log("Items withdrawn from bank. Starting auto upgrade/compound process...");
         run_auto_upgrade();
