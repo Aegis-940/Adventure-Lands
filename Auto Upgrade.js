@@ -206,17 +206,15 @@ async function schedule_upgrade() {
     await smart_move(BANK_LOCATION);
     await delay(1000);
 
-	const all_keys = Object.keys(localStorage); // or use get() with no args if your environment supports it
-	game_log("Available storage keys: " + JSON.stringify(all_keys));
-	const bank_data = get("bank_data");
-	game_log("Loaded bank_data: " + JSON.stringify(bank_data));
-	if (!bank_data) {
-		game_log("No remote bank data found. Please run Remote_Bank_Viewer.js first.");
-		return;
-	}
+    // Try live bank first, then fallback to saved bank data
+    let bank_data = character.bank || load_bank_from_local_storage();
+    if (!bank_data) {
+        game_log("No bank data available. Please open the bank or save bank data first.");
+        return;
+    }
 
-    // Helper to count items in remote bank data
-    function count_in_remote_bank(itemName) {
+    // Helper to count items in bank data
+    function count_in_bank(itemName) {
         let count = 0;
         for (const pack in bank_data) {
             if (!Array.isArray(bank_data[pack])) continue;
@@ -249,9 +247,9 @@ async function schedule_upgrade() {
 
     // Upgrade items: withdraw in multiples of 1
     for (const itemName in upgradeProfile) {
-        const count = count_in_remote_bank(itemName);
+        const count = count_in_bank(itemName);
         if (count >= 1) {
-            game_log(`[Remote Bank] Withdrawing ${count} ${itemName}(s) for upgrade.`);
+            game_log(`[Bank] Withdrawing ${count} ${itemName}(s) for upgrade.`);
             const withdrawn = await withdraw_item(itemName, count);
             if (withdrawn > 0) any_withdrawn = true;
         }
@@ -259,10 +257,10 @@ async function schedule_upgrade() {
 
     // Combine items: withdraw in multiples of 3
     for (const itemName in combineProfile) {
-        const count = count_in_remote_bank(itemName);
+        const count = count_in_bank(itemName);
         const to_withdraw = Math.floor(count / 3) * 3;
         if (to_withdraw >= 3) {
-            game_log(`[Remote Bank] Withdrawing ${to_withdraw} ${itemName}(s) for compounding.`);
+            game_log(`[Bank] Withdrawing ${to_withdraw} ${itemName}(s) for compounding.`);
             const withdrawn = await withdraw_item(itemName, to_withdraw);
             if (withdrawn > 0) any_withdrawn = true;
         }
