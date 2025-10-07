@@ -99,6 +99,7 @@ async function attack_loop() {
     const boss_alive = BOSSES.some(name => parent.S[name] && parent.S[name].live);
     if (boss_alive) {
         stop_attack_loop();
+        stop_skill_loop();
         boss_loop();
         return;
     }
@@ -345,6 +346,7 @@ async function boss_loop() {
 
     // Restart attack loop after boss loop finishes
     start_attack_loop();
+    start_skill_loop();
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -395,6 +397,8 @@ async function move_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function skill_loop() {
+
+    if (!skill_enabled) return;
 	
 	const X = character.real_x;
 	const Y = character.real_y;
@@ -785,6 +789,20 @@ function stop_move_loop() {
     clearTimeout(move_timer_id);
     // save_persistent_state();
     game_log("⏹ Move loop stopped");
+}
+
+function start_skill_loop() {
+    skill_enabled = true;
+    skill_loop();
+    // save_persistent_state();
+    game_log("▶️ Skill loop started");
+}
+
+function stop_skill_loop() {
+    skill_enabled = false;
+    clearTimeout(skill_timer_id);
+    // save_persistent_state();
+    game_log("⏹ Skill loop stopped");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
