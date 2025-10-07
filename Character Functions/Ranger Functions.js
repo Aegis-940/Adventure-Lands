@@ -155,6 +155,8 @@ async function attack_loop() {
     let ATTACK_TARGETED = false; // Toggle: true = only attack monsters with a target
     const RANGE_THRESHOLD = character.range;
 
+    game_log("Check 1");
+
     let delay = 50;
     const X = character.x, Y = character.y;
 
@@ -165,6 +167,8 @@ async function attack_loop() {
         boss_loop();
         return;
     }
+
+    game_log("Check 2");
 
     const monsters = Object.values(parent.entities).filter(e =>
             e.type === "monster" &&
@@ -196,6 +200,8 @@ async function attack_loop() {
             }
         }
     }
+
+    game_log("Check 3");
 
     // Sort by HP (lowest first)
     inRange.sort((a, b) => a.hp - b.hp);
