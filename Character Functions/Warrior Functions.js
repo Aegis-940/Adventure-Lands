@@ -733,7 +733,7 @@ async function batch_equip(data) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const CHECK_INTERVAL = 500;
-const PANIC_INTERVAL = 5100;
+const PANIC_INTERVAL = 1000;
 const PRIEST_NAME = "Myras";
 const PANIC_WEAPON = "jacko";
 const NORMAL_WEAPON = "orbg";

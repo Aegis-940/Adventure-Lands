@@ -598,12 +598,12 @@ async function handle_absorb(mapsToExclude, eventMobs, eventMaps, blacklist) {
     }
 }
 
-async function handle_party_heal(healThreshold = 0.65, minMp = 2000) {
+async function handle_party_heal(healThreshold = 0.99, minMp = 2000) {
     if (!parent.party || character.mp <= minMp) return;
     if (is_on_cooldown("partyheal")) return;
 
     // Use parent.party to get all party members, even if not on the same map
-    const partyNames = Object.keys(parent.party);
+    const partyNames = ["Myras", "Ulric", "Riva", "Riff"].filter(name => name !== character.name);
     for (const name of partyNames) {
         const member = parent.party[name];
         if (!member || member.rip) continue;
@@ -791,7 +791,7 @@ async function circle_move_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const CHECK_INTERVAL = 500;
-const PANIC_INTERVAL = 5100;
+const PANIC_INTERVAL = 1000;
 const WARRIOR_NAME = "Ulric";
 const PANIC_WEAPON = "jacko";
 const NORMAL_WEAPON = "orbg";
