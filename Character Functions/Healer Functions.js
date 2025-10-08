@@ -883,7 +883,7 @@ async function panic_loop() {
             const low_health = character.hp < (character.max_hp / 3);
             const high_health = character.hp >= ((2 * character.max_hp) / 3);
 
-            if (panicked) {
+            if (panicking) {
                 // Recast scare if possible
                 if (!is_on_cooldown("scare") && can_use("scare")) {
                     game_log("Pakicked! Using Scare!");
