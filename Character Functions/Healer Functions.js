@@ -802,7 +802,6 @@ async function panic_loop() {
         const warrior_entity = parent.entities[WARRIOR_NAME];
         const warrior_online = parent.party_list.includes(WARRIOR_NAME);
         const warrior_alive = warrior_online && parent.party[WARRIOR_NAME] && !parent.party[WARRIOR_NAME].rip;
-        const warrior_near = warrior_entity && parent.distance(character, warrior_entity) <= 400;
         const low_health = character.hp < (character.max_hp / 3);
         const high_health = character.hp >= ((2 * character.max_hp) / 3);
 
@@ -853,8 +852,8 @@ async function panic_loop() {
         panic_loop_running = false;
         if (!boss_active) {
             start_attack_loop();
+            game_log("⏹ Panic loop exited.");
         }
-        game_log("⏹ Panic loop exited.");
     }
 }
 
