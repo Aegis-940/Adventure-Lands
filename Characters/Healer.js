@@ -60,7 +60,7 @@ function universal_loop_controller() {
 			start_skill_loop();
 		}
 
-		if (!attack_enabled && !panic_enabled) {
+		if (!attack_enabled && !panicking) {
 			start_attack_loop();
 		}
 
