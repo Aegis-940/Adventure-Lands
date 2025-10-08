@@ -38,16 +38,16 @@ function universal_loop_controller() {
 			return;
 		}
 
-		// if (!LOOP_STATES.boss && boss_alive && !character.rip) {
-		// 	stop_attack_loop();
-		// 	stop_skill_loop();
-		// 	stop_orbit_loop();
-		// 	stop_panic_loop();
-		// 	start_boss_loop();
-		// 	return;
-		// }
+		if (!LOOP_STATES.boss && boss_alive && !character.rip) {
+			stop_attack_loop();
+			stop_skill_loop();
+			stop_orbit_loop();
+			stop_panic_loop();
+			start_boss_loop();
+			return;
+		}
 
-		if (!character.rip) {
+		if (!boss_alive && !character.rip) {
 
 			if (!LOOP_STATES.potion) { start_potion_loop(); }
 
