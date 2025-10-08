@@ -53,11 +53,11 @@ function universal_loop_controller() {
 
 		if (!boss_alive && !character.rip) {
 
-			if (!LOOP_STATES.panic) { start_panic_loop(); }
+			if (!LOOP_STATES.attack && !panicking) { start_attack_loop(); }
 
 			if (!LOOP_STATES.skill && !panicking) { start_skill_loop(); }
 
-			if (!LOOP_STATES.attack && !panicking) { start_attack_loop(); }
+			if (!LOOP_STATES.panic) { start_panic_loop(); }
 
 			if (!LOOP_STATES.orbit && character.x === GRIND_HOME.x && character.y === GRIND_HOME.y && !panicking) {
 				start_orbit_loop();
