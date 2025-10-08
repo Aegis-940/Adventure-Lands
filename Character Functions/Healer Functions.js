@@ -418,6 +418,8 @@ async function boss_loop() {
 
         // Restart attack loop after boss loop finishes
         boss_loop_active = false;
+
+        game_log("✅ Boss loop ended.");
     }
 }
 
