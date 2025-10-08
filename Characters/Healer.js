@@ -49,6 +49,10 @@ function universal_loop_controller() {
 
 		if (!character.rip) {
 
+			if (!LOOP_STATES.potion) { start_potion_loop(); }
+
+			if (!LOOP_STATES.loot) { start_loot_loop(); }
+
 			if (!LOOP_STATES.panic) { start_panic_loop(); }
 
 			if (!LOOP_STATES.skill && !panicking) { start_skill_loop(); }
