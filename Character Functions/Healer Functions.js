@@ -15,11 +15,6 @@ const LOOP_STATES = {
 
 }
 
-// Critical function. Must be declared early.
-function delay(ms) {
-	return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS (with persistent state saving)
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -620,7 +615,7 @@ async function handle_absorb(mapsToExclude, eventMobs, eventMaps, blacklist) {
     const now = Date.now();
     if (now - absorb_last_used < ABSORB_COOLDOWN) return;
 
-    const partyNames = Object.keys(get_party()).filter(name => name !== character.name);
+    const partyNames = Object.keys(parent.party).filter(name => name !== character.name);
 
     const attackers = {};
     for (const id in parent.entities) {
@@ -867,8 +862,6 @@ async function panic_loop() {
 
     LOOP_STATES.panic = true;
 
-    let delay = 100;
-
     try {
         while (LOOP_STATES.panic) {
             const warrior_entity = parent.entities[WARRIOR_NAME];
@@ -908,14 +901,14 @@ async function panic_loop() {
                 const orbg_slot = locate_item(NORMAL_WEAPON);
                 if (character.slots.orb?.name !== NORMAL_WEAPON && orbg_slot !== -1) {
                     await equip(orbg_slot);
-                    await delay(delay);
+                    await delay(100);
                 }
 
                 game_log("✅ Panic over — resuming normal operations.");
 
                 await delay(CHECK_INTERVAL);
             } else {
-                await delay(delay);
+                await delay(100);
             }
         }
     } catch (e) {
