@@ -864,14 +864,11 @@ async function panic_loop() {
 
     try {
         while (LOOP_STATES.panic) {
-            const warrior_entity = parent.entities[WARRIOR_NAME];
-            const warrior_online = parent.party_list.includes(WARRIOR_NAME);
-            const warrior_alive = warrior_online && parent.party[WARRIOR_NAME] && !parent.party[WARRIOR_NAME].rip;
             const low_health = character.hp < (character.max_hp / 3);
             const high_health = character.hp >= ((2 * character.max_hp) / 3);
 
             // PANIC CONDITION
-            if (!warrior_online || !warrior_alive || low_health) {
+            if (low_health) {
                 panicking = true;
                 stop_attack_loop();
                 let reason = low_health ? "Low health!"
@@ -895,7 +892,7 @@ async function panic_loop() {
 
                 // Wait before rechecking panic state
                 await delay(PANIC_INTERVAL);
-            } else if (high_health && warrior_alive && warrior_online && panicking) {
+            } else if (warrior_online && panicking) {
                 // SAFE CONDITION
                 panicking = false;
                 const orbg_slot = locate_item(NORMAL_WEAPON);
