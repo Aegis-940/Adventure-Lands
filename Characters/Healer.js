@@ -21,7 +21,7 @@ hide_skills_ui();
 // MAIN LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function universal_loop_controller() {
+async function universal_loop_controller() {
 
 	try {
 
@@ -64,6 +64,21 @@ function universal_loop_controller() {
 				start_orbit_loop();
 			}
 		}
+
+		if (character.rip) {
+			stop_attack_loop();
+			stop_skill_loop();
+			stop_orbit_loop();
+			stop_panic_loop();
+			start_boss_loop();
+
+			await delay(30000);
+
+			await respawn();
+
+			return;
+		}
+
 	} catch (e) {
 		console.log("Error in universal_loop_controller:", e);
 	}

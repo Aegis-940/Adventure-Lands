@@ -287,7 +287,7 @@ async function boss_loop() {
 
     let delayMs = 100;
 
-    game_log("⚠️ Boss detected ⚠️", "#ff9900ff");
+    game_log("⚠️ Boss detected ⚠️", "#ff00e6ff");
 
     try {
 
@@ -868,7 +868,6 @@ async function orbit_loop() {
 
 let panicking = false;
 
-const WARRIOR_NAME = "Ulric";
 const PANIC_WEAPON = "jacko";
 const NORMAL_WEAPON = "orbg";
 
