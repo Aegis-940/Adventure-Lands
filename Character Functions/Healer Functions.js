@@ -880,12 +880,10 @@ async function panic_loop() {
     try {
         while (LOOP_STATES.panic) {
             const low_health = character.hp < (character.max_hp / 3);
-            const low_mana = character.mp < 50;
             const high_health = character.hp >= ((2 * character.max_hp) / 3);
-            const high_mana = character.mp < 500;
 
             // PANIC CONDITION
-            if (low_health || low_mana) {
+            if (low_health) {
                 if (!panicking) {
                     panicking = true;
                     stop_attack_loop();
@@ -911,7 +909,7 @@ async function panic_loop() {
             }
 
             // SAFE CONDITION
-            if (high_health && high_mana) {
+            if (high_health) {
                 if (panicking) {
                     panicking = false;
                 game_log("✅ Panic over — resuming normal operations.");
