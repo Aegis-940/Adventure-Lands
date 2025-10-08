@@ -266,7 +266,8 @@ async function attack_loop() {
             await delay(delayMs);
         }
     } catch (e) {
-        game_log("⚠️ Panic Loop error: ", e, "#FF0000");
+        game_log("⚠️ Attack Loop error:", "#FF0000");
+        game_log(e);
     } finally {
         LOOP_STATES.attack = false;
         game_log("⚠️ Attack loop ended unexpectedly ⚠️", "#ffea00ff");
@@ -462,7 +463,8 @@ async function boss_loop() {
         }
 
     } catch (e) {
-        game_log(`⚠️ Boss Loop error: ${e} ⚠️`, "#FF0000");
+        game_log("⚠️ Boss Loop error:", "#FF0000");
+        game_log(e);
     } finally {
         LOOP_STATES.boss = false;
         game_log("⚠️ Boss loop ended unexpectedly ⚠️", "#ffea00ff");
@@ -515,7 +517,8 @@ async function move_loop() {
             await delay(delayMs);
         }
     } catch (e) {
-        game_log(`⚠️ Move Loop error: ${e} ⚠️`, "#FF0000");
+        game_log("⚠️ Move Loop error:", "#FF0000");
+        game_log(e);
     } finally {
         LOOP_STATES.move = false;
         game_log("⚠️ Move loop ended unexpectedly ⚠️", "#ffea00ff");
@@ -550,7 +553,8 @@ async function skill_loop() {
             await delay(delayMs);
         }
     } catch (e) {
-        game_log(`⚠️ Skill Loop error: ${e} ⚠️`, "#FF0000");
+        game_log("⚠️ Skill Loop error:", "#FF0000");
+        game_log(e);
     } finally {
         LOOP_STATES.skill = false;
         game_log("⚠️ Skill loop ended unexpectedly ⚠️", "#ffea00ff");
@@ -720,7 +724,8 @@ async function loot_loop() {
             await delay(delayMs);
         }
     } catch (e) {
-        game_log(`⚠️ Loot Loop error: ${e} ⚠️`, "#FF0000");
+        game_log("⚠️ Loot Loop error:", "#FF0000");
+        game_log(e);
     } finally {
         LOOP_STATES.loot = false;
         game_log("⚠️ Loot loop ended unexpectedly ⚠️", "#ffea00ff");
@@ -767,7 +772,8 @@ async function potions_loop() {
             }
         }
     } catch (e) {
-        game_log(`⚠️ Potions Loop error: ${e} ⚠️`, "#FF0000");
+        game_log("⚠️ Potions Loop error:", "#FF0000");
+        game_log(e);
     } finally {
         LOOP_STATES.potion = false;
         game_log("⚠️ Potions loop ended unexpectedly ⚠️", "#ffea00ff");
@@ -848,7 +854,8 @@ async function orbit_loop() {
             await delay(delayMs);
         }
     } catch (e) {
-        game_log(`⚠️ Orbit Loop error: ${e} ⚠️`, "#FF0000");
+        game_log("⚠️ Orbit Loop error:", "#FF0000");
+        game_log(e);
     } finally {
         LOOP_STATES.orbit = false;
         game_log("⚠️ Orbit loop ended unexpectedly ⚠️", "#ffea00ff");
@@ -918,7 +925,8 @@ async function panic_loop() {
             }
         }
     } catch (e) {
-        game_log("⚠️ Panic Loop error: ", e, "#FF0000");
+        game_log("⚠️ Panic Loop error:", "#FF0000");
+        game_log(e);
     } finally {
         LOOP_STATES.panic = false;
         game_log("⚠️ Panic loop ended unexpectedly ⚠️", "#ffea00ff");

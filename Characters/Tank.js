@@ -33,6 +33,54 @@ start_attack_loop();
 // MAIN LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+function universal_loop_controller() {
+
+	try {
+
+		// SETUP Loops
+		if (!LOOP_STATES.potion) { start_potions_loop(); }
+		if (!LOOP_STATES.loot) { start_loot_loop(); }
+
+		// Boss detection logic
+		const boss_alive = BOSSES.some(name =>
+			parent.S[name] &&
+			parent.S[name].live &&
+			typeof parent.S[name].hp === "number" &&
+			typeof parent.S[name].max_hp === "number" &&
+			(parent.S[name].max_hp - parent.S[name].hp) > 100000
+		);
+
+		if (panicking) {
+			return;
+		}
+
+		if (!LOOP_STATES.boss && boss_alive && !character.rip) {
+			stop_attack_loop();
+			stop_skill_loop();
+			stop_orbit_loop();
+			stop_panic_loop();
+			start_boss_loop();
+			return;
+		}
+
+		// If no boss is alive, ensure all relevant loops are running
+		if (!boss_alive && !character.rip) {
+
+			if (!LOOP_STATES.attack && !panicking) { start_attack_loop(); }
+
+			if (!LOOP_STATES.skill && !panicking) { start_skill_loop(); }
+
+			if (!LOOP_STATES.panic) { start_panic_loop(); }
+
+			if (!LOOP_STATES.orbit && character.x === GRIND_HOME.x && character.y === GRIND_HOME.y && !panicking) {
+				start_orbit_loop();
+			}
+		}
+	} catch (e) {
+		console.log("Error in universal_loop_controller:", e);
+	}
+}
+
 let last_update_time = 0;
 
 setInterval(() => {
