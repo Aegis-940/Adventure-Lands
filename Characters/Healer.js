@@ -88,4 +88,6 @@ setInterval(() => {
 
 	if (!attack_mode || character.rip || is_moving(character)) return;
 
+	universal_loop_controller();
+
 }, 250);
