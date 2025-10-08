@@ -818,6 +818,14 @@ async function orbit_loop() {
 
     try {
         while (LOOP_STATES.orbit) {
+
+            // Stop the loop if character is more than 100 units from the orbit origin
+            const dist_from_origin = Math.hypot(character.real_x - orbit_origin.x, character.real_y - orbit_origin.y);
+            if (dist_from_origin > 100) {
+                game_log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
+                break;
+            }
+
             const point = orbit_path_points[orbit_path_index];
             orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
 
@@ -910,7 +918,7 @@ async function panic_loop() {
             }
         }
     } catch (e) {
-        game_log(`⚠️ Panic Loop error: ${e} ⚠️`, "#FF0000");
+        game_log("⚠️ Panic Loop error: ", e, "#FF0000");
     } finally {
         LOOP_STATES.panic = false;
         game_log("⚠️ Panic loop ended unexpectedly ⚠️", "#ffea00ff");

@@ -51,6 +51,7 @@ function universal_loop_controller() {
 			return;
 		}
 
+		// If no boss is alive, ensure all relevant loops are running
 		if (!boss_alive && !character.rip) {
 
 			if (!LOOP_STATES.attack && !panicking) { start_attack_loop(); }
