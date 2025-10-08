@@ -15,6 +15,11 @@ const LOOP_STATES = {
 
 }
 
+// Critical function. Must be declared early.
+function delay(ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS (with persistent state saving)
 // --------------------------------------------------------------------------------------------------------------------------------- //
