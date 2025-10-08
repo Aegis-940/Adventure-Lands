@@ -264,8 +264,8 @@ async function attack_loop() {
 
             await delay(delayMs);
         }
-    } catch (err) {
-        console.error(err);
+    } catch (e) {
+        game_log(e);
     } finally {
         LOOP_STATES.attack = false;
         game_log("⚠️ Attack loop ended unexpectedly ⚠️", "#FF0000");
