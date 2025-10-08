@@ -50,13 +50,13 @@ function universal_loop_controller() {
         return;
     }
 
-	if (!boss_alive) {
+	if (!boss_alive && !character.rip) {
 
 		if (!panic_enabled) {
 			start_panic_loop();
 		}
 
-		if (!skill_enabled) {
+		if (!skill_enabled && !panicking) {
 			start_skill_loop();
 		}
 
