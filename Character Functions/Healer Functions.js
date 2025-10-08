@@ -787,6 +787,7 @@ const PANIC_WEAPON = "jacko";
 const NORMAL_WEAPON = "orbg";
 
 let panic_loop_running = false;
+let panicking = false;
 
 async function panic_loop() {
     if (panic_loop_running) {
@@ -807,6 +808,7 @@ async function panic_loop() {
 
         // PANIC CONDITION
         if (!warrior_online || !warrior_alive || low_health) {
+            panicking = true;
             stop_attack_loop();
             let reason = low_health ? "Low health!"
                 : !warrior_online ? "Ulric is offline!"
@@ -829,8 +831,9 @@ async function panic_loop() {
 
             // Wait 5.1 seconds before rechecking panic state
             await delay(PANIC_INTERVAL);
-        } else if (high_health && warrior_alive && warrior_online) {
+        } else if (high_health && warrior_alive && warrior_online && panicking) {
             // SAFE CONDITION
+            panicking = false;
             const orbg_slot = locate_item(NORMAL_WEAPON);
             if (character.slots.orb?.name !== NORMAL_WEAPON && orbg_slot !== -1) {
                 await equip(orbg_slot);
