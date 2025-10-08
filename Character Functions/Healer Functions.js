@@ -247,7 +247,7 @@ async function attack_loop() {
 
             let target = null;
 
-            if (monsters.length && LOOP_STATES.attack) {
+            if (monsters.length) {
                 let untargeted = monsters.filter(m => !m.target);
                 let candidates = (ATTACK_PRIORITIZE_UNTARGETED && untargeted.length) ? untargeted : monsters;
 
@@ -258,7 +258,7 @@ async function attack_loop() {
                 }
             }
 
-            if (target && is_in_range(target) && !is_on_cooldown("attack") && !smart.moving) {
+            if (target && is_in_range(target) && !is_on_cooldown("attack") && !smart.moving && LOOP_STATES.attack) {
                 await attack(target);
                 delayMs = ms_to_next_skill('attack');
             }
