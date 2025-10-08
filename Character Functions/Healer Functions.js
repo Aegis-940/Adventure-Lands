@@ -868,8 +868,6 @@ async function orbit_loop() {
 
 let panicking = false;
 
-const CHECK_INTERVAL = 100;
-const PANIC_INTERVAL = 500;
 const WARRIOR_NAME = "Ulric";
 const PANIC_WEAPON = "jacko";
 const NORMAL_WEAPON = "orbg";
@@ -878,60 +876,55 @@ async function panic_loop() {
 
     LOOP_STATES.panic = true;
 
+    let delayMs = 100
+
     try {
         while (LOOP_STATES.panic) {
             const low_health = character.hp < (character.max_hp / 3);
             const high_health = character.hp >= ((2 * character.max_hp) / 3);
 
-            if (panicking) {
-                // Recast scare if possible
-                if (!is_on_cooldown("scare") && can_use("scare")) {
-                    game_log("Pakicked! Using Scare!");
-                    await use_skill("scare");
-                }
-            }
-
             // PANIC CONDITION
             if (low_health) {
-                panicking = true;
-                stop_attack_loop();
-                let reason = low_health ? "Low health!"
-                    : !warrior_online ? "Ulric is offline!"
-                    : !warrior_alive ? "Ulric is dead!"
-                    : "Unknown panic reason!";
+                if (!panicking) {
+                    panicking = true;
+                    stop_attack_loop();
+                    game_log("⚠️ Panic triggered: Low health!");
+                }
 
-                game_log(`⚠️ Panic triggered: ${reason}`);
-
-                // Ensure jacko is equipped
+                // Always ensure jacko is equipped
                 const jacko_slot = locate_item(PANIC_WEAPON);
                 if (character.slots.orb?.name !== PANIC_WEAPON && jacko_slot !== -1) {
                     await equip(jacko_slot);
-                    await delay(500);
+                    await delay(delayMs);
                 }
 
-                // Recast scare if possible
+                // Always try to cast scare if possible
                 if (!is_on_cooldown("scare") && can_use("scare")) {
-                    game_log("Pakicked! Using Scare!");
+                    game_log("Panicked! Using Scare!");
                     await use_skill("scare");
+                    await delay(delayMs);
                 }
 
-                // Wait before rechecking panic state
-                await delay(PANIC_INTERVAL);
-            } else if (high_health && panicking) {
-                // SAFE CONDITION
-                panicking = false;
+                await delay(delayMs);
+                continue;
+            }
+
+            // SAFE CONDITION
+            if (high_health) {
+                if (panicking) {
+                    panicking = false;
+                game_log("✅ Panic over — resuming normal operations.");
+                }
                 const orbg_slot = locate_item(NORMAL_WEAPON);
                 if (character.slots.orb?.name !== NORMAL_WEAPON && orbg_slot !== -1) {
                     await equip(orbg_slot);
-                    await delay(100);
+                    await delay(delayMs);
                 }
-
-                game_log("✅ Panic over — resuming normal operations.");
-
-                await delay(CHECK_INTERVAL);
-            } else {
-                await delay(100);
+                await delay(delayMs);
+                continue;
             }
+
+            await delay(delayMs);
         }
     } catch (e) {
         game_log("⚠️ Panic Loop error:", "#FF0000");
