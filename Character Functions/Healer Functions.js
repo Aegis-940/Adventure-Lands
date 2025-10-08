@@ -849,10 +849,6 @@ async function panic_loop() {
         }
     } finally {
         panic_loop_running = false;
-        if (!boss_active) {
-            start_attack_loop();
-            game_log("⏹ Panic loop exited.");
-        }
     }
 }
 
