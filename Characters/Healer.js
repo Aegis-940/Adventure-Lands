@@ -47,7 +47,7 @@ function universal_loop_controller() {
 		// 	return;
 		// }
 
-		if (!boss_alive && !character.rip) {
+		if (!character.rip) {
 
 			if (!LOOP_STATES.panic) { start_panic_loop(); }
 
