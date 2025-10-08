@@ -220,8 +220,6 @@ async function attack_loop() {
                 await attack(target);
                 delayMs = ms_to_next_skill("attack");
             }
-            
-            await game_log(Math.round(ms_to_next_skill("attack")) + " : " + Math.round(delayMs))
             await delay(delayMs);
         }
     } catch (e) {
