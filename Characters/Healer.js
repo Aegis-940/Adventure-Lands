@@ -29,6 +29,27 @@ async function universal_loop_controller() {
 		if (!LOOP_STATES.potion) { start_potions_loop(); }
 		if (!LOOP_STATES.loot) { start_loot_loop(); }
 
+		if (character.rip) {
+			stop_attack_loop();
+			stop_skill_loop();
+			stop_orbit_loop();
+			stop_panic_loop();
+			start_boss_loop();
+
+			await delay(30000);
+
+			await respawn();
+
+			return;
+		}
+
+		if (panicking) {
+			stop_attack_loop();
+			stop_skill_loop();
+			start_boss_loop();
+			return;
+		}
+
 		// Boss detection logic
 		const boss_alive = BOSSES.some(name =>
 			parent.S[name] &&
@@ -36,11 +57,7 @@ async function universal_loop_controller() {
 			typeof parent.S[name].hp === "number" &&
 			typeof parent.S[name].max_hp === "number" &&
 			(parent.S[name].max_hp - parent.S[name].hp) > 100000
-		);
-
-		if (panicking) {
-			return;
-		}
+		)
 
 		if (!LOOP_STATES.boss && boss_alive && !character.rip) {
 			stop_attack_loop();
@@ -63,20 +80,6 @@ async function universal_loop_controller() {
 			if (!LOOP_STATES.orbit && character.x === GRIND_HOME.x && character.y === GRIND_HOME.y && !panicking) {
 				start_orbit_loop();
 			}
-		}
-
-		if (character.rip) {
-			stop_attack_loop();
-			stop_skill_loop();
-			stop_orbit_loop();
-			stop_panic_loop();
-			start_boss_loop();
-
-			await delay(30000);
-
-			await respawn();
-
-			return;
 		}
 
 	} catch (e) {
