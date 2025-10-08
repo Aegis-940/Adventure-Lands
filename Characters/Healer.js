@@ -46,7 +46,7 @@ function universal_loop_controller() {
 		return;
 	}
 
-    if (boss_alive && !boss_loop_active) {
+    if (boss_alive && !boss_loop_active && !character.rip) {
         stop_attack_loop();
         stop_skill_loop();
         stop_circle_move();
@@ -57,17 +57,11 @@ function universal_loop_controller() {
 
 	if (!boss_alive && !character.rip) {
 
-		if (!panic_enabled) {
-			start_panic_loop();
-		}
+		if (!panic_enabled) { start_panic_loop(); }
 
-		if (!skill_enabled && !panicking) {
-			start_skill_loop();
-		}
+		if (!skill_enabled && !panicking) { start_skill_loop(); }
 
-		if (!attack_enabled && !panicking) {
-			start_attack_loop();
-		}
+		if (!attack_enabled && !panicking) { start_attack_loop(); }
 
 		if (!circle_move_enabled && character.x === GRIND_HOME.x && character.y === GRIND_HOME.y && !panicking) {
 			start_circle_move();
