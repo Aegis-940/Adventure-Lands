@@ -228,7 +228,8 @@ async function attack_loop() {
             if (
                 heal_target &&
                 heal_target.hp < heal_target.max_hp - (character.heal / 1.11) &&
-                is_in_range(heal_target)
+                is_in_range(heal_target) && 
+                !is_on_cooldown("attack")
             ) {
                 await heal(heal_target);
                 game_log(`Healing ${heal_target.name}`, "#00FF00");
