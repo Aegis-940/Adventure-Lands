@@ -194,6 +194,8 @@ async function attack_loop() {
 
     LOOP_STATES.attack = true;
 
+    game_log("Check 1");
+
     let delayMs = 100;
 
     try {
@@ -218,12 +220,9 @@ async function attack_loop() {
 
             if (target && !is_on_cooldown("attack") && can_use("attack")) {
                 await attack(target);
+                delayMs = ms_to_next_skill("attack");
             }
-
-            // Always wait until the next attack is available
-            delayMs = ms_to_next_skill("attack");
-            if (delayMs < 20) delayMs = 20; // Don't spam, but check frequently
-            await delay(10);
+            await delay(delayMs);
         }
     } catch (e) {
         game_log("⚠️ Attack Loop error:", "#FF0000");
