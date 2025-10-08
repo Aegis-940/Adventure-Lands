@@ -264,7 +264,7 @@ async function attack_loop() {
                     delay = ms_to_next_skill('attack');
                 }
             }
-            await delay((delay/2)+10);
+            await new Promise(resolve => setTimeout(resolve, delay));
         }
     } catch (e) {
         console.error(e);
