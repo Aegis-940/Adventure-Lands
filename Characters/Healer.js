@@ -25,15 +25,52 @@ potions_loop();
 
 loot_loop();
 
-start_panic_loop();
-
-start_skill_loop();
-
-start_attack_loop();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
+
+function universal_loop_controller() {
+
+	// Boss detection logic
+    const boss_alive = BOSSES.some(name =>
+        parent.S[name] &&
+        parent.S[name].live &&
+        typeof parent.S[name].hp === "number" &&
+        typeof parent.S[name].max_hp === "number" &&
+        (parent.S[name].max_hp - parent.S[name].hp) > 100000
+    );
+
+    if (boss_alive && !boss_loop_active) {
+        stop_attack_loop();
+        stop_skill_loop();
+        stop_circle_move();
+        stop_panic_loop();
+        boss_loop();
+        return;
+    }
+
+	if (!boss_alive) {
+
+		if (!panic_enabled) {
+			start_panic_loop();
+		}
+
+		if (!skill_enabled) {
+			start_skill_loop();
+		}
+
+		if (!attack_enabled && !panic_enabled) {
+			start_attack_loop();
+		}
+
+		if (!circle_move_enabled) {
+			start_circle_move();
+		}
+
+	}
+
+}
 
 let last_update_time = 0;
 
