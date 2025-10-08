@@ -41,6 +41,11 @@ function universal_loop_controller() {
         (parent.S[name].max_hp - parent.S[name].hp) > 100000
     );
 
+	
+	if (panicking) {
+		return;
+	}
+
     if (boss_alive && !boss_loop_active) {
         stop_attack_loop();
         stop_skill_loop();
@@ -64,7 +69,7 @@ function universal_loop_controller() {
 			start_attack_loop();
 		}
 
-		if (!circle_move_enabled && character.x === GRIND_HOME.x && character.y === GRIND_HOME.y) {
+		if (!circle_move_enabled && character.x === GRIND_HOME.x && character.y === GRIND_HOME.y && !panicking) {
 			start_circle_move();
 		}
 

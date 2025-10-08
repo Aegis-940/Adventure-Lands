@@ -575,7 +575,7 @@ async function handle_absorb(mapsToExclude, eventMobs, eventMaps, blacklist) {
     }
 
     for (const name of partyNames) {
-        if (attackers[name]) {
+        if (attackers[name] && character.hp > character.max_hp * 0.5) {
             try {
                 await use_skill("absorb", name);
                 game_log(`Absorbing ${name}`, "#FFA600");
