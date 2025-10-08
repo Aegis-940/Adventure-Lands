@@ -52,6 +52,7 @@ function universal_loop_controller() {
         stop_circle_move();
         stop_panic_loop();
         boss_loop();
+		game_log("⚠️ Boss detected! Entering boss loop...", "#FF0000");
         return;
     }
 
