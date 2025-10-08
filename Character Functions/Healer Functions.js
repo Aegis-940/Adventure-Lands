@@ -264,7 +264,7 @@ async function attack_loop() {
 
             await new Promise(resolve => setTimeout(resolve, delay));
         }
-    } catch (e) {
+    } catch (err) {
         console.error(err);
     } finally {
         LOOP_STATES.attack = false;
