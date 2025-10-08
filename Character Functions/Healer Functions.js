@@ -895,7 +895,7 @@ async function panic_loop() {
                 }
 
                 // Recast scare if possible
-                if (can_use("scare")) {
+                if (!is_on_cooldown("scare") && can_use("scare")) {
                     await use_skill("scare");
                 }
 
