@@ -235,39 +235,37 @@ async function attack_loop() {
                 delay = ms_to_next_skill('attack');
             }
 
-            // Only attack if attack_enabled is true
-            if (smart.moving == false) {
-                // Filter all relevant monsters ONCE
-                const monsters = Object.values(parent.entities).filter(e =>
-                    e.type === "monster" &&
-                    MONSTER_TYPES.includes(e.mtype) &&
-                    !e.dead &&
-                    e.visible &&
-                    parent.distance(character, e) <= character.range
-                );
+            // Filter all relevant monsters ONCE
+            const monsters = Object.values(parent.entities).filter(e =>
+                e.type === "monster" &&
+                MONSTER_TYPES.includes(e.mtype) &&
+                !e.dead &&
+                e.visible &&
+                parent.distance(character, e) <= character.range
+            );
 
-                let target = null;
+            let target = null;
 
-                if (monsters.length) {
-                    let untargeted = monsters.filter(m => !m.target);
-                    let candidates = (ATTACK_PRIORITIZE_UNTARGETED && untargeted.length) ? untargeted : monsters;
+            if (monsters.length) {
+                let untargeted = monsters.filter(m => !m.target);
+                let candidates = (ATTACK_PRIORITIZE_UNTARGETED && untargeted.length) ? untargeted : monsters;
 
-                    if (ATTACK_TARGET_LOWEST_HP) {
-                        target = candidates.reduce((a, b) => (a.hp < b.hp ? a : b));
-                    } else {
-                        target = candidates.reduce((a, b) => (a.hp > b.hp ? a : b));
-                    }
-                }
-
-                if (target && is_in_range(target)) {
-                    await attack(target);
-                    delay = ms_to_next_skill('attack');
+                if (ATTACK_TARGET_LOWEST_HP) {
+                    target = candidates.reduce((a, b) => (a.hp < b.hp ? a : b));
+                } else {
+                    target = candidates.reduce((a, b) => (a.hp > b.hp ? a : b));
                 }
             }
+
+            if (target && is_in_range(target)) {
+                await attack(target);
+                delay = ms_to_next_skill('attack');
+            }
+
             await new Promise(resolve => setTimeout(resolve, delay));
         }
     } catch (e) {
-        console.error(e);
+        console.error(err);
     } finally {
         LOOP_STATES.attack = false;
         game_log("⚠️ Attack loop ended unexpectedly ⚠️", "#FF0000");
