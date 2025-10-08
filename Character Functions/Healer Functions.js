@@ -3,13 +3,13 @@
 // 1) GLOBAL SWITCHES & TIMERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let attack_enabled   = true;
+let attack_enabled   = false;
 let attack_timer_id  = null;
-let move_enabled     = true;
+let move_enabled     = false;
 let move_timer_id    = null;
-let skill_enabled     = true;
+let skill_enabled     = false;
 let skill_timer_id    = null;
-let panic_enabled     = true;
+let panic_enabled     = false;
 let panic_timer_id    = null;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -794,7 +794,7 @@ async function panic_loop() {
         return;
     }
     if (!panic_enabled) return;
-    
+
     panic_loop_running = true;
 
     try {
