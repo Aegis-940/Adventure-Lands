@@ -257,7 +257,7 @@ async function attack_loop() {
                 }
             }
 
-            if (target && is_in_range(target)) {
+            if (target && is_in_range(target) && !is_on_cooldown("attack")) {
                 await attack(target);
                 delayMs = ms_to_next_skill('attack');
             }
