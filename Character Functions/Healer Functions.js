@@ -13,16 +13,7 @@ const LOOP_STATES = {
     boss: false,
     potion: false,
 
-    attack_timer: null,
-    move_timer: null,
-    skill_timer: null,
-    panic_timer: null,
-    orbit_timer: null,
-    boss_timer: null,
-    potion_timer: null,
-
 }
-
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS (with persistent state saving)
