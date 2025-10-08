@@ -85,9 +85,13 @@ function stop_loot_loop() {
 }
 
 function start_potions_loop() {
+    game_log("Check 1a");
     if (LOOP_STATES.potion) return;
+    game_log("Check 1b");
     LOOP_STATES.potion = true;
+    game_log("Check 1x");
     potions_loop();
+    game_log("Check 1d");
     game_log("▶️ Potions loop started");
 }
 
@@ -733,7 +737,9 @@ async function loot_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function potions_loop() {
+
     LOOP_STATES.potion = true;
+
     try {
         while (LOOP_STATES.potion) {
             // Calculate missing HP/MP
