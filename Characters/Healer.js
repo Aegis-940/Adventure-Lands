@@ -49,19 +49,33 @@ function universal_loop_controller() {
 
 		if (!boss_alive && !character.rip) {
 
-			if (!LOOP_STATES.potion) { start_potion_loop(); game_log("Check 1");}
+			game_log("Check 1");
 
-			if (!LOOP_STATES.loot) { start_loot_loop(); game_log("Check 2");}
+			if (!LOOP_STATES.potion) { start_potion_loop(); }
 
-			if (!LOOP_STATES.panic) { start_panic_loop(); game_log("Check 3");}
+			game_log("Check 2");
 
-			if (!LOOP_STATES.skill && !panicking) { start_skill_loop(); game_log("Check 4");}
+			if (!LOOP_STATES.loot) { start_loot_loop(); }
 
-			if (!LOOP_STATES.attack && !panicking) { start_attack_loop(); game_log("Check 5");}
+			game_log("Check 3");
+
+			if (!LOOP_STATES.panic) { start_panic_loop(); }
+
+			game_log("Check 4");
+
+			if (!LOOP_STATES.skill && !panicking) { start_skill_loop(); }
+
+			game_log("Check 5");
+
+			if (!LOOP_STATES.attack && !panicking) { start_attack_loop(); }
+
+			game_log("Check 6");
 
 			if (!LOOP_STATES.orbit && character.x === GRIND_HOME.x && character.y === GRIND_HOME.y && !panicking) {
 				start_orbit_loop();
 			}
+
+			game_log("Check 7");
 		}
 	} catch (e) {
 		console.log("Error in universal_loop_controller:", e);
