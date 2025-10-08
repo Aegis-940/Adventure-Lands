@@ -513,7 +513,7 @@ async function move_loop() {
                 move_target = null;
             }
 
-            await delay(delay);
+            await new Promise(resolve => setTimeout(resolve, delay));
         }
     } catch (e) {
         console.error("move_loop error:", e);
@@ -548,7 +548,7 @@ async function skill_loop() {
                 await handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps);
             }
 
-            await delay(delay);
+            await new Promise(resolve => setTimeout(resolve, delay));
         }
     } catch (e) {
         console.error("skill_loop error:", e);
@@ -718,7 +718,7 @@ async function loot_loop() {
                 tryLoot = false;
             }
 
-            await delay(delay);
+            await new Promise(resolve => setTimeout(resolve, delay));
         }
     } catch (e) {
         console.error("loot_loop error:", e);
