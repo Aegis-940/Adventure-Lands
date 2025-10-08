@@ -43,7 +43,6 @@ function universal_loop_controller() {
 		}
 
 		if (!LOOP_STATES.boss && boss_alive && !character.rip) {
-			game_log("DEBUG: Boss detected, starting boss loop.");
 			stop_attack_loop();
 			stop_skill_loop();
 			stop_orbit_loop();

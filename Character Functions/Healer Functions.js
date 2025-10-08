@@ -283,7 +283,7 @@ async function boss_loop() {
 
     LOOP_STATES.boss = true;
 
-    let delay = 100;
+    let delayMs = 100;
 
     game_log("⚠️ Boss detected ⚠️", "#ddff00ff");
 
@@ -414,7 +414,7 @@ async function boss_loop() {
                     is_in_range(heal_target)
                 ) {
                     await heal(heal_target);
-                    delay = ms_to_next_skill('attack');
+                    delayMs = ms_to_next_skill('attack');
                 }
 
                 if (
@@ -425,13 +425,13 @@ async function boss_loop() {
                     boss.target !== "Riva"
                 ) {
                     await attack(boss);
-                    delay = ms_to_next_skill('attack');
+                    delayMs = ms_to_next_skill('attack');
                 }
             } catch (e) {
                 console.error(e);
             }
             
-            await delay((delay/2)+10);
+            await delay((delayMs/2)+10);
 
         }
 
@@ -476,13 +476,13 @@ async function move_loop() {
 
     LOOP_STATES.move = true;
 
-    let delay = 200;
+    let delayMs = 200;
 
     try {
         while (LOOP_STATES.move) {
             // Don’t override an in-progress move
             if (character.moving || smart.moving) {
-                await delay(delay);
+                await delay(delayMs);
                 continue;
             }
 
@@ -511,7 +511,7 @@ async function move_loop() {
                 move_target = null;
             }
 
-            await delay(delay);
+            await delay(delayMs);
         }
     } catch (e) {
         game_log("move_loop error:", e);
@@ -529,7 +529,7 @@ async function skill_loop() {
 
     LOOP_STATES.skill = true;
 
-    let delay = 100;
+    let delayMs = 100;
 
     try {
         while (LOOP_STATES.skill) {
@@ -546,7 +546,7 @@ async function skill_loop() {
                 await handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps);
             }
 
-            await delay(delay);
+            await delay(delayMs);
         }
     } catch (e) {
         game_log("skill_loop error:", e);
@@ -698,7 +698,7 @@ async function loot_chests() {
 
 async function loot_loop() {
     LOOP_STATES.loot = true;
-    let delay = 100;
+    let delayMs = 100;
 
     try {
         while (LOOP_STATES.loot) {
@@ -716,7 +716,7 @@ async function loot_loop() {
                 tryLoot = false;
             }
 
-            await delay(delay);
+            await delay(delayMs);
         }
     } catch (e) {
         game_log("loot_loop error:", e);
@@ -808,7 +808,7 @@ async function orbit_loop() {
 
     LOOP_STATES.orbit = true;
 
-    let delay = 10;
+    let delayMs = 10;
 
     orbit_origin = { x: character.real_x, y: character.real_y };
     set_orbit_radius(orbit_radius);
@@ -836,7 +836,7 @@ async function orbit_loop() {
             }
 
             // Small delay before next step to reduce CPU usage
-            await delay(delay);
+            await delay(delayMs);
         }
     } catch (e) {
         game_log("orbit_loop error:", e);
