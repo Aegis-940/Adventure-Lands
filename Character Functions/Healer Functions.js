@@ -3,77 +3,136 @@
 // 1) GLOBAL SWITCHES & TIMERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let attack_enabled   = false;
-let attack_timer_id  = null;
-let move_enabled     = false;
-let move_timer_id    = null;
-let skill_enabled     = false;
-let skill_timer_id    = null;
-let panic_enabled     = false;
-let panic_timer_id    = null;
+const LOOP_STATES = {
+
+    attack: false,
+    move: false,
+    skill: false,
+    panic: false,
+    orbit: false,
+    boss: false,
+    potion: false,
+
+    attack_timer: null,
+    move_timer: null,
+    skill_timer: null,
+    panic_timer: null,
+    orbit_timer: null,
+    boss_timer: null,
+    potion_timer: null,
+
+}
+
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS (with persistent state saving)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function start_attack_loop() {
-    attack_enabled = true;
-    clearTimeout(attack_timer_id); // Ensure no duplicate timers
+    if (LOOP_STATES.attack) return;
+    LOOP_STATES.attack = true;
     attack_loop();
-    // save_persistent_state();
     game_log("▶️ Attack loop started");
 }
 
 function stop_attack_loop() {
-    attack_enabled = false;
-    clearTimeout(attack_timer_id);
-    // save_persistent_state();
+    if (!LOOP_STATES.attack) return;
+    LOOP_STATES.attack = false;
     game_log("⏹ Attack loop stopped");
 }
 
 function start_move_loop() {
-    move_enabled = true;
+    if (LOOP_STATES.move) return;
+    LOOP_STATES.move = true;
     move_loop();
-    // save_persistent_state();
     game_log("▶️ Move loop started");
 }
 
 function stop_move_loop() {
-    move_enabled = false;
-    clearTimeout(move_timer_id);
-    // save_persistent_state();
+    if (!LOOP_STATES.move) return;
+    LOOP_STATES.move = false;
     game_log("⏹ Move loop stopped");
 }
 
 function start_skill_loop() {
-    skill_enabled = true;
+    if (LOOP_STATES.skill) return;
+    LOOP_STATES.skill = true;
     skill_loop();
-    // save_persistent_state();
     game_log("▶️ Skill loop started");
 }
 
 function stop_skill_loop() {
-    skill_enabled = false;
-    clearTimeout(skill_timer_id);
-    // save_persistent_state();
+    if (!LOOP_STATES.skill) return;
+    LOOP_STATES.skill = false;
     game_log("⏹ Skill loop stopped");
 }
 
 function start_panic_loop() {
-    if (panic_loop_running) {
+    if (LOOP_STATES.panic) {
         game_log("⚠️ Panic loop already running.");
         return;
     }
-    panic_enabled = true;
+    LOOP_STATES.panic = true;
     panic_loop();
-    // save_persistent_state();
     game_log("▶️ Panic loop started");
 }
 
 function stop_panic_loop() {
-    panic_enabled = false;
-    // save_persistent_state();
+    if (!LOOP_STATES.panic) return;
+    LOOP_STATES.panic = false;
     game_log("⏹ Panic loop stopped");
+}
+
+function start_loot_loop() {
+    if (LOOP_STATES.loot) return;
+    LOOP_STATES.loot = true;
+    loot_loop();
+    game_log("▶️ Loot loop started");
+}
+
+function stop_loot_loop() {
+    if (!LOOP_STATES.loot) return;
+    LOOP_STATES.loot = false;
+    game_log("⏹ Loot loop stopped");
+}
+
+function start_potions_loop() {
+    if (LOOP_STATES.potion) return;
+    LOOP_STATES.potion = true;
+    potions_loop();
+    game_log("▶️ Potions loop started");
+}
+
+function stop_potions_loop() {
+    if (!LOOP_STATES.potion) return;
+    LOOP_STATES.potion = false;
+    game_log("⏹ Potions loop stopped");
+}
+
+function start_orbit_loop() {
+    if (LOOP_STATES.orbit) return;
+    LOOP_STATES.orbit = true;
+    orbit_loop();
+    game_log("▶️ Orbit loop started");
+}
+
+function stop_orbit_loop() {
+    if (!LOOP_STATES.orbit) return;
+    LOOP_STATES.orbit = false;
+    game_log("⏹ Orbit loop stopped");
+}
+
+function start_boss_loop() {
+    if (LOOP_STATES.boss) return;
+    LOOP_STATES.boss = true;
+    boss_loop();
+    game_log("▶️ Boss loop started");
+}
+
+function stop_boss_loop() {
+    if (!LOOP_STATES.boss) return;
+    LOOP_STATES.boss = false;
+    game_log("⏹ Boss loop stopped");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -160,21 +219,22 @@ function get_nearest_monster_v2(args = {}) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// ATTACK LOOP - SEMI OPTIMIZED
+// ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // Toggle options
 let ATTACK_TARGET_LOWEST_HP = true;      // true: lowest HP, false: highest HP
 let ATTACK_PRIORITIZE_UNTARGETED = true; // true: prefer monsters with no target first
 
-
 async function attack_loop() {
 
+    LOOP_STATES.attack = true;
+
     let delay = 100;
-    let disabled = (parent.is_disabled(character) === undefined);
 
     try {
-        if (true) {
+        while (LOOP_STATES.attack) {
+
             // Always heal, regardless of attack_enabled
             let heal_target = lowest_health_partymember();
             if (
@@ -188,7 +248,7 @@ async function attack_loop() {
             }
 
             // Only attack if attack_enabled is true
-            if (attack_enabled && smart.moving == false) {
+            if (smart.moving == false) {
                 // Filter all relevant monsters ONCE
                 const monsters = Object.values(parent.entities).filter(e =>
                     e.type === "monster" &&
@@ -216,12 +276,14 @@ async function attack_loop() {
                     delay = ms_to_next_skill('attack');
                 }
             }
+            await delay((delay/2)+10);
         }
     } catch (e) {
         console.error(e);
+    } finally {
+        LOOP_STATES.attack = false;
+        game_log("⚠️ Attack loop ended unexpectedly ⚠️", "#FF0000");
     }
-
-    attack_timer_id = setTimeout(attack_loop, delay);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -230,16 +292,14 @@ async function attack_loop() {
 
 const BOSSES = ["mrpumpkin", "mrgreen"];
 const GRIND_HOME = { map: "main", x: 907, y: -174 };
-let boss_loop_active = null;
-let boss_active = null;
 
 async function boss_loop() {
 
-    let wait_time = 50;
-    boss_loop_active = true;
-    boss_alive = true;
+    LOOP_STATES.boss = true;
 
-    game_log("🚨 Boss loop started.");
+    let delay = 100;
+
+    game_log("⚠️ Boss detected ⚠️", "#ddff00ff");
 
     try {
 
@@ -248,262 +308,266 @@ async function boss_loop() {
             .filter(name => parent.S[name] && parent.S[name].live)
             .map(name => ({ name, live: parent.S[name].live }));
 
-        if (alive_bosses.length === 0) {
-            boss_active = false;
-        } else {
-            // Sort by spawn time (oldest first)
-            alive_bosses.sort((a, b) => a.live - b.live);
+        // Sort by spawn time (oldest first)
+        alive_bosses.sort((a, b) => a.live - b.live);
 
-            // Find boss with lowest HP (visible or not)
-            let lowest_hp_boss = null;
-            let lowest_hp = Infinity;
-            for (const boss of alive_bosses) {
-                let hp = Infinity;
-                const entity = Object.values(parent.entities).find(e =>
-                    e.type === "monster" &&
-                    e.mtype === boss.name &&
-                    !e.dead
-                );
-                if (entity) {
-                    hp = entity.hp;
-                } else if (parent.S[boss.name] && typeof parent.S[boss.name].hp === "number") {
-                    hp = parent.S[boss.name].hp;
-                }
-                if (hp < lowest_hp) {
-                    lowest_hp = hp;
-                    lowest_hp_boss = boss.name;
-                }
+        // Find boss with lowest HP (visible or not)
+        let lowest_hp_boss = null;
+        let lowest_hp = Infinity;
+        for (const boss of alive_bosses) {
+            let hp = Infinity;
+            const entity = Object.values(parent.entities).find(e =>
+                e.type === "monster" &&
+                e.mtype === boss.name &&
+                !e.dead
+            );
+            if (entity) {
+                hp = entity.hp;
+            } else if (parent.S[boss.name] && typeof parent.S[boss.name].hp === "number") {
+                hp = parent.S[boss.name].hp;
             }
-            let boss_name = lowest_hp_boss || alive_bosses[0].name;
-
-            // Equip jacko before moving to boss
-            const jacko_slot = locate_item("jacko");
-            if (jacko_slot !== -1 && character.slots.orb?.name !== "jacko") {
-                await equip(jacko_slot);
-                await delay(300);
+            if (hp < lowest_hp) {
+                lowest_hp = hp;
+                lowest_hp_boss = boss.name;
             }
+        }
+        let boss_name = lowest_hp_boss || alive_bosses[0].name;
 
-            // Only smart_move if boss spawn is known
-            const boss_spawn = parent.S[boss_name] && parent.S[boss_name].x !== undefined && parent.S[boss_name].y !== undefined
-                ? { map: parent.S[boss_name].map, x: parent.S[boss_name].x, y: parent.S[boss_name].y }
-                : null;
+        // Equip jacko before moving to boss
+        const jacko_slot = locate_item("jacko");
+        if (jacko_slot !== -1 && character.slots.orb?.name !== "jacko") {
+            await equip(jacko_slot);
+            await delay(300);
+        }
 
-            if (boss_spawn) {
-                let moving = true;
+        // Only smart_move if boss spawn is known
+        const boss_spawn = parent.S[boss_name] && parent.S[boss_name].x !== undefined && parent.S[boss_name].y !== undefined
+            ? { map: parent.S[boss_name].map, x: parent.S[boss_name].x, y: parent.S[boss_name].y }
+            : null;
 
-                // Start smart_move and scan for aggro in parallel
-                const movePromise = smart_move(boss_spawn).then(() => { moving = false; });
+        if (boss_spawn) {
+            let moving = true;
 
-                // Aggro scan loop runs until smart_move finishes or boss dies
-                while (moving && boss_active && parent.S[boss_name] && parent.S[boss_name].live) {
-                    const aggro = Object.values(parent.entities).some(e =>
-                        e.type === "monster" && e.target === character.name && !e.dead
-                    );
-                    if (aggro && can_use("scare")) {
-                        await use_skill("scare");
-                    }
-                    await delay(100);
-                }
+            // Start smart_move and scan for aggro in parallel
+            const movePromise = smart_move(boss_spawn).then(() => { moving = false; });
 
-                // Ensure smart_move is awaited (in case loop exited early)
-                await movePromise;
-            } else {
-                game_log("⚠️ Boss spawn location unknown, skipping smart_move.");
-            }
-
-            // Engage boss until dead
-            game_log("⚔️ Engaging boss...");
-            while (parent.S[boss_name].live) {
-
-                const boss = Object.values(parent.entities).find(e =>
-                    e.type === "monster" &&
-                    e.mtype === boss_name &&
-                    !e.dead &&
-                    e.visible
-                );
-
-                if (!boss) {
-                    await delay(100);
-                    if (parent.S[boss_name].live) {
-                        await smart_move(boss_spawn);
-                    }
-                    continue;
-                }
-
-                if (!parent.S[boss_name].live){
-                    break;
-                }
-
-                // Maintain distance: character.range - 5, with a tolerance of ±5
-                const dist = parent.distance(character, boss);
-                const desired_range = character.range - 5;
-                const tolerance = 5;
-                if (
-                    (dist > desired_range + tolerance || dist < desired_range - tolerance) &&
-                    !character.moving
-                ) {
-                    const dx = boss.x - character.x;
-                    const dy = boss.y - character.y;
-                    const d = Math.hypot(dx, dy);
-                    const target_x = boss.x - (dx / d) * desired_range;
-                    const target_y = boss.y - (dy / d) * desired_range;
-                    if (Math.hypot(target_x - character.x, target_y - character.y) > 10) {
-                        move(target_x, target_y);
-                        game_log(`🚶 Adjusting position to maintain range (${Math.round(dist)} units).`);
-                    }
-                }
-
-                // Use scare if aggroed by any monster
+            // Aggro scan loop runs until smart_move finishes or boss dies
+            while (moving && parent.S[boss_name] && parent.S[boss_name].live) {
                 const aggro = Object.values(parent.entities).some(e =>
                     e.type === "monster" && e.target === character.name && !e.dead
                 );
                 if (aggro && can_use("scare")) {
                     await use_skill("scare");
-                }
-
-                try {
-                    change_target(boss);
-
-                    // Always heal, regardless of attack_enabled
-                    let heal_target = lowest_health_partymember();
-                    if (
-                        heal_target &&
-                        heal_target.hp < heal_target.max_hp - (character.heal / 1.11) &&
-                        is_in_range(heal_target)
-                    ) {
-                        await heal(heal_target);
-                        delay = ms_to_next_skill('attack');
-                    }
-
-                    if (
-                        boss.target &&
-                        boss.target !== character.name &&
-                        boss.target !== "Myras" &&
-                        boss.target !== "Ulric" &&
-                        boss.target !== "Riva"
-                    ) {
-                        await attack(boss);
-                        wait_time = ms_to_next_skill('attack');
-                    }
-                } catch (e) {
-                    console.error(e);
-                }
-                
-                await delay((wait_time/2)+10);
-
-            }
-
-            // Move back to grind home, using scare if targeted during movement
-            let moving_home = true;
-            game_log("🏠 Moving back to grind home.");
-            smart_move(GRIND_HOME).then(() => { moving_home = false; });
-            while (moving_home) {
-                const aggro = Object.values(parent.entities).some(e =>
-                    e.type === "monster" && e.target === character.name && !e.dead
-                );
-                if (aggro && can_use("scare")) {
-                    await use_skill("scare");
-                }
-                // If boss respawns while returning, break and restart boss loop
-                if (BOSSES.some(name => parent.S[name] && parent.S[name].live)) {
-                    boss_active = false;
-                    game_log("🔄 Boss spawned while returning home. Restarting boss loop.");
-                    break;
                 }
                 await delay(100);
             }
 
-            // Equip orbg once home
-            const orbg_slot = locate_item("orbg");
-            if (orbg_slot !== -1 && character.slots.orb?.name !== "orbg") {
-                await equip(orbg_slot);
-                await delay(300);
-            }
+            // Ensure smart_move is awaited (in case loop exited early)
+            await movePromise;
+        } else {
+            game_log("⚠️ Boss spawn location unknown, skipping smart_move.");
         }
+
+        // Engage boss until dead
+        game_log("⚔️ Engaging boss...");
+        while (parent.S[boss_name].live) {
+
+            const boss = Object.values(parent.entities).find(e =>
+                e.type === "monster" &&
+                e.mtype === boss_name &&
+                !e.dead &&
+                e.visible
+            );
+
+            if (!boss) {
+                await delay(100);
+                if (parent.S[boss_name].live) {
+                    await smart_move(boss_spawn);
+                }
+                continue;
+            }
+
+            if (!parent.S[boss_name].live){
+                break;
+            }
+
+            // Maintain distance: character.range - 5, with a tolerance of ±5
+            const dist = parent.distance(character, boss);
+            const desired_range = character.range - 5;
+            const tolerance = 5;
+            if (
+                (dist > desired_range + tolerance || dist < desired_range - tolerance) &&
+                !character.moving
+            ) {
+                const dx = boss.x - character.x;
+                const dy = boss.y - character.y;
+                const d = Math.hypot(dx, dy);
+                const target_x = boss.x - (dx / d) * desired_range;
+                const target_y = boss.y - (dy / d) * desired_range;
+                if (Math.hypot(target_x - character.x, target_y - character.y) > 10) {
+                    move(target_x, target_y);
+                }
+            }
+
+            // Use scare if aggroed by any monster
+            const aggro = Object.values(parent.entities).some(e =>
+                e.type === "monster" && e.target === character.name && !e.dead
+            );
+            if (aggro && can_use("scare")) {
+                await use_skill("scare");
+            }
+
+            try {
+                change_target(boss);
+
+                // Always heal, regardless of attack_enabled
+                let heal_target = lowest_health_partymember();
+                if (
+                    heal_target &&
+                    heal_target.hp < heal_target.max_hp - (character.heal / 1.11) &&
+                    is_in_range(heal_target)
+                ) {
+                    await heal(heal_target);
+                    delay = ms_to_next_skill('attack');
+                }
+
+                if (
+                    boss.target &&
+                    boss.target !== character.name &&
+                    boss.target !== "Myras" &&
+                    boss.target !== "Ulric" &&
+                    boss.target !== "Riva"
+                ) {
+                    await attack(boss);
+                    delay = ms_to_next_skill('attack');
+                }
+            } catch (e) {
+                console.error(e);
+            }
+            
+            await delay((delay/2)+10);
+
+        }
+
+        // Move back to grind home, using scare if targeted during movement
+        let moving_home = true;
+        smart_move(GRIND_HOME).then(() => { moving_home = false; });
+        while (moving_home) {
+            const aggro = Object.values(parent.entities).some(e =>
+                e.type === "monster" && e.target === character.name && !e.dead
+            );
+            if (aggro && can_use("scare")) {
+                await use_skill("scare");
+            }
+            // If boss respawns while returning, break and restart boss loop
+            if (BOSSES.some(name => parent.S[name] && parent.S[name].live)) {
+                game_log("🔄 Boss spawned while returning home. Restarting boss loop.");
+                break;
+            }
+            await delay(100);
+        }
+
+        // Equip orbg once home
+        const orbg_slot = locate_item("orbg");
+        if (orbg_slot !== -1 && character.slots.orb?.name !== "orbg") {
+            await equip(orbg_slot);
+            await delay(300);
+        }
+
+    } catch (e) {
+        console.error(e);
     } finally {
-        boss_loop_active = false;
-        game_log("✅ Boss loop ended.");
+        LOOP_STATES.boss = false;
+        game_log("⚠️ Boss loop ended unexpectedly ⚠️", "#FF0000");
     }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// MOVE LOOP - UNOPTIMIZED
+// MOVE LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function move_loop() {
-  if (!move_enabled) return;
-  const delay = 200;
 
-  try {
-    // Don’t override an in-progress move
-    if (character.moving || smart.moving) {
-      return setTimeout(move_loop, delay);
+    LOOP_STATES.move = true;
+
+    let delay = 200;
+
+    try {
+        while (LOOP_STATES.move) {
+            // Don’t override an in-progress move
+            if (character.moving || smart.moving) {
+                await delay(delay);
+                continue;
+            }
+
+            let move_target = null;
+            let best_dist = Infinity;
+
+            // 1) Find the absolute closest monster in MONSTER_TYPES
+            for (const mtype of MONSTER_TYPES) {
+                const mon = get_nearest_monster_v2({ type: mtype, path_check: true });
+                if (!mon) continue;
+                const d = parent.distance(character, mon);
+                if (d < best_dist) {
+                    best_dist = d;
+                    move_target = mon;
+                }
+            }
+
+            // If monster is already in attack range, we don’t need to move
+            if (move_target && parent.distance(character, move_target) <= character.range) {
+                move_target = null;
+            }
+
+            // 3) If we’ve picked someone to follow, move directly to them
+            if (move_target) {
+                await move(move_target.real_x, move_target.real_y);
+                move_target = null;
+            }
+
+            await delay(delay);
+        }
+    } catch (e) {
+        console.error("move_loop error:", e);
+    } finally {
+        LOOP_STATES.move = false;
+        game_log("⚠️ Move loop ended unexpectedly ⚠️", "#FF0000");
     }
-
-	// 1) Otherwise, find the absolute closest monster in MONSTER_TYPES
-	let bestDist = Infinity;
-	for (const mtype of MONSTER_TYPES) {
-	const mon = get_nearest_monster_v2({ type: mtype, path_check: true });
-	if (!mon) continue;
-	const d = parent.distance(character, mon);
-	if (d < bestDist) {
-		bestDist = d;
-		moveTarget = mon;
-	}
-	}
-	// If monster is already in attack range, we don’t need to move
-	if (moveTarget && parent.distance(character, moveTarget) <= character.range) {
-	moveTarget = null;
-	}
-
-    // 3) If we’ve picked someone to follow, move directly to them
-    if (moveTarget) {
-      await move(moveTarget.real_x, moveTarget.real_y);
-    }
-
-  } catch (err) {
-    console.error("move_loop error:", err);
-  }
-
-	move_timer_id = setTimeout(move_loop, delay);
-
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// SKILL LOOP - UNOPTIMIZED
+// SKILL LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function skill_loop() {
 
-    if (!skill_enabled) return;
-	
-	const X = character.real_x;
-	const Y = character.real_y;
-	const delay = 100;
-	const dead = character.rip;
-	const disabled = !parent.is_disabled(character);
-	const mapsToExclude = [];
-	const eventMaps = [];
-	const eventMobs = [];
+    LOOP_STATES.skill = true;
 
-    let PRIEST_SKILL_TOGGLES = {
-        curse: false,
-        absorb: true,
-        party_heal: true,
-        dark_blessing: false,
-        zap_spam: false
-    };
+    let delay = 100;
 
-	try {
-		if (character.ctype === "priest") {
-			handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps);
-		}
-	} catch (e) {
-		console.error(e);
-	}
-	
-    skill_timer_id = setTimeout(skill_loop, delay);
- 
+    try {
+        while (LOOP_STATES.skill) {
+            const X = character.real_x;
+            const Y = character.real_y;
+            const dead = character.rip;
+            const disabled = !parent.is_disabled(character);
+            const mapsToExclude = [];
+            const eventMaps = [];
+            const eventMobs = [];
+
+            // Use global PRIEST_SKILL_TOGGLES if you want toggles to persist
+            if (character.ctype === "priest") {
+                await handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps);
+            }
+
+            await delay(delay);
+        }
+    } catch (e) {
+        console.error("skill_loop error:", e);
+    } finally {
+        LOOP_STATES.skill = false;
+        game_log("⚠️ Skill loop ended unexpectedly ⚠️", "#FF0000");
+    }
 }
 
 async function safe_call(fn, name) {
@@ -646,24 +710,33 @@ async function loot_chests() {
     tryLoot = true;
 }
 
-// Main async optimized loot loop
 async function loot_loop() {
-    while (true) {
-        const now = Date.now();
+    LOOP_STATES.loot = true;
+    let delay = 100;
 
-        // If enough time has passed since last loot, and enough chests are present, and not feared
-        if ((lastLoot ?? 0) + 500 < now) {
-            if (getNumChests() >= chestThreshold && character.fear < 6) {
-                await loot_chests();
+    try {
+        while (LOOP_STATES.loot) {
+            const now = Date.now();
+
+            // If enough time has passed since last loot, and enough chests are present, and not feared
+            if ((lastLoot ?? 0) + 500 < now) {
+                if (getNumChests() >= chestThreshold && character.fear < 6) {
+                    await loot_chests();
+                }
             }
-        }
 
-        // If chests drop below threshold after looting, reset tryLoot
-        if (getNumChests() < chestThreshold && tryLoot) {
-            tryLoot = false;
-        }
+            // If chests drop below threshold after looting, reset tryLoot
+            if (getNumChests() < chestThreshold && tryLoot) {
+                tryLoot = false;
+            }
 
-        await delay(100); // Check every 100ms
+            await delay(delay); // Check every 100ms
+        }
+    } catch (e) {
+        console.error("loot_loop error:", e);
+    } finally {
+        LOOP_STATES.loot = false;
+        game_log("⚠️ Loot loop ended unexpectedly ⚠️", "#FF0000");
     }
 }
 
@@ -672,110 +745,116 @@ async function loot_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function potions_loop() {
-    while (true) {
-        // Calculate missing HP/MP
-        const hpMissing = character.max_hp - character.hp;
-        const mpMissing = character.max_mp - character.mp;
+    LOOP_STATES.potion = true;
+    try {
+        while (LOOP_STATES.potion) {
+            // Calculate missing HP/MP
+            const HP_MISSING = character.max_hp - character.hp;
+            const MP_MISSING = character.max_mp - character.mp;
 
-        let used_potion = false;
+            let used_potion = false;
 
-        // Use health potion if needed (non-priest)
-        if (hpMissing >= 720) {
-            if (can_use("mp")) {
-                use("mp");
-				use_skill("partyheal");
-                used_potion = true;
+            // Cast partyheal rather than use HP Pot
+            if (hpMissing >= 720) {
+                if (can_use("mp")) {
+                    use("mp");
+                    use_skill("partyheal");
+                    used_potion = true;
+                }
+            }
+
+            // Use mana potion if needed
+            if (MP_MISSING >= 500) {
+                if (can_use("mp")) {
+                    use("mp");
+                    used_potion = true;
+                }
+            }
+
+            if (used_potion) {
+                await delay(2010); // Wait 2 seconds after using a potion
+            } else {
+                await delay(10);   // Otherwise, check again in 10ms
             }
         }
-
-        // Use mana potion if needed
-        if (mpMissing >= 500) {
-            if (can_use("mp")) {
-                use("mp");
-                used_potion = true;
-            }
-        }
-
-        if (used_potion) {
-            await delay(2010); // Wait 2 seconds after using a potion
-        } else {
-            await delay(10);   // Otherwise, check again in 10ms
-        }
+    } catch (e) {
+        console.error("potions_loop error:", e);
+    } finally {
+        LOOP_STATES.potion = false;
+        game_log("⚠️ Potions loop ended unexpectedly ⚠️", "#FF0000");
     }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// COMBAT MOVEMENT TO GROUP UP ENEMIES - SEMI OPTIMIZED
+// COMBAT ORBIT
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let circle_move_enabled = false;
-let circle_move_timer_id = null;
-let circle_origin = null;
-let circle_move_radius = 27;
-let circle_path_points = [];
-let circle_path_index = 0;
-const CIRCLE_STEPS = 12; // 30 degrees per step
+let orbit_origin = null;
+let orbit_radius = 27;
+let orbit_path_points = [];
+let orbit_path_index = 0;
+const ORBIT_STEPS = 12; // 30 degrees per step
+const MOVE_CHECK_INTERVAL = 120; // ms
+const MOVE_TOLERANCE = 5; // pixels
 
-function set_circle_move_radius(r) {
+function set_orbit_radius(r) {
     if (typeof r === "number" && r > 0) {
-        circle_move_radius = r;
-        game_log(`Circle move radius set to ${circle_move_radius}`);
+        orbit_radius = r;
+        game_log(`Orbit radius set to ${orbit_radius}`);
     }
 }
 
-function compute_circle_path(origin, radius, steps) {
+function compute_orbit_path(origin, orbit_radius, steps) {
     const points = [];
     for (let i = 0; i < steps; i++) {
         const angle = (2 * Math.PI * i) / steps;
         points.push({
-            x: origin.x + radius * Math.cos(angle),
-            y: origin.y + radius * Math.sin(angle)
+            x: origin.x + orbit_radius * Math.cos(angle),
+            y: origin.y + orbit_radius * Math.sin(angle)
         });
     }
     return points;
 }
 
-function start_circle_move(radius = circle_move_radius) {
-    if (circle_move_enabled) return;
-    circle_move_enabled = true;
-    circle_origin = { x: character.real_x, y: character.real_y };
-    set_circle_move_radius(radius);
-    circle_path_points = compute_circle_path(circle_origin, circle_move_radius, CIRCLE_STEPS);
-    circle_path_index = 0;
-    circle_move_loop(); // No timer needed, just start the async loop
-    console.log("🔵 Circle move started");
-}
+async function orbit_loop() {
 
-function stop_circle_move() {
-    circle_move_enabled = false;
-    console.log("⏹ Circle move stopped");
-}
+    LOOP_STATES.orbit = true;
 
-const MOVE_CHECK_INTERVAL = 120; // ms
-const MOVE_TOLERANCE = 5; // pixels
+    let delay = 10;
 
-async function circle_move_loop() {
-    while (circle_move_enabled) {
-        const point = circle_path_points[circle_path_index];
-        circle_path_index = (circle_path_index + 1) % circle_path_points.length;
+    orbit_origin = { x: character.real_x, y: character.real_y };
+    set_orbit_radius(orbit_radius);
+    orbit_path_points = compute_orbit_path(orbit_origin, orbit_radius, ORBIT_STEPS);
+    orbit_path_index = 0;
 
-        // Only move if not already close to the next point
-        const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
-        if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
-            try {
-                await move(point.x, point.y);
-            } catch (e) {
-                console.error("Circle move error:", e);
+    try {
+        while (LOOP_STATES.orbit) {
+            const point = orbit_path_points[orbit_path_index];
+            orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
+
+            // Only move if not already close to the next point
+            const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
+            if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
+                try {
+                    await move(point.x, point.y);
+                } catch (e) {
+                    console.error("Orbit move error:", e);
+                }
             }
-        }
 
-        // Wait until movement is finished or interrupted
-        while (circle_move_enabled && (character.moving || smart.moving)) {
-            await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
-        }
+            // Wait until movement is finished or interrupted
+            while (LOOP_STATES.orbit && (character.moving || smart.moving)) {
+                await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
+            }
 
-        // Small delay before next step to reduce CPU usage
-        await new Promise(resolve => setTimeout(resolve, 10));
+            // Small delay before next step to reduce CPU usage
+            await delay(delay);
+        }
+    } catch (e) {
+        console.error("orbit_loop error:", e);
+    } finally {
+        LOOP_STATES.orbit = false;
+        game_log("⚠️ Orbit loop ended unexpectedly ⚠️", "#FF0000");
     }
 }
 
@@ -783,25 +862,22 @@ async function circle_move_loop() {
 // PANIC BUTTON!!!
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const CHECK_INTERVAL = 500;
-const PANIC_INTERVAL = 1000;
+let panicking = false;
+
+const CHECK_INTERVAL = 100;
+const PANIC_INTERVAL = 500;
 const WARRIOR_NAME = "Ulric";
 const PANIC_WEAPON = "jacko";
 const NORMAL_WEAPON = "orbg";
 
-let panic_loop_running = false;
-let panicking = false;
-
 async function panic_loop() {
-    if (panic_loop_running) {
-        game_log("⚠️ Panic loop already running.");
-        return;
-    }
-    if (!panic_enabled) return;
-    panic_loop_running = true;
+
+    LOOP_STATES.panic = true;
+
+    let delay = 100;
 
     try {
-        while (panic_enabled) {
+        while (LOOP_STATES.panic) {
             const warrior_entity = parent.entities[WARRIOR_NAME];
             const warrior_online = parent.party_list.includes(WARRIOR_NAME);
             const warrior_alive = warrior_online && parent.party[WARRIOR_NAME] && !parent.party[WARRIOR_NAME].rip;
@@ -831,7 +907,7 @@ async function panic_loop() {
                     await use_skill("scare");
                 }
 
-                // Wait 5.1 seconds before rechecking panic state
+                // Wait before rechecking panic state
                 await delay(PANIC_INTERVAL);
             } else if (high_health && warrior_alive && warrior_online && panicking) {
                 // SAFE CONDITION
@@ -839,24 +915,26 @@ async function panic_loop() {
                 const orbg_slot = locate_item(NORMAL_WEAPON);
                 if (character.slots.orb?.name !== NORMAL_WEAPON && orbg_slot !== -1) {
                     await equip(orbg_slot);
-                    await delay(500);
+                    await delay(delay);
                 }
 
-                if (!attack_enabled) {
+                if (!LOOP_STATES.attack) {
                     game_log("✅ Panic over — resuming normal operations.");
                     start_attack_loop();
                 }
 
                 await delay(CHECK_INTERVAL);
             } else {
-                await delay(200);
+                await delay(delay);
             }
         }
+    } catch (e) {
+        console.error("panic_loop error:", e);
     } finally {
-        panic_loop_running = false;
+        LOOP_STATES.panic = false;
+        game_log("⚠️ Panic loop ended unexpectedly ⚠️", "#FF0000");
     }
 }
-
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 3) PERSISTENT STATE HANDLER

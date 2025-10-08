@@ -831,7 +831,7 @@ async function panic_loop() {
             const myras_online = parent.party_list.includes(PRIEST_NAME);
             const myras_alive = myras_online && parent.party[PRIEST_NAME] && !parent.party[PRIEST_NAME].rip;
             const myras_near = myras_online && parent.distance(character, myras_entity) <= 500;
-            const low_health = character.hp < (character.max_hp / 3);
+            const low_health = character.hp < (character.max_hp / 2);
             const high_health = character.hp >= ((2 * character.max_hp) / 3);
 
             // PANIC CONDITION
