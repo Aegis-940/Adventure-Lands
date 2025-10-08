@@ -794,58 +794,57 @@ async function panic_loop() {
         return;
     }
     if (!panic_enabled) return;
+    
     panic_loop_running = true;
 
     try {
-        while (panic_enabled) {
-            const warrior_entity = parent.entities[WARRIOR_NAME];
-            const warrior_online = parent.party_list.includes(WARRIOR_NAME);
-            const warrior_alive = warrior_online && parent.party[WARRIOR_NAME] && !parent.party[WARRIOR_NAME].rip;
-            const warrior_near = warrior_entity && parent.distance(character, warrior_entity) <= 400;
-            const low_health = character.hp < (character.max_hp / 3);
-            const high_health = character.hp >= ((2 * character.max_hp) / 3);
+        const warrior_entity = parent.entities[WARRIOR_NAME];
+        const warrior_online = parent.party_list.includes(WARRIOR_NAME);
+        const warrior_alive = warrior_online && parent.party[WARRIOR_NAME] && !parent.party[WARRIOR_NAME].rip;
+        const warrior_near = warrior_entity && parent.distance(character, warrior_entity) <= 400;
+        const low_health = character.hp < (character.max_hp / 3);
+        const high_health = character.hp >= ((2 * character.max_hp) / 3);
 
-            // PANIC CONDITION
-            if (!warrior_online || !warrior_alive || low_health) {
-                stop_attack_loop();
-                let reason = low_health ? "Low health!"
-                    : !warrior_online ? "Ulric is offline!"
-                    : !warrior_alive ? "Ulric is dead!"
-                    : "Unknown panic reason!";
+        // PANIC CONDITION
+        if (!warrior_online || !warrior_alive || low_health) {
+            stop_attack_loop();
+            let reason = low_health ? "Low health!"
+                : !warrior_online ? "Ulric is offline!"
+                : !warrior_alive ? "Ulric is dead!"
+                : "Unknown panic reason!";
 
-                game_log(`⚠️ Panic triggered: ${reason}`);
+            game_log(`⚠️ Panic triggered: ${reason}`);
 
-                // Ensure jacko is equipped
-                const jacko_slot = locate_item(PANIC_WEAPON);
-                if (character.slots.orb?.name !== PANIC_WEAPON && jacko_slot !== -1) {
-                    await equip(jacko_slot);
-                    await delay(500);
-                }
-
-                // Recast scare if possible
-                if (can_use("scare")) {
-                    await use_skill("scare");
-                }
-
-                // Wait 5.1 seconds before rechecking panic state
-                await delay(PANIC_INTERVAL);
-            } else if (high_health && warrior_alive && warrior_online) {
-                // SAFE CONDITION
-                const orbg_slot = locate_item(NORMAL_WEAPON);
-                if (character.slots.orb?.name !== NORMAL_WEAPON && orbg_slot !== -1) {
-                    await equip(orbg_slot);
-                    await delay(500);
-                }
-
-                if (!attack_enabled) {
-                    game_log("✅ Panic over — resuming normal operations.");
-                    start_attack_loop();
-                }
-
-                await delay(CHECK_INTERVAL);
-            } else {
-                await delay(200);
+            // Ensure jacko is equipped
+            const jacko_slot = locate_item(PANIC_WEAPON);
+            if (character.slots.orb?.name !== PANIC_WEAPON && jacko_slot !== -1) {
+                await equip(jacko_slot);
+                await delay(500);
             }
+
+            // Recast scare if possible
+            if (can_use("scare")) {
+                await use_skill("scare");
+            }
+
+            // Wait 5.1 seconds before rechecking panic state
+            await delay(PANIC_INTERVAL);
+        } else if (high_health && warrior_alive && warrior_online) {
+            // SAFE CONDITION
+            const orbg_slot = locate_item(NORMAL_WEAPON);
+            if (character.slots.orb?.name !== NORMAL_WEAPON && orbg_slot !== -1) {
+                await equip(orbg_slot);
+                await delay(500);
+            }
+
+            if (!attack_enabled) {
+                game_log("✅ Panic over — resuming normal operations.");
+                start_attack_loop();
+            }
+
+            await delay(CHECK_INTERVAL);
+        } else {
+            await delay(200);
         }
     } finally {
         panic_loop_running = false;
