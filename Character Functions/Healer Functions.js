@@ -170,8 +170,6 @@ let ATTACK_PRIORITIZE_UNTARGETED = true; // true: prefer monsters with no target
 
 async function attack_loop() {
 
-    if (smart.moving) return;
-
     let delay = 100;
     let disabled = (parent.is_disabled(character) === undefined);
 
@@ -190,7 +188,7 @@ async function attack_loop() {
             }
 
             // Only attack if attack_enabled is true
-            if (attack_enabled) {
+            if (attack_enabled && smart.moving == false) {
                 // Filter all relevant monsters ONCE
                 const monsters = Object.values(parent.entities).filter(e =>
                     e.type === "monster" &&
