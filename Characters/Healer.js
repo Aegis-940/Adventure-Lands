@@ -50,14 +50,16 @@ async function universal_loop_controller() {
 			return;
 		}
 
-		// Boss detection logic
-		const boss_alive = BOSSES.some(name =>
-			parent.S[name] &&
-			parent.S[name].live &&
-			typeof parent.S[name].hp === "number" &&
-			typeof parent.S[name].max_hp === "number" &&
-			(parent.S[name].max_hp - parent.S[name].hp) > 100000
-		)
+		const boss_alive = BOSSES.some(name => {
+			const s = parent.S[name];
+			return (
+				s &&
+				s.live === true &&
+				Number.isFinite(s.hp) &&
+				Number.isFinite(s.max_hp) &&
+				(s.max_hp - s.hp) > 100000
+			);
+		});
 
 		if (!LOOP_STATES.boss && boss_alive && !character.rip) {
 			stop_attack_loop();
