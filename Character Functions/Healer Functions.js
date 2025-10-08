@@ -68,10 +68,7 @@ function stop_skill_loop() {
 }
 
 function start_panic_loop() {
-    if (LOOP_STATES.panic) {
-        game_log("⚠️ Panic loop already running.");
-        return;
-    }
+    if (LOOP_STATES.panic) return;
     LOOP_STATES.panic = true;
     panic_loop();
     game_log("▶️ Panic loop started");

@@ -15,10 +15,6 @@ create_map_movement_window([
   { id: "custom6", label: "Custom 6", onClick: () => null }
 ]);
 
-// toggle_combat();
-// toggle_free_move();
-// create_priest_skill_buttons();
-// toggle_circle_move_button();
 hide_skills_ui();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
