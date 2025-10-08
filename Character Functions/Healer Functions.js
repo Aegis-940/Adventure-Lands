@@ -892,7 +892,7 @@ async function panic_loop() {
 
                 // Wait before rechecking panic state
                 await delay(PANIC_INTERVAL);
-            } else if (warrior_online && panicking) {
+            } else if (high_health && panicking) {
                 // SAFE CONDITION
                 panicking = false;
                 const orbg_slot = locate_item(NORMAL_WEAPON);
