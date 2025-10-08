@@ -64,7 +64,7 @@ function universal_loop_controller() {
 			start_attack_loop();
 		}
 
-		if (!circle_move_enabled) {
+		if (!circle_move_enabled && character.x === GRIND_HOME.x && character.y === GRIND_HOME.y) {
 			start_circle_move();
 		}
 
