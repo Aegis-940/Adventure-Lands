@@ -232,11 +232,12 @@ async function attack_loop() {
 
 const BOSSES = ["mrpumpkin", "mrgreen"];
 const GRIND_HOME = { map: "main", x: 907, y: -174 };
+let boss_loop_active = true;
 
 async function boss_loop() {
 
     let wait_time = 50;
-    let boss_loop_active = true;
+    boss_loop_active = true;
     let boss_active = true;
 
     try {

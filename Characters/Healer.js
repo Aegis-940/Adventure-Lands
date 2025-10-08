@@ -85,9 +85,9 @@ setInterval(() => {
 
 	// === Core utility loops ===
 	party_manager();
+	universal_loop_controller();
 
 	if (!attack_mode || character.rip || is_moving(character)) return;
 
-	universal_loop_controller();
 
 }, 250);
