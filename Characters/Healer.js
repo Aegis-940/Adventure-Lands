@@ -49,6 +49,8 @@ function universal_loop_controller() {
 
 		if (!boss_alive && !character.rip) {
 
+			game_log("Check 1");
+
 			if (!LOOP_STATES.potion) { start_potion_loop(); }
 
 			if (!LOOP_STATES.loot) { start_loot_loop(); }
