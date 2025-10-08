@@ -218,7 +218,7 @@ async function attack_loop() {
 
     LOOP_STATES.attack = true;
 
-    let delay = 100;
+    let delayMs = 100;
 
     try {
         while (LOOP_STATES.attack) {
@@ -232,7 +232,7 @@ async function attack_loop() {
             ) {
                 await heal(heal_target);
                 game_log(`Healing ${heal_target.name}`, "#00FF00");
-                delay = ms_to_next_skill('attack');
+                delayMs = ms_to_next_skill('attack');
             }
 
             // Filter all relevant monsters ONCE
@@ -259,10 +259,10 @@ async function attack_loop() {
 
             if (target && is_in_range(target)) {
                 await attack(target);
-                delay = ms_to_next_skill('attack');
+                delayMs = ms_to_next_skill('attack');
             }
 
-            await new Promise(resolve => setTimeout(resolve, delay));
+            await delay(delayMs);
         }
     } catch (err) {
         console.error(err);
