@@ -511,10 +511,10 @@ async function move_loop() {
                 move_target = null;
             }
 
-            await new Promise(resolve => setTimeout(resolve, delay));
+            await delay(delay);
         }
     } catch (e) {
-        console.error("move_loop error:", e);
+        game_log("move_loop error:", e);
     } finally {
         LOOP_STATES.move = false;
         game_log("⚠️ Move loop ended unexpectedly ⚠️", "#FF0000");
@@ -546,10 +546,10 @@ async function skill_loop() {
                 await handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps);
             }
 
-            await new Promise(resolve => setTimeout(resolve, delay));
+            await delay(delay);
         }
     } catch (e) {
-        console.error("skill_loop error:", e);
+        game_log("skill_loop error:", e);
     } finally {
         LOOP_STATES.skill = false;
         game_log("⚠️ Skill loop ended unexpectedly ⚠️", "#FF0000");
@@ -716,10 +716,10 @@ async function loot_loop() {
                 tryLoot = false;
             }
 
-            await new Promise(resolve => setTimeout(resolve, delay));
+            await delay(delay);
         }
     } catch (e) {
-        console.error("loot_loop error:", e);
+        game_log("loot_loop error:", e);
     } finally {
         LOOP_STATES.loot = false;
         game_log("⚠️ Loot loop ended unexpectedly ⚠️", "#FF0000");
@@ -766,7 +766,7 @@ async function potions_loop() {
             }
         }
     } catch (e) {
-        console.error("potions_loop error:", e);
+        game_log("potions_loop error:", e);
     } finally {
         LOOP_STATES.potion = false;
         game_log("⚠️ Potions loop ended unexpectedly ⚠️", "#FF0000");
@@ -839,7 +839,7 @@ async function orbit_loop() {
             await delay(delay);
         }
     } catch (e) {
-        console.error("orbit_loop error:", e);
+        game_log("orbit_loop error:", e);
     } finally {
         LOOP_STATES.orbit = false;
         game_log("⚠️ Orbit loop ended unexpectedly ⚠️", "#FF0000");
@@ -912,7 +912,7 @@ async function panic_loop() {
             }
         }
     } catch (e) {
-        console.error("panic_loop error:", e);
+        game_log("panic_loop error:", e);
     } finally {
         LOOP_STATES.panic = false;
         game_log("⚠️ Panic loop ended unexpectedly ⚠️", "#FF0000");
