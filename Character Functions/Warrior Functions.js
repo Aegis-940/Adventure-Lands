@@ -218,8 +218,11 @@ async function attack_loop() {
 
             if (target && !is_on_cooldown("attack") && can_use("attack")) {
                 await attack(target);
-                delayMs = ms_to_next_skill("attack");
             }
+
+            // Always wait until the next attack is available
+            let delayMs = ms_to_next_skill("attack");
+            if (delayMs < 20) delayMs = 20; // Don't spam, but check frequently
             await delay(delayMs);
         }
     } catch (e) {
