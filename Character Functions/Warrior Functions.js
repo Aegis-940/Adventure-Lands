@@ -221,7 +221,7 @@ async function attack_loop() {
             }
 
             // Always wait until the next attack is available
-            let delayMs = ms_to_next_skill("attack");
+            delayMs = ms_to_next_skill("attack");
             if (delayMs < 20) delayMs = 20; // Don't spam, but check frequently
             await delay(delayMs);
         }
