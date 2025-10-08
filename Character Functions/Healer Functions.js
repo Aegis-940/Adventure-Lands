@@ -221,7 +221,7 @@ async function attack_loop() {
     let delayMs = 100;
 
     try {
-        while (LOOP_STATES.attack) {
+        while (true) {
 
             // Always heal, regardless of attack_enabled
             let heal_target = lowest_health_partymember();
@@ -247,7 +247,7 @@ async function attack_loop() {
 
             let target = null;
 
-            if (monsters.length) {
+            if (monsters.length && LOOP_STATES.attack) {
                 let untargeted = monsters.filter(m => !m.target);
                 let candidates = (ATTACK_PRIORITIZE_UNTARGETED && untargeted.length) ? untargeted : monsters;
 
