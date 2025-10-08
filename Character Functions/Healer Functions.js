@@ -730,7 +730,7 @@ async function loot_loop() {
                 tryLoot = false;
             }
 
-            await delay(delay); // Check every 100ms
+            await delay(delay);
         }
     } catch (e) {
         console.error("loot_loop error:", e);
@@ -755,7 +755,7 @@ async function potions_loop() {
             let used_potion = false;
 
             // Cast partyheal rather than use HP Pot
-            if (hpMissing >= 720) {
+            if (HP_MISSING >= 720) {
                 if (can_use("mp")) {
                     use("mp");
                     use_skill("partyheal");
