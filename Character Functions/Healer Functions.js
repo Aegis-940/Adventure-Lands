@@ -266,7 +266,7 @@ async function attack_loop() {
             await delay(delayMs);
         }
     } catch (e) {
-        game_log(`⚠️ Attack Loop error: ${e} ⚠️`, "#FF0000");
+        game_log("⚠️ Panic Loop error: ", e, "#FF0000");
     } finally {
         LOOP_STATES.attack = false;
         game_log("⚠️ Attack loop ended unexpectedly ⚠️", "#ffea00ff");
