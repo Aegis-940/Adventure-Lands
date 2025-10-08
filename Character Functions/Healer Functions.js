@@ -915,10 +915,7 @@ async function panic_loop() {
                     await delay(delay);
                 }
 
-                if (!LOOP_STATES.attack) {
-                    game_log("✅ Panic over — resuming normal operations.");
-                    start_attack_loop();
-                }
+                game_log("✅ Panic over — resuming normal operations.");
 
                 await delay(CHECK_INTERVAL);
             } else {
