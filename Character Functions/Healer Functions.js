@@ -882,7 +882,7 @@ async function panic_loop() {
             const low_health = character.hp < (character.max_hp / 3);
             const low_mana = character.mp < 50;
             const high_health = character.hp >= ((2 * character.max_hp) / 3);
-            const high_mana = character.mp < 500;
+            const high_mana = character.mp >= 500;
 
             // PANIC CONDITION
             if (low_health || low_mana) {
@@ -914,7 +914,7 @@ async function panic_loop() {
             if (high_health && high_mana) {
                 if (panicking) {
                     panicking = false;
-                game_log("✅ Panic over — resuming normal operations.");
+                    game_log("✅ Panic over — resuming normal operations.");
                 }
                 const orbg_slot = locate_item(NORMAL_WEAPON);
                 if (character.slots.orb?.name !== NORMAL_WEAPON && orbg_slot !== -1) {
