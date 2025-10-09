@@ -194,8 +194,6 @@ async function attack_loop() {
 
     LOOP_STATES.attack = true;
 
-    game_log("Check 1");
-
     let delayMs = 100;
 
     try {
@@ -213,12 +211,12 @@ async function attack_loop() {
             // 2. Prioritize cursed monsters if any
             let target = monsters.find(m => m.s && m.s.cursed);
 
-            // 3. Otherwise, pick the lowest HP monster in range
+            // 3. Otherwise, pick the Highest HP monster in range
             if (!target && monsters.length) {
                 target = monsters.reduce((a, b) => (b.hp < a.hp ? a : b));
             }
 
-            if (target && !is_on_cooldown("attack") && can_use("attack")) {
+            if (target) {
                 await attack(target);
                 delayMs = ms_to_next_skill("attack");
             }
