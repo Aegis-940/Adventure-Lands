@@ -257,7 +257,7 @@ async function heal_loop() {
                 continue;
             } else {
                 just_healed = false
-                await delay(50);
+                await delay(10);
             }
         }
     } catch (e) {
