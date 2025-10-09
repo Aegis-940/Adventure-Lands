@@ -251,7 +251,8 @@ async function heal_loop() {
             ) {
                 skill_lock = true;
                 await heal(target);
-                setTimeout(() => { skill_lock = false; }, cooldown * -1); // unlock after cooldown
+                const next_cd = ms_to_next_skill('attack') + character.ping + 20;
+                setTimeout(() => { skill_lock = false; }, Math.max(next_cd, 0));
             }
             await delay(5);
         }
@@ -311,7 +312,8 @@ async function attack_loop() {
                 if (target && is_in_range(target) && !smart.moving) {
                     skill_lock = true;
                     await attack(target);
-                    setTimeout(() => { skill_lock = false; }, cooldown * -1); // unlock after cooldown
+                    const next_cd = ms_to_next_skill('attack') + character.ping + 20;
+                    setTimeout(() => { skill_lock = false; }, Math.max(next_cd, 0));
                 }
             }
             await delay(5);
