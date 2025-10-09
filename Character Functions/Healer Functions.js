@@ -251,23 +251,18 @@ async function heal_loop() {
             if (target && target.hp < target.max_hp - (character.heal / 1.1) && is_in_range(target)) {
                 game_log(`💖 Healing ${target.name}`, "#00FF00");
                 await heal(target);
-                just_healed = true;
                 delayMs = ms_to_next_skill('attack') + character.ping + 20;
                 await delay(delayMs);
                 continue;
-            } else {
-                just_healed = false
-                await delay(10);
             }
         }
     } catch (e) {
         game_log("⚠️ Heal Loop error:", "#FF0000");
         game_log(e);
-    } 
-    // finally {
-    //     LOOP_STATES.heal = false;
-    //     game_log("Heal loop ended unexpectedly", "#ffea00ff");
-    // }
+    } finally {
+        LOOP_STATES.heal = false;
+        game_log("Heal loop ended unexpectedly", "#ffea00ff");
+    }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -286,41 +281,50 @@ async function attack_loop() {
 
     try {
         while (LOOP_STATES.attack) {
-            if (!just_healed) {
-
-                // --- Attacking ---
-                // Filter all relevant monsters ONCE
-                const monsters = Object.values(parent.entities).filter(e =>
-                    e.type === "monster" &&
-                    MONSTER_TYPES.includes(e.mtype) &&
-                    !e.dead &&
-                    e.visible &&
-                    parent.distance(character, e) <= character.range
-                );
-
-                let target = null;
-
-                if (monsters.length) {
-                    let untargeted = monsters.filter(m => !m.target);
-                    let candidates = (ATTACK_PRIORITIZE_UNTARGETED && untargeted.length) ? untargeted : monsters;
-
-                    if (ATTACK_TARGET_LOWEST_HP) {
-                        target = candidates.reduce((a, b) => (a.hp < b.hp ? a : b));
-                    } else {
-                        target = candidates.reduce((a, b) => (a.hp > b.hp ? a : b));
-                    }
-                }
-
-                if (target && is_in_range(target) && !smart.moving) {
-                    await attack(target);
-                    delayMs = ms_to_next_skill('attack') + character.ping + 20;
-                    await delay(delayMs);
+            // If healing is enabled and a heal is possible, skip attacking
+            if (LOOP_STATES.heal) {
+                const heal_target = lowest_health_partymember();
+                if (
+                    heal_target &&
+                    heal_target.hp < heal_target.max_hp - (character.heal / 1.1) &&
+                    is_in_range(heal_target)
+                ) {
+                    // Healing loop will handle this, so skip attacking
+                    await delay(20);
                     continue;
                 }
-                await delay(50);
-            } else {
-                await delay(50);
             }
+
+            // --- Attacking ---
+            // Filter all relevant monsters ONCE
+            const monsters = Object.values(parent.entities).filter(e =>
+                e.type === "monster" &&
+                MONSTER_TYPES.includes(e.mtype) &&
+                !e.dead &&
+                e.visible &&
+                parent.distance(character, e) <= character.range
+            );
+
+            let target = null;
+
+            if (monsters.length) {
+                let untargeted = monsters.filter(m => !m.target);
+                let candidates = (ATTACK_PRIORITIZE_UNTARGETED && untargeted.length) ? untargeted : monsters;
+
+                if (ATTACK_TARGET_LOWEST_HP) {
+                    target = candidates.reduce((a, b) => (a.hp < b.hp ? a : b));
+                } else {
+                    target = candidates.reduce((a, b) => (a.hp > b.hp ? a : b));
+                }
+            }
+
+            if (target && is_in_range(target) && !smart.moving) {
+                await attack(target);
+                delayMs = ms_to_next_skill('attack') + character.ping + 20;
+                await delay(delayMs);
+                continue;
+            }
+            await delay(50);
         }
     } catch (e) {
         game_log("⚠️ Attack Loop error:", "#FF0000");
