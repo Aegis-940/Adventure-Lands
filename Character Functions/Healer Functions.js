@@ -242,23 +242,29 @@ async function attack_loop() {
 
     let delayMs = 50;
 
+    let valid_heal_target = false
+
     try {
         while (LOOP_STATES.attack || LOOP_STATES.heal) {
 
-            if (LOOP_STATES.heal) {
-                const target = lowest_health_partymember();
-                if (
+            const target = lowest_health_partymember();
+            if (
                     target &&
                     target.hp < target.max_hp - (character.heal / 1.1) &&
                     is_in_range(target)
                 ) {
-                    game_log(`💖 Healing ${target.name}`, "#00FF00");
-                    await heal(target);
-                    last_action_time = Date.now();
-                    delayMs = ms_to_next_skill('attack') + character.ping + 20;
-                    await delay(delayMs);
-                    continue;
+                    valid_heal_target = true
+                } else {
+                    valid_heal_target = false
                 }
+
+            if (LOOP_STATES.heal && valid_heal_target) {
+                game_log(`💖 Healing ${target.name}`, "#00FF00");
+                await heal(target);
+                last_action_time = Date.now();
+                delayMs = ms_to_next_skill('attack') + character.ping + 20;
+                await delay(delayMs);
+                continue;
             } else if (LOOP_STATES.attack) {
 
                 // --- Attacking ---
