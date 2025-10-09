@@ -221,32 +221,35 @@ function get_nearest_monster_v2(args = {}) {
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+// Toggle options
+let ATTACK_TARGET_LOWEST_HP = true;      // true: lowest HP, false: highest HP
+let ATTACK_PRIORITIZE_UNTARGETED = true; // true: prefer monsters with no target first
+
 async function attack_loop() {
-    LOOP_STATES.attack = true;
-    LOOP_STATES.heal = true; // Ensure healing is enabled by default
 
     let delayMs = 100;
 
     try {
         while (true) {
+
             delayMs = 100;
 
-            // 1. Healing (runs if healing is enabled)
-            let heal_target = lowest_health_partymember();
+            // --- Healing: always check first, mutually exclusive with attacking ---
+            const heal_target = lowest_health_partymember();
+
             if (
                 heal_target &&
                 heal_target.hp < heal_target.max_hp - (character.heal / 1.11) &&
-                is_in_range(heal_target) &&
-                LOOP_STATES.heal
+                is_in_range(heal_target)
             ) {
                 await heal(heal_target);
-                delayMs = ms_to_next_skill('attack') + character.ping;
-                await delay(delayMs);
+                await delay(ms_to_next_skill('attack') + character.ping);
                 continue; // Skip attacking this tick
             }
 
-            // 2. Attacking (runs only if attacking is enabled)
-            else if (LOOP_STATES.attack) {
+            // --- Attacking ---
+            if (LOOP_STATES.attack) {
+                // Filter all relevant monsters ONCE
                 const monsters = Object.values(parent.entities).filter(e =>
                     e.type === "monster" &&
                     MONSTER_TYPES.includes(e.mtype) &&
@@ -271,9 +274,9 @@ async function attack_loop() {
                 if (target && is_in_range(target) && !smart.moving) {
                     await attack(target);
                     delayMs = ms_to_next_skill('attack') + character.ping;
+                    await delay(delayMs);
                 }
             }
-
             await delay(delayMs);
         }
     } catch (e) {
@@ -281,7 +284,6 @@ async function attack_loop() {
         game_log(e);
     } finally {
         LOOP_STATES.attack = false;
-        // Do NOT set LOOP_STATES.heal = false here!
         game_log("Attack loop ended unexpectedly", "#ffea00ff");
     }
 }
