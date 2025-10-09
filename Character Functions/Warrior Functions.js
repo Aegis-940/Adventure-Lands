@@ -591,18 +591,19 @@ async function potions_loop() {
                 use("mp");
                 used_potion = true;
             } else {
-                // Cast partyheal rather than use HP Pot
-                if (HP_MISSING >= 400) {
-                    if (can_use("hp")) {
-                        use("hp");
-                        used_potion = true;
-                    }
-                }
 
                 // Use mana potion if needed
                 if (MP_MISSING >= 500) {
                     if (can_use("mp")) {
                         use("mp");
+                        used_potion = true;
+                    }
+                }
+                
+                // Cast partyheal rather than use HP Pot
+                if (HP_MISSING >= 400) {
+                    if (can_use("hp")) {
+                        use("hp");
                         used_potion = true;
                     }
                 }
