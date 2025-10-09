@@ -232,8 +232,6 @@ async function attack_loop() {
     try {
         while (true) {
 
-            game_log("Attack looping");
-
             delayMs = 100;
 
             // --- Healing: always check first, mutually exclusive with attacking ---
