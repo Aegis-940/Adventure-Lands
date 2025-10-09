@@ -232,18 +232,17 @@ async function attack_loop() {
             delayMs = 100;
 
             // 1. Healing (runs if healing is enabled)
-            if (LOOP_STATES.heal) {
-                let heal_target = lowest_health_partymember();
-                if (
-                    heal_target &&
-                    heal_target.hp < heal_target.max_hp - (character.heal / 1.11) &&
-                    is_in_range(heal_target)
-                ) {
-                    await heal(heal_target);
-                    delayMs = ms_to_next_skill('attack') + character.ping;
-                    await delay(delayMs);
-                    continue; // Skip attacking this tick
-                }
+            let heal_target = lowest_health_partymember();
+            if (
+                heal_target &&
+                heal_target.hp < heal_target.max_hp - (character.heal / 1.11) &&
+                is_in_range(heal_target) &&
+                LOOP_STATES.heal
+            ) {
+                await heal(heal_target);
+                delayMs = ms_to_next_skill('attack') + character.ping;
+                await delay(delayMs);
+                continue; // Skip attacking this tick
             }
 
             // 2. Attacking (runs only if attacking is enabled)
