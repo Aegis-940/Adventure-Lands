@@ -36,19 +36,6 @@ function stop_attack_loop() {
     game_log("⏹ Attack loop stopped");
 }
 
-function start_heal_loop() {
-    if (LOOP_STATES.heal) return;
-    LOOP_STATES.heal = true;
-    heal_loop();
-    game_log("▶️ Heal loop started");
-}
-
-function stop_heal_loop() {
-    if (!LOOP_STATES.heal) return;
-    LOOP_STATES.heal = false;
-    game_log("⏹ Heal loop stopped");
-}
-
 function stop_attack_loop() {
     if (!LOOP_STATES.attack) return;
     LOOP_STATES.attack = false;
@@ -230,42 +217,6 @@ function get_nearest_monster_v2(args = {}) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// HEALING LOOP
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-let last_action_time = 0;
-
-async function heal_loop() {
-    LOOP_STATES.heal = true;
-    let delayMs = 50;
-
-    try {
-        while (LOOP_STATES.heal) {
-            const target = lowest_health_partymember();
-            if (
-                target &&
-                target.hp < target.max_hp - (character.heal / 1.1) &&
-                is_in_range(target)
-            ) {
-                game_log(`💖 Healing ${target.name}`, "#00FF00");
-                await heal(target);
-                last_action_time = Date.now();
-                delayMs = ms_to_next_skill('attack') + character.ping + 20;
-                await delay(delayMs);
-                continue;
-            }
-            await delay(50);
-        }
-    } catch (e) {
-        game_log("⚠️ Heal Loop error:", "#FF0000");
-        game_log(e);
-    } finally {
-        LOOP_STATES.heal = false;
-        game_log("Heal loop ended unexpectedly", "#ffea00ff");
-    }
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -280,11 +231,23 @@ async function attack_loop() {
     let delayMs = 50;
 
     try {
-        while (LOOP_STATES.attack) {
+        while (LOOP_STATES.attack || LOOP_STATES.heal) {
 
-            const now = Date.now();
+            if (LOOP_STATES.heal) {
+            const target = lowest_health_partymember();
+            if (
+                target &&
+                target.hp < target.max_hp - (character.heal / 1.1) &&
+                is_in_range(target)
+            ) {
+                game_log(`💖 Healing ${target.name}`, "#00FF00");
+                await heal(target);
+                last_action_time = Date.now();
+                delayMs = ms_to_next_skill('attack') + character.ping + 20;
+                await delay(delayMs);
+                continue;
 
-            if (now > last_action_time + ms_to_next_skill('attack')) {
+            } else if (LOOP_STATES.attack) {
 
                 // --- Attacking ---
                 // Filter all relevant monsters ONCE
@@ -316,8 +279,12 @@ async function attack_loop() {
                     await delay(delayMs);
                     continue;
                 }
-            } 
+            } else {
+                await delay(50);
+                continue;
+            }
             await delay(50);
+            }
         }
     } catch (e) {
         game_log("⚠️ Attack Loop error:", "#FF0000");

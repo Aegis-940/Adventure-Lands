@@ -57,7 +57,6 @@ async function universal_loop_controller() {
         // --- Ensure essential loops are always running ---
         if (!LOOP_STATES.potion) start_potions_loop();
         if (!LOOP_STATES.loot) start_loot_loop();
-        if (!LOOP_STATES.heal) start_heal_loop();
 
         // --- Handle death and respawn ---
         if (character.rip) {
