@@ -227,12 +227,12 @@ let ATTACK_PRIORITIZE_UNTARGETED = true; // true: prefer monsters with no target
 
 async function attack_loop() {
 
-    let delayMs = 100;
+    let delayMs = 50;
 
     try {
         while (true) {
 
-            delayMs = 100;
+            delayMs = 50;
 
             // --- Healing: always check first, mutually exclusive with attacking ---
             const heal_target = lowest_health_partymember();
@@ -278,7 +278,7 @@ async function attack_loop() {
                     continue;
                 }
             }
-            await delay(100);
+            await delay(50);
         }
     } catch (e) {
         game_log("⚠️ Attack Loop error:", "#FF0000");

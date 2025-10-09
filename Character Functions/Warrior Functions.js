@@ -922,7 +922,7 @@ let last_aggro_time = 0;
 async function aggro_mobs() {
     if (!LOOP_STATES.boss && !smart.moving && LOOP_STATES.orbit) {
         const now = Date.now();
-        if (now - last_aggro_time < 60000) {
+        if (now - last_aggro_time < 30000) {
             game_log("Aggro mobs is on cooldown.", "#FFAA00");
             return;
         }
@@ -936,7 +936,7 @@ async function aggro_mobs() {
 
         // Check if Myras has more than 75% mp
         const myras_info = get("Myras_newparty_info");
-        const myras_has_mp = myras_info && myras_info.mp > 0.85 * myras_info.max_mp;
+        const myras_has_mp = myras_info && myras_info.mp > 0.8 * myras_info.max_mp;
 
         // If no bigbird nearby and Myras has enough mp, aggro mobs
         if (!bigbird && myras_has_mp) {
