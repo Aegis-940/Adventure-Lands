@@ -233,9 +233,7 @@ async function attack_loop() {
             ) {
                 await heal(heal_target);
                 game_log(`Healing ${heal_target.name}`, "#00FF00");
-                delayMs = ms_to_next_skill('attack')/2 + 10;
-                await delay(delayMs);
-                return;
+                delayMs = ms_to_next_skill('attack');
             }
 
             // Filter all relevant monsters ONCE
@@ -262,9 +260,9 @@ async function attack_loop() {
 
             if (target && is_in_range(target) && !is_on_cooldown("attack") && !smart.moving && LOOP_STATES.attack) {
                 await attack(target);
-                delayMs = ms_to_next_skill('attack')/2 + 10;
+                delayMs = ms_to_next_skill('attack');
             }
-
+            game_log(`Next attack in ${delayMs}ms`, "#AAAAAA"); 
             await delay(delayMs);
         }
     } catch (e) {
