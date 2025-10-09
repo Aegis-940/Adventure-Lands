@@ -20,7 +20,7 @@ const LOOP_STATES = {
 const TARGET_LOC = MONSTER_LOCS.spider;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// 2) START/STOP HELPERS (with persistent state saving)
+// 2) START/STOP HELPERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function start_attack_loop() {
@@ -37,10 +37,8 @@ function stop_attack_loop() {
 }
 
 function start_heal_loop() {
-    game_log("Starting heal loop 2");
     if (LOOP_STATES.heal) return;
     LOOP_STATES.heal = true;
-    game_log("Starting heal loop 3");
     heal_loop();
     game_log("▶️ Heal loop started");
 }
