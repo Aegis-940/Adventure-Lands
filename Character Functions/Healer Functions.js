@@ -36,6 +36,19 @@ function stop_attack_loop() {
     game_log("⏹ Attack loop stopped");
 }
 
+function start_heal_loop() {
+    if (LOOP_STATES.heal) return;
+    LOOP_STATES.heal = true;
+    heal_loop();
+    game_log("▶️ Heal loop started");
+}
+
+function stop_heal_loop() {
+    if (!LOOP_STATES.heal) return;
+    LOOP_STATES.heal = false;
+    game_log("⏹ Heal loop stopped");
+}
+
 function stop_attack_loop() {
     if (!LOOP_STATES.attack) return;
     LOOP_STATES.attack = false;
