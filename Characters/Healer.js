@@ -67,7 +67,7 @@ async function universal_loop_controller() {
         }
 
         // --- Boss detection ---
-        const boss_alive = is_boss_alive();
+        let boss_alive = is_boss_alive();
 
         // --- Boss logic ---
         if (boss_alive && !LOOP_STATES.boss) {
