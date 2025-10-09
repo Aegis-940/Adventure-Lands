@@ -80,7 +80,7 @@ async function universal_loop_controller() {
         }
 
         // --- Normal grind logic ---
-        if (!boss_alive) {
+        if (!boss_alive && !LOOP_STATES.boss) {
             if (!LOOP_STATES.attack && !panicking) start_attack_loop();
             if (!LOOP_STATES.skill && !panicking) start_skill_loop();
             if (!LOOP_STATES.panic) start_panic_loop();
