@@ -233,7 +233,6 @@ async function attack_loop() {
                 is_in_range(heal_target)
             ) {
                 await heal(heal_target);
-                game_log(`Healing ${heal_target.name}`, "#00FF00");
                 delayMs = ms_to_next_skill('attack') + character.ping;
 
             } else if (LOOP_STATES.attack) {
@@ -634,7 +633,7 @@ async function handle_absorb(mapsToExclude, eventMobs, eventMaps, blacklist) {
     }
 
     for (const name of partyNames) {
-        if (attackers[name] && character.hp > character.max_hp * 0.5) {
+        if (attackers[name] && character.hp > character.max_hp * 0.5 && character.mp > 1000) {
             try {
                 await use_skill("absorb", name);
                 game_log(`Absorbing ${name}`, "#FFA600");
@@ -647,7 +646,7 @@ async function handle_absorb(mapsToExclude, eventMobs, eventMaps, blacklist) {
     }
 }
 
-async function handle_party_heal(healThreshold = 0.65, minMp = 2000) {
+async function handle_party_heal(healThreshold = 0.65, minMp = 1000) {
     if (character.mp <= minMp) return;
     if (is_on_cooldown("partyheal")) return;
 
@@ -754,13 +753,13 @@ async function potions_loop() {
                 use("mp");
                 used_potion = true;
             } else {
-                // Cast partyheal rather than use HP Pot
-                if (HP_MISSING >= 400) {
-                    if (can_use("hp")) {
-                        use("hp");
-                        used_potion = true;
-                    }
-                }
+                // // Cast partyheal rather than use HP Pot
+                // if (HP_MISSING >= 400) {
+                //     if (can_use("hp")) {
+                //         use("hp");
+                //         used_potion = true;
+                //     }
+                // }
 
                 // Use mana potion if needed
                 if (MP_MISSING >= 500) {

@@ -216,7 +216,7 @@ async function attack_loop() {
                 target = monsters.reduce((a, b) => (b.hp < a.hp ? a : b));
             }
 
-            if (target && is_in_range(target) && !smart.moving) {
+            if (target && is_in_range(target) && !smart.moving && character.mp >= 100) {
                 await attack(target);
                 delayMs = ms_to_next_skill("attack") + character.ping;
             }
