@@ -59,6 +59,7 @@ async function universal_loop_controller() {
         if (!LOOP_STATES.loot) start_loot_loop();
         game_log("Starting heal loop 1");
         if (!LOOP_STATES.heal) start_heal_loop();
+        game_log("Heal loop state: " + LOOP_STATES.heal);
 
         // --- Handle death and respawn ---
         if (character.rip) {
