@@ -26,7 +26,7 @@ const TARGET_LOC = MONSTER_LOCS.spider;
 function start_attack_loop() {
     if (LOOP_STATES.attack) return;
     LOOP_STATES.attack = true;
-    attack_loop();
+    // attack_loop();
     game_log("▶️ Attack loop started");
 }
 
