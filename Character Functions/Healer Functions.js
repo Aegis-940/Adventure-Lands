@@ -264,8 +264,8 @@ async function attack_loop() {
                 if (target && is_in_range(target) && !is_on_cooldown("attack") && !smart.moving) {
                     await attack(target);
                     delayMs = Math.max(ms_to_next_skill('attack'), 20);
+                    game_log(`Next attack in ${Math.round(delayMs)}ms`, "#AAAAAA");
                 }
-                game_log(`Next attack in ${Math.round(delayMs)}ms`, "#AAAAAA");
             } 
             await delay(delayMs);
         }
