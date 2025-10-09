@@ -248,13 +248,15 @@ async function heal_loop() {
             const target = lowest_health_partymember();
 
             // 2. If a target is found and needs healing, cast the heal spell
-            if (target && target.hp < target.max_hp - (character.heal / 1.11) && is_in_range(target)) {
+            if (target && target.hp < target.max_hp - (character.heal / 1.1) && is_in_range(target)) {
+                game_log(`💖 Healing ${target.name} (${target.hp}/${target.max_hp})`, "#00FF00");
                 await heal(target);
                 just_healed = true;
                 delayMs = ms_to_next_skill('attack') + character.ping + 20;
                 await delay(delayMs);
                 continue;
             } else {
+                game_log("No healing needed", "#00FF00");
                 just_healed = false
             }
 
