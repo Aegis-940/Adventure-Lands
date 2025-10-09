@@ -868,7 +868,7 @@ async function panic_loop() {
                 }
 
                 // Always try to cast scare if possible
-                if (!is_on_cooldown("scare") && can_use("scare")) {
+                if (!is_on_cooldown("scare") && can_use("scare") && character.mp >= 60) {
                     game_log("Panicked! Using Scare!");
                     await use_skill("scare");
                     await delay(delayMs);
