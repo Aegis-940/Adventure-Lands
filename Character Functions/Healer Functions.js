@@ -247,12 +247,14 @@ async function heal_loop() {
                 target &&
                 target.hp < target.max_hp - (character.heal / 1.1) &&
                 is_in_range(target) &&
-                now > last_action_time + ms_to_next_skill('attack')
+                now > last_action_time + ms_to_next_skill('attack') &&
+                !is_on_cooldown("attack")
             ) {
                 game_log(`💖 Healing ${target.name}`, "#00FF00");
                 await heal(target);
                 last_action_time = Date.now();
-                await delay(ms_to_next_skill('attack') + character.ping + 20);
+                delayMs = ms_to_next_skill('attack') + character.ping + 20;
+                await delay(delayMs);
                 continue;
             }
             await delay(50);
@@ -310,7 +312,7 @@ async function attack_loop() {
                     }
                 }
 
-                if (target && is_in_range(target) && !smart.moving) {
+                if (target && is_in_range(target) && !smart.moving && !is_on_cooldown("attack")) {
                     await attack(target);
                     last_action_time = Date.now();
                     delayMs = ms_to_next_skill('attack') + character.ping + 20;
