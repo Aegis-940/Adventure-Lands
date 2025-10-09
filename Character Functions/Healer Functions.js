@@ -654,7 +654,7 @@ async function handle_party_heal(minMissingHp = 2000, minMp = 1000) {
 
     // Use remote party info for up-to-date HP/MP, even across maps
     for (const name of Object.keys(parent.party)) {
-        if (name === character.name) continue;
+        // if (name === character.name) continue;
         const info = get(name + '_newparty_info');
         if (!info || info.rip) continue;
         if ((info.max_hp - info.hp) > minMissingHp) {
