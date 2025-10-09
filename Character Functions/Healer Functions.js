@@ -243,7 +243,7 @@ async function attack_loop() {
                 is_in_range(heal_target)
             ) {
                 await heal(heal_target);
-                await delay(ms_to_next_skill('attack') + character.ping);
+                await delay(ms_to_next_skill('attack') + character.ping + 10);
                 continue; // Skip attacking this tick
             }
 
@@ -273,7 +273,7 @@ async function attack_loop() {
 
                 if (target && is_in_range(target) && !smart.moving) {
                     await attack(target);
-                    delayMs = ms_to_next_skill('attack') + character.ping;
+                    delayMs = ms_to_next_skill('attack') + character.ping + 10;
                     await delay(delayMs);
                     continue;
                 }
