@@ -221,7 +221,7 @@ async function attack_loop() {
                 delayMs = ms_to_next_skill("attack");
             }
             game_log(Math.round(delayMs));
-            await delay(delayMs);
+            await delay(ms_to_next_skill("attack"));
         }
     } catch (e) {
         game_log("⚠️ Attack Loop error:", "#FF0000");
