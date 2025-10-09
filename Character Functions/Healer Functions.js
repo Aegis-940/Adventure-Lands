@@ -264,10 +264,11 @@ async function heal_loop() {
     } catch (e) {
         game_log("⚠️ Heal Loop error:", "#FF0000");
         game_log(e);
-    } finally {
-        LOOP_STATES.heal = false;
-        game_log("Heal loop ended unexpectedly", "#ffea00ff");
-    }
+    } 
+    // finally {
+    //     LOOP_STATES.heal = false;
+    //     game_log("Heal loop ended unexpectedly", "#ffea00ff");
+    // }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
