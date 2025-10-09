@@ -228,6 +228,7 @@ async function attack_loop() {
     } catch (e) {
         game_log("⚠️ Attack Loop error:", "#FF0000");
         game_log(e);
+        stop_attack_loop();
     } finally {
         LOOP_STATES.attack = false;
         game_log("Attack loop ended unexpectedly", "#ffea00ff");
@@ -921,7 +922,7 @@ let last_aggro_time = 0;
 
 async function aggro_mobs() {
     const now = Date.now();
-    if (now - last_aggro_time < 30000) {
+    if (now - last_aggro_time < 60000) {
         game_log("Aggro mobs is on cooldown.", "#FFAA00");
         return;
     }
