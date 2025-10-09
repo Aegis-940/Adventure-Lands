@@ -230,13 +230,11 @@ async function attack_loop() {
             if (
                 heal_target &&
                 heal_target.hp < heal_target.max_hp - (character.heal / 1.11) &&
-                is_in_range(heal_target) && 
-                !is_on_cooldown("attack")
+                is_in_range(heal_target)
             ) {
                 await heal(heal_target);
-                // game_log(`Healing ${heal_target.name}`, "#00FF00");
-                delayMs = ms_to_next_skill('attack')/2 + 10;
-                game_log(`Next heal in ${Math.round(delayMs)}ms`, "#AAAAAA");
+                game_log(`Healing ${heal_target.name}`, "#00FF00");
+                delayMs = ms_to_next_skill('attack') + character.ping;
 
             } else if (LOOP_STATES.attack) {
                 // Filter all relevant monsters ONCE
@@ -261,10 +259,9 @@ async function attack_loop() {
                     }
                 }
 
-                if (target && is_in_range(target) && !is_on_cooldown("attack") && !smart.moving) {
+                if (target && is_in_range(target) && !smart.moving) {
                     await attack(target);
-                    delayMs = ms_to_next_skill('attack')/2 +10;
-                    game_log(`Next attack in ${Math.round(delayMs)}ms`, "#AAAAAA");
+                    delayMs = ms_to_next_skill('attack') + character.ping;
                 }
             } 
             await delay(delayMs);
@@ -752,20 +749,25 @@ async function potions_loop() {
 
             let used_potion = false;
 
-            // Cast partyheal rather than use HP Pot
-            if (HP_MISSING >= 720) {
-                if (can_use("mp")) {
-                    use("mp");
-                    use_skill("partyheal");
-                    used_potion = true;
+            // If mana is critically low, always use mp pot first
+            if (character.mp < 50 && can_use("mp")) {
+                use("mp");
+                used_potion = true;
+            } else {
+                // Cast partyheal rather than use HP Pot
+                if (HP_MISSING >= 400) {
+                    if (can_use("hp")) {
+                        use("hp");
+                        used_potion = true;
+                    }
                 }
-            }
 
-            // Use mana potion if needed
-            if (MP_MISSING >= 500) {
-                if (can_use("mp")) {
-                    use("mp");
-                    used_potion = true;
+                // Use mana potion if needed
+                if (MP_MISSING >= 500) {
+                    if (can_use("mp")) {
+                        use("mp");
+                        used_potion = true;
+                    }
                 }
             }
 

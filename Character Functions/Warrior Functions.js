@@ -216,7 +216,7 @@ async function attack_loop() {
                 target = monsters.reduce((a, b) => (b.hp < a.hp ? a : b));
             }
 
-            if (target) {
+            if (target && is_in_range(target) && !smart.moving) {
                 await attack(target);
                 delayMs = ms_to_next_skill("attack") + character.ping;
             }
@@ -498,7 +498,7 @@ async function skill_loop() {
                 const is_boss_target = current_target && BOSSES.includes(current_target.mtype);
 
                 // Only check cleave if it's off cooldown and not targeting a boss
-                if (!cleave_cooldown && mp_check && code_cost_check && !is_boss_target) {
+                if (!cleave_cooldown && mp_check && code_cost_check && !is_boss_target && character.mp >= 770 && !smart.moving) {
                     await handle_cleave(Mainhand);
                 }
             }
@@ -586,19 +586,25 @@ async function potions_loop() {
 
             let used_potion = false;
 
-            // Cast partyheal rather than use HP Pot
-            if (HP_MISSING >= 400) {
-                if (can_use("hp")) {
-                    use("hp");
-                    used_potion = true;
+            // If mana is critically low, always use mp pot first
+            if (character.mp < 50 && can_use("mp")) {
+                use("mp");
+                used_potion = true;
+            } else {
+                // Cast partyheal rather than use HP Pot
+                if (HP_MISSING >= 400) {
+                    if (can_use("hp")) {
+                        use("hp");
+                        used_potion = true;
+                    }
                 }
-            }
 
-            // Use mana potion if needed
-            if (MP_MISSING >= 500) {
-                if (can_use("mp")) {
-                    use("mp");
-                    used_potion = true;
+                // Use mana potion if needed
+                if (MP_MISSING >= 500) {
+                    if (can_use("mp")) {
+                        use("mp");
+                        used_potion = true;
+                    }
                 }
             }
 
