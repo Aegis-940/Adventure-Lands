@@ -245,20 +245,22 @@ async function attack_loop() {
     try {
         while (LOOP_STATES.attack || LOOP_STATES.heal) {
 
-            if (LOOP_STATES.heal) {
-            const target = lowest_health_partymember();
-            if (
-                target &&
-                target.hp < target.max_hp - (character.heal / 1.1) &&
-                is_in_range(target)
-            ) {
-                game_log(`💖 Healing ${target.name}`, "#00FF00");
-                await heal(target);
-                last_action_time = Date.now();
-                delayMs = ms_to_next_skill('attack') + character.ping + 20;
-                await delay(delayMs);
-                continue;
+            game_log("Heal/Attack loop iteration", "#00FF00");
 
+            if (LOOP_STATES.heal) {
+                const target = lowest_health_partymember();
+                if (
+                    target &&
+                    target.hp < target.max_hp - (character.heal / 1.1) &&
+                    is_in_range(target)
+                ) {
+                    game_log(`💖 Healing ${target.name}`, "#00FF00");
+                    await heal(target);
+                    last_action_time = Date.now();
+                    delayMs = ms_to_next_skill('attack') + character.ping + 20;
+                    await delay(delayMs);
+                    continue;
+                }
             } else if (LOOP_STATES.attack) {
 
                 // --- Attacking ---
@@ -296,7 +298,6 @@ async function attack_loop() {
                 continue;
             }
             await delay(50);
-            }
         }
     } catch (e) {
         game_log("⚠️ Attack Loop error:", "#FF0000");
