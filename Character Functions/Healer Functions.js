@@ -236,7 +236,7 @@ async function attack_loop() {
                 await heal(heal_target);
                 // game_log(`Healing ${heal_target.name}`, "#00FF00");
                 game_log(`Next heal in ${Math.round(delayMs)}ms`, "#AAAAAA");
-                delayMs = Math.max(ms_to_next_skill('attack'), 20);
+                delayMs = Math.max(ms_to_next_skill('heal'), 20);
 
             } else if (LOOP_STATES.attack) {
                 // Filter all relevant monsters ONCE
