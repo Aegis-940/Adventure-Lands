@@ -36,6 +36,8 @@ async function universal_loop_controller() {
 			stop_panic_loop();
 			stop_boss_loop();
 
+			panicking = false;
+
 			await delay(30000);
 
 			await respawn();
