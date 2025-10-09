@@ -914,6 +914,39 @@ async function panic_loop() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// CUSTOM FUNCTION TO AGGRO MOBS IF MYRAS HAS ENOUGH MP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let last_aggro_time = 0;
+
+async function aggro_mobs() {
+    const now = Date.now();
+    if (now - last_aggro_time < 30000) {
+        game_log("Aggro mobs is on cooldown.", "#FFAA00");
+        return;
+    }
+
+    // Check if "bigbird" is within 50 units
+    const bigbird = Object.values(parent.entities).find(e =>
+        e.type === "monster" &&
+        e.mtype === "bigbird" &&
+        parent.distance(character, e) <= 50
+    );
+
+    // Check if Myras has more than 75% mp
+    const myras_info = get("Myras_newparty_info");
+    const myras_has_mp = myras_info && myras_info.mp > 0.75 * myras_info.max_mp;
+
+    // If no bigbird nearby and Myras has enough mp, aggro mobs
+    if (!bigbird && myras_has_mp) {
+        last_aggro_time = now;
+        await smart_move({ x: 1275, y: 247 });
+        await use_skill("agitate");
+        await smart_move(TARGET_LOC);
+    }
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // 3) PERSISTENT STATE HANDLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
