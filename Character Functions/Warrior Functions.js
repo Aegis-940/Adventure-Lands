@@ -217,10 +217,8 @@ async function attack_loop() {
             }
 
             if (target) {
-                game_log("Attacking");
                 await attack(target);
-                delayMs = ms_to_next_skill("attack") + 250;
-                game_log(`Next attack in ${delayMs}ms`);
+                delayMs = ms_to_next_skill("attack") + character.ping;
             }
             await delay(delayMs);
         }
