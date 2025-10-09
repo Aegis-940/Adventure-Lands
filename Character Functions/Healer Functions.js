@@ -248,7 +248,7 @@ async function attack_loop() {
             }
 
             // --- Attacking ---
-            if (LOOP_STATES.attack) {
+            else if (LOOP_STATES.attack) {
                 // Filter all relevant monsters ONCE
                 const monsters = Object.values(parent.entities).filter(e =>
                     e.type === "monster" &&
@@ -275,9 +275,10 @@ async function attack_loop() {
                     await attack(target);
                     delayMs = ms_to_next_skill('attack') + character.ping;
                     await delay(delayMs);
+                    continue;
                 }
             }
-            await delay(delayMs);
+            await delay(100);
         }
     } catch (e) {
         game_log("⚠️ Attack Loop error:", "#FF0000");
