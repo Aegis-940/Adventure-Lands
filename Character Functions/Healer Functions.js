@@ -36,6 +36,25 @@ function stop_attack_loop() {
     game_log("⏹ Attack loop stopped");
 }
 
+function start_heal_loop() {
+    if (LOOP_STATES.heal) return;
+    LOOP_STATES.heal = true;
+    heal_loop();
+    game_log("▶️ Heal loop started");
+}
+
+function stop_heal_loop() {
+    if (!LOOP_STATES.heal) return;
+    LOOP_STATES.heal = false;
+    game_log("⏹ Heal loop stopped");
+}
+
+function stop_attack_loop() {
+    if (!LOOP_STATES.attack) return;
+    LOOP_STATES.attack = false;
+    game_log("⏹ Attack loop stopped");
+}
+
 function start_move_loop() {
     if (LOOP_STATES.move) return;
     LOOP_STATES.move = true;
@@ -218,6 +237,44 @@ function get_nearest_monster_v2(args = {}) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// HEALING LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let just_healed = false;
+
+async function heal_loop() {
+
+    LOOP_STATES.heal = true;
+
+    let delayMs = 50;
+
+    try {
+        while (LOOP_STATES.heal) {
+
+            // 1. Find the lowest health party member
+            const target = lowest_health_partymember();
+
+            // 2. If a target is found and needs healing, cast the heal spell
+            if (target && target.hp < target.max_hp - (character.heal / 1.11) && is_in_range(target)) {
+                await heal(target);
+                just_healed = true;
+                delayMs = ms_to_next_skill('attack') + character.ping + 20;
+                await delay(delayMs);
+                continue;
+            }
+
+            await delay(50);
+        }
+    } catch (e) {
+        game_log("⚠️ Heal Loop error:", "#FF0000");
+        game_log(e);
+    } finally {
+        LOOP_STATES.heal = false;
+        game_log("Heal loop ended unexpectedly", "#ffea00ff");
+    }
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -227,56 +284,47 @@ let ATTACK_PRIORITIZE_UNTARGETED = true; // true: prefer monsters with no target
 
 async function attack_loop() {
 
+    LOOP_STATES.attack = true;
+
     let delayMs = 50;
 
     try {
-        while (true) {
-
-            delayMs = 50;
-
-            // --- Healing: always check first, mutually exclusive with attacking ---
-            const heal_target = lowest_health_partymember();
-
-            if (
-                heal_target &&
-                heal_target.hp < heal_target.max_hp - (character.heal / 1.11) &&
-                is_in_range(heal_target)
-            ) {
-                await heal(heal_target);
-                await delay(ms_to_next_skill('attack') + character.ping + 10);
-                continue; // Skip attacking this tick
+        while (LOOP_STATES.attack) {
+            
+            if (just_healed) {
+                just_healed = false; // <--- reset flag
+                await delay(10);     // short delay before next check
+                continue;            // skip attacking this tick
             }
 
             // --- Attacking ---
-            else if (LOOP_STATES.attack) {
-                // Filter all relevant monsters ONCE
-                const monsters = Object.values(parent.entities).filter(e =>
-                    e.type === "monster" &&
-                    MONSTER_TYPES.includes(e.mtype) &&
-                    !e.dead &&
-                    e.visible &&
-                    parent.distance(character, e) <= character.range
-                );
+            // Filter all relevant monsters ONCE
+            const monsters = Object.values(parent.entities).filter(e =>
+                e.type === "monster" &&
+                MONSTER_TYPES.includes(e.mtype) &&
+                !e.dead &&
+                e.visible &&
+                parent.distance(character, e) <= character.range
+            );
 
-                let target = null;
+            let target = null;
 
-                if (monsters.length) {
-                    let untargeted = monsters.filter(m => !m.target);
-                    let candidates = (ATTACK_PRIORITIZE_UNTARGETED && untargeted.length) ? untargeted : monsters;
+            if (monsters.length) {
+                let untargeted = monsters.filter(m => !m.target);
+                let candidates = (ATTACK_PRIORITIZE_UNTARGETED && untargeted.length) ? untargeted : monsters;
 
-                    if (ATTACK_TARGET_LOWEST_HP) {
-                        target = candidates.reduce((a, b) => (a.hp < b.hp ? a : b));
-                    } else {
-                        target = candidates.reduce((a, b) => (a.hp > b.hp ? a : b));
-                    }
+                if (ATTACK_TARGET_LOWEST_HP) {
+                    target = candidates.reduce((a, b) => (a.hp < b.hp ? a : b));
+                } else {
+                    target = candidates.reduce((a, b) => (a.hp > b.hp ? a : b));
                 }
+            }
 
-                if (target && is_in_range(target) && !smart.moving) {
-                    await attack(target);
-                    delayMs = ms_to_next_skill('attack') + character.ping + 10;
-                    await delay(delayMs);
-                    continue;
-                }
+            if (target && is_in_range(target) && !smart.moving) {
+                await attack(target);
+                delayMs = ms_to_next_skill('attack') + character.ping + 20;
+                await delay(delayMs);
+                continue;
             }
             await delay(50);
         }
@@ -660,16 +708,28 @@ async function handle_absorb(mapsToExclude, eventMobs, eventMaps, blacklist) {
     }
 }
 
-async function handle_party_heal(minMissingHp = 2000, minMp = 1000) {
+async function handle_party_heal(minMissingHpMap = {}, minMp = 1000) {
     if (character.mp <= minMp) return;
     if (is_on_cooldown("partyheal")) return;
+
+    // Default thresholds for each character
+    const defaultThresholds = {
+        Myras: character.heal + 800,
+        Ulric: 1500,
+        Riva: 1500,
+        Riff: 1500
+    };
+
+    // Merge user-provided thresholds with defaults
+    const thresholds = { ...defaultThresholds, ...minMissingHpMap };
 
     // Use remote party info for up-to-date HP/MP, even across maps
     for (const name of Object.keys(parent.party)) {
         // if (name === character.name) continue;
         const info = get(name + '_newparty_info');
         if (!info || info.rip) continue;
-        if ((info.max_hp - info.hp) > minMissingHp) {
+        const threshold = thresholds[name] !== undefined ? thresholds[name] : 2000;
+        if ((info.max_hp - info.hp) > threshold) {
             try {
                 await use_skill("partyheal");
             } catch (e) {
