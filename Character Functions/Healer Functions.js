@@ -242,6 +242,8 @@ async function attack_loop() {
 
     let delayMs = 50;
 
+    game_log("Attack loop TOP LEVEL", "#00FF00");
+
     try {
         while (LOOP_STATES.attack || LOOP_STATES.heal) {
 
