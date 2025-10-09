@@ -26,7 +26,7 @@ const TARGET_LOC = MONSTER_LOCS.spider;
 function start_attack_loop() {
     if (LOOP_STATES.attack) return;
     LOOP_STATES.attack = true;
-    attack_loop();
+    // attack_loop();
     game_log("▶️ Attack loop started");
 }
 
@@ -233,28 +233,28 @@ function get_nearest_monster_v2(args = {}) {
 // HEALING LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let last_action_time = Date.now() - ms_to_next_skill('attack') + character.ping + 20;
-let skill_lock = false;
+let last_action_time = 0;
 
 async function heal_loop() {
     LOOP_STATES.heal = true;
+    let delayMs = 50;
+
     try {
         while (LOOP_STATES.heal) {
             const target = lowest_health_partymember();
-            const cooldown = ms_to_next_skill('attack') + character.ping + 20;
             if (
-                !skill_lock &&
                 target &&
                 target.hp < target.max_hp - (character.heal / 1.1) &&
-                is_in_range(target) &&
-                cooldown <= 0
+                is_in_range(target)
             ) {
-                skill_lock = true;
+                game_log(`💖 Healing ${target.name}`, "#00FF00");
                 await heal(target);
-                const next_cd = ms_to_next_skill('attack') + character.ping + 20;
-                setTimeout(() => { skill_lock = false; }, Math.max(next_cd, 0));
+                last_action_time = Date.now();
+                delayMs = ms_to_next_skill('attack') + character.ping + 20;
+                await delay(delayMs);
+                continue;
             }
-            await delay(5);
+            await delay(50);
         }
     } catch (e) {
         game_log("⚠️ Heal Loop error:", "#FF0000");
@@ -274,22 +274,20 @@ let ATTACK_TARGET_LOWEST_HP = true;      // true: lowest HP, false: highest HP
 let ATTACK_PRIORITIZE_UNTARGETED = true; // true: prefer monsters with no target first
 
 async function attack_loop() {
+
     LOOP_STATES.attack = true;
+
+    let delayMs = 50;
+
     try {
         while (LOOP_STATES.attack) {
-            const cooldown = ms_to_next_skill('attack') + character.ping + 20;
-            const heal_target = lowest_health_partymember();
-            const needs_heal = (
-                heal_target &&
-                heal_target.hp < heal_target.max_hp - (character.heal / 1.1) &&
-                is_in_range(heal_target)
-            );
-            if (
-                !skill_lock &&
-                !needs_heal &&
-                cooldown <= 0
-            ) {
+
+            const now = Date.now();
+
+            if (now > last_action_time + ms_to_next_skill('attack')) {
+
                 // --- Attacking ---
+                // Filter all relevant monsters ONCE
                 const monsters = Object.values(parent.entities).filter(e =>
                     e.type === "monster" &&
                     MONSTER_TYPES.includes(e.mtype) &&
@@ -299,9 +297,11 @@ async function attack_loop() {
                 );
 
                 let target = null;
+
                 if (monsters.length) {
                     let untargeted = monsters.filter(m => !m.target);
                     let candidates = (ATTACK_PRIORITIZE_UNTARGETED && untargeted.length) ? untargeted : monsters;
+
                     if (ATTACK_TARGET_LOWEST_HP) {
                         target = candidates.reduce((a, b) => (a.hp < b.hp ? a : b));
                     } else {
@@ -310,13 +310,14 @@ async function attack_loop() {
                 }
 
                 if (target && is_in_range(target) && !smart.moving) {
-                    skill_lock = true;
                     await attack(target);
-                    const next_cd = ms_to_next_skill('attack') + character.ping + 20;
-                    setTimeout(() => { skill_lock = false; }, Math.max(next_cd, 0));
+                    last_action_time = Date.now();
+                    delayMs = ms_to_next_skill('attack') + character.ping + 20;
+                    await delay(delayMs);
+                    continue;
                 }
-            }
-            await delay(5);
+            } 
+            await delay(50);
         }
     } catch (e) {
         game_log("⚠️ Attack Loop error:", "#FF0000");
