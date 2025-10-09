@@ -907,7 +907,6 @@ async function panic_loop() {
             if (low_health || low_mana) {
                 if (!panicking) {
                     panicking = true;
-                    stop_attack_loop();
                     game_log("⚠️ Panic triggered: Low health!");
                 }
 
