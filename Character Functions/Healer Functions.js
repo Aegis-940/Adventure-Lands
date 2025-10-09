@@ -233,7 +233,7 @@ function get_nearest_monster_v2(args = {}) {
 // HEALING LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let last_action_time = 0;
+let last_action_time = Date.now() - ms_to_next_skill('attack') + character.ping + 20;
 
 async function heal_loop() {
     LOOP_STATES.heal = true;
