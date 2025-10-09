@@ -234,6 +234,7 @@ async function attack_loop() {
                 await heal(heal_target);
                 game_log(`Healing ${heal_target.name}`, "#00FF00");
                 delayMs = ms_to_next_skill('attack') + character.ping;
+                await delay(delayMs);
                 return;
             }
 
