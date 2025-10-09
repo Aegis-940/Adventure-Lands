@@ -257,9 +257,8 @@ async function heal_loop() {
                 continue;
             } else {
                 just_healed = false
+                await delay(50);
             }
-
-            await delay(50);
         }
     } catch (e) {
         game_log("⚠️ Heal Loop error:", "#FF0000");
