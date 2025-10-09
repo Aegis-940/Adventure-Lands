@@ -1,6 +1,6 @@
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// 1) GLOBAL SWITCHES & TIMERS
+// 1) GLOBAL LOOP SWITCHES AND VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const LOOP_STATES = {
@@ -14,6 +14,9 @@ const LOOP_STATES = {
     potion: false,
 
 }
+
+// Define default location for monster farming
+const TARGET_LOC = MONSTER_LOCS.spider;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS (with persistent state saving)
@@ -270,7 +273,7 @@ async function attack_loop() {
         game_log(e);
     } finally {
         LOOP_STATES.attack = false;
-        game_log("⚠️ Attack loop ended unexpectedly ⚠️", "#ffea00ff");
+        game_log("Attack loop ended unexpectedly", "#ffea00ff");
     }
 }
 
@@ -279,7 +282,6 @@ async function attack_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const BOSSES = ["mrpumpkin", "mrgreen"];
-const GRIND_HOME = { map: "main", x: 907, y: -174 };
 
 async function boss_loop() {
 
@@ -437,9 +439,9 @@ async function boss_loop() {
 
         }
 
-        // Move back to grind home, using scare if targeted during movement
+        // Move back to target location, using scare if targeted during movement
         let moving_home = true;
-        smart_move(GRIND_HOME).then(() => { moving_home = false; });
+        smart_move(TARGET_LOC).then(() => { moving_home = false; });
         while (moving_home) {
             const aggro = Object.values(parent.entities).some(e =>
                 e.type === "monster" && e.target === character.name && !e.dead
@@ -467,7 +469,7 @@ async function boss_loop() {
         game_log(e);
     } finally {
         LOOP_STATES.boss = false;
-        game_log("⚠️ Boss loop ended unexpectedly ⚠️", "#ffea00ff");
+        game_log("Boss loop ended unexpectedly", "#ffea00ff");
     }
 }
 
@@ -521,7 +523,7 @@ async function move_loop() {
         game_log(e);
     } finally {
         LOOP_STATES.move = false;
-        game_log("⚠️ Move loop ended unexpectedly ⚠️", "#ffea00ff");
+        game_log("Move loop ended unexpectedly", "#ffea00ff");
     }
 }
 
@@ -557,7 +559,7 @@ async function skill_loop() {
         game_log(e);
     } finally {
         LOOP_STATES.skill = false;
-        game_log("⚠️ Skill loop ended unexpectedly ⚠️", "#ffea00ff");
+        game_log("Skill loop ended unexpectedly", "#ffea00ff");
     }
 }
 
@@ -646,7 +648,7 @@ async function handle_absorb(mapsToExclude, eventMobs, eventMaps, blacklist) {
     }
 }
 
-async function handle_party_heal(healThreshold = 0.65, minMp = 1000) {
+async function handle_party_heal(minMissingHp = 2000, minMp = 1000) {
     if (character.mp <= minMp) return;
     if (is_on_cooldown("partyheal")) return;
 
@@ -655,7 +657,7 @@ async function handle_party_heal(healThreshold = 0.65, minMp = 1000) {
         if (name === character.name) continue;
         const info = get(name + '_newparty_info');
         if (!info || info.rip) continue;
-        if (info.hp < info.max_hp * healThreshold) {
+        if ((info.max_hp - info.hp) > minMissingHp) {
             try {
                 await use_skill("partyheal");
             } catch (e) {
@@ -728,7 +730,7 @@ async function loot_loop() {
         game_log(e);
     } finally {
         LOOP_STATES.loot = false;
-        game_log("⚠️ Loot loop ended unexpectedly ⚠️", "#ffea00ff");
+        game_log("Loot loop ended unexpectedly", "#ffea00ff");
     }
 }
 
@@ -781,7 +783,7 @@ async function potions_loop() {
         game_log(e);
     } finally {
         LOOP_STATES.potion = false;
-        game_log("⚠️ Potions loop ended unexpectedly ⚠️", "#ffea00ff");
+        game_log("Potions loop ended unexpectedly", "#ffea00ff");
     }
 }
 
@@ -863,7 +865,7 @@ async function orbit_loop() {
         game_log(e);
     } finally {
         LOOP_STATES.orbit = false;
-        game_log("⚠️ Orbit loop ended unexpectedly ⚠️", "#ffea00ff");
+        game_log("Orbit loop ended unexpectedly", "#ffea00ff");
     }
 }
 
@@ -937,7 +939,7 @@ async function panic_loop() {
         game_log(e);
     } finally {
         LOOP_STATES.panic = false;
-        game_log("⚠️ Panic loop ended unexpectedly ⚠️", "#ffea00ff");
+        game_log("Panic loop ended unexpectedly", "#ffea00ff");
     }
 }
 

@@ -18,78 +18,92 @@ create_map_movement_window([
 hide_skills_ui();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// MAIN LOOP
+// UNIVERSAL LOOP CONTROLL
 // --------------------------------------------------------------------------------------------------------------------------------- //
+
+// --- Helper: Handle death and respawn ---
+async function handle_death_and_respawn() {
+    stop_attack_loop();
+    stop_skill_loop();
+    stop_orbit_loop();
+    stop_panic_loop();
+    stop_boss_loop();
+    panicking = false;
+
+    await delay(30000);
+    await respawn();
+    await delay(5000);
+    await smart_move(TARGET_LOC);
+}
+
+// --- Helper: Boss alive check ---
+function is_boss_alive() {
+    return BOSSES.some(name => {
+        const s = parent.S[name];
+        return (
+            s &&
+            s.live === true &&
+            Number.isFinite(s.hp) &&
+            Number.isFinite(s.max_hp) &&
+            (s.max_hp - s.hp) > 100000
+        );
+    });
+}
 
 async function universal_loop_controller() {
 
 	try {
 
-		// SETUP Loops
-		if (!LOOP_STATES.potion) { start_potions_loop(); }
-		if (!LOOP_STATES.loot) { start_loot_loop(); }
+        // --- Ensure essential loops are always running ---
+        if (!LOOP_STATES.potion) start_potions_loop();
+        if (!LOOP_STATES.loot) start_loot_loop();
 
-		if (character.rip) {
-			stop_attack_loop();
-			stop_skill_loop();
-			stop_orbit_loop();
-			stop_panic_loop();
-			stop_boss_loop();
+        // --- Handle death and respawn ---
+        if (character.rip) {
+            handle_death_and_respawn();
+            return;
+        }
 
-			panicking = false;
+        // --- Handle panic state ---
+        if (panicking) {
+            stop_attack_loop();
+            stop_skill_loop();
+            stop_boss_loop();
+            return;
+        }
 
-			await delay(30000);
+        // --- Boss detection ---
+        const boss_alive = is_boss_alive();
 
-			await respawn();
+        // --- Boss logic ---
+        if (boss_alive && !LOOP_STATES.boss) {
+            stop_attack_loop();
+            stop_skill_loop();
+            stop_orbit_loop();
+            stop_panic_loop();
+            start_boss_loop();
+            return;
+        }
 
-			return;
-		}
+        // --- Normal grind logic ---
+        if (!boss_alive) {
+            if (!LOOP_STATES.attack && !panicking) start_attack_loop();
+            if (!LOOP_STATES.skill && !panicking) start_skill_loop();
+            if (!LOOP_STATES.panic) start_panic_loop();
 
-		if (panicking) {
-			stop_attack_loop();
-			stop_skill_loop();
-			stop_boss_loop();
-			return;
-		}
+            const at_target = character.x === TARGET_LOC.x && character.y === TARGET_LOC.y;
+            if (!LOOP_STATES.orbit && at_target && !panicking) start_orbit_loop();
+        }
 
-		const boss_alive = BOSSES.some(name => {
-			const s = parent.S[name];
-			return (
-				s &&
-				s.live === true &&
-				Number.isFinite(s.hp) &&
-				Number.isFinite(s.max_hp) &&
-				(s.max_hp - s.hp) > 100000
-			);
-		});
-
-		if (!LOOP_STATES.boss && boss_alive && !character.rip) {
-			stop_attack_loop();
-			stop_skill_loop();
-			stop_orbit_loop();
-			stop_panic_loop();
-			start_boss_loop();
-			return;
-		}
-
-		// If no boss is alive, ensure all relevant loops are running
-		if (!boss_alive && !character.rip) {
-
-			if (!LOOP_STATES.attack && !panicking) { start_attack_loop(); }
-
-			if (!LOOP_STATES.skill && !panicking) { start_skill_loop(); }
-
-			if (!LOOP_STATES.panic) { start_panic_loop(); }
-
-			if (!LOOP_STATES.orbit && character.x === GRIND_HOME.x && character.y === GRIND_HOME.y && !panicking) {
-				start_orbit_loop();
-			}
-		}
-
-	} catch (e) {
-		console.log("Error in universal_loop_controller:", e);
-	}
+    } catch (e) {
+        game_log("⚠️ Universal Loop error:", "#FF0000");
+        game_log(e);
+    }
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// MAIN LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
 let last_update_time = 0;
 
