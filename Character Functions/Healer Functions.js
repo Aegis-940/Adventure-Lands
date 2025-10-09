@@ -6,6 +6,7 @@
 const LOOP_STATES = {
 
     attack: false,
+    heal: true,
     move: false,
     skill: false,
     panic: false,
@@ -126,6 +127,13 @@ function stop_boss_loop() {
     game_log("⏹ Boss loop stopped");
 }
 
+function start_heal_loop() {
+    LOOP_STATES.heal = true;
+}
+function stop_heal_loop() {
+    LOOP_STATES.heal = false;
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SUPPORT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -213,33 +221,33 @@ function get_nearest_monster_v2(args = {}) {
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Toggle options
-let ATTACK_TARGET_LOWEST_HP = true;      // true: lowest HP, false: highest HP
-let ATTACK_PRIORITIZE_UNTARGETED = true; // true: prefer monsters with no target first
-
 async function attack_loop() {
-
     LOOP_STATES.attack = true;
+    LOOP_STATES.heal = true; // Ensure healing is enabled by default
 
     let delayMs = 100;
 
     try {
         while (true) {
-
             delayMs = 100;
 
-            // 1. Always heal, regardless of LOOP_STATES.attack
-            let heal_target = lowest_health_partymember();
-            if (
-                heal_target &&
-                heal_target.hp < heal_target.max_hp - (character.heal / 1.11) &&
-                is_in_range(heal_target)
-            ) {
-                await heal(heal_target);
-                delayMs = ms_to_next_skill('attack') + character.ping;
+            // 1. Healing (runs if healing is enabled)
+            if (LOOP_STATES.heal) {
+                let heal_target = lowest_health_partymember();
+                if (
+                    heal_target &&
+                    heal_target.hp < heal_target.max_hp - (character.heal / 1.11) &&
+                    is_in_range(heal_target)
+                ) {
+                    await heal(heal_target);
+                    delayMs = ms_to_next_skill('attack') + character.ping;
+                    await delay(delayMs);
+                    continue; // Skip attacking this tick
+                }
+            }
 
-            } else if (LOOP_STATES.attack) {
-                // Filter all relevant monsters ONCE
+            // 2. Attacking (runs only if attacking is enabled)
+            else if (LOOP_STATES.attack) {
                 const monsters = Object.values(parent.entities).filter(e =>
                     e.type === "monster" &&
                     MONSTER_TYPES.includes(e.mtype) &&
@@ -265,15 +273,16 @@ async function attack_loop() {
                     await attack(target);
                     delayMs = ms_to_next_skill('attack') + character.ping;
                 }
-            } 
+            }
+
             await delay(delayMs);
         }
     } catch (e) {
         game_log("⚠️ Attack Loop error:", "#FF0000");
         game_log(e);
-        stop_attack_loop();
     } finally {
         LOOP_STATES.attack = false;
+        // Do NOT set LOOP_STATES.heal = false here!
         game_log("Attack loop ended unexpectedly", "#ffea00ff");
     }
 }

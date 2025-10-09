@@ -228,7 +228,6 @@ async function attack_loop() {
     } catch (e) {
         game_log("⚠️ Attack Loop error:", "#FF0000");
         game_log(e);
-        stop_attack_loop();
     } finally {
         LOOP_STATES.attack = false;
         game_log("Attack loop ended unexpectedly", "#ffea00ff");
@@ -936,7 +935,7 @@ async function aggro_mobs() {
 
     // Check if Myras has more than 75% mp
     const myras_info = get("Myras_newparty_info");
-    const myras_has_mp = myras_info && myras_info.mp > 0.75 * myras_info.max_mp;
+    const myras_has_mp = myras_info && myras_info.mp > 0.85 * myras_info.max_mp;
 
     // If no bigbird nearby and Myras has enough mp, aggro mobs
     if (!bigbird && myras_has_mp) {
