@@ -234,28 +234,26 @@ function get_nearest_monster_v2(args = {}) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 let last_action_time = Date.now() - ms_to_next_skill('attack') + character.ping + 20;
+let skill_lock = false;
 
 async function heal_loop() {
     LOOP_STATES.heal = true;
-    let delayMs = 50;
-
     try {
         while (LOOP_STATES.heal) {
-            const now = Date.now();
             const target = lowest_health_partymember();
             const cooldown = ms_to_next_skill('attack') + character.ping + 20;
             if (
+                !skill_lock &&
                 target &&
                 target.hp < target.max_hp - (character.heal / 1.1) &&
                 is_in_range(target) &&
-                cooldown <= 0 &&
-                now > last_action_time + cooldown
+                cooldown <= 0
             ) {
-                game_log(`💖 Healing ${target.name}`, "#00FF00");
+                skill_lock = true;
                 await heal(target);
-                last_action_time = Date.now();
+                setTimeout(() => { skill_lock = false; }, cooldown * -1); // unlock after cooldown
             }
-            await delay(5); // Small delay for high timing accuracy
+            await delay(5);
         }
     } catch (e) {
         game_log("⚠️ Heal Loop error:", "#FF0000");
@@ -275,29 +273,20 @@ let ATTACK_TARGET_LOWEST_HP = true;      // true: lowest HP, false: highest HP
 let ATTACK_PRIORITIZE_UNTARGETED = true; // true: prefer monsters with no target first
 
 async function attack_loop() {
-
     LOOP_STATES.attack = true;
-
-    let delayMs = 50;
-
     try {
         while (LOOP_STATES.attack) {
-
-            const now = Date.now();
             const cooldown = ms_to_next_skill('attack') + character.ping + 20;
-
-            // Check if healing is needed
             const heal_target = lowest_health_partymember();
             const needs_heal = (
                 heal_target &&
                 heal_target.hp < heal_target.max_hp - (character.heal / 1.1) &&
                 is_in_range(heal_target)
             );
-
             if (
+                !skill_lock &&
                 !needs_heal &&
-                cooldown <= 0 &&
-                now > last_action_time + cooldown
+                cooldown <= 0
             ) {
                 // --- Attacking ---
                 const monsters = Object.values(parent.entities).filter(e =>
@@ -320,11 +309,12 @@ async function attack_loop() {
                 }
 
                 if (target && is_in_range(target) && !smart.moving) {
+                    skill_lock = true;
                     await attack(target);
-                    last_action_time = Date.now();
+                    setTimeout(() => { skill_lock = false; }, cooldown * -1); // unlock after cooldown
                 }
             }
-            await delay(5); // Small delay for high timing accuracy
+            await delay(5);
         }
     } catch (e) {
         game_log("⚠️ Attack Loop error:", "#FF0000");
