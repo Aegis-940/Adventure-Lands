@@ -216,7 +216,7 @@ async function attack_loop() {
                 target = monsters.reduce((a, b) => (b.hp < a.hp ? a : b));
             }
 
-            if (target && !is_on_cooldown("attack")) {
+            if (target) {
                 await attack(target);
                 delayMs = ms_to_next_skill("attack");
             }
