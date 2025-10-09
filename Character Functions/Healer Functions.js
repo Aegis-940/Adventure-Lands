@@ -238,16 +238,12 @@ let ATTACK_PRIORITIZE_UNTARGETED = true; // true: prefer monsters with no target
 
 async function attack_loop() {
 
-    game_log("Attack loop TOP LEVEL", "#00FF00");
-
     LOOP_STATES.attack = true;
 
     let delayMs = 50;
 
     try {
         while (LOOP_STATES.attack || LOOP_STATES.heal) {
-
-            game_log("Heal/Attack loop iteration", "#00FF00");
 
             if (LOOP_STATES.heal) {
                 const target = lowest_health_partymember();
