@@ -34,7 +34,7 @@ async function universal_loop_controller() {
 			stop_skill_loop();
 			stop_orbit_loop();
 			stop_panic_loop();
-			start_boss_loop();
+			stop_boss_loop();
 
 			await delay(30000);
 
@@ -46,7 +46,7 @@ async function universal_loop_controller() {
 		if (panicking) {
 			stop_attack_loop();
 			stop_skill_loop();
-			start_boss_loop();
+			stop_boss_loop();
 			return;
 		}
 
