@@ -234,7 +234,8 @@ async function attack_loop() {
                 !is_on_cooldown("attack")
             ) {
                 await heal(heal_target);
-                game_log(`Healing ${heal_target.name}`, "#00FF00");
+                // game_log(`Healing ${heal_target.name}`, "#00FF00");
+                game_log(`Next heal in ${Math.round(delayMs)}ms`, "#AAAAAA");
                 delayMs = ms_to_next_skill('attack');
 
             } else if (LOOP_STATES.attack) {
@@ -264,7 +265,7 @@ async function attack_loop() {
                     await attack(target);
                     delayMs = ms_to_next_skill('attack');
                 }
-                game_log(`Next attack in ${delayMs}ms`, "#AAAAAA"); 
+                game_log(`Next attack in ${Math.round(delayMs)}ms`, "#AAAAAA");
             } 
             await delay(delayMs);
         }
