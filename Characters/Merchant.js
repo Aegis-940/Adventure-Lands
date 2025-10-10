@@ -23,24 +23,12 @@ hide_skills_ui();
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 setInterval(async () => {
+	
+	// Throttle to every 20 seconds (20,000 ms)
 	const now = Date.now();
-
-
-
-	// Detect death and record time
-	if (character.rip && last_death_time === 0) {
-		last_death_time = Date.now();
-	}
-
-	// Revive after 30 seconds
-	if (character.rip && Date.now() - last_death_time >= 30000) {
-		respawn();
-		last_death_time = 0;
-	}
-
-	// Reset if revived manually
-	if (!character.rip && last_death_time !== 0) {
-		last_death_time = 0;
+	if (now - last_update_time >= 20000) {
+		parent.socket.emit("send_updates", {});
+		last_update_time = now;
 	}
 
 	pots();
