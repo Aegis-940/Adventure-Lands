@@ -91,7 +91,9 @@ async function universal_loop_controller() {
                 if (!LOOP_STATES.skill) start_skill_loop();
                 if (!LOOP_STATES.panic) start_panic_loop();
 
-                const at_target = parent.distance(character, TARGET_LOC) <= 30;
+                const at_target = character.x === TARGET_LOC.x && character.y === TARGET_LOC.y;
+                const near_target = parent.distance(character, TARGET_LOC) <= 50;
+                if (near_target && !LOOP_STATES.orbit && !smart.moving) smart_move(TARGET_LOC);
                 if (!LOOP_STATES.orbit && at_target) start_orbit_loop();
             }
         }
