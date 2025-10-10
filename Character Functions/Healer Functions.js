@@ -254,8 +254,12 @@ async function attack_loop() {
                 }
 
             if (LOOP_STATES.heal && valid_heal_target && !is_on_cooldown("attack")) {
-                game_log(`💖 Healing ${target.name}`, "#00FF00");
-                await heal(target);
+                try {
+                    game_log(`💖 Healing ${target.name}`, "#00FF00");
+                    await heal(target);
+                } catch (e) {
+                    game_log("Heal error: " + e, "#FF0000");
+                }
                 delayMs = 10;
                 await delay(delayMs);
             } else if (LOOP_STATES.attack) {
@@ -277,7 +281,11 @@ async function attack_loop() {
                 }
 
                 if (target && is_in_range(target) && !smart.moving && character.mp >= 100 && !is_on_cooldown("attack")) {
-                    await attack(target);
+                    try {
+                        await attack(target);
+                    } catch (e) {
+                        game_log("Attack error: " + e, "#FF0000");
+                    }
                     delayMs = 10;
                     await delay(delayMs);
                 }
