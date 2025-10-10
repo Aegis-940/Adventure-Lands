@@ -261,67 +261,50 @@ async function schedule_upgrade() {
     }
 
     let any_withdrawn = false;
-    // Reserve at least 3 free slots
+    // Reserve at least 3 free slots for upgrade/compound items
     let free_slots = Math.max(0, count_empty_inventory() - 3);
-
-    // Track inventory for timeout logic
-    let last_inventory_count = count_inventory_items();
-    let last_change_time = Date.now();
-
-    // Helper to check for timeout
-    function timed_out() {
-        return (Date.now() - last_change_time) > timeout;
-    }
 
     // --- WITHDRAW ALL POTENTIAL SCROLLS FIRST ---
     // Gather all scroll names needed for upgrades and compounds
     const scrollSet = new Set();
-
-    // Upgrade scrolls
     for (const itemName in upgradeProfile) {
-        const profile = upgradeProfile[itemName];
-        if (profile) {
-            scrollSet.add("scroll0");
-            scrollSet.add("scroll1");
-            scrollSet.add("scroll2");
-        }
+        scrollSet.add("scroll0");
+        scrollSet.add("scroll1");
+        scrollSet.add("scroll2");
     }
-    // Compound scrolls
     for (const itemName in combineProfile) {
-        const profile = combineProfile[itemName];
-        if (profile) {
-            scrollSet.add("cscroll0");
-            scrollSet.add("cscroll1");
-            scrollSet.add("cscroll2");
-        }
+        scrollSet.add("cscroll0");
+        scrollSet.add("cscroll1");
+        scrollSet.add("cscroll2");
     }
 
-    // Withdraw all scrolls from bank (as many as possible, up to free_slots)
+    // Withdraw one stack of each scroll type if not already in inventory
     for (const scrollName of scrollSet) {
-        if (free_slots <= 0 || timed_out()) break;
-        let scrolls_to_withdraw = 0;
-        // Count how many scrolls are in the bank
+        // If we already have this scroll type in inventory, skip
+        if (character.items.some(it => it && it.name === scrollName)) continue;
+
+        // Find all scrolls of this type in the bank
+        let total_in_bank = 0;
         for (const pack in bank_data) {
             if (!Array.isArray(bank_data[pack])) continue;
             for (const item of bank_data[pack]) {
                 if (item && item.name === scrollName) {
-                    scrolls_to_withdraw += item.q || 1;
+                    total_in_bank += item.q || 1;
                 }
             }
         }
-        // Withdraw as many as possible, up to free_slots
-        if (scrolls_to_withdraw > 0) {
-            let to_withdraw = Math.min(scrolls_to_withdraw, free_slots);
-            game_log(`[Bank] Withdrawing ${to_withdraw} ${scrollName}(s) from bank.`);
-            await withdraw_item(scrollName, undefined, to_withdraw);
+        // Withdraw all of them (they will stack in one slot)
+        if (total_in_bank > 0 && free_slots > 0) {
+            game_log(`[Bank] Withdrawing ${total_in_bank} ${scrollName}(s) from bank.`);
+            await withdraw_item(scrollName, undefined, total_in_bank);
             any_withdrawn = true;
-            free_slots -= to_withdraw;
+            free_slots -= 1; // Only one slot used per scroll type
         }
     }
 
     // --- UPGRADE: Withdraw by item+level, only below max_level ---
     for (const itemName in upgradeProfile) {
-        if (free_slots <= 0 || timed_out()) break;
+        if (free_slots <= 0) break;
         const maxLevel = upgradeProfile[itemName].max_level;
 
         // Gather all items of this name and below maxLevel, grouped by level
@@ -344,7 +327,7 @@ async function schedule_upgrade() {
 
         // Withdraw by level, up to free_slots
         for (const levelStr of Object.keys(levelMap).sort((a, b) => a - b)) {
-            if (free_slots <= 0 || timed_out()) break;
+            if (free_slots <= 0) break;
             const level = Number(levelStr);
             const count = Math.min(levelMap[level], free_slots);
             if (count > 0) {
@@ -358,7 +341,7 @@ async function schedule_upgrade() {
 
     // --- COMBINE: Withdraw by item+level, only below max_level, in multiples of 3 ---
     for (const itemName in combineProfile) {
-        if (free_slots < 3 || timed_out()) break;
+        if (free_slots < 3) break;
         const maxLevel = combineProfile[itemName].max_level;
 
         let levelMap = {};
@@ -378,7 +361,7 @@ async function schedule_upgrade() {
         }
 
         for (const levelStr of Object.keys(levelMap).sort((a, b) => a - b)) {
-            if (free_slots < 3 || timed_out()) break;
+            if (free_slots < 3) break;
             const level = Number(levelStr);
             let count = levelMap[level];
             let to_withdraw = Math.floor(count / 3) * 3;
@@ -386,20 +369,10 @@ async function schedule_upgrade() {
             if (to_withdraw >= 3) {
                 game_log(`[Bank] Withdrawing ${to_withdraw} ${itemName}(s) at level ${level} for compounding (below level ${maxLevel}).`);
                 await withdraw_item(itemName, level, to_withdraw);
-                // Check if inventory changed
-                let current_count = count_inventory_items();
-                if (current_count !== last_inventory_count) {
-                    last_inventory_count = current_count;
-                    last_change_time = Date.now();
-                }
                 any_withdrawn = true;
                 free_slots -= to_withdraw;
             }
         }
-    }
-
-    if (timed_out()) {
-        game_log("⏱️ Withdrawal timed out: inventory did not change for 5 seconds.");
     }
 
     if (any_withdrawn) {
