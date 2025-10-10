@@ -392,6 +392,13 @@ async function schedule_upgrade() {
 }
 
 async function upgrade_item_checker() {
+
+    await smart_move(BANK_LOCATION);
+
+    await parent.$('#maincode')[0].contentWindow.render_bank_items();
+    await delay(1000);
+    await parent.hide_modal();
+
     // 1. Build a list of possible scroll types
     const scrollTypes = [
         "scroll0", "scroll1", "scroll2",
