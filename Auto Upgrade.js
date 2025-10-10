@@ -202,14 +202,13 @@ async function upgrade_item_withdraw() {
     game_log("✅ Finished withdrawing upgrade and compound items, leaving at least 3 inventory slots free.");
 }
 
-async function auto_upgrade_item() {
+async function auto_upgrade_item(level) {
     for (let i = 0; i < character.items.length; i++) {
         const item = character.items[i];
-        if (!item) continue;
+        if (!item || item.level !== level) continue;
 
         const profile = UPGRADE_PROFILE[item.name];
-        if (!profile) continue;
-        if (typeof item.level !== "number" || item.level >= profile.max_level) continue;
+        if (!profile || item.level >= profile.max_level) continue;
 
         // Determine the correct scroll for this item's level
         let scrollname =
@@ -217,8 +216,18 @@ async function auto_upgrade_item() {
             : item.level < profile.scroll1_until ? "scroll1"
             : "scroll2";
 
-        // Check if we have the scroll in inventory
-        let [scroll_slot, scroll] = find_item(it => it.name === scrollname);
+        // Find the scroll in inventory (since find_item is deleted)
+        let scroll_slot = null;
+        let scroll = null;
+        for (let j = 0; j < character.items.length; j++) {
+            const inv_item = character.items[j];
+            if (inv_item && inv_item.name === scrollname) {
+                scroll_slot = j;
+                scroll = inv_item;
+                break;
+            }
+        }
+
         if (!scroll) {
             parent.buy(scrollname);
             game_log(`Buying ${scrollname} for upgrading ${item.name} (level ${item.level})`);
@@ -229,12 +238,17 @@ async function auto_upgrade_item() {
         // Check for offering if needed
         let offering_slot = null;
         if (profile.primling_from !== undefined && item.level >= profile.primling_from) {
-            const [pSlot, prim] = find_item(it => it.name === "offeringp");
-            if (!prim) {
+            for (let j = 0; j < character.items.length; j++) {
+                const inv_item = character.items[j];
+                if (inv_item && inv_item.name === "offeringp") {
+                    offering_slot = j;
+                    break;
+                }
+            }
+            if (offering_slot === null) {
                 game_log("No offeringp found for upgrade requiring it.");
                 return "wait";
             }
-            offering_slot = pSlot;
         }
 
         // Use massproduction if available
@@ -257,7 +271,7 @@ async function auto_upgrade_item() {
     return "none";
 }
 
-async function auto_combine_item() {
+async function auto_combine_item(level) {
     // Build a map of combinable items by name and level
     const buckets = new Map();
 
@@ -267,7 +281,7 @@ async function auto_combine_item() {
 
         const profile = COMBINE_PROFILE[item.name];
         if (!profile) continue;
-        if (typeof item.level !== "number" || item.level >= profile.max_level) continue;
+        if (typeof item.level !== "number" || item.level !== level || item.level >= profile.max_level) continue;
 
         const key = `${item.name}:${item.level}`;
         if (!buckets.has(key)) {
@@ -277,7 +291,7 @@ async function auto_combine_item() {
         }
     }
 
-    // Try to combine the first valid group of 3
+    // First, check if any group needs a scroll and buy only one scroll per call
     for (const [key, [lvl, slots]] of buckets) {
         if (slots.length < 3) continue;
 
@@ -290,24 +304,65 @@ async function auto_combine_item() {
             : lvl < profile.scroll1_until ? "cscroll1"
             : "cscroll2";
 
-        // Check if we have the scroll in inventory
-        let [scroll_slot, scroll] = find_item(it => it.name === scrollname);
+        // Find the scroll in inventory (since find_item is deleted)
+        let scroll_slot = null;
+        let scroll = null;
+        for (let j = 0; j < character.items.length; j++) {
+            const inv_item = character.items[j];
+            if (inv_item && inv_item.name === scrollname) {
+                scroll_slot = j;
+                scroll = inv_item;
+                break;
+            }
+        }
+
         if (!scroll) {
             parent.buy(scrollname);
             game_log(`Buying ${scrollname} for combining ${itemName} (level ${lvl})`);
             // Only buy one scroll, then return immediately
             return "wait";
         }
+    }
+
+    // Try to combine the first valid group of 3 (only if scroll is present)
+    for (const [key, [lvl, slots]] of buckets) {
+        if (slots.length < 3) continue;
+
+        const itemName = key.split(":")[0];
+        const profile = COMBINE_PROFILE[itemName];
+
+        let scrollname =
+            lvl < profile.scroll0_until ? "cscroll0"
+            : lvl < profile.scroll1_until ? "cscroll1"
+            : "cscroll2";
+
+        // Find the scroll in inventory
+        let scroll_slot = null;
+        let scroll = null;
+        for (let j = 0; j < character.items.length; j++) {
+            const inv_item = character.items[j];
+            if (inv_item && inv_item.name === scrollname) {
+                scroll_slot = j;
+                scroll = inv_item;
+                break;
+            }
+        }
+        if (!scroll) continue;
 
         // Check for offering if needed
         let offering_slot = null;
         if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
-            const [pSlot, prim] = find_item(it => it.name === "offeringp");
-            if (!prim) {
+            for (let j = 0; j < character.items.length; j++) {
+                const inv_item = character.items[j];
+                if (inv_item && inv_item.name === "offeringp") {
+                    offering_slot = j;
+                    break;
+                }
+            }
+            if (offering_slot === null) {
                 game_log("No offeringp found for combine requiring it.");
                 return "wait";
             }
-            offering_slot = pSlot;
         }
 
         // Use massproduction if available
