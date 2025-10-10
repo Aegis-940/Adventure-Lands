@@ -58,11 +58,18 @@ async function universal_loop_controller() {
         if (!LOOP_STATES.potion) start_potions_loop();
         if (!LOOP_STATES.loot) start_loot_loop();
         if (!LOOP_STATES.heal) start_heal_loop();
-        if (!LOOP_STATES.attack) start_attack_loop();
 
         // --- Handle death and respawn ---
         if (character.rip) {
             handle_death_and_respawn();
+            return;
+        }
+
+        // --- Handle panic state ---
+        if (panicking) {
+            stop_attack_loop();
+            stop_skill_loop();
+            stop_boss_loop();
             return;
         }
 
