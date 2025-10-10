@@ -533,8 +533,41 @@ async function combine_item() {
     return "none";
 }
 
-// async function auto_upgrade() {
+async function auto_upgrade() {
+    await upgrade_item_checker();
+    await upgrade_item_withdraw();
 
-//     await upgrade_item_checker();
+    await smart_move(HOME);
 
-// }
+    // --- Upgrade all items level-by-level ---
+    let upgraded = true;
+    for (let level = 0; level <= 10; level++) {
+        upgraded = false;
+        while (true) {
+            const result = await upgrade_once_by_level(level);
+            if (result === "done" || result === "wait") {
+                upgraded = true;
+                await delay(UPGRADE_INTERVAL);
+            } else {
+                break;
+            }
+        }
+    }
+
+    // --- Combine all items level-by-level ---
+    let combined = true;
+    for (let level = 0; level <= 5; level++) {
+        combined = false;
+        while (true) {
+            const result = await compound_once_by_level(level);
+            if (result === "done" || result === "wait") {
+                combined = true;
+                await delay(UPGRADE_INTERVAL);
+            } else {
+                break;
+            }
+        }
+    }
+
+    game_log("✅ Auto upgrade and combine complete.");
+}
