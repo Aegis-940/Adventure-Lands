@@ -112,6 +112,10 @@ async function loot_and_potions_loop() {
                     continue;
                 }
 
+                // Track if we delivered pots or collected loot this cycle
+                let delivered_pots = false;
+                let collected_loot = false;
+
                 // --- 2. Process each party member in order ---
                 for (const [name, info] of [
                     ["Ulric", ulric_status],
@@ -158,6 +162,7 @@ async function loot_and_potions_loop() {
                                             if (mpot_needed > 0) send_item(target, locate_item("mpot1"), mpot_needed);
                                             game_log(`🧪 Delivered potions to ${name}`);
                                             delivered = true;
+                                            delivered_pots = true;
                                         } else {
                                             game_log(`❌ Could not reach ${name} for potion delivery (attempt ${delivery_attempts + 1})`);
                                         }
@@ -197,6 +202,7 @@ async function loot_and_potions_loop() {
                                             game_log(`📦 Requested loot from ${name}`);
                                             await delay(5000); // Wait for loot transfer
                                             collected = true;
+                                            collected_loot = true;
                                         } else {
                                             game_log(`❌ Could not reach ${name} for loot collection (attempt ${collect_attempts + 1})`);
                                         }
@@ -218,25 +224,31 @@ async function loot_and_potions_loop() {
                     }
                 }
 
+                // --- 3. Sell and bank if loot was collected ---
+                if (collected_loot) {
+                    try {
+                        await sell_and_bank();
+                    } catch (e) {
+                        game_log("Error during sell_and_bank: " + e.message);
+                    }
+                }
+
+                // --- 4. Buy more potions if pots were delivered ---
+                if (delivered_pots) {
+                    try {
+                        buy_pots();
+                    } catch (e) {
+                        game_log("Error during buy_pots: " + e.message);
+                    }
+                }
+
             } catch (e) {
                 game_log("Error checking party_status_cache: " + e.message);
                 await delay(10000);
                 continue;
             }
 
-            // --- 3. Sell and bank, then buy more potions ---
-            try {
-                await sell_and_bank();
-            } catch (e) {
-                game_log("Error during sell_and_bank: " + e.message);
-            }
-            try {
-                buy_pots();
-            } catch (e) {
-                game_log("Error during buy_pots: " + e.message);
-            }
-
-            // --- 4. Wait for next cycle ---
+            // --- 5. Wait for next cycle ---
             await delay(FREQUENCY);
         }
     } catch (e) {
