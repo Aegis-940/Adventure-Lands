@@ -387,7 +387,7 @@ async function upgrade_item_withdraw() {
     game_log("✅ Finished withdrawing upgrade and compound items, leaving at least 3 inventory slots free.");
 }
 
-async function upgrade_item() {
+async function auto_upgrade_item() {
     for (let i = 0; i < character.items.length; i++) {
         const item = character.items[i];
         if (!item) continue;
@@ -442,7 +442,7 @@ async function upgrade_item() {
     return "none";
 }
 
-async function combine_item() {
+async function auto_combine_item() {
     // Build a map of combinable items by name and level
     const buckets = new Map();
 
@@ -529,7 +529,7 @@ async function auto_upgrade() {
     for (let level = 0; level <= 10; level++) {
         upgraded = false;
         while (true) {
-            const result = await upgrade_once_by_level(level);
+            const result = await auto_upgrade_item(level);
             if (result === "done" || result === "wait") {
                 upgraded = true;
                 await delay(UPGRADE_INTERVAL);
@@ -544,7 +544,7 @@ async function auto_upgrade() {
     for (let level = 0; level <= 5; level++) {
         combined = false;
         while (true) {
-            const result = await compound_once_by_level(level);
+            const result = await auto_combine_item(level);
             if (result === "done" || result === "wait") {
                 combined = true;
                 await delay(UPGRADE_INTERVAL);
