@@ -81,6 +81,16 @@ const FREQUENCY = 10 * 60 * 1000; // 10 minutes
 
 const DELIVERY_RADIUS = 350;
 
+// Global cache for party status, updated via code messages
+let party_status_cache = {};
+
+// Listen for status_update code messages from party members
+add_cm_listener((name, data) => {
+    if (data && data.type === "status_update" && data.data) {
+        party_status_cache[name] = data.data;
+    }
+});
+
 async function loot_and_potions_loop() {
     LOOP_STATES.loot_and_potions = true;
 
@@ -89,14 +99,14 @@ async function loot_and_potions_loop() {
     try {
         while (LOOP_STATES.loot_and_potions) {
 
-            // --- 1. Wait for status_cache to be populated ---
+            // --- 1. Wait for party_status_cache to be populated ---
             try {
-				let ulric_status = parent.read_storage("Ulric_status");
-				let myras_status = parent.read_storage("Myras_status");
-				let riva_status  = parent.read_storage("Riva_status");
+                let ulric_status = party_status_cache["Ulric"];
+                let myras_status = party_status_cache["Myras"];
+                let riva_status  = party_status_cache["Riva"];
 
                 if (!ulric_status && !myras_status && !riva_status) {
-                    game_log("⏳ Waiting for status_cache to populate...");
+                    game_log("⏳ Waiting for party status code messages...");
                     await delay(10000);
                     continue;
                 }
@@ -196,7 +206,7 @@ async function loot_and_potions_loop() {
                 }
 
             } catch (e) {
-                game_log("Error checking status_cache: " + e.message);
+                game_log("Error checking party_status_cache: " + e.message);
                 await delay(10000);
                 continue;
             }

@@ -79,58 +79,23 @@ function stop_status_cache_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function status_cache_loop() {
-
     LOOP_STATES.cache = true;
-
     let delayMs = 5000;
 
     try {
         while (LOOP_STATES.cache) {
+            let inventory_count = 0, mpot1_count = 0, hpot1_count = 0, map = "", x = 0, y = 0;
+            try { inventory_count = character.items.filter(Boolean).length; } catch (e) {}
+            try { mpot1_count = character.items.filter(it => it && it.name === "mpot1").reduce((sum, it) => sum + (it.q || 1), 0); } catch (e) {}
+            try { hpot1_count = character.items.filter(it => it && it.name === "hpot1").reduce((sum, it) => sum + (it.q || 1), 0); } catch (e) {}
+            try { map = character.map; x = character.x; y = character.y; } catch (e) {}
+
+            // Send status to merchant "Riff"
             try {
-                // --- Inventory count ---
-                let inventory_count = 0;
-                try {
-                    inventory_count = character.items.filter(Boolean).length;
-                } catch (e) {
-                    game_log("Error counting inventory: " + e.message);
-                }
-
-                // --- MP pot count ---
-                let mpot1_count = 0;
-                try {
-                    mpot1_count = character.items
-                        .filter(it => it && it.name === "mpot1")
-                        .reduce((sum, it) => sum + (it.q || 1), 0);
-                } catch (e) {
-                    game_log("Error counting mpot1: " + e.message);
-                }
-
-                // --- HP pot count ---
-                let hpot1_count = 0;
-                try {
-                    hpot1_count = character.items
-                        .filter(it => it && it.name === "hpot1")
-                        .reduce((sum, it) => sum + (it.q || 1), 0);
-                } catch (e) {
-                    game_log("Error counting hpot1: " + e.message);
-                }
-
-                // --- Location data ---
-                let map = "";
-                let x = 0;
-                let y = 0;
-                try {
-                    map = character.map;
-                    x = character.x;
-                    y = character.y;
-                } catch (e) {
-                    game_log("Error getting location: " + e.message);
-                }
-
-                // --- Overwrite only this character's data in the global cache ---
-                try {
-                    status_cache = status_cache || {};
-                    status_cache[character.name] = {
+                send_cm("Riff", {
+                    type: "status_update",
+                    data: {
+                        name: character.name,
                         inventory: inventory_count,
                         mpot1: mpot1_count,
                         hpot1: hpot1_count,
@@ -138,16 +103,10 @@ async function status_cache_loop() {
                         x: x,
                         y: y,
                         lastSeen: Date.now()
-                    };
-                } catch (e) {
-                    game_log("Error updating status_cache: " + e.message);
-                }
-
-                // In each character's status_cache_loop:
-                parent.write_storage(character.name + "_status", status_cache[character.name]);
-
+                    }
+                });
             } catch (e) {
-                game_log("Status cache loop iteration error: " + e.message);
+                game_log("Error sending status to Riff: " + e.message);
             }
 
             await delay(delayMs);
