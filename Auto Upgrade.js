@@ -273,6 +273,52 @@ async function schedule_upgrade() {
         return (Date.now() - last_change_time) > timeout;
     }
 
+    // --- WITHDRAW ALL POTENTIAL SCROLLS FIRST ---
+    // Gather all scroll names needed for upgrades and compounds
+    const scrollSet = new Set();
+
+    // Upgrade scrolls
+    for (const itemName in upgradeProfile) {
+        const profile = upgradeProfile[itemName];
+        if (profile) {
+            scrollSet.add("scroll0");
+            scrollSet.add("scroll1");
+            scrollSet.add("scroll2");
+        }
+    }
+    // Compound scrolls
+    for (const itemName in combineProfile) {
+        const profile = combineProfile[itemName];
+        if (profile) {
+            scrollSet.add("cscroll0");
+            scrollSet.add("cscroll1");
+            scrollSet.add("cscroll2");
+        }
+    }
+
+    // Withdraw all scrolls from bank (as many as possible, up to free_slots)
+    for (const scrollName of scrollSet) {
+        if (free_slots <= 0 || timed_out()) break;
+        let scrolls_to_withdraw = 0;
+        // Count how many scrolls are in the bank
+        for (const pack in bank_data) {
+            if (!Array.isArray(bank_data[pack])) continue;
+            for (const item of bank_data[pack]) {
+                if (item && item.name === scrollName) {
+                    scrolls_to_withdraw += item.q || 1;
+                }
+            }
+        }
+        // Withdraw as many as possible, up to free_slots
+        if (scrolls_to_withdraw > 0) {
+            let to_withdraw = Math.min(scrolls_to_withdraw, free_slots);
+            game_log(`[Bank] Withdrawing ${to_withdraw} ${scrollName}(s) from bank.`);
+            await withdraw_item(scrollName, undefined, to_withdraw);
+            any_withdrawn = true;
+            free_slots -= to_withdraw;
+        }
+    }
+
     // --- UPGRADE: Withdraw by item+level, only below max_level ---
     for (const itemName in upgradeProfile) {
         if (free_slots <= 0 || timed_out()) break;
