@@ -12,8 +12,6 @@ let move_timer_id    = null;
 // 1) GLOBAL LOOP SWITCHES AND VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const { cache } = require("react");
-
 const LOOP_STATES = {
 
     attack: false,
@@ -67,6 +65,7 @@ function start_status_cache_loop() {
     if (LOOP_STATES.cache) return;
     LOOP_STATES.cache = true;
     status_cache_loop();
+    game_log("▶️ Status cache loop started");
 }
 
 function stop_status_cache_loop() {
