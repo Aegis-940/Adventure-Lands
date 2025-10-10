@@ -314,7 +314,7 @@ async function upgrade_item_withdraw() {
                     if (to_withdraw > 0) {
                         await withdraw_item(itemName, item.level, to_withdraw);
                         free_slots -= to_withdraw;
-                        await delay(200);
+                        await delay(50);
                     }
                     if (free_slots <= 0) break;
                 }
@@ -325,7 +325,6 @@ async function upgrade_item_withdraw() {
 
     // 3. Withdraw all items in COMBINE_PROFILE from the bank that are less than max_level for that item, in multiples of 3
     for (const itemName in COMBINE_PROFILE) {
-        if (free_slots < 3) break;
         const maxLevel = COMBINE_PROFILE[itemName].max_level;
 
         // Gather all items of this type and below maxLevel in the bank, grouped by level
@@ -348,13 +347,14 @@ async function upgrade_item_withdraw() {
 
         // Withdraw in multiples of 3, up to available free slots (in multiples of 3)
         for (const levelStr of Object.keys(levelMap).sort((a, b) => a - b)) {
-            if (free_slots < 3) break;
-            const level = Number(levelStr);
+            let level = Number(levelStr);
             let count = levelMap[level];
-            let to_withdraw = Math.floor(count / 3) * 3;
-            to_withdraw = Math.min(to_withdraw, Math.floor(free_slots / 3) * 3);
-            if (to_withdraw >= 3) {
-                // Withdraw in batches of 3
+
+            // Withdraw as many full batches of 3 as possible
+            while (count >= 3 && free_slots >= 3) {
+                let to_withdraw = Math.min(Math.floor(count / 3) * 3, Math.floor(free_slots / 3) * 3);
+                if (to_withdraw < 3) break;
+
                 let remaining = to_withdraw;
                 for (const pack in bank_data) {
                     if (!Array.isArray(bank_data[pack])) continue;
@@ -370,16 +370,20 @@ async function upgrade_item_withdraw() {
                                 await withdraw_item(itemName, level, withdraw_count);
                                 free_slots -= withdraw_count;
                                 remaining -= withdraw_count;
-                                await delay(200);
+                                count -= withdraw_count;
+                                await delay(50);
                             }
                             if (remaining <= 0 || free_slots < 3) break;
                         }
                     }
                     if (remaining <= 0 || free_slots < 3) break;
                 }
+                // If we can't withdraw another batch, break
+                if (free_slots < 3 || count < 3) break;
             }
-            if (free_slots < 3) break;
+            if (free_slots < 4) break;
         }
+        if (free_slots < 4) break;
     }
 
     game_log("✅ Finished withdrawing upgrade and compound items, leaving at least 3 inventory slots free.");
