@@ -65,13 +65,13 @@ async function universal_loop_controller() {
             return;
         }
 
-        // --- Handle panic state ---
-        if (panicking) {
-            stop_attack_loop();
-            stop_skill_loop();
-            stop_boss_loop();
-            return;
-        }
+        // // --- Handle panic state ---
+        // if (panicking) {
+        //     stop_attack_loop();
+        //     stop_skill_loop();
+        //     stop_boss_loop();
+        //     return;
+        // }
 
         // --- Boss detection ---
         let boss_alive = is_boss_alive();
