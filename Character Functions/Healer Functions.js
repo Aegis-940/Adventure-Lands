@@ -596,7 +596,7 @@ async function safe_call(fn, name) {
 	try {
 		await fn();
 	} catch (e) {
-		console.error(`Error in ${name}:`, e);
+		game_log(`Error in ${name}:`, e);
 	}
 }
 
@@ -606,15 +606,15 @@ const ABSORB_BLACKLIST = ["mrpumpkin", "mrgreen"];
 async function handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps, zapperMobs) {
     if (dead || !disabled) return;
 
-    if (PRIEST_SKILL_TOGGLES.curse)
+    if (PRIEST_SKILL_TOGGLES.curse && !smart.moving)
         safe_call(() => handle_cursing(X, Y, CURSE_WHITELIST), "handle_cursing");
-    if (PRIEST_SKILL_TOGGLES.absorb)
+    if (PRIEST_SKILL_TOGGLES.absorb && !smart.moving)
         safe_call(() => handle_absorb(mapsToExclude, eventMobs, eventMaps, ABSORB_BLACKLIST), "handle_absorb");
     if (PRIEST_SKILL_TOGGLES.party_heal)
         safe_call(() => handle_party_heal(), "handle_party_heal");
-    if (PRIEST_SKILL_TOGGLES.dark_blessing)
+    if (PRIEST_SKILL_TOGGLES.dark_blessing && !smart.moving)
         safe_call(() => handle_dark_blessing(), "handle_dark_blessing");
-    if (PRIEST_SKILL_TOGGLES.zap_spam)
+    if (PRIEST_SKILL_TOGGLES.zap_spam && !smart.moving)
         safe_call(() => handleZapSpam(zapperMobs), "handleZapSpam");
 }
 
@@ -791,25 +791,19 @@ async function potions_loop() {
 
             let used_potion = false;
 
-            // If mana is critically low, always use mp pot first
-            if (character.mp < 50 && can_use("mp")) {
-                use("mp");
-                used_potion = true;
-            } else {
-                // // Cast partyheal rather than use HP Pot
-                // if (HP_MISSING >= 400) {
-                //     if (can_use("hp")) {
-                //         use("hp");
-                //         used_potion = true;
-                //     }
-                // }
+            // Use mana potion if needed
+            if (MP_MISSING >= 500) {
+                if (can_use("mp")) {
+                    use("mp");
+                    used_potion = true;
+                }
+            }
 
-                // Use mana potion if needed
-                if (MP_MISSING >= 500) {
-                    if (can_use("mp")) {
-                        use("mp");
-                        used_potion = true;
-                    }
+            // Use health potion if needed
+            else if (HP_MISSING >= 400) {
+                if (can_use("hp")) {
+                    use("hp");
+                    used_potion = true;
                 }
             }
 

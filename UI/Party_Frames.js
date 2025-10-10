@@ -3,17 +3,17 @@ if (parent.party_style_prepared) {
 }
 
 let css = `
-	.party-container {
-		position: absolute;
-		top: 55px;
-		right: 2px;
-		width: 480px;
-		height: auto;
-		font-family: 'pixel';
-		display: flex;
-		flex-direction: row;
-		justify-content: space-between;
-	}
+    .party-container {
+        position: absolute;
+        top: 55px;
+        left: 2px; /* Changed from right: 2px; */
+        width: 100px; /* Adjust width for vertical stack */
+        height: auto;
+        font-family: 'pixel';
+        display: flex;
+        flex-direction: column; /* Changed from row to column */
+        justify-content: flex-start; /* Align to top */
+    }
 `;
 parent.$('head').append(`<style id="style-party-frames">${css}</style>`);
 parent.party_style_prepared = true;
