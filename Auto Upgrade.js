@@ -17,6 +17,7 @@ const UPGRADE_PROFILE = {
   coat:        { scroll0_until: 4, scroll1_until: 7, scroll2_until: 9, primling_from: 8, max_level: 7 },
   ololipop:    { scroll0_until: 3, scroll1_until: 6, scroll2_until: 9, primling_from: 6, max_level: 6 },
   glolipop:    { scroll0_until: 3, scroll1_until: 6, scroll2_until: 9, primling_from: 6, max_level: 6 },
+  quiver:      { scroll0_until: 3, scroll1_until: 6, scroll2_until: 9, primling_from: 6, max_level: 6 },
   // Add more items as needed
 };
 
@@ -330,6 +331,8 @@ async function auto_combine_item() {
 }
 
 async function auto_upgrade() {
+
+    merchant_task = "Upgrading";
 
     await smart_move(BANK_LOCATION);
 
