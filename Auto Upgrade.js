@@ -452,6 +452,82 @@ async function upgrade_item() {
     return "none";
 }
 
+async function combine_item() {
+    // Build a map of combinable items by name and level
+    const buckets = new Map();
+
+    for (let i = 0; i < character.items.length; i++) {
+        const item = character.items[i];
+        if (!item) continue;
+
+        const profile = COMBINE_PROFILE[item.name];
+        if (!profile) continue;
+        if (typeof item.level !== "number" || item.level >= profile.max_level) continue;
+
+        const key = `${item.name}:${item.level}`;
+        if (!buckets.has(key)) {
+            buckets.set(key, [item.level, [i]]);
+        } else {
+            buckets.get(key)[1].push(i);
+        }
+    }
+
+    // Try to combine the first valid group of 3
+    for (const [key, [lvl, slots]] of buckets) {
+        if (slots.length < 3) continue;
+
+        const itemName = key.split(":")[0];
+        const profile = COMBINE_PROFILE[itemName];
+
+        // Determine the correct scroll for this item's level
+        let scrollname =
+            lvl < profile.scroll0_until ? "cscroll0"
+            : lvl < profile.scroll1_until ? "cscroll1"
+            : "cscroll2";
+
+        // Check if we have the scroll in inventory
+        let [scroll_slot, scroll] = find_item(it => it.name === scrollname);
+        if (!scroll) {
+            parent.buy(scrollname);
+            game_log(`Buying ${scrollname} for combining ${itemName} (level ${lvl})`);
+            // Wait for the scroll to arrive in inventory
+            for (let tries = 0; tries < 10; tries++) {
+                await delay(300);
+                [scroll_slot, scroll] = find_item(it => it.name === scrollname);
+                if (scroll) break;
+            }
+            if (!scroll) {
+                game_log(`Scroll ${scrollname} not found after purchase, try again later.`);
+                return "wait";
+            }
+        }
+
+        // Check for offering if needed
+        let offering_slot = null;
+        if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
+            const [pSlot, prim] = find_item(it => it.name === "offeringp");
+            if (!prim) {
+                game_log("No offeringp found for combine requiring it.");
+                return "wait";
+            }
+            offering_slot = pSlot;
+        }
+
+        // Combine the items
+        parent.socket.emit("compound", {
+            items: slots.slice(0, 3),
+            scroll_num: scroll_slot,
+            offering_num: offering_slot,
+            clevel: lvl,
+        });
+
+        game_log(`Combining 3x ${itemName} (level ${lvl}) with ${scrollname}`);
+        return "done";
+    }
+    game_log("No valid items found for combine.");
+    return "none";
+}
+
 // async function auto_upgrade() {
 
 //     await upgrade_item_checker();
