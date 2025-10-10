@@ -17,6 +17,7 @@ create_map_movement_window([
 
 add_bank_buttons();
 hide_skills_ui();
+filter_code_messages_from_log();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN LOOP
