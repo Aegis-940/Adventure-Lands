@@ -63,6 +63,7 @@ async function universal_loop_controller() {
             if (!LOOP_STATES.potion) start_potions_loop();
             if (!LOOP_STATES.loot) start_loot_loop();
             if (!LOOP_STATES.heal) start_heal_loop();
+            if (!LOOP_STATES.panic) start_panic_loop();
 
             // // --- Handle panic state ---
             // if (panicking) {
