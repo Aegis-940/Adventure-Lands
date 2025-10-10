@@ -256,7 +256,7 @@ async function auto_upgrade_item() {
     return "none";
 }
 
-async function auto_combine_item(level) {
+async function auto_combine_item() {
     // Build a map of combinable items by name and level
     const buckets = new Map();
 
@@ -266,7 +266,7 @@ async function auto_combine_item(level) {
 
         const profile = COMBINE_PROFILE[item.name];
         if (!profile) continue;
-        if (typeof item.level !== "number" || item.level !== level || item.level >= profile.max_level) continue;
+        if (typeof item.level !== "number" || item.level >= profile.max_level) continue;
 
         const key = `${item.name}:${item.level}`;
         if (!buckets.has(key)) {
@@ -276,7 +276,7 @@ async function auto_combine_item(level) {
         }
     }
 
-    // First, check if any group needs a scroll and buy only one scroll per call
+    // Try to combine the first valid group of 3
     for (const [key, [lvl, slots]] of buckets) {
         if (slots.length < 3) continue;
 
@@ -297,22 +297,6 @@ async function auto_combine_item(level) {
             // Only buy one scroll, then return immediately
             return "wait";
         }
-    }
-
-    // Try to combine the first valid group of 3 (only if scroll is present)
-    for (const [key, [lvl, slots]] of buckets) {
-        if (slots.length < 3) continue;
-
-        const itemName = key.split(":")[0];
-        const profile = COMBINE_PROFILE[itemName];
-
-        let scrollname =
-            lvl < profile.scroll0_until ? "cscroll0"
-            : lvl < profile.scroll1_until ? "cscroll1"
-            : "cscroll2";
-
-        let [scroll_slot, scroll] = find_item(it => it.name === scrollname);
-        if (!scroll) continue;
 
         // Check for offering if needed
         let offering_slot = null;
