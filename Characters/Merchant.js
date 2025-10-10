@@ -22,7 +22,9 @@ hide_skills_ui();
 // MAIN LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-setInterval(async () => {
+let last_update_time = 0;
+
+setInterval(() => {
 	
 	// Throttle to every 20 seconds (20,000 ms)
 	const now = Date.now();
