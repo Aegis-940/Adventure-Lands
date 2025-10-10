@@ -385,8 +385,8 @@ async function upgrade_item_withdraw() {
     game_log("✅ Finished withdrawing upgrade and compound items, leaving at least 3 inventory slots free.");
 }
 
-async function auto_upgrade() {
+// async function auto_upgrade() {
 
-    await upgrade_item_checker();
+//     await upgrade_item_checker();
 
-}
+// }
