@@ -405,11 +405,20 @@ async function upgrade_item() {
             : "scroll2";
 
         // Check if we have the scroll in inventory
-        const [scroll_slot, scroll] = find_item(it => it.name === scrollname);
+        let [scroll_slot, scroll] = find_item(it => it.name === scrollname);
         if (!scroll) {
             parent.buy(scrollname);
             game_log(`Buying ${scrollname} for upgrading ${item.name} (level ${item.level})`);
-            return "wait";
+            // Wait for the scroll to arrive in inventory
+            for (let tries = 0; tries < 10; tries++) {
+                await delay(300);
+                [scroll_slot, scroll] = find_item(it => it.name === scrollname);
+                if (scroll) break;
+            }
+            if (!scroll) {
+                game_log(`Scroll ${scrollname} not found after purchase, try again later.`);
+                return "wait";
+            }
         }
 
         // Check for offering if needed
