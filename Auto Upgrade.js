@@ -535,7 +535,7 @@ async function auto_upgrade() {
 
     await smart_move(BANK_LOCATION);
 
-    await upgrade_item_checker();
+    await upgrade_scroll_withdraw();
     await upgrade_item_withdraw();
 
     await smart_move(HOME);
