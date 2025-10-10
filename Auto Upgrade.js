@@ -260,24 +260,6 @@ async function schedule_upgrade() {
         return character.items.filter(it => !!it).length;
     }
 
-    let any_withdrawn = false;
-    // Reserve at least 3 free slots for upgrade/compound items
-    let free_slots = Math.max(0, count_empty_inventory() - 3);
-
-    // --- WITHDRAW ALL POTENTIAL SCROLLS FIRST ---
-    // Gather all scroll names needed for upgrades and compounds
-    const scrollSet = new Set();
-    for (const itemName in upgradeProfile) {
-        scrollSet.add("scroll0");
-        scrollSet.add("scroll1");
-        scrollSet.add("scroll2");
-    }
-    for (const itemName in combineProfile) {
-        scrollSet.add("cscroll0");
-        scrollSet.add("cscroll1");
-        scrollSet.add("cscroll2");
-    }
-
     // Withdraw all scrolls of each type from the bank, stacking if possible
     for (const scrollName of scrollSet) {
         // Check if we already have this scroll type in inventory
@@ -412,32 +394,10 @@ async function upgrade_item_checker() {
         return;
     }
 
-    // 3. Attempt to withdraw each scroll type in the list
     for (const scrollName of scrollTypes) {
-        // Skip if already in inventory
-        if (character.items.some(it => it && it.name === scrollName)) continue;
-
-        // Find total in bank and which pack/slot
-        let found = false;
-        for (const pack in character.bank) {
-            if (!Array.isArray(character.bank[pack])) continue;
-            for (let slot = 0; slot < character.bank[pack].length; slot++) {
-                const item = character.bank[pack][slot];
-                if (item && item.name === scrollName) {
-                    // Withdraw all in this slot (they stack)
-                    found = true;
-                    await parent.$('#maincode')[0].contentWindow
-                        .withdraw_item(scrollName, slot, item.q || 1)
-                        .then(() => {
-                            parent.hide_modal();
-                            parent.$('#maincode')[0].contentWindow.render_bank_items();
-                        });
-                    await delay(200); // Small delay for UI/bank sync
-                    break;
-                }
-            }
-            if (found) break;
-        }
+        await withdraw_item(scrollName);
+        await delay(200); // Small delay for UI/bank sync
     }
+    
     game_log("✅ Scroll withdrawal check complete.");
 }
