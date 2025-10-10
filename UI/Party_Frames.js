@@ -6,7 +6,7 @@ let css = `
     .party-container {
         position: absolute;
         top: 1px;
-        left: 100px;
+        left: -100px;
         width: auto;
         height: auto;
         font-family: 'pixel';
