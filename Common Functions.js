@@ -46,18 +46,34 @@ function halt_movement() {
 }
 
 function filter_code_messages_from_log() {
-    // Add a code message filter to the log system if not present
-    if (typeof parent.gamelog_data === "object" && !parent.gamelog_data.code) {
-        parent.gamelog_data.code = {
-            show: false,
-            regex: /code message/i,
-            tab_name: 'Code'
-        };
-    }
-    // Re-filter the log if filter_gamelog is available
-    if (typeof parent.filter_gamelog === "function") {
-        parent.filter_gamelog();
-    }
+    const codeMsgRegex = /code/i;
+    const $ = parent.$;
+
+    // Hide all existing code message entries
+    $('.gameentry').each(function() {
+        if (codeMsgRegex.test(this.innerHTML)) {
+            this.style.display = 'none';
+        }
+    });
+
+    // Observe future log entries and hide code messages as they appear
+    const gamelog = $('#gamelog')[0];
+    if (!gamelog) return;
+    if (gamelog._codeMsgObserver) return; // Prevent multiple observers
+
+    gamelog._codeMsgObserver = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+                if (
+                    node.nodeType === 1 &&
+                    codeMsgRegex.test(node.innerHTML)
+                ) {
+                    node.style.display = 'none';
+                }
+            });
+        });
+    });
+    gamelog._codeMsgObserver.observe(gamelog, { childList: true });
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
