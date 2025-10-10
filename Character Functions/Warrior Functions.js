@@ -3,6 +3,8 @@
 // 1) LOBAL LOOP SWITCHES AND VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+const { cache } = require("react");
+
 const LOOP_STATES = {
 
     attack: false,
@@ -12,6 +14,7 @@ const LOOP_STATES = {
     orbit: false,
     boss: false,
     potion: false,
+    cache: false,
 
 }
 
@@ -126,6 +129,18 @@ function stop_boss_loop() {
     game_log("⏹ Boss loop stopped");
 }
 
+function start_status_cache_loop() {
+    if (LOOP_STATES.cache) return;
+    LOOP_STATES.cache = true;
+    status_cache_loop();
+}
+
+function stop_status_cache_loop() {
+    if (!LOOP_STATES.cache) return;
+    LOOP_STATES.cache = false;
+    game_log("⏹ Status cache loop stopped");
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SUPPORT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -187,6 +202,80 @@ function get_nearest_monster_v2(args = {}) {
         }
     }
     return target;
+}async function status_cache_loop() {
+
+    LOOP_STATES.cache = true;
+
+    let delayMs = 5000;
+
+    try {
+        while (LOOP_STATES.cache) {
+            try {
+                // --- Inventory count ---
+                let inventory_count = 0;
+                try {
+                    inventory_count = character.items.filter(Boolean).length;
+                } catch (e) {
+                    game_log("Error counting inventory: " + e.message);
+                }
+
+                // --- MP pot count ---
+                let mpot1_count = 0;
+                try {
+                    mpot1_count = character.items
+                        .filter(it => it && it.name === "mpot1")
+                        .reduce((sum, it) => sum + (it.q || 1), 0);
+                } catch (e) {
+                    game_log("Error counting mpot1: " + e.message);
+                }
+
+                // --- HP pot count ---
+                let hpot1_count = 0;
+                try {
+                    hpot1_count = character.items
+                        .filter(it => it && it.name === "hpot1")
+                        .reduce((sum, it) => sum + (it.q || 1), 0);
+                } catch (e) {
+                    game_log("Error counting hpot1: " + e.message);
+                }
+
+                // --- Location data ---
+                let map = "";
+                let x = 0;
+                let y = 0;
+                try {
+                    map = character.map;
+                    x = character.x;
+                    y = character.y;
+                } catch (e) {
+                    game_log("Error getting location: " + e.message);
+                }
+
+                // --- Overwrite only this character's data in the global cache ---
+                try {
+                    status_cache = status_cache || {};
+                    status_cache[character.name] = {
+                        inventory: inventory_count,
+                        mpot1: mpot1_count,
+                        hpot1: hpot1_count,
+                        map: map,
+                        x: x,
+                        y: y,
+                        lastSeen: Date.now()
+                    };
+                } catch (e) {
+                    game_log("Error updating status_cache: " + e.message);
+                }
+
+            } catch (e) {
+                game_log("Status cache loop iteration error: " + e.message);
+            }
+
+            await delay(delayMs);
+        }
+    } catch (e) {
+        game_log("Status cache loop fatal error: " + e.message);
+    }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

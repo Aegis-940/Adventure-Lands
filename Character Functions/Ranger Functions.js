@@ -42,45 +42,84 @@ function stop_move_loop() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// 3) PERSISTENT STATE HANDLER
+// STATUS CACHE LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// function save_persistent_state() {
-//     try {
-//         set("ranger_attack_enabled", attack_enabled);
-//         set("ranger_move_enabled",   move_enabled);
-//     } catch (e) {
-//         console.error("Error saving persistent state:", e);
-//     }
-// }
+async function status_cache_loop() {
 
-// function init_persistent_state() {
-//     try {
-//         const atk = get("ranger_attack_enabled");
-//         if (atk !== undefined) attack_enabled = atk;
+    LOOP_STATES.cache = true;
 
-//         const mv = get("ranger_move_enabled");
-//         if (mv !== undefined) move_enabled = mv;
+    let delayMs = 5000;
 
-//         // Reflect loaded flags in the loop state
-//         if (attack_enabled) start_attack_loop();
-//         else               stop_attack_loop();
+    try {
+        while (LOOP_STATES.cache) {
+            try {
+                // --- Inventory count ---
+                let inventory_count = 0;
+                try {
+                    inventory_count = character.items.filter(Boolean).length;
+                } catch (e) {
+                    game_log("Error counting inventory: " + e.message);
+                }
 
-//         if (move_enabled)  start_move_loop();
-//         else               stop_move_loop();
-//     } catch (e) {
-//         console.error("Error loading persistent state:", e);
-//     }
-// }
+                // --- MP pot count ---
+                let mpot1_count = 0;
+                try {
+                    mpot1_count = character.items
+                        .filter(it => it && it.name === "mpot1")
+                        .reduce((sum, it) => sum + (it.q || 1), 0);
+                } catch (e) {
+                    game_log("Error counting mpot1: " + e.message);
+                }
 
-// // Save state on script unload
-// window.addEventListener("beforeunload", save_persistent_state);
+                // --- HP pot count ---
+                let hpot1_count = 0;
+                try {
+                    hpot1_count = character.items
+                        .filter(it => it && it.name === "hpot1")
+                        .reduce((sum, it) => sum + (it.q || 1), 0);
+                } catch (e) {
+                    game_log("Error counting hpot1: " + e.message);
+                }
 
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// 4) PERSISTENT STATE
-// --------------------------------------------------------------------------------------------------------------------------------- //
+                // --- Location data ---
+                let map = "";
+                let x = 0;
+                let y = 0;
+                try {
+                    map = character.map;
+                    x = character.x;
+                    y = character.y;
+                } catch (e) {
+                    game_log("Error getting location: " + e.message);
+                }
 
-// init_persistent_state();
+                // --- Overwrite only this character's data in the global cache ---
+                try {
+                    status_cache = status_cache || {};
+                    status_cache[character.name] = {
+                        inventory: inventory_count,
+                        mpot1: mpot1_count,
+                        hpot1: hpot1_count,
+                        map: map,
+                        x: x,
+                        y: y,
+                        lastSeen: Date.now()
+                    };
+                } catch (e) {
+                    game_log("Error updating status_cache: " + e.message);
+                }
+
+            } catch (e) {
+                game_log("Status cache loop iteration error: " + e.message);
+            }
+
+            await delay(delayMs);
+        }
+    } catch (e) {
+        game_log("Status cache loop fatal error: " + e.message);
+    }
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SUPPORT FUNCTIONS

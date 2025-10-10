@@ -28,9 +28,9 @@ const MONSTER_LOCS			   	  = {
 
 const MERCHANT_NAME               = "Riff";
 
-let last_death_time               = 0;
-
 const FLOATING_BUTTON_IDS         = [];
+
+let status_cache = {}; // { characterName: { inventory, mpot1, hpot1, lastSeen } }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // GLOBAL FUNCTIONS
