@@ -18,7 +18,7 @@ create_map_movement_window([
 hide_skills_ui();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// UNIVERSAL LOOP CONTROLL
+// UNIVERSAL LOOP CONTROL
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // --- Helper: Handle death and respawn ---
@@ -54,42 +54,43 @@ async function universal_loop_controller() {
 
 	try {
 
+        // --- Boss detection ---
+        let boss_alive = is_boss_alive();
+
         // --- Handle death and respawn ---
         if (character.rip) {
-            handle_death_and_respawn();
+            await handle_death_and_respawn();
             return;
+
+        // --- Handle panic state ---
+        } else if (panicking) {
+
+            if (!LOOP_STATES.attack) stop_attack_loop();
+            if (!LOOP_STATES.skill) stop_skill_loop();
+            if (!LOOP_STATES.boss) stop_boss_loop();
+            return;
+
+        // --- Handle boss logic ---
+        } else if (boss_alive) {
+
+            if (LOOP_STATES.attack) stop_attack_loop();
+            if (LOOP_STATES.skill) stop_skill_loop();
+            if (LOOP_STATES.orbit) stop_orbit_loop();
+            if (!LOOP_STATES.boss) start_boss_loop();
+            return;
+        
+        // --- Normal grind logic ---
         } else {
+
             // --- Ensure essential loops are always running ---
             if (!LOOP_STATES.potion) start_potions_loop();
             if (!LOOP_STATES.loot) start_loot_loop();
             if (!LOOP_STATES.heal) start_heal_loop();
             if (!LOOP_STATES.panic) start_panic_loop();
 
-            // // --- Handle panic state ---
-            // if (panicking) {
-            //     stop_attack_loop();
-            //     stop_skill_loop();
-            //     stop_boss_loop();
-            //     return;
-            // }
-
-            // --- Boss detection ---
-            let boss_alive = is_boss_alive();
-
-            // --- Boss logic ---
-            if (boss_alive && !LOOP_STATES.boss) {
-                stop_attack_loop();
-                stop_skill_loop();
-                stop_orbit_loop();
-                start_boss_loop();
-                return;
-            }
-
-            // --- Normal grind logic ---
             if (!boss_alive && !LOOP_STATES.boss) {
                 if (!LOOP_STATES.attack) start_attack_loop();
                 if (!LOOP_STATES.skill) start_skill_loop();
-                if (!LOOP_STATES.panic) start_panic_loop();
 
                 const at_target = character.x === TARGET_LOC.x && character.y === TARGET_LOC.y;
                 const near_target = parent.distance(character, TARGET_LOC) <= 50;

@@ -97,7 +97,7 @@ function addPartyFramePropertiesToggles() {
 		return toggle;
 	}
 
-	for (let key of ['img', 'hp', 'mp', 'xp', 'cc']) {
+	for (let key of ['hp', 'mp', 'xp', 'cc']) {
 		toggles.appendChild(create_toggle(key));
 	}
 }
@@ -209,7 +209,7 @@ function updatePartyFrames() {
 			}
 
 			let party_member_frame = partyFrame.find(partyFrame.children()[x]);
-			party_member_frame.children().first().css('display', show_party_frame_property['img'] ? 'inherit' : 'none');
+			// party_member_frame.children().first().css('display', show_party_frame_property['img'] ? 'inherit' : 'none');
 			party_member_frame.children().last().html(`<div style="font-size: 22px;" onclick='pcs(event); party_click("${party_member_name}\");'>${infoHTML}</div>`);
 		}
 	}
