@@ -865,7 +865,7 @@ async function panic_loop() {
             const high_mana = character.mp >= 500;
 
             // PANIC CONDITION
-            if (low_health || low_mana) {
+            if (low_health) {
                 if (!panicking) {
                     panicking = true;
                     game_log("⚠️ Panic triggered: Low health!");
@@ -890,7 +890,7 @@ async function panic_loop() {
             }
 
             // SAFE CONDITION
-            else if (high_health && high_mana) {
+            else if (high_health) {
                 if (panicking) {
                     panicking = false;
                     game_log("✅ Panic over — resuming normal operations.");
