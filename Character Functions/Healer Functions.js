@@ -254,13 +254,9 @@ async function attack_loop() {
                 }
 
             if (LOOP_STATES.heal && valid_heal_target) {
-                try {
-                    game_log(`💖 Healing ${target.name}`, "#00FF00");
-                    await heal(target);
-                } catch (e) {
-                    game_log("Heal error: " + e, "#FF0000");
-                }
-                delayMs = ms_to_next_skill('heal') + character.ping + 20;
+                game_log(`💖 Healing ${target.name}`, "#00FF00");
+                await heal(target);
+                delayMs = ms_to_next_skill('attack') + character.ping + 20;
                 await delay(delayMs);
                 continue;
             } else if (LOOP_STATES.attack) {
@@ -282,29 +278,20 @@ async function attack_loop() {
                 }
 
                 if (target && is_in_range(target) && !smart.moving && character.mp >= 100) {
-                    try {
-                        await attack(target);
-                    } catch (e) {
-                        game_log("Attack error: " + e, "#FF0000");
-                    }
-                    delayMs = ms_to_next_skill('heal') + character.ping + 20;
+                    await attack(target);
+                    delayMs = ms_to_next_skill("attack") + character.ping + 20;
                     await delay(delayMs);
-                continue;
+                    continue;
                 }
             } else {
                 await delay(50);
                 continue;
             }
-            await delay(10);
+            await delay(50);
         }
     } catch (e) {
-        if (e && e.message) {
-            game_log("Attack error: " + e.message, "#FF0000");
-        } else {
-            game_log("Attack error: " + JSON.stringify(e), "#FF0000");
-        }
-        // Optionally, also log to the browser console for full details:
-        console.error("Attack error:", e);
+        game_log("⚠️ Attack Loop error:", "#FF0000");
+        game_log(e);
     } finally {
         // LOOP_STATES.attack = false;
         // game_log("Attack loop ended unexpectedly", "#ffea00ff");
