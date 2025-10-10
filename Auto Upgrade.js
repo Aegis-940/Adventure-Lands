@@ -513,6 +513,11 @@ async function combine_item() {
             offering_slot = pSlot;
         }
 
+        // Use massproduction if available
+        if (can_use("massproduction")) {
+            await use_skill("massproduction");
+        }
+
         // Combine the items
         parent.socket.emit("compound", {
             items: slots.slice(0, 3),
