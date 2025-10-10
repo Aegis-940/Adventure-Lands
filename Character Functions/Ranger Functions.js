@@ -9,6 +9,28 @@ let move_enabled     = true;
 let move_timer_id    = null;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// 1) GLOBAL LOOP SWITCHES AND VARIABLES
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const { cache } = require("react");
+
+const LOOP_STATES = {
+
+    attack: false,
+    move: false,
+    skill: false,
+    panic: false,
+    orbit: false,
+    boss: false,
+    potion: false,
+    cache: false,
+
+}
+
+// Define default location for monster farming
+const TARGET_LOC = MONSTER_LOCS.spider;
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -39,6 +61,18 @@ function stop_move_loop() {
     clearTimeout(move_timer_id);
     // save_persistent_state();
     game_log("⏹ Move loop stopped");
+}
+
+function start_status_cache_loop() {
+    if (LOOP_STATES.cache) return;
+    LOOP_STATES.cache = true;
+    status_cache_loop();
+}
+
+function stop_status_cache_loop() {
+    if (!LOOP_STATES.cache) return;
+    LOOP_STATES.cache = false;
+    game_log("⏹ Status cache loop stopped");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
