@@ -280,8 +280,6 @@ async function schedule_upgrade() {
 
     // Withdraw one stack of each scroll type if not already in inventory
     for (const scrollName of scrollSet) {
-        // If we already have this scroll type in inventory, skip
-        if (character.items.some(it => it && it.name === scrollName)) continue;
 
         // Find all scrolls of this type in the bank
         let total_in_bank = 0;
