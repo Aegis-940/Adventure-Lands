@@ -82,7 +82,10 @@ const FREQUENCY = 10 * 60 * 1000; // 10 minutes
 const DELIVERY_RADIUS = 350;
 
 async function loot_and_potions_loop() {
+
     LOOP_STATES.loot_and_potions = true;
+
+	game_log("🔄 Starting loot and potions loop...");
 
     try {
         while (LOOP_STATES.loot_and_potions) {
