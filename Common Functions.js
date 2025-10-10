@@ -47,7 +47,7 @@ function halt_movement() {
 
 // Filters out code message logs from the in-game log window
 function filter_code_messages_from_log() {
-    const codeMsgRegex = /(Sent code message to|Received code message from)/i;
+    const codeMsgRegex = /(Sent a code message to|Received a code message from)/i;
     const $ = parent.$;
     // Hide existing code message entries
     $('.gameentry').each(function() {
