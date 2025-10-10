@@ -45,31 +45,26 @@ function halt_movement() {
 	parent.socket.emit("move", { to: { x: character.x, y: character.y } });
 }
 
-// Blocks "Sent code message" and "Received code message" from the game log (standalone)
 function filter_code_messages_from_log() {
-    const codeMsgRegex = /code message/i;
     const $ = parent.$;
+    // Add a code message filter to the global gamelog_data if not present
+    if (typeof parent.ui_gamelog === "function" && parent.gamelog_data && !parent.gamelog_data.code) {
+        parent.gamelog_data.code = {
+            show: false,
+            regex: /code message/i,
+            tab_name: 'Code'
+        };
+    }
+    // Hide existing code message entries
     $('.gameentry').each(function() {
-        if (codeMsgRegex.test(this.innerHTML)) {
+        if (/code message/i.test(this.innerHTML)) {
             this.style.display = 'none';
         }
     });
-    const gamelog = $('#gamelog')[0];
-    if (!gamelog) return;
-    if (gamelog._codeMsgObserver) return;
-    gamelog._codeMsgObserver = new MutationObserver(mutations => {
-        mutations.forEach(mutation => {
-            mutation.addedNodes.forEach(node => {
-                if (
-                    node.nodeType === 1 &&
-                    codeMsgRegex.test(node.innerHTML)
-                ) {
-                    node.style.display = 'none';
-                }
-            });
-        });
-    });
-    gamelog._codeMsgObserver.observe(gamelog, { childList: true });
+    // Re-filter the log if filter_gamelog is available
+    if (typeof parent.filter_gamelog === "function") {
+        parent.filter_gamelog();
+    }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
