@@ -45,46 +45,31 @@ function halt_movement() {
 	parent.socket.emit("move", { to: { x: character.x, y: character.y } });
 }
 
+// Blocks "Sent code message" and "Received code message" from the game log (standalone)
 function filter_code_messages_from_log() {
-    const codeMsgRegex = /(Sent a code message|Received a code message)/i;
+    const codeMsgRegex = /code message/i;
     const $ = parent.$;
-
-    function hideCodeMessages() {
-        $('.gameentry').each(function() {
-            if (codeMsgRegex.test(this.innerText || this.textContent)) {
-                this.style.display = 'none';
-            }
-        });
-    }
-
-    // Hide existing code message entries
-    hideCodeMessages();
-
-    // Observe future log entries and hide code messages as they appear
+    $('.gameentry').each(function() {
+        if (codeMsgRegex.test(this.innerHTML)) {
+            this.style.display = 'none';
+        }
+    });
     const gamelog = $('#gamelog')[0];
     if (!gamelog) return;
-    if (gamelog._codeMsgObserver) return; // Prevent multiple observers
-
+    if (gamelog._codeMsgObserver) return;
     gamelog._codeMsgObserver = new MutationObserver(mutations => {
         mutations.forEach(mutation => {
             mutation.addedNodes.forEach(node => {
                 if (
                     node.nodeType === 1 &&
-                    codeMsgRegex.test(node.innerText || node.textContent)
+                    codeMsgRegex.test(node.innerHTML)
                 ) {
                     node.style.display = 'none';
                 }
             });
         });
-        // Also re-hide in case of delayed rendering
-        hideCodeMessages();
     });
-    gamelog._codeMsgObserver.observe(gamelog, { childList: true, subtree: true });
-
-    // Periodically re-hide in case some messages slip through
-    if (!window._codeMsgInterval) {
-        window._codeMsgInterval = setInterval(hideCodeMessages, 2000);
-    }
+    gamelog._codeMsgObserver.observe(gamelog, { childList: true });
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
