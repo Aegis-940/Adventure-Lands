@@ -377,27 +377,24 @@ async function upgrade_item_checker() {
 
     await smart_move(BANK_LOCATION);
 
-    await parent.$('#maincode')[0].contentWindow.render_bank_items();
-    await delay(1000);
-    await parent.hide_modal();
+    // await parent.$('#maincode')[0].contentWindow.render_bank_items();
+    // await delay(1000);
+    // await parent.hide_modal();
 
     // 1. Build a list of possible scroll types
-    const scrollTypes = [
-        "scroll0", "scroll1", "scroll2",
-        "cscroll0", "cscroll1", "cscroll2"
-    ];
+    const scrollTypes = ["scroll0", "scroll1", "scroll2", "cscroll0", "cscroll1", "cscroll2"];
 
-    // 2. Count empty inventory slots, if < 10, end and announce
-    const emptySlots = character.items.filter(it => !it).length;
-    if (emptySlots < 10) {
-        game_log(`❌ Not enough inventory space to withdraw scrolls. Need at least 10 free slots, have ${emptySlots}.`);
-        return;
-    }
+    // // 2. Count empty inventory slots, if < 10, end and announce
+    // const emptySlots = character.items.filter(it => !it).length;
+    // if (emptySlots < 10) {
+    //     game_log(`❌ Not enough inventory space to withdraw scrolls. Need at least 10 free slots, have ${emptySlots}.`);
+    //     return;
+    // }
 
-    for (const scrollName of scrollTypes) {
-        await withdraw_item(scrollName);
+    for (const item of scrollTypes) {
+        await withdraw_item(item);
         await delay(200); // Small delay for UI/bank sync
     }
-    
+
     game_log("✅ Scroll withdrawal check complete.");
 }
