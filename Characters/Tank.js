@@ -81,7 +81,6 @@ async function universal_loop_controller() {
                 stop_attack_loop();
                 stop_skill_loop();
                 stop_orbit_loop();
-                stop_panic_loop();
                 start_boss_loop();
                 return;
             }

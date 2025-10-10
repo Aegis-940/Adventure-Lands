@@ -919,19 +919,17 @@ let panicking = false;
 const PANIC_WEAPON = "jacko";
 const NORMAL_WEAPON = "orbg";
 
-const low_health = character.hp < (character.max_hp / 3);
-const low_mana = character.mp < 50;
-const high_health = character.hp >= ((2 * character.max_hp) / 3);
-const high_mana = character.mp >= 500;
-
 async function panic_loop() {
-
     LOOP_STATES.panic = true;
-
-    let delayMs = 100
+    let delayMs = 100;
 
     try {
         while (LOOP_STATES.panic) {
+            // Re-evaluate these every loop!
+            const low_health = character.hp < (character.max_hp / 3);
+            const low_mana = character.mp < 50;
+            const high_health = character.hp >= ((2 * character.max_hp) / 3);
+            const high_mana = character.mp >= 500;
 
             // PANIC CONDITION
             if (low_health || low_mana) {
@@ -959,7 +957,7 @@ async function panic_loop() {
             }
 
             // SAFE CONDITION
-            if (high_health && high_mana) {
+            else if (high_health && high_mana) {
                 if (panicking) {
                     panicking = false;
                     game_log("✅ Panic over — resuming normal operations.");
