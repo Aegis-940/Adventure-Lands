@@ -262,6 +262,7 @@ async function attack_loop() {
                 }
                 delayMs = ms_to_next_skill('heal') + character.ping + 20;
                 await delay(delayMs);
+                continue;
             } else if (LOOP_STATES.attack) {
                 // 1. Filter all relevant monsters ONCE
                 const monsters = Object.values(parent.entities).filter(e =>
@@ -288,9 +289,11 @@ async function attack_loop() {
                     }
                     delayMs = ms_to_next_skill('heal') + character.ping + 20;
                     await delay(delayMs);
+                continue;
                 }
             } else {
                 await delay(50);
+                continue;
             }
             await delay(10);
         }
