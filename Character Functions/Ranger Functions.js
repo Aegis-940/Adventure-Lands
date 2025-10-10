@@ -90,23 +90,29 @@ async function status_cache_loop() {
             try { hpot1_count = character.items.filter(it => it && it.name === "hpot1").reduce((sum, it) => sum + (it.q || 1), 0); } catch (e) {}
             try { map = character.map; x = character.x; y = character.y; } catch (e) {}
 
-            // Send status to merchant "Riff"
-            try {
-                send_cm("Riff", {
-                    type: "status_update",
-                    data: {
-                        name: character.name,
-                        inventory: inventory_count,
-                        mpot1: mpot1_count,
-                        hpot1: hpot1_count,
-                        map: map,
-                        x: x,
-                        y: y,
-                        lastSeen: Date.now()
-                    }
-                });
-            } catch (e) {
-                game_log("Error sending status to Riff: " + e.message);
+            // Only send status if inventory is 20+ or either potion is below 2000
+            if (
+                inventory_count >= 20 ||
+                mpot1_count < 2000 ||
+                hpot1_count < 2000
+            ) {
+                try {
+                    send_cm("Riff", {
+                        type: "status_update",
+                        data: {
+                            name: character.name,
+                            inventory: inventory_count,
+                            mpot1: mpot1_count,
+                            hpot1: hpot1_count,
+                            map: map,
+                            x: x,
+                            y: y,
+                            lastSeen: Date.now()
+                        }
+                    });
+                } catch (e) {
+                    game_log("Error sending status to Riff: " + e.message);
+                }
             }
 
             await delay(delayMs);

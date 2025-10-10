@@ -95,31 +95,31 @@ async function merchant_loop_controller() {
             if (!LOOP_STATES.loot_and_potions) start_loot_and_potions_loop();
         }
 
-        // --- Prioritize tasks ---
-        // Only start new tasks if merchant is idle and not already fishing or mining
-        if (merchant_task === "Idle" && !LOOP_STATES.fishing && !LOOP_STATES.mining) {
-            // Try fishing first
-            start_fishing_loop();
-            await delay(2000);
+        // // --- Prioritize tasks ---
+        // // Only start new tasks if merchant is idle and not already fishing or mining
+        // if (merchant_task === "Idle" && !LOOP_STATES.fishing && !LOOP_STATES.mining) {
+        //     // Try fishing first
+        //     start_fishing_loop();
+        //     await delay(2000);
 
-            // If fishing didn't start (still idle), ensure fishing loop is stopped
-            if (merchant_task === "Idle" && LOOP_STATES.fishing) {
-                await stop_fishing_loop();
-                await delay(1000);
-            }
+        //     // If fishing didn't start (still idle), ensure fishing loop is stopped
+        //     if (merchant_task === "Idle" && LOOP_STATES.fishing) {
+        //         await stop_fishing_loop();
+        //         await delay(1000);
+        //     }
 
-            // If still idle, try mining
-            if (merchant_task === "Idle" && !LOOP_STATES.mining) {
-                start_mining_loop();
-                await delay(2000);
+        //     // If still idle, try mining
+        //     if (merchant_task === "Idle" && !LOOP_STATES.mining) {
+        //         start_mining_loop();
+        //         await delay(2000);
 
-                // If mining didn't start (still idle), ensure mining loop is stopped
-                if (merchant_task === "Idle" && LOOP_STATES.mining) {
-                    await stop_mining_loop();
-                    await delay(1000);
-                }
-            }
-        }
+        //         // If mining didn't start (still idle), ensure mining loop is stopped
+        //         if (merchant_task === "Idle" && LOOP_STATES.mining) {
+        //             await stop_mining_loop();
+        //             await delay(1000);
+        //         }
+        //     }
+        // }
 
     } catch (e) {
         game_log("⚠️ Merchant Loop error:", "#FF0000");

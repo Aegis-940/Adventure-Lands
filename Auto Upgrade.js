@@ -71,11 +71,9 @@ async function upgrade_once_by_level(level) {
         }
     }
 
-    // Buy only as many as needed
+    // Buy only one scroll if needed
     if (needed > have) {
-        for (let i = 0; i < needed - have; i++) {
-            parent.buy(scrollname);
-        }
+        if (scrollname) parent.buy(scrollname);
         return "wait";
     }
 
@@ -135,10 +133,7 @@ async function compound_once_by_level(level) {
         }
     });
 
-    // Count how many compounds and which scroll is needed
-    let needed = 0;
-    let scrollname = null;
-
+    // Find the first group that can be compounded
     for (const [key, entries] of buckets) {
         const [lvl, grade, slots] = entries;
         if (slots.length < 3) continue;
@@ -147,46 +142,17 @@ async function compound_once_by_level(level) {
         const profile = combineProfile[itemName];
         if (!profile) continue;
 
-        scrollname = lvl < profile.scroll0_until ? "cscroll0"
+        // Determine which scroll is needed
+        const scrollname = lvl < profile.scroll0_until ? "cscroll0"
             : lvl < profile.scroll1_until ? "cscroll1"
                 : "cscroll2";
 
-        // Each group of 3 needs 1 scroll
-        needed += Math.floor(slots.length / 3);
-    }
-
-    // Count how many scrolls we already have
-    let have = 0;
-    if (scrollname) {
-        for (let i = 0; i < character.items.length; i++) {
-            const item = character.items[i];
-            if (item && item.name === scrollname) have += item.q || 1;
-        }
-    }
-
-    // Buy only as many as needed
-    if (needed > have) {
-        for (let i = 0; i < needed - have; i++) {
-            parent.buy(scrollname);
-        }
-        return "wait";
-    }
-
-    // Now proceed with compounds as before
-    for (const [key, entries] of buckets) {
-        const [lvl, grade, slots] = entries;
-        if (slots.length < 3) continue;
-
-        const itemName = key.split(":")[0];
-        const profile = combineProfile[itemName];
-        if (!profile) continue;
-
-        scrollname = lvl < profile.scroll0_until ? "cscroll0"
-            : lvl < profile.scroll1_until ? "cscroll1"
-                : "cscroll2";
-
+        // Check if we have a scroll for this compound
         const [scroll_slot, scroll] = find_item(it => it.name === scrollname);
-        if (!scroll) continue;
+        if (!scroll) {
+            parent.buy(scrollname); // Only buy one scroll at a time
+            return "wait";
+        }
 
         let offering_slot = null;
         if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
