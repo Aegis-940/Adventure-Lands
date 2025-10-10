@@ -241,8 +241,6 @@ async function simple_grace_upgrade() {
 
 async function upgrade_scroll_withdraw() {
 
-    await smart_move(BANK_LOCATION);
-
     await parent.$('#maincode')[0].contentWindow.render_bank_items();
     await delay(1000);
     await parent.hide_modal();
@@ -534,6 +532,9 @@ async function combine_item() {
 }
 
 async function auto_upgrade() {
+
+    await smart_move(BANK_LOCATION);
+
     await upgrade_item_checker();
     await upgrade_item_withdraw();
 
