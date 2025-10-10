@@ -390,3 +390,58 @@ async function schedule_upgrade() {
         await smart_move(HOME);
     }
 }
+
+async function upgrade_item_checker() {
+
+    await smart_move(BANK_LOCATION);
+
+    await parent.$('#maincode')[0].contentWindow.render_bank_items();
+    await delay(1000);
+    await parent.hide_modal();
+
+    // --- Withdraw all upgrade and combine scrolls from bank if possible ---
+    const scrollTypes = [
+        "scroll0", "scroll1", "scroll2",
+        "cscroll0", "cscroll1", "cscroll2"
+    ];
+
+    // Helper to count empty inventory slots
+    function count_empty_inventory() {
+        return character.items.filter(it => !it).length;
+    }
+
+    let free_slots = count_empty_inventory();
+
+    // Determine which scroll types are NOT already in inventory
+    const scrolls_needed = [];
+    for (const scrollName of scrollTypes) {
+        if (!character.items.some(it => it && it.name === scrollName)) {
+            // Check if there are any in the bank
+            let total_in_bank = 0;
+            for (const pack in character.bank) {
+                if (!Array.isArray(character.bank[pack])) continue;
+                for (const item of character.bank[pack]) {
+                    if (item && item.name === scrollName) {
+                        total_in_bank += item.q || 1;
+                    }
+                }
+            }
+            if (total_in_bank > 0) {
+                scrolls_needed.push({ name: scrollName, quantity: total_in_bank });
+            }
+        }
+    }
+
+    // Check if enough free slots to withdraw all needed scroll types
+    if (free_slots < scrolls_needed.length) {
+        game_log(`❌ Not enough inventory space to withdraw all scroll types. Need ${scrolls_needed.length}, have ${free_slots}.`);
+        return;
+    }
+
+    // Withdraw all needed scrolls (one stack per type)
+    for (const scroll of scrolls_needed) {
+        game_log(`[Bank] Withdrawing ${scroll.quantity} ${scroll.name}(s) from bank.`);
+        await withdraw_item(scroll.name, undefined, scroll.quantity);
+        free_slots -= 1;
+    }
+}
