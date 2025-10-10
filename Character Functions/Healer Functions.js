@@ -253,7 +253,7 @@ async function attack_loop() {
                     valid_heal_target = false
                 }
 
-            if (LOOP_STATES.heal && valid_heal_target) {
+            if (LOOP_STATES.heal && valid_heal_target && !is_on_cooldown("attack")) {
                 game_log(`💖 Healing ${target.name}`, "#00FF00");
                 await heal(target);
                 delayMs = ms_to_next_skill('attack') + character.ping + 20;
@@ -277,7 +277,7 @@ async function attack_loop() {
                     target = monsters.reduce((a, b) => (b.hp < a.hp ? a : b));
                 }
 
-                if (target && is_in_range(target) && !smart.moving && character.mp >= 100) {
+                if (target && is_in_range(target) && !smart.moving && character.mp >= 100 && !is_on_cooldown("attack")) {
                     await attack(target);
                     delayMs = ms_to_next_skill("attack") + character.ping;
                     await delay(delayMs);
@@ -911,6 +911,11 @@ let panicking = false;
 const PANIC_WEAPON = "jacko";
 const NORMAL_WEAPON = "orbg";
 
+const low_health = character.hp < (character.max_hp / 3);
+const low_mana = character.mp < 50;
+const high_health = character.hp >= ((2 * character.max_hp) / 3);
+const high_mana = character.mp >= 500;
+
 async function panic_loop() {
 
     LOOP_STATES.panic = true;
@@ -919,10 +924,6 @@ async function panic_loop() {
 
     try {
         while (LOOP_STATES.panic) {
-            const low_health = character.hp < (character.max_hp / 3);
-            const low_mana = character.mp < 50;
-            const high_health = character.hp >= ((2 * character.max_hp) / 3);
-            const high_mana = character.mp >= 500;
 
             // PANIC CONDITION
             if (low_health || low_mana) {
