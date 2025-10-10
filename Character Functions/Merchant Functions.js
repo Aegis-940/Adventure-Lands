@@ -7,6 +7,7 @@ const LOOP_STATES = {
 
     loot_and_potions: false,
     fishing: false,
+    mining: false,
 
 }
 
@@ -96,20 +97,27 @@ async function merchant_loop_controller() {
 
         // --- Prioritize tasks ---
         // Only start new tasks if merchant is idle and not already fishing or mining
-        if (
-            merchant_task === "Idle" &&
-            !LOOP_STATES.fishing &&
-            !LOOP_STATES.mining
-        ) {
+        if (merchant_task === "Idle" && !LOOP_STATES.fishing && !LOOP_STATES.mining) {
             // Try fishing first
             start_fishing_loop();
-
-            // Wait a short time to see if fishing actually starts
             await delay(2000);
 
-            // If still idle (e.g., no rod or can't fish), try mining
+            // If fishing didn't start (still idle), ensure fishing loop is stopped
+            if (merchant_task === "Idle" && LOOP_STATES.fishing) {
+                await stop_fishing_loop();
+                await delay(1000);
+            }
+
+            // If still idle, try mining
             if (merchant_task === "Idle" && !LOOP_STATES.mining) {
                 start_mining_loop();
+                await delay(2000);
+
+                // If mining didn't start (still idle), ensure mining loop is stopped
+                if (merchant_task === "Idle" && LOOP_STATES.mining) {
+                    await stop_mining_loop();
+                    await delay(1000);
+                }
             }
         }
 
