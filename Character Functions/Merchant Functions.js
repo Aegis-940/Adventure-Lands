@@ -1,11 +1,12 @@
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// 1) LOBAL LOOP SWITCHES AND VARIABLES
+// 1) GLOBAL LOOP SWITCHES AND VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const LOOP_STATES = {
 
     loot_and_potions: false,
+    fishing: false,
 
 }
 
@@ -15,8 +16,10 @@ const PARTY = ["Ulric", "Myras", "Riva"];
 // Define default location to wait when idle
 const HOME = { map: "main", x: -87, y: -96 };
 
+let merchant_task = "Idle"; // Current task: "Idle", "Mining", etc.
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// 2) START/STOP HELPERS (with persistent state saving)
+// 2) START/STOP HELPERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function start_deliver_potions_loop() {
@@ -45,25 +48,70 @@ function stop_loot_and_potions_loop() {
     game_log("⏹ Loot and potions loop stopped");
 }
 
+function start_fishing_loop() {
+    if (LOOP_STATES.fishing) return;
+    LOOP_STATES.fishing = true;
+    fishing_loop();
+    game_log("▶️ Fishing loop started");
+}
+
+function stop_fishing_loop() {
+    if (!LOOP_STATES.fishing) return;
+    LOOP_STATES.fishing = false;
+    game_log("⏹ Fishing loop stopped");
+}
+
+function start_mining_loop() {
+    if (LOOP_STATES.mining) return;
+    LOOP_STATES.mining = true;
+    mining_loop();
+    game_log("▶️ Mining loop started");
+}
+
+function stop_mining_loop() {
+    if (!LOOP_STATES.mining) return;
+    LOOP_STATES.mining = false;
+    game_log("⏹ Mining loop stopped");
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// MERCHANT LOOP CONTROLLER
+// 3) MERCHANT LOOP CONTROLLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // --- Helper: Handle death and respawn ---
-async function handle_death_and_respawn() {
-    stop_deliver_potions_loop();
-    stop_collect_loot_loop();
-
-    await delay(30000);
-    await respawn();
-    await delay(5000);
-}
-
 async function merchant_loop_controller() {
 
-	try {
+    try {
 
-		if (!LOOP_STATES.loot_and_potions) loot_and_potions_loop();
+        // --- Handle death and respawn ---
+        if (character.rip) {
+            await handle_death_and_respawn();
+            return;
+        }
+
+        // --- Ensure essential loops are running ---
+        else {
+            if (!LOOP_STATES.loot_and_potions) start_loot_and_potions_loop();
+        }
+
+        // --- Prioritize tasks ---
+        // Only start new tasks if merchant is idle and not already fishing or mining
+        if (
+            merchant_task === "Idle" &&
+            !LOOP_STATES.fishing &&
+            !LOOP_STATES.mining
+        ) {
+            // Try fishing first
+            start_fishing_loop();
+
+            // Wait a short time to see if fishing actually starts
+            await delay(500);
+
+            // If still idle (e.g., no rod or can't fish), try mining
+            if (merchant_task === "Idle" && !LOOP_STATES.mining) {
+                start_mining_loop();
+            }
+        }
 
     } catch (e) {
         game_log("⚠️ Merchant Loop error:", "#FF0000");
@@ -78,9 +126,11 @@ async function merchant_loop_controller() {
 const POTION_CAP = 5000;
 const POTION_MIN = 2000;
 const LOOT_MIN = 20;
-const FREQUENCY = 10 * 60 * 1000; // 10 minutes
+const FREQUENCY = 1 * 60 * 1000; // 1 minute
 
 const DELIVERY_RADIUS = 350;
+
+
 
 // Global cache for party status, updated via code messages
 let party_status_cache = {};
@@ -107,6 +157,7 @@ async function loot_and_potions_loop() {
                 let riva_status  = party_status_cache["Riva"];
 
                 if (!ulric_status && !myras_status && !riva_status) {
+                    merchant_task = "Idle";
                     game_log("⏳ Waiting for party status code messages...");
                     await delay(10000);
                     continue;
@@ -144,6 +195,7 @@ async function loot_and_potions_loop() {
                                 (override && (hpot_needed > 0 || mpot_needed > 0)) ||
                                 (!override && ((info.hpot1 || 0) < POTION_MIN || (info.mpot1 || 0) < POTION_MIN))
                             ) {
+                                merchant_task = "Delivering";
                                 let delivered = false;
                                 let delivery_attempts = 0;
                                 while (!delivered && delivery_attempts < 3) {
@@ -185,6 +237,7 @@ async function loot_and_potions_loop() {
                                 (override && (info.inventory || 0) > 0) ||
                                 (!override && (info.inventory || 0) >= LOOT_MIN)
                             ) {
+                                merchant_task = "Collecting";
                                 let collected = false;
                                 let collect_attempts = 0;
                                 while (!collected && collect_attempts < 3) {
@@ -200,9 +253,14 @@ async function loot_and_potions_loop() {
                                         if (target && distance(character, target) <= DELIVERY_RADIUS) {
                                             send_cm(name, { type: "send_loot" });
                                             game_log(`📦 Requested loot from ${name}`);
-                                            await delay(5000); // Wait for loot transfer
+                                            await delay(8000); // Wait for loot transfer
                                             collected = true;
                                             collected_loot = true;
+                                            try {
+                                                await sell_and_bank();
+                                            } catch (e) {
+                                                game_log("Error during sell_and_bank: " + e.message);
+                                            }
                                         } else {
                                             game_log(`❌ Could not reach ${name} for loot collection (attempt ${collect_attempts + 1})`);
                                         }
@@ -224,17 +282,9 @@ async function loot_and_potions_loop() {
                     }
                 }
 
-                // --- 3. Sell and bank if loot was collected ---
-                if (collected_loot) {
-                    try {
-                        await sell_and_bank();
-                    } catch (e) {
-                        game_log("Error during sell_and_bank: " + e.message);
-                    }
-                }
-
-                // --- 4. Buy more potions if pots were delivered ---
+                // --- 3. Buy more potions if pots were delivered ---
                 if (delivered_pots) {
+                    merchant_task = "Delivering";
                     try {
                         buy_pots();
                     } catch (e) {
@@ -242,7 +292,13 @@ async function loot_and_potions_loop() {
                     }
                 }
 
+                // If neither task was performed, set to Idle
+                if (!delivered_pots && !collected_loot) {
+                    merchant_task = "Idle";
+                }
+
             } catch (e) {
+                merchant_task = "Idle";
                 game_log("Error checking party_status_cache: " + e.message);
                 await delay(10000);
                 continue;
@@ -251,14 +307,16 @@ async function loot_and_potions_loop() {
             // --- 5. Wait for next cycle ---
             await delay(FREQUENCY);
         }
+        merchant_task = "Idle";
     } catch (e) {
+        merchant_task = "Idle";
         game_log("⚠️ Loot and Potions Loop error:", "#FF0000");
         game_log(e);
     }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// MERCHANT SELL AND BANK ITEMS
+// SELL AND BANK ITEMS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const SELLABLE_ITEMS = ["hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "wbook0", "wshoes", "wcap", "cclaw", "crabclaw", "slimestaff", "stinger", "coat1", "helmet1",
@@ -311,7 +369,7 @@ async function sell_and_bank() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// MERCHANT BUY POTS FOR DISTRIBUTION
+// BUY HP AND MP POTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // Global cooldown tracker
@@ -379,196 +437,206 @@ function buy_pots() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// SIMPLE FISHING SCRIPT WITH AUTO-EQUIP
+// FISHING LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function hasTool(toolName) {
-	return (
-		character.slots.mainhand?.name === toolName ||
-		character.slots.offhand?.name === toolName ||
-		character.items.some(item => item && item.name === toolName)
-	);
+async function fishing_loop() {
+    const FISHING_SPOT = { map: "main", x: -1116, y: -285 };
+    const FISHING_TIME = 9000;
+    const POSITION_TOLERANCE = 5;
+
+    LOOP_STATES.fishing = true;
+
+    try {
+        while (LOOP_STATES.fishing) {
+            try {
+                // 1. Check if rod is equipped in mainhand, if not try to equip from inventory
+                let rodEquipped = character.slots.mainhand && character.slots.mainhand.name === "rod";
+                if (!rodEquipped) {
+                    try {
+                        const rodIndex = character.items.findIndex(item => item && item.name === "rod");
+                        if (rodIndex !== -1) {
+                            await equip(rodIndex, "mainhand");
+                            await delay(400);
+                            rodEquipped = character.slots.mainhand && character.slots.mainhand.name === "rod";
+                        }
+                    } catch (e) {
+                        game_log("Error equipping rod: " + e.message);
+                    }
+                }
+
+                // 2. If no rod, return
+                if (!rodEquipped) {
+                    game_log("❌ No fishing rod equipped or in inventory.");
+                    merchant_task = "Idle";
+                    return;
+                }
+
+                // 3. Set merchant_task to Fishing
+                merchant_task = "Fishing";
+
+                // 4. smart_move to FISHING SPOT
+                try {
+                    if (character.map !== FISHING_SPOT.map ||
+                        Math.hypot(character.x - FISHING_SPOT.x, character.y - FISHING_SPOT.y) > POSITION_TOLERANCE) {
+                        await smart_move(FISHING_SPOT);
+                    }
+                } catch (e) {
+                    game_log("Error moving to fishing spot: " + e.message);
+                    merchant_task = "Idle";
+                    return;
+                }
+
+                // 5. Begin fishing loop
+                while (!is_on_cooldown("fishing")) {
+                    // 5a. Check if rod is equipped
+                    if (!character.slots.mainhand || character.slots.mainhand.name !== "rod") {
+                        game_log("❌ Fishing rod not equipped, stopping fishing.");
+                        break;
+                    }
+                    // 6. Check if at FISHING SPOT
+                    if (character.map !== FISHING_SPOT.map ||
+                        Math.hypot(character.x - FISHING_SPOT.x, character.y - FISHING_SPOT.y) > POSITION_TOLERANCE) {
+                        game_log("❌ Not at fishing spot, stopping fishing.");
+                        break;
+                    }
+                    // 7. Check if inventory is full
+                    if (character.items.filter(Boolean).length >= character.items.length) {
+                        game_log("📦 Inventory full, stopping fishing.");
+                        break;
+                    }
+                    // 8. Use skill "fishing"
+                    try {
+                        use_skill("fishing");
+                    } catch (e) {
+                        game_log("Error using fishing skill: " + e.message);
+                        break;
+                    }
+                    // 9. Wait FISHING_TIME
+                    await delay(FISHING_TIME);
+                }
+
+                // 11. Once fishing is finished (is on cooldown), smart_move HOME
+                try {
+                    await smart_move(HOME);
+                } catch (e) {
+                    game_log("Error moving home after fishing: " + e.message);
+                }
+                merchant_task = "Idle";
+                // End the fishing loop after one session
+                LOOP_STATES.fishing = false;
+            } catch (e) {
+                game_log("Fishing loop error: " + e.message);
+                merchant_task = "Idle";
+                LOOP_STATES.fishing = false;
+            }
+        }
+    } catch (e) {
+        game_log("Fishing loop fatal error: " + e.message);
+        merchant_task = "Idle";
+        LOOP_STATES.fishing = false;
+    }
 }
 
-async function go_fish() {
-	const FISHING_SPOT = { map: "main", x: -1116, y: -285 };
-	const POSITION_TOLERANCE = 10;
-	const MAX_FISHING_WAIT = 9000;
-	const POLL_INTERVAL = 200;
-
-	const HOME = { map: "main", x: -89, y: -116 };
-
-	const atFishingSpot = () =>
-		character.map === FISHING_SPOT.map &&
-		Math.hypot(character.x - FISHING_SPOT.x, character.y - FISHING_SPOT.y) <= POSITION_TOLERANCE;
-
-	const hasRodEquipped = () => character.slots.mainhand?.name === "rod";
-
-	if (!hasRodEquipped()) {
-		const rod_index = character.items.findIndex(item => item?.name === "rod");
-		if (rod_index === -1) {
-			game_log("❌ No fishing rod found.");
-			return;
-		}
-		await equip(rod_index);
-		await delay(400);
-	}
-	if (!hasRodEquipped()) {
-		game_log("❌ Failed to equip rod.");
-		return;
-	}
-
-	if (!atFishingSpot()) {
-		game_log("📍 Heading to fishing spot...");
-		await smart_move(FISHING_SPOT);
-		await delay(200);
-		if (!atFishingSpot()) {
-			game_log("❌ Could not reach fishing spot.");
-			return;
-		}
-	}
-
-	game_log("🎣 At fishing spot. Starting loop...");
-
-	while (!is_on_cooldown("fishing")) {
-		if (!hasRodEquipped()) break;
-		if (!atFishingSpot()) break;
-		if (character.items.filter(Boolean).length >= character.items.length) {
-			game_log("📦 Inventory full. Stopping fishing.");
-			break;
-		}
-
-		while (is_on_cooldown("fishing")) {
-			await delay(POLL_INTERVAL);
-		}
-
-		game_log("🎣 Casting...");
-		use_skill("fishing");
-		await delay(MAX_FISHING_WAIT);
-		game_log("✅ Fishing attempt complete.");
-	}
-
-	game_log("🏠 Returning home after fishing...");
-	await smart_move(HOME);
-	game_log("✅ Arrived at home.");
-}
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// SIMPLE MINING SCRIPT WITH AUTO-EQUIP
+// MINING LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function go_mine() {
-	const MINING_SPOT = { map: "tunnel", x: 244, y: -153 };
-	const POSITION_TOLERANCE = 10;
+async function mining_loop() {
+    const MINING_SPOT = { map: "tunnel", x: 244, y: -153 };
+    const POSITION_TOLERANCE = 10;
 
-	function atMiningSpot() {
-		return character.map === MINING_SPOT.map &&
-			Math.hypot(character.x - MINING_SPOT.x, character.y - MINING_SPOT.y) <= POSITION_TOLERANCE;
-	}
+    LOOP_STATES.mining = true;
 
-	// Check if mining is available
-	if (!can_use("mining")) {
-		game_log("*** Mining cooldown active ***");
-		return;
-	}
+    try {
+        while (LOOP_STATES.mining) {
+            try {
+                // 1. Check if pickaxe is equipped in mainhand, if not try to equip from inventory
+                let pickaxeEquipped = character.slots.mainhand && character.slots.mainhand.name === "pickaxe";
+                if (!pickaxeEquipped) {
+                    try {
+                        const pickaxeIndex = character.items.findIndex(item => item && item.name === "pickaxe");
+                        if (pickaxeIndex !== -1) {
+                            await equip(pickaxeIndex, "mainhand");
+                            await delay(400);
+                            pickaxeEquipped = character.slots.mainhand && character.slots.mainhand.name === "pickaxe";
+                        }
+                    } catch (e) {
+                        game_log("Error equipping pickaxe: " + e.message);
+                    }
+                }
 
-	// Ensure pickaxe is equipped or try to equip it
-	if (character.slots.mainhand?.name !== "pickaxe") {
-		const pickaxe_index = character.items.findIndex(item => item?.name === "pickaxe");
-		if (pickaxe_index === -1) {
-			game_log("*** No pickaxe equipped or in inventory ***");
-			return;
-		}
-		game_log("*** Equipping pickaxe... ***");
-		await equip(pickaxe_index);
-		await delay(500);
-	}
+                // 2. If no pickaxe, return
+                if (!pickaxeEquipped) {
+                    game_log("❌ No pickaxe equipped or in inventory.");
+                    merchant_task = "Idle";
+                    return;
+                }
 
-	// Confirm it's now equipped
-	if (character.slots.mainhand?.name !== "pickaxe") {
-		game_log("*** Failed to equip pickaxe ***");
-		return;
-	}
+                // 3. Set merchant_task to Mining
+                merchant_task = "Mining";
 
-	merchant_task = "Mining"
-	game_log("*** Moving to mining spot... ***");
-	await smart_move(MINING_SPOT);
+                // 4. smart_move to MINING SPOT
+                try {
+                    if (character.map !== MINING_SPOT.map ||
+                        Math.hypot(character.x - MINING_SPOT.x, character.y - MINING_SPOT.y) > POSITION_TOLERANCE) {
+                        await smart_move(MINING_SPOT);
+                    }
+                } catch (e) {
+                    game_log("Error moving to mining spot: " + e.message);
+                    merchant_task = "Idle";
+                    return;
+                }
 
-	if (!atMiningSpot()) {
-		game_log("*** Not at mining spot. Aborting. ***");
-		merchant_task = "Idle"
-		return;
-	}
+                // 5. Begin mining loop
+                while (!is_on_cooldown("mining")) {
+                    // 5a. Check if pickaxe is equipped
+                    if (!character.slots.mainhand || character.slots.mainhand.name !== "pickaxe") {
+                        game_log("❌ Pickaxe not equipped, stopping mining.");
+                        break;
+                    }
+                    // 6. Check if at MINING SPOT
+                    if (character.map !== MINING_SPOT.map ||
+                        Math.hypot(character.x - MINING_SPOT.x, character.y - MINING_SPOT.y) > POSITION_TOLERANCE) {
+                        game_log("❌ Not at mining spot, stopping mining.");
+                        break;
+                    }
+                    // 7. Check if inventory is full
+                    if (character.items.filter(Boolean).length >= character.items.length) {
+                        game_log("📦 Inventory full, stopping mining.");
+                        break;
+                    }
+                    // 8. Use skill "mining"
+                    try {
+                        use_skill("mining");
+                    } catch (e) {
+                        game_log("Error using mining skill: " + e.message);
+                        break;
+                    }
+                    // 9. Wait for mining animation/cooldown (default 4000ms)
+                    await delay(4000);
+                }
 
-	game_log("*** Arrived at mining spot. Starting to mine... ***");
-
-	while (true) {
-		if (is_on_cooldown("mining")) {
-			merchant_task = "Idle"
-			return;
-		}
-
-		// Final pre-mining checks
-		if (!can_use("mining")) {
-			await delay(500);
-			game_log("*** Mining cooldown active ***");
-			continue;
-		}
-
-		if (character.slots.mainhand?.name !== "pickaxe") {
-			await delay(500);
-			game_log("*** Pickaxe not equipped or broken ***");
-			merchant_task = "Idle"
-			break;
-		}
-
-		if (!atMiningSpot()) {
-			game_log("*** Moved away from mining spot. Re-walking... ***");
-			await smart_move(MINING_SPOT);
-			if (!atMiningSpot()) {
-				game_log("*** Failed to return to mining spot. Aborting. ***");
-				merchant_task = "Idle"
-				break;
-			}
-			continue;
-		}
-
-		const before_items = character.items.map(i => i?.name || null);
-		await delay(500);
-		game_log("*** Starting mining attempt... ***");
-		use_skill("mining");
-
-		let success = false;
-		let attempts = 0;
-
-		while (attempts < 18) {
-			await delay(500);
-			attempts++;
-
-			const after_items = character.items.map(i => i?.name || null);
-			let changed = false;
-
-			for (let i = 0; i < after_items.length; i++) {
-				if (after_items[i] !== before_items[i]) {
-					changed = true;
-					break;
-				}
-			}
-
-			if (changed) {
-				success = true;
-				break;
-			}
-		}
-
-		if (success) {
-			game_log("*** ⛏️ Mined something! ***");
-		}
-
-		await delay(500);
-	}
-
-	merchant_task = "Idle"
+                // 11. Once mining is finished (is on cooldown), smart_move HOME
+                try {
+                    await smart_move(HOME);
+                } catch (e) {
+                    game_log("Error moving home after mining: " + e.message);
+                }
+                merchant_task = "Idle";
+                // End the mining loop after one session
+                LOOP_STATES.mining = false;
+            } catch (e) {
+                game_log("Mining loop error: " + e.message);
+                merchant_task = "Idle";
+                LOOP_STATES.mining = false;
+            }
+        }
+    } catch (e) {
+        game_log("Mining loop fatal error: " + e.message);
+        merchant_task = "Idle";
+        LOOP_STATES.mining = false;
+    }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
