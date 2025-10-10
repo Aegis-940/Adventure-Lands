@@ -39,6 +39,7 @@ function stop_attack_loop() {
 function start_heal_loop() {
     if (LOOP_STATES.heal) return;
     LOOP_STATES.heal = true;
+    attack_loop();
     game_log("▶️ Heal loop started");
 }
 
@@ -255,7 +256,6 @@ async function attack_loop() {
             if (LOOP_STATES.heal && valid_heal_target) {
                 game_log(`💖 Healing ${target.name}`, "#00FF00");
                 await heal(target);
-                last_action_time = Date.now();
                 delayMs = ms_to_next_skill('attack') + character.ping + 20;
                 await delay(delayMs);
                 continue;
@@ -286,7 +286,6 @@ async function attack_loop() {
 
                 if (target && is_in_range(target) && !smart.moving) {
                     await attack(target);
-                    last_action_time = Date.now();
                     delayMs = ms_to_next_skill('attack') + character.ping + 20;
                     await delay(delayMs);
                     continue;
@@ -301,8 +300,8 @@ async function attack_loop() {
         game_log("⚠️ Attack Loop error:", "#FF0000");
         game_log(e);
     } finally {
-        LOOP_STATES.attack = false;
-        game_log("Attack loop ended unexpectedly", "#ffea00ff");
+        // LOOP_STATES.attack = false;
+        // game_log("Attack loop ended unexpectedly", "#ffea00ff");
     }
 }
 
