@@ -239,7 +239,7 @@ async function simple_grace_upgrade() {
 // AUTO UPGRADE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function upgrade_item_checker() {
+async function upgrade_scroll_withdraw() {
 
     await smart_move(BANK_LOCATION);
 
