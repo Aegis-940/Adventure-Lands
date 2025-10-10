@@ -4,7 +4,7 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const LOOP_STATES = {
-	
+
     loot_and_potions: false,
 
 }
@@ -32,17 +32,17 @@ function stop_deliver_potions_loop() {
     game_log("⏹ Deliver potions loop stopped");
 }
 
-function start_collect_loot_loop() {
-    if (LOOP_STATES.collect_loot) return;
-    LOOP_STATES.collect_loot = true;
-    collect_loot_loop();
-    game_log("▶️ Collect loot loop started");
+function start_loot_and_potions_loop() {
+    if (LOOP_STATES.loot_and_potions) return;
+    LOOP_STATES.loot_and_potions = true;
+    loot_and_potions_loop();
+    game_log("▶️ Loot and potions loop started");
 }
 
-function stop_collect_loot_loop() {
-    if (!LOOP_STATES.collect_loot) return;
-    LOOP_STATES.collect_loot = false;
-    game_log("⏹ Collect loot loop stopped");
+function stop_loot_and_potions_loop() {
+    if (!LOOP_STATES.loot_and_potions) return;
+    LOOP_STATES.loot_and_potions = false;
+    game_log("⏹ Loot and potions loop stopped");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
