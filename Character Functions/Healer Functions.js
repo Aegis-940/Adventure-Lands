@@ -260,9 +260,7 @@ async function attack_loop() {
                 await delay(delayMs);
                 continue;
             } else if (LOOP_STATES.attack) {
-
-                // --- Attacking ---
-                // Filter all relevant monsters ONCE
+                // 1. Filter all relevant monsters ONCE
                 const monsters = Object.values(parent.entities).filter(e =>
                     e.type === "monster" &&
                     MONSTER_TYPES.includes(e.mtype) &&
@@ -271,30 +269,22 @@ async function attack_loop() {
                     parent.distance(character, e) <= character.range
                 );
 
-                let target = null;
+                // 2. Prioritize cursed monsters if any
+                let target = monsters.find(m => m.s && m.s.cursed);
 
-                if (monsters.length) {
-                    let untargeted = monsters.filter(m => !m.target);
-                    let candidates = (ATTACK_PRIORITIZE_UNTARGETED && untargeted.length) ? untargeted : monsters;
-
-                    if (ATTACK_TARGET_LOWEST_HP) {
-                        target = candidates.reduce((a, b) => (a.hp < b.hp ? a : b));
-                    } else {
-                        target = candidates.reduce((a, b) => (a.hp > b.hp ? a : b));
-                    }
+                // 3. Otherwise, pick the Highest HP monster in range
+                if (!target && monsters.length) {
+                    target = monsters.reduce((a, b) => (b.hp < a.hp ? a : b));
                 }
 
-                if (target && is_in_range(target) && !smart.moving) {
+                if (target && is_in_range(target) && !smart.moving && character.mp >= 100) {
                     await attack(target);
-                    delayMs = ms_to_next_skill('attack') + character.ping + 20;
+                    delayMs = ms_to_next_skill("attack") + character.ping;
                     await delay(delayMs);
-                    continue;
                 }
             } else {
                 await delay(50);
-                continue;
             }
-            await delay(50);
         }
     } catch (e) {
         game_log("⚠️ Attack Loop error:", "#FF0000");
