@@ -38,192 +38,6 @@ const COMBINE_PROFILE = {
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// UPGRADE / COMPOUND LOGIC
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-async function upgrade_once_by_level(level) {
-    // First, determine how many upgrades at this level need a scroll
-    let needed = 0;
-    let scrollname = null;
-
-    for (let i = 0; i < character.items.length; i++) {
-        const item = character.items[i];
-        if (!item || item.level !== level) continue;
-
-        const profile = UPGRADE_PROFILE[item.name];
-        if (!profile || item.level >= profile.max_level) continue;
-
-        scrollname = item.level < profile.scroll0_until ? "scroll0"
-            : item.level < profile.scroll1_until ? "scroll1"
-                : "scroll2";
-
-        // Check if we have a scroll for this upgrade
-        const [scroll_slot, scroll] = find_item(it => it.name === scrollname);
-        if (!scroll) needed++;
-    }
-
-    // Count how many scrolls we already have
-    let have = 0;
-    if (scrollname) {
-        for (let i = 0; i < character.items.length; i++) {
-            const item = character.items[i];
-            if (item && item.name === scrollname) have += item.q || 1;
-        }
-    }
-
-    // Buy only one scroll if needed
-    if (needed > have) {
-        if (scrollname) parent.buy(scrollname);
-        return "wait";
-    }
-
-    // Now proceed with upgrades as before
-    for (let i = 0; i < character.items.length; i++) {
-        const item = character.items[i];
-        if (!item || item.level !== level) continue;
-
-        const profile = UPGRADE_PROFILE[item.name];
-        if (!profile || item.level >= profile.max_level) continue;
-
-        scrollname = item.level < profile.scroll0_until ? "scroll0"
-            : item.level < profile.scroll1_until ? "scroll1"
-                : "scroll2";
-
-        const [scroll_slot, scroll] = find_item(it => it.name === scrollname);
-        if (!scroll) continue;
-
-        let offering_slot = null;
-        if (profile.primling_from !== undefined && item.level >= profile.primling_from) {
-            const [pSlot, prim] = find_item(it => it.name === "offeringp");
-            if (!prim) return "wait";
-            offering_slot = pSlot;
-        }
-
-        if (can_use("massproduction")) {
-            await use_skill("massproduction");
-        }
-
-        parent.socket.emit("upgrade", {
-            item_num: i,
-            scroll_num: scroll_slot,
-            offering_num: offering_slot,
-            clevel: item.level,
-        });
-
-        return "done";
-    }
-    return "none";
-}
-
-async function compound_once_by_level(level) {
-    const buckets = new Map();
-
-    // Group items by name and level
-    character.items.forEach((item, idx) => {
-        if (!item || item.level !== level) return;
-
-        const profile = COMBINE_PROFILE[item.name];
-        if (!profile || item.level >= profile.max_level) return;
-
-        const key = `${item.name}:${item.level}`;
-        if (!buckets.has(key)) {
-            buckets.set(key, [item.level, item_grade(item), [idx]]);
-        } else {
-            buckets.get(key)[2].push(idx);
-        }
-    });
-
-    // Find the first group that can be compounded
-    for (const [key, entries] of buckets) {
-        const [lvl, grade, slots] = entries;
-        if (slots.length < 3) continue;
-
-        const itemName = key.split(":")[0];
-        const profile = COMBINE_PROFILE[itemName];
-        if (!profile) continue;
-
-        // Determine which scroll is needed
-        const scrollname = lvl < profile.scroll0_until ? "cscroll0"
-            : lvl < profile.scroll1_until ? "cscroll1"
-                : "cscroll2";
-
-        // Check if we have a scroll for this compound
-        const [scroll_slot, scroll] = find_item(it => it.name === scrollname);
-        if (!scroll) {
-            parent.buy(scrollname); // Only buy one scroll at a time
-            return "wait";
-        }
-
-        let offering_slot = null;
-        if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
-            const [pSlot, prim] = find_item(it => it.name === "offeringp");
-            if (!prim) return "wait";
-            offering_slot = pSlot;
-        }
-
-        parent.socket.emit("compound", {
-            items: slots.slice(0, 3),
-            scroll_num: scroll_slot,
-            offering_num: offering_slot,
-            clevel: lvl,
-        });
-
-        return "done";
-    }
-
-    return "none";
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// MAIN LOOP — LEVEL-BY-LEVEL
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-let auto_upgrading = false;
-
-async function run_auto_upgrade() {
-	if (auto_upgrading) return;
-	auto_upgrading = true;
-
-	const max_upgrade_level = 10;
-	const max_compound_level = 5;
-	let current_level = 0;
-
-	(async function loop() {
-		if (current_level > max_upgrade_level && current_level > max_compound_level) {
-			auto_upgrading = false;
-			game_log("✅ All upgrades/compounds finished.");
-			return;
-		}
-
-		const resultU = await upgrade_once_by_level(current_level);
-		const resultC = await compound_once_by_level(current_level);
-
-		if (resultU === "done" || resultC === "done" || resultU === "wait" || resultC === "wait") {
-			setTimeout(loop, UPGRADE_INTERVAL);
-		} else {
-			current_level++;
-			setTimeout(loop, UPGRADE_INTERVAL);
-		}
-	})();
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// UTILITIES
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-function find_item(filter) {
-	for (let i = 0; i < character.items.length; i++) {
-		const it = character.items[i];
-		if (it && filter(it)) return [i, it];
-	}
-	return [-1, null];
-}
-
-function get_grade(item) {
-  return parent.G.items[item.name].grades;
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
 // SIMPLE GRACE UPGRADE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -442,7 +256,7 @@ async function auto_upgrade_item() {
     return "none";
 }
 
-async function auto_combine_item() {
+async function auto_combine_item(level) {
     // Build a map of combinable items by name and level
     const buckets = new Map();
 
@@ -452,7 +266,7 @@ async function auto_combine_item() {
 
         const profile = COMBINE_PROFILE[item.name];
         if (!profile) continue;
-        if (typeof item.level !== "number" || item.level >= profile.max_level) continue;
+        if (typeof item.level !== "number" || item.level !== level || item.level >= profile.max_level) continue;
 
         const key = `${item.name}:${item.level}`;
         if (!buckets.has(key)) {
@@ -462,7 +276,7 @@ async function auto_combine_item() {
         }
     }
 
-    // Try to combine the first valid group of 3
+    // First, check if any group needs a scroll and buy only one scroll per call
     for (const [key, [lvl, slots]] of buckets) {
         if (slots.length < 3) continue;
 
@@ -483,6 +297,22 @@ async function auto_combine_item() {
             // Only buy one scroll, then return immediately
             return "wait";
         }
+    }
+
+    // Try to combine the first valid group of 3 (only if scroll is present)
+    for (const [key, [lvl, slots]] of buckets) {
+        if (slots.length < 3) continue;
+
+        const itemName = key.split(":")[0];
+        const profile = COMBINE_PROFILE[itemName];
+
+        let scrollname =
+            lvl < profile.scroll0_until ? "cscroll0"
+            : lvl < profile.scroll1_until ? "cscroll1"
+            : "cscroll2";
+
+        let [scroll_slot, scroll] = find_item(it => it.name === scrollname);
+        if (!scroll) continue;
 
         // Check for offering if needed
         let offering_slot = null;
