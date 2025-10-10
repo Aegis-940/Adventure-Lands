@@ -392,8 +392,12 @@ async function upgrade_item_checker() {
     }
 
     for (const item of scrollTypes) {
-        await withdraw_item(item);
-        await delay(200); // Small delay for UI/bank sync
+        try {
+            await withdraw_item(item);
+            await delay(200); // Small delay for UI/bank sync
+        } catch (e) {
+            game_log(`Error withdrawing ${item}: ${e.message}`);
+        }
     }
 
     game_log("✅ Scroll withdrawal check complete.");
