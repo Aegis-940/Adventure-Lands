@@ -5,8 +5,8 @@ if (parent.party_style_prepared) {
 let css = `
     .party-container {
         position: absolute;
-        top: -5px;
-        left: -500px;
+        top: -4px;
+        left: -450px;
         width: auto;
         height: auto;
         font-family: 'pixel';
