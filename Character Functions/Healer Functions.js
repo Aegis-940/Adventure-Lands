@@ -301,8 +301,8 @@ async function attack_loop() {
         game_log("⚠️ Attack Loop error:", "#FF0000");
         game_log(e);
     } finally {
-        // LOOP_STATES.attack = false;
-        // game_log("Attack loop ended unexpectedly", "#ffea00ff");
+        LOOP_STATES.attack = false;
+        game_log("Attack loop ended unexpectedly", "#ffea00ff");
     }
 }
 
