@@ -178,11 +178,11 @@ async function compound_once_by_level(level) {
 // MAIN LOOP — LEVEL-BY-LEVEL
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let auto_upgrade = false;
+let auto_upgrading = false;
 
 async function run_auto_upgrade() {
-	if (auto_upgrade) return;
-	auto_upgrade = true;
+	if (auto_upgrading) return;
+	auto_upgrading = true;
 
 	const max_upgrade_level = 10;
 	const max_compound_level = 5;
@@ -190,7 +190,7 @@ async function run_auto_upgrade() {
 
 	(async function loop() {
 		if (current_level > max_upgrade_level && current_level > max_compound_level) {
-			auto_upgrade = false;
+			auto_upgrading = false;
 			game_log("✅ All upgrades/compounds finished.");
 			return;
 		}
@@ -387,6 +387,60 @@ async function upgrade_item_withdraw() {
     }
 
     game_log("✅ Finished withdrawing upgrade and compound items, leaving at least 3 inventory slots free.");
+}
+
+async function upgrade_item() {
+    for (let i = 0; i < character.items.length; i++) {
+        const item = character.items[i];
+        if (!item) continue;
+
+        const profile = UPGRADE_PROFILE[item.name];
+        if (!profile) continue;
+        if (typeof item.level !== "number" || item.level >= profile.max_level) continue;
+
+        // Determine the correct scroll for this item's level
+        let scrollname =
+            item.level < profile.scroll0_until ? "scroll0"
+            : item.level < profile.scroll1_until ? "scroll1"
+            : "scroll2";
+
+        // Check if we have the scroll in inventory
+        const [scroll_slot, scroll] = find_item(it => it.name === scrollname);
+        if (!scroll) {
+            parent.buy(scrollname);
+            game_log(`Buying ${scrollname} for upgrading ${item.name} (level ${item.level})`);
+            return "wait";
+        }
+
+        // Check for offering if needed
+        let offering_slot = null;
+        if (profile.primling_from !== undefined && item.level >= profile.primling_from) {
+            const [pSlot, prim] = find_item(it => it.name === "offeringp");
+            if (!prim) {
+                game_log("No offeringp found for upgrade requiring it.");
+                return "wait";
+            }
+            offering_slot = pSlot;
+        }
+
+        // Use massproduction if available
+        if (can_use("massproduction")) {
+            await use_skill("massproduction");
+        }
+
+        // Upgrade the item
+        parent.socket.emit("upgrade", {
+            item_num: i,
+            scroll_num: scroll_slot,
+            offering_num: offering_slot,
+            clevel: item.level,
+        });
+
+        game_log(`Upgrading ${item.name} (level ${item.level}) with ${scrollname}`);
+        return "done";
+    }
+    game_log("No valid items found for upgrade.");
+    return "none";
 }
 
 // async function auto_upgrade() {
