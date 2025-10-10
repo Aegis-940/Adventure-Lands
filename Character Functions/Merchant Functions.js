@@ -105,7 +105,7 @@ async function merchant_loop_controller() {
             start_fishing_loop();
 
             // Wait a short time to see if fishing actually starts
-            await delay(500);
+            await delay(2000);
 
             // If still idle (e.g., no rod or can't fish), try mining
             if (merchant_task === "Idle" && !LOOP_STATES.mining) {
