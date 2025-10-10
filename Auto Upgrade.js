@@ -407,16 +407,8 @@ async function upgrade_item() {
         if (!scroll) {
             parent.buy(scrollname);
             game_log(`Buying ${scrollname} for upgrading ${item.name} (level ${item.level})`);
-            // Wait for the scroll to arrive in inventory
-            for (let tries = 0; tries < 10; tries++) {
-                await delay(300);
-                [scroll_slot, scroll] = find_item(it => it.name === scrollname);
-                if (scroll) break;
-            }
-            if (!scroll) {
-                game_log(`Scroll ${scrollname} not found after purchase, try again later.`);
-                return "wait";
-            }
+            // Only buy one scroll, then return immediately
+            return "wait";
         }
 
         // Check for offering if needed
@@ -488,16 +480,8 @@ async function combine_item() {
         if (!scroll) {
             parent.buy(scrollname);
             game_log(`Buying ${scrollname} for combining ${itemName} (level ${lvl})`);
-            // Wait for the scroll to arrive in inventory
-            for (let tries = 0; tries < 10; tries++) {
-                await delay(300);
-                [scroll_slot, scroll] = find_item(it => it.name === scrollname);
-                if (scroll) break;
-            }
-            if (!scroll) {
-                game_log(`Scroll ${scrollname} not found after purchase, try again later.`);
-                return "wait";
-            }
+            // Only buy one scroll, then return immediately
+            return "wait";
         }
 
         // Check for offering if needed
