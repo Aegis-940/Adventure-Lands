@@ -253,14 +253,14 @@ async function attack_loop() {
                     valid_heal_target = false
                 }
 
-            if (LOOP_STATES.heal && valid_heal_target && !is_on_cooldown("attack")) {
+            if (LOOP_STATES.heal && valid_heal_target) {
                 try {
                     game_log(`💖 Healing ${target.name}`, "#00FF00");
                     await heal(target);
                 } catch (e) {
                     game_log("Heal error: " + e, "#FF0000");
                 }
-                delayMs = 10;
+                delayMs = ms_to_next_skill('heal') + character.ping + 20;
                 await delay(delayMs);
             } else if (LOOP_STATES.attack) {
                 // 1. Filter all relevant monsters ONCE
@@ -280,13 +280,13 @@ async function attack_loop() {
                     target = monsters.reduce((a, b) => (b.hp < a.hp ? a : b));
                 }
 
-                if (target && is_in_range(target) && !smart.moving && character.mp >= 100 && !is_on_cooldown("attack")) {
+                if (target && is_in_range(target) && !smart.moving && character.mp >= 100) {
                     try {
                         await attack(target);
                     } catch (e) {
                         game_log("Attack error: " + e, "#FF0000");
                     }
-                    delayMs = 10;
+                    delayMs = ms_to_next_skill('heal') + character.ping + 20;
                     await delay(delayMs);
                 }
             } else {
