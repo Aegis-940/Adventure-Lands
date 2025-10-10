@@ -3,8 +3,6 @@
 // 1) GLOBAL LOOP SWITCHES AND VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const { cache } = require("react");
-
 const LOOP_STATES = {
 
     attack: false,
