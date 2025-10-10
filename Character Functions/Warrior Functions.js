@@ -285,8 +285,13 @@ async function boss_loop() {
         // Equip jacko before moving to boss
         const jacko_slot = locate_item("jacko");
         if (jacko_slot !== -1 && character.slots.orb?.name !== "jacko") {
-            await equip(jacko_slot);
-            await delay(300);
+            try {
+                await equip(jacko_slot);
+                await delay(300);
+            } catch (e) {
+                game_log("⚠️ Error equipping jacko:", "#FF0000");
+                game_log(e);
+            }
         }
 
         // Equip fireblade +7 in offhand before moving to boss
@@ -315,7 +320,12 @@ async function boss_loop() {
                     e.type === "monster" && e.target === character.name && !e.dead
                 );
                 if (aggro && can_use("scare")) {
-                    await use_skill("scare");
+                    try {
+                        await use_skill("scare");
+                    } catch (e) {
+                        game_log("⚠️ Error using boss scare:", "#FF0000");
+                        game_log(e);
+                    }
                 }
                 await delay(100);
             }
@@ -325,6 +335,7 @@ async function boss_loop() {
         } else {
             game_log("⚠️ Boss spawn location unknown, skipping smart_move.");
         }
+
 
         // Engage boss until dead
         game_log("⚔️ Engaging boss...");

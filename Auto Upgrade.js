@@ -42,99 +42,170 @@ const combineProfile = {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function upgrade_once_by_level(level) {
-	for (let i = 0; i < character.items.length; i++) {
-		const item = character.items[i];
-		if (!item || item.level !== level) continue;
+    // First, determine how many upgrades at this level need a scroll
+    let needed = 0;
+    let scrollname = null;
 
-		const profile = upgradeProfile[item.name];
-		if (!profile || item.level >= profile.max_level) continue;
+    for (let i = 0; i < character.items.length; i++) {
+        const item = character.items[i];
+        if (!item || item.level !== level) continue;
 
-		let scrollname = item.level < profile.scroll0_until ? "scroll0"
-			: item.level < profile.scroll1_until ? "scroll1"
-				: "scroll2";
+        const profile = upgradeProfile[item.name];
+        if (!profile || item.level >= profile.max_level) continue;
 
-		const [scroll_slot, scroll] = find_item(it => it.name === scrollname);
-		if (!scroll) {
-			parent.buy(scrollname);
-			return "wait";
-		}
+        scrollname = item.level < profile.scroll0_until ? "scroll0"
+            : item.level < profile.scroll1_until ? "scroll1"
+                : "scroll2";
 
-		let offering_slot = null;
-		if (profile.primling_from !== undefined && item.level >= profile.primling_from) {
-			const [pSlot, prim] = find_item(it => it.name === "offeringp");
-			if (!prim) return "wait";
-			offering_slot = pSlot;
-		}
+        // Check if we have a scroll for this upgrade
+        const [scroll_slot, scroll] = find_item(it => it.name === scrollname);
+        if (!scroll) needed++;
+    }
 
-		if (can_use("massproduction")) {
-			await use_skill("massproduction");
-		}
+    // Count how many scrolls we already have
+    let have = 0;
+    if (scrollname) {
+        for (let i = 0; i < character.items.length; i++) {
+            const item = character.items[i];
+            if (item && item.name === scrollname) have += item.q || 1;
+        }
+    }
 
-		parent.socket.emit("upgrade", {
-			item_num: i,
-			scroll_num: scroll_slot,
-			offering_num: offering_slot,
-			clevel: item.level,
-		});
+    // Buy only as many as needed
+    if (needed > have) {
+        for (let i = 0; i < needed - have; i++) {
+            parent.buy(scrollname);
+        }
+        return "wait";
+    }
 
-		return "done";
-	}
-	return "none";
+    // Now proceed with upgrades as before
+    for (let i = 0; i < character.items.length; i++) {
+        const item = character.items[i];
+        if (!item || item.level !== level) continue;
+
+        const profile = upgradeProfile[item.name];
+        if (!profile || item.level >= profile.max_level) continue;
+
+        scrollname = item.level < profile.scroll0_until ? "scroll0"
+            : item.level < profile.scroll1_until ? "scroll1"
+                : "scroll2";
+
+        const [scroll_slot, scroll] = find_item(it => it.name === scrollname);
+        if (!scroll) continue;
+
+        let offering_slot = null;
+        if (profile.primling_from !== undefined && item.level >= profile.primling_from) {
+            const [pSlot, prim] = find_item(it => it.name === "offeringp");
+            if (!prim) return "wait";
+            offering_slot = pSlot;
+        }
+
+        if (can_use("massproduction")) {
+            await use_skill("massproduction");
+        }
+
+        parent.socket.emit("upgrade", {
+            item_num: i,
+            scroll_num: scroll_slot,
+            offering_num: offering_slot,
+            clevel: item.level,
+        });
+
+        return "done";
+    }
+    return "none";
 }
 
 async function compound_once_by_level(level) {
-	const buckets = new Map();
+    const buckets = new Map();
 
-	character.items.forEach((item, idx) => {
-		if (!item || item.level !== level) return;
+    // Group items by name and level
+    character.items.forEach((item, idx) => {
+        if (!item || item.level !== level) return;
 
-		const profile = combineProfile[item.name];
-		if (!profile || item.level >= profile.max_level) return;
+        const profile = combineProfile[item.name];
+        if (!profile || item.level >= profile.max_level) return;
 
-		const key = `${item.name}:${item.level}`;
-		if (!buckets.has(key)) {
-			buckets.set(key, [item.level, item_grade(item), [idx]]);
-		} else {
-			buckets.get(key)[2].push(idx);
-		}
-	});
+        const key = `${item.name}:${item.level}`;
+        if (!buckets.has(key)) {
+            buckets.set(key, [item.level, item_grade(item), [idx]]);
+        } else {
+            buckets.get(key)[2].push(idx);
+        }
+    });
 
-	for (const [key, entries] of buckets) {
-		const [lvl, grade, slots] = entries;
-		if (slots.length < 3) continue;
+    // Count how many compounds and which scroll is needed
+    let needed = 0;
+    let scrollname = null;
 
-		const itemName = key.split(":")[0];
-		const profile = combineProfile[itemName];
-		if (!profile) continue;
+    for (const [key, entries] of buckets) {
+        const [lvl, grade, slots] = entries;
+        if (slots.length < 3) continue;
 
-		let scrollname = lvl < profile.scroll0_until ? "cscroll0"
-			: lvl < profile.scroll1_until ? "cscroll1"
-				: "cscroll2";
+        const itemName = key.split(":")[0];
+        const profile = combineProfile[itemName];
+        if (!profile) continue;
 
-		const [scroll_slot, scroll] = find_item(it => it.name === scrollname);
-		if (!scroll) {
-			parent.buy(scrollname);
-			return "wait";
-		}
+        scrollname = lvl < profile.scroll0_until ? "cscroll0"
+            : lvl < profile.scroll1_until ? "cscroll1"
+                : "cscroll2";
 
-		let offering_slot = null;
-		if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
-			const [pSlot, prim] = find_item(it => it.name === "offeringp");
-			if (!prim) return "wait";
-			offering_slot = pSlot;
-		}
+        // Each group of 3 needs 1 scroll
+        needed += Math.floor(slots.length / 3);
+    }
 
-		parent.socket.emit("compound", {
-			items: slots.slice(0, 3),
-			scroll_num: scroll_slot,
-			offering_num: offering_slot,
-			clevel: lvl,
-		});
+    // Count how many scrolls we already have
+    let have = 0;
+    if (scrollname) {
+        for (let i = 0; i < character.items.length; i++) {
+            const item = character.items[i];
+            if (item && item.name === scrollname) have += item.q || 1;
+        }
+    }
 
-		return "done";
-	}
+    // Buy only as many as needed
+    if (needed > have) {
+        for (let i = 0; i < needed - have; i++) {
+            parent.buy(scrollname);
+        }
+        return "wait";
+    }
 
-	return "none";
+    // Now proceed with compounds as before
+    for (const [key, entries] of buckets) {
+        const [lvl, grade, slots] = entries;
+        if (slots.length < 3) continue;
+
+        const itemName = key.split(":")[0];
+        const profile = combineProfile[itemName];
+        if (!profile) continue;
+
+        scrollname = lvl < profile.scroll0_until ? "cscroll0"
+            : lvl < profile.scroll1_until ? "cscroll1"
+                : "cscroll2";
+
+        const [scroll_slot, scroll] = find_item(it => it.name === scrollname);
+        if (!scroll) continue;
+
+        let offering_slot = null;
+        if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
+            const [pSlot, prim] = find_item(it => it.name === "offeringp");
+            if (!prim) return "wait";
+            offering_slot = pSlot;
+        }
+
+        parent.socket.emit("compound", {
+            items: slots.slice(0, 3),
+            scroll_num: scroll_slot,
+            offering_num: offering_slot,
+            clevel: lvl,
+        });
+
+        return "done";
+    }
+
+    return "none";
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
