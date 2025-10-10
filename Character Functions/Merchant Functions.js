@@ -82,115 +82,123 @@ const FREQUENCY = 10 * 60 * 1000; // 10 minutes
 const DELIVERY_RADIUS = 350;
 
 async function loot_and_potions_loop() {
-
     LOOP_STATES.loot_and_potions = true;
 
-	game_log("🔄 Starting loot and potions loop...");
+    game_log("🔄 Starting loot and potions loop...");
 
     try {
         while (LOOP_STATES.loot_and_potions) {
+
             // --- 1. Wait for status_cache to be populated ---
             try {
-                if (!status_cache || Object.keys(status_cache).length === 0) {
+                let ulric_status = parent.get("Ulric_status");
+                let myras_status = parent.get("Myras_status");
+                let riva_status  = parent.get("Riva_status");
+
+                if (!ulric_status && !myras_status && !riva_status) {
                     game_log("⏳ Waiting for status_cache to populate...");
                     await delay(10000);
                     continue;
                 }
+
+                // --- 2. Process each party member in order ---
+                for (const [name, info] of [
+                    ["Ulric", ulric_status],
+                    ["Myras", myras_status],
+                    ["Riva", riva_status]
+                ]) {
+                    try {
+                        if (!info) {
+                            game_log(`⚠️ No status info for ${name}, skipping.`);
+                            continue;
+                        }
+
+                        // --- 2a. Attempt to deliver potions ---
+                        try {
+                            let hpot_needed = Math.max(0, POTION_CAP - (info.hpot1 || 0));
+                            let mpot_needed = Math.max(0, POTION_CAP - (info.mpot1 || 0));
+
+                            // Only deliver if below POTION_MIN
+                            if ((info.hpot1 || 0) < POTION_MIN || (info.mpot1 || 0) < POTION_MIN) {
+                                let delivered = false;
+                                let delivery_attempts = 0;
+                                while (!delivered && delivery_attempts < 3) {
+                                    try {
+                                        // Move to target
+                                        if (info.map && typeof info.x === "number" && typeof info.y === "number") {
+                                            await smart_move({ map: info.map, x: info.x, y: info.y });
+                                        }
+                                        await delay(500);
+
+                                        // Check distance
+                                        const target = get_player(name);
+                                        if (target && distance(character, target) <= DELIVERY_RADIUS) {
+                                            // Deliver potions
+                                            if (hpot_needed > 0) send_item(target, locate_item("hpot1"), hpot_needed);
+                                            if (mpot_needed > 0) send_item(target, locate_item("mpot1"), mpot_needed);
+                                            game_log(`🧪 Delivered potions to ${name}`);
+                                            delivered = true;
+                                        } else {
+                                            game_log(`❌ Could not reach ${name} for potion delivery (attempt ${delivery_attempts + 1})`);
+                                        }
+                                    } catch (e) {
+                                        game_log(`Potion delivery error for ${name}: ${e.message}`);
+                                    }
+                                    if (!delivered) {
+                                        await delay(2000);
+                                    }
+                                    delivery_attempts++;
+                                }
+                            }
+                        } catch (e) {
+                            game_log(`Error in potion delivery section for ${name}: ${e.message}`);
+                        }
+
+                        // --- 2b. Attempt to collect loot ---
+                        try {
+                            if ((info.inventory || 0) >= 20) {
+                                let collected = false;
+                                let collect_attempts = 0;
+                                while (!collected && collect_attempts < 3) {
+                                    try {
+                                        // Move to target
+                                        if (info.map && typeof info.x === "number" && typeof info.y === "number") {
+                                            await smart_move({ map: info.map, x: info.x, y: info.y });
+                                        }
+                                        await delay(500);
+
+                                        // Check distance
+                                        const target = get_player(name);
+                                        if (target && distance(character, target) <= DELIVERY_RADIUS) {
+                                            send_cm(name, { type: "send_loot" });
+                                            game_log(`📦 Requested loot from ${name}`);
+                                            await delay(5000); // Wait for loot transfer
+                                            collected = true;
+                                        } else {
+                                            game_log(`❌ Could not reach ${name} for loot collection (attempt ${collect_attempts + 1})`);
+                                        }
+                                    } catch (e) {
+                                        game_log(`Loot collection error for ${name}: ${e.message}`);
+                                    }
+                                    if (!collected) {
+                                        await delay(2000);
+                                    }
+                                    collect_attempts++;
+                                }
+                            }
+                        } catch (e) {
+                            game_log(`Error in loot collection section for ${name}: ${e.message}`);
+                        }
+
+                    } catch (e) {
+                        game_log(`Error processing ${name}: ${e.message}`);
+                    }
+                }
+
             } catch (e) {
                 game_log("Error checking status_cache: " + e.message);
                 await delay(10000);
                 continue;
-            }
-
-            // --- 2. Process each party member in order ---
-            for (const name of ["Ulric", "Myras", "Riva"]) {
-                try {
-                    const info = status_cache[name];
-                    if (!info) {
-                        game_log(`⚠️ No status info for ${name}, skipping.`);
-                        continue;
-                    }
-
-                    // --- 2a. Attempt to deliver potions ---
-                    try {
-                        let hpot_needed = Math.max(0, POTION_CAP - (info.hpot1 || 0));
-                        let mpot_needed = Math.max(0, POTION_CAP - (info.mpot1 || 0));
-
-                        // Only deliver if below POTION_MIN
-                        if ((info.hpot1 || 0) < POTION_MIN || (info.mpot1 || 0) < POTION_MIN) {
-                            let delivered = false;
-                            let delivery_attempts = 0;
-                            while (!delivered && delivery_attempts < 3) {
-                                try {
-                                    // Move to target
-                                    if (info.map && typeof info.x === "number" && typeof info.y === "number") {
-                                        await smart_move({ map: info.map, x: info.x, y: info.y });
-                                    }
-                                    await delay(500);
-
-                                    // Check distance
-                                    const target = get_player(name);
-                                    if (target && distance(character, target) <= DELIVERY_RADIUS) {
-                                        // Deliver potions
-                                        if (hpot_needed > 0) send_item(target, locate_item("hpot1"), hpot_needed);
-                                        if (mpot_needed > 0) send_item(target, locate_item("mpot1"), mpot_needed);
-                                        game_log(`🧪 Delivered potions to ${name}`);
-                                        delivered = true;
-                                    } else {
-                                        game_log(`❌ Could not reach ${name} for potion delivery (attempt ${delivery_attempts + 1})`);
-                                    }
-                                } catch (e) {
-                                    game_log(`Potion delivery error for ${name}: ${e.message}`);
-                                }
-                                if (!delivered) {
-                                    await delay(2000);
-                                }
-                                delivery_attempts++;
-                            }
-                        }
-                    } catch (e) {
-                        game_log(`Error in potion delivery section for ${name}: ${e.message}`);
-                    }
-
-                    // --- 2b. Attempt to collect loot ---
-                    try {
-                        if ((info.inventory || 0) >= 20) {
-                            let collected = false;
-                            let collect_attempts = 0;
-                            while (!collected && collect_attempts < 3) {
-                                try {
-                                    // Move to target
-                                    if (info.map && typeof info.x === "number" && typeof info.y === "number") {
-                                        await smart_move({ map: info.map, x: info.x, y: info.y });
-                                    }
-                                    await delay(500);
-
-                                    // Check distance
-                                    const target = get_player(name);
-                                    if (target && distance(character, target) <= DELIVERY_RADIUS) {
-                                        send_cm(name, { type: "send_loot" });
-                                        game_log(`📦 Requested loot from ${name}`);
-                                        await delay(5000); // Wait for loot transfer
-                                        collected = true;
-                                    } else {
-                                        game_log(`❌ Could not reach ${name} for loot collection (attempt ${collect_attempts + 1})`);
-                                    }
-                                } catch (e) {
-                                    game_log(`Loot collection error for ${name}: ${e.message}`);
-                                }
-                                if (!collected) {
-                                    await delay(2000);
-                                }
-                                collect_attempts++;
-                            }
-                        }
-                    } catch (e) {
-                        game_log(`Error in loot collection section for ${name}: ${e.message}`);
-                    }
-
-                } catch (e) {
-                    game_log(`Error processing ${name}: ${e.message}`);
-                }
             }
 
             // --- 3. Sell and bank, then buy more potions ---

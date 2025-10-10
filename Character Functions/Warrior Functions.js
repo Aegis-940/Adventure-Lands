@@ -201,7 +201,13 @@ function get_nearest_monster_v2(args = {}) {
         }
     }
     return target;
-}async function status_cache_loop() {
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// STATUS CACHE LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+async function status_cache_loop() {
 
     LOOP_STATES.cache = true;
 
@@ -265,6 +271,9 @@ function get_nearest_monster_v2(args = {}) {
                 } catch (e) {
                     game_log("Error updating status_cache: " + e.message);
                 }
+
+                // In each character's status_cache_loop:
+                parent.set(character.name + "_status", status_cache[character.name]);
 
             } catch (e) {
                 game_log("Status cache loop iteration error: " + e.message);

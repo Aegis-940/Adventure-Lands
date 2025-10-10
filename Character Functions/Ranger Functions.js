@@ -143,6 +143,9 @@ async function status_cache_loop() {
                     game_log("Error updating status_cache: " + e.message);
                 }
 
+                // In each character's status_cache_loop:
+                parent.set(character.name + "_status", status_cache[character.name]);
+
             } catch (e) {
                 game_log("Status cache loop iteration error: " + e.message);
             }
