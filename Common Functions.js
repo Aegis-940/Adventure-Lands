@@ -46,21 +46,14 @@ function halt_movement() {
 }
 
 function filter_code_messages_from_log() {
-    const $ = parent.$;
-    // Add a code message filter to the global gamelog_data if not present
-    if (typeof parent.ui_gamelog === "function" && parent.gamelog_data && !parent.gamelog_data.code) {
+    // Add a code message filter to the log system if not present
+    if (typeof parent.gamelog_data === "object" && !parent.gamelog_data.code) {
         parent.gamelog_data.code = {
             show: false,
             regex: /code message/i,
             tab_name: 'Code'
         };
     }
-    // Hide existing code message entries
-    $('.gameentry').each(function() {
-        if (/code message/i.test(this.innerHTML)) {
-            this.style.display = 'none';
-        }
-    });
     // Re-filter the log if filter_gamelog is available
     if (typeof parent.filter_gamelog === "function") {
         parent.filter_gamelog();
