@@ -220,7 +220,11 @@ async function attack_loop() {
             }
 
             if (target && is_in_range(target) && !smart.moving && character.mp >= 100) {
-                await attack(target);
+                try {
+                    await attack(target);
+                } catch (e) {
+                    game_log("Attack error: " + e, "#FF0000");
+                }
                 delayMs = ms_to_next_skill("attack") + character.ping;
             }
             await delay(delayMs);
@@ -849,23 +853,21 @@ const PANIC_WEAPON = "jacko";
 const NORMAL_WEAPON = "orbg";
 
 async function panic_loop() {
-
     LOOP_STATES.panic = true;
-
-    let delayMs = 100
+    let delayMs = 100;
 
     try {
         while (LOOP_STATES.panic) {
-            const low_health = character.hp < (character.max_hp / 2);
+            // Re-evaluate these every loop!
+            const low_health = character.hp < (character.max_hp / 3);
             const low_mana = character.mp < 50;
-            const high_health = character.hp >= ((3 * character.max_hp) / 4);
+            const high_health = character.hp >= ((2 * character.max_hp) / 3);
             const high_mana = character.mp >= 500;
 
             // PANIC CONDITION
-            if (low_health) {
+            if (low_health || low_mana) {
                 if (!panicking) {
                     panicking = true;
-                    stop_attack_loop();
                     game_log("⚠️ Panic triggered: Low health!");
                 }
 
@@ -877,7 +879,7 @@ async function panic_loop() {
                 }
 
                 // Always try to cast scare if possible
-                if (!is_on_cooldown("scare") && can_use("scare") && character.mp >= 50) {
+                if (!is_on_cooldown("scare") && can_use("scare")) {
                     game_log("Panicked! Using Scare!");
                     await use_skill("scare");
                     await delay(delayMs);
@@ -888,7 +890,7 @@ async function panic_loop() {
             }
 
             // SAFE CONDITION
-            if (high_health ) {
+            else if (high_health && high_mana) {
                 if (panicking) {
                     panicking = false;
                     game_log("✅ Panic over — resuming normal operations.");
