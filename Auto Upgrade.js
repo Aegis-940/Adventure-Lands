@@ -278,8 +278,11 @@ async function schedule_upgrade() {
         scrollSet.add("cscroll2");
     }
 
-    // Withdraw one stack of each scroll type if not already in inventory
+    // Withdraw all scrolls of each type from the bank, stacking if possible
     for (const scrollName of scrollSet) {
+        // Check if we already have this scroll type in inventory
+        let invStack = character.items.find(it => it && it.name === scrollName);
+        let alreadyHasStack = !!invStack;
 
         // Find all scrolls of this type in the bank
         let total_in_bank = 0;
@@ -292,11 +295,16 @@ async function schedule_upgrade() {
             }
         }
         // Withdraw all of them (they will stack in one slot)
-        if (total_in_bank > 0 && free_slots > 0) {
+        if (total_in_bank > 0) {
+            // Only check free_slots if we don't already have a stack
+            if (!alreadyHasStack && free_slots <= 0) continue;
             game_log(`[Bank] Withdrawing ${total_in_bank} ${scrollName}(s) from bank.`);
             await withdraw_item(scrollName, undefined, total_in_bank);
             any_withdrawn = true;
-            free_slots -= 1; // Only one slot used per scroll type
+            // Only decrement free_slots if we added a new stack
+            if (!alreadyHasStack) {
+                free_slots -= 1;
+            }
         }
     }
 
