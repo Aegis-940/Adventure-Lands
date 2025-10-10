@@ -859,9 +859,9 @@ async function panic_loop() {
     try {
         while (LOOP_STATES.panic) {
             // Re-evaluate these every loop!
-            const low_health = character.hp < (character.max_hp / 3);
+            const low_health = character.hp < (character.max_hp / 2);
             const low_mana = character.mp < 50;
-            const high_health = character.hp >= ((2 * character.max_hp) / 3);
+            const high_health = character.hp >= ((3 * character.max_hp) / 4);
             const high_mana = character.mp >= 500;
 
             // PANIC CONDITION

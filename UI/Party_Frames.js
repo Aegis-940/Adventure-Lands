@@ -3,19 +3,17 @@ if (parent.party_style_prepared) {
 }
 
 let css = `
-    .party-container {
-        position: absolute;
-        top: -4px;
-        left: -450px;
-        width: auto;
-        height: auto;
-        font-family: 'pixel';
-        display: flex;
-        flex-direction: row;
-        justify-content: flex-start;
-        align-items: flex-start; /* Align frames to the top */
-        gap: 4px; /* 4 pixels between each frame */
-    }
+	.party-container {
+		position: absolute;
+		top: 55px;
+		right: 2px;
+		width: 480px;
+		height: auto;
+		font-family: 'pixel';
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+	}
 `;
 parent.$('head').append(`<style id="style-party-frames">${css}</style>`);
 parent.party_style_prepared = true;
@@ -42,7 +40,7 @@ function getIFramedCharacter(name) {
 }
 
 let show_party_frame_property = {
-	img: false,
+	img: true,
 	hp: true,
 	mp: true,
 	xp: true,

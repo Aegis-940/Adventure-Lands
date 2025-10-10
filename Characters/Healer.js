@@ -65,9 +65,9 @@ async function universal_loop_controller() {
         // --- Handle panic state ---
         } else if (panicking) {
 
-            if (!LOOP_STATES.attack) stop_attack_loop();
-            if (!LOOP_STATES.skill) stop_skill_loop();
-            if (!LOOP_STATES.boss) stop_boss_loop();
+            if (LOOP_STATES.attack) stop_attack_loop();
+            if (LOOP_STATES.skill) stop_skill_loop();
+            if (LOOP_STATES.boss) stop_boss_loop();
             return;
 
         // --- Handle boss logic ---
