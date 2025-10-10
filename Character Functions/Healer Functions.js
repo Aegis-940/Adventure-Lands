@@ -760,7 +760,7 @@ async function handle_party_heal(minMissingHpMap = {}, minMp = 1000) {
         Myras: character.heal + 800,
         Ulric: 1500,
         Riva: 1500,
-        Riff: 1500
+        Riff: 500
     };
 
     // Merge user-provided thresholds with defaults

@@ -13,7 +13,7 @@ const LOOP_STATES = {
 const PARTY = ["Ulric", "Myras", "Riva"];
 
 // Define default location to wait when idle
-const HOME = { map: "main", x: -89, y: -116 };
+const HOME = { map: "main", x: -87, y: -96 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS (with persistent state saving)

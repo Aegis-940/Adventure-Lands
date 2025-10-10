@@ -45,37 +45,6 @@ function halt_movement() {
 	parent.socket.emit("move", { to: { x: character.x, y: character.y } });
 }
 
-function filter_code_messages_from_log() {
-    const codeMsgRegex = /code/i;
-    const $ = parent.$;
-
-    // Hide all existing code message entries
-    $('.gameentry').each(function() {
-        if (codeMsgRegex.test(this.innerHTML)) {
-            this.style.display = 'none';
-        }
-    });
-
-    // Observe future log entries and hide code messages as they appear
-    const gamelog = $('#gamelog')[0];
-    if (!gamelog) return;
-    if (gamelog._codeMsgObserver) return; // Prevent multiple observers
-
-    gamelog._codeMsgObserver = new MutationObserver(mutations => {
-        mutations.forEach(mutation => {
-            mutation.addedNodes.forEach(node => {
-                if (
-                    node.nodeType === 1 &&
-                    codeMsgRegex.test(node.innerHTML)
-                ) {
-                    node.style.display = 'none';
-                }
-            });
-        });
-    });
-    gamelog._codeMsgObserver.observe(gamelog, { childList: true });
-}
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // CM HANDLERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
