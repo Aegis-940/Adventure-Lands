@@ -91,9 +91,9 @@ async function loot_and_potions_loop() {
 
             // --- 1. Wait for status_cache to be populated ---
             try {
-                let ulric_status = parent.get("Ulric_status");
-                let myras_status = parent.get("Myras_status");
-                let riva_status  = parent.get("Riva_status");
+				let ulric_status = parent.read_storage("Ulric_status");
+				let myras_status = parent.read_storage("Myras_status");
+				let riva_status  = parent.read_storage("Riva_status");
 
                 if (!ulric_status && !myras_status && !riva_status) {
                     game_log("⏳ Waiting for status_cache to populate...");
