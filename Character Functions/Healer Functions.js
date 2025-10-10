@@ -230,8 +230,14 @@ function get_nearest_monster_v2(args = {}) {
 // Toggle options
 let ATTACK_TARGET_LOWEST_HP = true;      // true: lowest HP, false: highest HP
 let ATTACK_PRIORITIZE_UNTARGETED = true; // true: prefer monsters with no target first
+let attack_loop_running = false;
 
 async function attack_loop() {
+
+    if (attack_loop_running) {
+        game_log("Attack loop already running, aborting duplicate.", "#FFAA00");
+        return;
+    }
 
     LOOP_STATES.attack = true;
 
@@ -241,6 +247,8 @@ async function attack_loop() {
 
     try {
         while (LOOP_STATES.attack || LOOP_STATES.heal) {
+
+            attack_loop_running = true;
 
             const target = lowest_health_partymember();
             if (
@@ -301,6 +309,7 @@ async function attack_loop() {
         game_log("⚠️ Attack Loop error:", "#FF0000");
         game_log(e);
     } finally {
+        attack_loop_running = false;
         LOOP_STATES.attack = false;
         game_log("Attack loop ended unexpectedly", "#ffea00ff");
     }
