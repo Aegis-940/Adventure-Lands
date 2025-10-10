@@ -6,13 +6,15 @@ let css = `
     .party-container {
         position: absolute;
         top: 55px;
-        left: 2px; /* Changed from right: 2px; */
-        width: 100px; /* Adjust width for vertical stack */
+        left: 2px;
+        width: auto;
         height: auto;
         font-family: 'pixel';
         display: flex;
-        flex-direction: column; /* Changed from row to column */
-        justify-content: flex-start; /* Align to top */
+        flex-direction: row;
+        justify-content: flex-start;
+        align-items: flex-start; /* Align frames to the top */
+        gap: 4px; /* 4 pixels between each frame */
     }
 `;
 parent.$('head').append(`<style id="style-party-frames">${css}</style>`);
