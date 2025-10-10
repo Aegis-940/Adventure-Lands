@@ -295,7 +295,8 @@ async function schedule_upgrade() {
     }
 
     let any_withdrawn = false;
-    let free_slots = count_empty_inventory();
+    // Reserve at least 3 free slots
+    let free_slots = Math.max(0, count_empty_inventory() - 3);
 
     // Track inventory for timeout logic
     let last_inventory_count = count_inventory_items();
@@ -345,7 +346,7 @@ async function schedule_upgrade() {
 
     // --- COMBINE: Withdraw by item+level, only below max_level, in multiples of 3 ---
     for (const itemName in combineProfile) {
-        if (free_slots <= 0 || timed_out()) break;
+        if (free_slots < 3 || timed_out()) break;
         const maxLevel = combineProfile[itemName].max_level;
 
         let levelMap = {};
@@ -389,12 +390,12 @@ async function schedule_upgrade() {
         game_log("⏱️ Withdrawal timed out: inventory did not change for 5 seconds.");
     }
 
-	if (any_withdrawn) {
-		game_log("Items withdrawn from bank. Starting auto upgrade/compound process...");
-		await smart_move(HOME);
-		await run_auto_upgrade();
-	} else {
+    if (any_withdrawn) {
+        game_log("Items withdrawn from bank. Starting auto upgrade/compound process...");
+        await smart_move(HOME);
+        await run_auto_upgrade();
+    } else {
         game_log("No items withdrawn from bank. Nothing to upgrade or compound.");
-		await smart_move(HOME);
+        await smart_move(HOME);
     }
 }
