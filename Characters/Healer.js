@@ -54,46 +54,46 @@ async function universal_loop_controller() {
 
 	try {
 
-        // --- Ensure essential loops are always running ---
-        if (!LOOP_STATES.potion) start_potions_loop();
-        if (!LOOP_STATES.loot) start_loot_loop();
-        if (!LOOP_STATES.heal) start_heal_loop();
-
         // --- Handle death and respawn ---
         if (character.rip) {
             handle_death_and_respawn();
             return;
-        }
+        } else {
+            // --- Ensure essential loops are always running ---
+            if (!LOOP_STATES.potion) start_potions_loop();
+            if (!LOOP_STATES.loot) start_loot_loop();
+            if (!LOOP_STATES.heal) start_heal_loop();
 
-        // // --- Handle panic state ---
-        // if (panicking) {
-        //     stop_attack_loop();
-        //     stop_skill_loop();
-        //     stop_boss_loop();
-        //     return;
-        // }
+            // // --- Handle panic state ---
+            // if (panicking) {
+            //     stop_attack_loop();
+            //     stop_skill_loop();
+            //     stop_boss_loop();
+            //     return;
+            // }
 
-        // --- Boss detection ---
-        let boss_alive = is_boss_alive();
+            // --- Boss detection ---
+            let boss_alive = is_boss_alive();
 
-        // --- Boss logic ---
-        if (boss_alive && !LOOP_STATES.boss) {
-            stop_attack_loop();
-            stop_skill_loop();
-            stop_orbit_loop();
-            stop_panic_loop();
-            start_boss_loop();
-            return;
-        }
+            // --- Boss logic ---
+            if (boss_alive && !LOOP_STATES.boss) {
+                stop_attack_loop();
+                stop_skill_loop();
+                stop_orbit_loop();
+                stop_panic_loop();
+                start_boss_loop();
+                return;
+            }
 
-        // --- Normal grind logic ---
-        if (!boss_alive && !LOOP_STATES.boss) {
-            if (!LOOP_STATES.attack && !panicking) start_attack_loop();
-            if (!LOOP_STATES.skill && !panicking) start_skill_loop();
-            if (!LOOP_STATES.panic) start_panic_loop();
+            // --- Normal grind logic ---
+            if (!boss_alive && !LOOP_STATES.boss) {
+                if (!LOOP_STATES.attack) start_attack_loop();
+                if (!LOOP_STATES.skill) start_skill_loop();
+                if (!LOOP_STATES.panic) start_panic_loop();
 
-            const at_target = character.x === TARGET_LOC.x && character.y === TARGET_LOC.y;
-            if (!LOOP_STATES.orbit && at_target && !panicking) start_orbit_loop();
+                const at_target = parent.distance(character, TARGET_LOC) <= 30;
+                if (!LOOP_STATES.orbit && at_target) start_orbit_loop();
+            }
         }
 
     } catch (e) {
