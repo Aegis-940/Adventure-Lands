@@ -77,6 +77,7 @@ async function merchant_loop_controller() {
 
 const POTION_CAP = 5000;
 const POTION_MIN = 2000;
+const LOOT_MIN = 20;
 const FREQUENCY = 10 * 60 * 1000; // 10 minutes
 
 const DELIVERY_RADIUS = 350;
@@ -123,13 +124,22 @@ async function loot_and_potions_loop() {
                             continue;
                         }
 
-                        // --- 2a. Attempt to deliver potions ---
+                        // --- 2a. Determine if either task is triggered ---
+                        const needs_potions = (info.hpot1 || 0) < POTION_MIN || (info.mpot1 || 0) < POTION_MIN;
+                        const needs_loot = (info.inventory || 0) >= LOOT_MIN;
+
+                        // If either task is triggered, override thresholds for both
+                        let override = needs_potions || needs_loot;
+
+                        // --- 2b. Attempt to deliver potions ---
                         try {
                             let hpot_needed = Math.max(0, POTION_CAP - (info.hpot1 || 0));
                             let mpot_needed = Math.max(0, POTION_CAP - (info.mpot1 || 0));
 
-                            // Only deliver if below POTION_MIN
-                            if ((info.hpot1 || 0) < POTION_MIN || (info.mpot1 || 0) < POTION_MIN) {
+                            if (
+                                (override && (hpot_needed > 0 || mpot_needed > 0)) ||
+                                (!override && ((info.hpot1 || 0) < POTION_MIN || (info.mpot1 || 0) < POTION_MIN))
+                            ) {
                                 let delivered = false;
                                 let delivery_attempts = 0;
                                 while (!delivered && delivery_attempts < 3) {
@@ -143,7 +153,7 @@ async function loot_and_potions_loop() {
                                         // Check distance
                                         const target = get_player(name);
                                         if (target && distance(character, target) <= DELIVERY_RADIUS) {
-                                            // Deliver potions
+                                            // Deliver potions up to POTION_CAP
                                             if (hpot_needed > 0) send_item(target, locate_item("hpot1"), hpot_needed);
                                             if (mpot_needed > 0) send_item(target, locate_item("mpot1"), mpot_needed);
                                             game_log(`🧪 Delivered potions to ${name}`);
@@ -164,9 +174,12 @@ async function loot_and_potions_loop() {
                             game_log(`Error in potion delivery section for ${name}: ${e.message}`);
                         }
 
-                        // --- 2b. Attempt to collect loot ---
+                        // --- 2c. Attempt to collect loot ---
                         try {
-                            if ((info.inventory || 0) >= 20) {
+                            if (
+                                (override && (info.inventory || 0) > 0) ||
+                                (!override && (info.inventory || 0) >= LOOT_MIN)
+                            ) {
                                 let collected = false;
                                 let collect_attempts = 0;
                                 while (!collected && collect_attempts < 3) {
