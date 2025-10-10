@@ -258,7 +258,6 @@ async function attack_loop() {
                 await heal(target);
                 delayMs = 10;
                 await delay(delayMs);
-                continue;
             } else if (LOOP_STATES.attack) {
                 // 1. Filter all relevant monsters ONCE
                 const monsters = Object.values(parent.entities).filter(e =>
@@ -281,13 +280,11 @@ async function attack_loop() {
                     await attack(target);
                     delayMs = 10;
                     await delay(delayMs);
-                    continue;
                 }
             } else {
                 await delay(50);
-                continue;
             }
-            await delay(50);
+            await delay(10);
         }
     } catch (e) {
         game_log("⚠️ Attack Loop error:", "#FF0000");
