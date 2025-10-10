@@ -281,10 +281,13 @@ async function attack_loop() {
                     await attack(target);
                     delayMs = ms_to_next_skill("attack") + character.ping;
                     await delay(delayMs);
+                    continue;
                 }
             } else {
                 await delay(50);
+                continue;
             }
+            await delay(50);
         }
     } catch (e) {
         game_log("⚠️ Attack Loop error:", "#FF0000");
