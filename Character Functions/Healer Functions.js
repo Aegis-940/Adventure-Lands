@@ -256,7 +256,7 @@ async function attack_loop() {
             if (LOOP_STATES.heal && valid_heal_target && !is_on_cooldown("attack")) {
                 game_log(`💖 Healing ${target.name}`, "#00FF00");
                 await heal(target);
-                delayMs = ms_to_next_skill('attack')/2 + 50;
+                delayMs = 10;
                 await delay(delayMs);
                 continue;
             } else if (LOOP_STATES.attack) {
@@ -279,7 +279,7 @@ async function attack_loop() {
 
                 if (target && is_in_range(target) && !smart.moving && character.mp >= 100 && !is_on_cooldown("attack")) {
                     await attack(target);
-                    delayMs = ms_to_next_skill("attack")/2 + 50;
+                    delayMs = 10;
                     await delay(delayMs);
                     continue;
                 }
