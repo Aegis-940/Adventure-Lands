@@ -269,8 +269,8 @@ async function attack_loop() {
             const inRange = [];
             let cursed = null;
             for (const mob of MONSTER_TYPES) {
-                const dist = Math.hypot(mob.x - X, mob.y - Y);
-                if (dist <= RANGE_THRESHOLD) {
+                const dist = Math.hypot(mob.x - character.x, mob.y - character.y);
+                if (dist <= character.range-1) {
                     inRange.push(mob);
                     // Find a cursed monster in range (prioritize lowest HP if multiple)
                     if (mob.s && mob.s.cursed) {
