@@ -227,6 +227,7 @@ async function loot_and_potions_loop() {
                                 await delay(500);
 
                                 const target = get_player(name);
+                                game_log("Loot collection pre-check");
                                 if (target && distance(character, target) <= DELIVERY_RADIUS) {
                                     send_cm(name, { type: "send_loot" });
                                     game_log(`📦 Requested loot from ${name} (attempt ${attempt + 1})`);
