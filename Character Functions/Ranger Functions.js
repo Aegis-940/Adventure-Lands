@@ -301,7 +301,7 @@ async function attack_loop() {
                     delayMs = ms_to_next_skill("attack");
                 } else if (sorted_targets.length >= 1) {
                     await attack(sorted_targets[0]);
-                    delayMs = ms_to_next_skill("attack");
+                    delayMs = ms_to_next_skill("attack") + character.ping + 20;
                 }
             } catch (e) {
                 game_log("⚠️ Attack Loop error:", "#FF0000");
