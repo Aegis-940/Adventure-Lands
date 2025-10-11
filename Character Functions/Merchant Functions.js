@@ -205,7 +205,7 @@ async function loot_and_potions_loop() {
                                     // Request loot from the target
                                     send_cm(name, { type: "send_loot" });
                                     game_log(`📦 Requested loot from ${name}`);
-                                    await delay(2000);
+                                    await delay(4000);
                                 } catch (e) {
                                     game_log(`Error requesting loot from ${name}: ${e.message}`);
                                 }
@@ -220,7 +220,7 @@ async function loot_and_potions_loop() {
                             }
                         }
 
-                        await delay(2000);
+                        await delay(4000);
                     }
 
                     // Wait for movePromise to resolve if still moving

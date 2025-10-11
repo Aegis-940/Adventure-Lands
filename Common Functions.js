@@ -227,7 +227,7 @@ async function send_to_merchant() {
 		if (item && !item.l) { // Skip locked items
 			await delay(10);
 			try {
-				await send_item(merchant_name, i, item.q || 1);
+				send_item(merchant_name, i, item.q || 1);
 			} catch (e) {
 				game_log(`⚠️ Could not send item in slot ${i}: ${item.name}`);
 			}
