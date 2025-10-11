@@ -295,14 +295,12 @@ async function attack_loop() {
 
                 if (sorted_targets.length >= 5 && character.mp >= 380) {
                     await use_skill("5shot", sorted_targets.map(m => m.id));
-                    delayMs = ms_to_next_skill("attack");
                 } else if (sorted_targets.length >= 2 && character.mp >= 250) {
                     await use_skill("3shot", sorted_targets.map(m => m.id));
-                    delayMs = ms_to_next_skill("attack");
                 } else if (sorted_targets.length >= 1) {
                     await attack(sorted_targets[0]);
-                    delayMs = ms_to_next_skill("attack") + character.ping + 20;
                 }
+                delayMs = ms_to_next_skill("attack") + character.ping + 20;
             } catch (e) {
                 game_log("⚠️ Attack Loop error:", "#FF0000");
                 game_log(e);
