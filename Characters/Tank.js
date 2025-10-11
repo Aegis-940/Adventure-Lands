@@ -123,7 +123,7 @@ setInterval(() => {
 	// === Core utility loops ===
 	party_manager();
 	universal_loop_controller();
-	// aggro_mobs();
+	aggro_mobs();
 
 	if (!attack_mode || character.rip || is_moving(character)) return;
 
