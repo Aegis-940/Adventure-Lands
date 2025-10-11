@@ -268,7 +268,7 @@ async function attack_loop() {
             // Find all monsters in range
             const inRange = [];
             let cursed = null;
-            for (const mob of filteredMonsters) {
+            for (const mob of MONSTER_TYPES) {
                 const dist = Math.hypot(mob.x - X, mob.y - Y);
                 if (dist <= RANGE_THRESHOLD) {
                     inRange.push(mob);
@@ -308,13 +308,7 @@ async function attack_loop() {
         }
     } catch (e) {
         game_log("⚠️ Attack Loop error:", "#FF0000");
-        if (e && e.message) {
-            game_log(e.message);
-        } else if (typeof e === "string") {
-            game_log(e);
-        } else {
-            game_log(JSON.stringify(e));
-        }
+        game_log(e);
     } finally {
         LOOP_STATES.attack = false;
         game_log("Attack loop ended unexpectedly", "#ffea00ff");
