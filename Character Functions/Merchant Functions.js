@@ -103,7 +103,7 @@ async function merchant_loop_controller() {
             }
 
             // --- Try fishing if not already running ---
-            if (!LOOP_STATES.fishing) {
+            if (!LOOP_STATES.fishing && !is_on_cooldown("fishing")) {
                 start_fishing_loop();
                 await delay(500);
                 if (merchant_task !== "Idle") {
@@ -113,7 +113,7 @@ async function merchant_loop_controller() {
             }
 
             // --- Try mining if not already running ---
-            if (!LOOP_STATES.mining) {
+            if (!LOOP_STATES.mining && !is_on_cooldown("mining")) {
                 start_mining_loop();
                 await delay(500);
                 if (merchant_task !== "Idle") {
