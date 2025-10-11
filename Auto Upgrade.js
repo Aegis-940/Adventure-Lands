@@ -89,7 +89,6 @@ async function upgrade_item_withdraw() {
         await delay(500);
     }
 
-    // Helper functions
     function count_empty_inventory() {
         return character.items.filter(it => !it).length;
     }
@@ -100,15 +99,13 @@ async function upgrade_item_withdraw() {
         return;
     }
 
+    // --- Withdraw UPGRADE_PROFILE items (leave at least 3 empty slots) ---
     let free_slots = count_empty_inventory();
-
-     // 2. Withdraw all items in UPGRADE_PROFILE from the bank that are less than max_level for that item
     if (free_slots <= 3) {
         game_log("❌ Not enough inventory space to withdraw upgrade items.");
         return;
     }
 
-    // Withdraw upgrade items (one by one, up to free_slots - 3)
     for (const itemName in UPGRADE_PROFILE) {
         const maxLevel = UPGRADE_PROFILE[itemName].max_level;
 
@@ -121,10 +118,10 @@ async function upgrade_item_withdraw() {
                     item.name === itemName &&
                     (typeof item.level !== "number" || item.level < maxLevel)
                 ) {
-                    // Only withdraw if we will leave at least 3 empty slots
                     free_slots = count_empty_inventory();
                     if (free_slots <= 3) break;
-                    const to_withdraw = Math.min(item.q || 1, free_slots - 3);
+                    const max_withdrawable = free_slots - 3;
+                    const to_withdraw = Math.min(item.q || 1, max_withdrawable);
                     if (to_withdraw > 0) {
                         await withdraw_item(itemName, item.level, to_withdraw);
                         await delay(200);
@@ -140,7 +137,7 @@ async function upgrade_item_withdraw() {
         if (free_slots <= 3) break;
     }
 
-    // 3. Withdraw all items in COMBINE_PROFILE from the bank that are less than max_level for that item, in multiples of 3
+    // --- Withdraw COMBINE_PROFILE items (multiples of 3, leave at least 3 empty slots) ---
     free_slots = count_empty_inventory();
     for (const itemName in COMBINE_PROFILE) {
         const maxLevel = COMBINE_PROFILE[itemName].max_level;
