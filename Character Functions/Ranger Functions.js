@@ -272,7 +272,7 @@ async function attack_loop() {
                 const mob = parent.entities[id];
                 if (mob.type !== "monster" || mob.dead) continue;
                 if (!MONSTER_TYPES.includes(mob.mtype)) continue;
-                game_log(`[attack_loop] Checking mob: ${mob.mtype || mob.name || mob.id}`);
+                const dist = Math.hypot(mob.x - character.x, mob.y - character.y);
                 if (dist <= character.range-1) {
                     inRange.push(mob);
                     // Find a cursed monster in range (prioritize lowest HP if multiple)
@@ -305,13 +305,7 @@ async function attack_loop() {
                 }
             } catch (e) {
                 game_log("⚠️ Attack Loop error:", "#FF0000");
-                if (e && e.message) {
-                    game_log(e.message);
-                } else if (typeof e === "string") {
-                    game_log(e);
-                } else {
-                    game_log(JSON.stringify(e));
-                }
+                game_log(e);
             }
             await delay(delayMs);
         }
