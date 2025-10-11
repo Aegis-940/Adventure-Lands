@@ -220,7 +220,7 @@ async function auto_upgrade_item(level) {
             : item.level < profile.scroll1_until ? "scroll1"
             : "scroll2";
 
-        // Find the scroll in inventory (since find_item is deleted)
+        // Find the scroll in inventory
         let scroll_slot = null;
         let scroll = null;
         for (let j = 0; j < character.items.length; j++) {
@@ -249,9 +249,10 @@ async function auto_upgrade_item(level) {
                     break;
                 }
             }
+            // If no offering is found, skip this item and continue to the next
             if (offering_slot === null) {
-                game_log("No offeringp found for upgrade requiring it.");
-                return "wait";
+                game_log(`Skipping ${item.name} (level ${item.level}): No offeringp found for upgrade requiring it.`);
+                continue;
             }
         }
 
