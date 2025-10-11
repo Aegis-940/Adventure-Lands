@@ -427,5 +427,7 @@ async function auto_upgrade() {
     }
 
     game_log("✅ Auto upgrade and combine complete.");
+    await delay(5000);
+    await sell_and_bank();
     merchant_task = "Idle";
 }
