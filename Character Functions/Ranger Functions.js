@@ -522,12 +522,12 @@ async function boss_loop() {
         //     await delay(300);
         // }
 
-        // Equip hbow +7 in offhand before moving to boss
+        // Equip hbow +7 in mainhand before moving to boss
         const hbow7_slot = parent.character.items.findIndex(item =>
             item && item.name === "hbow" && item.level === 7
         );
-        if (hbow7_slot !== -1 && (!character.slots.offhand || character.slots.offhand.name !== "hbow" || character.slots.offhand.level !== 7)) {
-            await equip(hbow7_slot, "offhand");
+        if (hbow7_slot !== -1 && (!character.slots.mainhand || character.slots.mainhand.name !== "hbow" || character.slots.mainhand.level !== 7)) {
+            await equip(hbow7_slot, "mainhand");
             await delay(300);
         }
 

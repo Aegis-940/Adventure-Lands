@@ -72,7 +72,7 @@ async function upgrade_scroll_withdraw() {
 
     for (const item of scrollTypes) {
         try {
-            await withdraw_item(item);
+            withdraw_item(item);
             await delay(200); // Small delay for UI/bank sync
         } catch (e) {
             game_log(`Error withdrawing ${item}: ${e.message}`);
@@ -125,9 +125,9 @@ async function upgrade_item_withdraw() {
                     // Withdraw as many as will fit, but only up to free_slots
                     const to_withdraw = Math.min(item.q || 1, free_slots);
                     if (to_withdraw > 0) {
-                        await withdraw_item(itemName, item.level, to_withdraw);
+                        withdraw_item(itemName, item.level, to_withdraw);
                         free_slots -= to_withdraw;
-                        await delay(50);
+                        await delay(200);
                     }
                     if (free_slots <= 0) break;
                 }
