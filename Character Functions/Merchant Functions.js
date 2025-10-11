@@ -241,9 +241,9 @@ async function loot_and_potions_loop() {
                     delete party_status_cache[name];
                     await smart_move(HOME);
                     await sell_and_bank();
-                    await delay(2000);
+                    await delay(500);
                     await buy_pots();
-                    await delay(2000);
+                    await delay(500);
                     merchant_task = "Idle";
 
                 } catch (e) {
