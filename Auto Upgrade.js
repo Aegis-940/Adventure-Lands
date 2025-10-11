@@ -427,4 +427,5 @@ async function auto_upgrade() {
     }
 
     game_log("✅ Auto upgrade and combine complete.");
+    merchant_task = "Idle";
 }

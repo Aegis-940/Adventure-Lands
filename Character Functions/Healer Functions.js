@@ -254,7 +254,7 @@ async function status_cache_loop() {
 
             // Only send status if inventory is 20+ or either potion is below 2000
             if (
-                inventory_count >= 20 ||
+                inventory_count >= 30 ||
                 mpot1_count < 2000 ||
                 hpot1_count < 2000
             ) {

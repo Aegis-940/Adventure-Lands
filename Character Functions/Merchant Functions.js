@@ -23,19 +23,6 @@ let merchant_task = "Idle"; // Current task: "Idle", "Mining", etc.
 // 2) START/STOP HELPERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function start_deliver_potions_loop() {
-    if (LOOP_STATES.deliver_potions) return;
-    LOOP_STATES.deliver_potions = true;
-    deliver_potions_loop();
-    game_log("▶️ Deliver potions loop started");
-}
-
-function stop_deliver_potions_loop() {
-    if (!LOOP_STATES.deliver_potions) return;
-    LOOP_STATES.deliver_potions = false;
-    game_log("⏹ Deliver potions loop stopped");
-}
-
 function start_loot_and_potions_loop() {
     if (LOOP_STATES.loot_and_potions) return;
     LOOP_STATES.loot_and_potions = true;
@@ -88,49 +75,58 @@ async function handle_death_and_respawn() {
     await smart_move(TARGET_LOC);
 }
 
-// --- Helper: Handle death and respawn ---
 async function merchant_loop_controller() {
-
     try {
+        while (true) {
+            // --- Handle death and respawn ---
+            if (character.rip) {
+                await handle_death_and_respawn();
+                continue;
+            }
 
-        // --- Handle death and respawn ---
-        if (character.rip) {
-            await handle_death_and_respawn();
-            return;
+            // --- Wait for any active task to finish ---
+            if (merchant_task !== "Idle") {
+                while (merchant_task !== "Idle") {
+                    await delay(1000);
+                }
+                continue;
+            }
+
+            // --- Try collecting loot and delivering potions ---
+            if (!LOOP_STATES.loot_and_potions) {
+                start_loot_and_potions_loop();
+                await delay(500);
+                if (merchant_task !== "Idle") {
+                    stop_loot_and_potions_loop();
+                    continue;
+                }
+            }
+
+            // --- Try fishing if not already running ---
+            if (!LOOP_STATES.fishing) {
+                start_fishing_loop();
+                await delay(500);
+                if (merchant_task !== "Idle") {
+                    stop_fishing_loop();
+                    continue;
+                }
+            }
+
+            // --- Try mining if not already running ---
+            if (!LOOP_STATES.mining) {
+                start_mining_loop();
+                await delay(500);
+                if (merchant_task !== "Idle") {
+                    stop_mining_loop();
+                    continue;
+                }
+            }
+
+            // --- If nothing to do, idle and check again soon ---
+            await delay(2000);
         }
-
-        // --- Ensure essential loops are running ---
-        else {
-            if (!LOOP_STATES.loot_and_potions) start_loot_and_potions_loop();
-        }
-
-        // // --- Prioritize tasks ---
-        // // Only start new tasks if merchant is idle and not already fishing or mining
-        // if (merchant_task === "Idle" && !LOOP_STATES.fishing && !LOOP_STATES.mining) {
-        //     // Try fishing first
-        //     start_fishing_loop();
-        //     await delay(2000);
-
-        //     // If fishing didn't start (still idle), ensure fishing loop is stopped
-        //     if (merchant_task === "Idle" && LOOP_STATES.fishing) {
-        //         await stop_fishing_loop();
-        //         await delay(1000);
-        //     }
-
-        //     // If still idle, try mining
-        //     if (merchant_task === "Idle" && !LOOP_STATES.mining) {
-        //         start_mining_loop();
-        //         await delay(2000);
-
-        //         // If mining didn't start (still idle), ensure mining loop is stopped
-        //         if (merchant_task === "Idle" && LOOP_STATES.mining) {
-        //             await stop_mining_loop();
-        //             await delay(1000);
-        //         }
-        //     }
-        // }
-
     } catch (e) {
+        merchant_task = "Idle";
         game_log("⚠️ Merchant Loop error:", "#FF0000");
         game_log(e);
     }
