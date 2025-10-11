@@ -80,6 +80,15 @@ function stop_mining_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // --- Helper: Handle death and respawn ---
+async function handle_death_and_respawn() {
+
+    await delay(30000);
+    await respawn();
+    await delay(5000);
+    await smart_move(TARGET_LOC);
+}
+
+// --- Helper: Handle death and respawn ---
 async function merchant_loop_controller() {
 
     try {
