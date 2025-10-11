@@ -107,8 +107,6 @@ async function merchant_loop_controller() {
                 const { has_rod } = check_fishing_rod_and_pickaxe();
                 if (has_rod) {
                     start_fishing_loop();
-                } else {
-                    game_log("❌ No fishing rod available, skipping fishing.");
                 }
                 await delay(500);
             }  else if (merchant_task === "Idle" && LOOP_STATES.fishing) {
@@ -120,8 +118,6 @@ async function merchant_loop_controller() {
                 const { has_pickaxe } = check_fishing_rod_and_pickaxe();
                 if (has_pickaxe) {
                     start_mining_loop();
-                } else {
-                    game_log("❌ No pickaxe available, skipping mining.");
                 }
                 await delay(500);
             } else if (merchant_task === "Idle" && LOOP_STATES.mining) {
