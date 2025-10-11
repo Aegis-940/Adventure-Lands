@@ -234,6 +234,7 @@ async function loot_and_potions_loop() {
                                             delivered_pots = true;
                                         } else {
                                             game_log(`❌ Could not reach ${name} for potion delivery (attempt ${delivery_attempts + 1})`);
+                                            party_status_cache = {}; // Clear cache to force fresh status next cycle
                                         }
                                     } catch (e) {
                                         game_log(`Potion delivery error for ${name}: ${e.message}`);
@@ -280,6 +281,7 @@ async function loot_and_potions_loop() {
                                             }
                                         } else {
                                             game_log(`❌ Could not reach ${name} for loot collection (attempt ${collect_attempts + 1})`);
+                                            party_status_cache = {}; // Clear cache to force fresh status next cycle
                                         }
                                     } catch (e) {
                                         game_log(`Loot collection error for ${name}: ${e.message}`);
