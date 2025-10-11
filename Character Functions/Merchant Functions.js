@@ -95,11 +95,6 @@ async function merchant_loop_controller() {
             // --- Try collecting loot and delivering potions ---
             if (!LOOP_STATES.loot_and_potions) {
                 start_loot_and_potions_loop();
-                await delay(500);
-                if (merchant_task === "Idle") {
-                    stop_loot_and_potions_loop();
-                    continue;
-                }
             }
 
             // // --- Try fishing if not already running ---
