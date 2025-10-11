@@ -18,6 +18,8 @@ const UPGRADE_PROFILE = {
   ololipop:    { scroll0_until: 3, scroll1_until: 6, scroll2_until: 9, primling_from: 5, max_level: 6 },
   glolipop:    { scroll0_until: 3, scroll1_until: 6, scroll2_until: 9, primling_from: 5, max_level: 6 },
   quiver:      { scroll0_until: 3, scroll1_until: 6, scroll2_until: 9, primling_from: 6, max_level: 6 },
+  crossbow:    { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 6, max_level: 4 },
+  basher:      { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 6, max_level: 4 },
   // Add more items as needed
 };
 
