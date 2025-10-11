@@ -154,7 +154,6 @@ add_cm_listener((name, data) => {
 
 async function loot_and_potions_loop() {
     LOOP_STATES.loot_and_potions = true;
-    game_log("🔄 Starting loot and potions loop...");
 
     try {
         while (LOOP_STATES.loot_and_potions) {
@@ -241,6 +240,10 @@ async function loot_and_potions_loop() {
                     // Clean up after delivery
                     delete party_status_cache[name];
                     await smart_move(HOME);
+                    await sell_and_bank();
+                    await delay(2000);
+                    await buy_pots();
+                    await delay(2000);
                     merchant_task = "Idle";
 
                 } catch (e) {
