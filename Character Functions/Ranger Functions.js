@@ -368,25 +368,30 @@ async function boss_loop() {
         }
         let boss_name = lowest_hp_boss || alive_bosses[0].name;
 
-        // Equip jacko before moving to boss
-        const jacko_slot = locate_item("jacko");
-        if (jacko_slot !== -1 && character.slots.orb?.name !== "jacko") {
-            try {
-                await equip(jacko_slot);
-                await delay(300);
-            } catch (e) {
-                game_log("⚠️ Error equipping jacko:", "#FF0000");
-                game_log(e);
-            }
-        }
+        // // Equip jacko before moving to boss
+        // const jacko_slot = locate_item("jacko");
+        // if (jacko_slot !== -1 && character.slots.orb?.name !== "jacko") {
+        //     try {
+        //         await equip(jacko_slot);
+        //         await delay(300);
+        //     } catch (e) {
+        //         game_log("⚠️ Error equipping jacko:", "#FF0000");
+        //         game_log(e);
+        //     }
+        // }
 
         // Equip firebow +7 in offhand before moving to boss
         const firebow7_slot = parent.character.items.findIndex(item =>
             item && item.name === "firebow" && item.level === 7
         );
         if (firebow7_slot !== -1 && (!character.slots.offhand || character.slots.offhand.name !== "firebow" || character.slots.offhand.level !== 7)) {
-            await equip(firebow7_slot, "offhand");
-            await delay(300);
+            try {
+                await equip(firebow7_slot, "offhand");
+                await delay(300);
+            } catch (e) {
+                game_log("⚠️ Error equipping firebow:", "#FF0000");
+                game_log(e);
+            }
         }
 
         // Only smart_move if boss spawn is known
@@ -510,12 +515,12 @@ async function boss_loop() {
             await delay(100);
         }
 
-        // Equip orbg once home
-        const orbg_slot = locate_item("orbg");
-        if (orbg_slot !== -1 && character.slots.orb?.name !== "orbg") {
-            await equip(orbg_slot);
-            await delay(300);
-        }
+        // // Equip orbg once home
+        // const orbg_slot = locate_item("orbg");
+        // if (orbg_slot !== -1 && character.slots.orb?.name !== "orbg") {
+        //     await equip(orbg_slot);
+        //     await delay(300);
+        // }
 
         // Equip hbow +7 in offhand before moving to boss
         const hbow7_slot = parent.character.items.findIndex(item =>
