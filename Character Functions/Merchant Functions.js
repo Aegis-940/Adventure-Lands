@@ -636,6 +636,8 @@ async function exchange_items() {
     };
     const items_to_exchange = ["seashell"]; // Example list, edit as needed
 
+    merchant_task = "Exchanging";
+
     try {
         // Move to exchange NPC
         await smart_move({ map: TARGET_MAP, x: TARGET_X, y: TARGET_Y });
