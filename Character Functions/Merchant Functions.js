@@ -158,7 +158,6 @@ async function loot_and_potions_loop() {
 
     try {
         while (LOOP_STATES.loot_and_potions) {
-            let acted = false;
             for (const name of PARTY) {
                 const info = party_status_cache[name];
                 if (!info) continue;
@@ -171,19 +170,25 @@ async function loot_and_potions_loop() {
                 }
 
                 try {
-                    // --- Deliver potions if needed ---
-                    let hpot_needed = Math.max(0, POTION_CAP - (info.hpot1 || 0));
-                    let mpot_needed = Math.max(0, POTION_CAP - (info.mpot1 || 0));
-                    if (hpot_needed > 0 || mpot_needed > 0) {
-                        merchant_task = "Delivering";
-                        let delivered = false;
-                        for (let attempt = 0; attempt < 3; attempt++) {
-                            try {
-                                await smart_move({ map: info.map, x: info.x, y: info.y });
-                                await delay(500);
+                    merchant_task = "Delivering";
+                    let delivered = false;
 
-                                const target = get_player(name);
-                                if (target && distance(character, target) <= DELIVERY_RADIUS) {
+                    // Begin moving toward the target, but do not approach closer than 100 units
+                    let moving = true;
+                    let movePromise = smart_move({ map: info.map, x: info.x, y: info.y, stop: true }).then(() => { moving = false; });
+
+                    while (LOOP_STATES.loot_and_potions && !delivered) {
+                        let target = get_player(name);
+                        if (target) {
+                            let dist = distance(character, target);
+
+                            // If within DELIVERY_RADIUS, deliver potions and request loot
+                            if (dist <= DELIVERY_RADIUS) {
+                                if (character.moving) stop();
+                                try {
+                                    // Give potions up to POTION_CAP
+                                    let hpot_needed = Math.max(0, POTION_CAP - (info.hpot1 || 0));
+                                    let mpot_needed = Math.max(0, POTION_CAP - (info.mpot1 || 0));
                                     let hpot_slot = locate_item("hpot1");
                                     let mpot_slot = locate_item("mpot1");
                                     if (hpot_needed > 0 && hpot_slot !== -1) send_item(target, hpot_slot, hpot_needed);
@@ -191,70 +196,61 @@ async function loot_and_potions_loop() {
                                     if ((hpot_needed > 0 && hpot_slot === -1) || (mpot_needed > 0 && mpot_slot === -1)) {
                                         game_log(`⚠️ Not enough potions in inventory to deliver to ${name}`);
                                     }
-                                    game_log(`🧪 Delivered potions to ${name} (attempt ${attempt + 1})`);
-                                    buy_pots();
-                                    delivered = true;
-                                    break;
-                                } else {
-                                    game_log(`❌ Could not reach ${name} for potion delivery (attempt ${attempt + 1})`);
+                                    game_log(`🧪 Delivered potions to ${name}`);
+                                } catch (e) {
+                                    game_log(`Error delivering potions to ${name}: ${e.message}`);
                                 }
-                            } catch (e) {
-                                game_log(`Error during potion delivery to ${name} (attempt ${attempt + 1}): ${e.message}`);
-                            }
-                            await delay(1000);
-                        }
-                        if (!delivered) {
-                            game_log(`⚠️ Failed to deliver potions to ${name} after 3 attempts.`);
-                        }
-                        acted = true;
-                        merchant_task = "Idle";
-                    }
 
-                    // --- Collect loot if inventory is not empty ---
-                    if ((info.inventory || 0) > 0) {
-                        merchant_task = "Collecting";
-                        let collected = false;
-                        for (let attempt = 0; attempt < 3; attempt++) {
-                            try {
-                                await smart_move({ map: info.map, x: info.x, y: info.y });
-                                await delay(500);
-
-                                const target = get_player(name);
-                                if (target && distance(character, target) <= DELIVERY_RADIUS) {
+                                try {
+                                    // Request loot from the target
                                     send_cm(name, { type: "send_loot" });
-                                    game_log(`📦 Requested loot from ${name} (attempt ${attempt + 1})`);
-                                    await delay(8000); // Wait for loot transfer
-                                    await sell_and_bank();
-                                    collected = true;
-                                    break;
-                                } else {
-                                    game_log(`❌ Could not reach ${name} for loot collection (attempt ${attempt + 1})`);
+                                    game_log(`📦 Requested loot from ${name}`);
+                                    await delay(2000);
+                                } catch (e) {
+                                    game_log(`Error requesting loot from ${name}: ${e.message}`);
                                 }
-                            } catch (e) {
-                                game_log(`Error during loot collection from ${name} (attempt ${attempt + 1}): ${e.message}`);
+
+                                delivered = true;
+                                break;
                             }
-                            await delay(1000);
+
+                            // If within 100 units, stop approaching
+                            if (dist <= 100 && character.moving) {
+                                halt_movement();
+                            }
                         }
-                        if (!collected) {
-                            game_log(`⚠️ Failed to collect loot from ${name} after 3 attempts.`);
-                        }
-                        acted = true;
-                        merchant_task = "Idle";
+
+                        await delay(2000);
                     }
+
+                    // Wait for movePromise to resolve if still moving
+                    try {
+                        await Promise.race([
+                            movePromise,
+                            (async () => {
+                                while (moving) {
+                                    await delay(100);
+                                    if (!LOOP_STATES.loot_and_potions) break;
+                                }
+                            })()
+                        ]);
+                    } catch (e) {
+                        // Ignore move errors
+                    }
+
+                    // Clean up after delivery
+                    delete party_status_cache[name];
+                    await smart_move(HOME);
+                    merchant_task = "Idle";
+
                 } catch (e) {
-                    game_log(`Error processing ${name}: ${e.message}`);
-                } finally {
-                    // Always clean up and reset state for this party member
+                    game_log(`Error processing delivery for ${name}: ${e.message}`);
                     merchant_task = "Idle";
                     delete party_status_cache[name];
                 }
             }
 
-            // If nothing was done, wait a bit before checking again
-            if (!acted) {
-                merchant_task = "Idle";
-                await delay(2000);
-            }
+            await delay(1000);
         }
         merchant_task = "Idle";
     } catch (e) {
