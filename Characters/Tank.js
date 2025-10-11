@@ -54,6 +54,9 @@ async function universal_loop_controller() {
 
 	try {
 
+        if (!LOOP_STATES.potion) start_potions_loop();
+        if (!LOOP_STATES.loot) start_loot_loop();
+
         // --- Boss detection ---
         let boss_alive = is_boss_alive();
 
@@ -65,6 +68,7 @@ async function universal_loop_controller() {
         // --- Handle panic state ---
         } else if (panicking) {
 
+            if (!LOOP_STATES.panic) start_panic_loop();
             if (LOOP_STATES.attack) stop_attack_loop();
             if (LOOP_STATES.skill) stop_skill_loop();
             if (LOOP_STATES.boss) stop_boss_loop();
@@ -85,6 +89,7 @@ async function universal_loop_controller() {
             // --- Ensure essential loops are always running ---
             if (!LOOP_STATES.potion) start_potions_loop();
             if (!LOOP_STATES.loot) start_loot_loop();
+            // if (!LOOP_STATES.heal) start_heal_loop();
             if (!LOOP_STATES.panic) start_panic_loop();
             if (!LOOP_STATES.cache) start_status_cache_loop();
 

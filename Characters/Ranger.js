@@ -15,20 +15,88 @@ create_map_movement_window([
   { id: "custom6", label: "Custom 6", onClick: () => null }
 ]);
 
-// toggle_combat();
-// toggle_free_move();
-// toggle_follow_priest_button();
 hide_skills_ui();
 
-potions_loop();
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// UNIVERSAL LOOP CONTROL
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
-loot_loop();
+// --- Helper: Handle death and respawn ---
+async function handle_death_and_respawn() {
+    stop_attack_loop();
+    stop_panic_loop();
+    stop_boss_loop();
+    panicking = false;
 
-start_attack_loop();
+    await delay(30000);
+    await respawn();
+    await delay(5000);
+    await smart_move(TARGET_LOC);
+}
 
-start_status_cache_loop();
+// --- Helper: Boss alive check ---
+function is_boss_alive() {
+    return BOSSES.some(name => {
+        const s = parent.S[name];
+        return (
+            s &&
+            s.live === true &&
+            Number.isFinite(s.hp) &&
+            Number.isFinite(s.max_hp) &&
+            (s.max_hp - s.hp) > 100000
+        );
+    });
+}
 
-// panic_button_loop();
+async function universal_loop_controller() {
+
+	try {
+
+        if (!LOOP_STATES.potion) start_potions_loop();
+        if (!LOOP_STATES.loot) start_loot_loop();
+
+        // --- Boss detection ---
+        let boss_alive = is_boss_alive();
+
+        // --- Handle death and respawn ---
+        if (character.rip) {
+            await handle_death_and_respawn();
+            return;
+
+        // --- Handle panic state ---
+        } else if (panicking) {
+
+            if (!LOOP_STATES.panic) start_panic_loop();
+            if (LOOP_STATES.attack) stop_attack_loop();
+            if (LOOP_STATES.boss) stop_boss_loop();
+            return;
+
+        // --- Handle boss logic ---
+        } else if (boss_alive) {
+
+            if (LOOP_STATES.attack) stop_attack_loop();
+            if (!LOOP_STATES.boss) start_boss_loop();
+            return;
+        
+        // --- Normal grind logic ---
+        } else {
+
+            // --- Ensure essential loops are always running ---
+            if (!LOOP_STATES.potion) start_potions_loop();
+            if (!LOOP_STATES.loot) start_loot_loop();
+            if (!LOOP_STATES.panic) start_panic_loop();
+            if (!LOOP_STATES.cache) start_status_cache_loop();
+
+            if (!boss_alive && !LOOP_STATES.boss) {
+                if (!LOOP_STATES.attack) start_attack_loop();
+            }
+        }
+
+    } catch (e) {
+        game_log("⚠️ Universal Loop error:", "#FF0000");
+        game_log(e);
+    }
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN LOOP
@@ -47,6 +115,7 @@ setInterval(() => {
 
 	// === Core utility loops ===
 	party_manager();
+	universal_loop_controller();
 	
 	if (!attack_mode || character.rip || is_moving(character)) return;
 

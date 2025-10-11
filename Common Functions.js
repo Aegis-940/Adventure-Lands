@@ -23,6 +23,7 @@ const MONSTER_TYPES               = ["goo", "bee", "crab", "snake", "osnake", "b
 const MONSTER_LOCS			   	  = {
 
 	                                spider: { map: "main", x: 907, y: -174 },
+									crabs: { map: "main", x: -1197, y: -79 },
 
 									}
 
@@ -225,7 +226,7 @@ async function send_to_merchant() {
 	for (let i = LOOT_THRESHOLD; i < character.items.length; i++) {
 		const item = character.items[i];
 		if (item && !item.l) { // Skip locked items
-			await delay(100);
+			await delay(200);
 			try {
 				send_item(merchant_name, i, item.q || 1);
 			} catch (e) {
