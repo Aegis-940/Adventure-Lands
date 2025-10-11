@@ -104,22 +104,28 @@ async function merchant_loop_controller() {
 
             // --- Try fishing if not already running ---
             if (!LOOP_STATES.fishing && !is_on_cooldown("fishing")) {
-                start_fishing_loop();
-                await delay(500);
-                if (merchant_task !== "Idle") {
-                    stop_fishing_loop();
-                    continue;
+                const { has_rod } = check_fishing_rod_and_pickaxe();
+                if (has_rod) {
+                    start_fishing_loop();
+                } else {
+                    game_log("❌ No fishing rod available, skipping fishing.");
                 }
+                await delay(500);
+            }  else if (merchant_task === "Idle" && LOOP_STATES.fishing) {
+                stop_fishing_loop();
             }
 
             // --- Try mining if not already running ---
             if (!LOOP_STATES.mining && !is_on_cooldown("mining")) {
-                start_mining_loop();
-                await delay(500);
-                if (merchant_task !== "Idle") {
-                    stop_mining_loop();
-                    continue;
+                const { has_pickaxe } = check_fishing_rod_and_pickaxe();
+                if (has_pickaxe) {
+                    start_mining_loop();
+                } else {
+                    game_log("❌ No pickaxe available, skipping mining.");
                 }
+                await delay(500);
+            } else if (merchant_task === "Idle" && LOOP_STATES.mining) {
+                    stop_mining_loop();
             }
 
             // --- If nothing to do, idle and check again soon ---
@@ -395,6 +401,23 @@ function buy_pots() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // FISHING LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
+
+function check_fishing_rod_and_pickaxe() {
+    let has_rod = false;
+    let has_pickaxe = false;
+
+    // Check if fishing rod is equipped or in inventory
+    has_rod =
+        (character.slots.mainhand && character.slots.mainhand.name === "rod") ||
+        character.items.some(item => item && item.name === "rod");
+
+    // Check if pickaxe is equipped or in inventory
+    has_pickaxe =
+        (character.slots.mainhand && character.slots.mainhand.name === "pickaxe") ||
+        character.items.some(item => item && item.name === "pickaxe");
+
+    return { has_rod, has_pickaxe };
+}
 
 async function fishing_loop() {
     const FISHING_SPOT = { map: "main", x: -1116, y: -285 };
