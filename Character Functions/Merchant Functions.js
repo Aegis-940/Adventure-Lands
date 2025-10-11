@@ -82,7 +82,7 @@ async function merchant_loop_controller() {
             if (character.rip) {
                 await handle_death_and_respawn();
                 continue;
-            }
+            }            
 
             // --- Wait for any active task to finish ---
             if (merchant_task !== "Idle") {
@@ -92,33 +92,34 @@ async function merchant_loop_controller() {
                 continue;
             }
 
-            // --- Try collecting loot and delivering potions ---
-            if (!LOOP_STATES.loot_and_potions) {
-                start_loot_and_potions_loop();
+            if (merchant_task === "Idle") {
+                if (Object.keys(party_status_cache).length > 0) {
+                    if (!LOOP_STATES.loot_and_potions) {
+                        start_loot_and_potions_loop();
+                        continue; // <-- Only start one loop per tick
+                    }
+                } else {
+                    stop_loot_and_potions_loop();
+                }
+
+                // if (!is_on_cooldown("fishing")) {
+                //     if (!LOOP_STATES.fishing) {
+                //         start_fishing_loop();
+                //         continue;
+                //     }
+                // } else {
+                //     stop_fishing_loop();
+                // }
+
+                // if (!is_on_cooldown("mining")) {
+                //     if (!LOOP_STATES.mining) {
+                //         start_mining_loop();
+                //         continue;
+                //     }
+                // } else {
+                //     stop_mining_loop();
+                // }
             }
-
-            // // --- Try fishing if not already running ---
-            // if (!LOOP_STATES.fishing && !is_on_cooldown("fishing")) {
-            //     const { has_rod } = check_fishing_rod_and_pickaxe();
-            //     if (has_rod) {
-            //         start_fishing_loop();
-            //     }
-            //     await delay(500);
-            // }  else if (merchant_task === "Idle" && LOOP_STATES.fishing) {
-            //     stop_fishing_loop();
-            // }
-
-            // // --- Try mining if not already running ---
-            // if (!LOOP_STATES.mining && !is_on_cooldown("mining")) {
-            //     const { has_pickaxe } = check_fishing_rod_and_pickaxe();
-            //     if (has_pickaxe) {
-            //         start_mining_loop();
-            //     }
-            //     await delay(500);
-            // } else if (merchant_task === "Idle" && LOOP_STATES.mining) {
-            //         stop_mining_loop();
-            // }
-
             // --- If nothing to do, idle and check again soon ---
             await delay(2000);
         }
