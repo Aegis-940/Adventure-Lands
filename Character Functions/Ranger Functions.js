@@ -384,9 +384,9 @@ async function boss_loop() {
         const firebow7_slot = parent.character.items.findIndex(item =>
             item && item.name === "firebow" && item.level === 7
         );
-        if (firebow7_slot !== -1 && (!character.slots.offhand || character.slots.offhand.name !== "firebow" || character.slots.offhand.level !== 7)) {
+        if (firebow7_slot !== -1 && (!character.slots.mainhand || character.slots.mainhand.name !== "firebow" || character.slots.mainhand.level !== 7)) {
             try {
-                await equip(firebow7_slot, "offhand");
+                await equip(firebow7_slot, "mainhand");
                 await delay(300);
             } catch (e) {
                 game_log("⚠️ Error equipping firebow:", "#FF0000");
