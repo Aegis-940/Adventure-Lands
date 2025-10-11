@@ -207,23 +207,19 @@ async function loot_and_potions_loop() {
                             game_log(`⚠️ Failed to deliver potions to ${name} after 3 attempts.`);
                         }
                         acted = true;
-                        delete party_status_cache[name];
                         merchant_task = "Idle";
-                        continue;
                     }
 
                     // --- Collect loot if inventory is not empty ---
                     if ((info.inventory || 0) > 0) {
                         merchant_task = "Collecting";
                         let collected = false;
-                        game_log("Loot collection pre-check 1");
                         for (let attempt = 0; attempt < 3; attempt++) {
                             try {
                                 await smart_move({ map: info.map, x: info.x, y: info.y });
                                 await delay(500);
 
                                 const target = get_player(name);
-                                game_log("Loot collection pre-check 2");
                                 if (target && distance(character, target) <= DELIVERY_RADIUS) {
                                     send_cm(name, { type: "send_loot" });
                                     game_log(`📦 Requested loot from ${name} (attempt ${attempt + 1})`);
@@ -243,9 +239,7 @@ async function loot_and_potions_loop() {
                             game_log(`⚠️ Failed to collect loot from ${name} after 3 attempts.`);
                         }
                         acted = true;
-                        delete party_status_cache[name];
                         merchant_task = "Idle";
-                        continue;
                     }
                 } catch (e) {
                     game_log(`Error processing ${name}: ${e.message}`);
