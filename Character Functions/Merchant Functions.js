@@ -424,6 +424,7 @@ async function fishing_loop() {
                 // 2. If no rod, return
                 if (!rodEquipped) {
                     game_log("❌ No fishing rod equipped or in inventory.");
+                    stop_fishing_loop();
                     merchant_task = "Idle";
                     return;
                 }
@@ -526,6 +527,7 @@ async function mining_loop() {
                 if (!pickaxeEquipped) {
                     game_log("❌ No pickaxe equipped or in inventory.");
                     merchant_task = "Idle";
+                    stop_mining_loop();
                     return;
                 }
 
