@@ -264,17 +264,24 @@ async function attack_loop() {
 
     try {
         while (LOOP_STATES.attack) {
+            game_log("[attack_loop] Top of main loop");
 
             // Find all monsters in range
             const inRange = [];
             let cursed = null;
             for (const mob of MONSTER_TYPES) {
+                // Debug: Log mob being checked
+                game_log(`[attack_loop] Checking mob: ${mob.mtype || mob.name || mob.id}`);
                 const dist = Math.hypot(mob.x - character.x, mob.y - character.y);
-                if (dist <= character.range-1) {
+                if (dist <= character.range - 1) {
                     inRange.push(mob);
+                    game_log(`[attack_loop] Mob in range: ${mob.mtype || mob.name || mob.id} (dist: ${dist})`);
                     // Find a cursed monster in range (prioritize lowest HP if multiple)
                     if (mob.s && mob.s.cursed) {
-                        if (!cursed || mob.hp < cursed.hp) cursed = mob;
+                        if (!cursed || mob.hp < cursed.hp) {
+                            cursed = mob;
+                            game_log(`[attack_loop] Found cursed mob: ${mob.mtype || mob.name || mob.id}`);
+                        }
                     }
                 }
             }
@@ -284,30 +291,51 @@ async function attack_loop() {
             const sorted_targets = inRange.slice(0, 5);
 
             try {
+                game_log(`[attack_loop] Sorted targets count: ${sorted_targets.length}`);
+
                 if (cursed) {
+                    game_log(`[attack_loop] Attacking cursed mob: ${cursed.mtype || cursed.name || cursed.id}`);
                     change_target(cursed);
-                    if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", cursed);
-                    if (!is_on_cooldown("supershot")) await use_skill("supershot", cursed);
+                    if (!is_on_cooldown("huntersmark")) {
+                        game_log("[attack_loop] Using huntersmark");
+                        await use_skill("huntersmark", cursed);
+                    }
+                    if (!is_on_cooldown("supershot")) {
+                        game_log("[attack_loop] Using supershot");
+                        await use_skill("supershot", cursed);
+                    }
                 }
 
                 if (sorted_targets.length >= 5 && character.mp >= 380) {
+                    game_log("[attack_loop] Using 5shot");
                     await use_skill("5shot", sorted_targets.map(m => m.id));
                     delayMs = ms_to_next_skill("attack");
                 } else if (sorted_targets.length >= 2 && character.mp >= 250) {
+                    game_log("[attack_loop] Using 3shot");
                     await use_skill("3shot", sorted_targets.map(m => m.id));
                     delayMs = ms_to_next_skill("attack");
                 } else if (sorted_targets.length >= 1) {
+                    game_log(`[attack_loop] Single attacking: ${sorted_targets[0].mtype || sorted_targets[0].name || sorted_targets[0].id}`);
                     await attack(sorted_targets[0]);
                     delayMs = ms_to_next_skill("attack");
+                } else {
+                    game_log("[attack_loop] No targets to attack");
                 }
             } catch (e) {
-                game_log("⚠️ Attack Loop error:", "#FF0000");
-                game_log(e);
+                game_log("⚠️ Attack Loop error (inner):", "#FF0000");
+                if (e && e.message) {
+                    game_log(e.message);
+                } else if (typeof e === "string") {
+                    game_log(e);
+                } else {
+                    game_log(JSON.stringify(e));
+                }
             }
+            game_log(`[attack_loop] Loop delay: ${delayMs}ms`);
             await delay(delayMs);
         }
     } catch (e) {
-        game_log("⚠️ Attack Loop error:", "#FF0000");
+        game_log("⚠️ Attack Loop error (outer):", "#FF0000");
         if (e && e.message) {
             game_log(e.message);
         } else if (typeof e === "string") {
