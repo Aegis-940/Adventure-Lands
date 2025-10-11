@@ -15,8 +15,8 @@ const UPGRADE_PROFILE = {
   basher:      { scroll0_until: 0, scroll1_until: 3, scroll2_until: 6, primling_from: 5, max_level: 3 },
   cape:        { scroll0_until: 0, scroll1_until: 5, scroll2_until: 6, primling_from: 5, max_level: 5 },
   coat:        { scroll0_until: 4, scroll1_until: 8, scroll2_until: 9, primling_from: 8, max_level: 8 },
-  ololipop:    { scroll0_until: 3, scroll1_until: 6, scroll2_until: 9, primling_from: 6, max_level: 6 },
-  glolipop:    { scroll0_until: 3, scroll1_until: 6, scroll2_until: 9, primling_from: 6, max_level: 6 },
+  ololipop:    { scroll0_until: 3, scroll1_until: 6, scroll2_until: 9, primling_from: 5, max_level: 6 },
+  glolipop:    { scroll0_until: 3, scroll1_until: 6, scroll2_until: 9, primling_from: 5, max_level: 6 },
   quiver:      { scroll0_until: 3, scroll1_until: 6, scroll2_until: 9, primling_from: 6, max_level: 6 },
   // Add more items as needed
 };
@@ -109,7 +109,6 @@ async function upgrade_item_withdraw() {
 
     // Withdraw upgrade items (one by one, up to free_slots)
     for (const itemName in UPGRADE_PROFILE) {
-        if (free_slots <= 0) break;
         const maxLevel = UPGRADE_PROFILE[itemName].max_level;
 
         // Find all items of this type and below maxLevel in the bank
@@ -123,16 +122,13 @@ async function upgrade_item_withdraw() {
                     (typeof item.level !== "number" || item.level < maxLevel)
                 ) {
                     // Withdraw as many as will fit, but only up to free_slots
-                    const to_withdraw = Math.min(item.q || 1, free_slots);
+                    const to_withdraw = Math.min(item.q || 1);
                     if (to_withdraw > 0) {
                         withdraw_item(itemName, item.level, to_withdraw);
-                        free_slots -= to_withdraw;
                         await delay(200);
                     }
-                    if (free_slots <= 0) break;
                 }
             }
-            if (free_slots <= 0) break;
         }
     }
 
