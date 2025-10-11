@@ -269,8 +269,10 @@ async function attack_loop() {
             // Find all monsters in range
             const inRange = [];
             let cursed = null;
-            for (const mob of MONSTER_TYPES) {
-                // Debug: Log mob being checked
+            for (const id in parent.entities) {
+                const mob = parent.entities[id];
+                if (mob.type !== "monster" || mob.dead) continue;
+                if (!MONSTER_TYPES.includes(mob.mtype)) continue;
                 game_log(`[attack_loop] Checking mob: ${mob.mtype || mob.name || mob.id}`);
                 const dist = Math.hypot(mob.x - character.x, mob.y - character.y);
                 if (dist <= character.range - 1) {
