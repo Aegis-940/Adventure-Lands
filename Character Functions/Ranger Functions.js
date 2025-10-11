@@ -468,13 +468,13 @@ async function boss_loop() {
                 }
             }
 
-            // Use scare if aggroed by any monster
-            const aggro = Object.values(parent.entities).some(e =>
-                e.type === "monster" && e.target === character.name && !e.dead
-            );
-            if (aggro && can_use("scare")) {
-                await use_skill("scare");
-            }
+            // // Use scare if aggroed by any monster
+            // const aggro = Object.values(parent.entities).some(e =>
+            //     e.type === "monster" && e.target === character.name && !e.dead
+            // );
+            // if (aggro && can_use("scare")) {
+            //     await use_skill("scare");
+            // }
 
             try {
                 change_target(boss);
@@ -589,16 +589,62 @@ async function general_boss_loop() {
                         move(target_x, target_y);
                         await delay(100);
                     }
-
-                    // 3. Attack logic
+                    
                     try {
                         change_target(boss);
-                        if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
-                        if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
-                        if (can_attack(boss)) await attack(boss);
-                        delayMs = ms_to_next_skill("attack");
+
+                        // 1. Check for other monsters within 15 units of the boss
+                        const nearbyMobs = Object.values(parent.entities).filter(e =>
+                            e.type === "monster" &&
+                            !e.dead &&
+                            e.id !== boss.id &&
+                            parent.distance(boss, e) <= 15
+                        );
+
+                        if (nearbyMobs.length > 0) {
+                            // Equip hbow +7 in mainhand if not already equipped
+                            const hbow7_slot = parent.character.items.findIndex(item =>
+                                item && item.name === "hbow" && item.level === 7
+                            );
+                            if (
+                                hbow7_slot !== -1 &&
+                                (!character.slots.mainhand || character.slots.mainhand.name !== "hbow" || character.slots.mainhand.level !== 7)
+                            ) {
+                                await equip(hbow7_slot, "mainhand");
+                                await delay(300);
+                            }
+                            // Use 3-shot on boss and up to 2 nearby mobs
+                            const targets = [boss, ...nearbyMobs].slice(0, 3).map(m => m.id);
+                            if (can_use("3shot")) {
+                                await use_skill("3shot", targets);
+                                delayMs = ms_to_next_skill('attack');
+                            }
+                        } else {
+                            // Equip firebow +7 in mainhand if not already equipped
+                            const firebow7_slot = parent.character.items.findIndex(item =>
+                                item && item.name === "firebow" && item.level === 7
+                            );
+                            if (
+                                firebow7_slot !== -1 &&
+                                (!character.slots.mainhand || character.slots.mainhand.name !== "firebow" || character.slots.mainhand.level !== 7)
+                            ) {
+                                await equip(firebow7_slot, "mainhand");
+                                await delay(300);
+                            }
+                            // Just attack the boss
+                            if (
+                                boss.target &&
+                                boss.target !== character.name &&
+                                boss.target !== "Myras" &&
+                                boss.target !== "Ulric" &&
+                                boss.target !== "Riva"
+                            ) {
+                                await attack(boss);
+                                delayMs = ms_to_next_skill('attack');
+                            }
+                        }
                     } catch (e) {
-                        game_log("Error attacking boss: " + e.message);
+                        console.error(e);
                     }
 
                     // Refresh boss reference
