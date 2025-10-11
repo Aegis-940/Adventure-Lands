@@ -327,8 +327,6 @@ async function attack_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const BOSSES = ["mrpumpkin", "mrgreen"];
-const GRIND_WEAPON = "hbow";
-const BOSS_WEAPON = "firebow";
 
 async function boss_loop() {
 
@@ -380,6 +378,15 @@ async function boss_loop() {
                 game_log("⚠️ Error equipping jacko:", "#FF0000");
                 game_log(e);
             }
+        }
+
+        // Equip firebow +7 in offhand before moving to boss
+        const firebow7_slot = parent.character.items.findIndex(item =>
+            item && item.name === "firebow" && item.level === 7
+        );
+        if (firebow7_slot !== -1 && (!character.slots.offhand || character.slots.offhand.name !== "firebow" || character.slots.offhand.level !== 7)) {
+            await equip(firebow7_slot, "offhand");
+            await delay(300);
         }
 
         // Only smart_move if boss spawn is known
@@ -507,6 +514,15 @@ async function boss_loop() {
         const orbg_slot = locate_item("orbg");
         if (orbg_slot !== -1 && character.slots.orb?.name !== "orbg") {
             await equip(orbg_slot);
+            await delay(300);
+        }
+
+        // Equip hbow +7 in offhand before moving to boss
+        const hbow7_slot = parent.character.items.findIndex(item =>
+            item && item.name === "hbow" && item.level === 7
+        );
+        if (hbow7_slot !== -1 && (!character.slots.offhand || character.slots.offhand.name !== "hbow" || character.slots.offhand.level !== 7)) {
+            await equip(hbow7_slot, "offhand");
             await delay(300);
         }
 
