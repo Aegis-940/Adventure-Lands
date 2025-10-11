@@ -54,6 +54,9 @@ async function universal_loop_controller() {
 
 	try {
 
+        if (!LOOP_STATES.potion) start_potions_loop();
+        if (!LOOP_STATES.loot) start_loot_loop();
+
         // --- Boss detection ---
         let boss_alive = is_boss_alive();
 
@@ -61,9 +64,6 @@ async function universal_loop_controller() {
         if (character.rip) {
             await handle_death_and_respawn();
             return;
-
-        if (!LOOP_STATES.potion) start_potions_loop();
-        if (!LOOP_STATES.loot) start_loot_loop();
 
         // --- Handle panic state ---
         } else if (panicking) {
