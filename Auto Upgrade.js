@@ -78,7 +78,8 @@ async function withdraw_upgrade_scrolls() {
             withdraw_item(item);
             await delay(200); // Small delay for UI/bank sync
         } catch (e) {
-            game_log(`Error withdrawing ${item}: ${e.message}`);
+        game_log("⚠️ Withdraw Scroll error:", "#FF0000");
+        game_log(e);
         }
     }
 
@@ -87,12 +88,17 @@ async function withdraw_upgrade_scrolls() {
 
 async function withdraw_offering() {
 
-    await withdraw_item("offeringp");
-    await delay(50);
+    try {
+        await withdraw_item("offeringp");
+        await delay(50);
+    } catch (e) {
+        game_log("⚠️ Withdraw Offering error:", "#FF0000");
+        game_log(e);
+    }   
 
 }
 
-async function withdraw_items() {
+async function withdraw_upgradeable_items() {
     // 1. If not at BANK_LOCATION, smart move to BANK_LOCATION
     if (character.map !== BANK_LOCATION.map || character.x !== BANK_LOCATION.x || character.y !== BANK_LOCATION.y) {
         await smart_move(BANK_LOCATION);
@@ -408,7 +414,7 @@ async function auto_upgrade() {
 
     await withdraw_upgrade_scrolls();
     await withdraw_offering();
-    await withdraw_items();
+    await withdraw_upgradeable_items();
 
     await smart_move(HOME);
 
