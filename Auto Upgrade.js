@@ -207,45 +207,50 @@ async function upgrade_item_withdraw() {
     }
 
     // --- Check if any withdrawn items need offerings, and withdraw offeringp if needed ---
-    let needs_offering = false;
+    let offering_needed = 0;
     for (const item of character.items) {
         if (!item) continue;
         // Check upgrade items
         const upg = UPGRADE_PROFILE[item.name];
         if (upg && upg.primling_from !== undefined && item.level >= upg.primling_from) {
-            needs_offering = true;
-            break;
+            offering_needed++;
+            continue;
         }
         // Check combine items
         const comb = COMBINE_PROFILE[item.name];
         if (comb && comb.primling_from !== undefined && item.level >= comb.primling_from) {
-            needs_offering = true;
-            break;
+            offering_needed++;
+            continue;
         }
     }
 
-    if (needs_offering) {
-        // Try to withdraw offeringp from the bank
-        let offering_found = false;
+    if (offering_needed > 0) {
+        let offering_withdrawn = 0;
         for (const pack in bank_data) {
             if (!Array.isArray(bank_data[pack])) continue;
             for (let slot = 0; slot < bank_data[pack].length; slot++) {
                 const item = bank_data[pack][slot];
                 if (item && item.name === "offeringp") {
-                    free_slots = count_empty_inventory();
+                    let free_slots = character.items.filter(it => !it).length;
                     if (free_slots <= 3) {
                         game_log("❌ Not enough inventory space to withdraw offeringp.");
                         break;
                     }
-                    await withdraw_item("offeringp", item.level || 0, 1);
-                    game_log("✅ Withdrew offeringp for upgrades/combines.");
-                    offering_found = true;
-                    break;
+                    // Withdraw as many as needed, but not more than available or free slots
+                    let to_withdraw = Math.min(item.q || 1, offering_needed - offering_withdrawn, free_slots - 3);
+                    if (to_withdraw > 0) {
+                        await withdraw_item("offeringp", item.level || 0, to_withdraw);
+                        offering_withdrawn += to_withdraw;
+                        await delay(50);
+                    }
+                    if (offering_withdrawn >= offering_needed) break;
                 }
             }
-            if (offering_found) break;
+            if (offering_withdrawn >= offering_needed) break;
         }
-        if (!offering_found) {
+        if (offering_withdrawn > 0) {
+            game_log(`✅ Withdrew ${offering_withdrawn} offeringp for upgrades/combines.`);
+        } else {
             game_log("⚠️ No offeringp found in bank for upgrades/combines that require it.");
         }
     }
