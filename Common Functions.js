@@ -18,11 +18,12 @@ const PARTY_MEMBERS               = ["Riva", "Myras", "Riff"];
 
 const MONSTER_TYPES               = ["goo", "bee", "crab", "snake", "osnake", "bat", "goldenbat", "croc", "arcticbee", "spider", "cgoo", "stoneworm", "jr", "minimush", 
                                      "rat", "bbpompom", "tortoise", "crabx", "porcupine", "armadillo", "squig", "ghost", "phoenix", "iceroamer", "skeletor", "snowman",
-									"prat", "booboo", "bigbird", "poisio", "boar", "mechagnome", "mrpumpkin", "mrgreen", "greenjr"];
+									"prat", "booboo", "bigbird", "poisio", "boar", "mechagnome", "mrpumpkin", "mrgreen", "greenjr", "fireroamer"];
 
 const MONSTER_LOCS = {
-    spider: { map: "main", x: 907, y: -174, orbit: true },
-    crab:  { map: "main", x: -1197, y: -79, orbit: false }
+    spider: 	  { map: "main", x: 907, y: -174, orbit: true },
+    crab:   	  { map: "main", x: -1197, y: -79, orbit: false },
+    fireroamer:   { map: "desert", x: 112, y: -441, orbit: false },
 };
 
 const MERCHANT_NAME               = "Riff";
