@@ -977,10 +977,6 @@ async function aggro_mobs() {
             await smart_move({ x: 1275, y: 247 });
             await use_skill("agitate");
             await smart_move(TARGET_LOC);
-        } else if (!bigbird && (now - last_bigbird_seen <= 10000)) {
-            game_log("Waiting 10s after last bigbird before aggroing mobs.", "#FFAA00");
-        } else if (bigbird) {
-            game_log("Bigbird nearby, not aggroing mobs.", "#FFAA00");
         }
     }
 }
