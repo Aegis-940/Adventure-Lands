@@ -308,9 +308,9 @@ async function attack_loop() {
                 if (smart.moving) {
                     return; // Skip attacking while smart moving
                 }
-                if (sorted_targets.length >= 5 && character.mp >= 380) {
+                if (sorted_targets.length >= 5 && character.mp >= 320 + 88) {
                     await use_skill("5shot", sorted_targets.map(m => m.id));
-                } else if (sorted_targets.length >= 2 && character.mp >= 250) {
+                } else if (sorted_targets.length >= 2 && character.mp >= 200 + 88) {
                     await use_skill("3shot", sorted_targets.map(m => m.id));
                 } else if (sorted_targets.length >= 1) {
                     await attack(sorted_targets[0]);
