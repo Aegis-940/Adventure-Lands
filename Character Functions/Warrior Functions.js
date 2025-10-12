@@ -415,7 +415,7 @@ async function boss_loop() {
                     !["Myras", "Ulric", "Riva", character.name].includes(boss.target)
                 ) {
                     await attack(boss);
-                    delayMs = ms_to_next_skill('attack');
+                    delayMs = ms_to_next_skill('attack') + character.ping + 20;
                 }
             } catch (e) {
                 game_log("⚠️ Boss engagement error:", "#FF0000");
@@ -974,50 +974,3 @@ async function aggro_mobs() {
     }
 }
 
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// 3) PERSISTENT STATE HANDLER
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-// function save_persistent_state() {
-//     try {
-//         set("warrior_attack_enabled", attack_enabled);
-//         set("warrior_move_enabled",  move_enabled);
-//         set("warrior_skill_enabled", skills_enabled);
-//     } catch (e) {
-//         console.error("Error saving persistent state:", e);
-//     }
-// }
-
-// function init_persistent_state() {
-//     try {
-//         const atk = get("warrior_attack_enabled");
-//         if (atk !== undefined) attack_enabled = atk;
-
-//         const mv = get("warrior_move_enabled");
-//         if (mv !== undefined) move_enabled = mv;
-
-//         const sk = get("warrior_skill_enabled");
-//         if (sk !== undefined) skills_enabled = sk;
-
-//         // Reflect loaded flags in the loop state
-//         if (attack_enabled) start_attack_loop();
-//         else               stop_attack_loop();
-
-//         if (move_enabled)   start_move_loop();
-//         else               stop_move_loop();
-
-//         if (skills_enabled) start_skill_loop();
-//         else               stop_skill_loop();
-//     } catch (e) {
-//         console.error("Error loading persistent state:", e);
-//     }
-// }
-
-// // Save state on script unload
-// window.addEventListener("beforeunload", save_persistent_state);
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// 4) PERSISTENT STATE
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-// init_persistent_state();
