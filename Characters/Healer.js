@@ -89,8 +89,8 @@ async function universal_loop_controller() {
             return;
 
         // --- Stop boss loop if no boss is alive ---
-        } else if (!boss_alive) {
-            if (LOOP_STATES.boss) stop_boss_loop();
+        } else if (!boss_alive && LOOP_STATES.boss) {
+            stop_boss_loop();
         
         // --- Normal grind logic ---
         } else  {
