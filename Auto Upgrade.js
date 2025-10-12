@@ -407,7 +407,7 @@ async function auto_upgrade() {
     await smart_move(BANK_LOCATION);
 
     await withdraw_upgrade_scrolls();
-    await withdraw_offering(100);
+    await withdraw_offering();
     await withdraw_items();
 
     await smart_move(HOME);
