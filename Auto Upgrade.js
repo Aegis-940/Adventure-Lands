@@ -206,6 +206,50 @@ async function upgrade_item_withdraw() {
         if (count_empty_inventory() <= 3) break;
     }
 
+    // --- Check if any withdrawn items need offerings, and withdraw offeringp if needed ---
+    let needs_offering = false;
+    for (const item of character.items) {
+        if (!item) continue;
+        // Check upgrade items
+        const upg = UPGRADE_PROFILE[item.name];
+        if (upg && upg.primling_from !== undefined && item.level >= upg.primling_from) {
+            needs_offering = true;
+            break;
+        }
+        // Check combine items
+        const comb = COMBINE_PROFILE[item.name];
+        if (comb && comb.primling_from !== undefined && item.level >= comb.primling_from) {
+            needs_offering = true;
+            break;
+        }
+    }
+
+    if (needs_offering) {
+        // Try to withdraw offeringp from the bank
+        let offering_found = false;
+        for (const pack in bank_data) {
+            if (!Array.isArray(bank_data[pack])) continue;
+            for (let slot = 0; slot < bank_data[pack].length; slot++) {
+                const item = bank_data[pack][slot];
+                if (item && item.name === "offeringp") {
+                    free_slots = count_empty_inventory();
+                    if (free_slots <= 3) {
+                        game_log("❌ Not enough inventory space to withdraw offeringp.");
+                        break;
+                    }
+                    await withdraw_item("offeringp", item.level || 0, 1);
+                    game_log("✅ Withdrew offeringp for upgrades/combines.");
+                    offering_found = true;
+                    break;
+                }
+            }
+            if (offering_found) break;
+        }
+        if (!offering_found) {
+            game_log("⚠️ No offeringp found in bank for upgrades/combines that require it.");
+        }
+    }
+
     game_log("✅ Finished withdrawing upgrade and compound items, leaving at least 3 inventory slots free.");
 }
 
