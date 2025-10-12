@@ -85,7 +85,7 @@ async function withdraw_upgrade_scrolls() {
     game_log("✅ Scroll withdrawal check complete.");
 }
 
-async function withdraw_offering(amount = 1) {
+async function withdraw_offering() {
 
     await withdraw_item("offeringp");
     await delay(50);
