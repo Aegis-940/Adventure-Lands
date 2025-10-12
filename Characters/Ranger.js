@@ -92,7 +92,7 @@ async function universal_loop_controller() {
         
         // --- Normal grind logic ---
         } else  {
-            if (!LOOP_STATES.general_boss) start_general_boss_loop();
+            // if (!LOOP_STATES.general_boss) start_general_boss_loop();
             if (!LOOP_STATES.attack) start_attack_loop();
             // if (!LOOP_STATES.skill) start_skill_loop();
 
