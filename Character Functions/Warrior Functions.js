@@ -944,32 +944,43 @@ async function panic_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 let last_aggro_time = 0;
+let last_bigbird_seen = 0;
 
 async function aggro_mobs() {
     if (!LOOP_STATES.boss && !smart.moving && LOOP_STATES.orbit) {
         const now = Date.now();
-        if (now - last_aggro_time < 30000) {
-            game_log("Aggro mobs is on cooldown.", "#FFAA00");
-            return;
-        }
 
-        // Check if "bigbird" is within 50 units
+        // Check for bigbird within 50 units
         const bigbird = Object.values(parent.entities).find(e =>
             e.type === "monster" &&
             e.mtype === "bigbird" &&
             parent.distance(character, e) <= 50
         );
 
+        // Track last time bigbird was seen
+        if (bigbird) {
+            last_bigbird_seen = now;
+        }
+
         // Check if Myras has more than 75% mp
         const myras_info = get("Myras_newparty_info");
         const myras_has_mp = myras_info && myras_info.mp > 0.8 * myras_info.max_mp;
 
-        // If no bigbird nearby and Myras has enough mp, aggro mobs
-        if (!bigbird && myras_has_mp) {
+        // Only aggro if no bigbird nearby, Myras has enough mp, and at least 10s since last bigbird seen
+        if (
+            !bigbird &&
+            myras_has_mp &&
+            (now - last_bigbird_seen > 10000) &&
+            (now - last_aggro_time > 30000)
+        ) {
             last_aggro_time = now;
             await smart_move({ x: 1275, y: 247 });
             await use_skill("agitate");
             await smart_move(TARGET_LOC);
+        } else if (!bigbird && (now - last_bigbird_seen <= 10000)) {
+            game_log("Waiting 10s after last bigbird before aggroing mobs.", "#FFAA00");
+        } else if (bigbird) {
+            game_log("Bigbird nearby, not aggroing mobs.", "#FFAA00");
         }
     }
 }
