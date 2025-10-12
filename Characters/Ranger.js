@@ -52,8 +52,12 @@ async function universal_loop_controller() {
 
 	try {
 
+        // --- Ensure essential loops are always running ---
         if (!LOOP_STATES.potion) start_potions_loop();
         if (!LOOP_STATES.loot) start_loot_loop();
+        // if (!LOOP_STATES.heal) start_heal_loop();
+        if (!LOOP_STATES.panic) start_panic_loop();
+        if (!LOOP_STATES.cache) start_status_cache_loop();
 
         // --- Boss detection ---
         let boss_alive = is_boss_alive();
@@ -68,28 +72,34 @@ async function universal_loop_controller() {
 
             if (!LOOP_STATES.panic) start_panic_loop();
             if (LOOP_STATES.attack) stop_attack_loop();
+            // if (LOOP_STATES.skill) stop_skill_loop();
             if (LOOP_STATES.boss) stop_boss_loop();
+            if (LOOP_STATES.general_boss) stop_general_boss_loop();
             return;
 
         // --- Handle boss logic ---
         } else if (boss_alive) {
 
             if (LOOP_STATES.attack) stop_attack_loop();
+            // if (LOOP_STATES.skill) stop_skill_loop();
+            // if (LOOP_STATES.orbit) stop_orbit_loop();
             if (!LOOP_STATES.boss) start_boss_loop();
             return;
+
+        // --- Stop boss loop if no boss is alive ---
+        } else if (!boss_alive) {
+            if (LOOP_STATES.boss) stop_boss_loop();
         
         // --- Normal grind logic ---
-        } else {
+        } else  {
+            if (!LOOP_STATES.general_boss) start_general_boss_loop();
+            if (!LOOP_STATES.attack) start_attack_loop();
+            // if (!LOOP_STATES.skill) start_skill_loop();
 
-            // --- Ensure essential loops are always running ---
-            if (!LOOP_STATES.potion) start_potions_loop();
-            if (!LOOP_STATES.loot) start_loot_loop();
-            if (!LOOP_STATES.panic) start_panic_loop();
-            if (!LOOP_STATES.cache) start_status_cache_loop();
-
-            if (!boss_alive && !LOOP_STATES.boss) {
-                if (!LOOP_STATES.attack) start_attack_loop();
-            }
+            // const at_target = character.x === TARGET_LOC.x && character.y === TARGET_LOC.y;
+            // const near_target = parent.distance(character, TARGET_LOC) <= 50;
+            // if (near_target && !LOOP_STATES.orbit && !smart.moving) smart_move(TARGET_LOC);
+            // if (!LOOP_STATES.orbit && at_target) start_orbit_loop();
         }
 
     } catch (e) {
@@ -97,6 +107,7 @@ async function universal_loop_controller() {
         game_log(e);
     }
 }
+
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN LOOP

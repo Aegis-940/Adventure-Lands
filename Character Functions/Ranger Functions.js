@@ -141,6 +141,19 @@ function stop_status_cache_loop() {
     game_log("⏹ Status cache loop stopped");
 }
 
+function start_general_boss_loop() {
+    if (LOOP_STATES.general_boss) return;
+    LOOP_STATES.general_boss = true;
+    general_boss_loop();
+    game_log("▶️ General boss loop started");
+}
+
+function stop_general_boss_loop() {
+    if (!LOOP_STATES.general_boss) return;
+    LOOP_STATES.general_boss = false;
+    game_log("⏹ Status general_boss loop stopped");
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATUS CACHE LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -505,14 +518,14 @@ async function general_boss_loop() {
 
     try {
         while (LOOP_STATES.general_boss) {
-            // 1. Scan for bosses in GENERAL_BOSSES within 500 distance
+            // 1. Scan for bosses in GENERAL_BOSSES within 300 distance
             let boss = null;
             for (const bossName of GENERAL_BOSSES) {
                 boss = Object.values(parent.entities).find(e =>
                     e.type === "monster" &&
                     e.mtype === bossName &&
                     !e.dead &&
-                    parent.distance(character, e) <= 500
+                    parent.distance(character, e) <= 300
                 );
                 if (boss) break;
             }
@@ -545,9 +558,9 @@ async function general_boss_loop() {
                     try {
                         change_target(boss);
                         if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
-                        if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
-                        if (can_attack(boss)) await attack(boss);
-                        delayMs = ms_to_next_skill("attack");
+                        else if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
+                        else if (can_attack(boss)) await attack(boss);
+                        delayMs = ms_to_next_skill("attack") + character.ping + 20;
                     } catch (e) {
                         game_log("Error attacking boss: " + e.message);
                     }
