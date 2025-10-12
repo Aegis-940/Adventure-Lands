@@ -974,8 +974,9 @@ async function aggro_mobs() {
             (now - last_aggro_time > 30000)
         ) {
             last_aggro_time = now;
-            await smart_move({ x: 1232, y: 0 });
+            await smart_move({ x: 1280, y: 69 });
             await use_skill("agitate");
+            await delay(2000);
             await smart_move(TARGET_LOC);
         }
     }
