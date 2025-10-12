@@ -489,7 +489,7 @@ async function boss_loop() {
                 game_log(e);
             }
 
-            await delay((delayMs / 2) + 10);
+            await delay(delayMs);
         }
 
         // 4. Move back to target location
