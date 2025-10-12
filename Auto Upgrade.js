@@ -94,15 +94,9 @@ async function withdraw_offering(amount = 1) {
         for (let slot = 0; slot < bank_data[pack].length; slot++) {
             const item = bank_data[pack][slot];
             if (item && item.name === "offeringp") {
-                // Check free inventory slots
-                const free_slots = character.items.filter(it => !it).length;
-                if (free_slots <= 3) {
-                    game_log("❌ Not enough inventory space to withdraw offeringp.");
-                    return withdrawn;
-                }
-                const to_withdraw = Math.min(item.q || 1, amount - withdrawn, free_slots - 3);
+                const to_withdraw = Math.min(item.q || 1, amount - withdrawn);
                 if (to_withdraw > 0) {
-                    await withdraw_item("offeringp", item.level || 0, to_withdraw);
+                    await withdraw_item("offeringp", to_withdraw);
                     withdrawn += to_withdraw;
                     await delay(50);
                 }
