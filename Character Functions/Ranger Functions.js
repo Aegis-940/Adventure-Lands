@@ -438,15 +438,8 @@ async function boss_loop() {
                     boss.target &&
                     !["Myras", "Ulric", "Riva", character.name].includes(boss.target)
                 ) {
-                    if (!is_on_cooldown("huntersmark")) {
-                        await use_skill("huntersmark", boss);
-                    }
-                    else if (!is_on_cooldown("supershot")) {
-                        await use_skill("supershot", boss);
-                    } else {
-                        await attack(boss);
-                    }
-                    delayMs = ms_to_next_skill('attack')/2 + 20;
+                    await attack(boss);
+                    delayMs = ms_to_next_skill('attack') + character.ping + 20;
                 }
             } catch (e) {
                 game_log("⚠️ Boss engagement error:", "#FF0000");
