@@ -86,31 +86,10 @@ async function withdraw_upgrade_scrolls() {
 }
 
 async function withdraw_offering(amount = 1) {
-    let withdrawn = 0;
-    let bank_data = character.bank || load_bank_from_local_storage();
 
-    for (const pack in bank_data) {
-        if (!Array.isArray(bank_data[pack])) continue;
-        for (let slot = 0; slot < bank_data[pack].length; slot++) {
-            const item = bank_data[pack][slot];
-            if (item && item.name === "offeringp") {
-                const to_withdraw = Math.min(item.q || 1, amount - withdrawn);
-                if (to_withdraw > 0) {
-                    await withdraw_item("offeringp", to_withdraw);
-                    withdrawn += to_withdraw;
-                    await delay(50);
-                }
-                if (withdrawn >= amount) return withdrawn;
-            }
-        }
-        if (withdrawn >= amount) break;
-    }
-    if (withdrawn > 0) {
-        game_log(`✅ Withdrew ${withdrawn} offeringp.`);
-    } else {
-        game_log("⚠️ No offeringp found in bank.");
-    }
-    return withdrawn;
+    await withdraw_item("offeringp");
+    await delay(50);
+
 }
 
 async function withdraw_items() {
