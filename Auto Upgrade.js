@@ -93,16 +93,16 @@ async function withdraw_offering(amount = 1) {
         if (!Array.isArray(bank_data[pack])) continue;
         for (let slot = 0; slot < bank_data[pack].length; slot++) {
             const item = bank_data[pack][slot];
-            if (item && item.name === "offeringgp") {
+            if (item && item.name === "offeringp") {
                 // Check free inventory slots
                 const free_slots = character.items.filter(it => !it).length;
                 if (free_slots <= 3) {
-                    game_log("❌ Not enough inventory space to withdraw offeringgp.");
+                    game_log("❌ Not enough inventory space to withdraw offeringp.");
                     return withdrawn;
                 }
                 const to_withdraw = Math.min(item.q || 1, amount - withdrawn, free_slots - 3);
                 if (to_withdraw > 0) {
-                    await withdraw_item("offeringgp", item.level || 0, to_withdraw);
+                    await withdraw_item("offeringp", item.level || 0, to_withdraw);
                     withdrawn += to_withdraw;
                     await delay(50);
                 }
@@ -112,9 +112,9 @@ async function withdraw_offering(amount = 1) {
         if (withdrawn >= amount) break;
     }
     if (withdrawn > 0) {
-        game_log(`✅ Withdrew ${withdrawn} offeringgp.`);
+        game_log(`✅ Withdrew ${withdrawn} offeringp.`);
     } else {
-        game_log("⚠️ No offeringgp found in bank.");
+        game_log("⚠️ No offeringp found in bank.");
     }
     return withdrawn;
 }
