@@ -57,7 +57,7 @@ async function simple_grace_upgrade() {
 // AUTO UPGRADE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function upgrade_scroll_withdraw() {
+async function withdraw_upgrade_scrolls() {
 
     await parent.$('#maincode')[0].contentWindow.render_bank_items();
     await delay(1000);
@@ -85,7 +85,41 @@ async function upgrade_scroll_withdraw() {
     game_log("✅ Scroll withdrawal check complete.");
 }
 
-async function upgrade_item_withdraw() {
+async function withdraw_offering(amount = 1) {
+    let withdrawn = 0;
+    let bank_data = character.bank || load_bank_from_local_storage();
+
+    for (const pack in bank_data) {
+        if (!Array.isArray(bank_data[pack])) continue;
+        for (let slot = 0; slot < bank_data[pack].length; slot++) {
+            const item = bank_data[pack][slot];
+            if (item && item.name === "offeringgp") {
+                // Check free inventory slots
+                const free_slots = character.items.filter(it => !it).length;
+                if (free_slots <= 3) {
+                    game_log("❌ Not enough inventory space to withdraw offeringgp.");
+                    return withdrawn;
+                }
+                const to_withdraw = Math.min(item.q || 1, amount - withdrawn, free_slots - 3);
+                if (to_withdraw > 0) {
+                    await withdraw_item("offeringgp", item.level || 0, to_withdraw);
+                    withdrawn += to_withdraw;
+                    await delay(50);
+                }
+                if (withdrawn >= amount) return withdrawn;
+            }
+        }
+        if (withdrawn >= amount) break;
+    }
+    if (withdrawn > 0) {
+        game_log(`✅ Withdrew ${withdrawn} offeringgp.`);
+    } else {
+        game_log("⚠️ No offeringgp found in bank.");
+    }
+    return withdrawn;
+}
+
+async function withdraw_items() {
     // 1. If not at BANK_LOCATION, smart move to BANK_LOCATION
     if (character.map !== BANK_LOCATION.map || character.x !== BANK_LOCATION.x || character.y !== BANK_LOCATION.y) {
         await smart_move(BANK_LOCATION);
@@ -204,55 +238,6 @@ async function upgrade_item_withdraw() {
             if (count_empty_inventory() <= 3) break;
         }
         if (count_empty_inventory() <= 3) break;
-    }
-
-    // --- Check if any withdrawn items need offerings, and withdraw offeringp if needed ---
-    let offering_needed = 0;
-    for (const item of character.items) {
-        if (!item) continue;
-        // Check upgrade items
-        const upg = UPGRADE_PROFILE[item.name];
-        if (upg && upg.primling_from !== undefined && item.level >= upg.primling_from) {
-            offering_needed++;
-            continue;
-        }
-        // Check combine items
-        const comb = COMBINE_PROFILE[item.name];
-        if (comb && comb.primling_from !== undefined && item.level >= comb.primling_from) {
-            offering_needed++;
-            continue;
-        }
-    }
-
-    if (offering_needed > 0) {
-        let offering_withdrawn = 0;
-        for (const pack in bank_data) {
-            if (!Array.isArray(bank_data[pack])) continue;
-            for (let slot = 0; slot < bank_data[pack].length; slot++) {
-                const item = bank_data[pack][slot];
-                if (item && item.name === "offeringp") {
-                    let free_slots = character.items.filter(it => !it).length;
-                    if (free_slots <= 3) {
-                        game_log("❌ Not enough inventory space to withdraw offeringp.");
-                        break;
-                    }
-                    // Withdraw as many as needed, but not more than available or free slots
-                    let to_withdraw = Math.min(item.q || 1, offering_needed - offering_withdrawn, free_slots - 3);
-                    if (to_withdraw > 0) {
-                        await withdraw_item("offeringp", item.level || 0, to_withdraw);
-                        offering_withdrawn += to_withdraw;
-                        await delay(50);
-                    }
-                    if (offering_withdrawn >= offering_needed) break;
-                }
-            }
-            if (offering_withdrawn >= offering_needed) break;
-        }
-        if (offering_withdrawn > 0) {
-            game_log(`✅ Withdrew ${offering_withdrawn} offeringp for upgrades/combines.`);
-        } else {
-            game_log("⚠️ No offeringp found in bank for upgrades/combines that require it.");
-        }
     }
 
     game_log("✅ Finished withdrawing upgrade and compound items, leaving at least 3 inventory slots free.");
@@ -448,8 +433,9 @@ async function auto_upgrade() {
 
     await smart_move(BANK_LOCATION);
 
-    await upgrade_scroll_withdraw();
-    await upgrade_item_withdraw();
+    await withdraw_upgrade_scrolls();
+    await withdraw_offering(100);
+    await withdraw_items();
 
     await smart_move(HOME);
 
