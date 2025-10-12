@@ -446,7 +446,7 @@ async function boss_loop() {
                     } else {
                         await attack(boss);
                     }
-                    delayMs = ms_to_next_skill('attack') + character.ping + 20;
+                    delayMs = ms_to_next_skill('attack')/2 + 20;
                 }
             } catch (e) {
                 game_log("⚠️ Boss engagement error:", "#FF0000");
