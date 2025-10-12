@@ -305,7 +305,9 @@ async function attack_loop() {
                     if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", cursed);
                     if (!is_on_cooldown("supershot")) await use_skill("supershot", cursed);
                 }
-
+                if (smart.moving) {
+                    return; // Skip attacking while smart moving
+                }
                 if (sorted_targets.length >= 5 && character.mp >= 380) {
                     await use_skill("5shot", sorted_targets.map(m => m.id));
                 } else if (sorted_targets.length >= 2 && character.mp >= 250) {
