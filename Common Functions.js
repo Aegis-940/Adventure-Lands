@@ -20,12 +20,10 @@ const MONSTER_TYPES               = ["goo", "bee", "crab", "snake", "osnake", "b
                                      "rat", "bbpompom", "tortoise", "crabx", "porcupine", "armadillo", "squig", "ghost", "phoenix", "iceroamer", "skeletor", "snowman",
 									"prat", "booboo", "bigbird", "poisio", "boar", "mechagnome", "mrpumpkin", "mrgreen", "greenjr"];
 
-const MONSTER_LOCS			   	  = {
-
-	                                spider: { map: "main", x: 907, y: -174 },
-									crabs: { map: "main", x: -1197, y: -79 },
-
-									}
+const MONSTER_LOCS = {
+    spider: { map: "main", x: 907, y: -174, orbit: true },
+    crabs:  { map: "main", x: -1197, y: -79, orbit: false }
+};
 
 const MERCHANT_NAME               = "Riff";
 

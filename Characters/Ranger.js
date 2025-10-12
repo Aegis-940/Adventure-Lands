@@ -82,7 +82,7 @@ async function universal_loop_controller() {
 
             if (LOOP_STATES.attack) stop_attack_loop();
             // if (LOOP_STATES.skill) stop_skill_loop();
-            // if (LOOP_STATES.orbit) stop_orbit_loop();
+            if (LOOP_STATES.orbit) stop_orbit_loop();
             if (!LOOP_STATES.boss) start_boss_loop();
             return;
 
@@ -96,10 +96,12 @@ async function universal_loop_controller() {
             if (!LOOP_STATES.attack) start_attack_loop();
             // if (!LOOP_STATES.skill) start_skill_loop();
 
-            // const at_target = character.x === TARGET_LOC.x && character.y === TARGET_LOC.y;
-            // const near_target = parent.distance(character, TARGET_LOC) <= 50;
-            // if (near_target && !LOOP_STATES.orbit && !smart.moving) smart_move(TARGET_LOC);
-            // if (!LOOP_STATES.orbit && at_target) start_orbit_loop();
+            if (TARGET_LOC.orbit) {
+                const at_target = character.x === TARGET_LOC.x && character.y === TARGET_LOC.y;
+                const near_target = parent.distance(character, TARGET_LOC) <= 50;
+                if (near_target && !LOOP_STATES.orbit && !smart.moving) smart_move(TARGET_LOC);
+                if (!LOOP_STATES.orbit && at_target) start_orbit_loop();
+            }
         }
 
     } catch (e) {

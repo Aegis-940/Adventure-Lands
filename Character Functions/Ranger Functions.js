@@ -625,6 +625,88 @@ async function move_loop() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// COMBAT ORBIT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let orbit_origin = null;
+let orbit_radius = character.range - 10;
+let orbit_path_points = [];
+let orbit_path_index = 0;
+const ORBIT_STEPS = 12; // 30 degrees per step
+const MOVE_CHECK_INTERVAL = 120; // ms
+const MOVE_TOLERANCE = 5; // pixels
+
+function set_orbit_radius(r) {
+    if (typeof r === "number" && r > 0) {
+        orbit_radius = r;
+        game_log(`Orbit radius set to ${orbit_radius}`);
+    }
+}
+
+function compute_orbit_path(origin, orbit_radius, steps) {
+    const points = [];
+    for (let i = 0; i < steps; i++) {
+        const angle = (2 * Math.PI * i) / steps;
+        points.push({
+            x: origin.x + orbit_radius * Math.cos(angle),
+            y: origin.y + orbit_radius * Math.sin(angle)
+        });
+    }
+    return points;
+}
+
+async function orbit_loop() {
+
+    LOOP_STATES.orbit = true;
+
+    let delayMs = 10;
+
+    orbit_origin = { x: character.real_x, y: character.real_y };
+    set_orbit_radius(orbit_radius);
+    orbit_path_points = compute_orbit_path(orbit_origin, orbit_radius, ORBIT_STEPS);
+    orbit_path_index = 0;
+
+    try {
+        while (LOOP_STATES.orbit) {
+
+            // Stop the loop if character is more than 100 units from the orbit origin
+            const dist_from_origin = Math.hypot(character.real_x - orbit_origin.x, character.real_y - orbit_origin.y);
+            if (dist_from_origin > 100) {
+                game_log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
+                break;
+            }
+
+            const point = orbit_path_points[orbit_path_index];
+            orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
+
+            // Only move if not already close to the next point
+            const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
+            if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
+                try {
+                    await move(point.x, point.y);
+                } catch (e) {
+                    console.error("Orbit move error:", e);
+                }
+            }
+
+            // Wait until movement is finished or interrupted
+            while (LOOP_STATES.orbit && (character.moving || smart.moving)) {
+                await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
+            }
+
+            // Small delay before next step to reduce CPU usage
+            await delay(delayMs);
+        }
+    } catch (e) {
+        game_log("⚠️ Orbit Loop error:", "#FF0000");
+        game_log(e);
+    } finally {
+        LOOP_STATES.orbit = false;
+        game_log("Orbit loop ended unexpectedly", "#ffea00ff");
+    }
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // LOOT LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
