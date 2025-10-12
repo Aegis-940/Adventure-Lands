@@ -629,7 +629,7 @@ async function move_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 let orbit_origin = null;
-let orbit_radius = character.range - 10;
+let orbit_radius = 50;
 let orbit_path_points = [];
 let orbit_path_index = 0;
 const ORBIT_STEPS = 12; // 30 degrees per step
