@@ -470,7 +470,7 @@ async function boss_loop() {
 
         // 2. Equip pouchbow +9 in mainhand before moving to boss
         const hbow_slot = parent.character.items.findIndex(item =>
-            item && item.name === "pouchbow" && item.level === 7
+            item && item.name === "pouchbow" && item.level === 9
         );
         if (
             hbow_slot !== -1 &&
