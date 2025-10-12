@@ -431,8 +431,6 @@ async function boss_loop() {
             try {
                 change_target(boss);
 
-
-
                 // Only attack if boss is not targeting party
                 if (
                     boss.target &&
@@ -453,6 +451,23 @@ async function boss_loop() {
                 game_log(e);
             }
             await delay(delayMs);
+        }
+
+        // 2. Equip hbow +7 in mainhand before moving to boss
+        const hbow_slot = parent.character.items.findIndex(item =>
+            item && item.name === "hbow" && item.level === 7
+        );
+        if (
+            hbow_slot !== -1 &&
+            (!character.slots.mainhand || character.slots.mainhand.name !== "hbow" || character.slots.mainhand.level !== 7)
+        ) {
+            try {
+                await equip(hbow_slot, "mainhand");
+                await delay(300);
+            } catch (e) {
+                game_log("⚠️ Error equipping hbow:", "#FF0000");
+                game_log(e);
+            }
         }
 
         // 5. Move back to target location
