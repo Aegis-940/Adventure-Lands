@@ -923,7 +923,7 @@ async function orbit_loop() {
 let panicking = false;
 
 const PANIC_WEAPON = "jacko";
-const NORMAL_WEAPON = "talkingskull";
+const NORMAL_WEAPON = "orboffire";
 
 async function panic_loop() {
     LOOP_STATES.panic = true;
