@@ -18,7 +18,7 @@ const LOOP_STATES = {
 }
 
 // Define default location for monster farming
-const TARGET_LOC = MONSTER_LOCS.crabs;
+const TARGET_LOC = MONSTER_LOCS.spider;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS
