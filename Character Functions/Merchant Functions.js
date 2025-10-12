@@ -76,13 +76,16 @@ async function handle_death_and_respawn() {
 }
 
 async function merchant_loop_controller() {
+    let last_upgrade_time = 0;
+    const UPGRADE_INTERVAL = 60 * 60 * 1000; // 60 minutes in ms
+
     try {
         while (true) {
             // --- Handle death and respawn ---
             if (character.rip) {
                 await handle_death_and_respawn();
                 continue;
-            }            
+            }
 
             // --- Wait for any active task to finish ---
             if (merchant_task !== "Idle") {
@@ -90,6 +93,21 @@ async function merchant_loop_controller() {
                     await delay(1000);
                 }
                 continue;
+            }
+
+            // --- Auto-upgrade priority check ---
+            const now = Date.now();
+            if (now - last_upgrade_time >= UPGRADE_INTERVAL) {
+                merchant_task = "Upgrading";
+                try {
+                    await auto_upgrade();
+                } catch (e) {
+                    game_log("⚠️ Auto-upgrade error:", "#FF0000");
+                    game_log(e);
+                }
+                last_upgrade_time = Date.now();
+                merchant_task = "Idle";
+                continue; // Skip all other tasks this tick
             }
 
             if (merchant_task === "Idle") {
