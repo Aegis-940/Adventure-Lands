@@ -570,19 +570,19 @@ function catcher(e, context = "Error") {
             if (typeof handlerOrStr === "function") {
                 const result = handlerOrStr(msg, context);
                 if (result) {
-                    log(result, color);
+                    log(result, color, "Errors");
                     return;
                 }
             } else if (msg && msg.toLowerCase().includes(keyword)) {
-                log(`${handlerOrStr} (${context})`, color);
+                log(`${handlerOrStr} (${context})`, color, "Errors");
                 return;
             }
         }
     }
 
     // Default: print full error
-    log(`⚠️ ${context}:`, "#FF0000");
-    log(msg, "#FF0000");
+    log(`⚠️ ${context}:`, "#FF0000", "Errors");
+    log(msg, "#FF0000", "Errors");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
