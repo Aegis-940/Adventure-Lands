@@ -555,6 +555,15 @@ function catcher(e, context = "Error") {
             },
             "#ffd500ff"
         ],
+        "out of mana": [
+            (msg, ctx) => {
+                if (msg.toLowerCase().includes("no_mp")) {
+                    return `⚠️ Out of mana (${ctx})`;
+                }
+                return null;
+            },
+            "#ffd500ff"
+        ],
         // Add more as needed
     };
 
