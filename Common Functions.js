@@ -620,7 +620,7 @@ function create_custom_log_window() {
     div.style.bottom = "1px";
     div.style.right = "325px";
     div.style.width = "350px";
-    div.style.height = "240px";
+    div.style.height = "260px";
     div.style.background = "rgba(0,0,0,0.66)";
     div.style.color = "#fff";
     div.style.overflow = "hidden";
@@ -638,43 +638,55 @@ function create_custom_log_window() {
     tabBar.style.background = "#222";
     tabBar.style.borderBottom = "2px solid #888";
     tabBar.style.height = "32px";
+    tabBar.style.alignItems = "center";
 
     const tabs = [
+        { name: "All", id: "tab-all" },
         { name: "General", id: "tab-general" },
         { name: "Errors", id: "tab-errors" }
     ];
 
     // Store current tab in window
-    div._currentTab = "General";
+    div._currentTab = "All";
 
     // --- Log containers for each tab ---
     const logContainers = {};
     const alertStates = {};
+    // For checkboxes: which tabs are included in "All"
+    const includeInAll = {
+        "General": true,
+        "Errors": true
+    };
+
     for (const tab of tabs) {
         const tabDiv = doc.createElement("div");
         tabDiv.id = `custom-log-${tab.id}`;
         tabDiv.style.flex = "1";
         tabDiv.style.overflowY = "auto";
-        tabDiv.style.display = tab.name === "General" ? "block" : "none";
+        tabDiv.style.display = tab.name === "All" ? "block" : "none";
         tabDiv.style.height = "100%";
         div.appendChild(tabDiv);
         logContainers[tab.name] = tabDiv;
         alertStates[tab.name] = false;
     }
 
-    // --- Tab buttons with alert indicators ---
+    // --- Tab buttons with alert indicators and checkboxes ---
     for (const tab of tabs) {
         const btn = doc.createElement("button");
         btn.textContent = tab.name;
         btn.style.flex = "1";
         btn.style.height = "100%";
-        btn.style.background = tab.name === "General" ? "#444" : "#222";
+        btn.style.background = tab.name === "All" ? "#444" : "#222";
         btn.style.color = "#fff";
         btn.style.border = "none";
         btn.style.fontFamily = "pixel";
         btn.style.fontSize = "20px";
         btn.style.cursor = "pointer";
         btn.id = `btn-${tab.id}`;
+        btn.style.display = "flex";
+        btn.style.alignItems = "center";
+        btn.style.justifyContent = "center";
+        btn.style.position = "relative";
 
         // Alert indicator span
         const alertSpan = doc.createElement("span");
@@ -684,6 +696,20 @@ function create_custom_log_window() {
         alertSpan.style.fontWeight = "bold";
         alertSpan.id = `alert-${tab.id}`;
         btn.appendChild(alertSpan);
+
+        // Add checkbox for General and Errors tabs
+        if (tab.name !== "All") {
+            const checkbox = doc.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.checked = true;
+            checkbox.style.marginLeft = "6px";
+            checkbox.style.transform = "scale(1.2)";
+            checkbox.title = `Include ${tab.name} messages in All tab`;
+            checkbox.onclick = (e) => {
+                includeInAll[tab.name] = checkbox.checked;
+            };
+            btn.appendChild(checkbox);
+        }
 
         btn.onclick = () => {
             // Switch tab
@@ -709,17 +735,20 @@ function create_custom_log_window() {
 
     doc.body.appendChild(div);
 
-    // Store containers and alert state globally for log() to use
+    // Store containers, alert state, and includeInAll globally for log() to use
     parent._custom_log_tabs = logContainers;
     parent._custom_log_window = div;
     parent._custom_log_alerts = alertStates;
+    parent._custom_log_includeInAll = includeInAll;
 }
 
+// Modified log function to support All tab and checkboxes
 function log(msg, color = "#fff", type = "General") {
     create_custom_log_window();
     const logContainers = parent._custom_log_tabs;
     const div = parent._custom_log_window;
     const alertStates = parent._custom_log_alerts;
+    const includeInAll = parent._custom_log_includeInAll;
     const tabName = (type === "Errors") ? "Errors" : "General";
     const logDiv = logContainers[tabName];
 
@@ -740,6 +769,25 @@ function log(msg, color = "#fff", type = "General") {
             const alertElem = parent.document.getElementById(`alert-tab-${tabName.toLowerCase()}`);
             if (alertElem) alertElem.textContent = "*";
             alertStates[tabName] = true;
+        }
+    }
+
+    // Also log to All tab if enabled for this type
+    if (tabName !== "All" && includeInAll[tabName]) {
+        const allDiv = logContainers["All"];
+        const pAll = parent.document.createElement("div");
+        pAll.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        pAll.style.color = color;
+        allDiv.appendChild(pAll);
+        while (allDiv.children.length > 100) allDiv.removeChild(allDiv.firstChild);
+        if (div._currentTab === "All") {
+            allDiv.scrollTop = allDiv.scrollHeight;
+        } else {
+            if (!alertStates["All"]) {
+                const alertElem = parent.document.getElementById(`alert-tab-all`);
+                if (alertElem) alertElem.textContent = "*";
+                alertStates["All"] = true;
+            }
         }
     }
 }
