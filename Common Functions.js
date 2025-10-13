@@ -643,6 +643,7 @@ function create_custom_log_window() {
     const tabs = [
         { name: "All", id: "tab-all" },
         { name: "General", id: "tab-general" },
+        { name: "Alerts", id: "tab-alerts" },
         { name: "Errors", id: "tab-errors" }
     ];
 
@@ -655,6 +656,7 @@ function create_custom_log_window() {
     // For checkboxes: which tabs are included in "All"
     const includeInAll = {
         "General": true,
+        "Alerts": true,
         "Errors": true
     };
 
@@ -748,13 +750,18 @@ function log(msg, color = "#fff", type = "General") {
     const div = parent._custom_log_window;
     const alertStates = parent._custom_log_alerts;
     const includeInAll = parent._custom_log_includeInAll;
-    const tabName = (type === "Errors") ? "Errors" : "General";
+
+    // Support "General", "Alerts", "Errors" as valid types
+    let tabName = "General";
+    if (type === "Errors") tabName = "Errors";
+    else if (type === "Alerts") tabName = "Alerts";
+
     const logDiv = logContainers[tabName];
 
     const p = parent.document.createElement("div");
     p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
     p.style.color = color;
-    p.style.padding = "2px"; // Add 2px padding to each log entry
+    p.style.padding = "2px";
     logDiv.appendChild(p);
 
     // Keep only the most recent 100 messages per tab
@@ -778,7 +785,7 @@ function log(msg, color = "#fff", type = "General") {
         const pAll = parent.document.createElement("div");
         pAll.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
         pAll.style.color = color;
-        pAll.style.padding = "2px"; // Add 2px padding to each log entry in All tab
+        pAll.style.padding = "2px";
         allDiv.appendChild(pAll);
         while (allDiv.children.length > 100) allDiv.removeChild(allDiv.firstChild);
         if (div._currentTab === "All") {
