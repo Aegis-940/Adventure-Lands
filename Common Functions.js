@@ -532,17 +532,21 @@ const GAME_LOG_FILTER = [
     // Add more keywords or exact strings as needed
 ];
 
-// Filtered game_log function
-function filtered_game_log(msg, color) {
-    // Convert msg to string for keyword matching
-    const msgStr = typeof msg === "string" ? msg : JSON.stringify(msg);
-
-	for (const keyword of GAME_LOG_FILTER) {
-		if (msgStr.includes(keyword)) {
-			return; // Filtered out
-		}
-	}
-
-    // Otherwise, log as normal
-    game_log(msg, color);
+/**
+ * Removes all game log entries that contain any keyword or string from GAME_LOG_FILTER.
+ * Run this function once to clean up the current log window.
+ */
+function filter_gamelog() {
+    const $ = parent.$;
+    const filterList = Array.isArray(GAME_LOG_FILTER) ? GAME_LOG_FILTER : [];
+    // Select all log entries
+    $("#gamelog .gameentry").each(function() {
+        const text = this.textContent || this.innerText || "";
+        for (const keyword of filterList) {
+            if (text.includes(keyword)) {
+                this.remove();
+                break;
+            }
+        }
+    });
 }
