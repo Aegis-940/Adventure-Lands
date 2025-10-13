@@ -17,7 +17,7 @@ const LOOP_STATES = {
 }
 
 // Define default location for monster farming
-const TARGET_LOC = { map: "desertland", x: 71, y: -1002, orbit: false };
+const TARGET_LOC = { map: "desertland", x: 71, y: -1002, orbit: true };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS
