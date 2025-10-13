@@ -661,7 +661,7 @@ function create_custom_log_window() {
         // Alert indicator span
         const alertSpan = doc.createElement("span");
         alertSpan.textContent = "";
-        alertSpan.style.color = "#ff4444";
+        alertSpan.style.color = "#fff";
         alertSpan.style.marginLeft = "8px";
         alertSpan.style.fontWeight = "bold";
         alertSpan.id = `alert-${tab.id}`;
@@ -720,7 +720,7 @@ function log(msg, color = "#fff", type = "General") {
         // Show alert (!) if new message arrives in a hidden tab
         if (!alertStates[tabName]) {
             const alertElem = parent.document.getElementById(`alert-tab-${tabName.toLowerCase()}`);
-            if (alertElem) alertElem.textContent = "(!)";
+            if (alertElem) alertElem.textContent = "*";
             alertStates[tabName] = true;
         }
     }
