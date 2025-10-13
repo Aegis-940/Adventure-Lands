@@ -476,7 +476,7 @@ function catcher(e, context = "Error") {
                 if (msg.toLowerCase().includes("attack") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
                     let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
                     let msText = msMatch ? `, ${msMatch[1]}ms` : "";
-                    return `⚠️ Attack cooldown${msText} (${ctx})`;
+                    return `⚠️ Attack c/d${msText} (${ctx})`;
                 }
                 return null;
             },
@@ -487,7 +487,7 @@ function catcher(e, context = "Error") {
                 if (msg.toLowerCase().includes("3shot") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
                     let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
                     let msText = msMatch ? `, ${msMatch[1]}ms` : "";
-                    return `⚠️ 3-Shot cooldown${msText} (${ctx})`;
+                    return `⚠️ 3-Shot c/d${msText} (${ctx})`;
                 }
                 return null;
             },
@@ -498,7 +498,40 @@ function catcher(e, context = "Error") {
                 if (msg.toLowerCase().includes("5shot") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
                     let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
                     let msText = msMatch ? `, ${msMatch[1]}ms` : "";
-                    return `⚠️ 5-Shot cooldown${msText} (${ctx})`;
+                    return `⚠️ 5-Shot c/d${msText} (${ctx})`;
+                }
+                return null;
+            },
+            "#ffd500ff"
+        ],
+        "supershot cooldown": [
+            (msg, ctx) => {
+                if (msg.toLowerCase().includes("supershot") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
+                    let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
+                    let msText = msMatch ? `, ${msMatch[1]}ms` : "";
+                    return `⚠️ Super Shot c/d${msText} (${ctx})`;
+                }
+                return null;
+            },
+            "#ffd500ff"
+        ],
+        "huntersmark cooldown": [
+            (msg, ctx) => {
+                if (msg.toLowerCase().includes("huntersmark") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
+                    let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
+                    let msText = msMatch ? `, ${msMatch[1]}ms` : "";
+                    return `⚠️ Hunters Mark c/d${msText} (${ctx})`;
+                }
+                return null;
+            },
+            "#ffd500ff"
+        ],
+        "heal cooldown": [
+            (msg, ctx) => {
+                if (msg.toLowerCase().includes("heal") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
+                    let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
+                    let msText = msMatch ? `, ${msMatch[1]}ms` : "";
+                    return `⚠️ Heal c/d${msText} (${ctx})`;
                 }
                 return null;
             },
@@ -560,36 +593,111 @@ function create_custom_log_window() {
     // Only create if it doesn't exist
     if (parent.document.getElementById("custom-log-window")) return;
 
-    const div = parent.document.createElement("div");
+    const doc = parent.document;
+
+    // Create main window
+    const div = doc.createElement("div");
     div.id = "custom-log-window";
     div.style.position = "absolute";
     div.style.bottom = "1px";
     div.style.right = "325px";
     div.style.width = "350px";
-    div.style.height = "212px";
+    div.style.height = "240px";
     div.style.background = "rgba(0,0,0,0.66)";
     div.style.color = "#fff";
-    div.style.overflowY = "auto";
+    div.style.overflow = "hidden";
     div.style.zIndex = 9999;
     div.style.fontSize = "22px";
     div.style.fontFamily = "pixel";
-    div.style.padding = "8px";
+    div.style.padding = "0";
     div.style.border = "4px solid #888";
-    parent.document.body.appendChild(div);
+    div.style.display = "flex";
+    div.style.flexDirection = "column";
+
+    // --- Tabs ---
+    const tabBar = doc.createElement("div");
+    tabBar.style.display = "flex";
+    tabBar.style.background = "#222";
+    tabBar.style.borderBottom = "2px solid #888";
+    tabBar.style.height = "32px";
+
+    const tabs = [
+        { name: "General", id: "tab-general" },
+        { name: "Errors", id: "tab-errors" }
+    ];
+
+    // Store current tab in window
+    div._currentTab = "General";
+
+    // --- Log containers for each tab ---
+    const logContainers = {};
+    for (const tab of tabs) {
+        const tabDiv = doc.createElement("div");
+        tabDiv.id = `custom-log-${tab.id}`;
+        tabDiv.style.flex = "1";
+        tabDiv.style.overflowY = "auto";
+        tabDiv.style.display = tab.name === "General" ? "block" : "none";
+        tabDiv.style.height = "100%";
+        div.appendChild(tabDiv);
+        logContainers[tab.name] = tabDiv;
+    }
+
+    // --- Tab buttons ---
+    for (const tab of tabs) {
+        const btn = doc.createElement("button");
+        btn.textContent = tab.name;
+        btn.style.flex = "1";
+        btn.style.height = "100%";
+        btn.style.background = tab.name === "General" ? "#444" : "#222";
+        btn.style.color = "#fff";
+        btn.style.border = "none";
+        btn.style.fontFamily = "pixel";
+        btn.style.fontSize = "18px";
+        btn.style.cursor = "pointer";
+        btn.onclick = () => {
+            // Switch tab
+            div._currentTab = tab.name;
+            for (const t of tabs) {
+                logContainers[t.name].style.display = t.name === tab.name ? "block" : "none";
+                tabBar.querySelector(`#btn-${t.id}`).style.background = t.name === tab.name ? "#444" : "#222";
+            }
+        };
+        btn.id = `btn-${tab.id}`;
+        tabBar.appendChild(btn);
+    }
+
+    div.appendChild(tabBar);
+
+    // Move log containers after tab bar
+    for (const tab of tabs) {
+        div.appendChild(logContainers[tab.name]);
+    }
+
+    doc.body.appendChild(div);
+
+    // Store containers globally for log() to use
+    parent._custom_log_tabs = logContainers;
+    parent._custom_log_window = div;
 }
 
-function log(msg, color = "#fff") {
+// Modified log function to support tabs
+function log(msg, color = "#fff", type = "General") {
     create_custom_log_window();
-    const div = parent.document.getElementById("custom-log-window");
+    const logContainers = parent._custom_log_tabs;
+    const div = parent._custom_log_window;
+    const tabName = (type === "Errors") ? "Errors" : "General";
+    const logDiv = logContainers[tabName];
+
     const p = parent.document.createElement("div");
     p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
     p.style.color = color;
-    div.appendChild(p);
-    // Keep only the most recent 100 messages
-    while (div.children.length > 100) div.removeChild(div.firstChild);
-    // Always scroll to the bottom to show the latest message
-    div.scrollTop = div.scrollHeight;
-}
+    logDiv.appendChild(p);
 
-// Usage example:
-// log("This is a custom log message!", "#00ff00");
+    // Keep only the most recent 100 messages per tab
+    while (logDiv.children.length > 100) logDiv.removeChild(logDiv.firstChild);
+
+    // If this tab is visible, scroll to bottom
+    if (div._currentTab === tabName) {
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+}
