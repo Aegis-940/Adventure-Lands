@@ -482,10 +482,16 @@ function catcher(e, context = "Error") {
             }
             return null;
         },
-        "not in range": "🚫 Not in range",
-        "already moving": "🚶 Already moving",
-        "no target": "❓ No target",
-        "not enough mp": "💧 Not enough MP",
+        "3shot cooldown": (msg) => {
+            // Only match if both "3shot" and "cooldown" and "ms" are present
+            if (msg.toLowerCase().includes("3shot") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
+                // Extract ms value
+                let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
+                let msText = msMatch ? `, ${msMatch[1]}ms` : "";
+                return `3-Shot cooldown, ${msText} (${context})`;
+            }
+            return null;
+        },
         // Add more keywords and shorthand messages as needed
     };
 
