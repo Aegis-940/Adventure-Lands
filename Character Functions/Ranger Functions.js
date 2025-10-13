@@ -457,7 +457,7 @@ async function boss_loop() {
                     delayMs = ms_to_next_skill('attack') + character.ping + 20;
                 }
             } catch (e) {
-                catcher(e, "Boss attack error" + boss_name);
+                catcher(e, "(Boss loop attack)");
             }
             await delay(delayMs);
         }
