@@ -736,7 +736,7 @@ async function handle_dark_blessing() {
 
 let lastLoot = null;
 let tryLoot = false;
-const chestThreshold = 12;
+const chestThreshold = 3;
 
 // Count the number of available chests
 function getNumChests() {
