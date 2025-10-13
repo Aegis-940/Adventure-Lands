@@ -462,3 +462,62 @@ async function follow_priest_loop() {
         currently_smart_moving = false;
     }
 }
+
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// ERROR CATCHER
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function catcher(e, context = "Error") {
+    // List of keywords and their shorthand messages or handler functions
+    const keywordMap = {
+        // If value is a function, it receives the message and must return a string (or null to skip)
+        "attack cooldown": (msg) => {
+            // Only match if both "attack" and "cooldown" and "ms" are present
+            if (msg.toLowerCase().includes("attack") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
+                // Extract ms value
+                let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
+                let msText = msMatch ? `, ${msMatch[1]}ms` : "";
+                return `Attack cooldown, ${msText} (${context})`;
+            }
+            return null;
+        },
+        "not in range": "🚫 Not in range",
+        "already moving": "🚶 Already moving",
+        "no target": "❓ No target",
+        "not enough mp": "💧 Not enough MP",
+        // Add more keywords and shorthand messages as needed
+    };
+
+    // Robust error message extraction
+    let msg;
+    if (typeof e === "string") {
+        msg = e;
+    } else if (e && e.message) {
+        msg = e.message;
+    } else {
+        try {
+            msg = JSON.stringify(e);
+        } catch {
+            msg = String(e);
+        }
+    }
+
+    // Check for keywords and print shorthand if matched
+    for (const [keyword, shorthandOrFn] of Object.entries(keywordMap)) {
+        if (typeof shorthandOrFn === "function") {
+            const result = shorthandOrFn(msg);
+            if (result) {
+                game_log(result);
+                return;
+            }
+        } else if (msg && msg.toLowerCase().includes(keyword)) {
+            game_log(`${shorthandOrFn} (${context})`);
+            return;
+        }
+    }
+
+    // Default: print full error
+    game_log(`⚠️ ${context}:`, "#FF0000");
+    game_log(msg);
+}
