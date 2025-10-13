@@ -29,7 +29,13 @@ var ui_gamelog = function() {
         show: true,
         regex: /(error|line|column)/i,
         tab_name: 'Errors'
+      },
+      burned: {
+        show: true,
+        regex: /burned/i,
+        tab_name: 'Burned'
       }
+
     };
     // filter buttons are alternating lighter and darker for aesthetic effect
     // colours in order are: dark blue, light blue, white, dark gray, light gray, lighter gray
