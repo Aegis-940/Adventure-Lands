@@ -270,6 +270,8 @@ async function attack_loop() {
                 MONSTER_TYPES.includes(e.mtype) &&
                 !e.dead &&
                 e.visible &&
+                e.target &&                 
+                e.target !== character.name &&   
                 parent.distance(character, e) <= character.range
             );
 

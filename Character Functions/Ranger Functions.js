@@ -285,6 +285,7 @@ async function attack_loop() {
                 const mob = parent.entities[id];
                 if (mob.type !== "monster" || mob.dead) continue;
                 if (!MONSTER_TYPES.includes(mob.mtype)) continue;
+                if (!mob.target) continue; 
                 const dist = Math.hypot(mob.x - character.x, mob.y - character.y);
                 if (dist <= character.range-1) {
                     inRange.push(mob);

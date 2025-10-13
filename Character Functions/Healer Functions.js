@@ -350,7 +350,7 @@ async function attack_loop() {
                     target = monsters.reduce((a, b) => (b.hp < a.hp ? a : b));
                 }
 
-                if (target && is_in_range(target) && !smart.moving && character.mp >= 1000) {
+                if (target && is_in_range(target) && !smart.moving && character.mp >= 3000) {
                     try {
                         await attack(target);
                     } catch (e) {
