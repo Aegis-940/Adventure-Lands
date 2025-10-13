@@ -16,7 +16,7 @@ create_map_movement_window([
 ]);
 
 hide_skills_ui();
-enable_filtered_game_log();
+create_custom_log_window();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // UNIVERSAL LOOP CONTROL

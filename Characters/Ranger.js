@@ -16,6 +16,7 @@ create_map_movement_window([
 ]);
 
 hide_skills_ui();
+create_custom_log_window();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // UNIVERSAL LOOP CONTROL

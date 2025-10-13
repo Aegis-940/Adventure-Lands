@@ -523,35 +523,39 @@ function catcher(e, context = "Error") {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// GAME LOG FILTER
+// CUSTOM GAME LOG
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const GAME_LOG_FILTER = [
-    "Afflicted by Burned",
-    // Add more keywords or exact strings as needed
-];
-
-function enable_filtered_game_log() {
-    // Only override once
-    if (parent._filtered_game_log_enabled) return;
-    parent._filtered_game_log_enabled = true;
-
-    // Save the original game_log
-    parent._original_game_log = parent.game_log;
-
-    // Override
-    parent.game_log = function(msg, color) {
-        let msgStr;
-        try {
-            msgStr = typeof msg === "string" ? msg : JSON.stringify(msg);
-        } catch {
-            msgStr = String(msg);
-        }
-        for (const keyword of GAME_LOG_FILTER) {
-            if (msgStr && msgStr.includes(keyword)) {
-                return; // Filtered out
-            }
-        }
-        parent._original_game_log.apply(parent, arguments);
-    };
+function create_custom_log_window() {
+    if (parent.document.getElementById("custom-log-window")) return;
+    const div = parent.document.createElement("div");
+    div.id = "custom-log-window";
+    div.style.position = "absolute";
+    div.style.top = "120px";
+    div.style.right = "20px";
+    div.style.width = "350px";
+    div.style.height = "200px";
+    div.style.background = "rgba(0,0,0,0.85)";
+    div.style.color = "#fff";
+    div.style.overflowY = "auto";
+    div.style.zIndex = 9999;
+    div.style.fontSize = "12px";
+    div.style.fontFamily = "monospace";
+    div.style.padding = "8px";
+    div.style.border = "2px solid #888";
+    parent.document.body.appendChild(div);
 }
+
+function log(msg, color = "#fff") {
+    create_custom_log_window();
+    const div = parent.document.getElementById("custom-log-window");
+    const p = parent.document.createElement("div");
+    p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    p.style.color = color;
+    div.appendChild(p);
+    // Optional: keep only last 50 messages
+    while (div.children.length > 50) div.removeChild(div.firstChild);
+}
+
+// Usage example:
+log("This is a custom log message!", "#00ff00");
