@@ -349,8 +349,17 @@ async function attack_loop() {
                 if (!target && monsters.length) {
                     target = monsters.reduce((a, b) => (b.hp < a.hp ? a : b));
                 }
+                const monsters_targeting_me = Object.values(parent.entities).filter(e =>
+                    e.type === "monster" && e.target === character.name && !e.dead
+                ).length;
 
-                if (target && is_in_range(target) && !smart.moving && character.mp >= 3000) {
+                if (
+                    target &&
+                    is_in_range(target) &&
+                    !smart.moving &&
+                    character.mp >= 3000 &&
+                    monsters_targeting_me < 5 // Prevent attacking if 5 or more monsters are targeting you
+                ) {
                     try {
                         await attack(target);
                     } catch (e) {
