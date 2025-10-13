@@ -480,7 +480,7 @@ function catcher(e, context = "Error") {
                 }
                 return null;
             },
-            "#ff0000ff"
+            "#ffd500ff"
         ],
         "3shot cooldown": [
             (msg, ctx) => {
@@ -491,7 +491,7 @@ function catcher(e, context = "Error") {
                 }
                 return null;
             },
-            "#ff0000ff"
+            "#ffd500ff"
         ],
         "5shot cooldown": [
             (msg, ctx) => {
@@ -502,7 +502,16 @@ function catcher(e, context = "Error") {
                 }
                 return null;
             },
-            "#ff0000ff"
+            "#ffd500ff"
+        ],
+        "Missing monster": [
+            (msg, ctx) => {
+                if (msg.toLowerCase().includes("not_there") && msg.toLowerCase().includes("monster")) {
+                    return `⚠️ Monster already dead (${ctx})`;
+                }
+                return null;
+            },
+            "#ffd500ff"
         ],
         // Add more as needed
     };
@@ -578,6 +587,8 @@ function log(msg, color = "#fff") {
     div.appendChild(p);
     // Keep only the most recent 100 messages
     while (div.children.length > 100) div.removeChild(div.firstChild);
+    // Always scroll to the bottom to show the latest message
+    div.scrollTop = div.scrollHeight;
 }
 
 // Usage example:

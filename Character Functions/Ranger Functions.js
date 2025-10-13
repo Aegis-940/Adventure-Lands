@@ -320,12 +320,12 @@ async function attack_loop() {
                 }
                 delayMs = ms_to_next_skill("attack") + character.ping + 20;
             } catch (e) {
-                catcher(e, "(Attack Loop inner)");
+                catcher(e, "Attack Loop inner");
             }
             await delay(delayMs);
         }
     } catch (e) {
-        catcher(e, "(Attack Loop outer)");
+        catcher(e, "Attack Loop outer");
     } finally {
         LOOP_STATES.attack = false;
         game_log("Attack loop ended unexpectedly", "#ffea00ff");
@@ -383,8 +383,8 @@ async function boss_loop() {
                 await equip(firebow7_slot, "mainhand");
                 await delay(300);
             } catch (e) {
-                game_log("⚠️ Error equipping firebow:", "#FF0000");
-                game_log(e);
+                log("⚠️ Error equipping firebow:", "#FF0000");
+                log(e);
             }
         }
 
@@ -397,7 +397,7 @@ async function boss_loop() {
             try {
                 await smart_move(boss_spawn);
             } catch (e) {
-                game_log("Error moving to boss spawn: " + e.message);
+                catcher(e, "Error during smart_move to boss");
             }
         } else {
             game_log("⚠️ Boss spawn location unknown, skipping smart_move.");
@@ -457,7 +457,7 @@ async function boss_loop() {
                     delayMs = ms_to_next_skill('attack') + character.ping + 20;
                 }
             } catch (e) {
-                catcher(e, "(Boss loop attack)");
+                catcher(e, "Boss loop attack");
             }
             await delay(delayMs);
         }
@@ -492,9 +492,7 @@ async function boss_loop() {
         }
 
     } catch (e) {
-        game_log("⚠️ Boss Loop error:", "#FF0000");
-        game_log(e);
-        await delay(1000);
+        catcher(e, "Boss loop outer");
     } finally {
         LOOP_STATES.boss = false;
         game_log("Boss loop ended unexpectedly", "#ffea00ff");
