@@ -469,30 +469,42 @@ async function follow_priest_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function catcher(e, context = "Error") {
-    // List of keywords and their shorthand messages or handler functions
+    // Map keywords to either a shorthand function or [shorthand, color]
     const keywordMap = {
-        // If value is a function, it receives the message and must return a string (or null to skip)
-        "attack cooldown": (msg) => {
-            // Only match if both "attack" and "cooldown" and "ms" are present
-            if (msg.toLowerCase().includes("attack") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
-                // Extract ms value
-                let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
-                let msText = msMatch ? `, ${msMatch[1]}ms` : "";
-                return `Attack cooldown, ${msText} (${context})`;
-            }
-            return null;
-        },
-        "3shot cooldown": (msg) => {
-            // Only match if both "3shot" and "cooldown" and "ms" are present
-            if (msg.toLowerCase().includes("3shot") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
-                // Extract ms value
-                let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
-                let msText = msMatch ? `, ${msMatch[1]}ms` : "";
-                return `3-Shot cooldown, ${msText} (${context})`;
-            }
-            return null;
-        },
-        // Add more keywords and shorthand messages as needed
+        "attack cooldown": [
+            (msg, ctx) => {
+                if (msg.toLowerCase().includes("attack") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
+                    let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
+                    let msText = msMatch ? `, ${msMatch[1]}ms` : "";
+                    return `Attack cooldown${msText} (${ctx})`;
+                }
+                return null;
+            },
+            "#ff0000ff"
+        ],
+        "3shot cooldown": [
+            (msg, ctx) => {
+                if (msg.toLowerCase().includes("3shot") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
+                    let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
+                    let msText = msMatch ? `, ${msMatch[1]}ms` : "";
+                    return `3-Shot cooldown${msText} (${ctx})`;
+                }
+                return null;
+            },
+            "#ff0000ff"
+        ],
+        "5shot cooldown": [
+            (msg, ctx) => {
+                if (msg.toLowerCase().includes("5shot") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
+                    let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
+                    let msText = msMatch ? `, ${msMatch[1]}ms` : "";
+                    return `5-Shot cooldown${msText} (${ctx})`;
+                }
+                return null;
+            },
+            "#ff0000ff"
+        ],
+        // Add more as needed
     };
 
     // Robust error message extraction
@@ -510,22 +522,25 @@ function catcher(e, context = "Error") {
     }
 
     // Check for keywords and print shorthand if matched
-    for (const [keyword, shorthandOrFn] of Object.entries(keywordMap)) {
-        if (typeof shorthandOrFn === "function") {
-            const result = shorthandOrFn(msg);
-            if (result) {
-                game_log(result);
+    for (const [keyword, value] of Object.entries(keywordMap)) {
+        if (Array.isArray(value)) {
+            const [handlerOrStr, color] = value;
+            if (typeof handlerOrStr === "function") {
+                const result = handlerOrStr(msg, context);
+                if (result) {
+                    log(result, color);
+                    return;
+                }
+            } else if (msg && msg.toLowerCase().includes(keyword)) {
+                log(`${handlerOrStr} (${context})`, color);
                 return;
             }
-        } else if (msg && msg.toLowerCase().includes(keyword)) {
-            game_log(`${shorthandOrFn} (${context})`);
-            return;
         }
     }
 
     // Default: print full error
     log(`⚠️ ${context}:`, "#FF0000");
-    log(msg);
+    log(msg, "#FF0000");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
