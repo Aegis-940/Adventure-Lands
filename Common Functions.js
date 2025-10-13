@@ -542,7 +542,7 @@ function create_custom_log_window() {
     div.style.color = "#fff";
     div.style.overflowY = "auto";
     div.style.zIndex = 9999;
-    div.style.fontSize = "25px";
+    div.style.fontSize = "20px";
     div.style.fontFamily = "pixel";
     div.style.padding = "8px";
     div.style.border = "4px solid #888";
