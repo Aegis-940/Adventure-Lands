@@ -521,3 +521,29 @@ function catcher(e, context = "Error") {
     game_log(`⚠️ ${context}:`, "#FF0000");
     game_log(msg);
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// GAME LOG FILTER
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+// List of keywords or exact strings to filter out from game_log
+const GAME_LOG_FILTER = [
+    "Afflicted by Burned",
+    // Add more keywords or exact strings as needed
+];
+
+// Filtered game_log function
+function filtered_game_log(msg, color) {
+    // Convert msg to string for keyword matching
+    const msgStr = typeof msg === "string" ? msg : JSON.stringify(msg);
+
+    // If any filter keyword is found in the message, do not log
+    for (const keyword of GAME_LOG_FILTER) {
+        if (msgStr.toLowerCase().includes(keyword.toLowerCase())) {
+            return; // Filtered out
+        }
+    }
+
+    // Otherwise, log as normal
+    game_log(msg, color);
+}
