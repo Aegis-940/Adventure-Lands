@@ -539,7 +539,7 @@ function catcher(e, context = "Error") {
         ],
         "Missing monster": [
             (msg, ctx) => {
-                if (msg.toLowerCase().includes("not_there") && msg.toLowerCase().includes("monster")) {
+                if (msg.toLowerCase().includes("not_there")) {
                     return `⚠️ Monster already dead (${ctx})`;
                 }
                 return null;
@@ -631,6 +631,7 @@ function create_custom_log_window() {
 
     // --- Log containers for each tab ---
     const logContainers = {};
+    const alertStates = {};
     for (const tab of tabs) {
         const tabDiv = doc.createElement("div");
         tabDiv.id = `custom-log-${tab.id}`;
@@ -640,9 +641,10 @@ function create_custom_log_window() {
         tabDiv.style.height = "100%";
         div.appendChild(tabDiv);
         logContainers[tab.name] = tabDiv;
+        alertStates[tab.name] = false;
     }
 
-    // --- Tab buttons ---
+    // --- Tab buttons with alert indicators ---
     for (const tab of tabs) {
         const btn = doc.createElement("button");
         btn.textContent = tab.name;
@@ -652,17 +654,31 @@ function create_custom_log_window() {
         btn.style.color = "#fff";
         btn.style.border = "none";
         btn.style.fontFamily = "pixel";
-        btn.style.fontSize = "18px";
+        btn.style.fontSize = "20px";
         btn.style.cursor = "pointer";
+        btn.id = `btn-${tab.id}`;
+
+        // Alert indicator span
+        const alertSpan = doc.createElement("span");
+        alertSpan.textContent = "";
+        alertSpan.style.color = "#ff4444";
+        alertSpan.style.marginLeft = "8px";
+        alertSpan.style.fontWeight = "bold";
+        alertSpan.id = `alert-${tab.id}`;
+        btn.appendChild(alertSpan);
+
         btn.onclick = () => {
             // Switch tab
             div._currentTab = tab.name;
             for (const t of tabs) {
                 logContainers[t.name].style.display = t.name === tab.name ? "block" : "none";
                 tabBar.querySelector(`#btn-${t.id}`).style.background = t.name === tab.name ? "#444" : "#222";
+                // Clear alert when tab is viewed
+                const alertElem = tabBar.querySelector(`#alert-${t.id}`);
+                if (alertElem) alertElem.textContent = "";
+                alertStates[t.name] = false;
             }
         };
-        btn.id = `btn-${tab.id}`;
         tabBar.appendChild(btn);
     }
 
@@ -675,16 +691,17 @@ function create_custom_log_window() {
 
     doc.body.appendChild(div);
 
-    // Store containers globally for log() to use
+    // Store containers and alert state globally for log() to use
     parent._custom_log_tabs = logContainers;
     parent._custom_log_window = div;
+    parent._custom_log_alerts = alertStates;
 }
 
-// Modified log function to support tabs
 function log(msg, color = "#fff", type = "General") {
     create_custom_log_window();
     const logContainers = parent._custom_log_tabs;
     const div = parent._custom_log_window;
+    const alertStates = parent._custom_log_alerts;
     const tabName = (type === "Errors") ? "Errors" : "General";
     const logDiv = logContainers[tabName];
 
@@ -699,5 +716,12 @@ function log(msg, color = "#fff", type = "General") {
     // If this tab is visible, scroll to bottom
     if (div._currentTab === tabName) {
         logDiv.scrollTop = logDiv.scrollHeight;
+    } else {
+        // Show alert (!) if new message arrives in a hidden tab
+        if (!alertStates[tabName]) {
+            const alertElem = parent.document.getElementById(`alert-tab-${tabName.toLowerCase()}`);
+            if (alertElem) alertElem.textContent = "(!)";
+            alertStates[tabName] = true;
+        }
     }
 }
