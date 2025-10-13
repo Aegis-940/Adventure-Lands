@@ -314,7 +314,7 @@ async function attack_loop() {
             const target = lowest_health_partymember();
             if (
                     target &&
-                    target.hp < target.max_hp - (character.heal / 1.33) &&
+                    target.hp < target.max_hp - (character.heal / 1.5) &&
                     is_in_range(target)
                 ) {
                     valid_heal_target = true
