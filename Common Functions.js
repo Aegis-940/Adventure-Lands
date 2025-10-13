@@ -532,17 +532,17 @@ function create_custom_log_window() {
     div.id = "custom-log-window";
     div.style.position = "absolute";
     div.style.bottom = "1px";
-    div.style.right = "400px";
+    div.style.right = "350px";
     div.style.width = "350px";
-    div.style.height = "200px";
+    div.style.height = "220px";
     div.style.background = "rgba(0,0,0,0.85)";
     div.style.color = "#fff";
     div.style.overflowY = "auto";
     div.style.zIndex = 9999;
-    div.style.fontSize = "12px";
-    div.style.fontFamily = "monospace";
+    div.style.fontSize = "20px";
+    div.style.fontFamily = "pixel";
     div.style.padding = "8px";
-    div.style.border = "2px solid #888";
+    div.style.border = "4px solid #888";
     parent.document.body.appendChild(div);
 }
 
