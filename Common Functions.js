@@ -533,20 +533,20 @@ const GAME_LOG_FILTER = [
 ];
 
 /**
- * Removes all game log entries that contain any keyword or string from GAME_LOG_FILTER.
- * Run this function once to clean up the current log window.
+ * Overrides the default game_log to filter out messages containing any keyword from GAME_LOG_FILTER.
+ * Call this function once to enable permanent filtering of new log messages.
  */
-function filter_gamelog() {
-    const $ = parent.$;
-    const filterList = Array.isArray(GAME_LOG_FILTER) ? GAME_LOG_FILTER : [];
-    // Select all log entries
-    $("#gamelog .gameentry").each(function() {
-        const text = this.textContent || this.innerText || "";
-        for (const keyword of filterList) {
-            if (text.includes(keyword)) {
-                this.remove();
-                break;
+function enable_filtered_game_log() {
+    if (parent._original_game_log) return; // Already enabled
+
+    parent._original_game_log = parent.game_log;
+    parent.game_log = function(msg, color) {
+        const msgStr = typeof msg === "string" ? msg : JSON.stringify(msg);
+        for (const keyword of GAME_LOG_FILTER) {
+            if (msgStr.includes(keyword)) {
+                return; // Filtered out, do not log
             }
         }
-    });
+        parent._original_game_log.apply(parent, arguments);
+    };
 }
