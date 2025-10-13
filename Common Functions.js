@@ -518,8 +518,8 @@ function catcher(e, context = "Error") {
     }
 
     // Default: print full error
-    game_log(`⚠️ ${context}:`, "#FF0000");
-    game_log(msg);
+    log(`⚠️ ${context}:`, "#FF0000");
+    log(msg);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

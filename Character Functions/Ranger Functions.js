@@ -28,130 +28,130 @@ function start_attack_loop() {
     if (LOOP_STATES.attack) return;
     LOOP_STATES.attack = true;
     attack_loop();
-    game_log("▶️ Attack loop started");
+    log("▶️ Attack loop started");
 }
 
 function stop_attack_loop() {
     if (!LOOP_STATES.attack) return;
     LOOP_STATES.attack = false;
-    game_log("⏹ Attack loop stopped");
+    log("⏹ Attack loop stopped");
 }
 
 function start_move_loop() {
     if (LOOP_STATES.move) return;
     LOOP_STATES.move = true;
     move_loop();
-    game_log("▶️ Move loop started");
+    log("▶️ Move loop started");
 }
 
 function stop_move_loop() {
     if (!LOOP_STATES.move) return;
     LOOP_STATES.move = false;
-    game_log("⏹ Move loop stopped");
+    log("⏹ Move loop stopped");
 }
 
 function start_skill_loop() {
     if (LOOP_STATES.skill) return;
     LOOP_STATES.skill = true;
     skill_loop();
-    game_log("▶️ Skill loop started");
+    log("▶️ Skill loop started");
 }
 
 function stop_skill_loop() {
     if (!LOOP_STATES.skill) return;
     LOOP_STATES.skill = false;
-    game_log("⏹ Skill loop stopped");
+    log("⏹ Skill loop stopped");
 }
 
 function start_panic_loop() {
     if (LOOP_STATES.panic) return;
     LOOP_STATES.panic = true;
     panic_loop();
-    game_log("▶️ Panic loop started");
+    log("▶️ Panic loop started");
 }
 
 function stop_panic_loop() {
     if (!LOOP_STATES.panic) return;
     LOOP_STATES.panic = false;
-    game_log("⏹ Panic loop stopped");
+    log("⏹ Panic loop stopped");
 }
 
 function start_loot_loop() {
     if (LOOP_STATES.loot) return;
     LOOP_STATES.loot = true;
     loot_loop();
-    game_log("▶️ Loot loop started");
+    log("▶️ Loot loop started");
 }
 
 function stop_loot_loop() {
     if (!LOOP_STATES.loot) return;
     LOOP_STATES.loot = false;
-    game_log("⏹ Loot loop stopped");
+    log("⏹ Loot loop stopped");
 }
 
 function start_potions_loop() {
     if (LOOP_STATES.potion) return;
     LOOP_STATES.potion = true;
     potions_loop();
-    game_log("▶️ Potions loop started");
+    log("▶️ Potions loop started");
 }
 
 function stop_potions_loop() {
     if (!LOOP_STATES.potion) return;
     LOOP_STATES.potion = false;
-    game_log("⏹ Potions loop stopped");
+    log("⏹ Potions loop stopped");
 }
 
 function start_orbit_loop() {
     if (LOOP_STATES.orbit) return;
     LOOP_STATES.orbit = true;
     orbit_loop();
-    game_log("▶️ Orbit loop started");
+    log("▶️ Orbit loop started");
 }
 
 function stop_orbit_loop() {
     if (!LOOP_STATES.orbit) return;
     LOOP_STATES.orbit = false;
-    game_log("⏹ Orbit loop stopped");
+    log("⏹ Orbit loop stopped");
 }
 
 function start_boss_loop() {
     if (LOOP_STATES.boss) return;
     LOOP_STATES.boss = true;
     boss_loop();
-    game_log("▶️ Boss loop started");
+    log("▶️ Boss loop started");
 }
 
 function stop_boss_loop() {
     if (!LOOP_STATES.boss) return;
     LOOP_STATES.boss = false;
-    game_log("⏹ Boss loop stopped");
+    log("⏹ Boss loop stopped");
 }
 
 function start_status_cache_loop() {
     if (LOOP_STATES.cache) return;
     LOOP_STATES.cache = true;
     status_cache_loop();
-    game_log("▶️ Status cache loop started");
+    log("▶️ Status cache loop started");
 }
 
 function stop_status_cache_loop() {
     if (!LOOP_STATES.cache) return;
     LOOP_STATES.cache = false;
-    game_log("⏹ Status cache loop stopped");
+    log("⏹ Status cache loop stopped");
 }
 
 function start_general_boss_loop() {
     if (LOOP_STATES.general_boss) return;
     LOOP_STATES.general_boss = true;
     general_boss_loop();
-    game_log("▶️ General boss loop started");
+    log("▶️ General boss loop started");
 }
 
 function stop_general_boss_loop() {
     if (!LOOP_STATES.general_boss) return;
     LOOP_STATES.general_boss = false;
-    game_log("⏹ Status general_boss loop stopped");
+    log("⏹ Status general_boss loop stopped");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -191,14 +191,14 @@ async function status_cache_loop() {
                         }
                     });
                 } catch (e) {
-                    game_log("Error sending status to Riff: " + e.message);
+                    log("Error sending status to Riff: " + e.message);
                 }
             }
 
             await delay(delayMs);
         }
     } catch (e) {
-        game_log("Status cache loop fatal error: " + e.message);
+        log("Status cache loop fatal error: " + e.message);
     }
 }
 
@@ -319,23 +319,23 @@ async function attack_loop() {
                 }
                 delayMs = ms_to_next_skill("attack") + character.ping + 20;
             } catch (e) {
-                game_log("⚠️ Attack Loop error:", "#FF0000");
-                game_log(e);
+                log("⚠️ Attack Loop error:", "#FF0000");
+                log(e);
             }
             await delay(delayMs);
         }
     } catch (e) {
-        game_log("⚠️ Attack Loop error:", "#FF0000");
+        log("⚠️ Attack Loop error:", "#FF0000");
         if (e && e.message) {
-            game_log(e.message);
+            log(e.message);
         } else if (typeof e === "string") {
-            game_log(e);
+            log(e);
         } else {
-            game_log(JSON.stringify(e));
+            log(JSON.stringify(e));
         }
     } finally {
         LOOP_STATES.attack = false;
-        game_log("Attack loop ended unexpectedly", "#ffea00ff");
+        log("Attack loop ended unexpectedly", "#ffea00ff");
     }
 }
 
@@ -348,7 +348,7 @@ const BOSSES = ["mrpumpkin", "mrgreen"];
 async function boss_loop() {
     LOOP_STATES.boss = true;
     let delayMs = 100;
-    game_log("⚠️ Boss detected ⚠️", "#ff00e6ff");
+    log("⚠️ Boss detected ⚠️", "#ff00e6ff");
 
     try {
         // 1. Find all alive bosses and pick the one with the lowest HP (fallback: oldest spawn)
@@ -357,7 +357,7 @@ async function boss_loop() {
             .map(name => ({ name, live: parent.S[name].live }));
 
         if (!alive_bosses.length) {
-            game_log("No alive bosses found.");
+            log("No alive bosses found.");
             return;
         }
 
@@ -390,8 +390,8 @@ async function boss_loop() {
                 await equip(firebow7_slot, "mainhand");
                 await delay(300);
             } catch (e) {
-                game_log("⚠️ Error equipping firebow:", "#FF0000");
-                game_log(e);
+                log("⚠️ Error equipping firebow:", "#FF0000");
+                log(e);
             }
         }
 
@@ -404,14 +404,14 @@ async function boss_loop() {
             try {
                 await smart_move(boss_spawn);
             } catch (e) {
-                game_log("Error moving to boss spawn: " + e.message);
+                log("Error moving to boss spawn: " + e.message);
             }
         } else {
-            game_log("⚠️ Boss spawn location unknown, skipping smart_move.");
+            log("⚠️ Boss spawn location unknown, skipping smart_move.");
         }
 
         // 4. Engage boss until dead
-        game_log("⚔️ Engaging boss...");
+        log("⚔️ Engaging boss...");
         while (parent.S[boss_name] && parent.S[boss_name].live) {
             const boss = Object.values(parent.entities).find(e =>
                 e.type === "monster" && e.mtype === boss_name && !e.dead && e.visible
@@ -481,8 +481,8 @@ async function boss_loop() {
                 await equip(hbow_slot, "mainhand");
                 await delay(300);
             } catch (e) {
-                game_log("⚠️ Error equipping hbow:", "#FF0000");
-                game_log(e);
+                log("⚠️ Error equipping hbow:", "#FF0000");
+                log(e);
             }
         }
 
@@ -492,19 +492,19 @@ async function boss_loop() {
         while (moving_home) {
             // If boss respawns while returning, break and restart boss loop
             if (BOSSES.some(name => parent.S[name] && parent.S[name].live)) {
-                game_log("🔄 Boss spawned while returning home. Restarting boss loop.");
+                log("🔄 Boss spawned while returning home. Restarting boss loop.");
                 break;
             }
             await delay(100);
         }
 
     } catch (e) {
-        game_log("⚠️ Boss Loop error:", "#FF0000");
-        game_log(e);
+        log("⚠️ Boss Loop error:", "#FF0000");
+        log(e);
         await delay(1000);
     } finally {
         LOOP_STATES.boss = false;
-        game_log("Boss loop ended unexpectedly", "#ffea00ff");
+        log("Boss loop ended unexpectedly", "#ffea00ff");
     }
 }
 
@@ -566,7 +566,7 @@ async function general_boss_loop() {
                         else if (can_attack(boss)) await attack(boss);
                         delayMs = ms_to_next_skill("attack") + character.ping + 20;
                     } catch (e) {
-                        game_log("Error attacking boss: " + e.message);
+                        log("Error attacking boss: " + e.message);
                     }
 
                     // Refresh boss reference
@@ -582,12 +582,12 @@ async function general_boss_loop() {
             }
         }
     } catch (e) {
-        game_log("⚠️ General Boss Loop error:", "#FF0000");
-        game_log(e);
+        log("⚠️ General Boss Loop error:", "#FF0000");
+        log(e);
     } finally {
         LOOP_STATES.boss = false;
         general_boss_active = false;
-        game_log("General boss loop ended unexpectedly", "#ffea00ff");
+        log("General boss loop ended unexpectedly", "#ffea00ff");
     }
 }
 
@@ -643,7 +643,7 @@ const MOVE_TOLERANCE = 5; // pixels
 function set_orbit_radius(r) {
     if (typeof r === "number" && r > 0) {
         orbit_radius = r;
-        game_log(`Orbit radius set to ${orbit_radius}`);
+        log(`Orbit radius set to ${orbit_radius}`);
     }
 }
 
@@ -676,7 +676,7 @@ async function orbit_loop() {
             // Stop the loop if character is more than 100 units from the orbit origin
             const dist_from_origin = Math.hypot(character.real_x - orbit_origin.x, character.real_y - orbit_origin.y);
             if (dist_from_origin > 100) {
-                game_log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
+                log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
                 break;
             }
 
@@ -702,11 +702,11 @@ async function orbit_loop() {
             await delay(delayMs);
         }
     } catch (e) {
-        game_log("⚠️ Orbit Loop error:", "#FF0000");
-        game_log(e);
+        log("⚠️ Orbit Loop error:", "#FF0000");
+        log(e);
     } finally {
         LOOP_STATES.orbit = false;
-        game_log("Orbit loop ended unexpectedly", "#ffea00ff");
+        log("Orbit loop ended unexpectedly", "#ffea00ff");
     }
 }
 
@@ -823,7 +823,7 @@ async function panic_loop() {
             if (low_health || monsters_targeting_me) {
                 if (!panicking) {
                     panicking = true;
-                    game_log("⚠️ Panic triggered: Low health or aggro!");
+                    log("⚠️ Panic triggered: Low health or aggro!");
                 }
 
                 // Always ensure jacko is equipped
@@ -835,7 +835,7 @@ async function panic_loop() {
 
                 // Always try to cast scare if possible
                 if (!is_on_cooldown("scare") && can_use("scare")) {
-                    game_log("Panicked! Using Scare!");
+                    log("Panicked! Using Scare!");
                     await use_skill("scare");
                     await delay(delayMs);
                 }
@@ -848,7 +848,7 @@ async function panic_loop() {
             else if (high_health) {
                 if (panicking) {
                     panicking = false;
-                    game_log("✅ Panic over — resuming normal operations.");
+                    log("✅ Panic over — resuming normal operations.");
                 }
                 const orbg_slot = locate_item(NORMAL_WEAPON);
                 if (character.slots.orb?.name !== NORMAL_WEAPON && orbg_slot !== -1) {
@@ -862,10 +862,10 @@ async function panic_loop() {
             await delay(delayMs);
         }
     } catch (e) {
-        game_log("⚠️ Panic Loop error:", "#FF0000");
-        game_log(e);
+        log("⚠️ Panic Loop error:", "#FF0000");
+        log(e);
     } finally {
         LOOP_STATES.panic = false;
-        game_log("Panic loop ended unexpectedly", "#ffea00ff");
+        log("Panic loop ended unexpectedly", "#ffea00ff");
     }
 }
