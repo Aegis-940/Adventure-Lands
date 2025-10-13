@@ -742,7 +742,6 @@ function create_custom_log_window() {
     parent._custom_log_includeInAll = includeInAll;
 }
 
-// Modified log function to support All tab and checkboxes
 function log(msg, color = "#fff", type = "General") {
     create_custom_log_window();
     const logContainers = parent._custom_log_tabs;
@@ -755,6 +754,7 @@ function log(msg, color = "#fff", type = "General") {
     const p = parent.document.createElement("div");
     p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
     p.style.color = color;
+    p.style.padding = "2px"; // Add 2px padding to each log entry
     logDiv.appendChild(p);
 
     // Keep only the most recent 100 messages per tab
@@ -778,6 +778,7 @@ function log(msg, color = "#fff", type = "General") {
         const pAll = parent.document.createElement("div");
         pAll.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
         pAll.style.color = color;
+        pAll.style.padding = "2px"; // Add 2px padding to each log entry in All tab
         allDiv.appendChild(pAll);
         while (allDiv.children.length > 100) allDiv.removeChild(allDiv.firstChild);
         if (div._currentTab === "All") {
