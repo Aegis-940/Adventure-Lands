@@ -660,6 +660,13 @@ function create_custom_log_window() {
         "Errors": true
     };
 
+    // Store all log entries for each tab for dynamic All tab updates
+    const logHistory = {
+        "General": [],
+        "Alerts": [],
+        "Errors": []
+    };
+
     for (const tab of tabs) {
         const tabDiv = doc.createElement("div");
         tabDiv.id = `custom-log-${tab.id}`;
@@ -699,7 +706,7 @@ function create_custom_log_window() {
         alertSpan.id = `alert-${tab.id}`;
         btn.appendChild(alertSpan);
 
-        // Add checkbox for General and Errors tabs
+        // Add checkbox for General, Alerts, and Errors tabs
         if (tab.name !== "All") {
             const checkbox = doc.createElement("input");
             checkbox.type = "checkbox";
@@ -709,6 +716,7 @@ function create_custom_log_window() {
             checkbox.title = `Include ${tab.name} messages in All tab`;
             checkbox.onclick = (e) => {
                 includeInAll[tab.name] = checkbox.checked;
+                updateAllTab(logContainers, logHistory, includeInAll);
             };
             btn.appendChild(checkbox);
         }
@@ -737,19 +745,46 @@ function create_custom_log_window() {
 
     doc.body.appendChild(div);
 
-    // Store containers, alert state, and includeInAll globally for log() to use
+    // Store containers, alert state, includeInAll, and logHistory globally for log() to use
     parent._custom_log_tabs = logContainers;
     parent._custom_log_window = div;
     parent._custom_log_alerts = alertStates;
     parent._custom_log_includeInAll = includeInAll;
+    parent._custom_log_history = logHistory;
 }
 
+// Helper to update the All tab when checkboxes change
+function updateAllTab(logContainers, logHistory, includeInAll) {
+    const allDiv = logContainers["All"];
+    allDiv.innerHTML = "";
+    let allEntries = [];
+    for (const tabName of ["General", "Alerts", "Errors"]) {
+        if (includeInAll[tabName]) {
+            allEntries = allEntries.concat(logHistory[tabName]);
+        }
+    }
+    // Sort by timestamp (oldest first)
+    allEntries.sort((a, b) => a.time - b.time);
+    // Only keep the most recent 100
+    allEntries = allEntries.slice(-100);
+    for (const entry of allEntries) {
+        const p = parent.document.createElement("div");
+        p.textContent = entry.text;
+        p.style.color = entry.color;
+        p.style.padding = "2px";
+        allDiv.appendChild(p);
+    }
+    allDiv.scrollTop = allDiv.scrollHeight;
+}
+
+// Modified log function to support All tab and checkboxes
 function log(msg, color = "#fff", type = "General") {
     create_custom_log_window();
     const logContainers = parent._custom_log_tabs;
     const div = parent._custom_log_window;
     const alertStates = parent._custom_log_alerts;
     const includeInAll = parent._custom_log_includeInAll;
+    const logHistory = parent._custom_log_history;
 
     // Support "General", "Alerts", "Errors" as valid types
     let tabName = "General";
@@ -758,13 +793,21 @@ function log(msg, color = "#fff", type = "General") {
 
     const logDiv = logContainers[tabName];
 
+    const time = Date.now();
+    const text = `[${new Date(time).toLocaleTimeString()}] ${msg}`;
+
+    // Store in history for this tab
+    if (!logHistory[tabName]) logHistory[tabName] = [];
+    logHistory[tabName].push({ text, color, time });
+    // Keep only the most recent 100 messages per tab
+    while (logHistory[tabName].length > 100) logHistory[tabName].shift();
+
+    // Add to tab display
     const p = parent.document.createElement("div");
-    p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    p.textContent = text;
     p.style.color = color;
     p.style.padding = "2px";
     logDiv.appendChild(p);
-
-    // Keep only the most recent 100 messages per tab
     while (logDiv.children.length > 100) logDiv.removeChild(logDiv.firstChild);
 
     // If this tab is visible, scroll to bottom
@@ -781,21 +824,11 @@ function log(msg, color = "#fff", type = "General") {
 
     // Also log to All tab if enabled for this type
     if (tabName !== "All" && includeInAll[tabName]) {
-        const allDiv = logContainers["All"];
-        const pAll = parent.document.createElement("div");
-        pAll.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-        pAll.style.color = color;
-        pAll.style.padding = "2px";
-        allDiv.appendChild(pAll);
-        while (allDiv.children.length > 100) allDiv.removeChild(allDiv.firstChild);
-        if (div._currentTab === "All") {
-            allDiv.scrollTop = allDiv.scrollHeight;
-        } else {
-            if (!alertStates["All"]) {
-                const alertElem = parent.document.getElementById(`alert-tab-all`);
-                if (alertElem) alertElem.textContent = "*";
-                alertStates["All"] = true;
-            }
-        }
+        // Add to All history and update All tab
+        if (!logHistory["All"]) logHistory["All"] = [];
+        logHistory["All"].push({ text, color, time, source: tabName });
+        // Only keep the most recent 100 in All history
+        while (logHistory["All"].length > 100) logHistory["All"].shift();
+        updateAllTab(logContainers, logHistory, includeInAll);
     }
 }

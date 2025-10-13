@@ -814,7 +814,7 @@ async function panic_loop() {
             if (low_health || monsters_targeting_me) {
                 if (!panicking) {
                     panicking = true;
-                    game_log("⚠️ Panic triggered: Low health or aggro!");
+                    log("⚠️ Panic triggered: Low health or aggro!", "Alerts");
                 }
 
                 // Always ensure jacko is equipped
@@ -826,7 +826,7 @@ async function panic_loop() {
 
                 // Always try to cast scare if possible
                 if (!is_on_cooldown("scare") && can_use("scare")) {
-                    game_log("Panicked! Using Scare!");
+                    log("Panicked! Using Scare!", "Alerts");
                     await use_skill("scare");
                     await delay(delayMs);
                 }
@@ -839,7 +839,7 @@ async function panic_loop() {
             else if (high_health) {
                 if (panicking) {
                     panicking = false;
-                    game_log("✅ Panic over — resuming normal operations.");
+                    log("✅ Panic over — resuming normal operations.", "Alerts");
                 }
                 const orbg_slot = locate_item(NORMAL_WEAPON);
                 if (character.slots.orb?.name !== NORMAL_WEAPON && orbg_slot !== -1) {
