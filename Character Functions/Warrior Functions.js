@@ -420,11 +420,26 @@ async function boss_loop() {
                     delayMs = ms_to_next_skill('attack') + character.ping + 20;
                 }
             } catch (e) {
-                const msg = (e && e.message) ? e.message : String(e);
+                // Robust error message extraction
+                let msg;
+                if (typeof e === "string") {
+                    msg = e;
+                } else if (e && e.message) {
+                    msg = e.message;
+                } else {
+                    try {
+                        msg = JSON.stringify(e);
+                    } catch {
+                        msg = String(e);
+                    }
+                }
+
+                // Filter out unwanted error messages by keyword
                 if (msg.includes("cooldown")) {
                     // Ignore these errors
                     return;
                 }
+
                 game_log("⚠️ Boss engagement error:", "#FF0000");
                 game_log(msg);
             }
