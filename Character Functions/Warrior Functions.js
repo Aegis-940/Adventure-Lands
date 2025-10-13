@@ -668,9 +668,9 @@ async function cleave_set() {
     }
     // Only equip bataxe if not already equipped
     const mainhand = character.slots.mainhand;
-    if (!mainhand || mainhand.name !== "bataxe" || mainhand.level !== 5) {
+    if (!mainhand || mainhand.name !== "bataxe" || mainhand.level !== 7) {
         batch_equip([
-            { itemName: "bataxe", slot: "mainhand", level: 5 }
+            { itemName: "bataxe", slot: "mainhand", level: 7 }
         ]);
     }
     weapon_set_equipped = "cleave";
