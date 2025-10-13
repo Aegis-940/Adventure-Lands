@@ -420,8 +420,13 @@ async function boss_loop() {
                     delayMs = ms_to_next_skill('attack') + character.ping + 20;
                 }
             } catch (e) {
+                const msg = (e && e.message) ? e.message : String(e);
+                if (msg.includes("cooldown")) {
+                    // Ignore these errors
+                    return;
+                }
                 game_log("⚠️ Boss engagement error:", "#FF0000");
-                game_log(e);
+                game_log(msg);
             }
 
             await delay(delayMs);
