@@ -537,10 +537,19 @@ function catcher(e, context = "Error") {
             },
             "#ffd500ff"
         ],
-        "Missing monster": [
+        "missing monster": [
             (msg, ctx) => {
                 if (msg.toLowerCase().includes("not_there")) {
                     return `⚠️ Monster already dead (${ctx})`;
+                }
+                return null;
+            },
+            "#ffd500ff"
+        ],
+        "out of range": [
+            (msg, ctx) => {
+                if (msg.toLowerCase().includes("too_far")) {
+                    return `⚠️ Monster out of range (${ctx})`;
                 }
                 return null;
             },
