@@ -526,25 +526,30 @@ function catcher(e, context = "Error") {
 // GAME LOG FILTER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// List of keywords or exact strings to filter out from game_log
 const GAME_LOG_FILTER = [
     "Afflicted by Burned",
     // Add more keywords or exact strings as needed
 ];
 
-/**
- * Overrides the default game_log to filter out messages containing any keyword from GAME_LOG_FILTER.
- * Call this function once to enable permanent filtering of new log messages.
- */
 function enable_filtered_game_log() {
-    if (parent._original_game_log) return; // Already enabled
+    // Only override once
+    if (parent._filtered_game_log_enabled) return;
+    parent._filtered_game_log_enabled = true;
 
+    // Save the original game_log
     parent._original_game_log = parent.game_log;
+
+    // Override
     parent.game_log = function(msg, color) {
-        const msgStr = typeof msg === "string" ? msg : JSON.stringify(msg);
+        let msgStr;
+        try {
+            msgStr = typeof msg === "string" ? msg : JSON.stringify(msg);
+        } catch {
+            msgStr = String(msg);
+        }
         for (const keyword of GAME_LOG_FILTER) {
-            if (msgStr.includes(keyword)) {
-                return; // Filtered out, do not log
+            if (msgStr && msgStr.includes(keyword)) {
+                return; // Filtered out
             }
         }
         parent._original_game_log.apply(parent, arguments);
