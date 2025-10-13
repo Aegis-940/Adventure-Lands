@@ -527,7 +527,10 @@ function catcher(e, context = "Error") {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function create_custom_log_window() {
-    if (parent.document.getElementById("custom-log-window")) return;
+    // Remove any previous instance of the custom log window
+    const existing = parent.document.getElementById("custom-log-window");
+    if (existing) existing.remove();
+
     const div = parent.document.createElement("div");
     div.id = "custom-log-window";
     div.style.position = "absolute";
