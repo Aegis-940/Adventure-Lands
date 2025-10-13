@@ -325,14 +325,7 @@ async function attack_loop() {
             await delay(delayMs);
         }
     } catch (e) {
-        game_log("⚠️ Attack Loop error:", "#FF0000");
-        if (e && e.message) {
-            game_log(e.message);
-        } else if (typeof e === "string") {
-            game_log(e);
-        } else {
-            game_log(JSON.stringify(e));
-        }
+        catcher(e, "⚠️ Attack Loop error:");
     } finally {
         LOOP_STATES.attack = false;
         game_log("Attack loop ended unexpectedly", "#ffea00ff");
