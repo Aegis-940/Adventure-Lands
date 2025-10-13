@@ -31,7 +31,7 @@ var ui_gamelog = function() {
         tab_name: 'Errors'
       },
       burned: {
-        show: true,
+        show: false,
         regex: /burned/i,
         tab_name: 'Burned'
       }
