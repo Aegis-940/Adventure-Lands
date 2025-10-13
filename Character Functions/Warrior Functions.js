@@ -17,8 +17,8 @@ const LOOP_STATES = {
 }
 
 // Define default location for monster farming
-const TARGET_LOC = MONSTER_LOCS.fireroamer;
-
+const TARGET_LOC = { map: "desertland", x: 66, y: -588, orbit: false };
+M
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS (with persistent state saving)
 // --------------------------------------------------------------------------------------------------------------------------------- //

@@ -17,7 +17,7 @@ const LOOP_STATES = {
 }
 
 // Define default location for monster farming
-const TARGET_LOC = MONSTER_LOCS.fireroamer;
+const TARGET_LOC = { map: "desertland", x: 119, y: -573, orbit: false };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS
@@ -350,7 +350,7 @@ async function attack_loop() {
                     target = monsters.reduce((a, b) => (b.hp < a.hp ? a : b));
                 }
 
-                if (target && is_in_range(target) && !smart.moving && character.mp >= 100) {
+                if (target && is_in_range(target) && !smart.moving && character.mp >= 1000) {
                     try {
                         await attack(target);
                     } catch (e) {
@@ -923,7 +923,7 @@ async function orbit_loop() {
 let panicking = false;
 
 const PANIC_WEAPON = "jacko";
-const NORMAL_WEAPON = "wbookhs";
+const NORMAL_WEAPON = "orboffire";
 
 async function panic_loop() {
     LOOP_STATES.panic = true;

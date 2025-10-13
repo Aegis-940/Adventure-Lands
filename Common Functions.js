@@ -23,7 +23,7 @@ const MONSTER_TYPES               = ["goo", "bee", "crab", "snake", "osnake", "b
 const MONSTER_LOCS = {
     spider: 	  { map: "main", x: 907, y: -174, orbit: true },
     crab:   	  { map: "main", x: -1197, y: -79, orbit: false },
-    fireroamer:   { map: "desertland", x: 112, y: -441, orbit: false },
+    fireroamer:   { map: "desertland", x: 116, y: -606, orbit: true },
 };
 
 const MERCHANT_NAME               = "Riff";
