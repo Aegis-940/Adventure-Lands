@@ -476,7 +476,7 @@ function catcher(e, context = "Error") {
                 if (msg.toLowerCase().includes("attack") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
                     let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
                     let msText = msMatch ? `, ${msMatch[1]}ms` : "";
-                    return `Attack cooldown${msText} (${ctx})`;
+                    return `⚠️ Error: Attack cooldown${msText} (${ctx})`;
                 }
                 return null;
             },
@@ -487,7 +487,7 @@ function catcher(e, context = "Error") {
                 if (msg.toLowerCase().includes("3shot") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
                     let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
                     let msText = msMatch ? `, ${msMatch[1]}ms` : "";
-                    return `3-Shot cooldown${msText} (${ctx})`;
+                    return `⚠️ Error: 3-Shot cooldown${msText} (${ctx})`;
                 }
                 return null;
             },
@@ -498,7 +498,7 @@ function catcher(e, context = "Error") {
                 if (msg.toLowerCase().includes("5shot") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
                     let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
                     let msText = msMatch ? `, ${msMatch[1]}ms` : "";
-                    return `5-Shot cooldown${msText} (${ctx})`;
+                    return `⚠️ Error: 5-Shot cooldown${msText} (${ctx})`;
                 }
                 return null;
             },
