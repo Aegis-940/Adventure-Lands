@@ -537,12 +537,11 @@ function filtered_game_log(msg, color) {
     // Convert msg to string for keyword matching
     const msgStr = typeof msg === "string" ? msg : JSON.stringify(msg);
 
-    // If any filter keyword is found in the message, do not log
-    for (const keyword of GAME_LOG_FILTER) {
-        if (msgStr.toLowerCase().includes(keyword.toLowerCase())) {
-            return; // Filtered out
-        }
-    }
+	for (const keyword of GAME_LOG_FILTER) {
+		if (msgStr.includes(keyword)) {
+			return; // Filtered out
+		}
+	}
 
     // Otherwise, log as normal
     game_log(msg, color);
