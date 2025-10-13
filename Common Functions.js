@@ -535,10 +535,10 @@ function create_custom_log_window() {
     div.id = "custom-log-window";
     div.style.position = "absolute";
     div.style.bottom = "1px";
-    div.style.right = "350px";
+    div.style.right = "330px";
     div.style.width = "350px";
-    div.style.height = "220px";
-    div.style.background = "rgba(0,0,0,0.85)";
+    div.style.height = "210px";
+    div.style.background = "rgba(0,0,0,0.66)";
     div.style.color = "#fff";
     div.style.overflowY = "auto";
     div.style.zIndex = 9999;
@@ -561,4 +561,4 @@ function log(msg, color = "#fff") {
 }
 
 // Usage example:
-log("This is a custom log message!", "#00ff00");
+// log("This is a custom log message!", "#00ff00");
