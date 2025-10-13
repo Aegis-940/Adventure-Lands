@@ -320,12 +320,12 @@ async function attack_loop() {
                 }
                 delayMs = ms_to_next_skill("attack") + character.ping + 20;
             } catch (e) {
-                catcher(e, "⚠️ Attack Loop error:");
+                catcher(e, "(Attack Loop inner)");
             }
             await delay(delayMs);
         }
     } catch (e) {
-        catcher(e, "⚠️ Attack Loop error:");
+        catcher(e, "(Attack Loop outer)");
     } finally {
         LOOP_STATES.attack = false;
         game_log("Attack loop ended unexpectedly", "#ffea00ff");

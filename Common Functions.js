@@ -476,7 +476,7 @@ function catcher(e, context = "Error") {
                 if (msg.toLowerCase().includes("attack") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
                     let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
                     let msText = msMatch ? `, ${msMatch[1]}ms` : "";
-                    return `⚠️ Error: Attack cooldown${msText} (${ctx})`;
+                    return `⚠️ Attack cooldown${msText} (${ctx})`;
                 }
                 return null;
             },
@@ -487,7 +487,7 @@ function catcher(e, context = "Error") {
                 if (msg.toLowerCase().includes("3shot") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
                     let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
                     let msText = msMatch ? `, ${msMatch[1]}ms` : "";
-                    return `⚠️ Error: 3-Shot cooldown${msText} (${ctx})`;
+                    return `⚠️ 3-Shot cooldown${msText} (${ctx})`;
                 }
                 return null;
             },
@@ -498,7 +498,7 @@ function catcher(e, context = "Error") {
                 if (msg.toLowerCase().includes("5shot") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
                     let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
                     let msText = msMatch ? `, ${msMatch[1]}ms` : "";
-                    return `⚠️ Error: 5-Shot cooldown${msText} (${ctx})`;
+                    return `⚠️ 5-Shot cooldown${msText} (${ctx})`;
                 }
                 return null;
             },
@@ -563,7 +563,7 @@ function create_custom_log_window() {
     div.style.color = "#fff";
     div.style.overflowY = "auto";
     div.style.zIndex = 9999;
-    div.style.fontSize = "20px";
+    div.style.fontSize = "22px";
     div.style.fontFamily = "pixel";
     div.style.padding = "8px";
     div.style.border = "4px solid #888";
@@ -577,8 +577,8 @@ function log(msg, color = "#fff") {
     p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
     p.style.color = color;
     div.appendChild(p);
-    // Optional: keep only last 50 messages
-    while (div.children.length > 50) div.removeChild(div.firstChild);
+    // Keep only the most recent 100 messages
+    while (div.children.length > 100) div.removeChild(div.firstChild);
 }
 
 // Usage example:

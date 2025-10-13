@@ -327,7 +327,7 @@ async function attack_loop() {
                     game_log(`💖 Healing ${target.name}`, "#00FF00");
                     await heal(target);
                 } catch (e) {
-                    game_log("Heal error: " + e, "#FF0000");
+                    catcher(e, "(Heal Loop inner)");
                 }
                 delayMs = ms_to_next_skill('attack') + character.ping + 20;
                 await delay(delayMs);
@@ -363,7 +363,7 @@ async function attack_loop() {
                     try {
                         await attack(target);
                     } catch (e) {
-                        game_log("Attack error: " + e, "#FF0000");
+                        catcher(e, "(Attack Loop inner)");
                     }
                     delayMs = ms_to_next_skill("attack") + character.ping + 20;
                     await delay(delayMs);
@@ -376,8 +376,7 @@ async function attack_loop() {
             await delay(50);
         }
     } catch (e) {
-        game_log("⚠️ Attack Loop error:", "#FF0000");
-        game_log(e);
+        catcher(e, "(Attack Loop outer)");
     } finally {
         attack_loop_running = false;
         LOOP_STATES.attack = false;
