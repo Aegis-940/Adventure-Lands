@@ -24,6 +24,7 @@ hide_skills_ui();
 // --- Helper: Handle death and respawn ---
 async function handle_death_and_respawn() {
     stop_attack_loop();
+    stop_orbit_loop();
     stop_panic_loop();
     stop_boss_loop();
     panicking = false;
@@ -82,7 +83,6 @@ async function universal_loop_controller() {
             // if (LOOP_STATES.skill) stop_skill_loop();
             if (LOOP_STATES.orbit) stop_orbit_loop();
             if (!LOOP_STATES.boss) start_boss_loop();
-            return;
 
         // --- Stop boss loop if no boss is alive ---
         } else if (!boss_alive && LOOP_STATES.boss) {

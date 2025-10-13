@@ -17,7 +17,7 @@ const LOOP_STATES = {
 }
 
 // Define default location for monster farming
-const TARGET_LOC = { map: "desertland", x: 27, y: -1063, orbit: false };
+const TARGET_LOC = { map: "desertland", x: 139, y: -1013, orbit: false };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS (with persistent state saving)
@@ -434,11 +434,11 @@ async function boss_loop() {
                     }
                 }
 
-                // Filter out unwanted error messages by keyword
-                if (msg.includes("cooldown")) {
-                    // Ignore these errors
-                    return;
-                }
+                // // Filter out unwanted error messages by keyword
+                // if (msg.includes("cooldown")) {
+                //     // Ignore these errors
+                //     return;
+                // }
 
                 game_log("⚠️ Boss engagement error:", "#FF0000");
                 game_log(msg);
