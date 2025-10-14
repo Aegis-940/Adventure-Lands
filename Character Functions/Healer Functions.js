@@ -329,7 +329,7 @@ async function attack_loop() {
                 } catch (e) {
                     catcher(e, "(Heal Loop inner)");
                 }
-                delayMs = ms_to_next_skill('attack') + character.ping + 20;
+                delayMs = ms_to_next_skill('attack') + character.ping + 30;
                 await delay(delayMs);
                 continue;
             } else if (LOOP_STATES.attack) {
@@ -365,7 +365,7 @@ async function attack_loop() {
                     } catch (e) {
                         catcher(e, "(Attack Loop inner)");
                     }
-                    delayMs = ms_to_next_skill("attack") + character.ping + 20;
+                    delayMs = ms_to_next_skill("attack") + character.ping + 50;
                     await delay(delayMs);
                     continue;
                 }
@@ -477,7 +477,7 @@ async function boss_loop() {
                 const heal_target = lowest_health_partymember();
                 if (
                     heal_target &&
-                    heal_target.hp < heal_target.max_hp - (character.heal / 1.11) &&
+                    heal_target.hp < heal_target.max_hp - (character.heal / 1.33) &&
                     is_in_range(heal_target)
                 ) {
                     await heal(heal_target);
@@ -490,7 +490,7 @@ async function boss_loop() {
                     !["Myras", "Ulric", "Riva", character.name].includes(boss.target)
                 ) {
                     await attack(boss);
-                    delayMs = ms_to_next_skill('attack') + character.ping + 20;
+                    delayMs = ms_to_next_skill('attack') + character.ping + 50;
                 }
             } catch (e) {
                 catcher(e, "Boss loop attack");

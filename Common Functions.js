@@ -137,6 +137,37 @@ add_cm_listener((name, data) => {
 });
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// CONSUME POTS
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function pots() {
+	// Calculate missing HP/MP
+	const hpMissing = character.max_hp - character.hp;
+	const mpMissing = character.max_mp - character.mp;
+
+	// Use health logic (or priest special)
+	if (hpMissing >= 400 && character.ctype !== 'priest' && !is_on_cooldown("use_hp")) {
+		if (can_use("hp")) {
+			// Everyone else: normal HP potion
+			use("hp");
+		}
+	}
+
+	if (hpMissing >= 720 && character.ctype === 'priest') {
+		if (can_use("partyheal")) {
+			use_skill("partyheal");
+		}
+	}
+
+	// Use mana potion if needed (non-priest or extra MP for priests)
+	if (mpMissing >= 500 || character.mp < 720 && !is_on_cooldown("use_mp")) {
+		if (can_use("mp")) {
+			use("mp");
+		}
+	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // SCAN BANK
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
