@@ -283,7 +283,7 @@ async function attack_loop() {
                 target = monsters.reduce((a, b) => (b.hp < a.hp ? a : b));
             }
 
-            if (target && is_in_range(target) && !smart.moving && character.mp >= 100) {
+            if (target && is_in_range(target) && !smart.moving && character.mp >= 80) {
                 try {
                     await attack(target);
                 } catch (e) {
@@ -517,7 +517,7 @@ async function skill_loop() {
         while (LOOP_STATES.skill) {
             if (!character.rip) {
                 const Mainhand = character.slots?.mainhand?.name;
-                const mp_check = character.mp >= 760;
+                const mp_check = character.mp >= 820;
                 const code_cost_check = character.cc < 135;
                 let cleave_cooldown = is_on_cooldown("cleave");
 
