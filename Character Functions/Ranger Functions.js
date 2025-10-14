@@ -345,10 +345,6 @@ const BOSSES = ["mrpumpkin", "mrgreen"];
 let last_supershot_time = 0;
 
 async function boss_loop() {
-    if (LOOP_STATES.boss) {
-        log("Boss loop already running, aborting duplicate.", "#ff0000ff");
-        return;
-    }
     let delayMs = 100;
     log("⚠️ Boss Detected ⚠️", "#f200ffff", "Alerts");
 
