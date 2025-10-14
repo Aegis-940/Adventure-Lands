@@ -456,13 +456,13 @@ async function boss_loop() {
                         use_skill("huntersmark", boss);
                     }
                     const now = Date.now();
-                    if (now - last_supershot_time >= 21000) { // 21 seconds
+                    if (now - last_supershot_time >= 31000) { // 31 seconds
                         await use_skill("supershot", boss);
                         last_supershot_time = now;
                     } else {
                         await attack(boss);
                     }
-                    delayMs = ms_to_next_skill('attack') + character.ping + 20;
+                    delayMs = ms_to_next_skill('attack') + character.ping + 50;
                 }
             } catch (e) {
                 catcher(e, "Boss loop attack");
