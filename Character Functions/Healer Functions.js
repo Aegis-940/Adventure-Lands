@@ -139,7 +139,7 @@ async function heal_loop() {
                 catcher(e, "Heal loop error");
             }
             
-            delayMs = ms_to_next_skill("attack") + character.ping + 50;
+            delayMs = ms_to_next_skill("attack") + character.ping;
             await delay(delayMs);
         }
 
@@ -150,9 +150,22 @@ async function heal_loop() {
     }
 }
 
-// --- Attack Loop (single iteration) ---
+// --- Attack Loop (single iteration, with pre-attack heal check) ---
 async function attack_loop() {
     if (!LOOP_STATES.attack) return;
+
+    // Check if anyone needs healing before attacking
+    const heal_target = lowest_health_partymember();
+    const should_heal = (
+        heal_target &&
+        heal_target.hp < heal_target.max_hp - (character.heal / 1.5) &&
+        is_in_range(heal_target)
+    );
+
+    if (should_heal) {
+        // Skip attacking if healing is needed
+        return;
+    }
 
     // Gather all valid monsters in range
     const monsters = Object.values(parent.entities).filter(e =>
