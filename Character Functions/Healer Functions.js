@@ -55,7 +55,7 @@ function stop_loop(name) {
     log(`⏹ ${name.charAt(0).toUpperCase() + name.slice(1)} loop stopped`);
 }
 
-function start_attack_loop() { run_loop("attack", attack_loop); }
+function start_attack_loop() { run_loop("attack", null); }
 function stop_attack_loop() { stop_loop("attack"); }
 
 function start_heal_loop() { run_loop("heal", heal_loop); }
@@ -119,7 +119,7 @@ let ATTACK_PRIORITIZE_UNTARGETED = true; // true: prefer monsters with no target
 
 // --- Heal Loop ---
 async function heal_loop() {
-    LOOP_STATES.heal = true;
+
     let delayMs = 50;
 
     while (LOOP_STATES.heal) {
@@ -178,12 +178,11 @@ async function attack_loop() {
     ) {
         try {
             await attack(target);
-            let delayMs = ms_to_next_skill("attack") + character.ping + 1;
-            attack_heal_cooldown_until = Date.now() + delayMs;
-            await delay(delayMs);
         } catch (e) {
             catcher(e, "Attack loop error");
         }
+        let delayMs = ms_to_next_skill("attack") + character.ping + 50;
+        await delay(delayMs);
     }
 }
 
