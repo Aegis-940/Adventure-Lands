@@ -537,7 +537,7 @@ function catcher(e, context = "Error") {
                 if (msg.toLowerCase().includes("attack") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
                     let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
                     let msText = msMatch ? `, ${msMatch[1]}ms` : "";
-                    return `⚠️ Attack c/d${msText} (${ctx})`;
+                    return `Attack c/d${msText} (${ctx})`;
                 }
                 return null;
             },
@@ -548,7 +548,7 @@ function catcher(e, context = "Error") {
                 if (msg.toLowerCase().includes("3shot") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
                     let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
                     let msText = msMatch ? `, ${msMatch[1]}ms` : "";
-                    return `⚠️ 3-Shot c/d${msText} (${ctx})`;
+                    return `3-Shot c/d${msText} (${ctx})`;
                 }
                 return null;
             },
@@ -559,7 +559,7 @@ function catcher(e, context = "Error") {
                 if (msg.toLowerCase().includes("5shot") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
                     let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
                     let msText = msMatch ? `, ${msMatch[1]}ms` : "";
-                    return `⚠️ 5-Shot c/d${msText} (${ctx})`;
+                    return `5-Shot c/d${msText} (${ctx})`;
                 }
                 return null;
             },
@@ -570,7 +570,7 @@ function catcher(e, context = "Error") {
                 if (msg.toLowerCase().includes("supershot") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
                     let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
                     let msText = msMatch ? `, ${msMatch[1]}ms` : "";
-                    return `⚠️ Super Shot c/d${msText} (${ctx})`;
+                    return `Super Shot c/d${msText} (${ctx})`;
                 }
                 return null;
             },
@@ -581,7 +581,7 @@ function catcher(e, context = "Error") {
                 if (msg.toLowerCase().includes("huntersmark") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
                     let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
                     let msText = msMatch ? `, ${msMatch[1]}ms` : "";
-                    return `⚠️ Hunters Mark c/d${msText} (${ctx})`;
+                    return `Hunters Mark c/d${msText} (${ctx})`;
                 }
                 return null;
             },
@@ -592,7 +592,7 @@ function catcher(e, context = "Error") {
                 if (msg.toLowerCase().includes("heal") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
                     let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
                     let msText = msMatch ? `, ${msMatch[1]}ms` : "";
-                    return `⚠️ Heal c/d${msText} (${ctx})`;
+                    return `Heal c/d${msText} (${ctx})`;
                 }
                 return null;
             },
@@ -601,7 +601,7 @@ function catcher(e, context = "Error") {
         "missing monster": [
             (msg, ctx) => {
                 if (msg.toLowerCase().includes("not_there")) {
-                    return `⚠️ Monster already dead (${ctx})`;
+                    return `Monster already dead (${ctx})`;
                 }
                 return null;
             },
@@ -610,7 +610,7 @@ function catcher(e, context = "Error") {
         "out of range": [
             (msg, ctx) => {
                 if (msg.toLowerCase().includes("too_far")) {
-                    return `⚠️ Monster out of range (${ctx})`;
+                    return `Monster out of range (${ctx})`;
                 }
                 return null;
             },
@@ -619,7 +619,7 @@ function catcher(e, context = "Error") {
         "out of mana": [
             (msg, ctx) => {
                 if (msg.toLowerCase().includes("no_mp")) {
-                    return `⚠️ Out of mana (${ctx})`;
+                    return `Out of mana (${ctx})`;
                 }
                 return null;
             },

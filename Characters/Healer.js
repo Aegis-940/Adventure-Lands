@@ -58,7 +58,7 @@ async function universal_loop_controller() {
         let boss_alive = is_boss_alive();
 
         // --- Ensure essential loops are always running ---
-        if (!LOOP_STATES.attack && !boss_alive) start_attack_loop();
+        if (!LOOP_STATES.attack && !boss_alive && !panicking) start_attack_loop();
         if (!LOOP_STATES.potion) start_potions_loop();
         if (!LOOP_STATES.loot) start_loot_loop();
         if (!LOOP_STATES.heal) start_heal_loop();
