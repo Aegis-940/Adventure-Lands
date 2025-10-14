@@ -58,7 +58,7 @@ function stop_loop(name) {
 function start_attack_loop() { run_loop("attack", attack_loop); }
 function stop_attack_loop() { stop_loop("attack"); }
 
-function start_heal_loop() { run_loop("heal", ""); }
+function start_heal_loop() { run_loop("heal", heal_loop); }
 function stop_heal_loop() { stop_loop("heal"); }
 
 function start_move_loop() { run_loop("move", move_loop); }
@@ -116,70 +116,164 @@ function lowest_health_partymember() {
 let ATTACK_TARGET_LOWEST_HP = true;      // true: lowest HP, false: highest HP
 let ATTACK_PRIORITIZE_UNTARGETED = true; // true: prefer monsters with no target first
 
-async function attack_loop() {
-    LOOP_STATES.attack = true;
+// --- Mutually exclusive cooldown lock ---
+let attack_heal_cooldown_until = 0; // Timestamp in ms until which both are locked
+
+// --- Heal Loop ---
+async function heal_loop() {
+    LOOP_STATES.heal = true;
     let delayMs = 50;
 
-    while (LOOP_STATES.attack || LOOP_STATES.heal) {
-        // --- Healing ---
+    while (LOOP_STATES.heal) {
+        // Healing always takes priority
+        const now = Date.now();
+        if (now < attack_heal_cooldown_until) {
+            await delay(1); // millisecond accuracy
+            continue;
+        }
+
         const heal_target = lowest_health_partymember();
         const should_heal = (
-            LOOP_STATES.heal &&
             heal_target &&
             heal_target.hp < heal_target.max_hp - (character.heal / 1.5) &&
             is_in_range(heal_target)
         );
 
-        if (should_heal) {
+        if (
+            should_heal &&
+            !smart.moving
+        ) {
             try {
                 log(`💖 Healing ${heal_target.name}`, "#00FF00", "General");
                 await heal(heal_target);
+                delayMs = ms_to_next_skill('attack') + character.ping + 1;
+                attack_heal_cooldown_until = Date.now() + delayMs;
             } catch (e) {
                 catcher(e, "Heal loop error");
             }
-            delayMs = ms_to_next_skill('attack') + character.ping + 50;
             await delay(delayMs);
             continue;
         }
 
-        // --- Attacking ---
-        if (LOOP_STATES.attack) {
-            // Gather all valid monsters in range
-            const monsters = Object.values(parent.entities).filter(e =>
-                e.type === "monster" &&
-                MONSTER_TYPES.includes(e.mtype) &&
-                !e.dead &&
-                e.visible &&
-                parent.distance(character, e) <= character.range
-            );
-
-            // Prioritize: cursed > highest HP
-            let target = monsters.find(m => m.s && m.s.cursed)
-                || (monsters.length ? monsters.reduce((a, b) => (b.hp < a.hp ? a : b)) : null);
-
-            const monsters_targeting_me = monsters.filter(e => e.target === character.name).length;
-
-            if (
-                target &&
-                is_in_range(target) &&
-                !smart.moving &&
-                character.mp >= 3000 &&
-                monsters_targeting_me < 5
-            ) {
-                try {
-                    await attack(target);
-                } catch (e) {
-                    catcher(e, "Attack loop error");
-                }
-                delayMs = ms_to_next_skill("attack") + character.ping + 50;
-                await delay(delayMs);
-                continue;
-            }
-        }
-
-        await delay(delayMs);
+        await delay(1); // millisecond accuracy
     }
 }
+
+// --- Attack Loop ---
+async function attack_loop() {
+    LOOP_STATES.attack = true;
+    let delayMs = 50;
+
+    while (LOOP_STATES.attack) {
+        // Healing always takes priority
+        const now = Date.now();
+        if (now < attack_heal_cooldown_until) {
+            await delay(1); // millisecond accuracy
+            continue;
+        }
+
+        // --- Attacking ---
+        // Gather all valid monsters in range
+        const monsters = Object.values(parent.entities).filter(e =>
+            e.type === "monster" &&
+            MONSTER_TYPES.includes(e.mtype) &&
+            !e.dead &&
+            e.visible &&
+            parent.distance(character, e) <= character.range
+        );
+
+        // Prioritize: cursed > highest HP
+        let target = monsters.find(m => m.s && m.s.cursed)
+            || (monsters.length ? monsters.reduce((a, b) => (b.hp < a.hp ? a : b)) : null);
+
+        const monsters_targeting_me = monsters.filter(e => e.target === character.name).length;
+
+        if (
+            target &&
+            is_in_range(target) &&
+            !smart.moving &&
+            character.mp >= 3000 &&
+            monsters_targeting_me < 5
+        ) {
+            try {
+                await attack(target);
+                delayMs = ms_to_next_skill("attack") + character.ping + 1;
+                attack_heal_cooldown_until = Date.now() + delayMs;
+            } catch (e) {
+                catcher(e, "Attack loop error");
+            }
+            await delay(delayMs);
+            continue;
+        }
+
+        await delay(1); // millisecond accuracy
+    }
+}
+
+// async function attack_loop() {
+//     LOOP_STATES.attack = true;
+//     let delayMs = 50;
+
+//     while (LOOP_STATES.attack || LOOP_STATES.heal) {
+//         // --- Healing ---
+//         const heal_target = lowest_health_partymember();
+//         const should_heal = (
+//             LOOP_STATES.heal &&
+//             heal_target &&
+//             heal_target.hp < heal_target.max_hp - (character.heal / 1.5) &&
+//             is_in_range(heal_target)
+//         );
+
+//         if (should_heal) {
+//             try {
+//                 log(`💖 Healing ${heal_target.name}`, "#00FF00", "General");
+//                 await heal(heal_target);
+//             } catch (e) {
+//                 catcher(e, "Heal loop error");
+//             }
+//             delayMs = ms_to_next_skill('attack') + character.ping + 50;
+//             await delay(delayMs);
+//             continue;
+//         }
+
+//         // --- Attacking ---
+//         if (LOOP_STATES.attack) {
+//             // Gather all valid monsters in range
+//             const monsters = Object.values(parent.entities).filter(e =>
+//                 e.type === "monster" &&
+//                 MONSTER_TYPES.includes(e.mtype) &&
+//                 !e.dead &&
+//                 e.visible &&
+//                 parent.distance(character, e) <= character.range
+//             );
+
+//             // Prioritize: cursed > highest HP
+//             let target = monsters.find(m => m.s && m.s.cursed)
+//                 || (monsters.length ? monsters.reduce((a, b) => (b.hp < a.hp ? a : b)) : null);
+
+//             const monsters_targeting_me = monsters.filter(e => e.target === character.name).length;
+
+//             if (
+//                 target &&
+//                 is_in_range(target) &&
+//                 !smart.moving &&
+//                 character.mp >= 3000 &&
+//                 monsters_targeting_me < 5
+//             ) {
+//                 try {
+//                     await attack(target);
+//                 } catch (e) {
+//                     catcher(e, "Attack loop error");
+//                 }
+//                 delayMs = ms_to_next_skill("attack") + character.ping + 50;
+//                 await delay(delayMs);
+//                 continue;
+//             }
+//         }
+
+//         await delay(delayMs);
+//     }
+// }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // BOSS LOOP - HALLOWEEN EDITION
