@@ -55,7 +55,7 @@ function stop_loop(name) {
     log(`⏹ ${name.charAt(0).toUpperCase() + name.slice(1)} loop stopped`);
 }
 
-function start_attack_loop() { run_loop("attack", null); }
+function start_attack_loop() { run_loop("attack", ""); }
 function stop_attack_loop() { stop_loop("attack"); }
 
 function start_heal_loop() { run_loop("heal", heal_loop); }
