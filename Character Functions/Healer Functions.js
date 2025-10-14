@@ -273,14 +273,14 @@ async function status_cache_loop() {
                         }
                     });
                 } catch (e) {
-                    game_log("Error sending status to Riff: " + e.message);
+                    catcher(e, "Error sending status to Riff: ");
                 }
             }
 
             await delay(delayMs);
         }
     } catch (e) {
-        game_log("Status cache loop fatal error: " + e.message);
+        catcher(e, "Status cache loop fatal error: ");
     }
 }
 
@@ -431,7 +431,7 @@ async function boss_loop() {
             try {
                 await smart_move(boss_spawn);
             } catch (e) {
-                game_log("Error moving to boss spawn: " + e.message);
+                catcher(e, "Error during smart_move to boss");
             }
         } else {
             game_log("⚠️ Boss spawn location unknown, skipping smart_move.");
@@ -493,7 +493,7 @@ async function boss_loop() {
                     delayMs = ms_to_next_skill('attack') + character.ping + 20;
                 }
             } catch (e) {
-                catcher(e, "Boss attack error" + boss_name);
+                catcher(e, "Boss loop attack");
             }
 
             await delay(delayMs);
@@ -512,9 +512,7 @@ async function boss_loop() {
         }
 
     } catch (e) {
-        game_log("⚠️ Boss Loop error:", "#FF0000");
-        game_log(e);
-        await delay(1000);
+        catcher(e, "Boss loop outer");
     } finally {
         LOOP_STATES.boss = false;
         game_log("Boss loop ended unexpectedly", "#ffea00ff");

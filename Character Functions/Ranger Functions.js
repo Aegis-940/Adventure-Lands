@@ -199,7 +199,7 @@ async function status_cache_loop() {
         }
 
     } catch (e) {
-        catcher(e, "EStatus cache loop fatal error: ");
+        catcher(e, "Status cache loop fatal error: ");
     }
 }
 
@@ -389,8 +389,7 @@ async function boss_loop() {
                 await equip(firebow7_slot, "mainhand");
                 await delay(300);
             } catch (e) {
-                log("⚠️ Error equipping firebow:", "#FF0000");
-                log(e);
+                catcher(e, "Error equipping firebow");
             }
         }
 
@@ -482,8 +481,7 @@ async function boss_loop() {
                 await equip(hbow_slot, "mainhand");
                 await delay(300);
             } catch (e) {
-                game_log("⚠️ Error equipping hbow:", "#FF0000");
-                game_log(e);
+                catcher(e, "Error equipping pouchbow");
             }
         }
 
