@@ -72,7 +72,7 @@ async function universal_loop_controller() {
         // --- Handle panic state ---
         } else if (panicking) {
 
-            if (LOOP_STATES.attack) stop_attack_loop();
+            if (LOOP_STATES.attack) LOOP_STATES.attack = false;
             if (LOOP_STATES.skill) stop_skill_loop();
             if (LOOP_STATES.boss) stop_boss_loop();
             // if (LOOP_STATES.general_boss) stop_general_boss_loop();
@@ -80,7 +80,7 @@ async function universal_loop_controller() {
         // --- Handle boss logic ---
         } else if (boss_alive) {
 
-            if (LOOP_STATES.attack) stop_attack_loop();
+            if (LOOP_STATES.attack) LOOP_STATES.attack = false;
             if (LOOP_STATES.skill) stop_skill_loop();
             if (LOOP_STATES.orbit) stop_orbit_loop();
             if (!LOOP_STATES.boss) start_boss_loop();
