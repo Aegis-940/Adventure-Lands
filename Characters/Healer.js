@@ -34,6 +34,7 @@ async function handle_death_and_respawn() {
     await respawn();
     await delay(5000);
     await smart_move(TARGET_LOC);
+    if (!LOOP_STATES.panic) start_panic_loop();
 }
 
 // --- Helper: Boss alive check ---
@@ -61,7 +62,6 @@ async function universal_loop_controller() {
         if (!LOOP_STATES.potion) start_potions_loop();
         if (!LOOP_STATES.loot) start_loot_loop();
         if (!LOOP_STATES.heal) start_heal_loop();
-        if (!LOOP_STATES.panic) start_panic_loop();
         if (!LOOP_STATES.cache) start_status_cache_loop();
 
         // --- Handle death and respawn ---
