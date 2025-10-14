@@ -139,7 +139,7 @@ async function heal_loop() {
                 catcher(e, "Heal loop error");
             }
             
-            delayMs = ms_to_next_skill("attack") + character.ping;
+            delayMs = ms_to_next_skill("attack") + character.ping + 50;
             await delay(delayMs);
         }
 
@@ -194,75 +194,10 @@ async function attack_loop() {
         } catch (e) {
             catcher(e, "Attack loop error");
         }
-        let delayMs = ms_to_next_skill("attack") + character.ping + 50;
+        let delayMs = ms_to_next_skill("attack") + character.ping;
         await delay(delayMs);
     }
 }
-
-// async function attack_loop() {
-//     LOOP_STATES.attack = true;
-//     let delayMs = 50;
-
-//     while (LOOP_STATES.attack || LOOP_STATES.heal) {
-//         // --- Healing ---
-//         const heal_target = lowest_health_partymember();
-//         const should_heal = (
-//             LOOP_STATES.heal &&
-//             heal_target &&
-//             heal_target.hp < heal_target.max_hp - (character.heal / 1.5) &&
-//             is_in_range(heal_target)
-//         );
-
-//         if (should_heal) {
-//             try {
-//                 log(`💖 Healing ${heal_target.name}`, "#00FF00", "General");
-//                 await heal(heal_target);
-//             } catch (e) {
-//                 catcher(e, "Heal loop error");
-//             }
-//             delayMs = ms_to_next_skill('attack') + character.ping + 50;
-//             await delay(delayMs);
-//             continue;
-//         }
-
-//         // --- Attacking ---
-//         if (LOOP_STATES.attack) {
-//             // Gather all valid monsters in range
-//             const monsters = Object.values(parent.entities).filter(e =>
-//                 e.type === "monster" &&
-//                 MONSTER_TYPES.includes(e.mtype) &&
-//                 !e.dead &&
-//                 e.visible &&
-//                 parent.distance(character, e) <= character.range
-//             );
-
-//             // Prioritize: cursed > highest HP
-//             let target = monsters.find(m => m.s && m.s.cursed)
-//                 || (monsters.length ? monsters.reduce((a, b) => (b.hp < a.hp ? a : b)) : null);
-
-//             const monsters_targeting_me = monsters.filter(e => e.target === character.name).length;
-
-//             if (
-//                 target &&
-//                 is_in_range(target) &&
-//                 !smart.moving &&
-//                 character.mp >= 3000 &&
-//                 monsters_targeting_me < 5
-//             ) {
-//                 try {
-//                     await attack(target);
-//                 } catch (e) {
-//                     catcher(e, "Attack loop error");
-//                 }
-//                 delayMs = ms_to_next_skill("attack") + character.ping + 50;
-//                 await delay(delayMs);
-//                 continue;
-//             }
-//         }
-
-//         await delay(delayMs);
-//     }
-// }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // BOSS LOOP - HALLOWEEN EDITION
@@ -844,9 +779,11 @@ async function panic_loop() {
         }
 
         // SAFE CONDITION
-        if (high_health && high_mana && panicking) {
-            panicking = false;
-            log("✅ Panic over — resuming normal operations.", "#00ff00", "Alerts");
+        if (high_health && high_mana && monsters_targeting_me < PANIC_AGGRO_THRESHOLD) {
+            if (panicking) {
+                panicking = false;
+                log("✅ Panic over — resuming normal operations.", "#00ff00", "Alerts");
+            }
             // Equip normal weapon if needed
             if (character.slots.orb?.name !== NORMAL_WEAPON) {
                 const orbg_slot = locate_item(NORMAL_WEAPON);
