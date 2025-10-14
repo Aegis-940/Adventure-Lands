@@ -208,8 +208,11 @@ async function status_cache_loop() {
     LOOP_STATES.cache = true;
     let delayMs = 5000;
 
-    try {
-        while (LOOP_STATES.cache) {
+        while (true) {
+            if (!LOOP_STATES.cache) {
+                await delay(100);
+                continue;
+            }
             let inventory_count = 0, mpot1_count = 0, hpot1_count = 0, map = "", x = 0, y = 0;
             try { inventory_count = character.items.filter(Boolean).length; } catch (e) {}
             try { mpot1_count = character.items.filter(it => it && it.name === "mpot1").reduce((sum, it) => sum + (it.q || 1), 0); } catch (e) {}
@@ -243,9 +246,7 @@ async function status_cache_loop() {
 
             await delay(delayMs);
         }
-    } catch (e) {
-        catcher(e, "Status cache loop fatal error: ");
-    }
+
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
