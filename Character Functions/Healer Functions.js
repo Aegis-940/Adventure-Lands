@@ -734,7 +734,7 @@ const SAFE_HP_THRESHOLD = (2 * character.max_hp) / 3;   // Resume normal if abov
 const SAFE_MP_THRESHOLD = 500;                          // Resume normal if above 500 MP
 const PANIC_AGGRO_THRESHOLD = 99;                       // Panic if this many monsters are targeting you
 const PANIC_WEAPON = "jacko";
-const NORMAL_WEAPON = "orbg";
+const NORMAL_WEAPON = "orboffire";
 
 async function panic_loop() {
     let delayMs = 100;
