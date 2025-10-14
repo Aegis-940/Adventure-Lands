@@ -55,8 +55,8 @@ function stop_loop(name) {
     log(`⏹ ${name.charAt(0).toUpperCase() + name.slice(1)} loop stopped`);
 }
 
-function start_attack_loop() { run_loop("attack", ""); }
-function stop_attack_loop() { stop_loop("attack"); }
+function start_attack_loop() { LOOP_STATES.attack = true; }
+function stop_attack_loop() { LOOP_STATES.attack = false; }
 
 function start_heal_loop() { run_loop("heal", heal_loop); }
 function stop_heal_loop() { stop_loop("heal"); }
@@ -139,7 +139,7 @@ async function heal_loop() {
                 catcher(e, "Heal loop error");
             }
             
-            delayMs = ms_to_next_skill('attack') + character.ping + 50;
+            delayMs = ms_to_next_skill("attack") + character.ping + 50;
             await delay(delayMs);
         }
 
