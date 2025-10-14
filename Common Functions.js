@@ -383,6 +383,9 @@ async function withdraw_item(itemName, level = null, total = null) {
 // ERROR CATCHER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+const CRITICAL_ERROR = "#ff1100ff";
+const GENERAL_ERROR = "#ffa127ff";
+
 function catcher(e, context = "Error") {
     // Map keywords to either a shorthand function or [shorthand, color]
     const keywordMap = {
@@ -395,7 +398,7 @@ function catcher(e, context = "Error") {
                 }
                 return null;
             },
-            "#ffd500ff"
+            GENERAL_ERROR
         ],
         "3shot cooldown": [
             (msg, ctx) => {
@@ -406,7 +409,7 @@ function catcher(e, context = "Error") {
                 }
                 return null;
             },
-            "#ffd500ff"
+            GENERAL_ERROR
         ],
         "5shot cooldown": [
             (msg, ctx) => {
@@ -417,7 +420,7 @@ function catcher(e, context = "Error") {
                 }
                 return null;
             },
-            "#ffd500ff"
+            GENERAL_ERROR
         ],
         "supershot cooldown": [
             (msg, ctx) => {
@@ -428,7 +431,7 @@ function catcher(e, context = "Error") {
                 }
                 return null;
             },
-            "#ffd500ff"
+            GENERAL_ERROR
         ],
         "huntersmark cooldown": [
             (msg, ctx) => {
@@ -439,7 +442,7 @@ function catcher(e, context = "Error") {
                 }
                 return null;
             },
-            "#ffd500ff"
+            GENERAL_ERROR
         ],
         "heal cooldown": [
             (msg, ctx) => {
@@ -450,7 +453,7 @@ function catcher(e, context = "Error") {
                 }
                 return null;
             },
-            "#ffd500ff"
+            GENERAL_ERROR
         ],
         "missing monster": [
             (msg, ctx) => {
@@ -459,7 +462,7 @@ function catcher(e, context = "Error") {
                 }
                 return null;
             },
-            "#ffd500ff"
+            GENERAL_ERROR
         ],
         "out of range": [
             (msg, ctx) => {
@@ -468,7 +471,7 @@ function catcher(e, context = "Error") {
                 }
                 return null;
             },
-            "#ffd500ff"
+            GENERAL_ERROR
         ],
         "out of mana": [
             (msg, ctx) => {
@@ -477,7 +480,7 @@ function catcher(e, context = "Error") {
                 }
                 return null;
             },
-            "#ffd500ff"
+            GENERAL_ERROR
         ],
         // Add more as needed
     };

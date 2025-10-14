@@ -318,7 +318,7 @@ async function attack_loop() {
                         await use_skill("5shot", alive_targets.slice(0, 5).map(m => m.id));
                     } else if (alive_targets.length >= 2 && character.mp >= 200 + 88) {
                         await use_skill("3shot", alive_targets.slice(0, 3).map(m => m.id));
-                    } else if (alive_targets.length >= 1) {
+                    } else if (alive_targets.length >= 1 && character.mp >= 100) {
                         await attack(alive_targets[0]);
                     }
                 }
