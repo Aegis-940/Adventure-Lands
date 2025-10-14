@@ -134,7 +134,7 @@ async function attack_loop() {
                 log(`💖 Healing ${heal_target.name}`, "#00FF00", "General");
                 await heal(heal_target);
             } catch (e) {
-                catcher(e, "(Heal Loop inner)");
+                catcher(e, "Heal loop error");
             }
             delayMs = ms_to_next_skill('attack') + character.ping + 50;
             await delay(delayMs);
@@ -168,7 +168,7 @@ async function attack_loop() {
                 try {
                     await attack(target);
                 } catch (e) {
-                    catcher(e, "(Attack Loop inner)");
+                    catcher(e, "Attack loop error");
                 }
                 delayMs = ms_to_next_skill("attack") + character.ping + 50;
                 await delay(delayMs);
@@ -272,17 +272,20 @@ async function boss_loop() {
 
         // --- Heal or Attack ---
         const heal_target = lowest_health_partymember();
-        if (
-            heal_target &&
-            heal_target.hp < heal_target.max_hp - (character.heal / 1.33) &&
-            is_in_range(heal_target)
-        ) {
-            await heal(heal_target);
-        } else {
-            await attack(boss);
-        }
+        try {
+            if (
+                heal_target &&
+                heal_target.hp < heal_target.max_hp - (character.heal / 1.33) &&
+                is_in_range(heal_target)
+            ) {
+                await heal(heal_target);
+            } else {
+                await attack(boss);
+            }
+        } catch (e) { catcher(e, "Boss attack error"); }
 
-        await delay(ms_to_next_skill('attack') + character.ping + 50);
+        delayMs = ms_to_next_skill('attack') + character.ping + 50;
+        await delay(delayMs);
     }
 
     // 4. Move back to target location
