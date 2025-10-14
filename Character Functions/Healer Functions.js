@@ -329,7 +329,7 @@ async function attack_loop() {
                 } catch (e) {
                     catcher(e, "(Heal Loop inner)");
                 }
-                delayMs = ms_to_next_skill('attack') + character.ping + 30;
+                delayMs = ms_to_next_skill('attack') + character.ping + 50;
                 await delay(delayMs);
                 continue;
             } else if (LOOP_STATES.attack) {
@@ -481,7 +481,7 @@ async function boss_loop() {
                     is_in_range(heal_target)
                 ) {
                     await heal(heal_target);
-                    delayMs = ms_to_next_skill('attack');
+                    delayMs = ms_to_next_skill('attack') + character.ping + 50;
                 }
 
                 // Attack boss if not targeting party
@@ -513,6 +513,7 @@ async function boss_loop() {
 
     } catch (e) {
         catcher(e, "Boss loop outer");
+        await delay(5000);
     } finally {
         LOOP_STATES.boss = false;
         game_log("Boss loop ended unexpectedly", "#ffea00ff");

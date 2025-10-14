@@ -499,6 +499,7 @@ async function boss_loop() {
 
     } catch (e) {
         catcher(e, "Boss loop outer");
+        await delay(5000);
     } finally {
         LOOP_STATES.boss = false;
         game_log("Boss loop ended unexpectedly", "#ffea00ff");

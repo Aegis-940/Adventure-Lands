@@ -240,14 +240,14 @@ async function status_cache_loop() {
                         }
                     });
                 } catch (e) {
-                    game_log("Error sending status to Riff: " + e.message);
+                    catcher(e, "Error sending status to Riff: ");
                 }
             }
 
             await delay(delayMs);
         }
     } catch (e) {
-        game_log("Status cache loop fatal error: " + e.message);
+        catcher(e, "Status cache loop fatal error: ");
     }
 }
 
@@ -287,15 +287,14 @@ async function attack_loop() {
                 try {
                     await attack(target);
                 } catch (e) {
-                    game_log("Attack error: " + e, "#FF0000");
+                    catcher(e, "Attack Loop inner");
                 }
-                delayMs = ms_to_next_skill("attack") + character.ping;
+                delayMs = ms_to_next_skill("attack") + character.ping + 50;
             }
             await delay(delayMs);
         }
     } catch (e) {
-        game_log("⚠️ Attack Loop error:", "#FF0000");
-        game_log(e);
+        catcher(e, "Attack Loop outer");
     } finally {
         LOOP_STATES.attack = false;
         game_log("Attack loop ended unexpectedly", "#ffea00ff");
@@ -353,8 +352,7 @@ async function boss_loop() {
                 await equip(fireblade7_slot, "offhand");
                 await delay(300);
             } catch (e) {
-                game_log("⚠️ Error equipping fireblade:", "#FF0000");
-                game_log(e);
+                catcher(e, "Error equipping fireblade");
             }
         }
 
@@ -367,7 +365,7 @@ async function boss_loop() {
             try {
                 await smart_move(boss_spawn);
             } catch (e) {
-                game_log("Error moving to boss spawn: " + e.message);
+                catcher(e, "Error during smart_move to boss");
             }
         } else {
             game_log("⚠️ Boss spawn location unknown, skipping smart_move.");
@@ -417,31 +415,10 @@ async function boss_loop() {
                     !["Myras", "Ulric", "Riva", character.name].includes(boss.target)
                 ) {
                     await attack(boss);
-                    delayMs = ms_to_next_skill('attack') + character.ping + 20;
+                    delayMs = ms_to_next_skill('attack') + character.ping + 50;
                 }
             } catch (e) {
-                // Robust error message extraction
-                let msg;
-                if (typeof e === "string") {
-                    msg = e;
-                } else if (e && e.message) {
-                    msg = e.message;
-                } else {
-                    try {
-                        msg = JSON.stringify(e);
-                    } catch {
-                        msg = String(e);
-                    }
-                }
-
-                // // Filter out unwanted error messages by keyword
-                // if (msg.includes("cooldown")) {
-                //     // Ignore these errors
-                //     return;
-                // }
-
-                game_log("⚠️ Boss engagement error:", "#FF0000");
-                game_log(msg);
+                catcher(e, "Boss loop attack");
             }
 
             await delay(delayMs);
@@ -460,9 +437,8 @@ async function boss_loop() {
         }
 
     } catch (e) {
-        game_log("⚠️ Boss Loop error:", "#FF0000");
-        game_log(e);
-        await delay(1000);
+        catcher(e, "Boss loop outer");
+        await delay(5000);
     } finally {
         LOOP_STATES.boss = false;
         game_log("Boss loop ended unexpectedly", "#ffea00ff");

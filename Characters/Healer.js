@@ -103,8 +103,7 @@ async function universal_loop_controller() {
         }
 
     } catch (e) {
-        game_log("⚠️ Universal Loop error:", "#FF0000");
-        game_log(e);
+        catcher(e, "Universal loop error")
     }
 }
 
