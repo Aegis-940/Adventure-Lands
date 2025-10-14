@@ -116,9 +116,6 @@ function lowest_health_partymember() {
 let ATTACK_TARGET_LOWEST_HP = true;      // true: lowest HP, false: highest HP
 let ATTACK_PRIORITIZE_UNTARGETED = true; // true: prefer monsters with no target first
 
-// --- Mutually exclusive cooldown lock ---
-let attack_heal_cooldown_until = 0; // ms timestamp
-let attack_heal_lock_owner = null;  // "heal" or "attack" or null
 
 // --- Heal Loop ---
 async function heal_loop() {
@@ -127,12 +124,6 @@ async function heal_loop() {
 
     while (LOOP_STATES.heal) {
         const now = Date.now();
-
-        // Only proceed if cooldown is expired or owned by heal
-        if (now < attack_heal_cooldown_until && attack_heal_lock_owner !== "heal") {
-            await delay(1);
-            continue;
-        }
 
         const heal_target = lowest_health_partymember();
         const should_heal = (
@@ -143,72 +134,56 @@ async function heal_loop() {
 
         if (should_heal && !smart.moving) {
             try {
-                attack_heal_lock_owner = "heal"; // Claim the lock
                 log(`💖 Healing ${heal_target.name}`, "#00FF00", "General");
                 await heal(heal_target);
-                delayMs = ms_to_next_skill('attack') + character.ping + 1;
-                attack_heal_cooldown_until = Date.now() + delayMs;
             } catch (e) {
                 catcher(e, "Heal loop error");
             }
+            
+            delayMs = ms_to_next_skill('attack') + character.ping + 50;
             await delay(delayMs);
-            attack_heal_lock_owner = null; // Release the lock
             continue;
         }
 
-        await delay(1);
+        // If no healing needed, run attack loop ONCE
+        await attack_loop();
     }
 }
 
-// --- Attack Loop ---
+// --- Attack Loop (single iteration) ---
 async function attack_loop() {
-    LOOP_STATES.attack = true;
-    let delayMs = 50;
+    if (!LOOP_STATES.attack) return;
 
-    while (LOOP_STATES.attack) {
-        const now = Date.now();
+    // Gather all valid monsters in range
+    const monsters = Object.values(parent.entities).filter(e =>
+        e.type === "monster" &&
+        MONSTER_TYPES.includes(e.mtype) &&
+        !e.dead &&
+        e.visible &&
+        parent.distance(character, e) <= character.range
+    );
 
-        // Only proceed if cooldown is expired, not owned by heal, and not owned by attack
-        if (now < attack_heal_cooldown_until && attack_heal_lock_owner !== "attack") {
-            await delay(1);
-            continue;
-        }
+    // Prioritize: cursed > highest HP
+    let target = monsters.find(m => m.s && m.s.cursed)
+        || (monsters.length ? monsters.reduce((a, b) => (b.hp < a.hp ? a : b)) : null);
 
-        // --- Attacking ---
-        const monsters = Object.values(parent.entities).filter(e =>
-            e.type === "monster" &&
-            MONSTER_TYPES.includes(e.mtype) &&
-            !e.dead &&
-            e.visible &&
-            parent.distance(character, e) <= character.range
-        );
+    const monsters_targeting_me = monsters.filter(e => e.target === character.name).length;
 
-        let target = monsters.find(m => m.s && m.s.cursed)
-            || (monsters.length ? monsters.reduce((a, b) => (b.hp < a.hp ? a : b)) : null);
-
-        const monsters_targeting_me = monsters.filter(e => e.target === character.name).length;
-
-        if (
-            target &&
-            is_in_range(target) &&
-            !smart.moving &&
-            character.mp >= 3000 &&
-            monsters_targeting_me < 5
-        ) {
-            try {
-                attack_heal_lock_owner = "attack"; // Claim the lock
-                await attack(target);
-                delayMs = ms_to_next_skill("attack") + character.ping + 1;
-                attack_heal_cooldown_until = Date.now() + delayMs;
-            } catch (e) {
-                catcher(e, "Attack loop error");
-            }
+    if (
+        target &&
+        is_in_range(target) &&
+        !smart.moving &&
+        character.mp >= 3000 &&
+        monsters_targeting_me < 5
+    ) {
+        try {
+            await attack(target);
+            let delayMs = ms_to_next_skill("attack") + character.ping + 1;
+            attack_heal_cooldown_until = Date.now() + delayMs;
             await delay(delayMs);
-            attack_heal_lock_owner = null; // Release the lock
-            continue;
+        } catch (e) {
+            catcher(e, "Attack loop error");
         }
-
-        await delay(1);
     }
 }
 
