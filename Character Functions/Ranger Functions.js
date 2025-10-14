@@ -154,117 +154,12 @@ function stop_general_boss_loop() {
     game_log("⏹ Status general_boss loop stopped");
 }
 
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// STATUS CACHE LOOP
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-async function status_cache_loop() {
-    LOOP_STATES.cache = true;
-    let delayMs = 5000;
-
-    try {
-        while (LOOP_STATES.cache) {
-            let inventory_count = 0, mpot1_count = 0, hpot1_count = 0, map = "", x = 0, y = 0;
-            try { inventory_count = character.items.filter(Boolean).length; } catch (e) {}
-            try { mpot1_count = character.items.filter(it => it && it.name === "mpot1").reduce((sum, it) => sum + (it.q || 1), 0); } catch (e) {}
-            try { hpot1_count = character.items.filter(it => it && it.name === "hpot1").reduce((sum, it) => sum + (it.q || 1), 0); } catch (e) {}
-            try { map = character.map; x = character.x; y = character.y; } catch (e) {}
-
-            // Only send status if inventory is 20+ or either potion is below 2000
-            if (
-                inventory_count >= 30 ||
-                mpot1_count < 2000 ||
-                hpot1_count < 2000
-            ) {
-                try {
-                    send_cm("Riff", {
-                        type: "status_update",
-                        data: {
-                            name: character.name,
-                            inventory: inventory_count,
-                            mpot1: mpot1_count,
-                            hpot1: hpot1_count,
-                            map: map,
-                            x: x,
-                            y: y,
-                            lastSeen: Date.now()
-                        }
-                    });
-                } catch (e) {
-                    catcher(e, "Error sending status to Riff: ");
-                }
-            }
-
-            await delay(delayMs);
-        }
-
-    } catch (e) {
-        catcher(e, "Status cache loop fatal error: ");
-    }
-}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SUPPORT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function ms_to_next_skill(skill) {
-	const next_skill = parent.next_skill[skill]
-	if (next_skill == undefined) return 0
-	const ms = parent.next_skill[skill].getTime() - Date.now() - Math.min(...parent.pings) - character.ping;
-	return ms < 0 ? 0 : ms;
-}
 
-function get_nearest_monster_v2(args = {}) {
-    let min_d = 999999, target = null;
-    let optimal_hp = args.check_max_hp ? 0 : 999999999; // Set initial optimal HP based on whether we're checking for max or min HP
-
-    for (let id in parent.entities) {
-        let current = parent.entities[id];
-        if (current.type != "monster" || !current.visible || current.dead) continue;
-        if (args.type && current.mtype != args.type) continue;
-        if (args.min_level !== undefined && current.level < args.min_level) continue;
-        if (args.max_level !== undefined && current.level > args.max_level) continue;
-        if (args.target && !args.target.includes(current.target)) continue;
-        if (args.no_target && current.target && current.target != character.name) continue;
-
-        // Status effects (debuffs/buffs) check
-        if (args.statusEffects && !args.statusEffects.every(effect => current.s[effect])) continue;
-
-        // Min/max XP check
-        if (args.min_xp !== undefined && current.xp < args.min_xp) continue;
-        if (args.max_xp !== undefined && current.xp > args.max_xp) continue;
-
-        // Attack power limit
-        if (args.max_att !== undefined && current.attack > args.max_att) continue;
-
-        // Path check
-        if (args.path_check && !can_move_to(current)) continue;
-
-        // Distance calculation
-        let c_dist = args.point_for_distance_check
-            ? Math.hypot(args.point_for_distance_check[0] - current.x, args.point_for_distance_check[1] - current.y)
-            : parent.distance(character, current);
-
-        if (args.max_distance !== undefined && c_dist > args.max_distance) continue;
-
-        // Generalized HP check (min or max)
-        if (args.check_min_hp || args.check_max_hp) {
-            let c_hp = current.hp;
-            if ((args.check_min_hp && c_hp < optimal_hp) || (args.check_max_hp && c_hp > optimal_hp)) {
-                optimal_hp = c_hp;
-                target = current;
-            }
-            continue;
-        }
-
-        // If no specific HP check, choose the closest monster
-        if (c_dist < min_d) {
-            min_d = c_dist;
-            target = current;
-        }
-    }
-    return target;
-}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // ATTACK LOOP
