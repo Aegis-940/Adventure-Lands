@@ -137,37 +137,6 @@ add_cm_listener((name, data) => {
 });
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// CONSUME POTS
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-function pots() {
-	// Calculate missing HP/MP
-	const hpMissing = character.max_hp - character.hp;
-	const mpMissing = character.max_mp - character.mp;
-
-	// Use health logic (or priest special)
-	if (hpMissing >= 400 && character.ctype !== 'priest' && !is_on_cooldown("use_hp")) {
-		if (can_use("hp")) {
-			// Everyone else: normal HP potion
-			use("hp");
-		}
-	}
-
-	if (hpMissing >= 720 && character.ctype === 'priest') {
-		if (can_use("partyheal")) {
-			use_skill("partyheal");
-		}
-	}
-
-	// Use mana potion if needed (non-priest or extra MP for priests)
-	if (mpMissing >= 500 || character.mp < 720 && !is_on_cooldown("use_mp")) {
-		if (can_use("mp")) {
-			use("mp");
-		}
-	}
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
 // SCAN BANK
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -409,60 +378,6 @@ async function withdraw_item(itemName, level = null, total = null) {
 		game_log(`⚠️ Only retrieved ${got}/${total} of ${itemName}.`);
 	}
 }
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// FOLLOW PRIEST
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-let follow_priest_enabled = false;
-let follow_priest_interval = null;
-let currently_smart_moving = false;
-
-function toggle_follow_priest(state) {
-    follow_priest_enabled = state;
-
-    if (state && !follow_priest_interval) {
-        follow_priest_loop(); // run immediately
-        follow_priest_interval = setInterval(follow_priest_loop, 500);
-    } else if (!state && follow_priest_interval) {
-        clearInterval(follow_priest_interval);
-        follow_priest_interval = null;
-    }
-}
-
-function request_priest_location() {
-    send_cm("Myras", { type: "where_are_you" });
-}
-
-async function follow_priest_loop() {
-    if (!follow_priest_enabled || character.name === "Myras" || currently_smart_moving) return;
-
-    request_priest_location();
-    const priest_location = location_responses["Myras"];
-    if (!priest_location) return;
-    const { map, x, y } = priest_location;
-
-    if (character.map === map) {
-        const dist = Math.hypot(x - character.x, y - character.y);
-
-        if (dist > 15) {
-            // Cancel existing move command
-            if (character.moving) stop();
-
-            // Move toward priest
-            move(x, y);
-        }
-    } else {
-        currently_smart_moving = true;
-        try {
-            await smart_move({ map, x, y });
-        } catch (e) {
-            // Smart move failed (e.g. can't path), ignore
-        }
-        currently_smart_moving = false;
-    }
-}
-
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // ERROR CATCHER

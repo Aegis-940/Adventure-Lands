@@ -342,6 +342,8 @@ async function attack_loop() {
 
 const BOSSES = ["mrpumpkin", "mrgreen"];
 
+let last_supershot_time = 0;
+
 async function boss_loop() {
     LOOP_STATES.boss = true;
     let delayMs = 100;
@@ -451,10 +453,12 @@ async function boss_loop() {
                     !["Myras", "Ulric", "Riva", character.name].includes(boss.target)
                 ) {
                     if (!is_on_cooldown("huntersmark")) {
-                        await use_skill("huntersmark", boss);
+                        use_skill("huntersmark", boss);
                     }
-                    else if (!is_on_cooldown("supershot")) {
+                    const now = Date.now();
+                    if (now - last_supershot_time >= 21000) { // 21 seconds
                         await use_skill("supershot", boss);
+                        last_supershot_time = now;
                     } else {
                         await attack(boss);
                     }
