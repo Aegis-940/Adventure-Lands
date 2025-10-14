@@ -310,15 +310,19 @@ async function attack_loop() {
                 }
                 if (smart.moving) {
                     return; // Skip attacking while smart moving
+                } else {
+                    // Filter out dead monsters before using their IDs
+                    const alive_targets = sorted_targets.filter(m => m && !m.dead);
+
+                    if (alive_targets.length >= 5 && character.mp >= 320 + 88) {
+                        await use_skill("5shot", alive_targets.slice(0, 5).map(m => m.id));
+                    } else if (alive_targets.length >= 2 && character.mp >= 200 + 88) {
+                        await use_skill("3shot", alive_targets.slice(0, 3).map(m => m.id));
+                    } else if (alive_targets.length >= 1) {
+                        await attack(alive_targets[0]);
+                    }
                 }
-                if (sorted_targets.length >= 5 && character.mp >= 320 + 88) {
-                    await use_skill("5shot", sorted_targets.map(m => m.id));
-                } else if (sorted_targets.length >= 2 && character.mp >= 200 + 88) {
-                    await use_skill("3shot", sorted_targets.map(m => m.id));
-                } else if (sorted_targets.length >= 1) {
-                    await attack(sorted_targets[0]);
-                }
-                delayMs = ms_to_next_skill("attack") + character.ping + 20;
+                delayMs = ms_to_next_skill("attack") + character.ping + 50;
             } catch (e) {
                 catcher(e, "Attack Loop inner");
             }
