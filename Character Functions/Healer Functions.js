@@ -123,7 +123,6 @@ async function heal_loop() {
     let delayMs = 50;
 
     while (LOOP_STATES.heal) {
-        const now = Date.now();
 
         const heal_target = lowest_health_partymember();
         const should_heal = (
@@ -132,7 +131,7 @@ async function heal_loop() {
             is_in_range(heal_target)
         );
 
-        if (should_heal && !smart.moving) {
+        if (should_heal) {
             try {
                 log(`💖 Healing ${heal_target.name}`, "#00FF00", "General");
                 await heal(heal_target);
@@ -142,7 +141,6 @@ async function heal_loop() {
             
             delayMs = ms_to_next_skill('attack') + character.ping + 50;
             await delay(delayMs);
-            continue;
         }
 
         // If no healing needed, run attack loop ONCE

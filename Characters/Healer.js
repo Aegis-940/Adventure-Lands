@@ -60,7 +60,7 @@ async function universal_loop_controller() {
         // --- Ensure essential loops are always running ---
         if (!LOOP_STATES.potion) start_potions_loop();
         if (!LOOP_STATES.loot) start_loot_loop();
-        // if (!LOOP_STATES.heal) start_heal_loop();
+        if (!LOOP_STATES.heal) start_heal_loop();
         if (!LOOP_STATES.panic) start_panic_loop();
         if (!LOOP_STATES.cache) start_status_cache_loop();
 
@@ -92,7 +92,7 @@ async function universal_loop_controller() {
         } else  {
             // if (!LOOP_STATES.general_boss) start_general_boss_loop();
             if (!LOOP_STATES.skill) start_skill_loop();
-            // if (!LOOP_STATES.attack) start_attack_loop();
+            if (!LOOP_STATES.attack) start_attack_loop();
 
             if (TARGET_LOC.orbit) {
                 const at_target = character.x === TARGET_LOC.x && character.y === TARGET_LOC.y;
