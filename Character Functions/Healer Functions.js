@@ -51,6 +51,7 @@ async function run_loop(name, fn) {
 function stop_loop(name) {
     if (!LOOP_STATES[name]) return;
     LOOP_STATES[name] = false;
+    LOOP_STATES[name + "_running"] = false; // Ensure running flag is cleared
     log(`⏹ ${name.charAt(0).toUpperCase() + name.slice(1)} loop stopped`);
 }
 
