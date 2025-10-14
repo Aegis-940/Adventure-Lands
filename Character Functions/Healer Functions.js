@@ -145,6 +145,8 @@ async function heal_loop() {
 
         // If no healing needed, run attack loop ONCE
         await attack_loop();
+
+        await delay(50);
     }
 }
 
