@@ -341,7 +341,7 @@ const BOSSES = ["mrpumpkin", "mrgreen"];
 async function boss_loop() {
     LOOP_STATES.boss = true;
     let delayMs = 100;
-    log("⚠️ Boss detected ⚠️", "Alerts");
+    log("⚠️ Boss Detected ⚠️", "#f200ffff", "Alerts");
 
     try {
         // 1. Find all alive bosses and pick the one with the lowest HP (fallback: oldest spawn)
@@ -814,7 +814,7 @@ async function panic_loop() {
             if (low_health || monsters_targeting_me) {
                 if (!panicking) {
                     panicking = true;
-                    log("⚠️ Panic triggered: Low health or aggro!", "#ffcc00", "Alerts");
+                    log("⚠️ Panic triggered!", "#ffcc00", "Alerts");
                 }
 
                 // Always ensure jacko is equipped
@@ -839,7 +839,7 @@ async function panic_loop() {
             else if (high_health) {
                 if (panicking) {
                     panicking = false;
-                    log("✅ Panic over — resuming normal operations.", "#00ff26ff", "Alerts");
+                    log("✅ Panic over...", "#00ff26ff", "Alerts");
                 }
                 const orbg_slot = locate_item(NORMAL_WEAPON);
                 if (character.slots.orb?.name !== NORMAL_WEAPON && orbg_slot !== -1) {

@@ -24,10 +24,10 @@ create_custom_log_window();
 
 // --- Helper: Handle death and respawn ---
 async function handle_death_and_respawn() {
-    stop_attack_loop();
-    stop_orbit_loop();
-    stop_panic_loop();
-    stop_boss_loop();
+    if (LOOP_STATES.attack) stop_attack_loop();
+    if (LOOP_STATES.orbit) stop_orbit_loop();
+    if (LOOP_STATES.panic) stop_panic_loop();
+    if (LOOP_STATES.boss) stop_boss_loop();
     panicking = false;
 
     await delay(30000);
@@ -71,7 +71,6 @@ async function universal_loop_controller() {
         // --- Handle panic state ---
         } else if (panicking) {
 
-            if (!LOOP_STATES.panic) start_panic_loop();
             if (LOOP_STATES.attack) stop_attack_loop();
             // if (LOOP_STATES.skill) stop_skill_loop();
             if (LOOP_STATES.boss) stop_boss_loop();
@@ -104,8 +103,7 @@ async function universal_loop_controller() {
         }
 
     } catch (e) {
-        game_log("⚠️ Universal Loop error:", "#FF0000");
-        game_log(e);
+        catcher(e, "Universal loop error")
     }
 }
 
