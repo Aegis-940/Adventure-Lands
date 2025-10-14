@@ -30,17 +30,16 @@ function start_attack_loop() {
     game_log("▶️ Attack loop started");
 }
 
-function start_heal_loop() {
-    if (LOOP_STATES.heal) return;
-    LOOP_STATES.heal = true;
-    if (!attack_loop_running) attack_loop();
-    game_log("▶️ Heal loop started");
+function stop_attack_loop() {
+    if (!LOOP_STATES.attack) return;
+    LOOP_STATES.attack = false;
+    game_log("⏹ Attack loop stopped");
 }
 
 function start_heal_loop() {
     if (LOOP_STATES.heal) return;
     LOOP_STATES.heal = true;
-    attack_loop();
+    if (!attack_loop_running) attack_loop();
     game_log("▶️ Heal loop started");
 }
 
