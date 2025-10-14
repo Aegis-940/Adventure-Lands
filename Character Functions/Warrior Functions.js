@@ -308,7 +308,10 @@ async function attack_loop() {
 const BOSSES = ["mrpumpkin", "mrgreen"];
 
 async function boss_loop() {
-    LOOP_STATES.boss = true;
+    if (LOOP_STATES.boss) {
+        log("Boss loop already running, aborting duplicate.", "#ff0000ff");
+        return;
+    }
     let delayMs = 100;
     game_log("⚠️ Boss detected ⚠️", "#ff00e6ff");
 

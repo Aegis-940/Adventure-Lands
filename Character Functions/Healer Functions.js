@@ -391,6 +391,10 @@ async function attack_loop() {
 const BOSSES = ["mrpumpkin", "mrgreen"];
 
 async function boss_loop() {
+    if (LOOP_STATES.boss) {
+        log("Boss loop already running, aborting duplicate.", "#ff0000ff");
+        return;
+    }
     LOOP_STATES.boss = true;
     let delayMs = 100;
     game_log("⚠️ Boss detected ⚠️", "#ff00e6ff");
@@ -485,10 +489,7 @@ async function boss_loop() {
                 }
 
                 // Attack boss if not targeting party
-                else if (
-                    boss.target &&
-                    !["Myras", "Ulric", "Riva", character.name].includes(boss.target)
-                ) {
+                else {
                     await attack(boss);
                     delayMs = ms_to_next_skill('attack') + character.ping + 50;
                 }

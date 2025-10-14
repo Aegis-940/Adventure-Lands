@@ -7,12 +7,12 @@ const UPGRADE_INTERVAL = 75;
 
 const UPGRADE_PROFILE = {
   pouchbow:    { scroll0_until: 3, scroll1_until: 6, scroll2_until: 8, primling_from: 7, max_level: 8 },
-  fireblade:   { scroll0_until: 0, scroll1_until: 4, scroll2_until: 7, primling_from: 6, max_level: 6 },
-  firebow:     { scroll0_until: 0, scroll1_until: 4, scroll2_until: 7, primling_from: 6, max_level: 6 },
-  firestaff:   { scroll0_until: 0, scroll1_until: 4, scroll2_until: 7, primling_from: 6, max_level: 6 },
+  fireblade:   { scroll0_until: 0, scroll1_until: 4, scroll2_until: 7, primling_from: 7, max_level: 7 },
+  firebow:     { scroll0_until: 0, scroll1_until: 4, scroll2_until: 7, primling_from: 7, max_level: 7 },
+  firestaff:   { scroll0_until: 0, scroll1_until: 4, scroll2_until: 7, primling_from: 7, max_level: 7 },
   hbow:        { scroll0_until: 3, scroll1_until: 6, scroll2_until: 8, primling_from: 7, max_level: 7 },
   wingedboots: { scroll0_until: 2, scroll1_until: 6, scroll2_until: 8, primling_from: 7, max_level: 6 },
-  basher:      { scroll0_until: 0, scroll1_until: 3, scroll2_until: 6, primling_from: 5, max_level: 3 },
+  basher:      { scroll0_until: 0, scroll1_until: 3, scroll2_until: 6, primling_from: 5, max_level: 6 },
   cape:        { scroll0_until: 0, scroll1_until: 5, scroll2_until: 6, primling_from: 5, max_level: 5 },
   coat:        { scroll0_until: 4, scroll1_until: 8, scroll2_until: 9, primling_from: 8, max_level: 8 },
   ololipop:    { scroll0_until: 3, scroll1_until: 6, scroll2_until: 9, primling_from: 5, max_level: 5 },
