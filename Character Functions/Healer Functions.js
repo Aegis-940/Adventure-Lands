@@ -6,7 +6,7 @@
 const LOOP_STATES = {
 
     attack: false,
-    heal: false,
+    heal: true,
     move: false,
     skill: false,
     panic: false,
@@ -57,8 +57,8 @@ function stop_loop(name) {
 function start_attack_loop() { run_loop("attack", attack_loop); }
 function stop_attack_loop() { stop_loop("attack"); }
 
-function start_heal_loop() { run_loop("heal"); }
-function stop_heal_loop() { stop_loop("heal"); }
+// function start_heal_loop() { run_loop("heal", attack_loop); }
+// function stop_heal_loop() { stop_loop("heal"); }
 
 function start_move_loop() { run_loop("move", move_loop); }
 function stop_move_loop() { stop_loop("move"); }
