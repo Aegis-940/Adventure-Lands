@@ -92,7 +92,7 @@ async function universal_loop_controller() {
         } else  {
             // if (!LOOP_STATES.general_boss) start_general_boss_loop();
             if (!LOOP_STATES.skill) start_skill_loop();
-            if (!LOOP_STATES.attack) start_attack_loop();
+            // if (!LOOP_STATES.attack) start_attack_loop();
 
             if (TARGET_LOC.orbit) {
                 const at_target = character.x === TARGET_LOC.x && character.y === TARGET_LOC.y;
