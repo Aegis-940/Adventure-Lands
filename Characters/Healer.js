@@ -17,25 +17,11 @@ create_map_movement_window([
 
 hide_skills_ui();
 create_custom_log_window();
+heal_attack_loop();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // UNIVERSAL LOOP CONTROL
 // --------------------------------------------------------------------------------------------------------------------------------- //
-
-// --- Helper: Handle death and respawn ---
-async function handle_death_and_respawn() {
-    if (LOOP_STATES.attack) stop_attack_loop();
-    if (LOOP_STATES.orbit) stop_orbit_loop();
-    if (LOOP_STATES.panic) stop_panic_loop();
-    if (LOOP_STATES.boss) stop_boss_loop();
-    panicking = false;
-
-    await delay(30000);
-    await respawn();
-    await delay(5000);
-    await smart_move(TARGET_LOC);
-    if (!LOOP_STATES.panic) start_panic_loop();
-}
 
 // --- Helper: Boss alive check ---
 function is_boss_alive() {
@@ -51,59 +37,87 @@ function is_boss_alive() {
     });
 }
 
-async function universal_loop_controller() {
+const STATES = {
+    DEAD: "dead",
+    PANIC: "panic",
+    BOSS: "boss",
+    NORMAL: "normal"
+};
 
-	try {
+function get_character_state() {
+    if (character.rip) return STATES.DEAD;
+    if (panicking) return STATES.PANIC;
+    if (is_boss_alive()) return STATES.BOSS;
+    return STATES.NORMAL;
+}
 
-        // --- Boss detection ---
-        let boss_alive = is_boss_alive();
+async function set_loops(state) {
+    // Always-on loops
+    if (!LOOP_STATES.potion) start_potions_loop();
+    if (!LOOP_STATES.loot) start_loot_loop();
+    if (!LOOP_STATES.heal) start_heal_loop();
+    if (!LOOP_STATES.cache) start_status_cache_loop();
 
-        // --- Ensure essential loops are always running ---
-        if (!LOOP_STATES.potion) start_potions_loop();
-        if (!LOOP_STATES.loot) start_loot_loop();
-        if (!LOOP_STATES.heal) start_heal_loop();
-        if (!LOOP_STATES.cache) start_status_cache_loop();
-
-        // --- Handle death and respawn ---
-        if (character.rip) {
-            await handle_death_and_respawn();
-
-        // --- Handle panic state ---
-        } else if (panicking) {
-
+    // State-specific
+    switch (state) {
+        case STATES.DEAD:
+            panicking = false;
             if (LOOP_STATES.attack) stop_attack_loop();
-            if (LOOP_STATES.skill) stop_skill_loop();
-            if (LOOP_STATES.boss) stop_boss_loop();
-            // if (LOOP_STATES.general_boss) stop_general_boss_loop();
-
-        // --- Handle boss logic ---
-        } else if (boss_alive) {
-
-            if (LOOP_STATES.attack) stop_attack_loop();
-            if (LOOP_STATES.skill) stop_skill_loop();
             if (LOOP_STATES.orbit) stop_orbit_loop();
+            if (LOOP_STATES.panic) stop_panic_loop();
+            if (LOOP_STATES.boss) stop_boss_loop();
+
+            await delay(30000);
+            await respawn();
+            await delay(5000);
+            await smart_move(TARGET_LOC);
+
+            if (!LOOP_STATES.panic) start_panic_loop();
+
+            break;
+
+        case STATES.PANIC:
+            stop_attack_loop();
+            stop_skill_loop();
+            stop_boss_loop();
+
+            break;
+
+        case STATES.BOSS:
+            stop_attack_loop();
+            stop_skill_loop();
+            stop_orbit_loop();
+
             if (!LOOP_STATES.boss) start_boss_loop();
 
-        // --- Stop boss loop if no boss is alive ---
-        } else if (!boss_alive && LOOP_STATES.boss) {
-            stop_boss_loop();
-        
-        // --- Normal grind logic ---
-        } else  {
-            // if (!LOOP_STATES.general_boss) start_general_boss_loop();
+            break;
+
+        case STATES.NORMAL:
+            if (LOOP_STATES.boss) stop_boss_loop();
             if (!LOOP_STATES.skill) start_skill_loop();
             if (!LOOP_STATES.attack) start_attack_loop();
 
+            // Orbit logic
             if (TARGET_LOC.orbit) {
                 const at_target = character.x === TARGET_LOC.x && character.y === TARGET_LOC.y;
                 const near_target = parent.distance(character, TARGET_LOC) <= 50;
                 if (near_target && !LOOP_STATES.orbit && !smart.moving) smart_move(TARGET_LOC);
                 if (!LOOP_STATES.orbit && at_target) start_orbit_loop();
             }
-        }
 
+            break;
+    }
+}
+
+async function loop_controller() {
+    try {
+        const state = get_character_state();
+        if (state === STATES.DEAD) {
+            await handle_death_and_respawn();
+        }
+        set_loops(state);
     } catch (e) {
-        catcher(e, "Universal loop error")
+        catcher(e, "Loop Controller error");
     }
 }
 
@@ -124,7 +138,7 @@ setInterval(() => {
 
 	// === Core utility loops ===
 	party_manager();
-	universal_loop_controller();
+	loop_controller();
 
 	if (!attack_mode || character.rip || is_moving(character)) return;
 

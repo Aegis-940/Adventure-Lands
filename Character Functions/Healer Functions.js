@@ -58,8 +58,8 @@ function stop_loop(name) {
 function start_attack_loop() { LOOP_STATES.attack = true; }
 function stop_attack_loop() { LOOP_STATES.attack = false; }
 
-function start_heal_loop() { run_loop("heal", heal_loop); }
-function stop_heal_loop() { stop_loop("heal"); }
+function start_heal_loop() { LOOP_STATES.heal = true; }
+function stop_heal_loop() { LOOP_STATES.heal = false; }
 
 function start_move_loop() { run_loop("move", move_loop); }
 function stop_move_loop() { stop_loop("move"); }
@@ -116,14 +116,12 @@ function lowest_health_partymember() {
 let ATTACK_TARGET_LOWEST_HP = true;      // true: lowest HP, false: highest HP
 let ATTACK_PRIORITIZE_UNTARGETED = true; // true: prefer monsters with no target first
 
-
-// --- Heal Loop ---
-async function heal_loop() {
-
+async function heal_attack_loop() {
+    // This loop is designed to be called ONCE and runs forever
     let delayMs = 50;
 
-    while (LOOP_STATES.heal) {
-
+    while (true) {
+        // --- Target selection ---
         const heal_target = lowest_health_partymember();
         const should_heal = (
             heal_target &&
@@ -131,71 +129,56 @@ async function heal_loop() {
             is_in_range(heal_target)
         );
 
-        if (should_heal) {
+        // --- Healing logic ---
+        if (should_heal && LOOP_STATES.heal) {
             try {
                 log(`💖 Healing ${heal_target.name}`, "#00FF00", "General");
                 await heal(heal_target);
             } catch (e) {
                 catcher(e, "Heal loop error");
             }
-            
             delayMs = ms_to_next_skill("attack") + character.ping + 50;
             await delay(delayMs);
+            continue;
         }
 
-        // If no healing needed, run attack loop ONCE
-        await attack_loop();
+        // --- Attacking logic ---
+        else if (LOOP_STATES.attack) {
+            // Gather all valid monsters in range
+            const monsters = Object.values(parent.entities).filter(e =>
+                e.type === "monster" &&
+                MONSTER_TYPES.includes(e.mtype) &&
+                !e.dead &&
+                e.visible &&
+                parent.distance(character, e) <= character.range
+            );
 
+            // Prioritize: cursed > highest HP
+            let target = monsters.find(m => m.s && m.s.cursed)
+                || (monsters.length ? monsters.reduce((a, b) => (b.hp < a.hp ? a : b)) : null);
+
+            const monsters_targeting_me = monsters.filter(e => e.target === character.name).length;
+
+            if (
+                target &&
+                is_in_range(target) &&
+                !smart.moving &&
+                character.mp >= 3000 &&
+                monsters_targeting_me < 5
+            ) {
+                try {
+                    await attack(target);
+                } catch (e) {
+                    catcher(e, "Attack loop error");
+                }
+                delayMs = ms_to_next_skill("attack") + character.ping + 50;
+                await delay(delayMs);
+                continue;
+            }
+        }
+
+        // --- If nothing to do, short delay ---
         await delay(50);
-    }
-}
-
-// --- Attack Loop (single iteration, with pre-attack heal check) ---
-async function attack_loop() {
-    if (!LOOP_STATES.attack) return;
-
-    // Check if anyone needs healing before attacking
-    const heal_target = lowest_health_partymember();
-    const should_heal = (
-        heal_target &&
-        heal_target.hp < heal_target.max_hp - (character.heal / 1.5) &&
-        is_in_range(heal_target)
-    );
-
-    if (should_heal) {
-        // Skip attacking if healing is needed
-        return;
-    }
-
-    // Gather all valid monsters in range
-    const monsters = Object.values(parent.entities).filter(e =>
-        e.type === "monster" &&
-        MONSTER_TYPES.includes(e.mtype) &&
-        !e.dead &&
-        e.visible &&
-        parent.distance(character, e) <= character.range
-    );
-
-    // Prioritize: cursed > highest HP
-    let target = monsters.find(m => m.s && m.s.cursed)
-        || (monsters.length ? monsters.reduce((a, b) => (b.hp < a.hp ? a : b)) : null);
-
-    const monsters_targeting_me = monsters.filter(e => e.target === character.name).length;
-
-    if (
-        target &&
-        is_in_range(target) &&
-        !smart.moving &&
-        character.mp >= 3000 &&
-        monsters_targeting_me < 5
-    ) {
-        try {
-            await attack(target);
-        } catch (e) {
-            catcher(e, "Attack loop error");
-        }
-        let delayMs = ms_to_next_skill("attack") + character.ping;
-        await delay(delayMs);
     }
 }
 
