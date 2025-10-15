@@ -30,7 +30,7 @@ const HEALER_CONFIG = {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const LOOP_NAMES = [
-    "attack", "heal", "move", "skill", "panic", "loot", "potion", "orbit", "boss", "cache"
+    "attack", "heal", "move", "skill", "panic", "loot", "potions", "orbit", "boss", "cache"
 ];
 
 for (const name of LOOP_NAMES) {
