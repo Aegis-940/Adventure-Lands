@@ -39,8 +39,6 @@ for (const name of LOOP_NAMES) {
     globalThis[`stop_${name}_loop`] = () => { LOOP_STATES[name] = false; };
 }
 
-
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SUPPORT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -102,10 +100,12 @@ async function attack_loop() {
                 }
             }
             delayMs = ms_to_next_skill("attack") + character.ping + 50;
+            await delay(delayMs);
+            continue;   
         } catch (e) {
             catcher(e, "Attack Loop error ");
         }
-        await delay(delayMs);
+        await delay(50);        
     }
 }
 

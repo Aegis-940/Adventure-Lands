@@ -96,7 +96,7 @@ async function set_loops(state) {
 
         case STATES.NORMAL:
             if (LOOP_STATES.boss) stop_boss_loop();
-            if (!LOOP_STATES.skill) start_skill_loop();
+            // if (!LOOP_STATES.skill) start_skill_loop();
             if (!LOOP_STATES.attack) start_attack_loop();
 
             // Orbit logic
