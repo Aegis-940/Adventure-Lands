@@ -6,13 +6,13 @@
 const LOOP_STATES = {
 
     attack: false,
-    heal: false,
+    heal: true,
     move: false,
     skill: false,
     panic: false,
     orbit: false,
     boss: false,
-    potion: false,
+    potion: true,
 
 }
 
@@ -556,7 +556,7 @@ async function potions_loop() {
     while (true) {
         // Check if potion loop is enabled
         if (!LOOP_STATES.potion) {
-            await delay(2010);
+            await delay(200);
             continue;
         }
         // Calculate missing HP/MP
@@ -566,7 +566,7 @@ async function potions_loop() {
         let used_potion = false;
 
         // Use mana potion if needed
-        if (MP_MISSING >= 500) {
+        if (MP_MISSING >= 400) {
             if (can_use("mp")) {
                 use("mp");
                 used_potion = true;
@@ -574,7 +574,7 @@ async function potions_loop() {
         }
 
         // Use health potion if needed
-        else if (HP_MISSING >= 400) {
+        else if (HP_MISSING >= 300) {
             if (can_use("hp")) {
                 use("hp");
                 used_potion = true;
