@@ -293,7 +293,7 @@ async function boss_loop() {
                 // Only attack if boss is not targeting party
                 if (
                     boss.target &&
-                    !["Myras", "Ulric", "Riva", character.name].includes(boss.target)
+                    ![character.name].includes(boss.target)
                 ) {
                     await attack(boss);
                     delayMs = ms_to_next_skill('attack') + character.ping + 50;

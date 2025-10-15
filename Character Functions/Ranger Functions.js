@@ -343,7 +343,7 @@ async function boss_loop() {
                 // Only attack if boss is not targeting party
                 if (
                     boss.target &&
-                    !["Myras", "Ulric", "Riva", character.name].includes(boss.target)
+                    ![character.name].includes(boss.target)
                 ) {
                     if (!is_on_cooldown("huntersmark")) {
                         use_skill("huntersmark", boss);
