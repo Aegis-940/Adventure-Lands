@@ -54,7 +54,6 @@ async function set_loops(state) {
     // Always-on loops
     if (!LOOP_STATES.potion) start_potions_loop();
     if (!LOOP_STATES.loot) start_loot_loop();
-    if (!LOOP_STATES.heal) start_heal_loop();
     if (!LOOP_STATES.cache) start_status_cache_loop();
 
     // State-specific
@@ -62,6 +61,7 @@ async function set_loops(state) {
         case STATES.DEAD:
             panicking = false;
             if (LOOP_STATES.attack) stop_attack_loop();
+            if (LOOP_STATES.heal) stop_heal_loop();
             if (LOOP_STATES.orbit) stop_orbit_loop();
             if (LOOP_STATES.panic) stop_panic_loop();
             if (LOOP_STATES.boss) stop_boss_loop();
@@ -73,6 +73,8 @@ async function set_loops(state) {
             await smart_move(TARGET_LOC);
 
             if (!LOOP_STATES.panic) start_panic_loop();
+            if (!LOOP_STATES.attack) start_attack_loop();
+            if (!LOOP_STATES.heal) start_heal_loop();
 
             break;
 
