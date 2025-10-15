@@ -83,7 +83,6 @@ async function heal_attack_loop() {
                 heal_target.hp < heal_target.max_hp - (character.heal / 1.5) &&
                 is_in_range(heal_target)
             );
-            log(`heal_target: ${heal_target ? heal_target.name : "none"}, hp: ${heal_target ? heal_target.hp : "n/a"}, should_heal: ${should_heal}`, "#aaa");
             // --- Healing logic ---
             if (should_heal && LOOP_STATES.heal) {
                 try {
@@ -108,8 +107,6 @@ async function heal_attack_loop() {
                     parent.distance(character, e) <= character.range
                 );
 
-                log(`monsters found: ${monsters.length}`, "#aaa");
-
                 // Prioritize untargeted if toggle is on
                 if (ATTACK_PRIORITIZE_UNTARGETED) {
                     monsters = monsters.sort((a, b) => {
@@ -129,10 +126,15 @@ async function heal_attack_loop() {
                 // Prioritize: cursed > highest HP
                 let target = monsters.find(m => m.s && m.s.cursed)
                     || (monsters.length ? monsters.reduce((a, b) => (b.hp < a.hp ? a : b)) : null);
-                log(`attack target: ${target ? target.mtype : "none"}`, "#aaa");
 
                 let monsters_targeting_me = monsters.filter(e => e.target === character.name).length;
 
+                log(`target: ${!!target}`, "#bbb");
+                log(`is_in_range: ${target ? is_in_range(target) : "n/a"}`, "#bbb");
+                log(`smart.moving: ${smart.moving}`, "#bbb");
+                log(`character.mp: ${character.mp}`, "#bbb");
+                log(`monsters_targeting_me: ${monsters_targeting_me}`, "#bbb");
+                
                 if (
                     target &&
                     is_in_range(target) &&
