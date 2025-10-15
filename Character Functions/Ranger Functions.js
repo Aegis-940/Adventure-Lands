@@ -18,7 +18,7 @@ const LOOP_STATES = {
 }
 
 // Define default location for monster farming
-const TARGET_LOC = MONSTER_LOCS.cgoo; // { map: "desertland", x: 66, y: -972, orbit: false };
+const TARGET_LOC = MONSTER_LOCS.crab; // { map: "desertland", x: 66, y: -972, orbit: false };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS
@@ -363,19 +363,19 @@ async function boss_loop() {
             await delay(delayMs);
         }
 
-        // 2. Equip pouchbow +9 in mainhand before moving to boss
+        // 2. Equip hbow +7 in mainhand before moving to boss
         const hbow_slot = parent.character.items.findIndex(item =>
-            item && item.name === "pouchbow" && item.level === 9
+            item && item.name === "hbow" && item.level === 7
         );
         if (
             hbow_slot !== -1 &&
-            (!character.slots.mainhand || character.slots.mainhand.name !== "pouchbow" || character.slots.mainhand.level !== 9)
+            (!character.slots.mainhand || character.slots.mainhand.name !== "hbow" || character.slots.mainhand.level !== 7)
         ) {
             try {
                 await equip(hbow_slot, "mainhand");
                 await delay(300);
             } catch (e) {
-                catcher(e, "Error equipping pouchbow");
+                catcher(e, "Error equipping hbow");
             }
         }
 
