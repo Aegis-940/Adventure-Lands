@@ -113,7 +113,7 @@ async function set_loops(state) {
 async function loop_controller() {
     try {
         const state = get_character_state();
-        set_loops(state);
+        await set_loops(state);
     } catch (e) {
         catcher(e, "Loop Controller error");
     }
@@ -125,7 +125,7 @@ async function loop_controller() {
 
 let last_update_time = 0;
 
-setInterval(() => {
+setInterval(async () => {
 	
 	// Throttle to every 20 seconds (20,000 ms)
 	const now = Date.now();
@@ -136,7 +136,7 @@ setInterval(() => {
 
 	// === Core utility loops ===
 	party_manager();
-	loop_controller();
+	await loop_controller();
 
 	if (!attack_mode || character.rip || is_moving(character)) return;
 
