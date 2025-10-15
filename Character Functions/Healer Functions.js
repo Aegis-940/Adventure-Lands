@@ -129,12 +129,6 @@ async function heal_attack_loop() {
 
                 let monsters_targeting_me = monsters.filter(e => e.target === character.name).length;
 
-                log(`target: ${!!target}`, "#bbb");
-                log(`is_in_range: ${target ? is_in_range(target) : "n/a"}`, "#bbb");
-                log(`smart.moving: ${smart.moving}`, "#bbb");
-                log(`character.mp: ${character.mp}`, "#bbb");
-                log(`monsters_targeting_me: ${monsters_targeting_me}`, "#bbb");
-                
                 if (
                     target &&
                     is_in_range(target) &&
@@ -201,85 +195,94 @@ function select_boss(alive_bosses) {
 }
 
 async function boss_loop() {
-    log("⚠️ Boss detected ⚠️", "#ff00e6ff", "Alerts");
 
-    // 1. Find all alive bosses and pick the one with the lowest HP (fallback: oldest spawn)
-    const alive_bosses = get_alive_bosses();
-    if (!alive_bosses.length) {
-        log("No alive bosses found.", "#ffaa00", "Alerts");
-        return;
-    }
-
-    const boss_name = select_boss(alive_bosses);
-
-    // 2. Move to boss spawn if known
-    const boss_spawn = parent.S[boss_name] && parent.S[boss_name].x !== undefined && parent.S[boss_name].y !== undefined
-        ? { map: parent.S[boss_name].map, x: parent.S[boss_name].x, y: parent.S[boss_name].y }
-        : null;
-    if (boss_spawn) {
-        await smart_move(boss_spawn);
-    } else {
-        log("⚠️ Boss spawn location unknown, skipping smart_move.", "#ffaa00", "Alerts");
-    }
-
-    // 3. Engage boss until dead
-    log("⚔️ Engaging boss...", "#ff00e6ff", "Alerts");
-    while (parent.S[boss_name] && parent.S[boss_name].live) {
-        const boss = get_boss_entity(boss_name);
-
-        if (!boss) {
-            await delay(100);
-            if (parent.S[boss_name] && parent.S[boss_name].live && boss_spawn) {
-                await smart_move(boss_spawn);
-            }
+    while (true) {
+        // Check if boss loop is enabled
+        if (!LOOP_STATES.boss) {
+            await delay(1000);
             continue;
         }
 
-        // Maintain distance: character.range - 5, with a tolerance
-        const dist = parent.distance(character, boss);
-        const desired_range = character.range - BOSS_RANGE_TOLERANCE;
-        if (
-            (dist > desired_range + BOSS_RANGE_TOLERANCE || dist < desired_range - BOSS_RANGE_TOLERANCE) &&
-            !character.moving
-        ) {
-            const dx = boss.x - character.x;
-            const dy = boss.y - character.y;
-            const d = Math.hypot(dx, dy);
-            const target_x = boss.x - (dx / d) * desired_range;
-            const target_y = boss.y - (dy / d) * desired_range;
-            if (Math.hypot(target_x - character.x, target_y - character.y) > 10) {
-                move(target_x, target_y);
-            }
+        log("⚠️ Boss detected ⚠️", "#ff00e6ff", "Alerts");
+
+        // 1. Find all alive bosses and pick the one with the lowest HP (fallback: oldest spawn)
+        const alive_bosses = get_alive_bosses();
+        if (!alive_bosses.length) {
+            log("No alive bosses found.", "#ffaa00", "Alerts");
+            return;
         }
 
-        // --- Heal or Attack ---
-        const heal_target = lowest_health_partymember();
-        try {
+        const boss_name = select_boss(alive_bosses);
+
+        // 2. Move to boss spawn if known
+        const boss_spawn = parent.S[boss_name] && parent.S[boss_name].x !== undefined && parent.S[boss_name].y !== undefined
+            ? { map: parent.S[boss_name].map, x: parent.S[boss_name].x, y: parent.S[boss_name].y }
+            : null;
+        if (boss_spawn) {
+            await smart_move(boss_spawn);
+        } else {
+            log("⚠️ Boss spawn location unknown, skipping smart_move.", "#ffaa00", "Alerts");
+        }
+
+        // 3. Engage boss until dead
+        log("⚔️ Engaging boss...", "#ff00e6ff", "Alerts");
+        while (parent.S[boss_name] && parent.S[boss_name].live) {
+            const boss = get_boss_entity(boss_name);
+
+            if (!boss) {
+                await delay(100);
+                if (parent.S[boss_name] && parent.S[boss_name].live && boss_spawn) {
+                    await smart_move(boss_spawn);
+                }
+                continue;
+            }
+
+            // Maintain distance: character.range - 5, with a tolerance
+            const dist = parent.distance(character, boss);
+            const desired_range = character.range - BOSS_RANGE_TOLERANCE;
             if (
-                heal_target &&
-                heal_target.hp < heal_target.max_hp - (character.heal / 1.33) &&
-                is_in_range(heal_target)
+                (dist > desired_range + BOSS_RANGE_TOLERANCE || dist < desired_range - BOSS_RANGE_TOLERANCE) &&
+                !character.moving
             ) {
-                await heal(heal_target);
-            } else {
-                await attack(boss);
+                const dx = boss.x - character.x;
+                const dy = boss.y - character.y;
+                const d = Math.hypot(dx, dy);
+                const target_x = boss.x - (dx / d) * desired_range;
+                const target_y = boss.y - (dy / d) * desired_range;
+                if (Math.hypot(target_x - character.x, target_y - character.y) > 10) {
+                    move(target_x, target_y);
+                }
             }
-        } catch (e) { catcher(e, "Boss attack error"); }
 
-        delayMs = ms_to_next_skill('attack') + character.ping + 50;
-        await delay(delayMs);
-    }
+            // --- Heal or Attack ---
+            const heal_target = lowest_health_partymember();
+            try {
+                if (
+                    heal_target &&
+                    heal_target.hp < heal_target.max_hp - (character.heal / 1.33) &&
+                    is_in_range(heal_target)
+                ) {
+                    await heal(heal_target);
+                } else {
+                    await attack(boss);
+                }
+            } catch (e) { catcher(e, "Boss attack error"); }
 
-    // 4. Move back to target location
-    let moving_home = true;
-    smart_move(TARGET_LOC).then(() => { moving_home = false; });
-    while (moving_home) {
-        // If boss respawns while returning, break and restart boss loop
-        if (BOSSES.some(name => parent.S[name] && parent.S[name].live)) {
-            log("🔄 Boss spawned while returning home. Restarting boss loop.", "#ffaa00", "Alerts");
-            break;
+            delayMs = ms_to_next_skill('attack') + character.ping + 50;
+            await delay(delayMs);
         }
-        await delay(100);
+
+        // 4. Move back to target location
+        let moving_home = true;
+        smart_move(TARGET_LOC).then(() => { moving_home = false; });
+        while (moving_home) {
+            // If boss respawns while returning, break and restart boss loop
+            if (BOSSES.some(name => parent.S[name] && parent.S[name].live)) {
+                log("🔄 Boss spawned while returning home. Restarting boss loop.", "#ffaa00", "Alerts");
+                break;
+            }
+            await delay(100);
+        }
     }
 }
 
@@ -622,44 +625,52 @@ async function orbit_loop() {
 
     let delayMs = 10;
 
-    orbit_origin = { x: character.real_x, y: character.real_y };
-    set_orbit_radius(orbit_radius);
-    orbit_path_points = compute_orbit_path(orbit_origin, orbit_radius, ORBIT_STEPS);
-    orbit_path_index = 0;
-
-    while (true) {
-        // Check if orbit loop is enabled
+    while(true) {
+        // Wait until orbit loop is enabled
         if (!LOOP_STATES.orbit) {
             await delay(100);
             continue;
         }
-        // Stop the loop if character is more than 100 units from the orbit origin
-        const dist_from_origin = Math.hypot(character.real_x - orbit_origin.x, character.real_y - orbit_origin.y);
-        if (dist_from_origin > 100) {
-            game_log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
-            break;
-        }
 
-        const point = orbit_path_points[orbit_path_index];
-        orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
+        orbit_origin = { x: character.real_x, y: character.real_y };
+        set_orbit_radius(orbit_radius);
+        orbit_path_points = compute_orbit_path(orbit_origin, orbit_radius, ORBIT_STEPS);
+        orbit_path_index = 0;
 
-        // Only move if not already close to the next point
-        const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
-        if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
-            try {
-                await move(point.x, point.y);
-            } catch (e) {
-                console.error("Orbit move error:", e);
+        while (true) {
+            // Check if orbit loop is enabled
+            if (!LOOP_STATES.orbit) {
+                await delay(100);
+                continue;
             }
-        }
+            // Stop the loop if character is more than 100 units from the orbit origin
+            const dist_from_origin = Math.hypot(character.real_x - orbit_origin.x, character.real_y - orbit_origin.y);
+            if (dist_from_origin > 100) {
+                game_log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
+                break;
+            }
 
-        // Wait until movement is finished or interrupted
-        while (LOOP_STATES.orbit && (character.moving || smart.moving)) {
-            await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
-        }
+            const point = orbit_path_points[orbit_path_index];
+            orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
 
-        // Small delay before next step to reduce CPU usage
-        await delay(delayMs);
+            // Only move if not already close to the next point
+            const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
+            if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
+                try {
+                    await move(point.x, point.y);
+                } catch (e) {
+                    console.error("Orbit move error:", e);
+                }
+            }
+
+            // Wait until movement is finished or interrupted
+            while (LOOP_STATES.orbit && (character.moving || smart.moving)) {
+                await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
+            }
+
+            // Small delay before next step to reduce CPU usage
+            await delay(delayMs);
+        }
     }
 
 }
