@@ -390,7 +390,7 @@ async function move_loop() {
 let eTime = 0;
 
 const st_maps = [];
-const aoe_maps = ["main"];
+const aoe_maps = ["main", "level2s"];
 
 async function skill_loop() {
 

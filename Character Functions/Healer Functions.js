@@ -22,7 +22,8 @@ const TARGET_LOC = MONSTER_LOCS.cgoo; // { map: "desertland", x: 171, y: -970, o
 const HEALER_CONFIG = {
     potion: { hp: 400, mp: 500 },
     orbit:  { radius: 27, steps: 12 },
-    panic:  { hp: 0.33, mp: 50 }
+    panic:  { hp: 0.33, mp: 50 },
+    target_limit: 99
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -134,7 +135,7 @@ async function heal_attack_loop() {
                     is_in_range(target) &&
                     !smart.moving &&
                     character.mp >= 3000 &&
-                    monsters_targeting_me < 5
+                    monsters_targeting_me < target_limit
                 ) {
                     try {
                         await attack(target);
