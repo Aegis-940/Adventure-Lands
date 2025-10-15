@@ -128,7 +128,7 @@ async function loop_controller() {
 let last_update_time = 0;
 
 potions_loop();
-// loot_loop();
+loot_loop();
 move_loop();
 // skill_loop();
 panic_loop();

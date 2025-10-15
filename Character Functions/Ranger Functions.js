@@ -506,7 +506,7 @@ async function orbit_loop() {
 
 let lastLoot = null;
 let tryLoot = false;
-const chestThreshold = 3;
+const chestThreshold = 12;
 
 // Count the number of available chests
 function getNumChests() {
