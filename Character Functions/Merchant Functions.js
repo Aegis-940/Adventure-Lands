@@ -648,9 +648,6 @@ async function exchange_items() {
     const min_counts = {
         seashell: 20,
         gem0: 1,
-        // Add more items and their minimums as needed
-        // candycane: 5,
-        // mistletoe: 3,
     };
     const items_to_exchange = ["seashell", "gem0"]; // Example list, edit as needed
 

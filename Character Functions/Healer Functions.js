@@ -17,7 +17,7 @@ const LOOP_STATES = {
 }
 
 // Define default location for monster farming
-const TARGET_LOC = { map: "desertland", x: 171, y: -970, orbit: true };
+const TARGET_LOC = MONSTER_LOCS.cgoo; // { map: "desertland", x: 171, y: -970, orbit: true };
 
 const HEALER_CONFIG = {
     potion: { hp: 400, mp: 500 },
