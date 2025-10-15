@@ -29,7 +29,7 @@ const HEALER_CONFIG = {
     heal_threshold: 1.5,                    // Used as character.heal / heal_threshold factor (overheal factor)
     attack_mp_threshold: 3000,              // Minimum MP required to perform attacks (throttles aggro)
     panic_orb: "jacko",                     // Orb to switch to when panicking
-    normal_orb: "orboffire",                // Orb to switch to when not panicking
+    normal_orb: "talkingskull",                // Orb to switch to when not panicking
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -506,7 +506,7 @@ async function handle_dark_blessing() {
 
 let lastLoot = null;
 let tryLoot = false;
-const chestThreshold = 3;
+const chestThreshold = 6;
 
 // Count the number of available chests
 function getNumChests() {
