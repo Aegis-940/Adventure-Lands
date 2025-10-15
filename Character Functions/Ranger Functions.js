@@ -54,58 +54,64 @@ async function attack_loop() {
     let delayMs = 100;
 
     while (true) {
-
-        if (!LOOP_STATES.attack) {
-            await delay(100);
-            continue;
-        }
-
-        // Find all monsters in range
-        const inRange = [];
-        let cursed = null;
-        for (const id in parent.entities) {
-            const mob = parent.entities[id];
-            if (mob.type !== "monster" || mob.dead) continue;
-            if (!MONSTER_TYPES.includes(mob.mtype)) continue;
-            // if (!mob.target) continue; 
-            // if (mob.target === character.name) continue;
-            const dist = Math.hypot(mob.x - character.x, mob.y - character.y);
-            if (dist <= character.range-1) {
-                inRange.push(mob);
-                // Find a cursed monster in range (prioritize lowest HP if multiple)
-                if (mob.s && mob.s.cursed) {
-                    if (!cursed || mob.hp < cursed.hp) cursed = mob;
-                }
-            }
-        }
-
-        // Sort by HP (lowest first)
-        inRange.sort((a, b) => a.hp - b.hp);
-        const sorted_targets = inRange.slice(0, 5);
-
         try {
 
-            if (smart.moving) {
-                return; // Skip attacking while smart moving
-            } else {
-                // Filter out dead monsters before using their IDs
-                const alive_targets = sorted_targets.filter(m => m && !m.dead);
+            if (!LOOP_STATES.attack) {
+                await delay(100);
+                continue;
+            }
 
-                if (alive_targets.length >= 5 && character.mp >= 320 + 88) {
-                    await use_skill("5shot", alive_targets.slice(0, 5).map(m => m.id));
-                } else if (alive_targets.length >= 2 && character.mp >= 200 + 88) {
-                    await use_skill("3shot", alive_targets.slice(0, 3).map(m => m.id));
-                } else if (alive_targets.length >= 1 && character.mp >= 100) {
-                    await attack(alive_targets[0]);
+            // Find all monsters in range
+            const inRange = [];
+            let cursed = null;
+            for (const id in parent.entities) {
+                const mob = parent.entities[id];
+                if (mob.type !== "monster" || mob.dead) continue;
+                if (!MONSTER_TYPES.includes(mob.mtype)) continue;
+                // if (!mob.target) continue; 
+                // if (mob.target === character.name) continue;
+                const dist = Math.hypot(mob.x - character.x, mob.y - character.y);
+                if (dist <= character.range-1) {
+                    inRange.push(mob);
+                    // Find a cursed monster in range (prioritize lowest HP if multiple)
+                    if (mob.s && mob.s.cursed) {
+                        if (!cursed || mob.hp < cursed.hp) cursed = mob;
+                    }
                 }
             }
-            delayMs = ms_to_next_skill("attack") + character.ping + 50;
-            await delay(delayMs);
-            continue;   
+
+            // Sort by HP (lowest first)
+            inRange.sort((a, b) => a.hp - b.hp);
+            const sorted_targets = inRange.slice(0, 5);
+
+            try {
+
+                if (smart.moving) {
+                    return; // Skip attacking while smart moving
+                } else {
+                    // Filter out dead monsters before using their IDs
+                    const alive_targets = sorted_targets.filter(m => m && !m.dead);
+
+                    if (alive_targets.length >= 5 && character.mp >= 320 + 88) {
+                        await use_skill("5shot", alive_targets.slice(0, 5).map(m => m.id));
+                    } else if (alive_targets.length >= 2 && character.mp >= 200 + 88) {
+                        await use_skill("3shot", alive_targets.slice(0, 3).map(m => m.id));
+                    } else if (alive_targets.length >= 1 && character.mp >= 100) {
+                        await attack(alive_targets[0]);
+                    }
+                }
+                delayMs = ms_to_next_skill("attack") + character.ping + 50;
+                await delay(delayMs);
+                continue;   
+            } catch (e) {
+                catcher(e, "Attack Loop error ");
+            }
+            await delay(100);
         } catch (e) {
-            catcher(e, "Attack Loop error ");
+            catcher(e, "Attack Loop outer error ");
+            await delay(1000); // Prevent rapid error spam
         }
-        await delay(50);        
+        await delay(100);        
     }
 }
 
