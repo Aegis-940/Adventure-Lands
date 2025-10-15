@@ -66,8 +66,8 @@ function lowest_health_partymember() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // Toggle options
-let ATTACK_TARGET_LOWEST_HP = true;      // true: lowest HP, false: highest HP
-let ATTACK_PRIORITIZE_UNTARGETED = true; // true: prefer monsters with no target first
+const ATTACK_TARGET_LOWEST_HP = true;      // true: lowest HP, false: highest HP
+const ATTACK_PRIORITIZE_UNTARGETED = true; // true: prefer monsters with no target first
 
 async function heal_attack_loop() {
     // This loop is designed to be called ONCE and runs forever
@@ -112,8 +112,8 @@ async function heal_attack_loop() {
                 // Prioritize untargeted if toggle is on
                 if (ATTACK_PRIORITIZE_UNTARGETED) {
                     monsters = monsters.sort((a, b) => {
-                        const aUntargeted = !a.target ? -1 : 0;
-                        const bUntargeted = !b.target ? -1 : 0;
+                        let aUntargeted = !a.target ? -1 : 0;
+                        let bUntargeted = !b.target ? -1 : 0;
                         return aUntargeted - bUntargeted;
                     });
                 }
