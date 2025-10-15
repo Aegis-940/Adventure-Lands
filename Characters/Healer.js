@@ -136,7 +136,7 @@ setInterval(async () => {
 
 	// === Core utility loops ===
 	party_manager();
-	await loop_controller();
+	loop_controller();
 
 	if (!attack_mode || character.rip || is_moving(character)) return;
 
