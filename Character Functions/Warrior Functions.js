@@ -234,21 +234,8 @@ async function boss_loop() {
         }
         let boss_name = lowest_hp_boss || alive_bosses[0].name;
 
-        // 2. Equip fireblade +7 in offhand before moving to boss
-        const fireblade7_slot = parent.character.items.findIndex(item =>
-            item && item.name === "fireblade" && item.level === 7
-        );
-        if (
-            fireblade7_slot !== -1 &&
-            (!character.slots.offhand || character.slots.offhand.name !== "fireblade" || character.slots.offhand.level !== 7)
-        ) {
-            try {
-                await equip(fireblade7_slot, "offhand");
-                await delay(300);
-            } catch (e) {
-                catcher(e, "Error equipping fireblade");
-            }
-        }
+        // 2. Equip single-terget set
+        single_set()
 
         // 3. Only smart_move if boss spawn is known
         const boss_spawn = parent.S[boss_name] && parent.S[boss_name].x !== undefined && parent.S[boss_name].y !== undefined
@@ -317,6 +304,9 @@ async function boss_loop() {
 
             await delay(delayMs);
         }
+
+        // Equip explosion set
+        explosion_set()
 
         // 5. Move back to target location
         let moving_home = true;
@@ -576,7 +566,7 @@ async function cleave_set() {
     weapon_set_equipped = "cleave";
 }
 
-async function single_set() {
+async function explosion_set() {
     const mainhand = character.slots.mainhand;
     const offhand = character.slots.offhand;
     const needs_main = !mainhand || mainhand.name !== "fireblade" || mainhand.level !== 8 || mainhand.l !== "l";
@@ -585,6 +575,20 @@ async function single_set() {
         batch_equip([
             { itemName: "fireblade", slot: "mainhand", level: 8, l: "l" },
             { itemName: "ololipop", slot: "offhand", level: 8, l: "l" }
+        ]);
+    }
+    weapon_set_equipped = "explosion";
+}
+
+async function single_set() {
+    const mainhand = character.slots.mainhand;
+    const offhand = character.slots.offhand;
+    const needs_main = !mainhand || mainhand.name !== "fireblade" || mainhand.level !== 8 || mainhand.l !== "l";
+    const needs_off = !offhand || offhand.name !== "ololipop" || offhand.level !== 8 || offhand.l !== "l";
+    if (needs_main || needs_off) {
+        batch_equip([
+            { itemName: "fireblade", slot: "mainhand", level: 8, l: "l" },
+            { itemName: "fireblade", slot: "offhand", level: 7, l: "l" }
         ]);
     }
     weapon_set_equipped = "single";
@@ -624,7 +628,7 @@ async function handle_cleave(Mainhand) {
             last_cleave_time = now;
             // Swap back instantly (don't delay this)
             if (weapon_set_equipped !== "single") {
-                single_set();
+                explosion_set();
             }
         }
     } 

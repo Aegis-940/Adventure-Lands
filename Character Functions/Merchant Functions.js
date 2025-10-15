@@ -638,8 +638,8 @@ async function exchange_items() {
     exchange_items_running = true;
 
     const TARGET_MAP         = "main";
-    const TARGET_X           = -1594;
-    const TARGET_Y           = 581;
+    const TARGET_X           = -22;
+    const TARGET_Y           = -406;
     const RANGE              = 50;
     const MAX_DIST           = 500;
     const EXCHANGE_INTERVAL  = 500; // 0.5 seconds
@@ -647,11 +647,12 @@ async function exchange_items() {
     // Define minimum counts for each item
     const min_counts = {
         seashell: 20,
+        gem0: 1,
         // Add more items and their minimums as needed
         // candycane: 5,
         // mistletoe: 3,
     };
-    const items_to_exchange = ["seashell"]; // Example list, edit as needed
+    const items_to_exchange = ["seashell", "gem0"]; // Example list, edit as needed
 
     merchant_task = "Exchanging";
 
