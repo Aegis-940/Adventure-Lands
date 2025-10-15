@@ -111,6 +111,7 @@ async function set_loops(state) {
 
 async function loop_controller() {
     try {
+        const state = get_character_state();
         set_loops(state);
     } catch (e) {
         catcher(e, "Loop Controller error");
