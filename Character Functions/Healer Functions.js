@@ -74,82 +74,86 @@ async function heal_attack_loop() {
     let delayMs = 50;
 
     while (true) {
-        log("heal_attack_loop tick", "#888");
+        try {
+            log("heal_attack_loop tick", "#888");
 
-        // --- Target selection ---
-        const heal_target = lowest_health_partymember();
-        const should_heal = (
-            heal_target &&
-            heal_target.hp < heal_target.max_hp - (character.heal / 1.5) &&
-            is_in_range(heal_target)
-        );
-
-        // --- Healing logic ---
-        if (should_heal && LOOP_STATES.heal) {
-            try {
-                log(`💖 Healing ${heal_target.name}`, "#00FF00", "General");
-                await heal(heal_target);
-            } catch (e) {
-                catcher(e, "Heal loop error");
-            }
-            delayMs = ms_to_next_skill("attack") + character.ping + 50;
-            await delay(delayMs);
-            continue;
-        }
-
-        // --- Attacking logic ---
-        else if (LOOP_STATES.attack) {
-            // Gather all valid monsters in range
-            const monsters = Object.values(parent.entities).filter(e =>
-                e.type === "monster" &&
-                MONSTER_TYPES.includes(e.mtype) &&
-                !e.dead &&
-                e.visible &&
-                parent.distance(character, e) <= character.range
+            // --- Target selection ---
+            const heal_target = lowest_health_partymember();
+            const should_heal = (
+                heal_target &&
+                heal_target.hp < heal_target.max_hp - (character.heal / 1.5) &&
+                is_in_range(heal_target)
             );
 
-            // Prioritize untargeted if toggle is on
-            if (ATTACK_PRIORITIZE_UNTARGETED) {
-                monsters = monsters.sort((a, b) => {
-                    const aUntargeted = !a.target ? -1 : 0;
-                    const bUntargeted = !b.target ? -1 : 0;
-                    return aUntargeted - bUntargeted;
-                });
-            }
-
-            // Prioritize by HP (lowest or highest)
-            if (ATTACK_TARGET_LOWEST_HP) {
-                monsters = monsters.sort((a, b) => (a.hp / a.max_hp) - (b.hp / b.max_hp));
-            } else {
-                monsters = monsters.sort((a, b) => (b.hp / b.max_hp) - (a.hp / a.max_hp));
-            }
-
-            // Prioritize: cursed > highest HP
-            let target = monsters.find(m => m.s && m.s.cursed)
-                || (monsters.length ? monsters.reduce((a, b) => (b.hp < a.hp ? a : b)) : null);
-
-            const monsters_targeting_me = monsters.filter(e => e.target === character.name).length;
-
-            if (
-                target &&
-                is_in_range(target) &&
-                !smart.moving &&
-                character.mp >= 3000 &&
-                monsters_targeting_me < 5
-            ) {
+            // --- Healing logic ---
+            if (should_heal && LOOP_STATES.heal) {
                 try {
-                    await attack(target);
+                    log(`💖 Healing ${heal_target.name}`, "#00FF00", "General");
+                    await heal(heal_target);
                 } catch (e) {
-                    catcher(e, "Attack loop error");
+                    catcher(e, "Heal loop error");
                 }
                 delayMs = ms_to_next_skill("attack") + character.ping + 50;
                 await delay(delayMs);
                 continue;
             }
-        }
 
-        // --- If nothing to do, short delay ---
-        await delay(100);
+            // --- Attacking logic ---
+            else if (LOOP_STATES.attack) {
+                // Gather all valid monsters in range
+                const monsters = Object.values(parent.entities).filter(e =>
+                    e.type === "monster" &&
+                    MONSTER_TYPES.includes(e.mtype) &&
+                    !e.dead &&
+                    e.visible &&
+                    parent.distance(character, e) <= character.range
+                );
+
+                // Prioritize untargeted if toggle is on
+                if (ATTACK_PRIORITIZE_UNTARGETED) {
+                    monsters = monsters.sort((a, b) => {
+                        const aUntargeted = !a.target ? -1 : 0;
+                        const bUntargeted = !b.target ? -1 : 0;
+                        return aUntargeted - bUntargeted;
+                    });
+                }
+
+                // Prioritize by HP (lowest or highest)
+                if (ATTACK_TARGET_LOWEST_HP) {
+                    monsters = monsters.sort((a, b) => (a.hp / a.max_hp) - (b.hp / b.max_hp));
+                } else {
+                    monsters = monsters.sort((a, b) => (b.hp / b.max_hp) - (a.hp / a.max_hp));
+                }
+
+                // Prioritize: cursed > highest HP
+                let target = monsters.find(m => m.s && m.s.cursed)
+                    || (monsters.length ? monsters.reduce((a, b) => (b.hp < a.hp ? a : b)) : null);
+
+                const monsters_targeting_me = monsters.filter(e => e.target === character.name).length;
+
+                if (
+                    target &&
+                    is_in_range(target) &&
+                    !smart.moving &&
+                    character.mp >= 3000 &&
+                    monsters_targeting_me < 5
+                ) {
+                    try {
+                        await attack(target);
+                    } catch (e) {
+                        catcher(e, "Attack loop error");
+                    }
+                    delayMs = ms_to_next_skill("attack") + character.ping + 50;
+                    await delay(delayMs);
+                    continue;
+                }
+            }
+
+            await delay(100);
+        } catch (e) {
+            catcher(e, "heal_attack_loop (outer)");
+            await delay(1000); // Prevent rapid error spam
+        }
     }
 }
 
