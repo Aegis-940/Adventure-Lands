@@ -141,6 +141,7 @@ async function heal_attack_loop() {
                     monsters_targeting_me < 5
                 ) {
                     try {
+                        log(`⚔️ Attacking ${target.mtype} (${target.hp}/${target.max_hp} HP)`, "#FF0000", "General");
                         await attack(target);
                     } catch (e) {
                         catcher(e, "Attack loop error");
