@@ -111,10 +111,6 @@ async function set_loops(state) {
 
 async function loop_controller() {
     try {
-        const state = get_character_state();
-        if (state === STATES.DEAD) {
-            await handle_death_and_respawn();
-        }
         set_loops(state);
     } catch (e) {
         catcher(e, "Loop Controller error");
