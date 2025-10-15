@@ -660,9 +660,12 @@ function catcher(e, context = "Error") {
         }
     }
 
-    // Default: print full error
-    log(`⚠️ ${context}:`, "#FF0000", "Errors");
-    log(msg, "#FF0000", "Errors");
+    // Default: print full error and stack trace if available
+    let stack = "";
+    if (e && e.stack) {
+        stack = `\nStack trace:\n${e.stack}`;
+    }
+    log(`⚠️ ${context}: ${msg}${stack}`, "#FF0000", "Errors");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
