@@ -67,6 +67,7 @@ async function set_loops(state) {
             if (LOOP_STATES.panic) stop_panic_loop();
             if (LOOP_STATES.boss) stop_boss_loop();
 
+            log("Respawning in 30s...", "red");
             await delay(30000);
             await respawn();
             await delay(5000);
