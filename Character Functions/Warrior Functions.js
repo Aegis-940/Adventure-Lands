@@ -400,7 +400,7 @@ async function move_loop() {
 let eTime = 0;
 
 const st_maps = [];
-const aoe_maps = ["mansion", "main", "cave", "level2s"];
+const aoe_maps = ["main"];
 
 async function skill_loop() {
 
@@ -421,7 +421,15 @@ async function skill_loop() {
                 const is_boss_target = current_target && BOSSES.includes(current_target.mtype);
 
                 // Only check cleave if it's off cooldown and not targeting a boss
-                if (!cleave_cooldown && mp_check && code_cost_check && !is_boss_target && character.mp >= 770 && !smart.moving) {
+                if (
+                    !cleave_cooldown &&
+                    mp_check &&
+                    code_cost_check &&
+                    !is_boss_target &&
+                    character.mp >= 770 &&
+                    !smart.moving &&
+                    aoe_maps.includes(character.map) // <-- Only cleave on allowed maps
+                ) {
                     await handle_cleave(Mainhand);
                 }
             }
