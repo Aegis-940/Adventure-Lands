@@ -68,7 +68,7 @@ async function set_loops(state) {
 
             log("Respawning in 30s...", "red");
             await delay(30000);
-            await respawn();
+            if (character.rip) await respawn();
             await delay(5000);
             await smart_move(TARGET_LOC);
 
