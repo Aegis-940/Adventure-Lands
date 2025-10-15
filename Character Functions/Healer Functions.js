@@ -74,6 +74,7 @@ async function heal_attack_loop() {
     let delayMs = 50;
 
     while (true) {
+        log("heal_attack_loop tick", "#888");
 
         // --- Target selection ---
         const heal_target = lowest_health_partymember();

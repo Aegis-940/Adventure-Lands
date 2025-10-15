@@ -17,7 +17,6 @@ create_map_movement_window([
 
 hide_skills_ui();
 create_custom_log_window();
-heal_attack_loop();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // UNIVERSAL LOOP CONTROL
@@ -125,6 +124,8 @@ async function loop_controller() {
 
 let last_update_time = 0;
 
+heal_attack_loop();
+
 setInterval(async () => {
 	
 	// Throttle to every 20 seconds (20,000 ms)
@@ -136,7 +137,7 @@ setInterval(async () => {
 
 	// === Core utility loops ===
 	party_manager();
-	loop_controller();
+	await loop_controller();
 
 	if (!attack_mode || character.rip || is_moving(character)) return;
 
