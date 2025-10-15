@@ -135,7 +135,7 @@ async function heal_attack_loop() {
                     is_in_range(target) &&
                     !smart.moving &&
                     character.mp >= 3000 &&
-                    monsters_targeting_me < target_limit
+                    monsters_targeting_me < HEALER_CONFIG.target_limit
                 ) {
                     try {
                         await attack(target);
