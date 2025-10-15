@@ -101,7 +101,7 @@ async function heal_attack_loop() {
             // --- Attacking logic ---
             else if (LOOP_STATES.attack) {
                 // Gather all valid monsters in range
-                const monsters = Object.values(parent.entities).filter(e =>
+                let monsters = Object.values(parent.entities).filter(e =>
                     e.type === "monster" &&
                     MONSTER_TYPES.includes(e.mtype) &&
                     !e.dead &&
@@ -129,7 +129,7 @@ async function heal_attack_loop() {
                 let target = monsters.find(m => m.s && m.s.cursed)
                     || (monsters.length ? monsters.reduce((a, b) => (b.hp < a.hp ? a : b)) : null);
 
-                const monsters_targeting_me = monsters.filter(e => e.target === character.name).length;
+                let monsters_targeting_me = monsters.filter(e => e.target === character.name).length;
 
                 if (
                     target &&
