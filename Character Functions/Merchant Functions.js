@@ -158,8 +158,6 @@ const FREQUENCY = 1 * 60 * 1000; // 1 minute
 
 const DELIVERY_RADIUS = 350;
 
-
-
 // Global cache for party status, updated via code messages
 let party_status_cache = {};
 
@@ -287,7 +285,8 @@ async function loot_and_potions_loop() {
 
 const SELLABLE_ITEMS = ["hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "wbook0", "wshoes", "wcap", "cclaw", "crabclaw", "slimestaff", "stinger", "coat1", "helmet1",
 		       			"gloves1", "pants1", "mushroomstaff", "wbreeches", "shoes1", "vitring", "helmet", "shoes", "gloves", "pmace", "throwingstars", "t2bow",
-						 "spear", "dagger", "rapier", "sword", "rfangs", "gphelmet", "phelmet", "vitearring", "vitscroll", "pstem", "gslime"];
+						 "spear", "dagger", "rapier", "sword", "rfangs", "gphelmet", "phelmet", "vitearring", "vitscroll", "pstem", "gslime", "hhelmet", "harmor", "hpants",
+                        "hgloves", "hboots"];
 const BANKABLE_ITEMS = [];
 const BANK_LOCATION = { map: "bank", x: 0, y: -37 };
 
@@ -648,8 +647,9 @@ async function exchange_items() {
     const min_counts = {
         seashell: 20,
         gem0: 1,
+        armorbox: 1
     };
-    const items_to_exchange = ["seashell", "gem0"]; // Example list, edit as needed
+    const items_to_exchange = ["seashell", "gem0", "armorbox"]; // Example list, edit as needed
 
     merchant_task = "Exchanging";
 
