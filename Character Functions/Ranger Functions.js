@@ -89,7 +89,7 @@ async function attack_loop() {
             try {
                 if (smart.moving) {
                     log("Skipping attack: smart.moving is true", "#bbb");
-                    return; // Skip attacking while smart moving
+                    continue; // Skip attacking while smart moving
                 } else {
                     // Filter out dead monsters before using their IDs
                     const alive_targets = sorted_targets.filter(m => m && !m.dead);
