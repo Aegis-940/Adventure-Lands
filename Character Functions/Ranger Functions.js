@@ -55,8 +55,10 @@ async function attack_loop() {
 
     while (true) {
         try {
+            log("attack_loop tick", "#888");
 
             if (!LOOP_STATES.attack) {
+                log("Attack loop disabled (LOOP_STATES.attack is false)", "#bbb");
                 await delay(100);
                 continue;
             }
@@ -68,8 +70,6 @@ async function attack_loop() {
                 const mob = parent.entities[id];
                 if (mob.type !== "monster" || mob.dead) continue;
                 if (!MONSTER_TYPES.includes(mob.mtype)) continue;
-                // if (!mob.target) continue; 
-                // if (mob.target === character.name) continue;
                 const dist = Math.hypot(mob.x - character.x, mob.y - character.y);
                 if (dist <= character.range-1) {
                     inRange.push(mob);
@@ -79,28 +79,37 @@ async function attack_loop() {
                     }
                 }
             }
+            log(`Monsters in range: ${inRange.length}`, "#bbb");
 
             // Sort by HP (lowest first)
             inRange.sort((a, b) => a.hp - b.hp);
             const sorted_targets = inRange.slice(0, 5);
+            log(`Sorted targets (up to 5): ${sorted_targets.map(m => m.mtype).join(", ")}`, "#bbb");
 
             try {
-
                 if (smart.moving) {
+                    log("Skipping attack: smart.moving is true", "#bbb");
                     return; // Skip attacking while smart moving
                 } else {
                     // Filter out dead monsters before using their IDs
                     const alive_targets = sorted_targets.filter(m => m && !m.dead);
+                    log(`Alive targets: ${alive_targets.length}`, "#bbb");
 
                     if (alive_targets.length >= 5 && character.mp >= 320 + 88) {
+                        log(`Using 5shot on: ${alive_targets.slice(0, 5).map(m => m.mtype).join(", ")}`, "#00aaff");
                         await use_skill("5shot", alive_targets.slice(0, 5).map(m => m.id));
                     } else if (alive_targets.length >= 2 && character.mp >= 200 + 88) {
+                        log(`Using 3shot on: ${alive_targets.slice(0, 3).map(m => m.mtype).join(", ")}`, "#00aaff");
                         await use_skill("3shot", alive_targets.slice(0, 3).map(m => m.id));
                     } else if (alive_targets.length >= 1 && character.mp >= 100) {
+                        log(`Attacking single target: ${alive_targets[0].mtype}`, "#00aaff");
                         await attack(alive_targets[0]);
+                    } else {
+                        log("No valid targets for attack or insufficient MP", "#bbb");
                     }
                 }
                 delayMs = ms_to_next_skill("attack") + character.ping + 50;
+                log(`Delaying for ${delayMs}ms after attack`, "#bbb");
                 await delay(delayMs);
                 continue;   
             } catch (e) {
