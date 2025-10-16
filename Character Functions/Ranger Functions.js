@@ -84,6 +84,7 @@ async function attack_loop() {
 
             try {
                 if (smart.moving) {
+                    await delay(1000)
                     continue; // Skip attacking while smart moving
                 } else {
                     // Filter out dead monsters before using their IDs
