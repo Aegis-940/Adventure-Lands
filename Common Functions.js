@@ -25,6 +25,7 @@ const MONSTER_LOCS = {
     crab:   	  { map: "main", x: -1197, y: -79, orbit: false },
     fireroamer:   { map: "desertland", x: 116, y: -606, orbit: true },
     cgoo:         { map: "level2s", x: 10, y: 500, orbit: true },
+    bbpompop:     { map: "winter_cave", x: -82, y: -949, orbit: true }
 };
 
 const MERCHANT_NAME               = "Riff";
