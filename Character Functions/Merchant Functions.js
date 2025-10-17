@@ -74,6 +74,8 @@ async function handle_death_and_respawn() {
     await delay(5000);
 }
 
+let last_stall_open_attempt = 0;
+
 async function merchant_loop_controller() {
     let last_upgrade_time = 0;
     const UPGRADE_INTERVAL = 60 * 60 * 1000; // 60 minutes in ms
