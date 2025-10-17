@@ -75,6 +75,7 @@ async function handle_death_and_respawn() {
 }
 
 let last_stall_open_attempt = 0;
+let last_stall_close_attempt = 0;
 
 async function merchant_loop_controller() {
     let last_upgrade_time = 0;
@@ -161,8 +162,28 @@ async function merchant_loop_controller() {
                             log("⚠️ open_stand() not available in this environment.", "#FF8800");
                         }
                     }
+
+                    // Close the stand if we're not at HOME (throttled)
+                    const NOT_HOME = !AT_HOME;
+                    if (NOT_HOME && typeof close_stand === "function") {
+                        // Only try to close if enough time passed since last attempt and stand appears open
+                        const nowClose = Date.now();
+                        if (nowClose - last_stall_close_attempt > 30000) {
+                            // Prefer checking character.stand if available to avoid unnecessary calls
+                            if (character.stand || typeof character.stand === "undefined") {
+                                last_stall_close_attempt = nowClose;
+                                try {
+                                    log("🔒 Closing merchant stand (not at HOME)...");
+                                    close_stand();
+                                } catch (e) {
+                                    log("⚠️ close_stand() threw an error:", "#FF0000");
+                                    log(e);
+                                }
+                            }
+                        }
+                    }
                 } catch (e) {
-                    log("⚠️ Error while attempting to open stand:", "#FF0000");
+                    log("⚠️ Error while attempting to open/close stand:", "#FF0000");
                     log(e);
                 }
             }
@@ -171,8 +192,8 @@ async function merchant_loop_controller() {
         }
     } catch (e) {
         merchant_task = "Idle";
-        game_log("⚠️ Merchant Loop error:", "#FF0000");
-        game_log(e);
+        log("⚠️ Merchant Loop error:", "#FF0000");
+        log(e);
     }
 }
 

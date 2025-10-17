@@ -680,12 +680,19 @@ function create_custom_log_window() {
 
     const doc = parent.document;
 
+    // Restore saved position if any
+    let savedPos = null;
+    try {
+        const raw = parent.localStorage.getItem("custom_log_pos");
+        if (raw) savedPos = JSON.parse(raw);
+    } catch (e) {
+        // ignore
+    }
+
     // Create main window
     const div = doc.createElement("div");
     div.id = "custom-log-window";
-    div.style.position = "absolute";
-    div.style.bottom = "1px";
-    div.style.right = "325px";
+    div.style.position = "fixed";
     div.style.width = "350px";
     div.style.height = "260px";
     div.style.background = "rgba(0,0,0,0.66)";
@@ -698,14 +705,28 @@ function create_custom_log_window() {
     div.style.border = "4px solid #888";
     div.style.display = "flex";
     div.style.flexDirection = "column";
+    div.style.boxSizing = "border-box";
+    div.style.userSelect = "none";
 
-    // --- Tabs ---
+    // default position (if no saved) - anchored bottom-right
+    if (savedPos && typeof savedPos.left === "number" && typeof savedPos.top === "number") {
+        div.style.left = `${savedPos.left}px`;
+        div.style.top = `${savedPos.top}px`;
+    } else {
+        div.style.right = "325px";
+        div.style.bottom = "1px";
+    }
+
+    // --- Tabs / Header (drag handle) ---
     const tabBar = doc.createElement("div");
     tabBar.style.display = "flex";
     tabBar.style.background = "#222";
     tabBar.style.borderBottom = "2px solid #888";
     tabBar.style.height = "32px";
     tabBar.style.alignItems = "center";
+    tabBar.style.cursor = "grab";
+    tabBar.style.flex = "0 0 32px";
+    tabBar.id = "custom-log-tabbar";
 
     const tabs = [
         { name: "All", id: "tab-all" },
@@ -720,14 +741,11 @@ function create_custom_log_window() {
     // --- Log containers for each tab ---
     const logContainers = {};
     const alertStates = {};
-    // For checkboxes: which tabs are included in "All"
     const includeInAll = {
         "General": true,
         "Alerts": true,
         "Errors": true
     };
-
-    // Store all log entries for each tab for dynamic All tab updates
     const logHistory = {
         "General": [],
         "Alerts": [],
@@ -764,7 +782,6 @@ function create_custom_log_window() {
         btn.style.justifyContent = "center";
         btn.style.position = "relative";
 
-        // Alert indicator span
         const alertSpan = doc.createElement("span");
         alertSpan.textContent = "";
         alertSpan.style.color = "#fff";
@@ -773,7 +790,6 @@ function create_custom_log_window() {
         alertSpan.id = `alert-${tab.id}`;
         btn.appendChild(alertSpan);
 
-        // Add checkbox for General, Alerts, and Errors tabs
         if (tab.name !== "All") {
             const checkbox = doc.createElement("input");
             checkbox.type = "checkbox";
@@ -789,12 +805,10 @@ function create_custom_log_window() {
         }
 
         btn.onclick = () => {
-            // Switch tab
             div._currentTab = tab.name;
             for (const t of tabs) {
                 logContainers[t.name].style.display = t.name === tab.name ? "block" : "none";
                 tabBar.querySelector(`#btn-${t.id}`).style.background = t.name === tab.name ? "#444" : "#222";
-                // Clear alert when tab is viewed
                 const alertElem = tabBar.querySelector(`#alert-${t.id}`);
                 if (alertElem) alertElem.textContent = "";
                 alertStates[t.name] = false;
@@ -803,9 +817,8 @@ function create_custom_log_window() {
         tabBar.appendChild(btn);
     }
 
+    // Append tabBar and log containers (tabBar first to act as header/drag handle)
     div.appendChild(tabBar);
-
-    // Move log containers after tab bar
     for (const tab of tabs) {
         div.appendChild(logContainers[tab.name]);
     }
@@ -818,6 +831,106 @@ function create_custom_log_window() {
     parent._custom_log_alerts = alertStates;
     parent._custom_log_includeInAll = includeInAll;
     parent._custom_log_history = logHistory;
+
+    // ---- Drag & Snap behavior ----
+    (function enableDragSnap() {
+        let dragging = false;
+        let startX = 0, startY = 0;
+        let startLeft = 0, startTop = 0;
+        let pointerId = null;
+
+        function getRect(node) { return node.getBoundingClientRect(); }
+
+        function onPointerDown(e) {
+            // don't start drag if clicking a button or input inside the tabBar
+            const target = e.target;
+            if (target.tagName === "BUTTON" || target.tagName === "INPUT" || target.closest && target.closest("button")) return;
+
+            dragging = true;
+            pointerId = e.pointerId;
+            tabBar.setPointerCapture(pointerId);
+            startX = e.clientX;
+            startY = e.clientY;
+            const rect = getRect(div);
+            // compute current left/top (in px)
+            // if style.left is set use it, else derive from rect and scroll
+            startLeft = rect.left;
+            startTop = rect.top;
+            // ensure we're using left/top positioning while dragging
+            div.style.right = "auto";
+            div.style.bottom = "auto";
+            div.style.cursor = "grabbing";
+        }
+
+        function onPointerMove(e) {
+            if (!dragging || e.pointerId !== pointerId) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            let newLeft = Math.max(8, Math.round(startLeft + dx));
+            let newTop = Math.max(8, Math.round(startTop + dy));
+            // keep inside viewport
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            const rect = getRect(div);
+            newLeft = Math.min(newLeft, vw - rect.width - 8);
+            newTop = Math.min(newTop, vh - rect.height - 8);
+            div.style.left = `${newLeft}px`;
+            div.style.top = `${newTop}px`;
+        }
+
+        function onPointerUp(e) {
+            if (!dragging || e.pointerId !== pointerId) return;
+            dragging = false;
+            tabBar.releasePointerCapture(pointerId);
+            pointerId = null;
+            div.style.cursor = "grab";
+
+            // Snap to nearest edge (left/right/top/bottom) with 8px margin
+            const rect = getRect(div);
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            const distances = {
+                left: rect.left,
+                right: vw - (rect.left + rect.width),
+                top: rect.top,
+                bottom: vh - (rect.top + rect.height)
+            };
+            const minEdge = Object.keys(distances).reduce((a, b) => distances[a] < distances[b] ? a : b);
+
+            const margin = 8;
+            if (minEdge === "left") {
+                div.style.left = `${margin}px`;
+                div.style.top = `${Math.min(Math.max(rect.top, margin), vh - rect.height - margin)}px`;
+            } else if (minEdge === "right") {
+                div.style.left = `${vw - rect.width - margin}px`;
+                div.style.top = `${Math.min(Math.max(rect.top, margin), vh - rect.height - margin)}px`;
+            } else if (minEdge === "top") {
+                div.style.top = `${margin}px`;
+                div.style.left = `${Math.min(Math.max(rect.left, margin), vw - rect.width - margin)}px`;
+            } else { // bottom
+                div.style.top = `${vh - rect.height - margin}px`;
+                div.style.left = `${Math.min(Math.max(rect.left, margin), vw - rect.width - margin)}px`;
+            }
+
+            // Persist position
+            try {
+                const saved = {
+                    left: parseInt(div.style.left, 10),
+                    top: parseInt(div.style.top, 10)
+                };
+                parent.localStorage.setItem("custom_log_pos", JSON.stringify(saved));
+            } catch (e) {
+                // ignore storage errors
+            }
+        }
+
+        tabBar.addEventListener("pointerdown", onPointerDown);
+        doc.addEventListener("pointermove", onPointerMove);
+        doc.addEventListener("pointerup", onPointerUp);
+        // also handle pointercancel to cleanup
+        doc.addEventListener("pointercancel", onPointerUp);
+
+    })();
 }
 
 // Helper to update the All tab when checkboxes change
