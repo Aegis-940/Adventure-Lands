@@ -286,7 +286,8 @@ async function loot_and_potions_loop() {
 const SELLABLE_ITEMS = ["hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "wbook0", "wshoes", "wcap", "cclaw", "crabclaw", "slimestaff", "stinger", "coat1", "helmet1",
 		       			"gloves1", "pants1", "mushroomstaff", "wbreeches", "shoes1", "vitring", "helmet", "shoes", "gloves", "pmace", "throwingstars", "t2bow",
 						 "spear", "dagger", "rapier", "sword", "rfangs", "gphelmet", "phelmet", "vitearring", "vitscroll", "pstem", "gslime", "hhelmet", "harmor", "hpants",
-                        "hgloves", "hboots", "stramulet", "dexamulet", "intamulet", "strring", "dexring", "intring", "strearring", "dexearring", "intearring"];
+                        "hgloves", "hboots", "stramulet", "dexamulet", "intamulet", "strring", "dexring", "intring", "strearring", "dexearring", "intearring", "strbelt",
+                        "dexbelt", "intbelt"];
 const BANKABLE_ITEMS = [];
 const BANK_LOCATION = { map: "bank", x: 0, y: -37 };
 
@@ -313,7 +314,7 @@ async function sell_and_bank() {
 	await smart_move(BANK_LOCATION);
 	await delay(1000);
 
-	for (let i = 2; i < character.items.length; i++) {
+	for (let i = 3; i < character.items.length; i++) {
 		const item = character.items[i];
 		if (!item) continue;
 		//if (BANKABLE_ITEMS.includes(item.name)) {
