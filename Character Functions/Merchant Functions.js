@@ -156,7 +156,7 @@ const POTION_MIN = 2000;
 const LOOT_MIN = 20;
 const FREQUENCY = 1 * 60 * 1000; // 1 minute
 
-const DELIVERY_RADIUS = 350;
+const DELIVERY_RADIUS = 250;
 
 // Global cache for party status, updated via code messages
 let party_status_cache = {};
