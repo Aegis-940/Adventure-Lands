@@ -136,6 +136,33 @@ async function merchant_loop_controller() {
                 // } else {
                 //     stop_mining_loop();
                 // }
+
+                // --- NEW: attempt to open merchant stall when idle and at HOME ---
+                try {
+                    const nowAttempt = Date.now();
+                    const AT_HOME = character.map === HOME.map &&
+                                    Math.hypot(character.x - HOME.x, character.y - HOME.y) <= 20 &&
+                                    !character.moving;
+
+                    // throttle attempts to avoid spamming (30s)
+                    if (AT_HOME && nowAttempt - last_stall_open_attempt > 30000) {
+                        last_stall_open_attempt = nowAttempt;
+                        if (typeof open_stand === "function") {
+                            log("🛒 Opening merchant stand (idle at HOME)...");
+                            try {
+                                open_stand(); // call the game's API to open stand
+                            } catch (e) {
+                                log("⚠️ open_stand() threw an error:", "#FF0000");
+                                log(e);
+                            }
+                        } else {
+                            log("⚠️ open_stand() not available in this environment.", "#FF8800");
+                        }
+                    }
+                } catch (e) {
+                    log("⚠️ Error while attempting to open stand:", "#FF0000");
+                    log(e);
+                }
             }
             // --- If nothing to do, idle and check again soon ---
             await delay(2000);
