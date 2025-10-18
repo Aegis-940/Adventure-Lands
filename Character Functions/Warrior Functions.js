@@ -205,9 +205,17 @@ async function boss_loop() {
                 }
             }
 
-            // --- Attack ---
             try {
-                await attack(boss);
+                const targetName = boss.target || null;
+                const skipTargets = ["Riva", "Ulric"];
+                const shouldAttack = (targetName === "Myras") || (targetName && !skipTargets.includes(targetName));
+
+                if (shouldAttack) {
+                    log(`⚔️ Attacking boss (target: ${targetName})`, "#ff6666", "Alerts");
+                    await attack(boss);
+                } else {
+                    log(`⏭️ Skipping boss attack (boss targeting: ${targetName})`, "#aaa", "Alerts");
+                }
             } catch (e) { catcher(e, "Boss attack error"); }
 
             delayMs = ms_to_next_skill('attack') + character.ping + 50;

@@ -230,11 +230,11 @@ async function boss_loop() {
             try {
                 change_target(boss);
 
-                // Only attack if boss is not targeting party
-                if (
-                    boss.target &&
-                    ![character.name].includes(boss.target)
-                ) {
+                const targetName = boss.target || null;
+                const skipTargets = ["Riva", "Ulric"];
+                const shouldAttack = (targetName === "Myras") || (targetName && !skipTargets.includes(targetName));
+
+                if (shouldAttack) {
                     if (!is_on_cooldown("huntersmark")) {
                         use_skill("huntersmark", boss);
                     }
@@ -246,6 +246,8 @@ async function boss_loop() {
                         await attack(boss);
                     }
                     delayMs = ms_to_next_skill('attack') + character.ping + 50;
+                } else {
+                    log(`⏭️ Skipping boss attack (boss targeting: ${targetName})`, "#aaa", "Alerts");
                 }
             } catch (e) {
                 catcher(e, "Boss loop attack");
