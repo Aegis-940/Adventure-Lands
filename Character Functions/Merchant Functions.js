@@ -130,25 +130,25 @@ async function merchant_loop_controller() {
                     stop_loot_and_potions_loop();
                 }
 
-                if (!is_on_cooldown("fishing")) {
-                    if (!LOOP_STATES.fishing) {
-                        await start_fishing_loop();
-                        await delay(1000)
-                        continue;
-                    }
-                } else {
-                    stop_fishing_loop();
-                }
+                // if (!is_on_cooldown("fishing")) {
+                //     if (!LOOP_STATES.fishing) {
+                //         await start_fishing_loop();
+                //         await delay(1000)
+                //         continue;
+                //     }
+                // } else {
+                //     stop_fishing_loop();
+                // }
 
-                if (!is_on_cooldown("mining")) {
-                    if (!LOOP_STATES.mining) {
-                        await start_mining_loop();
-                        await delay(1000);
-                        continue;
-                    }
-                } else {
-                    stop_mining_loop();
-                }
+                // if (!is_on_cooldown("mining")) {
+                //     if (!LOOP_STATES.mining) {
+                //         await start_mining_loop();
+                //         await delay(1000);
+                //         continue;
+                //     }
+                // } else {
+                //     stop_mining_loop();
+                // }
             }
             // --- If nothing to do, idle and check again soon ---
             await delay(2000);
