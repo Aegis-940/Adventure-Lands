@@ -558,7 +558,7 @@ async function loot_loop() {
 // POTIONS LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function potions_loop() {
+async function potion_loop() {
 
     while (true) {
         // Check if potion loop is enabled
