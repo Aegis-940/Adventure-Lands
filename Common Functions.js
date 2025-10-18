@@ -133,7 +133,6 @@ async function watchdog_loop() {
                 } else if (character.name === "Riva") {
                     await smart_move(RANGER_TARGET);
                 }
-                last_activity_time = Date.now();
             } catch (e) {
                 catcher(e, "Watchdog restart error");
             }
