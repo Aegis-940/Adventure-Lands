@@ -59,6 +59,8 @@ let is_active = null;
 
 async function passive_activity_monitor() {
     let last_mp = character.mp;
+    let last_hpots = character.items.filter(it => it && it.name === "hpot1").reduce((sum, it) => sum + (it.q || 1), 0);
+    let last_mpots = character.items.filter(it => it && it.name === "mpot1").reduce((sum, it) => sum + (it.q || 1), 0);
 
     while (true) {
         is_active = false;
@@ -66,20 +68,21 @@ async function passive_activity_monitor() {
         // 1. Smart moving
         if (smart.moving) is_active = true;
 
-        log("smart.moving: " + smart.moving);
-        log("is_active: " + is_active);
-
         // 2. Mana changed (any change up or down)
         if (character.mp !== last_mp) is_active = true;
-        
-        log("is_active: " + is_active);
+
+        // 3. HP/MP potions used (count decreased)
+        let current_hpots = character.items.filter(it => it && it.name === "hpot1").reduce((sum, it) => sum + (it.q || 1), 0);
+        let current_mpots = character.items.filter(it => it && it.name === "mpot1").reduce((sum, it) => sum + (it.q || 1), 0);
+
+        if (current_hpots < last_hpots) is_active = true;
+        if (current_mpots < last_mpots) is_active = true;
 
         if (is_active) last_activity_time = Date.now();
 
-        
-        log("is_active: " + is_active);
-
         last_mp = character.mp;
+        last_hpots = current_hpots;
+        last_mpots = current_mpots;
         await delay(1000); // Check every second
     }
 }
