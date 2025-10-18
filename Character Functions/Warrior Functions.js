@@ -79,7 +79,7 @@ async function attack_loop() {
                 }
             }
 
-            // Sort by HP (lowest first)
+            // Sort by HP (highest first)
             inRange.sort((a, b) => b.hp - a.hp);
             const sorted_targets = inRange.slice(0, 5);
 
@@ -216,7 +216,7 @@ async function boss_loop() {
 
         // 4. Move back to target location
         let moving_home = true;
-        smart_move(HEALER_TARGET).then(() => { moving_home = false; });
+        smart_move(WARRIOR_TARGET).then(() => { moving_home = false; });
         while (moving_home) {
             // If boss respawns while returning, break and restart boss loop
             if (BOSSES.some(name => parent.S[name] && parent.S[name].live)) {
