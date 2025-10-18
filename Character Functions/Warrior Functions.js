@@ -17,7 +17,7 @@ const LOOP_STATES = {
 }
 
 const WARRIOR_CONFIG = {
-    potion: { hp: 300, mp: 400 },           // Use potion if missing this much HP/MP
+    potion: { hp: 5000, mp: 400 },          // Use potion if missing this much HP/MP
     orbit:  { radius: 27, steps: 12 },      // Orbit radius and steps
     panic:  { hp: 0.33, mp: 100,            // Panic if below 33% HP or 100 MP
         safe_hp: 0.66, safe_mp: 500,        // Resume normal if above 66% HP or 500 MP
