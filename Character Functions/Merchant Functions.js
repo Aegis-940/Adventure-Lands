@@ -86,10 +86,21 @@ async function merchant_loop_controller() {
                 continue;
             }
 
-            // --- Wait for any active task to finish ---
+            // --- Wait for any active task to finish (bounded, with recovery) ---
             if (merchant_task !== "Idle") {
-                while (merchant_task !== "Idle") {
+                const WAIT_TASK_MS = 5 * 60 * 1000; // 5 minutes max wait
+                const startWait = Date.now();
+                game_log(`⏳ Waiting for task '${merchant_task}' to finish (timeout ${WAIT_TASK_MS/1000}s)`);
+                // Periodically check but don't block forever
+                while (merchant_task !== "Idle" && Date.now() - startWait < WAIT_TASK_MS) {
                     await delay(1000);
+                }
+                if (merchant_task !== "Idle") {
+                    // Recovery action: log and force Idle so controller can continue
+                    game_log(`⚠️ Task '${merchant_task}' still active after ${Math.round((Date.now()-startWait)/1000)}s — forcing Idle and continuing`, "#FF8800");
+                    merchant_task = "Idle";
+                } else {
+                    game_log(`✅ Task finished, continuing`);
                 }
                 continue;
             }
@@ -121,7 +132,8 @@ async function merchant_loop_controller() {
 
                 if (!is_on_cooldown("fishing")) {
                     if (!LOOP_STATES.fishing) {
-                        start_fishing_loop();
+                        await start_fishing_loop();
+                        await delay(1000)
                         continue;
                     }
                 } else {
@@ -130,7 +142,8 @@ async function merchant_loop_controller() {
 
                 if (!is_on_cooldown("mining")) {
                     if (!LOOP_STATES.mining) {
-                        start_mining_loop();
+                        await start_mining_loop();
+                        await delay(1000);
                         continue;
                     }
                 } else {
