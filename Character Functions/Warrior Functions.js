@@ -81,7 +81,7 @@ async function attack_loop() {
 
             // Sort by HP (highest first)
             inRange.sort((a, b) => b.hp - a.hp);
-            const sorted_targets = inRange.slice(0, 5);
+            const target = cursed || (inRange.length ? inRange[0] : null);
 
             try {
                 if (smart.moving) {
