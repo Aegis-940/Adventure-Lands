@@ -1,6 +1,6 @@
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// 1) GLOBAL LOOP SWITCHES AND VARIABLES
+// 1) GLOBAL TOGGLES AND VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const LOOP_STATES = {
@@ -16,18 +16,26 @@ const LOOP_STATES = {
 
 }
 
-const HEALER_CONFIG = {
-    potion: { hp: 300, mp: 400 },           // Use potion if missing this much HP/MP
-    orbit:  { radius: 27, steps: 12 },      // Orbit radius and steps
-    panic:  { hp: 0.33, mp: 100,            // Panic if below 33% HP or 100 MP
-        safe_hp: 0.66, safe_mp: 500,        // Resume normal if above 66% HP or 500 MP
-        aggro: 99 },                        // Panic if this many monsters are targeting you
-    target_limit: 99,                       // Max number of monsters allowed to target you before stopping attacks
-    heal_threshold: 1.5,                    // Used as character.heal / heal_threshold factor (overheal factor)
-    attack_mp_threshold: 3000,              // Minimum MP required to perform attacks (throttles aggro)
-    panic_orb: "jacko",                     // Orb to switch to when panicking
-    normal_orb: "talkingskull",                // Orb to switch to when not panicking
-};
+const POTION_HP_THRESHOLD = 300;        // Use potion if missing this much HP
+const POTION_MP_THRESHOLD = 400;        // Use potion if missing this much MP
+
+const ORBIT_RADIUS = 27;                // Combat Orbit radius
+const ORBIT_STEPS = 12;                 // Number of steps in orbit (e.g., 12 = 30 degrees per step)
+
+const PANIC_HP_THRESHOLD = 0.33;        // Panic if below 33% HP
+const PANIC_MP_THRESHOLD = 100;         // Panic if below 100 MP
+const SAFE_HP_THRESHOLD = 0.66;         // Resume normal if above 66% HP
+const SAFE_MP_THRESHOLD = 500;          // Resume normal if above 500 MP
+const PANIC_AGGRO_THRESHOLD = 99;       // Panic if this many monsters are targeting you
+const PANIC_ORB = "jacko";              // Orb to switch to when panicking
+const NORMAL_ORB = "talkingskull";      // Orb to switch to when not panicking
+
+const TARGET_LIMIT = 99;                // Max number of monsters allowed to target you before stopping attacks
+const HEAL_THRESHOLD = 1.5;             // Overheal factor to compensate for resistance. (max_hp - heal/threshold)
+const ATTACK_MP_THRESHOLD = 3000;       // Minimum MP required to perform attacks (throttles aggro)
+
+const TARGET_LOWEST_HP = true;          // true: lowest HP, false: highest HP
+const PRIORITIZE_UNTARGETED = true;     // true: prefer monsters with no target first
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS
@@ -69,10 +77,6 @@ function lowest_health_partymember() {
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Toggle options
-const ATTACK_TARGET_LOWEST_HP = true;      // true: lowest HP, false: highest HP
-const ATTACK_PRIORITIZE_UNTARGETED = true; // true: prefer monsters with no target first
-
 async function heal_attack_loop() {
     // This loop is designed to be called ONCE and runs forever
     let delayMs = 50;
@@ -84,7 +88,7 @@ async function heal_attack_loop() {
             const heal_target = lowest_health_partymember();
             const should_heal = (
                 heal_target &&
-                heal_target.hp < heal_target.max_hp - (character.heal / HEALER_CONFIG.heal_threshold) &&
+                heal_target.hp < heal_target.max_hp - (character.heal / HEAL_THRESHOLD) &&
                 is_in_range(heal_target)
             );
             // --- Healing logic ---
@@ -112,7 +116,7 @@ async function heal_attack_loop() {
                 );
 
                 // Prioritize untargeted if toggle is on
-                if (ATTACK_PRIORITIZE_UNTARGETED) {
+                if (PRIORITIZE_UNTARGETED) {
                     monsters = monsters.sort((a, b) => {
                         let aUntargeted = !a.target ? -1 : 0;
                         let bUntargeted = !b.target ? -1 : 0;
@@ -121,7 +125,7 @@ async function heal_attack_loop() {
                 }
 
                 // Prioritize by HP (lowest or highest)
-                if (ATTACK_TARGET_LOWEST_HP) {
+                if (TARGET_LOWEST_HP) {
                     monsters = monsters.sort((a, b) => (a.hp / a.max_hp) - (b.hp / b.max_hp));
                 } else {
                     monsters = monsters.sort((a, b) => (b.hp / b.max_hp) - (a.hp / a.max_hp));
@@ -137,8 +141,8 @@ async function heal_attack_loop() {
                     target &&
                     is_in_range(target) &&
                     !smart.moving &&
-                    character.mp >= HEALER_CONFIG.attack_mp_threshold &&
-                    monsters_targeting_me < HEALER_CONFIG.target_limit
+                    character.mp >= ATTACK_MP_THRESHOLD &&
+                    monsters_targeting_me < TARGET_LIMIT
                 ) {
                     try {
                         await attack(target);
@@ -569,7 +573,7 @@ async function potions_loop() {
         let used_potion = false;
 
         // Use mana potion if needed
-        if (MP_MISSING >= HEALER_CONFIG.potion.mp) {
+        if (MP_MISSING >= POTION_MP_THRESHOLD) {
             if (can_use("mp")) {
                 use("mp");
                 used_potion = true;
@@ -577,7 +581,7 @@ async function potions_loop() {
         }
 
         // Use health potion if needed
-        else if (HP_MISSING >= HEALER_CONFIG.potion.hp) {
+        else if (HP_MISSING >= POTION_HP_THRESHOLD) {
             if (can_use("hp")) {
                 use("hp");
                 used_potion = true;
@@ -598,10 +602,8 @@ async function potions_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 let orbit_origin = null;
-let orbit_radius = HEALER_CONFIG.orbit.radius;
 let orbit_path_points = [];
 let orbit_path_index = 0;
-const ORBIT_STEPS = HEALER_CONFIG.orbit.steps; // 30 degrees per step
 const MOVE_CHECK_INTERVAL = 120; // ms
 const MOVE_TOLERANCE = 5; // pixels
 
@@ -612,13 +614,13 @@ function set_orbit_radius(r) {
     }
 }
 
-function compute_orbit_path(origin, orbit_radius, steps) {
+function compute_orbit_path(origin, ORBIT_RADIUS, steps) {
     const points = [];
     for (let i = 0; i < steps; i++) {
         const angle = (2 * Math.PI * i) / steps;
         points.push({
-            x: origin.x + orbit_radius * Math.cos(angle),
-            y: origin.y + orbit_radius * Math.sin(angle)
+            x: origin.x + ORBIT_RADIUS * Math.cos(angle),
+            y: origin.y + ORBIT_RADIUS * Math.sin(angle)
         });
     }
     return points;
@@ -636,8 +638,8 @@ async function orbit_loop() {
         }
 
         orbit_origin = { x: character.real_x, y: character.real_y };
-        set_orbit_radius(orbit_radius);
-        orbit_path_points = compute_orbit_path(orbit_origin, orbit_radius, ORBIT_STEPS);
+        set_orbit_radius(ORBIT_RADIUS);
+        orbit_path_points = compute_orbit_path(orbit_origin, ORBIT_RADIUS, ORBIT_STEPS);
         orbit_path_index = 0;
 
         while (true) {
@@ -683,14 +685,6 @@ async function orbit_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 let panicking = false;
-
-const PANIC_HP_THRESHOLD = character.max_hp * HEALER_CONFIG.panic.hp;        // Panic if below 33% HP
-const PANIC_MP_THRESHOLD = HEALER_CONFIG.panic.mp;                                             // Panic if below 100 MP
-const SAFE_HP_THRESHOLD = HEALER_CONFIG.panic.safe_hp;   // Resume normal if above 66% HP
-const SAFE_MP_THRESHOLD = HEALER_CONFIG.panic.safe_mp;                          // Resume normal if above 500 MP
-const PANIC_AGGRO_THRESHOLD = HEALER_CONFIG.panic.aggro;                       // Panic if this many monsters are targeting you
-const PANIC_ORB = HEALER_CONFIG.panic_orb;
-const NORMAL_ORB = HEALER_CONFIG.normal_orb;
 
 async function panic_loop() {
     
