@@ -131,7 +131,7 @@ panic_loop();
 boss_loop();
 orbit_loop();
 status_cache_loop();
-heal_attack_loop();
+attack_loop();
 
 setInterval(async () => {
 	
