@@ -64,10 +64,10 @@ async function passive_activity_monitor() {
         if (smart.moving) active = true;
 
         // 2. Attacking
-        if (character.target && is_attacking(character)) active = true;
+        if (character.target && is_on_cooldown("attack")) active = true;
 
         // 3. Using MP potions (detects if next_potion timer advanced or mp jumps up)
-        if (is_on_cooldown("mp")) active = true;
+        if (is_on_cooldown("use_mp")) active = true;
 
         // 4. Recently looted (if you track these in your code)
         if (last_loot_time && Date.now() - last_loot_time < 10000) active = true;
@@ -123,6 +123,9 @@ async function watchdog_loop() {
                 safely_call("status_cache_loop");
                 await delay(500);
 
+                log("✅ Main loops restarted by watchdog.", "#00ff00", "Alerts");
+                log("Moving to target location...", "#00ff00", "Alerts");
+
                 // Move to respective character's target location (concise, by name)
                 if (character.name === "Myras") {
                     await smart_move(HEALER_TARGET);
@@ -133,8 +136,6 @@ async function watchdog_loop() {
                 }
 
                 last_activity_time = now;
-
-                log("✅ Main loops restarted by watchdog.", "#00ff00", "Alerts");
             } catch (e) {
                 catcher(e, "Watchdog restart error");
             }
