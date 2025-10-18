@@ -54,6 +54,7 @@ function halt_movement() {
 
 // Global Watchdog Monitor
 let last_activity_time = Date.now();
+let last_soft_restart_time = 0;
 let last_hard_reset_time = 0;
 let is_active = null;
 
@@ -108,9 +109,13 @@ async function watchdog_loop() {
             parent.window.location.reload();
             // No need to reset last_activity_time here, page will reload
         }
-        // Soft restart if inactive for 30 seconds
-        else if (now - last_activity_time > 30000) {
+        // Soft restart if inactive for 30 seconds, but not more than once every 30s
+        else if (
+            now - last_activity_time > 30000 &&
+            now - last_soft_restart_time > 30000
+        ) {
             log("⚠️ Inactivity detected! Attempting to restart main loops...", "#ff8800", "Alerts");
+            last_soft_restart_time = now;
             try {
                 safely_call("stop_attack_loop");
                 safely_call("stop_heal_loop");
