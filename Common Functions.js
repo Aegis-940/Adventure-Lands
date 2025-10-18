@@ -55,23 +55,24 @@ function halt_movement() {
 // Global Watchdog Monitor
 let last_activity_time = Date.now();
 let last_hard_reset_time = 0;
+let is_active = null;
 
 async function passive_activity_monitor() {
     let last_mp = character.mp;
 
     while (true) {
-        let active = false;
+        is_active = false;
 
         // 1. Smart moving
-        if (smart.moving) active = true;
+        if (smart.moving) is_active = true;
 
         // 2. Mana changed (any change up or down)
-        if (character.mp !== last_mp) active = true;
+        if (character.mp !== last_mp) is_active = true;
 
         // 3. Recently looted (if you track these in your code)
-        if (last_loot_time < 10000) active = true;
+        if (last_loot_time < 10000) is_active = true;
 
-        if (active) last_activity_time = Date.now();
+        if (is_active) last_activity_time = Date.now();
 
         last_mp = character.mp;
         await delay(1000); // Check every second
@@ -124,6 +125,7 @@ async function watchdog_loop() {
                 } else if (character.name === "Riva") {
                     await smart_move(RANGER_TARGET);
                 }
+                last_activity_time = Date.now();
             } catch (e) {
                 catcher(e, "Watchdog restart error");
             }
