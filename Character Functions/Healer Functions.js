@@ -505,7 +505,7 @@ async function handle_dark_blessing() {
 // LOOT LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let lastLoot = null;
+let last_loot_time = null;
 let tryLoot = false;
 const chestThreshold = 6;
 
@@ -523,7 +523,7 @@ async function loot_chests() {
         looted++;
         await delay(60); // Small delay to avoid server spam
     }
-    lastLoot = Date.now();
+    last_loot_time = Date.now();
     tryLoot = true;
 }
 
@@ -539,7 +539,7 @@ async function loot_loop() {
             const now = Date.now();
 
             // If enough time has passed since last loot, and enough chests are present, and not feared
-            if ((lastLoot ?? 0) + 500 < now) {
+            if ((last_loot_time ?? 0) + 500 < now) {
                 if (getNumChests() >= chestThreshold && character.fear < 6) {
                     await loot_chests();
                 }

@@ -216,7 +216,6 @@ async function boss_loop() {
                     const shouldAttack = (targetName === "Myras") || !skipTargets.includes(targetName);
 
                     if (shouldAttack) {
-                        log(`⚔️ Attacking boss (target: ${targetName})`, "#ff6666", "Alerts");
                         await attack(boss);
                     } else {
                         log(`⏭️ Skipping boss attack (boss targeting: ${targetName})`, "#aaa", "Alerts");

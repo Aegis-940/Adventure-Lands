@@ -47,6 +47,89 @@ function halt_movement() {
 	parent.socket.emit("move", { to: { x: character.x, y: character.y } });
 }
 
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// GLOBAL WATCHDOG
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+// Global Watchdog Monitor
+let last_activity_time = Date.now();
+
+async function passive_activity_monitor() {
+    while (true) {
+        let active = false;
+
+        // 1. Smart moving
+        if (smart.moving) active = true;
+
+        // 2. Attacking
+        if (character.target && is_attacking(character)) active = true;
+
+        // 3. Using MP potions (detects if next_potion timer advanced or mp jumps up)
+        if (is_on_cooldown("mp")) active = true;
+
+        // 4. Recently looted (if you track these in your code)
+        if (last_loot_time && Date.now() - last_loot_time < 10000) active = true;
+
+        if (active) last_activity_time = Date.now();
+
+        await delay(1000); // Check every second
+    }
+}
+
+async function watchdog_loop() {
+    // Helper: safely call a loop function if it exists
+    function safely_call(fnName, ...args) {
+        try {
+            const fn = typeof window !== "undefined" ? window[fnName] : parent[fnName];
+            if (typeof fn === "function") return fn(...args);
+        } catch (e) {
+            log(`⚠️ Could not call ${fnName}: ${e.message}`, "#FF8800", "Errors");
+        }
+    }
+
+    while (true) {
+        await delay(5000); // check every 5 seconds
+        const now = Date.now();
+        if (now - last_activity_time > 120000) { // 2 minutes
+            log("🔄 Hard reset: Reloading page due to persistent inactivity.", "#ff0000", "Alerts");
+            parent.window.location.reload();
+        }
+        else if (now - last_activity_time > 30000) { // 30 seconds of inactivity
+            log("⚠️ Inactivity detected! Attempting to restart main loops...", "#ff8800", "Alerts");
+            try {
+                // Soft restart: safely stop all possible loops
+                safely_call("stop_attack_loop");
+                safely_call("stop_heal_loop");
+                safely_call("stop_move_loop");
+                safely_call("stop_skill_loop");
+                safely_call("stop_panic_loop");
+                safely_call("stop_boss_loop");
+                safely_call("stop_orbit_loop");
+                safely_call("stop_status_cache_loop");
+                await delay(500);
+
+                // Safely start all possible loops
+                safely_call("attack_loop");
+                safely_call("heal_attack_loop");
+                safely_call("move_loop");
+                safely_call("skill_loop");
+                safely_call("panic_loop");
+                safely_call("boss_loop");
+                safely_call("orbit_loop");
+                safely_call("status_cache_loop");
+                await delay(500);
+
+                log("✅ Main loops restarted by watchdog.", "#00ff00", "Alerts");
+            } catch (e) {
+                catcher(e, "Watchdog restart error");
+            }
+            // Reset activity timer to avoid repeated restarts
+            last_activity_time = Date.now();
+        }
+    }
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // CM HANDLERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
