@@ -66,13 +66,25 @@ async function passive_activity_monitor() {
         // 1. Smart moving
         if (smart.moving) is_active = true;
 
+        log("smart.moving: " + smart.moving);
+        log("is_active: " + is_active);
+
         // 2. Mana changed (any change up or down)
         if (character.mp !== last_mp) is_active = true;
 
+        
+        log("is_active: " + is_active);
+
         // 3. Recently looted (if you track these in your code)
-        if (last_loot_time < 10000) is_active = true;
+        if (last_loot_time && Date.now() - last_loot_time < 10000) is_active = true;
+
+        
+        log("is_active: " + is_active);
 
         if (is_active) last_activity_time = Date.now();
+
+        
+        log("is_active: " + is_active);
 
         last_mp = character.mp;
         await delay(1000); // Check every second
