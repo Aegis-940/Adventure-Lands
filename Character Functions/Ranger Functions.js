@@ -230,24 +230,32 @@ async function boss_loop() {
             try {
                 change_target(boss);
 
-                const targetName = boss.target || null;
+                // Determine who the boss is targeting (null if none)
+                const targetName = boss.target ?? null;
                 const skipTargets = ["Riva", "Ulric"];
-                const shouldAttack = (targetName === "Myras") || (targetName && !skipTargets.includes(targetName));
 
-                if (shouldAttack) {
-                    if (!is_on_cooldown("huntersmark")) {
-                        use_skill("huntersmark", boss);
-                    }
-                    const now = Date.now();
-                    if (now - last_supershot_time >= 31000) { // 31 seconds
-                        await use_skill("supershot", boss);
-                        last_supershot_time = now;
-                    } else {
-                        await attack(boss);
-                    }
-                    delayMs = ms_to_next_skill('attack') + character.ping + 50;
+                // If boss has no target, skip attacking to avoid drawing aggro
+                if (!targetName) {
+                    log("⏭️ Skipping boss attack — boss has no target", "#aaa", "Alerts");
                 } else {
-                    log(`⏭️ Skipping boss attack (boss targeting: ${targetName})`, "#aaa", "Alerts");
+                    // Only attack if boss is targeting "Myras" OR any target that's not in the skip list
+                    const shouldAttack = (targetName === "Myras") || !skipTargets.includes(targetName);
+
+                    if (shouldAttack) {
+                        if (!is_on_cooldown("huntersmark")) {
+                            use_skill("huntersmark", boss);
+                        }
+                        const now = Date.now();
+                        if (now - last_supershot_time >= 31000) { // 31 seconds
+                            await use_skill("supershot", boss);
+                            last_supershot_time = now;
+                        } else {
+                            await attack(boss);
+                        }
+                        delayMs = ms_to_next_skill('attack') + character.ping + 50;
+                    } else {
+                        log(`⏭️ Skipping boss attack (boss targeting: ${targetName})`, "#aaa", "Alerts");
+                    }
                 }
             } catch (e) {
                 catcher(e, "Boss loop attack");

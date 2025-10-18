@@ -206,15 +206,21 @@ async function boss_loop() {
             }
 
             try {
-                const targetName = boss.target || null;
+                const targetName = boss.target ?? null;
                 const skipTargets = ["Riva", "Ulric"];
-                const shouldAttack = (targetName === "Myras") || (targetName && !skipTargets.includes(targetName));
 
-                if (shouldAttack) {
-                    log(`⚔️ Attacking boss (target: ${targetName})`, "#ff6666", "Alerts");
-                    await attack(boss);
+                // If boss has no target, skip to avoid drawing aggro
+                if (!targetName) {
+                    log("⏭️ Skipping boss attack — boss has no target", "#aaa", "Alerts");
                 } else {
-                    log(`⏭️ Skipping boss attack (boss targeting: ${targetName})`, "#aaa", "Alerts");
+                    const shouldAttack = (targetName === "Myras") || !skipTargets.includes(targetName);
+
+                    if (shouldAttack) {
+                        log(`⚔️ Attacking boss (target: ${targetName})`, "#ff6666", "Alerts");
+                        await attack(boss);
+                    } else {
+                        log(`⏭️ Skipping boss attack (boss targeting: ${targetName})`, "#aaa", "Alerts");
+                    }
                 }
             } catch (e) { catcher(e, "Boss attack error"); }
 
