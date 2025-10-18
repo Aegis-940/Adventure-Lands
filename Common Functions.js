@@ -65,12 +65,11 @@ async function passive_activity_monitor() {
         // 1. Smart moving
         if (smart.moving) active = true;
 
-        // 2. Mana changed: up by 100 or any amount down
-        const mp_diff = character.mp - last_mp;
-        if (mp_diff <= -1 || mp_diff >= 100) active = true;
+        // 2. Mana changed (any change up or down)
+        if (character.mp !== last_mp) active = true;
 
         // 3. Recently looted (if you track these in your code)
-        if (last_loot_time && Date.now() - last_loot_time < 10000) active = true;
+        if (last_loot_time < 10000) active = true;
 
         if (active) last_activity_time = Date.now();
 
