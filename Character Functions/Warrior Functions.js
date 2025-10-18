@@ -32,7 +32,7 @@ const WARRIOR_CONFIG = {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const LOOP_NAMES = [
-    "attack", "heal", "move", "skill", "panic", "loot", "potions", "orbit", "boss", "status_cache"
+    "attack", "heal", "move", "skill", "panic", "loot", "potion", "orbit", "boss", "status_cache"
 ];
 
 for (const name of LOOP_NAMES) {
@@ -388,7 +388,7 @@ async function loot_loop() {
 // POTIONS LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function potions_loop() {
+async function potion_loop() {
 
     while (true) {
         // Check if potion loop is enabled

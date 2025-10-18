@@ -49,7 +49,7 @@ function get_character_state() {
 
 async function set_loops(state) {
     // Always-on loops
-    if (!LOOP_STATES.potion) start_potions_loop();
+    if (!LOOP_STATES.potion) start_potion_loop();
     if (!LOOP_STATES.loot) start_loot_loop();
     if (!LOOP_STATES.cache) start_status_cache_loop();
 
@@ -123,7 +123,7 @@ async function loop_controller() {
 
 let last_update_time = 0;
 
-potions_loop();
+potion_loop();
 loot_loop();
 move_loop();
 skill_loop();
