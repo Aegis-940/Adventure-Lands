@@ -71,13 +71,6 @@ async function passive_activity_monitor() {
 
         // 2. Mana changed (any change up or down)
         if (character.mp !== last_mp) is_active = true;
-
-        
-        log("is_active: " + is_active);
-
-        // 3. Recently looted (if you track these in your code)
-        if (last_loot_time && Date.now() - last_loot_time < 10000) is_active = true;
-
         
         log("is_active: " + is_active);
 
