@@ -144,7 +144,7 @@ let last_update_time = 0;
 potions_loop();
 loot_loop();
 move_loop();
-skill_loop();
+// skill_loop();
 panic_loop();
 boss_loop();
 orbit_loop();
