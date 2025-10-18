@@ -54,6 +54,7 @@ function halt_movement() {
 
 // Global Watchdog Monitor
 let last_activity_time = Date.now();
+let last_hard_reset_time = 0;
 
 async function passive_activity_monitor() {
     while (true) {
@@ -78,7 +79,6 @@ async function passive_activity_monitor() {
 }
 
 async function watchdog_loop() {
-    // Helper: safely call a loop function if it exists
     function safely_call(fnName, ...args) {
         try {
             const fn = typeof window !== "undefined" ? window[fnName] : parent[fnName];
@@ -91,14 +91,18 @@ async function watchdog_loop() {
     while (true) {
         await delay(5000); // check every 5 seconds
         const now = Date.now();
-        if (now - last_activity_time > 120000) { // 2 minutes
+
+        // Hard reset if inactive for 2 minutes
+        if (now - last_activity_time > 120000 && now - last_hard_reset_time > 120000) {
             log("🔄 Hard reset: Reloading page due to persistent inactivity.", "#ff0000", "Alerts");
+            last_hard_reset_time = now;
             parent.window.location.reload();
+            // No need to reset last_activity_time here, page will reload
         }
-        else if (now - last_activity_time > 30000) { // 30 seconds of inactivity
+        // Soft restart if inactive for 30 seconds
+        else if (now - last_activity_time > 30000) {
             log("⚠️ Inactivity detected! Attempting to restart main loops...", "#ff8800", "Alerts");
             try {
-                // Soft restart: safely stop all possible loops
                 safely_call("stop_attack_loop");
                 safely_call("stop_heal_loop");
                 safely_call("stop_move_loop");
@@ -109,7 +113,6 @@ async function watchdog_loop() {
                 safely_call("stop_status_cache_loop");
                 await delay(500);
 
-                // Safely start all possible loops
                 safely_call("attack_loop");
                 safely_call("heal_attack_loop");
                 safely_call("move_loop");
@@ -120,12 +123,21 @@ async function watchdog_loop() {
                 safely_call("status_cache_loop");
                 await delay(500);
 
+                // Move to respective character's target location (concise, by name)
+                if (character.name === "Myras") {
+                    await smart_move(HEALER_TARGET);
+                } else if (character.name === "Ulric") {
+                    await smart_move(WARRIOR_TARGET);
+                } else if (character.name === "Riva") {
+                    await smart_move(RANGER_TARGET);
+                }
+
+                last_activity_time = now;
+
                 log("✅ Main loops restarted by watchdog.", "#00ff00", "Alerts");
             } catch (e) {
                 catcher(e, "Watchdog restart error");
             }
-            // Reset activity timer to avoid repeated restarts
-            last_activity_time = Date.now();
         }
     }
 }
