@@ -74,9 +74,6 @@ async function handle_death_and_respawn() {
     await delay(5000);
 }
 
-let last_stall_open_attempt = 0;
-let last_stall_close_attempt = 0;
-
 async function merchant_loop_controller() {
     let last_upgrade_time = 0;
     const UPGRADE_INTERVAL = 60 * 60 * 1000; // 60 minutes in ms
@@ -122,69 +119,22 @@ async function merchant_loop_controller() {
                     stop_loot_and_potions_loop();
                 }
 
-                // if (!is_on_cooldown("fishing")) {
-                //     if (!LOOP_STATES.fishing) {
-                //         start_fishing_loop();
-                //         continue;
-                //     }
-                // } else {
-                //     stop_fishing_loop();
-                // }
-
-                // if (!is_on_cooldown("mining")) {
-                //     if (!LOOP_STATES.mining) {
-                //         start_mining_loop();
-                //         continue;
-                //     }
-                // } else {
-                //     stop_mining_loop();
-                // }
-
-                // --- NEW: attempt to open merchant stall when idle and at HOME ---
-                try {
-                    const nowAttempt = Date.now();
-                    const AT_HOME = character.map === HOME.map &&
-                                    Math.hypot(character.x - HOME.x, character.y - HOME.y) <= 20 &&
-                                    !character.moving;
-
-                    // throttle attempts to avoid spamming (30s)
-                    if (AT_HOME && nowAttempt - last_stall_open_attempt > 30000) {
-                        last_stall_open_attempt = nowAttempt;
-                        if (typeof open_stand === "function") {
-                            log("🛒 Opening merchant stand (idle at HOME)...");
-                            try {
-                                open_stand(); // call the game's API to open stand
-                            } catch (e) {
-                                log("⚠️ open_stand() threw an error:", "#FF0000");
-                                log(e);
-                            }
-                        } else {
-                            log("⚠️ open_stand() not available in this environment.", "#FF8800");
-                        }
+                if (!is_on_cooldown("fishing")) {
+                    if (!LOOP_STATES.fishing) {
+                        start_fishing_loop();
+                        continue;
                     }
+                } else {
+                    stop_fishing_loop();
+                }
 
-                    // Close the stand if we're not at HOME (throttled)
-                    const NOT_HOME = !AT_HOME;
-                    if (NOT_HOME && typeof close_stand === "function") {
-                        // Only try to close if enough time passed since last attempt and stand appears open
-                        const nowClose = Date.now();
-                        if (nowClose - last_stall_close_attempt > 30000) {
-                            // Prefer checking character.stand if available to avoid unnecessary calls
-                            if (character.stand || typeof character.stand === "undefined") {
-                                last_stall_close_attempt = nowClose;
-                                try {
-                                    log("🔒 Closing merchant stand (not at HOME)...");
-                                    close_stand();
-                                } catch (e) {
-                                    log("⚠️ close_stand() threw an error:", "#FF0000");
-                                    log(e);
-                                }
-                            }
-                        }
+                if (!is_on_cooldown("mining")) {
+                    if (!LOOP_STATES.mining) {
+                        start_mining_loop();
+                        continue;
                     }
-                } catch (e) {
-                    log("⚠️ Error while attempting to open/close stand:", "#FF0000");
-                    log(e);
+                } else {
+                    stop_mining_loop();
                 }
             }
             // --- If nothing to do, idle and check again soon ---
@@ -192,8 +142,8 @@ async function merchant_loop_controller() {
         }
     } catch (e) {
         merchant_task = "Idle";
-        log("⚠️ Merchant Loop error:", "#FF0000");
-        log(e);
+        game_log("⚠️ Merchant Loop error:", "#FF0000");
+        game_log(e);
     }
 }
 
