@@ -16,9 +16,6 @@ const LOOP_STATES = {
 
 }
 
-// Define default location for monster farming
-const TARGET_LOC = MONSTER_LOCS.bbpompop; // { map: "desertland", x: 171, y: -970, orbit: true };
-
 const HEALER_CONFIG = {
     potion: { hp: 300, mp: 400 },           // Use potion if missing this much HP/MP
     orbit:  { radius: 27, steps: 12 },      // Orbit radius and steps
@@ -280,7 +277,7 @@ async function boss_loop() {
 
         // 4. Move back to target location
         let moving_home = true;
-        smart_move(TARGET_LOC).then(() => { moving_home = false; });
+        smart_move(HEALER_TARGET).then(() => { moving_home = false; });
         while (moving_home) {
             // If boss respawns while returning, break and restart boss loop
             if (BOSSES.some(name => parent.S[name] && parent.S[name].live)) {

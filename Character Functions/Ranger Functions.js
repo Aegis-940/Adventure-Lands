@@ -23,9 +23,6 @@ const HEALER_CONFIG = {
     target_limit: 99
 };
 
-// Define default location for monster farming
-const TARGET_LOC = MONSTER_LOCS.crab; // { map: "desertland", x: 66, y: -972, orbit: false };
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -274,7 +271,7 @@ async function boss_loop() {
 
         // 4. Move back to target location
         let moving_home = true;
-        smart_move(TARGET_LOC).then(() => { moving_home = false; });
+        smart_move(RANGER_TARGET).then(() => { moving_home = false; });
         while (moving_home) {
             // If boss respawns while returning, break and restart boss loop
             if (BOSSES.some(name => parent.S[name] && parent.S[name].live)) {

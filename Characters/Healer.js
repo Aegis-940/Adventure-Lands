@@ -28,10 +28,7 @@ function is_boss_alive() {
         const s = parent.S[name];
         return (
             s &&
-            s.live === true &&
-            Number.isFinite(s.hp) &&
-            Number.isFinite(s.max_hp) &&
-            (s.max_hp - s.hp) > 100000
+            s.live === true
         );
     });
 }
@@ -70,7 +67,7 @@ async function set_loops(state) {
             await delay(30000);
             if (character.rip) await respawn();
             await delay(5000);
-            await smart_move(TARGET_LOC);
+            await smart_move(HEALER_TARGET);
 
             if (!LOOP_STATES.panic) start_panic_loop();
             if (!LOOP_STATES.attack) start_attack_loop();
@@ -100,10 +97,10 @@ async function set_loops(state) {
             if (!LOOP_STATES.attack) start_attack_loop();
 
             // Orbit logic
-            if (TARGET_LOC.orbit) {
-                const at_target = character.x === TARGET_LOC.x && character.y === TARGET_LOC.y;
-                const near_target = parent.distance(character, TARGET_LOC) <= 50;
-                if (near_target && !LOOP_STATES.orbit && !smart.moving) smart_move(TARGET_LOC);
+            if (HEALER_TARGET.orbit) {
+                const at_target = character.x === HEALER_TARGET.x && character.y === HEALER_TARGET.y;
+                const near_target = parent.distance(character, HEALER_TARGET) <= 50;
+                if (near_target && !LOOP_STATES.orbit && !smart.moving) smart_move(HEALER_TARGET);
                 if (!LOOP_STATES.orbit && at_target) start_orbit_loop();
             }
 

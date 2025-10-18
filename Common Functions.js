@@ -28,11 +28,9 @@ const MONSTER_LOCS = {
     bbpompop:     { map: "winter_cave", x: -82, y: -949, orbit: true }
 };
 
-const MERCHANT_NAME               = "Riff";
-
-const FLOATING_BUTTON_IDS         = [];
-
-let status_cache = {}; // { characterName: { inventory, mpot1, hpot1, lastSeen } }
+const HEALER_TARGET = MONSTER_LOCS.bbpompop;
+const WARRIOR_TARGET = MONSTER_LOCS.bbpompop;
+const RANGER_TARGET  = MONSTER_LOCS.crab;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // GLOBAL FUNCTIONS
@@ -326,7 +324,7 @@ function scan_bank_inventory() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function send_to_merchant() {
-	const merchant_name = MERCHANT_NAME;          // e.g., "Riff"
+	const merchant_name = "Riff";          // e.g., "Riff"
 	const merchant = get_player(merchant_name);   // use get_player for live info
 
 	if (!merchant || merchant.rip) {
