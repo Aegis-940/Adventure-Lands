@@ -56,54 +56,66 @@ async function set_loops(state) {
     // State-specific
     switch (state) {
         case STATES.DEAD:
-            panicking = false;
-            if (LOOP_STATES.attack) stop_attack_loop();
-            if (LOOP_STATES.heal) stop_heal_loop();
-            if (LOOP_STATES.orbit) stop_orbit_loop();
-            if (LOOP_STATES.panic) stop_panic_loop();
-            if (LOOP_STATES.boss) stop_boss_loop();
+            try {
+                panicking = false;
+                if (LOOP_STATES.attack) stop_attack_loop();
+                if (LOOP_STATES.heal) stop_heal_loop();
+                if (LOOP_STATES.orbit) stop_orbit_loop();
+                if (LOOP_STATES.panic) stop_panic_loop();
+                if (LOOP_STATES.boss) stop_boss_loop();
 
-            log("Respawning in 30s...", "red");
-            await delay(30000);
-            if (character.rip) await respawn();
-            await delay(5000);
-            await smart_move(RANGER_TARGET);
+                log("Respawning in 30s...", "red");
+                await delay(30000);
+                if (character.rip) await respawn();
+                await delay(5000);
+                await smart_move(HEALER_TARGET);
 
-            if (!LOOP_STATES.panic) start_panic_loop();
-            if (!LOOP_STATES.attack) start_attack_loop();
-            if (!LOOP_STATES.heal) start_heal_loop();
-
+                if (!LOOP_STATES.panic) start_panic_loop();
+                if (!LOOP_STATES.attack) start_attack_loop();
+                if (!LOOP_STATES.heal) start_heal_loop();
+            } catch (e) {
+                catcher(e, "set_loops: DEAD state");
+            }
             break;
 
         case STATES.PANIC:
-            stop_attack_loop();
-            stop_skill_loop();
-            stop_boss_loop();
-
+            try {
+                stop_attack_loop();
+                stop_skill_loop();
+                stop_boss_loop();
+            } catch (e) {
+                catcher(e, "set_loops: PANIC state");
+            }
             break;
 
         case STATES.BOSS:
-            stop_attack_loop();
-            stop_skill_loop();
-            stop_orbit_loop();
+            try {
+                stop_attack_loop();
+                stop_skill_loop();
+                stop_orbit_loop();
 
-            if (!LOOP_STATES.boss) start_boss_loop();
-
+                if (!LOOP_STATES.boss) start_boss_loop();
+            } catch (e) {
+                catcher(e, "set_loops: BOSS state");
+            }
             break;
 
         case STATES.NORMAL:
-            if (LOOP_STATES.boss) stop_boss_loop();
-            if (!LOOP_STATES.skill) start_skill_loop();
-            if (!LOOP_STATES.attack) start_attack_loop();
+            try {
+                if (LOOP_STATES.boss) stop_boss_loop();
+                if (!LOOP_STATES.skill) start_skill_loop();
+                if (!LOOP_STATES.attack) start_attack_loop();
 
-            // Orbit logic
-            if (RANGER_TARGET.orbit) {
-                const at_target = character.x === RANGER_TARGET.x && character.y === RANGER_TARGET.y;
-                const near_target = parent.distance(character, RANGER_TARGET) <= 50;
-                if (near_target && !LOOP_STATES.orbit && !smart.moving) smart_move(RANGER_TARGET);
-                if (!LOOP_STATES.orbit && at_target) start_orbit_loop();
+                // Orbit logic
+                if (HEALER_TARGET.orbit) {
+                    const at_target = character.x === HEALER_TARGET.x && character.y === HEALER_TARGET.y;
+                    const near_target = parent.distance(character, HEALER_TARGET) <= 50;
+                    if (near_target && !LOOP_STATES.orbit && !smart.moving) smart_move(HEALER_TARGET);
+                    if (!LOOP_STATES.orbit && at_target) start_orbit_loop();
+                }
+            } catch (e) {
+                catcher(e, "set_loops: NORMAL state");
             }
-
             break;
     }
 }

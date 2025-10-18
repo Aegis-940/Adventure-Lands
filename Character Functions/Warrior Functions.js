@@ -619,7 +619,7 @@ function compute_orbit_path(origin, orbit_radius, steps) {
 
 async function orbit_loop() {
 
-    let delayMs = 10;
+    let delayMs = 50;
 
     while(true) {
         // Wait until orbit loop is enabled
