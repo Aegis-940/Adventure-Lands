@@ -113,16 +113,6 @@ async function watchdog_loop() {
                 safely_call("stop_status_cache_loop");
                 await delay(500);
 
-                safely_call("attack_loop");
-                safely_call("heal_attack_loop");
-                safely_call("move_loop");
-                safely_call("skill_loop");
-                safely_call("panic_loop");
-                safely_call("boss_loop");
-                safely_call("orbit_loop");
-                safely_call("status_cache_loop");
-                await delay(500);
-
                 log("✅ Main loops restarted by watchdog.", "#00ff00", "Alerts");
                 log("Moving to target location...", "#00ff00", "Alerts");
 
@@ -134,8 +124,6 @@ async function watchdog_loop() {
                 } else if (character.name === "Riva") {
                     await smart_move(RANGER_TARGET);
                 }
-
-                last_activity_time = now;
             } catch (e) {
                 catcher(e, "Watchdog restart error");
             }
