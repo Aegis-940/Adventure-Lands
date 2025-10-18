@@ -57,23 +57,24 @@ let last_activity_time = Date.now();
 let last_hard_reset_time = 0;
 
 async function passive_activity_monitor() {
+    let last_mp = character.mp;
+
     while (true) {
         let active = false;
 
         // 1. Smart moving
         if (smart.moving) active = true;
 
-        // 2. Attacking
-        if (character.target && is_on_cooldown("attack")) active = true;
+        // 2. Mana changed: up by 100 or any amount down
+        const mp_diff = character.mp - last_mp;
+        if (mp_diff <= -1 || mp_diff >= 100) active = true;
 
-        // 3. Using MP potions (detects if next_potion timer advanced or mp jumps up)
-        if (is_on_cooldown("use_mp")) active = true;
-
-        // 4. Recently looted (if you track these in your code)
+        // 3. Recently looted (if you track these in your code)
         if (last_loot_time && Date.now() - last_loot_time < 10000) active = true;
 
         if (active) last_activity_time = Date.now();
 
+        last_mp = character.mp;
         await delay(1000); // Check every second
     }
 }
