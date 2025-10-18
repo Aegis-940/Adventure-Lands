@@ -32,6 +32,8 @@ const HEALER_TARGET = MONSTER_LOCS.bbpompop;
 const WARRIOR_TARGET = MONSTER_LOCS.bbpompop;
 const RANGER_TARGET  = MONSTER_LOCS.crab;
 
+const FLOATING_BUTTON_IDS = [];
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // GLOBAL FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
