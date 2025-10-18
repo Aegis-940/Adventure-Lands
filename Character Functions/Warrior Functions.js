@@ -403,7 +403,7 @@ async function potion_loop() {
         let used_potion = false;
 
         // Use mana potion if needed
-        if (HP_MISSING >= 300) {
+        if (HP_MISSING >= WARRIOR_CONFIG.potion.hp) {
             if (can_use("hp")) {
                 use("hp");
                 used_potion = true;
@@ -411,7 +411,7 @@ async function potion_loop() {
         }
 
         // Use health potion if needed
-        else if (MP_MISSING >= 400) {
+        else if (MP_MISSING >= WARRIOR_CONFIG.potion.mp) {
             if (can_use("mp")) {
                 use("mp");
                 used_potion = true;
