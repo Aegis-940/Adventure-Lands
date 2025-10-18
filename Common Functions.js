@@ -680,19 +680,12 @@ function create_custom_log_window() {
 
     const doc = parent.document;
 
-    // Restore saved position if any
-    let savedPos = null;
-    try {
-        const raw = parent.localStorage.getItem("custom_log_pos");
-        if (raw) savedPos = JSON.parse(raw);
-    } catch (e) {
-        // ignore
-    }
-
     // Create main window
     const div = doc.createElement("div");
     div.id = "custom-log-window";
-    div.style.position = "fixed";
+    div.style.position = "absolute";
+    div.style.bottom = "1px";
+    div.style.right = "325px";
     div.style.width = "350px";
     div.style.height = "260px";
     div.style.background = "rgba(0,0,0,0.66)";
@@ -705,58 +698,14 @@ function create_custom_log_window() {
     div.style.border = "4px solid #888";
     div.style.display = "flex";
     div.style.flexDirection = "column";
-    div.style.boxSizing = "border-box";
-    div.style.userSelect = "none";
 
-    // default position (if no saved) - anchored bottom-right
-    if (savedPos && typeof savedPos.left === "number" && typeof savedPos.top === "number") {
-        div.style.left = `${savedPos.left}px`;
-        div.style.top = `${savedPos.top}px`;
-    } else {
-        // sensible default: bottom-right offset
-        const marginRight = 325;
-        const marginBottom = 1;
-        div.style.right = `${marginRight}px`;
-        div.style.bottom = `${marginBottom}px`;
-    }
-
-    // --- Header (contains drag handle + tabs) ---
-    const header = doc.createElement("div");
-    header.style.display = "flex";
-    header.style.background = "#222";
-    header.style.borderBottom = "2px solid #888";
-    header.style.height = "32px";
-    header.style.alignItems = "center";
-    header.style.flex = "0 0 32px";
-    header.id = "custom-log-header";
-
-    // --- Drag handle (separate element so clicking tabs doesn't block dragging) ---
-    const dragHandle = doc.createElement("div");
-    dragHandle.id = "custom-log-drag-handle";
-    dragHandle.style.width = "28px";
-    dragHandle.style.height = "100%";
-    dragHandle.style.display = "flex";
-    dragHandle.style.alignItems = "center";
-    dragHandle.style.justifyContent = "center";
-    dragHandle.style.cursor = "grab";
-    dragHandle.style.flex = "0 0 28px";
-    dragHandle.style.userSelect = "none";
-
-    // small visual icon (optional)
-    dragHandle.innerHTML = "≡";
-    dragHandle.style.color = "#ccc";
-    dragHandle.style.fontSize = "18px";
-
-    // Tab bar area (holds buttons)
+    // --- Tabs ---
     const tabBar = doc.createElement("div");
     tabBar.style.display = "flex";
-    tabBar.style.flex = "1";
-    tabBar.style.height = "100%";
+    tabBar.style.background = "#222";
+    tabBar.style.borderBottom = "2px solid #888";
+    tabBar.style.height = "32px";
     tabBar.style.alignItems = "center";
-    tabBar.style.justifyContent = "space-between";
-    tabBar.style.gap = "4px";
-    tabBar.style.paddingRight = "6px";
-    tabBar.id = "custom-log-tabbar";
 
     const tabs = [
         { name: "All", id: "tab-all" },
@@ -771,11 +720,14 @@ function create_custom_log_window() {
     // --- Log containers for each tab ---
     const logContainers = {};
     const alertStates = {};
+    // For checkboxes: which tabs are included in "All"
     const includeInAll = {
         "General": true,
         "Alerts": true,
         "Errors": true
     };
+
+    // Store all log entries for each tab for dynamic All tab updates
     const logHistory = {
         "General": [],
         "Alerts": [],
@@ -789,6 +741,7 @@ function create_custom_log_window() {
         tabDiv.style.overflowY = "auto";
         tabDiv.style.display = tab.name === "All" ? "block" : "none";
         tabDiv.style.height = "100%";
+        div.appendChild(tabDiv);
         logContainers[tab.name] = tabDiv;
         alertStates[tab.name] = false;
     }
@@ -797,13 +750,13 @@ function create_custom_log_window() {
     for (const tab of tabs) {
         const btn = doc.createElement("button");
         btn.textContent = tab.name;
-        btn.style.flex = tab.name === "All" ? "1.6" : "1";
+        btn.style.flex = "1";
         btn.style.height = "100%";
         btn.style.background = tab.name === "All" ? "#444" : "#222";
         btn.style.color = "#fff";
         btn.style.border = "none";
         btn.style.fontFamily = "pixel";
-        btn.style.fontSize = "16px";
+        btn.style.fontSize = "20px";
         btn.style.cursor = "pointer";
         btn.id = `btn-${tab.id}`;
         btn.style.display = "flex";
@@ -811,20 +764,22 @@ function create_custom_log_window() {
         btn.style.justifyContent = "center";
         btn.style.position = "relative";
 
+        // Alert indicator span
         const alertSpan = doc.createElement("span");
         alertSpan.textContent = "";
         alertSpan.style.color = "#fff";
-        alertSpan.style.marginLeft = "6px";
+        alertSpan.style.marginLeft = "8px";
         alertSpan.style.fontWeight = "bold";
         alertSpan.id = `alert-${tab.id}`;
         btn.appendChild(alertSpan);
 
+        // Add checkbox for General, Alerts, and Errors tabs
         if (tab.name !== "All") {
             const checkbox = doc.createElement("input");
             checkbox.type = "checkbox";
             checkbox.checked = true;
             checkbox.style.marginLeft = "6px";
-            checkbox.style.transform = "scale(1.0)";
+            checkbox.style.transform = "scale(1.2)";
             checkbox.title = `Include ${tab.name} messages in All tab`;
             checkbox.onclick = (e) => {
                 includeInAll[tab.name] = checkbox.checked;
@@ -834,12 +789,13 @@ function create_custom_log_window() {
         }
 
         btn.onclick = () => {
+            // Switch tab
             div._currentTab = tab.name;
             for (const t of tabs) {
                 logContainers[t.name].style.display = t.name === tab.name ? "block" : "none";
-                const btnElem = doc.querySelector(`#btn-${t.id}`);
-                if (btnElem) btnElem.style.background = t.name === tab.name ? "#444" : "#222";
-                const alertElem = doc.querySelector(`#alert-${t.id}`);
+                tabBar.querySelector(`#btn-${t.id}`).style.background = t.name === tab.name ? "#444" : "#222";
+                // Clear alert when tab is viewed
+                const alertElem = tabBar.querySelector(`#alert-${t.id}`);
                 if (alertElem) alertElem.textContent = "";
                 alertStates[t.name] = false;
             }
@@ -847,12 +803,9 @@ function create_custom_log_window() {
         tabBar.appendChild(btn);
     }
 
-    // Append header parts
-    header.appendChild(dragHandle);
-    header.appendChild(tabBar);
-    div.appendChild(header);
+    div.appendChild(tabBar);
 
-    // Append log containers below header
+    // Move log containers after tab bar
     for (const tab of tabs) {
         div.appendChild(logContainers[tab.name]);
     }
@@ -865,103 +818,6 @@ function create_custom_log_window() {
     parent._custom_log_alerts = alertStates;
     parent._custom_log_includeInAll = includeInAll;
     parent._custom_log_history = logHistory;
-
-    // ---- Drag & Snap behavior (handle-based) ----
-    (function enableDragSnap() {
-        let dragging = false;
-        let startX = 0, startY = 0;
-        let startLeft = 0, startTop = 0;
-        let pointerId = null;
-
-        function getRect(node) { return node.getBoundingClientRect(); }
-
-        function onPointerDown(e) {
-            // only start drag from the handle
-            dragging = true;
-            pointerId = e.pointerId;
-            try { dragHandle.setPointerCapture(pointerId); } catch (err) {}
-            startX = e.clientX;
-            startY = e.clientY;
-            const rect = getRect(div);
-            startLeft = rect.left;
-            startTop = rect.top;
-            // ensure absolute positioning while dragging
-            div.style.right = "auto";
-            div.style.bottom = "auto";
-            div.style.cursor = "grabbing";
-            e.preventDefault();
-        }
-
-        function onPointerMove(e) {
-            if (!dragging || e.pointerId !== pointerId) return;
-            const dx = e.clientX - startX;
-            const dy = e.clientY - startY;
-            let newLeft = Math.round(startLeft + dx);
-            let newTop = Math.round(startTop + dy);
-            // keep inside viewport with small margin
-            const vw = window.innerWidth;
-            const vh = window.innerHeight;
-            const rect = getRect(div);
-            newLeft = Math.max(8, Math.min(newLeft, vw - rect.width - 8));
-            newTop = Math.max(8, Math.min(newTop, vh - rect.height - 8));
-            div.style.left = `${newLeft}px`;
-            div.style.top = `${newTop}px`;
-            e.preventDefault();
-        }
-
-        function onPointerUp(e) {
-            if (!dragging || e.pointerId !== pointerId) return;
-            dragging = false;
-            try { dragHandle.releasePointerCapture(pointerId); } catch (err) {}
-            pointerId = null;
-            div.style.cursor = "grab";
-
-            // Snap to nearest edge (left/right/top/bottom) with 8px margin
-            const rect = getRect(div);
-            const vw = window.innerWidth;
-            const vh = window.innerHeight;
-            const distances = {
-                left: rect.left,
-                right: vw - (rect.left + rect.width),
-                top: rect.top,
-                bottom: vh - (rect.top + rect.height)
-            };
-            const minEdge = Object.keys(distances).reduce((a, b) => distances[a] < distances[b] ? a : b);
-
-            const margin = 8;
-            if (minEdge === "left") {
-                div.style.left = `${margin}px`;
-                div.style.top = `${Math.min(Math.max(rect.top, margin), vh - rect.height - margin)}px`;
-            } else if (minEdge === "right") {
-                div.style.left = `${vw - rect.width - margin}px`;
-                div.style.top = `${Math.min(Math.max(rect.top, margin), vh - rect.height - margin)}px`;
-            } else if (minEdge === "top") {
-                div.style.top = `${margin}px`;
-                div.style.left = `${Math.min(Math.max(rect.left, margin), vw - rect.width - margin)}px`;
-            } else { // bottom
-                div.style.top = `${vh - rect.height - margin}px`;
-                div.style.left = `${Math.min(Math.max(rect.left, margin), vw - rect.width - margin)}px`;
-            }
-
-            // Persist position
-            try {
-                const saved = {
-                    left: parseInt(div.style.left, 10),
-                    top: parseInt(div.style.top, 10)
-                };
-                parent.localStorage.setItem("custom_log_pos", JSON.stringify(saved));
-            } catch (e) {
-                // ignore storage errors
-            }
-            e.preventDefault();
-        }
-
-        // Attach events to handle/document
-        dragHandle.addEventListener("pointerdown", onPointerDown, { passive: false });
-        doc.addEventListener("pointermove", onPointerMove, { passive: false });
-        doc.addEventListener("pointerup", onPointerUp);
-        doc.addEventListener("pointercancel", onPointerUp);
-    })();
 }
 
 // Helper to update the All tab when checkboxes change
