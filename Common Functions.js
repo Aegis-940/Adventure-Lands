@@ -713,19 +713,49 @@ function create_custom_log_window() {
         div.style.left = `${savedPos.left}px`;
         div.style.top = `${savedPos.top}px`;
     } else {
-        div.style.right = "325px";
-        div.style.bottom = "1px";
+        // sensible default: bottom-right offset
+        const marginRight = 325;
+        const marginBottom = 1;
+        div.style.right = `${marginRight}px`;
+        div.style.bottom = `${marginBottom}px`;
     }
 
-    // --- Tabs / Header (drag handle) ---
+    // --- Header (contains drag handle + tabs) ---
+    const header = doc.createElement("div");
+    header.style.display = "flex";
+    header.style.background = "#222";
+    header.style.borderBottom = "2px solid #888";
+    header.style.height = "32px";
+    header.style.alignItems = "center";
+    header.style.flex = "0 0 32px";
+    header.id = "custom-log-header";
+
+    // --- Drag handle (separate element so clicking tabs doesn't block dragging) ---
+    const dragHandle = doc.createElement("div");
+    dragHandle.id = "custom-log-drag-handle";
+    dragHandle.style.width = "28px";
+    dragHandle.style.height = "100%";
+    dragHandle.style.display = "flex";
+    dragHandle.style.alignItems = "center";
+    dragHandle.style.justifyContent = "center";
+    dragHandle.style.cursor = "grab";
+    dragHandle.style.flex = "0 0 28px";
+    dragHandle.style.userSelect = "none";
+
+    // small visual icon (optional)
+    dragHandle.innerHTML = "≡";
+    dragHandle.style.color = "#ccc";
+    dragHandle.style.fontSize = "18px";
+
+    // Tab bar area (holds buttons)
     const tabBar = doc.createElement("div");
     tabBar.style.display = "flex";
-    tabBar.style.background = "#222";
-    tabBar.style.borderBottom = "2px solid #888";
-    tabBar.style.height = "32px";
+    tabBar.style.flex = "1";
+    tabBar.style.height = "100%";
     tabBar.style.alignItems = "center";
-    tabBar.style.cursor = "grab";
-    tabBar.style.flex = "0 0 32px";
+    tabBar.style.justifyContent = "space-between";
+    tabBar.style.gap = "4px";
+    tabBar.style.paddingRight = "6px";
     tabBar.id = "custom-log-tabbar";
 
     const tabs = [
@@ -759,7 +789,6 @@ function create_custom_log_window() {
         tabDiv.style.overflowY = "auto";
         tabDiv.style.display = tab.name === "All" ? "block" : "none";
         tabDiv.style.height = "100%";
-        div.appendChild(tabDiv);
         logContainers[tab.name] = tabDiv;
         alertStates[tab.name] = false;
     }
@@ -768,13 +797,13 @@ function create_custom_log_window() {
     for (const tab of tabs) {
         const btn = doc.createElement("button");
         btn.textContent = tab.name;
-        btn.style.flex = "1";
+        btn.style.flex = tab.name === "All" ? "1.6" : "1";
         btn.style.height = "100%";
         btn.style.background = tab.name === "All" ? "#444" : "#222";
         btn.style.color = "#fff";
         btn.style.border = "none";
         btn.style.fontFamily = "pixel";
-        btn.style.fontSize = "20px";
+        btn.style.fontSize = "16px";
         btn.style.cursor = "pointer";
         btn.id = `btn-${tab.id}`;
         btn.style.display = "flex";
@@ -785,7 +814,7 @@ function create_custom_log_window() {
         const alertSpan = doc.createElement("span");
         alertSpan.textContent = "";
         alertSpan.style.color = "#fff";
-        alertSpan.style.marginLeft = "8px";
+        alertSpan.style.marginLeft = "6px";
         alertSpan.style.fontWeight = "bold";
         alertSpan.id = `alert-${tab.id}`;
         btn.appendChild(alertSpan);
@@ -795,7 +824,7 @@ function create_custom_log_window() {
             checkbox.type = "checkbox";
             checkbox.checked = true;
             checkbox.style.marginLeft = "6px";
-            checkbox.style.transform = "scale(1.2)";
+            checkbox.style.transform = "scale(1.0)";
             checkbox.title = `Include ${tab.name} messages in All tab`;
             checkbox.onclick = (e) => {
                 includeInAll[tab.name] = checkbox.checked;
@@ -808,8 +837,9 @@ function create_custom_log_window() {
             div._currentTab = tab.name;
             for (const t of tabs) {
                 logContainers[t.name].style.display = t.name === tab.name ? "block" : "none";
-                tabBar.querySelector(`#btn-${t.id}`).style.background = t.name === tab.name ? "#444" : "#222";
-                const alertElem = tabBar.querySelector(`#alert-${t.id}`);
+                const btnElem = doc.querySelector(`#btn-${t.id}`);
+                if (btnElem) btnElem.style.background = t.name === tab.name ? "#444" : "#222";
+                const alertElem = doc.querySelector(`#alert-${t.id}`);
                 if (alertElem) alertElem.textContent = "";
                 alertStates[t.name] = false;
             }
@@ -817,8 +847,12 @@ function create_custom_log_window() {
         tabBar.appendChild(btn);
     }
 
-    // Append tabBar and log containers (tabBar first to act as header/drag handle)
-    div.appendChild(tabBar);
+    // Append header parts
+    header.appendChild(dragHandle);
+    header.appendChild(tabBar);
+    div.appendChild(header);
+
+    // Append log containers below header
     for (const tab of tabs) {
         div.appendChild(logContainers[tab.name]);
     }
@@ -832,7 +866,7 @@ function create_custom_log_window() {
     parent._custom_log_includeInAll = includeInAll;
     parent._custom_log_history = logHistory;
 
-    // ---- Drag & Snap behavior ----
+    // ---- Drag & Snap behavior (handle-based) ----
     (function enableDragSnap() {
         let dragging = false;
         let startX = 0, startY = 0;
@@ -842,46 +876,43 @@ function create_custom_log_window() {
         function getRect(node) { return node.getBoundingClientRect(); }
 
         function onPointerDown(e) {
-            // don't start drag if clicking a button or input inside the tabBar
-            const target = e.target;
-            if (target.tagName === "BUTTON" || target.tagName === "INPUT" || target.closest && target.closest("button")) return;
-
+            // only start drag from the handle
             dragging = true;
             pointerId = e.pointerId;
-            tabBar.setPointerCapture(pointerId);
+            try { dragHandle.setPointerCapture(pointerId); } catch (err) {}
             startX = e.clientX;
             startY = e.clientY;
             const rect = getRect(div);
-            // compute current left/top (in px)
-            // if style.left is set use it, else derive from rect and scroll
             startLeft = rect.left;
             startTop = rect.top;
-            // ensure we're using left/top positioning while dragging
+            // ensure absolute positioning while dragging
             div.style.right = "auto";
             div.style.bottom = "auto";
             div.style.cursor = "grabbing";
+            e.preventDefault();
         }
 
         function onPointerMove(e) {
             if (!dragging || e.pointerId !== pointerId) return;
             const dx = e.clientX - startX;
             const dy = e.clientY - startY;
-            let newLeft = Math.max(8, Math.round(startLeft + dx));
-            let newTop = Math.max(8, Math.round(startTop + dy));
-            // keep inside viewport
+            let newLeft = Math.round(startLeft + dx);
+            let newTop = Math.round(startTop + dy);
+            // keep inside viewport with small margin
             const vw = window.innerWidth;
             const vh = window.innerHeight;
             const rect = getRect(div);
-            newLeft = Math.min(newLeft, vw - rect.width - 8);
-            newTop = Math.min(newTop, vh - rect.height - 8);
+            newLeft = Math.max(8, Math.min(newLeft, vw - rect.width - 8));
+            newTop = Math.max(8, Math.min(newTop, vh - rect.height - 8));
             div.style.left = `${newLeft}px`;
             div.style.top = `${newTop}px`;
+            e.preventDefault();
         }
 
         function onPointerUp(e) {
             if (!dragging || e.pointerId !== pointerId) return;
             dragging = false;
-            tabBar.releasePointerCapture(pointerId);
+            try { dragHandle.releasePointerCapture(pointerId); } catch (err) {}
             pointerId = null;
             div.style.cursor = "grab";
 
@@ -922,14 +953,14 @@ function create_custom_log_window() {
             } catch (e) {
                 // ignore storage errors
             }
+            e.preventDefault();
         }
 
-        tabBar.addEventListener("pointerdown", onPointerDown);
-        doc.addEventListener("pointermove", onPointerMove);
+        // Attach events to handle/document
+        dragHandle.addEventListener("pointerdown", onPointerDown, { passive: false });
+        doc.addEventListener("pointermove", onPointerMove, { passive: false });
         doc.addEventListener("pointerup", onPointerUp);
-        // also handle pointercancel to cleanup
         doc.addEventListener("pointercancel", onPointerUp);
-
     })();
 }
 
