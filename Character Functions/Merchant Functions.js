@@ -200,12 +200,13 @@ async function loot_and_potions_loop() {
                 try {
                     merchant_task = "Delivering";
                     let delivered = false;
-
-                    // Begin moving toward the target, but do not approach closer than 100 units
                     let moving = true;
                     let movePromise = smart_move({ map: info.map, x: info.x, y: info.y, stop: true }).then(() => { moving = false; });
 
-                    while (LOOP_STATES.loot_and_potions && !delivered) {
+                    const DELIVERY_TIMEOUT = 240000; // 4 minutes max to deliver
+                    const startTime = Date.now();
+
+                    while (LOOP_STATES.loot_and_potions && !delivered && (Date.now() - startTime < DELIVERY_TIMEOUT)) {
                         let target = get_player(name);
                         if (target) {
                             let dist = distance(character, target);
@@ -242,13 +243,24 @@ async function loot_and_potions_loop() {
                                 break;
                             }
 
-                            // If within 100 units, stop approaching
-                            if (dist <= 100 && character.moving) {
+                            // If target moved out of range, retry smart_move
+                            if (dist > DELIVERY_RADIUS + 100) {
+                                game_log(`🔄 Target ${name} moved out of range, retrying smart_move...`);
                                 halt_movement();
+                                moving = true;
+                                movePromise = smart_move({ map: target.map, x: target.x, y: target.y, stop: true }).then(() => { moving = false; });
                             }
+                        } else {
+                            game_log(`⚠️ Target ${name} not found, skipping...`);
+                            break;
                         }
 
-                        await delay(4000);
+                        await delay(2000);
+                    }
+
+                    // If not delivered after timeout, skip this target
+                    if (!delivered) {
+                        game_log(`⏳ Delivery to ${name} timed out, skipping to next.`, "#ffaa00");
                     }
 
                     // Wait for movePromise to resolve if still moving
