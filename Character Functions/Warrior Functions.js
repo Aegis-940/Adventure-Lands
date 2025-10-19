@@ -27,6 +27,8 @@ const WARRIOR_CONFIG = {
     normal_orb: "orbg",                     // Orb to switch to when not panicking
 };
 
+const ATTACK_UNTARGETED = false; // Prevent attacking mobs not targeting anyone
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS (with persistent state saving)
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -71,6 +73,8 @@ async function attack_loop() {
                 if (!MONSTER_TYPES.includes(mob.mtype)) continue;
                 const dist = Math.hypot(mob.x - character.x, mob.y - character.y);
                 if (dist <= character.range-1) {
+                    // If ATTACK_UNTARGETED is false, skip mobs with no target
+                    if (!ATTACK_UNTARGETED && !mob.target) continue;
                     inRange.push(mob);
                     // Find a cursed monster in range (prioritize lowest HP if multiple)
                     if (mob.s && mob.s.cursed) {
