@@ -74,7 +74,8 @@ async function set_loops(state) {
                         await delay(30000);
                         if (character.rip) await respawn();
                         await delay(5000);
-                        await smart_move(HEALER_TARGET);
+                        await wait_for_healer_nearby();
+                        await smart_move(WARRIOR_TARGET);
 
                         if (!LOOP_STATES.panic) start_panic_loop();
                         if (!LOOP_STATES.attack) start_attack_loop();
@@ -115,10 +116,10 @@ async function set_loops(state) {
                     if (!LOOP_STATES.attack) start_attack_loop();
 
                     // // Orbit logic
-                    // if (HEALER_TARGET.orbit) {
-                    //     const at_target = character.x === HEALER_TARGET.x && character.y === HEALER_TARGET.y;
-                    //     const near_target = parent.distance(character, HEALER_TARGET) <= 50;
-                    //     if (near_target && !LOOP_STATES.orbit && !smart.moving) smart_move(HEALER_TARGET);
+                    // if (WARRIOR_TARGET.orbit) {
+                    //     const at_target = character.x === WARRIOR_TARGET.x && character.y === WARRIOR_TARGET.y;
+                    //     const near_target = parent.distance(character, WARRIOR_TARGET) <= 50;
+                    //     if (near_target && !LOOP_STATES.orbit && !smart.moving) smart_move(WARRIOR_TARGET);
                     //     if (!LOOP_STATES.orbit && at_target) start_orbit_loop();
                     // }
                 } catch (e) {
