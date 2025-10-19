@@ -299,7 +299,7 @@ async function loot_and_potions_loop() {
 const SELLABLE_ITEMS = ["hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "wbook0", "wshoes", "wcap", "cclaw", "crabclaw", "slimestaff", "stinger", "coat1", "helmet1",
 		       			"gloves1", "pants1", "mushroomstaff", "wbreeches", "shoes1", "vitring", "helmet", "shoes", "gloves", "pmace", "throwingstars", "t2bow",
 						 "spear", "dagger", "rapier", "sword", "rfangs", "gphelmet", "phelmet", "vitearring", "vitscroll", "pstem", "gslime", "hhelmet", "harmor", "hpants",
-                        "hgloves", "hboots", "stramulet", "dexamulet", "intamulet", "strring", "dexring", "intring", "strearring", "dexearring", "intearring", "strbelt",
+                        "hgloves", "hboots", "strring", "dexring", "intring", "strearring", "dexearring", "intearring", "strbelt",
                         "dexbelt", "intbelt", "coat", "pants"];
 const BANKABLE_ITEMS = [];
 const BANK_LOCATION = { map: "bank", x: 0, y: -37 };
