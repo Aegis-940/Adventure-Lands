@@ -240,7 +240,30 @@ async function boss_loop() {
             ? { map: parent.S[boss_name].map, x: parent.S[boss_name].x, y: parent.S[boss_name].y }
             : null;
         if (boss_spawn) {
-            await smart_move(boss_spawn);
+            let aggro_timeout = false;
+            const timeout_ms = 30000;
+            const start_time = Date.now();
+
+            // Start smart_move and monitor aggro
+            const movePromise = smart_move(boss_spawn);
+            while (!aggro_timeout && !character.moving && !smart.moving) {
+                // Wait for movement to start
+                await delay(100);
+            }
+            while (!aggro_timeout && (character.moving || smart.moving)) {
+                // Check for aggro and timeout
+                const monsters_targeting_me = Object.values(parent.entities).filter(
+                    e => e.type === "monster" && e.target === character.name && !e.dead
+                ).length;
+                if (Date.now() - start_time > timeout_ms && monsters_targeting_me > 0) {
+                    aggro_timeout = true;
+                    log("⏰ Timeout: Still have aggro after 30s of smart_move. Reloading...", "#ff0000", "Alerts");
+                    parent.window.location.reload();
+                    break;
+                }
+                await delay(250);
+            }
+            await movePromise;
         } else {
             log("⚠️ Boss spawn location unknown, skipping smart_move.", "#ffaa00", "Alerts");
         }
