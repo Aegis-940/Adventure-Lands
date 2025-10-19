@@ -35,6 +35,9 @@ const RANGER_TARGET  = MONSTER_LOCS.crab;
 
 const FLOATING_BUTTON_IDS = [];
 
+const SOFT_RESTART_TIMER = 60000;    // 1 minute
+const HARD_RESET_TIMER   = 240000;   // 4 minutes
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // GLOBAL FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -104,7 +107,7 @@ async function watchdog_loop() {
         const now = Date.now();
 
         // Hard reset if inactive for 2 minutes
-        if (now - last_activity_time > 120000 && now - last_hard_reset_time > 120000) {
+        if (now - last_activity_time > HARD_RESET_TIMER && now - last_hard_reset_time > HARD_RESET_TIMER) {
             log("🔄 Hard reset: Reloading page due to persistent inactivity.", "#ff0000", "Alerts");
             last_hard_reset_time = now;
             parent.window.location.reload();
@@ -112,8 +115,8 @@ async function watchdog_loop() {
         }
         // Soft restart if inactive for 30 seconds, but not more than once every 30s
         else if (
-            now - last_activity_time > 30000 &&
-            now - last_soft_restart_time > 30000
+            now - last_activity_time > SOFT_RESTART_TIMER &&
+            now - last_soft_restart_time > SOFT_RESTART_TIMER
         ) {
             log("⚠️ Inactivity detected! Attempting to restart main loops...", "#ff8800", "Alerts");
             last_soft_restart_time = now;

@@ -16,18 +16,22 @@ const LOOP_STATES = {
 
 }
 
-const WARRIOR_CONFIG = {
-    potion: { hp: 5000, mp: 400 },          // Use potion if missing this much HP/MP
-    orbit:  { radius: 27, steps: 12 },      // Orbit radius and steps
-    panic:  { hp: 0.33, mp: 100,            // Panic if below 33% HP or 100 MP
-        safe_hp: 0.66, safe_mp: 500,        // Resume normal if above 66% HP or 500 MP
-        aggro: 99 },                        // Panic if this many monsters are targeting you
-    target_limit: 99,                       // Max number of monsters allowed to target you before stopping attacks
-    panic_orb: "jacko",                     // Orb to switch to when panicking
-    normal_orb: "orbg",                     // Orb to switch to when not panicking
-};
+const ATTACK_UNTARGETED = false;        // Prevent attacking mobs not targeting anyone
+const TARGET_LOWEST_HP = false;         // true: lowest HP, false: highest HP
 
-const ATTACK_UNTARGETED = false; // Prevent attacking mobs not targeting anyone
+const POTION_HP_THRESHOLD = 300;        // Use potion if missing this much HP
+const POTION_MP_THRESHOLD = 400;        // Use potion if missing this much MP
+
+const ORBIT_RADIUS = 27;                // Combat Orbit radius
+const ORBIT_STEPS = 12;                 // Number of steps in orbit (e.g., 12 = 30 degrees per step)
+
+const PANIC_HP_THRESHOLD = 0.33;        // Panic if below 33% HP
+const PANIC_MP_THRESHOLD = 100;         // Panic if below 100 MP
+const SAFE_HP_THRESHOLD = 0.66;         // Resume normal if above 66% HP
+const SAFE_MP_THRESHOLD = 500;          // Resume normal if above 500 MP
+const PANIC_AGGRO_THRESHOLD = 99;       // Panic if this many monsters are targeting you
+const PANIC_ORB = "jacko";              // Orb to switch to when panicking
+const NORMAL_ORB = "orbg";              // Orb to switch to when not panicking
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS (with persistent state saving)
@@ -83,8 +87,12 @@ async function attack_loop() {
                 }
             }
 
-            // Sort by HP (highest first)
-            inRange.sort((a, b) => b.hp - a.hp);
+            // Sort by HP according to TARGET_LOWEST_HP
+            if (TARGET_LOWEST_HP) {
+                inRange.sort((a, b) => a.hp - b.hp); // lowest HP first
+            } else {
+                inRange.sort((a, b) => b.hp - a.hp); // highest HP first
+            }
             const target = cursed || (inRange.length ? inRange[0] : null);
 
             try {
@@ -303,7 +311,7 @@ async function move_loop() {
 let eTime = 0;
 
 const st_maps = [];
-const aoe_maps = ["main", "level2s", "winter_cave"];
+const aoe_maps = ["main", "level2s", "winter_cave", "spookytown"];
 
 async function skill_loop() {
 
@@ -420,7 +428,7 @@ async function potion_loop() {
         let used_potion = false;
 
         // Use mana potion if needed
-        if (HP_MISSING >= WARRIOR_CONFIG.potion.hp) {
+        if (HP_MISSING >= POTION_HP_THRESHOLD) {
             if (can_use("hp")) {
                 use("hp");
                 used_potion = true;
@@ -428,7 +436,7 @@ async function potion_loop() {
         }
 
         // Use health potion if needed
-        else if (MP_MISSING >= WARRIOR_CONFIG.potion.mp) {
+        else if (MP_MISSING >= POTION_MP_THRESHOLD) {
             if (can_use("mp")) {
                 use("mp");
                 used_potion = true;
@@ -522,7 +530,7 @@ async function handle_cleave(Mainhand) {
 
         if (monsters.length > 2) {
             if (Mainhand !== "bataxe") cleave_set();
-            await use_skill("cleave");
+            use_skill("cleave");
             //reduce_cooldown("cleave", character.ping * 0.95);
             last_cleave_time = now;
             // Swap back instantly (don't delay this)
@@ -594,27 +602,25 @@ async function batch_equip(data) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 let orbit_origin = WARRIOR_TARGET;
-let orbit_radius = WARRIOR_CONFIG.orbit.radius;
 let orbit_path_points = [];
 let orbit_path_index = 0;
-const ORBIT_STEPS = WARRIOR_CONFIG.orbit.steps; // 30 degrees per step
 const MOVE_CHECK_INTERVAL = 120; // ms
 const MOVE_TOLERANCE = 5; // pixels
 
 function set_orbit_radius(r) {
     if (typeof r === "number" && r > 0) {
-        orbit_radius = r;
-        game_log(`Orbit radius set to ${orbit_radius}`);
+        ORBIT_RADIUS = r;
+        game_log(`Orbit radius set to ${ORBIT_RADIUS}`);
     }
 }
 
-function compute_orbit_path(origin, orbit_radius, steps) {
+function compute_orbit_path(origin, ORBIT_RADIUS, steps) {
     const points = [];
     for (let i = 0; i < steps; i++) {
         const angle = (2 * Math.PI * i) / steps;
         points.push({
-            x: origin.x + orbit_radius * Math.cos(angle),
-            y: origin.y + orbit_radius * Math.sin(angle)
+            x: origin.x + ORBIT_RADIUS * Math.cos(angle),
+            y: origin.y + ORBIT_RADIUS * Math.sin(angle)
         });
     }
     return points;
@@ -632,8 +638,8 @@ async function orbit_loop() {
         }
 
         // orbit_origin = { x: character.real_x, y: character.real_y };
-        set_orbit_radius(orbit_radius);
-        orbit_path_points = compute_orbit_path(orbit_origin, orbit_radius, ORBIT_STEPS);
+        set_orbit_radius(ORBIT_RADIUS);
+        orbit_path_points = compute_orbit_path(orbit_origin, ORBIT_RADIUS, ORBIT_STEPS);
         orbit_path_index = 0;
 
         while (true) {
@@ -679,14 +685,6 @@ async function orbit_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 let panicking = false;
-
-const PANIC_HP_THRESHOLD = character.max_hp * WARRIOR_CONFIG.panic.hp;          // Panic if below 33% HP
-const PANIC_MP_THRESHOLD = WARRIOR_CONFIG.panic.mp;                             // Panic if below 100 MP
-const SAFE_HP_THRESHOLD = WARRIOR_CONFIG.panic.safe_hp;                         // Resume normal if above 66% HP
-const SAFE_MP_THRESHOLD = WARRIOR_CONFIG.panic.safe_mp;                         // Resume normal if above 500 MP
-const PANIC_AGGRO_THRESHOLD = WARRIOR_CONFIG.panic.aggro;                       // Panic if this many monsters are targeting you
-const PANIC_ORB = WARRIOR_CONFIG.panic_orb;
-const NORMAL_ORB = WARRIOR_CONFIG.normal_orb;
 
 async function panic_loop() {
     
