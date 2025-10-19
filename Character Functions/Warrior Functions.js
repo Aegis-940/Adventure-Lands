@@ -414,7 +414,7 @@ async function skill_loop() {
                 untargetedMobs.length > 3 &&
                 !is_on_cooldown("agitate") &&
                 can_use("agitate") &&
-                character.mp >= 500
+                character.mp >= 800
             ) {
                 await use_skill("agitate");
             }
