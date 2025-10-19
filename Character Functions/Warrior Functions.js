@@ -254,6 +254,7 @@ async function boss_loop() {
         }
 
         // 4. Move back to target location
+        await wait_for_healer_nearby();
         let moving_home = true;
         smart_move(WARRIOR_TARGET).then(() => { moving_home = false; });
         while (moving_home) {
@@ -804,6 +805,7 @@ async function aggro_mobs() {
             await smart_move({ x: 1280, y: 69 });
             await use_skill("agitate");
             await delay(2000);
+            await wait_for_healer_nearby();
             await smart_move(WARRIOR_TARGET);
         }
     }

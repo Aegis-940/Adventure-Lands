@@ -21,12 +21,12 @@ const MONSTER_TYPES               = ["goo", "bee", "crab", "snake", "osnake", "b
 									"prat", "booboo", "bigbird", "poisio", "boar", "mechagnome", "mrpumpkin", "mrgreen", "greenjr", "fireroamer"];
 
 const MONSTER_LOCS = {
-    spider: 	  { map: "main", x: 907, y: -174, orbit: true },
-    crab:   	  { map: "main", x: -1197, y: -79, orbit: false },
-    fireroamer:   { map: "desertland", x: 116, y: -606, orbit: true },
-    cgoo:         { map: "level2s", x: 10, y: 500, orbit: true },
-    bbpompop:     { map: "winter_cave", x: -82, y: -949, orbit: true },
-    booboo:       { map: "spookytown", x: 370, y: -790, orbit: true }
+    spider: 	  { map: "main", x: 907, y: -174, orbit: true , hostile: false },
+    crab:   	  { map: "main", x: -1197, y: -79, orbit: false , hostile: false },
+    fireroamer:   { map: "desertland", x: 116, y: -606, orbit: true , hostile: false },
+    cgoo:         { map: "level2s", x: 10, y: 500, orbit: true , hostile: false },
+    bbpompop:     { map: "winter_cave", x: -82, y: -949, orbit: true , hostile: false },
+    booboo:       { map: "spookytown", x: 370, y: -790, orbit: true , hostile: true }
 };
 
 const HEALER_TARGET = MONSTER_LOCS.booboo;
@@ -51,6 +51,18 @@ function halt_movement() {
 	parent.socket.emit("move", { to: { x: character.x, y: character.y } });
 }
 
+async function wait_for_healer_nearby(healer_name = "Myras", max_dist_to_target = 500, min_healer_dist = 50) {
+    // Only wait if we're about to approach WARRIOR_TARGET
+    while (parent.distance(character, WARRIOR_TARGET) < max_dist_to_target) {
+        const healer = get_player(healer_name);
+        if (healer && parent.distance(character, healer) <= min_healer_dist) {
+            // Healer is close enough, proceed
+            break;
+        }
+        log(`⏳ Waiting for healer (${healer_name}) to get close before approaching WARRIOR_TARGET...`, "#ffaa00", "Alerts");
+        await delay(1000);
+    }
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // GLOBAL WATCHDOG
