@@ -47,6 +47,8 @@ function get_character_state() {
     return STATES.NORMAL;
 }
 
+let handling_death = false;
+
 async function set_loops(state) {
 
     try {
@@ -58,25 +60,29 @@ async function set_loops(state) {
         // State-specific
         switch (state) {
             case STATES.DEAD:
-                try {
-                    panicking = false;
-                    if (LOOP_STATES.attack) stop_attack_loop();
-                    if (LOOP_STATES.heal) stop_heal_loop();
-                    if (LOOP_STATES.orbit) stop_orbit_loop();
-                    if (LOOP_STATES.panic) stop_panic_loop();
-                    if (LOOP_STATES.boss) stop_boss_loop();
+                if (!handling_death) {
+                    handling_death = true;
+                    try {
+                        panicking = false;
+                        if (LOOP_STATES.attack) stop_attack_loop();
+                        if (LOOP_STATES.heal) stop_heal_loop();
+                        if (LOOP_STATES.orbit) stop_orbit_loop();
+                        if (LOOP_STATES.panic) stop_panic_loop();
+                        if (LOOP_STATES.boss) stop_boss_loop();
 
-                    log("Respawning in 30s...", "red");
-                    await delay(30000);
-                    if (character.rip) await respawn();
-                    await delay(5000);
-                    await smart_move(HEALER_TARGET);
+                        log("Respawning in 30s...", "red");
+                        await delay(30000);
+                        if (character.rip) await respawn();
+                        await delay(5000);
+                        await smart_move(HEALER_TARGET);
 
-                    if (!LOOP_STATES.panic) start_panic_loop();
-                    if (!LOOP_STATES.attack) start_attack_loop();
-                    if (!LOOP_STATES.heal) start_heal_loop();
-                } catch (e) {
-                    catcher(e, "set_loops: DEAD state error");
+                        if (!LOOP_STATES.panic) start_panic_loop();
+                        if (!LOOP_STATES.attack) start_attack_loop();
+                        if (!LOOP_STATES.heal) start_heal_loop();
+                    } catch (e) {
+                        catcher(e, "set_loops: DEAD state error");
+                    }
+                    handling_death = false;
                 }
                 break;
 
