@@ -219,8 +219,6 @@ async function boss_loop() {
             return;
         }
 
-        const boss_name = select_boss(alive_bosses);
-
         // Equip panic weapon if needed
         if (character.slots.orb?.name !== PANIC_WEAPON) {
             const jacko_slot = locate_item(PANIC_WEAPON);
@@ -234,6 +232,8 @@ async function boss_loop() {
             log("Panicked! Using Scare!", "#ffcc00", "Alerts");
             await use_skill("scare");
         }
+
+        const boss_name = select_boss(alive_bosses);
 
         // 2. Move to boss spawn if known
         const boss_spawn = parent.S[boss_name] && parent.S[boss_name].x !== undefined && parent.S[boss_name].y !== undefined

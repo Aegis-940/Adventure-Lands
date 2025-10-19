@@ -173,21 +173,21 @@ async function boss_loop() {
             return;
         }
 
+        // // Equip panic weapon if needed
+        // if (character.slots.orb?.name !== PANIC_WEAPON) {
+        //     const jacko_slot = locate_item(PANIC_WEAPON);
+        //     if (jacko_slot !== -1) {
+        //         await equip(jacko_slot);
+        //     }
+        // }
+
+        // // Try to cast scare if possible
+        // if (!is_on_cooldown("scare") && can_use("scare")) {
+        //     log("Panicked! Using Scare!", "#ffcc00", "Alerts");
+        //     await use_skill("scare");
+        // }
+
         const boss_name = select_boss(alive_bosses);
-
-        // Equip panic weapon if needed
-        if (character.slots.orb?.name !== PANIC_WEAPON) {
-            const jacko_slot = locate_item(PANIC_WEAPON);
-            if (jacko_slot !== -1) {
-                await equip(jacko_slot);
-            }
-        }
-
-        // Try to cast scare if possible
-        if (!is_on_cooldown("scare") && can_use("scare")) {
-            log("Panicked! Using Scare!", "#ffcc00", "Alerts");
-            await use_skill("scare");
-        }
 
         // 2. Move to boss spawn if known
         const boss_spawn = parent.S[boss_name] && parent.S[boss_name].x !== undefined && parent.S[boss_name].y !== undefined
