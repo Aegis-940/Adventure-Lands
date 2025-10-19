@@ -200,20 +200,14 @@ async function loot_and_potions_loop() {
                 try {
                     merchant_task = "Delivering";
                     let delivered = false;
+
+                    // Begin moving toward the target, but do not approach closer than 100 units
                     let moving = true;
+                    let movePromise = smart_move({ map: info.map, x: info.x, y: info.y, stop: true }).then(() => { moving = false; });
 
-                    const DELIVERY_TIMEOUT = 240000; // 4 minutes max to deliver
-                    const startTime = Date.now();
-
-                    // Helper: attempt delivery with timeout
-                    const deliveryAttempt = async () => {
+                    while (LOOP_STATES.loot_and_potions && !delivered) {
                         let target = get_player(name);
-                        if (!target) throw new Error(`Target ${name} not found`);
-                        let movePromise = smart_move({ map: target.map, x: target.x, y: target.y, stop: true }).then(() => { moving = false; });
-
-                        while (LOOP_STATES.loot_and_potions && !delivered) {
-                            target = get_player(name);
-                            if (!target) throw new Error(`Target ${name} not found`);
+                        if (target) {
                             let dist = distance(character, target);
 
                             // If within DELIVERY_RADIUS, deliver potions and request loot
@@ -248,49 +242,28 @@ async function loot_and_potions_loop() {
                                 break;
                             }
 
-                            // If target moved out of range, retry smart_move
-                            if (dist > DELIVERY_RADIUS + 100) {
-                                game_log(`🔄 Target ${name} moved out of range, retrying smart_move...`);
+                            // If within 100 units, stop approaching
+                            if (dist <= 100 && character.moving) {
                                 halt_movement();
-                                moving = true;
-                                movePromise = smart_move({ map: target.map, x: target.x, y: target.y, stop: true }).then(() => { moving = false; });
                             }
-
-                            await delay(2000);
                         }
 
-                        // Wait for movePromise to resolve if still moving
-                        try {
-                            await Promise.race([
-                                movePromise,
-                                (async () => {
-                                    while (moving) {
-                                        await delay(100);
-                                        if (!LOOP_STATES.loot_and_potions) break;
-                                    }
-                                })()
-                            ]);
-                        } catch (e) {
-                            // Ignore move errors
-                        }
-                    };
+                        await delay(4000);
+                    }
 
-                    // Run delivery attempt with timeout
+                    // Wait for movePromise to resolve if still moving
                     try {
                         await Promise.race([
-                            deliveryAttempt(),
+                            movePromise,
                             (async () => {
-                                await delay(DELIVERY_TIMEOUT);
-                                throw new Error("Delivery timed out");
+                                while (moving) {
+                                    await delay(100);
+                                    if (!LOOP_STATES.loot_and_potions) break;
+                                }
                             })()
                         ]);
                     } catch (e) {
-                        if (e.message === "Delivery timed out") {
-                            game_log(`⏳ Delivery to ${name} timed out, skipping to next.`, "#ffaa00");
-                            halt_movement();
-                        } else {
-                            game_log(`⚠️ Delivery error for ${name}: ${e.message}`);
-                        }
+                        // Ignore move errors
                     }
 
                     // Clean up after delivery
