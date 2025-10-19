@@ -422,7 +422,7 @@ async function skill_loop() {
                         e.type === "monster" &&
                         e.mtype === warriorTargetName &&
                         !e.dead &&
-                        parent.distance(character, e) <= 500 &&
+                        parent.distance(character, e) <= 320 &&
                         !e.target
                 );
                 if (
