@@ -393,10 +393,30 @@ async function skill_loop() {
         const current_target = get_target();
         const is_boss_target = current_target && BOSSES.includes(current_target.mtype);
 
-        if (WARRIOR_TARGET.name && taunt_mobs.includes(WARRIOR_TARGET.name)) {
-            // Try to cast taunt if possible
-            if (!is_on_cooldown("taunt") && can_use("taunt")) {
-                await use_skill("taunt", WARRIOR_TARGET);
+        const warriorTargetName = Object.keys(MONSTER_LOCS).find(
+            k => MONSTER_LOCS[k] === WARRIOR_TARGET
+        );
+
+        if (
+            warriorTargetName &&
+            taunt_mobs.includes(warriorTargetName)
+        ) {
+            // Count mobs within 600 range that don't have a target
+            const untargetedMobs = Object.values(parent.entities).filter(
+                e =>
+                    e.type === "monster" &&
+                    e.mtype === warriorTargetName &&
+                    !e.dead &&
+                    parent.distance(character, e) <= 600 &&
+                    !e.target
+            );
+            if (
+                untargetedMobs.length > 3 &&
+                !is_on_cooldown("agitate") &&
+                can_use("agitate") &&
+                character.mp >= 500
+            ) {
+                await use_skill("agitate");
             }
         }
 
