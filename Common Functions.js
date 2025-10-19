@@ -26,7 +26,7 @@ const MONSTER_LOCS = {
     fireroamer:   { map: "desertland", x: 116, y: -606, orbit: true },
     cgoo:         { map: "level2s", x: 10, y: 500, orbit: true },
     bbpompop:     { map: "winter_cave", x: -82, y: -949, orbit: true },
-    booboo:       { map: "spookytown", x: -722, y: -755, orbit: true }
+    booboo:       { map: "spookytown", x: -743, y: -217, orbit: true }
 };
 
 const HEALER_TARGET = MONSTER_LOCS.booboo;
