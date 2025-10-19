@@ -201,14 +201,19 @@ async function loot_and_potions_loop() {
                     merchant_task = "Delivering";
                     let delivered = false;
                     let moving = true;
-                    let movePromise = smart_move({ map: info.map, x: info.x, y: info.y, stop: true }).then(() => { moving = false; });
 
                     const DELIVERY_TIMEOUT = 240000; // 4 minutes max to deliver
                     const startTime = Date.now();
 
-                    while (LOOP_STATES.loot_and_potions && !delivered && (Date.now() - startTime < DELIVERY_TIMEOUT)) {
+                    // Helper: attempt delivery with timeout
+                    const deliveryAttempt = async () => {
                         let target = get_player(name);
-                        if (target) {
+                        if (!target) throw new Error(`Target ${name} not found`);
+                        let movePromise = smart_move({ map: target.map, x: target.x, y: target.y, stop: true }).then(() => { moving = false; });
+
+                        while (LOOP_STATES.loot_and_potions && !delivered) {
+                            target = get_player(name);
+                            if (!target) throw new Error(`Target ${name} not found`);
                             let dist = distance(character, target);
 
                             // If within DELIVERY_RADIUS, deliver potions and request loot
@@ -250,32 +255,42 @@ async function loot_and_potions_loop() {
                                 moving = true;
                                 movePromise = smart_move({ map: target.map, x: target.x, y: target.y, stop: true }).then(() => { moving = false; });
                             }
-                        } else {
-                            game_log(`⚠️ Target ${name} not found, skipping...`);
-                            break;
+
+                            await delay(2000);
                         }
 
-                        await delay(2000);
-                    }
+                        // Wait for movePromise to resolve if still moving
+                        try {
+                            await Promise.race([
+                                movePromise,
+                                (async () => {
+                                    while (moving) {
+                                        await delay(100);
+                                        if (!LOOP_STATES.loot_and_potions) break;
+                                    }
+                                })()
+                            ]);
+                        } catch (e) {
+                            // Ignore move errors
+                        }
+                    };
 
-                    // If not delivered after timeout, skip this target
-                    if (!delivered) {
-                        game_log(`⏳ Delivery to ${name} timed out, skipping to next.`, "#ffaa00");
-                    }
-
-                    // Wait for movePromise to resolve if still moving
+                    // Run delivery attempt with timeout
                     try {
                         await Promise.race([
-                            movePromise,
+                            deliveryAttempt(),
                             (async () => {
-                                while (moving) {
-                                    await delay(100);
-                                    if (!LOOP_STATES.loot_and_potions) break;
-                                }
+                                await delay(DELIVERY_TIMEOUT);
+                                throw new Error("Delivery timed out");
                             })()
                         ]);
                     } catch (e) {
-                        // Ignore move errors
+                        if (e.message === "Delivery timed out") {
+                            game_log(`⏳ Delivery to ${name} timed out, skipping to next.`, "#ffaa00");
+                            halt_movement();
+                        } else {
+                            game_log(`⚠️ Delivery error for ${name}: ${e.message}`);
+                        }
                     }
 
                     // Clean up after delivery
