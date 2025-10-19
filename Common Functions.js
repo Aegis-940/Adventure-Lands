@@ -51,7 +51,7 @@ function halt_movement() {
 	parent.socket.emit("move", { to: { x: character.x, y: character.y } });
 }
 
-async function wait_for_healer_nearby(healer_name = "Myras", max_dist_to_target = 500, min_healer_dist = 50) {
+async function wait_for_healer_nearby(healer_name = "Myras", max_dist_to_target = 800, min_healer_dist = 50) {
     // Only wait if we're about to approach WARRIOR_TARGET
     while (parent.distance(character, WARRIOR_TARGET) < max_dist_to_target) {
         const healer = get_player(healer_name);

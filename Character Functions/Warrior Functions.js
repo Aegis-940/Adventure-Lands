@@ -385,7 +385,7 @@ async function skill_loop() {
         }
 
         const Mainhand = character.slots?.mainhand?.name;
-        const mp_check = character.mp >= 820;
+        const mp_check = character.mp >= 870;
         const code_cost_check = character.cc < 135;
         let cleave_cooldown = is_on_cooldown("cleave");
 
