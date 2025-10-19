@@ -114,13 +114,13 @@ async function set_loops(state) {
                     if (!LOOP_STATES.skill) start_skill_loop();
                     if (!LOOP_STATES.attack) start_attack_loop();
 
-                    // Orbit logic
-                    if (HEALER_TARGET.orbit) {
-                        const at_target = character.x === HEALER_TARGET.x && character.y === HEALER_TARGET.y;
-                        const near_target = parent.distance(character, HEALER_TARGET) <= 50;
-                        if (near_target && !LOOP_STATES.orbit && !smart.moving) smart_move(HEALER_TARGET);
-                        if (!LOOP_STATES.orbit && at_target) start_orbit_loop();
-                    }
+                    // // Orbit logic
+                    // if (HEALER_TARGET.orbit) {
+                    //     const at_target = character.x === HEALER_TARGET.x && character.y === HEALER_TARGET.y;
+                    //     const near_target = parent.distance(character, HEALER_TARGET) <= 50;
+                    //     if (near_target && !LOOP_STATES.orbit && !smart.moving) smart_move(HEALER_TARGET);
+                    //     if (!LOOP_STATES.orbit && at_target) start_orbit_loop();
+                    // }
                 } catch (e) {
                     catcher(e, "set_loops: NORMAL state error");
                 }
