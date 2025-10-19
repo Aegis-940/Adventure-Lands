@@ -27,7 +27,7 @@ const MONSTER_LOCS = {
     cgoo:         { map: "level2s", x: 10, y: 500, orbit: true , hostile: false },
     bbpompop:     { map: "winter_cave", x: -82, y: -949, orbit: true , hostile: false },
     booboo:       { map: "spookytown", x: 370, y: -790, orbit: true , hostile: true },
-    ghost:        { map: "halloween", x: 234, y: -1196, orbit: true , hostile: false },
+    ghost:        { map: "halloween", x: 27, y: -1386, orbit: true , hostile: false },
 };
 
 const HEALER_TARGET = MONSTER_LOCS.ghost;
@@ -787,7 +787,7 @@ function create_custom_log_window() {
     div.id = "custom-log-window";
     div.style.position = "absolute";
     div.style.bottom = "1px";
-    div.style.right = "325px";
+    div.style.right = "100px";
     div.style.width = "350px";
     div.style.height = "260px";
     div.style.background = "rgba(0,0,0,0.66)";

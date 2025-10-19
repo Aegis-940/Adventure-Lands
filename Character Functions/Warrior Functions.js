@@ -369,6 +369,7 @@ let eTime = 0;
 
 const st_maps = [];
 const aoe_maps = ["main", "level2s", "winter_cave", "spookytown", "halloween"];
+const taunt_mobs = ["ghost"];
 
 async function skill_loop() {
 
@@ -391,6 +392,13 @@ async function skill_loop() {
         // Exclude cleave if current target is a boss
         const current_target = get_target();
         const is_boss_target = current_target && BOSSES.includes(current_target.mtype);
+
+        if (WARRIOR_TARGET.name && taunt_mobs.includes(WARRIOR_TARGET.name)) {
+            // Try to cast taunt if possible
+            if (!is_on_cooldown("taunt") && can_use("taunt")) {
+                await use_skill("taunt", WARRIOR_TARGET);
+            }
+        }
 
         try {
             // Only check cleave if it's off cooldown and not targeting a boss
