@@ -601,7 +601,7 @@ async function potion_loop() {
 // COMBAT ORBIT
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let orbit_origin = null;
+let orbit_origin = HEALER_TARGET;
 let orbit_path_points = [];
 let orbit_path_index = 0;
 const MOVE_CHECK_INTERVAL = 120; // ms
@@ -637,7 +637,7 @@ async function orbit_loop() {
             continue;
         }
 
-        orbit_origin = { x: character.real_x, y: character.real_y };
+        // orbit_origin = { x: character.real_x, y: character.real_y };
         set_orbit_radius(ORBIT_RADIUS);
         orbit_path_points = compute_orbit_path(orbit_origin, ORBIT_RADIUS, ORBIT_STEPS);
         orbit_path_index = 0;

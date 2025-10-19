@@ -589,7 +589,7 @@ async function batch_equip(data) {
 // COMBAT ORBIT
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let orbit_origin = null;
+let orbit_origin = WARRIOR_TARGET;
 let orbit_radius = WARRIOR_CONFIG.orbit.radius;
 let orbit_path_points = [];
 let orbit_path_index = 0;
@@ -627,7 +627,7 @@ async function orbit_loop() {
             continue;
         }
 
-        orbit_origin = { x: character.real_x, y: character.real_y };
+        // orbit_origin = { x: character.real_x, y: character.real_y };
         set_orbit_radius(orbit_radius);
         orbit_path_points = compute_orbit_path(orbit_origin, orbit_radius, ORBIT_STEPS);
         orbit_path_index = 0;
