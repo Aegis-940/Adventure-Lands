@@ -593,7 +593,7 @@ async function handle_cleave(Mainhand) {
             last_cleave_time = now;
             // Swap back instantly (don't delay this)
             if (weapon_set_equipped !== "single") {
-                explosion_set();
+                await explosion_set();
             }
         }
     } 
