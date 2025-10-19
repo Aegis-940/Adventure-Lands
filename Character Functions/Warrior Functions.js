@@ -88,6 +88,63 @@ function get_optimal_explosion_target() {
     return best_target;
 }
 
+async function warrior_target_guard_loop() {
+    while (true) {
+        await delay(250);
+
+        // Only act if currently smart moving toward WARRIOR_TARGET
+        if (
+            smart.moving &&
+            smart.move_dest &&
+            smart.move_dest.x === WARRIOR_TARGET.x &&
+            smart.move_dest.y === WARRIOR_TARGET.y &&
+            smart.move_dest.map === WARRIOR_TARGET.map &&
+            parent.distance(character, WARRIOR_TARGET) <= 600 // Only apply guard if within 600 units
+        ) {
+
+            // Safety checks
+            const healer = get_player("Myras");
+            const warrior_dist = parent.distance(character, WARRIOR_TARGET);
+            const healer_dist = healer ? parent.distance(healer, WARRIOR_TARGET) : Infinity;
+
+            // Healer is close enough to warrior
+            const healer_near_warrior = healer && parent.distance(character, healer) <= 50;
+
+            // Healer is closer to WARRIOR_TARGET than warrior
+            const healer_closer_to_target = healer && healer_dist < warrior_dist;
+
+            // Healer is being targeted by WARRIOR_TARGET monster
+            const target_monster = Object.values(parent.entities).find(
+                e => e.type === "monster" && e.mtype === WARRIOR_TARGET.mtype && !e.dead
+            );
+            const healer_is_aggroed = target_monster && target_monster.target === healer.name;
+
+            // If NOT safe, halt movement
+            if (!(healer_near_warrior || healer_closer_to_target || healer_is_aggroed)) {
+                log("🛑 Unsafe to approach WARRIOR_TARGET, halting movement!", "#ffaa00", "Alerts");
+                halt_movement();
+
+                // Wait until safe before retrying smart_move
+                while (!(healer_near_warrior || healer_closer_to_target || healer_is_aggroed)) {
+                    await delay(1000);
+                    // Recalculate safety conditions
+                    const healer = get_player("Myras");
+                    const warrior_dist = parent.distance(character, WARRIOR_TARGET);
+                    const healer_dist = healer ? parent.distance(healer, WARRIOR_TARGET) : Infinity;
+                    const healer_near_warrior = healer && parent.distance(character, healer) <= 50;
+                    const healer_closer_to_target = healer && healer_dist < warrior_dist;
+                    const target_monster = Object.values(parent.entities).find(
+                        e => e.type === "monster" && e.mtype === WARRIOR_TARGET.mtype && !e.dead
+                    );
+                    const healer_is_aggroed = target_monster && target_monster.target === healer.name;
+                }
+                log("✅ Safe to approach WARRIOR_TARGET, resuming movement.", "#00ff00", "Alerts");
+                await smart_move(WARRIOR_TARGET);
+            }
+        }
+    }
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -297,7 +354,6 @@ async function boss_loop() {
         }
 
         // 4. Move back to target location
-        await wait_for_healer_nearby();
         let moving_home = true;
         smart_move(WARRIOR_TARGET).then(() => { moving_home = false; });
         while (moving_home) {
@@ -848,7 +904,6 @@ async function aggro_mobs() {
             await smart_move({ x: 1280, y: 69 });
             await use_skill("agitate");
             await delay(2000);
-            await wait_for_healer_nearby();
             await smart_move(WARRIOR_TARGET);
         }
     }

@@ -157,6 +157,8 @@ orbit_loop();
 status_cache_loop();
 attack_loop();
 
+warrior_target_guard_loop();
+
 passive_activity_monitor();
 watchdog_loop();
 

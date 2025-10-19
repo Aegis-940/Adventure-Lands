@@ -51,19 +51,6 @@ function halt_movement() {
 	parent.socket.emit("move", { to: { x: character.x, y: character.y } });
 }
 
-async function wait_for_healer_nearby(healer_name = "Myras", max_dist_to_target = 800, min_healer_dist = 50) {
-    // Only wait if we're about to approach WARRIOR_TARGET
-    while (parent.distance(character, WARRIOR_TARGET) < max_dist_to_target) {
-        const healer = get_player(healer_name);
-        if (healer && parent.distance(character, healer) <= min_healer_dist) {
-            // Healer is close enough, proceed
-            break;
-        }
-        log(`⏳ Waiting for healer (${healer_name}) to get close before approaching WARRIOR_TARGET...`, "#ffaa00", "Alerts");
-        await delay(1000);
-    }
-}
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // GLOBAL WATCHDOG
 // --------------------------------------------------------------------------------------------------------------------------------- //
