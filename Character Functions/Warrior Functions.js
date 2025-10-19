@@ -33,6 +33,9 @@ const PANIC_AGGRO_THRESHOLD = 99;       // Panic if this many monsters are targe
 const PANIC_ORB = "jacko";              // Orb to switch to when panicking
 const NORMAL_ORB = "orbg";              // Orb to switch to when not panicking
 
+const AGITATE_MP_THRESHOLD = 800;        // Minimum MP Warrior must have to cast Agitate
+const CLEAVE_MP_THRESHOLD = 900;         // Minimum MP Warrior must have to cast Cleave
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS (with persistent state saving)
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -385,7 +388,6 @@ async function skill_loop() {
         }
 
         const Mainhand = character.slots?.mainhand?.name;
-        const mp_check = character.mp >= 900;
         const code_cost_check = character.cc < 135;
         let cleave_cooldown = is_on_cooldown("cleave");
 
@@ -397,37 +399,52 @@ async function skill_loop() {
             k => MONSTER_LOCS[k] === WARRIOR_TARGET
         );
 
-        if (
-            warriorTargetName &&
-            taunt_mobs.includes(warriorTargetName)
-        ) {
-            // Count mobs within 600 range that don't have a target
-            const untargetedMobs = Object.values(parent.entities).filter(
-                e =>
-                    e.type === "monster" &&
-                    e.mtype === warriorTargetName &&
-                    !e.dead &&
-                    parent.distance(character, e) <= 600 &&
-                    !e.target
+        try {
+            // Check if character is at WARRIOR_TARGET location (within 20 units)
+            const atWarriorTarget =
+                Math.hypot(character.x - WARRIOR_TARGET.x, character.y - WARRIOR_TARGET.y) < 20;
+
+            // Find Myras entity and check if within 50 units
+            const myras = Object.values(parent.entities).find(
+                e => e.type === "character" && e.name === "Myras"
             );
+            const myrasNearby = myras && parent.distance(character, myras) <= 50;
+
             if (
-                untargetedMobs.length > 3 &&
-                !is_on_cooldown("agitate") &&
-                can_use("agitate") &&
-                character.mp >= 800
+                atWarriorTarget &&
+                myrasNearby &&
+                warriorTargetName &&
+                taunt_mobs.includes(warriorTargetName)
             ) {
-                await use_skill("agitate");
+                // Count mobs within 600 range that don't have a target
+                const untargetedMobs = Object.values(parent.entities).filter(
+                    e =>
+                        e.type === "monster" &&
+                        e.mtype === warriorTargetName &&
+                        !e.dead &&
+                        parent.distance(character, e) <= 500 &&
+                        !e.target
+                );
+                if (
+                    untargetedMobs.length > 3 &&
+                    !is_on_cooldown("agitate") &&
+                    can_use("agitate") &&
+                    character.mp >= AGITATE_MP_THRESHOLD
+                ) {
+                    await use_skill("agitate");
+                }
             }
+        } catch (e) {
+            catcher(e, "Agitate error ");
         }
 
         try {
             // Only check cleave if it's off cooldown and not targeting a boss
             if (
                 !cleave_cooldown &&
-                mp_check &&
                 code_cost_check &&
                 !is_boss_target &&
-                character.mp >= 770 &&
+                character.mp >= CLEAVE_MP_THRESHOLD &&
                 !smart.moving &&
                 aoe_maps.includes(character.map) // <-- Only cleave on allowed maps
             ) {

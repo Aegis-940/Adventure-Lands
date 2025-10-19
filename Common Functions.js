@@ -787,7 +787,7 @@ function create_custom_log_window() {
     div.id = "custom-log-window";
     div.style.position = "absolute";
     div.style.bottom = "1px";
-    div.style.right = "500px";
+    div.style.right = "700px";
     div.style.width = "350px";
     div.style.height = "260px";
     div.style.background = "rgba(0,0,0,0.66)";
