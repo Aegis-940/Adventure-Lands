@@ -27,7 +27,7 @@ const MONSTER_LOCS = {
     cgoo:         { map: "level2s", x: 10, y: 500, orbit: true , hostile: false },
     bbpompop:     { map: "winter_cave", x: -82, y: -949, orbit: true , hostile: false },
     booboo:       { map: "spookytown", x: 370, y: -790, orbit: true , hostile: true },
-    ghost:        { map: "spookytown", x: 234, y: -196, orbit: true , hostile: false },
+    ghost:        { map: "spookytown", x: 234, y: -1196, orbit: true , hostile: false },
 };
 
 const HEALER_TARGET = MONSTER_LOCS.ghost;
