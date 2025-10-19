@@ -623,8 +623,8 @@ const MOVE_TOLERANCE = 5; // pixels
 
 function set_orbit_radius(r) {
     if (typeof r === "number" && r > 0) {
-        ORBIT_RADIUS = r;
-        game_log(`Orbit radius set to ${ORBIT_RADIUS}`);
+        orbit_radius = r;
+        game_log(`Orbit radius set to ${orbit_radius}`);
     }
 }
 
@@ -722,7 +722,7 @@ async function panic_loop() {
         ).length;
 
         // PANIC CONDITION
-        if (low_health || low_mana || monsters_targeting_me >= PANIC_AGGRO_THRESHOLD) {
+        if (low_health || monsters_targeting_me >= PANIC_AGGRO_THRESHOLD) {
             if (!panicking) {
                 panicking = true;
                 log("⚠️ Panic triggered: Low health/mana or aggro!", "#ffcc00", "Alerts");
@@ -747,7 +747,7 @@ async function panic_loop() {
         }
 
         // SAFE CONDITION
-        if (high_health && high_mana && monsters_targeting_me < PANIC_AGGRO_THRESHOLD) {
+        if (high_health && monsters_targeting_me < PANIC_AGGRO_THRESHOLD) {
             if (panicking) {
                 panicking = false;
                 log("✅ Panic over — resuming normal operations.", "#00ff00", "Alerts");
