@@ -51,15 +51,30 @@ const MERCHANT_STATES = {
     IDLE: "idle"
 };
 
+let last_auto_upgrade_time = 0; // Timestamp in ms
+
+function should_run_auto_upgrade() {
+    const THIRTY_MINUTES = 30 * 60 * 1000;
+    return (Date.now() - last_auto_upgrade_time) > THIRTY_MINUTES;
+}
+
+// Example usage:
+if (should_run_auto_upgrade()) {
+    await run_auto_upgrade();
+    last_auto_upgrade_time = Date.now();
+}
+
 function get_character_state() {
     if (character.rip) return MERCHANT_STATES.DEAD;
     // if (panicking) return MERCHANT_STATES.PANIC;
     if (Object.keys(party_status_cache).length > 0) return MERCHANT_STATES.DELIVERING;
+    if (merchant_task === "Idle" && should_run_auto_upgrade()) return MERCHANT_STATES.UPGRADING;
     if (merchant_task === "Idle") return MERCHANT_STATES.IDLE;
 }
 
 let handling_merchant_death = false;
-let handling_delivery = false
+let handling_delivery = false;
+let handling_upgrading = false;
 
 async function set_state(state) {
     try {
@@ -117,7 +132,14 @@ async function set_state(state) {
 
             case MERCHANT_STATES.UPGRADING:
                 try {
-                    // UPGRADING state logic here
+                    if (!handling_upgrading) {
+                        handling_upgrading = true;
+                        merchant_task = "Upgrading";
+                        await auto_upgrade();
+                        last_auto_upgrade_time = Date.now();
+                        merchant_task = "Idle";
+                    }
+                    handling_upgrading = false;
                 } catch (e) {
                     catcher(e, "set_state: UPGRADING state error");
                 }
