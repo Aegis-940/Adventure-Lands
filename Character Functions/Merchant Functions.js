@@ -53,15 +53,9 @@ const MERCHANT_STATES = {
 
 let last_auto_upgrade_time = 0; // Timestamp in ms
 
-function should_run_auto_upgrade() {
+async function should_run_auto_upgrade() {
     const THIRTY_MINUTES = 30 * 60 * 1000;
     return (Date.now() - last_auto_upgrade_time) > THIRTY_MINUTES;
-}
-
-// Example usage:
-if (should_run_auto_upgrade()) {
-    await run_auto_upgrade();
-    last_auto_upgrade_time = Date.now();
 }
 
 function get_character_state() {
