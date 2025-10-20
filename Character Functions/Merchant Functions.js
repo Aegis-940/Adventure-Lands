@@ -229,9 +229,11 @@ async function loot_collection_loop(name, info) {
 }
 
 async function move_to_party_member(name, info, radius = DELIVERY_RADIUS) {
+    const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+    const startTime = Date.now();
+
     let tx = info.x, ty = info.y, tmap = info.map;
 
-    // Helper: resolves when within radius of the target
     function within_radius_promise() {
         return new Promise(resolve => {
             const interval = setInterval(() => {
@@ -241,22 +243,35 @@ async function move_to_party_member(name, info, radius = DELIVERY_RADIUS) {
                     ty = target.y;
                     tmap = target.map;
                 }
-                if (character.map === tmap && Math.hypot(character.x - tx, character.y - ty) <= radius) {
+                if (
+                    character.map === tmap &&
+                    Math.hypot(character.x - tx, character.y - ty) <= radius
+                ) {
                     clearInterval(interval);
                     resolve();
+                }
+                // Timeout check inside the interval
+                if (Date.now() - startTime > TIMEOUT_MS) {
+                    clearInterval(interval);
+                    resolve("timeout");
                 }
             }, 100);
         });
     }
 
-    // Race smart_move against the within-radius check
-    await Promise.race([
+    const result = await Promise.race([
         smart_move({ map: tmap, x: tx, y: ty }),
         within_radius_promise()
     ]);
 
-    // Stop movement if still moving
     if (character.moving) halt_movement();
+
+    // Handle timeout
+    if (result === "timeout" || Date.now() - startTime > TIMEOUT_MS) {
+        log(`⏰ Timeout moving to ${name}. Returning home and removing from cache.`);
+        delete party_status_cache[name];
+        await smart_move(HOME);
+    }
 }
 
 async function potions_and_loot_controller_loop() {
