@@ -30,9 +30,10 @@ const MONSTER_LOCS = {
     ghost:        { map: "halloween", x: 229, y: -1203, orbit: true , hostile: false },
 };
 
-const HEALER_TARGET = MONSTER_LOCS.ghost;
-const WARRIOR_TARGET = MONSTER_LOCS.ghost;
-const RANGER_TARGET  = MONSTER_LOCS.crab;
+const HEALER_TARGET    = MONSTER_LOCS.ghost;
+const WARRIOR_TARGET   = MONSTER_LOCS.ghost;
+const RANGER_TARGET    = MONSTER_LOCS.crab;
+const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 
 const FLOATING_BUTTON_IDS = [];
 

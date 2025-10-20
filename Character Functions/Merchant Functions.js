@@ -5,9 +5,10 @@
 
 const LOOP_STATES = {
 
-    loot_and_potions: false,
+    potions_and_loot: false,
     fishing: false,
     mining: false,
+    upgrading: false,
 
 }
 
@@ -23,140 +24,148 @@ let merchant_task = "Idle"; // Current task: "Idle", "Mining", etc.
 // 2) START/STOP HELPERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function start_loot_and_potions_loop() {
-    if (LOOP_STATES.loot_and_potions) return;
-    LOOP_STATES.loot_and_potions = true;
-    loot_and_potions_loop();
-    game_log("▶️ Loot and potions loop started");
-}
+const LOOP_NAMES = [
+    "potion_delivery",
+    "loot_collection",
+    "fishing",
+    "mining",
+    "upgrading"
+];
 
-function stop_loot_and_potions_loop() {
-    if (!LOOP_STATES.loot_and_potions) return;
-    LOOP_STATES.loot_and_potions = false;
-    game_log("⏹ Loot and potions loop stopped");
-}
-
-function start_fishing_loop() {
-    if (LOOP_STATES.fishing) return;
-    LOOP_STATES.fishing = true;
-    fishing_loop();
-    game_log("▶️ Fishing loop started");
-}
-
-function stop_fishing_loop() {
-    if (!LOOP_STATES.fishing) return;
-    LOOP_STATES.fishing = false;
-    game_log("⏹ Fishing loop stopped");
-}
-
-function start_mining_loop() {
-    if (LOOP_STATES.mining) return;
-    LOOP_STATES.mining = true;
-    mining_loop();
-    game_log("▶️ Mining loop started");
-}
-
-function stop_mining_loop() {
-    if (!LOOP_STATES.mining) return;
-    LOOP_STATES.mining = false;
-    game_log("⏹ Mining loop stopped");
+for (const name of LOOP_NAMES) {
+    globalThis[`start_${name}_loop`] = () => { LOOP_STATES[name] = true; };
+    globalThis[`stop_${name}_loop`] = () => { LOOP_STATES[name] = false; };
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 3) MERCHANT LOOP CONTROLLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// --- Helper: Handle death and respawn ---
-async function handle_death_and_respawn() {
+const STATES = {
+    DEAD: "dead",
+    PANIC: "panic",
+    DELIVERING: "delivering",
+    UPGRADING: "upgrading",
+    FISHING: "fishing",
+    MINING: "mining",
+    IDLE: "idle"
+};
 
-    await delay(30000);
-    await respawn();
-    await delay(5000);
+function get_character_state() {
+    if (character.rip) return STATES.DEAD;
+    // if (panicking) return STATES.PANIC;
+    if (Object.keys(party_status_cache).length > 0) return STATES.DELIVERING;
 }
 
-async function merchant_loop_controller() {
-    let last_upgrade_time = 0;
-    const UPGRADE_INTERVAL = 60 * 60 * 1000; // 60 minutes in ms
+let handling_death = false;
+let handling_delivery = false
 
+async function set_state(state) {
     try {
-        while (true) {
-            // --- Handle death and respawn ---
-            if (character.rip) {
-                await handle_death_and_respawn();
-                continue;
-            }
+        // Always-on loops (if any)
 
-            // --- Wait for any active task to finish (bounded, with recovery) ---
-            if (merchant_task !== "Idle") {
-                const WAIT_TASK_MS = 5 * 60 * 1000; // 5 minutes max wait
-                const startWait = Date.now();
-                game_log(`⏳ Waiting for task '${merchant_task}' to finish (timeout ${WAIT_TASK_MS/1000}s)`);
-                // Periodically check but don't block forever
-                while (merchant_task !== "Idle" && Date.now() - startWait < WAIT_TASK_MS) {
-                    await delay(1000);
-                }
-                if (merchant_task !== "Idle") {
-                    // Recovery action: log and force Idle so controller can continue
-                    game_log(`⚠️ Task '${merchant_task}' still active after ${Math.round((Date.now()-startWait)/1000)}s — forcing Idle and continuing`, "#FF8800");
-                    merchant_task = "Idle";
-                } else {
-                    game_log(`✅ Task finished, continuing`);
-                }
-                continue;
-            }
+        // State-specific
+        switch (state) {
+            case STATES.DEAD:
+                if (!handling_death) {
+                    handling_death = true;
+                    try {
+                        panicking = false;
 
-            // --- Auto-upgrade priority check ---
-            const now = Date.now();
-            if (now - last_upgrade_time >= UPGRADE_INTERVAL) {
-                merchant_task = "Upgrading";
-                try {
-                    await auto_upgrade();
-                } catch (e) {
-                    game_log("⚠️ Auto-upgrade error:", "#FF0000");
-                    game_log(e);
-                }
-                last_upgrade_time = Date.now();
-                merchant_task = "Idle";
-                continue; // Skip all other tasks this tick
-            }
+                        log("Respawning in 30s...", "red");
+                        await delay(30000);
+                        if (character.rip) await respawn();
+                        await delay(5000);
+                        
+                        await smart_move(HOME);
 
-            if (merchant_task === "Idle") {
-                if (Object.keys(party_status_cache).length > 0) {
-                    if (!LOOP_STATES.loot_and_potions) {
-                        start_loot_and_potions_loop();
-                        continue; // <-- Only start one loop per tick
+                        // Re-evaluate state after respawn
+                        const NEW_STATE = get_character_state();
+                        if (NEW_STATE !== STATES.NORMAL) {
+                            await set_state(NEW_STATE);
+                            return;
+                        }
+                    } catch (e) {
+                        catcher(e, "set_state: DEAD state error");
                     }
-                } else {
-                    stop_loot_and_potions_loop();
+                    handling_death = false;
                 }
+                break;
 
-                // if (!is_on_cooldown("fishing")) {
-                //     if (!LOOP_STATES.fishing) {
-                //         await start_fishing_loop();
-                //         await delay(1000)
-                //         continue;
-                //     }
-                // } else {
-                //     stop_fishing_loop();
-                // }
+            case STATES.PANIC:
+                try {
+                    // PANIC state logic here
+                } catch (e) {
+                    catcher(e, "set_state: PANIC state error");
+                }
+                break;
 
-                // if (!is_on_cooldown("mining")) {
-                //     if (!LOOP_STATES.mining) {
-                //         await start_mining_loop();
-                //         await delay(1000);
-                //         continue;
-                //     }
-                // } else {
-                //     stop_mining_loop();
-                // }
-            }
-            // --- If nothing to do, idle and check again soon ---
-            await delay(2000);
+            case STATES.DELIVERING:
+                try {
+                    if (!handling_delivery) {
+                        handling_delivery = true;
+                        await potions_and_loot_controller_loop()
+                    }
+                    handling_delivery = false;
+                } catch (e) {
+                    catcher(e, "set_state: DELIVERING state error");
+                }
+                break;
+
+            case STATES.UPGRADING:
+                try {
+                    // UPGRADING state logic here
+                } catch (e) {
+                    catcher(e, "set_state: UPGRADING state error");
+                }
+                break;
+
+            case STATES.FISHING:
+                try {
+                    // FISHING state logic here
+                } catch (e) {
+                    catcher(e, "set_state: FISHING state error");
+                }
+                break;
+
+            case STATES.MINING:
+                try {
+                    // MINING state logic here
+                } catch (e) {
+                    catcher(e, "set_state: MINING state error");
+                }
+                break;
+
+            case STATES.IDLE:
+                try {
+                    // IDLE state logic here
+                } catch (e) {
+                    catcher(e, "set_state: IDLE state error");
+                }
+                break;
+
+            default:
+                try {
+                    // Unknown state logic here
+                } catch (e) {
+                    catcher(e, "set_state: UNKNOWN state error");
+                }
+                break;
         }
     } catch (e) {
-        merchant_task = "Idle";
-        game_log("⚠️ Merchant Loop error:", "#FF0000");
-        game_log(e);
+        catcher(e, "set_state: Global error");
+    }
+}
+
+async function loop_controller() {
+    while (true) {
+        try {
+            const state = get_character_state();
+            await set_state(state);
+        } catch (e) {
+            catcher(e, "Loop Controller error");
+        }
+        await delay(250);
     }
 }
 
@@ -181,114 +190,98 @@ add_cm_listener((name, data) => {
     }
 });
 
-async function loot_and_potions_loop() {
-    LOOP_STATES.loot_and_potions = true;
+async function potion_delivery_loop(name) {
 
     try {
-        while (LOOP_STATES.loot_and_potions) {
-            for (const name of PARTY) {
-                const info = party_status_cache[name];
-                if (!info) continue;
-
-                // Validate info fields
-                if (!info.map || typeof info.x !== "number" || typeof info.y !== "number") {
-                    game_log(`⚠️ Invalid location info for ${name}, skipping.`);
-                    delete party_status_cache[name];
-                    continue;
-                }
-
-                try {
-                    merchant_task = "Delivering";
-                    let delivered = false;
-
-                    // Begin moving toward the target, but do not approach closer than 100 units
-                    let moving = true;
-                    let movePromise = smart_move({ map: info.map, x: info.x, y: info.y, stop: true }).then(() => { moving = false; });
-
-                    while (LOOP_STATES.loot_and_potions && !delivered) {
-                        let target = get_player(name);
-                        if (target) {
-                            let dist = distance(character, target);
-
-                            // If within DELIVERY_RADIUS, deliver potions and request loot
-                            if (dist <= DELIVERY_RADIUS) {
-                                if (character.moving) stop();
-                                try {
-                                    // Give potions up to POTION_CAP
-                                    let hpot_needed = Math.max(0, POTION_CAP - (info.hpot1 || 0));
-                                    let mpot_needed = Math.max(0, POTION_CAP - (info.mpot1 || 0));
-                                    let hpot_slot = locate_item("hpot1");
-                                    let mpot_slot = locate_item("mpot1");
-                                    if (hpot_needed > 0 && hpot_slot !== -1) send_item(target, hpot_slot, hpot_needed);
-                                    if (mpot_needed > 0 && mpot_slot !== -1) send_item(target, mpot_slot, mpot_needed);
-                                    if ((hpot_needed > 0 && hpot_slot === -1) || (mpot_needed > 0 && mpot_slot === -1)) {
-                                        game_log(`⚠️ Not enough potions in inventory to deliver to ${name}`);
-                                    }
-                                    game_log(`🧪 Delivered potions to ${name}`);
-                                } catch (e) {
-                                    game_log(`Error delivering potions to ${name}: ${e.message}`);
-                                }
-
-                                try {
-                                    // Request loot from the target
-                                    send_cm(name, { type: "send_loot" });
-                                    game_log(`📦 Requested loot from ${name}`);
-                                    await delay(4000);
-                                } catch (e) {
-                                    game_log(`Error requesting loot from ${name}: ${e.message}`);
-                                }
-
-                                delivered = true;
-                                break;
-                            }
-
-                            // If within 100 units, stop approaching
-                            if (dist <= 100 && character.moving) {
-                                halt_movement();
-                            }
-                        }
-
-                        await delay(4000);
-                    }
-
-                    // Wait for movePromise to resolve if still moving
-                    try {
-                        await Promise.race([
-                            movePromise,
-                            (async () => {
-                                while (moving) {
-                                    await delay(100);
-                                    if (!LOOP_STATES.loot_and_potions) break;
-                                }
-                            })()
-                        ]);
-                    } catch (e) {
-                        // Ignore move errors
-                    }
-
-                    // Clean up after delivery
-                    delete party_status_cache[name];
-                    await smart_move(HOME);
-                    await sell_and_bank();
-                    await delay(500);
-                    await buy_pots();
-                    await delay(500);
-                    merchant_task = "Idle";
-
-                } catch (e) {
-                    game_log(`Error processing delivery for ${name}: ${e.message}`);
-                    merchant_task = "Idle";
-                    delete party_status_cache[name];
-                }
+        let target = get_player(name);
+        merchant_task = "Delivering";
+        if (dist <= DELIVERY_RADIUS) {
+            // Give potions up to POTION_CAP
+            let hpot_needed = Math.max(0, POTION_CAP - (info.hpot1 || 0));
+            let mpot_needed = Math.max(0, POTION_CAP - (info.mpot1 || 0));
+            let hpot_slot = locate_item("hpot1");
+            let mpot_slot = locate_item("mpot1");
+            if (hpot_needed > 0 && hpot_slot !== -1) send_item(target, hpot_slot, hpot_needed);
+            if (mpot_needed > 0 && mpot_slot !== -1) send_item(target, mpot_slot, mpot_needed);
+            if ((hpot_needed > 0 && hpot_slot === -1) || (mpot_needed > 0 && mpot_slot === -1)) {
+                log(`⚠️ Not enough potions in inventory to deliver to ${name}`);
             }
-
-            await delay(1000);
+            log(`🧪 Delivered potions to ${name}`);
         }
         merchant_task = "Idle";
     } catch (e) {
+        catcher(e, "Potion Delivery Loop error");
+    }
+}
+
+async function loot_collection_loop(name) {
+
+    try {
+        merchant_task = "Collecting";
+        if (dist <= DELIVERY_RADIUS) {
+            // Request loot from the target
+            send_cm(name, { type: "send_loot" });
+            game_log(`📦 Requested loot from ${name}`);
+            await delay(4000);
+        }
+
         merchant_task = "Idle";
-        game_log("⚠️ Loot and Potions Loop error:", "#FF0000");
-        game_log(e);
+    } catch (e) {
+        catcher(e, "Loot Collection Loop error");
+    }
+}
+
+async function move_to_party_member(name, info, radius = DELIVERY_RADIUS) {
+    // Move to the party member's latest known location
+    await smart_move({ map: info.map, x: info.x, y: info.y, stop: true });
+
+    while (true) {
+        let target = get_player(name);
+        let tx = info.x, ty = info.y;
+        if (target) {
+            tx = target.x;
+            ty = target.y;
+        }
+        let dist = Math.hypot(character.x - tx, character.y - ty);
+        if (dist > radius) {
+            await smart_move({ map: info.map, x: tx, y: ty, stop: true });
+            await delay(200);
+        } else {
+            if (character.moving) halt_movement();
+            break;
+        }
+    }
+}
+
+async function potions_and_loot_controller_loop() {
+
+    for (const name of PARTY) {
+        const info = party_status_cache[name];
+        if (!info || !info.map || typeof info.x !== "number" || typeof info.y !== "number") {
+            game_log(`⚠️ Invalid location info for ${name}, skipping.`);
+            delete party_status_cache[name];
+            continue;
+        }
+        try {
+            await move_to_party_member(name, info, DELIVERY_RADIUS);
+            await potion_delivery_loop(name, info);
+            await delay(500);
+            await loot_collection_loop(name, info);
+            await delay(500);
+
+            // Clean up after delivery
+            delete party_status_cache[name];
+            await smart_move(HOME);
+            await sell_and_bank();
+            await delay(500);
+            await buy_pots();
+            await delay(500);
+            merchant_task = "Idle";
+        } catch (e) {
+            game_log(`Error processing delivery for ${name}: ${e.message}`);
+            merchant_task = "Idle";
+            delete party_status_cache[name];
+        }
     }
 }
 
