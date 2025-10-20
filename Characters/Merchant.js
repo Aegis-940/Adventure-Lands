@@ -18,7 +18,7 @@ create_map_movement_window([
 add_bank_buttons();
 hide_skills_ui();
 
-merchant_loop_controller();
+loop_controller()
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN LOOP
