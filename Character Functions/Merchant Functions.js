@@ -41,7 +41,7 @@ for (const name of LOOP_NAMES) {
 // 3) MERCHANT LOOP CONTROLLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const STATES = {
+const MERCHANT_STATES = {
     DEAD: "dead",
     PANIC: "panic",
     DELIVERING: "delivering",
@@ -66,7 +66,7 @@ async function set_state(state) {
 
         // State-specific
         switch (state) {
-            case STATES.DEAD:
+            case MERCHANT_STATES.DEAD:
                 if (!handling_death) {
                     handling_death = true;
                     try {
@@ -81,7 +81,7 @@ async function set_state(state) {
 
                         // Re-evaluate state after respawn
                         const NEW_STATE = get_character_state();
-                        if (NEW_STATE !== STATES.NORMAL) {
+                        if (NEW_STATE !== MERCHANT_STATES.NORMAL) {
                             await set_state(NEW_STATE);
                             return;
                         }
@@ -92,7 +92,7 @@ async function set_state(state) {
                 }
                 break;
 
-            case STATES.PANIC:
+            case MERCHANT_STATES.PANIC:
                 try {
                     // PANIC state logic here
                 } catch (e) {
@@ -100,7 +100,7 @@ async function set_state(state) {
                 }
                 break;
 
-            case STATES.DELIVERING:
+            case MERCHANT_STATES.DELIVERING:
                 try {
                     if (!handling_delivery) {
                         handling_delivery = true;
@@ -112,7 +112,7 @@ async function set_state(state) {
                 }
                 break;
 
-            case STATES.UPGRADING:
+            case MERCHANT_STATES.UPGRADING:
                 try {
                     // UPGRADING state logic here
                 } catch (e) {
@@ -120,7 +120,7 @@ async function set_state(state) {
                 }
                 break;
 
-            case STATES.FISHING:
+            case MERCHANT_STATES.FISHING:
                 try {
                     // FISHING state logic here
                 } catch (e) {
@@ -128,7 +128,7 @@ async function set_state(state) {
                 }
                 break;
 
-            case STATES.MINING:
+            case MERCHANT_STATES.MINING:
                 try {
                     // MINING state logic here
                 } catch (e) {
@@ -136,7 +136,7 @@ async function set_state(state) {
                 }
                 break;
 
-            case STATES.IDLE:
+            case MERCHANT_STATES.IDLE:
                 try {
                     // IDLE state logic here
                 } catch (e) {
