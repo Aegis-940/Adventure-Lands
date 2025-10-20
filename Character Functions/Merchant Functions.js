@@ -193,7 +193,7 @@ add_cm_listener((name, data) => {
     }
 });
 
-async function potion_delivery_loop(name) {
+async function potion_delivery_loop(name, info) {
 
     try {
         let target = get_player(name);
@@ -214,7 +214,7 @@ async function potion_delivery_loop(name) {
     }
 }
 
-async function loot_collection_loop(name) {
+async function loot_collection_loop(name, info) {
 
     try {
         // Request loot from the target
