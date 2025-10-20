@@ -70,21 +70,21 @@ async function set_state(state) {
                 if (!handling_death) {
                     handling_death = true;
                     try {
-                        panicking = false;
+                        // panicking = false;
 
-                        log("Respawning in 30s...", "red");
-                        await delay(30000);
-                        if (character.rip) await respawn();
-                        await delay(5000);
+                        // log("Respawning in 30s...", "red");
+                        // await delay(30000);
+                        // if (character.rip) await respawn();
+                        // await delay(5000);
                         
-                        await smart_move(HOME);
+                        // await smart_move(HOME);
 
-                        // Re-evaluate state after respawn
-                        const NEW_STATE = get_character_state();
-                        if (NEW_STATE !== MERCHANT_STATES.NORMAL) {
-                            await set_state(NEW_STATE);
-                            return;
-                        }
+                        // // Re-evaluate state after respawn
+                        // const NEW_STATE = get_character_state();
+                        // if (NEW_STATE !== MERCHANT_STATES.NORMAL) {
+                        //     await set_state(NEW_STATE);
+                        //     return;
+                        // }
                     } catch (e) {
                         catcher(e, "set_state: DEAD state error");
                     }
