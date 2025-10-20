@@ -52,9 +52,10 @@ const MERCHANT_STATES = {
 };
 
 function get_character_state() {
-    if (character.rip) return STATES.DEAD;
-    // if (panicking) return STATES.PANIC;
-    if (Object.keys(party_status_cache).length > 0) return STATES.DELIVERING;
+    if (character.rip) return MERCHANT_STATES.DEAD;
+    // if (panicking) return MERCHANT_STATES.PANIC;
+    if (Object.keys(party_status_cache).length > 0) return MERCHANT_STATES.DELIVERING;
+    if (merchant_task === "Idle") return MERCHANT_STATES.IDLE;
 }
 
 let handling_merchant_death = false;
@@ -104,7 +105,9 @@ async function set_state(state) {
                 try {
                     if (!handling_delivery) {
                         handling_delivery = true;
+                        merchant_task = "Delivering";
                         await potions_and_loot_controller_loop()
+                        merchant_task = "Idle";
                     }
                     handling_delivery = false;
                 } catch (e) {
@@ -194,7 +197,6 @@ async function potion_delivery_loop(name) {
 
     try {
         let target = get_player(name);
-        merchant_task = "Delivering";
         if (dist <= DELIVERY_RADIUS) {
             // Give potions up to POTION_CAP
             let hpot_needed = Math.max(0, POTION_CAP - (info.hpot1 || 0));
@@ -208,7 +210,6 @@ async function potion_delivery_loop(name) {
             }
             log(`🧪 Delivered potions to ${name}`);
         }
-        merchant_task = "Idle";
     } catch (e) {
         catcher(e, "Potion Delivery Loop error");
     }
@@ -217,15 +218,12 @@ async function potion_delivery_loop(name) {
 async function loot_collection_loop(name) {
 
     try {
-        merchant_task = "Collecting";
         if (dist <= DELIVERY_RADIUS) {
             // Request loot from the target
             send_cm(name, { type: "send_loot" });
             game_log(`📦 Requested loot from ${name}`);
             await delay(4000);
         }
-
-        merchant_task = "Idle";
     } catch (e) {
         catcher(e, "Loot Collection Loop error");
     }
