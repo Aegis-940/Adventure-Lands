@@ -944,6 +944,47 @@ function create_custom_log_window() {
     div.style.border = "4px solid #888";
     div.style.display = "flex";
     div.style.flexDirection = "column";
+    div.style.cursor = "default";
+
+    // --- Drag logic ---
+    let isDragging = false, dragOffsetX = 0, dragOffsetY = 0;
+
+    // Drag handle (top bar)
+    const dragHandle = doc.createElement("div");
+    dragHandle.style.height = "18px";
+    dragHandle.style.background = "#444";
+    dragHandle.style.cursor = "move";
+    dragHandle.style.display = "flex";
+    dragHandle.style.alignItems = "center";
+    dragHandle.style.justifyContent = "flex-start";
+    dragHandle.style.paddingLeft = "8px";
+    dragHandle.style.fontSize = "16px";
+    dragHandle.style.fontFamily = "pixel";
+    dragHandle.style.color = "#fff";
+    dragHandle.textContent = "Custom Log";
+
+    dragHandle.onmousedown = function (e) {
+        isDragging = true;
+        dragOffsetX = e.clientX - div.offsetLeft;
+        dragOffsetY = e.clientY - div.offsetTop;
+        doc.body.style.userSelect = "none";
+    };
+
+    doc.onmousemove = function (e) {
+        if (isDragging) {
+            div.style.left = (e.clientX - dragOffsetX) + "px";
+            div.style.top = (e.clientY - dragOffsetY) + "px";
+            div.style.right = ""; // Unset right when dragging
+            div.style.bottom = ""; // Unset bottom when dragging
+        }
+    };
+
+    doc.onmouseup = function () {
+        isDragging = false;
+        doc.body.style.userSelect = "";
+    };
+
+    div.appendChild(dragHandle);
 
     // --- Tabs ---
     const tabBar = doc.createElement("div");

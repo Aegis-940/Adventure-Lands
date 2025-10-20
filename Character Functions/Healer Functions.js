@@ -94,7 +94,6 @@ async function heal_attack_loop() {
             // --- Healing logic ---
             if (should_heal && LOOP_STATES.heal) {
                 try {
-                    log(`💖 Healing ${heal_target.name}`, "#00FF00", "General");
                     await heal(heal_target);
                 } catch (e) {
                     catcher(e, "Heal loop error");
