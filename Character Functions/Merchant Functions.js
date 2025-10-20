@@ -57,7 +57,7 @@ function get_character_state() {
     if (Object.keys(party_status_cache).length > 0) return STATES.DELIVERING;
 }
 
-let handling_death = false;
+let handling_merchant_death = false;
 let handling_delivery = false
 
 async function set_state(state) {
@@ -67,8 +67,8 @@ async function set_state(state) {
         // State-specific
         switch (state) {
             case MERCHANT_STATES.DEAD:
-                if (!handling_death) {
-                    handling_death = true;
+                if (!handling_merchant_death) {
+                    handling_merchant_death = true;
                     try {
                         // panicking = false;
 
@@ -88,7 +88,7 @@ async function set_state(state) {
                     } catch (e) {
                         catcher(e, "set_state: DEAD state error");
                     }
-                    handling_death = false;
+                    handling_merchant_death = false;
                 }
                 break;
 
