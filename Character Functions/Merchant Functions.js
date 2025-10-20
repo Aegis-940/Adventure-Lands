@@ -53,7 +53,7 @@ const MERCHANT_STATES = {
 
 let last_auto_upgrade_time = 0; // Timestamp in ms
 
-async function should_run_auto_upgrade() {
+function should_run_auto_upgrade() {
     const THIRTY_MINUTES = 30 * 60 * 1000;
     return (Date.now() - last_auto_upgrade_time) > THIRTY_MINUTES;
 }
