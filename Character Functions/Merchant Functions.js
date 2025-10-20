@@ -119,6 +119,7 @@ async function set_state(state) {
             case MERCHANT_STATES.DELIVERING:
                 try {
                     if (!handling_delivery) {
+                        log("Starting potion delivery and loot collection...");
                         handling_delivery = true;
                         merchant_task = "Delivering";
                         await potions_and_loot_controller_loop()
@@ -133,6 +134,7 @@ async function set_state(state) {
             case MERCHANT_STATES.UPGRADING:
                 try {
                     if (!handling_upgrading) {
+                        log("Starting auto-upgrade process...");
                         handling_upgrading = true;
                         merchant_task = "Upgrading";
                         await auto_upgrade();
