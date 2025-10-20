@@ -285,7 +285,7 @@ async function boss_loop() {
                 if (!targetName) {
                     log("⏭️ Skipping boss attack — boss has no target", "#aaa", "Alerts");
                 } else {
-                    const shouldAttack = (targetName === "Myras") || !skipTargets.includes(targetName);
+                    const shouldAttack = !!targetName && targetName !== character.name;
 
                     if (shouldAttack) {
                         await attack(boss);
