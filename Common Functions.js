@@ -37,7 +37,7 @@ const RANGER_TARGET  = MONSTER_LOCS.crab;
 const FLOATING_BUTTON_IDS = [];
 
 const SOFT_RESTART_TIMER = 60000;    // 1 minute
-const HARD_RESET_TIMER   = 240000;   // 4 minutes
+const HARD_RESET_TIMER   = 120000;   // 2 minutes
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // GLOBAL FUNCTIONS
@@ -103,6 +103,10 @@ async function watchdog_loop() {
     }
 
     while (true) {
+        if (character.rip) {   
+            await delay(1000);
+            continue;
+        }
         await delay(5000); // check every 5 seconds
         const now = Date.now();
 
@@ -146,6 +150,146 @@ async function watchdog_loop() {
                 catcher(e, "Watchdog restart error");
             }
         }
+    }
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// UNIVERSAL LOOP CONTROL
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+// --- Helper: Boss alive check ---
+function is_boss_alive() {
+    return BOSSES.some(name => {
+        const s = parent.S[name];
+        return (
+            s &&
+            s.live === true
+        );
+    });
+}
+
+const STATES = {
+    DEAD: "dead",
+    PANIC: "panic",
+    BOSS: "boss",
+    NORMAL: "normal"
+};
+
+function get_character_state() {
+    if (character.rip) return STATES.DEAD;
+    if (panicking) return STATES.PANIC;
+    if (is_boss_alive()) return STATES.BOSS;
+    return STATES.NORMAL;
+}
+
+let handling_death = false;
+
+async function set_state(state) {
+
+    try {
+        // Always-on loops
+        if (!LOOP_STATES.panic) start_panic_loop();
+        if (!LOOP_STATES.potion) start_potion_loop();
+        if (!LOOP_STATES.heal) start_heal_loop();
+        if (!LOOP_STATES.loot) start_loot_loop();
+        if (!LOOP_STATES.cache) start_status_cache_loop();
+
+        // Helper for movement target
+        function get_main_target() {
+            if (character.name === "Ulric") return WARRIOR_TARGET;
+            if (character.name === "Riva") return RANGER_TARGET;
+            return HEALER_TARGET;
+        }
+
+        // State-specific
+        switch (state) {
+            case STATES.DEAD:
+                if (!handling_death) {
+                    handling_death = true;
+                    try {
+                        panicking = false;
+                        stop_attack_loop();
+                        stop_orbit_loop();
+                        stop_panic_loop();
+                        stop_boss_loop();
+
+                        log("Respawning in 30s...", "red");
+                        await delay(30000);
+                        if (character.rip) await respawn();
+                        await delay(5000);
+                        await smart_move(HEALER_TARGET);
+
+                        if (!LOOP_STATES.panic) start_panic_loop();
+                        if (!LOOP_STATES.attack) start_attack_loop();
+
+                        // Re-evaluate state after respawn
+                        const NEW_STATE = get_character_state();
+                        if (NEW_STATE !== STATES.NORMAL) {
+                            await set_state(NEW_STATE);
+                            return;
+                        }
+                    } catch (e) {
+                        catcher(e, "set_state: DEAD state error");
+                    }
+                    handling_death = false;
+                }
+                break;
+
+            case STATES.PANIC:
+                try {
+                    stop_attack_loop();
+                    stop_skill_loop();
+                    stop_boss_loop();
+                } catch (e) {
+                    catcher(e, "set_loops: PANIC state error");
+                }
+                break;
+
+            case STATES.BOSS:
+                try {
+                    if (LOOP_STATES.attack) stop_attack_loop();
+                    if (LOOP_STATES.skill) stop_skill_loop();
+                    if (LOOP_STATES.orbit) stop_orbit_loop();
+
+                    if (!LOOP_STATES.boss) start_boss_loop();
+                } catch (e) {
+                    catcher(e, "set_loops: BOSS state error");
+                }
+                break;
+
+            case STATES.NORMAL:
+                try {
+                    if (LOOP_STATES.boss) stop_boss_loop();
+                    if (!LOOP_STATES.skill) start_skill_loop();
+                    if (!LOOP_STATES.attack) start_attack_loop();
+
+                    // Orbit logic
+                    const target = get_main_target();
+                    if (target.orbit) {
+                        const at_target = character.x === target.x && character.y === target.y;
+                        const near_target = parent.distance(character, target) <= 50;
+                        if (near_target && !LOOP_STATES.orbit && !smart.moving) smart_move(target);
+                        if (!LOOP_STATES.orbit && at_target) start_orbit_loop();
+                    }
+                } catch (e) {
+                    catcher(e, "set_state: NORMAL state error");
+                }
+                break;
+        }
+    } catch (e) {
+        catcher(e, "set_loops: Global error");
+    }
+}
+
+async function loop_controller() {
+    while (true) {
+        try {
+            const state = get_character_state();
+            await set_state(state);
+        } catch (e) {
+            catcher(e, "Loop Controller error");
+        }
+        await delay(250);
     }
 }
 

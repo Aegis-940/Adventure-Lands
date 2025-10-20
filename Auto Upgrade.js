@@ -38,7 +38,7 @@ const COMBINE_PROFILE = {
   strearring:  { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 4 },
   intearring:  { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 4 },
   skullamulet: { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 2, max_level: 3 },
-  talkingskull:{ scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 2, max_level: 3 },
+  talkingskull:{ scroll0_until: 1, scroll1_until: 2, scroll2_until: 6, primling_from: 2, max_level: 3 },
   // Add more items as needed
 };
 
