@@ -221,6 +221,7 @@ async function loot_collection_loop(name, info) {
         send_cm(name, { type: "send_loot" });
         game_log(`📦 Requested loot from ${name}`);
         await delay(4000);
+        log(`💰 Collected loot from ${name}`);
 
     } catch (e) {
         catcher(e, "Loot Collection Loop error");
@@ -228,25 +229,34 @@ async function loot_collection_loop(name, info) {
 }
 
 async function move_to_party_member(name, info, radius = DELIVERY_RADIUS) {
-    // Move to the party member's latest known location
-    await smart_move({ map: info.map, x: info.x, y: info.y, stop: true });
+    let tx = info.x, ty = info.y, tmap = info.map;
 
-    while (true) {
-        let target = get_player(name);
-        let tx = info.x, ty = info.y;
-        if (target) {
-            tx = target.x;
-            ty = target.y;
-        }
-        let dist = Math.hypot(character.x - tx, character.y - ty);
-        if (dist > radius) {
-            await smart_move({ map: info.map, x: tx, y: ty, stop: true });
-            await delay(200);
-        } else {
-            if (character.moving) halt_movement();
-            break;
-        }
+    // Helper: resolves when within radius of the target
+    function within_radius_promise() {
+        return new Promise(resolve => {
+            const interval = setInterval(() => {
+                let target = get_player(name);
+                if (target) {
+                    tx = target.x;
+                    ty = target.y;
+                    tmap = target.map;
+                }
+                if (character.map === tmap && Math.hypot(character.x - tx, character.y - ty) <= radius) {
+                    clearInterval(interval);
+                    resolve();
+                }
+            }, 100);
+        });
     }
+
+    // Race smart_move against the within-radius check
+    await Promise.race([
+        smart_move({ map: tmap, x: tx, y: ty }),
+        within_radius_promise()
+    ]);
+
+    // Stop movement if still moving
+    if (character.moving) halt_movement();
 }
 
 async function potions_and_loot_controller_loop() {
