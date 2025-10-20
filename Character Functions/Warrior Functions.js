@@ -123,7 +123,7 @@ async function attack_loop() {
                     const dist = Math.hypot(mob.x - character.x, mob.y - character.y);
                     if (dist <= character.range-1) {
                         // If ATTACK_UNTARGETED is false, skip mobs with no target
-                        if (!ATTACK_UNTARGETED && !mob.target) continue;
+                        if (!ATTACK_UNTARGETED && (!mob.target || mob.target === character.name)) continue;
                         inRange.push(mob);
                         // Find a cursed monster in range (prioritize lowest HP if multiple)
                         if (mob.s && mob.s.cursed) {
