@@ -197,19 +197,18 @@ async function potion_delivery_loop(name) {
 
     try {
         let target = get_player(name);
-        if (dist <= DELIVERY_RADIUS) {
-            // Give potions up to POTION_CAP
-            let hpot_needed = Math.max(0, POTION_CAP - (info.hpot1 || 0));
-            let mpot_needed = Math.max(0, POTION_CAP - (info.mpot1 || 0));
-            let hpot_slot = locate_item("hpot1");
-            let mpot_slot = locate_item("mpot1");
-            if (hpot_needed > 0 && hpot_slot !== -1) send_item(target, hpot_slot, hpot_needed);
-            if (mpot_needed > 0 && mpot_slot !== -1) send_item(target, mpot_slot, mpot_needed);
-            if ((hpot_needed > 0 && hpot_slot === -1) || (mpot_needed > 0 && mpot_slot === -1)) {
-                log(`⚠️ Not enough potions in inventory to deliver to ${name}`);
-            }
-            log(`🧪 Delivered potions to ${name}`);
+        // Give potions up to POTION_CAP
+        let hpot_needed = Math.max(0, POTION_CAP - (info.hpot1 || 0));
+        let mpot_needed = Math.max(0, POTION_CAP - (info.mpot1 || 0));
+        let hpot_slot = locate_item("hpot1");
+        let mpot_slot = locate_item("mpot1");
+        if (hpot_needed > 0 && hpot_slot !== -1) send_item(target, hpot_slot, hpot_needed);
+        if (mpot_needed > 0 && mpot_slot !== -1) send_item(target, mpot_slot, mpot_needed);
+        if ((hpot_needed > 0 && hpot_slot === -1) || (mpot_needed > 0 && mpot_slot === -1)) {
+            log(`⚠️ Not enough potions in inventory to deliver to ${name}`);
         }
+        log(`🧪 Delivered potions to ${name}`);
+ 
     } catch (e) {
         catcher(e, "Potion Delivery Loop error");
     }
@@ -218,12 +217,11 @@ async function potion_delivery_loop(name) {
 async function loot_collection_loop(name) {
 
     try {
-        if (dist <= DELIVERY_RADIUS) {
-            // Request loot from the target
-            send_cm(name, { type: "send_loot" });
-            game_log(`📦 Requested loot from ${name}`);
-            await delay(4000);
-        }
+        // Request loot from the target
+        send_cm(name, { type: "send_loot" });
+        game_log(`📦 Requested loot from ${name}`);
+        await delay(4000);
+
     } catch (e) {
         catcher(e, "Loot Collection Loop error");
     }
