@@ -254,6 +254,7 @@ async function move_to_party_member(name, info, radius = DELIVERY_RADIUS) {
 
     // Start moving toward the target (do not await)
     smart_move({ map: tmap, x: tx, y: ty });
+    await delay(5000); // Initial delay to start movement
 
     while (true) {
         // Timeout check
@@ -275,12 +276,13 @@ async function move_to_party_member(name, info, radius = DELIVERY_RADIUS) {
 
         if (info) {
             // If map changed, restart smart_move
-            if (tmap !== info.map) {
+            if (tmap !== info.map || tx !== info.x || ty !== info.y) {
                 tmap = info.map;
                 tx = info.x;
                 ty = info.y;
                 if (character.moving || smart.moving) halt_movement();
                 smart_move({ map: tmap, x: tx, y: ty });
+                await delay(5000)
             } else {
                 tx = info.x;
                 ty = info.y;
