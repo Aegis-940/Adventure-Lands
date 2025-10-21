@@ -252,43 +252,51 @@ async function move_to_party_member(name, info, radius = DELIVERY_RADIUS) {
 
     let tx = info.x, ty = info.y, tmap = info.map;
 
-    function within_radius_promise() {
-        return new Promise(resolve => {
-            const interval = setInterval(() => {
-                let target = get_player(name);
-                if (target) {
-                    tx = target.x;
-                    ty = target.y;
-                    tmap = target.map;
-                }
-                if (
-                    character.map === tmap &&
-                    Math.hypot(character.x - tx, character.y - ty) <= radius
-                ) {
-                    clearInterval(interval);
-                    resolve();
-                }
-                // Timeout check inside the interval
-                if (Date.now() - startTime > TIMEOUT_MS) {
-                    clearInterval(interval);
-                    resolve("timeout");
-                }
-            }, 100);
-        });
-    }
+    // Start moving toward the target (do not await)
+    smart_move({ map: tmap, x: tx, y: ty });
 
-    const result = await Promise.race([
-        smart_move({ map: tmap, x: tx, y: ty }),
-        within_radius_promise()
-    ]);
+    while (true) {
+        // Timeout check
+        if (Date.now() - startTime > TIMEOUT_MS) {
+            log(`⏰ Timeout moving to ${name}. Returning home and removing from cache.`);
+            delete party_status_cache[name];
+            if (character.moving) halt_movement();
+            await smart_move(HOME);
+            return;
+        }
 
-    if (character.moving) halt_movement();
+        // Get latest target info
+        let target = get_player(name);
+        if (target) {
+            tx = target.x;
+            ty = target.y;
+            tmap = target.map;
+        }
 
-    // Handle timeout
-    if (result === "timeout" || Date.now() - startTime > TIMEOUT_MS) {
-        log(`⏰ Timeout moving to ${name}. Returning home and removing from cache.`);
-        delete party_status_cache[name];
-        await smart_move(HOME);
+        if (info) {
+            // If map changed, restart smart_move
+            if (tmap !== info.map) {
+                tmap = info.map;
+                tx = info.x;
+                ty = info.y;
+                if (character.moving || smart.moving) halt_movement();
+                smart_move({ map: tmap, x: tx, y: ty });
+            } else {
+                tx = info.x;
+                ty = info.y;
+            }
+        }
+
+        // Calculate distance
+        let dist = Math.hypot(character.x - tx, character.y - ty);
+
+        // If within radius, halt and exit
+        if (dist <= radius) {
+            if (character.moving) halt_movement();
+            break;
+        }
+
+        await delay(200);
     }
 }
 
