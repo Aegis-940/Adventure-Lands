@@ -294,7 +294,7 @@ async function move_to_party_member(name, info, radius = DELIVERY_RADIUS) {
 
         // If within radius, halt and exit
         if (dist <= radius) {
-            if (character.moving) halt_movement();
+            if (smart.moving) halt_movement();
             break;
         }
 
