@@ -286,19 +286,19 @@ async function boss_loop() {
             await delay(delayMs);
         }
 
-        // 2. Equip hbow +7 in mainhand before moving to boss
-        const hbow_slot = parent.character.items.findIndex(item =>
-            item && item.name === "hbow" && item.level === 7
+        // 2. Equip pouchbow +9 in mainhand before moving to boss
+        const pouchbow_slot = parent.character.items.findIndex(item =>
+            item && item.name === "pouchbow" && item.level === 9
         );
         if (
-            hbow_slot !== -1 &&
-            (!character.slots.mainhand || character.slots.mainhand.name !== "hbow" || character.slots.mainhand.level !== 7)
+            pouchbow_slot !== -1 &&
+            (!character.slots.mainhand || character.slots.mainhand.name !== "pouchbow" || character.slots.mainhand.level !== 9)
         ) {
             try {
-                await equip(hbow_slot, "mainhand");
+                await equip(pouchbow_slot, "mainhand");
                 await delay(300);
             } catch (e) {
-                catcher(e, "Error equipping hbow");
+                catcher(e, "Error equipping pouchbow");
             }
         }
 
