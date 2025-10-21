@@ -28,11 +28,12 @@ const MONSTER_LOCS = {
     bbpompop:     { map: "winter_cave", x: -82, y: -949, orbit: true , hostile: false },
     booboo:       { map: "spookytown", x: 370, y: -790, orbit: true , hostile: true },
     ghost:        { map: "halloween", x: 229, y: -1203, orbit: true , hostile: false },
+    prat:         { map: "level1", x: 89, y: 199, orbit: true , hostile: false },
 };
 
-const HEALER_TARGET    = MONSTER_LOCS.ghost;
-const WARRIOR_TARGET   = MONSTER_LOCS.ghost;
-const RANGER_TARGET    = MONSTER_LOCS.crab;
+const HEALER_TARGET    = MONSTER_LOCS.prat;
+const WARRIOR_TARGET   = MONSTER_LOCS.prat;
+const RANGER_TARGET    = { map: "level1", x: 115, y: 266, orbit: false , hostile: false };
 const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 
 const FLOATING_BUTTON_IDS = [];

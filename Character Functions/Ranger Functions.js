@@ -23,7 +23,7 @@ const HEALER_CONFIG = {
     target_limit: 99
 };
 
-const FIGHT_SOLO = true;                   // If true, Ranger won't check for tanks/healers before engaging
+const FIGHT_SOLO = false;                   // If true, Ranger won't check for tanks/healers before engaging
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS
@@ -88,19 +88,20 @@ async function attack_loop() {
                 } else {
                     // Filter out dead monsters before using their IDs
                     const alive_targets = sorted_targets.filter(m => m && !m.dead);
-                    let valid_target = null;
+                    let valid_targets = [];
+
                     if (FIGHT_SOLO) {
-                        valid_target = alive_targets[0];
+                        valid_targets = alive_targets;
                     } else {
-                        valid_target = alive_targets.find(mob => mob.target === "Myras");
+                        valid_targets = alive_targets.filter(mob => mob.target === "Myras");
                     }
 
-                    if (valid_target && alive_targets.length >= 5 && character.mp >= 320 + 88) {
-                        await use_skill("5shot", alive_targets.slice(0, 5).map(m => m.id));
-                    } else if (valid_target && alive_targets.length >= 2 && character.mp >= 200 + 88) {
-                        await use_skill("3shot", alive_targets.slice(0, 3).map(m => m.id));
-                    } else if (valid_target && character.mp >= 100) {
-                        await attack(valid_target);
+                    if (valid_targets.length >= 5 && character.mp >= 320 + 88) {
+                        await use_skill("5shot", valid_targets.slice(0, 5).map(m => m.id));
+                    } else if (valid_targets.length >= 2 && character.mp >= 200 + 88) {
+                        await use_skill("3shot", valid_targets.slice(0, 3).map(m => m.id));
+                    } else if (valid_targets.length >= 1 && character.mp >= 100) {
+                        await attack(valid_targets[0]);
                     }
                 }
                 delayMs = ms_to_next_skill("attack") + character.ping + 50;
