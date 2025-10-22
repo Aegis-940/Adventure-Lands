@@ -113,44 +113,11 @@ async function watchdog_loop() {
         const now = Date.now();
 
         // Hard reset if inactive for 2 minutes
-        if (now - last_activity_time > HARD_RESET_TIMER && now - last_hard_reset_time > HARD_RESET_TIMER) {
+        if (now - last_hard_reset_time > HARD_RESET_TIMER) {
             log("🔄 Hard reset: Reloading page due to persistent inactivity.", "#ff0000", "Alerts");
             last_hard_reset_time = now;
             parent.window.location.reload();
             // No need to reset last_activity_time here, page will reload
-        }
-        // Soft restart if inactive for 30 seconds, but not more than once every 30s
-        else if (
-            now - last_activity_time > SOFT_RESTART_TIMER &&
-            now - last_soft_restart_time > SOFT_RESTART_TIMER
-        ) {
-            log("⚠️ Inactivity detected! Attempting to restart main loops...", "#ff8800", "Alerts");
-            last_soft_restart_time = now;
-            try {
-                safely_call("stop_attack_loop");
-                safely_call("stop_heal_loop");
-                safely_call("stop_move_loop");
-                safely_call("stop_skill_loop");
-                safely_call("stop_panic_loop");
-                safely_call("stop_boss_loop");
-                safely_call("stop_orbit_loop");
-                safely_call("stop_status_cache_loop");
-                await delay(500);
-
-                log("✅ Main loops restarted by watchdog.", "#00ff00", "Alerts");
-                log("Moving to target location...", "#00ff00", "Alerts");
-
-                // Move to respective character's target location (concise, by name)
-                if (character.name === "Myras") {
-                    await smart_move(HEALER_TARGET);
-                } else if (character.name === "Ulric") {
-                    await smart_move(WARRIOR_TARGET);
-                } else if (character.name === "Riva") {
-                    await smart_move(RANGER_TARGET);
-                }
-            } catch (e) {
-                catcher(e, "Watchdog restart error");
-            }
         }
     }
 }
