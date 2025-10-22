@@ -286,11 +286,11 @@ async function move_to_party_member(name, info, radius = DELIVERY_RADIUS) {
         // Calculate distance
         let dist = Math.hypot(character.x - tx, character.y - ty);
 
-        // If within radius, halt and exit
-        // if (dist <= radius) {
-        //     if (smart.moving) stop();
-        //     break;
-        // }
+        // Only halt and exit if on the correct map and within radius
+        if (character.map === tmap && dist <= radius) {
+            if (smart.moving) stop();
+            break;
+        }
 
         await delay(200);
     }
