@@ -754,6 +754,7 @@ async function orbit_loop() {
             const dist_from_origin = Math.hypot(character.real_x - orbit_origin.x, character.real_y - orbit_origin.y);
             if (dist_from_origin > 100) {
                 game_log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
+                LOOP_STATES.orbit = false;
                 break;
             }
 
