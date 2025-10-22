@@ -253,6 +253,7 @@ async function move_to_party_member(name, info, radius = DELIVERY_RADIUS) {
     let tx = info.x, ty = info.y, tmap = info.map;
 
     // Start moving toward the target (do not await)
+    log(`🚶 Moving to ${name} at (${tx}, ${ty}) on map ${tmap}`);
     smarter_move({ map: tmap, x: tx, y: ty });
     await delay(10000); // Initial delay to start movement
 
