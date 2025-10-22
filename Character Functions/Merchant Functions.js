@@ -321,6 +321,7 @@ async function potions_and_loot_controller_loop() {
             // Clean up after delivery
             delete party_status_cache[name];
             await smarter_move(HOME);
+            await delay(500);
             await sell_and_bank();
             await delay(500);
             await buy_pots();
