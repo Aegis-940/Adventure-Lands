@@ -338,6 +338,15 @@ async function auto_combine_item(level) {
             }
         }
 
+        // Check for primling requirement and skip if not present
+        if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
+            const has_primling = character.items.some(inv_item => inv_item && inv_item.name === "primling");
+            if (!has_primling) {
+                game_log(`Skipping combine for ${itemName} (level ${lvl}): No primling found for combine requiring it.`);
+                continue;
+            }
+        }
+
         if (!scroll) {
             parent.buy(scrollname);
             game_log(`Buying ${scrollname} for combining ${itemName} (level ${lvl})`);
@@ -370,6 +379,15 @@ async function auto_combine_item(level) {
             }
         }
         if (!scroll) continue;
+
+        // Check for primling requirement and skip if not present
+        if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
+            const has_primling = character.items.some(inv_item => inv_item && inv_item.name === "primling");
+            if (!has_primling) {
+                game_log(`Skipping combine for ${itemName} (level ${lvl}): No primling found for combine requiring it.`);
+                continue;
+            }
+        }
 
         // Check for offering if needed
         let offering_slot = null;
