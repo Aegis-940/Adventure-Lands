@@ -273,6 +273,7 @@ async function move_to_party_member(name, info, radius = DELIVERY_RADIUS) {
                 tx = info.x;
                 ty = info.y;
                 if (character.moving || smart.moving) stop();
+                log(`🔄 ${name} moved, updating target location to (${tx}, ${ty}) on map ${tmap}`);
                 smarter_move({ map: tmap, x: tx, y: ty });
                 await delay(5000)
             } else {
