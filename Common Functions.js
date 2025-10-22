@@ -39,7 +39,7 @@ const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 const FLOATING_BUTTON_IDS = [];
 
 const SOFT_RESTART_TIMER = 60000;    // 1 minute
-const HARD_RESET_TIMER   = 120000;   // 2 minutes
+const HARD_RESET_TIMER   = 90000;    // 1.5 minutes
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // GLOBAL FUNCTIONS
@@ -195,7 +195,6 @@ let is_active = null;
 
 async function passive_activity_monitor() {
     let last_mp = character.mp;
-    let last_hpots = character.items.filter(it => it && it.name === "hpot1").reduce((sum, it) => sum + (it.q || 1), 0);
     let last_mpots = character.items.filter(it => it && it.name === "mpot1").reduce((sum, it) => sum + (it.q || 1), 0);
 
     while (true) {
@@ -208,16 +207,13 @@ async function passive_activity_monitor() {
         if (character.mp !== last_mp) is_active = true;
 
         // 3. HP/MP potions used (count decreased)
-        let current_hpots = character.items.filter(it => it && it.name === "hpot1").reduce((sum, it) => sum + (it.q || 1), 0);
         let current_mpots = character.items.filter(it => it && it.name === "mpot1").reduce((sum, it) => sum + (it.q || 1), 0);
 
-        if (current_hpots < last_hpots) is_active = true;
         if (current_mpots < last_mpots) is_active = true;
 
         if (is_active) last_activity_time = Date.now();
 
         last_mp = character.mp;
-        last_hpots = current_hpots;
         last_mpots = current_mpots;
         await delay(1000); // Check every second
     }
