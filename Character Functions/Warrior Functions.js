@@ -240,9 +240,9 @@ async function boss_loop() {
             ? { map: parent.S[boss_name].map, x: parent.S[boss_name].x, y: parent.S[boss_name].y }
             : null;
         if (boss_spawn) {
-            await smart_move(boss_spawn);
+            await smarter_move(boss_spawn);
         } else {
-            log("⚠️ Boss spawn location unknown, skipping smart_move.", "#ffaa00", "Alerts");
+            log("⚠️ Boss spawn location unknown, skipping smarter_move.", "#ffaa00", "Alerts");
         }
 
         single_set();
@@ -255,7 +255,7 @@ async function boss_loop() {
             if (!boss) {
                 await delay(100);
                 if (parent.S[boss_name] && parent.S[boss_name].live && boss_spawn) {
-                    await smart_move(boss_spawn);
+                    await smarter_move(boss_spawn);
                 }
                 continue;
             }
@@ -301,7 +301,7 @@ async function boss_loop() {
 
         // 4. Move back to target location
         let moving_home = true;
-        smart_move(WARRIOR_TARGET).then(() => { moving_home = false; });
+        smarter_move(WARRIOR_TARGET).then(() => { moving_home = false; });
         while (moving_home) {
             // If boss respawns while returning, break and restart boss loop
             if (BOSSES.some(name => parent.S[name] && parent.S[name].live)) {
@@ -889,10 +889,10 @@ async function aggro_mobs() {
             (now - last_aggro_time > 30000)
         ) {
             last_aggro_time = now;
-            await smart_move({ x: 1280, y: 69 });
+            await smarter_move({ x: 1280, y: 69 });
             await use_skill("agitate");
             await delay(2000);
-            await smart_move(WARRIOR_TARGET);
+            await smarter_move(WARRIOR_TARGET);
         }
     }
 }

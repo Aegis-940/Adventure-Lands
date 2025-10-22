@@ -102,7 +102,7 @@ async function withdraw_offering() {
 async function withdraw_upgradeable_items() {
     // 1. If not at BANK_LOCATION, smart move to BANK_LOCATION
     if (character.map !== BANK_LOCATION.map || character.x !== BANK_LOCATION.x || character.y !== BANK_LOCATION.y) {
-        await smart_move(BANK_LOCATION);
+        await smarter_move(BANK_LOCATION);
         await delay(500);
     }
 
@@ -411,13 +411,13 @@ async function auto_upgrade() {
 
     merchant_task = "Upgrading";
 
-    await smart_move(BANK_LOCATION);
+    await smarter_move(BANK_LOCATION);
 
     await withdraw_upgrade_scrolls();
     await withdraw_offering();
     await withdraw_upgradeable_items();
 
-    await smart_move(HOME);
+    await smarter_move(HOME);
 
     // --- Upgrade all items level-by-level ---
     let upgraded = true;

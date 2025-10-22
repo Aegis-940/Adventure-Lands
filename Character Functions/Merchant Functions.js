@@ -87,7 +87,7 @@ async function set_state(state) {
                         // if (character.rip) await respawn();
                         // await delay(5000);
                         
-                        // await smart_move(HOME);
+                        // await smarter_move(HOME);
 
                         // // Re-evaluate state after respawn
                         // const NEW_STATE = get_character_state();
@@ -253,7 +253,7 @@ async function move_to_party_member(name, info, radius = DELIVERY_RADIUS) {
     let tx = info.x, ty = info.y, tmap = info.map;
 
     // Start moving toward the target (do not await)
-    smart_move({ map: tmap, x: tx, y: ty });
+    smarter_move({ map: tmap, x: tx, y: ty });
     await delay(10000); // Initial delay to start movement
 
     while (true) {
@@ -262,7 +262,7 @@ async function move_to_party_member(name, info, radius = DELIVERY_RADIUS) {
             log(`⏰ Timeout moving to ${name}. Returning home and removing from cache.`);
             delete party_status_cache[name];
             if (character.moving) halt_movement();
-            await smart_move(HOME);
+            await smarter_move(HOME);
             return;
         }
 
@@ -275,13 +275,13 @@ async function move_to_party_member(name, info, radius = DELIVERY_RADIUS) {
         }
 
         if (info) {
-            // If map changed, restart smart_move
+            // If map changed, restart smarter_move
             if (tmap !== info.map || tx !== info.x || ty !== info.y) {
                 tmap = info.map;
                 tx = info.x;
                 ty = info.y;
                 if (character.moving || smart.moving) halt_movement();
-                smart_move({ map: tmap, x: tx, y: ty });
+                smarter_move({ map: tmap, x: tx, y: ty });
                 await delay(5000)
             } else {
                 tx = info.x;
@@ -320,7 +320,7 @@ async function potions_and_loot_controller_loop() {
 
             // Clean up after delivery
             delete party_status_cache[name];
-            await smart_move(HOME);
+            await smarter_move(HOME);
             await sell_and_bank();
             await delay(500);
             await buy_pots();
@@ -352,7 +352,7 @@ async function sell_and_bank() {
 
 	// === SELLING ===
 	// Move to vendor
-	await smart_move(HOME);
+	await smarter_move(HOME);
 	await delay(3000);
 
 	for (let i = 0; i < character.items.length; i++) {
@@ -366,7 +366,7 @@ async function sell_and_bank() {
 
 	// === BANKING ===
 	// Move to bank NPC (adjust coords as needed)
-	await smart_move(BANK_LOCATION);
+	await smarter_move(BANK_LOCATION);
 	await delay(1000);
 
 	for (let i = 3; i < character.items.length; i++) {
@@ -384,7 +384,7 @@ async function sell_and_bank() {
 	await parent.$('#maincode')[0].contentWindow.render_bank_items();
 	await delay(1000);
 	await parent.hide_modal();
-	await smart_move(HOME);
+	await smarter_move(HOME);
 	await delay(1000);
 	game_log("🏠 Returned home after banking.");
 }
@@ -514,11 +514,11 @@ async function fishing_loop() {
                 // 3. Set merchant_task to Fishing
                 merchant_task = "Fishing";
 
-                // 4. smart_move to FISHING SPOT
+                // 4. smarter_move to FISHING SPOT
                 try {
                     if (character.map !== FISHING_SPOT.map ||
                         Math.hypot(character.x - FISHING_SPOT.x, character.y - FISHING_SPOT.y) > POSITION_TOLERANCE) {
-                        await smart_move(FISHING_SPOT);
+                        await smarter_move(FISHING_SPOT);
                     }
                 } catch (e) {
                     game_log("Error moving to fishing spot: " + e.message);
@@ -555,9 +555,9 @@ async function fishing_loop() {
                     await delay(FISHING_TIME);
                 }
 
-                // 11. Once fishing is finished (is on cooldown), smart_move HOME
+                // 11. Once fishing is finished (is on cooldown), smarter_move HOME
                 try {
-                    await smart_move(HOME);
+                    await smarter_move(HOME);
                 } catch (e) {
                     game_log("Error moving home after fishing: " + e.message);
                 }
@@ -616,11 +616,11 @@ async function mining_loop() {
                 // 3. Set merchant_task to Mining
                 merchant_task = "Mining";
 
-                // 4. smart_move to MINING SPOT
+                // 4. smarter_move to MINING SPOT
                 try {
                     if (character.map !== MINING_SPOT.map ||
                         Math.hypot(character.x - MINING_SPOT.x, character.y - MINING_SPOT.y) > POSITION_TOLERANCE) {
-                        await smart_move(MINING_SPOT);
+                        await smarter_move(MINING_SPOT);
                     }
                 } catch (e) {
                     game_log("Error moving to mining spot: " + e.message);
@@ -657,9 +657,9 @@ async function mining_loop() {
                     await delay(4000);
                 }
 
-                // 11. Once mining is finished (is on cooldown), smart_move HOME
+                // 11. Once mining is finished (is on cooldown), smarter_move HOME
                 try {
-                    await smart_move(HOME);
+                    await smarter_move(HOME);
                 } catch (e) {
                     game_log("Error moving home after mining: " + e.message);
                 }
@@ -721,7 +721,7 @@ async function exchange_items() {
 
             // Move to the exchange location
             try {
-                await smart_move({ map: target_map, x: target_x, y: target_y });
+                await smarter_move({ map: target_map, x: target_x, y: target_y });
             } catch (e) {
                 game_log(`Error moving to exchange location for ${item_name}: ${e.message}`);
                 continue;
@@ -769,7 +769,7 @@ async function exchange_items() {
                     await sell_and_bank();
                     await delay(500);
                     // Return to exchange location
-                    await smart_move({ map: target_map, x: target_x, y: target_y });
+                    await smarter_move({ map: target_map, x: target_x, y: target_y });
                     await delay(500);
                 }
 
@@ -821,7 +821,7 @@ async function target_upgrade(target_item, target_amount) {
     const XLOC = -209;
     const YLOC = -117;
 
-    await smart_move({ map: TARGET_MAP, x: XLOC, y: YLOC });
+    await smarter_move({ map: TARGET_MAP, x: XLOC, y: YLOC });
 
     // Count how many you already have
     let owned = 0;

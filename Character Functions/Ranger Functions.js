@@ -214,9 +214,9 @@ async function boss_loop() {
             ? { map: parent.S[boss_name].map, x: parent.S[boss_name].x, y: parent.S[boss_name].y }
             : null;
         if (boss_spawn) {
-            await smart_move(boss_spawn);
+            await smarter_move(boss_spawn);
         } else {
-            log("⚠️ Boss spawn location unknown, skipping smart_move.", "#ffaa00", "Alerts");
+            log("⚠️ Boss spawn location unknown, skipping smarter_move.", "#ffaa00", "Alerts");
         }
 
         // 3. Engage boss until dead
@@ -227,7 +227,7 @@ async function boss_loop() {
             if (!boss) {
                 await delay(100);
                 if (parent.S[boss_name] && parent.S[boss_name].live && boss_spawn) {
-                    await smart_move(boss_spawn);
+                    await smarter_move(boss_spawn);
                 }
                 continue;
             }
@@ -304,7 +304,7 @@ async function boss_loop() {
 
         // 4. Move back to target location
         let moving_home = true;
-        smart_move(RANGER_TARGET).then(() => { moving_home = false; });
+        smarter_move(RANGER_TARGET).then(() => { moving_home = false; });
         while (moving_home) {
             // If boss respawns while returning, break and restart boss loop
             if (BOSSES.some(name => parent.S[name] && parent.S[name].live)) {
@@ -351,7 +351,7 @@ async function general_boss_loop() {
 
                     // Move closer if out of range, but stop once within range
                     if (dist > character.range && !character.moving) {
-                        await smart_move({ map: boss.map, x: boss.x, y: boss.y });
+                        await smarter_move({ map: boss.map, x: boss.x, y: boss.y });
                     } else if (dist > character.range) {
                         // Wait for movement to finish
                         await delay(100);

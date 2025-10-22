@@ -67,14 +67,14 @@ function halt_movement() {
 }
 
 /**
- * Improved smart_move function.
+ * Improved smarter_move function.
  * - Returns a Promise that always resolves or rejects.
  * - Handles interruptions and timeouts gracefully.
  * - Allows for external interruption via halt_movement or a global flag.
  * - Provides better error messages and status.
  */
 function smarter_move(destination, on_done, options = {}) {
-    // Cancel any previous smart_move
+    // Cancel any previous smarter_move
     if (smart.moving && typeof smart._interrupt === "function") {
         smart._interrupt("interrupted");
     }
@@ -85,8 +85,8 @@ function smarter_move(destination, on_done, options = {}) {
     let resolveFn, rejectFn;
     let timeoutId = null;
 
-    // Default timeout: 60 seconds
-    const MOVE_TIMEOUT = options.timeout || 60000;
+    // Default timeout: 120 seconds
+    const MOVE_TIMEOUT = options.timeout || 120000;
 
     // Helper to interrupt movement
     smart._interrupt = (reason = "interrupted") => {
@@ -180,7 +180,7 @@ function smarter_move(destination, on_done, options = {}) {
 }
 
 // Usage example:
-// let movePromise = smart_move({ map: "main", x: 100, y: 100 }, null, { timeout: 30000, radius: 20 });
+// let movePromise = smarter_move({ map: "main", x: 100, y: 100 }, null, { timeout: 30000, radius: 20 });
 // To interrupt: smart._interrupt("manual stop");
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -272,11 +272,11 @@ async function watchdog_loop() {
 
                 // Move to respective character's target location (concise, by name)
                 if (character.name === "Myras") {
-                    await smart_move(HEALER_TARGET);
+                    await smarter_move(HEALER_TARGET);
                 } else if (character.name === "Ulric") {
-                    await smart_move(WARRIOR_TARGET);
+                    await smarter_move(WARRIOR_TARGET);
                 } else if (character.name === "Riva") {
-                    await smart_move(RANGER_TARGET);
+                    await smarter_move(RANGER_TARGET);
                 }
             } catch (e) {
                 catcher(e, "Watchdog restart error");
@@ -350,7 +350,7 @@ async function set_state(state) {
                         await delay(30000);
                         if (character.rip) await respawn();
                         await delay(5000);
-                        await smart_move(HEALER_TARGET);
+                        await smarter_move(HEALER_TARGET);
 
                         if (!LOOP_STATES.panic) start_panic_loop();
                         if (!LOOP_STATES.attack) start_attack_loop();
@@ -401,7 +401,7 @@ async function set_state(state) {
                     if (target.orbit) {
                         const at_target = character.x === target.x && character.y === target.y;
                         const near_target = parent.distance(character, target) <= 50;
-                        if (near_target && !LOOP_STATES.orbit && !smart.moving) smart_move(target);
+                        if (near_target && !LOOP_STATES.orbit && !smart.moving) smarter_move(target);
                         if (!LOOP_STATES.orbit && at_target) start_orbit_loop();
                     }
                 } catch (e) {
@@ -790,7 +790,7 @@ function move_to_character(name, timeout_ms = 10000) {
 			return;
 		}
 
-		smart_move({ map, x, y });
+		smarter_move({ map, x, y });
 	}
 
 	// Add listener
@@ -850,7 +850,7 @@ function hide_skills_ui() {
 async function withdraw_item(itemName, level = null, total = null) {
 	const BANK_LOC = { map: "bank", x: 0, y: -37 };
 	if (character.map !== "bank") {
-		await smart_move(BANK_LOC);
+		await smarter_move(BANK_LOC);
 	}
 	await delay(200);
 

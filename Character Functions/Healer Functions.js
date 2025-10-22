@@ -243,8 +243,8 @@ async function boss_loop() {
             const timeout_ms = 30000;
             const start_time = Date.now();
 
-            // Start smart_move and monitor aggro
-            const movePromise = smart_move(boss_spawn);
+            // Start smarter_move and monitor aggro
+            const movePromise = smarter_move(boss_spawn);
             while (!aggro_timeout && !character.moving && !smart.moving) {
                 // Wait for movement to start
                 await delay(100);
@@ -256,7 +256,7 @@ async function boss_loop() {
                 ).length;
                 if (Date.now() - start_time > timeout_ms && monsters_targeting_me > 0) {
                     aggro_timeout = true;
-                    log("⏰ Timeout: Still have aggro after 30s of smart_move. Reloading...", "#ff0000", "Alerts");
+                    log("⏰ Timeout: Still have aggro after 30s of smarter_move. Reloading...", "#ff0000", "Alerts");
                     parent.window.location.reload();
                     break;
                 }
@@ -264,7 +264,7 @@ async function boss_loop() {
             }
             await movePromise;
         } else {
-            log("⚠️ Boss spawn location unknown, skipping smart_move.", "#ffaa00", "Alerts");
+            log("⚠️ Boss spawn location unknown, skipping smarter_move.", "#ffaa00", "Alerts");
         }
 
         // 3. Engage boss until dead
@@ -275,7 +275,7 @@ async function boss_loop() {
             if (!boss) {
                 await delay(100);
                 if (parent.S[boss_name] && parent.S[boss_name].live && boss_spawn) {
-                    await smart_move(boss_spawn);
+                    await smarter_move(boss_spawn);
                 }
                 continue;
             }
@@ -317,7 +317,7 @@ async function boss_loop() {
 
         // 4. Move back to target location
         let moving_home = true;
-        smart_move(HEALER_TARGET).then(() => { moving_home = false; });
+        smarter_move(HEALER_TARGET).then(() => { moving_home = false; });
         while (moving_home) {
             // If boss respawns while returning, break and restart boss loop
             if (BOSSES.some(name => parent.S[name] && parent.S[name].live)) {

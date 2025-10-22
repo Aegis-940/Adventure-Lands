@@ -125,9 +125,9 @@ function create_map_movement_window(custom_actions = []) {
 		container.appendChild(btn);
 	}
 
-	add_button("map-btns", "btn_mainland", "🌍 Main", () => smart_move({ map: "main", x: -36, y: -153 }));
-	add_button("map-btns", "btn_desertland", "☀️ Desert", () => smart_move("desertland"));
-	add_button("map-btns", "btn_snowland", "❄️ Snow", () => smart_move("winterland"));
+	add_button("map-btns", "btn_mainland", "🌍 Main", () => smarter_move({ map: "main", x: -36, y: -153 }));
+	add_button("map-btns", "btn_desertland", "☀️ Desert", () => smarter_move("desertland"));
+	add_button("map-btns", "btn_snowland", "❄️ Snow", () => smarter_move("winterland"));
 
 	add_button("char-btns", "btn_ulric", "🛡️ Ulric", () => move_to_character("Ulric"));
 	add_button("char-btns", "btn_myras", "🧪 Myras", () => move_to_character("Myras"));
