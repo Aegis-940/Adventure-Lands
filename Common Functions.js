@@ -409,7 +409,7 @@ async function set_state(state) {
 
                         // Only start orbit if at target and not already orbiting
                         if (!LOOP_STATES.orbit && at_target) {
-                            start_orbit_loop();
+                            // start_orbit_loop();
                         }
                     }
                 } catch (e) {
