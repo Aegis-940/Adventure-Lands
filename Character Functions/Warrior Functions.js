@@ -233,14 +233,42 @@ async function boss_loop() {
         //     await use_skill("scare");
         // }
 
-        const boss_name = select_boss(alive_bosses);
-
         // 2. Move to boss spawn if known
         const boss_spawn = parent.S[boss_name] && parent.S[boss_name].x !== undefined && parent.S[boss_name].y !== undefined
             ? { map: parent.S[boss_name].map, x: parent.S[boss_name].x, y: parent.S[boss_name].y }
             : null;
+
         if (boss_spawn) {
-            await smarter_move(boss_spawn);
+            let attempts = 0;
+            const MAX_ATTEMPTS = 5;
+            let arrived = false;
+
+            // Start moving (do not await)
+            log(`🚶 Moving to boss spawn...`, "#00ffff", "Alerts");
+            smarter_move(boss_spawn);
+            await delay(30000); // Initial wait time to reach boss spawn
+
+            while (attempts < MAX_ATTEMPTS) {
+                // Check if on correct map and close to boss spawn
+                if (
+                    character.map === boss_spawn.map &&
+                    Math.hypot(character.x - boss_spawn.x, character.y - boss_spawn.y) < 100
+                ) {
+                    arrived = true;
+                    break;
+                }
+                // If not arrived, try moving again
+                if (!smart.moving) {
+                    log(`🚶 Retry moving to boss spawn (Attempt ${attempts + 1}/${MAX_ATTEMPTS})...`, "#00ffff", "Alerts");
+                    smarter_move(boss_spawn);
+                }
+                attempts++;
+                await delay(30000);
+            }
+
+            if (!arrived) {
+                log("⚠️ Failed to reach boss spawn after several attempts.", "#ffaa00", "Alerts");
+            }
         } else {
             log("⚠️ Boss spawn location unknown, skipping smarter_move.", "#ffaa00", "Alerts");
         }
