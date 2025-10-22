@@ -214,6 +214,7 @@ async function set_state(state) {
                         stop_orbit_loop();
                         stop_panic_loop();
                         stop_boss_loop();
+                        stop();
 
                         log("Respawning in 30s...", "red");
                         await delay(30000);

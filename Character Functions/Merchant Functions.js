@@ -254,7 +254,7 @@ async function move_to_party_member(name, info, radius = DELIVERY_RADIUS) {
 
     // Start moving toward the target (do not await)
     smart_move({ map: tmap, x: tx, y: ty });
-    await delay(5000); // Initial delay to start movement
+    await delay(10000); // Initial delay to start movement
 
     while (true) {
         // Timeout check
