@@ -273,10 +273,10 @@ async function auto_upgrade_item(level) {
             }
         }
 
-        // Use massproduction if available
-        if (can_use("massproduction")) {
-            await use_skill("massproduction");
-        }
+        // // Use massproduction if available
+        // if (can_use("massproduction")) {
+        //     await use_skill("massproduction");
+        // }
 
         // Upgrade the item
         parent.socket.emit("upgrade", {
