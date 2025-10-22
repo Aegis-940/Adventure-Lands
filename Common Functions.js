@@ -402,14 +402,14 @@ async function set_state(state) {
                         const at_target = character.x === target.x && character.y === target.y;
                         const near_target = parent.distance(character, target) <= 50;
 
-                        // Only start moving if not already moving and not orbiting
-                        if (near_target && !LOOP_STATES.orbit && !smart.moving) {
+                        // Only start moving if not already moving, not orbiting, and NOT already at target
+                        if (near_target && !at_target && !LOOP_STATES.orbit && !smart.moving) {
                             smarter_move(target).catch(e => log("Orbit move error: " + e));
                         }
 
                         // Only start orbit if at target and not already orbiting
                         if (!LOOP_STATES.orbit && at_target) {
-                            // start_orbit_loop();
+                            start_orbit_loop();
                         }
                     }
                 } catch (e) {
