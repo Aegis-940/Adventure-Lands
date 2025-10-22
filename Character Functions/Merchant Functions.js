@@ -266,21 +266,13 @@ async function move_to_party_member(name, info, radius = DELIVERY_RADIUS) {
             return;
         }
 
-        // Get latest target info
-        let target = get_player(name);
-        if (target) {
-            tx = target.x;
-            ty = target.y;
-            tmap = target.map;
-        }
-
         if (info) {
             // If map changed, restart smarter_move
             if (tmap !== info.map || tx !== info.x || ty !== info.y) {
                 tmap = info.map;
                 tx = info.x;
                 ty = info.y;
-                if (character.moving || smart.moving) halt_movement();
+                if (character.moving || smart.moving) stop();
                 smarter_move({ map: tmap, x: tx, y: ty });
                 await delay(5000)
             } else {
