@@ -397,13 +397,13 @@ async function set_state(state) {
                     if (!LOOP_STATES.attack) start_attack_loop();
 
                     // Orbit logic
-                    const target = get_main_target();
-                    if (target.orbit) {
-                        const at_target = character.x === target.x && character.y === target.y;
-                        const near_target = parent.distance(character, target) <= 50;
-                        if (near_target && !LOOP_STATES.orbit && !smart.moving) smarter_move(target);
-                        if (!LOOP_STATES.orbit && at_target) start_orbit_loop();
-                    }
+                    // const target = get_main_target();
+                    // if (target.orbit) {
+                    //     const at_target = character.x === target.x && character.y === target.y;
+                    //     const near_target = parent.distance(character, target) <= 50;
+                    //     if (near_target && !LOOP_STATES.orbit && !smart.moving) smarter_move(target);
+                    //     if (!LOOP_STATES.orbit && at_target) start_orbit_loop();
+                    // }
                 } catch (e) {
                     catcher(e, "set_state: NORMAL state error");
                 }
