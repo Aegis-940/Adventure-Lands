@@ -23,7 +23,7 @@ const HEALER_CONFIG = {
     target_limit: 99
 };
 
-const FIGHT_SOLO = false;                   // If true, Ranger won't check for tanks/healers before engaging
+const FIGHT_SOLO = true;                   // If true, Ranger won't check for tanks/healers before engaging
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS
