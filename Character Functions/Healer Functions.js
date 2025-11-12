@@ -771,14 +771,12 @@ async function panic_loop() {
 
         // SAFE CONDITION
         if (high_health && high_mana && monsters_targeting_me < PANIC_AGGRO_THRESHOLD) {
-            log("✅ Safe conditions met.", "#00ff00", "Alerts");
             if (panicking) {
                 panicking = false;
                 log("✅ Panic over — resuming normal operations.", "#00ff00", "Alerts");
             }
             // Equip normal orb if needed
             if (character.slots.orb?.name !== NORMAL_ORB) {
-                log("✅ Re-equipping normal orb.", "#00ff00", "Alerts");
                 const orbg_slot = locate_item(NORMAL_ORB);
                 if (orbg_slot !== -1) {
                     await equip(orbg_slot);
