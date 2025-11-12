@@ -802,9 +802,6 @@ async function exchange_items() {
         game_log("✅ All exchangeable items processed", "#00ff00");
     } catch (e) {
         game_log(`🔥 exchange_items error: ${e.message}`);
-    } finally {
-        exchange_items_running = false;
-        merchant_task = "Idle";
     }
 }
 
