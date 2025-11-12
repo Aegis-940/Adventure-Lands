@@ -685,6 +685,7 @@ const EXCHANGEABLE_ITEMS = [
     { name: "gem0",         min: 1,     map: "main", x: -22, y: -406 },
     { name: "gem1",         min: 1,     map: "main", x: -22, y: -406 },
     { name: "armorbox",     min: 1,     map: "main", x: -22, y: -406 }
+    { name: "candy1",       min: 1,     map: "main", x: -22, y: -406 },
 ]
 
 async function exchange_items() {
