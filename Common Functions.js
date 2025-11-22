@@ -33,7 +33,7 @@ const MONSTER_LOCS = {
 
 const HEALER_TARGET    = MONSTER_LOCS.prat;
 const WARRIOR_TARGET   = MONSTER_LOCS.prat;
-const RANGER_TARGET    = MONSTER_LOCS.crab;
+const RANGER_TARGET    = MONSTER_LOCS.prat;
 const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 
 const FLOATING_BUTTON_IDS = [];
