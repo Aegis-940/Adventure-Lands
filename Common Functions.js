@@ -1488,3 +1488,41 @@ async function orbit_loop() {
     }
 
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// RESET BUTTON
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function create_reload_button(top = 10, left = null, right = null) {
+    const doc = parent.document;
+    const existing = doc.getElementById("reload-btn");
+    if (existing) return;
+
+    const btn = doc.createElement("button");
+    btn.id = "reload-btn";
+    btn.textContent = "🔄 Reload";
+    btn.style.position = "absolute";
+    btn.style.top = `${top}px`;
+    btn.style.left = left !== null ? `${left}px` : "";
+    btn.style.right = right !== null ? `${right}px` : "";
+    btn.style.margin = "0 auto";
+    btn.style.zIndex = 99999;
+    btn.style.fontSize = "20px";
+    btn.style.padding = "8px 24px";
+    btn.style.background = "#222";
+    btn.style.color = "#fff";
+    btn.style.border = "2px solid #888";
+    btn.style.borderRadius = "8px";
+    btn.style.cursor = "pointer";
+    btn.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
+    btn.style.left = left !== null ? `${left}px` : "50%";
+    btn.style.transform = left === null && right === null ? "translateX(-50%)" : "";
+
+    btn.onclick = () => {
+        parent.window.location.reload();
+    };
+
+    doc.body.appendChild(btn);
+}
+
+create_reload_button(10, 200); // Top, 200px from left
