@@ -16,14 +16,28 @@ const LOOP_STATES = {
 
 }
 
-const HEALER_CONFIG = {
-    potion: { hp: 400, mp: 500 },
-    orbit:  { radius: 27, steps: 12 },
-    panic:  { hp: 0.33, mp: 50 },
-    target_limit: 99
-};
+const ATTACK_UNTARGETED = false;        // Prevent attacking mobs not targeting anyone
+const TARGET_LOWEST_HP = false;         // true: lowest HP, false: highest HP
 
-const FIGHT_SOLO = true;                   // If true, Ranger won't check for tanks/healers before engaging
+const POTION_HP_THRESHOLD = 300;        // Use potion if missing this much HP
+const POTION_MP_THRESHOLD = 400;        // Use potion if missing this much MP
+
+const ORBIT_RADIUS = 70;                // Combat Orbit radius
+const ORBIT_STEPS = 12;                 // Number of steps in orbit (e.g., 12 = 30 degrees per step)
+const ORBIT_ORIGIN = WARRIOR_TARGET;    // Origin point for orbiting
+
+const PANIC_HP_THRESHOLD = 0.33;        // Panic if below 33% HP
+const PANIC_MP_THRESHOLD = 100;         // Panic if below 100 MP
+const SAFE_HP_THRESHOLD = 0.66;         // Resume normal if above 66% HP
+const SAFE_MP_THRESHOLD = 500;          // Resume normal if above 500 MP
+const PANIC_AGGRO_THRESHOLD = 99;       // Panic if this many monsters are targeting you
+const PANIC_ORB = "jacko";              // Orb to switch to when panicking
+const NORMAL_ORB = "orbg";              // Orb to switch to when not panicking
+
+const AGITATE_MP_THRESHOLD = 800;       // Minimum MP Warrior must have to cast Agitate
+const CLEAVE_MP_THRESHOLD = 900;        // Minimum MP Warrior must have to cast Cleave
+
+const FIGHT_SOLO = true;                // If true, Ranger won't check for tanks/healers before engaging
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS
@@ -37,12 +51,6 @@ for (const name of LOOP_NAMES) {
     globalThis[`start_${name}_loop`] = () => { LOOP_STATES[name] = true; };
     globalThis[`stop_${name}_loop`] = () => { LOOP_STATES[name] = false; };
 }
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// SUPPORT FUNCTIONS
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // ATTACK LOOP
@@ -450,92 +458,6 @@ async function move_loop() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// COMBAT ORBIT
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-let orbit_origin = null;
-let orbit_radius = 70;
-let orbit_path_points = [];
-let orbit_path_index = 0;
-const ORBIT_STEPS = 12; // 30 degrees per step
-const MOVE_CHECK_INTERVAL = 120; // ms
-const MOVE_TOLERANCE = 5; // pixels
-
-function set_orbit_radius(r) {
-    if (typeof r === "number" && r > 0) {
-        orbit_radius = r;
-        game_log(`Orbit radius set to ${orbit_radius}`);
-    }
-}
-
-function compute_orbit_path(origin, orbit_radius, steps) {
-    const points = [];
-    for (let i = 0; i < steps; i++) {
-        const angle = (2 * Math.PI * i) / steps;
-        points.push({
-            x: origin.x + orbit_radius * Math.cos(angle),
-            y: origin.y + orbit_radius * Math.sin(angle)
-        });
-    }
-    return points;
-}
-
-async function orbit_loop() {
-
-    let delayMs = 10;
-
-    while(true) {
-        // Wait until orbit loop is enabled
-        if (!LOOP_STATES.orbit) {
-            await delay(100);
-            continue;
-        }
-
-        orbit_origin = { x: character.real_x, y: character.real_y };
-        set_orbit_radius(orbit_radius);
-        orbit_path_points = compute_orbit_path(orbit_origin, orbit_radius, ORBIT_STEPS);
-        orbit_path_index = 0;
-
-        while (true) {
-            // Check if orbit loop is enabled
-            if (!LOOP_STATES.orbit) {
-                await delay(100);
-                continue;
-            }
-            // Stop the loop if character is more than 100 units from the orbit origin
-            const dist_from_origin = Math.hypot(character.real_x - orbit_origin.x, character.real_y - orbit_origin.y);
-            if (dist_from_origin > 100) {
-                game_log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
-                LOOP_STATES.orbit = false;
-                break;
-            }
-
-            const point = orbit_path_points[orbit_path_index];
-            orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
-
-            // Only move if not already close to the next point
-            const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
-            if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
-                try {
-                    await move(point.x, point.y);
-                } catch (e) {
-                    console.error("Orbit move error:", e);
-                }
-            }
-
-            // Wait until movement is finished or interrupted
-            while (LOOP_STATES.orbit && (character.moving || smart.moving)) {
-                await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
-            }
-
-            // Small delay before next step to reduce CPU usage
-            await delay(delayMs);
-        }
-    }
-
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
 // LOOT LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -629,84 +551,4 @@ async function potion_loop() {
         }
     }
 
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// PANIC BUTTON!!!
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-let panicking = false;
-
-const PANIC_HP_THRESHOLD = character.max_hp / 2;        // Panic if below 50% HP
-const PANIC_MP_THRESHOLD = 0;                          // Panic if below 0 MP
-const SAFE_HP_THRESHOLD = (2 * character.max_hp) / 3;   // Resume normal if above 66% HP
-const SAFE_MP_THRESHOLD = 500;                          // Resume normal if above 500 MP
-const PANIC_AGGRO_THRESHOLD = 99;                       // Panic if this many monsters are targeting you
-const PANIC_WEAPON = "jacko";
-const NORMAL_WEAPON = "orbg";
-
-async function panic_loop() {
-    
-    let delayMs = 100;
-
-    while (true) { 
-        // Check if panic loop is enabled
-        if (!LOOP_STATES.panic) {
-            await delay(delayMs);
-            continue;
-        }
-        // --- Panic/Safe Conditions ---
-        const low_health = character.hp < PANIC_HP_THRESHOLD;
-        const low_mana = character.mp < PANIC_MP_THRESHOLD;
-        const high_health = character.hp >= SAFE_HP_THRESHOLD;
-        const high_mana = character.mp >= SAFE_MP_THRESHOLD;
-
-        // Aggro check: monsters targeting me
-        const monsters_targeting_me = Object.values(parent.entities).filter(
-            e => e.type === "monster" && e.target === character.name && !e.dead
-        ).length;
-
-        // PANIC CONDITION
-        if (low_health || low_mana || monsters_targeting_me >= PANIC_AGGRO_THRESHOLD) {
-            if (!panicking) {
-                panicking = true;
-                log("⚠️ Panic triggered: Low health/mana or aggro!", "#ffcc00", "Alerts");
-            }
-
-            // Equip panic weapon if needed
-            if (character.slots.orb?.name !== PANIC_WEAPON) {
-                const jacko_slot = locate_item(PANIC_WEAPON);
-                if (jacko_slot !== -1) {
-                    await equip(jacko_slot);
-                }
-            }
-
-            // Try to cast scare if possible
-            if (!is_on_cooldown("scare") && can_use("scare")) {
-                log("Panicked! Using Scare!", "#ffcc00", "Alerts");
-                await use_skill("scare");
-            }
-
-            await delay(delayMs);
-            continue;
-        }
-
-        // SAFE CONDITION
-        if (high_health && high_mana && monsters_targeting_me < PANIC_AGGRO_THRESHOLD) {
-            if (panicking) {
-                panicking = false;
-                log("✅ Panic over — resuming normal operations.", "#00ff00", "Alerts");
-            }
-            // Equip normal weapon if needed
-            if (character.slots.orb?.name !== NORMAL_WEAPON) {
-                const orbg_slot = locate_item(NORMAL_WEAPON);
-                if (orbg_slot !== -1) {
-                    await equip(orbg_slot);
-                    await delay(delayMs);
-                }
-            }
-        }
-
-        await delay(delayMs);
-    }
 }
