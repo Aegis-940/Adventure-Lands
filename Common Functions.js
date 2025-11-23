@@ -340,16 +340,18 @@ async function set_state(state) {
                         stop_orbit_loop();
                         stop_panic_loop();
                         stop_boss_loop();
+                        stop_heal_loop();
                         stop();
 
-                        log("Respawning in 30s...", "red");
-                        await delay(30000);
+                        log("Respawning in 20s...", "red");
+                        await delay(20000);
                         if (character.rip) await respawn();
-                        await delay(5000);
-                        await smarter_move(HEALER_TARGET);
+                        await delay(1000);
+                        await smarter_move(get_main_target());
 
-                        if (!LOOP_STATES.panic) start_panic_loop();
-                        if (!LOOP_STATES.attack) start_attack_loop();
+                        start_panic_loop();
+                        start_attack_loop();
+                        start_heal_loop();
 
                         // Re-evaluate state after respawn
                         const NEW_STATE = get_character_state();
