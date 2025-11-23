@@ -1543,4 +1543,4 @@ function create_reload_button(top = 10, left = null, right = null) {
     doc.body.appendChild(btn);
 }
 
-create_reload_button(1, 1950); // Top, 1600px from left
+create_reload_button(1, 1990); // Top, 1600px from left
