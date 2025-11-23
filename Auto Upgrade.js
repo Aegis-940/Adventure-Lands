@@ -250,6 +250,13 @@ async function auto_upgrade_item(level) {
         }
 
         if (!scroll) {
+            // Check if character has enough gold before buying
+            const scroll_cost = G.items[scrollname]?.g || 0;
+            if (character.gold < scroll_cost) {
+                game_log(`❌ Not enough gold to buy ${scrollname} for upgrading ${item.name} (level ${item.level}). Ending auto-upgrade.`);
+                merchant_task = "Idle";
+                return "end";
+            }
             parent.buy(scrollname);
             game_log(`Buying ${scrollname} for upgrading ${item.name} (level ${item.level})`);
             // Only buy one scroll, then return immediately
@@ -348,6 +355,13 @@ async function auto_combine_item(level) {
         }
 
         if (!scroll) {
+            // Check if character has enough gold before buying
+            const scroll_cost = G.items[scrollname]?.g || 0;
+            if (character.gold < scroll_cost) {
+                game_log(`❌ Not enough gold to buy ${scrollname} for combining ${itemName} (level ${lvl}). Ending auto-combine.`);
+                merchant_task = "Idle";
+                return "end";
+            }
             parent.buy(scrollname);
             game_log(`Buying ${scrollname} for combining ${itemName} (level ${lvl})`);
             // Only buy one scroll, then return immediately
@@ -446,10 +460,16 @@ async function auto_upgrade() {
             if (result === "done" || result === "wait") {
                 upgraded = true;
                 await delay(UPGRADE_INTERVAL);
+            } else if (result === "end") {
+                // Stop all upgrading if "end" is returned (e.g., not enough gold)
+                game_log("❌ Ending auto-upgrade early due to insufficient gold or resources.");
+                break;
             } else {
                 break;
             }
         }
+        // If upgrading ended early, exit the outer loop as well
+        if (result === "end") break;
     }
 
     // --- Combine all items level-by-level ---
@@ -461,10 +481,16 @@ async function auto_upgrade() {
             if (result === "done" || result === "wait") {
                 combined = true;
                 await delay(UPGRADE_INTERVAL);
+            } else if (result === "end") {
+                // Stop all combining if "end" is returned (e.g., not enough gold)
+                game_log("❌ Ending auto-combine early due to insufficient gold or resources.");
+                break;
             } else {
                 break;
             }
         }
+        // If combining ended early, exit the outer loop as well
+        if (result === "end") break;
     }
 
     game_log("✅ Auto upgrade and combine complete.");
