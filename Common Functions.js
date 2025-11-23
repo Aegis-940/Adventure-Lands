@@ -1506,7 +1506,7 @@ function create_reload_button(top = 10, left = null, right = null) {
     btn.style.left = left !== null ? `${left}px` : "";
     btn.style.right = right !== null ? `${right}px` : "";
     btn.style.width = "50px";
-    btn.style.height = "50px";
+    btn.style.height = "58px";
     btn.style.margin = "0 auto";
     btn.style.zIndex = 99999;
     btn.style.fontSize = "24px";
