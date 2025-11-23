@@ -734,9 +734,9 @@ async function panic_loop() {
             continue;
         }
         // --- Panic/Safe Conditions ---
-        const low_health = character.hp < PANIC_HP_THRESHOLD;
+        const low_health = character.hp < character.max_hp * PANIC_HP_THRESHOLD;
         const low_mana = character.mp < PANIC_MP_THRESHOLD;
-        const high_health = character.hp >= SAFE_HP_THRESHOLD;
+        const high_health = character.hp >= character.max_hp * SAFE_HP_THRESHOLD;
         const high_mana = character.mp >= SAFE_MP_THRESHOLD;
 
         // Aggro check: monsters targeting me
@@ -753,9 +753,9 @@ async function panic_loop() {
 
             // Equip panic orb if needed
             if (character.slots.orb?.name !== PANIC_ORB) {
-                const jacko_slot = locate_item(PANIC_ORB);
-                if (jacko_slot !== -1) {
-                    await equip(jacko_slot);
+                const orb_slot = locate_item(PANIC_ORB);
+                if (orb_slot !== -1) {
+                    await equip(orb_slot);
                 }
             }
 

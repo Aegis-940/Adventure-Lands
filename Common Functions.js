@@ -316,9 +316,7 @@ async function set_state(state) {
 
     try {
         // Always-on loops
-        if (!LOOP_STATES.panic) start_panic_loop();
         if (!LOOP_STATES.potion) start_potion_loop();
-        if (!LOOP_STATES.heal) start_heal_loop();
         if (!LOOP_STATES.loot) start_loot_loop();
         if (!LOOP_STATES.cache) start_status_cache_loop();
 
