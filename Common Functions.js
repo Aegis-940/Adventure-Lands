@@ -1505,14 +1505,15 @@ function create_reload_button(top = 10, left = null, right = null) {
     btn.style.top = `${top}px`;
     btn.style.left = left !== null ? `${left}px` : "";
     btn.style.right = right !== null ? `${right}px` : "";
+    btn.style.width = "50px";
+    btn.style.height = "50px";
     btn.style.margin = "0 auto";
     btn.style.zIndex = 99999;
-    btn.style.fontSize = "20px";
+    btn.style.fontSize = "24px";
     btn.style.padding = "0";
     btn.style.background = "#222";
     btn.style.color = "#fff";
     btn.style.border = "4px solid #888";
-    btn.style.borderRadius = "8px";
     btn.style.cursor = "pointer";
     btn.style.left = left !== null ? `${left}px` : "50%";
     btn.style.transform = left === null && right === null ? "translateX(-50%)" : "";
