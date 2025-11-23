@@ -29,7 +29,7 @@ const MONSTER_LOCS = {
     booboo:       { map: "spookytown", x: 370, y: -790, orbit: true , hostile: true },
     ghost:        { map: "halloween", x: 229, y: -1203, orbit: true , hostile: false },
     prat:         { map: "level1", x: 89, y: 199, orbit: true , hostile: false },
-    dryad:        { map: "mforest", x: 380, y: 359, orbit: true , hostile: false },
+    dryad:        { map: "mforest", x: 380, y: -359, orbit: true , hostile: false },
 };
 
 const HEALER_TARGET    = MONSTER_LOCS.dryad;
