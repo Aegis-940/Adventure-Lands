@@ -5,7 +5,7 @@
 let goldEvents       = [];                            // array of { t: timestamp, amount: gold }
 let largestGoldDrop  = 0;
 const startTime      = Date.now();                    // for initial window growth
-const WINDOW_MS      = 5 * 60 * 1000;                 // 5 minutes in ms
+const WINDOW_MS      = 30 * 60 * 1000;                 // 30 minutes in ms
 let interval         = 'hour';                        // 'minute' | 'hour' | 'day'
 
 // Initialize the gold meter UI
