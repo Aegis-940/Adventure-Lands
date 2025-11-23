@@ -1500,7 +1500,7 @@ function create_reload_button(top = 10, left = null, right = null) {
 
     const btn = doc.createElement("button");
     btn.id = "reload-btn";
-    btn.textContent = "🔄 Reload";
+    btn.textContent = "🔄";
     btn.style.position = "absolute";
     btn.style.top = `${top}px`;
     btn.style.left = left !== null ? `${left}px` : "";
@@ -1508,15 +1508,32 @@ function create_reload_button(top = 10, left = null, right = null) {
     btn.style.margin = "0 auto";
     btn.style.zIndex = 99999;
     btn.style.fontSize = "20px";
-    btn.style.padding = "8px 24px";
+    btn.style.padding = "0";
     btn.style.background = "#222";
     btn.style.color = "#fff";
-    btn.style.border = "2px solid #888";
+    btn.style.border = "4px solid #888";
     btn.style.borderRadius = "8px";
     btn.style.cursor = "pointer";
-    btn.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
     btn.style.left = left !== null ? `${left}px` : "50%";
     btn.style.transform = left === null && right === null ? "translateX(-50%)" : "";
+
+    // div.id = "custom-log-window";
+    // div.style.position = "absolute";
+    // div.style.bottom = "1px";
+    // div.style.right = "700px";
+    // div.style.width = "350px";
+    // div.style.height = "260px";
+    // div.style.background = "rgba(0,0,0,0.66)";
+    // div.style.color = "#fff";
+    // div.style.overflow = "hidden";
+    // div.style.zIndex = 9999;
+    // div.style.fontSize = "22px";
+    // div.style.fontFamily = "pixel";
+    // div.style.padding = "0";
+    // div.style.border = "4px solid #888";
+    // div.style.display = "flex";
+    // div.style.flexDirection = "column";
+    // div.style.cursor = "default";
 
     btn.onclick = () => {
         parent.window.location.reload();
@@ -1525,4 +1542,4 @@ function create_reload_button(top = 10, left = null, right = null) {
     doc.body.appendChild(btn);
 }
 
-create_reload_button(10, 200); // Top, 200px from left
+create_reload_button(10, 1600); // Top, 1600px from left
