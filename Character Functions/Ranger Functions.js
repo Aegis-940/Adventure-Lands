@@ -24,7 +24,6 @@ const POTION_MP_THRESHOLD = 400;        // Use potion if missing this much MP
 
 const ORBIT_RADIUS = 70;                // Combat Orbit radius
 const ORBIT_STEPS = 12;                 // Number of steps in orbit (e.g., 12 = 30 degrees per step)
-const ORBIT_ORIGIN = WARRIOR_TARGET;    // Origin point for orbiting
 
 const PANIC_HP_THRESHOLD = 0.33;        // Panic if below 33% HP
 const PANIC_MP_THRESHOLD = 100;         // Panic if below 100 MP

@@ -1400,6 +1400,16 @@ async function panic_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 let orbit_origin = null;
+
+// Dynamically set orbit_origin based on character name
+if (character.name === "Myras") {
+    orbit_origin = { x: HEALER_TARGET.x, y: HEALER_TARGET.y };
+} else if (character.name === "Ulric") {
+    orbit_origin = { x: WARRIOR_TARGET.x, y: WARRIOR_TARGET.y };
+} else if (character.name === "Riva") {
+    orbit_origin = { x: RANGER_TARGET.x, y: RANGER_TARGET.y };
+}
+
 let orbit_path_points = [];
 let orbit_path_index = 0;
 const MOVE_CHECK_INTERVAL = 120; // ms
