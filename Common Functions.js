@@ -1399,7 +1399,7 @@ async function panic_loop() {
 // COMBAT ORBIT
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let orbit_origin = ORBIT_ORIGIN;
+let orbit_origin = null;
 let orbit_path_points = [];
 let orbit_path_index = 0;
 const MOVE_CHECK_INTERVAL = 120; // ms
