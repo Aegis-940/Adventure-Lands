@@ -18,7 +18,7 @@ const PARTY_MEMBERS               = ["Riva", "Myras", "Riff"];
 
 const MONSTER_TYPES               = ["goo", "bee", "crab", "snake", "osnake", "bat", "goldenbat", "croc", "arcticbee", "spider", "cgoo", "stoneworm", "jr", "minimush", 
                                      "rat", "bbpompom", "tortoise", "crabx", "porcupine", "armadillo", "squig", "ghost", "phoenix", "iceroamer", "skeletor", "snowman",
-									"prat", "booboo", "bigbird", "poisio", "boar", "mechagnome", "mrpumpkin", "mrgreen", "greenjr", "fireroamer"];
+									"prat", "booboo", "bigbird", "poisio", "boar", "mechagnome", "mrpumpkin", "mrgreen", "greenjr", "fireroamer", "dryad"];
 
 const MONSTER_LOCS = {
     spider: 	  { map: "main", x: 907, y: -174, orbit: true , hostile: false },
@@ -29,11 +29,12 @@ const MONSTER_LOCS = {
     booboo:       { map: "spookytown", x: 370, y: -790, orbit: true , hostile: true },
     ghost:        { map: "halloween", x: 229, y: -1203, orbit: true , hostile: false },
     prat:         { map: "level1", x: 89, y: 199, orbit: true , hostile: false },
+    dryad:        { map: "mforest", x: 380, y: 359, orbit: true , hostile: false },
 };
 
-const HEALER_TARGET    = MONSTER_LOCS.prat;
-const WARRIOR_TARGET   = MONSTER_LOCS.prat;
-const RANGER_TARGET    = { map: "level1", x: 100, y: 235, orbit: false , hostile: false };
+const HEALER_TARGET    = MONSTER_LOCS.dryad;
+const WARRIOR_TARGET   = MONSTER_LOCS.dryad;
+const RANGER_TARGET    = MONSTER_LOCS.dryad;
 const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 
 const FLOATING_BUTTON_IDS = [];
@@ -1517,24 +1518,6 @@ function create_reload_button(top = 10, left = null, right = null) {
     btn.style.cursor = "pointer";
     btn.style.left = left !== null ? `${left}px` : "50%";
     btn.style.transform = left === null && right === null ? "translateX(-50%)" : "";
-
-    // div.id = "custom-log-window";
-    // div.style.position = "absolute";
-    // div.style.bottom = "1px";
-    // div.style.right = "700px";
-    // div.style.width = "350px";
-    // div.style.height = "260px";
-    // div.style.background = "rgba(0,0,0,0.66)";
-    // div.style.color = "#fff";
-    // div.style.overflow = "hidden";
-    // div.style.zIndex = 9999;
-    // div.style.fontSize = "22px";
-    // div.style.fontFamily = "pixel";
-    // div.style.padding = "0";
-    // div.style.border = "4px solid #888";
-    // div.style.display = "flex";
-    // div.style.flexDirection = "column";
-    // div.style.cursor = "default";
 
     btn.onclick = () => {
         parent.window.location.reload();
