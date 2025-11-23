@@ -1404,11 +1404,11 @@ let orbit_origin = null;
 
 // Dynamically set orbit_origin based on character name
 if (character.name === "Myras") {
-    orbit_origin = { x: HEALER_TARGET.x, y: HEALER_TARGET.y };
+    orbit_origin = HEALER_TARGET;
 } else if (character.name === "Ulric") {
-    orbit_origin = { x: WARRIOR_TARGET.x, y: WARRIOR_TARGET.y };
+    orbit_origin = WARRIOR_TARGET;
 } else if (character.name === "Riva") {
-    orbit_origin = { x: RANGER_TARGET.x, y: RANGER_TARGET.y };
+    orbit_origin = RANGER_TARGET;
 }
 
 let orbit_path_points = [];
