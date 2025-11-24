@@ -738,6 +738,7 @@ async function exchange_items() {
             let withdrew = false;
             for (const config of EXCHANGE_LIST) {
                 try {
+                    log("Withdrawing from bank: " + config.name);
                     await withdraw_item(config.name);
                     await delay(500);
                     // Search inventory again for the item after withdrawal
