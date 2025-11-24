@@ -702,14 +702,6 @@ const EXCHANGE_LIST= [
     // { name: "seashell",     min: 20,    map: "main", x: -22, y: -406 },
 ]
 
-function find_item_slot(item_name) {
-    for (let i = 0; i < character.items.length; i++) {
-        const itm = character.items[i];
-        if (itm && itm.name === item_name) return i;
-    }
-    return -1;
-}
-
 async function exchange_items() {
     if (exchange_items_running) {
         log("⚠️ Exchange already running, skipping duplicate call.");
@@ -724,11 +716,16 @@ async function exchange_items() {
         let item_name = null;
         let item_slot = -1;
         for (const config of EXCHANGE_LIST) {
-            item_slot = locate_item(config.name);
-            if (item_slot !== -1) {
-                item_name = config.name;
-                break;
+            // First-principles approach: search inventory for the item
+            for (let i = 0; i < character.items.length; i++) {
+                const itm = character.items[i];
+                if (itm && itm.name === config.name) {
+                    item_slot = i;
+                    item_name = config.name;
+                    break;
+                }
             }
+            if (item_slot !== -1) break;
         }
 
         // If not found, try to withdraw from bank
@@ -741,11 +738,16 @@ async function exchange_items() {
                 try {
                     await withdraw_item(config.name);
                     await delay(500);
-                    item_slot = find_item_slot(config.name);
-                    if (item_slot !== -1) {
-                        item_name = config.name;
-                        break;
+                    // Search inventory again for the item after withdrawal
+                    for (let i = 0; i < character.items.length; i++) {
+                        const itm = character.items[i];
+                        if (itm && itm.name === config.name) {
+                            item_slot = i;
+                            item_name = config.name;
+                            break;
+                        }
                     }
+                    if (item_slot !== -1) break;
                 } catch (e) {
                     log(`Error withdrawing ${config.name} from bank: ${e.message}`);
                 }
