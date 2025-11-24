@@ -133,6 +133,7 @@ async function set_state(state) {
                         if (character.gold < 10000000) {
                             log("❌ Skipping auto-upgrade: Not enough gold (< 10,000,000).");
                             last_auto_upgrade_time = Date.now();
+                            merchant_task = "Idle";
                             return;
                         }
                         log("Starting auto-upgrade process...");
