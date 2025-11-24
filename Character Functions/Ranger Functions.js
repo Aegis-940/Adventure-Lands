@@ -25,9 +25,9 @@ const POTION_MP_THRESHOLD = 400;        // Use potion if missing this much MP
 const ORBIT_RADIUS = 70;                // Combat Orbit radius
 const ORBIT_STEPS = 12;                 // Number of steps in orbit (e.g., 12 = 30 degrees per step)
 
-const PANIC_HP_THRESHOLD = 0.50;        // Panic if below 50% HP
+const PANIC_HP_THRESHOLD = 0.66;        // Panic if below 66% HP
 const PANIC_MP_THRESHOLD = 1;           // Panic if below 1 MP
-const SAFE_HP_THRESHOLD = 0.66;         // Resume normal if above 66% HP
+const SAFE_HP_THRESHOLD = 0.80;         // Resume normal if above 80% HP
 const SAFE_MP_THRESHOLD = 500;          // Resume normal if above 500 MP
 const PANIC_AGGRO_THRESHOLD = 99;       // Panic if this many monsters are targeting you
 const PANIC_ORB = "jacko";              // Orb to switch to when panicking
