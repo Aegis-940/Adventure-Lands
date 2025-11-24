@@ -1526,7 +1526,7 @@ function create_reload_button(top = 10, left = null, right = null) {
     doc.body.appendChild(btn);
 }
 
-create_reload_button(1, 1987); // Top, 1600px from left
+create_reload_button(0, 1987); // Top, 1600px from left
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATS BUTTON
@@ -1569,4 +1569,4 @@ function create_stats_button(top = 10, left = null, right = null) {
     doc.body.appendChild(btn);
 }
 
-create_stats_button(1, 1922); // Top, 1600px from left
+create_stats_button(0, 1942); // Top, 1600px from left
