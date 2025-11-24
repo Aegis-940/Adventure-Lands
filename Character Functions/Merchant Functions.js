@@ -737,7 +737,6 @@ async function exchange_items() {
                 // Try to withdraw max of the first available item in the list using withdraw_item
                 let withdrew = false;
                 for (const config of EXCHANGE_LIST) {
-                    // Attempt to withdraw all of this item
                     try {
                         await withdraw_item(config.name);
                         await delay(500);
@@ -745,11 +744,12 @@ async function exchange_items() {
                         if (item_slot !== -1) {
                             item_name = config.name; // Update to the item we actually withdrew
                             withdrew = true;
-                            break;
+                            break; // Stop after withdrawing the first valid item
                         }
                     } catch (e) {
                         game_log(`Error withdrawing ${config.name} from bank: ${e.message}`);
                     }
+                    if (withdrew) break; // Extra safety: stop attempting after first success
                 }
 
                 // If still no valid items, go home and skip
