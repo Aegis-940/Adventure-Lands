@@ -117,6 +117,7 @@ async function set_state(state) {
                     if (!handling_delivery) {
                         log("Starting potion delivery and loot collection...");
                         handling_delivery = true;
+                        await sell_and_bank();
                         merchant_task = "Delivering";
                         await potions_and_loot_controller_loop()
                         merchant_task = "Idle";
