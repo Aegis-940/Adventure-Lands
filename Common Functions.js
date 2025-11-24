@@ -1527,3 +1527,46 @@ function create_reload_button(top = 10, left = null, right = null) {
 }
 
 create_reload_button(1, 1987); // Top, 1600px from left
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// STATS BUTTON
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function create_stats_button(top = 10, left = null, right = null) {
+    const doc = parent.document;
+    const existing = doc.getElementById("stats-btn");
+    if (existing) return;
+
+    const btn = doc.createElement("button");
+    btn.id = "stats-btn";
+    btn.textContent = "📊";
+    btn.style.position = "absolute";
+    btn.style.top = `${top}px`;
+    btn.style.left = left !== null ? `${left}px` : "";
+    btn.style.right = right !== null ? `${right}px` : "";
+    btn.style.width = "50px";
+    btn.style.height = "55px";
+    btn.style.margin = "0 auto";
+    btn.style.zIndex = 99999;
+    btn.style.fontSize = "24px";
+    btn.style.padding = "0";
+    btn.style.background = "#222";
+    btn.style.color = "#fff";
+    btn.style.border = "4px solid #888";
+    btn.style.cursor = "pointer";
+    btn.style.left = left !== null ? `${left}px` : "50%";
+    btn.style.transform = left === null && right === null ? "translateX(-50%)" : "";
+
+    btn.onclick = () => {
+        let win = doc.getElementById("ui-statistics-window");
+        if (!win) {
+            ui_window();
+        } else {
+            win.style.display = win.style.display === "none" ? "block" : "none";
+        }
+    };
+
+    doc.body.appendChild(btn);
+}
+
+create_stats_button(1, 1922); // Top, 1600px from left
