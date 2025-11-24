@@ -771,11 +771,7 @@ async function exchange_items() {
             : HOME;
 
         // Move to the exchange location if not already there
-        if (character.map !== exchange_location.map ||
-            character.x !== exchange_location.x ||
-            character.y !== exchange_location.y) {
-            await smarter_move(exchange_location);
-        }
+        smarter_move(HOME);
 
         // Wait until not moving
         while (character.moving || character.smart_moving) {
