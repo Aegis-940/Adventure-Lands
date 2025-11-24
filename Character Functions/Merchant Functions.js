@@ -736,21 +736,23 @@ async function exchange_items() {
 
             // Only withdraw the first available item in the bank
             let withdrew = false;
-            for (const config of EXCHANGE_LIST) {
-                log("Withdrawing from bank: " + config.name);
-                await withdraw_item(config.name);
-                log("Withdrawal command sent for: " + config.name);
-                await delay(500);
-                // Search inventory again for the item after withdrawal
-                for (let i = 0; i < character.items.length; i++) {
-                    const itm = character.items[i];
-                    if (itm && itm.name === config.name) {
-                        item_slot = i;
-                        item_name = config.name;
-                        withdrew = true;
-                        log("Item withdrawn from bank: " + config.name);
-                        break;
+            for (const item of EXCHANGE_LIST) {
+                try {
+                    withdraw_item(item.name, null, 9999);
+                    await delay(500);
+                    // Search inventory again for the item after withdrawal
+                    for (let i = 0; i < character.items.length; i++) {
+                        const itm = character.items[i];
+                        if (itm && itm.name === item.name) {
+                            item_slot = i;
+                            item_name = item.name;
+                            withdrew = true;
+                            log("Item withdrawn from bank: " + item.name);
+                            break;
+                        }
                     }
+                } catch (e) {
+                    log(`Error withdrawing ${item.name} from bank: ${e.message}`);
                 }
                 if (withdrew) break; // Stop after first successful withdrawal
             }
