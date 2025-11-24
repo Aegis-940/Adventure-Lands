@@ -775,12 +775,7 @@ async function exchange_items() {
             : HOME;
 
         // Move to the exchange location if not already there
-        smarter_move(HOME);
-
-        // Wait until not moving
-        while (character.moving || character.smart_moving) {
-            await delay(500);
-        }
+        await smarter_move(HOME);
 
         log(`📍 At exchange location for ${item_name}. Starting exchange...`);
 
