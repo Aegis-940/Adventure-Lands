@@ -254,13 +254,14 @@ async function auto_upgrade_item(level) {
             const scroll_cost = G.items[scrollname]?.g || 0;
             if (character.gold < scroll_cost) {
                 game_log(`❌ Not enough gold to buy ${scrollname} for upgrading ${item.name} (level ${item.level}). Ending auto-upgrade.`);
-                merchant_task = "Idle";
                 return "end";
             }
-            parent.buy(scrollname);
-            game_log(`Buying ${scrollname} for upgrading ${item.name} (level ${item.level})`);
-            // Only buy one scroll, then return immediately
-            return "wait";
+            else {
+                parent.buy(scrollname);
+                game_log(`Buying ${scrollname} for upgrading ${item.name} (level ${item.level})`);
+                // Only buy one scroll, then return immediately
+                return "wait";
+            }
         }
 
         // Check for offering if needed
@@ -359,13 +360,14 @@ async function auto_combine_item(level) {
             const scroll_cost = G.items[scrollname]?.g || 0;
             if (character.gold < scroll_cost) {
                 game_log(`❌ Not enough gold to buy ${scrollname} for combining ${itemName} (level ${lvl}). Ending auto-combine.`);
-                merchant_task = "Idle";
                 return "end";
             }
-            parent.buy(scrollname);
-            game_log(`Buying ${scrollname} for combining ${itemName} (level ${lvl})`);
-            // Only buy one scroll, then return immediately
-            return "wait";
+            else {
+                parent.buy(scrollname);
+                game_log(`Buying ${scrollname} for combining ${itemName} (level ${lvl})`);
+                // Only buy one scroll, then return immediately
+                return "wait";
+            }
         }
     }
 

@@ -792,11 +792,6 @@ async function exchange_items() {
                 break;
             }
 
-            if (character.moving) {
-                await delay(500);
-                continue;
-            }
-
             // Sell approved items
             for (let i = 0; i < character.items.length; i++) {
                 const itm = character.items[i];
@@ -812,7 +807,7 @@ async function exchange_items() {
                 await sell_and_bank();
                 await delay(500);
                 // Return to exchange location
-                await smarter_move(exchange_location);
+                await smarter_move(HOME);
                 await delay(500);
                 continue;
             }
