@@ -46,12 +46,14 @@ const MERCHANT_STATES = {
     PANIC: "panic",
     DELIVERING: "delivering",
     UPGRADING: "upgrading",
+    EXCHANGING: "exchanging",
     FISHING: "fishing",
     MINING: "mining",
     IDLE: "idle"
 };
 
 let last_auto_upgrade_time = 0; // Timestamp in ms
+let last_exchange_time = 0;     // Timestamp in ms
 
 function should_run_auto_upgrade() {
     const THIRTY_MINUTES = 30 * 60 * 1000;
@@ -63,12 +65,14 @@ function get_character_state() {
     // if (panicking) return MERCHANT_STATES.PANIC;
     if (Object.keys(party_status_cache).length > 0) return MERCHANT_STATES.DELIVERING;
     if (merchant_task === "Idle" && should_run_auto_upgrade()) return MERCHANT_STATES.UPGRADING;
+    if (merchant_task === "Idle" && (Date.now() - last_exchange_time) > (1 * 60 * 1000)) return MERCHANT_STATES.EXCHANGING;
     if (merchant_task === "Idle") return MERCHANT_STATES.IDLE;
 }
 
 let handling_merchant_death = false;
 let handling_delivery = false;
 let handling_upgrading = false;
+let handling_exchanging = false;
 
 async function set_state(state) {
     try {
@@ -143,6 +147,21 @@ async function set_state(state) {
                     handling_upgrading = false;
                 } catch (e) {
                     catcher(e, "set_state: UPGRADING state error");
+                }
+                break;
+
+            case MERCHANT_STATES.EXCHANGING:
+                try {
+                    if(!handling_exchanging) {
+                        handling_exchanging = true;
+                        merchant_task = "Exchanging";
+                        await exchange_items();
+                        last_exchange_time = Date.now();
+                        merchant_task = "Idle";
+                    }
+                    handling_exchanging = false;
+                } catch (e) {
+                    catcher(e, "set_state: EXCHANGING state error");
                 }
                 break;
 
@@ -685,12 +704,12 @@ async function mining_loop() {
 
 let exchange_items_running = false;
 
-const EXCHANGEABLE_ITEMS = [
-    { name: "seashell",     min: 20,    map: "main", x: -22, y: -406 },
-    { name: "gem0",         min: 1,     map: "main", x: -22, y: -406 },
-    { name: "gem1",         min: 1,     map: "main", x: -22, y: -406 },
-    { name: "armorbox",     min: 1,     map: "main", x: -22, y: -406 },
-    { name: "candy1",       min: 1,     map: "main", x: -22, y: -406 },
+const EXCHANGE_LIST= [
+    { name: "candy1",       min: 1 },
+    { name: "gem0",         min: 1 },
+    { name: "gem1",         min: 1 },
+    { name: "armorbox",     min: 1 },
+    // { name: "seashell",     min: 20,    map: "main", x: -22, y: -406 },
 ]
 
 async function exchange_items() {
@@ -703,7 +722,7 @@ async function exchange_items() {
     merchant_task = "Exchanging";
 
     try {
-        for (const item_config of EXCHANGEABLE_ITEMS) {
+        for (const item_config of EXCHANGE_LIST) {
             const { name: item_name, min: min_count, map: target_map, x: target_x, y: target_y } = item_config;
 
             // Check if we have any of this item
@@ -722,7 +741,7 @@ async function exchange_items() {
 
             // Move to the exchange location
             try {
-                await smarter_move({ map: target_map, x: target_x, y: target_y });
+                await smarter_move(HOME);
             } catch (e) {
                 game_log(`Error moving to exchange location for ${item_name}: ${e.message}`);
                 continue;
@@ -730,9 +749,7 @@ async function exchange_items() {
 
             // Wait until we're at the location and not moving
             while (
-                character.map !== target_map ||
-                Math.hypot(character.x - target_x, character.y - target_y) > 50 ||
-                character.moving
+                character.moving || character.smart_moving     
             ) {
                 await delay(500);
             }
@@ -742,10 +759,8 @@ async function exchange_items() {
             // Exchange loop for this item type
             let keep_going = true;
             while (keep_going) {
-                // 1. Stop if character is too far from exchange NPC
-                const dist = Math.hypot(character.x - target_x, character.y - target_y);
-                if (dist > 400) {
-                    game_log(`❌ Too far from exchange NPC for ${item_name}. Stopping.`);
+                if (character.map !== HOME.map || character.x !== HOME.x || character.y !== HOME.y) {
+                    game_log(`❌ Not at HOME. Stopping.`);
                     keep_going = false;
                     break;
                 }
@@ -772,6 +787,8 @@ async function exchange_items() {
                     // Return to exchange location
                     await smarter_move({ map: target_map, x: target_x, y: target_y });
                     await delay(500);
+                    keep_going = false;
+                    break;
                 }
 
                 // 4. Find a stack that meets the minimum count
@@ -788,6 +805,7 @@ async function exchange_items() {
                         } catch (e) {
                             game_log(`Error exchanging ${item_name}: ${e.message}`);
                             keep_going = false;
+                            break;
                         }
                         break;
                     }
@@ -846,3 +864,4 @@ async function target_upgrade(target_item, target_amount) {
 
 	// await sell_and_bank();
 }
+
