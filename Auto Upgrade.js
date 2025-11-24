@@ -470,8 +470,6 @@ async function auto_upgrade() {
                 break;
             }
         }
-        // If upgrading ended early, exit the outer loop as well
-        if (result === "end") break;
     }
 
     // --- Combine all items level-by-level ---
@@ -491,8 +489,6 @@ async function auto_upgrade() {
                 break;
             }
         }
-        // If combining ended early, exit the outer loop as well
-        if (result === "end") break;
     }
 
     game_log("✅ Auto upgrade and combine complete.");
