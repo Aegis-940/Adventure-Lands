@@ -728,8 +728,33 @@ async function exchange_items() {
             // Check if we have any of this item
             let item_slot = locate_item(item_name);
             if (item_slot === -1) {
-                game_log(`No ${item_name} to exchange, skipping...`, "#888");
-                continue;
+                game_log(`No ${item_name} to exchange, attempting to withdraw from bank...`, "#888");
+
+                // Move to bank
+                await smarter_move(BANK_LOCATION);
+                await delay(500);
+
+                // Try to withdraw max of the first available item in the list
+                let bank_slot = -1;
+                for (const config of EXCHANGE_LIST) {
+                    bank_slot = locate_in_bank(config.name); // You may need to implement locate_in_bank
+                    if (bank_slot !== -1) {
+                        await bank_withdraw(bank_slot, "all"); // Withdraw all available
+                        await delay(500);
+                        item_slot = locate_item(config.name);
+                        if (item_slot !== -1) {
+                            item_name = config.name; // Update to the item we actually withdrew
+                            break;
+                        }
+                    }
+                }
+
+                // If still no valid items, go home and skip
+                if (item_slot === -1) {
+                    game_log(`No valid items to exchange after bank withdrawal, returning home.`, "#888");
+                    await smarter_move(HOME);
+                    continue;
+                }
             }
 
             // Get the item's exchange data
