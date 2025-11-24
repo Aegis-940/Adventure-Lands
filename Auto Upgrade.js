@@ -20,6 +20,7 @@ const UPGRADE_PROFILE = {
   quiver:      { scroll0_until: 3, scroll1_until: 6, scroll2_until: 9, primling_from: 7, max_level: 6 },
   crossbow:    { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 6, max_level: 4 },
   basher:      { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 6, max_level: 5 },
+  broom:       { scroll0_until: 2, scroll1_until: 5, scroll2_until: 9, primling_from: 6, max_level: 5 },
   // Add more items as needed
 };
 
