@@ -64,7 +64,7 @@ function get_character_state() {
     if (character.rip) return MERCHANT_STATES.DEAD;
     // if (panicking) return MERCHANT_STATES.PANIC;
     if (Object.keys(party_status_cache).length > 0) return MERCHANT_STATES.DELIVERING;
-    if (merchant_task === "Idle" && should_run_auto_upgrade()) return MERCHANT_STATES.UPGRADING;
+    if (merchant_task !== "Delivering" && should_run_auto_upgrade()) return MERCHANT_STATES.UPGRADING;
     if (merchant_task === "Idle" && (Date.now() - last_exchange_time) > (1 * 60 * 1000)) return MERCHANT_STATES.EXCHANGING;
     if (merchant_task === "Idle") return MERCHANT_STATES.IDLE;
 }
