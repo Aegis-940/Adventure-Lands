@@ -736,31 +736,21 @@ async function exchange_items() {
             // Only withdraw the first available item in the bank
             let withdrew = false;
             for (const config of EXCHANGE_LIST) {
-                // First-principles: check if item exists in bank
-                let bank_has_item = false;
-                for (const slot of parent.bank) {
-                    if (slot && slot.name === config.name) {
-                        bank_has_item = true;
-                        break;
-                    }
-                }
-                if (bank_has_item) {
-                    try {
-                        await withdraw_item(config.name);
-                        await delay(500);
-                        // Search inventory again for the item after withdrawal
-                        for (let i = 0; i < character.items.length; i++) {
-                            const itm = character.items[i];
-                            if (itm && itm.name === config.name) {
-                                item_slot = i;
-                                item_name = config.name;
-                                withdrew = true;
-                                break;
-                            }
+                try {
+                    await withdraw_item(config.name);
+                    await delay(500);
+                    // Search inventory again for the item after withdrawal
+                    for (let i = 0; i < character.items.length; i++) {
+                        const itm = character.items[i];
+                        if (itm && itm.name === config.name) {
+                            item_slot = i;
+                            item_name = config.name;
+                            withdrew = true;
+                            break;
                         }
-                    } catch (e) {
-                        log(`Error withdrawing ${config.name} from bank: ${e.message}`);
                     }
+                } catch (e) {
+                    log(`Error withdrawing ${config.name} from bank: ${e.message}`);
                 }
                 if (withdrew) break; // Stop after first successful withdrawal
             }
