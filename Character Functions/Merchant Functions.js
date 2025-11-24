@@ -729,15 +729,37 @@ async function exchange_items() {
             await smarter_move(BANK_LOCATION);
             await delay(500);
 
+            // Only attempt to withdraw the first available item in the list
+            let withdrew = false;
             for (const config of EXCHANGE_LIST) {
-                try {
-                    await withdraw_item(config.name);
-                    await delay(500);
-                    item_slot = locate_item(config.name);
-                    if (item_slot !== -1) {
+                // Search inventory for the item
+                let found = false;
+                for (let i = 0; i < character.items.length; i++) {
+                    const itm = character.items[i];
+                    if (itm && itm.name === config.name) {
+                        found = true;
+                        item_slot = i;
                         item_name = config.name;
                         break;
                     }
+                }
+                if (found) break; // Already have it, no need to withdraw
+
+                // Try to withdraw from bank
+                try {
+                    await withdraw_item(config.name);
+                    await delay(500);
+                    // Search inventory again for the item after withdrawal
+                    for (let i = 0; i < character.items.length; i++) {
+                        const itm = character.items[i];
+                        if (itm && itm.name === config.name) {
+                            item_slot = i;
+                            item_name = config.name;
+                            withdrew = true;
+                            break;
+                        }
+                    }
+                    if (withdrew) break; // Stop after withdrawing the first available item
                 } catch (e) {
                     log(`Error withdrawing ${config.name} from bank: ${e.message}`);
                 }
