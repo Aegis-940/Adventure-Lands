@@ -82,4 +82,3 @@ function ui_window() {
     doc.body.appendChild(win);
 }
 
-// Usage: ui_window();

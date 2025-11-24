@@ -1569,4 +1569,4 @@ function create_stats_button(top = 10, left = null, right = null) {
     doc.body.appendChild(btn);
 }
 
-create_stats_button(0, 1937); // Top, 1600px from left
+create_stats_button(0, 1932); // Top, 1600px from left
