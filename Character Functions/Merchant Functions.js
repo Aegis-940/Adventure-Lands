@@ -740,6 +740,7 @@ async function exchange_items() {
                 try {
                     log("Withdrawing from bank: " + config.name);
                     await withdraw_item(config.name);
+                    log("Withdrawal command sent for: " + config.name);
                     await delay(500);
                     // Search inventory again for the item after withdrawal
                     for (let i = 0; i < character.items.length; i++) {
