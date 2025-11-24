@@ -58,7 +58,7 @@ function ui_window() {
 
     // Toggle button
     const toggleBtn = doc.createElement("button");
-    toggleBtn.textContent = "Toggle";
+    toggleBtn.textContent = "❌";
     toggleBtn.style.position = "absolute";
     toggleBtn.style.top = "5px";
     toggleBtn.style.right = "5px";
