@@ -746,6 +746,7 @@ async function exchange_items() {
                             item_slot = i;
                             item_name = config.name;
                             withdrew = true;
+                            log("Item withdrawn from bank: " + config.name);
                             break;
                         }
                     }
