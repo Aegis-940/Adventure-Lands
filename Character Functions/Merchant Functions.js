@@ -739,7 +739,7 @@ async function exchange_items() {
                 for (const config of EXCHANGE_LIST) {
                     // Attempt to withdraw all of this item
                     try {
-                        await withdraw_item(config.name, "all");
+                        await withdraw_item(config.name);
                         await delay(500);
                         item_slot = locate_item(config.name);
                         if (item_slot !== -1) {
