@@ -722,137 +722,140 @@ async function exchange_items() {
     merchant_task = "Exchanging";
 
     try {
-        for (const item_config of EXCHANGE_LIST) {
-            const { name: item_name, min: min_count, map: target_map, x: target_x, y: target_y } = item_config;
-
-            // Check if we have any of this item
-            let item_slot = locate_item(item_name);
-            if (item_slot === -1) {
-                game_log(`No ${item_name} to exchange, attempting to withdraw from bank...`, "#888");
-
-                // Move to bank
-                await smarter_move(BANK_LOCATION);
-                await delay(500);
-
-                // Try to withdraw max of the first available item in the list using withdraw_item
-                let withdrew = false;
-                for (const config of EXCHANGE_LIST) {
-                    try {
-                        await withdraw_item(config.name);
-                        await delay(500);
-                        item_slot = locate_item(config.name);
-                        if (item_slot !== -1) {
-                            item_name = config.name; // Update to the item we actually withdrew
-                            withdrew = true;
-                            break; // Stop after withdrawing the first valid item
-                        }
-                    } catch (e) {
-                        game_log(`Error withdrawing ${config.name} from bank: ${e.message}`);
-                    }
-                    if (withdrew) break; // Extra safety: stop attempting after first success
-                }
-
-                // If still no valid items, go home and skip
-                if (item_slot === -1) {
-                    game_log(`No valid items to exchange after bank withdrawal, returning home.`, "#888");
-                    await smarter_move(HOME);
-                    continue;
-                }
+        // Find the first item in EXCHANGE_LIST that you have
+        let item_name = null;
+        let item_slot = -1;
+        for (const config of EXCHANGE_LIST) {
+            item_slot = locate_item(config.name);
+            if (item_slot !== -1) {
+                item_name = config.name;
+                break;
             }
-
-            // Get the item's exchange data
-            const item_data = parent.G.items[item_name];
-            if (!item_data || !item_data.e) {
-                game_log(`${item_name} is not exchangeable, skipping...`, "#ffaa00");
-                continue;
-            }
-
-            // Move to the exchange location
-            try {
-                await smarter_move(HOME);
-            } catch (e) {
-                game_log(`Error moving to exchange location for ${item_name}: ${e.message}`);
-                continue;
-            }
-
-            // Wait until we're at the location and not moving
-            while (
-                character.moving || character.smart_moving     
-            ) {
-                await delay(500);
-            }
-
-            game_log(`📍 At exchange location for ${item_name}. Starting exchange...`);
-
-            // Exchange loop for this item type
-            let keep_going = true;
-            while (keep_going) {
-                if (character.map !== HOME.map || character.x !== HOME.x || character.y !== HOME.y) {
-                    game_log(`❌ Not at HOME. Stopping.`);
-                    keep_going = false;
-                    break;
-                }
-
-                if (character.moving) {
-                    await delay(500);
-                    continue;
-                }
-
-                // 2. Sell off any approved items
-                for (let i = 0; i < character.items.length; i++) {
-                    const itm = character.items[i];
-                    if (itm && SELLABLE_ITEMS.includes(itm.name)) {
-                        sell(i, itm.q || 1);
-                        game_log(`💰 Sold ${itm.name} x${itm.q || 1}`);
-                    }
-                }
-
-                // 3. Stop if inventory is full, run sell_and_bank
-                if (character.items.filter(Boolean).length >= character.items.length) {
-                    game_log(`📦 Inventory full. Running sell_and_bank for ${item_name}.`);
-                    await sell_and_bank();
-                    await delay(500);
-                    // Return to exchange location
-                    await smarter_move({ map: target_map, x: target_x, y: target_y });
-                    await delay(500);
-                    keep_going = false;
-                    break;
-                }
-
-                // 4. Find a stack that meets the minimum count
-                let found_stack = false;
-                for (let i = 0; i < character.items.length; i++) {
-                    const itm = character.items[i];
-                    if (itm && itm.name === item_name && (itm.q || 1) >= min_count) {
-                        // 5. Exchange
-                        try {
-                            game_log(`🔁 Exchanging slot ${i} (${item_name} x${itm.q || 1})`);
-                            exchange(i);
-                            found_stack = true;
-                            await delay(500); // Wait for exchange to complete
-                        } catch (e) {
-                            game_log(`Error exchanging ${item_name}: ${e.message}`);
-                            keep_going = false;
-                            break;
-                        }
-                        break;
-                    }
-                }
-
-                if (!found_stack) {
-                    game_log(`✅ No more ${item_name} stacks with at least ${min_count}.`);
-                    keep_going = false;
-                }
-
-                await delay(500);
-            }
-
-            game_log(`Finished exchanging all ${item_name}`, "#00ff00");
         }
 
-        game_log("✅ All exchangeable items processed", "#00ff00");
+        // If not found, try to withdraw from bank
+        if (item_slot === -1) {
+            game_log(`No exchangeable items found, attempting to withdraw from bank...`, "#888");
+            await smarter_move(BANK_LOCATION);
+            await delay(500);
+
+            for (const config of EXCHANGE_LIST) {
+                try {
+                    await withdraw_item(config.name);
+                    await delay(500);
+                    item_slot = locate_item(config.name);
+                    if (item_slot !== -1) {
+                        item_name = config.name;
+                        break;
+                    }
+                } catch (e) {
+                    game_log(`Error withdrawing ${config.name} from bank: ${e.message}`);
+                }
+            }
+
+            // If still no valid items, go home and exit
+            if (item_slot === -1) {
+                game_log(`No valid items to exchange after bank withdrawal, returning home.`, "#888");
+                await smarter_move(HOME);
+                exchange_items_running = false;
+                merchant_task = "Idle";
+                return;
+            }
+        }
+
+        // Get the config for the item we have
+        const item_config = EXCHANGE_LIST.find(cfg => cfg.name === item_name);
+        const { min: min_count, map: target_map, x: target_x, y: target_y } = item_config || {};
+        const exchange_location = target_map && typeof target_x === "number" && typeof target_y === "number"
+            ? { map: target_map, x: target_x, y: target_y }
+            : HOME;
+
+        // Move to the exchange location if not already there
+        if (character.map !== exchange_location.map ||
+            character.x !== exchange_location.x ||
+            character.y !== exchange_location.y) {
+            await smarter_move(exchange_location);
+        }
+
+        // Wait until not moving
+        while (character.moving || character.smart_moving) {
+            await delay(500);
+        }
+
+        game_log(`📍 At exchange location for ${item_name}. Starting exchange...`);
+
+        // Exchange loop for this item type
+        let keep_going = true;
+        while (keep_going) {
+            // Stop if not at exchange location
+            if (character.map !== exchange_location.map ||
+                character.x !== exchange_location.x ||
+                character.y !== exchange_location.y) {
+                game_log(`❌ Not at exchange location. Stopping.`);
+                keep_going = false;
+                break;
+            }
+
+            if (character.moving) {
+                await delay(500);
+                continue;
+            }
+
+            // Sell approved items
+            for (let i = 0; i < character.items.length; i++) {
+                const itm = character.items[i];
+                if (itm && SELLABLE_ITEMS.includes(itm.name)) {
+                    sell(i, itm.q || 1);
+                    game_log(`💰 Sold ${itm.name} x${itm.q || 1}`);
+                }
+            }
+
+            // Inventory full handling
+            if (character.items.filter(Boolean).length >= character.items.length) {
+                game_log(`📦 Inventory full. Running sell_and_bank for ${item_name}.`);
+                await sell_and_bank();
+                await delay(500);
+                // Return to exchange location
+                await smarter_move(exchange_location);
+                await delay(500);
+                continue;
+            }
+
+            // Find a stack that meets the minimum count
+            let found_stack = false;
+            for (let i = 0; i < character.items.length; i++) {
+                const itm = character.items[i];
+                if (itm && itm.name === item_name && (itm.q || 1) >= min_count) {
+                    // Exchange
+                    try {
+                        game_log(`🔁 Exchanging slot ${i} (${item_name} x${itm.q || 1})`);
+                        exchange(i);
+                        found_stack = true;
+                        await delay(500); // Wait for exchange to complete
+                    } catch (e) {
+                        game_log(`Error exchanging ${item_name}: ${e.message}`);
+                        keep_going = false;
+                        break;
+                    }
+                    break;
+                }
+            }
+
+            if (!found_stack) {
+                game_log(`✅ No more ${item_name} stacks with at least ${min_count}.`);
+                keep_going = false;
+            }
+
+            await delay(500);
+        }
+
+        game_log(`Finished exchanging all ${item_name}`, "#00ff00");
+        game_log("✅ Exchange process complete", "#00ff00");
     } catch (e) {
         game_log(`🔥 exchange_items error: ${e.message}`);
+    } finally {
+        exchange_items_running = false;
+        merchant_task = "Idle";
     }
 }
 
