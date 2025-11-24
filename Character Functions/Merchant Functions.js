@@ -776,6 +776,7 @@ async function exchange_items() {
 
         // Move to the exchange location if not already there
         await smarter_move(HOME);
+        await delay(500);
 
         log(`📍 At exchange location for ${item_name}. Starting exchange...`);
 
@@ -783,9 +784,9 @@ async function exchange_items() {
         let keep_going = true;
         while (keep_going) {
             // Stop if not at exchange location
-            if (character.map !== exchange_location.map ||
-                character.x !== exchange_location.x ||
-                character.y !== exchange_location.y) {
+            if (character.map !== HOME.map ||
+                character.x !== HOME.x ||
+                character.y !== HOME.y) {
                 log(`❌ Not at exchange location. Stopping.`);
                 keep_going = false;
                 break;
