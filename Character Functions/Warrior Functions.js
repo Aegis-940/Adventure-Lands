@@ -394,7 +394,7 @@ async function move_loop() {
 let eTime = 0;
 
 const st_maps = [];
-const aoe_maps = ["main", "level2s", "winter_cave", "spookytown", "halloween", "level1"];
+const aoe_maps = ["main", "level2s", "winter_cave", "spookytown", "halloween", "level1", "mforest"];
 const taunt_mobs = ["ghost"];
 
 async function skill_loop() {
