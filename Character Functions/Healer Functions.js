@@ -34,7 +34,7 @@ const TARGET_LIMIT = 99;                // Max number of monsters allowed to tar
 const HEAL_THRESHOLD = 1.5;             // Overheal factor to compensate for resistance. (max_hp - heal/threshold)
 const ATTACK_MP_THRESHOLD = 3000;       // Minimum MP required to perform attacks (throttles aggro)
 
-const TARGET_LOWEST_HP = true;          // true: lowest HP, false: highest HP
+const TARGET_LOWEST_HP = false;          // true: lowest HP, false: highest HP
 const PRIORITIZE_UNTARGETED = true;     // true: prefer monsters with no target first
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -425,13 +425,13 @@ const ABSORB_BLACKLIST = ["mrpumpkin", "mrgreen"];
 async function handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps, zapperMobs) {
     if (dead || !disabled) return;
 
-    if (PRIEST_SKILL_TOGGLES.curse && !smart.moving)
+    if (!smart.moving)
         safe_call(() => handle_cursing(X, Y, CURSE_WHITELIST), "handle_cursing");
-    if (PRIEST_SKILL_TOGGLES.absorb && !smart.moving)
+    if (!smart.moving)
         safe_call(() => handle_absorb(mapsToExclude, eventMobs, eventMaps, ABSORB_BLACKLIST), "handle_absorb");
     if (PRIEST_SKILL_TOGGLES.party_heal)
         safe_call(() => handle_party_heal(), "handle_party_heal");
-    if (PRIEST_SKILL_TOGGLES.dark_blessing && !smart.moving)
+    if (!smart.moving)
         safe_call(() => handle_dark_blessing(), "handle_dark_blessing");
     if (PRIEST_SKILL_TOGGLES.zap_spam && !smart.moving)
         safe_call(() => handleZapSpam(zapperMobs), "handleZapSpam");
