@@ -464,7 +464,7 @@ async function handle_cursing(X, Y, whitelist) {
 let absorb_last_used = 0;
 const ABSORB_COOLDOWN = 2000; // 2 second cooldown for absorb
 
-async function handle_absorb() {
+async function handle_absorb(mapsToExclude, eventMobs, eventMaps, blacklist) {
     const now = Date.now();
     if (now - absorb_last_used < ABSORB_COOLDOWN) return;
 
