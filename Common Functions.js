@@ -923,7 +923,7 @@ function catcher(e, context = "Error") {
                 if (msg.toLowerCase().includes("attack") && msg.toLowerCase().includes("cooldown") && msg.toLowerCase().includes("ms")) {
                     let msMatch = msg.match(/"ms":\s*(\d+)/) || msg.match(/ms[:=]\s*(\d+)/i);
                     let msText = msMatch ? `, ${msMatch[1]}ms` : "";
-                    return null; //`Attack c/d${msText} (${ctx})`;
+                    return `Attack c/d${msText} (${ctx})`;
                 }
                 return null;
             },
@@ -987,7 +987,7 @@ function catcher(e, context = "Error") {
         "missing monster": [
             (msg, ctx) => {
                 if (msg.toLowerCase().includes("not_there")) {
-                    return null; //`Monster already dead (${ctx})`;
+                    return `Monster already dead (${ctx})`;
                 }
                 return null;
             },
