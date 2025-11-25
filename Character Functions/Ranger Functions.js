@@ -6,7 +6,7 @@
 const LOOP_STATES = {
 
     attack: false,
-    heal: true,
+    heal: false,
     move: false,
     skill: false,
     panic: true,
