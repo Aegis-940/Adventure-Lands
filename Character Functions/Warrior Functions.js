@@ -602,11 +602,11 @@ async function explosion_set() {
     const mainhand = character.slots.mainhand;
     const offhand = character.slots.offhand;
     const needs_main = !mainhand || mainhand.name !== "fireblade" || mainhand.level !== 8 || mainhand.l !== "l";
-    const needs_off = !offhand || offhand.name !== "ololipop" || offhand.level !== 8 || offhand.l !== "l";
+    const needs_off = !offhand || offhand.name !== "ololipop" || offhand.level !== 9 || offhand.l !== "l";
     if (needs_main || needs_off) {
         batch_equip([
             { itemName: "fireblade", slot: "mainhand", level: 8, l: "l" },
-            { itemName: "ololipop", slot: "offhand", level: 8, l: "l" }
+            { itemName: "ololipop", slot: "offhand", level: 9, l: "l" }
         ]);
     }
     weapon_set_equipped = "explosion";
