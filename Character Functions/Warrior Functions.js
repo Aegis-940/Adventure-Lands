@@ -424,7 +424,7 @@ async function skill_loop() {
         try {
             // Check if character is at WARRIOR_TARGET location (within 20 units)
             const atWarriorTarget =
-                Math.hypot(character.x - WARRIOR_TARGET.x, character.y - WARRIOR_TARGET.y) < 20;
+                Math.hypot(character.x - WARRIOR_TARGET.x, character.y - WARRIOR_TARGET.y) < 50;
 
             // Find Myras entity and check if within 50 units
             const myras = Object.values(parent.entities).find(
@@ -470,6 +470,7 @@ async function skill_loop() {
                 !smart.moving &&
                 aoe_maps.includes(character.map) // <-- Only cleave on allowed maps
             ) {
+                log("attempting cleave", "#00ff00");
                 await handle_cleave(Mainhand);
             }
         } catch (e) {
