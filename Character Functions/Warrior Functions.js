@@ -405,7 +405,7 @@ async function skill_loop() {
             continue;
         }
 
-        if (character.mp >= 600) {
+        if (character.mp >= 600 && !is_on_cooldown("warcry") && can_use("warcry")) {
             await use_skill("warcry");
         }
 
