@@ -405,6 +405,10 @@ async function skill_loop() {
             continue;
         }
 
+        if (character.mp >= 600) {
+            await use_skill("warcry");
+        }
+
         const Mainhand = character.slots?.mainhand?.name;
         const code_cost_check = character.cc < 135;
         let cleave_cooldown = is_on_cooldown("cleave");

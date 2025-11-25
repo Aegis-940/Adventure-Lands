@@ -451,7 +451,7 @@ async function handle_cursing(X, Y, whitelist) {
         !ctarget.immune &&
         whitelist.includes(ctarget.mtype)
     ) {
-        if (!is_on_cooldown("curse") && character.mp > 4000) {
+        if (!is_on_cooldown("curse") && character.mp > 2000) {
             try {
                 await use_skill("curse", ctarget);
             } catch (e) {
