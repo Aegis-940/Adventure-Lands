@@ -16,7 +16,7 @@ const LOOP_STATES = {
 
 }
 
-const POTION_HP_THRESHOLD = 300;        // Use potion if missing this much HP
+const POTION_HP_THRESHOLD = 700;        // Use potion if missing this much HP
 const POTION_MP_THRESHOLD = 400;        // Use potion if missing this much MP
 
 const ORBIT_RADIUS = 27;                // Combat Orbit radius
@@ -621,6 +621,7 @@ async function potion_loop() {
         // Use health potion if needed
         else if (HP_MISSING >= POTION_HP_THRESHOLD) {
             if (can_use("hp")) {
+                await use_skill("partyheal");
                 use("hp");
                 used_potion = true;
             }
