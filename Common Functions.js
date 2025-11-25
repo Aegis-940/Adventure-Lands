@@ -1359,15 +1359,18 @@ async function panic_loop() {
             // Equip panic orb if needed
             if (character.slots.orb?.name !== PANIC_ORB) {
                 const orb_slot = locate_item(PANIC_ORB);
+                await delay(100);
                 if (orb_slot !== -1) {
-                    await equip(orb_slot);
+                    equip(orb_slot);
+                    await delay(delayMs);
                 }
             }
 
             // Try to cast scare if possible
             if (!is_on_cooldown("scare") && can_use("scare")) {
                 log("Panicked! Using Scare!", "#ffcc00", "Alerts");
-                await use_skill("scare");
+                use_skill("scare");
+                await delay(delayMs);
             }
 
             await delay(delayMs);
@@ -1383,8 +1386,9 @@ async function panic_loop() {
             // Equip normal orb if needed
             if (character.slots.orb?.name !== NORMAL_ORB) {
                 const orbg_slot = locate_item(NORMAL_ORB);
+                await delay(100);
                 if (orbg_slot !== -1) {
-                    await equip(orbg_slot);
+                    equip(orbg_slot);
                     await delay(delayMs);
                 }
             }
