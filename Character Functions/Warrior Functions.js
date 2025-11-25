@@ -26,7 +26,7 @@ const ORBIT_RADIUS = 27;                // Combat Orbit radius
 const ORBIT_STEPS = 12;                 // Number of steps in orbit (e.g., 12 = 30 degrees per step)
 
 const PANIC_HP_THRESHOLD = 0.50;        // Panic if below 50% HP
-const PANIC_MP_THRESHOLD = 100;         // Panic if below 100 MP
+const PANIC_MP_THRESHOLD = 1;           // Panic if below 100 MP
 const SAFE_HP_THRESHOLD = 0.75;         // Resume normal if above 75% HP
 const SAFE_MP_THRESHOLD = 500;          // Resume normal if above 500 MP
 const PANIC_AGGRO_THRESHOLD = 99;       // Panic if this many monsters are targeting you
