@@ -6,7 +6,7 @@
 const UPGRADE_INTERVAL = 75;
 
 const UPGRADE_PROFILE = {
-  pouchbow:    { scroll0_until: 3, scroll1_until: 6, scroll2_until: 8, primling_from: 7, max_level: 8 },
+  pouchbow:    { scroll0_until: 4, scroll1_until: 7, scroll2_until: 9, primling_from: 8, max_level: 9 },
   fireblade:   { scroll0_until: 0, scroll1_until: 4, scroll2_until: 7, primling_from: 7, max_level: 7 },
   firebow:     { scroll0_until: 0, scroll1_until: 4, scroll2_until: 7, primling_from: 7, max_level: 7 },
   firestaff:   { scroll0_until: 0, scroll1_until: 4, scroll2_until: 7, primling_from: 7, max_level: 7 },
