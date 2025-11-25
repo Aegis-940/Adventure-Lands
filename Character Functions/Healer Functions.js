@@ -575,9 +575,13 @@ async function loot_loop() {
             // If enough time has passed since last loot, and enough chests are present, and not feared
             if ((last_loot_time ?? 0) + 500 < now) {
                 if (getNumChests() >= chestThreshold && character.fear < 6) {
-                    await batch_equip([{ itemName: "handofmidas", slot: "gloves", level: 4 }]);
+                    batch_equip([{ itemName: "handofmidas", slot: "gloves", level: 4 }]);
+                    shift(0,'goldbooster');
+                    await delay(50);
                     await loot_chests();
-                    await batch_equip([{ itemName: "xgloves", slot: "gloves", level: 4 }]);
+                    batch_equip([{ itemName: "xgloves", slot: "gloves", level: 4 }]);
+                    shift(0,'luckbooster');
+                    await delay(50);
                 }
             }
 
