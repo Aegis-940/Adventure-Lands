@@ -577,7 +577,9 @@ async function loot_loop() {
             // If enough time has passed since last loot, and enough chests are present, and not feared
             if ((last_loot_time ?? 0) + 500 < now) {
                 if (getNumChests() >= chestThreshold && character.fear < 6) {
+                    await batch_equip([{ itemName: "handofmidas", slot: "glove", level: 4 }]);
                     await loot_chests();
+                    await batch_equip([{ itemName: "xgloves", slot: "glove", level: 4 }]);
                 }
             }
 
@@ -633,3 +635,58 @@ async function potion_loop() {
 
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BATCH EQUIP ITEMS
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+/**
+ * Finds inventory indices for the requested items and calls the game's native equip_batch.
+ * @param {Array} data - Array of { itemName, slot, level, l } objects.
+ * @returns {Promise} Resolves/rejects with the result of equip_batch.
+ */
+
+let batch_equip_lock = false;
+
+async function batch_equip(data) {
+    if (batch_equip_lock) {
+        game_log("batch_equip: Skipped due to lock");
+        return;
+    }
+    batch_equip_lock = true;
+
+    const batch = [];
+
+    for (const equipRequest of data) {
+        const { itemName, slot, level, l } = equipRequest;
+        if (!itemName || !slot) continue;
+
+        // Check if the slot already has the desired item equipped
+        const equipped = character.slots[slot];
+        if (
+            equipped &&
+            equipped.name === itemName &&
+            equipped.level === level &&
+            (!l || equipped.l === l)
+        ) continue;
+
+        // Find the first matching item in inventory
+        const item_index = parent.character.items.findIndex(item =>
+            item &&
+            item.name === itemName &&
+            item.level === level &&
+            (!l || item.l === l)
+        );
+
+        if (item_index !== -1) {
+            batch.push({ num: item_index, slot });
+        }
+    }
+
+    if (!batch.length) {
+        batch_equip_lock = false;
+        return; // Nothing to equip, return early
+    }
+
+    await equip_batch(batch); // Await the batch equip
+    batch_equip_lock = false;
+}

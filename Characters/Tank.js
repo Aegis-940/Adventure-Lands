@@ -27,7 +27,7 @@ let last_update_time = 0;
 // === Core utility loops ===
 // Designed to run continuously, toggles on and off as needed
 potion_loop();
-loot_loop();
+// loot_loop();
 move_loop();
 skill_loop();
 panic_loop();
