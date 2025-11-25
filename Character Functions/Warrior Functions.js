@@ -470,7 +470,6 @@ async function skill_loop() {
                 !smart.moving &&
                 aoe_maps.includes(character.map) // <-- Only cleave on allowed maps
             ) {
-                log("attempting cleave", "#00ff00");
                 await handle_cleave(Mainhand);
             }
         } catch (e) {
