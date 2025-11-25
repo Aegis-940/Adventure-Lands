@@ -109,37 +109,32 @@ async function attack_loop() {
 
             let target = null;
 
-            if (character.explosion > 0) {
-                // Use optimal explosion target logic
-                target = get_optimal_explosion_target();
-            } else {
-                // Use current logic
-                const inRange = [];
-                let cursed = null;
-                for (const id in parent.entities) {
-                    const mob = parent.entities[id];
-                    if (mob.type !== "monster" || mob.dead) continue;
-                    if (!MONSTER_TYPES.includes(mob.mtype)) continue;
-                    const dist = Math.hypot(mob.x - character.x, mob.y - character.y);
-                    if (dist <= character.range-1) {
-                        // If ATTACK_UNTARGETED is false, skip mobs with no target
-                        if (!ATTACK_UNTARGETED && (!mob.target || mob.target === character.name)) continue;
-                        inRange.push(mob);
-                        // Find a cursed monster in range (prioritize lowest HP if multiple)
-                        if (mob.s && mob.s.cursed) {
-                            if (!cursed || mob.hp < cursed.hp) cursed = mob;
-                        }
+            // Use current logic
+            const inRange = [];
+            let cursed = null;
+            for (const id in parent.entities) {
+                const mob = parent.entities[id];
+                if (mob.type !== "monster" || mob.dead) continue;
+                if (!MONSTER_TYPES.includes(mob.mtype)) continue;
+                const dist = Math.hypot(mob.x - character.x, mob.y - character.y);
+                if (dist <= character.range-1) {
+                    // If ATTACK_UNTARGETED is false, skip mobs with no target
+                    if (!ATTACK_UNTARGETED && (!mob.target || mob.target === character.name)) continue;
+                    inRange.push(mob);
+                    // Find a cursed monster in range (prioritize lowest HP if multiple)
+                    if (mob.s && mob.s.cursed) {
+                        if (!cursed || mob.hp < cursed.hp) cursed = mob;
                     }
                 }
-
-                // Sort by HP according to TARGET_LOWEST_HP
-                if (TARGET_LOWEST_HP) {
-                    inRange.sort((a, b) => a.hp - b.hp); // lowest HP first
-                } else {
-                    inRange.sort((a, b) => b.hp - a.hp); // highest HP first
-                }
-                target = cursed || (inRange.length ? inRange[0] : null);
             }
+
+            // Sort by HP according to TARGET_LOWEST_HP
+            if (TARGET_LOWEST_HP) {
+                inRange.sort((a, b) => a.hp - b.hp); // lowest HP first
+            } else {
+                inRange.sort((a, b) => b.hp - a.hp); // highest HP first
+            }
+            target = cursed || (inRange.length ? inRange[0] : null);
 
             try {
                 if (smart.moving) {
