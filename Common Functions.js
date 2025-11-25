@@ -354,10 +354,8 @@ async function set_state(state) {
 
                         // Re-evaluate state after respawn
                         const NEW_STATE = get_character_state();
-                        if (NEW_STATE !== STATES.NORMAL) {
-                            await set_state(NEW_STATE);
-                            return;
-                        }
+                        await set_state(NEW_STATE);
+                        
                     } catch (e) {
                         catcher(e, "set_state: DEAD state error");
                     }
