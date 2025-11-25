@@ -419,7 +419,7 @@ async function safe_call(fn, name) {
 	}
 }
 
-const CURSE_WHITELIST = ["mrpumpkin", "mrgreen", "phoenix"];
+const CURSE_WHITELIST = ["mrpumpkin", "mrgreen", "phoenix", "dryad"];
 const ABSORB_BLACKLIST = ["mrpumpkin", "mrgreen"];
 
 async function handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps, zapperMobs) {
@@ -464,7 +464,7 @@ async function handle_cursing(X, Y, whitelist) {
 let absorb_last_used = 0;
 const ABSORB_COOLDOWN = 2000; // 2 second cooldown for absorb
 
-async function handle_absorb(mapsToExclude, eventMobs, eventMaps, blacklist) {
+async function handle_absorb() {
     const now = Date.now();
     if (now - absorb_last_used < ABSORB_COOLDOWN) return;
 
@@ -529,8 +529,6 @@ async function handle_party_heal(minMissingHpMap = {}, minMp = 1000) {
 }
 
 async function handle_dark_blessing() {
-	const nearbyHome = get_nearest_monster({ type: "home" });
-	if (!nearbyHome) return;
 
 	if (!is_on_cooldown("darkblessing")) {
 		await use_skill("darkblessing");
