@@ -557,7 +557,7 @@ async function loot_chests() {
         if (looted >= chestThreshold) break;
         parent.open_chest(id);
         looted++;
-        await delay(60); // Small delay to avoid server spam
+        await delay(30); // Small delay to avoid server spam
     }
     last_loot_time = Date.now();
     tryLoot = true;

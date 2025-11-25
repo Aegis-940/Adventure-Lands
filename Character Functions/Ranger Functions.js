@@ -36,8 +36,6 @@ const NORMAL_ORB = "orbg";              // Orb to switch to when not panicking
 const AGITATE_MP_THRESHOLD = 800;       // Minimum MP Warrior must have to cast Agitate
 const CLEAVE_MP_THRESHOLD = 900;        // Minimum MP Warrior must have to cast Cleave
 
-const FIGHT_SOLO = true;                // If true, Ranger won't check for tanks/healers before engaging
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -97,7 +95,7 @@ async function attack_loop() {
                     const alive_targets = sorted_targets.filter(m => m && !m.dead);
                     let valid_targets = [];
 
-                    if (FIGHT_SOLO) {
+                    if (ATTACK_UNTARGETED) {
                         valid_targets = alive_targets;
                     } else {
                         valid_targets = alive_targets.filter(mob => mob.target === "Myras");
