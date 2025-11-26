@@ -29,7 +29,7 @@ const PANIC_HP_THRESHOLD = 0.50;        // Panic if below 50% HP
 const PANIC_MP_THRESHOLD = 1;           // Panic if below 100 MP
 const SAFE_HP_THRESHOLD = 0.75;         // Resume normal if above 75% HP
 const SAFE_MP_THRESHOLD = 500;          // Resume normal if above 500 MP
-const PANIC_AGGRO_THRESHOLD = 3;       // Panic if this many monsters are targeting you
+const PANIC_AGGRO_THRESHOLD = 99;       // Panic if this many monsters are targeting you
 const PANIC_ORB = "jacko";              // Orb to switch to when panicking
 const NORMAL_ORB = "orbg";              // Orb to switch to when not panicking
 

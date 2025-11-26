@@ -346,7 +346,8 @@ async function set_state(state) {
                         await delay(20000);
                         if (character.rip) await respawn();
                         await delay(1000);
-                        await smarter_move(get_main_target());
+
+                        smarter_move(get_main_target());
 
                         start_panic_loop();
                         start_attack_loop();
@@ -354,7 +355,7 @@ async function set_state(state) {
 
                         // Re-evaluate state after respawn
                         const NEW_STATE = get_character_state();
-                        await set_state(NEW_STATE);
+                        set_state(NEW_STATE);
                         
                     } catch (e) {
                         catcher(e, "set_state: DEAD state error");
