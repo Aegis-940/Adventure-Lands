@@ -102,11 +102,11 @@ async function attack_loop() {
                     }
 
                     if (valid_targets.length >= 5 && character.mp >= 320 + 88) {
-                        await use_skill("5shot", valid_targets.slice(0, 5).map(m => m.id));
+                        use_skill("5shot", valid_targets.slice(0, 5).map(m => m.id));
                     } else if (valid_targets.length >= 2 && character.mp >= 200 + 88) {
-                        await use_skill("3shot", valid_targets.slice(0, 3).map(m => m.id));
+                        use_skill("3shot", valid_targets.slice(0, 3).map(m => m.id));
                     } else if (valid_targets.length >= 1 && character.mp >= 100) {
-                        await attack(valid_targets[0]);
+                        attack(valid_targets[0]);
                     }
                 }
                 delayMs = ms_to_next_skill("attack") + character.ping + 50;

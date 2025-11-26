@@ -1368,8 +1368,8 @@ async function panic_loop() {
             }
 
             // Try to cast scare if possible
-            if (!is_on_cooldown("scare") && can_use("scare")) {
-                log("Panicked! Using Scare!", "#ffcc00", "Alerts");
+            if (!is_on_cooldown("scare") && can_use("scare") && character.slots.orb?.name === PANIC_ORB) {
+                log("Using Scare!", "#ffcc00", "Alerts");
                 use_skill("scare");
                 await delay(delayMs);
             }

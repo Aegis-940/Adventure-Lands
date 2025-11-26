@@ -141,7 +141,7 @@ async function attack_loop() {
                     await delay(1000)
                     continue; // Skip attacking while smart moving
                 } else if (target && is_in_range(target) && !smart.moving && character.mp >= 80) {
-                    await attack(target);
+                    attack(target);
                 }
                 delayMs = ms_to_next_skill("attack") + character.ping + 50;
                 await delay(delayMs);
