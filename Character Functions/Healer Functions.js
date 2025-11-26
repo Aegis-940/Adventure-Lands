@@ -94,7 +94,7 @@ async function heal_attack_loop() {
             // --- Healing logic ---
             if (should_heal && LOOP_STATES.heal) {
                 try {
-                    await heal(heal_target);
+                    heal(heal_target);
                 } catch (e) {
                     catcher(e, "Heal loop error");
                 }
@@ -144,7 +144,7 @@ async function heal_attack_loop() {
                     monsters_targeting_me < TARGET_LIMIT
                 ) {
                     try {
-                        await attack(target);
+                        attack(target);
                     } catch (e) {
                         catcher(e, "Attack loop error");
                     }
