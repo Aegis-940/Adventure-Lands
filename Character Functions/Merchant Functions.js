@@ -152,14 +152,14 @@ async function set_state(state) {
 
             case MERCHANT_STATES.EXCHANGING:
                 try {
-                    if(!handling_exchanging) {
-                        handling_exchanging = true;
-                        merchant_task = "Exchanging";
-                        exchange_items();
-                        last_exchange_time = Date.now();
-                        merchant_task = "Idle";
-                    }
-                    handling_exchanging = false;
+                    // if(!handling_exchanging) {
+                    //     handling_exchanging = true;
+                    //     merchant_task = "Exchanging";
+                    //     exchange_items();
+                    //     last_exchange_time = Date.now();
+                    //     merchant_task = "Idle";
+                    // }
+                    // handling_exchanging = false;
                 } catch (e) {
                     catcher(e, "set_state: EXCHANGING state error");
                 }
