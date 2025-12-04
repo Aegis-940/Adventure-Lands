@@ -26,6 +26,7 @@ const PANIC_HP_THRESHOLD = 0.40;        // Panic if below 40% HP
 const PANIC_MP_THRESHOLD = 100;         // Panic if below 100 MP
 const SAFE_HP_THRESHOLD = 0.70;         // Resume normal if above 70% HP
 const SAFE_MP_THRESHOLD = 500;          // Resume normal if above 500 MP
+const CRIT_HP_THRESHOLD = 0.20;         // Critical panic if below 20% HP (reloads character)
 const PANIC_AGGRO_THRESHOLD = 99;       // Panic if this many monsters are targeting you
 const PANIC_ORB = "jacko";              // Orb to switch to when panicking
 const NORMAL_ORB = "talkingskull";      // Orb to switch to when not panicking
@@ -34,7 +35,7 @@ const TARGET_LIMIT = 99;                // Max number of monsters allowed to tar
 const HEAL_THRESHOLD = 1.5;             // Overheal factor to compensate for resistance. (max_hp - heal/threshold)
 const ATTACK_MP_THRESHOLD = 3000;       // Minimum MP required to perform attacks (throttles aggro)
 
-const TARGET_LOWEST_HP = false;          // true: lowest HP, false: highest HP
+const TARGET_LOWEST_HP = false;         // true: lowest HP, false: highest HP
 const PRIORITIZE_UNTARGETED = true;     // true: prefer monsters with no target first
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
