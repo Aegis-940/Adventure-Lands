@@ -1383,28 +1383,28 @@ async function panic_loop() {
             continue;
         }
 
-        // CRITICAL PANIC CONDITION
-        if (crit_health) {
-            log("⚠️ Critical health! Engaging panic measures!", "#ff0000", "Alerts");
+        // // CRITICAL PANIC CONDITION
+        // if (crit_health) {
+        //     log("⚠️ Critical health! Engaging panic measures!", "#ff0000", "Alerts");
 
-            // Use localStorage to prevent endless reloads
-            const now = Date.now();
-            const lastReload = Number(localStorage.getItem("lastCriticalReload") || "0");
-            const COOLDOWN = 60000; // 1 minute
+        //     // Use localStorage to prevent endless reloads
+        //     const now = Date.now();
+        //     const lastReload = Number(localStorage.getItem("lastCriticalReload") || "0");
+        //     const COOLDOWN = 60000; // 1 minute
 
-            if (now - lastReload > COOLDOWN) {
-                localStorage.setItem("lastCriticalReload", String(now));
-                parent.window.location.reload();
-            } else {
-                log("❌ Reload skipped: cooldown active.", "#ff0000", "Alerts");
-            }  
-        }
+        //     if (now - lastReload > COOLDOWN) {
+        //         localStorage.setItem("lastCriticalReload", String(now));
+        //         parent.window.location.reload();
+        //     } else {
+        //         log("❌ Reload skipped: cooldown active.", "#ff0000", "Alerts");
+        //     }  
+        // }
 
         // SAFE CONDITION
         if (high_health && high_mana && monsters_targeting_me < PANIC_AGGRO_THRESHOLD) {
             if (panicking) {
                 panicking = false;
-                log("✅ Panic over — resuming normal operations.", "#00ff00", "Alerts");
+                log("✅ Panic over.", "#00ff00", "Alerts");
             }
             // Equip normal orb if needed
             if (character.slots.orb?.name !== NORMAL_ORB) {

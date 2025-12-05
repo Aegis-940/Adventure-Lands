@@ -16,8 +16,8 @@ const LOOP_STATES = {
 
 }
 
-const ATTACK_UNTARGETED = false;        // Prevent attacking mobs not targeting anyone
 const TARGET_LOWEST_HP = false;         // true: lowest HP, false: highest HP
+const ATTACK_UNTARGETED = false;        // Prevent attacking mobs not targeting anyone
 
 const POTION_HP_THRESHOLD = 300;        // Use potion if missing this much HP
 const POTION_MP_THRESHOLD = 400;        // Use potion if missing this much MP
@@ -30,12 +30,9 @@ const PANIC_MP_THRESHOLD = 1;           // Panic if below 1 MP
 const SAFE_HP_THRESHOLD = 0.80;         // Resume normal if above 80% HP
 const SAFE_MP_THRESHOLD = 500;          // Resume normal if above 500 MP
 const CRIT_HP_THRESHOLD = 0.40;         // Critical panic if below 40% HP (reloads character)
-const PANIC_AGGRO_THRESHOLD = 2;        // Panic if this many monsters are targeting you
+const PANIC_AGGRO_THRESHOLD = 3;        // Panic if this many monsters are targeting you
 const PANIC_ORB = "jacko";              // Orb to switch to when panicking
 const NORMAL_ORB = "orbg";              // Orb to switch to when not panicking
-
-const AGITATE_MP_THRESHOLD = 800;       // Minimum MP Warrior must have to cast Agitate
-const CLEAVE_MP_THRESHOLD = 900;        // Minimum MP Warrior must have to cast Cleave
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS

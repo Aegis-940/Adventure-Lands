@@ -16,8 +16,8 @@ const LOOP_STATES = {
 
 }
 
-const ATTACK_UNTARGETED = false;        // Prevent attacking mobs not targeting anyone
 const TARGET_LOWEST_HP = false;         // true: lowest HP, false: highest HP
+const ATTACK_UNTARGETED = false;        // Prevent attacking mobs not targeting anyone
 
 const POTION_HP_THRESHOLD = 300;        // Use potion if missing this much HP
 const POTION_MP_THRESHOLD = 400;        // Use potion if missing this much MP

@@ -16,6 +16,9 @@ const LOOP_STATES = {
 
 }
 
+const TARGET_LOWEST_HP = false;         // true: lowest HP, false: highest HP
+const PRIORITIZE_UNTARGETED = true;     // true: prefer monsters with no target first
+
 const POTION_HP_THRESHOLD = 700;        // Use potion if missing this much HP
 const POTION_MP_THRESHOLD = 400;        // Use potion if missing this much MP
 
@@ -35,8 +38,6 @@ const TARGET_LIMIT = 99;                // Max number of monsters allowed to tar
 const HEAL_THRESHOLD = 1.5;             // Overheal factor to compensate for resistance. (max_hp - heal/threshold)
 const ATTACK_MP_THRESHOLD = 3000;       // Minimum MP required to perform attacks (throttles aggro)
 
-const TARGET_LOWEST_HP = false;         // true: lowest HP, false: highest HP
-const PRIORITIZE_UNTARGETED = true;     // true: prefer monsters with no target first
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS
