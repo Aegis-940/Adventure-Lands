@@ -1344,7 +1344,6 @@ async function panic_loop() {
         const low_mana = character.mp < PANIC_MP_THRESHOLD;
         const high_health = character.hp >= character.max_hp * SAFE_HP_THRESHOLD;
         const high_mana = character.mp >= SAFE_MP_THRESHOLD;
-        const crit_health = character.hp < character.max_hp * CRIT_HP_THRESHOLD;
 
         // Aggro check: monsters targeting me
         const monsters_targeting_me = Object.values(parent.entities).filter(
@@ -1382,23 +1381,6 @@ async function panic_loop() {
             await delay(delayMs);
             continue;
         }
-
-        // // CRITICAL PANIC CONDITION
-        // if (crit_health) {
-        //     log("⚠️ Critical health! Engaging panic measures!", "#ff0000", "Alerts");
-
-        //     // Use localStorage to prevent endless reloads
-        //     const now = Date.now();
-        //     const lastReload = Number(localStorage.getItem("lastCriticalReload") || "0");
-        //     const COOLDOWN = 60000; // 1 minute
-
-        //     if (now - lastReload > COOLDOWN) {
-        //         localStorage.setItem("lastCriticalReload", String(now));
-        //         parent.window.location.reload();
-        //     } else {
-        //         log("❌ Reload skipped: cooldown active.", "#ff0000", "Alerts");
-        //     }  
-        // }
 
         // SAFE CONDITION
         if (high_health && high_mana && monsters_targeting_me < PANIC_AGGRO_THRESHOLD) {

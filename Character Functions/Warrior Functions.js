@@ -29,7 +29,6 @@ const PANIC_HP_THRESHOLD = 0.50;        // Panic if below 50% HP
 const PANIC_MP_THRESHOLD = 1;           // Panic if below 100 MP
 const SAFE_HP_THRESHOLD = 0.75;         // Resume normal if above 75% HP
 const SAFE_MP_THRESHOLD = 500;          // Resume normal if above 500 MP
-const CRIT_HP_THRESHOLD = 0.30;         // Critical panic if below 30% HP (reloads character)
 const PANIC_AGGRO_THRESHOLD = 99;       // Panic if this many monsters are targeting you
 const PANIC_ORB = "jacko";              // Orb to switch to when panicking
 const NORMAL_ORB = "orbg";              // Orb to switch to when not panicking
@@ -214,20 +213,6 @@ async function boss_loop() {
             log("No alive bosses found.", "#ffaa00", "Alerts");
             return;
         }
-
-        // // Equip panic weapon if needed
-        // if (character.slots.orb?.name !== PANIC_WEAPON) {
-        //     const jacko_slot = locate_item(PANIC_WEAPON);
-        //     if (jacko_slot !== -1) {
-        //         await equip(jacko_slot);
-        //     }
-        // }
-
-        // // Try to cast scare if possible
-        // if (!is_on_cooldown("scare") && can_use("scare")) {
-        //     log("Panicked! Using Scare!", "#ffcc00", "Alerts");
-        //     await use_skill("scare");
-        // }
 
         const boss_name = select_boss(alive_bosses);
 
