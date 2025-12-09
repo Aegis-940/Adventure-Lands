@@ -125,7 +125,7 @@ async function attack_loop() {
 // BOSS LOOP - HALLOWEEN EDITION
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const BOSSES = ["mrpumpkin", "mrgreen", "grinch", "snowman"];
+const BOSSES = ["mrpumpkin", "mrgreen", "snowman"];
 const BOSS_RANGE_TOLERANCE = 5;
 
 let last_supershot_time = 0;
