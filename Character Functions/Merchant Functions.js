@@ -913,8 +913,8 @@ async function pouchbow_upgrade() {
 
     // Auto-craft pouchbow 25 times with 100ms delay between each
     for (let i = 0; i < 25; i++) {
-        auto_craft("pouchbow");
-        await delay(50);
+        await auto_craft("pouchbow");
+        await delay(10);
     }
 
     // Move home
