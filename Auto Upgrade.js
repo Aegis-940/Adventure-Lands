@@ -291,11 +291,11 @@ async function auto_upgrade_item(level) {
         // Upgrade the item
         if (!character.q.upgrade) {
             if (item.level <= 6 && can_use("massproduction")) {
-                use_skill("massproduction");
+                await use_skill("massproduction");
                 await delay(10);
             }
             if (item.level >= 7 && can_use("massproductionpp")) {
-                use_skill("massproductionpp");
+                await use_skill("massproductionpp");
                 await delay(10);
             }
             parent.socket.emit("upgrade", {
@@ -304,7 +304,7 @@ async function auto_upgrade_item(level) {
                 offering_num: offering_slot,
                 clevel: item.level,
             });
-            game_log(`Upgrading ${item.name} (level ${item.level}) with ${scrollname}`);
+            await game_log(`Upgrading ${item.name} (level ${item.level}) with ${scrollname}`);
         }
 
         return "done";
