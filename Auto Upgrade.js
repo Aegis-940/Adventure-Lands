@@ -289,12 +289,14 @@ async function auto_upgrade_item(level) {
         // }
 
         // Upgrade the item
-        parent.socket.emit("upgrade", {
-            item_num: i,
-            scroll_num: scroll_slot,
-            offering_num: offering_slot,
-            clevel: item.level,
-        });
+        if (!character.q.upgrade) {
+            parent.socket.emit("upgrade", {
+                item_num: i,
+                scroll_num: scroll_slot,
+                offering_num: offering_slot,
+                clevel: item.level,
+            });
+        }
 
         game_log(`Upgrading ${item.name} (level ${item.level}) with ${scrollname}`);
         return "done";
