@@ -139,7 +139,6 @@ async function set_state(state) {
                         log("Starting auto-upgrade process...");
                         handling_upgrading = true;
                         merchant_task = "Upgrading";
-                        await sell_and_bank();
                         await auto_upgrade();
                         last_auto_upgrade_time = Date.now();
                         merchant_task = "Idle";
@@ -914,7 +913,7 @@ async function pouchbow_upgrade() {
 
     // Auto-craft pouchbow 25 times with 100ms delay between each
     for (let i = 0; i < 25; i++) {
-        await auto_craft("pouchbow");
+        auto_craft("pouchbow");
         await delay(50);
     }
 
