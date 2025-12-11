@@ -299,8 +299,11 @@ async function auto_upgrade_item(level) {
                 offering_num: offering_slot,
                 clevel: item.level,
             });
-            await delay(100);
             await game_log(`Upgrading ${item.name} (level ${item.level}) with ${scrollname}`);
+        }
+
+        while (character.q.upgrade) {
+            await delay(100);
         }
 
         return "done";
