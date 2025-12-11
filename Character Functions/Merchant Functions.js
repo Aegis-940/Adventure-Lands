@@ -891,12 +891,27 @@ async function pouchbow_upgrade() {
     // Move to bank
     await smarter_move(BANK_LOCATION);
 
-    // Withdraw "smoke"
-    try {
-        await withdraw_item("smoke");
-        await delay(200);
-    } catch (e) {
-        game_log("⚠️ Could not withdraw 'smoke': " + e.message, "#FF0000");
+    // Withdraw "smoke" until we have at least 25 in inventory
+    let smoke_slot = -1;
+    let smoke_qty = 0;
+    let smoke_attempts = 0;
+    const MAX_ATTEMPTS = 5;
+
+    while (smoke_qty < 25 && smoke_attempts < MAX_ATTEMPTS) {
+        try {
+            await withdraw_item("smoke");
+            await delay(200);
+        } catch (e) {
+            game_log("⚠️ Could not withdraw 'smoke': " + e.message, "#FF0000");
+        }
+        smoke_slot = character.items.findIndex(itm => itm && itm.name === "smoke");
+        smoke_qty = smoke_slot !== -1 ? (character.items[smoke_slot].q || 1) : 0;
+        smoke_attempts++;
+    }
+
+    if (smoke_qty < 25) {
+        game_log("❌ Not enough 'smoke' in inventory after multiple attempts. Aborting pouchbow upgrade.", "#FF0000");
+        return;
     }
 
     // Move home
@@ -904,7 +919,7 @@ async function pouchbow_upgrade() {
 
     // Buy 25 "bow"
     for (let i = 0; i < 25; i++) {
-        parent.buy("bow");
+        await parent.buy("bow");
         await delay(50); // Small delay to avoid flooding
     }
 
@@ -914,7 +929,7 @@ async function pouchbow_upgrade() {
     // Auto-craft pouchbow 25 times with 100ms delay between each
     for (let i = 0; i < 25; i++) {
         await auto_craft("pouchbow");
-        await delay(10);
+        await delay(100);
     }
 
     // Move home
