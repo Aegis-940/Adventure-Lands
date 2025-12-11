@@ -888,3 +888,39 @@ async function target_upgrade(target_item, target_amount) {
 	// await sell_and_bank();
 }
 
+async function pouchbow_upgrade() {
+    // Move to bank
+    await smarter_move(BANK_LOCATION);
+
+    // Withdraw "smoke"
+    try {
+        await withdraw_item("smoke");
+        await delay(200);
+    } catch (e) {
+        game_log("⚠️ Could not withdraw 'smoke': " + e.message, "#FF0000");
+    }
+
+    // Move home
+    await smarter_move(HOME);
+
+    // Buy 25 "bow"
+    for (let i = 0; i < 25; i++) {
+        parent.buy("bow");
+        await delay(50); // Small delay to avoid flooding
+    }
+
+    // Move to main, 5, 419
+    await smarter_move({ map: "main", x: 5, y: 419 });
+
+    // Auto-craft pouchbow 25 times with 100ms delay between each
+    for (let i = 0; i < 25; i++) {
+        await auto_craft("pouchbow");
+        await delay(100);
+    }
+
+    // Move home
+    await smarter_move(HOME);
+
+    // Set state to UPGRADING
+    set_state(MERCHANT_STATES.UPGRADING);
+}
