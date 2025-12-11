@@ -283,11 +283,6 @@ async function auto_upgrade_item(level) {
             }
         }
 
-        // // Use massproduction if available
-        // if (can_use("massproduction")) {
-        //     await use_skill("massproduction");
-        // }
-
         // Upgrade the item
         if (!character.q.upgrade) {
             if (item.level <= 6 && can_use("massproduction")) {
@@ -304,6 +299,7 @@ async function auto_upgrade_item(level) {
                 offering_num: offering_slot,
                 clevel: item.level,
             });
+            await delay(100);
             await game_log(`Upgrading ${item.name} (level ${item.level}) with ${scrollname}`);
         }
 
