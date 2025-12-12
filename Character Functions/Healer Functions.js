@@ -564,11 +564,11 @@ async function loot_loop() {
                 if (getNumChests() >= chestThreshold && character.fear < 6) {
                     batch_equip([{ itemName: "handofmidas", slot: "gloves", level: 4 }]);
                     shift(5,'goldbooster');
-                    await delay(50);
+                    await delay(75);
                     await loot_chests();
-                    batch_equip([{ itemName: "xgloves", slot: "gloves", level: 4 }]);
+                    batch_equip([{ itemName: "mittens", slot: "gloves", level: 6 }]);
                     shift(5,'luckbooster');
-                    await delay(50);
+                    await delay(75);
                 }
             }
 
