@@ -1366,7 +1366,7 @@ async function panic_loop() {
                 const orb_slot = locate_item(PANIC_ORB);
                 await delay(100);
                 if (orb_slot !== -1) {
-                    equip(orb_slot);
+                    await equip(orb_slot);
                     await delay(delayMs);
                 }
             }
@@ -1374,7 +1374,7 @@ async function panic_loop() {
             // Try to cast scare if possible
             if (!is_on_cooldown("scare") && can_use("scare") && character.slots.orb?.name === PANIC_ORB) {
                 log("Using Scare!", "#ffcc00", "Alerts");
-                use_skill("scare");
+                await use_skill("scare");
                 await delay(delayMs);
             }
 
