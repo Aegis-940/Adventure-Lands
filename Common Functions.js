@@ -1501,39 +1501,60 @@ async function orbit_loop() {
 // RESET BUTTON
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function create_reload_button(top = 10, left = null, right = null) {
-    const doc = parent.document;
-    const existing = doc.getElementById("reload-btn");
-    if (existing) return;
+// function create_reload_button(top = 10, left = null, right = null) {
+//     const doc = parent.document;
+//     const existing = doc.getElementById("reload-btn");
+//     if (existing) return;
 
-    const btn = doc.createElement("button");
-    btn.id = "reload-btn";
-    btn.textContent = "🔄";
-    btn.style.position = "absolute";
-    btn.style.top = `${top}px`;
-    btn.style.left = left !== null ? `${left}px` : "";
-    btn.style.right = right !== null ? `${right}px` : "";
-    btn.style.width = "50px";
-    btn.style.height = "55px";
-    btn.style.margin = "0 auto";
-    btn.style.zIndex = 99999;
-    btn.style.fontSize = "24px";
-    btn.style.padding = "0";
-    btn.style.background = "#222";
-    btn.style.color = "#fff";
-    btn.style.border = "4px solid #888";
-    btn.style.cursor = "pointer";
-    btn.style.left = left !== null ? `${left}px` : "50%";
-    btn.style.transform = left === null && right === null ? "translateX(-50%)" : "";
+//     const btn = doc.createElement("button");
+//     btn.id = "reload-btn";
+//     btn.textContent = "🔄";
+//     btn.style.position = "absolute";
+//     btn.style.top = `${top}px`;
+//     btn.style.left = left !== null ? `${left}px` : "";
+//     btn.style.right = right !== null ? `${right}px` : "";
+//     btn.style.width = "50px";
+//     btn.style.height = "55px";
+//     btn.style.margin = "0 auto";
+//     btn.style.zIndex = 99999;
+//     btn.style.fontSize = "24px";
+//     btn.style.padding = "0";
+//     btn.style.background = "#222";
+//     btn.style.color = "#fff";
+//     btn.style.border = "4px solid #888";
+//     btn.style.cursor = "pointer";
 
-    btn.onclick = () => {
-        parent.window.location.reload();
-    };
+//     btn.style.left = left !== null ? `${left}px` : "50%";
+//     btn.style.transform = left === null && right === null ? "translateX(-50%)" : "";
 
-    doc.body.appendChild(btn);
+//     btn.onclick = () => {
+//         parent.window.location.reload();
+//     };
+
+//     doc.body.appendChild(btn);
+// }
+
+// create_reload_button(0, 1987); // Top, 1600px from left
+
+function add_reload_button() {
+    const $ = parent.$;
+    const trc = $("#toprightcorner");
+    if (!trc.length) return setTimeout(add_reload_button, 500);
+
+    // Remove any existing reload button to avoid duplicates
+    $("#reload-btn").remove();
+
+    // Create the reload button
+    const reload_btn = $(`
+        <div id="reload-btn" class="gamebutton" style="margin-right: 4px; cursor: pointer;">
+            🔄
+        </div> `);
+
+    trc.children().first().after(reload_btn);
 }
 
-create_reload_button(0, 1987); // Top, 1600px from left
+// Call this after the DOM is ready
+add_reload_button();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATS BUTTON
