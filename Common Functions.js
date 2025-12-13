@@ -1546,7 +1546,7 @@ function add_reload_button() {
 
     // Create the reload button
     const reload_btn = $(`
-        <div id="reload-btn" class="gamebutton" style="margin-right: 4px; cursor: pointer;">
+        <div id="reload-btn" class="gamebutton" style="margin-right: 2px; cursor: pointer;">
             🔄
         </div> `);
 
