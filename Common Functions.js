@@ -1552,7 +1552,7 @@ function add_reload_button() {
 
     trc.children().first().after(reload_btn);
 
-    btn.onclick = () => {
+    reload_btn.onclick = () => {
         parent.window.location.reload();
     };
 }
