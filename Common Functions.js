@@ -1551,6 +1551,10 @@ function add_reload_button() {
         </div> `);
 
     trc.children().first().after(reload_btn);
+
+    btn.onclick = () => {
+        parent.window.location.reload();
+    };
 }
 
 // Call this after the DOM is ready
