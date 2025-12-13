@@ -1548,16 +1548,17 @@ function add_reload_button() {
     const reload_btn = $(`
         <div id="reload-btn" class="gamebutton" style="margin-right: 0px; cursor: pointer;">
             🔄
-        </div> `);
+        </div>
+    `);
 
     trc.children().first().after(reload_btn);
 
-    reload_btn.onclick = () => {
+    // Use jQuery's .on() to attach the click handler
+    reload_btn.on("click", () => {
         parent.window.location.reload();
-    };
+    });
 }
 
-// Call this after the DOM is ready
 add_reload_button();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
