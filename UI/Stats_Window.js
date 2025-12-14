@@ -1,6 +1,6 @@
     // Font size variables
-    const TITLE_FONT_SIZE = "1.2em";
-    const TEXT_FONT_SIZE = "1em";
+    const TITLE_FONT_SIZE = "1.5em";
+    const TEXT_FONT_SIZE = "1.3em";
 function ui_window() {
     const doc = parent.document;
     let win = doc.getElementById("ui-statistics-window");
@@ -89,6 +89,8 @@ function ui_window() {
     flexRow.style.flexDirection = "row";
     flexRow.style.alignItems = "flex-start";
     flexRow.style.margin = "8px 0 0 0";
+    flexRow.style.width = "100%";
+    flexRow.style.flexWrap = "nowrap";
     content.appendChild(flexRow);
 
     // --- LOOP TOGGLES/STATE SECTION ---
@@ -106,6 +108,7 @@ function ui_window() {
     togglesSection.style.maxWidth = "170px";
     togglesSection.style.height = "auto";
     togglesSection.style.boxSizing = "border-box";
+    togglesSection.style.flex = "0 0 170px";
     flexRow.appendChild(togglesSection);
 
     // --- GOLD GRAPH WINDOW ---
@@ -124,6 +127,7 @@ function ui_window() {
     goldSection.style.height = "auto";
     goldSection.style.boxSizing = "border-box";
     goldSection.style.marginLeft = "4px";
+    goldSection.style.flex = "0 0 170px";
     flexRow.appendChild(goldSection);
 
     // Gold Graph Title
