@@ -90,7 +90,7 @@ function ui_window() {
     togglesSection.style.margin = "8px 0 0 0";
     togglesSection.style.padding = "8px";
     togglesSection.style.fontFamily = "pixel";
-    togglesSection.style.fontSize = "1.5em";
+    togglesSection.style.fontSize = "1em";
     togglesSection.style.userSelect = "none";
     togglesSection.style.width = "340px";
     togglesSection.style.minWidth = "340px";
@@ -121,17 +121,21 @@ function ui_window() {
 
     // Helper to get toggles
     function getLoopToggles() {
+        // Pad all names to the same width for alignment (max 6 chars)
+        function padName(name, width = 6) {
+            return name.padEnd(width, ' ');
+        }
         return [
-            ["ATTACK_LOOP_ENABLED", typeof ATTACK_LOOP_ENABLED !== "undefined" ? ATTACK_LOOP_ENABLED : "?"],
-            ["HEAL_LOOP_ENABLED", typeof HEAL_LOOP_ENABLED !== "undefined" ? HEAL_LOOP_ENABLED : "?"],
-            ["MOVE_LOOP_ENABLED", typeof MOVE_LOOP_ENABLED !== "undefined" ? MOVE_LOOP_ENABLED : "?"],
-            ["SKILL_LOOP_ENABLED", typeof SKILL_LOOP_ENABLED !== "undefined" ? SKILL_LOOP_ENABLED : "?"],
-            ["PANIC_LOOP_ENABLED", typeof PANIC_LOOP_ENABLED !== "undefined" ? PANIC_LOOP_ENABLED : "?"],
-            ["BOSS_LOOP_ENABLED", typeof BOSS_LOOP_ENABLED !== "undefined" ? BOSS_LOOP_ENABLED : "?"],
-            ["ORBIT_LOOP_ENABLED", typeof ORBIT_LOOP_ENABLED !== "undefined" ? ORBIT_LOOP_ENABLED : "?"],
-            ["POTION_LOOP_ENABLED", typeof POTION_LOOP_ENABLED !== "undefined" ? POTION_LOOP_ENABLED : "?"],
-            ["LOOT_LOOP_ENABLED", typeof LOOT_LOOP_ENABLED !== "undefined" ? LOOT_LOOP_ENABLED : "?"],
-            ["STATUS_CACHE_LOOP_ENABLED", typeof STATUS_CACHE_LOOP_ENABLED !== "undefined" ? STATUS_CACHE_LOOP_ENABLED : "?"],
+            [padName("ATTACK"), typeof ATTACK_LOOP_ENABLED !== "undefined" ? ATTACK_LOOP_ENABLED : "?"],
+            [padName("HEAL"), typeof HEAL_LOOP_ENABLED !== "undefined" ? HEAL_LOOP_ENABLED : "?"],
+            [padName("MOVE"), typeof MOVE_LOOP_ENABLED !== "undefined" ? MOVE_LOOP_ENABLED : "?"],
+            [padName("SKILL"), typeof SKILL_LOOP_ENABLED !== "undefined" ? SKILL_LOOP_ENABLED : "?"],
+            [padName("PANIC"), typeof PANIC_LOOP_ENABLED !== "undefined" ? PANIC_LOOP_ENABLED : "?"],
+            [padName("BOSS"), typeof BOSS_LOOP_ENABLED !== "undefined" ? BOSS_LOOP_ENABLED : "?"],
+            [padName("ORBIT"), typeof ORBIT_LOOP_ENABLED !== "undefined" ? ORBIT_LOOP_ENABLED : "?"],
+            [padName("POTION"), typeof POTION_LOOP_ENABLED !== "undefined" ? POTION_LOOP_ENABLED : "?"],
+            [padName("LOOT"), typeof LOOT_LOOP_ENABLED !== "undefined" ? LOOT_LOOP_ENABLED : "?"],
+            [padName("STATUS"), typeof STATUS_CACHE_LOOP_ENABLED !== "undefined" ? STATUS_CACHE_LOOP_ENABLED : "?"],
         ];
     }
 
@@ -155,14 +159,14 @@ function ui_window() {
             // Name cell
             const nameCell = doc.createElement("td");
             nameCell.textContent = name;
-            nameCell.style.fontFamily = "pixel";
+            nameCell.style.fontFamily = "monospace";
             nameCell.style.fontSize = "1em";
             nameCell.style.color = "#fff";
             nameCell.style.paddingRight = "0.5em";
-            nameCell.style.whiteSpace = "nowrap";
+            nameCell.style.whiteSpace = "pre";
             // Dash cell
             const dashCell = doc.createElement("td");
-            dashCell.textContent = "─────";
+            dashCell.textContent = "──";
             dashCell.style.width = "100%";
             dashCell.style.color = "#888";
             dashCell.style.textAlign = "center";
