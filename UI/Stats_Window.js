@@ -148,13 +148,14 @@ function ui_window() {
     }
 
     function updateTable() {
-        // Update state and toggles in a single preformatted block
+        // Update state and toggles in a single preformatted block with color
         const state = getCurrentState();
-        let text = `Current State:\t${state}\n`;
+        let html = `Current State:\t<span style='color:#0ff;'>${state}</span>\n`;
         for (const [name, val] of getLoopToggles()) {
-            text += `${name}:\t${val}\n`;
+            let color = val === true ? "#0f0" : val === false ? "#f44" : "#ff0";
+            html += `${name}:\t<span style='color:${color};'>${val}</span>\n`;
         }
-        togglesPre.textContent = text.trim();
+        togglesPre.innerHTML = html.trim().replace(/\n/g, "<br>");
     }
 
     updateTable();
