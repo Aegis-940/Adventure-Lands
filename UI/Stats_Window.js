@@ -166,7 +166,7 @@ function ui_window() {
             // Value cell
             const valCell = doc.createElement("td");
             valCell.textContent = String(val);
-            valCell.style.textAlign = "right";
+            valCell.style.textAlign = "left";
             valCell.style.fontFamily = "pixel";
             valCell.style.fontSize = "1em";
             valCell.style.color = val === true ? "#0f0" : val === false ? "#f44" : "#ff0";
