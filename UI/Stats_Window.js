@@ -1,6 +1,6 @@
     // Font size variables
     const TITLE_FONT_SIZE = "1.5em";
-    const TEXT_FONT_SIZE = "1.3em";
+    const TEXT_FONT_SIZE = "1em";
 function ui_window() {
     const doc = parent.document;
     let win = doc.getElementById("ui-statistics-window");
@@ -93,9 +93,9 @@ function ui_window() {
     togglesSection.style.fontFamily = "pixel";
     togglesSection.style.fontSize = TEXT_FONT_SIZE;
     togglesSection.style.userSelect = "none";
-    togglesSection.style.width = "170px";
-    togglesSection.style.minWidth = "170px";
-    togglesSection.style.maxWidth = "170px";
+    togglesSection.style.width = "240px";
+    togglesSection.style.minWidth = "240px";
+    togglesSection.style.maxWidth = "240px";
     togglesSection.style.height = "auto";
     togglesSection.style.boxSizing = "border-box";
     togglesSection.style.position = "absolute";
@@ -113,9 +113,9 @@ function ui_window() {
     goldSection.style.fontFamily = "pixel";
     goldSection.style.fontSize = TEXT_FONT_SIZE;
     goldSection.style.userSelect = "none";
-    goldSection.style.width = "170px";
-    goldSection.style.minWidth = "170px";
-    goldSection.style.maxWidth = "170px";
+    goldSection.style.width = "500px";
+    goldSection.style.minWidth = "500px";
+    goldSection.style.maxWidth = "500px";
     goldSection.style.height = "auto";
     goldSection.style.boxSizing = "border-box";
     goldSection.style.position = "absolute";
