@@ -92,6 +92,11 @@ function ui_window() {
     togglesSection.style.fontFamily = "pixel";
     togglesSection.style.fontSize = "1em";
     togglesSection.style.userSelect = "none";
+    togglesSection.style.width = "340px";
+    togglesSection.style.minWidth = "340px";
+    togglesSection.style.maxWidth = "340px";
+    togglesSection.style.height = "auto";
+    togglesSection.style.boxSizing = "border-box";
 
     // Title
     const title = doc.createElement("div");
