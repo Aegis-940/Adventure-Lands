@@ -159,7 +159,7 @@ function ui_window() {
             const nameCell = doc.createElement("td");
             nameCell.textContent = name;
             nameCell.style.fontFamily = "monospace";
-            nameCell.style.fontSize = "1.2em";
+            nameCell.style.fontSize = "1em";
             nameCell.style.color = "#fff";
             nameCell.style.paddingRight = "0.5em";
             nameCell.style.whiteSpace = "pre";
