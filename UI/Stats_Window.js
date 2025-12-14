@@ -89,7 +89,7 @@ function ui_window() {
     togglesSection.style.margin = "8px 0 0 0";
     togglesSection.style.padding = "8px";
     togglesSection.style.fontFamily = "pixel";
-    togglesSection.style.fontSize = "1.5em";
+    togglesSection.style.fontSize = "1em";
     togglesSection.style.userSelect = "none";
     togglesSection.style.width = "340px";
     togglesSection.style.minWidth = "340px";
@@ -163,13 +163,6 @@ function ui_window() {
             nameCell.style.color = "#fff";
             nameCell.style.paddingRight = "0.5em";
             nameCell.style.whiteSpace = "pre";
-            // Dash cell
-            const dashCell = doc.createElement("td");
-            dashCell.textContent = "──";
-            dashCell.style.width = "100%";
-            dashCell.style.color = "#888";
-            dashCell.style.textAlign = "center";
-            dashCell.style.fontFamily = "monospace";
             // Value cell
             const valCell = doc.createElement("td");
             valCell.textContent = String(val);
