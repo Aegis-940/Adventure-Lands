@@ -163,10 +163,17 @@ function ui_window() {
             nameCell.style.color = "#fff";
             nameCell.style.paddingRight = "0.5em";
             nameCell.style.whiteSpace = "pre";
+            // Dash cell
+            const dashCell = doc.createElement("td");
+            dashCell.textContent = "──";
+            dashCell.style.width = "100%";
+            dashCell.style.color = "#888";
+            dashCell.style.textAlign = "center";
+            dashCell.style.fontFamily = "monospace";
             // Value cell
             const valCell = doc.createElement("td");
             valCell.textContent = String(val);
-            valCell.style.textAlign = "left";
+            valCell.style.textAlign = "right";
             valCell.style.fontFamily = "pixel";
             valCell.style.fontSize = "1em";
             valCell.style.color = val === true ? "#0f0" : val === false ? "#f44" : "#ff0";
