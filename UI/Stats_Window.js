@@ -83,22 +83,12 @@ function ui_window() {
     content.style.fontSize = "1em";
     win.appendChild(content);
 
-    // --- CONTAINER FOR SIDE-BY-SIDE WINDOWS ---
-    const flexRow = doc.createElement("div");
-    flexRow.style.display = "flex";
-    flexRow.style.flexDirection = "row";
-    flexRow.style.alignItems = "flex-start";
-    flexRow.style.margin = "8px 0 0 0";
-    flexRow.style.width = "100%";
-    flexRow.style.flexWrap = "nowrap";
-    content.appendChild(flexRow);
-
-    // --- LOOP TOGGLES/STATE SECTION ---
+    // --- LOOP TOGGLES/STATE SUB-WINDOW ---
     const togglesSection = doc.createElement("div");
     togglesSection.id = "loop-toggles-section";
     togglesSection.style.background = "rgba(34,34,34,0.20)";
-    togglesSection.style.border = "1px solid #555";
-    togglesSection.style.borderRadius = "6px";
+    togglesSection.style.border = "2px solid #555";
+    togglesSection.style.borderRadius = "8px";
     togglesSection.style.padding = "8px";
     togglesSection.style.fontFamily = "pixel";
     togglesSection.style.fontSize = TEXT_FONT_SIZE;
@@ -108,15 +98,17 @@ function ui_window() {
     togglesSection.style.maxWidth = "170px";
     togglesSection.style.height = "auto";
     togglesSection.style.boxSizing = "border-box";
-    togglesSection.style.flex = "0 0 170px";
-    flexRow.appendChild(togglesSection);
+    togglesSection.style.position = "absolute";
+    togglesSection.style.left = "12px";
+    togglesSection.style.top = "60px";
+    content.appendChild(togglesSection);
 
-    // --- GOLD GRAPH WINDOW ---
+    // --- GOLD GRAPH SUB-WINDOW ---
     const goldSection = doc.createElement("div");
     goldSection.id = "gold-graph-section";
     goldSection.style.background = "rgba(34,34,34,0.20)";
-    goldSection.style.border = "1px solid #555";
-    goldSection.style.borderRadius = "6px";
+    goldSection.style.border = "2px solid #555";
+    goldSection.style.borderRadius = "8px";
     goldSection.style.padding = "8px";
     goldSection.style.fontFamily = "pixel";
     goldSection.style.fontSize = TEXT_FONT_SIZE;
@@ -126,9 +118,10 @@ function ui_window() {
     goldSection.style.maxWidth = "170px";
     goldSection.style.height = "auto";
     goldSection.style.boxSizing = "border-box";
-    goldSection.style.marginLeft = "4px";
-    goldSection.style.flex = "0 0 170px";
-    flexRow.appendChild(goldSection);
+    goldSection.style.position = "absolute";
+    goldSection.style.left = "194px";
+    goldSection.style.top = "60px";
+    content.appendChild(goldSection);
 
     // Gold Graph Title
     const goldTitle = doc.createElement("div");
