@@ -1592,3 +1592,5 @@ function show_loop_toggles_window() {
 
     doc.body.appendChild(win);
 }
+
+show_loop_toggles_window()
