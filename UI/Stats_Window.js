@@ -157,7 +157,7 @@ function ui_window() {
             nameCell.style.whiteSpace = "nowrap";
             // Dash cell
             const dashCell = doc.createElement("td");
-            dashCell.textContent = "────────────────";
+            dashCell.textContent = "─────";
             dashCell.style.width = "100%";
             dashCell.style.color = "#888";
             dashCell.style.textAlign = "center";
