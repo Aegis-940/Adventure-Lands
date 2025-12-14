@@ -110,7 +110,7 @@ function ui_window() {
     const togglesPre = doc.createElement("pre");
     togglesPre.id = "loop-toggles-pre";
     togglesPre.style.fontFamily = "pixel, monospace";
-    togglesPre.style.fontSize = "1em";
+    togglesPre.style.fontSize = "1.5em";
     togglesPre.style.margin = "0";
     togglesPre.style.padding = "0";
     togglesPre.style.background = "none";
