@@ -90,7 +90,7 @@ function ui_window() {
     togglesSection.style.margin = "8px 0 0 0";
     togglesSection.style.padding = "8px";
     togglesSection.style.fontFamily = "pixel";
-    togglesSection.style.fontSize = "2em";
+    togglesSection.style.fontSize = "1.5em";
     togglesSection.style.userSelect = "none";
     togglesSection.style.width = "340px";
     togglesSection.style.minWidth = "340px";
