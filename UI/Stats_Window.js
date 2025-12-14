@@ -1,3 +1,6 @@
+    // Font size variables
+    const TITLE_FONT_SIZE = "1.2em";
+    const TEXT_FONT_SIZE = "1em";
 function ui_window() {
     const doc = parent.document;
     let win = doc.getElementById("ui-statistics-window");
@@ -81,12 +84,12 @@ function ui_window() {
     win.appendChild(content);
 
     // --- CONTAINER FOR SIDE-BY-SIDE WINDOWS ---
-    const statsRow = doc.createElement("div");
-    statsRow.style.display = "flex";
-    statsRow.style.flexDirection = "row";
-    statsRow.style.alignItems = "flex-start";
-    statsRow.style.gap = "4px";
-    content.appendChild(statsRow);
+    const flexRow = doc.createElement("div");
+    flexRow.style.display = "flex";
+    flexRow.style.flexDirection = "row";
+    flexRow.style.alignItems = "flex-start";
+    flexRow.style.margin = "8px 0 0 0";
+    content.appendChild(flexRow);
 
     // --- LOOP TOGGLES/STATE SECTION ---
     const togglesSection = doc.createElement("div");
@@ -94,17 +97,16 @@ function ui_window() {
     togglesSection.style.background = "rgba(34,34,34,0.20)";
     togglesSection.style.border = "1px solid #555";
     togglesSection.style.borderRadius = "6px";
-    togglesSection.style.margin = "8px 0 0 0";
     togglesSection.style.padding = "8px";
     togglesSection.style.fontFamily = "pixel";
-    togglesSection.style.fontSize = "1.2em";
+    togglesSection.style.fontSize = TEXT_FONT_SIZE;
     togglesSection.style.userSelect = "none";
-    togglesSection.style.width = "240px";
-    togglesSection.style.minWidth = "240px";
-    togglesSection.style.maxWidth = "240px";
+    togglesSection.style.width = "170px";
+    togglesSection.style.minWidth = "170px";
+    togglesSection.style.maxWidth = "170px";
     togglesSection.style.height = "auto";
     togglesSection.style.boxSizing = "border-box";
-    statsRow.appendChild(togglesSection);
+    flexRow.appendChild(togglesSection);
 
     // --- GOLD GRAPH WINDOW ---
     const goldSection = doc.createElement("div");
@@ -112,67 +114,62 @@ function ui_window() {
     goldSection.style.background = "rgba(34,34,34,0.20)";
     goldSection.style.border = "1px solid #555";
     goldSection.style.borderRadius = "6px";
-    goldSection.style.margin = "8px 0 0 0";
     goldSection.style.padding = "8px";
     goldSection.style.fontFamily = "pixel";
-    goldSection.style.fontSize = "1em";
+    goldSection.style.fontSize = TEXT_FONT_SIZE;
     goldSection.style.userSelect = "none";
-    goldSection.style.width = "340px";
-    goldSection.style.minWidth = "340px";
-    goldSection.style.maxWidth = "340px";
+    goldSection.style.width = "170px";
+    goldSection.style.minWidth = "170px";
+    goldSection.style.maxWidth = "170px";
     goldSection.style.height = "auto";
     goldSection.style.boxSizing = "border-box";
-    statsRow.appendChild(goldSection);
+    goldSection.style.marginLeft = "4px";
+    flexRow.appendChild(goldSection);
 
-    // --- GOLD GRAPH TITLE ---
+    // Gold Graph Title
     const goldTitle = doc.createElement("div");
-    goldTitle.textContent = "GOLD (30m avg)";
+    goldTitle.textContent = "GOLD/HOUR";
     goldTitle.style.fontWeight = "bold";
-    goldTitle.style.fontSize = "1.2em";
+    goldTitle.style.fontSize = TITLE_FONT_SIZE;
     goldTitle.style.marginBottom = "4px";
     goldTitle.style.fontFamily = "pixel";
     goldSection.appendChild(goldTitle);
 
-    // --- GOLD GRAPH CANVAS ---
+    // Gold Graph Canvas
     const goldCanvas = doc.createElement("canvas");
-    goldCanvas.width = 320;
-    goldCanvas.height = 120;
+    goldCanvas.width = 150;
+    goldCanvas.height = 80;
     goldCanvas.style.display = "block";
     goldCanvas.style.background = "rgba(0,0,0,0.15)";
     goldCanvas.style.borderRadius = "4px";
     goldCanvas.style.margin = "0 auto";
     goldSection.appendChild(goldCanvas);
 
-    // --- GOLD DATA STORAGE ---
+    // Gold Graph Data
     let goldHistory = [];
-    let lastGold = typeof character !== 'undefined' ? character.gold : 0;
+    let lastGold = (typeof character !== 'undefined' && character.gold) ? character.gold : 0;
     let lastTime = Date.now();
 
     function updateGoldHistory() {
         if (typeof character === 'undefined') return;
         const now = Date.now();
         const gold = character.gold;
-        const dt = (now - lastTime) / 1000;
-        if (dt < 1) return; // Only update once per second
-        const earned = gold - lastGold;
-        goldHistory.push({ time: now, gold: gold, earned: earned });
+        goldHistory.push({ time: now, gold });
+        // Remove data older than 30 minutes
+        const cutoff = now - 30 * 60 * 1000;
+        goldHistory = goldHistory.filter(d => d.time >= cutoff);
         lastGold = gold;
         lastTime = now;
-        // Keep only last 30 minutes
-        const cutoff = now - 30 * 60 * 1000;
-        goldHistory = goldHistory.filter(e => e.time >= cutoff);
     }
 
-    function getRollingAverage() {
-        // Average gold earned per minute over last 30 minutes
+    function getGoldPerHour() {
         if (goldHistory.length < 2) return 0;
-        let totalEarned = 0;
-        for (let i = 1; i < goldHistory.length; ++i) {
-            const diff = goldHistory[i].gold - goldHistory[i-1].gold;
-            if (diff > 0) totalEarned += diff;
-        }
-        const minutes = 30;
-        return totalEarned / minutes;
+        const first = goldHistory[0];
+        const last = goldHistory[goldHistory.length - 1];
+        const goldDelta = last.gold - first.gold;
+        const timeDelta = (last.time - first.time) / 1000 / 60 / 60; // hours
+        if (timeDelta === 0) return 0;
+        return goldDelta / timeDelta;
     }
 
     function drawGoldGraph() {
@@ -182,44 +179,46 @@ function ui_window() {
         ctx.strokeStyle = '#888';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(30, 10);
-        ctx.lineTo(30, 110);
-        ctx.lineTo(310, 110);
+        ctx.moveTo(25, 10);
+        ctx.lineTo(25, 70);
+        ctx.lineTo(145, 70);
         ctx.stroke();
 
-        // Draw rolling average text
-        ctx.font = '18px pixel, monospace';
-        ctx.fillStyle = '#fff';
-        ctx.fillText('Avg/min: ', 40, 30);
-        ctx.fillStyle = '#0ff';
-        ctx.fillText(getRollingAverage().toFixed(0), 110, 30);
-
-        // Draw graph line
+        // Draw gold data as line
         if (goldHistory.length > 1) {
-            // Find max/min for scaling
-            let min = goldHistory[0].gold, max = goldHistory[0].gold;
-            for (const e of goldHistory) {
-                if (e.gold < min) min = e.gold;
-                if (e.gold > max) max = e.gold;
-            }
-            const range = Math.max(1, max - min);
-            ctx.strokeStyle = '#ffd700';
+            const minGold = Math.min(...goldHistory.map(d => d.gold));
+            const maxGold = Math.max(...goldHistory.map(d => d.gold));
+            const range = Math.max(1, maxGold - minGold);
+            ctx.strokeStyle = '#FFD700';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            for (let i = 0; i < goldHistory.length; ++i) {
-                const x = 30 + (280 * (goldHistory[i].time - goldHistory[0].time) / (30*60*1000));
-                const y = 110 - 90 * (goldHistory[i].gold - min) / range;
+            goldHistory.forEach((d, i) => {
+                const x = 25 + ((goldCanvas.width - 35) * (d.time - goldHistory[0].time)) / (goldHistory[goldHistory.length - 1].time - goldHistory[0].time || 1);
+                const y = 70 - 60 * (d.gold - minGold) / range;
                 if (i === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
-            }
+            });
             ctx.stroke();
         }
+
+        // Draw current gold/hour
+        ctx.font = `bold ${TEXT_FONT_SIZE} pixel, monospace`;
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'left';
+        ctx.fillText('Avg:', 28, 18);
+        ctx.fillStyle = '#0ff';
+        ctx.textAlign = 'right';
+        ctx.fillText(`${Math.round(getGoldPerHour()).toLocaleString()} g/hr`, 145, 18);
     }
 
+    // Update gold graph every 5 seconds
     setInterval(() => {
         updateGoldHistory();
         drawGoldGraph();
-    }, 1000);
+    }, 5000);
+    // Initial draw
+    updateGoldHistory();
+    drawGoldGraph();
 
     // Title
     const title = doc.createElement("div");
@@ -285,7 +284,7 @@ function ui_window() {
     updateTable();
     setInterval(updateTable, 500);
 
-    // (togglesSection is now added to statsRow above)
+    content.appendChild(togglesSection);
 
     doc.body.appendChild(win);
 }
