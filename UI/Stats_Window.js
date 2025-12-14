@@ -122,7 +122,7 @@ function ui_window() {
     // Helper to get toggles
     function getLoopToggles() {
         // Pad all names to the same width for alignment (max 6 chars)
-        function padName(name, width = 6) {
+        function padName(name, width = 1) {
             return name.padEnd(width, ' ');
         }
         return [
