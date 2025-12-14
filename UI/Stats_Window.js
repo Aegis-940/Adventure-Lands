@@ -91,9 +91,9 @@ function ui_window() {
     togglesSection.style.fontFamily = "pixel";
     togglesSection.style.fontSize = "1.2em";
     togglesSection.style.userSelect = "none";
-    togglesSection.style.width = "200px";
-    togglesSection.style.minWidth = "200px";
-    togglesSection.style.maxWidth = "200px";
+    togglesSection.style.width = "240px";
+    togglesSection.style.minWidth = "240px";
+    togglesSection.style.maxWidth = "240px";
     togglesSection.style.height = "auto";
     togglesSection.style.boxSizing = "border-box";
 
