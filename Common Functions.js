@@ -1419,8 +1419,26 @@ function add_reload_button() {
     const trc = $("#toprightcorner");
     if (!trc.length) return setTimeout(add_reload_button, 500);
 
-    // Remove any existing reload button to avoid duplicates
+
+    // Remove any existing reload or stats button to avoid duplicates
     $("#reload-btn").remove();
+    $("#stats-btn").remove();
+
+    // Create the stats button (as a div for consistent style)
+    const stats_btn = $(`
+        <div id="stats-btn" class="gamebutton" style="margin-right: 4px; cursor: pointer;">
+            📊
+        </div>
+    `);
+    stats_btn.on("click", () => {
+        const doc = parent.document;
+        let win = doc.getElementById("ui-statistics-window");
+        if (!win) {
+            if (typeof ui_window === "function") ui_window();
+        } else {
+            win.style.display = win.style.display === "none" ? "block" : "none";
+        }
+    });
 
     // Create the reload button
     const reload_btn = $(`
@@ -1428,13 +1446,13 @@ function add_reload_button() {
             🔄
         </div>
     `);
-
-    trc.children().first().after(reload_btn);
-
-    // Use jQuery's .on() to attach the click handler
     reload_btn.on("click", () => {
         parent.window.location.reload();
     });
+
+    // Insert stats button to the left of reload button
+    trc.children().first().after(stats_btn);
+    stats_btn.after(reload_btn);
 }
 
 add_reload_button();
@@ -1444,40 +1462,5 @@ add_reload_button();
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function create_stats_button(top = 10, left = null, right = null) {
-    const doc = parent.document;
-    const existing = doc.getElementById("stats-btn");
-    if (existing) return;
-
-    const btn = doc.createElement("button");
-    btn.id = "stats-btn";
-    btn.textContent = "📊";
-    btn.style.position = "absolute";
-    btn.style.top = `${top}px`;
-    btn.style.left = left !== null ? `${left}px` : "";
-    btn.style.right = right !== null ? `${right}px` : "";
-    btn.style.width = "50px";
-    btn.style.height = "55px";
-    btn.style.margin = "0 auto";
-    btn.style.zIndex = 99999;
-    btn.style.fontSize = "24px";
-    btn.style.padding = "0";
-    btn.style.background = "#222";
-    btn.style.color = "#fff";
-    btn.style.border = "4px solid #888";
-    btn.style.cursor = "pointer";
-    btn.style.left = left !== null ? `${left}px` : "50%";
-    btn.style.transform = left === null && right === null ? "translateX(-50%)" : "";
-
-    btn.onclick = () => {
-        let win = doc.getElementById("ui-statistics-window");
-        if (!win) {
-            ui_window();
-        } else {
-            win.style.display = win.style.display === "none" ? "block" : "none";
-        }
-    };
-
-    doc.body.appendChild(btn);
+    // No longer used; see add_reload_button for stats button logic
 }
-
-create_stats_button(0, 1932); // Top, 1600px from left
