@@ -103,25 +103,25 @@ function ui_window() {
     title.style.fontWeight = "bold";
     title.style.fontSize = "1.2em";
     title.style.marginBottom = "4px";
+    title.style.fontFamily = "pixel";
     togglesSection.appendChild(title);
 
-    // State display
-    const stateDiv = doc.createElement("div");
-    stateDiv.id = "loop-toggles-state";
-    stateDiv.style.fontSize = "1em";
-    stateDiv.style.marginBottom = "8px";
-    togglesSection.appendChild(stateDiv);
-
-    // Table
-    const table = doc.createElement("table");
-    table.style.width = "100%";
-    table.style.fontSize = "0.95em";
-    togglesSection.appendChild(table);
+    // Preformatted block for state and toggles
+    const togglesPre = doc.createElement("pre");
+    togglesPre.id = "loop-toggles-pre";
+    togglesPre.style.fontFamily = "pixel, monospace";
+    togglesPre.style.fontSize = "1em";
+    togglesPre.style.margin = "0";
+    togglesPre.style.padding = "0";
+    togglesPre.style.background = "none";
+    togglesPre.style.border = "none";
+    togglesPre.style.color = "#fff";
+    togglesSection.appendChild(togglesPre);
 
     // Helper to get toggles
     function getLoopToggles() {
-        // Pad all names to the same width for alignment (max 6 chars)
-        function padName(name, width = 1) {
+        // Pad all names to the same width for alignment (max 7 chars)
+        function padName(name, width = 7) {
             return name.padEnd(width, ' ');
         }
         return [
@@ -148,33 +148,13 @@ function ui_window() {
     }
 
     function updateTable() {
-        // Update state
+        // Update state and toggles in a single preformatted block
         const state = getCurrentState();
-        stateDiv.innerHTML = `<b>Current State:</b> <span style='color:#0ff;'>${state}</span>`;
-        // Update toggles
-        table.innerHTML = "";
+        let text = `Current State:\t${state}\n`;
         for (const [name, val] of getLoopToggles()) {
-            const row = doc.createElement("tr");
-            // Name cell
-            const nameCell = doc.createElement("td");
-            nameCell.textContent = name;
-            nameCell.style.fontFamily = "monospace";
-            nameCell.style.fontSize = "1em";
-            nameCell.style.color = "#fff";
-            nameCell.style.paddingRight = "0.5em";
-            nameCell.style.whiteSpace = "pre";
-            // Value cell
-            const valCell = doc.createElement("td");
-            valCell.textContent = String(val);
-            valCell.style.textAlign = "left";
-            valCell.style.fontFamily = "pixel";
-            valCell.style.fontSize = "1.2em";
-            valCell.style.color = val === true ? "#0f0" : val === false ? "#f44" : "#ff0";
-            valCell.style.whiteSpace = "nowrap";
-            row.appendChild(nameCell);
-            row.appendChild(valCell);
-            table.appendChild(row);
+            text += `${name}:\t${val}\n`;
         }
+        togglesPre.textContent = text.trim();
     }
 
     updateTable();
