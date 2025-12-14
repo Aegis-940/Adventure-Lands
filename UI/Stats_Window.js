@@ -73,11 +73,96 @@ function ui_window() {
     };
     win.appendChild(toggleBtn);
 
+
     // Content area
     const content = doc.createElement("div");
     content.id = "ui-statistics-content";
     content.style.padding = "12px";
+    content.style.fontSize = "1em";
     win.appendChild(content);
+
+    // --- LOOP TOGGLES/STATE SECTION ---
+    const togglesSection = doc.createElement("div");
+    togglesSection.id = "loop-toggles-section";
+    togglesSection.style.background = "rgba(34,34,34,0.20)";
+    togglesSection.style.border = "1px solid #555";
+    togglesSection.style.borderRadius = "6px";
+    togglesSection.style.margin = "8px 0 0 0";
+    togglesSection.style.padding = "8px";
+    togglesSection.style.fontFamily = "pixel";
+    togglesSection.style.fontSize = "1em";
+    togglesSection.style.userSelect = "none";
+
+    // Title
+    const title = doc.createElement("div");
+    title.textContent = "LOOP TOGGLES";
+    title.style.fontWeight = "bold";
+    title.style.fontSize = "1.2em";
+    title.style.marginBottom = "4px";
+    togglesSection.appendChild(title);
+
+    // State display
+    const stateDiv = doc.createElement("div");
+    stateDiv.id = "loop-toggles-state";
+    stateDiv.style.fontSize = "1em";
+    stateDiv.style.marginBottom = "8px";
+    togglesSection.appendChild(stateDiv);
+
+    // Table
+    const table = doc.createElement("table");
+    table.style.width = "100%";
+    table.style.fontSize = "0.95em";
+    togglesSection.appendChild(table);
+
+    // Helper to get toggles
+    function getLoopToggles() {
+        return [
+            ["ATTACK_LOOP_ENABLED", typeof ATTACK_LOOP_ENABLED !== "undefined" ? ATTACK_LOOP_ENABLED : "?"],
+            ["HEAL_LOOP_ENABLED", typeof HEAL_LOOP_ENABLED !== "undefined" ? HEAL_LOOP_ENABLED : "?"],
+            ["MOVE_LOOP_ENABLED", typeof MOVE_LOOP_ENABLED !== "undefined" ? MOVE_LOOP_ENABLED : "?"],
+            ["SKILL_LOOP_ENABLED", typeof SKILL_LOOP_ENABLED !== "undefined" ? SKILL_LOOP_ENABLED : "?"],
+            ["PANIC_LOOP_ENABLED", typeof PANIC_LOOP_ENABLED !== "undefined" ? PANIC_LOOP_ENABLED : "?"],
+            ["BOSS_LOOP_ENABLED", typeof BOSS_LOOP_ENABLED !== "undefined" ? BOSS_LOOP_ENABLED : "?"],
+            ["ORBIT_LOOP_ENABLED", typeof ORBIT_LOOP_ENABLED !== "undefined" ? ORBIT_LOOP_ENABLED : "?"],
+            ["POTION_LOOP_ENABLED", typeof POTION_LOOP_ENABLED !== "undefined" ? POTION_LOOP_ENABLED : "?"],
+            ["LOOT_LOOP_ENABLED", typeof LOOT_LOOP_ENABLED !== "undefined" ? LOOT_LOOP_ENABLED : "?"],
+            ["STATUS_CACHE_LOOP_ENABLED", typeof STATUS_CACHE_LOOP_ENABLED !== "undefined" ? STATUS_CACHE_LOOP_ENABLED : "?"],
+        ];
+    }
+
+    function getCurrentState() {
+        if (typeof get_character_state === "function") {
+            try {
+                return get_character_state();
+            } catch (e) { return "?"; }
+        }
+        return "?";
+    }
+
+    function updateTable() {
+        // Update state
+        const state = getCurrentState();
+        stateDiv.innerHTML = `<b>Current State:</b> <span style='color:#0ff;'>${state}</span>`;
+        // Update toggles
+        table.innerHTML = "";
+        for (const [name, val] of getLoopToggles()) {
+            const row = doc.createElement("tr");
+            const nameCell = doc.createElement("td");
+            nameCell.textContent = name;
+            const valCell = doc.createElement("td");
+            valCell.textContent = val;
+            valCell.style.textAlign = "right";
+            valCell.style.color = val === true ? "#0f0" : val === false ? "#f44" : "#ff0";
+            row.appendChild(nameCell);
+            row.appendChild(valCell);
+            table.appendChild(row);
+        }
+    }
+
+    updateTable();
+    setInterval(updateTable, 500);
+
+    content.appendChild(togglesSection);
 
     doc.body.appendChild(win);
 }
