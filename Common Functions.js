@@ -334,13 +334,6 @@ async function set_state(state) {
                 if (!handling_death) {
                     handling_death = true;
                     try {
-                        panicking = false;
-                        stop_attack_loop();
-                        stop_orbit_loop();
-                        stop_panic_loop();
-                        stop_boss_loop();
-                        stop_heal_loop();
-                        stop();
 
                         log("Respawning in 20s...", "red");
                         await delay(20000);
@@ -348,10 +341,6 @@ async function set_state(state) {
                         await delay(1000);
 
                         smarter_move(get_main_target());
-
-                        start_panic_loop();
-                        start_attack_loop();
-                        start_heal_loop();
 
                         // Re-evaluate state after respawn
                         const NEW_STATE = get_character_state();
@@ -1500,41 +1489,6 @@ async function orbit_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // RESET BUTTON
 // --------------------------------------------------------------------------------------------------------------------------------- //
-
-// function create_reload_button(top = 10, left = null, right = null) {
-//     const doc = parent.document;
-//     const existing = doc.getElementById("reload-btn");
-//     if (existing) return;
-
-//     const btn = doc.createElement("button");
-//     btn.id = "reload-btn";
-//     btn.textContent = "🔄";
-//     btn.style.position = "absolute";
-//     btn.style.top = `${top}px`;
-//     btn.style.left = left !== null ? `${left}px` : "";
-//     btn.style.right = right !== null ? `${right}px` : "";
-//     btn.style.width = "50px";
-//     btn.style.height = "55px";
-//     btn.style.margin = "0 auto";
-//     btn.style.zIndex = 99999;
-//     btn.style.fontSize = "24px";
-//     btn.style.padding = "0";
-//     btn.style.background = "#222";
-//     btn.style.color = "#fff";
-//     btn.style.border = "4px solid #888";
-//     btn.style.cursor = "pointer";
-
-//     btn.style.left = left !== null ? `${left}px` : "50%";
-//     btn.style.transform = left === null && right === null ? "translateX(-50%)" : "";
-
-//     btn.onclick = () => {
-//         parent.window.location.reload();
-//     };
-
-//     doc.body.appendChild(btn);
-// }
-
-// create_reload_button(0, 1987); // Top, 1600px from left
 
 function add_reload_button() {
     const $ = parent.$;
