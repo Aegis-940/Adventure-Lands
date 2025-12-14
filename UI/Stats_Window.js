@@ -91,9 +91,9 @@ function ui_window() {
     togglesSection.style.fontFamily = "pixel";
     togglesSection.style.fontSize = "1.2em";
     togglesSection.style.userSelect = "none";
-    togglesSection.style.width = "340px";
-    togglesSection.style.minWidth = "340px";
-    togglesSection.style.maxWidth = "340px";
+    togglesSection.style.width = "200px";
+    togglesSection.style.minWidth = "200px";
+    togglesSection.style.maxWidth = "200px";
     togglesSection.style.height = "auto";
     togglesSection.style.boxSizing = "border-box";
 
@@ -166,7 +166,7 @@ function ui_window() {
             // Value cell
             const valCell = doc.createElement("td");
             valCell.textContent = String(val);
-            valCell.style.textAlign = "right";
+            valCell.style.textAlign = "left";
             valCell.style.fontFamily = "pixel";
             valCell.style.fontSize = "1em";
             valCell.style.color = val === true ? "#0f0" : val === false ? "#f44" : "#ff0";
