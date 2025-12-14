@@ -147,15 +147,32 @@ function ui_window() {
         table.innerHTML = "";
         for (const [name, val] of getLoopToggles()) {
             const row = doc.createElement("tr");
-            const cell = doc.createElement("td");
-            // Draw dashes between name and value, length scales with name/value length
-            const valStr = String(val);
-            const dashCount = Math.max(4, 22 - name.length - valStr.length); // adjust for window size
-            const dashes = "-".repeat(dashCount);
-            cell.innerHTML = `<span style='color:#fff;'>${name}</span> <span style='color:#888;'>${dashes}</span> <span style='color:${val===true?"#0f0":val===false?"#f44":"#ff0"};font-weight:bold;'>${valStr}</span>`;
-            cell.style.fontFamily = "pixel";
-            cell.style.fontSize = "1em";
-            row.appendChild(cell);
+            // Name cell
+            const nameCell = doc.createElement("td");
+            nameCell.textContent = name;
+            nameCell.style.fontFamily = "pixel";
+            nameCell.style.fontSize = "1em";
+            nameCell.style.color = "#fff";
+            nameCell.style.paddingRight = "0.5em";
+            nameCell.style.whiteSpace = "nowrap";
+            // Dash cell
+            const dashCell = doc.createElement("td");
+            dashCell.textContent = "────────────────";
+            dashCell.style.width = "100%";
+            dashCell.style.color = "#888";
+            dashCell.style.textAlign = "center";
+            dashCell.style.fontFamily = "monospace";
+            // Value cell
+            const valCell = doc.createElement("td");
+            valCell.textContent = String(val);
+            valCell.style.textAlign = "right";
+            valCell.style.fontFamily = "pixel";
+            valCell.style.fontSize = "1em";
+            valCell.style.color = val === true ? "#0f0" : val === false ? "#f44" : "#ff0";
+            valCell.style.whiteSpace = "nowrap";
+            row.appendChild(nameCell);
+            row.appendChild(dashCell);
+            row.appendChild(valCell);
             table.appendChild(row);
         }
     }
