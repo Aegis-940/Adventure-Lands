@@ -147,14 +147,15 @@ function ui_window() {
         table.innerHTML = "";
         for (const [name, val] of getLoopToggles()) {
             const row = doc.createElement("tr");
-            const nameCell = doc.createElement("td");
-            nameCell.textContent = name;
-            const valCell = doc.createElement("td");
-            valCell.textContent = val;
-            valCell.style.textAlign = "right";
-            valCell.style.color = val === true ? "#0f0" : val === false ? "#f44" : "#ff0";
-            row.appendChild(nameCell);
-            row.appendChild(valCell);
+            const cell = doc.createElement("td");
+            // Draw dashes between name and value, length scales with name/value length
+            const valStr = String(val);
+            const dashCount = Math.max(4, 22 - name.length - valStr.length); // adjust for window size
+            const dashes = "-".repeat(dashCount);
+            cell.innerHTML = `<span style='color:#fff;'>${name}</span> <span style='color:#888;'>${dashes}</span> <span style='color:${val===true?"#0f0":val===false?"#f44":"#ff0"};font-weight:bold;'>${valStr}</span>`;
+            cell.style.fontFamily = "pixel";
+            cell.style.fontSize = "1em";
+            row.appendChild(cell);
             table.appendChild(row);
         }
     }
