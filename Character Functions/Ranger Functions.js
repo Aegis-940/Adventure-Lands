@@ -3,19 +3,6 @@
 // 1) GLOBAL LOOP SWITCHES AND VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const LOOP_STATES = {
-
-    attack: false,
-    heal: false,
-    move: false,
-    skill: false,
-    panic: true,
-    orbit: false,
-    boss: false,
-    potion: true,
-
-}
-
 const TARGET_LOWEST_HP = false;         // true: lowest HP, false: highest HP
 const ATTACK_UNTARGETED = false;        // Prevent attacking mobs not targeting anyone
 
@@ -34,19 +21,6 @@ const PANIC_ORB = "jacko";              // Orb to switch to when panicking
 const NORMAL_ORB = "orbg";              // Orb to switch to when not panicking
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// 2) START/STOP HELPERS
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-const LOOP_NAMES = [
-    "attack", "heal", "move", "skill", "panic", "loot", "potion", "orbit", "boss", "status_cache"
-];
-
-for (const name of LOOP_NAMES) {
-    globalThis[`start_${name}_loop`] = () => { LOOP_STATES[name] = true; };
-    globalThis[`stop_${name}_loop`] = () => { LOOP_STATES[name] = false; };
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -57,7 +31,7 @@ async function attack_loop() {
     while (true) {
         try {
 
-            if (!LOOP_STATES.attack) {
+            if (!ATTACK_LOOP_ENABLED) {
                 await delay(100);
                 continue;
             }
@@ -165,7 +139,7 @@ async function boss_loop() {
 
     while (true) {
         // Check if boss loop is enabled
-        if (!LOOP_STATES.boss) {
+        if (!BOSS_LOOP_ENABLED) {
             await delay(1000);
             continue;
         }
@@ -305,89 +279,6 @@ async function boss_loop() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// BOSS LOOP - GENERAL
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-const GENERAL_BOSSES = ["phoenix"];
-
-let general_boss_active = false;
-
-async function general_boss_loop() {
-    LOOP_STATES.boss = true;
-    let delayMs = 100;
-
-    try {
-        while (LOOP_STATES.general_boss) {
-            // 1. Scan for bosses in GENERAL_BOSSES within 300 distance
-            let boss = null;
-            for (const bossName of GENERAL_BOSSES) {
-                boss = Object.values(parent.entities).find(e =>
-                    e.type === "monster" &&
-                    e.mtype === bossName &&
-                    !e.dead &&
-                    parent.distance(character, e) <= 300
-                );
-                if (boss) break;
-            }
-
-            if (boss) {
-                general_boss_active = true;
-
-                // 2. Move to boss and stop within character.range
-                while (boss && !boss.dead) {
-                    const dist = parent.distance(character, boss);
-
-                    // Move closer if out of range, but stop once within range
-                    if (dist > character.range && !character.moving) {
-                        await smarter_move({ map: boss.map, x: boss.x, y: boss.y });
-                    } else if (dist > character.range) {
-                        // Wait for movement to finish
-                        await delay(100);
-                    } else if (dist < character.range - 10 && !character.moving) {
-                        // Maintain distance: move back if too close
-                        const dx = character.x - boss.x;
-                        const dy = character.y - boss.y;
-                        const d = Math.hypot(dx, dy);
-                        const target_x = boss.x + (dx / d) * character.range;
-                        const target_y = boss.y + (dy / d) * character.range;
-                        move(target_x, target_y);
-                        await delay(100);
-                    }
-
-                    // 3. Attack logic
-                    try {
-                        change_target(boss);
-                        if (!is_on_cooldown("huntersmark")) await use_skill("huntersmark", boss);
-                        else if (!is_on_cooldown("supershot")) await use_skill("supershot", boss);
-                        else if (can_attack(boss)) await attack(boss);
-                        delayMs = ms_to_next_skill("attack") + character.ping + 20;
-                    } catch (e) {
-                        game_log("Error attacking boss: " + e.message);
-                    }
-
-                    // Refresh boss reference
-                    boss = parent.entities[boss.id];
-                    await delay(delayMs);
-                }
-
-                // 4. Boss is dead
-                general_boss_active = false;
-            } else {
-                general_boss_active = false;
-                await delay(500);
-            }
-        }
-    } catch (e) {
-        game_log("⚠️ General Boss Loop error:", "#FF0000");
-        game_log(e);
-    } finally {
-        LOOP_STATES.boss = false;
-        general_boss_active = false;
-        game_log("General boss loop ended unexpectedly", "#ffea00ff");
-    }
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
 // MOVE LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -397,7 +288,7 @@ async function move_loop() {
 
     while (true) {
         // Check if move loop is enabled
-        if (!LOOP_STATES.move) {
+        if (!MOVE_LOOP_ENABLED) {
             await delay(delayMs);
             continue;
         }
@@ -468,7 +359,7 @@ async function loot_loop() {
 
         while (true) {
             // Check if loot loop is enabled
-            if (!LOOP_STATES.loot) {
+            if (!LOOT_LOOP_ENABLED) {
                 await delay(delayMs);
                 continue;
             }
@@ -498,7 +389,7 @@ async function potion_loop() {
 
     while (true) {
         // Check if potion loop is enabled
-        if (!LOOP_STATES.potion) {
+        if (!POTION_LOOP_ENABLED) {
             await delay(200);
             continue;
         }

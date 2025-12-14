@@ -42,6 +42,22 @@ const FLOATING_BUTTON_IDS = [];
 const SOFT_RESTART_TIMER = 60000;    // 1 minute
 const HARD_RESET_TIMER   = 90000;    // 1.5 minutes
 
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// LOOP TOGGLES
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let ATTACK_LOOP_ENABLED       = false;
+let HEAL_LOOP_ENABLED         = true;
+let MOVE_LOOP_ENABLED         = false;
+let SKILL_LOOP_ENABLED        = true;
+let PANIC_LOOP_ENABLED        = true;
+let BOSS_LOOP_ENABLED         = false;
+let ORBIT_LOOP_ENABLED        = false;
+let POTION_LOOP_ENABLED       = true;
+let LOOT_LOOP_ENABLED         = true;
+let STATUS_CACHE_LOOP_ENABLED = true;
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // GLOBAL FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -188,99 +204,7 @@ function smarter_move(destination, on_done, options = {}) {
 // GLOBAL WATCHDOG
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Global Watchdog Monitor
-let last_activity_time = Date.now();
-let last_soft_restart_time = 0;
-let last_hard_reset_time = 0;
-let is_active = null;
 
-async function passive_activity_monitor() {
-    let last_mp = character.mp;
-    let last_mpots = character.items.filter(it => it && it.name === "mpot1").reduce((sum, it) => sum + (it.q || 1), 0);
-
-    while (true) {
-        is_active = false;
-
-        // 1. Smart moving
-        if (smart.moving) is_active = true;
-
-        // 2. Mana changed (any change up or down)
-        if (character.mp !== last_mp) is_active = true;
-
-        // 3. HP/MP potions used (count decreased)
-        let current_mpots = character.items.filter(it => it && it.name === "mpot1").reduce((sum, it) => sum + (it.q || 1), 0);
-
-        if (current_mpots < last_mpots) is_active = true;
-
-        if (is_active) last_activity_time = Date.now();
-
-        last_mp = character.mp;
-        last_mpots = current_mpots;
-        await delay(1000); // Check every second
-    }
-}
-
-async function watchdog_loop() {
-    function safely_call(fnName, ...args) {
-        try {
-            const fn = typeof window !== "undefined" ? window[fnName] : parent[fnName];
-            if (typeof fn === "function") return fn(...args);
-        } catch (e) {
-            log(`⚠️ Could not call ${fnName}: ${e.message}`, "#FF8800", "Errors");
-        }
-    }
-
-    while (true) {
-        if (character.rip) {   
-            await delay(1000);
-            continue;
-        }
-        await delay(5000); // check every 5 seconds
-        const now = Date.now();
-
-        // Hard reset if inactive for 2 minutes
-        if (now - last_activity_time > HARD_RESET_TIMER && now - last_hard_reset_time > HARD_RESET_TIMER) {
-            log("🔄 Hard reset: Reloading page due to persistent inactivity.", "#ff0000", "Alerts");
-            last_hard_reset_time = now;
-            parent.window.location.reload();
-            // No need to reset last_activity_time here, page will reload
-        }
-        // Soft restart if inactive for 30 seconds, but not more than once every 30s
-        else if (
-            now - last_activity_time > SOFT_RESTART_TIMER &&
-            now - last_soft_restart_time > SOFT_RESTART_TIMER
-        ) {
-            log("⚠️ Inactivity detected! Attempting to restart main loops...", "#ff8800", "Alerts");
-            last_soft_restart_time = now;
-            try {
-                safely_call("stop_attack_loop");
-                safely_call("stop_heal_loop");
-                safely_call("stop_move_loop");
-                safely_call("stop_skill_loop");
-                safely_call("stop_panic_loop");
-                safely_call("stop_boss_loop");
-                safely_call("stop_orbit_loop");
-                safely_call("stop_status_cache_loop");
-                stop();
-                await delay(500);
-
-                log("✅ Main loops restarted by watchdog.", "#00ff00", "Alerts");
-                log("Moving to target location...", "#00ff00", "Alerts");
-
-                // Move to respective character's target location (concise, by name)
-                if (character.name === "Myras") {
-                    await smarter_move(HEALER_TARGET);
-                } else if (character.name === "Ulric") {
-                    await smarter_move(WARRIOR_TARGET);
-                } else if (character.name === "Riva") {
-                    await smarter_move(RANGER_TARGET);
-                }
-            } catch (e) {
-                catcher(e, "Watchdog restart error");
-            }
-        }
-    }
-}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // UNIVERSAL LOOP CONTROL
@@ -317,15 +241,15 @@ async function set_state(state) {
 
     try {
         // Always-on loops
-        if (!LOOP_STATES.potion) start_potion_loop();
-        if (!LOOP_STATES.loot) start_loot_loop();
-        if (!LOOP_STATES.cache) start_status_cache_loop();
+        if (!POTION_LOOP_ENABLED)       POTION_LOOP_ENABLED = true;
+        if (!STATUS_CACHE_LOOP_ENABLED) STATUS_CACHE_LOOP_ENABLED = true;
+        if (!HEAL_LOOP_ENABLED)         HEAL_LOOP_ENABLED = true;
 
         // Helper for movement target
         function get_main_target() {
             if (character.name === "Ulric") return WARRIOR_TARGET;
             if (character.name === "Riva") return RANGER_TARGET;
-            return HEALER_TARGET;
+            if (character.name === "Myras") return HEALER_TARGET;
         }
 
         // State-specific
@@ -355,9 +279,9 @@ async function set_state(state) {
 
             case STATES.PANIC:
                 try {
-                    stop_attack_loop();
-                    stop_skill_loop();
-                    stop_boss_loop();
+                    ATTACK_LOOP_ENABLED = false;
+                    SKILL_LOOP_ENABLED = false;
+                    BOSS_LOOP_ENABLED = false;
                 } catch (e) {
                     catcher(e, "set_loops: PANIC state error");
                 }
@@ -365,11 +289,11 @@ async function set_state(state) {
 
             case STATES.BOSS:
                 try {
-                    if (LOOP_STATES.attack) stop_attack_loop();
-                    if (LOOP_STATES.skill) stop_skill_loop();
-                    if (LOOP_STATES.orbit) stop_orbit_loop();
+                    if (ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
+                    if (SKILL_LOOP_ENABLED)  SKILL_LOOP_ENABLED = false;
+                    if (ORBIT_LOOP_ENABLED)  ORBIT_LOOP_ENABLED = false;
 
-                    if (!LOOP_STATES.boss) start_boss_loop();
+                    if (!BOSS_LOOP_ENABLED) BOSS_LOOP_ENABLED = true;
                 } catch (e) {
                     catcher(e, "set_loops: BOSS state error");
                 }
@@ -377,9 +301,9 @@ async function set_state(state) {
 
             case STATES.NORMAL:
                 try {
-                    if (LOOP_STATES.boss) stop_boss_loop();
-                    if (!LOOP_STATES.skill) start_skill_loop();
-                    if (!LOOP_STATES.attack) start_attack_loop();
+                    if (BOSS_LOOP_ENABLED)    BOSS_LOOP_ENABLED = false;
+                    if (!SKILL_LOOP_ENABLED)  SKILL_LOOP_ENABLED = true;
+                    if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
 
                     // Orbit logic
                     const target = get_main_target();
@@ -388,13 +312,13 @@ async function set_state(state) {
                         const near_target = parent.distance(character, target) <= 50;
 
                         // Only start moving if not already moving, not orbiting, and NOT already at target
-                        if (near_target && !at_target && !LOOP_STATES.orbit && !smart.moving) {
+                        if (near_target && !at_target && !ORBIT_LOOP_ENABLED && !smart.moving) {
                             smarter_move(target).catch(e => log("Orbit move error: " + e));
                         }
 
                         // Only start orbit if at target and not already orbiting
-                        if (!LOOP_STATES.orbit && at_target) {
-                            start_orbit_loop();
+                        if (!ORBIT_LOOP_ENABLED && at_target) {
+                            ORBIT_LOOP_ENABLED = true;
                         }
                     }
                 } catch (e) {
@@ -579,11 +503,11 @@ function get_nearest_monster_v2(args = {}) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function status_cache_loop() {
-    LOOP_STATES.cache = true;
+    STATUS_CACHE_LOOP_ENABLED = true;
     let delayMs = 5000;
 
         while (true) {
-            if (!LOOP_STATES.cache) {
+            if (!STATUS_CACHE_LOOP_ENABLED) {
                 await delay(100);
                 continue;
             }
@@ -1324,7 +1248,7 @@ async function panic_loop() {
 
     while (true) { 
         // Check if panic loop is enabled
-        if (!LOOP_STATES.panic) {
+        if (!PANIC_LOOP_ENABLED) {
             await delay(delayMs);
             continue;
         }
@@ -1437,7 +1361,7 @@ async function orbit_loop() {
 
     while(true) {
         // Wait until orbit loop is enabled
-        if (!LOOP_STATES.orbit) {
+        if (!ORBIT_LOOP_ENABLED) {
             await delay(100);
             continue;
         }
@@ -1449,7 +1373,7 @@ async function orbit_loop() {
 
         while (true) {
             // Check if orbit loop is enabled
-            if (!LOOP_STATES.orbit) {
+            if (!ORBIT_LOOP_ENABLED) {
                 await delay(100);
                 continue;
             }
@@ -1457,7 +1381,7 @@ async function orbit_loop() {
             const dist_from_origin = Math.hypot(character.real_x - orbit_origin.x, character.real_y - orbit_origin.y);
             if (dist_from_origin > 100) {
                 game_log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
-                LOOP_STATES.orbit = false;
+                ORBIT_LOOP_ENABLED = false;
                 break;
             }
 
@@ -1475,7 +1399,7 @@ async function orbit_loop() {
             }
 
             // Wait until movement is finished or interrupted
-            while (LOOP_STATES.orbit && (character.moving || smart.moving)) {
+            while (ORBIT_LOOP_ENABLED && (character.moving || smart.moving)) {
                 await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
             }
 

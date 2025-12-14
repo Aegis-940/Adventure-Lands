@@ -3,19 +3,6 @@
 // 1) GLOBAL TOGGLES AND VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const LOOP_STATES = {
-
-    attack: false,
-    heal: true,
-    move: false,
-    skill: false,
-    panic: true,
-    orbit: false,
-    boss: false,
-    potion: true,
-
-}
-
 const TARGET_LOWEST_HP = false;         // true: lowest HP, false: highest HP
 const PRIORITIZE_UNTARGETED = true;     // true: prefer monsters with no target first
 
@@ -36,20 +23,6 @@ const NORMAL_ORB = "talkingskull";      // Orb to switch to when not panicking
 const TARGET_LIMIT = 99;                // Max number of monsters allowed to target you before stopping attacks
 const HEAL_THRESHOLD = 1.5;             // Overheal factor to compensate for resistance. (max_hp - heal/threshold)
 const ATTACK_MP_THRESHOLD = 3000;       // Minimum MP required to perform attacks (throttles aggro)
-
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// 2) START/STOP HELPERS
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-const LOOP_NAMES = [
-    "attack", "heal", "move", "skill", "panic", "loot", "potions", "orbit", "boss", "status_cache"
-];
-
-for (const name of LOOP_NAMES) {
-    globalThis[`start_${name}_loop`] = () => { LOOP_STATES[name] = true; };
-    globalThis[`stop_${name}_loop`] = () => { LOOP_STATES[name] = false; };
-}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SUPPORT FUNCTIONS
@@ -93,7 +66,7 @@ async function heal_attack_loop() {
                 is_in_range(heal_target)
             );
             // --- Healing logic ---
-            if (should_heal && LOOP_STATES.heal) {
+            if (should_heal && HEAL_LOOP_ENABLED) {
                 try {
                     heal(heal_target);
                 } catch (e) {
@@ -105,7 +78,7 @@ async function heal_attack_loop() {
             }
 
             // --- Attacking logic ---
-            else if (LOOP_STATES.attack) {
+            else if (ATTACK_LOOP_ENABLED) {
                 // Gather all valid monsters in range
                 let monsters = Object.values(parent.entities).filter(e =>
                     e.type === "monster" &&
@@ -205,7 +178,7 @@ async function boss_loop() {
 
     while (true) {
         // Check if boss loop is enabled
-        if (!LOOP_STATES.boss) {
+        if (!BOSS_LOOP_ENABLED) {
             await delay(1000);
             continue;
         }
@@ -326,7 +299,7 @@ async function move_loop() {
 
     while (true) {
         // Check if move loop is enabled
-        if (!LOOP_STATES.move) {
+        if (!MOVE_LOOP_ENABLED) {
             await delay(delayMs);
             continue;
         }
@@ -376,7 +349,7 @@ async function skill_loop() {
 
     while (true) {
         // Check if skill loop is enabled
-        if (!LOOP_STATES.skill) {
+        if (!SKILL_LOOP_ENABLED) {
             await delay(delayMs);
             continue;
         }
@@ -483,7 +456,7 @@ async function handle_absorb(mapsToExclude, eventMobs, eventMaps, blacklist) {
     }
 }
 
-async function handle_party_heal(minMissingHpMap = {}, minMp = 1000) {
+async function handle_party_heal(minMissingHpMap = {}, minMp = 2000) {
     if (character.mp <= minMp) return;
     if (is_on_cooldown("partyheal")) return;
 
@@ -553,7 +526,7 @@ async function loot_loop() {
 
         while (true) {
             // Check if loot loop is enabled
-            if (!LOOP_STATES.loot) {
+            if (!LOOT_LOOP_ENABLED) {
                 await delay(delayMs);
                 continue;
             }
@@ -594,7 +567,7 @@ async function potion_loop() {
 
     while (true) {
         // Check if potion loop is enabled
-        if (!LOOP_STATES.potion) {
+        if (!POTION_LOOP_ENABLED) {
             await delay(200);
             continue;
         }

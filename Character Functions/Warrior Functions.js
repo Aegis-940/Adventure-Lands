@@ -3,19 +3,6 @@
 // 1) GLOBAL LOOP SWITCHES AND VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const LOOP_STATES = {
-
-    attack: false,
-    move: false,
-    skill: false,
-    panic: true,
-    orbit: false,
-    boss: false,
-    potion: false,
-    cache: false,
-
-}
-
 const TARGET_LOWEST_HP = false;         // true: lowest HP, false: highest HP
 const ATTACK_UNTARGETED = false;        // Prevent attacking mobs not targeting anyone
 
@@ -37,61 +24,6 @@ const AGITATE_MP_THRESHOLD = 800;       // Minimum MP Warrior must have to cast 
 const CLEAVE_MP_THRESHOLD = 900;        // Minimum MP Warrior must have to cast Cleave
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// 2) START/STOP HELPERS (with persistent state saving)
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-const LOOP_NAMES = [
-    "attack", "heal", "move", "skill", "panic", "loot", "potion", "orbit", "boss", "status_cache"
-];
-
-for (const name of LOOP_NAMES) {
-    globalThis[`start_${name}_loop`] = () => { LOOP_STATES[name] = true; };
-    globalThis[`stop_${name}_loop`] = () => { LOOP_STATES[name] = false; };
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// SUPPORT FUNCTIONS
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-function get_optimal_explosion_target() {
-    const explosion_radius = character.explosion / 3.6;
-    const monsters_in_range = [];
-
-    // Gather all monsters within character.range
-    for (const id in parent.entities) {
-        const mob = parent.entities[id];
-        if (mob.type !== "monster" || mob.dead) continue;
-        const dist = parent.distance(character, mob);
-        if (dist <= character.range) {
-            monsters_in_range.push(mob);
-        }
-    }
-
-    let best_target = null;
-    let max_hits = 0;
-
-    // For each monster, count how many other monsters would be hit by the explosion
-    for (const mob of monsters_in_range) {
-        let hits = 0;
-        for (const other of monsters_in_range) {
-            if (other === mob) continue;
-            const dist = Math.hypot(mob.x - other.x, mob.y - other.y);
-            if (dist <= explosion_radius) {
-                hits++;
-            }
-        }
-        // Include the target itself in the hit count
-        hits++; 
-        if (hits > max_hits) {
-            max_hits = hits;
-            best_target = mob;
-        }
-    }
-
-    return best_target;
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -102,7 +34,7 @@ async function attack_loop() {
     while (true) {
         try {
 
-            if (!LOOP_STATES.attack) {
+            if (!ATTACK_LOOP_ENABLED) {
                 await delay(100);
                 continue;
             }
@@ -200,7 +132,7 @@ async function boss_loop() {
 
     while (true) {
         // Check if boss loop is enabled
-        if (!LOOP_STATES.boss) {
+        if (!BOSS_LOOP_ENABLED) {
             await delay(1000);
             continue;
         }
@@ -328,7 +260,7 @@ async function move_loop() {
 
     while (true) {
         // Check if move loop is enabled
-        if (!LOOP_STATES.move) {
+        if (!MOVE_LOOP_ENABLED) {
             await delay(delayMs);
             continue;
         }
@@ -380,13 +312,11 @@ const taunt_mobs = ["ghost"];
 
 async function skill_loop() {
 
-    LOOP_STATES.skill = true;
-
     let delayMs = 50; // Start with a higher delay
 
     while (true) {
 
-        if (!LOOP_STATES.skill) {
+        if (!SKILL_LOOP_ENABLED) {
             await delay(delayMs);
             continue;
         }
@@ -497,7 +427,7 @@ async function loot_loop() {
 
         while (true) {
             // Check if loot loop is enabled
-            if (!LOOP_STATES.loot) {
+            if (!LOOT_LOOP_ENABLED) {
                 await delay(delayMs);
                 continue;
             }
@@ -527,7 +457,7 @@ async function potion_loop() {
 
     while (true) {
         // Check if potion loop is enabled
-        if (!LOOP_STATES.potion) {
+        if (!POTION_LOOP_ENABLED) {
             await delay(200);
             continue;
         }
@@ -715,7 +645,7 @@ let last_aggro_time = 0;
 let last_bigbird_seen = 0;
 
 async function aggro_mobs() {
-    if (!LOOP_STATES.boss && !smart.moving && LOOP_STATES.orbit) {
+    if (!BOSS_LOOP_ENABLED && !smart.moving && ORBIT_LOOP_ENABLED) {
         const now = Date.now();
 
         // Check for bigbird within 50 units

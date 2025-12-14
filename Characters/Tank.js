@@ -38,8 +38,8 @@ attack_loop();
 
 // === Watchdog and Activity Monitor ===
 // Designed to ensure the bot is running smoothly and doesn't stall
-passive_activity_monitor();
-watchdog_loop();
+// passive_activity_monitor();
+// watchdog_loop();
 
 // == Loop Controller ===
 // Designed to manage state transitions and ensure appropriate loops are running
