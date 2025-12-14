@@ -159,7 +159,7 @@ function ui_window() {
             const nameCell = doc.createElement("td");
             nameCell.textContent = name;
             nameCell.style.fontFamily = "monospace";
-            nameCell.style.fontSize = "1em";
+            nameCell.style.fontSize = "1.2em";
             nameCell.style.color = "#fff";
             nameCell.style.paddingRight = "0.5em";
             nameCell.style.whiteSpace = "pre";
@@ -168,7 +168,7 @@ function ui_window() {
             valCell.textContent = String(val);
             valCell.style.textAlign = "left";
             valCell.style.fontFamily = "pixel";
-            valCell.style.fontSize = "1em";
+            valCell.style.fontSize = "1.2em";
             valCell.style.color = val === true ? "#0f0" : val === false ? "#f44" : "#ff0";
             valCell.style.whiteSpace = "nowrap";
             row.appendChild(nameCell);
