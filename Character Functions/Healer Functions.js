@@ -479,10 +479,10 @@ async function handle_party_heal(minMissingHpMap = {}, minMp = 2000) {
         if (!info || info.rip) continue;
         const threshold = thresholds[name] !== undefined ? thresholds[name] : 2000;
         if ((info.max_hp - info.hp) > threshold) {
-            log(`[Party Heal] Triggered by ${name}`, "#00ffff", "Alerts");
             try {
                 await use_skill("partyheal");
                 last_party_heal_time = Date.now();
+                log(`[Party Heal] Triggered by ${name} ${character.mp}`, "#00ffff", "Alerts");
             } catch (e) {
                 if (e?.reason !== "cooldown") throw e;
             }
