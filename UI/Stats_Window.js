@@ -1,6 +1,6 @@
     // Font size variables
     const TITLE_FONT_SIZE = "1.5em";
-    const TEXT_FONT_SIZE = "1.2em";
+    const TEXT_FONT_SIZE = "1.4em";
 function ui_window() {
     const doc = parent.document;
     let win = doc.getElementById("ui-statistics-window");
