@@ -19,7 +19,7 @@ const SAFE_MP_THRESHOLD = 500;          // Resume normal if above 500 MP
 const PANIC_AGGRO_THRESHOLD = 99;       // Panic if this many monsters are targeting you
 
 const TARGET_LIMIT = 99;                // Max number of monsters allowed to target you before stopping attacks
-const HEAL_THRESHOLD = 1.5;             // Overheal factor to compensate for resistance. (max_hp - heal/threshold)
+const HEAL_THRESHOLD = 1.3;             // Overheal factor to compensate for resistance. (max_hp - heal/threshold)
 const ATTACK_MP_THRESHOLD = 3000;       // Minimum MP required to perform attacks (throttles aggro)
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -482,7 +482,6 @@ async function handle_party_heal(minMissingHpMap = {}, minMp = 2000) {
             try {
                 use_skill("partyheal");
                 last_party_heal_time = Date.now();
-                log(`Party Heal - ${name}`, "#00ffff", "Alerts");
             } catch (e) {
                 if (e?.reason !== "cooldown") throw e;
             }
@@ -499,7 +498,6 @@ async function handle_dark_blessing() {
     try {
         use_skill("darkblessing");
         last_dark_blessing_time = Date.now();
-        log("Dark Blessing!!!", "#bc97ffff", "Alerts");
     } catch (e) {
         // Only log errors that are not cooldown-related
         if (!(e && (e.reason === "cooldown" || (e.message && e.message.toLowerCase().includes("cooldown"))))) {
