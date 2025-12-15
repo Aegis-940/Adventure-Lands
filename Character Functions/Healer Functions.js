@@ -577,6 +577,7 @@ async function potion_loop() {
         if (MP_MISSING >= POTION_MP_THRESHOLD) {
             if (can_use("mp")) {
                 use("mp");
+                log("Using MP potion", "#00ffff", "Alerts");
                 await delay(2010);
                 continue
             }
