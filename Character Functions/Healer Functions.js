@@ -462,9 +462,9 @@ async function handle_party_heal(minMissingHpMap = {}, minMp = 2000) {
     // Default thresholds for each character
     const defaultThresholds = {
         Myras: character.heal + 800,
-        Ulric: 1500,
-        Riva: 1500,
-        Riff: 500
+        Ulric: character.heal + 1000,
+        Riva: character.heal + 1500,
+        Riff: character.heal + 500
     };
 
     // Merge user-provided thresholds with defaults
@@ -482,7 +482,7 @@ async function handle_party_heal(minMissingHpMap = {}, minMp = 2000) {
             try {
                 await use_skill("partyheal");
                 last_party_heal_time = Date.now();
-                log(`[Party Heal] Triggered by ${name} ${character.mp}`, "#00ffff", "Alerts");
+                log(`[Party Heal] - ${name}`, "#00ffff", "Alerts");
             } catch (e) {
                 if (e?.reason !== "cooldown") throw e;
             }
@@ -491,11 +491,19 @@ async function handle_party_heal(minMissingHpMap = {}, minMp = 2000) {
     }
 }
 
-async function handle_dark_blessing() {
 
-	if (!is_on_cooldown("darkblessing")) {
-		await use_skill("darkblessing");
-	}
+let last_dark_blessing_time = 0;
+async function handle_dark_blessing() {
+    const now = Date.now();
+    if (now - last_dark_blessing_time < 500) return;
+    if (is_on_cooldown("darkblessing")) return;
+    try {
+        await use_skill("darkblessing");
+        last_dark_blessing_time = Date.now();
+        log("[Dark Blessing] Used successfully", "#aaffff", "Alerts");
+    } catch (e) {
+        catcher(e, "handle_dark_blessing");
+    }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
