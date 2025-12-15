@@ -53,27 +53,29 @@ function add_gold_graph(doc, content) {
 
     // Gold graph data: samples over 30-minute window
     const GOLD_GRAPH_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
-    const GOLD_GRAPH_CHECK_INTERVAL_MS = 500; // Check for changes every 500ms
     let gold_graph_samples = [];
-    let last_gold_value = null;
 
-    function check_and_add_sample() {
-        let value = 0;
+    function add_gold_sample_on_loot() {
         if (typeof calculateAverageGold === "function") {
-            value = calculateAverageGold();
-        }
-        
-        // Only add a new sample if the value has changed AND is non-zero (or we already have data)
-        if (value !== last_gold_value && (value > 0 || gold_graph_samples.length > 0)) {
+            const value = calculateAverageGold();
             const now = Date.now();
             gold_graph_samples.push({ t: now, amount: value });
-            last_gold_value = value;
             
             // Remove samples older than 30 minutes
             const cutoff = now - GOLD_GRAPH_WINDOW_MS;
             gold_graph_samples = gold_graph_samples.filter(s => s.t >= cutoff);
+            
+            // Redraw the graph
+            draw_gold_graph();
         }
     }
+
+    // Listen for loot events to add data points
+    character.on("loot", (data) => {
+        if (data.gold && typeof data.gold === 'number' && !Number.isNaN(data.gold)) {
+            add_gold_sample_on_loot();
+        }
+    });
 
     function draw_gold_graph() {
         const ctx = gold_canvas.getContext("2d");
@@ -143,12 +145,8 @@ function add_gold_graph(doc, content) {
         }
     }
 
-    // Start sampling and drawing (don't add initial zero sample)
+    // Initial draw
     draw_gold_graph();
-    setInterval(() => {
-        check_and_add_sample();
-        draw_gold_graph();
-    }, GOLD_GRAPH_CHECK_INTERVAL_MS);
 
     return gold_canvas;
 }
