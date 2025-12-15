@@ -197,7 +197,7 @@ function ui_window() {
     const title = doc.createElement("div");
     title.textContent = "LOOP TOGGLES";
     title.style.fontWeight = "bold";
-    title.style.fontSize = "1em";
+    title.style.fontSize = "1.2em";
     title.style.marginBottom = "4px";
     title.style.fontFamily = "pixel";
     togglesSection.appendChild(title);
@@ -206,7 +206,7 @@ function ui_window() {
     const togglesPre = doc.createElement("pre");
     togglesPre.id = "loop-toggles-pre";
     togglesPre.style.fontFamily = "pixel, monospace";
-    togglesPre.style.fontSize = "1em";
+    togglesPre.style.fontSize = "1.2em";
     togglesPre.style.margin = "0";
     togglesPre.style.padding = "0";
     togglesPre.style.background = "none";
