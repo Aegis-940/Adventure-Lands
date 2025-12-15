@@ -188,8 +188,8 @@ function ui_window() {
         ctx.fillText(`${Math.round(goldPerHour).toLocaleString()} g/hr`, goldCanvas.width - 6, goldCanvas.height - 6);
     }
 
-    // Update gold graph every 5 seconds
-    setInterval(drawGoldGraph, 5000);
+    // Update gold graph every 0.5 seconds
+    setInterval(drawGoldGraph, 500);
     // Initial draw
     drawGoldGraph();
 
@@ -197,7 +197,7 @@ function ui_window() {
     const title = doc.createElement("div");
     title.textContent = "LOOP TOGGLES";
     title.style.fontWeight = "bold";
-    title.style.fontSize = "1.2em";
+    title.style.fontSize = "1em";
     title.style.marginBottom = "4px";
     title.style.fontFamily = "pixel";
     togglesSection.appendChild(title);
@@ -206,7 +206,7 @@ function ui_window() {
     const togglesPre = doc.createElement("pre");
     togglesPre.id = "loop-toggles-pre";
     togglesPre.style.fontFamily = "pixel, monospace";
-    togglesPre.style.fontSize = "1.5em";
+    togglesPre.style.fontSize = "1em";
     togglesPre.style.margin = "0";
     togglesPre.style.padding = "0";
     togglesPre.style.background = "none";
