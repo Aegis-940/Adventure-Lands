@@ -578,7 +578,7 @@ async function potion_loop() {
             if (can_use("mp")) {
                 use("mp");
                 log("Using MP potion", "#00ffff", "Alerts");
-                await delay(2010);
+                await delay(2100);
                 continue
             }
         }
@@ -590,7 +590,8 @@ async function potion_loop() {
                 await delay(200);
                 use("mp");
                 log("Using Party Heal before HP potion", "#00ffff", "Alerts");
-                await delay(1810);
+                await delay(1900);
+                continue
             }
         }
 
