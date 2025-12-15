@@ -123,23 +123,16 @@ function ui_window() {
     goldSection.style.top = "60px";
     content.appendChild(goldSection);
 
-    // Gold Graph Title
-    const goldTitle = doc.createElement("div");
-    goldTitle.textContent = "GOLD/HOUR";
-    goldTitle.style.fontWeight = "bold";
-    goldTitle.style.fontSize = TITLE_FONT_SIZE;
-    goldTitle.style.marginBottom = "4px";
-    goldTitle.style.fontFamily = "pixel";
-    goldSection.appendChild(goldTitle);
-
-    // Gold Graph Canvas
+    // Gold Graph Canvas (fills the window)
     const goldCanvas = doc.createElement("canvas");
-    goldCanvas.width = 500;
-    goldCanvas.height = 120;
+    goldCanvas.width = 154; // match goldSection width minus padding
+    goldCanvas.height = 100;
     goldCanvas.style.display = "block";
     goldCanvas.style.background = "rgba(0,0,0,0.15)";
     goldCanvas.style.borderRadius = "4px";
     goldCanvas.style.margin = "0 auto";
+    goldCanvas.style.width = "100%";
+    goldCanvas.style.height = "100%";
     goldSection.appendChild(goldCanvas);
 
     // Gold Graph Data
@@ -198,14 +191,12 @@ function ui_window() {
             ctx.stroke();
         }
 
-        // Draw current gold/hour
-        ctx.font = `bold ${TEXT_FONT_SIZE} pixel, monospace`;
-        ctx.fillStyle = '#fff';
-        ctx.textAlign = 'left';
-        ctx.fillText('Avg:', 28, 18);
+        // Draw current gold/hour at bottom right
+        ctx.font = `bold 1em pixel, monospace`;
         ctx.fillStyle = '#0ff';
         ctx.textAlign = 'right';
-        ctx.fillText(`${Math.round(getGoldPerHour()).toLocaleString()} g/hr`, 145, 18);
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(`${Math.round(getGoldPerHour()).toLocaleString()} g/hr`, goldCanvas.width - 6, goldCanvas.height - 6);
     }
 
     // Update gold graph every 5 seconds
