@@ -577,7 +577,6 @@ async function potion_loop() {
         if (MP_MISSING >= POTION_MP_THRESHOLD) {
             if (can_use("mp")) {
                 use("mp");
-                log("Using MP potion", "#00ffff", "Alerts");
                 await delay(2100);
                 continue
             }
@@ -589,12 +588,12 @@ async function potion_loop() {
                 use_skill("partyheal");
                 await delay(200);
                 use("mp");
-                log("Using Party Heal before HP potion", "#00ffff", "Alerts");
                 await delay(1900);
                 continue
             }
         }
 
+        log("Potion loop: No potions used.", "#00ff00", "Alerts");
         await delay(50);
 
     }
