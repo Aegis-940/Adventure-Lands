@@ -479,6 +479,7 @@ async function handle_party_heal(minMissingHpMap = {}, minMp = 2000) {
             log(`[Party Heal] Triggered by ${name} (missing ${info.max_hp - info.hp} HP, threshold ${threshold})`, "#00ffff", "Alerts");
             try {
                 await use_skill("partyheal");
+                await delay(500); // Small delay to avoid spamming
             } catch (e) {
                 if (e?.reason !== "cooldown") throw e;
             }
