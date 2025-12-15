@@ -121,7 +121,7 @@ function ui_window() {
     goldCanvas.style.height = "120px";
     goldCanvas.style.boxSizing = "border-box";
     goldCanvas.style.position = "absolute";
-    goldCanvas.style.left = "244px";
+    goldCanvas.style.left = "252px";
     goldCanvas.style.top = "60px";
     content.appendChild(goldCanvas);
 

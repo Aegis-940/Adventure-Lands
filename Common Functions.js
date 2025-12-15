@@ -1242,6 +1242,12 @@ function log(msg, color = "#fff", type = "General") {
 
 let panicking = false;
 
+let LOW_HEALTH = 0;
+let LOW_MANA = 0;
+let HIGH_HEALTH = 0;
+let HIGH_MANA = 0;
+let MONSTERS_TARGETING_ME = 0;
+
 async function panic_loop() {
     
     let delayMs = 100;
@@ -1249,46 +1255,55 @@ async function panic_loop() {
     while (true) { 
         // Check if panic loop is enabled
         if (!PANIC_LOOP_ENABLED) {
+            if (panicking) panicking = false;
             await delay(delayMs);
             continue;
         }
         // --- Panic/Safe Conditions ---
-        const low_health = character.hp < character.max_hp * PANIC_HP_THRESHOLD;
-        const low_mana = character.mp < PANIC_MP_THRESHOLD;
-        const high_health = character.hp >= character.max_hp * SAFE_HP_THRESHOLD;
-        const high_mana = character.mp >= SAFE_MP_THRESHOLD;
+        LOW_HEALTH = character.hp < character.max_hp * PANIC_HP_THRESHOLD;
+        LOW_MANA = character.mp < PANIC_MP_THRESHOLD;
+        HIGH_HEALTH = character.hp >= character.max_hp * SAFE_HP_THRESHOLD;
+        HIGH_MANA = character.mp >= SAFE_MP_THRESHOLD;
 
         // Aggro check: monsters targeting me
-        const monsters_targeting_me = Object.values(parent.entities).filter(
+        MONSTERS_TARGETING_ME = Object.values(parent.entities).filter(
             e => e.type === "monster" && e.target === character.name && !e.dead
         ).length;
 
         // PANIC CONDITION
-        if (low_health || low_mana || monsters_targeting_me >= PANIC_AGGRO_THRESHOLD) {
+        if (LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= PANIC_AGGRO_THRESHOLD) {
             if (!panicking) {
                 panicking = true;
                 let reason = [];
-                if (low_health) reason.push("low health");
-                if (low_mana) reason.push("low mana");
-                if (monsters_targeting_me >= PANIC_AGGRO_THRESHOLD) reason.push("high aggro");
+                if (LOW_HEALTH) reason.push("low health");
+                if (LOW_MANA) reason.push("low mana");
+                if (MONSTERS_TARGETING_ME >= PANIC_AGGRO_THRESHOLD) reason.push("high aggro");
                 log(`⚠️ Panic triggered: ${reason.join(", ")}!`, "#ffcc00", "Alerts");
             }
 
+
             // Equip panic orb if needed
             if (character.slots.orb?.name !== PANIC_ORB) {
-                const orb_slot = locate_item(PANIC_ORB);
-                await delay(100);
-                if (orb_slot !== -1) {
-                    await equip(orb_slot);
-                    await delay(delayMs);
+                try {
+                    equip(PANIC_ORB);
+                    await delay(2 * delayMs);
+                    if (character.slots.orb?.name !== PANIC_ORB) {
+                        log("[PANIC] Failed to equip panic orb!", "#ff4444", "Errors");
+                    }
+                } catch (e) {
+                    log(`[PANIC] Error equipping panic orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
                 }
             }
 
             // Try to cast scare if possible
             if (!is_on_cooldown("scare") && can_use("scare") && character.slots.orb?.name === PANIC_ORB) {
-                log("Using Scare!", "#ffcc00", "Alerts");
-                await use_skill("scare");
-                await delay(delayMs);
+                try {
+                    log("Using Scare!", "#ffcc00", "Alerts");
+                    use_skill("scare");
+                    await delay(delayMs);
+                } catch (e) {
+                    log(`[PANIC] Error using scare: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
+                }
             }
 
             await delay(delayMs);
@@ -1296,20 +1311,25 @@ async function panic_loop() {
         }
 
         // SAFE CONDITION
-        if (high_health && high_mana && monsters_targeting_me < PANIC_AGGRO_THRESHOLD) {
+        if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < PANIC_AGGRO_THRESHOLD) {
             if (panicking) {
                 panicking = false;
                 log("✅ Panic over.", "#00ff00", "Alerts");
             }
             // Equip normal orb if needed
             if (character.slots.orb?.name !== NORMAL_ORB) {
-                const orbg_slot = locate_item(NORMAL_ORB);
-                await delay(100);
-                if (orbg_slot !== -1) {
-                    equip(orbg_slot);
-                    await delay(delayMs);
+                try {
+                    equip(NORMAL_ORB);
+                    await delay(2 * delayMs);
+                    if (character.slots.orb?.name !== NORMAL_ORB) {
+                        log("[PANIC] Failed to equip normal orb!", "#ff4444", "Errors");
+                    }
+                } catch (e) {
+                    log(`[PANIC] Error equipping normal orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
                 }
             }
+            await delay(2 * delayMs);
+            continue;
         }
 
         await delay(delayMs);
