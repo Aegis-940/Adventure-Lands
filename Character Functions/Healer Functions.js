@@ -495,16 +495,14 @@ async function handle_party_heal(minMissingHpMap = {}, minMp = 2000) {
 let last_dark_blessing_time = 0;
 async function handle_dark_blessing() {
     const now = Date.now();
-    if (now - last_dark_blessing_time < 5000) return;
+    if (now - last_dark_blessing_time < 500) return;
     if (is_on_cooldown("darkblessing")) return;
-    if (can_use("darkblessing")) {
-        try {
-            await use_skill("darkblessing");
-            last_dark_blessing_time = Date.now();
-            log("Dark Blessing!!!", "#9059f5ff", "Alerts");
-        } catch (e) {
-            catcher(e, "handle_dark_blessing");
-        }
+    try {
+        await use_skill("darkblessing");
+        last_dark_blessing_time = Date.now();
+        log("Dark Blessing!!!", "#9e6cfaff", "Alerts");
+    } catch (e) {
+        catcher(e, "handle_dark_blessing");
     }
 }
 
