@@ -51,108 +51,87 @@ function add_gold_graph(doc, content) {
     function draw_gold_graph() {
         const ctx = gold_canvas.getContext("2d");
         ctx.clearRect(0, 0, gold_canvas.width, gold_canvas.height);
-
-        // Gather data and prepare log scale mapping
-        const data = get_gold_graph_data();
-        const N = data.length;
-        const amounts = data.map(d => Math.max(0, d.amount || 0));
-        const positives = amounts.filter(a => a > 0);
-        const min_positive = positives.length ? Math.min(...positives) : 1;
-        const max_amount = Math.max(min_positive, ...amounts);
-        const min_log = Math.log10(min_positive);
-        const max_log = Math.log10(max_amount);
-        const log_range = Math.max(1e-6, max_log - min_log);
-
-        // Helpers
-        const x_left = 25, y_top = 10, y_bottom = 90, right_pad = 5;
-        const plot_width = gold_canvas.width - (x_left + right_pad);
-        const plot_height = y_bottom - y_top; // 80px by original design
-
-        function amount_to_y(a) {
-            const v = Math.max(a, min_positive); // clamp to avoid -Inf
-            const lv = Math.log10(v);
-            const t = (lv - min_log) / log_range; // 0..1
-            return y_bottom - plot_height * t;
-        }
-
-        function fmt(v) {
-            if (v >= 1e9) return `${(v / 1e9).toFixed(0)}B`;
-            if (v >= 1e6) return `${(v / 1e6).toFixed(0)}M`;
-            if (v >= 1e3) return `${(v / 1e3).toFixed(0)}k`;
-            return `${Math.round(v)}`;
-        }
-
-        // Grid: major decades and minor (2x, 5x) lines
-        const decade_start = Math.floor(min_log);
-        const decade_end = Math.ceil(max_log);
-        for (let d = decade_start; d <= decade_end; d++) {
-            const major_val = Math.pow(10, d);
-            const y_major = amount_to_y(major_val);
-            // Major line
-            ctx.strokeStyle = "#555";
-            ctx.lineWidth = 1;
-            ctx.setLineDash([]);
-            ctx.beginPath();
-            ctx.moveTo(x_left, y_major);
-            ctx.lineTo(gold_canvas.width - right_pad, y_major);
-            ctx.stroke();
-            // Label
-            ctx.font = "10px pixel, monospace";
-            ctx.fillStyle = "#bbb";
-            ctx.textAlign = "left";
-            ctx.textBaseline = "alphabetic";
-            ctx.fillText(fmt(major_val), 5, y_major - 2);
-
-            // Minor lines at 2x and 5x (only if within range)
-            const minors = [2, 5];
-            for (const m of minors) {
-                const val = major_val * m;
-                if (val <= max_amount) {
-                    const y_minor = amount_to_y(val);
-                    ctx.strokeStyle = "#333";
-                    ctx.setLineDash([3, 3]);
-                    ctx.beginPath();
-                    ctx.moveTo(x_left, y_minor);
-                    ctx.lineTo(gold_canvas.width - right_pad, y_minor);
-                    ctx.stroke();
-                }
-            }
-        }
-        ctx.setLineDash([]); // reset
-
-        // Axes
+        // Draw axes
         ctx.strokeStyle = "#888";
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(x_left, y_top);
-        ctx.lineTo(x_left, y_bottom);
-        ctx.lineTo(gold_canvas.width - right_pad, y_bottom);
+        ctx.moveTo(25, 10);
+        ctx.lineTo(25, 90);
+        ctx.lineTo(gold_canvas.width - 5, 90);
         ctx.stroke();
 
-        // Plot line (log-scaled Y)
+        // Draw gold data as line using sampled points
+        const data = get_gold_graph_data();
+        const N = data.length;
         if (N > 1) {
+            const min_gold = Math.min(...data.map(d => d.amount));
+            const max_gold = Math.max(...data.map(d => d.amount));
+            const range = Math.max(1, max_gold - min_gold);
             ctx.strokeStyle = "#FFD700";
             ctx.lineWidth = 2;
             ctx.beginPath();
             data.forEach((d, i) => {
-                const x = x_left + (plot_width * i) / (N - 1);
-                const y = amount_to_y(d.amount);
+                const x = 25 + ((gold_canvas.width - 35) * i) / (N - 1);
+                const y = 90 - 70 * (d.amount - min_gold) / range;
                 if (i === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
             });
             ctx.stroke();
+
+            // Draw min/max point indicators
+            const min_index = data.reduce((idx, d, i, arr) => d.amount < arr[idx].amount ? i : idx, 0);
+            const max_index = data.reduce((idx, d, i, arr) => d.amount > arr[idx].amount ? i : idx, 0);
+
+            const min_x = 25 + ((gold_canvas.width - 35) * min_index) / (N - 1);
+            const min_y = 90 - 70 * (data[min_index].amount - min_gold) / range;
+            const max_x = 25 + ((gold_canvas.width - 35) * max_index) / (N - 1);
+            const max_y = 90 - 70 * (data[max_index].amount - max_gold) / range + 70; // equals 90 - 70*((max-min)/range) but using formula below
+            // Correct max_y using same formula
+            const corrected_max_y = 90 - 70 * (data[max_index].amount - min_gold) / range;
+
+            // Min marker
+            ctx.fillStyle = "#00ff00";
+            ctx.beginPath();
+            ctx.arc(min_x, min_y, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.font = "bold 0.9em pixel, monospace";
+            ctx.fillStyle = "#00ff00";
+            ctx.textAlign = "left";
+            ctx.textBaseline = "top";
+            ctx.fillText(`${Math.round(data[min_index].amount).toLocaleString()}`, Math.min(min_x + 6, gold_canvas.width - 40), Math.min(min_y + 6, gold_canvas.height - 16));
+
+            // Max marker
+            ctx.fillStyle = "#ff4444";
+            ctx.beginPath();
+            ctx.arc(max_x, corrected_max_y, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.font = "bold 0.9em pixel, monospace";
+            ctx.fillStyle = "#ff4444";
+            ctx.textAlign = "left";
+            ctx.textBaseline = "bottom";
+            ctx.fillText(`${Math.round(data[max_index].amount).toLocaleString()}`, Math.min(max_x + 6, gold_canvas.width - 40), Math.max(corrected_max_y - 6, 14));
+
+            // Y-axis min/max labels
+            ctx.font = "bold 0.9em pixel, monospace";
+            ctx.fillStyle = "#fff";
+            ctx.textAlign = "left";
+            ctx.textBaseline = "middle";
+            // Min label near bottom of axis
+            ctx.fillText(`${Math.round(min_gold).toLocaleString()}`, 28, 90);
+            // Max label near top of axis
+            ctx.fillText(`${Math.round(max_gold).toLocaleString()}`, 28, 20);
         }
 
-        // Current gold/hour label
-        let gold_per_hour = 0;
+        // Draw current gold/hour at bottom right using calculateAverageGold()
+        let goldPerHour = 0;
         if (typeof calculateAverageGold === "function") {
-            gold_per_hour = calculateAverageGold();
+            goldPerHour = calculateAverageGold();
         }
         ctx.font = "bold 1em pixel, monospace";
         ctx.fillStyle = "#0ff";
         ctx.textAlign = "right";
         ctx.textBaseline = "bottom";
-        ctx.fillText(`${Math.round(gold_per_hour).toLocaleString()} g/hr`, gold_canvas.width - 6, gold_canvas.height - 6);
+        ctx.fillText(`${Math.round(goldPerHour).toLocaleString()} g/hr`, gold_canvas.width - 6, gold_canvas.height - 6);
     }
 
     // Start gold graph sampling and drawing
