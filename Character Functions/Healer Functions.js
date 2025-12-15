@@ -461,7 +461,7 @@ async function handle_party_heal(minMissingHpMap = {}, minMp = 2000) {
 
     // Default thresholds for each character
     const defaultThresholds = {
-        Myras: character.heal + 800,
+        Myras: character.heal + 1500,
         Ulric: character.heal + 1000,
         Riva: character.heal + 1500,
         Riff: character.heal + 500
@@ -497,7 +497,7 @@ async function handle_dark_blessing() {
     const now = Date.now();
     if (now - last_dark_blessing_time < 500) return;
     try {
-        await use_skill("darkblessing");
+        use_skill("darkblessing");
         last_dark_blessing_time = Date.now();
         log("Dark Blessing!!!", "#bc97ffff", "Alerts");
     } catch (e) {
