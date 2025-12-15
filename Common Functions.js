@@ -264,9 +264,10 @@ async function set_state(state) {
                         log("Respawning in 20s...", "red");
                         await delay(20000);
                         if (character.rip) await respawn();
-                        await delay(1000);
+                        await delay(5000);
 
                         smarter_move(get_main_target());
+                        await delay(10000);
 
                         // Re-evaluate state after respawn
                         const NEW_STATE = get_character_state();
