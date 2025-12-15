@@ -204,15 +204,8 @@ function ui_window() {
     // Initial draw
     drawGoldGraph();
 
-    // Listen for new gold events and redraw the graph immediately
-    if (typeof parent !== 'undefined' && parent.character && typeof parent.character.on === 'function') {
-        parent.character.on('loot', function _goldGraphLootListener(data) {
-            if (data.gold && typeof data.gold === 'number' && !Number.isNaN(data.gold)) {
-                // Redraw the graph immediately after a new gold event
-                drawGoldGraph();
-            }
-        });
-    }
+   // Update gold graph every 0.5 seconds
+    setInterval(drawGoldGraph, 500);
 
     // Title
     const title = doc.createElement("div");
