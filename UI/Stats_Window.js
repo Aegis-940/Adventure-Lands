@@ -53,19 +53,25 @@ function add_gold_graph(doc, content) {
 
     // Gold graph data: samples over 30-minute window
     const GOLD_GRAPH_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
-    const GOLD_GRAPH_INTERVAL_MS = 500; // Sample every 500ms
-    const GOLD_GRAPH_POINTS = Math.floor(GOLD_GRAPH_WINDOW_MS / GOLD_GRAPH_INTERVAL_MS);
+    const GOLD_GRAPH_CHECK_INTERVAL_MS = 500; // Check for changes every 500ms
     let gold_graph_samples = [];
+    let last_gold_value = null;
 
-    function add_gold_graph_sample() {
+    function check_and_add_sample() {
         let value = 0;
         if (typeof calculateAverageGold === "function") {
             value = calculateAverageGold();
         }
-        gold_graph_samples.push({ t: Date.now(), amount: value });
-        // Keep only the last N samples (30 minutes)
-        if (gold_graph_samples.length > GOLD_GRAPH_POINTS) {
-            gold_graph_samples = gold_graph_samples.slice(-GOLD_GRAPH_POINTS);
+        
+        // Only add a new sample if the value has changed AND is non-zero (or we already have data)
+        if (value !== last_gold_value && (value > 0 || gold_graph_samples.length > 0)) {
+            const now = Date.now();
+            gold_graph_samples.push({ t: now, amount: value });
+            last_gold_value = value;
+            
+            // Remove samples older than 30 minutes
+            const cutoff = now - GOLD_GRAPH_WINDOW_MS;
+            gold_graph_samples = gold_graph_samples.filter(s => s.t >= cutoff);
         }
     }
 
@@ -137,13 +143,12 @@ function add_gold_graph(doc, content) {
         }
     }
 
-    // Start sampling and drawing
-    add_gold_graph_sample();
+    // Start sampling and drawing (don't add initial zero sample)
     draw_gold_graph();
     setInterval(() => {
-        add_gold_graph_sample();
+        check_and_add_sample();
         draw_gold_graph();
-    }, GOLD_GRAPH_INTERVAL_MS);
+    }, GOLD_GRAPH_CHECK_INTERVAL_MS);
 
     return gold_canvas;
 }
