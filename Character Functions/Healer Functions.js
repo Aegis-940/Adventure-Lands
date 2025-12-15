@@ -561,43 +561,66 @@ async function loot_loop() {
 // POTIONS LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function potion_loop() {
+// async function potion_loop() {
 
+//     while (true) {
+//         // Check if potion loop is enabled
+//         if (!POTION_LOOP_ENABLED) {
+//             await delay(200);
+//             continue;
+//         }
+//         // Calculate missing HP/MP
+//         const HP_MISSING = character.max_hp - character.hp;
+//         const MP_MISSING = character.max_mp - character.mp;
+
+//         // Use mana potion if needed
+//         if (MP_MISSING >= POTION_MP_THRESHOLD) {
+//             if (can_use("mp")) {
+//                 use("mp");
+//                 await delay(2100);
+//                 continue
+//             }
+//         }
+
+//         // Use health potion if needed
+//         else if (HP_MISSING >= POTION_HP_THRESHOLD) {
+//             if (can_use("mp")) {
+//                 use_skill("partyheal");
+//                 await delay(200);
+//                 use("mp");
+//                 await delay(1900);
+//                 continue
+//             }
+//         }
+
+//         log("Potion loop: No potions used.", "#00ff00", "Alerts");
+//         await delay(50);
+
+//     }
+
+// }
+
+async function potion_loop() {
     while (true) {
-        // Check if potion loop is enabled
         if (!POTION_LOOP_ENABLED) {
             await delay(200);
             continue;
         }
-        // Calculate missing HP/MP
-        const HP_MISSING = character.max_hp - character.hp;
-        const MP_MISSING = character.max_mp - character.mp;
 
-        // Use mana potion if needed
-        if (MP_MISSING >= POTION_MP_THRESHOLD) {
-            if (can_use("mp")) {
-                use("mp");
-                await delay(2100);
-                continue
+        try {
+            const result = await use_hp_or_mp();
+            if (result && result.used) {
+                // Wait for the next potion cooldown or a short delay
+                await delay(Math.max(ms_to_next_skill("use_hp"), ms_to_next_skill("use_mp"), 200));
+            } else {
+                // Nothing to use, check again soon
+                await delay(50);
             }
+        } catch (e) {
+            catcher(e, "potion_loop");
+            await delay(500);
         }
-
-        // Use health potion if needed
-        else if (HP_MISSING >= POTION_HP_THRESHOLD) {
-            if (can_use("mp")) {
-                use_skill("partyheal");
-                await delay(200);
-                use("mp");
-                await delay(1900);
-                continue
-            }
-        }
-
-        log("Potion loop: No potions used.", "#00ff00", "Alerts");
-        await delay(50);
-
     }
-
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
