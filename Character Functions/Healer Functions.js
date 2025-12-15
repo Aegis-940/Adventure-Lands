@@ -608,12 +608,12 @@ async function potion_loop() {
         }
 
         try {
-            const result = await use_hp_or_mp();
-            if (result && result.used) {
-                // Wait for the next potion cooldown or a short delay
-                await delay(Math.max(ms_to_next_skill("use_hp"), ms_to_next_skill("use_mp"), 200));
+            // Only use MP potions
+            const MP_MISSING = character.max_mp - character.mp;
+            if (MP_MISSING >= POTION_MP_THRESHOLD && can_use("mp")) {
+                use("mp");
+                await delay(Math.max(ms_to_next_skill("use_mp"), 50));
             } else {
-                // Nothing to use, check again soon
                 await delay(50);
             }
         } catch (e) {
