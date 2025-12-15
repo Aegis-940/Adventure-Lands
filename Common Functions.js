@@ -1476,11 +1476,3 @@ function add_reload_button() {
 }
 
 add_reload_button();
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// STATS BUTTON
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-function create_stats_button(top = 10, left = null, right = null) {
-    // No longer used; see add_reload_button for stats button logic
-}
