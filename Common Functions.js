@@ -1287,8 +1287,7 @@ async function panic_loop() {
             // Equip panic orb if needed
             if (character.slots.orb?.name !== PANIC_ORB) {
                 try {
-                    equip(3);
-                    await delay(delayMs);
+                    await equip(3);
                     if (character.slots.orb?.name !== PANIC_ORB) {
                         log("[PANIC] Failed to equip panic orb!", "#ff4444", "Errors");
                     }
@@ -1301,7 +1300,7 @@ async function panic_loop() {
             if (!is_on_cooldown("scare") && can_use("scare") && character.slots.orb?.name === PANIC_ORB) {
                 try {
                     log("Using Scare!", "#ffcc00", "Alerts");
-                    use_skill("scare");
+                    await use_skill("scare");
                     await delay(delayMs);
                 } catch (e) {
                     log(`[PANIC] Error using scare: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
@@ -1321,8 +1320,7 @@ async function panic_loop() {
             // Equip normal orb if needed
             if (character.slots.orb?.name === PANIC_ORB) {
                 try {
-                    equip(3);
-                    await delay(delayMs);
+                    await equip(3);
                     if (character.slots.orb?.name === PANIC_ORB) {
                         log("[PANIC] Failed to equip normal orb!", "#ff4444", "Errors");
                     }
@@ -1330,7 +1328,7 @@ async function panic_loop() {
                     log(`[PANIC] Error equipping normal orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
                 }
             }
-            await delay(2 * delayMs);
+            await delay(delayMs);
             continue;
         }
 
