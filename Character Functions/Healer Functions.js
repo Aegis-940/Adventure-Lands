@@ -454,7 +454,10 @@ async function handle_absorb(mapsToExclude, eventMobs, eventMaps, blacklist) {
     }
 }
 
+let last_party_heal_time = 0;
 async function handle_party_heal(minMissingHpMap = {}, minMp = 2000) {
+    const now = Date.now();
+    if (now - last_party_heal_time < 500) return;
     if (character.mp <= minMp) return;
     if (is_on_cooldown("partyheal")) return;
 
@@ -476,10 +479,10 @@ async function handle_party_heal(minMissingHpMap = {}, minMp = 2000) {
         if (!info || info.rip) continue;
         const threshold = thresholds[name] !== undefined ? thresholds[name] : 2000;
         if ((info.max_hp - info.hp) > threshold) {
-            log(`[Party Heal] Triggered by ${name} (missing ${info.max_hp - info.hp} HP, threshold ${threshold})`, "#00ffff", "Alerts");
+            log(`[Party Heal] Triggered by ${name}`, "#00ffff", "Alerts");
             try {
                 await use_skill("partyheal");
-                await delay(500); // Small delay to avoid spamming
+                last_party_heal_time = Date.now();
             } catch (e) {
                 if (e?.reason !== "cooldown") throw e;
             }
