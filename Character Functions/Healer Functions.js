@@ -588,6 +588,7 @@ async function potion_loop() {
                 use_skill("partyheal");
                 await delay(200);
                 use("mp");
+                log("Using Party Heal before HP potion", "#00ffff", "Alerts");
                 await delay(1810);
             }
         }
