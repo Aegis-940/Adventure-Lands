@@ -78,41 +78,8 @@ function add_gold_graph(doc, content) {
             });
             ctx.stroke();
 
-            // Draw min/max point indicators
-            const min_index = data.reduce((idx, d, i, arr) => d.amount < arr[idx].amount ? i : idx, 0);
-            const max_index = data.reduce((idx, d, i, arr) => d.amount > arr[idx].amount ? i : idx, 0);
-
-            const min_x = 25 + ((gold_canvas.width - 35) * min_index) / (N - 1);
-            const min_y = 90 - 70 * (data[min_index].amount - min_gold) / range;
-            const max_x = 25 + ((gold_canvas.width - 35) * max_index) / (N - 1);
-            const max_y = 90 - 70 * (data[max_index].amount - max_gold) / range + 70; // equals 90 - 70*((max-min)/range) but using formula below
-            // Correct max_y using same formula
-            const corrected_max_y = 90 - 70 * (data[max_index].amount - min_gold) / range;
-
-            // Min marker
-            ctx.fillStyle = "#00ff00";
-            ctx.beginPath();
-            ctx.arc(min_x, min_y, 3, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.font = "bold 0.9em pixel, monospace";
-            ctx.fillStyle = "#00ff00";
-            ctx.textAlign = "left";
-            ctx.textBaseline = "top";
-            ctx.fillText(`${Math.round(data[min_index].amount).toLocaleString()}`, Math.min(min_x + 6, gold_canvas.width - 40), Math.min(min_y + 6, gold_canvas.height - 16));
-
-            // Max marker
-            ctx.fillStyle = "#ff4444";
-            ctx.beginPath();
-            ctx.arc(max_x, corrected_max_y, 3, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.font = "bold 0.9em pixel, monospace";
-            ctx.fillStyle = "#ff4444";
-            ctx.textAlign = "left";
-            ctx.textBaseline = "bottom";
-            ctx.fillText(`${Math.round(data[max_index].amount).toLocaleString()}`, Math.min(max_x + 6, gold_canvas.width - 40), Math.max(corrected_max_y - 6, 14));
-
             // Y-axis min/max labels
-            ctx.font = "bold 0.9em pixel, monospace";
+            ctx.font = "1em pixel, monospace";
             ctx.fillStyle = "#fff";
             ctx.textAlign = "left";
             ctx.textBaseline = "middle";
@@ -127,7 +94,7 @@ function add_gold_graph(doc, content) {
         if (typeof calculateAverageGold === "function") {
             goldPerHour = calculateAverageGold();
         }
-        ctx.font = "bold 1em pixel, monospace";
+        ctx.font = "1em pixel, monospace";
         ctx.fillStyle = "#0ff";
         ctx.textAlign = "right";
         ctx.textBaseline = "bottom";
