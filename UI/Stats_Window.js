@@ -1,6 +1,6 @@
     // Font size variables
     const TITLE_FONT_SIZE = "1.5em";
-    const TEXT_FONT_SIZE = "1em";
+    const TEXT_FONT_SIZE = "1.2em";
 function ui_window() {
     const doc = parent.document;
     let win = doc.getElementById("ui-statistics-window");
@@ -119,7 +119,7 @@ function ui_window() {
     goldSection.style.height = "auto";
     goldSection.style.boxSizing = "border-box";
     goldSection.style.position = "absolute";
-    goldSection.style.left = "194px";
+    goldSection.style.left = "244px";
     goldSection.style.top = "60px";
     content.appendChild(goldSection);
 
