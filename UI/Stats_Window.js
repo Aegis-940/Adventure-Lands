@@ -125,13 +125,28 @@ function ui_window() {
     goldCanvas.style.top = "60px";
     content.appendChild(goldCanvas);
 
-    // Gold Graph Data: Use goldEvents and calculateAverageGold from Gold_Meter.js
+
+    // Gold Graph Data: Maintain our own sampled array
+    const GOLD_GRAPH_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
+    const GOLD_GRAPH_INTERVAL_MS = 500;
+    const GOLD_GRAPH_POINTS = Math.floor(GOLD_GRAPH_WINDOW_MS / GOLD_GRAPH_INTERVAL_MS);
+    let goldGraphSamples = [];
+
+    function addGoldGraphSample() {
+        let value = 0;
+        if (typeof calculateAverageGold === 'function') {
+            value = calculateAverageGold();
+        }
+        goldGraphSamples.push({ t: Date.now(), amount: value });
+        // Keep only the last N samples (30 minutes)
+        if (goldGraphSamples.length > GOLD_GRAPH_POINTS) {
+            goldGraphSamples = goldGraphSamples.slice(-GOLD_GRAPH_POINTS);
+        }
+    }
+
     function getGoldGraphData() {
-        if (typeof goldEvents === 'undefined' || !Array.isArray(goldEvents) || goldEvents.length < 2) return [];
-        // Only use events from the last 30 minutes
-        const now = Date.now();
-        const cutoff = now - 30 * 60 * 1000;
-        return goldEvents.filter(e => e.t >= cutoff);
+        // Return a copy of the samples array
+        return goldGraphSamples.slice();
     }
 
     function drawGoldGraph() {
@@ -146,41 +161,18 @@ function ui_window() {
         ctx.lineTo(goldCanvas.width - 5, 90);
         ctx.stroke();
 
-        // Draw gold data as line with fixed, anchored intervals
+        // Draw gold data as line using sampled points
         const data = getGoldGraphData();
-        const INTERVALS = 60; // Number of points on the graph
-        const WINDOW_MS = 30 * 60 * 1000; // 30 minutes
-        const intervalMs = WINDOW_MS / INTERVALS;
-        const now = Date.now();
-        const graphStart = now - WINDOW_MS;
-        let points = [];
-        let lastAmount = 0;
-        for (let i = 0; i < INTERVALS; i++) {
-            const tStart = graphStart + i * intervalMs;
-            const tEnd = tStart + intervalMs;
-            // Find the last event in this interval
-            let point = null;
-            for (let j = data.length - 1; j >= 0; j--) {
-                if (data[j].t < tStart) break;
-                if (data[j].t >= tStart && data[j].t < tEnd) {
-                    point = data[j];
-                    break;
-                }
-            }
-            if (point) {
-                lastAmount = point.amount;
-            }
-            points.push({ t: tEnd, amount: lastAmount });
-        }
-        if (points.length > 1) {
-            const minGold = Math.min(...points.map(d => d.amount));
-            const maxGold = Math.max(...points.map(d => d.amount));
+        const N = data.length;
+        if (N > 1) {
+            const minGold = Math.min(...data.map(d => d.amount));
+            const maxGold = Math.max(...data.map(d => d.amount));
             const range = Math.max(1, maxGold - minGold);
             ctx.strokeStyle = '#FFD700';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            points.forEach((d, i) => {
-                const x = 25 + ((goldCanvas.width - 35) * i) / (INTERVALS - 1);
+            data.forEach((d, i) => {
+                const x = 25 + ((goldCanvas.width - 35) * i) / (N - 1);
                 const y = 90 - 70 * (d.amount - minGold) / range;
                 if (i === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
@@ -200,11 +192,13 @@ function ui_window() {
         ctx.fillText(`${Math.round(goldPerHour).toLocaleString()} g/hr`, goldCanvas.width - 6, goldCanvas.height - 6);
     }
 
-    // Initial draw
+    // Start gold graph sampling and drawing
+    addGoldGraphSample();
     drawGoldGraph();
-
-   // Update gold graph every 0.5 seconds
-    setInterval(drawGoldGraph, 500);
+    setInterval(() => {
+        addGoldGraphSample();
+        drawGoldGraph();
+    }, GOLD_GRAPH_INTERVAL_MS);
 
     // Title
     const title = doc.createElement("div");
