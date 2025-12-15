@@ -456,8 +456,6 @@ async function handle_absorb(mapsToExclude, eventMobs, eventMaps, blacklist) {
 
 let last_party_heal_time = 0;
 async function handle_party_heal(minMissingHpMap = {}, minMp = 2000) {
-    const now = Date.now();
-    if (now - last_party_heal_time < 500) return;
     if (character.mp <= minMp) return;
     if (is_on_cooldown("partyheal")) return;
 
@@ -479,6 +477,8 @@ async function handle_party_heal(minMissingHpMap = {}, minMp = 2000) {
         if (!info || info.rip) continue;
         const threshold = thresholds[name] !== undefined ? thresholds[name] : 2000;
         if ((info.max_hp - info.hp) > threshold) {
+            const now = Date.now();
+            if (now - last_party_heal_time < 500) return; // Only block if about to actually cast
             try {
                 await use_skill("partyheal");
                 last_party_heal_time = Date.now();
