@@ -18,7 +18,7 @@ function add_gold_graph(doc, content) {
     gold_canvas.style.width = "500px";
     gold_canvas.style.minWidth = "500px";
     gold_canvas.style.maxWidth = "500px";
-    gold_canvas.style.height = "120px";
+    gold_canvas.style.height = "240px";
     gold_canvas.style.boxSizing = "border-box";
     gold_canvas.style.position = "absolute";
     gold_canvas.style.left = "252px";
@@ -51,44 +51,108 @@ function add_gold_graph(doc, content) {
     function draw_gold_graph() {
         const ctx = gold_canvas.getContext("2d");
         ctx.clearRect(0, 0, gold_canvas.width, gold_canvas.height);
-        // Draw axes
+
+        // Gather data and prepare log scale mapping
+        const data = get_gold_graph_data();
+        const N = data.length;
+        const amounts = data.map(d => Math.max(0, d.amount || 0));
+        const positives = amounts.filter(a => a > 0);
+        const min_positive = positives.length ? Math.min(...positives) : 1;
+        const max_amount = Math.max(min_positive, ...amounts);
+        const min_log = Math.log10(min_positive);
+        const max_log = Math.log10(max_amount);
+        const log_range = Math.max(1e-6, max_log - min_log);
+
+        // Helpers
+        const x_left = 25, y_top = 10, y_bottom = 90, right_pad = 5;
+        const plot_width = gold_canvas.width - (x_left + right_pad);
+        const plot_height = y_bottom - y_top; // 80px by original design
+
+        function amount_to_y(a) {
+            const v = Math.max(a, min_positive); // clamp to avoid -Inf
+            const lv = Math.log10(v);
+            const t = (lv - min_log) / log_range; // 0..1
+            return y_bottom - plot_height * t;
+        }
+
+        function fmt(v) {
+            if (v >= 1e9) return `${(v / 1e9).toFixed(0)}B`;
+            if (v >= 1e6) return `${(v / 1e6).toFixed(0)}M`;
+            if (v >= 1e3) return `${(v / 1e3).toFixed(0)}k`;
+            return `${Math.round(v)}`;
+        }
+
+        // Grid: major decades and minor (2x, 5x) lines
+        const decade_start = Math.floor(min_log);
+        const decade_end = Math.ceil(max_log);
+        for (let d = decade_start; d <= decade_end; d++) {
+            const major_val = Math.pow(10, d);
+            const y_major = amount_to_y(major_val);
+            // Major line
+            ctx.strokeStyle = "#555";
+            ctx.lineWidth = 1;
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(x_left, y_major);
+            ctx.lineTo(gold_canvas.width - right_pad, y_major);
+            ctx.stroke();
+            // Label
+            ctx.font = "10px pixel, monospace";
+            ctx.fillStyle = "#bbb";
+            ctx.textAlign = "left";
+            ctx.textBaseline = "alphabetic";
+            ctx.fillText(fmt(major_val), 5, y_major - 2);
+
+            // Minor lines at 2x and 5x (only if within range)
+            const minors = [2, 5];
+            for (const m of minors) {
+                const val = major_val * m;
+                if (val <= max_amount) {
+                    const y_minor = amount_to_y(val);
+                    ctx.strokeStyle = "#333";
+                    ctx.setLineDash([3, 3]);
+                    ctx.beginPath();
+                    ctx.moveTo(x_left, y_minor);
+                    ctx.lineTo(gold_canvas.width - right_pad, y_minor);
+                    ctx.stroke();
+                }
+            }
+        }
+        ctx.setLineDash([]); // reset
+
+        // Axes
         ctx.strokeStyle = "#888";
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(25, 10);
-        ctx.lineTo(25, 90);
-        ctx.lineTo(gold_canvas.width - 5, 90);
+        ctx.moveTo(x_left, y_top);
+        ctx.lineTo(x_left, y_bottom);
+        ctx.lineTo(gold_canvas.width - right_pad, y_bottom);
         ctx.stroke();
 
-        // Draw gold data as line using sampled points
-        const data = get_gold_graph_data();
-        const N = data.length;
+        // Plot line (log-scaled Y)
         if (N > 1) {
-            const minGold = Math.min(...data.map(d => d.amount));
-            const maxGold = Math.max(...data.map(d => d.amount));
-            const range = Math.max(1, maxGold - minGold);
             ctx.strokeStyle = "#FFD700";
             ctx.lineWidth = 2;
             ctx.beginPath();
             data.forEach((d, i) => {
-                const x = 25 + ((gold_canvas.width - 35) * i) / (N - 1);
-                const y = 90 - 70 * (d.amount - minGold) / range;
+                const x = x_left + (plot_width * i) / (N - 1);
+                const y = amount_to_y(d.amount);
                 if (i === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
             });
             ctx.stroke();
         }
 
-        // Draw current gold/hour at bottom right using calculateAverageGold()
-        let goldPerHour = 0;
+        // Current gold/hour label
+        let gold_per_hour = 0;
         if (typeof calculateAverageGold === "function") {
-            goldPerHour = calculateAverageGold();
+            gold_per_hour = calculateAverageGold();
         }
         ctx.font = "bold 1em pixel, monospace";
         ctx.fillStyle = "#0ff";
         ctx.textAlign = "right";
         ctx.textBaseline = "bottom";
-        ctx.fillText(`${Math.round(goldPerHour).toLocaleString()} g/hr`, gold_canvas.width - 6, gold_canvas.height - 6);
+        ctx.fillText(`${Math.round(gold_per_hour).toLocaleString()} g/hr`, gold_canvas.width - 6, gold_canvas.height - 6);
     }
 
     // Start gold graph sampling and drawing
