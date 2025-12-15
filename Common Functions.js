@@ -1285,10 +1285,16 @@ async function panic_loop() {
             // Equip panic orb if needed
             if (character.slots.orb?.name !== PANIC_ORB) {
                 try {
-                    equip(PANIC_ORB);
-                    await delay(2 * delayMs);
-                    if (character.slots.orb?.name !== PANIC_ORB) {
-                        log("[PANIC] Failed to equip panic orb!", "#ff4444", "Errors");
+                    const orb_slot = locate_item(PANIC_ORB);
+                    await delay(delayMs);
+                    if (orb_slot === -1) {
+                        log("[PANIC] Panic orb not found in inventory!", "#ff4444", "Errors");
+                    } else {
+                        equip(orb_slot);
+                        await delay(2 * delayMs);
+                        if (character.slots.orb?.name !== PANIC_ORB) {
+                            log("[PANIC] Failed to equip panic orb!", "#ff4444", "Errors");
+                        }
                     }
                 } catch (e) {
                     log(`[PANIC] Error equipping panic orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
@@ -1319,10 +1325,16 @@ async function panic_loop() {
             // Equip normal orb if needed
             if (character.slots.orb?.name !== NORMAL_ORB) {
                 try {
-                    equip(NORMAL_ORB);
-                    await delay(2 * delayMs);
-                    if (character.slots.orb?.name !== NORMAL_ORB) {
-                        log("[PANIC] Failed to equip normal orb!", "#ff4444", "Errors");
+                    const orb_slot = locate_item(NORMAL_ORB);
+                    await delay(delayMs);
+                    if (orb_slot === -1) {
+                        log("[PANIC] Normal orb not found in inventory!", "#ff4444", "Errors");
+                    } else {
+                        equip(orb_slot);
+                        await delay(2 * delayMs);
+                        if (character.slots.orb?.name !== NORMAL_ORB) {
+                            log("[PANIC] Failed to equip normal orb!", "#ff4444", "Errors");
+                        }
                     }
                 } catch (e) {
                     log(`[PANIC] Error equipping normal orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
