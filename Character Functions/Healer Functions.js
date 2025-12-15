@@ -499,7 +499,7 @@ async function handle_dark_blessing() {
     try {
         await use_skill("darkblessing");
         last_dark_blessing_time = Date.now();
-        log("Dark Blessing!!!", "#9059f5ff", "Alerts");
+        log("Dark Blessing!!!", "#bc97ffff", "Alerts");
     } catch (e) {
         // Only log errors that are not cooldown-related
         if (!(e && (e.reason === "cooldown" || (e.message && e.message.toLowerCase().includes("cooldown"))))) {
