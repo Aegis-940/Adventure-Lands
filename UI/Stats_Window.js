@@ -35,6 +35,19 @@ const TEXT_STYLES = {
 
 // Build and attach the gold graph sub-window
 function add_gold_graph(doc, content) {
+    // Format number to K/M/B with 1 decimal place
+    function format_number(num) {
+        if (num >= 1e9) {
+            return (num / 1e9).toFixed(1) + 'B';
+        } else if (num >= 1e6) {
+            return (num / 1e6).toFixed(1) + 'M';
+        } else if (num >= 1e3) {
+            return (num / 1e3).toFixed(1) + 'K';
+        } else {
+            return num.toFixed(1);
+        }
+    }
+
     const gold_canvas = create_element(doc, "canvas", {
         id: "gold-graph-canvas",
         styles: {
@@ -100,7 +113,7 @@ function add_gold_graph(doc, content) {
         ctx.stroke();
 
         // X-axis label
-        ctx.font = "18px pixel, monospace";
+        ctx.font = "24px pixel, monospace";
         ctx.fillStyle = "#fff";
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
@@ -117,12 +130,18 @@ function add_gold_graph(doc, content) {
             const max_gold = max_measured + padding;
             const range = Math.max(1, max_gold - min_gold);
 
+            // Fixed 30-minute x-axis: position points based on timestamp
+            const now = Date.now();
+            const window_start = now - GOLD_GRAPH_WINDOW_MS;
+
             // Draw gold line
             ctx.strokeStyle = "#FFD700";
             ctx.lineWidth = 2;
             ctx.beginPath();
             data.forEach((d, i) => {
-                const x = left + ((right - left) * i) / (N - 1);
+                // Position based on timestamp within 30-minute window
+                const time_offset = d.t - window_start;
+                const x = left + ((right - left) * time_offset) / GOLD_GRAPH_WINDOW_MS;
                 const y = bottom - (bottom - top) * (d.amount - min_gold) / range;
                 if (i === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
@@ -130,18 +149,18 @@ function add_gold_graph(doc, content) {
             ctx.stroke();
 
             // Y-axis labels (min and max measured values only)
-            ctx.font = "18px pixel, monospace";
+            ctx.font = "24px pixel, monospace";
             ctx.fillStyle = "#fff";
             ctx.textAlign = "right";
             ctx.textBaseline = "middle";
             
             // Max label at top
             const y_max = bottom - (bottom - top) * (max_measured - min_gold) / range;
-            ctx.fillText(Math.round(max_measured).toLocaleString(), left - 5, y_max);
+            ctx.fillText(format_number(max_measured), left - 5, y_max);
             
             // Min label at bottom
             const y_min = bottom - (bottom - top) * (min_measured - min_gold) / range;
-            ctx.fillText(Math.round(min_measured).toLocaleString(), left - 5, y_min);
+            ctx.fillText(format_number(min_measured), left - 5, y_min);
         }
     }
 
