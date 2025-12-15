@@ -7,7 +7,7 @@ function add_gold_graph(doc, content) {
     const gold_canvas = doc.createElement("canvas");
     gold_canvas.id = "gold-graph-canvas";
     gold_canvas.width = 500;
-    gold_canvas.height = 120;
+    gold_canvas.height = 240;
     gold_canvas.style.display = "block";
     gold_canvas.style.background = "rgba(34,34,34,0.20)";
     gold_canvas.style.border = "2px solid #555";
