@@ -134,8 +134,8 @@ function ui_window() {
 
     // Gold Graph Canvas
     const goldCanvas = doc.createElement("canvas");
-    goldCanvas.width = 150;
-    goldCanvas.height = 80;
+    goldCanvas.width = 500;
+    goldCanvas.height = 120;
     goldCanvas.style.display = "block";
     goldCanvas.style.background = "rgba(0,0,0,0.15)";
     goldCanvas.style.borderRadius = "4px";
