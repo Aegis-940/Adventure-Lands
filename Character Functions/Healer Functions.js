@@ -573,13 +573,12 @@ async function potion_loop() {
         const HP_MISSING = character.max_hp - character.hp;
         const MP_MISSING = character.max_mp - character.mp;
 
-        let used_potion = false;
-
         // Use mana potion if needed
         if (MP_MISSING >= POTION_MP_THRESHOLD) {
             if (can_use("mp")) {
                 use("mp");
-                used_potion = true;
+                await delay(2010);
+                continue
             }
         }
 
@@ -587,17 +586,14 @@ async function potion_loop() {
         else if (HP_MISSING >= POTION_HP_THRESHOLD) {
             if (can_use("mp")) {
                 use_skill("partyheal");
-                await delay(100); // Wait for party heal to take effect
+                await delay(200);
                 use("mp");
-                used_potion = true;
+                await delay(1810);
             }
         }
 
-        if (used_potion) {
-            await delay(2010); // Wait 2 seconds after using a potion
-        } else {
-            await delay(10);   // Otherwise, check again in 10ms
-        }
+        await delay(50);
+
     }
 
 }
