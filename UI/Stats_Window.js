@@ -55,9 +55,9 @@ function add_gold_graph(doc, content) {
         ctx.strokeStyle = "#888";
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(25, 10);
-        ctx.lineTo(25, 90);
-        ctx.lineTo(gold_canvas.width - 5, 90);
+        ctx.moveTo(50, 20);
+        ctx.lineTo(50, 180);
+        ctx.lineTo(gold_canvas.width - 10, 180);
         ctx.stroke();
 
         // Draw gold data as line using sampled points
@@ -71,8 +71,8 @@ function add_gold_graph(doc, content) {
             ctx.lineWidth = 2;
             ctx.beginPath();
             data.forEach((d, i) => {
-                const x = 25 + ((gold_canvas.width - 35) * i) / (N - 1);
-                const y = 90 - 70 * (d.amount - min_gold) / range;
+                const x = 50 + ((gold_canvas.width - 70) * i) / (N - 1);
+                const y = 180 - 140 * (d.amount - min_gold) / range;
                 if (i === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
             });
@@ -84,9 +84,9 @@ function add_gold_graph(doc, content) {
             ctx.textAlign = "left";
             ctx.textBaseline = "middle";
             // Min label near bottom of axis
-            ctx.fillText(`${Math.round(min_gold).toLocaleString()}`, 28, 90);
+            ctx.fillText(`${Math.round(min_gold).toLocaleString()}`, 56, 180);
             // Max label near top of axis
-            ctx.fillText(`${Math.round(max_gold).toLocaleString()}`, 28, 20);
+            ctx.fillText(`${Math.round(max_gold).toLocaleString()}`, 56, 40);
         }
 
         // Draw current gold/hour at bottom right using calculateAverageGold()
@@ -98,7 +98,7 @@ function add_gold_graph(doc, content) {
         ctx.fillStyle = "#0ff";
         ctx.textAlign = "right";
         ctx.textBaseline = "bottom";
-        ctx.fillText(`${Math.round(goldPerHour).toLocaleString()} g/hr`, gold_canvas.width - 6, gold_canvas.height - 6);
+        ctx.fillText(`${Math.round(goldPerHour).toLocaleString()} g/hr`, gold_canvas.width - 12, gold_canvas.height - 12);
     }
 
     // Start gold graph sampling and drawing
