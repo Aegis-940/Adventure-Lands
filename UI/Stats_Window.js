@@ -79,7 +79,6 @@ function add_gold_graph(doc, content) {
             ctx.stroke();
 
             // Y-axis min/max labels
-            ctx.font = "1em pixel, monospace";
             ctx.fillStyle = "#fff";
             ctx.textAlign = "left";
             ctx.textBaseline = "middle";
@@ -94,7 +93,6 @@ function add_gold_graph(doc, content) {
         if (typeof calculateAverageGold === "function") {
             goldPerHour = calculateAverageGold();
         }
-        ctx.font = "1em pixel, monospace";
         ctx.fillStyle = "#0ff";
         ctx.textAlign = "right";
         ctx.textBaseline = "bottom";
