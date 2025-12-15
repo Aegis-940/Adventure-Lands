@@ -491,18 +491,20 @@ async function handle_party_heal(minMissingHpMap = {}, minMp = 2000) {
     }
 }
 
-
 let last_dark_blessing_time = 0;
 async function handle_dark_blessing() {
+    if (is_on_cooldown("darkblessing")) return;
     const now = Date.now();
     if (now - last_dark_blessing_time < 500) return;
-    if (is_on_cooldown("darkblessing")) return;
     try {
         await use_skill("darkblessing");
         last_dark_blessing_time = Date.now();
-        log("Dark Blessing!!!", "#9e6cfaff", "Alerts");
+        log("Dark Blessing!!!", "#9059f5ff", "Alerts");
     } catch (e) {
-        catcher(e, "handle_dark_blessing");
+        // Only log errors that are not cooldown-related
+        if (!(e && (e.reason === "cooldown" || (e.message && e.message.toLowerCase().includes("cooldown"))))) {
+            catcher(e, "handle_dark_blessing");
+        }
     }
 }
 
