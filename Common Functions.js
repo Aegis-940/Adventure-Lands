@@ -42,6 +42,8 @@ const FLOATING_BUTTON_IDS = [];
 const SOFT_RESTART_TIMER = 60000;    // 1 minute
 const HARD_RESET_TIMER   = 90000;    // 1.5 minutes
 
+const PANIC_ORB   = "jacko";
+
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // LOOP TOGGLES
@@ -1317,11 +1319,11 @@ async function panic_loop() {
                 log("✅ Panic over.", "#00ff00", "Alerts");
             }
             // Equip normal orb if needed
-            if (character.slots.orb?.name !== NORMAL_ORB) {
+            if (character.slots.orb?.name === PANIC_ORB) {
                 try {
                     equip(3);
                     await delay(delayMs);
-                    if (character.slots.orb?.name !== NORMAL_ORB) {
+                    if (character.slots.orb?.name === PANIC_ORB) {
                         log("[PANIC] Failed to equip normal orb!", "#ff4444", "Errors");
                     }
                 } catch (e) {

@@ -17,8 +17,6 @@ const PANIC_MP_THRESHOLD = 100;         // Panic if below 100 MP
 const SAFE_HP_THRESHOLD = 0.70;         // Resume normal if above 70% HP
 const SAFE_MP_THRESHOLD = 500;          // Resume normal if above 500 MP
 const PANIC_AGGRO_THRESHOLD = 99;       // Panic if this many monsters are targeting you
-const PANIC_ORB = "jacko";              // Orb to switch to when panicking
-const NORMAL_ORB = "talkingskull";      // Orb to switch to when not panicking
 
 const TARGET_LIMIT = 99;                // Max number of monsters allowed to target you before stopping attacks
 const HEAL_THRESHOLD = 1.5;             // Overheal factor to compensate for resistance. (max_hp - heal/threshold)
