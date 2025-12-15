@@ -135,31 +135,13 @@ function ui_window() {
     goldCanvas.style.height = "100%";
     goldSection.appendChild(goldCanvas);
 
-    // Gold Graph Data
-    let goldHistory = [];
-    let lastGold = (typeof character !== 'undefined' && character.gold) ? character.gold : 0;
-    let lastTime = Date.now();
-
-    function updateGoldHistory() {
-        if (typeof character === 'undefined') return;
+    // Gold Graph Data: Use goldEvents and calculateAverageGold from Gold_Meter.js
+    function getGoldGraphData() {
+        if (typeof goldEvents === 'undefined' || !Array.isArray(goldEvents) || goldEvents.length < 2) return [];
+        // Only use events from the last 30 minutes
         const now = Date.now();
-        const gold = character.gold;
-        goldHistory.push({ time: now, gold });
-        // Remove data older than 30 minutes
         const cutoff = now - 30 * 60 * 1000;
-        goldHistory = goldHistory.filter(d => d.time >= cutoff);
-        lastGold = gold;
-        lastTime = now;
-    }
-
-    function getGoldPerHour() {
-        if (goldHistory.length < 2) return 0;
-        const first = goldHistory[0];
-        const last = goldHistory[goldHistory.length - 1];
-        const goldDelta = last.gold - first.gold;
-        const timeDelta = (last.time - first.time) / 1000 / 60 / 60; // hours
-        if (timeDelta === 0) return 0;
-        return goldDelta / timeDelta;
+        return goldEvents.filter(e => e.t >= cutoff);
     }
 
     function drawGoldGraph() {
@@ -170,42 +152,45 @@ function ui_window() {
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(25, 10);
-        ctx.lineTo(25, 70);
-        ctx.lineTo(145, 70);
+        ctx.lineTo(25, 90);
+        ctx.lineTo(goldCanvas.width - 5, 90);
         ctx.stroke();
 
         // Draw gold data as line
-        if (goldHistory.length > 1) {
-            const minGold = Math.min(...goldHistory.map(d => d.gold));
-            const maxGold = Math.max(...goldHistory.map(d => d.gold));
+        const data = getGoldGraphData();
+        if (data.length > 1) {
+            const minGold = Math.min(...data.map(d => d.amount));
+            const maxGold = Math.max(...data.map(d => d.amount));
             const range = Math.max(1, maxGold - minGold);
             ctx.strokeStyle = '#FFD700';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            goldHistory.forEach((d, i) => {
-                const x = 25 + ((goldCanvas.width - 35) * (d.time - goldHistory[0].time)) / (goldHistory[goldHistory.length - 1].time - goldHistory[0].time || 1);
-                const y = 70 - 60 * (d.gold - minGold) / range;
+            const t0 = data[0].t;
+            const t1 = data[data.length - 1].t;
+            data.forEach((d, i) => {
+                const x = 25 + ((goldCanvas.width - 35) * (d.t - t0)) / ((t1 - t0) || 1);
+                const y = 90 - 70 * (d.amount - minGold) / range;
                 if (i === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
             });
             ctx.stroke();
         }
 
-        // Draw current gold/hour at bottom right
+        // Draw current gold/hour at bottom right using calculateAverageGold()
+        let goldPerHour = 0;
+        if (typeof calculateAverageGold === 'function') {
+            goldPerHour = calculateAverageGold();
+        }
         ctx.font = `bold 1em pixel, monospace`;
         ctx.fillStyle = '#0ff';
         ctx.textAlign = 'right';
         ctx.textBaseline = 'bottom';
-        ctx.fillText(`${Math.round(getGoldPerHour()).toLocaleString()} g/hr`, goldCanvas.width - 6, goldCanvas.height - 6);
+        ctx.fillText(`${Math.round(goldPerHour).toLocaleString()} g/hr`, goldCanvas.width - 6, goldCanvas.height - 6);
     }
 
     // Update gold graph every 5 seconds
-    setInterval(() => {
-        updateGoldHistory();
-        drawGoldGraph();
-    }, 5000);
+    setInterval(drawGoldGraph, 5000);
     // Initial draw
-    updateGoldHistory();
     drawGoldGraph();
 
     // Title
