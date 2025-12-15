@@ -29,7 +29,7 @@ const PANEL_STYLES = {
 
 const TEXT_STYLES = {
     fontFamily: "pixel, monospace",
-    fontSize: "18px",
+    fontSize: "24px",
     color: "#fff",
 };
 
@@ -46,14 +46,14 @@ function add_loop_toggles(doc, content) {
             ...PANEL_STYLES,
             padding: "8px",
             fontFamily: "pixel",
-            fontSize: "18px",
+            fontSize: "24px",
             width: "240px",
             minWidth: "240px",
             maxWidth: "240px",
             height: "auto",
             position: "absolute",
             left: "12px",
-            top: "60px",
+            top: "12px",
         }
     });
     content.appendChild(togglesSection);
@@ -62,7 +62,7 @@ function add_loop_toggles(doc, content) {
         text: "LOOP TOGGLES",
         styles: {
             fontWeight: "bold",
-            fontSize: "18px",
+            fontSize: "28px",
             marginBottom: "4px",
             fontFamily: "pixel",
         }
@@ -167,7 +167,7 @@ function ui_window() {
             borderBottom: "2px solid #888",
         }
     });
-    
+
     win_el.appendChild(title_bar);
 
     // Drag logic
