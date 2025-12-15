@@ -35,7 +35,117 @@ const TEXT_STYLES = {
 
 // Build and attach the gold graph sub-window
 function add_gold_graph(doc, content) {
-   
+    const gold_canvas = create_element(doc, "canvas", {
+        id: "gold-graph-canvas",
+        styles: {
+            ...PANEL_STYLES,
+            display: "block",
+            width: "500px",
+            height: "240px",
+            position: "absolute",
+            left: "252px",
+            top: "60px",
+        }
+    });
+    gold_canvas.width = 500;
+    gold_canvas.height = 240;
+    content.appendChild(gold_canvas);
+
+    // Gold graph data: samples over 30-minute window
+    const GOLD_GRAPH_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
+    const GOLD_GRAPH_INTERVAL_MS = 500; // Sample every 500ms
+    const GOLD_GRAPH_POINTS = Math.floor(GOLD_GRAPH_WINDOW_MS / GOLD_GRAPH_INTERVAL_MS);
+    let gold_graph_samples = [];
+
+    function add_gold_graph_sample() {
+        let value = 0;
+        if (typeof calculateAverageGold === "function") {
+            value = calculateAverageGold();
+        }
+        gold_graph_samples.push({ t: Date.now(), amount: value });
+        // Keep only the last N samples (30 minutes)
+        if (gold_graph_samples.length > GOLD_GRAPH_POINTS) {
+            gold_graph_samples = gold_graph_samples.slice(-GOLD_GRAPH_POINTS);
+        }
+    }
+
+    function draw_gold_graph() {
+        const ctx = gold_canvas.getContext("2d");
+        ctx.clearRect(0, 0, gold_canvas.width, gold_canvas.height);
+
+        const data = gold_graph_samples;
+        const N = data.length;
+
+        // Layout dimensions
+        const left = 60;
+        const right = gold_canvas.width - 10;
+        const top = 20;
+        const bottom = gold_canvas.height - 40;
+
+        // Draw axes
+        ctx.strokeStyle = "#888";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(left, top);
+        ctx.lineTo(left, bottom);
+        ctx.lineTo(right, bottom);
+        ctx.stroke();
+
+        // X-axis label
+        ctx.font = "18px pixel, monospace";
+        ctx.fillStyle = "#fff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.fillText("30 Minute Window", (left + right) / 2, bottom + 5);
+
+        if (N > 1) {
+            // Calculate min/max with ±10% padding
+            const min_measured = Math.min(...data.map(d => d.amount));
+            const max_measured = Math.max(...data.map(d => d.amount));
+            const range_measured = max_measured - min_measured;
+            const padding = range_measured * 0.1;
+            
+            const min_gold = min_measured - padding;
+            const max_gold = max_measured + padding;
+            const range = Math.max(1, max_gold - min_gold);
+
+            // Draw gold line
+            ctx.strokeStyle = "#FFD700";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            data.forEach((d, i) => {
+                const x = left + ((right - left) * i) / (N - 1);
+                const y = bottom - (bottom - top) * (d.amount - min_gold) / range;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+
+            // Y-axis labels (min and max measured values only)
+            ctx.font = "18px pixel, monospace";
+            ctx.fillStyle = "#fff";
+            ctx.textAlign = "right";
+            ctx.textBaseline = "middle";
+            
+            // Max label at top
+            const y_max = bottom - (bottom - top) * (max_measured - min_gold) / range;
+            ctx.fillText(Math.round(max_measured).toLocaleString(), left - 5, y_max);
+            
+            // Min label at bottom
+            const y_min = bottom - (bottom - top) * (min_measured - min_gold) / range;
+            ctx.fillText(Math.round(min_measured).toLocaleString(), left - 5, y_min);
+        }
+    }
+
+    // Start sampling and drawing
+    add_gold_graph_sample();
+    draw_gold_graph();
+    setInterval(() => {
+        add_gold_graph_sample();
+        draw_gold_graph();
+    }, GOLD_GRAPH_INTERVAL_MS);
+
+    return gold_canvas;
 }
 
 // Build and attach the loop toggles/state sub-window
@@ -53,7 +163,7 @@ function add_loop_toggles(doc, content) {
             height: "auto",
             position: "absolute",
             left: "12px",
-            top: "36px",
+            top: "48px",
         }
     });
     content.appendChild(togglesSection);
