@@ -29,7 +29,7 @@ const PANEL_STYLES = {
 
 const TEXT_STYLES = {
     fontFamily: "pixel, monospace",
-    fontSize: "24px",
+    fontSize: "28px",
     color: "#fff",
 };
 
@@ -46,14 +46,14 @@ function add_loop_toggles(doc, content) {
             ...PANEL_STYLES,
             padding: "8px",
             fontFamily: "pixel",
-            fontSize: "24px",
+            fontSize: "28px",
             width: "240px",
             minWidth: "240px",
             maxWidth: "240px",
             height: "auto",
             position: "absolute",
             left: "12px",
-            top: "12px",
+            top: "36px",
         }
     });
     content.appendChild(togglesSection);
