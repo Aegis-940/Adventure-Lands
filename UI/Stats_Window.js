@@ -83,49 +83,47 @@ function ui_window() {
     content.style.fontSize = "1em";
     win.appendChild(content);
 
-    // --- COMBINED STATS WINDOW (TOGGLES + GOLD GRAPH) ---
-    const statsSection = doc.createElement("div");
-    statsSection.id = "stats-combined-section";
-    statsSection.style.background = "rgba(34,34,34,0.20)";
-    statsSection.style.border = "2px solid #555";
-    statsSection.style.borderRadius = "8px";
-    statsSection.style.padding = "8px";
-    statsSection.style.fontFamily = "pixel";
-    statsSection.style.fontSize = TEXT_FONT_SIZE;
-    statsSection.style.userSelect = "none";
-    statsSection.style.width = "500px";
-    statsSection.style.minWidth = "500px";
-    statsSection.style.maxWidth = "500px";
-    statsSection.style.height = "auto";
-    statsSection.style.boxSizing = "border-box";
-    statsSection.style.position = "absolute";
-    statsSection.style.left = "12px";
-    statsSection.style.top = "60px";
-    content.appendChild(statsSection);
+    // --- LOOP TOGGLES/STATE SUB-WINDOW ---
+    const togglesSection = doc.createElement("div");
+    togglesSection.id = "loop-toggles-section";
+    togglesSection.style.background = "rgba(34,34,34,0.20)";
+    togglesSection.style.border = "2px solid #555";
+    togglesSection.style.borderRadius = "8px";
+    togglesSection.style.padding = "8px";
+    togglesSection.style.fontFamily = "pixel";
+    togglesSection.style.fontSize = TEXT_FONT_SIZE;
+    togglesSection.style.userSelect = "none";
+    togglesSection.style.width = "240px";
+    togglesSection.style.minWidth = "240px";
+    togglesSection.style.maxWidth = "240px";
+    togglesSection.style.height = "auto";
+    togglesSection.style.boxSizing = "border-box";
+    togglesSection.style.position = "absolute";
+    togglesSection.style.left = "12px";
+    togglesSection.style.top = "60px";
+    content.appendChild(togglesSection);
 
-    // Preformatted block for state and toggles
-    const togglesPre = doc.createElement("pre");
-    togglesPre.id = "loop-toggles-pre";
-    togglesPre.style.fontFamily = "pixel, monospace";
-    togglesPre.style.fontSize = "1.2em";
-    togglesPre.style.margin = "0 0 8px 0";
-    togglesPre.style.padding = "0";
-    togglesPre.style.background = "none";
-    togglesPre.style.border = "none";
-    togglesPre.style.color = "#fff";
-    statsSection.appendChild(togglesPre);
-
-    // Gold Graph Canvas (fills the window width)
+    // --- GOLD GRAPH WINDOW (canvas only) ---
     const goldCanvas = doc.createElement("canvas");
-    goldCanvas.width = 480;
-    goldCanvas.height = 100;
+    goldCanvas.id = "gold-graph-canvas";
+    goldCanvas.width = 500;
+    goldCanvas.height = 120;
     goldCanvas.style.display = "block";
-    goldCanvas.style.background = "rgba(0,0,0,0.15)";
-    goldCanvas.style.borderRadius = "4px";
-    goldCanvas.style.margin = "0 auto";
-    goldCanvas.style.width = "100%";
-    goldCanvas.style.height = "100px";
-    statsSection.appendChild(goldCanvas);
+    goldCanvas.style.background = "rgba(34,34,34,0.20)";
+    goldCanvas.style.border = "2px solid #555";
+    goldCanvas.style.borderRadius = "8px";
+    goldCanvas.style.fontFamily = "pixel";
+    goldCanvas.style.fontSize = TEXT_FONT_SIZE;
+    goldCanvas.style.userSelect = "none";
+    goldCanvas.style.width = "500px";
+    goldCanvas.style.minWidth = "500px";
+    goldCanvas.style.maxWidth = "500px";
+    goldCanvas.style.height = "120px";
+    goldCanvas.style.boxSizing = "border-box";
+    goldCanvas.style.position = "absolute";
+    goldCanvas.style.left = "244px";
+    goldCanvas.style.top = "60px";
+    content.appendChild(goldCanvas);
 
     // Gold Graph Data: Use goldEvents and calculateAverageGold from Gold_Meter.js
     function getGoldGraphData() {
