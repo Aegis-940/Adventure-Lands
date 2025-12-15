@@ -146,32 +146,31 @@ function ui_window() {
         ctx.lineTo(goldCanvas.width - 5, 90);
         ctx.stroke();
 
-        // Draw gold data as line with fixed intervals
+        // Draw gold data as line with fixed, anchored intervals
         const data = getGoldGraphData();
         const INTERVALS = 60; // Number of points on the graph
-        const graphStart = Date.now() - 30 * 60 * 1000;
-        const graphEnd = Date.now();
-        const intervalMs = (graphEnd - graphStart) / INTERVALS;
+        const WINDOW_MS = 30 * 60 * 1000; // 30 minutes
+        const intervalMs = WINDOW_MS / INTERVALS;
+        const now = Date.now();
+        const graphStart = now - WINDOW_MS;
         let points = [];
+        let lastAmount = 0;
         for (let i = 0; i < INTERVALS; i++) {
             const tStart = graphStart + i * intervalMs;
             const tEnd = tStart + intervalMs;
             // Find the last event in this interval
             let point = null;
             for (let j = data.length - 1; j >= 0; j--) {
+                if (data[j].t < tStart) break;
                 if (data[j].t >= tStart && data[j].t < tEnd) {
                     point = data[j];
                     break;
                 }
             }
-            // If no event, use previous value or 0
-            if (!point && points.length > 0) {
-                points.push({ t: tEnd, amount: points[points.length - 1].amount });
-            } else if (!point) {
-                points.push({ t: tEnd, amount: 0 });
-            } else {
-                points.push({ t: tEnd, amount: point.amount });
+            if (point) {
+                lastAmount = point.amount;
             }
+            points.push({ t: tEnd, amount: lastAmount });
         }
         if (points.length > 1) {
             const minGold = Math.min(...points.map(d => d.amount));
