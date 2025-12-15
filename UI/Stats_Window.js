@@ -1,95 +1,9 @@
-    // Font size variables
-    const TITLE_FONT_SIZE = "1.5em";
-    const TEXT_FONT_SIZE = "1.4em";
+// Font size variables
+const TITLE_FONT_SIZE = "1.5em";
+const TEXT_FONT_SIZE = "1.4em";
 
-function add_loop_states() {
-        // --- LOOP TOGGLES/STATE SUB-WINDOW ---
-    const togglesSection = doc.createElement("div");
-    togglesSection.id = "loop-toggles-section";
-    togglesSection.style.background = "rgba(34,34,34,0.20)";
-    togglesSection.style.border = "2px solid #555";
-    togglesSection.style.borderRadius = "8px";
-    togglesSection.style.padding = "8px";
-    togglesSection.style.fontFamily = "pixel";
-    togglesSection.style.fontSize = TEXT_FONT_SIZE;
-    togglesSection.style.userSelect = "none";
-    togglesSection.style.width = "240px";
-    togglesSection.style.minWidth = "240px";
-    togglesSection.style.maxWidth = "240px";
-    togglesSection.style.height = "auto";
-    togglesSection.style.boxSizing = "border-box";
-    togglesSection.style.position = "absolute";
-    togglesSection.style.left = "12px";
-    togglesSection.style.top = "60px";
-    content.appendChild(togglesSection);
-
-    // Title
-    const title = doc.createElement("div");
-    title.textContent = "LOOP TOGGLES";
-    title.style.fontWeight = "bold";
-    title.style.fontSize = "1.2em";
-    title.style.marginBottom = "4px";
-    title.style.fontFamily = "pixel";
-    togglesSection.appendChild(title);
-
-    // Preformatted block for state and toggles
-    const togglesPre = doc.createElement("pre");
-    togglesPre.id = "loop-toggles-pre";
-    togglesPre.style.fontFamily = "pixel, monospace";
-    togglesPre.style.fontSize = "1.2em";
-    togglesPre.style.margin = "0";
-    togglesPre.style.padding = "0";
-    togglesPre.style.background = "none";
-    togglesPre.style.border = "none";
-    togglesPre.style.color = "#fff";
-    togglesSection.appendChild(togglesPre);
-
-    // Helper to get toggles
-    function getLoopToggles() {
-        // Pad all names to the same width for alignment (max 7 chars)
-        function padName(name, width = 7) {
-            return name.padEnd(width, ' ');
-        }
-        return [
-            [padName("ATTACK"), typeof ATTACK_LOOP_ENABLED !== "undefined" ? ATTACK_LOOP_ENABLED : "?"],
-            [padName("HEAL"), typeof HEAL_LOOP_ENABLED !== "undefined" ? HEAL_LOOP_ENABLED : "?"],
-            [padName("MOVE"), typeof MOVE_LOOP_ENABLED !== "undefined" ? MOVE_LOOP_ENABLED : "?"],
-            [padName("SKILL"), typeof SKILL_LOOP_ENABLED !== "undefined" ? SKILL_LOOP_ENABLED : "?"],
-            [padName("PANIC"), typeof PANIC_LOOP_ENABLED !== "undefined" ? PANIC_LOOP_ENABLED : "?"],
-            [padName("BOSS"), typeof BOSS_LOOP_ENABLED !== "undefined" ? BOSS_LOOP_ENABLED : "?"],
-            [padName("ORBIT"), typeof ORBIT_LOOP_ENABLED !== "undefined" ? ORBIT_LOOP_ENABLED : "?"],
-            [padName("POTION"), typeof POTION_LOOP_ENABLED !== "undefined" ? POTION_LOOP_ENABLED : "?"],
-            [padName("LOOT"), typeof LOOT_LOOP_ENABLED !== "undefined" ? LOOT_LOOP_ENABLED : "?"],
-            [padName("STATUS"), typeof STATUS_CACHE_LOOP_ENABLED !== "undefined" ? STATUS_CACHE_LOOP_ENABLED : "?"],
-        ];
-    }
-
-    function getCurrentState() {
-        if (typeof get_character_state === "function") {    
-            try {
-                return get_character_state();
-            } catch (e) { return "?"; }
-        }
-        return "?";
-    }
-
-    function updateTable() {
-        // Update state and toggles in a single preformatted block with color
-        const state = getCurrentState();
-        let html = `Current State:\t<span style='color:#0ff;'>${state}</span>\n`;
-        for (const [name, val] of getLoopToggles()) {
-            let color = val === true ? "#0f0" : val === false ? "#f44" : "#ff0";
-            html += `${name}:\t<span style='color:${color};'>${val}</span>\n`;
-        }
-        togglesPre.innerHTML = html.trim().replace(/\n/g, "<br>");
-    }
-
-    updateTable();
-    setInterval(updateTable, 500);
-}
-
-function add_gold_graph() {
-    // --- GOLD GRAPH WINDOW (canvas only) ---
+// Build and attach the gold graph sub-window
+function add_gold_graph(doc, content) {
     const goldCanvas = doc.createElement("canvas");
     goldCanvas.id = "gold-graph-canvas";
     goldCanvas.width = 500;
@@ -111,7 +25,6 @@ function add_gold_graph() {
     goldCanvas.style.top = "60px";
     content.appendChild(goldCanvas);
 
-
     // Gold Graph Data: Maintain our own sampled array
     const GOLD_GRAPH_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
     const GOLD_GRAPH_INTERVAL_MS = 500;
@@ -120,7 +33,7 @@ function add_gold_graph() {
 
     function addGoldGraphSample() {
         let value = 0;
-        if (typeof calculateAverageGold === 'function') {
+        if (typeof calculateAverageGold === "function") {
             value = calculateAverageGold();
         }
         goldGraphSamples.push({ t: Date.now(), amount: value });
@@ -136,10 +49,10 @@ function add_gold_graph() {
     }
 
     function drawGoldGraph() {
-        const ctx = goldCanvas.getContext('2d');
+        const ctx = goldCanvas.getContext("2d");
         ctx.clearRect(0, 0, goldCanvas.width, goldCanvas.height);
         // Draw axes
-        ctx.strokeStyle = '#888';
+        ctx.strokeStyle = "#888";
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(25, 10);
@@ -154,7 +67,7 @@ function add_gold_graph() {
             const minGold = Math.min(...data.map(d => d.amount));
             const maxGold = Math.max(...data.map(d => d.amount));
             const range = Math.max(1, maxGold - minGold);
-            ctx.strokeStyle = '#FFD700';
+            ctx.strokeStyle = "#FFD700";
             ctx.lineWidth = 2;
             ctx.beginPath();
             data.forEach((d, i) => {
@@ -168,13 +81,13 @@ function add_gold_graph() {
 
         // Draw current gold/hour at bottom right using calculateAverageGold()
         let goldPerHour = 0;
-        if (typeof calculateAverageGold === 'function') {
+        if (typeof calculateAverageGold === "function") {
             goldPerHour = calculateAverageGold();
         }
-        ctx.font = `bold 1em pixel, monospace`;
-        ctx.fillStyle = '#0ff';
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'bottom';
+        ctx.font = "bold 1em pixel, monospace";
+        ctx.fillStyle = "#0ff";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "bottom";
         ctx.fillText(`${Math.round(goldPerHour).toLocaleString()} g/hr`, goldCanvas.width - 6, goldCanvas.height - 6);
     }
 
@@ -185,6 +98,8 @@ function add_gold_graph() {
         addGoldGraphSample();
         drawGoldGraph();
     }, GOLD_GRAPH_INTERVAL_MS);
+
+    return goldCanvas;
 }
 
 function ui_window() {
@@ -269,10 +184,92 @@ function ui_window() {
     content.style.fontSize = "1em";
     win.appendChild(content);
 
-    add_gold_graph();
-    add_loop_states();
-
+    // --- LOOP TOGGLES/STATE SUB-WINDOW ---
+    const togglesSection = doc.createElement("div");
+    togglesSection.id = "loop-toggles-section";
+    togglesSection.style.background = "rgba(34,34,34,0.20)";
+    togglesSection.style.border = "2px solid #555";
+    togglesSection.style.borderRadius = "8px";
+    togglesSection.style.padding = "8px";
+    togglesSection.style.fontFamily = "pixel";
+    togglesSection.style.fontSize = TEXT_FONT_SIZE;
+    togglesSection.style.userSelect = "none";
+    togglesSection.style.width = "240px";
+    togglesSection.style.minWidth = "240px";
+    togglesSection.style.maxWidth = "240px";
+    togglesSection.style.height = "auto";
+    togglesSection.style.boxSizing = "border-box";
+    togglesSection.style.position = "absolute";
+    togglesSection.style.left = "12px";
+    togglesSection.style.top = "60px";
     content.appendChild(togglesSection);
+    // Add gold graph sub-window
+    add_gold_graph(doc, content);
+
+    // Title
+    const title = doc.createElement("div");
+    title.textContent = "LOOP TOGGLES";
+    title.style.fontWeight = "bold";
+    title.style.fontSize = "1.2em";
+    title.style.marginBottom = "4px";
+    title.style.fontFamily = "pixel";
+    togglesSection.appendChild(title);
+
+    // Preformatted block for state and toggles
+    const togglesPre = doc.createElement("pre");
+    togglesPre.id = "loop-toggles-pre";
+    togglesPre.style.fontFamily = "pixel, monospace";
+    togglesPre.style.fontSize = "1.2em";
+    togglesPre.style.margin = "0";
+    togglesPre.style.padding = "0";
+    togglesPre.style.background = "none";
+    togglesPre.style.border = "none";
+    togglesPre.style.color = "#fff";
+    togglesSection.appendChild(togglesPre);
+
+    // Helper to get toggles
+    function getLoopToggles() {
+        // Pad all names to the same width for alignment (max 7 chars)
+        function padName(name, width = 7) {
+            return name.padEnd(width, ' ');
+        }
+        return [
+            [padName("ATTACK"), typeof ATTACK_LOOP_ENABLED !== "undefined" ? ATTACK_LOOP_ENABLED : "?"],
+            [padName("HEAL"), typeof HEAL_LOOP_ENABLED !== "undefined" ? HEAL_LOOP_ENABLED : "?"],
+            [padName("MOVE"), typeof MOVE_LOOP_ENABLED !== "undefined" ? MOVE_LOOP_ENABLED : "?"],
+            [padName("SKILL"), typeof SKILL_LOOP_ENABLED !== "undefined" ? SKILL_LOOP_ENABLED : "?"],
+            [padName("PANIC"), typeof PANIC_LOOP_ENABLED !== "undefined" ? PANIC_LOOP_ENABLED : "?"],
+            [padName("BOSS"), typeof BOSS_LOOP_ENABLED !== "undefined" ? BOSS_LOOP_ENABLED : "?"],
+            [padName("ORBIT"), typeof ORBIT_LOOP_ENABLED !== "undefined" ? ORBIT_LOOP_ENABLED : "?"],
+            [padName("POTION"), typeof POTION_LOOP_ENABLED !== "undefined" ? POTION_LOOP_ENABLED : "?"],
+            [padName("LOOT"), typeof LOOT_LOOP_ENABLED !== "undefined" ? LOOT_LOOP_ENABLED : "?"],
+            [padName("STATUS"), typeof STATUS_CACHE_LOOP_ENABLED !== "undefined" ? STATUS_CACHE_LOOP_ENABLED : "?"],
+        ];
+    }
+
+    function getCurrentState() {
+        if (typeof get_character_state === "function") {
+            try {
+                return get_character_state();
+            } catch (e) { return "?"; }
+        }
+        return "?";
+    }
+
+    function updateTable() {
+        // Update state and toggles in a single preformatted block with color
+        const state = getCurrentState();
+        let html = `Current State:\t<span style='color:#0ff;'>${state}</span>\n`;
+        for (const [name, val] of getLoopToggles()) {
+            let color = val === true ? "#0f0" : val === false ? "#f44" : "#ff0";
+            html += `${name}:\t<span style='color:${color};'>${val}</span>\n`;
+        }
+        togglesPre.innerHTML = html.trim().replace(/\n/g, "<br>");
+    }
+
+    updateTable();
+    setInterval(updateTable, 500);
 
     doc.body.appendChild(win);
 }
+
