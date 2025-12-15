@@ -1285,7 +1285,7 @@ async function panic_loop() {
             // Equip panic orb if needed
             if (character.slots.orb?.name !== PANIC_ORB) {
                 try {
-                    equip(3, PANIC_ORB);
+                    equip(3);
                     await delay(delayMs);
                     if (character.slots.orb?.name !== PANIC_ORB) {
                         log("[PANIC] Failed to equip panic orb!", "#ff4444", "Errors");
@@ -1319,7 +1319,7 @@ async function panic_loop() {
             // Equip normal orb if needed
             if (character.slots.orb?.name !== NORMAL_ORB) {
                 try {
-                    equip(3, NORMAL_ORB);
+                    equip(3);
                     await delay(delayMs);
                     if (character.slots.orb?.name !== NORMAL_ORB) {
                         log("[PANIC] Failed to equip normal orb!", "#ff4444", "Errors");
