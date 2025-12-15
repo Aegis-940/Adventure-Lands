@@ -146,19 +146,42 @@ function ui_window() {
         ctx.lineTo(goldCanvas.width - 5, 90);
         ctx.stroke();
 
-        // Draw gold data as line
+        // Draw gold data as line with fixed intervals
         const data = getGoldGraphData();
-        if (data.length > 1) {
-            const minGold = Math.min(...data.map(d => d.amount));
-            const maxGold = Math.max(...data.map(d => d.amount));
+        const INTERVALS = 60; // Number of points on the graph
+        const graphStart = Date.now() - 30 * 60 * 1000;
+        const graphEnd = Date.now();
+        const intervalMs = (graphEnd - graphStart) / INTERVALS;
+        let points = [];
+        for (let i = 0; i < INTERVALS; i++) {
+            const tStart = graphStart + i * intervalMs;
+            const tEnd = tStart + intervalMs;
+            // Find the last event in this interval
+            let point = null;
+            for (let j = data.length - 1; j >= 0; j--) {
+                if (data[j].t >= tStart && data[j].t < tEnd) {
+                    point = data[j];
+                    break;
+                }
+            }
+            // If no event, use previous value or 0
+            if (!point && points.length > 0) {
+                points.push({ t: tEnd, amount: points[points.length - 1].amount });
+            } else if (!point) {
+                points.push({ t: tEnd, amount: 0 });
+            } else {
+                points.push({ t: tEnd, amount: point.amount });
+            }
+        }
+        if (points.length > 1) {
+            const minGold = Math.min(...points.map(d => d.amount));
+            const maxGold = Math.max(...points.map(d => d.amount));
             const range = Math.max(1, maxGold - minGold);
             ctx.strokeStyle = '#FFD700';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            const t0 = data[0].t;
-            const t1 = data[data.length - 1].t;
-            data.forEach((d, i) => {
-                const x = 25 + ((goldCanvas.width - 35) * (d.t - t0)) / ((t1 - t0) || 1);
+            points.forEach((d, i) => {
+                const x = 25 + ((goldCanvas.width - 35) * i) / (INTERVALS - 1);
                 const y = 90 - 70 * (d.amount - minGold) / range;
                 if (i === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
