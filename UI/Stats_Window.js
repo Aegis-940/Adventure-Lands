@@ -56,8 +56,8 @@ function add_gold_graph(doc, content) {
             width: "500px",
             height: "240px",
             position: "absolute",
-            left: "252px",
-            top: "60px",
+            left: "258px",
+            top: "48px",
         }
     });
     gold_canvas.width = 500;

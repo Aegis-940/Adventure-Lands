@@ -261,10 +261,14 @@ async function set_state(state) {
                     handling_death = true;
                     try {
 
+                        PANIC_LOOP_ENABLED = false;
+
                         log("Respawning in 20s...", "red");
                         await delay(20000);
                         if (character.rip) await respawn();
                         await delay(5000);
+
+                        PANIC_LOOP_ENABLED = true;
 
                         smarter_move(get_main_target());
                         await delay(10000);
