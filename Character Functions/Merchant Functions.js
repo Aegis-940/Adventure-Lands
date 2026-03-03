@@ -696,6 +696,7 @@ async function mining_loop() {
 let exchange_items_running = false;
 
 const EXCHANGE_LIST= [
+    { name: "xbox",         min: 1 },
     { name: "candy1",       min: 1 },
     { name: "gem0",         min: 1 },
     { name: "gem1",         min: 1 },
