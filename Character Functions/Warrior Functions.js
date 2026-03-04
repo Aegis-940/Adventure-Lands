@@ -465,15 +465,16 @@ async function potion_loop() {
 
         let used_potion = false;
 
-        // Use mana potion if needed
-        if (HP_MISSING >= POTION_HP_THRESHOLD) {
+        // Use health potion if needed
+        const myras = Object.values(parent.entities).find(e => e.type === "character" && e.name === "Myras");
+        if (HP_MISSING >= POTION_HP_THRESHOLD && detect_character(myras)) {
             if (can_use("hp")) {
                 use("hp");
                 used_potion = true;
             }
         }
 
-        // Use health potion if needed
+        // Use mana potion if needed
         else if (MP_MISSING >= POTION_MP_THRESHOLD) {
             if (can_use("mp")) {
                 use("mp");

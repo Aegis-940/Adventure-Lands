@@ -1481,3 +1481,16 @@ function add_reload_button() {
 }
 
 add_reload_button();
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// DETECT CHARACTER FUNCTION
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+// Returns true if the target character is within 500 units
+function detect_character(target) {
+    if (!target || !character || typeof target.x !== 'number' || typeof target.y !== 'number' || typeof character.x !== 'number' || typeof character.y !== 'number') return false;
+    const dx = target.x - character.x;
+    const dy = target.y - character.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    return distance <= 500;
+}
