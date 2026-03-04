@@ -31,7 +31,7 @@ const barHeight = 18;
 		border-radius: 4px;
 		margin: 2px 0 6px 0;
 		position: relative;
-		background: rgba(34,34,34,1);
+		background: rgba(34,34,34);
 		border: 1px solid #333;
 		overflow: hidden;
 	}
