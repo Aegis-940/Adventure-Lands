@@ -45,39 +45,39 @@ function render_items(categories, used, total) {
         <div style="margin-bottom:10px;">
     `;
 
-    // items.forEach(item => {
-    //   // Build an onclick that withdraws, then re-renders the ATM window
-    //   const lvlArg = item.level != null ? item.level : null;
-    //   const onclick = `
-    //     parent.$('#maincode')[0].contentWindow
-    //       .withdraw_item('${item.name}', ${lvlArg}, ${1})
-    //       .then(() => {
-    //         parent.hide_modal();
-    //         parent.$('#maincode')[0].contentWindow.render_bank_items();
-    //       });
-    //   `;
-    //   let opts = {
-    //     skin: G.items[item.name].skin,
-    //     onclick,
-    //     title: `Withdraw ${item.name}${lvlArg !== null ? ' (lvl ' + lvlArg + ')' : ''}`
-    //   };
+    items.forEach(item => {
+      // // Build an onclick that withdraws, then re-renders the ATM window
+      // const lvlArg = item.level != null ? item.level : null;
+      // const onclick = `
+      //   parent.$('#maincode')[0].contentWindow
+      //     .withdraw_item('${item.name}', ${lvlArg}, ${1})
+      //     .then(() => {
+      //       parent.hide_modal();
+      //       parent.$('#maincode')[0].contentWindow.render_bank_items();
+      //     });
+      // `;
+      let opts = {
+        skin: G.items[item.name].skin,
+        onclick,
+        title: `Withdraw ${item.name}${lvlArg !== null ? ' (lvl ' + lvlArg + ')' : ''}`
+      };
 
-    //   let itemDiv = parent.item_container(opts, item);
+      let itemDiv = parent.item_container(opts, item);
 
-    //   if (item.p) {
-    //     const tagColors = {
-    //       festive: "#79ff7e", firehazard: "#f79b11", glitched: "grey",
-    //       gooped: "#64B867", legacy: "white", lucky: "#00f3ff",
-    //       shiny: "#99b2d8", superfast: "#c681dc"
-    //     };
-    //     const tag = item.p[0]?.toUpperCase() || "?";
-    //     const color = tagColors[item.p] || "grey";
-    //     const tagDiv = `<div class="trruui imu" style="border-color:black;color:${color};">${tag}</div>`;
-    //     itemDiv = itemDiv.replace("</div></div>", `</div>${tagDiv}</div>`);
-    //   }
+      if (item.p) {
+        const tagColors = {
+          festive: "#79ff7e", firehazard: "#f79b11", glitched: "grey",
+          gooped: "#64B867", legacy: "white", lucky: "#00f3ff",
+          shiny: "#99b2d8", superfast: "#c681dc"
+        };
+        const tag = item.p[0]?.toUpperCase() || "?";
+        const color = tagColors[item.p] || "grey";
+        const tagDiv = `<div class="trruui imu" style="border-color:black;color:${color};">${tag}</div>`;
+        itemDiv = itemDiv.replace("</div></div>", `</div>${tagDiv}</div>`);
+      }
 
-    //   html += itemDiv;
-    // });
+      html += itemDiv;
+    });
 
     html += `</div></div>`;
   });
