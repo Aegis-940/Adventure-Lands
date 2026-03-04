@@ -788,6 +788,9 @@ function hide_party_ui() {
  * @param {number|null} total       – (optional) Max total quantity to withdraw; omit to take all.
  */
 async function withdraw_item(itemName, level = null, total = null) {
+
+    log(lvlArg);
+    
 	const BANK_LOC1 = { map: "bank", x: 0, y: -37 };
 	const BANK_LOC2 = { map: "bank_b", x: -265, y: -344 };
 
