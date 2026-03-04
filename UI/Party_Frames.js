@@ -209,8 +209,10 @@ function updatePartyFrames() {
 				}
 			}
 
-			let party_member_frame = partyFrame.find(partyFrame.children()[x]);
-			party_member_frame.children().last().html(`<div style="font-size: 22px;" onclick='pcs(event); party_click("${party_member_name}\");'>${infoHTML}</div>`);
+			   let party_member_frame = partyFrame.find(partyFrame.children()[x]);
+			   // Remove or hide any <img> elements in the frame to ensure no character icons are shown
+			   party_member_frame.find('img').remove(); // Remove all images
+			   party_member_frame.children().last().html(`<div style="font-size: 22px;" onclick='pcs(event); party_click("${party_member_name}\");'>${infoHTML}</div>`);
 		}
 	}
 }
