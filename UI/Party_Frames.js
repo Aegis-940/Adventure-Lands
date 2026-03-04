@@ -135,6 +135,8 @@ moveElementUpByPx("bottomleftcorner2", 400);
 moveElementUpByPx("chatwparty", 400);
 moveElementUpByPx("chatinput", 400);
 
+parent.$('#chatwparty').hide();
+
 // ----
 
 
