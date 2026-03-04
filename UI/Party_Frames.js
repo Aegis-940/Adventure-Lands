@@ -5,9 +5,9 @@ if (parent.party_style_prepared) {
 
 let css = `
 	.party-container {
-		position: absolute;
-		bottom: 100px;
+		position: fixed;
 		left: 50%;
+		bottom: 100px;
 		transform: translateX(-50%);	
 		width: 480px;
 		height: auto;
