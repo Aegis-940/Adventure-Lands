@@ -3,17 +3,19 @@ if (parent.party_style_prepared) {
 }
 
 let css = `
-	.party-container {
-		position: absolute;
-		top: 55px;
-		right: 2px;
-		width: 480px;
-		height: auto;
-		font-family: 'pixel';
-		display: flex;
-		flex-direction: row;
-		justify-content: space-between;
-	}
+   .party-container {
+	   position: fixed;
+	   left: 50%;
+	   bottom: 150px;
+	   transform: translateX(-50%);
+	   width: 480px;
+	   height: auto;
+	   font-family: 'pixel';
+	   display: flex;
+	   flex-direction: row;
+	   justify-content: space-between;
+	   z-index: 9999;
+   }
 `;
 parent.$('head').append(`<style id="style-party-frames">${css}</style>`);
 parent.party_style_prepared = true;
@@ -47,7 +49,6 @@ let show_party_frame_property = {
 	ping: true,
 	share: true
 };
-
 function get_toggle_text(key) {
 	return key.toUpperCase() + (show_party_frame_property[key] ? '✔️' : '❌');
 }
@@ -96,9 +97,9 @@ function addPartyFramePropertiesToggles() {
 		return toggle;
 	}
 
-	for (let key of ['img', 'hp', 'mp', 'xp', 'cc']) {
-		toggles.appendChild(create_toggle(key));
-	}
+	   for (let key of ['hp', 'mp', 'xp', 'cc']) {
+		   toggles.appendChild(create_toggle(key));
+	   }
 }
 
 function updatePartyFrames() {
@@ -208,7 +209,7 @@ function updatePartyFrames() {
 			}
 
 			let party_member_frame = partyFrame.find(partyFrame.children()[x]);
-			party_member_frame.children().first().css('display', show_party_frame_property['img'] ? 'inherit' : 'none');
+			   // Removed icon/image display logic
 			party_member_frame.children().last().html(`<div style="font-size: 22px;" onclick='pcs(event); party_click("${party_member_name}\");'>${infoHTML}</div>`);
 		}
 	}
