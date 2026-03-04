@@ -939,3 +939,44 @@ async function pouchbow_upgrade() {
     // Set state to UPGRADING
     set_state(MERCHANT_STATES.UPGRADING);
 }
+
+async function coat_upgrade() {
+
+    // Move home
+    await smarter_move(HOME);
+
+    // Buy 25 "coat"
+    for (let i = 0; i < 25; i++) {
+        await parent.buy("coat");
+        await delay(50); // Small delay to avoid flooding
+    }
+
+    async function short_upgrade() {
+
+        // --- Upgrade all items level-by-level ---
+        let upgraded = true;
+        for (let level = 0; level <= 10; level++) {
+            upgraded = false;
+            while (true) {
+                const result = await auto_upgrade_item(level);
+                if (result === "done" || result === "wait") {
+                    upgraded = true;
+                    await delay(UPGRADE_INTERVAL);
+                } else if (result === "end") {
+                    // Stop all upgrading if "end" is returned (e.g., not enough gold)
+                    game_log("❌ Ending auto-upgrade early due to insufficient gold or resources.");
+                    break;
+                } else {
+                    break;
+                }
+            }
+        }
+    }
+
+    await short_upgrade();
+
+    game_log("✅ Auto upgrade and combine complete.");
+    await delay(5000);
+    await sell_and_bank();
+    merchant_task = "Idle";
+}

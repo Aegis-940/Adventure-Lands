@@ -288,10 +288,12 @@ async function auto_upgrade_item(level) {
         if (!character.q.upgrade) {
             if (item.level <= 6 && can_use("massproduction")) {
                 await use_skill("massproduction");
+                log("Using massproduction for upgrade.");
                 await delay(10);
             }
             if (item.level >= 7 && can_use("massproductionpp")) {
                 await use_skill("massproductionpp");
+                log("Using massproductionpp for upgrade.");
                 await delay(10);
             }
             parent.socket.emit("upgrade", {
