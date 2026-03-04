@@ -5,6 +5,10 @@ const PARTY_ORDER = ["Ulric", "Myras", "Riva", "Riff"];
 const partyFrameWidth = 100;
 const barHeight = 18;
 
+if (parent.party_style_prepared) {
+	parent.$('#style-party-frames').remove();
+}
+
 // Inject CSS for positioning and style
 (function() {
 	const css = `
