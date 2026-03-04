@@ -45,6 +45,12 @@ attack_loop();
 // Designed to manage state transitions and ensure appropriate loops are running
 loop_controller();
 
+moveElementUpByPx("bottomleftcorner2", 370);
+moveElementUpByPx("chatwparty", 370);
+moveElementUpByPx("chatinput", 370);
+
+parent.$('#bottomleftcorner').show();
+
 setInterval(async () => {
 	
 	// Throttle to every 20 seconds (20,000 ms)
