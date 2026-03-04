@@ -46,9 +46,10 @@ function render_items(categories, used, total) {
     `;
 
     items.forEach(item => {
-      // // Build an onclick that withdraws, then re-renders the ATM window
-      // const lvlArg = item.level != null ? item.level : null;
-      // const onclick = `
+      // Build an onclick that withdraws, then re-renders the ATM window
+      const lvlArg = item.level != null ? item.level : null;
+      const onclick = '';
+      // `
       //   parent.$('#maincode')[0].contentWindow
       //     .withdraw_item('${item.name}', ${lvlArg}, ${1})
       //     .then(() => {
