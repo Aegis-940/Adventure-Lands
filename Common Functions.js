@@ -758,6 +758,23 @@ function hide_skills_ui() {
 	}
 }
 
+// Hides the game's native party bar UI
+function hide_party_ui() {
+    const doc = parent.document;
+    // Hide the main party bar (usually #party or #party-frames)
+    const party_bar = doc.querySelector("#party, #party-frames");
+    if (party_bar) party_bar.style.display = "none";
+    // Optionally hide any party-related buttons or elements
+    const party_buttons = [
+        "#party-button", // Example, adjust as needed
+        "#party-leader-icon"
+    ];
+    for (const selector of party_buttons) {
+        const btn = doc.querySelector(selector);
+        if (btn) btn.style.display = "none";
+    }
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // BANK ITEM WITHDRAW FUNCTION
 // --------------------------------------------------------------------------------------------------------------------------------- //
