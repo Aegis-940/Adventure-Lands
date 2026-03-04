@@ -131,11 +131,12 @@ function moveElementUpByPx(elementId, pixels) {
   }
 }
 
-moveElementUpByPx("bottomleftcorner2", 375);
-moveElementUpByPx("chatwparty", 375);
-moveElementUpByPx("chatinput", 375);
+moveElementUpByPx("bottomleftcorner2", 370);
+moveElementUpByPx("chatwparty", 370);
+moveElementUpByPx("chatinput", 370);
 
 parent.$('#chatwparty').hide();
+parent.$('#bottomleftcorner').show();
 
 // ----
 
