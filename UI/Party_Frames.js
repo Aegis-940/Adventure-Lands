@@ -221,3 +221,6 @@ function updatePartyFrames() {
 parent.$('#party-props-toggles').remove();
 
 setInterval(updatePartyFrames, 250);
+
+const container = parent.document.getElementById('simple-party-ui-container');
+if (container) container.style.display = 'none';
