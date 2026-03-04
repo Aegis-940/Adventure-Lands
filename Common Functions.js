@@ -792,13 +792,6 @@ async function withdraw_item(itemName, level = null, total = null) {
 	const BANK_LOC1 = { map: "bank", x: 0, y: -37 };
 	const BANK_LOC2 = { map: "bank_b", x: -265, y: -344 };
 
-    if (level == 1 && character.map !== "bank") {
-        await smarter_move(BANK_LOC1);
-    }
-	else if (level == 2 && character.map !== "bank_b") {
-		await smarter_move(BANK_LOC2);
-	}
-
 	await delay(200);
 
 	// 1) Grab live bank data
@@ -814,33 +807,45 @@ async function withdraw_item(itemName, level = null, total = null) {
 	let remaining = (total != null ? total : Infinity);
 	let foundAny  = false;
 
-	// 2) Iterate each "items<N>" pack
-	for (const packKey of Object.keys(bankData)) {
-		if (!packKey.startsWith("items")) continue;
-		const slotArr = bankData[packKey];
-		if (!Array.isArray(slotArr)) continue;
+    // 2) Iterate each "items<N>" pack
+    for (const packKey of Object.keys(bankData)) {
+        if (!packKey.startsWith("items")) continue;
+        const slotArr = bankData[packKey];
+        if (!Array.isArray(slotArr)) continue;
 
-		// 3) Scan slots in this pack
-		for (let slot = 0; slot < slotArr.length && remaining > 0; slot++) {
-			const itm = slotArr[slot];
-			if (!itm || itm.name !== itemName) continue;
-			if (level != null && itm.level !== level) continue;
+        // Determine which bank location to move to based on packKey
+        const packNum = parseInt(packKey.replace("items", ""), 10);
+        if (!isNaN(packNum)) {
+            if (packNum >= 0 && packNum <= 7 && (character.map !== BANK_LOC1.map || Math.abs(character.x - BANK_LOC1.x) > 20 || Math.abs(character.y - BANK_LOC1.y) > 20)) {
+                await smarter_move(BANK_LOC1);
+                await delay(200);
+            } else if (packNum >= 8 && packNum <= 14 && (character.map !== BANK_LOC2.map || Math.abs(character.x - BANK_LOC2.x) > 20 || Math.abs(character.y - BANK_LOC2.y) > 20)) {
+                await smarter_move(BANK_LOC2);
+                await delay(200);
+            }
+        }
 
-			foundAny = true;
-			// Decide how many to retrieve (bank_retrieve pulls the entire stack or single item)
-			// For non-stackable gear it'll always be 1; remaining logic still honored.
-			const takeCount = Math.min(itm.q || 1, remaining);
+        // 3) Scan slots in this pack
+        for (let slot = 0; slot < slotArr.length && remaining > 0; slot++) {
+            const itm = slotArr[slot];
+            if (!itm || itm.name !== itemName) continue;
+            if (level != null && itm.level !== level) continue;
 
-			for (let i = 0; i < takeCount; i++) {
-				await bank_retrieve(packKey, slot, -1);
-				await delay(100);
-				remaining--;
-				if (remaining <= 0) break;
-			}
-		}
+            foundAny = true;
+            // Decide how many to retrieve (bank_retrieve pulls the entire stack or single item)
+            // For non-stackable gear it'll always be 1; remaining logic still honored.
+            const takeCount = Math.min(itm.q || 1, remaining);
 
-		if (remaining <= 0) break;
-	}
+            for (let i = 0; i < takeCount; i++) {
+                await bank_retrieve(packKey, slot, -1);
+                await delay(100);
+                remaining--;
+                if (remaining <= 0) break;
+            }
+        }
+
+        if (remaining <= 0) break;
+    }
 
 	// 4) Summarize
 	if (!foundAny) {
