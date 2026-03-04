@@ -94,7 +94,7 @@ async function withdraw_offering() {
 
     try {
         await withdraw_item("offeringp");
-        await delay(50);
+        await delay(500);
     } catch (e) {
         game_log("⚠️ Withdraw Offering error:", "#FF0000");
         game_log(e);
