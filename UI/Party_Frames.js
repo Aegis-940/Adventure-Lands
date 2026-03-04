@@ -1,4 +1,3 @@
-
 // Simple Party UI - displays all 4 party members with HP, MP, XP, centered and 150px from bottom
 
 const PARTY_ORDER = ["Ulric", "Myras", "Riva", "Riff"];
@@ -124,11 +123,11 @@ function renderPartyUI() {
 
 setInterval(renderPartyUI, 250);
 
-function moveBottomLeftCorner2Up() {
-  const el = parent.document.getElementById("bottomleftcorner2");
+function moveElementUpByPx(elementId, pixels) {
+  const el = parent.document.getElementById(elementId);
   if (el) {
     const currentBottom = parseInt(window.getComputedStyle(el).bottom) || 0;
-    el.style.bottom = (currentBottom + 200) + "px";
+    el.style.bottom = (currentBottom + pixels) + "px";
   }
 }
 
