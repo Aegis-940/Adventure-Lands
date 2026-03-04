@@ -11,7 +11,7 @@ const barHeight = 18;
 	#simple-party-ui-container {
 		position: fixed;
 		left: 50%;
-		bottom: 150px;
+		bottom: 100px;
 		transform: translateX(-50%);
 		display: flex;
 		flex-direction: row;
@@ -31,7 +31,7 @@ const barHeight = 18;
 		border-radius: 4px;
 		margin: 2px 0 6px 0;
 		position: relative;
-		background: rgba(34,34,34,0.75);
+		background: rgba(34,34,34,1);
 		border: 1px solid #333;
 		overflow: hidden;
 	}
