@@ -22,7 +22,6 @@ const barHeight = 18;
 		width: ${partyFrameWidth}px;
 		background: #181818;
 		border: 1px solid #444;
-		border-radius: 7px;
 		padding: 6px 8px;
 		font-family: 'pixel', monospace;
 		color: #fff;
@@ -32,7 +31,7 @@ const barHeight = 18;
 		border-radius: 4px;
 		margin: 2px 0 6px 0;
 		position: relative;
-		background: #222;
+		background: rgba(34,34,34,0.5);
 		border: 1px solid #333;
 		overflow: hidden;
 	}
@@ -40,7 +39,6 @@ const barHeight = 18;
 		height: 100%;
 		position: absolute;
 		left: 0; top: 0;
-		border-radius: 4px;
 	}
 	.bar-hp { background: #c33; }
 	.bar-mp { background: #39f; }
