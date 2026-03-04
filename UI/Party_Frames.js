@@ -1,11 +1,8 @@
+// Controls whether the custom party UI is visible
+let show_party_ui = false;
 
 if (parent.party_style_prepared) {
 	parent.$('#style-party-frames').remove();
-}
-
-function hide_custom_party_ui() {
-    const container = parent.document.getElementById('simple-party-ui-container');
-    if (container) container.style.display = 'none';
 }
 
 let css = `
@@ -111,6 +108,12 @@ function addPartyFramePropertiesToggles() {
 }
 
 function updatePartyFrames() {
+	if (!show_party_ui) {
+		const $ = parent.$;
+		let partyFrame = $('#newparty');
+		if (partyFrame && partyFrame.length) partyFrame.hide();
+		return;
+	}
 	let $ = parent.$;
 	let partyFrame = $('#newparty');
 	partyFrame.addClass('party-container');
@@ -209,16 +212,16 @@ function updatePartyFrames() {
 				const width = data[key + 'Width'];
 				const color = data[key + 'Color'];
 				if (show_party_frame_property[key]) {
-					infoHTML += `<div style="position: relative; width: 100%; height: 20px; text-align: center; margin-top: 3px;">
-	<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 20px; z-index: 1; white-space: nowrap;">${text}: ${value}</div>
-	<div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: ${color}; width: ${width}%; height: 20px; transform: translate(0, 0); border: 1px solid grey;"></div>
+					infoHTML += `<div style=\"position: relative; width: 100%; height: 20px; text-align: center; margin-top: 3px;\">
+   <div style=\"position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 20px; z-index: 1; white-space: nowrap;\">${text}: ${value}</div>
+   <div style=\"position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: ${color}; width: ${width}%; height: 20px; transform: translate(0, 0); border: 1px solid grey;\"></div>
 </div>`;
 				}
 			}
 
 			let party_member_frame = partyFrame.find(partyFrame.children()[x]);
 			party_member_frame.children().first().css('display', show_party_frame_property['img'] ? 'inherit' : 'none');
-			party_member_frame.children().last().html(`<div style="font-size: 22px;" onclick='pcs(event); party_click("${party_member_name}\");'>${infoHTML}</div>`);
+			party_member_frame.children().last().html(`<div style=\"font-size: 22px;\" onclick='pcs(event); party_click(\"${party_member_name}\\\");'>${infoHTML}</div>`);
 		}
 	}
 }
