@@ -49,6 +49,7 @@ function render_items(categories, used, total) {
       // Build an onclick that withdraws, then re-renders the ATM window
       const lvlArg = item.level != null ? item.level : null;
       const onclick = `
+        game_log('lvlArg: ' + ${lvlArg});
         parent.$('#maincode')[0].contentWindow
           .withdraw_item('${item.name}', ${lvlArg}, ${1})
           .then(() => {
@@ -72,7 +73,7 @@ function render_items(categories, used, total) {
         };
         const tag = item.p[0]?.toUpperCase() || "?";
         const color = tagColors[item.p] || "grey";
-        const tagDiv = `<div class="trruui imu" style="border-color:black;color:${color};">${tag}</div>`;
+        const tagDiv = `<div class=\"trruui imu\" style=\"border-color:black;color:${color};\">${tag}</div>`;
         itemDiv = itemDiv.replace("</div></div>", `</div>${tagDiv}</div>`);
       }
 

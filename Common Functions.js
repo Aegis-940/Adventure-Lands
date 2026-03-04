@@ -791,8 +791,6 @@ async function withdraw_item(itemName, level = null, total = null) {
 	const BANK_LOC1 = { map: "bank", x: 0, y: -37 };
 	const BANK_LOC2 = { map: "bank_b", x: -265, y: -344 };
 
-    log(level);
-
     if (level == 1 && character.map !== "bank") {
         await smarter_move(BANK_LOC1);
     }
