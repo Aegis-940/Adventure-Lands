@@ -81,8 +81,8 @@ function getPartyMemberInfo(name) {
 }
 
 function renderPartyUI() {
-	const $ = parent.$;
-	let partyFrame = $('#newparty');
+	// const $ = parent.$;
+	// let partyFrame = $('#newparty');
 	if (partyFrame && partyFrame.length) partyFrame.hide();
 	let container = parent.document.getElementById('simple-party-ui-container');
 	if (!container) {
