@@ -1715,3 +1715,15 @@ function sort_all_bank(inv_indices, sorted_bank, i_running) {
   //else if is full place misplaced item
   return sorted_bank;
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// MOVE UI ELEMENTS
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function moveElementUpByPx(elementId, pixels) {
+  const el = parent.document.getElementById(elementId);
+  if (el) {
+    const currentBottom = parseInt(window.getComputedStyle(el).bottom) || 0;
+    el.style.bottom = (currentBottom + pixels) + "px";
+  }
+}

@@ -123,16 +123,6 @@ function renderPartyUI() {
 
 setInterval(renderPartyUI, 250);
 
-function moveElementUpByPx(elementId, pixels) {
-  const el = parent.document.getElementById(elementId);
-  if (el) {
-    const currentBottom = parseInt(window.getComputedStyle(el).bottom) || 0;
-    el.style.bottom = (currentBottom + pixels) + "px";
-  }
-}
-
-
-
 // ----
 
 
