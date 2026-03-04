@@ -816,10 +816,10 @@ async function withdraw_item(itemName, level = null, total = null) {
         // Determine which bank location to move to based on packKey
         const packNum = parseInt(packKey.replace("items", ""), 10);
         if (!isNaN(packNum)) {
-            if (packNum >= 0 && packNum <= 7 && (character.map !== BANK_LOC1.map || Math.abs(character.x - BANK_LOC1.x) > 20 || Math.abs(character.y - BANK_LOC1.y) > 20)) {
+            if (packNum >= 0 && packNum <= 7 && character.map !== BANK_LOC1.map) {
                 await smarter_move(BANK_LOC1);
                 await delay(200);
-            } else if (packNum >= 8 && packNum <= 14 && (character.map !== BANK_LOC2.map || Math.abs(character.x - BANK_LOC2.x) > 20 || Math.abs(character.y - BANK_LOC2.y) > 20)) {
+            } else if (packNum >= 8 && packNum <= 14 && character.map !== BANK_LOC2.map) {
                 await smarter_move(BANK_LOC2);
                 await delay(200);
             }
