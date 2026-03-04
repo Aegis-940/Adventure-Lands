@@ -48,6 +48,7 @@ function render_items(categories, used, total) {
     items.forEach(item => {
       // Build an onclick that withdraws, then re-renders the ATM window
       const lvlArg = item.level != null ? item.level : null;
+      log(lvlArg);
       const onclick = `
         parent.$('#maincode')[0].contentWindow
           .withdraw_item('${item.name}', ${lvlArg}, ${1})
