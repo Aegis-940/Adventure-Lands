@@ -93,8 +93,8 @@ async function withdraw_upgrade_scrolls() {
 async function withdraw_offering() {
 
     try {
-        await withdraw_item("offeringp");
         log("Withdrawing offeringp for upgrades that require it.");
+        await withdraw_item("offeringp");
         await delay(500);
     } catch (e) {
         game_log("⚠️ Withdraw Offering error:", "#FF0000");
