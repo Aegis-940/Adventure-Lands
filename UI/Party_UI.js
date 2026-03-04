@@ -26,7 +26,6 @@ const barHeight = 18;
 		padding: 6px 8px;
 		font-family: 'pixel', monospace;
 		color: #fff;
-		box-shadow: 0 2px 8px #000a;
 	}
 	.simple-party-bar {
 		height: ${barHeight}px;
@@ -53,7 +52,6 @@ const barHeight = 18;
 		font-size: 13px;
 		top: 0; left: 0;
 		color: #fff;
-		text-shadow: 1px 1px 2px #000, 0 0 2px #000;
 	}
 	.simple-party-name {
 		text-align: center;
