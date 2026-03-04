@@ -16,7 +16,7 @@ const barHeight = 18;
 		display: flex;
 		flex-direction: row;
 		gap: 12px;
-		z-index: 0;
+		z-index: 1;
 	}
 	.simple-party-frame {
 		width: ${partyFrameWidth}px;
