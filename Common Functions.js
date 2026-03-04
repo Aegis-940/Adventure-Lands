@@ -818,9 +818,11 @@ async function withdraw_item(itemName, level = null, total = null) {
         if (!isNaN(packNum)) {
             if (packNum >= 0 && packNum <= 7 && character.map !== BANK_LOC1.map) {
                 await smarter_move(BANK_LOC1);
+                log(`Moved to Bank for pack ${packKey}`);
                 await delay(200);
             } else if (packNum >= 8 && packNum <= 14 && character.map !== BANK_LOC2.map) {
                 await smarter_move(BANK_LOC2);
+                log(`Moved to Bank Basement for pack ${packKey}`);
                 await delay(200);
             }
         }
