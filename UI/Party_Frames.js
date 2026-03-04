@@ -3,6 +3,11 @@ if (parent.party_style_prepared) {
 	parent.$('#style-party-frames').remove();
 }
 
+function hide_custom_party_ui() {
+    const container = parent.document.getElementById('simple-party-ui-container');
+    if (container) container.style.display = 'none';
+}
+
 let css = `
 	.party-container {
 		position: fixed;
@@ -222,5 +227,3 @@ parent.$('#party-props-toggles').remove();
 
 setInterval(updatePartyFrames, 250);
 
-const container = parent.document.getElementById('simple-party-ui-container');
-if (container) container.style.display = 'none';
