@@ -1,24 +1,18 @@
-
 if (parent.party_style_prepared) {
 	parent.$('#style-party-frames').remove();
 }
 
 let css = `
 	.party-container {
-		position: fixed;
-		left: 50%;
-		bottom: 200px;
-		transform: translateX(-50%);
-		width: auto;
+		position: absolute;
+		top: 55px;
+		right: 2px;
+		width: 480px;
 		height: auto;
 		font-family: 'pixel';
 		display: flex;
 		flex-direction: row;
-		justify-content: center;
-		background: rgba(0,0,0,0.5);
-		border-radius: 8px;
-		padding: 6px 12px;
-		z-index: 9999;
+		justify-content: space-between;
 	}
 `;
 parent.$('head').append(`<style id="style-party-frames">${css}</style>`);
@@ -46,7 +40,6 @@ function getIFramedCharacter(name) {
 }
 
 let show_party_frame_property = {
-	img: true,
 	hp: true,
 	mp: true,
 	xp: true,
@@ -116,11 +109,10 @@ function updatePartyFrames() {
 	if (partyFrame) {
 		addPartyFramePropertiesToggles();
 
-		// Only show other party members, not self
-		const others = PARTY_ORDER.filter(name => name !== character.name && parent.party[name]);
+		for (let x = 0; x < PARTY_ORDER.length; x++) {
+			let party_member_name = PARTY_ORDER[x];
+			if (!parent.party[party_member_name]) continue;
 
-		for (let x = 0; x < others.length; x++) {
-			let party_member_name = others[x];
 			let info = get(party_member_name + '_newparty_info');
 			if (!info || Date.now() - info.lastSeen > 1000) {
 				let iframed_party_member = getIFramedCharacter(party_member_name);
@@ -216,8 +208,7 @@ function updatePartyFrames() {
 			}
 
 			let party_member_frame = partyFrame.find(partyFrame.children()[x]);
-			// Remove character icon/image display (no-op)
-			// party_member_frame.children().first().css('display', 'none');
+			party_member_frame.children().first().css('display', show_party_frame_property['img'] ? 'inherit' : 'none');
 			party_member_frame.children().last().html(`<div style="font-size: 22px;" onclick='pcs(event); party_click("${party_member_name}\");'>${infoHTML}</div>`);
 		}
 	}
