@@ -124,7 +124,13 @@ function renderPartyUI() {
 
 setInterval(renderPartyUI, 250);
 
-
+function moveBottomLeftCorner2Up() {
+  const el = parent.document.getElementById("bottomleftcorner2");
+  if (el) {
+    const currentBottom = parseInt(window.getComputedStyle(el).bottom) || 0;
+    el.style.bottom = (currentBottom + 200) + "px";
+  }
+}
 
 // ----
 
