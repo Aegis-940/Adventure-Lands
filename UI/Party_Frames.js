@@ -109,11 +109,11 @@ function renderPartyUI() {
 			<div class="simple-party-name">${info.name ?? name}</div>
 			<div class="simple-party-bar">
 				<div class="simple-party-bar-inner bar-hp" style="width:${hpPct}%;"></div>
-				<div class="bar-label">HP: ${hp} / ${max_hp}</div>
+				<div class="bar-label">HP: ${hp}</div>
 			</div>
 			<div class="simple-party-bar">
 				<div class="simple-party-bar-inner bar-mp" style="width:${mpPct}%;"></div>
-				<div class="bar-label">MP: ${mp} / ${max_mp}</div>
+				<div class="bar-label">MP: ${mp}</div>
 			</div>
 			<div class="simple-party-bar">
 				<div class="simple-party-bar-inner bar-xp" style="width:${xpPct}%;"></div>
