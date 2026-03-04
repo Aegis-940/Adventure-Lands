@@ -17,6 +17,7 @@ let css = `
 		justify-content: space-between;
 	}
 `;
+
 parent.$('head').append(`<style id="style-party-frames">${css}</style>`);
 parent.party_style_prepared = true;
 
@@ -204,7 +205,7 @@ function updatePartyFrames() {
 				const color = data[key + 'Color'];
 				if (show_party_frame_property[key]) {
 					infoHTML += `<div style="position: relative; width: 100%; height: 20px; text-align: center; margin-top: 3px;">
-	<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 17px; z-index: 1; white-space: nowrap; text-shadow: -1px 0 black, 0 2px black, 2px 0 black, 0 -1px black;">${text}: ${value}</div>
+	<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 17px; z-index: 1; white-space: nowrap; ">${text}: ${value}</div>
 	<div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: ${color}; width: ${width}%; height: 20px; transform: translate(0, 0); border: 1px solid grey;"></div>
 </div>`;
 				}
