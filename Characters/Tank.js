@@ -16,7 +16,7 @@ create_map_movement_window([
 ]);
 
 hide_skills_ui();
-parent.$('#newparty').hide();
+partyFrame.hide();
 create_custom_log_window();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
