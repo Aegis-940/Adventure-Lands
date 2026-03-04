@@ -20,7 +20,7 @@ const barHeight = 18;
 	}
 	.simple-party-frame {
 		width: ${partyFrameWidth}px;
-		background: #181818;
+		background: rgba(34,34,34,0.75);
 		border: 1px solid #444;
 		padding: 6px 8px;
 		font-family: 'pixel', monospace;
@@ -31,7 +31,7 @@ const barHeight = 18;
 		border-radius: 4px;
 		margin: 2px 0 6px 0;
 		position: relative;
-		background: rgba(34,34,34,0.5);
+		background: rgba(34,34,34,0.75);
 		border: 1px solid #333;
 		overflow: hidden;
 	}
