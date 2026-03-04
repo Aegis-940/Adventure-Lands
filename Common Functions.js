@@ -1727,3 +1727,7 @@ function moveElementUpByPx(elementId, pixels) {
     el.style.bottom = (currentBottom + pixels) + "px";
   }
 }
+
+moveElementUpByPx("bottomleftcorner2", 370);
+moveElementUpByPx("chatwparty", 370);
+moveElementUpByPx("chatinput", 370);
