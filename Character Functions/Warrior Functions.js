@@ -554,7 +554,7 @@ async function single_set() {
 let last_cleave_time = 0;
 const CLEAVE_THRESHOLD = 500;
 const CLEAVE_RANGE = G.skills.cleave.range;
-const MAPS_TO_INCLUDE = ["mansion", "main"];
+const MAPS_TO_CLEAVE = ["mansion", "main"];
 
 async function handle_cleave(Mainhand) {
     const now = performance.now();
@@ -587,6 +587,8 @@ async function handle_cleave(Mainhand) {
     } 
 }
 
+const MAPS_TO_TAUNT = ["mforest"];
+
 // Casts 'agitate' if at least three untargeted monsters are within agitate range
 async function handle_taunt() {
     if (smart.moving || is_on_cooldown("agitate") || !can_use("agitate") || character.mp < AGITATE_MP_THRESHOLD) return;
@@ -599,7 +601,6 @@ async function handle_taunt() {
         !e.target
     );
     if (untargeted.length >= 2) {
-        log(`Casting agitate on ${untargeted.length} untargeted monsters!`, "#00ff00", "Taunt");
         await use_skill("agitate");
     }
 }
