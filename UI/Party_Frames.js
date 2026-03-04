@@ -131,9 +131,9 @@ function moveElementUpByPx(elementId, pixels) {
   }
 }
 
-moveElementUpByPx("bottomleftcorner2", 500);
-moveElementUpByPx("chatwparty", 500);
-moveElementUpByPx("chatinput", 500);
+moveElementUpByPx("bottomleftcorner2", 400);
+moveElementUpByPx("chatwparty", 400);
+moveElementUpByPx("chatinput", 400);
 
 // ----
 
