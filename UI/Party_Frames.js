@@ -17,6 +17,7 @@ let css = `
 	   z-index: 9999;
    }
 `;
+
 parent.$('head').append(`<style id="style-party-frames">${css}</style>`);
 parent.party_style_prepared = true;
 
@@ -209,7 +210,6 @@ function updatePartyFrames() {
 			}
 
 			let party_member_frame = partyFrame.find(partyFrame.children()[x]);
-			   // Removed icon/image display logic
 			party_member_frame.children().last().html(`<div style="font-size: 22px;" onclick='pcs(event); party_click("${party_member_name}\");'>${infoHTML}</div>`);
 		}
 	}
