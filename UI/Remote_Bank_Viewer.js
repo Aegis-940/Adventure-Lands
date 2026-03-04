@@ -49,7 +49,7 @@ function render_items(categories, used, total) {
       // Build an onclick that withdraws, then re-renders the ATM window
       const lvlArg = item.level != null ? item.level : null;
       const onclick = `
-        game_log('lvlArg: ' + ${lvlArg});
+        log('lvlArg: ' + ${lvlArg});
         parent.$('#maincode')[0].contentWindow
           .withdraw_item('${item.name}', ${lvlArg}, ${1})
           .then(() => {
