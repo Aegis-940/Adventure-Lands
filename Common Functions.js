@@ -788,16 +788,16 @@ function hide_party_ui() {
  * @param {number|null} total       – (optional) Max total quantity to withdraw; omit to take all.
  */
 async function withdraw_item(itemName, level = null, total = null) {
-	const BANK_LOC0 = { map: "bank", x: 0, y: -37 };
-	const BANK_LOC1 = { map: "bank_b", x: -265, y: -344 };
+	const BANK_LOC1 = { map: "bank", x: 0, y: -37 };
+	const BANK_LOC2 = { map: "bank_b", x: -265, y: -344 };
 
-    if (level == 0 && character.map !== "bank") {
-        await smarter_move(BANK_LOC0);
+    if (level == 1 && character.map !== "bank") {
+        await smarter_move(BANK_LOC1);
     }
-	else if (level == 1 && character.map !== "bank_b") {
-		await smarter_move(BANK_LOC1);
+	else if (level == 2 && character.map !== "bank_b") {
+		await smarter_move(BANK_LOC2);
 	}
-    
+
 	await delay(200);
 
 	// 1) Grab live bank data
