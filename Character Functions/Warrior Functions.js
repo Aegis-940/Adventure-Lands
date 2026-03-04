@@ -18,7 +18,7 @@ const SAFE_HP_THRESHOLD = 0.75;         // Resume normal if above 75% HP
 const SAFE_MP_THRESHOLD = 500;          // Resume normal if above 500 MP
 const PANIC_AGGRO_THRESHOLD = 99;       // Panic if this many monsters are targeting you
 
-const AGITATE_MP_THRESHOLD = 800;       // Minimum MP Warrior must have to cast Agitate
+const AGITATE_MP_THRESHOLD = 500;       // Minimum MP Warrior must have to cast Agitate
 const CLEAVE_MP_THRESHOLD = 900;        // Minimum MP Warrior must have to cast Cleave
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -589,7 +589,6 @@ async function handle_cleave(Mainhand) {
 
 // Casts 'agitate' if at least three untargeted monsters are within agitate range
 async function handle_taunt() {
-    log("Checking agitate conditions...", "#00ff00", "Taunt");
     if (smart.moving || is_on_cooldown("agitate") || !can_use("agitate") || character.mp < AGITATE_MP_THRESHOLD) return;
     const AGITATE_RANGE = G.skills.agitate.range;
     const untargeted = Object.values(parent.entities).filter(e =>
@@ -599,7 +598,7 @@ async function handle_taunt() {
         distance(character, e) <= AGITATE_RANGE &&
         !e.target
     );
-    if (untargeted.length >= 3) {
+    if (untargeted.length >= 2) {
         log(`Casting agitate on ${untargeted.length} untargeted monsters!`, "#00ff00", "Taunt");
         await use_skill("agitate");
     }
