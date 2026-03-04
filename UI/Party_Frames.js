@@ -28,7 +28,6 @@ const barHeight = 18;
 	}
 	.simple-party-bar {
 		height: ${barHeight}px;
-		border-radius: 4px;
 		margin: 2px 0 6px 0;
 		position: relative;
 		background: #000000ff;
@@ -82,6 +81,7 @@ function getPartyMemberInfo(name) {
 }
 
 function renderPartyUI() {
+	parent.$('#party').hide();
 	let container = parent.document.getElementById('simple-party-ui-container');
 	if (!container) {
 		container = parent.document.createElement('div');

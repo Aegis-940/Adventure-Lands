@@ -11,7 +11,7 @@ const barHeight = 18;
 	#simple-party-ui-container {
 		position: fixed;
 		left: 50%;
-		bottom: 150px;
+		bottom: 100px;
 		transform: translateX(-50%);
 		display: flex;
 		flex-direction: row;
@@ -20,19 +20,17 @@ const barHeight = 18;
 	}
 	.simple-party-frame {
 		width: ${partyFrameWidth}px;
-		background: #181818;
+		background: rgba(34,34,34,0.75);
 		border: 1px solid #444;
-		border-radius: 7px;
 		padding: 6px 8px;
 		font-family: 'pixel', monospace;
 		color: #fff;
 	}
 	.simple-party-bar {
 		height: ${barHeight}px;
-		border-radius: 4px;
 		margin: 2px 0 6px 0;
 		position: relative;
-		background: #222;
+		background: #000000ff;
 		border: 1px solid #333;
 		overflow: hidden;
 	}
@@ -40,7 +38,6 @@ const barHeight = 18;
 		height: 100%;
 		position: absolute;
 		left: 0; top: 0;
-		border-radius: 4px;
 	}
 	.bar-hp { background: #c33; }
 	.bar-mp { background: #39f; }
@@ -49,14 +46,13 @@ const barHeight = 18;
 		position: absolute;
 		width: 100%;
 		text-align: center;
-		font-size: 13px;
+		font-size: 20px;
 		top: 0; left: 0;
 		color: #fff;
 	}
 	.simple-party-name {
 		text-align: center;
-		font-size: 16px;
-		font-weight: bold;
+		font-size: 22px;
 		margin-bottom: 2px;
 		letter-spacing: 1px;
 	}
@@ -110,11 +106,11 @@ function renderPartyUI() {
 			<div class="simple-party-name">${info.name ?? name}</div>
 			<div class="simple-party-bar">
 				<div class="simple-party-bar-inner bar-hp" style="width:${hpPct}%;"></div>
-				<div class="bar-label">HP: ${hp} / ${max_hp}</div>
+				<div class="bar-label">HP: ${hp}</div>
 			</div>
 			<div class="simple-party-bar">
 				<div class="simple-party-bar-inner bar-mp" style="width:${mpPct}%;"></div>
-				<div class="bar-label">MP: ${mp} / ${max_mp}</div>
+				<div class="bar-label">MP: ${mp}</div>
 			</div>
 			<div class="simple-party-bar">
 				<div class="simple-party-bar-inner bar-xp" style="width:${xpPct}%;"></div>
