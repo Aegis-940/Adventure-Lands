@@ -15,7 +15,7 @@ create_map_movement_window([
   { id: "custom6", label: "Custom 6", onClick: () => null }
 ]);
 
-addBankButton();
+add_bank_buttons();
 hide_skills_ui();
 
 loop_controller()
