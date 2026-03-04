@@ -1,4 +1,7 @@
 
+parent.$('#chat').css('bottom', '500px');
+parent.$('#chatlog').css('bottom', '500px');
+
 // Simple Party UI - displays all 4 party members with HP, MP, XP, centered and 150px from bottom
 
 const PARTY_ORDER = ["Ulric", "Myras", "Riva", "Riff"];
