@@ -94,6 +94,7 @@ async function withdraw_offering() {
 
     try {
         await withdraw_item("offeringp");
+        log("Withdrawing offeringp for upgrades that require it.");
         await delay(500);
     } catch (e) {
         game_log("⚠️ Withdraw Offering error:", "#FF0000");
@@ -459,7 +460,9 @@ async function auto_upgrade() {
 
     merchant_task = "Upgrading";
 
-    await smarter_move(BANK_LOCATION);
+    if (character.map !== "bank") {
+        await smarter_move(BANK_LOCATION);
+    }
 
     await withdraw_upgrade_scrolls();
     await withdraw_offering();
