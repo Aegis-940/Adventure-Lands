@@ -17,9 +17,9 @@ create_map_movement_window([
 
 hide_skills_ui();
 create_custom_log_window();
-const $ = parent.$;
-let partyFrame = $('#newparty');
-if (partyFrame && partyFrame.length) partyFrame.hide();
+// const $ = parent.$;
+// let partyFrame = $('#newparty');
+// if (partyFrame && partyFrame.length) partyFrame.hide();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN LOOP
