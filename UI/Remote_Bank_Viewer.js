@@ -4,13 +4,14 @@ const bankMode = 'tab';
 // 'flat'  - shows every item individually, no grouping
 // 'tab'   - shows each bank tab preserving exact slot positions
 
-function add_bank_button() {
+function addBankButton() {
 	const $ = parent.$;
 	$('#bankbutton').remove();
 	$(`<div id="bankbutton" class="gamebutton" title="View Player Banks" style="cursor:pointer">🏧</div>`)
 		.on('click', showBankSelector)
 		.insertAfter($("#toprightcorner").children().first());
 }
+
 
 async function showBankSelector() {
 	const $ = parent.$;
