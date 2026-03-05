@@ -228,6 +228,7 @@ const STATES = {
     DEAD: "dead",
     PANIC: "panic",
     BOSS: "boss",
+    PRIMS: "prims",
     NORMAL: "normal"
 };
 
@@ -235,6 +236,7 @@ function get_character_state() {
     if (character.rip) return STATES.DEAD;
     if (panicking) return STATES.PANIC;
     if (is_boss_alive()) return STATES.BOSS;
+    if (PRIM_FARM_LOOT_ENABLED === true) return STATES.PRIMS
     return STATES.NORMAL;
 }
 
@@ -302,6 +304,16 @@ async function set_state(state) {
                     if (ORBIT_LOOP_ENABLED)  ORBIT_LOOP_ENABLED = false;
 
                     if (!BOSS_LOOP_ENABLED) BOSS_LOOP_ENABLED = true;
+                } catch (e) {
+                    catcher(e, "set_loops: BOSS state error");
+                }
+                break;
+
+            case STATES.PRIMS:
+                try {
+                    if (ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
+                    if (SKILL_LOOP_ENABLED)  SKILL_LOOP_ENABLED = false;
+                    if (ORBIT_LOOP_ENABLED)  ORBIT_LOOP_ENABLED = false;
                 } catch (e) {
                     catcher(e, "set_loops: BOSS state error");
                 }
