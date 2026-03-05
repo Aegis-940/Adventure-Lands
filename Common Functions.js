@@ -1760,7 +1760,7 @@ parent.$('#bottomleftcorner').show();
 const PRIM_FARM_LOC = { map: "desertland", x: -408, y: -1266 };
 const PRIM_FARM_LOC_HEALER = { map: "desertland", x: -408, y: -1146 };
 const PRIM_FARM_RADIUS = 100;
-const SAFETY_DISTANCE = 100;
+const SAFETY_DISTANCE = 150;
 
 function get_bscorpion_info() {
     let nearest = null;
