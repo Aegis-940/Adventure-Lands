@@ -377,7 +377,7 @@ async function safe_call(fn, name) {
 	}
 }
 
-const CURSE_WHITELIST = ["mrpumpkin", "mrgreen", "phoenix", "dryad"];
+const CURSE_WHITELIST = ["mrpumpkin", "mrgreen", "phoenix", "dryad", "bscorpion"];
 const ABSORB_BLACKLIST = ["mrpumpkin", "mrgreen"];
 
 async function handle_priest_skills(X, Y, dead, disabled, mapsToExclude, eventMobs, eventMaps, zapperMobs) {
