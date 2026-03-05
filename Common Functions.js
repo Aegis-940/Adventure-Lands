@@ -1895,22 +1895,6 @@ async function prim_farm_loop() {
     }
 }
 
-function draw_farm_area_circle() {
-    if (!parent || !parent.drawings) return;
-    parent.clear_drawings("farm_area_circle");
-    const steps = 32;
-    const points = [];
-    for (let i = 0; i <= steps; i++) {
-        const angle = (2 * Math.PI * i) / steps;
-        const x = PRIM_FARM_LOC.x + Math.cos(angle) * PRIM_FARM_RADIUS;
-        const y = PRIM_FARM_LOC.y + Math.sin(angle) * PRIM_FARM_RADIUS;
-        points.push([x, y]);
-    }
-    for (let i = 0; i < steps; i++) {
-        parent.draw_line(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1], 0x00ffcc, 2, "farm_area_circle");
-    }
-}
-
 async function prim_orbit_loop() {
     let angle = 0;
 
