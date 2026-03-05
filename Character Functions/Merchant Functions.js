@@ -900,12 +900,12 @@ async function pouchbow_upgrade() {
 
     while (smoke_qty < 25 && smoke_attempts < MAX_ATTEMPTS) {
         try {
-            await withdraw_item("smoke");
+            await withdraw_item("essenceoffire");
             await delay(200);
         } catch (e) {
             game_log("⚠️ Could not withdraw 'smoke': " + e.message, "#FF0000");
         }
-        smoke_slot = character.items.findIndex(itm => itm && itm.name === "smoke");
+        smoke_slot = character.items.findIndex(itm => itm && itm.name === "essenceoffire");
         smoke_qty = smoke_slot !== -1 ? (character.items[smoke_slot].q || 1) : 0;
         smoke_attempts++;
     }
@@ -929,7 +929,7 @@ async function pouchbow_upgrade() {
 
     // Auto-craft pouchbow 25 times with 100ms delay between each
     for (let i = 0; i < 25; i++) {
-        await auto_craft("pouchbow");
+        await auto_craft("firebow");
         await delay(50);
     }
 

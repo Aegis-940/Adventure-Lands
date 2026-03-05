@@ -1848,7 +1848,6 @@ async function prim_farm_loop() {
                 } else {
                     if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
                     if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
-                    single_set()
                 }
 
             }
