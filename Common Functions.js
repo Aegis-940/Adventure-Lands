@@ -60,6 +60,7 @@ let POTION_LOOP_ENABLED       = true;
 let LOOT_LOOP_ENABLED         = true;
 let STATUS_CACHE_LOOP_ENABLED = true;
 let PRIM_FARM_LOOT_ENABLED    = false;
+let ORBIT_PRIM_LOOP_ENABLED   = false;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // GLOBAL FUNCTIONS
@@ -312,6 +313,7 @@ async function set_state(state) {
                     if (ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
                     if (SKILL_LOOP_ENABLED)  SKILL_LOOP_ENABLED = false;
                     if (ORBIT_LOOP_ENABLED)  ORBIT_LOOP_ENABLED = false;
+                    if (!ORBIT_PRIM_LOOP_ENABLED) ORBIT_PRIM_LOOP_ENABLED = true;
                 } catch (e) {
                     catcher(e, "set_loops: BOSS state error");
                 }
@@ -1754,7 +1756,6 @@ parent.$('#bottomleftcorner').show();
 const PRIM_FARM_LOC = { map: "desertland", x: -408, y: -1266 };
 const PRIM_FARM_LOC_HEALER = { map: "desertland", x: -408, y: -1146 };
 const SAFETY_DISTANCE = 100;
-const ORBIT_PRIM_LOOP_ENABLED = false;
 
 function is_bscorpion_nearby(radius = 500) {
   for (const id in parent.entities) {
@@ -1853,6 +1854,7 @@ async function prim_farm_loop() {
         if (PRIM_FARM_LOOT_ENABLED) {
 
             ORBIT_LOOP_ENABLED = false; // Disable general orbit loop during prim farming
+            ORBIT_PRIM_LOOP_ENABLED = true;
 
             if (character.name === "Ulric") {
 
@@ -1870,7 +1872,6 @@ async function prim_farm_loop() {
                     log("⚠️ Bscorpion nearby! Engaging combat and orbit loops.", "#FF0000", "Alerts");
                     ATTACK_LOOP_ENABLED = true;
                     SKILL_LOOP_ENABLED = true;
-                    ORBIT_PRIM_LOOP_ENABLED = true;
                 }
 
 
