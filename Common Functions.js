@@ -1944,6 +1944,7 @@ async function prim_orbit_loop() {
                     newY = PRIM_FARM_LOC.y + Math.sin(area_angle) * PRIM_FARM_RADIUS;
                 }
                 move(newX, newY);
+                log(`${orbit_dist.toFixed(1)}`, "#00ffff", "General");
             }
         }
         await delay(100);
