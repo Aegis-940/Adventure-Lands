@@ -390,12 +390,12 @@ async function skill_loop() {
             catcher(e, "Skill Loop error ");
         }
 
-        try {
-            // Only check cleave if it's off cooldown and not targeting a boss
-            await handle_taunt();
-        } catch (e) {
-            catcher(e, "Skill Loop error ");
-        }
+        // try {
+        //     // Only check cleave if it's off cooldown and not targeting a boss
+        //     await handle_taunt();
+        // } catch (e) {
+        //     catcher(e, "Skill Loop error ");
+        // }
 
         await delay(delayMs);
     }
