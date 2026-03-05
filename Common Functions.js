@@ -1959,6 +1959,7 @@ async function prim_orbit_loop() {
         const dx = character.x - monster.x;
         const dy = character.y - monster.y;
         const dist = Math.sqrt(dx*dx + dy*dy);
+        log(monster.distance)
 
         // Step 1: Too close to monster? Move away, but stay in area
         if (dist < SAFETY_DISTANCE) {
