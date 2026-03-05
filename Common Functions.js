@@ -1949,25 +1949,24 @@ async function prim_farm_loop() {
 //     }
 // }
 
+function draw_safety_circle(radius = SAFETY_DISTANCE, color = 0x00ff00) {
+    if (!parent || !parent.drawings) return;
+    parent.clear_drawings("safety_circle");
+    const steps = 32;
+    const points = [];
+    for (let i = 0; i <= steps; i++) {
+        const angle = (2 * Math.PI * i) / steps;
+        const x = character.x + Math.cos(angle) * radius;
+        const y = character.y + Math.sin(angle) * radius;
+        points.push([x, y]);
+    }
+    for (let i = 0; i < steps; i++) {
+        parent.draw_line(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1], color, 1, "safety_circle");
+    }
+}
+
 async function prim_orbit_loop() {
     let angle = 0;
-    // Helper to draw a live circle around the character
-    function draw_safety_circle() {
-        if (!parent || !parent.drawings) return;
-        // Remove previous circle if any
-        if (parent._safety_circle) {
-            parent._safety_circle.remove();
-            parent._safety_circle = null;
-        }
-        const circle = parent.addCircle(
-            character.x,
-            character.y,
-            SAFETY_DISTANCE,
-            2,
-            0x00ff00
-        );
-        parent._safety_circle = circle;
-    }
 
     while (true) {
         const monster = get_bscorpion_info();
