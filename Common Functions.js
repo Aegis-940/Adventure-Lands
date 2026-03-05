@@ -29,7 +29,7 @@ const MONSTER_LOCS = {
     ghost:        { map: "halloween", x: 229, y: -1203, orbit: true , hostile: false },
     prat:         { map: "level1", x: 89, y: 199, orbit: true , hostile: false },
     dryad:        { map: "mforest", x: 380, y: -359, orbit: true , hostile: false },
-    bscorpion:    { map: "desertland", x: -408, y: -1266, orbit: false , hostile: false }
+    bscorpion:    { map: "desertland", x: -408, y: -1266, orbit: true , hostile: false }
 };
 
 const HEALER_TARGET    = MONSTER_LOCS.bscorpion;
