@@ -224,7 +224,7 @@ function is_boss_alive() {
 
 function is_bscorpion_alive() {
     const found = Object.values(parent.entities).some(ent =>
-        ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead && parent.distance(character, ent) <= 500
+        ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead && parent.distance(character, ent) <= 200
     );
     if (found) PRIM_FARM_LOOT_ENABLED = true;
     return found;
@@ -1895,63 +1895,25 @@ async function prim_farm_loop() {
     }
 }
 
-// async function prim_orbit_loop() {
-
-//     let delayMs = 50;
-
-//     while(true) {
-//         // Wait until orbit loop is enabled
-//         if (!PRIM_FARM_LOOT_ENABLED) {
-//             await delay(100);
-//             continue;
-//         }
-
-//         // orbit_origin = { x: character.real_x, y: character.real_y };
-//         set_orbit_radius(ORBIT_RADIUS);
-//         orbit_path_points = compute_orbit_path(PRIM_FARM_LOC, PRIM_FARM_RADIUS, 24);
-//         orbit_path_index = 0;
-
-//         while (true) {
-//             // Check if orbit loop is enabled
-//             if (!PRIM_FARM_LOOT_ENABLED) {
-//                 await delay(100);
-//                 continue;
-//             }
-//             // Stop the loop if character is more than 100 units from the orbit origin
-//             const dist_from_origin = Math.hypot(character.real_x - orbit_origin.x, character.real_y - orbit_origin.y);
-//             if (dist_from_origin > 100) {
-//                 game_log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
-//                 PRIM_FARM_LOOT_ENABLED = false;
-//                 break;
-//             }
-
-//             const point = orbit_path_points[orbit_path_index];
-//             orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
-
-//             // Only move if not already close to the next point
-//             const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
-//             if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
-//                 try {
-//                     await move(point.x, point.y);
-//                 } catch (e) {
-//                     console.error("Orbit move error:", e);
-//                 }
-//             }
-
-//             // Wait until movement is finished or interrupted
-//             while (PRIM_FARM_LOOT_ENABLED && (character.moving || smart.moving)) {
-//                 await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
-//             }
-
-//             // Small delay before next step to reduce CPU usage
-//             await delay(delayMs);
-//         }
-//     }
-// }
-
+function draw_farm_area_circle() {
+    if (!parent || !parent.drawings) return;
+    parent.clear_drawings("farm_area_circle");
+    const steps = 32;
+    const points = [];
+    for (let i = 0; i <= steps; i++) {
+        const angle = (2 * Math.PI * i) / steps;
+        const x = PRIM_FARM_LOC.x + Math.cos(angle) * PRIM_FARM_RADIUS;
+        const y = PRIM_FARM_LOC.y + Math.sin(angle) * PRIM_FARM_RADIUS;
+        points.push([x, y]);
+    }
+    for (let i = 0; i < steps; i++) {
+        parent.draw_line(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1], 0x00ffcc, 2, "farm_area_circle");
+    }
+}
 
 async function prim_orbit_loop() {
     let angle = 0;
+    draw_farm_area_circle()
 
     while (true) {
         const monster = get_bscorpion_info();
