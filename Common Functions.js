@@ -1862,6 +1862,10 @@ async function prim_farm_loop() {
                     if (bscorp && can_use("absorb")) {
                         parent.socket.emit("ability", { name: "absorb", id: bscorp.id });
                     }
+                }
+                if (get_bscorpion_info().distance < SAFETY_DISTANCE) {
+                    ATTACK_LOOP_ENABLED = false;
+                    SKILL_LOOP_ENABLED = false;
                 } else {
                     ATTACK_LOOP_ENABLED = true;
                     SKILL_LOOP_ENABLED = true;
