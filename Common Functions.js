@@ -1853,12 +1853,10 @@ async function prim_farm_loop() {
     while (true) {
         if (PRIM_FARM_LOOT_ENABLED) {
 
-            ORBIT_LOOP_ENABLED = false; // Disable general orbit loop during prim farming
-            ORBIT_PRIM_LOOP_ENABLED = true;
-
             if (character.name === "Ulric") {
 
                 if (is_bscorpion_nearby() && is_bscorpion_targeting_myras()) {
+                    // ORBIT_LOOP_ENABLED = false;
                     ATTACK_LOOP_ENABLED = true;
                     SKILL_LOOP_ENABLED = true;
                     maintain_range_to_target(target) 
@@ -1880,6 +1878,7 @@ async function prim_farm_loop() {
             if (character.name === "Riva") {
 
                 if (is_bscorpion_nearby() && is_bscorpion_targeting_myras()) {
+                    // ORBIT_LOOP_ENABLED = false;
                     ATTACK_LOOP_ENABLED = true;
                     SKILL_LOOP_ENABLED = true;
                     maintain_range_to_target(target) 
