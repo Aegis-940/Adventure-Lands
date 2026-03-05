@@ -1971,7 +1971,7 @@ async function prim_orbit_loop() {
                 newX = PRIM_FARM_LOC.x + Math.cos(area_angle) * PRIM_FARM_RADIUS;
                 newY = PRIM_FARM_LOC.y + Math.sin(area_angle) * PRIM_FARM_RADIUS;
             }
-            await move(newX, newY);
+            move(newX, newY);
         }
         // Step 2: Too far from area? Move toward center
         else {
@@ -1992,9 +1992,9 @@ async function prim_orbit_loop() {
                     newX = PRIM_FARM_LOC.x + Math.cos(area_angle) * PRIM_FARM_RADIUS;
                     newY = PRIM_FARM_LOC.y + Math.sin(area_angle) * PRIM_FARM_RADIUS;
                 }
-                await move(newX, newY);
+                move(newX, newY);
             }
         }
-        await delay(200);
+        await delay(50);
     }
 }
