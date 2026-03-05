@@ -1852,7 +1852,8 @@ async function prim_farm_loop() {
             if (character.name === "Ulric") {
 
                 if (is_bscorpion_targeting_myras()) {
-                    maintain_range_to_target(target) 
+                    if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
+                    if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
                 }
 
             }
@@ -1871,7 +1872,8 @@ async function prim_farm_loop() {
             if (character.name === "Riva") {
 
                 if (is_bscorpion_targeting_myras()) {
-                    maintain_range_to_target(target) 
+                    if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
+                    if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
                 }
 
             }
