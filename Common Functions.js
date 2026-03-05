@@ -1932,7 +1932,7 @@ async function prim_orbit_loop() {
                 // Step 3: Orbit monster at safe distance, but allow a tolerance of +50
                 angle += Math.PI / 16;
                 const ORBIT_MIN = SAFETY_DISTANCE;
-                const ORBIT_MAX = SAFETY_DISTANCE + 50;
+                const ORBIT_MAX = SAFETY_DISTANCE + 200;
                 // Pick a random distance within the allowed tolerance for more natural movement
                 const orbit_dist = ORBIT_MIN + Math.random() * (ORBIT_MAX - ORBIT_MIN);
                 let newX = monster.x + Math.cos(angle) * orbit_dist;
