@@ -1913,7 +1913,6 @@ function draw_farm_area_circle() {
 
 async function prim_orbit_loop() {
     let angle = 0;
-    draw_farm_area_circle()
 
     while (true) {
         const monster = get_bscorpion_info();
