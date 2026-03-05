@@ -1759,7 +1759,7 @@ parent.$('#bottomleftcorner').show();
 
 const PRIM_FARM_LOC = { map: "desertland", x: -408, y: -1266 };
 const PRIM_FARM_LOC_HEALER = { map: "desertland", x: -408, y: -1146 };
-const PRIM_FARM_RADIUS = 150;
+const PRIM_FARM_RADIUS = 75;
 const SAFETY_DISTANCE = 75;
 
 function get_bscorpion_info() {
@@ -1844,7 +1844,6 @@ async function prim_farm_loop() {
                 if (is_bscorpion_targeting_myras()) {
                     if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
                     if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
-                    move_closer_to_bscorpion()
                 } else {
                     if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
                     if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
@@ -1854,15 +1853,7 @@ async function prim_farm_loop() {
 
             if (character.name === "Myras") {
 
-                if (get_bscorpion_info().distance < SAFETY_DISTANCE) {
-                    ATTACK_LOOP_ENABLED = false;
-                    SKILL_LOOP_ENABLED = false;
-                    move_safe_from_bscorpion()
-                } else if (!is_bscorpion_targeting_myras()) {
-                    ATTACK_LOOP_ENABLED = true;
-                    SKILL_LOOP_ENABLED = true;
-                    get_bscorpion_info();
-                } else {
+                if (!is_bscorpion_targeting_myras()) {
                     // Cast absorb on bscorpion if possible
                     const bscorp = Object.values(parent.entities).find(ent =>
                         ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead
@@ -1870,6 +1861,14 @@ async function prim_farm_loop() {
                     if (bscorp && can_use("absorb")) {
                         parent.socket.emit("ability", { name: "absorb", id: bscorp.id });
                     }
+                }
+                if (get_bscorpion_info().distance < SAFETY_DISTANCE) {
+                    ATTACK_LOOP_ENABLED = false;
+                    SKILL_LOOP_ENABLED = false;
+                } else if (!is_bscorpion_targeting_myras()) {
+                    ATTACK_LOOP_ENABLED = true;
+                    SKILL_LOOP_ENABLED = true;
+                    get_bscorpion_info();
                 }
 
             }
@@ -1895,3 +1894,57 @@ async function prim_farm_loop() {
     }
 }
 
+async function prim_orbit_loop() {
+
+    let delayMs = 50;
+
+    while(true) {
+        // Wait until orbit loop is enabled
+        if (!PRIM_FARM_LOOT_ENABLED) {
+            await delay(100);
+            continue;
+        }
+
+        // orbit_origin = { x: character.real_x, y: character.real_y };
+        set_orbit_radius(ORBIT_RADIUS);
+        orbit_path_points = compute_orbit_path(PRIM_FARM_LOC, PRIM_FARM_RADIUS, 24);
+        orbit_path_index = 0;
+
+        while (true) {
+            // Check if orbit loop is enabled
+            if (!PRIM_FARM_LOOT_ENABLED) {
+                await delay(100);
+                continue;
+            }
+            // Stop the loop if character is more than 100 units from the orbit origin
+            const dist_from_origin = Math.hypot(character.real_x - orbit_origin.x, character.real_y - orbit_origin.y);
+            if (dist_from_origin > 100) {
+                game_log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
+                PRIM_FARM_LOOT_ENABLED = false;
+                break;
+            }
+
+            const point = orbit_path_points[orbit_path_index];
+            orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
+
+            // Only move if not already close to the next point
+            const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
+            if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
+                try {
+                    await move(point.x, point.y);
+                } catch (e) {
+                    console.error("Orbit move error:", e);
+                }
+            }
+
+            // Wait until movement is finished or interrupted
+            while (PRIM_FARM_LOOT_ENABLED && (character.moving || smart.moving)) {
+                await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
+            }
+
+            // Small delay before next step to reduce CPU usage
+            await delay(delayMs);
+        }
+    }
+
+}
