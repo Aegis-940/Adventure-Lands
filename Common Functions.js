@@ -1754,6 +1754,7 @@ parent.$('#bottomleftcorner').show();
 const PRIM_FARM_LOC = { map: "desertland", x: -408, y: -1266 };
 const PRIM_FARM_LOC_HEALER = { map: "desertland", x: -408, y: -1146 };
 const SAFETY_DISTANCE = 100;
+const ORBIT_PRIM_LOOP_ENABLED = false;
 
 function is_bscorpion_nearby(radius = 500) {
   for (const id in parent.entities) {
@@ -1883,13 +1884,11 @@ async function maintain_range_to_target(target) {
 }
 
 async function prim_farm_loop() {
-    
-    ORBIT_LOOP_ENABLED = false;
-    ATTACK_LOOP_ENABLED = false;
-    SKILL_LOOP_ENABLED = false;
 
     while (true) {
         if (PRIM_FARM_LOOT_ENABLED) {
+
+            ORBIT_LOOP_ENABLED = false; // Disable general orbit loop during prim farming
 
             if (character.name === "Ulric") {
 
