@@ -1895,72 +1895,41 @@ async function prim_farm_loop() {
     }
 }
 
-// async function prim_orbit_loop() {
+// Draw a circle of radius SAFETY_DISTANCE around the character as they move
+function enable_character_safety_circle() {
+    if (window._character_safety_circle_enabled) return;
+    window._character_safety_circle_enabled = true;
+    if (!window._character_safety_circle_draw) {
+        window._character_safety_circle_draw = function () {
+            if (!character) return;
+            if (typeof draw_circle === "function") {
+                draw_circle(character.x, character.y, SAFETY_DISTANCE, {
+                    fill: null,
+                    color: "rgba(255, 255, 0, 0.5)",
+                    width: 2
+                });
+            }
+        };
+    }
+    if (!parent._character_safety_circle_listener) {
+        parent._character_safety_circle_listener = window._character_safety_circle_draw;
+        parent.on("game_draw", window._character_safety_circle_draw);
+    }
+}
 
-//     let delayMs = 50;
-
-//     while(true) {
-//         // Wait until orbit loop is enabled
-//         if (!PRIM_FARM_LOOT_ENABLED) {
-//             await delay(100);
-//             continue;
-//         }
-
-//         // orbit_origin = { x: character.real_x, y: character.real_y };
-//         set_orbit_radius(ORBIT_RADIUS);
-//         orbit_path_points = compute_orbit_path(PRIM_FARM_LOC, PRIM_FARM_RADIUS, 24);
-//         orbit_path_index = 0;
-
-//         while (true) {
-//             // Check if orbit loop is enabled
-//             if (!PRIM_FARM_LOOT_ENABLED) {
-//                 await delay(100);
-//                 continue;
-//             }
-//             // Stop the loop if character is more than 100 units from the orbit origin
-//             const dist_from_origin = Math.hypot(character.real_x - orbit_origin.x, character.real_y - orbit_origin.y);
-//             if (dist_from_origin > 100) {
-//                 game_log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
-//                 PRIM_FARM_LOOT_ENABLED = false;
-//                 break;
-//             }
-
-//             const point = orbit_path_points[orbit_path_index];
-//             orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
-
-//             // Only move if not already close to the next point
-//             const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
-//             if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
-//                 try {
-//                     await move(point.x, point.y);
-//                 } catch (e) {
-//                     console.error("Orbit move error:", e);
-//                 }
-//             }
-
-//             // Wait until movement is finished or interrupted
-//             while (PRIM_FARM_LOOT_ENABLED && (character.moving || smart.moving)) {
-//                 await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
-//             }
-
-//             // Small delay before next step to reduce CPU usage
-//             await delay(delayMs);
-//         }
-//     }
-// }
+function disable_character_safety_circle() {
+    if (window._character_safety_circle_enabled) {
+        window._character_safety_circle_enabled = false;
+        if (parent._character_safety_circle_listener) {
+            parent.off("game_draw", parent._character_safety_circle_listener);
+            parent._character_safety_circle_listener = null;
+        }
+    }
+}
 
 async function prim_orbit_loop() {
     let angle = 0;
     while (true) {
-        // Draw circle at PRIM_FARM_LOC (green)
-        if (typeof draw_circle === "function") {
-            draw_circle(PRIM_FARM_LOC.x, PRIM_FARM_LOC.y, PRIM_FARM_RADIUS, 2, "#00ff00");
-        }
-        // Draw circle at character (red)
-        if (typeof draw_circle === "function") {
-            draw_circle(character.x, character.y, SAFETY_DISTANCE, 2, "#ff0000");
-        }
-
         const monster = get_bscorpion_info();
         if (!monster) { await delay(200); continue; }
         const dx = character.x - monster.x;
