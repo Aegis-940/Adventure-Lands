@@ -56,7 +56,7 @@ let last_auto_upgrade_time = 0; // Timestamp in ms
 let last_exchange_time = 0;     // Timestamp in ms
 
 function should_run_auto_upgrade() {
-    const THIRTY_MINUTES = 30 * 60 * 1000;
+    const FIVE_MINUTES = 5 * 60 * 1000;
     return (Date.now() - last_auto_upgrade_time) > THIRTY_MINUTES;
 }
 
@@ -139,7 +139,7 @@ async function set_state(state) {
                         log("Starting auto-upgrade process...");
                         handling_upgrading = true;
                         merchant_task = "Upgrading";
-                        await auto_upgrade();
+                        await coat_upgrade();
                         last_auto_upgrade_time = Date.now();
                         merchant_task = "Idle";
                     }
