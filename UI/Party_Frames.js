@@ -1,7 +1,7 @@
 if (parent.party_style_prepared) parent.$('#style-party-frames').remove();
 
 parent.$('head').append(`<style id="style-party-frames">
-.party-container {position: absolute; top: 55px; left: -50%; width: 1000px; height: 300px; font-family: 'pixel';}
+.party-container {position: absolute; top: 55px; right: 50%; width: 1000px; height: 300px; font-family: 'pixel';}
 </style>`);
 parent.party_style_prepared = true;
 
