@@ -1760,7 +1760,7 @@ parent.$('#bottomleftcorner').show();
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function maintain_safe_orbit_prim_bscorpion() {
-    const ORBIT_MAX_RADIUS = 100;
+    const ORBIT_MAX_RADIUS = 150;
     const SAFE_MIN_DIST = 50;
     let angle = 0;
     while (true) {
@@ -1820,62 +1820,6 @@ function is_bscorpion_targeting_myras() {
   }
   return false;
 }
-
-async function orbit_prim_loop() {
-
-    let delayMs = 50;
-
-    while(true) {
-        // Wait until orbit loop is enabled
-        if (!ORBIT_PRIM_LOOP_ENABLED) {
-            await delay(100);
-            continue;
-        }
-
-        // orbit_origin = { x: character.real_x, y: character.real_y };
-        set_orbit_radius(PRIM_FARM_RADIUS);
-        orbit_path_points = compute_orbit_path(PRIM_FARM_LOC, 50, 24);
-        orbit_path_index = 0;
-
-        while (true) {
-            // Check if orbit loop is enabled
-            if (!ORBIT_PRIM_LOOP_ENABLED) {
-                await delay(100);
-                continue;
-            }
-            // Stop the loop if character is more than 100 units from the orbit origin
-            const dist_from_origin = Math.hypot(character.real_x - PRIM_FARM_LOC.x, character.real_y - PRIM_FARM_LOC.y);
-            if (dist_from_origin > 100) {
-                game_log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
-                ORBIT_PRIM_LOOP_ENABLED = false;
-                break;
-            }
-
-            const point = orbit_path_points[orbit_path_index];
-            orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
-
-            // Only move if not already close to the next point
-            const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
-            if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
-                try {
-                    await move(point.x, point.y);
-                } catch (e) {
-                    console.error("Orbit move error:", e);
-                }
-            }
-
-            // Wait until movement is finished or interrupted
-            while (ORBIT_PRIM_LOOP_ENABLED && (character.moving || smart.moving)) {
-                await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
-            }
-
-            // Small delay before next step to reduce CPU usage
-            await delay(delayMs);
-        }
-    }
-
-}
-
 
 // Move closer to the nearest bscorpion if out of range
 async function move_closer_to_bscorpion() {
