@@ -1829,29 +1829,35 @@ async function orbit_prim_loop() {
 
 }
 
-async function maintain_range_to_target_loop(target) {
-  while (true) {
-    if (!PRIM_FARM_LOOT_ENABLED) {
-      await delay(1000);
-      continue;
+
+// Move closer to the nearest bscorpion if out of range
+async function move_closer_to_bscorpion() {
+    // Find the nearest alive bscorpion
+    let nearest = null;
+    let minDist = Infinity;
+    for (const id in parent.entities) {
+        const ent = parent.entities[id];
+        if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
+            const dx = ent.x - character.x;
+            const dy = ent.y - character.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < minDist) {
+                minDist = dist;
+                nearest = ent;
+            }
+        }
     }
-    if (!target || typeof target.x !== 'number' || typeof target.y !== 'number') {
-      await delay(100);
-      continue;
+    if (!nearest) return false; // No bscorpion found
+    const desired = Math.max(0, (character.range || 50) - 5);
+    if (minDist > desired) {
+        // Move closer to the bscorpion, to the edge of desired range
+        const angle = Math.atan2(character.y - nearest.y, character.x - nearest.x);
+        const newX = nearest.x + Math.cos(angle) * desired;
+        const newY = nearest.y + Math.sin(angle) * desired;
+        await move(newX, newY);
+        return true;
     }
-    const desired = Math.max(0, (character.range) - 5);
-    const dx = target.x - character.x;
-    const dy = target.y - character.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist > desired + 2 || dist < desired - 2) {
-      // Move to a point at the desired distance from the target
-      const angle = Math.atan2(character.y - target.y, character.x - target.x);
-      const newX = target.x + Math.cos(angle) * desired;
-      const newY = target.y + Math.sin(angle) * desired;
-      await move(newX, newY);
-    }
-    await delay(100);
-  }
+    return false;
 }
 
 async function prim_farm_loop() {
@@ -1864,6 +1870,7 @@ async function prim_farm_loop() {
                 if (is_bscorpion_targeting_myras()) {
                     if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
                     if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
+                    move_closer_to_bscorpion()
                 } else {
                     if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
                     if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
@@ -1886,6 +1893,7 @@ async function prim_farm_loop() {
                 if (is_bscorpion_targeting_myras()) {
                     if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
                     if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
+                    move_closer_to_bscorpion()
                 } else {
                     if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
                     if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
