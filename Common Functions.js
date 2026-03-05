@@ -1759,7 +1759,7 @@ parent.$('#bottomleftcorner').show();
 // PRIMLING FARM LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function maintain_safe_orbit_prim_bscorpion() {
+function maintain_safe_orbit_prim_bscorpion() {
     const ORBIT_MAX_RADIUS = 150;
     const SAFE_MIN_DIST = 50;
     let angle = 0;
@@ -1799,9 +1799,8 @@ async function maintain_safe_orbit_prim_bscorpion() {
             if (angle > 2 * Math.PI) angle -= 2 * Math.PI;
             const newX = PRIM_FARM_LOC.x + Math.cos(angle) * radius;
             const newY = PRIM_FARM_LOC.y + Math.sin(angle) * radius;
-            await move(newX, newY);
+            move(newX, newY);
         // }
-        await delay(200);
     }
 }
 
