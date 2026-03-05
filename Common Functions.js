@@ -310,12 +310,10 @@ async function set_state(state) {
 
             case STATES.PRIMS:
                 try {
-                    if (ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
-                    if (SKILL_LOOP_ENABLED)  SKILL_LOOP_ENABLED = false;
                     if (ORBIT_LOOP_ENABLED)  ORBIT_LOOP_ENABLED = false;
                     if (!ORBIT_PRIM_LOOP_ENABLED) ORBIT_PRIM_LOOP_ENABLED = true;
                 } catch (e) {
-                    catcher(e, "set_loops: BOSS state error");
+                    catcher(e, "set_loops: PRIMS state error");
                 }
                 break;
 
@@ -1848,47 +1846,41 @@ parent.$('#bottomleftcorner').show();
 //   }
 // }
 
-// async function prim_farm_loop() {
+async function prim_farm_loop() {
 
-//     while (true) {
-//         if (PRIM_FARM_LOOT_ENABLED) {
+    while (true) {
+        if (PRIM_FARM_LOOT_ENABLED) {
 
-//             if (character.name === "Ulric") {
+            if (character.name === "Ulric") {
 
-//                 if (is_bscorpion_nearby() && is_bscorpion_targeting_myras()) {
-//                     // ORBIT_LOOP_ENABLED = false;
-//                     ATTACK_LOOP_ENABLED = true;
-//                     SKILL_LOOP_ENABLED = true;
-//                     maintain_range_to_target(target) 
-//                 }
+                if (is_bscorpion_nearby() && is_bscorpion_targeting_myras()) {
+                    maintain_range_to_target(target) 
+                }
 
-//             }
+            }
 
-//             if (character.name === "Myras") {
+            if (character.name === "Myras") {
 
-//                 if (is_bscorpion_nearby()) {
-//                     log("⚠️ Bscorpion nearby! Engaging combat and orbit loops.", "#FF0000", "Alerts");
-//                     ATTACK_LOOP_ENABLED = true;
-//                     SKILL_LOOP_ENABLED = true;
-//                 }
+                if (is_bscorpion_nearby()) {
+                    log("⚠️ Bscorpion nearby! Engaging combat and orbit loops.", "#FF0000", "Alerts");
+                    ATTACK_LOOP_ENABLED = true;
+                    SKILL_LOOP_ENABLED = true;
+                }
 
 
-//             }
+            }
 
-//             if (character.name === "Riva") {
+            if (character.name === "Riva") {
 
-//                 if (is_bscorpion_nearby() && is_bscorpion_targeting_myras()) {
-//                     // ORBIT_LOOP_ENABLED = false;
-//                     ATTACK_LOOP_ENABLED = true;
-//                     SKILL_LOOP_ENABLED = true;
-//                     maintain_range_to_target(target) 
-//                 }
+                if (is_bscorpion_nearby() && is_bscorpion_targeting_myras()) {
+                    maintain_range_to_target(target) 
+                }
 
-//             }
+            }
             
-//         } else {
-//             await delay(1000);
-//         }
-//     }
-// }
+        } else {
+            await delay(1000);
+        }
+    }
+}
 
