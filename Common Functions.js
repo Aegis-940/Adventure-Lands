@@ -1880,10 +1880,19 @@ async function prim_farm_loop() {
 
             if (character.name === "Myras") {
 
+
                 if (!is_bscorpion_targeting_myras()) {
                     ATTACK_LOOP_ENABLED = true;
                     SKILL_LOOP_ENABLED = true;
                     ORBIT_PRIM_LOOP_ENABLED = true;
+                } else {
+                    // Cast absorb on bscorpion if possible
+                    const bscorp = Object.values(parent.entities).find(ent =>
+                        ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead
+                    );
+                    if (bscorp && can_use("absorb")) {
+                        parent.socket.emit("ability", { name: "absorb", id: bscorp.id });
+                    }
                 }
 
             }
