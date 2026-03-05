@@ -235,7 +235,7 @@ function get_character_state() {
     if (character.rip) return STATES.DEAD;
     if (panicking) return STATES.PANIC;
     if (is_boss_alive()) return STATES.BOSS;
-    if (PRIM_FARM_LOOT_ENABLED === true) return STATES.PRIMS
+    if (PRIM_FARM_LOOT_ENABLED) return STATES.PRIMS
     return STATES.NORMAL;
 }
 
