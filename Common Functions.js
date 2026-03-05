@@ -813,20 +813,6 @@ async function withdraw_item(itemName, level = null, total = null) {
         const slotArr = bankData[packKey];
         if (!Array.isArray(slotArr)) continue;
 
-        // Determine which bank location to move to based on packKey
-        const packNum = parseInt(packKey.replace("items", ""), 10);
-        if (!isNaN(packNum)) {
-            if (packNum >= 0 && packNum <= 7 && character.map !== "bank") {
-                log(`Moved to Bank for pack ${packKey}`);
-                await smarter_move(BANK_LOC1);S
-                await delay(200);
-            } else if (packNum >= 8 && packNum <= 14 && character.map !== "bank_b") {
-                log(`Moved to Bank Basement for pack ${packKey}`);
-                await smarter_move(BANK_LOC2);
-                await delay(200);
-            }
-        }
-
         // 3) Scan slots in this pack
         for (let slot = 0; slot < slotArr.length && remaining > 0; slot++) {
             const itm = slotArr[slot];
@@ -839,6 +825,19 @@ async function withdraw_item(itemName, level = null, total = null) {
             const takeCount = Math.min(itm.q || 1, remaining);
 
             for (let i = 0; i < takeCount; i++) {
+                // Determine which bank location to move to based on packKey
+                const packNum = parseInt(packKey.replace("items", ""), 10);
+                if (!isNaN(packNum)) {
+                    if (packNum >= 0 && packNum <= 7 && character.map !== "bank") {
+                        log(`Moved to Bank for pack ${packKey}`);
+                        await smarter_move(BANK_LOC1);S
+                        await delay(200);
+                    } else if (packNum >= 8 && packNum <= 14 && character.map !== "bank_b") {
+                        log(`Moved to Bank Basement for pack ${packKey}`);
+                        await smarter_move(BANK_LOC2);
+                        await delay(200);
+                    }
+                }
                 await bank_retrieve(packKey, slot, -1);
                 await delay(100);
                 remaining--;
