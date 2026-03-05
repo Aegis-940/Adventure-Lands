@@ -1829,17 +1829,17 @@ async function orbit_prim_loop() {
 
 }
 
-async function maintain_range_to_target_loop() {
+async function maintain_range_to_target_loop(target) {
   while (true) {
     if (!PRIM_FARM_LOOT_ENABLED) {
-      await delay(100);
+      await delay(1000);
       continue;
     }
     if (!target || typeof target.x !== 'number' || typeof target.y !== 'number') {
       await delay(100);
       continue;
     }
-    const desired = Math.max(0, (character.range || 50) - 5);
+    const desired = Math.max(0, (character.range) - 5);
     const dx = target.x - character.x;
     const dy = target.y - character.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
