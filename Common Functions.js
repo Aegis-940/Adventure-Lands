@@ -1867,6 +1867,7 @@ async function prim_farm_loop() {
                 if (get_bscorpion_info().distance < SAFETY_DISTANCE) {
                     ATTACK_LOOP_ENABLED = false;
                     SKILL_LOOP_ENABLED = false;
+                    move_safe_from_bscorpion()
                 } else if (!is_bscorpion_targeting_myras()) {
                     ATTACK_LOOP_ENABLED = true;
                     SKILL_LOOP_ENABLED = true;
