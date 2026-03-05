@@ -1952,6 +1952,32 @@ async function prim_farm_loop() {
 async function prim_orbit_loop() {
     let angle = 0;
     while (true) {
+        // Draw circle at PRIM_FARM_LOC
+        if (parent && parent.draw_circle) {
+            parent.draw_circle(PRIM_FARM_LOC.x, PRIM_FARM_LOC.y, PRIM_FARM_RADIUS, "rgba(0,255,0,0.2)");
+        } else if (parent && parent.draw_line) {
+            // fallback: draw circle with lines
+            for (let a = 0; a < 2 * Math.PI; a += Math.PI / 16) {
+                const x1 = PRIM_FARM_LOC.x + Math.cos(a) * PRIM_FARM_RADIUS;
+                const y1 = PRIM_FARM_LOC.y + Math.sin(a) * PRIM_FARM_RADIUS;
+                const x2 = PRIM_FARM_LOC.x + Math.cos(a + Math.PI / 16) * PRIM_FARM_RADIUS;
+                const y2 = PRIM_FARM_LOC.y + Math.sin(a + Math.PI / 16) * PRIM_FARM_RADIUS;
+                parent.draw_line(x1, y1, x2, y2, 2, "#00ff00");
+            }
+        }
+        // Draw circle at character
+        if (parent && parent.draw_circle) {
+            parent.draw_circle(character.x, character.y, SAFETY_DISTANCE, "rgba(255,0,0,0.2)");
+        } else if (parent && parent.draw_line) {
+            for (let a = 0; a < 2 * Math.PI; a += Math.PI / 16) {
+                const x1 = character.x + Math.cos(a) * SAFETY_DISTANCE;
+                const y1 = character.y + Math.sin(a) * SAFETY_DISTANCE;
+                const x2 = character.x + Math.cos(a + Math.PI / 16) * SAFETY_DISTANCE;
+                const y2 = character.y + Math.sin(a + Math.PI / 16) * SAFETY_DISTANCE;
+                parent.draw_line(x1, y1, x2, y2, 2, "#ff0000");
+            }
+        }
+
         const monster = get_bscorpion_info();
         if (!monster) { await delay(200); continue; }
         const dx = character.x - monster.x;
