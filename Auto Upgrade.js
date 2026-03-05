@@ -8,7 +8,7 @@ const UPGRADE_INTERVAL = 75;
 const UPGRADE_PROFILE = {
   pouchbow:    { scroll0_until: 3, scroll1_until: 8, scroll2_until: 9, primling_from: 7, max_level: 9 },
   fireblade:   { scroll0_until: 0, scroll1_until: 4, scroll2_until: 7, primling_from: 7, max_level: 7 },
-  firebow:     { scroll0_until: 0, scroll1_until: 4, scroll2_until: 7, primling_from: 7, max_level: 7 },
+  firebow:     { scroll0_until: 0, scroll1_until: 4, scroll2_until: 7, primling_from: 7, max_level: 8 },
   firestaff:   { scroll0_until: 0, scroll1_until: 4, scroll2_until: 7, primling_from: 7, max_level: 7 },
   hbow:        { scroll0_until: 3, scroll1_until: 6, scroll2_until: 8, primling_from: 7, max_level: 7 },
   wingedboots: { scroll0_until: 2, scroll1_until: 6, scroll2_until: 8, primling_from: 7, max_level: 6 },
@@ -22,7 +22,7 @@ const UPGRADE_PROFILE = {
   basher:      { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 6, max_level: 5 },
   broom:       { scroll0_until: 2, scroll1_until: 7, scroll2_until: 9, primling_from: 7, max_level: 7 },
   harbringer:  { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 4, max_level: 6 },
-  t2quiver:    { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 4, max_level: 5 },
+  t2quiver:    { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 4, max_level: 6 },
   // Add more items as needed
 };
 
