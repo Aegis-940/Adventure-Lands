@@ -1974,7 +1974,7 @@ async function prim_orbit_loop() {
                 newX = PRIM_FARM_LOC.x + Math.cos(area_angle) * PRIM_FARM_RADIUS;
                 newY = PRIM_FARM_LOC.y + Math.sin(area_angle) * PRIM_FARM_RADIUS;
             }
-            await move(newX, newY);
+            move(newX, newY);
         }
         // Step 2: Too far from area? Move toward center
         else {
@@ -1983,7 +1983,7 @@ async function prim_orbit_loop() {
                 const to_center_angle = Math.atan2(PRIM_FARM_LOC.y - character.y, PRIM_FARM_LOC.x - character.x);
                 const newX = PRIM_FARM_LOC.x + Math.cos(to_center_angle) * (PRIM_FARM_RADIUS - 1);
                 const newY = PRIM_FARM_LOC.y + Math.sin(to_center_angle) * (PRIM_FARM_RADIUS - 1);
-                await move(newX, newY);
+                move(newX, newY);
             } else {
                 // Step 3: Orbit monster at safe distance, but stay in area
                 angle += Math.PI / 16;
@@ -1995,9 +1995,9 @@ async function prim_orbit_loop() {
                     newX = PRIM_FARM_LOC.x + Math.cos(area_angle) * PRIM_FARM_RADIUS;
                     newY = PRIM_FARM_LOC.y + Math.sin(area_angle) * PRIM_FARM_RADIUS;
                 }
-                await move(newX, newY);
+                move(newX, newY);
             }
         }
-        await delay(50);
+        await delay(100);
     }
 }
