@@ -75,7 +75,22 @@ async function attack_loop() {
                     } else if (valid_targets.length >= 2 && character.mp >= 200 + 88) {
                         use_skill("3shot", valid_targets.slice(0, 3).map(m => m.id));
                     } else if (valid_targets.length >= 1 && character.mp >= 100) {
-                        attack(valid_targets[0]);
+                        const bscorpion = valid_targets.find(m => m.mtype === "bscorpion");
+                        if (bscorpion) {
+                            if (!is_on_cooldown("huntersmark")) {
+                                use_skill("huntersmark", bscorpion.id);
+                            }
+                            else if (!is_on_cooldown("piercingshot") && character.mp >= 160) {
+                                use_skill("piercingshot", bscorpion.id);
+                            }
+                            else if (!is_on_cooldown("supershot") && character.mp >= 400) {
+                                use_skill("supershot", bscorpion.id);
+                            } else {
+                                attack(valid_targets[0]);
+                            }
+                        } else {
+                            attack(valid_targets[0]);
+                        }
                     }
                 }
                 delayMs = ms_to_next_skill("attack") + character.ping + 50;
