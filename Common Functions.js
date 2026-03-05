@@ -1904,7 +1904,6 @@ async function prim_orbit_loop() {
         const dx = character.x - monster.x;
         const dy = character.y - monster.y;
         const dist = Math.sqrt(dx*dx + dy*dy);
-        log(monster.distance)
 
         // Step 1: Too close to monster? Move away, but stay in area
         if (dist < SAFETY_DISTANCE) {
@@ -1930,10 +1929,14 @@ async function prim_orbit_loop() {
                 const newY = PRIM_FARM_LOC.y + Math.sin(to_center_angle) * (PRIM_FARM_RADIUS - 1);
                 move(newX, newY);
             } else {
-                // Step 3: Orbit monster at safe distance, but stay in area
+                // Step 3: Orbit monster at safe distance, but allow a tolerance of +50
                 angle += Math.PI / 16;
-                let newX = monster.x + Math.cos(angle) * SAFETY_DISTANCE;
-                let newY = monster.y + Math.sin(angle) * SAFETY_DISTANCE;
+                const ORBIT_MIN = SAFETY_DISTANCE;
+                const ORBIT_MAX = SAFETY_DISTANCE + 50;
+                // Pick a random distance within the allowed tolerance for more natural movement
+                const orbit_dist = ORBIT_MIN + Math.random() * (ORBIT_MAX - ORBIT_MIN);
+                let newX = monster.x + Math.cos(angle) * orbit_dist;
+                let newY = monster.y + Math.sin(angle) * orbit_dist;
                 const dArea = Math.sqrt((newX - PRIM_FARM_LOC.x)**2 + (newY - PRIM_FARM_LOC.y)**2);
                 if (dArea > PRIM_FARM_RADIUS) {
                     const area_angle = Math.atan2(newY - PRIM_FARM_LOC.y, newX - PRIM_FARM_LOC.x);
