@@ -60,7 +60,7 @@ let POTION_LOOP_ENABLED       = true;
 let LOOT_LOOP_ENABLED         = true;
 let STATUS_CACHE_LOOP_ENABLED = true;
 let PRIM_FARM_LOOT_ENABLED    = false;
-let ORBIT_PRIM_LOOP_ENABLED   = true;
+let ORBIT_PRIM_LOOP_ENABLED   = false;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // GLOBAL FUNCTIONS
@@ -1755,26 +1755,27 @@ parent.$('#bottomleftcorner').show();
 // const PRIM_FARM_LOC_HEALER = { map: "desertland", x: -408, y: -1146 };
 // const SAFETY_DISTANCE = 100;
 
-// function is_bscorpion_nearby(radius = 500) {
-//   for (const id in parent.entities) {
-//     const ent = parent.entities[id];
-//     if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
-//       const dist = parent.distance(character, ent);
-//       if (dist <= radius) return true;
-//     }
-//   }
-//   return false;
-// }
+function is_bscorpion_nearby(radius = 500) {
+    ORBIT_PRIM_LOOP_ENABLED = true;
+  for (const id in parent.entities) {
+    const ent = parent.entities[id];
+    if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
+      const dist = parent.distance(character, ent);
+      if (dist <= radius) return true;
+    }
+  }
+  return false;
+}
 
-// function is_bscorpion_targeting_myras() {
-//   for (const id in parent.entities) {
-//     const ent = parent.entities[id];
-//     if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
-//       if (ent.target === "Myras") return true;
-//     }
-//   }
-//   return false;
-// }
+function is_bscorpion_targeting_myras() {
+  for (const id in parent.entities) {
+    const ent = parent.entities[id];
+    if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
+      if (ent.target === "Myras") return true;
+    }
+  }
+  return false;
+}
 
 // async function orbit_prim_loop() {
 
