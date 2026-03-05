@@ -1805,6 +1805,7 @@ async function orbit_prim_loop() {
 
             // If bscorpion is too close, move away immediately
             if (nearest_bscorpion && min_bscorp_dist < SAFETY_DISTANCE) {
+                log("⚠️ Bscorpion too close! Executing escape maneuver.", "#FF0000", "Alerts");
                 // Move directly away from bscorpion by SAFETY_DISTANCE
                 const dx = character.real_x - nearest_bscorpion.x;
                 const dy = character.real_y - nearest_bscorpion.y;
@@ -1877,11 +1878,12 @@ async function prim_farm_loop() {
             if (character.name === "Myras") {
 
                 if (is_bscorpion_nearby()) {
+                    log("⚠️ Bscorpion nearby! Engaging combat and orbit loops.", "#FF0000", "Alerts");
                     ATTACK_LOOP_ENABLED = true;
                     SKILL_LOOP_ENABLED = true;
+                    ORBIT_PRIM_LOOP_ENABLED = true;
                 }
 
-                ORBIT_PRIM_LOOP_ENABLED = true;
 
             }
 
