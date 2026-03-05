@@ -1759,6 +1759,53 @@ parent.$('#bottomleftcorner').show();
 // PRIMLING FARM LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+async function maintain_safe_orbit_prim_bscorpion() {
+    const ORBIT_MAX_RADIUS = 100;
+    const SAFE_MIN_DIST = 50;
+    let angle = 0;
+    while (true) {
+        // Find nearest alive bscorpion
+        let nearest = null;
+        let minDist = Infinity;
+        for (const id in parent.entities) {
+            const ent = parent.entities[id];
+            if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
+                const dx = ent.x - character.x;
+                const dy = ent.y - character.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearest = ent;
+                }
+            }
+        }
+
+        if (nearest && minDist < SAFE_MIN_DIST) {
+            // Too close to bscorpion, move away to maintain at least SAFE_MIN_DIST
+            const dx = character.x - nearest.x;
+            const dy = character.y - nearest.y;
+            const awayAngle = Math.atan2(dy, dx);
+            const newX = nearest.x + Math.cos(awayAngle) * SAFE_MIN_DIST;
+            const newY = nearest.y + Math.sin(awayAngle) * SAFE_MIN_DIST;
+            await move(newX, newY);
+        } else {
+            // Orbit PRIM_FARM_LOC clockwise at up to ORBIT_MAX_RADIUS
+            // Variable radius: if bscorpion is present, use min(ORBIT_MAX_RADIUS, dist to bscorpion - SAFE_MIN_DIST)
+            let radius = ORBIT_MAX_RADIUS;
+            if (nearest && minDist !== Infinity) {
+                radius = Math.max(60, Math.min(ORBIT_MAX_RADIUS, minDist - SAFE_MIN_DIST));
+            }
+            angle += Math.PI / 16; // advance clockwise
+            if (angle > 2 * Math.PI) angle -= 2 * Math.PI;
+            const newX = PRIM_FARM_LOC.x + Math.cos(angle) * radius;
+            const newY = PRIM_FARM_LOC.y + Math.sin(angle) * radius;
+            await move(newX, newY);
+        }
+        await delay(200);
+    }
+}
+
+
 const PRIM_FARM_LOC = { map: "desertland", x: -408, y: -1266 };
 const PRIM_FARM_LOC_HEALER = { map: "desertland", x: -408, y: -1146 };
 const PRIM_FARM_RADIUS = 150;
@@ -1885,6 +1932,7 @@ async function prim_farm_loop() {
                     ATTACK_LOOP_ENABLED = true;
                     SKILL_LOOP_ENABLED = true;
                     ORBIT_PRIM_LOOP_ENABLED = true;
+                    maintain_safe_orbit_prim_bscorpion()
                 } else {
                     // Cast absorb on bscorpion if possible
                     const bscorp = Object.values(parent.entities).find(ent =>
