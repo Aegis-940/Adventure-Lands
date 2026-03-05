@@ -1753,142 +1753,142 @@ parent.$('#bottomleftcorner').show();
 // PRIMLING FARM LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const PRIM_FARM_LOC = { map: "desertland", x: -408, y: -1266 };
-const PRIM_FARM_LOC_HEALER = { map: "desertland", x: -408, y: -1146 };
-const SAFETY_DISTANCE = 100;
+// const PRIM_FARM_LOC = { map: "desertland", x: -408, y: -1266 };
+// const PRIM_FARM_LOC_HEALER = { map: "desertland", x: -408, y: -1146 };
+// const SAFETY_DISTANCE = 100;
 
-function is_bscorpion_nearby(radius = 500) {
-  for (const id in parent.entities) {
-    const ent = parent.entities[id];
-    if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
-      const dist = parent.distance(character, ent);
-      if (dist <= radius) return true;
-    }
-  }
-  return false;
-}
+// function is_bscorpion_nearby(radius = 500) {
+//   for (const id in parent.entities) {
+//     const ent = parent.entities[id];
+//     if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
+//       const dist = parent.distance(character, ent);
+//       if (dist <= radius) return true;
+//     }
+//   }
+//   return false;
+// }
 
-function is_bscorpion_targeting_myras() {
-  for (const id in parent.entities) {
-    const ent = parent.entities[id];
-    if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
-      if (ent.target === "Myras") return true;
-    }
-  }
-  return false;
-}
+// function is_bscorpion_targeting_myras() {
+//   for (const id in parent.entities) {
+//     const ent = parent.entities[id];
+//     if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
+//       if (ent.target === "Myras") return true;
+//     }
+//   }
+//   return false;
+// }
 
-async function orbit_prim_loop() {
+// async function orbit_prim_loop() {
 
-    let delayMs = 50;
+//     let delayMs = 50;
 
-    while(true) {
-        // Wait until orbit loop is enabled
-        if (!ORBIT_PRIM_LOOP_ENABLED) {
-            await delay(100);
-            continue;
-        }
+//     while(true) {
+//         // Wait until orbit loop is enabled
+//         if (!ORBIT_PRIM_LOOP_ENABLED) {
+//             await delay(100);
+//             continue;
+//         }
 
-        // orbit_origin = { x: character.real_x, y: character.real_y };
-        set_orbit_radius(ORBIT_RADIUS);
-        orbit_path_points = compute_orbit_path(PRIM_FARM_LOC, 50, 24);
-        orbit_path_index = 0;
+//         // orbit_origin = { x: character.real_x, y: character.real_y };
+//         set_orbit_radius(ORBIT_RADIUS);
+//         orbit_path_points = compute_orbit_path(PRIM_FARM_LOC, 50, 24);
+//         orbit_path_index = 0;
 
-        while (true) {
-            // Check if orbit loop is enabled
-            if (!ORBIT_PRIM_LOOP_ENABLED) {
-                await delay(100);
-                continue;
-            }
-            // Stop the loop if character is more than 100 units from the orbit origin
-            const dist_from_origin = Math.hypot(character.real_x - PRIM_FARM_LOC.x, character.real_y - PRIM_FARM_LOC.y);
-            if (dist_from_origin > 100) {
-                game_log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
-                ORBIT_PRIM_LOOP_ENABLED = false;
-                break;
-            }
+//         while (true) {
+//             // Check if orbit loop is enabled
+//             if (!ORBIT_PRIM_LOOP_ENABLED) {
+//                 await delay(100);
+//                 continue;
+//             }
+//             // Stop the loop if character is more than 100 units from the orbit origin
+//             const dist_from_origin = Math.hypot(character.real_x - PRIM_FARM_LOC.x, character.real_y - PRIM_FARM_LOC.y);
+//             if (dist_from_origin > 100) {
+//                 game_log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
+//                 ORBIT_PRIM_LOOP_ENABLED = false;
+//                 break;
+//             }
 
-            const point = orbit_path_points[orbit_path_index];
-            orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
+//             const point = orbit_path_points[orbit_path_index];
+//             orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
 
-            // Only move if not already close to the next point
-            const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
-            if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
-                try {
-                    await move(point.x, point.y);
-                } catch (e) {
-                    console.error("Orbit move error:", e);
-                }
-            }
+//             // Only move if not already close to the next point
+//             const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
+//             if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
+//                 try {
+//                     await move(point.x, point.y);
+//                 } catch (e) {
+//                     console.error("Orbit move error:", e);
+//                 }
+//             }
 
-            // Wait until movement is finished or interrupted
-            while (ORBIT_PRIM_LOOP_ENABLED && (character.moving || smart.moving)) {
-                await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
-            }
+//             // Wait until movement is finished or interrupted
+//             while (ORBIT_PRIM_LOOP_ENABLED && (character.moving || smart.moving)) {
+//                 await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
+//             }
 
-            // Small delay before next step to reduce CPU usage
-            await delay(delayMs);
-        }
-    }
+//             // Small delay before next step to reduce CPU usage
+//             await delay(delayMs);
+//         }
+//     }
 
-}
+// }
 
-async function maintain_range_to_target(target) {
-  if (!target || typeof target.x !== 'number' || typeof target.y !== 'number') return;
-  const desired = Math.max(0, (character.range || 50) - 5);
-  const dx = target.x - character.x;
-  const dy = target.y - character.y;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-  if (dist > desired + 2 || dist < desired - 2) {
-    // Move to a point at the desired distance from the target
-    const angle = Math.atan2(character.y - target.y, character.x - target.x);
-    const newX = target.x + Math.cos(angle) * desired;
-    const newY = target.y + Math.sin(angle) * desired;
-    await move(newX, newY);
-  }
-}
+// async function maintain_range_to_target(target) {
+//   if (!target || typeof target.x !== 'number' || typeof target.y !== 'number') return;
+//   const desired = Math.max(0, (character.range || 50) - 5);
+//   const dx = target.x - character.x;
+//   const dy = target.y - character.y;
+//   const dist = Math.sqrt(dx * dx + dy * dy);
+//   if (dist > desired + 2 || dist < desired - 2) {
+//     // Move to a point at the desired distance from the target
+//     const angle = Math.atan2(character.y - target.y, character.x - target.x);
+//     const newX = target.x + Math.cos(angle) * desired;
+//     const newY = target.y + Math.sin(angle) * desired;
+//     await move(newX, newY);
+//   }
+// }
 
-async function prim_farm_loop() {
+// async function prim_farm_loop() {
 
-    while (true) {
-        if (PRIM_FARM_LOOT_ENABLED) {
+//     while (true) {
+//         if (PRIM_FARM_LOOT_ENABLED) {
 
-            if (character.name === "Ulric") {
+//             if (character.name === "Ulric") {
 
-                if (is_bscorpion_nearby() && is_bscorpion_targeting_myras()) {
-                    // ORBIT_LOOP_ENABLED = false;
-                    ATTACK_LOOP_ENABLED = true;
-                    SKILL_LOOP_ENABLED = true;
-                    maintain_range_to_target(target) 
-                }
+//                 if (is_bscorpion_nearby() && is_bscorpion_targeting_myras()) {
+//                     // ORBIT_LOOP_ENABLED = false;
+//                     ATTACK_LOOP_ENABLED = true;
+//                     SKILL_LOOP_ENABLED = true;
+//                     maintain_range_to_target(target) 
+//                 }
 
-            }
+//             }
 
-            if (character.name === "Myras") {
+//             if (character.name === "Myras") {
 
-                if (is_bscorpion_nearby()) {
-                    log("⚠️ Bscorpion nearby! Engaging combat and orbit loops.", "#FF0000", "Alerts");
-                    ATTACK_LOOP_ENABLED = true;
-                    SKILL_LOOP_ENABLED = true;
-                }
+//                 if (is_bscorpion_nearby()) {
+//                     log("⚠️ Bscorpion nearby! Engaging combat and orbit loops.", "#FF0000", "Alerts");
+//                     ATTACK_LOOP_ENABLED = true;
+//                     SKILL_LOOP_ENABLED = true;
+//                 }
 
 
-            }
+//             }
 
-            if (character.name === "Riva") {
+//             if (character.name === "Riva") {
 
-                if (is_bscorpion_nearby() && is_bscorpion_targeting_myras()) {
-                    // ORBIT_LOOP_ENABLED = false;
-                    ATTACK_LOOP_ENABLED = true;
-                    SKILL_LOOP_ENABLED = true;
-                    maintain_range_to_target(target) 
-                }
+//                 if (is_bscorpion_nearby() && is_bscorpion_targeting_myras()) {
+//                     // ORBIT_LOOP_ENABLED = false;
+//                     ATTACK_LOOP_ENABLED = true;
+//                     SKILL_LOOP_ENABLED = true;
+//                     maintain_range_to_target(target) 
+//                 }
 
-            }
+//             }
             
-        } else {
-            await delay(1000);
-        }
-    }
-}
+//         } else {
+//             await delay(1000);
+//         }
+//     }
+// }
 
