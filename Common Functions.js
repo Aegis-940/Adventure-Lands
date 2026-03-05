@@ -1781,71 +1781,34 @@ async function orbit_prim_loop() {
 
     let delayMs = 50;
 
-    const ORBIT_RADIUS = 200;
-    const ORBIT_ORIGIN = PRIM_FARM_LOC;
-
     while(true) {
+        // Wait until orbit loop is enabled
         if (!ORBIT_PRIM_LOOP_ENABLED) {
             await delay(100);
             continue;
         }
 
-        // Always recompute orbit path from PRIM_FARM_LOC
-        orbit_path_points = compute_orbit_path(ORBIT_ORIGIN, ORBIT_RADIUS, ORBIT_STEPS);
+        // orbit_origin = { x: character.real_x, y: character.real_y };
+        set_orbit_radius(ORBIT_RADIUS);
+        orbit_path_points = compute_orbit_path(PRIM_FARM_LOC, 50, 24);
         orbit_path_index = 0;
 
         while (true) {
+            // Check if orbit loop is enabled
             if (!ORBIT_PRIM_LOOP_ENABLED) {
                 await delay(100);
                 continue;
             }
-
-            // Find nearest bscorpion
-            let nearest_bscorpion = null;
-            let min_bscorp_dist = Infinity;
-            for (const id in parent.entities) {
-                const ent = parent.entities[id];
-                if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
-                    const d = parent.distance(character, ent);
-                    if (d < min_bscorp_dist) {
-                        min_bscorp_dist = d;
-                        nearest_bscorpion = ent;
-                    }
-                }
+            // Stop the loop if character is more than 100 units from the orbit origin
+            const dist_from_origin = Math.hypot(character.real_x - PRIM_FARM_LOC.x, character.real_y - PRIM_FARM_LOC.y);
+            if (dist_from_origin > 100) {
+                game_log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
+                ORBIT_PRIM_LOOP_ENABLED = false;
+                break;
             }
 
-            // If bscorpion is too close, move away immediately
-            if (nearest_bscorpion && min_bscorp_dist < SAFETY_DISTANCE) {
-                log("⚠️ Bscorpion too close! Executing escape maneuver.", "#FF0000", "Alerts");
-                // Move directly away from bscorpion by SAFETY_DISTANCE
-                const dx = character.real_x - nearest_bscorpion.x;
-                const dy = character.real_y - nearest_bscorpion.y;
-                const mag = Math.sqrt(dx*dx + dy*dy) || 1;
-                const safe_x = character.real_x + (dx / mag) * (SAFETY_DISTANCE + 20);
-                const safe_y = character.real_y + (dy / mag) * (SAFETY_DISTANCE + 20);
-                try {
-                    await move(safe_x, safe_y);
-                } catch (e) {
-                    console.error("Escape move error:", e);
-                }
-                // Wait until movement is finished or interrupted
-                while (ORBIT_PRIM_LOOP_ENABLED && (character.moving || smart.moving)) {
-                    await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
-                }
-                await delay(delayMs);
-                continue; // Re-evaluate safety before resuming orbit
-            }
-
-            // Find next orbit point that is at least SAFETY_DISTANCE from bscorpion
-            let attempts = 0;
-            let point;
-            do {
-                point = orbit_path_points[orbit_path_index];
-                orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
-                attempts++;
-                // If no bscorpion, just use the next point
-                if (!nearest_bscorpion) break;
-            } while (nearest_bscorpion && Math.hypot(point.x - nearest_bscorpion.x, point.y - nearest_bscorpion.y) < SAFETY_DISTANCE && attempts < ORBIT_STEPS);
+            const point = orbit_path_points[orbit_path_index];
+            orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
 
             // Only move if not already close to the next point
             const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
@@ -1862,6 +1825,7 @@ async function orbit_prim_loop() {
                 await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
             }
 
+            // Small delay before next step to reduce CPU usage
             await delay(delayMs);
         }
     }
