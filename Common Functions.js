@@ -223,16 +223,12 @@ function is_boss_alive() {
     });
 }
 
-function is_bscorpion_nearby(radius = 500) {
-    ORBIT_PRIM_LOOP_ENABLED = true;
-  for (const id in parent.entities) {
-    const ent = parent.entities[id];
-    if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
-      const dist = parent.distance(character, ent);
-      if (dist <= radius) return true;
-    }
-  }
-  return false;
+function is_bscorpion_alive() {
+    const found = Object.values(parent.entities).some(ent =>
+        ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead && parent.distance(character, ent) <= 500
+    );
+    if (found) PRIM_FARM_LOOT_ENABLED = true;
+    return found;
 }
 
 const STATES = {
@@ -247,7 +243,7 @@ function get_character_state() {
     if (character.rip) return STATES.DEAD;
     if (panicking) return STATES.PANIC;
     if (is_boss_alive()) return STATES.BOSS;
-    if (PRIM_FARM_LOOT_ENABLED) return STATES.PRIMS
+    if (is_bscorpion_alive()) return STATES.PRIMS
     return STATES.NORMAL;
 }
 
@@ -1856,7 +1852,7 @@ async function prim_farm_loop() {
 
             if (character.name === "Ulric") {
 
-                if (is_bscorpion_nearby() && is_bscorpion_targeting_myras()) {
+                if (is_bscorpion_alive() && is_bscorpion_targeting_myras()) {
                     maintain_range_to_target(target) 
                 }
 
@@ -1864,7 +1860,7 @@ async function prim_farm_loop() {
 
             if (character.name === "Myras") {
 
-                if (is_bscorpion_nearby()) {
+                if (is_bscorpion_alive()) {
                     log("⚠️ Bscorpion nearby! Engaging combat and orbit loops.", "#FF0000", "Alerts");
                     ATTACK_LOOP_ENABLED = true;
                     SKILL_LOOP_ENABLED = true;
@@ -1875,7 +1871,7 @@ async function prim_farm_loop() {
 
             if (character.name === "Riva") {
 
-                if (is_bscorpion_nearby() && is_bscorpion_targeting_myras()) {
+                if (is_bscorpion_alive() && is_bscorpion_targeting_myras()) {
                     maintain_range_to_target(target) 
                 }
 
