@@ -1785,22 +1785,13 @@ function get_bscorpion_info() {
 let _orbit_angle = 0;
 async function move_safe_from_bscorpion() {
     const info = get_bscorpion_info();
-    if (info && info.distance < SAFETY_DISTANCE) {
-        // Too close: move away to exactly SAFETY_DISTANCE
-        const dx = character.x - info.x;
-        const dy = character.y - info.y;
-        const angle = Math.atan2(dy, dx);
-        const newX = info.x + Math.cos(angle) * SAFETY_DISTANCE;
-        const newY = info.y + Math.sin(angle) * SAFETY_DISTANCE;
-        await move(newX, newY);
-    } else {
-        // Orbit PRIM_FARM_LOC at PRIM_FARM_RADIUS clockwise
-        _orbit_angle += Math.PI / 16;
-        if (_orbit_angle > 2 * Math.PI) _orbit_angle -= 2 * Math.PI;
-        const newX = PRIM_FARM_LOC.x + Math.cos(_orbit_angle) * PRIM_FARM_RADIUS;
-        const newY = PRIM_FARM_LOC.y + Math.sin(_orbit_angle) * PRIM_FARM_RADIUS;
-        await move(newX, newY);
-    }
+
+    // Orbit PRIM_FARM_LOC at PRIM_FARM_RADIUS clockwise
+    _orbit_angle += Math.PI / 16;
+    if (_orbit_angle > 2 * Math.PI) _orbit_angle -= 2 * Math.PI;
+    const newX = PRIM_FARM_LOC.x + Math.cos(_orbit_angle) * PRIM_FARM_RADIUS;
+    const newY = PRIM_FARM_LOC.y + Math.sin(_orbit_angle) * PRIM_FARM_RADIUS;
+    await move(newX, newY);
 }
 
 function is_bscorpion_targeting_myras() {
