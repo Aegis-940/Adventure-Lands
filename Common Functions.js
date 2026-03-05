@@ -1,4 +1,3 @@
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // CONFIG VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -30,6 +29,7 @@ const MONSTER_LOCS = {
     ghost:        { map: "halloween", x: 229, y: -1203, orbit: true , hostile: false },
     prat:         { map: "level1", x: 89, y: 199, orbit: true , hostile: false },
     dryad:        { map: "mforest", x: 380, y: -359, orbit: true , hostile: false },
+    bscorpion:    { map: "desertland", x: -408, y: -1266, orbit: false , hostile: false }
 };
 
 const HEALER_TARGET    = MONSTER_LOCS.dryad;
@@ -59,6 +59,7 @@ let ORBIT_LOOP_ENABLED        = false;
 let POTION_LOOP_ENABLED       = true;
 let LOOT_LOOP_ENABLED         = true;
 let STATUS_CACHE_LOOP_ENABLED = true;
+let PRIM_FARM_LOOT_ENABLED    = false;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // GLOBAL FUNCTIONS
@@ -1735,3 +1736,166 @@ moveElementUpByPx("chatwparty", 370);
 moveElementUpByPx("chatinput", 370);
 
 parent.$('#bottomleftcorner').show();
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// PRIMLING FARM LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const PRIM_FARM_LOC = { map: "desertland", x: -408, y: -1266 };
+const PRIM_FARM_LOC_HEALER = { map: "desertland", x: -408, y: -1146 };
+const SAFETY_DISTANCE = 100;
+
+function is_bscorpion_nearby(radius = 500) {
+  for (const id in parent.entities) {
+    const ent = parent.entities[id];
+    if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
+      const dist = parent.distance(character, ent);
+      if (dist <= radius) return true;
+    }
+  }
+  return false;
+}
+
+function is_bscorpion_targeting_myras() {
+  for (const id in parent.entities) {
+    const ent = parent.entities[id];
+    if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
+      if (ent.target === "Myras") return true;
+    }
+  }
+  return false;
+}
+
+async function orbit_prim_loop() {
+
+    let delayMs = 50;
+
+    const ORBIT_RADIUS = 200;
+    const ORBIT_ORIGIN = PRIM_FARM_LOC;
+    
+    while(true) {
+        if (!ORBIT_PRIM_LOOP_ENABLED) {
+            await delay(100);
+            continue;
+        }
+
+        // Always recompute orbit path from PRIM_FARM_LOC
+        orbit_path_points = compute_orbit_path(ORBIT_ORIGIN, ORBIT_RADIUS, ORBIT_STEPS);
+        orbit_path_index = 0;
+
+        while (true) {
+            if (!ORBIT_PRIM_LOOP_ENABLED) {
+                await delay(100);
+                continue;
+            }
+
+            // Find nearest bscorpion
+            let nearest_bscorpion = null;
+            let min_bscorp_dist = Infinity;
+            for (const id in parent.entities) {
+                const ent = parent.entities[id];
+                if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
+                    const d = parent.distance(character, ent);
+                    if (d < min_bscorp_dist) {
+                        min_bscorp_dist = d;
+                        nearest_bscorpion = ent;
+                    }
+                }
+            }
+
+            // If bscorpion is too close, move away immediately
+            if (nearest_bscorpion && min_bscorp_dist < SAFETY_DISTANCE) {
+                // Move directly away from bscorpion by SAFETY_DISTANCE
+                const dx = character.real_x - nearest_bscorpion.x;
+                const dy = character.real_y - nearest_bscorpion.y;
+                const mag = Math.sqrt(dx*dx + dy*dy) || 1;
+                const safe_x = character.real_x + (dx / mag) * (SAFETY_DISTANCE + 20);
+                const safe_y = character.real_y + (dy / mag) * (SAFETY_DISTANCE + 20);
+                try {
+                    await move(safe_x, safe_y);
+                } catch (e) {
+                    console.error("Escape move error:", e);
+                }
+                // Wait until movement is finished or interrupted
+                while (ORBIT_PRIM_LOOP_ENABLED && (character.moving || smart.moving)) {
+                    await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
+                }
+                await delay(delayMs);
+                continue; // Re-evaluate safety before resuming orbit
+            }
+
+            // Find next orbit point that is at least SAFETY_DISTANCE from bscorpion
+            let attempts = 0;
+            let point;
+            do {
+                point = orbit_path_points[orbit_path_index];
+                orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
+                attempts++;
+                // If no bscorpion, just use the next point
+                if (!nearest_bscorpion) break;
+            } while (nearest_bscorpion && Math.hypot(point.x - nearest_bscorpion.x, point.y - nearest_bscorpion.y) < SAFETY_DISTANCE && attempts < ORBIT_STEPS);
+
+            // Only move if not already close to the next point
+            const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
+            if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
+                try {
+                    await move(point.x, point.y);
+                } catch (e) {
+                    console.error("Orbit move error:", e);
+                }
+            }
+
+            // Wait until movement is finished or interrupted
+            while (ORBIT_PRIM_LOOP_ENABLED && (character.moving || smart.moving)) {
+                await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
+            }
+
+            await delay(delayMs);
+        }
+    }
+
+}
+
+async function prim_farm_loop() {
+    
+    ORBIT_LOOP_ENABLED = false;
+    ATTACK_LOOP_ENABLED = false;
+    SKILL_LOOP_ENABLED = false;
+
+    while (true) {
+        if (PRIM_FARM_LOOT_ENABLED) {
+
+            if (character.name === "Ulric") {
+
+                if (is_bscorpion_nearby() && is_bscorpion_targeting_myras()) {
+                    ATTACK_LOOP_ENABLED = true;
+                    SKILL_LOOP_ENABLED = true;
+                }
+
+            }
+
+            if (character.name === "Myras") {
+
+                if (is_bscorpion_nearby()) {
+                    ATTACK_LOOP_ENABLED = true;
+                    SKILL_LOOP_ENABLED = true;
+                }
+
+                ORBIT_PRIM_LOOP_ENABLED = true;
+
+            }
+
+            if (character.name === "Riva") {
+
+                if (is_bscorpion_nearby() && is_bscorpion_targeting_myras()) {
+                    ATTACK_LOOP_ENABLED = true;
+                    SKILL_LOOP_ENABLED = true;
+                }
+
+            }
+            
+        } else {
+            await delay(1000);
+        }
+    }
+}
