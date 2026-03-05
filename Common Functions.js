@@ -318,7 +318,6 @@ async function set_state(state) {
             case STATES.PRIMS:
                 try {
                     if (ORBIT_LOOP_ENABLED)  ORBIT_LOOP_ENABLED = false;
-                    if (!ORBIT_PRIM_LOOP_ENABLED) ORBIT_PRIM_LOOP_ENABLED = true;
                 } catch (e) {
                     catcher(e, "set_loops: PRIMS state error");
                 }
