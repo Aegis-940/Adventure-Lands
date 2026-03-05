@@ -1829,18 +1829,28 @@ async function orbit_prim_loop() {
 
 }
 
-async function maintain_range_to_target(target) {
-  if (!target || typeof target.x !== 'number' || typeof target.y !== 'number') return;
-  const desired = Math.max(0, (character.range || 50) - 5);
-  const dx = target.x - character.x;
-  const dy = target.y - character.y;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-  if (dist > desired + 2 || dist < desired - 2) {
-    // Move to a point at the desired distance from the target
-    const angle = Math.atan2(character.y - target.y, character.x - target.x);
-    const newX = target.x + Math.cos(angle) * desired;
-    const newY = target.y + Math.sin(angle) * desired;
-    await move(newX, newY);
+async function maintain_range_to_target_loop() {
+  while (true) {
+    if (!PRIM_FARM_LOOT_ENABLED) {
+      await delay(100);
+      continue;
+    }
+    if (!target || typeof target.x !== 'number' || typeof target.y !== 'number') {
+      await delay(100);
+      continue;
+    }
+    const desired = Math.max(0, (character.range || 50) - 5);
+    const dx = target.x - character.x;
+    const dy = target.y - character.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > desired + 2 || dist < desired - 2) {
+      // Move to a point at the desired distance from the target
+      const angle = Math.atan2(character.y - target.y, character.x - target.x);
+      const newX = target.x + Math.cos(angle) * desired;
+      const newY = target.y + Math.sin(angle) * desired;
+      await move(newX, newY);
+    }
+    await delay(100);
   }
 }
 
@@ -1854,6 +1864,9 @@ async function prim_farm_loop() {
                 if (is_bscorpion_targeting_myras()) {
                     if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
                     if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
+                } else {
+                    if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
+                    if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
                 }
 
             }
@@ -1861,7 +1874,6 @@ async function prim_farm_loop() {
             if (character.name === "Myras") {
 
                 if (!is_bscorpion_targeting_myras()) {
-                    log("⚠️ Bscorpion nearby! Engaging combat and orbit loops.", "#FF0000", "Alerts");
                     ATTACK_LOOP_ENABLED = true;
                     SKILL_LOOP_ENABLED = true;
                     ORBIT_PRIM_LOOP_ENABLED = true;
@@ -1874,6 +1886,9 @@ async function prim_farm_loop() {
                 if (is_bscorpion_targeting_myras()) {
                     if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
                     if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
+                } else {
+                    if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
+                    if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
                 }
 
             }
