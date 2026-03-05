@@ -1759,7 +1759,7 @@ parent.$('#bottomleftcorner').show();
 
 const PRIM_FARM_LOC = { map: "desertland", x: -408, y: -1266 };
 const PRIM_FARM_LOC_HEALER = { map: "desertland", x: -408, y: -1146 };
-const PRIM_FARM_RADIUS = 75;
+const PRIM_FARM_RADIUS = 100;
 const SAFETY_DISTANCE = 75;
 
 function get_bscorpion_info() {
@@ -1895,57 +1895,106 @@ async function prim_farm_loop() {
     }
 }
 
+// async function prim_orbit_loop() {
+
+//     let delayMs = 50;
+
+//     while(true) {
+//         // Wait until orbit loop is enabled
+//         if (!PRIM_FARM_LOOT_ENABLED) {
+//             await delay(100);
+//             continue;
+//         }
+
+//         // orbit_origin = { x: character.real_x, y: character.real_y };
+//         set_orbit_radius(ORBIT_RADIUS);
+//         orbit_path_points = compute_orbit_path(PRIM_FARM_LOC, PRIM_FARM_RADIUS, 24);
+//         orbit_path_index = 0;
+
+//         while (true) {
+//             // Check if orbit loop is enabled
+//             if (!PRIM_FARM_LOOT_ENABLED) {
+//                 await delay(100);
+//                 continue;
+//             }
+//             // Stop the loop if character is more than 100 units from the orbit origin
+//             const dist_from_origin = Math.hypot(character.real_x - orbit_origin.x, character.real_y - orbit_origin.y);
+//             if (dist_from_origin > 100) {
+//                 game_log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
+//                 PRIM_FARM_LOOT_ENABLED = false;
+//                 break;
+//             }
+
+//             const point = orbit_path_points[orbit_path_index];
+//             orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
+
+//             // Only move if not already close to the next point
+//             const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
+//             if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
+//                 try {
+//                     await move(point.x, point.y);
+//                 } catch (e) {
+//                     console.error("Orbit move error:", e);
+//                 }
+//             }
+
+//             // Wait until movement is finished or interrupted
+//             while (PRIM_FARM_LOOT_ENABLED && (character.moving || smart.moving)) {
+//                 await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
+//             }
+
+//             // Small delay before next step to reduce CPU usage
+//             await delay(delayMs);
+//         }
+//     }
+// }
+
 async function prim_orbit_loop() {
+    let angle = 0;
+    while (true) {
+        const monster = get_bscorpion_info();
+        if (!monster) { await delay(200); continue; }
+        const dx = character.x - monster.x;
+        const dy = character.y - monster.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
 
-    let delayMs = 50;
-
-    while(true) {
-        // Wait until orbit loop is enabled
-        if (!PRIM_FARM_LOOT_ENABLED) {
-            await delay(100);
-            continue;
+        // Step 1: Too close to monster? Move away, but stay in area
+        if (dist < SAFETY_DISTANCE) {
+            const away_angle = Math.atan2(dy, dx);
+            let newX = monster.x + Math.cos(away_angle) * SAFETY_DISTANCE;
+            let newY = monster.y + Math.sin(away_angle) * SAFETY_DISTANCE;
+            // Check if this move is outside area
+            const dArea = Math.sqrt((newX - PRIM_FARM_LOC.x)**2 + (newY - PRIM_FARM_LOC.y)**2);
+            if (dArea > PRIM_FARM_RADIUS) {
+                // Project onto area boundary
+                const area_angle = Math.atan2(newY - PRIM_FARM_LOC.y, newX - PRIM_FARM_LOC.x);
+                newX = PRIM_FARM_LOC.x + Math.cos(area_angle) * PRIM_FARM_RADIUS;
+                newY = PRIM_FARM_LOC.y + Math.sin(area_angle) * PRIM_FARM_RADIUS;
+            }
+            await move(newX, newY);
         }
-
-        // orbit_origin = { x: character.real_x, y: character.real_y };
-        set_orbit_radius(ORBIT_RADIUS);
-        orbit_path_points = compute_orbit_path(PRIM_FARM_LOC, PRIM_FARM_RADIUS, 24);
-        orbit_path_index = 0;
-
-        while (true) {
-            // Check if orbit loop is enabled
-            if (!PRIM_FARM_LOOT_ENABLED) {
-                await delay(100);
-                continue;
-            }
-            // Stop the loop if character is more than 100 units from the orbit origin
-            const dist_from_origin = Math.hypot(character.real_x - orbit_origin.x, character.real_y - orbit_origin.y);
-            if (dist_from_origin > 100) {
-                game_log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
-                PRIM_FARM_LOOT_ENABLED = false;
-                break;
-            }
-
-            const point = orbit_path_points[orbit_path_index];
-            orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
-
-            // Only move if not already close to the next point
-            const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
-            if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
-                try {
-                    await move(point.x, point.y);
-                } catch (e) {
-                    console.error("Orbit move error:", e);
+        // Step 2: Too far from area? Move toward center
+        else {
+            const dArea = Math.sqrt((character.x - PRIM_FARM_LOC.x)**2 + (character.y - PRIM_FARM_LOC.y)**2);
+            if (dArea > PRIM_FARM_RADIUS) {
+                const to_center_angle = Math.atan2(PRIM_FARM_LOC.y - character.y, PRIM_FARM_LOC.x - character.x);
+                const newX = PRIM_FARM_LOC.x + Math.cos(to_center_angle) * (PRIM_FARM_RADIUS - 1);
+                const newY = PRIM_FARM_LOC.y + Math.sin(to_center_angle) * (PRIM_FARM_RADIUS - 1);
+                await move(newX, newY);
+            } else {
+                // Step 3: Orbit monster at safe distance, but stay in area
+                angle += Math.PI / 16;
+                let newX = monster.x + Math.cos(angle) * SAFETY_DISTANCE;
+                let newY = monster.y + Math.sin(angle) * SAFETY_DISTANCE;
+                const dArea = Math.sqrt((newX - PRIM_FARM_LOC.x)**2 + (newY - PRIM_FARM_LOC.y)**2);
+                if (dArea > PRIM_FARM_RADIUS) {
+                    const area_angle = Math.atan2(newY - PRIM_FARM_LOC.y, newX - PRIM_FARM_LOC.x);
+                    newX = PRIM_FARM_LOC.x + Math.cos(area_angle) * PRIM_FARM_RADIUS;
+                    newY = PRIM_FARM_LOC.y + Math.sin(area_angle) * PRIM_FARM_RADIUS;
                 }
+                await move(newX, newY);
             }
-
-            // Wait until movement is finished or interrupted
-            while (PRIM_FARM_LOOT_ENABLED && (character.moving || smart.moving)) {
-                await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
-            }
-
-            // Small delay before next step to reduce CPU usage
-            await delay(delayMs);
         }
+        await delay(200);
     }
-
 }
