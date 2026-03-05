@@ -56,7 +56,7 @@ let last_auto_upgrade_time = 0; // Timestamp in ms
 let last_exchange_time = 0;     // Timestamp in ms
 
 function should_run_auto_upgrade() {
-    const FIVE_MINUTES = 5 * 60 * 1000;
+    const THIRTY_MINUTES = 5 * 60 * 1000;
     return (Date.now() - last_auto_upgrade_time) > THIRTY_MINUTES;
 }
 
