@@ -32,9 +32,9 @@ const MONSTER_LOCS = {
     bscorpion:    { map: "desertland", x: -408, y: -1266, orbit: false , hostile: false }
 };
 
-const HEALER_TARGET    = MONSTER_LOCS.dryad;
-const WARRIOR_TARGET   = MONSTER_LOCS.dryad;
-const RANGER_TARGET    = MONSTER_LOCS.dryad;
+const HEALER_TARGET    = MONSTER_LOCS.bscorpion;
+const WARRIOR_TARGET   = MONSTER_LOCS.bscorpion;
+const RANGER_TARGET    = MONSTER_LOCS.bscorpion;
 const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 
 const FLOATING_BUTTON_IDS = [];
@@ -1772,7 +1772,7 @@ async function orbit_prim_loop() {
 
     const ORBIT_RADIUS = 200;
     const ORBIT_ORIGIN = PRIM_FARM_LOC;
-    
+
     while(true) {
         if (!ORBIT_PRIM_LOOP_ENABLED) {
             await delay(100);
