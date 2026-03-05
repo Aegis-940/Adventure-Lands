@@ -60,7 +60,6 @@ let POTION_LOOP_ENABLED       = true;
 let LOOT_LOOP_ENABLED         = true;
 let STATUS_CACHE_LOOP_ENABLED = true;
 let PRIM_FARM_LOOT_ENABLED    = false;
-let ORBIT_PRIM_LOOP_ENABLED   = false;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // GLOBAL FUNCTIONS
@@ -1764,6 +1763,47 @@ const PRIM_FARM_LOC_HEALER = { map: "desertland", x: -408, y: -1146 };
 const PRIM_FARM_RADIUS = 150;
 const SAFETY_DISTANCE = 75;
 
+function get_bscorpion_info() {
+    let nearest = null;
+    let minDist = Infinity;
+    for (const id in parent.entities) {
+        const ent = parent.entities[id];
+        if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
+            const dx = ent.x - character.x;
+            const dy = ent.y - character.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < minDist) {
+                minDist = dist;
+                nearest = ent;
+            }
+        }
+    }
+    if (!nearest) return null;
+    return { distance: minDist, x: nearest.x, y: nearest.y, id: nearest.id };
+}
+
+
+let _orbit_angle = 0;
+async function move_safe_from_bscorpion() {
+    const info = get_bscorpion_info();
+    if (info && info.distance < SAFETY_DISTANCE) {
+        // Too close: move away to exactly SAFETY_DISTANCE
+        const dx = character.x - info.x;
+        const dy = character.y - info.y;
+        const angle = Math.atan2(dy, dx);
+        const newX = info.x + Math.cos(angle) * SAFETY_DISTANCE;
+        const newY = info.y + Math.sin(angle) * SAFETY_DISTANCE;
+        await move(newX, newY);
+    } else {
+        // Orbit PRIM_FARM_LOC at PRIM_FARM_RADIUS clockwise
+        _orbit_angle += Math.PI / 16;
+        if (_orbit_angle > 2 * Math.PI) _orbit_angle -= 2 * Math.PI;
+        const newX = PRIM_FARM_LOC.x + Math.cos(_orbit_angle) * PRIM_FARM_RADIUS;
+        const newY = PRIM_FARM_LOC.y + Math.sin(_orbit_angle) * PRIM_FARM_RADIUS;
+        await move(newX, newY);
+    }
+}
+
 function is_bscorpion_targeting_myras() {
   for (const id in parent.entities) {
     const ent = parent.entities[id];
@@ -1824,11 +1864,13 @@ async function prim_farm_loop() {
 
             if (character.name === "Myras") {
 
-
-                if (!is_bscorpion_targeting_myras()) {
+                if (get_bscorpion_info().distance < SAFETY_DISTANCE) {
+                    ATTACK_LOOP_ENABLED = false;
+                    SKILL_LOOP_ENABLED = false;
+                } else if (!is_bscorpion_targeting_myras()) {
                     ATTACK_LOOP_ENABLED = true;
                     SKILL_LOOP_ENABLED = true;
-                    ORBIT_PRIM_LOOP_ENABLED = true;
+                    get_bscorpion_info();
                 } else {
                     // Cast absorb on bscorpion if possible
                     const bscorp = Object.values(parent.entities).find(ent =>
