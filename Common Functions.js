@@ -1780,15 +1780,15 @@ async function maintain_safe_orbit_prim_bscorpion() {
             }
         }
 
-        if (nearest && minDist < SAFE_MIN_DIST) {
-            // Too close to bscorpion, move away to maintain at least SAFE_MIN_DIST
-            const dx = character.x - nearest.x;
-            const dy = character.y - nearest.y;
-            const awayAngle = Math.atan2(dy, dx);
-            const newX = nearest.x + Math.cos(awayAngle) * SAFE_MIN_DIST;
-            const newY = nearest.y + Math.sin(awayAngle) * SAFE_MIN_DIST;
-            await move(newX, newY);
-        } else {
+        // if (nearest && minDist < SAFE_MIN_DIST) {
+        //     // Too close to bscorpion, move away to maintain at least SAFE_MIN_DIST
+        //     const dx = character.x - nearest.x;
+        //     const dy = character.y - nearest.y;
+        //     const awayAngle = Math.atan2(dy, dx);
+        //     const newX = nearest.x + Math.cos(awayAngle) * SAFE_MIN_DIST;
+        //     const newY = nearest.y + Math.sin(awayAngle) * SAFE_MIN_DIST;
+        //     await move(newX, newY);
+        // } else {
             // Orbit PRIM_FARM_LOC clockwise at up to ORBIT_MAX_RADIUS
             // Variable radius: if bscorpion is present, use min(ORBIT_MAX_RADIUS, dist to bscorpion - SAFE_MIN_DIST)
             let radius = ORBIT_MAX_RADIUS;
@@ -1800,7 +1800,7 @@ async function maintain_safe_orbit_prim_bscorpion() {
             const newX = PRIM_FARM_LOC.x + Math.cos(angle) * radius;
             const newY = PRIM_FARM_LOC.y + Math.sin(angle) * radius;
             await move(newX, newY);
-        }
+        // }
         await delay(200);
     }
 }
