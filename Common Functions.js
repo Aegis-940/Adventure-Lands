@@ -1858,6 +1858,8 @@ async function prim_farm_loop() {
 
             if (character.name === "Myras") {
 
+                get_bscorpion_info();
+
                 log("Distance: " + get_bscorpion_info().distance);
 
                 const bscorpion = Object.values(parent.entities).find(
@@ -1869,14 +1871,6 @@ async function prim_farm_loop() {
                     }
                 }
 
-                if (get_bscorpion_info().distance < SAFETY_DISTANCE-20) {
-                    ATTACK_LOOP_ENABLED = false;
-                    SKILL_LOOP_ENABLED = false;
-                } else {
-                    ATTACK_LOOP_ENABLED = true;
-                    SKILL_LOOP_ENABLED = true;
-                    get_bscorpion_info();
-                }
                 if (!is_bscorpion_targeting_myras()) {
                     // Cast absorb on bscorpion if possible
                     const bscorp = Object.values(parent.entities).find(ent =>
