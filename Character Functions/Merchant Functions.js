@@ -61,12 +61,13 @@ function should_run_auto_upgrade() {
 }
 
 function get_character_state() {
+    const now = Date.now();
     if (character.rip) return MERCHANT_STATES.DEAD;
     // if (panicking) return MERCHANT_STATES.PANIC;
+    if (now - last_mluck_time < 30 * 60 * 1000) return MERCHANT_STATES.BUFFING;
     if (Object.keys(party_status_cache).length > 0) return MERCHANT_STATES.DELIVERING;
     if (merchant_task !== "Delivering" && should_run_auto_upgrade()) return MERCHANT_STATES.UPGRADING;
     if (merchant_task === "Idle" && (Date.now() - last_exchange_time) > (1 * 60 * 1000)) return MERCHANT_STATES.EXCHANGING;
-    if (now - last_mluck_time < 30 * 60 * 1000) return MERCHANT_STATES.BUFFING;
     if (merchant_task === "Idle") return MERCHANT_STATES.IDLE;
 }
 
