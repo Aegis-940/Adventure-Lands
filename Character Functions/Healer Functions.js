@@ -473,8 +473,6 @@ async function handle_party_heal(minMissingHpMap = {}, minMp = 2000) {
         Riff: character.heal + 500
     };
 
-    log("Checking party heal...", "#00ff99");
-
     // Merge user-provided thresholds with defaults
     const thresholds = { ...defaultThresholds, ...minMissingHpMap };
 
@@ -595,6 +593,7 @@ async function potion_loop() {
             const MP_MISSING = character.max_mp - character.mp;
             
             if (HP_MISSING >= 4000 && can_use("mp")) {
+                 await use_skill("partyheal");
                  await delay(Math.max(ms_to_next_skill("use_mp"), 50))
             } else if (MP_MISSING >= POTION_MP_THRESHOLD && can_use("mp")) {
                 use("mp");
