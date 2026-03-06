@@ -1854,6 +1854,16 @@ async function prim_farm_loop() {
 
             if (character.name === "Myras") {
 
+                log(`BScorpion distance: ${get_bscorpion_info() ? get_bscorpion_info().distance.toFixed(2) : "N/A"}`, "#00ffff", "General");
+
+                if (get_bscorpion_info().distance < SAFETY_DISTANCE) {
+                    ATTACK_LOOP_ENABLED = false;
+                    SKILL_LOOP_ENABLED = false;
+                } else {
+                    ATTACK_LOOP_ENABLED = true;
+                    SKILL_LOOP_ENABLED = true;
+                    get_bscorpion_info();
+                }
                 if (!is_bscorpion_targeting_myras()) {
                     // Cast absorb on bscorpion if possible
                     const bscorp = Object.values(parent.entities).find(ent =>
@@ -1862,14 +1872,6 @@ async function prim_farm_loop() {
                     if (bscorp && can_use("absorb")) {
                         parent.socket.emit("ability", { name: "absorb", id: bscorp.id });
                     }
-                }
-                if (get_bscorpion_info().distance < SAFETY_DISTANCE) {
-                    ATTACK_LOOP_ENABLED = false;
-                    SKILL_LOOP_ENABLED = false;
-                } else {
-                    ATTACK_LOOP_ENABLED = true;
-                    SKILL_LOOP_ENABLED = true;
-                    get_bscorpion_info();
                 }
 
             }
@@ -1904,7 +1906,6 @@ async function prim_orbit_loop() {
         const dx = character.x - monster.x;
         const dy = character.y - monster.y;
         const dist = Math.sqrt(dx*dx + dy*dy);
-        log(`Bscorpion distance: ${dist.toFixed(1)}`, "#00ff00");
 
         // Step 1: Too close to monster? Move away, but stay in area
         if (dist < SAFETY_DISTANCE) {
