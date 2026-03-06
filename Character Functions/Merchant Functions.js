@@ -999,7 +999,13 @@ async function mluck_buff() {
 
     // Move to Myras using party_status_cache for live location
     log("🚶 Moving to Myras to cast MLuck...");
-    await smarter_move(MONSTER_LOCS.bscorpion);
+    const myras_info = party_status_cache["Myras"];
+    if (myras_info && myras_info.map && typeof myras_info.x === "number" && typeof myras_info.y === "number") {
+        await move_to_party_member("Myras", myras_info, 300); // 300 is a reasonable radius
+    } else {
+        log("❌ Could not get Myras' location. Aborting MLuck buff.", "#ff0000");
+        return;
+    }
     await delay(200);
 
     // Try to cast mluck on each target
