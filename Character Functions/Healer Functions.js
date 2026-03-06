@@ -593,15 +593,15 @@ async function potion_loop() {
             // Only use MP potions
             const HP_MISSING = character.max_hp - character.hp;
             const MP_MISSING = character.max_mp - character.mp;
-            if (MP_MISSING >= POTION_MP_THRESHOLD && can_use("mp")) {
+            
+            if (HP_MISSING >= POTION_HP_THRESHOLD && can_use("mp")) {
+                 await use_skill("partyheal");
+                 await delay(Math.max(ms_to_next_skill("use_mp"), 50))
+            } else if (MP_MISSING >= POTION_MP_THRESHOLD && can_use("mp")) {
                 use("mp");
                 await delay(Math.max(ms_to_next_skill("use_mp"), 50));
             } else {
                 await delay(50);
-            }
-            if (HP_MISSING >= POTION_HP_THRESHOLD && can_use("mp")) {
-                 await use_skill("partyheal");
-                 await delay(Math.max(ms_to_next_skill("use_mp"), 50))
             }
         } catch (e) {
             catcher(e, "potion_loop");
