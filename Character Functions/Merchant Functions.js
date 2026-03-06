@@ -989,6 +989,7 @@ async function coat_upgrade() {
 let last_mluck_time = 0;
 
 async function mluck_buff() {
+    log("✨ Attempting to cast MLuck buff on party members...");
     const THIRTY_MINUTES = 30 * 60 * 1000;
     const now = Date.now();
     if (now - last_mluck_time < THIRTY_MINUTES) return;
