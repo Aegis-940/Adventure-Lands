@@ -228,6 +228,7 @@ function add_loop_toggles(doc, content) {
             [padName("POTION"), typeof POTION_LOOP_ENABLED !== "undefined" ? POTION_LOOP_ENABLED : "?"],
             [padName("LOOT"), typeof LOOT_LOOP_ENABLED !== "undefined" ? LOOT_LOOP_ENABLED : "?"],
             [padName("STATUS"), typeof STATUS_CACHE_LOOP_ENABLED !== "undefined" ? STATUS_CACHE_LOOP_ENABLED : "?"],
+            [padName("PRIMS"), typeof PRIM_FARM_LOOT_ENABLED !== "undefined" ? PRIM_FARM_LOOT_ENABLED : "?"],
         ];
     }
 
