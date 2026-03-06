@@ -1860,6 +1860,15 @@ async function prim_farm_loop() {
 
                 log("Distance: " + get_bscorpion_info().distance);
 
+                const bscorpion = Object.values(parent.entities).find(
+                    ent => ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead
+                );
+                if (bscorpion && (!bscorpion.s || !bscorpion.s.cursed)) {
+                    if (can_use("curse") && !is_on_cooldown("curse")) {
+                        use_skill("curse", bscorpion.id);
+                    }
+                }
+
                 if (get_bscorpion_info().distance < SAFETY_DISTANCE-20) {
                     ATTACK_LOOP_ENABLED = false;
                     SKILL_LOOP_ENABLED = false;
