@@ -231,6 +231,7 @@ function is_bscorpion_alive() {
     } else {
         PRIM_FARM_LOOT_ENABLED = false;
     }
+    return found;
 }
 
 const STATES = {
