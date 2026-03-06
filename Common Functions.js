@@ -1968,4 +1968,4 @@ function check_bscorpion_kill_time() {
     }
 }
 
-saveBankLocaletInterval(check_bscorpion_kill_time, 500);
+setInterval(check_bscorpion_kill_time, 500);
