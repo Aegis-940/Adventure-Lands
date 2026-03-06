@@ -1943,3 +1943,29 @@ async function prim_orbit_loop() {
         await delay(100);
     }
 }
+
+let last_bscorpion_appearance = null;
+let bscorpion_timer_running = false;
+
+function check_bscorpion_kill_time() {
+    // Find if a live bscorpion exists
+    const bscorpion = Object.values(parent.entities).find(
+        ent => ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead
+    );
+    if (bscorpion && !bscorpion_timer_running) {
+        // A new bscorpion has appeared
+        if (last_bscorpion_appearance) {
+            const now = Date.now();
+            const seconds = ((now - last_bscorpion_appearance) / 1000).toFixed(1);
+            log(`🦂 BScorpion respawned! Time since last kill: ${seconds} seconds`, "#00ff00", "General");
+        }
+        last_bscorpion_appearance = Date.now();
+        bscorpion_timer_running = true;
+    }
+    if (!bscorpion && bscorpion_timer_running) {
+        // Bscorpion just died
+        bscorpion_timer_running = false;
+    }
+}
+
+saveBankLocaletInterval(check_bscorpion_kill_time, 500);
