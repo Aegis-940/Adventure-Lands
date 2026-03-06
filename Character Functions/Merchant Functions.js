@@ -999,13 +999,7 @@ async function mluck_buff() {
 
     // Move to Myras using party_status_cache for live location
     log("🚶 Moving to Myras to cast MLuck...");
-    const myras_info = party_status_cache && party_status_cache["Myras"];
-    if (myras_info && myras_info.map && typeof myras_info.x === "number" && typeof myras_info.y === "number") {
-        await smarter_move({ map: myras_info.map, x: myras_info.x, y: myras_info.y });
-    } else {
-        log("❌ Could not get Myras' location. Aborting MLuck buff.", "#ff0000");
-        return;
-    }
+    await move_to_character("Myras");
     await delay(200);
 
     // Try to cast mluck on each target
