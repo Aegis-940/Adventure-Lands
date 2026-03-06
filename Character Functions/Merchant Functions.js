@@ -999,7 +999,8 @@ async function mluck_buff() {
 
     // Move to Myras using party_status_cache for live location
     log("🚶 Moving to Myras to cast MLuck...");
-    move_to_character("Myras");
+    const info = party_status_cache["Myras"];
+    await move_to_party_member("Myras", info, DELIVERY_RADIUS);
     await delay(200);
 
     // Try to cast mluck on each target
