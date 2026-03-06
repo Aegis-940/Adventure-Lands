@@ -405,7 +405,6 @@ async function handle_cursing(X, Y, whitelist) {
 
     if (
         ctarget &&
-        ctarget.hp >= ctarget.max_hp * 0.2 &&
         !ctarget.immune &&
         whitelist.includes(ctarget.mtype)
     ) {

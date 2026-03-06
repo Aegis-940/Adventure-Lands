@@ -1860,8 +1860,6 @@ async function prim_farm_loop() {
 
                 get_bscorpion_info();
 
-                log("Distance: " + get_bscorpion_info().distance);
-
                 const bscorpion = Object.values(parent.entities).find(
                     ent => ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead
                 );
