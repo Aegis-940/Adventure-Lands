@@ -1856,7 +1856,7 @@ async function prim_farm_loop() {
 
                 log("Distance: " + get_bscorpion_info().distance);
 
-                if (get_bscorpion_info().distance < SAFETY_DISTANCE) {
+                if (get_bscorpion_info().distance < SAFETY_DISTANCE-20) {
                     ATTACK_LOOP_ENABLED = false;
                     SKILL_LOOP_ENABLED = false;
                 } else {
