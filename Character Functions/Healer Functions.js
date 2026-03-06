@@ -591,6 +591,7 @@ async function potion_loop() {
 
         try {
             // Only use MP potions
+            const HP_MISSING = character.max_hp - character.hp;
             const MP_MISSING = character.max_mp - character.mp;
             if (MP_MISSING >= POTION_MP_THRESHOLD && can_use("mp")) {
                 use("mp");
