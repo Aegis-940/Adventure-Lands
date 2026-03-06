@@ -594,7 +594,7 @@ async function potion_loop() {
             const HP_MISSING = character.max_hp - character.hp;
             const MP_MISSING = character.max_mp - character.mp;
             
-            if (HP_MISSING >= POTION_HP_THRESHOLD && can_use("mp")) {
+            if (HP_MISSING >= 4000 && can_use("mp")) {
                  await delay(Math.max(ms_to_next_skill("use_mp"), 50))
             } else if (MP_MISSING >= POTION_MP_THRESHOLD && can_use("mp")) {
                 use("mp");
