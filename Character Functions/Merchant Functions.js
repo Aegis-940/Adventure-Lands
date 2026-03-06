@@ -130,8 +130,8 @@ async function set_state(state) {
             case MERCHANT_STATES.UPGRADING:
                 try {
                     if (!handling_upgrading) {
-                        if (character.gold < 10000000) {
-                            log("❌ Skipping auto-upgrade: Not enough gold (< 10,000,000).");
+                        if (character.gold < 100000000) {
+                            log("❌ Skipping auto-upgrade: Not enough gold (< 100,000,000).");
                             last_auto_upgrade_time = Date.now();
                             merchant_task = "Idle";
                             return;
