@@ -54,6 +54,7 @@ const MERCHANT_STATES = {
 
 let last_auto_upgrade_time = 0; // Timestamp in ms
 let last_exchange_time = 0;     // Timestamp in ms
+let last_mluck_time = 0;
 
 function should_run_auto_upgrade() {
     const THIRTY_MINUTES = 30 * 60 * 1000;
@@ -996,7 +997,7 @@ async function coat_upgrade() {
 // MLuck Buff Function
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let last_mluck_time = 0;
+
 
 async function mluck_buff() {
     log("✨ Attempting to cast MLuck buff on party members...");
