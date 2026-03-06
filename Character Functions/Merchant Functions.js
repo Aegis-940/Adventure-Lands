@@ -998,7 +998,7 @@ async function mluck_buff() {
     }
 
     // Move to Myras
-    await smarter_move("Myras");
+    await move_to_party_member("Myras");
     await delay(200);
 
     // Try to cast mluck on each target
