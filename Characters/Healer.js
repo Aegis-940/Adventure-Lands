@@ -58,6 +58,7 @@ setInterval(async () => {
 
 	// === Core utility loops ===
 	party_manager();
+	check_bscorpion_kill_time() 
 
 	if (!attack_mode || character.rip || is_moving(character)) return;
 

@@ -1967,5 +1967,3 @@ function check_bscorpion_kill_time() {
         bscorpion_timer_running = false;
     }
 }
-
-setInterval(check_bscorpion_kill_time, 500);
