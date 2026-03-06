@@ -66,6 +66,7 @@ function get_character_state() {
     if (Object.keys(party_status_cache).length > 0) return MERCHANT_STATES.DELIVERING;
     if (merchant_task !== "Delivering" && should_run_auto_upgrade()) return MERCHANT_STATES.UPGRADING;
     if (merchant_task === "Idle" && (Date.now() - last_exchange_time) > (1 * 60 * 1000)) return MERCHANT_STATES.EXCHANGING;
+    if (now - last_mluck_time < 30 * 60 * 1000) return MERCHANT_STATES.BUFFING;
     if (merchant_task === "Idle") return MERCHANT_STATES.IDLE;
 }
 
@@ -178,6 +179,14 @@ async function set_state(state) {
                     // MINING state logic here
                 } catch (e) {
                     catcher(e, "set_state: MINING state error");
+                }
+                break;
+
+            case MERCHANT_STATES.BUFFING:
+                try {
+                    await mluck_buff();
+                } catch (e) {
+                    catcher(e, "set_state: BUFFING state error");
                 }
                 break;
 
