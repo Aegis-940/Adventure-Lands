@@ -997,22 +997,33 @@ async function mluck_buff() {
         return;
     }
 
-    // Use get_player as fallback if party_status_cache is missing info
-    if (!party_status_cache["Myras"] || !party_status_cache["Myras"].map || typeof party_status_cache["Myras"].x !== "number" || typeof party_status_cache["Myras"].y !== "number") {
-        send_cm("Myras", { type: "where_are_you" });
-        await delay(1200); // Give Myras time to respond
+    // Request Myras' location via CM
+    let myras_location = null;
+    let responded = false;
+
+    function handle_location_response(name, data) {
+        if (name === "Myras" && data && data.type === "my_location") {
+            myras_location = { map: data.map, x: data.x, y: data.y };
+            responded = true;
+        }
     }
-    let myras_info = party_status_cache["Myras"];
-    if ((!myras_info || !myras_info.map || typeof myras_info.x !== "number" || typeof myras_info.y !== "number") && get_player("Myras")) {
-        const p = get_player("Myras");
-        myras_info = { map: p.map, x: p.x, y: p.y };
+    add_cm_listener(handle_location_response);
+    send_cm("Myras", { type: "where_are_you" });
+
+    // Wait up to 2 seconds for response
+    for (let i = 0; i < 20; i++) {
+        if (responded) break;
+        await delay(100);
     }
-    if (myras_info && myras_info.map && typeof myras_info.x === "number" && typeof myras_info.y === "number") {
-        await move_to_party_member("Myras", myras_info, 300);
-    } else {
-        log("❌ Could not get Myras' location. Aborting MLuck buff.", "#ff0000");
+    remove_cm_listener(handle_location_response);
+
+    if (!myras_location || !myras_location.map || typeof myras_location.x !== "number" || typeof myras_location.y !== "number") {
+        log("❌ Could not get Myras' location via CM. Aborting MLuck buff.", "#ff0000");
         return;
     }
+
+    // Move to Myras' location
+    await smarter_move(myras_location);
     await delay(200);
 
     // Try to cast mluck on each target
