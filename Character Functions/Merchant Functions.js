@@ -998,6 +998,10 @@ async function mluck_buff() {
     }
 
     // Use get_player as fallback if party_status_cache is missing info
+    if (!party_status_cache["Myras"] || !party_status_cache["Myras"].map || typeof party_status_cache["Myras"].x !== "number" || typeof party_status_cache["Myras"].y !== "number") {
+        send_cm("Myras", { type: "where_are_you" });
+        await delay(1200); // Give Myras time to respond
+    }
     let myras_info = party_status_cache["Myras"];
     if ((!myras_info || !myras_info.map || typeof myras_info.x !== "number" || typeof myras_info.y !== "number") && get_player("Myras")) {
         const p = get_player("Myras");
