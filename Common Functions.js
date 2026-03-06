@@ -1859,6 +1859,9 @@ async function prim_farm_loop() {
             if (character.name === "Myras") {
 
                 get_bscorpion_info();
+                
+                if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
+                if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
 
                 if (!is_bscorpion_targeting_myras()) {
                     // Cast absorb on bscorpion if possible
