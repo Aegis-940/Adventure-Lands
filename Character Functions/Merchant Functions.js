@@ -992,7 +992,10 @@ async function mluck_buff() {
     log("✨ Attempting to cast MLuck buff on party members...");
     const THIRTY_MINUTES = 30 * 60 * 1000;
     const now = Date.now();
-    if (now - last_mluck_time < THIRTY_MINUTES) return;
+    if (now - last_mluck_time < THIRTY_MINUTES) {
+        log("Failed");
+        return;
+    }
 
     // Move to Myras
     await smarter_move("Myras");
