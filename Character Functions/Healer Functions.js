@@ -22,6 +22,13 @@ const TARGET_LIMIT = 99;                // Max number of monsters allowed to tar
 const HEAL_THRESHOLD = 1.3;             // Overheal factor to compensate for resistance. (max_hp - heal/threshold)
 const ATTACK_MP_THRESHOLD = 3000;       // Minimum MP required to perform attacks (throttles aggro)
 
+const PRIEST_SKILL_TOGGLES = {
+	curse: true,
+	absorb: true,
+	party_heal: true,
+	dark_blessing: true,
+};
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SUPPORT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -466,6 +473,8 @@ async function handle_party_heal(minMissingHpMap = {}, minMp = 2000) {
         Riff: character.heal + 500
     };
 
+    log("Checking party heal...", "#00ff99");
+
     // Merge user-provided thresholds with defaults
     const thresholds = { ...defaultThresholds, ...minMissingHpMap };
 
@@ -588,6 +597,9 @@ async function potion_loop() {
                 await delay(Math.max(ms_to_next_skill("use_mp"), 50));
             } else {
                 await delay(50);
+            }
+            if (HP_MISSING >= POTION_HP_THRESHOLD && can_use("mp")) {
+                 safe_call(() => handle_party_heal(), "handle_party_heal");
             }
         } catch (e) {
             catcher(e, "potion_loop");

@@ -300,12 +300,7 @@ function toggle_maintain_position() {
 // PRIEST SKILL TOGGLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const PRIEST_SKILL_TOGGLES = {
-	curse: true,
-	absorb: true,
-	party_heal: true,
-	dark_blessing: true,
-};
+
 
 function create_priest_skill_buttons() {
 	const SKILLS = [
