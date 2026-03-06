@@ -226,8 +226,11 @@ function is_bscorpion_alive() {
     const found = Object.values(parent.entities).some(ent =>
         ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead && parent.distance(character, ent) <= 200
     );
-    if (found) PRIM_FARM_LOOT_ENABLED = true;
-    return found;
+    if (found) {
+        PRIM_FARM_LOOT_ENABLED = true;
+    } else {
+        PRIM_FARM_LOOT_ENABLED = false;
+    }
 }
 
 const STATES = {
