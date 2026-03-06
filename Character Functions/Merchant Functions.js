@@ -998,6 +998,7 @@ async function mluck_buff() {
     }
 
     // Move to Myras
+    log("🚶 Moving to Myras to cast MLuck...");
     await move_to_party_member("Myras");
     await delay(200);
 
