@@ -1860,15 +1860,6 @@ async function prim_farm_loop() {
 
                 get_bscorpion_info();
 
-                const bscorpion = Object.values(parent.entities).find(
-                    ent => ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead
-                );
-                if (bscorpion && (!bscorpion.s || !bscorpion.s.cursed)) {
-                    if (can_use("curse") && !is_on_cooldown("curse")) {
-                        use_skill("curse", bscorpion.id);
-                    }
-                }
-
                 if (!is_bscorpion_targeting_myras()) {
                     // Cast absorb on bscorpion if possible
                     const bscorp = Object.values(parent.entities).find(ent =>
@@ -1907,7 +1898,7 @@ async function prim_orbit_loop() {
 
     while (true) {
         const monster = get_bscorpion_info();
-        if (!monster) { await delay(200); continue; }
+        if (!monster) { await delay(500); continue; }
         const dx = character.x - monster.x;
         const dy = character.y - monster.y;
         const dist = Math.sqrt(dx*dx + dy*dy);

@@ -139,7 +139,7 @@ async function set_state(state) {
                         log("Starting auto-upgrade process...");
                         handling_upgrading = true;
                         merchant_task = "Upgrading";
-                        await auto_upgrade();
+                        await pouchbow_upgrade();
                         last_auto_upgrade_time = Date.now();
                         merchant_task = "Idle";
                     }
@@ -920,7 +920,7 @@ async function pouchbow_upgrade() {
 
     // Buy 25 "bow"
     for (let i = 0; i < 25; i++) {
-        await parent.buy("bow");
+        await parent.buy("staff");
         await delay(50); // Small delay to avoid flooding
     }
 
@@ -929,7 +929,7 @@ async function pouchbow_upgrade() {
 
     // Auto-craft pouchbow 25 times with 100ms delay between each
     for (let i = 0; i < 25; i++) {
-        await auto_craft("firebow");
+        await auto_craft("firestaff");
         await delay(50);
     }
 
