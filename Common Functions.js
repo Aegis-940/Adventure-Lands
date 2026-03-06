@@ -32,9 +32,9 @@ const MONSTER_LOCS = {
     bscorpion:    { map: "desertland", x: -408, y: -1266, orbit: true , hostile: false }
 };
 
-const HEALER_TARGET    = MONSTER_LOCS.bscorpion;
-const WARRIOR_TARGET   = MONSTER_LOCS.bscorpion;
-const RANGER_TARGET    = MONSTER_LOCS.bscorpion;
+const HEALER_TARGET    = MONSTER_LOCS.dryad;
+const WARRIOR_TARGET   = MONSTER_LOCS.dryad;
+const RANGER_TARGET    = MONSTER_LOCS.dryad;
 const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 
 const FLOATING_BUTTON_IDS = [];
