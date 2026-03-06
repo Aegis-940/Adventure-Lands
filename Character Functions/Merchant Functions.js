@@ -1004,6 +1004,7 @@ async function mluck_buff() {
 
     // Try to cast mluck on each target
     const targets = ["Myras", "Ulric", "Riva"];
+    log(`🎯 Attempting to cast MLuck on: ${targets.join(", ")}`);
     for (const name of targets) {
         const player = get_player(name);
         if (player && !player.rip && can_use("mluck") && !is_on_cooldown("mluck")) {
