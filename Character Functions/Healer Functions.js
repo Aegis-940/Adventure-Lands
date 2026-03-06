@@ -599,7 +599,8 @@ async function potion_loop() {
                 await delay(50);
             }
             if (HP_MISSING >= POTION_HP_THRESHOLD && can_use("mp")) {
-                 safe_call(() => handle_party_heal(), "handle_party_heal");
+                 await use_skill("partyheal");
+                 await delay(Math.max(ms_to_next_skill("use_mp"), 50))
             }
         } catch (e) {
             catcher(e, "potion_loop");
