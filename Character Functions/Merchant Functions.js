@@ -1,4 +1,3 @@
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 1) GLOBAL LOOP SWITCHES AND VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -49,6 +48,7 @@ const MERCHANT_STATES = {
     EXCHANGING: "exchanging",
     FISHING: "fishing",
     MINING: "mining",
+    BUFFING: "buffing",
     IDLE: "idle"
 };
 
@@ -73,7 +73,7 @@ let handling_merchant_death = false;
 let handling_delivery = false;
 let handling_upgrading = false;
 let handling_exchanging = false;
-
+let handling_buffing = false;
 async function set_state(state) {
     try {
         // State-specific
@@ -981,3 +981,37 @@ async function coat_upgrade() {
     await sell_and_bank();
     merchant_task = "Idle";
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// MLuck Buff Function
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let last_mluck_time = 0;
+
+async function mluck_buff() {
+    const THIRTY_MINUTES = 30 * 60 * 1000;
+    const now = Date.now();
+    if (now - last_mluck_time < THIRTY_MINUTES) return;
+
+    // Move to Myras
+    await smarter_move("Myras");
+    await delay(200);
+
+    // Try to cast mluck on each target
+    const targets = ["Myras", "Ulric", "Riva"];
+    for (const name of targets) {
+        const player = get_player(name);
+        if (player && !player.rip && can_use("mluck") && !is_on_cooldown("mluck")) {
+            change_target(player);
+            await delay(100);
+            use_skill("mluck", player);
+            await delay(1000); // Small delay to ensure cast
+        }
+    }
+
+    // Move home (assume MERCHANT_TARGET is defined globally)
+    await smarter_move(HOME);
+
+    last_mluck_time = Date.now();
+}
+
