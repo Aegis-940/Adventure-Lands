@@ -997,12 +997,16 @@ async function mluck_buff() {
         return;
     }
 
-    // Move to Myras using party_status_cache for live location
-    const myras_player = get_player("Myras");
-    if (myras_player && typeof myras_player.x === "number" && typeof myras_player.y === "number" && myras_player.map) {
-        await smarter_move({ map: myras_player.map, x: myras_player.x, y: myras_player.y });
+    // Use get_player as fallback if party_status_cache is missing info
+    let myras_info = party_status_cache["Myras"];
+    if ((!myras_info || !myras_info.map || typeof myras_info.x !== "number" || typeof myras_info.y !== "number") && get_player("Myras")) {
+        const p = get_player("Myras");
+        myras_info = { map: p.map, x: p.x, y: p.y };
+    }
+    if (myras_info && myras_info.map && typeof myras_info.x === "number" && typeof myras_info.y === "number") {
+        await move_to_party_member("Myras", myras_info, 300);
     } else {
-        log("❌ Could not find Myras on the server. Aborting MLuck buff.", "#ff0000");
+        log("❌ Could not get Myras' location. Aborting MLuck buff.", "#ff0000");
         return;
     }
     await delay(200);
