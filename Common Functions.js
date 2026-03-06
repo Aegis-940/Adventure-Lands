@@ -1854,7 +1854,7 @@ async function prim_farm_loop() {
 
             if (character.name === "Myras") {
 
-                log(`BScorpion distance: ${get_bscorpion_info() ? get_bscorpion_info().distance.toFixed(2) : "N/A"}`, "#00ffff", "General");
+                log("Distance: " + get_bscorpion_info().distance);
 
                 if (get_bscorpion_info().distance < SAFETY_DISTANCE) {
                     ATTACK_LOOP_ENABLED = false;
