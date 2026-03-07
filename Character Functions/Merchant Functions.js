@@ -836,9 +836,14 @@ async function exchange_items() {
                     // Exchange
                     try {
                         log(`🔁 Exchanging slot ${i} (${item_name} x${itm.q || 1})`);
+                        if (!character.q.exchange) {
+                            await use_skill("massexchange");
+                        }
                         exchange(i);
                         found_stack = true;
-                        await delay(500); // Wait for exchange to complete
+                        while (character.q.exchange) {
+                            await delay(20);
+                        }
                     } catch (e) {
                         log(`Error exchanging ${item_name}: ${e.message}`);
                         keep_going = false;
