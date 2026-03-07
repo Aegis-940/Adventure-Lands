@@ -416,6 +416,7 @@ async function loot_collection_loop() {
                 last_loot_time = Date.now();
             }
         }
+        await delay(500);
     }
 }
 
