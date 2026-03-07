@@ -221,7 +221,7 @@ async function loop_controller() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// AUTO BUY POTION LOOP
+// BUY POTION LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function buy_potion_loop() {
@@ -353,7 +353,7 @@ async function potion_delivery_loop() {
                 }
                 if (did_deliver) {
                     delivered_any = true;
-                    log(`[potion_delivery_loop] Delivered potions to ${name}.`);
+                    log(`Delivered potions to ${name}.`);
                 } else {
                     log(`[potion_delivery_loop] No potions delivered to ${name}.`);
                 }
@@ -453,74 +453,6 @@ async function sell_and_bank() {
 	await smarter_move(HOME);
 	await delay(1000);
 	game_log("🏠 Returned home after banking.");
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// BUY HP AND MP POTIONS
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-// Global cooldown tracker
-let last_buy_time 	= 0;
-const MAX_POTS 		= 9999;
-const POT_TYPES 	= ["hpot1", "mpot1"];
-const TARGET_MAP 	= "main";
-const TARGET_X 		= -36;
-const TARGET_Y 		= -153;
-const RANGE 		= 300;
-const COOLDOWN 		= 2000;
-
-function buy_pots() {
-
-    // === Pre-check: If both hpot and mpot are at or above max, skip ===
-    let hpot_total = 0;
-    let mpot_total = 0;
-
-    for (const item of character.items) {
-        if (!item) continue;
-        if (item.name === "hpot1") hpot_total += item.q || 1;
-        if (item.name === "mpot1") mpot_total += item.q || 1;
-    }
-
-    if (hpot_total >= MAX_POTS && mpot_total >= MAX_POTS) {
-        return;
-    }
-
-    const now = Date.now();
-    if (now - last_buy_time < COOLDOWN) {
-        return;
-    }
-
-    last_buy_time = now;
-
-    // Check if we're on the correct map and within distance
-    if (character.map !== TARGET_MAP) return;
-
-    const dx = character.x - TARGET_X;
-    const dy = character.y - TARGET_Y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-
-    if (dist > RANGE) {
-        return;
-    }
-
-    for (const pot of POT_TYPES) {
-        let total = 0;
-
-        for (const item of character.items) {
-            if (item && item.name === pot) {
-                total += item.q || 1;
-            }
-        }
-
-        const to_buy = Math.max(0, MAX_POTS - total);
-
-        if (to_buy > 0) {
-            game_log(`🧪 Buying ${to_buy} x ${pot} (you have ${total})`);
-            buy(pot, to_buy);
-        } else {
-            game_log(`✅ You already have enough ${pot} (${total})`);
-        }
-    }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -883,8 +815,6 @@ async function exchange_items() {
                         }
                         await exchange(i);
                         found_stack = true;
-                        // Only delay after a successful exchange
-                        await delay(50);
                     } catch (e) {
                         log(`Error exchanging ${item_name}: ${e.message}`);
                         keep_going = false;
@@ -1049,7 +979,6 @@ async function coat_upgrade() {
 
 
 async function mluck_buff() {
-    log("✨ Attempting to cast MLuck buff on party members...");
     const THIRTY_MINUTES = 30 * 60 * 1000;
     const now = Date.now();
     if (now - last_mluck_time < THIRTY_MINUTES) {
@@ -1088,7 +1017,6 @@ async function mluck_buff() {
 
     // Try to cast mluck on each target
     const targets = ["Myras", "Ulric", "Riva"];
-    log(`🎯 Attempting to cast MLuck on: ${targets.join(", ")}`);
     for (const name of targets) {
         const player = get_player(name);
         if (player && !player.rip && can_use("mluck") && !is_on_cooldown("mluck")) {
