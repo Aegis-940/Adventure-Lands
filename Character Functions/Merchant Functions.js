@@ -113,7 +113,7 @@ async function set_state(state) {
                     // DELIVERING state logic here
                     if (merchant_task !== "Delivering") {
                         merchant_task = "Delivering";
-                        await move_to_character("Myras"); 
+                        move_to_character("Myras"); 
                         await delay(1000);
                         await smarter_move(HOME);
                         last_loop_time = Date.now();
