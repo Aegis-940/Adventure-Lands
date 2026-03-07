@@ -3,6 +3,9 @@
 // CONFIG VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+// Declare these at the top of your file
+let inventory_count = 0, mpot1_count = 0, hpot1_count = 0, map = "", x = 0, y = 0;
+
 // TODO: Clean up unused variables
 
 let attack_mode                   = true;
@@ -545,8 +548,7 @@ function get_nearest_monster_v2(args = {}) {
 // STATUS CACHE LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Declare these at the top of your file
-let inventory_count = 0, mpot1_count = 0, hpot1_count = 0, map = "", x = 0, y = 0;
+
 
 function get_status_cache() {
     try { inventory_count = character.items.filter(Boolean).length; } catch (e) {}
