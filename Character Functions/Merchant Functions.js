@@ -110,7 +110,15 @@ async function set_state(state) {
 
             case MERCHANT_STATES.DELIVERING:
                 try {
-                    await move_to_character("Myras");
+                    // DELIVERING state logic here
+                    if (merchant_task !== "Delivering") {
+                        merchant_task = "Delivering";
+                        await move_to_character("Myras"); 
+                        await delay(1000);
+                        await smarter_move(HOME);
+                        last_loop_time = Date.now();
+                        merchant_task = "Idle";
+                    }
                 } catch (e) {
                     catcher(e, "set_state: DELIVERING state error");
                 }
@@ -196,7 +204,7 @@ async function loop_controller() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// BUY POTION LOOP
+// SUPPORTING FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // Returns true if any party member is within 200 units
@@ -214,6 +222,10 @@ function any_party_within_200() {
     }
     return false;
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BUY POTION LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function buy_potion_loop() {
     const TARGET_MAP = "main";
@@ -1007,6 +1019,3 @@ async function coat_upgrade() {
     await sell_and_bank();
     merchant_task = "Idle";
 }
-
-
-
