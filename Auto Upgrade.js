@@ -21,8 +21,8 @@ const UPGRADE_PROFILE = {
   crossbow:    { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 6, max_level: 4 },
   basher:      { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 6, max_level: 5 },
   broom:       { scroll0_until: 2, scroll1_until: 7, scroll2_until: 9, primling_from: 7, max_level: 7 },
-  harbringer:  { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 4, max_level: 6 },
-  t2quiver:    { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 4, max_level: 6 },
+  harbringer:  { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 4, max_level: 7 },
+  t2quiver:    { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 4, max_level: 7 },
   // Add more items as needed
 };
 
