@@ -66,7 +66,6 @@ function get_character_state() {
     const now = Date.now();
     if (character.rip) return MERCHANT_STATES.DEAD;
     // if (panicking) return MERCHANT_STATES.PANIC;
-    if (now - last_mluck_time > 30 * 60 * 1000) return MERCHANT_STATES.BUFFING;
     // if (Object.keys(party_status_cache).length > 0) return MERCHANT_STATES.DELIVERING;
     if (merchant_task !== "Delivering" && should_run_auto_upgrade()) return MERCHANT_STATES.UPGRADING;
     if (merchant_task === "Idle" && (Date.now() - last_exchange_time) > (1 * 60 * 1000)) return MERCHANT_STATES.EXCHANGING;
@@ -182,16 +181,6 @@ async function set_state(state) {
                     // MINING state logic here
                 } catch (e) {
                     catcher(e, "set_state: MINING state error");
-                }
-                break;
-
-            case MERCHANT_STATES.BUFFING:
-                try {
-                    log("Starting mluck buffing run...");
-                    await mluck_buff();
-                    log("Finished mluck buffing run...");
-                } catch (e) {
-                    catcher(e, "set_state: BUFFING state error");
                 }
                 break;
 
@@ -385,17 +374,81 @@ function get_potion_count(pot) {
 // LOOT COLLECTION LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function loot_collection_loop(name, info) {
+async function loot_collection_loop() {
+    const COOLDOWN = 60000; // 60 seconds
+    const PARTY = ["Myras", "Ulric", "Riva"];
+    let last_loot_time = 0;
+    while (true) {
+        const now = Date.now();
+        if (now - last_loot_time < COOLDOWN) {
+            let wait_time = COOLDOWN - (now - last_loot_time);
+            log(`[loot_collection_loop] Waiting out cooldown: ${wait_time}ms`);
+            if (wait_time > 0) await delay(wait_time);
+            continue;
+        }
+        let collected_any = false;
+        for (const name of PARTY) {
+            try {
+                const player = get_player(name);
+                if (!player || player.rip || character.map !== player.map || Math.hypot(character.x - player.x, character.y - player.y) > 200) {
+                    continue;
+                }
+                send_cm(name, { type: "send_loot" });
+                game_log(`📦 Requested loot from ${name}`);
+                await delay(4000);
+                log(`💰 Collected loot from ${name}`);
+                collected_any = true;
+            } catch (e) {
+                catcher(e, "Loot Collection Loop error");
+            }
+        }
+        if (collected_any) {
+            last_loot_time = Date.now();
+        } else {
+            await delay(250);
+        }
+    }
+}
 
-    try {
-        // Request loot from the target
-        send_cm(name, { type: "send_loot" });
-        game_log(`📦 Requested loot from ${name}`);
-        await delay(4000);
-        log(`💰 Collected loot from ${name}`);
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// MLUCK BUFF LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
-    } catch (e) {
-        catcher(e, "Loot Collection Loop error");
+async function mluck_buff_loop() {
+    const COOLDOWN = 60000; // 60 seconds
+    const targets = ["Myras", "Ulric", "Riva"];
+    let last_buff_time = 0;
+    while (true) {
+        const now = Date.now();
+        if (now - last_buff_time < COOLDOWN) {
+            let wait_time = COOLDOWN - (now - last_buff_time);
+            log(`[mluck_buff_loop] Waiting out cooldown: ${wait_time}ms`);
+            if (wait_time > 0) await delay(wait_time);
+            continue;
+        }
+        try {
+            // Try to cast mluck on each target if within 200 units
+            for (const name of targets) {
+                const player = get_player(name);
+                if (
+                    player &&
+                    !player.rip &&
+                    can_use("mluck") &&
+                    !is_on_cooldown("mluck") &&
+                    player.map === character.map &&
+                    Math.hypot(character.x - player.x, character.y - player.y) <= 200
+                ) {
+                    change_target(player);
+                    await delay(100);
+                    use_skill("mluck", player);
+                    await delay(1000); // Small delay to ensure cast
+                }
+            }
+            last_buff_time = Date.now();
+        } catch (e) {
+            log(`[mluck_buff_loop] Error: ${e.message}`);
+            last_buff_time = Date.now();
+        }
     }
 }
 
@@ -972,64 +1025,5 @@ async function coat_upgrade() {
     merchant_task = "Idle";
 }
 
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// MLuck Buff Function
-// --------------------------------------------------------------------------------------------------------------------------------- //
 
-
-
-async function mluck_buff() {
-    const THIRTY_MINUTES = 30 * 60 * 1000;
-    const now = Date.now();
-    if (now - last_mluck_time < THIRTY_MINUTES) {
-        log("Failed");
-        return;
-    }
-
-    // Request Myras' location via CM
-    let myras_location = null;
-    let responded = false;
-
-    function handle_location_response(name, data) {
-        if (name === "Myras" && data && data.type === "my_location") {
-            myras_location = { map: data.map, x: data.x, y: data.y };
-            responded = true;
-        }
-    }
-    add_cm_listener(handle_location_response);
-    send_cm("Myras", { type: "where_are_you" });
-
-    // Wait up to 2 seconds for response
-    for (let i = 0; i < 20; i++) {
-        if (responded) break;
-        await delay(100);
-    }
-    remove_cm_listener(handle_location_response);
-
-    if (!myras_location || !myras_location.map || typeof myras_location.x !== "number" || typeof myras_location.y !== "number") {
-        log("❌ Could not get Myras' location via CM. Aborting MLuck buff.", "#ff0000");
-        return;
-    }
-
-    // Move to Myras' location
-    await smarter_move(myras_location);
-    await delay(200);
-
-    // Try to cast mluck on each target
-    const targets = ["Myras", "Ulric", "Riva"];
-    for (const name of targets) {
-        const player = get_player(name);
-        if (player && !player.rip && can_use("mluck") && !is_on_cooldown("mluck")) {
-            change_target(player);
-            await delay(100);
-            use_skill("mluck", player);
-            await delay(1000); // Small delay to ensure cast
-        }
-    }
-
-    // Move home (assume HOME is defined globally)
-    await smarter_move(HOME);
-
-    last_mluck_time = Date.now();
-}
 
