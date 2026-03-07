@@ -332,7 +332,6 @@ async function party_potion_delivery_loop() {
                     const have = status[pot] || 0;
                     const need = Math.max(0, Math.min(POTION_CAP - have, get_potion_count(pot)));
                     if (need > 0) {
-                        game_log(`🚚 Giving ${need} x ${pot} to ${name}`);
                         send_item(name, pot, need);
                         await delay(200);
                         did_deliver = true;
