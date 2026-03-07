@@ -279,7 +279,7 @@ async function buy_potion_loop() {
 async function potion_delivery_loop() {
     const PARTY = ["Myras", "Ulric", "Riva"];
     const POTION_CAP = 5000;
-    const RANGE = 300;
+    const RANGE = 200;
     const POT_TYPES = ["mpot1", "hpot1"];
     let last_delivery_time = 0;
     while (true) {
