@@ -110,7 +110,7 @@ async function set_state(state) {
 
             case MERCHANT_STATES.DELIVERING:
                 try {
-                    move_to_character("Myras");
+                    await move_to_character("Myras");
                 } catch (e) {
                     catcher(e, "set_state: DELIVERING state error");
                 }
