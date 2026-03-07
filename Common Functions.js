@@ -739,7 +739,7 @@ function party_manager() {
 // MOVE TO CHARACTER'S LOCATION
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function move_to_character(name, timeout_ms = 10000) {
+async function move_to_character(name, timeout_ms = 10000) {
 	// Prevent multiple overlapping handlers
 	let responded = false;
 
