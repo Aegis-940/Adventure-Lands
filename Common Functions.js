@@ -534,7 +534,7 @@ function get_nearest_monster_v2(args = {}) {
 // Add a CM listener that triggers on status_update requests
 add_cm_listener(function(name, data) {
     if (data && data.type === "status_update_request") {
-        reply_with_status_update(name);
+        reply_with_status_update("Riff");
     }
 });
 
