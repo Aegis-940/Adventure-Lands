@@ -441,9 +441,9 @@ const CM_HANDLERS = {
     		await send_to_merchant();
 	},
 
-    "status_update_request": (name) => {
+    "status_update_request": async (name) => {
         get_status_cache();
-        const status = {
+        send_cm("Riff", { type: "status_update", data: {
             name: character.name,
             inventory: inventory_count,
             mpot1: mpot1_count,
@@ -451,9 +451,8 @@ const CM_HANDLERS = {
             map: map,
             x: x,
             y: y,
-            lastSeen: Date.now()
-        };
-        send_cm("Riff", { type: "status_update", data: status });
+            lastSeen: Date.now() 
+        }});
     }
 };
 
