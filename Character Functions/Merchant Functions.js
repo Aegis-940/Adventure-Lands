@@ -57,19 +57,25 @@ const MERCHANT_STATES = {
 let last_auto_upgrade_time = 0; // Timestamp in ms
 let last_exchange_time = 0;     // Timestamp in ms
 let last_mluck_time = 0;
+let last_loop_time = 0;
 
 function should_run_auto_upgrade() {
     const THIRTY_MINUTES = 30 * 60 * 1000;
     return (Date.now() - last_auto_upgrade_time) > THIRTY_MINUTES;
 }
 
+function should_run_loop() {
+    const THIRTY_MINUTES = 30 * 60 * 1000;
+    return (Date.now() - last_loop_time) > THIRTY_MINUTES;
+}
+
 function get_character_state() {
     const now = Date.now();
-    if (character.rip) return MERCHANT_STATES.DEAD;
+    // if (character.rip) return MERCHANT_STATES.DEAD;
     // if (panicking) return MERCHANT_STATES.PANIC;
-    // if (Object.keys(party_status_cache).length > 0) return MERCHANT_STATES.DELIVERING;
+    if (should_run_loop()) return MERCHANT_STATES.DELIVERING;
     if (merchant_task !== "Delivering" && should_run_auto_upgrade()) return MERCHANT_STATES.UPGRADING;
-    if (merchant_task === "Idle" && (Date.now() - last_exchange_time) > (1 * 60 * 1000)) return MERCHANT_STATES.EXCHANGING;
+    // if (merchant_task === "Idle" && (Date.now() - last_exchange_time) > (1 * 60 * 1000)) return MERCHANT_STATES.EXCHANGING;
     if (merchant_task === "Idle") return MERCHANT_STATES.IDLE;
 }
 
@@ -86,21 +92,7 @@ async function set_state(state) {
                 if (!handling_merchant_death) {
                     handling_merchant_death = true;
                     try {
-                        // panicking = false;
-
-                        // log("Respawning in 30s...", "red");
-                        // await delay(30000);
-                        // if (character.rip) await respawn();
-                        // await delay(5000);
-                        
-                        // await smarter_move(HOME);
-
-                        // // Re-evaluate state after respawn
-                        // const NEW_STATE = get_character_state();
-                        // if (NEW_STATE !== MERCHANT_STATES.NORMAL) {
-                        //     await set_state(NEW_STATE);
-                        //     return;
-                        // }
+                        // DEAD state logic here
                     } catch (e) {
                         catcher(e, "set_state: DEAD state error");
                     }
@@ -118,14 +110,7 @@ async function set_state(state) {
 
             case MERCHANT_STATES.DELIVERING:
                 try {
-                    if (!handling_delivery) {
-                        log("Starting potion delivery and loot collection...");
-                        handling_delivery = true;
-                        merchant_task = "Delivering";
-                        // await potions_and_loot_controller_loop()
-                        merchant_task = "Idle";
-                    }
-                    handling_delivery = false;
+                    // DELIVERING state logic here
                 } catch (e) {
                     catcher(e, "set_state: DELIVERING state error");
                 }
