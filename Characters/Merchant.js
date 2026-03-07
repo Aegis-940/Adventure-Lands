@@ -18,7 +18,7 @@ create_map_movement_window([
 add_bank_buttons();
 hide_skills_ui();
 auto_buy_potion_loop()
-potion_delivery_loop()
+party_potion_delivery_loop()
 
 loop_controller();
 

@@ -275,7 +275,7 @@ async function auto_buy_potion_loop() {
 // PARTY POTION DELIVERY LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function potion_delivery_loop() {
+async function party_potion_delivery_loop() {
     const PARTY = ["Myras", "Ulric", "Riva"];
     const POTION_CAP = 5000;
     const RANGE = 300;
