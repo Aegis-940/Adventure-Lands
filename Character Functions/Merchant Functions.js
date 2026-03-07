@@ -879,7 +879,7 @@ async function exchange_items() {
                         if (!character.q.exchange) {
                             await use_skill("massexchange");
                         }
-                        exchange(i);
+                        await exchange(i);
                         found_stack = true;
                         // Only delay after a successful exchange
                         await delay(50);
