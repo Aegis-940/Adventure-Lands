@@ -357,7 +357,7 @@ async function potion_delivery_loop() {
                 log(`[potion_delivery_loop] Error: ${e.message}`);
             }
         }
-        log(`Potions delivered.`, "green");
+        log(`Potions delivered.`, "limegreen");
         last_delivery_time = Date.now();
     }
 }
@@ -402,7 +402,7 @@ async function loot_collection_loop() {
                 catcher(e, "Loot Collection Loop error");
             }
         }
-        log("Loot collected.", "green");
+        log("Loot collected.", "limegreen");
         last_loot_time = Date.now();
         
         await delay(500);
@@ -445,7 +445,7 @@ async function mluck_buff_loop() {
             log(`[mluck_buff_loop] Error: ${e.message}`);
             last_buff_time = Date.now();
         }
-        log(`Cast MLuck.`, "green");
+        log(`Cast MLuck.`, "limegreen");
         last_buff_time = Date.now();
         await delay(500);
     }
