@@ -67,7 +67,7 @@ function get_character_state() {
     if (character.rip) return MERCHANT_STATES.DEAD;
     // if (panicking) return MERCHANT_STATES.PANIC;
     // if (now - last_mluck_time > 30 * 60 * 1000) return MERCHANT_STATES.BUFFING;
-    if (Object.keys(party_status_cache).length > 0) return MERCHANT_STATES.DELIVERING;
+    // if (Object.keys(party_status_cache).length > 0) return MERCHANT_STATES.DELIVERING;
     if (merchant_task !== "Delivering" && should_run_auto_upgrade()) return MERCHANT_STATES.UPGRADING;
     if (merchant_task === "Idle" && (Date.now() - last_exchange_time) > (1 * 60 * 1000)) return MERCHANT_STATES.EXCHANGING;
     if (merchant_task === "Idle") return MERCHANT_STATES.IDLE;
@@ -122,7 +122,7 @@ async function set_state(state) {
                         log("Starting potion delivery and loot collection...");
                         handling_delivery = true;
                         merchant_task = "Delivering";
-                        await potions_and_loot_controller_loop()
+                        // await potions_and_loot_controller_loop()
                         merchant_task = "Idle";
                     }
                     handling_delivery = false;
@@ -283,30 +283,23 @@ async function party_potion_delivery_loop() {
     let last_delivery_time = 0;
     while (true) {
         let delivered = false;
-        log("[potion_delivery_loop] Polling for delivery opportunities...");
         for (const name of PARTY) {
             try {
-                log(`[potion_delivery_loop] Checking ${name}...`);
                 // Only deliver if 60s have passed since last delivery
                 if (Date.now() - last_delivery_time < 60000) {
-                    log(`[potion_delivery_loop] Waiting for cooldown. ${(60000 - (Date.now() - last_delivery_time))}ms left.`);
                     break;
                 }
                 const player = get_player(name);
                 if (!player) {
-                    log(`[potion_delivery_loop] ${name} not found.`);
                     continue;
                 }
                 if (player.rip) {
-                    log(`[potion_delivery_loop] ${name} is dead.`);
                     continue;
                 }
                 const dx = character.x - player.x;
                 const dy = character.y - player.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
-                log(`[potion_delivery_loop] Distance to ${name}: ${dist.toFixed(2)} (map: ${character.map} vs ${player.map})`);
                 if (character.map !== player.map || dist > RANGE) {
-                    log(`[potion_delivery_loop] ${name} not in range or on different map.`);
                     continue;
                 }
 
@@ -320,7 +313,6 @@ async function party_potion_delivery_loop() {
                     }
                 }
                 add_cm_listener(handle_status_update);
-                log(`[potion_delivery_loop] Requesting status_update from ${name}...`);
                 send_cm(name, { type: "status_update_request" });
 
                 // Wait up to 2s for response
@@ -331,7 +323,6 @@ async function party_potion_delivery_loop() {
                 remove_cm_listener(handle_status_update);
 
                 if (!status) {
-                    log(`[potion_delivery_loop] No status received from ${name}.`);
                     continue;
                 }
 
@@ -340,10 +331,8 @@ async function party_potion_delivery_loop() {
                 for (const pot of POT_TYPES) {
                     const have = status[pot] || 0;
                     const need = Math.max(0, Math.min(POTION_CAP - have, get_potion_count(pot)));
-                    log(`[potion_delivery_loop] ${name} has ${have} ${pot}, needs ${need}.`);
                     if (need > 0) {
                         game_log(`🚚 Giving ${need} x ${pot} to ${name}`);
-                        log(`[potion_delivery_loop] Giving ${need} x ${pot} to ${name}`);
                         give_item(name, pot, need);
                         await delay(200);
                         did_deliver = true;
@@ -352,7 +341,6 @@ async function party_potion_delivery_loop() {
                 if (did_deliver) {
                     last_delivery_time = Date.now();
                     delivered = true;
-                    log(`[potion_delivery_loop] Delivered potions to ${name}. Waiting 60s before next delivery.`);
                     break; // Only deliver to one party member per 60s
                 } else {
                     log(`[potion_delivery_loop] No potions delivered to ${name}.`);
