@@ -279,7 +279,7 @@ async function party_potion_delivery_loop() {
     const PARTY = ["Myras", "Ulric", "Riva"];
     const POTION_CAP = 5000;
     const RANGE = 300;
-    const POT_TYPES = ["hpot1", "mpot1"];
+    const POT_TYPES = ["mpot1", "hpot1"];
     let last_delivery_time = 0;
     while (true) {
         let delivered = false;
