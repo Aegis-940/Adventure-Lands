@@ -61,6 +61,7 @@ let last_loop_time = 0;
 
 function should_run_auto_upgrade() {
     const THIRTY_MINUTES = 30 * 60 * 1000;
+    if (merchant_task !== "Delivering") return false;
     return (Date.now() - last_auto_upgrade_time) > THIRTY_MINUTES;
 }
 
@@ -73,10 +74,10 @@ function get_character_state() {
     const now = Date.now();
     // if (character.rip) return MERCHANT_STATES.DEAD;
     // if (panicking) return MERCHANT_STATES.PANIC;
-    if (should_run_loop()) return MERCHANT_STATES.DELIVERING;
-    if (merchant_task !== "Delivering" && should_run_auto_upgrade()) return MERCHANT_STATES.UPGRADING;
-    // if (merchant_task === "Idle" && (Date.now() - last_exchange_time) > (1 * 60 * 1000)) return MERCHANT_STATES.EXCHANGING;
-    if (merchant_task === "Idle") return MERCHANT_STATES.IDLE;
+    if (should_run_loop())          return MERCHANT_STATES.DELIVERING;
+    if (should_run_auto_upgrade())  return MERCHANT_STATES.UPGRADING;
+    if (merchant_task === "Idle")   return MERCHANT_STATES.EXCHANGING;
+    if (merchant_task === "Idle")   return MERCHANT_STATES.IDLE;
 }
 
 let handling_merchant_death = false;
@@ -116,7 +117,7 @@ async function set_state(state) {
                         merchant_task = "Delivering";
                         move_to_character("Myras");
                         while (!any_party_within_200()) {
-                            await delay(1000);
+                            await delay(3000);
                         }
                         await smarter_move(HOME);
                         last_loop_time = Date.now();
@@ -152,14 +153,10 @@ async function set_state(state) {
 
             case MERCHANT_STATES.EXCHANGING:
                 try {
-                    // if(!handling_exchanging) {
-                    //     handling_exchanging = true;
-                    //     merchant_task = "Exchanging";
-                    //     exchange_items();
-                    //     last_exchange_time = Date.now();
-                    //     merchant_task = "Idle";
-                    // }
-                    // handling_exchanging = false;
+                    if(merchant_task !== "Exchanging") {
+                        merchant_task = "Exchanging";
+                        exchange_items();
+                    }
                 } catch (e) {
                     catcher(e, "set_state: EXCHANGING state error");
                 }
