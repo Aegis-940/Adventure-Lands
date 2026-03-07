@@ -187,7 +187,9 @@ async function set_state(state) {
 
             case MERCHANT_STATES.BUFFING:
                 try {
+                    log("Starting mluck buffing run...");
                     await mluck_buff();
+                    log("Finished mluck buffing run...");
                 } catch (e) {
                     catcher(e, "set_state: BUFFING state error");
                 }
