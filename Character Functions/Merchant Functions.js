@@ -353,13 +353,7 @@ async function potion_delivery_loop() {
                         did_deliver = true;
                     }
                 }
-                if (did_deliver) {
-                    log(`Delivered potions to ${name}.`);
-                } else {
-                    log(`[potion_delivery_loop] No potions delivered to ${name}.`);
-                }
             } catch (e) {
-                game_log(`party_potion_delivery_loop error: ${e.message}`);
                 log(`[potion_delivery_loop] Error: ${e.message}`);
             }
         }
