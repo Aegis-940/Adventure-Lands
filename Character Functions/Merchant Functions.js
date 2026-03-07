@@ -287,6 +287,7 @@ async function potion_delivery_loop() {
     const POTION_CAP = 5000;
     const RANGE = 200;
     const POT_TYPES = ["mpot1", "hpot1"];
+    const COOLDOWN = 60000; // 60 seconds
     let last_delivery_time = 0;
     while (true) {
         const now = Date.now();
@@ -356,7 +357,7 @@ async function potion_delivery_loop() {
                 log(`[potion_delivery_loop] Error: ${e.message}`);
             }
         }
-        log(`Potions delivered. Cooldown 60s.`, "green");
+        log(`Potions delivered.`, "green");
         last_delivery_time = Date.now();
     }
 }
@@ -401,7 +402,7 @@ async function loot_collection_loop() {
                 catcher(e, "Loot Collection Loop error");
             }
         }
-        log("Loot collected. Cooldown 60s.", "green");
+        log("Loot collected.", "green");
         last_loot_time = Date.now();
         
         await delay(500);
@@ -444,7 +445,7 @@ async function mluck_buff_loop() {
             log(`[mluck_buff_loop] Error: ${e.message}`);
             last_buff_time = Date.now();
         }
-        log(`Cast MLuck. Cooldown 60s.`, "green");
+        log(`Cast MLuck.`, "green");
         last_buff_time = Date.now();
         await delay(500);
     }
