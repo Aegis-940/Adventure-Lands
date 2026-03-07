@@ -821,10 +821,10 @@ async function exchange_items() {
             if (character.items.filter(Boolean).length >= character.items.length) {
                 log(`📦 Inventory full. Running sell_and_bank for ${item_name}.`);
                 await sell_and_bank();
-                await delay(500);
+                await delay(200);
                 // Return to exchange location
                 await smarter_move(HOME);
-                await delay(500);
+                await delay(200);
                 continue;
             }
 
@@ -837,13 +837,12 @@ async function exchange_items() {
                     try {
                         log(`🔁 Exchanging slot ${i} (${item_name} x${itm.q || 1})`);
                         if (!character.q.exchange) {
-                            await use_skill("massexchange");
+                            use_skill("massexchange");
                         }
                         exchange(i);
                         found_stack = true;
-                        while (character.q.exchange) {
-                            await delay(20);
-                        }
+                        // Only delay after a successful exchange
+                        await delay(50);
                     } catch (e) {
                         log(`Error exchanging ${item_name}: ${e.message}`);
                         keep_going = false;
@@ -856,9 +855,9 @@ async function exchange_items() {
             if (!found_stack) {
                 log(`✅ No more ${item_name} stacks with at least ${min_count}.`);
                 keep_going = false;
+                // Short delay to avoid tight loop at end
+                await delay(50);
             }
-
-            await delay(500);
         }
 
         log(`Finished exchanging all ${item_name}`, "#00ff00");
