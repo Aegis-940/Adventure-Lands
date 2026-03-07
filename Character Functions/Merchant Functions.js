@@ -220,7 +220,7 @@ async function loop_controller() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// AUTO MPOT1 BUY LOOP
+// AUTO BUY POTION LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function auto_buy_potion_loop() {
@@ -246,7 +246,7 @@ async function auto_buy_potion_loop() {
                     if (mpot_total < MAX_POTS) {
                         const to_buy = MAX_POTS - mpot_total;
                         if (to_buy > MIN_BUY) {
-                            game_log(`🧪 Buying ${to_buy} x mpot1 (you have ${mpot_total})`);
+                            log(`🧪 Buying ${to_buy} x mpot1 (you have ${mpot_total})`);
                             buy("mpot1", to_buy);
                         }
                     }
@@ -258,7 +258,7 @@ async function auto_buy_potion_loop() {
                     if (hpot_total < MAX_POTS) {
                         const to_buy = MAX_POTS - hpot_total;
                         if (to_buy > MIN_BUY) {
-                            game_log(`🧪 Buying ${to_buy} x hpot1 (you have ${hpot_total})`);
+                            log(`🧪 Buying ${to_buy} x hpot1 (you have ${hpot_total})`);
                             buy("hpot1", to_buy);
                         }
                     }
@@ -269,6 +269,89 @@ async function auto_buy_potion_loop() {
         }
         await delay(1000);
     }
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// PARTY POTION DELIVERY LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+async function party_potion_delivery_loop() {
+    const PARTY = ["Myras", "Ulric", "Riva"];
+    const POTION_CAP = 5000;
+    const RANGE = 300;
+    const POT_TYPES = ["hpot1", "mpot1"];
+    let last_delivery_time = 0;
+    while (true) {
+        let delivered = false;
+        for (const name of PARTY) {
+            try {
+                // Only deliver if 60s have passed since last delivery
+                if (Date.now() - last_delivery_time < 60000) break;
+                const player = get_player(name);
+                if (!player || player.rip) continue;
+                const dx = character.x - player.x;
+                const dy = character.y - player.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (character.map !== player.map || dist > RANGE) continue;
+
+                // Request status_update from the party member
+                let responded = false;
+                let status = null;
+                function handle_status_update(n, data) {
+                    if (n === name && data && data.type === "status_update" && data.data) {
+                        status = data.data;
+                        responded = true;
+                    }
+                }
+                add_cm_listener(handle_status_update);
+                send_cm(name, { type: "status_update_request" });
+
+                // Wait up to 2s for response
+                for (let i = 0; i < 20; i++) {
+                    if (responded) break;
+                    await delay(100);
+                }
+                remove_cm_listener(handle_status_update);
+
+                if (!status) continue;
+
+                // Deliver potions as needed
+                let did_deliver = false;
+                for (const pot of POT_TYPES) {
+                    const have = status[pot] || 0;
+                    const need = Math.max(0, Math.min(POTION_CAP - have, get_potion_count(pot)));
+                    if (need > 0) {
+                        game_log(`🚚 Giving ${need} x ${pot} to ${name}`);
+                        give_item(name, pot, need);
+                        await delay(200);
+                        did_deliver = true;
+                    }
+                }
+                if (did_deliver) {
+                    last_delivery_time = Date.now();
+                    delivered = true;
+                    break; // Only deliver to one party member per 60s
+                }
+            } catch (e) {
+                game_log(`party_potion_delivery_loop error: ${e.message}`);
+            }
+        }
+        if (delivered) {
+            // Wait out the rest of the 60s interval
+            let wait_time = 60000 - (Date.now() - last_delivery_time);
+            if (wait_time > 0) await delay(wait_time);
+        } else {
+            await delay(250);
+        }
+    }
+}
+
+function get_potion_count(pot) {
+    let total = 0;
+    for (const item of character.items) {
+        if (item && item.name === pot) total += item.q || 1;
+    }
+    return total;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
