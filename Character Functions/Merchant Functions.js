@@ -303,25 +303,34 @@ async function party_potion_delivery_loop() {
                     continue;
                 }
 
-                // Request status_update from the party member
-                let responded = false;
-                let status = null;
-                function handle_status_update(n, data) {
-                    if (n === name && data && data.type === "status_update" && data.data) {
-                        status = data.data;
-                        responded = true;
-                    }
+                // Helper to request status_update and wait for response, scoped per name
+                async function request_status_update(target_name) {
+                    return new Promise((resolve) => {
+                        let responded = false;
+                        let status = null;
+                        function handle_status_update(n, data) {
+                            if (n === target_name && data && data.type === "status_update" && data.data) {
+                                status = data.data;
+                                responded = true;
+                            }
+                        }
+                        add_cm_listener(handle_status_update);
+                        send_cm(target_name, { type: "status_update_request" });
+                        // Wait up to 2s for response
+                        let waited = 0;
+                        (async function waitLoop() {
+                            while (!responded && waited < 2000) {
+                                await delay(100);
+                                waited += 100;
+                            }
+                            remove_cm_listener(handle_status_update);
+                            resolve(status);
+                        })();
+                    });
                 }
-                add_cm_listener(handle_status_update);
-                send_cm(name, { type: "status_update_request" });
 
-                // Wait up to 2s for response
-                for (let i = 0; i < 20; i++) {
-                    if (responded) break;
-                    await delay(100);
-                }
-                remove_cm_listener(handle_status_update);
-
+                // Await the status update for this party member
+                const status = await request_status_update(name);
                 if (!status) {
                     continue;
                 }
