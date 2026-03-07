@@ -272,7 +272,6 @@ async function potion_delivery_loop() {
     const POT_TYPES = ["mpot1", "hpot1"];
     let last_delivery_time = 0;
     while (true) {
-        let delivered_any = false;
         // Only deliver if 60s have passed since last delivery
         if (Date.now() - last_delivery_time < 60000) {
             let wait_time = 60000 - (Date.now() - last_delivery_time);
@@ -341,7 +340,6 @@ async function potion_delivery_loop() {
                     }
                 }
                 if (did_deliver) {
-                    delivered_any = true;
                     log(`Delivered potions to ${name}.`);
                 } else {
                     log(`[potion_delivery_loop] No potions delivered to ${name}.`);
@@ -351,14 +349,7 @@ async function potion_delivery_loop() {
                 log(`[potion_delivery_loop] Error: ${e.message}`);
             }
         }
-        if (delivered_any) {
-            last_delivery_time = Date.now();
-            let wait_time = 60000;
-            log(`[potion_delivery_loop] Waiting out cooldown: ${wait_time}ms`);
-            await delay(wait_time);
-        } else {
-            await delay(250);
-        }
+        last_delivery_time = Date.now();
     }
 }
 
@@ -386,7 +377,6 @@ async function loot_collection_loop() {
             if (wait_time > 0) await delay(wait_time);
             continue;
         }
-        let collected_any = false;
         for (const name of PARTY) {
             try {
                 const player = get_player(name);
@@ -397,16 +387,11 @@ async function loot_collection_loop() {
                 game_log(`📦 Requested loot from ${name}`);
                 await delay(4000);
                 log(`💰 Collected loot from ${name}`);
-                collected_any = true;
             } catch (e) {
                 catcher(e, "Loot Collection Loop error");
             }
         }
-        if (collected_any) {
-            last_loot_time = Date.now();
-        } else {
-            await delay(250);
-        }
+        last_loot_time = Date.now();
     }
 }
 
