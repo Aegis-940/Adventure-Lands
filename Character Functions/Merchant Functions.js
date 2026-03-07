@@ -214,6 +214,22 @@ async function loop_controller() {
 // BUY POTION LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+// Returns true if any party member is within 200 units
+function any_party_within_200() {
+    for (const name of PARTY) {
+        const player = get_player(name);
+        if (
+            player &&
+            !player.rip &&
+            player.map === character.map &&
+            Math.hypot(character.x - player.x, character.y - player.y) <= 200
+        ) {
+            return true;
+        }
+    }
+    return false;
+}
+
 async function buy_potion_loop() {
     const TARGET_MAP = "main";
     const TARGET_X = -87;
@@ -273,26 +289,23 @@ async function potion_delivery_loop() {
     const POT_TYPES = ["mpot1", "hpot1"];
     let last_delivery_time = 0;
     while (true) {
+        const now = Date.now();
         // Only deliver if 60s have passed since last delivery
-        if (Date.now() - last_delivery_time < 60000) {
-            let wait_time = 60000 - (Date.now() - last_delivery_time);
-            log(`[potion_delivery_loop] Waiting out cooldown: ${wait_time}ms`);
-            if (wait_time > 0) await delay(wait_time);
+        if (now - last_loot_time < COOLDOWN) {
+            await delay(500);
             continue;
         }
+
+        if (!any_party_within_200()) {
+            await delay(500);
+            continue;
+        }
+
         for (const name of PARTY) {
             try {
                 const player = get_player(name);
-                if (!player) {
-                    continue;
-                }
-                if (player.rip) {
-                    continue;
-                }
-                const dx = character.x - player.x;
-                const dy = character.y - player.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (character.map !== player.map || dist > RANGE) {
+                if (!player || player.rip || character.map !== player.map || Math.hypot(character.x - player.x, character.y - player.y) > 350) {
+                    delivery_count++;
                     continue;
                 }
 
@@ -369,53 +382,33 @@ function get_potion_count(pot) {
 async function loot_collection_loop() {
     const COOLDOWN = 60000; // 60 seconds
     const PARTY = ["Myras", "Ulric", "Riva"];
-    let collection_count = 0;
     let last_loot_time = 0;
     while (true) {
         const now = Date.now();
         if (now - last_loot_time < COOLDOWN) {
-            let wait_time = COOLDOWN - (now - last_loot_time);
-            if (wait_time > 0) await delay(wait_time);
+            await delay(500);
             continue;
         }
 
-        // Returns true if any party member is within 200 units
-        function any_party_within_200() {
-            for (const name of PARTY) {
+        if (!any_party_within_200()) {
+            await delay(500);
+            continue;
+        }
+
+        for (const name of PARTY) {
+            try {
                 const player = get_player(name);
-                if (
-                    player &&
-                    !player.rip &&
-                    player.map === character.map &&
-                    Math.hypot(character.x - player.x, character.y - player.y) <= 200
-                ) {
-                    return true;
+                if (!player || player.rip || character.map !== player.map || Math.hypot(character.x - player.x, character.y - player.y) > 350) {
+                    continue;
                 }
-            }
-            return false;
-        }
-
-        if (any_party_within_200()) {
-
-            collection_count = 0;
-            for (const name of PARTY) {
-                try {
-                    const player = get_player(name);
-                    if (!player || player.rip || character.map !== player.map || Math.hypot(character.x - player.x, character.y - player.y) > 300) {
-                        collection_count++;
-                        continue;
-                    }
-                    send_cm(name, { type: "send_loot" });
-                    collection_count++;
-                    await delay(200);
-                } catch (e) {
-                    catcher(e, "Loot Collection Loop error");
-                }
-            }
-            if (collection_count === 3) {
-                last_loot_time = Date.now();
+                send_cm(name, { type: "send_loot" });
+                await delay(200);
+            } catch (e) {
+                catcher(e, "Loot Collection Loop error");
             }
         }
+        last_loot_time = Date.now();
+        
         await delay(500);
     }
 }
@@ -427,40 +420,37 @@ async function loot_collection_loop() {
 async function mluck_buff_loop() {
     const COOLDOWN = 60000; // 60 seconds
     const targets = ["Myras", "Ulric", "Riva"];
-    let buff_count = 0;
     let last_buff_time = 0;
     while (true) {
         const now = Date.now();
         if (now - last_buff_time < COOLDOWN) {
-            let wait_time = COOLDOWN - (now - last_buff_time);
-            log(`[mluck_buff_loop] Waiting out cooldown: ${wait_time}ms`);
-            if (wait_time > 0) await delay(wait_time);
+            await delay(500);
             continue;
         }
-        buff_count = 0;
+
+        if (!any_party_within_200()) {
+            await delay(500);
+            continue;
+        }
+
         try {
             // Try to cast mluck on each target if within 200 units
             for (const name of targets) {
                 const player = get_player(name);
-                if (
-                    player &&
-                    !player.rip &&
-                    can_use("mluck") &&
-                    !is_on_cooldown("mluck") &&
-                    player.map === character.map &&
-                    Math.hypot(character.x - player.x, character.y - player.y) <= 200
-                ) {
-                    change_target(player);
-                    await delay(100);
-                    use_skill("mluck", player);
-                    await delay(1000); // Small delay to ensure cast
+                if (!player || player.rip || character.map !== player.map || Math.hypot(character.x - player.x, character.y - player.y) > 350) {
+                    continue;
                 }
+                change_target(player);
+                await delay(100);
+                use_skill("mluck", player);
+                await delay(200); // Small delay to ensure cast
             }
-            last_buff_time = Date.now();
         } catch (e) {
             log(`[mluck_buff_loop] Error: ${e.message}`);
             last_buff_time = Date.now();
         }
+        last_buff_time = Date.now();
+        await delay(500);
     }
 }
 
