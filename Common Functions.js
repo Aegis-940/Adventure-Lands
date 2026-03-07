@@ -452,7 +452,7 @@ const CM_HANDLERS = {
             y: y,
             lastSeen: Date.now()
         };
-        send_cm(name, { type: "status_update", data: status });
+        send_cm("Riff", { type: "status_update", data: status });
     }
 };
 
@@ -545,6 +545,16 @@ function get_nearest_monster_v2(args = {}) {
 // STATUS CACHE LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+// Declare these at the top of your file
+let inventory_count = 0, mpot1_count = 0, hpot1_count = 0, map = "", x = 0, y = 0;
+
+function get_status_cache() {
+    try { inventory_count = character.items.filter(Boolean).length; } catch (e) {}
+    try { mpot1_count = character.items.filter(it => it && it.name === "mpot1").reduce((sum, it) => sum + (it.q || 1), 0); } catch (e) {}
+    try { hpot1_count = character.items.filter(it => it && it.name === "hpot1").reduce((sum, it) => sum + (it.q || 1), 0); } catch (e) {}
+    try { map = character.map; x = character.x; y = character.y; } catch (e) {}
+}
+
 async function status_cache_loop() {
     STATUS_CACHE_LOOP_ENABLED = true;
     let delayMs = 5000;
@@ -554,12 +564,7 @@ async function status_cache_loop() {
                 await delay(100);
                 continue;
             }
-            let inventory_count = 0, mpot1_count = 0, hpot1_count = 0, map = "", x = 0, y = 0;
-            try { inventory_count = character.items.filter(Boolean).length; } catch (e) {}
-            try { mpot1_count = character.items.filter(it => it && it.name === "mpot1").reduce((sum, it) => sum + (it.q || 1), 0); } catch (e) {}
-            try { hpot1_count = character.items.filter(it => it && it.name === "hpot1").reduce((sum, it) => sum + (it.q || 1), 0); } catch (e) {}
-            try { map = character.map; x = character.x; y = character.y; } catch (e) {}
-
+            get_status_cache();
             // Only send status if inventory is 20+ or either potion is below 2000
             if (
                 inventory_count >= 30 ||
