@@ -384,9 +384,7 @@ async function loot_collection_loop() {
                     continue;
                 }
                 send_cm(name, { type: "send_loot" });
-                game_log(`📦 Requested loot from ${name}`);
-                await delay(4000);
-                log(`💰 Collected loot from ${name}`);
+                await delay(200);
             } catch (e) {
                 catcher(e, "Loot Collection Loop error");
             }
