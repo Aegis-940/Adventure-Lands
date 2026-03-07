@@ -13,6 +13,7 @@ const LOOP_STATES = {
 }
 
 // Define party members to assist
+
 const PARTY = ["Ulric", "Myras", "Riva"];
 
 // Define default location to wait when idle
@@ -368,28 +369,53 @@ function get_potion_count(pot) {
 async function loot_collection_loop() {
     const COOLDOWN = 60000; // 60 seconds
     const PARTY = ["Myras", "Ulric", "Riva"];
+    let collection_count = 0;
     let last_loot_time = 0;
     while (true) {
         const now = Date.now();
         if (now - last_loot_time < COOLDOWN) {
             let wait_time = COOLDOWN - (now - last_loot_time);
-            log(`[loot_collection_loop] Waiting out cooldown: ${wait_time}ms`);
             if (wait_time > 0) await delay(wait_time);
             continue;
         }
-        for (const name of PARTY) {
-            try {
+
+        // Returns true if any party member is within 200 units
+        function any_party_within_200() {
+            for (const name of PARTY) {
                 const player = get_player(name);
-                if (!player || player.rip || character.map !== player.map || Math.hypot(character.x - player.x, character.y - player.y) > 200) {
-                    continue;
+                if (
+                    player &&
+                    !player.rip &&
+                    player.map === character.map &&
+                    Math.hypot(character.x - player.x, character.y - player.y) <= 200
+                ) {
+                    return true;
                 }
-                send_cm(name, { type: "send_loot" });
-                await delay(200);
-            } catch (e) {
-                catcher(e, "Loot Collection Loop error");
+            }
+            return false;
+        }
+
+        if (any_party_within_200()) {
+
+            collection_count = 0;
+            for (const name of PARTY) {
+                try {
+                    const player = get_player(name);
+                    if (!player || player.rip || character.map !== player.map || Math.hypot(character.x - player.x, character.y - player.y) > 300) {
+                        collection_count++;
+                        continue;
+                    }
+                    send_cm(name, { type: "send_loot" });
+                    collection_count++;
+                    await delay(200);
+                } catch (e) {
+                    catcher(e, "Loot Collection Loop error");
+                }
+            }
+            if (collection_count === 3) {
+                last_loot_time = Date.now();
             }
         }
-        last_loot_time = Date.now();
     }
 }
 
@@ -400,6 +426,7 @@ async function loot_collection_loop() {
 async function mluck_buff_loop() {
     const COOLDOWN = 60000; // 60 seconds
     const targets = ["Myras", "Ulric", "Riva"];
+    let buff_count = 0;
     let last_buff_time = 0;
     while (true) {
         const now = Date.now();
@@ -409,6 +436,7 @@ async function mluck_buff_loop() {
             if (wait_time > 0) await delay(wait_time);
             continue;
         }
+        buff_count = 0;
         try {
             // Try to cast mluck on each target if within 200 units
             for (const name of targets) {
