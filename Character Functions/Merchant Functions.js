@@ -112,6 +112,7 @@ async function set_state(state) {
                 try {
                     // DELIVERING state logic here
                     if (merchant_task !== "Delivering") {
+                        log("Beginning potions / loot / buffing run...");
                         merchant_task = "Delivering";
                         move_to_character("Myras"); 
                         await delay(1000);
