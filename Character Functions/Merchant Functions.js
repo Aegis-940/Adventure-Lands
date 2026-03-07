@@ -1,3 +1,4 @@
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 1) GLOBAL LOOP SWITCHES AND VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -215,6 +216,58 @@ async function loop_controller() {
             catcher(e, "Loop Controller error");
         }
         await delay(250);
+    }
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// AUTO MPOT1 BUY LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+async function auto_buy_potion_loop() {
+    const TARGET_MAP = "main";
+    const TARGET_X = -87;
+    const TARGET_Y = -150;
+    const RANGE = 300;
+    const MAX_POTS = 9999;
+    const MIN_BUY = 100;
+    while (true) {
+        try {
+            // Check if on correct map and within range
+            if (character.map === TARGET_MAP) {
+                const dx = character.x - TARGET_X;
+                const dy = character.y - TARGET_Y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < RANGE) {
+                    // Count mpot1 in inventory
+                    let mpot_total = 0;
+                    for (const item of character.items) {
+                        if (item && item.name === "mpot1") mpot_total += item.q || 1;
+                    }
+                    if (mpot_total < MAX_POTS) {
+                        const to_buy = MAX_POTS - mpot_total;
+                        if (to_buy > MIN_BUY) {
+                            game_log(`🧪 Buying ${to_buy} x mpot1 (you have ${mpot_total})`);
+                            buy("mpot1", to_buy);
+                        }
+                    }
+                    // Count hpot1 in inventory
+                    let hpot_total = 0;
+                    for (const item of character.items) {
+                        if (item && item.name === "hpot1") hpot_total += item.q || 1;
+                    }
+                    if (hpot_total < MAX_POTS) {
+                        const to_buy = MAX_POTS - hpot_total;
+                        if (to_buy > MIN_BUY) {
+                            game_log(`🧪 Buying ${to_buy} x hpot1 (you have ${hpot_total})`);
+                            buy("hpot1", to_buy);
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            game_log("auto_buy_potion_loop error: " + e.message);
+        }
+        await delay(1000);
     }
 }
 
