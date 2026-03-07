@@ -282,13 +282,16 @@ async function party_potion_delivery_loop() {
     const POT_TYPES = ["mpot1", "hpot1"];
     let last_delivery_time = 0;
     while (true) {
-        let delivered = false;
+        let delivered_any = false;
+        // Only deliver if 60s have passed since last delivery
+        if (Date.now() - last_delivery_time < 60000) {
+            let wait_time = 60000 - (Date.now() - last_delivery_time);
+            log(`[potion_delivery_loop] Waiting out cooldown: ${wait_time}ms`);
+            if (wait_time > 0) await delay(wait_time);
+            continue;
+        }
         for (const name of PARTY) {
             try {
-                // Only deliver if 60s have passed since last delivery
-                if (Date.now() - last_delivery_time < 60000) {
-                    break;
-                }
                 const player = get_player(name);
                 if (!player) {
                     continue;
@@ -348,9 +351,8 @@ async function party_potion_delivery_loop() {
                     }
                 }
                 if (did_deliver) {
-                    last_delivery_time = Date.now();
-                    delivered = true;
-                    break; // Only deliver to one party member per 60s
+                    delivered_any = true;
+                    log(`[potion_delivery_loop] Delivered potions to ${name}.`);
                 } else {
                     log(`[potion_delivery_loop] No potions delivered to ${name}.`);
                 }
@@ -359,11 +361,11 @@ async function party_potion_delivery_loop() {
                 log(`[potion_delivery_loop] Error: ${e.message}`);
             }
         }
-        if (delivered) {
-            // Wait out the rest of the 60s interval
-            let wait_time = 60000 - (Date.now() - last_delivery_time);
+        if (delivered_any) {
+            last_delivery_time = Date.now();
+            let wait_time = 60000;
             log(`[potion_delivery_loop] Waiting out cooldown: ${wait_time}ms`);
-            if (wait_time > 0) await delay(wait_time);
+            await delay(wait_time);
         } else {
             await delay(250);
         }
