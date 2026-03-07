@@ -222,7 +222,7 @@ async function loop_controller() {
 // AUTO BUY POTION LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function auto_buy_potion_loop() {
+async function buy_potion_loop() {
     const TARGET_MAP = "main";
     const TARGET_X = -87;
     const TARGET_Y = -150;
@@ -271,10 +271,10 @@ async function auto_buy_potion_loop() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// PARTY POTION DELIVERY LOOP
+// POTION DELIVERY LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function party_potion_delivery_loop() {
+async function potion_delivery_loop() {
     const PARTY = ["Myras", "Ulric", "Riva"];
     const POTION_CAP = 5000;
     const RANGE = 300;
@@ -380,46 +380,8 @@ function get_potion_count(pot) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// COLLECT LOOT AND DELIVER POTIONS LOOP
+// LOOT COLLECTION LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
-
-const POTION_CAP = 5000;
-const POTION_MIN = 2000;
-const LOOT_MIN = 20;
-const FREQUENCY = 1 * 60 * 1000; // 1 minute
-
-const DELIVERY_RADIUS = 300;
-
-// Global cache for party status, updated via code messages
-let party_status_cache = {};
-
-// Listen for status_update code messages from party members
-add_cm_listener((name, data) => {
-    if (data && data.type === "status_update" && data.data) {
-        party_status_cache[name] = data.data;
-    }
-});
-
-async function potion_delivery_loop(name, info) {
-
-    try {
-        let target = get_player(name);
-        // Give potions up to POTION_CAP
-        let hpot_needed = Math.max(0, POTION_CAP - (info.hpot1 || 0));
-        let mpot_needed = Math.max(0, POTION_CAP - (info.mpot1 || 0));
-        let hpot_slot = locate_item("hpot1");
-        let mpot_slot = locate_item("mpot1");
-        if (hpot_needed > 0 && hpot_slot !== -1) send_item(target, hpot_slot, hpot_needed);
-        if (mpot_needed > 0 && mpot_slot !== -1) send_item(target, mpot_slot, mpot_needed);
-        if ((hpot_needed > 0 && hpot_slot === -1) || (mpot_needed > 0 && mpot_slot === -1)) {
-            log(`⚠️ Not enough potions in inventory to deliver to ${name}`);
-        }
-        log(`🧪 Delivered potions to ${name}`);
- 
-    } catch (e) {
-        catcher(e, "Potion Delivery Loop error");
-    }
-}
 
 async function loot_collection_loop(name, info) {
 
@@ -432,89 +394,6 @@ async function loot_collection_loop(name, info) {
 
     } catch (e) {
         catcher(e, "Loot Collection Loop error");
-    }
-}
-
-async function move_to_party_member(name, info, radius = DELIVERY_RADIUS) {
-    const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
-    const startTime = Date.now();
-
-    let tx = info.x, ty = info.y, tmap = info.map;
-
-    // Start moving toward the target (do not await)
-    log(`🚶 Moving to ${name} at (${tx}, ${ty}) on map ${tmap}`);
-    smarter_move({ map: tmap, x: tx, y: ty });
-    await delay(10000); // Initial delay to start movement
-
-    while (true) {
-        // Timeout check
-        if (Date.now() - startTime > TIMEOUT_MS) {
-            log(`⏰ Timeout moving to ${name}. Returning home and removing from cache.`);
-            delete party_status_cache[name];
-            if (character.moving) halt_movement();
-            await smarter_move(HOME);
-            return;
-        }
-
-        if (info) {
-            // If map changed, restart smarter_move
-            if (tmap !== info.map || tx !== info.x || ty !== info.y) {
-                tmap = info.map;
-                tx = info.x;
-                ty = info.y;
-                if (character.moving || smart.moving) stop();
-                log(`🔄 ${name} moved, updating target location to (${tx}, ${ty}) on map ${tmap}`);
-                smarter_move({ map: tmap, x: tx, y: ty });
-                await delay(5000)
-            } else {
-                tx = info.x;
-                ty = info.y;
-            }
-        }
-
-        // Calculate distance
-        let dist = Math.hypot(character.x - tx, character.y - ty);
-
-        // Only halt and exit if on the correct map and within radius
-        if (character.map === tmap && dist <= radius) {
-            if (smart.moving) stop();
-            break;
-        }
-
-        await delay(200);
-    }
-}
-
-async function potions_and_loot_controller_loop() {
-
-    for (const name of PARTY) {
-        const info = party_status_cache[name];
-        if (!info || !info.map || typeof info.x !== "number" || typeof info.y !== "number") {
-            game_log(`⚠️ Invalid location info for ${name}, skipping.`);
-            delete party_status_cache[name];
-            continue;
-        }
-        try {
-            await move_to_party_member(name, info, DELIVERY_RADIUS);
-            await potion_delivery_loop(name, info);
-            await delay(500);
-            await loot_collection_loop(name, info);
-            await delay(500);
-
-            // Clean up after delivery
-            delete party_status_cache[name];
-            await smarter_move(HOME);
-            await delay(500);
-            await sell_and_bank();
-            await delay(500);
-            await buy_pots();
-            await delay(500);
-            merchant_task = "Idle";
-        } catch (e) {
-            game_log(`Error processing delivery for ${name}: ${e.message}`);
-            merchant_task = "Idle";
-            delete party_status_cache[name];
-        }
     }
 }
 
@@ -998,7 +877,7 @@ async function exchange_items() {
                     try {
                         log(`🔁 Exchanging slot ${i} (${item_name} x${itm.q || 1})`);
                         if (!character.q.exchange) {
-                            use_skill("massexchange");
+                            await use_skill("massexchange");
                         }
                         exchange(i);
                         found_stack = true;
