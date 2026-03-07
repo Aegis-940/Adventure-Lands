@@ -114,8 +114,10 @@ async function set_state(state) {
                     if (merchant_task !== "Delivering") {
                         log("Beginning potions / loot / buffing run...");
                         merchant_task = "Delivering";
-                        await move_to_character("Myras");
-                        await delay(1000);
+                        move_to_character("Myras");
+                        while (!any_party_within_200()) {
+                            await delay(1000);
+                        }
                         await smarter_move(HOME);
                         last_loop_time = Date.now();
                         merchant_task = "Idle";
