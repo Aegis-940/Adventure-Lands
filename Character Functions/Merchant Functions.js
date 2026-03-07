@@ -285,14 +285,13 @@ async function buy_potion_loop() {
 async function potion_delivery_loop() {
     const PARTY = ["Myras", "Ulric", "Riva"];
     const POTION_CAP = 5000;
-    const RANGE = 200;
     const POT_TYPES = ["mpot1", "hpot1"];
     const COOLDOWN = 60000; // 60 seconds
     let last_delivery_time = 0;
     while (true) {
         const now = Date.now();
         // Only deliver if 60s have passed since last delivery
-        if (now - last_loot_time < COOLDOWN) {
+        if (now - last_delivery_time < COOLDOWN) {
             await delay(500);
             continue;
         }
@@ -415,7 +414,7 @@ async function loot_collection_loop() {
 
 async function mluck_buff_loop() {
     const COOLDOWN = 60000; // 60 seconds
-    const targets = ["Myras", "Ulric", "Riva"];
+    const PARTY = ["Myras", "Ulric", "Riva"];
     let last_buff_time = 0;
     while (true) {
         const now = Date.now();
@@ -431,7 +430,7 @@ async function mluck_buff_loop() {
 
         try {
             // Try to cast mluck on each target if within 200 units
-            for (const name of targets) {
+            for (const name of PARTY) {
                 const player = get_player(name);
                 if (!player || player.rip || character.map !== player.map || Math.hypot(character.x - player.x, character.y - player.y) > 350) {
                     continue;
