@@ -305,7 +305,6 @@ async function potion_delivery_loop() {
             try {
                 const player = get_player(name);
                 if (!player || player.rip || character.map !== player.map || Math.hypot(character.x - player.x, character.y - player.y) > 350) {
-                    delivery_count++;
                     continue;
                 }
 
@@ -357,7 +356,7 @@ async function potion_delivery_loop() {
                 log(`[potion_delivery_loop] Error: ${e.message}`);
             }
         }
-        log(`Potions delivered. Cooldown 60s.`);
+        log(`Potions delivered. Cooldown 60s.`, "green");
         last_delivery_time = Date.now();
     }
 }
@@ -402,7 +401,7 @@ async function loot_collection_loop() {
                 catcher(e, "Loot Collection Loop error");
             }
         }
-        log("Loot collected. Cooldown 60s.");
+        log("Loot collected. Cooldown 60s.", "green");
         last_loot_time = Date.now();
         
         await delay(500);
@@ -445,7 +444,7 @@ async function mluck_buff_loop() {
             log(`[mluck_buff_loop] Error: ${e.message}`);
             last_buff_time = Date.now();
         }
-        log(`Cast mluck on party members. Cooldown 60s.`);
+        log(`Cast MLuck. Cooldown 60s.`, "green");
         last_buff_time = Date.now();
         await delay(500);
     }
