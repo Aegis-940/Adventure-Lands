@@ -340,8 +340,9 @@ async function party_potion_delivery_loop() {
                 for (const pot of POT_TYPES) {
                     const have = status[pot] || 0;
                     const need = Math.max(0, Math.min(POTION_CAP - have, get_potion_count(pot)));
-                    if (need > 0) {
-                        send_item(name, pot, need);
+                    const slot = character.items.findIndex(item => item && item.name === pot);
+                    if (slot !== -1 && need > 0) {
+                        send_item(name, slot, need);
                         await delay(200);
                         did_deliver = true;
                     }
