@@ -442,6 +442,7 @@ const CM_HANDLERS = {
 	},
 
     "status_update_request": (name) => {
+        get_status_cache();
         const status = {
             name: character.name,
             inventory: inventory_count,
