@@ -439,7 +439,21 @@ const CM_HANDLERS = {
 
 	"send_loot": async (name) => {
     		await send_to_merchant();
-	}
+	},
+
+    "status_update_request": (name) => {
+        const status = {
+            name: character.name,
+            inventory: inventory_count,
+            mpot1: mpot1_count,
+            hpot1: hpot1_count,
+            map: map,
+            x: x,
+            y: y,
+            lastSeen: Date.now()
+        };
+        send_cm(name, { type: "status_update", data: status });
+    }
 };
 
 // Register the handler dispatcher
@@ -530,29 +544,6 @@ function get_nearest_monster_v2(args = {}) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATUS CACHE LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
-
-// Add a CM listener that triggers on status_update requests
-add_cm_listener(function(name, data) {
-    if (data && data.type === "status_update_request") {
-        reply_with_status_update("Riff");
-    }
-});
-
-// Function to reply with a status_update
-function reply_with_status_update(target) {
-    // Build your status object here. Example:
-    const status = {
-        name: character.name,
-        inventory: inventory_count,
-        mpot1: mpot1_count,
-        hpot1: hpot1_count,
-        map: map,
-        x: x,
-        y: y,
-        lastSeen: Date.now()
-    };
-    send_cm(target, { type: "status_update", data: status });
-}
 
 async function status_cache_loop() {
     STATUS_CACHE_LOOP_ENABLED = true;
