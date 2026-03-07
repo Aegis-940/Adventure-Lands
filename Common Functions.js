@@ -446,7 +446,7 @@ const CM_HANDLERS = {
 
     "status_update_request": async (name) => {
         get_status_cache();
-        send_cm("Riff", { type: "status_update", data: {
+        send_cm(name, { type: "status_update", data: {
             name: character.name,
             inventory: inventory_count,
             mpot1: mpot1_count,
