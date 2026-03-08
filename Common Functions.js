@@ -1929,69 +1929,58 @@ async function prim_farm_loop() {
 }
 
 async function prim_orbit_loop() {
-    // Rebuilt: Always kite at least SAFETY_DISTANCE from bscorpion, stay on PRIM_FARM_RADIUS
+    // Strict: Only move if the entire path to the next point stays outside the danger zone
     const STEP_DEGREES = 8; // 45 points around the circle
     const N = Math.floor(360 / STEP_DEGREES);
+    function path_is_safe(x0, y0, x1, y1, cx, cy, radius) {
+        // Check if the segment (x0,y0)-(x1,y1) comes closer than radius to (cx,cy)
+        // Compute closest point on segment to (cx,cy)
+        const dx = x1 - x0;
+        const dy = y1 - y0;
+        const fx = cx - x0;
+        const fy = cy - y0;
+        const t = Math.max(0, Math.min(1, (dx * fx + dy * fy) / (dx * dx + dy * dy)));
+        const closestX = x0 + t * dx;
+        const closestY = y0 + t * dy;
+        const dist = Math.hypot(closestX - cx, closestY - cy);
+        return dist >= radius;
+    }
+
     let last_theta = 0;
     while (true) {
         const bscorp = get_bscorpion_info();
         if (!bscorp) { await delay(500); continue; }
 
-        // Sample points on the farm circle
-        let best = null;
-        let best_dist = -Infinity;
-        let best_theta = null;
+        const px = character.x;
+        const py = character.y;
+
+        // Find all candidate points where the path is safe
+        let candidates = [];
         for (let i = 0; i < N; i++) {
             const theta = (2 * Math.PI * i) / N;
             const x = PRIM_FARM_LOC.x + Math.cos(theta) * PRIM_FARM_RADIUS;
             const y = PRIM_FARM_LOC.y + Math.sin(theta) * PRIM_FARM_RADIUS;
             const dist = Math.hypot(x - bscorp.x, y - bscorp.y);
-            if (dist >= SAFETY_DISTANCE && dist > best_dist) {
-                best = { x, y };
-                best_dist = dist;
-                best_theta = theta;
+            if (dist >= SAFETY_DISTANCE && path_is_safe(px, py, x, y, bscorp.x, bscorp.y, SAFETY_DISTANCE)) {
+                candidates.push({ x, y, theta, dist });
             }
         }
 
-        // If no point is safe, pick the farthest possible (even if < SAFETY_DISTANCE)
-        if (!best) {
-            for (let i = 0; i < N; i++) {
-                const theta = (2 * Math.PI * i) / N;
-                const x = PRIM_FARM_LOC.x + Math.cos(theta) * PRIM_FARM_RADIUS;
-                const y = PRIM_FARM_LOC.y + Math.sin(theta) * PRIM_FARM_RADIUS;
-                const dist = Math.hypot(x - bscorp.x, y - bscorp.y);
-                if (dist > best_dist) {
-                    best = { x, y };
-                    best_dist = dist;
-                    best_theta = theta;
+        // Pick the candidate that is closest in angle to last_theta (to keep circling)
+        let chosen = null;
+        if (candidates.length > 0) {
+            let min_angle_diff = Infinity;
+            for (const c of candidates) {
+                let diff = Math.abs(((c.theta - last_theta + Math.PI * 3) % (2 * Math.PI)) - Math.PI);
+                if (diff < min_angle_diff) {
+                    min_angle_diff = diff;
+                    chosen = c;
                 }
             }
-        }
-
-        // Move to the best point, but bias movement to keep circling (not just oscillate)
-        if (best) {
-            // Try to move in a consistent direction (clockwise)
-            // Find the next safe point after last_theta, if possible
-            let chosen = best;
-            let found = false;
-            for (let offset = 1; offset <= N; offset++) {
-                const theta = (last_theta + (2 * Math.PI * offset) / N) % (2 * Math.PI);
-                const x = PRIM_FARM_LOC.x + Math.cos(theta) * PRIM_FARM_RADIUS;
-                const y = PRIM_FARM_LOC.y + Math.sin(theta) * PRIM_FARM_RADIUS;
-                const dist = Math.hypot(x - bscorp.x, y - bscorp.y);
-                if (dist >= SAFETY_DISTANCE) {
-                    chosen = { x, y };
-                    last_theta = theta;
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                // No safe point in direction, just use the farthest
-                last_theta = best_theta;
-            }
+            last_theta = chosen.theta;
             await move(chosen.x, chosen.y);
         }
+        // If no safe path exists, do not move (wait)
         await delay(100);
     }
 }
