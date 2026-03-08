@@ -61,7 +61,7 @@ let last_loop_time = 0;
 
 function should_run_auto_upgrade() {
     const THIRTY_MINUTES = 30 * 60 * 1000;
-    if (merchant_task !== "Delivering") return false;
+    if (merchant_task === "Delivering") return false;
     return (Date.now() - last_auto_upgrade_time) > THIRTY_MINUTES;
 }
 
@@ -76,7 +76,7 @@ function get_character_state() {
     // if (panicking) return MERCHANT_STATES.PANIC;
     if (should_run_loop())          return MERCHANT_STATES.DELIVERING;
     if (should_run_auto_upgrade())  return MERCHANT_STATES.UPGRADING;
-    if (merchant_task === "Idle")   return MERCHANT_STATES.EXCHANGING;
+    // if (merchant_task === "Idle")   return MERCHANT_STATES.EXCHANGING;
     if (merchant_task === "Idle")   return MERCHANT_STATES.IDLE;
 }
 
