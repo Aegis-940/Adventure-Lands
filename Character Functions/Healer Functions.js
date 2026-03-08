@@ -550,12 +550,13 @@ async function loot_loop() {
             const now = Date.now();
 
             // If enough time has passed since last loot, and enough chests are present, and not feared
-            if ((last_loot_time ?? 0) + 500 < now) {
-                if (getNumChests() >= chestThreshold && character.fear < 6) {
+            if ((last_loot_time ?? 0) + 1000 < now) {
+                if (getNumChests() >= chestThreshold) {
                     batch_equip([{ itemName: "handofmidas", slot: "gloves", level: 4 }]);
                     shift(5, 'goldbooster');
                     await delay(75);
                     await loot_chests();
+                    await delay(100);
                     batch_equip([{ itemName: "supermittens", slot: "gloves", level: 6 }]);
                     shift(5, 'luckbooster');
                     await delay(75);
