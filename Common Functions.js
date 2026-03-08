@@ -227,12 +227,8 @@ function is_boss_alive() {
 }
 
 function is_bscorpion_alive() {
-    const found = false;
-    if (
-        HEALER_TARGET    === MONSTER_LOCS.bscorpion ||
-        WARRIOR_TARGET   === MONSTER_LOCS.bscorpion ||
-        RANGER_TARGET    === MONSTER_LOCS.bscorpion
-    ) {
+    let found = false;
+    if (HEALER_TARGET    === MONSTER_LOCS.bscorpion || WARRIOR_TARGET   === MONSTER_LOCS.bscorpion || RANGER_TARGET    === MONSTER_LOCS.bscorpion){
         found = true;
     }
     if (found) {
