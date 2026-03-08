@@ -1831,8 +1831,9 @@ function is_bscorpion_targeting_myras() {
   return false;
 }
 
-// Move closer to the nearest bscorpion if out of range
-async function move_closer_to_bscorpion() {
+
+// Move to exactly character.range - 2 from the nearest bscorpion
+async function move_to_bscorpion_range() {
     // Find the nearest alive bscorpion
     let nearest = null;
     let minDist = Infinity;
@@ -1849,12 +1850,12 @@ async function move_closer_to_bscorpion() {
         }
     }
     if (!nearest) return false; // No bscorpion found
-    const desired = Math.max(0, (character.range || 50) - 5);
-    if (minDist > desired) {
-        // Move closer to the bscorpion, to the edge of desired range
-        const angle = Math.atan2(character.y - nearest.y, character.x - nearest.x);
-        const newX = nearest.x + Math.cos(angle) * desired;
-        const newY = nearest.y + Math.sin(angle) * desired;
+    const desired = Math.max(0, (character.range || 50) - 2);
+    const angle = Math.atan2(character.y - nearest.y, character.x - nearest.x);
+    const newX = nearest.x + Math.cos(angle) * desired;
+    const newY = nearest.y + Math.sin(angle) * desired;
+    // Only move if not already at the correct distance (with a small tolerance)
+    if (Math.abs(minDist - desired) > 3) {
         await move(newX, newY);
         return true;
     }
