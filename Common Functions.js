@@ -1880,12 +1880,22 @@ async function prim_farm_loop() {
 
             if (character.name === "Myras") {
 
-                get_bscorpion_info();
-                
-                if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
-                if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
+                const bscorp_info = get_bscorpion_info();
+                let too_close = false;
+                if (bscorp_info) {
+                    const dist = Math.hypot(character.x - bscorp_info.x, character.y - bscorp_info.y);
+                    if (dist < SAFETY_DISTANCE) too_close = true;
+                }
 
-                if (!is_bscorpion_targeting_myras()) {
+                if (too_close) {
+                    if (ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
+                    if (SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
+                } else {
+                    if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
+                    if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
+                }
+
+                if (!is_bscorpion_targeting_myras() && !too_close) {
                     // Cast absorb on bscorpion if possible
                     const bscorp = Object.values(parent.entities).find(ent =>
                         ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead
@@ -1919,42 +1929,68 @@ async function prim_farm_loop() {
 }
 
 async function prim_orbit_loop() {
+    // Rebuilt: Always kite at least SAFETY_DISTANCE from bscorpion, stay on PRIM_FARM_RADIUS
+    const STEP_DEGREES = 8; // 45 points around the circle
+    const N = Math.floor(360 / STEP_DEGREES);
+    let last_theta = 0;
     while (true) {
-        const monster = get_bscorpion_info();
-        if (!monster) { await delay(500); continue; }
+        const bscorp = get_bscorpion_info();
+        if (!bscorp) { await delay(500); continue; }
 
-        // Sample the farm boundary at many points
-        const N = 72; // every 5 degrees
+        // Sample points on the farm circle
         let best = null;
         let best_dist = -Infinity;
+        let best_theta = null;
         for (let i = 0; i < N; i++) {
             const theta = (2 * Math.PI * i) / N;
             const x = PRIM_FARM_LOC.x + Math.cos(theta) * PRIM_FARM_RADIUS;
             const y = PRIM_FARM_LOC.y + Math.sin(theta) * PRIM_FARM_RADIUS;
-            const dist = Math.hypot(x - monster.x, y - monster.y);
+            const dist = Math.hypot(x - bscorp.x, y - bscorp.y);
             if (dist >= SAFETY_DISTANCE && dist > best_dist) {
                 best = { x, y };
                 best_dist = dist;
+                best_theta = theta;
             }
         }
+
+        // If no point is safe, pick the farthest possible (even if < SAFETY_DISTANCE)
+        if (!best) {
+            for (let i = 0; i < N; i++) {
+                const theta = (2 * Math.PI * i) / N;
+                const x = PRIM_FARM_LOC.x + Math.cos(theta) * PRIM_FARM_RADIUS;
+                const y = PRIM_FARM_LOC.y + Math.sin(theta) * PRIM_FARM_RADIUS;
+                const dist = Math.hypot(x - bscorp.x, y - bscorp.y);
+                if (dist > best_dist) {
+                    best = { x, y };
+                    best_dist = dist;
+                    best_theta = theta;
+                }
+            }
+        }
+
+        // Move to the best point, but bias movement to keep circling (not just oscillate)
         if (best) {
-            move(best.x, best.y);
-        } else {
-            // No safe point exists: do not move (or optionally, move to the farthest possible point even if unsafe)
-            // Optionally, uncomment below to move to the farthest possible point, even if < SAFETY_DISTANCE
-            // let fallback = null;
-            // let fallback_dist = -Infinity;
-            // for (let i = 0; i < N; i++) {
-            //     const theta = (2 * Math.PI * i) / N;
-            //     const x = PRIM_FARM_LOC.x + Math.cos(theta) * PRIM_FARM_RADIUS;
-            //     const y = PRIM_FARM_LOC.y + Math.sin(theta) * PRIM_FARM_RADIUS;
-            //     const dist = Math.hypot(x - monster.x, y - monster.y);
-            //     if (dist > fallback_dist) {
-            //         fallback = { x, y };
-            //         fallback_dist = dist;
-            //     }
-            // }
-            // if (fallback) move(fallback.x, fallback.y);
+            // Try to move in a consistent direction (clockwise)
+            // Find the next safe point after last_theta, if possible
+            let chosen = best;
+            let found = false;
+            for (let offset = 1; offset <= N; offset++) {
+                const theta = (last_theta + (2 * Math.PI * offset) / N) % (2 * Math.PI);
+                const x = PRIM_FARM_LOC.x + Math.cos(theta) * PRIM_FARM_RADIUS;
+                const y = PRIM_FARM_LOC.y + Math.sin(theta) * PRIM_FARM_RADIUS;
+                const dist = Math.hypot(x - bscorp.x, y - bscorp.y);
+                if (dist >= SAFETY_DISTANCE) {
+                    chosen = { x, y };
+                    last_theta = theta;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                // No safe point in direction, just use the farthest
+                last_theta = best_theta;
+            }
+            await move(chosen.x, chosen.y);
         }
         await delay(100);
     }
