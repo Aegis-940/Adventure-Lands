@@ -1923,74 +1923,39 @@ async function prim_orbit_loop() {
         const monster = get_bscorpion_info();
         if (!monster) { await delay(500); continue; }
 
-        // Vector from bscorpion to farm center
-        const vx = PRIM_FARM_LOC.x - monster.x;
-        const vy = PRIM_FARM_LOC.y - monster.y;
-        const vlen = Math.sqrt(vx * vx + vy * vy);
-
-        // Find the point on the farm boundary (circle) that is farthest from the bscorpion,
-        // but never closer than SAFETY_DISTANCE to the bscorpion.
-        // If the farm boundary is everywhere closer than SAFETY_DISTANCE, pick the point on the boundary farthest from the bscorpion.
-
-        // The direction from bscorpion to farm center
-        let angle = vlen === 0 ? 0 : Math.atan2(vy, vx);
-        // The point on the farm boundary directly away from bscorpion
-        let px = PRIM_FARM_LOC.x + Math.cos(angle) * PRIM_FARM_RADIUS;
-        let py = PRIM_FARM_LOC.y + Math.sin(angle) * PRIM_FARM_RADIUS;
-        let dx = px - monster.x;
-        let dy = py - monster.y;
-        let dist_to_bscorp = Math.sqrt(dx * dx + dy * dy);
-
-        let newX, newY;
-        if (dist_to_bscorp >= SAFETY_DISTANCE) {
-            // The farthest point is safe
-            newX = px;
-            newY = py;
-        } else {
-            // The farthest point is too close. Find the intersection points of the farm boundary and the circle around bscorpion at SAFETY_DISTANCE.
-            // This is a geometric intersection of two circles.
-            // Circle 1: center PRIM_FARM_LOC, radius PRIM_FARM_RADIUS
-            // Circle 2: center monster, radius SAFETY_DISTANCE
-            // See: https://mathworld.wolfram.com/Circle-CircleIntersection.html
-            const x0 = PRIM_FARM_LOC.x, y0 = PRIM_FARM_LOC.y, r0 = PRIM_FARM_RADIUS;
-            const x1 = monster.x, y1 = monster.y, r1 = SAFETY_DISTANCE;
-            const dx_c = x1 - x0;
-            const dy_c = y1 - y0;
-            const d = Math.sqrt(dx_c * dx_c + dy_c * dy_c);
-            let found = false;
-            if (d < r0 + r1 && d > Math.abs(r0 - r1) && d !== 0) {
-                // Circles intersect at two points
-                const a = (r0 * r0 - r1 * r1 + d * d) / (2 * d);
-                const h = Math.sqrt(r0 * r0 - a * a);
-                const xm = x0 + (a * dx_c) / d;
-                const ym = y0 + (a * dy_c) / d;
-                // Two intersection points
-                const xs1 = xm + (h * dy_c) / d;
-                const ys1 = ym - (h * dx_c) / d;
-                const xs2 = xm - (h * dy_c) / d;
-                const ys2 = ym + (h * dx_c) / d;
-                // Pick the intersection point that is farthest from the bscorpion (should be one of them)
-                const dist1 = Math.sqrt((xs1 - monster.x) ** 2 + (ys1 - monster.y) ** 2);
-                const dist2 = Math.sqrt((xs2 - monster.x) ** 2 + (ys2 - monster.y) ** 2);
-                // Both should be SAFETY_DISTANCE, but just in case, pick the one farther from the farm center
-                const d1 = Math.sqrt((xs1 - PRIM_FARM_LOC.x) ** 2 + (ys1 - PRIM_FARM_LOC.y) ** 2);
-                const d2 = Math.sqrt((xs2 - PRIM_FARM_LOC.x) ** 2 + (ys2 - PRIM_FARM_LOC.y) ** 2);
-                if (d1 > d2) {
-                    newX = xs1;
-                    newY = ys1;
-                } else {
-                    newX = xs2;
-                    newY = ys2;
-                }
-                found = true;
-            }
-            if (!found) {
-                // No intersection (bscorpion is too close to or inside the farm center), so just stay as far as possible on the farm boundary
-                newX = px;
-                newY = py;
+        // Sample the farm boundary at many points
+        const N = 72; // every 5 degrees
+        let best = null;
+        let best_dist = -Infinity;
+        for (let i = 0; i < N; i++) {
+            const theta = (2 * Math.PI * i) / N;
+            const x = PRIM_FARM_LOC.x + Math.cos(theta) * PRIM_FARM_RADIUS;
+            const y = PRIM_FARM_LOC.y + Math.sin(theta) * PRIM_FARM_RADIUS;
+            const dist = Math.hypot(x - monster.x, y - monster.y);
+            if (dist >= SAFETY_DISTANCE && dist > best_dist) {
+                best = { x, y };
+                best_dist = dist;
             }
         }
-        move(newX, newY);
+        if (best) {
+            move(best.x, best.y);
+        } else {
+            // No safe point exists: do not move (or optionally, move to the farthest possible point even if unsafe)
+            // Optionally, uncomment below to move to the farthest possible point, even if < SAFETY_DISTANCE
+            // let fallback = null;
+            // let fallback_dist = -Infinity;
+            // for (let i = 0; i < N; i++) {
+            //     const theta = (2 * Math.PI * i) / N;
+            //     const x = PRIM_FARM_LOC.x + Math.cos(theta) * PRIM_FARM_RADIUS;
+            //     const y = PRIM_FARM_LOC.y + Math.sin(theta) * PRIM_FARM_RADIUS;
+            //     const dist = Math.hypot(x - monster.x, y - monster.y);
+            //     if (dist > fallback_dist) {
+            //         fallback = { x, y };
+            //         fallback_dist = dist;
+            //     }
+            // }
+            // if (fallback) move(fallback.x, fallback.y);
+        }
         await delay(100);
     }
 }
