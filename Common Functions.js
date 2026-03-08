@@ -1919,52 +1919,25 @@ async function prim_farm_loop() {
 }
 
 async function prim_orbit_loop() {
-    let angle = 0;
-
     while (true) {
         const monster = get_bscorpion_info();
         if (!monster) { await delay(500); continue; }
-        const dx = character.x - monster.x;
-        const dy = character.y - monster.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
 
-        // Step 1: Too close to monster? Move away, but stay in area
-        if (dist < SAFETY_DISTANCE) {
-            const away_angle = Math.atan2(dy, dx);
-            let newX = monster.x + Math.cos(away_angle) * SAFETY_DISTANCE;
-            let newY = monster.y + Math.sin(away_angle) * SAFETY_DISTANCE;
-            // Check if this move is outside area
-            const dArea = Math.sqrt((newX - PRIM_FARM_LOC.x)**2 + (newY - PRIM_FARM_LOC.y)**2);
-            if (dArea > PRIM_FARM_RADIUS) {
-                // Project onto area boundary
-                const area_angle = Math.atan2(newY - PRIM_FARM_LOC.y, newX - PRIM_FARM_LOC.x);
-                newX = PRIM_FARM_LOC.x + Math.cos(area_angle) * PRIM_FARM_RADIUS;
-                newY = PRIM_FARM_LOC.y + Math.sin(area_angle) * PRIM_FARM_RADIUS;
-            }
-            move(newX, newY);
+        // Vector from bscorpion to farm center
+        const vx = PRIM_FARM_LOC.x - monster.x;
+        const vy = PRIM_FARM_LOC.y - monster.y;
+        const vlen = Math.sqrt(vx * vx + vy * vy);
+        let newX, newY;
+        if (vlen === 0) {
+            // If bscorpion is at farm center, just stay on farm boundary at arbitrary angle
+            newX = PRIM_FARM_LOC.x + PRIM_FARM_RADIUS;
+            newY = PRIM_FARM_LOC.y;
+        } else {
+            // Place character on farm boundary, in direction away from bscorpion
+            newX = PRIM_FARM_LOC.x + (vx / vlen) * PRIM_FARM_RADIUS;
+            newY = PRIM_FARM_LOC.y + (vy / vlen) * PRIM_FARM_RADIUS;
         }
-        // Step 2: Too far from area? Move toward center
-        else {
-            const dArea = Math.sqrt((character.x - PRIM_FARM_LOC.x)**2 + (character.y - PRIM_FARM_LOC.y)**2);
-            if (dArea > PRIM_FARM_RADIUS) {
-                const to_center_angle = Math.atan2(PRIM_FARM_LOC.y - character.y, PRIM_FARM_LOC.x - character.x);
-                const newX = PRIM_FARM_LOC.x + Math.cos(to_center_angle) * (PRIM_FARM_RADIUS - 1);
-                const newY = PRIM_FARM_LOC.y + Math.sin(to_center_angle) * (PRIM_FARM_RADIUS - 1);
-                move(newX, newY);
-            } else {
-                // Step 3: Orbit monster at safe distance, but stay in area
-                angle += Math.PI / 16;
-                let newX = monster.x + Math.cos(angle) * SAFETY_DISTANCE;
-                let newY = monster.y + Math.sin(angle) * SAFETY_DISTANCE;
-                const dArea = Math.sqrt((newX - PRIM_FARM_LOC.x)**2 + (newY - PRIM_FARM_LOC.y)**2);
-                if (dArea > PRIM_FARM_RADIUS) {
-                    const area_angle = Math.atan2(newY - PRIM_FARM_LOC.y, newX - PRIM_FARM_LOC.x);
-                    newX = PRIM_FARM_LOC.x + Math.cos(area_angle) * PRIM_FARM_RADIUS;
-                    newY = PRIM_FARM_LOC.y + Math.sin(area_angle) * PRIM_FARM_RADIUS;
-                }
-                move(newX, newY);
-            }
-        }
+        move(newX, newY);
         await delay(100);
     }
 }
