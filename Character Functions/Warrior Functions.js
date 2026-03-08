@@ -92,7 +92,7 @@ async function attack_loop() {
 // BOSS LOOP - HALLOWEEN EDITION
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const BOSSES = ["mrpumpkin", "mrgreen"];
+const BOSSES = ["mrpumpkin", "mrgreen", "dragold"];
 const BOSS_RANGE_TOLERANCE = 1;
 
 function get_party_names() {

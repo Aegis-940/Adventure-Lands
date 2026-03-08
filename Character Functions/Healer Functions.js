@@ -145,7 +145,7 @@ async function heal_attack_loop() {
 // BOSS LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const BOSSES = ["mrpumpkin", "mrgreen"];
+const BOSSES = ["mrpumpkin", "mrgreen", "dragold"];
 const BOSS_RANGE_TOLERANCE = 5;
 
 function get_party_names() {
