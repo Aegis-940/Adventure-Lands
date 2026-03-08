@@ -733,6 +733,8 @@ let exchange_items_running = false;
 
 const EXCHANGE_LIST= [
     { name: "mistletoe",    min: 1 },
+    { name: "candycane",    min: 1 },
+    { name: "ornament",     min: 1 },
     { name: "xbox",         min: 1 },
     { name: "candy1",       min: 1 },
     { name: "gem0",         min: 1 },
