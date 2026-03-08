@@ -1929,45 +1929,68 @@ async function prim_farm_loop() {
 }
 
 async function prim_orbit_loop() {
-    // Stepwise, always-safe orbit: move in small increments along the farm circle, never crossing the danger zone
-    const STEP_DEGREES = 8; // 45 points around the circle
-    const N = Math.floor(360 / STEP_DEGREES);
-    let theta = 0; // Start at arbitrary angle
+
+    // User algorithm:
+    // 1. Establish where the scorpion is and where I am.
+    // 2. If possible move away in the most direct manner.
+    // 3. If at the radius boundary, rotate clockwise or anticlockwise, whichever creates the most separation.
+
+    const RADIUS_TOL = 2; // How close to PRIM_FARM_RADIUS counts as "at boundary"
+    const ROTATE_STEP_DEG = 10; // How much to rotate per step (degrees)
     while (true) {
         const bscorp = get_bscorpion_info();
         if (!bscorp) { await delay(500); continue; }
 
-        // Compute next step along the circle (clockwise)
-        theta = (theta + (2 * Math.PI) / N) % (2 * Math.PI);
-        const next_x = PRIM_FARM_LOC.x + Math.cos(theta) * PRIM_FARM_RADIUS;
-        const next_y = PRIM_FARM_LOC.y + Math.sin(theta) * PRIM_FARM_RADIUS;
+        const cx = character.x;
+        const cy = character.y;
+        const sx = bscorp.x;
+        const sy = bscorp.y;
 
-        // Check both the next point and the path to it are safe
-        const dist_to_boss = Math.hypot(next_x - bscorp.x, next_y - bscorp.y);
-        // Path safety: sample points along the segment (current pos to next)
-        function segment_safe(x0, y0, x1, y1, cx, cy, radius) {
-            const steps = 10;
-            for (let i = 0; i <= steps; i++) {
-                const t = i / steps;
-                const sx = x0 + (x1 - x0) * t;
-                const sy = y0 + (y1 - y0) * t;
-                if (Math.hypot(sx - cx, sy - cy) < radius) return false;
-            }
-            return true;
-        }
-        const px = character.x;
-        const py = character.y;
-        if (
-            dist_to_boss >= SAFETY_DISTANCE &&
-            segment_safe(px, py, next_x, next_y, bscorp.x, bscorp.y, SAFETY_DISTANCE)
-        ) {
-            await move(next_x, next_y);
-        } else {
-            // Blocked: wait and retry (do not advance theta)
-            theta = (theta - (2 * Math.PI) / N + 2 * Math.PI) % (2 * Math.PI);
-            await delay(120);
+        // Vector from scorpion to self
+        const dx = cx - sx;
+        const dy = cy - sy;
+        const dist = Math.hypot(dx, dy);
+
+        // Vector from farm center to self
+        const fx = cx - PRIM_FARM_LOC.x;
+        const fy = cy - PRIM_FARM_LOC.y;
+        const farm_dist = Math.hypot(fx, fy);
+
+        // 1. If not at radius, move directly away from scorpion, but clamp to farm radius
+        if (Math.abs(farm_dist - PRIM_FARM_RADIUS) > RADIUS_TOL) {
+            // Target point: in the direction away from scorpion, but at farm radius
+            const away_angle = Math.atan2(dy, dx);
+            const target_x = PRIM_FARM_LOC.x + Math.cos(away_angle) * PRIM_FARM_RADIUS;
+            const target_y = PRIM_FARM_LOC.y + Math.sin(away_angle) * PRIM_FARM_RADIUS;
+            await move(target_x, target_y);
+            await delay(80);
             continue;
         }
+
+        // 2. At radius: try rotating clockwise and counterclockwise, pick direction that increases separation
+        const my_angle = Math.atan2(fy, fx);
+        const step_rad = ROTATE_STEP_DEG * Math.PI / 180;
+        // Clockwise
+        const cw_angle = my_angle - step_rad;
+        const cw_x = PRIM_FARM_LOC.x + Math.cos(cw_angle) * PRIM_FARM_RADIUS;
+        const cw_y = PRIM_FARM_LOC.y + Math.sin(cw_angle) * PRIM_FARM_RADIUS;
+        const cw_dist = Math.hypot(cw_x - sx, cw_y - sy);
+        // Counterclockwise
+        const ccw_angle = my_angle + step_rad;
+        const ccw_x = PRIM_FARM_LOC.x + Math.cos(ccw_angle) * PRIM_FARM_RADIUS;
+        const ccw_y = PRIM_FARM_LOC.y + Math.sin(ccw_angle) * PRIM_FARM_RADIUS;
+        const ccw_dist = Math.hypot(ccw_x - sx, ccw_y - sy);
+
+        // Pick the direction that gives more separation
+        let target_x, target_y;
+        if (cw_dist > ccw_dist) {
+            target_x = cw_x;
+            target_y = cw_y;
+        } else {
+            target_x = ccw_x;
+            target_y = ccw_y;
+        }
+        await move(target_x, target_y);
         await delay(80);
     }
 }
