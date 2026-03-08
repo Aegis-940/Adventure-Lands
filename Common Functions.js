@@ -1927,15 +1927,38 @@ async function prim_orbit_loop() {
         const vx = PRIM_FARM_LOC.x - monster.x;
         const vy = PRIM_FARM_LOC.y - monster.y;
         const vlen = Math.sqrt(vx * vx + vy * vy);
-        let newX, newY;
+        let px, py;
         if (vlen === 0) {
             // If bscorpion is at farm center, just stay on farm boundary at arbitrary angle
-            newX = PRIM_FARM_LOC.x + PRIM_FARM_RADIUS;
-            newY = PRIM_FARM_LOC.y;
+            px = PRIM_FARM_LOC.x + PRIM_FARM_RADIUS;
+            py = PRIM_FARM_LOC.y;
         } else {
             // Place character on farm boundary, in direction away from bscorpion
-            newX = PRIM_FARM_LOC.x + (vx / vlen) * PRIM_FARM_RADIUS;
-            newY = PRIM_FARM_LOC.y + (vy / vlen) * PRIM_FARM_RADIUS;
+            px = PRIM_FARM_LOC.x + (vx / vlen) * PRIM_FARM_RADIUS;
+            py = PRIM_FARM_LOC.y + (vy / vlen) * PRIM_FARM_RADIUS;
+        }
+
+        // Now, check distance from bscorpion to this point
+        const dx = px - monster.x;
+        const dy = py - monster.y;
+        const dist_to_bscorp = Math.sqrt(dx * dx + dy * dy);
+
+        let newX, newY;
+        if (dist_to_bscorp < SAFETY_DISTANCE) {
+            // If the farm boundary is too close to the bscorpion, stay at SAFETY_DISTANCE from bscorpion, in direction away from farm center
+            // Direction from bscorpion to farm center
+            let away_angle;
+            if (vlen === 0) {
+                away_angle = 0;
+            } else {
+                away_angle = Math.atan2(vy, vx);
+            }
+            newX = monster.x + Math.cos(away_angle) * SAFETY_DISTANCE;
+            newY = monster.y + Math.sin(away_angle) * SAFETY_DISTANCE;
+        } else {
+            // Otherwise, use the farm boundary point
+            newX = px;
+            newY = py;
         }
         move(newX, newY);
         await delay(100);
