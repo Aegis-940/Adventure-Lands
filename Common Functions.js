@@ -1872,6 +1872,7 @@ async function move_to_bscorpion_range() {
             const dx = ent.x - character.x;
             const dy = ent.y - character.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist >= 40) log(`Bscorpion distance: ${dist.toFixed(2)}`);
             if (dist < minDist) {
                 minDist = dist;
                 nearest = ent;
