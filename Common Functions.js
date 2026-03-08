@@ -317,6 +317,7 @@ async function set_state(state) {
                     if (ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
                     if (SKILL_LOOP_ENABLED)  SKILL_LOOP_ENABLED = false;
                     if (ORBIT_LOOP_ENABLED)  ORBIT_LOOP_ENABLED = false;
+                    if (PRIM_FARM_LOOT_ENABLED) PRIM_FARM_LOOT_ENABLED = false;
 
                     if (!BOSS_LOOP_ENABLED) BOSS_LOOP_ENABLED = true;
                 } catch (e) {
