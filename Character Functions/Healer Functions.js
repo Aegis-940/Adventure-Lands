@@ -556,13 +556,13 @@ async function loot_loop() {
                     shift(5, 'goldbooster');
                     await delay(75);
                     await loot_chests();
-                    batch_equip([{ itemName: "mittens", slot: "gloves", level: 6 }]);
+                    batch_equip([{ itemName: "supermittens", slot: "gloves", level: 6 }]);
                     shift(5, 'luckbooster');
                     await delay(75);
 
                     // Check if gloves are "mittens", if not, try to equip again
                     if (!character.slots.gloves || character.slots.gloves.name !== "mittens") {
-                        batch_equip([{ itemName: "mittens", slot: "gloves", level: 6 }]);
+                        batch_equip([{ itemName: "supermittens", slot: "gloves", level: 6 }]);
                     }
                 }
             }
