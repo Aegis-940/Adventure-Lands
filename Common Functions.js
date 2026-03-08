@@ -227,9 +227,14 @@ function is_boss_alive() {
 }
 
 function is_bscorpion_alive() {
-    const found = Object.values(parent.entities).some(ent =>
-        ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead && parent.distance(character, ent) <= 200
-    );
+    const found = false;
+    if (
+        HEALER_TARGET    === MONSTER_LOCS.bscorpion ||
+        WARRIOR_TARGET   === MONSTER_LOCS.bscorpion ||
+        RANGER_TARGET    === MONSTER_LOCS.bscorpion
+    ) {
+        found = true;
+    }
     if (found) {
         PRIM_FARM_LOOT_ENABLED = true;
     } else {
