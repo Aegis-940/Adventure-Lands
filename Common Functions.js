@@ -1872,7 +1872,6 @@ async function move_to_bscorpion_range() {
             const dx = ent.x - character.x;
             const dy = ent.y - character.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            log(dist)
             if (dist < minDist) {
                 minDist = dist;
                 nearest = ent;
@@ -1880,14 +1879,14 @@ async function move_to_bscorpion_range() {
         }
     }
     if (!nearest) return false; // No bscorpion found
-    const desired = Math.max(0, (character.range) - 2);
+    const desired = 38;
     const angle = Math.atan2(character.y - nearest.y, character.x - nearest.x);
     const newX = nearest.x + Math.cos(angle) * desired;
     const newY = nearest.y + Math.sin(angle) * desired;
     // Only move if not already at the correct distance (with a small tolerance)
     if (Math.abs(minDist - desired) > 2) {
         move(newX, newY);
-        await delay(20);
+        await delay(10);
         return true;
     }
     return false;
