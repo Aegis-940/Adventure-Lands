@@ -1887,15 +1887,14 @@ async function prim_farm_loop() {
                     const dist = Math.hypot(character.x - bscorp_info.x, character.y - bscorp_info.y);
                     const speed = character.speed;
                     if (dist < SAFETY_DISTANCE) too_close = true;
-                    if (speed < 30) too_close = true;
                 }
 
                 if (too_close && !is_bscorpion_targeting_myras()) {
-                    if (ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
-                    if (SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
+                    ATTACK_LOOP_ENABLED = false;
+                    SKILL_LOOP_ENABLED = false;
                 } else {
-                    if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
-                    if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
+                    ATTACK_LOOP_ENABLED = true;
+                    SKILL_LOOP_ENABLED = true;
                 }
 
                 if (!is_bscorpion_targeting_myras() && !too_close) {
