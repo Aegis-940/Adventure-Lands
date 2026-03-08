@@ -1929,59 +1929,46 @@ async function prim_farm_loop() {
 }
 
 async function prim_orbit_loop() {
-    // Strict: Only move if the entire path to the next point stays outside the danger zone
+    // Stepwise, always-safe orbit: move in small increments along the farm circle, never crossing the danger zone
     const STEP_DEGREES = 8; // 45 points around the circle
     const N = Math.floor(360 / STEP_DEGREES);
-    function path_is_safe(x0, y0, x1, y1, cx, cy, radius) {
-        // Check if the segment (x0,y0)-(x1,y1) comes closer than radius to (cx,cy)
-        // Compute closest point on segment to (cx,cy)
-        const dx = x1 - x0;
-        const dy = y1 - y0;
-        const fx = cx - x0;
-        const fy = cy - y0;
-        const t = Math.max(0, Math.min(1, (dx * fx + dy * fy) / (dx * dx + dy * dy)));
-        const closestX = x0 + t * dx;
-        const closestY = y0 + t * dy;
-        const dist = Math.hypot(closestX - cx, closestY - cy);
-        return dist >= radius;
-    }
-
-    let last_theta = 0;
+    let theta = 0; // Start at arbitrary angle
     while (true) {
         const bscorp = get_bscorpion_info();
         if (!bscorp) { await delay(500); continue; }
 
+        // Compute next step along the circle (clockwise)
+        theta = (theta + (2 * Math.PI) / N) % (2 * Math.PI);
+        const next_x = PRIM_FARM_LOC.x + Math.cos(theta) * PRIM_FARM_RADIUS;
+        const next_y = PRIM_FARM_LOC.y + Math.sin(theta) * PRIM_FARM_RADIUS;
+
+        // Check both the next point and the path to it are safe
+        const dist_to_boss = Math.hypot(next_x - bscorp.x, next_y - bscorp.y);
+        // Path safety: sample points along the segment (current pos to next)
+        function segment_safe(x0, y0, x1, y1, cx, cy, radius) {
+            const steps = 10;
+            for (let i = 0; i <= steps; i++) {
+                const t = i / steps;
+                const sx = x0 + (x1 - x0) * t;
+                const sy = y0 + (y1 - y0) * t;
+                if (Math.hypot(sx - cx, sy - cy) < radius) return false;
+            }
+            return true;
+        }
         const px = character.x;
         const py = character.y;
-
-        // Find all candidate points where the path is safe
-        let candidates = [];
-        for (let i = 0; i < N; i++) {
-            const theta = (2 * Math.PI * i) / N;
-            const x = PRIM_FARM_LOC.x + Math.cos(theta) * PRIM_FARM_RADIUS;
-            const y = PRIM_FARM_LOC.y + Math.sin(theta) * PRIM_FARM_RADIUS;
-            const dist = Math.hypot(x - bscorp.x, y - bscorp.y);
-            if (dist >= SAFETY_DISTANCE && path_is_safe(px, py, x, y, bscorp.x, bscorp.y, SAFETY_DISTANCE)) {
-                candidates.push({ x, y, theta, dist });
-            }
+        if (
+            dist_to_boss >= SAFETY_DISTANCE &&
+            segment_safe(px, py, next_x, next_y, bscorp.x, bscorp.y, SAFETY_DISTANCE)
+        ) {
+            await move(next_x, next_y);
+        } else {
+            // Blocked: wait and retry (do not advance theta)
+            theta = (theta - (2 * Math.PI) / N + 2 * Math.PI) % (2 * Math.PI);
+            await delay(120);
+            continue;
         }
-
-        // Pick the candidate that is closest in angle to last_theta (to keep circling)
-        let chosen = null;
-        if (candidates.length > 0) {
-            let min_angle_diff = Infinity;
-            for (const c of candidates) {
-                let diff = Math.abs(((c.theta - last_theta + Math.PI * 3) % (2 * Math.PI)) - Math.PI);
-                if (diff < min_angle_diff) {
-                    min_angle_diff = diff;
-                    chosen = c;
-                }
-            }
-            last_theta = chosen.theta;
-            await move(chosen.x, chosen.y);
-        }
-        // If no safe path exists, do not move (wait)
-        await delay(100);
+        await delay(80);
     }
 }
 
