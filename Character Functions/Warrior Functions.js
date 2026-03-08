@@ -73,8 +73,8 @@ async function attack_loop() {
                 } else if (target && is_in_range(target) && !smart.moving && character.mp >= 80) {
                     attack(target);
                 }
-                delayMs = ms_to_next_skill("attack") + character.ping + 50;
-                await delay(delayMs);
+                delayMs = ms_to_next_skill("attack") + character.ping;
+                await delay(delayMs > 0 ? delayMs : 0);
                 continue; 
             } catch (e) {
                 catcher(e, "Attack Loop error ");
