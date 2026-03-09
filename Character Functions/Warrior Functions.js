@@ -27,6 +27,8 @@ const CLEAVE_MP_THRESHOLD = 900;        // Minimum MP Warrior must have to cast 
 
 async function sugar_rush_check(target) {
 
+    log("Checking Sugar Rush...", "#ff69b4", "Skills");
+
     equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
 
     attack(target);
