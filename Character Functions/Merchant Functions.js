@@ -732,14 +732,15 @@ async function mining_loop() {
 let exchange_items_running = false;
 
 const EXCHANGE_LIST= [
-    { name: "mistletoe",    min: 1 },
-    { name: "candycane",    min: 1 },
-    { name: "ornament",     min: 10 },
-    { name: "xbox",         min: 1 },
-    { name: "candy1",       min: 1 },
+    // { name: "mistletoe",    min: 1 },
+    // { name: "candycane",    min: 1 },
+    // { name: "ornament",     min: 10 },
+    // { name: "xbox",         min: 1 },
+    // { name: "candy1",       min: 1 },
     { name: "gem0",         min: 1 },
     { name: "gem1",         min: 1 },
     { name: "armorbox",     min: 1 },
+    { name: "weaponbox",    min: 1 },
     // { name: "seashell",     min: 20,    map: "main", x: -22, y: -406 },
 ]
 
