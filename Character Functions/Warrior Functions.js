@@ -100,7 +100,7 @@ async function attack_loop() {
                     await delay(50);
                     equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
                 }
-                delayMs = ms_to_next_skill("attack");
+                delayMs = ms_to_next_skill("attack") + character.ping;
                 log(`Next attack in ${delayMs} ms`, "#aaa", "Attack Loop");
                 await delay(delayMs > 100 ? delayMs : 100);
                 continue; 
