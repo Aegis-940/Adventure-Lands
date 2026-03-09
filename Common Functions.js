@@ -80,7 +80,7 @@ const MONSTER_LOCS = {
     prat:         { map: "level1", x: 89, y: 199, orbit: true , hostile: false },
     dryad:        { map: "mforest", x: 380, y: -359, orbit: true , hostile: false },
     bscorpion:    { map: "desertland", x: -408, y: -1266, orbit: true , hostile: false },
-    mummy:       { map: "level3", x: -328, y: -213, orbit: true , hostile: true },
+    mummy:        { map: "level3", x: -328, y: -213, orbit: true , hostile: false },
 };
 
 const HEALER_TARGET    = MONSTER_LOCS.mummy;
