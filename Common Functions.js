@@ -1837,36 +1837,6 @@ function is_bscorpion_targeting_myras() {
   return false;
 }
 
-// Move closer to the nearest bscorpion if out of range
-async function move_closer_to_bscorpion() {
-    // Find the nearest alive bscorpion
-    let nearest = null;
-    let minDist = Infinity;
-    for (const id in parent.entities) {
-        const ent = parent.entities[id];
-        if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
-            const dx = ent.x - character.x;
-            const dy = ent.y - character.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < minDist) {
-                minDist = dist;
-                nearest = ent;
-            }
-        }
-    }
-    if (!nearest) return false; // No bscorpion found
-    const desired = Math.max(0, (character.range || 50) - 5);
-    if (minDist > desired) {
-        // Move closer to the bscorpion, to the edge of desired range
-        const angle = Math.atan2(character.y - nearest.y, character.x - nearest.x);
-        const newX = nearest.x + Math.cos(angle) * desired;
-        const newY = nearest.y + Math.sin(angle) * desired;
-        await move(newX, newY);
-        return true;
-    }
-    return false;
-}
-
 // Move to maintain distance from bscorpion at exactly character.range - 2
 async function move_distance_from_bscorpion() {
     // Find the nearest alive bscorpion
@@ -1887,6 +1857,38 @@ async function move_distance_from_bscorpion() {
     }
     if (!nearest) return false; // No bscorpion found
     const desired = character.range ? Math.max(0, character.range - 2) : 48;
+    const angle = Math.atan2(character.y - nearest.y, character.x - nearest.x);
+    const newX = nearest.x + Math.cos(angle) * desired;
+    const newY = nearest.y + Math.sin(angle) * desired;
+    // Only move if not already at the correct distance (with a small tolerance)
+    if (Math.abs(minDist - desired) > 0) {
+        move(newX, newY);
+        await delay(50);
+        return true;
+    }
+    return false;
+}
+
+// Move to maintain distance from bscorpion at exactly character.range - 2
+async function move_distance_from_bscorpion2() {
+    // Find the nearest alive bscorpion
+    let nearest = null;
+    let minDist = Infinity;
+    for (const id in parent.entities) {
+        const ent = parent.entities[id];
+        if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
+            const dx = ent.x - character.x;
+            const dy = ent.y - character.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist >= 40) log(`Bscorpion distance: ${dist.toFixed(2)}`);
+            if (dist < minDist) {
+                minDist = dist;
+                nearest = ent;
+            }
+        }
+    }
+    if (!nearest) return false; // No bscorpion found
+    const desired = 50;
     const angle = Math.atan2(character.y - nearest.y, character.x - nearest.x);
     const newX = nearest.x + Math.cos(angle) * desired;
     const newY = nearest.y + Math.sin(angle) * desired;
@@ -1951,7 +1953,7 @@ async function prim_farm_loop() {
                 if (is_bscorpion_targeting_myras()) {
                     if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
                     if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
-                    move_distance_from_bscorpion()
+                    move_distance_from_bscorpion2()
                 } else {
                     if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
                     if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
