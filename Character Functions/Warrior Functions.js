@@ -31,7 +31,7 @@ async function sugar_rush_check(target) {
 
     if (character.s.sugarrush === undefined) {
         equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
-        await delay(100);
+        await delay(200);
         equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
         await delay(200);
         if (character.s.sugarrush !== undefined) {
