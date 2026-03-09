@@ -1959,7 +1959,7 @@ async function prim_farm_loop() {
 
             }
 
-            await delay(50);
+            await delay(100);
             
         } else {
             await delay(1000);
