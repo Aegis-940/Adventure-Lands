@@ -31,8 +31,11 @@ async function sugar_rush_check(target) {
 
     // ...existing equip logic (replace with your actual equip logic as needed)
     equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
-    await delay(200);
+    await delay(100);
     equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
+    if (character.s.sugarrush !== undefined) {
+        log("🍬 Sugar Rush activated! 🍬", "#ff69b4", "Alerts");
+    }
 
 }
 
@@ -83,8 +86,7 @@ async function attack_loop() {
                     sugar_rush_check(target)
                 }
                 await delay(201)
-                delayMs = 1000/character.frequency - 200;
-                log(delayMs, "orange", "Attack Loop Delay");
+                delayMs = 1000/character.frequency - 100;
                 await delay(delayMs);
                 continue; //
             } catch (e) {
