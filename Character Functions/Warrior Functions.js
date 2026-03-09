@@ -88,7 +88,7 @@ async function attack_loop() {
             try {
 
                 if (target && is_in_range(target) && !smart.moving && character.mp >= 80) {
-                    await sugar_rush_check(target)
+                    sugar_rush_check(target)
                 }
                 delayMs = 1500;
                 await delay(delayMs);
