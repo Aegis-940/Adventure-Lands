@@ -1920,6 +1920,7 @@ async function move_distance_from_bscorpion() {
     const tolerance = 0.5;
     if (Math.abs(minDist - desired) > tolerance) {
         log(minDist - desired);
+        if (Math.abs(minDist - desired) > 1.9) log(minDist - desired, "red");
         // Only move if not already moving or target is far from current move target
         if (!character.moving || Math.hypot(character.x - nearest.x, character.y - nearest.y) > tolerance) {
             const angle = Math.atan2(character.y - nearest.y, character.x - nearest.x);
