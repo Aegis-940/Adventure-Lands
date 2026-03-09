@@ -559,7 +559,7 @@ async function single_set() {
 }
 
 async function sugar_rush_set() {
-    
+
     batch_equip([
         { itemName: "candycanesword", slot: "mainhand", level: 7, l: "l" },
         { itemName: "candycanesword", slot: "offhand", level: 7, l: "l" }
@@ -646,15 +646,6 @@ async function batch_equip(data) {
     for (const equipRequest of data) {
         const { itemName, slot, level, l } = equipRequest;
         if (!itemName || !slot) continue;
-
-        // Check if the slot already has the desired item equipped
-        const equipped = character.slots[slot];
-        if (
-            equipped &&
-            equipped.name === itemName &&
-            equipped.level === level &&
-            (!l || equipped.l === l)
-        ) continue;
 
         // Find the first matching item in inventory not already used
         let item_index = -1;
