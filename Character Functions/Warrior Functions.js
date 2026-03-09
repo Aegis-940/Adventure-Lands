@@ -102,7 +102,7 @@ async function attack_loop() {
                 }
                 delayMs = ms_to_next_skill("attack");
                 log(`Next attack in ${delayMs} ms`, "#aaa", "Attack Loop");
-                await delay(delayMs > 50 ? delayMs : 50);
+                await delay(delayMs > 100 ? delayMs : 100);
                 continue; 
             } catch (e) {
                 catcher(e, "Attack Loop error ");
