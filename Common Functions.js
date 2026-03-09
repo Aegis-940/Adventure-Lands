@@ -1964,16 +1964,16 @@ async function move_distance_from_bscorpion2() {
 async function prim_farm_loop_ulric() {
     while(true) {
         if (PRIM_FARM_LOOT_ENABLED) {
+            
+            move_distance_from_bscorpion();
 
-            // move_distance_from_bscorpion();
-
-            //if (is_bscorpion_targeting_myras()) {
+            if (is_bscorpion_targeting_myras()) {
                 if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
                 if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
-            //} else {
-             //   if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
-              //  if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
-            //}
+            } else {
+                if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
+                if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
+            }
 
             await delay(100);
         } else {

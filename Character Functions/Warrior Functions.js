@@ -85,7 +85,7 @@ async function attack_loop() {
 
             try {
 
-                if (target && is_in_range(target) && !smart.moving && character.mp >= 80) {
+                if (target && !smart.moving && character.mp >= 80) {
                     sugar_rush_check(target)
                 }
                 await delay(201)
