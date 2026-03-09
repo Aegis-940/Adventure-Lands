@@ -115,8 +115,6 @@ async function attack_loop() {
 const BOSSES = ["mrpumpkin", "mrgreen", "dragold"];
 const BOSS_RANGE_TOLERANCE = 5;
 
-let last_supershot_time = 0;
-
 function get_party_names() {
     return Object.keys(parent.party).concat(character.name);
 }
@@ -150,6 +148,11 @@ function select_boss(alive_bosses) {
 
 async function boss_loop() {
 
+    if (ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
+    if (SKILL_LOOP_ENABLED)  SKILL_LOOP_ENABLED = false;
+    if (ORBIT_LOOP_ENABLED)  ORBIT_LOOP_ENABLED = false;
+    if (PRIM_FARM_LOOT_ENABLED) PRIM_FARM_LOOT_ENABLED = false;
+
     while (true) {
         // Check if boss loop is enabled
         if (!BOSS_LOOP_ENABLED) {
@@ -168,31 +171,40 @@ async function boss_loop() {
 
         const boss_name = select_boss(alive_bosses);
 
-        // 2. Equip firebow +7 in mainhand before moving to boss
-        const firebow7_slot = parent.character.items.findIndex(item =>
-            item && item.name === "firebow" && item.level === 7
-        );
-        if (
-            firebow7_slot !== -1 &&
-            (!character.slots.mainhand || character.slots.mainhand.name !== "firebow" || character.slots.mainhand.level !== 7)
-        ) {
-            try {
-                await equip(firebow7_slot, "mainhand");
-                await delay(300);
-            } catch (e) {
-                catcher(e, "Error equipping firebow");
-            }
-        }
-
         // 2. Move to boss spawn if known
         const boss_spawn = parent.S[boss_name] && parent.S[boss_name].x !== undefined && parent.S[boss_name].y !== undefined
             ? { map: parent.S[boss_name].map, x: parent.S[boss_name].x, y: parent.S[boss_name].y }
             : null;
         if (boss_spawn) {
-            await smarter_move(boss_spawn);
+            let aggro_timeout = false;
+            const timeout_ms = 30000;
+            const start_time = Date.now();
+
+            // Start smarter_move and monitor aggro
+            const movePromise = smarter_move(boss_spawn);
+            while (!aggro_timeout && !character.moving && !smart.moving) {
+                // Wait for movement to start
+                await delay(100);
+            }
+            while (!aggro_timeout && (character.moving || smart.moving)) {
+                // Check for aggro and timeout
+                const monsters_targeting_me = Object.values(parent.entities).filter(
+                    e => e.type === "monster" && e.target === character.name && !e.dead
+                ).length;
+                if (Date.now() - start_time > timeout_ms && monsters_targeting_me > 0) {
+                    aggro_timeout = true;
+                    log("⏰ Timeout: Still have aggro after 30s of smarter_move. Reloading...", "#ff0000", "Alerts");
+                    parent.window.location.reload();
+                    break;
+                }
+                await delay(250);
+            }
+            await movePromise;
         } else {
             log("⚠️ Boss spawn location unknown, skipping smarter_move.", "#ffaa00", "Alerts");
         }
+
+        if (character.name === "Ulric") single_set();
 
         // 3. Engage boss until dead
         log("⚔️ Engaging boss...", "#ff00e6ff", "Alerts");
@@ -224,62 +236,18 @@ async function boss_loop() {
                 }
             }
 
-            // --- Attack ---
-            try {
-                change_target(boss);
+            if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
+            if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
 
-                // Determine who the boss is targeting (null if none)
-                const targetName = boss.target ?? null;
-                const skipTargets = ["Riva", "Ulric"];
+            await delay(100);
 
-                // If boss has no target, skip attacking to avoid drawing aggro
-                if (!targetName) {
-                    log("⏭️ Skipping boss attack — boss has no target", "#aaa", "Alerts");
-                } else {
-                    // Only attack if boss is targeting "Myras" OR any target that's not in the skip list
-                    const shouldAttack = (targetName === "Myras") || !skipTargets.includes(targetName);
-
-                    if (shouldAttack) {
-                        if (!is_on_cooldown("huntersmark")) {
-                            use_skill("huntersmark", boss);
-                        }
-                        const now = Date.now();
-                        if (now - last_supershot_time >= 31000) { // 31 seconds
-                            await use_skill("supershot", boss);
-                            last_supershot_time = now;
-                        } else {
-                            await attack(boss);
-                        }
-                        delayMs = ms_to_next_skill('attack') + character.ping + 50;
-                    } else {
-                        log(`⏭️ Skipping boss attack (boss targeting: ${targetName})`, "#aaa", "Alerts");
-                    }
-                }
-            } catch (e) {
-                catcher(e, "Boss loop attack");
-            }
-            await delay(delayMs);
-        }
-
-        // 2. Equip pouchbow +9 in mainhand before moving to boss
-        const pouchbow_slot = parent.character.items.findIndex(item =>
-            item && item.name === "pouchbow" && item.level === 9
-        );
-        if (
-            pouchbow_slot !== -1 &&
-            (!character.slots.mainhand || character.slots.mainhand.name !== "pouchbow" || character.slots.mainhand.level !== 9)
-        ) {
-            try {
-                await equip(pouchbow_slot, "mainhand");
-                await delay(300);
-            } catch (e) {
-                catcher(e, "Error equipping pouchbow");
-            }
         }
 
         // 4. Move back to target location
         let moving_home = true;
-        smarter_move(RANGER_TARGET).then(() => { moving_home = false; });
+        if (character.name === "Ulric") smarter_move(WARRIOR_TARGET).then(() => { moving_home = false; });
+        if (character.name === "Myras") smarter_move(HEALER_TARGET).then(() => { moving_home = false; });
+        if (character.name === "Riva") smarter_move(RANGER_TARGET).then(() => { moving_home = false; });
         while (moving_home) {
             // If boss respawns while returning, break and restart boss loop
             if (BOSSES.some(name => parent.S[name] && parent.S[name].live)) {

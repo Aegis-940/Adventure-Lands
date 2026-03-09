@@ -66,7 +66,8 @@ const PARTY_MEMBERS               = ["Riva", "Myras", "Riff"];
 
 const MONSTER_TYPES               = ["goo", "bee", "crab", "snake", "osnake", "bat", "goldenbat", "croc", "arcticbee", "spider", "cgoo", "stoneworm", "jr", "minimush", 
                                      "rat", "bbpompom", "tortoise", "crabx", "porcupine", "armadillo", "squig", "ghost", "phoenix", "iceroamer", "skeletor", "snowman",
-									"prat", "booboo", "bigbird", "poisio", "boar", "mechagnome", "mrpumpkin", "mrgreen", "greenjr", "fireroamer", "dryad", "bscorpion"];
+									"prat", "booboo", "bigbird", "poisio", "boar", "mechagnome", "mrpumpkin", "mrgreen", "greenjr", "fireroamer", "dryad", "bscorpion",
+                                    "dragold"];
 
 const MONSTER_LOCS = {
     spider: 	  { map: "main", x: 907, y: -174, orbit: true , hostile: false },
@@ -364,12 +365,9 @@ async function set_state(state) {
 
             case STATES.BOSS:
                 try {
-                    if (ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
-                    if (SKILL_LOOP_ENABLED)  SKILL_LOOP_ENABLED = false;
-                    if (ORBIT_LOOP_ENABLED)  ORBIT_LOOP_ENABLED = false;
-                    if (PRIM_FARM_LOOT_ENABLED) PRIM_FARM_LOOT_ENABLED = false;
 
                     if (!BOSS_LOOP_ENABLED) BOSS_LOOP_ENABLED = true;
+                    
                 } catch (e) {
                     catcher(e, "set_loops: BOSS state error");
                 }

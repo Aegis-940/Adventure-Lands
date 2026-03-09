@@ -106,7 +106,7 @@ async function attack_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const BOSSES = ["mrpumpkin", "mrgreen", "dragold"];
-const BOSS_RANGE_TOLERANCE = 1;
+const BOSS_RANGE_TOLERANCE = 5;
 
 function get_party_names() {
     return Object.keys(parent.party).concat(character.name);
@@ -140,6 +140,11 @@ function select_boss(alive_bosses) {
 }
 
 async function boss_loop() {
+
+    if (ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
+    if (SKILL_LOOP_ENABLED)  SKILL_LOOP_ENABLED = false;
+    if (ORBIT_LOOP_ENABLED)  ORBIT_LOOP_ENABLED = false;
+    if (PRIM_FARM_LOOT_ENABLED) PRIM_FARM_LOOT_ENABLED = false;
 
     while (true) {
         // Check if boss loop is enabled
@@ -192,7 +197,7 @@ async function boss_loop() {
             log("⚠️ Boss spawn location unknown, skipping smarter_move.", "#ffaa00", "Alerts");
         }
 
-        single_set();
+        if (character.name === "Ulric") single_set();
 
         // 3. Engage boss until dead
         log("⚔️ Engaging boss...", "#ff00e6ff", "Alerts");
@@ -224,31 +229,18 @@ async function boss_loop() {
                 }
             }
 
-            try {
-                const targetName = boss.target ?? null;
-                const skipTargets = ["Riva", "Ulric"];
+            if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
+            if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
 
-                // If boss has no target, skip to avoid drawing aggro
-                if (!targetName) {
-                    log("⏭️ Skipping boss attack — boss has no target", "#aaa", "Alerts");
-                } else {
-                    const shouldAttack = !!targetName && targetName !== character.name;
+            await delay(100);
 
-                    if (shouldAttack) {
-                        await attack(boss);
-                    } else {
-                        log(`⏭️ Skipping boss attack (boss targeting: ${targetName})`, "#aaa", "Alerts");
-                    }
-                }
-            } catch (e) { catcher(e, "Boss attack error"); }
-
-            delayMs = ms_to_next_skill('attack') + character.ping + 50;
-            await delay(delayMs);
         }
 
         // 4. Move back to target location
         let moving_home = true;
-        smarter_move(WARRIOR_TARGET).then(() => { moving_home = false; });
+        if (character.name === "Ulric") smarter_move(WARRIOR_TARGET).then(() => { moving_home = false; });
+        if (character.name === "Myras") smarter_move(HEALER_TARGET).then(() => { moving_home = false; });
+        if (character.name === "Riva") smarter_move(RANGER_TARGET).then(() => { moving_home = false; });
         while (moving_home) {
             // If boss respawns while returning, break and restart boss loop
             if (BOSSES.some(name => parent.S[name] && parent.S[name].live)) {
@@ -257,7 +249,6 @@ async function boss_loop() {
             }
             await delay(100);
         }
-        explosion_set();
     }
 }
 
