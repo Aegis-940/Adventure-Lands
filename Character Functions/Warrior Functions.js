@@ -637,7 +637,17 @@ async function handle_taunt() {
 let batch_equip_lock = false;
 
 async function batch_equip(data) {
-    // Track used inventory slots to avoid double-using identical items
+    // Preprocess inventory into a lookup table for O(1) access per equip request
+    const inventoryMap = {};
+    for (let i = 0; i < parent.character.items.length; i++) {
+        const item = parent.character.items[i];
+        if (!item) continue;
+        // Key: name|level|l (l is optional/undefined)
+        const key = item.name + '|' + item.level + '|' + (item.l || '');
+        if (!inventoryMap[key]) inventoryMap[key] = [];
+        inventoryMap[key].push(i);
+    }
+
     const used_indices = new Set();
     const batch = [];
 
@@ -645,24 +655,24 @@ async function batch_equip(data) {
         const { itemName, slot, level, l } = equipRequest;
         if (!itemName || !slot) continue;
 
-        // Find the first matching item in inventory not already used
-        let item_index = -1;
-        for (let i = 0; i < parent.character.items.length; i++) {
-            const item = parent.character.items[i];
-            if (
-                item &&
-                !used_indices.has(i) &&
-                item.name === itemName &&
-                item.level === level &&
-                (!l || item.l === l)
-            ) {
-                item_index = i;
-                break;
+        // Check if already equipped
+        const equipped = character.slots[slot];
+        if (
+            equipped &&
+            equipped.name === itemName &&
+            equipped.level === level &&
+            (!l || equipped.l === l)
+        ) continue;
+
+        const key = itemName + '|' + level + '|' + (l || '');
+        const arr = inventoryMap[key];
+        if (arr && arr.length) {
+            // Find the first unused index
+            let idx = arr.find(i => !used_indices.has(i));
+            if (idx !== undefined) {
+                batch.push({ num: idx, slot });
+                used_indices.add(idx);
             }
-        }
-        if (item_index !== -1) {
-            batch.push({ num: item_index, slot });
-            used_indices.add(item_index);
         }
     }
 
