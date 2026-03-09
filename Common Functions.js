@@ -1916,8 +1916,8 @@ async function move_distance_from_bscorpion() {
 
     if (!nearest) return false;
 
-    const desired = 35;
-    const tolerance = 1.5;
+    const desired = 38;
+    const tolerance = 0.5;
     if (Math.abs(minDist - desired) > tolerance) {
         log(minDist - desired);
         // Only move if not already moving or target is far from current move target
