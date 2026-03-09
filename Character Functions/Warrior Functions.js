@@ -25,14 +25,7 @@ const CLEAVE_MP_THRESHOLD = 900;        // Minimum MP Warrior must have to cast 
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let last_sugar_rush_check = 0;
-
 async function sugar_rush_check(target) {
-
-    // Cooldown logic: only run once every 200ms using global last_sugar_rush_check
-    const now = Date.now();
-    if (now - last_sugar_rush_check < 200) return;
-    last_sugar_rush_check = now;
 
     attack(target);
 
@@ -93,7 +86,6 @@ async function attack_loop() {
                 delayMs = ms_to_next_skill('attack') + character.ping + 50;
                 log(delayMs)
                 await delay(delayMs);
-                continue;
             } catch (e) {
                 catcher(e, "Attack Loop error ");
             }
