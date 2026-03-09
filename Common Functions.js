@@ -1,3 +1,48 @@
+// Predictive movement: maintain exactly the right distance from bscorpion
+async function maintain_distance_from_bscorpion() {
+    // Find the nearest alive bscorpion
+    let nearest = null;
+    let minDist = Infinity;
+    for (const id in parent.entities) {
+        const ent = parent.entities[id];
+        if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
+            const dx = ent.x - character.x;
+            const dy = ent.y - character.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < minDist) {
+                minDist = dist;
+                nearest = ent;
+            }
+        }
+    }
+    if (!nearest) return false; // No bscorpion found
+
+    // Predict bscorpion's future position (100ms ahead)
+    const predictionTime = 0.1; // seconds
+    let pred_x = nearest.x;
+    let pred_y = nearest.y;
+    if (typeof nearest.vx === "number" && typeof nearest.vy === "number") {
+        pred_x += nearest.vx * predictionTime;
+        pred_y += nearest.vy * predictionTime;
+    } else if (typeof nearest.going_x === "number" && typeof nearest.going_y === "number") {
+        // Fallback: use going_x/going_y if vx/vy not available
+        pred_x = nearest.going_x;
+        pred_y = nearest.going_y;
+    }
+
+    // Desired distance
+    const desired = character.range ? Math.max(0, character.range - 2) : 48;
+    const angle = Math.atan2(character.y - pred_y, character.x - pred_x);
+    const newX = pred_x + Math.cos(angle) * desired;
+    const newY = pred_y + Math.sin(angle) * desired;
+    // Only move if not already at the correct distance (with a small tolerance)
+    const dist_to_pred = Math.hypot(character.x - newX, character.y - newY);
+    if (dist_to_pred > 2) {
+        move(newX, newY);
+        return true;
+    }
+    return false;
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // CONFIG VARIABLES
@@ -1904,7 +1949,7 @@ async function prim_farm_loop() {
 
             if (character.name === "Ulric") {
 
-                move_distance_from_bscorpion();
+                maintain_distance_from_bscorpion();
 
                 if (is_bscorpion_targeting_myras()) {
                     if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
@@ -2038,3 +2083,48 @@ async function prim_orbit_loop() {
     }
 }
 
+// Predictive movement: maintain exactly the right distance from bscorpion
+async function maintain_distance_from_bscorpion() {
+    // Find the nearest alive bscorpion
+    let nearest = null;
+    let minDist = Infinity;
+    for (const id in parent.entities) {
+        const ent = parent.entities[id];
+        if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
+            const dx = ent.x - character.x;
+            const dy = ent.y - character.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < minDist) {
+                minDist = dist;
+                nearest = ent;
+            }
+        }
+    }
+    if (!nearest) return false; // No bscorpion found
+
+    // Predict bscorpion's future position (100ms ahead)
+    const predictionTime = 0.1; // seconds
+    let pred_x = nearest.x;
+    let pred_y = nearest.y;
+    if (typeof nearest.vx === "number" && typeof nearest.vy === "number") {
+        pred_x += nearest.vx * predictionTime;
+        pred_y += nearest.vy * predictionTime;
+    } else if (typeof nearest.going_x === "number" && typeof nearest.going_y === "number") {
+        // Fallback: use going_x/going_y if vx/vy not available
+        pred_x = nearest.going_x;
+        pred_y = nearest.going_y;
+    }
+
+    // Desired distance
+    const desired = character.range ? Math.max(0, character.range - 2) : 48;
+    const angle = Math.atan2(character.y - pred_y, character.x - pred_x);
+    const newX = pred_x + Math.cos(angle) * desired;
+    const newY = pred_y + Math.sin(angle) * desired;
+    // Only move if not already at the correct distance (with a small tolerance)
+    const dist_to_pred = Math.hypot(character.x - newX, character.y - newY);
+    if (dist_to_pred > 2) {
+        move(newX, newY);
+        return true;
+    }
+    return false;
+}
