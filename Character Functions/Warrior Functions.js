@@ -1,55 +1,3 @@
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// BSCORPION KILL LOGGER LOOP
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-let last_bscorpion_ids = new Set();
-
-async function bscorpion_kill_logger_loop() {
-    while (true) {
-        try {
-            // Get all bscorpion entities
-            const bscorps = Object.values(parent.entities).filter(e => e.type === "monster" && e.mtype === "bscorpion");
-            const alive_ids = new Set(bscorps.filter(e => !e.dead).map(e => e.id));
-            const dead_now = [...last_bscorpion_ids].filter(id => !alive_ids.has(id));
-            if (dead_now.length > 0) {
-                log_bscorpion_kill();
-            }
-            last_bscorpion_ids = alive_ids;
-        } catch (e) {
-            catcher(e, "bscorpion_kill_logger_loop");
-        }
-        await delay(250);
-    }
-}
-
-bscorpion_kill_logger_loop()
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// BSCORPION KILL TIMER LOGGER
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-
-let bscorpion_kill_count = 0;
-let bscorpion_kill_times = [];
-
-function log_bscorpion_kill() {
-    const now = Date.now();
-    bscorpion_kill_count++;
-    bscorpion_kill_times.push(now);
-    if (bscorpion_kill_times.length > 30) bscorpion_kill_times.shift();
-
-    if (bscorpion_kill_times.length > 1) {
-        // Calculate rolling average
-        let total = 0;
-        for (let i = 1; i < bscorpion_kill_times.length; i++) {
-            total += bscorpion_kill_times[i] - bscorpion_kill_times[i - 1];
-        }
-        const avg = total / (bscorpion_kill_times.length - 1);
-        log(`Bscorpion kill #${bscorpion_kill_count}: ${new Date(now).toLocaleTimeString()} | Rolling avg: ${(avg/1000).toFixed(1)}s`, "#ffb347", "Bscorpion");
-    } else {
-        log(`Bscorpion kill #${bscorpion_kill_count}: ${new Date(now).toLocaleTimeString()} (first recorded)`, "#ffb347", "Bscorpion");
-    }
-}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 1) GLOBAL LOOP SWITCHES AND VARIABLES
@@ -83,9 +31,9 @@ async function sugar_rush_check(target) {
 
     if (character.s.sugarrush === undefined) {
         // ...existing equip logic (replace with your actual equip logic as needed)
-        equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
+        sugar_rush_set();
         await delay(100);
-        equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
+        single_set();
         await delay(200);
         if (character.s.sugarrush !== undefined) {
             log("🍬 Sugar Rush activated! 🍬", "#ff69b4", "Alerts");
@@ -589,7 +537,7 @@ async function cleave_set() {
 async function explosion_set() {
     const mainhand = character.slots.mainhand;
     const offhand = character.slots.offhand;
-    const needs_main = !mainhand || mainhand.name !== "fireblade" || mainhand.level !== 8 || mainhand.l !== "l";
+    const needs_main = !mainhand || mainhand.name !== "fireblade" || mainhand.level !== 9 || mainhand.l !== "l";
     const needs_off = !offhand || offhand.name !== "ololipop" || offhand.level !== 9 || offhand.l !== "l";
     if (needs_main || needs_off) {
         batch_equip([
@@ -603,8 +551,8 @@ async function explosion_set() {
 async function single_set() {
     const mainhand = character.slots.mainhand;
     const offhand = character.slots.offhand;
-    const needs_main = !mainhand || mainhand.name !== "fireblade" || mainhand.level !== 8 || mainhand.l !== "l";
-    const needs_off = !offhand || offhand.name !== "fireblade" || offhand.level !== 7 || offhand.l !== "l";
+    const needs_main = !mainhand || mainhand.name !== "fireblade" || mainhand.level !== 9 || mainhand.l !== "l";
+    const needs_off = !offhand || offhand.name !== "fireblade" || offhand.level !== 9 || offhand.l !== "l";
     if (needs_main || needs_off) {
         batch_equip([
             { itemName: "fireblade", slot: "mainhand", level: 9, l: "l" },
@@ -612,6 +560,20 @@ async function single_set() {
         ]);
     }
     weapon_set_equipped = "single";
+}
+
+async function sugar_rush_set() {
+    const mainhand = character.slots.mainhand;
+    const offhand = character.slots.offhand;
+    const needs_main = !mainhand || mainhand.name !== "candycanesword" || mainhand.level !== 7 || mainhand.l !== "l";
+    const needs_off = !offhand || offhand.name !== "candycanesword" || offhand.level !== 7 || offhand.l !== "l";
+    if (needs_main || needs_off) {
+        batch_equip([
+            { itemName: "candycanesword", slot: "mainhand", level: 7, l: "l" },
+            { itemName: "candycanesword", slot: "offhand", level: 7, l: "l" }
+        ]);
+    }
+    weapon_set_equipped = "sugar_rush";
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -685,12 +647,8 @@ async function handle_taunt() {
 let batch_equip_lock = false;
 
 async function batch_equip(data) {
-    // if (batch_equip_lock) {
-    //     game_log("batch_equip: Skipped due to lock");
-    //     return;
-    // }
-    // batch_equip_lock = true;
-
+    // Track used inventory slots to avoid double-using identical items
+    const used_indices = new Set();
     const batch = [];
 
     for (const equipRequest of data) {
@@ -706,26 +664,29 @@ async function batch_equip(data) {
             (!l || equipped.l === l)
         ) continue;
 
-        // Find the first matching item in inventory
-        const item_index = parent.character.items.findIndex(item =>
-            item &&
-            item.name === itemName &&
-            item.level === level &&
-            (!l || item.l === l)
-        );
-
+        // Find the first matching item in inventory not already used
+        let item_index = -1;
+        for (let i = 0; i < parent.character.items.length; i++) {
+            const item = parent.character.items[i];
+            if (
+                item &&
+                !used_indices.has(i) &&
+                item.name === itemName &&
+                item.level === level &&
+                (!l || item.l === l)
+            ) {
+                item_index = i;
+                break;
+            }
+        }
         if (item_index !== -1) {
             batch.push({ num: item_index, slot });
+            used_indices.add(item_index);
         }
     }
 
-    // if (!batch.length) {
-    //     batch_equip_lock = false;
-    //     return; // Nothing to equip, return early
-    // }
-
-    equip_batch(batch); // Await the batch equip
-    // batch_equip_lock = false;
+    if (!batch.length) return; // Nothing to equip
+    equip_batch(batch);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -771,3 +732,55 @@ async function aggro_mobs() {
     }
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BSCORPION KILL LOGGER LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let last_bscorpion_ids = new Set();
+
+async function bscorpion_kill_logger_loop() {
+    while (true) {
+        try {
+            // Get all bscorpion entities
+            const bscorps = Object.values(parent.entities).filter(e => e.type === "monster" && e.mtype === "bscorpion");
+            const alive_ids = new Set(bscorps.filter(e => !e.dead).map(e => e.id));
+            const dead_now = [...last_bscorpion_ids].filter(id => !alive_ids.has(id));
+            if (dead_now.length > 0) {
+                log_bscorpion_kill();
+            }
+            last_bscorpion_ids = alive_ids;
+        } catch (e) {
+            catcher(e, "bscorpion_kill_logger_loop");
+        }
+        await delay(250);
+    }
+}
+
+bscorpion_kill_logger_loop()
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BSCORPION KILL TIMER LOGGER
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+
+let bscorpion_kill_count = 0;
+let bscorpion_kill_times = [];
+
+function log_bscorpion_kill() {
+    const now = Date.now();
+    bscorpion_kill_count++;
+    bscorpion_kill_times.push(now);
+    if (bscorpion_kill_times.length > 30) bscorpion_kill_times.shift();
+
+    if (bscorpion_kill_times.length > 1) {
+        // Calculate rolling average
+        let total = 0;
+        for (let i = 1; i < bscorpion_kill_times.length; i++) {
+            total += bscorpion_kill_times[i] - bscorpion_kill_times[i - 1];
+        }
+        const avg = total / (bscorpion_kill_times.length - 1);
+        log(`Bscorpion kill #${bscorpion_kill_count}: ${new Date(now).toLocaleTimeString()} | Rolling avg: ${(avg/1000).toFixed(1)}s`, "#ffb347", "Bscorpion");
+    } else {
+        log(`Bscorpion kill #${bscorpion_kill_count}: ${new Date(now).toLocaleTimeString()} (first recorded)`, "#ffb347", "Bscorpion");
+    }
+}
