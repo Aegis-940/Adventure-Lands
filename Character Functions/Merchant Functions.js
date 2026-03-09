@@ -76,7 +76,7 @@ function get_character_state() {
     // if (panicking) return MERCHANT_STATES.PANIC;
     if (should_run_loop())          return MERCHANT_STATES.DELIVERING;
     if (should_run_auto_upgrade())  return MERCHANT_STATES.UPGRADING;
-    if (merchant_task === "Idle")   return MERCHANT_STATES.EXCHANGING;
+    // if (merchant_task === "Idle")   return MERCHANT_STATES.EXCHANGING;
     if (merchant_task === "Idle")   return MERCHANT_STATES.IDLE;
 }
 
