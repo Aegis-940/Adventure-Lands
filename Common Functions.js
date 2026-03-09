@@ -2116,7 +2116,7 @@ async function maintain_distance_from_bscorpion() {
     }
 
     // Desired distance
-    const desired = character.range ? Math.max(0, character.range - 2) : 48;
+    const desired = 38;
     const angle = Math.atan2(character.y - pred_y, character.x - pred_x);
     const newX = pred_x + Math.cos(angle) * desired;
     const newY = pred_y + Math.sin(angle) * desired;
