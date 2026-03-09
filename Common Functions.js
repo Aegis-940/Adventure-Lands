@@ -1964,7 +1964,8 @@ async function move_distance_from_bscorpion2() {
 async function prim_farm_loop_ulric() {
     while(true) {
         if (PRIM_FARM_LOOT_ENABLED) {
-            move_distance_from_bscorpion();
+
+            // move_distance_from_bscorpion();
 
             if (is_bscorpion_targeting_myras()) {
                 if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
