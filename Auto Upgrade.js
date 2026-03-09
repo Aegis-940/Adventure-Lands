@@ -261,12 +261,12 @@ async function auto_upgrade_item(level) {
             // Check if character has enough gold before buying
             const scroll_cost = G.items[scrollname]?.g || 0;
             if (character.gold < scroll_cost) {
-                game_log(`❌ Not enough gold to buy ${scrollname} for upgrading ${item.name} (level ${item.level}). Ending auto-upgrade.`);
+                log(`❌ Not enough gold to buy ${scrollname} for upgrading ${item.name} (level ${item.level}). Ending auto-upgrade.`);
                 return "end";
             }
             else {
                 parent.buy(scrollname);
-                game_log(`Buying ${scrollname} for upgrading ${item.name} (level ${item.level})`);
+                log(`Buying ${scrollname} for upgrading ${item.name} (level ${item.level})`);
                 // Only buy one scroll, then return immediately
                 return "wait";
             }
@@ -284,7 +284,7 @@ async function auto_upgrade_item(level) {
             }
             // If no offering is found, skip this item and continue to the next
             if (offering_slot === null) {
-                game_log(`Skipping ${item.name} (level ${item.level}): No offeringp found for upgrade requiring it.`);
+                log(`Skipping ${item.name} (level ${item.level}): No offeringp found for upgrade requiring it.`);
                 continue;
             }
         }
@@ -292,14 +292,12 @@ async function auto_upgrade_item(level) {
         // Upgrade the item
         if (!character.q.upgrade) {
             if (item.level <= 3 && can_use("massproduction")) {
-                await use_skill("massproduction");
-                log("Using massproduction for upgrade.");
-                await delay(10);
+                use_skill("massproduction");
+                await delay(20);
             }
-            if (item.level >= 4 && can_use("massproductionpp")) {
-                await use_skill("massproductionpp");
-                log("Using massproductionpp for upgrade.");
-                await delay(10);
+            if (item.level >= 4 && can_use("massproductionpp") && character.mp >= 400) {
+                use_skill("massproductionpp");
+                await delay(20);
             }
             parent.socket.emit("upgrade", {
                 item_num: i,
@@ -307,7 +305,7 @@ async function auto_upgrade_item(level) {
                 offering_num: offering_slot,
                 clevel: item.level,
             });
-            await game_log(`Upgrading ${item.name} (level ${item.level}) with ${scrollname}`);
+            game_log(`Upgrading ${item.name} (level ${item.level}) with ${scrollname}`);
         }
 
         while (character.q.upgrade) {
