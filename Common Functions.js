@@ -1855,7 +1855,7 @@ async function move_distance_from_bscorpion() {
         }
     }
     if (!nearest) return false; // No bscorpion found
-    const desired = 35;
+    const desired = character.range - 2;
     const angle = Math.atan2(character.y - nearest.y, character.x - nearest.x);
     const newX = nearest.x + Math.cos(angle) * desired;
     const newY = nearest.y + Math.sin(angle) * desired;
