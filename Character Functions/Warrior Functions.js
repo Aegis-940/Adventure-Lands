@@ -30,10 +30,15 @@ async function sugar_rush_check(target) {
     attack(target);
 
     if (character.s.sugarrush === undefined) {
-        // ...existing equip logic (replace with your actual equip logic as needed)
-        sugar_rush_set();
+        batch_equip([
+            { itemName: "candycanesword", slot: "mainhand", level: 7, l: "l" },
+            { itemName: "candycanesword", slot: "offhand", level: 7, l: "l" }
+        ]);
         await delay(100);
-        single_set();
+        batch_equip([
+            { itemName: "fireblade", slot: "mainhand", level: 9, l: "l" },
+            { itemName: "fireblade", slot: "offhand", level: 9, l: "l" }
+        ]);
         await delay(200);
         if (character.s.sugarrush !== undefined) {
             log("🍬 Sugar Rush activated! 🍬", "#ff69b4", "Alerts");
@@ -629,12 +634,6 @@ async function handle_taunt() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // BATCH EQUIP ITEMS
 // --------------------------------------------------------------------------------------------------------------------------------- //
-
-/**
- * Finds inventory indices for the requested items and calls the game's native equip_batch.
- * @param {Array} data - Array of { itemName, slot, level, l } objects.
- * @returns {Promise} Resolves/rejects with the result of equip_batch.
- */
 
 let batch_equip_lock = false;
 
