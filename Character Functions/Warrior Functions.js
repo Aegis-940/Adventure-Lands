@@ -525,12 +525,11 @@ async function cleave_set() {
 
 async function explosion_set() {
 
-    if (needs_main || needs_off) {
-        batch_equip([
-            { itemName: "fireblade", slot: "mainhand", level: 9, l: "l" },
-            { itemName: "ololipop", slot: "offhand", level: 9, l: "l" }
-        ]);
-    }
+    batch_equip([
+        { itemName: "fireblade", slot: "mainhand", level: 9, l: "l" },
+        { itemName: "ololipop", slot: "offhand", level: 9, l: "l" }
+    ]);
+
     weapon_set_equipped = "explosion";
 }
 
