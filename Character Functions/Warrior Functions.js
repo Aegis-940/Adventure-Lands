@@ -27,15 +27,9 @@ const CLEAVE_MP_THRESHOLD = 900;        // Minimum MP Warrior must have to cast 
 
 async function sugar_rush_check(target) {
 
-    attack(target);
+    equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
 
-    if (PRIM_FARM_LOOT_ENABLED) {
-    // Equip candycanesword in both slots
-        batch_equip([
-            { itemName: "candycanesword", slot: "mainhand", level: 7, l: "l" },
-            { itemName: "candycanesword", slot: "offhand", level: 7, l: "l" }
-        ]);
-    }
+    attack(target);
 
     await delay(50);
 
@@ -95,13 +89,9 @@ async function attack_loop() {
                     await delay(1000)
                     continue; // Skip attacking while smart moving
                 } else if (target && is_in_range(target) && !smart.moving && character.mp >= 80) {
-                    equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
-                    attack(target);
-                    await delay(50);
-                    equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
+                    sugar_rush_check(target)
                 }
                 delayMs = ms_to_next_skill("attack") + character.ping;
-                log(`Next attack in ${delayMs} ms`, "#aaa", "Attack Loop");
                 await delay(delayMs > 100 ? delayMs : 100);
                 continue; 
             } catch (e) {
