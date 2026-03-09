@@ -270,7 +270,7 @@ async function boss_loop() {
                     is_in_range(heal_target)
                 ) {
                     await heal(heal_target);
-                } else if (is_in_range(boss) && !smart.moving) {
+                } else {
                     attack(boss);
                 }
             } catch (e) { catcher(e, "Boss attack error"); }

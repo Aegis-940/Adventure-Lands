@@ -755,7 +755,7 @@ function log_bscorpion_kill() {
     const now = Date.now();
     bscorpion_kill_count++;
     bscorpion_kill_times.push(now);
-    if (bscorpion_kill_times.length > 30) bscorpion_kill_times.shift();
+    if (bscorpion_kill_times.length > 50) bscorpion_kill_times.shift();
 
     if (bscorpion_kill_times.length > 1) {
         // Calculate rolling average
@@ -764,7 +764,7 @@ function log_bscorpion_kill() {
             total += bscorpion_kill_times[i] - bscorpion_kill_times[i - 1];
         }
         const avg = total / (bscorpion_kill_times.length - 1);
-        log(`Bscorpion kill #${bscorpion_kill_count}: ${new Date(now).toLocaleTimeString()} | Rolling avg: ${(avg/1000).toFixed(1)}s`, "#ffb347", "Bscorpion");
+        log(`Seconds / Kill (Avg): ${(avg/1000).toFixed(1)}s`, "#ffb347", "Bscorpion");
     } else {
         log(`Bscorpion kill #${bscorpion_kill_count}: ${new Date(now).toLocaleTimeString()} (first recorded)`, "#ffb347", "Bscorpion");
     }
