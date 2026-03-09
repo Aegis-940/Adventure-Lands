@@ -680,7 +680,7 @@ async function batch_equip(data) {
     //     return; // Nothing to equip, return early
     // }
 
-    await equip_batch(batch); // Await the batch equip
+    equip_batch(batch); // Await the batch equip
     // batch_equip_lock = false;
 }
 
