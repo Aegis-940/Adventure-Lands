@@ -120,6 +120,7 @@ async function set_state(state) {
                             await delay(3000);
                         }
                         await smarter_move(HOME);
+                        await sell_and_bank();
                         last_loop_time = Date.now();
                         merchant_task = "Idle";
                     }
