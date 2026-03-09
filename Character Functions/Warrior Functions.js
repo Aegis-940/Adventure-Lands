@@ -31,7 +31,7 @@ async function sugar_rush_check(target) {
 
     if (PRIM_FARM_LOOT_ENABLED) {
     // Equip candycanesword in both slots
-        await batch_equip([
+        batch_equip([
             { itemName: "candycanesword", slot: "mainhand", level: 7, l: "l" },
             { itemName: "candycanesword", slot: "offhand", level: 7, l: "l" }
         ]);
@@ -41,7 +41,7 @@ async function sugar_rush_check(target) {
 
     if (PRIM_FARM_LOOT_ENABLED) {
         // Restore original weapons
-        await batch_equip([
+        batch_equip([
             { itemName: "fireblade", slot: "mainhand", level: 8, l: "l" },
             { itemName: "fireblade", slot: "offhand", level: 7, l: "l" }
         ]);
