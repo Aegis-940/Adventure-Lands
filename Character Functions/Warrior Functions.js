@@ -29,7 +29,7 @@ async function sugar_rush_check(target) {
 
     log("Checking Sugar Rush...", "#ff69b4", "Skills");
 
-    attack(target);
+    await attack(target);
 
     if (true) {
         equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
@@ -91,7 +91,7 @@ async function attack_loop() {
                 } else if (target && is_in_range(target) && !smart.moving && character.mp >= 80) {
                     sugar_rush_check(target)
                 }
-                delayMs = 1500;
+                delayMs = 1000/character.frequency + 200; // Add 200ms buffer to ensure we don't attack faster than allowed
                 await delay(delayMs);
                 continue; 
             } catch (e) {
