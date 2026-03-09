@@ -552,19 +552,18 @@ async function loot_loop() {
             // If enough time has passed since last loot, and enough chests are present, and not feared
             if ((last_loot_time ?? 0) + 1000 < now) {
                 if (getNumChests() >= chestThreshold) {
-                    batch_equip([{ itemName: "handofmidas", slot: "gloves", level: 4 }]);
-                    shift(5, 'goldbooster');
-                    await delay(75);
+                    await batch_equip([{ itemName: "handofmidas", slot: "gloves", level: 4 }]);
+                    await shift(5, 'goldbooster');
                     await loot_chests();
                     await delay(100);
-                    batch_equip([{ itemName: "supermittens", slot: "gloves", level: 6 }]);
-                    shift(5, 'luckbooster');
-                    await delay(75);
-
-                    // Check if gloves are "mittens", if not, try to equip again
-                    if (!character.slots.gloves || character.slots.gloves.name !== "mittens") {
-                        batch_equip([{ itemName: "supermittens", slot: "gloves", level: 6 }]);
-                    }
+                    await batch_equip([{ itemName: "supermittens", slot: "gloves", level: 6 }]);
+                    await shift(5, 'luckbooster');
+                    await delay(500);
+                }
+                
+                 // Check if gloves are "supermittens", if not, try to equip again
+                if (!character.slots.gloves || character.slots.gloves.name !== "supermittens") {
+                    await batch_equip([{ itemName: "supermittens", slot: "gloves", level: 6 }]);
                 }
             }
 
