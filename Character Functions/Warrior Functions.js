@@ -34,7 +34,6 @@ async function sugar_rush_check(target) {
             { itemName: "candycanesword", slot: "mainhand", level: 7, l: "l" },
             { itemName: "candycanesword", slot: "offhand", level: 7, l: "l" }
         ]);
-        await delay(100);
         batch_equip([
             { itemName: "fireblade", slot: "mainhand", level: 9, l: "l" },
             { itemName: "fireblade", slot: "offhand", level: 9, l: "l" }
