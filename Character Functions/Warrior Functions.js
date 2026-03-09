@@ -27,7 +27,7 @@ const CLEAVE_MP_THRESHOLD = 900;        // Minimum MP Warrior must have to cast 
 
 async function sugar_rush_check(target) {
 
-    if (can_use("attack")) {
+    if (can_use("attack") && !is_on_cooldown("attack")) {
         attack(target);
 
         if (true) {
