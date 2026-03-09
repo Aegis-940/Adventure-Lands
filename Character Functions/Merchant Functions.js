@@ -943,7 +943,7 @@ async function custom_craft() {
     while (smoke_qty < 25 && smoke_attempts < MAX_ATTEMPTS) {
         try {
             await withdraw_item("essenceoffire");
-            await delay(200);
+            await delay(100);
         } catch (e) {
             game_log("⚠️ Could not withdraw 'smoke': " + e.message, "#FF0000");
         }
