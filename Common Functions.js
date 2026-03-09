@@ -1974,7 +1974,7 @@ async function prim_farm_loop_ulric() {
                 if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
             }
 
-            await delay(50);
+            await delay(100);
         } else {
             await delay(1000);
         }
