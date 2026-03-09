@@ -95,7 +95,16 @@ async function attack_loop() {
                     await delay(1000)
                     continue; // Skip attacking while smart moving
                 } else if (target && is_in_range(target) && !smart.moving && character.mp >= 80) {
-                    await sugar_rush_check(target); // attack(target);
+                    batch_equip([
+                        { itemName: "candycanesword", slot: "mainhand", level: 7, l: "l" },
+                        { itemName: "candycanesword", slot: "offhand", level: 7, l: "l" }
+                    ]);
+                    attack(target);
+                    await delay(50);
+                    batch_equip([
+                        { itemName: "fireblade", slot: "mainhand", level: 8, l: "l" },
+                        { itemName: "fireblade", slot: "offhand", level: 7, l: "l" }
+                    ]);
                 }
                 delayMs = ms_to_next_skill("attack");
                 await delay(delayMs > 50 ? delayMs : 50);
