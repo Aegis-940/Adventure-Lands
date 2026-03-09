@@ -1893,7 +1893,7 @@ async function move_distance_from_bscorpion() {
     // Only move if not already at the correct distance (with a small tolerance)
     if (Math.abs(minDist - desired) > 0) {
         move(newX, newY);
-        await delay(10);
+        await delay(50);
         return true;
     }
     return false;
