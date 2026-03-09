@@ -84,8 +84,9 @@ async function attack_loop() {
                 }
                 await delay(201)
                 delayMs = ms_to_next_skill('attack') + character.ping + 50;
-                log(delayMs)
+                log(ms_to_next_skill('attack'))
                 await delay(delayMs);
+                continue; //
             } catch (e) {
                 catcher(e, "Attack Loop error ");
             }
