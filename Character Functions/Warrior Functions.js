@@ -91,7 +91,7 @@ async function attack_loop() {
                     sugar_rush_check(target)
                 }
                 await delay(201)
-                delayMs = 1000/character.frequency - 100;
+                delayMs = 1000/character.frequency;
                 await delay(delayMs);
                 continue; //
             } catch (e) {
@@ -675,7 +675,7 @@ async function batch_equip(data) {
     //     return; // Nothing to equip, return early
     // }
 
-    await equip_batch(batch); // Await the batch equip
+    equip_batch(batch); // Await the batch equip
     // batch_equip_lock = false;
 }
 
