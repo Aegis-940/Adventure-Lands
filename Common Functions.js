@@ -1891,7 +1891,7 @@ async function move_to_bscorpion_range() {
     const newX = nearest.x + Math.cos(angle) * desired;
     const newY = nearest.y + Math.sin(angle) * desired;
     // Only move if not already at the correct distance (with a small tolerance)
-    if (Math.abs(minDist - desired) > 2) {
+    if (Math.abs(minDist - desired) > 1) {
         move(newX, newY);
         await delay(10);
         return true;
