@@ -91,7 +91,7 @@ async function attack_loop() {
                 } else if (target && is_in_range(target) && !smart.moving && character.mp >= 80) {
                     sugar_rush_check(target)
                 }
-                delayMs = (1000/character.frequency) + 10;
+                delayMs = 1000;
                 await delay(delayMs);
                 continue; 
             } catch (e) {
