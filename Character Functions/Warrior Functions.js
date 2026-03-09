@@ -35,7 +35,7 @@ async function sugar_rush_check(target) {
         equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
     }
 
-    await delay(50);
+    await delay(100);
 
     if (true) {
         equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
