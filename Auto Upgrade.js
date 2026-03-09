@@ -291,11 +291,11 @@ async function auto_upgrade_item(level) {
 
         // Upgrade the item
         if (!character.q.upgrade) {
-            if (item.level <= 3 && can_use("massproduction")) {
+            if (item.level <= 2 && can_use("massproduction")) {
                 use_skill("massproduction");
                 await delay(20);
             }
-            if (item.level >= 4 && can_use("massproductionpp") && character.mp >= 400) {
+            if (item.level >= 3 && can_use("massproductionpp") && character.mp >= 400) {
                 use_skill("massproductionpp");
                 await delay(20);
             }
