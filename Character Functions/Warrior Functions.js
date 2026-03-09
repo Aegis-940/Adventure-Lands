@@ -27,17 +27,18 @@ const CLEAVE_MP_THRESHOLD = 900;        // Minimum MP Warrior must have to cast 
 
 async function sugar_rush_check(target) {
 
+    // Cooldown logic: only run once every 200ms
+    if (!sugar_rush_check._lastRun) sugar_rush_check._lastRun = 0;
+    const now = Date.now();
+    if (now - sugar_rush_check._lastRun < 200) return;
+    sugar_rush_check._lastRun = now;
+
     attack(target);
 
-    if (true) {
-        equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
-    }
-
+    // ...existing equip logic (replace with your actual equip logic as needed)
+    equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
     await delay(200);
-
-    if (true) {
-        equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
-    }
+    equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
 
 }
 
