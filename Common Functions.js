@@ -1868,7 +1868,7 @@ async function move_closer_to_bscorpion() {
 }
 
 // Move to maintain distance from bscorpion at exactly character.range - 2
-async function move_to_bscorpion_range() {
+async function move_distance_from_bscorpion() {
     // Find the nearest alive bscorpion
     let nearest = null;
     let minDist = Infinity;
@@ -1886,7 +1886,7 @@ async function move_to_bscorpion_range() {
         }
     }
     if (!nearest) return false; // No bscorpion found
-    const desired = 38;
+    const desired = character.range ? Math.max(0, character.range - 2) : 48;
     const angle = Math.atan2(character.y - nearest.y, character.x - nearest.x);
     const newX = nearest.x + Math.cos(angle) * desired;
     const newY = nearest.y + Math.sin(angle) * desired;
@@ -1909,7 +1909,7 @@ async function prim_farm_loop() {
                 if (is_bscorpion_targeting_myras()) {
                     if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
                     if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
-                    move_to_bscorpion_range();
+                    move_distance_from_bscorpion();
                 } else {
                     if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
                     if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
