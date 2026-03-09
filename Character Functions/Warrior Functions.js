@@ -30,14 +30,9 @@ async function sugar_rush_check(target) {
     attack(target);
 
     if (character.s.sugarrush === undefined) {
-        batch_equip([
-            { itemName: "candycanesword", slot: "mainhand", level: 7, l: "l" },
-            { itemName: "candycanesword", slot: "offhand", level: 7, l: "l" }
-        ]);
-        batch_equip([
-            { itemName: "fireblade", slot: "mainhand", level: 9, l: "l" },
-            { itemName: "fireblade", slot: "offhand", level: 9, l: "l" }
-        ]);
+        equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
+        await delay(100);
+        equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
         await delay(200);
         if (character.s.sugarrush !== undefined) {
             log("🍬 Sugar Rush activated! 🍬", "#ff69b4", "Alerts");
