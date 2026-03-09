@@ -29,7 +29,7 @@ async function sugar_rush_check(target) {
 
     attack(target);
 
-    if (character.s.sugarrush === undefined) {
+    if (character.s.sugarrush === undefined && WARRIOR_TARGET === MONSTER_LOCS.bscorpion) {
         equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
         await delay(100);
         equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
