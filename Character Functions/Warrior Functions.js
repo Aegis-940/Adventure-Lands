@@ -1,3 +1,50 @@
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BSCORPION KILL LOGGER LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let last_bscorpion_ids = new Set();
+
+async function bscorpion_kill_logger_loop() {
+    while (true) {
+        try {
+            // Get all bscorpion entities
+            const bscorps = Object.values(parent.entities).filter(e => e.type === "monster" && e.mtype === "bscorpion");
+            const alive_ids = new Set(bscorps.filter(e => !e.dead).map(e => e.id));
+            const dead_now = [...last_bscorpion_ids].filter(id => !alive_ids.has(id));
+            if (dead_now.length > 0) {
+                log_bscorpion_kill();
+            }
+            last_bscorpion_ids = alive_ids;
+        } catch (e) {
+            catcher(e, "bscorpion_kill_logger_loop");
+        }
+        await delay(250);
+    }
+}
+
+bscorpion_kill_logger_loop()
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BSCORPION KILL TIMER LOGGER
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let last_bscorpion_kill = null;
+let bscorpion_kill_count = 0;
+
+function log_bscorpion_kill() {
+    const now = Date.now();
+    bscorpion_kill_count++;
+    if (last_bscorpion_kill) {
+        const diff = now - last_bscorpion_kill;
+        log(`Bscorpion kill #${bscorpion_kill_count}: ${new Date(now).toLocaleTimeString()} | Time since last: ${(diff/1000).toFixed(1)}s`, "#ffb347", "Bscorpion");
+    } else {
+        log(`Bscorpion kill #${bscorpion_kill_count}: ${new Date(now).toLocaleTimeString()} (first recorded)`, "#ffb347", "Bscorpion");
+    }
+    last_bscorpion_kill = now;
+    // Example respawn: 5min (300000ms)
+    const next = new Date(now + 300000).toLocaleTimeString();
+    log(`Next bscorpion expected at: ${next}`, "#bada55", "Bscorpion");
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 1) GLOBAL LOOP SWITCHES AND VARIABLES
@@ -541,7 +588,7 @@ async function explosion_set() {
     const needs_off = !offhand || offhand.name !== "ololipop" || offhand.level !== 9 || offhand.l !== "l";
     if (needs_main || needs_off) {
         batch_equip([
-            { itemName: "fireblade", slot: "mainhand", level: 8, l: "l" },
+            { itemName: "fireblade", slot: "mainhand", level: 9, l: "l" },
             { itemName: "ololipop", slot: "offhand", level: 9, l: "l" }
         ]);
     }
@@ -555,8 +602,8 @@ async function single_set() {
     const needs_off = !offhand || offhand.name !== "fireblade" || offhand.level !== 7 || offhand.l !== "l";
     if (needs_main || needs_off) {
         batch_equip([
-            { itemName: "fireblade", slot: "mainhand", level: 8, l: "l" },
-            { itemName: "fireblade", slot: "offhand", level: 7, l: "l" }
+            { itemName: "fireblade", slot: "mainhand", level: 9, l: "l" },
+            { itemName: "fireblade", slot: "offhand", level: 9, l: "l" }
         ]);
     }
     weapon_set_equipped = "single";
