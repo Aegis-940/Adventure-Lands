@@ -29,20 +29,18 @@ async function sugar_rush_check(target) {
 
     log("Checking Sugar Rush conditions...", "#ff69b4", "Alerts");
 
-    if (!is_on_cooldown("attack")) {
-        log("🍬 Sugar Rush! 🍬", "#ff69b4", "Alerts");
-        attack(target);
+    attack(target);
 
-        if (true) {
-            equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
-        }
-
-        await delay(200);
-
-        if (true) {
-            equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
-        }
+    if (true) {
+        equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
     }
+
+    await delay(200);
+
+    if (true) {
+        equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
+    }
+
 
 }
 
@@ -92,7 +90,7 @@ async function attack_loop() {
                 if (target && is_in_range(target) && !smart.moving && character.mp >= 80) {
                     await sugar_rush_check(target)
                 }
-                delayMs = 50;
+                delayMs = ms_to_next_skill('attack');
                 await delay(delayMs);
                 continue;
             } catch (e) {
