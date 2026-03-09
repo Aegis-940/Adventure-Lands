@@ -28,22 +28,27 @@ bscorpion_kill_logger_loop()
 // BSCORPION KILL TIMER LOGGER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let last_bscorpion_kill = null;
+
 let bscorpion_kill_count = 0;
+let bscorpion_kill_times = [];
 
 function log_bscorpion_kill() {
     const now = Date.now();
     bscorpion_kill_count++;
-    if (last_bscorpion_kill) {
-        const diff = now - last_bscorpion_kill;
-        log(`Bscorpion kill #${bscorpion_kill_count}: ${new Date(now).toLocaleTimeString()} | Time since last: ${(diff/1000).toFixed(1)}s`, "#ffb347", "Bscorpion");
+    bscorpion_kill_times.push(now);
+    if (bscorpion_kill_times.length > 30) bscorpion_kill_times.shift();
+
+    if (bscorpion_kill_times.length > 1) {
+        // Calculate rolling average
+        let total = 0;
+        for (let i = 1; i < bscorpion_kill_times.length; i++) {
+            total += bscorpion_kill_times[i] - bscorpion_kill_times[i - 1];
+        }
+        const avg = total / (bscorpion_kill_times.length - 1);
+        log(`Bscorpion kill #${bscorpion_kill_count}: ${new Date(now).toLocaleTimeString()} | Rolling avg: ${(avg/1000).toFixed(1)}s`, "#ffb347", "Bscorpion");
     } else {
         log(`Bscorpion kill #${bscorpion_kill_count}: ${new Date(now).toLocaleTimeString()} (first recorded)`, "#ffb347", "Bscorpion");
     }
-    last_bscorpion_kill = now;
-    // Example respawn: 5min (300000ms)
-    const next = new Date(now + 300000).toLocaleTimeString();
-    log(`Next bscorpion expected at: ${next}`, "#bada55", "Bscorpion");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
