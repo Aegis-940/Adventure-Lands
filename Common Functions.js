@@ -229,7 +229,12 @@ function is_boss_alive() {
 function is_bscorpion_alive() {
     let found = false;
     if (HEALER_TARGET    === MONSTER_LOCS.bscorpion || WARRIOR_TARGET   === MONSTER_LOCS.bscorpion || RANGER_TARGET    === MONSTER_LOCS.bscorpion){
-        found = true;
+        const TARGET_LOC = { map: "desertland", x: -408, y: -1266 };
+        const within_200 = character.map === TARGET_LOC.map &&
+            Math.hypot(character.x - TARGET_LOC.x, character.y - TARGET_LOC.y) <= 200;
+        if (within_200) {
+            found = true;
+        }
     }
     if (found) {
         PRIM_FARM_LOOT_ENABLED = true;
