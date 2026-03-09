@@ -1882,33 +1882,50 @@ function is_bscorpion_targeting_myras() {
   return false;
 }
 
-// Move to maintain distance from bscorpion at exactly character.range - 2
+let cached_bscorpion_id = null;
+
 async function move_distance_from_bscorpion() {
-    // Find the nearest alive bscorpion
     let nearest = null;
     let minDist = Infinity;
-    for (const id in parent.entities) {
-        const ent = parent.entities[id];
+
+    // Try cached id first
+    if (cached_bscorpion_id && parent.entities[cached_bscorpion_id]) {
+        const ent = parent.entities[cached_bscorpion_id];
         if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
-            const dx = ent.x - character.x;
-            const dy = ent.y - character.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < minDist) {
-                minDist = dist;
-                nearest = ent;
+            nearest = ent;
+            minDist = Math.hypot(ent.x - character.x, ent.y - character.y);
+        } else {
+            cached_bscorpion_id = null;
+        }
+    }
+
+    // If not cached or cache invalid, search
+    if (!nearest) {
+        for (const id in parent.entities) {
+            const ent = parent.entities[id];
+            if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
+                const dist = Math.hypot(ent.x - character.x, ent.y - character.y);
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearest = ent;
+                    cached_bscorpion_id = id;
+                }
             }
         }
     }
-    if (!nearest) return false; // No bscorpion found
+
+    if (!nearest) return false;
+
     const desired = 35;
-    const angle = Math.atan2(character.y - nearest.y, character.x - nearest.x);
-    const newX = nearest.x + Math.cos(angle) * desired;
-    const newY = nearest.y + Math.sin(angle) * desired;
-    // Only move if not already at the correct distance (with a small tolerance)
-    if (Math.abs(minDist - desired) > 0) {
-        log(minDist - desired);
-        halt_movement();
-        move(newX, newY);
+    const tolerance = 1.5;
+    if (Math.abs(minDist - desired) > tolerance) {
+        // Only move if not already moving or target is far from current move target
+        if (!character.moving || Math.hypot(character.x - nearest.x, character.y - nearest.y) > tolerance) {
+            const angle = Math.atan2(character.y - nearest.y, character.x - nearest.x);
+            const newX = nearest.x + Math.cos(angle) * desired;
+            const newY = nearest.y + Math.sin(angle) * desired;
+            move(newX, newY);
+        }
         return true;
     }
     return false;
