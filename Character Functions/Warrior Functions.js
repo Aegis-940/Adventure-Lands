@@ -549,30 +549,22 @@ async function explosion_set() {
 }
 
 async function single_set() {
-    const mainhand = character.slots.mainhand;
-    const offhand = character.slots.offhand;
-    const needs_main = !mainhand || mainhand.name !== "fireblade" || mainhand.level !== 9 || mainhand.l !== "l";
-    const needs_off = !offhand || offhand.name !== "fireblade" || offhand.level !== 9 || offhand.l !== "l";
-    if (needs_main || needs_off) {
-        batch_equip([
-            { itemName: "fireblade", slot: "mainhand", level: 9, l: "l" },
-            { itemName: "fireblade", slot: "offhand", level: 9, l: "l" }
-        ]);
-    }
+
+    batch_equip([
+        { itemName: "fireblade", slot: "mainhand", level: 9, l: "l" },
+        { itemName: "fireblade", slot: "offhand", level: 9, l: "l" }
+    ]);
+    
     weapon_set_equipped = "single";
 }
 
 async function sugar_rush_set() {
-    const mainhand = character.slots.mainhand;
-    const offhand = character.slots.offhand;
-    const needs_main = !mainhand || mainhand.name !== "candycanesword" || mainhand.level !== 7 || mainhand.l !== "l";
-    const needs_off = !offhand || offhand.name !== "candycanesword" || offhand.level !== 7 || offhand.l !== "l";
-    if (needs_main || needs_off) {
-        batch_equip([
-            { itemName: "candycanesword", slot: "mainhand", level: 7, l: "l" },
-            { itemName: "candycanesword", slot: "offhand", level: 7, l: "l" }
-        ]);
-    }
+    
+    batch_equip([
+        { itemName: "candycanesword", slot: "mainhand", level: 7, l: "l" },
+        { itemName: "candycanesword", slot: "offhand", level: 7, l: "l" }
+    ]);
+
     weapon_set_equipped = "sugar_rush";
 }
 
