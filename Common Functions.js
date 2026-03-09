@@ -79,12 +79,13 @@ const MONSTER_LOCS = {
     ghost:        { map: "halloween", x: 229, y: -1203, orbit: true , hostile: false },
     prat:         { map: "level1", x: 89, y: 199, orbit: true , hostile: false },
     dryad:        { map: "mforest", x: 380, y: -359, orbit: true , hostile: false },
-    bscorpion:    { map: "desertland", x: -408, y: -1266, orbit: true , hostile: false }
+    bscorpion:    { map: "desertland", x: -408, y: -1266, orbit: true , hostile: false },
+    mummy:       { map: "level3", x: -328, y: -213, orbit: true , hostile: true },
 };
 
-const HEALER_TARGET    = MONSTER_LOCS.bscorpion;
-const WARRIOR_TARGET   = MONSTER_LOCS.bscorpion;
-const RANGER_TARGET    = MONSTER_LOCS.bscorpion;
+const HEALER_TARGET    = MONSTER_LOCS.mummy;
+const WARRIOR_TARGET   = MONSTER_LOCS.mummy;
+const RANGER_TARGET    = MONSTER_LOCS.mummy;
 const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 
 const FLOATING_BUTTON_IDS = [];
@@ -367,7 +368,7 @@ async function set_state(state) {
                 try {
 
                     if (!BOSS_LOOP_ENABLED) BOSS_LOOP_ENABLED = true;
-                    
+
                 } catch (e) {
                     catcher(e, "set_loops: BOSS state error");
                 }
