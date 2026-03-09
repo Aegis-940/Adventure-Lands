@@ -1959,7 +1959,7 @@ async function prim_farm_loop() {
 
             }
 
-            await delay(100);
+            await delay(200);
             
         } else {
             await delay(1000);
@@ -2031,7 +2031,7 @@ async function prim_orbit_loop() {
                 target_y = ccw_y;
             }
             await move(target_x, target_y);
-            await delay(80);
+            await delay(100);
         } else {
             await delay(1000);
         }
