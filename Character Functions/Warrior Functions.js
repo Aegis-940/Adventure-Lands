@@ -28,12 +28,11 @@ const CLEAVE_MP_THRESHOLD = 900;        // Minimum MP Warrior must have to cast 
 async function sugar_rush_check() {
 
     if (PRIM_FARM_LOOT_ENABLED) {
-        // Record currently equipped weapons
-        const mainhand = character.slots.mainhand ? { ...character.slots.mainhand } : null;
-        const offhand = character.slots.offhand ? { ...character.slots.offhand } : null;
-
         // Equip candycanesword in both slots
-        batch_equip({ mainhand: "candycanesword", offhand: "candycanesword" });
+        batch_equip([
+            { itemName: "candycanesword", slot: "mainhand", level: 7, l: "l" },
+            { itemName: "candycanesword", slot: "offhand", level: 7, l: "l" }
+        ]);
     }
 
     attack(target);
@@ -41,12 +40,10 @@ async function sugar_rush_check() {
     if (PRIM_FARM_LOOT_ENABLED) {
         // Restore original weapons
         await delay(100);
-        const equipBack = {};
-        if (mainhand) equipBack.mainhand = mainhand;
-        if (offhand) equipBack.offhand = offhand;
-        if (Object.keys(equipBack).length > 0) {
-            await batch_equip(equipBack);
-        }
+        batch_equip([
+            { itemName: "fireblade", slot: "mainhand", level: 8, l: "l" },
+            { itemName: "fireblade", slot: "offhand", level: 7, l: "l" }
+        ]);
     }
 
 }
@@ -97,7 +94,7 @@ async function attack_loop() {
                     await delay(1000)
                     continue; // Skip attacking while smart moving
                 } else if (target && is_in_range(target) && !smart.moving && character.mp >= 80) {
-                    attack(target);
+                    sugar_rush_check(); // attack(target);
                 }
                 delayMs = ms_to_next_skill("attack");
                 await delay(delayMs > 50 ? delayMs : 50);
