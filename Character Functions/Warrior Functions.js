@@ -95,16 +95,10 @@ async function attack_loop() {
                     await delay(1000)
                     continue; // Skip attacking while smart moving
                 } else if (target && is_in_range(target) && !smart.moving && character.mp >= 80) {
-                    batch_equip([
-                        { itemName: "candycanesword", slot: "mainhand", level: 7, l: "l" },
-                        { itemName: "candycanesword", slot: "offhand", level: 7, l: "l" }
-                    ]);
+                    equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
                     attack(target);
                     await delay(50);
-                    batch_equip([
-                        { itemName: "fireblade", slot: "mainhand", level: 8, l: "l" },
-                        { itemName: "fireblade", slot: "offhand", level: 7, l: "l" }
-                    ]);
+                    equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
                 }
                 delayMs = ms_to_next_skill("attack");
                 await delay(delayMs > 50 ? delayMs : 50);
