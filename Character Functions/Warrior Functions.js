@@ -641,11 +641,11 @@ async function handle_taunt() {
 let batch_equip_lock = false;
 
 async function batch_equip(data) {
-    if (batch_equip_lock) {
-        game_log("batch_equip: Skipped due to lock");
-        return;
-    }
-    batch_equip_lock = true;
+    // if (batch_equip_lock) {
+    //     game_log("batch_equip: Skipped due to lock");
+    //     return;
+    // }
+    // batch_equip_lock = true;
 
     const batch = [];
 
@@ -675,13 +675,13 @@ async function batch_equip(data) {
         }
     }
 
-    if (!batch.length) {
-        batch_equip_lock = false;
-        return; // Nothing to equip, return early
-    }
+    // if (!batch.length) {
+    //     batch_equip_lock = false;
+    //     return; // Nothing to equip, return early
+    // }
 
     await equip_batch(batch); // Await the batch equip
-    batch_equip_lock = false;
+    // batch_equip_lock = false;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
