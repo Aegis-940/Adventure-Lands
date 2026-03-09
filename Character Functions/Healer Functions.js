@@ -234,10 +234,8 @@ async function boss_loop() {
 
         // 3. Engage boss until dead
         log("⚔️ Engaging boss...", "#ff00e6ff", "Alerts");
-        ATTACK_LOOP_ENABLED = true;
         while (parent.S[boss_name] && parent.S[boss_name].live) {
             const boss = get_boss_entity(boss_name);
-
             if (!boss) {
                 await delay(100);
                 if (parent.S[boss_name] && parent.S[boss_name].live && boss_spawn) {
@@ -248,7 +246,7 @@ async function boss_loop() {
 
             // Maintain distance: character.range - 5, with a tolerance
             const dist = parent.distance(character, boss);
-            const desired_range = character.range - BOSS_RANGE_TOLERANCE;
+            const desired_range = character.range - 10;
             if (
                 (dist > desired_range + BOSS_RANGE_TOLERANCE || dist < desired_range - BOSS_RANGE_TOLERANCE) &&
                 !character.moving
@@ -263,13 +261,26 @@ async function boss_loop() {
                 }
             }
 
+            // --- Heal or Attack ---
+            const heal_target = lowest_health_partymember();
+            try {
+                if (
+                    heal_target &&
+                    heal_target.hp < heal_target.max_hp - (character.heal / 1.33) &&
+                    is_in_range(heal_target)
+                ) {
+                    await heal(heal_target);
+                } else if (is_in_range(boss) && !smart.moving) {
+                    attack(boss);
+                }
+            } catch (e) { catcher(e, "Boss attack error"); }
+
             delayMs = ms_to_next_skill('attack') + character.ping + 50;
             await delay(delayMs);
         }
 
         // 4. Move back to target location
         let moving_home = true;
-        ATTACK_LOOP_ENABLED = false;
         smarter_move(HEALER_TARGET).then(() => { moving_home = false; });
         while (moving_home) {
             // If boss respawns while returning, break and restart boss loop
