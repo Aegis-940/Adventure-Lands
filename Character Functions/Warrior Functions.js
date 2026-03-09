@@ -25,7 +25,7 @@ const CLEAVE_MP_THRESHOLD = 900;        // Minimum MP Warrior must have to cast 
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function sugar_rush_check() {
+async function sugar_rush_check(target) {
 
     attack(target);
 
@@ -94,7 +94,7 @@ async function attack_loop() {
                     await delay(1000)
                     continue; // Skip attacking while smart moving
                 } else if (target && is_in_range(target) && !smart.moving && character.mp >= 80) {
-                    sugar_rush_check(); // attack(target);
+                    sugar_rush_check(target); // attack(target);
                 }
                 delayMs = ms_to_next_skill("attack");
                 await delay(delayMs > 50 ? delayMs : 50);
