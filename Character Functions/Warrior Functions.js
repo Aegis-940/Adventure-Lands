@@ -517,17 +517,14 @@ async function cleave_set() {
     const mainhand = character.slots.mainhand;
     if (!mainhand || mainhand.name !== "bataxe" || mainhand.level !== 7) {
         batch_equip([
-            { itemName: "bataxe", slot: "mainhand", level: 7 }
+            { itemName: "bataxe", slot: "mainhand", level: 7, l: "l" }
         ]);
     }
     weapon_set_equipped = "cleave";
 }
 
 async function explosion_set() {
-    const mainhand = character.slots.mainhand;
-    const offhand = character.slots.offhand;
-    const needs_main = !mainhand || mainhand.name !== "fireblade" || mainhand.level !== 9 || mainhand.l !== "l";
-    const needs_off = !offhand || offhand.name !== "ololipop" || offhand.level !== 9 || offhand.l !== "l";
+
     if (needs_main || needs_off) {
         batch_equip([
             { itemName: "fireblade", slot: "mainhand", level: 9, l: "l" },
