@@ -33,7 +33,10 @@ async function sugar_rush_check(target) {
         // ...existing equip logic (replace with your actual equip logic as needed)
         equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
         await delay(100);
-        equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
+        batch_equip([
+            { itemName: "fireblade", slot: "mainhand", level: 8, l: "l" },
+            { itemName: "fireblade", slot: "offhand", level: 7, l: "l" }
+        ]);
         if (character.s.sugarrush !== undefined) {
             log("🍬 Sugar Rush activated! 🍬", "#ff69b4", "Alerts");
         }
