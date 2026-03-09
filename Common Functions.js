@@ -1848,7 +1848,6 @@ async function move_distance_from_bscorpion() {
             const dx = ent.x - character.x;
             const dy = ent.y - character.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist >= 40) log(`Bscorpion distance: ${dist.toFixed(2)}`);
             if (dist < minDist) {
                 minDist = dist;
                 nearest = ent;
@@ -1880,7 +1879,6 @@ async function move_distance_from_bscorpion2() {
             const dx = ent.x - character.x;
             const dy = ent.y - character.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist >= 40) log(`Bscorpion distance: ${dist.toFixed(2)}`);
             if (dist < minDist) {
                 minDist = dist;
                 nearest = ent;
@@ -1908,10 +1906,11 @@ async function prim_farm_loop() {
 
             if (character.name === "Ulric") {
 
+                move_distance_from_bscorpion();
+
                 if (is_bscorpion_targeting_myras()) {
                     if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
                     if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
-                    move_distance_from_bscorpion();
                 } else {
                     if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
                     if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
@@ -1949,11 +1948,12 @@ async function prim_farm_loop() {
             }
 
             if (character.name === "Riva") {
+                
+                move_distance_from_bscorpion2()
 
                 if (is_bscorpion_targeting_myras()) {
                     if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
                     if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
-                    move_distance_from_bscorpion2()
                 } else {
                     if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
                     if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
