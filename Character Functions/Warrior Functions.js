@@ -83,7 +83,7 @@ async function attack_loop() {
                     sugar_rush_check(target)
                 }
                 await delay(201)
-                delayMs = 1000/character.frequency;
+                delayMs = 1000/character.frequency - 200;
                 log(delayMs, "orange", "Attack Loop Delay");
                 await delay(delayMs);
                 continue; //
