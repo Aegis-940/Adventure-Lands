@@ -2122,6 +2122,7 @@ async function maintain_distance_from_bscorpion() {
     const newY = pred_y + Math.sin(angle) * desired;
     // Only move if not already at the correct distance (with a small tolerance)
     const dist_to_pred = Math.hypot(character.x - newX, character.y - newY);
+    log(dist_to_pred);
     if (dist_to_pred > 2) {
         move(newX, newY);
         return true;
