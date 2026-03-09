@@ -1906,6 +1906,7 @@ async function move_distance_from_bscorpion() {
     const newY = nearest.y + Math.sin(angle) * desired;
     // Only move if not already at the correct distance (with a small tolerance)
     if (Math.abs(minDist - desired) > 0) {
+        log(minDist - desired);
         move(newX, newY);
         return true;
     }
@@ -1949,7 +1950,7 @@ async function prim_farm_loop() {
 
             if (character.name === "Ulric") {
 
-                maintain_distance_from_bscorpion();
+                move_distance_from_bscorpion();
 
                 if (is_bscorpion_targeting_myras()) {
                     if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
