@@ -27,8 +27,6 @@ const CLEAVE_MP_THRESHOLD = 900;        // Minimum MP Warrior must have to cast 
 
 async function sugar_rush_check(target) {
 
-    log("Checking Sugar Rush conditions...", "#ff69b4", "Alerts");
-
     attack(target);
 
     if (true) {
@@ -40,7 +38,6 @@ async function sugar_rush_check(target) {
     if (true) {
         equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
     }
-
 
 }
 
@@ -90,7 +87,7 @@ async function attack_loop() {
                 if (target && is_in_range(target) && !smart.moving && character.mp >= 80) {
                     sugar_rush_check(target)
                 }
-                delayMs = 1500;
+                delayMs = ms_to_next_skill('attack') + character.ping + 200;
                 await delay(delayMs);
                 continue;
             } catch (e) {
