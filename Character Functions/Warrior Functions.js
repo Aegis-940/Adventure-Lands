@@ -29,13 +29,16 @@ async function sugar_rush_check(target) {
 
     log("Checking Sugar Rush...", "#ff69b4", "Skills");
 
-    equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
+    if (true) {
+
+        equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
+    }
 
     attack(target);
 
     await delay(50);
 
-    if (PRIM_FARM_LOOT_ENABLED) {
+    if (true) {
         // Restore original weapons
         batch_equip([
             { itemName: "fireblade", slot: "mainhand", level: 8, l: "l" },
