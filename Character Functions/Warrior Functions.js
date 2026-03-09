@@ -27,15 +27,15 @@ const CLEAVE_MP_THRESHOLD = 900;        // Minimum MP Warrior must have to cast 
 
 async function sugar_rush_check() {
 
+    attack(target);
+
     if (PRIM_FARM_LOOT_ENABLED) {
-        // Equip candycanesword in both slots
+    // Equip candycanesword in both slots
         batch_equip([
             { itemName: "candycanesword", slot: "mainhand", level: 7, l: "l" },
             { itemName: "candycanesword", slot: "offhand", level: 7, l: "l" }
         ]);
     }
-
-    attack(target);
 
     if (PRIM_FARM_LOOT_ENABLED) {
         // Restore original weapons
