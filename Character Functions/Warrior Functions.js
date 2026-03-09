@@ -31,7 +31,7 @@ async function sugar_rush_check(target) {
 
     if (character.s.sugarrush === undefined) {
         equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
-        await delay(100);
+        await delay(75);
         equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
         await delay(200);
         if (character.s.sugarrush !== undefined) {
@@ -87,7 +87,7 @@ async function attack_loop() {
                 if (target && !smart.moving && character.mp >= 80) {
                     sugar_rush_check(target)
                 }
-                delayMs = (1000/character.frequency) + 50;
+                delayMs = (1000/character.frequency) + 25;
                 await delay(delayMs);
                 continue; //
             } catch (e) {
