@@ -30,29 +30,13 @@ async function sugar_rush_check(target) {
     attack(target);
 
     if (character.s.sugarrush === undefined) {
-        // Equip candycanesword set (replace with your actual equip logic if needed)
-        await equip_batch([
-            { itemName: "candycanesword", slot: "mainhand", level: 7, l: "l" },
-            { itemName: "candycanesword", slot: "offhand", level: 7, l: "l" }
-        ]);
-
-        // Listen for the action event to get the eta for the projectile
-        const handler = (data) => {
-            if (data && data.type === "attack" && data.id === character.id && data.target === target.id && data.eta) {
-                setTimeout(async () => {
-                    // Equip back to main set after projectile lands
-                    equip_batch([
-                        { itemName: "fireblade", slot: "mainhand", level: 9, l: "l" },
-                        { itemName: "fireblade", slot: "offhand", level: 9, l: "l" }
-                    ]);
-                    if (character.s.sugarrush !== undefined) {
-                        log("🍬 Sugar Rush activated! 🍬", "#ff69b4", "Alerts");
-                    }
-                }, data.eta);
-                parent.socket.off("action", handler); // Remove handler after use
-            }
-        };
-        parent.socket.on("action", handler);
+        equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
+        await delay(150);
+        equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
+        await delay(200);
+        if (character.s.sugarrush !== undefined) {
+            log("🍬 Sugar Rush activated! 🍬", "#ff69b4", "Alerts");
+        }
     }
 }
 
