@@ -25,6 +25,32 @@ const CLEAVE_MP_THRESHOLD = 900;        // Minimum MP Warrior must have to cast 
 // ATTACK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+async function sugar_rush_check() {
+
+    if (PRIM_FARM_LOOT_ENABLED) {
+        // Record currently equipped weapons
+        const mainhand = character.slots.mainhand ? { ...character.slots.mainhand } : null;
+        const offhand = character.slots.offhand ? { ...character.slots.offhand } : null;
+
+        // Equip candycanesword in both slots
+        batch_equip({ mainhand: "candycanesword", offhand: "candycanesword" });
+    }
+
+    attack(target);
+
+    if (PRIM_FARM_LOOT_ENABLED) {
+        // Restore original weapons
+        await delay(100);
+        const equipBack = {};
+        if (mainhand) equipBack.mainhand = mainhand;
+        if (offhand) equipBack.offhand = offhand;
+        if (Object.keys(equipBack).length > 0) {
+            await batch_equip(equipBack);
+        }
+    }
+
+}
+
 async function attack_loop() {
 
     let delayMs = 100;
