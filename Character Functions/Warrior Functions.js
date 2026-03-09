@@ -29,7 +29,7 @@ async function sugar_rush_check(target) {
 
     log("Checking Sugar Rush...", "#ff69b4", "Skills");
 
-    await attack(target);
+    attack(target);
 
     if (true) {
         equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
