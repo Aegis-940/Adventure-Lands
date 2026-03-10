@@ -80,7 +80,6 @@ function getPartyMemberInfo(name) {
 }
 
 function renderPartyUI() {
-	parent.$('#newparty').hide();
 	let container = parent.document.getElementById('simple-party-ui-container');
 	if (!container) {
 		container = parent.document.createElement('div');
