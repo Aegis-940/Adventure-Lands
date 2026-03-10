@@ -60,7 +60,9 @@ async function attack_loop() {
             for (const id in parent.entities) {
                 const mob = parent.entities[id];
                 if (mob.type !== "monster" || mob.dead) continue;
-                if (!MONSTER_TYPES.includes(mob.mtype)) continue;
+                if (!DUNGEON_LOOP_ENABLED) {
+                    if (!MONSTER_TYPES.includes(mob.mtype)) continue;
+                }
                 const dist = Math.hypot(mob.x - character.x, mob.y - character.y);
                 if (dist <= character.range-1) {
                     // If ATTACK_UNTARGETED is false, skip mobs with no target
@@ -753,4 +755,29 @@ function log_bscorpion_kill() {
     } else {
         log(`Bscorpion kill #${bscorpion_kill_count}: ${new Date(now).toLocaleTimeString()} (first recorded)`, "#ffb347", "Bscorpion");
     }
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// DUNGEON LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+async function dungeon_loop() {
+
+    while (true) {
+
+        if (!DUNGEON_LOOP_ENABLED) {
+            await delay(1000);
+            continue;
+        }
+
+        // Set orbit_origin to Myras' location (map, x, y)
+        const myras = Object.values(parent.entities).find(e => e.type === "character" && e.name === "Myras");
+        if (myras) {
+            orbit_origin = { map: myras.map, x: myras.x, y: myras.y };
+        } else {
+            orbit_origin = null;
+        }
+
+    }
+
 }

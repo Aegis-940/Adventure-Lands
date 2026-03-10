@@ -85,9 +85,11 @@ async function heal_attack_loop() {
             // --- Attacking logic ---
             else if (ATTACK_LOOP_ENABLED) {
                 // Gather all valid monsters in range
+                if (!DUNGEON_LOOP_ENABLED) {
+                    if (!MONSTER_TYPES.includes(mob.mtype)) continue;
+                }
                 let monsters = Object.values(parent.entities).filter(e =>
                     e.type === "monster" &&
-                    MONSTER_TYPES.includes(e.mtype) &&
                     !e.dead &&
                     e.visible &&
                     parent.distance(character, e) <= character.range
@@ -660,4 +662,29 @@ async function batch_equip(data) {
 
     await equip_batch(batch); // Await the batch equip
     batch_equip_lock = false;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// DUNGEON LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+async function dungeon_loop() {
+
+    while (true) {
+
+        if (!DUNGEON_LOOP_ENABLED) {
+            await delay(1000);
+            continue;
+        }
+
+        // // Set orbit_origin to Myras' location (map, x, y)
+        // const myras = Object.values(parent.entities).find(e => e.type === "character" && e.name === "Myras");
+        // if (myras) {
+        //     orbit_origin = { map: myras.map, x: myras.x, y: myras.y };
+        // } else {
+        //     orbit_origin = null;
+        // }
+
+    }
+
 }

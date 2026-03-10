@@ -113,6 +113,7 @@ let POTION_LOOP_ENABLED       = true;
 let LOOT_LOOP_ENABLED         = true;
 let STATUS_CACHE_LOOP_ENABLED = true;
 let PRIM_FARM_LOOT_ENABLED    = false;
+let DUNGEON_LOOP_ENABLED      = false;  
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // GLOBAL FUNCTIONS
