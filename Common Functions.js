@@ -539,11 +539,13 @@ add_cm_listener((name, data) => {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function ms_to_next_skill(skill) {
-	const next_skill = parent.next_skill[skill]
-	if (next_skill == undefined) return 0
-	const ms = parent.next_skill[skill].getTime() - Date.now() - Math.min(...parent.pings) - character.ping;
+	const next_skill = parent.next_skill[skill];
+	if (next_skill === undefined) return 0;
+	const ping = parent.pings?.length ? Math.min(...parent.pings) : 0;
+	const ms = next_skill.getTime() - Date.now() - ping;
 	return ms < 0 ? 0 : ms;
 }
+
 
 function get_nearest_monster_v2(args = {}) {
 	let min_d = 999999, target = null;
