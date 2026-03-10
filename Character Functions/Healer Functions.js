@@ -669,7 +669,7 @@ const CONFIG = {
 	looting: {
 		enabled: true,
 		chest_threshold: 10,
-		target_count: 8,
+		target_count: 99,
 		equip_gold_gear: true,
 		loot_cooldown: 3000
 	},
