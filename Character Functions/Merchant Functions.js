@@ -60,13 +60,13 @@ let last_mluck_time = 0;
 let last_loop_time = 0;
 
 function should_run_auto_upgrade() {
-    const THIRTY_MINUTES = 15 * 60 * 1000;
+    const THIRTY_MINUTES = 30 * 60 * 1000;
     if (merchant_task === "Delivering") return false;
     return (Date.now() - last_auto_upgrade_time) > THIRTY_MINUTES;
 }
 
 function should_run_loop() {
-    const THIRTY_MINUTES = 30 * 60 * 1000;
+    const THIRTY_MINUTES = 15 * 60 * 1000;
     return (Date.now() - last_loop_time) > THIRTY_MINUTES;
 }
 
