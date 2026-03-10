@@ -413,6 +413,8 @@ async function potion_loop() {
 // DUNGEON LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+// DUNGEON_LOOP_ENABLED = true;
+
 async function dungeon_loop() {
 
     while (true) {
@@ -430,10 +432,81 @@ async function dungeon_loop() {
             orbit_origin = null;
         }
 
-        ORBIT_LOOP_ENABLED = true;
-
         await delay(200);
 
+    }
+
+}
+
+async function dungeon_orbit_loop() {
+
+    const delayMs = 50;
+    let orbit_path_index = 0;
+
+    while (true) {
+        // Wait until orbit loop is enabled
+        if (!DUNGEON_LOOP_ENABLED) {
+            await delay(100);
+            continue;
+        }
+
+        // Always update orbit origin to Myras' current position
+        const myras = parent.entities["Myras"];
+        if (!myras) {
+            game_log("⚠️ Myras not found for orbiting.", "#FF0000");
+            await delay(500);
+            continue;
+        }
+        orbit_origin = { map: myras.map, x: myras.x, y: myras.y };
+
+        // Recompute orbit path every step to follow Myras
+        set_orbit_radius(ORBIT_RADIUS);
+        const orbit_path_points = compute_orbit_path(orbit_origin, ORBIT_RADIUS, ORBIT_STEPS);
+        // Pick the closest point on the orbit to start
+        let minDist = Infinity, minIdx = 0;
+        for (let i = 0; i < orbit_path_points.length; i++) {
+            const pt = orbit_path_points[i];
+            const d = Math.hypot(character.real_x - pt.x, character.real_y - pt.y);
+            if (d < minDist) {
+                minDist = d;
+                minIdx = i;
+            }
+        }
+        orbit_path_index = minIdx;
+
+        while (DUNGEON_LOOP_ENABLED) {
+            // Update Myras' position and orbit path every step
+            const myras = parent.entities["Myras"];
+            if (!myras) {
+                game_log("⚠️ Myras not found for orbiting.", "#FF0000");
+                await delay(500);
+                break;
+            }
+            orbit_origin = { map: myras.map, x: myras.x, y: myras.y };
+            set_orbit_radius(ORBIT_RADIUS);
+            const orbit_path_points = compute_orbit_path(orbit_origin, ORBIT_RADIUS, ORBIT_STEPS);
+
+            // Pick the next point in the orbit
+            orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
+            const point = orbit_path_points[orbit_path_index];
+
+            // Only move if not already close to the next point
+            const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
+            if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
+                try {
+                    await move(point.x, point.y);
+                } catch (e) {
+                    console.error("Orbit move error:", e);
+                }
+            }
+
+            // Wait until movement is finished or interrupted
+            while (DUNGEON_LOOP_ENABLED && (character.moving || smart.moving)) {
+                await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
+            }
+
+            await delay(delayMs);
+        }
     }
 
 }
