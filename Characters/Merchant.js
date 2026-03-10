@@ -21,6 +21,7 @@ buy_potion_loop()
 potion_delivery_loop()
 mluck_buff_loop()
 loot_collection_loop()
+potion_loop()
 
 loop_controller();
 

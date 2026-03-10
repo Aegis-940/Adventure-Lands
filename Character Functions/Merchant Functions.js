@@ -1023,3 +1023,46 @@ async function coat_upgrade() {
     await sell_and_bank();
     merchant_task = "Idle";
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// POTION LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+async function potion_loop() {
+
+    while (true) {
+        // Check if potion loop is enabled
+        if (!POTION_LOOP_ENABLED) {
+            await delay(200);
+            continue;
+        }
+        // Calculate missing HP/MP
+        const HP_MISSING = character.max_hp - character.hp;
+        const MP_MISSING = character.max_mp - character.mp;
+
+        let used_potion = false;
+
+        // Use mana potion if needed
+        if (HP_MISSING >= 300) {
+            if (can_use("hp")) {
+                use("hp");
+                used_potion = true;
+            }
+        }
+
+        // Use health potion if needed
+        else if (MP_MISSING >= 400) {
+            if (can_use("mp")) {
+                use("mp");
+                used_potion = true;
+            }
+        }
+
+        if (used_potion) {
+            await delay(2010); // Wait 2 seconds after using a potion
+        } else {
+            await delay(10);   // Otherwise, check again in 10ms
+        }
+    }
+
+}
