@@ -82,11 +82,12 @@ const MONSTER_LOCS = {
     bscorpion:    { map: "desertland", x: -408, y: -1266, orbit: true , hostile: false },
     mummy:        { map: "level3", x: -328, y: -213, orbit: true , hostile: false },
     mummy1:       { map: "spookytown", x: 252, y: -1380, orbit: true , hostile: false },
+    plantoid:     { map: "desertland", x: -592, y: -571, orbit: true , hostile: false },
 };
 
-const HEALER_TARGET    = MONSTER_LOCS.dryad;
-const WARRIOR_TARGET   = MONSTER_LOCS.dryad;
-const RANGER_TARGET    = MONSTER_LOCS.dryad;
+const HEALER_TARGET    = MONSTER_LOCS.plantoid;
+const WARRIOR_TARGET   = MONSTER_LOCS.plantoid;
+const RANGER_TARGET    = MONSTER_LOCS.plantoid;
 const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 
 const FLOATING_BUTTON_IDS = [];
