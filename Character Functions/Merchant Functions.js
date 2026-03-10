@@ -42,6 +42,9 @@ for (const name of LOOP_NAMES) {
 // 3) MERCHANT LOOP CONTROLLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+const UPGRADE_CYCLE_TIME = 5 * 60 * 1000;       // 5 minutes
+const SUPPORT_LOOP_CYCLE_TIME = 30 * 60 * 1000; // 30 minutes
+
 const MERCHANT_STATES = {
     DEAD: "dead",
     PANIC: "panic",
@@ -60,14 +63,12 @@ let last_mluck_time = 0;
 let last_loop_time = 0;
 
 function should_run_auto_upgrade() {
-    const THIRTY_MINUTES = 5 * 60 * 1000;
     if (merchant_task === "Delivering") return false;
-    return (Date.now() - last_auto_upgrade_time) > THIRTY_MINUTES;
+    return (Date.now() - last_auto_upgrade_time) > UPGRADE_CYCLE_TIME;
 }
 
 function should_run_loop() {
-    const THIRTY_MINUTES = 30 * 60 * 1000;
-    return (Date.now() - last_loop_time) > THIRTY_MINUTES;
+    return (Date.now() - last_loop_time) > SUPPORT_LOOP_CYCLE_TIME;
 }
 
 function get_character_state() {
@@ -979,8 +980,7 @@ async function custom_craft() {
     // Move home
     await smarter_move(HOME);
 
-    // Set state to UPGRADING
-    set_state(MERCHANT_STATES.UPGRADING);
+    await auto_upgrade();
 }
 
 async function coat_upgrade() {
