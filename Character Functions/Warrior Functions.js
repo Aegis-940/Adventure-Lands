@@ -582,8 +582,7 @@ async function handle_cleave(Mainhand) {
 
         if (monsters.length > 2) {
             cleave_set();
-            use_skill("cleave");
-            await delay(200);
+            await use_skill("cleave");
             //reduce_cooldown("cleave", character.ping * 0.95);
             last_cleave_time = now;
             // Swap back instantly (don't delay this)
