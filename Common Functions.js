@@ -2171,3 +2171,53 @@ async function maintain_distance_from_bscorpion() {
     }
     return false;
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BATCH EQUIP ITEMS
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let batch_equip_lock = false;
+
+async function batch_equip(data) {
+    // Preprocess inventory into a lookup table for O(1) access per equip request
+    const inventoryMap = {};
+    for (let i = 0; i < parent.character.items.length; i++) {
+        const item = parent.character.items[i];
+        if (!item) continue;
+        // Key: name|level|l (l is optional/undefined)
+        const key = item.name + '|' + item.level + '|' + (item.l || '');
+        if (!inventoryMap[key]) inventoryMap[key] = [];
+        inventoryMap[key].push(i);
+    }
+
+    const used_indices = new Set();
+    const batch = [];
+
+    for (const equipRequest of data) {
+        const { itemName, slot, level, l } = equipRequest;
+        if (!itemName || !slot) continue;
+
+        // Check if already equipped
+        const equipped = character.slots[slot];
+        if (
+            equipped &&
+            equipped.name === itemName &&
+            equipped.level === level &&
+            (!l || equipped.l === l)
+        ) continue;
+
+        const key = itemName + '|' + level + '|' + (l || '');
+        const arr = inventoryMap[key];
+        if (arr && arr.length) {
+            // Find the first unused index
+            let idx = arr.find(i => !used_indices.has(i));
+            if (idx !== undefined) {
+                batch.push({ num: idx, slot });
+                used_indices.add(idx);
+            }
+        }
+    }
+
+    if (!batch.length) return; // Nothing to equip
+    equip_batch(batch);
+}

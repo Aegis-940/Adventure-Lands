@@ -209,6 +209,9 @@ async function boss_loop() {
         }
 
         if (character.name === "Ulric") single_set();
+        if (character.name === "Riva") {
+            batch_equip({ itemName: "firebow", slot: "mainhand", level: 8, l: "l" });
+        }
 
         // 3. Engage boss until dead
         log("⚔️ Engaging boss...", "#ff00e6ff", "Alerts");
@@ -245,6 +248,10 @@ async function boss_loop() {
 
             await delay(100);
 
+        }
+
+        if (character.name === "Riva") {
+            batch_equip({ itemName: "pouchbow", slot: "mainhand", level: 10, l: "l" });
         }
 
         // 4. Move back to target location
