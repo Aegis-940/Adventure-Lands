@@ -1329,7 +1329,7 @@ function should_loot() {
 	if (!CONFIG.looting.enabled /*|| !state.skinReady*/ || character.cc > COOLDOWNS.cc) return false;
 
 	const now = performance.now();
-	const stored_chest_count = Object.keys(get_chests()).length;
+	const stored_chest_count = Object.keys(load_chest_map()).length;
 	const penalty = character.s?.penalty_cd?.ms || 0;
 	const cooldown_pass = now - state.last_loot_time > CONFIG.looting.loot_cooldown;
 
