@@ -771,7 +771,7 @@ async function dungeon_loop() {
         }
 
         // Set orbit_origin to Myras' location (map, x, y)
-        const myras = Object.values(parent.entities).find(e => e.type === "character" && e.name === "Myras");
+        const myras = parent.entities["Myras"];
         if (myras) {
             orbit_origin = { map: myras.map, x: myras.x, y: myras.y };
         } else {
