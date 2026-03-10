@@ -1782,7 +1782,7 @@ function on_party_request(name) {
 }
 
 function on_party_invite(name) {
-	if (CONFIG.party.groupMembers.includes(name)) {
+	if (CONFIG.party.group_members.includes(name)) {
 		console.log('Accepting party invite from ' + name);
 		accept_party_invite(name);
 	}
