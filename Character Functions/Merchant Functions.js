@@ -42,7 +42,7 @@ for (const name of LOOP_NAMES) {
 // 3) MERCHANT LOOP CONTROLLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const UPGRADE_CYCLE_TIME = 5 * 60 * 1000;       // 5 minutes
+const UPGRADE_CYCLE_TIME = 60 * 60 * 1000;       // 5 minutes
 const SUPPORT_LOOP_CYCLE_TIME = 30 * 60 * 1000; // 30 minutes
 
 const MERCHANT_STATES = {
@@ -142,8 +142,8 @@ async function set_state(state) {
                         log("Starting auto-upgrade process...");
                         handling_upgrading = true;
                         merchant_task = "Upgrading";
-                        await custom_craft();
-                        // await auto_upgrade();
+                        // await custom_craft();
+                        await auto_upgrade();
                         last_auto_upgrade_time = Date.now();
                         merchant_task = "Idle";
                     }
