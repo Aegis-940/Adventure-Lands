@@ -582,13 +582,12 @@ async function handle_cleave(Mainhand) {
 
         if (monsters.length > 2) {
             if (Mainhand !== "bataxe") cleave_set();
-            await use_skill("cleave");
+            use_skill("cleave");
+            await delay(100);
             //reduce_cooldown("cleave", character.ping * 0.95);
             last_cleave_time = now;
             // Swap back instantly (don't delay this)
-            if (weapon_set_equipped !== "single") {
-                await explosion_set();
-            }
+            explosion_set();
         }
     } 
 }
