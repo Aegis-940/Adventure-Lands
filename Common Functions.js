@@ -84,9 +84,9 @@ const MONSTER_LOCS = {
     mummy1:       { map: "spookytown", x: 252, y: -1380, orbit: true , hostile: false },
 };
 
-const HEALER_TARGET    = MONSTER_LOCS.mummy1;
-const WARRIOR_TARGET   = MONSTER_LOCS.mummy1;
-const RANGER_TARGET    = MONSTER_LOCS.mummy1;
+const HEALER_TARGET    = MONSTER_LOCS.dryad;
+const WARRIOR_TARGET   = MONSTER_LOCS.dryad;
+const RANGER_TARGET    = MONSTER_LOCS.dryad;
 const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 
 const FLOATING_BUTTON_IDS = [];
