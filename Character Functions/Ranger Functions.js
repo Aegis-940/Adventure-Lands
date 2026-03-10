@@ -430,6 +430,8 @@ async function dungeon_loop() {
             orbit_origin = null;
         }
 
+        ORBIT_LOOP_ENABLED = true;
+
         await delay(200);
 
     }
