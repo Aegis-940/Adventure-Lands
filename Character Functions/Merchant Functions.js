@@ -60,7 +60,7 @@ let last_mluck_time = 0;
 let last_loop_time = 0;
 
 function should_run_auto_upgrade() {
-    const THIRTY_MINUTES = 30 * 60 * 1000;
+    const THIRTY_MINUTES = 60 * 60 * 1000;
     if (merchant_task === "Delivering") return false;
     return (Date.now() - last_auto_upgrade_time) > THIRTY_MINUTES;
 }
@@ -456,7 +456,7 @@ const SELLABLE_ITEMS = ["hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "w
 		       			"gloves1", "pants1", "mushroomstaff", "wbreeches", "shoes1", "vitring", "helmet", "shoes", "gloves", "pmace", "throwingstars", "t2bow",
 						 "spear", "dagger", "rapier", "sword", "rfangs", "gphelmet", "phelmet", "vitearring", "vitscroll", "pstem", "gslime", "hhelmet", "harmor", "hpants",
                         "hgloves", "hboots", "strring", "dexring", "intring", "strearring", "dexearring", "intearring", "warmscarf", "snowball", "santasbelt",
-                        "pants", "lantern", "pclaw", "broom", "skullamulet", "iceskates", "carrot", "snowball", "xmace", "candycanesword",
+                        "pants", "lantern", "pclaw", "broom", "skullamulet", "iceskates", "carrot", "snowball", "xmace", "candycanesword", "pmaceofthedead",
                         "ornamentstaff", "merry", "rednose", "xmashat", "xmasshoes", "xmassweater", "xmaspants", "mittens", "angelwings", "snowflakes"];
 const BANKABLE_ITEMS = [];
 const BANK_LOCATION = { map: "bank", x: 0, y: -37 };
