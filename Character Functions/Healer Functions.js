@@ -823,14 +823,7 @@ const equipment_sets = {
 		{ item_name: "mearring", slot: "earring2", level: 1, l: "u" }
 	],
 	gold: [
-		{ item_name: "wcap", slot: "helmet", level: 6, l: "l" },
-		{ item_name: "wattire", slot: "chest", level: 6, l: "l" },
-		{ item_name: "wbreeches", slot: "pants", level: 6, l: "l" },
-		{ item_name: "wshoes", slot: "shoes", level: 6, l: "l" },
-		{ item_name: "handofmidas", slot: "gloves", level: 9, l: "l" },
-		{ item_name: "goldring", slot: "ring1", level: 1, l: "l" },
-		{ item_name: "goldring", slot: "ring2", level: 0, l: "u" },
-		{ item_name: "spookyamulet", slot: "amulet", level: 1, l: "l" }
+		{ item_name: "handofmidas", slot: "gloves", level: 4, l: "u" },
 	]
 };
 
@@ -1336,7 +1329,7 @@ function should_loot() {
 	if (!CONFIG.looting.enabled /*|| !state.skinReady*/ || character.cc > COOLDOWNS.cc) return false;
 
 	const now = performance.now();
-	const stored_chest_count = Object.keys(load_chest_map()).length;
+	const stored_chest_count = Object.keys(get_chests()).length;
 	const penalty = character.s?.penalty_cd?.ms || 0;
 	const cooldown_pass = now - state.last_loot_time > CONFIG.looting.loot_cooldown;
 
