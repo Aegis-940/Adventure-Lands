@@ -36,6 +36,7 @@ orbit_loop();
 status_cache_loop();
 attack_loop();
 prim_farm_loop();
+dungeon_loop();
 
 // === Watchdog and Activity Monitor ===
 // Designed to ensure the bot is running smoothly and doesn't stall
