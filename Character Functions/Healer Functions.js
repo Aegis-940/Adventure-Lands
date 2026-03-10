@@ -1375,7 +1375,7 @@ async function handle_looting() {
 	}
 }
 
-const CHEST_STORAGE_KEY = "loot_chest_ids";
+const CHEST_STORAGE_KEY = get_chests();
 function load_chest_map() {
 	const data = get(CHEST_STORAGE_KEY);
 	return typeof data === "object" && data !== null ? data : {};
