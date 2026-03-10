@@ -85,11 +85,9 @@ async function heal_attack_loop() {
             // --- Attacking logic ---
             else if (ATTACK_LOOP_ENABLED) {
                 // Gather all valid monsters in range
-                if (!DUNGEON_LOOP_ENABLED) {
-                    if (!MONSTER_TYPES.includes(mob.mtype)) continue;
-                }
                 let monsters = Object.values(parent.entities).filter(e =>
                     e.type === "monster" &&
+                    (DUNGEON_LOOP_ENABLED || MONSTER_TYPES.includes(e.mtype)) &&
                     !e.dead &&
                     e.visible &&
                     parent.distance(character, e) <= character.range
