@@ -793,44 +793,44 @@ const locations = {
 
 
 const destination = {
-	map: mobMap,
+	map: mob_map,
 	x: locations[home][0].x,
 	y: locations[home][0].y
 };
 
 const equipment_sets = {
 	zap_on: [
-		{ itemName: "zapper", slot: "ring2", level: 2, l: "u" }
+		{ item_name: "zapper", slot: "ring2", level: 2, l: "u" }
 	],
 	zap_off: [
-		{ itemName: "ringofluck", slot: "ring2", level: 2, l: "l" }
+		{ item_name: "ringofluck", slot: "ring2", level: 2, l: "l" }
 	],
 	luck: [
-		{ itemName: "xhelmet", slot: "helmet", level: 9, l: "l" },
-		{ itemName: "tshirt88", slot: "chest", level: 4, l: "l" },
-		{ itemName: "starkillers", slot: "pants", level: 8, l: "l" },
-		{ itemName: "wingedboots", slot: "shoes", level: 9, l: "l" },
-		{ itemName: "mpxgloves", slot: "gloves", level: 7, l: "l" },
-		{ itemName: "sbelt", slot: "belt", level: 2, l: "l" },
-		{ itemName: "lmace", slot: "mainhand", level: 9, l: "l" },
-		{ itemName: "mshield", slot: "offhand", level: 10, l: "l" },
-		{ itemName: "ringofluck", slot: "ring1", level: 2, l: "u" },
-		{ itemName: "ringofluck", slot: "ring2", level: 2, l: "l" },
-		{ itemName: "rabbitsfoot", slot: "orb", level: 3, l: "l" },
-		{ itemName: "mpxamulet", slot: "amulet", level: 1, l: "l" },
-		{ itemName: "bcape", slot: "cape", level: 7, l: "l" },
-		{ itemName: "mearring", slot: "earring1", level: 1, l: "l" },
-		{ itemName: "mearring", slot: "earring2", level: 1, l: "u" }
+		{ item_name: "xhelmet", slot: "helmet", level: 9, l: "l" },
+		{ item_name: "tshirt88", slot: "chest", level: 4, l: "l" },
+		{ item_name: "starkillers", slot: "pants", level: 8, l: "l" },
+		{ item_name: "wingedboots", slot: "shoes", level: 9, l: "l" },
+		{ item_name: "mpxgloves", slot: "gloves", level: 7, l: "l" },
+		{ item_name: "sbelt", slot: "belt", level: 2, l: "l" },
+		{ item_name: "lmace", slot: "mainhand", level: 9, l: "l" },
+		{ item_name: "mshield", slot: "offhand", level: 10, l: "l" },
+		{ item_name: "ringofluck", slot: "ring1", level: 2, l: "u" },
+		{ item_name: "ringofluck", slot: "ring2", level: 2, l: "l" },
+		{ item_name: "rabbitsfoot", slot: "orb", level: 3, l: "l" },
+		{ item_name: "mpxamulet", slot: "amulet", level: 1, l: "l" },
+		{ item_name: "bcape", slot: "cape", level: 7, l: "l" },
+		{ item_name: "mearring", slot: "earring1", level: 1, l: "l" },
+		{ item_name: "mearring", slot: "earring2", level: 1, l: "u" }
 	],
 	gold: [
-		{ itemName: "wcap", slot: "helmet", level: 6, l: "l" },
-		{ itemName: "wattire", slot: "chest", level: 6, l: "l" },
-		{ itemName: "wbreeches", slot: "pants", level: 6, l: "l" },
-		{ itemName: "wshoes", slot: "shoes", level: 6, l: "l" },
-		{ itemName: "handofmidas", slot: "gloves", level: 9, l: "l" },
-		{ itemName: "goldring", slot: "ring1", level: 1, l: "l" },
-		{ itemName: "goldring", slot: "ring2", level: 0, l: "u" },
-		{ itemName: "spookyamulet", slot: "amulet", level: 1, l: "l" }
+		{ item_name: "wcap", slot: "helmet", level: 6, l: "l" },
+		{ item_name: "wattire", slot: "chest", level: 6, l: "l" },
+		{ item_name: "wbreeches", slot: "pants", level: 6, l: "l" },
+		{ item_name: "wshoes", slot: "shoes", level: 6, l: "l" },
+		{ item_name: "handofmidas", slot: "gloves", level: 9, l: "l" },
+		{ item_name: "goldring", slot: "ring1", level: 1, l: "l" },
+		{ item_name: "goldring", slot: "ring2", level: 0, l: "u" },
+		{ item_name: "spookyamulet", slot: "amulet", level: 1, l: "l" }
 	]
 };
 
