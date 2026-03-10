@@ -85,9 +85,9 @@ const MONSTER_LOCS = {
     plantoid:     { map: "desertland", x: -820, y: -336, orbit: true , hostile: false },
 };
 
-const HEALER_TARGET    = MONSTER_LOCS.plantoid;
-const WARRIOR_TARGET   = MONSTER_LOCS.plantoid;
-const RANGER_TARGET    = MONSTER_LOCS.plantoid;
+const HEALER_TARGET    = MONSTER_LOCS.dryad;
+const WARRIOR_TARGET   = MONSTER_LOCS.dryad;
+const RANGER_TARGET    = MONSTER_LOCS.dryad;
 const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 
 const FLOATING_BUTTON_IDS = [];
