@@ -66,6 +66,8 @@ async function attack_loop() {
 
                     if (ATTACK_UNTARGETED) {
                         valid_targets = alive_targets;
+                    } else if (is_boss_alive()) {
+                        valid_targets = alive_targets;
                     } else {
                         valid_targets = alive_targets.filter(mob => mob.target === "Myras");
                     }
