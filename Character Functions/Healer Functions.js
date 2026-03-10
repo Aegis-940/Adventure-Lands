@@ -638,8 +638,8 @@
 // CONFIG VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const home = 'targetron';
-const mob_map = 'uhills';
+const home = 'dryad';
+const mob_map = 'mforest';
 const all_bosses = ['grinch', 'icegolem', 'dragold', 'mrgreen', 'mrpumpkin', 'greenjr', 'jr', 'franky', 'rgoo', 'bgoo'];
 
 const CONFIG = {
