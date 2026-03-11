@@ -382,9 +382,9 @@ const action_loop = async () => {
 				await attack(cache.heal_target);
 			} else */handle_attack();
 		} else {
-			delay = ms > 200 ? 50 : ms > 50 ? 20 : 5;
+			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
 		}
-	} catch { delay = 1; }
+	} catch { delay = 10; }
 	setTimeout(action_loop, delay);
 };
 
