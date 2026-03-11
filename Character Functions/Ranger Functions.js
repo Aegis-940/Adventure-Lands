@@ -16,8 +16,8 @@ const CONFIG = {
 		never_attack: ['nerfedmummy'], // Never attack
 		use_hunters_mark: true,
 		use_supershot: true,
-		min_targets_for_5_shot: 4,
-		min_targets_for_3_shot: 2,
+		min_targets_for_5shot: 4,
+		min_targets_for_3shot: 2,
 	},
 
 	movement: {
@@ -399,26 +399,19 @@ const handle_attack = async () => {
 	const can_5shot = character.mp >= mp5;
 	const can_3shot = character.mp >= mp3;
 
-    log('Evaluating attack options:');
-
 	if (can_5shot && clumped.length >= min5) {
-        log('Using 5shot on clumped targets:', clumped.slice(0, 5).map(e => e.mtype));
 		equip_set('boom');
 		await use_skill('5shot', clumped.slice(0, 5).map(e => e.id));
 	} else if (can_5shot && in_range.length >= min5) {
-        log('Using 5shot on in-range targets:', in_range.slice(0, 5).map(e => e.mtype));
 		equip_set('boom');
 		await use_skill('5shot', in_range.slice(0, 5).map(e => e.id));
 	} else if (can_5shot && out_of_range.length >= min5) {
-        log('Using 5shot on out-of-range targets:', out_of_range.slice(0, 5).map(e => e.mtype));
 		equip_set('boom');
 		await use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id));
 	} else if (can_3shot && sorted_by_hp.length >= min3) {
-        log('Using 3shot on top HP targets:', sorted_by_hp.slice(0, 3).map(e => e.mtype));
 		equip_set('boom');
 		await use_skill('3shot', sorted_by_hp.slice(0, 3).map(e => e.id));
 	} else if (sorted_by_hp.length >= 1 && is_in_range(sorted_by_hp[0])) {
-        log('Using normal attack on:', sorted_by_hp[0].mtype);
 		equip_set('single');
 		await attack(sorted_by_hp[0]);
 	}
