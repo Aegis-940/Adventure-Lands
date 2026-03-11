@@ -1170,7 +1170,7 @@ function ms_to_next_skill(skill) {
 }
 
 const batch_equip = async data => {
-    logic('Attempting batch equip:', data);
+    log('Attempting batch equip:', data);
 	if (!Array.isArray(data) || data.length > 15) return;
 
 	const valid = data.reduce((acc, { item_name, slot, level, l }) => {
