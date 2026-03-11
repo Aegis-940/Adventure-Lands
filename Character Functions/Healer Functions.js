@@ -823,7 +823,7 @@ const equipment_sets = {
 		{ item_name: "mearring", slot: "earring2", level: 1, l: "u" }
 	],
 	gold: [
-		{ item_name: "handofmidas", slot: "gloves", level: 4 },
+		{ item_name: "handofmidas", slot: "gloves", level: 4, l: "l" },
 	]
 };
 
