@@ -263,7 +263,7 @@ function find_best_target() {
 	for (const name of CONFIG.combat.target_priority) {
 		const target = get_nearest_monster_v2({
 			target: name,
-			check_max_hp: true,
+			check_max_hp: false,
 			max_distance: character.range
 		});
 		if (target) return target;
