@@ -399,6 +399,8 @@ const handle_attack = async () => {
 	const can_5shot = character.mp >= mp5;
 	const can_3shot = character.mp >= mp3;
 
+    logic('Evaluating attack options:');
+
 	if (can_5shot && clumped.length >= min5) {
         logic('Using 5shot on clumped targets:', clumped.slice(0, 5).map(e => e.mtype));
 		equip_set('boom');
