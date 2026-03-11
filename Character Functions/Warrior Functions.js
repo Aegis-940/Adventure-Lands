@@ -81,7 +81,7 @@ const TICK_RATE = {
 };
 
 const COOLDOWNS = {
-	weaponSwap: 1000,
+	weapon_swap: 1000,
 	cc: 135
 };
 
