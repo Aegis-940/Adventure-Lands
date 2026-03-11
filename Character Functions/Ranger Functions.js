@@ -484,26 +484,37 @@ const maintenance_loop = async () => {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function potion_loop() {
-	let delay = 100;
 
-	try {
-		const hp_threshold = character.max_hp - CONFIG.potions.hp_threshold;
-		const mp_threshold = character.max_mp - CONFIG.potions.mp_threshold;
+	// Calculate missing HP/MP
+	const HP_MISSING = character.max_hp - character.hp;
+	const MP_MISSING = character.max_mp - character.mp;
 
-		if (character.mp < mp_threshold) {
-			use_skill('use_mp');
-			reduce_cooldown('use_mp', character.ping * 0.95);
-			delay = ms_to_next_skill('use_mp');
-		} else if (character.hp < hp_threshold) {
-			use_skill('use_hp');
-			reduce_cooldown('use_hp', character.ping * 0.95);
-			delay = ms_to_next_skill('use_hp');
+	let used_potion = false;
+
+	// Use health potion if needed
+	if (MP_MISSING >= 400) {
+		if (can_use("mp")) {
+			use("mp");
+			used_potion = true;
 		}
-	} catch (e) {
-		console.error('potion_loop error:', e);
 	}
 
-    setTimeout(potion_loop, delay || 2010);
+	// Use health potion if needed
+	else if (HP_MISSING >= 300) {
+		if (can_use("hp")) {
+			use("hp");
+			used_potion = true;
+		}
+	}
+
+	if (used_potion) {
+		await delay(2010); // Wait 2 seconds after using a potion
+	} else {
+		await delay(10);   // Otherwise, check again in 10ms
+	}
+
+	setTimeout(potion_loop(), delay)
+
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
