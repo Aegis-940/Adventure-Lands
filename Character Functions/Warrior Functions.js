@@ -181,8 +181,8 @@ const equipment_sets = {
 	basher: [
 		{ item_name: "basher", slot: "mainhand", level: 8, l: "l" }
 	],
-	scythe: [
-		{ item_name: "bataxe", slot: "mainhand", level: 10, l: "l" }
+	bataxe: [
+		{ item_name: "bataxe", slot: "mainhand", level: 7, l: "l" }
 	],
 	dps: [
 		{ item_name: "cearring", slot: "earring1", level: 5, l: "l" },
@@ -449,7 +449,7 @@ async function handle_cleave() {
 	if (needs_swap && now - state.last_cleave_swap > COOLDOWNS.weapon_swap) {
 		state.last_cleave_swap = now;
 		unequip('offhand');
-		batch_equip(equipment_sets.scythe);
+		batch_equip(equipment_sets.bataxe);
 	}
 
 	await use_skill('cleave');
@@ -884,7 +884,7 @@ const move_stuff = {
 	mpot1: 3,
 	pumpkinspice: 5,
 	rapier: 41,
-	scythe: 39,
+	bataxe: 39,
 	tracker: 0,
 	candycanesword: 36,
 	xptome: 4,
