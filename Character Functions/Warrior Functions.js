@@ -1092,7 +1092,7 @@ async function batch_equip(data) {
 
 	try {
 		parent.socket.emit('equip_batch', valid_items);
-		await parent.push_deferred('batch_equip');
+		await parent.push_deferred('equip_batch');
 	} catch (error) {
 		console.error('batch_equip error:', error);
 		return Promise.reject({ reason: 'invalid', message: 'Failed to equip' });
