@@ -487,11 +487,11 @@ async function potion_loop() {
 		const hp_threshold = character.max_hp - CONFIG.potions.hp_threshold;
 		const mp_threshold = character.max_mp - CONFIG.potions.mp_threshold;
 
-		if (character.mp < mp_threshold && !is_on_cooldown('use_mp')) {
+		if (character.mp < mp_threshold) {
 			use_skill('use_mp');
 			// reduce_cooldown('use_mp', character.ping * 0.95);
 			// delay = ms_to_next_skill('use_mp');
-		} else if (character.hp < hp_threshold && !is_on_cooldown('use_hp')) {
+		} else if (character.hp < hp_threshold) {
 			use_skill('use_hp');
 			// reduce_cooldown('use_hp', character.ping * 0.95);
 			// delay = ms_to_next_skill('use_hp');
