@@ -872,7 +872,7 @@ function clear_inventory() {
 		send_gold(loot_mule, character.gold - 5000000);
 	}
 
-	const items_to_exclude = ['hpot1', 'mpot1', 'luckbooster', 'goldbooster', 'xpbooster', 'pumpkinspice', 'xptome', 'tracktrix', 'jacko'];
+	const items_to_exclude = ['hpot1', 'mpot1', 'luckbooster', 'goldbooster', 'xpbooster', 'pumpkinspice', 'xptome', 'tracker', 'jacko'];
 
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
