@@ -807,10 +807,17 @@ const equipment_sets = {
 	],
 	luck: [
 		{ item_name: "supermittens", slot: "gloves", level: 6, l: "l" },
-		{ item_name: "talkingskull", slot: "orb", level: 3, l: "" },
+		{ item_name: "talkingskull", slot: "orb", level: 3, l: "l" },
+		{ item_name: "harbinger", slot: "mainhand", level: 8, l: "l" },
 	],
 	gold: [
 		{ item_name: "handofmidas", slot: "gloves", level: 4, l: "l" },
+	],
+	single_target: [
+		{ item_name: "firestaff", slot: "mainhand", level: 8, l: "l" },
+	],
+	panic: [
+		{ item_name: "jacko", slot: "orb", level: 0, l: "l" },
 	]
 };
 
