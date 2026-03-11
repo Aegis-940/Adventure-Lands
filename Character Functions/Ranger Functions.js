@@ -883,6 +883,7 @@ const scare = () => {
 };
 
 let panicking = false;
+let last_panic_time = 0;
 
 async function panic_check() {
 
@@ -892,6 +893,7 @@ async function panic_check() {
 	let HIGH_MANA = 0;
 	let MONSTERS_TARGETING_ME = 0;
 	const PANIC_AGGRO_THRESHOLD = 1;
+	const PANIC_COOLDOWN = 1000;
 
 	// --- Panic/Safe Conditions ---
 	LOW_HEALTH = character.hp < character.max_hp * 0.66;
@@ -916,11 +918,15 @@ async function panic_check() {
 			if (MONSTERS_TARGETING_ME >= PANIC_AGGRO_THRESHOLD) reason.push("high aggro");
 			log(`⚠️ Panic triggered: ${reason.join(", ")}!`, "#ffcc00", "Alerts");
 		}
+	}
 
+	if (panicking && (Date.now() - last_panic_time > PANIC_COOLDOWN)) {
+		last_panic_time = Date.now();
 		// Equip panic orb if needed
 		if (character.slots.orb?.name !== 'jacko') {
 			try {
 				await equip(panic_slot);
+				await sleep(200);
 				if (character.slots.orb?.name !== 'jacko') {
 					log("[PANIC] Failed to equip panic orb!", "#ff4444", "Errors");
 				}
@@ -934,6 +940,7 @@ async function panic_check() {
 			try {
 				log("Using Scare!", "#ffcc00", "Alerts");
 				await use_skill("scare");
+				await sleep(200);
 			} catch (e) {
 				log(`[PANIC] Error using scare: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
 			}
@@ -952,6 +959,7 @@ async function panic_check() {
 		if (character.slots.orb?.name === 'jacko') {
 			try {
 				await equip(safe_slot);
+				await sleep(200);
 				if (character.slots.orb?.name === 'jacko') {
 					log("[PANIC] Failed to equip normal orb!", "#ff4444", "Errors");
 				}
