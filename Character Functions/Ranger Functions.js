@@ -802,7 +802,9 @@ function clear_inventory() {
 	const loot_mule = get_player('Riff');
 	if (!loot_mule) return;
 
-	if (is_in_range(loot_mule, 250) && character.gold > 5000000) {
+	const dist = distance(character, loot_mule);
+	
+	if (dist < 250 && character.gold > 5000000) {
 			send_gold(loot_mule, character.gold - 5000000);
 	}
 
@@ -811,7 +813,7 @@ function clear_inventory() {
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
 		if (item && !items_to_exclude.includes(item.name) && !item.l && !item.s) {
-			if (is_in_range(loot_mule, 'attack')) {
+			if (dist < 250) {
 				send_item(loot_mule.id, i, item.q ?? 1);
 			}
 		}
