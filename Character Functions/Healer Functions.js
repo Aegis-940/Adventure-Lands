@@ -831,27 +831,23 @@ function clear_inventory() {
 	}
 }
 
-function inventory_sorter() {
-	const slot_map = {
-		tracker: 0,
-		computer: 1,
-		hpot1: 2,
-		mpot1: 3,
-		luckbooster: 4,
-		elixirluck: 5,
-		xptome: 6
-	};
+const item_order = { 
+	tracktrix: 0, 
+	computer: 1, 
+	hpot1: 2, 
+	mpot1: 3, 
+	xptome: 4, 
+	pumpkinspice: 5, 
+	xpbooster: 6,
+	jacko: 7 
+};
 
-	for (let i = 0; i < character.items.length; i++) {
-		const item = character.items[i];
-		if (!item) continue;
-
-		const target_slot = slot_map[item.name];
-		if (target_slot !== undefined && i !== target_slot) {
-			swap(i, target_slot);
-		}
-	}
-}
+const inventory_sorter = () => {
+	character.items.forEach((item, i) => {
+		const target = item_order[item?.name];
+		if (target !== undefined && i !== target) swap(i, target);
+	});
+};
 
 function auto_buy_potions() {
 	if (quantity('hpot1') < CONFIG.potions.min_stock) buy('hpot1', CONFIG.potions.min_stock);

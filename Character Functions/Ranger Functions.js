@@ -820,10 +820,20 @@ function clear_inventory() {
 	}
 }
 
+const item_order = { 
+	tracktrix: 0, 
+	computer: 1, 
+	hpot1: 2, 
+	mpot1: 3, 
+	xptome: 4, 
+	pumpkinspice: 5, 
+	xpbooster: 6,
+	jacko: 7 
+};
+
 const inventory_sorter = () => {
-	const slots = { tracktrix: 0, ancientcomputer: 1, hpot1: 2, mpot1: 3, xptome: 4, pumpkinspice: 5, xpbooster: 6 };
 	character.items.forEach((item, i) => {
-		const target = slots[item?.name];
+		const target = item_order[item?.name];
 		if (target !== undefined && i !== target) swap(i, target);
 	});
 };

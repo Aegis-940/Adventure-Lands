@@ -884,32 +884,27 @@ function clear_inventory() {
 	}
 }
 
-const move_stuff = {
-	basher: 40,
-	computer: 1,
-	fireblade: 35,
-	hpot1: 2,
-	luckbooster: 6,
-	mpot1: 3,
-	pumpkinspice: 5,
-	rapier: 41,
-	bataxe: 39,
-	tracker: 0,
-	candycanesword: 36,
-	xptome: 4,
+const item_order = {
+	tracktrix: 0, 
+	computer: 1, 
+	hpot1: 2, 
+	mpot1: 3, 
+	xptome: 4, 
+	pumpkinspice: 5, 
+	xpbooster: 6,
+	jacko: 7,
+	candycanesword: 38,
+	candycanesword: 39,
+	fireblade: 40,
+	bataxe: 41,
 };
 
-function inventory_sorter() {
-	for (let i = 0; i < character.items.length; i++) {
-		const item = character.items[i];
-		if (!item || !(item.name in move_stuff)) continue;
-
-		const target_slot = move_stuff[item.name];
-		if (i !== target_slot) {
-			swap(i, target_slot);
-		}
-	}
-}
+const inventory_sorter = () => {
+	character.items.forEach((item, i) => {
+		const target = item_order[item?.name];
+		if (target !== undefined && i !== target) swap(i, target);
+	});
+};
 
 function auto_buy_potions() {
 	if (quantity('hpot1') < CONFIG.potions.min_stock) buy('hpot1', CONFIG.potions.min_stock);
