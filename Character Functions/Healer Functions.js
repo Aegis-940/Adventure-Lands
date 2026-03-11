@@ -806,21 +806,7 @@ const equipment_sets = {
 		{ item_name: "ringofluck", slot: "ring2", level: 2, l: "l" }
 	],
 	luck: [
-		{ item_name: "xhelmet", slot: "helmet", level: 9, l: "l" },
-		{ item_name: "tshirt88", slot: "chest", level: 4, l: "l" },
-		{ item_name: "starkillers", slot: "pants", level: 8, l: "l" },
-		{ item_name: "wingedboots", slot: "shoes", level: 9, l: "l" },
-		{ item_name: "mpxgloves", slot: "gloves", level: 7, l: "l" },
-		{ item_name: "sbelt", slot: "belt", level: 2, l: "l" },
-		{ item_name: "lmace", slot: "mainhand", level: 9, l: "l" },
-		{ item_name: "mshield", slot: "offhand", level: 10, l: "l" },
-		{ item_name: "ringofluck", slot: "ring1", level: 2, l: "u" },
-		{ item_name: "ringofluck", slot: "ring2", level: 2, l: "l" },
-		{ item_name: "rabbitsfoot", slot: "orb", level: 3, l: "l" },
-		{ item_name: "mpxamulet", slot: "amulet", level: 1, l: "l" },
-		{ item_name: "bcape", slot: "cape", level: 7, l: "l" },
-		{ item_name: "mearring", slot: "earring1", level: 1, l: "l" },
-		{ item_name: "mearring", slot: "earring2", level: 1, l: "u" }
+		{ item_name: "supermittens", slot: "gloves", level: 6, l: "l" },
 	],
 	gold: [
 		{ item_name: "handofmidas", slot: "gloves", level: 4, l: "l" },
