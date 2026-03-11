@@ -249,23 +249,33 @@ function find_best_target() {
 		if (boss) return boss;
 	}
 
-	// Priority 2: Targets with curse
-	for (const name of CONFIG.combat.target_priority) {
-		const target = get_nearest_monster_v2({
-			target: name,
-			max_distance: character.range,
-			status_effects: ['cursed']
-		});
-		if (target) return target;
+	// Priority 2: Any cursed monster in range
+	let cursed = null;
+	let maxCursedHP = 0;
+	for (let id in parent.entities) {
+		const e = parent.entities[id];
+		if (e && e.type === 'monster' && !e.dead && e.s && e.s.cursed && distance(character, e) <= character.range) {
+			if (e.hp > maxCursedHP) {
+				cursed = e;
+				maxCursedHP = e.hp;
+			}
+		}
 	}
+	if (cursed) return cursed;
 
-	// Priority 3: Targets with max HP
-	const target = get_nearest_monster_v2({
-		target: name,
-		check_max_hp: true,
-		max_distance: character.range
-	});
-	if (target) return target;
+	// Priority 3: Highest HP monster in range
+	let best = null;
+	let maxHP = 0;
+	for (let id in parent.entities) {
+		const e = parent.entities[id];
+		if (e && e.type === 'monster' && !e.dead && distance(character, e) <= character.range) {
+			if (e.hp > maxHP) {
+				best = e;
+				maxHP = e.hp;
+			}
+		}
+	}
+	if (best) return best;
 
 	return null;
 }
