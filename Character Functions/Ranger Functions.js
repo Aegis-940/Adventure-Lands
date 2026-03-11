@@ -1197,11 +1197,11 @@ const batch_equip = async data => {
 };
 
 const is_set_equipped = name =>
-	equipmentSets[name]?.every(({ item_name, slot, level }) =>
+	equipment_sets[name]?.every(({ item_name, slot, level }) =>
 		character.slots[slot]?.name === item_name && character.slots[slot]?.level === level
 	) ?? false;
 
-const equip_set = name => equipmentSets[name] && batch_equip(equipmentSets[name]);
+const equip_set = name => equipment_sets[name] && batch_equip(equipment_sets[name]);
 
 // ============================================================================
 // SKIN CHANGER
