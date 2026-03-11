@@ -922,7 +922,7 @@ async function main_loop() {
 			}
 		}
 
-		if (CONFIG.equipment.auto_swap_sets && state.skin_ready) {
+		if (CONFIG.equipment.auto_swap_sets/* && state.skin_ready*/) {
 			handle_equipment_swap();
 		}
 
@@ -1414,7 +1414,6 @@ function is_set_equipped(set_name) {
 }
 
 function equip_set(set_name) {
-    log(`Equipping set: ${set_name}`, '#00FF00');
 	const set = equipment_sets[set_name];
 	if (set) {
 		batch_equip(set);
