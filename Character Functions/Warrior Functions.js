@@ -53,7 +53,7 @@ const CONFIG = {
 
 	party: {
 		auto_manage: true,
-		group_members: ['Myras', 'Ulric', 'Riva']
+		group_members: ['Myras', 'Ulric', 'Riva', 'Riff']
 	},
 
 	skills: {
@@ -335,6 +335,7 @@ async function action_loop() {
 
 		// Keep cache fresh even while waiting on cooldowns
 		update_cache();
+		panic_check();
 
 		const target = cache.target;
 		const ms = ms_to_next_skill('attack');
@@ -555,7 +556,6 @@ async function maintenance_loop() {
 		clear_inventory();
 		inventory_sorter();
 		elixir_usage();
-		scare();
 
 		if (character.rip && locate_item('xptome') !== -1) {
 			respawn();
@@ -789,7 +789,6 @@ function should_handle_events() {
 function handle_events() {
 	if (parent?.S?.holidayseason && !character?.s?.holidayspirit) {
 		if (!smart.moving) {
-			scare();
 			smart_move({ to: 'town' }, () => {
 				parent.socket.emit('interaction', { type: 'newyear_tree' });
 			});
@@ -808,7 +807,6 @@ function handle_events() {
 
 	if (!smart.moving) {
 		handle_specific_event(target.name, target.map, target.x, target.y);
-		scare();
 	}
 }
 

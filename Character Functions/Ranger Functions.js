@@ -342,6 +342,7 @@ const main_loop = async () => {
 		if (is_disabled(character)) return setTimeout(main_loop, 250);
 
 		update_cache();
+		panic_check();
 
 		if (CONFIG.equipment.use_licence) {
 			let slot = locate_item("licence");
@@ -608,8 +609,6 @@ async function equipment_loop() {
 				state.last_boss_set_swap = now;
 			}
 		}
-
-		scare();
 
 	} catch (e) {
 		console.error('equipment_loop error:', e);
@@ -882,6 +881,87 @@ const scare = () => {
 	// if (character?.afk && !paused) { pause(); parent.no_graphics = true; }
 	// else if (!character?.afk && paused) { pause(); parent.no_graphics = false; }
 };
+
+let panicking = false;
+
+let LOW_HEALTH = 0;
+let LOW_MANA = 0;
+let HIGH_HEALTH = 0;
+let HIGH_MANA = 0;
+let MONSTERS_TARGETING_ME = 0;
+const PANIC_AGGRO_THRESHOLD = 1;
+
+async function panic_check() {
+
+	// --- Panic/Safe Conditions ---
+	LOW_HEALTH = character.hp < character.max_hp * 0.66;
+	LOW_MANA = character.mp < character.max_mp * 0.01;
+	HIGH_HEALTH = character.hp >= character.max_hp * 0.80;
+	HIGH_MANA = character.mp >= character.max_mp * 0.66;
+
+	const panic_slot = character.items.findIndex(i => i?.name === 'jacko');
+
+	// Aggro check: monsters targeting me
+	MONSTERS_TARGETING_ME = Object.values(parent.entities).filter(
+		e => e.type === "monster" && e.target === character.name && !e.dead
+	).length;
+
+	// PANIC CONDITION
+	if (LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= PANIC_AGGRO_THRESHOLD) {
+		if (!panicking) {
+			panicking = true;
+			let reason = [];
+			if (LOW_HEALTH) reason.push("low health");
+			if (LOW_MANA) reason.push("low mana");
+			if (MONSTERS_TARGETING_ME >= PANIC_AGGRO_THRESHOLD) reason.push("high aggro");
+			log(`⚠️ Panic triggered: ${reason.join(", ")}!`, "#ffcc00", "Alerts");
+		}
+
+		// Equip panic orb if needed
+		if (character.slots.orb?.name !== PANIC_ORB) {
+			try {
+				await equip(slot);
+				if (character.slots.orb?.name !== PANIC_ORB) {
+					log("[PANIC] Failed to equip panic orb!", "#ff4444", "Errors");
+				}
+			} catch (e) {
+				log(`[PANIC] Error equipping panic orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
+			}
+		}
+
+		// Try to cast scare if possible
+		if (!is_on_cooldown("scare") && can_use("scare") && character.slots.orb?.name === PANIC_ORB) {
+			try {
+				log("Using Scare!", "#ffcc00", "Alerts");
+				await use_skill("scare");
+				await delay(delayMs);
+			} catch (e) {
+				log(`[PANIC] Error using scare: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
+			}
+		}
+	}
+
+	const safe_slot = character.items.findIndex(i => i?.name === 'orbg');
+
+	// SAFE CONDITION
+	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < PANIC_AGGRO_THRESHOLD) {
+		if (panicking) {
+			panicking = false;
+			log("✅ Panic over.", "#00ff00", "Alerts");
+		}
+		// Equip normal orb if needed
+		if (character.slots.orb?.name === 'jacko') {
+			try {
+				await equip(safe_slot);
+				if (character.slots.orb?.name === 'jacko') {
+					log("[PANIC] Failed to equip normal orb!", "#ff4444", "Errors");
+				}
+			} catch (e) {
+				log(`[PANIC] Error equipping normal orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
+			}
+		}
+	}
+}
 
 function party_maker() {
 	if (!CONFIG.party.auto_manage) return;

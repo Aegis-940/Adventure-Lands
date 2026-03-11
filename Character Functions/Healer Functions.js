@@ -26,7 +26,7 @@ const CONFIG = {
 
 	healing: {
 		party_heal_threshold: 0.65,
-		party_heal_min_mp: 2000,
+		party_heal_min_mp: 500,
 		absorb_enabled: true,
 		dark_blessing_enabled: true
 	},
@@ -479,15 +479,14 @@ async function handle_party_heal() {
 	let threshold = CONFIG.healing.party_heal_threshold;
 
 	if (character.map !== mob_map) {
-		threshold = 0.99;
+		threshold = 0.66;
 	}
 
-	if (character.mp <= CONFIG.healing.party_heal_min_mp || is_on_cooldown('partyheal')) return;
+	if (character.mp <= CONFIG.healing.party_heal_min_mp) return;
 
 	for (const name of cache.party_members) {
 		const ally = get_player(name);
 		if (!ally || ally.rip || ally.hp >= ally.max_hp * threshold) continue;
-
 		await use_skill('partyheal');
 		break;
 	}
