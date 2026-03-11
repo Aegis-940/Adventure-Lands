@@ -438,7 +438,6 @@ async function handle_stomp() {
 }
 
 async function handle_cleave() {
-	log('Checking cleave conditions...');
 	const ms_until_cleave = ms_to_next_skill('cleave');
 	if (ms_until_cleave !== 0) return;
 
@@ -1060,8 +1059,6 @@ async function batch_equip(data) {
 	if (data.length > 15) {
 		return Promise.reject({ reason: 'invalid', message: 'Too many items' });
 	}
-
-	log('Batch equipping:', data);
 
 	let valid_items = [];
 
