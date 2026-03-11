@@ -866,8 +866,8 @@ function clear_inventory() {
 	const loot_mule = get_player('Riff');
 	if (!loot_mule) return;
 
-	if (character.gold > 5000000) {
-		send_gold(loot_mule, character.gold - 5000000);
+	if (is_in_range(loot_mule, 250) && character.gold > 5000000) {
+			send_gold(loot_mule, character.gold - 5000000);
 	}
 
 	const items_to_exclude = ['hpot1', 'mpot1', 'luckbooster', 'goldbooster', 'xpbooster', 'pumpkinspice', 'xptome', 'tracker', 'jacko'];

@@ -798,19 +798,25 @@ async function walk_in_circle() {
 // HELPER FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const clear_inventory = () => {
-	const mule = get_player('Riff');
-	if (!mule) return;
+function clear_inventory() {
+	const loot_mule = get_player('Riff');
+	if (!loot_mule) return;
 
-	if (character.gold > 51000000) send_gold(mule, character.gold - 50000000);
+	if (is_in_range(loot_mule, 250) && character.gold > 5000000) {
+			send_gold(loot_mule, character.gold - 5000000);
+	}
 
-	const exclude = new Set(['hpot1', 'mpot1', 'luckbooster', 'goldbooster', 'xpbooster', 'pumpkinspice', 'xptome', 'tracker', 'jacko']);
+	const items_to_exclude = ['hpot1', 'mpot1', 'luckbooster', 'goldbooster', 'xpbooster', 'pumpkinspice', 'xptome', 'tracker', 'jacko'];
 
-	character.items.forEach((item, i) => {
-		if (item && !exclude.has(item.name) && !item.l && !item.s && is_in_range(mule, 'attack'))
-			send_item(mule.id, i, item.q ?? 1);
-	});
-};
+	for (let i = 0; i < character.items.length; i++) {
+		const item = character.items[i];
+		if (item && !items_to_exclude.includes(item.name) && !item.l && !item.s) {
+			if (is_in_range(loot_mule, 'attack')) {
+				send_item(loot_mule.id, i, item.q ?? 1);
+			}
+		}
+	}
+}
 
 const inventory_sorter = () => {
 	const slots = { tracktrix: 0, ancientcomputer: 1, hpot1: 2, mpot1: 3, xptome: 4, pumpkinspice: 5, xpbooster: 6 };

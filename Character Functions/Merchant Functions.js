@@ -394,7 +394,7 @@ async function loot_collection_loop() {
                 if (!player || player.rip || character.map !== player.map || Math.hypot(character.x - player.x, character.y - player.y) > 350) {
                     continue;
                 }
-                send_cm(name, { type: "send_loot" });
+                // send_cm(name, { type: "send_loot" });
                 await delay(200);
             } catch (e) {
                 catcher(e, "Loot Collection Loop error");
