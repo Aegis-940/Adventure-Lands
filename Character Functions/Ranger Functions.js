@@ -194,7 +194,7 @@ const locations = {
 };
 
 const destination = {
-	map: mobMap,
+	map: mob_map,
 	x: locations[home][0].x,
 	y: locations[home][0].y
 };
