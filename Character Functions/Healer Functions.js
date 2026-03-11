@@ -20,7 +20,7 @@ const CONFIG = {
 		enabled: true,
 		circle_walk: true,
 		circle_speed: 1.8,
-		circle_radius: 25,
+		circle_radius: 30,
 		avoid_mobs: true
 	},
 
