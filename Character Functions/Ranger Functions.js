@@ -884,6 +884,7 @@ const scare = () => {
 
 let panicking = false;
 let last_panic_time = 0;
+let last_safe_time = 0;
 
 async function panic_check() {
 
@@ -955,6 +956,10 @@ async function panic_check() {
 			panicking = false;
 			log("✅ Panic over.", "#00ff00", "Alerts");
 		}
+	}
+
+	if (!panicking && (Date.now() - last_safe_time > PANIC_COOLDOWN)) {
+		last_safe_time = Date.now();
 		// Equip normal orb if needed
 		if (character.slots.orb?.name === 'jacko') {
 			try {
