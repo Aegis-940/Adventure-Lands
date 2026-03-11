@@ -579,6 +579,7 @@ async function potion_loop() {
 	const MP_MISSING = character.max_mp - character.mp;
 
 	let used_potion = false;
+	let delay = 0;
 
 	// Use health potion if needed
 	if (MP_MISSING >= mp_threshold) {
