@@ -1145,34 +1145,34 @@ function on_party_invite(name) {
 	}
 }
 
-game.on('death', data => {
-	const mob = parent.entities[data.id];
-	if (!mob) return;
+// game.on('death', data => {
+// 	const mob = parent.entities[data.id];
+// 	if (!mob) return;
 
-	const mob_name = mob.mtype;
-	const mob_target = mob.target;
+// 	const mob_name = mob.mtype;
+// 	const mob_target = mob.target;
 
-	const partyMembers = Object.keys(get_party() || {});
+// 	const partyMembers = Object.keys(get_party() || {});
 
-	if (mob_target === character.name || partyMembers.includes(mob_target)) {
-		const luck_display = mob.cooperative ? character.luckm : data.luckm;
-		const msg = `${mob_name} died with ${luck_display} luck`;
-		game_log(msg, '#96a4ff');
-		console.log(msg);
-	}
-});
+// 	if (mob_target === character.name || partyMembers.includes(mob_target)) {
+// 		const luck_display = mob.cooperative ? character.luckm : data.luckm;
+// 		const msg = `${mob_name} died with ${luck_display} luck`;
+// 		game_log(msg, '#96a4ff');
+// 		console.log(msg);
+// 	}
+// });
 
-character.on('loot', data => {
-	if (data.id) {
-		console.log(`${data.opener} looted chest goldm: ${data.goldm}`);
-		game_log(`${data.opener} looted chest goldm: ${data.goldm}`, 'gold');
+// character.on('loot', data => {
+// 	if (data.id) {
+// 		console.log(`${data.opener} looted chest goldm: ${data.goldm}`);
+// 		game_log(`${data.opener} looted chest goldm: ${data.goldm}`, 'gold');
 
-		// Remove chest ID after successful loot with delay to ensure it's gone
-		setTimeout(() => {
-			remove_chest_id(data.id);
-		}, 2000);
-	}
-});
+// 		// Remove chest ID after successful loot with delay to ensure it's gone
+// 		setTimeout(() => {
+// 			remove_chest_id(data.id);
+// 		}, 2000);
+// 	}
+// });
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // START ALL LOOPS
