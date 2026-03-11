@@ -445,20 +445,18 @@ async function handle_cleave() {
 	const needs_swap = mainhand !== 'bataxe';
 	const now = performance.now();
 
-	if (needs_swap && now - state.last_cleave_swap > COOLDOWNS.weapon_swap) {
+	if (now - state.last_cleave_swap > COOLDOWNS.weapon_swap) {
 		state.last_cleave_swap = now;
-		log(`Swapping to bataxe for cleave (mainhand: ${mainhand})`);
 		unequip('offhand');
 		batch_equip(equipment_sets.bataxe);
 	}
 
 	await use_skill('cleave');
-	await sleep(50);
+	await sleep(100);
 
-	if (needs_swap) {
-		const target_set = mob_count() === 1 ? 'single' : 'aoe';
-		batch_equip(equipment_sets[target_set]);
-	}
+	const target_set = mob_count() === 1 ? 'single' : 'aoe';
+	batch_equip(equipment_sets[target_set]);
+
 }
 
 function can_cleave() {
