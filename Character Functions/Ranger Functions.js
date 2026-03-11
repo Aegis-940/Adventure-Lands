@@ -376,11 +376,11 @@ const action_loop = async () => {
 		update_cache();
 		const ms = ms_to_next_skill('attack');
 
-		if (ms < character.ping / 10) {
+		if (ms === 0) {
 			/*if (cache.heal_target) {
 				equip_set('heal');
 				await attack(cache.heal_target);
-			} else */await handle_attack();
+			} else */handle_attack();
 		} else {
 			delay = ms > 200 ? 50 : ms > 50 ? 20 : 5;
 		}
@@ -416,8 +416,6 @@ const handle_attack = async () => {
 	} else if (can_1shot && sorted_by_hp.length >= 1 && is_in_range(sorted_by_hp[0])) {
 		equip_set('single');
 		attack(sorted_by_hp[0]);
-	} else {
-		await sleep(100);
 	}
 };
 
