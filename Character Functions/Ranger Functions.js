@@ -853,35 +853,6 @@ function elixir_usage() {
 	}
 }
 
-let target_start_times = {};
-
-const scare = () => {
-	const slot = character.items.findIndex(i => i?.name === 'jacko');
-	const now = performance.now();
-	let should_scare = false;
-
-	for (const id in parent.entities) {
-		const e = parent.entities[id];
-
-		if (e.type === 'monster' && e.target === character.name && e.mtype !== 'grinch') {
-			if (target_start_times[id] == null) target_start_times[id] = now;
-			if (now - target_start_times[id] > 250) should_scare = true;
-		} else {
-			delete target_start_times[id];
-		}
-	}
-
-	if (should_scare && !is_on_cooldown('scare') && slot !== -1) {
-		equip(slot);
-		use('scare');
-		equip(slot);
-	}
-
-	// const paused = parent?.paused;
-	// if (character?.afk && !paused) { pause(); parent.no_graphics = true; }
-	// else if (!character?.afk && paused) { pause(); parent.no_graphics = false; }
-};
-
 let panicking = false;
 let last_panic_time = 0;
 let last_safe_time = 0;

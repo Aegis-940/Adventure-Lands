@@ -920,39 +920,98 @@ function elixir_usage() {
 	}
 }
 
-let target_start_times = {};
+let panicking = false;
+let last_panic_time = 0;
+let last_safe_time = 0;
 
-const scare = () => {
-	const slot = character.items.findIndex(i => i?.name === 'jacko');
-	const now = performance.now();
-	let should_scare = false;
+async function panic_check() {
 
-	for (const id in parent.entities) {
-		const e = parent.entities[id];
+	let LOW_HEALTH = 0;
+	let LOW_MANA = 0;
+	let HIGH_HEALTH = 0;
+	let HIGH_MANA = 0;
+	let MONSTERS_TARGETING_ME = 0;
+	const PANIC_AGGRO_THRESHOLD = 99;
+	const PANIC_COOLDOWN = 1000;
 
-		if (e.type === 'monster' && e.target === character.name && e.mtype !== 'grinch') {
-			if (target_start_times[id] == null) target_start_times[id] = now;
-			if (now - target_start_times[id] > 750) should_scare = true;
-		} else {
-			delete target_start_times[id];
+	// --- Panic/Safe Conditions ---
+	LOW_HEALTH = character.hp < character.max_hp * 0.66;
+	LOW_MANA = character.mp < character.max_mp * 0.01;
+	HIGH_HEALTH = character.hp >= character.max_hp * 0.80;
+	HIGH_MANA = character.mp >= character.max_mp * 0.66;
+
+	const panic_slot = character.items.findIndex(i => i?.name === 'jacko');
+
+	// Aggro check: monsters targeting me
+	MONSTERS_TARGETING_ME = Object.values(parent.entities).filter(
+		e => e.type === "monster" && e.target === character.name && !e.dead
+	).length;
+
+	// PANIC CONDITION
+	if (LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= PANIC_AGGRO_THRESHOLD) {
+		if (!panicking) {
+			panicking = true;
+			let reason = [];
+			if (LOW_HEALTH) reason.push("low health");
+			if (LOW_MANA) reason.push("low mana");
+			if (MONSTERS_TARGETING_ME >= PANIC_AGGRO_THRESHOLD) reason.push("high aggro");
+			log(`⚠️ Panic triggered: ${reason.join(", ")}!`, "#ffcc00", "Alerts");
 		}
 	}
 
-	// Also scare if health is less than 50%
-	if (character.hp / character.max_hp < 0.5) {
-		should_scare = true;
+	if (panicking && (Date.now() - last_panic_time > PANIC_COOLDOWN)) {
+		last_panic_time = Date.now();
+		// Equip panic orb if needed
+		if (character.slots.orb?.name !== 'jacko') {
+			try {
+				await equip(panic_slot);
+				await sleep(200);
+				if (character.slots.orb?.name !== 'jacko') {
+					log("[PANIC] Failed to equip panic orb!", "#ff4444", "Errors");
+				}
+			} catch (e) {
+				log(`[PANIC] Error equipping panic orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
+			}
+		}
+
+		// Try to cast scare if possible
+		if (!is_on_cooldown("scare") && can_use("scare") && character.slots.orb?.name === 'jacko') {
+			try {
+				log("Using Scare!", "#ffcc00", "Alerts");
+				await use_skill("scare");
+				await sleep(200);
+			} catch (e) {
+				log(`[PANIC] Error using scare: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
+			}
+		}
 	}
 
-	if (should_scare && !is_on_cooldown('scare') && slot !== -1) {
-		equip(slot);
-		use('scare');
-		equip(slot);
+	const safe_slot = character.items.findIndex(i => i?.name === 'orbg');
+
+	// SAFE CONDITION
+	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < PANIC_AGGRO_THRESHOLD) {
+		if (panicking) {
+			panicking = false;
+			log("✅ Panic over.", "#00ff00", "Alerts");
+		}
 	}
 
-	// const paused = parent?.paused;
-	// if (character?.afk && !paused) { pause(); parent.no_graphics = true; }
-	// else if (!character?.afk && paused) { pause(); parent.no_graphics = false; }
-};
+	if (!panicking && (Date.now() - last_safe_time > PANIC_COOLDOWN)) {
+		last_safe_time = Date.now();
+		// Equip normal orb if needed
+		if (character.slots.orb?.name === 'jacko') {
+			try {
+				await equip(safe_slot);
+				await sleep(200);
+				if (character.slots.orb?.name === 'jacko') {
+					log("[PANIC] Failed to equip normal orb!", "#ff4444", "Errors");
+				}
+			} catch (e) {
+				log(`[PANIC] Error equipping normal orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
+			}
+		}
+	}
+}
 
 function party_maker() {
 	if (!CONFIG.party.auto_manage) return;
