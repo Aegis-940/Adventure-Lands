@@ -416,6 +416,8 @@ const handle_attack = async () => {
 	} else if (can_1shot && sorted_by_hp.length >= 1 && is_in_range(sorted_by_hp[0])) {
 		equip_set('single');
 		attack(sorted_by_hp[0]);
+	} else {
+		await sleep(10);
 	}
 };
 
