@@ -417,7 +417,7 @@ const handle_attack = async () => {
 		equip_set('single');
 		attack(sorted_by_hp[0]);
 	} else {
-		await sleep(10);
+		await sleep(100);
 	}
 };
 
