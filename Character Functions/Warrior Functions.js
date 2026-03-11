@@ -426,7 +426,7 @@ async function handle_stomp() {
 	if (needs_swap && now - state.last_basher_swap > COOLDOWNS.weapon_swap) {
 		state.last_basher_swap = now;
 		unequip('offhand');
-		equipBatch(equipment_sets.basher);
+		batch_equip(equipment_sets.basher);
 	}
 
 	await use_skill('stomp');
@@ -467,20 +467,20 @@ function can_cleave() {
 	if (character.cc >= COOLDOWNS.cc) return false;
 	if (ms_to_next_skill('attack') <= 75) return false;
 
-	const requiredMP = character.mp_cost * 2 + G.skills.cleave.mp + 320;
-	if (character.mp < requiredMP) return false;
+	const required_mp = character.mp_cost * 2 + G.skills.cleave.mp + 320;
+	if (character.mp < required_mp) return false;
 
 	const tank = cache.tank_entity;
 	if (!tank) return false;
 
 	// Don't cleave if low boss exists
-	const lowBoss = Object.values(parent.entities).find(e =>
+	const low_boss = Object.values(parent.entities).find(e =>
 		e?.type === 'monster' &&
 		CONFIG.combat.all_bosses.includes(e.mtype) &&
 		!e.dead &&
 		e.hp < CONFIG.equipment.boss_hp_thresholds[e.mtype]
 	);
-	if (lowBoss) return false;
+	if (low_boss) return false;
 
 	return cache.monsters_in_cleave_range.length >= CONFIG.combat.cleave_min_mobs;
 }
@@ -1060,20 +1060,20 @@ async function batch_equip(data) {
 		return Promise.reject({ reason: 'invalid', message: 'Too many items' });
 	}
 
-	let validItems = [];
+	let valid_items = [];
 
 	for (let i = 0; i < data.length; i++) {
-		let itemName = data[i].itemName;
+		let item_name = data[i].item_name;
 		let slot = data[i].slot;
 		let level = data[i].level;
 		let l = data[i].l;
 
-		if (!itemName) continue;
+		if (!item_name) continue;
 
 		let found = false;
 		if (parent.character.slots[slot]) {
-			let slotItem = parent.character.items[parent.character.slots[slot]];
-			if (slotItem && slotItem.name === itemName && slotItem.level === level && slotItem.l === l) {
+			let slot_item = parent.character.items[parent.character.slots[slot]];
+			if (slot_item && slot_item.name === item_name && slot_item.level === level && slot_item.l === l) {
 				found = true;
 			}
 		}
@@ -1082,30 +1082,30 @@ async function batch_equip(data) {
 
 		for (let j = 0; j < parent.character.items.length; j++) {
 			const item = parent.character.items[j];
-			if (item && item.name === itemName && item.level === level && item.l === l) {
-				validItems.push({ num: j, slot: slot });
+			if (item && item.name === item_name && item.level === level && item.l === l) {
+				valid_items.push({ num: j, slot: slot });
 				break;
 			}
 		}
 	}
 
-	if (validItems.length === 0) return;
+	if (valid_items.length === 0) return;
 
 	try {
-		parent.socket.emit('batch_equip', validItems);
+		parent.socket.emit('batch_equip', valid_items);
 		await parent.push_deferred('batch_equip');
 	} catch (error) {
-		console.error('equipBatch error:', error);
+		console.error('batch_equip error:', error);
 		return Promise.reject({ reason: 'invalid', message: 'Failed to equip' });
 	}
 }
 
-function is_set_equipped(setName) {
-	const set = equipmentSets[setName];
+function is_set_equipped(set_name) {
+	const set = equipmentSets[set_name];
 	if (!set) return false;
 
 	return set.every(item =>
-		character.slots[item.slot]?.name === item.itemName &&
+		character.slots[item.slot]?.name === item.item_name &&
 		character.slots[item.slot]?.level === item.level
 	);
 }
