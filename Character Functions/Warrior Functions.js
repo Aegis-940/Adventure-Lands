@@ -440,6 +440,7 @@ async function handle_stomp() {
 async function handle_cleave() {
 	const ms_until_cleave = ms_to_next_skill('cleave');
 	if (ms_until_cleave !== 0) return;
+	if (!can_cleave()) return;
 
 	const mainhand = character.slots?.mainhand?.name;
 	const needs_swap = mainhand !== 'bataxe';
