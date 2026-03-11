@@ -394,8 +394,8 @@ const handle_attack = async () => {
 
 	const min5 = CONFIG.combat.min_targets_for_5shot;
 	const min3 = CONFIG.combat.min_targets_for_3shot;
-	const mp5 = (G.skills['5shot']?.mp || 0);
-	const mp3 = (G.skills['3shot']?.mp || 0);
+	const mp5 = (G.skills['5shot']?.mp + 200);
+	const mp3 = (G.skills['3shot']?.mp + 100);
 	const can_5shot = character.mp >= mp5;
 	const can_3shot = character.mp >= mp3;
 
