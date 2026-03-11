@@ -489,18 +489,18 @@ async function potion_loop() {
 
 		if (character.mp < mp_threshold) {
 			use_skill('use_mp');
-			// reduce_cooldown('use_mp', character.ping * 0.95);
-			// delay = ms_to_next_skill('use_mp');
+			reduce_cooldown('use_mp', character.ping * 0.95);
+			delay = ms_to_next_skill('use_mp');
 		} else if (character.hp < hp_threshold) {
 			use_skill('use_hp');
-			// reduce_cooldown('use_hp', character.ping * 0.95);
-			// delay = ms_to_next_skill('use_hp');
+			reduce_cooldown('use_hp', character.ping * 0.95);
+			delay = ms_to_next_skill('use_hp');
 		}
 	} catch (e) {
 		console.error('potion_loop error:', e);
 	}
 
-    setTimeout(potion_loop, 2010);
+    setTimeout(potion_loop, delay || 2010);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
