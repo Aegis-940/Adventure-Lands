@@ -1306,12 +1306,12 @@ setInterval(sendUpdates, 20000);
 // START ALL LOOPS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-mainLoop();
-actionLoop();
-skillLoop();
-equipmentLoop();
-maintenanceLoop();
-potionLoop();
+main_loop();
+action_loop();
+skill_loop();
+equipment_loop();
+maintenance_loop();
+potion_loop();
 
 // --------------------------------------------------------------------------------------------------------- //
 
