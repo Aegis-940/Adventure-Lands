@@ -454,7 +454,7 @@ async function handle_cleave() {
 	await use_skill('cleave');
 
 	// const target_set = mob_count() === 1 ? 'single' : 'aoe';
-	await batch_equip(equipment_sets['aoe']);
+	batch_equip(equipment_sets.aoe);
 
 }
 
