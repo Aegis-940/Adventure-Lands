@@ -791,7 +791,7 @@ const clear_inventory = () => {
 
 	if (character.gold > 51000000) send_gold(mule, character.gold - 50000000);
 
-	const exclude = new Set(['hpot1', 'mpot1', 'luckbooster', 'goldbooster', 'xpbooster', 'pumpkinspice', 'xptome']);
+	const exclude = new Set(['hpot1', 'mpot1', 'luckbooster', 'goldbooster', 'xpbooster', 'pumpkinspice', 'xptome', 'tracker', 'jacko']);
 
 	character.items.forEach((item, i) => {
 		if (item && !exclude.has(item.name) && !item.l && !item.s && is_in_range(mule, 'attack'))
