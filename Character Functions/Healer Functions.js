@@ -1347,7 +1347,8 @@ async function handle_looting() {
 	state.current = 'looting';
 
 	try {
-		if (CONFIG.looting.equip_goldgear/* && !is_set_equipped('gold')*/) {
+		if (CONFIG.looting.equip_goldgear && !is_set_equipped('gold')) {
+            log('Equipping gold gear for looting', '#FFD700');
 			equip_set('gold');
 			swap_booster('luckbooster', 'goldbooster');
 			await sleep(150);
