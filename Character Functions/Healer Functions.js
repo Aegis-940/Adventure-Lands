@@ -721,7 +721,7 @@ async function handle_looting() {
 			looted++;
 		}
 
-		await sleep(150);
+		await sleep(50);
 
 		if (CONFIG.looting.equip_gold_gear) {
 			await swap_booster('goldbooster', 'luckbooster');
