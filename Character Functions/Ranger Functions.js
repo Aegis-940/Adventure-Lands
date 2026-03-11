@@ -918,10 +918,10 @@ async function panic_check() {
 		}
 
 		// Equip panic orb if needed
-		if (character.slots.orb?.name !== PANIC_ORB) {
+		if (character.slots.orb?.name !== 'jacko') {
 			try {
-				await equip(slot);
-				if (character.slots.orb?.name !== PANIC_ORB) {
+				await equip(panic_slot);
+				if (character.slots.orb?.name !== 'jacko') {
 					log("[PANIC] Failed to equip panic orb!", "#ff4444", "Errors");
 				}
 			} catch (e) {
@@ -930,7 +930,7 @@ async function panic_check() {
 		}
 
 		// Try to cast scare if possible
-		if (!is_on_cooldown("scare") && can_use("scare") && character.slots.orb?.name === PANIC_ORB) {
+		if (!is_on_cooldown("scare") && can_use("scare") && character.slots.orb?.name === 'jacko') {
 			try {
 				log("Using Scare!", "#ffcc00", "Alerts");
 				await use_skill("scare");
