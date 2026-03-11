@@ -726,7 +726,8 @@ async function handle_looting() {
 		await sleep(100);
 
 		if (CONFIG.looting.equip_gold_gear) {
-			await swap_booster('goldbooster', 'luckbooster');
+			swap_booster('goldbooster', 'luckbooster');
+			await sleep(100);
 		}
 	} catch (e) {
 		console.error('Looting error:', e);
