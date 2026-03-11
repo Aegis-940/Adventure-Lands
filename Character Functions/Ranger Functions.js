@@ -400,9 +400,11 @@ const handle_attack = async () => {
 	const can_3shot = character.mp >= mp3;
 
 	if (can_5shot && clumped.length >= min5) {
+        logic('Using 5shot on clumped targets:', clumped.slice(0, 5).map(e => e.mtype));
 		equip_set('boom');
 		await use_skill('5shot', clumped.slice(0, 5).map(e => e.id));
 	} else if (can_5shot && in_range.length >= min5) {
+        logic('Using 5shot on in-range targets:', in_range.slice(0, 5).map(e => e.mtype));
 		equip_set('boom');
 		await use_skill('5shot', in_range.slice(0, 5).map(e => e.id));
 	} else if (can_5shot && out_of_range.length >= min5) {
@@ -1196,19 +1198,12 @@ const batch_equip = async data => {
 	}
 };
 
-function equip_set(set_name) {
-	const set = equipment_sets[set_name];
-	if (set) {
-		batch_equip(set);
-	}
-}
-
 const is_set_equipped = name =>
 	equipment_sets[name]?.every(({ item_name, slot, level }) =>
 		character.slots[slot]?.name === item_name && character.slots[slot]?.level === level
 	) ?? false;
 
-// const equip_set = name => equipment_sets[name] && batch_equip(equipment_sets[name]);
+const equip_set = name => equipment_sets[name] && batch_equip(equipment_sets[name]);
 
 // ============================================================================
 // SKIN CHANGER
