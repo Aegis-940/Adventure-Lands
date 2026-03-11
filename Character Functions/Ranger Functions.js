@@ -603,7 +603,6 @@ async function equipment_loop() {
 	setTimeout(equipment_loop, delay);
 }
 
-
 function find_booster_slot() {
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
@@ -1196,6 +1195,13 @@ const batch_equip = async data => {
 		console.error('batch_equip:', e);
 	}
 };
+
+function equip_set(set_name) {
+	const set = equipment_sets[set_name];
+	if (set) {
+		batch_equip(set);
+	}
+}
 
 const is_set_equipped = name =>
 	equipment_sets[name]?.every(({ item_name, slot, level }) =>
