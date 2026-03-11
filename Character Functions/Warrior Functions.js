@@ -171,12 +171,12 @@ const destination = {
 
 const equipment_sets = {
 	single: [
-		{ item_name: "fireblade", slot: "mainhand", level: 13, l: "s" },
-		{ item_name: "candycanesword", slot: "offhand", level: 13, l: "s" },
+		{ item_name: "fireblade", slot: "mainhand", level: 9, l: "l" },
+		{ item_name: "fireblade", slot: "offhand", level: 9, l: "l" },
 	],
 	aoe: [
-		{ item_name: "vhammer", slot: "mainhand", level: 9, l: "s" },
-		{ item_name: "glolipop", slot: "offhand", level: 12, l: "l" },
+		{ item_name: "fireblade", slot: "mainhand", level: 9, l: "l" },
+		{ item_name: "ololipop", slot: "offhand", level: 9, l: "l" },
 	],
 	basher: [
 		{ item_name: "basher", slot: "mainhand", level: 8, l: "l" }
