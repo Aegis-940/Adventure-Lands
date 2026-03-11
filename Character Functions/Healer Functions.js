@@ -321,9 +321,9 @@ async function action_loop() {
 
 		update_cache();
 
-		const MS_UNTIL_ATTACK = ms_to_next_skill('attack');
+		const ms = ms_to_next_skill('attack');
 
-		if (MS_UNTIL_ATTACK < character.ping / 10) {
+		if (ms === 0) {
 			const HEALED = await try_heal();
 
 			if (!HEALED) {
@@ -332,11 +332,9 @@ async function action_loop() {
 					await attack(TARGET);
 				}
 			}
+		} else {
+			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
 		}
-
-		if (MS_UNTIL_ATTACK > 200) delay = 40;
-		else if (MS_UNTIL_ATTACK > 60) delay = 20;
-		else delay = 5;
 
 	} catch (e) {
 		console.error('priest action_loop error:', e);
