@@ -394,8 +394,8 @@ const handle_attack = async () => {
 
 	const min5 = CONFIG.combat.min_targets_for_5shot;
 	const min3 = CONFIG.combat.min_targets_for_3shot;
-	const mp5 = (G.skills['5shot']?.mp + 200);
-	const mp3 = (G.skills['3shot']?.mp + 100);
+	const mp5 = (G.skills['5shot']?.mp + 400);
+	const mp3 = (G.skills['3shot']?.mp + 200);
 	const mp1 = 100;
 	const can_5shot = character.mp >= mp5;
 	const can_3shot = character.mp >= mp3;
@@ -697,7 +697,7 @@ function handle_return_home() {
 	}
 }
 
-const walk_in_circle = async () => {
+async function walk_in_circle() {
 	if (smart.moving || character.moving) return;
 
 	const { x: centerX, y: centerY } = locations[home][0];
