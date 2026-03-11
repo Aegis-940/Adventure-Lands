@@ -931,6 +931,11 @@ const scare = () => {
 		}
 	}
 
+	// Also scare if health is less than 50%
+	if (character.hp / character.max_hp < 0.5) {
+		should_scare = true;
+	}
+
 	if (should_scare && !is_on_cooldown('scare') && slot !== -1) {
 		equip(slot);
 		use('scare');
