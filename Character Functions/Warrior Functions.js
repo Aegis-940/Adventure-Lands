@@ -865,7 +865,7 @@ async function walk_in_circle() {
 // ============================================================================
 
 function clear_inventory() {
-	const loot_mule = get_player('Myras');
+	const loot_mule = get_player('Riff');
 	if (!loot_mule) return;
 
 	if (character.gold > 5000000) {
