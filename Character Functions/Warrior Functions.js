@@ -260,14 +260,12 @@ function find_best_target() {
 	}
 
 	// Priority 3: Targets with max HP
-	for (const name of CONFIG.combat.target_priority) {
-		const target = get_nearest_monster_v2({
-			target: name,
-			check_max_hp: false,
-			max_distance: character.range
-		});
-		if (target) return target;
-	}
+	const target = get_nearest_monster_v2({
+		target: name,
+		check_max_hp: true,
+		max_distance: character.range
+	});
+	if (target) return target;
 
 	return null;
 }
