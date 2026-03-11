@@ -274,6 +274,7 @@ function find_nearest_boss() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN TICK LOOP - Handles state updates, caching, movement
 // --------------------------------------------------------------------------------------------------------------------------------- //
+
 async function main_loop() {
 	try {
 		if (is_disabled(character)) {
@@ -723,10 +724,10 @@ async function handle_looting() {
 			looted++;
 		}
 
-		await sleep(75);
+		await sleep(150);
 
 		if (CONFIG.looting.equip_gold_gear) {
-			swap_booster('goldbooster', 'luckbooster');
+			await swap_booster('goldbooster', 'luckbooster');
 		}
 	} catch (e) {
 		console.error('Looting error:', e);
