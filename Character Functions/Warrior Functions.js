@@ -384,9 +384,9 @@ async function skill_loop() {
 		// }
 
 		// Cleave
-		if (CONFIG.skills.cleave_enabled) {
-			await handle_cleave();
-		}
+		// if (CONFIG.skills.cleave_enabled) {
+		// 	await handle_cleave();
+		// }
 
 		// Agitate
 		if (CONFIG.skills.agitate_enabled && tank) {
