@@ -316,9 +316,7 @@ async function action_loop() {
 	let delay = 10;
 
 	try {
-		if (is_disabled(character)) {
-			return setTimeout(action_loop, 25);
-		}
+		if (is_disabled(character)) return setTimeout(action_loop, 25);
 
 		update_cache();
 

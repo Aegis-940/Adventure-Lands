@@ -335,27 +335,18 @@ async function action_loop() {
 	let delay = 10;
 
 	try {
-		if (is_disabled(character)) {
-			return setTimeout(action_loop, 25);
-		}
+		if (is_disabled(character)) return setTimeout(action_loop, 50);
 
 		// Keep cache fresh even while waiting on cooldowns
 		update_cache();
 
 		const target = cache.target;
-		const ms_until_attack = ms_to_next_skill('attack');
+		const ms = ms_to_next_skill('attack');
 
-		if (
-			target &&
-			ms_until_attack < character.ping / 10 &&
-			is_in_range(target) &&
-			!smart.moving
-		) {
+		if (ms === 0) {
 			await attack(target);
 		} else {
-			if (ms_until_attack > 200) delay = 40;
-			else if (ms_until_attack > 60) delay = 20;
-			else delay = 5;
+			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
 		}
 
 	} catch (e) {
