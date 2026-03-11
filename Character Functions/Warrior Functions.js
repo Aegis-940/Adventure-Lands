@@ -384,9 +384,9 @@ async function skill_loop() {
 		// }
 
 		// Cleave
-		// if (CONFIG.skills.cleave_enabled) {
-		// 	await handle_cleave();
-		// }
+		if (CONFIG.skills.cleave_enabled) {
+			await handle_cleave();
+		}
 
 		// Agitate
 		if (CONFIG.skills.agitate_enabled && tank) {
@@ -440,7 +440,6 @@ async function handle_stomp() {
 async function handle_cleave() {
 	const ms_until_cleave = ms_to_next_skill('cleave');
 	if (ms_until_cleave !== 0) return;
-	if (!can_cleave()) return;
 
 	const mainhand = character.slots?.mainhand?.name;
 	const needs_swap = mainhand !== 'bataxe';
@@ -1092,7 +1091,7 @@ async function batch_equip(data) {
 	if (valid_items.length === 0) return;
 
 	try {
-		parent.socket.emit('batch_equip', valid_items);
+		parent.socket.emit('equip_batch', valid_items);
 		await parent.push_deferred('batch_equip');
 	} catch (error) {
 		console.error('batch_equip error:', error);
