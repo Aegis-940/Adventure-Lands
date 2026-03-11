@@ -383,10 +383,9 @@ const action_loop = async () => {
 			} else */await handle_attack();
 		} else {
 			delay = ms > 200 ? 50 : ms > 50 ? 20 : 5;
-            delay1 = delay - character.ping
 		}
 	} catch { delay = 1; }
-	setTimeout(action_loop, delay1);
+	setTimeout(action_loop, delay);
 };
 
 const handle_attack = async () => {
