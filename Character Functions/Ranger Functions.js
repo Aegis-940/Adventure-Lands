@@ -884,14 +884,14 @@ const scare = () => {
 
 let panicking = false;
 
-let LOW_HEALTH = 0;
-let LOW_MANA = 0;
-let HIGH_HEALTH = 0;
-let HIGH_MANA = 0;
-let MONSTERS_TARGETING_ME = 0;
-const PANIC_AGGRO_THRESHOLD = 1;
-
 async function panic_check() {
+
+	let LOW_HEALTH = 0;
+	let LOW_MANA = 0;
+	let HIGH_HEALTH = 0;
+	let HIGH_MANA = 0;
+	let MONSTERS_TARGETING_ME = 0;
+	const PANIC_AGGRO_THRESHOLD = 1;
 
 	// --- Panic/Safe Conditions ---
 	LOW_HEALTH = character.hp < character.max_hp * 0.66;
@@ -934,7 +934,6 @@ async function panic_check() {
 			try {
 				log("Using Scare!", "#ffcc00", "Alerts");
 				await use_skill("scare");
-				await delay(delayMs);
 			} catch (e) {
 				log(`[PANIC] Error using scare: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
 			}
