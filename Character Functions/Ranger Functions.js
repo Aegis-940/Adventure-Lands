@@ -492,7 +492,7 @@ async function potion_loop() {
 	let used_potion = false;
 
 	// Use health potion if needed
-	if (MP_MISSING >= 400) {
+	if (MP_MISSING >= mp_threshold) {
 		if (can_use("mp")) {
 			use("mp");
 			used_potion = true;
@@ -500,7 +500,7 @@ async function potion_loop() {
 	}
 
 	// Use health potion if needed
-	else if (HP_MISSING >= 300) {
+	else if (HP_MISSING >= hp_threshold) {
 		if (can_use("hp")) {
 			use("hp");
 			used_potion = true;
@@ -508,12 +508,12 @@ async function potion_loop() {
 	}
 
 	if (used_potion) {
-		await delay(2010); // Wait 2 seconds after using a potion
+		delay = 2010;
 	} else {
-		await delay(10);   // Otherwise, check again in 10ms
+		delay = 10;
 	}
 
-	setTimeout(potion_loop(), delay)
+	setTimeout(potion_loop, delay);
 
 }
 
