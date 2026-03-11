@@ -380,7 +380,7 @@ const action_loop = async () => {
 			/*if (cache.heal_target) {
 				equip_set('heal');
 				await attack(cache.heal_target);
-			} else */handle_attack();
+			} else */await handle_attack();
 		} else {
 			delay = ms > 200 ? 50 : ms > 50 ? 20 : 5;
 		}
