@@ -1348,7 +1348,6 @@ async function handle_looting() {
 
 	try {
 		if (CONFIG.looting.equip_gold_gear && !is_set_equipped('gold')) {
-            log('Equipping gold gear for looting', '#FFD700');
 			equip_set('gold');
 			swap_booster('luckbooster', 'goldbooster');
 			await sleep(150);
@@ -1429,6 +1428,7 @@ function is_set_equipped(set_name) {
 }
 
 function equip_set(set_name) {
+    log(`Equipping set: ${set_name}`, '#00FF00');
 	const set = equipment_sets[set_name];
 	if (set) {
 		batch_equip(set);
@@ -1629,6 +1629,8 @@ async function batch_equip(data) {
 	if (data.length > 15) {
 		return Promise.reject({ reason: 'invalid', message: 'Too many items' });
 	}
+
+    log(`Batch equipping ${data.length} items...`, '#00FF00');
 
 	let valid_items = [];
 
