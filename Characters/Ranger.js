@@ -26,18 +26,18 @@ let last_update_time = 0;
 
 // === Core utility loops ===
 // Designed to run continuously, toggles on and off as needed
-potion_loop();
+// potion_loop();
 // loot_loop();
-move_loop();
+// move_loop();
 // skill_loop();
-panic_loop();
-boss_loop();
-orbit_loop();
-status_cache_loop();
-attack_loop();
-prim_farm_loop();
-dungeon_loop();
-dungeon_orbit_loop()
+// panic_loop();
+// boss_loop();
+// orbit_loop();
+// status_cache_loop();
+// attack_loop();
+// prim_farm_loop();
+// dungeon_loop();
+// dungeon_orbit_loop()
 
 // === Watchdog and Activity Monitor ===
 // Designed to ensure the bot is running smoothly and doesn't stall
@@ -46,7 +46,7 @@ dungeon_orbit_loop()
 
 // == Loop Controller ===
 // Designed to manage state transitions and ensure appropriate loops are running
-loop_controller();
+// loop_controller();
 
 setInterval(async () => {
 	
@@ -58,7 +58,7 @@ setInterval(async () => {
 	}
 
 	// === Core utility loops ===
-	party_manager();
+	// party_manager();
 
 	if (!attack_mode || character.rip || is_moving(character)) return;
 
