@@ -707,9 +707,8 @@ async function handle_looting() {
 
 	try {
 		if (CONFIG.looting.equip_gold_gear && !is_set_equipped('gold')) {
-			equip_set('gold');
-			swap_booster('luckbooster', 'goldbooster');
-			await sleep(150);
+			await equip_set('gold');
+			await swap_booster('luckbooster', 'goldbooster');
 		}
 
 		let looted = 0;
@@ -786,7 +785,7 @@ function is_set_equipped(set_name) {
 	);
 }
 
-function equip_set(set_name) {
+async function equip_set(set_name) {
 	const set = equipment_sets[set_name];
 	if (set) {
 		batch_equip(set);
@@ -860,7 +859,7 @@ function elixir_usage() {
 	// }
 }
 
-function swap_booster(current, target) {
+async function swap_booster(current, target) {
 	const slot = locate_item(current);
 	if (slot !== -1) shift(slot, target);
 }
