@@ -700,15 +700,15 @@ function handle_return_home() {
 async function walk_in_circle() {
 	if (smart.moving || character.moving) return;
 
-	const { x: centerX, y: centerY } = locations[home][0];
+	const { x: center_x, y: center_y } = locations[home][0];
 	const now = performance.now();
-	const delta = (now - state.lastAngleUpdate) / 1000;
+	const delta = (now - state.last_angle_update) / 1000;
 
-	state.angle = (state.angle + CONFIG.movement.circleSpeed * delta) % (2 * Math.PI);
-	state.lastAngleUpdate = now;
+	state.angle = (state.angle + CONFIG.movement.circle_speed * delta) % (2 * Math.PI);
+	state.last_angle_update = now;
 
-	const target_x = centerX + Math.cos(state.angle) * CONFIG.movement.circle_radius;
-	const target_y = centerY + Math.sin(state.angle) * CONFIG.movement.circle_radius;
+	const target_x = center_x + Math.cos(state.angle) * CONFIG.movement.circle_radius;
+	const target_y = center_y + Math.sin(state.angle) * CONFIG.movement.circle_radius;
 
 	const dist_to_target = Math.hypot(character.x - target_x, character.y - target_y);
 	if (dist_to_target > CONFIG.movement.move_threshold) {
