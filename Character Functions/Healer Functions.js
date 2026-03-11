@@ -1348,17 +1348,15 @@ async function handle_looting() {
 
 	try {
 		if (CONFIG.looting.equip_goldgear/* && !is_set_equipped('gold')*/) {
-			// equip_set('gold');
+			equip_set('gold');
 			swap_booster('luckbooster', 'goldbooster');
 			await sleep(150);
 		}
 
 		let looted = 0;
-		const max_loots = CONFIG.looting.chest_threshold * 5;
 
-		const stored_chests = load_chest_map();
+		const stored_chests = get_chests();
 		for (const chest_id in stored_chests) {
-			if (looted >= max_loots) break;
 			parent.open_chest(chest_id);
 			looted++;
 		}
