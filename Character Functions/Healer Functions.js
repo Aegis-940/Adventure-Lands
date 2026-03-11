@@ -479,7 +479,7 @@ async function handle_absorb() {
 async function handle_party_heal() {
 	let threshold = CONFIG.healing.party_heal_threshold;
 
-	if (character.map !== mobMap) {
+	if (character.map !== mob_map) {
 		threshold = 0.99;
 	}
 

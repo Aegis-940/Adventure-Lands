@@ -847,9 +847,9 @@ const scare = () => {
 		equip(slot);
 	}
 
-	const paused = parent?.paused;
-	if (character?.afk && !paused) { pause(); parent.no_graphics = true; }
-	else if (!character?.afk && paused) { pause(); parent.no_graphics = false; }
+	// const paused = parent?.paused;
+	// if (character?.afk && !paused) { pause(); parent.no_graphics = true; }
+	// else if (!character?.afk && paused) { pause(); parent.no_graphics = false; }
 };
 
 function party_maker() {

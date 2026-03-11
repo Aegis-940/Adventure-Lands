@@ -379,9 +379,9 @@ async function skill_loop() {
 		}
 
 		// Stomp
-		if (CONFIG.skills.stomp_enabled && tank?.hp < tank?.max_hp * 0.3) {
-			await handle_stomp();
-		}
+		// if (CONFIG.skills.stomp_enabled && tank?.hp < tank?.max_hp * 0.3) {
+		// 	await handle_stomp();
+		// }
 
 		// Cleave
 		if (CONFIG.skills.cleave_enabled) {
@@ -399,14 +399,14 @@ async function skill_loop() {
 		}
 
 		// Charge
-		if (CONFIG.skills.charge_enabled && !is_on_cooldown('charge')) {
-			await use_skill('charge');
-		}
+		// if (CONFIG.skills.charge_enabled && !is_on_cooldown('charge')) {
+		// 	await use_skill('charge');
+		// }
 
 		// Hardshell
-		if (CONFIG.skills.hardshell_enabled && !is_on_cooldown('hardshell') && character.hp < CONFIG.skills.hardshell_hp_threshold) {
-			await use_skill('hardshell');
-		}
+		// if (CONFIG.skills.hardshell_enabled && !is_on_cooldown('hardshell') && character.hp < CONFIG.skills.hardshell_hp_threshold) {
+		// 	await use_skill('hardshell');
+		// }
 
 	} catch (e) {
 		console.error('skill_loop error:', e);
@@ -690,7 +690,7 @@ async function equipment_loop() {
 			if (CONFIG.equipment.boss_set_swap_enabled && active_boss) {
 				const boss_hp = active_boss.data.hp;
 				if (boss_hp > CONFIG.equipment.boss_hp_thresholds[active_boss.name]) {
-					if (character.map !== mobMap) {
+					   if (character.map !== mob_map) {
 						target_set = 'dps';
 					}
 				} else {
@@ -698,12 +698,12 @@ async function equipment_loop() {
 				}
 			}
 			// Home map logic
-			else if (character.map === mobMap) {
-				target_set = 'dpsAccessories';
+			   else if (character.map === mob_map) {
+				target_set = 'dps_accessories';
 
 				// Weapon swap based on mob count/map
 				if (CONFIG.equipment.weapon_swap_enabled) {
-					const home_count = mobCount();
+					const home_count = mob_count();
 					if (home_count === 1) {
 						if (!is_set_equipped('single')) {
 							equip_set('single');
