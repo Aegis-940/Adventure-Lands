@@ -1375,6 +1375,24 @@ async function handle_looting() {
 	}
 }
 
+const CHEST_STORAGE_KEY = get_chests();
+function load_chest_map() {
+	const data = get(CHEST_STORAGE_KEY);
+	return typeof data === "object" && data !== null ? data : {};
+}
+
+function remove_chest_id(id) {
+	const stored = load_chest_map();
+	if (stored[id]) {
+		delete stored[id];
+		save_chest_map(stored);
+	}
+}
+
+function save_chest_map(map) {
+	set(CHEST_STORAGE_KEY, map);
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // EQUIPMENT MANAGEMENT
 // --------------------------------------------------------------------------------------------------------------------------------- //
