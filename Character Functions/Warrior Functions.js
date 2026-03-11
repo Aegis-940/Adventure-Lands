@@ -915,27 +915,20 @@ function elixir_usage() {
 
 let target_start_times = {};
 
-function scare() {
-	const slot = character.items.findIndex(i => i && i.name === 'jacko');
-	const current_time = performance.now();
+const scare = () => {
+	const slot = character.items.findIndex(i => i?.name === 'jacko');
+	const now = performance.now();
 	let should_scare = false;
 
 	for (const id in parent.entities) {
-		const current = parent.entities[id];
+		const e = parent.entities[id];
 
-		if (current.type === 'monster' && current.target === character.name && current.mtype !== 'grinch') {
-			if (!target_start_times[id]) {
-				target_start_times[id] = current_time;
-			} else if (current_time - target_start_times[id] > 1000) {
-				should_scare = true;
-			}
+		if (e.type === 'monster' && e.target === character.name && e.mtype !== 'grinch') {
+			if (target_start_times[id] == null) target_start_times[id] = now;
+			if (now - target_start_times[id] > 1000) should_scare = true;
 		} else {
 			delete target_start_times[id];
 		}
-	}
-
-	if (character.hp <= character.max_hp * 0.5) {
-		should_scare = true;
 	}
 
 	if (should_scare && !is_on_cooldown('scare') && slot !== -1) {
@@ -943,7 +936,11 @@ function scare() {
 		use('scare');
 		equip(slot);
 	}
-}
+
+	// const paused = parent?.paused;
+	// if (character?.afk && !paused) { pause(); parent.no_graphics = true; }
+	// else if (!character?.afk && paused) { pause(); parent.no_graphics = false; }
+};
 
 function party_maker() {
 	if (!CONFIG.party.auto_manage) return;

@@ -723,10 +723,10 @@ async function handle_looting() {
 			looted++;
 		}
 
-		await sleep(100);
+		await sleep(150);
 
 		if (CONFIG.looting.equip_gold_gear) {
-			swap_booster('goldbooster', 'luckbooster');
+			await swap_booster('goldbooster', 'luckbooster');
 			await sleep(100);
 		}
 	} catch (e) {
