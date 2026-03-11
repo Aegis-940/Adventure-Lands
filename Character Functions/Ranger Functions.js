@@ -1208,7 +1208,7 @@ const is_set_equipped = name =>
 		character.slots[slot]?.name === item_name && character.slots[slot]?.level === level
 	) ?? false;
 
-const equip_set = name => equipment_sets[name] && batch_equip(equipment_sets[name]);
+// const equip_set = name => equipment_sets[name] && batch_equip(equipment_sets[name]);
 
 // ============================================================================
 // SKIN CHANGER
