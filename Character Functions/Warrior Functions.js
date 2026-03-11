@@ -457,7 +457,7 @@ async function handle_cleave() {
 
 	if (needs_swap) {
 		const target_set = mob_count() === 1 ? 'single' : 'aoe';
-		batch_equip(equipment_sets[target_set]);
+		await batch_equip(equipment_sets[target_set]);
 	}
 }
 
