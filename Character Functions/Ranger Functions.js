@@ -374,15 +374,15 @@ const action_loop = async () => {
 		if (is_disabled(character)) return setTimeout(action_loop, 50);
 
 		update_cache();
-		const delay = ms_to_next_skill('attack');
+		const ms = ms_to_next_skill('attack');
 
-		if (delay === 0) {
+		if (ms < character.ping / 10) {
 			/*if (cache.heal_target) {
 				equip_set('heal');
 				await attack(cache.heal_target);
 			} else */handle_attack();
 		} else {
-			delay = delay > 200 ? 50 : delay > 50 ? 20 : 5;
+			delay = ms > 200 ? 50 : ms > 50 ? 20 : 5;
 		}
 	} catch { delay = 1; }
 	setTimeout(action_loop, delay);
@@ -396,8 +396,10 @@ const handle_attack = async () => {
 	const min3 = CONFIG.combat.min_targets_for_3shot;
 	const mp5 = (G.skills['5shot']?.mp + 200);
 	const mp3 = (G.skills['3shot']?.mp + 100);
+	const mp1 = (G.skills['attack']?.mp + 50);
 	const can_5shot = character.mp >= mp5;
 	const can_3shot = character.mp >= mp3;
+	const can_1shot = character.mp >= mp1;
 
 	if (can_5shot && clumped.length >= min5) {
 		equip_set('boom');
@@ -411,7 +413,7 @@ const handle_attack = async () => {
 	} else if (can_3shot && sorted_by_hp.length >= min3) {
 		equip_set('boom');
 		use_skill('3shot', sorted_by_hp.slice(0, 3).map(e => e.id));
-	} else if (sorted_by_hp.length >= 1 && is_in_range(sorted_by_hp[0])) {
+	} else if (can_1shot && sorted_by_hp.length >= 1 && is_in_range(sorted_by_hp[0])) {
 		equip_set('single');
 		attack(sorted_by_hp[0]);
 	}
