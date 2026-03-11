@@ -590,9 +590,8 @@ async function potion_loop() {
 
 	// Use health potion if needed
 	if (HP_MISSING >= CONFIG.potions.hp_threshold) {
-		if (can_use("mp")) {
-			use("mp");
-			use_skill("partyheal");
+		if (can_use("hp")) {
+			use("hp");
 			used_potion = true;
 		}
 	}
