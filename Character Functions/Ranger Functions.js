@@ -371,18 +371,18 @@ const main_loop = async () => {
 const action_loop = async () => {
 	let delay = 5;
 	try {
-		if (is_disabled(character)) return setTimeout(action_loop, 25);
+		if (is_disabled(character)) return setTimeout(action_loop, 50);
 
 		update_cache();
-		const ms = ms_to_next_skill('attack');
+		const delay = ms_to_next_skill('attack');
 
-		if (ms < character.ping / 10) {
+		if (delay === 0) {
 			/*if (cache.heal_target) {
 				equip_set('heal');
 				await attack(cache.heal_target);
-			} else */await handle_attack();
+			} else */handle_attack();
 		} else {
-			delay = ms > 200 ? 50 : ms > 50 ? 20 : 5;
+			delay = delay > 200 ? 50 : delay > 50 ? 20 : 5;
 		}
 	} catch { delay = 1; }
 	setTimeout(action_loop, delay);
