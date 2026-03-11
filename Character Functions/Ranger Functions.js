@@ -371,7 +371,7 @@ const main_loop = async () => {
 const action_loop = async () => {
 	let delay = 5;
 	try {
-		if (is_disabled(character)) return setTimeout(action_loop, 50);
+		// if (is_disabled(character)) return setTimeout(action_loop, 50);
 
 		update_cache();
 		const ms = ms_to_next_skill('attack');
