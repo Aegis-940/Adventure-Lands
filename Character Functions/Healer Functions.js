@@ -316,7 +316,8 @@ async function action_loop() {
 	let delay = 10;
 
 	try {
-		if (is_disabled(character)) return setTimeout(action_loop, 25);
+		if (is_disabled(character)) return setTimeout(action_loop, 50);
+		if (smart.moving) return setTimeout(action_loop, 50);
 
 		update_cache();
 
@@ -707,8 +708,9 @@ async function handle_looting() {
 
 	try {
 		if (CONFIG.looting.equip_gold_gear && !is_set_equipped('gold')) {
-			await equip_set('gold');
-			await swap_booster('luckbooster', 'goldbooster');
+			equip_set('gold');
+			swap_booster('luckbooster', 'goldbooster');
+			await sleep(100);
 		}
 
 		let looted = 0;
@@ -721,7 +723,7 @@ async function handle_looting() {
 			looted++;
 		}
 
-		await sleep(150);
+		await sleep(100);
 
 		if (CONFIG.looting.equip_gold_gear) {
 			await swap_booster('goldbooster', 'luckbooster');
