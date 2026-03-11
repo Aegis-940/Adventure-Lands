@@ -833,7 +833,7 @@ const scare = () => {
 		const e = parent.entities[id];
 
 		if (e.type === 'monster' && e.target === character.name && e.mtype !== 'grinch') {
-			target_start_times[id] ??= now;
+			if (target_start_times[id] == null) target_start_times[id] = now;
 			if (now - target_start_times[id] > 250) should_scare = true;
 		} else {
 			delete target_start_times[id];
