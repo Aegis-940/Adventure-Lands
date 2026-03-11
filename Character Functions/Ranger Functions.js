@@ -1170,7 +1170,6 @@ function ms_to_next_skill(skill) {
 }
 
 const batch_equip = async data => {
-    log('Attempting batch equip:', data);
 	if (!Array.isArray(data) || data.length > 15) return;
 
 	const valid = data.reduce((acc, { item_name, slot, level, l }) => {
@@ -1204,7 +1203,6 @@ const is_set_equipped = name =>
 // const equip_set = name => equipment_sets[name] && batch_equip(equipment_sets[name]);
 
 function equip_set(set_name) {
-    log(`Attempting to equip set: ${set_name}`);
 	const set = equipment_sets[set_name];
 	if (set) {
 		batch_equip(set);
