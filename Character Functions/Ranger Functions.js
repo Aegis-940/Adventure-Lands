@@ -374,7 +374,7 @@ const action_loop = async () => {
 		if (is_disabled(character)) return setTimeout(action_loop, 25);
 
 		update_cache();
-		const ms = ms_to_next_skill('attack') - character.ping;
+		const ms = ms_to_next_skill('attack');
 
 		if (ms < character.ping / 10) {
 			/*if (cache.heal_target) {
@@ -489,11 +489,11 @@ async function potion_loop() {
 
 		if (character.mp < mp_threshold && !is_on_cooldown('use_mp')) {
 			use_skill('use_mp');
-			reduce_cooldown('use_mp', character.ping * 0.95);
+			reduce_cooldown('use_mp', character.ping * 0.66);
 			delay = ms_to_next_skill('use_mp');
 		} else if (character.hp < hp_threshold && !is_on_cooldown('use_hp')) {
 			use_skill('use_hp');
-			reduce_cooldown('use_hp', character.ping * 0.95);
+			reduce_cooldown('use_hp', character.ping * 0.66);
 			delay = ms_to_next_skill('use_hp');
 		}
 	} catch (e) {
