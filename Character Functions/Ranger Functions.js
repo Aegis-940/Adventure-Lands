@@ -120,7 +120,7 @@ const COOLDOWNS = { cc: 135 };
 const EVENT_LOCATIONS = [
 	{ name: 'mrpumpkin', map: 'halloween', x: -217, y: 720 },
 	{ name: 'mrgreen', map: 'spookytown', x: 605, y: 1000 },
-	{ name: 'crabxx', map: 'main', x: -971, y: 1780, join: true }
+	{ name: 'dragold', map: 'cave', x: 873, y: -727 },
 ];
 
 const CACHE_TTL = 50;

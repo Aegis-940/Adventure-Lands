@@ -81,7 +81,8 @@ const COOLDOWNS = {
 
 const EVENT_LOCATIONS = [
 	{ name: 'mrpumpkin', map: 'halloween', x: -222, y: 720 },
-	{ name: 'mrgreen', map: 'spookytown', x: 610, y: 1000 }
+	{ name: 'mrgreen', map: 'spookytown', x: 610, y: 1000 },
+	{ name: 'dragold', map: 'cave', x: 873, y: -727 },
 ];
 
 const CACHE_TTL = 100; // Cache validity in ms
