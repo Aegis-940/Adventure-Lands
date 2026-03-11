@@ -453,10 +453,11 @@ async function handle_cleave() {
 	}
 
 	await use_skill('cleave');
+	await sleep(50);
 
 	if (needs_swap) {
 		const target_set = mob_count() === 1 ? 'single' : 'aoe';
-		await batch_equip(equipment_sets[target_set]);
+		batch_equip(equipment_sets[target_set]);
 	}
 }
 
