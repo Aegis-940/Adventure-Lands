@@ -380,7 +380,7 @@ const action_loop = async () => {
 			/*if (cache.heal_target) {
 				equip_set('heal');
 				await attack(cache.heal_target);
-			} else */handle_attack();
+			} else */await handle_attack();
 		} else {
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
 		}
@@ -403,19 +403,19 @@ const handle_attack = async () => {
 
 	if (can_5shot && clumped.length >= min5) {
 		equip_set('boom');
-		use_skill('5shot', clumped.slice(0, 5).map(e => e.id));
+		await use_skill('5shot', clumped.slice(0, 5).map(e => e.id));
 	} else if (can_5shot && in_range.length >= min5) {
 		equip_set('boom');
-		use_skill('5shot', in_range.slice(0, 5).map(e => e.id));
+		await use_skill('5shot', in_range.slice(0, 5).map(e => e.id));
 	} else if (can_5shot && out_of_range.length >= min5) {
 		equip_set('boom');
-		use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id));
+		await use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id));
 	} else if (can_3shot && sorted_by_hp.length >= min3) {
 		equip_set('boom');
-		use_skill('3shot', sorted_by_hp.slice(0, 3).map(e => e.id));
+		await use_skill('3shot', sorted_by_hp.slice(0, 3).map(e => e.id));
 	} else if (can_1shot && sorted_by_hp.length >= 1 && is_in_range(sorted_by_hp[0])) {
 		equip_set('single');
-		attack(sorted_by_hp[0]);
+		await attack(sorted_by_hp[0]);
 	}
 };
 
