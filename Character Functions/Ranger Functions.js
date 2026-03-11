@@ -403,13 +403,13 @@ const handle_attack = async () => {
 		equip_set('boom');
 		await use_skill('5shot', clumped.slice(0, 5).map(e => e.id));
 	} else if (can_5shot && in_range.length >= min5) {
-		equip_set('dead');
+		equip_set('boom');
 		await use_skill('5shot', in_range.slice(0, 5).map(e => e.id));
 	} else if (can_5shot && out_of_range.length >= min5) {
-		equip_set('dead');
+		equip_set('boom');
 		await use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id));
 	} else if (can_3shot && sorted_by_hp.length >= min3) {
-		equip_set('dead');
+		equip_set('boom');
 		await use_skill('3shot', sorted_by_hp.slice(0, 3).map(e => e.id));
 	} else if (sorted_by_hp.length >= 1 && is_in_range(sorted_by_hp[0])) {
 		equip_set('single');
