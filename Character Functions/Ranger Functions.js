@@ -374,7 +374,7 @@ const action_loop = async () => {
 		if (is_disabled(character)) return setTimeout(action_loop, 25);
 
 		update_cache();
-		const ms = ms_to_next_skill('attack');
+		const ms = ms_to_next_skill('attack') - character.ping;
 
 		if (ms < character.ping / 10) {
 			/*if (cache.heal_target) {
