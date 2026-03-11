@@ -500,7 +500,7 @@ async function potion_loop() {
 		console.error('potion_loop error:', e);
 	}
 
-	setTimeout(potion_loop, 2001);
+	setTimeout(potion_loop, 1001);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
