@@ -1630,9 +1630,13 @@ async function batch_equip(data) {
 		return Promise.reject({ reason: 'invalid', message: 'Too many items' });
 	}
 
-    log(`Batch equipping ${data.length} items...`, '#00FF00');
+
+	log(`[batch_equip] Called with data: ${JSON.stringify(data)}`, '#00FF00');
+	log(`Batch equipping ${data.length} items...`, '#00FF00');
+
 
 	let valid_items = [];
+
 
 	for (let i = 0; i < data.length; i++) {
 		let item_name = data[i].item_name;
@@ -1640,13 +1644,19 @@ async function batch_equip(data) {
 		let level = data[i].level;
 		let l = data[i].l;
 
-		if (!item_name) continue;
+		log(`[batch_equip] Checking item: ${item_name}, slot: ${slot}, level: ${level}, l: ${l}`);
+
+		if (!item_name) {
+			log(`[batch_equip] Skipping empty item_name at index ${i}`);
+			continue;
+		}
 
 		let found = false;
 		if (parent.character.slots[slot]) {
 			let slot_item = parent.character.items[parent.character.slots[slot]];
 			if (slot_item && slot_item.name === item_name && slot_item.level === level && slot_item.l === l) {
 				found = true;
+				log(`[batch_equip] Item already equipped in slot ${slot}: ${item_name} lvl ${level} l ${l}`);
 			}
 		}
 
@@ -1656,17 +1666,27 @@ async function batch_equip(data) {
 			const item = parent.character.items[j];
 			if (item && item.name === item_name && item.level === level && item.l === l) {
 				valid_items.push({ num: j, slot: slot });
+				log(`[batch_equip] Found item in inventory at index ${j}: ${item_name} lvl ${level} l ${l} for slot ${slot}`);
 				break;
 			}
 		}
 	}
 
-	if (valid_items.length === 0) return;
+
+	log(`[batch_equip] valid_items to equip: ${JSON.stringify(valid_items)}`);
+	if (valid_items.length === 0) {
+		log('[batch_equip] No valid items to equip. Exiting.');
+		return;
+	}
+
 
 	try {
+		log(`[batch_equip] Emitting equip_batch for: ${JSON.stringify(valid_items)}`);
 		parent.socket.emit('equip_batch', valid_items);
 		await parent.push_deferred('equip_batch');
+		log('[batch_equip] Equip batch completed successfully.');
 	} catch (error) {
+		log(`[batch_equip] Error during equip: ${error && error.message ? error.message : error}`);
 		console.error('Batch_equip error:', error);
 		return Promise.reject({ reason: 'invalid', message: 'Failed to equip' });
 	}
