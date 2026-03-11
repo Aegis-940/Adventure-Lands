@@ -448,6 +448,7 @@ async function handle_cleave() {
 
 	if (needs_swap && now - state.last_cleave_swap > COOLDOWNS.weapon_swap) {
 		state.last_cleave_swap = now;
+		log(`Swapping to bataxe for cleave (mainhand: ${mainhand})`);
 		unequip('offhand');
 		batch_equip(equipment_sets.bataxe);
 	}
