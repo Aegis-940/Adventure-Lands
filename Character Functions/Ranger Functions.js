@@ -4,15 +4,15 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const home = 'dryad';
-const mobMap = 'mforest';
-const allBosses = ['grinch', 'icegolem', 'dragold', 'mrgreen', 'mrpumpkin', 'greenjr', 'jr', 'franky', 'rgoo', 'bgoo', 'crabxx'];
+const mob_map = 'mforest';
+const all_bosses = ['grinch', 'icegolem', 'dragold', 'mrgreen', 'mrpumpkin', 'greenjr', 'jr', 'franky', 'rgoo', 'bgoo', 'crabxx'];
 
 const CONFIG = {
 	combat: {
 		enabled: true,
 		target_priority: ['Ulric', 'Myras'],
 		always_attack: ['crabx'], // Attack regardless of target
-		attack_if_targeted: [...allBosses, 'phoenix'], // Only attack if has target
+		attack_if_targeted: [...all_bosses, 'phoenix'], // Only attack if has target
 		never_attack: ['nerfedmummy'], // Never attack
 		use_hunters_mark: true,
 		use_supershot: true,
