@@ -500,7 +500,11 @@ async function potion_loop() {
 		console.error('potion_loop error:', e);
 	}
 
-	setTimeout(potion_loop, delay || 2000);
+    while (ms_to_next_skill('use_hp') !== 0) {
+        await sleep(10)
+    }
+
+    potion_loop();
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
