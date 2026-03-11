@@ -26,7 +26,7 @@ const CONFIG = {
 		circle_speed: 0.95,
 		circle_radius: 75,
 		move_threshold: 10,
-		clump_radius: 20
+		clump_radius: 30
 	},
 
 	equipment: {

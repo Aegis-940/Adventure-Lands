@@ -1115,21 +1115,21 @@ async function batch_equip(data) {
 // EVENT HANDLERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function on_cm(name, data) {
-	if (name == "CrownsAnal") {
-		if (data.message == "location") {
-			respawn();
-			smart_move({ x: data.x, y: data.y, map: data.map });
-			game_log("Repsawning & Moving");
-		}
-	}
-	if (name == "Riff") {
-		if (data.message == "Heal Merch") {
-			use_skill("partyheal");
-			game_log("Party Healing Riff");
-		}
-	}
-}
+// function on_cm(name, data) {
+// 	if (name == "CrownsAnal") {
+// 		if (data.message == "location") {
+// 			respawn();
+// 			smart_move({ x: data.x, y: data.y, map: data.map });
+// 			game_log("Repsawning & Moving");
+// 		}
+// 	}
+// 	if (name == "Riff") {
+// 		if (data.message == "Heal Merch") {
+// 			use_skill("partyheal");
+// 			game_log("Party Healing Riff");
+// 		}
+// 	}
+// }
 
 function on_party_request(name) {
 	if (CONFIG.party.groupMembers.includes(name)) {

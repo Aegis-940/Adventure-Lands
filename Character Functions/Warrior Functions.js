@@ -45,7 +45,7 @@ const CONFIG = {
 	},
 
 	potions: {
-		auto_buy: true,
+		auto_buy: false,
 		hp_threshold: 400,
 		mp_threshold: 500,
 		min_stock: 1000
