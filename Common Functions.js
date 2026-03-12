@@ -69,25 +69,45 @@ const MONSTER_TYPES               = ["goo", "bee", "crab", "snake", "osnake", "b
 									"prat", "booboo", "bigbird", "poisio", "boar", "mechagnome", "mrpumpkin", "mrgreen", "greenjr", "fireroamer", "dryad", "bscorpion",
                                     "dragold", "mummy", "plantoid"];
 
-const MONSTER_LOCS = {
-    spider: 	  { map: "main", x: 907, y: -174, orbit: true , hostile: false },
-    crab:   	  { map: "main", x: -1197, y: -79, orbit: false , hostile: false },
-    fireroamer:   { map: "desertland", x: 116, y: -606, orbit: true , hostile: false },
-    cgoo:         { map: "level2s", x: 10, y: 500, orbit: true , hostile: false },
-    bbpompop:     { map: "winter_cave", x: -82, y: -949, orbit: true , hostile: false },
-    booboo:       { map: "spookytown", x: 370, y: -790, orbit: true , hostile: true },
-    ghost:        { map: "halloween", x: 229, y: -1203, orbit: true , hostile: false },
-    prat:         { map: "level1", x: 89, y: 199, orbit: true , hostile: false },
-    dryad:        { map: "mforest", x: 380, y: -359, orbit: true , hostile: false },
-    bscorpion:    { map: "desertland", x: -408, y: -1266, orbit: true , hostile: false },
-    mummy:        { map: "level3", x: -328, y: -213, orbit: true , hostile: false },
-    mummy1:       { map: "spookytown", x: 252, y: -1380, orbit: true , hostile: false },
-    plantoid:     { map: "desertland", x: -820, y: -336, orbit: true , hostile: false },
+const locations = {
+	bat: [{ x: 1200, y: -782 }],
+	bigbird: [{ x: 1304, y: -69 }],
+	booboo: [{ x: 375, y: -739 }],
+	bscorpion: [{ x: -408, y: -1141 }],
+	boar: [{ x: 19, y: -1109 }],
+	cgoo: [{ x: -221, y: -274 }],
+	crab: [{ x: -11840, y: -37 }],
+	dryad: [{ x: 403, y: -347 }],
+	ent: [{ x: -420, y: -1960 }],
+	fireroamer: [{ x: 222, y: -827 }],
+	ghost: [{ x: -405, y: -1642 }],
+	gscorpion: [{ x: 390, y: -1422 }],
+	iceroamer: [{ x: 823, y: -45 }],
+	mechagnome: [{ x: 0, y: 0 }],
+	mole: [{ x: 14, y: -1072 }],
+	mummy: [{ x: 256, y: -1417 }],
+	odino: [{ x: -52, y: 756 }],
+	oneeye: [{ x: -255, y: 176 }],
+	pinkgoblin: [{ x: 485, y: 157 }],
+	poisio: [{ x: -121, y: 1360 }],
+	prat: [{ x: 11, y: 84 }],
+	pppompom: [{ x: 292, y: -189 }],
+	plantoid: [{ x: -780, y: -387 }],
+	rat: [{ x: 6, y: 430 }],
+	scorpion: [{ x: -495, y: 685 }],
+	stoneworm: [{ x: 830, y: 7 }],
+	spider: [{ x: 895, y: -145 }],
+	squig: [{ x: -1175, y: 422 }],
+	targetron: [{ x: -544, y: -275 }],
+	wolf: [{ x: 433, y: -2745 }],
+	wolfie: [{ x: 113, y: -2014 }],
+	xscorpion: [{ x: -495, y: 685 }]
 };
 
-const HEALER_TARGET    = MONSTER_LOCS.dryad;
-const WARRIOR_TARGET   = MONSTER_LOCS.dryad;
-const RANGER_TARGET    = MONSTER_LOCS.dryad;
+const HEALER_TARGET    = 'booboo';
+const WARRIOR_TARGET   = 'booboo';
+const RANGER_TARGET    = 'booboo';
+
 const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 
 const FLOATING_BUTTON_IDS = [];
