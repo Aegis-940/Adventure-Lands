@@ -1,24 +1,3 @@
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// TEMP FARMING FUNCTION
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-async function temp_farm() {
-
-	if (character.map === 'spookytown' || parent?.S?.dragold?.live) {
-		return setTimeout(temp_farm, 1000);
-	}
-
-	CONFIG.movement.circle_walk = false;
-	await smart_move({ map: 'spookytown', x: 255, y: -1184 });
-	await sleep(500);
-	await use_skill('agitate');
-	CONFIG.movement.circle_walk = true;
-
-	setTimeout(temp_farm, 15000);
-
-}
-
-temp_farm()
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // CONFIGURATION - Toggle features here instead of editing code
@@ -92,6 +71,28 @@ const destination = {
 	x: locations[home][0].x,
 	y: locations[home][0].y
 };
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// TEMP FARMING FUNCTION
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+async function temp_farm() {
+
+	if (character.map === 'spookytown' || parent?.S?.dragold?.live) {
+		return setTimeout(temp_farm, 1000);
+	}
+
+	CONFIG.movement.circle_walk = false;
+	await smart_move({ map: 'spookytown', x: 255, y: -1184 });
+	await sleep(500);
+	await use_skill('agitate');
+	CONFIG.movement.circle_walk = true;
+
+	setTimeout(temp_farm, 15000);
+
+}
+
+temp_farm()
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATE & CACHE
