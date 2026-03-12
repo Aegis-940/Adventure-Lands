@@ -416,7 +416,7 @@ async function handle_absorb() {
 }
 
 
-const PARTY_HEAL_COOLDOWN = 500;
+const PARTY_HEAL_COOLDOWN = 250;
 let last_party_heal_time = 0;
 
 async function handle_party_heal() {
