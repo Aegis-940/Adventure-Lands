@@ -78,11 +78,13 @@ const destination = {
 
 async function temp_farm() {
 
-	if (character.map !== 'spookytown' || parent?.S?.dragold?.live) {
+	const at_destination = character.map === destination.map &&
+    Math.abs(character.x - destination.x) < 1 &&
+    Math.abs(character.y - destination.y) < 1;
+
+	if (character.map !== 'spookytown' || parent?.S?.dragold?.live || !at_destination) {
 		return setTimeout(temp_farm, 1000);
 	}
-
-	log('Starting temporary farming routine...');
 
 	CONFIG.movement.enabled = false;
 	CONFIG.movement.circle_walk = false;
