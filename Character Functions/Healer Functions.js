@@ -420,6 +420,7 @@ const PARTY_HEAL_COOLDOWN = 500;
 let last_party_heal_time = 0;
 
 async function handle_party_heal() {
+	log('Checking party heal...', '#33FF77');
 	const now = Date.now();
 	if (now - last_party_heal_time < PARTY_HEAL_COOLDOWN) return;
 
