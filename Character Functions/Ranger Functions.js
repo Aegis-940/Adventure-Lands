@@ -370,6 +370,7 @@ const main_loop = async () => {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const action_loop = async () => {
+	if (panicking) return setTimeout(action_loop, 50);
 	let delay = 5;
 	try {
 		if (is_disabled(character)) return setTimeout(action_loop, 50);
@@ -422,6 +423,7 @@ const handle_attack = async () => {
 };
 
 const skill_loop = async () => {
+	if (panicking) return setTimeout(action_loop, 50);
 	let delay = 5;
 	try {
 		if (!CONFIG.combat.use_hunters_mark && !CONFIG.combat.use_supershot) return;

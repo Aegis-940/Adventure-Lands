@@ -327,6 +327,7 @@ async function main_loop() {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 async function action_loop() {
+	if (panicking) return setTimeout(action_loop, 50);
 	let delay = 10;
 
 	try {
@@ -359,6 +360,7 @@ async function action_loop() {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 async function skill_loop() {
+	if (panicking) return setTimeout(action_loop, 50);
 	const delay = TICK_RATE.skill;
 
 	try {
