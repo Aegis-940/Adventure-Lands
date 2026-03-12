@@ -331,12 +331,14 @@ async function skill_loop() {
 }
 
 async function try_heal() {
+	logic('Checking heal target...', '#33AAFF');
 	const HEAL_TARGET = cache.heal_target;
 	if (!HEAL_TARGET) return false;
 
 	const HEAL_THRESHOLD = HEAL_TARGET.max_hp - character.heal / 1.33;
 
 	if (HEAL_TARGET.hp < HEAL_THRESHOLD && is_in_range(HEAL_TARGET)) {
+		log(`Healing → ${HEAL_TARGET.name} (${Math.round((HEAL_TARGET.hp / HEAL_TARGET.max_hp) * 100)}%)`, '#33AAFF');
 		await heal(HEAL_TARGET);
 		return true;
 	}
