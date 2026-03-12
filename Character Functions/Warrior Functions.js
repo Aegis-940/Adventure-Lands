@@ -82,6 +82,8 @@ async function temp_farm() {
 		return setTimeout(temp_farm, 1000);
 	}
 
+	log('Starting temporary farming routine...');
+
 	CONFIG.movement.enabled = false;
 	CONFIG.movement.circle_walk = false;
 	await smart_move({ map: 'spookytown', x: 255, y: -1184 });
