@@ -45,7 +45,7 @@ async function maintain_distance_from_bscorpion() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// CONFIG VARIABLES
+// COMMON VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // Declare these at the top of your file
@@ -64,22 +64,26 @@ const LOOT_THRESHOLD = 6;
 const PARTY_LEADER                = "Ulric";
 const PARTY_MEMBERS               = ["Riva", "Myras", "Riff"];
 
-const MONSTER_TYPES               = ["goo", "bee", "crab", "snake", "osnake", "bat", "goldenbat", "croc", "arcticbee", "spider", "cgoo", "stoneworm", "jr", "minimush", 
-                                     "rat", "bbpompom", "tortoise", "crabx", "porcupine", "armadillo", "squig", "ghost", "phoenix", "iceroamer", "skeletor", "snowman",
-									"prat", "booboo", "bigbird", "poisio", "boar", "mechagnome", "mrpumpkin", "mrgreen", "greenjr", "fireroamer", "dryad", "bscorpion",
-                                    "dragold", "mummy", "plantoid"];
+
+const all_bosses = ['grinch', 'icegolem', 'dragold', 'mrgreen', 'mrpumpkin', 'greenjr', 'jr', 'franky', 'rgoo', 'bgoo', 'crabxx'];
+
+const destination = {
+	map: locations[home][0].map,
+	x: locations[home][0].x,
+	y: locations[home][0].y
+};
 
 const locations = {
 	bat: [{ x: 1200, y: -782 }],
 	bigbird: [{ x: 1304, y: -69 }],
-	booboo: [{ x: 375, y: -739 }],
+	booboo: [{ map: 'spookytown', x: 375, y: -739 }],
 	bscorpion: [{ x: -408, y: -1141 }],
 	boar: [{ x: 19, y: -1109 }],
 	cgoo: [{ x: -221, y: -274 }],
 	crab: [{ x: -11840, y: -37 }],
-	dryad: [{ x: 403, y: -347 }],
+	dryad: [{ map: 'mforest', x: 403, y: -347 }],
 	ent: [{ x: -420, y: -1960 }],
-	fireroamer: [{ x: 222, y: -827 }],
+	fireroamer: [{ map: 'desertland', x: 222, y: -827 }],
 	ghost: [{ x: -405, y: -1642 }],
 	gscorpion: [{ x: 390, y: -1422 }],
 	iceroamer: [{ x: 823, y: -45 }],
@@ -116,6 +120,33 @@ const SOFT_RESTART_TIMER = 60000;    // 1 minute
 const HARD_RESET_TIMER   = 90000;    // 1.5 minutes
 
 const PANIC_ORB   = "jacko";
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// GLOBAL CONSTANTS
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const TICK_RATE = {
+	main: 100,
+	action: 1,
+	skill: 40,
+	equipment: 25,
+	maintenance: 2000
+};
+
+const COOLDOWNS = {
+	equip_swap: 300,
+	weapon_swap: 1000,
+	zapper_swap: 200,
+	cc: 125
+};
+
+const EVENT_LOCATIONS = [
+	{ name: 'mrpumpkin', map: 'halloween', x: -217, y: 720 },
+	{ name: 'mrgreen', map: 'spookytown', x: 605, y: 1000 },
+	{ name: 'dragold', map: 'cave', x: 873, y: -727 },
+];
+
+const CACHE_TTL = 50;
 
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

@@ -4,8 +4,6 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const home = WARRIOR_TARGET;
-const mob_map = 'spookytown';
-const all_bosses = ['grinch', 'icegolem', 'dragold', 'mrgreen', 'mrpumpkin', 'greenjr', 'jr', 'franky', 'rgoo', 'bgoo'];
 
 const CONFIG = {
 	combat: {
@@ -13,7 +11,7 @@ const CONFIG = {
 		target_priority: ['Myras'],
 		all_bosses,
 		cleave_min_mobs: 1,
-		agitate_min_mobs: 3,
+		agitate_min_mobs: 2,
 		taunt_ents: false
 	},
 
@@ -69,31 +67,6 @@ const CONFIG = {
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// CONSTANTS
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-const TICK_RATE = {
-	main: 100,
-	action: 1,
-	skill: 40,
-	equipment: 25,
-	maintenance: 2000
-};
-
-const COOLDOWNS = {
-	weapon_swap: 1000,
-	cc: 135
-};
-
-const EVENT_LOCATIONS = [
-	{ name: 'mrpumpkin', map: 'halloween', x: -222, y: 720 },
-	{ name: 'mrgreen', map: 'spookytown', x: 610, y: 1000 },
-	{ name: 'dragold', map: 'cave', x: 873, y: -727 },
-];
-
-const CACHE_TTL = 100;
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
 // STATE & CACHE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -128,12 +101,6 @@ const cache = {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // LOCATION & EQUIPMENT DATA
 // --------------------------------------------------------------------------------------------------------------------------------- //
-
-const destination = {
-	map: mob_map,
-	x: locations[home][0].x,
-	y: locations[home][0].y
-};
 
 const equipment_sets = {
 	single: [

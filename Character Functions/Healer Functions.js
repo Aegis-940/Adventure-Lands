@@ -4,8 +4,6 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const home = HEALER_TARGET;
-const mob_map = 'spookytown';
-const all_bosses = ['grinch', 'icegolem', 'dragold', 'mrgreen', 'mrpumpkin', 'greenjr', 'jr', 'franky', 'rgoo', 'bgoo'];
 
 const CONFIG = {
 	combat: {
@@ -64,30 +62,6 @@ const CONFIG = {
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// GLOBAL CONSTANTS
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-const TICK_RATE = {
-	main: 100,      // Main game loop
-	action: 1,     // Combat/skill actions (dynamic)
-	maintenance: 2000  // Inventory, potions, etc
-};
-
-const COOLDOWNS = {
-	equip_swap: 300,
-	zapper_swap: 200,
-	cc: 125
-};
-
-const EVENT_LOCATIONS = [
-	{ name: 'mrpumpkin', map: 'halloween', x: -222, y: 720 },
-	{ name: 'mrgreen', map: 'spookytown', x: 610, y: 1000 },
-	{ name: 'dragold', map: 'cave', x: 873, y: -727 },
-];
-
-const CACHE_TTL = 100; // Cache validity in ms
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
 // STATE & CACHE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -120,12 +94,6 @@ const cache = {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // LOCATION & EQUIPMENT DATA
 // --------------------------------------------------------------------------------------------------------------------------------- //
-
-const destination = {
-	map: mob_map,
-	x: locations[home][0].x,
-	y: locations[home][0].y
-};
 
 const equipment_sets = {
 	zap_on: [
