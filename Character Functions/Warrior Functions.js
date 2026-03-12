@@ -4,6 +4,10 @@
 
 async function temp_farm() {
 
+	if (character.map === 'spookytown' || parent?.S?.dragold?.live) {
+		return setTimeout(temp_farm, 1000);
+	}
+
 	await smart_move({ map: 'spookytown', x: 255, y: -1184 });
 	await sleep(500);
 	await use_skill('agitate');

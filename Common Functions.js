@@ -67,12 +67,6 @@ const PARTY_MEMBERS               = ["Riva", "Myras", "Riff"];
 
 const all_bosses = ['grinch', 'icegolem', 'dragold', 'mrgreen', 'mrpumpkin', 'greenjr', 'jr', 'franky', 'rgoo', 'bgoo', 'crabxx'];
 
-const destination = {
-	map: locations[home][0].map,
-	x: locations[home][0].x,
-	y: locations[home][0].y
-};
-
 const locations = {
 	bat: [{ x: 1200, y: -782 }],
 	bigbird: [{ x: 1304, y: -69 }],
@@ -106,6 +100,12 @@ const locations = {
 	wolf: [{ x: 433, y: -2745 }],
 	wolfie: [{ x: 113, y: -2014 }],
 	xscorpion: [{ x: -495, y: 685 }]
+};
+
+const destination = {
+	map: locations[home][0].map,
+	x: locations[home][0].x,
+	y: locations[home][0].y
 };
 
 const HEALER_TARGET    = 'booboo';

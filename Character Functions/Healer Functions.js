@@ -407,22 +407,29 @@ async function handle_absorb() {
 	}
 }
 
-async function handle_party_heal() {
-	let threshold = CONFIG.healing.party_heal_threshold;
 
+const PARTY_HEAL_COOLDOWN = 500;
+let last_party_heal_time = 0;
+
+async function handle_party_heal() {
+	const now = Date.now();
+	if (now - last_party_heal_time < PARTY_HEAL_COOLDOWN) return;
+
+	let threshold = CONFIG.healing.party_heal_threshold;
 	if (character.map !== mob_map) {
 		threshold = 0.75;
 	}
-
 	if (character.mp <= CONFIG.healing.party_heal_min_mp) return;
 
 	for (const name of cache.party_members) {
 		const ally = get_player(name);
 		if (!ally || ally.rip || ally.hp >= ally.max_hp * threshold) continue;
 		await use_skill('partyheal');
+		last_party_heal_time = now;
 		break;
 	}
 }
+
 
 async function handle_zapper() {
 	const TARGETS = find_zap_targets();
