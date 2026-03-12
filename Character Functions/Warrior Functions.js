@@ -80,7 +80,7 @@ async function temp_farm() {
 
 	const at_destination = character.map === destination.map &&
     Math.hypot(character.x - destination.x, character.y - destination.y) <= 40;
-	const mp_check = get_player("Myras").mp > 3000;
+	const mp_check = get_player("Myras").mp > 4000;
 
 	if (character.map !== 'spookytown' || parent?.S?.dragold?.live || !at_destination || !mp_check) {
 		return setTimeout(temp_farm, 1000);
