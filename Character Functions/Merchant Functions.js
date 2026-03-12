@@ -42,7 +42,7 @@ for (const name of LOOP_NAMES) {
 // 3) MERCHANT LOOP CONTROLLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const UPGRADE_CYCLE_TIME = 1 * 60 * 1000;       // 1 minute
+const UPGRADE_CYCLE_TIME = 60 * 60 * 1000;       // 1 minute
 const SUPPORT_LOOP_CYCLE_TIME = 30 * 60 * 1000; // 30 minutes
 
 const MERCHANT_STATES = {
@@ -143,8 +143,8 @@ async function set_state(state) {
                         handling_upgrading = true;
                         merchant_task = "Upgrading";
                         // await custom_craft();
-                        await coat_upgrade();
-                        // await auto_upgrade();
+                        // await coat_upgrade();
+                        await auto_upgrade();
                         last_auto_upgrade_time = Date.now();
                         merchant_task = "Idle";
                     }
@@ -991,8 +991,8 @@ async function coat_upgrade() {
 
     // Buy 25 "coat"
     for (let i = 0; i < 30; i++) {
-        await parent.buy("pants");
-        await delay(50); // Small delay to avoid flooding
+        parent.buy("pants");
+        await delay(200); // Small delay to avoid flooding
     }
 
     async function short_upgrade() {
