@@ -261,6 +261,7 @@ async function action_loop() {
 		const ms = ms_to_next_skill('attack');
 
 		if (ms === 0) {
+			log('Checking action targets...', '#33FFAA');
 			const HEALED = await try_heal();
 
 			if (!HEALED) {
