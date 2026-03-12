@@ -3,7 +3,7 @@
 // CONFIG VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const home = HEALER_TARGET;
+home = HEALER_TARGET;
 
 const CONFIG = {
 	combat: {

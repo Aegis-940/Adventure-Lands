@@ -102,6 +102,8 @@ const locations = {
 	xscorpion: [{ x: -495, y: 685 }]
 };
 
+let home = null;
+
 const destination = {
 	map: locations[home][0].map,
 	x: locations[home][0].x,

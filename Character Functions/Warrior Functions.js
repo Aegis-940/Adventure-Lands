@@ -23,7 +23,7 @@ temp_farm()
 // CONFIGURATION - Toggle features here instead of editing code
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const home = WARRIOR_TARGET;
+home = WARRIOR_TARGET;
 
 const CONFIG = {
 	combat: {

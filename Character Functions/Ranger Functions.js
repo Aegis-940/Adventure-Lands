@@ -3,7 +3,7 @@
 // CONFIG VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const home = RANGER_TARGET;
+home = RANGER_TARGET;
 
 const CONFIG = {
 	combat: {
