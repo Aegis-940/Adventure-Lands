@@ -3,8 +3,8 @@
 // CONFIG VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const home = 'dryad';
-const mob_map = 'mforest';
+const home = 'booboo';
+const mob_map = 'spookytown';
 const all_bosses = ['grinch', 'icegolem', 'dragold', 'mrgreen', 'mrpumpkin', 'greenjr', 'jr', 'franky', 'rgoo', 'bgoo'];
 
 const CONFIG = {
@@ -125,6 +125,7 @@ const locations = {
 	bat: [{ x: 1200, y: -782 }],
 	bigbird: [{ x: 1304, y: -69 }],
 	bluefairy: [{ x: -357, y: -675 }],
+	booboo: [{ x: 375, y: -739 }],
 	bscorpion: [{ x: -408, y: -1141 }],
 	boar: [{ x: 19, y: -1109 }],
 	cgoo: [{ x: -221, y: -274 }],
