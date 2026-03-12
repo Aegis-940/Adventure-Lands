@@ -79,8 +79,7 @@ const destination = {
 async function temp_farm() {
 
 	const at_destination = character.map === destination.map &&
-    Math.abs(character.x - destination.x) < 1 &&
-    Math.abs(character.y - destination.y) < 1;
+    Math.hypot(character.x - destination.x, character.y - destination.y) <= 30;
 
 	if (character.map !== 'spookytown' || parent?.S?.dragold?.live || !at_destination) {
 		return setTimeout(temp_farm, 1000);
