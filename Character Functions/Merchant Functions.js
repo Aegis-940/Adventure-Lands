@@ -143,7 +143,8 @@ async function set_state(state) {
                         handling_upgrading = true;
                         merchant_task = "Upgrading";
                         // await custom_craft();
-                        await auto_upgrade();
+                        await coat_upgrade();
+                        // await auto_upgrade();
                         last_auto_upgrade_time = Date.now();
                         merchant_task = "Idle";
                     }
@@ -457,7 +458,7 @@ const SELLABLE_ITEMS = ["hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "w
 		       			"gloves1", "pants1", "mushroomstaff", "wbreeches", "shoes1", "vitring", "helmet", "shoes", "gloves", "pmace", "throwingstars", "t2bow",
 						 "spear", "dagger", "rapier", "sword", "rfangs", "gphelmet", "phelmet", "vitearring", "vitscroll", "pstem", "gslime", "hhelmet", "harmor", "hpants",
                         "hgloves", "hboots", "strring", "dexring", "intring", "strearring", "dexearring", "intearring", "warmscarf", "snowball", "santasbelt",
-                        "pants", "lantern", "pclaw", "broom", "skullamulet", "iceskates", "carrot", "snowball", "xmace", "candycanesword", "pmaceofthedead",
+                         "lantern", "pclaw", "broom", "skullamulet", "iceskates", "carrot", "snowball", "xmace", "candycanesword", "pmaceofthedead",
                         "ornamentstaff", "merry", "rednose", "xmashat", "xmasshoes", "xmassweater", "xmaspants", "mittens", "angelwings", "snowflakes"];
 const BANKABLE_ITEMS = [];
 const BANK_LOCATION = { map: "bank", x: 0, y: -37 };
@@ -990,7 +991,7 @@ async function coat_upgrade() {
 
     // Buy 25 "coat"
     for (let i = 0; i < 25; i++) {
-        await parent.buy("coat");
+        await parent.buy("pants");
         await delay(50); // Small delay to avoid flooding
     }
 
