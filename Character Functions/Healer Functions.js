@@ -332,7 +332,7 @@ async function skill_loop() {
 }
 
 async function try_heal() {
-	logic('Checking heal target...', '#33AAFF');
+	log('Checking heal target...', '#33AAFF');
 	const HEAL_TARGET = cache.heal_target;
 	if (!HEAL_TARGET) return false;
 
