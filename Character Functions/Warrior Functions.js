@@ -94,7 +94,7 @@ async function temp_farm() {
 	CONFIG.movement.circle_walk = true;
 	CONFIG.movement.enabled = true;
 
-	setTimeout(temp_farm, 25000);
+	setTimeout(temp_farm, 20000);
 
 }
 
