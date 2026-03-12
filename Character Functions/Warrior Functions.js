@@ -304,7 +304,6 @@ async function action_loop() {
 
 	try {
 		if (is_disabled(character)) return setTimeout(action_loop, 50);
-		if (smart.moving) return setTimeout(action_loop, 50);
 
 		// Keep cache fresh even while waiting on cooldowns
 		update_cache();
