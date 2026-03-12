@@ -426,7 +426,9 @@ async function handle_party_heal() {
 	log('Partyheal check 1...', '#33FF77');
 
 	let threshold = CONFIG.healing.party_heal_threshold;
+	log('Subcheck 1...', '#33FF77');
 	if (character.map !== mob_map) {
+		log('Subcheck 2...', '#33FF77');
 		threshold = 0.75;
 	}
 
