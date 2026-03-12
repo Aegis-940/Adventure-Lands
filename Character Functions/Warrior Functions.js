@@ -329,7 +329,11 @@ async function main_loop() {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 async function action_loop() {
-	if (panicking) return setTimeout(action_loop, 50);
+	if (panicking) return setTimeout(action_loop, 100);
+	const myras = get_player("Myras");
+	if (!myras || distance(character, myras) > 200) {
+		return setTimeout(action_loop, 100);
+	}
 	let delay = 10;
 
 	try {
@@ -361,7 +365,11 @@ async function action_loop() {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 async function skill_loop() {
-	if (panicking) return setTimeout(action_loop, 50);
+	if (panicking) return setTimeout(action_loop, 100);
+	const myras = get_player("Myras");
+	if (!myras || distance(character, myras) > 200) {
+		return setTimeout(action_loop, 100);
+	}
 	const delay = TICK_RATE.skill;
 
 	try {
