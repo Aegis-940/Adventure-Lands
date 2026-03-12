@@ -78,7 +78,7 @@ const destination = {
 
 async function temp_farm() {
 
-	if (character.map === 'spookytown' || parent?.S?.dragold?.live) {
+	if (character.map !== 'spookytown' || parent?.S?.dragold?.live) {
 		return setTimeout(temp_farm, 1000);
 	}
 
