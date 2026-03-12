@@ -98,7 +98,7 @@ async function temp_farm() {
 
 }
 
-temp_farm()
+// temp_farm()
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATE & CACHE
@@ -804,7 +804,7 @@ function handle_return_home() {
 	const dy = character.y - destination.y;
 	const radius = CONFIG.movement.circle_radius || 75;
 	const at_destination = Math.hypot(dx, dy) <= radius;
-	
+
 	if (!smart.moving && !at_destination) {
 		smart_move(destination);
 	}
