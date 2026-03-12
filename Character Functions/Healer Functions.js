@@ -308,7 +308,7 @@ async function skill_loop() {
 		}
 
 		// Party Heal
-		if (character.party) {
+		if (true) {
 			await handle_party_heal();
 		}
 
