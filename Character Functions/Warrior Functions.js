@@ -302,6 +302,7 @@ async function main_loop() {
 		}
 
 		update_cache();
+		panic_check();
 
 		if (should_handle_events()) {
 			handle_events();
@@ -336,7 +337,6 @@ async function action_loop() {
 
 		// Keep cache fresh even while waiting on cooldowns
 		update_cache();
-		panic_check();
 
 		const target = cache.target;
 		const ms = ms_to_next_skill('attack');
