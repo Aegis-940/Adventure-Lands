@@ -23,7 +23,7 @@ temp_farm()
 // CONFIGURATION - Toggle features here instead of editing code
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-home = WARRIOR_TARGET;
+const home = WARRIOR_TARGET;
 
 const CONFIG = {
 	combat: {
@@ -84,6 +84,12 @@ const CONFIG = {
 		hardshell_hp_threshold: 12000,
 		warcry_enabled: true
 	}
+};
+
+const destination = {
+	map: locations[home][0].map,
+	x: locations[home][0].x,
+	y: locations[home][0].y
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

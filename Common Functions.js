@@ -102,14 +102,6 @@ const locations = {
 	xscorpion: [{ x: -495, y: 685 }]
 };
 
-let home = null;
-
-const destination = {
-	map: locations[home][0].map,
-	x: locations[home][0].x,
-	y: locations[home][0].y
-};
-
 const HEALER_TARGET    = 'booboo';
 const WARRIOR_TARGET   = 'booboo';
 const RANGER_TARGET    = 'booboo';

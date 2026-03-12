@@ -3,7 +3,7 @@
 // CONFIG VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-home = RANGER_TARGET;
+const home = RANGER_TARGET;
 
 const CONFIG = {
 	combat: {
@@ -100,6 +100,12 @@ const CONFIG = {
 		check_interval: 1000,
 		low_inventory_slots: 7
 	}
+};
+
+const destination = {
+	map: locations[home][0].map,
+	x: locations[home][0].x,
+	y: locations[home][0].y
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
