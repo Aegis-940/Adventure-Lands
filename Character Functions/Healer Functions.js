@@ -426,9 +426,7 @@ async function handle_party_heal() {
 	log('Partyheal check 1...', '#33FF77');
 
 	let threshold = CONFIG.healing.party_heal_threshold;
-	log('Subcheck 1...', '#33FF77');
-	if (character.map !== mob_map) {
-		log('Subcheck 2...', '#33FF77');
+	if (character.map !== destination.map) {
 		threshold = 0.75;
 	}
 
@@ -459,7 +457,7 @@ async function handle_zapper() {
 	if (smart.moving || character.cc > COOLDOWNS.cc) return;
 
 	// Step 1: Equip zapper if untargeted mobs exist and we don't have it equipped
-	if (TARGETS.length > 0 && !HAS_ZAPPER && CAN_SWAP && HAS_ENOUGH_MP && character.map === mob_map) {
+	if (TARGETS.length > 0 && !HAS_ZAPPER && CAN_SWAP && HAS_ENOUGH_MP && character.map === destination.map) {
 		try {
 			await equip_set('zap_on');
 			state.last_equip_time = NOW;
@@ -484,7 +482,7 @@ async function handle_zapper() {
 
 	// Step 3: Only unequip zapper when NO untargeted mobs remain
 	// Don't unequip just because we zapped them all - they might respawn
-	if (TARGETS.length === 0 && HAS_ZAPPER && CAN_SWAP && character.map === mob_map) {
+	if (TARGETS.length === 0 && HAS_ZAPPER && CAN_SWAP && character.map === destination.map) {
 		try {
 			await equip_set('zap_off');
 			state.last_equip_time = NOW;
