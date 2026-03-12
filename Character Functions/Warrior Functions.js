@@ -8,10 +8,11 @@ async function temp_farm() {
 		return setTimeout(temp_farm, 1000);
 	}
 
+	CONFIG.movement.circle_walk = false;
 	await smart_move({ map: 'spookytown', x: 255, y: -1184 });
 	await sleep(500);
 	await use_skill('agitate');
-	await sleep(5000);
+	CONFIG.movement.circle_walk = true;
 
 	setTimeout(temp_farm, 15000);
 
