@@ -132,7 +132,7 @@ const cache = {
 const locations = {
 	bat: [{ x: 1200, y: -782 }],
 	bigbird: [{ x: 1304, y: -79 }],
-	booboo: [{ x: 265, y: -1045 }],
+	booboo: [{ x: 375, y: -739 }],
 	bscorpion: [{ x: -408, y: -1241 }],
 	boar: [{ x: 19, y: -1109 }],
 	cgoo: [{ x: -221, y: -274 }],
@@ -501,18 +501,10 @@ async function handle_agitate(tank) {
 	);
 
 	const crabx = nearby_mobs.filter(e => e.mtype === 'crabx');
-	const mummy = nearby_mobs.filter(e => e.mtype === 'mummy');
 	const untargeted_crabs = crabx.filter(m => !m.target);
-	const untargeted_mummy = mummy.filter(m => !m.target);
 
 	// Crabx priority
 	if (crabx.length >= 5 && untargeted_crabs.length === 5) {
-		await use_skill('agitate');
-		return;
-	}
-
-	// Mummy priority
-	if (mummy.length >= 1 && untargeted_mummy.length >= 1) {
 		await use_skill('agitate');
 		return;
 	}

@@ -125,7 +125,7 @@ const locations = {
 	bat: [{ x: 1200, y: -782 }],
 	bigbird: [{ x: 1304, y: -69 }],
 	bluefairy: [{ x: -357, y: -675 }],
-	booboo: [{ x: 265, y: -1045 }],
+	booboo: [{ x: 375, y: -739 }],
 	bscorpion: [{ x: -408, y: -1141 }],
 	boar: [{ x: 19, y: -1109 }],
 	cgoo: [{ x: -221, y: -274 }],
