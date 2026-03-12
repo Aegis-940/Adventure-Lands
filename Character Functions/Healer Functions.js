@@ -430,6 +430,8 @@ async function handle_party_heal() {
 	}
 	if (character.mp <= CONFIG.healing.party_heal_min_mp) return;
 
+	log('Partyheal post check...', '#33FF77');
+
 	for (const name of cache.party_members) {
 		const ally = get_player(name);
 		if (!ally || ally.rip || ally.hp >= ally.max_hp * threshold) continue;
