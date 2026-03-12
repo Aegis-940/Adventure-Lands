@@ -652,7 +652,12 @@ async function handle_specific_event(eventType, mapName, x, y) {
 }
 
 function handle_return_home() {
-	if (!smart.moving) {
+	const dx = character.x - destination.x;
+	const dy = character.y - destination.y;
+	const radius = CONFIG.movement.circle_radius || 75;
+	const at_destination = Math.hypot(dx, dy) <= radius;
+	
+	if (!smart.moving && !at_destination) {
 		smart_move(destination);
 	}
 }

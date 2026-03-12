@@ -80,7 +80,7 @@ async function temp_farm() {
 
 	const at_destination = character.map === destination.map &&
     Math.hypot(character.x - destination.x, character.y - destination.y) <= 40;
-	const mp_check = get_player("Myras").mp > 4000;
+	const mp_check = get_player("Myras").mp > 4500;
 
 	if (character.map !== 'spookytown' || parent?.S?.dragold?.live || !at_destination || !mp_check) {
 		return setTimeout(temp_farm, 1000);
@@ -800,7 +800,12 @@ async function handle_specific_event(event_type, map_name, x, y) {
 }
 
 function handle_return_home() {
-	if (!smart.moving) {
+	const dx = character.x - destination.x;
+	const dy = character.y - destination.y;
+	const radius = CONFIG.movement.circle_radius || 75;
+	const at_destination = Math.hypot(dx, dy) <= radius;
+	
+	if (!smart.moving && !at_destination) {
 		smart_move(destination);
 	}
 }
