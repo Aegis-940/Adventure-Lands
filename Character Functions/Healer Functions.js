@@ -315,13 +315,14 @@ async function skill_loop() {
 
 		// Dark Blessing
 		if (CONFIG.healing.dark_blessing_enabled && !is_on_cooldown('darkblessing')) {
+			log('Using Dark Blessing', '#AA00FF');
 			await use_skill('darkblessing');
 		}
 
 		// Zapper
-		if (CONFIG.combat.zapper_enabled) {
-			await handle_zapper();
-		}
+		// if (CONFIG.combat.zapper_enabled) {
+		// 	await handle_zapper();
+		// }
 
 	} catch (e) {
 		console.error('skill_loop error:', e);
@@ -372,6 +373,7 @@ async function handle_curse() {
 	}
 
 	if (target && target.hp >= target.max_hp * 0.01 && !target.immune && is_in_range(target, 'curse')) {
+		log(`Cursing → ${target.mtype} (${Math.round((target.hp / target.max_hp) * 100)}%)`, '#FF33AA');
 		await use_skill('curse', target);
 	}
 }
@@ -406,8 +408,8 @@ async function handle_absorb() {
 
 		// If this monster is targeting an ally and not us
 		if (entity.target && ALLIES.includes(entity.target) && entity.target !== character.name) {
+			log(`Absorbing → ${entity.mtype} targeting ${entity.target}`, '#FFA600');
 			await use_skill('absorb', entity.target);
-			game_log(`Absorbing ${entity.target}`, '#FFA600');
 			return;
 		}
 	}
