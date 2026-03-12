@@ -423,18 +423,12 @@ async function handle_party_heal() {
 	const now = Date.now();
 	if (now - last_party_heal_time < PARTY_HEAL_COOLDOWN) return;
 
-	log('Partyheal check 1...', '#33FF77');
-
 	let threshold = CONFIG.healing.party_heal_threshold;
 	if (character.map !== destination.map) {
 		threshold = 0.75;
 	}
 
-	log('Partyheal check 2...', '#33FF77');
-
 	if (character.mp <= CONFIG.healing.party_heal_min_mp) return;
-
-	log('Partyheal check 3...', '#33FF77');
 
 	for (const name of cache.party_members) {
 		const ally = get_player(name);
