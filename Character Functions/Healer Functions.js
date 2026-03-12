@@ -420,9 +420,10 @@ const PARTY_HEAL_COOLDOWN = 500;
 let last_party_heal_time = 0;
 
 async function handle_party_heal() {
-	log('Checking party heal...', '#33FF77');
 	const now = Date.now();
 	if (now - last_party_heal_time < PARTY_HEAL_COOLDOWN) return;
+
+	log('Checking party heal...', '#33FF77');
 
 	let threshold = CONFIG.healing.party_heal_threshold;
 	if (character.map !== mob_map) {
@@ -430,7 +431,7 @@ async function handle_party_heal() {
 	}
 	if (character.mp <= CONFIG.healing.party_heal_min_mp) return;
 
-	log('Partyheal post check...', '#33FF77');
+	log('Scanning party members...', '#33FF77');
 
 	for (const name of cache.party_members) {
 		const ally = get_player(name);
