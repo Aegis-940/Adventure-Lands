@@ -593,7 +593,7 @@ async function potion_loop() {
 	}
 
 	if (used_potion) {
-		delay = 2010;
+		delay = 2050;
 	} else {
 		delay = 10;
 	}
