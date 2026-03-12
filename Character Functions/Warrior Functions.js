@@ -79,7 +79,7 @@ const destination = {
 async function temp_farm() {
 
 	const at_destination = character.map === destination.map &&
-    Math.hypot(character.x - destination.x, character.y - destination.y) <= 30;
+    Math.hypot(character.x - destination.x, character.y - destination.y) <= 40;
 	const mp_check = get_player("Myras").mp > 3000;
 
 	if (character.map !== 'spookytown' || parent?.S?.dragold?.live || !at_destination || !mp_check) {
