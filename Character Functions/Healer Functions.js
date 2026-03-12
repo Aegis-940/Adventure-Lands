@@ -255,7 +255,6 @@ async function action_loop() {
 
 	try {
 		if (is_disabled(character)) return setTimeout(action_loop, 50);
-		if (smart.moving) return setTimeout(action_loop, 50);
 
 		update_cache();
 
