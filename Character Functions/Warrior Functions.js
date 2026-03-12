@@ -379,9 +379,9 @@ async function skill_loop() {
 		}
 
 		// Stomp
-		if (CONFIG.skills.stomp_enabled && tank?.hp < tank?.max_hp * 0.3) {
-			await handle_stomp();
-		}
+		// if (CONFIG.skills.stomp_enabled && tank?.hp < tank?.max_hp * 0.3) {
+		// 	await handle_stomp();
+		// }
 
 		// Cleave
 		if (CONFIG.skills.cleave_enabled) {
@@ -394,19 +394,19 @@ async function skill_loop() {
 		}
 
 		// Taunt
-		if (CONFIG.skills.taunt_enabled) {
-			await handle_taunt();
-		}
+		// if (CONFIG.skills.taunt_enabled) {
+		// 	await handle_taunt();
+		// }
 
 		// Charge
-		if (CONFIG.skills.charge_enabled && !is_on_cooldown('charge')) {
-			await use_skill('charge');
-		}
+		// if (CONFIG.skills.charge_enabled && !is_on_cooldown('charge')) {
+		// 	await use_skill('charge');
+		// }
 
 		// Hardshell
-		if (CONFIG.skills.hardshell_enabled && !is_on_cooldown('hardshell') && character.hp < CONFIG.skills.hardshell_hp_threshold) {
-			await use_skill('hardshell');
-		}
+		// if (CONFIG.skills.hardshell_enabled && !is_on_cooldown('hardshell') && character.hp < CONFIG.skills.hardshell_hp_threshold) {
+		// 	await use_skill('hardshell');
+		// }
 
 	} catch (e) {
 		console.error('skill_loop error:', e);
