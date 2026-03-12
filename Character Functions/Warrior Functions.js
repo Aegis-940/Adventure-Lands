@@ -501,10 +501,17 @@ async function handle_agitate(tank) {
 	);
 
 	const crabx = nearby_mobs.filter(e => e.mtype === 'crabx');
+	const mummy = nearby_mobs.filter(e => e.mtype === 'mummy');
 	const untargeted_crabs = crabx.filter(m => !m.target);
 
 	// Crabx priority
 	if (crabx.length >= 5 && untargeted_crabs.length === 5) {
+		await use_skill('agitate');
+		return;
+	}
+
+	// Mummy priority
+	if (mummy.length >= 5 && untargeted_crabs.length >= 1) {
 		await use_skill('agitate');
 		return;
 	}
