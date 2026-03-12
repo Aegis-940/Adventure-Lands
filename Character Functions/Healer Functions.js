@@ -479,7 +479,7 @@ async function handle_party_heal() {
 	let threshold = CONFIG.healing.party_heal_threshold;
 
 	if (character.map !== mob_map) {
-		threshold = 0.66;
+		threshold = 0.75;
 	}
 
 	if (character.mp <= CONFIG.healing.party_heal_min_mp) return;

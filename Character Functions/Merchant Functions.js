@@ -42,7 +42,7 @@ for (const name of LOOP_NAMES) {
 // 3) MERCHANT LOOP CONTROLLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const UPGRADE_CYCLE_TIME = 60 * 60 * 1000;       // 5 minutes
+const UPGRADE_CYCLE_TIME = 5 * 60 * 1000;       // 5 minutes
 const SUPPORT_LOOP_CYCLE_TIME = 30 * 60 * 1000; // 30 minutes
 
 const MERCHANT_STATES = {
@@ -990,7 +990,7 @@ async function coat_upgrade() {
     await smarter_move(HOME);
 
     // Buy 25 "coat"
-    for (let i = 0; i < 25; i++) {
+    for (let i = 0; i < 30; i++) {
         await parent.buy("pants");
         await delay(50); // Small delay to avoid flooding
     }
@@ -999,7 +999,7 @@ async function coat_upgrade() {
 
         // --- Upgrade all items level-by-level ---
         let upgraded = true;
-        for (let level = 0; level <= 10; level++) {
+        for (let level = 0; level <= 9; level++) {
             upgraded = false;
             while (true) {
                 const result = await auto_upgrade_item(level);
