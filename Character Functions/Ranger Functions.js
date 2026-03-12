@@ -506,22 +506,18 @@ async function potion_loop() {
 
 	// Use health potion if needed
 	if (MP_MISSING >= CONFIG.potions.mp_threshold) {
-		if (can_use("mp")) {
-			use("mp");
-			used_potion = true;
-		}
+		use("mp");
+		used_potion = true;
 	}
 
 	// Use health potion if needed
 	if (HP_MISSING >= CONFIG.potions.hp_threshold) {
-		if (can_use("hp")) {
-			use("hp");
-			used_potion = true;
-		}
+		use("hp");
+		used_potion = true;
 	}
 
 	if (used_potion) {
-		delay = 2010;
+		delay = 2050;
 	} else {
 		delay = 10;
 	}
