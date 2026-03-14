@@ -458,7 +458,7 @@ async function mluck_buff_loop() {
 const SELLABLE_ITEMS = ["hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "wbook0", "wshoes", "wcap", "cclaw", "crabclaw", "slimestaff", "stinger", "coat1", "helmet1",
 		       			"gloves1", "pants1", "mushroomstaff", "wbreeches", "shoes1", "vitring", "helmet", "shoes", "gloves", "pmace", "throwingstars", "t2bow",
 						 "spear", "dagger", "rapier", "sword", "rfangs", "gphelmet", "phelmet", "vitearring", "vitscroll", "pstem", "gslime", "hhelmet", "harmor", "hpants",
-                        "hgloves", "hboots", "strring", "dexring", "intring", "strearring", "dexearring", "intearring", "warmscarf", "snowball", "santasbelt", "dexbelt",
+                        "hgloves", "hboots", "strring", "dexring", "intring", "strearring", "dexearring", "intearring", "warmscarf", "snowball", "santasbelt",
                          "lantern", "pclaw", "broom", "skullamulet", "iceskates", "carrot", "snowball", "xmace", "candycanesword", "pmaceofthedead",
                         "ornamentstaff", "merry", "rednose", "xmashat", "xmasshoes", "xmassweater", "xmaspants", "mittens", "angelwings", "snowflakes"];
 const BANKABLE_ITEMS = [];
