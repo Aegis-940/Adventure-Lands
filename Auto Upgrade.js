@@ -150,8 +150,8 @@ async function withdraw_upgradeable_items() {
                     const max_withdrawable = free_slots - 3;
                     const to_withdraw = Math.min(item.q || 1, max_withdrawable);
                     if (to_withdraw > 0) {
-                        await withdraw_item(itemName, item.level, to_withdraw);
-                        await delay(200);
+                        withdraw_item(itemName, item.level, to_withdraw);
+                        await delay(250);
                     }
                 }
                 free_slots = count_empty_inventory();
@@ -213,10 +213,10 @@ async function withdraw_upgradeable_items() {
                             if (free_slots <= 3) break;
                             const withdraw_count = Math.min(item.q || 1, remaining, free_slots - 3);
                             if (withdraw_count > 0) {
-                                await withdraw_item(itemName, level, withdraw_count);
+                                withdraw_item(itemName, level, withdraw_count);
                                 remaining -= withdraw_count;
                                 count -= withdraw_count;
-                                await delay(50);
+                                await delay(250);
                             }
                             if (remaining <= 0 || count_empty_inventory() <= 3) break;
                         }
