@@ -42,7 +42,7 @@ for (const name of LOOP_NAMES) {
 // 3) MERCHANT LOOP CONTROLLER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const UPGRADE_CYCLE_TIME = 60 * 60 * 1000;       // 1 minute
+const UPGRADE_CYCLE_TIME = 30 * 60 * 1000;       // 30 minutes
 const SUPPORT_LOOP_CYCLE_TIME = 30 * 60 * 1000; // 30 minutes
 
 const MERCHANT_STATES = {

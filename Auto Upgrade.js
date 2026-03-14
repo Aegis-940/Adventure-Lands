@@ -427,7 +427,7 @@ async function auto_combine_item(level) {
 
         // Check for offering if needed
         let offering_slot = null;
-        if (profile.primling_from !== undefined && item.level >= profile.primling_from) {
+        if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
             for (let j = 0; j < character.items.length; j++) {
                 const inv_item = character.items[j];
                 if (inv_item && inv_item.name === "offeringp") {
