@@ -83,7 +83,7 @@ const locations = {
 	iceroamer: [{ x: 823, y: -45 }],
 	mechagnome: [{ x: 0, y: 0 }],
 	mole: [{ x: 14, y: -1072 }],
-	mummy: [{ x: 256, y: -1417 }],
+	mummy: [{ map: 'spookytown', x: 256, y: -1417 }],
 	odino: [{ x: -52, y: 756 }],
 	oneeye: [{ x: -255, y: 176 }],
 	pinkgoblin: [{ x: 485, y: 157 }],
@@ -102,9 +102,9 @@ const locations = {
 	xscorpion: [{ x: -495, y: 685 }]
 };
 
-const HEALER_TARGET    = 'booboo';
-const WARRIOR_TARGET   = 'booboo';
-const RANGER_TARGET    = 'booboo';
+const HEALER_TARGET    = 'mummy';
+const WARRIOR_TARGET   = 'mummy';
+const RANGER_TARGET    = 'mummy';
 
 const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 
