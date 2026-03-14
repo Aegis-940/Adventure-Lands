@@ -111,7 +111,7 @@ const equipment_sets = {
 	luck: [
 		{ item_name: "supermittens", slot: "gloves", level: 6, l: "l" },
 		{ item_name: "talkingskull", slot: "orb", level: 3, l: "l" },
-		{ item_name: "harbringer", slot: "mainhand", level: 8, l: "l" },
+		{ item_name: "lmace", slot: "mainhand", level: 7, l: "" },
 		{ item_name: "mshield", slot: "offhand", level: 8, l: "l" },
 	],
 	gold: [
@@ -768,7 +768,7 @@ function clear_inventory() {
 			send_gold(loot_mule, character.gold - 5000000);
 	}
 
-	const items_to_exclude = ['hpot1', 'mpot1', 'luckbooster', 'goldbooster', 'xpbooster', 'pumpkinspice', 'xptome', 'tracker', 'jacko', 'orbg', 'talkingskull', "mshield"];
+	const items_to_exclude = ['hpot1', 'mpot1', 'luckbooster', 'goldbooster', 'xpbooster', 'pumpkinspice', 'xptome', 'tracker', 'jacko', 'orbg', 'talkingskull', "mshield", "lmace"];
 
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
