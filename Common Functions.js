@@ -100,7 +100,7 @@ const locations = {
 	wolf:       [{ x: 433, y: -2745 }],
 	wolfie:     [{ x: 113, y: -2014 }],
 	xscorpion:  [{ x: -495, y: 685 }],
-	bigbird:    [{ map: 'main',x: 1242, y: 93 }],
+	bigbird:    [{ map: 'main',x: 1270, y: 245 }],
 };
 
 const HEALER_TARGET    = 'bigbird';
