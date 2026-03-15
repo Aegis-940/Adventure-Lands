@@ -68,43 +68,44 @@ const PARTY_MEMBERS               = ["Riva", "Myras", "Riff"];
 const all_bosses = ['grinch', 'icegolem', 'dragold', 'mrgreen', 'mrpumpkin', 'greenjr', 'jr', 'franky', 'rgoo', 'bgoo', 'crabxx'];
 
 const locations = {
-	bat: [{ x: 1200, y: -782 }],
-	bigbird: [{ x: 1304, y: -69 }],
-	booboo: [{ map: 'spookytown', x: 375, y: -739 }],
-	bscorpion: [{ x: -408, y: -1141 }],
-	boar: [{ x: 19, y: -1109 }],
-	cgoo: [{ x: -221, y: -274 }],
-	crab: [{ x: -11840, y: -37 }],
-	dryad: [{ map: 'mforest', x: 403, y: -347 }],
-	ent: [{ x: -420, y: -1960 }],
+	bat:        [{ x: 1200, y: -782 }],
+	bigbird:    [{ x: 1304, y: -69 }],
+	booboo:     [{ map: 'spookytown', x: 375, y: -739 }],
+	bscorpion:  [{ x: -408, y: -1141 }],
+	boar:       [{ x: 19, y: -1109 }],
+	cgoo:       [{ x: -221, y: -274 }],
+	crab:       [{ x: -11840, y: -37 }],
+	dryad:      [{ map: 'mforest', x: 403, y: -347 }],
+	ent:        [{ x: -420, y: -1960 }],
 	fireroamer: [{ map: 'desertland', x: 222, y: -827 }],
-	ghost: [{ x: -405, y: -1642 }],
-	gscorpion: [{ x: 390, y: -1422 }],
-	iceroamer: [{ x: 823, y: -45 }],
+	ghost:      [{ x: -405, y: -1642 }],
+	gscorpion:  [{ x: 390, y: -1422 }],
+	iceroamer:  [{ x: 823, y: -45 }],
 	mechagnome: [{ x: 0, y: 0 }],
-	mole: [{ x: 14, y: -1072 }],
-	mummy: [{ map: 'spookytown', x: 256, y: -1417 }],
-	odino: [{ x: -52, y: 756 }],
-	oneeye: [{ x: -255, y: 176 }],
+	mole:       [{ x: 14, y: -1072 }],
+	mummy:      [{ map: 'spookytown', x: 256, y: -1417 }],
+	odino:      [{ x: -52, y: 756 }],
+	oneeye:     [{ x: -255, y: 176 }],
 	pinkgoblin: [{ x: 485, y: 157 }],
-	poisio: [{ x: -121, y: 1360 }],
-	prat: [{ x: 11, y: 84 }],
-	pppompom: [{ x: 292, y: -189 }],
-	plantoid: [{ x: -780, y: -387 }],
-	rat: [{ x: 6, y: 430 }],
-	scorpion: [{ x: -495, y: 685 }],
-	stoneworm: [{ x: 830, y: 7 }],
-	spider: [{ x: 895, y: -145 }],
-	squig: [{ x: -1175, y: 422 }],
-	targetron: [{ x: -544, y: -275 }],
-	wolf: [{ x: 433, y: -2745 }],
-	wolfie: [{ x: 113, y: -2014 }],
-	xscorpion: [{ x: -495, y: 685 }]
+	poisio:     [{ x: -121, y: 1360 }],
+	prat:       [{ x: 11, y: 84 }],
+	pppompom:   [{ x: 292, y: -189 }],
+	plantoid:   [{ x: -780, y: -387 }],
+	rat:        [{ x: 6, y: 430 }],
+	scorpion:   [{ x: -495, y: 685 }],
+	stoneworm:  [{ x: 830, y: 7 }],
+	spider:     [{ x: 895, y: -145 }],
+	squig:      [{ x: -1175, y: 422 }],
+	targetron:  [{ x: -544, y: -275 }],
+	wolf:       [{ x: 433, y: -2745 }],
+	wolfie:     [{ x: 113, y: -2014 }],
+	xscorpion:  [{ x: -495, y: 685 }],
+	bigbird:    [{ map: 'main',x: 1242, y: 93 }],
 };
 
-const HEALER_TARGET    = 'booboo';
-const WARRIOR_TARGET   = 'booboo';
-const RANGER_TARGET    = 'booboo';
+const HEALER_TARGET    = 'bigbird';
+const WARRIOR_TARGET   = 'bigbird';
+const RANGER_TARGET    = 'bigbird';
 
 const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 
