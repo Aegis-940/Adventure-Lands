@@ -475,7 +475,7 @@ async function handle_agitate(tank) {
 	}
 
 	// Other mobs
-	const other_mobs = nearby_mobs.filter(e => ['sparkbot', 'jr', 'greenjr', home].includes(e.mtype));
+	const other_mobs = nearby_mobs.filter(e => ['sparkbot', 'jr', 'greenjr', 'bigbird', home].includes(e.mtype));
 	const untargeted_other = other_mobs.filter(m => !m.target);
 
 	if (other_mobs.length >= CONFIG.combat.agitate_min_mobs && untargeted_other.length >= CONFIG.combat.agitate_min_mobs && !smart.moving) {
@@ -487,7 +487,7 @@ async function handle_agitate(tank) {
 
 		if (!nearby_threat && distance(character, tank) <= 100) {
 			await use_skill('agitate');
-			game_log('Agitating!!');
+			log('Agitating!!');
 		}
 	}
 }
