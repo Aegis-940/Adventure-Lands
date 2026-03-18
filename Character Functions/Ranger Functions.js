@@ -157,7 +157,7 @@ const equipment_sets = {
 	],
 
 	heal: [
-		{ item_name: "cupid", slot: "mainhand", level: 9, l: "l" },
+		{ item_name: "cupid", slot: "mainhand", level: 6, l: "l" },
 	],
 
 	dps: [
@@ -326,10 +326,10 @@ const action_loop = async () => {
 		const ms = ms_to_next_skill('attack');
 
 		if (ms === 0) {
-			/*if (cache.heal_target) {
+			if (cache.heal_target) {
 				equip_set('heal');
 				await attack(cache.heal_target);
-			} else */await handle_attack();
+			} else await handle_attack();
 		} else {
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
 		}
@@ -760,7 +760,7 @@ function clear_inventory() {
 			send_gold(loot_mule, character.gold - 5000000);
 	}
 
-	const items_to_exclude = ['hpot1', 'mpot1', 'luckbooster', 'goldbooster', 'xpbooster', 'pumpkinspice', 'xptome', 'tracker', 'jacko', 'orbg', 'talkingskull'];
+	const items_to_exclude = ['hpot1', 'mpot1', 'luckbooster', 'goldbooster', 'xpbooster', 'pumpkinspice', 'xptome', 'tracker', 'jacko', 'orbg', 'talkingskull', 'cupid'];
 
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
