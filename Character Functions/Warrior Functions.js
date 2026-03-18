@@ -73,34 +73,6 @@ const destination = {
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// TEMP FARMING FUNCTION
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-async function temp_farm() {
-
-	const at_destination = character.map === destination.map &&
-    Math.hypot(character.x - destination.x, character.y - destination.y) <= 40;
-	const mp_check = get_player("Myras").mp > 4500;
-
-	if (character.map !== 'spookytown' || parent?.S?.dragold?.live || !at_destination || !mp_check) {
-		return setTimeout(temp_farm, 1000);
-	}
-
-	CONFIG.movement.enabled = false;
-	CONFIG.movement.circle_walk = false;
-	await smart_move({ map: 'spookytown', x: 255, y: -1184 });
-	await sleep(100);
-	await use_skill('agitate');
-	CONFIG.movement.circle_walk = true;
-	CONFIG.movement.enabled = true;
-
-	setTimeout(temp_farm, 20000);
-
-}
-
-// temp_farm()
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
 // STATE & CACHE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -330,10 +302,10 @@ async function action_loop() {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 async function skill_loop() {
-	if (panicking) return setTimeout(action_loop, 100);
+	if (panicking) return setTimeout(skill_loop, 100);
 	const myras = get_player("Myras");
 	if (!myras || distance(character, myras) > 200) {
-		return setTimeout(action_loop, 100);
+		return setTimeout(skill_loop, 100);
 	}
 	const delay = TICK_RATE.skill;
 
