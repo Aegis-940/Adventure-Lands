@@ -158,6 +158,7 @@ const equipment_sets = {
 
 	heal: [
 		{ item_name: "cupid", slot: "mainhand", level: 6, l: "l" },
+		{ item_name: "t2quiver", slot: "offhand", level: 7, l: "l" },
 	],
 
 	dps: [
