@@ -806,17 +806,17 @@ function auto_buy_potions() {
 
 function elixir_usage() {
 	const required = 'elixirluck';
-	// const current_elixir = character.slots.elixir?.name;
-	// const current_qty = quantity(required);
+	const current_elixir = character.slots.elixir?.name;
+	const current_qty = quantity(required);
 
-	// if (current_elixir !== required) {
-	// 	const slot = locate_item(required);
-	// 	if (slot !== -1) use(slot);
-	// }
+	if (current_elixir !== required) {
+		const slot = locate_item(required);
+		if (slot !== -1) use(slot);
+	}
 
-	// if (current_qty < 2) {
-	// 	buy(required, 2 - current_qty);
-	// }
+	if (current_qty < 2) {
+		buy(required, 2 - current_qty);
+	}
 }
 
 async function swap_booster(current, target) {
