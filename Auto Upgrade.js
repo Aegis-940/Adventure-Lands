@@ -11,7 +11,7 @@ const UPGRADE_PROFILE = {
   firebow:      { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 7, max_level: 9 },
   firestaff:    { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 7, max_level: 9 },
   hbow:         { scroll0_until: 3, scroll1_until: 6, scroll2_until: 8, primling_from: 7, max_level: 7 },
-  wingedboots:  { scroll0_until: 2, scroll1_until: 6, scroll2_until: 8, primling_from: 7, max_level: 6 },
+  wingedboots:  { scroll0_until: 2, scroll1_until: 6, scroll2_until: 10, primling_from: 7, max_level: 9 },
   basher:       { scroll0_until: 0, scroll1_until: 3, scroll2_until: 6, primling_from: 5, max_level: 6 },
   cape:         { scroll0_until: 0, scroll1_until: 5, scroll2_until: 6, primling_from: 5, max_level: 5 },
   coat:         { scroll0_until: 4, scroll1_until: 8, scroll2_until: 9, primling_from: 8, max_level: 9 },

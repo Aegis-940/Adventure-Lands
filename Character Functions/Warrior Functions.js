@@ -459,7 +459,6 @@ async function handle_agitate(tank) {
 
 		if (!nearby_threat && distance(character, tank) <= 100) {
 			await use_skill('agitate');
-			log('Agitating!!');
 		}
 	}
 }
