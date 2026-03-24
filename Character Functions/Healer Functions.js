@@ -122,7 +122,10 @@ const equipment_sets = {
 	],
 	panic: [
 		{ item_name: "jacko", slot: "orb", level: 0, l: "l" },
-	]
+	],
+	mdef: [
+		{ item_name: "wbookhs", slot: "offhand", level: 2, l: "l" },
+	],
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -715,23 +718,18 @@ function save_chest_map(map) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function handle_equipment_swap() {
-	if (!CONFIG.equipment.auto_swap_sets || character.cc > COOLDOWNS.cc) return;
+    if (!CONFIG.equipment.auto_swap_sets || character.cc > COOLDOWNS.cc) return;
 
-	const now = performance.now();
-	if (now - state.last_equip_time < COOLDOWNS.equip_swap) return;
+    const now = performance.now();
+    if (now - state.last_equip_time < COOLDOWNS.equip_swap) return;
 
-	let target_set = 'luck';
+    // Use mdef set if HEALER_TARGET is 'dryad', else luck set
+    let target_set = (typeof HEALER_TARGET !== 'undefined' && HEALER_TARGET === 'dryad') ? 'mdef' : 'luck';
 
-	if (CONFIG.equipment.boss_luck_switch && cache.nearest_boss) {
-		const { mob, type } = cache.nearest_boss;
-		const threshold = CONFIG.equipment.boss_hp_thresholds[type] || 0;
-		target_set = mob.hp < threshold ? 'luck' : 'luck';
-	}
-
-	if (!is_set_equipped(target_set)) {
-		state.last_equip_time = now;
-		equip_set(target_set);
-	}
+    if (!is_set_equipped(target_set)) {
+        state.last_equip_time = now;
+        equip_set(target_set);
+    }
 }
 
 function is_set_equipped(set_name) {
