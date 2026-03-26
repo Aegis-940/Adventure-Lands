@@ -403,10 +403,19 @@ add_cm_listener((name, data) => {
 function ms_to_next_skill(skill) {
 	const next_skill = parent.next_skill[skill];
 	if (next_skill === undefined) return 0;
-	const ping = parent.pings?.length ? Math.min(...parent.pings) : 0;
-	const ms = next_skill.getTime() - Date.now() - ping;
+	const ms = next_skill.getTime() - Date.now();
 	return ms < 0 ? 0 : ms;
 }
+
+// Hook skill_timeout to front-load ping compensation once per cooldown.
+// When the server sets a cooldown, reduce it by ping so ms_to_next_skill()
+// doesn't need to subtract ping on every read — fewer ops per tick in hot loops.
+// One listener covers all skills for all characters automatically.
+parent.socket.on("skill_timeout", function(data) {
+	if (!data?.name) return;
+	const ping = parent.pings?.length ? Math.min(...parent.pings) : 0;
+	if (ping > 0) reduce_cooldown(data.name, ping * 0.95);
+});
 
 function get_nearest_monster_v2(args = {}) {
 	let min_d = 999999, target = null;
@@ -541,6 +550,40 @@ async function handle_specific_event(event_type, map_name, x, y) {
 	if (!is_in_range(monster, 'attack') && !smart.moving) {
 		await xmove(halfway_x, halfway_y);
 	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// GAME EVENT CALLBACKS (event-driven, replaces parent.S polling where possible)
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+// Tracks live game events pushed by the server (boss spawns, special mobs, etc.)
+// Character scripts can check LIVE_EVENTS[name] instead of polling parent.S
+const LIVE_EVENTS = {};
+
+on_game_event = function(data) {
+	if (!data?.name) return;
+	LIVE_EVENTS[data.name] = data;
+	log(`[Event] ${data.name} spawned`, '#FF8800');
+};
+
+// Fires when monsters deal AoE damage to co-located characters.
+// Sets a flag that movement loops can check to trigger spread behavior.
+let combined_damage_flag = false;
+let combined_damage_time = 0;
+
+on_combined_damage = function() {
+	combined_damage_flag = true;
+	combined_damage_time = Date.now();
+};
+
+function should_spread() {
+	if (!combined_damage_flag) return false;
+	// Auto-clear after 2 seconds
+	if (Date.now() - combined_damage_time > 2000) {
+		combined_damage_flag = false;
+		return false;
+	}
+	return true;
 }
 
 function handle_return_home() {

@@ -134,3 +134,22 @@ create_floating_window(id, title, content_html);
 ## Testing
 
 There is no test suite. Changes must be manually tested by injecting the modified script into the live game client. When suggesting changes, keep them minimal and easy to verify in-game.
+
+---
+
+## Game Engine Reference
+
+A comprehensive map of the AdventureLand game engine internals is available in [`GAME_API_REFERENCE.md`](GAME_API_REFERENCE.md). This was sourced from the [official game repo](https://github.com/kaansoral/adventureland) and covers:
+
+- **All bot API functions** — `attack()`, `heal()`, `use_skill()`, `smart_move()`, `buy()`, `upgrade()`, `compound()`, `bank_store()`, `send_cm()`, etc. with signatures, return types, and reject reasons
+- **Socket events** — every client→server and server→client event with payloads (including skill-specific payloads like `3shot`, `5shot`, `cburst`, `blink`)
+- **`character` object** — all properties (stats, slots, inventory, status effects, channeling, bank, queue)
+- **`parent.entities`** — monster vs player properties
+- **`parent.G` data** — items, monsters, maps, skills, NPCs, geometry, crafting, sets
+- **`parent.S` server data** — live boss/event status
+- **Event system** — `character.on()` events and overridable callbacks
+- **Combat system** — damage flow, reduction formula, cooldowns, disable checks
+- **Movement system** — smart_move BFS internals, collision geometry, doors/transporters
+- **Item system** — upgrade/compound multipliers, grade thresholds, scroll types
+
+**When to consult it:** Before suggesting improvements to bot combat, movement, item management, or any game API usage — check the reference to confirm exact function signatures, valid parameters, and available events rather than guessing.
