@@ -143,9 +143,9 @@ async function set_state(state) {
                         log("Starting auto-upgrade process...");
                         handling_upgrading = true;
                         merchant_task = "Upgrading";
-                        // await custom_craft();
+                        await custom_craft();
                         // await coat_upgrade();
-                        await auto_upgrade();
+                        // await auto_upgrade();
                         last_auto_upgrade_time = Date.now();
                         merchant_task = "Idle";
                     }
@@ -946,18 +946,18 @@ async function custom_craft() {
 
     while (smoke_qty < 25 && smoke_attempts < MAX_ATTEMPTS) {
         try {
-            await withdraw_item("essenceoffire");
+            await withdraw_item("feather0");
             await delay(100);
         } catch (e) {
-            game_log("⚠️ Could not withdraw 'smoke': " + e.message, "#FF0000");
+            game_log("⚠️ Could not withdraw 'feather0': " + e.message, "#FF0000");
         }
-        smoke_slot = character.items.findIndex(itm => itm && itm.name === "essenceoffire");
+        smoke_slot = character.items.findIndex(itm => itm && itm.name === "feather0");
         smoke_qty = smoke_slot !== -1 ? (character.items[smoke_slot].q || 1) : 0;
         smoke_attempts++;
     }
 
     if (smoke_qty < 25) {
-        game_log("❌ Not enough 'smoke' in inventory after multiple attempts. Aborting pouchbow upgrade.", "#FF0000");
+        game_log("❌ Not enough 'feather0' in inventory after multiple attempts. Aborting pouchbow upgrade.", "#FF0000");
         return;
     }
 
@@ -966,7 +966,7 @@ async function custom_craft() {
 
     // Buy 25 "bow"
     for (let i = 0; i < 25; i++) {
-        await parent.buy("bow");
+        await parent.buy("shoes");
         await delay(50); // Small delay to avoid flooding
     }
 
@@ -975,7 +975,7 @@ async function custom_craft() {
 
     // Auto-craft pouchbow 25 times with 100ms delay between each
     for (let i = 0; i < 25; i++) {
-        await auto_craft("firebow");
+        await auto_craft("wingedboots");
         await delay(50);
     }
 
