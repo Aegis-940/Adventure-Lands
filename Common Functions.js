@@ -403,19 +403,10 @@ add_cm_listener((name, data) => {
 function ms_to_next_skill(skill) {
 	const next_skill = parent.next_skill[skill];
 	if (next_skill === undefined) return 0;
-	const ms = next_skill.getTime() - Date.now();
+	const ping = parent.pings?.length ? Math.min(...parent.pings) : 0;
+	const ms = next_skill.getTime() - Date.now() - ping;
 	return ms < 0 ? 0 : ms;
 }
-
-// Hook skill_timeout to front-load ping compensation once per cooldown.
-// When the server sets a cooldown, reduce it by ping so ms_to_next_skill()
-// doesn't need to subtract ping on every read — fewer ops per tick in hot loops.
-// One listener covers all skills for all characters automatically.
-parent.socket.on("skill_timeout", function(data) {
-	if (!data?.name) return;
-	const ping = parent.pings?.length ? Math.min(...parent.pings) : 0;
-	if (ping > 0) reduce_cooldown(data.name, ping * 0.95);
-});
 
 function get_nearest_monster_v2(args = {}) {
 	let min_d = 999999, target = null;
