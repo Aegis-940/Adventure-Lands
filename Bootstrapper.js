@@ -2,6 +2,8 @@
 // BOOTSTRAPPER (reload-safe, commit-specific, debug-enabled)           //
 // -------------------------------------------------------------------- //
 
+/* NOT CURRENTLY USED
+
 // Seed CM listeners up‐front
 window._cmListeners = window._cmListeners || [];
 
@@ -16,6 +18,8 @@ window._cmListeners = window._cmListeners || [];
 
 	const scripts = [
 		"Common Functions.js",
+		"UI/Custom_Log.js",
+		"Bank_Sorter.js",
 		"Buttons.js",
 		"Windows.js",
 		"CC_Manager.js",
@@ -126,3 +130,5 @@ window._cmListeners = window._cmListeners || [];
 		loadNext();
 	}
 })();
+
+*/

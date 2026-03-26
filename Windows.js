@@ -51,30 +51,32 @@ function remove_all_floating_stats_windows() {
 // WINDOW DRAGGER
 // ───────────────────────────────────────
 
-function make_draggable(el) {
-  let is_dragging = false,
-      start_x, start_y,
-      start_top, start_left;
+// Shared drag state — listeners are registered once on window.top, not per-element.
+let _drag = null;
 
-  el.addEventListener("mousedown", e => {
-    is_dragging = true;
-    start_x      = e.clientX;
-    start_y      = e.clientY;
-    start_top    = parseInt(el.style.top);
-    start_left   = parseInt(el.style.left);
-    e.preventDefault();
-  });
-
+(function _init_drag_listeners() {
   window.top.addEventListener("mousemove", e => {
-    if (!is_dragging) return;
-    const dx = e.clientX - start_x;
-    const dy = e.clientY - start_y;
-    el.style.top  = `${start_top + dy}px`;
-    el.style.left = `${start_left + dx}px`;
+    if (!_drag) return;
+    const dx = e.clientX - _drag.start_x;
+    const dy = e.clientY - _drag.start_y;
+    _drag.el.style.top  = `${_drag.start_top  + dy}px`;
+    _drag.el.style.left = `${_drag.start_left + dx}px`;
   });
-
   window.top.addEventListener("mouseup", () => {
-    is_dragging = false;
+    _drag = null;
+  });
+})();
+
+function make_draggable(el) {
+  el.addEventListener("mousedown", e => {
+    _drag = {
+      el,
+      start_x:    e.clientX,
+      start_y:    e.clientY,
+      start_top:  parseInt(el.style.top),
+      start_left: parseInt(el.style.left),
+    };
+    e.preventDefault();
   });
 }
 

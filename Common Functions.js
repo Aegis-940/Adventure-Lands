@@ -1,59 +1,13 @@
-// Predictive movement: maintain exactly the right distance from bscorpion
-async function maintain_distance_from_bscorpion() {
-    // Find the nearest alive bscorpion
-    let nearest = null;
-    let minDist = Infinity;
-    for (const id in parent.entities) {
-        const ent = parent.entities[id];
-        if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
-            const dx = ent.x - character.x;
-            const dy = ent.y - character.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < minDist) {
-                minDist = dist;
-                nearest = ent;
-            }
-        }
-    }
-    if (!nearest) return false; // No bscorpion found
-
-    // Predict bscorpion's future position (100ms ahead)
-    const predictionTime = 0.1; // seconds
-    let pred_x = nearest.x;
-    let pred_y = nearest.y;
-    if (typeof nearest.vx === "number" && typeof nearest.vy === "number") {
-        pred_x += nearest.vx * predictionTime;
-        pred_y += nearest.vy * predictionTime;
-    } else if (typeof nearest.going_x === "number" && typeof nearest.going_y === "number") {
-        // Fallback: use going_x/going_y if vx/vy not available
-        pred_x = nearest.going_x;
-        pred_y = nearest.going_y;
-    }
-
-    // Desired distance
-    const desired = character.range ? Math.max(0, character.range - 2) : 48;
-    const angle = Math.atan2(character.y - pred_y, character.x - pred_x);
-    const newX = pred_x + Math.cos(angle) * desired;
-    const newY = pred_y + Math.sin(angle) * desired;
-    // Only move if not already at the correct distance (with a small tolerance)
-    const dist_to_pred = Math.hypot(character.x - newX, character.y - newY);
-    if (dist_to_pred > 2) {
-        move(newX, newY);
-        return true;
-    }
-    return false;
-}
+// ================================================================================================================================= //
+//                                              COMMON FUNCTIONS                                                                     //
+// ================================================================================================================================= //
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// COMMON VARIABLES
+// SECTION 1: CONFIGURATION
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Declare these at the top of your file
-let inventory_count = 0, mpot1_count = 0, hpot1_count = 0, map = "", x = 0, y = 0;
-
-// TODO: Clean up unused variables
-
-let attack_mode                   = true;
+const PARTY_LEADER                = "Ulric";
+const PARTY_MEMBERS               = ["Riva", "Myras", "Riff"];
 
 // For potion deliveries from merchant
 const POTION_TYPES = ["mpot1", "hpot1"];
@@ -61,15 +15,11 @@ const POTION_TYPES = ["mpot1", "hpot1"];
 // Merchant collects nth item and above when collecting loot.
 const LOOT_THRESHOLD = 6;
 
-const PARTY_LEADER                = "Ulric";
-const PARTY_MEMBERS               = ["Riva", "Myras", "Riff"];
-
-
 const all_bosses = ['grinch', 'icegolem', 'dragold', 'mrgreen', 'mrpumpkin', 'greenjr', 'jr', 'franky', 'rgoo', 'bgoo', 'crabxx'];
 
 const locations = {
 	bat:        [{ x: 1200, y: -782 }],
-	bigbird:    [{ x: 1304, y: -69 }],
+	bigbird:    [{ map: 'main', x: 1270, y: 245 }],
 	booboo:     [{ map: 'spookytown', x: 375, y: -739 }],
 	bscorpion:  [{ x: -408, y: -1141 }],
 	boar:       [{ x: 19, y: -1109 }],
@@ -100,7 +50,6 @@ const locations = {
 	wolf:       [{ x: 433, y: -2745 }],
 	wolfie:     [{ x: 113, y: -2014 }],
 	xscorpion:  [{ x: -495, y: 685 }],
-	bigbird:    [{ map: 'main',x: 1270, y: 245 }],
 };
 
 const HEALER_TARGET    = 'dryad';
@@ -109,15 +58,14 @@ const RANGER_TARGET    = 'dryad';
 
 const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 
-const FLOATING_BUTTON_IDS = [];
-
-const SOFT_RESTART_TIMER = 60000;    // 1 minute
-const HARD_RESET_TIMER   = 90000;    // 1.5 minutes
-
-const PANIC_ORB   = "jacko";
+const EVENT_LOCATIONS = [
+	{ name: 'mrpumpkin', map: 'halloween', x: -217, y: 720 },
+	{ name: 'mrgreen', map: 'spookytown', x: 605, y: 1000 },
+	{ name: 'dragold', map: 'cave', x: 873, y: -727 },
+];
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// GLOBAL CONSTANTS
+// SECTION 2: CONSTANTS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const TICK_RATE = {
@@ -135,17 +83,17 @@ const COOLDOWNS = {
 	cc: 125
 };
 
-const EVENT_LOCATIONS = [
-	{ name: 'mrpumpkin', map: 'halloween', x: -217, y: 720 },
-	{ name: 'mrgreen', map: 'spookytown', x: 605, y: 1000 },
-	{ name: 'dragold', map: 'cave', x: 873, y: -727 },
-];
-
 const CACHE_TTL = 50;
 
+const SOFT_RESTART_TIMER = 60000;    // 1 minute
+const HARD_RESET_TIMER   = 90000;    // 1.5 minutes
+
+const PANIC_ORB   = "jacko";
+
+const FLOATING_BUTTON_IDS = [];
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// LOOP TOGGLES
+// SECTION 3: LOOP TOGGLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 let ATTACK_LOOP_ENABLED       = false;
@@ -159,18 +107,25 @@ let POTION_LOOP_ENABLED       = true;
 let LOOT_LOOP_ENABLED         = true;
 let STATUS_CACHE_LOOP_ENABLED = true;
 let PRIM_FARM_LOOT_ENABLED    = false;
-let DUNGEON_LOOP_ENABLED      = false;  
+let DUNGEON_LOOP_ENABLED      = false;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// GLOBAL FUNCTIONS
+// SECTION 4: STATE VARIABLES
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let inventory_count = 0, mpot1_count = 0, hpot1_count = 0, map = "", x = 0, y = 0;
+let attack_mode                   = true;
+let handling_death = false;
+let timeout_interval = 30000; // Default timeout of 30 seconds
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// CORE UTILITIES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // Critical function. Must be declared early.
 function delay(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-let timeout_interval = 30000; // Default timeout of 30 seconds
 
 async function with_timeout(
   promise,
@@ -304,11 +259,7 @@ function smarter_move(destination, on_done, options = {}) {
 // To interrupt: smart._interrupt("manual stop");
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// GLOBAL WATCHDOG
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// UNIVERSAL LOOP CONTROL
+// STATE MACHINE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // --- Helper: Boss alive check ---
@@ -338,141 +289,6 @@ function is_bscorpion_alive() {
         PRIM_FARM_LOOT_ENABLED = false;
     }
     return found;
-}
-
-const STATES = {
-    DEAD: "dead",
-    PANIC: "panic",
-    BOSS: "boss",
-    PRIMS: "prims",
-    NORMAL: "normal"
-};
-
-function get_character_state() {
-    if (character.rip) return STATES.DEAD;
-    if (panicking) return STATES.PANIC;
-    if (is_boss_alive()) return STATES.BOSS;
-    if (is_bscorpion_alive()) return STATES.PRIMS
-    return STATES.NORMAL;
-}
-
-let handling_death = false;
-
-async function set_state(state) {
-
-    try {
-        // Always-on loops
-        if (!POTION_LOOP_ENABLED)       POTION_LOOP_ENABLED = true;
-        if (!STATUS_CACHE_LOOP_ENABLED) STATUS_CACHE_LOOP_ENABLED = true;
-        if (!HEAL_LOOP_ENABLED)         HEAL_LOOP_ENABLED = true;
-
-        // Helper for movement target
-        function get_main_target() {
-            if (character.name === "Ulric") return WARRIOR_TARGET;
-            if (character.name === "Riva") return RANGER_TARGET;
-            if (character.name === "Myras") return HEALER_TARGET;
-        }
-
-        // State-specific
-        switch (state) {
-            case STATES.DEAD:
-                if (!handling_death) {
-                    handling_death = true;
-                    try {
-
-                        PANIC_LOOP_ENABLED = false;
-
-                        log("Respawning in 20s...", "red");
-                        await delay(20000);
-                        if (character.rip) await respawn();
-                        await delay(5000);
-
-                        PANIC_LOOP_ENABLED = true;
-
-                        smarter_move(get_main_target());
-                        await delay(10000);
-
-                        // Re-evaluate state after respawn
-                        const NEW_STATE = get_character_state();
-                        set_state(NEW_STATE);
-                        
-                    } catch (e) {
-                        catcher(e, "set_state: DEAD state error");
-                    }
-                    handling_death = false;
-                }
-                break;
-
-            case STATES.PANIC:
-                try {
-                    ATTACK_LOOP_ENABLED = false;
-                    SKILL_LOOP_ENABLED = false;
-                    BOSS_LOOP_ENABLED = false;
-                } catch (e) {
-                    catcher(e, "set_loops: PANIC state error");
-                }
-                break;
-
-            case STATES.BOSS:
-                try {
-
-                    if (!BOSS_LOOP_ENABLED) BOSS_LOOP_ENABLED = true;
-
-                } catch (e) {
-                    catcher(e, "set_loops: BOSS state error");
-                }
-                break;
-
-            case STATES.PRIMS:
-                try {
-                    if (ORBIT_LOOP_ENABLED)  ORBIT_LOOP_ENABLED = false;
-                } catch (e) {
-                    catcher(e, "set_loops: PRIMS state error");
-                }
-                break;
-
-            case STATES.NORMAL:
-                try {
-                    if (BOSS_LOOP_ENABLED)    BOSS_LOOP_ENABLED = false;
-                    if (!SKILL_LOOP_ENABLED)  SKILL_LOOP_ENABLED = true;
-                    if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
-
-                    // Orbit logic
-                    const target = get_main_target();
-                    if (target.orbit) {
-                        const at_target = character.x === target.x && character.y === target.y;
-                        const near_target = parent.distance(character, target) <= 50;
-
-                        // Only start moving if not already moving, not orbiting, and NOT already at target
-                        if (near_target && !at_target && !ORBIT_LOOP_ENABLED && !smart.moving) {
-                            smarter_move(target).catch(e => log("Orbit move error: " + e));
-                        }
-
-                        // Only start orbit if at target and not already orbiting
-                        if (!ORBIT_LOOP_ENABLED && at_target) {
-                            ORBIT_LOOP_ENABLED = true;
-                        }
-                    }
-                } catch (e) {
-                    catcher(e, "set_state: NORMAL state error");
-                }
-                break;
-        }
-    } catch (e) {
-        catcher(e, "set_loops: Global error");
-    }
-}
-
-async function loop_controller() {
-    while (true) {
-        try {
-            const state = get_character_state();
-            await set_state(state);
-        } catch (e) {
-            catcher(e, "Loop Controller error");
-        }
-        await delay(250);
-    }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -524,7 +340,7 @@ const CM_HANDLERS = {
 		});
 	},
 
-	"what_potions": (name) => {	
+	"what_potions": (name) => {
 		const counts = {};
 		for (const pot of POTION_TYPES) {
 			counts[pot] = character.items.reduce((sum, item) =>
@@ -554,7 +370,7 @@ const CM_HANDLERS = {
             map: map,
             x: x,
             y: y,
-            lastSeen: Date.now() 
+            lastSeen: Date.now()
         }});
     }
 };
@@ -581,7 +397,7 @@ add_cm_listener((name, data) => {
 });
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// SUPPORT FUNCTIONS
+// MONSTER & COMBAT UTILITIES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function ms_to_next_skill(skill) {
@@ -591,7 +407,6 @@ function ms_to_next_skill(skill) {
 	const ms = next_skill.getTime() - Date.now() - ping;
 	return ms < 0 ? 0 : ms;
 }
-
 
 function get_nearest_monster_v2(args = {}) {
 	let min_d = 999999, target = null;
@@ -637,7 +452,7 @@ function get_nearest_monster_v2(args = {}) {
 			}
 			continue;
 		}
-		
+
 		if (c_dist < min_d) {
 			min_d = c_dist;
 			target = current;
@@ -646,131 +461,226 @@ function get_nearest_monster_v2(args = {}) {
 	return target;
 }
 
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// STATUS CACHE LOOP
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-
-
-function get_status_cache() {
-    try { inventory_count = character.items.filter(Boolean).length; } catch (e) {}
-    try { mpot1_count = character.items.filter(it => it && it.name === "mpot1").reduce((sum, it) => sum + (it.q || 1), 0); } catch (e) {}
-    try { hpot1_count = character.items.filter(it => it && it.name === "hpot1").reduce((sum, it) => sum + (it.q || 1), 0); } catch (e) {}
-    try { map = character.map; x = character.x; y = character.y; } catch (e) {}
+// Returns true if the target character is within 500 units
+function detect_character(target) {
+    if (!target || !character || typeof target.x !== 'number' || typeof target.y !== 'number' || typeof character.x !== 'number' || typeof character.y !== 'number') return false;
+    const dx = target.x - character.x;
+    const dy = target.y - character.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    return distance <= 500;
 }
 
-async function status_cache_loop() {
-    STATUS_CACHE_LOOP_ENABLED = true;
-    let delayMs = 5000;
+function get_num_targets(player_name) {
+	if (!player_name) return 0;
+	let count = 0;
+	for (const id in parent.entities) {
+		const entity = parent.entities[id];
+		if (entity.type === 'monster' && entity.target === player_name) {
+			count++;
+		}
+	}
+	return count;
+}
 
-        while (true) {
-            if (!STATUS_CACHE_LOOP_ENABLED) {
-                await delay(100);
-                continue;
-            }
-            get_status_cache();
-            // Only send status if inventory is 20+ or either potion is below 2000
-            if (
-                inventory_count >= 30 ||
-                mpot1_count < 2000 ||
-                hpot1_count < 2000
-            ) {
-                try {
-                    send_cm("Riff", {
-                        type: "status_update",
-                        data: {
-                            name: character.name,
-                            inventory: inventory_count,
-                            mpot1: mpot1_count,
-                            hpot1: hpot1_count,
-                            map: map,
-                            x: x,
-                            y: y,
-                            lastSeen: Date.now()
-                        }
-                    });
-                } catch (e) {
-                    catcher(e, "Error sending status to Riff: ");
-                }
-            }
-
-            await delay(delayMs);
-        }
-
+function get_num_chests() {
+	return Object.keys(get_chests()).length;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// CONSUME POTS
+// CHARACTER UTILITIES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function pots() {
-	// Calculate missing HP/MP
-	const hpMissing = character.max_hp - character.hp;
-	const mpMissing = character.max_mp - character.mp;
-
-	// Use health logic (or priest special)
-	if (hpMissing >= 400 && character.ctype !== 'priest' && !is_on_cooldown("use_hp")) {
-		if (can_use("hp")) {
-			// Everyone else: normal HP potion
-			use("hp");
-		}
-	}
-
-	if (hpMissing >= 720 && character.ctype === 'priest') {
-		if (can_use("partyheal")) {
-			use_skill("partyheal");
-		}
-	}
-
-	// Use mana potion if needed (non-priest or extra MP for priests)
-	if (mpMissing >= 500 || character.mp < 720 && !is_on_cooldown("use_mp")) {
-		if (can_use("mp")) {
-			use("mp");
-		}
-	}
+function should_handle_events() {
+	const holiday_spirit = parent?.S?.holidayseason && !character?.s?.holidayspirit;
+	const has_handleable_event = EVENT_LOCATIONS.some(e => parent?.S?.[e.name]?.live);
+	return holiday_spirit || has_handleable_event;
 }
 
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// SCAN BANK
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-let bank_inventory = [];
-
-/**
- * Scans all available bank tabs using `parent.bank`, if available.
- * Fills `bank_inventory` with metadata: name, level, quantity, tab, slot.
- */
-function scan_bank_inventory() {
-	if (!parent.bank || !Array.isArray(parent.bank)) {
-		game_log("❌ Bank data not available. Open the bank first.");
+function handle_events() {
+	if (parent?.S?.holidayseason && !character?.s?.holidayspirit) {
+		if (!smart.moving) {
+			smart_move({ to: 'town' }, () => {
+				parent.socket.emit('interaction', { type: 'newyear_tree' });
+			});
+		}
 		return;
 	}
 
-	bank_inventory = [];
+	const alive_sorted = EVENT_LOCATIONS
+		.map(e => ({ ...e, data: parent.S[e.name] }))
+		.filter(e => e.data?.live)
+		.sort((a, b) => (a.data.hp / a.data.max_hp) - (b.data.hp / b.data.max_hp));
 
-	for (let tab = 0; tab < parent.bank.length; tab++) {
-		const tab_items = parent.bank[tab];
-		if (!Array.isArray(tab_items)) continue;
+	if (!alive_sorted.length) return;
 
-		for (let slot = 0; slot < tab_items.length; slot++) {
-			const item = tab_items[slot];
-			if (!item) continue;
+	const target = alive_sorted[0];
 
-			bank_inventory.push({
-				name: item.name,
-				level: item.level ?? 0,
-				q: item.q ?? 1,
-				tab: tab,
-				slot: slot
-			});
+	// Some events require joining an instance first
+	if (target.join === true && character.map !== target.map) {
+		parent.socket.emit('join', { name: target.name });
+		return;
+	}
+
+	if (!smart.moving) {
+		handle_specific_event(target.name, target.map, target.x, target.y);
+	}
+}
+
+async function handle_specific_event(event_type, map_name, x, y) {
+	if (!parent?.S?.[event_type]?.live) return;
+
+	const monster = get_nearest_monster({ type: event_type });
+	if (!monster) {
+		smart_move({ x, y, map: map_name });
+		return;
+	}
+
+	const halfway_x = character.x + (monster.x - character.x) / 2;
+	const halfway_y = character.y + (monster.y - character.y) / 2;
+
+	if (!is_in_range(monster, 'attack') && !smart.moving) {
+		await xmove(halfway_x, halfway_y);
+	}
+}
+
+function handle_return_home() {
+	const dx = character.x - destination.x;
+	const dy = character.y - destination.y;
+	const radius = CONFIG.movement.circle_radius || 75;
+	const at_destination = Math.hypot(dx, dy) <= radius;
+
+	if (!smart.moving && !at_destination) {
+		smart_move(destination);
+	}
+}
+
+async function potion_loop() {
+	const HP_MISSING = character.max_hp - character.hp;
+	const MP_MISSING = character.max_mp - character.mp;
+
+	let used_potion = false;
+
+	// Use MP potion if needed
+	if (MP_MISSING >= CONFIG.potions.mp_threshold) {
+		use("mp");
+		used_potion = true;
+	}
+
+	// Use HP potion if needed
+	if (HP_MISSING >= CONFIG.potions.hp_threshold) {
+		use("hp");
+		used_potion = true;
+	}
+
+	setTimeout(potion_loop, used_potion ? 2050 : 10);
+}
+
+function suicide() {
+	if (!character.rip && character.hp < 2000) {
+		parent.socket.emit('harakiri');
+		game_log('Harakiri');
+	}
+
+	if (character.rip) {
+		respawn();
+	}
+}
+
+function auto_buy_potions() {
+	if (quantity('hpot1') < CONFIG.potions.min_stock) buy('hpot1', CONFIG.potions.min_stock);
+	if (quantity('mpot1') < CONFIG.potions.min_stock) buy('mpot1', CONFIG.potions.min_stock);
+	if (quantity('xptome') < 1) buy('xptome', 1);
+}
+
+function find_booster_slot() {
+	for (let i = 0; i < character.items.length; i++) {
+		const item = character.items[i];
+		if (item && ['xpbooster', 'goldbooster', 'luckbooster'].includes(item.name)) {
+			return i;
+		}
+	}
+	return null;
+}
+
+async function batch_equip(data) {
+	if (!Array.isArray(data)) {
+		return Promise.reject({ reason: 'invalid', message: 'Not an array' });
+	}
+	if (data.length > 15) {
+		return Promise.reject({ reason: 'invalid', message: 'Too many items' });
+	}
+
+	let valid_items = [];
+
+	for (let i = 0; i < data.length; i++) {
+		let item_name = data[i].item_name;
+		let slot = data[i].slot;
+		let level = data[i].level;
+		let l = data[i].l;
+
+		if (!item_name) continue;
+
+		let found = false;
+		if (parent.character.slots[slot]) {
+			let slot_item = parent.character.items[parent.character.slots[slot]];
+			if (slot_item && slot_item.name === item_name && slot_item.level === level && slot_item.l === l) {
+				found = true;
+			}
+		}
+
+		if (found) continue;
+
+		for (let j = 0; j < parent.character.items.length; j++) {
+			const item = parent.character.items[j];
+			if (item && item.name === item_name && item.level === level && item.l === l) {
+				valid_items.push({ num: j, slot: slot });
+				break;
+			}
 		}
 	}
 
-	game_log(`📦 Bank scan complete: ${bank_inventory.length} items recorded`);
+	if (valid_items.length === 0) return;
+
+	try {
+		parent.socket.emit('equip_batch', valid_items);
+		await parent.push_deferred('equip_batch');
+	} catch (error) {
+		console.error('batch_equip error:', error);
+		return Promise.reject({ reason: 'invalid', message: 'Failed to equip' });
+	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// TRANSFER LOOT TO MERCHANT
+// PARTY MANAGER
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function is_in_party(name) {
+	return !!(parent.party && parent.party[name] !== undefined);
+}
+
+function party_manager() {
+	const am_leader = character.name === PARTY_LEADER;
+	const am_member = PARTY_MEMBERS.includes(character.name);
+	const current_party = Object.keys(parent.party || {});
+
+	if (am_leader) {
+		PARTY_MEMBERS.forEach(name => {
+			if (name === character.name) return;
+			if (!current_party.includes(name)) {
+				send_party_invite(name);
+				accept_party_request(name); // Optional, in case of mutual sending
+			}
+		});
+	} else if (am_member) {
+		if (!current_party.includes(PARTY_LEADER)) {
+			send_party_request(PARTY_LEADER);
+			accept_party_invite(PARTY_LEADER);
+		}
+	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// LOOT & INVENTORY
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function send_to_merchant() {
@@ -808,121 +718,40 @@ async function send_to_merchant() {
 	}
 }
 
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// PARTY MANAGER
-// --------------------------------------------------------------------------------------------------------------------------------- //
+let bank_inventory = [];
 
-function is_in_party(name) {
-	return !!(parent.party && parent.party[name] !== undefined);
-}
-
-function party_manager() {
-	const am_leader = character.name === PARTY_LEADER;
-	const am_member = PARTY_MEMBERS.includes(character.name);
-	const current_party = Object.keys(parent.party || {});
-
-	if (am_leader) {
-		PARTY_MEMBERS.forEach(name => {
-			if (name === character.name) return;
-			if (!current_party.includes(name)) {
-				send_party_invite(name);
-				accept_party_request(name); // Optional, in case of mutual sending
-			}
-		});
-	} else if (am_member) {
-		if (!current_party.includes(PARTY_LEADER)) {
-			send_party_request(PARTY_LEADER);
-			accept_party_invite(PARTY_LEADER);
-		}
-	}
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// MOVE TO CHARACTER'S LOCATION
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-async function move_to_character(name, timeout_ms = 10000) {
-	// Prevent multiple overlapping handlers
-	let responded = false;
-
-	function handle_response(n, data) {
-		if (n !== name || !data || data.type !== "my_location") return;
-
-		responded = true;
-		remove_cm_listener(handle_response);
-		clearTimeout(timeout_id);
-
-		const { map, x, y } = data;
-		if (!map || x == null || y == null) {
-			game_log(`❌ Invalid location data from ${name}`);
-			return;
-		}
-
-		smarter_move({ map, x, y });
+/**
+ * Scans all available bank tabs using `parent.bank`, if available.
+ * Fills `bank_inventory` with metadata: name, level, quantity, tab, slot.
+ */
+function scan_bank_inventory() {
+	if (!parent.bank || !Array.isArray(parent.bank)) {
+		game_log("❌ Bank data not available. Open the bank first.");
+		return;
 	}
 
-	// Add listener
-	add_cm_listener(handle_response);
+	bank_inventory = [];
 
-	// Send request
-	send_cm(name, { type: "where_are_you" });
+	for (let tab = 0; tab < parent.bank.length; tab++) {
+		const tab_items = parent.bank[tab];
+		if (!Array.isArray(tab_items)) continue;
 
-	// Timeout fallback
-	const timeout_id = setTimeout(() => {
-		if (!responded) {
-			remove_cm_listener(handle_response);
-			game_log(`⚠️ No location response from ${name} within ${timeout_ms / 1000}s`);
+		for (let slot = 0; slot < tab_items.length; slot++) {
+			const item = tab_items[slot];
+			if (!item) continue;
+
+			bank_inventory.push({
+				name: item.name,
+				level: item.level ?? 0,
+				q: item.q ?? 1,
+				tab: tab,
+				slot: slot
+			});
 		}
-	}, timeout_ms);
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// HIDE THE USELESS SKILLS BAR
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-function hide_skills_ui() {
-	const doc = parent.document;
-
-	// Hide skill buttons (bottom right grid)
-	const skill_buttons = doc.querySelector("#skillbar");
-	if (skill_buttons) skill_buttons.style.display = "none";
-
-	// Hide the right panel (contains skills, info, etc.)
-	const right_panel = doc.querySelector("#rightcorner");
-	if (right_panel) right_panel.style.display = "none";
-
-	// Optional: Hide the "Stats", "Skills", "Inventory" tab buttons
-	const tabs = [
-		"#rightcornerbuttonskills",
-		"#rightcornerbuttonstats",
-		"#rightcornerbuttoninventory"
-	];
-	for (const selector of tabs) {
-		const btn = doc.querySelector(selector);
-		if (btn) btn.style.display = "none";
 	}
-}
 
-// Hides the game's native party bar UI
-function hide_party_ui() {
-    const doc = parent.document;
-    // Hide the main party bar (usually #party or #party-frames)
-    const party_bar = doc.querySelector("#party, #party-frames");
-    if (party_bar) party_bar.style.display = "none";
-    // Optionally hide any party-related buttons or elements
-    const party_buttons = [
-        "#party-button", // Example, adjust as needed
-        "#party-leader-icon"
-    ];
-    for (const selector of party_buttons) {
-        const btn = doc.querySelector(selector);
-        if (btn) btn.style.display = "none";
-    }
+	game_log(`📦 Bank scan complete: ${bank_inventory.length} items recorded`);
 }
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// BANK ITEM WITHDRAW FUNCTION
-// --------------------------------------------------------------------------------------------------------------------------------- //
 
 /**
  * Withdraws items from your bank using the native `bank_retrieve` call.
@@ -1001,6 +830,469 @@ async function withdraw_item(itemName, level = null, total = null) {
 		const got = total - remaining;
 		game_log(`⚠️ Only retrieved ${got}/${total} of ${itemName}.`);
 	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// MOVE TO CHARACTER'S LOCATION
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+async function move_to_character(name, timeout_ms = 10000) {
+	// Prevent multiple overlapping handlers
+	let responded = false;
+
+	function handle_response(n, data) {
+		if (n !== name || !data || data.type !== "my_location") return;
+
+		responded = true;
+		remove_cm_listener(handle_response);
+		clearTimeout(timeout_id);
+
+		const { map, x, y } = data;
+		if (!map || x == null || y == null) {
+			game_log(`❌ Invalid location data from ${name}`);
+			return;
+		}
+
+		smarter_move({ map, x, y });
+	}
+
+	// Add listener
+	add_cm_listener(handle_response);
+
+	// Send request
+	send_cm(name, { type: "where_are_you" });
+
+	// Timeout fallback
+	const timeout_id = setTimeout(() => {
+		if (!responded) {
+			remove_cm_listener(handle_response);
+			game_log(`⚠️ No location response from ${name} within ${timeout_ms / 1000}s`);
+		}
+	}, timeout_ms);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BSCORPION / PRIMLING FARM
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const PRIM_FARM_LOC = { map: "desertland", x: -409, y: -1236 };
+const PRIM_FARM_LOC_HEALER = { map: "desertland", x: -408, y: -1146 };
+const PRIM_FARM_RADIUS = 105;
+const SAFETY_DISTANCE = 100;
+
+// Shared helper: find nearest alive bscorpion
+let cached_bscorpion_id = null;
+
+function find_nearest_bscorpion() {
+    let nearest = null;
+    let minDist = Infinity;
+
+    // Try cached id first
+    if (cached_bscorpion_id && parent.entities[cached_bscorpion_id]) {
+        const ent = parent.entities[cached_bscorpion_id];
+        if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
+            nearest = ent;
+            minDist = Math.hypot(ent.x - character.x, ent.y - character.y);
+        } else {
+            cached_bscorpion_id = null;
+        }
+    }
+
+    // If not cached or cache invalid, search
+    if (!nearest) {
+        for (const id in parent.entities) {
+            const ent = parent.entities[id];
+            if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
+                const dist = Math.hypot(ent.x - character.x, ent.y - character.y);
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearest = ent;
+                    cached_bscorpion_id = id;
+                }
+            }
+        }
+    }
+
+    if (!nearest) return null;
+    return { entity: nearest, distance: minDist, x: nearest.x, y: nearest.y, id: nearest.id };
+}
+
+function is_bscorpion_targeting_myras() {
+  for (const id in parent.entities) {
+    const ent = parent.entities[id];
+    if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
+      if (ent.target === "Myras") return true;
+    }
+  }
+  return false;
+}
+
+// Consolidated: move to maintain a specific distance from bscorpion
+async function move_distance_from_bscorpion(desired = 40, tolerance = 0.75) {
+    const info = find_nearest_bscorpion();
+    if (!info) return false;
+
+    if (Math.abs(info.distance - desired) > tolerance) {
+        if (!character.moving || Math.hypot(character.x - info.x, character.y - info.y) > tolerance) {
+            const angle = Math.atan2(character.y - info.y, character.x - info.x);
+            const newX = info.x + Math.cos(angle) * desired;
+            const newY = info.y + Math.sin(angle) * desired;
+            move(newX, newY);
+        }
+        return true;
+    }
+    return false;
+}
+
+// Predictive movement: maintain exactly the right distance from bscorpion
+async function maintain_distance_from_bscorpion() {
+    const info = find_nearest_bscorpion();
+    if (!info) return false;
+
+    // Predict bscorpion's future position (100ms ahead)
+    const predictionTime = 0.1; // seconds
+    const nearest = info.entity;
+    let pred_x = nearest.x;
+    let pred_y = nearest.y;
+    if (typeof nearest.vx === "number" && typeof nearest.vy === "number") {
+        pred_x += nearest.vx * predictionTime;
+        pred_y += nearest.vy * predictionTime;
+    } else if (typeof nearest.going_x === "number" && typeof nearest.going_y === "number") {
+        // Fallback: use going_x/going_y if vx/vy not available
+        pred_x = nearest.going_x;
+        pred_y = nearest.going_y;
+    }
+
+    // Desired distance
+    const desired = 38;
+    const angle = Math.atan2(character.y - pred_y, character.x - pred_x);
+    const newX = pred_x + Math.cos(angle) * desired;
+    const newY = pred_y + Math.sin(angle) * desired;
+    // Only move if not already at the correct distance (with a small tolerance)
+    const dist_to_pred = Math.hypot(character.x - newX, character.y - newY);
+    log(dist_to_pred);
+    if (dist_to_pred > 2) {
+        move(newX, newY);
+        return true;
+    }
+    return false;
+}
+
+let _orbit_angle = 0;
+async function move_safe_from_bscorpion() {
+    // Orbit PRIM_FARM_LOC at PRIM_FARM_RADIUS clockwise
+    _orbit_angle += Math.PI / 16;
+    if (_orbit_angle > 2 * Math.PI) _orbit_angle -= 2 * Math.PI;
+    const newX = PRIM_FARM_LOC.x + Math.cos(_orbit_angle) * PRIM_FARM_RADIUS;
+    const newY = PRIM_FARM_LOC.y + Math.sin(_orbit_angle) * PRIM_FARM_RADIUS;
+    await move(newX, newY);
+}
+
+async function prim_farm_loop_ulric() {
+    while(true) {
+        if (PRIM_FARM_LOOT_ENABLED) {
+
+            move_distance_from_bscorpion();
+
+            if (is_bscorpion_targeting_myras()) {
+                if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
+                if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
+            } else {
+                if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
+                if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
+            }
+
+            await delay(100);
+        } else {
+            await delay(1000);
+        }
+    }
+}
+
+async function prim_farm_loop() {
+
+    while (true) {
+        if (PRIM_FARM_LOOT_ENABLED) {
+
+            if (character.name === "Ulric") {
+
+                move_distance_from_bscorpion();
+
+                if (is_bscorpion_targeting_myras()) {
+                    if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
+                    if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
+                } else {
+                    if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
+                    if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
+                }
+
+            }
+
+            if (character.name === "Myras") {
+
+                const bscorp_info = find_nearest_bscorpion();
+                let too_close = false;
+                if (bscorp_info) {
+                    const dist = Math.hypot(character.x - bscorp_info.x, character.y - bscorp_info.y);
+                    if (dist < SAFETY_DISTANCE) too_close = true;
+                }
+
+                if (too_close && !is_bscorpion_targeting_myras()) {
+                    ATTACK_LOOP_ENABLED = false;
+                    SKILL_LOOP_ENABLED = false;
+                } else {
+                    ATTACK_LOOP_ENABLED = true;
+                    SKILL_LOOP_ENABLED = true;
+                }
+
+                if (!is_bscorpion_targeting_myras() && !too_close) {
+                    // Cast absorb on bscorpion if possible
+                    const bscorp = Object.values(parent.entities).find(ent =>
+                        ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead
+                    );
+                    if (bscorp && can_use("absorb")) {
+                        parent.socket.emit("ability", { name: "absorb", id: bscorp.id });
+                    }
+                }
+
+            }
+
+            if (character.name === "Riva") {
+
+                move_distance_from_bscorpion(50, 0);
+
+                if (is_bscorpion_targeting_myras()) {
+                    if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
+                    if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
+                } else {
+                    if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
+                    if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
+                }
+
+            }
+
+            await delay(100);
+
+        } else {
+            await delay(1000);
+        }
+    }
+}
+
+async function prim_orbit_loop() {
+
+    // User algorithm:
+    // 1. Establish where the scorpion is and where I am.
+    // 2. If possible move away in the most direct manner.
+    // 3. If at the radius boundary, rotate clockwise or anticlockwise, whichever creates the most separation.
+
+    const RADIUS_TOL = 2; // How close to PRIM_FARM_RADIUS counts as "at boundary"
+    const ROTATE_STEP_DEG = 10; // How much to rotate per step (degrees)
+    while (true) {
+        if (PRIM_FARM_LOOT_ENABLED) {
+            const bscorp = find_nearest_bscorpion();
+            if (!bscorp) { await delay(500); continue; }
+
+            const cx = character.x;
+            const cy = character.y;
+            const sx = bscorp.x;
+            const sy = bscorp.y;
+
+            // Vector from scorpion to self
+            const dx = cx - sx;
+            const dy = cy - sy;
+            const dist = Math.hypot(dx, dy);
+
+            // Vector from farm center to self
+            const fx = cx - PRIM_FARM_LOC.x;
+            const fy = cy - PRIM_FARM_LOC.y;
+            const farm_dist = Math.hypot(fx, fy);
+
+            // 1. If not at radius, move directly away from scorpion, but clamp to farm radius
+            if (Math.abs(farm_dist - PRIM_FARM_RADIUS) > RADIUS_TOL) {
+                // Target point: in the direction away from scorpion, but at farm radius
+                const away_angle = Math.atan2(dy, dx);
+                const target_x = PRIM_FARM_LOC.x + Math.cos(away_angle) * PRIM_FARM_RADIUS;
+                const target_y = PRIM_FARM_LOC.y + Math.sin(away_angle) * PRIM_FARM_RADIUS;
+                await move(target_x, target_y);
+                await delay(80);
+                continue;
+            }
+
+            // 2. At radius: try rotating clockwise and counterclockwise, pick direction that increases separation
+            const my_angle = Math.atan2(fy, fx);
+            const step_rad = ROTATE_STEP_DEG * Math.PI / 180;
+            // Clockwise
+            const cw_angle = my_angle - step_rad;
+            const cw_x = PRIM_FARM_LOC.x + Math.cos(cw_angle) * PRIM_FARM_RADIUS;
+            const cw_y = PRIM_FARM_LOC.y + Math.sin(cw_angle) * PRIM_FARM_RADIUS;
+            const cw_dist = Math.hypot(cw_x - sx, cw_y - sy);
+            // Counterclockwise
+            const ccw_angle = my_angle + step_rad;
+            const ccw_x = PRIM_FARM_LOC.x + Math.cos(ccw_angle) * PRIM_FARM_RADIUS;
+            const ccw_y = PRIM_FARM_LOC.y + Math.sin(ccw_angle) * PRIM_FARM_RADIUS;
+            const ccw_dist = Math.hypot(ccw_x - sx, ccw_y - sy);
+
+            // Pick the direction that gives more separation
+            let target_x, target_y;
+            if (cw_dist > ccw_dist) {
+                target_x = cw_x;
+                target_y = cw_y;
+            } else {
+                target_x = ccw_x;
+                target_y = ccw_y;
+            }
+            await move(target_x, target_y);
+            await delay(100);
+        } else {
+            await delay(1000);
+        }
+    }
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// COMBAT ORBIT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let orbit_origin = null;
+
+// Dynamically set orbit_origin based on character name
+if (character.name === "Myras") {
+    orbit_origin = HEALER_TARGET;
+} else if (character.name === "Ulric") {
+    orbit_origin = WARRIOR_TARGET;
+} else if (character.name === "Riva") {
+    orbit_origin = RANGER_TARGET;
+}
+
+let orbit_path_points = [];
+let orbit_path_index = 0;
+const MOVE_CHECK_INTERVAL = 120; // ms
+const MOVE_TOLERANCE = 5; // pixels
+
+function set_orbit_radius(r) {
+    if (typeof r === "number" && r > 0) {
+        orbit_radius = r;
+        game_log(`Orbit radius set to ${orbit_radius}`);
+    }
+}
+
+function compute_orbit_path(origin, ORBIT_RADIUS, steps) {
+    const points = [];
+    for (let i = 0; i < steps; i++) {
+        const angle = (2 * Math.PI * i) / steps;
+        points.push({
+            x: origin.x + ORBIT_RADIUS * Math.cos(angle),
+            y: origin.y + ORBIT_RADIUS * Math.sin(angle)
+        });
+    }
+    return points;
+}
+
+async function orbit_loop() {
+
+    let delayMs = 50;
+
+    while(true) {
+        // Wait until orbit loop is enabled
+        if (!ORBIT_LOOP_ENABLED) {
+            await delay(100);
+            continue;
+        }
+
+        // orbit_origin = { x: character.real_x, y: character.real_y };
+        set_orbit_radius(ORBIT_RADIUS);
+        orbit_path_points = compute_orbit_path(orbit_origin, ORBIT_RADIUS, ORBIT_STEPS);
+        orbit_path_index = 0;
+
+        while (true) {
+            // Check if orbit loop is enabled
+            if (!ORBIT_LOOP_ENABLED) {
+                await delay(100);
+                continue;
+            }
+            // Stop the loop if character is more than 100 units from the orbit origin
+            const dist_from_origin = Math.hypot(character.real_x - orbit_origin.x, character.real_y - orbit_origin.y);
+            if (dist_from_origin > 100) {
+                game_log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
+                ORBIT_LOOP_ENABLED = false;
+                break;
+            }
+
+            const point = orbit_path_points[orbit_path_index];
+            orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
+
+            // Only move if not already close to the next point
+            const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
+            if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
+                try {
+                    await move(point.x, point.y);
+                } catch (e) {
+                    console.error("Orbit move error:", e);
+                }
+            }
+
+            // Wait until movement is finished or interrupted
+            while (ORBIT_LOOP_ENABLED && (character.moving || smart.moving)) {
+                await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
+            }
+
+            // Small delay before next step to reduce CPU usage
+            await delay(delayMs);
+        }
+    }
+
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// STATUS CACHE LOOP
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function get_status_cache() {
+    try { inventory_count = character.items.filter(Boolean).length; } catch (e) {}
+    try { mpot1_count = character.items.filter(it => it && it.name === "mpot1").reduce((sum, it) => sum + (it.q || 1), 0); } catch (e) {}
+    try { hpot1_count = character.items.filter(it => it && it.name === "hpot1").reduce((sum, it) => sum + (it.q || 1), 0); } catch (e) {}
+    try { map = character.map; x = character.x; y = character.y; } catch (e) {}
+}
+
+async function status_cache_loop() {
+    STATUS_CACHE_LOOP_ENABLED = true;
+    let delayMs = 5000;
+
+        while (true) {
+            if (!STATUS_CACHE_LOOP_ENABLED) {
+                await delay(100);
+                continue;
+            }
+            get_status_cache();
+            // Only send status if inventory is 20+ or either potion is below 2000
+            if (
+                inventory_count >= 30 ||
+                mpot1_count < 2000 ||
+                hpot1_count < 2000
+            ) {
+                try {
+                    send_cm("Riff", {
+                        type: "status_update",
+                        data: {
+                            name: character.name,
+                            inventory: inventory_count,
+                            mpot1: mpot1_count,
+                            hpot1: hpot1_count,
+                            map: map,
+                            x: x,
+                            y: y,
+                            lastSeen: Date.now()
+                        }
+                    });
+                } catch (e) {
+                    catcher(e, "Error sending status to Riff: ");
+                }
+            }
+
+            await delay(delayMs);
+        }
+
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -1149,471 +1441,62 @@ function catcher(e, context = "Error") {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// CUSTOM GAME LOG
+// UI LAYOUT & BUTTONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function create_custom_log_window() {
-    // Only create if it doesn't exist
-    if (parent.document.getElementById("custom-log-window")) return;
+function hide_skills_ui() {
+	const doc = parent.document;
 
+	// Hide skill buttons (bottom right grid)
+	const skill_buttons = doc.querySelector("#skillbar");
+	if (skill_buttons) skill_buttons.style.display = "none";
+
+	// Hide the right panel (contains skills, info, etc.)
+	const right_panel = doc.querySelector("#rightcorner");
+	if (right_panel) right_panel.style.display = "none";
+
+	// Optional: Hide the "Stats", "Skills", "Inventory" tab buttons
+	const tabs = [
+		"#rightcornerbuttonskills",
+		"#rightcornerbuttonstats",
+		"#rightcornerbuttoninventory"
+	];
+	for (const selector of tabs) {
+		const btn = doc.querySelector(selector);
+		if (btn) btn.style.display = "none";
+	}
+}
+
+// Hides the game's native party bar UI
+function hide_party_ui() {
     const doc = parent.document;
-
-    // Create main window
-    const div = doc.createElement("div");
-    div.id = "custom-log-window";
-    div.style.position = "absolute";
-    div.style.bottom = "1px";
-    div.style.right = "650px";
-    div.style.width = "350px";
-    div.style.height = "260px";
-    div.style.background = "rgba(0,0,0,0.66)";
-    div.style.color = "#fff";
-    div.style.overflow = "hidden";
-    div.style.zIndex = 9999;
-    div.style.fontSize = "22px";
-    div.style.fontFamily = "pixel";
-    div.style.padding = "0";
-    div.style.border = "4px solid #888";
-    div.style.display = "flex";
-    div.style.flexDirection = "column";
-    div.style.cursor = "default";
-
-    // --- Drag logic ---
-    let isDragging = false, dragOffsetX = 0, dragOffsetY = 0;
-
-    // Drag handle (top bar)
-    const dragHandle = doc.createElement("div");
-    dragHandle.style.height = "18px";
-    dragHandle.style.background = "#444";
-    dragHandle.style.cursor = "move";
-    dragHandle.style.display = "flex";
-    dragHandle.style.alignItems = "center";
-    dragHandle.style.justifyContent = "flex-start";
-    dragHandle.style.paddingLeft = "8px";
-    dragHandle.style.fontSize = "16px";
-    dragHandle.style.fontFamily = "pixel";
-    dragHandle.style.color = "#fff";
-    dragHandle.textContent = "Custom Log";
-
-    dragHandle.onmousedown = function (e) {
-        isDragging = true;
-        dragOffsetX = e.clientX - div.offsetLeft;
-        dragOffsetY = e.clientY - div.offsetTop;
-        doc.body.style.userSelect = "none";
-    };
-
-    doc.onmousemove = function (e) {
-        if (isDragging) {
-            div.style.left = (e.clientX - dragOffsetX) + "px";
-            div.style.top = (e.clientY - dragOffsetY) + "px";
-            div.style.right = ""; // Unset right when dragging
-            div.style.bottom = ""; // Unset bottom when dragging
-        }
-    };
-
-    doc.onmouseup = function () {
-        isDragging = false;
-        doc.body.style.userSelect = "";
-    };
-
-    div.appendChild(dragHandle);
-
-    // --- Tabs ---
-    const tabBar = doc.createElement("div");
-    tabBar.style.display = "flex";
-    tabBar.style.background = "#222";
-    tabBar.style.borderBottom = "2px solid #888";
-    tabBar.style.height = "32px";
-    tabBar.style.alignItems = "center";
-
-    const tabs = [
-        { name: "All", id: "tab-all" },
-        { name: "General", id: "tab-general" },
-        { name: "Alerts", id: "tab-alerts" },
-        { name: "Errors", id: "tab-errors" }
+    // Hide the main party bar (usually #party or #party-frames)
+    const party_bar = doc.querySelector("#party, #party-frames");
+    if (party_bar) party_bar.style.display = "none";
+    // Optionally hide any party-related buttons or elements
+    const party_buttons = [
+        "#party-button", // Example, adjust as needed
+        "#party-leader-icon"
     ];
-
-    // Store current tab in window
-    div._currentTab = "All";
-
-    // --- Log containers for each tab ---
-    const logContainers = {};
-    const alertStates = {};
-    // For checkboxes: which tabs are included in "All"
-    const includeInAll = {
-        "General": true,
-        "Alerts": true,
-        "Errors": true
-    };
-
-    // Store all log entries for each tab for dynamic All tab updates
-    const logHistory = {
-        "General": [],
-        "Alerts": [],
-        "Errors": []
-    };
-
-    for (const tab of tabs) {
-        const tabDiv = doc.createElement("div");
-        tabDiv.id = `custom-log-${tab.id}`;
-        tabDiv.style.flex = "1";
-        tabDiv.style.overflowY = "auto";
-        tabDiv.style.display = tab.name === "All" ? "block" : "none";
-        tabDiv.style.height = "100%";
-        div.appendChild(tabDiv);
-        logContainers[tab.name] = tabDiv;
-        alertStates[tab.name] = false;
-    }
-
-    // --- Tab buttons with alert indicators and checkboxes ---
-    for (const tab of tabs) {
-        const btn = doc.createElement("button");
-        btn.textContent = tab.name;
-        btn.style.flex = "1";
-        btn.style.height = "100%";
-        btn.style.background = tab.name === "All" ? "#444" : "#222";
-        btn.style.color = "#fff";
-        btn.style.border = "none";
-        btn.style.fontFamily = "pixel";
-        btn.style.fontSize = "20px";
-        btn.style.cursor = "pointer";
-        btn.id = `btn-${tab.id}`;
-        btn.style.display = "flex";
-        btn.style.alignItems = "center";
-        btn.style.justifyContent = "center";
-        btn.style.position = "relative";
-
-        // Alert indicator span
-        const alertSpan = doc.createElement("span");
-        alertSpan.textContent = "";
-        alertSpan.style.color = "#fff";
-        alertSpan.style.marginLeft = "8px";
-        alertSpan.style.fontWeight = "bold";
-        alertSpan.id = `alert-${tab.id}`;
-        btn.appendChild(alertSpan);
-
-        // Add checkbox for General, Alerts, and Errors tabs
-        if (tab.name !== "All") {
-            const checkbox = doc.createElement("input");
-            checkbox.type = "checkbox";
-            checkbox.checked = true;
-            checkbox.style.marginLeft = "6px";
-            checkbox.style.transform = "scale(1.2)";
-            checkbox.title = `Include ${tab.name} messages in All tab`;
-            checkbox.onclick = (e) => {
-                includeInAll[tab.name] = checkbox.checked;
-                updateAllTab(logContainers, logHistory, includeInAll);
-            };
-            btn.appendChild(checkbox);
-        }
-
-        btn.onclick = () => {
-            // Switch tab
-            div._currentTab = tab.name;
-            for (const t of tabs) {
-                logContainers[t.name].style.display = t.name === tab.name ? "block" : "none";
-                tabBar.querySelector(`#btn-${t.id}`).style.background = t.name === tab.name ? "#444" : "#222";
-                // Clear alert when tab is viewed
-                const alertElem = tabBar.querySelector(`#alert-${t.id}`);
-                if (alertElem) alertElem.textContent = "";
-                alertStates[t.name] = false;
-            }
-        };
-        tabBar.appendChild(btn);
-    }
-
-    div.appendChild(tabBar);
-
-    // Move log containers after tab bar
-    for (const tab of tabs) {
-        div.appendChild(logContainers[tab.name]);
-    }
-
-    doc.body.appendChild(div);
-
-    // Store containers, alert state, includeInAll, and logHistory globally for log() to use
-    parent._custom_log_tabs = logContainers;
-    parent._custom_log_window = div;
-    parent._custom_log_alerts = alertStates;
-    parent._custom_log_includeInAll = includeInAll;
-    parent._custom_log_history = logHistory;
-}
-
-// Helper to update the All tab when checkboxes change
-function updateAllTab(logContainers, logHistory, includeInAll) {
-    const allDiv = logContainers["All"];
-    allDiv.innerHTML = "";
-    let allEntries = [];
-    for (const tabName of ["General", "Alerts", "Errors"]) {
-        if (includeInAll[tabName]) {
-            allEntries = allEntries.concat(logHistory[tabName]);
-        }
-    }
-    // Sort by timestamp (oldest first)
-    allEntries.sort((a, b) => a.time - b.time);
-    // Only keep the most recent 100
-    allEntries = allEntries.slice(-100);
-    for (const entry of allEntries) {
-        const p = parent.document.createElement("div");
-        p.textContent = entry.text;
-        p.style.color = entry.color;
-        p.style.padding = "2px";
-        allDiv.appendChild(p);
-    }
-    allDiv.scrollTop = allDiv.scrollHeight;
-}
-
-// Modified log function to support All tab and checkboxes
-function log(msg, color = "#fff", type = "General") {
-    create_custom_log_window();
-    const logContainers = parent._custom_log_tabs;
-    const div = parent._custom_log_window;
-    const alertStates = parent._custom_log_alerts;
-    const includeInAll = parent._custom_log_includeInAll;
-    const logHistory = parent._custom_log_history;
-
-    // Support "General", "Alerts", "Errors" as valid types
-    let tabName = "General";
-    if (type === "Errors") tabName = "Errors";
-    else if (type === "Alerts") tabName = "Alerts";
-
-    const logDiv = logContainers[tabName];
-
-    const time = Date.now();
-    const text = `[${new Date(time).toLocaleTimeString()}] ${msg}`;
-
-    // Store in history for this tab
-    if (!logHistory[tabName]) logHistory[tabName] = [];
-    logHistory[tabName].push({ text, color, time });
-    // Keep only the most recent 100 messages per tab
-    while (logHistory[tabName].length > 100) logHistory[tabName].shift();
-
-    // Add to tab display
-    const p = parent.document.createElement("div");
-    p.textContent = text;
-    p.style.color = color;
-    p.style.padding = "2px";
-    logDiv.appendChild(p);
-    while (logDiv.children.length > 100) logDiv.removeChild(logDiv.firstChild);
-
-    // If this tab is visible, scroll to bottom
-    if (div._currentTab === tabName) {
-        logDiv.scrollTop = logDiv.scrollHeight;
-    } else {
-        // Show alert (!) if new message arrives in a hidden tab
-        if (!alertStates[tabName]) {
-            const alertElem = parent.document.getElementById(`alert-tab-${tabName.toLowerCase()}`);
-            if (alertElem) alertElem.textContent = "*";
-            alertStates[tabName] = true;
-        }
-    }
-
-    // Also log to All tab if enabled for this type
-    if (tabName !== "All" && includeInAll[tabName]) {
-        // Add to All history and update All tab
-        if (!logHistory["All"]) logHistory["All"] = [];
-        logHistory["All"].push({ text, color, time, source: tabName });
-        // Only keep the most recent 100 in All history
-        while (logHistory["All"].length > 100) logHistory["All"].shift();
-        updateAllTab(logContainers, logHistory, includeInAll);
+    for (const selector of party_buttons) {
+        const btn = doc.querySelector(selector);
+        if (btn) btn.style.display = "none";
     }
 }
 
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// PANIC BUTTON!!!
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-// let panicking = false;
-
-// let LOW_HEALTH = 0;
-// let LOW_MANA = 0;
-// let HIGH_HEALTH = 0;
-// let HIGH_MANA = 0;
-// let MONSTERS_TARGETING_ME = 0;
-
-// async function panic_loop() {
-    
-//     let delayMs = 100;
-
-//     while (true) { 
-//         // Check if panic loop is enabled
-//         if (!PANIC_LOOP_ENABLED) {
-//             if (panicking) panicking = false;
-//             await delay(delayMs);
-//             continue;
-//         }
-//         // --- Panic/Safe Conditions ---
-//         LOW_HEALTH = character.hp < character.max_hp * PANIC_HP_THRESHOLD;
-//         LOW_MANA = character.mp < PANIC_MP_THRESHOLD;
-//         HIGH_HEALTH = character.hp >= character.max_hp * SAFE_HP_THRESHOLD;
-//         HIGH_MANA = character.mp >= SAFE_MP_THRESHOLD;
-
-//         // Aggro check: monsters targeting me
-//         MONSTERS_TARGETING_ME = Object.values(parent.entities).filter(
-//             e => e.type === "monster" && e.target === character.name && !e.dead
-//         ).length;
-
-//         // PANIC CONDITION
-//         if (LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= PANIC_AGGRO_THRESHOLD) {
-//             if (!panicking) {
-//                 panicking = true;
-//                 let reason = [];
-//                 if (LOW_HEALTH) reason.push("low health");
-//                 if (LOW_MANA) reason.push("low mana");
-//                 if (MONSTERS_TARGETING_ME >= PANIC_AGGRO_THRESHOLD) reason.push("high aggro");
-//                 log(`⚠️ Panic triggered: ${reason.join(", ")}!`, "#ffcc00", "Alerts");
-//             }
-
-
-//             // Equip panic orb if needed
-//             if (character.slots.orb?.name !== PANIC_ORB) {
-//                 try {
-//                     await equip(3);
-//                     if (character.slots.orb?.name !== PANIC_ORB) {
-//                         log("[PANIC] Failed to equip panic orb!", "#ff4444", "Errors");
-//                     }
-//                 } catch (e) {
-//                     log(`[PANIC] Error equipping panic orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
-//                 }
-//             }
-
-//             // Try to cast scare if possible
-//             if (!is_on_cooldown("scare") && can_use("scare") && character.slots.orb?.name === PANIC_ORB) {
-//                 try {
-//                     log("Using Scare!", "#ffcc00", "Alerts");
-//                     await use_skill("scare");
-//                     await delay(delayMs);
-//                 } catch (e) {
-//                     log(`[PANIC] Error using scare: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
-//                 }
-//             }
-
-//             await delay(delayMs);
-//             continue;
-//         }
-
-//         // SAFE CONDITION
-//         if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < PANIC_AGGRO_THRESHOLD) {
-//             if (panicking) {
-//                 panicking = false;
-//                 log("✅ Panic over.", "#00ff00", "Alerts");
-//             }
-//             // Equip normal orb if needed
-//             if (character.slots.orb?.name === PANIC_ORB) {
-//                 try {
-//                     await equip(3);
-//                     if (character.slots.orb?.name === PANIC_ORB) {
-//                         log("[PANIC] Failed to equip normal orb!", "#ff4444", "Errors");
-//                     }
-//                 } catch (e) {
-//                     log(`[PANIC] Error equipping normal orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
-//                 }
-//             }
-//             await delay(delayMs);
-//             continue;
-//         }
-
-//         await delay(delayMs);
-//     }
-// }
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// COMBAT ORBIT
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-let orbit_origin = null;
-
-// Dynamically set orbit_origin based on character name
-if (character.name === "Myras") {
-    orbit_origin = HEALER_TARGET;
-} else if (character.name === "Ulric") {
-    orbit_origin = WARRIOR_TARGET;
-} else if (character.name === "Riva") {
-    orbit_origin = RANGER_TARGET;
+function moveElementUpByPx(elementId, pixels) {
+  const el = parent.document.getElementById(elementId);
+  if (el) {
+    const currentBottom = parseInt(window.getComputedStyle(el).bottom) || 0;
+    el.style.bottom = (currentBottom + pixels) + "px";
+  }
 }
 
-let orbit_path_points = [];
-let orbit_path_index = 0;
-const MOVE_CHECK_INTERVAL = 120; // ms
-const MOVE_TOLERANCE = 5; // pixels
+moveElementUpByPx("bottomleftcorner2", 370);
+moveElementUpByPx("chatwparty", 370);
+moveElementUpByPx("chatinput", 370);
 
-function set_orbit_radius(r) {
-    if (typeof r === "number" && r > 0) {
-        orbit_radius = r;
-        game_log(`Orbit radius set to ${orbit_radius}`);
-    }
-}
-
-function compute_orbit_path(origin, ORBIT_RADIUS, steps) {
-    const points = [];
-    for (let i = 0; i < steps; i++) {
-        const angle = (2 * Math.PI * i) / steps;
-        points.push({
-            x: origin.x + ORBIT_RADIUS * Math.cos(angle),
-            y: origin.y + ORBIT_RADIUS * Math.sin(angle)
-        });
-    }
-    return points;
-}
-
-async function orbit_loop() {
-
-    let delayMs = 50;
-
-    while(true) {
-        // Wait until orbit loop is enabled
-        if (!ORBIT_LOOP_ENABLED) {
-            await delay(100);
-            continue;
-        }
-
-        // orbit_origin = { x: character.real_x, y: character.real_y };
-        set_orbit_radius(ORBIT_RADIUS);
-        orbit_path_points = compute_orbit_path(orbit_origin, ORBIT_RADIUS, ORBIT_STEPS);
-        orbit_path_index = 0;
-
-        while (true) {
-            // Check if orbit loop is enabled
-            if (!ORBIT_LOOP_ENABLED) {
-                await delay(100);
-                continue;
-            }
-            // Stop the loop if character is more than 100 units from the orbit origin
-            const dist_from_origin = Math.hypot(character.real_x - orbit_origin.x, character.real_y - orbit_origin.y);
-            if (dist_from_origin > 100) {
-                game_log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
-                ORBIT_LOOP_ENABLED = false;
-                break;
-            }
-
-            const point = orbit_path_points[orbit_path_index];
-            orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
-
-            // Only move if not already close to the next point
-            const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
-            if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
-                try {
-                    await move(point.x, point.y);
-                } catch (e) {
-                    console.error("Orbit move error:", e);
-                }
-            }
-
-            // Wait until movement is finished or interrupted
-            while (ORBIT_LOOP_ENABLED && (character.moving || smart.moving)) {
-                await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
-            }
-
-            // Small delay before next step to reduce CPU usage
-            await delay(delayMs);
-        }
-    }
-
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// RESET BUTTON
-// --------------------------------------------------------------------------------------------------------------------------------- //
+parent.$('#bottomleftcorner').show();
 
 function add_reload_button() {
     const $ = parent.$;
@@ -1657,615 +1540,3 @@ function add_reload_button() {
 }
 
 add_reload_button();
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// DETECT CHARACTER FUNCTION
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-// Returns true if the target character is within 500 units
-function detect_character(target) {
-    if (!target || !character || typeof target.x !== 'number' || typeof target.y !== 'number' || typeof character.x !== 'number' || typeof character.y !== 'number') return false;
-    const dx = target.x - character.x;
-    const dy = target.y - character.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    return distance <= 500;
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// BANK SORTER
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-al_items = {};
-const order = {};
-al_items.order = order;
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-order.names = [
-  "Helmets",
-  "Armors",
-  "Underarmors",
-  "Gloves",
-  "Shoes",
-  "Capes",
-  "Rings",
-  "Earrings",
-  "Amulets",
-  "Belts",
-  "Orbs",
-  "Weapons",
-  "Shields",
-  "Offhands",
-  "Elixirs",
-  "Potions",
-  "Scrolls",
-  "Crafting and Collecting",
-  "Exchangeables",
-  "Others",
-];
-
-order.ids = [
-  "helmet",
-  "chest",
-  "pants",
-  "gloves",
-  "shoes",
-  "cape",
-  "ring",
-  "earring",
-  "amulet",
-  "belt",
-  "orb",
-  "weapon",
-  "shield",
-  "offhand",
-  "elixir",
-  "pot",
-  "scroll",
-  "material",
-  "exchange",
-  "",
-];
-
-order.item_ids = order.ids.map((_id) => []);
-object_sort(G.items, "gold_value").forEach(function (b) {
-  if (!b[1].ignore)
-    for (var c = 0; c < order.ids.length; c++)
-      if (
-        !order.ids[c] ||
-        b[1].type == order.ids[c] ||
-        ("offhand" == order.ids[c] &&
-          in_arr(b[1].type, ["source", "quiver", "misc_offhand"])) ||
-        ("scroll" == order.ids[c] &&
-          in_arr(b[1].type, ["cscroll", "uscroll", "pscroll", "offering"])) ||
-        ("exchange" == order.ids[c] && G.items[b[0]].e)
-      ) {
-        order.item_ids[c].push(b[0]);
-        break;
-      }
-});
-order.flat_iids = order.item_ids.flat();
-order.comparator = function (a, b) {
-  return (
-    (a == null) - (b == null) ||
-    (a != null &&
-      (order.flat_iids.indexOf(a.name) - order.flat_iids.indexOf(b.name) ||
-        (a.name < b.name && -1) ||
-        +(a.name > b.name) ||
-        b.level - a.level))
-  );
-};
-
-function getPacksOnThisFloor() {
-  const floor = character.map; // "bank", "bank_b", or "bank_u"
-
-  const packs = [];
-
-  for (const key in bank_packs) {
-    const [type] = bank_packs[key];
-    if (type === floor) packs.push(key);
-  }
-
-  return packs;
-}
-
-function sort_all_bank(inv_indices, sorted_bank, i_running) {
-  if (!character.bank) return log("Not inside the bank");
-  
-  const packsOnFloor = getPacksOnThisFloor();
-
-  if (!inv_indices) {
-    inv_indices = [];
-    for (let i = 0; i < 42; i++) {
-      if (!character.items[i]) inv_indices.push(i);
-    }
-  }
-  if (inv_indices.length == 0) return log("Make some space in inventory");
-  if (!sorted_bank) {
-    let bank_array = [];
-    for (let bank_pack of packsOnFloor) {
-      if (bank_pack == "gold") continue;
-      bank_array = bank_array.concat(character.bank[bank_pack]);
-    }
-    bank_array.sort(al_items.order.comparator);
-    sorted_bank = {};
-    for (let bank_pack of packsOnFloor) {
-      if (bank_pack == "gold") continue;
-      sorted_bank[bank_pack] = bank_array.slice(0, 42);
-      bank_array = bank_array.slice(42);
-    }
-  }
-  if (i_running == null) i_running = 0;
-  else i_running = (i_running + 1) % inv_indices.length;
-  const inv_pointer = inv_indices[i_running];
-  const inv_itm = character.items[inv_pointer];
-  //check every
-  if (!inv_itm) {
-    for (let bank_pack of packsOnFloor) {
-      if (bank_pack == "gold") continue;
-      for (let i = 0; i < 42; i++) {
-        if (
-          character.bank[bank_pack][i] &&
-          al_items.order.comparator(
-            character.bank[bank_pack][i],
-            sorted_bank[bank_pack][i]
-          )
-        ) {
-          log("Swapping empty " + inv_pointer + " with " + i + bank_pack);
-          parent.socket.emit("bank", {
-            operation: "swap",
-            pack: bank_pack,
-            str: i,
-            inv: inv_pointer,
-          });
-          return sleep(150).then((x) =>
-            sort_all_bank(inv_indices, sorted_bank, i_running)
-          );
-        }
-      }
-    }
-    inv_indices.splice(i_running, 1);
-    return sleep(150).then((x) =>
-      sort_all_bank(inv_indices, sorted_bank, i_running)
-    );
-
-    //good to go. slice off this party of shit and go on
-  } else {
-    for (let bank_pack of packsOnFloor) {
-      if (bank_pack == "gold") continue;
-      for (let i = 0; i < 42; i++) {
-        if (
-          !al_items.order.comparator(inv_itm, sorted_bank[bank_pack][i]) &&
-          al_items.order.comparator(
-            character.bank[bank_pack][i],
-            sorted_bank[bank_pack][i]
-          )
-        ) {
-          log({ operation: "swap", pack: bank_pack, str: i, inv: inv_pointer });
-          parent.socket.emit("bank", {
-            operation: "swap",
-            inv: inv_pointer,
-            pack: bank_pack,
-            str: i,
-          });
-          return sleep(150).then((x) =>
-            sort_all_bank(inv_indices, sorted_bank, i_running)
-          );
-        }
-      }
-    }
-  }
-
-  //if is empty pull misplaced item
-  //else if is full place misplaced item
-  return sorted_bank;
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// MOVE UI ELEMENTS
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-function moveElementUpByPx(elementId, pixels) {
-  const el = parent.document.getElementById(elementId);
-  if (el) {
-    const currentBottom = parseInt(window.getComputedStyle(el).bottom) || 0;
-    el.style.bottom = (currentBottom + pixels) + "px";
-  }
-}
-
-moveElementUpByPx("bottomleftcorner2", 370);
-moveElementUpByPx("chatwparty", 370);
-moveElementUpByPx("chatinput", 370);
-
-parent.$('#bottomleftcorner').show();
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// PRIMLING FARM LOOP
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-const PRIM_FARM_LOC = { map: "desertland", x: -409, y: -1236 };
-const PRIM_FARM_LOC_HEALER = { map: "desertland", x: -408, y: -1146 };
-const PRIM_FARM_RADIUS = 105;
-const SAFETY_DISTANCE = 100;
-
-function get_bscorpion_info() {
-    let nearest = null;
-    let minDist = Infinity;
-    for (const id in parent.entities) {
-        const ent = parent.entities[id];
-        if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
-            const dx = ent.x - character.x;
-            const dy = ent.y - character.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < minDist) {
-                minDist = dist;
-                nearest = ent;
-            }
-        }
-    }
-    if (!nearest) return null;
-    return { distance: minDist, x: nearest.x, y: nearest.y, id: nearest.id };
-}
-
-
-let _orbit_angle = 0;
-async function move_safe_from_bscorpion() {
-    const info = get_bscorpion_info();
-
-    // Orbit PRIM_FARM_LOC at PRIM_FARM_RADIUS clockwise
-    _orbit_angle += Math.PI / 16;
-    if (_orbit_angle > 2 * Math.PI) _orbit_angle -= 2 * Math.PI;
-    const newX = PRIM_FARM_LOC.x + Math.cos(_orbit_angle) * PRIM_FARM_RADIUS;
-    const newY = PRIM_FARM_LOC.y + Math.sin(_orbit_angle) * PRIM_FARM_RADIUS;
-    await move(newX, newY);
-}
-
-function is_bscorpion_targeting_myras() {
-  for (const id in parent.entities) {
-    const ent = parent.entities[id];
-    if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
-      if (ent.target === "Myras") return true;
-    }
-  }
-  return false;
-}
-
-let cached_bscorpion_id = null;
-
-async function move_distance_from_bscorpion() {
-    let nearest = null;
-    let minDist = Infinity;
-
-    // Try cached id first
-    if (cached_bscorpion_id && parent.entities[cached_bscorpion_id]) {
-        const ent = parent.entities[cached_bscorpion_id];
-        if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
-            nearest = ent;
-            minDist = Math.hypot(ent.x - character.x, ent.y - character.y);
-        } else {
-            cached_bscorpion_id = null;
-        }
-    }
-
-    // If not cached or cache invalid, search
-    if (!nearest) {
-        for (const id in parent.entities) {
-            const ent = parent.entities[id];
-            if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
-                const dist = Math.hypot(ent.x - character.x, ent.y - character.y);
-                if (dist < minDist) {
-                    minDist = dist;
-                    nearest = ent;
-                    cached_bscorpion_id = id;
-                }
-            }
-        }
-    }
-
-    if (!nearest) return false;
-
-    const desired = 40;
-    const tolerance = 0.75;
-    if (Math.abs(minDist - desired) > tolerance) {
-        // Only move if not already moving or target is far from current move target
-        if (!character.moving || Math.hypot(character.x - nearest.x, character.y - nearest.y) > tolerance) {
-            const angle = Math.atan2(character.y - nearest.y, character.x - nearest.x);
-            const newX = nearest.x + Math.cos(angle) * desired;
-            const newY = nearest.y + Math.sin(angle) * desired;
-            move(newX, newY);
-        }
-        return true;
-    }
-    return false;
-}
-
-// Move to maintain distance from bscorpion at exactly character.range - 2
-async function move_distance_from_bscorpion2() {
-    // Find the nearest alive bscorpion
-    let nearest = null;
-    let minDist = Infinity;
-    for (const id in parent.entities) {
-        const ent = parent.entities[id];
-        if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
-            const dx = ent.x - character.x;
-            const dy = ent.y - character.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < minDist) {
-                minDist = dist;
-                nearest = ent;
-            }
-        }
-    }
-    if (!nearest) return false; // No bscorpion found
-    const desired = 50;
-    const angle = Math.atan2(character.y - nearest.y, character.x - nearest.x);
-    const newX = nearest.x + Math.cos(angle) * desired;
-    const newY = nearest.y + Math.sin(angle) * desired;
-    // Only move if not already at the correct distance (with a small tolerance)
-    if (Math.abs(minDist - desired) > 0) {
-        move(newX, newY);
-        return true;
-    }
-    return false;
-}
-
-async function prim_farm_loop_ulric() {
-    while(true) {
-        if (PRIM_FARM_LOOT_ENABLED) {
-            
-            move_distance_from_bscorpion();
-
-            if (is_bscorpion_targeting_myras()) {
-                if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
-                if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
-            } else {
-                if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
-                if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
-            }
-
-            await delay(100);
-        } else {
-            await delay(1000);
-        }
-    }
-}
-
-async function prim_farm_loop() {
-
-    while (true) {
-        if (PRIM_FARM_LOOT_ENABLED) {
-
-            if (character.name === "Ulric") {
-
-                move_distance_from_bscorpion();
-
-                if (is_bscorpion_targeting_myras()) {
-                    if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
-                    if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
-                } else {
-                    if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
-                    if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
-                }
-
-            }
-
-            if (character.name === "Myras") {
-
-                const bscorp_info = get_bscorpion_info();
-                let too_close = false;
-                if (bscorp_info) {
-                    const dist = Math.hypot(character.x - bscorp_info.x, character.y - bscorp_info.y);
-                    if (dist < SAFETY_DISTANCE) too_close = true;
-                }
-
-                if (too_close && !is_bscorpion_targeting_myras()) {
-                    ATTACK_LOOP_ENABLED = false;
-                    SKILL_LOOP_ENABLED = false;
-                } else {
-                    ATTACK_LOOP_ENABLED = true;
-                    SKILL_LOOP_ENABLED = true;
-                }
-
-                if (!is_bscorpion_targeting_myras() && !too_close) {
-                    // Cast absorb on bscorpion if possible
-                    const bscorp = Object.values(parent.entities).find(ent =>
-                        ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead
-                    );
-                    if (bscorp && can_use("absorb")) {
-                        parent.socket.emit("ability", { name: "absorb", id: bscorp.id });
-                    }
-                }
-
-            }
-
-            if (character.name === "Riva") {
-                
-                move_distance_from_bscorpion2()
-
-                if (is_bscorpion_targeting_myras()) {
-                    if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
-                    if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
-                } else {
-                    if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
-                    if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
-                }
-
-            }
-
-            await delay(100);
-            
-        } else {
-            await delay(1000);
-        }
-    }
-}
-
-async function prim_orbit_loop() {
-
-    // User algorithm:
-    // 1. Establish where the scorpion is and where I am.
-    // 2. If possible move away in the most direct manner.
-    // 3. If at the radius boundary, rotate clockwise or anticlockwise, whichever creates the most separation.
-
-    const RADIUS_TOL = 2; // How close to PRIM_FARM_RADIUS counts as "at boundary"
-    const ROTATE_STEP_DEG = 10; // How much to rotate per step (degrees)
-    while (true) {
-        if (PRIM_FARM_LOOT_ENABLED) {
-            const bscorp = get_bscorpion_info();
-            if (!bscorp) { await delay(500); continue; }
-
-            const cx = character.x;
-            const cy = character.y;
-            const sx = bscorp.x;
-            const sy = bscorp.y;
-
-            // Vector from scorpion to self
-            const dx = cx - sx;
-            const dy = cy - sy;
-            const dist = Math.hypot(dx, dy);
-
-            // Vector from farm center to self
-            const fx = cx - PRIM_FARM_LOC.x;
-            const fy = cy - PRIM_FARM_LOC.y;
-            const farm_dist = Math.hypot(fx, fy);
-
-            // 1. If not at radius, move directly away from scorpion, but clamp to farm radius
-            if (Math.abs(farm_dist - PRIM_FARM_RADIUS) > RADIUS_TOL) {
-                // Target point: in the direction away from scorpion, but at farm radius
-                const away_angle = Math.atan2(dy, dx);
-                const target_x = PRIM_FARM_LOC.x + Math.cos(away_angle) * PRIM_FARM_RADIUS;
-                const target_y = PRIM_FARM_LOC.y + Math.sin(away_angle) * PRIM_FARM_RADIUS;
-                await move(target_x, target_y);
-                await delay(80);
-                continue;
-            }
-
-            // 2. At radius: try rotating clockwise and counterclockwise, pick direction that increases separation
-            const my_angle = Math.atan2(fy, fx);
-            const step_rad = ROTATE_STEP_DEG * Math.PI / 180;
-            // Clockwise
-            const cw_angle = my_angle - step_rad;
-            const cw_x = PRIM_FARM_LOC.x + Math.cos(cw_angle) * PRIM_FARM_RADIUS;
-            const cw_y = PRIM_FARM_LOC.y + Math.sin(cw_angle) * PRIM_FARM_RADIUS;
-            const cw_dist = Math.hypot(cw_x - sx, cw_y - sy);
-            // Counterclockwise
-            const ccw_angle = my_angle + step_rad;
-            const ccw_x = PRIM_FARM_LOC.x + Math.cos(ccw_angle) * PRIM_FARM_RADIUS;
-            const ccw_y = PRIM_FARM_LOC.y + Math.sin(ccw_angle) * PRIM_FARM_RADIUS;
-            const ccw_dist = Math.hypot(ccw_x - sx, ccw_y - sy);
-
-            // Pick the direction that gives more separation
-            let target_x, target_y;
-            if (cw_dist > ccw_dist) {
-                target_x = cw_x;
-                target_y = cw_y;
-            } else {
-                target_x = ccw_x;
-                target_y = ccw_y;
-            }
-            await move(target_x, target_y);
-            await delay(100);
-        } else {
-            await delay(1000);
-        }
-    }
-}
-
-// Predictive movement: maintain exactly the right distance from bscorpion
-async function maintain_distance_from_bscorpion() {
-    // Find the nearest alive bscorpion
-    let nearest = null;
-    let minDist = Infinity;
-    for (const id in parent.entities) {
-        const ent = parent.entities[id];
-        if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
-            const dx = ent.x - character.x;
-            const dy = ent.y - character.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < minDist) {
-                minDist = dist;
-                nearest = ent;
-            }
-        }
-    }
-    if (!nearest) return false; // No bscorpion found
-
-    // Predict bscorpion's future position (100ms ahead)
-    const predictionTime = 0.1; // seconds
-    let pred_x = nearest.x;
-    let pred_y = nearest.y;
-    if (typeof nearest.vx === "number" && typeof nearest.vy === "number") {
-        pred_x += nearest.vx * predictionTime;
-        pred_y += nearest.vy * predictionTime;
-    } else if (typeof nearest.going_x === "number" && typeof nearest.going_y === "number") {
-        // Fallback: use going_x/going_y if vx/vy not available
-        pred_x = nearest.going_x;
-        pred_y = nearest.going_y;
-    }
-
-    // Desired distance
-    const desired = 38;
-    const angle = Math.atan2(character.y - pred_y, character.x - pred_x);
-    const newX = pred_x + Math.cos(angle) * desired;
-    const newY = pred_y + Math.sin(angle) * desired;
-    // Only move if not already at the correct distance (with a small tolerance)
-    const dist_to_pred = Math.hypot(character.x - newX, character.y - newY);
-    log(dist_to_pred);
-    if (dist_to_pred > 2) {
-        move(newX, newY);
-        return true;
-    }
-    return false;
-}
-
-// // --------------------------------------------------------------------------------------------------------------------------------- //
-// // BATCH EQUIP ITEMS
-// // --------------------------------------------------------------------------------------------------------------------------------- //
-
-// let batch_equip_lock = false;
-
-// async function batch_equip(data) {
-//     // Preprocess inventory into a lookup table for O(1) access per equip request
-//     const inventoryMap = {};
-//     for (let i = 0; i < parent.character.items.length; i++) {
-//         const item = parent.character.items[i];
-//         if (!item) continue;
-//         // Key: name|level|l (l is optional/undefined)
-//         const key = item.name + '|' + item.level + '|' + (item.l || '');
-//         if (!inventoryMap[key]) inventoryMap[key] = [];
-//         inventoryMap[key].push(i);
-//     }
-
-//     const used_indices = new Set();
-//     const batch = [];
-
-//     for (const equipRequest of data) {
-//         const { itemName, slot, level, l } = equipRequest;
-//         if (!itemName || !slot) continue;
-
-//         // Check if already equipped
-//         const equipped = character.slots[slot];
-//         if (
-//             equipped &&
-//             equipped.name === itemName &&
-//             equipped.level === level &&
-//             (!l || equipped.l === l)
-//         ) continue;
-
-//         const key = itemName + '|' + level + '|' + (l || '');
-//         const arr = inventoryMap[key];
-//         if (arr && arr.length) {
-//             // Find the first unused index
-//             let idx = arr.find(i => !used_indices.has(i));
-//             if (idx !== undefined) {
-//                 batch.push({ num: idx, slot });
-//                 used_indices.add(idx);
-//             }
-//         }
-//     }
-
-//     if (!batch.length) return; // Nothing to equip
-//     equip_batch(batch);
-// }

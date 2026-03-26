@@ -40,7 +40,6 @@ setInterval(() => {
 		last_update_time = now;
 	}
 
-	pots();
 	party_manager();
 
 }, 1000); // Check every second

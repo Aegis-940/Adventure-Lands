@@ -76,7 +76,7 @@ function tryCraft()
 							//Do we have enough to complete the crafting with the cost of the item included?
 							cost += item.g;
 							
-							if(craftDef.cost < character.gold)
+							if(cost < character.gold)
 							{
 								//Yeah? Mark it as something to buy.
 								buyableMissing.push(itemName);

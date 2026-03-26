@@ -420,7 +420,7 @@ const PARTY_HEAL_COOLDOWN = 250;
 let last_party_heal_time = 0;
 
 async function handle_party_heal() {
-	const now = Date.now();
+	const now = Performance.now();
 	if (now - last_party_heal_time < PARTY_HEAL_COOLDOWN) return;
 
 	let threshold = CONFIG.healing.party_heal_threshold;
@@ -515,107 +515,13 @@ async function maintenance_loop() {
 	setTimeout(maintenance_loop, TICK_RATE.maintenance);
 }
 
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// POTION HANDLER - Separate from maintenance for faster response
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-async function potion_loop() {
-
-	// Calculate missing HP/MP
-	const HP_MISSING = character.max_hp - character.hp;
-	const MP_MISSING = character.max_mp - character.mp;
-
-	let used_potion = false;
-	let delay = 0;
-
-	// Use health potion if needed
-	if (MP_MISSING >= CONFIG.potions.mp_threshold) {
-		use("mp");
-		used_potion = true;
-	}
-
-	// Use health potion if needed
-	if (HP_MISSING >= CONFIG.potions.hp_threshold) {
-		use("hp");
-		used_potion = true;
-	}
-
-	if (used_potion) {
-		delay = 2050;
-	} else {
-		delay = 10;
-	}
-
-	setTimeout(potion_loop, delay);
-
-}
+// potion_loop → Common Functions.js
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MOVEMENT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function should_handle_events() {
-	const holiday_spirit =
-		parent?.S?.holidayseason && !character?.s?.holidayspirit;
-
-	const has_handleable_event = EVENT_LOCATIONS.some(e =>
-		parent?.S?.[e.name]?.live
-	);
-
-	return holiday_spirit || has_handleable_event;
-}
-
-function handle_events() {
-	if (parent?.S?.holidayseason && !character?.s?.holidayspirit) {
-		if (!smart.moving) {
-			smart_move({ to: 'town' }, () => {
-				parent.socket.emit('interaction', { type: 'newyear_tree' });
-			});
-		}
-		return;
-	}
-
-	const alive_sorted = EVENT_LOCATIONS
-		.map(e => ({ ...e, data: parent.S[e.name] }))
-		.filter(e => e.data?.live)
-		.sort((a, b) => (a.data.hp / a.data.max_hp) - (b.data.hp / b.data.max_hp));
-
-	if (!alive_sorted.length) return;
-
-	const target = alive_sorted[0];
-
-	if (!smart.moving) {
-		handle_specific_event(target.name, target.map, target.x, target.y);
-	}
-}
-
-async function handle_specific_event(event_type, map_name, x, y) {
-	if (!parent?.S?.[event_type]?.live) return;
-
-	const monster = get_nearest_monster({ type: event_type });
-	if (!monster) {
-		smart_move({ x, y, map: map_name });
-		return;
-	}
-
-	const halfway_x = character.x + (monster.x - character.x) / 2;
-	const halfway_y = character.y + (monster.y - character.y) / 2;
-
-	if (!is_in_range(monster, 'attack') && !smart.moving) {
-		await xmove(halfway_x, halfway_y);
-	}
-}
-
-function handle_return_home() {
-	const dx = character.x - destination.x;
-	const dy = character.y - destination.y;
-	const radius = CONFIG.movement.circle_radius || 75;
-	const at_destination = Math.hypot(dx, dy) <= radius;
-	
-	if (!smart.moving && !at_destination) {
-		smart_move(destination);
-	}
-}
+// should_handle_events, handle_events, handle_specific_event, handle_return_home → Common Functions.js
 
 async function walk_in_circle() {
 	if (smart.moving) return;
@@ -669,7 +575,7 @@ async function handle_looting() {
 		if (CONFIG.looting.equip_gold_gear && !is_set_equipped('gold')) {
 			equip_set('gold');
 			swap_booster('luckbooster', 'goldbooster');
-			await sleep(100);
+			await delay(100);
 		}
 
 		let looted = 0;
@@ -682,11 +588,11 @@ async function handle_looting() {
 			looted++;
 		}
 
-		await sleep(150);
+		await delay(150);
 
 		if (CONFIG.looting.equip_gold_gear) {
 			await swap_booster('goldbooster', 'luckbooster');
-			await sleep(100);
+			await delay(100);
 		}
 	} catch (e) {
 		console.error('Looting error:', e);
@@ -793,11 +699,7 @@ const inventory_sorter = () => {
 	});
 };
 
-function auto_buy_potions() {
-	if (quantity('hpot1') < CONFIG.potions.min_stock) buy('hpot1', CONFIG.potions.min_stock);
-	if (quantity('mpot1') < CONFIG.potions.min_stock) buy('mpot1', CONFIG.potions.min_stock);
-	if (quantity('xptome') < 1) buy('xptome', 1);
-}
+// auto_buy_potions → Common Functions.js
 
 function elixir_usage() {
 	const required = 'elixirluck';
@@ -842,150 +744,7 @@ function party_maker() {
 	}
 }
 
-function sleep(ms) {
-	return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function suicide() {
-	if (!character.rip && character.hp < 2000) {
-		parent.socket.emit('harakiri');
-		game_log("Harakiri");
-	}
-
-	if (character.rip/* && locate_item("xptome") !== -1*/) {
-		respawn();
-	}
-}
-
-setInterval(suicide, 50);
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// ESSENTIAL HELPER FUNCTIONS
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-function get_nearest_monster_v2(args = {}) {
-	let min_d = 999999;
-	let target = null;
-	let optimal_hp = args.check_max_hp ? 0 : 999999999;
-
-	for (let id in parent.entities) {
-		let current = parent.entities[id];
-		if (current.type !== 'monster' || !current.visible || current.dead) continue;
-
-		// Allow type to be an array for multiple types
-		if (args.type) {
-			if (Array.isArray(args.type)) {
-				if (!args.type.includes(current.mtype)) continue;
-			} else {
-				if (current.mtype !== args.type) continue;
-			}
-		}
-
-		if (args.min_level !== undefined && current.level < args.min_level) continue;
-		if (args.max_level !== undefined && current.level > args.max_level) continue;
-		if (args.target && !args.target.includes(current.target)) continue;
-		if (args.no_target && current.target && current.target !== character.name) continue;
-
-		// Status effects check
-		if (args.status_effects && !args.status_effects.every(effect => current.s[effect])) continue;
-
-		// Min/max XP check
-		if (args.min_xp !== undefined && current.xp < args.min_xp) continue;
-		if (args.max_xp !== undefined && current.xp > args.max_xp) continue;
-
-		// Attack limit
-		if (args.max_att !== undefined && current.attack > args.max_att) continue;
-
-		// Path check
-		if (args.path_check && !can_move_to(current)) continue;
-
-		// Distance calculation
-		let c_dist = args.point_for_distance_check
-			? Math.hypot(args.point_for_distance_check[0] - current.x, args.point_for_distance_check[1] - current.y)
-			: parent.distance(character, current);
-
-		if (args.max_distance !== undefined && c_dist > args.max_distance) continue;
-
-		// HP check
-		if (args.check_min_hp || args.check_max_hp) {
-			let c_hp = current.hp;
-			if ((args.check_min_hp && c_hp < optimal_hp) || (args.check_max_hp && c_hp > optimal_hp)) {
-				optimal_hp = c_hp;
-				target = current;
-			}
-			continue;
-		}
-
-		// Closest monster
-		if (c_dist < min_d) {
-			min_d = c_dist;
-			target = current;
-		}
-	}
-
-	return target;
-}
-
-function ms_to_next_skill(skill) {
-	const next_skill = parent.next_skill[skill];
-	if (next_skill === undefined) return 0;
-	const ping = parent.pings?.length ? Math.min(...parent.pings) : 0;
-	const ms = next_skill.getTime() - Date.now() - ping;
-	return ms < 0 ? 0 : ms;
-}
-
-async function batch_equip(data) {
-	if (!Array.isArray(data)) {
-		return Promise.reject({ reason: 'invalid', message: 'Not an array' });
-	}
-	if (data.length > 15) {
-		return Promise.reject({ reason: 'invalid', message: 'Too many items' });
-	}
-
-	let valid_items = [];
-
-
-	for (let i = 0; i < data.length; i++) {
-		let item_name = data[i].item_name;
-		let slot = data[i].slot;
-		let level = data[i].level;
-		let l = data[i].l;
-
-		if (!item_name) {
-			continue;
-		}
-
-		let found = false;
-		if (parent.character.slots[slot]) {
-			let slot_item = parent.character.items[parent.character.slots[slot]];
-			if (slot_item && slot_item.name === item_name && slot_item.level === level && slot_item.l === l) {
-				found = true;
-			}
-		}
-
-		if (found) continue;
-
-		for (let j = 0; j < parent.character.items.length; j++) {
-			const item = parent.character.items[j];
-			if (item && item.name === item_name && item.level === level && item.l === l) {
-				valid_items.push({ num: j, slot: slot });
-				break;
-			}
-		}
-	}
-
-	if (valid_items.length === 0) {
-		return;
-	}
-
-	try {
-		parent.socket.emit('equip_batch', valid_items);
-		await parent.push_deferred('equip_batch');
-	} catch (error) {
-		console.error('Batch_equip error:', error);
-		return Promise.reject({ reason: 'invalid', message: 'Failed to equip' });
-	}
-}
+// sleep, suicide, get_nearest_monster_v2, ms_to_next_skill, batch_equip → Common Functions.js
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SKIN CHANGER
@@ -1046,7 +805,7 @@ async function batch_equip(data) {
 // 	if (character.skin !== config.skin) {
 // 		console.log(`Applying skinRing: ${config.skinRing.name} lvl ${config.skinRing.level}`);
 // 		skinNeeded(config.skinRing.name, config.skinRing.level, 'ring1', config.skinRing.locked);
-// 		await sleep(500);
+// 		await delay(500);
 // 		return skinChanger();
 // 	}
 
@@ -1055,7 +814,7 @@ async function batch_equip(data) {
 // 	if (slot?.name !== config.normalRing.name || slot?.level !== config.normalRing.level) {
 // 		console.log(`Equipping normalRing: ${config.normalRing.name} lvl ${config.normalRing.level}`);
 // 		equipIfNeeded(config.normalRing.name, 'ring1', config.normalRing.level, config.normalRing.locked);
-// 		await sleep(500);
+// 		await delay(500);
 // 		return skinChanger();
 // 	}
 

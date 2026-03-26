@@ -19,7 +19,7 @@ const PARTY = ["Ulric", "Myras", "Riva"];
 // Define default location to wait when idle
 const HOME = { map: "main", x: -87, y: -96 };
 
-let merchant_task = "Idle"; // Current task: "Idle", "Mining", etc.
+var merchant_task = "Idle"; // Current task: "Idle", "Mining", etc. — var so Auto Upgrade.js can share this global
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // 2) START/STOP HELPERS
