@@ -420,7 +420,7 @@ const PARTY_HEAL_COOLDOWN = 250;
 let last_party_heal_time = 0;
 
 async function handle_party_heal() {
-	const now = Performance.now();
+	const now = performance.now();
 	if (now - last_party_heal_time < PARTY_HEAL_COOLDOWN) return;
 
 	let threshold = CONFIG.healing.party_heal_threshold;
