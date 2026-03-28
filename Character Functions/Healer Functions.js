@@ -338,7 +338,7 @@ async function try_heal() {
 
 	const HEAL_THRESHOLD = HEAL_TARGET.max_hp - character.heal / 1.33;
 
-	if (HEAL_TARGET.hp < HEAL_THRESHOLD && can_heal(HEAL_TARGET)) {
+	if (HEAL_TARGET.hp < HEAL_THRESHOLD && is_in_range(HEAL_TARGET)) {
 		log(`Healing → ${HEAL_TARGET.name} (${Math.round((HEAL_TARGET.hp / HEAL_TARGET.max_hp) * 100)}%)`, '#33AAFF');
 		await heal(HEAL_TARGET);
 		return true;
@@ -416,8 +416,12 @@ async function handle_absorb() {
 }
 
 
+const PARTY_HEAL_COOLDOWN = 250;
+let last_party_heal_time = 0;
+
 async function handle_party_heal() {
-	if (is_on_cooldown('partyheal')) return;
+	const now = performance.now();
+	if (now - last_party_heal_time < PARTY_HEAL_COOLDOWN) return;
 
 	let threshold = CONFIG.healing.party_heal_threshold;
 	if (character.map !== destination.map) {
@@ -431,6 +435,7 @@ async function handle_party_heal() {
 		if (!ally || ally.rip || ally.hp >= ally.max_hp * threshold) continue;
 		log(`Party Heal → ${name} (${Math.round((ally.hp / ally.max_hp) * 100)}%)`, '#33FF77');
 		await use_skill('partyheal');
+		last_party_heal_time = now;
 		break;
 	}
 }
