@@ -673,7 +673,7 @@ async function panic_check() {
 	let HIGH_HEALTH = 0;
 	let HIGH_MANA = 0;
 	let MONSTERS_TARGETING_ME = 0;
-	const PANIC_AGGRO_THRESHOLD = 1;
+	const PANIC_AGGRO_THRESHOLD = 99;
 	const PANIC_COOLDOWN = 1000;
 
 	// --- Panic/Safe Conditions ---
