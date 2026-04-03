@@ -723,7 +723,7 @@ async function panic_check() {
 	if (panicking && (Date.now() - last_panic_time > PANIC_COOLDOWN)) {
 		last_panic_time = Date.now();
 		// Equip panic orb if needed
-		if (character.slots.orb?.name !== 'jacko') {
+		if (character.slots.orb?.name !== 'jacko' && panic_slot !== -1) {
 			try {
 				await equip(panic_slot);
 				await delay(200);
@@ -760,7 +760,7 @@ async function panic_check() {
 	if (!panicking && (Date.now() - last_safe_time > PANIC_COOLDOWN)) {
 		last_safe_time = Date.now();
 		// Equip normal orb if needed
-		if (character.slots.orb?.name === 'jacko') {
+		if (character.slots.orb?.name === 'jacko' && safe_slot !== -1) {
 			try {
 				await equip(safe_slot);
 				await delay(200);
