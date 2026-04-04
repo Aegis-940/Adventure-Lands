@@ -62,7 +62,7 @@ const EVENT_LOCATIONS = [
 	{ name: 'mrpumpkin', map: 'halloween', x: -217, y: 720 },
 	{ name: 'mrgreen', map: 'spookytown', x: 605, y: 1000 },
 	{ name: 'dragold', map: 'cave', x: 873, y: -727 },
-	{ name: 'wabbit', map: 'cave', x: 873, y: -727 },
+	{ name: 'wabbit', dynamic: true },
 ];
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -508,7 +508,13 @@ function handle_events() {
 	}
 
 	const alive_sorted = EVENT_LOCATIONS
-		.map(e => ({ ...e, data: parent.S[e.name] }))
+		.map(e => {
+			const data = parent.S[e.name];
+			if (e.dynamic && data?.live) {
+				return { ...e, map: data.map, x: data.x, y: data.y, data };
+			}
+			return { ...e, data };
+		})
 		.filter(e => e.data?.live)
 		.sort((a, b) => (a.data.hp / a.data.max_hp) - (b.data.hp / b.data.max_hp));
 
