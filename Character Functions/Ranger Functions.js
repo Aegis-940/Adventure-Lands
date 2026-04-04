@@ -197,9 +197,9 @@ const should_attack_mob = (mob) => {
 	// 1. Never attack blacklist
 	if (CONFIG.combat.never_attack.includes(mob.mtype)) return false;
 
-	// 2. Bosses: attack if in range
+	// 2. Bosses: always attack
 	if (CONFIG.combat.attack_if_targeted.includes(mob.mtype)) {
-		return is_in_range(mob);
+		return true;
 	}
 
 	// 3. Always attack whitelist (e.g., crabx)
@@ -360,12 +360,12 @@ const handle_attack = async () => {
 	} else if (can_5shot && out_of_range.length >= min5) {
 		equip_set('boom');
 		await use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id));
-	} else if (can_3shot && sorted_by_hp.length >= min3) {
+	} else if (can_3shot && in_range.length >= min3) {
 		equip_set('boom');
-		await use_skill('3shot', sorted_by_hp.slice(0, 3).map(e => e.id));
-	} else if (can_1shot && sorted_by_hp.length >= 1 && is_in_range(sorted_by_hp[0])) {
+		await use_skill('3shot', in_range.slice(0, 3).map(e => e.id));
+	} else if (can_1shot && in_range.length >= 1) {
 		equip_set('single');
-		await attack(sorted_by_hp[0]);
+		await attack(in_range[0]);
 	}
 };
 

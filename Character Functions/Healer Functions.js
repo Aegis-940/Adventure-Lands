@@ -270,7 +270,7 @@ async function action_loop() {
 			if (!HEALED) {
 				const TARGET = cache.target;
 				if (panicking) return setTimeout(action_loop, 100);
-				if (TARGET && is_in_range(TARGET) && !smart.moving) {
+				if (TARGET && is_in_range(TARGET)) {
 					await attack(TARGET);
 				}
 			}
