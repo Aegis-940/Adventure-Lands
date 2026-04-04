@@ -205,7 +205,10 @@ const should_attack_mob = (mob) => {
 	// 3. Always attack whitelist (e.g., crabx)
 	if (CONFIG.combat.always_attack.includes(mob.mtype)) return true;
 
-	// 4. Default: attack if targeting party members
+	// 4. Active event bosses: always attack
+	if (parent?.S?.[mob.mtype]?.live) return true;
+
+	// 5. Default: attack if targeting party members
 	return CONFIG.combat.target_priority.includes(mob.target);
 };
 

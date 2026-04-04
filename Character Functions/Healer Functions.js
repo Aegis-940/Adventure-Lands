@@ -164,6 +164,13 @@ function find_best_target() {
 		if (target) return target;
 	}
 
+	// Priority 3: Highest HP monster in range (catches bosses not targeting party)
+	const highest_hp = get_nearest_monster_v2({
+		max_distance: character.range,
+		check_max_hp: true
+	});
+	if (highest_hp) return highest_hp;
+
 	return null;
 }
 
