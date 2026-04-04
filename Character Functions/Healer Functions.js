@@ -149,6 +149,7 @@ function find_best_target() {
 	for (const boss_type of CONFIG.combat.all_bosses) {
 		const boss = get_nearest_monster_v2({
 			type: boss_type,
+			max_distance: character.range
 		});
 		if (boss) return boss;
 	}

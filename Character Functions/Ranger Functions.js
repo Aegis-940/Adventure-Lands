@@ -197,9 +197,9 @@ const should_attack_mob = (mob) => {
 	// 1. Never attack blacklist
 	if (CONFIG.combat.never_attack.includes(mob.mtype)) return false;
 
-	// 2. Bosses: always attack
+	// 2. Bosses: attack if in range
 	if (CONFIG.combat.attack_if_targeted.includes(mob.mtype)) {
-		return true;
+		return is_in_range(mob);
 	}
 
 	// 3. Always attack whitelist (e.g., crabx)
