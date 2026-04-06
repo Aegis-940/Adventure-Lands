@@ -176,21 +176,25 @@ function find_best_target() {
 
 function find_heal_target() {
 	const party_names = Object.keys(get_party() || {});
-	let lowest = character;
-	let lowest_pct = character.hp / character.max_hp;
+	let lowest_ally = null;
+	let lowest_ally_pct = 1;
 
 	for (const name of party_names) {
 		const ally = get_player(name);
 		if (!ally || ally.rip) continue;
 
 		const pct = ally.hp / ally.max_hp;
-		if (pct < lowest_pct) {
-			lowest_pct = pct;
-			lowest = ally;
+		if (pct < lowest_ally_pct) {
+			lowest_ally_pct = pct;
+			lowest_ally = ally;
 		}
 	}
 
-	return lowest;
+	// Only self-heal if critically low
+	const self_pct = character.hp / character.max_hp;
+	if (self_pct < 0.50) return character;
+
+	return lowest_ally || character;
 }
 
 function find_zap_targets() {

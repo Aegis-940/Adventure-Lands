@@ -699,7 +699,7 @@ async function panic_check() {
 	const PANIC_COOLDOWN = 1000;
 
 	// --- Panic/Safe Conditions ---
-	LOW_HEALTH = character.hp < character.max_hp * 0.66;
+	LOW_HEALTH = character.hp < character.max_hp * 0.50;
 	LOW_MANA = character.mp < character.max_mp * 0.01;
 	HIGH_HEALTH = character.hp >= character.max_hp * 0.80;
 	HIGH_MANA = character.mp >= character.max_mp * 0.33;

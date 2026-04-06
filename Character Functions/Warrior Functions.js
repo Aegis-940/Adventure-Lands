@@ -504,7 +504,7 @@ async function maintenance_loop() {
 		inventory_sorter();
 		elixir_usage();
 
-		if (character.rip && locate_item('xptome') !== -1) {
+		if (character.rip) {
 			respawn();
 		}
 
@@ -764,10 +764,10 @@ async function panic_check() {
 	const PANIC_COOLDOWN = 1000;
 
 	// --- Panic/Safe Conditions ---
-	LOW_HEALTH = character.hp < character.max_hp * 0.50;
+	LOW_HEALTH = character.hp < character.max_hp * 0.40;
 	LOW_MANA = character.mp < character.max_mp * 0.01;
-	HIGH_HEALTH = character.hp >= character.max_hp * 0.70;
-	HIGH_MANA = character.mp >= character.max_mp * 0.40;
+	HIGH_HEALTH = character.hp >= character.max_hp * 0.60;
+	HIGH_MANA = character.mp >= character.max_mp * 0.30;
 
 	const panic_slot = character.items.findIndex(i => i?.name === 'jacko');
 

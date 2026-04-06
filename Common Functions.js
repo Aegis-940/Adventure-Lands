@@ -616,16 +616,16 @@ async function potion_loop() {
 	setTimeout(potion_loop, used_potion ? 2050 : 10);
 }
 
-function suicide() {
-	if (!character.rip && character.hp < 2000) {
-		parent.socket.emit('harakiri');
-		game_log('Harakiri');
-	}
+// function suicide() {
+// 	if (!character.rip && character.hp < 2000) {
+// 		parent.socket.emit('harakiri');
+// 		game_log('Harakiri');
+// 	}
 
-	if (character.rip) {
-		respawn();
-	}
-}
+// 	if (character.rip) {
+// 		respawn();
+// 	}
+// }
 
 function auto_buy_potions() {
 	if (quantity('hpot1') < CONFIG.potions.min_stock) buy('hpot1', CONFIG.potions.min_stock);
