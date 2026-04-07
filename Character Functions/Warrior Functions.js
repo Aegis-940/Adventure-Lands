@@ -529,6 +529,10 @@ async function equipment_loop() {
 			return setTimeout(equipment_loop, delay);
 		}
 
+		if (panicking) {
+			return setTimeout(equipment_loop, delay);
+		}
+
 		if (character.cc > COOLDOWNS.cc) {
 			return setTimeout(equipment_loop, delay);
 		}
