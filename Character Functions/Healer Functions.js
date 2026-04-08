@@ -277,10 +277,11 @@ async function action_loop() {
 
 		if (ms === 0) {
 			const HEALED = await try_heal();
+			
+			if (panicking) return setTimeout(action_loop, 100);
 
 			if (!HEALED) {
 				const TARGET = cache.target;
-				if (panicking) return setTimeout(action_loop, 100);
 				if (TARGET && is_in_range(TARGET)) {
 					await attack(TARGET);
 				}
@@ -302,7 +303,7 @@ async function action_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function skill_loop() {
-	if (panicking) return setTimeout(skill_loop, 100);
+	// if (panicking) return setTimeout(skill_loop, 100);
 	const delay = 40;
 
 	try {
