@@ -330,6 +330,7 @@ async function skill_loop() {
 
 		// Cleave
 		if (CONFIG.skills.cleave_enabled) {
+			if (WARRIOR_TARGET === 'bscorpion') return;
 			await handle_cleave();
 		}
 
