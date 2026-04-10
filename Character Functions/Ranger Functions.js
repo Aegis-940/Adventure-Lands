@@ -1145,6 +1145,8 @@ skill_loop();
 equipment_loop();
 maintenance_loop();
 potion_loop();
+if (RANGER_TARGET === 'bscorpion') prim_farm_loop();
+
 
 // --------------------------------------------------------------------------------------------------------- //
 

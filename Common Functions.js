@@ -1028,19 +1028,6 @@ async function move_safe_from_bscorpion() {
     await move(newX, newY);
 }
 
-async function prim_farm_loop_ulric() {
-    while(true) {
-        if (PRIM_FARM_LOOT_ENABLED) {
-
-            move_distance_from_bscorpion();
-
-            await delay(100);
-        } else {
-            await delay(1000);
-        }
-    }
-}
-
 async function prim_farm_loop() {
 
     while (true) {

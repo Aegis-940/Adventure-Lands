@@ -1018,6 +1018,8 @@ skill_loop();
 equipment_loop();
 maintenance_loop();
 potion_loop();
+if (WARRIOR_TARGET === 'bscorpion') prim_farm_loop();
+
 
 //=============================================================================
 
