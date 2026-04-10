@@ -672,6 +672,7 @@ async function equipment_loop() {
 
 async function walk_in_circle() {
 	if (smart.moving) return;
+	if (WARRIOR_TARGET === 'bscorpion') return;
 
 	const center = locations[home][0];
 	const radius = CONFIG.movement.circle_radius;

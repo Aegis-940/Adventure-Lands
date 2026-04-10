@@ -546,6 +546,7 @@ async function equipment_loop() {
 
 async function walk_in_circle() {
 	if (smart.moving || character.moving) return;
+	if (RANGER_TARGET === 'bscorpion') return;
 
 	const { x: center_x, y: center_y } = locations[home][0];
 	const now = performance.now();

@@ -97,7 +97,6 @@ const FLOATING_BUTTON_IDS = [];
 // SECTION 3: LOOP TOGGLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let ATTACK_LOOP_ENABLED       = false;
 let HEAL_LOOP_ENABLED         = true;
 let MOVE_LOOP_ENABLED         = false;
 let SKILL_LOOP_ENABLED        = true;
@@ -107,7 +106,7 @@ let ORBIT_LOOP_ENABLED        = false;
 let POTION_LOOP_ENABLED       = true;
 let LOOT_LOOP_ENABLED         = true;
 let STATUS_CACHE_LOOP_ENABLED = true;
-let PRIM_FARM_LOOT_ENABLED    = false;
+let PRIM_FARM_LOOT_ENABLED    = true;
 let DUNGEON_LOOP_ENABLED      = false;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -1035,14 +1034,6 @@ async function prim_farm_loop_ulric() {
 
             move_distance_from_bscorpion();
 
-            if (is_bscorpion_targeting_myras()) {
-                if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
-                if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
-            } else {
-                if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
-                if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
-            }
-
             await delay(100);
         } else {
             await delay(1000);
@@ -1059,14 +1050,6 @@ async function prim_farm_loop() {
 
                 move_distance_from_bscorpion();
 
-                if (is_bscorpion_targeting_myras()) {
-                    if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
-                    if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
-                } else {
-                    if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
-                    if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
-                }
-
             }
 
             if (character.name === "Myras") {
@@ -1076,14 +1059,6 @@ async function prim_farm_loop() {
                 if (bscorp_info) {
                     const dist = Math.hypot(character.x - bscorp_info.x, character.y - bscorp_info.y);
                     if (dist < SAFETY_DISTANCE) too_close = true;
-                }
-
-                if (too_close && !is_bscorpion_targeting_myras()) {
-                    ATTACK_LOOP_ENABLED = false;
-                    SKILL_LOOP_ENABLED = false;
-                } else {
-                    ATTACK_LOOP_ENABLED = true;
-                    SKILL_LOOP_ENABLED = true;
                 }
 
                 if (!is_bscorpion_targeting_myras() && !too_close) {
@@ -1101,14 +1076,6 @@ async function prim_farm_loop() {
             if (character.name === "Riva") {
 
                 move_distance_from_bscorpion(50, 0);
-
-                if (is_bscorpion_targeting_myras()) {
-                    if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = true;
-                    if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = true;
-                } else {
-                    if (!ATTACK_LOOP_ENABLED) ATTACK_LOOP_ENABLED = false;
-                    if (!SKILL_LOOP_ENABLED) SKILL_LOOP_ENABLED = false;
-                }
 
             }
 
