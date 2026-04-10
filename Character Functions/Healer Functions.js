@@ -279,7 +279,7 @@ async function action_loop() {
 
 			if (!HEALED) {
 				const TARGET = cache.target;
-				if (TARGET && is_in_range(TARGET)) {
+				if (TARGET && is_in_range(TARGET) && smart.moving === false) {
 					await attack(TARGET);
 				}
 			}

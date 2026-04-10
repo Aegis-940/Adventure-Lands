@@ -329,7 +329,7 @@ const action_loop = async () => {
 		update_cache();
 		const ms = ms_to_next_skill('attack');
 
-		if (ms === 0) {
+		if (ms === 0 && smart.moving === false) {
 			if (cache.heal_target) {
 				equip_set('heal');
 				await attack(cache.heal_target);

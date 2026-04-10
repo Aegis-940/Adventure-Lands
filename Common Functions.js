@@ -519,7 +519,9 @@ function handle_events() {
 
 	if (!alive_sorted.length) return;
 
-	const target = alive_sorted[0];
+	// Wabbit takes exclusive priority when alive
+	const wabbit = alive_sorted.find(e => e.name === 'wabbit');
+	const target = wabbit || alive_sorted[0];
 
 	// Some events require joining an instance first
 	if (target.join === true && character.map !== target.map) {
