@@ -651,6 +651,7 @@ async function batch_equip(data) {
 	}
 
 	let valid_items = [];
+	let claimed_slots = new Set();
 
 	for (let i = 0; i < data.length; i++) {
 		let item_name = data[i].item_name;
@@ -672,8 +673,9 @@ async function batch_equip(data) {
 
 		for (let j = 0; j < parent.character.items.length; j++) {
 			const item = parent.character.items[j];
-			if (item && item.name === item_name && item.level === level && item.l === l) {
+			if (item && item.name === item_name && item.level === level && item.l === l && !claimed_slots.has(j)) {
 				valid_items.push({ num: j, slot: slot });
+				claimed_slots.add(j);
 				break;
 			}
 		}
