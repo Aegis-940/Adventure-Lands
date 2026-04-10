@@ -1005,8 +1005,10 @@ action_loop();
 skill_loop();
 maintenance_loop();
 potion_loop();
-if (HEALER_TARGET === 'bscorpion') prim_farm_loop();
-
+if (HEALER_TARGET === 'bscorpion') {
+	prim_farm_loop();
+	prim_orbit_loop();
+}
 
 
 // // --------------------------------------------------------------------------------------------------------------------------------- //
