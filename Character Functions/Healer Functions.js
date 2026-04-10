@@ -177,25 +177,21 @@ function find_best_target() {
 
 function find_heal_target() {
 	const party_names = Object.keys(get_party() || {});
-	let lowest_ally = null;
-	let lowest_ally_pct = 1;
+	let lowest = character;
+	let lowest_pct = character.hp / character.max_hp;
 
 	for (const name of party_names) {
 		const ally = get_player(name);
 		if (!ally || ally.rip) continue;
 
 		const pct = ally.hp / ally.max_hp;
-		if (pct < lowest_ally_pct) {
-			lowest_ally_pct = pct;
-			lowest_ally = ally;
+		if (pct < lowest_pct) {
+			lowest_pct = pct;
+			lowest = ally;
 		}
 	}
 
-	// Only self-heal if critically low
-	const self_pct = character.hp / character.max_hp;
-	if (self_pct < 0.50) return character;
-
-	return lowest_ally || character;
+	return lowest;
 }
 
 function find_zap_targets() {
@@ -354,7 +350,7 @@ async function try_heal() {
 
 	const HEAL_THRESHOLD = HEAL_TARGET.max_hp - character.heal / 1.33;
 
-	if (HEAL_TARGET.hp < HEAL_THRESHOLD && is_in_range(HEAL_TARGET)) {
+	if (HEAL_TARGET.hp < HEAL_THRESHOLD && is_in_range(HEAL_TARGET, "heal")) {
 		log(`Healing → ${HEAL_TARGET.name} (${Math.round((HEAL_TARGET.hp / HEAL_TARGET.max_hp) * 100)}%)`, '#33AAFF');
 		await heal(HEAL_TARGET);
 		return true;
