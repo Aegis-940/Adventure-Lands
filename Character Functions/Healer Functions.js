@@ -590,7 +590,7 @@ async function handle_looting() {
 
 	try {
 		if (CONFIG.looting.equip_gold_gear && !is_set_equipped('gold') && performance.now() - state.last_gold_swap > 1000) {
-			equip_set('gold');
+			await equip_set('gold');
 			state.last_gold_swap = performance.now();
 			swap_booster('luckbooster', 'goldbooster');
 			await delay(200);
@@ -609,7 +609,7 @@ async function handle_looting() {
 		await delay(150);
 
 		if (CONFIG.looting.equip_gold_gear) {
-			equip_set('luck');
+			await equip_set('luck');
 			await swap_booster('goldbooster', 'luckbooster');
 			await delay(200);
 		}
@@ -642,7 +642,7 @@ function save_chest_map(map) {
 // EQUIPMENT MANAGEMENT
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function handle_equipment_swap() {
+async function handle_equipment_swap() {
     if (!CONFIG.equipment.auto_swap_sets || character.cc > COOLDOWNS.cc) return;
 
     const now = performance.now();
@@ -653,7 +653,7 @@ function handle_equipment_swap() {
 
     if (!is_set_equipped(target_set)) {
         state.last_equip_time = now;
-        equip_set(target_set);
+        await equip_set(target_set);
     }
 }
 
