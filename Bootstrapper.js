@@ -2,8 +2,6 @@
 // BOOTSTRAPPER (reload-safe, commit-specific, debug-enabled)           //
 // -------------------------------------------------------------------- //
 
-/* NOT CURRENTLY USED
-
 // Seed CM listeners up‐front
 window._cmListeners = window._cmListeners || [];
 
@@ -130,5 +128,3 @@ window._cmListeners = window._cmListeners || [];
 		loadNext();
 	}
 })();
-
-*/
