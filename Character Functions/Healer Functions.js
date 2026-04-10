@@ -251,7 +251,7 @@ async function main_loop() {
 			}
 		}
 
-		if (CONFIG.equipment.auto_swap_sets/* && state.skin_ready*/) {
+		if (CONFIG.equipment.auto_swap_sets/* && state.skin_ready*/ && state.current !== 'looting') {
 			handle_equipment_swap();
 		}
 
