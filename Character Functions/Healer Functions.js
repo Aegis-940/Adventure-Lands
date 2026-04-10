@@ -76,6 +76,7 @@ const state = {
 	skin_ready: false,
 	last_equip_time: 0,
 	last_loot_time: 0,
+	last_gold_swap: 0,
 	angle: 0,
 	last_angle_update: performance.now()
 };
@@ -588,8 +589,9 @@ async function handle_looting() {
 	state.current = 'looting';
 
 	try {
-		if (CONFIG.looting.equip_gold_gear && !is_set_equipped('gold')) {
+		if (CONFIG.looting.equip_gold_gear && !is_set_equipped('gold') && performance.now() - state.last_gold_swap > 1000) {
 			equip_set('gold');
+			state.last_gold_swap = performance.now();
 			swap_booster('luckbooster', 'goldbooster');
 			await delay(200);
 		}
