@@ -670,7 +670,7 @@ function is_set_equipped(set_name) {
 async function equip_set(set_name) {
 	const set = equipment_sets[set_name];
 	if (set) {
-		batch_equip(set);
+		await batch_equip(set);
 	}
 }
 
