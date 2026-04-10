@@ -591,7 +591,7 @@ async function handle_looting() {
 		if (CONFIG.looting.equip_gold_gear && !is_set_equipped('gold')) {
 			equip_set('gold');
 			swap_booster('luckbooster', 'goldbooster');
-			await delay(100);
+			await delay(200);
 		}
 
 		let looted = 0;
@@ -608,7 +608,7 @@ async function handle_looting() {
 
 		if (CONFIG.looting.equip_gold_gear) {
 			await swap_booster('goldbooster', 'luckbooster');
-			await delay(100);
+			await delay(200);
 		}
 	} catch (e) {
 		console.error('Looting error:', e);
