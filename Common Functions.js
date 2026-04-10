@@ -21,7 +21,7 @@ const locations = {
 	bat:        [{ x: 1200, y: -782 }],
 	bigbird:    [{ map: 'main', x: 1270, y: 245 }],
 	booboo:     [{ map: 'spookytown', x: 375, y: -739 }],
-	bscorpion:  [{ x: -408, y: -1141 }],
+	bscorpion:  [{ map: 'desertland', x: -408, y: -1141 }],
 	boar:       [{ x: 19, y: -1109 }],
 	cgoo:       [{ x: -221, y: -274 }],
 	crab:       [{ x: -11840, y: -37 }],
