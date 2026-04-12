@@ -113,7 +113,7 @@ const equipment_sets = {
 		{ item_name: "supermittens", slot: "gloves", level: 6, l: "l" },
 		{ item_name: "talkingskull", slot: "orb", level: 3, l: "l" },
 		{ item_name: "lmace", slot: "mainhand", level: 7, l: "" },
-		{ item_name: "mshield", slot: "offhand", level: 8, l: "l" },
+		// { item_name: "mshield", slot: "offhand", level: 8, l: "l" },
 	],
 	gold: [
 		{ item_name: "handofmidas", slot: "gloves", level: 4, l: "l" },
