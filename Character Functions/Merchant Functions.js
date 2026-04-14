@@ -1031,7 +1031,7 @@ async function craft_basketofeggs() {
 
     for (let i = 0; i < 1000; i++) {
         auto_craft("basketofeggs");
-        await delay(100);
+        await delay(50);
     }
 
     await smarter_move(HOME);
