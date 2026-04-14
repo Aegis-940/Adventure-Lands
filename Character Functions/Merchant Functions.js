@@ -461,7 +461,7 @@ const SELLABLE_ITEMS = ["hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "w
                         "hgloves", "hboots", "strring", "dexring", "intring", "strearring", "dexearring", "intearring", "warmscarf", "snowball", "santasbelt",
                          "lantern", "pclaw", "broom", "skullamulet", "iceskates", "carrot", "snowball", "xmace", "candycanesword", "pmaceofthedead",
                         "ornamentstaff", "merry", "rednose", "xmashat", "xmasshoes", "xmassweater", "xmaspants", "mittens", "angelwings", "snowflakes",
-                        "epyjamas", "ecape", "ecape", "ecape", "carrotsword", "pinkie", "oozingterror", "harbringer"];
+                        "epyjamas", "ecape", "eears", "eslippers", "carrotsword", "pinkie", "oozingterror", "harbringer"];
 const BANKABLE_ITEMS = [];
 const BANK_LOCATION = { map: "bank", x: 0, y: -37 };
 
