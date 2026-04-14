@@ -77,6 +77,7 @@ const state = {
 	last_equip_time: 0,
 	last_loot_time: 0,
 	last_gold_swap: 0,
+	last_temporal_surge: 0,
 	angle: 0,
 	last_angle_update: performance.now()
 };
@@ -126,6 +127,9 @@ const equipment_sets = {
 	],
 	mdef: [
 		{ item_name: "wbookhs", slot: "offhand", level: 2, l: "l" },
+	],
+	temporal: [
+		{ item_name: "orboftemporal", slot: "orb", level: 1, l: "u" },
 	],
 };
 
@@ -259,6 +263,38 @@ async function main_loop() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// TEMPORAL SURGE
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+async function check_temporal_surge() {
+	const now = Date.now();
+	if (now - state.last_temporal_surge < 60000) return false;
+
+	// Check for any nearby monsters
+	const nearby = Object.values(parent.entities).some(
+		e => e.type === 'monster' && !e.dead
+	);
+	if (nearby) return false;
+
+	// Equip temporal set, cast, then re-equip previous set
+	const prev_orb = character.slots.orb ? { name: character.slots.orb.name, level: character.slots.orb.level } : null;
+
+	await equip_set('temporal');
+	await use_skill('temporalsurge');
+	state.last_temporal_surge = Date.now();
+
+	// Swap back to whatever set handle_equipment_swap would choose
+	if (prev_orb) {
+		const inv_idx = character.items.findIndex(
+			i => i && i.name === prev_orb.name && i.level === prev_orb.level
+		);
+		if (inv_idx !== -1) await equip(inv_idx, 'orb');
+	}
+
+	return true;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // ACTION LOOP - Combat and healing only
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -269,6 +305,9 @@ async function action_loop() {
 		if (is_disabled(character)) return setTimeout(action_loop, 50);
 
 		update_cache();
+
+		// Temporal Surge — cast when idle (no monsters, 60s cooldown)
+		if (await check_temporal_surge()) return setTimeout(action_loop, 100);
 
 		const ms = ms_to_next_skill('attack');
 
@@ -777,7 +816,7 @@ function clear_inventory() {
 			send_gold(loot_mule, character.gold - 5000000);
 	}
 
-	const items_to_exclude = ['hpot1', 'mpot1', 'luckbooster', 'goldbooster', 'xpbooster', 'pumpkinspice', 'xptome', 'tracker', 'jacko', 'orbg', 'talkingskull', "mshield", "lmace", 'elixirluck', 'computer'];
+	const items_to_exclude = ['hpot1', 'mpot1', 'luckbooster', 'goldbooster', 'xpbooster', 'pumpkinspice', 'xptome', 'tracker', 'jacko', 'orbg', 'talkingskull', "mshield", "lmace", 'elixirluck', 'computer', 'orboftemporal'];
 
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
