@@ -271,10 +271,10 @@ async function check_temporal_surge() {
 	if (now - state.last_temporal_surge < 60000) return false;
 
 	// Check for any nearby monsters
-	const nearby = Object.values(parent.entities).some(
-		e => e.type === 'monster' && !e.dead
-	);
-	if (nearby) return false;
+	// const nearby = Object.values(parent.entities).some(
+	// 	e => e.type === 'monster' && !e.dead
+	// );
+	// if (nearby) return false;
 
 	// Equip temporal set, cast, then re-equip previous set
 	const prev_orb = character.slots.orb ? { name: character.slots.orb.name, level: character.slots.orb.level } : null;
