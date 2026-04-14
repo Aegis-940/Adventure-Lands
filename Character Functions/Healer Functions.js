@@ -129,7 +129,7 @@ const equipment_sets = {
 		{ item_name: "wbookhs", slot: "offhand", level: 2, l: "l" },
 	],
 	temporal: [
-		{ item_name: "orboftemporal", slot: "orb", level: 1, l: "u" },
+		{ item_name: "orboftemporal", slot: "orb", level: 1, l: "l" },
 	],
 };
 
@@ -279,9 +279,11 @@ async function check_temporal_surge() {
 	// Equip temporal set, cast, then re-equip previous set
 	const prev_orb = character.slots.orb ? { name: character.slots.orb.name, level: character.slots.orb.level } : null;
 
+	state.last_equip_time = performance.now();
 	await equip_set('temporal');
 	await use_skill('temporalsurge');
 	state.last_temporal_surge = Date.now();
+	state.last_equip_time = performance.now();
 
 	// Swap back to whatever set handle_equipment_swap would choose
 	if (prev_orb) {
