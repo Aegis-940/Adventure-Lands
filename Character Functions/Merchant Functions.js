@@ -77,7 +77,7 @@ function get_character_state() {
     // if (panicking) return MERCHANT_STATES.PANIC;
     if (should_run_loop())          return MERCHANT_STATES.DELIVERING;
     if (should_run_auto_upgrade())  return MERCHANT_STATES.UPGRADING;
-    if (merchant_task === "Idle")   return MERCHANT_STATES.EXCHANGING;
+    // if (merchant_task === "Idle")   return MERCHANT_STATES.EXCHANGING;
     if (merchant_task === "Idle")   return MERCHANT_STATES.IDLE;
 }
 
@@ -455,13 +455,19 @@ async function mluck_buff_loop() {
 // SELL AND BANK ITEMS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const SELLABLE_ITEMS = ["hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "wbook0", "wshoes", "wcap", "cclaw", "crabclaw", "slimestaff", "stinger", "coat1", "helmet1",
-		       			"gloves1", "pants1", "mushroomstaff", "wbreeches", "shoes1", "vitring", "helmet", "shoes", "gloves", "pmace", "throwingstars", "t2bow",
-						 "spear", "dagger", "rapier", "sword", "rfangs", "gphelmet", "phelmet", "vitearring", "vitscroll", "pstem", "gslime", "hhelmet", "harmor", "hpants",
-                        "hgloves", "hboots", "strring", "dexring", "intring", "strearring", "dexearring", "intearring", "warmscarf", "snowball", "santasbelt",
-                         "lantern", "pclaw", "broom", "skullamulet", "iceskates", "carrot", "snowball", "xmace", "candycanesword", "pmaceofthedead",
-                        "ornamentstaff", "merry", "rednose", "xmashat", "xmasshoes", "xmassweater", "xmaspants", "mittens", "angelwings", "snowflakes",
-                        "epyjamas", "ecape", "eears", "eslippers", "carrotsword", "pinkie", "oozingterror", "harbringer"];
+const SELLABLE_ITEMS = [
+    "hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "wbook0", "wshoes", "wcap",
+    "cclaw", "crabclaw", "slimestaff", "stinger", "pstem", "gslime", "coat1", "helmet1",
+    "gloves1", "pants1", "shoes1", "wbreeches", "vitring", "helmet", "shoes", "gloves",
+    "pmace", "throwingstars", "t2bow", "spear", "dagger", "rapier", "sword", "mushroomstaff",
+    "rfangs", "gphelmet", "phelmet", "vitearring", "vitscroll", "hhelmet", "harmor", "hpants",
+    "hgloves", "hboots", "strring", "dexring", "intring", "strearring", "dexearring", "intearring",
+    "warmscarf", "snowball", "santasbelt", "lantern", "pclaw", "broom", "skullamulet",
+    "iceskates", "carrot", "xmace", "candycanesword", "pmaceofthedead", "ornamentstaff",
+    "merry", "rednose", "xmashat", "xmasshoes", "xmassweater", "xmaspants", "mittens",
+    "angelwings", "snowflakes", "epyjamas", "ecape", "eears", "eslippers", "carrotsword",
+    "pinkie", "oozingterror", "harbringer",
+];
 const BANKABLE_ITEMS = [];
 const BANK_LOCATION = { map: "bank", x: 0, y: -37 };
 
