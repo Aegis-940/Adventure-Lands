@@ -1027,7 +1027,7 @@ async function coat_upgrade() {
 }
 
 async function craft_basketofeggs() {
-    await smarter_move({ map: "main", x: -209, y: -117 });
+    await smarter_move({ map: "main", x: 5, y: 419 });
 
     for (let i = 0; i < 1000; i++) {
         auto_craft("basketofeggs");
