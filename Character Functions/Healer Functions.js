@@ -992,7 +992,7 @@ async function swap_booster(current, target) {
 // }
 
 function on_party_request(name) {
-	if (CONFIG.party.groupMembers.includes(name)) {
+	if (CONFIG.party.group_members.includes(name)) {
 		console.log('Accepting party request from ' + name);
 		accept_party_request(name);
 	}

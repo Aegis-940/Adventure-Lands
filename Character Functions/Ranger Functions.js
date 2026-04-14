@@ -419,7 +419,7 @@ const skill_loop = async () => {
 const maintenance_loop = async () => {
 	try {
 		if (CONFIG.potions.auto_buy) auto_buy_potions();
-		if (CONFIG.party.auto_manage) party_maker();
+		if (CONFIG.party.auto_manage) party_manager();
 		if (CONFIG.selling.enabled) sell_items();
 		if (CONFIG.upgrading.enabled) upgrade_items();
 		if (CONFIG.combining.enabled) combine_items();
@@ -778,28 +778,26 @@ async function panic_check() {
 	}
 }
 
-function party_maker() {
-	if (!CONFIG.party.auto_manage) return;
-
-	const group = CONFIG.party.group_members;
-	const leader_name = group[0];
-	const party = get_party() || {};
-	const party_lead = get_entity(leader_name);
-
-	if (character.name === leader_name) {
-		for (let i = 1; i < group.length; i++) {
-			const name = group[i];
-			if (name === character.name) continue;
-			if (party[name]) continue;
-
-			send_party_invite(name);
-		}
-	} else {
-		if (!party[character.name] && party_lead) {
-			send_party_request(leader_name);
-		}
-	}
-}
+// party_maker() — replaced by shared party_manager() from Common Functions.js
+// function party_maker() {
+// 	if (!CONFIG.party.auto_manage) return;
+// 	const group = CONFIG.party.group_members;
+// 	const leader_name = group[0];
+// 	const party = get_party() || {};
+// 	const party_lead = get_entity(leader_name);
+// 	if (character.name === leader_name) {
+// 		for (let i = 1; i < group.length; i++) {
+// 			const name = group[i];
+// 			if (name === character.name) continue;
+// 			if (party[name]) continue;
+// 			send_party_invite(name);
+// 		}
+// 	} else {
+// 		if (!party[character.name] && party_lead) {
+// 			send_party_request(leader_name);
+// 		}
+// 	}
+// }
 
 // suicide, setInterval(suicide, 50), sleep → Common Functions.js
 

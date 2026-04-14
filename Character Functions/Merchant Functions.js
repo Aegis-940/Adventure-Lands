@@ -198,12 +198,25 @@ async function set_state(state) {
 async function loop_controller() {
     while (true) {
         try {
+            party_manager();
             const state = get_character_state();
             await set_state(state);
         } catch (e) {
             catcher(e, "Loop Controller error");
         }
         await delay(250);
+    }
+}
+
+function on_party_request(name) {
+    if (PARTY.includes(name)) {
+        accept_party_request(name);
+    }
+}
+
+function on_party_invite(name) {
+    if (PARTY.includes(name)) {
+        accept_party_invite(name);
     }
 }
 
