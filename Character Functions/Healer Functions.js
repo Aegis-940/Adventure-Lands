@@ -550,7 +550,7 @@ async function maintenance_loop() {
 		}
 
 		if (CONFIG.party.auto_manage) {
-			party_maker();
+			party_manager();
 		}
 
 		clear_inventory();
@@ -870,28 +870,26 @@ async function swap_booster(current, target) {
 	if (slot !== -1) shift(slot, target);
 }
 
-function party_maker() {
-	if (!CONFIG.party.auto_manage) return;
-
-	const group = CONFIG.party.group_members;
-	const party_lead = get_entity(group[0]);
-	const current_party = character.party;
-	const healer = get_entity('Myras');
-
-	if (character.name === group[0]) {
-		for (let i = 1; i < group.length; i++) {
-			send_party_invite(group[i]);
-		}
-	} else {
-		if (current_party && current_party !== group[0] && healer) {
-			leave_party();
-		}
-
-		if (!current_party && party_lead) {
-			send_party_request(group[0]);
-		}
-	}
-}
+// party_maker() — replaced by shared party_manager() from Common Functions.js
+// function party_maker() {
+// 	if (!CONFIG.party.auto_manage) return;
+// 	const group = CONFIG.party.group_members;
+// 	const party_lead = get_entity(group[0]);
+// 	const current_party = character.party;
+// 	const healer = get_entity('Myras');
+// 	if (character.name === group[0]) {
+// 		for (let i = 1; i < group.length; i++) {
+// 			send_party_invite(group[i]);
+// 		}
+// 	} else {
+// 		if (current_party && current_party !== group[0] && healer) {
+// 			leave_party();
+// 		}
+// 		if (!current_party && party_lead) {
+// 			send_party_request(group[0]);
+// 		}
+// 	}
+// }
 
 // sleep, suicide, get_nearest_monster_v2, ms_to_next_skill, batch_equip → Common Functions.js
 
