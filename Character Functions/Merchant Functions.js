@@ -1026,6 +1026,17 @@ async function coat_upgrade() {
     merchant_task = "Idle";
 }
 
+async function craft_basketofeggs() {
+    await smarter_move({ map: "main", x: -209, y: -117 });
+
+    for (let i = 0; i < 1000; i++) {
+        auto_craft("basketofeggs");
+        await delay(100);
+    }
+
+    await smarter_move(HOME);
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // POTION LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
