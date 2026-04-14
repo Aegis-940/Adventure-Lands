@@ -31,7 +31,7 @@ const locations = {
 	ghost:      [{ x: -405, y: -1642 }],
 	gscorpion:  [{ x: 390, y: -1422 }],
 	iceroamer:  [{ x: 823, y: -45 }],
-	mechagnome: [{ x: 0, y: 0 }],
+	mechagnome: [{ map: 'cyberland', x: 0, y: 0 }],
 	mole:       [{ x: 14, y: -1072 }],
 	mummy:      [{ map: 'spookytown', x: 256, y: -1417 }],
 	odino:      [{ x: -52, y: 756 }],
@@ -52,9 +52,9 @@ const locations = {
 	xscorpion:  [{ x: -495, y: 685 }],
 };
 
-const HEALER_TARGET    = 'dryad';
-const WARRIOR_TARGET   = 'dryad';
-const RANGER_TARGET    = 'dryad';
+const HEALER_TARGET    = 'mechagnome';
+const WARRIOR_TARGET   = 'mechagnome';
+const RANGER_TARGET    = 'mechagnome';
 
 const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 
