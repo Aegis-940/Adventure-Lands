@@ -39,6 +39,7 @@ const CONFIG = {
 
 	equipment: {
 		auto_swap_sets: true,
+		temporal_surge_enabled: false,
 		boss_luck_switch: true,
 		boss_hp_thresholds: {
 			mrpumpkin: 300000,
@@ -267,6 +268,8 @@ async function main_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function check_temporal_surge() {
+	if (!CONFIG.equipment.temporal_surge_enabled) return false;
+
 	const now = Date.now();
 	if (now - state.last_temporal_surge < 60000) return false;
 
