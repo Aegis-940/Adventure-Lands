@@ -112,7 +112,7 @@ const equipment_sets = {
 		{ item_name: "ringofluck", slot: "ring2", level: 2, l: "l" }
 	],
 	luck: [
-		{ item_name: "supermittens", slot: "gloves", level: 6, l: "l" },
+		{ item_name: "supermittens", slot: "gloves", level: 7, l: "l" },
 		{ item_name: "talkingskull", slot: "orb", level: 3, l: "l" },
 		{ item_name: "lmace", slot: "mainhand", level: 7, l: "" },
 		// { item_name: "mshield", slot: "offhand", level: 8, l: "l" },
