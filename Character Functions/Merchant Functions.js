@@ -996,8 +996,8 @@ async function custom_craft() {
 
     // Auto-craft pouchbow 25 times with 100ms delay between each
     for (let i = 0; i < 30; i++) {
-        auto_craft("firebow");
-        await delay(100);
+        await auto_craft("firebow");
+        await delay(50);
     }
 
     // Move home
