@@ -986,18 +986,18 @@ async function custom_craft() {
     await smarter_move(HOME);
 
     // Buy 25 "bow"
-    for (let i = 0; i < 25; i++) {
-        await parent.buy("bow");
-        await delay(50); // Small delay to avoid flooding
+    for (let i = 0; i < 30; i++) {
+        parent.buy("bow");
+        await delay(100); // Small delay to avoid flooding
     }
 
     // Move to main, 5, 419
     await smarter_move({ map: "main", x: 5, y: 419 });
 
     // Auto-craft pouchbow 25 times with 100ms delay between each
-    for (let i = 0; i < 25; i++) {
-        await auto_craft("firebow");
-        await delay(50);
+    for (let i = 0; i < 30; i++) {
+        auto_craft("firebow");
+        await delay(100);
     }
 
     // Move home
