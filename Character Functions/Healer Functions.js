@@ -165,7 +165,16 @@ function find_best_target() {
 		if (boss) return boss;
 	}
 
-	// Priority 2: Named targets
+	// Priority 2: Aggro untargeted monsters up to aggro_cap
+	if (CONFIG.combat.aggro && count_my_aggro() < CONFIG.combat.aggro_cap) {
+		const untargeted = get_nearest_monster_v2({
+			no_target: true,
+			max_distance: character.range
+		});
+		if (untargeted) return untargeted;
+	}
+
+	// Priority 3: Named targets
 	for (const name of CONFIG.combat.target_priority) {
 		const target = get_nearest_monster_v2({
 			target: name,
@@ -173,15 +182,6 @@ function find_best_target() {
 			max_distance: character.range
 		});
 		if (target) return target;
-	}
-
-	// Priority 3: Aggro untargeted monsters up to aggro_cap
-	if (CONFIG.combat.aggro && count_my_aggro() < CONFIG.combat.aggro_cap) {
-		const untargeted = get_nearest_monster_v2({
-			no_target: true,
-			max_distance: character.range
-		});
-		if (untargeted) return untargeted;
 	}
 
 	// Priority 4: Highest HP monster in range (catches bosses not targeting party)
