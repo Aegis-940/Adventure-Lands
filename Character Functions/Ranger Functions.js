@@ -331,7 +331,7 @@ const action_loop = async () => {
 
 		if (ms === 0 && smart.moving === false) {
 			if (cache.heal_target) {
-				await equip_set('heal');
+				equip_set('heal');
 				await attack(cache.heal_target);
 				log(`Healing ${cache.heal_target.name} (${Math.round((cache.heal_target.hp / cache.heal_target.max_hp) * 100)}%)`, "#00ff00", "Healing");
 			} else await handle_attack();
@@ -1031,7 +1031,7 @@ const is_set_equipped = name =>
 async function equip_set(set_name) {
 	const set = equipment_sets[set_name];
 	if (set) {
-		await batch_equip(set);
+		batch_equip(set);
 	}
 }
 
