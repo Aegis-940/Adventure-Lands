@@ -11,6 +11,7 @@ const CONFIG = {
 		target_priority: ['Myras'],
 		all_bosses,
 		cleave_min_mobs: 1,
+		cleave_blacklist: ['fireroamer'],
 		agitate_min_mobs: 2,
 		agitate_blacklist: ['fireroamer'],
 		taunt_ents: false
@@ -427,6 +428,12 @@ function can_cleave() {
 		e.hp < CONFIG.equipment.boss_hp_thresholds[e.mtype]
 	);
 	if (low_boss) return false;
+
+	// Don't cleave if a blacklisted monster is in AoE range
+	const blacklisted_nearby = cache.monsters_in_cleave_range.some(e =>
+		CONFIG.combat.cleave_blacklist.includes(e.mtype)
+	);
+	if (blacklisted_nearby) return false;
 
 	return cache.monsters_in_cleave_range.length >= CONFIG.combat.cleave_min_mobs;
 }
