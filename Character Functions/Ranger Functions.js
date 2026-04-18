@@ -157,7 +157,7 @@ const equipment_sets = {
 	],
 
 	heal: [
-		{ item_name: "cupid", slot: "mainhand", level: 6, l: "" },
+		{ item_name: "cupid", slot: "mainhand", level: 6, l: null },
 		{ item_name: "t2quiver", slot: "offhand", level: 7, l: "l" },
 	],
 
