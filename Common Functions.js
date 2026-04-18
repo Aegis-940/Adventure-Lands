@@ -634,6 +634,39 @@ function auto_buy_potions() {
 	if (quantity('xptome') < 1) buy('xptome', 1);
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// PERIODIC RESET - Reload the game tab every N hours, on the hour
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const RESET_INTERVAL_HOURS = 2;
+const RESET_WINDOW_MINUTES = 2;
+const RESET_STORAGE_KEY = 'last_periodic_reset_bucket';
+
+function schedule_periodic_reset() {
+	// If we boot up inside the reset window on a reset hour, mark it already
+	// done so we don't immediately reload in a tight loop.
+	const boot = new Date();
+	if (boot.getHours() % RESET_INTERVAL_HOURS === 0 && boot.getMinutes() < RESET_WINDOW_MINUTES) {
+		localStorage.setItem(RESET_STORAGE_KEY, `${boot.toDateString()}-${boot.getHours()}`);
+	}
+
+	setInterval(() => {
+		const now = new Date();
+		const hour = now.getHours();
+
+		if (now.getMinutes() >= RESET_WINDOW_MINUTES) return;
+		if (hour % RESET_INTERVAL_HOURS !== 0) return;
+
+		const bucket = `${now.toDateString()}-${hour}`;
+		if (localStorage.getItem(RESET_STORAGE_KEY) === bucket) return;
+		localStorage.setItem(RESET_STORAGE_KEY, bucket);
+
+		game_log(`[reset] Periodic reload at ${hour}:00`, '#FFAA00');
+		setTimeout(() => parent.window.location.reload(), 1000);
+	}, 60000);
+}
+schedule_periodic_reset();
+
 function find_booster_slot() {
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
