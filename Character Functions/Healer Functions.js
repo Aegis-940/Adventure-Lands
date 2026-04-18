@@ -751,6 +751,8 @@ let last_safe_time = 0;
 
 async function panic_check() {
 
+	if (HEALER_TARGET === 'fireroamer') setTimeout(panic_check, 1000);
+
 	let LOW_HEALTH = 0;
 	let LOW_MANA = 0;
 	let HIGH_HEALTH = 0;
