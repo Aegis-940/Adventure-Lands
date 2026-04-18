@@ -157,7 +157,7 @@ const equipment_sets = {
 	],
 
 	heal: [
-		{ item_name: "cupid", slot: "mainhand", level: 6, l: "l" },
+		{ item_name: "cupid", slot: "mainhand", level: 6, l: "u" },
 		{ item_name: "t2quiver", slot: "offhand", level: 7, l: "l" },
 	],
 
@@ -263,7 +263,7 @@ const update_target_cache = () => {
 
 const find_heal_target = () => {
 	const healer = get_entity('Myras');
-	const threshold = (!healer || healer.rip) ? 0.9 : 0.4;
+	const threshold = (!healer || healer.rip) ? 0.9 : 0.6;
 	const party = Object.keys(get_party() || {});
 
 	let target = null, min_pct = 1;
