@@ -27,7 +27,7 @@ const locations = {
 	crab:       [{ x: -11840, y: -37 }],
 	dryad:      [{ map: 'mforest', x: 403, y: -347 }],
 	ent:        [{ x: -420, y: -1960 }],
-	fireroamer: [{ map: 'desertland', x: 109, y: -600 }],
+	fireroamer: [{ map: 'desertland', x: 150, y: -650 }],
 	ghost:      [{ x: -405, y: -1642 }],
 	gscorpion:  [{ x: 390, y: -1422 }],
 	iceroamer:  [{ x: 823, y: -45 }],
