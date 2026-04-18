@@ -263,21 +263,36 @@ const update_target_cache = () => {
 
 const find_heal_target = () => {
 	const healer = get_entity('Myras');
-	const threshold = (!healer || healer.rip) ? 0.9 : 0.6;
+	const threshold = (!healer || healer.rip) ? 0.9 : 0.8;
 	const party = Object.keys(get_party() || {});
 
-	let target = null, min_pct = 1;
+	log(`[heal_debug] party=[${party.join(',')}] healer_alive=${!!healer && !healer.rip} threshold=${threshold}`, "#888888", "HealDebug");
 
-	for (const name of party) {
-		if (name === character.name) continue;
-		const ally = get_player(name);
-		if (ally?.hp && ally?.max_hp && !ally.rip) {
-			const pct = ally.hp / ally.max_hp;
-			if (pct < min_pct) { min_pct = pct; target = ally; }
-		}
+	if (party.length === 0) {
+		log(`[heal_debug] not in a party — get_party() empty`, "#ff8800", "HealDebug");
+		return null;
 	}
 
-	return min_pct < threshold ? target : null;
+	let target = null, min_pct = 1;
+	let scanned = 0, skipped_self = 0, missing = 0, dead = 0;
+
+	for (const name of party) {
+		if (name === character.name) { skipped_self++; continue; }
+		const ally = get_player(name);
+		if (!ally) { missing++; continue; }
+		if (ally.rip || !ally.hp || !ally.max_hp) { dead++; continue; }
+
+		scanned++;
+		const pct = ally.hp / ally.max_hp;
+		if (pct < min_pct) { min_pct = pct; target = ally; }
+	}
+
+	log(`[heal_debug] scanned=${scanned} missing=${missing} dead=${dead} skipped_self=${skipped_self} min_pct=${min_pct.toFixed(2)} lowest=${target?.name ?? 'none'}`, "#888888", "HealDebug");
+
+	const result = min_pct < threshold ? target : null;
+	log(`[heal_debug] result=${result?.name ?? 'null'} (min_pct ${min_pct.toFixed(2)} < threshold ${threshold}: ${min_pct < threshold})`, "#888888", "HealDebug");
+
+	return result;
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -316,10 +331,16 @@ const main_loop = async () => {
 // ACTION LOOP - Attack and heal
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+let _heal_gate_log_counter = 0;
 const action_loop = async () => {
 	if (panicking) return setTimeout(action_loop, 100);
 	const myras = get_player("Myras");
 	if (!myras || distance(character, myras) > 200) {
+		// throttle: log once every ~20 ticks (~2s) to avoid spam
+		if ((_heal_gate_log_counter++ % 20) === 0) {
+			const d = myras ? Math.round(distance(character, myras)) : 'n/a';
+			log(`[heal_debug] action_loop gated: myras=${!!myras} dist=${d}`, "#ff8800", "HealDebug");
+		}
 		return setTimeout(action_loop, 100);
 	}
 	let delay = 5;
