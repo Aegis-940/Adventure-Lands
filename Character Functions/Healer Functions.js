@@ -12,6 +12,8 @@ const CONFIG = {
 		zapper_mobs: [home, ...all_bosses, 'sparkbot'],
 		target_priority: ['Ulric', 'Myras'],
 		all_bosses,
+		aggro: true,
+		aggro_cap: 3,
 	},
 
 	movement: {
@@ -173,7 +175,16 @@ function find_best_target() {
 		if (target) return target;
 	}
 
-	// Priority 3: Highest HP monster in range (catches bosses not targeting party)
+	// Priority 3: Aggro untargeted monsters up to aggro_cap
+	if (CONFIG.combat.aggro && count_my_aggro() < CONFIG.combat.aggro_cap) {
+		const untargeted = get_nearest_monster_v2({
+			no_target: true,
+			max_distance: character.range
+		});
+		if (untargeted) return untargeted;
+	}
+
+	// Priority 4: Highest HP monster in range (catches bosses not targeting party)
 	const highest_hp = get_nearest_monster_v2({
 		max_distance: character.range,
 		check_max_hp: true
@@ -181,6 +192,15 @@ function find_best_target() {
 	if (highest_hp) return highest_hp;
 
 	return null;
+}
+
+function count_my_aggro() {
+	let count = 0;
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type === 'monster' && !e.dead && e.target === character.name) count++;
+	}
+	return count;
 }
 
 function find_heal_target() {
