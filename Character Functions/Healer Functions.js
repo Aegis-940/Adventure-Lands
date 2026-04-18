@@ -132,6 +132,9 @@ const equipment_sets = {
 	temporal: [
 		{ item_name: "orboftemporal", slot: "orb", level: 1, l: "l" },
 	],
+	fireres: [
+		{ item_name: "orboffire", slot: "orb", level: 3, l: "l" },
+	],
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -688,8 +691,12 @@ async function handle_equipment_swap() {
     const now = performance.now();
     if (now - state.last_equip_time < COOLDOWNS.equip_swap) return;
 
-    // Use mdef set if HEALER_TARGET is 'dryad', else luck set
-    let target_set = (typeof HEALER_TARGET !== 'undefined' && HEALER_TARGET === 'dryad') ? 'mdef' : 'luck';
+    // Pick target set based on HEALER_TARGET
+    let target_set = 'luck';
+    if (typeof HEALER_TARGET !== 'undefined') {
+        if (HEALER_TARGET === 'dryad') target_set = 'mdef';
+        else if (HEALER_TARGET === 'fireroamer') target_set = 'fireres';
+    }
 
     if (!is_set_equipped(target_set)) {
         state.last_equip_time = now;
