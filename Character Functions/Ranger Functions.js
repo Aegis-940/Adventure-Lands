@@ -263,7 +263,7 @@ const update_target_cache = () => {
 
 const find_heal_target = () => {
 	const healer = get_entity('Myras');
-	const threshold = (!healer || healer.rip) ? 0.9 : 0.8;
+	const threshold = (!healer || healer.rip) ? 0.9 : 0.66;
 	const party = Object.keys(get_party() || {});
 
 	let target = null, min_pct = 1;
@@ -331,20 +331,9 @@ const action_loop = async () => {
 
 		if (ms === 0 && smart.moving === false) {
 			if (cache.heal_target) {
-				const cupid_inv = character.items.find(i => i?.name === 'cupid');
-				log(`[heal_debug] cupid in inventory: ${cupid_inv ? `lvl=${cupid_inv.level} l='${cupid_inv.l ?? ''}'` : 'NOT FOUND'}`, "#888888", "HealDebug");
-
 				await equip_set('heal');
-
-				const mainhand_now = character.slots?.mainhand;
-				log(`[heal_debug] after equip_set('heal'), mainhand=${mainhand_now ? `${mainhand_now.name} lvl=${mainhand_now.level} l='${mainhand_now.l ?? ''}'` : 'empty'}`, "#888888", "HealDebug");
-
-				try {
-					await attack(cache.heal_target);
-					log(`Healing ${cache.heal_target.name} (${Math.round((cache.heal_target.hp / cache.heal_target.max_hp) * 100)}%)`, "#00ff00", "Combat");
-				} catch (err) {
-					log(`[heal_debug] attack rejected: ${err?.reason ?? err?.message ?? JSON.stringify(err)}`, "#ff0000", "HealDebug");
-				}
+				await attack(cache.heal_target);
+				log(`Healing ${cache.heal_target.name} (${Math.round((cache.heal_target.hp / cache.heal_target.max_hp) * 100)}%)`, "#00ff00", "Healing");
 			} else await handle_attack();
 		} else {
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
