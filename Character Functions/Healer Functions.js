@@ -13,7 +13,7 @@ const CONFIG = {
 		target_priority: ['Ulric', 'Myras'],
 		all_bosses,
 		aggro: true,
-		aggro_cap: 3,
+		aggro_cap: 5,
 	},
 
 	movement: {
