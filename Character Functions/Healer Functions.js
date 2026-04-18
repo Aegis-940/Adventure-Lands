@@ -25,7 +25,7 @@ const CONFIG = {
 	},
 
 	healing: {
-		party_heal_threshold: 0.65,
+		party_heal_threshold: 0.50,
 		party_heal_min_mp: 500,
 		absorb_enabled: true,
 		dark_blessing_enabled: true
@@ -504,7 +504,7 @@ async function handle_party_heal() {
 
 	let threshold = CONFIG.healing.party_heal_threshold;
 	if (character.map !== destination.map) {
-		threshold = 0.50;
+		threshold = 0.75;
 	}
 
 	if (character.mp <= CONFIG.healing.party_heal_min_mp) return;
