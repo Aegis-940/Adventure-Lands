@@ -259,7 +259,7 @@ async function main_loop() {
 		}
 
 		update_cache();
-		panic_check();
+		if (HEALER_TARGET !== 'fireroamer') panic_check();
 
 		if (should_handle_events()) {
 			handle_events();
@@ -750,8 +750,6 @@ let last_panic_time = 0;
 let last_safe_time = 0;
 
 async function panic_check() {
-
-	if (HEALER_TARGET === 'fireroamer') setTimeout(panic_check, 1000);
 
 	let LOW_HEALTH = 0;
 	let LOW_MANA = 0;
