@@ -165,8 +165,8 @@ function find_best_target() {
 		if (boss) return boss;
 	}
 
-	// Priority 2: Aggro untargeted monsters up to aggro_cap
-	if (CONFIG.combat.aggro && count_my_aggro() < CONFIG.combat.aggro_cap) {
+	// Priority 2: Aggro untargeted monsters up to effective_aggro_cap (scaled by mana %)
+	if (CONFIG.combat.aggro && count_my_aggro() < effective_aggro_cap()) {
 		const untargeted = get_nearest_monster_v2({
 			no_target: true,
 			max_distance: character.range
@@ -201,6 +201,13 @@ function count_my_aggro() {
 		if (e.type === 'monster' && !e.dead && e.target === character.name) count++;
 	}
 	return count;
+}
+
+function effective_aggro_cap() {
+	const mp_pct = character.max_mp > 0 ? character.mp / character.max_mp : 0;
+	// Scale linearly between 20% (→0) and 80% (→full cap), clamp outside
+	const scaled = Math.max(0, Math.min(1, (mp_pct - 0.2) / 0.6));
+	return Math.floor(CONFIG.combat.aggro_cap * scaled);
 }
 
 function find_heal_target() {
