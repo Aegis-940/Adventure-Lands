@@ -333,7 +333,7 @@ const action_loop = async () => {
 			if (cache.heal_target) {
 				await equip_set('heal');
 				await attack(cache.heal_target);
-				log(`[heal] Healing ${cache.heal_target.name} (${Math.round((cache.heal_target.hp / cache.heal_target.max_hp) * 100)}%)`, "#00ff00", "HealDebug");
+				// log(`[heal] Healing ${cache.heal_target.name} (${Math.round((cache.heal_target.hp / cache.heal_target.max_hp) * 100)}%)`, "#00ff00", "HealDebug");
 			} else await handle_attack();
 		} else {
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
