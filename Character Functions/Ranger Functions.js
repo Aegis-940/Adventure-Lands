@@ -333,7 +333,8 @@ const action_loop = async () => {
 			if (cache.heal_target) {
 				equip_set('heal');
 				await delay(50);
-				await attack(cache.heal_target);
+				attack(cache.heal_target);
+				await delay(50);
 			} else await handle_attack();
 		} else {
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
@@ -369,7 +370,8 @@ const handle_attack = async () => {
 	if (character.slots?.mainhand?.name === 'cupid') {
 		log(`[atk] cupid still equipped at skill_call (target_set=${target_set})`, "#ff0000", "AtkDebug");
 	}
-	await skill_call();
+	skill_call();
+	await delay(50);
 };
 
 const skill_loop = async () => {
