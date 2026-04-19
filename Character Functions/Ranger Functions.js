@@ -364,6 +364,9 @@ const handle_attack = async () => {
 	else return;
 
 	await equip_set(target_set);
+	if (character.slots?.mainhand?.name === 'cupid') {
+		log(`[atk] cupid still equipped at skill_call (target_set=${target_set})`, "#ff0000", "AtkDebug");
+	}
 	await skill_call();
 };
 
