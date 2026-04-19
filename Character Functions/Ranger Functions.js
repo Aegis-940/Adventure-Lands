@@ -360,31 +360,31 @@ const handle_attack = async () => {
 		if (character.slots?.mainhand?.name === 'cupid') {
 			log(`[atk] Attacking monster while cupid is equipped`, "#ff0000", "AtkDebug");
 		}
-		await use_skill('5shot', clumped.slice(0, 5).map(e => e.id));
+		use_skill('5shot', clumped.slice(0, 5).map(e => e.id));
 	} else if (can_5shot && in_range.length >= min5) {
 		await equip_set('boom');
 		if (character.slots?.mainhand?.name === 'cupid') {
 			log(`[atk] Attacking monster while cupid is equipped`, "#ff0000", "AtkDebug");
 		}
-		await use_skill('5shot', in_range.slice(0, 5).map(e => e.id));
+		use_skill('5shot', in_range.slice(0, 5).map(e => e.id));
 	} else if (can_5shot && out_of_range.length >= min5) {
 		await equip_set('boom');
 		if (character.slots?.mainhand?.name === 'cupid') {
 			log(`[atk] Attacking monster while cupid is equipped`, "#ff0000", "AtkDebug");
 		}
-		await use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id));
+		use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id));
 	} else if (can_3shot && in_range.length >= min3) {
 		await equip_set('boom');
 		if (character.slots?.mainhand?.name === 'cupid') {
 			log(`[atk] Attacking monster while cupid is equipped`, "#ff0000", "AtkDebug");
 		}
-		await use_skill('3shot', in_range.slice(0, 3).map(e => e.id));
+		use_skill('3shot', in_range.slice(0, 3).map(e => e.id));
 	} else if (can_1shot && in_range.length >= 1) {
 		await equip_set('single');
 		if (character.slots?.mainhand?.name === 'cupid') {
 			log(`[atk] Attacking monster while cupid is equipped`, "#ff0000", "AtkDebug");
 		}
-		await attack(in_range[0]);
+		attack(in_range[0]);
 	}
 	
 	return false;
