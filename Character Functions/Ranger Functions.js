@@ -333,9 +333,6 @@ const action_loop = async () => {
 			if (cache.heal_target) {
 				await equip_set('heal');
 				await attack(cache.heal_target);
-			} else if (character.slots?.mainhand?.name === 'cupid') {
-				// Still holding cupid from last heal — revert before attacking so we don't heal monsters
-				await equip_set('single');
 			} else await handle_attack();
 		} else {
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
