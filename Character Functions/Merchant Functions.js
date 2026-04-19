@@ -297,7 +297,7 @@ async function buy_potion_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function potion_delivery_loop() {
-    const PARTY = ["Myras", "Ulric", "Riva"];
+    const PARTY = ["Riva"];
     const POTION_CAP = 5000;
     const POT_TYPES = ["mpot1", "hpot1"];
     const COOLDOWN = 60000; // 60 seconds
