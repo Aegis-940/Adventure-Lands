@@ -316,6 +316,27 @@ const main_loop = async () => {
 // ACTION LOOP - Attack and heal
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+// Fire-and-forget equip with debounce + pre-check.
+// ensure_mainhand: returns true when the desired mainhand is already equipped
+// (ready to fire), otherwise kicks off a swap and returns false (skip this tick).
+let _last_equip_request = { set: null, at: 0 };
+const EQUIP_DEBOUNCE_MS = 300;
+
+const request_set = (set_name) => {
+	const now = performance.now();
+	if (_last_equip_request.set === set_name && now - _last_equip_request.at < EQUIP_DEBOUNCE_MS) return;
+	_last_equip_request = { set: set_name, at: now };
+	equip_set(set_name);
+};
+
+const ensure_mainhand = (set_name) => {
+	const desired = equipment_sets[set_name]?.find(i => i.slot === 'mainhand')?.item_name;
+	if (!desired) return true;
+	if (character.slots?.mainhand?.name === desired) return true;
+	request_set(set_name);
+	return false;
+};
+
 const action_loop = async () => {
 	if (panicking) return setTimeout(action_loop, 100);
 	const myras = get_player("Myras");
@@ -331,9 +352,7 @@ const action_loop = async () => {
 
 		if (ms === 0 && smart.moving === false) {
 			if (cache.heal_target) {
-				await equip_set('heal');
-				attack(cache.heal_target);
-				// log(`[heal] Healing ${cache.heal_target.name} (${Math.round((cache.heal_target.hp / cache.heal_target.max_hp) * 100)}%)`, "#00ff00", "HealDebug");
+				if (ensure_mainhand('heal')) attack(cache.heal_target);
 			} else await handle_attack();
 		} else {
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
@@ -355,39 +374,20 @@ const handle_attack = async () => {
 	const can_3shot = character.mp >= mp3;
 	const can_1shot = character.mp >= mp1;
 
-	if (can_5shot && clumped.length >= min5) {
-		await equip_set('boom');
-		if (character.slots?.mainhand?.name === 'cupid') {
-			log(`[atk] Attacking monster while cupid is equipped`, "#ff0000", "AtkDebug");
-		}
-		use_skill('5shot', clumped.slice(0, 5).map(e => e.id));
-	} else if (can_5shot && in_range.length >= min5) {
-		await equip_set('boom');
-		if (character.slots?.mainhand?.name === 'cupid') {
-			log(`[atk] Attacking monster while cupid is equipped`, "#ff0000", "AtkDebug");
-		}
-		use_skill('5shot', in_range.slice(0, 5).map(e => e.id));
-	} else if (can_5shot && out_of_range.length >= min5) {
-		await equip_set('boom');
-		if (character.slots?.mainhand?.name === 'cupid') {
-			log(`[atk] Attacking monster while cupid is equipped`, "#ff0000", "AtkDebug");
-		}
-		use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id));
-	} else if (can_3shot && in_range.length >= min3) {
-		await equip_set('boom');
-		if (character.slots?.mainhand?.name === 'cupid') {
-			log(`[atk] Attacking monster while cupid is equipped`, "#ff0000", "AtkDebug");
-		}
-		use_skill('3shot', in_range.slice(0, 3).map(e => e.id));
-	} else if (can_1shot && in_range.length >= 1) {
-		await equip_set('single');
-		if (character.slots?.mainhand?.name === 'cupid') {
-			log(`[atk] Attacking monster while cupid is equipped`, "#ff0000", "AtkDebug");
-		}
-		attack(in_range[0]);
-	}
-	
-	return false;
+	// Decide which set + skill we want for this tick
+	let target_set, skill_call;
+	if (can_5shot && clumped.length >= min5)            { target_set = 'boom';   skill_call = () => use_skill('5shot', clumped.slice(0, 5).map(e => e.id)); }
+	else if (can_5shot && in_range.length >= min5)      { target_set = 'boom';   skill_call = () => use_skill('5shot', in_range.slice(0, 5).map(e => e.id)); }
+	else if (can_5shot && out_of_range.length >= min5)  { target_set = 'boom';   skill_call = () => use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id)); }
+	else if (can_3shot && in_range.length >= min3)      { target_set = 'boom';   skill_call = () => use_skill('3shot', in_range.slice(0, 3).map(e => e.id)); }
+	else if (can_1shot && in_range.length >= 1)         { target_set = 'single'; skill_call = () => attack(in_range[0]); }
+	else return;
+
+	// If the wrong mainhand is equipped, kick off a swap and skip this tick —
+	// next action_loop iteration (5ms) will re-check and fire the attack as soon
+	// as the server confirms the swap. No await, so the loop keeps flowing.
+	if (!ensure_mainhand(target_set)) return;
+	skill_call();
 };
 
 const skill_loop = async () => {
