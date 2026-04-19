@@ -13,7 +13,14 @@ const CONFIG = {
 		cleave_min_mobs: 1,
 		cleave_blacklist: ['fireroamer'],
 		agitate_min_mobs: 2,
-		agitate_blacklist: ['fireroamer'],
+		agitate_blacklist: [],
+		agitate_fireroamer_conditions: {
+			healer_hp_pct: 0.60,
+			healer_mp_pct: 0.80,
+			ranger_hp_pct: 0.95,
+			warrior_hp_pct: 0.95,
+			max_mobs_in_range: 7
+		},
 		taunt_ents: false
 	},
 
@@ -438,6 +445,24 @@ function can_cleave() {
 	return cache.monsters_in_cleave_range.length >= CONFIG.combat.cleave_min_mobs;
 }
 
+function is_fireroamer_agitate_safe(nearby_mobs) {
+	const cond = CONFIG.combat.agitate_fireroamer_conditions;
+
+	const healer = get_player('Myras');
+	const ranger = get_player('Riva');
+
+	if (!healer || healer.rip) return false;
+	if (!ranger || ranger.rip) return false;
+
+	if (healer.hp / healer.max_hp < cond.healer_hp_pct) return false;
+	if (healer.mp / healer.max_mp < cond.healer_mp_pct) return false;
+	if (ranger.hp / ranger.max_hp < cond.ranger_hp_pct) return false;
+	if (character.hp / character.max_hp < cond.warrior_hp_pct) return false;
+	if (nearby_mobs.length > cond.max_mobs_in_range) return false;
+
+	return true;
+}
+
 async function handle_agitate(tank) {
 	if (is_on_cooldown('agitate') || !tank || tank.rip) return;
 
@@ -445,6 +470,9 @@ async function handle_agitate(tank) {
 	const nearby_mobs = Object.values(parent.entities).filter(e =>
 		e.visible && !e.dead && e.type === 'monster' && distance(character, e) <= skill_range
 	);
+
+	// Fireroamer is high-risk: only agitate when party-safety conditions hold
+	if (WARRIOR_TARGET === 'fireroamer' && !is_fireroamer_agitate_safe(nearby_mobs)) return;
 
 	const crabx = nearby_mobs.filter(e => e.mtype === 'crabx');
 	const untargeted_crabs = crabx.filter(m => !m.target);
