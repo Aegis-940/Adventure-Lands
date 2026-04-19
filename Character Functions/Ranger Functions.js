@@ -331,7 +331,7 @@ const action_loop = async () => {
 
 		if (ms === 0 && smart.moving === false) {
 			if (cache.heal_target) {
-				await equip_set('heal');
+				equip_set('heal');
 				await attack(cache.heal_target);
 			} else await handle_attack();
 		} else {
@@ -344,6 +344,10 @@ const action_loop = async () => {
 const handle_attack = async () => {
 	const { sorted_by_hp, clumped, in_range, out_of_range } = cache.targets;
 	if (!sorted_by_hp.length) return;
+
+	if (character.slots?.mainhand?.name === 'cupid') {
+		log(`[atk] Attacking monster while cupid is equipped`, "#ff0000", "AtkDebug");
+	}
 
 	const min5 = CONFIG.combat.min_targets_for_5shot;
 	const min3 = CONFIG.combat.min_targets_for_3shot;
