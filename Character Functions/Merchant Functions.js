@@ -43,7 +43,7 @@ for (const name of LOOP_NAMES) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const UPGRADE_CYCLE_TIME = 1 * 60 * 1000;       // 1 minute
-const SUPPORT_LOOP_CYCLE_TIME = 10 * 60 * 1000; // 10 minutes
+const SUPPORT_LOOP_CYCLE_TIME = 20 * 60 * 1000; // 10 minutes
 
 const MERCHANT_STATES = {
     DEAD: "dead",
