@@ -332,7 +332,7 @@ const action_loop = async () => {
 		if (ms === 0 && smart.moving === false) {
 			if (cache.heal_target) {
 				equip_set('heal');
-				attack(cache.heal_target);
+				await attack(cache.heal_target);
 			} else await handle_attack();
 		} else {
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
