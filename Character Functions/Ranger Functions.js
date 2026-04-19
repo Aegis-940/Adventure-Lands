@@ -316,16 +316,6 @@ const main_loop = async () => {
 // ACTION LOOP - Attack and heal
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let _atk_ready_ts = 0;
-let _atk_moving_log_counter = 0;
-const timed_equip = async (set_name) => {
-	const t = performance.now();
-	await equip_set(set_name);
-	const dt = Math.round(performance.now() - t);
-	if (dt > 20) log(`[atk] equip(${set_name}) took ${dt}ms`, "#888888", "AtkDebug");
-	return dt;
-};
-
 const action_loop = async () => {
 	if (panicking) return setTimeout(action_loop, 100);
 	const myras = get_player("Myras");
@@ -340,38 +330,20 @@ const action_loop = async () => {
 		const ms = ms_to_next_skill('attack');
 
 		if (ms === 0 && smart.moving === false) {
-			// Track how long we spent between "attack ready" and "attack fired"
-			if (_atk_ready_ts === 0) _atk_ready_ts = performance.now();
-			const ready_age = Math.round(performance.now() - _atk_ready_ts);
-
 			if (cache.heal_target) {
-				const t = performance.now();
-				await timed_equip('heal');
+				await equip_set('heal');
 				await attack(cache.heal_target);
-				log(`[atk] HEAL fired (ready_age=${ready_age}ms, total=${Math.round(performance.now() - t)}ms)`, "#00ff00", "AtkDebug");
-			} else {
-				const did_attack = await handle_attack(ready_age);
-				if (!did_attack && cache.targets?.sorted_by_hp?.length) {
-					log(`[atk] ms===0 but no attack (targets=${cache.targets.sorted_by_hp.length}, mp=${character.mp})`, "#ff8800", "AtkDebug");
-				}
-			}
-			_atk_ready_ts = 0;
+			} else await handle_attack();
 		} else {
-			if (ms === 0 && smart.moving && (_atk_moving_log_counter++ % 5) === 0) {
-				log(`[atk] ms===0 blocked by smart.moving`, "#ff8800", "AtkDebug");
-			}
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
 		}
-	} catch (e) {
-		log(`[atk] action_loop error: ${e?.message ?? e}`, "#ff0000", "AtkDebug");
-		delay = 10;
-	}
+	} catch { delay = 10; }
 	setTimeout(action_loop, delay);
 };
 
-const handle_attack = async (ready_age = 0) => {
+const handle_attack = async () => {
 	const { sorted_by_hp, clumped, in_range, out_of_range } = cache.targets;
-	if (!sorted_by_hp.length) return false;
+	if (!sorted_by_hp.length) return;
 
 	const min5 = CONFIG.combat.min_targets_for_5shot;
 	const min3 = CONFIG.combat.min_targets_for_3shot;
@@ -382,26 +354,21 @@ const handle_attack = async (ready_age = 0) => {
 	const can_3shot = character.mp >= mp3;
 	const can_1shot = character.mp >= mp1;
 
-	const fire = async (label, set_name, skill_call) => {
-		const t0 = performance.now();
-		await timed_equip(set_name);
-		const t1 = performance.now();
-		await skill_call();
-		const t2 = performance.now();
-		log(`[atk] ${label} fired (ready_age=${ready_age}ms, equip=${Math.round(t1 - t0)}ms, skill=${Math.round(t2 - t1)}ms, total=${Math.round(t2 - t0)}ms)`, "#00ccff", "AtkDebug");
-		return true;
-	};
-
 	if (can_5shot && clumped.length >= min5) {
-		return fire(`5shot-clumped(${clumped.length})`, 'boom', () => use_skill('5shot', clumped.slice(0, 5).map(e => e.id)));
+		equip_set('boom');
+		await use_skill('5shot', clumped.slice(0, 5).map(e => e.id));
 	} else if (can_5shot && in_range.length >= min5) {
-		return fire(`5shot-in_range(${in_range.length})`, 'boom', () => use_skill('5shot', in_range.slice(0, 5).map(e => e.id)));
+		equip_set('boom');
+		await use_skill('5shot', in_range.slice(0, 5).map(e => e.id));
 	} else if (can_5shot && out_of_range.length >= min5) {
-		return fire(`5shot-out_of_range(${out_of_range.length})`, 'boom', () => use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id)));
+		equip_set('boom');
+		await use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id));
 	} else if (can_3shot && in_range.length >= min3) {
-		return fire(`3shot(${in_range.length})`, 'boom', () => use_skill('3shot', in_range.slice(0, 3).map(e => e.id)));
+		equip_set('boom');
+		await use_skill('3shot', in_range.slice(0, 3).map(e => e.id));
 	} else if (can_1shot && in_range.length >= 1) {
-		return fire(`1shot`, 'single', () => attack(in_range[0]));
+		equip_set('single');
+		await attack(in_range[0]);
 	}
 	return false;
 };
