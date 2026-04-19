@@ -594,7 +594,8 @@ async function walk_in_circle() {
 
 	const dist_to_target = Math.hypot(character.x - target_x, character.y - target_y);
 	if (dist_to_target > CONFIG.movement.move_threshold) {
-		await xmove(target_x, target_y);
+		// Use raw move() — xmove falls back to smart_move on obstacle, which would gate attacks
+		move(target_x, target_y);
 	}
 };
 

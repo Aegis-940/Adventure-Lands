@@ -594,8 +594,8 @@ function handle_return_home() {
 	if (dist <= home_radius) return;
 
 	if (dist < 200 && character.map === destination.map) {
-		// Short drift: raw xmove keeps smart.moving false so attacks continue
-		if (!character.moving && !smart.moving) xmove(destination.x, destination.y);
+		// Short drift: raw move() keeps smart.moving false (xmove falls back to smart_move on obstacles)
+		if (!character.moving && !smart.moving) move(destination.x, destination.y);
 	} else if (!smart.moving) {
 		smart_move(destination);
 	}
