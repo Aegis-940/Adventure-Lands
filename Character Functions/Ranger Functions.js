@@ -332,7 +332,7 @@ const action_loop = async () => {
 		if (ms === 0 && smart.moving === false) {
 			if (cache.heal_target) {
 				await equip_set('heal');
-				await attack(cache.heal_target);
+				attack(cache.heal_target);
 				// log(`[heal] Healing ${cache.heal_target.name} (${Math.round((cache.heal_target.hp / cache.heal_target.max_hp) * 100)}%)`, "#00ff00", "HealDebug");
 			} else await handle_attack();
 		} else {
