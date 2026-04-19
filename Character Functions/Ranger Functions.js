@@ -324,15 +324,30 @@ const main_loop = async () => {
 // and refuse to fire a *different* swap until the first one lands. This stops
 // the action_loop from thrashing when cache.heal_target flickers between ticks
 // (e.g., Myras heals the same ally we were about to help).
+//
+// Cooldown compensation: equipment swaps introduce ~100ms of extra attack
+// delay that ms_to_next_skill doesn't report. We track the last swap time and
+// subtract SWAP_MS_COMPENSATION from ms for one attack-cycle window, so the
+// action_loop fires slightly sooner to offset the hidden delay.
 let _last_equip_request = { set: null, at: 0 };
 let _pending_set = null;
+let _last_swap_at = 0;
 const EQUIP_DEBOUNCE_MS = 300;
+const SWAP_MS_COMPENSATION = 100;
+const SWAP_COMPENSATION_WINDOW_MS = 600;
 
 const request_set = (set_name) => {
 	const now = performance.now();
 	if (_last_equip_request.set === set_name && now - _last_equip_request.at < EQUIP_DEBOUNCE_MS) return;
 	_last_equip_request = { set: set_name, at: now };
+	_last_swap_at = now;
 	equip_set(set_name);
+};
+
+const swap_compensated_ms = (ms) => {
+	if (!_last_swap_at) return ms;
+	if (performance.now() - _last_swap_at >= SWAP_COMPENSATION_WINDOW_MS) return ms;
+	return Math.max(0, ms - SWAP_MS_COMPENSATION);
 };
 
 const ensure_mainhand = (set_name) => {
@@ -369,7 +384,7 @@ const action_loop = async () => {
 		if (is_disabled(character)) return setTimeout(action_loop, 50);
 
 		update_cache();
-		const ms = ms_to_next_skill('attack');
+		const ms = swap_compensated_ms(ms_to_next_skill('attack'));
 
 		if (ms === 0 && smart.moving === false) {
 			if (cache.heal_target) {
