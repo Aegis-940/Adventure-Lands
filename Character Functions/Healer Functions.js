@@ -439,28 +439,32 @@ async function handle_curse() {
 	const X = locations[home][0].x;
 	const Y = locations[home][0].y;
 
+	// Only consider monsters that are already engaged (have a target)
+	const has_target = e =>
+		e?.type === 'monster' && !e.dead && e.visible && e.target && !e.immune &&
+		e.hp >= e.max_hp * 0.01;
+
 	let target = null;
 
-	// Boss priority
-	for (const b of CONFIG.combat.all_bosses) {
-		const mb = get_nearest_monster_v2({ type: b });
-		if (mb) {
-			target = mb;
-			break;
-		}
-	}
+	// Boss priority: nearest engaged boss
+	const bosses_with_target = Object.values(parent.entities)
+		.filter(e => has_target(e) && CONFIG.combat.all_bosses.includes(e.mtype))
+		.sort((a, b) => distance(character, a) - distance(character, b));
+	if (bosses_with_target.length) target = bosses_with_target[0];
 
-	// Home mob
+	// Home-mob fallback: highest-HP engaged home mob near the spot
 	if (!target) {
-		target = get_nearest_monster_v2({
-			type: home,
-			check_max_hp: true,
-			max_distance: 175,
-			point_for_distance_check: [X, Y]
-		});
+		const home_mobs = Object.values(parent.entities)
+			.filter(e =>
+				has_target(e) &&
+				e.mtype === home &&
+				Math.hypot(X - e.x, Y - e.y) <= 175
+			)
+			.sort((a, b) => b.hp - a.hp);
+		if (home_mobs.length) target = home_mobs[0];
 	}
 
-	if (target && target.hp >= target.max_hp * 0.01 && !target.immune && is_in_range(target, 'curse')) {
+	if (target && is_in_range(target, 'curse')) {
 		await use_skill('curse', target);
 	}
 }

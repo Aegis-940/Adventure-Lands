@@ -243,7 +243,7 @@ async function main_loop() {
 		}
 
 		update_cache();
-		panic_check();
+		// panic_check();
 
 		if (should_handle_events()) {
 			handle_events();
