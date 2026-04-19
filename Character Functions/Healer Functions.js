@@ -315,6 +315,7 @@ async function check_temporal_surge() {
 	state.last_equip_time = performance.now();
 	await equip_set('temporal');
 	await use_skill('temporalsurge');
+	log('Temporal Surge activated!', '#FFAA00');
 	state.last_temporal_surge = Date.now();
 	state.last_equip_time = performance.now();
 
