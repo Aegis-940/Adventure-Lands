@@ -331,7 +331,7 @@ const action_loop = async () => {
 
 		if (ms === 0 && smart.moving === false) {
 			if (cache.heal_target) {
-				await equip_set('heal');
+				equip_set('heal');
 				await attack(cache.heal_target);
 			} else await handle_attack();
 		} else {
@@ -363,7 +363,7 @@ const handle_attack = async () => {
 	else if (can_1shot && in_range.length >= 1)         { target_set = 'single'; skill_call = () => attack(in_range[0]); }
 	else return;
 
-	await equip_set(target_set);
+	equip_set(target_set);
 	if (character.slots?.mainhand?.name === 'cupid') {
 		log(`[atk] cupid still equipped at skill_call (target_set=${target_set})`, "#ff0000", "AtkDebug");
 	}
