@@ -640,14 +640,15 @@ function auto_buy_potions() {
 
 const RESET_INTERVAL_HOURS = 2;
 const RESET_WINDOW_MINUTES = 2;
-const RESET_STORAGE_KEY = 'last_periodic_reset_bucket';
+let _last_reset_bucket = null;
 
 function schedule_periodic_reset() {
-	// If we boot up inside the reset window on a reset hour, mark it already
-	// done so we don't immediately reload in a tight loop.
+	// Module-level state is per-iframe/tab, so each character decides
+	// independently. Boot-seed prevents a reload loop if we come back up
+	// inside an active reset window.
 	const boot = new Date();
 	if (boot.getHours() % RESET_INTERVAL_HOURS === 0 && boot.getMinutes() < RESET_WINDOW_MINUTES) {
-		localStorage.setItem(RESET_STORAGE_KEY, `${boot.toDateString()}-${boot.getHours()}`);
+		_last_reset_bucket = `${boot.toDateString()}-${boot.getHours()}`;
 	}
 
 	setInterval(() => {
@@ -658,8 +659,8 @@ function schedule_periodic_reset() {
 		if (hour % RESET_INTERVAL_HOURS !== 0) return;
 
 		const bucket = `${now.toDateString()}-${hour}`;
-		if (localStorage.getItem(RESET_STORAGE_KEY) === bucket) return;
-		localStorage.setItem(RESET_STORAGE_KEY, bucket);
+		if (_last_reset_bucket === bucket) return;
+		_last_reset_bucket = bucket;
 
 		game_log(`[reset] Periodic reload at ${hour}:00`, '#FFAA00');
 		setTimeout(() => parent.window.location.reload(), 1000);
