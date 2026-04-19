@@ -317,9 +317,15 @@ const main_loop = async () => {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // Fire-and-forget equip with debounce + pre-check.
-// ensure_mainhand: returns true when the desired mainhand is already equipped
-// (ready to fire), otherwise kicks off a swap and returns false (skip this tick).
+// ensure_mainhand: returns true when the desired mainhand is already equipped.
+// Otherwise kicks off a swap and returns false (skip this tick).
+//
+// Locking: once a swap is kicked off we remember the target set in _pending_set
+// and refuse to fire a *different* swap until the first one lands. This stops
+// the action_loop from thrashing when cache.heal_target flickers between ticks
+// (e.g., Myras heals the same ally we were about to help).
 let _last_equip_request = { set: null, at: 0 };
+let _pending_set = null;
 const EQUIP_DEBOUNCE_MS = 300;
 
 const request_set = (set_name) => {
@@ -332,8 +338,23 @@ const request_set = (set_name) => {
 const ensure_mainhand = (set_name) => {
 	const desired = equipment_sets[set_name]?.find(i => i.slot === 'mainhand')?.item_name;
 	if (!desired) return true;
-	if (character.slots?.mainhand?.name === desired) return true;
+
+	const current = character.slots?.mainhand?.name;
+
+	// If a pending swap has landed (mainhand now matches what we asked for),
+	// clear the lock — we're free to pick a new target next.
+	if (_pending_set) {
+		const pending_desired = equipment_sets[_pending_set]?.find(i => i.slot === 'mainhand')?.item_name;
+		if (current === pending_desired) _pending_set = null;
+	}
+
+	if (current === desired) return true;
+
+	// A different swap is still in flight — don't change our mind.
+	if (_pending_set && _pending_set !== set_name) return false;
+
 	request_set(set_name);
+	_pending_set = set_name;
 	return false;
 };
 
