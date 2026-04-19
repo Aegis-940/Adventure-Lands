@@ -331,8 +331,9 @@ const action_loop = async () => {
 
 		if (ms === 0 && smart.moving === false) {
 			if (cache.heal_target) {
-				equip_set('heal');
+				await equip_set('heal');
 				await attack(cache.heal_target);
+				log(`[heal] Healing ${cache.heal_target.name} (${Math.round((cache.heal_target.hp / cache.heal_target.max_hp) * 100)}%)`, "#00ff00", "HealDebug");
 			} else await handle_attack();
 		} else {
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
@@ -359,16 +360,16 @@ const handle_attack = async () => {
 	const can_1shot = character.mp >= mp1;
 
 	if (can_5shot && clumped.length >= min5) {
-		equip_set('boom');
+		await equip_set('boom');
 		await use_skill('5shot', clumped.slice(0, 5).map(e => e.id));
 	} else if (can_5shot && in_range.length >= min5) {
-		equip_set('boom');
+		await equip_set('boom');
 		await use_skill('5shot', in_range.slice(0, 5).map(e => e.id));
 	} else if (can_5shot && out_of_range.length >= min5) {
-		equip_set('boom');
+		await equip_set('boom');
 		await use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id));
 	} else if (can_3shot && in_range.length >= min3) {
-		equip_set('boom');
+		await equip_set('boom');
 		await use_skill('3shot', in_range.slice(0, 3).map(e => e.id));
 	} else if (can_1shot && in_range.length >= 1) {
 		equip_set('single');
