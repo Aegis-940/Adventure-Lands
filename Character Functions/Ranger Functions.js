@@ -319,15 +319,12 @@ const main_loop = async () => {
 // Fire-and-forget equip with debounce + pre-check.
 // ensure_mainhand: returns true when the desired mainhand is already equipped
 // (ready to fire), otherwise kicks off a swap and returns false (skip this tick).
-// request_set debounces ALL equip requests (cross-set) so we can't thrash
-// during a single attack-cooldown window when conditions flicker.
 let _last_equip_request = { set: null, at: 0 };
 const EQUIP_DEBOUNCE_MS = 300;
-const PRESWAP_WINDOW_MS = 150;   // only pre-swap during the tail of the attack cooldown
 
 const request_set = (set_name) => {
 	const now = performance.now();
-	if (now - _last_equip_request.at < EQUIP_DEBOUNCE_MS) return;
+	if (_last_equip_request.set === set_name && now - _last_equip_request.at < EQUIP_DEBOUNCE_MS) return;
 	_last_equip_request = { set: set_name, at: now };
 	equip_set(set_name);
 };
@@ -338,28 +335,6 @@ const ensure_mainhand = (set_name) => {
 	if (character.slots?.mainhand?.name === desired) return true;
 	request_set(set_name);
 	return false;
-};
-
-// Predict which equipment set the next attack will need, so we can pre-swap
-// during the attack cooldown window and the weapon is ready when ms hits 0.
-const anticipated_set = () => {
-	if (cache.heal_target) return 'heal';
-	const { clumped, in_range, out_of_range, sorted_by_hp } = cache.targets;
-	if (!sorted_by_hp?.length) return null;
-
-	const mp5 = (G.skills['5shot']?.mp + 400);
-	const mp3 = (G.skills['3shot']?.mp + 200);
-	const mp1 = 100;
-	const min5 = CONFIG.combat.min_targets_for_5shot;
-	const min3 = CONFIG.combat.min_targets_for_3shot;
-	const can_5shot = character.mp >= mp5;
-	const can_3shot = character.mp >= mp3;
-	const can_1shot = character.mp >= mp1;
-
-	if (can_5shot && (clumped.length >= min5 || in_range.length >= min5 || out_of_range.length >= min5)) return 'boom';
-	if (can_3shot && in_range.length >= min3) return 'boom';
-	if (can_1shot && in_range.length >= 1) return 'single';
-	return null;
 };
 
 const action_loop = async () => {
@@ -380,12 +355,6 @@ const action_loop = async () => {
 				if (ensure_mainhand('heal')) attack(cache.heal_target);
 			} else await handle_attack();
 		} else {
-			// Pre-swap only in the tail of the cooldown — by then conditions
-			// have settled so we don't thrash on flickering heal_target / mob counts.
-			if (ms <= PRESWAP_WINDOW_MS) {
-				const upcoming = anticipated_set();
-				if (upcoming) ensure_mainhand(upcoming);
-			}
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
 		}
 	} catch { delay = 10; }
