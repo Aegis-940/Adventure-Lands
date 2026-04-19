@@ -319,12 +319,15 @@ const main_loop = async () => {
 // Fire-and-forget equip with debounce + pre-check.
 // ensure_mainhand: returns true when the desired mainhand is already equipped
 // (ready to fire), otherwise kicks off a swap and returns false (skip this tick).
+// request_set debounces ALL equip requests (cross-set) so we can't thrash
+// during a single attack-cooldown window when conditions flicker.
 let _last_equip_request = { set: null, at: 0 };
 const EQUIP_DEBOUNCE_MS = 300;
+const PRESWAP_WINDOW_MS = 150;   // only pre-swap during the tail of the attack cooldown
 
 const request_set = (set_name) => {
 	const now = performance.now();
-	if (_last_equip_request.set === set_name && now - _last_equip_request.at < EQUIP_DEBOUNCE_MS) return;
+	if (now - _last_equip_request.at < EQUIP_DEBOUNCE_MS) return;
 	_last_equip_request = { set: set_name, at: now };
 	equip_set(set_name);
 };
@@ -377,10 +380,12 @@ const action_loop = async () => {
 				if (ensure_mainhand('heal')) attack(cache.heal_target);
 			} else await handle_attack();
 		} else {
-			// Attack is cooling down — pre-swap for the upcoming shot so the
-			// weapon is ready the instant ms hits 0.
-			const upcoming = anticipated_set();
-			if (upcoming) ensure_mainhand(upcoming);
+			// Pre-swap only in the tail of the cooldown — by then conditions
+			// have settled so we don't thrash on flickering heal_target / mob counts.
+			if (ms <= PRESWAP_WINDOW_MS) {
+				const upcoming = anticipated_set();
+				if (upcoming) ensure_mainhand(upcoming);
+			}
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
 		}
 	} catch { delay = 10; }
