@@ -331,8 +331,7 @@ const action_loop = async () => {
 
 		if (ms === 0 && smart.moving === false) {
 			if (cache.heal_target) {
-				equip_set('heal');
-				await delay(50);
+				await equip_set('heal');
 				await attack(cache.heal_target);
 			} else await handle_attack();
 		} else {
@@ -364,8 +363,8 @@ const handle_attack = async () => {
 	else if (can_1shot && in_range.length >= 1)         { target_set = 'single'; skill_call = () => attack(in_range[0]); }
 	else return;
 
-	equip_set(target_set);
-	skill_call();
+	await equip_set(target_set);
+	await skill_call();
 };
 
 const skill_loop = async () => {
