@@ -318,12 +318,9 @@ const main_loop = async () => {
 
 // Fire-and-forget equip with debounce + pre-check.
 // ensure_mainhand: returns true when the desired mainhand is already equipped
-// (ready to fire), otherwise kicks off a swap and returns false.
-// Callers should bump their loop delay to SWAP_SETTLE_MS so we don't burn
-// ticks while the server processes the swap.
+// (ready to fire), otherwise kicks off a swap and returns false (skip this tick).
 let _last_equip_request = { set: null, at: 0 };
 const EQUIP_DEBOUNCE_MS = 300;
-const SWAP_SETTLE_MS = 120;   // typical server roundtrip for equip_batch confirm
 
 const request_set = (set_name) => {
 	const now = performance.now();
@@ -340,6 +337,28 @@ const ensure_mainhand = (set_name) => {
 	return false;
 };
 
+// Predict which equipment set the next attack will need, so we can pre-swap
+// during the attack cooldown window and the weapon is ready when ms hits 0.
+const anticipated_set = () => {
+	if (cache.heal_target) return 'heal';
+	const { clumped, in_range, out_of_range, sorted_by_hp } = cache.targets;
+	if (!sorted_by_hp?.length) return null;
+
+	const mp5 = (G.skills['5shot']?.mp + 400);
+	const mp3 = (G.skills['3shot']?.mp + 200);
+	const mp1 = 100;
+	const min5 = CONFIG.combat.min_targets_for_5shot;
+	const min3 = CONFIG.combat.min_targets_for_3shot;
+	const can_5shot = character.mp >= mp5;
+	const can_3shot = character.mp >= mp3;
+	const can_1shot = character.mp >= mp1;
+
+	if (can_5shot && (clumped.length >= min5 || in_range.length >= min5 || out_of_range.length >= min5)) return 'boom';
+	if (can_3shot && in_range.length >= min3) return 'boom';
+	if (can_1shot && in_range.length >= 1) return 'single';
+	return null;
+};
+
 const action_loop = async () => {
 	if (panicking) return setTimeout(action_loop, 100);
 	const myras = get_player("Myras");
@@ -354,25 +373,23 @@ const action_loop = async () => {
 		const ms = ms_to_next_skill('attack');
 
 		if (ms === 0 && smart.moving === false) {
-			let swap_pending = false;
 			if (cache.heal_target) {
 				if (ensure_mainhand('heal')) attack(cache.heal_target);
-				else swap_pending = true;
-			} else {
-				swap_pending = await handle_attack();
-			}
-			if (swap_pending) delay = SWAP_SETTLE_MS;
+			} else await handle_attack();
 		} else {
+			// Attack is cooling down — pre-swap for the upcoming shot so the
+			// weapon is ready the instant ms hits 0.
+			const upcoming = anticipated_set();
+			if (upcoming) ensure_mainhand(upcoming);
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
 		}
 	} catch { delay = 10; }
 	setTimeout(action_loop, delay);
 };
 
-// Returns true if a swap is pending (caller should extend its delay).
 const handle_attack = async () => {
 	const { sorted_by_hp, clumped, in_range, out_of_range } = cache.targets;
-	if (!sorted_by_hp.length) return false;
+	if (!sorted_by_hp.length) return;
 
 	const min5 = CONFIG.combat.min_targets_for_5shot;
 	const min3 = CONFIG.combat.min_targets_for_3shot;
@@ -383,17 +400,20 @@ const handle_attack = async () => {
 	const can_3shot = character.mp >= mp3;
 	const can_1shot = character.mp >= mp1;
 
+	// Decide which set + skill we want for this tick
 	let target_set, skill_call;
 	if (can_5shot && clumped.length >= min5)            { target_set = 'boom';   skill_call = () => use_skill('5shot', clumped.slice(0, 5).map(e => e.id)); }
 	else if (can_5shot && in_range.length >= min5)      { target_set = 'boom';   skill_call = () => use_skill('5shot', in_range.slice(0, 5).map(e => e.id)); }
 	else if (can_5shot && out_of_range.length >= min5)  { target_set = 'boom';   skill_call = () => use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id)); }
 	else if (can_3shot && in_range.length >= min3)      { target_set = 'boom';   skill_call = () => use_skill('3shot', in_range.slice(0, 3).map(e => e.id)); }
 	else if (can_1shot && in_range.length >= 1)         { target_set = 'single'; skill_call = () => attack(in_range[0]); }
-	else return false;
+	else return;
 
-	if (!ensure_mainhand(target_set)) return true;   // swap pending, caller extends delay
+	// If the wrong mainhand is equipped, kick off a swap and skip this tick —
+	// next action_loop iteration (5ms) will re-check and fire the attack as soon
+	// as the server confirms the swap. No await, so the loop keeps flowing.
+	if (!ensure_mainhand(target_set)) return;
 	skill_call();
-	return false;
 };
 
 const skill_loop = async () => {
