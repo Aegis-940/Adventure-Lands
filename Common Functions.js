@@ -588,10 +588,15 @@ function should_spread() {
 function handle_return_home() {
 	const dx = character.x - destination.x;
 	const dy = character.y - destination.y;
-	const radius = CONFIG.movement.circle_radius || 75;
-	const at_destination = Math.hypot(dx, dy) <= radius;
+	const dist = Math.hypot(dx, dy);
+	const home_radius = (CONFIG.movement.circle_radius || 75) + 20;
 
-	if (!smart.moving && !at_destination) {
+	if (dist <= home_radius) return;
+
+	if (dist < 200 && character.map === destination.map) {
+		// Short drift: raw xmove keeps smart.moving false so attacks continue
+		if (!character.moving && !smart.moving) xmove(destination.x, destination.y);
+	} else if (!smart.moving) {
 		smart_move(destination);
 	}
 }
