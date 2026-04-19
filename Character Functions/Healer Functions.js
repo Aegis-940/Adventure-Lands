@@ -41,7 +41,7 @@ const CONFIG = {
 
 	equipment: {
 		auto_swap_sets: true,
-		temporal_surge_enabled: false,
+		temporal_surge_enabled: true,
 		boss_luck_switch: true,
 		boss_hp_thresholds: {
 			mrpumpkin: 300000,
@@ -115,7 +115,7 @@ const equipment_sets = {
 	],
 	luck: [
 		{ item_name: "supermittens", slot: "gloves", level: 7, l: "l" },
-		{ item_name: "orboftemporal", slot: "orb", level: 1, l: "l" },
+		{ item_name: "talkingskull", slot: "orb", level: 3, l: "l" },
 		{ item_name: "lmace", slot: "mainhand", level: 7, l: "" },
 		// { item_name: "mshield", slot: "offhand", level: 8, l: "l" },
 	],
