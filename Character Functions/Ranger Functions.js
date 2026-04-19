@@ -115,6 +115,7 @@ const destination = {
 const state = {
 	skin_ready: false,
 	last_equip_time: 0,
+	last_weapon_swap: 0,
 	last_booster_swap: 0,
 	last_cape_swap: 0,
 	last_coat_swap: 0,
@@ -331,7 +332,12 @@ const action_loop = async () => {
 
 		if (ms === 0 && smart.moving === false) {
 			if (cache.heal_target) {
-				await equip_set('heal');
+				const now = performance.now();
+				const mainhand = character.slots?.mainhand?.name;
+				if (mainhand !== 'cupid' && now - state.last_weapon_swap > COOLDOWNS.weapon_swap) {
+					state.last_weapon_swap = now;
+					equip_set('heal');
+				}
 				await attack(cache.heal_target);
 			} else await handle_attack();
 		} else {
@@ -363,9 +369,12 @@ const handle_attack = async () => {
 	else if (can_1shot && in_range.length >= 1)         { target_set = 'single'; skill_call = () => attack(in_range[0]); }
 	else return;
 
-	await equip_set(target_set);
-	if (character.slots?.mainhand?.name === 'cupid') {
-		log(`[atk] cupid still equipped at skill_call (target_set=${target_set})`, "#ff0000", "AtkDebug");
+	const now = performance.now();
+	const current_mainhand = character.slots?.mainhand?.name;
+	const desired_mainhand = equipment_sets[target_set].find(i => i.slot === 'mainhand')?.item_name;
+	if (current_mainhand !== desired_mainhand && now - state.last_weapon_swap > COOLDOWNS.weapon_swap) {
+		state.last_weapon_swap = now;
+		equip_set(target_set);
 	}
 	await skill_call();
 };
@@ -1026,10 +1035,10 @@ const is_set_equipped = name =>
 
 // const equip_set = name => equipment_sets[name] && batch_equip(equipment_sets[name]);
 
-async function equip_set(set_name) {
+function equip_set(set_name) {
 	const set = equipment_sets[set_name];
 	if (set) {
-		await batch_equip(set);
+		batch_equip(set);
 	}
 }
 
