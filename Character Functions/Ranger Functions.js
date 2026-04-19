@@ -316,17 +316,6 @@ const main_loop = async () => {
 // ACTION LOOP - Attack and heal
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Promise-chained action system (no await at call sites).
-// _action_pending prevents the action_loop from piling up duplicate chains
-// while one is in flight. A 2s timer is a safety net if a chain hangs.
-let _action_pending = false;
-
-const guard_action = (promise) => {
-	_action_pending = true;
-	const timer = setTimeout(() => { _action_pending = false; }, 2000);
-	promise.finally(() => { clearTimeout(timer); _action_pending = false; });
-};
-
 const action_loop = async () => {
 	if (panicking) return setTimeout(action_loop, 100);
 	const myras = get_player("Myras");
@@ -340,16 +329,11 @@ const action_loop = async () => {
 		update_cache();
 		const ms = ms_to_next_skill('attack');
 
-		if (_action_pending) {
-			delay = 50;   // chain in flight — don't stack
-		} else if (ms === 0 && smart.moving === false) {
+		if (ms === 0 && smart.moving === false) {
 			if (cache.heal_target) {
-				const target = cache.heal_target;
-				guard_action(equip_set('heal').then(() => attack(target)));
-			} else {
-				const chain = handle_attack_chain();
-				if (chain) guard_action(chain);
-			}
+				equip_set('heal');
+				await attack(cache.heal_target);
+			} else await handle_attack();
 		} else {
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
 		}
@@ -357,9 +341,9 @@ const action_loop = async () => {
 	setTimeout(action_loop, delay);
 };
 
-const handle_attack_chain = () => {
+const handle_attack = async () => {
 	const { sorted_by_hp, clumped, in_range, out_of_range } = cache.targets;
-	if (!sorted_by_hp.length) return null;
+	if (!sorted_by_hp.length) return;
 
 	const min5 = CONFIG.combat.min_targets_for_5shot;
 	const min3 = CONFIG.combat.min_targets_for_3shot;
@@ -377,9 +361,13 @@ const handle_attack_chain = () => {
 	else if (can_5shot && out_of_range.length >= min5)  { target_set = 'boom';   skill_call = () => use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id)); }
 	else if (can_3shot && in_range.length >= min3)      { target_set = 'boom';   skill_call = () => use_skill('3shot', in_range.slice(0, 3).map(e => e.id)); }
 	else if (can_1shot && in_range.length >= 1)         { target_set = 'single'; skill_call = () => attack(in_range[0]); }
-	else return null;
+	else return;
 
-	return equip_set(target_set).then(skill_call);
+	equip_set(target_set);
+	if (character.slots?.mainhand?.name === 'cupid') {
+		log(`[atk] cupid still equipped at skill_call (target_set=${target_set})`, "#ff0000", "AtkDebug");
+	}
+	await skill_call();
 };
 
 const skill_loop = async () => {
