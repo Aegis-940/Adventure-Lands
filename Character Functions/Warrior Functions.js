@@ -11,7 +11,7 @@ const CONFIG = {
 		target_priority: ['Myras'],
 		all_bosses,
 		cleave_min_mobs: 1,
-		cleave_blacklist: ['fireroamer'],
+		cleave_blacklist: [],
 		agitate_min_mobs: 2,
 		agitate_blacklist: ['fireroamer'],
 		taunt_ents: false
