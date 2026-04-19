@@ -387,8 +387,6 @@ const handle_attack = async () => {
 		await attack(in_range[0]);
 	}
 	
-
-	
 	return false;
 };
 
@@ -1051,7 +1049,7 @@ const is_set_equipped = name =>
 async function equip_set(set_name) {
 	const set = equipment_sets[set_name];
 	if (set) {
-		batch_equip(set);
+		await batch_equip(set);
 	}
 }
 
