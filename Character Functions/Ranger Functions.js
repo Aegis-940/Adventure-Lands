@@ -380,7 +380,7 @@ const handle_attack = async () => {
 		}
 		await use_skill('3shot', in_range.slice(0, 3).map(e => e.id));
 	} else if (can_1shot && in_range.length >= 1) {
-		equip_set('single');
+		await equip_set('single');
 		if (character.slots?.mainhand?.name === 'cupid') {
 			log(`[atk] Attacking monster while cupid is equipped`, "#ff0000", "AtkDebug");
 		}
@@ -1049,7 +1049,7 @@ const is_set_equipped = name =>
 async function equip_set(set_name) {
 	const set = equipment_sets[set_name];
 	if (set) {
-		await batch_equip(set);
+		batch_equip(set);
 	}
 }
 
