@@ -47,7 +47,7 @@ const CONFIG = {
 	},
 
 	potions: {
-		auto_buy: false,
+		auto_buy: true,
 		hp_threshold: 400,
 		mp_threshold: 500,
 		min_stock: 1000
@@ -825,31 +825,6 @@ async function panic_check() {
 // 	}
 // }
 // setInterval(team_starter, 5000);
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// LOCATION BROADCASTER
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-async function send_location_update() {
-	if (!CONFIG.location_broadcast.enabled) return;
-
-	try {
-		const needs_update = !character.s.mluck || character.s.mluck.f !== CONFIG.location_broadcast.target_player;
-		const null_count = character.items.filter(item => item === null).length;
-
-		if (needs_update || null_count <= CONFIG.location_broadcast.low_inventory_slots) {
-			send_cm(CONFIG.location_broadcast.target_player, {
-				message: 'location',
-				x: character.x,
-				y: character.y,
-				map: character.map
-			});
-		}
-	} catch (error) {
-		console.error('Failed to send location update:', error);
-	}
-}
-setInterval(send_location_update, CONFIG.location_broadcast.check_interval);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SELLING
