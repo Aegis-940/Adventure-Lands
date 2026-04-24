@@ -52,9 +52,9 @@ const locations = {
 	xscorpion:  [{ x: -495, y: 685 }],
 };
 
-const HEALER_TARGET    = 'mechagnome';
-const WARRIOR_TARGET   = 'mechagnome';
-const RANGER_TARGET    = 'mechagnome';
+const HEALER_TARGET    = 'fireroamer';
+const WARRIOR_TARGET   = 'fireroamer';
+const RANGER_TARGET    = 'fireroamer';
 
 const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 
