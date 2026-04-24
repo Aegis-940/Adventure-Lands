@@ -5,7 +5,6 @@
 
 const LOOP_STATES = {
 
-    potions_and_loot: false,
     fishing: false,
     mining: false,
     upgrading: false,
@@ -26,7 +25,6 @@ var merchant_task = "Idle"; // Current task: "Idle", "Mining", etc. — var so A
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const LOOP_NAMES = [
-    "potion_delivery",
     "loot_collection",
     "fishing",
     "mining",

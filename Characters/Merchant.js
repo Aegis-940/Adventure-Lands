@@ -20,7 +20,6 @@ create_map_movement_window([
 add_bank_buttons();
 hide_skills_ui();
 buy_potion_loop()
-potion_delivery_loop()
 mluck_buff_loop()
 loot_collection_loop()
 potion_loop()
