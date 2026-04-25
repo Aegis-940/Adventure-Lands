@@ -335,7 +335,7 @@ async function skill_loop() {
 		const tank = cache.tank_entity;
 
 		// Warcry
-		if (CONFIG.skills.warcry_enabled && !is_on_cooldown('warcry') && !character.s.warcry && character.s.darkblessing) {
+		if (CONFIG.skills.warcry_enabled && !is_on_cooldown('warcry') && !character.s.warcry) {
 			await use_skill('warcry');
 		}
 
@@ -345,8 +345,7 @@ async function skill_loop() {
 		// }
 
 		// Cleave
-		if (CONFIG.skills.cleave_enabled) {
-			if (WARRIOR_TARGET === 'bscorpion') return;
+		if (CONFIG.skills.cleave_enabled && WARRIOR_TARGET !== 'bscorpion') {
 			await handle_cleave();
 		}
 
