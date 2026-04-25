@@ -1012,8 +1012,13 @@ function is_bscorpion_targeting_myras() {
 
 // Consolidated: move to maintain a specific distance from bscorpion
 async function move_distance_from_bscorpion(desired = 40, tolerance = 0.75) {
+    // Don't fight smart_move (e.g., travelling to the farm), and don't chase
+    // a scorpion that's wandered too far — raw move() will get stuck on terrain.
+    if (smart.moving) return false;
+
     const info = find_nearest_bscorpion();
     if (!info) return false;
+    if (info.distance > 300) return false;
 
     if (Math.abs(info.distance - desired) > tolerance) {
         if (!character.moving || Math.hypot(character.x - info.x, character.y - info.y) > tolerance) {
