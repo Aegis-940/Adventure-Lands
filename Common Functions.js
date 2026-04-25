@@ -1012,13 +1012,8 @@ function is_bscorpion_targeting_myras() {
 
 // Consolidated: move to maintain a specific distance from bscorpion
 async function move_distance_from_bscorpion(desired = 40, tolerance = 0.75) {
-    // Don't fight smart_move (e.g., travelling to the farm), and don't chase
-    // a scorpion that's wandered too far — raw move() will get stuck on terrain.
-    if (smart.moving) return false;
-
     const info = find_nearest_bscorpion();
     if (!info) return false;
-    if (info.distance > 300) return false;
 
     if (Math.abs(info.distance - desired) > tolerance) {
         if (!character.moving || Math.hypot(character.x - info.x, character.y - info.y) > tolerance) {
@@ -1076,10 +1071,20 @@ async function move_safe_from_bscorpion() {
     await move(newX, newY);
 }
 
+// True once the character is on the bscorpion farm map AND within arrival
+// radius of the spawn. Prevents the farm loop from kicking in while the
+// character is still travelling (raw move() would fight smart_move and stall).
+const BSCORPION_ARRIVAL_RADIUS = 200;
+function is_at_bscorpion_farm() {
+    if (character.map !== 'desertland') return false;
+    const spawn = locations.bscorpion[0];
+    return Math.hypot(character.x - spawn.x, character.y - spawn.y) <= BSCORPION_ARRIVAL_RADIUS;
+}
+
 async function prim_farm_loop() {
 
     while (true) {
-        if (PRIM_FARM_LOOT_ENABLED) {
+        if (PRIM_FARM_LOOT_ENABLED && is_at_bscorpion_farm()) {
 
             if (character.name === "Ulric") {
 
