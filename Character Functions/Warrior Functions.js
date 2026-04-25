@@ -259,10 +259,11 @@ async function main_loop() {
 		else if (CONFIG.movement.enabled) {
 			if (WARRIOR_TARGET === 'bscorpion') {
 				// Scorpion visibility ≠ scorpion reachability (waterway between them).
-				// Always pathfind to the farm spot via smart_move; prim_farm_loop
-				// handles fine positioning once arrived.
+				// Pathfind to the farm spot via smart_move only when actually lost;
+				// once we're in the farm zone, prim_farm_loop handles positioning
+				// without triggering smart.moving.
 				const at_farm = character.map === PRIM_FARM_LOC.map &&
-					Math.hypot(character.x - PRIM_FARM_LOC.x, character.y - PRIM_FARM_LOC.y) < 50;
+					Math.hypot(character.x - PRIM_FARM_LOC.x, character.y - PRIM_FARM_LOC.y) < PRIM_FARM_RADIUS + 30;
 				if (!at_farm && !smart.moving) smart_move(PRIM_FARM_LOC);
 			} else if (!get_nearest_monster({ type: home })) {
 				handle_return_home();
