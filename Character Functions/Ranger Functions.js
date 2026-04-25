@@ -9,7 +9,7 @@ const CONFIG = {
 	combat: {
 		enabled: true,
 		target_priority: ['Ulric', 'Myras'],
-		always_attack: ['crabx'], // Attack regardless of target
+		always_attack: ['crabx', 'bscorpion'], // Attack regardless of target
 		attack_if_targeted: [...all_bosses, 'phoenix'], // Only attack if has target
 		never_attack: ['nerfedmummy'], // Never attack
 		use_hunters_mark: true,
@@ -303,10 +303,22 @@ const main_loop = async () => {
 			}
 		}
 
-		should_handle_events() ? handle_events() :
-			CONFIG.movement.enabled && (!get_nearest_monster({ type: home }) ?
-				handle_return_home() :
-				CONFIG.movement.circle_walk && walk_in_circle());
+		if (should_handle_events()) {
+			handle_events();
+		} else if (CONFIG.movement.enabled) {
+			if (RANGER_TARGET === 'bscorpion') {
+				// Scorpion visibility ≠ scorpion reachability (waterway between them).
+				// Always pathfind to the farm spot via smart_move; prim_farm_loop
+				// handles fine positioning once arrived.
+				const at_farm = character.map === PRIM_FARM_LOC.map &&
+					Math.hypot(character.x - PRIM_FARM_LOC.x, character.y - PRIM_FARM_LOC.y) < 50;
+				if (!at_farm && !smart.moving) smart_move(PRIM_FARM_LOC);
+			} else if (!get_nearest_monster({ type: home })) {
+				handle_return_home();
+			} else if (CONFIG.movement.circle_walk) {
+				walk_in_circle();
+			}
+		}
 	} catch (e) {
 		console.error('main_loop error:', e);
 	}

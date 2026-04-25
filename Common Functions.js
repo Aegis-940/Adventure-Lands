@@ -1071,20 +1071,10 @@ async function move_safe_from_bscorpion() {
     await move(newX, newY);
 }
 
-// True once the character is on the bscorpion farm map AND within arrival
-// radius of the spawn. Prevents the farm loop from kicking in while the
-// character is still travelling (raw move() would fight smart_move and stall).
-const BSCORPION_ARRIVAL_RADIUS = 200;
-function is_at_bscorpion_farm() {
-    if (character.map !== 'desertland') return false;
-    const spawn = locations.bscorpion[0];
-    return Math.hypot(character.x - spawn.x, character.y - spawn.y) <= BSCORPION_ARRIVAL_RADIUS;
-}
-
 async function prim_farm_loop() {
 
     while (true) {
-        if (PRIM_FARM_LOOT_ENABLED && is_at_bscorpion_farm()) {
+        if (PRIM_FARM_LOOT_ENABLED) {
 
             if (character.name === "Ulric") {
 
