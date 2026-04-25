@@ -411,7 +411,9 @@ async function skill_loop() {
 
 		// Dark Blessing
 		if (CONFIG.healing.dark_blessing_enabled && !is_on_cooldown('darkblessing')) {
-			await use_skill('darkblessing');
+			if (HEALER_TARGET !== 'bscorpion' || bscorpion_worth_buffing()) {
+				await use_skill('darkblessing');
+			}
 		}
 
 		// Zapper

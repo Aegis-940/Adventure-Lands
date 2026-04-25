@@ -336,7 +336,9 @@ async function skill_loop() {
 
 		// Warcry
 		if (CONFIG.skills.warcry_enabled && !is_on_cooldown('warcry') && !character.s.warcry) {
-			await use_skill('warcry');
+			if (WARRIOR_TARGET !== 'bscorpion' || bscorpion_worth_buffing()) {
+				await use_skill('warcry');
+			}
 		}
 
 		// Stomp

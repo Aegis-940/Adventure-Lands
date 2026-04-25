@@ -1010,6 +1010,15 @@ function is_bscorpion_targeting_myras() {
   return false;
 }
 
+// Returns true if a visible bscorpion has >= 5% HP. Used to gate party buffs
+// (warcry, dark blessing) so they aren't wasted on a near-dead boss or fired
+// when no bscorpion is visible.
+function bscorpion_worth_buffing() {
+  const info = find_nearest_bscorpion();
+  if (!info) return false;
+  return info.entity.hp / info.entity.max_hp >= 0.05;
+}
+
 // Consolidated: move to maintain a specific distance from bscorpion
 async function move_distance_from_bscorpion(desired = 40, tolerance = 0.75) {
     const info = find_nearest_bscorpion();
