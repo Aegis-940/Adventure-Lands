@@ -399,16 +399,25 @@ const skill_loop = async () => {
 	}
 	let delay = 5;
 	try {
-		if (!CONFIG.combat.use_hunters_mark && !CONFIG.combat.use_supershot) return;
+		if (!CONFIG.combat.use_hunters_mark && !CONFIG.combat.use_supershot) {
+			setTimeout(skill_loop, 1000);
+			return;
+		}
 		if (is_disabled(character)) return setTimeout(skill_loop, 250);
 
 		update_cache();
 
 		const { sorted_by_hp } = cache.targets;
-		if (!sorted_by_hp.length) return;
+		if (!sorted_by_hp.length) {
+			setTimeout(skill_loop, 200);
+			return;
+		}
 
 		const target = sorted_by_hp[0];
-		if (!target || !is_in_range(target)) return;
+		if (!target || !is_in_range(target)) {
+			setTimeout(skill_loop, 100);
+			return;
+		}
 
 		const msHunter = ms_to_next_skill('huntersmark');
 		const msSuper = ms_to_next_skill('supershot');
