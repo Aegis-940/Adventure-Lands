@@ -41,7 +41,7 @@ for (const name of LOOP_NAMES) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const UPGRADE_CYCLE_TIME = 1 * 60 * 1000;       // 1 minute
-const SUPPORT_LOOP_CYCLE_TIME = 20 * 60 * 1000; // 10 minutes
+const SUPPORT_LOOP_CYCLE_TIME = 30 * 60 * 1000; // 10 minutes
 
 const MERCHANT_STATES = {
     DEAD: "dead",
@@ -141,7 +141,7 @@ async function set_state(state) {
                         log("Starting auto-upgrade process...");
                         handling_upgrading = true;
                         merchant_task = "Upgrading";
-                        // await custom_craft();
+                        await custom_craft();
                         // await coat_upgrade();
                         // await auto_upgrade();
                         last_auto_upgrade_time = Date.now();
@@ -872,7 +872,7 @@ async function custom_craft() {
     let smoke_attempts = 0;
     const MAX_ATTEMPTS = 5;
 
-    while (smoke_qty < 25 && smoke_attempts < MAX_ATTEMPTS) {
+    while (smoke_qty < 30 && smoke_attempts < MAX_ATTEMPTS) {
         try {
             await withdraw_item("essenceoffire");
             await delay(100);
@@ -884,7 +884,7 @@ async function custom_craft() {
         smoke_attempts++;
     }
 
-    if (smoke_qty < 25) {
+    if (smoke_qty < 30) {
         game_log("❌ Not enough 'essenceoffire' in inventory after multiple attempts. Aborting pouchbow upgrade.", "#FF0000");
         return;
     }
@@ -892,7 +892,7 @@ async function custom_craft() {
     // Move home
     await smarter_move(HOME);
 
-    // Buy 25 "bow"
+    // Buy 30 "bow"
     for (let i = 0; i < 30; i++) {
         parent.buy("bow");
         await delay(100); // Small delay to avoid flooding
@@ -901,7 +901,7 @@ async function custom_craft() {
     // Move to main, 5, 419
     await smarter_move({ map: "main", x: 5, y: 419 });
 
-    // Auto-craft pouchbow 25 times with 100ms delay between each
+    // Auto-craft pouchbow 30 times with 100ms delay between each
     for (let i = 0; i < 30; i++) {
         await auto_craft("firebow");
         await delay(50);
