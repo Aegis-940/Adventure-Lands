@@ -143,7 +143,7 @@ async function set_state(state) {
                         merchant_task = "Upgrading";
                         // await custom_craft();
                         // await coat_upgrade();
-                        await auto_upgrade();
+                        // await auto_upgrade();
                         last_auto_upgrade_time = Date.now();
                         merchant_task = "Idle";
                     }
