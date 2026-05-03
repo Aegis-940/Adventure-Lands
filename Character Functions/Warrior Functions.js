@@ -248,9 +248,9 @@ async function sugar_rush_check(target) {
     attack(target);
 
     if (character.s.sugarrush === undefined) {
-        equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
+        equip_batch([{ num: 39, slot: "mainhand" }, { num: 40, slot: "offhand" }]);
         await delay(50);
-        equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
+        equip_batch([{ num: 39, slot: "mainhand" }, { num: 40, slot: "offhand" }]);
         await delay(200);
         if (character.s.sugarrush !== undefined) {
             log(":candy: Sugar Rush activated! :candy:", "#ff69b4", "Alerts");
