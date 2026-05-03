@@ -243,17 +243,25 @@ function mob_count() {
 	).length;
 }
 
+let sugar_rush_attempts = 0;
+const sugar_rush_history = [];
+
 async function sugar_rush_check(target) {
 
     attack(target);
 
     if (character.s.sugarrush === undefined) {
+        sugar_rush_attempts++;
         equip_batch([{ num: 39, slot: "mainhand" }, { num: 40, slot: "offhand" }]);
         await delay(75);
         equip_batch([{ num: 39, slot: "mainhand" }, { num: 40, slot: "offhand" }]);
         await delay(175);
         if (character.s.sugarrush !== undefined) {
-            log(":candy: Sugar Rush activated! :candy:", "#ff69b4", "Alerts");
+            sugar_rush_history.push(sugar_rush_attempts);
+            if (sugar_rush_history.length > 30) sugar_rush_history.shift();
+            const avg = sugar_rush_history.reduce((a, b) => a + b, 0) / sugar_rush_history.length;
+            log(`:candy: Sugar Rush activated! Avg attempts: ${avg.toFixed(1)} :candy:`, "#ff69b4", "Alerts");
+            sugar_rush_attempts = 0;
         }
     }
 }
