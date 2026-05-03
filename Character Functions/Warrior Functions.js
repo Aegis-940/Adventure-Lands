@@ -321,7 +321,7 @@ async function action_loop() {
 
 		if (ms === 0 && smart.moving === false) {
 			await attack(target);
-			awaitsugar_rush_check(target);
+			await sugar_rush_check(target);
 		} else {
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
 		}
