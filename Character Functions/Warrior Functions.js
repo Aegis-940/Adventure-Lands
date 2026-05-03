@@ -255,12 +255,12 @@ async function sugar_rush_check(target) {
         equip_batch([{ num: 39, slot: "mainhand" }, { num: 40, slot: "offhand" }]);
         await delay(75);
         equip_batch([{ num: 39, slot: "mainhand" }, { num: 40, slot: "offhand" }]);
-        await delay(175);
+        await delay(225);
         if (character.s.sugarrush !== undefined) {
             sugar_rush_history.push(sugar_rush_attempts);
             if (sugar_rush_history.length > 30) sugar_rush_history.shift();
             const avg = sugar_rush_history.reduce((a, b) => a + b, 0) / sugar_rush_history.length;
-            log(`:candy: Sugar Rush activated! Avg attempts: ${avg.toFixed(1)} :candy:`, "#ff69b4", "Alerts");
+            log(`Sugar Rush activated! Avg attempts: ${avg.toFixed(1)}`, "#ff69b4", "Alerts");
             sugar_rush_attempts = 0;
         }
     }
