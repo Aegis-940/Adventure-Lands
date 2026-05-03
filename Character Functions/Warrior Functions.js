@@ -122,6 +122,10 @@ const equipment_sets = {
 		{ item_name: "fireblade", slot: "mainhand", level: 9, l: "l" },
 		{ item_name: "fireblade", slot: "offhand", level: 9, l: "l" },
 	],
+	sugarrush: [
+		{ item_name: "candycanesword", slot: "mainhand", level: 7, l: "l" },
+		{ item_name: "candycanesword", slot: "offhand", level: 7, l: "l" },
+	],
 	aoe: [
 		{ item_name: "fireblade", slot: "mainhand", level: 9, l: "l" },
 		{ item_name: "ololipop", slot: "offhand", level: 9, l: "l" },
@@ -239,6 +243,21 @@ function mob_count() {
 	).length;
 }
 
+async function sugar_rush_check(target) {
+
+    attack(target);
+
+    if (character.s.sugarrush === undefined) {
+        equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
+        await delay(50);
+        equip_batch([{ num: 6, slot: "mainhand" }, { num: 7, slot: "offhand" }]);
+        await delay(200);
+        if (character.s.sugarrush !== undefined) {
+            log(":candy: Sugar Rush activated! :candy:", "#ff69b4", "Alerts");
+        }
+    }
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN TICK LOOP
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -302,6 +321,7 @@ async function action_loop() {
 
 		if (ms === 0 && smart.moving === false) {
 			await attack(target);
+			awaitsugar_rush_check(target);
 		} else {
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
 		}
