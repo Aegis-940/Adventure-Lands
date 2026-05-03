@@ -320,7 +320,6 @@ async function action_loop() {
 		const ms = ms_to_next_skill('attack');
 
 		if (ms === 0 && smart.moving === false) {
-			await attack(target);
 			await sugar_rush_check(target);
 		} else {
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
