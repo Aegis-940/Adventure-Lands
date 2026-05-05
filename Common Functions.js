@@ -27,7 +27,8 @@ const locations = {
 	crab:       [{ x: -11840, y: -37 }],
 	dryad:      [{ map: 'mforest', x: 403, y: -347 }],
 	ent:        [{ x: -420, y: -1960 }],
-	fireroamer: [{ map: 'desertland', x: 150, y: -650 }],
+	// fireroamer: [{ map: 'desertland', x: 150, y: -650 }],
+	fireroamer: [{ map: 'desertland', x: 113, y: -412 }],
 	ghost:      [{ x: -405, y: -1642 }],
 	gscorpion:  [{ x: 390, y: -1422 }],
 	iceroamer:  [{ x: 823, y: -45 }],
@@ -52,9 +53,9 @@ const locations = {
 	xscorpion:  [{ x: -495, y: 685 }],
 };
 
-const HEALER_TARGET    = 'bscorpion';
-const WARRIOR_TARGET   = 'bscorpion';
-const RANGER_TARGET    = 'bscorpion';
+const HEALER_TARGET    = 'fireroamer';
+const WARRIOR_TARGET   = 'fireroamer';
+const RANGER_TARGET    = 'fireroamer';
 
 const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 
