@@ -250,7 +250,7 @@ async function sugar_rush_check(target) {
 
     attack(target);
 
-    if (character.s.sugarrush === undefined) {
+    if (character.s.sugarrush === undefined && WARRIOR_TARGET === 'bscorpion') {
         sugar_rush_attempts++;
         equip_batch([{ num: 39, slot: "mainhand" }, { num: 40, slot: "offhand" }]);
         await delay(75);
