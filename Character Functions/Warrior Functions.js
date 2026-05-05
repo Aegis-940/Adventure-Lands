@@ -472,10 +472,16 @@ function can_cleave() {
 	);
 	if (low_boss) return false;
 
-	// Don't cleave if a blacklisted monster is in AoE range
-	const blacklisted_nearby = cache.monsters_in_cleave_range.some(e =>
-		CONFIG.combat.cleave_blacklist.includes(e.mtype)
-	);
+	// Don't cleave if a blacklisted monster is in AoE range.
+	// Exception: when farming fireroamers, allow cleave if every fireroamer in
+	// range is already aggro'd onto a party member (no new pulls from the hit).
+	const blacklisted_nearby = cache.monsters_in_cleave_range.some(e => {
+		if (!CONFIG.combat.cleave_blacklist.includes(e.mtype)) return false;
+		if (e.mtype === 'fireroamer' && WARRIOR_TARGET === 'fireroamer') {
+			return !cache.party_members.includes(e.target);
+		}
+		return true;
+	});
 	if (blacklisted_nearby) return false;
 
 	return cache.monsters_in_cleave_range.length >= CONFIG.combat.cleave_min_mobs;
@@ -951,7 +957,7 @@ async function panic_check() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function is_set_equipped(set_name) {
-	const set = equipmentSets[set_name];
+	const set = equipment_sets[set_name];
 	if (!set) return false;
 
 	return set.every(item =>
