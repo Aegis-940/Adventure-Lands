@@ -19,7 +19,7 @@ const CONFIG = {
 			healer_mp_pct: 0.80,
 			ranger_hp_pct: 0.95,
 			warrior_hp_pct: 0.95,
-			max_mobs_in_range: 7
+			max_mobs_in_range: 6
 		},
 		taunt_ents: false
 	},

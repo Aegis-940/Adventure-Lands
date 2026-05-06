@@ -46,6 +46,8 @@ const COMBINE_PROFILE = {
   intearring:  { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 3 },
   skullamulet: { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 3 },
   talkingskull:{ scroll0_until: 1, scroll1_until: 2, scroll2_until: 6, primling_from: 2, max_level: 3 },
+  orbofdex:    { scroll0_until: 0, scroll1_until: 2, scroll2_until: 6, primling_from: 1, max_level: 2 },
+  orbofstr:    { scroll0_until: 0, scroll1_until: 2, scroll2_until: 6, primling_from: 1, max_level: 2 },
   // Add more items as needed
 };
 
