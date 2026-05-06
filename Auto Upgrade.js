@@ -370,9 +370,9 @@ async function auto_combine_item(level) {
 
         // Check for primling requirement and skip if not present
         if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
-            const has_primling = character.items.some(inv_item => inv_item && inv_item.name === "primling");
+            const has_primling = character.items.some(inv_item => inv_item && inv_item.name === "offeringp");
             if (!has_primling) {
-                game_log(`Skipping combine for ${itemName} (level ${lvl}): No primling found for combine requiring it.`);
+                game_log(`Skipping combine for ${itemName} (level ${lvl}): No offeringp found for combine requiring it.`);
                 continue;
             }
         }
@@ -420,9 +420,9 @@ async function auto_combine_item(level) {
 
         // Check for primling requirement and skip if not present
         if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
-            const has_primling = character.items.some(inv_item => inv_item && inv_item.name === "primling");
+            const has_primling = character.items.some(inv_item => inv_item && inv_item.name === "offeringp");
             if (!has_primling) {
-                game_log(`Skipping combine for ${itemName} (level ${lvl}): No primling found for combine requiring it.`);
+                game_log(`Skipping combine for ${itemName} (level ${lvl}): No offeringp found for combine requiring it.`);
                 continue;
             }
         }
