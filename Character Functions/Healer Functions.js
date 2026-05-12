@@ -436,7 +436,7 @@ async function try_heal() {
 	const HEAL_THRESHOLD = HEAL_TARGET.max_hp - character.heal / 1.33;
 
 	if (HEAL_TARGET.hp < HEAL_THRESHOLD && is_in_range(HEAL_TARGET, "heal")) {
-		log(`Healing → ${HEAL_TARGET.name} (${Math.round((HEAL_TARGET.hp / HEAL_TARGET.max_hp) * 100)}%)`, '#33AAFF');
+		// log(`Healing → ${HEAL_TARGET.name} (${Math.round((HEAL_TARGET.hp / HEAL_TARGET.max_hp) * 100)}%)`, '#33AAFF');
 		await heal(HEAL_TARGET);
 		return true;
 	}
