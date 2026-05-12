@@ -1048,6 +1048,14 @@ function equip_set(set_name) {
 // EVENT HANDLERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+function on_cm(name, data) {
+	if (name === 'Myras' && data.type === 'panic') {
+		panicking = data.state;
+		if (data.state) log("⚠️ Healer panicking — holding fire!", "#ffcc00", "Alerts");
+		else            log("✅ Healer panic over — resuming.", "#00ff00", "Alerts");
+	}
+}
+
 function on_party_request(name) {
 	if (CONFIG.party.group_members.includes(name)) {
 		console.log('Accepting party request from ' + name);

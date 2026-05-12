@@ -798,6 +798,7 @@ async function panic_check() {
 	if (LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= PANIC_AGGRO_THRESHOLD) {
 		if (!panicking) {
 			panicking = true;
+			send_cm(['Ulric', 'Riva'], { type: 'panic', state: true });
 			let reason = [];
 			if (LOW_HEALTH) reason.push("low health");
 			if (LOW_MANA) reason.push("low mana");
@@ -839,6 +840,7 @@ async function panic_check() {
 	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < PANIC_AGGRO_THRESHOLD) {
 		if (panicking) {
 			panicking = false;
+			send_cm(['Ulric', 'Riva'], { type: 'panic', state: false });
 			log("✅ Panic over.", "#00ff00", "Alerts");
 		}
 	}
