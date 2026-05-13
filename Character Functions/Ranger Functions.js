@@ -145,7 +145,7 @@ const cache = {
 
 const equipment_sets = {
 	single: [
-		{ item_name: "firebow", slot: "mainhand", level: 9, l: "l" },
+		{ item_name: "firebow", slot: "mainhand", level: 10, l: "l" },
 		{ item_name: "t2quiver", slot: "offhand", level: 7, l: "l" },
 	],
 	dead: [
