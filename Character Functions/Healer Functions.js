@@ -785,7 +785,7 @@ async function panic_check() {
 	LOW_HEALTH = character.hp < character.max_hp * 0.30;
 	LOW_MANA = character.mp < character.max_mp * 0.05;
 	HIGH_HEALTH = character.hp >= character.max_hp * 0.60;
-	HIGH_MANA = character.mp >= character.max_mp * 0.30;
+	HIGH_MANA = character.mp >= character.max_mp * 0.50;
 
 	const panic_slot = character.items.findIndex(i => i?.name === 'jacko');
 
