@@ -11,9 +11,9 @@ const CONFIG = {
 		target_priority: ['Myras'],
 		all_bosses,
 		cleave_min_mobs: 1,
-		cleave_blacklist: ['fireroamer', 'plantoid'],
+		cleave_blacklist: ['fireroamer'],
 		agitate_min_mobs: 2,
-		agitate_blacklist: [],
+		agitate_blacklist: ['plantoid'],
 		agitate_fireroamer_conditions: {
 			healer_hp_pct: 0.60,
 			healer_mp_pct: 0.80,
