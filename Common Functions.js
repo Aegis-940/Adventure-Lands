@@ -41,7 +41,7 @@ const locations = {
 	poisio:     [{ x: -121, y: 1360 }],
 	prat:       [{ x: 11, y: 84 }],
 	pppompom:   [{ x: 292, y: -189 }],
-	plantoid:   [{ x: -780, y: -387 }],
+	plantoid:   [{ map: 'desertland', x: -983, y: -647 }],
 	rat:        [{ x: 6, y: 430 }],
 	scorpion:   [{ x: -495, y: 685 }],
 	stoneworm:  [{ x: 830, y: 7 }],
