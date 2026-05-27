@@ -368,7 +368,7 @@ const action_loop = async () => {
 // untargeted monster can be within character.explosion radius of it.
 function is_safe_to_aoe(mob) {
 	if (!mob.target) return false;
-	const radius = character.explosion + 20;
+	const radius = character.explosion + 50;
 	if (!radius) return true;
 	return !Object.values(parent.entities).some(e =>
 		e !== mob &&
