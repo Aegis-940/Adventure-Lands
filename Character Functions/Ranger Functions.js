@@ -351,9 +351,15 @@ const action_loop = async () => {
 			if (cache.heal_target) {
 				const now = performance.now();
 				const mainhand = character.slots?.mainhand?.name;
-				if (mainhand !== 'cupid' && now - state.last_weapon_swap > COOLDOWNS.weapon_swap) {
-					state.last_weapon_swap = now;
-					equip_set('heal');
+				if (mainhand !== 'cupid') {
+					// Cupid not yet equipped — request swap and skip this tick.
+					// Firing attack() before equip_set() completes sends the heal with
+					// whatever weapon is currently in hand, which is always wrong here.
+					if (now - state.last_weapon_swap > COOLDOWNS.weapon_swap) {
+						state.last_weapon_swap = now;
+						equip_set('heal');
+					}
+					return setTimeout(action_loop, 50);
 				}
 				await attack(cache.heal_target);
 			} else await handle_attack();
@@ -423,15 +429,18 @@ const handle_attack = async () => {
 	const current_mainhand = character.slots?.mainhand?.name;
 	const desired_mainhand = equipment_sets[target_set].find(i => i.slot === 'mainhand')?.item_name;
 	if (current_mainhand !== desired_mainhand) {
+		// Wrong weapon — never fire with an incorrect weapon. Either initiate the
+		// swap (if the cooldown has elapsed) or simply skip this tick. Either way
+		// we return here; the skill fires on the next tick once the server has
+		// processed the equip request. This prevents:
+		//   - cupid being used against monsters
+		//   - pouchbow AoE exploding before the safety check sees the right weapon
+		//   - any skill landing with the wrong stat profile
 		if (now - state.last_weapon_swap > COOLDOWNS.weapon_swap) {
 			state.last_weapon_swap = now;
 			equip_set(target_set);
-		} else if (current_mainhand === 'cupid' || CONFIG.combat.safe_aoe_targets_only) {
-			// Wrong weapon equipped and swap not ready:
-			//   - cupid must never fire at monsters, so always skip
-			//   - pouchbow explosion risk means we skip rather than fire wrong weapon
-			return;
 		}
+		return;
 	}
 	await skill_call();
 };
