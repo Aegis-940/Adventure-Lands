@@ -16,6 +16,10 @@ const CONFIG = {
 		use_supershot: true,
 		min_targets_for_5shot: 4,
 		min_targets_for_3shot: 2,
+		// When true: only attack targets that already have aggro and have no
+		// un-aggro'd monsters within the pouchbow's AoE of them. Prevents
+		// splash from pulling additional mobs unintentionally.
+		safe_aoe_targets_only: RANGER_TARGET === 'firespirit',
 	},
 
 	movement: {
@@ -360,9 +364,35 @@ const action_loop = async () => {
 	setTimeout(action_loop, delay);
 };
 
+// Returns true if it's safe to fire AoE at this mob:
+//   - the mob already has aggro (won't trigger a fresh pull), AND
+//   - no un-aggro'd monsters are within the pouchbow splash radius of it
+function is_safe_to_aoe(mob) {
+	if (!mob.target) return false;
+	const radius = character.explosion || 0;
+	return !Object.values(parent.entities).some(e =>
+		e !== mob &&
+		e.type === 'monster' &&
+		!e.dead &&
+		!e.target &&
+		Math.hypot(e.x - mob.x, e.y - mob.y) <= radius
+	);
+}
+
 const handle_attack = async () => {
-	const { sorted_by_hp, clumped, in_range, out_of_range } = cache.targets;
+	let { sorted_by_hp, clumped, in_range, out_of_range } = cache.targets;
 	if (!sorted_by_hp.length) return;
+
+	// In safe-AoE mode (e.g. firespirit), restrict all target lists to mobs
+	// that already have aggro and have no untargeted mobs in splash range.
+	// This prevents the pouchbow's AoE from accidentally pulling fresh mobs.
+	if (CONFIG.combat.safe_aoe_targets_only) {
+		sorted_by_hp = sorted_by_hp.filter(is_safe_to_aoe);
+		in_range     = in_range.filter(is_safe_to_aoe);
+		out_of_range = out_of_range.filter(is_safe_to_aoe);
+		clumped      = clumped.filter(is_safe_to_aoe);
+		if (!sorted_by_hp.length) return;
+	}
 
 	const min5 = CONFIG.combat.min_targets_for_5shot;
 	const min3 = CONFIG.combat.min_targets_for_3shot;
