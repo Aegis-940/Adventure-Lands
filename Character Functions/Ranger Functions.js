@@ -424,9 +424,16 @@ const handle_attack = async () => {
 	const now = performance.now();
 	const current_mainhand = character.slots?.mainhand?.name;
 	const desired_mainhand = equipment_sets[target_set].find(i => i.slot === 'mainhand')?.item_name;
-	if (current_mainhand !== desired_mainhand && now - state.last_weapon_swap > COOLDOWNS.weapon_swap) {
-		state.last_weapon_swap = now;
-		equip_set(target_set);
+	if (current_mainhand !== desired_mainhand) {
+		if (now - state.last_weapon_swap > COOLDOWNS.weapon_swap) {
+			state.last_weapon_swap = now;
+			equip_set(target_set);
+		} else if (aoe_blocked) {
+			// Pouchbow still equipped but swap cooldown not ready — skip this
+			// tick entirely rather than firing with the wrong weapon and
+			// triggering an unintended explosion.
+			return;
+		}
 	}
 	await skill_call();
 };
