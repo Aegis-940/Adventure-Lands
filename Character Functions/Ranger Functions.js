@@ -380,10 +380,6 @@ function is_safe_to_aoe(mob) {
 }
 
 const handle_attack = async () => {
-	// Cupid is a heal weapon — if it's still equipped from a heal-attack, skip
-	// this tick entirely rather than firing combat skills with it.
-	if (character.slots?.mainhand?.name === 'cupid') return;
-
 	const { sorted_by_hp, clumped, in_range, out_of_range } = cache.targets;
 	if (!sorted_by_hp.length) return;
 
@@ -422,9 +418,10 @@ const handle_attack = async () => {
 		if (now - state.last_weapon_swap > COOLDOWNS.weapon_swap) {
 			state.last_weapon_swap = now;
 			equip_set(target_set);
-		} else if (CONFIG.combat.safe_aoe_targets_only) {
-			// Falling back to single but pouchbow still equipped and swap not
-			// ready — skip this tick to avoid triggering an explosion.
+		} else if (current_mainhand === 'cupid' || CONFIG.combat.safe_aoe_targets_only) {
+			// Wrong weapon equipped and swap not ready:
+			//   - cupid must never fire at monsters, so always skip
+			//   - pouchbow explosion risk means we skip rather than fire wrong weapon
 			return;
 		}
 	}
