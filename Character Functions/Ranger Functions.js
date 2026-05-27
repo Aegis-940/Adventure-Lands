@@ -383,17 +383,6 @@ const handle_attack = async () => {
 	const { sorted_by_hp, clumped, in_range, out_of_range } = cache.targets;
 	if (!sorted_by_hp.length) return;
 
-	// In safe-AoE mode, build filtered lists containing only targets that
-	// pass the per-target safety check. Multi-shot uses these lists so it
-	// only fires at mobs whose explosion radius is clear of untargeted mobs.
-	// Single-target always uses the full in_range list (firebow has no AoE).
-	let aoe_clumped = clumped, aoe_in_range = in_range, aoe_out_of_range = out_of_range;
-	if (CONFIG.combat.safe_aoe_targets_only) {
-		aoe_clumped      = clumped.filter(is_safe_to_aoe);
-		aoe_in_range     = in_range.filter(is_safe_to_aoe);
-		aoe_out_of_range = out_of_range.filter(is_safe_to_aoe);
-	}
-
 	const min5 = CONFIG.combat.min_targets_for_5shot;
 	const min3 = CONFIG.combat.min_targets_for_3shot;
 	const mp5 = (G.skills['5shot']?.mp + 400);
@@ -404,12 +393,24 @@ const handle_attack = async () => {
 	const can_1shot = character.mp >= mp1;
 
 	let target_set, skill_call;
-	if (can_5shot && aoe_clumped.length >= min5)            { target_set = 'boom';   skill_call = () => use_skill('5shot', aoe_clumped.slice(0, 5).map(e => e.id)); }
-	else if (can_5shot && aoe_in_range.length >= min5)      { target_set = 'boom';   skill_call = () => use_skill('5shot', aoe_in_range.slice(0, 5).map(e => e.id)); }
-	else if (can_5shot && aoe_out_of_range.length >= min5)  { target_set = 'boom';   skill_call = () => use_skill('5shot', aoe_out_of_range.slice(0, 5).map(e => e.id)); }
-	else if (can_3shot && aoe_in_range.length >= min3)      { target_set = 'boom';   skill_call = () => use_skill('3shot', aoe_in_range.slice(0, 3).map(e => e.id)); }
-	else if (can_1shot && in_range.length >= 1)             { target_set = 'single'; skill_call = () => attack(in_range[0]); }
-	else return;
+	if (CONFIG.combat.safe_aoe_targets_only) {
+		// Safe-AoE mode: filter in-range targets only. Clumped and out-of-range
+		// paths are skipped — out-of-range has longer flight time which increases
+		// the timing window for untargeted mobs to wander into the blast radius.
+		const aoe_targets = in_range.filter(is_safe_to_aoe);
+		if      (can_5shot && aoe_targets.length >= min5) { target_set = 'boom';   skill_call = () => use_skill('5shot', aoe_targets.slice(0, 5).map(e => e.id)); }
+		else if (can_3shot && aoe_targets.length >= min3) { target_set = 'boom';   skill_call = () => use_skill('3shot', aoe_targets.slice(0, 3).map(e => e.id)); }
+		else if (can_1shot && in_range.length >= 1)       { target_set = 'single'; skill_call = () => attack(in_range[0]); }
+		else return;
+	} else {
+		// Normal mode: full priority cascade including clumped and out-of-range
+		if      (can_5shot && clumped.length >= min5)       { target_set = 'boom';   skill_call = () => use_skill('5shot', clumped.slice(0, 5).map(e => e.id)); }
+		else if (can_5shot && in_range.length >= min5)      { target_set = 'boom';   skill_call = () => use_skill('5shot', in_range.slice(0, 5).map(e => e.id)); }
+		else if (can_5shot && out_of_range.length >= min5)  { target_set = 'boom';   skill_call = () => use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id)); }
+		else if (can_3shot && in_range.length >= min3)      { target_set = 'boom';   skill_call = () => use_skill('3shot', in_range.slice(0, 3).map(e => e.id)); }
+		else if (can_1shot && in_range.length >= 1)         { target_set = 'single'; skill_call = () => attack(in_range[0]); }
+		else return;
+	}
 
 	const now = performance.now();
 	const current_mainhand = character.slots?.mainhand?.name;
@@ -779,12 +780,12 @@ async function panic_check() {
 	).length;
 
 	// PANIC CONDITION
-	if (LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= PANIC_AGGRO_THRESHOLD) {
+	if (LOW_HEALTH || MONSTERS_TARGETING_ME >= PANIC_AGGRO_THRESHOLD) {
 		if (!panicking) {
 			panicking = true;
 			let reason = [];
 			if (LOW_HEALTH) reason.push("low health");
-			if (LOW_MANA) reason.push("low mana");
+			// if (LOW_MANA) reason.push("low mana");
 			if (MONSTERS_TARGETING_ME >= PANIC_AGGRO_THRESHOLD) reason.push("high aggro");
 			log(`⚠️ Panic triggered: ${reason.join(", ")}!`, "#ffcc00", "Alerts");
 		}
@@ -820,7 +821,7 @@ async function panic_check() {
 	const safe_slot = character.items.findIndex(i => i?.name === 'orbg');
 
 	// SAFE CONDITION
-	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < PANIC_AGGRO_THRESHOLD) {
+	if (HIGH_HEALTH && MONSTERS_TARGETING_ME < PANIC_AGGRO_THRESHOLD) {
 		if (panicking) {
 			panicking = false;
 			log("✅ Panic over.", "#00ff00", "Alerts");
