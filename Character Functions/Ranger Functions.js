@@ -377,7 +377,7 @@ function untargeted_mobs_in_range() {
 // Returns true if any in-range target has an untargeted monster within
 // character.explosion radius of it — i.e. the projectile splash would hit it.
 function targets_have_explosion_risk() {
-	const radius = character.explosion + 2;
+	const radius = character.explosion + 10;
 	if (!radius) return false;
 	return cache.targets.in_range.some(target =>
 		Object.values(parent.entities).some(e =>
