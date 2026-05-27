@@ -364,18 +364,14 @@ const action_loop = async () => {
 	setTimeout(action_loop, delay);
 };
 
-// Returns true if it's safe to fire AoE at this mob:
-//   - the mob already has aggro (won't trigger a fresh pull), AND
-//   - no un-aggro'd monsters are within the pouchbow splash radius of it
-function is_safe_to_aoe(mob) {
-	if (!mob.target) return false;
-	const radius = character.explosion || 0;
-	return !Object.values(parent.entities).some(e =>
-		e !== mob &&
+// Returns true if there are any untargeted monsters within the ranger's
+// attack range — used to decide whether AoE is safe to fire.
+function untargeted_mobs_in_range() {
+	return Object.values(parent.entities).some(e =>
 		e.type === 'monster' &&
 		!e.dead &&
 		!e.target &&
-		Math.hypot(e.x - mob.x, e.y - mob.y) <= radius
+		is_in_range(e)
 	);
 }
 
@@ -383,16 +379,10 @@ const handle_attack = async () => {
 	let { sorted_by_hp, clumped, in_range, out_of_range } = cache.targets;
 	if (!sorted_by_hp.length) return;
 
-	// In safe-AoE mode (e.g. firespirit), restrict all target lists to mobs
-	// that already have aggro and have no untargeted mobs in splash range.
-	// This prevents the pouchbow's AoE from accidentally pulling fresh mobs.
-	if (CONFIG.combat.safe_aoe_targets_only) {
-		sorted_by_hp = sorted_by_hp.filter(is_safe_to_aoe);
-		in_range     = in_range.filter(is_safe_to_aoe);
-		out_of_range = out_of_range.filter(is_safe_to_aoe);
-		clumped      = clumped.filter(is_safe_to_aoe);
-		if (!sorted_by_hp.length) return;
-	}
+	// In safe-AoE mode (e.g. firespirit), if any untargeted mobs are within
+	// attack range, skip multi-shot entirely — the pouchbow's AoE would pull
+	// them. Fall back to single-target on an already-aggro'd mob instead.
+	const aoe_blocked = CONFIG.combat.safe_aoe_targets_only && untargeted_mobs_in_range();
 
 	const min5 = CONFIG.combat.min_targets_for_5shot;
 	const min3 = CONFIG.combat.min_targets_for_3shot;
@@ -403,13 +393,15 @@ const handle_attack = async () => {
 	const can_3shot = character.mp >= mp3;
 	const can_1shot = character.mp >= mp1;
 
-	// Decide which set + skill we want for this tick
+	// Decide which set + skill we want for this tick.
+	// When aoe_blocked, skip all multi-shot options and fall straight through
+	// to single-target so the pouchbow AoE can't pull untargeted mobs.
 	let target_set, skill_call;
-	if (can_5shot && clumped.length >= min5)            { target_set = 'boom';   skill_call = () => use_skill('5shot', clumped.slice(0, 5).map(e => e.id)); }
-	else if (can_5shot && in_range.length >= min5)      { target_set = 'boom';   skill_call = () => use_skill('5shot', in_range.slice(0, 5).map(e => e.id)); }
-	else if (can_5shot && out_of_range.length >= min5)  { target_set = 'boom';   skill_call = () => use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id)); }
-	else if (can_3shot && in_range.length >= min3)      { target_set = 'boom';   skill_call = () => use_skill('3shot', in_range.slice(0, 3).map(e => e.id)); }
-	else if (can_1shot && in_range.length >= 1)         { target_set = 'single'; skill_call = () => attack(in_range[0]); }
+	if (!aoe_blocked && can_5shot && clumped.length >= min5)            { target_set = 'boom';   skill_call = () => use_skill('5shot', clumped.slice(0, 5).map(e => e.id)); }
+	else if (!aoe_blocked && can_5shot && in_range.length >= min5)      { target_set = 'boom';   skill_call = () => use_skill('5shot', in_range.slice(0, 5).map(e => e.id)); }
+	else if (!aoe_blocked && can_5shot && out_of_range.length >= min5)  { target_set = 'boom';   skill_call = () => use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id)); }
+	else if (!aoe_blocked && can_3shot && in_range.length >= min3)      { target_set = 'boom';   skill_call = () => use_skill('3shot', in_range.slice(0, 3).map(e => e.id)); }
+	else if (can_1shot && in_range.length >= 1)                         { target_set = 'single'; skill_call = () => attack(in_range[0]); }
 	else return;
 
 	const now = performance.now();
