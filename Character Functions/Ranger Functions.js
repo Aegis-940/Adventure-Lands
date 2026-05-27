@@ -380,6 +380,10 @@ function is_safe_to_aoe(mob) {
 }
 
 const handle_attack = async () => {
+	// Cupid is a heal weapon — if it's still equipped from a heal-attack, skip
+	// this tick entirely rather than firing combat skills with it.
+	if (character.slots?.mainhand?.name === 'cupid') return;
+
 	const { sorted_by_hp, clumped, in_range, out_of_range } = cache.targets;
 	if (!sorted_by_hp.length) return;
 
