@@ -368,8 +368,10 @@ const action_loop = async () => {
 // untargeted monster can be within character.explosion radius of it.
 function is_safe_to_aoe(mob) {
 	if (!mob.target) return false;
-	const radius = character.explosion + 50;
-	if (!radius) return true;
+	// Use ?? to guard against character.explosion being undefined — adding any
+	// number to undefined produces NaN, which is falsy, silently bypassing the
+	// entire entity check and making every target appear safe.
+	const radius = (character.explosion ?? 0) + 50;
 	return !Object.values(parent.entities).some(e =>
 		e !== mob &&
 		e.type === 'monster' &&
