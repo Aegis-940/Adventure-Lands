@@ -16,10 +16,6 @@ const CONFIG = {
 		use_supershot: true,
 		min_targets_for_5shot: 4,
 		min_targets_for_3shot: 2,
-		// When true: only attack targets that already have aggro and have no
-		// un-aggro'd monsters within the pouchbow's AoE of them. Prevents
-		// splash from pulling additional mobs unintentionally.
-		safe_aoe_targets_only: RANGER_TARGET === 'firespirit',
 	},
 
 	movement: {
@@ -351,15 +347,9 @@ const action_loop = async () => {
 			if (cache.heal_target) {
 				const now = performance.now();
 				const mainhand = character.slots?.mainhand?.name;
-				if (mainhand !== 'cupid') {
-					// Cupid not yet equipped — request swap and skip this tick.
-					// Firing attack() before equip_set() completes sends the heal with
-					// whatever weapon is currently in hand, which is always wrong here.
-					if (now - state.last_weapon_swap > EQUIP_REQUEST_THROTTLE) {
-						state.last_weapon_swap = now;
-						equip_set('heal');
-					}
-					return setTimeout(action_loop, 50);
+				if (mainhand !== 'cupid' && now - state.last_weapon_swap > COOLDOWNS.weapon_swap) {
+					state.last_weapon_swap = now;
+					equip_set('heal');
 				}
 				await attack(cache.heal_target);
 			} else await handle_attack();
@@ -369,30 +359,6 @@ const action_loop = async () => {
 	} catch { delay = 10; }
 	setTimeout(action_loop, delay);
 };
-
-// Per-target AoE safety check: the mob must already have aggro, and no
-// monster outside our current fight can be within the explosion radius.
-// fight_ids is a Set of entity IDs already in cache.targets — checking
-// against it rather than !e.target catches mobs that have a target (e.g.
-// a non-party player) but are not part of our engagement.
-function is_safe_to_aoe(mob, fight_ids) {
-	if (!mob.target) return false;
-	// ?? guards against character.explosion being undefined — undefined + N = NaN,
-	// which is falsy and would silently bypass the entire entity check.
-	const radius = (character.explosion ?? 0) + 50;
-	return !Object.values(parent.entities).some(e =>
-		!fight_ids.has(e.id) &&
-		e.type === 'monster' &&
-		!e.dead &&
-		Math.hypot(e.x - mob.x, e.y - mob.y) <= radius
-	);
-}
-
-// How quickly we may re-send an equip request when the wrong weapon is equipped.
-// Distinct from COOLDOWNS.weapon_swap (500ms) which gates the equipment_loop's
-// set-swaps. Here we only need to avoid hammering the server — the actual equip
-// round-trip is ~100ms, so 150ms is a safe minimum before retrying.
-const EQUIP_REQUEST_THROTTLE = 150;
 
 const handle_attack = async () => {
 	const { sorted_by_hp, clumped, in_range, out_of_range } = cache.targets;
@@ -407,46 +373,21 @@ const handle_attack = async () => {
 	const can_3shot = character.mp >= mp3;
 	const can_1shot = character.mp >= mp1;
 
+	// Decide which set + skill we want for this tick
 	let target_set, skill_call;
-	if (CONFIG.combat.safe_aoe_targets_only) {
-		// Safe-AoE mode: filter in-range targets only. Clumped and out-of-range
-		// paths are skipped — out-of-range has longer flight time which increases
-		// the timing window for untargeted mobs to wander into the blast radius.
-		// Build fight_ids once — the set of monsters already in our engagement.
-		// is_safe_to_aoe uses this instead of !e.target so it also catches mobs
-		// that have a target but aren't part of our fight (e.g. targeting Riff).
-		const fight_ids = new Set(cache.targets.sorted_by_hp.map(e => e.id));
-		const aoe_targets = in_range.filter(mob => is_safe_to_aoe(mob, fight_ids));
-		if      (can_5shot && aoe_targets.length >= min5) { target_set = 'boom';   skill_call = () => use_skill('5shot', aoe_targets.slice(0, 5).map(e => e.id)); }
-		else if (can_3shot && aoe_targets.length >= min3) { target_set = 'boom';   skill_call = () => use_skill('3shot', aoe_targets.slice(0, 3).map(e => e.id)); }
-		else if (can_1shot && in_range.length >= 1)       { target_set = 'single'; skill_call = () => attack(in_range[0]); }
-		else return;
-	} else {
-		// Normal mode: full priority cascade including clumped and out-of-range
-		if      (can_5shot && clumped.length >= min5)       { target_set = 'boom';   skill_call = () => use_skill('5shot', clumped.slice(0, 5).map(e => e.id)); }
-		else if (can_5shot && in_range.length >= min5)      { target_set = 'boom';   skill_call = () => use_skill('5shot', in_range.slice(0, 5).map(e => e.id)); }
-		else if (can_5shot && out_of_range.length >= min5)  { target_set = 'boom';   skill_call = () => use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id)); }
-		else if (can_3shot && in_range.length >= min3)      { target_set = 'boom';   skill_call = () => use_skill('3shot', in_range.slice(0, 3).map(e => e.id)); }
-		else if (can_1shot && in_range.length >= 1)         { target_set = 'single'; skill_call = () => attack(in_range[0]); }
-		else return;
-	}
+	if (can_5shot && clumped.length >= min5)            { target_set = 'boom';   skill_call = () => use_skill('5shot', clumped.slice(0, 5).map(e => e.id)); }
+	else if (can_5shot && in_range.length >= min5)      { target_set = 'boom';   skill_call = () => use_skill('5shot', in_range.slice(0, 5).map(e => e.id)); }
+	else if (can_5shot && out_of_range.length >= min5)  { target_set = 'boom';   skill_call = () => use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id)); }
+	else if (can_3shot && in_range.length >= min3)      { target_set = 'boom';   skill_call = () => use_skill('3shot', in_range.slice(0, 3).map(e => e.id)); }
+	else if (can_1shot && in_range.length >= 1)         { target_set = 'single'; skill_call = () => attack(in_range[0]); }
+	else return;
 
 	const now = performance.now();
 	const current_mainhand = character.slots?.mainhand?.name;
 	const desired_mainhand = equipment_sets[target_set].find(i => i.slot === 'mainhand')?.item_name;
-	if (current_mainhand !== desired_mainhand) {
-		// Wrong weapon — never fire with an incorrect weapon. Either initiate the
-		// swap (if the throttle has elapsed) or simply skip this tick. Either way
-		// we return here; the skill fires on the next tick once the server has
-		// processed the equip request. This prevents:
-		//   - cupid being used against monsters
-		//   - pouchbow AoE exploding before the safety check sees the right weapon
-		//   - any skill landing with the wrong stat profile
-		if (now - state.last_weapon_swap > EQUIP_REQUEST_THROTTLE) {
-			state.last_weapon_swap = now;
-			equip_set(target_set);
-		}
-		return;
+	if (current_mainhand !== desired_mainhand && now - state.last_weapon_swap > COOLDOWNS.weapon_swap) {
+		state.last_weapon_swap = now;
+		equip_set(target_set);
 	}
 	await skill_call();
 };
@@ -802,12 +743,12 @@ async function panic_check() {
 	).length;
 
 	// PANIC CONDITION
-	if (LOW_HEALTH || MONSTERS_TARGETING_ME >= PANIC_AGGRO_THRESHOLD) {
+	if (LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= PANIC_AGGRO_THRESHOLD) {
 		if (!panicking) {
 			panicking = true;
 			let reason = [];
 			if (LOW_HEALTH) reason.push("low health");
-			// if (LOW_MANA) reason.push("low mana");
+			if (LOW_MANA) reason.push("low mana");
 			if (MONSTERS_TARGETING_ME >= PANIC_AGGRO_THRESHOLD) reason.push("high aggro");
 			log(`⚠️ Panic triggered: ${reason.join(", ")}!`, "#ffcc00", "Alerts");
 		}
@@ -843,7 +784,7 @@ async function panic_check() {
 	const safe_slot = character.items.findIndex(i => i?.name === 'orbg');
 
 	// SAFE CONDITION
-	if (HIGH_HEALTH && MONSTERS_TARGETING_ME < PANIC_AGGRO_THRESHOLD) {
+	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < PANIC_AGGRO_THRESHOLD) {
 		if (panicking) {
 			panicking = false;
 			log("✅ Panic over.", "#00ff00", "Alerts");
