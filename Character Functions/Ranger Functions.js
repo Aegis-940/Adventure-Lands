@@ -365,18 +365,19 @@ const action_loop = async () => {
 };
 
 // Per-target AoE safety check: the mob must already have aggro, and no
-// untargeted monster can be within character.explosion radius of it.
-function is_safe_to_aoe(mob) {
+// monster outside our current fight can be within the explosion radius.
+// fight_ids is a Set of entity IDs already in cache.targets — checking
+// against it rather than !e.target catches mobs that have a target (e.g.
+// a non-party player) but are not part of our engagement.
+function is_safe_to_aoe(mob, fight_ids) {
 	if (!mob.target) return false;
-	// Use ?? to guard against character.explosion being undefined — adding any
-	// number to undefined produces NaN, which is falsy, silently bypassing the
-	// entire entity check and making every target appear safe.
+	// ?? guards against character.explosion being undefined — undefined + N = NaN,
+	// which is falsy and would silently bypass the entire entity check.
 	const radius = (character.explosion ?? 0) + 50;
 	return !Object.values(parent.entities).some(e =>
-		e !== mob &&
+		!fight_ids.has(e.id) &&
 		e.type === 'monster' &&
 		!e.dead &&
-		!e.target &&
 		Math.hypot(e.x - mob.x, e.y - mob.y) <= radius
 	);
 }
@@ -399,7 +400,11 @@ const handle_attack = async () => {
 		// Safe-AoE mode: filter in-range targets only. Clumped and out-of-range
 		// paths are skipped — out-of-range has longer flight time which increases
 		// the timing window for untargeted mobs to wander into the blast radius.
-		const aoe_targets = in_range.filter(is_safe_to_aoe);
+		// Build fight_ids once — the set of monsters already in our engagement.
+		// is_safe_to_aoe uses this instead of !e.target so it also catches mobs
+		// that have a target but aren't part of our fight (e.g. targeting Riff).
+		const fight_ids = new Set(cache.targets.sorted_by_hp.map(e => e.id));
+		const aoe_targets = in_range.filter(mob => is_safe_to_aoe(mob, fight_ids));
 		if      (can_5shot && aoe_targets.length >= min5) { target_set = 'boom';   skill_call = () => use_skill('5shot', aoe_targets.slice(0, 5).map(e => e.id)); }
 		else if (can_3shot && aoe_targets.length >= min3) { target_set = 'boom';   skill_call = () => use_skill('3shot', aoe_targets.slice(0, 3).map(e => e.id)); }
 		else if (can_1shot && in_range.length >= 1)       { target_set = 'single'; skill_call = () => attack(in_range[0]); }
