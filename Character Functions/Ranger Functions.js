@@ -355,7 +355,7 @@ const action_loop = async () => {
 					// Cupid not yet equipped — request swap and skip this tick.
 					// Firing attack() before equip_set() completes sends the heal with
 					// whatever weapon is currently in hand, which is always wrong here.
-					if (now - state.last_weapon_swap > COOLDOWNS.weapon_swap) {
+					if (now - state.last_weapon_swap > EQUIP_REQUEST_THROTTLE) {
 						state.last_weapon_swap = now;
 						equip_set('heal');
 					}
@@ -387,6 +387,12 @@ function is_safe_to_aoe(mob, fight_ids) {
 		Math.hypot(e.x - mob.x, e.y - mob.y) <= radius
 	);
 }
+
+// How quickly we may re-send an equip request when the wrong weapon is equipped.
+// Distinct from COOLDOWNS.weapon_swap (500ms) which gates the equipment_loop's
+// set-swaps. Here we only need to avoid hammering the server — the actual equip
+// round-trip is ~100ms, so 150ms is a safe minimum before retrying.
+const EQUIP_REQUEST_THROTTLE = 150;
 
 const handle_attack = async () => {
 	const { sorted_by_hp, clumped, in_range, out_of_range } = cache.targets;
@@ -430,13 +436,13 @@ const handle_attack = async () => {
 	const desired_mainhand = equipment_sets[target_set].find(i => i.slot === 'mainhand')?.item_name;
 	if (current_mainhand !== desired_mainhand) {
 		// Wrong weapon — never fire with an incorrect weapon. Either initiate the
-		// swap (if the cooldown has elapsed) or simply skip this tick. Either way
+		// swap (if the throttle has elapsed) or simply skip this tick. Either way
 		// we return here; the skill fires on the next tick once the server has
 		// processed the equip request. This prevents:
 		//   - cupid being used against monsters
 		//   - pouchbow AoE exploding before the safety check sees the right weapon
 		//   - any skill landing with the wrong stat profile
-		if (now - state.last_weapon_swap > COOLDOWNS.weapon_swap) {
+		if (now - state.last_weapon_swap > EQUIP_REQUEST_THROTTLE) {
 			state.last_weapon_swap = now;
 			equip_set(target_set);
 		}
