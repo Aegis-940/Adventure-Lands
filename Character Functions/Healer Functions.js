@@ -25,7 +25,7 @@ const CONFIG = {
 	},
 
 	healing: {
-		party_heal_threshold: 0.50,
+		party_heal_threshold: 0.40,
 		party_heal_min_mp: 500,
 		absorb_enabled: true,
 		dark_blessing_enabled: true
