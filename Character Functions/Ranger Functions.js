@@ -364,8 +364,7 @@ const action_loop = async () => {
 	setTimeout(action_loop, delay);
 };
 
-// Returns true if there are any untargeted monsters within the ranger's
-// attack range — used to decide whether AoE is safe to fire.
+// Returns true if any untargeted monster is within the ranger's attack range.
 function untargeted_mobs_in_range() {
 	return Object.values(parent.entities).some(e =>
 		e.type === 'monster' &&
@@ -375,14 +374,32 @@ function untargeted_mobs_in_range() {
 	);
 }
 
+// Returns true if any in-range target has an untargeted monster within
+// character.explosion radius of it — i.e. the projectile splash would hit it.
+function targets_have_explosion_risk() {
+	const radius = character.explosion + 2;
+	if (!radius) return false;
+	return cache.targets.in_range.some(target =>
+		Object.values(parent.entities).some(e =>
+			e !== target &&
+			e.type === 'monster' &&
+			!e.dead &&
+			!e.target &&
+			Math.hypot(e.x - target.x, e.y - target.y) <= radius
+		)
+	);
+}
+
 const handle_attack = async () => {
 	let { sorted_by_hp, clumped, in_range, out_of_range } = cache.targets;
 	if (!sorted_by_hp.length) return;
 
-	// In safe-AoE mode (e.g. firespirit), if any untargeted mobs are within
-	// attack range, skip multi-shot entirely — the pouchbow's AoE would pull
-	// them. Fall back to single-target on an already-aggro'd mob instead.
-	const aoe_blocked = CONFIG.combat.safe_aoe_targets_only && untargeted_mobs_in_range();
+	// In safe-AoE mode (e.g. firespirit), block multi-shot if either:
+	//   - any untargeted mob is within attack range (broad check), OR
+	//   - any target has an untargeted mob within its explosion splash radius
+	// Fall back to single-target on an already-aggro'd mob instead.
+	const aoe_blocked = CONFIG.combat.safe_aoe_targets_only &&
+		(untargeted_mobs_in_range() || targets_have_explosion_risk());
 
 	const min5 = CONFIG.combat.min_targets_for_5shot;
 	const min3 = CONFIG.combat.min_targets_for_3shot;
