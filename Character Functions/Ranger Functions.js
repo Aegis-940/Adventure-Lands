@@ -385,15 +385,7 @@ const handle_attack = async () => {
 	else return;
 
 	state.target_weapon_set = target_set;
-
-	const equipped_mainhand = character.slots?.mainhand?.name;
-	const desired_mainhand = equipment_sets[target_set]?.find(i => i.slot === 'mainhand')?.item_name;
-	if (equipped_mainhand !== desired_mainhand) {
-		const skill_name = target_set === 'boom'
-			? (in_range.length >= min5 ? '5shot' : '3shot')
-			: 'attack';
-		log(`[WEAPON MISMATCH] firing ${skill_name} with ${equipped_mainhand} (want ${desired_mainhand}, set: ${target_set})`);
-	}
+	if (!is_set_equipped(target_set)) return;
 
 	await skill_call();
 };
