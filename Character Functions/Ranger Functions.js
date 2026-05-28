@@ -380,10 +380,10 @@ const handle_attack = async () => {
 
 	// Decide which set + skill we want for this tick
 	let target_set, skill_call;
-	if (can_5shot && clumped.length >= min5)            { target_set = 'burnboom';   skill_call = () => use_skill('5shot', clumped.slice(0, 5).map(e => e.id)); }
-	else if (can_5shot && in_range.length >= min5)      { target_set = 'burnboom';   skill_call = () => use_skill('5shot', in_range.slice(0, 5).map(e => e.id)); }
-	else if (can_5shot && out_of_range.length >= min5)  { target_set = 'burnboom';   skill_call = () => use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id)); }
-	else if (can_3shot && in_range.length >= min3)      { target_set = 'burnboom';   skill_call = () => use_skill('3shot', in_range.slice(0, 3).map(e => e.id)); }
+	if (can_5shot && clumped.length >= min5)            { target_set = 'boom';   skill_call = () => use_skill('5shot', clumped.slice(0, 5).map(e => e.id)); }
+	else if (can_5shot && in_range.length >= min5)      { target_set = 'boom';   skill_call = () => use_skill('5shot', in_range.slice(0, 5).map(e => e.id)); }
+	else if (can_5shot && out_of_range.length >= min5)  { target_set = 'boom';   skill_call = () => use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id)); }
+	else if (can_3shot && in_range.length >= min3)      { target_set = 'boom';   skill_call = () => use_skill('3shot', in_range.slice(0, 3).map(e => e.id)); }
 	else if (can_1shot && in_range.length >= 1)         { target_set = 'single'; skill_call = () => attack(in_range[0]); }
 	else return;
 
