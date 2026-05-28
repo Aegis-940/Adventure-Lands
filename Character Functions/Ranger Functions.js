@@ -373,12 +373,26 @@ const handle_attack = async () => {
 	const can_3shot = character.mp >= mp3;
 	const can_1shot = character.mp >= mp1;
 
+	// Pre-compute best cluster target: highest count of OTHER aggro'd mobs within 40 units
+	let cluster_target = null;
+	let best_cluster_count = 2; // must beat 2 to satisfy >= 3 threshold
+	for (const mob of in_range) {
+		let count = 0;
+		for (const id in parent.entities) {
+			const e = parent.entities[id];
+			if (e?.type === 'monster' && !e.dead && e.target && e !== mob &&
+				Math.hypot(e.x - mob.x, e.y - mob.y) <= 40) count++;
+		}
+		if (count > best_cluster_count) { best_cluster_count = count; cluster_target = mob; }
+	}
+
 	// Decide which skill to use this tick
 	let skill_call;
 	if (can_5shot && clumped.length >= min5)            { skill_call = () => use_skill('5shot', clumped.slice(0, 5).map(e => e.id)); }
 	else if (can_5shot && in_range.length >= min5)      { skill_call = () => use_skill('5shot', in_range.slice(0, 5).map(e => e.id)); }
 	else if (can_5shot && out_of_range.length >= min5)  { skill_call = () => use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id)); }
 	else if (can_3shot && in_range.length >= min3)      { skill_call = () => use_skill('3shot', in_range.slice(0, 3).map(e => e.id)); }
+	else if (can_1shot && cluster_target)               { skill_call = () => attack(cluster_target); }
 	else if (can_1shot && in_range.length >= 1)         { skill_call = () => attack(in_range[0]); }
 	else return;
 
@@ -491,6 +505,16 @@ async function equipment_loop() {
 			} else if (can_5shot && (clumped.length >= min5 || in_range.length >= min5 || out_of_range.length >= min5)) {
 				desired = 'boom';
 			} else if (can_3shot && in_range.length >= min3) {
+				desired = 'boom';
+			} else if (in_range.some(mob => {
+				let count = 0;
+				for (const id in parent.entities) {
+					const e = parent.entities[id];
+					if (e?.type === 'monster' && !e.dead && e.target && e !== mob &&
+						Math.hypot(e.x - mob.x, e.y - mob.y) <= 40) count++;
+				}
+				return count >= 3;
+			})) {
 				desired = 'boom';
 			} else {
 				desired = 'single';
