@@ -124,7 +124,6 @@ const state = {
 	last_xp_swap: 0,
 	angle: 0,
 	last_angle_update: performance.now(),
-	target_weapon_set: 'single',
 };
 
 const cache = {
@@ -352,7 +351,6 @@ const action_loop = async () => {
 
 		if (ms === 0 && smart.moving === false) {
 			if (cache.heal_target) {
-				state.target_weapon_set = 'heal';
 				await attack(cache.heal_target);
 			} else await handle_attack();
 		} else {
@@ -375,17 +373,14 @@ const handle_attack = async () => {
 	const can_3shot = character.mp >= mp3;
 	const can_1shot = character.mp >= mp1;
 
-	// Decide which set + skill we want for this tick
-	let target_set, skill_call;
-	if (can_5shot && clumped.length >= min5)            { target_set = 'boom';   skill_call = () => use_skill('5shot', clumped.slice(0, 5).map(e => e.id)); }
-	else if (can_5shot && in_range.length >= min5)      { target_set = 'boom';   skill_call = () => use_skill('5shot', in_range.slice(0, 5).map(e => e.id)); }
-	else if (can_5shot && out_of_range.length >= min5)  { target_set = 'boom';   skill_call = () => use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id)); }
-	else if (can_3shot && in_range.length >= min3)      { target_set = 'boom';   skill_call = () => use_skill('3shot', in_range.slice(0, 3).map(e => e.id)); }
-	else if (can_1shot && in_range.length >= 1)         { target_set = 'single'; skill_call = () => attack(in_range[0]); }
+	// Decide which skill to use this tick
+	let skill_call;
+	if (can_5shot && clumped.length >= min5)            { skill_call = () => use_skill('5shot', clumped.slice(0, 5).map(e => e.id)); }
+	else if (can_5shot && in_range.length >= min5)      { skill_call = () => use_skill('5shot', in_range.slice(0, 5).map(e => e.id)); }
+	else if (can_5shot && out_of_range.length >= min5)  { skill_call = () => use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id)); }
+	else if (can_3shot && in_range.length >= min3)      { skill_call = () => use_skill('3shot', in_range.slice(0, 3).map(e => e.id)); }
+	else if (can_1shot && in_range.length >= 1)         { skill_call = () => attack(in_range[0]); }
 	else return;
-
-	state.target_weapon_set = target_set;
-	if (!is_set_equipped(target_set)) return;
 
 	await skill_call();
 };
@@ -484,8 +479,24 @@ async function equipment_loop() {
 
 		// Weapon Set Swap
 		if (now - state.last_weapon_swap > swap_cooldown) {
-			const desired = state.target_weapon_set;
-			if (desired && !is_set_equipped(desired)) {
+			const { in_range, out_of_range, clumped } = cache.targets;
+			const min5 = CONFIG.combat.min_targets_for_5shot;
+			const min3 = CONFIG.combat.min_targets_for_3shot;
+			const can_5shot = character.mp >= (G.skills['5shot']?.mp + 400);
+			const can_3shot = character.mp >= (G.skills['3shot']?.mp + 200);
+
+			let desired;
+			if (cache.heal_target) {
+				desired = 'heal';
+			} else if (can_5shot && (clumped.length >= min5 || in_range.length >= min5 || out_of_range.length >= min5)) {
+				desired = 'boom';
+			} else if (can_3shot && in_range.length >= min3) {
+				desired = 'boom';
+			} else {
+				desired = 'single';
+			}
+
+			if (!is_set_equipped(desired)) {
 				equip_set(desired);
 				state.last_weapon_swap = now;
 			}
