@@ -14,7 +14,7 @@ const CONFIG = {
 		never_attack: ['nerfedmummy'], // Never attack
 		use_hunters_mark: true,
 		use_supershot: true,
-		skill_blacklist: ['dryad'], // Monster types to skip supershot + huntersmark on
+		skill_blacklist: ['dryad', 'fireroamer', 'plantoid'], // Monster types to skip supershot + huntersmark on
 		min_targets_for_5shot: 4,
 		min_targets_for_3shot: 2,
 	},
@@ -124,6 +124,7 @@ const state = {
 	last_xp_swap: 0,
 	angle: 0,
 	last_angle_update: performance.now(),
+	target_weapon_set: 'single',
 };
 
 const cache = {
@@ -351,12 +352,7 @@ const action_loop = async () => {
 
 		if (ms === 0 && smart.moving === false) {
 			if (cache.heal_target) {
-				const now = performance.now();
-				const mainhand = character.slots?.mainhand?.name;
-				if (mainhand !== 'cupid' && now - state.last_weapon_swap > COOLDOWNS.weapon_swap) {
-					state.last_weapon_swap = now;
-					equip_set('heal');
-				}
+				state.target_weapon_set = 'heal';
 				await attack(cache.heal_target);
 			} else await handle_attack();
 		} else {
@@ -388,13 +384,7 @@ const handle_attack = async () => {
 	else if (can_1shot && in_range.length >= 1)         { target_set = 'single'; skill_call = () => attack(in_range[0]); }
 	else return;
 
-	const now = performance.now();
-	const current_mainhand = character.slots?.mainhand?.name;
-	const desired_mainhand = equipment_sets[target_set].find(i => i.slot === 'mainhand')?.item_name;
-	if (current_mainhand !== desired_mainhand && now - state.last_weapon_swap > COOLDOWNS.weapon_swap) {
-		state.last_weapon_swap = now;
-		equip_set(target_set);
-	}
+	state.target_weapon_set = target_set;
 	await skill_call();
 };
 
@@ -489,6 +479,15 @@ async function equipment_loop() {
 
 		const now = performance.now();
 		const swap_cooldown = CONFIG.equipment.swap_cooldown;
+
+		// Weapon Set Swap
+		if (now - state.last_weapon_swap > swap_cooldown) {
+			const desired = state.target_weapon_set;
+			if (desired && !is_set_equipped(desired)) {
+				equip_set(desired);
+				state.last_weapon_swap = now;
+			}
+		}
 
 		const mainhand = character.slots?.mainhand?.name;
 		if (mainhand === 'cupid') return setTimeout(equipment_loop, delay);
