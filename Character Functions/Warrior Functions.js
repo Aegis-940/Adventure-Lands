@@ -21,7 +21,9 @@ const CONFIG = {
 			warrior_hp_pct: 0.95,
 			max_mobs_in_range: 6
 		},
-		taunt_ents: false
+		taunt_ents: false,
+		// Options: 'highest_hp', 'lowest_hp', 'nearest'
+		target_selection: 'highest_hp'
 	},
 
 	movement: {
@@ -203,18 +205,19 @@ function find_best_target() {
 
 	// Priority 2: Any cursed monster in range (highest HP)
 	const cursed = get_nearest_monster_v2({
-		status_effects: ['cursed'],
+		statusEffects: ['cursed'],
 		max_distance: character.range,
 		check_max_hp: true
 	});
 	if (cursed) return cursed;
 
-	// Priority 3: Highest HP monster in range
-	const highest_hp = get_nearest_monster_v2({
-		max_distance: character.range,
-		check_max_hp: true
-	});
-	if (highest_hp) return highest_hp;
+	// Priority 3: Monster selected by target_selection config
+	const sel = CONFIG.combat.target_selection;
+	const hp_opt = sel === 'highest_hp' ? { check_max_hp: true }
+	             : sel === 'lowest_hp'  ? { check_min_hp: true }
+	             : {};
+	const selected = get_nearest_monster_v2({ max_distance: character.range, ...hp_opt });
+	if (selected) return selected;
 
 	return null;
 }
