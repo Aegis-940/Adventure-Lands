@@ -14,6 +14,7 @@ const CONFIG = {
 		never_attack: ['nerfedmummy'], // Never attack
 		use_hunters_mark: true,
 		use_supershot: true,
+		skill_blacklist: ['dryad'], // Monster types to skip supershot + huntersmark on
 		min_targets_for_5shot: 4,
 		min_targets_for_3shot: 2,
 	},
@@ -432,11 +433,13 @@ const skill_loop = async () => {
 		if (minMs < character.ping / 10) {
 			change_target(target);
 
-			if (CONFIG.combat.use_hunters_mark && msHunter === 0 && !target.s?.marked) {
+			const skill_allowed = !CONFIG.combat.skill_blacklist.includes(target.mtype);
+
+			if (skill_allowed && CONFIG.combat.use_hunters_mark && msHunter === 0 && !target.s?.marked) {
 				await use_skill('huntersmark', target);
 			}
 
-			if (CONFIG.combat.use_supershot && msSuper === 0) {
+			if (skill_allowed && CONFIG.combat.use_supershot && msSuper === 0) {
 				await use_skill('supershot', target);
 			}
 		} else {
