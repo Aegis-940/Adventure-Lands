@@ -127,7 +127,7 @@ const state = {
 };
 
 const cache = {
-	targets: { sorted_by_hp: [], in_range: [], out_of_range: [], clumped: [], last_update: 0 },
+	targets: { sorted_by_hp: [], in_range: [], out_of_range: [], clumped: [], cluster_targets: [], cluster_target: null },
 	heal_target: null,
 	last_update: 0,
 
@@ -220,6 +220,7 @@ const should_attack_mob = (mob) => {
 };
 
 const update_cache = () => {
+	if (cache.is_valid()) return;
 	const now = performance.now();
 	cache.targets = update_target_cache();
 	cache.heal_target = find_heal_target();
@@ -265,7 +266,22 @@ const update_target_cache = () => {
 		}
 	}
 
-	return { sorted_by_hp, in_range, out_of_range, clumped };
+	// Score all in-range mobs by number of OTHER aggro'd mobs within explosion radius, sort densest first
+	const explosion_radius = character.explosion || 40;
+	const scored = in_range.map(mob => {
+		let count = 0;
+		for (const id in parent.entities) {
+			const e = parent.entities[id];
+			if (e?.type === 'monster' && !e.dead && e.target && e !== mob &&
+				Math.hypot(e.x - mob.x, e.y - mob.y) <= explosion_radius) count++;
+		}
+		return { mob, count };
+	});
+	scored.sort((a, b) => b.count - a.count);
+	const cluster_targets = scored.map(s => s.mob);
+	const cluster_target = scored[0]?.count >= 3 ? scored[0].mob : null;
+
+	return { sorted_by_hp, in_range, out_of_range, clumped, cluster_targets, cluster_target };
 };
 
 const find_heal_target = () => {
@@ -361,7 +377,7 @@ const action_loop = async () => {
 };
 
 const handle_attack = async () => {
-	const { sorted_by_hp, clumped, in_range, out_of_range } = cache.targets;
+	const { sorted_by_hp, in_range, out_of_range, cluster_targets, cluster_target } = cache.targets;
 	if (!sorted_by_hp.length) return;
 
 	const min5 = CONFIG.combat.min_targets_for_5shot;
@@ -373,25 +389,11 @@ const handle_attack = async () => {
 	const can_3shot = character.mp >= mp3;
 	const can_1shot = character.mp >= mp1;
 
-	// Pre-compute best cluster target: highest count of OTHER aggro'd mobs within 40 units
-	let cluster_target = null;
-	let best_cluster_count = 2; // must beat 2 to satisfy >= 3 threshold
-	for (const mob of in_range) {
-		let count = 0;
-		for (const id in parent.entities) {
-			const e = parent.entities[id];
-			if (e?.type === 'monster' && !e.dead && e.target && e !== mob &&
-				Math.hypot(e.x - mob.x, e.y - mob.y) <= 40) count++;
-		}
-		if (count > best_cluster_count) { best_cluster_count = count; cluster_target = mob; }
-	}
-
-	// Decide which skill to use this tick
+	// Decide which skill to use this tick — cluster_targets sorted densest-first
 	let skill_call;
-	if (can_5shot && clumped.length >= min5)            { skill_call = () => use_skill('5shot', clumped.slice(0, 5).map(e => e.id)); }
-	else if (can_5shot && in_range.length >= min5)      { skill_call = () => use_skill('5shot', in_range.slice(0, 5).map(e => e.id)); }
+	if (can_5shot && cluster_targets.length >= min5)    { skill_call = () => use_skill('5shot', cluster_targets.slice(0, 5).map(e => e.id)); }
 	else if (can_5shot && out_of_range.length >= min5)  { skill_call = () => use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id)); }
-	else if (can_3shot && in_range.length >= min3)      { skill_call = () => use_skill('3shot', in_range.slice(0, 3).map(e => e.id)); }
+	else if (can_3shot && cluster_targets.length >= min3){ skill_call = () => use_skill('3shot', cluster_targets.slice(0, 3).map(e => e.id)); }
 	else if (can_1shot && cluster_target)               { skill_call = () => attack(cluster_target); }
 	else if (can_1shot && in_range.length >= 1)         { skill_call = () => attack(in_range[0]); }
 	else return;
@@ -493,7 +495,7 @@ async function equipment_loop() {
 
 		// Weapon Set Swap
 		if (now - state.last_weapon_swap > swap_cooldown) {
-			const { in_range, out_of_range, clumped } = cache.targets;
+			const { in_range, out_of_range } = cache.targets;
 			const min5 = CONFIG.combat.min_targets_for_5shot;
 			const min3 = CONFIG.combat.min_targets_for_3shot;
 			const can_5shot = character.mp >= (G.skills['5shot']?.mp + 400);
@@ -502,19 +504,11 @@ async function equipment_loop() {
 			let desired;
 			if (cache.heal_target) {
 				desired = 'heal';
-			} else if (can_5shot && (clumped.length >= min5 || in_range.length >= min5 || out_of_range.length >= min5)) {
+			} else if (can_5shot && (in_range.length >= min5 || out_of_range.length >= min5)) {
 				desired = 'boom';
 			} else if (can_3shot && in_range.length >= min3) {
 				desired = 'boom';
-			} else if (in_range.some(mob => {
-				let count = 0;
-				for (const id in parent.entities) {
-					const e = parent.entities[id];
-					if (e?.type === 'monster' && !e.dead && e.target && e !== mob &&
-						Math.hypot(e.x - mob.x, e.y - mob.y) <= 40) count++;
-				}
-				return count >= 3;
-			})) {
+			} else if (cache.targets.cluster_target) {
 				desired = 'boom';
 			} else {
 				desired = 'single';
