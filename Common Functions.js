@@ -48,14 +48,14 @@ const locations = {
 	spider:     [{ x: 895, y: -145 }],
 	squig:      [{ x: -1175, y: 422 }],
 	targetron:  [{ x: -544, y: -275 }],
-	wolf:       [{ x: 433, y: -2745 }],
+	wolf:       [{ map: 'winterland', x: 433, y: -2745 }],
 	wolfie:     [{ x: 113, y: -2014 }],
 	xscorpion:  [{ x: -495, y: 685 }],
 };
 
-const HEALER_TARGET    = 'dryad';
-const WARRIOR_TARGET   = 'dryad';
-const RANGER_TARGET    = 'dryad';
+const HEALER_TARGET    = 'wolf';
+const WARRIOR_TARGET   = 'wolf';
+const RANGER_TARGET    = 'wolf';
 
 const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 
