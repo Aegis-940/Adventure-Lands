@@ -48,7 +48,7 @@ const locations = {
 	spider:     [{ x: 895, y: -145 }],
 	squig:      [{ x: -1175, y: 422 }],
 	targetron:  [{ x: -544, y: -275 }],
-	wolf:       [{ map: 'winterland', x: 433, y: -2745 }],
+	wolf:       [{ map: 'winterland', x: 371, y: -2316 }],
 	wolfie:     [{ x: 113, y: -2014 }],
 	xscorpion:  [{ x: -495, y: 685 }],
 };
