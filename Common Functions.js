@@ -1588,3 +1588,32 @@ function add_reload_button() {
 }
 
 add_reload_button();
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// REMOTE SELLING
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const SELLABLE_ITEMS = [
+	"hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "wbook0", "wshoes", "wcap",
+	"cclaw", "crabclaw", "slimestaff", "stinger", "pstem", "gslime", "coat1", "helmet1",
+	"gloves1", "pants1", "shoes1", "wbreeches", "vitring", "helmet", "shoes", "gloves",
+	"pmace", "throwingstars", "t2bow", "spear", "dagger", "rapier", "sword", "mushroomstaff",
+	"rfangs", "gphelmet", "phelmet", "vitearring", "vitscroll", "hhelmet", "harmor", "hpants",
+	"hgloves", "hboots", "strring", "dexring", "intring", "strearring", "dexearring", "intearring",
+	"warmscarf", "snowball", "santasbelt", "lantern", "pclaw", "broom", "skullamulet",
+	"iceskates", "carrot", "xmace", "candycanesword", "pmaceofthedead", "ornamentstaff",
+	"merry", "rednose", "xmashat", "xmasshoes", "xmassweater", "xmaspants", "mittens",
+	"angelwings", "snowflakes", "epyjamas", "ecape", "eears", "eslippers", "carrotsword",
+	"pinkie", "oozingterror", "harbringer",
+];
+
+function remote_sell_items() {
+	for (let i = 0; i < character.items.length; i++) {
+		const item = character.items[i];
+		if (!item) continue;
+		if (item.l === 'l' || item.p !== undefined) continue;
+		if (SELLABLE_ITEMS.includes(item.name)) {
+			sell(i, item.q || 1);
+		}
+	}
+}

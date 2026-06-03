@@ -1074,6 +1074,7 @@ action_loop();
 skill_loop();
 maintenance_loop();
 potion_loop();
+setInterval(remote_sell_items, 5000);
 if (HEALER_TARGET === 'bscorpion') {
 	prim_farm_loop();
 	prim_orbit_loop();

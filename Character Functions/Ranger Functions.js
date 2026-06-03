@@ -1195,3 +1195,4 @@ equipment_loop();
 maintenance_loop();
 potion_loop();
 if (RANGER_TARGET === 'bscorpion') prim_farm_loop();
+setInterval(remote_sell_items, 5000);

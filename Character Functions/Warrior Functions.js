@@ -1101,6 +1101,7 @@ equipment_loop();
 maintenance_loop();
 potion_loop();
 if (WARRIOR_TARGET === 'bscorpion') prim_farm_loop();
+setInterval(remote_sell_items, 5000);
 
 // // --------------------------------------------------------------------------------------------------------------------------------- //
 // // CUSTOM FUNCTION TO AGGRO MOBS IF MYRAS HAS ENOUGH MP

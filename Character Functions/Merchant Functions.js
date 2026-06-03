@@ -375,19 +375,7 @@ async function mluck_buff_loop() {
 // SELL AND BANK ITEMS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const SELLABLE_ITEMS = [
-    "hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "wbook0", "wshoes", "wcap",
-    "cclaw", "crabclaw", "slimestaff", "stinger", "pstem", "gslime", "coat1", "helmet1",
-    "gloves1", "pants1", "shoes1", "wbreeches", "vitring", "helmet", "shoes", "gloves",
-    "pmace", "throwingstars", "t2bow", "spear", "dagger", "rapier", "sword", "mushroomstaff",
-    "rfangs", "gphelmet", "phelmet", "vitearring", "vitscroll", "hhelmet", "harmor", "hpants",
-    "hgloves", "hboots", "strring", "dexring", "intring", "strearring", "dexearring", "intearring",
-    "warmscarf", "snowball", "santasbelt", "lantern", "pclaw", "broom", "skullamulet",
-    "iceskates", "carrot", "xmace", "candycanesword", "pmaceofthedead", "ornamentstaff",
-    "merry", "rednose", "xmashat", "xmasshoes", "xmassweater", "xmaspants", "mittens",
-    "angelwings", "snowflakes", "epyjamas", "ecape", "eears", "eslippers", "carrotsword",
-    "pinkie", "oozingterror", "harbringer",
-];
+// SELLABLE_ITEMS defined in Common Functions.js
 const BANKABLE_ITEMS = [];
 const BANK_LOCATION = { map: "bank", x: 0, y: -37 };
 
