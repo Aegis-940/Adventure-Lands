@@ -332,9 +332,7 @@ const follow_healer = () => {
 		return;
 	}
 
-	// Close enough — orbit around healer's current position
-	destination.x = healer.x;
-	destination.y = healer.y;
+	// Close enough — walk_in_circle reads healer's live position as its center
 	if (CONFIG.movement.circle_walk) walk_in_circle();
 };
 
@@ -652,7 +650,15 @@ async function walk_in_circle() {
 	if (smart.moving || character.moving) return;
 	if (RANGER_TARGET === 'bscorpion') return;
 
-	const { x: center_x, y: center_y } = locations[home][0];
+	let center;
+	if (RANGER_TARGET === 'giantspider') {
+		const healer = get_player('Myras');
+		if (!healer || healer.rip || healer.map !== character.map) return;
+		center = { x: healer.x, y: healer.y };
+	} else {
+		center = locations[home][0];
+	}
+	const { x: center_x, y: center_y } = center;
 	const now = performance.now();
 	const delta = (now - state.last_angle_update) / 1000;
 

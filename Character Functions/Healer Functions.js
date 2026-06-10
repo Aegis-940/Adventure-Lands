@@ -283,6 +283,9 @@ async function main_loop() {
 				const at_farm = character.map === PRIM_FARM_LOC.map &&
 					Math.hypot(character.x - PRIM_FARM_LOC.x, character.y - PRIM_FARM_LOC.y) < PRIM_FARM_RADIUS + 30;
 				if (!at_farm && !smart.moving) smart_move(PRIM_FARM_LOC);
+			} else if (HEALER_TARGET === 'giantspider') {
+				// No fixed location — orbit current position and let the user guide manually
+				if (CONFIG.movement.circle_walk) walk_in_circle();
 			} else if (!get_nearest_monster({ type: home })) {
 				handle_return_home();
 			} else if (CONFIG.movement.circle_walk) {
@@ -628,7 +631,9 @@ async function walk_in_circle() {
 	if (smart.moving) return;
 	if (HEALER_TARGET === 'bscorpion') return;
 
-	const center = locations[home][0];
+	const center = HEALER_TARGET === 'giantspider'
+		? { x: character.x, y: character.y }
+		: locations[home][0];
 	const radius = CONFIG.movement.circle_radius;
 
 	const current_time = performance.now();
