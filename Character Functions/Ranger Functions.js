@@ -26,7 +26,7 @@ const CONFIG = {
 		circle_radius: 75,
 		move_threshold: 10,
 		clump_radius: 30,
-		follow_distance: 25,
+		follow_distance: 30,
 	},
 
 	equipment: {
@@ -331,18 +331,25 @@ const follow_healer = () => {
 	}
 
 	const dist = Math.hypot(character.x - healer.x, character.y - healer.y);
-	if (dist <= CONFIG.movement.follow_distance) return;
+	const fd = CONFIG.movement.follow_distance;
+	if (Math.abs(dist - fd) <= 3) return;
 
-	// Cancel stale pathfinding if healer has moved far from where we're heading
+	// Cancel stale pathfinding if our distance from the ring has shifted significantly
 	if (smart.moving) {
-		if (dist > 100) smart._interrupt?.('follow_healer');
+		if (Math.abs(dist - fd) > 40) smart._interrupt?.('follow_healer');
 		return;
 	}
 
-	if (!can_move_to(healer.x, healer.y)) {
-		smart_move({ x: healer.x, y: healer.y });
+	// Target a point exactly follow_distance units from the healer along our current angle.
+	// Works for both approach (dist > fd) and push-away (dist < fd).
+	const angle = Math.atan2(character.y - healer.y, character.x - healer.x);
+	const target_x = healer.x + Math.cos(angle) * fd;
+	const target_y = healer.y + Math.sin(angle) * fd;
+
+	if (!can_move_to(target_x, target_y)) {
+		smart_move({ x: target_x, y: target_y });
 	} else {
-		move(healer.x, healer.y);
+		move(target_x, target_y);
 	}
 };
 
@@ -463,15 +470,14 @@ const skill_loop = async () => {
 
 		update_cache();
 
-		const { sorted_by_hp } = cache.targets;
+		const { sorted_by_hp, in_range } = cache.targets;
 		if (!sorted_by_hp.length) {
 			setTimeout(skill_loop, 200);
 			return;
 		}
 
-		const target = sorted_by_hp[0];
-		const target_too_far = RANGER_TARGET === 'giantspider' && parent.distance(character, target) > 50;
-		if (!target || !is_in_range(target) || target_too_far) {
+		const target = RANGER_TARGET === 'giantspider' ? in_range[0] : sorted_by_hp[0];
+		if (!target || !is_in_range(target)) {
 			setTimeout(skill_loop, 100);
 			return;
 		}

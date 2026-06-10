@@ -29,7 +29,7 @@ const CONFIG = {
 		circle_walk: true,
 		circle_speed: 1.8,
 		circle_radius: 35,
-		follow_distance: 25,
+		follow_distance: 30,
 	},
 
 	equipment: {
@@ -274,18 +274,25 @@ function follow_healer() {
 	}
 
 	const dist = Math.hypot(character.x - healer.x, character.y - healer.y);
-	if (dist <= CONFIG.movement.follow_distance) return;
+	const fd = CONFIG.movement.follow_distance;
+	if (Math.abs(dist - fd) <= 3) return;
 
-	// Cancel stale pathfinding if healer has moved far from where we're heading
+	// Cancel stale pathfinding if our distance from the ring has shifted significantly
 	if (smart.moving) {
-		if (dist > 100) smart._interrupt?.('follow_healer');
+		if (Math.abs(dist - fd) > 40) smart._interrupt?.('follow_healer');
 		return;
 	}
 
-	if (!can_move_to(healer.x, healer.y)) {
-		smart_move({ x: healer.x, y: healer.y });
+	// Target a point exactly follow_distance units from the healer along our current angle.
+	// Works for both approach (dist > fd) and push-away (dist < fd).
+	const angle = Math.atan2(character.y - healer.y, character.x - healer.x);
+	const target_x = healer.x + Math.cos(angle) * fd;
+	const target_y = healer.y + Math.sin(angle) * fd;
+
+	if (!can_move_to(target_x, target_y)) {
+		smart_move({ x: target_x, y: target_y });
 	} else {
-		move(healer.x, healer.y);
+		move(target_x, target_y);
 	}
 }
 
