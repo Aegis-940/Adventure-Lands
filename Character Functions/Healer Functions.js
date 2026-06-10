@@ -1085,18 +1085,25 @@ function on_party_invite(name) {
 // SPIDER DUNGEON
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Resolves when no living monster of mob_type exists in entities, or after timeout_ms.
+// Resolves only after mob_type was confirmed alive AND then gone.
+// Prevents false-positives when entities haven't loaded yet on arrival.
 function wait_for_death(mob_type, timeout_ms = 300000) {
 	return new Promise(resolve => {
+		let seen_alive = false;
+
 		const interval = setInterval(() => {
 			const alive = Object.values(parent.entities).some(
 				e => e.type === 'monster' && e.mtype === mob_type && !e.dead
 			);
-			if (!alive) {
+
+			if (alive) {
+				seen_alive = true;
+			} else if (seen_alive) {
 				clearInterval(interval);
 				resolve();
 			}
 		}, 500);
+
 		setTimeout(() => { clearInterval(interval); resolve(); }, timeout_ms);
 	});
 }
