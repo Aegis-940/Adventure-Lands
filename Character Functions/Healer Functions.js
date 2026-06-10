@@ -1085,11 +1085,12 @@ function on_party_invite(name) {
 // SPIDER DUNGEON
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Resolves only after mob_type was confirmed alive AND then absent for three consecutive checks.
-// Prevents false-positives from entities not yet loaded or brief visibility gaps.
+// Resolves only after mob_type is confirmed alive for 3 consecutive checks, then absent for 3 consecutive checks.
+// Double confirmation prevents false-positives from entity load flickers in both directions.
 function wait_for_death(mob_type, timeout_ms = 300000) {
 	return new Promise(resolve => {
-		let seen_alive = false;
+		let consecutive_alive = 0;
+		let confirmed_alive = false;
 		let consecutive_dead = 0;
 
 		const interval = setInterval(() => {
@@ -1098,18 +1099,27 @@ function wait_for_death(mob_type, timeout_ms = 300000) {
 			);
 
 			if (alive) {
-				seen_alive = true;
+				consecutive_alive++;
 				consecutive_dead = 0;
-			} else if (seen_alive) {
+				if (consecutive_alive >= 3) confirmed_alive = true;
+			} else if (confirmed_alive) {
+				consecutive_alive = 0;
 				consecutive_dead++;
 				if (consecutive_dead >= 3) {
 					clearInterval(interval);
+					log(`[Dungeon] ${mob_type} confirmed dead`, '#AA88FF');
 					resolve();
 				}
+			} else {
+				consecutive_alive = 0;
 			}
 		}, 500);
 
-		setTimeout(() => { clearInterval(interval); resolve(); }, timeout_ms);
+		setTimeout(() => {
+			clearInterval(interval);
+			log(`[Dungeon] wait_for_death(${mob_type}) timed out — confirmed_alive was ${confirmed_alive}`, '#FF4444');
+			resolve();
+		}, timeout_ms);
 	});
 }
 
