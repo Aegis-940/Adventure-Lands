@@ -425,10 +425,11 @@ const handle_attack = async () => {
 	const can_1shot = character.mp >= mp1;
 
 	// Decide which skill to use this tick — conditions on count, targets passed in density order
+	const single_target_mode = RANGER_TARGET === 'giantspider';
 	let skill_call;
-	if (can_5shot && in_range.length >= min5)           { skill_call = () => use_skill('5shot', cluster_targets.slice(0, 5).map(e => e.id)); }
-	else if (can_5shot && out_of_range.length >= min5)  { skill_call = () => use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id)); }
-	else if (can_3shot && in_range.length >= min3)      { skill_call = () => use_skill('3shot', cluster_targets.slice(0, 3).map(e => e.id)); }
+	if (!single_target_mode && can_5shot && in_range.length >= min5)           { skill_call = () => use_skill('5shot', cluster_targets.slice(0, 5).map(e => e.id)); }
+	else if (!single_target_mode && can_5shot && out_of_range.length >= min5)  { skill_call = () => use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id)); }
+	else if (!single_target_mode && can_3shot && in_range.length >= min3)      { skill_call = () => use_skill('3shot', cluster_targets.slice(0, 3).map(e => e.id)); }
 	else if (can_1shot && cluster_target)               { skill_call = () => attack(cluster_target); }
 	else if (can_1shot && in_range.length >= 1)         { skill_call = () => attack(in_range[0]); }
 	else return;

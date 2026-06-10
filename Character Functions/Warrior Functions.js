@@ -404,12 +404,12 @@ async function skill_loop() {
 		// }
 
 		// Cleave
-		if (CONFIG.skills.cleave_enabled && WARRIOR_TARGET !== 'bscorpion') {
+		if (CONFIG.skills.cleave_enabled && WARRIOR_TARGET !== 'bscorpion' && WARRIOR_TARGET !== 'giantspider') {
 			await handle_cleave();
 		}
 
 		// Agitate
-		if (CONFIG.skills.agitate_enabled && tank) {
+		if (CONFIG.skills.agitate_enabled && tank && WARRIOR_TARGET !== 'giantspider') {
 			await handle_agitate(tank);
 		}
 
