@@ -26,7 +26,7 @@ const CONFIG = {
 		circle_radius: 75,
 		move_threshold: 10,
 		clump_radius: 30,
-		follow_distance: 150,
+		follow_distance: 25,
 	},
 
 	equipment: {
@@ -331,16 +331,19 @@ const follow_healer = () => {
 	}
 
 	const dist = Math.hypot(character.x - healer.x, character.y - healer.y);
+	if (dist <= CONFIG.movement.follow_distance) return;
 
-	if (dist > CONFIG.movement.follow_distance) {
-		if (!can_move_to(healer.x, healer.y)) {
-			if (!smart.moving) smart_move({ x: healer.x, y: healer.y });
-		} else {
-			move(healer.x, healer.y);
-		}
+	// Cancel stale pathfinding if healer has moved far from where we're heading
+	if (smart.moving) {
+		if (dist > 100) smart._interrupt?.('follow_healer');
 		return;
 	}
 
+	if (!can_move_to(healer.x, healer.y)) {
+		smart_move({ x: healer.x, y: healer.y });
+	} else {
+		move(healer.x, healer.y);
+	}
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

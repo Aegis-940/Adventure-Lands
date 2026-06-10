@@ -366,7 +366,7 @@ async function action_loop() {
 			
 			if (panicking) return setTimeout(action_loop, 100);
 
-			if (!HEALED) {
+			if (!HEALED && HEALER_TARGET !== 'giantspider') {
 				const TARGET = cache.target;
 				if (TARGET && is_in_range(TARGET) && smart.moving === false) {
 					await attack(TARGET);
