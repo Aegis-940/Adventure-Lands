@@ -270,6 +270,11 @@ const update_target_cache = () => {
 		}
 	}
 
+	// In single-target follow mode, prefer the closest target
+	if (RANGER_TARGET === 'giantspider') {
+		in_range.sort((a, b) => parent.distance(character, a) - parent.distance(character, b));
+	}
+
 	// Score all in-range mobs by number of OTHER aggro'd mobs within explosion radius, sort densest first
 	const explosion_radius = character.explosion || 40;
 	const scored = in_range.map(mob => {
@@ -540,6 +545,8 @@ async function equipment_loop() {
 			let desired;
 			if (cache.heal_target) {
 				desired = 'heal';
+			} else if (RANGER_TARGET === 'giantspider') {
+				desired = 'single';
 			} else if (can_5shot && (in_range.length >= min5 || out_of_range.length >= min5)) {
 				desired = 'boom';
 			} else if (can_3shot && in_range.length >= min3) {

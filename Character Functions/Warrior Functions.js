@@ -729,7 +729,7 @@ async function equipment_loop() {
 
 				// Weapon swap based on mob count/map
 				if (CONFIG.equipment.weapon_swap_enabled) {
-					const home_count = mob_count();
+					const home_count = WARRIOR_TARGET === 'giantspider' ? 1 : mob_count();
 					if (home_count === 1) {
 						if (!is_set_equipped('single')) {
 							equip_set('single');
