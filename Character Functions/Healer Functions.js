@@ -284,8 +284,7 @@ async function main_loop() {
 					Math.hypot(character.x - PRIM_FARM_LOC.x, character.y - PRIM_FARM_LOC.y) < PRIM_FARM_RADIUS + 30;
 				if (!at_farm && !smart.moving) smart_move(PRIM_FARM_LOC);
 			} else if (HEALER_TARGET === 'giantspider') {
-				// No fixed location — orbit current position and let the user guide manually
-				if (CONFIG.movement.circle_walk) walk_in_circle();
+				// No movement — remain stationary and let the user guide manually
 			} else if (!get_nearest_monster({ type: home })) {
 				handle_return_home();
 			} else if (CONFIG.movement.circle_walk) {
