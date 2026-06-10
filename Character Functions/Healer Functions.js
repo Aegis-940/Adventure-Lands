@@ -1085,15 +1085,18 @@ function on_party_invite(name) {
 // SPIDER DUNGEON
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Resolves only after mob_type is confirmed alive for 3 consecutive checks, then absent for 3 consecutive checks.
-// Double confirmation prevents false-positives from entity load flickers in both directions.
-function wait_for_death(mob_type, timeout_ms = 300000) {
+// Resolves only after mob_type is confirmed alive for 3 consecutive checks, then absent for 3 consecutive checks
+// while the healer remains within spawn_radius of the spawn point.
+// If the healer drifts out of range, absence checks reset — prevents looting/movement from faking death.
+function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250, timeout_ms = 300000) {
 	return new Promise(resolve => {
 		let consecutive_alive = 0;
 		let confirmed_alive = false;
 		let consecutive_dead = 0;
 
 		const interval = setInterval(() => {
+			const near_spawn = Math.hypot(character.x - spawn_x, character.y - spawn_y) < spawn_radius;
+
 			const alive = Object.values(parent.entities).some(
 				e => e.type === 'monster' && e.mtype === mob_type && !e.dead
 			);
@@ -1102,7 +1105,7 @@ function wait_for_death(mob_type, timeout_ms = 300000) {
 				consecutive_alive++;
 				consecutive_dead = 0;
 				if (consecutive_alive >= 3) confirmed_alive = true;
-			} else if (confirmed_alive) {
+			} else if (confirmed_alive && near_spawn) {
 				consecutive_alive = 0;
 				consecutive_dead++;
 				if (consecutive_dead >= 3) {
@@ -1111,15 +1114,30 @@ function wait_for_death(mob_type, timeout_ms = 300000) {
 					resolve();
 				}
 			} else {
+				// Either not yet confirmed alive, or healer drifted out of range — reset dead counter
 				consecutive_alive = 0;
+				consecutive_dead = 0;
 			}
 		}, 500);
 
+		// Soft timeout: only skip if boss was never confirmed alive (wrong room, boss absent, etc.)
+		// If boss WAS seen alive, keep waiting — don't proceed while it's still up.
+		setTimeout(() => {
+			if (confirmed_alive) {
+				log(`[Dungeon] wait_for_death(${mob_type}) soft timeout — boss alive, still waiting...`, '#FFAA44');
+			} else {
+				clearInterval(interval);
+				log(`[Dungeon] wait_for_death(${mob_type}) timed out — boss never confirmed alive, skipping`, '#FF8844');
+				resolve();
+			}
+		}, timeout_ms);
+
+		// Hard safety escape — 15 minutes, handles truly stuck situations
 		setTimeout(() => {
 			clearInterval(interval);
-			log(`[Dungeon] wait_for_death(${mob_type}) timed out — confirmed_alive was ${confirmed_alive}`, '#FF4444');
+			log(`[Dungeon] wait_for_death(${mob_type}) hard timeout (15min) — giving up`, '#FF4444');
 			resolve();
-		}, timeout_ms);
+		}, 900000);
 	});
 }
 
@@ -1131,7 +1149,7 @@ async function run_spider_dungeon() {
 		log('Spider Dungeon: Moving to spiderbr...', '#AA88FF');
 		await smarter_move({ map: 'spider_instance', x: 192, y: -1533 });
 		await delay(2000);
-		await wait_for_death('spiderbr');
+		await wait_for_death('spiderbr', 192, -1533);
 		log('Spider Dungeon: spiderbr dead — looting', '#AA88FF');
 		await handle_looting();
 		await delay(10000);
@@ -1140,7 +1158,7 @@ async function run_spider_dungeon() {
 		log('Spider Dungeon: Moving to spiderr...', '#AA88FF');
 		await smarter_move({ map: 'spider_instance', x: 0, y: -1515 });
 		await delay(2000);
-		await wait_for_death('spiderr');
+		await wait_for_death('spiderr', 0, -1515);
 		log('Spider Dungeon: spiderr dead — looting', '#AA88FF');
 		await handle_looting();
 		await delay(10000);
@@ -1149,7 +1167,7 @@ async function run_spider_dungeon() {
 		log('Spider Dungeon: Moving to spiderbl...', '#AA88FF');
 		await smarter_move({ map: 'spider_instance', x: -188, y: -1515 });
 		await delay(2000);
-		await wait_for_death('spiderbl');
+		await wait_for_death('spiderbl', -188, -1515);
 		log('Spider Dungeon: spiderbl dead — looting', '#AA88FF');
 		await handle_looting();
 		await delay(10000);
