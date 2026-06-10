@@ -399,9 +399,9 @@ const main_loop = async () => {
 
 const action_loop = async () => {
 	if (panicking) return setTimeout(action_loop, 100);
-	const myras = get_player("Myras");
-	if (!myras || distance(character, myras) > 200) {
-		return setTimeout(action_loop, 100);
+	if (RANGER_TARGET !== 'giantspider') {
+		const myras = get_player("Myras");
+		if (!myras || distance(character, myras) > 200) return setTimeout(action_loop, 100);
 	}
 	let delay = 5;
 	try {
@@ -449,9 +449,9 @@ const handle_attack = async () => {
 
 const skill_loop = async () => {
 	if (panicking) return setTimeout(skill_loop, 100);
-	const myras = get_player("Myras");
-	if (!myras || distance(character, myras) > 200) {
-		return setTimeout(skill_loop, 100);
+	if (RANGER_TARGET !== 'giantspider') {
+		const myras = get_player("Myras");
+		if (!myras || distance(character, myras) > 200) return setTimeout(skill_loop, 100);
 	}
 	let delay = 5;
 	try {

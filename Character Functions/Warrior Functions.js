@@ -337,9 +337,9 @@ async function main_loop() {
 
 async function action_loop() {
 	if (panicking) return setTimeout(action_loop, 100);
-	const myras = get_player("Myras");
-	if (!myras || distance(character, myras) > 200) {
-		return setTimeout(action_loop, 100);
+	if (WARRIOR_TARGET !== 'giantspider') {
+		const myras = get_player("Myras");
+		if (!myras || distance(character, myras) > 200) return setTimeout(action_loop, 100);
 	}
 	let delay = 10;
 
@@ -372,9 +372,9 @@ async function action_loop() {
 
 async function skill_loop() {
 	if (panicking) return setTimeout(skill_loop, 100);
-	const myras = get_player("Myras");
-	if (!myras || distance(character, myras) > 200) {
-		return setTimeout(skill_loop, 100);
+	if (WARRIOR_TARGET !== 'giantspider') {
+		const myras = get_player("Myras");
+		if (!myras || distance(character, myras) > 200) return setTimeout(skill_loop, 100);
 	}
 	const delay = TICK_RATE.skill;
 
