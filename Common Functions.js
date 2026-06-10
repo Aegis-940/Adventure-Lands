@@ -46,16 +46,18 @@ const locations = {
 	scorpion:   [{ x: -495, y: 685 }],
 	stoneworm:  [{ x: 830, y: 7 }],
 	spider:     [{ x: 895, y: -145 }],
+	giantspider: [{ x: 895, y: -145 }],
 	squig:      [{ x: -1175, y: 422 }],
 	targetron:  [{ x: -544, y: -275 }],
 	wolf:       [{ map: 'winterland', x: 390, y: -2745 }],
 	wolfie:     [{ x: 113, y: -2014 }],
 	xscorpion:  [{ x: -495, y: 685 }],
+    giantspider:  [{ }],
 };
 
-const HEALER_TARGET    = 'wolf';
-const WARRIOR_TARGET   = 'wolf';
-const RANGER_TARGET    = 'wolf';
+const HEALER_TARGET    = 'giantspider';
+const WARRIOR_TARGET   = 'giantspider';
+const RANGER_TARGET    = 'giantspider';
 
 const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 

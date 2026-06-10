@@ -29,6 +29,7 @@ const CONFIG = {
 		circle_walk: true,
 		circle_speed: 1.8,
 		circle_radius: 35,
+		follow_distance: 150,
 	},
 
 	equipment: {
@@ -209,14 +210,11 @@ function find_best_target() {
 	});
 	if (cursed) return cursed;
 
-	// Priority 3: Highest HP monster in range
-	const highest_hp = get_nearest_monster_v2({
-		max_distance: character.range,
-		check_max_hp: true
-	});
-	if (highest_hp) return highest_hp;
-
-	return null;
+	// Priority 3: In follow mode prefer closest; otherwise highest HP
+	if (WARRIOR_TARGET === 'giantspider') {
+		return get_nearest_monster_v2({ max_distance: character.range }) || null;
+	}
+	return get_nearest_monster_v2({ max_distance: character.range, check_max_hp: true }) || null;
 }
 
 function get_party_members() {
@@ -266,6 +264,37 @@ async function sugar_rush_check(target) {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// FOLLOW HEALER — used when WARRIOR_TARGET === 'giantspider'
+// Orbits Myras when close; smart_moves to her when far or on a different map.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function follow_healer() {
+	const healer = get_player('Myras');
+	if (!healer || healer.rip) return;
+
+	if (healer.map !== character.map) {
+		if (!smart.moving) smart_move({ map: healer.map, x: healer.x, y: healer.y });
+		return;
+	}
+
+	const dist = Math.hypot(character.x - healer.x, character.y - healer.y);
+
+	if (dist > CONFIG.movement.follow_distance) {
+		if (!can_move_to(healer.x, healer.y)) {
+			if (!smart.moving) smart_move({ x: healer.x, y: healer.y });
+		} else {
+			move(healer.x, healer.y);
+		}
+		return;
+	}
+
+	// Close enough — orbit around healer's current position
+	destination.x = healer.x;
+	destination.y = healer.y;
+	if (CONFIG.movement.circle_walk) walk_in_circle();
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN TICK LOOP
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -292,6 +321,8 @@ async function main_loop() {
 				const at_farm = character.map === PRIM_FARM_LOC.map &&
 					Math.hypot(character.x - PRIM_FARM_LOC.x, character.y - PRIM_FARM_LOC.y) < PRIM_FARM_RADIUS + 30;
 				if (!at_farm && !smart.moving) smart_move(PRIM_FARM_LOC);
+			} else if (WARRIOR_TARGET === 'giantspider') {
+				follow_healer();
 			} else if (!get_nearest_monster({ type: home })) {
 				handle_return_home();
 			} else if (CONFIG.movement.circle_walk) {

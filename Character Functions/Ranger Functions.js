@@ -25,7 +25,8 @@ const CONFIG = {
 		circle_speed: 0.95,
 		circle_radius: 75,
 		move_threshold: 10,
-		clump_radius: 30
+		clump_radius: 30,
+		follow_distance: 150,
 	},
 
 	equipment: {
@@ -215,7 +216,10 @@ const should_attack_mob = (mob) => {
 	// 4. Active event bosses: always attack
 	if (parent?.S?.[mob.mtype]?.live) return true;
 
-	// 5. Default: attack if targeting party members
+	// 5. In follow mode, attack any visible monster
+	if (RANGER_TARGET === 'giantspider') return true;
+
+	// 6. Default: attack if targeting party members
 	return CONFIG.combat.target_priority.includes(mob.target);
 };
 
@@ -303,6 +307,37 @@ const find_heal_target = () => {
 	return min_pct < threshold ? target : null;
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// FOLLOW HEALER — used when RANGER_TARGET === 'giantspider'
+// Orbits Myras when close; smart_moves to her when far or on a different map.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const follow_healer = () => {
+	const healer = get_player('Myras');
+	if (!healer || healer.rip) return;
+
+	if (healer.map !== character.map) {
+		if (!smart.moving) smart_move({ map: healer.map, x: healer.x, y: healer.y });
+		return;
+	}
+
+	const dist = Math.hypot(character.x - healer.x, character.y - healer.y);
+
+	if (dist > CONFIG.movement.follow_distance) {
+		if (!can_move_to(healer.x, healer.y)) {
+			if (!smart.moving) smart_move({ x: healer.x, y: healer.y });
+		} else {
+			move(healer.x, healer.y);
+		}
+		return;
+	}
+
+	// Close enough — orbit around healer's current position
+	destination.x = healer.x;
+	destination.y = healer.y;
+	if (CONFIG.movement.circle_walk) walk_in_circle();
+};
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN TICK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -336,6 +371,8 @@ const main_loop = async () => {
 				const at_farm = character.map === PRIM_FARM_LOC.map &&
 					Math.hypot(character.x - PRIM_FARM_LOC.x, character.y - PRIM_FARM_LOC.y) < PRIM_FARM_RADIUS + 30;
 				if (!at_farm && !smart.moving) smart_move(PRIM_FARM_LOC);
+			} else if (RANGER_TARGET === 'giantspider') {
+				follow_healer();
 			} else if (!get_nearest_monster({ type: home })) {
 				handle_return_home();
 			} else if (CONFIG.movement.circle_walk) {
