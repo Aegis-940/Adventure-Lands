@@ -270,7 +270,7 @@ async function main_loop() {
 		}
 
 		update_cache();
-		if (HEALER_TARGET !== 'fireroamer') panic_check();
+		if (HEALER_TARGET !== 'fireroamer' && HEALER_TARGET !== 'giantspider') panic_check();
 
 		if (should_handle_events()) {
 			handle_events();
