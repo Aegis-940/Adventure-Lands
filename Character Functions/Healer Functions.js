@@ -1085,11 +1085,12 @@ function on_party_invite(name) {
 // SPIDER DUNGEON
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Resolves only after mob_type was confirmed alive AND then gone.
-// Prevents false-positives when entities haven't loaded yet on arrival.
+// Resolves only after mob_type was confirmed alive AND then absent for three consecutive checks.
+// Prevents false-positives from entities not yet loaded or brief visibility gaps.
 function wait_for_death(mob_type, timeout_ms = 300000) {
 	return new Promise(resolve => {
 		let seen_alive = false;
+		let consecutive_dead = 0;
 
 		const interval = setInterval(() => {
 			const alive = Object.values(parent.entities).some(
@@ -1098,9 +1099,13 @@ function wait_for_death(mob_type, timeout_ms = 300000) {
 
 			if (alive) {
 				seen_alive = true;
+				consecutive_dead = 0;
 			} else if (seen_alive) {
-				clearInterval(interval);
-				resolve();
+				consecutive_dead++;
+				if (consecutive_dead >= 3) {
+					clearInterval(interval);
+					resolve();
+				}
 			}
 		}, 500);
 
