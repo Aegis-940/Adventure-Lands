@@ -1082,6 +1082,68 @@ function on_party_invite(name) {
 // });
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// SPIDER DUNGEON
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+// Resolves when no living monster of mob_type exists in entities, or after timeout_ms.
+function wait_for_death(mob_type, timeout_ms = 300000) {
+	return new Promise(resolve => {
+		const interval = setInterval(() => {
+			const alive = Object.values(parent.entities).some(
+				e => e.type === 'monster' && e.mtype === mob_type && !e.dead
+			);
+			if (!alive) {
+				clearInterval(interval);
+				resolve();
+			}
+		}, 500);
+		setTimeout(() => { clearInterval(interval); resolve(); }, timeout_ms);
+	});
+}
+
+// Navigate all three spider bosses in order, loot after each, then reload the party.
+// Call this once after entering the spider_instance dungeon.
+async function run_spider_dungeon() {
+	try {
+		// Boss 1: spiderbr
+		log('Spider Dungeon: Moving to spiderbr...', '#AA88FF');
+		await smarter_move({ map: 'spider_instance', x: 192, y: -1533 });
+		await delay(2000);
+		await wait_for_death('spiderbr');
+		log('Spider Dungeon: spiderbr dead — looting', '#AA88FF');
+		await handle_looting();
+		await delay(10000);
+
+		// Boss 2: spiderr
+		log('Spider Dungeon: Moving to spiderr...', '#AA88FF');
+		await smarter_move({ map: 'spider_instance', x: 0, y: -1515 });
+		await delay(2000);
+		await wait_for_death('spiderr');
+		log('Spider Dungeon: spiderr dead — looting', '#AA88FF');
+		await handle_looting();
+		await delay(10000);
+
+		// Boss 3: spiderbl
+		log('Spider Dungeon: Moving to spiderbl...', '#AA88FF');
+		await smarter_move({ map: 'spider_instance', x: -188, y: -1515 });
+		await delay(2000);
+		await wait_for_death('spiderbl');
+		log('Spider Dungeon: spiderbl dead — looting', '#AA88FF');
+		await handle_looting();
+		await delay(10000);
+
+		// Reload all characters
+		log('Spider Dungeon: Complete — reloading party...', '#AA88FF');
+		send_cm(['Ulric', 'Riva'], { type: 'reload' });
+		await delay(500);
+		parent.window.location.reload();
+
+	} catch (e) {
+		console.error('run_spider_dungeon error:', e);
+	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // START ALL LOOPS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 

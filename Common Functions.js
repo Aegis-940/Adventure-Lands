@@ -374,6 +374,10 @@ const CM_HANDLERS = {
             y: y,
             lastSeen: Date.now()
         }});
+    },
+
+    "reload": () => {
+        setTimeout(() => parent.window.location.reload(), 500);
     }
 };
 
