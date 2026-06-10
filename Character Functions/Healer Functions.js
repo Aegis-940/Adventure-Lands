@@ -1088,7 +1088,7 @@ function on_party_invite(name) {
 // Resolves only after mob_type is confirmed alive for 3 consecutive checks, then absent for 3 consecutive checks
 // while the healer remains within spawn_radius of the spawn point.
 // If the healer drifts out of range, absence checks reset — prevents looting/movement from faking death.
-function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250, timeout_ms = 300000) {
+function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 	return new Promise(resolve => {
 		let consecutive_alive = 0;
 		let confirmed_alive = false;
@@ -1120,24 +1120,6 @@ function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250, timeout_
 			}
 		}, 500);
 
-		// Soft timeout: only skip if boss was never confirmed alive (wrong room, boss absent, etc.)
-		// If boss WAS seen alive, keep waiting — don't proceed while it's still up.
-		setTimeout(() => {
-			if (confirmed_alive) {
-				log(`[Dungeon] wait_for_death(${mob_type}) soft timeout — boss alive, still waiting...`, '#FFAA44');
-			} else {
-				clearInterval(interval);
-				log(`[Dungeon] wait_for_death(${mob_type}) timed out — boss never confirmed alive, skipping`, '#FF8844');
-				resolve();
-			}
-		}, timeout_ms);
-
-		// Hard safety escape — 15 minutes, handles truly stuck situations
-		setTimeout(() => {
-			clearInterval(interval);
-			log(`[Dungeon] wait_for_death(${mob_type}) hard timeout (15min) — giving up`, '#FF4444');
-			resolve();
-		}, 900000);
 	});
 }
 
