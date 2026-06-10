@@ -193,28 +193,23 @@ function update_cache() {
 }
 
 function find_best_target() {
+	const max_dist = WARRIOR_TARGET === 'giantspider' ? 50 : character.range;
+
 	// Priority 1: Bosses
 	for (const boss_type of CONFIG.combat.all_bosses) {
-		const boss = get_nearest_monster_v2({
-			type: boss_type,
-			max_distance: character.range
-		});
+		const boss = get_nearest_monster_v2({ type: boss_type, max_distance: max_dist });
 		if (boss) return boss;
 	}
 
 	// Priority 2: Any cursed monster in range (highest HP)
-	const cursed = get_nearest_monster_v2({
-		statusEffects: ['cursed'],
-		max_distance: character.range,
-		check_max_hp: true
-	});
+	const cursed = get_nearest_monster_v2({ statusEffects: ['cursed'], max_distance: max_dist, check_max_hp: true });
 	if (cursed) return cursed;
 
 	// Priority 3: In follow mode prefer closest; otherwise highest HP
 	if (WARRIOR_TARGET === 'giantspider') {
-		return get_nearest_monster_v2({ max_distance: character.range }) || null;
+		return get_nearest_monster_v2({ max_distance: max_dist }) || null;
 	}
-	return get_nearest_monster_v2({ max_distance: character.range, check_max_hp: true }) || null;
+	return get_nearest_monster_v2({ max_distance: max_dist, check_max_hp: true }) || null;
 }
 
 function get_party_members() {

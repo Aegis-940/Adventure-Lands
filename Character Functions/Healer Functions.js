@@ -156,18 +156,17 @@ function update_cache() {
 }
 
 function find_best_target() {
+	const max_dist = HEALER_TARGET === 'giantspider' ? 50 : character.range;
+
 	// Priority 1: Bosses
 	for (const boss_type of CONFIG.combat.all_bosses) {
-		const boss = get_nearest_monster_v2({
-			type: boss_type,
-			max_distance: character.range
-		});
+		const boss = get_nearest_monster_v2({ type: boss_type, max_distance: max_dist });
 		if (boss) return boss;
 	}
 
 	// In follow mode, only attack monsters already targeting the healer — never seek new aggro
 	if (HEALER_TARGET === 'giantspider') {
-		return get_nearest_monster_v2({ target: character.name, max_distance: character.range }) || null;
+		return get_nearest_monster_v2({ target: character.name, max_distance: max_dist }) || null;
 	}
 
 	// Priority 2: Aggro untargeted monsters up to effective_aggro_cap (scaled by mana %)

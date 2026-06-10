@@ -258,8 +258,12 @@ const update_target_cache = () => {
 
 	const in_range = [], out_of_range = [], clumped = [];
 
+	const within_range = RANGER_TARGET === 'giantspider'
+		? mob => is_in_range(mob) && parent.distance(character, mob) <= 50
+		: mob => is_in_range(mob);
+
 	for (const mob of sorted_by_hp) {
-		if (is_in_range(mob)) {
+		if (within_range(mob)) {
 			in_range.push(mob);
 
 			if (Math.hypot(mob.x - homeX, mob.y - homeY) <= clump_radius) {
@@ -463,7 +467,8 @@ const skill_loop = async () => {
 		}
 
 		const target = sorted_by_hp[0];
-		if (!target || !is_in_range(target)) {
+		const target_too_far = RANGER_TARGET === 'giantspider' && parent.distance(character, target) > 50;
+		if (!target || !is_in_range(target) || target_too_far) {
 			setTimeout(skill_loop, 100);
 			return;
 		}
