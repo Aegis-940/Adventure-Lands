@@ -289,8 +289,6 @@ function follow_healer() {
 		return;
 	}
 
-	// Close enough — walk_in_circle reads healer's live position as its center
-	if (CONFIG.movement.circle_walk) walk_in_circle();
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

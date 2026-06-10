@@ -165,6 +165,11 @@ function find_best_target() {
 		if (boss) return boss;
 	}
 
+	// In follow mode, only attack monsters already targeting the healer — never seek new aggro
+	if (HEALER_TARGET === 'giantspider') {
+		return get_nearest_monster_v2({ target: character.name, max_distance: character.range }) || null;
+	}
+
 	// Priority 2: Aggro untargeted monsters up to effective_aggro_cap (scaled by mana %)
 	if (CONFIG.combat.aggro && count_my_aggro() < effective_aggro_cap()) {
 		const untargeted = get_nearest_monster_v2({
@@ -465,8 +470,16 @@ async function handle_curse() {
 		.sort((a, b) => distance(character, a) - distance(character, b));
 	if (bosses_with_target.length) target = bosses_with_target[0];
 
+	// Giantspider follow mode: highest-HP monster within 50 units of the healer
+	if (!target && HEALER_TARGET === 'giantspider') {
+		const nearby = Object.values(parent.entities)
+			.filter(e => has_target(e) && Math.hypot(character.x - e.x, character.y - e.y) <= 50)
+			.sort((a, b) => b.hp - a.hp);
+		if (nearby.length) target = nearby[0];
+	}
+
 	// Home-mob fallback: highest-HP engaged home mob near the spot
-	if (!target) {
+	if (!target && HEALER_TARGET !== 'giantspider') {
 		const home_mobs = Object.values(parent.entities)
 			.filter(e =>
 				has_target(e) &&
