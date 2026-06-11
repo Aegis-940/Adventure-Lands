@@ -269,6 +269,7 @@ function follow_healer() {
 	if (!healer || healer.rip) return;
 
 	if (healer.map !== character.map) {
+		if (smart.moving) smart._interrupt?.('follow_healer');
 		if (!smart.moving) smart_move({ map: healer.map, x: healer.x, y: healer.y });
 		return;
 	}
@@ -1092,6 +1093,9 @@ function on_cm(name, data) {
 		panicking = data.state;
 		if (data.state) log("⚠️ Healer panicking — holding fire!", "#ffcc00", "Alerts");
 		else            log("✅ Healer panic over — resuming.", "#00ff00", "Alerts");
+	}
+	if (data.type === 'reload') {
+		setTimeout(() => parent.window.location.reload(), 500);
 	}
 }
 
