@@ -1134,7 +1134,7 @@ async function run_spider_dungeon() {
 		await smarter_move({ map: 'gateway', x: -322, y: -203 });
 		log('Spider Dungeon: At entrance — entering instance...', '#AA88FF');
 		await delay(10000);
-		enter('spider_instance');
+		enter("spider_instance");
 		await delay(10000);
 
 		// Signal party to enter and wait until both are confirmed in the instance
