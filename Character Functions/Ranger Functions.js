@@ -319,17 +319,42 @@ const find_heal_target = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // FOLLOW HEALER — used when RANGER_TARGET === 'giantspider'
 // Orbits Myras when close; smart_moves to her when far or on a different map.
+// Falls back to location_responses['Myras'] when she is off-map and invisible.
 // ─────────────────────────────────────────────────────────────────────────────
+
+let _last_healer_ping = 0;
 
 const follow_healer = () => {
 	const healer = get_player('Myras');
-	if (!healer || healer.rip) return;
+	// Use live entity if visible; fall back to last known CM location otherwise
+	const healer_pos = healer || location_responses['Myras'];
 
-	if (healer.map !== character.map) {
-		if (smart.moving) smart._interrupt?.('follow_healer');
-		if (!smart.moving) smart_move({ map: healer.map, x: healer.x, y: healer.y });
+	if (!healer_pos) {
+		// No data at all — ask Myras where she is and wait
+		const now = Date.now();
+		if (now - _last_healer_ping > 2000) {
+			_last_healer_ping = now;
+			send_cm('Myras', { type: 'where_are_you' });
+		}
 		return;
 	}
+
+	if (healer && healer.rip) return;
+
+	if (healer_pos.map !== character.map) {
+		// Refresh cached position periodically while chasing across maps
+		const now = Date.now();
+		if (now - _last_healer_ping > 2000) {
+			_last_healer_ping = now;
+			send_cm('Myras', { type: 'where_are_you' });
+		}
+		if (smart.moving) smart._interrupt?.('follow_healer');
+		if (!smart.moving) smart_move({ map: healer_pos.map, x: healer_pos.x, y: healer_pos.y });
+		return;
+	}
+
+	// Same map — healer must be visible for fine-grained ring positioning
+	if (!healer) return;
 
 	const dist = Math.hypot(character.x - healer.x, character.y - healer.y);
 	const fd = CONFIG.movement.follow_distance;
