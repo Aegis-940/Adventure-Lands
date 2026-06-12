@@ -1137,6 +1137,27 @@ async function run_spider_dungeon() {
 		enter('spider_instance');
 		await delay(10000);
 
+		// Signal party to enter and wait until both are confirmed in the instance
+		log('Spider Dungeon: Signalling party to enter instance...', '#AA88FF');
+		send_cm(['Ulric', 'Riva'], { type: 'enter_instance', in: character.in });
+
+		await new Promise(resolve => {
+			const confirmed = new Set();
+			const listener = (name, data) => {
+				if (data.type === 'instance_ready' && ['Ulric', 'Riva'].includes(name)) {
+					confirmed.add(name);
+					log(`Spider Dungeon: ${name} entered instance (${confirmed.size}/2)`, '#AA88FF');
+					if (confirmed.size >= 2) {
+						remove_cm_listener(listener);
+						resolve();
+					}
+				}
+			};
+			add_cm_listener(listener);
+		});
+
+		log('Spider Dungeon: Full party in instance — proceeding', '#AA88FF');
+
 		// Boss 1: spiderbr
 		log('Spider Dungeon: Moving to spiderbr...', '#AA88FF');
 		await smarter_move({ map: 'spider_instance', x: 192, y: -1533 });

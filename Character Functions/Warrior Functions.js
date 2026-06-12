@@ -1132,6 +1132,17 @@ add_cm_listener((name, data) => {
 	if (data.type === 'suppress_reset') {
 		set_suppress_reset(true);
 	}
+	if (data.type === 'enter_instance') {
+		const instance_id = data.in;
+		const join_interval = setInterval(() => {
+			if (character.map === 'spider_instance') {
+				clearInterval(join_interval);
+				send_cm('Myras', { type: 'instance_ready' });
+			} else {
+				enter(instance_id);
+			}
+		}, 2000);
+	}
 });
 
 function on_party_request(name) {
