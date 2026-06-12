@@ -319,15 +319,16 @@ const find_heal_target = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // FOLLOW HEALER — used when RANGER_TARGET === 'giantspider'
 // Orbits Myras when close; smart_moves to her when far or on a different map.
-// Falls back to location_responses['Myras'] when she is off-map and invisible.
+// Falls back to _healer_last_known when she is off-map and invisible.
 // ─────────────────────────────────────────────────────────────────────────────
 
+let _healer_last_known = null;
 let _last_healer_ping = 0;
 
 const follow_healer = () => {
 	const healer = get_player('Myras');
 	// Use live entity if visible; fall back to last known CM location otherwise
-	const healer_pos = healer || location_responses['Myras'];
+	const healer_pos = healer || _healer_last_known;
 
 	if (!healer_pos) {
 		// No data at all — ask Myras where she is and wait
@@ -1246,16 +1247,21 @@ function equip_set(set_name) {
 // EVENT HANDLERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function on_cm(name, data) {
-	if (name === 'Myras' && data.type === 'panic') {
-		panicking = data.state;
-		if (data.state) log("⚠️ Healer panicking — holding fire!", "#ffcc00", "Alerts");
-		else            log("✅ Healer panic over — resuming.", "#00ff00", "Alerts");
+add_cm_listener((name, data) => {
+	if (name === 'Myras') {
+		if (data.type === 'panic') {
+			panicking = data.state;
+			if (data.state) log("⚠️ Healer panicking — holding fire!", "#ffcc00", "Alerts");
+			else            log("✅ Healer panic over — resuming.", "#00ff00", "Alerts");
+		}
+		if (data.type === 'my_location') {
+			_healer_last_known = { map: data.map, x: data.x, y: data.y };
+		}
 	}
 	if (data.type === 'reload') {
 		setTimeout(() => parent.window.location.reload(), 500);
 	}
-}
+});
 
 function on_party_request(name) {
 	if (CONFIG.party.group_members.includes(name)) {
