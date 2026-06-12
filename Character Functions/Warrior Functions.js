@@ -270,36 +270,37 @@ let _last_healer_ping = 0;
 
 function follow_healer() {
 	const healer = get_player('Myras');
-	// Use live entity if visible; fall back to last known CM location otherwise
-	const healer_pos = healer || _healer_last_known;
 
-	if (!healer_pos) {
-		// No data at all — ask Myras where she is and wait
-		const now = Date.now();
-		if (now - _last_healer_ping > 2000) {
-			_last_healer_ping = now;
-			send_cm('Myras', { type: 'where_are_you' });
-		}
-		return;
+	// Keep cache fresh from live data whenever healer is visible
+	if (healer && !healer.rip) {
+		_healer_last_known = { map: character.map, x: healer.x, y: healer.y };
 	}
 
-	if (healer && healer.rip) return;
-
-	if (healer_pos.map !== character.map) {
-		// Refresh cached position periodically while chasing across maps
+	// Ping for fresh location whenever healer is not visible (regardless of cached map)
+	if (!healer) {
 		const now = Date.now();
 		if (now - _last_healer_ping > 2000) {
 			_last_healer_ping = now;
 			send_cm('Myras', { type: 'where_are_you' });
 		}
+	}
+
+	const healer_pos = healer || _healer_last_known;
+	if (!healer_pos || (healer && healer.rip)) return;
+
+	if (healer_pos.map !== character.map) {
 		if (smart.moving) smart._interrupt?.('follow_healer');
 		if (!smart.moving) smart_move({ map: healer_pos.map, x: healer_pos.x, y: healer_pos.y });
 		return;
 	}
 
-	// Same map — healer must be visible for fine-grained ring positioning
-	if (!healer) return;
+	// Same map but not yet visible — smart_move toward cached position
+	if (!healer) {
+		if (!smart.moving) smart_move({ x: healer_pos.x, y: healer_pos.y });
+		return;
+	}
 
+	// Healer visible — ring positioning
 	const dist = Math.hypot(character.x - healer.x, character.y - healer.y);
 	const fd = CONFIG.movement.follow_distance;
 	if (Math.abs(dist - fd) <= 3) return;
