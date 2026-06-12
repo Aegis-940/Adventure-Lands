@@ -1127,6 +1127,14 @@ function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 // Call this once after entering the spider_instance dungeon.
 async function run_spider_dungeon() {
 	try {
+		// Stage: move to dungeon entrance and wait until arrived
+		log('Spider Dungeon: Moving to gateway entrance...', '#AA88FF');
+		await smarter_move({ map: 'gateway', x: -322, y: -203 });
+		log('Spider Dungeon: At entrance — entering instance...', '#AA88FF');
+		await delay(10000);
+		enter('spider_instance');
+		await delay(10000);
+
 		// Boss 1: spiderbr
 		log('Spider Dungeon: Moving to spiderbr...', '#AA88FF');
 		await smarter_move({ map: 'spider_instance', x: 192, y: -1533 });
