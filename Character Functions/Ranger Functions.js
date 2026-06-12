@@ -416,7 +416,6 @@ const main_loop = async () => {
 				if (!at_farm && !smart.moving) smart_move(PRIM_FARM_LOC);
 			} else if (RANGER_TARGET === 'giantspider') {
 				follow_healer();
-				giantspider_panic_check();
 			} else if (!get_nearest_monster({ type: home })) {
 				handle_return_home();
 			} else if (CONFIG.movement.circle_walk) {
@@ -434,7 +433,7 @@ const main_loop = async () => {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const action_loop = async () => {
-	if (panicking || _spider_panic) return setTimeout(action_loop, 100);
+	if (panicking) return setTimeout(action_loop, 100);
 	if (RANGER_TARGET !== 'giantspider') {
 		const myras = get_player("Myras");
 		if (!myras || distance(character, myras) > 200) return setTimeout(action_loop, 100);
@@ -484,7 +483,7 @@ const handle_attack = async () => {
 };
 
 const skill_loop = async () => {
-	if (panicking || _spider_panic) return setTimeout(skill_loop, 100);
+	if (panicking) return setTimeout(skill_loop, 100);
 	if (RANGER_TARGET !== 'giantspider') {
 		const myras = get_player("Myras");
 		if (!myras || distance(character, myras) > 200) return setTimeout(skill_loop, 100);
@@ -846,36 +845,8 @@ function elixir_usage() {
 }
 
 let panicking = false;
-let _spider_panic = false;
 let last_panic_time = 0;
 let last_safe_time = 0;
-
-async function giantspider_panic_check() {
-	const BOSS_SPIDERS = ['spiderbr', 'spiderr', 'spiderbl'];
-	const count = Object.values(parent.entities).filter(
-		e => e.type === 'monster' && !e.dead && BOSS_SPIDERS.includes(e.mtype) && e.target === character.name
-	).length;
-
-	if (count > 1 && !_spider_panic) {
-		_spider_panic = true;
-		log(`⚠️ Spider overload: ${count} boss spiders on me!`, '#FF4444', 'Alerts');
-		const panic_slot = character.items.findIndex(i => i?.name === 'jacko');
-		if (character.slots.orb?.name !== 'jacko' && panic_slot !== -1) {
-			try { await equip(panic_slot); } catch(e) {}
-		}
-	} else if (count <= 1 && _spider_panic) {
-		_spider_panic = false;
-		log('✅ Spider overload cleared.', '#00ff00', 'Alerts');
-		const safe_slot = character.items.findIndex(i => i?.name === 'orbg');
-		if (character.slots.orb?.name === 'jacko' && safe_slot !== -1) {
-			try { await equip(safe_slot); } catch(e) {}
-		}
-	}
-
-	if (_spider_panic && !is_on_cooldown('scare') && can_use('scare') && character.slots.orb?.name === 'jacko') {
-		try { await use_skill('scare'); } catch(e) {}
-	}
-}
 
 async function panic_check() {
 
