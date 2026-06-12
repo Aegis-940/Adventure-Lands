@@ -1152,9 +1152,15 @@ function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 	});
 }
 
+let _dungeon_running = false;
+
 // Navigate all three spider bosses in order, loot after each, then reload the party.
-// Call this once after entering the spider_instance dungeon.
 async function run_spider_dungeon() {
+	if (_dungeon_running) {
+		log('Spider Dungeon: Already running — ignoring duplicate start.', '#FF8844');
+		return;
+	}
+	_dungeon_running = true;
 	set_suppress_reset(true);
 	send_cm(['Ulric', 'Riva'], { type: 'suppress_reset' });
 	try {
@@ -1223,6 +1229,7 @@ async function run_spider_dungeon() {
 	} catch (e) {
 		console.error('run_spider_dungeon error:', e);
 	} finally {
+		_dungeon_running = false;
 		set_suppress_reset(false);
 	}
 }
@@ -1240,4 +1247,21 @@ setInterval(remote_sell_items, 5000);
 if (HEALER_TARGET === 'bscorpion') {
 	prim_farm_loop();
 	prim_orbit_loop();
+}
+
+if (HEALER_TARGET === 'giantspider') {
+	// Wait for all loops and game state to settle before starting the dungeon run.
+	// Guards: not already running, character is alive and on a valid map.
+	setTimeout(() => {
+		if (_dungeon_running) return;
+		if (character.rip) {
+			log('Spider Dungeon: Character is dead on startup — not auto-starting.', '#FF8844');
+			return;
+		}
+		if (character.map === 'spider_instance') {
+			log('Spider Dungeon: Detected startup inside instance — restarting from gateway.', '#FFAA44');
+		}
+		log('Spider Dungeon: Auto-starting...', '#AA88FF');
+		run_spider_dungeon();
+	}, 5000);
 }
