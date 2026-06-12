@@ -1272,7 +1272,7 @@ add_cm_listener((name, data) => {
 				clearInterval(join_interval);
 				send_cm('Myras', { type: 'instance_ready' });
 			} else {
-				enter(instance_id);
+				enter('spider_instance', instance_id);
 			}
 		}, 2000);
 	}
