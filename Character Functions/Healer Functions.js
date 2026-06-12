@@ -1126,6 +1126,8 @@ function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 // Navigate all three spider bosses in order, loot after each, then reload the party.
 // Call this once after entering the spider_instance dungeon.
 async function run_spider_dungeon() {
+	set_suppress_reset(true);
+	send_cm(['Ulric', 'Riva'], { type: 'suppress_reset' });
 	try {
 		// Stage: move to dungeon entrance and wait until arrived
 		log('Spider Dungeon: Moving to gateway entrance...', '#AA88FF');
@@ -1170,6 +1172,8 @@ async function run_spider_dungeon() {
 
 	} catch (e) {
 		console.error('run_spider_dungeon error:', e);
+	} finally {
+		set_suppress_reset(false);
 	}
 }
 

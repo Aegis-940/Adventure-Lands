@@ -1129,6 +1129,9 @@ add_cm_listener((name, data) => {
 	if (data.type === 'reload') {
 		setTimeout(() => parent.window.location.reload(), 500);
 	}
+	if (data.type === 'suppress_reset') {
+		set_suppress_reset(true);
+	}
 });
 
 function on_party_request(name) {

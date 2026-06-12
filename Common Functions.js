@@ -652,6 +652,9 @@ function auto_buy_potions() {
 const RESET_INTERVAL_HOURS = 2;
 const RESET_WINDOW_MINUTES = 2;
 let _last_reset_bucket = null;
+let _suppress_periodic_reset = false;
+
+function set_suppress_reset(val) { _suppress_periodic_reset = val; }
 
 function schedule_periodic_reset() {
 	// Module-level state is per-iframe/tab, so each character decides
@@ -663,6 +666,8 @@ function schedule_periodic_reset() {
 	}
 
 	setInterval(() => {
+		if (_suppress_periodic_reset) return;
+
 		const now = new Date();
 		const hour = now.getHours();
 
