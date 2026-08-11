@@ -12,7 +12,7 @@ var CONFIG = {
 	enabled: {
 		upgrading: true,
 		crafting: true,
-		exchanging: false,
+		exchanging: true,
 		fishing: true,
 		mining: true,
 	},
@@ -61,6 +61,10 @@ var CONFIG = {
 	},
 	// Items sell_and_bank() must never bank away, even mid-cycle.
 	do_not_bank: [],
+	// Crafting/exchanging/fishing/mining all end up depositing into the bank (directly,
+	// or via sell_and_bank() at the end of a run) — disabled while free bank space is
+	// below this, so a run doesn't start only to have nowhere to put what it collects.
+	min_bank_free_space: 10,
 	// Resting gear — worn at all times except the brief window a rod/pickaxe is
 	// equipped for fishing/mining (see ensure_tool_equipped()/equip_default_gear()).
 	default_gear: {
@@ -135,6 +139,27 @@ function should_run_delivery() {
 	return false;
 }
 
+// Total free slots across every bank pack. Returns 0 (fail safe — treat as "no room")
+// if bank data hasn't been loaded yet, rather than guessing there's space.
+function bank_free_space() {
+	const bank_data = character.bank || load_bank_from_local_storage();
+	if (!bank_data) return 0;
+
+	let free = 0;
+	for (const pack in bank_data) {
+		if (!Array.isArray(bank_data[pack])) continue;
+		free += bank_data[pack].filter(it => !it).length;
+	}
+	return free;
+}
+
+// Crafting/exchanging/fishing/mining all end up depositing into the bank — gate them
+// on there actually being room, so a run doesn't start only to have nowhere to put
+// what it collects.
+function has_enough_bank_space() {
+	return bank_free_space() >= CONFIG.min_bank_free_space;
+}
+
 function should_run_upgrade() {
 	return CONFIG.enabled.upgrading
 		&& merchant_task === "Idle"
@@ -145,24 +170,28 @@ function should_run_upgrade() {
 function should_run_craft() {
 	return CONFIG.enabled.crafting
 		&& merchant_task === "Idle"
+		&& has_enough_bank_space()
 		&& can_afford_any_craft(); // Merchant_Systems/Auto_Craft.js
 }
 
 function should_run_exchange() {
 	return CONFIG.enabled.exchanging
 		&& merchant_task === "Idle"
+		&& has_enough_bank_space()
 		&& has_exchangeable_items();
 }
 
 function should_run_fishing() {
 	return CONFIG.enabled.fishing
 		&& merchant_task === "Idle"
+		&& has_enough_bank_space()
 		&& !is_on_cooldown("fishing");
 }
 
 function should_run_mining() {
 	return CONFIG.enabled.mining
 		&& merchant_task === "Idle"
+		&& has_enough_bank_space()
 		&& !is_on_cooldown("mining");
 }
 
