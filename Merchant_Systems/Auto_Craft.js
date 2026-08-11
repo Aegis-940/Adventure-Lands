@@ -6,12 +6,47 @@
 // (Character_Functions/Merchant_Functions.js) calls try_craft() on its own
 // CRAFTING-state cycle, so this stays a plain callable function.
 
+// True if every NON-buyable ingredient of a target (no NPC sells it — only obtainable
+// from what's already banked/held) has enough on hand, inventory + bank combined, for
+// the configured batch size. Buyable ingredients aren't gated here — those can always
+// be topped up by gather_ingredients_for_batch(), gold permitting. Skips a target
+// outright instead of starting a batch that can only ever gather part of what it needs.
+function has_enough_bank_only_ingredients(target) {
+	const craft_def = parent.G.craft[target.name];
+	if (!craft_def) return false;
+
+	const desired_count = target.count != null ? target.count : max_craftable_by_space();
+	if (desired_count <= 0) return false;
+
+	const basics = parent.G.npcs["basics"];
+
+	for (const req of craft_recipe_items(craft_def)) {
+		if (basics.items.includes(req.name)) continue; // buyable — not gated here
+
+		const needed = req.quantity * desired_count;
+		let have = bank_quantity_for(req.name, req.level);
+		for (const item of character.items) {
+			if (item && item.name === req.name && (req.level == null || item.level === req.level)) {
+				have += item.q || 1;
+			}
+		}
+
+		if (have < needed) return false;
+	}
+
+	return true;
+}
+
 // Checked by Character_Functions/Merchant_Functions.js's should_run_craft() — contextual
 // stand-in for the old time interval: is crafting even worth attempting right now?
+// Requires both: affording the base recipe cost, and every non-buyable ingredient
+// having enough on hand for the configured batch (see has_enough_bank_only_ingredients()).
 function can_afford_any_craft() {
 	for (const target of CONFIG.crafting.targets) {
 		const craft_def = parent.G.craft[target.name];
-		if (craft_def && craft_def.cost <= character.gold) return true;
+		if (!craft_def || craft_def.cost > character.gold) continue;
+		if (!has_enough_bank_only_ingredients(target)) continue;
+		return true;
 	}
 	return false;
 }
