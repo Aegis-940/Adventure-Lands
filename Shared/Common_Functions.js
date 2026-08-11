@@ -1377,7 +1377,7 @@ async function state_cache_loop() {
 			continue;
 		}
 		write_state_cache();
-		await delay(2000);
+		await delay(100);
 	}
 }
 
