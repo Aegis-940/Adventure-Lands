@@ -216,21 +216,58 @@ async function handle_exchanging_state() {
 	await exchange_items(); // has its own exchange_items_running guard + finally reset to "Idle"
 }
 
+// Ensures `tool_name` ("rod"/"pickaxe") is equipped in mainhand before fishing/mining
+// starts: checks inventory, then the bank, then falls back to crafting one via
+// Merchant_Systems/Auto_Craft.js's craft_item(). Returns true once equipped, false if
+// the tool couldn't be obtained any way. Only called at state entry — once fishing/
+// mining is actually looping, a broken tool just ends the loop (see the loop's own
+// mainhand check below), it doesn't re-run this whole fetch/craft chain mid-loop.
+async function ensure_tool_equipped(tool_name) {
+	function find_in_inventory() {
+		return character.items.findIndex(item => item && item.name === tool_name);
+	}
+
+	if (character.slots.mainhand && character.slots.mainhand.name === tool_name) return true;
+
+	let idx = find_in_inventory();
+
+	if (idx === -1) {
+		log(`🔎 No ${tool_name} in inventory, checking bank...`);
+		await smarter_move(BANK_LOCATION);
+		await delay(500);
+		withdraw_item(tool_name);
+		await delay(400);
+		idx = find_in_inventory();
+	}
+
+	if (idx === -1) {
+		log(`🔨 No ${tool_name} in bank either, attempting to craft one...`);
+		for (let attempt = 0; attempt < 5; attempt++) {
+			const result = await craft_item(tool_name); // Merchant_Systems/Auto_Craft.js
+			if (result === "crafted") break;
+			if (result !== "buying") break; // "missing"/"no_recipe"/unaffordable — no point retrying
+			await delay(400);
+		}
+		idx = find_in_inventory();
+	}
+
+	if (idx === -1) {
+		log(`❌ Could not obtain a ${tool_name} (not in inventory, bank, or craftable).`);
+		return false;
+	}
+
+	await equip(idx, "mainhand");
+	await delay(400);
+	return character.slots.mainhand && character.slots.mainhand.name === tool_name;
+}
+
 async function handle_fishing_state() {
 	if (merchant_task !== "Idle") return;
 	merchant_task = "Fishing";
 	try {
-		let rod_equipped = character.slots.mainhand && character.slots.mainhand.name === "rod";
+		const rod_equipped = await ensure_tool_equipped("rod");
 		if (!rod_equipped) {
-			const rod_index = character.items.findIndex(item => item && item.name === "rod");
-			if (rod_index !== -1) {
-				await equip(rod_index, "mainhand");
-				await delay(400);
-				rod_equipped = character.slots.mainhand && character.slots.mainhand.name === "rod";
-			}
-		}
-		if (!rod_equipped) {
-			log("❌ No fishing rod equipped or in inventory.");
+			log("❌ No fishing rod available (not in inventory, bank, or craftable).");
 			return;
 		}
 
@@ -273,17 +310,9 @@ async function handle_mining_state() {
 	if (merchant_task !== "Idle") return;
 	merchant_task = "Mining";
 	try {
-		let pickaxe_equipped = character.slots.mainhand && character.slots.mainhand.name === "pickaxe";
+		const pickaxe_equipped = await ensure_tool_equipped("pickaxe");
 		if (!pickaxe_equipped) {
-			const pickaxe_index = character.items.findIndex(item => item && item.name === "pickaxe");
-			if (pickaxe_index !== -1) {
-				await equip(pickaxe_index, "mainhand");
-				await delay(400);
-				pickaxe_equipped = character.slots.mainhand && character.slots.mainhand.name === "pickaxe";
-			}
-		}
-		if (!pickaxe_equipped) {
-			log("❌ No pickaxe equipped or in inventory.");
+			log("❌ No pickaxe available (not in inventory, bank, or craftable).");
 			return;
 		}
 
