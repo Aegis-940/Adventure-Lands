@@ -108,8 +108,6 @@ const MERCHANT_STATES = {
 const DELIVERY_WAIT_MAX_ATTEMPTS = 40; // ~2 minutes at 3s/attempt before giving up and heading home anyway
 const FISHING_POSITION_TOLERANCE = 5;
 const MINING_POSITION_TOLERANCE = 10;
-const FISHING_TIME = 9000;
-const MINING_TIME = 9000;
 const PARTY_STATUS_STALE_MS = 30000; // ignore a party member's last-reported status once it's this old
 
 // Last time each party member (by name) was mluck'd — see is_mluck_due()/
@@ -367,7 +365,11 @@ async function handle_fishing_state() {
 				catcher(e, "handle_fishing_state: use_skill");
 				break;
 			}
-			await delay(FISHING_TIME);
+			// Poll the real skill cooldown instead of guessing how long a cast takes.
+			await delay(200);
+			while (is_on_cooldown("fishing")) {
+				await delay(200);
+			}
 		}
 
 		await smarter_move(HOME);
@@ -420,7 +422,11 @@ async function handle_mining_state() {
 				catcher(e, "handle_mining_state: use_skill");
 				break;
 			}
-			await delay(MINING_TIME);
+			// Poll the real skill cooldown instead of guessing how long a cast takes.
+			await delay(200);
+			while (is_on_cooldown("mining")) {
+				await delay(200);
+			}
 		}
 
 		await smarter_move(HOME);
