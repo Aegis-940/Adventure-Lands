@@ -903,30 +903,33 @@ async function withdraw_item(item_name, level = null, total = null) {
 			if (level != null && itm.level !== level) continue;
 
 			found_any = true;
-			// Decide how many to retrieve (bank_retrieve pulls the entire stack or single item)
-			// For non-stackable gear it'll always be 1; remaining logic still honored.
-			const take_count = Math.min(itm.q || 1, remaining);
 
-			for (let i = 0; i < take_count; i++) {
-				// Determine which bank location to move to based on pack_key
-				const pack_num = parseInt(pack_key.replace("items", ""), 10);
-				if (!isNaN(pack_num)) {
-					if (pack_num >= 0 && pack_num <= 7 && character.map !== "bank") {
-						log(`Moving to Bank for pack ${pack_key}`);
-						await smarter_move(BANK_LOC1);
-						await delay(200);
-					} else if (pack_num >= 8 && pack_num <= 14 && character.map !== "bank_b") {
-						log(`Moving to Bank Basement for pack ${pack_key}`);
-						await smarter_move(BANK_LOC1);
-						await smarter_move(BANK_LOC2);
-						await delay(200);
-					}
+			// Determine which bank location to move to based on pack_key
+			const pack_num = parseInt(pack_key.replace("items", ""), 10);
+			if (!isNaN(pack_num)) {
+				if (pack_num >= 0 && pack_num <= 7 && character.map !== "bank") {
+					log(`Moving to Bank for pack ${pack_key}`);
+					await smarter_move(BANK_LOC1);
+					await delay(200);
+				} else if (pack_num >= 8 && pack_num <= 14 && character.map !== "bank_b") {
+					log(`Moving to Bank Basement for pack ${pack_key}`);
+					await smarter_move(BANK_LOC1);
+					await smarter_move(BANK_LOC2);
+					await delay(200);
 				}
-				await bank_retrieve(pack_key, slot, -1);
-				await delay(100);
-				remaining--;
-				if (remaining <= 0) break;
 			}
+
+			// bank_retrieve pulls the ENTIRE stack from a bank slot in a single call — there's
+			// no partial-quantity retrieval. Looping it per-unit (the old behavior) emptied the
+			// slot on the first call, then wasted further calls on the now-empty slot while
+			// still decrementing `remaining` once per call — so whenever a caller wanted fewer
+			// than the full stack (e.g. withdrawing combine items in capped multiples of 3),
+			// the real call over-delivered the whole stack while `remaining`'s bookkeeping
+			// assumed only part of it arrived, throwing off every later slot/round and dropping
+			// the last item or two short of what the caller expected to see in inventory.
+			await bank_retrieve(pack_key, slot, -1);
+			await delay(100);
+			remaining -= (itm.q || 1);
 		}
 
 		if (remaining <= 0) break;
