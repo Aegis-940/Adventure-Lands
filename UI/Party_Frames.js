@@ -64,19 +64,37 @@ const BAR_HEIGHT = 18;
 	}
 })();
 
+// For our own character, read live values directly. For everyone else, read
+// Shared/Common_Functions.js's localStorage-backed state cache (state_cache_loop()/
+// read_state_cache()) — shared across all characters' browser tabs on this origin, so
+// it's always current regardless of party proximity, unlike get_player().
 function get_party_member_info(name) {
-	let info = get(name + "_newparty_info");
-	if (!info || Date.now() - info.last_seen > 1000) {
-		let party_member = get_player(name);
-		if (party_member) {
-			info = Object.fromEntries(Object.entries(party_member).filter(current => [
-				"name", "hp", "max_hp", "mp", "max_mp", "xp", "level"
-			].includes(current[0])));
-		} else {
-			info = { name };
-		}
+	if (name === character.name) {
+		return {
+			name: character.name,
+			hp: character.hp,
+			max_hp: character.max_hp,
+			mp: character.mp,
+			max_mp: character.max_mp,
+			xp: character.xp,
+			max_xp: character.max_xp,
+		};
 	}
-	return info;
+
+	const cached = read_state_cache(name);
+	if (cached) {
+		return {
+			name: cached.name,
+			hp: cached.hp,
+			max_hp: cached.max_hp,
+			mp: cached.mp,
+			max_mp: cached.max_mp,
+			xp: cached.xp,
+			max_xp: cached.max_xp,
+		};
+	}
+
+	return { name };
 }
 
 function render_party_ui() {
@@ -94,8 +112,7 @@ function render_party_ui() {
 		const mp = info.mp ?? 0;
 		const max_mp = info.max_mp ?? 1;
 		const xp = info.xp ?? 0;
-		const level = info.level ?? 1;
-		const max_xp = G.levels?.[level] ?? 1;
+		const max_xp = info.max_xp ?? 1;
 		const hp_pct = Math.max(0, Math.min(100, (hp / max_hp) * 100));
 		const mp_pct = Math.max(0, Math.min(100, (mp / max_mp) * 100));
 		const xp_pct = Math.max(0, Math.min(100, (xp / max_xp) * 100));
