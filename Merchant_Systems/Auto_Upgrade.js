@@ -368,7 +368,11 @@ async function auto_upgrade_item(level) {
 }
 
 async function auto_combine_item(level) {
-	// Build a map of combinable items by name and level
+	// Build a map of combinable items by name and level, tracking each matching
+	// slot's quantity — not just how many distinct slots matched. A single stacked
+	// slot with q >= 3 (or two slots totalling 3, e.g. q:2 + q:1) is just as
+	// combinable as three separate q:1 slots; counting slots instead of quantity
+	// wrongly skipped combines whenever the bank/inventory had stacked the items.
 	const buckets = new Map();
 
 	for (let i = 0; i < character.items.length; i++) {
@@ -380,16 +384,37 @@ async function auto_combine_item(level) {
 		if (typeof item.level !== "number" || item.level !== level || item.level >= profile.max_level) continue;
 
 		const key = `${item.name}:${item.level}`;
+		const entry = { slot: i, qty: item.q || 1 };
 		if (!buckets.has(key)) {
-			buckets.set(key, [item.level, [i]]);
+			buckets.set(key, [item.level, [entry]]);
 		} else {
-			buckets.get(key)[1].push(i);
+			buckets.get(key)[1].push(entry);
 		}
 	}
 
+	function total_qty(entries) {
+		return entries.reduce((sum, e) => sum + e.qty, 0);
+	}
+
+	// Picks 3 combinable units, repeating a slot's index if its own stack supplies
+	// more than one of the 3 needed — compound() takes 3 slot references and
+	// correctly decrements a stacked slot once per reference.
+	function pick_three_slots(entries) {
+		const picks = [];
+		for (const entry of entries) {
+			let remaining = entry.qty;
+			while (remaining > 0 && picks.length < 3) {
+				picks.push(entry.slot);
+				remaining--;
+			}
+			if (picks.length >= 3) break;
+		}
+		return picks;
+	}
+
 	// First, check if any group needs a scroll and buy only one scroll per call
-	for (const [key, [lvl, slots]] of buckets) {
-		if (slots.length < 3) continue;
+	for (const [key, [lvl, entries]] of buckets) {
+		if (total_qty(entries) < 3) continue;
 
 		const item_name = key.split(":")[0];
 		const profile = COMBINE_PROFILE[item_name];
@@ -438,8 +463,8 @@ async function auto_combine_item(level) {
 	}
 
 	// Try to combine the first valid group of 3 (only if scroll is present)
-	for (const [key, [lvl, slots]] of buckets) {
-		if (slots.length < 3) continue;
+	for (const [key, [lvl, entries]] of buckets) {
+		if (total_qty(entries) < 3) continue;
 
 		const item_name = key.split(":")[0];
 		const profile = COMBINE_PROFILE[item_name];
@@ -495,7 +520,7 @@ async function auto_combine_item(level) {
 
 		// Combine the items
 		parent.socket.emit("compound", {
-			items: slots.slice(0, 3),
+			items: pick_three_slots(entries),
 			scroll_num: scroll_slot,
 			offering_num: offering_slot,
 			clevel: lvl,
