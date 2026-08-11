@@ -637,7 +637,6 @@ async function sell_and_bank() {
 		log("⚠️ sell_and_bank already running, skipping duplicate call.");
 		return;
 	}
-	if (character.moving) return;
 
 	sell_and_bank_running = true;
 	try {
