@@ -85,7 +85,7 @@ async function withdraw_upgrade_scrolls() {
 
 	for (const item of SCROLL_TYPES) {
 		try {
-			withdraw_item(item);
+			await withdraw_item(item);
 			await delay(200); // Small delay for UI/bank sync
 		} catch (e) {
 		game_log("⚠️ Withdraw Scroll error:", "#FF0000");
@@ -102,7 +102,7 @@ async function withdraw_offering() {
 
 	try {
 		
-		withdraw_item("offeringp");
+		await withdraw_item("offeringp");
 		await delay(500);
 	} catch (e) {
 		game_log("⚠️ Withdraw Offering error:", "#FF0000");
@@ -152,7 +152,7 @@ async function withdraw_upgradeable_items() {
 					const max_withdrawable = free_slots - 3;
 					const to_withdraw = Math.min(item.q || 1, max_withdrawable);
 					if (to_withdraw > 0) {
-						withdraw_item(item_name, item.level, to_withdraw);
+						await withdraw_item(item_name, item.level, to_withdraw);
 						await delay(250);
 					}
 				}
@@ -221,7 +221,7 @@ async function withdraw_upgradeable_items() {
 							if (free_slots <= 3) break;
 							const withdraw_count = Math.min(item.q || 1, remaining);
 							if (withdraw_count > 0) {
-								withdraw_item(item_name, level, withdraw_count);
+								await withdraw_item(item_name, level, withdraw_count);
 								remaining -= withdraw_count;
 								count -= withdraw_count;
 								await delay(250);

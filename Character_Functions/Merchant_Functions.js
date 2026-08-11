@@ -607,7 +607,7 @@ async function exchange_items() {
 			let withdrew = false;
 			for (const item of CONFIG.exchange.targets) {
 				try {
-					withdraw_item(item.name, null, 9999);
+					await withdraw_item(item.name, null, 9999);
 					await delay(500);
 					for (let i = 0; i < character.items.length; i++) {
 						const itm = character.items[i];
