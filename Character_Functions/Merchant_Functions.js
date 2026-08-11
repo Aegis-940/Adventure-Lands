@@ -11,7 +11,7 @@ var CONFIG = {
 	// Master switches — flip any of these off to stop that state from ever being selected.
 	enabled: {
 		upgrading: true,
-		crafting: false,
+		crafting: true,
 		exchanging: false,
 		fishing: true,
 		mining: true,
