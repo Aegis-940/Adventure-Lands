@@ -21,6 +21,12 @@ function can_afford_any_craft() {
 var CRAFT_LOCATION = { map: "main", x: 0, y: 492 };
 var CRAFT_POSITION_TOLERANCE = 5;
 
+// Delay between successive crafts in a batch. A local constant, not Auto_Upgrade.js's
+// UPGRADE_INTERVAL — that file only runs through the eval-based role-file loader, so
+// its top-level const never becomes visible outside that one eval call. Referencing it
+// here threw a ReferenceError right after the first craft in a batch, ending it early.
+var CRAFT_INTERVAL = 400;
+
 // Total quantity of an item sitting in the bank at a given level (null = any level) —
 // checked before falling back to buying, since not every craft ingredient is NPC-buyable.
 function bank_quantity_for(item_name, level) {
@@ -77,45 +83,60 @@ function compute_missing_ingredients(craft_def, count) {
 }
 
 // Buys/withdraws enough of every missing ingredient for the WHOLE batch up front (bank
-// first, then NPC purchase in one bulk buy() call), instead of one craft's worth at a
-// time. Returns true once nothing is missing, false if something couldn't be fully
-// gathered (not in the bank, not buyable, or not enough gold).
+// first, then NPC purchase), instead of one craft's worth at a time. Loops in bounded
+// rounds, re-checking actual inventory after each buy/withdraw: some items (e.g.
+// non-stackable gear-type ingredients) silently cap a single buy() to fewer than
+// requested, so one pass isn't reliable — this tops up the remainder automatically
+// instead of only fixing itself across separate try_craft() calls. Returns true once
+// nothing is missing, false if a round makes no progress (out of gold, or genuinely
+// unobtainable) or the round limit is hit.
 async function gather_ingredients_for_batch(craft_def, count) {
-	var missing = compute_missing_ingredients(craft_def, count);
+	var MAX_ROUNDS = 10;
 
-	for (var i = 0; i < missing.length; i++) {
-		var need = missing[i];
+	for (var round = 0; round < MAX_ROUNDS; round++) {
+		var missing = compute_missing_ingredients(craft_def, count);
+		if (missing.length === 0) return true;
 
-		if (bank_quantity_for(need.name, need.level) > 0) {
-			try {
-				await withdraw_item(need.name, need.level, need.amount);
-			} catch (e) {
-				catcher(e, "gather_ingredients_for_batch: withdraw " + need.name);
+		var made_progress = false;
+
+		for (var i = 0; i < missing.length; i++) {
+			var need = missing[i];
+
+			if (bank_quantity_for(need.name, need.level) > 0) {
+				try {
+					await withdraw_item(need.name, need.level, need.amount);
+				} catch (e) {
+					catcher(e, "gather_ingredients_for_batch: withdraw " + need.name);
+				}
+				made_progress = true;
+				continue;
 			}
-			continue;
+
+			var basics = parent.G.npcs["basics"];
+			if (!basics.items.includes(need.name)) {
+				game_log(`❌ Missing ${need.amount}x ${need.name} for crafting — not in bank, not buyable.`);
+				return false;
+			}
+
+			var item_def = parent.G.items[need.name];
+			var cost = (item_def.g || 0) * need.amount;
+			if (character.gold < cost) {
+				game_log(`❌ Not enough gold to buy ${need.amount}x ${need.name} for crafting.`);
+				return false;
+			}
+
+			try {
+				await smart_move("basics");
+			} catch (e) {
+				catcher(e, "gather_ingredients_for_batch: travel to basics NPC");
+				return false;
+			}
+			buy(need.name, need.amount);
+			await delay(400);
+			made_progress = true;
 		}
 
-		var basics = parent.G.npcs["basics"];
-		if (!basics.items.includes(need.name)) {
-			game_log(`❌ Missing ${need.amount}x ${need.name} for crafting — not in bank, not buyable.`);
-			return false;
-		}
-
-		var item_def = parent.G.items[need.name];
-		var cost = (item_def.g || 0) * need.amount;
-		if (character.gold < cost) {
-			game_log(`❌ Not enough gold to buy ${need.amount}x ${need.name} for crafting.`);
-			return false;
-		}
-
-		try {
-			await smart_move("basics");
-		} catch (e) {
-			catcher(e, "gather_ingredients_for_batch: travel to basics NPC");
-			return false;
-		}
-		buy(need.name, need.amount);
-		await delay(400);
+		if (!made_progress) return false; // stuck — avoid spinning MAX_ROUNDS for nothing
 	}
 
 	return compute_missing_ingredients(craft_def, count).length === 0;
@@ -168,7 +189,7 @@ async function craft_batch(craft_name, count) {
 			break;
 		}
 		crafted++;
-		await delay(UPGRADE_INTERVAL);
+		await delay(CRAFT_INTERVAL);
 	}
 
 	return crafted;
