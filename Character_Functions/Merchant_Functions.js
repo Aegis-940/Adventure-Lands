@@ -291,7 +291,10 @@ async function ensure_tool_equipped(tool_name) {
 		log(`🔎 No ${tool_name} in inventory, checking bank...`);
 		await smarter_move(BANK_LOCATION);
 		await delay(500);
-		withdraw_item(tool_name);
+		// Awaited (unlike the hot-path withdrawal loops elsewhere) — this only runs once
+		// per fishing/mining start, and the tool must actually be in inventory before the
+		// caller trusts the return value enough to start the skill.
+		await withdraw_item(tool_name);
 		await delay(400);
 		idx = find_in_inventory();
 	}
