@@ -104,7 +104,11 @@ window._cmListeners = window._cmListeners || [];
 					if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
 					text = text.replace(/[\u200B-\u200D\uFEFF]/g, "");
 					try {
-						eval(text);
+						// Indirect eval (calling via a reference, not the literal `eval(...)` form)
+						// runs in global scope — same as getScript() below. A direct eval() here
+						// would trap this file's top-level declarations (e.g. CONFIG) inside this
+						// callback's closure, invisible to every other loaded script.
+						(0, eval)(text);
 					} catch(e) {
 						game_log("❌ " + name + " eval error: " + e.message);
 						console.error(e);

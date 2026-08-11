@@ -417,7 +417,8 @@ async function skill_loop() {
 		}
 
 		// Dark Blessing
-		if (CONFIG.healing.dark_blessing_enabled && !is_on_cooldown('darkblessing')) {
+		if (CONFIG.healing.dark_blessing_enabled && !is_on_cooldown('darkblessing')
+			&& character.mp >= (G.skills.darkblessing?.mp || 0)) {
 			if (HEALER_TARGET !== 'bscorpion' || bscorpion_worth_buffing()) {
 				await use_skill('darkblessing');
 			}
