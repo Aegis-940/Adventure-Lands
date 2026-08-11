@@ -717,8 +717,8 @@ async function equipment_loop() {
 				target_cape_set = 'cape';
 			}
 
-			if (target_cape_set && !isSetEquipped(target_cape_set)) {
-				equipSet(target_cape_set);
+			if (target_cape_set && !is_set_equipped(target_cape_set)) {
+				equip_set(target_cape_set);
 				state.last_cape_swap = now;
 			}
 		}
@@ -733,8 +733,8 @@ async function equipment_loop() {
 				target_coat_set = 'mana';
 			}
 
-			if (target_coat_set && !isSetEquipped(target_coat_set)) {
-				equipSet(target_coat_set);
+			if (target_coat_set && !is_set_equipped(target_coat_set)) {
+				equip_set(target_coat_set);
 				state.last_coat_swap = now;
 			}
 		}
