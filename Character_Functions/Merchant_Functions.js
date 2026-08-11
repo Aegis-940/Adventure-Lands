@@ -3,7 +3,11 @@
 // CONFIG
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const CONFIG = {
+// var, not const: this file only ever runs through Bootstrapper.js's eval-based
+// loader, where top-level const/let are scoped to that one eval call and never
+// become visible to Common_Functions.js's shared CONFIG-reading functions (here,
+// potion_loop()'s CONFIG.potions.hp_threshold/mp_threshold).
+var CONFIG = {
 	// Master switches — flip any of these off to stop that state from ever being selected.
 	enabled: {
 		upgrading: false,
@@ -33,6 +37,11 @@ const CONFIG = {
 		mining_interval: 2 * 60 * 1000,
 	},
 	upgrade_gold_threshold: 100000000,
+	// Read by Shared/Common_Functions.js's shared potion_loop() (self-use, HP/MP independent checks).
+	potions: {
+		hp_threshold: 500,
+		mp_threshold: 500,
+	},
 	// Items to auto-craft — read directly by Merchant_Systems/Auto_Craft.js's try_craft().
 	crafting: {
 		targets: ["pouchbow"],
@@ -56,11 +65,12 @@ const CONFIG = {
 // buy_potion_loop() below; Common_Functions.js's shared potion_loop() (self-use) is
 // started separately from Characters/Merchant.js.
 
-// Aliases so Merchant_Systems/Auto_Upgrade.js (loaded before this file, references these
-// as bare globals) and the functions below keep a short, familiar name to work with.
-const HOME = CONFIG.locations.HOME;
-const BANK_LOCATION = CONFIG.locations.BANK_LOCATION;
-const PARTY = CONFIG.party.members;
+// var, not const: Auto_Upgrade.js and Auto_Craft.js are separate role files that each get
+// their own eval closure (see the CONFIG comment above) and reference HOME/BANK_LOCATION
+// as bare globals — same visibility requirement as CONFIG.
+var HOME = CONFIG.locations.HOME;
+var BANK_LOCATION = CONFIG.locations.BANK_LOCATION;
+const PARTY = CONFIG.party.members; // only read within this file — const is fine
 
 var merchant_task = "Idle"; // Current task: "Idle", "Delivering", etc. — var so Auto_Upgrade.js can share this global
 

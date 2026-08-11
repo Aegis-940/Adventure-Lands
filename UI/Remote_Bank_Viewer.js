@@ -84,6 +84,9 @@ function render_items(categories, used, total) {
 
 	html += `<div style="clear:both;"></div></div>`;
 
+	// Close any modal already open before showing this one — otherwise each open/re-render
+	// stacks a new modal on top instead of replacing it.
+	parent.hide_modal();
 	parent.show_modal(html, {
 	wrap: false,
 	hideinbackground: true,
