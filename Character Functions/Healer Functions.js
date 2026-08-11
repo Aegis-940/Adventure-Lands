@@ -5,7 +5,10 @@
 
 const home = HEALER_TARGET;
 
-const CONFIG = {
+// var, not const: this file only ever runs through Bootstrapper.js's eval-based
+// loader, where top-level const/let are scoped to that one eval call and never
+// become visible to Common Functions.js's shared CONFIG-reading functions.
+var CONFIG = {
 	combat: {
 		enabled: true,
 		zapper_enabled: false,
@@ -64,7 +67,8 @@ const CONFIG = {
 	},
 };
 
-const destination = {
+// var, not const: Common Functions.js's handle_return_home() reads this global.
+var destination = {
 	map: locations[home][0].map,
 	x: locations[home][0].x,
 	y: locations[home][0].y
