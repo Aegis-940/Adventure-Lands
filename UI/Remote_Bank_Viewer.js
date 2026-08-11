@@ -48,12 +48,15 @@ function render_items(categories, used, total) {
 	items.forEach(item => {
 		// Build an onclick that withdraws, then re-renders the ATM window
 		const lvl_arg = item.level != null ? item.level : null;
+		// Single quotes only, deliberately: item_container() embeds this whole string
+		// into a double-quoted onclick="..." HTML attribute, so it can't contain "
+		// itself without corrupting the markup (which is what was happening before).
 		const onclick = `
-		parent.$("#maincode")[0].contentWindow
-			.withdraw_item("${item.name}", ${lvl_arg}, ${1})
+		parent.$('#maincode')[0].contentWindow
+			.withdraw_item('${item.name}', ${lvl_arg}, ${1})
 			.then(() => {
 			parent.hide_modal();
-			parent.$("#maincode")[0].contentWindow.render_bank_items();
+			parent.$('#maincode')[0].contentWindow.render_bank_items();
 			});
 		`;
 		let opts = {
