@@ -56,6 +56,12 @@ var CONFIG = {
 	},
 	// Items sell_and_bank() must never bank away, even mid-cycle.
 	do_not_bank: [],
+	// Resting gear — worn at all times except the brief window a rod/pickaxe is
+	// equipped for fishing/mining (see ensure_tool_equipped()/equip_default_gear()).
+	default_gear: {
+		mainhand: { name: "broom", level: 9 },
+		offhand: { name: "wbookhs", level: 1 },
+	},
 };
 
 // Common_Functions.js's shared potion_loop()/auto_buy_potions() aren't used here — the
@@ -216,13 +222,31 @@ async function handle_exchanging_state() {
 	await exchange_items(); // has its own exchange_items_running guard + finally reset to "Idle"
 }
 
-// Ensures `tool_name` ("rod"/"pickaxe") is equipped in mainhand before fishing/mining
-// starts: checks inventory, then the bank, then falls back to crafting one via
-// Merchant_Systems/Auto_Craft.js's craft_item(). Rod/pickaxe are two-handed, so the
-// offhand must be empty before equipping — unequips it first if occupied. Returns true
-// once equipped, false if the tool couldn't be obtained any way. Only called at state
-// entry — once fishing/mining is actually looping, a broken tool just ends the loop
-// (see the loop's own mainhand check below), it doesn't re-run this whole chain mid-loop.
+// Equips CONFIG.default_gear's mainhand/offhand — the merchant's resting loadout,
+// worn at all times except the brief window a rod/pickaxe is equipped for fishing/
+// mining. Called once fishing/mining ends (success, failure, or error) and once at
+// startup (Characters/Merchant.js). No-ops per slot if the gear isn't in inventory.
+async function equip_default_gear() {
+	for (const slot of ["mainhand", "offhand"]) {
+		const gear = CONFIG.default_gear[slot];
+		const current = character.slots[slot];
+		if (current && current.name === gear.name && current.level === gear.level) continue;
+
+		const idx = character.items.findIndex(item => item && item.name === gear.name && item.level === gear.level);
+		if (idx === -1) continue;
+
+		await equip(idx, slot);
+		await delay(400);
+	}
+}
+
+// Ensures `tool_name` ("rod"/"pickaxe") is equipped in mainhand — checks inventory,
+// then the bank, then falls back to crafting one via Merchant_Systems/Auto_Craft.js's
+// craft_item(). Rod/pickaxe are two-handed, so the offhand must be empty before
+// equipping — unequips it first if occupied. Returns true once equipped, false if the
+// tool couldn't be obtained any way. Called only once already standing at the fishing/
+// mining spot (see the handlers below), never in advance — the rod/pickaxe should only
+// ever be worn immediately before the skill, with CONFIG.default_gear worn otherwise.
 async function ensure_tool_equipped(tool_name) {
 	function find_in_inventory() {
 		return character.items.findIndex(item => item && item.name === tool_name);
@@ -272,13 +296,20 @@ async function handle_fishing_state() {
 	if (merchant_task !== "Idle") return;
 	merchant_task = "Fishing";
 	try {
+		// Travel to the spot BEFORE equipping the rod — ensure_tool_equipped() may need
+		// to detour to the bank/crafting bench first, so this can re-check afterward.
+		const spot = CONFIG.locations.FISHING_SPOT;
+		if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > FISHING_POSITION_TOLERANCE) {
+			await smarter_move(spot);
+		}
+
 		const rod_equipped = await ensure_tool_equipped("rod");
 		if (!rod_equipped) {
 			log("❌ No fishing rod available (not in inventory, bank, or craftable).");
 			return;
 		}
 
-		const spot = CONFIG.locations.FISHING_SPOT;
+		// ensure_tool_equipped() may have wandered off to fetch/craft the rod.
 		if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > FISHING_POSITION_TOLERANCE) {
 			await smarter_move(spot);
 		}
@@ -309,6 +340,7 @@ async function handle_fishing_state() {
 	} catch (e) {
 		catcher(e, "handle_fishing_state");
 	} finally {
+		await equip_default_gear();
 		merchant_task = "Idle";
 	}
 }
@@ -317,13 +349,20 @@ async function handle_mining_state() {
 	if (merchant_task !== "Idle") return;
 	merchant_task = "Mining";
 	try {
+		// Travel to the spot BEFORE equipping the pickaxe — ensure_tool_equipped() may
+		// need to detour to the bank/crafting bench first, so this can re-check afterward.
+		const spot = CONFIG.locations.MINING_SPOT;
+		if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > MINING_POSITION_TOLERANCE) {
+			await smarter_move(spot);
+		}
+
 		const pickaxe_equipped = await ensure_tool_equipped("pickaxe");
 		if (!pickaxe_equipped) {
 			log("❌ No pickaxe available (not in inventory, bank, or craftable).");
 			return;
 		}
 
-		const spot = CONFIG.locations.MINING_SPOT;
+		// ensure_tool_equipped() may have wandered off to fetch/craft the pickaxe.
 		if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > MINING_POSITION_TOLERANCE) {
 			await smarter_move(spot);
 		}
@@ -354,6 +393,7 @@ async function handle_mining_state() {
 	} catch (e) {
 		catcher(e, "handle_mining_state");
 	} finally {
+		await equip_default_gear();
 		merchant_task = "Idle";
 	}
 }

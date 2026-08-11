@@ -19,6 +19,10 @@ create_map_movement_window([
 add_bank_buttons();
 hide_skills_ui();
 
+// Resting loadout (CONFIG.default_gear) — loop_controller()'s fishing/mining states
+// swap to a rod/pickaxe only right at the spot and restore this the moment they end.
+equip_default_gear();
+
 // Passive loops — no travel, safe to run alongside loop_controller()'s state machine.
 buy_potion_loop();
 mluck_buff_loop();
