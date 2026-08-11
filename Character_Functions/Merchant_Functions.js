@@ -33,6 +33,10 @@ var CONFIG = {
 	delivery: {
 		free_slots_threshold: 10, // deliver if any party member has this many or fewer free slots
 		gold_threshold: 20000000, // deliver if any party member is carrying at least this much gold
+		// MLuck lasts 3600s — refresh each party member at least this often. Satisfied
+		// opportunistically by mluck_buff_loop() whenever near the party; if it's about
+		// to lapse on its own, that alone triggers a delivery run (see should_run_delivery()).
+		mluck_refresh_interval: 50 * 60 * 1000,
 	},
 	upgrade_gold_threshold: 100000000,
 	// Read by Shared/Common_Functions.js's shared potion_loop() (self-use, HP/MP independent checks).
@@ -62,6 +66,9 @@ var CONFIG = {
 		mainhand: { name: "broom", level: 9 },
 		offhand: { name: "wbookhs", level: 1 },
 	},
+	// Checked top to bottom by get_character_state() (see PRIORITY_CHECKS) every time
+	// the merchant is Idle. Reorder to change what the merchant prefers to do first.
+	priorities: ["dead", "delivering", "upgrading", "crafting", "exchanging", "fishing", "mining"],
 };
 
 // Common_Functions.js's shared potion_loop()/auto_buy_potions() aren't used here — the
@@ -102,14 +109,25 @@ const DELIVERY_WAIT_MAX_ATTEMPTS = 40; // ~2 minutes at 3s/attempt before giving
 const FISHING_POSITION_TOLERANCE = 5;
 const MINING_POSITION_TOLERANCE = 10;
 const FISHING_TIME = 9000;
-const MINING_TIME = 4000;
+const MINING_TIME = 9000;
 const PARTY_STATUS_STALE_MS = 30000; // ignore a party member's last-reported status once it's this old
 
+// Last time each party member (by name) was mluck'd — see is_mluck_due()/
+// buff_nearby_party(), shared by the passive mluck_buff_loop() and delivery runs.
+let last_mluck_time = {};
+
+function is_mluck_due(name) {
+	return (Date.now() - (last_mluck_time[name] || 0)) > CONFIG.delivery.mluck_refresh_interval;
+}
+
 // party_status is Shared/Common_Functions.js's cache of each fighter's last-reported
-// free_slots/gold, pushed by their own status_cache_loop().
+// free_slots/gold, pushed by their own status_cache_loop(). Delivery is also due on
+// its own once mluck is about to lapse on anyone — that run doubles as the buff pass
+// (see handle_delivering_state()), so a stale buff alone is enough to trigger it.
 function should_run_delivery() {
 	if (merchant_task !== "Idle") return false;
 	for (const name of PARTY) {
+		if (is_mluck_due(name)) return true;
 		const status = party_status[name];
 		if (!status || (Date.now() - status.last_seen) > PARTY_STATUS_STALE_MS) continue;
 		if (status.free_slots <= CONFIG.delivery.free_slots_threshold) return true;
@@ -149,14 +167,23 @@ function should_run_mining() {
 		&& !is_on_cooldown("mining");
 }
 
+// Maps each CONFIG.priorities key to the state it selects and the check that decides
+// whether that state is due right now.
+const PRIORITY_CHECKS = {
+	dead:        { state: MERCHANT_STATES.DEAD,       should_run: () => character.rip },
+	delivering:  { state: MERCHANT_STATES.DELIVERING, should_run: should_run_delivery },
+	upgrading:   { state: MERCHANT_STATES.UPGRADING,  should_run: should_run_upgrade },
+	crafting:    { state: MERCHANT_STATES.CRAFTING,   should_run: should_run_craft },
+	exchanging:  { state: MERCHANT_STATES.EXCHANGING, should_run: should_run_exchange },
+	fishing:     { state: MERCHANT_STATES.FISHING,    should_run: should_run_fishing },
+	mining:      { state: MERCHANT_STATES.MINING,     should_run: should_run_mining },
+};
+
 function get_character_state() {
-	if (character.rip) return MERCHANT_STATES.DEAD;
-	if (should_run_delivery()) return MERCHANT_STATES.DELIVERING;
-	if (should_run_upgrade()) return MERCHANT_STATES.UPGRADING;
-	if (should_run_craft()) return MERCHANT_STATES.CRAFTING;
-	if (should_run_exchange()) return MERCHANT_STATES.EXCHANGING;
-	if (should_run_fishing()) return MERCHANT_STATES.FISHING;
-	if (should_run_mining()) return MERCHANT_STATES.MINING;
+	for (const key of CONFIG.priorities) {
+		const check = PRIORITY_CHECKS[key];
+		if (check && check.should_run()) return check.state;
+	}
 	return MERCHANT_STATES.IDLE;
 }
 
@@ -183,6 +210,10 @@ async function handle_delivering_state() {
 		if (attempts >= DELIVERY_WAIT_MAX_ATTEMPTS) {
 			log("⚠️ No party member came within range — heading home anyway.", "#FFA500");
 		}
+
+		// Covers both "buffed opportunistically during a normal delivery" and "delivery
+		// was triggered solely because mluck was about to lapse" — same run either way.
+		await buff_nearby_party();
 
 		await smarter_move(HOME);
 		await delay(1000);
@@ -460,6 +491,39 @@ function any_party_within_range(range = CONFIG.party.nearby_trigger_range) {
 	return false;
 }
 
+async function mluck_party_member(player) {
+	change_target(player);
+	await delay(100);
+	use_skill("mluck", player);
+	await delay(200);
+	last_mluck_time[player.name] = Date.now();
+}
+
+// Casts mluck on every nearby party member whose buff is actually due (is_mluck_due()),
+// skipping anyone already fresh. Shared by the passive mluck_buff_loop() (opportunistic,
+// whenever near the party) and handle_delivering_state() (a delivery run doubles as the
+// buff pass — see should_run_delivery()).
+async function buff_nearby_party() {
+	let buffed_any = false;
+	for (const name of PARTY) {
+		if (!is_mluck_due(name)) continue;
+		try {
+			const player = get_player(name);
+			if (
+				!player || player.rip || character.map !== player.map ||
+				Math.hypot(character.x - player.x, character.y - player.y) > CONFIG.party.action_range
+			) {
+				continue;
+			}
+			await mluck_party_member(player);
+			buffed_any = true;
+		} catch (e) {
+			catcher(e, "buff_nearby_party: " + name);
+		}
+	}
+	if (buffed_any) log("Cast MLuck.", "limegreen");
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // BUY POTION LOOP (passive — no travel, safe to run alongside the state machine)
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -525,32 +589,20 @@ async function loot_collection_loop() {
 // MLUCK BUFF LOOP (passive)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+// Opportunistic buffing — casts on whoever's nearby and due (is_mluck_due()) right now.
+// Doesn't guarantee the 50-minute refresh by itself (only fires when someone happens to
+// be nearby); should_run_delivery()/handle_delivering_state() is the guarantee, actively
+// finding the party once a buff is about to lapse on its own.
 async function mluck_buff_loop() {
-	const COOLDOWN = 60000;
-	let last_buff_time = 0;
 	while (true) {
-		if (Date.now() - last_buff_time >= COOLDOWN && any_party_within_range()) {
-			for (const name of PARTY) {
-				try {
-					const player = get_player(name);
-					if (
-						!player || player.rip || character.map !== player.map ||
-						Math.hypot(character.x - player.x, character.y - player.y) > CONFIG.party.action_range
-					) {
-						continue;
-					}
-					change_target(player);
-					await delay(100);
-					use_skill("mluck", player);
-					await delay(200);
-				} catch (e) {
-					catcher(e, "mluck_buff_loop: " + name);
-				}
+		try {
+			if (any_party_within_range()) {
+				await buff_nearby_party();
 			}
-			log("Cast MLuck.", "limegreen");
-			last_buff_time = Date.now();
+		} catch (e) {
+			catcher(e, "mluck_buff_loop");
 		}
-		await delay(500);
+		await delay(5000);
 	}
 }
 
