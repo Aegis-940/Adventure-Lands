@@ -365,14 +365,16 @@ async function handle_fishing_state() {
 				break;
 			}
 			try {
-				use_skill("fishing");
+				await use_skill("fishing");
 			} catch (e) {
 				catcher(e, "handle_fishing_state: use_skill");
 				break;
 			}
-			// Poll the real skill cooldown instead of guessing how long a cast takes.
+			// is_on_cooldown() alone clears before the multi-second fishing channel
+			// actually finishes — also wait for character.c.fishing to clear, or the
+			// skill gets spammed mid-channel.
 			await delay(200);
-			while (is_on_cooldown("fishing")) {
+			while ((character.c && character.c.fishing) || is_on_cooldown("fishing")) {
 				await delay(200);
 			}
 		}
@@ -423,14 +425,16 @@ async function handle_mining_state() {
 				break;
 			}
 			try {
-				use_skill("mining");
+				await use_skill("mining");
 			} catch (e) {
 				catcher(e, "handle_mining_state: use_skill");
 				break;
 			}
-			// Poll the real skill cooldown instead of guessing how long a cast takes.
+			// is_on_cooldown() alone clears before the multi-second mining channel
+			// actually finishes — also wait for character.c.mining to clear, or the
+			// skill gets spammed mid-channel.
 			await delay(200);
-			while (is_on_cooldown("mining")) {
+			while ((character.c && character.c.mining) || is_on_cooldown("mining")) {
 				await delay(200);
 			}
 		}
