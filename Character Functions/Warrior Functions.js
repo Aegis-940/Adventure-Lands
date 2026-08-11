@@ -747,7 +747,7 @@ async function equipment_loop() {
 			if (CONFIG.equipment.boss_set_swap_enabled && active_boss) {
 				const boss_hp = active_boss.data.hp;
 				if (boss_hp > CONFIG.equipment.boss_hp_thresholds[active_boss.name]) {
-					   if (character.map !== mob_map) {
+					   if (character.map !== destination.map) {
 							target_set = 'dps';
 					}
 				} else {
@@ -755,7 +755,7 @@ async function equipment_loop() {
 				}
 			}
 			// Home map logic
-			   else if (character.map === mob_map) {
+			   else if (character.map === destination.map) {
 				target_set = 'dps_accessories';
 
 				// Weapon swap based on mob count/map

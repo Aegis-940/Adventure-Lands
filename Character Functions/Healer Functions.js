@@ -381,7 +381,7 @@ async function action_loop() {
 		}
 
 	} catch (e) {
-		console.error('priest action_loop error:', e);
+		catcher(e, 'action_loop');
 		delay = 1;
 	}
 

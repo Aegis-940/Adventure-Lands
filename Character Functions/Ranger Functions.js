@@ -675,7 +675,7 @@ async function equipment_loop() {
 		if (CONFIG.equipment.boss_set_swap_enabled && now - state.last_boss_set_swap > swap_cooldown) {
 			const target_set = active_boss
 				? active_boss.data.hp > CONFIG.equipment.boss_hp_thresholds[active_boss.name] ? 'dps' : 'luck'
-				: (character.map === mob_map && 'dps');
+				: (character.map === destination.map && 'dps');
 
 			if (target_set && !is_set_equipped(target_set)) {
 				equip_set(target_set);
