@@ -638,6 +638,19 @@ async function sell_and_bank() {
 		return;
 	}
 
+	// Don't issue smarter_move(HOME) on top of movement already in progress elsewhere
+	// (e.g. a fishing/mining loop's own step, or the state machine mid-transition) --
+	// but wait for it to settle instead of silently abandoning the whole call, which
+	// left the character stranded wherever it happened to be moving when this fired.
+	let move_wait = 0;
+	while (character.moving && move_wait < 20) {
+		await delay(250);
+		move_wait++;
+	}
+	if (character.moving) {
+		log("⚠️ sell_and_bank: still moving after waiting, proceeding anyway.");
+	}
+
 	sell_and_bank_running = true;
 	try {
 		// === SELLING ===
