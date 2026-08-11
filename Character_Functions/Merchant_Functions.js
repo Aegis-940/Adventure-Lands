@@ -10,7 +10,7 @@
 var CONFIG = {
 	// Master switches — flip any of these off to stop that state from ever being selected.
 	enabled: {
-		upgrading: false,
+		upgrading: true,
 		crafting: false,
 		exchanging: false,
 		fishing: false,
@@ -112,7 +112,8 @@ function should_run_upgrade() {
 	return CONFIG.enabled.upgrading
 		&& merchant_task === "Idle"
 		&& character.gold >= CONFIG.upgrade_gold_threshold
-		&& (Date.now() - last_upgrade_time) > CONFIG.cycles.upgrade_interval;
+		&& (Date.now() - last_upgrade_time) > CONFIG.cycles.upgrade_interval
+		&& bank_has_upgradeable_items(); // Merchant_Systems/Auto_Upgrade.js — skip the cycle if the bank has nothing worth upgrading/combining
 }
 
 function should_run_craft() {

@@ -235,6 +235,44 @@ async function withdraw_upgradeable_items() {
 	game_log("✅ Finished withdrawing upgrade and compound items, leaving at least 3 inventory slots free.");
 }
 
+// Checked by Character_Functions/Merchant_Functions.js's should_run_upgrade() before
+// entering the UPGRADING state — avoids a full bank trip when there's nothing to do.
+function bank_has_upgradeable_items() {
+	const bank_data = character.bank || load_bank_from_local_storage();
+	if (!bank_data) return false;
+
+	// Single-item upgrades: any item below its profile's max_level.
+	for (const item_name in UPGRADE_PROFILE) {
+		const max_level = UPGRADE_PROFILE[item_name].max_level;
+		for (const pack in bank_data) {
+			if (!Array.isArray(bank_data[pack])) continue;
+			for (const item of bank_data[pack]) {
+				if (item && item.name === item_name && (typeof item.level !== "number" || item.level < max_level)) {
+					return true;
+				}
+			}
+		}
+	}
+
+	// Combines need 3 matching items at the same level, below max_level, to do anything.
+	for (const item_name in COMBINE_PROFILE) {
+		const max_level = COMBINE_PROFILE[item_name].max_level;
+		const level_counts = {};
+		for (const pack in bank_data) {
+			if (!Array.isArray(bank_data[pack])) continue;
+			for (const item of bank_data[pack]) {
+				if (item && item.name === item_name && (typeof item.level !== "number" || item.level < max_level)) {
+					const lvl = item.level || 0;
+					level_counts[lvl] = (level_counts[lvl] || 0) + (item.q || 1);
+					if (level_counts[lvl] >= 3) return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 async function auto_upgrade_item(level) {
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];

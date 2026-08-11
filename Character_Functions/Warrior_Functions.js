@@ -86,6 +86,10 @@ var destination = {
 	y: locations[home][0].y
 };
 
+// var, not const: Shared/Common_Functions.js's send_to_merchant() reads this global
+// when the merchant requests a loot pull, so it never sweeps away needed items.
+var ITEMS_TO_KEEP = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster", "pumpkinspice", "xptome", "tracker", "jacko", "orbg", "talkingskull", "computer"];
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATE & CACHE
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -846,16 +850,14 @@ function clear_inventory() {
 	if (!loot_mule) return;
 
 	const dist = distance(character, loot_mule);
-	
-	if (dist < 250 && character.gold > 5000000) {
-			send_gold(loot_mule, character.gold - 5000000);
-	}
 
-	const items_to_exclude = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster", "pumpkinspice", "xptome", "tracker", "jacko", "orbg", "talkingskull", "computer"];
+	if (dist < 250 && character.gold > LOOT_GOLD_RESERVE) {
+			send_gold(loot_mule, character.gold - LOOT_GOLD_RESERVE);
+	}
 
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
-		if (item && !items_to_exclude.includes(item.name) && !item.l && !item.s) {
+		if (item && !ITEMS_TO_KEEP.includes(item.name) && !item.l && !item.s) {
 			if (dist < 250) {
 				send_item(loot_mule.id, i, item.q ?? 1);
 			}

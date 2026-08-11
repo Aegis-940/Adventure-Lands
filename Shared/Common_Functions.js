@@ -783,6 +783,10 @@ function party_manager() {
 // LOOT & INVENTORY
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+// Keep at least this much gold on hand when a merchant-requested loot pull fires.
+// Shared so it stays in sync with each fighter's own clear_inventory() threshold.
+const LOOT_GOLD_RESERVE = 10000000;
+
 async function send_to_merchant() {
 	const merchant_name = "Riff";          // e.g., "Riff"
 	const merchant = get_player(merchant_name);   // use get_player for live info
@@ -794,10 +798,14 @@ async function send_to_merchant() {
 		return game_log("❌ Merchant not nearby");
 	}
 
-	// Send every unlocked item in slots ≥ LOOT_THRESHOLD
+	// Each fighter file defines its own var ITEMS_TO_KEEP (items it needs on hand and
+	// must never auto-send) — fall back to nothing excluded if a file doesn't define one.
+	const items_to_keep = typeof ITEMS_TO_KEEP !== "undefined" ? ITEMS_TO_KEEP : [];
+
+	// Send every unlocked, non-reserved item in slots ≥ LOOT_THRESHOLD
 	for (let i = LOOT_THRESHOLD; i < character.items.length; i++) {
 		const item = character.items[i];
-		if (item && !item.l) { // Skip locked items
+		if (item && !item.l && !items_to_keep.includes(item.name)) { // Skip locked/reserved items
 			await delay(150);
 			try {
 				send_item(merchant_name, i, item.q || 1);
@@ -807,11 +815,12 @@ async function send_to_merchant() {
 		}
 	}
 
-	// Then send all gold
-	if (character.gold > 0) {
+	// Send gold above the reserve
+	const gold_to_send = character.gold - LOOT_GOLD_RESERVE;
+	if (gold_to_send > 0) {
 		await delay(10);
 		try {
-			await send_gold(merchant_name, character.gold);
+			await send_gold(merchant_name, gold_to_send);
 		} catch (e) {
 			game_log("⚠️ Could not send gold");
 		}
