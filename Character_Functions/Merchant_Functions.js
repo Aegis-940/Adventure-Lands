@@ -49,7 +49,7 @@ var CONFIG = {
 	// { name, count? } — count caps how many to craft in one batch; omit it to craft as
 	// many as will fit in free inventory space instead.
 	crafting: {
-		targets: [{ name: "fireblade" }],
+		targets: [{ name: "fireblade", count: 25  }],
 	},
 	// Items to turn in at the exchange NPC, in priority order.
 	exchange: {
