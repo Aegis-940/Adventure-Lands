@@ -33,8 +33,14 @@ const update_xp_timer = () => {
     const $ = parent.$;
     const now = Date.now();
 
+    // A level-up resets the XP scale, so drop any pre-levelup history —
+    // otherwise the rate/ETA are computed against the wrong level's XP curve.
+    if (xp_history.length && xp_history[xp_history.length - 1].level !== character.level) {
+        xp_history = [];
+    }
+
     // Push current XP state
-    xp_history.push({ t: now, xp: character.xp });
+    xp_history.push({ t: now, xp: character.xp, level: character.level });
 
     // Keep only the last 5 minutes
     xp_history = xp_history.filter(entry => entry.t >= now - XP_ROLLING_WINDOW);

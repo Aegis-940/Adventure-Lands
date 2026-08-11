@@ -197,16 +197,22 @@ function smarter_move(destination, on_done, options = {}) {
         smart.x = target.x;
         smart.y = target.y;
     } else if ("to" in target || "map" in target) {
-        // ...existing logic for resolving named locations...
-        // For brevity, you can copy your original location resolution logic here.
-        // If not found, return rejecting promise.
-        // Example:
-        if (!G.maps[target.to || target.map]) {
+        const dest_name = target.to || target.map;
+
+        if (locations[dest_name]) {
+            // Named monster/farm location from the shared locations table
+            const loc = locations[dest_name][0];
+            smart.map = loc.map || character.map;
+            smart.x = loc.x;
+            smart.y = loc.y;
+        } else if (G.maps[dest_name]) {
+            // Bare map name — head to its default spawn point
+            smart.map = dest_name;
+            smart.x = G.maps[smart.map].spawns[0][0];
+            smart.y = G.maps[smart.map].spawns[0][1];
+        } else {
             return Promise.reject({ reason: "invalid location" });
         }
-        smart.map = target.to || target.map;
-        smart.x = G.maps[smart.map].spawns[0][0];
-        smart.y = G.maps[smart.map].spawns[0][1];
     } else {
         return Promise.reject({ reason: "invalid destination" });
     }

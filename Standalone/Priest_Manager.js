@@ -158,7 +158,7 @@ const locations = {
 
 
 const destination = {
-	map: mobMap,
+	map: mob_map,
 	x: locations[home][0].x,
 	y: locations[home][0].y
 };
@@ -492,7 +492,7 @@ async function handle_absorb() {
 async function handle_party_heal() {
 	let threshold = CONFIG.healing.party_heal_threshold;
 
-	if (character.map !== mobMap) {
+	if (character.map !== mob_map) {
 		threshold = 0.99;
 	}
 
@@ -719,7 +719,7 @@ async function handle_looting() {
 	state.current = 'looting';
 
 	try {
-		if (CONFIG.looting.equip_goldgear/* && !is_set_equipped('gold')*/) {
+		if (CONFIG.looting.equip_gold_gear/* && !is_set_equipped('gold')*/) {
 			// equip_set('gold');
 			swap_booster('luckbooster', 'goldbooster');
 			await sleep(150);
@@ -737,7 +737,7 @@ async function handle_looting() {
 
 		await sleep(75);
 
-		if (CONFIG.looting.equip_goldgear) {
+		if (CONFIG.looting.equip_gold_gear) {
 			swap_booster('goldbooster', 'luckbooster');
 		}
 	} catch (e) {
@@ -780,7 +780,7 @@ function handle_equipment_swap() {
 	if (CONFIG.equipment.boss_luck_switch && cache.nearest_boss) {
 		const { mob, type } = cache.nearest_boss;
 		const threshold = CONFIG.equipment.boss_hp_thresholds[type] || 0;
-		target_set = mob.hp < threshold ? 'luck' : 'luck';
+		target_set = mob.hp < threshold ? 'luck' : 'gold';
 	}
 
 	if (!is_set_equipped(target_set)) {
@@ -815,7 +815,7 @@ function clear_inventory() {
 	if (!lootMule) return;
 
 	if (character.gold > 5000000) {
-		send_gold(loot_mule, character.gold - 5000000);
+		send_gold(lootMule.name, character.gold - 5000000);
 	}
 
 	const items_to_exclude = ['hpot1', 'mpot1', 'luckbooster', 'goldbooster', 'xpbooster', 'elixirluck', 'xptome', 'essenceoflife', 'jacko'];
@@ -823,8 +823,8 @@ function clear_inventory() {
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
 		if (item && !items_to_exclude.includes(item.name) && !item.l && !item.s) {
-			if (is_in_range(loot_mule, 'attack')) {
-				send_item(loot_mule.id, i, item.q ?? 1);
+			if (is_in_range(lootMule, 'attack')) {
+				send_item(lootMule.id, i, item.q ?? 1);
 			}
 		}
 	}
@@ -1140,14 +1140,14 @@ function on_cm(name, data) {
 }
 
 function on_party_request(name) {
-	if (CONFIG.party.groupMembers.includes(name)) {
+	if (CONFIG.party.group_members.includes(name)) {
 		console.log('Accepting party request from ' + name);
 		accept_party_request(name);
 	}
 }
 
 function on_party_invite(name) {
-	if (CONFIG.party.groupMembers.includes(name)) {
+	if (CONFIG.party.group_members.includes(name)) {
 		console.log('Accepting party invite from ' + name);
 		accept_party_invite(name);
 	}

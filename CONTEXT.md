@@ -23,13 +23,16 @@
 Bootstrapper.js
     └── loads all scripts in order from CDN (jsdelivr)
 
-Common Functions.js          ← shared by everything
+Shared/Common Functions.js   ← shared by everything
     ├── smarter_move()        Promise-based pathfinding
     ├── State management      (panic / normal / boss / dead)
     ├── Loop toggle globals   (ATTACK_LOOP_ENABLED, etc.)
     ├── Location database     (monster spawn locations per map)
     ├── Party constants       (PARTY_LEADER, PARTY_MEMBERS)
     └── Tick rates / cooldowns
+
+Shared/Buttons.js            ← floating button UI helper
+Shared/Windows.js            ← floating draggable window helper
 
 Characters/[Role].js         ← entry point per character
     ├── Creates UI buttons and windows
@@ -47,15 +50,20 @@ UI/*.js                      ← overlay panels (semi-independent)
     ├── Stats_Window.js       Canvas-based gold graph
     ├── Party_Frames.js
     ├── Remote_Bank_Viewer.js
+    ├── Bank_Sorter.js        Bank sorting order/category definitions
     ├── CC_Meter.js
     ├── Gold_Meter.js
-    └── XP_Meter.js
+    ├── XP_Meter.js
+    ├── Game_Log.js           mostly commented out — incomplete feature
+    └── Custom_Log.js         custom in-game log window
 
-Auto Upgrade.js              ← item upgrade profiles (used by Merchant)
-Auto Craft.js                ← crafting automation (used by Merchant)
-Priest_Manager.js            ← extended healer system (alternate to Healer Functions)
-Buttons.js                   ← floating button UI helper
-Windows.js                   ← floating draggable window helper
+Merchant Systems/
+    ├── Auto Upgrade.js        item upgrade profiles (loaded for Riff)
+    └── Auto Craft.js          crafting automation — NOT loaded by Bootstrapper.js; manual-inject only
+
+Standalone/
+    └── Priest_Manager.js      extended healer system (alternate to Healer Functions)
+                                NOT loaded by Bootstrapper.js; manual-inject only
 ```
 
 ---
@@ -159,38 +167,45 @@ CONFIG = {
 
 ## File Size Reference
 
+*(Line counts below are exact as of the last cleanup pass — see git history for drift over time; don't treat this table as authoritative if it's been a while since a restructure.)*
+
 | File | Lines |
 |------|-------|
-| Common Functions.js | ~2270 |
-| Ranger Functions.js | ~4323 |
-| Warrior Functions.js | ~2071 |
-| Healer Functions.js | ~1775 |
-| Merchant Functions.js | ~1069 |
-| Priest_Manager.js | ~1192 |
-| Auto Upgrade.js | ~520 |
-| Buttons.js | ~398 |
-| DPS_Meter.js | ~358 |
-| Stats_Window.js | ~363 |
-| Auto Craft.js | ~163 |
-| Remote_Bank_Viewer.js | ~193 |
-| Party_Frames.js | ~123 |
-| CC_Meter.js | ~125 |
-| Gold_Meter.js | ~114 |
-| XP_Meter.js | ~80 |
-| Game_Log.js | ~161 |
-| Windows.js | ~81 |
-| Bootstrapper.js | ~131 |
-| Characters/*.js | ~60 each |
+| Shared/Common Functions.js | 1635 |
+| Character Functions/Ranger Functions.js | 1311 |
+| Character Functions/Warrior Functions.js | 1398 |
+| Character Functions/Healer Functions.js | 1238 |
+| Character Functions/Merchant Functions.js | 996 |
+| Standalone/Priest_Manager.js | 1192 |
+| Merchant Systems/Auto Upgrade.js | 522 |
+| Merchant Systems/Auto Craft.js | 160 |
+| Shared/Buttons.js | 146 |
+| Shared/Windows.js | 83 |
+| UI/DPS_Meter.js | 376 |
+| UI/Stats_Window.js | 347 |
+| UI/Remote_Bank_Viewer.js | 194 |
+| UI/Bank_Sorter.js | 187 |
+| UI/Custom_Log.js | 270 |
+| UI/Party_Frames.js | 123 |
+| UI/CC_Meter.js | 125 |
+| UI/Gold_Meter.js | 114 |
+| UI/XP_Meter.js | 86 |
+| UI/Game_Log.js | 161 |
+| Bootstrapper.js | 129 |
+| Characters/Tank.js | 27 |
+| Characters/Healer.js | 38 |
+| Characters/Ranger.js | 27 |
+| Characters/Merchant.js | 47 |
 
 ---
 
 ## Known Gaps / Ongoing Work
 
-- `CC_Manager.js` is a placeholder (1 line) — not yet implemented
-- `Game_Log.js` is mostly commented out — incomplete feature
+- `UI/Game_Log.js` is mostly commented out — incomplete feature
 - `Bootstrapper.js` has some disabled sections — loader is in transition
 - No automated tests — all validation is done by running in the live game
 - Git commits are not descriptively labeled (all labeled "1") — history is minimal
+- `Merchant Systems/Auto Craft.js` and `Standalone/Priest_Manager.js` are not in `Bootstrapper.js`'s load list — they're manual-inject only, kept in the repo but not part of the automated boot path
 
 ---
 

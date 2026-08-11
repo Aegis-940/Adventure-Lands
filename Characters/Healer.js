@@ -35,10 +35,4 @@ setInterval(async () => {
 		last_update_time = now;
 	}
 
-	// === Core utility loops ===
-	// party_manager();
-
-	if (!attack_mode || character.rip || is_moving(character)) return;
-
-
 }, 250);

@@ -102,6 +102,12 @@ function create_map_movement_window(custom_actions = []) {
 	`;
 
 	window.top.document.body.appendChild(win);
+
+	// make_draggable reads/writes el.style.left in pixels, but this window is
+	// positioned via top/right — pin down an explicit left before it can be dragged.
+	win.style.left = win.offsetLeft + "px";
+	win.style.right = "";
+
 	make_draggable(win);
 
 	function add_button(container_id, id, label, on_click) {

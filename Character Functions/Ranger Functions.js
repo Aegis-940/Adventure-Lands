@@ -36,7 +36,7 @@ const CONFIG = {
 			crabxx: 100000,
 			grinch: 100000,
 		},
-		mp_thresholds: { upper: 1700, lower: 2100 },
+		mp_thresholds: { upper: 2100, lower: 1700 },
 		chest_threshold: 12,
 		swap_cooldown: 500,
 		cape_swap_enabled: false,

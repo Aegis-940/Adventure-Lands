@@ -335,7 +335,7 @@ async function main_loop() {
 		}
 
 		update_cache();
-		// panic_check();
+		panic_check();
 
 		if (should_handle_events()) {
 			handle_events();
@@ -661,10 +661,6 @@ async function equipment_loop() {
 	const delay = TICK_RATE.equipment;
 
 	try {
-		if (!state.skinReady) {
-			return setTimeout(equipment_loop, delay);
-		}
-
 		if (panicking) {
 			return setTimeout(equipment_loop, delay);
 		}
@@ -864,24 +860,36 @@ function clear_inventory() {
 }
 
 const item_order = {
-	tracktrix: 0, 
-	computer: 1, 
-	hpot1: 2, 
-	mpot1: 3, 
-	xptome: 4, 
-	pumpkinspice: 5, 
+	tracktrix: 0,
+	computer: 1,
+	hpot1: 2,
+	mpot1: 3,
+	xptome: 4,
+	pumpkinspice: 5,
 	xpbooster: 6,
 	jacko: 7,
-	candycanesword: 38,
-	candycanesword: 39,
+	candycanesword: [38, 39], // dual-wielded: two copies get their own reserved slot
 	fireblade: 40,
 	bataxe: 41,
 };
 
 const inventory_sorter = () => {
+	const claimed = {}; // item name -> how many of its reserved slots are already assigned this pass
+
 	character.items.forEach((item, i) => {
-		const target = item_order[item?.name];
-		if (target !== undefined && i !== target) swap(i, target);
+		if (!item) return;
+		const spec = item_order[item.name];
+		if (spec === undefined) return;
+
+		if (Array.isArray(spec)) {
+			const next = claimed[item.name] || 0;
+			if (next >= spec.length) return; // no reserved slot left for extra copies
+			claimed[item.name] = next + 1;
+			const target = spec[next];
+			if (i !== target) swap(i, target);
+		} else if (i !== spec) {
+			swap(i, spec);
+		}
 	});
 };
 

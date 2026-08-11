@@ -112,9 +112,10 @@ function render_bank_items() {
   ];
 
   function itm_cmp(a, b) {
-    return (a == null) - (b == null)
-      || (a && (a.name < b.name ? -1 : +(a.name > b.name)))
-      || (a && b.level - a.level);
+    if (a == null) return b == null ? 0 : 1;
+    if (b == null) return -1;
+    if (a.name !== b.name) return a.name < b.name ? -1 : 1;
+    return (b.level ?? 0) - (a.level ?? 0);
   }
 
   object_sort(G.items, "gold_value").forEach(([id, def]) => {
@@ -154,7 +155,7 @@ function render_bank_items() {
     } else {
       cat[1] = flat.map(it => ({ ...it, q: it.q != null ? pretty3(it.q) : undefined }));
     }
-    cat[1].sort((a, b) => (a.name > b.name ? 1 : -1));
+    cat[1].sort((a, b) => (a.name === b.name ? 0 : (a.name > b.name ? 1 : -1)));
   });
 
   let used = 0, total = 0;

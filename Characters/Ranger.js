@@ -24,21 +24,4 @@ create_custom_log_window();
 // MAIN LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let last_update_time = 0;
-
-setInterval(async () => {
-	
-	// Throttle to every 20 seconds (20,000 ms)
-	const now = Date.now();
-	if (now - last_update_time >= 20000) {
-		parent.socket.emit("send_updates", {});
-		last_update_time = now;
-	}
-
-	// === Core utility loops ===
-	// party_manager();
-
-	if (!attack_mode || character.rip || is_moving(character)) return;
-
-
-}, 250);
+// Ranger Functions.js already runs its own 20s send_updates interval.

@@ -303,24 +303,8 @@ function ui_window() {
 
     win_el.appendChild(title_bar);
 
-    // Drag logic
-    let is_dragging = false, drag_offset_x = 0, drag_offset_y = 0;
-    title_bar.onmousedown = function (e) {
-        is_dragging = true;
-        drag_offset_x = e.clientX - win_el.offsetLeft;
-        drag_offset_y = e.clientY - win_el.offsetTop;
-        doc.body.style.userSelect = "none";
-    };
-    doc.onmousemove = function (e) {
-        if (is_dragging) {
-            win_el.style.left = (e.clientX - drag_offset_x) + "px";
-            win_el.style.top = (e.clientY - drag_offset_y) + "px";
-        }
-    };
-    doc.onmouseup = function () {
-        is_dragging = false;
-        doc.body.style.userSelect = "";
-    };
+    // Drag via the shared Windows.js helper, using the title bar as the handle.
+    make_draggable(win_el, title_bar);
 
     // Toggle button
     const toggle_btn = create_element(doc, "button", {

@@ -15,12 +15,11 @@ window._cmListeners = window._cmListeners || [];
 	p$.ajaxSetup({ cache: false });
 
 	const scripts = [
-		"Common Functions.js",
+		"Shared/Common Functions.js",
 		"UI/Custom_Log.js",
-		"Bank_Sorter.js",
-		"Buttons.js",
-		"Windows.js",
-		"CC_Manager.js",
+		"UI/Bank_Sorter.js",
+		"Shared/Buttons.js",
+		"Shared/Windows.js",
 		"UI/Game_Log.js",
 		"UI/XP_Meter.js",
 		"UI/Gold_Meter.js",
@@ -32,16 +31,16 @@ window._cmListeners = window._cmListeners || [];
 	];
 
 	const roleScripts = {
-		"Ulric": ["Character Functions/Warrior Functions.js",	
+		"Ulric": ["Character Functions/Warrior Functions.js",
 		"Characters/Tank.js"],
-		
-		"Myras": ["Character Functions/Healer Functions.js",	
+
+		"Myras": ["Character Functions/Healer Functions.js",
 		"Characters/Healer.js"],
-		
-		"Riva": ["Character Functions/Ranger Functions.js",	
+
+		"Riva": ["Character Functions/Ranger Functions.js",
 		"Characters/Ranger.js"],
-		
-		"Riff": ["Auto Upgrade.js",
+
+		"Riff": ["Merchant Systems/Auto Upgrade.js",
 		"Character Functions/Merchant Functions.js",
 		"Characters/Merchant.js"]
 	};
@@ -89,7 +88,7 @@ window._cmListeners = window._cmListeners || [];
 				}
 			}
 
-			if (name === roleFile) {
+			if (Array.isArray(roleFile) && roleFile.includes(name)) {
 				// —— DEBUG FETCH ——
 				p$.get(url, function(text) {
 					console.log("[BS] Fetched", name, "length=", text.length);

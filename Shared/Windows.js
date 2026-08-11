@@ -67,8 +67,8 @@ let _drag = null;
   });
 })();
 
-function make_draggable(el) {
-  el.addEventListener("mousedown", e => {
+function make_draggable(el, handle = el) {
+  handle.addEventListener("mousedown", e => {
     _drag = {
       el,
       start_x:    e.clientX,

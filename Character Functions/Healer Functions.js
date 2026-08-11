@@ -3,7 +3,7 @@
 // CONFIG VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-home = HEALER_TARGET;
+const home = HEALER_TARGET;
 
 const CONFIG = {
 	combat: {
@@ -721,7 +721,7 @@ async function handle_looting() {
 	}
 }
 
-const CHEST_STORAGE_KEY = get_chests();
+const CHEST_STORAGE_KEY = 'loot_chest_ids';
 function load_chest_map() {
 	const data = get(CHEST_STORAGE_KEY);
 	return typeof data === "object" && data !== null ? data : {};

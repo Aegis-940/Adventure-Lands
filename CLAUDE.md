@@ -22,12 +22,12 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | File | Role |
 |------|------|
 | `Bootstrapper.js` | Script loader — loads all other files from CDN in order |
-| `Common Functions.js` | Shared utilities, movement, state, location data |
-| `Buttons.js` | Floating UI button creation |
-| `Windows.js` | Generic draggable floating window helper |
-| `Priest_Manager.js` | Alternate/extended healer management system |
-| `Auto Upgrade.js` | Item upgrade profiles and automation |
-| `Auto Craft.js` | Crafting logic |
+| `Shared/Common Functions.js` | Shared utilities, movement, state, location data |
+| `Shared/Buttons.js` | Floating UI button creation |
+| `Shared/Windows.js` | Generic draggable floating window helper |
+| `Standalone/Priest_Manager.js` | Alternate/extended healer management system — **not loaded by Bootstrapper.js**; manual-inject only |
+| `Merchant Systems/Auto Upgrade.js` | Item upgrade profiles and automation |
+| `Merchant Systems/Auto Craft.js` | Crafting logic — **not loaded by Bootstrapper.js**; manual-inject only |
 | `Characters/Tank.js` | Warrior entry point (character: Ulric) |
 | `Characters/Healer.js` | Healer entry point (character: Myras) |
 | `Characters/Ranger.js` | Ranger entry point (character: Riva) |
@@ -40,10 +40,12 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `UI/Stats_Window.js` | Character stats + gold graph (Canvas API) |
 | `UI/Party_Frames.js` | Party HP/status display |
 | `UI/Remote_Bank_Viewer.js` | Bank access UI |
+| `UI/Bank_Sorter.js` | Bank sorting order/category definitions |
 | `UI/CC_Meter.js` | Crowd control meter |
 | `UI/Gold_Meter.js` | Gold accumulation display |
 | `UI/XP_Meter.js` | XP tracking display |
 | `UI/Game_Log.js` | Game event log (mostly commented out) |
+| `UI/Custom_Log.js` | Custom in-game log window |
 
 ---
 

@@ -109,17 +109,14 @@ function tryCraft()
 				//Are we missing anything?
 				if(missing == 0)
 				{
-					//Craft it!
-					var craftArray = [];
-					
-					for(id in craftSlots)
+					//Craft it! Server expects a flat 9-slot grid (inventory indices, null for empty).
+					var craftArray = craftSlots.slice(0, 9);
+					while(craftArray.length < 9)
 					{
-						craftArray.push([id, craftSlots[id]]);
+						craftArray.push(null);
 					}
-					
-					parent.socket.emit("craft", {
-            			items: craftArray
-					});
+
+					craft.apply(null, craftArray);
 					break;
 				}
 				else

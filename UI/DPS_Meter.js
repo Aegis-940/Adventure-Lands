@@ -91,8 +91,13 @@ function initDPSMeter() {
     brc.children().first().after(container);
 }
 
-// Handle all hit events
-parent.socket.on('hit', data => {
+// Handle all hit events. Guard against duplicate registration if this script
+// is re-injected without a full page reload (parent.socket persists across that).
+if (parent.socket._dpsMeterHitHandler) {
+    parent.socket.off('hit', parent.socket._dpsMeterHitHandler);
+}
+
+parent.socket._dpsMeterHitHandler = data => {
     const isParty = id => parent.party_list.includes(id);
     try {
         // == Party-only filter ==
@@ -208,12 +213,29 @@ parent.socket.on('hit', data => {
     } catch (err) {
         console.error('hit handler error', err);
     }
-});
+};
+
+parent.socket.on('hit', parent.socket._dpsMeterHitHandler);
+
+const DPS_WINDOW_MS = 5 * 60 * 1000;
+
+// Drop events older than the rolling window so the per-type buffers don't grow forever.
+// Events are pushed in chronological order, so a prefix trim is sufficient.
+function pruneEntryEvents(entry) {
+    const cutoff = performance.now() - DPS_WINDOW_MS;
+    for (const key in entry) {
+        if (!key.endsWith('Events')) continue;
+        const arr = entry[key];
+        let i = 0;
+        while (i < arr.length && arr[i].t < cutoff) i++;
+        if (i > 0) arr.splice(0, i);
+    }
+}
 
 // Compute stat value for type using a 5-minute rolling window
 function getTypeValue(type, entry) {
     const now = performance.now();
-    const windowStart = Math.max(entry.startTime, now - 5 * 60 * 1000);
+    const windowStart = Math.max(entry.startTime, now - DPS_WINDOW_MS);
     const windowMs = now - windowStart;
     if (windowMs <= 0) return 0;
 
@@ -270,7 +292,7 @@ function getTypeValue(type, entry) {
 // Calculate DPS for sorting (also rolling window)
 function calculateDPSForEntry(entry) {
     const now = performance.now();
-    const windowStart = Math.max(entry.startTime, now - 5 * 60 * 1000);
+    const windowStart = Math.max(entry.startTime, now - DPS_WINDOW_MS);
     const windowMs = now - windowStart;
     if (windowMs <= 0) return 0;
     const total = entry.damageEvents.reduce((sum, ev) => ev.t >= windowStart ? sum + ev.v : sum, 0);
@@ -297,6 +319,8 @@ function updateDPSMeterUI() {
         html += `<th style='color:${col}'>${t}</th>`;
     });
     html += '</tr>';
+
+    Object.values(playerDamageSums).forEach(pruneEntryEvents);
 
     // Player rows
     const sorted = Object.entries(playerDamageSums)
@@ -333,14 +357,8 @@ function updateDPSMeterUI() {
             });
             html += `<td><span style='color:#FF4C4C'>${getFormatted(totP)}</span> | <span style='color:#6ECFF6'>${getFormatted(totM)}</span></td>`;
         } else if (t === 'DPS') {
-            let totalDmg = 0;
-            Object.values(playerDamageSums).forEach(e => {
-                totalDmg += e.damageEvents.reduce((sum, ev) => sum + ev.v, 0)
-                           + e.dreturnEvents .reduce((sum, ev) => sum + ev.v, 0)
-                           + e.reflectEvents .reduce((sum, ev) => sum + ev.v, 0);
-            });
-            const elapsed = performance.now() - METER_START;
-            const totalDPS = Math.floor(totalDmg * 1000 / Math.max(elapsed, 1));
+            // Same 5-minute rolling window as the per-player rows above, so this reconciles with their sum.
+            const totalDPS = sorted.reduce((sum, p) => sum + p.dps, 0);
             html += `<td>${getFormatted(totalDPS)}</td>`;
         } else {
             let tot = 0;
