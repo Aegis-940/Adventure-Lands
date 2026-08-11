@@ -137,4 +137,6 @@ function render_party_ui() {
 	}
 }
 
-setInterval(render_party_ui, 250);
+// Matches state_cache_loop()'s 100ms write interval (Shared/Common_Functions.js) —
+// redrawing faster than the underlying cache updates wouldn't show anything new.
+setInterval(render_party_ui, 100);
