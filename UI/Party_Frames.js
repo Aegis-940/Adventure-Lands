@@ -1,8 +1,8 @@
 // Simple Party UI - displays all 4 party members with HP, MP, XP, centered and 150px from bottom
 
 const PARTY_ORDER = ["Ulric", "Myras", "Riva", "Riff"];
-const partyFrameWidth = 100;
-const barHeight = 18;
+const PARTY_FRAME_WIDTH = 100;
+const BAR_HEIGHT = 18;
 
 // Inject CSS for positioning and style
 (function() {
@@ -18,15 +18,15 @@ const barHeight = 18;
 		z-index: 1;
 	}
 	.simple-party-frame {
-		width: ${partyFrameWidth}px;
+		width: ${PARTY_FRAME_WIDTH}px;
 		background: rgba(34,34,34,0.75);
 		border: 1px solid #444;
 		padding: 6px 8px;
-		font-family: 'pixel', monospace;
+		font-family: "pixel", monospace;
 		color: #fff;
 	}
 	.simple-party-bar {
-		height: ${barHeight}px;
+		height: ${BAR_HEIGHT}px;
 		margin: 2px 0 6px 0;
 		position: relative;
 		background: #000000ff;
@@ -56,21 +56,21 @@ const barHeight = 18;
 		letter-spacing: 1px;
 	}
 	`;
-	if (!parent.document.getElementById('simple-party-ui-style')) {
-		const style = parent.document.createElement('style');
-		style.id = 'simple-party-ui-style';
+	if (!parent.document.getElementById("simple-party-ui-style")) {
+		const style = parent.document.createElement("style");
+		style.id = "simple-party-ui-style";
 		style.textContent = css;
 		parent.document.head.appendChild(style);
 	}
 })();
 
-function getPartyMemberInfo(name) {
-	let info = get(name + '_newparty_info');
-	if (!info || Date.now() - info.lastSeen > 1000) {
+function get_party_member_info(name) {
+	let info = get(name + "_newparty_info");
+	if (!info || Date.now() - info.last_seen > 1000) {
 		let party_member = get_player(name);
 		if (party_member) {
 			info = Object.fromEntries(Object.entries(party_member).filter(current => [
-				'name', 'hp', 'max_hp', 'mp', 'max_mp', 'xp', 'level'
+				"name", "hp", "max_hp", "mp", "max_mp", "xp", "level"
 			].includes(current[0])));
 		} else {
 			info = { name };
@@ -79,16 +79,16 @@ function getPartyMemberInfo(name) {
 	return info;
 }
 
-function renderPartyUI() {
-	let container = parent.document.getElementById('simple-party-ui-container');
+function render_party_ui() {
+	let container = parent.document.getElementById("simple-party-ui-container");
 	if (!container) {
-		container = parent.document.createElement('div');
-		container.id = 'simple-party-ui-container';
+		container = parent.document.createElement("div");
+		container.id = "simple-party-ui-container";
 		parent.document.body.appendChild(container);
 	}
-	container.innerHTML = '';
+	container.innerHTML = "";
 	for (const name of PARTY_ORDER) {
-		const info = getPartyMemberInfo(name);
+		const info = get_party_member_info(name);
 		const hp = info.hp ?? 0;
 		const max_hp = info.max_hp ?? 1;
 		const mp = info.mp ?? 0;
@@ -96,28 +96,28 @@ function renderPartyUI() {
 		const xp = info.xp ?? 0;
 		const level = info.level ?? 1;
 		const max_xp = G.levels?.[level] ?? 1;
-		const hpPct = Math.max(0, Math.min(100, (hp / max_hp) * 100));
-		const mpPct = Math.max(0, Math.min(100, (mp / max_mp) * 100));
-		const xpPct = Math.max(0, Math.min(100, (xp / max_xp) * 100));
-		const frame = parent.document.createElement('div');
-		frame.className = 'simple-party-frame';
+		const hp_pct = Math.max(0, Math.min(100, (hp / max_hp) * 100));
+		const mp_pct = Math.max(0, Math.min(100, (mp / max_mp) * 100));
+		const xp_pct = Math.max(0, Math.min(100, (xp / max_xp) * 100));
+		const frame = parent.document.createElement("div");
+		frame.className = "simple-party-frame";
 		frame.innerHTML = `
 			<div class="simple-party-name">${info.name ?? name}</div>
 			<div class="simple-party-bar">
-				<div class="simple-party-bar-inner bar-hp" style="width:${hpPct}%;"></div>
+				<div class="simple-party-bar-inner bar-hp" style="width:${hp_pct}%;"></div>
 				<div class="bar-label">HP: ${hp}</div>
 			</div>
 			<div class="simple-party-bar">
-				<div class="simple-party-bar-inner bar-mp" style="width:${mpPct}%;"></div>
+				<div class="simple-party-bar-inner bar-mp" style="width:${mp_pct}%;"></div>
 				<div class="bar-label">MP: ${mp}</div>
 			</div>
 			<div class="simple-party-bar">
-				<div class="simple-party-bar-inner bar-xp" style="width:${xpPct}%;"></div>
-				<div class="bar-label">XP: ${xpPct.toFixed(1)}%</div>
+				<div class="simple-party-bar-inner bar-xp" style="width:${xp_pct}%;"></div>
+				<div class="bar-label">XP: ${xp_pct.toFixed(1)}%</div>
 			</div>
 		`;
 		container.appendChild(frame);
 	}
 }
 
-setInterval(renderPartyUI, 250);
+setInterval(render_party_ui, 250);

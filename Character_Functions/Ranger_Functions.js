@@ -7,17 +7,17 @@ const home = RANGER_TARGET;
 
 // var, not const: this file only ever runs through Bootstrapper.js's eval-based
 // loader, where top-level const/let are scoped to that one eval call and never
-// become visible to Common Functions.js's shared CONFIG-reading functions.
+// become visible to Common_Functions.js's shared CONFIG-reading functions.
 var CONFIG = {
 	combat: {
 		enabled: true,
-		target_priority: ['Ulric', 'Myras'],
-		always_attack: ['crabx', 'bscorpion'], // Attack regardless of target
-		attack_if_targeted: [...all_bosses, 'phoenix'], // Only attack if has target
-		never_attack: ['nerfedmummy'], // Never attack
+		target_priority: ["Ulric", "Myras"],
+		always_attack: ["crabx", "bscorpion"], // Attack regardless of target
+		attack_if_targeted: [...all_bosses, "phoenix"], // Only attack if has target
+		never_attack: ["nerfedmummy"], // Never attack
 		use_hunters_mark: true,
 		use_supershot: true,
-		skill_blacklist: ['dryad', 'fireroamer', 'plantoid'], // Monster types to skip supershot + huntersmark on
+		skill_blacklist: ["dryad", "fireroamer", "plantoid"], // Monster types to skip supershot + huntersmark on
 		min_targets_for_5shot: 4,
 		min_targets_for_3shot: 2,
 	},
@@ -46,7 +46,7 @@ var CONFIG = {
 		coat_swap_enabled: false,
 		boss_set_swap_enabled: true,
 		xp_set_swap_enabled: false,
-		xp_monsters: [home, 'sparkbot'],
+		xp_monsters: [home, "sparkbot"],
 		xp_mob_hp_threshold: 12000,
 		use_licence: false,
 	},
@@ -60,20 +60,20 @@ var CONFIG = {
 
 	party: {
 		auto_manage: true,
-		group_members: ['Myras', 'Ulric', 'Riva', 'Riff']
+		group_members: ["Myras", "Ulric", "Riva", "Riff"]
 	},
 
 	looting: {
 		enabled: false,
 		delay_ms: 180000,
-		loot_month: 'lootItemsJan'
+		loot_month: "lootItemsJan"
 	},
 
 	selling: {
 		enabled: false,
-		whitelist: ['vitearring', 'iceskates', 'cclaw', 'hpbelt', 'ringsj', 'hpamulet',
-			'warmscarf', 'quiver', 'snowball', 'vitring', 'wbreeches', 'wgloves',
-			'strring', 'dexring', 'intring']
+		whitelist: ["vitearring", "iceskates", "cclaw", "hpbelt", "ringsj", "hpamulet",
+			"warmscarf", "quiver", "snowball", "vitring", "wbreeches", "wgloves",
+			"strring", "dexring", "intring"]
 	},
 
 	upgrading: {
@@ -84,30 +84,30 @@ var CONFIG = {
 	combining: {
 		enabled: false,
 		whitelist: {
-			dexamulet: { targetLevel: 3, primling: 3, prim: 4 },
-			intamulet: { targetLevel: 3, primling: 3, prim: 4 },
-			stramulet: { targetLevel: 3, primling: 3, prim: 4 }
+			dexamulet: { target_level: 3, primling: 3, prim: 4 },
+			intamulet: { target_level: 3, primling: 3, prim: 4 },
+			stramulet: { target_level: 3, primling: 3, prim: 4 }
 		}
 	},
 
 	character_starter: {
 		enabled: false,
 		characters: {
-			MERCHANT: { name: 'Riff', codeSlot: 95 },
-			PRIEST: { name: 'Myras', codeSlot: 3 },
-			WARRIOR: { name: 'Ulric', codeSlot: 2 }
+			MERCHANT: { name: "Riff", code_slot: 95 },
+			PRIEST: { name: "Myras", code_slot: 3 },
+			WARRIOR: { name: "Ulric", code_slot: 2 }
 		}
 	},
 
 	location_broadcast: {
 		enabled: true,
-		target_player: 'Riff',
+		target_player: "Riff",
 		check_interval: 1000,
 		low_inventory_slots: 7
 	}
 };
 
-// var, not const: Common Functions.js's handle_return_home() reads this global.
+// var, not const: Common_Functions.js's handle_return_home() reads this global.
 var destination = {
 	map: locations[home][0].map,
 	x: locations[home][0].x,
@@ -221,7 +221,7 @@ const should_attack_mob = (mob) => {
 	if (parent?.S?.[mob.mtype]?.live) return true;
 
 	// 5. In follow mode, attack any visible monster
-	if (RANGER_TARGET === 'giantspider') return true;
+	if (RANGER_TARGET === "giantspider") return true;
 
 	// 6. Default: attack if targeting party members
 	return CONFIG.combat.target_priority.includes(mob.target);
@@ -236,13 +236,13 @@ const update_cache = () => {
 };
 
 const update_target_cache = () => {
-	const { x: homeX, y: homeY } = locations[home][0];
+	const { x: home_x, y: home_y } = locations[home][0];
 	const clump_radius = CONFIG.movement.clump_radius;
 	const sorted_by_hp = [];
 
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
-		if (e.type === 'monster' && should_attack_mob(e)) {
+		if (e.type === "monster" && should_attack_mob(e)) {
 			sorted_by_hp.push(e);
 		}
 	}
@@ -262,7 +262,7 @@ const update_target_cache = () => {
 
 	const in_range = [], out_of_range = [], clumped = [];
 
-	const within_range = RANGER_TARGET === 'giantspider'
+	const within_range = RANGER_TARGET === "giantspider"
 		? mob => is_in_range(mob) && parent.distance(character, mob) <= 50
 		: mob => is_in_range(mob);
 
@@ -270,7 +270,7 @@ const update_target_cache = () => {
 		if (within_range(mob)) {
 			in_range.push(mob);
 
-			if (Math.hypot(mob.x - homeX, mob.y - homeY) <= clump_radius) {
+			if (Math.hypot(mob.x - home_x, mob.y - home_y) <= clump_radius) {
 				clumped.push(mob);
 			}
 		} else {
@@ -279,7 +279,7 @@ const update_target_cache = () => {
 	}
 
 	// In single-target follow mode, prefer the closest target
-	if (RANGER_TARGET === 'giantspider') {
+	if (RANGER_TARGET === "giantspider") {
 		in_range.sort((a, b) => parent.distance(character, a) - parent.distance(character, b));
 	}
 
@@ -289,7 +289,7 @@ const update_target_cache = () => {
 		let count = 0;
 		for (const id in parent.entities) {
 			const e = parent.entities[id];
-			if (e?.type === 'monster' && !e.dead && e.target && e !== mob &&
+			if (e?.type === "monster" && !e.dead && e.target && e !== mob &&
 				Math.hypot(e.x - mob.x, e.y - mob.y) <= explosion_radius) count++;
 		}
 		return { mob, count };
@@ -302,7 +302,7 @@ const update_target_cache = () => {
 };
 
 const find_heal_target = () => {
-	const healer = get_entity('Myras');
+	const healer = get_entity("Myras");
 	const threshold = (!healer || healer.rip) ? 0.9 : 0.66;
 	const party = Object.keys(get_party() || {});
 
@@ -320,17 +320,17 @@ const find_heal_target = () => {
 	return min_pct < threshold ? target : null;
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FOLLOW HEALER — used when RANGER_TARGET === 'giantspider'
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// FOLLOW HEALER — used when RANGER_TARGET === "giantspider"
 // Orbits Myras when close; smart_moves to her when far or on a different map.
 // Falls back to _healer_last_known when she is off-map and invisible.
-// ─────────────────────────────────────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
 let _healer_last_known = null;
 let _last_healer_ping = 0;
 
 const follow_healer = () => {
-	const healer = get_player('Myras');
+	const healer = get_player("Myras");
 
 	// Keep cache fresh from live data whenever healer is visible
 	if (healer && !healer.rip) {
@@ -342,7 +342,7 @@ const follow_healer = () => {
 		const now = Date.now();
 		if (now - _last_healer_ping > 2000) {
 			_last_healer_ping = now;
-			send_cm('Myras', { type: 'where_are_you' });
+			send_cm("Myras", { type: "where_are_you" });
 		}
 	}
 
@@ -350,7 +350,7 @@ const follow_healer = () => {
 	if (!healer_pos || (healer && healer.rip)) return;
 
 	if (healer_pos.map !== character.map) {
-		if (smart.moving) smart._interrupt?.('follow_healer');
+		if (smart.moving) smart._interrupt?.("follow_healer");
 		if (!smart.moving) smart_move({ map: healer_pos.map, x: healer_pos.x, y: healer_pos.y });
 		return;
 	}
@@ -368,7 +368,7 @@ const follow_healer = () => {
 
 	// Cancel stale pathfinding if our distance from the ring has shifted significantly
 	if (smart.moving) {
-		if (Math.abs(dist - fd) > 40) smart._interrupt?.('follow_healer');
+		if (Math.abs(dist - fd) > 40) smart._interrupt?.("follow_healer");
 		return;
 	}
 
@@ -410,7 +410,7 @@ const main_loop = async () => {
 		if (should_handle_events()) {
 			handle_events();
 		} else if (CONFIG.movement.enabled) {
-			if (RANGER_TARGET === 'bscorpion') {
+			if (RANGER_TARGET === "bscorpion") {
 				// Scorpion visibility ≠ scorpion reachability (waterway between them).
 				// Pathfind to the farm spot via smart_move only when actually lost;
 				// once we're in the farm zone, prim_farm_loop handles positioning
@@ -418,7 +418,7 @@ const main_loop = async () => {
 				const at_farm = character.map === PRIM_FARM_LOC.map &&
 					Math.hypot(character.x - PRIM_FARM_LOC.x, character.y - PRIM_FARM_LOC.y) < PRIM_FARM_RADIUS + 30;
 				if (!at_farm && !smart.moving) smart_move(PRIM_FARM_LOC);
-			} else if (RANGER_TARGET === 'giantspider') {
+			} else if (RANGER_TARGET === "giantspider") {
 				follow_healer();
 			} else if (!get_nearest_monster({ type: home })) {
 				handle_return_home();
@@ -427,7 +427,7 @@ const main_loop = async () => {
 			}
 		}
 	} catch (e) {
-		console.error('main_loop error:', e);
+		console.error("main_loop error:", e);
 	}
 	setTimeout(main_loop, TICK_RATE.main);
 };
@@ -438,7 +438,7 @@ const main_loop = async () => {
 
 const action_loop = async () => {
 	if (panicking) return setTimeout(action_loop, 100);
-	if (RANGER_TARGET !== 'giantspider') {
+	if (RANGER_TARGET !== "giantspider") {
 		const myras = get_player("Myras");
 		if (!myras || distance(character, myras) > 200) return setTimeout(action_loop, 100);
 	}
@@ -447,7 +447,7 @@ const action_loop = async () => {
 		if (is_disabled(character)) return setTimeout(action_loop, 50);
 
 		update_cache();
-		const ms = ms_to_next_skill('attack');
+		const ms = ms_to_next_skill("attack");
 
 		if (ms === 0 && smart.moving === false) {
 			if (cache.heal_target) {
@@ -466,19 +466,19 @@ const handle_attack = async () => {
 
 	const min5 = CONFIG.combat.min_targets_for_5shot;
 	const min3 = CONFIG.combat.min_targets_for_3shot;
-	const mp5 = (G.skills['5shot']?.mp + 400);
-	const mp3 = (G.skills['3shot']?.mp + 200);
+	const mp5 = (G.skills["5shot"]?.mp + 400);
+	const mp3 = (G.skills["3shot"]?.mp + 200);
 	const mp1 = 100;
 	const can_5shot = character.mp >= mp5;
 	const can_3shot = character.mp >= mp3;
 	const can_1shot = character.mp >= mp1;
 
 	// Decide which skill to use this tick — conditions on count, targets passed in density order
-	const single_target_mode = RANGER_TARGET === 'giantspider';
+	const single_target_mode = RANGER_TARGET === "giantspider";
 	let skill_call;
-	if (!single_target_mode && can_5shot && in_range.length >= min5)           { skill_call = () => use_skill('5shot', cluster_targets.slice(0, 5).map(e => e.id)); }
-	else if (!single_target_mode && can_5shot && out_of_range.length >= min5)  { skill_call = () => use_skill('5shot', out_of_range.slice(0, 5).map(e => e.id)); }
-	else if (!single_target_mode && can_3shot && in_range.length >= min3)      { skill_call = () => use_skill('3shot', cluster_targets.slice(0, 3).map(e => e.id)); }
+	if (!single_target_mode && can_5shot && in_range.length >= min5)           { skill_call = () => use_skill("5shot", cluster_targets.slice(0, 5).map(e => e.id)); }
+	else if (!single_target_mode && can_5shot && out_of_range.length >= min5)  { skill_call = () => use_skill("5shot", out_of_range.slice(0, 5).map(e => e.id)); }
+	else if (!single_target_mode && can_3shot && in_range.length >= min3)      { skill_call = () => use_skill("3shot", cluster_targets.slice(0, 3).map(e => e.id)); }
 	else if (can_1shot && cluster_target)               { skill_call = () => attack(cluster_target); }
 	else if (can_1shot && in_range.length >= 1)         { skill_call = () => attack(in_range[0]); }
 	else return;
@@ -488,7 +488,7 @@ const handle_attack = async () => {
 
 const skill_loop = async () => {
 	if (panicking) return setTimeout(skill_loop, 100);
-	if (RANGER_TARGET !== 'giantspider') {
+	if (RANGER_TARGET !== "giantspider") {
 		const myras = get_player("Myras");
 		if (!myras || distance(character, myras) > 200) return setTimeout(skill_loop, 100);
 	}
@@ -508,30 +508,30 @@ const skill_loop = async () => {
 			return;
 		}
 
-		const target = RANGER_TARGET === 'giantspider' ? in_range[0] : sorted_by_hp[0];
+		const target = RANGER_TARGET === "giantspider" ? in_range[0] : sorted_by_hp[0];
 		if (!target || !is_in_range(target)) {
 			setTimeout(skill_loop, 100);
 			return;
 		}
 
-		const msHunter = ms_to_next_skill('huntersmark');
-		const msSuper = ms_to_next_skill('supershot');
-		const minMs = Math.min(msHunter, msSuper);
+		const ms_hunter = ms_to_next_skill("huntersmark");
+		const ms_super = ms_to_next_skill("supershot");
+		const min_ms = Math.min(ms_hunter, ms_super);
 
-		if (minMs < character.ping / 10) {
+		if (min_ms < character.ping / 10) {
 			change_target(target);
 
 			const skill_allowed = !CONFIG.combat.skill_blacklist.includes(target.mtype);
 
-			if (skill_allowed && CONFIG.combat.use_hunters_mark && msHunter === 0 && !target.s?.marked) {
-				await use_skill('huntersmark', target);
+			if (skill_allowed && CONFIG.combat.use_hunters_mark && ms_hunter === 0 && !target.s?.marked) {
+				await use_skill("huntersmark", target);
 			}
 
-			if (skill_allowed && CONFIG.combat.use_supershot && msSuper === 0) {
-				await use_skill('supershot', target);
+			if (skill_allowed && CONFIG.combat.use_supershot && ms_super === 0) {
+				await use_skill("supershot", target);
 			}
 		} else {
-			delay = minMs > 200 ? 100 : minMs > 50 ? 20 : 5;
+			delay = min_ms > 200 ? 100 : min_ms > 50 ? 20 : 5;
 		}
 	} catch { delay = 1; }
 	setTimeout(skill_loop, delay);
@@ -555,13 +555,13 @@ const maintenance_loop = async () => {
 
 		if (character.rip) respawn();
 	} catch (e) {
-		console.error('maintenance_loop error:', e);
+		console.error("maintenance_loop error:", e);
 	}
 
 	setTimeout(maintenance_loop, TICK_RATE.maintenance);
 }
 
-// potion_loop → Common Functions.js
+// potion_loop → Common_Functions.js
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // EQUIPMENT MANAGEMENT LOOP
@@ -583,22 +583,22 @@ async function equipment_loop() {
 			const { in_range, out_of_range } = cache.targets;
 			const min5 = CONFIG.combat.min_targets_for_5shot;
 			const min3 = CONFIG.combat.min_targets_for_3shot;
-			const can_5shot = character.mp >= (G.skills['5shot']?.mp + 400);
-			const can_3shot = character.mp >= (G.skills['3shot']?.mp + 200);
+			const can_5shot = character.mp >= (G.skills["5shot"]?.mp + 400);
+			const can_3shot = character.mp >= (G.skills["3shot"]?.mp + 200);
 
 			let desired;
 			if (cache.heal_target) {
-				desired = 'heal';
-			} else if (RANGER_TARGET === 'giantspider') {
-				desired = 'single';
+				desired = "heal";
+			} else if (RANGER_TARGET === "giantspider") {
+				desired = "single";
 			} else if (can_5shot && (in_range.length >= min5 || out_of_range.length >= min5)) {
-				desired = 'boom';
+				desired = "boom";
 			} else if (can_3shot && in_range.length >= min3) {
-				desired = 'boom';
+				desired = "boom";
 			} else if (cache.targets.cluster_target) {
-				desired = 'boom';
+				desired = "boom";
 			} else {
-				desired = 'single';
+				desired = "single";
 			}
 
 			if (!is_set_equipped(desired)) {
@@ -608,7 +608,7 @@ async function equipment_loop() {
 		}
 
 		const mainhand = character.slots?.mainhand?.name;
-		if (mainhand === 'cupid') return setTimeout(equipment_loop, delay);
+		if (mainhand === "cupid") return setTimeout(equipment_loop, delay);
 
 		const active_boss = EVENT_LOCATIONS
 			.map(e => ({ name: e.name, data: parent.S[e.name] }))
@@ -617,8 +617,8 @@ async function equipment_loop() {
 		// // Booster Swap
 		// if (now - state.last_booster_swap > swap_cooldown) {
 		// 	let desired_booster = active_boss && active_boss.data.hp < CONFIG.equipment.boss_hp_thresholds[active_boss.name]
-		// 		? 'luckbooster'
-		// 		: 'xpbooster';
+		// 		? "luckbooster"
+		// 		: "xpbooster";
 
 		// 	const current_booster_slot = locate_item(desired_booster);
 		// 	if (current_booster_slot === -1) {
@@ -633,10 +633,10 @@ async function equipment_loop() {
 		// // Cape Swap
 		// if (CONFIG.equipment.cape_swap_enabled && now - state.last_cape_swap > swap_cooldown) {
 		// 	const chest_count = get_num_chests();
-		// 	const num_targets = get_num_targets('Myras');
+		// 	const num_targets = get_num_targets("Myras");
 		// 	const target_cape_set = chest_count >= CONFIG.equipment.chestThreshold && num_targets < 6
-		// 		? 'stealth'
-		// 		: 'cape';
+		// 		? "stealth"
+		// 		: "cape";
 
 		// 	if (target_cape_set && !is_set_equipped(target_cape_set)) {
 		// 		equip_set(target_cape_set);
@@ -647,8 +647,8 @@ async function equipment_loop() {
 		// // Coat Swap
 		// if (CONFIG.equipment.coat_swap_enabled && now - state.last_coat_swap > swap_cooldown) {
 		// 	const target_coat_set = character.mp > CONFIG.equipment.mp_thresholds.upper
-		// 		? 'stat'
-		// 		: character.mp < CONFIG.equipment.mp_thresholds.lower && 'mana';
+		// 		? "stat"
+		// 		: character.mp < CONFIG.equipment.mp_thresholds.lower && "mana";
 
 		// 	if (target_coat_set && !is_set_equipped(target_coat_set)) {
 		// 		equip_set(target_coat_set);
@@ -659,11 +659,11 @@ async function equipment_loop() {
 		// // XP Set Swap
 		// if (CONFIG.equipment.xp_set_swap_enabled && now - state.last_xp_swap > swap_cooldown && character.map === mob_map) {
 		// 	const has_low_hp_xp_mob = Object.values(parent.entities).some(e =>
-		// 		e?.type === 'monster' && !e.dead &&
+		// 		e?.type === "monster" && !e.dead &&
 		// 		CONFIG.equipment.xp_monsters.includes(e.mtype) &&
 		// 		e.hp < CONFIG.equipment.xp_mob_hp_threshold
 		// 	);
-		// 	const target_xp_set = has_low_hp_xp_mob ? 'xp' : 'orb';
+		// 	const target_xp_set = has_low_hp_xp_mob ? "xp" : "orb";
 
 		// 	if (target_xp_set && !is_set_equipped(target_xp_set)) {
 		// 		equip_set(target_xp_set);
@@ -674,8 +674,8 @@ async function equipment_loop() {
 		// Boss Set Swap
 		if (CONFIG.equipment.boss_set_swap_enabled && now - state.last_boss_set_swap > swap_cooldown) {
 			const target_set = active_boss
-				? active_boss.data.hp > CONFIG.equipment.boss_hp_thresholds[active_boss.name] ? 'dps' : 'luck'
-				: (character.map === destination.map && 'dps');
+				? active_boss.data.hp > CONFIG.equipment.boss_hp_thresholds[active_boss.name] ? "dps" : "luck"
+				: (character.map === destination.map && "dps");
 
 			if (target_set && !is_set_equipped(target_set)) {
 				equip_set(target_set);
@@ -684,27 +684,27 @@ async function equipment_loop() {
 		}
 
 	} catch (e) {
-		console.error('equipment_loop error:', e);
+		console.error("equipment_loop error:", e);
 	}
 
 	setTimeout(equipment_loop, delay);
 }
 
-// find_booster_slot, get_num_chests, get_num_targets → Common Functions.js
+// find_booster_slot, get_num_chests, get_num_targets → Common_Functions.js
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MOVEMENT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// should_handle_events, handle_events, handle_specific_event, handle_return_home → Common Functions.js
+// should_handle_events, handle_events, handle_specific_event, handle_return_home → Common_Functions.js
 
 async function walk_in_circle() {
 	if (smart.moving || character.moving) return;
-	if (RANGER_TARGET === 'bscorpion') return;
+	if (RANGER_TARGET === "bscorpion") return;
 
 	let center;
-	if (RANGER_TARGET === 'giantspider') {
-		const healer = get_player('Myras');
+	if (RANGER_TARGET === "giantspider") {
+		const healer = get_player("Myras");
 		if (!healer || healer.rip || healer.map !== character.map) return;
 		center = { x: healer.x, y: healer.y };
 	} else {
@@ -731,11 +731,11 @@ async function walk_in_circle() {
 // LOOTING
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// const CHEST_STORAGE_KEY = 'loot_chest_ids';
+// const CHEST_STORAGE_KEY = "loot_chest_ids";
 
 // function loadChestMap() {
 // 	const data = get(CHEST_STORAGE_KEY);
-// 	return typeof data === 'object' && data !== null ? data : {};
+// 	return typeof data === "object" && data !== null ? data : {};
 // }
 
 // function saveChestMap(map) {
@@ -782,7 +782,7 @@ async function walk_in_circle() {
 // 			console.log(`Looted ${looted} chest(s)`);
 // 		}
 // 	} catch (err) {
-// 		console.error('Looting error:', err);
+// 		console.error("Looting error:", err);
 // 	}
 // }
 
@@ -797,7 +797,7 @@ async function walk_in_circle() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function clear_inventory() {
-	const loot_mule = get_player('Riff');
+	const loot_mule = get_player("Riff");
 	if (!loot_mule) return;
 
 	const dist = distance(character, loot_mule);
@@ -806,7 +806,7 @@ function clear_inventory() {
 			send_gold(loot_mule, character.gold - 5000000);
 	}
 
-	const items_to_exclude = ['hpot1', 'mpot1', 'luckbooster', 'goldbooster', 'xpbooster', 'pumpkinspice', 'xptome', 'tracker', 'jacko', 'orbg', 'talkingskull', 'cupid', 'computer'];
+	const items_to_exclude = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster", "pumpkinspice", "xptome", "tracker", "jacko", "orbg", "talkingskull", "cupid", "computer"];
 
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
@@ -836,10 +836,10 @@ const inventory_sorter = () => {
 	});
 };
 
-// auto_buy_potions → Common Functions.js
+// auto_buy_potions → Common_Functions.js
 
 function elixir_usage() {
-	const required = 'pumpkinspice';
+	const required = "pumpkinspice";
 	const current_elixir = character.slots.elixir?.name;
 
 	if (current_elixir !== required) {
@@ -868,7 +868,7 @@ async function panic_check() {
 	HIGH_HEALTH = character.hp >= character.max_hp * 0.80;
 	HIGH_MANA = character.mp >= character.max_mp * 0.33;
 
-	const panic_slot = character.items.findIndex(i => i?.name === 'jacko');
+	const panic_slot = character.items.findIndex(i => i?.name === "jacko");
 
 	// Aggro check: monsters targeting me
 	MONSTERS_TARGETING_ME = Object.values(parent.entities).filter(
@@ -890,11 +890,11 @@ async function panic_check() {
 	if (panicking && (Date.now() - last_panic_time > PANIC_COOLDOWN)) {
 		last_panic_time = Date.now();
 		// Equip panic orb if needed
-		if (character.slots.orb?.name !== 'jacko' && panic_slot !== -1) {
+		if (character.slots.orb?.name !== "jacko" && panic_slot !== -1) {
 			try {
 				await equip(panic_slot);
 				await delay(200);
-				if (character.slots.orb?.name !== 'jacko') {
+				if (character.slots.orb?.name !== "jacko") {
 					log("[PANIC] Failed to equip panic orb!", "#ff4444", "Errors");
 				}
 			} catch (e) {
@@ -903,7 +903,7 @@ async function panic_check() {
 		}
 
 		// Try to cast scare if possible
-		if (!is_on_cooldown("scare") && can_use("scare") && character.slots.orb?.name === 'jacko') {
+		if (!is_on_cooldown("scare") && can_use("scare") && character.slots.orb?.name === "jacko") {
 			try {
 				log("Using Scare!", "#ffcc00", "Alerts");
 				await use_skill("scare");
@@ -914,7 +914,7 @@ async function panic_check() {
 		}
 	}
 
-	const safe_slot = character.items.findIndex(i => i?.name === 'orbg');
+	const safe_slot = character.items.findIndex(i => i?.name === "orbg");
 
 	// SAFE CONDITION
 	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < PANIC_AGGRO_THRESHOLD) {
@@ -927,11 +927,11 @@ async function panic_check() {
 	if (!panicking && (Date.now() - last_safe_time > PANIC_COOLDOWN)) {
 		last_safe_time = Date.now();
 		// Equip normal orb if needed
-		if (character.slots.orb?.name === 'jacko' && safe_slot !== -1) {
+		if (character.slots.orb?.name === "jacko" && safe_slot !== -1) {
 			try {
 				await equip(safe_slot);
 				await delay(200);
-				if (character.slots.orb?.name === 'jacko') {
+				if (character.slots.orb?.name === "jacko") {
 					log("[PANIC] Failed to equip normal orb!", "#ff4444", "Errors");
 				}
 			} catch (e) {
@@ -941,7 +941,7 @@ async function panic_check() {
 	}
 }
 
-// party_maker() — replaced by shared party_manager() from Common Functions.js
+// party_maker() — replaced by shared party_manager() from Common_Functions.js
 // function party_maker() {
 // 	if (!CONFIG.party.auto_manage) return;
 // 	const group = CONFIG.party.group_members;
@@ -962,7 +962,7 @@ async function panic_check() {
 // 	}
 // }
 
-// suicide, setInterval(suicide, 50), sleep → Common Functions.js
+// suicide, setInterval(suicide, 50), sleep → Common_Functions.js
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // CHARACTER STARTER
@@ -993,7 +993,7 @@ function sell_items() {
 		if (!item) continue;
 
 		if (CONFIG.selling.whitelist.includes(item.name)) {
-			if (item.p === undefined && item.l !== 'l') {
+			if (item.p === undefined && item.l !== "l") {
 				sell(i);
 			}
 		}
@@ -1012,33 +1012,33 @@ async function upgrade_items() {
 		if (!item || item.p || !CONFIG.upgrading.whitelist[item.name]) continue;
 
 		const config = CONFIG.upgrading.whitelist[item.name];
-		if (item.level >= config.targetLevel) continue;
+		if (item.level >= config.target_level) continue;
 
 		const grades = G.items[item.name].grades;
 		let scrollname;
 
-		if (item.level < grades[0]) scrollname = 'scroll0';
-		else if (item.level < grades[1]) scrollname = 'scroll1';
-		else scrollname = 'scroll2';
+		if (item.level < grades[0]) scrollname = "scroll0";
+		else if (item.level < grades[1]) scrollname = "scroll1";
+		else scrollname = "scroll2";
 
-		const scrollSlot = locate_item(scrollname);
-		if (scrollSlot === -1) {
+		const scroll_slot = locate_item(scrollname);
+		if (scroll_slot === -1) {
 			buy(scrollname);
 			return;
 		}
 
-		let offeringSlot = null;
+		let offering_slot = null;
 		if (item.level >= config.prim) {
-			offeringSlot = locate_item('offering');
+			offering_slot = locate_item("offering");
 		} else if (item.level >= config.primling) {
-			offeringSlot = locate_item('offeringp');
+			offering_slot = locate_item("offeringp");
 		}
 
 		if (character.q.upgrade === undefined) {
 			try {
-				await upgrade(i, scrollSlot, offeringSlot);
+				await upgrade(i, scroll_slot, offering_slot);
 			} catch (e) {
-				console.error('Upgrade failed:', e);
+				console.error("Upgrade failed:", e);
 			}
 		}
 		return;
@@ -1052,52 +1052,52 @@ async function upgrade_items() {
 async function combine_items() {
 	if (!CONFIG.combining.enabled) return;
 
-	const toCompound = new Map();
+	const to_compound = new Map();
 
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
 		if (!item || !CONFIG.combining.whitelist[item.name]) continue;
 
 		const config = CONFIG.combining.whitelist[item.name];
-		if (item.level >= config.targetLevel) continue;
+		if (item.level >= config.target_level) continue;
 
 		const key = item.name + item.level;
 		const grade = item_grade(item);
 
-		if (!toCompound.has(key)) {
-			toCompound.set(key, [item.level, grade, i]);
+		if (!to_compound.has(key)) {
+			to_compound.set(key, [item.level, grade, i]);
 		} else {
-			toCompound.get(key).push(i);
+			to_compound.get(key).push(i);
 		}
 	}
 
-	for (const group of toCompound.values()) {
-		const itemLevel = group[0];
+	for (const group of to_compound.values()) {
+		const item_level = group[0];
 		const grade = group[1];
-		const scrollName = 'cscroll' + grade;
+		const scroll_name = "cscroll" + grade;
 
 		for (let i = 2; i + 2 < group.length; i += 3) {
-			const scrollSlot = locate_item(scrollName);
-			if (scrollSlot === -1) {
-				buy(scrollName);
+			const scroll_slot = locate_item(scroll_name);
+			if (scroll_slot === -1) {
+				buy(scroll_name);
 				return;
 			}
 
 			const item = character.items[group[i]];
 			const config = CONFIG.combining.whitelist[item.name];
 
-			let offeringSlot = null;
-			if (itemLevel >= config.prim) {
-				offeringSlot = locate_item('offering');
-			} else if (itemLevel >= config.primling) {
-				offeringSlot = locate_item('offeringp');
+			let offering_slot = null;
+			if (item_level >= config.prim) {
+				offering_slot = locate_item("offering");
+			} else if (item_level >= config.primling) {
+				offering_slot = locate_item("offeringp");
 			}
 
 			if (character.q.compound === undefined) {
 				try {
-					await compound(group[i], group[i + 1], group[i + 2], scrollSlot, offeringSlot);
+					await compound(group[i], group[i + 1], group[i + 2], scroll_slot, offering_slot);
 				} catch (e) {
-					console.error('Compound failed:', e);
+					console.error("Compound failed:", e);
 				}
 			}
 			return;
@@ -1110,36 +1110,36 @@ async function combine_items() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // function pingButton() {
-// 	add_top_button('Ping', character.ping.toFixed(0));
+// 	add_top_button("Ping", character.ping.toFixed(0));
 // }
 // setInterval(pingButton, 1000);
 
 // function topButtons() {
-// 	add_top_button('Return', 'R&M', () => {
-// 		send_cm(['CrownPriest', 'CrownMage', 'CrownTown'], {
-// 			message: 'location',
+// 	add_top_button("Return", "R&M", () => {
+// 		send_cm(["CrownPriest", "CrownMage", "CrownTown"], {
+// 			message: "location",
 // 			x: character.x,
 // 			y: character.y,
 // 			map: character.map
 // 		});
 // 	});
 
-// 	add_top_button('showLoot', '💼', displayLoot);
+// 	add_top_button("showLoot", "💼", displayLoot);
 
-// 	add_top_button('Pause2', '⏸️', () => {
+// 	add_top_button("Pause2", "⏸️", () => {
 // 		pause();
 // 		CONFIG.characterStarter.enabled = true
 // 	});
 
-// 	add_top_button('Stop', '🔄', () => {
-// 		stop_character('CrownMerch');
+// 	add_top_button("Stop", "🔄", () => {
+// 		stop_character("CrownMerch");
 // 		CONFIG.characterStarter.enabled = false
 // 	});
 // }
 // topButtons();
 
 // function displayLoot() {
-// 	const savedLoot = JSON.parse(localStorage.getItem(CONFIG.looting.lootMonth) || '{}');
+// 	const savedLoot = JSON.parse(localStorage.getItem(CONFIG.looting.lootMonth) || "{}");
 
 // 	const sortedLoot = {};
 // 	Object.keys(savedLoot)
@@ -1148,7 +1148,7 @@ async function combine_items() {
 // 			sortedLoot[key] = savedLoot[key];
 // 		});
 
-// 	console.log('Saved Loot (Sorted):', sortedLoot);
+// 	console.log("Saved Loot (Sorted):", sortedLoot);
 // 	show_json(sortedLoot);
 // }
 
@@ -1156,7 +1156,7 @@ async function combine_items() {
 // EQUIPMENT HELPERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// get_nearest_monster_v2, ms_to_next_skill, batch_equip → Common Functions.js
+// get_nearest_monster_v2, ms_to_next_skill, batch_equip → Common_Functions.js
 
 const is_set_equipped = name =>
 	equipment_sets[name]?.every(({ item_name, slot, level }) =>
@@ -1178,25 +1178,25 @@ function equip_set(set_name) {
 
 // const skinConfigs = {
 // 	ranger: {
-// 		skin: 'tm_yellow',
-// 		skinRing: { name: 'tristone', level: 2, locked: 'l' },
-// 		normalRing: { name: 'suckerpunch', level: 2, locked: 'l' }
+// 		skin: "tm_yellow",
+// 		skinRing: { name: "tristone", level: 2, locked: "l" },
+// 		normalRing: { name: "suckerpunch", level: 2, locked: "l" }
 // 	},
 // };
 
-// function skinNeeded(ringName, ringLevel, slot = 'ring1', locked = 'l', ccThreshold = 135) {
+// function skinNeeded(ringName, ringLevel, slot = "ring1", locked = "l", ccThreshold = 135) {
 // 	if (character.cc <= ccThreshold) {
 // 		if (character.slots[slot]?.name !== ringName || character.slots[slot]?.level !== ringLevel) {
 // 			equipIfNeeded(ringName, slot, ringLevel, locked);
 // 		}
-// 		parent.socket.emit('activate', { slot });
+// 		parent.socket.emit("activate", { slot });
 // 	}
 // }
 
 // async function equipIfNeeded(itemName, slotName, level, l) {
 // 	let name = null;
 
-// 	if (typeof itemName === 'object') {
+// 	if (typeof itemName === "object") {
 // 		name = itemName.name;
 // 		level = itemName.level;
 // 		l = itemName.l;
@@ -1229,7 +1229,7 @@ function equip_set(set_name) {
 
 // 	if (character.skin !== config.skin) {
 // 		console.log(`Applying skinRing: ${config.skinRing.name} lvl ${config.skinRing.level}`);
-// 		skinNeeded(config.skinRing.name, config.skinRing.level, 'ring1', config.skinRing.locked);
+// 		skinNeeded(config.skinRing.name, config.skinRing.level, "ring1", config.skinRing.locked);
 // 		await delay(500);
 // 		return skinChanger();
 // 	}
@@ -1237,7 +1237,7 @@ function equip_set(set_name) {
 // 	const slot = character.slots.ring1;
 // 	if (slot?.name !== config.normalRing.name || slot?.level !== config.normalRing.level) {
 // 		console.log(`Equipping normalRing: ${config.normalRing.name} lvl ${config.normalRing.level}`);
-// 		equipIfNeeded(config.normalRing.name, 'ring1', config.normalRing.level, config.normalRing.locked);
+// 		equipIfNeeded(config.normalRing.name, "ring1", config.normalRing.level, config.normalRing.locked);
 // 		await delay(500);
 // 		return skinChanger();
 // 	}
@@ -1253,30 +1253,30 @@ function equip_set(set_name) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 add_cm_listener((name, data) => {
-	if (name === 'Myras') {
-		if (data.type === 'panic') {
+	if (name === "Myras") {
+		if (data.type === "panic") {
 			panicking = data.state;
 			if (data.state) log("⚠️ Healer panicking — holding fire!", "#ffcc00", "Alerts");
 			else            log("✅ Healer panic over — resuming.", "#00ff00", "Alerts");
 		}
-		if (data.type === 'my_location') {
+		if (data.type === "my_location") {
 			_healer_last_known = { map: data.map, x: data.x, y: data.y };
 		}
 	}
-	if (data.type === 'reload') {
+	if (data.type === "reload") {
 		setTimeout(() => parent.window.location.reload(), 500);
 	}
-	if (data.type === 'suppress_reset') {
+	if (data.type === "suppress_reset") {
 		set_suppress_reset(true);
 	}
-	if (data.type === 'enter_instance') {
+	if (data.type === "enter_instance") {
 		const instance_id = data.in;
 		const join_interval = setInterval(() => {
-			if (character.map === 'spider_instance') {
+			if (character.map === "spider_instance") {
 				clearInterval(join_interval);
-				send_cm('Myras', { type: 'instance_ready' });
+				send_cm("Myras", { type: "instance_ready" });
 			} else {
-				enter('spider_instance', instance_id);
+				enter("spider_instance", instance_id);
 			}
 		}, 2000);
 	}
@@ -1284,22 +1284,22 @@ add_cm_listener((name, data) => {
 
 function on_party_request(name) {
 	if (CONFIG.party.group_members.includes(name)) {
-		console.log('Accepting party request from ' + name);
+		console.log("Accepting party request from " + name);
 		accept_party_request(name);
 	}
 }
 
 function on_party_invite(name) {
 	if (CONFIG.party.group_members.includes(name)) {
-		console.log('Accepting party invite from ' + name);
+		console.log("Accepting party invite from " + name);
 		accept_party_invite(name);
 	}
 }
 
-function sendUpdates() {
-	parent.socket.emit('send_updates', {});
+function send_updates() {
+	parent.socket.emit("send_updates", {});
 }
-setInterval(sendUpdates, 20000);
+setInterval(send_updates, 20000);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // START ALL LOOPS
@@ -1311,5 +1311,5 @@ skill_loop();
 equipment_loop();
 maintenance_loop();
 potion_loop();
-if (RANGER_TARGET === 'bscorpion') prim_farm_loop();
+if (RANGER_TARGET === "bscorpion") prim_farm_loop();
 setInterval(remote_sell_items, 5000);

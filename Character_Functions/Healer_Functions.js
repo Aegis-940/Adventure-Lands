@@ -7,13 +7,13 @@ const home = HEALER_TARGET;
 
 // var, not const: this file only ever runs through Bootstrapper.js's eval-based
 // loader, where top-level const/let are scoped to that one eval call and never
-// become visible to Common Functions.js's shared CONFIG-reading functions.
+// become visible to Common_Functions.js's shared CONFIG-reading functions.
 var CONFIG = {
 	combat: {
 		enabled: true,
 		zapper_enabled: false,
-		zapper_mobs: [home, ...all_bosses, 'sparkbot'],
-		target_priority: ['Ulric', 'Myras'],
+		zapper_mobs: [home, ...all_bosses, "sparkbot"],
+		target_priority: ["Ulric", "Myras"],
 		all_bosses,
 		aggro: true,
 		aggro_cap: 5,
@@ -63,11 +63,11 @@ var CONFIG = {
 
 	party: {
 		auto_manage: true,
-		group_members: ['Myras', 'Ulric', 'Riva', 'Riff']
+		group_members: ["Myras", "Ulric", "Riva", "Riff"]
 	},
 };
 
-// var, not const: Common Functions.js's handle_return_home() reads this global.
+// var, not const: Common_Functions.js's handle_return_home() reads this global.
 var destination = {
 	map: locations[home][0].map,
 	x: locations[home][0].x,
@@ -79,7 +79,7 @@ var destination = {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const state = {
-	current: 'idle', // idle, looting, moving
+	current: "idle", // idle, looting, moving
 	skin_ready: false,
 	last_equip_time: 0,
 	last_loot_time: 0,
@@ -160,7 +160,7 @@ function update_cache() {
 }
 
 function find_best_target() {
-	const max_dist = HEALER_TARGET === 'giantspider' ? 50 : character.range;
+	const max_dist = HEALER_TARGET === "giantspider" ? 50 : character.range;
 
 	// Priority 1: Bosses
 	for (const boss_type of CONFIG.combat.all_bosses) {
@@ -169,7 +169,7 @@ function find_best_target() {
 	}
 
 	// In follow mode, only attack monsters already targeting the healer — never seek new aggro
-	if (HEALER_TARGET === 'giantspider') {
+	if (HEALER_TARGET === "giantspider") {
 		return get_nearest_monster_v2({ target: character.name, max_distance: max_dist }) || null;
 	}
 
@@ -206,7 +206,7 @@ function count_my_aggro() {
 	let count = 0;
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
-		if (e.type === 'monster' && !e.dead && e.target === character.name) count++;
+		if (e.type === "monster" && !e.dead && e.target === character.name) count++;
 	}
 	return count;
 }
@@ -242,10 +242,10 @@ function find_zap_targets() {
 
 	return Object.values(parent.entities).filter(e =>
 		e &&
-		e.type === 'monster' &&
+		e.type === "monster" &&
 		!e.target &&
 		CONFIG.combat.zapper_mobs.includes(e.mtype) &&
-		is_in_range(e, 'zapperzap') &&
+		is_in_range(e, "zapperzap") &&
 		e.visible &&
 		!e.dead
 	);
@@ -274,7 +274,7 @@ async function main_loop() {
 		}
 
 		update_cache();
-		if (HEALER_TARGET !== 'fireroamer' && HEALER_TARGET !== 'giantspider') panic_check();
+		if (HEALER_TARGET !== "fireroamer" && HEALER_TARGET !== "giantspider") panic_check();
 
 		if (should_handle_events()) {
 			handle_events();
@@ -283,7 +283,7 @@ async function main_loop() {
 			await handle_looting();
 		}
 		else if (CONFIG.movement.enabled) {
-			if (HEALER_TARGET === 'bscorpion') {
+			if (HEALER_TARGET === "bscorpion") {
 				// Scorpion visibility ≠ scorpion reachability (waterway between them).
 				// Pathfind to the farm spot via smart_move only when actually lost;
 				// once we're in the farm zone, prim_farm_loop handles positioning
@@ -291,7 +291,7 @@ async function main_loop() {
 				const at_farm = character.map === PRIM_FARM_LOC.map &&
 					Math.hypot(character.x - PRIM_FARM_LOC.x, character.y - PRIM_FARM_LOC.y) < PRIM_FARM_RADIUS + 30;
 				if (!at_farm && !smart.moving) smart_move(PRIM_FARM_LOC);
-			} else if (HEALER_TARGET === 'giantspider') {
+			} else if (HEALER_TARGET === "giantspider") {
 				// No movement — remain stationary and let the user guide manually
 			} else if (!get_nearest_monster({ type: home })) {
 				handle_return_home();
@@ -300,12 +300,12 @@ async function main_loop() {
 			}
 		}
 
-		if (CONFIG.equipment.auto_swap_sets/* && state.skin_ready*/ && state.current !== 'looting') {
+		if (CONFIG.equipment.auto_swap_sets/* && state.skin_ready*/ && state.current !== "looting") {
 			handle_equipment_swap();
 		}
 
 	} catch (e) {
-		console.error('main_loop error:', e);
+		console.error("main_loop error:", e);
 	}
 
 	setTimeout(main_loop, TICK_RATE.main);
@@ -323,7 +323,7 @@ async function check_temporal_surge() {
 
 	// Check for any nearby monsters
 	// const nearby = Object.values(parent.entities).some(
-	// 	e => e.type === 'monster' && !e.dead
+	// 	e => e.type === "monster" && !e.dead
 	// );
 	// if (nearby) return false;
 
@@ -331,9 +331,9 @@ async function check_temporal_surge() {
 	const prev_orb = character.slots.orb ? { name: character.slots.orb.name, level: character.slots.orb.level } : null;
 
 	state.last_equip_time = performance.now();
-	await equip_set('temporal');
-	await use_skill('temporalsurge');
-	log('Temporal Surge activated!', '#FFAA00');
+	await equip_set("temporal");
+	await use_skill("temporalsurge");
+	log("Temporal Surge activated!", "#FFAA00");
 	state.last_temporal_surge = Date.now();
 	state.last_equip_time = performance.now();
 
@@ -342,7 +342,7 @@ async function check_temporal_surge() {
 		const inv_idx = character.items.findIndex(
 			i => i && i.name === prev_orb.name && i.level === prev_orb.level
 		);
-		if (inv_idx !== -1) await equip(inv_idx, 'orb');
+		if (inv_idx !== -1) await equip(inv_idx, "orb");
 	}
 
 	return true;
@@ -363,14 +363,14 @@ async function action_loop() {
 		// Temporal Surge — cast when idle (no monsters, 60s cooldown)
 		if (await check_temporal_surge()) return setTimeout(action_loop, 100);
 
-		const ms = ms_to_next_skill('attack');
+		const ms = ms_to_next_skill("attack");
 
 		if (ms === 0) {
 			const HEALED = await try_heal();
 			
 			if (panicking) return setTimeout(action_loop, 100);
 
-			if (!HEALED && HEALER_TARGET !== 'giantspider') {
+			if (!HEALED && HEALER_TARGET !== "giantspider") {
 				const TARGET = cache.target;
 				if (TARGET && is_in_range(TARGET) && smart.moving === false) {
 					await attack(TARGET);
@@ -381,7 +381,7 @@ async function action_loop() {
 		}
 
 	} catch (e) {
-		catcher(e, 'action_loop');
+		catcher(e, "action_loop");
 		delay = 1;
 	}
 
@@ -421,10 +421,10 @@ async function skill_loop() {
 		}
 
 		// Dark Blessing
-		if (CONFIG.healing.dark_blessing_enabled && !is_on_cooldown('darkblessing')
+		if (CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
 			&& character.mp >= (G.skills.darkblessing?.mp || 0)) {
-			if (HEALER_TARGET !== 'bscorpion' || bscorpion_worth_buffing()) {
-				await use_skill('darkblessing');
+			if (HEALER_TARGET !== "bscorpion" || bscorpion_worth_buffing()) {
+				await use_skill("darkblessing");
 			}
 		}
 
@@ -434,7 +434,7 @@ async function skill_loop() {
 		// }
 
 	} catch (e) {
-		console.error('skill_loop error:', e);
+		console.error("skill_loop error:", e);
 	}
 
 	setTimeout(skill_loop, delay);
@@ -447,7 +447,7 @@ async function try_heal() {
 	const HEAL_THRESHOLD = HEAL_TARGET.max_hp - character.heal / 1.33;
 
 	if (HEAL_TARGET.hp < HEAL_THRESHOLD && is_in_range(HEAL_TARGET, "heal")) {
-		// log(`Healing → ${HEAL_TARGET.name} (${Math.round((HEAL_TARGET.hp / HEAL_TARGET.max_hp) * 100)}%)`, '#33AAFF');
+		// log(`Healing → ${HEAL_TARGET.name} (${Math.round((HEAL_TARGET.hp / HEAL_TARGET.max_hp) * 100)}%)`, "#33AAFF");
 		await heal(HEAL_TARGET);
 		return true;
 	}
@@ -456,14 +456,14 @@ async function try_heal() {
 }
 
 async function handle_curse() {
-	if (is_on_cooldown('curse') || smart.moving) return;
+	if (is_on_cooldown("curse") || smart.moving) return;
 
 	const X = locations[home][0].x;
 	const Y = locations[home][0].y;
 
 	// Only consider monsters that are already engaged (have a target)
 	const has_target = e =>
-		e?.type === 'monster' && !e.dead && e.visible && e.target && !e.immune &&
+		e?.type === "monster" && !e.dead && e.visible && e.target && !e.immune &&
 		e.hp >= e.max_hp * 0.01;
 
 	let target = null;
@@ -475,7 +475,7 @@ async function handle_curse() {
 	if (bosses_with_target.length) target = bosses_with_target[0];
 
 	// Giantspider follow mode: highest-HP monster within 50 units of the healer
-	if (!target && HEALER_TARGET === 'giantspider') {
+	if (!target && HEALER_TARGET === "giantspider") {
 		const nearby = Object.values(parent.entities)
 			.filter(e => has_target(e) && Math.hypot(character.x - e.x, character.y - e.y) <= 50)
 			.sort((a, b) => b.hp - a.hp);
@@ -483,7 +483,7 @@ async function handle_curse() {
 	}
 
 	// Home-mob fallback: highest-HP engaged home mob near the spot
-	if (!target && HEALER_TARGET !== 'giantspider') {
+	if (!target && HEALER_TARGET !== "giantspider") {
 		const home_mobs = Object.values(parent.entities)
 			.filter(e =>
 				has_target(e) &&
@@ -494,15 +494,15 @@ async function handle_curse() {
 		if (home_mobs.length) target = home_mobs[0];
 	}
 
-	if (target && is_in_range(target, 'curse')) {
-		await use_skill('curse', target);
+	if (target && is_in_range(target, "curse")) {
+		await use_skill("curse", target);
 	}
 }
 
 async function handle_absorb() {
-	if (is_on_cooldown('absorb')) return;
+	if (is_on_cooldown("absorb")) return;
 
-	const maps_to_exclude = ['level2n', 'level2w'];
+	const maps_to_exclude = ["level2n", "level2w"];
 	if (maps_to_exclude.includes(character.map)) return;
 
 	// Boss check - ALWAYS absorb boss targets (highest priority)
@@ -510,8 +510,8 @@ async function handle_absorb() {
 	// if (boss?.target && boss.target !== character.name) {
 	// 	const TARGET_PLAYER = get_player(boss.target);
 	// 	if (TARGET_PLAYER) {
-	// 		await use_skill('absorb', boss.target);
-	// 		log(`Boss Absorb → ${boss.mtype} from ${boss.target}`, '#FF3333');
+	// 		await use_skill("absorb", boss.target);
+	// 		log(`Boss Absorb → ${boss.mtype} from ${boss.target}`, "#FF3333");
 	// 		return;
 	// 	}
 	// }
@@ -525,11 +525,11 @@ async function handle_absorb() {
 
 	for (let id in parent.entities) {
 		const entity = parent.entities[id];
-		if (!entity || entity.type !== 'monster' || entity.dead) continue;
+		if (!entity || entity.type !== "monster" || entity.dead) continue;
 
 		// If this monster is targeting an ally and not us
 		if (entity.target && ALLIES.includes(entity.target) && entity.target !== character.name) {
-			await use_skill('absorb', entity.target);
+			await use_skill("absorb", entity.target);
 			return;
 		}
 	}
@@ -553,8 +553,8 @@ async function handle_party_heal() {
 	for (const name of cache.party_members) {
 		const ally = get_player(name);
 		if (!ally || ally.rip || ally.hp >= ally.max_hp * threshold) continue;
-		// log(`Party Heal → ${name} (${Math.round((ally.hp / ally.max_hp) * 100)}%)`, '#33FF77');
-		await use_skill('partyheal');
+		// log(`Party Heal → ${name} (${Math.round((ally.hp / ally.max_hp) * 100)}%)`, "#33FF77");
+		await use_skill("partyheal");
 		last_party_heal_time = now;
 		break;
 	}
@@ -564,7 +564,7 @@ async function handle_party_heal() {
 async function handle_zapper() {
 	const TARGETS = find_zap_targets();
 	const NOW = performance.now();
-	const HAS_ZAPPER = character.slots.ring2?.name === 'zapper';
+	const HAS_ZAPPER = character.slots.ring2?.name === "zapper";
 	const CAN_SWAP = NOW - state.last_equip_time > COOLDOWNS.zapper_swap;
 	const HAS_ENOUGH_MP = character.mp > (G?.skills?.zapperzap?.mp || 0) + 1250;
 
@@ -573,23 +573,23 @@ async function handle_zapper() {
 	// Step 1: Equip zapper if untargeted mobs exist and we don't have it equipped
 	if (TARGETS.length > 0 && !HAS_ZAPPER && CAN_SWAP && HAS_ENOUGH_MP && character.map === destination.map) {
 		try {
-			await equip_set('zap_on');
+			await equip_set("zap_on");
 			state.last_equip_time = NOW;
 		} catch (e) {
-			console.error('Failed to equip zapper:', e);
+			console.error("Failed to equip zapper:", e);
 		}
 		return;
 	}
 
 	// Step 2: Zap all untargeted mobs if we have zapper equipped
-	if (TARGETS.length > 0 && HAS_ZAPPER && HAS_ENOUGH_MP && !is_on_cooldown('zapperzap')) {
+	if (TARGETS.length > 0 && HAS_ZAPPER && HAS_ENOUGH_MP && !is_on_cooldown("zapperzap")) {
 		for (const entity of TARGETS) {
-			if (is_on_cooldown('zapperzap')) break;
+			if (is_on_cooldown("zapperzap")) break;
 
 			try {
-				await use_skill('zapperzap', entity);
+				await use_skill("zapperzap", entity);
 			} catch (e) {
-				console.error('handleZapper error:', e);
+				console.error("handle_zapper error:", e);
 			}
 		}
 	}
@@ -598,10 +598,10 @@ async function handle_zapper() {
 	// Don't unequip just because we zapped them all - they might respawn
 	if (TARGETS.length === 0 && HAS_ZAPPER && CAN_SWAP && character.map === destination.map) {
 		try {
-			await equip_set('zap_off');
+			await equip_set("zap_off");
 			state.last_equip_time = NOW;
 		} catch (e) {
-			console.error('Failed to unequip zapper:', e);
+			console.error("Failed to unequip zapper:", e);
 		}
 	}
 }
@@ -624,30 +624,30 @@ async function maintenance_loop() {
 		inventory_sorter();
 		elixir_usage();
 
-		if (character.rip/* && locate_item('xptome') !== -1*/) {
+		if (character.rip/* && locate_item("xptome") !== -1*/) {
 			respawn();
 		}
 
 	} catch (e) {
-		console.error('maintenance_loop error:', e);
+		console.error("maintenance_loop error:", e);
 	}
 
 	setTimeout(maintenance_loop, TICK_RATE.maintenance);
 }
 
-// potion_loop → Common Functions.js
+// potion_loop → Common_Functions.js
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MOVEMENT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// should_handle_events, handle_events, handle_specific_event, handle_return_home → Common Functions.js
+// should_handle_events, handle_events, handle_specific_event, handle_return_home → Common_Functions.js
 
 async function walk_in_circle() {
 	if (smart.moving) return;
-	if (HEALER_TARGET === 'bscorpion') return;
+	if (HEALER_TARGET === "bscorpion") return;
 
-	const center = HEALER_TARGET === 'giantspider'
+	const center = HEALER_TARGET === "giantspider"
 		? { x: character.x, y: character.y }
 		: locations[home][0];
 	const radius = CONFIG.movement.circle_radius;
@@ -686,19 +686,19 @@ function should_loot() {
 		character.targets < CONFIG.looting.target_count &&
 		cooldown_pass &&
 		penalty === 0 &&
-		state.current !== 'looting'
+		state.current !== "looting"
 	);
 }
 
 async function handle_looting() {
 	state.last_loot_time = performance.now();
-	state.current = 'looting';
+	state.current = "looting";
 
 	try {
-		if (CONFIG.looting.equip_gold_gear && !is_set_equipped('gold') && performance.now() - state.last_gold_swap > 1000) {
-			await equip_set('gold');
+		if (CONFIG.looting.equip_gold_gear && !is_set_equipped("gold") && performance.now() - state.last_gold_swap > 1000) {
+			await equip_set("gold");
 			state.last_gold_swap = performance.now();
-			swap_booster('luckbooster', 'goldbooster');
+			swap_booster("luckbooster", "goldbooster");
 			await delay(200);
 		}
 
@@ -715,18 +715,18 @@ async function handle_looting() {
 		await delay(150);
 
 		if (CONFIG.looting.equip_gold_gear) {
-			await equip_set('luck');
-			await swap_booster('goldbooster', 'luckbooster');
+			await equip_set("luck");
+			await swap_booster("goldbooster", "luckbooster");
 			await delay(200);
 		}
 	} catch (e) {
-		console.error('Looting error:', e);
+		console.error("Looting error:", e);
 	} finally {
-		state.current = 'idle';
+		state.current = "idle";
 	}
 }
 
-const CHEST_STORAGE_KEY = 'loot_chest_ids';
+const CHEST_STORAGE_KEY = "loot_chest_ids";
 function load_chest_map() {
 	const data = get(CHEST_STORAGE_KEY);
 	return typeof data === "object" && data !== null ? data : {};
@@ -749,22 +749,22 @@ function save_chest_map(map) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function handle_equipment_swap() {
-    if (!CONFIG.equipment.auto_swap_sets || character.cc > COOLDOWNS.cc) return;
+	if (!CONFIG.equipment.auto_swap_sets || character.cc > COOLDOWNS.cc) return;
 
-    const now = performance.now();
-    if (now - state.last_equip_time < COOLDOWNS.equip_swap) return;
+	const now = performance.now();
+	if (now - state.last_equip_time < COOLDOWNS.equip_swap) return;
 
-    // Pick target set based on HEALER_TARGET
-    let target_set = 'luck';
-    if (typeof HEALER_TARGET !== 'undefined') {
-        if (HEALER_TARGET === 'dryad') target_set = 'mdef';
-        else if (HEALER_TARGET === 'fireroamer') target_set = 'fireres';
-    }
+	// Pick target set based on HEALER_TARGET
+	let target_set = "luck";
+	if (typeof HEALER_TARGET !== "undefined") {
+		if (HEALER_TARGET === "dryad") target_set = "mdef";
+		else if (HEALER_TARGET === "fireroamer") target_set = "fireres";
+	}
 
-    if (!is_set_equipped(target_set)) {
-        state.last_equip_time = now;
-        await equip_set(target_set);
-    }
+	if (!is_set_equipped(target_set)) {
+		state.last_equip_time = now;
+		await equip_set(target_set);
+	}
 }
 
 function is_set_equipped(set_name) {
@@ -808,7 +808,7 @@ async function panic_check() {
 	HIGH_HEALTH = character.hp >= character.max_hp * 0.60;
 	HIGH_MANA = character.mp >= character.max_mp * 0.50;
 
-	const panic_slot = character.items.findIndex(i => i?.name === 'jacko');
+	const panic_slot = character.items.findIndex(i => i?.name === "jacko");
 
 	// Aggro check: monsters targeting me
 	MONSTERS_TARGETING_ME = Object.values(parent.entities).filter(
@@ -819,7 +819,7 @@ async function panic_check() {
 	if (LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= PANIC_AGGRO_THRESHOLD) {
 		if (!panicking) {
 			panicking = true;
-			send_cm(['Ulric', 'Riva'], { type: 'panic', state: true });
+			send_cm(["Ulric", "Riva"], { type: "panic", state: true });
 			let reason = [];
 			if (LOW_HEALTH) reason.push("low health");
 			if (LOW_MANA) reason.push("low mana");
@@ -831,11 +831,11 @@ async function panic_check() {
 	if (panicking && (Date.now() - last_panic_time > PANIC_COOLDOWN)) {
 		last_panic_time = Date.now();
 		// Equip panic orb if needed
-		if (character.slots.orb?.name !== 'jacko' && panic_slot !== -1) {
+		if (character.slots.orb?.name !== "jacko" && panic_slot !== -1) {
 			try {
 				await equip(panic_slot);
 				await delay(200);
-				if (character.slots.orb?.name !== 'jacko') {
+				if (character.slots.orb?.name !== "jacko") {
 					log("[PANIC] Failed to equip panic orb!", "#ff4444", "Errors");
 				}
 			} catch (e) {
@@ -844,7 +844,7 @@ async function panic_check() {
 		}
 
 		// Try to cast scare if possible
-		if (!is_on_cooldown("scare") && can_use("scare") && character.slots.orb?.name === 'jacko') {
+		if (!is_on_cooldown("scare") && can_use("scare") && character.slots.orb?.name === "jacko") {
 			try {
 				log("Using Scare!", "#ffcc00", "Alerts");
 				await use_skill("scare");
@@ -855,13 +855,13 @@ async function panic_check() {
 		}
 	}
 
-	const safe_slot = character.items.findIndex(i => i?.name === 'orbg');
+	const safe_slot = character.items.findIndex(i => i?.name === "orbg");
 
 	// SAFE CONDITION
 	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < PANIC_AGGRO_THRESHOLD) {
 		if (panicking) {
 			panicking = false;
-			send_cm(['Ulric', 'Riva'], { type: 'panic', state: false });
+			send_cm(["Ulric", "Riva"], { type: "panic", state: false });
 			log("✅ Panic over.", "#00ff00", "Alerts");
 		}
 	}
@@ -869,11 +869,11 @@ async function panic_check() {
 	if (!panicking && (Date.now() - last_safe_time > PANIC_COOLDOWN)) {
 		last_safe_time = Date.now();
 		// Equip normal orb if needed
-		if (character.slots.orb?.name === 'jacko' && safe_slot !== -1) {
+		if (character.slots.orb?.name === "jacko" && safe_slot !== -1) {
 			try {
 				await equip(safe_slot);
 				await delay(200);
-				if (character.slots.orb?.name === 'jacko') {
+				if (character.slots.orb?.name === "jacko") {
 					log("[PANIC] Failed to equip normal orb!", "#ff4444", "Errors");
 				}
 			} catch (e) {
@@ -884,7 +884,7 @@ async function panic_check() {
 }
 
 function clear_inventory() {
-	const loot_mule = get_player('Riff');
+	const loot_mule = get_player("Riff");
 	if (!loot_mule) return;
 
 	const dist = distance(character, loot_mule);
@@ -893,7 +893,7 @@ function clear_inventory() {
 			send_gold(loot_mule, character.gold - 5000000);
 	}
 
-	const items_to_exclude = ['hpot1', 'mpot1', 'luckbooster', 'goldbooster', 'xpbooster', 'pumpkinspice', 'xptome', 'tracker', 'jacko', 'orbg', 'talkingskull', "mshield", "lmace", 'elixirluck', 'computer', 'orboftemporal', 'orboffire'];
+	const items_to_exclude = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster", "pumpkinspice", "xptome", "tracker", "jacko", "orbg", "talkingskull", "mshield", "lmace", "elixirluck", "computer", "orboftemporal", "orboffire"];
 
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
@@ -923,10 +923,10 @@ const inventory_sorter = () => {
 	});
 };
 
-// auto_buy_potions → Common Functions.js
+// auto_buy_potions → Common_Functions.js
 
 function elixir_usage() {
-	const required = 'elixirluck';
+	const required = "elixirluck";
 	const current_elixir = character.slots.elixir?.name;
 	const current_qty = quantity(required);
 
@@ -951,25 +951,25 @@ async function swap_booster(current, target) {
 
 // const skinConfigs = {
 // 	priest: {
-// 		skin: 'tm_white',
-// 		skinRing: { name: 'tristone', level: 0, locked: 'l' },
-// 		normalRing: { name: 'ringofluck', level: 2, locked: 'u' }
+// 		skin: "tm_white",
+// 		skinRing: { name: "tristone", level: 0, locked: "l" },
+// 		normalRing: { name: "ringofluck", level: 2, locked: "u" }
 // 	},
 // };
 
-// function skinNeeded(ringName, ringLevel, slot = 'ring1', locked = 'l', ccThreshold = 135) {
+// function skinNeeded(ringName, ringLevel, slot = "ring1", locked = "l", ccThreshold = 135) {
 // 	if (character.cc <= ccThreshold) {
 // 		if (character.slots[slot]?.name !== ringName || character.slots[slot]?.level !== ringLevel) {
 // 			equipIfNeeded(ringName, slot, ringLevel, locked);
 // 		}
-// 		parent.socket.emit('activate', { slot });
+// 		parent.socket.emit("activate", { slot });
 // 	}
 // }
 
 // async function equipIfNeeded(itemName, slotName, level, l) {
 // 	let name = null;
 
-// 	if (typeof itemName === 'object') {
+// 	if (typeof itemName === "object") {
 // 		name = itemName.name;
 // 		level = itemName.level;
 // 		l = itemName.l;
@@ -1003,7 +1003,7 @@ async function swap_booster(current, target) {
 // 	// 1. Ensure correct skin
 // 	if (character.skin !== config.skin) {
 // 		console.log(`Applying skinRing: ${config.skinRing.name} lvl ${config.skinRing.level}`);
-// 		skinNeeded(config.skinRing.name, config.skinRing.level, 'ring1', config.skinRing.locked);
+// 		skinNeeded(config.skinRing.name, config.skinRing.level, "ring1", config.skinRing.locked);
 // 		await delay(500);
 // 		return skinChanger();
 // 	}
@@ -1012,7 +1012,7 @@ async function swap_booster(current, target) {
 // 	const slot = character.slots.ring1;
 // 	if (slot?.name !== config.normalRing.name || slot?.level !== config.normalRing.level) {
 // 		console.log(`Equipping normalRing: ${config.normalRing.name} lvl ${config.normalRing.level}`);
-// 		equipIfNeeded(config.normalRing.name, 'ring1', config.normalRing.level, config.normalRing.locked);
+// 		equipIfNeeded(config.normalRing.name, "ring1", config.normalRing.level, config.normalRing.locked);
 // 		await delay(500);
 // 		return skinChanger();
 // 	}
@@ -1045,19 +1045,19 @@ async function swap_booster(current, target) {
 
 function on_party_request(name) {
 	if (CONFIG.party.group_members.includes(name)) {
-		console.log('Accepting party request from ' + name);
+		console.log("Accepting party request from " + name);
 		accept_party_request(name);
 	}
 }
 
 function on_party_invite(name) {
 	if (CONFIG.party.group_members.includes(name)) {
-		console.log('Accepting party invite from ' + name);
+		console.log("Accepting party invite from " + name);
 		accept_party_invite(name);
 	}
 }
 
-// game.on('death', data => {
+// game.on("death", data => {
 // 	const mob = parent.entities[data.id];
 // 	if (!mob) return;
 
@@ -1069,15 +1069,15 @@ function on_party_invite(name) {
 // 	if (mob_target === character.name || partyMembers.includes(mob_target)) {
 // 		const luck_display = mob.cooperative ? character.luckm : data.luckm;
 // 		const msg = `${mob_name} died with ${luck_display} luck`;
-// 		game_log(msg, '#96a4ff');
+// 		game_log(msg, "#96a4ff");
 // 		console.log(msg);
 // 	}
 // });
 
-// character.on('loot', data => {
+// character.on("loot", data => {
 // 	if (data.id) {
 // 		console.log(`${data.opener} looted chest goldm: ${data.goldm}`);
-// 		game_log(`${data.opener} looted chest goldm: ${data.goldm}`, 'gold');
+// 		game_log(`${data.opener} looted chest goldm: ${data.goldm}`, "gold");
 
 // 		// Remove chest ID after successful loot with delay to ensure it's gone
 // 		setTimeout(() => {
@@ -1103,7 +1103,7 @@ function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 			const near_spawn = Math.hypot(character.x - spawn_x, character.y - spawn_y) < spawn_radius;
 
 			const alive = Object.values(parent.entities).some(
-				e => e.type === 'monster' && e.mtype === mob_type && !e.dead
+				e => e.type === "monster" && e.mtype === mob_type && !e.dead
 			);
 
 			if (alive) {
@@ -1115,7 +1115,7 @@ function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 				consecutive_dead++;
 				if (consecutive_dead >= 3) {
 					clearInterval(interval);
-					log(`[Dungeon] ${mob_type} confirmed dead`, '#AA88FF');
+					log(`[Dungeon] ${mob_type} confirmed dead`, "#AA88FF");
 					resolve();
 				}
 			} else {
@@ -1133,31 +1133,31 @@ let _dungeon_running = false;
 // Navigate all three spider bosses in order, loot after each, then reload the party.
 async function run_spider_dungeon() {
 	if (_dungeon_running) {
-		log('Spider Dungeon: Already running — ignoring duplicate start.', '#FF8844');
+		log("Spider Dungeon: Already running — ignoring duplicate start.", "#FF8844");
 		return;
 	}
 	_dungeon_running = true;
 	set_suppress_reset(true);
-	send_cm(['Ulric', 'Riva'], { type: 'suppress_reset' });
+	send_cm(["Ulric", "Riva"], { type: "suppress_reset" });
 	try {
 		// Stage: move to dungeon entrance and wait until arrived
-		log('Spider Dungeon: Moving to gateway entrance...', '#AA88FF');
-		await smarter_move({ map: 'gateway', x: -322, y: -203 });
-		log('Spider Dungeon: At entrance — entering instance...', '#AA88FF');
+		log("Spider Dungeon: Moving to gateway entrance...", "#AA88FF");
+		await smarter_move({ map: "gateway", x: -322, y: -203 });
+		log("Spider Dungeon: At entrance — entering instance...", "#AA88FF");
 		await delay(10000);
 		enter("spider_instance");
 		await delay(10000);
 
 		// Signal party to enter and wait until both are confirmed in the instance
-		log('Spider Dungeon: Signalling party to enter instance...', '#AA88FF');
-		send_cm(['Ulric', 'Riva'], { type: 'enter_instance', in: character.in });
+		log("Spider Dungeon: Signalling party to enter instance...", "#AA88FF");
+		send_cm(["Ulric", "Riva"], { type: "enter_instance", in: character.in });
 
 		await new Promise(resolve => {
 			const confirmed = new Set();
 			const listener = (name, data) => {
-				if (data.type === 'instance_ready' && ['Ulric', 'Riva'].includes(name)) {
+				if (data.type === "instance_ready" && ["Ulric", "Riva"].includes(name)) {
 					confirmed.add(name);
-					log(`Spider Dungeon: ${name} entered instance (${confirmed.size}/2)`, '#AA88FF');
+					log(`Spider Dungeon: ${name} entered instance (${confirmed.size}/2)`, "#AA88FF");
 					if (confirmed.size >= 2) {
 						remove_cm_listener(listener);
 						resolve();
@@ -1167,43 +1167,43 @@ async function run_spider_dungeon() {
 			add_cm_listener(listener);
 		});
 
-		log('Spider Dungeon: Full party in instance — proceeding', '#AA88FF');
+		log("Spider Dungeon: Full party in instance — proceeding", "#AA88FF");
 
 		// Boss 1: spiderbr
-		log('Spider Dungeon: Moving to spiderbr...', '#AA88FF');
-		await smarter_move({ map: 'spider_instance', x: 192, y: -1533 });
+		log("Spider Dungeon: Moving to spiderbr...", "#AA88FF");
+		await smarter_move({ map: "spider_instance", x: 192, y: -1533 });
 		await delay(2000);
-		await wait_for_death('spiderbr', 192, -1533);
-		log('Spider Dungeon: spiderbr dead — looting', '#AA88FF');
+		await wait_for_death("spiderbr", 192, -1533);
+		log("Spider Dungeon: spiderbr dead — looting", "#AA88FF");
 		await handle_looting();
 		await delay(10000);
 
 		// Boss 2: spiderr
-		log('Spider Dungeon: Moving to spiderr...', '#AA88FF');
-		await smarter_move({ map: 'spider_instance', x: 0, y: -1515 });
+		log("Spider Dungeon: Moving to spiderr...", "#AA88FF");
+		await smarter_move({ map: "spider_instance", x: 0, y: -1515 });
 		await delay(2000);
-		await wait_for_death('spiderr', 0, -1515);
-		log('Spider Dungeon: spiderr dead — looting', '#AA88FF');
+		await wait_for_death("spiderr", 0, -1515);
+		log("Spider Dungeon: spiderr dead — looting", "#AA88FF");
 		await handle_looting();
 		await delay(10000);
 
 		// Boss 3: spiderbl
-		log('Spider Dungeon: Moving to spiderbl...', '#AA88FF');
-		await smarter_move({ map: 'spider_instance', x: -188, y: -1515 });
+		log("Spider Dungeon: Moving to spiderbl...", "#AA88FF");
+		await smarter_move({ map: "spider_instance", x: -188, y: -1515 });
 		await delay(2000);
-		await wait_for_death('spiderbl', -188, -1515);
-		log('Spider Dungeon: spiderbl dead — looting', '#AA88FF');
+		await wait_for_death("spiderbl", -188, -1515);
+		log("Spider Dungeon: spiderbl dead — looting", "#AA88FF");
 		await handle_looting();
 		await delay(10000);
 
 		// Reload all characters
-		log('Spider Dungeon: Complete — reloading party...', '#AA88FF');
-		send_cm(['Ulric', 'Riva'], { type: 'reload' });
+		log("Spider Dungeon: Complete — reloading party...", "#AA88FF");
+		send_cm(["Ulric", "Riva"], { type: "reload" });
 		await delay(500);
 		parent.window.location.reload();
 
 	} catch (e) {
-		console.error('run_spider_dungeon error:', e);
+		console.error("run_spider_dungeon error:", e);
 	} finally {
 		_dungeon_running = false;
 		set_suppress_reset(false);
@@ -1220,24 +1220,24 @@ skill_loop();
 maintenance_loop();
 potion_loop();
 setInterval(remote_sell_items, 5000);
-if (HEALER_TARGET === 'bscorpion') {
+if (HEALER_TARGET === "bscorpion") {
 	prim_farm_loop();
 	prim_orbit_loop();
 }
 
-if (HEALER_TARGET === 'giantspider') {
+if (HEALER_TARGET === "giantspider") {
 	// Wait for all loops and game state to settle before starting the dungeon run.
 	// Guards: not already running, character is alive and on a valid map.
 	setTimeout(() => {
 		if (_dungeon_running) return;
 		if (character.rip) {
-			log('Spider Dungeon: Character is dead on startup — not auto-starting.', '#FF8844');
+			log("Spider Dungeon: Character is dead on startup — not auto-starting.", "#FF8844");
 			return;
 		}
-		if (character.map === 'spider_instance') {
-			log('Spider Dungeon: Detected startup inside instance — restarting from gateway.', '#FFAA44');
+		if (character.map === "spider_instance") {
+			log("Spider Dungeon: Detected startup inside instance — restarting from gateway.", "#FFAA44");
 		}
-		log('Spider Dungeon: Auto-starting...', '#AA88FF');
+		log("Spider Dungeon: Auto-starting...", "#AA88FF");
 		run_spider_dungeon();
 	}, 5000);
 }

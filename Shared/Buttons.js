@@ -20,10 +20,10 @@ function remove_all_floating_buttons() {
 function create_floating_button(id, label, on_click, style_overrides = {}) {
 	remove_floating_button(id);
 
-    // ✅ Add ID only if not already present
-    if (!FLOATING_BUTTON_IDS.includes(id)) {
-        FLOATING_BUTTON_IDS.push(id);
-    }
+	// ✅ Add ID only if not already present
+	if (!FLOATING_BUTTON_IDS.includes(id)) {
+		FLOATING_BUTTON_IDS.push(id);
+	}
 
 	const {
 		top = "50vh",
@@ -140,7 +140,7 @@ function create_map_movement_window(custom_actions = []) {
 	add_button("char-btns", "btn_riva", "🏹 Riva", () => move_to_character("Riva"));
 	add_button("char-btns", "btn_riff", "💰 Riff", () => move_to_character("Riff"));
 
-	custom_actions.forEach(({ id, label, onClick }) => {
-		add_button("custom-btns", id, label, onClick);
+	custom_actions.forEach(({ id, label, on_click }) => {
+		add_button("custom-btns", id, label, on_click);
 	});
 }

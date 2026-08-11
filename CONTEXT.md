@@ -23,7 +23,7 @@
 Bootstrapper.js
     └── loads all scripts in order from CDN (jsdelivr)
 
-Shared/Common Functions.js   ← shared by everything
+Shared/Common_Functions.js   ← shared by everything
     ├── smarter_move()        Promise-based pathfinding
     ├── State management      (panic / normal / boss / dead)
     ├── Loop toggle globals   (ATTACK_LOOP_ENABLED, etc.)
@@ -37,9 +37,9 @@ Shared/Windows.js            ← floating draggable window helper
 Characters/[Role].js         ← entry point per character
     ├── Creates UI buttons and windows
     ├── Starts periodic update loops
-    └── Calls into Character Functions/
+    └── Calls into Character_Functions/
 
-Character Functions/[Role] Functions.js   ← per-role behavior
+Character_Functions/[Role]_Functions.js   ← per-role behavior
     ├── Combat ability rotations
     ├── Movement patterns (circular kiting, chase, etc.)
     ├── Equipment auto-swap logic
@@ -57,12 +57,12 @@ UI/*.js                      ← overlay panels (semi-independent)
     ├── Game_Log.js           mostly commented out — incomplete feature
     └── Custom_Log.js         custom in-game log window
 
-Merchant Systems/
-    ├── Auto Upgrade.js        item upgrade profiles (loaded for Riff)
-    └── Auto Craft.js          crafting automation — NOT loaded by Bootstrapper.js; manual-inject only
+Merchant_Systems/
+    ├── Auto_Upgrade.js        item upgrade profiles (loaded for Riff)
+    └── Auto_Craft.js          crafting automation — NOT loaded by Bootstrapper.js; manual-inject only
 
 Standalone/
-    └── Priest_Manager.js      extended healer system (alternate to Healer Functions)
+    └── Priest_Manager.js      extended healer system (alternate to Healer_Functions.js)
                                 NOT loaded by Bootstrapper.js; manual-inject only
 ```
 
@@ -70,16 +70,12 @@ Standalone/
 
 ## How Scripts Are Loaded
 
-The `Bootstrapper.js` detects which character is logged in by name, then fetches and evaluates the appropriate scripts from a CDN (jsdelivr) in the correct order:
+The `Bootstrapper.js` detects which character is logged in by name, then fetches and evaluates the appropriate scripts from a CDN (jsdelivr):
 
-1. Common Functions
-2. UI files
-3. Character Functions
-4. Character entry point
+1. Common Functions + all UI files — loaded in parallel (none of them call into each other at load time, only from functions/handlers invoked later)
+2. Character Functions, then that character's entry point — loaded sequentially afterward, since these do call into the shared files immediately
 
-Each script is loaded with retry logic and exponential backoff. Loading is sequential to respect dependencies.
-
-> **Note:** The bootstrapper is currently partially disabled/in transition. Scripts may also be pasted manually into the game's code editor.
+Each script is loaded with retry logic and exponential backoff. A small loader snippet pasted into each character's in-game code slot resolves the current commit SHA once and hands it to `Bootstrapper.js`, avoiding a duplicate lookup.
 
 ---
 
@@ -94,7 +90,7 @@ Each character operates across these behavioral states:
 | `panic` | HP too low | Flee, stop attacking, heal |
 | `dead` | Character HP = 0 | Wait for respawn, rejoin party |
 
-State transitions are managed in `Common Functions.js` and checked each loop tick.
+State transitions are managed in `Common_Functions.js` and checked each loop tick.
 
 ---
 
@@ -119,7 +115,7 @@ State transitions are managed in `Common Functions.js` and checked each loop tic
 ### Merchant Logistics
 - Periodically visits party members to collect loot
 - Delivers potions when members run low
-- Runs `Auto Upgrade.js` profiles to improve party gear
+- Runs `Auto_Upgrade.js` profiles to improve party gear
 - Handles fishing and mining for resources
 
 ### UI Overlays
@@ -171,14 +167,14 @@ CONFIG = {
 
 | File | Lines |
 |------|-------|
-| Shared/Common Functions.js | 1635 |
-| Character Functions/Ranger Functions.js | 1311 |
-| Character Functions/Warrior Functions.js | 1398 |
-| Character Functions/Healer Functions.js | 1238 |
-| Character Functions/Merchant Functions.js | 996 |
+| Shared/Common_Functions.js | 1635 |
+| Character_Functions/Ranger_Functions.js | 1311 |
+| Character_Functions/Warrior_Functions.js | 1398 |
+| Character_Functions/Healer_Functions.js | 1238 |
+| Character_Functions/Merchant_Functions.js | 996 |
 | Standalone/Priest_Manager.js | 1192 |
-| Merchant Systems/Auto Upgrade.js | 522 |
-| Merchant Systems/Auto Craft.js | 160 |
+| Merchant_Systems/Auto_Upgrade.js | 522 |
+| Merchant_Systems/Auto_Craft.js | 160 |
 | Shared/Buttons.js | 146 |
 | Shared/Windows.js | 83 |
 | UI/DPS_Meter.js | 376 |
@@ -202,10 +198,9 @@ CONFIG = {
 ## Known Gaps / Ongoing Work
 
 - `UI/Game_Log.js` is mostly commented out — incomplete feature
-- `Bootstrapper.js` has some disabled sections — loader is in transition
 - No automated tests — all validation is done by running in the live game
 - Git commits are not descriptively labeled (all labeled "1") — history is minimal
-- `Merchant Systems/Auto Craft.js` and `Standalone/Priest_Manager.js` are not in `Bootstrapper.js`'s load list — they're manual-inject only, kept in the repo but not part of the automated boot path
+- `Merchant_Systems/Auto_Craft.js` and `Standalone/Priest_Manager.js` are not in `Bootstrapper.js`'s load list — they're manual-inject only, kept in the repo but not part of the automated boot path
 
 ---
 

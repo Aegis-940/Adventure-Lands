@@ -1,347 +1,347 @@
 // ===== Utility Functions =====
 // Apply multiple styles to an element at once
 function apply_styles(element, styles) {
-    Object.entries(styles).forEach(([key, value]) => {
-        element.style[key] = value;
-    });
-    return element;
+	Object.entries(styles).forEach(([key, value]) => {
+		element.style[key] = value;
+	});
+	return element;
 }
 
 // Create element with ID, styles, and optional text/HTML
 function create_element(doc, tag, options = {}) {
-    const el = doc.createElement(tag);
-    if (options.id) el.id = options.id;
-    if (options.text) el.textContent = options.text;
-    if (options.html) el.innerHTML = options.html;
-    if (options.styles) apply_styles(el, options.styles);
-    if (options.onclick) el.onclick = options.onclick;
-    return el;
+	const el = doc.createElement(tag);
+	if (options.id) el.id = options.id;
+	if (options.text) el.textContent = options.text;
+	if (options.html) el.innerHTML = options.html;
+	if (options.styles) apply_styles(el, options.styles);
+	if (options.onclick) el.onclick = options.onclick;
+	return el;
 }
 
 // Common style sets
 const PANEL_STYLES = {
-    background: "rgba(34,34,34,0.20)",
-    border: "2px solid #555",
-    borderRadius: "8px",
-    boxSizing: "border-box",
-    userSelect: "none",
+	background: "rgba(34,34,34,0.20)",
+	border: "2px solid #555",
+	borderRadius: "8px",
+	boxSizing: "border-box",
+	userSelect: "none",
 };
 
 const TEXT_STYLES = {
-    fontFamily: "pixel, monospace",
-    fontSize: "28px",
-    color: "#fff",
+	fontFamily: "pixel, monospace",
+	fontSize: "28px",
+	color: "#fff",
 };
 
 // Build and attach the gold graph sub-window
 function add_gold_graph(doc, content) {
-    // Format number to K/M/B with 1 decimal place
-    function format_number(num) {
-        if (num >= 1e9) {
-            return (num / 1e9).toFixed(1) + 'B';
-        } else if (num >= 1e6) {
-            return (num / 1e6).toFixed(1) + 'M';
-        } else if (num >= 1e3) {
-            return (num / 1e3).toFixed(1) + 'K';
-        } else {
-            return num.toFixed(1);
-        }
-    }
+	// Format number to K/M/B with 1 decimal place
+	function format_number(num) {
+		if (num >= 1e9) {
+			return (num / 1e9).toFixed(1) + "B";
+		} else if (num >= 1e6) {
+			return (num / 1e6).toFixed(1) + "M";
+		} else if (num >= 1e3) {
+			return (num / 1e3).toFixed(1) + "K";
+		} else {
+			return num.toFixed(1);
+		}
+	}
 
-    const gold_canvas = create_element(doc, "canvas", {
-        id: "gold-graph-canvas",
-        styles: {
-            ...PANEL_STYLES,
-            display: "block",
-            width: "500px",
-            height: "240px",
-            position: "absolute",
-            left: "258px",
-            top: "48px",
-        }
-    });
-    gold_canvas.width = 500;
-    gold_canvas.height = 240;
-    content.appendChild(gold_canvas);
+	const gold_canvas = create_element(doc, "canvas", {
+		id: "gold-graph-canvas",
+		styles: {
+			...PANEL_STYLES,
+			display: "block",
+			width: "500px",
+			height: "240px",
+			position: "absolute",
+			left: "258px",
+			top: "48px",
+		}
+	});
+	gold_canvas.width = 500;
+	gold_canvas.height = 240;
+	content.appendChild(gold_canvas);
 
-    // Gold graph data: samples over 30-minute window
-    const GOLD_GRAPH_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
-    let gold_graph_samples = [];
+	// Gold graph data: samples over 30-minute window
+	const GOLD_GRAPH_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
+	let gold_graph_samples = [];
 
-    function add_gold_sample_on_loot() {
-        if (typeof calculateAverageGold === "function") {
-            const value = calculateAverageGold();
-            const now = Date.now();
-            gold_graph_samples.push({ t: now, amount: value });
-            
-            // Remove samples older than 30 minutes
-            const cutoff = now - GOLD_GRAPH_WINDOW_MS;
-            gold_graph_samples = gold_graph_samples.filter(s => s.t >= cutoff);
-            
-            // Redraw the graph
-            draw_gold_graph();
-        }
-    }
+	function add_gold_sample_on_loot() {
+		if (typeof calculate_average_gold === "function") {
+			const value = calculate_average_gold();
+			const now = Date.now();
+			gold_graph_samples.push({ t: now, amount: value });
+			
+			// Remove samples older than 30 minutes
+			const cutoff = now - GOLD_GRAPH_WINDOW_MS;
+			gold_graph_samples = gold_graph_samples.filter(s => s.t >= cutoff);
+			
+			// Redraw the graph
+			draw_gold_graph();
+		}
+	}
 
-    // Listen for loot events to add data points
-    character.on("loot", (data) => {
-        if (data.gold && typeof data.gold === 'number' && !Number.isNaN(data.gold)) {
-            add_gold_sample_on_loot();
-        }
-    });
+	// Listen for loot events to add data points
+	character.on("loot", (data) => {
+		if (data.gold && typeof data.gold === "number" && !Number.isNaN(data.gold)) {
+			add_gold_sample_on_loot();
+		}
+	});
 
-    function draw_gold_graph() {
-        const ctx = gold_canvas.getContext("2d");
-        ctx.clearRect(0, 0, gold_canvas.width, gold_canvas.height);
+	function draw_gold_graph() {
+		const ctx = gold_canvas.getContext("2d");
+		ctx.clearRect(0, 0, gold_canvas.width, gold_canvas.height);
 
-        const data = gold_graph_samples;
-        const N = data.length;
+		const data = gold_graph_samples;
+		const N = data.length;
 
-        // Layout dimensions
-        const left = 60;
-        const right = gold_canvas.width - 10;
-        const top = 20;
-        const bottom = gold_canvas.height - 40;
+		// Layout dimensions
+		const left = 60;
+		const right = gold_canvas.width - 10;
+		const top = 20;
+		const bottom = gold_canvas.height - 40;
 
-        // Draw axes
-        ctx.strokeStyle = "#888";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(left, top);
-        ctx.lineTo(left, bottom);
-        ctx.lineTo(right, bottom);
-        ctx.stroke();
+		// Draw axes
+		ctx.strokeStyle = "#888";
+		ctx.lineWidth = 1;
+		ctx.beginPath();
+		ctx.moveTo(left, top);
+		ctx.lineTo(left, bottom);
+		ctx.lineTo(right, bottom);
+		ctx.stroke();
 
-        // X-axis label
-        ctx.font = "24px pixel, monospace";
-        ctx.fillStyle = "#fff";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
-        ctx.fillText("30 Minute Window", (left + right) / 2, bottom + 5);
+		// X-axis label
+		ctx.font = "24px pixel, monospace";
+		ctx.fillStyle = "#fff";
+		ctx.textAlign = "center";
+		ctx.textBaseline = "top";
+		ctx.fillText("30 Minute Window", (left + right) / 2, bottom + 5);
 
-        if (N > 1) {
-            // Calculate min/max with ±10% padding
-            const min_measured = Math.min(...data.map(d => d.amount));
-            const max_measured = Math.max(...data.map(d => d.amount));
-            const range_measured = max_measured - min_measured;
-            const padding = range_measured * 0.1;
-            
-            const min_gold = min_measured - padding;
-            const max_gold = max_measured + padding;
-            const range = Math.max(1, max_gold - min_gold);
+		if (N > 1) {
+			// Calculate min/max with ±10% padding
+			const min_measured = Math.min(...data.map(d => d.amount));
+			const max_measured = Math.max(...data.map(d => d.amount));
+			const range_measured = max_measured - min_measured;
+			const padding = range_measured * 0.1;
+			
+			const min_gold = min_measured - padding;
+			const max_gold = max_measured + padding;
+			const range = Math.max(1, max_gold - min_gold);
 
-            // Fixed 30-minute x-axis: position points based on timestamp
-            const now = Date.now();
-            const window_start = now - GOLD_GRAPH_WINDOW_MS;
+			// Fixed 30-minute x-axis: position points based on timestamp
+			const now = Date.now();
+			const window_start = now - GOLD_GRAPH_WINDOW_MS;
 
-            // Draw gold line
-            ctx.strokeStyle = "#FFD700";
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            data.forEach((d, i) => {
-                // Position based on timestamp within 30-minute window
-                const time_offset = d.t - window_start;
-                const x = left + ((right - left) * time_offset) / GOLD_GRAPH_WINDOW_MS;
-                const y = bottom - (bottom - top) * (d.amount - min_gold) / range;
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            });
-            ctx.stroke();
+			// Draw gold line
+			ctx.strokeStyle = "#FFD700";
+			ctx.lineWidth = 2;
+			ctx.beginPath();
+			data.forEach((d, i) => {
+				// Position based on timestamp within 30-minute window
+				const time_offset = d.t - window_start;
+				const x = left + ((right - left) * time_offset) / GOLD_GRAPH_WINDOW_MS;
+				const y = bottom - (bottom - top) * (d.amount - min_gold) / range;
+				if (i === 0) ctx.moveTo(x, y);
+				else ctx.lineTo(x, y);
+			});
+			ctx.stroke();
 
-            // Y-axis labels (min and max measured values only)
-            ctx.font = "24px pixel, monospace";
-            ctx.fillStyle = "#fff";
-            ctx.textAlign = "right";
-            ctx.textBaseline = "middle";
-            
-            // Max label at top
-            const y_max = bottom - (bottom - top) * (max_measured - min_gold) / range;
-            ctx.fillText(format_number(max_measured), left - 5, y_max);
-            
-            // Min label at bottom
-            const y_min = bottom - (bottom - top) * (min_measured - min_gold) / range;
-            ctx.fillText(format_number(min_measured), left - 5, y_min);
-        }
-    }
+			// Y-axis labels (min and max measured values only)
+			ctx.font = "24px pixel, monospace";
+			ctx.fillStyle = "#fff";
+			ctx.textAlign = "right";
+			ctx.textBaseline = "middle";
+			
+			// Max label at top
+			const y_max = bottom - (bottom - top) * (max_measured - min_gold) / range;
+			ctx.fillText(format_number(max_measured), left - 5, y_max);
+			
+			// Min label at bottom
+			const y_min = bottom - (bottom - top) * (min_measured - min_gold) / range;
+			ctx.fillText(format_number(min_measured), left - 5, y_min);
+		}
+	}
 
-    // Initial draw
-    draw_gold_graph();
+	// Initial draw
+	draw_gold_graph();
 
-    return gold_canvas;
+	return gold_canvas;
 }
 
 // Build and attach the loop toggles/state sub-window
 function add_loop_toggles(doc, content) {
-    const togglesSection = create_element(doc, "div", {
-        id: "loop-toggles-section",
-        styles: {
-            ...PANEL_STYLES,
-            padding: "8px",
-            fontFamily: "pixel",
-            fontSize: "28px",
-            width: "240px",
-            minWidth: "240px",
-            maxWidth: "240px",
-            height: "auto",
-            position: "absolute",
-            left: "12px",
-            top: "48px",
-        }
-    });
-    content.appendChild(togglesSection);
+	const toggles_section = create_element(doc, "div", {
+		id: "loop-toggles-section",
+		styles: {
+			...PANEL_STYLES,
+			padding: "8px",
+			fontFamily: "pixel",
+			fontSize: "28px",
+			width: "240px",
+			minWidth: "240px",
+			maxWidth: "240px",
+			height: "auto",
+			position: "absolute",
+			left: "12px",
+			top: "48px",
+		}
+	});
+	content.appendChild(toggles_section);
 
-    const title = create_element(doc, "div", {
-        text: "LOOP TOGGLES",
-        styles: {
-            fontWeight: "bold",
-            fontSize: "28px",
-            marginBottom: "4px",
-            fontFamily: "pixel",
-        }
-    });
-    togglesSection.appendChild(title);
+	const title = create_element(doc, "div", {
+		text: "LOOP TOGGLES",
+		styles: {
+			fontWeight: "bold",
+			fontSize: "28px",
+			marginBottom: "4px",
+			fontFamily: "pixel",
+		}
+	});
+	toggles_section.appendChild(title);
 
-    const togglesPre = create_element(doc, "pre", {
-        id: "loop-toggles-pre",
-        styles: {
-            ...TEXT_STYLES,
-            margin: "0",
-            padding: "0",
-            background: "none",
-            border: "none",
-        }
-    });
-    togglesSection.appendChild(togglesPre);
+	const toggles_pre = create_element(doc, "pre", {
+		id: "loop-toggles-pre",
+		styles: {
+			...TEXT_STYLES,
+			margin: "0",
+			padding: "0",
+			background: "none",
+			border: "none",
+		}
+	});
+	toggles_section.appendChild(toggles_pre);
 
-    function getLoopToggles() {
-        function padName(name, width = 7) {
-            return name.padEnd(width, " ");
-        }
-        return [
-            [padName("ATTACK"), typeof ATTACK_LOOP_ENABLED !== "undefined" ? ATTACK_LOOP_ENABLED : "?"],
-            [padName("HEAL"), typeof HEAL_LOOP_ENABLED !== "undefined" ? HEAL_LOOP_ENABLED : "?"],
-            [padName("MOVE"), typeof MOVE_LOOP_ENABLED !== "undefined" ? MOVE_LOOP_ENABLED : "?"],
-            [padName("SKILL"), typeof SKILL_LOOP_ENABLED !== "undefined" ? SKILL_LOOP_ENABLED : "?"],
-            [padName("PANIC"), typeof PANIC_LOOP_ENABLED !== "undefined" ? PANIC_LOOP_ENABLED : "?"],
-            [padName("BOSS"), typeof BOSS_LOOP_ENABLED !== "undefined" ? BOSS_LOOP_ENABLED : "?"],
-            [padName("ORBIT"), typeof ORBIT_LOOP_ENABLED !== "undefined" ? ORBIT_LOOP_ENABLED : "?"],
-            [padName("POTION"), typeof POTION_LOOP_ENABLED !== "undefined" ? POTION_LOOP_ENABLED : "?"],
-            [padName("LOOT"), typeof LOOT_LOOP_ENABLED !== "undefined" ? LOOT_LOOP_ENABLED : "?"],
-            [padName("STATUS"), typeof STATUS_CACHE_LOOP_ENABLED !== "undefined" ? STATUS_CACHE_LOOP_ENABLED : "?"],
-            [padName("PRIMS"), typeof PRIM_FARM_LOOT_ENABLED !== "undefined" ? PRIM_FARM_LOOT_ENABLED : "?"],
-        ];
-    }
+	function get_loop_toggles() {
+		function pad_name(name, width = 7) {
+			return name.padEnd(width, " ");
+		}
+		return [
+			[pad_name("ATTACK"), typeof ATTACK_LOOP_ENABLED !== "undefined" ? ATTACK_LOOP_ENABLED : "?"],
+			[pad_name("HEAL"), typeof HEAL_LOOP_ENABLED !== "undefined" ? HEAL_LOOP_ENABLED : "?"],
+			[pad_name("MOVE"), typeof MOVE_LOOP_ENABLED !== "undefined" ? MOVE_LOOP_ENABLED : "?"],
+			[pad_name("SKILL"), typeof SKILL_LOOP_ENABLED !== "undefined" ? SKILL_LOOP_ENABLED : "?"],
+			[pad_name("PANIC"), typeof PANIC_LOOP_ENABLED !== "undefined" ? PANIC_LOOP_ENABLED : "?"],
+			[pad_name("BOSS"), typeof BOSS_LOOP_ENABLED !== "undefined" ? BOSS_LOOP_ENABLED : "?"],
+			[pad_name("ORBIT"), typeof ORBIT_LOOP_ENABLED !== "undefined" ? ORBIT_LOOP_ENABLED : "?"],
+			[pad_name("POTION"), typeof POTION_LOOP_ENABLED !== "undefined" ? POTION_LOOP_ENABLED : "?"],
+			[pad_name("LOOT"), typeof LOOT_LOOP_ENABLED !== "undefined" ? LOOT_LOOP_ENABLED : "?"],
+			[pad_name("STATUS"), typeof STATUS_CACHE_LOOP_ENABLED !== "undefined" ? STATUS_CACHE_LOOP_ENABLED : "?"],
+			[pad_name("PRIMS"), typeof PRIM_FARM_LOOT_ENABLED !== "undefined" ? PRIM_FARM_LOOT_ENABLED : "?"],
+		];
+	}
 
-    function getCurrentState() {
-        if (typeof get_character_state === "function") {
-            try {
-                return get_character_state();
-            } catch (e) { return "?"; }
-        }
-        return "?";
-    }
+	function get_current_state() {
+		if (typeof get_character_state === "function") {
+			try {
+				return get_character_state();
+			} catch (e) { return "?"; }
+		}
+		return "?";
+	}
 
-    function updateTable() {
-        const state = getCurrentState();
-        let html = `Current State:\t<span style='color:#0ff;'>${state}</span>\n`;
-        for (const [name, val] of getLoopToggles()) {
-            const color = val === true ? "#0f0" : val === false ? "#f44" : "#ff0";
-            html += `${name}:\t<span style='color:${color};'>${val}</span>\n`;
-        }
-        togglesPre.innerHTML = html.trim().replace(/\n/g, "<br>");
-    }
+	function update_table() {
+		const state = get_current_state();
+		let html = `Current State:\t<span style="color:#0ff;">${state}</span>\n`;
+		for (const [name, val] of get_loop_toggles()) {
+			const color = val === true ? "#0f0" : val === false ? "#f44" : "#ff0";
+			html += `${name}:\t<span style="color:${color};">${val}</span>\n`;
+		}
+		toggles_pre.innerHTML = html.trim().replace(/\n/g, "<br>");
+	}
 
-    updateTable();
-    setInterval(updateTable, 500);
+	update_table();
+	setInterval(update_table, 500);
 
-    return togglesSection;
+	return toggles_section;
 }
 
 function ui_window() {
-    const doc = parent.document;
-    let win_el = doc.getElementById("ui-statistics-window");
-    if (win_el) {
-        win_el.style.display = win_el.style.display === "none" ? "block" : "none";
-        return;
-    }
+	const doc = parent.document;
+	let win_el = doc.getElementById("ui-statistics-window");
+	if (win_el) {
+		win_el.style.display = win_el.style.display === "none" ? "block" : "none";
+		return;
+	}
 
-    // Create window
-    win_el = create_element(doc, "div", {
-        id: "ui-statistics-window",
-        styles: {
-            position: "absolute",
-            top: "5px",
-            left: "5px",
-            width: "350px",
-            height: "220px",
-            border: "4px solid #888",
-            background: "rgba(34,34,34,0.66)",
-            color: "#fff",
-            zIndex: 10000,
-            fontFamily: "pixel",
-            fontSize: "18px",
-            display: "block",
-            resize: "both",
-            overflow: "auto",
-            boxSizing: "border-box",
-            userSelect: "none",
-        }
-    });
+	// Create window
+	win_el = create_element(doc, "div", {
+		id: "ui-statistics-window",
+		styles: {
+			position: "absolute",
+			top: "5px",
+			left: "5px",
+			width: "350px",
+			height: "220px",
+			border: "4px solid #888",
+			background: "rgba(34,34,34,0.66)",
+			color: "#fff",
+			zIndex: 10000,
+			fontFamily: "pixel",
+			fontSize: "18px",
+			display: "block",
+			resize: "both",
+			overflow: "auto",
+			boxSizing: "border-box",
+			userSelect: "none",
+		}
+	});
 
-    // Title bar
-    const title_bar = create_element(doc, "div", {
-        text: "Game Statistics",
-        styles: {
-            background: "#444",
-            padding: "8px",
-            cursor: "move",
-            fontWeight: "bold",
-            fontSize: "24px",
-            borderBottom: "2px solid #888",
-        }
-    });
+	// Title bar
+	const title_bar = create_element(doc, "div", {
+		text: "Game Statistics",
+		styles: {
+			background: "#444",
+			padding: "8px",
+			cursor: "move",
+			fontWeight: "bold",
+			fontSize: "24px",
+			borderBottom: "2px solid #888",
+		}
+	});
 
-    win_el.appendChild(title_bar);
+	win_el.appendChild(title_bar);
 
-    // Drag via the shared Windows.js helper, using the title bar as the handle.
-    make_draggable(win_el, title_bar);
+	// Drag via the shared Windows.js helper, using the title bar as the handle.
+	make_draggable(win_el, title_bar);
 
-    // Toggle button
-    const toggle_btn = create_element(doc, "button", {
-        text: "❌",
-        styles: {
-            position: "absolute",
-            top: "5px",
-            right: "5px",
-            zIndex: 10001,
-            background: "#444",
-            color: "#fff",
-            border: "2px solid #888",
-            borderRadius: "4px",
-            cursor: "pointer",
-        },
-        onclick: () => {
-            win_el.style.display = win_el.style.display === "none" ? "block" : "none";
-        }
-    });
+	// Toggle button
+	const toggle_btn = create_element(doc, "button", {
+		text: "❌",
+		styles: {
+			position: "absolute",
+			top: "5px",
+			right: "5px",
+			zIndex: 10001,
+			background: "#444",
+			color: "#fff",
+			border: "2px solid #888",
+			borderRadius: "4px",
+			cursor: "pointer",
+		},
+		onclick: () => {
+			win_el.style.display = win_el.style.display === "none" ? "block" : "none";
+		}
+	});
 
-    win_el.appendChild(toggle_btn);
+	win_el.appendChild(toggle_btn);
 
-    // Content area
-    const content = create_element(doc, "div", {
-        id: "ui-statistics-content",
-        styles: {
-            padding: "12px",
-            fontSize: "16px",
-        }
-    });
+	// Content area
+	const content = create_element(doc, "div", {
+		id: "ui-statistics-content",
+		styles: {
+			padding: "12px",
+			fontSize: "16px",
+		}
+	});
 
-    win_el.appendChild(content);
+	win_el.appendChild(content);
 
-    // Add sub-windows
-    add_loop_toggles(doc, content);
-    add_gold_graph(doc, content);
+	// Add sub-windows
+	add_loop_toggles(doc, content);
+	add_gold_graph(doc, content);
 
-    doc.body.appendChild(win_el);
+	doc.body.appendChild(win_el);
 }
 

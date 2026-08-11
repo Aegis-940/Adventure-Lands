@@ -18,7 +18,7 @@ window._cmListeners = window._cmListeners || [];
 	// (make_draggable, smarter_move, etc.) happens inside a function or event
 	// handler, invoked well after boot finishes — so they load in parallel.
 	const scripts = [
-		"Shared/Common Functions.js",
+		"Shared/Common_Functions.js",
 		"UI/Custom_Log.js",
 		"UI/Bank_Sorter.js",
 		"Shared/Buttons.js",
@@ -33,22 +33,22 @@ window._cmListeners = window._cmListeners || [];
 		"UI/Stats_Window.js"
 	];
 
-	const roleScripts = {
-		"Ulric": ["Character Functions/Warrior Functions.js",
+	const role_scripts = {
+		"Ulric": ["Character_Functions/Warrior_Functions.js",
 		"Characters/Tank.js"],
 
-		"Myras": ["Character Functions/Healer Functions.js",
+		"Myras": ["Character_Functions/Healer_Functions.js",
 		"Characters/Healer.js"],
 
-		"Riva": ["Character Functions/Ranger Functions.js",
+		"Riva": ["Character_Functions/Ranger_Functions.js",
 		"Characters/Ranger.js"],
 
-		"Riff": ["Merchant Systems/Auto Upgrade.js",
-		"Character Functions/Merchant Functions.js",
+		"Riff": ["Merchant_Systems/Auto_Upgrade.js",
+		"Character_Functions/Merchant_Functions.js",
 		"Characters/Merchant.js"]
 	};
-	const roleFile = roleScripts[character.name] || [];
-	if (!roleScripts[character.name]) {
+	const role_file = role_scripts[character.name] || [];
+	if (!role_scripts[character.name]) {
 		game_log("⚠️ No role script for " + character.name);
 	}
 
@@ -57,7 +57,7 @@ window._cmListeners = window._cmListeners || [];
 	// Loads one shared/UI script via getScript() (real <script> tag — always
 	// global scope). Always resolves, even on final failure, so one bad file
 	// can't block the rest of the batch — matches the prior best-effort behavior.
-	function loadOne(base, name) {
+	function load_one(base, name) {
 		const url = base + encodeURI(name);
 		return new Promise(resolve => {
 			function attempt(retries) {
@@ -80,7 +80,7 @@ window._cmListeners = window._cmListeners || [];
 
 	// Loads a role file via fetch+eval with brace-count diagnostics — kept
 	// exactly as before, just wrapped in a Promise. Always resolves.
-	function loadRoleFile(base, name) {
+	function load_role_file(base, name) {
 		const url = base + encodeURI(name);
 		return new Promise(resolve => {
 			function attempt(retries) {
@@ -122,13 +122,13 @@ window._cmListeners = window._cmListeners || [];
 	}
 
 	// Role files still load strictly in order (each may depend on the previous).
-	function loadSequential(names, loader) {
+	function load_sequential(names, loader) {
 		return names.reduce((chain, name) => chain.then(() => loader(name)), Promise.resolve());
 	}
 
-	function startLoading(base) {
-		Promise.all(scripts.map(name => loadOne(base, name)))
-			.then(() => loadSequential(roleFile, name => loadRoleFile(base, name)))
+	function start_loading(base) {
+		Promise.all(scripts.map(name => load_one(base, name)))
+			.then(() => load_sequential(role_file, name => load_role_file(base, name)))
 			.then(() => game_log("✅ All scripts loaded."));
 	}
 
@@ -136,15 +136,15 @@ window._cmListeners = window._cmListeners || [];
 	// commit SHA to fetch it — reuse that instead of hitting the GitHub API
 	// again for the same information.
 	if (window.__AL_BASE__) {
-		startLoading(window.__AL_BASE__);
+		start_loading(window.__AL_BASE__);
 	} else {
 		p$.getJSON("https://api.github.com/repos/Aegis-940/Adventure-Lands/commits/main")
-			.done(repoData => {
-				startLoading("https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@" + repoData.sha + "/");
+			.done(repo_data => {
+				start_loading("https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@" + repo_data.sha + "/");
 			})
 			.fail(() => {
 				game_log("⚠️ Couldn't fetch SHA; falling back to main");
-				startLoading("https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/");
+				start_loading("https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/");
 			});
 	}
 })();

@@ -22,20 +22,20 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | File | Role |
 |------|------|
 | `Bootstrapper.js` | Script loader — loads all other files from CDN in order |
-| `Shared/Common Functions.js` | Shared utilities, movement, state, location data |
+| `Shared/Common_Functions.js` | Shared utilities, movement, state, location data |
 | `Shared/Buttons.js` | Floating UI button creation |
 | `Shared/Windows.js` | Generic draggable floating window helper |
 | `Standalone/Priest_Manager.js` | Alternate/extended healer management system — **not loaded by Bootstrapper.js**; manual-inject only |
-| `Merchant Systems/Auto Upgrade.js` | Item upgrade profiles and automation |
-| `Merchant Systems/Auto Craft.js` | Crafting logic — **not loaded by Bootstrapper.js**; manual-inject only |
+| `Merchant_Systems/Auto_Upgrade.js` | Item upgrade profiles and automation |
+| `Merchant_Systems/Auto_Craft.js` | Crafting logic — **not loaded by Bootstrapper.js**; manual-inject only |
 | `Characters/Tank.js` | Warrior entry point (character: Ulric) |
 | `Characters/Healer.js` | Healer entry point (character: Myras) |
 | `Characters/Ranger.js` | Ranger entry point (character: Riva) |
 | `Characters/Merchant.js` | Merchant entry point (character: Riff) |
-| `Character Functions/Warrior Functions.js` | Warrior combat, movement, equipment swap logic |
-| `Character Functions/Healer Functions.js` | Healing, buffs, support logic |
-| `Character Functions/Ranger Functions.js` | Ranged combat, multi-target abilities |
-| `Character Functions/Merchant Functions.js` | Trading, fishing, mining, potion delivery |
+| `Character_Functions/Warrior_Functions.js` | Warrior combat, movement, equipment swap logic |
+| `Character_Functions/Healer_Functions.js` | Healing, buffs, support logic |
+| `Character_Functions/Ranger_Functions.js` | Ranged combat, multi-target abilities |
+| `Character_Functions/Merchant_Functions.js` | Trading, fishing, mining, potion delivery |
 | `UI/DPS_Meter.js` | Real-time DPS tracking overlay |
 | `UI/Stats_Window.js` | Character stats + gold graph (Canvas API) |
 | `UI/Party_Frames.js` | Party HP/status display |
@@ -52,14 +52,21 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 ## Code Conventions
 
 ### Naming
-- Functions: `snake_case` — e.g., `smarter_move()`, `start_attack_loop()`
+- Functions and variables: `snake_case` — e.g., `smarter_move()`, `start_attack_loop()`
 - Constants/config keys: `UPPER_SNAKE_CASE` — e.g., `TICK_RATE`, `LOOT_THRESHOLD`
 - Top-level config objects: `CONFIG`, `STATE`
 - Internal/private: prefixed with `_` — e.g., `smart._interrupt`
+- Multi-word file/folder names: underscore-separated, e.g. `Common_Functions.js`, `Character_Functions/` — no spaces in filenames (avoids `encodeURI()` friction in `Bootstrapper.js` and constant shell-quoting)
+
+### Formatting
+- Indentation: tabs
+- String quotes: double quotes by default; single quotes only to avoid escaping (e.g. a string containing a `"`); template literals for interpolation
+- Braces: same-line (K&R) — `function foo() {`, not `function foo()\n{`
+- Statements are semicolon-terminated
 
 ### Structure
 - Each character function file has a `CONFIG` object at the top for tunable settings
-- Section headers use `// ─────────────────────────────────` dividers
+- Section headers use `// ---...--- //` dash-block dividers
 - Async loops use `setInterval(async () => { ... }, tickRate)` pattern
 - Movement returns Promises — use `smarter_move().then(...)` or `await smarter_move(...)`
 - Equipment swapping has cooldown guards — check `COOLDOWNS` before adding new swap logic

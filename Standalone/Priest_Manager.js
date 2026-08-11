@@ -3,16 +3,16 @@
 // CONFIG VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const home = 'targetron';
-const mob_map = 'uhills';
-const all_bosses = ['grinch', 'icegolem', 'dragold', 'mrgreen', 'mrpumpkin', 'greenjr', 'jr', 'franky', 'rgoo', 'bgoo'];
+const home = "targetron";
+const mob_map = "uhills";
+const all_bosses = ["grinch", "icegolem", "dragold", "mrgreen", "mrpumpkin", "greenjr", "jr", "franky", "rgoo", "bgoo"];
 
 const CONFIG = {
 	combat: {
 		enabled: true,
 		zapper_enabled: false,
-		zapper_mobs: [home, ...all_bosses, 'sparkbot'],
-		target_priority: ['CrownTown', 'CrownPriest'],
+		zapper_mobs: [home, ...all_bosses, "sparkbot"],
+		target_priority: ["CrownTown", "CrownPriest"],
 		all_bosses,
 	},
 
@@ -59,7 +59,7 @@ const CONFIG = {
 
 	party: {
 		auto_manage: true,
-		group_members: ['Myras', 'Ulric', 'Riva']
+		group_members: ["Myras", "Ulric", "Riva"]
 	},
 };
 
@@ -80,8 +80,8 @@ const COOLDOWNS = {
 };
 
 const EVENT_LOCATIONS = [
-	{ name: 'mrpumpkin', map: 'halloween', x: -222, y: 720 },
-	{ name: 'mrgreen', map: 'spookytown', x: 610, y: 1000 }
+	{ name: "mrpumpkin", map: "halloween", x: -222, y: 720 },
+	{ name: "mrgreen", map: "spookytown", x: 610, y: 1000 }
 ];
 
 const CACHE_TTL = 100; // Cache validity in ms
@@ -91,7 +91,7 @@ const CACHE_TTL = 100; // Cache validity in ms
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const state = {
-	current: 'idle', // idle, looting, moving
+	current: "idle", // idle, looting, moving
 	skin_ready: false,
 	last_equip_time: 0,
 	last_loot_time: 0,
@@ -165,37 +165,37 @@ const destination = {
 
 const equipment_sets = {
 	zap_on: [
-		{ itemName: "zapper", slot: "ring2", level: 2, l: "u" }
+		{ item_name: "zapper", slot: "ring2", level: 2, l: "u" }
 	],
 	zap_off: [
-		{ itemName: "ringofluck", slot: "ring2", level: 2, l: "l" }
+		{ item_name: "ringofluck", slot: "ring2", level: 2, l: "l" }
 	],
 	luck: [
-		{ itemName: "xhelmet", slot: "helmet", level: 9, l: "l" },
-		{ itemName: "tshirt88", slot: "chest", level: 4, l: "l" },
-		{ itemName: "starkillers", slot: "pants", level: 8, l: "l" },
-		{ itemName: "wingedboots", slot: "shoes", level: 9, l: "l" },
-		{ itemName: "mpxgloves", slot: "gloves", level: 7, l: "l" },
-		{ itemName: "sbelt", slot: "belt", level: 2, l: "l" },
-		{ itemName: "lmace", slot: "mainhand", level: 9, l: "l" },
-		{ itemName: "mshield", slot: "offhand", level: 10, l: "l" },
-		{ itemName: "ringofluck", slot: "ring1", level: 2, l: "u" },
-		{ itemName: "ringofluck", slot: "ring2", level: 2, l: "l" },
-		{ itemName: "rabbitsfoot", slot: "orb", level: 3, l: "l" },
-		{ itemName: "mpxamulet", slot: "amulet", level: 1, l: "l" },
-		{ itemName: "bcape", slot: "cape", level: 7, l: "l" },
-		{ itemName: "mearring", slot: "earring1", level: 1, l: "l" },
-		{ itemName: "mearring", slot: "earring2", level: 1, l: "u" }
+		{ item_name: "xhelmet", slot: "helmet", level: 9, l: "l" },
+		{ item_name: "tshirt88", slot: "chest", level: 4, l: "l" },
+		{ item_name: "starkillers", slot: "pants", level: 8, l: "l" },
+		{ item_name: "wingedboots", slot: "shoes", level: 9, l: "l" },
+		{ item_name: "mpxgloves", slot: "gloves", level: 7, l: "l" },
+		{ item_name: "sbelt", slot: "belt", level: 2, l: "l" },
+		{ item_name: "lmace", slot: "mainhand", level: 9, l: "l" },
+		{ item_name: "mshield", slot: "offhand", level: 10, l: "l" },
+		{ item_name: "ringofluck", slot: "ring1", level: 2, l: "u" },
+		{ item_name: "ringofluck", slot: "ring2", level: 2, l: "l" },
+		{ item_name: "rabbitsfoot", slot: "orb", level: 3, l: "l" },
+		{ item_name: "mpxamulet", slot: "amulet", level: 1, l: "l" },
+		{ item_name: "bcape", slot: "cape", level: 7, l: "l" },
+		{ item_name: "mearring", slot: "earring1", level: 1, l: "l" },
+		{ item_name: "mearring", slot: "earring2", level: 1, l: "u" }
 	],
 	gold: [
-		{ itemName: "wcap", slot: "helmet", level: 6, l: "l" },
-		{ itemName: "wattire", slot: "chest", level: 6, l: "l" },
-		{ itemName: "wbreeches", slot: "pants", level: 6, l: "l" },
-		{ itemName: "wshoes", slot: "shoes", level: 6, l: "l" },
-		{ itemName: "handofmidas", slot: "gloves", level: 9, l: "l" },
-		{ itemName: "goldring", slot: "ring1", level: 1, l: "l" },
-		{ itemName: "goldring", slot: "ring2", level: 0, l: "u" },
-		{ itemName: "spookyamulet", slot: "amulet", level: 1, l: "l" }
+		{ item_name: "wcap", slot: "helmet", level: 6, l: "l" },
+		{ item_name: "wattire", slot: "chest", level: 6, l: "l" },
+		{ item_name: "wbreeches", slot: "pants", level: 6, l: "l" },
+		{ item_name: "wshoes", slot: "shoes", level: 6, l: "l" },
+		{ item_name: "handofmidas", slot: "gloves", level: 9, l: "l" },
+		{ item_name: "goldring", slot: "ring1", level: 1, l: "l" },
+		{ item_name: "goldring", slot: "ring2", level: 0, l: "u" },
+		{ item_name: "spookyamulet", slot: "amulet", level: 1, l: "l" }
 	]
 };
 
@@ -262,10 +262,10 @@ function find_zap_targets() {
 
 	return Object.values(parent.entities).filter(e =>
 		e &&
-		e.type === 'monster' &&
+		e.type === "monster" &&
 		!e.target &&
 		CONFIG.combat.zapper_mobs.includes(e.mtype) &&
-		is_in_range(e, 'zapperzap') &&
+		is_in_range(e, "zapperzap") &&
 		e.visible &&
 		!e.dead
 	);
@@ -313,7 +313,7 @@ async function main_loop() {
 		}
 
 	} catch (e) {
-		console.error('main_loop error:', e);
+		console.error("main_loop error:", e);
 	}
 
 	setTimeout(main_loop, TICK_RATE.main);
@@ -333,7 +333,7 @@ async function action_loop() {
 
 		update_cache();
 
-		const MS_UNTIL_ATTACK = ms_to_next_skill('attack');
+		const MS_UNTIL_ATTACK = ms_to_next_skill("attack");
 
 		if (MS_UNTIL_ATTACK < character.ping / 10) {
 			const HEALED = await try_heal();
@@ -351,7 +351,7 @@ async function action_loop() {
 		else delay = 5;
 
 	} catch (e) {
-		console.error('priest action_loop error:', e);
+		console.error("priest action_loop error:", e);
 		delay = 1;
 	}
 
@@ -390,8 +390,8 @@ async function skill_loop() {
 		}
 
 		// Dark Blessing
-		if (CONFIG.healing.dark_blessing_enabled && !is_on_cooldown('darkblessing')) {
-			await use_skill('darkblessing');
+		if (CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")) {
+			await use_skill("darkblessing");
 		}
 
 		// Zapper
@@ -400,7 +400,7 @@ async function skill_loop() {
 		}
 
 	} catch (e) {
-		console.error('skill_loop error:', e);
+		console.error("skill_loop error:", e);
 	}
 
 	setTimeout(skill_loop, delay);
@@ -421,7 +421,7 @@ async function try_heal() {
 }
 
 async function handle_curse() {
-	if (is_on_cooldown('curse') || smart.moving) return;
+	if (is_on_cooldown("curse") || smart.moving) return;
 
 	const X = locations[home][0].x;
 	const Y = locations[home][0].y;
@@ -447,15 +447,15 @@ async function handle_curse() {
 		});
 	}
 
-	if (target && target.hp >= target.max_hp * 0.01 && !target.immune && is_in_range(target, 'curse')) {
-		await use_skill('curse', target);
+	if (target && target.hp >= target.max_hp * 0.01 && !target.immune && is_in_range(target, "curse")) {
+		await use_skill("curse", target);
 	}
 }
 
 async function handle_absorb() {
-	if (is_on_cooldown('absorb')) return;
+	if (is_on_cooldown("absorb")) return;
 
-	const maps_to_exclude = ['level2n', 'level2w'];
+	const maps_to_exclude = ["level2n", "level2w"];
 	if (maps_to_exclude.includes(character.map)) return;
 
 	// Boss check - ALWAYS absorb boss targets (highest priority)
@@ -463,8 +463,8 @@ async function handle_absorb() {
 	// if (boss?.target && boss.target !== character.name) {
 	// 	const TARGET_PLAYER = get_player(boss.target);
 	// 	if (TARGET_PLAYER) {
-	// 		await use_skill('absorb', boss.target);
-	// 		game_log(`Boss Absorb → ${boss.mtype} from ${boss.target}`, '#FF3333');
+	// 		await use_skill("absorb", boss.target);
+	// 		game_log(`Boss Absorb → ${boss.mtype} from ${boss.target}`, "#FF3333");
 	// 		return;
 	// 	}
 	// }
@@ -478,12 +478,12 @@ async function handle_absorb() {
 
 	for (let id in parent.entities) {
 		const entity = parent.entities[id];
-		if (!entity || entity.type !== 'monster' || entity.dead) continue;
+		if (!entity || entity.type !== "monster" || entity.dead) continue;
 
 		// If this monster is targeting an ally and not us
 		if (entity.target && ALLIES.includes(entity.target) && entity.target !== character.name) {
-			await use_skill('absorb', entity.target);
-			game_log(`Absorbing ${entity.target}`, '#FFA600');
+			await use_skill("absorb", entity.target);
+			game_log(`Absorbing ${entity.target}`, "#FFA600");
 			return;
 		}
 	}
@@ -496,13 +496,13 @@ async function handle_party_heal() {
 		threshold = 0.99;
 	}
 
-	if (character.mp <= CONFIG.healing.party_heal_min_mp || is_on_cooldown('partyheal')) return;
+	if (character.mp <= CONFIG.healing.party_heal_min_mp || is_on_cooldown("partyheal")) return;
 
 	for (const name of cache.party_members) {
 		const ally = get_player(name);
 		if (!ally || ally.rip || ally.hp >= ally.max_hp * threshold) continue;
 
-		await use_skill('partyheal');
+		await use_skill("partyheal");
 		break;
 	}
 }
@@ -510,7 +510,7 @@ async function handle_party_heal() {
 async function handle_zapper() {
 	const TARGETS = find_zap_targets();
 	const NOW = performance.now();
-	const HAS_ZAPPER = character.slots.ring2?.name === 'zapper';
+	const HAS_ZAPPER = character.slots.ring2?.name === "zapper";
 	const CAN_SWAP = NOW - state.last_equip_time > COOLDOWNS.zapper_swap;
 	const HAS_ENOUGH_MP = character.mp > (G?.skills?.zapperzap?.mp || 0) + 1250;
 
@@ -519,23 +519,23 @@ async function handle_zapper() {
 	// Step 1: Equip zapper if untargeted mobs exist and we don't have it equipped
 	if (TARGETS.length > 0 && !HAS_ZAPPER && CAN_SWAP && HAS_ENOUGH_MP && character.map === mob_map) {
 		try {
-			await equip_set('zap_on');
+			await equip_set("zap_on");
 			state.last_equip_time = NOW;
 		} catch (e) {
-			console.error('Failed to equip zapper:', e);
+			console.error("Failed to equip zapper:", e);
 		}
 		return;
 	}
 
 	// Step 2: Zap all untargeted mobs if we have zapper equipped
-	if (TARGETS.length > 0 && HAS_ZAPPER && HAS_ENOUGH_MP && !is_on_cooldown('zapperzap')) {
+	if (TARGETS.length > 0 && HAS_ZAPPER && HAS_ENOUGH_MP && !is_on_cooldown("zapperzap")) {
 		for (const entity of TARGETS) {
-			if (is_on_cooldown('zapperzap')) break;
+			if (is_on_cooldown("zapperzap")) break;
 
 			try {
-				await use_skill('zapperzap', entity);
+				await use_skill("zapperzap", entity);
 			} catch (e) {
-				console.error('handleZapper error:', e);
+				console.error("handle_zapper error:", e);
 			}
 		}
 	}
@@ -544,10 +544,10 @@ async function handle_zapper() {
 	// Don't unequip just because we zapped them all - they might respawn
 	if (TARGETS.length === 0 && HAS_ZAPPER && CAN_SWAP && character.map === mob_map) {
 		try {
-			await equip_set('zap_off');
+			await equip_set("zap_off");
 			state.last_equip_time = NOW;
 		} catch (e) {
-			console.error('Failed to unequip zapper:', e);
+			console.error("Failed to unequip zapper:", e);
 		}
 	}
 }
@@ -570,12 +570,12 @@ async function maintenance_loop() {
 		inventory_sorter();
 		elixir_usage();
 
-		if (character.rip/* && locate_item('xptome') !== -1*/) {
+		if (character.rip/* && locate_item("xptome") !== -1*/) {
 			respawn();
 		}
 
 	} catch (e) {
-		console.error('maintenance_loop error:', e);
+		console.error("maintenance_loop error:", e);
 	}
 
 	setTimeout(maintenance_loop, TICK_RATE.maintenance);
@@ -592,17 +592,17 @@ async function potion_loop() {
 		const HP_THRESHOLD = character.max_hp - CONFIG.potions.hp_threshold;
 		const MP_THRESHOLD = character.max_mp - CONFIG.potions.mp_threshold;
 
-		if (character.mp < MP_THRESHOLD && !is_on_cooldown('use_mp')) {
-			use_skill('use_mp');
-			reduce_cooldown('use_mp', character.ping * 0.95);
-			delay = ms_to_next_skill('use_mp');
-		} else if (character.hp < HP_THRESHOLD && !is_on_cooldown('use_hp')) {
-			use_skill('use_hp');
-			reduce_cooldown('use_hp', character.ping * 0.95);
-			delay = ms_to_next_skill('use_hp');
+		if (character.mp < MP_THRESHOLD && !is_on_cooldown("use_mp")) {
+			use_skill("use_mp");
+			reduce_cooldown("use_mp", character.ping * 0.95);
+			delay = ms_to_next_skill("use_mp");
+		} else if (character.hp < HP_THRESHOLD && !is_on_cooldown("use_hp")) {
+			use_skill("use_hp");
+			reduce_cooldown("use_hp", character.ping * 0.95);
+			delay = ms_to_next_skill("use_hp");
 		}
 	} catch (e) {
-		console.error('potion_loop error:', e);
+		console.error("potion_loop error:", e);
 	}
 
 	setTimeout(potion_loop, delay || 2000);
@@ -626,8 +626,8 @@ function should_handle_events() {
 function handle_events() {
 	if (parent?.S?.holidayseason && !character?.s?.holidayspirit) {
 		if (!smart.moving) {
-			smart_move({ to: 'town' }, () => {
-				parent.socket.emit('interaction', { type: 'newyear_tree' });
+			smart_move({ to: "town" }, () => {
+				parent.socket.emit("interaction", { type: "newyear_tree" });
 			});
 		}
 		return;
@@ -659,7 +659,7 @@ async function handle_specific_event(event_type, map_name, x, y) {
 	const halfway_x = character.x + (monster.x - character.x) / 2;
 	const halfway_y = character.y + (monster.y - character.y) / 2;
 
-	if (!is_in_range(monster, 'attack') && !smart.moving) {
+	if (!is_in_range(monster, "attack") && !smart.moving) {
 		await xmove(halfway_x, halfway_y);
 	}
 }
@@ -710,18 +710,18 @@ function should_loot() {
 		character.targets < CONFIG.looting.target_count &&
 		cooldown_pass &&
 		penalty === 0 &&
-		state.current !== 'looting'
+		state.current !== "looting"
 	);
 }
 
 async function handle_looting() {
 	state.last_loot_time = performance.now();
-	state.current = 'looting';
+	state.current = "looting";
 
 	try {
-		if (CONFIG.looting.equip_gold_gear/* && !is_set_equipped('gold')*/) {
-			// equip_set('gold');
-			swap_booster('luckbooster', 'goldbooster');
+		if (CONFIG.looting.equip_gold_gear/* && !is_set_equipped("gold")*/) {
+			// equip_set("gold");
+			swap_booster("luckbooster", "goldbooster");
 			await sleep(150);
 		}
 
@@ -738,12 +738,12 @@ async function handle_looting() {
 		await sleep(75);
 
 		if (CONFIG.looting.equip_gold_gear) {
-			swap_booster('goldbooster', 'luckbooster');
+			swap_booster("goldbooster", "luckbooster");
 		}
 	} catch (e) {
-		console.error('Looting error:', e);
+		console.error("Looting error:", e);
 	} finally {
-		state.current = 'idle';
+		state.current = "idle";
 	}
 }
 
@@ -775,12 +775,12 @@ function handle_equipment_swap() {
 	const now = performance.now();
 	if (now - state.last_equip_time < COOLDOWNS.equip_swap) return;
 
-	let target_set = 'luck';
+	let target_set = "luck";
 
 	if (CONFIG.equipment.boss_luck_switch && cache.nearest_boss) {
 		const { mob, type } = cache.nearest_boss;
 		const threshold = CONFIG.equipment.boss_hp_thresholds[type] || 0;
-		target_set = mob.hp < threshold ? 'luck' : 'gold';
+		target_set = mob.hp < threshold ? "luck" : "gold";
 	}
 
 	if (!is_set_equipped(target_set)) {
@@ -811,20 +811,20 @@ function equip_set(set_name) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function clear_inventory() {
-	let lootMule = get_player('Riff');
-	if (!lootMule) return;
+	let loot_mule = get_player("Riff");
+	if (!loot_mule) return;
 
 	if (character.gold > 5000000) {
-		send_gold(lootMule.name, character.gold - 5000000);
+		send_gold(loot_mule.name, character.gold - 5000000);
 	}
 
-	const items_to_exclude = ['hpot1', 'mpot1', 'luckbooster', 'goldbooster', 'xpbooster', 'elixirluck', 'xptome', 'essenceoflife', 'jacko'];
+	const items_to_exclude = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster", "elixirluck", "xptome", "essenceoflife", "jacko"];
 
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
 		if (item && !items_to_exclude.includes(item.name) && !item.l && !item.s) {
-			if (is_in_range(lootMule, 'attack')) {
-				send_item(lootMule.id, i, item.q ?? 1);
+			if (is_in_range(loot_mule, "attack")) {
+				send_item(loot_mule.id, i, item.q ?? 1);
 			}
 		}
 	}
@@ -853,13 +853,13 @@ function inventory_sorter() {
 }
 
 function auto_buy_potions() {
-	if (quantity('hpot1') < CONFIG.potions.min_stock) buy('hpot1', CONFIG.potions.min_stock);
-	if (quantity('mpot1') < CONFIG.potions.min_stock) buy('mpot1', CONFIG.potions.min_stock);
-	if (quantity('xptome') < 1) buy('xptome', 1);
+	if (quantity("hpot1") < CONFIG.potions.min_stock) buy("hpot1", CONFIG.potions.min_stock);
+	if (quantity("mpot1") < CONFIG.potions.min_stock) buy("mpot1", CONFIG.potions.min_stock);
+	if (quantity("xptome") < 1) buy("xptome", 1);
 }
 
 function elixir_usage() {
-	const required = 'elixirluck';
+	const required = "elixirluck";
 	// const current_elixir = character.slots.elixir?.name;
 	// const current_qty = quantity(required);
 
@@ -884,7 +884,7 @@ function party_maker() {
 	const group = CONFIG.party.group_members;
 	const party_lead = get_entity(group[0]);
 	const current_party = character.party;
-	const healer = get_entity('Myras');
+	const healer = get_entity("Myras");
 
 	if (character.name === group[0]) {
 		for (let i = 1; i < group.length; i++) {
@@ -907,7 +907,7 @@ function sleep(ms) {
 
 function suicide() {
 	if (!character.rip && character.hp < 2000) {
-		parent.socket.emit('harakiri');
+		parent.socket.emit("harakiri");
 		game_log("Harakiri");
 	}
 
@@ -929,7 +929,7 @@ function get_nearest_monster_v2(args = {}) {
 
 	for (let id in parent.entities) {
 		let current = parent.entities[id];
-		if (current.type !== 'monster' || !current.visible || current.dead) continue;
+		if (current.type !== "monster" || !current.visible || current.dead) continue;
 
 		// Allow type to be an array for multiple types
 		if (args.type) {
@@ -995,10 +995,10 @@ function ms_to_next_skill(skill) {
 
 async function batch_equip(data) {
 	if (!Array.isArray(data)) {
-		return Promise.reject({ reason: 'invalid', message: 'Not an array' });
+		return Promise.reject({ reason: "invalid", message: "Not an array" });
 	}
 	if (data.length > 15) {
-		return Promise.reject({ reason: 'invalid', message: 'Too many items' });
+		return Promise.reject({ reason: "invalid", message: "Too many items" });
 	}
 
 	let valid_items = [];
@@ -1033,11 +1033,11 @@ async function batch_equip(data) {
 	if (valid_items.length === 0) return;
 
 	try {
-		parent.socket.emit('equip_batch', valid_items);
-		await parent.push_deferred('equip_batch');
+		parent.socket.emit("equip_batch", valid_items);
+		await parent.push_deferred("equip_batch");
 	} catch (error) {
-		console.error('Batch_equip error:', error);
-		return Promise.reject({ reason: 'invalid', message: 'Failed to equip' });
+		console.error("Batch_equip error:", error);
+		return Promise.reject({ reason: "invalid", message: "Failed to equip" });
 	}
 }
 
@@ -1047,30 +1047,30 @@ async function batch_equip(data) {
 
 // const skinConfigs = {
 // 	priest: {
-// 		skin: 'tm_white',
-// 		skinRing: { name: 'tristone', level: 0, locked: 'l' },
-// 		normalRing: { name: 'ringofluck', level: 2, locked: 'u' }
+// 		skin: "tm_white",
+// 		skinRing: { name: "tristone", level: 0, locked: "l" },
+// 		normalRing: { name: "ringofluck", level: 2, locked: "u" }
 // 	},
 // };
 
-// function skinNeeded(ringName, ringLevel, slot = 'ring1', locked = 'l', ccThreshold = 135) {
+// function skinNeeded(ringName, ringLevel, slot = "ring1", locked = "l", ccThreshold = 135) {
 // 	if (character.cc <= ccThreshold) {
 // 		if (character.slots[slot]?.name !== ringName || character.slots[slot]?.level !== ringLevel) {
 // 			equipIfNeeded(ringName, slot, ringLevel, locked);
 // 		}
-// 		parent.socket.emit('activate', { slot });
+// 		parent.socket.emit("activate", { slot });
 // 	}
 // }
 
-// async function equipIfNeeded(itemName, slotName, level, l) {
+// async function equipIfNeeded(item_name, slotName, level, l) {
 // 	let name = null;
 
-// 	if (typeof itemName === 'object') {
-// 		name = itemName.name;
-// 		level = itemName.level;
-// 		l = itemName.l;
+// 	if (typeof item_name === "object") {
+// 		name = item_name.name;
+// 		level = item_name.level;
+// 		l = item_name.l;
 // 	} else {
-// 		name = itemName;
+// 		name = item_name;
 // 	}
 
 // 	if (character.slots[slotName] != null) {
@@ -1099,7 +1099,7 @@ async function batch_equip(data) {
 // 	// 1. Ensure correct skin
 // 	if (character.skin !== config.skin) {
 // 		console.log(`Applying skinRing: ${config.skinRing.name} lvl ${config.skinRing.level}`);
-// 		skinNeeded(config.skinRing.name, config.skinRing.level, 'ring1', config.skinRing.locked);
+// 		skinNeeded(config.skinRing.name, config.skinRing.level, "ring1", config.skinRing.locked);
 // 		await sleep(500);
 // 		return skinChanger();
 // 	}
@@ -1108,7 +1108,7 @@ async function batch_equip(data) {
 // 	const slot = character.slots.ring1;
 // 	if (slot?.name !== config.normalRing.name || slot?.level !== config.normalRing.level) {
 // 		console.log(`Equipping normalRing: ${config.normalRing.name} lvl ${config.normalRing.level}`);
-// 		equipIfNeeded(config.normalRing.name, 'ring1', config.normalRing.level, config.normalRing.locked);
+// 		equipIfNeeded(config.normalRing.name, "ring1", config.normalRing.level, config.normalRing.locked);
 // 		await sleep(500);
 // 		return skinChanger();
 // 	}
@@ -1141,39 +1141,39 @@ function on_cm(name, data) {
 
 function on_party_request(name) {
 	if (CONFIG.party.group_members.includes(name)) {
-		console.log('Accepting party request from ' + name);
+		console.log("Accepting party request from " + name);
 		accept_party_request(name);
 	}
 }
 
 function on_party_invite(name) {
 	if (CONFIG.party.group_members.includes(name)) {
-		console.log('Accepting party invite from ' + name);
+		console.log("Accepting party invite from " + name);
 		accept_party_invite(name);
 	}
 }
 
-game.on('death', data => {
+game.on("death", data => {
 	const mob = parent.entities[data.id];
 	if (!mob) return;
 
 	const mob_name = mob.mtype;
 	const mob_target = mob.target;
 
-	const partyMembers = Object.keys(get_party() || {});
+	const party_members = Object.keys(get_party() || {});
 
-	if (mob_target === character.name || partyMembers.includes(mob_target)) {
+	if (mob_target === character.name || party_members.includes(mob_target)) {
 		const luck_display = mob.cooperative ? character.luckm : data.luckm;
 		const msg = `${mob_name} died with ${luck_display} luck`;
-		game_log(msg, '#96a4ff');
+		game_log(msg, "#96a4ff");
 		console.log(msg);
 	}
 });
 
-character.on('loot', data => {
+character.on("loot", data => {
 	if (data.id) {
 		console.log(`${data.opener} looted chest goldm: ${data.goldm}`);
-		game_log(`${data.opener} looted chest goldm: ${data.goldm}`, 'gold');
+		game_log(`${data.opener} looted chest goldm: ${data.goldm}`, "gold");
 
 		// Remove chest ID after successful loot with delay to ensure it's gone
 		setTimeout(() => {

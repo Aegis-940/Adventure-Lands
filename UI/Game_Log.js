@@ -3,71 +3,71 @@
 //       kills: {
 //         show: true,
 //         regex: /killed/,
-//         tab_name: 'Kills'
+//         tab_name: "Kills"
 //       },
 //       gold: {
 //         show: true,
 //         regex: /gold/,
-//         tab_name: 'Gold'
+//         tab_name: "Gold"
 //       },
 //       party: {
 //         show: true,
 //         regex: /party/,
-//         tab_name: 'Party'
+//         tab_name: "Party"
 //       },
 //       items: {
 //         show: true,
 //         regex: /found/,
-//         tab_name: 'Items'
+//         tab_name: "Items"
 //       },
 //       upgrade_and_compound: {
 //         show: true,
 //         regex: /(upgrade|combination)/,
-//         tab_name: 'Upgr.'
+//         tab_name: "Upgr."
 //       },
 //       errors: {
 //         show: true,
 //         regex: /(error|line|column)/i,
-//         tab_name: 'Errors'
+//         tab_name: "Errors"
 //       },
 //       burned: {
 //         show: false,
 //         regex: /burned/i,
-//         tab_name: 'Burned'
+//         tab_name: "Burned"
 //       }
 
 //     };
 //     // filter buttons are alternating lighter and darker for aesthetic effect
 //     // colours in order are: dark blue, light blue, white, dark gray, light gray, lighter gray
 //     var filter_colours = {
-//       on_dark: '#151342',
-//       on_light: '#1D1A5C',
-//       on_text: '#FFF',
-//       off_dark: '#222',
-//       off_light: '#333',
-//       off_text: '#999'
+//       on_dark: "#151342",
+//       on_light: "#1D1A5C",
+//       on_text: "#FFF",
+//       off_dark: "#222",
+//       off_light: "#333",
+//       off_text: "#999"
 //     };
 //     var $ = parent.$;
 //     init_timestamps();
 //     init_gamelog_filter();
 //     function init_gamelog_filter() {
-//       //$('#bottomrightcorner').find('#goldui')[0].style.lineHeight = '30px';
-//       $('#bottomrightcorner').find('#gamelog-tab-bar').remove();
+//       //$("#bottomrightcorner").find("#goldui")[0].style.lineHeight = "30px";
+//       $("#bottomrightcorner").find("#gamelog-tab-bar").remove();
 //       let gamelog_tab_bar = $('<div id="gamelog-tab-bar" class="enableclicks" />').css({
-//         border: '5px solid gray',
-//         height: '24px',
-//         background: 'black',
-//         margin: '-5px 0',
-//         display: 'flex',
-//         fontSize: '20px',
-//         fontFamily: 'pixel'
+//         border: "5px solid gray",
+//         height: "24px",
+//         background: "black",
+//         margin: "-5px 0",
+//         display: "flex",
+//         fontSize: "20px",
+//         fontFamily: "pixel"
 //       });
 //       let gamelog_tab = $('<div class="gamelog-tab enableclicks" />').css({
-//         height: '100%',
-//         width: 'calc(100% / 6)',
-//         textAlign: 'center',
-//         lineHeight: '24px',
-//         cursor: 'default'
+//         height: "100%",
+//         width: "calc(100% / 6)",
+//         textAlign: "center",
+//         lineHeight: "24px",
+//         cursor: "default"
 //       });
 //       for (let key in gamelog_data) {
 //         if (!gamelog_data.hasOwnProperty(key)) continue;
@@ -75,7 +75,7 @@
 //         gamelog_tab_bar.append(
 //           gamelog_tab
 //           .clone()
-//           .attr('id', `gamelog-tab-${key}`)
+//           .attr("id", `gamelog-tab-${key}`)
 //           .css({
 //             background: gamelog_tab_bar.children().length % 2 == 0 ? filter_colours.on_dark : filter_colours.on_light
 //           })
@@ -85,13 +85,13 @@
 //           })
 //         );
 //       }
-//       $('#gamelog').before(gamelog_tab_bar);
+//       $("#gamelog").before(gamelog_tab_bar);
 //     }
 //     function filter_gamelog() {
-//       $('.gameentry').each(function() {
+//       $(".gameentry").each(function() {
 //         for (let filter of Object.values(gamelog_data)) {
 //           if (filter.regex.test(this.innerHTML)) {
-//             this.style.display = filter.show ? 'block' : 'none';
+//             this.style.display = filter.show ? "block" : "none";
 //             return;
 //           }
 //         }
@@ -103,12 +103,12 @@
 //       let tab = $(`#gamelog-tab-${filter}`);
 //       if (gamelog_data[filter].show) {
 //         tab.css({
-//           background: $('.gamelog-tab').index(tab) % 2 == 0 ? filter_colours.on_dark : filter_colours.on_light,
+//           background: $(".gamelog-tab").index(tab) % 2 == 0 ? filter_colours.on_dark : filter_colours.on_light,
 //           color: filter_colours.on_text
 //         });
 //       } else {
 //         tab.css({
-//           background: $('.gamelog-tab').index(tab) % 2 == 0 ? filter_colours.off_dark : filter_colours.off_dark,
+//           background: $(".gamelog-tab").index(tab) % 2 == 0 ? filter_colours.off_dark : filter_colours.off_dark,
 //           color: filter_colours.off_text
 //         });
 //       }
@@ -124,22 +124,22 @@
 //         return;
 //       }
 //       if (parent.game_logs.length > 1000) {
-//         var b = "<div class='gameentry' style='color: gray'>- Truncated -</div>";
+//         var b = "<div class="gameentry" style="color: gray">- Truncated -</div>";
 //         parent.game_logs = parent.game_logs.slice(-720);
 //         parent.game_logs.forEach(function(d) {
-//           b += "<div class='gameentry' style='color: " + (d[1] || "white") + "'>" + d[0] + "</div>"
+//           b += "<div class="gameentry" style='color: " + (d[1] || "white") + "'>" + d[0] + "</div>"
 //         });
 //         $("#gamelog").html(b)
 //       }
 //       parent.game_logs.push([c, a]);
-//       let display_mode = 'block';
+//       let display_mode = "block";
 //       for (let filter of Object.values(gamelog_data)) {
 //         if (filter.regex.test(c)) {
-//           display_mode = filter.show ? 'block' : 'none';
+//           display_mode = filter.show ? "block" : "none";
 //           break;
 //         }
 //       }
-//       $("#gamelog").append(`<div class='gameentry' style='color: ${a || "white"}; display: ${display_mode};'>${c}</div>`);
+//       $("#gamelog").append(`<div class="gameentry" style='color: ${a || "white"}; display: ${display_mode};'>${c}</div>`);
 //       $("#gamelog").scrollTop($("#gamelog")[0].scrollHeight);
 //     }
 //     function init_timestamps() {
