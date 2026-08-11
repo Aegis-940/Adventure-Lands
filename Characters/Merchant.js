@@ -10,21 +10,22 @@ remove_all_floating_buttons();
 
 create_map_movement_window([
 	{ id: "SellBank", label: "Sell / Bank", on_click: () => sell_and_bank() },
-	{ id: "CollectLoot", label: "Take Loot", on_click: () => check_remote_inventories()  },
-	{ id: "GoFish", label: "Go Fish", on_click: () => go_fish() },
-	{ id: "GoMine", label: "Go Mine", on_click: () => go_mine() },
+	{ id: "custom3", label: "Custom 3", on_click: () => null },
+	{ id: "custom4", label: "Custom 4", on_click: () => null },
 	{ id: "custom5", label: "Custom 5", on_click: () => null },
 	{ id: "custom6", label: "Custom 6", on_click: () => null }
 ]);
 
 add_bank_buttons();
 hide_skills_ui();
-buy_potion_loop()
-mluck_buff_loop()
-loot_collection_loop()
-potion_loop()
 
-loop_controller();
+// Passive loops — no travel, safe to run alongside loop_controller()'s state machine.
+buy_potion_loop();
+mluck_buff_loop();
+loot_collection_loop();
+potion_loop(); // shared self-use loop from Shared/Common_Functions.js
+
+loop_controller(); // sole owner of movement — see Character_Functions/Merchant_Functions.js
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN LOOP

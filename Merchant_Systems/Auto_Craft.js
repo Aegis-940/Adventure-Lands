@@ -1,15 +1,16 @@
-//The items we want to craft.
-var craft_list = ["pouchbow"];
+// Craft targets live in Character_Functions/Merchant_Functions.js's CONFIG.crafting.targets
+// (that file loads after this one, but this array is only read once try_craft() actually
+// runs, well after everything has loaded).
+//
+// No standalone interval here anymore — the merchant state machine
+// (Character_Functions/Merchant_Functions.js) calls try_craft() on its own
+// CRAFTING-state cycle, so this stays a plain callable function.
 
-setInterval(function() {
-	try_craft();
-}, 500);
-
-function try_craft() {
+async function try_craft() {
 	//Iterate over everything we've configured to auto craft.
-	for (var index in craft_list) {
+	for (var index in CONFIG.crafting.targets) {
 		//What's the name of the item we want to craft?
-		var craft_name = craft_list[index];
+		var craft_name = CONFIG.crafting.targets[index];
 
 		//Grab the crafting recipe.
 		var craft_def = parent.G.craft[craft_name];
@@ -105,6 +106,16 @@ function try_craft() {
 						for (var id_buy in buyable_missing) {
 							//Buy an item we're missing, and break execution so that we can control how fast requests are sent to the server.
 							var buy_name = buyable_missing[id_buy];
+
+							//Missing items are only buyable from the "basics" NPC — travel there first.
+							//smart_move (the native bot function, not our smarter_move wrapper) resolves
+							//NPC ids directly and is a safe no-op if already close enough.
+							try {
+								await smart_move("basics");
+							} catch (e) {
+								catcher(e, "try_craft: travel to basics NPC");
+								break;
+							}
 
 							buy(buy_name);
 							break;

@@ -1,198 +1,366 @@
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// 1) GLOBAL LOOP SWITCHES AND VARIABLES
+// CONFIG
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const LOOP_STATES = {
+const CONFIG = {
+	// Master switches — flip any of these off to stop that state from ever being selected.
+	enabled: {
+		upgrading: false,
+		crafting: false,
+		exchanging: false,
+		fishing: false,
+		mining: false,
+	},
+	locations: {
+		HOME: { map: "main", x: -87, y: -96 },
+		BANK_LOCATION: { map: "bank", x: 0, y: -37 },
+		POTION_SHOP: { map: "main", x: -87, y: -150 },
+		FISHING_SPOT: { map: "main", x: -1116, y: -285 },
+		MINING_SPOT: { map: "tunnel", x: 244, y: -153 },
+	},
+	party: {
+		members: ["Ulric", "Myras", "Riva"],
+		nearby_trigger_range: 200, // is anyone worth checking on at all
+		action_range: 350,        // close enough to actually act on this specific member
+	},
+	cycles: {
+		delivery_interval: 30 * 60 * 1000, // how often to run a potions/loot/bank support pass
+		upgrade_interval: 1 * 60 * 1000,
+		craft_interval: 5 * 60 * 1000,
+		exchange_interval: 10 * 60 * 1000,
+		fishing_interval: 2 * 60 * 1000,
+		mining_interval: 2 * 60 * 1000,
+	},
+	upgrade_gold_threshold: 100000000,
+	// Items to auto-craft — read directly by Merchant_Systems/Auto_Craft.js's try_craft().
+	crafting: {
+		targets: ["pouchbow"],
+	},
+	// Items to turn in at the exchange NPC, in priority order.
+	exchange: {
+		targets: [
+			{ name: "basketofeggs", min: 1 },
+			{ name: "gem0",         min: 1 },
+			{ name: "gem1",         min: 1 },
+			{ name: "armorbox",     min: 1 },
+			{ name: "weaponbox",    min: 1 },
+		],
+	},
+	// Items sell_and_bank() must never bank away, even mid-cycle.
+	do_not_bank: ["scroll0", "scroll1", "scroll2", "cscroll0", "cscroll1", "cscroll2", "offeringp"],
+};
 
-	fishing: false,
-	mining: false,
-	upgrading: false,
+// Common_Functions.js's shared potion_loop()/auto_buy_potions() aren't used here — the
+// merchant's potion needs (bulk buying to redistribute to the party) are handled by
+// buy_potion_loop() below; Common_Functions.js's shared potion_loop() (self-use) is
+// started separately from Characters/Merchant.js.
 
-}
+// Aliases so Merchant_Systems/Auto_Upgrade.js (loaded before this file, references these
+// as bare globals) and the functions below keep a short, familiar name to work with.
+const HOME = CONFIG.locations.HOME;
+const BANK_LOCATION = CONFIG.locations.BANK_LOCATION;
+const PARTY = CONFIG.party.members;
 
-// Define party members to assist
-
-const PARTY = ["Ulric", "Myras", "Riva"];
-
-// Define default location to wait when idle
-const HOME = { map: "main", x: -87, y: -96 };
-
-var merchant_task = "Idle"; // Current task: "Idle", "Mining", etc. — var so Auto_Upgrade.js can share this global
+var merchant_task = "Idle"; // Current task: "Idle", "Delivering", etc. — var so Auto_Upgrade.js can share this global
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// 2) START/STOP HELPERS
+// STATE MACHINE
 // --------------------------------------------------------------------------------------------------------------------------------- //
-
-const LOOP_NAMES = [
-	"loot_collection",
-	"fishing",
-	"mining",
-	"upgrading"
-];
-
-for (const name of LOOP_NAMES) {
-	globalThis[`start_${name}_loop`] = () => { LOOP_STATES[name] = true; };
-	globalThis[`stop_${name}_loop`] = () => { LOOP_STATES[name] = false; };
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// 3) MERCHANT LOOP CONTROLLER
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-const UPGRADE_CYCLE_TIME = 1 * 60 * 1000;       // 1 minute
-const SUPPORT_LOOP_CYCLE_TIME = 30 * 60 * 1000; // 10 minutes
 
 const MERCHANT_STATES = {
 	DEAD: "dead",
 	PANIC: "panic",
 	DELIVERING: "delivering",
 	UPGRADING: "upgrading",
+	CRAFTING: "crafting",
 	EXCHANGING: "exchanging",
 	FISHING: "fishing",
 	MINING: "mining",
-	BUFFING: "buffing",
-	IDLE: "idle"
+	IDLE: "idle",
 };
 
-let last_auto_upgrade_time = 0; // Timestamp in ms
-let last_exchange_time = 0;     // Timestamp in ms
-let last_mluck_time = 0;
-let last_loop_time = 0;
+const PANIC_HP_PCT = 0.3;
+const DELIVERY_WAIT_MAX_ATTEMPTS = 40; // ~2 minutes at 3s/attempt before giving up and heading home anyway
+const FISHING_POSITION_TOLERANCE = 5;
+const MINING_POSITION_TOLERANCE = 10;
+const FISHING_TIME = 9000;
+const MINING_TIME = 4000;
 
-function should_run_auto_upgrade() {
-	if (merchant_task === "Delivering") return false;
-	return (Date.now() - last_auto_upgrade_time) > UPGRADE_CYCLE_TIME;
+let last_delivery_time = 0;
+let last_upgrade_time = 0;
+let last_craft_time = 0;
+let last_exchange_time = 0;
+let last_fishing_time = 0;
+let last_mining_time = 0;
+
+function should_run_delivery() {
+	return merchant_task === "Idle" && (Date.now() - last_delivery_time) > CONFIG.cycles.delivery_interval;
 }
 
-function should_run_loop() {
-	return (Date.now() - last_loop_time) > SUPPORT_LOOP_CYCLE_TIME;
+function should_run_upgrade() {
+	return CONFIG.enabled.upgrading
+		&& merchant_task === "Idle"
+		&& character.gold >= CONFIG.upgrade_gold_threshold
+		&& (Date.now() - last_upgrade_time) > CONFIG.cycles.upgrade_interval;
+}
+
+function should_run_craft() {
+	return CONFIG.enabled.crafting
+		&& merchant_task === "Idle"
+		&& (Date.now() - last_craft_time) > CONFIG.cycles.craft_interval;
+}
+
+function should_run_exchange() {
+	return CONFIG.enabled.exchanging
+		&& merchant_task === "Idle"
+		&& (Date.now() - last_exchange_time) > CONFIG.cycles.exchange_interval;
+}
+
+function should_run_fishing() {
+	return CONFIG.enabled.fishing
+		&& merchant_task === "Idle"
+		&& (Date.now() - last_fishing_time) > CONFIG.cycles.fishing_interval;
+}
+
+function should_run_mining() {
+	return CONFIG.enabled.mining
+		&& merchant_task === "Idle"
+		&& (Date.now() - last_mining_time) > CONFIG.cycles.mining_interval;
+}
+
+// The merchant doesn't fight — "danger" just means something is actually hitting it.
+function is_in_danger() {
+	if (character.hp < character.max_hp * PANIC_HP_PCT) return true;
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e && e.type === "monster" && !e.dead && e.target === character.name) return true;
+	}
+	return false;
 }
 
 function get_character_state() {
-	const now = Date.now();
-	// if (character.rip) return MERCHANT_STATES.DEAD;
-	// if (panicking) return MERCHANT_STATES.PANIC;
-	if (should_run_loop())          return MERCHANT_STATES.DELIVERING;
-	if (should_run_auto_upgrade())  return MERCHANT_STATES.UPGRADING;
-	// if (merchant_task === "Idle")   return MERCHANT_STATES.EXCHANGING;
+	if (character.rip) return MERCHANT_STATES.DEAD;
+	if (is_in_danger()) return MERCHANT_STATES.PANIC;
+	if (should_run_delivery()) return MERCHANT_STATES.DELIVERING;
+	if (should_run_upgrade()) return MERCHANT_STATES.UPGRADING;
+	if (should_run_craft()) return MERCHANT_STATES.CRAFTING;
+	if (should_run_exchange()) return MERCHANT_STATES.EXCHANGING;
+	if (should_run_fishing()) return MERCHANT_STATES.FISHING;
+	if (should_run_mining()) return MERCHANT_STATES.MINING;
 	return MERCHANT_STATES.IDLE;
 }
 
-let handling_merchant_death = false;
-let handling_delivery = false;
-let handling_upgrading = false;
-let handling_exchanging = false;
-let handling_buffing = false;
-async function set_state(state) {
+async function handle_dead_state() {
 	try {
-		// State-specific
-		switch (state) {
-			case MERCHANT_STATES.DEAD:
-				if (!handling_merchant_death) {
-					handling_merchant_death = true;
-					try {
-						// DEAD state logic here
-					} catch (e) {
-						catcher(e, "set_state: DEAD state error");
-					}
-					handling_merchant_death = false;
-				}
-				break;
-
-			case MERCHANT_STATES.PANIC:
-				try {
-					// PANIC state logic here
-				} catch (e) {
-					catcher(e, "set_state: PANIC state error");
-				}
-				break;
-
-			case MERCHANT_STATES.DELIVERING:
-				try {
-					// DELIVERING state logic here
-					if (merchant_task !== "Delivering") {
-						log("Beginning potions / loot / buffing run...");
-						merchant_task = "Delivering";
-						move_to_character("Myras");
-						while (!any_party_within_200()) {
-							await delay(3000);
-						}
-						await smarter_move(HOME);
-						await delay(1000);
-						await sell_and_bank();
-						last_loop_time = Date.now();
-						merchant_task = "Idle";
-					}
-				} catch (e) {
-					catcher(e, "set_state: DELIVERING state error");
-				}
-				break;
-
-			case MERCHANT_STATES.UPGRADING:
-				try {
-					if (!handling_upgrading) {
-						if (character.gold < 100000000) {
-							log("❌ Skipping auto-upgrade: Not enough gold (< 100,000,000).");
-							last_auto_upgrade_time = Date.now();
-							merchant_task = "Idle";
-							return;
-						}
-						log("Starting auto-upgrade process...");
-						handling_upgrading = true;
-						merchant_task = "Upgrading";
-						// await custom_craft();
-						// await coat_upgrade();
-						// await auto_upgrade();
-						last_auto_upgrade_time = Date.now();
-						merchant_task = "Idle";
-					}
-					handling_upgrading = false;
-				} catch (e) {
-					catcher(e, "set_state: UPGRADING state error");
-				}
-				break;
-
-			case MERCHANT_STATES.EXCHANGING:
-				try {
-					if(merchant_task !== "Exchanging") {
-						merchant_task = "Exchanging";
-						exchange_items();
-					}
-				} catch (e) {
-					catcher(e, "set_state: EXCHANGING state error");
-				}
-				break;
-
-			case MERCHANT_STATES.FISHING:
-				try {
-					// FISHING state logic here
-				} catch (e) {
-					catcher(e, "set_state: FISHING state error");
-				}
-				break;
-
-			case MERCHANT_STATES.MINING:
-				try {
-					// MINING state logic here
-				} catch (e) {
-					catcher(e, "set_state: MINING state error");
-				}
-				break;
-
-			case MERCHANT_STATES.IDLE:
-				try {
-					// IDLE state logic here
-				} catch (e) {
-					catcher(e, "set_state: IDLE state error");
-				}
-				break;
-		}
+		if (character.rip) await respawn();
 	} catch (e) {
-		catcher(e, "set_state: Global error");
+		catcher(e, "handle_dead_state");
 	}
 }
 
+async function handle_panic_state() {
+	try {
+		if (character.moving || smart.moving) return;
+		await smarter_move(HOME);
+	} catch (e) {
+		catcher(e, "handle_panic_state");
+	}
+}
+
+async function handle_delivering_state() {
+	if (merchant_task !== "Idle") return;
+	merchant_task = "Delivering";
+	try {
+		log("Beginning delivery run...");
+		move_to_character("Myras").catch(e => catcher(e, "handle_delivering_state: move_to_character"));
+
+		let attempts = 0;
+		while (!any_party_within_range() && attempts < DELIVERY_WAIT_MAX_ATTEMPTS) {
+			await delay(3000);
+			attempts++;
+		}
+		if (attempts >= DELIVERY_WAIT_MAX_ATTEMPTS) {
+			log("⚠️ No party member came within range — heading home anyway.", "#FFA500");
+		}
+
+		await smarter_move(HOME);
+		await delay(1000);
+		await sell_and_bank();
+
+		last_delivery_time = Date.now();
+	} catch (e) {
+		catcher(e, "handle_delivering_state");
+	} finally {
+		merchant_task = "Idle";
+	}
+}
+
+async function handle_upgrading_state() {
+	if (merchant_task !== "Idle") return;
+	try {
+		log("Starting auto-upgrade process...");
+		await auto_upgrade(); // Merchant_Systems/Auto_Upgrade.js — manages merchant_task itself, ends back on "Idle"
+	} catch (e) {
+		catcher(e, "handle_upgrading_state");
+		merchant_task = "Idle";
+	} finally {
+		last_upgrade_time = Date.now();
+	}
+}
+
+async function handle_crafting_state() {
+	if (merchant_task !== "Idle") return;
+	merchant_task = "Crafting";
+	try {
+		await try_craft(); // Merchant_Systems/Auto_Craft.js
+	} catch (e) {
+		catcher(e, "handle_crafting_state");
+	} finally {
+		last_craft_time = Date.now();
+		merchant_task = "Idle";
+	}
+}
+
+async function handle_exchanging_state() {
+	if (merchant_task !== "Idle") return;
+	try {
+		await exchange_items(); // has its own exchange_items_running guard + finally reset to "Idle"
+	} finally {
+		last_exchange_time = Date.now();
+	}
+}
+
+async function handle_fishing_state() {
+	if (merchant_task !== "Idle") return;
+	merchant_task = "Fishing";
+	try {
+		let rod_equipped = character.slots.mainhand && character.slots.mainhand.name === "rod";
+		if (!rod_equipped) {
+			const rod_index = character.items.findIndex(item => item && item.name === "rod");
+			if (rod_index !== -1) {
+				await equip(rod_index, "mainhand");
+				await delay(400);
+				rod_equipped = character.slots.mainhand && character.slots.mainhand.name === "rod";
+			}
+		}
+		if (!rod_equipped) {
+			log("❌ No fishing rod equipped or in inventory.");
+			return;
+		}
+
+		const spot = CONFIG.locations.FISHING_SPOT;
+		if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > FISHING_POSITION_TOLERANCE) {
+			await smarter_move(spot);
+		}
+
+		while (!is_on_cooldown("fishing")) {
+			if (!character.slots.mainhand || character.slots.mainhand.name !== "rod") {
+				log("❌ Fishing rod not equipped, stopping fishing.");
+				break;
+			}
+			if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > FISHING_POSITION_TOLERANCE) {
+				log("❌ Not at fishing spot, stopping fishing.");
+				break;
+			}
+			if (character.items.filter(Boolean).length >= character.items.length) {
+				log("📦 Inventory full, stopping fishing.");
+				break;
+			}
+			try {
+				use_skill("fishing");
+			} catch (e) {
+				catcher(e, "handle_fishing_state: use_skill");
+				break;
+			}
+			await delay(FISHING_TIME);
+		}
+
+		await smarter_move(HOME);
+	} catch (e) {
+		catcher(e, "handle_fishing_state");
+	} finally {
+		last_fishing_time = Date.now();
+		merchant_task = "Idle";
+	}
+}
+
+async function handle_mining_state() {
+	if (merchant_task !== "Idle") return;
+	merchant_task = "Mining";
+	try {
+		let pickaxe_equipped = character.slots.mainhand && character.slots.mainhand.name === "pickaxe";
+		if (!pickaxe_equipped) {
+			const pickaxe_index = character.items.findIndex(item => item && item.name === "pickaxe");
+			if (pickaxe_index !== -1) {
+				await equip(pickaxe_index, "mainhand");
+				await delay(400);
+				pickaxe_equipped = character.slots.mainhand && character.slots.mainhand.name === "pickaxe";
+			}
+		}
+		if (!pickaxe_equipped) {
+			log("❌ No pickaxe equipped or in inventory.");
+			return;
+		}
+
+		const spot = CONFIG.locations.MINING_SPOT;
+		if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > MINING_POSITION_TOLERANCE) {
+			await smarter_move(spot);
+		}
+
+		while (!is_on_cooldown("mining")) {
+			if (!character.slots.mainhand || character.slots.mainhand.name !== "pickaxe") {
+				log("❌ Pickaxe not equipped, stopping mining.");
+				break;
+			}
+			if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > MINING_POSITION_TOLERANCE) {
+				log("❌ Not at mining spot, stopping mining.");
+				break;
+			}
+			if (character.items.filter(Boolean).length >= character.items.length) {
+				log("📦 Inventory full, stopping mining.");
+				break;
+			}
+			try {
+				use_skill("mining");
+			} catch (e) {
+				catcher(e, "handle_mining_state: use_skill");
+				break;
+			}
+			await delay(MINING_TIME);
+		}
+
+		await smarter_move(HOME);
+	} catch (e) {
+		catcher(e, "handle_mining_state");
+	} finally {
+		last_mining_time = Date.now();
+		merchant_task = "Idle";
+	}
+}
+
+async function set_state(state) {
+	try {
+		switch (state) {
+			case MERCHANT_STATES.DEAD:       await handle_dead_state(); break;
+			case MERCHANT_STATES.PANIC:      await handle_panic_state(); break;
+			case MERCHANT_STATES.DELIVERING: await handle_delivering_state(); break;
+			case MERCHANT_STATES.UPGRADING:  await handle_upgrading_state(); break;
+			case MERCHANT_STATES.CRAFTING:   await handle_crafting_state(); break;
+			case MERCHANT_STATES.EXCHANGING: await handle_exchanging_state(); break;
+			case MERCHANT_STATES.FISHING:    await handle_fishing_state(); break;
+			case MERCHANT_STATES.MINING:     await handle_mining_state(); break;
+			case MERCHANT_STATES.IDLE:
+			default:
+				break;
+		}
+	} catch (e) {
+		catcher(e, "set_state: unhandled error");
+	}
+}
+
+// Sole owner of "where is the character going right now" — every other loop in this
+// file is passive (no smarter_move calls), so there's only ever one active traveler.
 async function loop_controller() {
 	while (true) {
 		try {
@@ -200,37 +368,33 @@ async function loop_controller() {
 			const state = get_character_state();
 			await set_state(state);
 		} catch (e) {
-			catcher(e, "Loop Controller error");
+			catcher(e, "loop_controller");
 		}
 		await delay(250);
 	}
 }
 
+// Game-engine-invoked callbacks (same convention as on_cm in Common_Functions.js) — not dead code.
 function on_party_request(name) {
-	if (PARTY.includes(name)) {
-		accept_party_request(name);
-	}
+	if (PARTY.includes(name)) accept_party_request(name);
 }
 
 function on_party_invite(name) {
-	if (PARTY.includes(name)) {
-		accept_party_invite(name);
-	}
+	if (PARTY.includes(name)) accept_party_invite(name);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// SUPPORTING FUNCTIONS
+// SHARED HELPERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Returns true if any party member is within 200 units
-function any_party_within_200() {
+function any_party_within_range(range = CONFIG.party.nearby_trigger_range) {
 	for (const name of PARTY) {
 		const player = get_player(name);
 		if (
 			player &&
 			!player.rip &&
 			player.map === character.map &&
-			Math.hypot(character.x - player.x, character.y - player.y) <= 200
+			Math.hypot(character.x - player.x, character.y - player.y) <= range
 		) {
 			return true;
 		}
@@ -239,134 +403,95 @@ function any_party_within_200() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// BUY POTION LOOP
+// BUY POTION LOOP (passive — no travel, safe to run alongside the state machine)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function buy_potion_loop() {
-	const TARGET_MAP = "main";
-	const TARGET_X = -87;
-	const TARGET_Y = -150;
-	const RANGE = 300;
 	const MAX_POTS = 9999;
 	const MIN_BUY = 100;
 	while (true) {
 		try {
-			// Check if on correct map and within range
-			if (character.map === TARGET_MAP) {
-				const dx = character.x - TARGET_X;
-				const dy = character.y - TARGET_Y;
-				const dist = Math.sqrt(dx * dx + dy * dy);
-				if (dist < RANGE) {
-					// Count mpot1 in inventory
-					let mpot_total = 0;
+			const shop = CONFIG.locations.POTION_SHOP;
+			if (character.map === shop.map && Math.hypot(character.x - shop.x, character.y - shop.y) < 300) {
+				for (const pot of ["mpot1", "hpot1"]) {
+					let total = 0;
 					for (const item of character.items) {
-						if (item && item.name === "mpot1") mpot_total += item.q || 1;
+						if (item && item.name === pot) total += item.q || 1;
 					}
-					if (mpot_total < MAX_POTS) {
-						const to_buy = MAX_POTS - mpot_total;
-						if (to_buy > MIN_BUY) {
-							log(`🧪 Buying ${to_buy} x mpot1 (you have ${mpot_total})`);
-							buy("mpot1", to_buy);
-						}
-					}
-					// Count hpot1 in inventory
-					let hpot_total = 0;
-					for (const item of character.items) {
-						if (item && item.name === "hpot1") hpot_total += item.q || 1;
-					}
-					if (hpot_total < MAX_POTS) {
-						const to_buy = MAX_POTS - hpot_total;
-						if (to_buy > MIN_BUY) {
-							log(`🧪 Buying ${to_buy} x hpot1 (you have ${hpot_total})`);
-							buy("hpot1", to_buy);
-						}
+					const to_buy = MAX_POTS - total;
+					if (to_buy > MIN_BUY) {
+						log(`🧪 Buying ${to_buy} x ${pot} (you have ${total})`);
+						buy(pot, to_buy);
 					}
 				}
 			}
 		} catch (e) {
-			game_log("auto_buy_potion_loop error: " + e.message);
+			catcher(e, "buy_potion_loop");
 		}
 		await delay(1000);
 	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// LOOT COLLECTION LOOP
+// LOOT COLLECTION LOOP (passive)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function loot_collection_loop() {
-	const COOLDOWN = 60000; // 60 seconds
-	const PARTY = ["Myras", "Ulric", "Riva"];
+	const COOLDOWN = 60000;
 	let last_loot_time = 0;
 	while (true) {
-		const now = Date.now();
-		if (now - last_loot_time < COOLDOWN) {
-			await delay(500);
-			continue;
-		}
-
-		if (!any_party_within_200()) {
-			await delay(500);
-			continue;
-		}
-
-		for (const name of PARTY) {
-			try {
-				const player = get_player(name);
-				if (!player || player.rip || character.map !== player.map || Math.hypot(character.x - player.x, character.y - player.y) > 350) {
-					continue;
+		try {
+			if (Date.now() - last_loot_time >= COOLDOWN && any_party_within_range()) {
+				for (const name of PARTY) {
+					const player = get_player(name);
+					if (
+						!player || player.rip || character.map !== player.map ||
+						Math.hypot(character.x - player.x, character.y - player.y) > CONFIG.party.action_range
+					) {
+						continue;
+					}
+					send_cm(name, { type: "send_loot" });
+					await delay(200);
 				}
-				// send_cm(name, { type: "send_loot" });
-				await delay(200);
-			} catch (e) {
-				catcher(e, "Loot Collection Loop error");
+				log("Requested loot from nearby party members.", "limegreen");
+				last_loot_time = Date.now();
 			}
+		} catch (e) {
+			catcher(e, "loot_collection_loop");
 		}
-		log("Loot collected.", "limegreen");
-		last_loot_time = Date.now();
-		
 		await delay(500);
 	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// MLUCK BUFF LOOP
+// MLUCK BUFF LOOP (passive)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function mluck_buff_loop() {
-	const COOLDOWN = 60000; // 60 seconds
-	const PARTY = ["Myras", "Ulric", "Riva"];
+	const COOLDOWN = 60000;
 	let last_buff_time = 0;
 	while (true) {
-		const now = Date.now();
-		if (now - last_buff_time < COOLDOWN) {
-			await delay(500);
-			continue;
-		}
-
-		if (!any_party_within_200()) {
-			await delay(500);
-			continue;
-		}
-
-		try {
-			// Try to cast mluck on each target if within 200 units
+		if (Date.now() - last_buff_time >= COOLDOWN && any_party_within_range()) {
 			for (const name of PARTY) {
-				const player = get_player(name);
-				if (!player || player.rip || character.map !== player.map || Math.hypot(character.x - player.x, character.y - player.y) > 350) {
-					continue;
+				try {
+					const player = get_player(name);
+					if (
+						!player || player.rip || character.map !== player.map ||
+						Math.hypot(character.x - player.x, character.y - player.y) > CONFIG.party.action_range
+					) {
+						continue;
+					}
+					change_target(player);
+					await delay(100);
+					use_skill("mluck", player);
+					await delay(200);
+				} catch (e) {
+					catcher(e, "mluck_buff_loop: " + name);
 				}
-				change_target(player);
-				await delay(100);
-				use_skill("mluck", player);
-				await delay(200); // Small delay to ensure cast
 			}
-		} catch (e) {
-			log(`[mluck_buff_loop] Error: ${e.message}`);
+			log("Cast MLuck.", "limegreen");
 			last_buff_time = Date.now();
 		}
-		log(`Cast MLuck.`, "limegreen");
-		last_buff_time = Date.now();
 		await delay(500);
 	}
 }
@@ -376,271 +501,60 @@ async function mluck_buff_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // SELLABLE_ITEMS defined in Common_Functions.js
-const BANKABLE_ITEMS = [];
-const BANK_LOCATION = { map: "bank", x: 0, y: -37 };
+let sell_and_bank_running = false;
 
 async function sell_and_bank() {
-	// Only run when not moving
+	if (sell_and_bank_running) {
+		log("⚠️ sell_and_bank already running, skipping duplicate call.");
+		return;
+	}
 	if (character.moving) return;
 
-	// === SELLING ===
-	// Move to vendor
-	await smarter_move(HOME);
-	await delay(3000);
-
-	for (let i = 0; i < character.items.length; i++) {
-		const item = character.items[i];
-		if (!item) continue;
-		if (SELLABLE_ITEMS.includes(item.name)) {
-			sell(i, item.q || 1);
-			game_log(`💰 Sold ${item.name} x${item.q || 1}`);
-		}
-	}
-
-	// === BANKING ===
-	// Move to bank NPC (adjust coords as needed)
-	await smarter_move(BANK_LOCATION);
-	await delay(1000);
-
-	for (let i = 3; i < character.items.length; i++) {
-		const item = character.items[i];
-		if (!item) continue;
-		//if (BANKABLE_ITEMS.includes(item.name)) {
-		await bank_store(i);
-		game_log(`🏦 Deposited ${item.name} x${item.q || 1} to bank`);
-		//}
-	}
-
-	// === RETURN HOME ===
-	// HOME must be defined elsewhere, e.g.:
-	// const HOME = { map: "main", x: -89, y: -116 };
-	await parent.$("#maincode")[0].contentWindow.render_bank_items();
-	await delay(1000);
-	await parent.hide_modal();
-	await smarter_move(HOME);
-	await delay(1000);
-	game_log("🏠 Returned home after banking.");
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// FISHING LOOP
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-function check_fishing_rod_and_pickaxe() {
-	let has_rod = false;
-	let has_pickaxe = false;
-
-	// Check if fishing rod is equipped or in inventory
-	has_rod =
-		(character.slots.mainhand && character.slots.mainhand.name === "rod") ||
-		character.items.some(item => item && item.name === "rod");
-
-	// Check if pickaxe is equipped or in inventory
-	has_pickaxe =
-		(character.slots.mainhand && character.slots.mainhand.name === "pickaxe") ||
-		character.items.some(item => item && item.name === "pickaxe");
-
-	return { has_rod, has_pickaxe };
-}
-
-async function fishing_loop() {
-	const FISHING_SPOT = { map: "main", x: -1116, y: -285 };
-	const FISHING_TIME = 9000;
-	const POSITION_TOLERANCE = 5;
-
-	LOOP_STATES.fishing = true;
-
+	sell_and_bank_running = true;
 	try {
-		while (LOOP_STATES.fishing) {
-			try {
-				// 1. Check if rod is equipped in mainhand, if not try to equip from inventory
-				let rod_equipped = character.slots.mainhand && character.slots.mainhand.name === "rod";
-				if (!rod_equipped) {
-					try {
-						const rod_index = character.items.findIndex(item => item && item.name === "rod");
-						if (rod_index !== -1) {
-							await equip(rod_index, "mainhand");
-							await delay(400);
-							rod_equipped = character.slots.mainhand && character.slots.mainhand.name === "rod";
-						}
-					} catch (e) {
-						game_log("Error equipping rod: " + e.message);
-					}
-				}
+		// === SELLING ===
+		await smarter_move(HOME);
+		await delay(3000);
 
-				// 2. If no rod, return
-				if (!rod_equipped) {
-					game_log("❌ No fishing rod equipped or in inventory.");
-					stop_fishing_loop();
-					merchant_task = "Idle";
-					return;
-				}
-
-				// 3. Set merchant_task to Fishing
-				merchant_task = "Fishing";
-
-				// 4. smarter_move to FISHING SPOT
+		for (let i = 0; i < character.items.length; i++) {
+			const item = character.items[i];
+			if (!item) continue;
+			if (SELLABLE_ITEMS.includes(item.name)) {
 				try {
-					if (character.map !== FISHING_SPOT.map ||
-						Math.hypot(character.x - FISHING_SPOT.x, character.y - FISHING_SPOT.y) > POSITION_TOLERANCE) {
-						await smarter_move(FISHING_SPOT);
-					}
+					sell(i, item.q || 1);
+					game_log(`💰 Sold ${item.name} x${item.q || 1}`);
 				} catch (e) {
-					game_log("Error moving to fishing spot: " + e.message);
-					merchant_task = "Idle";
-					return;
+					catcher(e, "sell_and_bank: sell " + item.name);
 				}
-
-				// 5. Begin fishing loop
-				while (!is_on_cooldown("fishing")) {
-					// 5a. Check if rod is equipped
-					if (!character.slots.mainhand || character.slots.mainhand.name !== "rod") {
-						game_log("❌ Fishing rod not equipped, stopping fishing.");
-						break;
-					}
-					// 6. Check if at FISHING SPOT
-					if (character.map !== FISHING_SPOT.map ||
-						Math.hypot(character.x - FISHING_SPOT.x, character.y - FISHING_SPOT.y) > POSITION_TOLERANCE) {
-						game_log("❌ Not at fishing spot, stopping fishing.");
-						break;
-					}
-					// 7. Check if inventory is full
-					if (character.items.filter(Boolean).length >= character.items.length) {
-						game_log("📦 Inventory full, stopping fishing.");
-						break;
-					}
-					// 8. Use skill "fishing"
-					try {
-						use_skill("fishing");
-					} catch (e) {
-						game_log("Error using fishing skill: " + e.message);
-						break;
-					}
-					// 9. Wait FISHING_TIME
-					await delay(FISHING_TIME);
-				}
-
-				// 11. Once fishing is finished (is on cooldown), smarter_move HOME
-				try {
-					await smarter_move(HOME);
-				} catch (e) {
-					game_log("Error moving home after fishing: " + e.message);
-				}
-				merchant_task = "Idle";
-				// End the fishing loop after one session
-				LOOP_STATES.fishing = false;
-			} catch (e) {
-				game_log("Fishing loop error: " + e.message);
-				merchant_task = "Idle";
-				LOOP_STATES.fishing = false;
 			}
 		}
-	} catch (e) {
-		game_log("Fishing loop fatal error: " + e.message);
-		merchant_task = "Idle";
-		LOOP_STATES.fishing = false;
-	}
-}
 
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// MINING LOOP
-// --------------------------------------------------------------------------------------------------------------------------------- //
+		// === BANKING ===
+		await smarter_move(BANK_LOCATION);
+		await delay(1000);
 
-async function mining_loop() {
-	const MINING_SPOT = { map: "tunnel", x: 244, y: -153 };
-	const POSITION_TOLERANCE = 10;
-
-	LOOP_STATES.mining = true;
-
-	try {
-		while (LOOP_STATES.mining) {
+		for (let i = 3; i < character.items.length; i++) {
+			const item = character.items[i];
+			if (!item || CONFIG.do_not_bank.includes(item.name)) continue;
 			try {
-				// 1. Check if pickaxe is equipped in mainhand, if not try to equip from inventory
-				let pickaxe_equipped = character.slots.mainhand && character.slots.mainhand.name === "pickaxe";
-				if (!pickaxe_equipped) {
-					try {
-						const pickaxe_index = character.items.findIndex(item => item && item.name === "pickaxe");
-						if (pickaxe_index !== -1) {
-							await equip(pickaxe_index, "mainhand");
-							await delay(400);
-							pickaxe_equipped = character.slots.mainhand && character.slots.mainhand.name === "pickaxe";
-						}
-					} catch (e) {
-						game_log("Error equipping pickaxe: " + e.message);
-					}
-				}
-
-				// 2. If no pickaxe, return
-				if (!pickaxe_equipped) {
-					game_log("❌ No pickaxe equipped or in inventory.");
-					merchant_task = "Idle";
-					stop_mining_loop();
-					return;
-				}
-
-				// 3. Set merchant_task to Mining
-				merchant_task = "Mining";
-
-				// 4. smarter_move to MINING SPOT
-				try {
-					if (character.map !== MINING_SPOT.map ||
-						Math.hypot(character.x - MINING_SPOT.x, character.y - MINING_SPOT.y) > POSITION_TOLERANCE) {
-						await smarter_move(MINING_SPOT);
-					}
-				} catch (e) {
-					game_log("Error moving to mining spot: " + e.message);
-					merchant_task = "Idle";
-					return;
-				}
-
-				// 5. Begin mining loop
-				while (!is_on_cooldown("mining")) {
-					// 5a. Check if pickaxe is equipped
-					if (!character.slots.mainhand || character.slots.mainhand.name !== "pickaxe") {
-						game_log("❌ Pickaxe not equipped, stopping mining.");
-						break;
-					}
-					// 6. Check if at MINING SPOT
-					if (character.map !== MINING_SPOT.map ||
-						Math.hypot(character.x - MINING_SPOT.x, character.y - MINING_SPOT.y) > POSITION_TOLERANCE) {
-						game_log("❌ Not at mining spot, stopping mining.");
-						break;
-					}
-					// 7. Check if inventory is full
-					if (character.items.filter(Boolean).length >= character.items.length) {
-						game_log("📦 Inventory full, stopping mining.");
-						break;
-					}
-					// 8. Use skill "mining"
-					try {
-						use_skill("mining");
-					} catch (e) {
-						game_log("Error using mining skill: " + e.message);
-						break;
-					}
-					// 9. Wait for mining animation/cooldown (default 4000ms)
-					await delay(4000);
-				}
-
-				// 11. Once mining is finished (is on cooldown), smarter_move HOME
-				try {
-					await smarter_move(HOME);
-				} catch (e) {
-					game_log("Error moving home after mining: " + e.message);
-				}
-				merchant_task = "Idle";
-				// End the mining loop after one session
-				LOOP_STATES.mining = false;
+				await bank_store(i);
+				game_log(`🏦 Deposited ${item.name} x${item.q || 1} to bank`);
 			} catch (e) {
-				game_log("Mining loop error: " + e.message);
-				merchant_task = "Idle";
-				LOOP_STATES.mining = false;
+				catcher(e, "sell_and_bank: bank_store " + item.name);
 			}
 		}
+
+		// === RETURN HOME ===
+		await parent.$("#maincode")[0].contentWindow.render_bank_items();
+		await delay(1000);
+		await parent.hide_modal();
+		await smarter_move(HOME);
+		await delay(1000);
+		game_log("🏠 Returned home after banking.");
 	} catch (e) {
-		game_log("Mining loop fatal error: " + e.message);
-		merchant_task = "Idle";
-		LOOP_STATES.mining = false;
+		catcher(e, "sell_and_bank");
+	} finally {
+		sell_and_bank_running = false;
 	}
 }
 
@@ -649,20 +563,7 @@ async function mining_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 let exchange_items_running = false;
-
-const EXCHANGE_LIST= [
-	// { name: "mistletoe",    min: 1 },
-	// { name: "candycane",    min: 1 },
-	// { name: "ornament",     min: 10 },
-	// { name: "xbox",         min: 1 },
-	// { name: "candy1",       min: 1 },
-	{ name: "basketofeggs",       min: 1 },
-	{ name: "gem0",         min: 1 },
-	{ name: "gem1",         min: 1 },
-	{ name: "armorbox",     min: 1 },
-	{ name: "weaponbox",    min: 1 },
-	// { name: "seashell",     min: 20,    map: "main", x: -22, y: -406 },
-]
+const EXCHANGE_POSITION_TOLERANCE = 5;
 
 async function exchange_items() {
 	if (exchange_items_running) {
@@ -674,10 +575,9 @@ async function exchange_items() {
 	merchant_task = "Exchanging";
 
 	try {
-		// Find the first item in EXCHANGE_LIST that you have
 		let item_name = null;
 		let item_slot = -1;
-		for (const config of EXCHANGE_LIST) {
+		for (const config of CONFIG.exchange.targets) {
 			for (let i = 0; i < character.items.length; i++) {
 				const itm = character.items[i];
 				if (itm && itm.name === config.name) {
@@ -689,19 +589,16 @@ async function exchange_items() {
 			if (item_slot !== -1) break;
 		}
 
-		// If not found, try to withdraw from bank
 		if (item_slot === -1) {
-			log(`No exchangeable items found, attempting to withdraw from bank...`, "#888");
+			log("No exchangeable items found, attempting to withdraw from bank...", "#888");
 			await smarter_move(BANK_LOCATION);
 			await delay(500);
 
-			// Only withdraw the first available item in the bank
 			let withdrew = false;
-			for (const item of EXCHANGE_LIST) {
+			for (const item of CONFIG.exchange.targets) {
 				try {
 					withdraw_item(item.name, null, 9999);
 					await delay(500);
-					// Search inventory again for the item after withdrawal
 					for (let i = 0; i < character.items.length; i++) {
 						const itm = character.items[i];
 						if (itm && itm.name === item.name) {
@@ -713,47 +610,33 @@ async function exchange_items() {
 						}
 					}
 				} catch (e) {
-					log(`Error withdrawing ${item.name} from bank: ${e.message}`);
+					catcher(e, "exchange_items: withdraw " + item.name);
 				}
-				if (withdrew) break; // Stop after first successful withdrawal
+				if (withdrew) break;
 			}
 
-			// If still no valid items, go home and exit
 			if (item_slot === -1) {
-				log(`No valid items to exchange after bank withdrawal, returning home.`, "#888");
+				log("No valid items to exchange after bank withdrawal, returning home.", "#888");
 				await smarter_move(HOME);
-				exchange_items_running = false;
-				merchant_task = "Idle";
 				return;
 			}
 		}
 
-		// Get the config for the item we have
-		const item_config = EXCHANGE_LIST.find(cfg => cfg.name === item_name);
-		const { min: min_count, map: target_map, x: target_x, y: target_y } = item_config || {};
-		const exchange_location = target_map && typeof target_x === "number" && typeof target_y === "number"
-			? { map: target_map, x: target_x, y: target_y }
-			: HOME;
+		const item_config = CONFIG.exchange.targets.find(cfg => cfg.name === item_name);
+		const min_count = item_config?.min ?? 1;
 
-		// Move to the exchange location if not already there
 		await smarter_move(HOME);
 		await delay(500);
 
 		log(`📍 At exchange location for ${item_name}. Starting exchange...`);
 
-		// Exchange loop for this item type
 		let keep_going = true;
 		while (keep_going) {
-			// Stop if not at exchange location
-			if (character.map !== HOME.map ||
-				character.x !== HOME.x ||
-				character.y !== HOME.y) {
-				log(`❌ Not at exchange location. Stopping.`);
-				keep_going = false;
+			if (character.map !== HOME.map || Math.hypot(character.x - HOME.x, character.y - HOME.y) > EXCHANGE_POSITION_TOLERANCE) {
+				log("❌ Not at exchange location. Stopping.");
 				break;
 			}
 
-			// Sell approved items
 			for (let i = 0; i < character.items.length; i++) {
 				const itm = character.items[i];
 				if (itm && SELLABLE_ITEMS.includes(itm.name)) {
@@ -762,23 +645,19 @@ async function exchange_items() {
 				}
 			}
 
-			// Inventory full handling
 			if (character.items.filter(Boolean).length >= character.items.length) {
 				log(`📦 Inventory full. Running sell_and_bank for ${item_name}.`);
 				await sell_and_bank();
 				await delay(200);
-				// Return to exchange location
 				await smarter_move(HOME);
 				await delay(200);
 				continue;
 			}
 
-			// Find a stack that meets the minimum count
 			let found_stack = false;
 			for (let i = 0; i < character.items.length; i++) {
 				const itm = character.items[i];
 				if (itm && itm.name === item_name && (itm.q || 1) >= min_count) {
-					// Exchange
 					try {
 						log(`🔁 Exchanging slot ${i} (${item_name} x${itm.q || 1})`);
 						if (!character.q.exchange) {
@@ -787,9 +666,8 @@ async function exchange_items() {
 						await exchange(i);
 						found_stack = true;
 					} catch (e) {
-						log(`Error exchanging ${item_name}: ${e.message}`);
+						catcher(e, "exchange_items: exchange " + item_name);
 						keep_going = false;
-						break;
 					}
 					break;
 				}
@@ -798,200 +676,15 @@ async function exchange_items() {
 			if (!found_stack) {
 				log(`✅ No more ${item_name} stacks with at least ${min_count}.`);
 				keep_going = false;
-				// Short delay to avoid tight loop at end
 				await delay(50);
 			}
 		}
 
 		log(`Finished exchanging all ${item_name}`, "#00ff00");
-		log("✅ Exchange process complete", "#00ff00");
 	} catch (e) {
-		log(`🔥 exchange_items error: ${e.message}`);
+		catcher(e, "exchange_items");
 	} finally {
 		exchange_items_running = false;
 		merchant_task = "Idle";
 	}
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// UPGRADE ARMOUR
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-async function target_upgrade(target_item, target_amount) {
-	const TARGET_MAP = "main";
-	const XLOC = -209;
-	const YLOC = -117;
-
-	await smarter_move({ map: TARGET_MAP, x: XLOC, y: YLOC });
-
-	// Count how many you already have
-	let owned = 0;
-	for (const itm of character.items) {
-		if (itm && itm.name === target_item) owned += itm.q || 1;
-	}
-	const to_buy = Math.max(0, target_amount - owned);
-
-	if (to_buy > 0) {
-		for (let i = 0; i < to_buy; i++) {
-			await buy(target_item, 1);
-			await delay(200); // Small delay to avoid server rate limits
-		}
-		game_log(`🛒 Bought ${to_buy} ${target_item}(s)`);
-	} else {
-		game_log(`✅ Already have at least ${target_amount} ${target_item}(s)`);
-	}
-
-	await delay(500);
-
-	await run_auto_upgrade();
-
-	await delay(500);
-
-	// await sell_and_bank();
-}
-
-async function custom_craft() {
-	// Move to bank
-	await smarter_move(BANK_LOCATION);
-
-	// Withdraw "smoke" until we have at least 25 in inventory
-	let smoke_slot = -1;
-	let smoke_qty = 0;
-	let smoke_attempts = 0;
-	const MAX_ATTEMPTS = 5;
-
-	while (smoke_qty < 30 && smoke_attempts < MAX_ATTEMPTS) {
-		try {
-			await withdraw_item("essenceoffire");
-			await delay(100);
-		} catch (e) {
-			game_log("⚠️ Could not withdraw 'essenceoffire': " + e.message, "#FF0000");
-		}
-		smoke_slot = character.items.findIndex(itm => itm && itm.name === "essenceoffire");
-		smoke_qty = smoke_slot !== -1 ? (character.items[smoke_slot].q || 1) : 0;
-		smoke_attempts++;
-	}
-
-	if (smoke_qty < 30) {
-		game_log("❌ Not enough 'essenceoffire' in inventory after multiple attempts. Aborting pouchbow upgrade.", "#FF0000");
-		return;
-	}
-
-	// Move home
-	await smarter_move(HOME);
-
-	// Buy 30 "bow"
-	for (let i = 0; i < 30; i++) {
-		parent.buy("bow");
-		await delay(100); // Small delay to avoid flooding
-	}
-
-	// Move to main, 5, 419
-	await smarter_move({ map: "main", x: 5, y: 419 });
-
-	// Auto-craft pouchbow 30 times with 100ms delay between each
-	for (let i = 0; i < 30; i++) {
-		await auto_craft("firebow");
-		await delay(50);
-	}
-
-	// Move home
-	await smarter_move(HOME);
-
-	await auto_upgrade();
-}
-
-async function coat_upgrade() {
-
-	// Move home
-	await smarter_move(HOME);
-
-	// Buy 25 "coat"
-	for (let i = 0; i < 30; i++) {
-		parent.buy("pants");
-		await delay(200); // Small delay to avoid flooding
-	}
-
-	async function short_upgrade() {
-
-		// --- Upgrade all items level-by-level ---
-		let upgraded = true;
-		for (let level = 0; level <= 9; level++) {
-			upgraded = false;
-			while (true) {
-				const result = await auto_upgrade_item(level);
-				if (result === "done" || result === "wait") {
-					upgraded = true;
-					await delay(UPGRADE_INTERVAL);
-				} else if (result === "end") {
-					// Stop all upgrading if "end" is returned (e.g., not enough gold)
-					game_log("❌ Ending auto-upgrade early due to insufficient gold or resources.");
-					break;
-				} else {
-					break;
-				}
-			}
-		}
-	}
-
-	await short_upgrade();
-
-	game_log("✅ Auto upgrade and combine complete.");
-	await delay(5000);
-	await sell_and_bank();
-	merchant_task = "Idle";
-}
-
-async function craft_basketofeggs() {
-	await smarter_move({ map: "main", x: 5, y: 419 });
-
-	for (let i = 0; i < 5000; i++) {
-		auto_craft("basketofeggs");
-		await delay(30);
-	}
-
-	await smarter_move(HOME);
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// POTION LOOP
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-async function potion_loop() {
-
-	while (true) {
-		// Check if potion loop is enabled
-		if (!POTION_LOOP_ENABLED) {
-			await delay(200);
-			continue;
-		}
-		// Calculate missing HP/MP
-		const HP_MISSING = character.max_hp - character.hp;
-		const MP_MISSING = character.max_mp - character.mp;
-
-		let used_potion = false;
-
-		// Use mana potion if needed
-		if (HP_MISSING >= 300) {
-			if (can_use("hp")) {
-				use("hp");
-				used_potion = true;
-			}
-		}
-
-		// Use health potion if needed
-		else if (MP_MISSING >= 400) {
-			if (can_use("mp")) {
-				use("mp");
-				used_potion = true;
-			}
-		}
-
-		if (used_potion) {
-			await delay(2010); // Wait 2 seconds after using a potion
-		} else {
-			await delay(10);   // Otherwise, check again in 10ms
-		}
-	}
-
 }

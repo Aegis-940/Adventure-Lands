@@ -44,6 +44,7 @@ window._cmListeners = window._cmListeners || [];
 		"Characters/Ranger.js"],
 
 		"Riff": ["Merchant_Systems/Auto_Upgrade.js",
+		"Merchant_Systems/Auto_Craft.js",
 		"Character_Functions/Merchant_Functions.js",
 		"Characters/Merchant.js"]
 	};
