@@ -13,8 +13,8 @@ var CONFIG = {
 		upgrading: true,
 		crafting: false,
 		exchanging: false,
-		fishing: false,
-		mining: false,
+		fishing: true,
+		mining: true,
 	},
 	locations: {
 		HOME: { map: "main", x: -87, y: -96 },
