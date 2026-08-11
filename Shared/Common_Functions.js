@@ -115,7 +115,12 @@ let DUNGEON_LOOP_ENABLED      = false;
 // SECTION 4: STATE VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let inventory_count = 0, mpot1_count = 0, hpot1_count = 0, map = "", x = 0, y = 0;
+let inventory_count = 0, free_slots_count = 0, gold_count = 0, mpot1_count = 0, hpot1_count = 0, map = "", x = 0, y = 0;
+
+// Riff's cache of each fighter's last-reported status (see status_cache_loop() below),
+// keyed by character name — read by Merchant_Functions.js's should_run_delivery() to
+// decide contextually whether a delivery run is actually worth doing right now.
+let party_status = {};
 let attack_mode                   = true;
 let handling_death = false;
 let timeout_interval = 30000; // Default timeout of 30 seconds
@@ -373,6 +378,8 @@ const CM_HANDLERS = {
 		send_cm(name, { type: "status_update", data: {
 			name: character.name,
 			inventory: inventory_count,
+			free_slots: free_slots_count,
+			gold: gold_count,
 			mpot1: mpot1_count,
 			hpot1: hpot1_count,
 			map: map,
@@ -380,6 +387,12 @@ const CM_HANDLERS = {
 			y: y,
 			last_seen: Date.now()
 		}});
+	},
+
+	// Pushed unprompted by each fighter's status_cache_loop() — cached here so Riff can
+	// make contextual decisions (e.g. should_run_delivery()) without an async round trip.
+	"status_update": (name, data) => {
+		party_status[data.data.name] = data.data;
 	},
 
 	"reload": () => {
@@ -1326,11 +1339,16 @@ async function orbit_loop() {
 
 function get_status_cache() {
 	try { inventory_count = character.items.filter(Boolean).length; } catch (e) {}
+	try { free_slots_count = character.items.filter(it => !it).length; } catch (e) {}
+	try { gold_count = character.gold; } catch (e) {}
 	try { mpot1_count = character.items.filter(it => it && it.name === "mpot1").reduce((sum, it) => sum + (it.q || 1), 0); } catch (e) {}
 	try { hpot1_count = character.items.filter(it => it && it.name === "hpot1").reduce((sum, it) => sum + (it.q || 1), 0); } catch (e) {}
 	try { map = character.map; x = character.x; y = character.y; } catch (e) {}
 }
 
+// Started by each fighter (Tank.js/Healer.js/Ranger.js) — pushes free-slot/gold/potion
+// status to Riff every cycle so Merchant_Functions.js's should_run_delivery() can decide
+// contextually, without Riff needing to poll each character with a request/response round trip.
 async function status_cache_loop() {
 	STATUS_CACHE_LOOP_ENABLED = true;
 	let delay_ms = 5000;
@@ -1341,29 +1359,24 @@ async function status_cache_loop() {
 				continue;
 			}
 			get_status_cache();
-			// Only send status if inventory is 20+ or either potion is below 2000
-			if (
-				inventory_count >= 30 ||
-				mpot1_count < 2000 ||
-				hpot1_count < 2000
-			) {
-				try {
-					send_cm("Riff", {
-						type: "status_update",
-						data: {
-							name: character.name,
-							inventory: inventory_count,
-							mpot1: mpot1_count,
-							hpot1: hpot1_count,
-							map: map,
-							x: x,
-							y: y,
-							last_seen: Date.now()
-						}
-					});
-				} catch (e) {
-					catcher(e, "Error sending status to Riff: ");
-				}
+			try {
+				send_cm("Riff", {
+					type: "status_update",
+					data: {
+						name: character.name,
+						inventory: inventory_count,
+						free_slots: free_slots_count,
+						gold: gold_count,
+						mpot1: mpot1_count,
+						hpot1: hpot1_count,
+						map: map,
+						x: x,
+						y: y,
+						last_seen: Date.now()
+					}
+				});
+			} catch (e) {
+				catcher(e, "status_cache_loop: send status to Riff");
 			}
 
 			await delay(delay_ms);

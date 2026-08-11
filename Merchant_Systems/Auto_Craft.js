@@ -6,6 +6,16 @@
 // (Character_Functions/Merchant_Functions.js) calls try_craft() on its own
 // CRAFTING-state cycle, so this stays a plain callable function.
 
+// Checked by Character_Functions/Merchant_Functions.js's should_run_craft() — contextual
+// stand-in for the old time interval: is crafting even worth attempting right now?
+function can_afford_any_craft() {
+	for (const craft_name of CONFIG.crafting.targets) {
+		const craft_def = parent.G.craft[craft_name];
+		if (craft_def && craft_def.cost <= character.gold) return true;
+	}
+	return false;
+}
+
 async function try_craft() {
 	//Iterate over everything we've configured to auto craft.
 	for (var index in CONFIG.crafting.targets) {

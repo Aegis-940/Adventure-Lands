@@ -28,13 +28,11 @@ var CONFIG = {
 		nearby_trigger_range: 200, // is anyone worth checking on at all
 		action_range: 350,        // close enough to actually act on this specific member
 	},
-	cycles: {
-		delivery_interval: 30 * 60 * 1000, // how often to run a potions/loot/bank support pass
-		upgrade_interval: 1 * 60 * 1000,
-		craft_interval: 5 * 60 * 1000,
-		exchange_interval: 10 * 60 * 1000,
-		fishing_interval: 2 * 60 * 1000,
-		mining_interval: 2 * 60 * 1000,
+	// Delivery is triggered contextually (see should_run_delivery()) by a fighter's own
+	// reported status (Shared/Common_Functions.js's status_cache_loop()), not a timer.
+	delivery: {
+		free_slots_threshold: 10, // deliver if any party member has this many or fewer free slots
+		gold_threshold: 20000000, // deliver if any party member is carrying at least this much gold
 	},
 	upgrade_gold_threshold: 100000000,
 	// Read by Shared/Common_Functions.js's shared potion_loop() (self-use, HP/MP independent checks).
@@ -78,81 +76,75 @@ var merchant_task = "Idle"; // Current task: "Idle", "Delivering", etc. — var 
 // STATE MACHINE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+// Priority order (checked top to bottom every time the merchant is Idle — see
+// get_character_state()). Each state is purely contextual — "is there actually
+// something to do right now" — not time-interval-based. Once a state starts, its
+// handler runs to completion (loop_controller() awaits it) before the priority list
+// is ever re-checked, so nothing here interrupts an in-progress action.
 const MERCHANT_STATES = {
-	DEAD: "dead",
-	PANIC: "panic",
-	DELIVERING: "delivering",
-	UPGRADING: "upgrading",
-	CRAFTING: "crafting",
-	EXCHANGING: "exchanging",
-	FISHING: "fishing",
-	MINING: "mining",
+	DEAD: "dead",             // 0
+	DELIVERING: "delivering", // 1
+	UPGRADING: "upgrading",   // 2
+	CRAFTING: "crafting",     // 3
+	EXCHANGING: "exchanging", // 4
+	FISHING: "fishing",       // 5
+	MINING: "mining",         // 6
 	IDLE: "idle",
 };
 
-const PANIC_HP_PCT = 0.3;
 const DELIVERY_WAIT_MAX_ATTEMPTS = 40; // ~2 minutes at 3s/attempt before giving up and heading home anyway
 const FISHING_POSITION_TOLERANCE = 5;
 const MINING_POSITION_TOLERANCE = 10;
 const FISHING_TIME = 9000;
 const MINING_TIME = 4000;
+const PARTY_STATUS_STALE_MS = 30000; // ignore a party member's last-reported status once it's this old
 
-let last_delivery_time = 0;
-let last_upgrade_time = 0;
-let last_craft_time = 0;
-let last_exchange_time = 0;
-let last_fishing_time = 0;
-let last_mining_time = 0;
-
+// party_status is Shared/Common_Functions.js's cache of each fighter's last-reported
+// free_slots/gold, pushed by their own status_cache_loop().
 function should_run_delivery() {
-	return merchant_task === "Idle" && (Date.now() - last_delivery_time) > CONFIG.cycles.delivery_interval;
+	if (merchant_task !== "Idle") return false;
+	for (const name of PARTY) {
+		const status = party_status[name];
+		if (!status || (Date.now() - status.last_seen) > PARTY_STATUS_STALE_MS) continue;
+		if (status.free_slots <= CONFIG.delivery.free_slots_threshold) return true;
+		if (status.gold >= CONFIG.delivery.gold_threshold) return true;
+	}
+	return false;
 }
 
 function should_run_upgrade() {
 	return CONFIG.enabled.upgrading
 		&& merchant_task === "Idle"
 		&& character.gold >= CONFIG.upgrade_gold_threshold
-		&& (Date.now() - last_upgrade_time) > CONFIG.cycles.upgrade_interval
-		&& bank_has_upgradeable_items(); // Merchant_Systems/Auto_Upgrade.js — skip the cycle if the bank has nothing worth upgrading/combining
+		&& bank_has_upgradeable_items(); // Merchant_Systems/Auto_Upgrade.js — is there anything in the bank worth upgrading/combining?
 }
 
 function should_run_craft() {
 	return CONFIG.enabled.crafting
 		&& merchant_task === "Idle"
-		&& (Date.now() - last_craft_time) > CONFIG.cycles.craft_interval;
+		&& can_afford_any_craft(); // Merchant_Systems/Auto_Craft.js
 }
 
 function should_run_exchange() {
 	return CONFIG.enabled.exchanging
 		&& merchant_task === "Idle"
-		&& (Date.now() - last_exchange_time) > CONFIG.cycles.exchange_interval;
+		&& has_exchangeable_items();
 }
 
 function should_run_fishing() {
 	return CONFIG.enabled.fishing
 		&& merchant_task === "Idle"
-		&& (Date.now() - last_fishing_time) > CONFIG.cycles.fishing_interval;
+		&& !is_on_cooldown("fishing");
 }
 
 function should_run_mining() {
 	return CONFIG.enabled.mining
 		&& merchant_task === "Idle"
-		&& (Date.now() - last_mining_time) > CONFIG.cycles.mining_interval;
-}
-
-// The merchant doesn't fight — "danger" just means something is actually hitting it.
-function is_in_danger() {
-	if (character.hp < character.max_hp * PANIC_HP_PCT) return true;
-	for (const id in parent.entities) {
-		const e = parent.entities[id];
-		if (e && e.type === "monster" && !e.dead && e.target === character.name) return true;
-	}
-	return false;
+		&& !is_on_cooldown("mining");
 }
 
 function get_character_state() {
 	if (character.rip) return MERCHANT_STATES.DEAD;
-	if (is_in_danger()) return MERCHANT_STATES.PANIC;
 	if (should_run_delivery()) return MERCHANT_STATES.DELIVERING;
 	if (should_run_upgrade()) return MERCHANT_STATES.UPGRADING;
 	if (should_run_craft()) return MERCHANT_STATES.CRAFTING;
@@ -167,15 +159,6 @@ async function handle_dead_state() {
 		if (character.rip) await respawn();
 	} catch (e) {
 		catcher(e, "handle_dead_state");
-	}
-}
-
-async function handle_panic_state() {
-	try {
-		if (character.moving || smart.moving) return;
-		await smarter_move(HOME);
-	} catch (e) {
-		catcher(e, "handle_panic_state");
 	}
 }
 
@@ -198,8 +181,6 @@ async function handle_delivering_state() {
 		await smarter_move(HOME);
 		await delay(1000);
 		await sell_and_bank();
-
-		last_delivery_time = Date.now();
 	} catch (e) {
 		catcher(e, "handle_delivering_state");
 	} finally {
@@ -215,8 +196,6 @@ async function handle_upgrading_state() {
 	} catch (e) {
 		catcher(e, "handle_upgrading_state");
 		merchant_task = "Idle";
-	} finally {
-		last_upgrade_time = Date.now();
 	}
 }
 
@@ -228,18 +207,13 @@ async function handle_crafting_state() {
 	} catch (e) {
 		catcher(e, "handle_crafting_state");
 	} finally {
-		last_craft_time = Date.now();
 		merchant_task = "Idle";
 	}
 }
 
 async function handle_exchanging_state() {
 	if (merchant_task !== "Idle") return;
-	try {
-		await exchange_items(); // has its own exchange_items_running guard + finally reset to "Idle"
-	} finally {
-		last_exchange_time = Date.now();
-	}
+	await exchange_items(); // has its own exchange_items_running guard + finally reset to "Idle"
 }
 
 async function handle_fishing_state() {
@@ -291,7 +265,6 @@ async function handle_fishing_state() {
 	} catch (e) {
 		catcher(e, "handle_fishing_state");
 	} finally {
-		last_fishing_time = Date.now();
 		merchant_task = "Idle";
 	}
 }
@@ -345,7 +318,6 @@ async function handle_mining_state() {
 	} catch (e) {
 		catcher(e, "handle_mining_state");
 	} finally {
-		last_mining_time = Date.now();
 		merchant_task = "Idle";
 	}
 }
@@ -354,7 +326,6 @@ async function set_state(state) {
 	try {
 		switch (state) {
 			case MERCHANT_STATES.DEAD:       await handle_dead_state(); break;
-			case MERCHANT_STATES.PANIC:      await handle_panic_state(); break;
 			case MERCHANT_STATES.DELIVERING: await handle_delivering_state(); break;
 			case MERCHANT_STATES.UPGRADING:  await handle_upgrading_state(); break;
 			case MERCHANT_STATES.CRAFTING:   await handle_crafting_state(); break;
@@ -575,6 +546,34 @@ async function sell_and_bank() {
 
 let exchange_items_running = false;
 const EXCHANGE_POSITION_TOLERANCE = 5;
+
+// Checked by should_run_exchange() — is there actually an exchangeable target on hand
+// (inventory or bank) right now, rather than firing on a timer regardless of contents?
+function has_exchangeable_items() {
+	for (const target of CONFIG.exchange.targets) {
+		let count = 0;
+		for (const item of character.items) {
+			if (item && item.name === target.name) count += item.q || 1;
+		}
+		if (count >= target.min) return true;
+	}
+
+	const bank_data = character.bank || load_bank_from_local_storage();
+	if (bank_data) {
+		for (const target of CONFIG.exchange.targets) {
+			let count = 0;
+			for (const pack in bank_data) {
+				if (!Array.isArray(bank_data[pack])) continue;
+				for (const item of bank_data[pack]) {
+					if (item && item.name === target.name) count += item.q || 1;
+				}
+			}
+			if (count >= target.min) return true;
+		}
+	}
+
+	return false;
+}
 
 async function exchange_items() {
 	if (exchange_items_running) {

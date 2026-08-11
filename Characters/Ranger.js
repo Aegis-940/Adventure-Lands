@@ -20,6 +20,11 @@ create_map_movement_window([
 hide_skills_ui();
 create_custom_log_window();
 
+// Reports free inventory space / gold / potions to Riff every cycle — see
+// Shared/Common_Functions.js's status_cache_loop() and Merchant_Functions.js's
+// should_run_delivery(), which reads this to decide contextually when to deliver.
+status_cache_loop();
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
