@@ -242,10 +242,10 @@ async function ensure_tool_equipped(tool_name) {
 
 	if (idx === -1) {
 		log(`🔨 No ${tool_name} in bank either, attempting to craft one...`);
-		for (let attempt = 0; attempt < 5; attempt++) {
+		for (let attempt = 0; attempt < 8; attempt++) {
 			const result = await craft_item(tool_name); // Merchant_Systems/Auto_Craft.js
 			if (result === "crafted") break;
-			if (result !== "buying") break; // "missing"/"no_recipe"/unaffordable — no point retrying
+			if (result !== "buying" && result !== "withdrawing") break; // "missing"/"no_recipe" — no point retrying
 			await delay(400);
 		}
 		idx = find_in_inventory();

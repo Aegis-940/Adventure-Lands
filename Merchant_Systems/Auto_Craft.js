@@ -16,10 +16,29 @@ function can_afford_any_craft() {
 	return false;
 }
 
+// Total quantity of an item sitting in the bank at a given level (null = any level) —
+// checked before falling back to buying, since not every craft ingredient is NPC-buyable.
+function bank_quantity_for(item_name, level) {
+	var bank_data = character.bank || load_bank_from_local_storage();
+	if (!bank_data) return 0;
+
+	var qty = 0;
+	for (var pack in bank_data) {
+		if (!Array.isArray(bank_data[pack])) continue;
+		for (var slot = 0; slot < bank_data[pack].length; slot++) {
+			var it = bank_data[pack][slot];
+			if (it && it.name === item_name && (level == null || (it.level || 0) === level)) {
+				qty += it.q || 1;
+			}
+		}
+	}
+	return qty;
+}
+
 // Attempts to craft a single named item — one recipe check, gathering what's missing
-// (buying at most one ingredient per call, same throttling as the rest of this file).
-// Returns "crafted", "buying" (bought an ingredient, call again to continue), "missing"
-// (can't complete or afford the missing ingredients), or "no_recipe".
+// from the bank or by buying (one ingredient per call, same throttling as the rest of
+// this file). Returns "crafted", "withdrawing"/"buying" (gathered one ingredient, call
+// again to continue), "missing" (can't complete or afford it), or "no_recipe".
 // Shared by try_craft() (CONFIG.crafting.targets) and Merchant_Functions.js's
 // ensure_tool_equipped() (crafting a replacement "rod"/"pickaxe" on demand).
 async function craft_item(craft_name) {
@@ -66,37 +85,43 @@ async function craft_item(craft_name) {
 
 		//Try to find the index of the item in our inventory
 		var item_search = scan_inventory_for_item_index(item_name, level);
+		var have_qty = item_search != null ? (character.items[item_search].q || 1) : 0;
 
-		//Do we have the item needed to craft?
-		if (item_search == null) {
-			//Mark that we're missing an item.
-			missing++;
+		//Do we have enough of the item in inventory already?
+		if (item_search != null && (have_qty >= item_quantity || item_quantity == 1)) {
+			//Yeah? Then we'll mark it for use.
+			craft_slots.push(item_search);
+			continue;
+		}
 
-			//No? Then check to see if we can buy one.
-			var basics = parent.G.npcs["basics"];
-
-			if (basics.items.includes(item_name)) {
-				//Do we have enough to complete the crafting with the cost of the item included?
-				cost += item.g;
-
-				if (cost < character.gold) {
-					//Yeah? Mark it as something to buy.
-					buyable_missing.push(item_name);
-				} else {
-					//Not enough gold to craft, clear the list of things to buy and stop.
-					buyable_missing = [];
-					break;
-				}
+		//Not enough in inventory — check the bank before giving up or trying to buy.
+		if (bank_quantity_for(item_name, level) > 0) {
+			try {
+				await withdraw_item(item_name, level, item_quantity);
+			} catch (e) {
+				catcher(e, "craft_item: withdraw " + item_name);
 			}
-		} else {
-			//Do we have the amount of the item that is required by the recipe?
-			var inv_item = character.items[item_search];
+			//Return so the caller controls pacing — call craft_item() again to continue
+			//once the withdrawn item shows up in inventory.
+			return "withdrawing";
+		}
 
-			if (inv_item.q >= item_quantity || item_quantity == 1) {
-				//Yeah? Then we'll mark it for use.
-				craft_slots.push(item_search);
+		//Not in the bank either — mark it missing and see if it's buyable from an NPC.
+		missing++;
+
+		var basics = parent.G.npcs["basics"];
+
+		if (basics.items.includes(item_name)) {
+			//Do we have enough to complete the crafting with the cost of the item included?
+			cost += item.g;
+
+			if (cost < character.gold) {
+				//Yeah? Mark it as something to buy.
+				buyable_missing.push(item_name);
 			} else {
-				missing++;
+				//Not enough gold to craft, clear the list of things to buy and stop.
+				buyable_missing = [];
+				break;
 			}
 		}
 	}
@@ -140,11 +165,11 @@ async function craft_item(craft_name) {
 
 async function try_craft() {
 	//Iterate over everything we've configured to auto craft, stopping after the
-	//first one that actually crafts or starts buying an ingredient.
+	//first one that actually crafts or starts gathering an ingredient.
 	for (var index in CONFIG.crafting.targets) {
 		var craft_name = CONFIG.crafting.targets[index];
 		var result = await craft_item(craft_name);
-		if (result === "crafted" || result === "buying") break;
+		if (result === "crafted" || result === "buying" || result === "withdrawing") break;
 	}
 }
 
