@@ -20,10 +20,10 @@ create_map_movement_window([
 hide_skills_ui();
 create_custom_log_window();
 
-// Reports free inventory space / gold / potions to Riff every cycle — see
-// Shared/Common_Functions.js's status_cache_loop() and Merchant_Functions.js's
-// should_run_delivery(), which reads this to decide contextually when to deliver.
-status_cache_loop();
+// Keeps this character's localStorage state cache fresh (hp/mp/gold/position/free
+// slots/conditions/etc.) so any other character can read it directly — see
+// Shared/Common_Functions.js's state_cache_loop()/read_state_cache().
+state_cache_loop();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN LOOP

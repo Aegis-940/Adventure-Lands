@@ -28,6 +28,9 @@ buy_potion_loop();
 mluck_buff_loop();
 loot_collection_loop();
 potion_loop(); // shared self-use loop from Shared/Common_Functions.js
+// Keeps Riff's own localStorage state cache fresh so the fighters can read it too —
+// see Shared/Common_Functions.js's state_cache_loop()/read_state_cache().
+state_cache_loop();
 
 loop_controller(); // sole owner of movement — see Character_Functions/Merchant_Functions.js
 

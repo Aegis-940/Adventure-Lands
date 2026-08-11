@@ -107,7 +107,7 @@ let BOSS_LOOP_ENABLED         = false;
 let ORBIT_LOOP_ENABLED        = false;
 let POTION_LOOP_ENABLED       = true;
 let LOOT_LOOP_ENABLED         = true;
-let STATUS_CACHE_LOOP_ENABLED = true;
+let STATE_CACHE_LOOP_ENABLED  = true;
 let PRIM_FARM_LOOT_ENABLED    = true;
 let DUNGEON_LOOP_ENABLED      = false;
 
@@ -115,12 +115,6 @@ let DUNGEON_LOOP_ENABLED      = false;
 // SECTION 4: STATE VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let inventory_count = 0, free_slots_count = 0, gold_count = 0, mpot1_count = 0, hpot1_count = 0, map = "", x = 0, y = 0;
-
-// Riff's cache of each fighter's last-reported status (see status_cache_loop() below),
-// keyed by character name — read by Merchant_Functions.js's should_run_delivery() to
-// decide contextually whether a delivery run is actually worth doing right now.
-let party_status = {};
 let attack_mode                   = true;
 let handling_death = false;
 let timeout_interval = 30000; // Default timeout of 30 seconds
@@ -373,27 +367,9 @@ const CM_HANDLERS = {
 			await send_to_merchant();
 	},
 
-	"status_update_request": async (name) => {
-		get_status_cache();
-		send_cm(name, { type: "status_update", data: {
-			name: character.name,
-			inventory: inventory_count,
-			free_slots: free_slots_count,
-			gold: gold_count,
-			mpot1: mpot1_count,
-			hpot1: hpot1_count,
-			map: map,
-			x: x,
-			y: y,
-			last_seen: Date.now()
-		}});
-	},
-
-	// Pushed unprompted by each fighter's status_cache_loop() — cached here so Riff can
-	// make contextual decisions (e.g. should_run_delivery()) without an async round trip.
-	"status_update": (name, data) => {
-		party_status[data.data.name] = data.data;
-	},
+	// status_update/status_update_request removed — replaced by the localStorage-backed
+	// state cache (write_state_cache()/read_state_cache(), see state_cache_loop() below),
+	// which any character can read synchronously without a CM round trip.
 
 	"reload": () => {
 		setTimeout(() => parent.window.location.reload(), 500);
@@ -1334,54 +1310,75 @@ async function orbit_loop() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// STATUS CACHE LOOP
+// STATE CACHE (localStorage — shared across all characters' browser tabs on this origin)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function get_status_cache() {
-	try { inventory_count = character.items.filter(Boolean).length; } catch (e) {}
-	try { free_slots_count = character.items.filter(it => !it).length; } catch (e) {}
-	try { gold_count = character.gold; } catch (e) {}
-	try { mpot1_count = character.items.filter(it => it && it.name === "mpot1").reduce((sum, it) => sum + (it.q || 1), 0); } catch (e) {}
-	try { hpot1_count = character.items.filter(it => it && it.name === "hpot1").reduce((sum, it) => sum + (it.q || 1), 0); } catch (e) {}
-	try { map = character.map; x = character.x; y = character.y; } catch (e) {}
+// All 4 characters run in separate tabs but the same game origin, so localStorage is
+// actually shared between them (same mechanism Remote_Bank_Viewer.js's bank save/load
+// already relies on). Each character writes its own snapshot here every cycle; any other
+// character can read it synchronously via read_state_cache(name) — no CM round trip.
+const STATE_CACHE_KEY_PREFIX = "AL_char_state_";
+const STATE_CACHE_STALE_MS = 15000; // a cache older than this is treated as unknown/offline
+
+function get_full_character_state() {
+	return {
+		name: character.name,
+		hp: character.hp,
+		max_hp: character.max_hp,
+		mp: character.mp,
+		max_mp: character.max_mp,
+		xp: character.xp,
+		max_xp: character.max_xp,
+		gold: character.gold,
+		map: character.map,
+		x: character.x,
+		y: character.y,
+		rip: character.rip,
+		moving: character.moving,
+		free_slots: character.items.filter(it => !it).length,
+		conditions: character.s || {}, // stunned, mluck, poisoned, etc. — see character.s
+		last_seen: Date.now(),
+	};
 }
 
-// Started by each fighter (Tank.js/Healer.js/Ranger.js) — pushes free-slot/gold/potion
-// status to Riff every cycle so Merchant_Functions.js's should_run_delivery() can decide
-// contextually, without Riff needing to poll each character with a request/response round trip.
-async function status_cache_loop() {
-	STATUS_CACHE_LOOP_ENABLED = true;
-	let delay_ms = 5000;
+function write_state_cache() {
+	try {
+		localStorage.setItem(STATE_CACHE_KEY_PREFIX + character.name, JSON.stringify(get_full_character_state()));
+	} catch (e) {
+		catcher(e, "write_state_cache");
+	}
+}
 
-		while (true) {
-			if (!STATUS_CACHE_LOOP_ENABLED) {
-				await delay(100);
-				continue;
-			}
-			get_status_cache();
-			try {
-				send_cm("Riff", {
-					type: "status_update",
-					data: {
-						name: character.name,
-						inventory: inventory_count,
-						free_slots: free_slots_count,
-						gold: gold_count,
-						mpot1: mpot1_count,
-						hpot1: hpot1_count,
-						map: map,
-						x: x,
-						y: y,
-						last_seen: Date.now()
-					}
-				});
-			} catch (e) {
-				catcher(e, "status_cache_loop: send status to Riff");
-			}
+// Reads another character's cached state. Returns null if it has never written one, the
+// entry is corrupt, or it's older than STATE_CACHE_STALE_MS — treat null as "unknown/offline".
+function read_state_cache(name) {
+	try {
+		const raw = localStorage.getItem(STATE_CACHE_KEY_PREFIX + name);
+		if (!raw) return null;
+		const state = JSON.parse(raw);
+		if (Date.now() - state.last_seen > STATE_CACHE_STALE_MS) return null;
+		return state;
+	} catch (e) {
+		return null;
+	}
+}
 
-			await delay(delay_ms);
+function is_character_online(name) {
+	return read_state_cache(name) !== null;
+}
+
+// Started by every character (Tank.js/Healer.js/Ranger.js/Merchant.js) — keeps this
+// character's own state cache fresh so any other character can read it at any time.
+async function state_cache_loop() {
+	STATE_CACHE_LOOP_ENABLED = true;
+	while (true) {
+		if (!STATE_CACHE_LOOP_ENABLED) {
+			await delay(100);
+			continue;
 		}
-
+		write_state_cache();
+		await delay(2000);
+	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

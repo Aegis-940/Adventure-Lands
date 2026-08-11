@@ -29,7 +29,8 @@ var CONFIG = {
 		action_range: 350,        // close enough to actually act on this specific member
 	},
 	// Delivery is triggered contextually (see should_run_delivery()) by a fighter's own
-	// reported status (Shared/Common_Functions.js's status_cache_loop()), not a timer.
+	// cached state (Shared/Common_Functions.js's state_cache_loop()/read_state_cache()),
+	// not a timer.
 	delivery: {
 		free_slots_threshold: 10, // deliver if any party member has this many or fewer free slots
 		gold_threshold: 20000000, // deliver if any party member is carrying at least this much gold
@@ -108,7 +109,6 @@ const MERCHANT_STATES = {
 const DELIVERY_WAIT_MAX_ATTEMPTS = 40; // ~2 minutes at 3s/attempt before giving up and heading home anyway
 const FISHING_POSITION_TOLERANCE = 5;
 const MINING_POSITION_TOLERANCE = 10;
-const PARTY_STATUS_STALE_MS = 30000; // ignore a party member's last-reported status once it's this old
 
 // Last time each party member (by name) was mluck'd — see is_mluck_due()/
 // buff_nearby_party(), shared by the passive mluck_buff_loop() and delivery runs.
@@ -118,16 +118,17 @@ function is_mluck_due(name) {
 	return (Date.now() - (last_mluck_time[name] || 0)) > CONFIG.delivery.mluck_refresh_interval;
 }
 
-// party_status is Shared/Common_Functions.js's cache of each fighter's last-reported
-// free_slots/gold, pushed by their own status_cache_loop(). Delivery is also due on
-// its own once mluck is about to lapse on anyone — that run doubles as the buff pass
-// (see handle_delivering_state()), so a stale buff alone is enough to trigger it.
+// read_state_cache() (Shared/Common_Functions.js) reads each fighter's localStorage
+// state snapshot directly — no CM round trip, and it already returns null for a stale
+// or missing entry. Delivery is also due on its own once mluck is about to lapse on
+// anyone — that run doubles as the buff pass (see handle_delivering_state()), so a
+// stale buff alone is enough to trigger it.
 function should_run_delivery() {
 	if (merchant_task !== "Idle") return false;
 	for (const name of PARTY) {
 		if (is_mluck_due(name)) return true;
-		const status = party_status[name];
-		if (!status || (Date.now() - status.last_seen) > PARTY_STATUS_STALE_MS) continue;
+		const status = read_state_cache(name);
+		if (!status) continue;
 		if (status.free_slots <= CONFIG.delivery.free_slots_threshold) return true;
 		if (status.gold >= CONFIG.delivery.gold_threshold) return true;
 	}
