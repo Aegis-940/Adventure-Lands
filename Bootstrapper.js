@@ -14,6 +14,9 @@ window._cmListeners = window._cmListeners || [];
 	}
 	p$.ajaxSetup({ cache: false });
 
+	// None of these reference each other at load time — every cross-file call
+	// (make_draggable, smarter_move, etc.) happens inside a function or event
+	// handler, invoked well after boot finishes — so they load in parallel.
 	const scripts = [
 		"Shared/Common Functions.js",
 		"UI/Custom_Log.js",
@@ -44,90 +47,104 @@ window._cmListeners = window._cmListeners || [];
 		"Character Functions/Merchant Functions.js",
 		"Characters/Merchant.js"]
 	};
-	const roleFile = roleScripts[character.name];
-	if (roleFile) {
-		if (Array.isArray(roleFile)) {
-			scripts.push(...roleFile); // spread into flat list
-		} else {
-			scripts.push(roleFile);
-		}
-	} else {
+	const roleFile = roleScripts[character.name] || [];
+	if (!roleScripts[character.name]) {
 		game_log("⚠️ No role script for " + character.name);
 	}
 
-	// get commit SHA
-	p$.getJSON("https://api.github.com/repos/Aegis-940/Adventure-Lands/commits/main")
-		.done(repoData => {
-			const base = "https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@" + repoData.sha + "/";
-			startLoading(base);
-		})
-		.fail(() => {
-			game_log("⚠️ Couldn't fetch SHA; falling back to main");
-			startLoading("https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/");
+	const MAX_RETRIES = 3;
+
+	// Loads one shared/UI script via getScript() (real <script> tag — always
+	// global scope). Always resolves, even on final failure, so one bad file
+	// can't block the rest of the batch — matches the prior best-effort behavior.
+	function loadOne(base, name) {
+		const url = base + encodeURI(name);
+		return new Promise(resolve => {
+			function attempt(retries) {
+				p$.getScript(url)
+					.done(() => resolve())
+					.fail((_, s, e) => {
+						if (retries < MAX_RETRIES) {
+							game_log(`🔄 Retrying to load ${name} (${retries + 1}/${MAX_RETRIES})...`);
+							setTimeout(() => attempt(retries + 1), 500 + 500 * retries);
+						} else {
+							game_log("❌ Failed to load " + name + ": " + s);
+							console.error("URL:", url, "err:", e);
+							resolve();
+						}
+					});
+			}
+			attempt(0);
 		});
+	}
 
-	function startLoading(base) {
-		let i = 0;
-		const maxRetries = 3;
-		function loadNext(retries = 0) {
-			if (i >= scripts.length) {
-				return void game_log("✅ All scripts loaded.");
-			}
-			const name = scripts[i++];
-			const url = base + encodeURI(name);
-
-			function retryOrFail(msg, err) {
-				if (retries < maxRetries) {
-					game_log(`🔄 Retrying to load ${name} (${retries + 1}/${maxRetries})...`);
-					i--; // step back so we retry the same script
-					setTimeout(() => loadNext(retries + 1), 500 + 500 * retries); // exponential backoff
-				} else {
-					game_log(msg);
-					if (err) console.error("URL:", url, "err:", err);
-					loadNext();
-				}
-			}
-
-			if (Array.isArray(roleFile) && roleFile.includes(name)) {
-				// —— DEBUG FETCH ——
+	// Loads a role file via fetch+eval with brace-count diagnostics — kept
+	// exactly as before, just wrapped in a Promise. Always resolves.
+	function loadRoleFile(base, name) {
+		const url = base + encodeURI(name);
+		return new Promise(resolve => {
+			function attempt(retries) {
 				p$.get(url, function(text) {
 					console.log("[BS] Fetched", name, "length=", text.length);
-					console.log("[BS] Start of", name, ":\n", text.slice(0,200));
+					console.log("[BS] Start of", name, ":\n", text.slice(0, 200));
 					console.log("[BS] End of",   name, ":\n", text.slice(-200));
-					const opens  = (text.match(/{/g)||[]).length;
-					const closes = (text.match(/}/g)||[]).length;
+					const opens  = (text.match(/{/g) || []).length;
+					const closes = (text.match(/}/g) || []).length;
 					console.log("[BS] brace counts { } →", opens, closes);
 					if (opens !== closes) {
 						console.warn("[BS] Brace mismatch detected in", name);
 					}
-					// —— CLEAN & EVAL ——
 					if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-					text = text.replace(/[\u200B-\u200D\uFEFF]/g, "");
+					text = text.replace(new RegExp("[\\u200B-\\u200D\\uFEFF]", "g"), "");
 					try {
-						// Indirect eval (calling via a reference, not the literal `eval(...)` form)
-						// runs in global scope — same as getScript() below. A direct eval() here
-						// would trap this file's top-level declarations (e.g. CONFIG) inside this
-						// callback's closure, invisible to every other loaded script.
+						// Indirect eval — runs in global scope, same as getScript() above.
+						// A direct eval() here would trap this file's top-level
+						// declarations inside this callback's closure.
 						(0, eval)(text);
-					} catch(e) {
+					} catch (e) {
 						game_log("❌ " + name + " eval error: " + e.message);
 						console.error(e);
 					}
-					loadNext();
+					resolve();
 				}).fail((_, s, e) => {
-					retryOrFail("❌ Failed to fetch " + name + ": " + s, e);
+					if (retries < MAX_RETRIES) {
+						game_log(`🔄 Retrying to load ${name} (${retries + 1}/${MAX_RETRIES})...`);
+						setTimeout(() => attempt(retries + 1), 500 + 500 * retries);
+					} else {
+						game_log("❌ Failed to fetch " + name + ": " + s);
+						console.error("URL:", url, "err:", e);
+						resolve();
+					}
 				});
-			} else {
-				// normal scripts
-				p$.getScript(url)
-				 .done(() => {
-					 loadNext();
-				 })
-				 .fail((_, s, e) => {
-					 retryOrFail("❌ Failed to load " + name + ": " + s, e);
-				 });
 			}
-		}
-		loadNext();
+			attempt(0);
+		});
+	}
+
+	// Role files still load strictly in order (each may depend on the previous).
+	function loadSequential(names, loader) {
+		return names.reduce((chain, name) => chain.then(() => loader(name)), Promise.resolve());
+	}
+
+	function startLoading(base) {
+		Promise.all(scripts.map(name => loadOne(base, name)))
+			.then(() => loadSequential(roleFile, name => loadRoleFile(base, name)))
+			.then(() => game_log("✅ All scripts loaded."));
+	}
+
+	// The loader snippet that evals this file may already have resolved the
+	// commit SHA to fetch it — reuse that instead of hitting the GitHub API
+	// again for the same information.
+	if (window.__AL_BASE__) {
+		startLoading(window.__AL_BASE__);
+	} else {
+		p$.getJSON("https://api.github.com/repos/Aegis-940/Adventure-Lands/commits/main")
+			.done(repoData => {
+				startLoading("https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@" + repoData.sha + "/");
+			})
+			.fail(() => {
+				game_log("⚠️ Couldn't fetch SHA; falling back to main");
+				startLoading("https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/");
+			});
 	}
 })();
