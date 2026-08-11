@@ -865,7 +865,7 @@ async function custom_craft() {
 			await withdraw_item("essenceoffire");
 			await delay(100);
 		} catch (e) {
-			game_log("⚠️ Could not withdraw "essenceoffire": " + e.message, "#FF0000");
+			game_log("⚠️ Could not withdraw 'essenceoffire': " + e.message, "#FF0000");
 		}
 		smoke_slot = character.items.findIndex(itm => itm && itm.name === "essenceoffire");
 		smoke_qty = smoke_slot !== -1 ? (character.items[smoke_slot].q || 1) : 0;
@@ -873,7 +873,7 @@ async function custom_craft() {
 	}
 
 	if (smoke_qty < 30) {
-		game_log("❌ Not enough "essenceoffire" in inventory after multiple attempts. Aborting pouchbow upgrade.", "#FF0000");
+		game_log("❌ Not enough 'essenceoffire' in inventory after multiple attempts. Aborting pouchbow upgrade.", "#FF0000");
 		return;
 	}
 

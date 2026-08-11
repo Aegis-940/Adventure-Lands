@@ -179,12 +179,12 @@ function add_bank_buttons() {
 
 	const bank_btn = $(`
 	<div id="bankbutton" class="gamebutton"
-		 onclick="parent.$("#maincode")[0].contentWindow.render_bank_items()">
+		 onclick="parent.$('#maincode')[0].contentWindow.render_bank_items()">
 		🏧
 	</div>`);
 	const save_btn = $((`
 	<div id="saveBankButton" class="gamebutton"
-		 onclick="parent.$("#maincode")[0].contentWindow.save_bank_local()">
+		 onclick="parent.$('#maincode')[0].contentWindow.save_bank_local()">
 		💾
 	</div>`));
 

@@ -78,12 +78,12 @@ function init_dps_meter() {
 	const $ = parent.$;
 	const brc = $("#bottomrightcorner");
 	brc.find("#dpsmeter").remove();
-	const container = $("<div id="dpsmeter"></div>").css({
+	const container = $("<div id='dpsmeter'></div>").css({
 		fontSize: "20px", color: "white", textAlign: "center", display: "table",
 		overflow: "hidden", marginBottom: "-3px", width: "100%", backgroundColor: "rgba(0,0,0,0.6)"
 	});
 	container.append(
-		$("<div id="dpsmetercontent"></div>").css({
+		$("<div id='dpsmetercontent'></div>").css({
 			display: "table-cell", verticalAlign: "middle", padding: "2px",
 			border: "4px solid grey"
 		})

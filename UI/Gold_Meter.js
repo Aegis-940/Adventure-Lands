@@ -109,6 +109,6 @@ const set_gold_interval = (new_interval) => {
 	if (["minute", "hour", "day"].includes(new_interval)) {
 		interval = new_interval;
 	} else {
-		console.warn("Invalid interval. Use "minute", "hour", or "day".");
+		console.warn("Invalid interval. Use 'minute', 'hour', or 'day'.");
 	}
 };
