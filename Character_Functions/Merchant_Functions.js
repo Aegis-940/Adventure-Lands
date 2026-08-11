@@ -46,7 +46,7 @@ var CONFIG = {
 	},
 	// Items to auto-craft — read directly by Merchant_Systems/Auto_Craft.js's try_craft().
 	crafting: {
-		targets: ["pouchbow"],
+		targets: ["fireblade"],
 	},
 	// Items to turn in at the exchange NPC, in priority order.
 	exchange: {
