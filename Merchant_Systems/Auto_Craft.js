@@ -16,6 +16,11 @@ function can_afford_any_craft() {
 	return false;
 }
 
+// Crafting itself (the "craft" socket action) can only be done standing at the crafting
+// bench, not wherever the ingredients happened to be gathered from.
+var CRAFT_LOCATION = { map: "main", x: 0, y: 492 };
+var CRAFT_POSITION_TOLERANCE = 5;
+
 // Total quantity of an item sitting in the bank at a given level (null = any level) —
 // checked before falling back to buying, since not every craft ingredient is NPC-buyable.
 function bank_quantity_for(item_name, level) {
@@ -129,6 +134,19 @@ async function craft_item(craft_name) {
 	//Are we missing anything?
 	if (missing == 0) {
 		//Craft it! Server expects a flat 9-slot grid (inventory indices, null for empty).
+		//Crafting has to happen at the crafting bench — travel there first.
+		if (
+			character.map !== CRAFT_LOCATION.map ||
+			Math.hypot(character.x - CRAFT_LOCATION.x, character.y - CRAFT_LOCATION.y) > CRAFT_POSITION_TOLERANCE
+		) {
+			try {
+				await smarter_move(CRAFT_LOCATION);
+			} catch (e) {
+				catcher(e, "craft_item: travel to craft location");
+				return "missing";
+			}
+		}
+
 		var craft_array = craft_slots.slice(0, 9);
 		while (craft_array.length < 9) {
 			craft_array.push(null);
