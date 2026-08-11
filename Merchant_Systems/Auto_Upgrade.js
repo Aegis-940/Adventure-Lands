@@ -211,9 +211,15 @@ async function withdraw_upgradeable_items() {
 							item.name === item_name &&
 							(item.level || 0) === level
 						) {
+							// The round's own `remaining` budget (set from to_withdraw below)
+							// already guarantees enough free space for the whole round, since
+							// to_withdraw is capped by max_withdrawable — re-subtracting 3 here
+							// on every slot would shrink as free_slots drops mid-round and could
+							// starve the last item of a set of 3 even though the round started
+							// with room for all of them. Only bail if space is truly gone.
 							free_slots = count_empty_inventory();
 							if (free_slots <= 3) break;
-							const withdraw_count = Math.min(item.q || 1, remaining, free_slots - 3);
+							const withdraw_count = Math.min(item.q || 1, remaining);
 							if (withdraw_count > 0) {
 								withdraw_item(item_name, level, withdraw_count);
 								remaining -= withdraw_count;
