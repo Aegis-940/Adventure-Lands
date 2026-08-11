@@ -269,51 +269,55 @@ async function equip_default_gear() {
 	}
 }
 
-// Ensures `tool_name` ("rod"/"pickaxe") is equipped in mainhand — checks inventory,
-// then the bank, then falls back to crafting one via Merchant_Systems/Auto_Craft.js's
-// craft_item(). Rod/pickaxe are two-handed, so the offhand must be empty before
-// equipping — unequips it first if occupied. Returns true once equipped, false if the
-// tool couldn't be obtained any way. Called only once already standing at the fishing/
-// mining spot (see the handlers below), never in advance — the rod/pickaxe should only
-// ever be worn immediately before the skill, with CONFIG.default_gear worn otherwise.
-async function ensure_tool_equipped(tool_name) {
+// Makes sure `tool_name` ("rod"/"pickaxe") is available in inventory — checks
+// inventory first, then the bank, then falls back to crafting one via
+// Merchant_Systems/Auto_Craft.js's craft_item(). Does NOT equip it. Called BEFORE
+// traveling to the fishing/mining spot, so a genuinely unobtainable tool doesn't waste
+// a trip there. Returns true once available, false if it couldn't be obtained any way.
+async function ensure_tool_available(tool_name) {
 	function find_in_inventory() {
 		return character.items.findIndex(item => item && item.name === tool_name);
 	}
 
 	if (character.slots.mainhand && character.slots.mainhand.name === tool_name) return true;
+	if (find_in_inventory() !== -1) return true;
 
-	let idx = find_in_inventory();
+	log(`🔎 No ${tool_name} in inventory, checking bank...`);
+	await smarter_move(BANK_LOCATION);
+	await delay(500);
+	// Awaited (unlike the hot-path withdrawal loops elsewhere) — this only runs once
+	// per fishing/mining start, and the tool must actually be in inventory before the
+	// caller trusts the return value.
+	await withdraw_item(tool_name);
+	await delay(400);
+	if (find_in_inventory() !== -1) return true;
 
-	if (idx === -1) {
-		log(`🔎 No ${tool_name} in inventory, checking bank...`);
-		await smarter_move(BANK_LOCATION);
-		await delay(500);
-		// Awaited (unlike the hot-path withdrawal loops elsewhere) — this only runs once
-		// per fishing/mining start, and the tool must actually be in inventory before the
-		// caller trusts the return value enough to start the skill.
-		await withdraw_item(tool_name);
+	log(`🔨 No ${tool_name} in bank either, attempting to craft one...`);
+	for (let attempt = 0; attempt < 8; attempt++) {
+		const result = await craft_item(tool_name); // Merchant_Systems/Auto_Craft.js
+		if (result === "crafted") break;
+		if (result !== "buying" && result !== "withdrawing") break; // "missing"/"no_recipe" — no point retrying
 		await delay(400);
-		idx = find_in_inventory();
 	}
 
-	if (idx === -1) {
-		log(`🔨 No ${tool_name} in bank either, attempting to craft one...`);
-		for (let attempt = 0; attempt < 8; attempt++) {
-			const result = await craft_item(tool_name); // Merchant_Systems/Auto_Craft.js
-			if (result === "crafted") break;
-			if (result !== "buying" && result !== "withdrawing") break; // "missing"/"no_recipe" — no point retrying
-			await delay(400);
-		}
-		idx = find_in_inventory();
-	}
-
-	if (idx === -1) {
+	if (find_in_inventory() === -1) {
 		log(`❌ Could not obtain a ${tool_name} (not in inventory, bank, or craftable).`);
 		return false;
 	}
+	return true;
+}
 
-	// Two-handed tool — clear the offhand before equipping, or the equip can fail/be rejected.
+// Equips `tool_name` in mainhand — call only once already standing at the fishing/
+// mining spot (see the handlers below), never in advance: the rod/pickaxe should only
+// ever be worn immediately before the skill, with CONFIG.default_gear worn otherwise.
+// Assumes ensure_tool_available() already confirmed it's in inventory. Two-handed, so
+// the offhand must be empty first — unequips it if occupied.
+async function equip_tool(tool_name) {
+	if (character.slots.mainhand && character.slots.mainhand.name === tool_name) return true;
+
+	const idx = character.items.findIndex(item => item && item.name === tool_name);
+	if (idx === -1) return false;
+
 	if (character.slots.offhand) {
 		await unequip("offhand");
 		await delay(400);
@@ -328,22 +332,23 @@ async function handle_fishing_state() {
 	if (merchant_task !== "Idle") return;
 	merchant_task = "Fishing";
 	try {
-		// Travel to the spot BEFORE equipping the rod — ensure_tool_equipped() may need
-		// to detour to the bank/crafting bench first, so this can re-check afterward.
+		// Check availability BEFORE traveling anywhere — no point walking to the spot
+		// for a rod we can't actually get.
+		const rod_available = await ensure_tool_available("rod");
+		if (!rod_available) {
+			log("❌ No fishing rod available (not in inventory, bank, or craftable).");
+			return;
+		}
+
 		const spot = CONFIG.locations.FISHING_SPOT;
 		if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > FISHING_POSITION_TOLERANCE) {
 			await smarter_move(spot);
 		}
 
-		const rod_equipped = await ensure_tool_equipped("rod");
+		const rod_equipped = await equip_tool("rod");
 		if (!rod_equipped) {
-			log("❌ No fishing rod available (not in inventory, bank, or craftable).");
+			log("❌ Could not equip fishing rod at the fishing spot.");
 			return;
-		}
-
-		// ensure_tool_equipped() may have wandered off to fetch/craft the rod.
-		if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > FISHING_POSITION_TOLERANCE) {
-			await smarter_move(spot);
 		}
 
 		while (!is_on_cooldown("fishing")) {
@@ -385,22 +390,23 @@ async function handle_mining_state() {
 	if (merchant_task !== "Idle") return;
 	merchant_task = "Mining";
 	try {
-		// Travel to the spot BEFORE equipping the pickaxe — ensure_tool_equipped() may
-		// need to detour to the bank/crafting bench first, so this can re-check afterward.
+		// Check availability BEFORE traveling anywhere — no point walking to the spot
+		// for a pickaxe we can't actually get.
+		const pickaxe_available = await ensure_tool_available("pickaxe");
+		if (!pickaxe_available) {
+			log("❌ No pickaxe available (not in inventory, bank, or craftable).");
+			return;
+		}
+
 		const spot = CONFIG.locations.MINING_SPOT;
 		if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > MINING_POSITION_TOLERANCE) {
 			await smarter_move(spot);
 		}
 
-		const pickaxe_equipped = await ensure_tool_equipped("pickaxe");
+		const pickaxe_equipped = await equip_tool("pickaxe");
 		if (!pickaxe_equipped) {
-			log("❌ No pickaxe available (not in inventory, bank, or craftable).");
+			log("❌ Could not equip pickaxe at the mining spot.");
 			return;
-		}
-
-		// ensure_tool_equipped() may have wandered off to fetch/craft the pickaxe.
-		if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > MINING_POSITION_TOLERANCE) {
-			await smarter_move(spot);
 		}
 
 		while (!is_on_cooldown("mining")) {
