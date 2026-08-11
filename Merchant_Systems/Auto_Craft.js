@@ -9,8 +9,8 @@
 // Checked by Character_Functions/Merchant_Functions.js's should_run_craft() — contextual
 // stand-in for the old time interval: is crafting even worth attempting right now?
 function can_afford_any_craft() {
-	for (const craft_name of CONFIG.crafting.targets) {
-		const craft_def = parent.G.craft[craft_name];
+	for (const target of CONFIG.crafting.targets) {
+		const craft_def = parent.G.craft[target.name];
 		if (craft_def && craft_def.cost <= character.gold) return true;
 	}
 	return false;
@@ -40,12 +40,146 @@ function bank_quantity_for(item_name, level) {
 	return qty;
 }
 
+// Normalizes a craft recipe's [quantity, item_name] entries into {name, quantity, level}.
+function craft_recipe_items(craft_def) {
+	return craft_def.items.map(function(item_def) {
+		var item_quantity = item_def[0];
+		var item_name = item_def[1];
+		var item = parent.G.items[item_name];
+		return { name: item_name, quantity: item_quantity, level: item.scroll === true ? 0 : null };
+	});
+}
+
+// How many of a recipe we could fit given current free inventory space, when
+// CONFIG.crafting.targets doesn't specify an explicit count — conservative: 1 free
+// slot per craft (each produces one output item), leaving a small buffer.
+function max_craftable_by_space() {
+	var free_slots = character.items.filter(function(it) { return !it; }).length;
+	return Math.max(0, free_slots - 3);
+}
+
+// Total shortfall of each ingredient (inventory-only) needed to craft `count` of a recipe.
+function compute_missing_ingredients(craft_def, count) {
+	var missing = [];
+	craft_recipe_items(craft_def).forEach(function(req) {
+		var needed = req.quantity * count;
+		var have = 0;
+		character.items.forEach(function(item) {
+			if (item && item.name === req.name && (req.level == null || item.level === req.level)) {
+				have += item.q || 1;
+			}
+		});
+		if (have < needed) {
+			missing.push({ name: req.name, level: req.level, amount: needed - have });
+		}
+	});
+	return missing;
+}
+
+// Buys/withdraws enough of every missing ingredient for the WHOLE batch up front (bank
+// first, then NPC purchase in one bulk buy() call), instead of one craft's worth at a
+// time. Returns true once nothing is missing, false if something couldn't be fully
+// gathered (not in the bank, not buyable, or not enough gold).
+async function gather_ingredients_for_batch(craft_def, count) {
+	var missing = compute_missing_ingredients(craft_def, count);
+
+	for (var i = 0; i < missing.length; i++) {
+		var need = missing[i];
+
+		if (bank_quantity_for(need.name, need.level) > 0) {
+			try {
+				await withdraw_item(need.name, need.level, need.amount);
+			} catch (e) {
+				catcher(e, "gather_ingredients_for_batch: withdraw " + need.name);
+			}
+			continue;
+		}
+
+		var basics = parent.G.npcs["basics"];
+		if (!basics.items.includes(need.name)) {
+			game_log(`❌ Missing ${need.amount}x ${need.name} for crafting — not in bank, not buyable.`);
+			return false;
+		}
+
+		var item_def = parent.G.items[need.name];
+		var cost = (item_def.g || 0) * need.amount;
+		if (character.gold < cost) {
+			game_log(`❌ Not enough gold to buy ${need.amount}x ${need.name} for crafting.`);
+			return false;
+		}
+
+		try {
+			await smart_move("basics");
+		} catch (e) {
+			catcher(e, "gather_ingredients_for_batch: travel to basics NPC");
+			return false;
+		}
+		buy(need.name, need.amount);
+		await delay(400);
+	}
+
+	return compute_missing_ingredients(craft_def, count).length === 0;
+}
+
+// Crafts up to `count` of craft_name: gathers the whole batch's ingredients first (see
+// gather_ingredients_for_batch()), travels to the crafting bench once, then crafts
+// repeatedly from inventory. Returns how many were actually crafted.
+async function craft_batch(craft_name, count) {
+	var craft_def = parent.G.craft[craft_name];
+	if (craft_def == null) return 0;
+
+	var gathered = await gather_ingredients_for_batch(craft_def, count);
+	if (!gathered) return 0;
+
+	if (
+		character.map !== CRAFT_LOCATION.map ||
+		Math.hypot(character.x - CRAFT_LOCATION.x, character.y - CRAFT_LOCATION.y) > CRAFT_POSITION_TOLERANCE
+	) {
+		try {
+			await smarter_move(CRAFT_LOCATION);
+		} catch (e) {
+			catcher(e, "craft_batch: travel to craft location");
+			return 0;
+		}
+	}
+
+	var recipe = craft_recipe_items(craft_def);
+	var crafted = 0;
+
+	while (crafted < count) {
+		var craft_slots = [];
+		var ok = true;
+		for (var i = 0; i < recipe.length; i++) {
+			var idx = scan_inventory_for_item_index(recipe[i].name, recipe[i].level);
+			if (idx == null) { ok = false; break; }
+			craft_slots.push(idx);
+		}
+		if (!ok) break; // ran out of ingredients partway through the batch
+
+		var craft_array = craft_slots.slice(0, 9);
+		while (craft_array.length < 9) {
+			craft_array.push(null);
+		}
+
+		try {
+			await craft.apply(null, craft_array);
+		} catch (e) {
+			catcher(e, "craft_batch: craft " + craft_name);
+			break;
+		}
+		crafted++;
+		await delay(UPGRADE_INTERVAL);
+	}
+
+	return crafted;
+}
+
 // Attempts to craft a single named item — one recipe check, gathering what's missing
 // from the bank or by buying (one ingredient per call, same throttling as the rest of
 // this file). Returns "crafted", "withdrawing"/"buying" (gathered one ingredient, call
-// again to continue), "missing" (can't complete or afford it), or "no_recipe".
-// Shared by try_craft() (CONFIG.crafting.targets) and Merchant_Functions.js's
-// ensure_tool_equipped() (crafting a replacement "rod"/"pickaxe" on demand).
+// again to continue), "missing" (can't complete or afford it), or "no_recipe". Kept for
+// Merchant_Functions.js's ensure_tool_available() (crafting a single replacement
+// "rod"/"pickaxe" on demand) — try_craft() below uses the batch functions instead.
 async function craft_item(craft_name) {
 	//Grab the crafting recipe.
 	var craft_def = parent.G.craft[craft_name];
@@ -182,12 +316,23 @@ async function craft_item(craft_name) {
 }
 
 async function try_craft() {
-	//Iterate over everything we've configured to auto craft, stopping after the
-	//first one that actually crafts or starts gathering an ingredient.
-	for (var index in CONFIG.crafting.targets) {
-		var craft_name = CONFIG.crafting.targets[index];
-		var result = await craft_item(craft_name);
-		if (result === "crafted" || result === "buying" || result === "withdrawing") break;
+	// CONFIG.crafting.targets: [{ name, count? }] — count omitted crafts as many as
+	// will fit in free inventory space. One target's full batch per call: gather
+	// everything needed up front, craft the whole batch, then bank the results.
+	for (var t = 0; t < CONFIG.crafting.targets.length; t++) {
+		var target = CONFIG.crafting.targets[t];
+		var craft_def = parent.G.craft[target.name];
+		if (craft_def == null) continue;
+
+		var desired_count = target.count != null ? target.count : max_craftable_by_space();
+		if (desired_count <= 0) continue;
+
+		var crafted = await craft_batch(target.name, desired_count);
+		if (crafted > 0) {
+			game_log(`✅ Crafted ${crafted}x ${target.name}.`);
+			await sell_and_bank();
+		}
+		break; // one target per try_craft() call
 	}
 }
 

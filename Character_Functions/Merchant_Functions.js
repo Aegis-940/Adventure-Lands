@@ -46,8 +46,10 @@ var CONFIG = {
 		mp_threshold: 500,
 	},
 	// Items to auto-craft — read directly by Merchant_Systems/Auto_Craft.js's try_craft().
+	// { name, count? } — count caps how many to craft in one batch; omit it to craft as
+	// many as will fit in free inventory space instead.
 	crafting: {
-		targets: ["fireblade"],
+		targets: [{ name: "fireblade" }],
 	},
 	// Items to turn in at the exchange NPC, in priority order.
 	exchange: {
