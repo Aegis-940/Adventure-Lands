@@ -57,7 +57,7 @@ var CONFIG = {
 		],
 	},
 	// Items sell_and_bank() must never bank away, even mid-cycle.
-	do_not_bank: ["scroll0", "scroll1", "scroll2", "cscroll0", "cscroll1", "cscroll2", "offeringp"],
+	do_not_bank: [],
 };
 
 // Common_Functions.js's shared potion_loop()/auto_buy_potions() aren't used here — the
