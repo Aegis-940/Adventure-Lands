@@ -379,7 +379,7 @@ async function handle_fishing_state() {
 			}
 		}
 
-		await smarter_move(HOME);
+		await sell_and_bank();
 	} catch (e) {
 		catcher(e, "handle_fishing_state");
 	} finally {
@@ -439,7 +439,7 @@ async function handle_mining_state() {
 			}
 		}
 
-		await smarter_move(HOME);
+		await sell_and_bank();
 	} catch (e) {
 		catcher(e, "handle_mining_state");
 	} finally {
