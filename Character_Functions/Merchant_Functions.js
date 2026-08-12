@@ -54,6 +54,7 @@ var CONFIG = {
 	// Items to turn in at the exchange NPC, in priority order.
 	exchange: {
 		targets: [
+			{ name: "goldenegg",    min: 1 },
 			{ name: "basketofeggs", min: 1 },
 			{ name: "gem0",         min: 1 },
 			{ name: "gem1",         min: 1 },

@@ -139,7 +139,8 @@ async function gather_ingredients_for_batch(craft_def, count) {
 
 			if (bank_quantity_for(need.name, need.level) > 0) {
 				try {
-					await withdraw_item(need.name, need.level, need.amount);
+					withdraw_item(need.name, need.level, need.amount);
+					await delay(300); // wait for the item to show up in inventory before continuing
 				} catch (e) {
 					catcher(e, "gather_ingredients_for_batch: withdraw " + need.name);
 				}
@@ -167,7 +168,7 @@ async function gather_ingredients_for_batch(craft_def, count) {
 				return false;
 			}
 			buy(need.name, need.amount);
-			await delay(400);
+			await delay(300);
 			made_progress = true;
 		}
 
@@ -218,7 +219,8 @@ async function craft_batch(craft_name, count) {
 		}
 
 		try {
-			await craft.apply(null, craft_array);
+			craft.apply(null, craft_array);
+			await delay(300); // wait for the crafted item to show up in inventory before continuing
 		} catch (e) {
 			catcher(e, "craft_batch: craft " + craft_name);
 			break;
