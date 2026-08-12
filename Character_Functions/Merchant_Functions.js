@@ -46,10 +46,11 @@ var CONFIG = {
 		mp_threshold: 500,
 	},
 	// Items to auto-craft — read directly by Merchant_Systems/Auto_Craft.js's try_craft().
-	// { name, count? } — count caps how many to craft in one batch; omit it to craft as
-	// many as will fit in free inventory space instead.
+	// { name, min?, max? } — min (default 1) is the smallest batch worth bothering with;
+	// max (default unlimited) caps the batch size. Both are further bounded by actual
+	// ingredient availability, free inventory space, and gold (see max_craftable_now()).
 	crafting: {
-		targets: [{ name: "basketofeggs", count: 9999  }],
+		targets: [{ name: "basketofeggs", min: 100, max: 9999 }],
 	},
 	// Items to turn in at the exchange NPC, in priority order.
 	exchange: {

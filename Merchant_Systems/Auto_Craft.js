@@ -6,47 +6,13 @@
 // (Character_Functions/Merchant_Functions.js) calls try_craft() on its own
 // CRAFTING-state cycle, so this stays a plain callable function.
 
-// True if every NON-buyable ingredient of a target (no NPC sells it — only obtainable
-// from what's already banked/held) has enough on hand, inventory + bank combined, for
-// the configured batch size. Buyable ingredients aren't gated here — those can always
-// be topped up by gather_ingredients_for_batch(), gold permitting. Skips a target
-// outright instead of starting a batch that can only ever gather part of what it needs.
-function has_enough_bank_only_ingredients(target) {
-	const craft_def = parent.G.craft[target.name];
-	if (!craft_def) return false;
-
-	const desired_count = target.count != null ? target.count : max_craftable_by_space();
-	if (desired_count <= 0) return false;
-
-	const basics = parent.G.npcs["basics"];
-
-	for (const req of craft_recipe_items(craft_def)) {
-		if (basics.items.includes(req.name)) continue; // buyable — not gated here
-
-		const needed = req.quantity * desired_count;
-		let have = bank_quantity_for(req.name, req.level);
-		for (const item of character.items) {
-			if (item && item.name === req.name && (req.level == null || item.level === req.level)) {
-				have += item.q || 1;
-			}
-		}
-
-		if (have < needed) return false;
-	}
-
-	return true;
-}
-
 // Checked by Character_Functions/Merchant_Functions.js's should_run_craft() — contextual
 // stand-in for the old time interval: is crafting even worth attempting right now?
-// Requires both: affording the base recipe cost, and every non-buyable ingredient
-// having enough on hand for the configured batch (see has_enough_bank_only_ingredients()).
+// A target only counts if max_craftable_now() (real ingredient/space/gold availability,
+// not just a wish) reaches at least its configured min — see try_craft() below.
 function can_afford_any_craft() {
 	for (const target of CONFIG.crafting.targets) {
-		const craft_def = parent.G.craft[target.name];
-		if (!craft_def || craft_def.cost > character.gold) continue;
-		if (!has_enough_bank_only_ingredients(target)) continue;
-		return true;
+		if (max_craftable_now(target) >= (target.min ?? 1)) return true;
 	}
 	return false;
 }
@@ -99,6 +65,77 @@ function max_craftable_by_space() {
 	return Math.max(0, free_slots - 3);
 }
 
+// Inventory + bank quantity currently held of a named item/level.
+function total_held(name, level) {
+	var have = bank_quantity_for(name, level);
+	character.items.forEach(function(item) {
+		if (item && item.name === name && (level == null || item.level === level)) {
+			have += item.q || 1;
+		}
+	});
+	return have;
+}
+
+// Hard cap on how many of a recipe could ever be made right now from non-buyable
+// ingredients (nothing sells them — only what's already banked/held counts). Buyable
+// ingredients aren't capped here; gold is checked separately by max_affordable_count().
+function max_craftable_by_ingredients(craft_def) {
+	var basics = parent.G.npcs["basics"];
+	var max_count = Infinity;
+	craft_recipe_items(craft_def).forEach(function(req) {
+		if (basics.items.includes(req.name)) return; // buyable — not capped here
+		max_count = Math.min(max_count, Math.floor(total_held(req.name, req.level) / req.quantity));
+	});
+	return max_count;
+}
+
+// Total gold cost to craft `count`, buying whatever's short on buyable ingredients.
+function craft_cost_for_count(craft_def, count) {
+	var basics = parent.G.npcs["basics"];
+	var cost = craft_def.cost;
+	craft_recipe_items(craft_def).forEach(function(req) {
+		if (!basics.items.includes(req.name)) return;
+		var item_def = parent.G.items[req.name];
+		var to_buy = Math.max(0, req.quantity * count - total_held(req.name, req.level));
+		cost += (item_def.g || 0) * to_buy;
+	});
+	return cost;
+}
+
+// Largest count (up to upper_bound) affordable given current gold — binary search since
+// cost is monotonic non-decreasing in count.
+function max_affordable_count(craft_def, upper_bound) {
+	if (upper_bound <= 0) return 0;
+	if (craft_cost_for_count(craft_def, upper_bound) <= character.gold) return upper_bound;
+	var lo = 0, hi = upper_bound;
+	while (lo < hi) {
+		var mid = Math.ceil((lo + hi) / 2);
+		if (craft_cost_for_count(craft_def, mid) <= character.gold) lo = mid;
+		else hi = mid - 1;
+	}
+	return lo;
+}
+
+// How many of a target could actually be crafted right now, respecting all three
+// limits: target.max (batch cap, default unlimited), free inventory space,
+// non-buyable-ingredient availability, and current gold. Compared against target.min
+// (default 1) by can_afford_any_craft()/try_craft() to decide if it's worth attempting.
+function max_craftable_now(target) {
+	var craft_def = parent.G.craft[target.name];
+	if (!craft_def) return 0;
+
+	// max_craftable_by_space() is always finite, so count is too even if target.max
+	// and/or the ingredient cap are Infinity (i.e. all-buyable, uncapped recipe).
+	var count = Math.min(
+		target.max ?? Infinity,
+		max_craftable_by_space(),
+		max_craftable_by_ingredients(craft_def)
+	);
+	if (count <= 0) return 0;
+
+	return max_affordable_count(craft_def, count);
+}
+
 // Total shortfall of each ingredient (inventory-only) needed to craft `count` of a recipe.
 function compute_missing_ingredients(craft_def, count) {
 	var missing = [];
@@ -139,7 +176,7 @@ async function gather_ingredients_for_batch(craft_def, count) {
 
 			if (bank_quantity_for(need.name, need.level) > 0) {
 				try {
-					awaitwithdraw_item(need.name, need.level, need.amount);
+					await withdraw_item(need.name, need.level, need.amount);
 				} catch (e) {
 					catcher(e, "gather_ingredients_for_batch: withdraw " + need.name);
 				}
@@ -373,16 +410,18 @@ async function craft_item(craft_name) {
 }
 
 async function try_craft() {
-	// CONFIG.crafting.targets: [{ name, count? }] — count omitted crafts as many as
-	// will fit in free inventory space. One target's full batch per call: gather
-	// everything needed up front, craft the whole batch, then bank the results.
+	// CONFIG.crafting.targets: [{ name, min?, max? }] — min (default 1) is the smallest
+	// batch worth bothering with; max (default unlimited) caps the batch size. Skips a
+	// target unless max_craftable_now() (real ingredient/space/gold availability) can
+	// reach at least min. One target's full batch per call: gather everything needed
+	// up front, craft the whole batch, then bank the results.
 	for (var t = 0; t < CONFIG.crafting.targets.length; t++) {
 		var target = CONFIG.crafting.targets[t];
 		var craft_def = parent.G.craft[target.name];
 		if (craft_def == null) continue;
 
-		var desired_count = target.count != null ? target.count : max_craftable_by_space();
-		if (desired_count <= 0) continue;
+		var desired_count = max_craftable_now(target);
+		if (desired_count < (target.min ?? 1)) continue;
 
 		var crafted = await craft_batch(target.name, desired_count);
 		if (crafted > 0) {
