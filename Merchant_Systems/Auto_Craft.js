@@ -60,7 +60,7 @@ var CRAFT_POSITION_TOLERANCE = 5;
 // UPGRADE_INTERVAL — that file only runs through the eval-based role-file loader, so
 // its top-level const never becomes visible outside that one eval call. Referencing it
 // here threw a ReferenceError right after the first craft in a batch, ending it early.
-var CRAFT_INTERVAL = 400;
+var CRAFT_INTERVAL = 300;
 
 // Total quantity of an item sitting in the bank at a given level (null = any level) —
 // checked before falling back to buying, since not every craft ingredient is NPC-buyable.
@@ -139,8 +139,7 @@ async function gather_ingredients_for_batch(craft_def, count) {
 
 			if (bank_quantity_for(need.name, need.level) > 0) {
 				try {
-					withdraw_item(need.name, need.level, need.amount);
-					await delay(300); // wait for the item to show up in inventory before continuing
+					awaitwithdraw_item(need.name, need.level, need.amount);
 				} catch (e) {
 					catcher(e, "gather_ingredients_for_batch: withdraw " + need.name);
 				}
@@ -220,7 +219,7 @@ async function craft_batch(craft_name, count) {
 
 		try {
 			craft.apply(null, craft_array);
-			await delay(300); // wait for the crafted item to show up in inventory before continuing
+			await delay(10); // wait for the crafted item to show up in inventory before continuing
 		} catch (e) {
 			catcher(e, "craft_batch: craft " + craft_name);
 			break;
