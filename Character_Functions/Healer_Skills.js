@@ -2,9 +2,10 @@
 // HEALER SKILLS — split out of Healer_Functions.js for compartmentalization.
 // Separate eval closure (own role-file entry in Bootstrapper.js) loaded right after
 // Healer_Functions.js — reads/writes that file's state/cache/CONFIG/home/destination
-// globals (all var there for exactly this reason) and defines skill_loop()/try_heal() as
-// real function declarations so Healer_Functions.js's action_loop()/"START ALL LOOPS"
-// can still call them.
+// globals (all var there for exactly this reason) and defines skill_loop() as a real
+// function declaration, started at the bottom of this file (see note there for why).
+// try_heal() stays in Healer_Functions.js — it's only ever called from that file's
+// action_loop(), which starts running immediately and would race this file's load.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function skill_loop() {
@@ -53,21 +54,6 @@ async function skill_loop() {
 	}
 
 	setTimeout(skill_loop, delay);
-}
-
-async function try_heal() {
-	const HEAL_TARGET = cache.heal_target;
-	if (!HEAL_TARGET) return false;
-
-	const HEAL_THRESHOLD = HEAL_TARGET.max_hp - character.heal / 1.33;
-
-	if (HEAL_TARGET.hp < HEAL_THRESHOLD && is_in_range(HEAL_TARGET, "heal")) {
-		// log(`Healing → ${HEAL_TARGET.name} (${Math.round((HEAL_TARGET.hp / HEAL_TARGET.max_hp) * 100)}%)`, "#33AAFF");
-		await heal(HEAL_TARGET);
-		return true;
-	}
-
-	return false;
 }
 
 async function handle_curse() {

@@ -362,6 +362,25 @@ async function check_temporal_surge() {
 // ACTION LOOP - Combat and healing only
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+// Lives here, not in Healer_Skills.js, despite being part of the original SKILL LOOP
+// section — action_loop() below is its only caller, and action_loop() starts running
+// immediately (before Healer_Skills.js even loads), so try_heal() must already exist
+// in this same eval closure.
+async function try_heal() {
+	const HEAL_TARGET = cache.heal_target;
+	if (!HEAL_TARGET) return false;
+
+	const HEAL_THRESHOLD = HEAL_TARGET.max_hp - character.heal / 1.33;
+
+	if (HEAL_TARGET.hp < HEAL_THRESHOLD && is_in_range(HEAL_TARGET, "heal")) {
+		// log(`Healing → ${HEAL_TARGET.name} (${Math.round((HEAL_TARGET.hp / HEAL_TARGET.max_hp) * 100)}%)`, "#33AAFF");
+		await heal(HEAL_TARGET);
+		return true;
+	}
+
+	return false;
+}
+
 async function action_loop() {
 	let delay = 10;
 
