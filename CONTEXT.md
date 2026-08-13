@@ -59,11 +59,7 @@ UI/*.js                      ← overlay panels (semi-independent)
 
 Merchant_Systems/
     ├── Auto_Upgrade.js        item upgrade profiles (loaded for Riff)
-    └── Auto_Craft.js          crafting automation — NOT loaded by Bootstrapper.js; manual-inject only
-
-Standalone/
-    └── Priest_Manager.js      extended healer system (alternate to Healer_Functions.js)
-                                NOT loaded by Bootstrapper.js; manual-inject only
+    └── Auto_Craft.js          crafting automation and batch orchestration (loaded for Riff)
 ```
 
 ---
@@ -172,7 +168,6 @@ CONFIG = {
 | Character_Functions/Warrior_Functions.js | 1398 |
 | Character_Functions/Healer_Functions.js | 1238 |
 | Character_Functions/Merchant_Functions.js | 996 |
-| Standalone/Priest_Manager.js | 1192 |
 | Merchant_Systems/Auto_Upgrade.js | 522 |
 | Merchant_Systems/Auto_Craft.js | 160 |
 | Shared/Buttons.js | 146 |
@@ -200,7 +195,6 @@ CONFIG = {
 - `UI/Game_Log.js` is mostly commented out — incomplete feature
 - No automated tests — all validation is done by running in the live game
 - Git commits are not descriptively labeled (all labeled "1") — history is minimal
-- `Merchant_Systems/Auto_Craft.js` and `Standalone/Priest_Manager.js` are not in `Bootstrapper.js`'s load list — they're manual-inject only, kept in the repo but not part of the automated boot path
 
 ---
 

@@ -25,9 +25,8 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Shared/Common_Functions.js` | Shared utilities, movement, state, location data |
 | `Shared/Buttons.js` | Floating UI button creation |
 | `Shared/Windows.js` | Generic draggable floating window helper |
-| `Standalone/Priest_Manager.js` | Alternate/extended healer management system — **not loaded by Bootstrapper.js**; manual-inject only |
 | `Merchant_Systems/Auto_Upgrade.js` | Item upgrade profiles and automation |
-| `Merchant_Systems/Auto_Craft.js` | Crafting logic — **not loaded by Bootstrapper.js**; manual-inject only |
+| `Merchant_Systems/Auto_Craft.js` | Crafting logic and batch orchestration — loaded by Bootstrapper.js |
 | `Characters/Tank.js` | Warrior entry point (character: Ulric) |
 | `Characters/Healer.js` | Healer entry point (character: Myras) |
 | `Characters/Ranger.js` | Ranger entry point (character: Riva) |
