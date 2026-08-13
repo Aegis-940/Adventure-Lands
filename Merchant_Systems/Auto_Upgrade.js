@@ -433,12 +433,15 @@ async function auto_upgrade_item(level) {
 		// primling_from are two SEPARATE requirements, not alternatives -- an item can
 		// need both at once (e.g. fireblade needs grace built AND still needs its own
 		// offering spent on the scrolled attempt itself). Grace is built by the separate
-		// auto_grace_pass() (see auto_upgrade()) before any scrolled attempts run here --
-		// if that didn't actually confirm the cap (e.g. ran out of offeringp), skip this
-		// item entirely rather than attempting the upgrade ungraced.
+		// auto_grace_pass() (see auto_upgrade()) before any scrolled attempts run here,
+		// best-effort: if it couldn't confirm a genuine plateau (ran out of offeringp, or
+		// GRACE_MAX_OFFERINGS hit before detecting one), proceed anyway with whatever
+		// grace was achieved rather than skipping the item indefinitely -- skipping
+		// forever just re-withdrew/re-banked the same un-upgraded items every cycle with
+		// zero progress once offeringp ran out, which is worse than an imperfectly-graced
+		// attempt.
 		if (profile.grace_from !== undefined && item.level >= profile.grace_from && !grace_capped_slots.has(i)) {
-			log(`Skipping ${item.name} (level ${item.level}): grace not capped yet.`);
-			continue;
+			log(`${item.name} (level ${item.level}): proceeding with best-effort grace (not confirmed capped).`, "#FFA500");
 		}
 
 		// Check for offering if needed
