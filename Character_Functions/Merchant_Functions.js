@@ -432,7 +432,16 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 	} catch (e) {
 		catcher(e, `handle_gathering_state(${skill_name})`);
 	} finally {
-		await equip_default_gear();
+		// try/catch here, not just around the outer body — an exception thrown inside a
+		// finally block aborts the REST of that finally block too, so an unguarded
+		// equip_default_gear() failure (rejected equip(), network hiccup, anything) would
+		// skip merchant_task = "Idle" entirely, permanently stuck on this task forever
+		// since every should_run_*() check requires merchant_task === "Idle".
+		try {
+			await equip_default_gear();
+		} catch (e) {
+			catcher(e, `handle_gathering_state(${skill_name}): equip_default_gear`);
+		}
 		merchant_task = "Idle";
 	}
 }
