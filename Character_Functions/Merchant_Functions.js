@@ -102,19 +102,20 @@ var merchant_task = "Idle"; // Current task: "Idle", "Delivering", etc. — var 
 // STATE MACHINE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Priority order (checked top to bottom every time the merchant is Idle — see
-// get_character_state()). Each state is purely contextual — "is there actually
-// something to do right now" — not time-interval-based. Once a state starts, its
-// handler runs to completion (loop_controller() awaits it) before the priority list
-// is ever re-checked, so nothing here interrupts an in-progress action.
+// Just state name constants — actual priority/check order lives entirely in
+// CONFIG.priorities (see get_character_state()) above, not in this object's own key
+// order. Each state is purely contextual — "is there actually something to do right
+// now" — not time-interval-based. Once a state starts, its handler runs to completion
+// (loop_controller() awaits it) before the priority list is ever re-checked, so nothing
+// here interrupts an in-progress action.
 const MERCHANT_STATES = {
-	DEAD: "dead",             // 0
-	DELIVERING: "delivering", // 1
-	UPGRADING: "upgrading",   // 2
-	CRAFTING: "crafting",     // 3
-	EXCHANGING: "exchanging", // 4
-	FISHING: "fishing",       // 5
-	MINING: "mining",         // 6
+	DEAD: "dead",
+	DELIVERING: "delivering",
+	UPGRADING: "upgrading",
+	CRAFTING: "crafting",
+	EXCHANGING: "exchanging",
+	FISHING: "fishing",
+	MINING: "mining",
 	IDLE: "idle",
 };
 
@@ -239,10 +240,16 @@ async function handle_delivering_state() {
 	merchant_task = "Delivering";
 	try {
 		log("Beginning delivery run...");
-		move_to_character("Myras").catch(e => catcher(e, "handle_delivering_state: move_to_character"));
 
 		let attempts = 0;
 		while (!any_party_within_range() && attempts < DELIVERY_WAIT_MAX_ATTEMPTS) {
+			// Actively pursue a party member every attempt, rotating through PARTY instead
+			// of only ever asking Myras once at the start — a single non-responsive member
+			// (offline, busy, dead, CM round trip lost) no longer leaves the merchant just
+			// standing still hoping proximity resolves itself on its own.
+			const target_name = PARTY[attempts % PARTY.length];
+			move_to_character(target_name).catch(e => catcher(e, "handle_delivering_state: move_to_character " + target_name));
+
 			await delay(3000);
 			attempts++;
 		}
@@ -387,7 +394,11 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 		}
 
 		if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > tolerance) {
-			await smarter_move(spot);
+			// Explicit radius: smarter_move()'s own default arrival radius (10) is looser
+			// than tolerance (5 for fishing) — without this, smarter_move() could consider
+			// itself "arrived" 6-9 units out, and the while loop's own tolerance check right
+			// below would immediately see "not close enough" and abort before ever casting.
+			await smarter_move(spot, null, { radius: tolerance });
 		}
 
 		const tool_equipped = await equip_tool(tool_name);
@@ -473,12 +484,32 @@ async function set_state(state) {
 	}
 }
 
+// Self-healing safety net: if merchant_task ever gets stuck non-"Idle" (an unforeseen
+// deadlock in some handler — we've already found and fixed two different ways that
+// happened) the whole state machine freezes forever, since every should_run_*() check
+// requires merchant_task === "Idle". Tracked here rather than at each assignment site
+// since merchant_task is set in several places (state handlers, Auto_Upgrade.js).
+const MERCHANT_TASK_WATCHDOG_MS = 5 * 60 * 1000; // 5 minutes
+let watchdog_task = merchant_task;
+let watchdog_since = Date.now();
+
 // Sole owner of "where is the character going right now" — every other loop in this
 // file is passive (no smarter_move calls), so there's only ever one active traveler.
 async function loop_controller() {
 	while (true) {
 		try {
 			party_manager();
+
+			if (merchant_task !== watchdog_task) {
+				watchdog_task = merchant_task;
+				watchdog_since = Date.now();
+			} else if (merchant_task !== "Idle" && Date.now() - watchdog_since > MERCHANT_TASK_WATCHDOG_MS) {
+				game_log(`⚠️ Merchant stuck on "${merchant_task}" for over ${MERCHANT_TASK_WATCHDOG_MS / 60000} minutes — forcing back to Idle.`, "#FF3333");
+				merchant_task = "Idle";
+				watchdog_task = "Idle";
+				watchdog_since = Date.now();
+			}
+
 			const state = get_character_state();
 			await set_state(state);
 		} catch (e) {
@@ -865,7 +896,11 @@ async function exchange_items() {
 		const item_config = CONFIG.exchange.targets.find(cfg => cfg.name === item_name);
 		const min_count = item_config?.min ?? 1;
 
-		await smarter_move(HOME);
+		// Explicit radius: see the matching comment in handle_gathering_state() — without
+		// this, smarter_move()'s looser default arrival radius (10) vs
+		// EXCHANGE_POSITION_TOLERANCE (5) could immediately fail the while loop's own
+		// position check below, right after arriving.
+		await smarter_move(HOME, null, { radius: EXCHANGE_POSITION_TOLERANCE });
 		await delay(500);
 
 		log(`📍 At exchange location for ${item_name}. Starting exchange...`);
@@ -889,7 +924,7 @@ async function exchange_items() {
 				log(`📦 Inventory full. Running sell_and_bank for ${item_name}.`);
 				await sell_and_bank();
 				await delay(200);
-				await smarter_move(HOME);
+				await smarter_move(HOME, null, { radius: EXCHANGE_POSITION_TOLERANCE });
 				await delay(200);
 				continue;
 			}

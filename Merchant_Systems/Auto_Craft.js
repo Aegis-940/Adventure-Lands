@@ -247,7 +247,10 @@ async function craft_batch(craft_name, count) {
 		Math.hypot(character.x - CRAFT_LOCATION.x, character.y - CRAFT_LOCATION.y) > CRAFT_POSITION_TOLERANCE
 	) {
 		try {
-			await smarter_move(CRAFT_LOCATION);
+			// Explicit radius: smarter_move()'s default arrival radius (10) is looser than
+			// CRAFT_POSITION_TOLERANCE (5) — pass it explicitly so we're actually within
+			// range of the crafting bench, not just within smarter_move()'s own default.
+			await smarter_move(CRAFT_LOCATION, null, { radius: CRAFT_POSITION_TOLERANCE });
 		} catch (e) {
 			catcher(e, "craft_batch: travel to craft location");
 			return 0;
@@ -388,7 +391,8 @@ async function craft_item(craft_name) {
 			Math.hypot(character.x - CRAFT_LOCATION.x, character.y - CRAFT_LOCATION.y) > CRAFT_POSITION_TOLERANCE
 		) {
 			try {
-				await smarter_move(CRAFT_LOCATION);
+				// Explicit radius: see the matching comment in craft_batch() above.
+				await smarter_move(CRAFT_LOCATION, null, { radius: CRAFT_POSITION_TOLERANCE });
 			} catch (e) {
 				catcher(e, "craft_item: travel to craft location");
 				return "missing";

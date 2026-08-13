@@ -4,6 +4,7 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const UPGRADE_INTERVAL = 75;
+const BANK_POSITION_TOLERANCE = 10; // matches smarter_move()'s own default arrival radius
 
 const UPGRADE_PROFILE = {
 	pouchbow:     { scroll0_until: 3, scroll1_until: 8, scroll2_until: 9, primling_from: 7, max_level: 9 },
@@ -113,8 +114,12 @@ async function withdraw_offering() {
 
 async function withdraw_upgradeable_items() {
 	// 1. If not at BANK_LOCATION, smart move to BANK_LOCATION
-	if (character.map !== BANK_LOCATION.map || character.x !== BANK_LOCATION.x || character.y !== BANK_LOCATION.y) {
-		await smarter_move(BANK_LOCATION);
+	// Was an exact-float-equality check (character.x !== BANK_LOCATION.x) — smarter_move()
+	// only guarantees landing within its own arrival radius, essentially never an exact
+	// coordinate match, so this always re-triggered a (harmless but wasteful) travel call
+	// even when already standing right at the bank.
+	if (character.map !== BANK_LOCATION.map || Math.hypot(character.x - BANK_LOCATION.x, character.y - BANK_LOCATION.y) > BANK_POSITION_TOLERANCE) {
+		await smarter_move(BANK_LOCATION, null, { radius: BANK_POSITION_TOLERANCE });
 		await delay(500);
 	}
 
