@@ -34,7 +34,8 @@ window._cmListeners = window._cmListeners || [];
 		"UI/Remote_Bank_Viewer.js",
 		"UI/Party_Frames.js",
 		"UI/CC_Meter.js",
-		"UI/Stats_Window.js"
+		"UI/Stats_Window.js",
+		"UI/Settings_Window.js"
 	];
 
 	const role_scripts = {

@@ -44,6 +44,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Character_Functions/Merchant_Functions.js` | Trading, fishing, mining, potion delivery |
 | `UI/DPS_Meter.js` | Real-time DPS tracking overlay |
 | `UI/Stats_Window.js` | Character stats + gold graph (Canvas API) |
+| `UI/Settings_Window.js` | Live in-game per-character target settings, persisted via localStorage, ⚙️ button next to the reload button |
 | `UI/Party_Frames.js` | Party HP/status display |
 | `UI/Remote_Bank_Viewer.js` | Bank access UI, plus the toprightcorner reload button (restored here after Buttons.js was removed) |
 | `UI/Bank_Sorter.js` | Bank sorting order/category definitions |

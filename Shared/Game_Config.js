@@ -54,9 +54,13 @@ const locations = {
 	xscorpion:  [{ x: -495, y: 685 }],
 };
 
-const HEALER_TARGET    = "bscorpion";
-const WARRIOR_TARGET   = "bscorpion";
-const RANGER_TARGET    = "bscorpion";
+// Overridable live in-game via UI/Settings_Window.js -- localStorage is shared across all
+// 4 characters' tabs (same origin, same mechanism state_cache_loop() already relies on),
+// so a save from any one tab's settings window is visible here on every character's next
+// reload. Falls back to the hardcoded default when no override has been saved.
+const HEALER_TARGET    = localStorage.getItem("AL_target_Myras") || "bscorpion";
+const WARRIOR_TARGET   = localStorage.getItem("AL_target_Ulric") || "bscorpion";
+const RANGER_TARGET    = localStorage.getItem("AL_target_Riva")  || "bscorpion";
 
 const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
 

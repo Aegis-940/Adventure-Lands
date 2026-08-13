@@ -68,7 +68,8 @@ UI/*.js                      ← overlay panels (semi-independent)
     ├── Gold_Meter.js
     ├── XP_Meter.js
     ├── Game_Log.js           mostly commented out — incomplete feature
-    └── Custom_Log.js         custom in-game log window
+    ├── Custom_Log.js         custom in-game log window
+    └── Settings_Window.js    per-character target settings, persisted via localStorage
 
 Merchant_Systems/
     ├── Auto_Upgrade.js        item upgrade profiles (loaded for Riff)
@@ -195,6 +196,7 @@ CONFIG = {
 | Shared/Widgets.js | 54 |
 | UI/DPS_Meter.js | 376 |
 | UI/Stats_Window.js | 347 |
+| UI/Settings_Window.js | 149 |
 | UI/Remote_Bank_Viewer.js | 194 |
 | UI/Bank_Sorter.js | 187 |
 | UI/Custom_Log.js | 270 |
