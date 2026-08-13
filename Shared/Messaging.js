@@ -39,8 +39,38 @@ const location_responses = {};
 
 // Central CM message handlers
 const CM_HANDLERS = {
+	// _healer_last_known/panicking (var, set by Warrior/Ranger's own files) only get read
+	// on characters that actually declare them — this branch is a harmless no-op on
+	// Myras's/Riff's own tabs, since Myras never sends herself these and Healer only
+	// broadcasts "panic" to PANIC_BROADCAST_TARGETS (Ulric/Riva), not Riff.
 	"my_location": (name, data) => {
 		location_responses[name] = { map: data.map, x: data.x, y: data.y };
+		if (name === "Myras") {
+			_healer_last_known = { map: data.map, x: data.x, y: data.y };
+		}
+	},
+
+	// Was duplicated identically in Warrior_Functions.js/Ranger_Functions.js as a raw
+	// add_cm_listener((name, data) => {...}) block — folded into this dispatch table.
+	"panic": (name, data) => {
+		if (name !== "Myras") return;
+		panicking = data.state;
+		if (data.state) log("⚠️ Healer panicking — holding fire!", "#ffcc00", "Alerts");
+		else            log("✅ Healer panic over — resuming.", "#00ff00", "Alerts");
+	},
+
+	"suppress_reset": () => set_suppress_reset(true),
+
+	"enter_instance": (name, data) => {
+		const instance_id = data.in;
+		const join_interval = setInterval(() => {
+			if (character.map === "spider_instance") {
+				clearInterval(join_interval);
+				send_cm("Myras", { type: "instance_ready" });
+			} else {
+				enter("spider_instance", instance_id);
+			}
+		}, 2000);
 	},
 
 	"where_are_you": (name) => {
@@ -80,6 +110,13 @@ const CM_HANDLERS = {
 		setTimeout(() => parent.window.location.reload(), 500);
 	}
 };
+
+// Was duplicated identically in Warrior_Functions.js/Ranger_Functions.js, each with its
+// own setInterval(send_updates, 20000) call site — those stay in place, only the
+// function body itself was hoisted here.
+function send_updates() {
+	parent.socket.emit("send_updates", {});
+}
 
 // Register the handler dispatcher
 add_cm_listener((name, data) => {

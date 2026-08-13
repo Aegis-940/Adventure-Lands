@@ -240,6 +240,24 @@ function party_manager() {
 	}
 }
 
+// Game-engine-invoked callbacks (same convention as on_cm) — shared by Warrior/Healer/
+// Ranger (was duplicated identically across all three). Each file's own CONFIG (var, so
+// visible globally at call time) supplies party.group_members, so this stays correct
+// per-character despite living in a shared file.
+function on_party_request(name) {
+	if (CONFIG.party.group_members.includes(name)) {
+		console.log("Accepting party request from " + name);
+		accept_party_request(name);
+	}
+}
+
+function on_party_invite(name) {
+	if (CONFIG.party.group_members.includes(name)) {
+		console.log("Accepting party invite from " + name);
+		accept_party_invite(name);
+	}
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // LOOT & INVENTORY
 // --------------------------------------------------------------------------------------------------------------------------------- //

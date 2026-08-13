@@ -77,7 +77,11 @@ var CONFIG = {
 	},
 	// Checked top to bottom by get_character_state() (see PRIORITY_CHECKS) every time
 	// the merchant is Idle. Reorder to change what the merchant prefers to do first.
-	priorities: ["dead", "delivering", "upgrading", "crafting", "exchanging", "fishing", "mining"],
+	// Fishing/mining sit above crafting/exchanging: all four require free bank space
+	// (has_enough_bank_space()), but upgrading no longer does (see should_run_upgrade()),
+	// so whenever bank space is scarce, upgrading was winning every cycle and crafting/
+	// exchanging were permanently starving fishing/mining out of a turn.
+	priorities: ["dead", "delivering", "upgrading", "fishing", "mining", "crafting", "exchanging"],
 };
 
 // Game_Config.js's shared potion_loop()/auto_buy_potions() aren't used here — the

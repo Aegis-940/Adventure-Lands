@@ -206,6 +206,17 @@ const PRIM_FARM_LOC_HEALER = { map: "desertland", x: -408, y: -1146 };
 const PRIM_FARM_RADIUS = 105;
 const SAFETY_DISTANCE = 100;
 
+// Shared by Warrior/Healer/Ranger (was duplicated identically across all three main_loops)
+// — approaches the farm spot via smart_move only when actually lost; once in the farm
+// zone, prim_farm_loop() handles positioning without triggering smart.moving. Callers
+// gate this on their own `home === "bscorpion"` check first (home is set to each file's
+// own WARRIOR_TARGET/HEALER_TARGET/RANGER_TARGET, so this stays generic).
+function handle_bscorpion_farm_approach() {
+	const at_farm = character.map === PRIM_FARM_LOC.map &&
+		Math.hypot(character.x - PRIM_FARM_LOC.x, character.y - PRIM_FARM_LOC.y) < PRIM_FARM_RADIUS + 30;
+	if (!at_farm && !smart.moving) smart_move(PRIM_FARM_LOC);
+}
+
 // Shared helper: find nearest alive bscorpion
 let cached_bscorpion_id = null;
 

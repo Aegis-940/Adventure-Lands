@@ -293,14 +293,8 @@ async function main_loop() {
 			await handle_looting();
 		}
 		else if (CONFIG.movement.enabled) {
-			if (HEALER_TARGET === "bscorpion") {
-				// Scorpion visibility ≠ scorpion reachability (waterway between them).
-				// Pathfind to the farm spot via smart_move only when actually lost;
-				// once we're in the farm zone, prim_farm_loop handles positioning
-				// without triggering smart.moving.
-				const at_farm = character.map === PRIM_FARM_LOC.map &&
-					Math.hypot(character.x - PRIM_FARM_LOC.x, character.y - PRIM_FARM_LOC.y) < PRIM_FARM_RADIUS + 30;
-				if (!at_farm && !smart.moving) smart_move(PRIM_FARM_LOC);
+			if (home === "bscorpion") {
+				handle_bscorpion_farm_approach(); // Shared/Movement.js
 			} else if (HEALER_TARGET === "giantspider") {
 				// No movement — remain stationary and let the user guide manually
 			} else if (!get_nearest_monster({ type: home })) {
@@ -743,19 +737,8 @@ async function swap_booster(current, target) {
 // 	}
 // }
 
-function on_party_request(name) {
-	if (CONFIG.party.group_members.includes(name)) {
-		console.log("Accepting party request from " + name);
-		accept_party_request(name);
-	}
-}
-
-function on_party_invite(name) {
-	if (CONFIG.party.group_members.includes(name)) {
-		console.log("Accepting party invite from " + name);
-		accept_party_invite(name);
-	}
-}
+// on_party_request/on_party_invite -> Shared/Party_And_Loot.js (was duplicated identically
+// across Warrior/Healer/Ranger)
 
 // game.on("death", data => {
 // 	const mob = parent.entities[data.id];

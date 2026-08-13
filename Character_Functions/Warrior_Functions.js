@@ -304,14 +304,8 @@ async function main_loop() {
 		}
 
 		else if (CONFIG.movement.enabled) {
-			if (WARRIOR_TARGET === "bscorpion") {
-				// Scorpion visibility ≠ scorpion reachability (waterway between them).
-				// Pathfind to the farm spot via smart_move only when actually lost;
-				// once we're in the farm zone, prim_farm_loop handles positioning
-				// without triggering smart.moving.
-				const at_farm = character.map === PRIM_FARM_LOC.map &&
-					Math.hypot(character.x - PRIM_FARM_LOC.x, character.y - PRIM_FARM_LOC.y) < PRIM_FARM_RADIUS + 30;
-				if (!at_farm && !smart.moving) smart_move(PRIM_FARM_LOC);
+			if (home === "bscorpion") {
+				handle_bscorpion_farm_approach(); // Shared/Movement.js
 			} else if (WARRIOR_TARGET === "giantspider") {
 				follow_healer();
 			} else if (!get_nearest_monster({ type: home })) {
@@ -739,49 +733,12 @@ var PANIC_THRESHOLDS = {
 // EVENT HANDLERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-add_cm_listener((name, data) => {
-	if (name === "Myras") {
-		if (data.type === "panic") {
-			panicking = data.state;
-			if (data.state) log("⚠️ Healer panicking — holding fire!", "#ffcc00", "Alerts");
-			else            log("✅ Healer panic over — resuming.", "#00ff00", "Alerts");
-		}
-		if (data.type === "my_location") {
-			_healer_last_known = { map: data.map, x: data.x, y: data.y };
-		}
-	}
-	if (data.type === "reload") {
-		setTimeout(() => parent.window.location.reload(), 500);
-	}
-	if (data.type === "suppress_reset") {
-		set_suppress_reset(true);
-	}
-	if (data.type === "enter_instance") {
-		const instance_id = data.in;
-		const join_interval = setInterval(() => {
-			if (character.map === "spider_instance") {
-				clearInterval(join_interval);
-				send_cm("Myras", { type: "instance_ready" });
-			} else {
-				enter("spider_instance", instance_id);
-			}
-		}, 2000);
-	}
-});
+// The panic/my_location/suppress_reset/enter_instance CM listener -> Shared/Messaging.js's
+// CM_HANDLERS (was duplicated identically in Warrior/Ranger; the "reload" branch here was
+// itself a duplicate of Messaging.js's own existing "reload" handler, dropped).
 
-function on_party_request(name) {
-	if (CONFIG.party.group_members.includes(name)) {
-		console.log("Accepting party request from " + name);
-		accept_party_request(name);
-	}
-}
-
-function on_party_invite(name) {
-	if (CONFIG.party.group_members.includes(name)) {
-		console.log("Accepting party invite from " + name);
-		accept_party_invite(name);
-	}
-}
+// on_party_request/on_party_invite -> Shared/Party_And_Loot.js (was duplicated identically
+// across Warrior/Healer/Ranger)
 
 game.on("death", data => {
 	const mob = parent.entities[data.id];
@@ -798,9 +755,7 @@ game.on("death", data => {
 	}
 });
 
-function send_updates() {
-	parent.socket.emit("send_updates", {});
-}
+// send_updates() -> Shared/Messaging.js (was duplicated identically in Warrior/Ranger)
 setInterval(send_updates, 20000);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
