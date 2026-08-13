@@ -8,7 +8,10 @@ const BANK_POSITION_TOLERANCE = 10; // matches smarter_move()'s own default arri
 
 const UPGRADE_PROFILE = {
 	pouchbow:     { scroll0_until: 3, scroll1_until: 8, scroll2_until: 9, primling_from: 7, max_level: 9 },
-	fireblade:    { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 6, max_level: 8 },
+	// grace_from: build persistent grace to its cap (see add_grace_to_cap()) before every
+	// scrolled attempt starting at this level — e.g. grace_from: 8 means grace is applied
+	// before attempting the 8->9 upgrade (and every attempt after, until max_level).
+	fireblade:    { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 6, grace_from: 8, max_level: 9 },
 	firebow:      { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 6, max_level: 8 },
 	firestaff:    { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 7, max_level: 8 },
 	hbow:         { scroll0_until: 3, scroll1_until: 6, scroll2_until: 8, primling_from: 7, max_level: 7 },
@@ -62,10 +65,9 @@ const COMBINE_PROFILE = {
 // offering_num, calculate) returns { grace, ... }, and repeated real (non-calculate)
 // applications increase it until it plateaus (capped).
 //
-// Item names here build grace to the cap (see add_grace_to_cap()) before every real
-// scrolled upgrade attempt in auto_upgrade_item() — add more names to extend this to
-// other items.
-const GRACE_ITEMS = ["fireblade"];
+// Which items build grace, and from what level, is configured per-item via
+// UPGRADE_PROFILE's optional grace_from field (see auto_upgrade_item() below) rather
+// than a separate list here.
 
 // Safety backstop on the loop below — not the expected real count, just a ceiling so a
 // bugged/never-plateauing response (or a bottomless offeringp supply) can't spin forever.
@@ -384,11 +386,15 @@ async function auto_upgrade_item(level) {
 			}
 		}
 
-		// Check for offering if needed (skipped for GRACE_ITEMS — those build grace to the
-		// cap via a separate offering-only step below instead of bundling one offering
-		// into the same call as the scroll)
+		// Does this item build grace at its current level? (UPGRADE_PROFILE's optional
+		// grace_from — e.g. grace_from: 8 means every attempt from level 8 on.)
+		const wants_grace = profile.grace_from !== undefined && item.level >= profile.grace_from;
+
+		// Check for offering if needed (skipped when wants_grace — that builds grace to
+		// the cap via a separate offering-only step below instead of bundling one
+		// offering into the same call as the scroll)
 		let offering_slot = null;
-		if (!GRACE_ITEMS.includes(item.name) && profile.primling_from !== undefined && item.level >= profile.primling_from) {
+		if (!wants_grace && profile.primling_from !== undefined && item.level >= profile.primling_from) {
 			for (let j = 0; j < character.items.length; j++) {
 				const inv_item = character.items[j];
 				if (inv_item && inv_item.name === "offeringp") {
@@ -404,10 +410,10 @@ async function auto_upgrade_item(level) {
 		}
 
 		// GRACE — build persistent grace to its cap before spending the scroll (see
-		// GRACE_ITEMS/add_grace_to_cap() above). Runs only once we've confirmed a scroll
-		// is actually ready to spend this call, so grace isn't built on an item we're not
-		// about to attempt yet.
-		if (GRACE_ITEMS.includes(item.name)) {
+		// add_grace_to_cap() above). Runs only once we've confirmed a scroll is actually
+		// ready to spend this call, so grace isn't built on an item we're not about to
+		// attempt yet.
+		if (wants_grace) {
 			await add_grace_to_cap(i);
 		}
 
