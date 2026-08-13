@@ -34,8 +34,9 @@ function open_settings_window() {
 	div.id = "settings-window";
 	div.style.position = "absolute";
 	const WINDOW_WIDTH = 300;
-	div.style.left = (parent.window.innerWidth - 650 - WINDOW_WIDTH) + "px";
-	div.style.top = (parent.window.innerHeight - 1 - 260) + "px";
+	const WINDOW_HEIGHT = 260; // approximate -- content auto-sizes, only used to center initially
+	div.style.left = ((parent.window.innerWidth - WINDOW_WIDTH) / 2) + "px";
+	div.style.top = ((parent.window.innerHeight - WINDOW_HEIGHT) / 2) + "px";
 	div.style.width = WINDOW_WIDTH + "px";
 	div.style.background = "rgba(0,0,0,0.85)";
 	div.style.color = "#fff";
