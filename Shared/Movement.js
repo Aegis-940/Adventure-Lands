@@ -26,29 +26,19 @@ function halt_movement() {
 	parent.socket.emit("move", { to: { x: character.x, y: character.y } });
 }
 
-/**
- * Improved smarter_move function.
- * - Returns a Promise that always resolves or rejects.
- * - Handles interruptions and timeouts gracefully.
- * - Allows for external interruption via halt_movement or a global flag.
- * - Provides better error messages and status.
- */
+// Returns a Promise that always resolves/rejects; supports external interruption via halt_movement or a global flag.
 function smarter_move(destination, on_done, options = {}) {
-	// Cancel any previous smarter_move
 	if (smart.moving && typeof smart._interrupt === "function") {
 		smart._interrupt("interrupted");
 	}
 
-	// Internal state
 	let interrupted = false;
 	let interrupt_reason = null;
 	let resolve_fn, reject_fn;
 	let timeout_id = null;
 
-	// Default timeout: 120 seconds
-	const MOVE_TIMEOUT = options.timeout || 120000;
+	const MOVE_TIMEOUT = options.timeout || 120000; // 120s default
 
-	// Helper to interrupt movement
 	smart._interrupt = (reason = "interrupted") => {
 		interrupted = true;
 		interrupt_reason = reason;
@@ -58,7 +48,6 @@ function smarter_move(destination, on_done, options = {}) {
 		if (reject_fn) reject_fn({ success: false, reason });
 	};
 
-	// Helper to complete movement
 	function complete(success = true, reason = null) {
 		smart.moving = false;
 		if (timeout_id) clearTimeout(timeout_id);
@@ -67,14 +56,12 @@ function smarter_move(destination, on_done, options = {}) {
 		else if (reject_fn) reject_fn({ success: false, reason });
 	}
 
-	// Validate destination
 	let target = {};
 	if (typeof destination === "string") target = { to: destination };
 	else if (typeof destination === "number") target = { x: destination, y: on_done }, on_done = null;
 	else if (typeof destination === "object") target = { ...destination };
 	else return Promise.reject({ reason: "invalid destination" });
 
-	// Set up target coordinates
 	if ("x" in target) {
 		smart.map = target.map || character.map;
 		smart.x = target.x;
@@ -100,18 +87,14 @@ function smarter_move(destination, on_done, options = {}) {
 		return Promise.reject({ reason: "invalid destination" });
 	}
 
-	// Start movement
 	smart.moving = true;
 	smart.plot = [];
 	smart.flags = {};
 	smart.searching = smart.found = false;
 
-	// Movement monitoring loop
 	function monitor_movement() {
-		// If interrupted, exit
 		if (interrupted) return;
 
-		// If arrived at destination
 		if (
 			character.map === smart.map &&
 			Math.hypot(character.x - smart.x, character.y - smart.y) < (options.radius || 10)
@@ -120,25 +103,20 @@ function smarter_move(destination, on_done, options = {}) {
 			return;
 		}
 
-		// If movement stopped unexpectedly
 		if (!smart.moving) {
 			complete(false, "movement stopped");
 			return;
 		}
 
-		// Continue monitoring
 		setTimeout(monitor_movement, 200);
 	}
 
-	// Start monitoring
 	setTimeout(monitor_movement, 200);
 
-	// Timeout handler
 	timeout_id = setTimeout(() => {
 		smart._interrupt("timeout");
 	}, MOVE_TIMEOUT);
 
-	// Return a Promise that resolves/rejects on completion/interruption
 	return new Promise((resolve, reject) => {
 		resolve_fn = resolve;
 		reject_fn = reject;
@@ -154,11 +132,7 @@ function smarter_move(destination, on_done, options = {}) {
 // MOVE TO CHARACTER'S LOCATION
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Returns a Promise that resolves once we've actually arrived (or rejects on an
-// invalid/missing response or timeout) — not just once the request was sent. Callers
-// relying on .then()/.catch()/await to know whether the move really happened depend on
-// this; previously the function resolved immediately after firing the CM request,
-// before any response or movement occurred.
+// Resolves once we've actually arrived (or rejects on invalid/missing response or timeout) — not just once the request was sent.
 function move_to_character(name, timeout_ms = 10000) {
 	return new Promise((resolve, reject) => {
 		let responded = false;
@@ -180,13 +154,10 @@ function move_to_character(name, timeout_ms = 10000) {
 			smarter_move({ map, x, y }).then(resolve, reject);
 		}
 
-		// Add listener
 		add_cm_listener(handle_response);
 
-		// Send request
 		send_cm(name, { type: "where_are_you" });
 
-		// Timeout fallback
 		const timeout_id = setTimeout(() => {
 			if (!responded) {
 				remove_cm_listener(handle_response);
@@ -206,34 +177,25 @@ const PRIM_FARM_LOC_HEALER = { map: "desertland", x: -408, y: -1146 };
 const PRIM_FARM_RADIUS = 105;
 const SAFETY_DISTANCE = 100;
 
-// Shared by handle_bscorpion_farm_approach() and the prim_farm_loop()/prim_orbit_loop()
-// positioning loops — smart.moving alone isn't a safe gate for the latter two, since the
-// native smart_move engine can drop it false for a tick between BFS waypoint recalcs,
-// letting a stray move() call knock the character off its path every ~100ms. Gating on
-// actual arrival in the farm zone instead means the positioning loops stay fully inert
-// until smart_move has genuinely finished the approach.
+// smart.moving isn't a safe gate for the positioning loops below — smart_move can drop it false for a tick
+// between BFS waypoint recalcs, letting a stray move() knock the character off path. Gate on actual arrival instead.
 function is_at_bscorpion_farm() {
 	return character.map === PRIM_FARM_LOC.map &&
 		Math.hypot(character.x - PRIM_FARM_LOC.x, character.y - PRIM_FARM_LOC.y) < PRIM_FARM_RADIUS + 30;
 }
 
-// Shared by Warrior/Healer/Ranger (was duplicated identically across all three main_loops)
-// — approaches the farm spot via smart_move only when actually lost; once in the farm
-// zone, prim_farm_loop() handles positioning without triggering smart.moving. Callers
-// gate this on their own `home === "bscorpion"` check first (home is set to each file's
-// own WARRIOR_TARGET/HEALER_TARGET/RANGER_TARGET, so this stays generic).
+// Shared by Warrior/Healer/Ranger — approaches the farm spot via smart_move only when actually lost;
+// callers gate this on their own `home === "bscorpion"` check first.
 function handle_bscorpion_farm_approach() {
 	if (!is_at_bscorpion_farm() && !smart.moving) smart_move(PRIM_FARM_LOC);
 }
 
-// Shared helper: find nearest alive bscorpion
 let cached_bscorpion_id = null;
 
 function find_nearest_bscorpion() {
 	let nearest = null;
 	let min_dist = Infinity;
 
-	// Try cached id first
 	if (cached_bscorpion_id && parent.entities[cached_bscorpion_id]) {
 		const ent = parent.entities[cached_bscorpion_id];
 		if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
@@ -244,7 +206,6 @@ function find_nearest_bscorpion() {
 		}
 	}
 
-	// If not cached or cache invalid, search
 	if (!nearest) {
 		for (const id in parent.entities) {
 			const ent = parent.entities[id];
@@ -273,16 +234,13 @@ function is_bscorpion_targeting_myras() {
 	return false;
 }
 
-// Returns true if a visible bscorpion has >= 5% HP. Used to gate party buffs
-// (warcry, dark blessing) so they aren't wasted on a near-dead boss or fired
-// when no bscorpion is visible.
+// True if a visible bscorpion has >= 5% HP — gates party buffs (warcry, dark blessing).
 function bscorpion_worth_buffing() {
 	const info = find_nearest_bscorpion();
 	if (!info) return false;
 	return info.entity.hp / info.entity.max_hp >= 0.05;
 }
 
-// Consolidated: move to maintain a specific distance from bscorpion
 async function move_distance_from_bscorpion(desired = 40, tolerance = 0.75) {
 	const info = find_nearest_bscorpion();
 	if (!info) return false;
@@ -299,12 +257,11 @@ async function move_distance_from_bscorpion(desired = 40, tolerance = 0.75) {
 	return false;
 }
 
-// Predictive movement: maintain exactly the right distance from bscorpion
+// Predicts bscorpion's position 100ms ahead and maintains exactly the right distance from it.
 async function maintain_distance_from_bscorpion() {
 	const info = find_nearest_bscorpion();
 	if (!info) return false;
 
-	// Predict bscorpion's future position (100ms ahead)
 	const prediction_time = 0.1; // seconds
 	const nearest = info.entity;
 	let pred_x = nearest.x;
@@ -313,17 +270,14 @@ async function maintain_distance_from_bscorpion() {
 		pred_x += nearest.vx * prediction_time;
 		pred_y += nearest.vy * prediction_time;
 	} else if (typeof nearest.going_x === "number" && typeof nearest.going_y === "number") {
-		// Fallback: use going_x/going_y if vx/vy not available
 		pred_x = nearest.going_x;
 		pred_y = nearest.going_y;
 	}
 
-	// Desired distance
 	const desired = 38;
 	const angle = Math.atan2(character.y - pred_y, character.x - pred_x);
 	const new_x = pred_x + Math.cos(angle) * desired;
 	const new_y = pred_y + Math.sin(angle) * desired;
-	// Only move if not already at the correct distance (with a small tolerance)
 	const dist_to_pred = Math.hypot(character.x - new_x, character.y - new_y);
 	log(dist_to_pred);
 	if (dist_to_pred > 2) {
@@ -335,7 +289,7 @@ async function maintain_distance_from_bscorpion() {
 
 let _orbit_angle = 0;
 async function move_safe_from_bscorpion() {
-	// Orbit PRIM_FARM_LOC at PRIM_FARM_RADIUS clockwise
+	// Orbits PRIM_FARM_LOC at PRIM_FARM_RADIUS clockwise
 	_orbit_angle += Math.PI / 16;
 	if (_orbit_angle > 2 * Math.PI) _orbit_angle -= 2 * Math.PI;
 	const new_x = PRIM_FARM_LOC.x + Math.cos(_orbit_angle) * PRIM_FARM_RADIUS;
@@ -348,10 +302,7 @@ async function prim_farm_loop() {
 	while (true) {
 		if (PRIM_FARM_LOOT_ENABLED) {
 
-			// Not yet in the farm zone — handle_bscorpion_farm_approach is still
-			// smart_move-ing us there. Stay fully inert so our raw move() calls can't
-			// knock the character off that path (smart.moving isn't a safe gate here —
-			// see is_at_bscorpion_farm() comment).
+			// Not yet in the farm zone — stay inert (see is_at_bscorpion_farm() comment).
 			if (!is_at_bscorpion_farm()) {
 				await delay(100);
 				continue;
@@ -373,7 +324,6 @@ async function prim_farm_loop() {
 				}
 
 				if (!is_bscorpion_targeting_myras() && !too_close) {
-					// Cast absorb on bscorpion if possible
 					const bscorp = Object.values(parent.entities).find(ent =>
 						ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead
 					);
@@ -400,13 +350,11 @@ async function prim_farm_loop() {
 
 async function prim_orbit_loop() {
 
-	// User algorithm:
-	// 1. Establish where the scorpion is and where I am.
-	// 2. If possible move away in the most direct manner.
-	// 3. If at the radius boundary, rotate clockwise or anticlockwise, whichever creates the most separation.
+	// Algorithm: move directly away from the scorpion; once at the radius boundary, rotate
+	// clockwise or anticlockwise, whichever creates the most separation.
 
-	const RADIUS_TOL = 2; // How close to PRIM_FARM_RADIUS counts as "at boundary"
-	const ROTATE_STEP_DEG = 10; // How much to rotate per step (degrees)
+	const RADIUS_TOL = 2; // how close to PRIM_FARM_RADIUS counts as "at boundary"
+	const ROTATE_STEP_DEG = 10; // rotation step in degrees
 	while (true) {
 		if (PRIM_FARM_LOOT_ENABLED) {
 
@@ -424,19 +372,16 @@ async function prim_orbit_loop() {
 			const sx = bscorp.x;
 			const sy = bscorp.y;
 
-			// Vector from scorpion to self
 			const dx = cx - sx;
 			const dy = cy - sy;
 			const dist = Math.hypot(dx, dy);
 
-			// Vector from farm center to self
 			const fx = cx - PRIM_FARM_LOC.x;
 			const fy = cy - PRIM_FARM_LOC.y;
 			const farm_dist = Math.hypot(fx, fy);
 
-			// 1. If not at radius, move directly away from scorpion, but clamp to farm radius
+			// If not at radius, move directly away from scorpion, clamped to farm radius
 			if (Math.abs(farm_dist - PRIM_FARM_RADIUS) > RADIUS_TOL) {
-				// Target point: in the direction away from scorpion, but at farm radius
 				const away_angle = Math.atan2(dy, dx);
 				const target_x = PRIM_FARM_LOC.x + Math.cos(away_angle) * PRIM_FARM_RADIUS;
 				const target_y = PRIM_FARM_LOC.y + Math.sin(away_angle) * PRIM_FARM_RADIUS;
@@ -445,21 +390,18 @@ async function prim_orbit_loop() {
 				continue;
 			}
 
-			// 2. At radius: try rotating clockwise and counterclockwise, pick direction that increases separation
+			// At radius: try both rotation directions, pick whichever increases separation
 			const my_angle = Math.atan2(fy, fx);
 			const step_rad = ROTATE_STEP_DEG * Math.PI / 180;
-			// Clockwise
 			const cw_angle = my_angle - step_rad;
 			const cw_x = PRIM_FARM_LOC.x + Math.cos(cw_angle) * PRIM_FARM_RADIUS;
 			const cw_y = PRIM_FARM_LOC.y + Math.sin(cw_angle) * PRIM_FARM_RADIUS;
 			const cw_dist = Math.hypot(cw_x - sx, cw_y - sy);
-			// Counterclockwise
 			const ccw_angle = my_angle + step_rad;
 			const ccw_x = PRIM_FARM_LOC.x + Math.cos(ccw_angle) * PRIM_FARM_RADIUS;
 			const ccw_y = PRIM_FARM_LOC.y + Math.sin(ccw_angle) * PRIM_FARM_RADIUS;
 			const ccw_dist = Math.hypot(ccw_x - sx, ccw_y - sy);
 
-			// Pick the direction that gives more separation
 			let target_x, target_y;
 			if (cw_dist > ccw_dist) {
 				target_x = cw_x;
@@ -482,12 +424,8 @@ async function prim_orbit_loop() {
 
 let orbit_origin = null;
 
-// Dynamically set orbit_origin based on character name
-// typeof-guarded: this runs immediately at load time, but Movement.js and Game_Config.js
-// (which defines HEALER_TARGET/WARRIOR_TARGET/RANGER_TARGET) both load in parallel with
-// no ordering guarantee -- if Movement.js's fetch resolves first, those aren't defined
-// yet. This whole COMBAT ORBIT section is dead/unused, so a skipped assignment here is a
-// no-op either way, not a functional loss.
+// typeof-guarded: Movement.js and Game_Config.js load in parallel with no ordering guarantee, so
+// HEALER_TARGET/WARRIOR_TARGET/RANGER_TARGET may not exist yet here. Section is dead/unused anyway.
 if (character.name === "Myras" && typeof HEALER_TARGET !== "undefined") {
 	orbit_origin = HEALER_TARGET;
 } else if (character.name === "Ulric" && typeof WARRIOR_TARGET !== "undefined") {
@@ -525,7 +463,6 @@ async function orbit_loop() {
 	let delay_ms = 50;
 
 	while(true) {
-		// Wait until orbit loop is enabled
 		if (!ORBIT_LOOP_ENABLED) {
 			await delay(100);
 			continue;
@@ -537,12 +474,11 @@ async function orbit_loop() {
 		orbit_path_index = 0;
 
 		while (true) {
-			// Check if orbit loop is enabled
 			if (!ORBIT_LOOP_ENABLED) {
 				await delay(100);
 				continue;
 			}
-			// Stop the loop if character is more than 100 units from the orbit origin
+			// Stop if more than 100 units from the orbit origin
 			const dist_from_origin = Math.hypot(character.real_x - orbit_origin.x, character.real_y - orbit_origin.y);
 			if (dist_from_origin > 100) {
 				game_log("⚠️ Exiting orbit: too far from origin.", "#FF0000");
@@ -553,7 +489,6 @@ async function orbit_loop() {
 			const point = orbit_path_points[orbit_path_index];
 			orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
 
-			// Only move if not already close to the next point
 			const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
 			if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
 				try {
@@ -563,13 +498,11 @@ async function orbit_loop() {
 				}
 			}
 
-			// Wait until movement is finished or interrupted
 			while (ORBIT_LOOP_ENABLED && (character.moving || smart.moving)) {
 				await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
 			}
 
-			// Small delay before next step to reduce CPU usage
-			await delay(delay_ms);
+			await delay(delay_ms); // reduce CPU usage
 		}
 	}
 

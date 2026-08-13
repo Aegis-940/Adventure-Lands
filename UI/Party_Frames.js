@@ -4,7 +4,6 @@ const PARTY_ORDER = ["Ulric", "Myras", "Riva", "Riff"];
 const PARTY_FRAME_WIDTH = 100;
 const BAR_HEIGHT = 18;
 
-// Inject CSS for positioning and style
 (function() {
 	const css = `
 	#simple-party-ui-container {
@@ -64,10 +63,8 @@ const BAR_HEIGHT = 18;
 	}
 })();
 
-// For our own character, read live values directly. For everyone else, read
-// Shared/Game_Config.js's localStorage-backed state cache (state_cache_loop()/
-// read_state_cache()) — shared across all characters' browser tabs on this origin, so
-// it's always current regardless of party proximity, unlike get_player().
+// Own character reads live values; others read Shared/Game_Config.js's localStorage-backed
+// state cache (shared across tabs), which stays current regardless of party proximity unlike get_player().
 function get_party_member_info(name) {
 	if (name === character.name) {
 		return {
@@ -81,10 +78,8 @@ function get_party_member_info(name) {
 		};
 	}
 
-	// Party_Frames.js and Shared/Messaging.js (which defines read_state_cache) both load
-	// in parallel via Promise.all with no ordering guarantee — this interval starts
-	// immediately, so an early tick can land before Messaging.js's fetch resolves.
-	// typeof-guard so that briefly falls back to "unknown" instead of throwing.
+	// typeof-guard: Messaging.js (defines read_state_cache) loads in parallel with no
+	// ordering guarantee, so an early tick can land before it's defined.
 	const cached = typeof read_state_cache === "function" ? read_state_cache(name) : null;
 	if (cached) {
 		return {
@@ -141,6 +136,5 @@ function render_party_ui() {
 	}
 }
 
-// Matches state_cache_loop()'s 100ms write interval (Shared/Game_Config.js) —
-// redrawing faster than the underlying cache updates wouldn't show anything new.
+// Matches state_cache_loop()'s 100ms write interval (Shared/Game_Config.js).
 setInterval(render_party_ui, 100);

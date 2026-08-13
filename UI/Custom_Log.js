@@ -3,12 +3,10 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function create_custom_log_window() {
-	// Only create if it doesn't exist
 	if (parent.document.getElementById("custom-log-window")) return;
 
 	const doc = parent.document;
 
-	// Create main window
 	const div = doc.createElement("div");
 	div.id = "custom-log-window";
 	div.style.position = "absolute";
@@ -31,7 +29,6 @@ function create_custom_log_window() {
 	div.style.flexDirection = "column";
 	div.style.cursor = "default";
 
-	// Drag handle (top bar)
 	const drag_handle = doc.createElement("div");
 	drag_handle.style.height = "18px";
 	drag_handle.style.background = "#444";
@@ -67,7 +64,6 @@ function create_custom_log_window() {
 		{ name: "Errors", id: "tab-errors" }
 	];
 
-	// Store current tab in window
 	div._currentTab = "All";
 
 	// --- Log containers for each tab ---
@@ -117,7 +113,6 @@ function create_custom_log_window() {
 		btn.style.justifyContent = "center";
 		btn.style.position = "relative";
 
-		// Alert indicator span
 		const alert_span = doc.createElement("span");
 		alert_span.textContent = "";
 		alert_span.style.color = "#fff";
@@ -126,7 +121,6 @@ function create_custom_log_window() {
 		alert_span.id = `alert-${tab.id}`;
 		btn.appendChild(alert_span);
 
-		// Add checkbox for General, Alerts, and Errors tabs
 		if (tab.name !== "All") {
 			const checkbox = doc.createElement("input");
 			checkbox.type = "checkbox";
@@ -142,12 +136,10 @@ function create_custom_log_window() {
 		}
 
 		btn.onclick = () => {
-			// Switch tab
 			div._currentTab = tab.name;
 			for (const t of tabs) {
 				log_containers[t.name].style.display = t.name === tab.name ? "block" : "none";
 				tab_bar.querySelector(`#btn-${t.id}`).style.background = t.name === tab.name ? "#444" : "#222";
-				// Clear alert when tab is viewed
 				const alert_elem = tab_bar.querySelector(`#alert-${t.id}`);
 				if (alert_elem) alert_elem.textContent = "";
 				alert_states[t.name] = false;
@@ -158,14 +150,13 @@ function create_custom_log_window() {
 
 	div.appendChild(tab_bar);
 
-	// Move log containers after tab bar
 	for (const tab of tabs) {
 		div.appendChild(log_containers[tab.name]);
 	}
 
 	doc.body.appendChild(div);
 
-	// Store containers, alert state, include_in_all, and log_history globally for log() to use
+	// Stored on parent globally so log() can access them
 	parent._custom_log_tabs = log_containers;
 	parent._custom_log_window = div;
 	parent._custom_log_alerts = alert_states;
@@ -173,7 +164,6 @@ function create_custom_log_window() {
 	parent._custom_log_history = log_history;
 }
 
-// Helper to update the All tab when checkboxes change
 function update_all_tab(log_containers, log_history, include_in_all) {
 	const all_div = log_containers["All"];
 	all_div.innerHTML = "";
@@ -183,9 +173,7 @@ function update_all_tab(log_containers, log_history, include_in_all) {
 			all_entries = all_entries.concat(log_history[tab_name]);
 		}
 	}
-	// Sort by timestamp (oldest first)
 	all_entries.sort((a, b) => a.time - b.time);
-	// Only keep the most recent 100
 	all_entries = all_entries.slice(-100);
 	for (const entry of all_entries) {
 		const p = parent.document.createElement("div");
@@ -197,7 +185,7 @@ function update_all_tab(log_containers, log_history, include_in_all) {
 	all_div.scrollTop = all_div.scrollHeight;
 }
 
-// Modified log function to support All tab and checkboxes
+// Overrides the built-in log() to add tabs/history/alerts
 function log(msg, color = "#fff", type = "General") {
 	create_custom_log_window();
 	const log_containers = parent._custom_log_tabs;
@@ -206,7 +194,6 @@ function log(msg, color = "#fff", type = "General") {
 	const include_in_all = parent._custom_log_includeInAll;
 	const log_history = parent._custom_log_history;
 
-	// Support "General", "Alerts", "Errors" as valid types
 	let tab_name = "General";
 	if (type === "Errors") tab_name = "Errors";
 	else if (type === "Alerts") tab_name = "Alerts";
@@ -216,13 +203,10 @@ function log(msg, color = "#fff", type = "General") {
 	const time = Date.now();
 	const text = `[${new Date(time).toLocaleTimeString()}] ${msg}`;
 
-	// Store in history for this tab
 	if (!log_history[tab_name]) log_history[tab_name] = [];
 	log_history[tab_name].push({ text, color, time });
-	// Keep only the most recent 100 messages per tab
 	while (log_history[tab_name].length > 100) log_history[tab_name].shift();
 
-	// Add to tab display
 	const p = parent.document.createElement("div");
 	p.textContent = text;
 	p.style.color = color;
@@ -230,11 +214,10 @@ function log(msg, color = "#fff", type = "General") {
 	log_div.appendChild(p);
 	while (log_div.children.length > 100) log_div.removeChild(log_div.firstChild);
 
-	// If this tab is visible, scroll to bottom
 	if (div._currentTab === tab_name) {
 		log_div.scrollTop = log_div.scrollHeight;
 	} else {
-		// Show alert (!) if new message arrives in a hidden tab
+		// "*" marks unread messages in a hidden tab
 		if (!alert_states[tab_name]) {
 			const alert_elem = parent.document.getElementById(`alert-tab-${tab_name.toLowerCase()}`);
 			if (alert_elem) alert_elem.textContent = "*";
@@ -242,12 +225,9 @@ function log(msg, color = "#fff", type = "General") {
 		}
 	}
 
-	// Also log to All tab if enabled for this type
 	if (tab_name !== "All" && include_in_all[tab_name]) {
-		// Add to All history and update All tab
 		if (!log_history["All"]) log_history["All"] = [];
 		log_history["All"].push({ text, color, time, source: tab_name });
-		// Only keep the most recent 100 in All history
 		while (log_history["All"].length > 100) log_history["All"].shift();
 		update_all_tab(log_containers, log_history, include_in_all);
 	}

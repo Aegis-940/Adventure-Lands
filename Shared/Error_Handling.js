@@ -11,7 +11,7 @@ const CRITICAL_ERROR = "#ff1100ff";
 const GENERAL_ERROR = "#ffa127ff";
 
 function catcher(e, context = "Error") {
-	// Map keywords to either a shorthand function or [shorthand, color]
+	// keyword -> [shorthand fn or string, color]
 	const keyword_map = {
 		"attack cooldown": [
 			(msg, ctx) => {
@@ -106,10 +106,8 @@ function catcher(e, context = "Error") {
 			},
 			GENERAL_ERROR
 		],
-		// Add more as needed
 	};
 
-	// Robust error message extraction
 	let msg;
 	if (typeof e === "string") {
 		msg = e;
@@ -123,7 +121,6 @@ function catcher(e, context = "Error") {
 		}
 	}
 
-	// Check for keywords and print shorthand if matched
 	for (const [keyword, value] of Object.entries(keyword_map)) {
 		if (Array.isArray(value)) {
 			const [handler_or_str, color] = value;
@@ -140,7 +137,6 @@ function catcher(e, context = "Error") {
 		}
 	}
 
-	// Default: print full error and stack trace if available
 	let stack = "";
 	if (e && e.stack) {
 		stack = `\nStack trace:\n${e.stack}`;

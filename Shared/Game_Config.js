@@ -54,10 +54,8 @@ const locations = {
 	xscorpion:  [{ x: -495, y: 685 }],
 };
 
-// Overridable live in-game via UI/Settings_Window.js -- localStorage is shared across all
-// 4 characters' tabs (same origin, same mechanism state_cache_loop() already relies on),
-// so a save from any one tab's settings window is visible here on every character's next
-// reload. Falls back to the hardcoded default when no override has been saved.
+// Overridable live via UI/Settings_Window.js — localStorage is shared across all 4 characters' tabs,
+// so a save from any tab applies on every character's next reload. Falls back to default otherwise.
 const HEALER_TARGET    = localStorage.getItem("AL_target_Myras") || "bscorpion";
 const WARRIOR_TARGET   = localStorage.getItem("AL_target_Ulric") || "bscorpion";
 const RANGER_TARGET    = localStorage.getItem("AL_target_Riva")  || "bscorpion";
@@ -123,9 +121,6 @@ let timeout_interval = 30000; // Default timeout of 30 seconds
 
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// Rest of this file split into Shared/Movement.js, Shared/Combat_Utilities.js, Shared/Messaging.js,
-// Shared/Party_And_Loot.js (which also now holds Remote Selling, moved from the since-removed
-// Shared/Buttons.js), and Shared/Error_Handling.js. All still load as real <script> tags
-// (see Bootstrapper.js scripts[]), so everything here remains true global scope, same as
-// before the split.
+// Rest of this file split into Shared/Movement.js, Combat_Utilities.js, Messaging.js, Party_And_Loot.js,
+// and Error_Handling.js — all still load as real <script> tags (Bootstrapper.js scripts[]), same global scope.
 // --------------------------------------------------------------------------------------------------------------------------------- //

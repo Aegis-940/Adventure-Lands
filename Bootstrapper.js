@@ -14,9 +14,7 @@ window._cmListeners = window._cmListeners || [];
 	}
 	p$.ajaxSetup({ cache: false });
 
-	// None of these reference each other at load time — every cross-file call
-	// (make_draggable, smarter_move, etc.) happens inside a function or event
-	// handler, invoked well after boot finishes — so they load in parallel.
+	// Cross-file calls happen inside functions/handlers invoked after boot, so these load in parallel.
 	const scripts = [
 		"Shared/Game_Config.js",
 		"Shared/Movement.js",
@@ -63,9 +61,7 @@ window._cmListeners = window._cmListeners || [];
 
 	const MAX_RETRIES = 3;
 
-	// If any of these fail to load, nothing else can function (every role file calls
-	// into globals it defines) — abort role-file loading with a loud, hard-to-miss
-	// signal instead of letting every character spin/error against undefined functions.
+	// Role files depend on globals these define — abort loudly instead of failing on undefined functions.
 	const CRITICAL_SCRIPTS = [
 		"Shared/Game_Config.js",
 		"Shared/Movement.js",
@@ -75,9 +71,7 @@ window._cmListeners = window._cmListeners || [];
 		"Shared/Error_Handling.js",
 	];
 
-	// Loads one shared/UI script via getScript() (real <script> tag — always
-	// global scope). Always resolves (with success: true/false), even on final
-	// failure, so one bad file can't block the rest of the batch from attempting.
+	// Always resolves (success: true/false) so one bad file can't block the rest of the batch.
 	function load_one(base, name) {
 		const url = base + encodeURI(name);
 		return new Promise(resolve => {
@@ -99,11 +93,8 @@ window._cmListeners = window._cmListeners || [];
 		});
 	}
 
-	// Counts braces after stripping block/line comments and string/template literals —
-	// a brace inside a comment or string (very common — e.g. any object-literal example
-	// in a comment) otherwise produces a false "brace mismatch" warning on valid code.
-	// Not a full tokenizer (a brace inside a regex literal can still slip through), but
-	// far more reliable than a raw count.
+	// Strips comments/strings first so braces inside them don't cause false mismatch warnings.
+	// Not a full tokenizer — a brace inside a regex literal can still slip through.
 	function count_braces_excluding_literals(text) {
 		const stripped = text
 			.replace(/\/\*[\s\S]*?\*\//g, "")
@@ -117,8 +108,7 @@ window._cmListeners = window._cmListeners || [];
 		};
 	}
 
-	// Loads a role file via fetch+eval with brace-count diagnostics — kept
-	// exactly as before, just wrapped in a Promise. Always resolves.
+	// Loads a role file via fetch+eval with brace-count diagnostics. Always resolves.
 	function load_role_file(base, name) {
 		const url = base + encodeURI(name);
 		return new Promise(resolve => {
@@ -135,9 +125,7 @@ window._cmListeners = window._cmListeners || [];
 					if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
 					text = text.replace(new RegExp("[\\u200B-\\u200D\\uFEFF]", "g"), "");
 					try {
-						// Indirect eval — runs in global scope, same as getScript() above.
-						// A direct eval() here would trap this file's top-level
-						// declarations inside this callback's closure.
+						// Indirect eval — runs in global scope; direct eval() would trap declarations in this closure.
 						(0, eval)(text);
 					} catch (e) {
 						game_log("❌ " + name + " eval error: " + e.message);
@@ -159,7 +147,7 @@ window._cmListeners = window._cmListeners || [];
 		});
 	}
 
-	// Role files still load strictly in order (each may depend on the previous).
+	// Role files load strictly in order (each may depend on the previous).
 	function load_sequential(names, loader) {
 		return names.reduce((chain, name) => chain.then(() => loader(name)), Promise.resolve());
 	}
@@ -172,18 +160,14 @@ window._cmListeners = window._cmListeners || [];
 					const names = failed_critical.map(r => r.name).join(", ");
 					game_log("🛑 CRITICAL: failed to load " + names + " after retries — aborting, bot cannot function. Reload to retry.");
 					console.error("[BS] Critical script(s) failed to load, aborting role-file load:", names);
-					return; // role files would just error against undefined globals — don't bother
+					return;
 				}
 				return load_sequential(role_file, name => load_role_file(base, name))
 					.then(() => game_log("✅ All scripts loaded."));
 			});
 	}
 
-	// The loader snippet that evals this file may already have resolved the commit SHA
-	// to fetch it — reuse that instead of hitting the GitHub API again, but only while
-	// it's fresh: if this page session has been running long enough that a new commit
-	// could plausibly have landed since, re-resolve instead of silently building on a
-	// stale SHA with no indication it's outdated.
+	// Reuse the already-resolved commit SHA if fresh, otherwise re-resolve (avoid building on a stale SHA).
 	const MAX_BASE_AGE_MS = 10 * 60 * 1000; // 10 minutes
 
 	function resolve_and_load() {

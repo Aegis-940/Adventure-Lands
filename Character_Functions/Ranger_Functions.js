@@ -5,9 +5,8 @@
 
 const home = RANGER_TARGET;
 
-// var, not const: this file only ever runs through Bootstrapper.js's eval-based
-// loader, where top-level const/let are scoped to that one eval call and never
-// become visible to Game_Config.js's shared CONFIG-reading functions.
+// var, not const: eval-loader scoping — const/let here wouldn't be visible to
+// Game_Config.js's shared CONFIG-reading functions.
 var CONFIG = {
 	combat: {
 		enabled: true,
@@ -114,16 +113,14 @@ var destination = {
 	y: locations[home][0].y
 };
 
-// var, not const: Shared/Game_Config.js's send_to_merchant() reads this global
-// when the merchant requests a loot pull, so it never sweeps away needed items.
+// var, not const: send_to_merchant() (Shared/Game_Config.js) reads this global.
 var ITEMS_TO_KEEP = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster", "pumpkinspice", "xptome", "tracker", "jacko", "orbg", "talkingskull", "cupid", "computer"];
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATE & CACHE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// var, not const: Character_Functions/Ranger_Equipment.js (a separate eval closure)
-// reads and writes these as true globals, same as CONFIG/destination/etc.
+// var, not const: Ranger_Equipment.js (separate eval closure) also reads/writes these.
 var state = {
 	skin_ready: false,
 	last_equip_time: 0,
@@ -155,8 +152,7 @@ var cache = {
 // LOCATION & EQUIPMENT DATA
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// var, not const: is_set_equipped()/equip_set() are now shared functions in
-// Shared/Game_Config.js that read this global at call time.
+// var, not const: shared is_set_equipped()/equip_set() (Game_Config.js) read this at call time.
 var equipment_sets = {
 	single: [
 		{ item_name: "firebow", slot: "mainhand", level: 10, l: "l" },
@@ -291,7 +287,7 @@ const update_target_cache = () => {
 		in_range.sort((a, b) => parent.distance(character, a) - parent.distance(character, b));
 	}
 
-	// Score all in-range mobs by number of OTHER aggro'd mobs within explosion radius, sort densest first
+	// Score in-range mobs by nearby aggro'd mob count, sort densest first
 	const explosion_radius = character.explosion || 40;
 	const scored = in_range.map(mob => {
 		let count = 0;
@@ -329,18 +325,17 @@ const find_heal_target = () => {
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// FOLLOW HEALER — used when RANGER_TARGET === "giantspider"
-// Orbits Myras when close; smart_moves to her when far or on a different map.
-// Falls back to _healer_last_known when she is off-map and invisible.
+// FOLLOW HEALER — used when RANGER_TARGET === "giantspider". Orbits Myras when
+// close; smart_moves to her when far/different map; falls back to
+// _healer_last_known when she's off-map and invisible.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// var, not let: follow_healer() is now a shared function in Shared/Game_Config.js
-// that reads/writes these as true globals, same as CONFIG/HOME/etc.
+// var, not let: shared follow_healer() (Game_Config.js) reads/writes these globals.
 var _healer_last_known = null;
 var _last_healer_ping = 0;
 
-// follow_healer() moved to Shared/Game_Config.js (identical across Warrior/Ranger)
-// — reads this file's own CONFIG.movement.follow_distance at call time.
+// follow_healer() moved to Shared/Game_Config.js; reads this file's
+// CONFIG.movement.follow_distance at call time.
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN TICK LOOP
@@ -424,7 +419,6 @@ const handle_attack = async () => {
 	const can_3shot = character.mp >= mp3;
 	const can_1shot = character.mp >= mp1;
 
-	// Decide which skill to use this tick — conditions on count, targets passed in density order
 	const single_target_mode = RANGER_TARGET === "giantspider";
 	let skill_call;
 	if (!single_target_mode && can_5shot && in_range.length >= min5)           { skill_call = () => use_skill("5shot", cluster_targets.slice(0, 5).map(e => e.id)); }
@@ -618,11 +612,9 @@ async function walk_in_circle() {
 // HELPER FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// clear_inventory() moved to Shared/Game_Config.js (identical across
-// Warrior/Healer/Ranger) — reads this file's own ITEMS_TO_KEEP global at call time.
+// clear_inventory() moved to Shared/Game_Config.js; reads this file's ITEMS_TO_KEEP.
 
-// var, not const: inventory_sorter() is now a shared function in
-// Shared/Game_Config.js that reads this global at call time.
+// var, not const: shared inventory_sorter() (Game_Config.js) reads this at call time.
 var item_order = {
 	tracktrix: 0,
 	computer: 1,
@@ -634,10 +626,7 @@ var item_order = {
 	jacko: 7
 };
 
-// inventory_sorter() moved to Shared/Game_Config.js (same algorithm now shared by
-// Warrior/Healer/Ranger — Warrior's version additionally supports an array of reserved
-// slots for an intentionally-duplicated item; this file's item_order has no array
-// entries, so behavior here is unchanged).
+// inventory_sorter() moved to Shared/Game_Config.js; reads this file's item_order.
 
 // auto_buy_potions → Game_Config.js
 
@@ -651,21 +640,18 @@ function elixir_usage() {
 	}
 }
 
-// var, not let: panic_check() is now a shared function in Shared/Game_Config.js
-// that reads/writes these as true globals, same as CONFIG/HOME/etc.
+// var, not let: shared panic_check() (Game_Config.js) reads/writes these globals.
 var panicking = false;
 var last_panic_time = 0;
 var last_safe_time = 0;
 
-// Read by the shared panic_check(). No PANIC_BROADCAST_TARGETS here — only Healer
-// broadcasts her panic state to the fighters.
+// No PANIC_BROADCAST_TARGETS here — only Healer broadcasts panic state to the fighters.
 var PANIC_THRESHOLDS = {
 	low_hp: 0.50, low_mp: 0.01, high_hp: 0.80, high_mp: 0.33,
 	aggro: 1, cooldown: 1000,
 };
 
-// panic_check() moved to Shared/Game_Config.js (identical logic across
-// Warrior/Healer/Ranger) — reads this file's own PANIC_THRESHOLDS global at call time.
+// panic_check() moved to Shared/Game_Config.js; reads this file's PANIC_THRESHOLDS.
 
 // party_maker() — replaced by shared party_manager() from Game_Config.js
 // function party_maker() {
@@ -884,8 +870,8 @@ async function combine_items() {
 
 // get_nearest_monster_v2, ms_to_next_skill, batch_equip → Game_Config.js
 
-// is_set_equipped()/equip_set() moved to Shared/Game_Config.js (identical across
-// Warrior/Healer/Ranger) — reads this file's own `equipment_sets` global at call time.
+// is_set_equipped()/equip_set() moved to Shared/Game_Config.js; reads this file's
+// own `equipment_sets` global at call time.
 
 // ============================================================================
 // SKIN CHANGER
@@ -967,14 +953,12 @@ async function combine_items() {
 // EVENT HANDLERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// The panic/my_location/suppress_reset/enter_instance CM listener -> Shared/Messaging.js's
-// CM_HANDLERS (was duplicated identically in Warrior/Ranger; the "reload" branch here was
-// itself a duplicate of Messaging.js's own existing "reload" handler, dropped).
+// panic/my_location/suppress_reset/enter_instance CM listener -> Shared/Messaging.js's
+// CM_HANDLERS.
 
-// on_party_request/on_party_invite -> Shared/Party_And_Loot.js (was duplicated identically
-// across Warrior/Healer/Ranger)
+// on_party_request/on_party_invite -> Shared/Party_And_Loot.js
 
-// send_updates() -> Shared/Messaging.js (was duplicated identically in Warrior/Ranger)
+// send_updates() -> Shared/Messaging.js
 setInterval(send_updates, 20000);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -983,16 +967,12 @@ setInterval(send_updates, 20000);
 
 main_loop();
 action_loop();
-// skill_loop() (huntersmark/supershot) is defined in THIS file (unlike equipment_loop
-// below), so it's safe to start directly here — no eval-closure boundary to cross. It
-// was previously undefined and its stray call site got removed as dead cruft earlier
-// this project; skill_loop() was since (re)implemented here but the call to actually
-// start it was never re-added, so huntersmark/supershot silently never fired at all.
+// skill_loop() (huntersmark/supershot) is defined in THIS file, so it's safe to
+// start directly here — no eval-closure boundary to cross.
 skill_loop();
-// equipment_loop() is NOT started here — it's defined in Ranger_Equipment.js, a
-// separate eval closure that loads AFTER this file finishes evaluating, so calling
-// it here would throw ReferenceError and abort the rest of this block.
-// Ranger_Equipment.js starts it itself, once it's actually defined.
+// equipment_loop() is NOT started here: it's defined in Ranger_Equipment.js, a
+// separate eval closure loading after this file finishes evaluating — calling it
+// here would throw ReferenceError. Ranger_Equipment.js starts it itself.
 maintenance_loop();
 potion_loop();
 if (RANGER_TARGET === "bscorpion") prim_farm_loop();

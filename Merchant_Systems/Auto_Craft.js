@@ -1,15 +1,8 @@
-// Craft targets live in Character_Functions/Merchant_Functions.js's CONFIG.crafting.targets
-// (that file loads after this one, but this array is only read once try_craft() actually
-// runs, well after everything has loaded).
-//
-// No standalone interval here anymore — the merchant state machine
-// (Character_Functions/Merchant_Functions.js) calls try_craft() on its own
-// CRAFTING-state cycle, so this stays a plain callable function.
+// Craft targets live in Character_Functions/Merchant_Functions.js's CONFIG.crafting.targets;
+// the merchant state machine calls try_craft() on its own CRAFTING-state cycle.
 
-// Checked by Character_Functions/Merchant_Functions.js's should_run_craft() — contextual
-// stand-in for the old time interval: is crafting even worth attempting right now?
-// A target only counts if max_craftable_now() (real ingredient/space/gold availability,
-// not just a wish) reaches at least its configured min — see try_craft() below.
+// Used by should_run_craft() to check if crafting is worth attempting — a target only
+// counts if max_craftable_now() reaches at least its configured min.
 function can_afford_any_craft() {
 	for (const target of CONFIG.crafting.targets) {
 		if (max_craftable_now(target) >= (target.min ?? 1)) return true;
@@ -17,19 +10,14 @@ function can_afford_any_craft() {
 	return false;
 }
 
-// Crafting itself (the "craft" socket action) can only be done standing at the crafting
-// bench, not wherever the ingredients happened to be gathered from.
+// Crafting can only be done standing at the crafting bench.
 var CRAFT_LOCATION = { map: "main", x: 0, y: 492 };
 var CRAFT_POSITION_TOLERANCE = 5;
 
-// Delay between successive crafts in a batch. A local constant, not Auto_Upgrade.js's
-// UPGRADE_INTERVAL — that file only runs through the eval-based role-file loader, so
-// its top-level const never becomes visible outside that one eval call. Referencing it
-// here threw a ReferenceError right after the first craft in a batch, ending it early.
+// Local constant, not Auto_Upgrade.js's UPGRADE_INTERVAL — must stay separate, a sibling eval closure can't see that file's const.
 var CRAFT_INTERVAL = 300;
 
-// Total quantity of an item sitting in the bank at a given level (null = any level) —
-// checked before falling back to buying, since not every craft ingredient is NPC-buyable.
+// Bank quantity of an item at a given level (null = any level), checked before buying.
 function bank_quantity_for(item_name, level) {
 	var bank_data = character.bank || load_bank_from_local_storage();
 	if (!bank_data) return 0;
@@ -57,11 +45,8 @@ function craft_recipe_items(craft_def) {
 	});
 }
 
-// Finds enough inventory slot indices to supply req.quantity units of an ingredient,
-// spanning multiple slots if it's non-stackable (each unit its own slot) instead of
-// assuming one slot's stack always covers the whole requirement — same pattern as
-// Auto_Upgrade.js's pick_three_slots() for compounds. Returns null if inventory doesn't
-// actually have enough.
+// Finds slot indices covering req.quantity units, spanning multiple slots for non-stackable
+// items. Returns null if inventory doesn't have enough.
 function find_recipe_slots(req) {
 	var picks = [];
 	var remaining = req.quantity;
@@ -75,12 +60,9 @@ function find_recipe_slots(req) {
 	return remaining > 0 ? null : picks;
 }
 
-// How many of item_name we could fit given current free inventory space and any
-// existing partial stack. Stackable items (G.items[name].s > 1) pack many units into a
-// single slot, so counting free slots alone drastically undercounts real capacity for
-// them (e.g. basketofeggs — thousands can fit in a couple of slots, not ~35). Falls back
-// to the old "1 free slot per unit" assumption for genuinely non-stackable items.
-// Leaves a small buffer (3 slots) of free space for non-output items either way.
+// How many of item_name fit given free inventory space + existing partial stacks. Stackable
+// items pack many units per slot, so free-slot count alone would undercount capacity.
+// Leaves a 3-slot buffer either way.
 function max_craftable_by_space(item_name) {
 	var free_slots = character.items.filter(function(it) { return !it; }).length;
 	var usable_free_slots = Math.max(0, free_slots - 3);
@@ -111,9 +93,8 @@ function total_held(name, level) {
 	return have;
 }
 
-// Hard cap on how many of a recipe could ever be made right now from non-buyable
-// ingredients (nothing sells them — only what's already banked/held counts). Buyable
-// ingredients aren't capped here; gold is checked separately by max_affordable_count().
+// Cap on how many of a recipe could be made from non-buyable ingredients (only held/banked
+// counts). Buyable ingredients aren't capped here; gold is checked by max_affordable_count().
 function max_craftable_by_ingredients(craft_def) {
 	var basics = parent.G.npcs["basics"];
 	var max_count = Infinity;
@@ -137,8 +118,7 @@ function craft_cost_for_count(craft_def, count) {
 	return cost;
 }
 
-// Largest count (up to upper_bound) affordable given current gold — binary search since
-// cost is monotonic non-decreasing in count.
+// Largest count (up to upper_bound) affordable given current gold — binary search.
 function max_affordable_count(craft_def, upper_bound) {
 	if (upper_bound <= 0) return 0;
 	if (craft_cost_for_count(craft_def, upper_bound) <= character.gold) return upper_bound;
@@ -151,16 +131,12 @@ function max_affordable_count(craft_def, upper_bound) {
 	return lo;
 }
 
-// How many of a target could actually be crafted right now, respecting all three
-// limits: target.max (batch cap, default unlimited), free inventory space,
-// non-buyable-ingredient availability, and current gold. Compared against target.min
-// (default 1) by can_afford_any_craft()/try_craft() to decide if it's worth attempting.
+// How many of a target could be crafted right now, respecting target.max, free space,
+// non-buyable-ingredient availability, and gold.
 function max_craftable_now(target) {
 	var craft_def = parent.G.craft[target.name];
 	if (!craft_def) return 0;
 
-	// max_craftable_by_space() is always finite, so count is too even if target.max
-	// and/or the ingredient cap are Infinity (i.e. all-buyable, uncapped recipe).
 	var count = Math.min(
 		target.max ?? Infinity,
 		max_craftable_by_space(target.name),
@@ -189,14 +165,10 @@ function compute_missing_ingredients(craft_def, count) {
 	return missing;
 }
 
-// Buys/withdraws enough of every missing ingredient for the WHOLE batch up front (bank
-// first, then NPC purchase), instead of one craft's worth at a time. Loops in bounded
-// rounds, re-checking actual inventory after each buy/withdraw: some items (e.g.
-// non-stackable gear-type ingredients) silently cap a single buy() to fewer than
-// requested, so one pass isn't reliable — this tops up the remainder automatically
-// instead of only fixing itself across separate try_craft() calls. Returns true once
-// nothing is missing, false if a round makes no progress (out of gold, or genuinely
-// unobtainable) or the round limit is hit.
+// Buys/withdraws enough of every missing ingredient for the whole batch up front (bank
+// first, then NPC). Loops in bounded rounds, re-checking inventory each time since a
+// single buy() can silently cap below the requested amount. Returns true once nothing
+// is missing, false if a round makes no progress or the round limit is hit.
 async function gather_ingredients_for_batch(craft_def, count) {
 	var MAX_ROUNDS = 10;
 
@@ -249,9 +221,8 @@ async function gather_ingredients_for_batch(craft_def, count) {
 	return compute_missing_ingredients(craft_def, count).length === 0;
 }
 
-// Crafts up to `count` of craft_name: gathers the whole batch's ingredients first (see
-// gather_ingredients_for_batch()), travels to the crafting bench once, then crafts
-// repeatedly from inventory. Returns how many were actually crafted.
+// Crafts up to `count` of craft_name: gathers the whole batch up front, travels to the
+// crafting bench once, then crafts repeatedly from inventory. Returns how many were crafted.
 async function craft_batch(craft_name, count) {
 	var craft_def = parent.G.craft[craft_name];
 	if (craft_def == null) return 0;
@@ -264,9 +235,7 @@ async function craft_batch(craft_name, count) {
 		Math.hypot(character.x - CRAFT_LOCATION.x, character.y - CRAFT_LOCATION.y) > CRAFT_POSITION_TOLERANCE
 	) {
 		try {
-			// Explicit radius: smarter_move()'s default arrival radius (10) is looser than
-			// CRAFT_POSITION_TOLERANCE (5) — pass it explicitly so we're actually within
-			// range of the crafting bench, not just within smarter_move()'s own default.
+			// Explicit radius: smarter_move()'s default (10) is looser than CRAFT_POSITION_TOLERANCE (5).
 			await smarter_move(CRAFT_LOCATION, null, { radius: CRAFT_POSITION_TOLERANCE });
 		} catch (e) {
 			catcher(e, "craft_batch: travel to craft location");
@@ -294,7 +263,7 @@ async function craft_batch(craft_name, count) {
 
 		try {
 			craft.apply(null, craft_array);
-			await delay(10); // wait for the crafted item to show up in inventory before continuing
+			await delay(10);
 		} catch (e) {
 			catcher(e, "craft_batch: craft " + craft_name);
 			break;
@@ -306,109 +275,76 @@ async function craft_batch(craft_name, count) {
 	return crafted;
 }
 
-// Attempts to craft a single named item — one recipe check, gathering what's missing
-// from the bank or by buying (one ingredient per call, same throttling as the rest of
-// this file). Returns "crafted", "withdrawing"/"buying" (gathered one ingredient, call
-// again to continue), "missing" (can't complete or afford it), or "no_recipe". Kept for
-// Merchant_Functions.js's ensure_tool_available() (crafting a single replacement
-// "rod"/"pickaxe" on demand) — try_craft() below uses the batch functions instead.
+// Attempts to craft a single named item, gathering what's missing from the bank or by
+// buying (one ingredient per call). Returns "crafted", "withdrawing"/"buying" (call again
+// to continue), "missing", or "no_recipe". Kept for Merchant_Functions.js's
+// ensure_tool_available() (single replacement "rod"/"pickaxe" on demand) — try_craft()
+// below uses the batch functions instead.
 async function craft_item(craft_name) {
-	//Grab the crafting recipe.
 	var craft_def = parent.G.craft[craft_name];
 	if (craft_def == null) return "no_recipe";
 
 	var cost = craft_def.cost;
 
-	//Do we have enough to pay for the recipe? (>, not >=, to match the batch cost
-	//convention below — an exact-cost craft is affordable, not "missing".)
+	// >, not >=, to match the batch cost convention below — exact cost is affordable.
 	if (cost > character.gold) return "missing";
 
-	//Variable to track how many items we're missing from the recipe.
 	var missing = 0;
-
-	//Variable to hold the inventory slots of items that belong to the recipe.
 	var craft_slots = [];
-
-	//Variable to hold the item names of things we're missing from the recipe.
 	var buyable_missing = [];
 
-	//Iterate over every item in the recipe to check if we have it.
 	for (var item_index in craft_def.items) {
-		//Grab the item from the recipe, it'll say what and how many.
 		var item_def = craft_def.items[item_index];
-
-		//What is the name of the item in the recipe?
 		var item_name = item_def[1];
-
-		//How many of the item do we need.
 		var item_quantity = item_def[0];
-
-		//Grab information on the item we need.
 		var item = parent.G.items[item_name];
 
 		var level = null;
-
-		//Is this item upgradeable?
 		if (item.scroll == true) {
-			//As of now we need level 0 items.
-			//May need to change later.
 			level = 0;
 		}
 
-		//Try to find enough slots to cover the required quantity — may span multiple
-		//slots for a non-stackable item (see find_recipe_slots()).
 		var recipe_slots = find_recipe_slots({ name: item_name, quantity: item_quantity, level: level });
 
-		//Do we have enough of the item in inventory already?
 		if (recipe_slots) {
-			//Yeah? Then we'll mark them for use.
 			craft_slots = craft_slots.concat(recipe_slots);
 			continue;
 		}
 
-		//Not enough in inventory — check the bank before giving up or trying to buy.
+		// Not enough in inventory — check the bank before trying to buy.
 		if (bank_quantity_for(item_name, level) > 0) {
 			try {
 				await withdraw_item(item_name, level, item_quantity);
 			} catch (e) {
 				catcher(e, "craft_item: withdraw " + item_name);
 			}
-			//Return so the caller controls pacing — call craft_item() again to continue
-			//once the withdrawn item shows up in inventory.
+			// Return so the caller controls pacing — call again once the item shows up in inventory.
 			return "withdrawing";
 		}
 
-		//Not in the bank either — mark it missing and see if it's buyable from an NPC.
 		missing++;
 
 		var basics = parent.G.npcs["basics"];
 
 		if (basics.items.includes(item_name)) {
-			//Do we have enough to complete the crafting with the cost of the item included?
-			//(<=, not <, to match the same convention as the affordability check above.)
-			cost += item.g;
+			cost += item.g; // <=, not <, matching the affordability check above
 
 			if (cost <= character.gold) {
-				//Yeah? Mark it as something to buy.
 				buyable_missing.push(item_name);
 			} else {
-				//Not enough gold to craft, clear the list of things to buy and stop.
 				buyable_missing = [];
 				break;
 			}
 		}
 	}
 
-	//Are we missing anything?
 	if (missing == 0) {
-		//Craft it! Server expects a flat 9-slot grid (inventory indices, null for empty).
-		//Crafting has to happen at the crafting bench — travel there first.
+		// Server expects a flat 9-slot grid (inventory indices, null for empty). Must be at the crafting bench.
 		if (
 			character.map !== CRAFT_LOCATION.map ||
 			Math.hypot(character.x - CRAFT_LOCATION.x, character.y - CRAFT_LOCATION.y) > CRAFT_POSITION_TOLERANCE
 		) {
 			try {
-				// Explicit radius: see the matching comment in craft_batch() above.
 				await smarter_move(CRAFT_LOCATION, null, { radius: CRAFT_POSITION_TOLERANCE });
 			} catch (e) {
 				catcher(e, "craft_item: travel to craft location");
@@ -425,16 +361,10 @@ async function craft_item(craft_name) {
 		return "crafted";
 	}
 
-	//Try to buy whatever we're missing.
 	if (buyable_missing.length == missing) {
 		for (var id_buy in buyable_missing) {
-			//Buy an item we're missing, and return so the caller controls how fast
-			//requests are sent to the server — call craft_item() again to continue.
 			var buy_name = buyable_missing[id_buy];
 
-			//Missing items are only buyable from the "basics" NPC — travel there first.
-			//smart_move (the native bot function, not our smarter_move wrapper) resolves
-			//NPC ids directly and is a safe no-op if already close enough.
 			try {
 				await smart_move("basics");
 			} catch (e) {
@@ -450,19 +380,14 @@ async function craft_item(craft_name) {
 	return "missing";
 }
 
-// Safety cap on batches per try_craft() call — not the expected real count, just a
-// ceiling so a bugged/never-progressing loop can't spin forever.
+// Safety cap on batches per try_craft() call so a stuck loop can't spin forever.
 var CRAFT_MAX_BATCHES = 50;
 
 async function try_craft() {
 	// CONFIG.crafting.targets: [{ name, min?, max? }] — min (default 1) is the smallest
-	// batch worth bothering with in the first place; max (default unlimited) caps the
-	// TOTAL crafted this call, not a single batch's size. Each individual batch is still
-	// limited by max_craftable_by_space() (can't hold more than the inventory allows at
-	// once), so reaching max means looping withdraw-craft-bank cycles, freeing space each
-	// time, until max is reached, ingredients/gold run out, or CRAFT_MAX_BATCHES is hit —
-	// previously stopped after a single space-limited batch even when max allowed for
-	// many more.
+	// worthwhile batch; max (default unlimited) caps the TOTAL crafted this call, not a
+	// single batch (each batch is still capped by max_craftable_by_space()), so reaching
+	// max loops withdraw-craft-bank cycles until max, resources run out, or CRAFT_MAX_BATCHES hits.
 	for (var t = 0; t < CONFIG.crafting.targets.length; t++) {
 		var target = CONFIG.crafting.targets[t];
 		var craft_def = parent.G.craft[target.name];
@@ -487,9 +412,8 @@ async function try_craft() {
 
 			if (total_crafted >= target_max) break;
 
-			// sell_items()/bank_items() directly, not sell_and_bank() -- its unconditional
-			// "return to HOME" trip would just be immediately undone by the next
-			// craft_batch() call traveling to CRAFT_LOCATION (a different spot) anyway.
+			// sell_items()/bank_items() directly, not sell_and_bank() -- its return-to-HOME trip
+			// would just be undone by the next craft_batch() traveling to CRAFT_LOCATION anyway.
 			await sell_items();
 			await bank_items();
 		}
@@ -498,15 +422,10 @@ async function try_craft() {
 }
 
 function scan_inventory_for_item_index(name, max_level) {
-	//Iterate over every slot in our inventory.
 	for (var i = 0; i <= 41; i++) {
 		var cur_slot = character.items[i];
-
-		//Does the item name match?
 		if (cur_slot != null && cur_slot.name == name) {
-			//Does the level match?
 			if (max_level == null || cur_slot.level <= max_level) {
-				//Return the inventory slot #.
 				return i;
 			}
 		}

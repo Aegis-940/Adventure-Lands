@@ -79,7 +79,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 - Equipment swapping has cooldown guards — check `COOLDOWNS` before adding new swap logic
 
 ### Comments
-- Comments are extensive and intentional — preserve them when editing
+- Keep comments terse and strictly necessary — a short line explaining a non-obvious WHY (a hidden constraint, a subtle invariant, a workaround for a specific bug) is welcome; comments that restate what the code already makes obvious, or multi-sentence essays where one clause would do, are not
 - Commented-out code blocks are often experimental or disabled features, not dead code — ask before removing
 
 ---

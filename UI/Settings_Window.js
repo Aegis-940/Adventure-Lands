@@ -1,13 +1,11 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SETTINGS WINDOW — live in-game config for per-character target monsters. Persisted via
-// localStorage (shared across all 4 characters' tabs, same origin — same mechanism
-// state_cache_loop()/read_state_cache() already rely on), read back by Shared/Game_Config.js's
+// localStorage (shared across all 4 characters' tabs), read back by Shared/Game_Config.js's
 // WARRIOR_TARGET/HEALER_TARGET/RANGER_TARGET at each character's next reload.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// One entry per setting this window edits. Extend this array (not copy-pasted rows) to
-// add more settings later — the row-building loop below reads it generically. type:
-// "select" (default, a monster-name dropdown) or "checkbox" (boolean toggle).
+// One entry per setting this window edits — extend this array, not copy-pasted rows.
+// type: "select" (default, a monster-name dropdown) or "checkbox" (boolean toggle).
 const SETTINGS_DESCRIPTORS = [
 	{ label: "Warrior (Ulric)", storage_key: "AL_target_Ulric", default: "bscorpion" },
 	{ label: "Healer (Myras)",  storage_key: "AL_target_Myras", default: "bscorpion" },
@@ -22,10 +20,8 @@ const SETTINGS_DESCRIPTORS = [
 const ALL_CHARACTERS = ["Ulric", "Myras", "Riva", "Riff"];
 
 function open_settings_window() {
-	// locations/send_cm live in Shared/Game_Config.js/Shared/Messaging.js, both loaded in
-	// the same parallel batch as this file with no ordering guarantee -- this only runs on
-	// a user click though (by which point loading is long done), so this is cheap
-	// insurance rather than a real expected case.
+	// Guard against locations/send_cm (Shared/Game_Config.js, Shared/Messaging.js) not being
+	// loaded yet — cheap insurance, since this only runs on a user click.
 	if (typeof locations === "undefined" || typeof send_cm !== "function") {
 		game_log("⚠️ Settings window: still loading, try again in a moment.");
 		return;
@@ -53,7 +49,6 @@ function open_settings_window() {
 	div.style.borderRadius = "4px";
 	div.style.overflow = "hidden";
 
-	// Drag handle (title bar)
 	const drag_handle = doc.createElement("div");
 	drag_handle.style.height = "24px";
 	drag_handle.style.background = "#444";
@@ -133,8 +128,7 @@ function open_settings_window() {
 			const value = setting.type === "checkbox" ? input.checked : input.value;
 			localStorage.setItem(setting.storage_key, value);
 		}
-		// Broadcast to the other 3 -- reuses the existing "reload" CM_HANDLERS entry
-		// (Shared/Messaging.js), same reload mechanism the toprightcorner button uses.
+		// Broadcast to the other 3 via the existing "reload" CM_HANDLERS entry (Shared/Messaging.js).
 		for (const name of ALL_CHARACTERS) {
 			if (name !== character.name) send_cm(name, { type: "reload" });
 		}
@@ -155,10 +149,8 @@ function open_settings_window() {
 	doc.body.appendChild(div);
 }
 
-// Inserts the ⚙️ button right after the existing 🔄 reload button (UI/Remote_Bank_Viewer.js's
-// add_reload_button()) -- waits for both #toprightcorner and #reload-btn specifically, rather
-// than the "children().first().after(...)" pattern used elsewhere, so relative placement is
-// guaranteed regardless of which of these two parallel-loaded files' auto-invoke runs first.
+// Waits for both #toprightcorner and #reload-btn (Remote_Bank_Viewer.js) so the ⚙️ button
+// lands right after 🔄 regardless of which of these two parallel-loaded files runs first.
 function add_settings_button() {
 	const $ = parent.$;
 	const trc = $("#toprightcorner");

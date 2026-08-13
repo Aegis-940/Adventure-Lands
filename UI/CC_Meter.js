@@ -92,13 +92,11 @@ const update_cc_display = () => {
 	const current_cc = Math.min(character.cc, MAX_CC);
 	const percent = Math.floor((current_cc / MAX_CC) * 100);
 
-	// Update history: add new value, remove old
 	CC_HISTORY.push({ timestamp: now, value: current_cc });
 	while (CC_HISTORY.length && CC_HISTORY[0].timestamp < now - 60000) {
 		CC_HISTORY.shift();
 	}
 
-	// Calculate rolling min, max, and average
 	const values = CC_HISTORY.map(e => e.value);
 	const min = Math.min(...values);
 	const max = Math.max(...values);
@@ -107,7 +105,6 @@ const update_cc_display = () => {
 	const min_percent = Math.floor((min / MAX_CC) * 100);
 	const max_percent = Math.floor((max / MAX_CC) * 100);
 
-	// Update visual display
 	$("#ccfill").css("width", `${percent}%`);
 	$("#cctext").text(`CC: ${Math.floor(current_cc)}/${MAX_CC} (Avg: ${avg})`);
 	$("#low_mark").css("left", `${min_percent}%`);
@@ -115,12 +112,9 @@ const update_cc_display = () => {
 };
 
 
-// Refresh the CC bar 10 times per second
 setInterval(update_cc_display, 100);
 
-// Start — create_bottomrightcorner_widget() lives in Shared/Widgets.js, which
-// Bootstrapper.js loads in parallel with this file (no ordering guarantee), so retry
-// until it's actually available instead of assuming it already is.
+// Retry until create_bottomrightcorner_widget (Shared/Widgets.js) is loaded — no load-order guarantee.
 (function start_cc_meter() {
 	if (typeof create_bottomrightcorner_widget !== "function") {
 		return void setTimeout(start_cc_meter, 100);

@@ -3,13 +3,11 @@
 // CONFIG VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// var, not const: Character_Functions/Healer_Skills.js (a separate eval closure) reads
-// this global too, same as CONFIG/state/cache/etc.
+// var, not const: Healer_Skills.js (separate eval closure) also reads this global.
 var home = HEALER_TARGET;
 
-// var, not const: this file only ever runs through Bootstrapper.js's eval-based
-// loader, where top-level const/let are scoped to that one eval call and never
-// become visible to Game_Config.js's shared CONFIG-reading functions.
+// var, not const: eval-loader scoping — const/let here wouldn't be visible to
+// Game_Config.js's shared CONFIG-reading functions.
 var CONFIG = {
 	combat: {
 		enabled: true,
@@ -76,16 +74,14 @@ var destination = {
 	y: locations[home][0].y
 };
 
-// var, not const: Shared/Game_Config.js's send_to_merchant() reads this global
-// when the merchant requests a loot pull, so it never sweeps away needed items.
+// var, not const: send_to_merchant() (Shared/Game_Config.js) reads this global.
 var ITEMS_TO_KEEP = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster", "pumpkinspice", "xptome", "tracker", "jacko", "orbg", "talkingskull", "mshield", "lmace", "elixirluck", "computer", "orboftemporal", "orboffire"];
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATE & CACHE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// var, not const: Character_Functions/Healer_Skills.js (a separate eval closure) reads
-// and writes these as true globals, same as CONFIG/home/etc.
+// var, not const: Healer_Skills.js (separate eval closure) also reads/writes these.
 var state = {
 	current: "idle", // idle, looting, moving
 	skin_ready: false,
@@ -118,8 +114,7 @@ var cache = {
 // LOCATION & EQUIPMENT DATA
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// var, not const: is_set_equipped()/equip_set() are now shared functions in
-// Shared/Game_Config.js that read this global at call time.
+// var, not const: shared is_set_equipped()/equip_set() (Game_Config.js) read this at call time.
 var equipment_sets = {
 	zap_on: [
 		{ item_name: "zapper", slot: "ring2", level: 2, l: "u" }
@@ -179,7 +174,7 @@ function find_best_target() {
 		if (boss) return boss;
 	}
 
-	// In follow mode, only attack monsters already targeting the healer — never seek new aggro
+	// Follow mode: only attack monsters already targeting the healer, never seek new aggro
 	if (HEALER_TARGET === "giantspider") {
 		return get_nearest_monster_v2({ target: character.name, max_distance: max_dist }) || null;
 	}
@@ -332,7 +327,6 @@ async function check_temporal_surge() {
 	// );
 	// if (nearby) return false;
 
-	// Equip temporal set, cast, then re-equip previous set
 	const prev_orb = character.slots.orb ? { name: character.slots.orb.name, level: character.slots.orb.level } : null;
 
 	state.last_equip_time = performance.now();
@@ -357,10 +351,8 @@ async function check_temporal_surge() {
 // ACTION LOOP - Combat and healing only
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Lives here, not in Healer_Skills.js, despite being part of the original SKILL LOOP
-// section — action_loop() below is its only caller, and action_loop() starts running
-// immediately (before Healer_Skills.js even loads), so try_heal() must already exist
-// in this same eval closure.
+// Lives here, not Healer_Skills.js: action_loop() calls it and starts running before
+// Healer_Skills.js (separate eval closure) has loaded.
 async function try_heal() {
 	const HEAL_TARGET = cache.heal_target;
 	if (!HEAL_TARGET) return false;
@@ -384,7 +376,6 @@ async function action_loop() {
 
 		update_cache();
 
-		// Temporal Surge — cast when idle (no monsters, 60s cooldown)
 		if (await check_temporal_surge()) return setTimeout(action_loop, 100);
 
 		const ms = ms_to_next_skill("attack");
@@ -560,7 +551,6 @@ async function handle_equipment_swap() {
 	const now = performance.now();
 	if (now - state.last_equip_time < COOLDOWNS.equip_swap) return;
 
-	// Pick target set based on HEALER_TARGET
 	let target_set = "luck";
 	if (typeof HEALER_TARGET !== "undefined") {
 		if (HEALER_TARGET === "dryad") target_set = "mdef";
@@ -573,35 +563,30 @@ async function handle_equipment_swap() {
 	}
 }
 
-// is_set_equipped()/equip_set() moved to Shared/Game_Config.js (identical across
-// Warrior/Healer/Ranger) — reads this file's own `equipment_sets` global at call time.
+// is_set_equipped()/equip_set() moved to Shared/Game_Config.js; reads this file's
+// own `equipment_sets` global at call time.
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // HELPER FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// var, not let: panic_check() is now a shared function in Shared/Game_Config.js
-// that reads/writes these as true globals, same as CONFIG/HOME/etc.
+// var, not let: shared panic_check() (Game_Config.js) reads/writes these globals.
 var panicking = false;
 var last_panic_time = 0;
 var last_safe_time = 0;
 
-// Read by the shared panic_check(). Healer is the only one who broadcasts her panic
-// state to the fighters, so they know to react.
+// Healer is the only one who broadcasts panic state to the fighters.
 var PANIC_THRESHOLDS = {
 	low_hp: 0.30, low_mp: 0.05, high_hp: 0.60, high_mp: 0.50,
 	aggro: 99, cooldown: 1000,
 };
 var PANIC_BROADCAST_TARGETS = ["Ulric", "Riva"];
 
-// panic_check() moved to Shared/Game_Config.js (identical logic across
-// Warrior/Healer/Ranger) — reads this file's own PANIC_THRESHOLDS global at call time.
+// panic_check() moved to Shared/Game_Config.js; reads this file's PANIC_THRESHOLDS.
 
-// clear_inventory() moved to Shared/Game_Config.js (identical across
-// Warrior/Healer/Ranger) — reads this file's own ITEMS_TO_KEEP global at call time.
+// clear_inventory() moved to Shared/Game_Config.js; reads this file's ITEMS_TO_KEEP.
 
-// var, not const: inventory_sorter() is now a shared function in
-// Shared/Game_Config.js that reads this global at call time.
+// var, not const: shared inventory_sorter() (Game_Config.js) reads this at call time.
 var item_order = {
 	tracktrix: 0,
 	computer: 1,
@@ -613,10 +598,7 @@ var item_order = {
 	jacko: 7
 };
 
-// inventory_sorter() moved to Shared/Game_Config.js (same algorithm now shared by
-// Warrior/Healer/Ranger — Warrior's version additionally supports an array of reserved
-// slots for an intentionally-duplicated item; this file's item_order has no array
-// entries, so behavior here is unchanged).
+// inventory_sorter() moved to Shared/Game_Config.js; reads this file's item_order.
 
 // auto_buy_potions → Game_Config.js
 
@@ -774,9 +756,8 @@ async function swap_booster(current, target) {
 // SPIDER DUNGEON
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Resolves only after mob_type is confirmed alive for 3 consecutive checks, then absent for 3 consecutive checks
-// while the healer remains within spawn_radius of the spawn point.
-// If the healer drifts out of range, absence checks reset — prevents looting/movement from faking death.
+// Resolves once mob_type is confirmed alive 3 checks then absent 3 checks while
+// healer stays within spawn_radius; drifting out of range resets the absence count.
 function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 	return new Promise(resolve => {
 		let consecutive_alive = 0;
@@ -803,7 +784,7 @@ function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 					resolve();
 				}
 			} else {
-				// Either not yet confirmed alive, or healer drifted out of range — reset dead counter
+				// not yet confirmed alive, or healer drifted out of range
 				consecutive_alive = 0;
 				consecutive_dead = 0;
 			}
@@ -814,7 +795,7 @@ function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 
 let _dungeon_running = false;
 
-// Navigate all three spider bosses in order, loot after each, then reload the party.
+// Navigate all three spider bosses in order, loot after each, reload the party.
 async function run_spider_dungeon() {
 	if (_dungeon_running) {
 		log("Spider Dungeon: Already running — ignoring duplicate start.", "#FF8844");
@@ -824,7 +805,6 @@ async function run_spider_dungeon() {
 	set_suppress_reset(true);
 	send_cm(["Ulric", "Riva"], { type: "suppress_reset" });
 	try {
-		// Stage: move to dungeon entrance and wait until arrived
 		log("Spider Dungeon: Moving to gateway entrance...", "#AA88FF");
 		await smarter_move({ map: "gateway", x: -322, y: -203 });
 		log("Spider Dungeon: At entrance — entering instance...", "#AA88FF");
@@ -900,10 +880,9 @@ async function run_spider_dungeon() {
 
 main_loop();
 action_loop();
-// skill_loop() is NOT started here — it's defined in Healer_Skills.js, a separate
-// eval closure that loads AFTER this file finishes evaluating, so calling it here
-// would throw ReferenceError and abort the rest of this block. Healer_Skills.js
-// starts it itself, once it's actually defined.
+// skill_loop() is NOT started here: it's defined in Healer_Skills.js, a separate
+// eval closure loading after this one — calling it here would throw ReferenceError.
+// Healer_Skills.js starts itself once loaded.
 maintenance_loop();
 potion_loop();
 setInterval(remote_sell_items, 5000);
@@ -913,8 +892,7 @@ if (HEALER_TARGET === "bscorpion") {
 }
 
 if (HEALER_TARGET === "giantspider") {
-	// Wait for all loops and game state to settle before starting the dungeon run.
-	// Guards: not already running, character is alive and on a valid map.
+	// Wait for loops/game state to settle before auto-starting the dungeon run.
 	setTimeout(() => {
 		if (_dungeon_running) return;
 		if (character.rip) {

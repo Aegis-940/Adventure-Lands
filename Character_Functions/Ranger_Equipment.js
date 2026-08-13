@@ -1,9 +1,7 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// RANGER EQUIPMENT — split out of Ranger_Functions.js for compartmentalization.
-// Separate eval closure (own role-file entry in Bootstrapper.js) loaded right after
-// Ranger_Functions.js — reads/writes that file's state/cache/CONFIG/destination
-// globals (all var there for exactly this reason) and defines equipment_loop() as a
-// real function declaration so Ranger_Functions.js's "START ALL LOOPS" can still call it.
+// RANGER EQUIPMENT — separate eval closure, loaded right after Ranger_Functions.js.
+// Reads/writes that file's var globals (state/cache/CONFIG/destination) and defines
+// equipment_loop().
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function equipment_loop() {
@@ -131,8 +129,7 @@ async function equipment_loop() {
 
 // find_booster_slot, get_num_chests, get_num_targets → Game_Config.js
 
-// Started here, not in Ranger_Functions.js's "START ALL LOOPS" — that file's eval
-// finishes before this one even loads, so calling equipment_loop() from there would
-// throw ReferenceError. This is the first point at which the function exists.
+// Started here, not in Ranger_Functions.js: that file's eval finishes before this
+// one loads, so calling equipment_loop() from there would throw ReferenceError.
 equipment_loop();
 

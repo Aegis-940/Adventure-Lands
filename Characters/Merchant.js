@@ -5,24 +5,18 @@ performance_trick();
 // BUTTONS AND WINDOWS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Shared/Buttons.js and Shared/Windows.js were removed — this section (floating stats
-// window cleanup, the movement/action button window, hiding the native skills UI) is
-// being redesigned from scratch. The map-movement window used to expose one real
-// action here: Sell / Bank -> sell_and_bank().
+// Buttons/Windows UI removed, being redesigned from scratch.
 add_bank_buttons();
 
-// Resting loadout (CONFIG.default_gear) — loop_controller()'s fishing/mining states
-// swap to a rod/pickaxe only right at the spot and restore this the moment they end.
+// Resting loadout — loop_controller()'s fishing/mining states swap gear temporarily and restore this after.
 equip_default_gear();
 
-// Passive loops — no travel, safe to run alongside loop_controller()'s state machine.
+// Passive loops — no travel, safe alongside loop_controller()'s state machine.
 buy_potion_loop();
 mluck_buff_loop();
 loot_collection_loop();
 potion_loop(); // shared self-use loop from Shared/Game_Config.js
-// Keeps Riff's own localStorage state cache fresh so the fighters can read it too —
-// see Shared/Game_Config.js's state_cache_loop()/read_state_cache().
-state_cache_loop();
+state_cache_loop(); // keeps Riff's state cache fresh for the fighters to read
 
 loop_controller(); // sole owner of movement — see Character_Functions/Merchant_Functions.js
 
@@ -32,17 +26,15 @@ loop_controller(); // sole owner of movement — see Character_Functions/Merchan
 
 let last_update_time = 0;
 
-// party_manager() is NOT called here — loop_controller() (Character_Functions/
-// Merchant_Functions.js) already calls it every 250ms; calling it again here too
-// raced two independent owners issuing invite/accept socket calls concurrently.
+// party_manager() not called here — loop_controller() already calls it every 250ms; calling both raced concurrent socket calls.
 setInterval(() => {
 
-	// Throttle to every 20 seconds (20,000 ms)
+	// Throttle to every 20s
 	const now = Date.now();
 	if (now - last_update_time >= 20000) {
 		parent.socket.emit("send_updates", {});
 		last_update_time = now;
 	}
 
-}, 1000); // Check every second
+}, 1000);
 

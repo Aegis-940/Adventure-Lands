@@ -9,12 +9,10 @@
 
 const _cmListeners = []; // unified naming
 
-// Utility to add CM listeners
 function add_cm_listener(fn) {
 	if (!_cmListeners.includes(fn)) _cmListeners.push(fn);
 }
 
-// Utility to remove CM listeners
 function remove_cm_listener(fn) {
 	const index = _cmListeners.indexOf(fn);
 	if (index !== -1) _cmListeners.splice(index, 1);
@@ -23,7 +21,6 @@ function remove_cm_listener(fn) {
 // Preserve existing handler
 const original_on_cm = typeof on_cm === "function" ? on_cm : () => {};
 
-// Global handler dispatcher
 on_cm = function (name, data) {
 	_cmListeners.forEach(fn => {
 		try {
@@ -39,10 +36,7 @@ const location_responses = {};
 
 // Central CM message handlers
 const CM_HANDLERS = {
-	// _healer_last_known/panicking (var, set by Warrior/Ranger's own files) only get read
-	// on characters that actually declare them — this branch is a harmless no-op on
-	// Myras's/Riff's own tabs, since Myras never sends herself these and Healer only
-	// broadcasts "panic" to PANIC_BROADCAST_TARGETS (Ulric/Riva), not Riff.
+	// _healer_last_known/panicking are only declared on characters that read them — no-op elsewhere.
 	"my_location": (name, data) => {
 		location_responses[name] = { map: data.map, x: data.x, y: data.y };
 		if (name === "Myras") {
@@ -50,8 +44,6 @@ const CM_HANDLERS = {
 		}
 	},
 
-	// Was duplicated identically in Warrior_Functions.js/Ranger_Functions.js as a raw
-	// add_cm_listener((name, data) => {...}) block — folded into this dispatch table.
 	"panic": (name, data) => {
 		if (name !== "Myras") return;
 		panicking = data.state;
@@ -102,23 +94,17 @@ const CM_HANDLERS = {
 			await send_to_merchant();
 	},
 
-	// status_update/status_update_request removed — replaced by the localStorage-backed
-	// state cache (write_state_cache()/read_state_cache(), see state_cache_loop() below),
-	// which any character can read synchronously without a CM round trip.
+	// status_update/status_update_request removed — replaced by the localStorage state cache below.
 
 	"reload": () => {
 		setTimeout(() => parent.window.location.reload(), 500);
 	}
 };
 
-// Was duplicated identically in Warrior_Functions.js/Ranger_Functions.js, each with its
-// own setInterval(send_updates, 20000) call site — those stay in place, only the
-// function body itself was hoisted here.
 function send_updates() {
 	parent.socket.emit("send_updates", {});
 }
 
-// Register the handler dispatcher
 add_cm_listener((name, data) => {
 	if (!["Ulric", "Riva", "Myras", "Riff"].includes(name)) {
 		game_log("❌ Unauthorized CM from " + name);
@@ -144,10 +130,8 @@ add_cm_listener((name, data) => {
 // STATE CACHE (localStorage — shared across all characters' browser tabs on this origin)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// All 4 characters run in separate tabs but the same game origin, so localStorage is
-// actually shared between them (same mechanism Remote_Bank_Viewer.js's bank save/load
-// already relies on). Each character writes its own snapshot here every cycle; any other
-// character can read it synchronously via read_state_cache(name) — no CM round trip.
+// localStorage is shared across all 4 characters' tabs (same origin). Each writes its own
+// snapshot every cycle; others read it synchronously via read_state_cache(name) — no CM round trip.
 const STATE_CACHE_KEY_PREFIX = "AL_char_state_";
 const STATE_CACHE_STALE_MS = 15000; // a cache older than this is treated as unknown/offline
 
@@ -180,8 +164,7 @@ function write_state_cache() {
 	}
 }
 
-// Reads another character's cached state. Returns null if it has never written one, the
-// entry is corrupt, or it's older than STATE_CACHE_STALE_MS — treat null as "unknown/offline".
+// Returns null if never written, corrupt, or stale (> STATE_CACHE_STALE_MS) — treat as unknown/offline.
 function read_state_cache(name) {
 	try {
 		const raw = localStorage.getItem(STATE_CACHE_KEY_PREFIX + name);
@@ -198,8 +181,7 @@ function is_character_online(name) {
 	return read_state_cache(name) !== null;
 }
 
-// Started by every character (Tank.js/Healer.js/Ranger.js/Merchant.js) — keeps this
-// character's own state cache fresh so any other character can read it at any time.
+// Started by every character — keeps this character's own state cache fresh.
 async function state_cache_loop() {
 	STATE_CACHE_LOOP_ENABLED = true;
 	while (true) {

@@ -28,16 +28,12 @@ const update_xp_timer = () => {
 	const $ = parent.$;
 	const now = Date.now();
 
-	// A level-up resets the XP scale, so drop any pre-levelup history —
-	// otherwise the rate/ETA are computed against the wrong level's XP curve.
+	// A level-up resets the XP scale, so drop any pre-levelup history.
 	if (xp_history.length && xp_history[xp_history.length - 1].level !== character.level) {
 		xp_history = [];
 	}
 
-	// Push current XP state
 	xp_history.push({ t: now, xp: character.xp, level: character.level });
-
-	// Keep only the last 5 minutes
 	xp_history = xp_history.filter(entry => entry.t >= now - XP_ROLLING_WINDOW);
 
 	if (xp_history.length < 2) return; // Not enough data
@@ -76,9 +72,7 @@ const get_xp_rate_color = (avg, target) => {
 
 const ncomma = (x) => x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
-// Initialize and loop — create_bottomrightcorner_widget() lives in Shared/Widgets.js,
-// which Bootstrapper.js loads in parallel with this file (no ordering guarantee), so
-// retry until it's actually available instead of assuming it already is.
+// Retry until create_bottomrightcorner_widget (Shared/Widgets.js) is loaded — no load-order guarantee.
 (function start_xp_timer() {
 	if (typeof create_bottomrightcorner_widget !== "function") {
 		return void setTimeout(start_xp_timer, 100);

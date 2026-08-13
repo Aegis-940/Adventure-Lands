@@ -1,5 +1,4 @@
-// All currently supported DAMAGE_TYPES: "Base", "Blast", "Burn", "HPS", "MPS", "DR", "RF", "DPS", "Dmg Taken"
-// Displaying too many "Types" will result in a really wide meter that will effect the game_log window. i recommend only tracking 4/5 things at a time for general use
+// Supported types: "Base", "Blast", "Burn", "HPS", "MPS", "DR", "RF", "DPS", "Dmg Taken" — keep the list short, a wide meter crowds the game_log window
 const DAMAGE_TYPES = ["Base", "Burn", "Blast", "DPS"];
 
 // Toggle settings
@@ -8,7 +7,6 @@ let DISPLAY_DAMAGE_TYPE_COLORS = true;
 let SHOW_OVERHEAL = false;
 let SHOW_OVER_MANASTEAL = true;
 
-// Color mapping
 const DAMAGE_TYPE_COLORS = {
 	Base: "#A92000",
 	Blast: "#782D33",
@@ -21,7 +19,6 @@ const DAMAGE_TYPE_COLORS = {
 	"Dmg Taken": "#FF4C4C"
 };
 
-// Initialize the class color mapping
 const CLASS_COLORS = {
 	mage: "#3FC7EB",
 	paladin: "#F48CBA",
@@ -31,12 +28,10 @@ const CLASS_COLORS = {
 	warrior: "#C69B6D"
 };
 
-// Overall-sums variables (optional use)
 let damage = 0, burn_damage = 0, blast_damage = 0, base_damage = 0;
 let base_heal = 0, lifesteal = 0, manasteal = 0, dreturn = 0, reflect = 0;
 const METER_START = performance.now();
 
-// Per-member tracking
 let player_damage_sums = {};
 
 function get_player_entry(id) {
@@ -54,7 +49,6 @@ function get_player_entry(id) {
 			sum_reflection: 0,
 			sum_damage_taken_phys: 0,
 			sum_damage_taken_mag: 0,
-			// Rolling‐window event buffers:
 			damage_events: [],
 			burn_events: [],
 			blast_events: [],
@@ -87,8 +81,7 @@ function init_dps_meter() {
 	);
 }
 
-// Handle all hit events. Guard against duplicate registration if this script
-// is re-injected without a full page reload (parent.socket persists across that).
+// Guard against duplicate registration on script re-injection (parent.socket persists across that).
 if (parent.socket._dps_meter_hit_handler) {
 	parent.socket.off("hit", parent.socket._dps_meter_hit_handler);
 }
@@ -120,7 +113,6 @@ parent.socket._dps_meter_hit_handler = data => {
 			const e = get_player_entry(data.id);
 			if (e.sum_damage_return == null) e.sum_damage_return = 0;
 			e.sum_damage_return += data.dreturn;
-			// Rolling window
 			e.dreturn_events.push({ t: performance.now(), v: data.dreturn });
 			e.damage_events.push ({ t: performance.now(), v: data.dreturn });
 		}
@@ -131,7 +123,6 @@ parent.socket._dps_meter_hit_handler = data => {
 			const e = get_player_entry(data.id);
 			if (e.sum_reflection == null) e.sum_reflection = 0;
 			e.sum_reflection += data.reflect;
-			// Rolling window
 			e.reflect_events.push({ t: performance.now(), v: data.reflect });
 			e.damage_events.push ({ t: performance.now(), v: data.reflect });
 		}
@@ -203,7 +194,6 @@ parent.socket._dps_meter_hit_handler = data => {
 				e.sum_base_damage += data.damage;
 				e.base_events.push({ t: performance.now(), v: data.damage });
 			}
-			// Rolling window
 			e.damage_events.push({ t: performance.now(), v: data.damage });
 		}
 	} catch (err) {
@@ -215,8 +205,7 @@ parent.socket.on("hit", parent.socket._dps_meter_hit_handler);
 
 const DPS_WINDOW_MS = 5 * 60 * 1000;
 
-// Drop events older than the rolling window so the per-type buffers don't grow forever.
-// Events are pushed in chronological order, so a prefix trim is sufficient.
+// Drop events older than the rolling window; pushed chronologically so a prefix trim suffices.
 function prune_entry_events(entry) {
 	const cutoff = performance.now() - DPS_WINDOW_MS;
 	for (const key in entry) {
@@ -228,7 +217,7 @@ function prune_entry_events(entry) {
 	}
 }
 
-// Compute stat value for type using a 5-minute rolling window
+// Computes stat value using a 5-minute rolling window
 function get_type_value(type, entry) {
 	const now = performance.now();
 	const window_start = Math.max(entry.start_time, now - DPS_WINDOW_MS);
@@ -285,7 +274,6 @@ function get_type_value(type, entry) {
 	}
 }
 
-// Calculate DPS for sorting (also rolling window)
 function calculate_dps_for_entry(entry) {
 	const now = performance.now();
 	const window_start = Math.max(entry.start_time, now - DPS_WINDOW_MS);
@@ -295,13 +283,11 @@ function calculate_dps_for_entry(entry) {
 	return Math.floor(total * 1000 / window_ms);
 }
 
-// Render the DPS meter UI
 function update_dps_meter_ui() {
 	const $ = parent.$;
 	const c = $("#dpsmetercontent");
 	if (!c.length) return;
 
-	// Elapsed time display
 	const elapsed_ms = performance.now() - METER_START;
 	const hrs = Math.floor(elapsed_ms / 3600000);
 	const mins = Math.floor((elapsed_ms % 3600000) / 60000);
@@ -309,7 +295,6 @@ function update_dps_meter_ui() {
 	let html = `<div>👑 Elapsed Time: ${hrs}h ${mins}m 👑</div>` +
 		'<table border="1" style="width:100%"><tr><th></th>';
 
-	// Header row
 	DAMAGE_TYPES.forEach(t => {
 		const col = DISPLAY_DAMAGE_TYPE_COLORS ? DAMAGE_TYPE_COLORS[t] || "white" : "white";
 		html += `<th style="color:${col}">${t}</th>`;
@@ -318,7 +303,6 @@ function update_dps_meter_ui() {
 
 	Object.values(player_damage_sums).forEach(prune_entry_events);
 
-	// Player rows
 	const sorted = Object.entries(player_damage_sums)
 		.map(([id, e]) => ({ id, dps: calculate_dps_for_entry(e), e }))
 		.sort((a, b) => b.dps - a.dps);
@@ -342,7 +326,6 @@ function update_dps_meter_ui() {
 		html += "</tr>";
 	});
 
-	// Total row (unchanged logic)
 	html += `<tr><td style="color:${DAMAGE_TYPE_COLORS["DPS"]}">Total DPS</td>`;
 	DAMAGE_TYPES.forEach(t => {
 		if (t === "Dmg Taken") {
@@ -367,9 +350,7 @@ function update_dps_meter_ui() {
 	c.html(html);
 }
 
-// Initialize and run — create_bottomrightcorner_widget() lives in Shared/Widgets.js,
-// which Bootstrapper.js loads in parallel with this file (no ordering guarantee), so
-// retry until it's actually available instead of assuming it already is.
+// Retry until create_bottomrightcorner_widget (Shared/Widgets.js) is loaded — no load-order guarantee.
 (function start_dps_meter() {
 	if (typeof create_bottomrightcorner_widget !== "function") {
 		return void setTimeout(start_dps_meter, 100);

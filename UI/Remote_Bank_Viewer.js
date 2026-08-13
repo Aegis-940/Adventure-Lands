@@ -46,11 +46,9 @@ function render_items(categories, used, total) {
 	`;
 
 	items.forEach(item => {
-		// Build an onclick that withdraws, then re-renders the ATM window
 		const lvl_arg = item.level != null ? item.level : null;
-		// Single quotes only, deliberately: item_container() embeds this whole string
-		// into a double-quoted onclick="..." HTML attribute, so it can't contain "
-		// itself without corrupting the markup (which is what was happening before).
+		// Single quotes only: this string is embedded in a double-quoted onclick="..."
+		// attribute by item_container(), so a " here would corrupt the markup.
 		const onclick = `
 		parent.$('#maincode')[0].contentWindow
 			.withdraw_item('${item.name}', ${lvl_arg}, ${1})
@@ -76,9 +74,7 @@ function render_items(categories, used, total) {
 		const tag = item.p[0]?.toUpperCase() || "?";
 		const color = tag_colors[item.p] || "grey";
 		const tag_div = `<div class="trruui imu" style="border-color:black;color:${color};">${tag}</div>`;
-		// Anchored to the END of the string, not the first match — item_container()'s
-		// markup can have more than one "</div></div>" sequence (icon/level-badge
-		// wrappers), and a plain .replace() would splice the tag into the wrong spot.
+		// Anchored to the END of the string: item_container()'s markup can repeat "</div></div>", so a plain .replace() could hit the wrong spot.
 		item_div = item_div.replace(/<\/div><\/div>\s*$/, `</div>${tag_div}</div>`);
 		}
 
@@ -90,8 +86,7 @@ function render_items(categories, used, total) {
 
 	html += `<div style="clear:both;"></div></div>`;
 
-	// Close any modal already open before showing this one — otherwise each open/re-render
-	// stacks a new modal on top instead of replacing it.
+	// Close any modal already open first, or open/re-render stacks a new modal instead of replacing it.
 	parent.hide_modal();
 	parent.show_modal(html, {
 	wrap: false,
@@ -200,10 +195,7 @@ function add_bank_buttons() {
 	trc.children().first().after(save_btn).after(bank_btn);
 }
 
-// Restored from the now-removed Shared/Buttons.js (redesign of the rest of that file's
-// buttons/windows is still pending) — reuses the same #toprightcorner/.gamebutton
-// pattern as add_bank_buttons() above. Runs for every character (this file loads for
-// all four via Bootstrapper.js's scripts[]), same as the original.
+// Restored from the now-removed Shared/Buttons.js; reuses the same #toprightcorner/.gamebutton pattern as add_bank_buttons() above.
 function add_reload_button() {
 	const $ = parent.$;
 	const trc = $("#toprightcorner");

@@ -124,7 +124,6 @@ function sort_all_bank(inv_indices, sorted_bank, i_running) {
 	else i_running = (i_running + 1) % inv_indices.length;
 	const inv_pointer = inv_indices[i_running];
 	const inv_itm = character.items[inv_pointer];
-	//check every
 	if (!inv_itm) {
 	for (let bank_pack of packs_on_floor) {
 		if (bank_pack == "gold") continue;
@@ -154,7 +153,6 @@ function sort_all_bank(inv_indices, sorted_bank, i_running) {
 		sort_all_bank(inv_indices, sorted_bank, i_running)
 	);
 
-	//good to go. slice off this party of shit and go on
 	} else {
 	for (let bank_pack of packs_on_floor) {
 		if (bank_pack == "gold") continue;
@@ -181,7 +179,5 @@ function sort_all_bank(inv_indices, sorted_bank, i_running) {
 	}
 	}
 
-	//if is empty pull misplaced item
-	//else if is full place misplaced item
 	return sorted_bank;
 }

@@ -1,9 +1,7 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// WARRIOR SKILLS — split out of Warrior_Functions.js for compartmentalization.
-// Separate eval closure (own role-file entry in Bootstrapper.js) loaded right after
-// Warrior_Functions.js — reads/writes that file's state/cache/CONFIG/equipment_sets
-// globals (all var there for exactly this reason) and defines skill_loop() as a real
-// function declaration so Warrior_Functions.js's "START ALL LOOPS" can still call it.
+// WARRIOR SKILLS — separate eval closure, loaded right after Warrior_Functions.js.
+// Reads/writes that file's var globals (state/cache/CONFIG/equipment_sets) and
+// defines skill_loop().
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function skill_loop() {
@@ -223,7 +221,6 @@ async function handle_taunt() {
 	}
 }
 
-// Started here, not in Warrior_Functions.js's "START ALL LOOPS" — that file's eval
-// finishes before this one even loads, so calling skill_loop() from there would
-// throw ReferenceError. This is the first point at which the function exists.
+// Started here, not in Warrior_Functions.js: that file's eval finishes before this
+// one loads, so calling skill_loop() from there would throw ReferenceError.
 skill_loop();

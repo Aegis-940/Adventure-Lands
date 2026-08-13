@@ -1,15 +1,10 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// WIDGETS — split out of the now-removed Shared/Windows.js. Keeps only the two pieces
-// still genuinely depended on by files that aren't part of the buttons/windows redesign:
-// create_bottomrightcorner_widget() (Gold/XP/CC/DPS meters' display container) and
-// make_draggable() (used by UI/Custom_Log.js and UI/Stats_Window.js). The rest of
-// Windows.js (floating stats windows, drag-state for those) was removed along with it.
+// WIDGETS — create_bottomrightcorner_widget() (Gold/XP/CC/DPS meters' display container) and
+// make_draggable() (used by UI/Custom_Log.js and UI/Stats_Window.js).
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Shared bootstrap scaffolding for small #bottomrightcorner UI widgets (Gold/XP/CC/DPS
-// meters, previously each hand-rolled this identically) — removes any existing element
-// with this id, creates a styled container, inserts it right after #bottomrightcorner's
-// first child, and returns the jQuery element so the caller can append its own content.
+// Removes any existing element with this id, creates a styled container, inserts it right after
+// #bottomrightcorner's first child, and returns the jQuery element for the caller to append content to.
 function create_bottomrightcorner_widget(id, css) {
 	const $ = parent.$;
 	const brc = $("#bottomrightcorner");

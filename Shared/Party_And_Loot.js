@@ -7,8 +7,7 @@
 // GAME EVENT CALLBACKS (event-driven, replaces parent.S polling where possible)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Tracks live game events pushed by the server (boss spawns, special mobs, etc.)
-// Character scripts can check LIVE_EVENTS[name] instead of polling parent.S
+// Tracks live game events pushed by the server; scripts check LIVE_EVENTS[name] instead of polling parent.S
 const LIVE_EVENTS = {};
 
 on_game_event = function(data) {
@@ -17,8 +16,7 @@ on_game_event = function(data) {
 	log(`[Event] ${data.name} spawned`, "#FF8800");
 };
 
-// Fires when monsters deal AoE damage to co-located characters.
-// Sets a flag that movement loops can check to trigger spread behavior.
+// Fires on AoE damage to co-located characters; movement loops check this flag to trigger spread behavior.
 let combined_damage_flag = false;
 let combined_damage_time = 0;
 
@@ -29,7 +27,6 @@ on_combined_damage = function() {
 
 function should_spread() {
 	if (!combined_damage_flag) return false;
-	// Auto-clear after 2 seconds
 	if (Date.now() - combined_damage_time > 2000) {
 		combined_damage_flag = false;
 		return false;
@@ -59,13 +56,11 @@ async function potion_loop() {
 
 	let used_potion = false;
 
-	// Use MP potion if needed
 	if (MP_MISSING >= CONFIG.potions.mp_threshold) {
 		use("mp");
 		used_potion = true;
 	}
 
-	// Use HP potion if needed
 	if (HP_MISSING >= CONFIG.potions.hp_threshold) {
 		use("hp");
 		used_potion = true;
@@ -103,9 +98,7 @@ let _suppress_periodic_reset = false;
 function set_suppress_reset(val) { _suppress_periodic_reset = val; }
 
 function schedule_periodic_reset() {
-	// Module-level state is per-iframe/tab, so each character decides
-	// independently. Boot-seed prevents a reload loop if we come back up
-	// inside an active reset window.
+	// Boot-seed prevents a reload loop if we come back up inside an active reset window.
 	const boot = new Date();
 	if (boot.getHours() % RESET_INTERVAL_HOURS === 0 && boot.getMinutes() < RESET_WINDOW_MINUTES) {
 		_last_reset_bucket = `${boot.toDateString()}-${boot.getHours()}`;
@@ -190,8 +183,7 @@ async function batch_equip(data) {
 	}
 }
 
-// Shared by Warrior/Healer/Ranger (was duplicated identically across all three) — each
-// reads its own file-local `equipment_sets` global at call time, same as CONFIG/HOME/etc.
+// Shared by Warrior/Healer/Ranger — each reads its own file-local `equipment_sets` global at call time.
 function is_set_equipped(set_name) {
 	const set = equipment_sets[set_name];
 	if (!set) return false;
@@ -240,16 +232,9 @@ function party_manager() {
 	}
 }
 
-// Game-engine-invoked callbacks (same convention as on_cm) — shared by Warrior/Healer/
-// Ranger (was duplicated identically across all three). Each file's own CONFIG (var, so
-// visible globally at call time) supplies party.group_members, so this stays correct
-// per-character despite living in a shared file.
-// typeof-guarded: these are game-engine-invoked callbacks that can fire the instant a
-// party invite/request arrives -- possibly before this character's own role file (which
-// declares CONFIG) has finished loading, since this file loads earlier/in parallel with
-// it. An early-fired event here just no-ops instead of throwing "CONFIG is not defined"
-// -- party_manager() (below) keeps re-sending invites/requests every loop tick regardless,
-// so the party still forms moments later once CONFIG actually exists.
+// Game-engine-invoked callbacks — each file's own CONFIG supplies party.group_members.
+// typeof-guarded: these can fire before this character's role file (which declares CONFIG) has
+// finished loading; an early no-op is fine since party_manager() keeps retrying every tick.
 function on_party_request(name) {
 	if (typeof CONFIG === "undefined") return;
 	if (CONFIG.party.group_members.includes(name)) {
@@ -275,8 +260,8 @@ function on_party_invite(name) {
 const LOOT_GOLD_RESERVE = 10000000;
 
 async function send_to_merchant() {
-	const merchant_name = "Riff";          // e.g., "Riff"
-	const merchant = get_player(merchant_name);   // use get_player for live info
+	const merchant_name = "Riff";
+	const merchant = get_player(merchant_name);
 
 	if (!merchant || merchant.rip) {
 		return game_log("❌ Merchant not found or dead");
@@ -289,10 +274,9 @@ async function send_to_merchant() {
 	// must never auto-send) — fall back to nothing excluded if a file doesn't define one.
 	const items_to_keep = typeof ITEMS_TO_KEEP !== "undefined" ? ITEMS_TO_KEEP : [];
 
-	// Send every unlocked, non-reserved item in slots ≥ LOOT_THRESHOLD
 	for (let i = LOOT_THRESHOLD; i < character.items.length; i++) {
 		const item = character.items[i];
-		if (item && !item.l && !items_to_keep.includes(item.name)) { // Skip locked/reserved items
+		if (item && !item.l && !items_to_keep.includes(item.name)) {
 			await delay(150);
 			try {
 				send_item(merchant_name, i, item.q || 1);
@@ -302,7 +286,6 @@ async function send_to_merchant() {
 		}
 	}
 
-	// Send gold above the reserve
 	const gold_to_send = character.gold - LOOT_GOLD_RESERVE;
 	if (gold_to_send > 0) {
 		await delay(10);
@@ -314,10 +297,8 @@ async function send_to_merchant() {
 	}
 }
 
-// Shared by Warrior/Healer/Ranger (was duplicated identically across all three) — each
-// reads its own file-local ITEMS_TO_KEEP global at call time, same as CONFIG/HOME/etc.
-// Self-triggered counterpart to send_to_merchant() above (which fires when Riff
-// actively requests loot) — this one runs on the fighter's own schedule.
+// Self-triggered counterpart to send_to_merchant() (which fires when Riff requests loot) — runs on
+// the fighter's own schedule; reads this file's own ITEMS_TO_KEEP global at call time.
 function clear_inventory() {
 	const loot_mule = get_player("Riff");
 	if (!loot_mule) return;
@@ -338,10 +319,8 @@ function clear_inventory() {
 	}
 }
 
-// Shared by Warrior/Healer/Ranger (was duplicated identically across all three, only
-// thresholds differed) — reads this file's own PANIC_THRESHOLDS global at call time.
-// If a file also defines PANIC_BROADCAST_TARGETS (currently only Healer does), panic
-// state changes are broadcast via send_cm to those targets.
+// Reads this file's own PANIC_THRESHOLDS global. If PANIC_BROADCAST_TARGETS is also defined
+// (currently only Healer), panic state changes are broadcast via send_cm to those targets.
 async function panic_check() {
 	const t = PANIC_THRESHOLDS;
 
@@ -352,7 +331,6 @@ async function panic_check() {
 
 	const panic_slot = character.items.findIndex(i => i?.name === "jacko");
 
-	// Aggro check: monsters targeting me
 	const MONSTERS_TARGETING_ME = Object.values(parent.entities).filter(
 		e => e.type === "monster" && e.target === character.name && !e.dead
 	).length;
@@ -374,7 +352,6 @@ async function panic_check() {
 
 	if (panicking && (Date.now() - last_panic_time > t.cooldown)) {
 		last_panic_time = Date.now();
-		// Equip panic orb if needed
 		if (character.slots.orb?.name !== "jacko" && panic_slot !== -1) {
 			try {
 				await equip(panic_slot);
@@ -387,7 +364,6 @@ async function panic_check() {
 			}
 		}
 
-		// Try to cast scare if possible
 		if (!is_on_cooldown("scare") && can_use("scare") && character.slots.orb?.name === "jacko") {
 			try {
 				log("Using Scare!", "#ffcc00", "Alerts");
@@ -414,7 +390,6 @@ async function panic_check() {
 
 	if (!panicking && (Date.now() - last_safe_time > t.cooldown)) {
 		last_safe_time = Date.now();
-		// Equip normal orb if needed
 		if (character.slots.orb?.name === "jacko" && safe_slot !== -1) {
 			try {
 				await equip(safe_slot);
@@ -429,20 +404,16 @@ async function panic_check() {
 	}
 }
 
-// Shared by Warrior/Ranger (was duplicated identically) — orbits Myras when close,
-// smart_moves to her when far or on a different map, falling back to
-// _healer_last_known when she's off-map and invisible. Reads this file's own
-// CONFIG.movement.follow_distance and writes/reads _healer_last_known/
-// _last_healer_ping as true globals.
+// Orbits Myras when close, smart_moves to her when far/on a different map, falling back to
+// _healer_last_known when she's off-map and invisible. Reads CONFIG.movement.follow_distance.
 function follow_healer() {
 	const healer = get_player("Myras");
 
-	// Keep cache fresh from live data whenever healer is visible
 	if (healer && !healer.rip) {
 		_healer_last_known = { map: character.map, x: healer.x, y: healer.y };
 	}
 
-	// Ping for fresh location whenever healer is not visible (regardless of cached map)
+	// Ping for fresh location whenever healer is not visible
 	if (!healer) {
 		const now = Date.now();
 		if (now - _last_healer_ping > 2000) {
@@ -477,8 +448,7 @@ function follow_healer() {
 		return;
 	}
 
-	// Target a point exactly follow_distance units from the healer along our current angle.
-	// Works for both approach (dist > fd) and push-away (dist < fd).
+	// Target a point exactly follow_distance units from the healer along our current angle (approach or push-away).
 	const angle = Math.atan2(character.y - healer.y, character.x - healer.x);
 	const target_x = healer.x + Math.cos(angle) * fd;
 	const target_y = healer.y + Math.sin(angle) * fd;
@@ -490,11 +460,9 @@ function follow_healer() {
 	}
 }
 
-// Shared by Warrior/Healer/Ranger (was duplicated, and Healer/Ranger's copies didn't
-// support reserved-slot arrays) — reads this file's own `item_order` global. A plain
-// number reserves one slot for that item; an array reserves one slot per intentionally-
-// kept duplicate (only Warrior currently uses this, for a dual-wielded weapon) — extra
-// copies beyond the reserved slots are left wherever they land.
+// Reads this file's own `item_order` global. A plain number reserves one slot for that item; an array
+// reserves one slot per intentionally-kept duplicate (Warrior uses this for a dual-wielded weapon) —
+// extra copies beyond the reserved slots are left wherever they land.
 function inventory_sorter() {
 	const claimed = {}; // item name -> how many of its reserved slots are already assigned this pass
 
@@ -607,14 +575,9 @@ async function withdraw_item(item_name, level = null, total = null) {
 				}
 			}
 
-			// bank_retrieve pulls the ENTIRE stack from a bank slot in a single call — there's
-			// no partial-quantity retrieval. Looping it per-unit (the old behavior) emptied the
-			// slot on the first call, then wasted further calls on the now-empty slot while
-			// still decrementing `remaining` once per call — so whenever a caller wanted fewer
-			// than the full stack (e.g. withdrawing combine items in capped multiples of 3),
-			// the real call over-delivered the whole stack while `remaining`'s bookkeeping
-			// assumed only part of it arrived, throwing off every later slot/round and dropping
-			// the last item or two short of what the caller expected to see in inventory.
+			// bank_retrieve always pulls the ENTIRE stack from a slot — no partial-quantity retrieval.
+			// Must not loop this per-unit; that emptied the slot on the first call while still
+			// decrementing `remaining` per call, under-counting what actually arrived.
 			await bank_retrieve(pack_key, slot, -1);
 			await delay(100);
 			remaining -= (itm.q || 1);
@@ -633,8 +596,7 @@ async function withdraw_item(item_name, level = null, total = null) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// REMOTE SELLING (moved out of the now-removed Shared/Buttons.js — not UI, just a
-// background auto-sell loop each fighter runs via setInterval(remote_sell_items, ...))
+// REMOTE SELLING (background auto-sell loop each fighter runs via setInterval(remote_sell_items, ...))
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const SELLABLE_ITEMS = [

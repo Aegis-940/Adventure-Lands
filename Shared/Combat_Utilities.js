@@ -7,7 +7,6 @@
 // STATE MACHINE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// --- Helper: Boss alive check ---
 function is_boss_alive() {
 	return BOSSES.some(name => {
 		const s = parent.S[name];

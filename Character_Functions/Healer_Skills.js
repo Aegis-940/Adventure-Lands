@@ -1,11 +1,9 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// HEALER SKILLS — split out of Healer_Functions.js for compartmentalization.
-// Separate eval closure (own role-file entry in Bootstrapper.js) loaded right after
-// Healer_Functions.js — reads/writes that file's state/cache/CONFIG/home/destination
-// globals (all var there for exactly this reason) and defines skill_loop() as a real
-// function declaration, started at the bottom of this file (see note there for why).
-// try_heal() stays in Healer_Functions.js — it's only ever called from that file's
-// action_loop(), which starts running immediately and would race this file's load.
+// HEALER SKILLS — separate eval closure, loaded right after Healer_Functions.js.
+// Reads/writes that file's var globals (state/cache/CONFIG/home/destination).
+// Defines skill_loop(), started at the bottom of this file.
+// try_heal() stays in Healer_Functions.js since its action_loop() calls it and
+// starts running before this file loads.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function skill_loop() {
@@ -117,7 +115,6 @@ async function handle_absorb() {
 	// 	}
 	// }
 
-	// Party absorb - check in real-time, not from cache
 	if (!character.party) return;
 
 	const PARTY_NAMES = Object.keys(get_party());
@@ -128,7 +125,6 @@ async function handle_absorb() {
 		const entity = parent.entities[id];
 		if (!entity || entity.type !== "monster" || entity.dead) continue;
 
-		// If this monster is targeting an ally and not us
 		if (entity.target && ALLIES.includes(entity.target) && entity.target !== character.name) {
 			await use_skill("absorb", entity.target);
 			return;
@@ -171,7 +167,7 @@ async function handle_zapper() {
 
 	if (smart.moving || character.cc > COOLDOWNS.cc) return;
 
-	// Step 1: Equip zapper if untargeted mobs exist and we don't have it equipped
+	// Equip zapper if untargeted mobs exist and we don't have it equipped
 	if (TARGETS.length > 0 && !HAS_ZAPPER && CAN_SWAP && HAS_ENOUGH_MP && character.map === destination.map) {
 		try {
 			await equip_set("zap_on");
@@ -182,7 +178,7 @@ async function handle_zapper() {
 		return;
 	}
 
-	// Step 2: Zap all untargeted mobs if we have zapper equipped
+	// Zap all untargeted mobs if we have zapper equipped
 	if (TARGETS.length > 0 && HAS_ZAPPER && HAS_ENOUGH_MP && !is_on_cooldown("zapperzap")) {
 		for (const entity of TARGETS) {
 			if (is_on_cooldown("zapperzap")) break;
@@ -195,8 +191,7 @@ async function handle_zapper() {
 		}
 	}
 
-	// Step 3: Only unequip zapper when NO untargeted mobs remain
-	// Don't unequip just because we zapped them all - they might respawn
+	// Only unequip zapper once no untargeted mobs remain (they might respawn)
 	if (TARGETS.length === 0 && HAS_ZAPPER && CAN_SWAP && character.map === destination.map) {
 		try {
 			await equip_set("zap_off");
@@ -207,7 +202,6 @@ async function handle_zapper() {
 	}
 }
 
-// Started here, not in Healer_Functions.js's "START ALL LOOPS" — that file's eval
-// finishes before this one even loads, so calling skill_loop() from there would
-// throw ReferenceError. This is the first point at which the function exists.
+// Started here, not in Healer_Functions.js: that file's eval finishes before this
+// one loads, so calling skill_loop() from there would throw ReferenceError.
 skill_loop();

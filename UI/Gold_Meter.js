@@ -5,10 +5,9 @@
 let gold_events       = [];                            // array of { t: timestamp, amount: gold }
 let largest_gold_drop  = 0;
 const start_time      = Date.now();                    // for initial window growth
-const WINDOW_MS      = 30 * 60 * 1000;                 // 30 minutes in ms
+const WINDOW_MS      = 30 * 60 * 1000;
 let interval         = "hour";                        // "minute" | "hour" | "day"
 
-// Initialize the gold meter UI
 const init_gold_meter = () => {
 	const gold_container = create_bottomrightcorner_widget("goldtimer", {
 		fontSize:     "25px",
@@ -25,13 +24,11 @@ const init_gold_meter = () => {
 		.appendTo(gold_container);
 };
 
-// Format gold string to display
 const format_gold_string = (average_gold) => `
 	<div>${average_gold.toLocaleString("en")} Gold/${interval.charAt(0).toUpperCase() + interval.slice(1)}</div>
 	<div>${largest_gold_drop.toLocaleString("en")} Jackpot</div>
 `;
 
-// Update the gold display with current data
 const update_gold_display = () => {
 	const $           = parent.$;
 	const average_gold = calculate_average_gold();
@@ -48,12 +45,9 @@ const update_gold_display = () => {
 	});
 };
 
-// Refresh display twice a second
 setInterval(update_gold_display, 500);
 
-// Kick things off — create_bottomrightcorner_widget() lives in Shared/Widgets.js,
-// which Bootstrapper.js loads in parallel with this file (no ordering guarantee), so
-// retry until it's actually available instead of assuming it already is.
+// Retry until create_bottomrightcorner_widget (Shared/Widgets.js) is loaded — no load-order guarantee.
 (function start_gold_meter() {
 	if (typeof create_bottomrightcorner_widget !== "function") {
 		return void setTimeout(start_gold_meter, 100);
@@ -61,17 +55,14 @@ setInterval(update_gold_display, 500);
 	init_gold_meter();
 })();
 
-// Listen for loot events
 character.on("loot", (data) => {
 	if (data.gold && typeof data.gold === "number" && !Number.isNaN(data.gold)) {
 		const party_share        = parent.party[character.name]?.share || 1;
 		const total_gold_in_chest  = Math.round(data.gold / party_share);
 		const now               = Date.now();
 
-		// Record this drop
 		gold_events.push({ t: now, amount: total_gold_in_chest });
 
-		// Track the largest gold drop
 		if (total_gold_in_chest > largest_gold_drop) {
 			largest_gold_drop = total_gold_in_chest;
 		}
@@ -80,24 +71,19 @@ character.on("loot", (data) => {
 	}
 });
 
-// Calculate rolling-average gold over the past up to 5 minutes
 const calculate_average_gold = () => {
 	const now       = Date.now();
 	const elapsed_ms = now - start_time;
-	// window grows from 0 up to WINDOW_MS
-	const window_ms  = Math.min(elapsed_ms, WINDOW_MS);
+	const window_ms  = Math.min(elapsed_ms, WINDOW_MS); // window grows from 0 up to WINDOW_MS
 	const cutoff    = now - window_ms;
 
-	// Discard events older than our window
 	gold_events = gold_events.filter(e => e.t >= cutoff);
 
-	// Sum the gold in that window
 	const sum_window = gold_events.reduce((sum, e) => sum + e.amount, 0);
 
 	const divisor_seconds = window_ms / 1000;
 	if (divisor_seconds <= 0) return 0;
 
-	// Convert to per-interval rate
 	const unit_seconds = interval === "minute" ? 60
 						: interval === "hour"   ? 3600
 						:                          86400;
