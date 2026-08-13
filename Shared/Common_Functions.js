@@ -739,6 +739,27 @@ async function batch_equip(data) {
 	}
 }
 
+// Shared by Warrior/Healer/Ranger (was duplicated identically across all three) — each
+// reads its own file-local `equipment_sets` global at call time, same as CONFIG/HOME/etc.
+function is_set_equipped(set_name) {
+	const set = equipment_sets[set_name];
+	if (!set) return false;
+
+	return set.every(item =>
+		character.slots[item.slot]?.name === item.item_name &&
+		character.slots[item.slot]?.level === item.level
+	);
+}
+
+async function equip_set(set_name) {
+	const set = equipment_sets[set_name];
+	if (!set) {
+		console.error(`Set "${set_name}" not found.`);
+		return;
+	}
+	return batch_equip(set);
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // PARTY MANAGER
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -814,6 +835,207 @@ async function send_to_merchant() {
 			game_log("⚠️ Could not send gold");
 		}
 	}
+}
+
+// Shared by Warrior/Healer/Ranger (was duplicated identically across all three) — each
+// reads its own file-local ITEMS_TO_KEEP global at call time, same as CONFIG/HOME/etc.
+// Self-triggered counterpart to send_to_merchant() above (which fires when Riff
+// actively requests loot) — this one runs on the fighter's own schedule.
+function clear_inventory() {
+	const loot_mule = get_player("Riff");
+	if (!loot_mule) return;
+
+	const dist = distance(character, loot_mule);
+
+	if (dist < 250 && character.gold > LOOT_GOLD_RESERVE) {
+		send_gold(loot_mule, character.gold - LOOT_GOLD_RESERVE);
+	}
+
+	for (let i = 0; i < character.items.length; i++) {
+		const item = character.items[i];
+		if (item && !ITEMS_TO_KEEP.includes(item.name) && !item.l && !item.s) {
+			if (dist < 250) {
+				send_item(loot_mule.id, i, item.q ?? 1);
+			}
+		}
+	}
+}
+
+// Shared by Warrior/Healer/Ranger (was duplicated identically across all three, only
+// thresholds differed) — reads this file's own PANIC_THRESHOLDS global at call time.
+// If a file also defines PANIC_BROADCAST_TARGETS (currently only Healer does), panic
+// state changes are broadcast via send_cm to those targets.
+async function panic_check() {
+	const t = PANIC_THRESHOLDS;
+
+	const LOW_HEALTH = character.hp < character.max_hp * t.low_hp;
+	const LOW_MANA = character.mp < character.max_mp * t.low_mp;
+	const HIGH_HEALTH = character.hp >= character.max_hp * t.high_hp;
+	const HIGH_MANA = character.mp >= character.max_mp * t.high_mp;
+
+	const panic_slot = character.items.findIndex(i => i?.name === "jacko");
+
+	// Aggro check: monsters targeting me
+	const MONSTERS_TARGETING_ME = Object.values(parent.entities).filter(
+		e => e.type === "monster" && e.target === character.name && !e.dead
+	).length;
+
+	// PANIC CONDITION
+	if (LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= t.aggro) {
+		if (!panicking) {
+			panicking = true;
+			if (typeof PANIC_BROADCAST_TARGETS !== "undefined") {
+				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: true });
+			}
+			let reason = [];
+			if (LOW_HEALTH) reason.push("low health");
+			if (LOW_MANA) reason.push("low mana");
+			if (MONSTERS_TARGETING_ME >= t.aggro) reason.push("high aggro");
+			log(`⚠️ Panic triggered: ${reason.join(", ")}!`, "#ffcc00", "Alerts");
+		}
+	}
+
+	if (panicking && (Date.now() - last_panic_time > t.cooldown)) {
+		last_panic_time = Date.now();
+		// Equip panic orb if needed
+		if (character.slots.orb?.name !== "jacko" && panic_slot !== -1) {
+			try {
+				await equip(panic_slot);
+				await delay(200);
+				if (character.slots.orb?.name !== "jacko") {
+					log("[PANIC] Failed to equip panic orb!", "#ff4444", "Errors");
+				}
+			} catch (e) {
+				log(`[PANIC] Error equipping panic orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
+			}
+		}
+
+		// Try to cast scare if possible
+		if (!is_on_cooldown("scare") && can_use("scare") && character.slots.orb?.name === "jacko") {
+			try {
+				log("Using Scare!", "#ffcc00", "Alerts");
+				await use_skill("scare");
+				await delay(200);
+			} catch (e) {
+				log(`[PANIC] Error using scare: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
+			}
+		}
+	}
+
+	const safe_slot = character.items.findIndex(i => i?.name === "orbg");
+
+	// SAFE CONDITION
+	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < t.aggro) {
+		if (panicking) {
+			panicking = false;
+			if (typeof PANIC_BROADCAST_TARGETS !== "undefined") {
+				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
+			}
+			log("✅ Panic over.", "#00ff00", "Alerts");
+		}
+	}
+
+	if (!panicking && (Date.now() - last_safe_time > t.cooldown)) {
+		last_safe_time = Date.now();
+		// Equip normal orb if needed
+		if (character.slots.orb?.name === "jacko" && safe_slot !== -1) {
+			try {
+				await equip(safe_slot);
+				await delay(200);
+				if (character.slots.orb?.name === "jacko") {
+					log("[PANIC] Failed to equip normal orb!", "#ff4444", "Errors");
+				}
+			} catch (e) {
+				log(`[PANIC] Error equipping normal orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
+			}
+		}
+	}
+}
+
+// Shared by Warrior/Ranger (was duplicated identically) — orbits Myras when close,
+// smart_moves to her when far or on a different map, falling back to
+// _healer_last_known when she's off-map and invisible. Reads this file's own
+// CONFIG.movement.follow_distance and writes/reads _healer_last_known/
+// _last_healer_ping as true globals.
+function follow_healer() {
+	const healer = get_player("Myras");
+
+	// Keep cache fresh from live data whenever healer is visible
+	if (healer && !healer.rip) {
+		_healer_last_known = { map: character.map, x: healer.x, y: healer.y };
+	}
+
+	// Ping for fresh location whenever healer is not visible (regardless of cached map)
+	if (!healer) {
+		const now = Date.now();
+		if (now - _last_healer_ping > 2000) {
+			_last_healer_ping = now;
+			send_cm("Myras", { type: "where_are_you" });
+		}
+	}
+
+	const healer_pos = healer || _healer_last_known;
+	if (!healer_pos || (healer && healer.rip)) return;
+
+	if (healer_pos.map !== character.map) {
+		if (smart.moving) smart._interrupt?.("follow_healer");
+		if (!smart.moving) smart_move({ map: healer_pos.map, x: healer_pos.x, y: healer_pos.y });
+		return;
+	}
+
+	// Same map but not yet visible — smart_move toward cached position
+	if (!healer) {
+		if (!smart.moving) smart_move({ x: healer_pos.x, y: healer_pos.y });
+		return;
+	}
+
+	// Healer visible — ring positioning
+	const dist = Math.hypot(character.x - healer.x, character.y - healer.y);
+	const fd = CONFIG.movement.follow_distance;
+	if (Math.abs(dist - fd) <= 3) return;
+
+	// Cancel stale pathfinding if our distance from the ring has shifted significantly
+	if (smart.moving) {
+		if (Math.abs(dist - fd) > 40) smart._interrupt?.("follow_healer");
+		return;
+	}
+
+	// Target a point exactly follow_distance units from the healer along our current angle.
+	// Works for both approach (dist > fd) and push-away (dist < fd).
+	const angle = Math.atan2(character.y - healer.y, character.x - healer.x);
+	const target_x = healer.x + Math.cos(angle) * fd;
+	const target_y = healer.y + Math.sin(angle) * fd;
+
+	if (!can_move_to(target_x, target_y)) {
+		smart_move({ x: target_x, y: target_y });
+	} else {
+		move(target_x, target_y);
+	}
+}
+
+// Shared by Warrior/Healer/Ranger (was duplicated, and Healer/Ranger's copies didn't
+// support reserved-slot arrays) — reads this file's own `item_order` global. A plain
+// number reserves one slot for that item; an array reserves one slot per intentionally-
+// kept duplicate (only Warrior currently uses this, for a dual-wielded weapon) — extra
+// copies beyond the reserved slots are left wherever they land.
+function inventory_sorter() {
+	const claimed = {}; // item name -> how many of its reserved slots are already assigned this pass
+
+	character.items.forEach((item, i) => {
+		if (!item) return;
+		const spec = item_order[item.name];
+		if (spec === undefined) return;
+
+		if (Array.isArray(spec)) {
+			const next = claimed[item.name] || 0;
+			if (next >= spec.length) return; // no reserved slot left for extra copies
+			claimed[item.name] = next + 1;
+			const target = spec[next];
+			if (i !== target) swap(i, target);
+		} else if (i !== spec) {
+			swap(i, spec);
+		}
+	});
 }
 
 let bank_inventory = [];
@@ -937,39 +1159,47 @@ async function withdraw_item(item_name, level = null, total = null) {
 // MOVE TO CHARACTER'S LOCATION
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function move_to_character(name, timeout_ms = 10000) {
-	// Prevent multiple overlapping handlers
-	let responded = false;
+// Returns a Promise that resolves once we've actually arrived (or rejects on an
+// invalid/missing response or timeout) — not just once the request was sent. Callers
+// relying on .then()/.catch()/await to know whether the move really happened depend on
+// this; previously the function resolved immediately after firing the CM request,
+// before any response or movement occurred.
+function move_to_character(name, timeout_ms = 10000) {
+	return new Promise((resolve, reject) => {
+		let responded = false;
 
-	function handle_response(n, data) {
-		if (n !== name || !data || data.type !== "my_location") return;
+		function handle_response(n, data) {
+			if (n !== name || !data || data.type !== "my_location") return;
 
-		responded = true;
-		remove_cm_listener(handle_response);
-		clearTimeout(timeout_id);
-
-		const { map, x, y } = data;
-		if (!map || x == null || y == null) {
-			game_log(`❌ Invalid location data from ${name}`);
-			return;
-		}
-
-		smarter_move({ map, x, y });
-	}
-
-	// Add listener
-	add_cm_listener(handle_response);
-
-	// Send request
-	send_cm(name, { type: "where_are_you" });
-
-	// Timeout fallback
-	const timeout_id = setTimeout(() => {
-		if (!responded) {
+			responded = true;
 			remove_cm_listener(handle_response);
-			game_log(`⚠️ No location response from ${name} within ${timeout_ms / 1000}s`);
+			clearTimeout(timeout_id);
+
+			const { map, x, y } = data;
+			if (!map || x == null || y == null) {
+				game_log(`❌ Invalid location data from ${name}`);
+				reject({ reason: "invalid_location" });
+				return;
+			}
+
+			smarter_move({ map, x, y }).then(resolve, reject);
 		}
-	}, timeout_ms);
+
+		// Add listener
+		add_cm_listener(handle_response);
+
+		// Send request
+		send_cm(name, { type: "where_are_you" });
+
+		// Timeout fallback
+		const timeout_id = setTimeout(() => {
+			if (!responded) {
+				remove_cm_listener(handle_response);
+				game_log(`⚠️ No location response from ${name} within ${timeout_ms / 1000}s`);
+				reject({ reason: "timeout" });
+			}
+		}, timeout_ms);
+	});
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

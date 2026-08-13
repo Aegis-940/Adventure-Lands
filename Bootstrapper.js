@@ -55,15 +55,20 @@ window._cmListeners = window._cmListeners || [];
 
 	const MAX_RETRIES = 3;
 
+	// If any of these fail to load, nothing else can function (every role file calls
+	// into globals it defines) — abort role-file loading with a loud, hard-to-miss
+	// signal instead of letting every character spin/error against undefined functions.
+	const CRITICAL_SCRIPTS = ["Shared/Common_Functions.js"];
+
 	// Loads one shared/UI script via getScript() (real <script> tag — always
-	// global scope). Always resolves, even on final failure, so one bad file
-	// can't block the rest of the batch — matches the prior best-effort behavior.
+	// global scope). Always resolves (with success: true/false), even on final
+	// failure, so one bad file can't block the rest of the batch from attempting.
 	function load_one(base, name) {
 		const url = base + encodeURI(name);
 		return new Promise(resolve => {
 			function attempt(retries) {
 				p$.getScript(url)
-					.done(() => resolve())
+					.done(() => resolve(true))
 					.fail((_, s, e) => {
 						if (retries < MAX_RETRIES) {
 							game_log(`🔄 Retrying to load ${name} (${retries + 1}/${MAX_RETRIES})...`);
@@ -71,12 +76,30 @@ window._cmListeners = window._cmListeners || [];
 						} else {
 							game_log("❌ Failed to load " + name + ": " + s);
 							console.error("URL:", url, "err:", e);
-							resolve();
+							resolve(false);
 						}
 					});
 			}
 			attempt(0);
 		});
+	}
+
+	// Counts braces after stripping block/line comments and string/template literals —
+	// a brace inside a comment or string (very common — e.g. any object-literal example
+	// in a comment) otherwise produces a false "brace mismatch" warning on valid code.
+	// Not a full tokenizer (a brace inside a regex literal can still slip through), but
+	// far more reliable than a raw count.
+	function count_braces_excluding_literals(text) {
+		const stripped = text
+			.replace(/\/\*[\s\S]*?\*\//g, "")
+			.replace(/\/\/[^\n]*/g, "")
+			.replace(/`(?:\\.|[^`\\])*`/g, "")
+			.replace(/"(?:\\.|[^"\\])*"/g, "")
+			.replace(/'(?:\\.|[^'\\])*'/g, "");
+		return {
+			opens: (stripped.match(/{/g) || []).length,
+			closes: (stripped.match(/}/g) || []).length
+		};
 	}
 
 	// Loads a role file via fetch+eval with brace-count diagnostics — kept
@@ -89,8 +112,7 @@ window._cmListeners = window._cmListeners || [];
 					console.log("[BS] Fetched", name, "length=", text.length);
 					console.log("[BS] Start of", name, ":\n", text.slice(0, 200));
 					console.log("[BS] End of",   name, ":\n", text.slice(-200));
-					const opens  = (text.match(/{/g) || []).length;
-					const closes = (text.match(/}/g) || []).length;
+					const { opens, closes } = count_braces_excluding_literals(text);
 					console.log("[BS] brace counts { } →", opens, closes);
 					if (opens !== closes) {
 						console.warn("[BS] Brace mismatch detected in", name);
@@ -128,24 +150,44 @@ window._cmListeners = window._cmListeners || [];
 	}
 
 	function start_loading(base) {
-		Promise.all(scripts.map(name => load_one(base, name)))
-			.then(() => load_sequential(role_file, name => load_role_file(base, name)))
-			.then(() => game_log("✅ All scripts loaded."));
+		Promise.all(scripts.map(name => load_one(base, name).then(ok => ({ name, ok }))))
+			.then(results => {
+				const failed_critical = results.filter(r => !r.ok && CRITICAL_SCRIPTS.includes(r.name));
+				if (failed_critical.length > 0) {
+					const names = failed_critical.map(r => r.name).join(", ");
+					game_log("🛑 CRITICAL: failed to load " + names + " after retries — aborting, bot cannot function. Reload to retry.");
+					console.error("[BS] Critical script(s) failed to load, aborting role-file load:", names);
+					return; // role files would just error against undefined globals — don't bother
+				}
+				return load_sequential(role_file, name => load_role_file(base, name))
+					.then(() => game_log("✅ All scripts loaded."));
+			});
 	}
 
-	// The loader snippet that evals this file may already have resolved the
-	// commit SHA to fetch it — reuse that instead of hitting the GitHub API
-	// again for the same information.
-	if (window.__AL_BASE__) {
-		start_loading(window.__AL_BASE__);
-	} else {
+	// The loader snippet that evals this file may already have resolved the commit SHA
+	// to fetch it — reuse that instead of hitting the GitHub API again, but only while
+	// it's fresh: if this page session has been running long enough that a new commit
+	// could plausibly have landed since, re-resolve instead of silently building on a
+	// stale SHA with no indication it's outdated.
+	const MAX_BASE_AGE_MS = 10 * 60 * 1000; // 10 minutes
+
+	function resolve_and_load() {
 		p$.getJSON("https://api.github.com/repos/Aegis-940/Adventure-Lands/commits/main")
 			.done(repo_data => {
-				start_loading("https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@" + repo_data.sha + "/");
+				const base = "https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@" + repo_data.sha + "/";
+				window.__AL_BASE__ = base;
+				window.__AL_BASE_SET_AT__ = Date.now();
+				start_loading(base);
 			})
 			.fail(() => {
 				game_log("⚠️ Couldn't fetch SHA; falling back to main");
 				start_loading("https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/");
 			});
+	}
+
+	if (window.__AL_BASE__ && window.__AL_BASE_SET_AT__ && (Date.now() - window.__AL_BASE_SET_AT__) < MAX_BASE_AGE_MS) {
+		start_loading(window.__AL_BASE__);
+	} else {
+		resolve_and_load();
 	}
 })();

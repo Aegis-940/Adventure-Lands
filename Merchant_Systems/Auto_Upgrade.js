@@ -18,12 +18,12 @@ const UPGRADE_PROFILE = {
 	ololipop:     { scroll0_until: 2, scroll1_until: 8, scroll2_until: 9, primling_from: 7, max_level: 9 },
 	glolipop:     { scroll0_until: 2, scroll1_until: 8, scroll2_until: 9, primling_from: 8, max_level: 9 },
 	quiver:       { scroll0_until: 3, scroll1_until: 6, scroll2_until: 9, primling_from: 7, max_level: 6 },
-	crossbow:     { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 6, max_level: 4 },
+	crossbow:     { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 6, max_level: 6 },
 	basher:       { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 6, max_level: 5 },
 	broom:        { scroll0_until: 2, scroll1_until: 7, scroll2_until: 9, primling_from: 7, max_level: 7 },
 	harbringer:   { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 4, max_level: 7 },
 	t2quiver:     { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 4, max_level: 7 },
-	mshield:      { scroll0_until: 0, scroll1_until: 0, scroll2_until: 9, primling_from: 3, max_level: 7 },
+	mshield:      { scroll0_until: 0, scroll1_until: 0, scroll2_until: 9, primling_from: 3, max_level: 8 },
 	supermittens: { scroll0_until: 0, scroll1_until: 0, scroll2_until: 9, primling_from: 3, max_level: 4 },
 	lmace:        { scroll0_until: 0, scroll1_until: 0, scroll2_until: 9, primling_from: 3, max_level: 5 },
 	bataxe:       { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 6, max_level: 9 },
@@ -537,56 +537,65 @@ async function auto_upgrade() {
 
 	merchant_task = "Upgrading";
 
-	if (character.map !== "bank") {
-		await smarter_move(BANK_LOCATION);
-	}
+	// Wrapped so an interrupted/timed-out smarter_move() (a normal, expected occurrence,
+	// not exceptional) or any other mid-run failure logs with real context here instead
+	// of just bubbling up to handle_upgrading_state()'s generic catch — the caller still
+	// resets merchant_task on error either way, this is purely for diagnosability.
+	try {
+		if (character.map !== "bank") {
+			await smarter_move(BANK_LOCATION);
+		}
 
-	await withdraw_upgrade_scrolls();
-	await withdraw_offering();
-	await withdraw_upgradeable_items();
+		await withdraw_upgrade_scrolls();
+		await withdraw_offering();
+		await withdraw_upgradeable_items();
 
-	await smarter_move(HOME);
+		await smarter_move(HOME);
 
-	// --- Upgrade all items level-by-level ---
-	let upgraded = true;
-	for (let level = 0; level <= 10; level++) {
-		upgraded = false;
-		while (true) {
-			const result = await auto_upgrade_item(level);
-			if (result === "done" || result === "wait") {
-				upgraded = true;
-				await delay(UPGRADE_INTERVAL);
-			} else if (result === "end") {
-				// Stop all upgrading if "end" is returned (e.g., not enough gold)
-				game_log("❌ Ending auto-upgrade early due to insufficient gold or resources.");
-				break;
-			} else {
-				break;
+		// --- Upgrade all items level-by-level ---
+		let upgraded = true;
+		for (let level = 0; level <= 10; level++) {
+			upgraded = false;
+			while (true) {
+				const result = await auto_upgrade_item(level);
+				if (result === "done" || result === "wait") {
+					upgraded = true;
+					await delay(UPGRADE_INTERVAL);
+				} else if (result === "end") {
+					// Stop all upgrading if "end" is returned (e.g., not enough gold)
+					game_log("❌ Ending auto-upgrade early due to insufficient gold or resources.");
+					break;
+				} else {
+					break;
+				}
 			}
 		}
-	}
 
-	// --- Combine all items level-by-level ---
-	let combined = true;
-	for (let level = 0; level <= 5; level++) {
-		combined = false;
-		while (true) {
-			const result = await auto_combine_item(level);
-			if (result === "done" || result === "wait") {
-				combined = true;
-				await delay(UPGRADE_INTERVAL);
-			} else if (result === "end") {
-				// Stop all combining if "end" is returned (e.g., not enough gold)
-				game_log("❌ Ending auto-combine early due to insufficient gold or resources.");
-				break;
-			} else {
-				break;
+		// --- Combine all items level-by-level ---
+		let combined = true;
+		for (let level = 0; level <= 5; level++) {
+			combined = false;
+			while (true) {
+				const result = await auto_combine_item(level);
+				if (result === "done" || result === "wait") {
+					combined = true;
+					await delay(UPGRADE_INTERVAL);
+				} else if (result === "end") {
+					// Stop all combining if "end" is returned (e.g., not enough gold)
+					game_log("❌ Ending auto-combine early due to insufficient gold or resources.");
+					break;
+				} else {
+					break;
+				}
 			}
 		}
-	}
 
-	game_log("✅ Auto upgrade and combine complete.");
-	await delay(5000);
-	await sell_and_bank();
-	merchant_task = "Idle";
+		game_log("✅ Auto upgrade and combine complete.");
+		await delay(5000);
+		await sell_and_bank();
+	} catch (e) {
+		catcher(e, "auto_upgrade");
+	} finally {
+		merchant_task = "Idle";
+	}
 }

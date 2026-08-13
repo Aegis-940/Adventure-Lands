@@ -57,6 +57,24 @@ function craft_recipe_items(craft_def) {
 	});
 }
 
+// Finds enough inventory slot indices to supply req.quantity units of an ingredient,
+// spanning multiple slots if it's non-stackable (each unit its own slot) instead of
+// assuming one slot's stack always covers the whole requirement — same pattern as
+// Auto_Upgrade.js's pick_three_slots() for compounds. Returns null if inventory doesn't
+// actually have enough.
+function find_recipe_slots(req) {
+	var picks = [];
+	var remaining = req.quantity;
+	for (var i = 0; i < character.items.length && remaining > 0; i++) {
+		var item = character.items[i];
+		if (!item || item.name !== req.name || (req.level != null && item.level !== req.level)) continue;
+		var take = Math.min(item.q || 1, remaining);
+		for (var k = 0; k < take; k++) picks.push(i);
+		remaining -= take;
+	}
+	return remaining > 0 ? null : picks;
+}
+
 // How many of a recipe we could fit given current free inventory space, when
 // CONFIG.crafting.targets doesn't specify an explicit count — conservative: 1 free
 // slot per craft (each produces one output item), leaving a small buffer.
@@ -243,9 +261,9 @@ async function craft_batch(craft_name, count) {
 		var craft_slots = [];
 		var ok = true;
 		for (var i = 0; i < recipe.length; i++) {
-			var idx = scan_inventory_for_item_index(recipe[i].name, recipe[i].level);
-			if (idx == null) { ok = false; break; }
-			craft_slots.push(idx);
+			var slots = find_recipe_slots(recipe[i]);
+			if (!slots) { ok = false; break; }
+			craft_slots = craft_slots.concat(slots);
 		}
 		if (!ok) break; // ran out of ingredients partway through the batch
 
@@ -281,8 +299,9 @@ async function craft_item(craft_name) {
 
 	var cost = craft_def.cost;
 
-	//Do we have enough to pay for the recipe?
-	if (cost >= character.gold) return "missing";
+	//Do we have enough to pay for the recipe? (>, not >=, to match the batch cost
+	//convention below — an exact-cost craft is affordable, not "missing".)
+	if (cost > character.gold) return "missing";
 
 	//Variable to track how many items we're missing from the recipe.
 	var missing = 0;
@@ -316,14 +335,14 @@ async function craft_item(craft_name) {
 			level = 0;
 		}
 
-		//Try to find the index of the item in our inventory
-		var item_search = scan_inventory_for_item_index(item_name, level);
-		var have_qty = item_search != null ? (character.items[item_search].q || 1) : 0;
+		//Try to find enough slots to cover the required quantity — may span multiple
+		//slots for a non-stackable item (see find_recipe_slots()).
+		var recipe_slots = find_recipe_slots({ name: item_name, quantity: item_quantity, level: level });
 
 		//Do we have enough of the item in inventory already?
-		if (item_search != null && (have_qty >= item_quantity || item_quantity == 1)) {
-			//Yeah? Then we'll mark it for use.
-			craft_slots.push(item_search);
+		if (recipe_slots) {
+			//Yeah? Then we'll mark them for use.
+			craft_slots = craft_slots.concat(recipe_slots);
 			continue;
 		}
 
@@ -346,9 +365,10 @@ async function craft_item(craft_name) {
 
 		if (basics.items.includes(item_name)) {
 			//Do we have enough to complete the crafting with the cost of the item included?
+			//(<=, not <, to match the same convention as the affordability check above.)
 			cost += item.g;
 
-			if (cost < character.gold) {
+			if (cost <= character.gold) {
 				//Yeah? Mark it as something to buy.
 				buyable_missing.push(item_name);
 			} else {

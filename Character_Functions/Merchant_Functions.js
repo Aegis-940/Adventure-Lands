@@ -168,6 +168,7 @@ function should_run_upgrade() {
 	return CONFIG.enabled.upgrading
 		&& merchant_task === "Idle"
 		&& character.gold >= CONFIG.upgrade_gold_threshold
+		&& has_enough_bank_space() // upgrading withdraws from and later deposits back to the bank, same as craft/exchange/fishing/mining
 		&& bank_has_upgradeable_items(); // Merchant_Systems/Auto_Upgrade.js — is there anything in the bank worth upgrading/combining?
 }
 
@@ -362,124 +363,80 @@ async function equip_tool(tool_name) {
 	return character.slots.mainhand && character.slots.mainhand.name === tool_name;
 }
 
-async function handle_fishing_state() {
+// Shared by fishing/mining (previously two ~55-line near-identical copies) — gathers
+// the tool, travels to the spot, equips it there, then channels the skill until
+// cooldown/space/position/death stops it, and finally sells and banks. Checks
+// character.rip on every iteration (including mid-channel waits) so death preempts
+// gathering immediately instead of waiting for an incidental skill-call rejection.
+async function handle_gathering_state(tool_name, skill_name, spot, tolerance, task_label) {
 	if (merchant_task !== "Idle") return;
-	merchant_task = "Fishing";
+	merchant_task = task_label;
 	try {
 		// Check availability BEFORE traveling anywhere — no point walking to the spot
-		// for a rod we can't actually get.
-		const rod_available = await ensure_tool_available("rod");
-		if (!rod_available) {
-			log("❌ No fishing rod available (not in inventory, bank, or craftable).");
+		// for a tool we can't actually get.
+		const tool_available = await ensure_tool_available(tool_name);
+		if (!tool_available) {
+			log(`❌ No ${tool_name} available (not in inventory, bank, or craftable).`);
 			return;
 		}
 
-		const spot = CONFIG.locations.FISHING_SPOT;
-		if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > FISHING_POSITION_TOLERANCE) {
+		if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > tolerance) {
 			await smarter_move(spot);
 		}
 
-		const rod_equipped = await equip_tool("rod");
-		if (!rod_equipped) {
-			log("❌ Could not equip fishing rod at the fishing spot.");
+		const tool_equipped = await equip_tool(tool_name);
+		if (!tool_equipped) {
+			log(`❌ Could not equip ${tool_name} at the ${skill_name} spot.`);
 			return;
 		}
 
-		while (!is_on_cooldown("fishing")) {
-			if (!character.slots.mainhand || character.slots.mainhand.name !== "rod") {
-				log("❌ Fishing rod not equipped, stopping fishing.");
+		while (!is_on_cooldown(skill_name)) {
+			if (character.rip) {
+				log(`❌ Died while ${skill_name}, stopping.`);
 				break;
 			}
-			if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > FISHING_POSITION_TOLERANCE) {
-				log("❌ Not at fishing spot, stopping fishing.");
+			if (!character.slots.mainhand || character.slots.mainhand.name !== tool_name) {
+				log(`❌ ${tool_name} not equipped, stopping ${skill_name}.`);
+				break;
+			}
+			if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > tolerance) {
+				log(`❌ Not at ${skill_name} spot, stopping.`);
 				break;
 			}
 			if (character.items.filter(Boolean).length >= character.items.length) {
-				log("📦 Inventory full, stopping fishing.");
+				log(`📦 Inventory full, stopping ${skill_name}.`);
 				break;
 			}
 			try {
-				await use_skill("fishing");
+				await use_skill(skill_name);
 			} catch (e) {
-				catcher(e, "handle_fishing_state: use_skill");
+				catcher(e, `handle_gathering_state(${skill_name}): use_skill`);
 				break;
 			}
-			// is_on_cooldown() alone clears before the multi-second fishing channel
-			// actually finishes — also wait for character.c.fishing to clear, or the
-			// skill gets spammed mid-channel.
+			// is_on_cooldown() alone clears before the multi-second channel actually
+			// finishes — also wait for character.c[skill_name] to clear, or the skill
+			// gets spammed mid-channel. Also bail out immediately on death.
 			await delay(200);
-			while ((character.c && character.c.fishing) || is_on_cooldown("fishing")) {
+			while (!character.rip && ((character.c && character.c[skill_name]) || is_on_cooldown(skill_name))) {
 				await delay(200);
 			}
 		}
 
 		await sell_and_bank();
 	} catch (e) {
-		catcher(e, "handle_fishing_state");
+		catcher(e, `handle_gathering_state(${skill_name})`);
 	} finally {
 		await equip_default_gear();
 		merchant_task = "Idle";
 	}
 }
 
+async function handle_fishing_state() {
+	await handle_gathering_state("rod", "fishing", CONFIG.locations.FISHING_SPOT, FISHING_POSITION_TOLERANCE, "Fishing");
+}
+
 async function handle_mining_state() {
-	if (merchant_task !== "Idle") return;
-	merchant_task = "Mining";
-	try {
-		// Check availability BEFORE traveling anywhere — no point walking to the spot
-		// for a pickaxe we can't actually get.
-		const pickaxe_available = await ensure_tool_available("pickaxe");
-		if (!pickaxe_available) {
-			log("❌ No pickaxe available (not in inventory, bank, or craftable).");
-			return;
-		}
-
-		const spot = CONFIG.locations.MINING_SPOT;
-		if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > MINING_POSITION_TOLERANCE) {
-			await smarter_move(spot);
-		}
-
-		const pickaxe_equipped = await equip_tool("pickaxe");
-		if (!pickaxe_equipped) {
-			log("❌ Could not equip pickaxe at the mining spot.");
-			return;
-		}
-
-		while (!is_on_cooldown("mining")) {
-			if (!character.slots.mainhand || character.slots.mainhand.name !== "pickaxe") {
-				log("❌ Pickaxe not equipped, stopping mining.");
-				break;
-			}
-			if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > MINING_POSITION_TOLERANCE) {
-				log("❌ Not at mining spot, stopping mining.");
-				break;
-			}
-			if (character.items.filter(Boolean).length >= character.items.length) {
-				log("📦 Inventory full, stopping mining.");
-				break;
-			}
-			try {
-				await use_skill("mining");
-			} catch (e) {
-				catcher(e, "handle_mining_state: use_skill");
-				break;
-			}
-			// is_on_cooldown() alone clears before the multi-second mining channel
-			// actually finishes — also wait for character.c.mining to clear, or the
-			// skill gets spammed mid-channel.
-			await delay(200);
-			while ((character.c && character.c.mining) || is_on_cooldown("mining")) {
-				await delay(200);
-			}
-		}
-
-		await sell_and_bank();
-	} catch (e) {
-		catcher(e, "handle_mining_state");
-	} finally {
-		await equip_default_gear();
-		merchant_task = "Idle";
-	}
+	await handle_gathering_state("pickaxe", "mining", CONFIG.locations.MINING_SPOT, MINING_POSITION_TOLERANCE, "Mining");
 }
 
 async function set_state(state) {
