@@ -417,6 +417,12 @@ async function try_craft() {
 			await sell_items();
 			await bank_items();
 		}
+
+		// Final decide-and-cleanup once this target is done (target_max reached, out of
+		// ingredients/gold, or no progress) -- the between-batch cleanup above only
+		// covers batches that weren't the last one.
+		await sell_items();
+		await bank_items();
 		break; // one target per try_craft() call
 	}
 }

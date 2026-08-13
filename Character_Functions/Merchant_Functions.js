@@ -228,6 +228,17 @@ async function handle_dead_state() {
 	}
 }
 
+// Step 5 of the decision flow: nothing else is due right now -- rest at HOME, but only
+// travel if not already there, so this doesn't reissue smarter_move() every idle tick.
+async function handle_idle_state() {
+	if (character.map === HOME.map && Math.hypot(character.x - HOME.x, character.y - HOME.y) <= 10) return;
+	try {
+		await smarter_move(HOME);
+	} catch (e) {
+		catcher(e, "handle_idle_state: smarter_move(HOME)");
+	}
+}
+
 async function handle_delivering_state() {
 	if (merchant_task !== "Idle") return;
 	merchant_task = "Delivering";
@@ -528,9 +539,8 @@ async function set_state(state) {
 			case MERCHANT_STATES.EXCHANGING: await handle_exchanging_state(); break;
 			case MERCHANT_STATES.FISHING:    await handle_fishing_state(); break;
 			case MERCHANT_STATES.MINING:     await handle_mining_state(); break;
-			case MERCHANT_STATES.IDLE:
-			default:
-				break;
+			case MERCHANT_STATES.IDLE: await handle_idle_state(); break;
+			default: break;
 		}
 	} catch (e) {
 		catcher(e, "set_state: unhandled error");
@@ -987,6 +997,12 @@ async function exchange_items() {
 		}
 
 		log(`Finished exchanging all ${item_name}`, "#00ff00");
+
+		// Final decide-and-cleanup -- the loop above only sells/banks mid-run when
+		// inventory fills up; whatever's left over once exchanging actually finishes
+		// (e.g. non-exchangeable junk picked up along the way) still needs a decision.
+		await sell_items();
+		await bank_items();
 	} catch (e) {
 		catcher(e, "exchange_items");
 	} finally {
