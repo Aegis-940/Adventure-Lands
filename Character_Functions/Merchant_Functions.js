@@ -39,9 +39,10 @@ var CONFIG = {
 	delivery: {
 		free_slots_threshold: 10, // deliver if any party member has this many or fewer free slots
 		gold_threshold: 20000000, // deliver if any party member is carrying at least this much gold
-		// MLuck lasts 3600s — refresh at least this often. Satisfied opportunistically by
-		// handle_buff_party(); an impending lapse alone also triggers a delivery run.
-		mluck_refresh_interval: 50 * 60 * 1000,
+		// MLuck refresh itself is driven by MLUCK_REFRESH_THRESHOLD_MS (reads each
+		// fighter's cached remaining buff time) — see is_mluck_due(). Satisfied
+		// opportunistically by handle_buff_party(); an impending lapse alone also
+		// triggers a delivery run.
 	},
 	upgrade_gold_threshold: 100000000,
 	// Read by Shared/Game_Config.js's shared potion_loop() (self-use, HP/MP independent checks).
@@ -118,12 +119,16 @@ const DELIVERY_WAIT_MAX_ATTEMPTS = 40; // ~2 minutes at 3s/attempt before giving
 const FISHING_POSITION_TOLERANCE = 5;
 const MINING_POSITION_TOLERANCE = 10;
 
-// Last time each party member (by name) was mluck'd — see is_mluck_due()/
-// buff_nearby_party(), shared by handle_buff_party() and delivery runs.
-let last_mluck_time = {};
+// Refresh threshold: due once less than this much time remains, or the buff isn't active
+// at all. Reads each fighter's own cached character.s.mluck.ms (remaining time, reported
+// via Shared/Messaging.js's get_full_character_state() -> conditions) instead of our own
+// memory of when we last cast it — accurate regardless of restarts or a missed cast, and
+// reflects the buff's real server-tracked state rather than a guess.
+const MLUCK_REFRESH_THRESHOLD_MS = 10 * 60 * 1000; // refresh with 10 minutes left
 
-function is_mluck_due(name) {
-	return (Date.now() - (last_mluck_time[name] || 0)) > CONFIG.delivery.mluck_refresh_interval;
+function is_mluck_due(status) {
+	const remaining = status.conditions?.mluck?.ms;
+	return remaining == null || remaining < MLUCK_REFRESH_THRESHOLD_MS;
 }
 
 // read_state_cache() reads each fighter's localStorage snapshot directly (no CM round
@@ -132,9 +137,9 @@ function is_mluck_due(name) {
 function should_run_delivery() {
 	if (merchant_task !== "Idle") return false;
 	for (const name of PARTY) {
-		if (is_mluck_due(name)) return true;
 		const status = read_state_cache(name);
 		if (!status) continue;
+		if (is_mluck_due(status)) return true;
 		if (status.free_slots <= CONFIG.delivery.free_slots_threshold) return true;
 		if (status.gold >= CONFIG.delivery.gold_threshold) return true;
 	}
@@ -614,15 +619,18 @@ async function mluck_party_member(player) {
 	await delay(100);
 	use_skill("mluck", player);
 	await delay(200);
-	last_mluck_time[player.name] = Date.now();
+	// No local bookkeeping needed -- the target's own state_cache_loop() will report the
+	// refreshed character.s.mluck.ms within ~100ms, which is_mluck_due() reads directly.
 }
 
-// Casts mluck on every nearby party member whose buff is due (is_mluck_due()), skipping
-// anyone already fresh. Shared by handle_buff_party() and handle_delivering_state().
+// Casts mluck on every nearby party member whose cached remaining buff time says it's
+// due (is_mluck_due()), skipping anyone already fresh. Shared by handle_buff_party() and
+// handle_delivering_state().
 async function buff_nearby_party() {
 	let buffed_any = false;
 	for (const name of PARTY) {
-		if (!is_mluck_due(name)) continue;
+		const status = read_state_cache(name);
+		if (!status || !is_mluck_due(status)) continue;
 		try {
 			const player = get_player(name);
 			if (
