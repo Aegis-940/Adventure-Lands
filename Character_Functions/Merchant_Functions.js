@@ -241,6 +241,15 @@ async function handle_delivering_state() {
 	try {
 		log("Beginning delivery run...");
 
+		// Fighters constantly shift their own x/y in small increments while circle-walking/
+		// orbiting their target (walk_in_circle()), and their cache reflects that live --
+		// re-targeting smarter_move() on every tiny jitter (even when the real direction to
+		// walk barely changed) looked like the move was being erratically recalculated.
+		// Only re-target when the cached position has moved meaningfully since the last one
+		// actually aimed at, or the map changed.
+		const RETARGET_THRESHOLD = 50;
+		let last_target = null;
+
 		let attempts = 0;
 		while (!any_party_within_range() && attempts < DELIVERY_WAIT_MAX_ATTEMPTS) {
 			// state_cache_loop() (running on every fighter, ~every 100ms) already keeps
@@ -253,19 +262,23 @@ async function handle_delivering_state() {
 			for (const name of PARTY) {
 				const status = read_state_cache(name);
 				if (status && !status.rip) {
-					// Temporary diagnostic — which target/position is actually being chased
-					// each tick wasn't visible anywhere before this, making a reported
-					// "conflicting directions" hard to confirm from a log paste alone.
-					log(`🎯 Delivery: heading to ${name} @ ${status.map} (${Math.round(status.x)}, ${Math.round(status.y)})`, "#888");
+					const moved_enough = !last_target
+						|| last_target.map !== status.map
+						|| Math.hypot(status.x - last_target.x, status.y - last_target.y) > RETARGET_THRESHOLD;
 
-					// "interrupted" here just means THIS re-target replaced the previous
-					// attempt's still-in-flight smarter_move (expected every tick as the
-					// target keeps moving) -- not a real failure, so don't log it via
-					// catcher() like a genuine one.
-					smarter_move({ map: status.map, x: status.x, y: status.y })
-						.catch(e => {
-							if (e?.reason !== "interrupted") catcher(e, "handle_delivering_state: smarter_move to " + name);
-						});
+					if (moved_enough) {
+						log(`🎯 Delivery: heading to ${name} @ ${status.map} (${Math.round(status.x)}, ${Math.round(status.y)})`, "#888");
+
+						// "interrupted" here just means THIS re-target replaced the previous
+						// attempt's still-in-flight smarter_move (expected whenever the
+						// target genuinely moves) -- not a real failure, so don't log it via
+						// catcher() like a genuine one.
+						smarter_move({ map: status.map, x: status.x, y: status.y })
+							.catch(e => {
+								if (e?.reason !== "interrupted") catcher(e, "handle_delivering_state: smarter_move to " + name);
+							});
+						last_target = { map: status.map, x: status.x, y: status.y };
+					}
 					break;
 				}
 			}
