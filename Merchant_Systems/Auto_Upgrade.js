@@ -110,6 +110,13 @@ async function add_grace_to_cap(item_slot) {
 			return { grace: previous_grace, capped: false };
 		}
 
+		// Same massproductionpp usage as the real scrolled attempt in auto_upgrade_item()
+		// below — applies to grace applications too, not just the final scrolled attempt.
+		if (can_use("massproductionpp") && character.mp >= 400) {
+			use_skill("massproductionpp");
+			await delay(20);
+		}
+
 		try {
 			await upgrade(item_slot, null, offering_slot, false);
 		} catch (e) {
