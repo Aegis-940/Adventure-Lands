@@ -244,7 +244,14 @@ function party_manager() {
 // Ranger (was duplicated identically across all three). Each file's own CONFIG (var, so
 // visible globally at call time) supplies party.group_members, so this stays correct
 // per-character despite living in a shared file.
+// typeof-guarded: these are game-engine-invoked callbacks that can fire the instant a
+// party invite/request arrives -- possibly before this character's own role file (which
+// declares CONFIG) has finished loading, since this file loads earlier/in parallel with
+// it. An early-fired event here just no-ops instead of throwing "CONFIG is not defined"
+// -- party_manager() (below) keeps re-sending invites/requests every loop tick regardless,
+// so the party still forms moments later once CONFIG actually exists.
 function on_party_request(name) {
+	if (typeof CONFIG === "undefined") return;
 	if (CONFIG.party.group_members.includes(name)) {
 		console.log("Accepting party request from " + name);
 		accept_party_request(name);
@@ -252,6 +259,7 @@ function on_party_request(name) {
 }
 
 function on_party_invite(name) {
+	if (typeof CONFIG === "undefined") return;
 	if (CONFIG.party.group_members.includes(name)) {
 		console.log("Accepting party invite from " + name);
 		accept_party_invite(name);
