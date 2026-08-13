@@ -253,8 +253,14 @@ async function handle_delivering_state() {
 			for (const name of PARTY) {
 				const status = read_state_cache(name);
 				if (status && !status.rip) {
+					// "interrupted" here just means THIS re-target replaced the previous
+					// attempt's still-in-flight smarter_move (expected every tick as the
+					// target keeps moving) -- not a real failure, so don't log it via
+					// catcher() like a genuine one.
 					smarter_move({ map: status.map, x: status.x, y: status.y })
-						.catch(e => catcher(e, "handle_delivering_state: smarter_move to " + name));
+						.catch(e => {
+							if (e?.reason !== "interrupted") catcher(e, "handle_delivering_state: smarter_move to " + name);
+						});
 					break;
 				}
 			}
