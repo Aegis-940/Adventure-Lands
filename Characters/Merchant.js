@@ -40,16 +40,17 @@ loop_controller(); // sole owner of movement — see Character_Functions/Merchan
 
 let last_update_time = 0;
 
+// party_manager() is NOT called here — loop_controller() (Character_Functions/
+// Merchant_Functions.js) already calls it every 250ms; calling it again here too
+// raced two independent owners issuing invite/accept socket calls concurrently.
 setInterval(() => {
-	
+
 	// Throttle to every 20 seconds (20,000 ms)
 	const now = Date.now();
 	if (now - last_update_time >= 20000) {
 		parent.socket.emit("send_updates", {});
 		last_update_time = now;
 	}
-
-	party_manager();
 
 }, 1000); // Check every second
 

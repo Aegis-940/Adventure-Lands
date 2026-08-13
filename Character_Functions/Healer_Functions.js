@@ -114,7 +114,9 @@ const cache = {
 // LOCATION & EQUIPMENT DATA
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const equipment_sets = {
+// var, not const: is_set_equipped()/equip_set() are now shared functions in
+// Shared/Common_Functions.js that read this global at call time.
+var equipment_sets = {
 	zap_on: [
 		{ item_name: "zapper", slot: "ring2", level: 2, l: "u" }
 	],
@@ -771,159 +773,50 @@ async function handle_equipment_swap() {
 	}
 }
 
-function is_set_equipped(set_name) {
-	const set = equipment_sets[set_name];
-	if (!set) return false;
-
-	return set.every(item =>
-		character.slots[item.slot]?.name === item.item_name &&
-		character.slots[item.slot]?.level === item.level
-	);
-}
-
-async function equip_set(set_name) {
-	const set = equipment_sets[set_name];
-	if (set) {
-		await batch_equip(set);
-	}
-}
+// is_set_equipped()/equip_set() moved to Shared/Common_Functions.js (identical across
+// Warrior/Healer/Ranger) — reads this file's own `equipment_sets` global at call time.
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // HELPER FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let panicking = false;
-let last_panic_time = 0;
-let last_safe_time = 0;
+// var, not let: panic_check() is now a shared function in Shared/Common_Functions.js
+// that reads/writes these as true globals, same as CONFIG/HOME/etc.
+var panicking = false;
+var last_panic_time = 0;
+var last_safe_time = 0;
 
-async function panic_check() {
+// Read by the shared panic_check(). Healer is the only one who broadcasts her panic
+// state to the fighters, so they know to react.
+var PANIC_THRESHOLDS = {
+	low_hp: 0.30, low_mp: 0.05, high_hp: 0.60, high_mp: 0.50,
+	aggro: 99, cooldown: 1000,
+};
+var PANIC_BROADCAST_TARGETS = ["Ulric", "Riva"];
 
-	let LOW_HEALTH = 0;
-	let LOW_MANA = 0;
-	let HIGH_HEALTH = 0;
-	let HIGH_MANA = 0;
-	let MONSTERS_TARGETING_ME = 0;
-	const PANIC_AGGRO_THRESHOLD = 99;
-	const PANIC_COOLDOWN = 1000;
+// panic_check() moved to Shared/Common_Functions.js (identical logic across
+// Warrior/Healer/Ranger) — reads this file's own PANIC_THRESHOLDS global at call time.
 
-	// --- Panic/Safe Conditions ---
-	LOW_HEALTH = character.hp < character.max_hp * 0.30;
-	LOW_MANA = character.mp < character.max_mp * 0.05;
-	HIGH_HEALTH = character.hp >= character.max_hp * 0.60;
-	HIGH_MANA = character.mp >= character.max_mp * 0.50;
+// clear_inventory() moved to Shared/Common_Functions.js (identical across
+// Warrior/Healer/Ranger) — reads this file's own ITEMS_TO_KEEP global at call time.
 
-	const panic_slot = character.items.findIndex(i => i?.name === "jacko");
-
-	// Aggro check: monsters targeting me
-	MONSTERS_TARGETING_ME = Object.values(parent.entities).filter(
-		e => e.type === "monster" && e.target === character.name && !e.dead
-	).length;
-
-	// PANIC CONDITION
-	if (LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= PANIC_AGGRO_THRESHOLD) {
-		if (!panicking) {
-			panicking = true;
-			send_cm(["Ulric", "Riva"], { type: "panic", state: true });
-			let reason = [];
-			if (LOW_HEALTH) reason.push("low health");
-			if (LOW_MANA) reason.push("low mana");
-			if (MONSTERS_TARGETING_ME >= PANIC_AGGRO_THRESHOLD) reason.push("high aggro");
-			log(`⚠️ Panic triggered: ${reason.join(", ")}!`, "#ffcc00", "Alerts");
-		}
-	}
-
-	if (panicking && (Date.now() - last_panic_time > PANIC_COOLDOWN)) {
-		last_panic_time = Date.now();
-		// Equip panic orb if needed
-		if (character.slots.orb?.name !== "jacko" && panic_slot !== -1) {
-			try {
-				await equip(panic_slot);
-				await delay(200);
-				if (character.slots.orb?.name !== "jacko") {
-					log("[PANIC] Failed to equip panic orb!", "#ff4444", "Errors");
-				}
-			} catch (e) {
-				log(`[PANIC] Error equipping panic orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
-			}
-		}
-
-		// Try to cast scare if possible
-		if (!is_on_cooldown("scare") && can_use("scare") && character.slots.orb?.name === "jacko") {
-			try {
-				log("Using Scare!", "#ffcc00", "Alerts");
-				await use_skill("scare");
-				await delay(200);
-			} catch (e) {
-				log(`[PANIC] Error using scare: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
-			}
-		}
-	}
-
-	const safe_slot = character.items.findIndex(i => i?.name === "orbg");
-
-	// SAFE CONDITION
-	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < PANIC_AGGRO_THRESHOLD) {
-		if (panicking) {
-			panicking = false;
-			send_cm(["Ulric", "Riva"], { type: "panic", state: false });
-			log("✅ Panic over.", "#00ff00", "Alerts");
-		}
-	}
-
-	if (!panicking && (Date.now() - last_safe_time > PANIC_COOLDOWN)) {
-		last_safe_time = Date.now();
-		// Equip normal orb if needed
-		if (character.slots.orb?.name === "jacko" && safe_slot !== -1) {
-			try {
-				await equip(safe_slot);
-				await delay(200);
-				if (character.slots.orb?.name === "jacko") {
-					log("[PANIC] Failed to equip normal orb!", "#ff4444", "Errors");
-				}
-			} catch (e) {
-				log(`[PANIC] Error equipping normal orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
-			}
-		}
-	}
-}
-
-function clear_inventory() {
-	const loot_mule = get_player("Riff");
-	if (!loot_mule) return;
-
-	const dist = distance(character, loot_mule);
-
-	if (dist < 250 && character.gold > LOOT_GOLD_RESERVE) {
-			send_gold(loot_mule, character.gold - LOOT_GOLD_RESERVE);
-	}
-
-	for (let i = 0; i < character.items.length; i++) {
-		const item = character.items[i];
-		if (item && !ITEMS_TO_KEEP.includes(item.name) && !item.l && !item.s) {
-			if (dist < 250) {
-				send_item(loot_mule.id, i, item.q ?? 1);
-			}
-		}
-	}
-}
-
-const item_order = { 
-	tracktrix: 0, 
-	computer: 1, 
-	hpot1: 2, 
-	mpot1: 3, 
-	xptome: 4, 
-	pumpkinspice: 5, 
+// var, not const: inventory_sorter() is now a shared function in
+// Shared/Common_Functions.js that reads this global at call time.
+var item_order = {
+	tracktrix: 0,
+	computer: 1,
+	hpot1: 2,
+	mpot1: 3,
+	xptome: 4,
+	pumpkinspice: 5,
 	xpbooster: 6,
-	jacko: 7 
+	jacko: 7
 };
 
-const inventory_sorter = () => {
-	character.items.forEach((item, i) => {
-		const target = item_order[item?.name];
-		if (target !== undefined && i !== target) swap(i, target);
-	});
-};
+// inventory_sorter() moved to Shared/Common_Functions.js (same algorithm now shared by
+// Warrior/Healer/Ranger — Warrior's version additionally supports an array of reserved
+// slots for an intentionally-duplicated item; this file's item_order has no array
+// entries, so behavior here is unchanged).
 
 // auto_buy_potions → Common_Functions.js
 
