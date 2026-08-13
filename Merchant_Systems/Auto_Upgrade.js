@@ -70,6 +70,12 @@ const COMBINE_PROFILE = {
 // bugged/never-plateauing response (or a bottomless offeringp supply) can't spin forever.
 const GRACE_MAX_OFFERINGS = 5;
 
+// Grace VALUE ceiling — distinct from GRACE_MAX_OFFERINGS (a call-count backstop above):
+// stop adding grace once the item's own reported grace reaches this value, even if the
+// server's real plateau is higher. Keeps spend bounded to "good enough" instead of always
+// chasing the true (unknown, possibly much higher) cap.
+const GRACE_MAX = 5;
+
 // Reads item_slot's current grace via a free calculate:true ("upgrade_chance") check —
 // only that response shape actually carries a grace field; a real (non-calculate)
 // application's own response doesn't. Needs a live offeringp slot to check with (the
@@ -101,6 +107,13 @@ async function add_grace_to_cap(item_slot) {
 	let previous_grace = await check_grace(item_slot);
 	if (previous_grace == null) {
 		return { grace: null, capped: false };
+	}
+
+	// Already at/above the value ceiling (GRACE_MAX) -- don't spend anything at all,
+	// whether or not the server's real plateau is even higher than that.
+	if (previous_grace >= GRACE_MAX) {
+		log(`✅ Grace already at ${previous_grace} (>= GRACE_MAX ${GRACE_MAX}) for slot ${item_slot} — skipping.`, "limegreen");
+		return { grace: previous_grace, capped: true };
 	}
 
 	for (let attempt = 0; attempt < GRACE_MAX_OFFERINGS; attempt++) {
@@ -138,6 +151,11 @@ async function add_grace_to_cap(item_slot) {
 
 		log(`Grace: ${previous_grace} -> ${current_grace}`);
 		previous_grace = current_grace;
+
+		if (previous_grace >= GRACE_MAX) {
+			log(`✅ Grace reached ${previous_grace} (>= GRACE_MAX ${GRACE_MAX}) for slot ${item_slot} — stopping.`, "limegreen");
+			return { grace: previous_grace, capped: true };
+		}
 	}
 
 	log(`⚠️ Grace still rising after ${GRACE_MAX_OFFERINGS} offerings (at ${previous_grace}) for slot ${item_slot} — stopping as a safety backstop.`, "#FFA500");
