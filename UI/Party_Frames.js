@@ -65,7 +65,7 @@ const BAR_HEIGHT = 18;
 })();
 
 // For our own character, read live values directly. For everyone else, read
-// Shared/Common_Functions.js's localStorage-backed state cache (state_cache_loop()/
+// Shared/Game_Config.js's localStorage-backed state cache (state_cache_loop()/
 // read_state_cache()) — shared across all characters' browser tabs on this origin, so
 // it's always current regardless of party proximity, unlike get_player().
 function get_party_member_info(name) {
@@ -141,6 +141,6 @@ function render_party_ui() {
 	}
 }
 
-// Matches state_cache_loop()'s 100ms write interval (Shared/Common_Functions.js) —
+// Matches state_cache_loop()'s 100ms write interval (Shared/Game_Config.js) —
 // redrawing faster than the underlying cache updates wouldn't show anything new.
 setInterval(render_party_ui, 100);

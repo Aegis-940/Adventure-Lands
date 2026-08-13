@@ -51,7 +51,7 @@ const update_gold_display = () => {
 // Refresh display twice a second
 setInterval(update_gold_display, 500);
 
-// Kick things off — create_bottomrightcorner_widget() lives in Shared/Windows.js,
+// Kick things off — create_bottomrightcorner_widget() lives in Shared/Widgets.js,
 // which Bootstrapper.js loads in parallel with this file (no ordering guarantee), so
 // retry until it's actually available instead of assuming it already is.
 (function start_gold_meter() {

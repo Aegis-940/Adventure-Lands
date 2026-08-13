@@ -76,7 +76,7 @@ const get_xp_rate_color = (avg, target) => {
 
 const ncomma = (x) => x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
-// Initialize and loop — create_bottomrightcorner_widget() lives in Shared/Windows.js,
+// Initialize and loop — create_bottomrightcorner_widget() lives in Shared/Widgets.js,
 // which Bootstrapper.js loads in parallel with this file (no ordering guarantee), so
 // retry until it's actually available instead of assuming it already is.
 (function start_xp_timer() {

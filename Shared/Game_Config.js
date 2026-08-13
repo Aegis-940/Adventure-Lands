@@ -93,8 +93,6 @@ const HARD_RESET_TIMER   = 90000;    // 1.5 minutes
 
 const PANIC_ORB   = "jacko";
 
-const FLOATING_BUTTON_IDS = [];
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SECTION 3: LOOP TOGGLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -122,7 +120,8 @@ let timeout_interval = 30000; // Default timeout of 30 seconds
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // Rest of this file split into Shared/Movement.js, Shared/Combat_Utilities.js, Shared/Messaging.js,
-// Shared/Party_And_Loot.js, and Shared/Error_Handling.js — plus UI Layout/Remote Selling merged into
-// Shared/Buttons.js. All still load as real <script> tags (see Bootstrapper.js scripts[]), so
-// everything here remains true global scope, same as before the split.
+// Shared/Party_And_Loot.js (which also now holds Remote Selling, moved from the since-removed
+// Shared/Buttons.js), and Shared/Error_Handling.js. All still load as real <script> tags
+// (see Bootstrapper.js scripts[]), so everything here remains true global scope, same as
+// before the split.
 // --------------------------------------------------------------------------------------------------------------------------------- //

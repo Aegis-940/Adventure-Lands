@@ -1,6 +1,6 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MOVEMENT — smarter_move(), move_to_character(), bscorpion/primling farm, combat orbit
-// (split out of Common_Functions.js — real <script> tag, same global scope, no eval boundary)
+// (split out of Game_Config.js — real <script> tag, same global scope, no eval boundary)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

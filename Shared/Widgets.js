@@ -1,5 +1,9 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// GENERIC WINDOW
+// WIDGETS — split out of the now-removed Shared/Windows.js. Keeps only the two pieces
+// still genuinely depended on by files that aren't part of the buttons/windows redesign:
+// create_bottomrightcorner_widget() (Gold/XP/CC/DPS meters' display container) and
+// make_draggable() (used by UI/Custom_Log.js and UI/Stats_Window.js). The rest of
+// Windows.js (floating stats windows, drag-state for those) was removed along with it.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // Shared bootstrap scaffolding for small #bottomrightcorner UI widgets (Gold/XP/CC/DPS
@@ -14,51 +18,6 @@ function create_bottomrightcorner_widget(id, css) {
 	const container = $(`<div id="${id}"></div>`).css(css || {});
 	brc.children().first().after(container);
 	return container;
-}
-
-function create_floating_stats_window(
-	id,
-	{ top = "20px", left = "20px", width = "150px", minHeight = "50px" } = {}
-) {
-	const old = window.top.document.getElementById(id);
-	if (old) old.remove();
-
-	const win = window.top.document.createElement("div");
-	win.id = id;
-	win.className = "floating-stats-window";
-
-	Object.assign(win.style, {
-	position: "fixed",
-	top,
-	left,
-	width,
-	minHeight,
-	padding: "8px",
-	background: "rgba(0,0,0,0.7)",
-	color: "#fff",
-	fontFamily: "sans-serif",
-	fontSize: "14px",
-	border: "1px solid #888",
-	borderRadius: "4px",
-	zIndex: "9999",
-	overflow: "hidden",
-	cursor: "move"
-	});
-
-	// pixel units required for dragging
-	win.style.top  = parseInt(parseFloat(top)) + "px";
-	win.style.left = parseInt(parseFloat(left)) + "px";
-
-	make_draggable(win);
-	win.innerText = "Stats loading…";
-
-	window.top.document.body.appendChild(win);
-	return win;
-}
-
-function remove_all_floating_stats_windows() {
-	const wins = window.top.document.querySelectorAll(".floating-stats-window");
-	wins.forEach(win => win.remove());
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -93,5 +52,3 @@ function make_draggable(el, handle = el) {
 	e.preventDefault();
 	});
 }
-
-

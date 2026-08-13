@@ -303,7 +303,7 @@ function ui_window() {
 
 	win_el.appendChild(title_bar);
 
-	// Drag via the shared Windows.js helper, using the title bar as the handle.
+	// Drag via the shared Widgets.js helper, using the title bar as the handle.
 	make_draggable(win_el, title_bar);
 
 	// Toggle button

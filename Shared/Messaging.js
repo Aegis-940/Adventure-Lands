@@ -1,6 +1,6 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MESSAGING — CM (character message) handlers and the localStorage-backed state cache
-// (split out of Common_Functions.js — real <script> tag, same global scope, no eval boundary)
+// (split out of Game_Config.js — real <script> tag, same global scope, no eval boundary)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

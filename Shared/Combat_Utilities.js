@@ -1,6 +1,6 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // COMBAT & CHARACTER UTILITIES — monster targeting, distance/aggro helpers, event handling
-// (split out of Common_Functions.js — real <script> tag, same global scope, no eval boundary)
+// (split out of Game_Config.js — real <script> tag, same global scope, no eval boundary)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

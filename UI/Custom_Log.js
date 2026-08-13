@@ -13,7 +13,7 @@ function create_custom_log_window() {
 	div.id = "custom-log-window";
 	div.style.position = "absolute";
 	const WINDOW_WIDTH = 350, WINDOW_HEIGHT = 260;
-	// make_draggable() (Shared/Windows.js) requires pixel top/left, not bottom/right —
+	// make_draggable() (Shared/Widgets.js) requires pixel top/left, not bottom/right —
 	// compute an equivalent initial position from the viewport instead.
 	div.style.left = (parent.window.innerWidth - 650 - WINDOW_WIDTH) + "px";
 	div.style.top = (parent.window.innerHeight - 1 - WINDOW_HEIGHT) + "px";
@@ -45,7 +45,7 @@ function create_custom_log_window() {
 	drag_handle.style.color = "#fff";
 	drag_handle.textContent = "Custom Log";
 
-	// Shared drag implementation (Shared/Windows.js) — uses addEventListener instead of
+	// Shared drag implementation (Shared/Widgets.js) — uses addEventListener instead of
 	// assigning doc.onmousemove/onmouseup directly, which silently clobbers any other
 	// handler assigned the same raw way elsewhere.
 	make_draggable(div, drag_handle);

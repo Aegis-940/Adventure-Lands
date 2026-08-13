@@ -129,7 +129,7 @@ async function equipment_loop() {
 	setTimeout(equipment_loop, delay);
 }
 
-// find_booster_slot, get_num_chests, get_num_targets → Common_Functions.js
+// find_booster_slot, get_num_chests, get_num_targets → Game_Config.js
 
 // Started here, not in Ranger_Functions.js's "START ALL LOOPS" — that file's eval
 // finishes before this one even loads, so calling equipment_loop() from there would

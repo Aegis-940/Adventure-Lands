@@ -367,7 +367,7 @@ function update_dps_meter_ui() {
 	c.html(html);
 }
 
-// Initialize and run — create_bottomrightcorner_widget() lives in Shared/Windows.js,
+// Initialize and run — create_bottomrightcorner_widget() lives in Shared/Widgets.js,
 // which Bootstrapper.js loads in parallel with this file (no ordering guarantee), so
 // retry until it's actually available instead of assuming it already is.
 (function start_dps_meter() {

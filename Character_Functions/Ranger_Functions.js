@@ -7,7 +7,7 @@ const home = RANGER_TARGET;
 
 // var, not const: this file only ever runs through Bootstrapper.js's eval-based
 // loader, where top-level const/let are scoped to that one eval call and never
-// become visible to Common_Functions.js's shared CONFIG-reading functions.
+// become visible to Game_Config.js's shared CONFIG-reading functions.
 var CONFIG = {
 	combat: {
 		enabled: true,
@@ -107,14 +107,14 @@ var CONFIG = {
 	}
 };
 
-// var, not const: Common_Functions.js's handle_return_home() reads this global.
+// var, not const: Game_Config.js's handle_return_home() reads this global.
 var destination = {
 	map: locations[home][0].map,
 	x: locations[home][0].x,
 	y: locations[home][0].y
 };
 
-// var, not const: Shared/Common_Functions.js's send_to_merchant() reads this global
+// var, not const: Shared/Game_Config.js's send_to_merchant() reads this global
 // when the merchant requests a loot pull, so it never sweeps away needed items.
 var ITEMS_TO_KEEP = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster", "pumpkinspice", "xptome", "tracker", "jacko", "orbg", "talkingskull", "cupid", "computer"];
 
@@ -156,7 +156,7 @@ var cache = {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // var, not const: is_set_equipped()/equip_set() are now shared functions in
-// Shared/Common_Functions.js that read this global at call time.
+// Shared/Game_Config.js that read this global at call time.
 var equipment_sets = {
 	single: [
 		{ item_name: "firebow", slot: "mainhand", level: 10, l: "l" },
@@ -334,12 +334,12 @@ const find_heal_target = () => {
 // Falls back to _healer_last_known when she is off-map and invisible.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// var, not let: follow_healer() is now a shared function in Shared/Common_Functions.js
+// var, not let: follow_healer() is now a shared function in Shared/Game_Config.js
 // that reads/writes these as true globals, same as CONFIG/HOME/etc.
 var _healer_last_known = null;
 var _last_healer_ping = 0;
 
-// follow_healer() moved to Shared/Common_Functions.js (identical across Warrior/Ranger)
+// follow_healer() moved to Shared/Game_Config.js (identical across Warrior/Ranger)
 // — reads this file's own CONFIG.movement.follow_distance at call time.
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -518,13 +518,13 @@ const maintenance_loop = async () => {
 	setTimeout(maintenance_loop, TICK_RATE.maintenance);
 }
 
-// potion_loop → Common_Functions.js
+// potion_loop → Game_Config.js
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MOVEMENT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// should_handle_events, handle_events, handle_specific_event, handle_return_home → Common_Functions.js
+// should_handle_events, handle_events, handle_specific_event, handle_return_home → Game_Config.js
 
 async function walk_in_circle() {
 	if (smart.moving || character.moving) return;
@@ -624,11 +624,11 @@ async function walk_in_circle() {
 // HELPER FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// clear_inventory() moved to Shared/Common_Functions.js (identical across
+// clear_inventory() moved to Shared/Game_Config.js (identical across
 // Warrior/Healer/Ranger) — reads this file's own ITEMS_TO_KEEP global at call time.
 
 // var, not const: inventory_sorter() is now a shared function in
-// Shared/Common_Functions.js that reads this global at call time.
+// Shared/Game_Config.js that reads this global at call time.
 var item_order = {
 	tracktrix: 0,
 	computer: 1,
@@ -640,12 +640,12 @@ var item_order = {
 	jacko: 7
 };
 
-// inventory_sorter() moved to Shared/Common_Functions.js (same algorithm now shared by
+// inventory_sorter() moved to Shared/Game_Config.js (same algorithm now shared by
 // Warrior/Healer/Ranger — Warrior's version additionally supports an array of reserved
 // slots for an intentionally-duplicated item; this file's item_order has no array
 // entries, so behavior here is unchanged).
 
-// auto_buy_potions → Common_Functions.js
+// auto_buy_potions → Game_Config.js
 
 function elixir_usage() {
 	const required = "pumpkinspice";
@@ -657,7 +657,7 @@ function elixir_usage() {
 	}
 }
 
-// var, not let: panic_check() is now a shared function in Shared/Common_Functions.js
+// var, not let: panic_check() is now a shared function in Shared/Game_Config.js
 // that reads/writes these as true globals, same as CONFIG/HOME/etc.
 var panicking = false;
 var last_panic_time = 0;
@@ -670,10 +670,10 @@ var PANIC_THRESHOLDS = {
 	aggro: 1, cooldown: 1000,
 };
 
-// panic_check() moved to Shared/Common_Functions.js (identical logic across
+// panic_check() moved to Shared/Game_Config.js (identical logic across
 // Warrior/Healer/Ranger) — reads this file's own PANIC_THRESHOLDS global at call time.
 
-// party_maker() — replaced by shared party_manager() from Common_Functions.js
+// party_maker() — replaced by shared party_manager() from Game_Config.js
 // function party_maker() {
 // 	if (!CONFIG.party.auto_manage) return;
 // 	const group = CONFIG.party.group_members;
@@ -694,7 +694,7 @@ var PANIC_THRESHOLDS = {
 // 	}
 // }
 
-// suicide, setInterval(suicide, 50), sleep → Common_Functions.js
+// suicide, setInterval(suicide, 50), sleep → Game_Config.js
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // CHARACTER STARTER
@@ -888,9 +888,9 @@ async function combine_items() {
 // EQUIPMENT HELPERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// get_nearest_monster_v2, ms_to_next_skill, batch_equip → Common_Functions.js
+// get_nearest_monster_v2, ms_to_next_skill, batch_equip → Game_Config.js
 
-// is_set_equipped()/equip_set() moved to Shared/Common_Functions.js (identical across
+// is_set_equipped()/equip_set() moved to Shared/Game_Config.js (identical across
 // Warrior/Healer/Ranger) — reads this file's own `equipment_sets` global at call time.
 
 // ============================================================================

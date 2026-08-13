@@ -1,6 +1,6 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // PARTY & LOOT — party invite/accept management, shared loot/inventory/panic/equipment behaviors
-// (split out of Common_Functions.js — real <script> tag, same global scope, no eval boundary)
+// (split out of Game_Config.js — real <script> tag, same global scope, no eval boundary)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -603,6 +603,36 @@ async function withdraw_item(item_name, level = null, total = null) {
 	} else if (total != null && remaining > 0) {
 		const got = total - remaining;
 		game_log(`⚠️ Only retrieved ${got}/${total} of ${item_name}.`);
+	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// REMOTE SELLING (moved out of the now-removed Shared/Buttons.js — not UI, just a
+// background auto-sell loop each fighter runs via setInterval(remote_sell_items, ...))
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const SELLABLE_ITEMS = [
+	"hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "wbook0", "wshoes", "wcap",
+	"cclaw", "crabclaw", "slimestaff", "stinger", "pstem", "gslime", "coat1", "helmet1",
+	"gloves1", "pants1", "shoes1", "wbreeches", "vitring", "helmet", "shoes", "gloves",
+	"pmace", "throwingstars", "t2bow", "spear", "dagger", "rapier", "sword", "mushroomstaff",
+	"rfangs", "gphelmet", "phelmet", "vitearring", "vitscroll", "hhelmet", "harmor", "hpants",
+	"hgloves", "hboots", "strring", "dexring", "intring", "strearring", "dexearring", "intearring",
+	"warmscarf", "snowball", "santasbelt", "lantern", "pclaw", "broom", "skullamulet",
+	"iceskates", "carrot", "xmace", "candycanesword", "pmaceofthedead", "ornamentstaff",
+	"merry", "rednose", "xmashat", "xmasshoes", "xmassweater", "xmaspants", "mittens",
+	"angelwings", "snowflakes", "epyjamas", "ecape", "eears", "eslippers", "carrotsword",
+	"pinkie", "oozingterror", "harbringer",
+];
+
+function remote_sell_items() {
+	for (let i = 0; i < character.items.length; i++) {
+		const item = character.items[i];
+		if (!item) continue;
+		if (item.l === "l" || item.p !== undefined) continue;
+		if (SELLABLE_ITEMS.includes(item.name)) {
+			sell(i, item.q || 1);
+		}
 	}
 }
 

@@ -5,19 +5,11 @@ performance_trick();
 // BUTTONS AND WINDOWS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-remove_all_floating_stats_windows();
-remove_all_floating_buttons();
-
-create_map_movement_window([
-	{ id: "SellBank", label: "Sell / Bank", on_click: () => sell_and_bank() },
-	{ id: "custom3", label: "Custom 3", on_click: () => null },
-	{ id: "custom4", label: "Custom 4", on_click: () => null },
-	{ id: "custom5", label: "Custom 5", on_click: () => null },
-	{ id: "custom6", label: "Custom 6", on_click: () => null }
-]);
-
+// Shared/Buttons.js and Shared/Windows.js were removed — this section (floating stats
+// window cleanup, the movement/action button window, hiding the native skills UI) is
+// being redesigned from scratch. The map-movement window used to expose one real
+// action here: Sell / Bank -> sell_and_bank().
 add_bank_buttons();
-hide_skills_ui();
 
 // Resting loadout (CONFIG.default_gear) — loop_controller()'s fishing/mining states
 // swap to a rod/pickaxe only right at the spot and restore this the moment they end.
@@ -27,9 +19,9 @@ equip_default_gear();
 buy_potion_loop();
 mluck_buff_loop();
 loot_collection_loop();
-potion_loop(); // shared self-use loop from Shared/Common_Functions.js
+potion_loop(); // shared self-use loop from Shared/Game_Config.js
 // Keeps Riff's own localStorage state cache fresh so the fighters can read it too —
-// see Shared/Common_Functions.js's state_cache_loop()/read_state_cache().
+// see Shared/Game_Config.js's state_cache_loop()/read_state_cache().
 state_cache_loop();
 
 loop_controller(); // sole owner of movement — see Character_Functions/Merchant_Functions.js

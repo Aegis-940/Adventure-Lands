@@ -18,7 +18,7 @@ window._cmListeners = window._cmListeners || [];
 	// (make_draggable, smarter_move, etc.) happens inside a function or event
 	// handler, invoked well after boot finishes — so they load in parallel.
 	const scripts = [
-		"Shared/Common_Functions.js",
+		"Shared/Game_Config.js",
 		"Shared/Movement.js",
 		"Shared/Combat_Utilities.js",
 		"Shared/Messaging.js",
@@ -26,8 +26,7 @@ window._cmListeners = window._cmListeners || [];
 		"Shared/Error_Handling.js",
 		"UI/Custom_Log.js",
 		"UI/Bank_Sorter.js",
-		"Shared/Buttons.js",
-		"Shared/Windows.js",
+		"Shared/Widgets.js",
 		"UI/Game_Log.js",
 		"UI/XP_Meter.js",
 		"UI/Gold_Meter.js",
@@ -67,7 +66,7 @@ window._cmListeners = window._cmListeners || [];
 	// into globals it defines) — abort role-file loading with a loud, hard-to-miss
 	// signal instead of letting every character spin/error against undefined functions.
 	const CRITICAL_SCRIPTS = [
-		"Shared/Common_Functions.js",
+		"Shared/Game_Config.js",
 		"Shared/Movement.js",
 		"Shared/Combat_Utilities.js",
 		"Shared/Messaging.js",

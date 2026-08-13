@@ -5,7 +5,7 @@
 
 // var, not const: this file only ever runs through Bootstrapper.js's eval-based
 // loader, where top-level const/let are scoped to that one eval call and never
-// become visible to Common_Functions.js's shared CONFIG-reading functions (here,
+// become visible to Game_Config.js's shared CONFIG-reading functions (here,
 // potion_loop()'s CONFIG.potions.hp_threshold/mp_threshold).
 var CONFIG = {
 	// Master switches — flip any of these off to stop that state from ever being selected.
@@ -29,7 +29,7 @@ var CONFIG = {
 		action_range: 350,        // close enough to actually act on this specific member
 	},
 	// Delivery is triggered contextually (see should_run_delivery()) by a fighter's own
-	// cached state (Shared/Common_Functions.js's state_cache_loop()/read_state_cache()),
+	// cached state (Shared/Game_Config.js's state_cache_loop()/read_state_cache()),
 	// not a timer.
 	delivery: {
 		free_slots_threshold: 10, // deliver if any party member has this many or fewer free slots
@@ -40,7 +40,7 @@ var CONFIG = {
 		mluck_refresh_interval: 50 * 60 * 1000,
 	},
 	upgrade_gold_threshold: 100000000,
-	// Read by Shared/Common_Functions.js's shared potion_loop() (self-use, HP/MP independent checks).
+	// Read by Shared/Game_Config.js's shared potion_loop() (self-use, HP/MP independent checks).
 	potions: {
 		hp_threshold: 500,
 		mp_threshold: 500,
@@ -80,9 +80,9 @@ var CONFIG = {
 	priorities: ["dead", "delivering", "upgrading", "crafting", "exchanging", "fishing", "mining"],
 };
 
-// Common_Functions.js's shared potion_loop()/auto_buy_potions() aren't used here — the
+// Game_Config.js's shared potion_loop()/auto_buy_potions() aren't used here — the
 // merchant's potion needs (bulk buying to redistribute to the party) are handled by
-// buy_potion_loop() below; Common_Functions.js's shared potion_loop() (self-use) is
+// buy_potion_loop() below; Game_Config.js's shared potion_loop() (self-use) is
 // started separately from Characters/Merchant.js.
 
 // var, not const: Auto_Upgrade.js and Auto_Craft.js are separate role files that each get
@@ -126,7 +126,7 @@ function is_mluck_due(name) {
 	return (Date.now() - (last_mluck_time[name] || 0)) > CONFIG.delivery.mluck_refresh_interval;
 }
 
-// read_state_cache() (Shared/Common_Functions.js) reads each fighter's localStorage
+// read_state_cache() (Shared/Game_Config.js) reads each fighter's localStorage
 // state snapshot directly — no CM round trip, and it already returns null for a stale
 // or missing entry. Delivery is also due on its own once mluck is about to lapse on
 // anyone — that run doubles as the buff pass (see handle_delivering_state()), so a
@@ -475,7 +475,7 @@ async function loop_controller() {
 	}
 }
 
-// Game-engine-invoked callbacks (same convention as on_cm in Common_Functions.js) — not dead code.
+// Game-engine-invoked callbacks (same convention as on_cm in Game_Config.js) — not dead code.
 function on_party_request(name) {
 	if (PARTY.includes(name)) accept_party_request(name);
 }
@@ -622,7 +622,7 @@ async function mluck_buff_loop() {
 // SELL AND BANK ITEMS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// SELLABLE_ITEMS defined in Common_Functions.js
+// SELLABLE_ITEMS defined in Game_Config.js
 let sell_and_bank_running = false;
 
 async function sell_and_bank() {

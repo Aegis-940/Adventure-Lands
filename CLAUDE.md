@@ -22,14 +22,13 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | File | Role |
 |------|------|
 | `Bootstrapper.js` | Script loader — loads all other files from CDN in order |
-| `Shared/Common_Functions.js` | Core config/constants/loop-toggles/state variables |
+| `Shared/Game_Config.js` | Core config/constants/loop-toggles/state variables |
 | `Shared/Movement.js` | `smarter_move()`, `move_to_character()`, bscorpion/primling farm, combat orbit |
 | `Shared/Combat_Utilities.js` | Monster targeting/distance/aggro helpers, event handling |
 | `Shared/Messaging.js` | CM (character message) handlers, localStorage-backed state cache |
 | `Shared/Party_And_Loot.js` | Party invite/accept management, shared loot/inventory/panic/equipment behaviors |
 | `Shared/Error_Handling.js` | `catcher()`, the shared error-triage/logging helper |
-| `Shared/Buttons.js` | Floating UI button creation, plus UI layout helpers and remote selling |
-| `Shared/Windows.js` | Generic draggable floating window helper |
+| `Shared/Widgets.js` | `create_bottomrightcorner_widget()` (Gold/XP/CC/DPS meters' container) and `make_draggable()` (used by Custom_Log.js/Stats_Window.js) — all that survived removing Shared/Windows.js |
 | `Merchant_Systems/Auto_Upgrade.js` | Item upgrade profiles and automation |
 | `Merchant_Systems/Auto_Craft.js` | Crafting logic and batch orchestration — loaded by Bootstrapper.js |
 | `Characters/Tank.js` | Warrior entry point (character: Ulric) |
@@ -63,7 +62,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 - Constants/config keys: `UPPER_SNAKE_CASE` — e.g., `TICK_RATE`, `LOOT_THRESHOLD`
 - Top-level config objects: `CONFIG`, `STATE`
 - Internal/private: prefixed with `_` — e.g., `smart._interrupt`
-- Multi-word file/folder names: underscore-separated, e.g. `Common_Functions.js`, `Character_Functions/` — no spaces in filenames (avoids `encodeURI()` friction in `Bootstrapper.js` and constant shell-quoting)
+- Multi-word file/folder names: underscore-separated, e.g. `Game_Config.js`, `Character_Functions/` — no spaces in filenames (avoids `encodeURI()` friction in `Bootstrapper.js` and constant shell-quoting)
 
 ### Formatting
 - Indentation: tabs
@@ -125,12 +124,6 @@ await smarter_move(target, { timeout: 5000, radius: 50 });
 ```javascript
 parent.socket.emit("move", { x: target.x, y: target.y });
 parent.socket.emit("attack", { id: target.id });
-```
-
-### UI window creation
-```javascript
-// Use Windows.js helpers — do not create raw DOM elements
-create_floating_window(id, title, content_html);
 ```
 
 ---
