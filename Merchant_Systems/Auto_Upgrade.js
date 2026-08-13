@@ -70,29 +70,36 @@ const COMBINE_PROFILE = {
 // bugged/never-plateauing response (or a bottomless offeringp supply) can't spin forever.
 const GRACE_MAX_OFFERINGS = 20;
 
-// Builds item_slot's grace up to its cap by repeatedly applying real offeringp
-// applications (each consumes one offeringp) until the returned grace value stops
-// increasing between two consecutive applications (genuinely capped), inventory runs out
-// of offeringp, or GRACE_MAX_OFFERINGS is hit (the latter two are NOT capped — just gave
-// up). Starts with one calculate:true (non-consuming) call to read the current baseline
-// first, so an item that's already capped doesn't waste a real offering just to discover
-// that. Returns { grace, capped } — callers (see auto_grace_pass() below) must not treat
-// "ran out of material" the same as "actually capped".
-async function add_grace_to_cap(item_slot) {
-	const offering_slot0 = character.items.findIndex(it => it && it.name === "offeringp");
-	if (offering_slot0 === -1) return { grace: null, capped: false };
+// Reads item_slot's current grace via a free calculate:true ("upgrade_chance") check —
+// only that response shape actually carries a grace field; a real (non-calculate)
+// application's own response doesn't. Needs a live offeringp slot to check with (the
+// call still requires offering_num even though it consumes nothing in calculate mode).
+// Returns null if no offeringp is available to check with, or the response had no grace
+// field.
+async function check_grace(item_slot) {
+	const offering_slot = character.items.findIndex(it => it && it.name === "offeringp");
+	if (offering_slot === -1) return null;
 
-	let previous_grace;
 	try {
-		const baseline = await upgrade(item_slot, null, offering_slot0, true);
-		previous_grace = baseline?.grace;
+		const response = await upgrade(item_slot, null, offering_slot, true);
+		return response?.grace ?? null;
 	} catch (e) {
-		catcher(e, "add_grace_to_cap: baseline check");
-		return { grace: null, capped: false };
+		catcher(e, "check_grace");
+		return null;
 	}
+}
 
+// Builds item_slot's grace up to its cap by repeatedly applying real offeringp
+// applications (each consumes one offeringp) followed by a free check_grace() re-read —
+// the real application's own response doesn't reliably carry the updated grace value,
+// only a calculate:true response does — until grace stops increasing between two
+// consecutive reads (genuinely capped), inventory runs out of offeringp, or
+// GRACE_MAX_OFFERINGS is hit (the latter two are NOT capped — just gave up). Returns
+// { grace, capped } — callers (see auto_grace_pass() below) must not treat "ran out of
+// material" the same as "actually capped".
+async function add_grace_to_cap(item_slot) {
+	let previous_grace = await check_grace(item_slot);
 	if (previous_grace == null) {
-		log("⚠️ Grace baseline check had no grace field — skipping.", "#FFA500");
 		return { grace: null, capped: false };
 	}
 
@@ -103,18 +110,17 @@ async function add_grace_to_cap(item_slot) {
 			return { grace: previous_grace, capped: false };
 		}
 
-		let response;
 		try {
-			response = await upgrade(item_slot, null, offering_slot, false);
+			await upgrade(item_slot, null, offering_slot, false);
 		} catch (e) {
 			catcher(e, "add_grace_to_cap: upgrade");
 			return { grace: previous_grace, capped: false };
 		}
 		await delay(300);
 
-		const current_grace = response?.grace;
+		const current_grace = await check_grace(item_slot);
 		if (current_grace == null) {
-			log("⚠️ Grace application response had no grace field — stopping.", "#FFA500");
+			log(`⚠️ Ran out of offeringp (or no grace field) re-checking grace (at ${previous_grace}) for slot ${item_slot}.`, "#FFA500");
 			return { grace: previous_grace, capped: false };
 		}
 
