@@ -434,9 +434,12 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 			return;
 		}
 
-		// character.c[skill_name] tracks whether a single cast attempt is in progress;
+		// character.c[skill_name] tracks whether a single cast attempt is in progress.
 		// is_on_cooldown(skill_name) only goes true once an attempt actually succeeds
-		// (caught something) -- see the two waits below the use_skill() call.
+		// (caught something) -- when it does, stop and let the state machine move on
+		// (should_run_fishing()/should_run_mining() already gate on !is_on_cooldown(),
+		// so it'll naturally come back to this once the real cooldown clears). Waiting
+		// it out here instead proved unreliable -- both signals could stay stuck.
 		while (true) {
 			if (character.rip) {
 				log(`❌ Died while ${skill_name}, stopping.`);
@@ -454,6 +457,10 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 				log(`📦 Inventory full, stopping ${skill_name}.`);
 				break;
 			}
+			if (is_on_cooldown(skill_name)) {
+				log(`✅ ${skill_name} succeeded — on cooldown now, moving on.`, "limegreen");
+				break;
+			}
 
 			try {
 				await use_skill(skill_name);
@@ -467,9 +474,8 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 				break;
 			}
 
-			// character.c[skill_name] tracks whether THIS attempt (cast) is still in
-			// progress -- wait for it to clear before checking anything else, whether or
-			// not this particular attempt succeeded.
+			// Wait for this attempt's channel to finish before checking again -- whether
+			// it succeeded or not, character.c[skill_name] reflects the attempt itself.
 			await delay(200);
 			let channel_wait_ms = 0;
 			while (!character.rip && character.c && character.c[skill_name]) {
@@ -477,20 +483,6 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 				channel_wait_ms += 200;
 				if (channel_wait_ms >= 15000) {
 					log(`⚠️ ${skill_name}: still channeling after ${channel_wait_ms / 1000}s per character.c — giving up waiting.`, "#FFA500");
-					break;
-				}
-			}
-
-			// is_on_cooldown() only goes true once an attempt actually succeeds (caught
-			// something) -- if it's still false, nothing was caught, loop straight back
-			// and recast immediately with no cooldown to wait out. If it's true, wait for
-			// the real cooldown to clear before the next attempt.
-			let cooldown_wait_ms = 0;
-			while (!character.rip && is_on_cooldown(skill_name)) {
-				await delay(200);
-				cooldown_wait_ms += 200;
-				if (cooldown_wait_ms >= 20000) {
-					log(`⚠️ ${skill_name}: still on cooldown after ${cooldown_wait_ms / 1000}s — giving up waiting.`, "#FFA500");
 					break;
 				}
 			}
