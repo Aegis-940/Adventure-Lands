@@ -19,6 +19,11 @@ window._cmListeners = window._cmListeners || [];
 	// handler, invoked well after boot finishes — so they load in parallel.
 	const scripts = [
 		"Shared/Common_Functions.js",
+		"Shared/Movement.js",
+		"Shared/Combat_Utilities.js",
+		"Shared/Messaging.js",
+		"Shared/Party_And_Loot.js",
+		"Shared/Error_Handling.js",
 		"UI/Custom_Log.js",
 		"UI/Bank_Sorter.js",
 		"Shared/Buttons.js",
@@ -58,7 +63,14 @@ window._cmListeners = window._cmListeners || [];
 	// If any of these fail to load, nothing else can function (every role file calls
 	// into globals it defines) — abort role-file loading with a loud, hard-to-miss
 	// signal instead of letting every character spin/error against undefined functions.
-	const CRITICAL_SCRIPTS = ["Shared/Common_Functions.js"];
+	const CRITICAL_SCRIPTS = [
+		"Shared/Common_Functions.js",
+		"Shared/Movement.js",
+		"Shared/Combat_Utilities.js",
+		"Shared/Messaging.js",
+		"Shared/Party_And_Loot.js",
+		"Shared/Error_Handling.js",
+	];
 
 	// Loads one shared/UI script via getScript() (real <script> tag — always
 	// global scope). Always resolves (with success: true/false), even on final

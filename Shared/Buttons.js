@@ -144,3 +144,133 @@ function create_map_movement_window(custom_actions = []) {
 		add_button("custom-btns", id, label, on_click);
 	});
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// UI LAYOUT & BUTTONS
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function hide_skills_ui() {
+	const doc = parent.document;
+
+	// Hide skill buttons (bottom right grid)
+	const skill_buttons = doc.querySelector("#skillbar");
+	if (skill_buttons) skill_buttons.style.display = "none";
+
+	// Hide the right panel (contains skills, info, etc.)
+	const right_panel = doc.querySelector("#rightcorner");
+	if (right_panel) right_panel.style.display = "none";
+
+	// Optional: Hide the "Stats", "Skills", "Inventory" tab buttons
+	const tabs = [
+		"#rightcornerbuttonskills",
+		"#rightcornerbuttonstats",
+		"#rightcornerbuttoninventory"
+	];
+	for (const selector of tabs) {
+		const btn = doc.querySelector(selector);
+		if (btn) btn.style.display = "none";
+	}
+}
+
+// Hides the game's native party bar UI
+function hide_party_ui() {
+	const doc = parent.document;
+	// Hide the main party bar (usually #party or #party-frames)
+	const party_bar = doc.querySelector("#party, #party-frames");
+	if (party_bar) party_bar.style.display = "none";
+	// Optionally hide any party-related buttons or elements
+	const party_buttons = [
+		"#party-button", // Example, adjust as needed
+		"#party-leader-icon"
+	];
+	for (const selector of party_buttons) {
+		const btn = doc.querySelector(selector);
+		if (btn) btn.style.display = "none";
+	}
+}
+
+function move_element_up_by_px(element_id, pixels) {
+	const el = parent.document.getElementById(element_id);
+	if (el) {
+	const current_bottom = parseInt(window.getComputedStyle(el).bottom) || 0;
+	el.style.bottom = (current_bottom + pixels) + "px";
+	}
+}
+
+move_element_up_by_px("bottomleftcorner2", 370);
+move_element_up_by_px("chatwparty", 370);
+move_element_up_by_px("chatinput", 370);
+
+parent.$("#bottomleftcorner").show();
+
+function add_reload_button() {
+	const $ = parent.$;
+	const trc = $("#toprightcorner");
+	if (!trc.length) return setTimeout(add_reload_button, 500);
+
+
+	// Remove any existing reload or stats button to avoid duplicates
+	$("#reload-btn").remove();
+	$("#stats-btn").remove();
+
+	// Create the stats button (as a div for consistent style)
+	const stats_btn = $(`
+		<div id="stats-btn" class="gamebutton" style="margin-right: 4px; cursor: pointer;">
+			📊
+		</div>
+	`);
+	stats_btn.on("click", () => {
+		const doc = parent.document;
+		let win = doc.getElementById("ui-statistics-window");
+		if (!win) {
+			if (typeof ui_window === "function") ui_window();
+		} else {
+			win.style.display = win.style.display === "none" ? "block" : "none";
+		}
+	});
+
+	// Create the reload button
+	const reload_btn = $(`
+		<div id="reload-btn" class="gamebutton" style="margin-right: 0px; cursor: pointer;">
+			🔄
+		</div>
+	`);
+	reload_btn.on("click", () => {
+		parent.window.location.reload();
+	});
+
+	// Insert stats button to the left of reload button
+	trc.children().first().after(stats_btn);
+	stats_btn.after(reload_btn);
+}
+
+add_reload_button();
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// REMOTE SELLING
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const SELLABLE_ITEMS = [
+	"hpbelt", "hpamulet", "wattire", "ringsj", "wgloves", "wbook0", "wshoes", "wcap",
+	"cclaw", "crabclaw", "slimestaff", "stinger", "pstem", "gslime", "coat1", "helmet1",
+	"gloves1", "pants1", "shoes1", "wbreeches", "vitring", "helmet", "shoes", "gloves",
+	"pmace", "throwingstars", "t2bow", "spear", "dagger", "rapier", "sword", "mushroomstaff",
+	"rfangs", "gphelmet", "phelmet", "vitearring", "vitscroll", "hhelmet", "harmor", "hpants",
+	"hgloves", "hboots", "strring", "dexring", "intring", "strearring", "dexearring", "intearring",
+	"warmscarf", "snowball", "santasbelt", "lantern", "pclaw", "broom", "skullamulet",
+	"iceskates", "carrot", "xmace", "candycanesword", "pmaceofthedead", "ornamentstaff",
+	"merry", "rednose", "xmashat", "xmasshoes", "xmassweater", "xmaspants", "mittens",
+	"angelwings", "snowflakes", "epyjamas", "ecape", "eears", "eslippers", "carrotsword",
+	"pinkie", "oozingterror", "harbringer",
+];
+
+function remote_sell_items() {
+	for (let i = 0; i < character.items.length; i++) {
+		const item = character.items[i];
+		if (!item) continue;
+		if (item.l === "l" || item.p !== undefined) continue;
+		if (SELLABLE_ITEMS.includes(item.name)) {
+			sell(i, item.q || 1);
+		}
+	}
+}

@@ -23,15 +23,18 @@
 Bootstrapper.js
     └── loads all scripts in order from CDN (jsdelivr)
 
-Shared/Common_Functions.js   ← shared by everything
-    ├── smarter_move()        Promise-based pathfinding
-    ├── State management      (panic / normal / boss / dead)
+Shared/Common_Functions.js   ← core config/constants shared by everything
     ├── Loop toggle globals   (ATTACK_LOOP_ENABLED, etc.)
     ├── Location database     (monster spawn locations per map)
     ├── Party constants       (PARTY_LEADER, PARTY_MEMBERS)
     └── Tick rates / cooldowns
 
-Shared/Buttons.js            ← floating button UI helper
+Shared/Movement.js           ← smarter_move(), move_to_character(), bscorpion/primling farm, combat orbit
+Shared/Combat_Utilities.js   ← monster targeting/distance/aggro helpers, event handling
+Shared/Messaging.js          ← CM (character message) handlers, localStorage-backed state cache
+Shared/Party_And_Loot.js     ← party invite/accept, shared loot/inventory/panic/equipment behaviors
+Shared/Error_Handling.js     ← catcher(), the shared error-triage/logging helper
+Shared/Buttons.js            ← floating button UI helper, UI layout helpers, remote selling
 Shared/Windows.js            ← floating draggable window helper
 
 Characters/[Role].js         ← entry point per character
@@ -163,14 +166,19 @@ CONFIG = {
 
 | File | Lines |
 |------|-------|
-| Shared/Common_Functions.js | 1635 |
-| Character_Functions/Ranger_Functions.js | 1311 |
-| Character_Functions/Warrior_Functions.js | 1398 |
-| Character_Functions/Healer_Functions.js | 1238 |
-| Character_Functions/Merchant_Functions.js | 996 |
-| Merchant_Systems/Auto_Upgrade.js | 522 |
-| Merchant_Systems/Auto_Craft.js | 160 |
-| Shared/Buttons.js | 146 |
+| Character_Functions/Warrior_Functions.js | 1232 |
+| Character_Functions/Ranger_Functions.js | 1163 |
+| Character_Functions/Healer_Functions.js | 1138 |
+| Character_Functions/Merchant_Functions.js | 850 |
+| Shared/Party_And_Loot.js | 608 |
+| Merchant_Systems/Auto_Upgrade.js | 600 |
+| Shared/Movement.js | 536 |
+| Merchant_Systems/Auto_Craft.js | 469 |
+| Shared/Buttons.js | 276 |
+| Shared/Combat_Utilities.js | 194 |
+| Shared/Messaging.js | 177 |
+| Shared/Error_Handling.js | 150 |
+| Shared/Common_Functions.js | 128 |
 | Shared/Windows.js | 83 |
 | UI/DPS_Meter.js | 376 |
 | UI/Stats_Window.js | 347 |

@@ -22,8 +22,13 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | File | Role |
 |------|------|
 | `Bootstrapper.js` | Script loader — loads all other files from CDN in order |
-| `Shared/Common_Functions.js` | Shared utilities, movement, state, location data |
-| `Shared/Buttons.js` | Floating UI button creation |
+| `Shared/Common_Functions.js` | Core config/constants/loop-toggles/state variables |
+| `Shared/Movement.js` | `smarter_move()`, `move_to_character()`, bscorpion/primling farm, combat orbit |
+| `Shared/Combat_Utilities.js` | Monster targeting/distance/aggro helpers, event handling |
+| `Shared/Messaging.js` | CM (character message) handlers, localStorage-backed state cache |
+| `Shared/Party_And_Loot.js` | Party invite/accept management, shared loot/inventory/panic/equipment behaviors |
+| `Shared/Error_Handling.js` | `catcher()`, the shared error-triage/logging helper |
+| `Shared/Buttons.js` | Floating UI button creation, plus UI layout helpers and remote selling |
 | `Shared/Windows.js` | Generic draggable floating window helper |
 | `Merchant_Systems/Auto_Upgrade.js` | Item upgrade profiles and automation |
 | `Merchant_Systems/Auto_Craft.js` | Crafting logic and batch orchestration — loaded by Bootstrapper.js |
