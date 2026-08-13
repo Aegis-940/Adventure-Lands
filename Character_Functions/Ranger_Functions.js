@@ -1155,7 +1155,6 @@ setInterval(send_updates, 20000);
 
 main_loop();
 action_loop();
-skill_loop();
 equipment_loop();
 maintenance_loop();
 potion_loop();
