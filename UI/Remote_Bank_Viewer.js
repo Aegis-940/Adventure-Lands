@@ -200,4 +200,27 @@ function add_bank_buttons() {
 	trc.children().first().after(save_btn).after(bank_btn);
 }
 
+// Restored from the now-removed Shared/Buttons.js (redesign of the rest of that file's
+// buttons/windows is still pending) — reuses the same #toprightcorner/.gamebutton
+// pattern as add_bank_buttons() above. Runs for every character (this file loads for
+// all four via Bootstrapper.js's scripts[]), same as the original.
+function add_reload_button() {
+	const $ = parent.$;
+	const trc = $("#toprightcorner");
+	if (!trc.length) return setTimeout(add_reload_button, 500);
+
+	$("#reload-btn").remove();
+
+	const reload_btn = $(`
+	<div id="reload-btn" class="gamebutton" style="cursor: pointer;">
+		🔄
+	</div>`);
+	reload_btn.on("click", () => {
+		parent.window.location.reload();
+	});
+
+	trc.children().first().after(reload_btn);
+}
+add_reload_button();
+
 // Make sure your async withdraw_item() is defined in maincode BEFORE you click 🏧!
