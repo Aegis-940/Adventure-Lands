@@ -983,6 +983,12 @@ setInterval(send_updates, 20000);
 
 main_loop();
 action_loop();
+// skill_loop() (huntersmark/supershot) is defined in THIS file (unlike equipment_loop
+// below), so it's safe to start directly here — no eval-closure boundary to cross. It
+// was previously undefined and its stray call site got removed as dead cruft earlier
+// this project; skill_loop() was since (re)implemented here but the call to actually
+// start it was never re-added, so huntersmark/supershot silently never fired at all.
+skill_loop();
 // equipment_loop() is NOT started here — it's defined in Ranger_Equipment.js, a
 // separate eval closure that loads AFTER this file finishes evaluating, so calling
 // it here would throw ReferenceError and abort the rest of this block.
