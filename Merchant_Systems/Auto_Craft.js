@@ -75,12 +75,29 @@ function find_recipe_slots(req) {
 	return remaining > 0 ? null : picks;
 }
 
-// How many of a recipe we could fit given current free inventory space, when
-// CONFIG.crafting.targets doesn't specify an explicit count — conservative: 1 free
-// slot per craft (each produces one output item), leaving a small buffer.
-function max_craftable_by_space() {
+// How many of item_name we could fit given current free inventory space and any
+// existing partial stack. Stackable items (G.items[name].s > 1) pack many units into a
+// single slot, so counting free slots alone drastically undercounts real capacity for
+// them (e.g. basketofeggs — thousands can fit in a couple of slots, not ~35). Falls back
+// to the old "1 free slot per unit" assumption for genuinely non-stackable items.
+// Leaves a small buffer (3 slots) of free space for non-output items either way.
+function max_craftable_by_space(item_name) {
 	var free_slots = character.items.filter(function(it) { return !it; }).length;
-	return Math.max(0, free_slots - 3);
+	var usable_free_slots = Math.max(0, free_slots - 3);
+
+	var stack_size = parent.G.items[item_name]?.s;
+	if (!stack_size || stack_size <= 1) {
+		return usable_free_slots;
+	}
+
+	var room_in_existing_stacks = 0;
+	character.items.forEach(function(it) {
+		if (it && it.name === item_name) {
+			room_in_existing_stacks += Math.max(0, stack_size - (it.q || 1));
+		}
+	});
+
+	return room_in_existing_stacks + usable_free_slots * stack_size;
 }
 
 // Inventory + bank quantity currently held of a named item/level.
@@ -146,7 +163,7 @@ function max_craftable_now(target) {
 	// and/or the ingredient cap are Infinity (i.e. all-buyable, uncapped recipe).
 	var count = Math.min(
 		target.max ?? Infinity,
-		max_craftable_by_space(),
+		max_craftable_by_space(target.name),
 		max_craftable_by_ingredients(craft_def)
 	);
 	if (count <= 0) return 0;
