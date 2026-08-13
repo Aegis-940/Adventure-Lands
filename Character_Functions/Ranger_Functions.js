@@ -1028,7 +1028,10 @@ setInterval(send_updates, 20000);
 
 main_loop();
 action_loop();
-equipment_loop();
+// equipment_loop() is NOT started here — it's defined in Ranger_Equipment.js, a
+// separate eval closure that loads AFTER this file finishes evaluating, so calling
+// it here would throw ReferenceError and abort the rest of this block.
+// Ranger_Equipment.js starts it itself, once it's actually defined.
 maintenance_loop();
 potion_loop();
 if (RANGER_TARGET === "bscorpion") prim_farm_loop();

@@ -897,7 +897,10 @@ async function run_spider_dungeon() {
 
 main_loop();
 action_loop();
-skill_loop();
+// skill_loop() is NOT started here — it's defined in Healer_Skills.js, a separate
+// eval closure that loads AFTER this file finishes evaluating, so calling it here
+// would throw ReferenceError and abort the rest of this block. Healer_Skills.js
+// starts it itself, once it's actually defined.
 maintenance_loop();
 potion_loop();
 setInterval(remote_sell_items, 5000);

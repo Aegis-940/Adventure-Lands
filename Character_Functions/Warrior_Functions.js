@@ -809,7 +809,10 @@ setInterval(send_updates, 20000);
 
 main_loop();
 action_loop();
-skill_loop();
+// skill_loop() is NOT started here — it's defined in Warrior_Skills.js, a separate
+// eval closure that loads AFTER this file finishes evaluating, so calling it here
+// would throw ReferenceError and abort the rest of this block. Warrior_Skills.js
+// starts it itself, once it's actually defined.
 equipment_loop();
 maintenance_loop();
 potion_loop();

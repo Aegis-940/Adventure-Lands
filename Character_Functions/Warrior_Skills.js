@@ -222,3 +222,8 @@ async function handle_taunt() {
 		}
 	}
 }
+
+// Started here, not in Warrior_Functions.js's "START ALL LOOPS" — that file's eval
+// finishes before this one even loads, so calling skill_loop() from there would
+// throw ReferenceError. This is the first point at which the function exists.
+skill_loop();

@@ -131,3 +131,8 @@ async function equipment_loop() {
 
 // find_booster_slot, get_num_chests, get_num_targets → Common_Functions.js
 
+// Started here, not in Ranger_Functions.js's "START ALL LOOPS" — that file's eval
+// finishes before this one even loads, so calling equipment_loop() from there would
+// throw ReferenceError. This is the first point at which the function exists.
+equipment_loop();
+
