@@ -3,8 +3,6 @@
 // CONFIG
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Overridable live via UI/Settings_Window.js -- localStorage is shared across all 4
-// characters' tabs, so a save from any tab is visible here on next reload.
 function local_bool(key, fallback) {
 	const raw = localStorage.getItem(key);
 	return raw === null ? fallback : raw === "true";
@@ -12,9 +10,8 @@ function local_bool(key, fallback) {
 
 // var, not const: this file runs through Bootstrapper.js's eval-based loader, where
 // top-level const/let stay scoped to that eval and aren't visible to Game_Config.js's
-// shared CONFIG-reading functions (e.g. potion_loop()'s CONFIG.potions.*).
+// shared CONFIG-reading functions.
 var CONFIG = {
-	// Flip any of these off to stop that state from ever being selected.
 	enabled: {
 		upgrading:  local_bool("AL_merchant_enabled_upgrading", true),
 		crafting:   local_bool("AL_merchant_enabled_crafting", true),
@@ -31,32 +28,21 @@ var CONFIG = {
 	},
 	party: {
 		members: ["Ulric", "Myras", "Riva"],
-		nearby_trigger_range: 200, // is anyone worth checking on at all
-		action_range: 350,        // close enough to actually act on this specific member
+		nearby_trigger_range: 200,
+		action_range: 350,
 	},
-	// Delivery is triggered contextually (see should_run_delivery()) from a fighter's
-	// cached state (state_cache_loop()/read_state_cache()), not a timer.
 	delivery: {
-		free_slots_threshold: 10, // deliver if any party member has this many or fewer free slots
-		gold_threshold: 20000000, // deliver if any party member is carrying at least this much gold
-		// MLuck refresh itself is driven by MLUCK_REFRESH_THRESHOLD_MS (reads each
-		// fighter's cached remaining buff time) — see is_mluck_due(). Satisfied
-		// opportunistically by handle_buff_party(); an impending lapse alone also
-		// triggers a delivery run.
+		free_slots_threshold: 10,
+		gold_threshold: 20000000,
 	},
 	upgrade_gold_threshold: 100000000,
-	// Read by Shared/Game_Config.js's shared potion_loop() (self-use, HP/MP independent checks).
 	potions: {
 		hp_threshold: 500,
 		mp_threshold: 500,
 	},
-	// Items to auto-craft — read by Auto_Craft.js's try_craft(). min (default 1) is the
-	// smallest batch worth bothering with; max (default unlimited) caps batch size. Both
-	// are further bounded by ingredients, free space, and gold (see max_craftable_now()).
 	crafting: {
 		targets: [{ name: "basketofeggs", min: 25, max: 9999 }],
 	},
-	// Items to turn in at the exchange NPC, in priority order.
 	exchange: {
 		targets: [
 			{ name: "goldenegg",    min: 1 },
@@ -67,43 +53,30 @@ var CONFIG = {
 			{ name: "weaponbox",    min: 1 },
 		],
 	},
-	// Items bank_items() must never bank away, even mid-cycle.
 	do_not_bank: [],
-	// Crafting/exchanging/fishing/mining all deposit into the bank eventually — disabled
-	// below this threshold so a run doesn't start with nowhere to put what it collects.
 	min_bank_free_space: 10,
-	// Resting gear — worn at all times except the brief window a rod/pickaxe is
-	// equipped for fishing/mining (see ensure_tool_equipped()/equip_default_gear()).
 	default_gear: {
 		mainhand: { name: "broom", level: 9 },
 		offhand: { name: "wbookhs", level: 1 },
 	},
-	// Checked top to bottom by get_character_state() (see PRIORITY_CHECKS) whenever Idle.
-	// Fishing/mining sit above crafting/exchanging: all four require free bank space
-	// (has_enough_bank_space()) but upgrading doesn't, so when space is scarce, crafting/
-	// exchanging previously starved fishing/mining out of a turn every cycle.
+	// Fishing/mining sit above crafting/exchanging: all four need free bank space, but
+	// upgrading doesn't, so putting crafting/exchanging first starved fishing/mining out
+	// of a turn whenever space was scarce.
 	priorities: ["dead", "delivering", "upgrading", "fishing", "mining", "crafting", "exchanging"],
 };
 
-// Game_Config.js's shared potion_loop()/auto_buy_potions() aren't used here — bulk
-// buying for the party is handled by handle_buy_potions() below; potion_loop() (self-use)
-// is started separately from Characters/Merchant.js.
-
 // var, not const: Auto_Upgrade.js/Auto_Craft.js are separate eval closures that reference
-// HOME/BANK_LOCATION as bare globals — same visibility requirement as CONFIG.
+// HOME/BANK_LOCATION as bare globals.
 var HOME = CONFIG.locations.HOME;
 var BANK_LOCATION = CONFIG.locations.BANK_LOCATION;
-const PARTY = CONFIG.party.members; // only read within this file — const is fine
+const PARTY = CONFIG.party.members;
 
-var merchant_task = "Idle"; // Current task: "Idle", "Delivering", etc. — var so Auto_Upgrade.js can share this global
+var merchant_task = "Idle"; // var so Auto_Upgrade.js can share this global
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATE MACHINE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// State name constants — priority/check order lives in CONFIG.priorities, not here.
-// Each state is contextual, not time-interval-based. Once started, a handler runs to
-// completion (loop_controller() awaits it) before the priority list is re-checked.
 const MERCHANT_STATES = {
 	DEAD: "dead",
 	DELIVERING: "delivering",
@@ -115,25 +88,19 @@ const MERCHANT_STATES = {
 	IDLE: "idle",
 };
 
-const DELIVERY_WAIT_MAX_ATTEMPTS = 40; // ~2 minutes at 3s/attempt before giving up and heading home anyway
+const DELIVERY_WAIT_MAX_ATTEMPTS = 40; // ~2 minutes at 3s/attempt
 const FISHING_POSITION_TOLERANCE = 5;
 const MINING_POSITION_TOLERANCE = 10;
 
-// Refresh threshold: due once less than this much time remains, or the buff isn't active
-// at all. Reads each fighter's own cached character.s.mluck.ms (remaining time, reported
-// via Shared/Messaging.js's get_full_character_state() -> conditions) instead of our own
-// memory of when we last cast it — accurate regardless of restarts or a missed cast, and
-// reflects the buff's real server-tracked state rather than a guess.
-const MLUCK_REFRESH_THRESHOLD_MS = 10 * 60 * 1000; // refresh with 10 minutes left
+// Reads each fighter's cached character.s.mluck.ms (remaining time) instead of tracking
+// our own cast history -- accurate regardless of restarts or a missed cast.
+const MLUCK_REFRESH_THRESHOLD_MS = 10 * 60 * 1000;
 
 function is_mluck_due(status) {
 	const remaining = status.conditions?.mluck?.ms;
 	return remaining == null || remaining < MLUCK_REFRESH_THRESHOLD_MS;
 }
 
-// read_state_cache() reads each fighter's localStorage snapshot directly (no CM round
-// trip), returning null for stale/missing entries. An impending mluck lapse alone also
-// triggers delivery, since that run doubles as the buff pass.
 function should_run_delivery() {
 	if (merchant_task !== "Idle") return false;
 	for (const name of PARTY) {
@@ -146,8 +113,6 @@ function should_run_delivery() {
 	return false;
 }
 
-// Total free slots across every bank pack. Returns 0 (fail safe — treat as "no room")
-// if bank data hasn't been loaded yet, rather than guessing there's space.
 function bank_free_space() {
 	const bank_data = character.bank || load_bank_from_local_storage();
 	if (!bank_data) return 0;
@@ -160,28 +125,24 @@ function bank_free_space() {
 	return free;
 }
 
-// Crafting/exchanging/fishing/mining all end up depositing into the bank — gate them
-// on there actually being room, so a run doesn't start only to have nowhere to put
-// what it collects.
 function has_enough_bank_space() {
 	return bank_free_space() >= CONFIG.min_bank_free_space;
 }
 
 function should_run_upgrade() {
-	// Unlike craft/exchange/fishing/mining, upgrading doesn't need free bank space to
-	// start: it consumes scrolls and (on compound) merges multiple stacks into fewer
-	// items, so it typically frees space rather than needing it up front.
+	// Unlike craft/exchange/fishing/mining, upgrading doesn't need free bank space up
+	// front -- it consumes scrolls and (on compound) merges stacks into fewer items.
 	return CONFIG.enabled.upgrading
 		&& merchant_task === "Idle"
 		&& character.gold >= CONFIG.upgrade_gold_threshold
-		&& bank_has_upgradeable_items(); // Merchant_Systems/Auto_Upgrade.js — is there anything in the bank worth upgrading/combining?
+		&& bank_has_upgradeable_items();
 }
 
 function should_run_craft() {
 	return CONFIG.enabled.crafting
 		&& merchant_task === "Idle"
 		&& has_enough_bank_space()
-		&& can_afford_any_craft(); // Merchant_Systems/Auto_Craft.js
+		&& can_afford_any_craft();
 }
 
 function should_run_exchange() {
@@ -205,8 +166,6 @@ function should_run_mining() {
 		&& !is_on_cooldown("mining");
 }
 
-// Maps each CONFIG.priorities key to the state it selects and the check that decides
-// whether that state is due right now.
 const PRIORITY_CHECKS = {
 	dead:        { state: MERCHANT_STATES.DEAD,       should_run: () => character.rip },
 	delivering:  { state: MERCHANT_STATES.DELIVERING, should_run: should_run_delivery },
@@ -233,9 +192,8 @@ async function handle_dead_state() {
 	}
 }
 
-// Step 5 of the decision flow: nothing else is due right now -- rest at HOME, but only
-// travel if not already there, so this doesn't reissue smarter_move() every idle tick.
 async function handle_idle_state() {
+	// Only travel if not already close, so this doesn't reissue smarter_move() every tick.
 	if (character.map === HOME.map && Math.hypot(character.x - HOME.x, character.y - HOME.y) <= 10) return;
 	try {
 		await smarter_move(HOME);
@@ -250,19 +208,14 @@ async function handle_delivering_state() {
 	try {
 		log("Beginning delivery run...");
 
-		// Fighters jitter x/y constantly while orbiting their target (walk_in_circle());
-		// only re-target when the cached position moved meaningfully or the map changed,
-		// to avoid erratically recalculating on every tiny cache update. Must exceed the
-		// largest orbit diameter (2x circle_radius; Ranger's 75 is the largest), not just
-		// its radius, since opposite points on one orbit can be that far apart.
+		// Fighters jitter x/y constantly while orbiting their target; only re-target on a
+		// meaningful move or map change. Threshold must exceed the largest orbit diameter
+		// (2x circle_radius; Ranger's 75 is the largest), not just its radius.
 		const RETARGET_THRESHOLD = 160;
 		let last_target = null;
 
 		let attempts = 0;
 		while (!any_party_within_range() && attempts < DELIVERY_WAIT_MAX_ATTEMPTS) {
-			// Head toward the first party member with a live, non-stale cache entry
-			// (state_cache_loop() keeps map/x/y fresh in localStorage), re-reading every
-			// attempt to keep tracking them as they move.
 			for (const name of PARTY) {
 				const status = read_state_cache(name);
 				if (status && !status.rip) {
@@ -273,8 +226,8 @@ async function handle_delivering_state() {
 					if (moved_enough) {
 						log(`🎯 Delivery: heading to ${name} @ ${status.map} (${Math.round(status.x)}, ${Math.round(status.y)})`, "#888");
 
-						// "interrupted" = this re-target replaced a still-in-flight move, not a
-						// real failure -- don't log it via catcher() like a genuine one.
+						// "interrupted" = this re-target replaced a still-in-flight move, not
+						// a real failure.
 						smarter_move({ map: status.map, x: status.x, y: status.y })
 							.catch(e => {
 								if (e?.reason !== "interrupted") catcher(e, "handle_delivering_state: smarter_move to " + name);
@@ -292,12 +245,7 @@ async function handle_delivering_state() {
 			log("⚠️ No party member came within range — heading home anyway.", "#FFA500");
 		}
 
-		// Covers both a normal delivery and one triggered solely by an impending mluck lapse.
 		await buff_nearby_party();
-
-		// sell_items()/bank_items() directly -- each only travels if it actually has
-		// something to do; no reason this cycle needs to force a return to HOME if
-		// neither found anything.
 		await sell_items();
 		await bank_items();
 	} catch (e) {
@@ -311,7 +259,7 @@ async function handle_upgrading_state() {
 	if (merchant_task !== "Idle") return;
 	try {
 		log("Starting auto-upgrade process...");
-		await auto_upgrade(); // Merchant_Systems/Auto_Upgrade.js — manages merchant_task itself, ends back on "Idle"
+		await auto_upgrade(); // manages merchant_task itself, ends back on "Idle"
 	} catch (e) {
 		catcher(e, "handle_upgrading_state");
 		merchant_task = "Idle";
@@ -322,7 +270,7 @@ async function handle_crafting_state() {
 	if (merchant_task !== "Idle") return;
 	merchant_task = "Crafting";
 	try {
-		await try_craft(); // Merchant_Systems/Auto_Craft.js
+		await try_craft();
 	} catch (e) {
 		catcher(e, "handle_crafting_state");
 	} finally {
@@ -332,11 +280,9 @@ async function handle_crafting_state() {
 
 async function handle_exchanging_state() {
 	if (merchant_task !== "Idle") return;
-	await exchange_items(); // has its own exchange_items_running guard + finally reset to "Idle"
+	await exchange_items(); // has its own exchange_items_running guard + finally reset
 }
 
-// Equips the resting loadout (CONFIG.default_gear). Called once fishing/mining ends
-// and once at startup. No-ops per slot if the gear isn't in inventory.
 async function equip_default_gear() {
 	for (const slot of ["mainhand", "offhand"]) {
 		const gear = CONFIG.default_gear[slot];
@@ -351,9 +297,6 @@ async function equip_default_gear() {
 	}
 }
 
-// Ensures `tool_name` ("rod"/"pickaxe") is in inventory: checks inventory, then bank,
-// then crafts via Auto_Craft.js's craft_item(). Does NOT equip it. Called before
-// traveling to the spot so an unobtainable tool doesn't waste a trip.
 async function ensure_tool_available(tool_name) {
 	function find_in_inventory() {
 		return character.items.findIndex(item => item && item.name === tool_name);
@@ -365,17 +308,15 @@ async function ensure_tool_available(tool_name) {
 	log(`🔎 No ${tool_name} in inventory, checking bank...`);
 	await smarter_move(BANK_LOCATION);
 	await delay(500);
-	// Awaited: runs once per gathering start, and the tool must be confirmed in inventory
-	// before the caller trusts the return value.
 	await withdraw_item(tool_name);
 	await delay(400);
 	if (find_in_inventory() !== -1) return true;
 
 	log(`🔨 No ${tool_name} in bank either, attempting to craft one...`);
 	for (let attempt = 0; attempt < 8; attempt++) {
-		const result = await craft_item(tool_name); // Merchant_Systems/Auto_Craft.js
+		const result = await craft_item(tool_name);
 		if (result === "crafted") break;
-		if (result !== "buying" && result !== "withdrawing") break; // "missing"/"no_recipe" — no point retrying
+		if (result !== "buying" && result !== "withdrawing") break;
 		await delay(400);
 	}
 
@@ -386,10 +327,6 @@ async function ensure_tool_available(tool_name) {
 	return true;
 }
 
-// Equips `tool_name` in mainhand — call only once standing at the spot; the rod/pickaxe
-// is worn only immediately before the skill, CONFIG.default_gear otherwise. Assumes
-// ensure_tool_available() already confirmed it's in inventory. Two-handed, so the
-// offhand must be empty first.
 async function equip_tool(tool_name) {
 	if (character.slots.mainhand && character.slots.mainhand.name === tool_name) return true;
 
@@ -406,15 +343,10 @@ async function equip_tool(tool_name) {
 	return character.slots.mainhand && character.slots.mainhand.name === tool_name;
 }
 
-// Shared by fishing/mining — gathers the tool, travels to the spot, equips it, channels
-// the skill until cooldown/space/position/death stops it, then sells and banks. Checks
-// character.rip every iteration so death preempts gathering immediately.
 async function handle_gathering_state(tool_name, skill_name, spot, tolerance, task_label) {
 	if (merchant_task !== "Idle") return;
 	merchant_task = task_label;
 	try {
-		// Check availability before traveling — no point walking to the spot for a tool
-		// we can't get.
 		const tool_available = await ensure_tool_available(tool_name);
 		if (!tool_available) {
 			log(`❌ No ${tool_name} available (not in inventory, bank, or craftable).`);
@@ -422,9 +354,8 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 		}
 
 		if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > tolerance) {
-			// Explicit radius: smarter_move()'s default arrival radius (10) is looser than
-			// tolerance (5 for fishing) -- without this it could "arrive" outside tolerance
-			// and the loop's own check below would abort before ever casting.
+			// Explicit radius: smarter_move()'s default (10) is looser than tolerance (5),
+			// which would let it "arrive" outside tolerance and abort before ever casting.
 			await smarter_move(spot, null, { radius: tolerance });
 		}
 
@@ -434,12 +365,6 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 			return;
 		}
 
-		// character.c[skill_name] tracks whether a single cast attempt is in progress.
-		// is_on_cooldown(skill_name) only goes true once an attempt actually succeeds
-		// (caught something) -- when it does, stop and let the state machine move on
-		// (should_run_fishing()/should_run_mining() already gate on !is_on_cooldown(),
-		// so it'll naturally come back to this once the real cooldown clears). Waiting
-		// it out here instead proved unreliable -- both signals could stay stuck.
 		while (true) {
 			if (character.rip) {
 				log(`❌ Died while ${skill_name}, stopping.`);
@@ -457,6 +382,10 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 				log(`📦 Inventory full, stopping ${skill_name}.`);
 				break;
 			}
+			// is_on_cooldown() only goes true once an attempt succeeds (caught something) --
+			// stop here and let should_run_fishing()/should_run_mining() (which gate on
+			// !is_on_cooldown()) bring the merchant back once the real cooldown clears.
+			// Waiting it out inline here instead proved unreliable.
 			if (is_on_cooldown(skill_name)) {
 				log(`✅ ${skill_name} succeeded — on cooldown now, moving on.`, "limegreen");
 				break;
@@ -466,7 +395,6 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 				await use_skill(skill_name);
 			} catch (e) {
 				if (e?.reason === "cooldown") {
-					// Not a real failure -- retry shortly instead of aborting the session.
 					await delay(2000);
 					continue;
 				}
@@ -474,8 +402,8 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 				break;
 			}
 
-			// Wait for this attempt's channel to finish before checking again -- whether
-			// it succeeded or not, character.c[skill_name] reflects the attempt itself.
+			// character.c[skill_name] reflects this one attempt resolving, regardless of
+			// whether it succeeds -- wait for it before checking again.
 			await delay(200);
 			let channel_wait_ms = 0;
 			while (!character.rip && character.c && character.c[skill_name]) {
@@ -488,17 +416,14 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 			}
 		}
 
-		// Re-equip resting gear BEFORE selling/banking, not after -- otherwise bank_items()
-		// could sweep the unequipped resting gear into the bank first, leaving the
-		// character stuck wielding the pickaxe/rod permanently.
+		// Re-equip resting gear BEFORE selling/banking -- otherwise bank_items() could
+		// sweep the still-unequipped resting gear away, leaving the pickaxe/rod stuck on.
 		try {
 			await equip_default_gear();
 		} catch (e) {
 			catcher(e, `handle_gathering_state(${skill_name}): equip_default_gear`);
 		}
 
-		// No reason this cycle needs to specifically end at HOME; whatever
-		// loop_controller() picks next travels on from wherever this leaves off.
 		log(`🏁 ${skill_name} loop ended, selling/banking...`, "#888");
 		await sell_items();
 		await bank_items();
@@ -506,8 +431,9 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 	} catch (e) {
 		catcher(e, `handle_gathering_state(${skill_name})`);
 	} finally {
-		// An exception thrown inside a finally block skips the rest of it -- keep the
-		// merchant_task reset unconditional by guarding equip_default_gear() separately.
+		// try/catch here too: an exception inside a finally block skips the rest of that
+		// finally, so an unguarded equip_default_gear() failure would skip the
+		// merchant_task reset and deadlock the state machine permanently.
 		try {
 			await equip_default_gear();
 		} catch (e) {
@@ -544,16 +470,14 @@ async function set_state(state) {
 	}
 }
 
-// Safety net: if merchant_task ever gets stuck non-"Idle" (a deadlock in some handler),
-// the whole state machine freezes, since every should_run_*() check requires "Idle".
-// Tracked here rather than at each assignment site since merchant_task is set in
-// several places (state handlers, Auto_Upgrade.js).
-const MERCHANT_TASK_WATCHDOG_MS = 5 * 60 * 1000; // 5 minutes
+// If merchant_task ever gets stuck non-"Idle" (a deadlock in some handler), every
+// should_run_*() check requires "Idle", freezing the whole state machine -- force it back
+// after a long timeout so an undiscovered deadlock self-heals instead of hanging forever.
+const MERCHANT_TASK_WATCHDOG_MS = 5 * 60 * 1000;
 let watchdog_task = merchant_task;
 let watchdog_since = Date.now();
 
-// Sole owner of "where is the character going right now" — every other loop in this
-// file is passive (no smarter_move calls), so there's only ever one active traveler.
+// Sole owner of movement -- every other loop in this file is passive (no smarter_move calls).
 async function loop_controller() {
 	while (true) {
 		try {
@@ -578,7 +502,8 @@ async function loop_controller() {
 	}
 }
 
-// Game-engine-invoked callbacks (same convention as on_cm in Game_Config.js) — not dead code.
+// Game-engine-invoked callbacks (same convention as on_cm) -- not dead code despite no
+// visible call site.
 function on_party_request(name) {
 	if (PARTY.includes(name)) accept_party_request(name);
 }
@@ -611,13 +536,10 @@ async function mluck_party_member(player) {
 	await delay(100);
 	use_skill("mluck", player);
 	await delay(200);
-	// No local bookkeeping needed -- the target's own state_cache_loop() will report the
-	// refreshed character.s.mluck.ms within ~100ms, which is_mluck_due() reads directly.
+	// No local bookkeeping -- the target's own cache reports the refreshed
+	// character.s.mluck.ms within ~100ms, which is_mluck_due() reads directly.
 }
 
-// Casts mluck on every nearby party member whose cached remaining buff time says it's
-// due (is_mluck_due()), skipping anyone already fresh. Shared by handle_buff_party() and
-// handle_delivering_state().
 async function buff_nearby_party() {
 	let buffed_any = false;
 	for (const name of PARTY) {
@@ -644,11 +566,9 @@ async function buff_nearby_party() {
 // OPPORTUNISTIC SIDE-DECISIONS (buy potions / collect loot / buff party)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// None of these ever travel on their own -- each only acts if the merchant already
-// happens to be near the relevant spot/party, as a free side effect of wherever the main
-// task's own movement left it. Evaluated every loop_controller() tick (see below)
-// alongside, not instead of, the main task decision -- these don't compete in
-// CONFIG.priorities since they cost nothing to check and never block on travel.
+// None of these travel on their own -- each only acts if the merchant already happens to
+// be near the relevant spot/party. Don't compete in CONFIG.priorities since they cost
+// nothing to check and never block on travel.
 
 function should_buy_potions() {
 	const shop = CONFIG.locations.POTION_SHOP;
@@ -702,8 +622,6 @@ async function handle_collect_loot() {
 	}
 }
 
-// Opportunistic only -- doesn't guarantee the 50-minute mluck refresh by itself (only
-// fires when someone's nearby); should_run_delivery() is the actual guarantee.
 function should_buff_party() {
 	return any_party_within_range();
 }
@@ -722,12 +640,9 @@ async function decide_opportunistic_actions() {
 	if (should_buff_party()) await handle_buff_party();
 }
 
-// Runs concurrently with loop_controller(), not nested inside it -- loop_controller()'s
-// own await set_state(state) blocks for however long the current task takes (a delivery
-// run or fishing session can run for minutes), so a single per-tick check there would
-// stop checking these entirely for that whole duration. This still needs its own timer
-// to keep checking throughout, but each tick is now a clean decision call rather than
-// tangled inline logic.
+// Runs concurrently with loop_controller(), not nested inside it -- set_state() blocks
+// for however long the current task takes (a delivery or fishing run can last minutes),
+// so a per-tick check there would stop checking these for that whole duration.
 async function opportunistic_actions_loop() {
 	while (true) {
 		try {
@@ -761,9 +676,6 @@ function has_bankable_items() {
 	return false;
 }
 
-// Waits for movement already in progress elsewhere to settle before issuing a new
-// smarter_move() -- previously abandoned the call outright, stranding the character
-// wherever it happened to be moving. Shared by sell_items()/bank_items() below.
 async function wait_for_movement_to_settle(caller_label) {
 	let move_wait = 0;
 	while (character.moving && move_wait < 20) {
@@ -777,8 +689,6 @@ async function wait_for_movement_to_settle(caller_label) {
 
 let sell_items_running = false;
 
-// Travels home and sells everything in SELLABLE_ITEMS -- no-ops (no travel at all) if
-// nothing sellable is actually carried. Returns true if anything was sold.
 async function sell_items() {
 	if (!has_sellable_items()) return false;
 	if (sell_items_running) {
@@ -817,9 +727,6 @@ async function sell_items() {
 
 let bank_items_running = false;
 
-// Travels to the bank and deposits everything from slot 3 onward not in
-// CONFIG.do_not_bank -- no-ops (no travel at all) if nothing bankable is actually
-// carried. Returns true if anything was banked.
 async function bank_items() {
 	if (!has_bankable_items()) return false;
 	if (bank_items_running) {
@@ -867,8 +774,6 @@ async function bank_items() {
 let exchange_items_running = false;
 const EXCHANGE_POSITION_TOLERANCE = 5;
 
-// Checked by should_run_exchange() — is there actually an exchangeable target on hand
-// (inventory or bank) right now, rather than firing on a timer regardless of contents?
 function has_exchangeable_items() {
 	for (const target of CONFIG.exchange.targets) {
 		let count = 0;
@@ -955,8 +860,7 @@ async function exchange_items() {
 		const item_config = CONFIG.exchange.targets.find(cfg => cfg.name === item_name);
 		const min_count = item_config?.min ?? 1;
 
-		// Explicit radius: see the matching comment in handle_gathering_state() -- default
-		// arrival radius (10) is looser than EXCHANGE_POSITION_TOLERANCE (5).
+		// Explicit radius: smarter_move()'s default (10) is looser than EXCHANGE_POSITION_TOLERANCE (5).
 		await smarter_move(HOME, null, { radius: EXCHANGE_POSITION_TOLERANCE });
 		await delay(500);
 
@@ -979,8 +883,6 @@ async function exchange_items() {
 
 			if (character.items.filter(Boolean).length >= character.items.length) {
 				log(`📦 Inventory full. Selling/banking before continuing to exchange ${item_name}.`);
-				// The smarter_move() below needs the tighter EXCHANGE_POSITION_TOLERANCE
-				// radius this loop requires, so travel back is handled there, not here.
 				await sell_items();
 				await bank_items();
 				await delay(200);
@@ -1016,10 +918,6 @@ async function exchange_items() {
 		}
 
 		log(`Finished exchanging all ${item_name}`, "#00ff00");
-
-		// Final decide-and-cleanup -- the loop above only sells/banks mid-run when
-		// inventory fills up; whatever's left over once exchanging actually finishes
-		// (e.g. non-exchangeable junk picked up along the way) still needs a decision.
 		await sell_items();
 		await bank_items();
 	} catch (e) {
