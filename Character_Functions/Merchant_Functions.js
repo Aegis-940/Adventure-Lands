@@ -279,8 +279,10 @@ async function handle_delivering_state() {
 		// Covers both a normal delivery and one triggered solely by an impending mluck lapse.
 		await buff_nearby_party();
 
-		await smarter_move(HOME);
-		await delay(1000);
+		// No explicit travel to HOME here -- sell_and_bank() already gets there
+		// contextually (via sell_items()/bank_items() if there's actually something to
+		// sell/bank, always ending with one trip home either way), so a pre-emptive move
+		// here was a redundant extra leg.
 		await sell_and_bank();
 	} catch (e) {
 		catcher(e, "handle_delivering_state");
