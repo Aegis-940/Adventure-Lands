@@ -256,8 +256,12 @@ async function handle_delivering_state() {
 		// re-targeting smarter_move() on every tiny jitter (even when the real direction to
 		// walk barely changed) looked like the move was being erratically recalculated.
 		// Only re-target when the cached position has moved meaningfully since the last one
-		// actually aimed at, or the map changed.
-		const RETARGET_THRESHOLD = 50;
+		// actually aimed at, or the map changed. Must clear the largest fighter orbit
+		// diameter (2x circle_radius), not just its radius -- opposite points on a single
+		// orbit can be that far apart -- and Ranger's circle_radius (75) is the largest of
+		// the three (Warrior 35, Healer 30), so a 50-unit threshold was still well within
+		// normal orbit jitter.
+		const RETARGET_THRESHOLD = 160;
 		let last_target = null;
 
 		let attempts = 0;
