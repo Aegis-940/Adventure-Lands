@@ -483,11 +483,16 @@ async function prim_orbit_loop() {
 let orbit_origin = null;
 
 // Dynamically set orbit_origin based on character name
-if (character.name === "Myras") {
+// typeof-guarded: this runs immediately at load time, but Movement.js and Game_Config.js
+// (which defines HEALER_TARGET/WARRIOR_TARGET/RANGER_TARGET) both load in parallel with
+// no ordering guarantee -- if Movement.js's fetch resolves first, those aren't defined
+// yet. This whole COMBAT ORBIT section is dead/unused, so a skipped assignment here is a
+// no-op either way, not a functional loss.
+if (character.name === "Myras" && typeof HEALER_TARGET !== "undefined") {
 	orbit_origin = HEALER_TARGET;
-} else if (character.name === "Ulric") {
+} else if (character.name === "Ulric" && typeof WARRIOR_TARGET !== "undefined") {
 	orbit_origin = WARRIOR_TARGET;
-} else if (character.name === "Riva") {
+} else if (character.name === "Riva" && typeof RANGER_TARGET !== "undefined") {
 	orbit_origin = RANGER_TARGET;
 }
 
