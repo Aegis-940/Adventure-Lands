@@ -412,8 +412,8 @@ async function try_craft() {
 
 			if (total_crafted >= target_max) break;
 
-			// sell_items()/bank_items() directly, not sell_and_bank() -- its return-to-HOME trip
-			// would just be undone by the next craft_batch() traveling to CRAFT_LOCATION anyway.
+			// No forced return to HOME here -- the next craft_batch() call travels to
+			// CRAFT_LOCATION directly regardless.
 			await sell_items();
 			await bank_items();
 		}

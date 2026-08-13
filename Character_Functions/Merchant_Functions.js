@@ -66,7 +66,7 @@ var CONFIG = {
 			{ name: "weaponbox",    min: 1 },
 		],
 	},
-	// Items sell_and_bank() must never bank away, even mid-cycle.
+	// Items bank_items() must never bank away, even mid-cycle.
 	do_not_bank: [],
 	// Crafting/exchanging/fishing/mining all deposit into the bank eventually — disabled
 	// below this threshold so a run doesn't start with nowhere to put what it collects.
@@ -279,11 +279,11 @@ async function handle_delivering_state() {
 		// Covers both a normal delivery and one triggered solely by an impending mluck lapse.
 		await buff_nearby_party();
 
-		// No explicit travel to HOME here -- sell_and_bank() already gets there
-		// contextually (via sell_items()/bank_items() if there's actually something to
-		// sell/bank, always ending with one trip home either way), so a pre-emptive move
-		// here was a redundant extra leg.
-		await sell_and_bank();
+		// sell_items()/bank_items() directly -- each only travels if it actually has
+		// something to do; no reason this cycle needs to force a return to HOME if
+		// neither found anything.
+		await sell_items();
+		await bank_items();
 	} catch (e) {
 		catcher(e, "handle_delivering_state");
 	} finally {
@@ -489,9 +489,8 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 			catcher(e, `handle_gathering_state(${skill_name}): equip_default_gear`);
 		}
 
-		// sell_items()/bank_items() directly, not sell_and_bank() -- this cycle doesn't
-		// need to specifically end at HOME; whatever loop_controller() picks next travels
-		// on from wherever this leaves off.
+		// No reason this cycle needs to specifically end at HOME; whatever
+		// loop_controller() picks next travels on from wherever this leaves off.
 		log(`🏁 ${skill_name} loop ended, selling/banking...`, "#888");
 		await sell_items();
 		await bank_items();
@@ -832,37 +831,6 @@ async function bank_items() {
 	return banked_any;
 }
 
-// Composes sell_items()/bank_items(), then always finishes with a trip home. Use only
-// when the caller genuinely wants to end at HOME (handle_delivering_state(),
-// auto_upgrade()); call sell_items()/bank_items() directly when the caller's next step
-// travels elsewhere regardless (handle_gathering_state(), try_craft(),
-// exchange_items()'s mid-loop cleanup), so this function's HOME trip isn't wasted.
-async function sell_and_bank() {
-	const sold = await sell_items();
-	const banked = await bank_items();
-
-	// Retry a few times rather than let one rejected smarter_move() strand the caller
-	// (previously propagated uncaught, leaving the caller wherever it had been).
-	const HOME_RETRY_ATTEMPTS = 3;
-	for (let attempt = 1; attempt <= HOME_RETRY_ATTEMPTS; attempt++) {
-		try {
-			await smarter_move(HOME);
-			break;
-		} catch (e) {
-			if (attempt === HOME_RETRY_ATTEMPTS) {
-				catcher(e, `sell_and_bank: smarter_move(HOME) — giving up after ${HOME_RETRY_ATTEMPTS} attempts`);
-			} else {
-				await delay(1000);
-			}
-		}
-	}
-	await delay(1000);
-
-	if (sold || banked) {
-		game_log("🏠 Returned home after selling/banking.");
-	}
-}
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // EXCHANGE ITEMS FOR LOOT
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -982,9 +950,8 @@ async function exchange_items() {
 
 			if (character.items.filter(Boolean).length >= character.items.length) {
 				log(`📦 Inventory full. Selling/banking before continuing to exchange ${item_name}.`);
-				// sell_items()/bank_items() directly, not sell_and_bank() -- its own HOME
-				// trip would be redundant with the smarter_move() below, which needs the
-				// tighter EXCHANGE_POSITION_TOLERANCE radius this loop requires.
+				// The smarter_move() below needs the tighter EXCHANGE_POSITION_TOLERANCE
+				// radius this loop requires, so travel back is handled there, not here.
 				await sell_items();
 				await bank_items();
 				await delay(200);

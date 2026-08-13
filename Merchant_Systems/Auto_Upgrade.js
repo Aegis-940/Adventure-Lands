@@ -681,7 +681,11 @@ async function auto_upgrade() {
 
 		game_log("✅ Auto upgrade and combine complete.");
 		await delay(5000);
-		await sell_and_bank();
+		// sell_items()/bank_items() directly -- each only travels if it actually has
+		// something to do; already at HOME from the upgrade bench, no reason to force a
+		// return here if bank_items() is the only one that finds anything.
+		await sell_items();
+		await bank_items();
 	} catch (e) {
 		catcher(e, "auto_upgrade");
 	} finally {
