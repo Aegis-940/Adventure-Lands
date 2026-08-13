@@ -450,7 +450,14 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 			return;
 		}
 
-		while (!is_on_cooldown(skill_name)) {
+		// Confirmed live: is_on_cooldown("mining")/character.c["mining"] never cleared
+		// after a single successful cast (stayed "on cooldown" indefinitely, character.c
+		// stayed undefined the whole time) -- fishing/mining apparently aren't tracked by
+		// either mechanism the way regular skills are. This loop no longer gates on or
+		// waits for either: it just retries on a fixed interval and lets the game's own
+		// rejection (reason: "cooldown") tell it when it's actually too soon, rather than
+		// polling a signal that doesn't reflect reality for these two skills.
+		while (true) {
 			if (character.rip) {
 				log(`❌ Died while ${skill_name}, stopping.`);
 				break;
@@ -467,35 +474,35 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 				log(`📦 Inventory full, stopping ${skill_name}.`);
 				break;
 			}
+
 			try {
 				await use_skill(skill_name);
 			} catch (e) {
+				if (e?.reason === "cooldown") {
+					// Not a real failure -- still on cooldown from the last attempt, try
+					// again shortly instead of giving up on the whole gathering session.
+					await delay(2000);
+					continue;
+				}
 				catcher(e, `handle_gathering_state(${skill_name}): use_skill`);
 				break;
 			}
-			// is_on_cooldown() alone clears before the multi-second channel actually
-			// finishes — also wait for character.c[skill_name] to clear, or the skill
-			// gets spammed mid-channel. Also bail out immediately on death.
-			await delay(200);
-			// Temporary diagnostic safety bound -- if is_on_cooldown()/character.c[skill_name]
-			// never actually clear (stale/incorrect cooldown tracking), this loop would spin
-			// forever and the gathering loop above would never reach any of its break
-			// conditions, let alone sell_and_bank(). Logs and gives up after ~20s so a bad
-			// read doesn't hang the whole cycle silently.
-			let wait_ms = 0;
-			while (!character.rip && ((character.c && character.c[skill_name]) || is_on_cooldown(skill_name))) {
-				await delay(200);
-				wait_ms += 200;
-				if (wait_ms >= 20000) {
-					log(`⚠️ ${skill_name}: still "on cooldown" after ${wait_ms / 1000}s (c=${JSON.stringify(character.c?.[skill_name])}, is_on_cooldown=${is_on_cooldown(skill_name)}) — giving up waiting.`, "#FFA500");
-					break;
-				}
-			}
+
+			await delay(3000); // fixed pause after a successful cast -- see note above
 		}
 
-		// Temporary diagnostic — every break above already logs why the loop stopped;
-		// this confirms execution actually reaches sell_and_bank() afterward rather than
-		// silently hanging somewhere between the loop and here.
+		// Re-equip resting gear BEFORE sell_and_bank(), not after -- while the pickaxe/rod
+		// is equipped, the resting gear (broom/wbookhs) sits unequipped in a normal
+		// inventory slot, which bank_items() (part of sell_and_bank()) would otherwise
+		// sweep into the bank before equip_default_gear() (previously only called in the
+		// finally block, i.e. after sell_and_bank()) ever got a chance to find it --
+		// leaving the character stuck wielding the pickaxe/rod permanently.
+		try {
+			await equip_default_gear();
+		} catch (e) {
+			catcher(e, `handle_gathering_state(${skill_name}): equip_default_gear`);
+		}
+
 		log(`🏁 ${skill_name} loop ended, running sell_and_bank()...`, "#888");
 		await sell_and_bank();
 		log(`✅ sell_and_bank() finished for ${skill_name}.`, "#888");
