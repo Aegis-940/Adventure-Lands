@@ -206,15 +206,24 @@ const PRIM_FARM_LOC_HEALER = { map: "desertland", x: -408, y: -1146 };
 const PRIM_FARM_RADIUS = 105;
 const SAFETY_DISTANCE = 100;
 
+// Shared by handle_bscorpion_farm_approach() and the prim_farm_loop()/prim_orbit_loop()
+// positioning loops — smart.moving alone isn't a safe gate for the latter two, since the
+// native smart_move engine can drop it false for a tick between BFS waypoint recalcs,
+// letting a stray move() call knock the character off its path every ~100ms. Gating on
+// actual arrival in the farm zone instead means the positioning loops stay fully inert
+// until smart_move has genuinely finished the approach.
+function is_at_bscorpion_farm() {
+	return character.map === PRIM_FARM_LOC.map &&
+		Math.hypot(character.x - PRIM_FARM_LOC.x, character.y - PRIM_FARM_LOC.y) < PRIM_FARM_RADIUS + 30;
+}
+
 // Shared by Warrior/Healer/Ranger (was duplicated identically across all three main_loops)
 // — approaches the farm spot via smart_move only when actually lost; once in the farm
 // zone, prim_farm_loop() handles positioning without triggering smart.moving. Callers
 // gate this on their own `home === "bscorpion"` check first (home is set to each file's
 // own WARRIOR_TARGET/HEALER_TARGET/RANGER_TARGET, so this stays generic).
 function handle_bscorpion_farm_approach() {
-	const at_farm = character.map === PRIM_FARM_LOC.map &&
-		Math.hypot(character.x - PRIM_FARM_LOC.x, character.y - PRIM_FARM_LOC.y) < PRIM_FARM_RADIUS + 30;
-	if (!at_farm && !smart.moving) smart_move(PRIM_FARM_LOC);
+	if (!is_at_bscorpion_farm() && !smart.moving) smart_move(PRIM_FARM_LOC);
 }
 
 // Shared helper: find nearest alive bscorpion
@@ -339,6 +348,15 @@ async function prim_farm_loop() {
 	while (true) {
 		if (PRIM_FARM_LOOT_ENABLED) {
 
+			// Not yet in the farm zone — handle_bscorpion_farm_approach is still
+			// smart_move-ing us there. Stay fully inert so our raw move() calls can't
+			// knock the character off that path (smart.moving isn't a safe gate here —
+			// see is_at_bscorpion_farm() comment).
+			if (!is_at_bscorpion_farm()) {
+				await delay(100);
+				continue;
+			}
+
 			if (character.name === "Ulric") {
 
 				move_distance_from_bscorpion();
@@ -391,6 +409,13 @@ async function prim_orbit_loop() {
 	const ROTATE_STEP_DEG = 10; // How much to rotate per step (degrees)
 	while (true) {
 		if (PRIM_FARM_LOOT_ENABLED) {
+
+			// Same as prim_farm_loop: stay inert until we've actually arrived at the farm.
+			if (!is_at_bscorpion_farm()) {
+				await delay(100);
+				continue;
+			}
+
 			const bscorp = find_nearest_bscorpion();
 			if (!bscorp) { await delay(500); continue; }
 
