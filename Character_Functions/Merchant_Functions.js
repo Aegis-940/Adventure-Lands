@@ -416,9 +416,9 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 			return;
 		}
 
-		// is_on_cooldown()/character.c aren't trusted here: fishing/mining don't clear
-		// cooldown state the way regular skills do, so this loop just retries on a fixed
-		// interval and lets the game's own "cooldown" rejection gate timing instead.
+		// is_on_cooldown() isn't trusted here -- proved unreliable for fishing/mining
+		// (stayed permanently "on cooldown" after a single successful catch in testing).
+		// character.c[skill_name] clearing is used instead to know when to try again.
 		while (true) {
 			if (character.rip) {
 				log(`❌ Died while ${skill_name}, stopping.`);
@@ -449,7 +449,22 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 				break;
 			}
 
-			await delay(3000); // fixed pause after a successful cast -- see note above
+			// Wait for the channel to actually finish (character.c[skill_name] clearing)
+			// before trying again -- a flat fixed delay fired use_skill() again before the
+			// real channel ended, spamming the skill instead of respecting it. Bounded
+			// safety timeout in case character.c ever misbehaves too (is_on_cooldown()
+			// already proved unreliable for these two skills, so it's deliberately not
+			// part of this condition).
+			await delay(200);
+			let channel_wait_ms = 0;
+			while (!character.rip && character.c && character.c[skill_name]) {
+				await delay(200);
+				channel_wait_ms += 200;
+				if (channel_wait_ms >= 15000) {
+					log(`⚠️ ${skill_name}: still channeling after ${channel_wait_ms / 1000}s per character.c — giving up waiting.`, "#FFA500");
+					break;
+				}
+			}
 		}
 
 		// Re-equip resting gear BEFORE selling/banking, not after -- otherwise bank_items()
