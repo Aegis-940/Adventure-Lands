@@ -165,10 +165,12 @@ function has_enough_bank_space() {
 }
 
 function should_run_upgrade() {
+	// Unlike craft/exchange/fishing/mining, upgrading doesn't need free bank space to
+	// start: it consumes scrolls and (on compound) merges multiple stacks into fewer
+	// items, so it typically frees space rather than needing it up front.
 	return CONFIG.enabled.upgrading
 		&& merchant_task === "Idle"
 		&& character.gold >= CONFIG.upgrade_gold_threshold
-		&& has_enough_bank_space() // upgrading withdraws from and later deposits back to the bank, same as craft/exchange/fishing/mining
 		&& bank_has_upgradeable_items(); // Merchant_Systems/Auto_Upgrade.js — is there anything in the bank worth upgrading/combining?
 }
 
