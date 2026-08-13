@@ -48,6 +48,14 @@ Character_Functions/[Role]_Functions.js   ← per-role behavior
     ├── Equipment auto-swap logic
     └── Role-specific CONFIG object
 
+Character_Functions/Warrior_Skills.js     ← Warrior skill loop (stomp, cleave, agitate, taunt)
+Character_Functions/Healer_Skills.js      ← Healer skill loop (curse, absorb, party heal, dark blessing)
+Character_Functions/Ranger_Equipment.js   ← Ranger equipment-swap loop (weapon/boss sets)
+    Each is a separate eval closure loaded right after its parent _Functions.js file
+    (own role_scripts entry in Bootstrapper.js) — reads/writes the parent file's
+    state/cache/CONFIG/home/destination globals, which are `var` there for exactly
+    this reason, and defines its loop function as a real function declaration.
+
 UI/*.js                      ← overlay panels (semi-independent)
     ├── DPS_Meter.js
     ├── Stats_Window.js       Canvas-based gold graph
@@ -166,17 +174,20 @@ CONFIG = {
 
 | File | Lines |
 |------|-------|
-| Character_Functions/Warrior_Functions.js | 1232 |
-| Character_Functions/Ranger_Functions.js | 1163 |
-| Character_Functions/Healer_Functions.js | 1138 |
+| Character_Functions/Ranger_Functions.js | 1035 |
+| Character_Functions/Warrior_Functions.js | 1014 |
+| Character_Functions/Healer_Functions.js | 924 |
 | Character_Functions/Merchant_Functions.js | 850 |
 | Shared/Party_And_Loot.js | 608 |
 | Merchant_Systems/Auto_Upgrade.js | 600 |
 | Shared/Movement.js | 536 |
 | Merchant_Systems/Auto_Craft.js | 469 |
 | Shared/Buttons.js | 276 |
+| Character_Functions/Warrior_Skills.js | 224 |
+| Character_Functions/Healer_Skills.js | 222 |
 | Shared/Combat_Utilities.js | 194 |
 | Shared/Messaging.js | 177 |
+| Character_Functions/Ranger_Equipment.js | 133 |
 | Shared/Error_Handling.js | 150 |
 | Shared/Common_Functions.js | 128 |
 | Shared/Windows.js | 83 |

@@ -37,8 +37,11 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Characters/Ranger.js` | Ranger entry point (character: Riva) |
 | `Characters/Merchant.js` | Merchant entry point (character: Riff) |
 | `Character_Functions/Warrior_Functions.js` | Warrior combat, movement, equipment swap logic |
+| `Character_Functions/Warrior_Skills.js` | Warrior skill loop (stomp, cleave, agitate, taunt) — separate eval closure loaded after Warrior_Functions.js |
 | `Character_Functions/Healer_Functions.js` | Healing, buffs, support logic |
+| `Character_Functions/Healer_Skills.js` | Healer skill loop (curse, absorb, party heal, dark blessing) — separate eval closure loaded after Healer_Functions.js |
 | `Character_Functions/Ranger_Functions.js` | Ranged combat, multi-target abilities |
+| `Character_Functions/Ranger_Equipment.js` | Ranger equipment-swap loop (weapon/boss sets) — separate eval closure loaded after Ranger_Functions.js |
 | `Character_Functions/Merchant_Functions.js` | Trading, fishing, mining, potion delivery |
 | `UI/DPS_Meter.js` | Real-time DPS tracking overlay |
 | `UI/Stats_Window.js` | Character stats + gold graph (Canvas API) |

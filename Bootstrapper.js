@@ -40,12 +40,15 @@ window._cmListeners = window._cmListeners || [];
 
 	const role_scripts = {
 		"Ulric": ["Character_Functions/Warrior_Functions.js",
+		"Character_Functions/Warrior_Skills.js",
 		"Characters/Tank.js"],
 
 		"Myras": ["Character_Functions/Healer_Functions.js",
+		"Character_Functions/Healer_Skills.js",
 		"Characters/Healer.js"],
 
 		"Riva": ["Character_Functions/Ranger_Functions.js",
+		"Character_Functions/Ranger_Equipment.js",
 		"Characters/Ranger.js"],
 
 		"Riff": ["Merchant_Systems/Auto_Upgrade.js",
