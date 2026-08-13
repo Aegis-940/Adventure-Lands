@@ -477,12 +477,28 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 			// finishes — also wait for character.c[skill_name] to clear, or the skill
 			// gets spammed mid-channel. Also bail out immediately on death.
 			await delay(200);
+			// Temporary diagnostic safety bound -- if is_on_cooldown()/character.c[skill_name]
+			// never actually clear (stale/incorrect cooldown tracking), this loop would spin
+			// forever and the gathering loop above would never reach any of its break
+			// conditions, let alone sell_and_bank(). Logs and gives up after ~20s so a bad
+			// read doesn't hang the whole cycle silently.
+			let wait_ms = 0;
 			while (!character.rip && ((character.c && character.c[skill_name]) || is_on_cooldown(skill_name))) {
 				await delay(200);
+				wait_ms += 200;
+				if (wait_ms >= 20000) {
+					log(`⚠️ ${skill_name}: still "on cooldown" after ${wait_ms / 1000}s (c=${JSON.stringify(character.c?.[skill_name])}, is_on_cooldown=${is_on_cooldown(skill_name)}) — giving up waiting.`, "#FFA500");
+					break;
+				}
 			}
 		}
 
+		// Temporary diagnostic — every break above already logs why the loop stopped;
+		// this confirms execution actually reaches sell_and_bank() afterward rather than
+		// silently hanging somewhere between the loop and here.
+		log(`🏁 ${skill_name} loop ended, running sell_and_bank()...`, "#888");
 		await sell_and_bank();
+		log(`✅ sell_and_bank() finished for ${skill_name}.`, "#888");
 	} catch (e) {
 		catcher(e, `handle_gathering_state(${skill_name})`);
 	} finally {
@@ -497,6 +513,7 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 			catcher(e, `handle_gathering_state(${skill_name}): equip_default_gear`);
 		}
 		merchant_task = "Idle";
+		log(`🔁 ${task_label} cycle finished, back to Idle.`, "#888");
 	}
 }
 
