@@ -81,7 +81,11 @@ function get_party_member_info(name) {
 		};
 	}
 
-	const cached = read_state_cache(name);
+	// Party_Frames.js and Shared/Messaging.js (which defines read_state_cache) both load
+	// in parallel via Promise.all with no ordering guarantee — this interval starts
+	// immediately, so an early tick can land before Messaging.js's fetch resolves.
+	// typeof-guard so that briefly falls back to "unknown" instead of throwing.
+	const cached = typeof read_state_cache === "function" ? read_state_cache(name) : null;
 	if (cached) {
 		return {
 			name: cached.name,
