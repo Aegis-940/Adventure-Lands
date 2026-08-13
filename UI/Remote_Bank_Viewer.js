@@ -76,7 +76,10 @@ function render_items(categories, used, total) {
 		const tag = item.p[0]?.toUpperCase() || "?";
 		const color = tag_colors[item.p] || "grey";
 		const tag_div = `<div class="trruui imu" style="border-color:black;color:${color};">${tag}</div>`;
-		item_div = item_div.replace("</div></div>", `</div>${tag_div}</div>`);
+		// Anchored to the END of the string, not the first match — item_container()'s
+		// markup can have more than one "</div></div>" sequence (icon/level-badge
+		// wrappers), and a plain .replace() would splice the tag into the wrong spot.
+		item_div = item_div.replace(/<\/div><\/div>\s*$/, `</div>${tag_div}</div>`);
 		}
 
 		html += item_div;

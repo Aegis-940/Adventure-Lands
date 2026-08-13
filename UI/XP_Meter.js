@@ -3,10 +3,7 @@ const XP_ROLLING_WINDOW = 5 * 60 * 1000; // 5 minutes
 let target_xp_rate = 40000; // Your goal XP rate (per minute)
 
 const init_xp_timer = () => {
-	const $ = parent.$;
-	$("#bottomrightcorner").find("#xptimer").remove();
-
-	const xp_container = $('<div id="xptimer"></div>').css({
+	const xp_container = create_bottomrightcorner_widget("xptimer", {
 		background: "black",
 		border: "solid gray",
 		borderWidth: "4px 4px",
@@ -21,12 +18,10 @@ const init_xp_timer = () => {
 		backgroundColor: "rgba(0, 0, 0, 0.6)",
 	});
 
-	$('<div id="xptimercontent"></div>')
+	parent.$('<div id="xptimercontent"></div>')
 		.css({ display: "table-cell", verticalAlign: "middle" })
 		.html('Estimated time until level up:<br><span id="xpcounter" style="font-size: 30px;">Loading...</span><br><span id="xprate">(Kill something!)</span>')
 		.appendTo(xp_container);
-
-	$("#bottomrightcorner").children().first().after(xp_container);
 };
 
 const update_xp_timer = () => {
@@ -81,6 +76,13 @@ const get_xp_rate_color = (avg, target) => {
 
 const ncomma = (x) => x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
-// Initialize and loop
-init_xp_timer();
+// Initialize and loop — create_bottomrightcorner_widget() lives in Shared/Windows.js,
+// which Bootstrapper.js loads in parallel with this file (no ordering guarantee), so
+// retry until it's actually available instead of assuming it already is.
+(function start_xp_timer() {
+	if (typeof create_bottomrightcorner_widget !== "function") {
+		return void setTimeout(start_xp_timer, 100);
+	}
+	init_xp_timer();
+})();
 setInterval(update_xp_timer, 500);

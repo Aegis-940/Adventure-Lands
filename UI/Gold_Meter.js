@@ -10,11 +10,7 @@ let interval         = "hour";                        // "minute" | "hour" | "da
 
 // Initialize the gold meter UI
 const init_gold_meter = () => {
-	const $   = parent.$;
-	const brc = $("#bottomrightcorner");
-	brc.find("#goldtimer").remove();
-
-	const gold_container = $('<div id="goldtimer"></div>').css({
+	const gold_container = create_bottomrightcorner_widget("goldtimer", {
 		fontSize:     "25px",
 		color:        "white",
 		textAlign:    "center",
@@ -24,11 +20,9 @@ const init_gold_meter = () => {
 		width:        "100%",
 	});
 
-	$('<div id="goldtimercontent"></div>')
+	parent.$('<div id="goldtimercontent"></div>')
 		.css({ display: "table-cell", verticalAlign: "middle" })
 		.appendTo(gold_container);
-
-	brc.children().first().after(gold_container);
 };
 
 // Format gold string to display
@@ -57,8 +51,15 @@ const update_gold_display = () => {
 // Refresh display twice a second
 setInterval(update_gold_display, 500);
 
-// Kick things off
-init_gold_meter();
+// Kick things off — create_bottomrightcorner_widget() lives in Shared/Windows.js,
+// which Bootstrapper.js loads in parallel with this file (no ordering guarantee), so
+// retry until it's actually available instead of assuming it already is.
+(function start_gold_meter() {
+	if (typeof create_bottomrightcorner_widget !== "function") {
+		return void setTimeout(start_gold_meter, 100);
+	}
+	init_gold_meter();
+})();
 
 // Listen for loot events
 character.on("loot", (data) => {

@@ -7,10 +7,8 @@ const CC_HISTORY = []; // { timestamp: number, value: number }
 
 const cc_meter = () => {
 	const $ = parent.$;
-	const brc = $("#bottomrightcorner");
-	brc.find("#ccmeter").remove();
 
-	const cc_container = $('<div id="ccmeter"></div>').css({
+	const cc_container = create_bottomrightcorner_widget("ccmeter", {
 		width:        "100%",
 		marginTop:    "4px",
 		marginBottom: "-4px",
@@ -86,7 +84,6 @@ const cc_meter = () => {
 
 	cc_bar.append(cc_fill).append(low_mark).append(high_mark).append(cc_text);
 	cc_container.append(cc_bar).append(cc_average);
-	brc.children().first().after(cc_container);
 };
 
 const update_cc_display = () => {
@@ -121,5 +118,12 @@ const update_cc_display = () => {
 // Refresh the CC bar 10 times per second
 setInterval(update_cc_display, 100);
 
-// Start
-cc_meter();
+// Start — create_bottomrightcorner_widget() lives in Shared/Windows.js, which
+// Bootstrapper.js loads in parallel with this file (no ordering guarantee), so retry
+// until it's actually available instead of assuming it already is.
+(function start_cc_meter() {
+	if (typeof create_bottomrightcorner_widget !== "function") {
+		return void setTimeout(start_cc_meter, 100);
+	}
+	cc_meter();
+})();

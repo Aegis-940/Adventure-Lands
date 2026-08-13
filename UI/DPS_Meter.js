@@ -75,20 +75,16 @@ function get_formatted(val) {
 }
 
 function init_dps_meter() {
-	const $ = parent.$;
-	const brc = $("#bottomrightcorner");
-	brc.find("#dpsmeter").remove();
-	const container = $("<div id='dpsmeter'></div>").css({
+	const container = create_bottomrightcorner_widget("dpsmeter", {
 		fontSize: "20px", color: "white", textAlign: "center", display: "table",
 		overflow: "hidden", marginBottom: "-3px", width: "100%", backgroundColor: "rgba(0,0,0,0.6)"
 	});
 	container.append(
-		$("<div id='dpsmetercontent'></div>").css({
+		parent.$("<div id='dpsmetercontent'></div>").css({
 			display: "table-cell", verticalAlign: "middle", padding: "2px",
 			border: "4px solid grey"
 		})
 	);
-	brc.children().first().after(container);
 }
 
 // Handle all hit events. Guard against duplicate registration if this script
@@ -371,6 +367,13 @@ function update_dps_meter_ui() {
 	c.html(html);
 }
 
-// Initialize and run
-init_dps_meter();
+// Initialize and run — create_bottomrightcorner_widget() lives in Shared/Windows.js,
+// which Bootstrapper.js loads in parallel with this file (no ordering guarantee), so
+// retry until it's actually available instead of assuming it already is.
+(function start_dps_meter() {
+	if (typeof create_bottomrightcorner_widget !== "function") {
+		return void setTimeout(start_dps_meter, 100);
+	}
+	init_dps_meter();
+})();
 setInterval(update_dps_meter_ui, 250);

@@ -2,6 +2,20 @@
 // GENERIC WINDOW
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+// Shared bootstrap scaffolding for small #bottomrightcorner UI widgets (Gold/XP/CC/DPS
+// meters, previously each hand-rolled this identically) — removes any existing element
+// with this id, creates a styled container, inserts it right after #bottomrightcorner's
+// first child, and returns the jQuery element so the caller can append its own content.
+function create_bottomrightcorner_widget(id, css) {
+	const $ = parent.$;
+	const brc = $("#bottomrightcorner");
+	brc.find("#" + id).remove();
+
+	const container = $(`<div id="${id}"></div>`).css(css || {});
+	brc.children().first().after(container);
+	return container;
+}
+
 function create_floating_stats_window(
 	id,
 	{ top = "20px", left = "20px", width = "150px", minHeight = "50px" } = {}

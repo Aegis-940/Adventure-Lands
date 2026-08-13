@@ -12,10 +12,13 @@ function create_custom_log_window() {
 	const div = doc.createElement("div");
 	div.id = "custom-log-window";
 	div.style.position = "absolute";
-	div.style.bottom = "1px";
-	div.style.right = "650px";
-	div.style.width = "350px";
-	div.style.height = "260px";
+	const WINDOW_WIDTH = 350, WINDOW_HEIGHT = 260;
+	// make_draggable() (Shared/Windows.js) requires pixel top/left, not bottom/right —
+	// compute an equivalent initial position from the viewport instead.
+	div.style.left = (parent.window.innerWidth - 650 - WINDOW_WIDTH) + "px";
+	div.style.top = (parent.window.innerHeight - 1 - WINDOW_HEIGHT) + "px";
+	div.style.width = WINDOW_WIDTH + "px";
+	div.style.height = WINDOW_HEIGHT + "px";
 	div.style.background = "rgba(0,0,0,0.66)";
 	div.style.color = "#fff";
 	div.style.overflow = "hidden";
@@ -27,9 +30,6 @@ function create_custom_log_window() {
 	div.style.display = "flex";
 	div.style.flexDirection = "column";
 	div.style.cursor = "default";
-
-	// --- Drag logic ---
-	let is_dragging = false, drag_offset_x = 0, drag_offset_y = 0;
 
 	// Drag handle (top bar)
 	const drag_handle = doc.createElement("div");
@@ -45,26 +45,10 @@ function create_custom_log_window() {
 	drag_handle.style.color = "#fff";
 	drag_handle.textContent = "Custom Log";
 
-	drag_handle.onmousedown = function (e) {
-		is_dragging = true;
-		drag_offset_x = e.clientX - div.offsetLeft;
-		drag_offset_y = e.clientY - div.offsetTop;
-		doc.body.style.userSelect = "none";
-	};
-
-	doc.onmousemove = function (e) {
-		if (is_dragging) {
-			div.style.left = (e.clientX - drag_offset_x) + "px";
-			div.style.top = (e.clientY - drag_offset_y) + "px";
-			div.style.right = ""; // Unset right when dragging
-			div.style.bottom = ""; // Unset bottom when dragging
-		}
-	};
-
-	doc.onmouseup = function () {
-		is_dragging = false;
-		doc.body.style.userSelect = "";
-	};
+	// Shared drag implementation (Shared/Windows.js) — uses addEventListener instead of
+	// assigning doc.onmousemove/onmouseup directly, which silently clobbers any other
+	// handler assigned the same raw way elsewhere.
+	make_draggable(div, drag_handle);
 
 	div.appendChild(drag_handle);
 
