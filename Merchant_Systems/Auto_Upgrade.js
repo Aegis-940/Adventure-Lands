@@ -68,7 +68,7 @@ const COMBINE_PROFILE = {
 
 // Safety backstop on the loop below — not the expected real count, just a ceiling so a
 // bugged/never-plateauing response (or a bottomless offeringp supply) can't spin forever.
-const GRACE_MAX_OFFERINGS = 20;
+const GRACE_MAX_OFFERINGS = 10;
 
 // Reads item_slot's current grace via a free calculate:true ("upgrade_chance") check —
 // only that response shape actually carries a grace field; a real (non-calculate)
