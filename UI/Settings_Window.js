@@ -6,11 +6,17 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // One entry per setting this window edits. Extend this array (not copy-pasted rows) to
-// add more settings later — the row-building loop below reads it generically.
+// add more settings later — the row-building loop below reads it generically. type:
+// "select" (default, a monster-name dropdown) or "checkbox" (boolean toggle).
 const SETTINGS_DESCRIPTORS = [
 	{ label: "Warrior (Ulric)", storage_key: "AL_target_Ulric", default: "bscorpion" },
 	{ label: "Healer (Myras)",  storage_key: "AL_target_Myras", default: "bscorpion" },
 	{ label: "Ranger (Riva)",   storage_key: "AL_target_Riva",  default: "bscorpion" },
+	{ label: "Merchant: Upgrading",  storage_key: "AL_merchant_enabled_upgrading",  type: "checkbox", default: true },
+	{ label: "Merchant: Crafting",   storage_key: "AL_merchant_enabled_crafting",   type: "checkbox", default: true },
+	{ label: "Merchant: Exchanging", storage_key: "AL_merchant_enabled_exchanging", type: "checkbox", default: false },
+	{ label: "Merchant: Fishing",    storage_key: "AL_merchant_enabled_fishing",    type: "checkbox", default: true },
+	{ label: "Merchant: Mining",     storage_key: "AL_merchant_enabled_mining",     type: "checkbox", default: true },
 ];
 
 const ALL_CHARACTERS = ["Ulric", "Myras", "Riva", "Riff"];
@@ -66,8 +72,28 @@ function open_settings_window() {
 	body.style.flexDirection = "column";
 	body.style.gap = "8px";
 
-	const selects = {};
+	const inputs = {};
 	for (const setting of SETTINGS_DESCRIPTORS) {
+		const stored = localStorage.getItem(setting.storage_key);
+
+		if (setting.type === "checkbox") {
+			const row = doc.createElement("label");
+			row.style.display = "flex";
+			row.style.alignItems = "center";
+			row.style.gap = "6px";
+			row.style.cursor = "pointer";
+
+			const checkbox = doc.createElement("input");
+			checkbox.type = "checkbox";
+			checkbox.checked = stored === null ? setting.default : stored === "true";
+			row.appendChild(checkbox);
+			row.appendChild(doc.createTextNode(setting.label));
+
+			inputs[setting.storage_key] = checkbox;
+			body.appendChild(row);
+			continue;
+		}
+
 		const row = doc.createElement("div");
 		row.style.display = "flex";
 		row.style.flexDirection = "column";
@@ -85,8 +111,8 @@ function open_settings_window() {
 			option.textContent = name;
 			select.appendChild(option);
 		}
-		select.value = localStorage.getItem(setting.storage_key) || setting.default;
-		selects[setting.storage_key] = select;
+		select.value = stored || setting.default;
+		inputs[setting.storage_key] = select;
 		row.appendChild(select);
 
 		body.appendChild(row);
@@ -103,7 +129,9 @@ function open_settings_window() {
 	save_btn.style.cursor = "pointer";
 	save_btn.onclick = () => {
 		for (const setting of SETTINGS_DESCRIPTORS) {
-			localStorage.setItem(setting.storage_key, selects[setting.storage_key].value);
+			const input = inputs[setting.storage_key];
+			const value = setting.type === "checkbox" ? input.checked : input.value;
+			localStorage.setItem(setting.storage_key, value);
 		}
 		// Broadcast to the other 3 -- reuses the existing "reload" CM_HANDLERS entry
 		// (Shared/Messaging.js), same reload mechanism the toprightcorner button uses.

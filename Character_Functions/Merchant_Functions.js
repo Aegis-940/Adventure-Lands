@@ -3,6 +3,16 @@
 // CONFIG
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+// Overridable live in-game via UI/Settings_Window.js -- localStorage is shared across all
+// 4 characters' tabs (same origin), so a save from any tab's settings window is visible
+// here on Riff's next reload. Falls back to `fallback` when no override has been saved.
+// localStorage only stores strings, so a stored value is compared against "true" rather
+// than used directly.
+function local_bool(key, fallback) {
+	const raw = localStorage.getItem(key);
+	return raw === null ? fallback : raw === "true";
+}
+
 // var, not const: this file only ever runs through Bootstrapper.js's eval-based
 // loader, where top-level const/let are scoped to that one eval call and never
 // become visible to Game_Config.js's shared CONFIG-reading functions (here,
@@ -10,11 +20,11 @@
 var CONFIG = {
 	// Master switches — flip any of these off to stop that state from ever being selected.
 	enabled: {
-		upgrading: true,
-		crafting: true,
-		exchanging: false,
-		fishing: true,
-		mining: true,
+		upgrading:  local_bool("AL_merchant_enabled_upgrading", true),
+		crafting:   local_bool("AL_merchant_enabled_crafting", true),
+		exchanging: local_bool("AL_merchant_enabled_exchanging", false),
+		fishing:    local_bool("AL_merchant_enabled_fishing", true),
+		mining:     local_bool("AL_merchant_enabled_mining", true),
 	},
 	locations: {
 		HOME: { map: "main", x: -87, y: -96 },
