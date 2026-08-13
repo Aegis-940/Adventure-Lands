@@ -60,7 +60,7 @@ var CONFIG = {
 	// max (default unlimited) caps the batch size. Both are further bounded by actual
 	// ingredient availability, free inventory space, and gold (see max_craftable_now()).
 	crafting: {
-		targets: [{ name: "basketofeggs", min: 100, max: 9999 }],
+		targets: [{ name: "basketofeggs", min: 25, max: 9999 }],
 	},
 	// Items to turn in at the exchange NPC, in priority order.
 	exchange: {
