@@ -12,7 +12,7 @@ var CONFIG = {
 	enabled: {
 		upgrading: true,
 		crafting: true,
-		exchanging: true,
+		exchanging: false,
 		fishing: true,
 		mining: true,
 	},

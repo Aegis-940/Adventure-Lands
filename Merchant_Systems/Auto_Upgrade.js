@@ -8,9 +8,6 @@ const BANK_POSITION_TOLERANCE = 10; // matches smarter_move()'s own default arri
 
 const UPGRADE_PROFILE = {
 	pouchbow:     { scroll0_until: 3, scroll1_until: 8, scroll2_until: 9, primling_from: 7, max_level: 9 },
-	// grace_from: build persistent grace to its cap (see add_grace_to_cap()) before every
-	// scrolled attempt starting at this level — e.g. grace_from: 8 means grace is applied
-	// before attempting the 8->9 upgrade (and every attempt after, until max_level).
 	fireblade:    { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 6, grace_from: 8, max_level: 9 },
 	firebow:      { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 6, max_level: 8 },
 	firestaff:    { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 7, max_level: 8 },
