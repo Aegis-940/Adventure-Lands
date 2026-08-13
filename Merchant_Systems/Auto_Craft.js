@@ -433,12 +433,19 @@ async function craft_item(craft_name) {
 	return "missing";
 }
 
+// Safety cap on batches per try_craft() call — not the expected real count, just a
+// ceiling so a bugged/never-progressing loop can't spin forever.
+var CRAFT_MAX_BATCHES = 50;
+
 async function try_craft() {
 	// CONFIG.crafting.targets: [{ name, min?, max? }] — min (default 1) is the smallest
-	// batch worth bothering with; max (default unlimited) caps the batch size. Skips a
-	// target unless max_craftable_now() (real ingredient/space/gold availability) can
-	// reach at least min. One target's full batch per call: gather everything needed
-	// up front, craft the whole batch, then bank the results.
+	// batch worth bothering with in the first place; max (default unlimited) caps the
+	// TOTAL crafted this call, not a single batch's size. Each individual batch is still
+	// limited by max_craftable_by_space() (can't hold more than the inventory allows at
+	// once), so reaching max means looping withdraw-craft-bank cycles, freeing space each
+	// time, until max is reached, ingredients/gold run out, or CRAFT_MAX_BATCHES is hit —
+	// previously stopped after a single space-limited batch even when max allowed for
+	// many more.
 	for (var t = 0; t < CONFIG.crafting.targets.length; t++) {
 		var target = CONFIG.crafting.targets[t];
 		var craft_def = parent.G.craft[target.name];
@@ -447,10 +454,23 @@ async function try_craft() {
 		var desired_count = max_craftable_now(target);
 		if (desired_count < (target.min ?? 1)) continue;
 
-		var crafted = await craft_batch(target.name, desired_count);
-		if (crafted > 0) {
-			game_log(`✅ Crafted ${crafted}x ${target.name}.`);
-			await sell_and_bank();
+		var target_max = target.max ?? Infinity;
+		var total_crafted = 0;
+
+		for (var batch = 0; batch < CRAFT_MAX_BATCHES && total_crafted < target_max; batch++) {
+			var remaining = target_max - total_crafted;
+			var batch_size = Math.min(max_craftable_now(target), remaining);
+			if (batch_size <= 0) break; // out of ingredients/gold/space -- nothing more to do
+
+			var crafted = await craft_batch(target.name, batch_size);
+			total_crafted += crafted;
+			if (crafted <= 0) break; // no progress -- avoid spinning on a stuck batch
+
+			game_log(`✅ Crafted ${crafted}x ${target.name} (${total_crafted}${target_max === Infinity ? "" : "/" + target_max} this run).`);
+
+			if (total_crafted >= target_max) break;
+
+			await sell_and_bank(); // clear space before attempting the next batch
 		}
 		break; // one target per try_craft() call
 	}
