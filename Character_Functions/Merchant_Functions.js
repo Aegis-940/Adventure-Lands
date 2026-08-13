@@ -826,7 +826,25 @@ async function sell_and_bank() {
 	const sold = await sell_items();
 	const banked = await bank_items();
 
-	await smarter_move(HOME);
+	// This final trip had no error handling of its own -- a single rejected
+	// smarter_move() (timeout, "movement stopped" from nearby combat/interruption,
+	// anything) propagated straight up to the caller's outer catch uncaught, silently
+	// leaving fishing/mining/delivering/exchanging stranded wherever they'd been instead
+	// of actually getting home. Retry a few times rather than one failure stranding the
+	// caller; only give up (and log) after every attempt fails.
+	const HOME_RETRY_ATTEMPTS = 3;
+	for (let attempt = 1; attempt <= HOME_RETRY_ATTEMPTS; attempt++) {
+		try {
+			await smarter_move(HOME);
+			break;
+		} catch (e) {
+			if (attempt === HOME_RETRY_ATTEMPTS) {
+				catcher(e, `sell_and_bank: smarter_move(HOME) — giving up after ${HOME_RETRY_ATTEMPTS} attempts`);
+			} else {
+				await delay(1000);
+			}
+		}
+	}
 	await delay(1000);
 
 	if (sold || banked) {
