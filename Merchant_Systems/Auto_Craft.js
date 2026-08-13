@@ -487,7 +487,11 @@ async function try_craft() {
 
 			if (total_crafted >= target_max) break;
 
-			await sell_and_bank(); // clear space before attempting the next batch
+			// sell_items()/bank_items() directly, not sell_and_bank() -- its unconditional
+			// "return to HOME" trip would just be immediately undone by the next
+			// craft_batch() call traveling to CRAFT_LOCATION (a different spot) anyway.
+			await sell_items();
+			await bank_items();
 		}
 		break; // one target per try_craft() call
 	}

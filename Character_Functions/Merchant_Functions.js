@@ -507,9 +507,14 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 			catcher(e, `handle_gathering_state(${skill_name}): equip_default_gear`);
 		}
 
-		log(`🏁 ${skill_name} loop ended, running sell_and_bank()...`, "#888");
-		await sell_and_bank();
-		log(`✅ sell_and_bank() finished for ${skill_name}.`, "#888");
+		// sell_items()/bank_items() directly, not sell_and_bank() -- no reason this cycle
+		// needs to specifically end at HOME; whatever loop_controller() picks next will
+		// travel to the right place from wherever this leaves off (often the bank
+		// already, a fine staging point for most other states too).
+		log(`🏁 ${skill_name} loop ended, selling/banking...`, "#888");
+		await sell_items();
+		await bank_items();
+		log(`✅ Selling/banking finished for ${skill_name}.`, "#888");
 	} catch (e) {
 		catcher(e, `handle_gathering_state(${skill_name})`);
 	} finally {
@@ -857,9 +862,12 @@ async function bank_items() {
 }
 
 // Composes sell_items()/bank_items() -- each independently skips its own travel when
-// there's nothing to do -- then always finishes with one trip home, so callers (fishing/
-// mining/delivering/exchanging) can rely on this to reliably reposition them at HOME
-// even on a "nothing to sell or bank" run.
+// there's nothing to do -- then always finishes with one trip home. Use this only when
+// the caller genuinely wants to end at HOME afterward (handle_delivering_state(),
+// auto_upgrade() -- both already need to be there anyway); call sell_items()/bank_items()
+// directly instead when the caller's next step travels somewhere else regardless
+// (handle_gathering_state(), try_craft(), exchange_items()'s mid-loop cleanup), so this
+// function's own HOME trip isn't a wasted detour.
 async function sell_and_bank() {
 	const sold = await sell_items();
 	const banked = await bank_items();
@@ -1010,8 +1018,14 @@ async function exchange_items() {
 			}
 
 			if (character.items.filter(Boolean).length >= character.items.length) {
-				log(`📦 Inventory full. Running sell_and_bank for ${item_name}.`);
-				await sell_and_bank();
+				log(`📦 Inventory full. Selling/banking before continuing to exchange ${item_name}.`);
+				// sell_items()/bank_items() directly, not sell_and_bank() -- its own
+				// unconditional "return to HOME" trip was immediately redundant with the
+				// smarter_move(HOME) right below anyway (which needs the tighter
+				// EXCHANGE_POSITION_TOLERANCE radius this loop requires), so skip it and
+				// let this call handle getting back with the right precision.
+				await sell_items();
+				await bank_items();
 				await delay(200);
 				await smarter_move(HOME, null, { radius: EXCHANGE_POSITION_TOLERANCE });
 				await delay(200);
