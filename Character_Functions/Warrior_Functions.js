@@ -144,7 +144,7 @@ var equipment_sets = {
 		{ item_name: "basher", slot: "mainhand", level: 8, l: "l" }
 	],
 	bataxe: [
-		{ item_name: "bataxe", slot: "mainhand", level: 7, l: "l" }
+		{ item_name: "bataxe", slot: "mainhand", level: 9, l: "l" }
 	],
 	dps: [
 		{ item_name: "cearring", slot: "earring1", level: 5, l: "l" },
