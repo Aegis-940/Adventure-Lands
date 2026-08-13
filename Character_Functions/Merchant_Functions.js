@@ -253,6 +253,11 @@ async function handle_delivering_state() {
 			for (const name of PARTY) {
 				const status = read_state_cache(name);
 				if (status && !status.rip) {
+					// Temporary diagnostic — which target/position is actually being chased
+					// each tick wasn't visible anywhere before this, making a reported
+					// "conflicting directions" hard to confirm from a log paste alone.
+					log(`🎯 Delivery: heading to ${name} @ ${status.map} (${Math.round(status.x)}, ${Math.round(status.y)})`, "#888");
+
 					// "interrupted" here just means THIS re-target replaced the previous
 					// attempt's still-in-flight smarter_move (expected every tick as the
 					// target keeps moving) -- not a real failure, so don't log it via
