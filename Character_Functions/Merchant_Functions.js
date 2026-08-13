@@ -243,12 +243,21 @@ async function handle_delivering_state() {
 
 		let attempts = 0;
 		while (!any_party_within_range() && attempts < DELIVERY_WAIT_MAX_ATTEMPTS) {
-			// Actively pursue a party member every attempt, rotating through PARTY instead
-			// of only ever asking Myras once at the start — a single non-responsive member
-			// (offline, busy, dead, CM round trip lost) no longer leaves the merchant just
-			// standing still hoping proximity resolves itself on its own.
-			const target_name = PARTY[attempts % PARTY.length];
-			move_to_character(target_name).catch(e => catcher(e, "handle_delivering_state: move_to_character " + target_name));
+			// state_cache_loop() (running on every fighter, ~every 100ms) already keeps
+			// each party member's map/x/y fresh in localStorage — read_state_cache() is
+			// instant and local, no CM round trip needed (that's exactly why the cache
+			// exists; move_to_character()'s "where_are_you"/"my_location" exchange was
+			// redundant with it). Head toward the first party member with a live,
+			// non-stale cache entry, re-reading every attempt so we keep tracking them
+			// as they move.
+			for (const name of PARTY) {
+				const status = read_state_cache(name);
+				if (status && !status.rip) {
+					smarter_move({ map: status.map, x: status.x, y: status.y })
+						.catch(e => catcher(e, "handle_delivering_state: smarter_move to " + name));
+					break;
+				}
+			}
 
 			await delay(3000);
 			attempts++;

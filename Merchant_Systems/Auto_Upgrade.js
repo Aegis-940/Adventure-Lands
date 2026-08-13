@@ -72,14 +72,15 @@ const GRACE_MAX_OFFERINGS = 20;
 
 // Builds item_slot's grace up to its cap by repeatedly applying real offeringp
 // applications (each consumes one offeringp) until the returned grace value stops
-// increasing between two consecutive applications, inventory runs out of offeringp, or
-// GRACE_MAX_OFFERINGS is hit. Starts with one calculate:true (non-consuming) call to read
-// the current baseline first, so an item that's already capped doesn't waste a real
-// offering just to discover that. Returns the final known grace value, or null if no
-// offeringp was available to even check.
+// increasing between two consecutive applications (genuinely capped), inventory runs out
+// of offeringp, or GRACE_MAX_OFFERINGS is hit (the latter two are NOT capped — just gave
+// up). Starts with one calculate:true (non-consuming) call to read the current baseline
+// first, so an item that's already capped doesn't waste a real offering just to discover
+// that. Returns { grace, capped } — callers (see auto_grace_pass() below) must not treat
+// "ran out of material" the same as "actually capped".
 async function add_grace_to_cap(item_slot) {
 	const offering_slot0 = character.items.findIndex(it => it && it.name === "offeringp");
-	if (offering_slot0 === -1) return null;
+	if (offering_slot0 === -1) return { grace: null, capped: false };
 
 	let previous_grace;
 	try {
@@ -87,39 +88,71 @@ async function add_grace_to_cap(item_slot) {
 		previous_grace = baseline?.grace;
 	} catch (e) {
 		catcher(e, "add_grace_to_cap: baseline check");
-		return null;
+		return { grace: null, capped: false };
 	}
 
 	if (previous_grace == null) {
 		log("⚠️ Grace baseline check had no grace field — skipping.", "#FFA500");
-		return null;
+		return { grace: null, capped: false };
 	}
 
 	for (let attempt = 0; attempt < GRACE_MAX_OFFERINGS; attempt++) {
 		const offering_slot = character.items.findIndex(it => it && it.name === "offeringp");
-		if (offering_slot === -1) break; // ran out of offerings
+		if (offering_slot === -1) {
+			log(`⚠️ Ran out of offeringp before grace capped (at ${previous_grace}) for slot ${item_slot}.`, "#FFA500");
+			return { grace: previous_grace, capped: false };
+		}
 
 		let response;
 		try {
 			response = await upgrade(item_slot, null, offering_slot, false);
 		} catch (e) {
 			catcher(e, "add_grace_to_cap: upgrade");
-			break;
+			return { grace: previous_grace, capped: false };
 		}
 		await delay(300);
 
 		const current_grace = response?.grace;
-		if (current_grace == null || current_grace <= previous_grace) {
-			if (current_grace != null) previous_grace = current_grace;
-			break; // capped, or an unexpected response — stop either way
+		if (current_grace == null) {
+			log("⚠️ Grace application response had no grace field — stopping.", "#FFA500");
+			return { grace: previous_grace, capped: false };
+		}
+
+		if (current_grace <= previous_grace) {
+			log(`✅ Grace capped at ${current_grace} for slot ${item_slot}.`, "limegreen");
+			return { grace: current_grace, capped: true };
 		}
 
 		log(`Grace: ${previous_grace} -> ${current_grace}`);
 		previous_grace = current_grace;
 	}
 
-	log(`✅ Grace settled at ${previous_grace} for slot ${item_slot}.`, "limegreen");
-	return previous_grace;
+	log(`⚠️ Grace still rising after ${GRACE_MAX_OFFERINGS} offerings (at ${previous_grace}) for slot ${item_slot} — stopping as a safety backstop.`, "#FFA500");
+	return { grace: previous_grace, capped: false };
+}
+
+// Runs once before any scrolled upgrade attempts (see auto_upgrade()) — builds grace to
+// the cap for every inventory item whose UPGRADE_PROFILE has a grace_from at or below its
+// current level. auto_upgrade_item() refuses to spend a scroll on any such item unless
+// its slot ended up in here as genuinely capped — grace must be capped BEFORE attempting
+// the upgrade, not attempted opportunistically with whatever material happened to be on
+// hand this cycle.
+const grace_capped_slots = new Set();
+
+async function auto_grace_pass() {
+	grace_capped_slots.clear();
+
+	for (let i = 0; i < character.items.length; i++) {
+		const item = character.items[i];
+		if (!item) continue;
+
+		const profile = UPGRADE_PROFILE[item.name];
+		if (!profile || profile.grace_from === undefined) continue;
+		if (item.level < profile.grace_from || item.level >= profile.max_level) continue;
+
+		const { capped } = await add_grace_to_cap(i);
+		if (capped) grace_capped_slots.add(i);
+	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -383,15 +416,21 @@ async function auto_upgrade_item(level) {
 			}
 		}
 
-		// Does this item build grace at its current level? (UPGRADE_PROFILE's optional
-		// grace_from — e.g. grace_from: 8 means every attempt from level 8 on.)
-		const wants_grace = profile.grace_from !== undefined && item.level >= profile.grace_from;
+		// Grace (UPGRADE_PROFILE's optional grace_from) and the offering required by
+		// primling_from are two SEPARATE requirements, not alternatives -- an item can
+		// need both at once (e.g. fireblade needs grace built AND still needs its own
+		// offering spent on the scrolled attempt itself). Grace is built by the separate
+		// auto_grace_pass() (see auto_upgrade()) before any scrolled attempts run here --
+		// if that didn't actually confirm the cap (e.g. ran out of offeringp), skip this
+		// item entirely rather than attempting the upgrade ungraced.
+		if (profile.grace_from !== undefined && item.level >= profile.grace_from && !grace_capped_slots.has(i)) {
+			log(`Skipping ${item.name} (level ${item.level}): grace not capped yet.`);
+			continue;
+		}
 
-		// Check for offering if needed (skipped when wants_grace — that builds grace to
-		// the cap via a separate offering-only step below instead of bundling one
-		// offering into the same call as the scroll)
+		// Check for offering if needed
 		let offering_slot = null;
-		if (!wants_grace && profile.primling_from !== undefined && item.level >= profile.primling_from) {
+		if (profile.primling_from !== undefined && item.level >= profile.primling_from) {
 			for (let j = 0; j < character.items.length; j++) {
 				const inv_item = character.items[j];
 				if (inv_item && inv_item.name === "offeringp") {
@@ -404,14 +443,6 @@ async function auto_upgrade_item(level) {
 				log(`Skipping ${item.name} (level ${item.level}): No offeringp found for upgrade requiring it.`);
 				continue;
 			}
-		}
-
-		// GRACE — build persistent grace to its cap before spending the scroll (see
-		// add_grace_to_cap() above). Runs only once we've confirmed a scroll is actually
-		// ready to spend this call, so grace isn't built on an item we're not about to
-		// attempt yet.
-		if (wants_grace) {
-			await add_grace_to_cap(i);
 		}
 
 		// Upgrade the item
@@ -628,6 +659,10 @@ async function auto_upgrade() {
 		await withdraw_upgradeable_items();
 
 		await smarter_move(HOME);
+
+		// Grace-building runs as its own pass, fully separate from the scrolled-attempt
+		// loop below -- see auto_grace_pass()/grace_capped_slots.
+		await auto_grace_pass();
 
 		// --- Upgrade all items level-by-level ---
 		let upgraded = true;
