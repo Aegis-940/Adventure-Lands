@@ -636,30 +636,55 @@ async function mluck_buff_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // SELLABLE_ITEMS defined in Game_Config.js
-let sell_and_bank_running = false;
 
-async function sell_and_bank() {
-	if (sell_and_bank_running) {
-		log("⚠️ sell_and_bank already running, skipping duplicate call.");
-		return;
+function has_sellable_items() {
+	for (let i = 0; i < character.items.length; i++) {
+		const item = character.items[i];
+		if (item && SELLABLE_ITEMS.includes(item.name)) return true;
 	}
+	return false;
+}
 
-	// Don't issue smarter_move(HOME) on top of movement already in progress elsewhere
-	// (e.g. a fishing/mining loop's own step, or the state machine mid-transition) --
-	// but wait for it to settle instead of silently abandoning the whole call, which
-	// left the character stranded wherever it happened to be moving when this fired.
+function has_bankable_items() {
+	for (let i = 3; i < character.items.length; i++) {
+		const item = character.items[i];
+		if (item && !CONFIG.do_not_bank.includes(item.name)) return true;
+	}
+	return false;
+}
+
+// Don't issue smarter_move() on top of movement already in progress elsewhere (e.g. a
+// fishing/mining loop's own step, or the state machine mid-transition) -- but wait for
+// it to settle instead of silently abandoning the call, which left the character
+// stranded wherever it happened to be moving when this fired. Shared by sell_items()
+// and bank_items() below.
+async function wait_for_movement_to_settle(caller_label) {
 	let move_wait = 0;
 	while (character.moving && move_wait < 20) {
 		await delay(250);
 		move_wait++;
 	}
 	if (character.moving) {
-		log("⚠️ sell_and_bank: still moving after waiting, proceeding anyway.");
+		log(`⚠️ ${caller_label}: still moving after waiting, proceeding anyway.`);
+	}
+}
+
+let sell_items_running = false;
+
+// Travels home and sells everything in SELLABLE_ITEMS -- no-ops (no travel at all) if
+// nothing sellable is actually carried. Returns true if anything was sold.
+async function sell_items() {
+	if (!has_sellable_items()) return false;
+	if (sell_items_running) {
+		log("⚠️ sell_items already running, skipping duplicate call.");
+		return false;
 	}
 
-	sell_and_bank_running = true;
+	await wait_for_movement_to_settle("sell_items");
+
+	sell_items_running = true;
+	let sold_any = false;
 	try {
-		// === SELLING ===
 		await smarter_move(HOME);
 		await delay(3000);
 
@@ -670,13 +695,37 @@ async function sell_and_bank() {
 				try {
 					sell(i, item.q || 1);
 					game_log(`💰 Sold ${item.name} x${item.q || 1}`);
+					sold_any = true;
 				} catch (e) {
-					catcher(e, "sell_and_bank: sell " + item.name);
+					catcher(e, "sell_items: sell " + item.name);
 				}
 			}
 		}
+	} catch (e) {
+		catcher(e, "sell_items");
+	} finally {
+		sell_items_running = false;
+	}
+	return sold_any;
+}
 
-		// === BANKING ===
+let bank_items_running = false;
+
+// Travels to the bank and deposits everything from slot 3 onward not in
+// CONFIG.do_not_bank -- no-ops (no travel at all) if nothing bankable is actually
+// carried. Returns true if anything was banked.
+async function bank_items() {
+	if (!has_bankable_items()) return false;
+	if (bank_items_running) {
+		log("⚠️ bank_items already running, skipping duplicate call.");
+		return false;
+	}
+
+	await wait_for_movement_to_settle("bank_items");
+
+	bank_items_running = true;
+	let banked_any = false;
+	try {
 		await smarter_move(BANK_LOCATION);
 		await delay(1000);
 
@@ -686,22 +735,38 @@ async function sell_and_bank() {
 			try {
 				await bank_store(i);
 				game_log(`🏦 Deposited ${item.name} x${item.q || 1} to bank`);
+				banked_any = true;
 			} catch (e) {
-				catcher(e, "sell_and_bank: bank_store " + item.name);
+				catcher(e, "bank_items: bank_store " + item.name);
 			}
 		}
 
-		// === RETURN HOME ===
-		await parent.$("#maincode")[0].contentWindow.render_bank_items();
-		await delay(1000);
-		await parent.hide_modal();
-		await smarter_move(HOME);
-		await delay(1000);
-		game_log("🏠 Returned home after banking.");
+		if (banked_any) {
+			await parent.$("#maincode")[0].contentWindow.render_bank_items();
+			await delay(1000);
+			await parent.hide_modal();
+		}
 	} catch (e) {
-		catcher(e, "sell_and_bank");
+		catcher(e, "bank_items");
 	} finally {
-		sell_and_bank_running = false;
+		bank_items_running = false;
+	}
+	return banked_any;
+}
+
+// Composes sell_items()/bank_items() -- each independently skips its own travel when
+// there's nothing to do -- then always finishes with one trip home, so callers (fishing/
+// mining/delivering/exchanging) can rely on this to reliably reposition them at HOME
+// even on a "nothing to sell or bank" run.
+async function sell_and_bank() {
+	const sold = await sell_items();
+	const banked = await bank_items();
+
+	await smarter_move(HOME);
+	await delay(1000);
+
+	if (sold || banked) {
+		game_log("🏠 Returned home after selling/banking.");
 	}
 }
 
