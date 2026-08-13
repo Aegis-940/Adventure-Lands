@@ -40,7 +40,7 @@ var CONFIG = {
 		free_slots_threshold: 10, // deliver if any party member has this many or fewer free slots
 		gold_threshold: 20000000, // deliver if any party member is carrying at least this much gold
 		// MLuck lasts 3600s — refresh at least this often. Satisfied opportunistically by
-		// mluck_buff_loop(); an impending lapse alone also triggers a delivery run.
+		// handle_buff_party(); an impending lapse alone also triggers a delivery run.
 		mluck_refresh_interval: 50 * 60 * 1000,
 	},
 	upgrade_gold_threshold: 100000000,
@@ -85,7 +85,7 @@ var CONFIG = {
 };
 
 // Game_Config.js's shared potion_loop()/auto_buy_potions() aren't used here — bulk
-// buying for the party is handled by buy_potion_loop() below; potion_loop() (self-use)
+// buying for the party is handled by handle_buy_potions() below; potion_loop() (self-use)
 // is started separately from Characters/Merchant.js.
 
 // var, not const: Auto_Upgrade.js/Auto_Craft.js are separate eval closures that reference
@@ -119,7 +119,7 @@ const FISHING_POSITION_TOLERANCE = 5;
 const MINING_POSITION_TOLERANCE = 10;
 
 // Last time each party member (by name) was mluck'd — see is_mluck_due()/
-// buff_nearby_party(), shared by the passive mluck_buff_loop() and delivery runs.
+// buff_nearby_party(), shared by handle_buff_party() and delivery runs.
 let last_mluck_time = {};
 
 function is_mluck_due(name) {
@@ -618,7 +618,7 @@ async function mluck_party_member(player) {
 }
 
 // Casts mluck on every nearby party member whose buff is due (is_mluck_due()), skipping
-// anyone already fresh. Shared by mluck_buff_loop() and handle_delivering_state().
+// anyone already fresh. Shared by handle_buff_party() and handle_delivering_state().
 async function buff_nearby_party() {
 	let buffed_any = false;
 	for (const name of PARTY) {
@@ -641,82 +641,101 @@ async function buff_nearby_party() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// BUY POTION LOOP (passive — no travel, safe to run alongside the state machine)
+// OPPORTUNISTIC SIDE-DECISIONS (buy potions / collect loot / buff party)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function buy_potion_loop() {
-	const MAX_POTS = 9999;
+// None of these ever travel on their own -- each only acts if the merchant already
+// happens to be near the relevant spot/party, as a free side effect of wherever the main
+// task's own movement left it. Evaluated every loop_controller() tick (see below)
+// alongside, not instead of, the main task decision -- these don't compete in
+// CONFIG.priorities since they cost nothing to check and never block on travel.
+
+function should_buy_potions() {
+	const shop = CONFIG.locations.POTION_SHOP;
+	return character.map === shop.map && Math.hypot(character.x - shop.x, character.y - shop.y) < 300;
+}
+
+async function handle_buy_potions() {
+	const MAX_POTS = 1000;
 	const MIN_BUY = 100;
+	try {
+		for (const pot of ["mpot1", "hpot1"]) {
+			let total = 0;
+			for (const item of character.items) {
+				if (item && item.name === pot) total += item.q || 1;
+			}
+			const to_buy = MAX_POTS - total;
+			if (to_buy > MIN_BUY) {
+				log(`🧪 Buying ${to_buy} x ${pot} (you have ${total})`);
+				buy(pot, to_buy);
+			}
+		}
+	} catch (e) {
+		catcher(e, "handle_buy_potions");
+	}
+}
+
+const LOOT_COLLECTION_COOLDOWN = 60000;
+let last_loot_time = 0;
+
+function should_collect_loot() {
+	return Date.now() - last_loot_time >= LOOT_COLLECTION_COOLDOWN && any_party_within_range();
+}
+
+async function handle_collect_loot() {
+	try {
+		for (const name of PARTY) {
+			const player = get_player(name);
+			if (
+				!player || player.rip || character.map !== player.map ||
+				Math.hypot(character.x - player.x, character.y - player.y) > CONFIG.party.action_range
+			) {
+				continue;
+			}
+			send_cm(name, { type: "send_loot" });
+			await delay(200);
+		}
+		log("Requested loot from nearby party members.", "limegreen");
+		last_loot_time = Date.now();
+	} catch (e) {
+		catcher(e, "handle_collect_loot");
+	}
+}
+
+// Opportunistic only -- doesn't guarantee the 50-minute mluck refresh by itself (only
+// fires when someone's nearby); should_run_delivery() is the actual guarantee.
+function should_buff_party() {
+	return any_party_within_range();
+}
+
+async function handle_buff_party() {
+	try {
+		await buff_nearby_party();
+	} catch (e) {
+		catcher(e, "handle_buff_party");
+	}
+}
+
+async function decide_opportunistic_actions() {
+	if (should_buy_potions()) await handle_buy_potions();
+	if (should_collect_loot()) await handle_collect_loot();
+	if (should_buff_party()) await handle_buff_party();
+}
+
+// Runs concurrently with loop_controller(), not nested inside it -- loop_controller()'s
+// own await set_state(state) blocks for however long the current task takes (a delivery
+// run or fishing session can run for minutes), so a single per-tick check there would
+// stop checking these entirely for that whole duration. This still needs its own timer
+// to keep checking throughout, but each tick is now a clean decision call rather than
+// tangled inline logic.
+async function opportunistic_actions_loop() {
 	while (true) {
 		try {
-			const shop = CONFIG.locations.POTION_SHOP;
-			if (character.map === shop.map && Math.hypot(character.x - shop.x, character.y - shop.y) < 300) {
-				for (const pot of ["mpot1", "hpot1"]) {
-					let total = 0;
-					for (const item of character.items) {
-						if (item && item.name === pot) total += item.q || 1;
-					}
-					const to_buy = MAX_POTS - total;
-					if (to_buy > MIN_BUY) {
-						log(`🧪 Buying ${to_buy} x ${pot} (you have ${total})`);
-						buy(pot, to_buy);
-					}
-				}
-			}
+			await decide_opportunistic_actions();
 		} catch (e) {
-			catcher(e, "buy_potion_loop");
+			catcher(e, "opportunistic_actions_loop");
 		}
 		await delay(1000);
-	}
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// LOOT COLLECTION LOOP (passive)
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-async function loot_collection_loop() {
-	const COOLDOWN = 60000;
-	let last_loot_time = 0;
-	while (true) {
-		try {
-			if (Date.now() - last_loot_time >= COOLDOWN && any_party_within_range()) {
-				for (const name of PARTY) {
-					const player = get_player(name);
-					if (
-						!player || player.rip || character.map !== player.map ||
-						Math.hypot(character.x - player.x, character.y - player.y) > CONFIG.party.action_range
-					) {
-						continue;
-					}
-					send_cm(name, { type: "send_loot" });
-					await delay(200);
-				}
-				log("Requested loot from nearby party members.", "limegreen");
-				last_loot_time = Date.now();
-			}
-		} catch (e) {
-			catcher(e, "loot_collection_loop");
-		}
-		await delay(500);
-	}
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// MLUCK BUFF LOOP (passive)
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-// Opportunistic buffing only — doesn't guarantee the 50-minute refresh by itself (only
-// fires when someone's nearby); should_run_delivery() is the actual guarantee.
-async function mluck_buff_loop() {
-	while (true) {
-		try {
-			if (any_party_within_range()) {
-				await buff_nearby_party();
-			}
-		} catch (e) {
-			catcher(e, "mluck_buff_loop");
-		}
-		await delay(5000);
 	}
 }
 

@@ -11,10 +11,9 @@ add_bank_buttons();
 // Resting loadout — loop_controller()'s fishing/mining states swap gear temporarily and restore this after.
 equip_default_gear();
 
-// Passive loops — no travel, safe alongside loop_controller()'s state machine.
-buy_potion_loop();
-mluck_buff_loop();
-loot_collection_loop();
+// Passive loop — no travel, safe alongside loop_controller()'s state machine. Drives
+// should_buy_potions()/should_collect_loot()/should_buff_party() decisions each tick.
+opportunistic_actions_loop();
 potion_loop(); // shared self-use loop from Shared/Game_Config.js
 state_cache_loop(); // keeps Riff's state cache fresh for the fighters to read
 
