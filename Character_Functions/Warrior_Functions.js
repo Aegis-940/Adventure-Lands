@@ -253,6 +253,11 @@ async function sugar_rush_check(target) {
 	attack(target);
 
 	if (character.s.sugarrush === undefined && WARRIOR_TARGET === "bscorpion") {
+		// equip_batch(39/40) is a slot-swap, not an item-set — the second identical call only
+		// lands back on the fireblades if 39/40 held them to begin with. Bail if desynced instead
+		// of compounding it; maintenance_loop's equip_set("single") will correct it before next try.
+		if (!is_set_equipped("single")) return;
+
 		sugar_rush_attempts++;
 		equip_batch([{ num: 39, slot: "mainhand" }, { num: 40, slot: "offhand" }]);
 		await delay(75);
