@@ -271,7 +271,7 @@ async function sugar_rush_check(target) {
 			sugar_rush_attempts = 0;
 		}
 	}
-}
+}	
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // FOLLOW HEALER — used when WARRIOR_TARGET === "giantspider". Orbits Myras when
