@@ -126,7 +126,7 @@ var equipment_sets = {
 		{ item_name: "supermittens", slot: "gloves", level: 7, l: "l" },
 		{ item_name: "lmace", slot: "mainhand", level: 7, l: "" },
 		{ item_name: "mshield", slot: "offhand", level: 8, l: "l" },
-		{ item_name: "rabbitsfoot", slot: "orb", level: 0, l: "l" },
+		{ item_name: "rabbitsfoot", slot: "orb", level: 1, l: "l" },
 
 	],
 	gold: [

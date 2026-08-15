@@ -114,7 +114,7 @@ var destination = {
 };
 
 // var, not const: send_to_merchant() (Shared/Game_Config.js) reads this global.
-var ITEMS_TO_KEEP = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster", "pumpkinspice", "xptome", "tracker", "jacko", "orbg", "talkingskull", "cupid", "computer"];
+var ITEMS_TO_KEEP = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster", "pumpkinspice", "xptome", "tracker", "jacko", "orbofdex", "talkingskull", "cupid", "computer"];
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATE & CACHE
@@ -164,7 +164,7 @@ var equipment_sets = {
 
 	boom: [
 		{ item_name: "pouchbow", slot: "mainhand", level: 10, l: "l" },
-		{ item_name: "alloyquiver", slot: "offhand", level: 5, l: "l" },
+		{ item_name: "alloyquiver", slot: "offhand", level: 7, l: "l" },
 	],
 
 	burnboom: [
