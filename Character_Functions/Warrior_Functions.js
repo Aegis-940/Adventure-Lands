@@ -300,7 +300,8 @@ async function status_swap_trick_check(target) {
 		await delay(trick.settle_delay_ms);
 
 		if (character.s[trick.status] !== undefined) {
-			const history = swap_trick_history[target.mtype] ??= [];
+			if (!swap_trick_history[target.mtype]) swap_trick_history[target.mtype] = [];
+			const history = swap_trick_history[target.mtype];
 			history.push(swap_trick_attempts);
 			if (history.length > 30) history.shift();
 			const avg = history.reduce((a, b) => a + b, 0) / history.length;
