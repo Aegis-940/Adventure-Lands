@@ -107,6 +107,9 @@ var state = {
 	last_boss_set_swap: 0,
 	last_booster_swap: 0,
 	angle: 0,
+	// Set while status_swap_trick_check() is mid-sequence — equipment_loop() checks this and
+	// skips its own gear decisions rather than racing the manual slot swap.
+	gear_locked: false,
 	last_angle_update: performance.now()
 };
 
@@ -255,33 +258,59 @@ function mob_count() {
 	).length;
 }
 
-let sugar_rush_attempts = 0;
-const sugar_rush_history = [];
+// Monsters where briefly slot-swapping to specific weapons (parked in reserved inventory
+// slots, see item_order) can proc a status effect. Add more entries here rather than writing
+// new near-duplicate check functions — base_set is the weapon set the swap assumes it's
+// starting from and returning to.
+const STATUS_SWAP_TRICKS = {
+	bscorpion: {
+		status: "sugarrush",
+		base_set: "single",
+		swap_slots: [{ num: 39, slot: "mainhand" }, { num: 40, slot: "offhand" }],
+		swap_delay_ms: 75,
+		settle_delay_ms: 225,
+		label: "Sugar Rush",
+		color: "#ff69b4",
+	},
+};
 
-async function sugar_rush_check(target) {
+let swap_trick_attempts = 0;
+const swap_trick_history = {};
+
+async function status_swap_trick_check(target) {
 
 	attack(target);
 
-	if (character.s.sugarrush === undefined && WARRIOR_TARGET === "bscorpion") {
-		// equip_batch(39/40) is a slot-swap, not an item-set — the second identical call only
-		// lands back on the fireblades if 39/40 held them to begin with. Bail if desynced instead
-		// of compounding it; maintenance_loop's equip_set("single") will correct it before next try.
-		if (!is_set_equipped("single")) return;
+	const trick = STATUS_SWAP_TRICKS[target?.mtype];
+	if (!trick || character.s[trick.status] !== undefined) return;
 
-		sugar_rush_attempts++;
-		equip_batch([{ num: 39, slot: "mainhand" }, { num: 40, slot: "offhand" }]);
-		await delay(75);
-		equip_batch([{ num: 39, slot: "mainhand" }, { num: 40, slot: "offhand" }]);
-		await delay(225);
-		if (character.s.sugarrush !== undefined) {
-			sugar_rush_history.push(sugar_rush_attempts);
-			if (sugar_rush_history.length > 30) sugar_rush_history.shift();
-			const avg = sugar_rush_history.reduce((a, b) => a + b, 0) / sugar_rush_history.length;
-			log(`Sugar Rush activated! Avg attempts: ${avg.toFixed(1)}`, "#ff69b4", "Alerts");
-			sugar_rush_attempts = 0;
+	// equip_batch(slots) is a slot-swap, not an item-set — the second identical call only
+	// lands back on base_set if those slots held it to begin with. Bail if desynced instead
+	// of compounding it; equipment_loop's equip_set(base_set) will correct it before next try.
+	if (!is_set_equipped(trick.base_set)) return;
+
+	// Blocks equipment_loop() (25ms tick) from racing this multi-step swap and yanking gear
+	// mid-sequence — see investigation in conversation history.
+	state.gear_locked = true;
+	try {
+		swap_trick_attempts++;
+		equip_batch(trick.swap_slots);
+		await delay(trick.swap_delay_ms);
+		equip_batch(trick.swap_slots);
+		await delay(trick.settle_delay_ms);
+
+		if (character.s[trick.status] !== undefined) {
+			const history = swap_trick_history[target.mtype] ??= [];
+			history.push(swap_trick_attempts);
+			if (history.length > 30) history.shift();
+			const avg = history.reduce((a, b) => a + b, 0) / history.length;
+			log(`${trick.label} activated! Avg attempts: ${avg.toFixed(1)}`, trick.color, "Alerts");
+			swap_trick_attempts = 0;
 		}
+	} finally {
+		state.gear_locked = false;
 	}
-}	
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // FOLLOW HEALER — used when WARRIOR_TARGET === "giantspider". Orbits Myras when
@@ -354,7 +383,7 @@ async function action_loop() {
 		const ms = ms_to_next_skill("attack");
 
 		if (ms === 0 && smart.moving === false && target) {
-			await sugar_rush_check(target);
+			await status_swap_trick_check(target);
 		} else {
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
 		}
@@ -407,6 +436,10 @@ async function equipment_loop() {
 
 	try {
 		if (panicking) {
+			return setTimeout(equipment_loop, delay);
+		}
+
+		if (state.gear_locked) {
 			return setTimeout(equipment_loop, delay);
 		}
 
