@@ -66,6 +66,8 @@ const EVENT_LOCATIONS = [
 	{ name: "mrpumpkin", map: "halloween", x: -217, y: 720 },
 	{ name: "mrgreen", map: "spookytown", x: 605, y: 1000 },
 	{ name: "dragold", map: "cave", x: 873, y: -727 },
+	{ name: "franky", join: true },
+	{ name: "icegolem", join: true },
 	// { name: "wabbit", dynamic: true },
 ];
 

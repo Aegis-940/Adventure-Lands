@@ -41,6 +41,10 @@ var CONFIG = {
 		boss_hp_thresholds: {
 			mrpumpkin: 200000,
 			mrgreen: 200000,
+			// Sentinel, not a real HP value — always treated as "low," so gear swaps to
+			// luck/single-target immediately on spawn instead of waiting for HP to drop.
+			franky: 999999999,
+			icegolem: 999999999,
 		},
 		single_target_maps: ["halloween", "spookyforest", "desertland"],
 		aoe_maps: ["cave", "main", "goobrawl", "level2n", "level2w", "mforest", "tunnel", "uhills", "winterland"],

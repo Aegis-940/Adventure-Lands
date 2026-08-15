@@ -163,8 +163,10 @@ function handle_events() {
 	const wabbit = alive_sorted.find(e => e.name === "wabbit");
 	const target = wabbit || alive_sorted[0];
 
-	// Some events require joining an instance first
-	if (target.join === true && character.map !== target.map) {
+	// Some events (no fixed map/x/y — franky) require joining an instance first. Keep
+	// re-joining until the monster is actually visible, then fall through to the normal
+	// move/attack handling below instead of gating on target.map, which join-type entries don't set.
+	if (target.join === true && !get_nearest_monster({ type: target.name })) {
 		parent.socket.emit("join", { name: target.name });
 		return;
 	}

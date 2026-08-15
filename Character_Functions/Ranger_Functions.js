@@ -37,6 +37,10 @@ var CONFIG = {
 			mrgreen: 100000,
 			crabxx: 100000,
 			grinch: 100000,
+			// Sentinel, not a real HP value — always treated as "low," so gear swaps to
+			// luck immediately on spawn instead of waiting for HP to drop.
+			franky: 999999999,
+			icegolem: 999999999,
 		},
 		mp_thresholds: { upper: 2100, lower: 1700 },
 		chest_threshold: 12,
