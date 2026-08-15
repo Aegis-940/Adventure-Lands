@@ -329,8 +329,6 @@ async function panic_check() {
 	const HIGH_HEALTH = character.hp >= character.max_hp * t.high_hp;
 	const HIGH_MANA = character.mp >= character.max_mp * t.high_mp;
 
-	const panic_slot = character.items.findIndex(i => i?.name === "jacko");
-
 	const MONSTERS_TARGETING_ME = Object.values(parent.entities).filter(
 		e => e.type === "monster" && e.target === character.name && !e.dead
 	).length;
@@ -352,11 +350,11 @@ async function panic_check() {
 
 	if (panicking && (Date.now() - last_panic_time > t.cooldown)) {
 		last_panic_time = Date.now();
-		if (character.slots.orb?.name !== "jacko" && panic_slot !== -1) {
+		if (!is_set_equipped("panic")) {
 			try {
-				await equip(panic_slot);
+				await equip_set("panic");
 				await delay(200);
-				if (character.slots.orb?.name !== "jacko") {
+				if (!is_set_equipped("panic")) {
 					log("[PANIC] Failed to equip panic orb!", "#ff4444", "Errors");
 				}
 			} catch (e) {
@@ -364,7 +362,7 @@ async function panic_check() {
 			}
 		}
 
-		if (!is_on_cooldown("scare") && can_use("scare") && character.slots.orb?.name === "jacko") {
+		if (!is_on_cooldown("scare") && can_use("scare") && is_set_equipped("panic")) {
 			try {
 				log("Using Scare!", "#ffcc00", "Alerts");
 				await use_skill("scare");
@@ -374,8 +372,6 @@ async function panic_check() {
 			}
 		}
 	}
-
-	const safe_slot = character.items.findIndex(i => i?.name === "orbg");
 
 	// SAFE CONDITION
 	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < t.aggro) {
@@ -390,11 +386,11 @@ async function panic_check() {
 
 	if (!panicking && (Date.now() - last_safe_time > t.cooldown)) {
 		last_safe_time = Date.now();
-		if (character.slots.orb?.name === "jacko" && safe_slot !== -1) {
+		if (is_set_equipped("panic") && !is_set_equipped("orb")) {
 			try {
-				await equip(safe_slot);
+				await equip_set("orb");
 				await delay(200);
-				if (character.slots.orb?.name === "jacko") {
+				if (!is_set_equipped("orb")) {
 					log("[PANIC] Failed to equip normal orb!", "#ff4444", "Errors");
 				}
 			} catch (e) {

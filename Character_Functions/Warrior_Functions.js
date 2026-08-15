@@ -184,6 +184,12 @@ var equipment_sets = {
 		{ item_name: "suckerpunch", slot: "ring1", level: 2, l: "l" },
 		{ item_name: "suckerpunch", slot: "ring2", level: 2, l: "u" },
 	],
+	panic: [
+		{ item_name: "jacko", slot: "orb", level: 0, l: "l" },
+	],
+	orb: [
+		{ item_name: "orbg", slot: "orb", level: 2, l: "l" },
+	],
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

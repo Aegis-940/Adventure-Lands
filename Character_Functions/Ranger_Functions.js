@@ -187,6 +187,11 @@ var equipment_sets = {
 	],
 
 	orb: [
+		{ item_name: "orbofdex", slot: "orb", level: 4, l: "l" },
+	],
+
+	panic: [
+		{ item_name: "jacko", slot: "orb", level: 0, l: "l" },
 	],
 
 	stealth: [
