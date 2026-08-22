@@ -152,12 +152,12 @@ async function batch_equip(data) {
 
 		if (!item_name) continue;
 
+		// character.slots[slot] IS the item object ({name, level, l, ...} or null) per the
+		// game API, not an index into .items -- indexing .items with it would always miss.
 		let found = false;
-		if (parent.character.slots[slot]) {
-			let slot_item = parent.character.items[parent.character.slots[slot]];
-			if (slot_item && slot_item.name === item_name && slot_item.level === level && slot_item.l === l) {
-				found = true;
-			}
+		const slot_item = parent.character.slots[slot];
+		if (slot_item && slot_item.name === item_name && slot_item.level === level && slot_item.l === l) {
+			found = true;
 		}
 
 		if (found) continue;
