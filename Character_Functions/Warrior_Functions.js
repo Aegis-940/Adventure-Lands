@@ -504,9 +504,14 @@ var EQUIPMENT_RULES = {
 	loadout: { kind: "set", resolve: resolve_warrior_loadout },
 };
 
-// No monster-specific overrides yet — add entries like { bscorpion: { loadout: "single" } }
-// as needed; each key short-circuits that one group's resolve() for that farm target.
-var MONSTER_GEAR_OVERRIDES = {};
+// Each key short-circuits that one group's resolve() for that farm target.
+var MONSTER_GEAR_OVERRIDES = {
+	// resolve_warrior_home_loadout() picks "aoe" over "single" whenever mob_count() > 1 --
+	// easy to hit on bscorpion's dense spawns before things thin out. bscorpion always wants
+	// "single" (two fireblades), since status_swap_trick_check()'s sugar-rush trick requires
+	// it as the base_set. Still includes dps_accessories so earrings/rings/orb keep swapping.
+	bscorpion: { loadout: ["dps_accessories", "single"] },
+};
 
 // find_booster_slot, get_num_chests, get_num_targets → Game_Config.js
 

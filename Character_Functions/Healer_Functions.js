@@ -580,6 +580,7 @@ var EQUIPMENT_RULES = {
 var MONSTER_GEAR_OVERRIDES = {
 	dryad:      { loadout: "mdef" },
 	fireroamer: { loadout: "fireres" },
+	bscorpion: { loadout: ["mdef"] },
 };
 
 // is_set_equipped()/equip_set() moved to Shared/Game_Config.js; reads this file's
