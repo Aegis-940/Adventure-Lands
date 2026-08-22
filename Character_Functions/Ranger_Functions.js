@@ -3,7 +3,10 @@
 // CONFIG VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const home = RANGER_TARGET;
+// var, not const: eval-loader scoping — Shared/Combat_Utilities.js's
+// should_pause_combat_loop() reads this global at call time, and const/let here
+// wouldn't cross the indirect-eval boundary into global scope.
+var home = RANGER_TARGET;
 
 // var, not const: eval-loader scoping — const/let here wouldn't be visible to
 // Game_Config.js's shared CONFIG-reading functions.
