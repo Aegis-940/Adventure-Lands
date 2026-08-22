@@ -71,7 +71,7 @@ async function handle_stomp() {
 
 	// Blocks resolve_equipment() (Shared/Party_And_Loot.js) from racing this temporary
 	// weapon swap and yanking gear mid-sequence.
-	state.gear_locked = true;
+	lock_gear();
 	try {
 		if (needs_swap && now - state.last_basher_swap > COOLDOWNS.weapon_swap) {
 			state.last_basher_swap = now;
@@ -86,7 +86,7 @@ async function handle_stomp() {
 			await batch_equip(equipment_sets[target_set]);
 		}
 	} finally {
-		state.gear_locked = false;
+		unlock_gear();
 	}
 }
 
@@ -101,7 +101,7 @@ async function handle_cleave() {
 
 	// Blocks resolve_equipment() (Shared/Party_And_Loot.js) from racing this temporary
 	// weapon swap and yanking gear mid-sequence.
-	state.gear_locked = true;
+	lock_gear();
 	try {
 		if (now - state.last_cleave_swap > COOLDOWNS.weapon_swap) {
 			state.last_cleave_swap = now;
@@ -114,7 +114,7 @@ async function handle_cleave() {
 		const target_set = mob_count() === 1 ? "single" : "aoe";
 		await batch_equip(equipment_sets[target_set]);
 	} finally {
-		state.gear_locked = false;
+		unlock_gear();
 	}
 }
 

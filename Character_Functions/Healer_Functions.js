@@ -97,7 +97,7 @@ var state = {
 	// Set while a manual swap sequence (gold-gear looting swap, temporal surge) is mid-flight —
 	// resolve_equipment() (Shared/Party_And_Loot.js) checks this and skips its own gear
 	// decisions to avoid racing it.
-	gear_locked: false,
+	gear_locked: 0,
 	// Per-group cooldown timestamps for resolve_equipment()'s EQUIPMENT_RULES groups.
 	equip_cooldowns: {},
 	last_angle_update: performance.now()
@@ -141,6 +141,11 @@ var equipment_sets = {
 	],
 	gold: [
 		{ item_name: "handofmidas", slot: "gloves", level: 4, l: "l" },
+	],
+	// Own set (also present in `luck`) so the gloves group below can restore them after
+	// handle_looting()'s gold swap even when an override replaces the loadout group.
+	gloves: [
+		{ item_name: "supermittens", slot: "gloves", level: 7, l: "l" },
 	],
 	single_target: [
 		{ item_name: "firestaff", slot: "mainhand", level: 8, l: "l" },
@@ -340,7 +345,7 @@ async function check_temporal_surge() {
 	const prev_orb = character.slots.orb ? { name: character.slots.orb.name, level: character.slots.orb.level } : null;
 
 	// Blocks resolve_equipment() (Shared/Party_And_Loot.js) from racing this multi-step swap.
-	state.gear_locked = true;
+	lock_gear();
 	try {
 		state.last_equip_time = performance.now();
 		await equip_set("temporal");
@@ -357,7 +362,7 @@ async function check_temporal_surge() {
 			if (inv_idx !== -1) await equip(inv_idx, "orb");
 		}
 	} finally {
-		state.gear_locked = false;
+		unlock_gear();
 	}
 
 	return true;
@@ -508,7 +513,7 @@ async function handle_looting() {
 	state.current = "looting";
 	// Blocks resolve_equipment() (Shared/Party_And_Loot.js) from racing the gold-gear swap
 	// below with its own loadout decision.
-	state.gear_locked = true;
+	lock_gear();
 
 	try {
 		if (CONFIG.looting.equip_gold_gear && !is_set_equipped("gold") && performance.now() - state.last_gold_swap > 1000) {
@@ -542,7 +547,7 @@ async function handle_looting() {
 		console.error("Looting error:", e);
 	} finally {
 		state.current = "idle";
-		state.gear_locked = false;
+		unlock_gear();
 	}
 }
 
@@ -577,6 +582,9 @@ function resolve_healer_loadout() {
 // call time, and const/let here wouldn't cross the indirect-eval boundary into global scope.
 var EQUIPMENT_RULES = {
 	loadout: { kind: "set", resolve: resolve_healer_loadout },
+	// Separate group from loadout so it survives a MONSTER_GEAR_OVERRIDES entry that only
+	// names loadout — otherwise handle_looting()'s gold gloves would never be swapped back.
+	gloves:  { kind: "set", resolve: () => "gloves" },
 };
 
 // dryad/fireroamer used to be a one-off HEALER_TARGET check inside handle_equipment_swap();

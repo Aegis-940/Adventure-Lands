@@ -106,7 +106,7 @@ var state = {
 	// Set while status_swap_trick_check() is mid-sequence — resolve_equipment() (Shared/
 	// Party_And_Loot.js) checks this and skips its own gear decisions rather than racing
 	// the manual slot swap.
-	gear_locked: false,
+	gear_locked: 0,
 	// Per-group cooldown timestamps for resolve_equipment()'s EQUIPMENT_RULES groups below.
 	equip_cooldowns: {},
 	last_angle_update: performance.now()
@@ -290,7 +290,7 @@ async function status_swap_trick_check(target) {
 
 	// Blocks resolve_equipment() (Shared/Party_And_Loot.js) from racing this multi-step swap
 	// and yanking gear mid-sequence.
-	state.gear_locked = true;
+	lock_gear();
 	try {
 		swap_trick_attempts++;
 		equip_batch(trick.swap_slots);
@@ -308,7 +308,7 @@ async function status_swap_trick_check(target) {
 			swap_trick_attempts = 0;
 		}
 	} finally {
-		state.gear_locked = false;
+		unlock_gear();
 	}
 }
 

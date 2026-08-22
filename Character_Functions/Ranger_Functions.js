@@ -131,7 +131,7 @@ var state = {
 	skin_ready: false,
 	// Set while a manual swap-trick sequence is mid-flight — resolve_equipment() (Shared/
 	// Party_And_Loot.js) checks this and skips its own gear decisions to avoid racing it.
-	gear_locked: false,
+	gear_locked: 0,
 	// Per-group cooldown timestamps for resolve_equipment()'s EQUIPMENT_RULES groups.
 	equip_cooldowns: {},
 	angle: 0,

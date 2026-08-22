@@ -133,6 +133,19 @@ function find_booster_slot() {
 	return null;
 }
 
+// Throttles the missing-item warning below: resolve_equipment() retries every
+// swap_cooldown (500ms), so an item that's genuinely gone would otherwise flood the log.
+const MISSING_ITEM_WARN_INTERVAL = 30000;
+const _missing_item_warned = {};
+
+function warn_missing_item(item_name, level, slot) {
+	const key = `${item_name}:${level}:${slot}`;
+	const now = Date.now();
+	if (now - (_missing_item_warned[key] || 0) < MISSING_ITEM_WARN_INTERVAL) return;
+	_missing_item_warned[key] = now;
+	game_log(`⚠️ batch_equip: no ${item_name} (lvl ${level}) in inventory for ${slot}`, "#FFA500");
+}
+
 async function batch_equip(data) {
 	if (!Array.isArray(data)) {
 		return Promise.reject({ reason: "invalid", message: "Not an array" });
@@ -154,22 +167,32 @@ async function batch_equip(data) {
 
 		// character.slots[slot] IS the item object ({name, level, l, ...} or null) per the
 		// game API, not an index into .items -- indexing .items with it would always miss.
-		let found = false;
+		// Matched on name+level only, same as is_set_equipped(), so the two agree.
 		const slot_item = parent.character.slots[slot];
-		if (slot_item && slot_item.name === item_name && slot_item.level === level && slot_item.l === l) {
-			found = true;
+		if (slot_item && slot_item.name === item_name && slot_item.level === level) continue;
+
+		// Exact pass first (l included): equipment_sets uses l to tell apart two copies of the
+		// same item+level destined for different slots, e.g. Warrior's cearring l:"l"/l:"u".
+		// Then a loose pass ignoring l, since a stale/guessed l in a set definition would
+		// otherwise make the equip silently do nothing forever with no error anywhere.
+		let idx = parent.character.items.findIndex((item, j) =>
+			item && item.name === item_name && item.level === level && item.l === l && !claimed_slots.has(j)
+		);
+		if (idx === -1) {
+			idx = parent.character.items.findIndex((item, j) =>
+				item && item.name === item_name && item.level === level && !claimed_slots.has(j)
+			);
 		}
 
-		if (found) continue;
-
-		for (let j = 0; j < parent.character.items.length; j++) {
-			const item = parent.character.items[j];
-			if (item && item.name === item_name && item.level === level && item.l === l && !claimed_slots.has(j)) {
-				valid_items.push({ num: j, slot: slot });
-				claimed_slots.add(j);
-				break;
-			}
+		if (idx === -1) {
+			// Surfaced on purpose: a set naming an item that isn't in inventory used to fail
+			// completely silently, which is very hard to tell apart from "the resolver never ran".
+			warn_missing_item(item_name, level, slot);
+			continue;
 		}
+
+		valid_items.push({ num: idx, slot: slot });
+		claimed_slots.add(idx);
 	}
 
 	if (valid_items.length === 0) return;
@@ -217,6 +240,18 @@ async function equip_set(set_name) {
 // e.g. Warrior's home-map accessories + weapon), or for a booster group the desired booster
 // item name. Orb is deliberately never a group here — panic_check() owns that slot exclusively.
 // --------------------------------------------------------------------------------------------------------------------------------- //
+
+// Counter, not a boolean: Warrior has three lock users (status_swap_trick_check in
+// action_loop, handle_stomp/handle_cleave in skill_loop) across two concurrently-running
+// loops. With a boolean, whichever finished first unlocked while the other was still
+// mid-swap. Always pair lock_gear() with unlock_gear() in a finally.
+function lock_gear() {
+	state.gear_locked = (state.gear_locked || 0) + 1;
+}
+
+function unlock_gear() {
+	state.gear_locked = Math.max(0, (state.gear_locked || 0) - 1);
+}
 
 async function apply_equipment_rule(group, resolved) {
 	if (!resolved) return;
