@@ -531,7 +531,10 @@ async function handle_looting() {
 		await delay(150);
 
 		if (CONFIG.looting.equip_gold_gear) {
-			await equip_set("luck");
+			// Not equip_set("luck") here -- that was a hardcoded leftover from before
+			// MONSTER_GEAR_OVERRIDES existed and would fight any active override (e.g.
+			// fireroamer -> fireres). resolve_equipment() picks the right set on its own
+			// once state.gear_locked releases below.
 			await swap_booster("goldbooster", "luckbooster");
 			await delay(200);
 		}
