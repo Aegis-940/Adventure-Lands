@@ -170,7 +170,9 @@ window._cmListeners = window._cmListeners || [];
 	const MAX_BASE_AGE_MS = 10 * 60 * 1000; // 10 minutes
 
 	function resolve_and_load() {
-		p$.getJSON("https://api.github.com/repos/Aegis-940/Adventure-Lands/commits/main")
+		// Cache-busted: without this, the browser can serve a stale cached response for
+		// this exact URL even on an explicit reload, pinning the whole session to an old SHA.
+		p$.getJSON("https://api.github.com/repos/Aegis-940/Adventure-Lands/commits/main?_=" + Date.now())
 			.done(repo_data => {
 				const base = "https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@" + repo_data.sha + "/";
 				window.__AL_BASE__ = base;
