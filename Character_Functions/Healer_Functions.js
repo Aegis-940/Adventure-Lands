@@ -159,6 +159,7 @@ var equipment_sets = {
 	],
 	fireres: [
 		{ item_name: "orboffire", slot: "orb", level: 3, l: "l" },
+		{ item_name: "wbookhs", slot: "offhand", level: 2, l: "l" },
 	],
 };
 
@@ -580,7 +581,6 @@ var EQUIPMENT_RULES = {
 var MONSTER_GEAR_OVERRIDES = {
 	dryad:      { loadout: "mdef" },
 	fireroamer: { loadout: "fireres" },
-	bscorpion: { loadout: ["mdef"] },
 };
 
 // is_set_equipped()/equip_set() moved to Shared/Game_Config.js; reads this file's
