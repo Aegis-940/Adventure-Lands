@@ -495,7 +495,9 @@ function resolve_warrior_home_loadout() {
 	return sets;
 }
 
-const EQUIPMENT_RULES = {
+// var, not const: resolve_equipment() (Shared/Party_And_Loot.js) reads these globals at
+// call time, and const/let here wouldn't cross the indirect-eval boundary into global scope.
+var EQUIPMENT_RULES = {
 	booster: { kind: "booster", resolve: resolve_warrior_booster },
 	cape:    { kind: "set", resolve: resolve_warrior_cape },
 	coat:    { kind: "set", resolve: resolve_warrior_coat },
@@ -504,7 +506,7 @@ const EQUIPMENT_RULES = {
 
 // No monster-specific overrides yet — add entries like { bscorpion: { loadout: "single" } }
 // as needed; each key short-circuits that one group's resolve() for that farm target.
-const MONSTER_GEAR_OVERRIDES = {};
+var MONSTER_GEAR_OVERRIDES = {};
 
 // find_booster_slot, get_num_chests, get_num_targets → Game_Config.js
 

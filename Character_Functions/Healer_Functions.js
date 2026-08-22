@@ -569,13 +569,15 @@ function resolve_healer_loadout() {
 	return "luck";
 }
 
-const EQUIPMENT_RULES = {
+// var, not const: resolve_equipment() (Shared/Party_And_Loot.js) reads these globals at
+// call time, and const/let here wouldn't cross the indirect-eval boundary into global scope.
+var EQUIPMENT_RULES = {
 	loadout: { kind: "set", resolve: resolve_healer_loadout },
 };
 
 // dryad/fireroamer used to be a one-off HEALER_TARGET check inside handle_equipment_swap();
 // generalized here so any farm target can override any group.
-const MONSTER_GEAR_OVERRIDES = {
+var MONSTER_GEAR_OVERRIDES = {
 	dryad:      { loadout: "mdef" },
 	fireroamer: { loadout: "fireres" },
 };
