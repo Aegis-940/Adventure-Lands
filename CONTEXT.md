@@ -52,7 +52,6 @@ Character_Functions/[Role]_Functions.js   ← per-role behavior
 
 Character_Functions/Warrior_Skills.js     ← Warrior skill loop (stomp, cleave, agitate, taunt)
 Character_Functions/Healer_Skills.js      ← Healer skill loop (curse, absorb, party heal, dark blessing)
-Character_Functions/Ranger_Equipment.js   ← Ranger equipment-swap loop (weapon/boss sets)
     Each is a separate eval closure loaded right after its parent _Functions.js file
     (own role_scripts entry in Bootstrapper.js) — reads/writes the parent file's
     state/cache/CONFIG/home/destination globals, which are `var` there for exactly
@@ -190,7 +189,6 @@ CONFIG = {
 | Character_Functions/Healer_Skills.js | 222 |
 | Shared/Combat_Utilities.js | 194 |
 | Shared/Messaging.js | 177 |
-| Character_Functions/Ranger_Equipment.js | 133 |
 | Shared/Error_Handling.js | 150 |
 | Shared/Game_Config.js | 127 |
 | Shared/Widgets.js | 54 |

@@ -102,14 +102,13 @@ var state = {
 	skin_ready: false,
 	last_basher_swap: 0,
 	last_cleave_swap: 0,
-	last_cape_swap: 0,
-	last_coat_swap: 0,
-	last_boss_set_swap: 0,
-	last_booster_swap: 0,
 	angle: 0,
-	// Set while status_swap_trick_check() is mid-sequence — equipment_loop() checks this and
-	// skips its own gear decisions rather than racing the manual slot swap.
+	// Set while status_swap_trick_check() is mid-sequence — resolve_equipment() (Shared/
+	// Party_And_Loot.js) checks this and skips its own gear decisions rather than racing
+	// the manual slot swap.
 	gear_locked: false,
+	// Per-group cooldown timestamps for resolve_equipment()'s EQUIPMENT_RULES groups below.
+	equip_cooldowns: {},
 	last_angle_update: performance.now()
 };
 
@@ -286,11 +285,11 @@ async function status_swap_trick_check(target) {
 
 	// equip_batch(slots) is a slot-swap, not an item-set — the second identical call only
 	// lands back on base_set if those slots held it to begin with. Bail if desynced instead
-	// of compounding it; equipment_loop's equip_set(base_set) will correct it before next try.
+	// of compounding it; resolve_equipment()'s equip_set(base_set) will correct it before next try.
 	if (!is_set_equipped(trick.base_set)) return;
 
-	// Blocks equipment_loop() (25ms tick) from racing this multi-step swap and yanking gear
-	// mid-sequence — see investigation in conversation history.
+	// Blocks resolve_equipment() (Shared/Party_And_Loot.js) from racing this multi-step swap
+	// and yanking gear mid-sequence.
 	state.gear_locked = true;
 	try {
 		swap_trick_attempts++;
@@ -429,149 +428,87 @@ async function maintenance_loop() {
 // potion_loop → Game_Config.js
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// EQUIPMENT MANAGEMENT LOOP - Independent from combat
+// EQUIPMENT RULES — consumed by the shared resolve_equipment()/equipment_manager_loop()
+// (Shared/Party_And_Loot.js). Each group's resolve() reproduces exactly what the old
+// per-file equipment_loop() decided; only WHERE the decision runs changed, not WHAT it
+// decides, to avoid behavior drift from this unification.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function equipment_loop() {
-	const delay = TICK_RATE.equipment;
+// Special weapons: pause every group while wielding them, matching the original loop's
+// single shared early-return (not just the loadout group).
+function should_pause_equipment_resolve() {
+	const mainhand = character.slots?.mainhand?.name;
+	return mainhand === "basher" || mainhand === "bataxe";
+}
 
-	try {
-		if (panicking) {
-			return setTimeout(equipment_loop, delay);
+function resolve_warrior_booster() {
+	const active_boss = find_active_boss();
+	if (active_boss && active_boss.data.hp < CONFIG.equipment.boss_hp_thresholds[active_boss.name]) {
+		return "luckbooster";
+	}
+	return "xpbooster";
+}
+
+function resolve_warrior_cape() {
+	const chest_count = get_num_chests();
+	const num_targets = cache.tank_entity ? get_num_targets(cache.tank_entity.name) : 0;
+	return (chest_count >= CONFIG.equipment.chest_threshold && num_targets < 6) ? "stealth" : "cape";
+}
+
+function resolve_warrior_coat() {
+	const active_boss = find_active_boss();
+	// Coat only swaps away from a boss fight, or once its HP is above threshold (early phase).
+	const boss_blocks_coat = active_boss && active_boss.data.hp <= CONFIG.equipment.boss_hp_thresholds[active_boss.name];
+	if (boss_blocks_coat) return null;
+
+	if (character.mp > CONFIG.equipment.mp_thresholds.upper) return "stat";
+	if (character.mp < CONFIG.equipment.mp_thresholds.lower) return "mana";
+	return null;
+}
+
+// Combined weapon+accessories decision — boss-active and home-map branches were mutually
+// exclusive in the original, including a boss-active-but-target-null case that intentionally
+// applies nothing (e.g. a boss up while already at the home map); kept as one function so
+// that case can't accidentally fall through into the home-map logic.
+function resolve_warrior_loadout() {
+	if (!CONFIG.equipment.boss_set_swap_enabled) return resolve_warrior_home_loadout();
+
+	const active_boss = find_active_boss();
+	if (active_boss) {
+		const boss_hp = active_boss.data.hp;
+		if (boss_hp > CONFIG.equipment.boss_hp_thresholds[active_boss.name]) {
+			return character.map !== destination.map ? "dps" : null;
 		}
-
-		if (state.gear_locked) {
-			return setTimeout(equipment_loop, delay);
-		}
-
-		if (character.cc > COOLDOWNS.cc) {
-			return setTimeout(equipment_loop, delay);
-		}
-
-		const now = performance.now();
-		const swap_cooldown = CONFIG.equipment.swap_cooldown;
-
-		// Don't swap if using special weapons
-		const mainhand = character.slots?.mainhand?.name;
-		if (mainhand === "basher" || mainhand === "bataxe") {
-			return setTimeout(equipment_loop, delay);
-		}
-
-		// --- FIND ACTIVE BOSS ---
-		const active_boss = EVENT_LOCATIONS
-			.map(e => ({ name: e.name, data: parent.S[e.name] }))
-			.find(e => e.data?.live);
-
-		// --- BOOSTER SWAP ---
-		if (CONFIG.equipment.booster_swap_enabled && now - state.last_booster_swap > swap_cooldown) {
-			let desired_booster = "xpbooster";
-
-			if (active_boss && active_boss.data.hp < CONFIG.equipment.boss_hp_thresholds[active_boss.name]) {
-				desired_booster = "luckbooster";
-			}
-
-			const current_booster_slot = locate_item(desired_booster);
-			if (current_booster_slot === -1) {
-				const other_booster_slot = find_booster_slot();
-				if (other_booster_slot !== null) {
-					shift(other_booster_slot, desired_booster);
-					state.last_booster_swap = now;
-				}
-			}
-		}
-
-		// --- CAPE SWAP ---
-		if (CONFIG.equipment.cape_swap_enabled && now - state.last_cape_swap > swap_cooldown) {
-			let target_cape_set = null;
-			const chest_count = get_num_chests();
-			const num_targets = cache.tank_entity ? get_num_targets(cache.tank_entity.name) : 0;
-
-			if (chest_count >= CONFIG.equipment.chest_threshold && num_targets < 6) {
-				target_cape_set = "stealth";
-			} else {
-				target_cape_set = "cape";
-			}
-
-			if (target_cape_set && !is_set_equipped(target_cape_set)) {
-				equip_set(target_cape_set);
-				state.last_cape_swap = now;
-			}
-		}
-
-		// --- COAT SWAP (only when not at boss or boss HP high) ---
-		if (CONFIG.equipment.coat_swap_enabled && (!active_boss || active_boss.data.hp > CONFIG.equipment.boss_hp_thresholds[active_boss.name]) && now - state.last_coat_swap > swap_cooldown) {
-			let target_coat_set = null;
-
-			if (character.mp > CONFIG.equipment.mp_thresholds.upper) {
-				target_coat_set = "stat";
-			} else if (character.mp < CONFIG.equipment.mp_thresholds.lower) {
-				target_coat_set = "mana";
-			}
-
-			if (target_coat_set && !is_set_equipped(target_coat_set)) {
-				equip_set(target_coat_set);
-				state.last_coat_swap = now;
-			}
-		}
-
-		// --- BOSS/WEAPON SET LOGIC ---
-		if (now - state.last_boss_set_swap > swap_cooldown) {
-			let target_set = null;
-
-			// Boss-specific logic
-			if (CONFIG.equipment.boss_set_swap_enabled && active_boss) {
-				const boss_hp = active_boss.data.hp;
-				if (boss_hp > CONFIG.equipment.boss_hp_thresholds[active_boss.name]) {
-						 if (character.map !== destination.map) {
-							target_set = "dps";
-					}
-				} else {
-					target_set = "luck";
-				}
-			}
-			// Home map logic
-				 else if (character.map === destination.map) {
-				target_set = "dps_accessories";
-
-				// Weapon swap based on mob count/map
-				if (CONFIG.equipment.weapon_swap_enabled) {
-					const home_count = WARRIOR_TARGET === "giantspider" ? 1 : mob_count();
-					if (home_count === 1) {
-						if (!is_set_equipped("single")) {
-							equip_set("single");
-							state.last_boss_set_swap = now;
-						}
-					} else if (home_count > 1) {
-						if (!is_set_equipped("aoe")) {
-							equip_set("aoe");
-							state.last_boss_set_swap = now;
-						}
-					} else {
-						// Map-based fallback
-						if (CONFIG.equipment.aoe_maps.includes(character.map) && !is_set_equipped("aoe")) {
-							equip_set("aoe");
-							state.last_boss_set_swap = now;
-						} else if (CONFIG.equipment.single_target_maps.includes(character.map) && !is_set_equipped("single")) {
-							equip_set("single");
-							state.last_boss_set_swap = now;
-						}
-					}
-				}
-			}
-
-			// Apply boss set if determined
-			if (target_set && !is_set_equipped(target_set)) {
-				equip_set(target_set);
-				state.last_boss_set_swap = now;
-			}
-		}
-
-	} catch (e) {
-		console.error("equipment_loop error:", e);
+		return "luck";
 	}
 
-	setTimeout(equipment_loop, delay);
+	return resolve_warrior_home_loadout();
 }
+
+function resolve_warrior_home_loadout() {
+	if (character.map !== destination.map) return null;
+
+	const sets = ["dps_accessories"];
+	if (CONFIG.equipment.weapon_swap_enabled) {
+		const home_count = WARRIOR_TARGET === "giantspider" ? 1 : mob_count();
+		if (home_count === 1) sets.push("single");
+		else if (home_count > 1) sets.push("aoe");
+		else if (CONFIG.equipment.aoe_maps.includes(character.map)) sets.push("aoe");
+		else if (CONFIG.equipment.single_target_maps.includes(character.map)) sets.push("single");
+	}
+	return sets;
+}
+
+const EQUIPMENT_RULES = {
+	booster: { kind: "booster", resolve: resolve_warrior_booster },
+	cape:    { kind: "set", resolve: resolve_warrior_cape },
+	coat:    { kind: "set", resolve: resolve_warrior_coat },
+	loadout: { kind: "set", resolve: resolve_warrior_loadout },
+};
+
+// No monster-specific overrides yet — add entries like { bscorpion: { loadout: "single" } }
+// as needed; each key short-circuits that one group's resolve() for that farm target.
+const MONSTER_GEAR_OVERRIDES = {};
 
 // find_booster_slot, get_num_chests, get_num_targets → Game_Config.js
 
@@ -803,7 +740,7 @@ action_loop();
 // skill_loop() is NOT started here: it's defined in Warrior_Skills.js, a separate
 // eval closure loading after this file finishes evaluating — calling it here would
 // throw ReferenceError. Warrior_Skills.js starts it itself.
-equipment_loop();
+equipment_manager_loop();
 maintenance_loop();
 potion_loop();
 if (WARRIOR_TARGET === "bscorpion") prim_farm_loop();

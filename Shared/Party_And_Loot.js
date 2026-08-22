@@ -204,6 +204,87 @@ async function equip_set(set_name) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// UNIFIED EQUIPMENT RESOLVER — Warrior/Ranger/Healer each declare their own EQUIPMENT_RULES
+// (an object of named groups, one gear decision each) and optionally MONSTER_GEAR_OVERRIDES
+// (keyed by that character's own farm target, i.e. its `home` var — short-circuits a named
+// group to a specific set/sets for that target, generalizing what was previously a one-off
+// HEALER_TARGET check). One resolver, one driving loop per character, replacing each file's
+// separately-timed equip loop — so there is exactly one writer per character deciding gear,
+// instead of several independent loops that can race each other over the same slot.
+//
+// A group is { kind: "set", resolve } or { kind: "booster", resolve }. resolve() returns
+// null/undefined (no opinion this tick), a set name, an array of set names (applied together,
+// e.g. Warrior's home-map accessories + weapon), or for a booster group the desired booster
+// item name. Orb is deliberately never a group here — panic_check() owns that slot exclusively.
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+async function apply_equipment_rule(group, resolved) {
+	if (!resolved) return;
+	const sets = Array.isArray(resolved) ? resolved : [resolved];
+	if (sets.every(s => is_set_equipped(s))) return;
+
+	const now = performance.now();
+	const cooldown = CONFIG.equipment.swap_cooldown ?? 500;
+	if (!state.equip_cooldowns) state.equip_cooldowns = {};
+	if (now - (state.equip_cooldowns[group] || 0) < cooldown) return;
+	state.equip_cooldowns[group] = now;
+
+	for (const s of sets) {
+		if (!is_set_equipped(s)) await equip_set(s);
+	}
+}
+
+async function apply_booster_rule(group, desired_booster) {
+	if (!desired_booster) return;
+	if (locate_item(desired_booster) !== -1) return;
+
+	const now = performance.now();
+	const cooldown = CONFIG.equipment.swap_cooldown ?? 500;
+	if (!state.equip_cooldowns) state.equip_cooldowns = {};
+	if (now - (state.equip_cooldowns[group] || 0) < cooldown) return;
+
+	const other_slot = find_booster_slot();
+	if (other_slot === null) return;
+
+	state.equip_cooldowns[group] = now;
+	shift(other_slot, desired_booster);
+}
+
+async function resolve_equipment() {
+	if (typeof EQUIPMENT_RULES === "undefined") return;
+	// Some characters (Ranger) never declared this toggle at all — absent means enabled,
+	// same as before this file had one gate. Only an explicit false disables it.
+	if (CONFIG.equipment?.auto_swap_sets === false) return;
+	if (panicking) return; // panic_check() owns gear exclusively while active
+	if (state.gear_locked) return; // e.g. a manual swap-trick sequence is mid-flight
+	if (character.cc > COOLDOWNS.cc) return;
+	if (typeof should_pause_equipment_resolve === "function" && should_pause_equipment_resolve()) return;
+
+	const overrides = (typeof MONSTER_GEAR_OVERRIDES !== "undefined" && MONSTER_GEAR_OVERRIDES[home]) || {};
+
+	for (const group in EQUIPMENT_RULES) {
+		const rule = EQUIPMENT_RULES[group];
+		const resolved = group in overrides ? overrides[group] : rule.resolve();
+		if (rule.kind === "booster") {
+			await apply_booster_rule(group, resolved);
+		} else {
+			await apply_equipment_rule(group, resolved);
+		}
+	}
+}
+
+async function equipment_manager_loop() {
+	while (true) {
+		try {
+			await resolve_equipment();
+		} catch (e) {
+			catcher(e, "equipment_manager_loop");
+		}
+		await delay(TICK_RATE.equipment ?? 25);
+	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // PARTY MANAGER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -373,9 +454,9 @@ async function panic_check() {
 		}
 	}
 
-	// SAFE CONDITION. Restore the resting orb BEFORE clearing `panicking` — equipment_loop()'s
+	// SAFE CONDITION. Restore the resting orb BEFORE clearing `panicking` — resolve_equipment()'s
 	// only guard against racing this restore is `if (panicking) return`, so flipping it early
-	// (before the orb swap lands) lets equipment_loop() fight over the orb slot mid-restore on
+	// (before the orb swap lands) lets resolve_equipment() fight over the orb slot mid-restore on
 	// characters whose other equipment sets also touch orb (e.g. Warrior's dps_accessories).
 	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < t.aggro && panicking) {
 		if (Date.now() - last_safe_time > t.cooldown) {

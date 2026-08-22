@@ -136,6 +136,13 @@ function should_handle_events() {
 	return holiday_spirit || has_handleable_event;
 }
 
+// Shared by Warrior/Ranger's equipment resolvers — was duplicated identically in both files.
+function find_active_boss() {
+	return EVENT_LOCATIONS
+		.map(e => ({ name: e.name, data: parent.S[e.name] }))
+		.find(e => e.data?.live);
+}
+
 function handle_events() {
 	if (parent?.S?.holidayseason && !character?.s?.holidayspirit) {
 		if (!smart.moving) {

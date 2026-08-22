@@ -46,7 +46,6 @@ window._cmListeners = window._cmListeners || [];
 		"Characters/Healer.js"],
 
 		"Riva": ["Character_Functions/Ranger_Functions.js",
-		"Character_Functions/Ranger_Equipment.js",
 		"Characters/Ranger.js"],
 
 		"Riff": ["Merchant_Systems/Auto_Upgrade.js",

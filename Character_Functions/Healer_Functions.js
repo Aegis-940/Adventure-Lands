@@ -94,6 +94,12 @@ var state = {
 	last_gold_swap: 0,
 	last_temporal_surge: 0,
 	angle: 0,
+	// Set while a manual swap sequence (gold-gear looting swap, temporal surge) is mid-flight —
+	// resolve_equipment() (Shared/Party_And_Loot.js) checks this and skips its own gear
+	// decisions to avoid racing it.
+	gear_locked: false,
+	// Per-group cooldown timestamps for resolve_equipment()'s EQUIPMENT_RULES groups.
+	equip_cooldowns: {},
 	last_angle_update: performance.now()
 };
 
@@ -307,10 +313,6 @@ async function main_loop() {
 			}
 		}
 
-		if (CONFIG.equipment.auto_swap_sets/* && state.skin_ready*/ && state.current !== "looting") {
-			handle_equipment_swap();
-		}
-
 	} catch (e) {
 		console.error("main_loop error:", e);
 	}
@@ -336,19 +338,25 @@ async function check_temporal_surge() {
 
 	const prev_orb = character.slots.orb ? { name: character.slots.orb.name, level: character.slots.orb.level } : null;
 
-	state.last_equip_time = performance.now();
-	await equip_set("temporal");
-	await use_skill("temporalsurge");
-	log("Temporal Surge activated!", "#FFAA00");
-	state.last_temporal_surge = Date.now();
-	state.last_equip_time = performance.now();
+	// Blocks resolve_equipment() (Shared/Party_And_Loot.js) from racing this multi-step swap.
+	state.gear_locked = true;
+	try {
+		state.last_equip_time = performance.now();
+		await equip_set("temporal");
+		await use_skill("temporalsurge");
+		log("Temporal Surge activated!", "#FFAA00");
+		state.last_temporal_surge = Date.now();
+		state.last_equip_time = performance.now();
 
-	// Swap back to whatever set handle_equipment_swap would choose
-	if (prev_orb) {
-		const inv_idx = character.items.findIndex(
-			i => i && i.name === prev_orb.name && i.level === prev_orb.level
-		);
-		if (inv_idx !== -1) await equip(inv_idx, "orb");
+		// Swap back to whatever set resolve_equipment() would choose
+		if (prev_orb) {
+			const inv_idx = character.items.findIndex(
+				i => i && i.name === prev_orb.name && i.level === prev_orb.level
+			);
+			if (inv_idx !== -1) await equip(inv_idx, "orb");
+		}
+	} finally {
+		state.gear_locked = false;
 	}
 
 	return true;
@@ -497,6 +505,9 @@ function should_loot() {
 async function handle_looting() {
 	state.last_loot_time = performance.now();
 	state.current = "looting";
+	// Blocks resolve_equipment() (Shared/Party_And_Loot.js) from racing the gold-gear swap
+	// below with its own loadout decision.
+	state.gear_locked = true;
 
 	try {
 		if (CONFIG.looting.equip_gold_gear && !is_set_equipped("gold") && performance.now() - state.last_gold_swap > 1000) {
@@ -527,6 +538,7 @@ async function handle_looting() {
 		console.error("Looting error:", e);
 	} finally {
 		state.current = "idle";
+		state.gear_locked = false;
 	}
 }
 
@@ -549,26 +561,24 @@ function save_chest_map(map) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// EQUIPMENT MANAGEMENT
+// EQUIPMENT RULES — consumed by the shared resolve_equipment()/equipment_manager_loop()
+// (Shared/Party_And_Loot.js). Not run while looting: handle_looting() sets state.gear_locked.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function handle_equipment_swap() {
-	if (!CONFIG.equipment.auto_swap_sets || character.cc > COOLDOWNS.cc) return;
-
-	const now = performance.now();
-	if (now - state.last_equip_time < COOLDOWNS.equip_swap) return;
-
-	let target_set = "luck";
-	if (typeof HEALER_TARGET !== "undefined") {
-		if (HEALER_TARGET === "dryad") target_set = "mdef";
-		else if (HEALER_TARGET === "fireroamer") target_set = "fireres";
-	}
-
-	if (!is_set_equipped(target_set)) {
-		state.last_equip_time = now;
-		await equip_set(target_set);
-	}
+function resolve_healer_loadout() {
+	return "luck";
 }
+
+const EQUIPMENT_RULES = {
+	loadout: { kind: "set", resolve: resolve_healer_loadout },
+};
+
+// dryad/fireroamer used to be a one-off HEALER_TARGET check inside handle_equipment_swap();
+// generalized here so any farm target can override any group.
+const MONSTER_GEAR_OVERRIDES = {
+	dryad:      { loadout: "mdef" },
+	fireroamer: { loadout: "fireres" },
+};
 
 // is_set_equipped()/equip_set() moved to Shared/Game_Config.js; reads this file's
 // own `equipment_sets` global at call time.
@@ -891,6 +901,7 @@ action_loop();
 // eval closure loading after this one — calling it here would throw ReferenceError.
 // Healer_Skills.js starts itself once loaded.
 maintenance_loop();
+equipment_manager_loop();
 potion_loop();
 setInterval(remote_sell_items, 5000);
 if (HEALER_TARGET === "bscorpion") {

@@ -124,16 +124,13 @@ var ITEMS_TO_KEEP = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster"
 // STATE & CACHE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// var, not const: Ranger_Equipment.js (separate eval closure) also reads/writes these.
 var state = {
 	skin_ready: false,
-	last_equip_time: 0,
-	last_weapon_swap: 0,
-	last_booster_swap: 0,
-	last_cape_swap: 0,
-	last_coat_swap: 0,
-	last_boss_set_swap: 0,
-	last_xp_swap: 0,
+	// Set while a manual swap-trick sequence is mid-flight — resolve_equipment() (Shared/
+	// Party_And_Loot.js) checks this and skips its own gear decisions to avoid racing it.
+	gear_locked: false,
+	// Per-group cooldown timestamps for resolve_equipment()'s EQUIPMENT_RULES groups.
+	equip_cooldowns: {},
 	angle: 0,
 	last_angle_update: performance.now(),
 };
@@ -211,6 +208,51 @@ var equipment_sets = {
 	],
 
 };
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// EQUIPMENT RULES — consumed by the shared resolve_equipment()/equipment_manager_loop()
+// (Shared/Party_And_Loot.js).
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function resolve_ranger_weapon() {
+	const { in_range, out_of_range } = cache.targets;
+	const min5 = CONFIG.combat.min_targets_for_5shot;
+	const min3 = CONFIG.combat.min_targets_for_3shot;
+	const can_5shot = character.mp >= (G.skills["5shot"]?.mp + 400);
+	const can_3shot = character.mp >= (G.skills["3shot"]?.mp + 200);
+
+	if (cache.heal_target) return "heal";
+	if (RANGER_TARGET === "giantspider") return "single";
+	if (can_5shot && (in_range.length >= min5 || out_of_range.length >= min5)) return "boom";
+	if (can_3shot && in_range.length >= min3) return "boom";
+	if (cache.targets.cluster_target) return "boom";
+	return "single";
+}
+
+// Booster/cape/coat/xp swaps were already disabled (commented out) before this was
+// unified — left disabled, not reintroduced as part of this refactor.
+
+function resolve_ranger_loadout() {
+	if (!CONFIG.equipment.boss_set_swap_enabled) return null;
+	if (character.slots?.mainhand?.name === "cupid") return null;
+
+	const active_boss = find_active_boss();
+	if (active_boss) {
+		return active_boss.data.hp > CONFIG.equipment.boss_hp_thresholds[active_boss.name] ? "dps" : "luck";
+	}
+	return character.map === destination.map ? "dps" : null;
+}
+
+const EQUIPMENT_RULES = {
+	weapon:  { kind: "set", resolve: resolve_ranger_weapon },
+	loadout: { kind: "set", resolve: resolve_ranger_loadout },
+};
+
+// No monster-specific overrides yet — add entries like { dryad: { weapon: "single" } } as
+// needed; each key short-circuits that one group's resolve() for that farm target.
+const MONSTER_GEAR_OVERRIDES = {};
+
+// find_booster_slot, get_num_chests, get_num_targets → Game_Config.js
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // CORE UTILITIES
@@ -976,12 +1018,8 @@ setInterval(send_updates, 20000);
 
 main_loop();
 action_loop();
-// skill_loop() (huntersmark/supershot) is defined in THIS file, so it's safe to
-// start directly here — no eval-closure boundary to cross.
 skill_loop();
-// equipment_loop() is NOT started here: it's defined in Ranger_Equipment.js, a
-// separate eval closure loading after this file finishes evaluating — calling it
-// here would throw ReferenceError. Ranger_Equipment.js starts it itself.
+equipment_manager_loop();
 maintenance_loop();
 potion_loop();
 if (RANGER_TARGET === "bscorpion") prim_farm_loop();
