@@ -400,6 +400,22 @@ function clear_inventory() {
 	}
 }
 
+// Polls is_set_equipped() instead of trusting a flat delay to guess when the client's own
+// state has caught up with an equip request — resolves as soon as it's actually equipped,
+// so scare/use_skill can't race gear that isn't on yet, and the common case (equip lands
+// fast) doesn't eat a needless fixed wait. Throws on timeout rather than returning false,
+// so a caller can't silently ignore a failed equip by forgetting to check the result.
+async function wait_until_equipped(set_name, timeout_ms = 1000, interval_ms = 100) {
+	let waited = 0;
+	while (!is_set_equipped(set_name)) {
+		if (waited >= timeout_ms) {
+			throw { reason: "timeout", message: `wait_until_equipped("${set_name}"): still not equipped after ${timeout_ms}ms` };
+		}
+		await delay(interval_ms);
+		waited += interval_ms;
+	}
+}
+
 // Reads this file's own PANIC_THRESHOLDS global. If PANIC_BROADCAST_TARGETS is also defined
 // (currently only Healer), panic state changes are broadcast via send_cm to those targets.
 async function panic_check() {
@@ -433,13 +449,10 @@ async function panic_check() {
 		last_panic_time = Date.now();
 		if (!is_set_equipped("panic")) {
 			try {
-				uip_set("panic");
-				await delay(300);
-				if (!is_set_equipped("panic")) {
-					log("[PANIC] Failed to equip panic orb!", "#ff4444", "Errors");
-				}
+				await equip_set("panic");
+				await wait_until_equipped("panic");
 			} catch (e) {
-				log(`[PANIC] Error equipping panic orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
+				log(`[PANIC] Failed to equip panic orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
 			}
 		}
 
@@ -465,12 +478,9 @@ async function panic_check() {
 			if (is_set_equipped("panic") && !is_set_equipped("orb")) {
 				try {
 					await equip_set("orb");
-					await delay(200);
-					if (!is_set_equipped("orb")) {
-						log("[PANIC] Failed to equip normal orb!", "#ff4444", "Errors");
-					}
+					await wait_until_equipped("orb");
 				} catch (e) {
-					log(`[PANIC] Error equipping normal orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
+					log(`[PANIC] Failed to equip normal orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
 				}
 			}
 
