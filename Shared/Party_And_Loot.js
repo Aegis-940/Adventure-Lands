@@ -433,8 +433,8 @@ async function panic_check() {
 		last_panic_time = Date.now();
 		if (!is_set_equipped("panic")) {
 			try {
-				await equip_set("panic");
-				await delay(200);
+				uip_set("panic");
+				await delay(300);
 				if (!is_set_equipped("panic")) {
 					log("[PANIC] Failed to equip panic orb!", "#ff4444", "Errors");
 				}
