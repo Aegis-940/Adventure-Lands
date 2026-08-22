@@ -366,11 +366,7 @@ async function main_loop() {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 async function action_loop() {
-	if (panicking) return setTimeout(action_loop, 100);
-	if (WARRIOR_TARGET !== "giantspider") {
-		const myras = get_player("Myras");
-		if (!myras || distance(character, myras) > 200) return setTimeout(action_loop, 100);
-	}
+	if (should_pause_combat_loop()) return setTimeout(action_loop, 100);
 	let delay = 10;
 
 	try {

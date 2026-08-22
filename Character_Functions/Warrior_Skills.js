@@ -5,11 +5,7 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function skill_loop() {
-	if (panicking) return setTimeout(skill_loop, 100);
-	if (WARRIOR_TARGET !== "giantspider") {
-		const myras = get_player("Myras");
-		if (!myras || distance(character, myras) > 200) return setTimeout(skill_loop, 100);
-	}
+	if (should_pause_combat_loop()) return setTimeout(skill_loop, 100);
 	const delay = TICK_RATE.skill;
 
 	try {
@@ -73,17 +69,24 @@ async function handle_stomp() {
 	const needs_swap = mainhand !== "basher";
 	const now = performance.now();
 
-	if (needs_swap && now - state.last_basher_swap > COOLDOWNS.weapon_swap) {
-		state.last_basher_swap = now;
-		unequip("offhand");
-		batch_equip(equipment_sets.basher);
-	}
+	// Blocks resolve_equipment() (Shared/Party_And_Loot.js) from racing this temporary
+	// weapon swap and yanking gear mid-sequence.
+	state.gear_locked = true;
+	try {
+		if (needs_swap && now - state.last_basher_swap > COOLDOWNS.weapon_swap) {
+			state.last_basher_swap = now;
+			await unequip("offhand");
+			await batch_equip(equipment_sets.basher);
+		}
 
-	await use_skill("stomp");
+		await use_skill("stomp");
 
-	if (needs_swap) {
-		const target_set = mob_count() === 1 ? "single" : "aoe";
-		batch_equip(equipment_sets[target_set]);
+		if (needs_swap) {
+			const target_set = mob_count() === 1 ? "single" : "aoe";
+			await batch_equip(equipment_sets[target_set]);
+		}
+	} finally {
+		state.gear_locked = false;
 	}
 }
 
@@ -96,17 +99,23 @@ async function handle_cleave() {
 	const needs_swap = mainhand !== "bataxe";
 	const now = performance.now();
 
-	if (now - state.last_cleave_swap > COOLDOWNS.weapon_swap) {
-		state.last_cleave_swap = now;
-		unequip("offhand");
-		batch_equip(equipment_sets.bataxe);
+	// Blocks resolve_equipment() (Shared/Party_And_Loot.js) from racing this temporary
+	// weapon swap and yanking gear mid-sequence.
+	state.gear_locked = true;
+	try {
+		if (now - state.last_cleave_swap > COOLDOWNS.weapon_swap) {
+			state.last_cleave_swap = now;
+			await unequip("offhand");
+			await batch_equip(equipment_sets.bataxe);
+		}
+
+		await use_skill("cleave");
+
+		const target_set = mob_count() === 1 ? "single" : "aoe";
+		await batch_equip(equipment_sets[target_set]);
+	} finally {
+		state.gear_locked = false;
 	}
-
-	await use_skill("cleave");
-
-	const target_set = mob_count() === 1 ? "single" : "aoe";
-	batch_equip(equipment_sets[target_set]);
-
 }
 
 function can_cleave() {

@@ -143,6 +143,16 @@ function find_active_boss() {
 		.find(e => e.data?.live);
 }
 
+// Shared by Warrior/Ranger's action_loop()/skill_loop() — was duplicated identically 4 times
+// across those two files. Not used by Healer: the healer's job during a panic is to keep
+// healing/cursing/absorbing, not back off, so it intentionally has no equivalent guard.
+function should_pause_combat_loop() {
+	if (panicking) return true;
+	if (home === "giantspider") return false; // follow_healer() handles positioning instead
+	const myras = get_player("Myras");
+	return !myras || distance(character, myras) > 200;
+}
+
 function handle_events() {
 	if (parent?.S?.holidayseason && !character?.s?.holidayspirit) {
 		if (!smart.moving) {

@@ -434,11 +434,7 @@ const main_loop = async () => {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const action_loop = async () => {
-	if (panicking) return setTimeout(action_loop, 100);
-	if (RANGER_TARGET !== "giantspider") {
-		const myras = get_player("Myras");
-		if (!myras || distance(character, myras) > 200) return setTimeout(action_loop, 100);
-	}
+	if (should_pause_combat_loop()) return setTimeout(action_loop, 100);
 	let delay = 5;
 	try {
 		if (is_disabled(character)) return setTimeout(action_loop, 50);
@@ -483,11 +479,7 @@ const handle_attack = async () => {
 };
 
 const skill_loop = async () => {
-	if (panicking) return setTimeout(skill_loop, 100);
-	if (RANGER_TARGET !== "giantspider") {
-		const myras = get_player("Myras");
-		if (!myras || distance(character, myras) > 200) return setTimeout(skill_loop, 100);
-	}
+	if (should_pause_combat_loop()) return setTimeout(skill_loop, 100);
 	let delay = 5;
 	try {
 		if (!CONFIG.combat.use_hunters_mark && !CONFIG.combat.use_supershot) {
