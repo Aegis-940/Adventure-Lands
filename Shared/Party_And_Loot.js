@@ -373,29 +373,31 @@ async function panic_check() {
 		}
 	}
 
-	// SAFE CONDITION
-	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < t.aggro) {
-		if (panicking) {
+	// SAFE CONDITION. Restore the resting orb BEFORE clearing `panicking` — equipment_loop()'s
+	// only guard against racing this restore is `if (panicking) return`, so flipping it early
+	// (before the orb swap lands) lets equipment_loop() fight over the orb slot mid-restore on
+	// characters whose other equipment sets also touch orb (e.g. Warrior's dps_accessories).
+	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < t.aggro && panicking) {
+		if (Date.now() - last_safe_time > t.cooldown) {
+			last_safe_time = Date.now();
+
+			if (is_set_equipped("panic") && !is_set_equipped("orb")) {
+				try {
+					await equip_set("orb");
+					await delay(200);
+					if (!is_set_equipped("orb")) {
+						log("[PANIC] Failed to equip normal orb!", "#ff4444", "Errors");
+					}
+				} catch (e) {
+					log(`[PANIC] Error equipping normal orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
+				}
+			}
+
 			panicking = false;
 			if (typeof PANIC_BROADCAST_TARGETS !== "undefined") {
 				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
 			}
 			log("✅ Panic over.", "#00ff00", "Alerts");
-		}
-	}
-
-	if (!panicking && (Date.now() - last_safe_time > t.cooldown)) {
-		last_safe_time = Date.now();
-		if (is_set_equipped("panic") && !is_set_equipped("orb")) {
-			try {
-				await equip_set("orb");
-				await delay(200);
-				if (!is_set_equipped("orb")) {
-					log("[PANIC] Failed to equip normal orb!", "#ff4444", "Errors");
-				}
-			} catch (e) {
-				log(`[PANIC] Error equipping normal orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
-			}
 		}
 	}
 }

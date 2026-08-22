@@ -143,7 +143,7 @@ var equipment_sets = {
 		{ item_name: "jacko", slot: "orb", level: 0, l: "l" },
 	],
 	orb: [
-		{ item_name: "rabbitsfoot", slot: "orb", level: 1, l: "l" },
+		{ item_name: "talkingskull", slot: "orb", level: 3, l: "l" },
 	],
 	mdef: [
 		{ item_name: "wbookhs", slot: "offhand", level: 2, l: "l" },
