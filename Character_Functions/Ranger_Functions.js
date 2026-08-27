@@ -121,7 +121,7 @@ var destination = {
 };
 
 // var, not const: send_to_merchant() (Shared/Game_Config.js) reads this global.
-var ITEMS_TO_KEEP = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster", "pumpkinspice", "xptome", "tracker", "jacko", "orbofdex", "talkingskull", "cupid", "computer"];
+var ITEMS_TO_KEEP = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster", "pumpkinspice", "xptome", "tracker", "jacko", "talkingskull", "cupid", "computer"];
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATE & CACHE
