@@ -74,6 +74,12 @@ const PARTY = CONFIG.party.members;
 
 var merchant_task = "Idle"; // var so Auto_Upgrade.js can share this global
 
+// Bumped whenever the watchdog force-resets a stuck task. A long-running handler captures
+// this when it starts and bails if it changes -- otherwise the watchdog frees the task slot
+// while the stuck handler keeps running, loop_controller starts a second one, and the two
+// fight over movement while the watchdog re-fires every 5 minutes.
+let merchant_task_generation = 0;
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATE MACHINE
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -344,9 +350,16 @@ async function equip_tool(tool_name) {
 	return character.slots.mainhand && character.slots.mainhand.name === tool_name;
 }
 
+// use_skill() can reject with "cooldown" while is_on_cooldown() still reads false; without a
+// bound, the retry below spins forever, the task never ends, and the watchdog fires every
+// 5 minutes while a second copy of the task starts alongside it.
+const GATHERING_MAX_COOLDOWN_RETRIES = 15;
+
 async function handle_gathering_state(tool_name, skill_name, spot, tolerance, task_label) {
 	if (merchant_task !== "Idle") return;
 	merchant_task = task_label;
+	const my_generation = merchant_task_generation;
+	let cooldown_retries = 0;
 	try {
 		const tool_available = await ensure_tool_available(tool_name);
 		if (!tool_available) {
@@ -367,6 +380,10 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 		}
 
 		while (true) {
+			if (my_generation !== merchant_task_generation) {
+				log(`⚠️ ${task_label} was force-reset by the watchdog — abandoning this run.`, "#FFA500");
+				return;
+			}
 			if (character.rip) {
 				log(`❌ Died while ${skill_name}, stopping.`);
 				break;
@@ -394,8 +411,13 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 
 			try {
 				await use_skill(skill_name);
+				cooldown_retries = 0;
 			} catch (e) {
 				if (e?.reason === "cooldown") {
+					if (++cooldown_retries > GATHERING_MAX_COOLDOWN_RETRIES) {
+						log(`⚠️ ${skill_name}: use_skill kept reporting cooldown while is_on_cooldown() read false — giving up this run.`, "#FFA500");
+						break;
+					}
 					await delay(2000);
 					continue;
 				}
@@ -432,16 +454,21 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 	} catch (e) {
 		catcher(e, `handle_gathering_state(${skill_name})`);
 	} finally {
-		// try/catch here too: an exception inside a finally block skips the rest of that
-		// finally, so an unguarded equip_default_gear() failure would skip the
-		// merchant_task reset and deadlock the state machine permanently.
-		try {
-			await equip_default_gear();
-		} catch (e) {
-			catcher(e, `handle_gathering_state(${skill_name}): equip_default_gear`);
+		// Only clean up if this run still owns the task slot. After a watchdog force-reset a
+		// replacement task is already running, and re-equipping resting gear / clearing
+		// merchant_task here would strip its tool and free a slot it legitimately holds.
+		if (my_generation === merchant_task_generation) {
+			// try/catch here too: an exception inside a finally block skips the rest of that
+			// finally, so an unguarded equip_default_gear() failure would skip the
+			// merchant_task reset and deadlock the state machine permanently.
+			try {
+				await equip_default_gear();
+			} catch (e) {
+				catcher(e, `handle_gathering_state(${skill_name}): equip_default_gear`);
+			}
+			merchant_task = "Idle";
+			log(`🔁 ${task_label} cycle finished, back to Idle.`, "#888");
 		}
-		merchant_task = "Idle";
-		log(`🔁 ${task_label} cycle finished, back to Idle.`, "#888");
 	}
 }
 
@@ -490,6 +517,7 @@ async function loop_controller() {
 			} else if (merchant_task !== "Idle" && Date.now() - watchdog_since > MERCHANT_TASK_WATCHDOG_MS) {
 				game_log(`⚠️ Merchant stuck on "${merchant_task}" for over ${MERCHANT_TASK_WATCHDOG_MS / 60000} minutes — forcing back to Idle.`, "#FF3333");
 				merchant_task = "Idle";
+				merchant_task_generation++; // tells the stuck handler to abandon its run
 				watchdog_task = "Idle";
 				watchdog_since = Date.now();
 			}
