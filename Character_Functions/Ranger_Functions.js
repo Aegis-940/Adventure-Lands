@@ -26,9 +26,8 @@ var CONFIG = {
 
 	movement: {
 		enabled: true,
-		circle_walk: true,
-		circle_speed: 0.95,
-		circle_radius: 75,
+		reposition: true,
+		circle_radius: 75, // reposition() stays within this of the farm spot
 		move_threshold: 10,
 		clump_radius: 30,
 		follow_distance: 30,
@@ -134,8 +133,7 @@ var state = {
 	gear_locked: 0,
 	// Per-group cooldown timestamps for resolve_equipment()'s EQUIPMENT_RULES groups.
 	equip_cooldowns: {},
-	angle: 0,
-	last_angle_update: performance.now(),
+	last_reposition: 0,
 };
 
 var cache = {
@@ -344,17 +342,7 @@ const update_target_cache = () => {
 	}
 
 	// Score in-range mobs by nearby aggro'd mob count, sort densest first
-	const explosion_radius = character.explosion || 40;
-	const scored = in_range.map(mob => {
-		let count = 0;
-		for (const id in parent.entities) {
-			const e = parent.entities[id];
-			if (e?.type === "monster" && !e.dead && e.target && e !== mob &&
-				Math.hypot(e.x - mob.x, e.y - mob.y) <= explosion_radius) count++;
-		}
-		return { mob, count };
-	});
-	scored.sort((a, b) => b.count - a.count);
+	const scored = score_by_explosion_spread(in_range, true); // Shared/Combat_Utilities.js
 	const cluster_targets = scored.map(s => s.mob);
 	const cluster_target = scored[0]?.count >= 3 ? scored[0].mob : null;
 
@@ -424,8 +412,8 @@ const main_loop = async () => {
 				follow_healer();
 			} else if (!get_nearest_monster({ type: home })) {
 				handle_return_home();
-			} else if (CONFIG.movement.circle_walk) {
-				walk_in_circle();
+			} else if (CONFIG.movement.reposition) {
+				reposition();
 			}
 		}
 	} catch (e) {
@@ -562,33 +550,39 @@ const maintenance_loop = async () => {
 
 // should_handle_events, handle_events, handle_specific_event, handle_return_home → Game_Config.js
 
-async function walk_in_circle() {
+const REPOSITION_INTERVAL_MS = 250;
+
+// Keeps as much space as possible between the ranger and the nearest monster (aggro'd or
+// not), staying inside the orbit radius. Maximin, not average distance: the goal is that
+// nothing gets close, so the single closest monster is what matters.
+async function reposition() {
 	if (smart.moving || character.moving) return;
 	if (RANGER_TARGET === "bscorpion") return;
 
-	let center;
-	if (RANGER_TARGET === "giantspider") {
-		const healer = get_player("Myras");
-		if (!healer || healer.rip || healer.map !== character.map) return;
-		center = { x: healer.x, y: healer.y };
-	} else {
-		center = locations[home][0];
-	}
-	const { x: center_x, y: center_y } = center;
 	const now = performance.now();
-	const delta = (now - state.last_angle_update) / 1000;
+	if (now - state.last_reposition < REPOSITION_INTERVAL_MS) return;
+	state.last_reposition = now;
 
-	state.angle = (state.angle + CONFIG.movement.circle_speed * delta) % (2 * Math.PI);
-	state.last_angle_update = now;
+	const center = reposition_center(); // Shared/Combat_Utilities.js
+	if (!center) return;
 
-	const target_x = center_x + Math.cos(state.angle) * CONFIG.movement.circle_radius;
-	const target_y = center_y + Math.sin(state.angle) * CONFIG.movement.circle_radius;
+	const monsters = Object.values(parent.entities).filter(e => e?.type === "monster" && !e.dead);
+	if (!monsters.length) return;
 
-	const dist_to_target = Math.hypot(character.x - target_x, character.y - target_y);
-	if (dist_to_target > CONFIG.movement.move_threshold) {
-		// Use raw move() — xmove falls back to smart_move on obstacle, which would gate attacks
-		move(target_x, target_y);
-	}
+	const spot = best_orbit_spot(center, CONFIG.movement.circle_radius, (x, y) => {
+		let nearest = Infinity;
+		for (const e of monsters) {
+			const d = Math.hypot(e.x - x, e.y - y);
+			if (d < nearest) nearest = d;
+		}
+		return nearest;
+	});
+
+	if (!spot) return;
+	if (Math.hypot(character.x - spot.x, character.y - spot.y) <= CONFIG.movement.move_threshold) return;
+
+	// Use raw move() — xmove falls back to smart_move on obstacle, which would gate attacks
+	move(spot.x, spot.y);
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

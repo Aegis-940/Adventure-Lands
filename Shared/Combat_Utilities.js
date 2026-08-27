@@ -153,6 +153,77 @@ function should_pause_combat_loop() {
 	return !myras || distance(character, myras) > 200;
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// COMBAT POSITIONING — shared by Warrior/Ranger's reposition() loops.
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+// Scores each candidate by how many OTHER monsters sit within the character's explosion
+// radius of it, i.e. how far hitting it would spread splash damage. Returns [{mob, count}]
+// sorted densest-first. aggro_only limits the count to monsters already engaged.
+function score_by_explosion_spread(pool, aggro_only = false) {
+	const explosion_radius = character.explosion || 40;
+	const all_monsters = Object.values(parent.entities).filter(e => e?.type === "monster" && !e.dead);
+
+	const scored = pool.map(mob => {
+		let count = 0;
+		for (const e of all_monsters) {
+			if (e === mob) continue;
+			if (aggro_only && !e.target) continue;
+			if (Math.hypot(e.x - mob.x, e.y - mob.y) <= explosion_radius) count++;
+		}
+		return { mob, count };
+	});
+
+	scored.sort((a, b) => b.count - a.count);
+	return scored;
+}
+
+const ORBIT_ANGLE_SAMPLES = 16;
+const ORBIT_RADIUS_FRACTIONS = [1.0, 0.66, 0.33];
+
+// Samples positions inside the orbit disc and returns the best-scoring reachable one.
+// score(x, y) returns a number (higher wins) or null to reject the candidate. The character's
+// current position is always a candidate, so "stay put" can legitimately win -- that's what
+// keeps this from thrashing when nothing has meaningfully changed.
+function best_orbit_spot(center, radius, score) {
+	let best = null;
+	let best_score = -Infinity;
+
+	function consider(x, y) {
+		if (!can_move_to(x, y)) return;
+		const s = score(x, y);
+		if (s === null || s === undefined) return;
+		if (s > best_score) {
+			best_score = s;
+			best = { x, y };
+		}
+	}
+
+	consider(character.x, character.y);
+	consider(center.x, center.y);
+
+	for (const frac of ORBIT_RADIUS_FRACTIONS) {
+		const r = radius * frac;
+		for (let i = 0; i < ORBIT_ANGLE_SAMPLES; i++) {
+			const angle = (i / ORBIT_ANGLE_SAMPLES) * 2 * Math.PI;
+			consider(center.x + Math.cos(angle) * r, center.y + Math.sin(angle) * r);
+		}
+	}
+
+	return best;
+}
+
+// Orbit center: Myras in giantspider follow mode (she leads), otherwise the farm spot.
+// Returns null when follow mode has no usable healer to orbit.
+function reposition_center() {
+	if (home === "giantspider") {
+		const healer = get_player("Myras");
+		if (!healer || healer.rip || healer.map !== character.map) return null;
+		return { x: healer.x, y: healer.y };
+	}
+	return locations[home][0];
+}
+
 function handle_events() {
 	if (parent?.S?.holidayseason && !character?.s?.holidayspirit) {
 		if (!smart.moving) {

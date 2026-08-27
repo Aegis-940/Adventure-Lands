@@ -16,6 +16,9 @@ var CONFIG = {
 		cleave_min_mobs: 1,
 		cleave_blacklist: ["fireroamer", "plantoid"],
 		agitate_min_mobs: 2,
+		// Minimum other-monsters-in-explosion-radius before a mob counts as a cluster worth
+		// targeting/repositioning for. Below this, normal highest-HP targeting is better.
+		cluster_min_mobs: 2,
 		agitate_blacklist: ["plantoid"],
 		agitate_fireroamer_conditions: {
 			healer_hp_pct: 0.60,
@@ -29,9 +32,9 @@ var CONFIG = {
 
 	movement: {
 		enabled: true,
-		circle_walk: true,
-		circle_speed: 1.8,
-		circle_radius: 35,
+		reposition: true,
+		circle_radius: 35, // reposition() stays within this of the farm spot
+		move_threshold: 10,
 		follow_distance: 30,
 	},
 
@@ -102,18 +105,18 @@ var state = {
 	skin_ready: false,
 	last_basher_swap: 0,
 	last_cleave_swap: 0,
-	angle: 0,
 	// Set while status_swap_trick_check() is mid-sequence — resolve_equipment() (Shared/
 	// Party_And_Loot.js) checks this and skips its own gear decisions rather than racing
 	// the manual slot swap.
 	gear_locked: 0,
 	// Per-group cooldown timestamps for resolve_equipment()'s EQUIPMENT_RULES groups below.
 	equip_cooldowns: {},
-	last_angle_update: performance.now()
+	last_reposition: 0
 };
 
 var cache = {
 	target: null,
+	cluster_target: null,
 	party_members: [],
 	tank_entity: null,
 	monsters_in_cleave_range: [],
@@ -203,14 +206,32 @@ var equipment_sets = {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function update_cache() {
+	cache.tank_entity = get_entity("Myras")
+	cache.monsters_in_cleave_range = find_monsters_in_cleave_range();
+
 	if (!cache.is_valid()) {
+		// Before find_best_target(): it reads cluster_target as its priority-3 pick.
+		cache.cluster_target = find_cluster_target();
 		cache.target = find_best_target();
 		cache.party_members = get_party_members();
 		cache.last_update = performance.now();
 	}
+}
 
-	cache.tank_entity = get_entity("Myras")
-	cache.monsters_in_cleave_range = find_monsters_in_cleave_range();
+// The monster whose explosion would spread to the most others — what reposition() moves to
+// reach and find_best_target() prefers, so the splash actually lands on the dense cluster.
+// Only counts monsters in attack range, since an unreachable one is not a usable target.
+function find_cluster_target() {
+	const in_range = Object.values(parent.entities).filter(e =>
+		e?.type === "monster" &&
+		!e.dead &&
+		e.visible &&
+		distance(character, e) <= character.range
+	);
+	if (!in_range.length) return null;
+
+	const scored = score_by_explosion_spread(in_range); // Shared/Combat_Utilities.js
+	return scored[0]?.count >= CONFIG.combat.cluster_min_mobs ? scored[0].mob : null;
 }
 
 function find_best_target() {
@@ -226,10 +247,13 @@ function find_best_target() {
 	const cursed = get_nearest_monster_v2({ status_effects: ["cursed"], max_distance: max_dist, check_max_hp: true });
 	if (cursed) return cursed;
 
-	// Priority 3: In follow mode prefer closest; otherwise highest HP
+	// Priority 3: In follow mode prefer closest; otherwise the densest explosion cluster
 	if (WARRIOR_TARGET === "giantspider") {
 		return get_nearest_monster_v2({ max_distance: max_dist }) || null;
 	}
+	if (cache.cluster_target && !cache.cluster_target.dead) return cache.cluster_target;
+
+	// Priority 4: Highest HP in range
 	return get_nearest_monster_v2({ max_distance: max_dist, check_max_hp: true }) || null;
 }
 
@@ -349,8 +373,8 @@ async function main_loop() {
 				follow_healer();
 			} else if (!get_nearest_monster({ type: home })) {
 				handle_return_home();
-			} else if (CONFIG.movement.circle_walk) {
-				walk_in_circle();
+			} else if (CONFIG.movement.reposition) {
+				reposition();
 			}
 		}
 
@@ -521,35 +545,40 @@ var MONSTER_GEAR_OVERRIDES = {
 
 // should_handle_events, handle_events, handle_specific_event, handle_return_home → Game_Config.js
 
-async function walk_in_circle() {
-	if (smart.moving) return;
+const REPOSITION_INTERVAL_MS = 250;
+
+// Moves into attack range of the cluster target (the monster whose explosion spreads to the
+// most others), staying inside the orbit radius. Holds position when there's no cluster
+// worth chasing, rather than wandering -- melee time out of range is damage lost.
+async function reposition() {
+	if (smart.moving || character.moving) return;
 	if (WARRIOR_TARGET === "bscorpion") return;
 
-	let center;
-	if (WARRIOR_TARGET === "giantspider") {
-		const healer = get_player("Myras");
-		if (!healer || healer.rip || healer.map !== character.map) return;
-		center = { x: healer.x, y: healer.y };
-	} else {
-		center = locations[home][0];
-	}
-	const radius = CONFIG.movement.circle_radius;
+	const now = performance.now();
+	if (now - state.last_reposition < REPOSITION_INTERVAL_MS) return;
+	state.last_reposition = now;
 
-	const current_time = performance.now();
-	const delta_time = current_time - state.last_angle_update;
-	state.last_angle_update = current_time;
+	const center = reposition_center(); // Shared/Combat_Utilities.js
+	if (!center) return;
 
-	const delta_angle = CONFIG.movement.circle_speed * (delta_time / 1000);
-	state.angle = (state.angle + delta_angle) % (2 * Math.PI);
+	const target_mob = cache.cluster_target;
+	if (!target_mob || target_mob.dead) return;
 
-	const offset_x = Math.cos(state.angle) * radius;
-	const offset_y = Math.sin(state.angle) * radius;
-	const target_x = center.x + offset_x;
-	const target_y = center.y + offset_y;
+	// Aim just inside attack range so ordinary drift doesn't immediately break contact.
+	const reach = character.range * 0.9;
 
-	if (!character.moving) {
-		await xmove(target_x, target_y);
-	}
+	const spot = best_orbit_spot(center, CONFIG.movement.circle_radius, (x, y) => {
+		if (Math.hypot(target_mob.x - x, target_mob.y - y) > reach) return null;
+		// Feasible: prefer the least travel, so it settles instead of circling.
+		return -Math.hypot(character.x - x, character.y - y);
+	});
+
+	if (!spot) return;
+	if (Math.hypot(character.x - spot.x, character.y - spot.y) <= CONFIG.movement.move_threshold) return;
+
+	// Raw move(), matching the ranger: xmove falls back to smart_move on obstacle, which
+	// would gate attacks. best_orbit_spot() already filtered on can_move_to().
+	move(spot.x, spot.y);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
