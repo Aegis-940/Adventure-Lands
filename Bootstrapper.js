@@ -113,7 +113,9 @@ window._cmListeners = window._cmListeners || [];
 		};
 	}
 
-	// Loads a role file via fetch+eval with brace-count diagnostics. Always resolves.
+	// Loads a role file via fetch+eval with brace-count diagnostics. Resolves true only if the
+	// file both fetched and eval'd cleanly — a partial role load is not survivable (see
+	// load_sequential), so the caller has to be able to tell.
 	function load_role_file(base, name) {
 		const url = base + encodeURI(name) + FILE_SUFFIX;
 		return new Promise(resolve => {
@@ -135,8 +137,9 @@ window._cmListeners = window._cmListeners || [];
 					} catch (e) {
 						game_log("❌ " + name + " eval error: " + e.message);
 						console.error(e);
+						return resolve(false);
 					}
-					resolve();
+					resolve(true);
 				}).fail((_, s, e) => {
 					if (retries < MAX_RETRIES) {
 						game_log(`🔄 Retrying to load ${name} (${retries + 1}/${MAX_RETRIES})...`);
@@ -144,7 +147,7 @@ window._cmListeners = window._cmListeners || [];
 					} else {
 						game_log("❌ Failed to fetch " + name + ": " + s);
 						console.error("URL:", url, "err:", e);
-						resolve();
+						resolve(false);
 					}
 				});
 			}
@@ -152,9 +155,16 @@ window._cmListeners = window._cmListeners || [];
 		});
 	}
 
-	// Role files load strictly in order (each may depend on the previous).
+	// Role files load strictly in order (each may depend on the previous), and the chain STOPS at
+	// the first failure. Continuing was actively harmful: on a code-only restart the previous
+	// load's function/var declarations are still on the global object, so a file that failed to
+	// fetch or threw on eval leaves its OLD version in scope while the rest of the batch loads
+	// new — a character silently running half of one build and half of another.
 	function load_sequential(names, loader) {
-		return names.reduce((chain, name) => chain.then(() => loader(name)), Promise.resolve());
+		return names.reduce(
+			(chain, name) => chain.then(ok => ok ? loader(name) : false),
+			Promise.resolve(true)
+		);
 	}
 
 	function start_loading(base) {
@@ -168,37 +178,107 @@ window._cmListeners = window._cmListeners || [];
 					return;
 				}
 				return load_sequential(role_file, name => load_role_file(base, name))
-					.then(() => game_log("✅ All scripts loaded."));
+					.then(ok => {
+						if (ok) return game_log("✅ All scripts loaded.");
+						game_log("🛑 CRITICAL: a role script failed — this character is running a PARTIAL build "
+							+ "(the previous load's globals are still in scope). Reload to retry.", "#FF4444");
+					});
 			});
 	}
 
 	// Reuse the already-resolved commit SHA if fresh, otherwise re-resolve (avoid building on a stale SHA).
 	const MAX_BASE_AGE_MS = 10 * 60 * 1000; // 10 minutes
 
+	function base_for(sha) {
+		return "https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@" + sha + "/";
+	}
+
+	// The resolved SHA is shared across all four characters through localStorage: they run in
+	// same-origin iframes, so one resolve serves the whole party. Two reasons this matters more
+	// than the staleness it risks:
+	//   1. api.github.com allows 60 unauthenticated requests/hour. Four characters each spending
+	//      their own request per reload is what produces the 403s.
+	//   2. The CM protocol (panic broadcasts, instance handshakes) is only coherent within ONE
+	//      build. A party split across commits is a worse failure than a party a few minutes old.
+	// Wrapped in try/catch throughout: storage access can be blocked outright (the client's
+	// "Tracking Prevention blocked access to storage" console spam is exactly that).
+	const SHA_KEY = "AL_bootstrap_sha";
+	const SHA_AT_KEY = "AL_bootstrap_sha_at";
+
+	function read_shared_sha() {
+		try {
+			const sha = localStorage.getItem(SHA_KEY);
+			const at = parseInt(localStorage.getItem(SHA_AT_KEY), 10);
+			return (sha && at) ? { sha, at } : null;
+		} catch (e) {
+			return null;
+		}
+	}
+
+	function write_shared_sha(sha) {
+		try {
+			localStorage.setItem(SHA_KEY, sha);
+			localStorage.setItem(SHA_AT_KEY, String(Date.now()));
+		} catch (e) {
+			// Storage blocked — per-window reuse below still works, just not across characters.
+		}
+	}
+
+	function load_sha(sha, note) {
+		FILE_SUFFIX = ""; // @<sha> is immutable — caching it is correct
+		window.__AL_BASE__ = base_for(sha);
+		window.__AL_BASE_SET_AT__ = Date.now();
+		game_log("📦 Loading commit " + sha.slice(0, 7) + (note || ""));
+		start_loading(window.__AL_BASE__);
+	}
+
 	function resolve_and_load() {
 		// Cache-busted: without this, the browser can serve a stale cached response for
 		// this exact URL even on an explicit reload, pinning the whole session to an old SHA.
 		p$.getJSON("https://api.github.com/repos/Aegis-940/Adventure-Lands/commits/main?_=" + Date.now())
 			.done(repo_data => {
-				const base = "https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@" + repo_data.sha + "/";
-				FILE_SUFFIX = ""; // @<sha> is immutable — caching it is correct
-				window.__AL_BASE__ = base;
-				window.__AL_BASE_SET_AT__ = Date.now();
-				game_log("📦 Loading commit " + repo_data.sha.slice(0, 7));
-				start_loading(base);
+				write_shared_sha(repo_data.sha);
+				load_sha(repo_data.sha);
 			})
-			.fail(() => {
-				// Usually api.github.com's 60-req/hour unauthenticated rate limit, easy to hit
-				// with 4 characters reloading. Cache-bust the fallback so it can't serve a
-				// half-day-old @main snapshot.
+			.fail(xhr => {
+				const status = (xhr && xhr.status) || "?";
+				const stored = read_shared_sha();
+				if (stored) {
+					// Prefer a known commit another character already resolved, however old, over
+					// @main. jsDelivr caches branch URLs for ~12h, and a ?_= query does NOT purge
+					// that (only purge.jsdelivr.net does) — the previous "cache-busted" comment
+					// here was wrong. So @main can hand different characters different snapshots,
+					// which is precisely the mixed-build party this is trying to avoid.
+					const age_min = Math.round((Date.now() - stored.at) / 60000);
+					game_log("⚠️ SHA fetch failed (HTTP " + status + ") — reusing the party's commit ("
+						+ age_min + "m old)", "#FFA500");
+					load_sha(stored.sha);
+					return;
+				}
+				// Nothing known at all. raw.githubusercontent serves the real branch tip on a
+				// short cache rather than jsDelivr's 12h branch snapshot.
 				FILE_SUFFIX = "?_=" + Date.now();
-				game_log("⚠️ Couldn't fetch SHA (GitHub rate limit?) — falling back to @main, cache-busted", "#FFA500");
-				start_loading("https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/");
+				game_log("⚠️ SHA fetch failed (HTTP " + status + ") and no known party commit — falling back "
+					+ "to raw @main. This build may not match the rest of the party.", "#FF4444");
+				start_loading("https://raw.githubusercontent.com/Aegis-940/Adventure-Lands/main/");
 			});
 	}
 
+	// Nothing cancels the previous load's setTimeout/setInterval loop chains, so a second
+	// bootstrap in the same window leaves two of every loop racing over the same globals.
+	if (window.__AL_LOADED_ONCE__) {
+		game_log("⚠️ Bootstrapper re-run without a page reload — the previous load's loops are still "
+			+ "running. Use a full page reload instead.", "#FFA500");
+	}
+	window.__AL_LOADED_ONCE__ = true;
+
+	const stored_sha = read_shared_sha();
 	if (window.__AL_BASE__ && window.__AL_BASE_SET_AT__ && (Date.now() - window.__AL_BASE_SET_AT__) < MAX_BASE_AGE_MS) {
+		game_log("📦 Reusing " + window.__AL_BASE__);
 		start_loading(window.__AL_BASE__);
+	} else if (stored_sha && Date.now() - stored_sha.at < MAX_BASE_AGE_MS) {
+		// Another character resolved this recently — no API request needed.
+		load_sha(stored_sha.sha, " (shared)");
 	} else {
 		resolve_and_load();
 	}
