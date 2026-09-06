@@ -1,6 +1,8 @@
 # AdventureLand Game API Reference
 
-Quick-reference for the AdventureLand game engine internals. Sourced from [github.com/kaansoral/adventureland](https://github.com/kaansoral/adventureland).
+Quick-reference for the AdventureLand game engine internals. Originally sourced from [github.com/kaansoral/adventureland](https://github.com/kaansoral/adventureland).
+
+**Verified against the live client on 2026-09-06 (`G.version 6732`).** The public repo has not been updated since 2026-03-01, so anything below marked *unverified* was taken from that snapshot and has NOT been re-checked against the running game. Everything else — skills, conditions, classes, slots, data counts — was dumped from the live client and is exact.
 
 **Key source files in the game repo:**
 | File | Role |
@@ -216,9 +218,25 @@ Quick-reference for the AdventureLand game engine internals. Sourced from [githu
 | `sleep(ms)` | Returns Promise |
 | `clone(obj)` | Deep clone |
 
+### Present in the live client, not yet documented above
+
+Confirmed to exist as globals in the code frame (`G.version 6732`) but **names only** — the dump captured the function list, not signatures, so parameters and return values here are unknown and must be checked in-game before use. Listed because several are directly useful and were absent from this reference entirely.
+
+- **Keybinds, skillbar & custom UI** — `set_keymap` `unmap_key` `reset_mappings` `map_key` `set_skillbar` `add_top_button` `add_bottom_button` `set_button_value` `set_button_color` `set_button_onclick` `clear_buttons` `code_draw` `plot`
+- **Social & PvP** — `send_friend_request` `accept_friend_request` `unfriend` `send_duel_challenge` `accept_duel_challenge` `enter_duel` `get_pvp_history` `is_pvp`
+- **Economy & venues** — `buy_lost_and_found` `get_lost_and_found` `buy_secondhand` `get_secondhands` `donate_gold` `bet_dice` `play_slots` `giveaway` `join_giveaway` `get_tavern_info` `take_mail_item` `open_bank_pack`
+- **Item inspection & disposal** — `destat_item` `destroy_item` `preview_item` `calculate_item_grade` `calculate_item_value` `calculate_item_properties` `can_add_item` `can_add_items` `can_stack` `throw_item`
+- **Lookup & code slots** — `get_characters` `get_servers` `get_socket` `get_map` `get_party` `get_chests` `get_nearest_npc` `get_active_code_slot` `get_edited_code_slot` `load_code` `upload_code`
+- **State predicates** — `is_disabled` `is_silenced` `is_paused` `is_npc` `is_player` `is_character_local` `is_in_front` `is_point_inside` `is_door_close` `can_use_door` `can_move` `can_transport`
+- **Movement internals** — `use_nearest_door` `smooth_path` `calculate_move` `calculate_move_v2` `unstuck_logic`
+- **Async & events** — `sleep` `wait_for` `wait_for_event` `deferred` `push_deferred` `resolve_deferred` `reject_deferred` `trigger_event` `trigger_character_event`
+- **Messaging** — `send_local_cm` `send_server_cm`
+- **Misc** — `api_call` `bless_server` `pause` `set_home` `set_base`
 ---
 
 ## Socket Events
+
+> **Unverified.** Socket event names are not enumerable from `G`, so this section still reflects the 2026-03-01 repo snapshot and was not re-checked against the live client. Treat as a starting point, not ground truth.
 
 ### Client -> Server (`parent.socket.emit`)
 
@@ -376,14 +394,19 @@ Each slot: `{name, level?, q?, rid?, ...}` or null.
 42 slots (0-41). Each: `{name, level?, q?, p?, l?, ...}` or null.
 
 ### Status Effects (`character.s`)
-Object where each key = effect name, value = `{ms: remaining_ms, ...}`:
-```
-stunned, fingered, stoned, deepfreezed, sleeping   // disabling
-silenced                                             // prevents skills
-poisoned, burned, frozen                             // DoT/debuffs
-invincible, mluck, rspeed, invis
-monsterhunt                                          // {id, ms, sn}
-```
+Object where each key = effect name, value = `{ms: remaining_ms, ...}`. All 78 live conditions from `G.conditions` (`G.version 6732`):
+
+- **Disabling / control** — `stunned` `fingered` `stoned` `deepfreezed` `sleeping` `frozen` `charmed` `tangled` `woven` `shocked` `slowness` `dampened` `weakness`
+- **Damage over time** — `burned` `eburn` `poisoned` `poisonous` `sanguine`
+- **Defensive** — `invincible` `hardshell` `mshield` `aether_shield` `fullguard` `fullguardx` `block` `reflection` `sheltered` `phasedout` `invis`
+- **Paladin** — `paladin_aura_bulwark` `paladin_aura_sanctuary` `paladin_aura_warding` `paladin_aura_zeal` `guardians_oath` `beacon_of_resolve` `purifier`
+- **Offensive buffs** — `power` `xpower` `warcry` `darkblessing` `mcourage` `mfrenzy` `marked` `xshotted` `energized` `charging` `dash` `rspeed` `stack`
+- **Merchant** — `massproduction` `massproductionpp` `massexchange` `massexchangepp` `mluck` `mlifesteal` `pickpocket` `fishing` `mining`
+- **Healing / regen** — `eheal` `sugarrush` `patronsgrace` `newcomersblessing`
+- **Event / seasonal** — `easterluck` `halloween0` `halloween1` `halloween2` `holidayspirit` `hopsickness`
+- **Meta / account** — `monsterhunt` `penalty_cd` `licenced` `town` `authfail` `notverified` `realmfatigue` `withdrawal` `blink` `cursed`
+
+`monsterhunt` carries `{id, ms, sn}`. Skill-granted buffs share the skill's name (see the Skills table), so `character.s.warcry` etc. double as "is the buff up" checks.
 
 ### Channeling (`character.c`)
 ```
@@ -435,7 +458,74 @@ slots, stand, afk, rip, npc
 
 ---
 
+## Skills (`G.skills`)
+
+`G.skills` holds 127 entries, 84 of them actual skills (the rest are UI actions like `move_up`, `toggle_code`). Listed below are the 55 relevant to this party — every skill our scripts call, plus all warrior/priest/ranger/merchant and all-class skills. Values are exact as of `G.version 6732`.
+
+`share` is the shared-cooldown group `is_on_cooldown()` respects — note the ranger's multi-shots share the `attack` cooldown, which is why they belong in `action_loop` rather than `skill_loop`.
+
+| skill | class | lvl | mp | cooldown | range | share | wtype | notes |
+|---|---|---|---|---|---|---|---|---|
+| `boop` | all |  | 20 | 15000 | 120 |  |  | target player |
+| `charm` | all |  | 40 | 60000 |  |  |  | dur 30000; target monster; cond charmed; use_range |
+| `drop_egg` | all |  |  | 2000 |  |  |  |  |
+| `fart` | all |  | 20 | 2000 |  |  |  |  |
+| `headwiggle` | all |  |  | 2000 |  |  |  |  |
+| `hearts_single` | all |  |  | 2000 |  |  |  |  |
+| `highfive` | all |  | 30 | 20000 | 80 |  |  | target player |
+| `joy` | all |  |  | 25000 |  |  |  |  |
+| `jump` | all |  |  | 4000 |  |  |  |  |
+| `mirrordance` | all |  | 250 | 120000 |  |  |  |  |
+| `pocketstorm` | all |  | 100 | 60000 |  |  |  |  |
+| `power` | all |  | 320 | 500 |  |  |  | dur 4000; cond power |
+| `scare` | all |  | 50 | 5000 |  |  |  |  |
+| `shelter` | all |  | 240 | 60000 |  |  |  | dur 6000; cond sheltered |
+| `snowball` | all |  | 120 | 180 | 720 |  |  | dur 5000; target True; cond frozen |
+| `spotlight` | all |  | 150 | 90000 | 240 |  |  | target player |
+| `superjump` | all |  | 10 | 10000 |  |  |  |  |
+| `tangle` | all |  | 40 | 60000 |  |  |  | target True; use_range |
+| `temporalsurge` | all |  | 1000 | 60000 |  |  |  |  |
+| `warp` | all |  | 40 | 200 |  |  |  |  |
+| `wiggle` | all |  |  | 2000 |  |  |  |  |
+| `xpower` | all |  | 320 | 500 |  |  |  | dur 6000; cond xpower |
+| `zapperzap` | all |  | 140 | 200 | 420 |  |  | target True |
+| `fishing` | merchant | 16 | 120 |  | 15 |  | rod |  |
+| `massexchange` | merchant | 40 | 30 | 50 |  |  |  | dur 10000; cond massexchange |
+| `massexchangepp` | merchant | 70 | 200 | 50 |  |  |  | dur 10000; cond massexchangepp |
+| `massproduction` | merchant | 30 | 20 | 50 |  |  |  | dur 10000; cond massproduction |
+| `massproductionpp` | merchant | 60 | 200 | 50 |  |  |  | dur 10000; cond massproductionpp |
+| `mcourage` | merchant | 70 | 2400 | 2000 |  |  |  | dur 10000; cond mcourage |
+| `mfrenzy` | merchant | 85 | 400 | 20000 |  |  |  | dur 5000; cond mfrenzy |
+| `mining` | merchant | 16 | 120 |  | 15 |  | pickaxe |  |
+| `mluck` | merchant | 40 | 10 | 100 | 320 |  |  | dur 3600000; target player; cond mluck |
+| `throw` | merchant | 60 | 200 | 400 | 200 |  |  | target True |
+| `absorb` | priest | 55 | 200 | 400 | 240 |  |  | target player |
+| `curse` | priest |  | 400 | 5000 | 200 |  |  | dur 5000; target True; cond cursed |
+| `darkblessing` | priest | 70 | 900 | 60000 | 600 |  |  | dur 8000; cond darkblessing |
+| `partyheal` | priest |  | 400 | 200 |  |  |  | multi |
+| `phaseout` | priest | 64 | 200 | 4000 |  |  |  | dur 5000; cond phasedout |
+| `revive` | priest |  | 500 | 200 | 240 |  |  | target player |
+| `3shot` | ranger | 60 | 200 |  |  | attack | bow,crossbow | dmg x 0.7; cd x 1; multi; use_range |
+| `4fingers` | ranger | 64 | 260 | 40000 | 120 |  |  | dur 5000; target player; cond fingered |
+| `5shot` | ranger | 75 | 320 |  |  | attack | bow,crossbow | dmg x 0.5; cd x 1; multi; use_range |
+| `huntersmark` | ranger |  | 240 | 10000 |  |  |  | dur 10000; target True; cond marked; use_range |
+| `piercingshot` | ranger | 72 | 64 |  |  | attack | bow,crossbow | dmg x 0.75; cd x 1; target True; use_range |
+| `poisonarrow` | ranger |  | 360 | 300 |  |  | bow,crossbow | dur 5000; target True; cond poisoned; use_range |
+| `supershot` | ranger |  | 400 | 30000 |  |  | bow,crossbow | dmg x 1.5; target True; use_range |
+| `track` | ranger |  | 80 | 1600 | 1440 |  |  |  |
+| `agitate` | warrior | 68 | 420 | 2200 | 320 |  |  |  |
+| `charge` | warrior |  | 0 | 40000 |  |  |  | dur 3200; cond charging |
+| `cleave` | warrior | 52 | 720 | 1200 | 160 |  | axe,scythe |  |
+| `dash` | warrior |  | 120 | 0 |  |  |  |  |
+| `hardshell` | warrior | 60 | 480 | 16000 |  |  |  | dur 8000; cond hardshell |
+| `stomp` | warrior | 52 | 120 | 24000 | 400 |  | basher | dur 3200; cond stunned |
+| `taunt` | warrior |  | 40 | 3000 | 200 |  |  | target True |
+| `warcry` | warrior | 70 | 320 | 60000 | 600 |  |  | dur 8000; cond warcry |
+
+---
 ## Game Data (`parent.G`)
+
+Live totals (`G.version 6732`): **580 items, 129 monsters, 54 maps, 133 NPCs, 127 skill entries, 78 conditions.**
 
 | Key | Content |
 |-----|---------|
@@ -571,7 +661,16 @@ Defined by `G.items[name].grades` (default `[9,10,11,12]`):
 ## Constants & Enums
 
 ### Character Classes
-`"warrior"`, `"priest"`, `"mage"`, `"ranger"`, `"rogue"`, `"merchant"`, `"paladin"`
+
+| class | main stat | attack |
+|---|---|---|
+| `warrior` | str | physical |
+| `paladin` | str | physical |
+| `rogue` | dex | physical |
+| `ranger` | dex | physical |
+| `mage` | int | magical |
+| `priest` | int | magical |
+| `merchant` | int | none |
 
 ### Equipment Slots
 ```javascript
