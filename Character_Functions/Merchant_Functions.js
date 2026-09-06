@@ -508,6 +508,7 @@ let watchdog_since = Date.now();
 // Sole owner of movement -- every other loop in this file is passive (no smarter_move calls).
 async function loop_controller() {
 	while (true) {
+		heartbeat("loop_controller"); // Shared/Diagnostics.js
 		try {
 			party_manager();
 
@@ -674,6 +675,7 @@ async function decide_opportunistic_actions() {
 // so a per-tick check there would stop checking these for that whole duration.
 async function opportunistic_actions_loop() {
 	while (true) {
+		heartbeat("opportunistic_actions_loop"); // Shared/Diagnostics.js
 		try {
 			await decide_opportunistic_actions();
 		} catch (e) {

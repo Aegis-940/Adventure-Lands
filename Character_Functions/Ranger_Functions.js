@@ -386,6 +386,7 @@ var _last_healer_ping = 0;
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const main_loop = async () => {
+	heartbeat("main_loop"); // Shared/Diagnostics.js
 	try {
 		if (is_disabled(character)) return setTimeout(main_loop, 250);
 
@@ -428,6 +429,7 @@ const main_loop = async () => {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const action_loop = async () => {
+	heartbeat("action_loop"); // Shared/Diagnostics.js
 	if (should_pause_combat_loop()) return setTimeout(action_loop, 100);
 	let delay = 5;
 	try {
@@ -473,6 +475,7 @@ const handle_attack = async () => {
 };
 
 const skill_loop = async () => {
+	heartbeat("skill_loop"); // Shared/Diagnostics.js
 	if (should_pause_combat_loop()) return setTimeout(skill_loop, 100);
 	let delay = 5;
 	try {
@@ -524,6 +527,7 @@ const skill_loop = async () => {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const maintenance_loop = async () => {
+	heartbeat("maintenance_loop"); // Shared/Diagnostics.js
 	try {
 		if (CONFIG.potions.auto_buy) auto_buy_potions();
 		if (CONFIG.party.auto_manage) party_manager();

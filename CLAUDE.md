@@ -28,6 +28,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Shared/Messaging.js` | CM (character message) handlers, localStorage-backed state cache |
 | `Shared/Party_And_Loot.js` | Party invite/accept management, shared loot/inventory/panic/equipment behaviors |
 | `Shared/Error_Handling.js` | `catcher()`, the shared error-triage/logging helper |
+| `Shared/Diagnostics.js` | Durable deduped error/stall log (global error hooks, loop heartbeats, JSON export) |
 | `Shared/Widgets.js` | `create_bottomrightcorner_widget()` (Gold/XP/CC/DPS meters' container) and `make_draggable()` (used by Custom_Log.js/Stats_Window.js) — all that survived removing Shared/Windows.js |
 | `Merchant_Systems/Auto_Upgrade.js` | Item upgrade profiles and automation |
 | `Merchant_Systems/Auto_Craft.js` | Crafting logic and batch orchestration — loaded by Bootstrapper.js |

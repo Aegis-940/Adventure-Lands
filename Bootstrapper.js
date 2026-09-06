@@ -16,6 +16,7 @@ window._cmListeners = window._cmListeners || [];
 
 	// Cross-file calls happen inside functions/handlers invoked after boot, so these load in parallel.
 	const scripts = [
+		"Shared/Diagnostics.js",
 		"Shared/Game_Config.js",
 		"Shared/Movement.js",
 		"Shared/Combat_Utilities.js",
@@ -68,6 +69,7 @@ window._cmListeners = window._cmListeners || [];
 
 	// Role files depend on globals these define — abort loudly instead of failing on undefined functions.
 	const CRITICAL_SCRIPTS = [
+		"Shared/Diagnostics.js",
 		"Shared/Game_Config.js",
 		"Shared/Movement.js",
 		"Shared/Combat_Utilities.js",

@@ -51,6 +51,7 @@ function handle_return_home() {
 }
 
 async function potion_loop() {
+	heartbeat("potion_loop"); // Shared/Diagnostics.js
 	const HP_MISSING = character.max_hp - character.hp;
 	const MP_MISSING = character.max_mp - character.mp;
 
@@ -310,6 +311,7 @@ async function resolve_equipment() {
 
 async function equipment_manager_loop() {
 	while (true) {
+		heartbeat("equipment_manager_loop"); // Shared/Diagnostics.js
 		try {
 			await resolve_equipment();
 		} catch (e) {
