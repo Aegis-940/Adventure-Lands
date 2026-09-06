@@ -150,7 +150,16 @@ function should_pause_combat_loop() {
 	if (panicking) return true;
 	if (home === "giantspider") return false; // follow_healer() handles positioning instead
 	const myras = get_player("Myras");
-	return !myras || distance(character, myras) > 200;
+	// myras.rip matters as much as her being here. The healer is the tank: the warrior gathers with
+	// AoE and the healer pulls the aggro off him with absorb. A dead healer is still an entity with
+	// rip:true standing on the spot, so without this check the corpse satisfied "present and within
+	// 200" and the warrior kept cleaving — generating aggro with nobody to absorb it and nobody
+	// healing. handle_agitate() already bails on tank.rip, so agitate stopped and cleave did not,
+	// which is why the warrior died every time the healer did while the ranger walked away.
+	//
+	// It also removes the sting from the healer's all-clear-on-death: even with panicking cleared,
+	// the fighters stay paused while she is down instead of charging back in unhealed.
+	return !myras || myras.rip || distance(character, myras) > 200;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
