@@ -22,6 +22,8 @@ window._cmListeners = window._cmListeners || [];
 		"Shared/Messaging.js",
 		"Shared/Party_And_Loot.js",
 		"Shared/Error_Handling.js",
+		// Deliberately NOT in CRITICAL_SCRIPTS: the recorder failing must never stop the bot.
+		"Shared/Error_Log.js",
 		"UI/Custom_Log.js",
 		"UI/Bank_Sorter.js",
 		"Shared/Widgets.js",
