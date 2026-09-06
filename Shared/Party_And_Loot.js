@@ -194,9 +194,27 @@ async function batch_equip(data) {
 		}
 
 		if (idx === -1) {
-			// Surfaced on purpose: a set naming an item that isn't in inventory used to fail
-			// completely silently, which is very hard to tell apart from "the resolver never ran".
+			// Last resort: name alone. A stale `level` in a set definition silently disabled the
+			// panic orb for hours — the jacko sat in the bag the whole time while both passes above
+			// matched on name AND level, and the miss was reported through game_log, which nothing
+			// was recording. For a survival-critical swap, equipping a same-named variant beats not
+			// equipping at all; the mismatch is reported so the set can be corrected.
+			idx = parent.character.items.findIndex((item, j) =>
+				item && item.name === item_name && !claimed_slots.has(j)
+			);
+			if (idx !== -1) {
+				const found = parent.character.items[idx];
+				log(`⚠️ ${item_name} for ${slot}: set says lvl ${level ?? 0}, bag has lvl `
+					+ `${found.level ?? 0} — equipping it anyway. Fix the set definition.`,
+					"#FFA500", "Errors");
+			}
+		}
+
+		if (idx === -1) {
+			// Genuinely absent. Routed through log(..., "Errors") rather than game_log so the
+			// recorder actually sees it.
 			warn_missing_item(item_name, level, slot);
+			log(`⚠️ batch_equip: no ${item_name} in inventory at all for ${slot}`, "#FFA500", "Errors");
 			continue;
 		}
 
@@ -728,7 +746,9 @@ async function _panic_check_body() {
 				// Say WHY. "still not equipped after 1000ms" on its own cost hours of guessing at
 				// whether the jacko was missing, mis-levelled, or just slow to land.
 				const orb = character.slots.orb;
-				const in_bags = character.items.filter(i => i && i.name === "jacko").length;
+				const in_bags = character.items
+					.filter(i => i && i.name === "jacko")
+					.map(i => "lvl" + (i.level ?? 0)).join(",") || "none";
 				log(`[PANIC] Failed to equip panic orb: ${fmt_err(e)} `
 					+ `(orb slot: ${orb ? orb.name + " lvl" + (orb.level ?? 0) : "empty"}, `
 					+ `jacko in bags: ${in_bags})`, "#ff4444", "Errors");

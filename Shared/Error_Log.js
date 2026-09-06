@@ -193,6 +193,25 @@ console.error = function (...args) {
 //
 //    Wrapped on a timer, not immediately: log() lives in UI/Custom_Log.js, which the Bootstrapper
 //    loads in PARALLEL with this file, so it may not exist yet at this point.
+// 4b. game_log — warn_missing_item() and the Bootstrapper report through it, and nothing was
+//     watching. That is how a panic orb that never equipped stayed invisible. Only ⚠️/❌ lines are
+//     taken, so ordinary game chatter does not flood the log.
+let _errlog_gamelog_wrapped = false;
+function _errlog_try_wrap_game_log() {
+	if (_errlog_gamelog_wrapped || typeof game_log !== "function") return;
+	_errlog_gamelog_wrapped = true;
+	const original_game_log = game_log;
+	game_log = function (msg, color) {
+		try {
+			const text = String(msg);
+			if (text.indexOf("⚠️") === 0 || text.indexOf("❌") === 0 || text.indexOf("🛑") === 0) {
+				errlog_record("game_log", text);
+			}
+		} catch (e) { /* never break game_log */ }
+		return original_game_log(msg, color);
+	};
+}
+
 let _errlog_log_wrapped = false;
 function _errlog_try_wrap_log() {
 	if (_errlog_log_wrapped || typeof log !== "function") return;
@@ -299,6 +318,7 @@ function _errlog_push() {
 
 setInterval(() => {
 	_errlog_try_wrap_log();
+	_errlog_try_wrap_game_log();
 	_errlog_flush();
 	_errlog_push();
 }, ERRLOG_FLUSH_MS);
