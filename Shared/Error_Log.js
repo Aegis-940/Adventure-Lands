@@ -154,9 +154,52 @@ function _errlog_try_wrap_log() {
 	};
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// LOCAL SINK — pushes records to tools/error_sink.py so they land in the repo as errors.json.
+//
+// The page cannot write to disk, so this is the only way the log reaches a file. The sink is
+// optional: when it isn't running the POST just fails, and after 3 consecutive failures we back
+// off to one attempt every 5 minutes so a missing sink costs essentially nothing. Failures are
+// swallowed rather than logged — a sink error that got recorded would feed itself.
+//
+// 127.0.0.1 is treated as a trustworthy origin, so an https page is allowed to POST to it.
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const ERRLOG_SINK_URL = "http://127.0.0.1:8787/errors";
+const ERRLOG_PUSH_MS = 30000;
+const ERRLOG_PUSH_BACKOFF_MS = 300000;
+
+let _errlog_last_push = 0;
+let _errlog_push_fails = 0;
+
+function _errlog_push() {
+	const wait = _errlog_push_fails >= 3 ? ERRLOG_PUSH_BACKOFF_MS : ERRLOG_PUSH_MS;
+	if (Date.now() - _errlog_last_push < wait) return;
+	if (!Object.keys(_errlog).length) return;
+	_errlog_last_push = Date.now();
+
+	try {
+		fetch(ERRLOG_SINK_URL, {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({
+				character: (character && character.name) || "unknown",
+				build: _errlog_build(),
+				records: _errlog
+			})
+		}).then(
+			() => { _errlog_push_fails = 0; },
+			() => { _errlog_push_fails++; }
+		);
+	} catch (e) {
+		_errlog_push_fails++;
+	}
+}
+
 setInterval(() => {
 	_errlog_try_wrap_log();
 	_errlog_flush();
+	_errlog_push();
 }, ERRLOG_FLUSH_MS);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

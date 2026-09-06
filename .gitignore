@@ -1,0 +1,4 @@
+# Runtime data written by tools/error_sink.py — machine-local, not source.
+errors.json
+errors.json.tmp
+__pycache__/
