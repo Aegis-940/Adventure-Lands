@@ -140,6 +140,45 @@ parent.socket.emit("attack", { id: target.id });
 
 ---
 
+## Deploying (purge jsDelivr after every push)
+
+The bot loads from `cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@<sha>/`, resolved via
+`api.github.com`. That API allows **60 unauthenticated requests/hour per IP**; on 403 the loader
+falls back to `@main`, which jsDelivr caches for 12h (`s-maxage=43200`, confirmed in the response
+headers). A query string does **not** purge that cache — only `purge.jsdelivr.net` does.
+
+So a push made while rate-limited can silently never reach the characters. This is not theoretical:
+`Party_And_Loot.js` and `Healer_Skills.js` sat on a pre-fix commit for hours while every other file
+was current, producing a mixed build that made fixed bugs look unfixed.
+
+**After every push, purge and verify:**
+
+```bash
+for f in $(git ls-files '*.js'); do
+  curl -s -o /dev/null "https://purge.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/$f"
+done
+# verify: compare against git blobs, NOT working-tree files — the working tree is CRLF
+# while git blobs and jsDelivr are LF, so a naive diff reports every file as stale.
+for f in $(git ls-files '*.js'); do
+  a=$(curl -s "https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/$f" | md5sum | cut -d' ' -f1)
+  b=$(git show "HEAD:$f" | md5sum | cut -d' ' -f1)
+  [ "$a" != "$b" ] && echo "STALE $f"
+done
+```
+
+Other loader facts worth not re-deriving:
+
+- `Code_Loader.js` lives in **game code slot 1**, not the repo's load path. Paste it **once** —
+  replacing the slot's whole contents. A slot holding two copies runs both IIFEs and loads
+  everything twice, which re-evaluates every `Shared/*.js`; their top-level `const`s cannot
+  re-declare, so those files throw at instantiation and define **nothing**, while the first copy's
+  loops keep running against a stale `character` and every action is rejected as `disabled`.
+- The base must serve executable script. `raw.githubusercontent.com` sends `text/plain` with
+  `nosniff`, so `getScript` refuses it — a raw base fails all 18 files even though a `fetch`+`eval`
+  of `Bootstrapper.js` from raw succeeds.
+- `log()` and `game_log()` write to the **in-game** log windows, never the browser console. Ask for
+  the in-game log when diagnosing; the browser console does not contain them.
+
 ## Testing
 
 There is no test suite. Changes must be manually tested by injecting the modified script into the live game client. When suggesting changes, keep them minimal and easy to verify in-game.
