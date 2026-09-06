@@ -689,6 +689,7 @@ var PANIC_THRESHOLDS = {
 	low_hp: 0.50, low_mp: 0.01, high_hp: 0.80, high_mp: 0.33,
 	aggro: 1, cooldown: 1000,
 	arm_hp: 0.70, disarm_hp: 0.90,
+	ttd_s: 3, arm_ttd_s: 6,
 };
 
 // panic_check() moved to Shared/Game_Config.js; reads this file's PANIC_THRESHOLDS.

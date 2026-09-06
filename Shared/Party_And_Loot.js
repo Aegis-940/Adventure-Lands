@@ -493,11 +493,50 @@ let _panic_check_running = false;
 // consumed the budget and scare was attempted three seconds after she was already dead. Arming
 // early takes the equip off the critical path; at the panic threshold the orb is on and scare goes
 // straight out. Costs luck only while below the arm threshold, which is when luck is not the point.
+// TIME TO DEATH. A fixed hp percentage is the wrong trigger when incoming damage varies: 40% is
+// generous against one mole and fatal against five. Measured from two real deaths, 40% bought the
+// healer 1.4s and 35% bought the warrior 1.2s — less than the panic sequence takes to run.
+//
+// So trigger on "can I survive the next few seconds at the rate I am actually losing hp", which
+// scales itself. Replaying both captured deaths through this fires the panic a second earlier and
+// arms the orb two seconds earlier, while staying silent through the calm stretches before them
+// (TTD 16-65s there, nowhere near the thresholds).
+//
+// Observed rate, not projected damage: no modelling of attack stats, courage caps or frequencies to
+// get wrong, and it picks up anything that hurts including burn and effects we do not model.
+const PANIC_HP_SAMPLE_MS = 200;
+const PANIC_HP_SAMPLES = 10;      // ~2s of history
+const PANIC_TTD_MIN_MS = 1200;    // too little history to trust a rate
+
+let _hp_history = [];
+
+function sample_hp() {
+	const now = Date.now();
+	const last = _hp_history[_hp_history.length - 1];
+	if (last && now - last.t < PANIC_HP_SAMPLE_MS) return;
+	_hp_history.push({ t: now, hp: character.hp });
+	while (_hp_history.length > PANIC_HP_SAMPLES) _hp_history.shift();
+}
+
+// Seconds until death at the rate observed across the window, or Infinity when not losing hp.
+// Whole window rather than the last pair, so one big hit or one heal cannot swing it.
+function seconds_to_death() {
+	if (_hp_history.length < 2) return Infinity;
+	const first = _hp_history[0];
+	const last = _hp_history[_hp_history.length - 1];
+	const ms = last.t - first.t;
+	if (ms < PANIC_TTD_MIN_MS) return Infinity;
+	const lost = first.hp - last.hp;
+	if (lost <= 0) return Infinity;
+	return last.hp / (lost / (ms / 1000));
+}
+
 let panic_armed = false;
 let last_panic_gear = 0;
 const PANIC_GEAR_RETRY_MS = 1000;
 
 async function panic_check() {
+	sample_hp(); // before the re-entrancy guard: the rate must keep updating even mid-panic
 	if (_panic_check_running) return;
 	_panic_check_running = true;
 	try {
@@ -527,7 +566,10 @@ async function _panic_check_body() {
 	).length;
 
 	// PANIC CONDITION
-	if (LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= t.aggro) {
+	const ttd = seconds_to_death();
+	const DYING_FAST = ttd < (t.ttd_s ?? 3);
+
+	if (LOW_HEALTH || LOW_MANA || DYING_FAST || MONSTERS_TARGETING_ME >= t.aggro) {
 		if (!panicking) {
 			panicking = true;
 			// Act on this tick, not up to t.cooldown later. The cooldown below exists to throttle
@@ -543,6 +585,7 @@ async function _panic_check_body() {
 			if (LOW_HEALTH) reason.push("low health");
 			if (LOW_MANA) reason.push("low mana");
 			if (MONSTERS_TARGETING_ME >= t.aggro) reason.push("high aggro");
+			if (DYING_FAST) reason.push(`dying in ${ttd.toFixed(1)}s`);
 			log(`⚠️ Panic triggered: ${reason.join(", ")}!`, "#ffcc00", "Alerts");
 		}
 	}
@@ -553,7 +596,7 @@ async function _panic_check_body() {
 	const arm_at = t.arm_hp ?? 0.65;
 	const disarm_at = t.disarm_hp ?? 0.80;
 	if (!panicking) {
-		if (hp_pct < arm_at) panic_armed = true;
+		if (hp_pct < arm_at || ttd < (t.arm_ttd_s ?? 6)) panic_armed = true;
 		else if (hp_pct >= disarm_at) panic_armed = false;
 	}
 
