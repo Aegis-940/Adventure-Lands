@@ -49,14 +49,27 @@
         attempt = attempt || 0;
         return fetchWithTimeout(`https://api.github.com/repos/${REPO}/commits/main`, { cache: "no-store" })
             .then(res => {
-                if (!res.ok) throw new Error("HTTP " + res.status);
+                if (!res.ok) {
+                    const err = new Error("HTTP " + res.status);
+                    err.status = res.status;
+                    throw err;
+                }
                 return res.json();
             })
             .then(data => `https://cdn.jsdelivr.net/gh/${REPO}@${data.sha}/`)
             .catch(e => {
-                if (attempt < MAX_RETRIES) return resolveBase(attempt + 1);
-                game_log("⚠️ Couldn't resolve commit SHA (" + e.message + "); falling back to @main");
-                return `https://cdn.jsdelivr.net/gh/${REPO}@main/`;
+                // Retry network/timeout failures only. api.github.com allows 60 unauthenticated
+                // requests an hour; a 403 is that limit and will not clear on an immediate retry,
+                // so retrying it just spent three requests instead of one and made the limit
+                // harder to get back under.
+                if (!e.status && attempt < MAX_RETRIES) return resolveBase(attempt + 1);
+
+                // raw.githubusercontent serves the actual branch tip on a short cache. jsDelivr
+                // caches @main for around 12h and a query string does not purge that (only
+                // purge.jsdelivr.net does), so falling back there can silently run hours-old code
+                // — which looks exactly like a pushed fix never arriving.
+                game_log("⚠️ Couldn't resolve commit SHA (" + e.message + "); loading raw @main", "#FFA500");
+                return `https://raw.githubusercontent.com/${REPO}/main/`;
             });
     }
 
@@ -68,8 +81,13 @@
                 return res.text();
             })
             .then(text => {
-                // Bootstrapper.js reads this to skip re-resolving the same commit SHA.
+                // BOTH, not just the base: Bootstrapper.js gates its reuse on __AL_BASE_SET_AT__
+                // as well, so setting only __AL_BASE__ made it resolve the SHA a second time — a
+                // second api.github.com request per character on top of this one, which is half
+                // the reason four characters blow through the 60/hour limit. It also let the
+                // Bootstrapper load the game files from a different commit than it came from.
                 window.__AL_BASE__ = base;
+                window.__AL_BASE_SET_AT__ = Date.now();
                 (0, eval)(text); // indirect eval — runs in global scope
             })
             .catch(e => {
