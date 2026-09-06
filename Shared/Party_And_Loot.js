@@ -214,7 +214,6 @@ async function batch_equip(data) {
 			// Genuinely absent. Routed through log(..., "Errors") rather than game_log so the
 			// recorder actually sees it.
 			warn_missing_item(item_name, level, slot);
-			log(`⚠️ batch_equip: no ${item_name} in inventory at all for ${slot}`, "#FFA500", "Errors");
 			continue;
 		}
 
@@ -222,7 +221,7 @@ async function batch_equip(data) {
 		claimed_slots.add(idx);
 	}
 
-	if (valid_items.length === 0) return;
+	if (valid_items.length === 0) return 0;
 
 	try {
 		parent.socket.emit("equip_batch", valid_items);
@@ -231,6 +230,7 @@ async function batch_equip(data) {
 		console.error("batch_equip error:", error);
 		return Promise.reject({ reason: "invalid", message: "Failed to equip" });
 	}
+	return valid_items.length;
 }
 
 // Shared by Warrior/Healer/Ranger — each reads its own file-local `equipment_sets` global at call time.
@@ -647,6 +647,10 @@ function _loadout_manages_orb_uncached() {
 	} catch (e) { return false; }
 }
 
+// How many items the last panic equip_batch actually sent. "never emitted" and "emitted but the
+// slot did not change" look identical from the outside otherwise.
+let _panic_last_emit = -1;
+
 let panic_armed = false;
 let last_panic_gear = 0;
 const PANIC_GEAR_RETRY_MS = 1000;
@@ -740,7 +744,8 @@ async function _panic_check_body() {
 		last_panic_time = Date.now();
 		if (!is_set_equipped("panic")) {
 			try {
-				await equip_set("panic");
+				const emitted = await equip_set("panic");
+				_panic_last_emit = emitted;
 				await wait_until_equipped("panic");
 			} catch (e) {
 				// Say WHY. "still not equipped after 1000ms" on its own cost hours of guessing at
@@ -751,7 +756,8 @@ async function _panic_check_body() {
 					.map(i => "lvl" + (i.level ?? 0)).join(",") || "none";
 				log(`[PANIC] Failed to equip panic orb: ${fmt_err(e)} `
 					+ `(orb slot: ${orb ? orb.name + " lvl" + (orb.level ?? 0) : "empty"}, `
-					+ `jacko in bags: ${in_bags})`, "#ff4444", "Errors");
+					+ `jacko in bags: ${in_bags}, items emitted: ${_panic_last_emit}, cc: ${Math.round(character.cc || 0)})`,
+					"#ff4444", "Errors");
 			}
 		}
 
