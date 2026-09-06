@@ -27,22 +27,80 @@
     // parent.character, parent.socket, parent.entities) rather than `window`, so it holds whether
     // the duplicate is a second copy in the same slot or a genuine second start. A full page
     // reload reloads `parent`, so deliberate restarts are unaffected.
+
+    // This file runs in two very different runtimes: the browser client (iframe, DOM, jQuery) and
+    // Mainframe's headless worker, which is a node:vm sandbox with no window, no document and no
+    // AbortController. Every global reference below is therefore typeof-guarded — a bare
+    // ReferenceError here is reported as code_start_failed and Mainframe just retries forever.
+    const ROOT = (typeof globalThis !== "undefined") ? globalThis
+               : (typeof window !== "undefined") ? window
+               : this;
+    const HEADLESS = (typeof document === "undefined");
+
+    function has(name) {
+        try { return eval("typeof " + name); } catch (e) { return "err"; }
+    }
+
+    function say(msg, color) {
+        try { if (typeof game_log === "function") return game_log(msg, color); } catch (e) {}
+        try { console.log(msg); } catch (e) {}
+    }
+
     const guard = (function () {
-        try { if (parent && typeof parent === "object") return parent; } catch (e) {}
-        return window;
+        try { if (typeof parent !== "undefined" && parent && typeof parent === "object") return parent; } catch (e) {}
+        return ROOT;
     })();
     const since = Date.now() - (Number(guard.__AL_LOAD_STARTED__) || 0);
     if (since < GUARD_MS) {
-        game_log("⏭️ Duplicate code start ignored (" + since + "ms after the first)", "#FFA500");
+        say("⏭️ Duplicate code start ignored (" + since + "ms after the first)", "#FFA500");
         return;
     }
     guard.__AL_LOAD_STARTED__ = Date.now();
 
+    // Headless stops here, on purpose. Bootstrapper.js loads every other file with jQuery
+    // getScript, which appends <script> tags to a document — there is no document here, so
+    // evaluating it would only fail at `window.$` and crash-loop the Worker. Report what this
+    // sandbox actually provides instead, so the headless loader can be written against facts.
+    if (HEADLESS) {
+        say("[AL] headless runtime detected — browser Bootstrapper not loaded.");
+        say("[AL] PROBE"
+            + " fetch=" + has("fetch")
+            + " XMLHttpRequest=" + has("XMLHttpRequest")
+            + " AbortController=" + has("AbortController")
+            + " require=" + has("require")
+            + " process=" + has("process")
+            + " window=" + has("window")
+            + " document=" + has("document")
+            + " parent=" + has("parent")
+            + " $=" + has("$")
+            + " localStorage=" + has("localStorage")
+            + " character=" + has("character")
+            + " game_log=" + has("game_log")
+            + " socket=" + has("socket")
+            + " G=" + has("G")
+            + " smart_move=" + has("smart_move")
+            + " setTimeout=" + has("setTimeout"));
+        return;
+    }
+
+    // AbortController is a web API and Mainframe's node:vm sandbox does not expose it — that bare
+    // `new AbortController()` was the ReferenceError behind every code_start_failed, on both the
+    // current loader and the original. Where it is missing, race a timer instead: the request is
+    // not actually cancelled, but we stop waiting on it, which is all the timeout was for.
     function fetchWithTimeout(url, options) {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-        return fetch(url, Object.assign({}, options, { signal: controller.signal }))
-            .finally(() => clearTimeout(timer));
+        if (typeof fetch !== "function") return Promise.reject(new Error("no fetch in this runtime"));
+
+        if (typeof AbortController === "function") {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+            return fetch(url, Object.assign({}, options, { signal: controller.signal }))
+                .finally(() => clearTimeout(timer));
+        }
+
+        return Promise.race([
+            fetch(url, options),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), TIMEOUT_MS))
+        ]);
     }
 
     function resolveBase(attempt) {
@@ -74,7 +132,7 @@
                 // not purge it (only purge.jsdelivr.net does), so this path can run stale code.
                 // That is why the request budget above matters: staying under the rate limit keeps
                 // us on the @<sha> path, where this never comes up.
-                game_log("⚠️ Couldn't resolve commit SHA (" + e.message + "); falling back to @main "
+                say("⚠️ Couldn't resolve commit SHA (" + e.message + "); falling back to @main "
                     + "— may be up to ~12h stale", "#FFA500");
                 return `https://cdn.jsdelivr.net/gh/${REPO}@main/`;
             });
@@ -93,13 +151,13 @@
                 // second api.github.com request per character on top of this one, which is half
                 // the reason four characters blow through the 60/hour limit. It also let the
                 // Bootstrapper load the game files from a different commit than it came from.
-                window.__AL_BASE__ = base;
-                window.__AL_BASE_SET_AT__ = Date.now();
+                ROOT.__AL_BASE__ = base;
+                ROOT.__AL_BASE_SET_AT__ = Date.now();
                 (0, eval)(text); // indirect eval — runs in global scope
             })
             .catch(e => {
                 if (attempt < MAX_RETRIES) return loadBootstrapperFile(base, attempt + 1);
-                game_log("❌ Bootstrapper fetch/eval failed: " + e.message);
+                say("❌ Bootstrapper fetch/eval failed: " + e.message);
             });
     }
 
