@@ -137,8 +137,6 @@ function catcher(e, context = "Error") {
 		}
 	}
 
-	if (typeof diag_record === "function") diag_record("catcher", context, msg);
-
 	let stack = "";
 	if (e && e.stack) {
 		stack = `\nStack trace:\n${e.stack}`;

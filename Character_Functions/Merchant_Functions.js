@@ -508,7 +508,6 @@ let watchdog_since = Date.now();
 // Sole owner of movement -- every other loop in this file is passive (no smarter_move calls).
 async function loop_controller() {
 	while (true) {
-		heartbeat("loop_controller"); // Shared/Diagnostics.js
 		try {
 			party_manager();
 
@@ -517,7 +516,6 @@ async function loop_controller() {
 				watchdog_since = Date.now();
 			} else if (merchant_task !== "Idle" && Date.now() - watchdog_since > MERCHANT_TASK_WATCHDOG_MS) {
 				game_log(`⚠️ Merchant stuck on "${merchant_task}" for over ${MERCHANT_TASK_WATCHDOG_MS / 60000} minutes — forcing back to Idle.`, "#FF3333");
-				diag_record("watchdog", merchant_task, "task stuck past watchdog, forced back to Idle");
 				merchant_task = "Idle";
 				merchant_task_generation++; // tells the stuck handler to abandon its run
 				watchdog_task = "Idle";
@@ -676,7 +674,6 @@ async function decide_opportunistic_actions() {
 // so a per-tick check there would stop checking these for that whole duration.
 async function opportunistic_actions_loop() {
 	while (true) {
-		heartbeat("opportunistic_actions_loop"); // Shared/Diagnostics.js
 		try {
 			await decide_opportunistic_actions();
 		} catch (e) {

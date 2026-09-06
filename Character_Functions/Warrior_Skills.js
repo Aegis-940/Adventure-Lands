@@ -5,7 +5,6 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function skill_loop() {
-	heartbeat("skill_loop"); // Shared/Diagnostics.js
 	if (should_pause_combat_loop()) return setTimeout(skill_loop, 100);
 	const delay = TICK_RATE.skill;
 

@@ -7,7 +7,6 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function skill_loop() {
-	heartbeat("skill_loop"); // Shared/Diagnostics.js
 	// if (panicking) return setTimeout(skill_loop, 100);
 	const delay = 40;
 

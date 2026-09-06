@@ -51,7 +51,6 @@ function handle_return_home() {
 }
 
 async function potion_loop() {
-	heartbeat("potion_loop"); // Shared/Diagnostics.js
 	const HP_MISSING = character.max_hp - character.hp;
 	const MP_MISSING = character.max_mp - character.mp;
 
@@ -145,7 +144,6 @@ function warn_missing_item(item_name, level, slot) {
 	if (now - (_missing_item_warned[key] || 0) < MISSING_ITEM_WARN_INTERVAL) return;
 	_missing_item_warned[key] = now;
 	game_log(`⚠️ batch_equip: no ${item_name} (lvl ${level}) in inventory for ${slot}`, "#FFA500");
-	diag_record("missing_item", slot, `no ${item_name} (lvl ${level}) in inventory`);
 }
 
 async function batch_equip(data) {
@@ -256,17 +254,10 @@ function unlock_gear() {
 }
 
 async function apply_equipment_rule(group, resolved) {
-	if (!resolved) { diag_sustained(`equip_${group}`, false); return; }
+	if (!resolved) return;
 	const sets = Array.isArray(resolved) ? resolved : [resolved];
 
-	// Intent vs reality: we keep asking for these sets every tick, so if they still aren't on
-	// after 30s the request is failing silently — a wrong level/l in the set definition, or
-	// the item simply gone. Both took hours to find by hand.
-	const satisfied = sets.every(s => is_set_equipped(s));
-	diag_sustained(`equip_${group}`, !satisfied, 30000,
-		(held) => `wanted [${sets.join(", ")}] for ${Math.round(held / 1000)}s, still not equipped`);
-
-	if (satisfied) return;
+	if (sets.every(s => is_set_equipped(s))) return;
 
 	const now = performance.now();
 	const cooldown = CONFIG.equipment.swap_cooldown ?? 500;
@@ -311,12 +302,7 @@ function resolve_equipment_bail_reason() {
 }
 
 async function resolve_equipment() {
-	const bail = resolve_equipment_bail_reason();
-	// A momentary block is normal; one that holds for a minute means gear management is
-	// effectively off, which is invisible otherwise.
-	diag_sustained("resolver_blocked", !!bail, 60000,
-		(held) => `resolve_equipment blocked ${Math.round(held / 1000)}s: ${bail}`);
-	if (bail) return;
+	if (resolve_equipment_bail_reason()) return;
 
 	const overrides = (typeof MONSTER_GEAR_OVERRIDES !== "undefined" && MONSTER_GEAR_OVERRIDES[home]) || {};
 
@@ -333,7 +319,6 @@ async function resolve_equipment() {
 
 async function equipment_manager_loop() {
 	while (true) {
-		heartbeat("equipment_manager_loop"); // Shared/Diagnostics.js
 		try {
 			await resolve_equipment();
 		} catch (e) {
@@ -517,7 +502,6 @@ async function panic_check() {
 				await wait_until_equipped("panic");
 			} catch (e) {
 				log(`[PANIC] Failed to equip panic orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
-				diag_record("panic_equip", "panic orb", String(e && e.message ? e.message : e));
 			}
 		}
 
@@ -555,7 +539,6 @@ async function panic_check() {
 					await wait_until_equipped("orb");
 				} catch (e) {
 					log(`[PANIC] Failed to equip normal orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
-					diag_record("panic_equip", "normal orb", String(e && e.message ? e.message : e));
 				}
 			}
 

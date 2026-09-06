@@ -168,25 +168,3 @@ function add_settings_button() {
 	reload_btn.after(settings_btn);
 }
 add_settings_button();
-
-// Sits next to ⚙️. Click exports every character's diagnostics to JSON; shift-click clears
-// this character's log (after an export, so the next one isn't dominated by stale records).
-function add_diagnostics_button() {
-	const $ = parent.$;
-	const settings_btn = $("#settings-btn");
-	if (!settings_btn.length) return setTimeout(add_diagnostics_button, 500);
-
-	$("#diag-btn").remove();
-
-	const diag_btn = $(`
-	<div id="diag-btn" class="gamebutton" style="cursor: pointer;">
-		🩺
-	</div>`);
-	diag_btn.on("click", (ev) => {
-		if (ev.shiftKey) clear_diagnostics();
-		else export_diagnostics();
-	});
-
-	settings_btn.after(diag_btn);
-}
-add_diagnostics_button();

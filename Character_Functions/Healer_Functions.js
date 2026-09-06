@@ -293,7 +293,6 @@ function find_nearest_boss() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function main_loop() {
-	heartbeat("main_loop"); // Shared/Diagnostics.js
 	try {
 		if (is_disabled(character)) {
 			return setTimeout(main_loop, 250);
@@ -392,7 +391,6 @@ async function try_heal() {
 }
 
 async function action_loop() {
-	heartbeat("action_loop"); // Shared/Diagnostics.js
 	let delay = 10;
 
 	try {
@@ -432,7 +430,6 @@ async function action_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function maintenance_loop() {
-	heartbeat("maintenance_loop"); // Shared/Diagnostics.js
 	try {
 		if (CONFIG.potions.auto_buy) {
 			auto_buy_potions();
