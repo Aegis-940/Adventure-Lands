@@ -302,7 +302,7 @@ async function main_loop() {
 				panicking = false;
 				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
 			}
-			return setTimeout(main_loop, 250);
+			return al_timeout(main_loop, 250);
 		}
 
 		update_cache();
@@ -331,7 +331,7 @@ async function main_loop() {
 		console.error("main_loop error:", e);
 	}
 
-	setTimeout(main_loop, TICK_RATE.main);
+	al_timeout(main_loop, TICK_RATE.main);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -401,18 +401,18 @@ async function action_loop() {
 	let delay = 10;
 
 	try {
-		if (is_disabled(character)) return setTimeout(action_loop, 50);
+		if (is_disabled(character)) return al_timeout(action_loop, 50);
 
 		update_cache();
 
-		if (await check_temporal_surge()) return setTimeout(action_loop, 100);
+		if (await check_temporal_surge()) return al_timeout(action_loop, 100);
 
 		const ms = ms_to_next_skill("attack");
 
 		if (ms === 0) {
 			const HEALED = await try_heal();
 			
-			if (panicking) return setTimeout(action_loop, 100);
+			if (panicking) return al_timeout(action_loop, 100);
 
 			if (!HEALED && HEALER_TARGET !== "giantspider") {
 				const TARGET = cache.target;
@@ -429,7 +429,7 @@ async function action_loop() {
 		delay = 1;
 	}
 
-	setTimeout(action_loop, delay);
+	al_timeout(action_loop, delay);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -458,7 +458,7 @@ async function maintenance_loop() {
 		console.error("maintenance_loop error:", e);
 	}
 
-	setTimeout(maintenance_loop, TICK_RATE.maintenance);
+	al_timeout(maintenance_loop, TICK_RATE.maintenance);
 }
 
 // potion_loop → Game_Config.js
@@ -925,7 +925,7 @@ action_loop();
 maintenance_loop();
 equipment_manager_loop();
 potion_loop();
-setInterval(remote_sell_items, 5000);
+al_interval(remote_sell_items, 5000);
 if (HEALER_TARGET === "bscorpion") {
 	prim_farm_loop();
 	prim_orbit_loop();

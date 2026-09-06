@@ -7,6 +7,35 @@
 // CM HANDLERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BUILD CONSISTENCY
+//
+// Every character reports the commit it actually loaded, and one that finds itself on a different
+// build than the party leader reloads once to catch up. A split party is not cosmetic: this CM
+// protocol — panic leases, instance handshakes — is only coherent within a single build, and a
+// mismatch is otherwise completely invisible until something behaves inexplicably.
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const BUILD_REF = "Ulric";               // the reference build; only this character announces
+const BUILD_ANNOUNCE_DELAY_MS = 15000;   // let every character finish loading before comparing
+const BUILD_REANNOUNCE_MS = 60000;       // repeat, so a character that loaded late still hears it
+const BUILD_RELOAD_KEY_PREFIX = "AL_build_reload_at_";
+const BUILD_RELOAD_COOLDOWN_MS = 10 * 60 * 1000;
+
+// "main-fallback" rather than "unknown" when there is no @<sha> in the base: that is the raw/@main
+// path, which is exactly the case worth flagging rather than skipping.
+function my_build_sha() {
+	const base = window.__AL_BASE__ || "";
+	const m = base.match(/@([0-9a-f]{7,40})\//);
+	if (m) return m[1];
+	return base ? "main-fallback" : "unknown";
+}
+
+function announce_build() {
+	const others = ["Ulric", "Riva", "Myras", "Riff"].filter(n => n !== character.name);
+	send_cm(others, { type: "build", sha: my_build_sha() });
+}
+
 const _cmListeners = []; // unified naming
 
 function add_cm_listener(fn) {
@@ -46,13 +75,45 @@ const CM_HANDLERS = {
 
 	"panic": (name, data) => {
 		if (name !== "Myras") return;
+		// Each broadcast extends a lease rather than latching a flag: the healer renews while she
+		// is panicking, and panic_check() releases us once the lease lapses. A dead healer simply
+		// stops renewing, instead of freezing us waiting on an all-clear she can no longer send.
+		const was_held = (typeof panic_external !== "undefined") && panic_external;
 		panicking = data.state;
 		// Marks this as someone else's panic so panic_check() won't clear it the moment we're
 		// personally healthy — otherwise "hold fire" lasted about one tick on the warrior.
 		panic_external = data.state;
-		panic_external_since = data.state ? Date.now() : 0;
-		if (data.state) log("⚠️ Healer panicking — holding fire!", "#ffcc00", "Alerts");
-		else            log("✅ Healer panic over — resuming.", "#00ff00", "Alerts");
+		panic_hold_until = data.state ? Date.now() + (data.lease_ms || PANIC_LEASE_MS) : 0;
+		// Only on the edges — renewals arrive every few seconds and would otherwise spam.
+		if (data.state && !was_held) log("⚠️ Healer panicking — holding fire!", "#ffcc00", "Alerts");
+		else if (!data.state)        log("✅ Healer panic over — resuming.", "#00ff00", "Alerts");
+	},
+
+	// Only Ulric announces (BUILD_REF), so there is exactly one reference build and no
+	// ping-pong where two characters each reload to chase the other.
+	"build": (name, data) => {
+		if (name !== BUILD_REF || character.name === BUILD_REF) return;
+
+		const mine = my_build_sha();
+		if (mine === "unknown" || !data.sha || data.sha === "unknown") return;
+		if (mine === data.sha) return;
+
+		game_log(`⚠️ Build mismatch: ${character.name} on ${mine.slice(0, 7)}, `
+			+ `${BUILD_REF} on ${String(data.sha).slice(0, 7)}`, "#FF4444");
+
+		// Per character, not shared: localStorage is common to all four tabs, so a single key
+		// would let the first reloader block the other three.
+		const key = BUILD_RELOAD_KEY_PREFIX + character.name;
+		let last = 0;
+		try { last = parseInt(localStorage.getItem(key), 10) || 0; } catch (e) { /* storage blocked */ }
+		if (Date.now() - last < BUILD_RELOAD_COOLDOWN_MS) {
+			game_log("Mismatch persists, but this character already reloaded recently — staying put.", "#FFA500");
+			return;
+		}
+		try { localStorage.setItem(key, String(Date.now())); } catch (e) { /* storage blocked */ }
+
+		game_log("Reloading to match the party build...", "#FFA500");
+		setTimeout(() => parent.window.location.reload(), 2000);
 	},
 
 	"suppress_reset": () => set_suppress_reset(true),
@@ -185,10 +246,24 @@ function is_character_online(name) {
 	return read_state_cache(name) !== null;
 }
 
+// Plain setTimeout, not al_timeout: Shared/*.js load in parallel, so Game_Config.js may not have
+// defined the generation helpers yet at this file's top level. By the time this fires everything
+// has loaded, so the repeating announce below can be guarded normally.
+if (character.name === BUILD_REF) {
+	setTimeout(() => {
+		announce_build();
+		al_interval(announce_build, BUILD_REANNOUNCE_MS);
+	}, BUILD_ANNOUNCE_DELAY_MS);
+}
+
 // Started by every character — keeps this character's own state cache fresh.
 async function state_cache_loop() {
 	STATE_CACHE_LOOP_ENABLED = true;
+	const gen = al_generation();
 	while (true) {
+		// Stop when a newer load has superseded this chain (see Shared/Game_Config.js).
+		if (loop_superseded(gen)) return;
+
 		if (!STATE_CACHE_LOOP_ENABLED) {
 			await delay(100);
 			continue;

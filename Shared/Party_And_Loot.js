@@ -66,7 +66,7 @@ async function potion_loop() {
 		used_potion = true;
 	}
 
-	setTimeout(potion_loop, used_potion ? 2050 : 10);
+	al_timeout(potion_loop, used_potion ? 2050 : 10);
 }
 
 // function suicide() {
@@ -104,7 +104,12 @@ function schedule_periodic_reset() {
 		_last_reset_bucket = `${boot.toDateString()}-${boot.getHours()}`;
 	}
 
-	setInterval(() => {
+	// Generation captured inline rather than via al_interval(): schedule_periodic_reset() is called
+	// at this file's top level, and Shared/*.js load in parallel — Game_Config.js may not have
+	// defined the helpers yet, and a ReferenceError here would kill the rest of this file.
+	const gen = window.__AL_GEN__ || 0;
+	const reset_timer = setInterval(() => {
+		if (gen !== (window.__AL_GEN__ || 0)) return clearInterval(reset_timer);
 		if (_suppress_periodic_reset) return;
 
 		const now = new Date();
@@ -321,7 +326,11 @@ async function resolve_equipment() {
 }
 
 async function equipment_manager_loop() {
+	const gen = al_generation();
 	while (true) {
+		// Stop when a newer load has superseded this chain (see Shared/Game_Config.js).
+		if (loop_superseded(gen)) return;
+
 		try {
 			await resolve_equipment();
 		} catch (e) {
@@ -463,10 +472,16 @@ async function wait_until_equipped(set_name, timeout_ms = 1000, interval_ms = 10
 	}
 }
 
-// Ceiling on how long a healer-broadcast panic can hold us before we resume anyway, in case
-// her all-clear never arrives (disconnect, dropped CM). Without it a missed message would
-// leave a fighter holding fire indefinitely.
-const EXTERNAL_PANIC_MAX_MS = 60000;
+// The panic hold on the fighters is a LEASE, not a latch. The healer re-broadcasts every
+// PANIC_RENEW_MS while she is panicking, and each broadcast extends their hold by PANIC_LEASE_MS.
+// Stop renewing — die, disconnect, drop a CM — and the hold expires on its own.
+//
+// It used to be released only by an explicit all-clear, which a dead healer can never send: she
+// dies, main_loop() returns early at is_disabled() before ever reaching panic_check(), and Ulric
+// and Riva hold fire until they die too. A lease makes the safe state the default one.
+const PANIC_RENEW_MS = 5000;
+const PANIC_LEASE_MS = 15000;
+let last_panic_broadcast = 0;
 
 // Reads this file's own PANIC_THRESHOLDS global. If PANIC_BROADCAST_TARGETS is also defined
 // (currently only Healer), panic state changes are broadcast via send_cm to those targets.
@@ -486,15 +501,19 @@ async function panic_check() {
 	if (LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= t.aggro) {
 		if (!panicking) {
 			panicking = true;
-			if (typeof PANIC_BROADCAST_TARGETS !== "undefined") {
-				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: true });
-			}
 			let reason = [];
 			if (LOW_HEALTH) reason.push("low health");
 			if (LOW_MANA) reason.push("low mana");
 			if (MONSTERS_TARGETING_ME >= t.aggro) reason.push("high aggro");
 			log(`⚠️ Panic triggered: ${reason.join(", ")}!`, "#ffcc00", "Alerts");
 		}
+	}
+
+	// Renew the fighters' lease for as long as we stay panicking, not just on the transition.
+	if (panicking && typeof PANIC_BROADCAST_TARGETS !== "undefined"
+		&& Date.now() - last_panic_broadcast > PANIC_RENEW_MS) {
+		last_panic_broadcast = Date.now();
+		send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: true, lease_ms: PANIC_LEASE_MS });
 	}
 
 	if (panicking && (Date.now() - last_panic_time > t.cooldown)) {
@@ -519,18 +538,18 @@ async function panic_check() {
 		}
 	}
 
-	// A panic the healer broadcast isn't ours to stand down from — only her all-clear ends it.
-	// Bounded so a missed/dropped all-clear can't leave a fighter permanently holding fire.
+	// A panic the healer broadcast isn't ours to stand down from while she keeps renewing it —
+	// but the moment she stops, the lease lapses and we resume without needing an all-clear.
 	let external_hold = typeof panic_external !== "undefined" && panic_external;
-	if (external_hold && Date.now() - panic_external_since > EXTERNAL_PANIC_MAX_MS) {
+	if (external_hold && Date.now() > (typeof panic_hold_until !== "undefined" ? panic_hold_until : 0)) {
 		panic_external = false;
 		external_hold = false;
-		// Must clear `panicking` too, not just the external flag. The SAFE branch below is
-		// gated on HIGH_HEALTH && HIGH_MANA, which a fighter being chewed on by the pack it
-		// stopped fighting will never reach — so leaving `panicking` set here kept
-		// should_pause_combat_loop() returning true forever and the timeout freed nothing.
+		// Clear `panicking` too, not just the external flag. The SAFE branch below is gated on
+		// HIGH_HEALTH && HIGH_MANA, which a fighter being chewed on by the pack it stopped
+		// fighting will never reach — so leaving `panicking` set here would keep
+		// should_pause_combat_loop() returning true forever and free nothing.
 		panicking = false;
-		log("⚠️ Healer panic hold expired without an all-clear — resuming.", "#FFA500", "Alerts");
+		log("⚠️ Healer panic lease lapsed — resuming.", "#FFA500", "Alerts");
 	}
 
 	// SAFE CONDITION. Restore the resting orb BEFORE clearing `panicking` — resolve_equipment()'s
@@ -551,7 +570,9 @@ async function panic_check() {
 			}
 
 			panicking = false;
+			last_panic_broadcast = 0; // so the next panic broadcasts immediately
 			if (typeof PANIC_BROADCAST_TARGETS !== "undefined") {
+				// Explicit all-clear releases them at once instead of waiting out the lease.
 				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
 			}
 			log("✅ Panic over.", "#00ff00", "Alerts");

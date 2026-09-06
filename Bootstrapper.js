@@ -168,6 +168,10 @@ window._cmListeners = window._cmListeners || [];
 	}
 
 	function start_loading(base) {
+		// Bumped before anything loads. Every loop scheduled by the previous load compares against
+		// this and stops rescheduling — see the loop generation guard in Shared/Game_Config.js.
+		window.__AL_GEN__ = (window.__AL_GEN__ || 0) + 1;
+
 		Promise.all(scripts.map(name => load_one(base, name).then(ok => ({ name, ok }))))
 			.then(results => {
 				const failed_critical = results.filter(r => !r.ok && CRITICAL_SCRIPTS.includes(r.name));
