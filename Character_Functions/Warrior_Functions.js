@@ -51,7 +51,7 @@ var CONFIG = {
 		},
 		single_target_maps: ["halloween", "spookyforest", "desertland"],
 		aoe_maps: ["cave", "main", "goobrawl", "level2n", "level2w", "mforest", "tunnel", "uhills", "winterland"],
-		cleave_maps: ["cave", "desertland", "goobrawl", "halloween", "level2n", "level2w", "main", "mforest", "spookytown", "uhills", "winterland", "level2e"],
+		cleave_maps: ["cave", "desertland", "goobrawl", "halloween", "level2n", "level2w", "main", "mforest", "spookytown", "tunnel", "uhills", "winterland", "level2e"],
 		mp_thresholds: { upper: 2350, lower: 2250 },
 		chest_threshold: 12,
 		swap_cooldown: 500,
