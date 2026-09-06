@@ -249,10 +249,21 @@ function is_at_bscorpion_farm() {
 		Math.hypot(character.x - PRIM_FARM_LOC.x, character.y - PRIM_FARM_LOC.y) < PRIM_FARM_RADIUS + 30;
 }
 
+// smart_move() returns a promise that rejects when the move is interrupted or cannot path at all.
+// Several callers deliberately don't await it — follow_healer() interrupts moves on purpose — so
+// without a catch every one of those rejections surfaces as "Uncaught (in promise)", which is what
+// fills the console during normal farming. Swallowing is right here: each caller re-issues on its
+// own next tick, and a destination that is genuinely unreachable is handled by stuck_escape_check().
+function fire_and_forget_move(dest, on_done) {
+	try {
+		Promise.resolve(smart_move(dest, on_done)).catch(() => {});
+	} catch (e) { /* smart_move threw synchronously */ }
+}
+
 // Shared by Warrior/Healer/Ranger — approaches the farm spot via smart_move only when actually lost;
 // callers gate this on their own `home === "bscorpion"` check first.
 function handle_bscorpion_farm_approach() {
-	if (!is_at_bscorpion_farm() && !smart.moving) smart_move(PRIM_FARM_LOC);
+	if (!is_at_bscorpion_farm() && !smart.moving) fire_and_forget_move(PRIM_FARM_LOC);
 }
 
 let cached_bscorpion_id = null;

@@ -245,7 +245,7 @@ function reposition_center() {
 function handle_events() {
 	if (parent?.S?.holidayseason && !character?.s?.holidayspirit) {
 		if (!smart.moving) {
-			smart_move({ to: "town" }, () => {
+			fire_and_forget_move({ to: "town" }, () => {
 				parent.socket.emit("interaction", { type: "newyear_tree" });
 			});
 		}
@@ -287,7 +287,7 @@ async function handle_specific_event(event_type, map_name, x, y) {
 
 	const monster = get_nearest_monster({ type: event_type });
 	if (!monster) {
-		smart_move({ x, y, map: map_name });
+		fire_and_forget_move({ x, y, map: map_name });
 		return;
 	}
 

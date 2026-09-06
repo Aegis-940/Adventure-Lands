@@ -34,6 +34,14 @@ function should_spread() {
 	return true;
 }
 
+// main_loop() calls handle_return_home() every 100ms. When the pathfind fails outright — a
+// destination on another map it can't route to — smart.moving drops straight back to false and the
+// next tick re-issues it, so a single unreachable home becomes a permanent 10/second retry storm
+// (visible as endless "smart_move: tunnel 14 -1072" lines). Rate-limit the re-issue; nothing is
+// lost, because a move that was going to succeed is still in flight and gated by smart.moving.
+const HOME_MOVE_RETRY_MS = 3000;
+let _last_home_move = 0;
+
 function handle_return_home() {
 	const dx = character.x - destination.x;
 	const dy = character.y - destination.y;
@@ -45,8 +53,9 @@ function handle_return_home() {
 	if (dist < 200 && character.map === destination.map) {
 		// Short drift: raw move() keeps smart.moving false (xmove falls back to smart_move on obstacles)
 		if (!character.moving && !smart.moving) move(destination.x, destination.y);
-	} else if (!smart.moving) {
-		smart_move(destination);
+	} else if (!smart.moving && Date.now() - _last_home_move > HOME_MOVE_RETRY_MS) {
+		_last_home_move = Date.now();
+		fire_and_forget_move(destination); // Shared/Movement.js
 	}
 }
 
@@ -582,13 +591,13 @@ function follow_healer() {
 
 	if (healer_pos.map !== character.map) {
 		if (smart.moving) smart._interrupt?.("follow_healer");
-		if (!smart.moving) smart_move({ map: healer_pos.map, x: healer_pos.x, y: healer_pos.y });
+		if (!smart.moving) fire_and_forget_move({ map: healer_pos.map, x: healer_pos.x, y: healer_pos.y });
 		return;
 	}
 
 	// Same map but not yet visible — smart_move toward cached position
 	if (!healer) {
-		if (!smart.moving) smart_move({ x: healer_pos.x, y: healer_pos.y });
+		if (!smart.moving) fire_and_forget_move({ x: healer_pos.x, y: healer_pos.y });
 		return;
 	}
 
@@ -609,7 +618,7 @@ function follow_healer() {
 	const target_y = healer.y + Math.sin(angle) * fd;
 
 	if (!can_move_to(target_x, target_y)) {
-		smart_move({ x: target_x, y: target_y });
+		fire_and_forget_move({ x: target_x, y: target_y });
 	} else {
 		move(target_x, target_y);
 	}
