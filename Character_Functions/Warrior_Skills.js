@@ -18,7 +18,8 @@ async function skill_loop() {
 		const tank = cache.tank_entity;
 
 		// Warcry
-		if (CONFIG.skills.warcry_enabled && !is_on_cooldown("warcry") && !character.s.warcry) {
+		if (CONFIG.skills.warcry_enabled && !is_on_cooldown("warcry") && !character.s.warcry
+			&& character.mp >= G.skills.warcry.mp + panic_mp_reserve()) {
 			if (WARRIOR_TARGET !== "bscorpion" || bscorpion_worth_buffing()) {
 				await use_skill("warcry");
 			}
@@ -167,8 +168,18 @@ function is_fireroamer_agitate_safe(nearby_mobs) {
 	return true;
 }
 
+// scare costs 50mp and is the only escape any character has. agitate (420) and warcry (320) had
+// no mana floor at all, so they drained the warrior to empty and his panic then failed with no_mp
+// -- six times in seven minutes of ordinary farming, logged by the error recorder. cleave already
+// reserved this way; these two did not. Not pulling more mobs while too empty to escape them is
+// the right behaviour regardless of the panic interaction.
+function panic_mp_reserve() {
+	return (G.skills.scare?.mp || 50) + 200;
+}
+
 async function handle_agitate(tank) {
 	if (is_on_cooldown("agitate") || !tank || tank.rip) return;
+	if (character.mp < G.skills.agitate.mp + panic_mp_reserve()) return;
 
 	const skill_range = G.skills.agitate.range;
 	const nearby_mobs = Object.values(parent.entities).filter(e =>
