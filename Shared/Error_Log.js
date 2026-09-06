@@ -225,6 +225,18 @@ function _errlog_sample_vitals() {
 	try {
 		if (typeof projected_dps === "function") v.pdps = Math.round(projected_dps());
 	} catch (e) { /* not loaded yet */ }
+
+	// Healer only: the inputs to the heal decision. "She stood there and healed nobody" produces no
+	// error of any kind, so the only way to settle why is to record what the decision saw.
+	try {
+		if (typeof cache !== "undefined" && cache && cache.heal_target) {
+			const ht = cache.heal_target;
+			v.heal_stat = character.heal;
+			v.heal_target = ht.name;
+			v.heal_thr = Math.round(Math.max(ht.max_hp * 0.5, ht.max_hp - character.heal / 1.33));
+			v.heal_tgt_hp = ht.hp;
+		}
+	} catch (e) { /* not a healer, or cache not built yet */ }
 	_errlog_vitals.push(v);
 	if (_errlog_vitals.length > ERRLOG_VITALS_SAMPLES) _errlog_vitals.shift();
 

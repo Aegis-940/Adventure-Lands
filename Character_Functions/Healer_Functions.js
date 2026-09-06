@@ -392,7 +392,16 @@ async function try_heal() {
 	const HEAL_TARGET = cache.heal_target;
 	if (!HEAL_TARGET) return false;
 
-	const HEAL_THRESHOLD = HEAL_TARGET.max_hp - character.heal / 1.33;
+	// Overheal avoidance: a bigger heal stat means wait until they are more damaged. But nothing
+	// bounded it, and character.heal grows with gear and with darkblessing — which she casts on
+	// herself in skill_loop and which was active in the deaths where she stopped healing. Once
+	// heal/1.33 reaches the target's max_hp the condition can never be true and healing switches
+	// off entirely, silently, with no error anywhere. Floor it at half health: overhealing is far
+	// cheaper than not healing, and she panics at 40%, so this keeps her inside the panic band.
+	const HEAL_THRESHOLD = Math.max(
+		HEAL_TARGET.max_hp * 0.5,
+		HEAL_TARGET.max_hp - character.heal / 1.33
+	);
 
 	if (HEAL_TARGET.hp < HEAL_THRESHOLD && is_in_range(HEAL_TARGET, "heal")) {
 		// log(`Healing → ${HEAL_TARGET.name} (${Math.round((HEAL_TARGET.hp / HEAL_TARGET.max_hp) * 100)}%)`, "#33AAFF");
