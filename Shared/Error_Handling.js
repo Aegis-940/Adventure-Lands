@@ -23,6 +23,7 @@ function catcher(e, context = "Error") {
 				return null;
 			},
 			GENERAL_ERROR
+			true,   // quiet: recorded, not shown
 		],
 		"3shot cooldown": [
 			(msg, ctx) => {
@@ -34,6 +35,7 @@ function catcher(e, context = "Error") {
 				return null;
 			},
 			GENERAL_ERROR
+			true,   // quiet: recorded, not shown
 		],
 		"5shot cooldown": [
 			(msg, ctx) => {
@@ -45,6 +47,7 @@ function catcher(e, context = "Error") {
 				return null;
 			},
 			GENERAL_ERROR
+			true,   // quiet: recorded, not shown
 		],
 		"supershot cooldown": [
 			(msg, ctx) => {
@@ -56,6 +59,7 @@ function catcher(e, context = "Error") {
 				return null;
 			},
 			GENERAL_ERROR
+			true,   // quiet: recorded, not shown
 		],
 		"huntersmark cooldown": [
 			(msg, ctx) => {
@@ -67,6 +71,7 @@ function catcher(e, context = "Error") {
 				return null;
 			},
 			GENERAL_ERROR
+			true,   // quiet: recorded, not shown
 		],
 		"heal cooldown": [
 			(msg, ctx) => {
@@ -78,6 +83,7 @@ function catcher(e, context = "Error") {
 				return null;
 			},
 			GENERAL_ERROR
+			true,   // quiet: recorded, not shown
 		],
 		"missing monster": [
 			(msg, ctx) => {
@@ -87,6 +93,7 @@ function catcher(e, context = "Error") {
 				return null;
 			},
 			GENERAL_ERROR
+			true,   // quiet: recorded, not shown
 		],
 		"out of range": [
 			(msg, ctx) => {
@@ -108,6 +115,13 @@ function catcher(e, context = "Error") {
 		],
 	};
 
+	// Quiet categories are still recorded -- a rejected call is wasted cc and worth counting -- they
+	// just no longer bury the in-game log, where the errors that matter have to stay visible.
+	function report(text, color, quiet) {
+		if (!quiet) return log(text, color, "Errors");
+		try { if (typeof errlog_record === "function") errlog_record("quiet", text); } catch (x) {}
+	}
+
 	let msg;
 	if (typeof e === "string") {
 		msg = e;
@@ -123,15 +137,15 @@ function catcher(e, context = "Error") {
 
 	for (const [keyword, value] of Object.entries(keyword_map)) {
 		if (Array.isArray(value)) {
-			const [handler_or_str, color] = value;
+			const [handler_or_str, color, quiet] = value;
 			if (typeof handler_or_str === "function") {
 				const result = handler_or_str(msg, context);
 				if (result) {
-					log(result, color, "Errors");
+					report(result, color, quiet);
 					return;
 				}
 			} else if (msg && msg.toLowerCase().includes(keyword)) {
-				log(`${handler_or_str} (${context})`, color, "Errors");
+				report(`${handler_or_str} (${context})`, color, quiet);
 				return;
 			}
 		}
