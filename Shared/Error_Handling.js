@@ -22,7 +22,7 @@ function catcher(e, context = "Error") {
 				}
 				return null;
 			},
-			GENERAL_ERROR
+			GENERAL_ERROR,
 			true,   // quiet: recorded, not shown
 		],
 		"3shot cooldown": [
@@ -34,7 +34,7 @@ function catcher(e, context = "Error") {
 				}
 				return null;
 			},
-			GENERAL_ERROR
+			GENERAL_ERROR,
 			true,   // quiet: recorded, not shown
 		],
 		"5shot cooldown": [
@@ -46,7 +46,7 @@ function catcher(e, context = "Error") {
 				}
 				return null;
 			},
-			GENERAL_ERROR
+			GENERAL_ERROR,
 			true,   // quiet: recorded, not shown
 		],
 		"supershot cooldown": [
@@ -58,7 +58,7 @@ function catcher(e, context = "Error") {
 				}
 				return null;
 			},
-			GENERAL_ERROR
+			GENERAL_ERROR,
 			true,   // quiet: recorded, not shown
 		],
 		"huntersmark cooldown": [
@@ -70,7 +70,7 @@ function catcher(e, context = "Error") {
 				}
 				return null;
 			},
-			GENERAL_ERROR
+			GENERAL_ERROR,
 			true,   // quiet: recorded, not shown
 		],
 		"heal cooldown": [
@@ -82,7 +82,7 @@ function catcher(e, context = "Error") {
 				}
 				return null;
 			},
-			GENERAL_ERROR
+			GENERAL_ERROR,
 			true,   // quiet: recorded, not shown
 		],
 		"missing monster": [
@@ -92,7 +92,7 @@ function catcher(e, context = "Error") {
 				}
 				return null;
 			},
-			GENERAL_ERROR
+			GENERAL_ERROR,
 			true,   // quiet: recorded, not shown
 		],
 		"out of range": [
