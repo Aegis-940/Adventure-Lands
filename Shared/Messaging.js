@@ -46,7 +46,14 @@ const CM_HANDLERS = {
 
 	"panic": (name, data) => {
 		if (name !== "Myras") return;
+		const was_panicking = (typeof panicking !== "undefined") && panicking;
 		panicking = data.state;
+		// Dump aggro on the very next panic_check() tick. panic_check() only zeroes
+		// last_panic_time when IT raises the panic; a broadcast sets `panicking` from out here and
+		// skips that, so the fighter sat out whatever remained of the 1000ms cooldown from an
+		// earlier panic before equipping the jacko and scaring -- a full second of the party still
+		// holding the pack that is killing the healer.
+		if (data.state && !was_panicking) last_panic_time = 0;
 		// Marks this as someone else's panic so panic_check() won't clear it the moment we're
 		// personally healthy — otherwise "hold fire" lasted about one tick on the warrior.
 		panic_external = data.state;

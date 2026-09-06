@@ -544,11 +544,21 @@ async function _panic_check_body() {
 				await equip_set("panic");
 				await wait_until_equipped("panic");
 			} catch (e) {
-				log(`[PANIC] Failed to equip panic orb: ${fmt_err(e)}`, "#ff4444", "Errors");
+				// Say WHY. "still not equipped after 1000ms" on its own cost hours of guessing at
+				// whether the jacko was missing, mis-levelled, or just slow to land.
+				const orb = character.slots.orb;
+				const in_bags = character.items.filter(i => i && i.name === "jacko").length;
+				log(`[PANIC] Failed to equip panic orb: ${fmt_err(e)} `
+					+ `(orb slot: ${orb ? orb.name + " lvl" + (orb.level ?? 0) : "empty"}, `
+					+ `jacko in bags: ${in_bags})`, "#ff4444", "Errors");
 			}
 		}
 
-		if (!is_on_cooldown("scare") && can_use("scare") && is_set_equipped("panic")) {
+		// Deliberately NOT gated on is_set_equipped("panic") any more. That gate has already been
+		// observed reading false while the orb was on, which skipped the scare silently and left
+		// the whole party holding aggro. can_use() already checks the skill's own requirements, and
+		// a genuine rejection is now logged with a real reason rather than swallowed.
+		if (!is_on_cooldown("scare") && can_use("scare")) {
 			try {
 				log("Using Scare!", "#ffcc00", "Alerts");
 				await use_skill("scare");
