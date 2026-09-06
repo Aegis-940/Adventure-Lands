@@ -13,7 +13,7 @@ var CONFIG = {
 		enabled: true,
 		target_priority: ["Myras"],
 		all_bosses,
-		cleave_min_mobs: 1,
+		cleave_min_mobs: 3,
 		cleave_blacklist: ["fireroamer", "plantoid"],
 		agitate_min_mobs: 2,
 		// Minimum other-monsters-in-explosion-radius before a mob counts as a cluster worth
