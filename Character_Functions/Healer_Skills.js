@@ -19,26 +19,42 @@ async function skill_loop() {
 
 		const PENALTY = character.s?.penalty_cd?.ms || 0;
 
+		// Party Heal runs FIRST and in its own try/catch: it is the survival-critical
+		// action, and a rejected use_skill() from curse/absorb used to abort the whole
+		// loop body before the heal ever fired (party wipe in the spider instance).
+		try {
+			await handle_party_heal();
+		} catch (e) {
+			console.error("handle_party_heal error:", e);
+		}
+
 		// Curse
 		if (CONFIG.combat.enabled) {
-			await handle_curse();
+			try {
+				await handle_curse();
+			} catch (e) {
+				console.error("handle_curse error:", e);
+			}
 		}
 
-		// Absorb 
+		// Absorb
 		if (CONFIG.healing.absorb_enabled && PENALTY < 500) {
-			await handle_absorb();
-		}
-
-		// Party Heal
-		if (true) {
-			await handle_party_heal();
+			try {
+				await handle_absorb();
+			} catch (e) {
+				console.error("handle_absorb error:", e);
+			}
 		}
 
 		// Dark Blessing
 		if (CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
 			&& character.mp >= (G.skills.darkblessing?.mp || 0)) {
 			if (HEALER_TARGET !== "bscorpion" || bscorpion_worth_buffing()) {
-				await use_skill("darkblessing");
+				try {
+					await use_skill("darkblessing");
+				} catch (e) {
+					console.error("darkblessing error:", e);
+				}
 			}
 		}
 
@@ -126,6 +142,11 @@ async function handle_absorb() {
 		if (!entity || entity.type !== "monster" || entity.dead) continue;
 
 		if (entity.target && ALLIES.includes(entity.target) && entity.target !== character.name) {
+			// Range/visibility check on the ally: without it this fires at allies across
+			// the map and rejects every tick.
+			const ally = get_player(entity.target);
+			if (!ally || ally.rip || !is_in_range(ally, "absorb")) continue;
+
 			await use_skill("absorb", entity.target);
 			return;
 		}

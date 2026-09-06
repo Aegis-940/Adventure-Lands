@@ -295,6 +295,13 @@ function find_nearest_boss() {
 async function main_loop() {
 	try {
 		if (is_disabled(character)) {
+			// A dead/stunned healer never reaches panic_check(), so a panic she already
+			// broadcast would never be followed by an all-clear — Ulric and Riva would hold
+			// fire until they died too. Release them on the way out.
+			if (panicking) {
+				panicking = false;
+				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
+			}
 			return setTimeout(main_loop, 250);
 		}
 

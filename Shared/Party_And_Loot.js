@@ -169,18 +169,18 @@ async function batch_equip(data) {
 		// game API, not an index into .items -- indexing .items with it would always miss.
 		// Matched on name+level only, same as is_set_equipped(), so the two agree.
 		const slot_item = parent.character.slots[slot];
-		if (slot_item && slot_item.name === item_name && slot_item.level === level) continue;
+		if (slot_item && slot_item.name === item_name && (slot_item.level ?? 0) === (level ?? 0)) continue;
 
 		// Exact pass first (l included): equipment_sets uses l to tell apart two copies of the
 		// same item+level destined for different slots, e.g. Warrior's cearring l:"l"/l:"u".
 		// Then a loose pass ignoring l, since a stale/guessed l in a set definition would
 		// otherwise make the equip silently do nothing forever with no error anywhere.
 		let idx = parent.character.items.findIndex((item, j) =>
-			item && item.name === item_name && item.level === level && item.l === l && !claimed_slots.has(j)
+			item && item.name === item_name && (item.level ?? 0) === (level ?? 0) && item.l === l && !claimed_slots.has(j)
 		);
 		if (idx === -1) {
 			idx = parent.character.items.findIndex((item, j) =>
-				item && item.name === item_name && item.level === level && !claimed_slots.has(j)
+				item && item.name === item_name && (item.level ?? 0) === (level ?? 0) && !claimed_slots.has(j)
 			);
 		}
 
@@ -211,9 +211,12 @@ function is_set_equipped(set_name) {
 	const set = equipment_sets[set_name];
 	if (!set) return false;
 
+	// Level compared with ?? 0 on both sides: non-upgradable items (jacko) report no `level`
+	// at all on character.slots, so a strict === against a set's `level: 0` was never true —
+	// which made is_set_equipped("panic") permanently false and blocked the scare below it.
 	return set.every(item =>
 		character.slots[item.slot]?.name === item.item_name &&
-		character.slots[item.slot]?.level === item.level
+		(character.slots[item.slot]?.level ?? 0) === (item.level ?? 0)
 	);
 }
 
@@ -522,6 +525,11 @@ async function panic_check() {
 	if (external_hold && Date.now() - panic_external_since > EXTERNAL_PANIC_MAX_MS) {
 		panic_external = false;
 		external_hold = false;
+		// Must clear `panicking` too, not just the external flag. The SAFE branch below is
+		// gated on HIGH_HEALTH && HIGH_MANA, which a fighter being chewed on by the pack it
+		// stopped fighting will never reach — so leaving `panicking` set here kept
+		// should_pause_combat_loop() returning true forever and the timeout freed nothing.
+		panicking = false;
 		log("⚠️ Healer panic hold expired without an all-clear — resuming.", "#FFA500", "Alerts");
 	}
 
