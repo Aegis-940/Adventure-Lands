@@ -520,6 +520,12 @@ async function _panic_check_body() {
 	if (LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= t.aggro) {
 		if (!panicking) {
 			panicking = true;
+			// Act on this tick, not up to t.cooldown later. The cooldown below exists to throttle
+			// REPEATS, but it was also delaying the first response by however long was left on it:
+			// panic triggered at 9:11:18 and scare was not attempted until 9:11:20, by which point
+			// the healer was dead and the server rejected it as "disabled". Two seconds is a long
+			// time below 30% HP.
+			last_panic_time = 0;
 			if (typeof PANIC_BROADCAST_TARGETS !== "undefined") {
 				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: true });
 			}
