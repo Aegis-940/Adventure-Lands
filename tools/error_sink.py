@@ -25,8 +25,12 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(REPO, "errors.json")
 
 
+MAX_DEATHS = 50
+MAX_TIMELINE = 300
+
+
 def merge(incoming):
-    """Merge a character's records into errors.json, keyed by character + signature."""
+    """Merge one character's payload into errors.json."""
     store = {}
     if os.path.exists(OUT):
         try:
@@ -37,18 +41,34 @@ def merge(incoming):
 
     who = incoming.get("character", "unknown")
     bucket = store.setdefault(who, {})
+    bucket["session"] = incoming.get("session")
+
+    recs = bucket.setdefault("records", {})
     for sig, rec in (incoming.get("records") or {}).items():
-        prev = bucket.get(sig)
-        # The browser holds the authoritative count; it only ever grows for a given signature.
+        prev = recs.get(sig)
+        # The browser holds the authoritative count; for a signature it only ever grows.
         if not prev or rec.get("count", 0) >= prev.get("count", 0):
-            bucket[sig] = rec
+            recs[sig] = rec
+
+    # Deaths and timeline accumulate across reloads, which the browser's own ring cannot do --
+    # a reload wipes its buffer, and a reload is exactly what follows the interesting failures.
+    deaths = {d.get("t"): d for d in bucket.get("deaths", [])}
+    for d in incoming.get("deaths") or []:
+        deaths[d.get("t")] = d
+    bucket["deaths"] = [deaths[k] for k in sorted(deaths)][-MAX_DEATHS:]
+
+    seen = {(e.get("t"), e.get("msg")): e for e in bucket.get("timeline", [])}
+    for e in incoming.get("timeline") or []:
+        seen[(e.get("t"), e.get("msg"))] = e
+    bucket["timeline"] = [seen[k] for k in sorted(seen, key=lambda x: x[0] or 0)][-MAX_TIMELINE:]
+
     store["_updated"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
     tmp = OUT + ".tmp"
     with open(tmp, "w", encoding="utf-8") as fh:
         json.dump(store, fh, indent=1, sort_keys=True)
     os.replace(tmp, OUT)  # atomic, so a read never sees a half-written file
-    return sum(len(v) for k, v in store.items() if k != "_updated")
+    return sum(len(v.get("records", {})) for k, v in store.items() if k != "_updated")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -68,8 +88,9 @@ class Handler(BaseHTTPRequestHandler):
             total = merge(payload)
             who = payload.get("character", "?")
             got = len(payload.get("records") or {})
-            print("%s  %-8s %3d records in, %d stored" %
-                  (datetime.now().strftime("%H:%M:%S"), who, got, total), flush=True)
+            deaths = len(payload.get("deaths") or [])
+            print("%s  %-8s %3d records, %d deaths in; %d stored" %
+                  (datetime.now().strftime("%H:%M:%S"), who, got, deaths, total), flush=True)
             self.send_response(200)
         except Exception as exc:
             print("  ! %s" % exc, file=sys.stderr, flush=True)
