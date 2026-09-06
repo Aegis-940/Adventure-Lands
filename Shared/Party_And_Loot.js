@@ -553,7 +553,19 @@ function _dmg_mult(defense) {
 	return Math.max(0.2, 1 - Math.min(0.8, Math.max(0, defense) / 1000));
 }
 
+// Walks every entity, and panic_check() runs on each 100ms main_loop tick, so the raw version was
+// re-scanning the map ten times a second for a number feeding a 3-second threshold. Cached.
+let _pdps = { at: 0, value: 0 };
+
 function projected_dps() {
+	const now = Date.now();
+	if (now - _pdps.at < 250) return _pdps.value;
+	_pdps.at = now;
+	_pdps.value = _projected_dps_uncached();
+	return _pdps.value;
+}
+
+function _projected_dps_uncached() {
 	let dps = 0;
 	try {
 		for (const id in parent.entities) {
@@ -594,7 +606,19 @@ function projected_seconds_to_death() {
 // Fix without changing anyone's gear: when the loadout already manages the orb, let it do the
 // restoring and do not force the `orb` set on top. One owner at a time — panic_check while
 // panicking or armed, resolve_equipment otherwise.
+let _orb_owner = { at: 0, value: false };
+
 function loadout_manages_orb() {
+	const now = Date.now();
+	if (now - _orb_owner.at < 1000) return _orb_owner.value;
+	_orb_owner.at = now;
+	_orb_owner.value = _loadout_manages_orb_uncached();
+	return _orb_owner.value;
+}
+
+// resolve() can be expensive -- the warrior's counts nearby mobs -- and the answer only changes
+// when the loadout does.
+function _loadout_manages_orb_uncached() {
 	try {
 		const rule = EQUIPMENT_RULES.loadout;
 		if (!rule || rule.kind !== "set" || typeof rule.resolve !== "function") return false;

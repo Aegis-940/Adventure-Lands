@@ -163,11 +163,29 @@ function should_pause_combat_loop() {
 	// Her own state cache is authoritative: it carries her own character.rip, and state_cache_loop()
 	// has no is_disabled guard so she keeps publishing it every 100ms while dead.
 	if (myras.rip) return true;
-	if (typeof read_state_cache === "function") {
-		const cached = read_state_cache("Myras");
-		if (cached && cached.rip) return true;
-	}
-	return false;
+	return healer_is_down();
+}
+
+// should_pause_combat_loop() is the first line of both action_loop and skill_loop, which
+// reschedule as fast as every 10ms. read_state_cache() is a synchronous localStorage.getItem plus
+// a JSON.parse, and in Chromium that is a blocking call into the storage backend -- running it
+// hundreds of times a second per character stalled the combat loops badly enough to be visible as
+// delayed attacks. Her death state does not change meaningfully inside 250ms.
+let _healer_down = { at: 0, down: false };
+
+function healer_is_down() {
+	const now = Date.now();
+	if (now - _healer_down.at < 250) return _healer_down.down;
+	_healer_down.at = now;
+	let down = false;
+	try {
+		if (typeof read_state_cache === "function") {
+			const cached = read_state_cache("Myras");
+			down = !!(cached && cached.rip);
+		}
+	} catch (e) { /* storage unavailable */ }
+	_healer_down.down = down;
+	return down;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
