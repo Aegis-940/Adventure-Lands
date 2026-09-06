@@ -28,14 +28,23 @@
 	if (Date.now() - (guard.__AL_LOAD_STARTED__ || 0) < GUARD_MS) return say("[AL] duplicate start ignored");
 	guard.__AL_LOAD_STARTED__ = Date.now();
 
-	// Mainframe runs this in a node:vm sandbox — no document, no jQuery, no AbortController.
-	// Bootstrapper.js loads every other file with jQuery getScript, so it cannot run here; stop
-	// cleanly rather than crash-looping the Worker, and report what this runtime does provide.
+	// Mainframe runs this in a node:vm sandbox with no fetch, no XMLHttpRequest and no require —
+	// there is no way to pull code from GitHub at all, so this loader cannot work there and the
+	// bot has to be bundled into the slot instead. Stop cleanly rather than crash-loop, and report
+	// what the runtime provides so the bundle can be built against facts. Temporary scaffolding.
 	if (typeof document === "undefined") {
-		const probe = ["fetch", "XMLHttpRequest", "require", "parent", "$", "localStorage",
-			"character", "G", "socket", "game_log", "setTimeout"]
-			.map(n => { try { return n + "=" + eval("typeof " + n); } catch (e) { return n + "=err"; } });
-		say("[AL] headless — " + probe.join(" "));
+		const t = n => { try { return eval("typeof " + n); } catch (e) { return "err"; } };
+		const p = n => { try { return typeof parent[n]; } catch (e) { return "err"; } };
+		say("[AL] headless globals — " + ["fetch", "XMLHttpRequest", "require", "process", "eval",
+			"$", "localStorage", "character", "G", "S", "game_log", "setTimeout", "Promise"]
+			.map(n => n + "=" + t(n)).join(" "));
+		say("[AL] parent.* — " + ["socket", "entities", "character", "G", "S", "$", "push_deferred",
+			"open_chest", "window", "location"].map(n => n + "=" + p(n)).join(" "));
+		say("[AL] api — " + ["attack", "use_skill", "heal", "smart_move", "move", "get_party",
+			"get_player", "is_disabled", "can_use", "is_on_cooldown", "equip", "buy", "use",
+			"quantity", "locate_item", "send_cm", "on_cm", "get_chests", "respawn", "load_code"]
+			.map(n => n + "=" + t(n)).join(" "));
+		try { say("[AL] parent keys = " + Object.keys(parent).length); } catch (e) {}
 		return;
 	}
 
