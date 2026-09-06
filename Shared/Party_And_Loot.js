@@ -581,6 +581,30 @@ function projected_seconds_to_death() {
 	return character.hp / dps;
 }
 
+// The orb slot had TWO owners. Party_And_Loot's own comment says panic_check() owns it
+// exclusively, but the healer's `luck` loadout claims rabbitsfoot and the warrior's
+// `dps_accessories` claims orbofstr — so resolve_equipment() re-equipped the loadout every 500ms
+// (apply_equipment_rule never returns early, because the set can never be fully equipped while the
+// orb holds something else) and panic_check's SAFE branch forced the `orb` set back. They fought
+// continuously, the jacko could not stay on, and scare failed with skill_cant_slot.
+//
+// The ranger is the only one whose loadout does not claim the orb, and the only one whose panic
+// has been working. That is the whole asymmetry.
+//
+// Fix without changing anyone's gear: when the loadout already manages the orb, let it do the
+// restoring and do not force the `orb` set on top. One owner at a time — panic_check while
+// panicking or armed, resolve_equipment otherwise.
+function loadout_manages_orb() {
+	try {
+		const rule = EQUIPMENT_RULES.loadout;
+		if (!rule || rule.kind !== "set" || typeof rule.resolve !== "function") return false;
+		const resolved = rule.resolve();
+		if (!resolved) return false;
+		const sets = Array.isArray(resolved) ? resolved : [resolved];
+		return sets.some(n => (equipment_sets[n] || []).some(i => i.slot === "orb"));
+	} catch (e) { return false; }
+}
+
 let panic_armed = false;
 let last_panic_gear = 0;
 const PANIC_GEAR_RETRY_MS = 1000;
@@ -663,7 +687,8 @@ async function _panic_check_body() {
 			// stall earlier. By the time panic fires the orb is on and scare is immediate.
 			last_panic_gear = Date.now();
 			Promise.resolve(equip_set("panic")).catch(() => {});
-		} else if (!panic_armed && !panicking && is_set_equipped("panic") && !is_set_equipped("orb")) {
+		} else if (!panic_armed && !panicking && !loadout_manages_orb()
+			&& is_set_equipped("panic") && !is_set_equipped("orb")) {
 			last_panic_gear = Date.now();
 			Promise.resolve(equip_set("orb")).catch(() => {});
 		}
@@ -723,7 +748,7 @@ async function _panic_check_body() {
 		if (Date.now() - last_safe_time > t.cooldown) {
 			last_safe_time = Date.now();
 
-			if (!panic_armed && is_set_equipped("panic") && !is_set_equipped("orb")) {
+			if (!panic_armed && !loadout_manages_orb() && is_set_equipped("panic") && !is_set_equipped("orb")) {
 				try {
 					await equip_set("orb");
 					await wait_until_equipped("orb");

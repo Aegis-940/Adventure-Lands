@@ -252,6 +252,12 @@ function find_heal_target() {
 		const ally = get_player(name);
 		if (!ally || ally.rip) continue;
 
+		// An ally we cannot reach must not win the selection. try_heal() heals ONLY the chosen
+		// target and bails when it is out of range, so locking onto someone unreachable means
+		// healing nobody at all — including ourselves. In a breakdown the warrior is always the
+		// lowest hp% and is off gathering, which is exactly when the healer stopped healing.
+		if (name !== character.name && !is_in_range(ally, "heal")) continue;
+
 		const pct = ally.hp / ally.max_hp;
 		if (pct < lowest_pct) {
 			lowest_pct = pct;
