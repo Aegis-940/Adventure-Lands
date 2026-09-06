@@ -479,7 +479,32 @@ const EXTERNAL_PANIC_MAX_MS = 60000;
 
 // Reads this file's own PANIC_THRESHOLDS global. If PANIC_BROADCAST_TARGETS is also defined
 // (currently only Healer), panic state changes are broadcast via send_cm to those targets.
+// panic_check() is async and every fighter's main_loop() calls it every 100ms WITHOUT awaiting.
+// The cooldown below is stamped on entry, but the body outlives it: wait_until_equipped() alone
+// polls for up to 1000ms against a 1000ms cooldown. So a second invocation cleared the guard and
+// ran concurrently with the first -- both calling equip_set("panic") and racing over the orb slot,
+// both casting scare. That is the doubled "Using Scare!" in the same second, the timed-out panic
+// orb equip, and the scare rejections. One at a time.
+let _panic_check_running = false;
+
 async function panic_check() {
+	if (_panic_check_running) return;
+	_panic_check_running = true;
+	try {
+		await _panic_check_body();
+	} finally {
+		_panic_check_running = false;
+	}
+}
+
+// AL rejects with plain objects like {reason, response, place, failed} that have no .message, so
+// the old `e.message ? e.message : e` printed "[object Object]" and told us nothing.
+function fmt_err(e) {
+	if (e && e.message) return e.message;
+	try { return JSON.stringify(e); } catch (x) { return String(e); }
+}
+
+async function _panic_check_body() {
 	const t = PANIC_THRESHOLDS;
 
 	const LOW_HEALTH = character.hp < character.max_hp * t.low_hp;
@@ -513,7 +538,7 @@ async function panic_check() {
 				await equip_set("panic");
 				await wait_until_equipped("panic");
 			} catch (e) {
-				log(`[PANIC] Failed to equip panic orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
+				log(`[PANIC] Failed to equip panic orb: ${fmt_err(e)}`, "#ff4444", "Errors");
 			}
 		}
 
@@ -523,7 +548,7 @@ async function panic_check() {
 				await use_skill("scare");
 				await delay(200);
 			} catch (e) {
-				log(`[PANIC] Error using scare: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
+				log(`[PANIC] Error using scare: ${fmt_err(e)}`, "#ff4444", "Errors");
 			}
 		}
 	}
@@ -555,7 +580,7 @@ async function panic_check() {
 					await equip_set("orb");
 					await wait_until_equipped("orb");
 				} catch (e) {
-					log(`[PANIC] Failed to equip normal orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
+					log(`[PANIC] Failed to equip normal orb: ${fmt_err(e)}`, "#ff4444", "Errors");
 				}
 			}
 
