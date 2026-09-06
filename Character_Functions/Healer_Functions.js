@@ -618,6 +618,7 @@ var last_safe_time = 0;
 var PANIC_THRESHOLDS = {
 	low_hp: 0.40, low_mp: 0.05, high_hp: 0.60, high_mp: 0.50,
 	aggro: 99, cooldown: 1000,
+	arm_hp: 0.65, disarm_hp: 0.80,
 };
 var PANIC_BROADCAST_TARGETS = ["Ulric", "Riva"];
 

@@ -307,6 +307,7 @@ function resolve_equipment_bail_reason() {
 	// same as before this file had one gate. Only an explicit false disables it.
 	if (CONFIG.equipment?.auto_swap_sets === false) return "auto_swap_sets disabled";
 	if (panicking) return "panicking"; // panic_check() owns gear exclusively while active
+	if (panic_armed) return "panic armed"; // ...and while armed, or it swaps the jacko straight back out
 	if (state.gear_locked) return "gear_locked"; // e.g. a manual swap-trick sequence mid-flight
 	if (character.cc > COOLDOWNS.cc) return "cc above threshold";
 	if (typeof should_pause_equipment_resolve === "function" && should_pause_equipment_resolve()) return "special weapon equipped";
@@ -487,6 +488,15 @@ const EXTERNAL_PANIC_MAX_MS = 60000;
 // orb equip, and the scare rejections. One at a time.
 let _panic_check_running = false;
 
+// Armed = the jacko is already on, waiting. Measured from a real death: once panic fired at 40% the
+// healer had 1.4s of life left, and wait_until_equipped() alone polls for up to 1000ms, so the equip
+// consumed the budget and scare was attempted three seconds after she was already dead. Arming
+// early takes the equip off the critical path; at the panic threshold the orb is on and scare goes
+// straight out. Costs luck only while below the arm threshold, which is when luck is not the point.
+let panic_armed = false;
+let last_panic_gear = 0;
+const PANIC_GEAR_RETRY_MS = 1000;
+
 async function panic_check() {
 	if (_panic_check_running) return;
 	_panic_check_running = true;
@@ -534,6 +544,28 @@ async function _panic_check_body() {
 			if (LOW_MANA) reason.push("low mana");
 			if (MONSTERS_TARGETING_ME >= t.aggro) reason.push("high aggro");
 			log(`⚠️ Panic triggered: ${reason.join(", ")}!`, "#ffcc00", "Alerts");
+		}
+	}
+
+	// ARM / DISARM. Hysteresis between the two thresholds so a character sitting near the arm point
+	// does not flap the orb slot. Never disarms while panicking — the SAFE branch below owns that.
+	const hp_pct = character.max_hp ? character.hp / character.max_hp : 1;
+	const arm_at = t.arm_hp ?? 0.65;
+	const disarm_at = t.disarm_hp ?? 0.80;
+	if (!panicking) {
+		if (hp_pct < arm_at) panic_armed = true;
+		else if (hp_pct >= disarm_at) panic_armed = false;
+	}
+
+	if (Date.now() - last_panic_gear > PANIC_GEAR_RETRY_MS) {
+		if (panic_armed && !is_set_equipped("panic")) {
+			// Not awaited on purpose: there is no hurry yet, and blocking here would just move the
+			// stall earlier. By the time panic fires the orb is on and scare is immediate.
+			last_panic_gear = Date.now();
+			Promise.resolve(equip_set("panic")).catch(() => {});
+		} else if (!panic_armed && !panicking && is_set_equipped("panic") && !is_set_equipped("orb")) {
+			last_panic_gear = Date.now();
+			Promise.resolve(equip_set("orb")).catch(() => {});
 		}
 	}
 
@@ -591,7 +623,7 @@ async function _panic_check_body() {
 		if (Date.now() - last_safe_time > t.cooldown) {
 			last_safe_time = Date.now();
 
-			if (is_set_equipped("panic") && !is_set_equipped("orb")) {
+			if (!panic_armed && is_set_equipped("panic") && !is_set_equipped("orb")) {
 				try {
 					await equip_set("orb");
 					await wait_until_equipped("orb");
