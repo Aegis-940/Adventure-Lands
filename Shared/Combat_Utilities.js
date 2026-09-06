@@ -150,16 +150,24 @@ function should_pause_combat_loop() {
 	if (panicking) return true;
 	if (home === "giantspider") return false; // follow_healer() handles positioning instead
 	const myras = get_player("Myras");
-	// myras.rip matters as much as her being here. The healer is the tank: the warrior gathers with
-	// AoE and the healer pulls the aggro off him with absorb. A dead healer is still an entity with
-	// rip:true standing on the spot, so without this check the corpse satisfied "present and within
-	// 200" and the warrior kept cleaving — generating aggro with nobody to absorb it and nobody
-	// healing. handle_agitate() already bails on tank.rip, so agitate stopped and cleave did not,
-	// which is why the warrior died every time the healer did while the ranger walked away.
+	if (!myras || distance(character, myras) > 200) return true;
+
+	// The healer is the tank: the warrior gathers with AoE and she pulls the aggro off him with
+	// absorb. So fighting on without her is fatal, and both of these checks exist to catch that.
 	//
-	// It also removes the sting from the healer's all-clear-on-death: even with panicking cleared,
-	// the fighters stay paused while she is down instead of charging back in unhealed.
-	return !myras || myras.rip || distance(character, myras) > 200;
+	// myras.rip is the obvious one, but it is NOT sufficient — the warrior was observed still
+	// attacking beside a dead healer on a build that already had it, which means `rip` is not
+	// reliably populated on another player's entity. Five other places in this codebase assume it
+	// is; that assumption is apparently wrong and this was the one place it mattered.
+	//
+	// Her own state cache is authoritative: it carries her own character.rip, and state_cache_loop()
+	// has no is_disabled guard so she keeps publishing it every 100ms while dead.
+	if (myras.rip) return true;
+	if (typeof read_state_cache === "function") {
+		const cached = read_state_cache("Myras");
+		if (cached && cached.rip) return true;
+	}
+	return false;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
