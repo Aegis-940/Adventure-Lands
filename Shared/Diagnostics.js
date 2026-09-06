@@ -84,6 +84,29 @@ function diag_record(kind, context, message, extra) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// SUSTAINED CONDITIONS — "this should have resolved itself by now" (nothing throws)
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+// For the failure class that produces no error at all: a decision that keeps being made and
+// never takes effect, or a guard that keeps blocking. Callers pass the condition every tick;
+// it only records once the condition has held continuously for `ms`, then re-arms — so a
+// persistent problem increments count once per window rather than once per tick.
+const _diag_sustained = {};
+
+function diag_sustained(key, active, ms, describe) {
+	if (!active) { delete _diag_sustained[key]; return; }
+
+	const now = Date.now();
+	const entry = _diag_sustained[key];
+	if (!entry) { _diag_sustained[key] = { since: now }; return; }
+
+	const held = now - entry.since;
+	if (held < ms) return;
+	diag_record("sustained", key, describe ? describe(held) : `held for ${Math.round(held / 1000)}s`);
+	entry.since = now;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // HEARTBEATS — catch a loop that stops ticking, whatever killed it
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -167,6 +190,26 @@ window.addEventListener("error", (ev) => {
 	const where = ev.filename ? `${ev.filename.split("/").pop()}:${ev.lineno}` : "unknown";
 	diag_record("uncaught", where, ev.message || String(ev.error));
 });
+
+// One hook covers every character. Records what was around at the moment of death, which is
+// the context that's gone by the time anyone looks at a respawned character.
+try {
+	character.on("death", () => {
+		const nearby = {};
+		try {
+			for (const id in parent.entities) {
+				const e = parent.entities[id];
+				if (e?.type !== "monster" || e.dead) continue;
+				if (distance(character, e) > 400) continue;
+				nearby[e.mtype] = (nearby[e.mtype] || 0) + 1;
+			}
+		} catch (e) { /* best effort */ }
+		diag_record("death", character.map || "?", `died on ${character.map}`, {
+			nearby_monsters: nearby,
+			targeting_me: typeof get_num_targets === "function" ? get_num_targets(character.name) : null,
+		});
+	});
+} catch (e) { /* character.on unavailable — skip rather than break loading */ }
 
 window.addEventListener("unhandledrejection", (ev) => {
 	const r = ev.reason;

@@ -517,6 +517,7 @@ async function loop_controller() {
 				watchdog_since = Date.now();
 			} else if (merchant_task !== "Idle" && Date.now() - watchdog_since > MERCHANT_TASK_WATCHDOG_MS) {
 				game_log(`⚠️ Merchant stuck on "${merchant_task}" for over ${MERCHANT_TASK_WATCHDOG_MS / 60000} minutes — forcing back to Idle.`, "#FF3333");
+				diag_record("watchdog", merchant_task, "task stuck past watchdog, forced back to Idle");
 				merchant_task = "Idle";
 				merchant_task_generation++; // tells the stuck handler to abandon its run
 				watchdog_task = "Idle";

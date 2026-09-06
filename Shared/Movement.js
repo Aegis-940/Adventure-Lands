@@ -230,6 +230,7 @@ function stuck_escape_check() {
 	_last_stuck_escape = now;
 	_stuck_since = now; // don't re-fire on the next tick if the teleport fails
 	game_log(`🚨 Stuck on ${character.map} for ${Math.round(stuck_ms / 1000)}s — using town to escape.`, "#FF3333");
+	diag_record("stuck_escape", character.map, `stuck ${Math.round(stuck_ms / 1000)}s, used town`);
 	use_skill("use_town");
 }
 

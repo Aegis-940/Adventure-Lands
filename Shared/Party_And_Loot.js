@@ -145,6 +145,7 @@ function warn_missing_item(item_name, level, slot) {
 	if (now - (_missing_item_warned[key] || 0) < MISSING_ITEM_WARN_INTERVAL) return;
 	_missing_item_warned[key] = now;
 	game_log(`⚠️ batch_equip: no ${item_name} (lvl ${level}) in inventory for ${slot}`, "#FFA500");
+	diag_record("missing_item", slot, `no ${item_name} (lvl ${level}) in inventory`);
 }
 
 async function batch_equip(data) {
@@ -255,9 +256,17 @@ function unlock_gear() {
 }
 
 async function apply_equipment_rule(group, resolved) {
-	if (!resolved) return;
+	if (!resolved) { diag_sustained(`equip_${group}`, false); return; }
 	const sets = Array.isArray(resolved) ? resolved : [resolved];
-	if (sets.every(s => is_set_equipped(s))) return;
+
+	// Intent vs reality: we keep asking for these sets every tick, so if they still aren't on
+	// after 30s the request is failing silently — a wrong level/l in the set definition, or
+	// the item simply gone. Both took hours to find by hand.
+	const satisfied = sets.every(s => is_set_equipped(s));
+	diag_sustained(`equip_${group}`, !satisfied, 30000,
+		(held) => `wanted [${sets.join(", ")}] for ${Math.round(held / 1000)}s, still not equipped`);
+
+	if (satisfied) return;
 
 	const now = performance.now();
 	const cooldown = CONFIG.equipment.swap_cooldown ?? 500;
@@ -286,15 +295,28 @@ async function apply_booster_rule(group, desired_booster) {
 	shift(other_slot, desired_booster);
 }
 
-async function resolve_equipment() {
-	if (typeof EQUIPMENT_RULES === "undefined") return;
+// Returns null when the resolver may run, otherwise why it may not. Split out so a guard
+// that silently blocks gear management forever becomes visible: EQUIPMENT_RULES being
+// invisible across the eval boundary did exactly that, and nothing threw to reveal it.
+function resolve_equipment_bail_reason() {
+	if (typeof EQUIPMENT_RULES === "undefined") return "EQUIPMENT_RULES undefined";
 	// Some characters (Ranger) never declared this toggle at all — absent means enabled,
 	// same as before this file had one gate. Only an explicit false disables it.
-	if (CONFIG.equipment?.auto_swap_sets === false) return;
-	if (panicking) return; // panic_check() owns gear exclusively while active
-	if (state.gear_locked) return; // e.g. a manual swap-trick sequence is mid-flight
-	if (character.cc > COOLDOWNS.cc) return;
-	if (typeof should_pause_equipment_resolve === "function" && should_pause_equipment_resolve()) return;
+	if (CONFIG.equipment?.auto_swap_sets === false) return "auto_swap_sets disabled";
+	if (panicking) return "panicking"; // panic_check() owns gear exclusively while active
+	if (state.gear_locked) return "gear_locked"; // e.g. a manual swap-trick sequence mid-flight
+	if (character.cc > COOLDOWNS.cc) return "cc above threshold";
+	if (typeof should_pause_equipment_resolve === "function" && should_pause_equipment_resolve()) return "special weapon equipped";
+	return null;
+}
+
+async function resolve_equipment() {
+	const bail = resolve_equipment_bail_reason();
+	// A momentary block is normal; one that holds for a minute means gear management is
+	// effectively off, which is invisible otherwise.
+	diag_sustained("resolver_blocked", !!bail, 60000,
+		(held) => `resolve_equipment blocked ${Math.round(held / 1000)}s: ${bail}`);
+	if (bail) return;
 
 	const overrides = (typeof MONSTER_GEAR_OVERRIDES !== "undefined" && MONSTER_GEAR_OVERRIDES[home]) || {};
 
@@ -495,6 +517,7 @@ async function panic_check() {
 				await wait_until_equipped("panic");
 			} catch (e) {
 				log(`[PANIC] Failed to equip panic orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
+				diag_record("panic_equip", "panic orb", String(e && e.message ? e.message : e));
 			}
 		}
 
@@ -532,6 +555,7 @@ async function panic_check() {
 					await wait_until_equipped("orb");
 				} catch (e) {
 					log(`[PANIC] Failed to equip normal orb: ${e && e.message ? e.message : e}`, "#ff4444", "Errors");
+					diag_record("panic_equip", "normal orb", String(e && e.message ? e.message : e));
 				}
 			}
 
