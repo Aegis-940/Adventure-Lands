@@ -64,12 +64,19 @@
                 // harder to get back under.
                 if (!e.status && attempt < MAX_RETRIES) return resolveBase(attempt + 1);
 
-                // raw.githubusercontent serves the actual branch tip on a short cache. jsDelivr
-                // caches @main for around 12h and a query string does not purge that (only
-                // purge.jsdelivr.net does), so falling back there can silently run hours-old code
-                // — which looks exactly like a pushed fix never arriving.
-                game_log("⚠️ Couldn't resolve commit SHA (" + e.message + "); loading raw @main", "#FFA500");
-                return `https://raw.githubusercontent.com/${REPO}/main/`;
+                // Must stay on jsDelivr. raw.githubusercontent serves text/plain with
+                // X-Content-Type-Options: nosniff, so the browser refuses to execute it via a
+                // <script> tag — Bootstrapper.js loads every other file with jQuery getScript, so
+                // a raw base fails all 18 of them even though this file's own fetch+eval of
+                // Bootstrapper.js succeeds. Tried it; every script 404'd into CRITICAL abort.
+                //
+                // The cost is that jsDelivr caches @main for around 12h and a query string does
+                // not purge it (only purge.jsdelivr.net does), so this path can run stale code.
+                // That is why the request budget above matters: staying under the rate limit keeps
+                // us on the @<sha> path, where this never comes up.
+                game_log("⚠️ Couldn't resolve commit SHA (" + e.message + "); falling back to @main "
+                    + "— may be up to ~12h stale", "#FFA500");
+                return `https://cdn.jsdelivr.net/gh/${REPO}@main/`;
             });
     }
 
