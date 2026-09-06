@@ -169,6 +169,71 @@ function move_to_character(name, timeout_ms = 10000) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// STUCK ESCAPE — last resort when pathfinding cannot leave where we are
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+// Engaging the Ice Golem strands you on a winterland island with no walkable route off it;
+// smart_move then retries forever. `use_town` ("Teleports you to the center of the map",
+// 3s channel, no cooldown) is the only way out.
+//
+// Deliberately paranoid, because a false positive teleports a healthy character out of a
+// fight: every cheaper explanation for "not moving" has to be ruled out first. Standing
+// still is normal for this bot (reposition() often decides to stay put), so stillness alone
+// proves nothing — it only counts when we're also on the wrong map entirely.
+const STUCK_MOVE_EPSILON = 20;             // movement under this isn't progress
+const STUCK_REQUIRED_MS = 60000;           // must look stuck this long before escaping
+const STUCK_ESCAPE_COOLDOWN_MS = 300000;   // hard ceiling: at most once per 5 minutes
+const STUCK_ENEMY_RADIUS = 300;            // a monster this close means we're fighting, not stuck
+
+let _stuck_anchor = null;
+let _stuck_since = 0;
+let _last_stuck_escape = 0;
+
+function stuck_escape_check() {
+	// Fighters only — reads `destination`, which the merchant doesn't define.
+	if (typeof destination === "undefined") return;
+	if (character.rip) return;
+
+	// Being on the map we're supposed to be on IS the definition of not stuck.
+	if (character.map === destination.map) { _stuck_anchor = null; return; }
+
+	// Never teleport out of an instance (spider dungeon) — that abandons the run, and
+	// giantspider mode drives movement through follow_healer() rather than destination.
+	if (G.maps[character.map]?.instance) return;
+	if (home === "giantspider") return;
+
+	const now = Date.now();
+	const progressed = !_stuck_anchor
+		|| _stuck_anchor.map !== character.map
+		|| Math.hypot(character.x - _stuck_anchor.x, character.y - _stuck_anchor.y) > STUCK_MOVE_EPSILON;
+
+	if (progressed) {
+		_stuck_anchor = { map: character.map, x: character.x, y: character.y };
+		_stuck_since = now;
+		return;
+	}
+
+	const stuck_ms = now - _stuck_since;
+	if (stuck_ms < STUCK_REQUIRED_MS) return;
+	if (character.c?.town) return;                                    // already channelling out
+	if (now - _last_stuck_escape < STUCK_ESCAPE_COOLDOWN_MS) return;
+
+	// Standing still next to monsters means we're fighting, not trapped. This also keeps us
+	// from burning the escape on a channel that incoming damage would just cancel — the
+	// stuck timer keeps running, so it fires as soon as we're genuinely clear.
+	const enemy_near = Object.values(parent.entities).some(e =>
+		e?.type === "monster" && !e.dead && distance(character, e) < STUCK_ENEMY_RADIUS
+	);
+	if (enemy_near) return;
+	if (get_num_targets(character.name) > 0) return;
+
+	_last_stuck_escape = now;
+	_stuck_since = now; // don't re-fire on the next tick if the teleport fails
+	game_log(`🚨 Stuck on ${character.map} for ${Math.round(stuck_ms / 1000)}s — using town to escape.`, "#FF3333");
+	use_skill("use_town");
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // BSCORPION / PRIMLING FARM
 // --------------------------------------------------------------------------------------------------------------------------------- //
 

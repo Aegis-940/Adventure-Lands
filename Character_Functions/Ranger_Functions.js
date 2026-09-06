@@ -391,6 +391,7 @@ const main_loop = async () => {
 
 		update_cache();
 		panic_check();
+		stuck_escape_check(); // Shared/Movement.js
 
 		if (CONFIG.equipment.use_licence) {
 			let slot = locate_item("licence");

@@ -361,6 +361,7 @@ async function main_loop() {
 
 		update_cache();
 		panic_check();
+		stuck_escape_check(); // Shared/Movement.js
 
 		if (should_handle_events()) {
 			handle_events();

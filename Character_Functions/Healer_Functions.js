@@ -300,6 +300,7 @@ async function main_loop() {
 
 		update_cache();
 		if (HEALER_TARGET !== "fireroamer" && HEALER_TARGET !== "giantspider") panic_check();
+		stuck_escape_check(); // Shared/Movement.js
 
 		if (should_handle_events()) {
 			handle_events();
