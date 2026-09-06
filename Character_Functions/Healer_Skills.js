@@ -28,8 +28,14 @@ async function skill_loop() {
 			console.error("handle_party_heal error:", e);
 		}
 
+		// Everything below is suspended while panicking: she does one job then, which is heal.
+		// Curse and dark blessing spend mana she needs for heals — the last death had curse failing
+		// no_mp while her pool drained 4339 -> 129 — and absorb PULLS aggro off allies onto her,
+		// which is the exact opposite of what a panic is trying to achieve.
+		// Party heal above is deliberately outside this guard.
+
 		// Curse
-		if (CONFIG.combat.enabled) {
+		if (!panicking && CONFIG.combat.enabled) {
 			try {
 				await handle_curse();
 			} catch (e) {
@@ -38,7 +44,7 @@ async function skill_loop() {
 		}
 
 		// Absorb
-		if (CONFIG.healing.absorb_enabled && PENALTY < 500) {
+		if (!panicking && CONFIG.healing.absorb_enabled && PENALTY < 500) {
 			try {
 				await handle_absorb();
 			} catch (e) {
@@ -47,7 +53,7 @@ async function skill_loop() {
 		}
 
 		// Dark Blessing
-		if (CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
+		if (!panicking && CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
 			&& character.mp >= (G.skills.darkblessing?.mp || 0)) {
 			if (HEALER_TARGET !== "bscorpion" || bscorpion_worth_buffing()) {
 				try {
