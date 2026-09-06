@@ -12,7 +12,7 @@ async function skill_loop() {
 
 	try {
 		if (is_disabled(character)) {
-			return al_timeout(skill_loop, 250);
+			return setTimeout(skill_loop, 250);
 		}
 
 		update_cache();
@@ -67,7 +67,7 @@ async function skill_loop() {
 		console.error("skill_loop error:", e);
 	}
 
-	al_timeout(skill_loop, delay);
+	setTimeout(skill_loop, delay);
 }
 
 async function handle_curse() {

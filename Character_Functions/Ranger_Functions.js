@@ -387,7 +387,7 @@ var _last_healer_ping = 0;
 
 const main_loop = async () => {
 	try {
-		if (is_disabled(character)) return al_timeout(main_loop, 250);
+		if (is_disabled(character)) return setTimeout(main_loop, 250);
 
 		update_cache();
 		panic_check();
@@ -420,7 +420,7 @@ const main_loop = async () => {
 	} catch (e) {
 		console.error("main_loop error:", e);
 	}
-	al_timeout(main_loop, TICK_RATE.main);
+	setTimeout(main_loop, TICK_RATE.main);
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -428,10 +428,10 @@ const main_loop = async () => {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const action_loop = async () => {
-	if (should_pause_combat_loop()) return al_timeout(action_loop, 100);
+	if (should_pause_combat_loop()) return setTimeout(action_loop, 100);
 	let delay = 5;
 	try {
-		if (is_disabled(character)) return al_timeout(action_loop, 50);
+		if (is_disabled(character)) return setTimeout(action_loop, 50);
 
 		update_cache();
 		const ms = ms_to_next_skill("attack");
@@ -444,7 +444,7 @@ const action_loop = async () => {
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
 		}
 	} catch { delay = 10; }
-	al_timeout(action_loop, delay);
+	setTimeout(action_loop, delay);
 };
 
 const handle_attack = async () => {
@@ -473,26 +473,26 @@ const handle_attack = async () => {
 };
 
 const skill_loop = async () => {
-	if (should_pause_combat_loop()) return al_timeout(skill_loop, 100);
+	if (should_pause_combat_loop()) return setTimeout(skill_loop, 100);
 	let delay = 5;
 	try {
 		if (!CONFIG.combat.use_hunters_mark && !CONFIG.combat.use_supershot) {
-			al_timeout(skill_loop, 1000);
+			setTimeout(skill_loop, 1000);
 			return;
 		}
-		if (is_disabled(character)) return al_timeout(skill_loop, 250);
+		if (is_disabled(character)) return setTimeout(skill_loop, 250);
 
 		update_cache();
 
 		const { sorted_by_hp, in_range } = cache.targets;
 		if (!sorted_by_hp.length) {
-			al_timeout(skill_loop, 200);
+			setTimeout(skill_loop, 200);
 			return;
 		}
 
 		const target = RANGER_TARGET === "giantspider" ? in_range[0] : sorted_by_hp[0];
 		if (!target || !is_in_range(target)) {
-			al_timeout(skill_loop, 100);
+			setTimeout(skill_loop, 100);
 			return;
 		}
 
@@ -516,7 +516,7 @@ const skill_loop = async () => {
 			delay = min_ms > 200 ? 100 : min_ms > 50 ? 20 : 5;
 		}
 	} catch { delay = 1; }
-	al_timeout(skill_loop, delay);
+	setTimeout(skill_loop, delay);
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -540,7 +540,7 @@ const maintenance_loop = async () => {
 		console.error("maintenance_loop error:", e);
 	}
 
-	al_timeout(maintenance_loop, TICK_RATE.maintenance);
+	setTimeout(maintenance_loop, TICK_RATE.maintenance);
 }
 
 // potion_loop → Game_Config.js
@@ -679,10 +679,10 @@ function elixir_usage() {
 var panicking = false;
 var last_panic_time = 0;
 var last_safe_time = 0;
-// Set by the healer's panic broadcast (Shared/Messaging.js). panic_hold_until is a lease deadline:
-// panic_check() releases the hold once it lapses, so a healer who stops renewing cannot freeze us.
+// Set by the healer's panic broadcast (Shared/Messaging.js). panic_check() will not clear a
+// panic it did not raise itself -- only her all-clear does -- so "hold fire" actually holds.
 var panic_external = false;
-var panic_hold_until = 0;
+var panic_external_since = 0;
 
 // No PANIC_BROADCAST_TARGETS here — only Healer broadcasts panic state to the fighters.
 var PANIC_THRESHOLDS = {
@@ -998,7 +998,7 @@ async function combine_items() {
 // on_party_request/on_party_invite -> Shared/Party_And_Loot.js
 
 // send_updates() -> Shared/Messaging.js
-al_interval(send_updates, 20000);
+setInterval(send_updates, 20000);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // START ALL LOOPS
@@ -1011,4 +1011,4 @@ equipment_manager_loop();
 maintenance_loop();
 potion_loop();
 if (RANGER_TARGET === "bscorpion") prim_farm_loop();
-al_interval(remote_sell_items, 5000);
+setInterval(remote_sell_items, 5000);

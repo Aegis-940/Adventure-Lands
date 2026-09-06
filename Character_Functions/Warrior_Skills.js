@@ -5,12 +5,12 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function skill_loop() {
-	if (should_pause_combat_loop()) return al_timeout(skill_loop, 100);
+	if (should_pause_combat_loop()) return setTimeout(skill_loop, 100);
 	const delay = TICK_RATE.skill;
 
 	try {
 		if (is_disabled(character)) {
-			return al_timeout(skill_loop, 250);
+			return setTimeout(skill_loop, 250);
 		}
 
 		update_cache();
@@ -58,7 +58,7 @@ async function skill_loop() {
 		console.error("skill_loop error:", e);
 	}
 
-	al_timeout(skill_loop, delay);
+	setTimeout(skill_loop, delay);
 }
 
 async function handle_stomp() {

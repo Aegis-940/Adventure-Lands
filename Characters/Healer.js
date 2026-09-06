@@ -17,8 +17,8 @@ state_cache_loop();
 
 let last_update_time = 0;
 
-al_interval(async () => {
-
+setInterval(async () => {
+	
 	// Throttle to every 20s
 	const now = Date.now();
 	if (now - last_update_time >= 20000) {

@@ -364,11 +364,7 @@ async function move_safe_from_bscorpion() {
 
 async function prim_farm_loop() {
 
-	const gen = al_generation();
 	while (true) {
-		// Stop when a newer load has superseded this chain (see Shared/Game_Config.js).
-		if (loop_superseded(gen)) return;
-
 		if (PRIM_FARM_LOOT_ENABLED) {
 
 			// Not yet in the farm zone — stay inert (see is_at_bscorpion_farm() comment).
@@ -424,11 +420,7 @@ async function prim_orbit_loop() {
 
 	const RADIUS_TOL = 2; // how close to PRIM_FARM_RADIUS counts as "at boundary"
 	const ROTATE_STEP_DEG = 10; // rotation step in degrees
-	const gen = al_generation();
 	while (true) {
-		// Stop when a newer load has superseded this chain (see Shared/Game_Config.js).
-		if (loop_superseded(gen)) return;
-
 		if (PRIM_FARM_LOOT_ENABLED) {
 
 			// Same as prim_farm_loop: stay inert until we've actually arrived at the farm.
@@ -535,11 +527,7 @@ async function orbit_loop() {
 
 	let delay_ms = 50;
 
-	const gen = al_generation();
 	while(true) {
-		// Stop when a newer load has superseded this chain (see Shared/Game_Config.js).
-		if (loop_superseded(gen)) return;
-
 		if (!ORBIT_LOOP_ENABLED) {
 			await delay(100);
 			continue;

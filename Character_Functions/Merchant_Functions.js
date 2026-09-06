@@ -673,11 +673,7 @@ async function decide_opportunistic_actions() {
 // for however long the current task takes (a delivery or fishing run can last minutes),
 // so a per-tick check there would stop checking these for that whole duration.
 async function opportunistic_actions_loop() {
-	const gen = al_generation();
 	while (true) {
-		// Stop when a newer load has superseded this chain (see Shared/Game_Config.js).
-		if (loop_superseded(gen)) return;
-
 		try {
 			await decide_opportunistic_actions();
 		} catch (e) {

@@ -356,7 +356,7 @@ var _last_healer_ping = 0;
 async function main_loop() {
 	try {
 		if (is_disabled(character)) {
-			return al_timeout(main_loop, 250);
+			return setTimeout(main_loop, 250);
 		}
 
 		update_cache();
@@ -383,7 +383,7 @@ async function main_loop() {
 		console.error("main_loop error:", e);
 	}
 
-	al_timeout(main_loop, TICK_RATE.main);
+	setTimeout(main_loop, TICK_RATE.main);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -391,11 +391,11 @@ async function main_loop() {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 async function action_loop() {
-	if (should_pause_combat_loop()) return al_timeout(action_loop, 100);
+	if (should_pause_combat_loop()) return setTimeout(action_loop, 100);
 	let delay = 10;
 
 	try {
-		if (is_disabled(character)) return al_timeout(action_loop, 50);
+		if (is_disabled(character)) return setTimeout(action_loop, 50);
 
 		// Keep cache fresh even while waiting on cooldowns
 		update_cache();
@@ -414,7 +414,7 @@ async function action_loop() {
 		delay = 1;
 	}
 
-	al_timeout(action_loop, delay);
+	setTimeout(action_loop, delay);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -443,7 +443,7 @@ async function maintenance_loop() {
 		console.error("maintenance_loop error:", e);
 	}
 
-	al_timeout(maintenance_loop, TICK_RATE.maintenance);
+	setTimeout(maintenance_loop, TICK_RATE.maintenance);
 }
 
 // potion_loop → Game_Config.js
@@ -631,10 +631,10 @@ function elixir_usage() {
 var panicking = false;
 var last_panic_time = 0;
 var last_safe_time = 0;
-// Set by the healer's panic broadcast (Shared/Messaging.js). panic_hold_until is a lease deadline:
-// panic_check() releases the hold once it lapses, so a healer who stops renewing cannot freeze us.
+// Set by the healer's panic broadcast (Shared/Messaging.js). panic_check() will not clear a
+// panic it did not raise itself -- only her all-clear does -- so "hold fire" actually holds.
 var panic_external = false;
-var panic_hold_until = 0;
+var panic_external_since = 0;
 
 // No PANIC_BROADCAST_TARGETS here — only Healer broadcasts panic state to the fighters.
 // Recovery (high_hp) deliberately well above the trigger (low_hp): at 0.35 the warrior
@@ -778,7 +778,7 @@ game.on("death", data => {
 });
 
 // send_updates() -> Shared/Messaging.js
-al_interval(send_updates, 20000);
+setInterval(send_updates, 20000);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // START ALL LOOPS
@@ -793,7 +793,7 @@ equipment_manager_loop();
 maintenance_loop();
 potion_loop();
 if (WARRIOR_TARGET === "bscorpion") prim_farm_loop();
-al_interval(remote_sell_items, 5000);
+setInterval(remote_sell_items, 5000);
 
 // // --------------------------------------------------------------------------------------------------------------------------------- //
 // // CUSTOM FUNCTION TO AGGRO MOBS IF MYRAS HAS ENOUGH MP
@@ -845,11 +845,7 @@ al_interval(remote_sell_items, 5000);
 let last_bscorpion_ids = new Set();
 
 async function bscorpion_kill_logger_loop() {
-	const gen = al_generation();
 	while (true) {
-		// Stop when a newer load has superseded this chain (see Shared/Game_Config.js).
-		if (loop_superseded(gen)) return;
-
 		try {
 			// Get all bscorpion entities
 			const bscorps = Object.values(parent.entities).filter(e => e.type === "monster" && e.mtype === "bscorpion");

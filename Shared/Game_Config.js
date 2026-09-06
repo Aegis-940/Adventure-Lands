@@ -92,51 +92,6 @@ const COOLDOWNS = {
 
 const CACHE_TTL = 50;
 
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// LOOP GENERATION GUARD
-//
-// Every loop in this bot is a self-rescheduling setTimeout chain (or a while(true)+await), and
-// nothing cancelled them. A code-only restart — a reconnect, or starting the code without a full
-// page reload — left the previous load's chains running and started a second set on top: two of
-// every loop racing the same globals, doubling every socket emit and spiking character.cc.
-//
-// Bootstrapper.js bumps window.__AL_GEN__ once per load. al_timeout()/al_interval() capture the
-// generation AT SCHEDULE TIME, so a callback queued by the previous load wakes up to a bumped
-// counter and returns without rescheduling — the old chain dies on its own, no bookkeeping of
-// timer ids required.
-//
-// These read window.__AL_GEN__ live rather than closing over a file-level copy: Shared/*.js are
-// real script tags, so their top-level `const`s cannot be re-declared and the whole file fails to
-// re-evaluate on a code-only restart. Reading through window means the surviving definition from
-// an earlier load still tracks the current generation correctly.
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-function al_generation() {
-	return window.__AL_GEN__ || 0;
-}
-
-// For while(true) loops: capture al_generation() before the loop, test it each iteration.
-function loop_superseded(gen) {
-	return gen !== al_generation();
-}
-
-function al_timeout(fn, ms) {
-	const gen = al_generation();
-	return setTimeout(() => {
-		if (loop_superseded(gen)) return;
-		fn();
-	}, ms);
-}
-
-function al_interval(fn, ms) {
-	const gen = al_generation();
-	const id = setInterval(() => {
-		if (loop_superseded(gen)) return clearInterval(id);
-		fn();
-	}, ms);
-	return id;
-}
-
 const SOFT_RESTART_TIMER = 60000;    // 1 minute
 const HARD_RESET_TIMER   = 90000;    // 1.5 minutes
 

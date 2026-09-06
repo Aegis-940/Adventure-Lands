@@ -26,7 +26,7 @@ loop_controller(); // sole owner of movement — see Character_Functions/Merchan
 let last_update_time = 0;
 
 // party_manager() not called here — loop_controller() already calls it every 250ms; calling both raced concurrent socket calls.
-al_interval(() => {
+setInterval(() => {
 
 	// Throttle to every 20s
 	const now = Date.now();
