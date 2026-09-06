@@ -35,7 +35,13 @@ function diag_signature(kind, context, message) {
 function diag_snapshot() {
 	const s = {};
 	const put = (k, f) => { try { s[k] = f(); } catch (e) { /* never let logging throw */ } };
-	put("commit", () => (window.__AL_BASE__ || "").split("@").pop().replace("/", "").slice(0, 7));
+	// Bootstrapper only sets __AL_BASE__ on the SHA-pinned path, so its absence means the
+	// @main fallback ran — which is precisely the state that once served stale code for hours.
+	put("commit", () => {
+		const base = window.__AL_BASE__;
+		if (!base) return "main-fallback";
+		return base.split("@").pop().replace("/", "").slice(0, 7);
+	});
 	put("char", () => character.name);
 	put("map", () => character.map);
 	put("pos", () => [Math.round(character.x), Math.round(character.y)]);
@@ -218,5 +224,13 @@ window.addEventListener("unhandledrejection", (ev) => {
 });
 
 diag_load();
+
+// Record and flush immediately on load, for two reasons: it guarantees this character has a
+// localStorage key even when it has nothing to report (otherwise a healthy character is
+// indistinguishable from one that never loaded this file), and it stamps which build each
+// character is actually running — the question that cost a whole debugging cycle.
+diag_record("session", "start", `loaded ${diag_snapshot().commit}`);
+diag_flush();
+
 setInterval(diag_flush, DIAG_FLUSH_MS);
 setInterval(diag_heartbeat_check, DIAG_HEARTBEAT_CHECK_MS);
