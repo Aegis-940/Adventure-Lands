@@ -14,6 +14,26 @@
 	const MAX_RETRIES = 2;
 	const TIMEOUT_MS = 8000;
 	const MAX_SHA_AGE_MS = 10 * 60 * 1000;
+	const DUPLICATE_START_MS = 20000;
+
+	// A second start in the same window re-evaluates every Shared/*.js. Those are real script
+	// tags, so their top-level `const`s live in the global lexical scope and cannot be
+	// re-declared: the file throws "Identifier 'X' has already been declared" at instantiation
+	// and NONE of its statements run, silently leaving the previous load's definitions in place.
+	// Game_Config.js failing that way takes al_timeout()/al_interval() with it; Messaging.js
+	// failing takes every CM handler. Guarding the entry is far safer than trying to make ~120
+	// declarations idempotent, and a double load is not something to survive gracefully anyway —
+	// it also double-dispatches CM messages and duplicates every UI widget.
+	//
+	// The reload button does a full page reload, which clears window, so a legitimate restart is
+	// never blocked by this.
+	const now = Date.now();
+	if (window.__AL_LOAD_STARTED__ && now - window.__AL_LOAD_STARTED__ < DUPLICATE_START_MS) {
+		game_log("⏭️ Code Loader: a load started " + (now - window.__AL_LOAD_STARTED__)
+			+ "ms ago — skipping this duplicate start.", "#FFA500");
+		return;
+	}
+	window.__AL_LOAD_STARTED__ = now;
 
 	// Same keys Bootstrapper.js reads. Four characters in same-origin iframes share one resolved
 	// SHA, so a full party reload costs ONE api.github.com request instead of eight.
@@ -104,18 +124,28 @@
 				if (!res.ok) throw new Error("HTTP " + res.status);
 				return res.text();
 			})
+			.catch(e => {
+				// Retry covers the FETCH only. It deliberately stops before the eval below,
+				// because that eval starts loading every other file — retrying it would not
+				// recover, it would double-load.
+				if (attempt < MAX_RETRIES) return load_bootstrapper_file(base, attempt + 1);
+				game_log("❌ Bootstrapper fetch failed: " + e.message, "#FF4444");
+				return null;
+			})
 			.then(text => {
+				if (!text) return; // already fetched-and-eval'd by a retry, or gave up
 				// Both globals, not just the base: Bootstrapper.js gates its reuse on
 				// __AL_BASE_SET_AT__ as well, so setting only __AL_BASE__ made it re-resolve the
 				// SHA itself — a second api.github.com request per character, and a chance of
 				// loading the files from a different commit than this Bootstrapper.js came from.
 				window.__AL_BASE__ = base;
 				window.__AL_BASE_SET_AT__ = Date.now();
-				(0, eval)(text); // indirect eval — runs in global scope
-			})
-			.catch(e => {
-				if (attempt < MAX_RETRIES) return load_bootstrapper_file(base, attempt + 1);
-				game_log("❌ Bootstrapper fetch/eval failed: " + e.message, "#FF4444");
+				try {
+					(0, eval)(text); // indirect eval — runs in global scope
+				} catch (e) {
+					game_log("❌ Bootstrapper eval failed: " + e.message, "#FF4444");
+					console.error(e);
+				}
 			});
 	}
 

@@ -60,6 +60,10 @@ window._cmListeners = window._cmListeners || [];
 
 	const MAX_RETRIES = 3;
 
+	// Window in which a second bootstrap counts as a duplicate rather than a deliberate restart.
+	// The reload button does a full page reload, which clears window, so real restarts are unaffected.
+	const DUPLICATE_START_MS = 20000;
+
 	// Appended to every file URL. Stays "" for an immutable @<sha> base (safe to cache
 	// forever). Set to a timestamp for the @main fallback, which jsDelivr caches for ~12h --
 	// without this, reloads keep replaying whatever @main looked like when it was first
@@ -268,13 +272,18 @@ window._cmListeners = window._cmListeners || [];
 			});
 	}
 
-	// Nothing cancels the previous load's setTimeout/setInterval loop chains, so a second
-	// bootstrap in the same window leaves two of every loop racing over the same globals.
-	if (window.__AL_LOADED_ONCE__) {
-		game_log("⚠️ Bootstrapper re-run without a page reload — the previous load's loops are still "
-			+ "running. Use a full page reload instead.", "#FFA500");
+	// Skip, don't just warn. Re-running in the same window re-evaluates every Shared/*.js, whose
+	// top-level `const`s cannot be re-declared — the file throws at instantiation and none of its
+	// statements run, so Game_Config.js takes al_timeout()/al_interval() down with it and
+	// Messaging.js takes every CM handler. The loop generation guard handles duplicate CHAINS;
+	// it cannot help with a file that never re-evaluated.
+	const started = window.__AL_BOOTSTRAP_STARTED__ || 0;
+	if (Date.now() - started < DUPLICATE_START_MS) {
+		game_log("⏭️ Bootstrapper: a load started " + (Date.now() - started)
+			+ "ms ago — skipping this duplicate run.", "#FFA500");
+		return;
 	}
-	window.__AL_LOADED_ONCE__ = true;
+	window.__AL_BOOTSTRAP_STARTED__ = Date.now();
 
 	const stored_sha = read_shared_sha();
 	if (window.__AL_BASE__ && window.__AL_BASE_SET_AT__ && (Date.now() - window.__AL_BASE_SET_AT__) < MAX_BASE_AGE_MS) {
