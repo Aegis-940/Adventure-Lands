@@ -47,6 +47,10 @@ const CM_HANDLERS = {
 	"panic": (name, data) => {
 		if (name !== "Myras") return;
 		panicking = data.state;
+		// Marks this as someone else's panic so panic_check() won't clear it the moment we're
+		// personally healthy — otherwise "hold fire" lasted about one tick on the warrior.
+		panic_external = data.state;
+		panic_external_since = data.state ? Date.now() : 0;
 		if (data.state) log("⚠️ Healer panicking — holding fire!", "#ffcc00", "Alerts");
 		else            log("✅ Healer panic over — resuming.", "#00ff00", "Alerts");
 	},

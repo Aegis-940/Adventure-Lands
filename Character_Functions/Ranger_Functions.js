@@ -566,18 +566,10 @@ async function reposition() {
 	const center = reposition_center(); // Shared/Combat_Utilities.js
 	if (!center) return;
 
-	const monsters = Object.values(parent.entities).filter(e => e?.type === "monster" && !e.dead);
-	if (!monsters.length) return;
+	const score = make_distance_from_monsters_scorer(); // Shared/Combat_Utilities.js
+	if (!score) return;
 
-	const spot = best_orbit_spot(center, CONFIG.movement.circle_radius, (x, y) => {
-		let nearest = Infinity;
-		for (const e of monsters) {
-			const d = Math.hypot(e.x - x, e.y - y);
-			if (d < nearest) nearest = d;
-		}
-		return nearest;
-	});
-
+	const spot = best_orbit_spot(center, CONFIG.movement.circle_radius, score);
 	if (!spot) return;
 	if (Math.hypot(character.x - spot.x, character.y - spot.y) <= CONFIG.movement.move_threshold) return;
 
@@ -686,6 +678,10 @@ function elixir_usage() {
 var panicking = false;
 var last_panic_time = 0;
 var last_safe_time = 0;
+// Set by the healer's panic broadcast (Shared/Messaging.js). panic_check() will not clear a
+// panic it did not raise itself -- only her all-clear does -- so "hold fire" actually holds.
+var panic_external = false;
+var panic_external_since = 0;
 
 // No PANIC_BROADCAST_TARGETS here — only Healer broadcasts panic state to the fighters.
 var PANIC_THRESHOLDS = {

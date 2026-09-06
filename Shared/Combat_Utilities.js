@@ -213,6 +213,24 @@ function best_orbit_spot(center, radius, score) {
 	return best;
 }
 
+// Scorer for best_orbit_spot() that maximizes distance to the NEAREST monster (maximin, not
+// average — the goal is that nothing gets close). Returns null when there are no monsters to
+// keep away from, so callers can skip. Used for the ranger's normal positioning and the
+// warrior's panic retreat.
+function make_distance_from_monsters_scorer() {
+	const monsters = Object.values(parent.entities).filter(e => e?.type === "monster" && !e.dead);
+	if (!monsters.length) return null;
+
+	return (x, y) => {
+		let nearest = Infinity;
+		for (const e of monsters) {
+			const d = Math.hypot(e.x - x, e.y - y);
+			if (d < nearest) nearest = d;
+		}
+		return nearest;
+	};
+}
+
 // Orbit center: Myras in giantspider follow mode (she leads), otherwise the farm spot.
 // Returns null when follow mode has no usable healer to orbit.
 function reposition_center() {

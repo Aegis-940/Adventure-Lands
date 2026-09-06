@@ -451,6 +451,11 @@ async function wait_until_equipped(set_name, timeout_ms = 1000, interval_ms = 10
 	}
 }
 
+// Ceiling on how long a healer-broadcast panic can hold us before we resume anyway, in case
+// her all-clear never arrives (disconnect, dropped CM). Without it a missed message would
+// leave a fighter holding fire indefinitely.
+const EXTERNAL_PANIC_MAX_MS = 60000;
+
 // Reads this file's own PANIC_THRESHOLDS global. If PANIC_BROADCAST_TARGETS is also defined
 // (currently only Healer), panic state changes are broadcast via send_cm to those targets.
 async function panic_check() {
@@ -502,11 +507,20 @@ async function panic_check() {
 		}
 	}
 
+	// A panic the healer broadcast isn't ours to stand down from — only her all-clear ends it.
+	// Bounded so a missed/dropped all-clear can't leave a fighter permanently holding fire.
+	let external_hold = typeof panic_external !== "undefined" && panic_external;
+	if (external_hold && Date.now() - panic_external_since > EXTERNAL_PANIC_MAX_MS) {
+		panic_external = false;
+		external_hold = false;
+		log("⚠️ Healer panic hold expired without an all-clear — resuming.", "#FFA500", "Alerts");
+	}
+
 	// SAFE CONDITION. Restore the resting orb BEFORE clearing `panicking` — resolve_equipment()'s
 	// only guard against racing this restore is `if (panicking) return`, so flipping it early
 	// (before the orb swap lands) lets resolve_equipment() fight over the orb slot mid-restore on
 	// characters whose other equipment sets also touch orb (e.g. Warrior's dps_accessories).
-	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < t.aggro && panicking) {
+	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < t.aggro && panicking && !external_hold) {
 		if (Date.now() - last_safe_time > t.cooldown) {
 			last_safe_time = Date.now();
 

@@ -561,18 +561,27 @@ async function reposition() {
 	const center = reposition_center(); // Shared/Combat_Utilities.js
 	if (!center) return;
 
-	const target_mob = cache.cluster_target;
-	if (!target_mob || target_mob.dead) return;
+	let score;
+	if (panicking) {
+		// Retreat, don't advance. Without this the warrior walks back into the pack it just
+		// scared off -- at the bottom of its HP bar, which is the only time it panics at all.
+		// Still bounded by circle_radius, so it can't kite out of the healer's reach.
+		score = make_distance_from_monsters_scorer(); // Shared/Combat_Utilities.js
+		if (!score) return;
+	} else {
+		const target_mob = cache.cluster_target;
+		if (!target_mob || target_mob.dead) return;
 
-	// Aim just inside attack range so ordinary drift doesn't immediately break contact.
-	const reach = character.range * 0.9;
+		// Aim just inside attack range so ordinary drift doesn't immediately break contact.
+		const reach = character.range * 0.9;
+		score = (x, y) => {
+			if (Math.hypot(target_mob.x - x, target_mob.y - y) > reach) return null;
+			// Feasible: prefer the least travel, so it settles instead of circling.
+			return -Math.hypot(character.x - x, character.y - y);
+		};
+	}
 
-	const spot = best_orbit_spot(center, CONFIG.movement.circle_radius, (x, y) => {
-		if (Math.hypot(target_mob.x - x, target_mob.y - y) > reach) return null;
-		// Feasible: prefer the least travel, so it settles instead of circling.
-		return -Math.hypot(character.x - x, character.y - y);
-	});
-
+	const spot = best_orbit_spot(center, CONFIG.movement.circle_radius, score);
 	if (!spot) return;
 	if (Math.hypot(character.x - spot.x, character.y - spot.y) <= CONFIG.movement.move_threshold) return;
 
@@ -621,10 +630,17 @@ function elixir_usage() {
 var panicking = false;
 var last_panic_time = 0;
 var last_safe_time = 0;
+// Set by the healer's panic broadcast (Shared/Messaging.js). panic_check() will not clear a
+// panic it did not raise itself -- only her all-clear does -- so "hold fire" actually holds.
+var panic_external = false;
+var panic_external_since = 0;
 
 // No PANIC_BROADCAST_TARGETS here — only Healer broadcasts panic state to the fighters.
+// Recovery (high_hp) deliberately well above the trigger (low_hp): at 0.35 the warrior
+// re-entered combat still holding every mob's aggro and was back at the trigger almost
+// immediately, oscillating in the bottom fifth of its HP bar until something burst it down.
 var PANIC_THRESHOLDS = {
-	low_hp: 0.2, low_mp: 0.01, high_hp: 0.35, high_mp: 0.02,
+	low_hp: 0.35, low_mp: 0.01, high_hp: 0.60, high_mp: 0.02,
 	aggro: 99, cooldown: 1000,
 };
 
