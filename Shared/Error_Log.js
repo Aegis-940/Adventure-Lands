@@ -219,6 +219,12 @@ function _errlog_sample_vitals() {
 	const v = _errlog_context();
 	if (!v) return;
 	v.t = Date.now();
+	// Projected dps beside the real hp drops, so a death record validates the damage model against
+	// what actually happened. Sampled here only (1/s), not on every error record, since it walks
+	// parent.entities. typeof-guarded: Party_And_Loot.js loads in parallel with this file.
+	try {
+		if (typeof projected_dps === "function") v.pdps = Math.round(projected_dps());
+	} catch (e) { /* not loaded yet */ }
 	_errlog_vitals.push(v);
 	if (_errlog_vitals.length > ERRLOG_VITALS_SAMPLES) _errlog_vitals.shift();
 

@@ -531,6 +531,56 @@ function seconds_to_death() {
 	return last.hp / (lost / (ms / 1000));
 }
 
+// PROJECTED DPS. The observed rate above is lagging by construction: when the warrior gathers
+// eight moles at once, nothing has hit yet, so the measured rate is still low for a second or two —
+// exactly the window where reacting matters. Modelling what is already targeting us knows the
+// ceiling the instant they aggro, before a single hit lands.
+//
+// The two are complementary and used as min(): modelling leads, observation catches everything we
+// do not model (burn, effects, anything mis-specified in G). Neither can suppress the other.
+//
+// Deliberately NOT modelled: courage/mcourage/pcourage caps, which change damage taken once you
+// are over them. The mechanic is not documented well enough here to get right, and a wrong
+// multiplier in a survival trigger is worse than an absent one.
+const PANIC_THREAT_RADIUS = 400;   // targeting us and close enough to matter shortly
+
+function _dmg_mult(defense) {
+	// Use the client's own curve when it is exposed; the fallback matches the documented
+	// "100 defense is roughly 10% reduction" and is only a rough stand-in.
+	try {
+		if (typeof damage_multiplier === "function") return damage_multiplier(defense);
+	} catch (e) { /* not available */ }
+	return Math.max(0.2, 1 - Math.min(0.8, Math.max(0, defense) / 1000));
+}
+
+function projected_dps() {
+	let dps = 0;
+	try {
+		for (const id in parent.entities) {
+			const e = parent.entities[id];
+			if (!e || e.type !== "monster" || e.dead) continue;
+			if (e.target !== character.name) continue;
+			if (distance(character, e) > PANIC_THREAT_RADIUS) continue;
+
+			const g = (G.monsters && G.monsters[e.mtype]) || {};
+			const magical = g.damage_type === "magical";
+			// Entity stats, not G, so per-instance scaling (difficulty, rage) is included.
+			const defense = magical
+				? Math.max(0, (character.resistance || 0) - (e.rpiercing || 0))
+				: Math.max(0, (character.armor || 0) - (e.apiercing || 0));
+			dps += (e.attack || 0) * _dmg_mult(defense) * (g.frequency || 1);
+		}
+	} catch (e) { return 0; }
+	return dps;
+}
+
+// Seconds until death from what is currently on us, before any of it lands.
+function projected_seconds_to_death() {
+	const dps = projected_dps();
+	if (dps <= 0) return Infinity;
+	return character.hp / dps;
+}
+
 let panic_armed = false;
 let last_panic_gear = 0;
 const PANIC_GEAR_RETRY_MS = 1000;
@@ -566,7 +616,9 @@ async function _panic_check_body() {
 	).length;
 
 	// PANIC CONDITION
-	const ttd = seconds_to_death();
+	const observed_ttd = seconds_to_death();
+	const modelled_ttd = projected_seconds_to_death();
+	const ttd = Math.min(observed_ttd, modelled_ttd);
 	const DYING_FAST = ttd < (t.ttd_s ?? 3);
 
 	if (LOW_HEALTH || LOW_MANA || DYING_FAST || MONSTERS_TARGETING_ME >= t.aggro) {
@@ -585,7 +637,12 @@ async function _panic_check_body() {
 			if (LOW_HEALTH) reason.push("low health");
 			if (LOW_MANA) reason.push("low mana");
 			if (MONSTERS_TARGETING_ME >= t.aggro) reason.push("high aggro");
-			if (DYING_FAST) reason.push(`dying in ${ttd.toFixed(1)}s`);
+			if (DYING_FAST) {
+				reason.push(`dying in ${ttd.toFixed(1)}s`
+					+ ` (observed ${observed_ttd === Infinity ? "-" : observed_ttd.toFixed(1) + "s"},`
+					+ ` projected ${modelled_ttd === Infinity ? "-" : modelled_ttd.toFixed(1) + "s"}`
+					+ ` @ ${Math.round(projected_dps())}dps)`);
+			}
 			log(`⚠️ Panic triggered: ${reason.join(", ")}!`, "#ffcc00", "Alerts");
 		}
 	}
