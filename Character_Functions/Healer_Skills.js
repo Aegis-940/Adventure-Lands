@@ -174,14 +174,28 @@ async function handle_party_heal() {
 
 	if (character.mp <= CONFIG.healing.party_heal_min_mp) return;
 
+	const hurt = [];
 	for (const name of cache.party_members) {
 		const ally = get_player(name);
 		if (!ally || ally.rip || ally.hp >= ally.max_hp * threshold) continue;
-		// log(`Party Heal → ${name} (${Math.round((ally.hp / ally.max_hp) * 100)}%)`, "#33FF77");
-		await use_skill("partyheal");
-		last_party_heal_time = now;
-		break;
+		hurt.push(ally);
 	}
+	if (!hurt.length) return;
+
+	// partyheal is deliberately a supplemental heal: it does not share heal's cooldown, so it
+	// covers the windows where single-target heal simply is not available. So the only genuinely
+	// wasted cast is the one heal could have covered for less RIGHT NOW — exactly one person hurt,
+	// heal off cooldown, and that person in heal range. Everything else (several hurt, heal on
+	// cooldown, or the hurt one out of heal range — partyheal has no range limit and reaches them
+	// anyway) is what partyheal is for, and still fires.
+	//
+	// At 400mp a cast against a 250ms throttle this is the healer's dominant mana cost: the drain
+	// before her last death was 924, 461, 422, 1261, 361, 400 — every value a multiple of 400.
+	if (hurt.length === 1 && ms_to_next_skill("attack") === 0 && is_in_range(hurt[0], "heal")) return;
+
+	// log(`Party Heal → ${hurt.length} hurt`, "#33FF77");
+	await use_skill("partyheal");
+	last_party_heal_time = now;
 }
 
 
