@@ -254,6 +254,20 @@ function _errlog_sample_vitals() {
 			v.heal_target = ht.name;
 			v.heal_thr = Math.round(Math.max(ht.max_hp * 0.5, ht.max_hp - character.heal / 1.33));
 			v.heal_tgt_hp = ht.hp;
+			// What a single-target heal actually costs, so partyheal (a flat 400) can be compared
+			// against it rather than assumed cheaper.
+			v.mp_cost = character.mp_cost;
+			// How many allies are actually below the partyheal threshold. partyheal is an AoE heal
+			// cast on the FIRST one found, so if this is usually 1 the AoE is being paid for
+			// nothing.
+			try {
+				const thr = (typeof CONFIG !== "undefined" && CONFIG.healing)
+					? CONFIG.healing.party_heal_threshold : 0.4;
+				v.hurt = (cache.party_members || []).filter(n => {
+					const a = get_player(n);
+					return a && !a.rip && a.hp < a.max_hp * thr;
+				}).length;
+			} catch (e) { /* party not resolvable */ }
 		}
 	} catch (e) { /* not a healer, or cache not built yet */ }
 	_errlog_vitals.push(v);
