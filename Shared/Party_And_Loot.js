@@ -65,11 +65,11 @@ async function potion_loop() {
 
 	let used_potion = false;
 
-	// Order by urgency. This loop backs off 2050ms after ANY potion, which only makes sense if hp
-	// and mp potions share a cooldown -- and if they do, only the FIRST use() of a tick lands.
-	// mp was unconditionally first, so a healer low on both drank mana and had her health potion
-	// discarded, in exactly the moment hp mattered more. Both are still attempted, so nothing is
-	// lost if they turn out not to share.
+	// Order by urgency. Potions share a cooldown, so the second use() in a tick is a no-op -- it
+	// does not consume the potion, it just does nothing. mp was unconditionally first, so someone
+	// low on both spent the shared cooldown on mana and waited out the next ~2s before any health
+	// arrived. Minor: at hp_threshold 400 and one potion per ~2s that is worth about 200 hp/s,
+	// against the thousands per second that actually kill her. Ordering it correctly costs nothing.
 	const hp_first = character.hp < character.max_hp * 0.5;
 
 	const drink_mp = () => {
