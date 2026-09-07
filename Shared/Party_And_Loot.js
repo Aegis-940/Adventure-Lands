@@ -964,3 +964,126 @@ function remote_sell_items() {
 	}
 }
 
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// ANNIVERSARY EVENT — "I Kiss You"
+//
+// Every 30 minutes the server features one player. Everyone online gets an `anniversary_visit`
+// ticket good for 5 minutes and one use; spending it on the featured player yields a cake slice, an
+// Anniversary Gift, and `anniversary_kiss` (+10 frequency, +6 output, 20 minutes).
+//
+// The skill has range 80, so this is a travel behaviour, not a cast. Field shapes and the client's
+// own validity test are in GAME_API_REFERENCE.md — read out of the live client, none of it guessed.
+//
+// Every character travels independently and starts the moment a round goes live. The combat three
+// disengage while travelling: no attacks, no offensive skills, no debuffs. Healing and defensive
+// behaviour continue, because the walk is exactly when something can go wrong.
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+// var, not const: read as a bare global by should_pause_combat_loop() and by each character's
+// main_loop across the eval boundary.
+var anniversary_travel = false;
+
+const ANNIVERSARY_TICK_MS = 2000;
+const ANNIVERSARY_RANGE = 65;        // skill range is 80; margin for them moving as we arrive
+const ANNIVERSARY_REISSUE_MS = 8000; // the featured player moves, so refresh the destination
+
+let _anniv_last_move = 0;
+let _anniv_last_kiss = 0;
+
+// Mirrors the client's own anniversary_live_event().
+function anniversary_event() {
+	try {
+		const s = parent.S && parent.S.anniversary;
+		if (!s || !s.active || !s.live || !s.id) return null;
+		return Date.now() < s.expires ? s : null;
+	} catch (e) { return null; }
+}
+
+// Mirrors the client's anniversary_can_visit(). The realm comparison is skipped when those globals
+// are not reachable from here rather than guessed at: a wrong realm string would silently disable
+// the whole behaviour, which is the failure mode hardest to notice.
+function anniversary_can_visit() {
+	try {
+		const s = anniversary_event();
+		const ticket = character.s && character.s.anniversary_visit;
+		if (!s || !ticket || !(ticket.ms > 0)) return false;
+		if (ticket.round !== s.round) return false;
+		if (Date.now() >= ticket.expires) return false;
+
+		const region = parent.server_region, ident = parent.server_identifier;
+		if (region !== undefined && ident !== undefined && ticket.realm !== region + " " + ident) return false;
+		return true;
+	} catch (e) { return false; }
+}
+
+// Is there somewhere to actually go? `available === false` means the featured player is somewhere
+// unreachable; their slot is reserved and the timer keeps running, so wait rather than stand down.
+function anniversary_should_travel() {
+	const s = anniversary_event();
+	if (!s || s.available === false) return false;
+	if (!anniversary_can_visit()) return false;
+	try {
+		if (!G.maps[s.map] || !isFinite(s.x) || !isFinite(s.y)) return false;
+	} catch (e) { return false; }
+	return true;
+}
+
+// One iteration of the visit. Split out from the loop because the merchant's loop_controller() is
+// the sole owner of his movement — he drives this from his own state machine rather than running a
+// second loop that would fight it for the destination.
+async function anniversary_step() {
+	if (!anniversary_should_travel()) {
+		if (anniversary_travel) {
+			anniversary_travel = false;
+			log("🎂 Anniversary: done, resuming.", "#F0B742", "Alerts");
+		}
+		return false;
+	}
+
+	const s = anniversary_event();
+
+	if (!anniversary_travel) {
+		anniversary_travel = true;
+		_anniv_last_move = 0;
+		log(`🎂 Anniversary: visiting ${s.target} on ${s.map}.`, "#F0B742", "Alerts");
+	}
+
+	// Prefer the live entity when we can see them — S.x/S.y is a periodic snapshot and they move.
+	const them = get_player(s.target);
+	const close = them
+		? distance(character, them) <= ANNIVERSARY_RANGE
+		: character.map === s.map && Math.hypot(character.x - s.x, character.y - s.y) <= ANNIVERSARY_RANGE;
+
+	if (close && Date.now() - _anniv_last_kiss > 1500) {
+		_anniv_last_kiss = Date.now();
+		try {
+			await use_skill("ikissyou", s.id);
+			log(`🎂 Kissed ${s.target}.`, "#F0B742", "Alerts");
+		} catch (e) {
+			// too_far as they walk off, or the ticket already spent. The next tick re-evaluates.
+			log(`🎂 Anniversary kiss failed: ${fmt_err(e)}`, "#FFA500", "Alerts");
+		}
+		return true;
+	}
+
+	if (Date.now() - _anniv_last_move > ANNIVERSARY_REISSUE_MS) {
+		_anniv_last_move = Date.now();
+		const dest = them
+			? { map: them.map || s.map, x: them.x, y: them.y }
+			: { map: s.map, x: s.x, y: s.y };
+		// Not awaited: this must keep re-evaluating while the move runs, and the move is re-issued
+		// on a throttle anyway because the target walks around.
+		Promise.resolve(smarter_move(dest, null, { timeout: 60000 })).catch(() => {});
+	}
+	return true;
+}
+
+async function anniversary_loop() {
+	try {
+		await anniversary_step();
+	} catch (e) {
+		catcher(e, "anniversary_loop");
+	}
+	setTimeout(anniversary_loop, ANNIVERSARY_TICK_MS);
+}

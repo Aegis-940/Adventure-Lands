@@ -155,6 +155,9 @@ function find_active_boss() {
 // healing/cursing/absorbing, not back off, so it intentionally has no equivalent guard.
 function should_pause_combat_loop() {
 	if (panicking) return true;
+	// Travelling to the anniversary featured player. Disengage entirely — no attacks, no offensive
+	// skills, no debuffs — so nothing is dragged along the walk or left holding aggro behind us.
+	if (typeof anniversary_travel !== "undefined" && anniversary_travel) return true;
 	if (home === "giantspider") return false; // follow_healer() handles positioning instead
 	const myras = get_player("Myras");
 	if (!myras || distance(character, myras) > 200) return true;

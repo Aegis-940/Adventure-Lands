@@ -343,7 +343,12 @@ async function main_loop() {
 		if (HEALER_TARGET !== "fireroamer" && HEALER_TARGET !== "giantspider") panic_check();
 		stuck_escape_check(); // Shared/Movement.js
 
-		if (should_handle_events()) {
+		// anniversary_loop() owns movement while travelling to the featured player; the normal
+		// farm/return/circle chain would fight it for the destination.
+		if (typeof anniversary_travel !== "undefined" && anniversary_travel) {
+			// fall through to the loop tail — no farming movement this tick
+		}
+		else if (should_handle_events()) {
 			handle_events();
 		}
 		else if (should_loot()) {
@@ -540,7 +545,11 @@ async function action_loop() {
 			);
 			const i_need_the_timer = character.hp < my_heal_threshold;
 
-			if (!HEALED && HEALER_TARGET !== "giantspider" && !i_need_the_timer) {
+			// Travelling to the featured player: heal, but never attack. An autoattack here pulls
+			// aggro we then drag across the map, and priority-2 targeting would actively seek it out.
+			const travelling = typeof anniversary_travel !== "undefined" && anniversary_travel;
+
+			if (!HEALED && !travelling && HEALER_TARGET !== "giantspider" && !i_need_the_timer) {
 				const TARGET = cache.target;
 				if (TARGET && is_in_range(TARGET) && smart.moving === false && !basic_action_busy()) {
 					run_basic_action(attack(TARGET), "attack");
@@ -1072,6 +1081,7 @@ action_loop();
 maintenance_loop();
 equipment_manager_loop();
 potion_loop();
+anniversary_loop(); // Shared/Party_And_Loot.js — 10th-anniversary featured-player visit
 setInterval(remote_sell_items, 5000);
 if (HEALER_TARGET === "bscorpion") {
 	prim_farm_loop();

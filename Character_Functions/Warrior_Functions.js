@@ -368,7 +368,12 @@ async function main_loop() {
 		panic_check();
 		stuck_escape_check(); // Shared/Movement.js
 
-		if (should_handle_events()) {
+		// anniversary_loop() owns movement while travelling to the featured player; the normal
+		// farm/return/reposition chain would fight it for the destination.
+		if (typeof anniversary_travel !== "undefined" && anniversary_travel) {
+			// fall through to the loop tail — no farming movement this tick
+		}
+		else if (should_handle_events()) {
 			handle_events();
 		}
 
@@ -814,6 +819,7 @@ action_loop();
 equipment_manager_loop();
 maintenance_loop();
 potion_loop();
+anniversary_loop(); // Shared/Party_And_Loot.js — 10th-anniversary featured-player visit
 if (WARRIOR_TARGET === "bscorpion") prim_farm_loop();
 setInterval(remote_sell_items, 5000);
 

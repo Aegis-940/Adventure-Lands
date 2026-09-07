@@ -438,7 +438,12 @@ const main_loop = async () => {
 			}
 		}
 
-		if (should_handle_events()) {
+		// anniversary_loop() owns movement while travelling to the featured player; the normal
+		// farm/return/reposition chain would fight it for the destination.
+		if (typeof anniversary_travel !== "undefined" && anniversary_travel) {
+			// fall through to the loop tail — no farming movement this tick
+		}
+		else if (should_handle_events()) {
 			handle_events();
 		} else if (CONFIG.movement.enabled) {
 			if (home === "bscorpion") {
@@ -1066,5 +1071,6 @@ skill_loop();
 equipment_manager_loop();
 maintenance_loop();
 potion_loop();
+anniversary_loop(); // Shared/Party_And_Loot.js — 10th-anniversary featured-player visit
 if (RANGER_TARGET === "bscorpion") prim_farm_loop();
 setInterval(remote_sell_items, 5000);

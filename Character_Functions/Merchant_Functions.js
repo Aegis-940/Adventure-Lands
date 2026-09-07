@@ -63,7 +63,7 @@ var CONFIG = {
 	// Fishing/mining sit above crafting/exchanging: all four need free bank space, but
 	// upgrading doesn't, so putting crafting/exchanging first starved fishing/mining out
 	// of a turn whenever space was scarce.
-	priorities: ["dead", "delivering", "upgrading", "fishing", "mining", "crafting", "exchanging"],
+	priorities: ["dead", "anniversary", "delivering", "upgrading", "fishing", "mining", "crafting", "exchanging"],
 };
 
 // var, not const: Auto_Upgrade.js/Auto_Craft.js are separate eval closures that reference
@@ -86,6 +86,7 @@ let merchant_task_generation = 0;
 
 const MERCHANT_STATES = {
 	DEAD: "dead",
+	ANNIVERSARY: "anniversary",
 	DELIVERING: "delivering",
 	UPGRADING: "upgrading",
 	CRAFTING: "crafting",
@@ -175,6 +176,9 @@ function should_run_mining() {
 
 const PRIORITY_CHECKS = {
 	dead:        { state: MERCHANT_STATES.DEAD,       should_run: () => character.rip },
+	// Second only to being dead: the visit ticket lasts 5 minutes against a 30 minute round, so a
+	// delivery or upgrade run started now would eat the whole window.
+	anniversary: { state: MERCHANT_STATES.ANNIVERSARY, should_run: () => typeof anniversary_should_travel === "function" && anniversary_should_travel() },
 	delivering:  { state: MERCHANT_STATES.DELIVERING, should_run: should_run_delivery },
 	upgrading:   { state: MERCHANT_STATES.UPGRADING,  should_run: should_run_upgrade },
 	crafting:    { state: MERCHANT_STATES.CRAFTING,   should_run: should_run_craft },
@@ -196,6 +200,20 @@ async function handle_dead_state() {
 		if (character.rip) await respawn();
 	} catch (e) {
 		catcher(e, "handle_dead_state");
+	}
+}
+
+// Travels to the anniversary featured player and spends the visit ticket. Driven from here rather
+// than from anniversary_loop() (Shared/Party_And_Loot.js) because loop_controller() is the sole
+// owner of the merchant's movement — a second loop issuing smart_move would fight it.
+async function handle_anniversary_state() {
+	merchant_task = "Anniversary";
+	try {
+		await anniversary_step();
+	} catch (e) {
+		catcher(e, "handle_anniversary_state");
+	} finally {
+		if (!anniversary_should_travel()) merchant_task = "Idle";
 	}
 }
 
@@ -484,6 +502,7 @@ async function set_state(state) {
 	try {
 		switch (state) {
 			case MERCHANT_STATES.DEAD:       await handle_dead_state(); break;
+			case MERCHANT_STATES.ANNIVERSARY: await handle_anniversary_state(); break;
 			case MERCHANT_STATES.DELIVERING: await handle_delivering_state(); break;
 			case MERCHANT_STATES.UPGRADING:  await handle_upgrading_state(); break;
 			case MERCHANT_STATES.CRAFTING:   await handle_crafting_state(); break;

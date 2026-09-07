@@ -38,8 +38,14 @@ async function skill_loop() {
 		const MP_PCT = character.max_mp ? character.mp / character.max_mp : 1;
 		const MANA_FOR_LUXURIES = MP_PCT >= (CONFIG.healing.skill_min_mp_pct ?? 0.40);
 
+		// Travelling to the anniversary featured player: heals only. curse is a debuff, absorb pulls
+		// aggro onto her deliberately, and zapperzap is damage — all three are exactly what "disengage"
+		// means. partyheal and single-target heal keep running, because the walk is when the party is
+		// most exposed. Same shape as the `!panicking` gates these already carry.
+		const TRAVELLING = typeof anniversary_travel !== "undefined" && anniversary_travel;
+
 		// Curse
-		if (!panicking && MANA_FOR_LUXURIES && CONFIG.combat.enabled) {
+		if (!panicking && !TRAVELLING && MANA_FOR_LUXURIES && CONFIG.combat.enabled) {
 			try {
 				await handle_curse();
 			} catch (e) {
@@ -48,7 +54,7 @@ async function skill_loop() {
 		}
 
 		// Absorb
-		if (!panicking && CONFIG.healing.absorb_enabled && PENALTY < 500) {
+		if (!panicking && !TRAVELLING && CONFIG.healing.absorb_enabled && PENALTY < 500) {
 			try {
 				await handle_absorb();
 			} catch (e) {
@@ -57,7 +63,7 @@ async function skill_loop() {
 		}
 
 		// Dark Blessing
-		if (!panicking && MANA_FOR_LUXURIES && CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
+		if (!panicking && !TRAVELLING && MANA_FOR_LUXURIES && CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
 			&& character.mp >= (G.skills.darkblessing?.mp || 0)) {
 			if (HEALER_TARGET !== "bscorpion" || bscorpion_worth_buffing()) {
 				try {
