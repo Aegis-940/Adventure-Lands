@@ -24,13 +24,13 @@
 const ERRLOG_KEY = "AL_errors_";
 const ERRLOG_MAX_RECORDS = 200;
 const ERRLOG_MAX_TIMELINE = 80;
-const ERRLOG_MAX_DEATHS = 20;
+const ERRLOG_MAX_DEATHS = 6;    // localStorage cost is synchronous; the sink keeps 50
 const ERRLOG_VITALS_SAMPLES = 10;   // at 1s each, so a death carries the preceding 10s
 const ERRLOG_VITALS_MS = 1000;
 const ERRLOG_FLUSH_MS = 5000;       // localStorage.setItem is synchronous; don't do it every 2s
 const ERRLOG_MSG_CAP = 400;
 
-const ERRLOG_MAX_HEALS = 30;        // heal attempts kept in full detail, attached to a death
+const ERRLOG_MAX_HEALS = 15;        // heal attempts kept in full detail, attached to a death
 
 // Bump when the stored shape changes. Old data is dropped on load rather than merged: a log that
 // mixes builds silently answers "is the fix working?" with counts accumulated before the fix, and
@@ -122,9 +122,14 @@ function _errlog_load() {
 	} catch (e) { /* corrupt or blocked — start clean */ }
 }
 
+// Timed, because this is the recorder's own worst-case cost and it is entirely synchronous:
+// JSON.stringify of the whole log plus a localStorage write, with four tabs serialising on one
+// origin. If the event-loop lag tail lines up with this, the flight recorder is causing the stalls
+// it is here to measure.
 function _errlog_flush() {
 	if (!_errlog_dirty) return;
 	_errlog_dirty = false;
+	const t0 = Date.now();
 	try {
 		const keys = Object.keys(_errlog.records);
 		if (keys.length > ERRLOG_MAX_RECORDS) {
@@ -132,7 +137,12 @@ function _errlog_flush() {
 				.slice(0, keys.length - ERRLOG_MAX_RECORDS)
 				.forEach(k => delete _errlog.records[k]);
 		}
-		localStorage.setItem(_errlog_key(), JSON.stringify(_errlog));
+		const blob = JSON.stringify(_errlog);
+		errlog_time("io flush stringify", Date.now() - t0);
+		const t1 = Date.now();
+		localStorage.setItem(_errlog_key(), blob);
+		errlog_time("io flush setItem", Date.now() - t1);
+		errlog_count("io flush kb " + Math.round(blob.length / 1024));
 	} catch (e) {
 		// Full or blocked — dropping the record is correct; logging must never break the bot.
 	}
@@ -418,11 +428,7 @@ function _errlog_sample_vitals() {
 			leading_up_to_it: _errlog_vitals.slice(),
 			// Every heal this character attempted before dying, with its outcome. "Died at full mana"
 			// is ambiguous until you can see whether the heals were never issued or were all rejected.
-			recent_heals: _errlog_heals.slice(),
-			// Timing histograms snapshotted here as well as in `counts`, because an older sink
-			// process drops unknown top-level keys on merge but copies death records wholesale.
-			// The numbers should not depend on remembering to restart a helper.
-			counts: JSON.parse(JSON.stringify(_errlog.counts))
+			recent_heals: _errlog_heals.slice()
 		});
 		if (_errlog.deaths.length > ERRLOG_MAX_DEATHS) _errlog.deaths.shift();
 		_errlog_dirty = true;
@@ -455,10 +461,8 @@ function _errlog_push() {
 	_errlog_last_push = Date.now();
 
 	try {
-		fetch(ERRLOG_SINK_URL, {
-			method: "POST",
-			headers: { "content-type": "application/json" },
-			body: JSON.stringify({
+		const _tp = Date.now();
+		const _body = JSON.stringify({
 				character: (character && character.name) || "unknown",
 				build: _errlog_build(),
 				session: _errlog.session,
@@ -466,7 +470,12 @@ function _errlog_push() {
 				counts: _errlog.counts,
 				timeline: _errlog.timeline,
 				deaths: _errlog.deaths
-			})
+		});
+		errlog_time("io push stringify", Date.now() - _tp);
+		fetch(ERRLOG_SINK_URL, {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: _body
 		}).then(() => { _errlog_push_fails = 0; }, () => { _errlog_push_fails++; });
 	} catch (e) {
 		_errlog_push_fails++;
