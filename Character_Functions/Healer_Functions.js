@@ -427,25 +427,40 @@ async function check_temporal_surge() {
 // when the next cast may go out, and this loop already polls it. One basic action may be in flight
 // at a time, which is what the cooldown allows anyway; the expiry is insurance so a promise that
 // never settles cannot silently stop her healing forever.
-const BASIC_ACTION_MAX_MS = 3000;
 let _basic_action_until = 0;
 
 function basic_action_busy() {
 	return Date.now() < _basic_action_until;
 }
 
-// Fires `p` without blocking the caller, keeping the in-flight interlock and the timing histogram.
+// Fires `p` without blocking the caller.
+//
+// The guard is deliberately SHORT and never waits for the promise. Holding it until the projectile
+// lands is the same mistake as awaiting: heal flights measure 200-1600ms, so an until-settled
+// interlock capped her at one cast per flight instead of one per cooldown, and action_loop then
+// spun at 10ms refusing to act — 92 iterations a second, cc at 52-59, skill_loop starved to zero
+// beats, and she died at 21:18:33 having spent 583 mana in nine seconds.
+//
+// All this needs to prevent is firing twice inside a single round trip, before parent.next_skill
+// reflects the cast. After that the shared cooldown gate above is the authority, which is what the
+// single lifetime `heal cooldown` rejection says it already does well.
 function run_basic_action(p, label) {
-	_basic_action_until = Date.now() + BASIC_ACTION_MAX_MS;
+	const ping = (parent.pings && parent.pings.length) ? Math.max(...parent.pings) : 200;
+	_basic_action_until = Date.now() + Math.min(400, Math.max(120, ping));
 	const t0 = Date.now();
-	const done = () => { _basic_action_until = 0; };
 	Promise.resolve(p).then(
-		() => { done(); if (typeof errlog_time === "function") errlog_time("await " + label, Date.now() - t0); },
-		e => { done(); catcher(e, "action_loop"); }
+		() => { if (typeof errlog_time === "function") errlog_time("await " + label, Date.now() - t0); },
+		e => { catcher(e, "action_loop"); }
 	);
 }
 
+// try_heal() returns "handled, do not attack", which is true both when it casts and when the
+// round-trip guard refuses. action_loop has to tell those apart — only one of them is progress,
+// and re-entering at 10ms on the other is what burns code cost.
+let _heal_cast = false;
+
 async function try_heal() {
+	_heal_cast = false;
 	const HEAL_TARGET = cache.heal_target;
 	if (!HEAL_TARGET) return false;
 
@@ -460,6 +475,7 @@ async function try_heal() {
 		// log(`Healing → ${HEAL_TARGET.name} (${Math.round((HEAL_TARGET.hp / HEAL_TARGET.max_hp) * 100)}%)`, "#33AAFF");
 		if (basic_action_busy()) return true;
 		run_basic_action(heal(HEAL_TARGET), "heal");
+		_heal_cast = true;
 		return true;
 	}
 
@@ -494,7 +510,15 @@ async function action_loop() {
 		const ms = ms_to_next_skill("attack");
 
 		if (ms === 0) {
+			// The timer is free but we may still take no action — nothing hurt enough to heal, or a
+			// cast already in flight this round trip. Re-entering at 10ms in that state achieves
+			// nothing and costs code cost: at 92 iterations a second it drove cc to 52-59 and
+			// starved skill_loop to zero beats, and high cc is what silently stops the server
+			// applying equips. 40ms is invisible against a ~900ms cooldown.
+			let acted = false;
+
 			const HEALED = await try_heal();
+			if (_heal_cast) acted = true;
 
 			if (panicking) {
 				if (typeof errlog_count === "function") errlog_count("action_loop exit:panicking");
@@ -512,8 +536,11 @@ async function action_loop() {
 				const TARGET = cache.target;
 				if (TARGET && is_in_range(TARGET) && smart.moving === false && !basic_action_busy()) {
 					run_basic_action(attack(TARGET), "attack");
+					acted = true;
 				}
 			}
+
+			if (!acted) delay = 40;
 		} else {
 			if (typeof errlog_time === "function") errlog_time("cooldown remaining", ms);
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
