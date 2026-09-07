@@ -705,14 +705,24 @@ function _loadout_manages_orb_uncached() {
 	return false;
 }
 
-// Every item a set names is actually in the bag (name only -- level is batch_equip's problem).
-// Lets a resolver fall back instead of asking for something that cannot be equipped: the warrior
-// requested orbofstr 5,993 times against 71,170 "not in inventory at all" warnings.
+// Can this set be worn -- every item either already in its slot, or sitting in the bag? Name only;
+// level is batch_equip's problem. Lets a resolver fall back instead of asking for something that
+// cannot be equipped: the warrior requested orbofstr 5,993 times against 71,170 "not in inventory
+// at all" warnings.
+//
+// The already-equipped half is essential, not a nicety. Equipping moves an item OUT of
+// character.items and into character.slots, so a bag-only check reports a set as unavailable the
+// moment it is worn -- which made the healer oscillate: rabbitsfoot on, therefore "unavailable",
+// therefore fall back to talkingskull, therefore rabbitsfoot back in the bag and available again.
 function set_available(set_name) {
 	try {
 		const set = equipment_sets[set_name];
 		if (!set || !set.length) return false;
-		return set.every(i => character.items.some(it => it && it.name === i.item_name));
+		return set.every(i => {
+			const worn = character.slots[i.slot];
+			if (worn && worn.name === i.item_name) return true;
+			return character.items.some(it => it && it.name === i.item_name);
+		});
 	} catch (e) { return false; }
 }
 
