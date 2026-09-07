@@ -154,8 +154,12 @@ was current, producing a mixed build that made fixed bugs look unfixed.
 **After every push, purge and verify:**
 
 ```bash
+# Read the purge response — do NOT discard it. purge.jsdelivr.net throttles PER PATH and reports
+# it in the JSON body: {"paths":{"...":{"throttled":true,"throttlingReset":2990}}}. A throttled
+# purge returns HTTP 200 and does nothing, so `-o /dev/null` makes the failure invisible.
 for f in $(git ls-files '*.js'); do
-  curl -s -o /dev/null "https://purge.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/$f"
+  r=$(curl -s "https://purge.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/$f")
+  case "$r" in *'"throttled": true'*) echo "THROTTLED $f";; esac
 done
 # verify: compare against git blobs, NOT working-tree files — the working tree is CRLF
 # while git blobs and jsDelivr are LF, so a naive diff reports every file as stale.
@@ -164,6 +168,18 @@ for f in $(git ls-files '*.js'); do
   b=$(git show "HEAD:$f" | md5sum | cut -d' ' -f1)
   [ "$a" != "$b" ] && echo "STALE $f"
 done
+```
+
+If a file comes back STALE, **stop and wait** — do not retry in a loop. Retrying keeps the path
+throttled (`throttlingReset` is in seconds and runs to ~50 minutes) and cannot succeed. The pinned
+`@<sha>` path is unaffected by any of this and serves the new content immediately, so a stale
+`@main` only matters when the loader has fallen back to it after a GitHub API 403. Check the SHA
+path to confirm the deploy is actually reachable:
+
+```bash
+sha=$(git rev-parse HEAD)
+curl -s "https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@$sha/$f" | md5sum
+git show "HEAD:$f" | md5sum
 ```
 
 Other loader facts worth not re-deriving:
