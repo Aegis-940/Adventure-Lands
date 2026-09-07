@@ -186,16 +186,15 @@ async function handle_party_heal() {
 	}
 	if (!hurt.length) return;
 
-	// partyheal is deliberately a supplemental heal: it does not share heal's cooldown, so it
-	// covers the windows where single-target heal simply is not available. So the only genuinely
-	// wasted cast is the one heal could have covered for less RIGHT NOW — exactly one person hurt,
-	// heal off cooldown, and that person in heal range. Everything else (several hurt, heal on
-	// cooldown, or the hurt one out of heal range — partyheal has no range limit and reaches them
-	// anyway) is what partyheal is for, and still fires.
+	// No mana gate beyond party_heal_min_mp. An earlier version here skipped the cast whenever
+	// exactly one ally was hurt, heal was off cooldown and that ally was in range — reasoning that
+	// single-target heal could cover it for less mana. In a four-person party that describes the
+	// normal case, so partyheal almost never fired.
 	//
-	// At 400mp a cast against a 250ms throttle this is the healer's dominant mana cost: the drain
-	// before her last death was 924, 461, 422, 1261, 361, 400 — every value a multiple of 400.
-	if (hurt.length === 1 && ms_to_next_skill("attack") === 0 && is_in_range(hurt[0], "heal")) return;
+	// The premise was wrong. Mana is not the scarce resource: she has died repeatedly holding
+	// 94-99% of a 6815 pool. Healing throughput is what runs out, and partyheal is throughput that
+	// does not share heal's cooldown — it is exactly what covers the windows heal cannot.
+	// Trading it away to save mana she never spends is a straight loss.
 
 	// log(`Party Heal → ${hurt.length} hurt`, "#33FF77");
 	await use_skill("partyheal");
