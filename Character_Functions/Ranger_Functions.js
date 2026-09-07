@@ -24,10 +24,9 @@ var CONFIG = {
 		skill_blacklist: ["dryad", "fireroamer", "plantoid", "mole"],
 		min_targets_for_5shot: 4,
 		min_targets_for_3shot: 2,
-		// Only join fights already in progress, and don't let poucher splash land on a monster
-		// nobody is fighting. Riva was pulling her own packs and then panicking at the aggro.
+		// Only join fights already in progress. Riva was pulling her own packs and then panicking
+		// at the aggro. Engagement is gated here; target ORDER is never gated on it.
 		engage_aggroed_only: true,
-		avoid_splash_aggro: true,
 		// Below this fraction of max mp, huntersmark and supershot stop entirely so scare is
 		// always funded. Same idea as the healer's skill_min_mp_pct on curse/dark blessing.
 		skill_min_mp_pct: 0.40,
@@ -369,15 +368,17 @@ const update_target_cache = () => {
 		in_range.sort((a, b) => parent.distance(character, a) - parent.distance(character, b));
 	}
 
-	// Score in-range mobs by nearby aggro'd mob count, sort densest first
+	// Score in-range mobs by nearby aggro'd mob count, sort densest first.
+	//
+	// Do NOT reorder this by splash strays. At a dedicated farm spot every mole in the pack is a
+	// stray until something aggros it, so a stray filter never matches and the fallback sorted her
+	// onto the MOST isolated target -- the exact opposite of AoE. Kill rate collapsed, the pack
+	// outgrew what the healer could tank, and the party died 36 times in one hour on 09-07.
+	// Self-pulled aggro is handled at engagement time by engage_aggroed_only, which is the right
+	// place for it; target ordering is for damage.
 	const scored = score_by_explosion_spread(in_range, true); // Shared/Combat_Utilities.js
-	// Prefer candidates whose splash touches nothing unengaged. When every candidate has a stray
-	// beside it, fall back to the one that wakes the fewest rather than stopping — she keeps
-	// fighting, just picks the cheapest pull instead of the densest cluster.
-	const clean = CONFIG.combat.avoid_splash_aggro ? scored.filter(s => !s.strays) : scored;
-	const usable = clean.length ? clean : scored.slice().sort((a, b) => a.strays - b.strays);
-	const cluster_targets = usable.map(s => s.mob);
-	const cluster_target = usable[0]?.count >= 3 ? usable[0].mob : null;
+	const cluster_targets = scored.map(s => s.mob);
+	const cluster_target = scored[0]?.count >= 3 ? scored[0].mob : null;
 
 	return { sorted_by_hp, in_range, out_of_range, clumped, cluster_targets, cluster_target };
 };
@@ -502,8 +503,7 @@ const handle_attack = async () => {
 	else if (!single_target_mode && can_5shot && out_of_range.length >= min5)  { skill_call = () => use_skill("5shot", out_of_range.slice(0, 5).map(e => e.id)); }
 	else if (!single_target_mode && can_3shot && in_range.length >= min3)      { skill_call = () => use_skill("3shot", cluster_targets.slice(0, 3).map(e => e.id)); }
 	else if (can_1shot && cluster_target)               { skill_call = () => attack(cluster_target); }
-	// Basic attacks splash too, so the single-target fallback follows the same stray-aware order.
-	// Follow mode keeps its closest-first ordering.
+	// Basic attacks splash too, so prefer the densest target. Follow mode keeps closest-first.
 	else if (can_1shot && in_range.length >= 1)         { skill_call = () => attack(single_target_mode ? in_range[0] : (cluster_targets[0] || in_range[0])); }
 	else return;
 
