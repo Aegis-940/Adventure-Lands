@@ -7,6 +7,7 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function skill_loop() {
+	if (typeof errlog_beat === "function") errlog_beat("skill_loop");
 	// if (panicking) return setTimeout(skill_loop, 100);
 	const delay = 40;
 

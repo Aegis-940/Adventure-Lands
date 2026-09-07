@@ -320,6 +320,7 @@ function find_nearest_boss() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function main_loop() {
+	if (typeof errlog_beat === "function") errlog_beat("main_loop");
 	try {
 		if (is_disabled(character)) {
 			// A dead/stunned healer never reaches panic_check(), so a panic she already
@@ -448,6 +449,7 @@ async function try_heal() {
 }
 
 async function action_loop() {
+	if (typeof errlog_beat === "function") errlog_beat("action_loop");
 	let delay = 10;
 
 	try {

@@ -6,11 +6,16 @@
 // are no record() calls scattered through the codebase. That call-site cost is what made the
 // previous diagnostics system not worth keeping.
 //
-// Four things are stored, because they answer different questions:
+// Five things are stored, because they answer different questions:
 //   records   deduped aggregate — "what is chronically wrong"
+//   counts    bare integers for high-volume outcomes — "how often does heal actually land"
 //   timeline  ordered ring of recent events — "what happened just before it broke"
-//   deaths    each death with the 10s of vitals leading up to it — "why did it die"
+//   deaths    vitals, loop beats and every heal attempt before it — "why did it die"
 //   session   when this build loaded — makes "died 60s after load" visible
+//
+// records vs counts is the important split: records carry context and feed the timeline, so they
+// must stay rare. Anything that can fire ten times a second goes to counts instead, or it flushes
+// the timeline and destroys the evidence it was added to gather.
 //
 // Written to localStorage (shared across all four tabs) and POSTed to tools/error_sink.py, which
 // merges it into errors.json in the repo. Read with al_errors(true).
@@ -25,11 +30,16 @@ const ERRLOG_VITALS_MS = 1000;
 const ERRLOG_FLUSH_MS = 5000;       // localStorage.setItem is synchronous; don't do it every 2s
 const ERRLOG_MSG_CAP = 400;
 
-let _errlog = { session: null, records: {}, timeline: [], deaths: [] };
+const ERRLOG_MAX_HEALS = 30;        // heal attempts kept in full detail, attached to a death
+
+let _errlog = { session: null, records: {}, timeline: [], deaths: [], counts: {} };
 let _errlog_dirty = false;
 let _errlog_recording = false;      // recording must never be able to trigger recording
 let _errlog_vitals = [];
 let _errlog_was_rip = false;
+let _errlog_heals = [];             // ring of recent heal attempts, frozen into each death record
+const _errlog_beats = {};           // loop name -> total iterations since load
+const _errlog_beats_last = {};      // same, snapshotted at the previous vitals sample
 
 function _errlog_key() {
 	return ERRLOG_KEY + ((character && character.name) || "unknown");
@@ -99,7 +109,8 @@ function _errlog_load() {
 				session: prev.session || null,
 				records: prev.records || {},
 				timeline: prev.timeline || [],
-				deaths: prev.deaths || []
+				deaths: prev.deaths || [],
+				counts: prev.counts || {}
 			};
 		}
 	} catch (e) { /* corrupt or blocked — start clean */ }
@@ -152,6 +163,28 @@ function errlog_record(ctx, raw_msg) {
 	} finally {
 		_errlog_recording = false;
 	}
+}
+
+// COUNTERS — for outcomes that happen too often to record.
+//
+// errlog_record() pushes to the 80-entry timeline, so calling it for something that fires ten times
+// a second flushes the timeline and destroys the one structure that shows what happened just before
+// a failure. Volume needs a different shape: one integer per outcome, no ordering, no timeline
+// pressure, unbounded in time. "How many heals succeeded today" and "what happened at 19:58" are
+// different questions and want different storage.
+function errlog_count(bucket) {
+	try {
+		_errlog.counts[bucket] = (_errlog.counts[bucket] || 0) + 1;
+		_errlog_dirty = true;
+	} catch (e) { /* never throw out of the recorder */ }
+}
+
+// LOOP LIVENESS. "It took no action at all" is the most expensive failure to diagnose because it
+// looks identical to "it decided not to act" — both produce silence. Counting iterations separates
+// them: the vitals sampler turns this into iterations-per-second, so a death record shows whether
+// the loop was still running while the character stood there dying.
+function errlog_beat(name) {
+	try { _errlog_beats[name] = (_errlog_beats[name] || 0) + 1; } catch (e) { /* never throw */ }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -223,6 +256,88 @@ function _errlog_try_wrap_log() {
 	};
 }
 
+// 4b. Heal and skill attempts. Wrapping the API functions catches every call AND its outcome with
+//     no call sites, including the successes — which is the half we never had. A rejected heal
+//     costs no mana and sets no cooldown, so "healed a corpse 4000 times" and "never called heal"
+//     look identical from the outside: same flat mana, same absent cooldown rejections. That
+//     ambiguity is what made the 09-07 death loop take an afternoon to pin down.
+//
+//     Outcomes go to counters (unbounded, no timeline pressure); the last ERRLOG_MAX_HEALS attempts
+//     are kept in full detail and frozen into each death record, which is where detail is worth
+//     paying for.
+function _errlog_heal_outcome(snap, outcome) {
+	try {
+		snap.outcome = outcome;
+		snap.ms = Date.now() - snap.t;
+		_errlog_heals.push(snap);
+		if (_errlog_heals.length > ERRLOG_MAX_HEALS) _errlog_heals.shift();
+		errlog_count("heal:" + outcome + (snap.self ? ":self" : ":ally"));
+	} catch (e) { /* never break healing */ }
+}
+
+function _errlog_reason(e) {
+	if (!e) return "unknown";
+	return e.reason || e.response || (e.message ? String(e.message).slice(0, 60) : _errlog_fmt(e).slice(0, 60));
+}
+
+let _errlog_heal_wrapped = false;
+function _errlog_try_wrap_heal() {
+	if (_errlog_heal_wrapped || typeof heal !== "function") return;
+	try {
+		const original_heal = heal;
+		heal = function (target) {
+			let snap;
+			try {
+				snap = {
+					t: Date.now(),
+					target: (target && target.name) || "?",
+					self: !!(target && character && target.name === character.name),
+					tgt_hp: target && target.hp, tgt_max: target && target.max_hp,
+					my_hp: character.hp, my_mp: character.mp
+				};
+			} catch (e) { snap = { t: Date.now(), target: "?" }; }
+
+			let p;
+			try {
+				p = original_heal(target);
+			} catch (e) {
+				_errlog_heal_outcome(snap, "threw:" + _errlog_reason(e));
+				throw e;
+			}
+			return Promise.resolve(p).then(
+				r => { _errlog_heal_outcome(snap, "ok"); return r; },
+				e => { _errlog_heal_outcome(snap, _errlog_reason(e)); throw e; }
+			);
+		};
+		_errlog_heal_wrapped = true;
+	} catch (e) { /* heal not reassignable here; skip rather than break */ }
+}
+
+// Same treatment for use_skill, counters only. The rejections were already captured by the
+// callers' own catch blocks; what was missing is how often each skill actually LANDS, which is the
+// difference between "scare is failing" and "scare is never being reached".
+let _errlog_skill_wrapped = false;
+function _errlog_try_wrap_use_skill() {
+	if (_errlog_skill_wrapped || typeof use_skill !== "function") return;
+	try {
+		const original_use_skill = use_skill;
+		use_skill = function (name, target, extra) {
+			let p;
+			try {
+				p = original_use_skill(name, target, extra);
+			} catch (e) {
+				errlog_count("skill:" + name + ":threw");
+				throw e;
+			}
+			return Promise.resolve(p).then(
+				r => { errlog_count("skill:" + name + ":ok"); return r; },
+				e => { errlog_count("skill:" + name + ":" + _errlog_reason(e)); throw e; }
+			);
+		};
+		_errlog_skill_wrapped = true;
+	} catch (e) { /* not reassignable; skip */ }
+}
+
 // 5. Socket disconnects — the symptom we have never once captured, only inferred.
 try {
 	if (parent && parent.socket && typeof parent.socket.on === "function") {
@@ -238,11 +353,17 @@ function _errlog_sample_vitals() {
 	const v = _errlog_context();
 	if (!v) return;
 	v.t = Date.now();
-	// Projected dps beside the real hp drops, so a death record validates the damage model against
-	// what actually happened. Sampled here only (1/s), not on every error record, since it walks
-	// parent.entities. typeof-guarded: Party_And_Loot.js loads in parallel with this file.
+
+	// Iterations of each loop since the previous sample, i.e. per second. A row of zeroes here is
+	// the difference between a loop that died and a loop that ran and chose to do nothing.
 	try {
-	} catch (e) { /* not loaded yet */ }
+		const beats = {};
+		for (const k in _errlog_beats) {
+			beats[k] = _errlog_beats[k] - (_errlog_beats_last[k] || 0);
+			_errlog_beats_last[k] = _errlog_beats[k];
+		}
+		v.beats = beats;
+	} catch (e) { /* never break sampling */ }
 
 	// Healer only: the inputs to the heal decision. "She stood there and healed nobody" produces no
 	// error of any kind, so the only way to settle why is to record what the decision saw.
@@ -279,7 +400,10 @@ function _errlog_sample_vitals() {
 			build: _errlog_build(),
 			threat: _errlog_threat(),
 			status: (() => { try { return Object.keys(character.s || {}); } catch (e) { return null; } })(),
-			leading_up_to_it: _errlog_vitals.slice()
+			leading_up_to_it: _errlog_vitals.slice(),
+			// Every heal this character attempted before dying, with its outcome. "Died at full mana"
+			// is ambiguous until you can see whether the heals were never issued or were all rejected.
+			recent_heals: _errlog_heals.slice()
 		});
 		if (_errlog.deaths.length > ERRLOG_MAX_DEATHS) _errlog.deaths.shift();
 		_errlog_dirty = true;
@@ -320,6 +444,7 @@ function _errlog_push() {
 				build: _errlog_build(),
 				session: _errlog.session,
 				records: _errlog.records,
+				counts: _errlog.counts,
 				timeline: _errlog.timeline,
 				deaths: _errlog.deaths
 			})
@@ -332,6 +457,8 @@ function _errlog_push() {
 setInterval(() => {
 	_errlog_try_wrap_log();
 	_errlog_try_wrap_game_log();
+	_errlog_try_wrap_heal();
+	_errlog_try_wrap_use_skill();
 	_errlog_flush();
 	_errlog_push();
 }, ERRLOG_FLUSH_MS);

@@ -50,6 +50,15 @@ def merge(incoming):
         if not prev or rec.get("count", 0) >= prev.get("count", 0):
             recs[sig] = rec
 
+    # Same rule for the high-volume outcome counters: monotonic per bucket within a session, and a
+    # reload restarts them from whatever localStorage held, so take the larger of the two.
+    counts = bucket.setdefault("counts", {})
+    for k, v in (incoming.get("counts") or {}).items():
+        try:
+            counts[k] = max(int(v), int(counts.get(k, 0)))
+        except (TypeError, ValueError):
+            counts[k] = v
+
     # Deaths and timeline accumulate across reloads, which the browser's own ring cannot do --
     # a reload wipes its buffer, and a reload is exactly what follows the interesting failures.
     deaths = {d.get("t"): d for d in bucket.get("deaths", [])}
