@@ -178,10 +178,16 @@ function errlog_record(ctx, raw_msg) {
 // a failure. Volume needs a different shape: one integer per outcome, no ordering, no timeline
 // pressure, unbounded in time. "How many heals succeeded today" and "what happened at 19:58" are
 // different questions and want different storage.
+// Deliberately does NOT set _errlog_dirty. Counting fires on every heal and every skill, so
+// marking dirty here guaranteed a synchronous JSON.stringify + localStorage.setItem of the whole
+// ~37KB log every 5s, per character, across four tabs sharing one origin. Before this existed the
+// flag was only set by errors, so a healthy character almost never flushed. That write is blocking
+// in Chromium and this file already carries one bug of exactly that shape (see healer_is_down).
+// Counts still reach the sink: _errlog_push() runs every 30s and does not consult the flag, and a
+// count lost to a reload is worth far less than a stalled heal.
 function errlog_count(bucket) {
 	try {
 		_errlog.counts[bucket] = (_errlog.counts[bucket] || 0) + 1;
-		_errlog_dirty = true;
 	} catch (e) { /* never throw out of the recorder */ }
 }
 
@@ -319,31 +325,6 @@ function _errlog_try_wrap_heal() {
 	} catch (e) { /* heal not reassignable here; skip rather than break */ }
 }
 
-// Same treatment for use_skill, counters only. The rejections were already captured by the
-// callers' own catch blocks; what was missing is how often each skill actually LANDS, which is the
-// difference between "scare is failing" and "scare is never being reached".
-let _errlog_skill_wrapped = false;
-function _errlog_try_wrap_use_skill() {
-	if (_errlog_skill_wrapped || typeof use_skill !== "function") return;
-	try {
-		const original_use_skill = use_skill;
-		use_skill = function (name, target, extra) {
-			let p;
-			try {
-				p = original_use_skill(name, target, extra);
-			} catch (e) {
-				errlog_count("skill:" + name + ":threw");
-				throw e;
-			}
-			return Promise.resolve(p).then(
-				r => { errlog_count("skill:" + name + ":ok"); return r; },
-				e => { errlog_count("skill:" + name + ":" + _errlog_reason(e)); throw e; }
-			);
-		};
-		_errlog_skill_wrapped = true;
-	} catch (e) { /* not reassignable; skip */ }
-}
-
 // 5. Socket disconnects — the symptom we have never once captured, only inferred.
 try {
 	if (parent && parent.socket && typeof parent.socket.on === "function") {
@@ -464,7 +445,6 @@ setInterval(() => {
 	_errlog_try_wrap_log();
 	_errlog_try_wrap_game_log();
 	_errlog_try_wrap_heal();
-	_errlog_try_wrap_use_skill();
 	_errlog_flush();
 	_errlog_push();
 }, ERRLOG_FLUSH_MS);
