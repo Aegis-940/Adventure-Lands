@@ -132,7 +132,14 @@ function get_num_chests() {
 
 function should_handle_events() {
 	const holiday_spirit = parent?.S?.holidayseason && !character?.s?.holidayspirit;
-	const has_handleable_event = EVENT_LOCATIONS.some(e => parent?.S?.[e.name]?.live);
+	// Must apply the same engage_hp_ok gate handle_events() does. main_loop treats this as the
+	// first branch of an if/else chain, so answering true for an event handle_events then declines
+	// to touch leaves the character doing nothing at all -- no farming, no looting, no movement --
+	// for as long as the event is live.
+	const has_handleable_event = EVENT_LOCATIONS.some(e => {
+		const data = parent?.S?.[e.name];
+		return !!data?.live && engage_hp_ok({ ...e, data });
+	});
 	return holiday_spirit || has_handleable_event;
 }
 
@@ -277,6 +284,17 @@ function reposition_center() {
 	return locations[home][0];
 }
 
+// Per-event hp gate, driven by `engage_below` in EVENT_LOCATIONS. Max hp comes from G.monsters,
+// which is static game data and always present -- parent.S entries are not documented to carry
+// max_hp, and the sort below quietly produces NaN when they do not. Fails open: an event we cannot
+// size is treated as engageable rather than silently skipped forever.
+function engage_hp_ok(e) {
+	if (e.engage_below === undefined) return true;
+	const max = (G.monsters?.[e.name]?.hp) || e.data?.max_hp;
+	if (!max || !e.data?.hp) return true;
+	return e.data.hp <= max * e.engage_below;
+}
+
 function handle_events() {
 	if (parent?.S?.holidayseason && !character?.s?.holidayspirit) {
 		if (!smart.moving) {
@@ -296,6 +314,7 @@ function handle_events() {
 			return { ...e, data };
 		})
 		.filter(e => e.data?.live)
+		.filter(e => engage_hp_ok(e))
 		.sort((a, b) => (a.data.hp / a.data.max_hp) - (b.data.hp / b.data.max_hp));
 
 	if (!alive_sorted.length) return;

@@ -66,7 +66,10 @@ const EVENT_LOCATIONS = [
 	{ name: "mrpumpkin", map: "halloween", x: -217, y: 720 },
 	{ name: "mrgreen", map: "spookytown", x: 605, y: 1000 },
 	{ name: "dragold", map: "cave", x: 873, y: -727 },
-	{ name: "franky", join: true },
+	// engage_below: stay out until someone else has brought it under this share of max hp. Being
+	// first into a full-health franky means eating the opening on our own. Omit the property to
+	// engage at any hp, which is what every other entry does.
+	{ name: "franky", join: true, engage_below: 0.95 },
 	{ name: "icegolem", join: true },
 	// { name: "wabbit", dynamic: true },
 ];
