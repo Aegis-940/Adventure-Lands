@@ -811,7 +811,12 @@ async function _panic_check_body() {
 		if (hp_pct < arm_at || ttd < (t.arm_ttd_s ?? 6)) {
 			if (!panic_armed) panic_armed_since = Date.now();
 			panic_armed = true;
-		} else if (hp_pct >= disarm_at && Date.now() - panic_armed_since > PANIC_ARM_MIN_MS) {
+		} else if (hp_pct >= disarm_at && Date.now() - panic_armed_since > PANIC_ARM_MIN_MS
+			&& MONSTERS_TARGETING_ME === 0) {
+			// Also requires nothing still on us. Hp alone made the healer cross the 65/80 band over
+			// and over mid-fight -- 764 arm equips against 589 loadout restores in under two hours,
+			// two orb swaps per crossing, all of it churn. Arming is a combat state, so it ends
+			// when the combat does, not when hp happens to tick above a line.
 			panic_armed = false;
 		}
 	}

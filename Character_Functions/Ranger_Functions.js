@@ -253,6 +253,12 @@ function resolve_ranger_orb() {
 	return set_available("orb") ? "orb" : null;
 }
 
+// Keep scare affordable. Declining to fire another volley while too empty to escape is correct on
+// its own terms, independent of the panic interaction.
+function panic_mp_reserve() {
+	return (G.skills.scare?.mp || 50) + 200;
+}
+
 var EQUIPMENT_RULES = {
 	weapon:  { kind: "set", resolve: resolve_ranger_weapon },
 	loadout: { kind: "set", resolve: resolve_ranger_loadout },
@@ -463,7 +469,10 @@ const handle_attack = async () => {
 	const min3 = CONFIG.combat.min_targets_for_3shot;
 	const mp5 = (G.skills["5shot"]?.mp + 400);
 	const mp3 = (G.skills["3shot"]?.mp + 200);
-	const mp1 = 100;
+	// scare is 50mp and the only escape she has. huntersmark (240) and supershot (400) had no mana
+	// guard whatsoever, and the basic-attack floor of 100 left no room either -- 205 scare failures
+	// with reason no_mp. Same reserve the warrior got in e46b25e.
+	const mp1 = Math.max(100, panic_mp_reserve());
 	const can_5shot = character.mp >= mp5;
 	const can_3shot = character.mp >= mp3;
 	const can_1shot = character.mp >= mp1;
@@ -513,11 +522,13 @@ const skill_loop = async () => {
 
 			const skill_allowed = !CONFIG.combat.skill_blacklist.includes(target.mtype);
 
-			if (skill_allowed && CONFIG.combat.use_hunters_mark && ms_hunter === 0 && !target.s?.marked) {
+			if (skill_allowed && CONFIG.combat.use_hunters_mark && ms_hunter === 0 && !target.s?.marked
+				&& character.mp >= (G.skills.huntersmark?.mp || 0) + panic_mp_reserve()) {
 				await use_skill("huntersmark", target);
 			}
 
-			if (skill_allowed && CONFIG.combat.use_supershot && ms_super === 0) {
+			if (skill_allowed && CONFIG.combat.use_supershot && ms_super === 0
+				&& character.mp >= (G.skills.supershot?.mp || 0) + panic_mp_reserve()) {
 				await use_skill("supershot", target);
 			}
 		} else {
