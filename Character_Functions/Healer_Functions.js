@@ -192,8 +192,11 @@ var equipment_sets = {
 function update_cache() {
 	if (!cache.is_valid()) {
 		cache.target = find_best_target();
-		cache.zap_targets = find_zap_targets();
-		cache.nearest_boss = find_nearest_boss();
+		// cache.nearest_boss and cache.zap_targets are not computed here any more. Nothing reads
+		// nearest_boss anywhere in the codebase, and find_zap_targets() is the only consumer of
+		// zap_targets — Healer_Skills.js calls it directly, and it early-returns while
+		// zapper_enabled is false. Both were walking parent.entities on the 50ms cache TTL to
+		// produce values nobody used, and every walk costs more as monsters pile onto her.
 		cache.party_members = get_party_members();
 		cache.last_update = performance.now();
 	}
@@ -204,11 +207,13 @@ function update_cache() {
 function find_best_target() {
 	const max_dist = HEALER_TARGET === "giantspider" ? 50 : character.range;
 
-	// Priority 1: Bosses
-	for (const boss_type of CONFIG.combat.all_bosses) {
-		const boss = get_nearest_monster_v2({ type: boss_type, max_distance: max_dist });
-		if (boss) return boss;
-	}
+	// Priority 1: Bosses. ONE walk, not eleven — get_nearest_monster_v2 takes an array of types and
+	// filters with includes(), so the loop was re-walking every entity in the game once per boss
+	// type. update_cache() refreshes on a 50ms TTL, so that was 220 full entity walks a second from
+	// this line alone, and the cost of each one grows with the number of monsters on her. That is
+	// why her actions get slower the more trouble she is in.
+	const boss = get_nearest_monster_v2({ type: CONFIG.combat.all_bosses, max_distance: max_dist });
+	if (boss) return boss;
 
 	// Follow mode: only attack monsters already targeting the healer, never seek new aggro
 	if (HEALER_TARGET === "giantspider") {
@@ -307,12 +312,13 @@ function get_party_members() {
 	return Object.keys(get_party() || {});
 }
 
+// Also one walk instead of eleven, and this one had no max_distance so each pass covered every
+// entity on the map. Same {mob, type} shape as before; mtype off the entity is the same string the
+// loop was reporting. Ties now go to the nearest boss rather than to whichever type sat earliest in
+// all_bosses, which only differs when two boss types are up at once.
 function find_nearest_boss() {
-	for (const boss_type of CONFIG.combat.all_bosses) {
-		const boss = get_nearest_monster_v2({ type: boss_type });
-		if (boss) return { mob: boss, type: boss_type };
-	}
-	return null;
+	const boss = get_nearest_monster_v2({ type: CONFIG.combat.all_bosses });
+	return boss ? { mob: boss, type: boss.mtype } : null;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
