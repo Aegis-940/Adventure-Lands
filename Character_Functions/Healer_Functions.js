@@ -39,7 +39,10 @@ var CONFIG = {
 		// 400mp and dark blessing 900mp; both are luxuries once the healing budget is the
 		// constraint. absorb is deliberately NOT included — it is how she takes aggro off the
 		// warrior, and cutting it moves the damage onto someone who cannot heal it.
-		skill_min_mp_pct: 0.40
+		skill_min_mp_pct: 0.40,
+		// heal and attack share the basic-action timer, so an autoattack costs a heal. She only
+		// spends the timer on damage from above this share of max hp.
+		attack_min_hp_pct: 0.95
 	},
 
 	looting: {
@@ -466,7 +469,23 @@ async function action_loop() {
 			
 			if (panicking) return setTimeout(action_loop, 100);
 
-			if (!HEALED && HEALER_TARGET !== "giantspider") {
+			// heal and attack run off the SAME basic-action timer — heal is not a G.skill with a
+			// cooldown of its own, which is why the gate above reads ms_to_next_skill("attack").
+			// So every attack is a heal she cannot cast until the timer comes back.
+			//
+			// Measured 20:23:28-37: her heals landed at :30, :32, :34, :36 — exactly every two
+			// seconds, against a timer that allows roughly one a second. She healed just above the
+			// threshold, spent the very next window attacking, took ~3000 damage, and arrived back
+			// at the threshold with the timer still running. Half her healing throughput was going
+			// into damage while she was the one being killed.
+			//
+			// So she only attacks from a comfortable margin. Her damage is marginal and her tanking
+			// pull is absorb, not autoattack; the timer belongs to healing whenever healing is
+			// anywhere near needed.
+			const attack_floor = CONFIG.healing.attack_min_hp_pct ?? 0.95;
+			const can_spare_timer = character.hp >= character.max_hp * attack_floor;
+
+			if (!HEALED && HEALER_TARGET !== "giantspider" && can_spare_timer) {
 				const TARGET = cache.target;
 				if (TARGET && is_in_range(TARGET) && smart.moving === false) {
 					await with_timeout(attack(TARGET), "attack");
