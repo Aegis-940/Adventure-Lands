@@ -706,8 +706,14 @@ function _loadout_manages_orb_uncached() {
 let _panic_last_emit = -1;
 
 let panic_armed = false;
+let panic_armed_since = 0;
 let last_panic_gear = 0;
 const PANIC_GEAR_RETRY_MS = 1000;
+
+// Minimum time armed once armed. In combat her hp crosses the 65/80 band constantly, and every
+// crossing costs two equip_batch emits (jacko on, loadout back). The orb_equip counter caught it:
+// 220 arm equips and 770 loadout restores in 38 minutes, all of it churn.
+const PANIC_ARM_MIN_MS = 8000;
 
 async function panic_check() {
 	sample_hp(); // before the re-entrancy guard: the rate must keep updating even mid-panic
@@ -777,12 +783,16 @@ async function _panic_check_body() {
 	const arm_at = t.arm_hp ?? 0.65;
 	const disarm_at = t.disarm_hp ?? 0.80;
 	if (!panicking) {
-		if (hp_pct < arm_at || ttd < (t.arm_ttd_s ?? 6)) panic_armed = true;
-		else if (hp_pct >= disarm_at) panic_armed = false;
+		if (hp_pct < arm_at || ttd < (t.arm_ttd_s ?? 6)) {
+			if (!panic_armed) panic_armed_since = Date.now();
+			panic_armed = true;
+		} else if (hp_pct >= disarm_at && Date.now() - panic_armed_since > PANIC_ARM_MIN_MS) {
+			panic_armed = false;
+		}
 	}
 
 	if (Date.now() - last_panic_gear > PANIC_GEAR_RETRY_MS) {
-		if (panic_armed && !is_set_equipped("panic")) {
+		if (panic_armed && !panicking && !is_set_equipped("panic")) {
 			// Not awaited on purpose: there is no hurry yet, and blocking here would just move the
 			// stall earlier. By the time panic fires the orb is on and scare is immediate.
 			last_panic_gear = Date.now();
