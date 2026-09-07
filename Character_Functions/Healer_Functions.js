@@ -437,21 +437,6 @@ async function try_heal() {
 		return true;
 	}
 
-	// Say why we declined while we are the one dying. Deducing this from an absence of records cost
-	// most of an afternoon; one line here makes the next occurrence answer itself. Throttled: this
-	// sits in a loop that runs several times a second, and an unthrottled record would flush the
-	// 80-entry timeline — destroying the evidence it was added to capture.
-	const now_ms = Date.now();
-	if (character.hp < character.max_hp * 0.5 && now_ms - _last_decline_log > 2000
-		&& typeof errlog_record === "function") {
-		_last_decline_log = now_ms;
-		errlog_record("heal_declined", `self ${Math.round(100 * character.hp / character.max_hp)}%`
-			+ ` but target=${is_self ? "self" : HEAL_TARGET.name}`
-			+ ` hp=${HEAL_TARGET.hp}/${HEAL_TARGET.max_hp}`
-			+ ` thr=${Math.round(HEAL_THRESHOLD)}`
-			+ ` in_range=${is_self ? "self" : !!is_in_range(HEAL_TARGET, "heal")}`);
-	}
-
 	return false;
 }
 
@@ -473,7 +458,26 @@ async function action_loop() {
 			
 			if (panicking) return setTimeout(action_loop, 100);
 
-			if (!HEALED && HEALER_TARGET !== "giantspider") {
+			// heal and attack share the basic-action timer, so every autoattack is a heal she cannot
+			// cast until it returns — and `await attack()` also parks action_loop for a full round
+			// trip, which is why its beat count reads 0 in the seconds she is being killed.
+			//
+			// Measured 20:48:35-39: her best heal gap was 909ms (that is the timer) but the gaps ran
+			// 1760, 1910, 2145, 2523, 2839, then 4496ms and she was dead. One or two windows lost
+			// each time, spent on damage while she was the one dying.
+			//
+			// The gate is her OWN heal threshold, not an arbitrary percentage: the question is
+			// literally "am I about to need this timer for myself". Above it she attacks and pulls
+			// exactly as before, so find_best_target's priority-2 aggro still works. An earlier
+			// attempt used a flat 95% and cut into her tanking; this cannot, because by definition
+			// she is not the one who needs healing when it lets her attack.
+			const my_heal_threshold = Math.max(
+				character.max_hp * 0.5,
+				character.max_hp - character.heal / 1.33
+			);
+			const i_need_the_timer = character.hp < my_heal_threshold;
+
+			if (!HEALED && HEALER_TARGET !== "giantspider" && !i_need_the_timer) {
 				const TARGET = cache.target;
 				if (TARGET && is_in_range(TARGET) && smart.moving === false) {
 					await attack(TARGET);
