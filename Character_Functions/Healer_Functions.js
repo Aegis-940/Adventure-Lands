@@ -445,8 +445,16 @@ function basic_action_busy() {
 // reflects the cast. After that the shared cooldown gate above is the authority, which is what the
 // single lifetime `heal cooldown` rejection says it already does well.
 function run_basic_action(p, label) {
-	const ping = (parent.pings && parent.pings.length) ? Math.max(...parent.pings) : 200;
-	_basic_action_until = Date.now() + Math.min(400, Math.max(120, ping));
+	// Derived from the real cooldown, not from ping. A ping-sized guard clamped at 400ms was too
+	// short for a 100-500ms link and let a second cast out before parent.next_skill caught up:
+	// heal cooldown rejections went 1 -> 95, about 4.7% of casts wasted as emits.
+	//
+	// character.frequency is attacks per second, so 1000/frequency IS the cooldown. Holding 90% of
+	// it cannot cost her a window — the guard always expires before the cooldown does, leaving
+	// ms_to_next_skill() the authority — while still covering any round trip shorter than the
+	// cooldown itself, which is every round trip that matters here.
+	const freq = character.frequency > 0 ? character.frequency : 1.1;
+	_basic_action_until = Date.now() + (1000 / freq) * 0.9;
 	const t0 = Date.now();
 	Promise.resolve(p).then(
 		() => { if (typeof errlog_time === "function") errlog_time("await " + label, Date.now() - t0); },
