@@ -200,20 +200,27 @@ function healer_is_down() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // Scores each candidate by how many OTHER monsters sit within the character's explosion
-// radius of it, i.e. how far hitting it would spread splash damage. Returns [{mob, count}]
-// sorted densest-first. aggro_only limits the count to monsters already engaged.
+// radius of it, i.e. how far hitting it would spread splash damage. Returns
+// [{mob, count, strays}] sorted densest-first. aggro_only limits the count to monsters
+// already engaged; `strays` reports the opposite — unengaged monsters our splash would wake.
 function score_by_explosion_spread(pool, aggro_only = false) {
 	const explosion_radius = character.explosion || 40;
+	// The real splash reach, 0 when nothing we carry splashes. Kept separate from the radius above,
+	// which falls back to 40 as a clustering proxy and would otherwise report strays against a
+	// character whose attacks cannot splash at all.
+	const splash_radius = Math.max(character.explosion || 0, character.blast || 0);
 	const all_monsters = Object.values(parent.entities).filter(e => e?.type === "monster" && !e.dead);
 
 	const scored = pool.map(mob => {
-		let count = 0;
+		let count = 0, strays = 0;
 		for (const e of all_monsters) {
 			if (e === mob) continue;
+			const d = Math.hypot(e.x - mob.x, e.y - mob.y);
+			if (!e.target && splash_radius && d <= splash_radius) strays++;
 			if (aggro_only && !e.target) continue;
-			if (Math.hypot(e.x - mob.x, e.y - mob.y) <= explosion_radius) count++;
+			if (d <= explosion_radius) count++;
 		}
-		return { mob, count };
+		return { mob, count, strays };
 	});
 
 	scored.sort((a, b) => b.count - a.count);
