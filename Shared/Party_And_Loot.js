@@ -253,6 +253,21 @@ async function equip_set(set_name) {
 		console.error(`Set "${set_name}" not found.`);
 		return;
 	}
+
+	// The orb slot is contested and the panic orb has never once stayed on. batch_equip finds the
+	// jacko, matches its level, emits one item, gets no rejection — and a second later the slot
+	// still reads rabbitsfoot. Either nothing acts on the emit, or something re-equips over it.
+	// Recording every requester with the panic state settles which: a `luck requested orb` line
+	// carrying panicking=true is resolve_equipment finishing an in-flight call it entered before
+	// the bail, and is the whole answer. The recorder dedupes these, so it is a handful of rows.
+	try {
+		if (set.some(i => i.slot === "orb") && typeof errlog_record === "function") {
+			errlog_record("orb_equip", `${set_name} -> orb`
+				+ ` (panicking=${typeof panicking !== "undefined" && !!panicking}`
+				+ `, armed=${typeof panic_armed !== "undefined" && !!panic_armed})`);
+		}
+	} catch (e) { /* recorder absent */ }
+
 	return batch_equip(set);
 }
 
