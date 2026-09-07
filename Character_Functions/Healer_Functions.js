@@ -634,7 +634,7 @@ var EQUIPMENT_RULES = {
 	// names loadout — otherwise handle_looting()'s gold gloves would never be swapped back.
 	gloves:  { kind: "set", resolve: () => "gloves" },
 	// The orb is a first-class group rather than an item smuggled inside `luck`. That gives it a
-	// single owner: panic_check takes the slot while panicking or armed (batch_equip's interlock
+	// single owner: panic_check takes the slot while panicking (batch_equip's interlock
 	// enforces it) and this group owns it the rest of the time.
 	orb:     { kind: "set", resolve: resolve_healer_orb },
 };
@@ -663,8 +663,6 @@ var last_safe_time = 0;
 var PANIC_THRESHOLDS = {
 	low_hp: 0.40, low_mp: 0.05, high_hp: 0.60, high_mp: 0.50,
 	aggro: 99, cooldown: 1000,
-	arm_hp: 0.65, disarm_hp: 0.80,
-	ttd_s: 3, arm_ttd_s: 6,
 };
 var PANIC_BROADCAST_TARGETS = ["Ulric", "Riva"];
 

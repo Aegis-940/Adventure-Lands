@@ -242,7 +242,6 @@ function _errlog_sample_vitals() {
 	// what actually happened. Sampled here only (1/s), not on every error record, since it walks
 	// parent.entities. typeof-guarded: Party_And_Loot.js loads in parallel with this file.
 	try {
-		if (typeof projected_dps === "function") v.pdps = Math.round(projected_dps());
 	} catch (e) { /* not loaded yet */ }
 
 	// Healer only: the inputs to the heal decision. "She stood there and healed nobody" produces no

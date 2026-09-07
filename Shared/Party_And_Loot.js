@@ -166,15 +166,14 @@ function warn_missing_item(item_name, level, slot) {
 	game_log(`⚠️ batch_equip: no ${item_name} (lvl ${level}) in inventory for ${slot}`, "#FFA500");
 }
 
-// Panic owns the orb slot whenever it is panicking or armed. This is an interlock, not a timing
-// guess: resolve_equipment() checks its bail once at entry and then awaits a full server round
-// trip, and equipment_manager_loop re-enters it every 25ms, so an invocation already in flight
-// sails past the bail and emits the loadout's orb straight over the jacko. That is why the panic
-// orb usually works and occasionally does not -- it only bites when a loadout equip happens to be
-// mid-round-trip as the panic starts, which makes it scale with latency.
+// Panic owns the orb slot while it is panicking. This is an interlock, not a timing guess:
+// resolve_equipment() checks its bail once at entry and then awaits a full server round trip, and
+// equipment_manager_loop re-enters it every 25ms, so an invocation already in flight sails past the
+// bail and emits the loadout's orb straight over the jacko. That is why the panic orb usually works
+// and occasionally does not -- it only bites when a loadout equip happens to be mid-round-trip as
+// the panic starts, which makes it scale with latency.
 function panic_owns_orb() {
-	return (typeof panicking !== "undefined" && !!panicking)
-		|| (typeof panic_armed !== "undefined" && !!panic_armed);
+	return typeof panicking !== "undefined" && !!panicking;
 }
 
 async function batch_equip(data, set_name) {
@@ -291,8 +290,7 @@ async function equip_set(set_name) {
 	try {
 		if (set.some(i => i.slot === "orb") && typeof errlog_record === "function") {
 			errlog_record("orb_equip", `${set_name} -> orb`
-				+ ` (panicking=${typeof panicking !== "undefined" && !!panicking}`
-				+ `, armed=${typeof panic_armed !== "undefined" && !!panic_armed})`);
+				+ ` (panicking=${typeof panicking !== "undefined" && !!panicking})`);
 		}
 	} catch (e) { /* recorder absent */ }
 
@@ -369,7 +367,6 @@ function resolve_equipment_bail_reason() {
 	// same as before this file had one gate. Only an explicit false disables it.
 	if (CONFIG.equipment?.auto_swap_sets === false) return "auto_swap_sets disabled";
 	if (panicking) return "panicking"; // panic_check() owns gear exclusively while active
-	if (panic_armed) return "panic armed"; // ...and while armed, or it swaps the jacko straight back out
 	if (state.gear_locked) return "gear_locked"; // e.g. a manual swap-trick sequence mid-flight
 	if (character.cc > COOLDOWNS.cc) return "cc above threshold";
 	if (typeof should_pause_equipment_resolve === "function" && should_pause_equipment_resolve()) return "special weapon equipped";
@@ -527,14 +524,10 @@ function clear_inventory() {
 // so scare/use_skill can't race gear that isn't on yet, and the common case (equip lands
 // fast) doesn't eat a needless fixed wait. Throws on timeout rather than returning false,
 // so a caller can't silently ignore a failed equip by forgetting to check the result.
-async function wait_until_equipped(set_name, timeout_ms, interval_ms = 100) {
-	// Scaled to the connection rather than fixed. A flat 1000ms times out on a slow round trip
-	// while the equip is still in flight, and the caller then acts as though it failed -- which is
-	// how scare ends up firing with the old orb still on and getting skill_cant_slot back.
-	if (timeout_ms === undefined) {
-		const ping = (parent.pings && parent.pings.length) ? Math.max(...parent.pings) : 200;
-		timeout_ms = Math.min(3000, Math.max(1000, Math.round(ping * 5)));
-	}
+// Timeout is a survival budget, not a patience setting: panic awaits this before it can cast scare,
+// so every ms spent here is spent not acting. A death at 14:23:41 waited the full 3000ms and the
+// character died one second after it returned. 1000ms is the ceiling.
+async function wait_until_equipped(set_name, timeout_ms = 1000, interval_ms = 100) {
 	let waited = 0;
 	while (!is_set_equipped(set_name)) {
 		if (waited >= timeout_ms) {
@@ -560,111 +553,6 @@ const EXTERNAL_PANIC_MAX_MS = 60000;
 // orb equip, and the scare rejections. One at a time.
 let _panic_check_running = false;
 
-// Armed = the jacko is already on, waiting. Measured from a real death: once panic fired at 40% the
-// healer had 1.4s of life left, and wait_until_equipped() alone polls for up to 1000ms, so the equip
-// consumed the budget and scare was attempted three seconds after she was already dead. Arming
-// early takes the equip off the critical path; at the panic threshold the orb is on and scare goes
-// straight out. Costs luck only while below the arm threshold, which is when luck is not the point.
-// TIME TO DEATH. A fixed hp percentage is the wrong trigger when incoming damage varies: 40% is
-// generous against one mole and fatal against five. Measured from two real deaths, 40% bought the
-// healer 1.4s and 35% bought the warrior 1.2s — less than the panic sequence takes to run.
-//
-// So trigger on "can I survive the next few seconds at the rate I am actually losing hp", which
-// scales itself. Replaying both captured deaths through this fires the panic a second earlier and
-// arms the orb two seconds earlier, while staying silent through the calm stretches before them
-// (TTD 16-65s there, nowhere near the thresholds).
-//
-// Observed rate, not projected damage: no modelling of attack stats, courage caps or frequencies to
-// get wrong, and it picks up anything that hurts including burn and effects we do not model.
-const PANIC_HP_SAMPLE_MS = 200;
-const PANIC_HP_SAMPLES = 10;      // ~2s of history
-const PANIC_TTD_MIN_MS = 1200;    // too little history to trust a rate
-
-let _hp_history = [];
-
-function sample_hp() {
-	const now = Date.now();
-	const last = _hp_history[_hp_history.length - 1];
-	if (last && now - last.t < PANIC_HP_SAMPLE_MS) return;
-	_hp_history.push({ t: now, hp: character.hp });
-	while (_hp_history.length > PANIC_HP_SAMPLES) _hp_history.shift();
-}
-
-// Seconds until death at the rate observed across the window, or Infinity when not losing hp.
-// Whole window rather than the last pair, so one big hit or one heal cannot swing it.
-function seconds_to_death() {
-	if (_hp_history.length < 2) return Infinity;
-	const first = _hp_history[0];
-	const last = _hp_history[_hp_history.length - 1];
-	const ms = last.t - first.t;
-	if (ms < PANIC_TTD_MIN_MS) return Infinity;
-	const lost = first.hp - last.hp;
-	if (lost <= 0) return Infinity;
-	return last.hp / (lost / (ms / 1000));
-}
-
-// PROJECTED DPS. The observed rate above is lagging by construction: when the warrior gathers
-// eight moles at once, nothing has hit yet, so the measured rate is still low for a second or two —
-// exactly the window where reacting matters. Modelling what is already targeting us knows the
-// ceiling the instant they aggro, before a single hit lands.
-//
-// The two are complementary and used as min(): modelling leads, observation catches everything we
-// do not model (burn, effects, anything mis-specified in G). Neither can suppress the other.
-//
-// Deliberately NOT modelled: courage/mcourage/pcourage caps, which change damage taken once you
-// are over them. The mechanic is not documented well enough here to get right, and a wrong
-// multiplier in a survival trigger is worse than an absent one.
-const PANIC_THREAT_RADIUS = 400;   // targeting us and close enough to matter shortly
-
-function _dmg_mult(defense) {
-	// Use the client's own curve when it is exposed; the fallback matches the documented
-	// "100 defense is roughly 10% reduction" and is only a rough stand-in.
-	try {
-		if (typeof damage_multiplier === "function") return damage_multiplier(defense);
-	} catch (e) { /* not available */ }
-	return Math.max(0.2, 1 - Math.min(0.8, Math.max(0, defense) / 1000));
-}
-
-// Walks every entity, and panic_check() runs on each 100ms main_loop tick, so the raw version was
-// re-scanning the map ten times a second for a number feeding a 3-second threshold. Cached.
-let _pdps = { at: 0, value: 0 };
-
-function projected_dps() {
-	const now = Date.now();
-	if (now - _pdps.at < 250) return _pdps.value;
-	_pdps.at = now;
-	_pdps.value = _projected_dps_uncached();
-	return _pdps.value;
-}
-
-function _projected_dps_uncached() {
-	let dps = 0;
-	try {
-		for (const id in parent.entities) {
-			const e = parent.entities[id];
-			if (!e || e.type !== "monster" || e.dead) continue;
-			if (e.target !== character.name) continue;
-			if (distance(character, e) > PANIC_THREAT_RADIUS) continue;
-
-			const g = (G.monsters && G.monsters[e.mtype]) || {};
-			const magical = g.damage_type === "magical";
-			// Entity stats, not G, so per-instance scaling (difficulty, rage) is included.
-			const defense = magical
-				? Math.max(0, (character.resistance || 0) - (e.rpiercing || 0))
-				: Math.max(0, (character.armor || 0) - (e.apiercing || 0));
-			dps += (e.attack || 0) * _dmg_mult(defense) * (g.frequency || 1);
-		}
-	} catch (e) { return 0; }
-	return dps;
-}
-
-// Seconds until death from what is currently on us, before any of it lands.
-function projected_seconds_to_death() {
-	const dps = projected_dps();
-	if (dps <= 0) return Infinity;
-	return character.hp / dps;
-}
-
 // The orb slot had TWO owners. Party_And_Loot's own comment says panic_check() owns it
 // exclusively, but the healer's `luck` loadout claims rabbitsfoot and the warrior's
 // `dps_accessories` claims orbofstr — so resolve_equipment() re-equipped the loadout every 500ms
@@ -677,7 +565,7 @@ function projected_seconds_to_death() {
 //
 // Fix without changing anyone's gear: when the loadout already manages the orb, let it do the
 // restoring and do not force the `orb` set on top. One owner at a time — panic_check while
-// panicking or armed, resolve_equipment otherwise.
+// panicking, resolve_equipment otherwise.
 let _orb_owner = { at: 0, value: false };
 
 function loadout_manages_orb() {
@@ -730,18 +618,7 @@ function set_available(set_name) {
 // slot did not change" look identical from the outside otherwise.
 let _panic_last_emit = -1;
 
-let panic_armed = false;
-let panic_armed_since = 0;
-let last_panic_gear = 0;
-const PANIC_GEAR_RETRY_MS = 1000;
-
-// Minimum time armed once armed. In combat her hp crosses the 65/80 band constantly, and every
-// crossing costs two equip_batch emits (jacko on, loadout back). The orb_equip counter caught it:
-// 220 arm equips and 770 loadout restores in 38 minutes, all of it churn.
-const PANIC_ARM_MIN_MS = 8000;
-
 async function panic_check() {
-	sample_hp(); // before the re-entrancy guard: the rate must keep updating even mid-panic
 	if (_panic_check_running) return;
 	_panic_check_running = true;
 	try {
@@ -771,12 +648,7 @@ async function _panic_check_body() {
 	).length;
 
 	// PANIC CONDITION
-	const observed_ttd = seconds_to_death();
-	const modelled_ttd = projected_seconds_to_death();
-	const ttd = Math.min(observed_ttd, modelled_ttd);
-	const DYING_FAST = ttd < (t.ttd_s ?? 3);
-
-	if (LOW_HEALTH || LOW_MANA || DYING_FAST || MONSTERS_TARGETING_ME >= t.aggro) {
+	if (LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= t.aggro) {
 		if (!panicking) {
 			panicking = true;
 			// Act on this tick, not up to t.cooldown later. The cooldown below exists to throttle
@@ -792,45 +664,7 @@ async function _panic_check_body() {
 			if (LOW_HEALTH) reason.push("low health");
 			if (LOW_MANA) reason.push("low mana");
 			if (MONSTERS_TARGETING_ME >= t.aggro) reason.push("high aggro");
-			if (DYING_FAST) {
-				reason.push(`dying in ${ttd.toFixed(1)}s`
-					+ ` (observed ${observed_ttd === Infinity ? "-" : observed_ttd.toFixed(1) + "s"},`
-					+ ` projected ${modelled_ttd === Infinity ? "-" : modelled_ttd.toFixed(1) + "s"}`
-					+ ` @ ${Math.round(projected_dps())}dps)`);
-			}
 			log(`⚠️ Panic triggered: ${reason.join(", ")}!`, "#ffcc00", "Alerts");
-		}
-	}
-
-	// ARM / DISARM. Hysteresis between the two thresholds so a character sitting near the arm point
-	// does not flap the orb slot. Never disarms while panicking — the SAFE branch below owns that.
-	const hp_pct = character.max_hp ? character.hp / character.max_hp : 1;
-	const arm_at = t.arm_hp ?? 0.65;
-	const disarm_at = t.disarm_hp ?? 0.80;
-	if (!panicking) {
-		if (hp_pct < arm_at || ttd < (t.arm_ttd_s ?? 6)) {
-			if (!panic_armed) panic_armed_since = Date.now();
-			panic_armed = true;
-		} else if (hp_pct >= disarm_at && Date.now() - panic_armed_since > PANIC_ARM_MIN_MS
-			&& MONSTERS_TARGETING_ME === 0) {
-			// Also requires nothing still on us. Hp alone made the healer cross the 65/80 band over
-			// and over mid-fight -- 764 arm equips against 589 loadout restores in under two hours,
-			// two orb swaps per crossing, all of it churn. Arming is a combat state, so it ends
-			// when the combat does, not when hp happens to tick above a line.
-			panic_armed = false;
-		}
-	}
-
-	if (Date.now() - last_panic_gear > PANIC_GEAR_RETRY_MS) {
-		if (panic_armed && !panicking && !is_set_equipped("panic")) {
-			// Not awaited on purpose: there is no hurry yet, and blocking here would just move the
-			// stall earlier. By the time panic fires the orb is on and scare is immediate.
-			last_panic_gear = Date.now();
-			Promise.resolve(equip_set("panic")).catch(() => {});
-		} else if (!panic_armed && !panicking && !loadout_manages_orb()
-			&& is_set_equipped("panic") && !is_set_equipped("orb")) {
-			last_panic_gear = Date.now();
-			Promise.resolve(equip_set("orb")).catch(() => {});
 		}
 	}
 
@@ -892,7 +726,7 @@ async function _panic_check_body() {
 		if (Date.now() - last_safe_time > t.cooldown) {
 			last_safe_time = Date.now();
 
-			if (!panic_armed && !loadout_manages_orb() && is_set_equipped("panic") && !is_set_equipped("orb")) {
+			if (!loadout_manages_orb() && is_set_equipped("panic") && !is_set_equipped("orb")) {
 				try {
 					await equip_set("orb");
 					await wait_until_equipped("orb");
