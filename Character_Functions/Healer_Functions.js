@@ -70,7 +70,10 @@ var CONFIG = {
 		auto_buy: true,
 		hp_threshold: 400,
 		mp_threshold: 500,
-		min_stock: 1000
+		min_stock: 1000,
+		// She turns mana into health at roughly 7:1 versus a health potion, off the same shared
+		// cooldown, so mana always comes first. Only she has that conversion.
+		prefer_mp: true
 	},
 
 	party: {

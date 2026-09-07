@@ -65,12 +65,16 @@ async function potion_loop() {
 
 	let used_potion = false;
 
-	// Order by urgency. Potions share a cooldown, so the second use() in a tick is a no-op -- it
-	// does not consume the potion, it just does nothing. mp was unconditionally first, so someone
-	// low on both spent the shared cooldown on mana and waited out the next ~2s before any health
-	// arrived. Minor: at hp_threshold 400 and one potion per ~2s that is worth about 200 hp/s,
-	// against the thousands per second that actually kill her. Ordering it correctly costs nothing.
-	const hp_first = character.hp < character.max_hp * 0.5;
+	// Potions share a cooldown, so the second use() in a tick is a no-op -- nothing is consumed, it
+	// simply does nothing. Which one goes first therefore depends on what the character can do with
+	// it, and that is role-specific:
+	//
+	//   healer   an mp potion (~500mp) funds a heal of ~2900hp, against ~400hp from a health
+	//            potion -- roughly 7x more healing off the same cooldown. mp always goes first
+	//            while she can cast; a health potion is close to a waste of the cooldown for her.
+	//   fighters no mana-to-health conversion, so health first once they are actually hurt.
+	const prefer_mp = CONFIG.potions.prefer_mp === true;
+	const hp_first = !prefer_mp && character.hp < character.max_hp * 0.5;
 
 	const drink_mp = () => {
 		if (MP_MISSING >= CONFIG.potions.mp_threshold) { use("mp"); used_potion = true; }
