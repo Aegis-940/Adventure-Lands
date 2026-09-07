@@ -410,8 +410,6 @@ async function check_temporal_surge() {
 
 // Lives here, not Healer_Skills.js: action_loop() calls it and starts running before
 // Healer_Skills.js (separate eval closure) has loaded.
-let _last_decline_log = 0;
-
 async function try_heal() {
 	const HEAL_TARGET = cache.heal_target;
 	if (!HEAL_TARGET) return false;
