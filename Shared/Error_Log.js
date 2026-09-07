@@ -83,6 +83,10 @@ function _errlog_context() {
 			mp: character.mp, max_mp: character.max_mp,
 			cc: Math.round(character.cc || 0),
 			rip: !!character.rip,
+			// Round-trip time to the server. Everything this bot does is a round trip, so a death
+			// record without it cannot distinguish "the code was slow" from "the connection was".
+			// A VPN sitting in that path is invisible from inside the tab otherwise.
+			ping: (parent.pings && parent.pings.length) ? Math.round(Math.min(...parent.pings)) : null,
 			panicking: (typeof panicking !== "undefined") ? !!panicking : null
 		};
 	} catch (e) { return null; }
@@ -232,6 +236,12 @@ let _errlog_lag_due = 0;
 function _errlog_lag_probe() {
 	const now = Date.now();
 	if (_errlog_lag_due) errlog_time("lag eventloop", now - _errlog_lag_due);
+	// Ping in the same histogram shape as the loop timings, so connection cost and code cost can be
+	// read off the same page. Sampled here rather than per-action: it is a property of the link, not
+	// of any one cast.
+	try {
+		if (parent.pings && parent.pings.length) errlog_time("net ping", Math.min(...parent.pings));
+	} catch (e) { /* not available yet */ }
 	_errlog_lag_due = now + 100;
 	setTimeout(_errlog_lag_probe, 100);
 }
