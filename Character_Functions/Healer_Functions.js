@@ -269,10 +269,14 @@ function find_heal_target() {
 		const ally = get_player(name);
 		if (!ally || ally.rip) continue;
 
-		// An ally we cannot reach must not win the selection. try_heal() heals ONLY the chosen
-		// target and bails when it is out of range, so locking onto someone unreachable means
-		// healing nobody at all — including ourselves. In a breakdown the warrior is always the
-		// lowest hp% and is off gathering, which is exactly when the healer stopped healing.
+		// `rip` is not enough. It lags hp reaching zero by a round trip, and a corpse at hp 0 has
+		// pct 0, so it wins the selection outright and try_heal() then pours heals into it. Every
+		// one is rejected with not_there, and a rejected heal costs NO mana and sets NO cooldown --
+		// which is exactly how the healer died 35 times at 87-99% mana with nothing in the log but
+		// thousands of not_there. An unreachable ally must not win either: try_heal() heals only
+		// the chosen target and bails when it is out of range, so locking onto someone unreachable
+		// means healing nobody at all, including ourselves.
+		if (!ally.hp || !ally.max_hp) continue;
 		if (name !== character.name && !is_in_range(ally, "heal")) continue;
 
 		const pct = ally.hp / ally.max_hp;
@@ -420,10 +424,24 @@ async function try_heal() {
 		HEAL_TARGET.max_hp - character.heal / 1.33
 	);
 
-	if (HEAL_TARGET.hp < HEAL_THRESHOLD && is_in_range(HEAL_TARGET, "heal")) {
+	// Never range-check ourselves: the distance is zero by definition, and a false reading there
+	// silently disables self-healing with nothing in the log to show for it.
+	const is_self = HEAL_TARGET === character || HEAL_TARGET.name === character.name;
+
+	if (HEAL_TARGET.hp < HEAL_THRESHOLD && (is_self || is_in_range(HEAL_TARGET, "heal"))) {
 		// log(`Healing → ${HEAL_TARGET.name} (${Math.round((HEAL_TARGET.hp / HEAL_TARGET.max_hp) * 100)}%)`, "#33AAFF");
 		await heal(HEAL_TARGET);
 		return true;
+	}
+
+	// Say why we declined while we are the one dying. Deducing this from an absence of records cost
+	// most of an afternoon; one line here makes the next occurrence answer itself.
+	if (character.hp < character.max_hp * 0.5 && typeof errlog_record === "function") {
+		errlog_record("heal_declined", `self ${Math.round(100 * character.hp / character.max_hp)}%`
+			+ ` but target=${is_self ? "self" : HEAL_TARGET.name}`
+			+ ` hp=${HEAL_TARGET.hp}/${HEAL_TARGET.max_hp}`
+			+ ` thr=${Math.round(HEAL_THRESHOLD)}`
+			+ ` in_range=${is_self ? "self" : !!is_in_range(HEAL_TARGET, "heal")}`);
 	}
 
 	return false;
