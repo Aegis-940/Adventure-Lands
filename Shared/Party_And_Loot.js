@@ -990,6 +990,7 @@ const ANNIVERSARY_REISSUE_MS = 8000; // the featured player moves, so refresh th
 
 let _anniv_last_move = 0;
 let _anniv_last_kiss = 0;
+let _anniv_host_round = null;   // so the host notice prints once per round, not every tick
 
 // Mirrors the client's own anniversary_live_event().
 function anniversary_event() {
@@ -1017,11 +1018,24 @@ function anniversary_can_visit() {
 	} catch (e) { return false; }
 }
 
+// One of ours can be the featured player. ikissyou is no_self, so the host must never try to visit
+// themselves — there is nowhere to walk to and every cast would reject. They carry on as normal and
+// let the other three come to them. Same test the client uses to decide it is showing the host view:
+// id OR name, because only one of the two is reliable depending on how the round was announced.
+function anniversary_is_host() {
+	try {
+		const s = anniversary_event();
+		if (!s) return false;
+		return String(character.id) === String(s.id) || character.name === s.target;
+	} catch (e) { return false; }
+}
+
 // Is there somewhere to actually go? `available === false` means the featured player is somewhere
 // unreachable; their slot is reserved and the timer keeps running, so wait rather than stand down.
 function anniversary_should_travel() {
 	const s = anniversary_event();
 	if (!s || s.available === false) return false;
+	if (anniversary_is_host()) return false;
 	if (!anniversary_can_visit()) return false;
 	try {
 		if (!G.maps[s.map] || !isFinite(s.x) || !isFinite(s.y)) return false;
@@ -1033,6 +1047,14 @@ function anniversary_should_travel() {
 // the sole owner of his movement — he drives this from his own state machine rather than running a
 // second loop that would fight it for the destination.
 async function anniversary_step() {
+	// Say it once per round rather than every tick: a host that silently does nothing looks
+	// identical to the behaviour being broken.
+	const ev = anniversary_event();
+	if (ev && anniversary_is_host() && _anniv_host_round !== ev.round) {
+		_anniv_host_round = ev.round;
+		log(`🎂 Anniversary: WE are the featured player (${character.name}) — staying put for visitors.`, "#F0B742", "Alerts");
+	}
+
 	if (!anniversary_should_travel()) {
 		if (anniversary_travel) {
 			anniversary_travel = false;
