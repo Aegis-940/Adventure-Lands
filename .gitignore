@@ -2,3 +2,4 @@
 errors.json
 errors.json.tmp
 __pycache__/
+logs/

@@ -32,7 +32,12 @@ const ERRLOG_MSG_CAP = 400;
 
 const ERRLOG_MAX_HEALS = 30;        // heal attempts kept in full detail, attached to a death
 
-let _errlog = { session: null, records: {}, timeline: [], deaths: [], counts: {} };
+// Bump when the stored shape changes. Old data is dropped on load rather than merged: a log that
+// mixes builds silently answers "is the fix working?" with counts accumulated before the fix, and
+// half this week's wrong conclusions came from reading pre-fix aggregates as current behaviour.
+const ERRLOG_SCHEMA = 2;
+
+let _errlog = { session: null, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {} };
 let _errlog_dirty = false;
 let _errlog_recording = false;      // recording must never be able to trigger recording
 let _errlog_vitals = [];
@@ -104,9 +109,10 @@ function _errlog_load() {
 	try {
 		const raw = localStorage.getItem(_errlog_key());
 		const prev = raw ? JSON.parse(raw) : null;
-		if (prev && prev.records) {
+		if (prev && prev.records && prev.schema === ERRLOG_SCHEMA) {
 			_errlog = {
 				session: prev.session || null,
+				schema: ERRLOG_SCHEMA,
 				records: prev.records || {},
 				timeline: prev.timeline || [],
 				deaths: prev.deaths || [],
@@ -502,7 +508,13 @@ function al_errors_clear(all) {
 			if (k && k.indexOf(ERRLOG_KEY) === 0 && (all || k === _errlog_key())) doomed.push(k);
 		}
 		doomed.forEach(k => localStorage.removeItem(k));
-		_errlog = { session: _errlog.session, records: {}, timeline: [], deaths: [] };
+		// Must reset every structure, not just the three that existed when this was written. A
+		// missing counts object makes errlog_count() throw into its own catch and silently stop
+		// counting — a diagnostic that fails quietly is worse than none.
+		_errlog = { session: _errlog.session, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {} };
+		_errlog_heals = [];
+		for (const k in _errlog_beats) delete _errlog_beats[k];
+		for (const k in _errlog_beats_last) delete _errlog_beats_last[k];
 		return "cleared " + doomed.length + " key(s)";
 	} catch (e) { return "clear failed: " + _errlog_fmt(e); }
 }
