@@ -155,7 +155,18 @@ function warn_missing_item(item_name, level, slot) {
 	game_log(`⚠️ batch_equip: no ${item_name} (lvl ${level}) in inventory for ${slot}`, "#FFA500");
 }
 
-async function batch_equip(data) {
+// Panic owns the orb slot whenever it is panicking or armed. This is an interlock, not a timing
+// guess: resolve_equipment() checks its bail once at entry and then awaits a full server round
+// trip, and equipment_manager_loop re-enters it every 25ms, so an invocation already in flight
+// sails past the bail and emits the loadout's orb straight over the jacko. That is why the panic
+// orb usually works and occasionally does not -- it only bites when a loadout equip happens to be
+// mid-round-trip as the panic starts, which makes it scale with latency.
+function panic_owns_orb() {
+	return (typeof panicking !== "undefined" && !!panicking)
+		|| (typeof panic_armed !== "undefined" && !!panic_armed);
+}
+
+async function batch_equip(data, set_name) {
 	if (!Array.isArray(data)) {
 		return Promise.reject({ reason: "invalid", message: "Not an array" });
 	}
@@ -173,6 +184,9 @@ async function batch_equip(data) {
 		let l = data[i].l;
 
 		if (!item_name) continue;
+
+		// Drop, do not race. The panic set itself is exempt.
+		if (slot === "orb" && set_name !== "panic" && panic_owns_orb()) continue;
 
 		// character.slots[slot] IS the item object ({name, level, l, ...} or null) per the
 		// game API, not an index into .items -- indexing .items with it would always miss.
@@ -268,7 +282,7 @@ async function equip_set(set_name) {
 		}
 	} catch (e) { /* recorder absent */ }
 
-	return batch_equip(set);
+	return batch_equip(set, set_name);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -311,6 +325,7 @@ async function apply_equipment_rule(group, resolved) {
 	state.equip_cooldowns[group] = now;
 
 	for (const s of sets) {
+		if (resolve_equipment_bail_reason()) return;
 		if (!is_set_equipped(s)) await equip_set(s);
 	}
 }
@@ -353,6 +368,9 @@ async function resolve_equipment() {
 	const overrides = (typeof MONSTER_GEAR_OVERRIDES !== "undefined" && MONSTER_GEAR_OVERRIDES[home]) || {};
 
 	for (const group in EQUIPMENT_RULES) {
+		// Re-checked per group: the check above happened before the awaits below, and a panic can
+		// begin during any of them.
+		if (resolve_equipment_bail_reason()) return;
 		const rule = EQUIPMENT_RULES[group];
 		const resolved = group in overrides ? overrides[group] : rule.resolve();
 		if (rule.kind === "booster") {
@@ -495,7 +513,14 @@ function clear_inventory() {
 // so scare/use_skill can't race gear that isn't on yet, and the common case (equip lands
 // fast) doesn't eat a needless fixed wait. Throws on timeout rather than returning false,
 // so a caller can't silently ignore a failed equip by forgetting to check the result.
-async function wait_until_equipped(set_name, timeout_ms = 1000, interval_ms = 100) {
+async function wait_until_equipped(set_name, timeout_ms, interval_ms = 100) {
+	// Scaled to the connection rather than fixed. A flat 1000ms times out on a slow round trip
+	// while the equip is still in flight, and the caller then acts as though it failed -- which is
+	// how scare ends up firing with the old orb still on and getting skill_cant_slot back.
+	if (timeout_ms === undefined) {
+		const ping = (parent.pings && parent.pings.length) ? Math.max(...parent.pings) : 200;
+		timeout_ms = Math.min(3000, Math.max(1000, Math.round(ping * 5)));
+	}
 	let waited = 0;
 	while (!is_set_equipped(set_name)) {
 		if (waited >= timeout_ms) {
