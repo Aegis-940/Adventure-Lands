@@ -689,15 +689,30 @@ function loadout_manages_orb() {
 }
 
 // resolve() can be expensive -- the warrior's counts nearby mobs -- and the answer only changes
-// when the loadout does.
+// when the loadout does. Scans EVERY group, not just `loadout`: the orb is now a first-class group
+// in its own right, so whichever group claims it, panic_check must defer the restore to it.
 function _loadout_manages_orb_uncached() {
 	try {
-		const rule = EQUIPMENT_RULES.loadout;
-		if (!rule || rule.kind !== "set" || typeof rule.resolve !== "function") return false;
-		const resolved = rule.resolve();
-		if (!resolved) return false;
-		const sets = Array.isArray(resolved) ? resolved : [resolved];
-		return sets.some(n => (equipment_sets[n] || []).some(i => i.slot === "orb"));
+		for (const group in EQUIPMENT_RULES) {
+			const rule = EQUIPMENT_RULES[group];
+			if (!rule || rule.kind !== "set" || typeof rule.resolve !== "function") continue;
+			const resolved = rule.resolve();
+			if (!resolved) continue;
+			const sets = Array.isArray(resolved) ? resolved : [resolved];
+			if (sets.some(n => (equipment_sets[n] || []).some(i => i.slot === "orb"))) return true;
+		}
+	} catch (e) { /* rules not loaded */ }
+	return false;
+}
+
+// Every item a set names is actually in the bag (name only -- level is batch_equip's problem).
+// Lets a resolver fall back instead of asking for something that cannot be equipped: the warrior
+// requested orbofstr 5,993 times against 71,170 "not in inventory at all" warnings.
+function set_available(set_name) {
+	try {
+		const set = equipment_sets[set_name];
+		if (!set || !set.length) return false;
+		return set.every(i => character.items.some(it => it && it.name === i.item_name));
 	} catch (e) { return false; }
 }
 

@@ -246,9 +246,17 @@ function resolve_ranger_loadout() {
 
 // var, not const: resolve_equipment() (Shared/Party_And_Loot.js) reads these globals at
 // call time, and const/let here wouldn't cross the indirect-eval boundary into global scope.
+// The orb is a first-class group here too, even though the ranger only has one. She was already
+// the single-writer case by accident; this makes it deliberate and gives her the same place to add
+// more orbs as the others.
+function resolve_ranger_orb() {
+	return set_available("orb") ? "orb" : null;
+}
+
 var EQUIPMENT_RULES = {
 	weapon:  { kind: "set", resolve: resolve_ranger_weapon },
 	loadout: { kind: "set", resolve: resolve_ranger_loadout },
+	orb:     { kind: "set", resolve: resolve_ranger_orb },
 };
 
 // No monster-specific overrides yet — add entries like { dryad: { weapon: "single" } } as

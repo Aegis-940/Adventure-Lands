@@ -147,7 +147,6 @@ var equipment_sets = {
 		{ item_name: "supermittens", slot: "gloves", level: 7, l: "l" },
 		{ item_name: "lmace", slot: "mainhand", level: 8, l: "" },
 		{ item_name: "mshield", slot: "offhand", level: 8, l: "l" },
-		{ item_name: "rabbitsfoot", slot: "orb", level: 1, l: "l" },
 
 	],
 	gold: [
@@ -164,6 +163,14 @@ var equipment_sets = {
 	panic: [
 		{ item_name: "jacko", slot: "orb", level: 0, l: "l" },
 	],
+	// Orb sets. The orb is its own EQUIPMENT_RULES group now, so every orb the healer might wear
+	// lives in a set of its own and resolve_healer_orb() picks between them. Add more freely.
+	orb_luck: [
+		{ item_name: "rabbitsfoot", slot: "orb", level: 1, l: "l" },
+	],
+	orb_fire: [
+		{ item_name: "orboffire", slot: "orb", level: 3, l: "l" },
+	],
 	orb: [
 		{ item_name: "talkingskull", slot: "orb", level: 3, l: "l" },
 	],
@@ -174,7 +181,6 @@ var equipment_sets = {
 		{ item_name: "orboftemporal", slot: "orb", level: 1, l: "l" },
 	],
 	fireres: [
-		{ item_name: "orboffire", slot: "orb", level: 3, l: "l" },
 		{ item_name: "wbookhs", slot: "offhand", level: 2, l: "l" },
 	],
 };
@@ -612,6 +618,14 @@ function resolve_healer_loadout() {
 	return "luck";
 }
 
+// Which orb to wear when panic is not holding the slot. One place to extend as more orbs arrive:
+// return a different set name on any condition you like.
+function resolve_healer_orb() {
+	if (set_available("orb_luck")) return "orb_luck";
+	if (set_available("orb")) return "orb";   // talkingskull, if the rabbitsfoot ever goes missing
+	return null;                              // own neither: leave the slot rather than retry forever
+}
+
 // var, not const: resolve_equipment() (Shared/Party_And_Loot.js) reads these globals at
 // call time, and const/let here wouldn't cross the indirect-eval boundary into global scope.
 var EQUIPMENT_RULES = {
@@ -619,13 +633,18 @@ var EQUIPMENT_RULES = {
 	// Separate group from loadout so it survives a MONSTER_GEAR_OVERRIDES entry that only
 	// names loadout — otherwise handle_looting()'s gold gloves would never be swapped back.
 	gloves:  { kind: "set", resolve: () => "gloves" },
+	// The orb is a first-class group rather than an item smuggled inside `luck`. That gives it a
+	// single owner: panic_check takes the slot while panicking or armed (batch_equip's interlock
+	// enforces it) and this group owns it the rest of the time.
+	orb:     { kind: "set", resolve: resolve_healer_orb },
 };
 
 // dryad/fireroamer used to be a one-off HEALER_TARGET check inside handle_equipment_swap();
 // generalized here so any farm target can override any group.
 var MONSTER_GEAR_OVERRIDES = {
 	dryad:      { loadout: "mdef" },
-	fireroamer: { loadout: "fireres" },
+	// Per-group overrides, so fireroamer swaps the orb without the loadout smuggling one.
+	fireroamer: { loadout: "fireres", orb: "orb_fire" },
 };
 
 // is_set_equipped()/equip_set() moved to Shared/Game_Config.js; reads this file's

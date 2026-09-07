@@ -159,7 +159,6 @@ var equipment_sets = {
 		{ item_name: "cearring", slot: "earring1", level: 5, l: "l" },
 		{ item_name: "cearring", slot: "earring2", level: 5, l: "u" },
 		{ item_name: "coat", slot: "chest", level: 13, l: "l" },
-		{ item_name: "orbofstr", slot: "orb", level: 5, l: "l" },
 		{ item_name: "suckerpunch", slot: "ring1", level: 2, l: "l" },
 		{ item_name: "suckerpunch", slot: "ring2", level: 2, l: "u" },
 		{ item_name: "fireblade", slot: "mainhand", level: 13, l: "s" },
@@ -168,7 +167,6 @@ var equipment_sets = {
 	luck: [
 		{ item_name: "mearring", slot: "earring1", level: 0, l: "l" },
 		{ item_name: "mearring", slot: "earring2", level: 0, l: "u" },
-		{ item_name: "rabbitsfoot", slot: "orb", level: 2, l: "l" },
 		{ item_name: "ringofluck", slot: "ring2", level: 0, l: "u" },
 		{ item_name: "ringofluck", slot: "ring1", level: 0, l: "l" },
 		{ item_name: "mshield", slot: "offhand", level: 9, l: "l" },
@@ -189,12 +187,19 @@ var equipment_sets = {
 	dps_accessories: [
 		{ item_name: "cearring", slot: "earring1", level: 5, l: "l" },
 		{ item_name: "cearring", slot: "earring2", level: 5, l: "u" },
-		{ item_name: "orbofstr", slot: "orb", level: 5, l: "l" },
 		{ item_name: "suckerpunch", slot: "ring1", level: 2, l: "l" },
 		{ item_name: "suckerpunch", slot: "ring2", level: 2, l: "u" },
 	],
 	panic: [
 		{ item_name: "jacko", slot: "orb", level: 0, l: "l" },
+	],
+	// Orb sets. The orb is its own EQUIPMENT_RULES group, so each orb lives in its own set and
+	// resolve_warrior_orb() picks between them.
+	orb_dps: [
+		{ item_name: "orbofstr", slot: "orb", level: 5, l: "l" },
+	],
+	orb_luck: [
+		{ item_name: "rabbitsfoot", slot: "orb", level: 2, l: "l" },
 	],
 	orb: [
 		{ item_name: "orbg", slot: "orb", level: 2, l: "l" },
@@ -491,6 +496,22 @@ function resolve_warrior_coat() {
 // exclusive in the original, including a boss-active-but-target-null case that intentionally
 // applies nothing (e.g. a boss up while already at the home map); kept as one function so
 // that case can't accidentally fall through into the home-map logic.
+// The orb alone, mirroring resolve_warrior_loadout()'s intent, and falling back to a set we
+// actually own. orbofstr has not been in the bag at all: 5,993 requests against 71,170 "not in
+// inventory" warnings, retried every 500ms forever. set_available() ends that.
+function resolve_warrior_orb() {
+	let preferred = "orb_dps";
+	if (CONFIG.equipment.boss_set_swap_enabled) {
+		const active_boss = find_active_boss();
+		if (active_boss && active_boss.data.hp <= CONFIG.equipment.boss_hp_thresholds[active_boss.name]) {
+			preferred = "orb_luck";
+		}
+	}
+	if (set_available(preferred)) return preferred;
+	if (set_available("orb")) return "orb";
+	return null; // nothing we own — leave the slot alone rather than retrying forever
+}
+
 function resolve_warrior_loadout() {
 	if (!CONFIG.equipment.boss_set_swap_enabled) return resolve_warrior_home_loadout();
 
@@ -527,6 +548,7 @@ var EQUIPMENT_RULES = {
 	cape:    { kind: "set", resolve: resolve_warrior_cape },
 	coat:    { kind: "set", resolve: resolve_warrior_coat },
 	loadout: { kind: "set", resolve: resolve_warrior_loadout },
+	orb:     { kind: "set", resolve: resolve_warrior_orb },
 };
 
 // Each key short-circuits that one group's resolve() for that farm target.
