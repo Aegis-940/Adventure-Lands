@@ -186,7 +186,10 @@ async function batch_equip(data, set_name) {
 		if (!item_name) continue;
 
 		// Drop, do not race. The panic set itself is exempt.
-		if (slot === "orb" && set_name !== "panic" && panic_owns_orb()) continue;
+		// Both `panic` (jacko) and `orb` (resting) belong to panic_check, so both are exempt: the
+		// SAFE branch restores the resting orb while `panicking` is still true, on purpose. Only
+		// loadout sets are locked out.
+		if (slot === "orb" && set_name !== "panic" && set_name !== "orb" && panic_owns_orb()) continue;
 
 		// character.slots[slot] IS the item object ({name, level, l, ...} or null) per the
 		// game API, not an index into .items -- indexing .items with it would always miss.
