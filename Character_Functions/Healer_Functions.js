@@ -431,7 +431,7 @@ async function try_heal() {
 
 	if (HEAL_TARGET.hp < HEAL_THRESHOLD && (is_self || is_in_range(HEAL_TARGET, "heal"))) {
 		// log(`Healing → ${HEAL_TARGET.name} (${Math.round((HEAL_TARGET.hp / HEAL_TARGET.max_hp) * 100)}%)`, "#33AAFF");
-		await heal(HEAL_TARGET);
+		await with_timeout(heal(HEAL_TARGET), "heal");
 		return true;
 	}
 
@@ -469,7 +469,7 @@ async function action_loop() {
 			if (!HEALED && HEALER_TARGET !== "giantspider") {
 				const TARGET = cache.target;
 				if (TARGET && is_in_range(TARGET) && smart.moving === false) {
-					await attack(TARGET);
+					await with_timeout(attack(TARGET), "attack");
 				}
 			}
 		} else {

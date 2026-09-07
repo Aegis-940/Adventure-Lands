@@ -196,6 +196,39 @@ function healer_is_down() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// BOUNDED ACTIONS
+//
+// AL's attack()/heal()/use_skill() promises settle on a matching socket response. When that
+// response never arrives — target despawned mid-flight, a dropped packet, the server busy — the
+// promise never settles, and an `await` on it stops the awaiting loop dead. Nothing throws, nothing
+// is logged, and the character simply stands there.
+//
+// Measured 09-07 20:22 with the new loop counters: the healer's action_loop ran ZERO times in seven
+// of the ten seconds before she died, while main_loop kept ticking at 9/s across the same window.
+// The tab was healthy; the loop was blocked. She died at 6710/6815 mana having cast nothing.
+//
+// A timeout does NOT cancel the action — the server may still apply it. It only stops us waiting,
+// which is the difference between one wasted cast and a loop that never runs again. The timeout is
+// self-throttling: a retry cannot arrive faster than the timeout it is waiting on.
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const ACTION_TIMEOUT_MS = 1000;
+
+function with_timeout(p, label, ms) {
+	if (!ms) ms = ACTION_TIMEOUT_MS;
+	let timer;
+	return Promise.race([
+		Promise.resolve(p).then(
+			v => { clearTimeout(timer); return v; },
+			e => { clearTimeout(timer); throw e; }
+		),
+		new Promise((_, reject) => {
+			timer = setTimeout(() => reject({ reason: "timeout", place: label, failed: true }), ms);
+		})
+	]);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // COMBAT POSITIONING — shared by Warrior/Ranger's reposition() loops.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
