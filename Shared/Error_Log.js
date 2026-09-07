@@ -199,6 +199,34 @@ function errlog_beat(name) {
 	try { _errlog_beats[name] = (_errlog_beats[name] || 0) + 1; } catch (e) { /* never throw */ }
 }
 
+// DURATIONS, as a histogram. A mean would hide exactly what matters — one 400ms stall inside a
+// hundred fast iterations averages to 4ms and looks fine. Buckets keep the tail visible.
+const ERRLOG_TIME_BUCKETS = [5, 20, 50, 100, 250, 500, 1000];
+
+function errlog_time(bucket, ms) {
+	try {
+		let label = "1000+";
+		for (const b of ERRLOG_TIME_BUCKETS) {
+			if (ms < b) { label = "<" + b; break; }
+		}
+		errlog_count(bucket + " " + label);
+	} catch (e) { /* never throw */ }
+}
+
+// EVENT-LOOP LAG. The one measurement that separates "the tab is starved" from "the loop is
+// waiting on a cooldown or a round trip", which look identical from outside and need opposite
+// fixes. A fixed 100ms timer that reports how late it actually fired: if this is clean while
+// actions are still slow, no amount of loop tuning will help and the delay is not CPU.
+let _errlog_lag_due = 0;
+
+function _errlog_lag_probe() {
+	const now = Date.now();
+	if (_errlog_lag_due) errlog_time("lag eventloop", now - _errlog_lag_due);
+	_errlog_lag_due = now + 100;
+	setTimeout(_errlog_lag_probe, 100);
+}
+setTimeout(_errlog_lag_probe, 100);
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // CAPTURE POINTS — hooks only, no call sites elsewhere
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -390,7 +418,11 @@ function _errlog_sample_vitals() {
 			leading_up_to_it: _errlog_vitals.slice(),
 			// Every heal this character attempted before dying, with its outcome. "Died at full mana"
 			// is ambiguous until you can see whether the heals were never issued or were all rejected.
-			recent_heals: _errlog_heals.slice()
+			recent_heals: _errlog_heals.slice(),
+			// Timing histograms snapshotted here as well as in `counts`, because an older sink
+			// process drops unknown top-level keys on merge but copies death records wholesale.
+			// The numbers should not depend on remembering to restart a helper.
+			counts: JSON.parse(JSON.stringify(_errlog.counts))
 		});
 		if (_errlog.deaths.length > ERRLOG_MAX_DEATHS) _errlog.deaths.shift();
 		_errlog_dirty = true;

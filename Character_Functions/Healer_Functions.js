@@ -444,23 +444,47 @@ async function try_heal() {
 	return false;
 }
 
+// How late action_loop's own setTimeout actually fired, and how long each phase inside it took.
+// Every explanation for her delays so far has been a guess; these are the four things it can
+// actually be — the tab is busy, the scan is slow, the server is slow, or she is simply waiting
+// out the shared cooldown — and they need opposite fixes.
+let _al_due = 0;
+const _t = () => Date.now();
+
 async function action_loop() {
 	if (typeof errlog_beat === "function") errlog_beat("action_loop");
+	const t_enter = _t();
+	if (_al_due && typeof errlog_time === "function") errlog_time("lag action_loop", t_enter - _al_due);
 	let delay = 10;
 
 	try {
-		if (is_disabled(character)) return setTimeout(action_loop, 50);
+		if (is_disabled(character)) {
+			if (typeof errlog_count === "function") errlog_count("action_loop exit:disabled");
+			_al_due = _t() + 50;
+			return setTimeout(action_loop, 50);
+		}
 
+		const t_cache = _t();
 		update_cache();
+		if (typeof errlog_time === "function") errlog_time("cpu update_cache", _t() - t_cache);
 
-		if (await check_temporal_surge()) return setTimeout(action_loop, 100);
+		if (await check_temporal_surge()) {
+			_al_due = _t() + 100;
+			return setTimeout(action_loop, 100);
+		}
 
 		const ms = ms_to_next_skill("attack");
 
 		if (ms === 0) {
+			const t_heal = _t();
 			const HEALED = await try_heal();
-			
-			if (panicking) return setTimeout(action_loop, 100);
+			if (HEALED && typeof errlog_time === "function") errlog_time("await heal", _t() - t_heal);
+
+			if (panicking) {
+				if (typeof errlog_count === "function") errlog_count("action_loop exit:panicking");
+				_al_due = _t() + 100;
+				return setTimeout(action_loop, 100);
+			}
 
 			// heal and attack share the basic-action timer, so every autoattack is a heal she cannot
 			// cast until it returns — and `await attack()` also parks action_loop for a full round
@@ -484,10 +508,15 @@ async function action_loop() {
 			if (!HEALED && HEALER_TARGET !== "giantspider" && !i_need_the_timer) {
 				const TARGET = cache.target;
 				if (TARGET && is_in_range(TARGET) && smart.moving === false) {
+					const t_atk = _t();
 					await attack(TARGET);
+					if (typeof errlog_time === "function") errlog_time("await attack", _t() - t_atk);
 				}
 			}
 		} else {
+			// How much of the wait is the shared cooldown itself. If this dominates and the lag
+			// buckets are clean, the delay is the timer, not the code.
+			if (typeof errlog_time === "function") errlog_time("cooldown remaining", ms);
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
 		}
 
@@ -496,6 +525,10 @@ async function action_loop() {
 		delay = 1;
 	}
 
+	// Whole-iteration cost. Everything above is a component of this, so if the total is small and
+	// heals are still far apart, the time is going somewhere outside this function.
+	if (typeof errlog_time === "function") errlog_time("iter action_loop", _t() - t_enter);
+	_al_due = _t() + delay;
 	setTimeout(action_loop, delay);
 }
 
