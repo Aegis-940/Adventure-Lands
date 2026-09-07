@@ -416,6 +416,35 @@ async function check_temporal_surge() {
 
 // Lives here, not Healer_Skills.js: action_loop() calls it and starts running before
 // Healer_Skills.js (separate eval closure) has loaded.
+// AL resolves an attack/heal promise when the PROJECTILE LANDS, not when the server accepts the
+// cast — the resolve payload carries `projectile` and `eta`. So `await heal()` parks the whole loop
+// for the entire flight. Measured on eb0dc6e over 105s: 61 heals, 29 taking 250-500ms, 22 taking
+// 500-1000ms and 6 over a second, while event-loop lag stayed under 50ms and update_cache under
+// 5ms throughout. About 37 of those 105 seconds were spent blocked on that one line, unable to
+// react to anything. That is the visual delay.
+//
+// So issue the action and keep looping. Nothing was gained by waiting: the shared cooldown governs
+// when the next cast may go out, and this loop already polls it. One basic action may be in flight
+// at a time, which is what the cooldown allows anyway; the expiry is insurance so a promise that
+// never settles cannot silently stop her healing forever.
+const BASIC_ACTION_MAX_MS = 3000;
+let _basic_action_until = 0;
+
+function basic_action_busy() {
+	return Date.now() < _basic_action_until;
+}
+
+// Fires `p` without blocking the caller, keeping the in-flight interlock and the timing histogram.
+function run_basic_action(p, label) {
+	_basic_action_until = Date.now() + BASIC_ACTION_MAX_MS;
+	const t0 = Date.now();
+	const done = () => { _basic_action_until = 0; };
+	Promise.resolve(p).then(
+		() => { done(); if (typeof errlog_time === "function") errlog_time("await " + label, Date.now() - t0); },
+		e => { done(); catcher(e, "action_loop"); }
+	);
+}
+
 async function try_heal() {
 	const HEAL_TARGET = cache.heal_target;
 	if (!HEAL_TARGET) return false;
@@ -437,7 +466,8 @@ async function try_heal() {
 
 	if (HEAL_TARGET.hp < HEAL_THRESHOLD && (is_self || is_in_range(HEAL_TARGET, "heal"))) {
 		// log(`Healing → ${HEAL_TARGET.name} (${Math.round((HEAL_TARGET.hp / HEAL_TARGET.max_hp) * 100)}%)`, "#33AAFF");
-		await heal(HEAL_TARGET);
+		if (basic_action_busy()) return true;
+		run_basic_action(heal(HEAL_TARGET), "heal");
 		return true;
 	}
 
@@ -476,9 +506,7 @@ async function action_loop() {
 		const ms = ms_to_next_skill("attack");
 
 		if (ms === 0) {
-			const t_heal = _t();
 			const HEALED = await try_heal();
-			if (HEALED && typeof errlog_time === "function") errlog_time("await heal", _t() - t_heal);
 
 			if (panicking) {
 				if (typeof errlog_count === "function") errlog_count("action_loop exit:panicking");
@@ -507,10 +535,8 @@ async function action_loop() {
 
 			if (!HEALED && HEALER_TARGET !== "giantspider" && !i_need_the_timer) {
 				const TARGET = cache.target;
-				if (TARGET && is_in_range(TARGET) && smart.moving === false) {
-					const t_atk = _t();
-					await attack(TARGET);
-					if (typeof errlog_time === "function") errlog_time("await attack", _t() - t_atk);
+				if (TARGET && is_in_range(TARGET) && smart.moving === false && !basic_action_busy()) {
+					run_basic_action(attack(TARGET), "attack");
 				}
 			}
 		} else {
