@@ -494,7 +494,7 @@ async function action_loop() {
 		const ms = ms_to_next_skill("attack");
 
 		if (ms === 0) {
-			const HEALED = try_heal();
+			const HEALED = await try_heal();
 
 			if (panicking) {
 				if (typeof errlog_count === "function") errlog_count("action_loop exit:panicking");
