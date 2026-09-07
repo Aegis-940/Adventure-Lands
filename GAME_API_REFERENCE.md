@@ -691,3 +691,57 @@ Defined by `G.items[name].grades` (default `[9,10,11,12]`):
 - `items0-items7`: "bank" map
 - `items8-items23`: "bank_b" map
 - `items24-items47`: "bank_u" map
+
+---
+
+## Anniversary Event ("I Kiss You") — verified 2026-09-08 against `G.version 8535`
+
+Newer than the rest of this file (which was dumped at `G.version 6732`). Read out of the live
+`https://adventure.land/data.js` plus the client's own `js/functions.js` / `js/html.js`, not guessed.
+The public patch note says only *"find featured players ... and two new emotes"*; everything below
+comes from the shipped code.
+
+**Event state — `parent.S.anniversary`**
+
+| field | meaning |
+|---|---|
+| `active` | the anniversary period is running at all |
+| `live` | a round is in progress and someone is featured |
+| `id` | the featured player's id — **this is what `use_skill` takes** |
+| `target` | the featured player's name |
+| `map`, `x`, `y` | where they are; `smart_move({map, x, y})` |
+| `round` | round number; your ticket must match it |
+| `expires` | when this round ends |
+| `next` | when the next round begins (rounds are every 30 minutes) |
+| `available` | `false` while they are somewhere unreachable — their slot is reserved and the 5-minute timer keeps running, so do NOT travel yet |
+
+**Your ticket — `character.s.anniversary_visit`** — `{ms, round, realm, expires}`.
+`G.conditions.anniversary_visit` has `duration: 300000` (5 min) and is *used up after one visit*.
+The client's own validity test, verbatim:
+
+```js
+function anniversary_live_event() {
+    var state = typeof S != "undefined" && S.anniversary;
+    return state && state.active && state.live && state.id && Date.now() < state.expires ? state : null;
+}
+function anniversary_can_visit() {
+    var state = anniversary_live_event(),
+        ticket = character && character.s && character.s.anniversary_visit;
+    return !!(state && ticket && ticket.ms > 0 && ticket.round == state.round
+        && ticket.realm == server_region + " " + server_identifier
+        && Date.now() < ticket.expires && Date.now() < state.expires);
+}
+```
+
+**The action** — `use_skill("ikissyou", S.anniversary.id)`.
+`G.skills.ikissyou`: `mp: 0, cooldown: 10000, range: 80, target: "player", no_self: true`.
+**Range 80 means a character must physically travel to them.** The client's own navigation is
+`smart_move({map: state.map, x: state.x, y: state.y})`, and it refuses to move while
+`state.available === false`.
+
+**Reward** — one cake slice + one `anniversarygift`, plus the `anniversary_kiss` condition:
+`frequency +10`, `output +6`, `duration: 1200000` (20 min). `G.drops.anniversary_kiss` also carries a
+1-in-1000 `cxjar` cosmetic. Six slice flavors craft into `sixcake` at Mira (`G.npcs.anniversary_baker`).
+
+`character.acx.ikissyou` is the cosmetic unlock; owning it lets the emote be used outside the ticket
+rules, so guard on the ticket, not on the emote being available.
