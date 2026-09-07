@@ -34,8 +34,11 @@ async function skill_loop() {
 		// which is the exact opposite of what a panic is trying to achieve.
 		// Party heal above is deliberately outside this guard.
 
+		const MP_PCT = character.max_mp ? character.mp / character.max_mp : 1;
+		const MANA_FOR_LUXURIES = MP_PCT >= (CONFIG.healing.skill_min_mp_pct ?? 0.40);
+
 		// Curse
-		if (!panicking && CONFIG.combat.enabled) {
+		if (!panicking && MANA_FOR_LUXURIES && CONFIG.combat.enabled) {
 			try {
 				await handle_curse();
 			} catch (e) {
@@ -53,7 +56,7 @@ async function skill_loop() {
 		}
 
 		// Dark Blessing
-		if (!panicking && CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
+		if (!panicking && MANA_FOR_LUXURIES && CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
 			&& character.mp >= (G.skills.darkblessing?.mp || 0)) {
 			if (HEALER_TARGET !== "bscorpion" || bscorpion_worth_buffing()) {
 				try {
@@ -85,7 +88,7 @@ async function handle_curse() {
 	// Only consider monsters that are already engaged (have a target)
 	const has_target = e =>
 		e?.type === "monster" && !e.dead && e.visible && e.target && !e.immune &&
-		e.hp >= e.max_hp * 0.01;
+		e.hp >= e.max_hp * (CONFIG.combat.curse_min_hp_pct ?? 0.25);
 
 	let target = null;
 

@@ -17,6 +17,9 @@ var CONFIG = {
 		all_bosses,
 		aggro: true,
 		aggro_cap: 5,
+		// Curse lasts 5s and amplifies damage, so spending 400mp on something already nearly dead
+		// buys nothing. The old floor was 1%, which allowed exactly that.
+		curse_min_hp_pct: 0.25,
 	},
 
 	movement: {
@@ -31,7 +34,12 @@ var CONFIG = {
 		party_heal_threshold: 0.40,
 		party_heal_min_mp: 500,
 		absorb_enabled: true,
-		dark_blessing_enabled: true
+		dark_blessing_enabled: true,
+		// Below this share of max mp, stop spending on anything that is not healing. curse is
+		// 400mp and dark blessing 900mp; both are luxuries once the healing budget is the
+		// constraint. absorb is deliberately NOT included — it is how she takes aggro off the
+		// warrior, and cutting it moves the damage onto someone who cannot heal it.
+		skill_min_mp_pct: 0.40
 	},
 
 	looting: {

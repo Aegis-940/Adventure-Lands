@@ -65,15 +65,22 @@ async function potion_loop() {
 
 	let used_potion = false;
 
-	if (MP_MISSING >= CONFIG.potions.mp_threshold) {
-		use("mp");
-		used_potion = true;
-	}
+	// Order by urgency. This loop backs off 2050ms after ANY potion, which only makes sense if hp
+	// and mp potions share a cooldown -- and if they do, only the FIRST use() of a tick lands.
+	// mp was unconditionally first, so a healer low on both drank mana and had her health potion
+	// discarded, in exactly the moment hp mattered more. Both are still attempted, so nothing is
+	// lost if they turn out not to share.
+	const hp_first = character.hp < character.max_hp * 0.5;
 
-	if (HP_MISSING >= CONFIG.potions.hp_threshold) {
-		use("hp");
-		used_potion = true;
-	}
+	const drink_mp = () => {
+		if (MP_MISSING >= CONFIG.potions.mp_threshold) { use("mp"); used_potion = true; }
+	};
+	const drink_hp = () => {
+		if (HP_MISSING >= CONFIG.potions.hp_threshold) { use("hp"); used_potion = true; }
+	};
+
+	if (hp_first) { drink_hp(); drink_mp(); }
+	else { drink_mp(); drink_hp(); }
 
 	setTimeout(potion_loop, used_potion ? 2050 : 10);
 }
