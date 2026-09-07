@@ -19,7 +19,9 @@ var CONFIG = {
 		never_attack: ["nerfedmummy"], // Never attack
 		use_hunters_mark: true,
 		use_supershot: true,
-		skill_blacklist: ["dryad", "fireroamer", "plantoid"], // Monster types to skip supershot + huntersmark on
+		// Monster types to skip supershot + huntersmark on. Moles die to AoE before a single-target
+		// setup pays for itself, and the 640mp a mark+supershot cycle costs is mana scare needs.
+		skill_blacklist: ["dryad", "fireroamer", "plantoid", "mole"],
 		min_targets_for_5shot: 4,
 		min_targets_for_3shot: 2,
 		// Only join fights already in progress, and don't let poucher splash land on a monster
