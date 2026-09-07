@@ -449,19 +449,11 @@ async function try_heal() {
 	const HEAL_TARGET = cache.heal_target;
 	if (!HEAL_TARGET) return false;
 
-	// Overheal avoidance: a bigger heal stat means wait until they are more damaged. But nothing
-	// bounded it, and character.heal grows with gear and with darkblessing — which she casts on
-	// herself in skill_loop and which was active in the deaths where she stopped healing. Once
-	// heal/1.33 reaches the target's max_hp the condition can never be true and healing switches
-	// off entirely, silently, with no error anywhere. Floor it at half health: overhealing is far
-	// cheaper than not healing, and she panics at 40%, so this keeps her inside the panic band.
 	const HEAL_THRESHOLD = Math.max(
 		HEAL_TARGET.max_hp * 0.5,
 		HEAL_TARGET.max_hp - character.heal / 1.33
 	);
 
-	// Never range-check ourselves: the distance is zero by definition, and a false reading there
-	// silently disables self-healing with nothing in the log to show for it.
 	const is_self = HEAL_TARGET === character || HEAL_TARGET.name === character.name;
 
 	if (HEAL_TARGET.hp < HEAL_THRESHOLD && (is_self || is_in_range(HEAL_TARGET, "heal"))) {
@@ -474,10 +466,6 @@ async function try_heal() {
 	return false;
 }
 
-// How late action_loop's own setTimeout actually fired, and how long each phase inside it took.
-// Every explanation for her delays so far has been a guess; these are the four things it can
-// actually be — the tab is busy, the scan is slow, the server is slow, or she is simply waiting
-// out the shared cooldown — and they need opposite fixes.
 let _al_due = 0;
 const _t = () => Date.now();
 
@@ -506,7 +494,7 @@ async function action_loop() {
 		const ms = ms_to_next_skill("attack");
 
 		if (ms === 0) {
-			const HEALED = await try_heal();
+			const HEALED = try_heal();
 
 			if (panicking) {
 				if (typeof errlog_count === "function") errlog_count("action_loop exit:panicking");
@@ -514,19 +502,6 @@ async function action_loop() {
 				return setTimeout(action_loop, 100);
 			}
 
-			// heal and attack share the basic-action timer, so every autoattack is a heal she cannot
-			// cast until it returns — and `await attack()` also parks action_loop for a full round
-			// trip, which is why its beat count reads 0 in the seconds she is being killed.
-			//
-			// Measured 20:48:35-39: her best heal gap was 909ms (that is the timer) but the gaps ran
-			// 1760, 1910, 2145, 2523, 2839, then 4496ms and she was dead. One or two windows lost
-			// each time, spent on damage while she was the one dying.
-			//
-			// The gate is her OWN heal threshold, not an arbitrary percentage: the question is
-			// literally "am I about to need this timer for myself". Above it she attacks and pulls
-			// exactly as before, so find_best_target's priority-2 aggro still works. An earlier
-			// attempt used a flat 95% and cut into her tanking; this cannot, because by definition
-			// she is not the one who needs healing when it lets her attack.
 			const my_heal_threshold = Math.max(
 				character.max_hp * 0.5,
 				character.max_hp - character.heal / 1.33
@@ -540,8 +515,6 @@ async function action_loop() {
 				}
 			}
 		} else {
-			// How much of the wait is the shared cooldown itself. If this dominates and the lag
-			// buckets are clean, the delay is the timer, not the code.
 			if (typeof errlog_time === "function") errlog_time("cooldown remaining", ms);
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
 		}
