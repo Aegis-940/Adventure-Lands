@@ -61,7 +61,7 @@ async function skill_loop() {
 			&& character.mp >= (G.skills.darkblessing?.mp || 0)) {
 			if (HEALER_TARGET !== "bscorpion" || bscorpion_worth_buffing()) {
 				try {
-					await with_timeout(use_skill("darkblessing"), "darkblessing");
+					await use_skill("darkblessing");
 				} catch (e) {
 					console.error("darkblessing error:", e);
 				}
@@ -120,7 +120,7 @@ async function handle_curse() {
 	}
 
 	if (target && is_in_range(target, "curse")) {
-		await with_timeout(use_skill("curse", target), "curse");
+		await use_skill("curse", target);
 	}
 }
 
@@ -157,7 +157,7 @@ async function handle_absorb() {
 			const ally = get_player(entity.target);
 			if (!ally || ally.rip || !is_in_range(ally, "absorb")) continue;
 
-			await with_timeout(use_skill("absorb", entity.target), "absorb");
+			await use_skill("absorb", entity.target);
 			return;
 		}
 	}
@@ -198,7 +198,7 @@ async function handle_party_heal() {
 	if (hurt.length === 1 && ms_to_next_skill("attack") === 0 && is_in_range(hurt[0], "heal")) return;
 
 	// log(`Party Heal → ${hurt.length} hurt`, "#33FF77");
-	await with_timeout(use_skill("partyheal"), "partyheal");
+	await use_skill("partyheal");
 	last_party_heal_time = now;
 }
 
@@ -229,7 +229,7 @@ async function handle_zapper() {
 			if (is_on_cooldown("zapperzap")) break;
 
 			try {
-				await with_timeout(use_skill("zapperzap", entity), "zapperzap");
+				await use_skill("zapperzap", entity);
 			} catch (e) {
 				console.error("handle_zapper error:", e);
 			}
