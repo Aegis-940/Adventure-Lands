@@ -161,6 +161,12 @@ function get_full_character_state() {
 		y: character.y,
 		rip: character.rip,
 		moving: character.moving,
+		// On a journey, as opposed to `moving` which is true for a single farming step. This is
+		// what lets the followers leave at the same instant the leader does instead of noticing
+		// once she has already cleared the farm radius — the gap in which they used to be caught
+		// alone on the road. smart is per-character and always present on the runner.
+		travelling: !!(smart && smart.moving)
+			|| (typeof anniversary_travel !== "undefined" && !!anniversary_travel),
 		free_slots: character.items.filter(it => !it).length,
 		conditions: character.s || {}, // stunned, mluck, poisoned, etc. — see character.s
 		last_seen: Date.now(),

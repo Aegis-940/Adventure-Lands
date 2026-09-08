@@ -348,6 +348,11 @@ async function main_loop() {
 		if (typeof anniversary_travel !== "undefined" && anniversary_travel) {
 			// fall through to the loop tail — no farming movement this tick
 		}
+		// Above the event branch on purpose: the cross-map event trip is the journey that
+		// strands the fighters, so it is the one that most needs her to wait for them.
+		else if (party_cohesion_hold()) {
+			// A fighter is behind or off-map — hold here until they close up.
+		}
 		else if (should_handle_events()) {
 			handle_events();
 		}

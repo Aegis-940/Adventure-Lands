@@ -830,26 +830,31 @@ let _leader_pos_cache = { at: 0, pos: null };
 function leader_position() {
 	if (character.name === MOVEMENT_LEADER) return null;
 
-	const live = get_player(MOVEMENT_LEADER);
-	if (live) return { map: character.map, x: live.x, y: live.y, rip: !!live.rip };
-
 	const now = Date.now();
-	if (now - _leader_pos_cache.at < 200) return _leader_pos_cache.pos;
-	_leader_pos_cache.at = now;
+	if (now - _leader_pos_cache.at >= 200) {
+		_leader_pos_cache.at = now;
+		let snap = null;
+		try {
+			const c = read_state_cache(MOVEMENT_LEADER); // Shared/Messaging.js
+			if (c) snap = { map: c.map, x: c.x, y: c.y, rip: !!c.rip, travelling: !!c.travelling };
+		} catch (e) { /* storage unavailable */ }
+		_leader_pos_cache.pos = snap;
+	}
+	const snap = _leader_pos_cache.pos;
 
-	let pos = null;
-	try {
-		const cached = read_state_cache(MOVEMENT_LEADER); // Shared/Messaging.js
-		if (cached) pos = { map: cached.map, x: cached.x, y: cached.y, rip: !!cached.rip };
-	} catch (e) { /* storage unavailable */ }
+	// The live entity wins for coordinates — exact and current — but only her own snapshot knows
+	// whether she is on a journey, and that is the flag that gets the fighters moving on time.
+	const live = get_player(MOVEMENT_LEADER);
+	if (live) {
+		return { map: character.map, x: live.x, y: live.y, rip: !!live.rip, travelling: !!(snap && snap.travelling) };
+	}
+	if (snap) return snap;
 
 	// _healer_last_known only exists on the characters that follow her.
-	if (!pos && typeof _healer_last_known !== "undefined" && _healer_last_known) {
-		pos = { ..._healer_last_known, rip: false };
+	if (typeof _healer_last_known !== "undefined" && _healer_last_known) {
+		return { ..._healer_last_known, rip: false, travelling: false };
 	}
-
-	_leader_pos_cache.pos = pos;
-	return pos;
+	return null;
 }
 
 // True when she has left the farm spot — travelling to an event, walking back from a death,
@@ -863,6 +868,10 @@ function party_should_follow() {
 	// let the normal chain run. She returns to it herself on respawn.
 	if (!pos || pos.rip) return false;
 
+	// Leave WITH her. Waiting for her to clear the farm radius handed her a head start, and the
+	// seconds spent closing it are exactly when a fighter gets caught alone on the road.
+	if (pos.travelling) return true;
+
 	// Several `locations` entries omit `map` (cgoo, ent) — without this fallback their
 	// destination.map is undefined and the comparison below would follow her forever.
 	const home_map = destination.map || character.map;
@@ -870,6 +879,80 @@ function party_should_follow() {
 
 	const radius = (CONFIG.movement.circle_radius || 75) + FOLLOW_SLACK;
 	return Math.hypot(pos.x - destination.x, pos.y - destination.y) > radius;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// LEADER-SIDE COHESION — the leader waits for stragglers.
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+// Following her only closes half the gap. The fighters die on the road because she disengages,
+// they fall behind, something aggros them and there is no tank within reach — so she also has to
+// stop. This is the half that was missing, and the one that actually prevents the deaths.
+const COHESION_RADIUS = 300;        // beyond this (or off-map) a member counts as left behind
+const COHESION_RELEASE = 200;       // must close back to here before she moves off again
+const COHESION_MAX_WAIT_MS = 20000; // one member that cannot path to us must not strand the party
+
+const COHESION_FOLLOWERS = ["Ulric", "Riva"]; // combat only — Riff runs his own errands
+
+let _cohesion_holding = false;
+let _cohesion_gave_up = false;
+let _cohesion_since = 0;
+let _cohesion_cache = { at: 0, straggler: null };
+
+// True when the leader should stand still this tick. Also stops a journey already in flight —
+// declining to re-issue is not enough once smart_move owns the character.
+function party_cohesion_hold() {
+	if (character.name !== MOVEMENT_LEADER) return false;
+
+	// Running for her life outranks cohesion. Standing in a pack to wait is how she dies, and the
+	// fighters are told to hold fire during her panic anyway.
+	if (typeof panicking !== "undefined" && panicking) {
+		_cohesion_holding = false;
+		return false;
+	}
+
+	const now = Date.now();
+	// Hysteresis: once holding, they have to close well inside the leash before she sets off
+	// again, otherwise she stutters forward a step at a time on the boundary.
+	const limit = _cohesion_holding ? COHESION_RELEASE : COHESION_RADIUS;
+
+	if (now - _cohesion_cache.at >= 200) {
+		_cohesion_cache.at = now;
+		_cohesion_cache.straggler = COHESION_FOLLOWERS.find(name => {
+			const s = read_state_cache(name); // Shared/Messaging.js
+			// Stale cache means offline; a corpse closes no distance and respawns in town. Neither
+			// is something to wait on.
+			if (!s || s.rip) return false;
+			if (s.map !== character.map) return true;
+			return Math.hypot(s.x - character.x, s.y - character.y) > limit;
+		}) || null;
+	}
+
+	if (!_cohesion_cache.straggler) {
+		if (_cohesion_holding) log("▶️ Party together — moving on.", "#00ff00", "Alerts");
+		_cohesion_holding = false;
+		_cohesion_gave_up = false;
+		return false;
+	}
+
+	if (!_cohesion_holding) {
+		_cohesion_holding = true;
+		_cohesion_gave_up = false;
+		_cohesion_since = now;
+		log(`⏸️ Holding for ${_cohesion_cache.straggler}.`, "#66ccff", "Alerts");
+	}
+
+	// Give up rather than freeze the party forever on someone geometry has snagged.
+	if (now - _cohesion_since > COHESION_MAX_WAIT_MS) {
+		if (!_cohesion_gave_up) {
+			_cohesion_gave_up = true;
+			log(`⚠️ ${_cohesion_cache.straggler} never caught up — moving on without them.`, "#FFA500", "Alerts");
+		}
+		return false;
+	}
+
+	if (smart.moving) smart._interrupt?.("party_cohesion");
+	return true;
 }
 
 // Same failure mode handle_return_home() guards against: a pathfind that fails outright drops
