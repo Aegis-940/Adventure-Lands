@@ -745,3 +745,53 @@ function anniversary_can_visit() {
 
 `character.acx.ikissyou` is the cosmetic unlock; owning it lets the emote be used outside the ticket
 rules, so guard on the ticket, not on the emote being available.
+
+---
+
+## `use_town` / `town()` — verified 2026-09-08 against `G.version 8535`
+
+Read out of `G`, `js/runner_functions.js` and `js/game.js`, not inferred.
+
+| | |
+|---|---|
+| destination | **`G.maps[<current map>].spawns[0]`** — the CURRENT map's spawn, not `main` |
+| channel | `G.conditions.town` = `{channel: true, can_move: true, duration: 3000}` |
+| skill cooldown | `G.skills.use_town.cooldown` = **0** (the 3s channel is the only cost) |
+| cancel | `stop("town")`, or `socket.emit("stop", {action: "town"})` |
+| while dead | `use_skill("use_town")` becomes `respawn()` — see the client's dispatch |
+
+`use_skill("use_town")`, `use_skill("town")` and `town()` all resolve to the same `town` request.
+`town()` additionally waits for `character.c.town` to clear and rejects `{reason:"timeout"}` if it
+does not.
+
+**smart_move already supports it and it is off by default.** The pathfinder adds a town edge:
+
+```js
+if (smart.use_town) qpush({ map: current.map, x: map.spawns[0][0], y: map.spawns[0][1], town: true });
+```
+
+and the executor casts it when the path reaches that node:
+
+```js
+var current = smart.plot[0];
+if (current.town) { use("town"); }
+```
+
+`is_transporting(entity)` returns true while `entity.c.town` is set, and the move executor is gated
+on `!is_transporting(character)`, so the walk resumes by itself once the channel lands. Setting
+`smart.use_town = true` is therefore the whole integration — and because it is a graph edge, it is
+only taken when it genuinely shortens the path.
+
+**Per-map, the destination is that map's own spawn, which is not always helpful:**
+
+| map | `spawns[0]` | note |
+|---|---|---|
+| `main` | `(0, 0)` | town centre — the big win from a far corner |
+| `tunnel` | `(0, -16)` | the ENTRANCE. The mole spot is `(14, -1072)`, so a town here moves you away from it |
+| `level2w` | `(16, 9)` | |
+| `bank` | `(0, -37)` | already `safe: true` |
+
+Ten maps are flagged `instance` (`crypt`, `dungeon0`, `tomb`, `spider_instance`, `winter_instance`,
+`abtesting`, `duelland`, `cgallery`, `shellsisland`, `original_main`). Nothing in `G` marks a map as
+town-forbidden, so behaviour inside an instance is **unverified** — do not assume it returns you to
+the instance spawn rather than ejecting you.
