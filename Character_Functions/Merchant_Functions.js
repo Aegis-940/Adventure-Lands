@@ -137,11 +137,29 @@ const MINING_POSITION_TOLERANCE = 10;
 
 // Reads each fighter's cached character.s.mluck.ms (remaining time) instead of tracking
 // our own cast history -- accurate regardless of restarts or a missed cast.
+//
+// Two thresholds, because "is a trip worth making" and "while I am standing here" are different
+// questions. A trip is worth making when someone is nearly out; once he has made it, mluck is 10
+// mana on a 100ms cooldown lasting a full hour, so topping up everyone in range is free and resets
+// the party's clocks together. Refreshing only the one member that expired is what caused the
+// piecemeal runs -- each of the other two called him out again in turn.
 const MLUCK_REFRESH_THRESHOLD_MS = 10 * 60 * 1000;
+
+// Deliberately below the hour-long duration: a character buffed moments ago sits at ~60 minutes and
+// must not be recast, because buff_nearby_party() is also driven by the 1s opportunistic loop and
+// an always-true test there would emit three casts a second forever. At 50 minutes each member is
+// re-buffed at most once per ten minutes while the merchant is nearby.
+const MLUCK_TOPUP_THRESHOLD_MS = 50 * 60 * 1000;
 
 function is_mluck_due(status) {
 	const remaining = status.conditions?.mluck?.ms;
 	return remaining == null || remaining < MLUCK_REFRESH_THRESHOLD_MS;
+}
+
+// Worth a cast now that we are already in range, even though it would not have justified the trip.
+function mluck_worth_topping_up(status) {
+	const remaining = status.conditions?.mluck?.ms;
+	return remaining == null || remaining < MLUCK_TOPUP_THRESHOLD_MS;
 }
 
 function should_run_delivery() {
@@ -912,12 +930,19 @@ async function buff_nearby_party() {
 	let buffed_any = false;
 	for (const name of PARTY) {
 		const status = read_state_cache(name);
-		if (!status || !is_mluck_due(status)) continue;
+		// Top-up threshold, not the trip threshold: everyone in range gets refreshed, not just
+		// whoever happened to expire. That is the whole point of being here.
+		if (!status || !mluck_worth_topping_up(status)) continue;
 		try {
+			// mluck's own range (320), not CONFIG.party.action_range (350). A member standing
+			// between the two gets cast at, rejected too_far, and their remaining time does not
+			// change — so the 1s opportunistic loop retries forever. That window was narrow while
+			// only near-expiry members were cast on; the wider top-up makes it easy to hit.
+			const mluck_range = (G.skills.mluck && G.skills.mluck.range) || 320;
 			const player = get_player(name);
 			if (
 				!player || player.rip || character.map !== player.map ||
-				Math.hypot(character.x - player.x, character.y - player.y) > CONFIG.party.action_range
+				Math.hypot(character.x - player.x, character.y - player.y) > mluck_range
 			) {
 				continue;
 			}
