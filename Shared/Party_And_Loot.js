@@ -1157,19 +1157,25 @@ async function anniversary_step() {
 
 	if (close && Date.now() - _anniv_last_kiss > 1500) {
 		_anniv_last_kiss = Date.now();
-		try {
-			await use_skill("ikissyou", s.id);
-			// Belt and braces with the buff check above: if the emote resolved, this round is spent
-			// whether or not the condition has reached us yet.
-			_anniv_done_round = s.round;
-			log(`🎂 Kissed ${s.target}.`, "#F0B742", "Alerts");
-			anniversary_stand_down("collected, back to work");
-			return false;
-		} catch (e) {
-			// too_far as they walk off, or the ticket already spent. The next tick re-evaluates.
-			log(`🎂 Anniversary kiss failed: ${fmt_err(e)}`, "#FFA500", "Alerts");
-		}
-		return true;
+
+		// Marked spent BEFORE the cast, not after. The emote is the point of no return: whether it
+		// resolves, rejects or never settles, the round is over for us. Setting it afterwards left
+		// a window in which a re-entry could fire a SECOND ikissyou at a visit the server had
+		// already consumed — and the server answers that with game_response "exception", which
+		// game.js renders as the bare red ERROR!.
+		_anniv_done_round = s.round;
+
+		// NOT awaited. use_skill() settles on the server's reply, anniversary_loop() awaits this
+		// function, and the travel watchdog used to live inside that same loop — so a reply that
+		// never came stopped the loop, stranded anniversary_travel at true, and left all four
+		// characters disengaged until a manual reload. Exactly the reported symptom.
+		Promise.resolve(use_skill("ikissyou", s.id)).then(
+			() => log(`🎂 Kissed ${s.target}.`, "#F0B742", "Alerts"),
+			e => log(`🎂 Anniversary kiss failed: ${fmt_err(e)}`, "#FFA500", "Alerts")
+		);
+
+		anniversary_stand_down("collected, back to work");
+		return false;
 	}
 
 	// `!smart.moving` is the important half of this condition, not the throttle. smarter_move()
@@ -1196,14 +1202,21 @@ async function anniversary_step() {
 	return true;
 }
 
-async function anniversary_loop() {
+// The watchdog runs on its OWN timer, deliberately not inside anniversary_loop(). The loop awaits
+// anniversary_step(), so anything that blocks in there — a use_skill whose reply never arrives —
+// stops the loop entirely, and a watchdog living inside it would be stopped at precisely the moment
+// it was needed. setInterval keeps firing regardless of what the loop is doing.
+setInterval(() => {
 	try {
-		// Before anything that can throw. This is the only code that can release the party if
-		// anniversary_step() starts failing every tick, so it must not sit downstream of it.
 		if (anniversary_travel && _anniv_travel_since
 			&& Date.now() - _anniv_travel_since > ANNIVERSARY_TRAVEL_MAX_MS) {
 			anniversary_stand_down("travel exceeded " + (ANNIVERSARY_TRAVEL_MAX_MS / 60000) + " min, forcing resume");
 		}
+	} catch (e) { /* a watchdog that can throw is not a watchdog */ }
+}, 5000);
+
+async function anniversary_loop() {
+	try {
 		await anniversary_step();
 	} catch (e) {
 		// catcher() has itself been the thing that killed a loop before now — a missing comma made

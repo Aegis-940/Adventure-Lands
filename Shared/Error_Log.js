@@ -373,6 +373,24 @@ function _errlog_try_wrap_heal() {
 	} catch (e) { /* heal not reassignable here; skip rather than break */ }
 }
 
+// 4c. Server-side exceptions. game.js renders a game_response of {response: "exception"} as a bare
+//     red "ERROR!" in the game log and nothing else — no place, no reason, nothing in the browser
+//     console, and nothing this recorder was hooking. It cost a full round of guessing to find that
+//     the string came from the game engine rather than from us. Capture the whole payload, plus the
+//     handful of other responses that indicate a request the server refused outright.
+try {
+	if (parent && parent.socket && typeof parent.socket.on === "function") {
+		parent.socket.on("game_response", data => {
+			try {
+				const r = (data && (data.response || data)) || "";
+				if (r === "exception" || r === "cant" || r === "not_ready") {
+					errlog_record("game_response", _errlog_fmt(data));
+				}
+			} catch (e) { /* never break the socket handler */ }
+		});
+	}
+} catch (e) { /* no socket access; skip */ }
+
 // 5. Socket disconnects — the symptom we have never once captured, only inferred.
 try {
 	if (parent && parent.socket && typeof parent.socket.on === "function") {
