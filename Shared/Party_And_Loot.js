@@ -60,6 +60,18 @@ function handle_return_home() {
 }
 
 async function potion_loop() {
+	// Never drink mid-gather. fishing and mining each cost 120mp and channel for 5-15 seconds, so
+	// the merchant crosses the 500mp potion threshold about four casts into a run — and using an
+	// item cancels the channel. No fishing_*/mining_* event then arrives, so use_skill() waits out
+	// its full 20s timeout and reports skill_failed, which ends the whole gathering run. That is
+	// the "fishes a couple of times then stops without catching anything" symptom.
+	//
+	// Scoped to these two channels rather than character.c generally: a fighter must never be
+	// stopped from drinking, and only the merchant ever has these.
+	if (character.c && (character.c.fishing || character.c.mining)) {
+		return setTimeout(potion_loop, 200);
+	}
+
 	const HP_MISSING = character.max_hp - character.hp;
 	const MP_MISSING = character.max_mp - character.mp;
 

@@ -17,7 +17,11 @@ var CONFIG = {
 		crafting:   local_bool("AL_merchant_enabled_crafting", true),
 		exchanging: local_bool("AL_merchant_enabled_exchanging", false),
 		fishing:    local_bool("AL_merchant_enabled_fishing", true),
-		mining:     local_bool("AL_merchant_enabled_mining", false),
+		// Hard off, NOT local_bool. local_bool reads localStorage first, so the stored "true" from
+		// before kept winning over a changed default and mining ran anyway. To turn it back on,
+		// restore local_bool("AL_merchant_enabled_mining", true) — the ⚙️ checkbox does nothing
+		// while this is hardcoded.
+		mining:     false,
 	},
 
 	// Anniversary slice buying. Every account only ever finds ONE flavor, so the other five have to
