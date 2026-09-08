@@ -1047,6 +1047,10 @@ var anniversary_travel = false;
 const ANNIVERSARY_TICK_MS = 2000;
 const ANNIVERSARY_RANGE = 65;        // skill range is 80; margin for them moving as we arrive
 const ANNIVERSARY_REISSUE_MS = 8000; // the featured player moves, so refresh the destination
+// Gap between kiss attempts. Long enough that a normal reply lands before a second cast can go out
+// (a second cast at a spent visit is what the server answers with "exception"), short enough to
+// retry promptly while still closing the last few units of distance.
+const ANNIVERSARY_KISS_RETRY_MS = 2500;
 
 let _anniv_last_move = 0;
 let _anniv_last_kiss = 0;
@@ -1182,31 +1186,36 @@ async function anniversary_step() {
 
 	// Prefer the live entity when we can see them — S.x/S.y is a periodic snapshot and they move.
 	const them = get_player(s.target);
-	const close = them
-		? distance(character, them) <= ANNIVERSARY_RANGE
-		: character.map === s.map && Math.hypot(character.x - s.x, character.y - s.y) <= ANNIVERSARY_RANGE;
 
-	if (close && Date.now() - _anniv_last_kiss > 1500) {
+	// The KISS requires the live entity; the MOVE below is happy to aim at the snapshot. Being
+	// within range of where they WERE is not being within range of them, and casting on the
+	// snapshot is what completed rounds from across the map. If we cannot see them we are not close
+	// enough, whatever the coordinates say — and at range 80 they would be on screen if we were.
+	const in_kiss_range = !!them && distance(character, them) <= ANNIVERSARY_RANGE;
+
+	if (in_kiss_range && Date.now() - _anniv_last_kiss > ANNIVERSARY_KISS_RETRY_MS) {
+		// Throttle, not a one-shot: this is also what stops a second ikissyou going out at a visit
+		// the server has already consumed, which it answers with game_response "exception" — the
+		// bare red ERROR!. It expires, so a reply that never arrives cannot wedge the round.
 		_anniv_last_kiss = Date.now();
 
-		// Marked spent BEFORE the cast, not after. The emote is the point of no return: whether it
-		// resolves, rejects or never settles, the round is over for us. Setting it afterwards left
-		// a window in which a re-entry could fire a SECOND ikissyou at a visit the server had
-		// already consumed — and the server answers that with game_response "exception", which
-		// game.js renders as the bare red ERROR!.
-		_anniv_done_round = s.round;
-
-		// NOT awaited. use_skill() settles on the server's reply, anniversary_loop() awaits this
-		// function, and the travel watchdog used to live inside that same loop — so a reply that
-		// never came stopped the loop, stranded anniversary_travel at true, and left all four
-		// characters disengaged until a manual reload. Exactly the reported symptom.
+		// NOT awaited. use_skill() settles on the server's reply and anniversary_loop() awaits this
+		// function, so a reply that never came would stop the loop, strand anniversary_travel at
+		// true, and leave all four characters disengaged until a manual reload.
+		//
+		// The round is marked spent and the trip ended ONLY on success. Doing it before the cast
+		// meant a too_far rejection still counted as collected and stood the character down where
+		// it was — the "never quite makes it before marking the kiss complete" symptom.
 		Promise.resolve(use_skill("ikissyou", s.id)).then(
-			() => log(`🎂 Kissed ${s.target}.`, "#F0B742", "Alerts"),
+			() => {
+				_anniv_done_round = s.round;
+				log(`🎂 Kissed ${s.target}.`, "#F0B742", "Alerts");
+				anniversary_stand_down("collected, back to work");
+			},
 			e => log(`🎂 Anniversary kiss failed: ${fmt_err(e)}`, "#FFA500", "Alerts")
 		);
 
-		anniversary_stand_down("collected, back to work");
-		return false;
+		return true;   // keep closing in; a failed cast must not end the trip
 	}
 
 	// `!smart.moving` is the important half of this condition, not the throttle. smarter_move()
