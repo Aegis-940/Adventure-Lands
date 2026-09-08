@@ -380,7 +380,9 @@ async function main_loop() {
 		else if (CONFIG.movement.enabled) {
 			if (home === "bscorpion") {
 				handle_bscorpion_farm_approach(); // Shared/Movement.js
-			} else if (WARRIOR_TARGET === "giantspider") {
+			// giantspider follows her permanently; otherwise only while she's off the farm spot,
+			// so the party travels as one but still spreads onto a cluster once it arrives.
+			} else if (WARRIOR_TARGET === "giantspider" || party_should_follow()) {
 				follow_healer();
 			} else if (!get_nearest_monster({ type: home })) {
 				handle_return_home();

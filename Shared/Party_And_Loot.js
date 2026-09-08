@@ -811,8 +811,80 @@ async function _panic_check_body() {
 	}
 }
 
-// Orbits Myras when close, smart_moves to her when far/on a different map, falling back to
-// _healer_last_known when she's off-map and invisible. Reads CONFIG.movement.follow_distance.
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// PARTY-COHERENT MOVEMENT — the fighters walk with MOVEMENT_LEADER (Myras) rather than
+// each holding its own farm spot.
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+// Following is scoped to TRAVEL, not to farming. Once she is standing on the spot the fighters
+// go back to reposition(), which is what actually aims cleave/5shot at a cluster — orbiting her
+// full-time would cost real damage for no coherence gain, since they're already beside her.
+const FOLLOW_SLACK = 60; // past the farm radius before she counts as having left; stops branch flapping
+
+let _leader_pos_cache = { at: 0, pos: null };
+
+// Live entity first (exact), then her own state cache (she rewrites it every 100ms and it
+// carries map/x/y, so it works across maps with no round trip), then the CM-ping cache.
+// read_state_cache() is a synchronous localStorage read and main_loop runs 10x/second, so the
+// miss path is memoised — the same reason healer_is_down() caches.
+function leader_position() {
+	if (character.name === MOVEMENT_LEADER) return null;
+
+	const live = get_player(MOVEMENT_LEADER);
+	if (live) return { map: character.map, x: live.x, y: live.y, rip: !!live.rip };
+
+	const now = Date.now();
+	if (now - _leader_pos_cache.at < 200) return _leader_pos_cache.pos;
+	_leader_pos_cache.at = now;
+
+	let pos = null;
+	try {
+		const cached = read_state_cache(MOVEMENT_LEADER); // Shared/Messaging.js
+		if (cached) pos = { map: cached.map, x: cached.x, y: cached.y, rip: !!cached.rip };
+	} catch (e) { /* storage unavailable */ }
+
+	// _healer_last_known only exists on the characters that follow her.
+	if (!pos && typeof _healer_last_known !== "undefined" && _healer_last_known) {
+		pos = { ..._healer_last_known, rip: false };
+	}
+
+	_leader_pos_cache.pos = pos;
+	return pos;
+}
+
+// True when she has left the farm spot — travelling to an event, walking back from a death,
+// heading for the anniversary target, or simply relocated by the settings window.
+function party_should_follow() {
+	if (character.name === MOVEMENT_LEADER) return false;
+	if (typeof destination === "undefined" || !destination) return false;
+
+	const pos = leader_position();
+	// Unknown (offline/never seen) or dead: there is nothing to walk with, so hold the spot and
+	// let the normal chain run. She returns to it herself on respawn.
+	if (!pos || pos.rip) return false;
+
+	// Several `locations` entries omit `map` (cgoo, ent) — without this fallback their
+	// destination.map is undefined and the comparison below would follow her forever.
+	const home_map = destination.map || character.map;
+	if (pos.map !== home_map) return true;
+
+	const radius = (CONFIG.movement.circle_radius || 75) + FOLLOW_SLACK;
+	return Math.hypot(pos.x - destination.x, pos.y - destination.y) > radius;
+}
+
+// Same failure mode handle_return_home() guards against: a pathfind that fails outright drops
+// smart.moving back to false immediately, so an unrate-limited re-issue becomes a retry storm.
+const FOLLOW_MOVE_RETRY_MS = 3000;
+let _last_follow_move = 0;
+
+function follow_reissue(dest) {
+	if (Date.now() - _last_follow_move < FOLLOW_MOVE_RETRY_MS) return;
+	_last_follow_move = Date.now();
+	fire_and_forget_move(dest); // Shared/Movement.js
+}
+
+// Orbits Myras when close, smart_moves to her when far/on a different map, falling back to her
+// state cache and then _healer_last_known. Reads CONFIG.movement.follow_distance.
 function follow_healer() {
 	const healer = get_player("Myras");
 
@@ -820,27 +892,34 @@ function follow_healer() {
 		_healer_last_known = { map: character.map, x: healer.x, y: healer.y };
 	}
 
-	// Ping for fresh location whenever healer is not visible
-	if (!healer) {
+	const healer_pos = healer || leader_position();
+
+	// Only ping when neither the entity nor her state cache can place her — the cache goes stale
+	// at 15s, so this is now a genuine last resort rather than every tick she's off-screen.
+	if (!healer_pos) {
 		const now = Date.now();
 		if (now - _last_healer_ping > 2000) {
 			_last_healer_ping = now;
 			send_cm("Myras", { type: "where_are_you" });
 		}
+		return;
 	}
 
-	const healer_pos = healer || _healer_last_known;
-	if (!healer_pos || (healer && healer.rip)) return;
+	if ((healer && healer.rip) || healer_pos.rip) return;
 
 	if (healer_pos.map !== character.map) {
-		if (smart.moving) smart._interrupt?.("follow_healer");
-		if (!smart.moving) fire_and_forget_move({ map: healer_pos.map, x: healer_pos.x, y: healer_pos.y });
+		// Interrupt only when the journey in flight isn't already headed for her map. The old
+		// unconditional interrupt cancelled and re-issued the same cross-map path 10x/second,
+		// which never got anywhere — harmless on one map, a real trap now that this runs for
+		// every farm target.
+		if (smart.moving && smart.map !== healer_pos.map) smart._interrupt?.("follow_healer");
+		if (!smart.moving) follow_reissue({ map: healer_pos.map, x: healer_pos.x, y: healer_pos.y });
 		return;
 	}
 
 	// Same map but not yet visible — smart_move toward cached position
 	if (!healer) {
-		if (!smart.moving) fire_and_forget_move({ x: healer_pos.x, y: healer_pos.y });
+		if (!smart.moving) follow_reissue({ x: healer_pos.x, y: healer_pos.y });
 		return;
 	}
 

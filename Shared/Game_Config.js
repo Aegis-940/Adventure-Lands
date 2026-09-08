@@ -9,6 +9,11 @@
 const PARTY_LEADER                = "Ulric";
 const PARTY_MEMBERS               = ["Riva", "Myras", "Riff"];
 
+// Who the party walks with. Deliberately NOT PARTY_LEADER: that one is the game's party-invite
+// host (Ulric sends, the others accept), while this is the movement authority. Myras leads the
+// walk because she is the tank — the fighters must never arrive somewhere ahead of her.
+const MOVEMENT_LEADER             = "Myras";
+
 // For potion deliveries from merchant
 const POTION_TYPES = ["mpot1", "hpot1"];
 
