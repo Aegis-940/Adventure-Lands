@@ -7,6 +7,32 @@
 // CORE UTILITIES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+// Let smart_move teleport as part of a route. The runner ships this disabled; with it set, the
+// pathfinder adds an edge to the CURRENT map's spawns[0] and the executor calls use("town") on
+// reaching that node. is_transporting() holds the walk until character.c.town clears, so nothing
+// here has to manage the 3s channel (G.skills.use_town.cooldown is 0 — the channel is the whole
+// cost). See GAME_API_REFERENCE.md.
+//
+// A graph edge, not a rule: it is taken only when it genuinely shortens the route, which is why
+// there are no per-map conditions. That matters because the destination is the current map's spawn
+// and is not always useful — on `main` it is the town centre, but on `tunnel` it is the entrance at
+// (0,-16) while the mole spot is (14,-1072). The pathfinder weighs that; a hand-written "arrive,
+// then town" rule could not.
+//
+// smarter_move() below drives the runner's pathfinder by setting smart.* directly rather than
+// calling smart_move(), so this applies to our movement too. Nothing in the runner clears the flag
+// once set. Retried once because the runner globals may not exist at script-eval time.
+function enable_smart_town() {
+	try {
+		if (typeof smart === "object" && smart) {
+			smart.use_town = true;
+			return true;
+		}
+	} catch (e) { /* runner globals not up yet */ }
+	return false;
+}
+if (!enable_smart_town()) setTimeout(enable_smart_town, 3000);
+
 // Critical function. Must be declared early.
 function delay(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
