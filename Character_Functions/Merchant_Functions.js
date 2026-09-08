@@ -49,7 +49,7 @@ var CONFIG = {
 		{ name: "firebow", level: 9, price: 1000000000, quantity: 3 },
 		{ name: "firebow", level: 8, price: 100000000, quantity: 5 },
 		{ name: "strring", level: 4, price: 1000000000, quantity: 1 },
-		{ name: "ukey", level: 0, price: 10000000000, quantity: 1 },
+		{ name: "ukey", level: 0, price: 20000000000, quantity: 1 },
 		// { name: "hpot1", price: 1000, quantity: 500 },
 		// { name: "cscroll0", price: 90000, quantity: 10 },
 	],
