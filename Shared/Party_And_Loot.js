@@ -991,6 +991,8 @@ const ANNIVERSARY_REISSUE_MS = 8000; // the featured player moves, so refresh th
 let _anniv_last_move = 0;
 let _anniv_last_kiss = 0;
 let _anniv_host_round = null;   // so the host notice prints once per round, not every tick
+let _anniv_done_round = null;   // round we already collected in; scoped per round, not global
+let _anniv_had_buff = false;    // whether anniversary_kiss was already up when this trip started
 
 // Mirrors the client's own anniversary_live_event().
 function anniversary_event() {
@@ -1036,11 +1038,27 @@ function anniversary_should_travel() {
 	const s = anniversary_event();
 	if (!s || s.available === false) return false;
 	if (anniversary_is_host()) return false;
+	// Collected already this round. Scoped to the round number rather than just testing for the
+	// buff, because anniversary_kiss lasts 20 minutes against a 30 minute cycle — a bare buff check
+	// would occasionally still be true when the next round opened and would skip it.
+	if (_anniv_done_round === s.round) return false;
 	if (!anniversary_can_visit()) return false;
 	try {
 		if (!G.maps[s.map] || !isFinite(s.x) || !isFinite(s.y)) return false;
 	} catch (e) { return false; }
 	return true;
+}
+
+// Clearing the flag is not enough on its own: a smart_move to the featured player is still in
+// flight, and handle_return_home() only re-issues when smart.moving is false, so the character
+// would keep walking to a party they have already left. Interrupt it the same way smarter_move()
+// interrupts its own predecessor.
+function anniversary_stand_down(why) {
+	anniversary_travel = false;
+	try {
+		if (smart.moving && typeof smart._interrupt === "function") smart._interrupt("anniversary over");
+	} catch (e) { /* nothing in flight */ }
+	log(`🎂 Anniversary: ${why}.`, "#F0B742", "Alerts");
 }
 
 // One iteration of the visit. Split out from the loop because the merchant's loop_controller() is
@@ -1056,10 +1074,7 @@ async function anniversary_step() {
 	}
 
 	if (!anniversary_should_travel()) {
-		if (anniversary_travel) {
-			anniversary_travel = false;
-			log("🎂 Anniversary: done, resuming.", "#F0B742", "Alerts");
-		}
+		if (anniversary_travel) anniversary_stand_down("done, resuming");
 		return false;
 	}
 
@@ -1068,7 +1083,18 @@ async function anniversary_step() {
 	if (!anniversary_travel) {
 		anniversary_travel = true;
 		_anniv_last_move = 0;
+		// Snapshot the buff now: it runs 20 minutes, so it can still be up from the previous round
+		// when this one opens. Only a buff that appears DURING the trip means we just collected.
+		_anniv_had_buff = !!(character.s && character.s.anniversary_kiss);
 		log(`🎂 Anniversary: visiting ${s.target} on ${s.map}.`, "#F0B742", "Alerts");
+	}
+
+	// The buff landing IS the reward arriving, and it beats waiting for the ticket to clear
+	// server-side by a full round trip. Stand down the moment it shows up.
+	if (!_anniv_had_buff && character.s && character.s.anniversary_kiss) {
+		_anniv_done_round = s.round;
+		anniversary_stand_down("buff received, back to work");
+		return false;
 	}
 
 	// Prefer the live entity when we can see them — S.x/S.y is a periodic snapshot and they move.
@@ -1081,7 +1107,12 @@ async function anniversary_step() {
 		_anniv_last_kiss = Date.now();
 		try {
 			await use_skill("ikissyou", s.id);
+			// Belt and braces with the buff check above: if the emote resolved, this round is spent
+			// whether or not the condition has reached us yet.
+			_anniv_done_round = s.round;
 			log(`🎂 Kissed ${s.target}.`, "#F0B742", "Alerts");
+			anniversary_stand_down("collected, back to work");
+			return false;
 		} catch (e) {
 			// too_far as they walk off, or the ticket already spent. The next tick re-evaluates.
 			log(`🎂 Anniversary kiss failed: ${fmt_err(e)}`, "#FFA500", "Alerts");
