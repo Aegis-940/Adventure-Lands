@@ -42,7 +42,8 @@ async function skill_loop() {
 		// aggro onto her deliberately, and zapperzap is damage — all three are exactly what "disengage"
 		// means. partyheal and single-target heal keep running, because the walk is when the party is
 		// most exposed. Same shape as the `!panicking` gates these already carry.
-		const TRAVELLING = typeof anniversary_travel !== "undefined" && anniversary_travel;
+		const TRAVELLING = smart.moving
+			|| (typeof anniversary_travel !== "undefined" && anniversary_travel);
 
 		// Curse
 		if (!panicking && !TRAVELLING && MANA_FOR_LUXURIES && CONFIG.combat.enabled) {

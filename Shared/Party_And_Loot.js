@@ -659,8 +659,17 @@ async function _panic_check_body() {
 		e => e.type === "monster" && e.target === character.name && !e.dead
 	).length;
 
+	// Aggro picked up on the road. An aggressive monster follows across the whole map and there is
+	// nothing to kill it with while travelling — combat is disengaged — so it has to be shed with
+	// scare or it escorts us to the destination and every other one it wakes on the way.
+	// Reuses the panic path rather than duplicating it: the panic set IS the jacko, and scare is
+	// unusable without it.
+	const TRAVEL_AGGRO = t.travel_aggro ?? 1;
+	const TRAPPED_TRAVELLING = smart.moving && MONSTERS_TARGETING_ME >= TRAVEL_AGGRO;
+	const HARD_REASON = LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= t.aggro;
+
 	// PANIC CONDITION
-	if (LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= t.aggro) {
+	if (HARD_REASON || TRAPPED_TRAVELLING) {
 		if (!panicking) {
 			panicking = true;
 			// Act on this tick, not up to t.cooldown later. The cooldown below exists to throttle
@@ -669,13 +678,17 @@ async function _panic_check_body() {
 			// the healer was dead and the server rejected it as "disabled". Two seconds is a long
 			// time below 30% HP.
 			last_panic_time = 0;
-			if (typeof PANIC_BROADCAST_TARGETS !== "undefined") {
+			// A travel-only panic does NOT broadcast. One mole latching onto someone walking across
+			// a map must not make the rest of the party hold fire where they are; the broadcast is
+			// for "the healer is in trouble", not "somebody is being followed".
+			if (HARD_REASON && typeof PANIC_BROADCAST_TARGETS !== "undefined") {
 				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: true });
 			}
 			let reason = [];
 			if (LOW_HEALTH) reason.push("low health");
 			if (LOW_MANA) reason.push("low mana");
 			if (MONSTERS_TARGETING_ME >= t.aggro) reason.push("high aggro");
+			if (TRAPPED_TRAVELLING) reason.push(`${MONSTERS_TARGETING_ME} on us while travelling`);
 			log(`⚠️ Panic triggered: ${reason.join(", ")}!`, "#ffcc00", "Alerts");
 		}
 	}
@@ -734,7 +747,13 @@ async function _panic_check_body() {
 	// only guard against racing this restore is `if (panicking) return`, so flipping it early
 	// (before the orb swap lands) lets resolve_equipment() fight over the orb slot mid-restore on
 	// characters whose other equipment sets also touch orb (e.g. Warrior's dps_accessories).
-	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < t.aggro && panicking && !external_hold) {
+	// !TRAPPED_TRAVELLING matters as much as the health gates. A healthy character shedding a
+	// chaser is HIGH_HEALTH and HIGH_MANA with aggro well under t.aggro, so without it the panic
+	// clears on the very next tick, the orb swaps straight back, and the next tick re-triggers —
+	// which is the orb churn that drove cc to 77 and got equips silently dropped by the server.
+	// Hold the jacko on until the chase is actually over.
+	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < t.aggro
+		&& !TRAPPED_TRAVELLING && panicking && !external_hold) {
 		if (Date.now() - last_safe_time > t.cooldown) {
 			last_safe_time = Date.now();
 

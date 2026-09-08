@@ -158,6 +158,11 @@ function should_pause_combat_loop() {
 	// Travelling to the anniversary featured player. Disengage entirely — no attacks, no offensive
 	// skills, no debuffs — so nothing is dragged along the walk or left holding aggro behind us.
 	if (typeof anniversary_travel !== "undefined" && anniversary_travel) return true;
+	// Any smart_move journey, for the same reason: a monster hit in passing follows across the map
+	// and cannot be finished off while we are walking. Farming does NOT trip this — walk_in_circle
+	// uses xmove (raw move() first) and reposition() bails while smart.moving — so this only covers
+	// genuine travel: returning home from far, delivery runs, event trips.
+	if (smart.moving) return true;
 	if (home === "giantspider") return false; // follow_healer() handles positioning instead
 	const myras = get_player("Myras");
 	if (!myras || distance(character, myras) > 200) return true;

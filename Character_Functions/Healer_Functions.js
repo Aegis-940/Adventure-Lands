@@ -545,9 +545,12 @@ async function action_loop() {
 			);
 			const i_need_the_timer = character.hp < my_heal_threshold;
 
-			// Travelling to the featured player: heal, but never attack. An autoattack here pulls
-			// aggro we then drag across the map, and priority-2 targeting would actively seek it out.
-			const travelling = typeof anniversary_travel !== "undefined" && anniversary_travel;
+			// Travelling: heal, but never attack. An autoattack here pulls aggro we then drag across
+			// the map, and find_best_target's priority-2 would actively seek it out. Covers both the
+			// anniversary trip and any smart_move journey; walk_in_circle uses xmove and reposition
+			// bails while smart.moving, so ordinary farming does not trip this.
+			const travelling = smart.moving
+				|| (typeof anniversary_travel !== "undefined" && anniversary_travel);
 
 			if (!HEALED && !travelling && HEALER_TARGET !== "giantspider" && !i_need_the_timer) {
 				const TARGET = cache.target;
