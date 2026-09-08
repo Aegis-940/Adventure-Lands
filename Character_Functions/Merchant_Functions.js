@@ -333,6 +333,27 @@ function stock_inventory_count(entry) {
 	return q;
 }
 
+// Units of this entry already on the stand. Listing moves an item OUT of the inventory, so any
+// "have we got enough" test that only counts the bag reads zero for everything on display and
+// keeps withdrawing replacements until the bank is empty.
+function stock_listed_count(entry) {
+	let q = 0;
+	for (let sn = 1; sn <= TRADE_SLOTS; sn++) {
+		const slot = character.slots["trade" + sn];
+		if (!slot || slot.b) continue;   // empty, or a buy order
+		if (slot.name === entry.name && level_matches(slot, entry)) {
+			q += (slot.q === undefined ? 1 : slot.q);
+		}
+	}
+	return q;
+}
+
+// What we hold in total: in the bag plus on the stand. This is the number that decides whether a
+// bank trip is warranted.
+function stock_held_count(entry) {
+	return stock_inventory_count(entry) + stock_listed_count(entry);
+}
+
 function stock_bank_count(entry) {
 	const bank_data = character.bank || load_bank_from_local_storage();
 	if (!bank_data) return 0;
@@ -361,34 +382,50 @@ async function refresh_sell_offers() {
 	if (Date.now() - _last_sell_refresh < WISHLIST_REFRESH_MS) return;
 	_last_sell_refresh = Date.now();
 
-	const buy_slots = missing_slice_flavours().length;   // hoisted: it walks the inventory per flavor
-	for (let i = 0; i < CONFIG.sell_profile.length && i < TRADE_SLOTS; i++) {
-		const entry = CONFIG.sell_profile[i];
+	// One trade slot per INVENTORY STACK, not one per profile entry. trade() lists a single
+	// inventory slot, and gear does not stack — three +9 firebows are three separate slots — so an
+	// entry of quantity 3 needs three trade slots. Listing per entry put one up and left the other
+	// two sitting in the bag. Stackables are unaffected: one slot still carries the whole quantity.
+	const buy_slots = missing_slice_flavours().length;
+
+	// What is already on the stand, per entry. `q` is absent on non-stackables, where it means one.
+	const listed = CONFIG.sell_profile.map(() => 0);
+	for (let sn = 1; sn <= TRADE_SLOTS; sn++) {
+		const slot = character.slots["trade" + sn];
+		if (!slot || slot.b) continue;   // empty, or a buy order we must not touch
+		const ei = CONFIG.sell_profile.findIndex(e =>
+			e.name === slot.name && level_matches(slot, e) && slot.price === e.price);
+		if (ei >= 0) listed[ei] += (slot.q === undefined ? 1 : slot.q);
+	}
+
+	// Free sell slots, taken from the top down so they never meet the buy orders climbing up.
+	const free = [];
+	for (let i = 0; i < TRADE_SLOTS; i++) {
+		const sn = sell_slot_for(i);
+		if (sn <= buy_slots) break;
+		if (!character.slots["trade" + sn]) free.push(sn);
+	}
+
+	for (let ei = 0; ei < CONFIG.sell_profile.length; ei++) {
+		const entry = CONFIG.sell_profile[ei];
 		const label = entry.name + (entry.level === undefined ? "" : " +" + entry.level);
-		const slot_no = sell_slot_for(i);
-		if (slot_no <= buy_slots) continue;   // would collide with a buy order
-		const slot = character.slots["trade" + slot_no];
+		let short = (entry.quantity || 1) - listed[ei];
 
-		// A sell offer has no `b` flag (that marks a buy order). Still stocked, right item, right
-		// level and right price? Leave it: re-listing pulls the stock back out and re-posts it.
-		//
-		// `q` is absent on non-stackable goods — a firebow slot has no quantity at all — so the
-		// old `(slot.q || 0) > 0` read as 0 > 0 for every piece of gear, failed this test on every
-		// pass, and re-listed the same item into the same slot forever. Absent means one.
-		const listed_q = slot && slot.q === undefined ? 1 : (slot && slot.q);
-		if (slot && !slot.b && slot.name === entry.name && level_matches(slot, entry)
-			&& listed_q > 0 && slot.price === entry.price) continue;
-		if (slot && slot.b) continue;   // a buy order lives here; never stomp it
+		while (short > 0 && free.length) {
+			// Re-scanned each pass: listing an item removes it from the bag and shifts the rest.
+			const num = stock_inventory_index(entry);
+			if (num < 0) break;   // nothing left in the bag — the restock state fetches more
 
-		const num = stock_inventory_index(entry);
-		if (num < 0) continue;          // nothing to list — the restock state will fetch it
-
-		try {
-			// trade(num, trade_slot, price, quantity)
-			await trade(num, slot_no, entry.price, Math.min(entry.quantity || 1, character.items[num].q || 1));
-			game_log(`🏷️ WTS ${label} @ ${entry.price}g (slot ${slot_no})`, "#F0B742");
-		} catch (e) {
-			catcher(e, "refresh_sell_offers: " + label);
+			const take = Math.min(short, character.items[num].q || 1);
+			const slot_no = free.shift();
+			try {
+				await trade(num, slot_no, entry.price, take);   // trade(num, trade_slot, price, quantity)
+				game_log(`🏷️ WTS ${label} x${take} @ ${entry.price}g (slot ${slot_no})`, "#F0B742");
+			} catch (e) {
+				catcher(e, "refresh_sell_offers: " + label);
+				break;   // stop on the first failure for this entry rather than burning every slot
+			}
+			short -= take;
 		}
 	}
 }
@@ -414,7 +451,7 @@ function should_run_restock() {
 	if (merchant_task !== "Idle") return false;   // same guard the other priority checks use
 	for (const entry of CONFIG.sell_profile) {
 		if (restock_blocked(entry)) continue;
-		if (stock_inventory_count(entry) >= (entry.quantity || 1)) continue;
+		if (stock_held_count(entry) >= (entry.quantity || 1)) continue;
 		if (stock_bank_count(entry) > 0) return true;
 	}
 	return false;
@@ -425,9 +462,11 @@ async function handle_restocking_state() {
 	try {
 		for (const entry of CONFIG.sell_profile) {
 			const want = entry.quantity || 1;
-			const have = stock_inventory_count(entry);
-			if (have >= want) continue;
+			const held = stock_held_count(entry);        // bag + stand
+			if (held >= want) continue;
 			if (restock_blocked(entry)) continue;
+			// Arrival is judged on the BAG alone: a withdrawal lands there, never on the stand.
+			const in_bag = stock_inventory_count(entry);
 
 			const in_bank = stock_bank_count(entry);
 			if (in_bank <= 0) continue;   // sold out; nothing to fetch
@@ -436,7 +475,7 @@ async function handle_restocking_state() {
 			try {
 				// withdraw_item(item_name, level, total) — null level means "any level".
 				await withdraw_item(entry.name, entry.level === undefined ? null : entry.level,
-					Math.min(want - have, in_bank));
+					Math.min(want - held, in_bank));
 			} catch (e) {
 				catcher(e, "handle_restocking_state: " + restock_key(entry));
 			}
@@ -444,7 +483,7 @@ async function handle_restocking_state() {
 			// Judge on the inventory, not on whether withdraw_item threw: a stale snapshot makes it
 			// skip every slot and return quietly having fetched nothing. If none arrived, the bank
 			// does not really hold this and asking again immediately just repeats the trip.
-			if (stock_inventory_count(entry) <= have) {
+			if (stock_inventory_count(entry) <= in_bag) {
 				_restock_blocked[restock_key(entry)] = Date.now() + RESTOCK_RETRY_MS;
 				game_log(`⚠️ Restock: ${restock_key(entry)} is not in the bank as listed — `
 					+ `pausing that entry for ${RESTOCK_RETRY_MS / 60000} min`, "#FFA500");

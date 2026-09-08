@@ -909,7 +909,11 @@ async function withdraw_item(item_name, level = null, total = null) {
 		for (let slot = 0; slot < slot_arr.length && remaining > 0; slot++) {
 			const itm = slot_arr[slot];
 			if (!itm || itm.name !== item_name) continue;
-			if (level != null && itm.level !== level) continue;
+			// An unupgraded item carries no `level` property at all, so a raw `itm.level !== 0`
+			// rejected every unlevelled item whenever level 0 was asked for — a ukey could be seen
+			// in the bank by callers that normalise, and then never withdrawn by this one.
+			// Absent means +0, which is what the rest of the codebase assumes.
+			if (level != null && (itm.level || 0) !== level) continue;
 
 			found_any = true;
 
