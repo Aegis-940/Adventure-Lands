@@ -33,22 +33,24 @@ var CONFIG = {
 		// simply stay up for the event.
 		target_each: 1000,
 	},
-	// Stand sell offers. Same idea as UPGRADE_PROFILE: one entry per item, edit this list and
-	// nothing else. Anything named here is pulled out of the bank, listed on the stand, and is
-	// never deposited again while it is listed.
+	// Stand sell offers. An ARRAY, not a name-keyed object like UPGRADE_PROFILE, because level is
+	// part of the identity here: a +9 firebow and a +8 firebow are different goods at different
+	// prices, and a keyed object can only ever hold one entry per item name.
 	//
+	//   name      item key, e.g. "firebow"
+	//   level     exact level to sell. Omit ONLY for unlevelled goods — potions, scrolls, materials
 	//   price     gold per unit
-	//   level     optional — only list/withdraw this exact level. Omit for unlevelled items.
-	//   quantity  how many to keep on the stand. Omit for 1.
+	//   quantity  how many to keep on the stand. Omit for 1
 	//
-	// Removing an entry is enough to retire a listing: the slot is cleared on the next refresh and
-	// the item becomes bankable again.
-	sell_profile: {
-		// hpot1: { price: 1000, quantity: 500 },
-		// mpot1: { price: 1000, quantity: 500 },
-		// cscroll0: { price: 90000, quantity: 10 },
-		
-	},
+	// Listed items are withdrawn from the bank as needed and never deposited again while listed.
+	// Level is matched exactly, so a +9 entry leaves your +0s free to be banked and sold normally.
+	// Deleting an entry retires the listing and makes the item bankable again.
+	sell_profile: [
+		{ name: "firebow", level: 9, price: 1000000000, quantity: 3 },
+		{ name: "firebow", level: 8, price: 100000000, quantity: 3 },
+		// { name: "hpot1", price: 1000, quantity: 500 },
+		// { name: "cscroll0", price: 90000, quantity: 10 },
+	],
 	locations: {
 		HOME: { map: "main", x: -87, y: -96 },
 		BANK_LOCATION: { map: "bank", x: 0, y: -37 },
@@ -299,41 +301,44 @@ function slice_count(name) {
 // STAND STOCK — items listed for sale from CONFIG.sell_profile
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Anything listed for sale must survive bank_items(), or the deposit run would put the stock we
-// just withdrew straight back and the restock state would fetch it again on the next tick.
-function is_stand_stock(name) {
-	return !!(CONFIG.trading.enabled && CONFIG.sell_profile[name]);
-}
-
+// An entry with no `level` matches any level; one with a level matches only that level exactly.
 function level_matches(item, entry) {
 	return entry.level === undefined || (item.level || 0) === entry.level;
 }
 
+// Anything listed for sale must survive bank_items(), or the deposit run would put the stock we
+// just withdrew straight back and the restock state would fetch it again on the next tick.
+// Matched on name AND level: a "+9 firebow" listing must not stop a +0 firebow being banked.
+function is_stand_stock(item) {
+	if (!CONFIG.trading.enabled || !item) return false;
+	return CONFIG.sell_profile.some(entry => entry.name === item.name && level_matches(item, entry));
+}
+
 // Inventory index of a sellable unit, or -1. trade() addresses stock by inventory slot, not name.
-function stock_inventory_index(name, entry) {
+function stock_inventory_index(entry) {
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
-		if (item && item.name === name && level_matches(item, entry)) return i;
+		if (item && item.name === entry.name && level_matches(item, entry)) return i;
 	}
 	return -1;
 }
 
-function stock_inventory_count(name, entry) {
+function stock_inventory_count(entry) {
 	let q = 0;
 	for (const item of character.items) {
-		if (item && item.name === name && level_matches(item, entry)) q += item.q || 1;
+		if (item && item.name === entry.name && level_matches(item, entry)) q += item.q || 1;
 	}
 	return q;
 }
 
-function stock_bank_count(name, entry) {
+function stock_bank_count(entry) {
 	const bank_data = character.bank || load_bank_from_local_storage();
 	if (!bank_data) return 0;
 	let q = 0;
 	for (const pack in bank_data) {
 		if (!Array.isArray(bank_data[pack])) continue;
 		for (const item of bank_data[pack]) {
-			if (item && item.name === name && level_matches(item, entry)) q += item.q || 1;
+			if (item && item.name === entry.name && level_matches(item, entry)) q += item.q || 1;
 		}
 	}
 	return q;
@@ -348,29 +353,29 @@ function sell_slot_for(index) {
 async function refresh_sell_offers() {
 	if (!CONFIG.trading.enabled || !stand_is_open()) return;
 
-	const names = Object.keys(CONFIG.sell_profile);
 	const buy_slots = missing_slice_flavours().length;   // hoisted: it walks the inventory per flavor
-	for (let i = 0; i < names.length && i < TRADE_SLOTS; i++) {
-		const name = names[i];
-		const entry = CONFIG.sell_profile[name];
+	for (let i = 0; i < CONFIG.sell_profile.length && i < TRADE_SLOTS; i++) {
+		const entry = CONFIG.sell_profile[i];
+		const label = entry.name + (entry.level === undefined ? "" : " +" + entry.level);
 		const slot_no = sell_slot_for(i);
 		if (slot_no <= buy_slots) continue;   // would collide with a buy order
 		const slot = character.slots["trade" + slot_no];
 
-		// A sell offer has no `b` flag (that marks a buy order). Still stocked and priced right?
-		// Leave it: re-listing would pull the item back out of the slot and put it up again.
-		if (slot && !slot.b && slot.name === name && (slot.q || 0) > 0 && slot.price === entry.price) continue;
+		// A sell offer has no `b` flag (that marks a buy order). Still stocked, right item, right
+		// level and right price? Leave it: re-listing pulls the stock back out and re-posts it.
+		if (slot && !slot.b && slot.name === entry.name && level_matches(slot, entry)
+			&& (slot.q || 0) > 0 && slot.price === entry.price) continue;
 		if (slot && slot.b) continue;   // a buy order lives here; never stomp it
 
-		const num = stock_inventory_index(name, entry);
+		const num = stock_inventory_index(entry);
 		if (num < 0) continue;          // nothing to list — the restock state will fetch it
 
 		try {
 			// trade(num, trade_slot, price, quantity)
 			await trade(num, slot_no, entry.price, Math.min(entry.quantity || 1, character.items[num].q || 1));
-			game_log(`🏷️ WTS ${name} @ ${entry.price}g (slot ${slot_no})`, "#F0B742");
+			game_log(`🏷️ WTS ${label} @ ${entry.price}g (slot ${slot_no})`, "#F0B742");
 		} catch (e) {
-			catcher(e, "refresh_sell_offers: " + name);
+			catcher(e, "refresh_sell_offers: " + label);
 		}
 	}
 }
@@ -381,11 +386,9 @@ async function refresh_sell_offers() {
 function should_run_restock() {
 	if (!CONFIG.trading.enabled) return false;
 	if (merchant_task !== "Idle") return false;   // same guard the other priority checks use
-	for (const name in CONFIG.sell_profile) {
-		const entry = CONFIG.sell_profile[name];
-		const want = entry.quantity || 1;
-		if (stock_inventory_count(name, entry) >= want) continue;
-		if (stock_bank_count(name, entry) > 0) return true;
+	for (const entry of CONFIG.sell_profile) {
+		if (stock_inventory_count(entry) >= (entry.quantity || 1)) continue;
+		if (stock_bank_count(entry) > 0) return true;
 	}
 	return false;
 }
@@ -393,16 +396,17 @@ function should_run_restock() {
 async function handle_restocking_state() {
 	merchant_task = "Restocking";
 	try {
-		for (const name in CONFIG.sell_profile) {
-			const entry = CONFIG.sell_profile[name];
+		for (const entry of CONFIG.sell_profile) {
 			const want = entry.quantity || 1;
-			const have = stock_inventory_count(name, entry);
+			const have = stock_inventory_count(entry);
 			if (have >= want) continue;
 
-			const in_bank = stock_bank_count(name, entry);
+			const in_bank = stock_bank_count(entry);
 			if (in_bank <= 0) continue;   // sold out; nothing to fetch
 
-			await withdraw_item(name, entry.level === undefined ? null : entry.level, Math.min(want - have, in_bank));
+			// withdraw_item(item_name, level, total) — null level means "any level".
+			await withdraw_item(entry.name, entry.level === undefined ? null : entry.level,
+				Math.min(want - have, in_bank));
 		}
 	} catch (e) {
 		catcher(e, "handle_restocking_state");
@@ -954,7 +958,7 @@ function has_sellable_items() {
 function has_bankable_items() {
 	for (let i = 3; i < character.items.length; i++) {
 		const item = character.items[i];
-		if (item && !CONFIG.do_not_bank.includes(item.name) && !is_stand_stock(item.name)) return true;
+		if (item && !CONFIG.do_not_bank.includes(item.name) && !is_stand_stock(item)) return true;
 	}
 	return false;
 }
@@ -1028,7 +1032,7 @@ async function bank_items() {
 		for (let i = 3; i < character.items.length; i++) {
 			const item = character.items[i];
 			// Stand stock stays put: banking it would undo the restock trip we just made.
-			if (!item || CONFIG.do_not_bank.includes(item.name) || is_stand_stock(item.name)) continue;
+			if (!item || CONFIG.do_not_bank.includes(item.name) || is_stand_stock(item)) continue;
 			try {
 				await bank_store(i);
 				game_log(`🏦 Deposited ${item.name} x${item.q || 1} to bank`);
