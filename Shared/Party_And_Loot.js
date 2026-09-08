@@ -991,6 +991,15 @@ const ANNIVERSARY_REISSUE_MS = 8000; // the featured player moves, so refresh th
 let _anniv_last_move = 0;
 let _anniv_last_kiss = 0;
 let _anniv_host_round = null;   // so the host notice prints once per round, not every tick
+let _anniv_travel_since = 0;
+
+// anniversary_travel gates combat for ALL FOUR characters — should_pause_combat_loop() plus every
+// main_loop's movement branch. Nothing else can clear it, so if it is ever left set the whole party
+// disengages and does not recover without a manual reload. A ticket lasts 5 minutes and a round 30,
+// so travel lasting longer than this is impossible by the game's own rules and can only mean we are
+// stuck. The ceiling is enforced in the loop, outside the step's own error handling, so it still
+// fires when the step throws every tick.
+const ANNIVERSARY_TRAVEL_MAX_MS = 6 * 60 * 1000;
 let _anniv_done_round = null;   // round we already collected in; scoped per round, not global
 let _anniv_had_buff = false;    // whether anniversary_kiss was already up when this trip started
 
@@ -1055,9 +1064,15 @@ function anniversary_should_travel() {
 // interrupts its own predecessor.
 function anniversary_stand_down(why) {
 	anniversary_travel = false;
+	_anniv_travel_since = 0;
 	try {
 		if (smart.moving && typeof smart._interrupt === "function") smart._interrupt("anniversary over");
 	} catch (e) { /* nothing in flight */ }
+	// Recorded, not just logged: "the party stopped and I had to reload" needs to be answerable
+	// after the fact, and log() only reaches the in-game window.
+	try {
+		if (typeof errlog_record === "function") errlog_record("anniversary", "stand down: " + why);
+	} catch (e) { /* recorder absent */ }
 	log(`🎂 Anniversary: ${why}.`, "#F0B742", "Alerts");
 }
 
@@ -1082,6 +1097,7 @@ async function anniversary_step() {
 
 	if (!anniversary_travel) {
 		anniversary_travel = true;
+		_anniv_travel_since = Date.now();
 		_anniv_last_move = 0;
 		// Snapshot the buff now: it runs 20 minutes, so it can still be up from the previous round
 		// when this one opens. Only a buff that appears DURING the trip means we just collected.
@@ -1134,9 +1150,18 @@ async function anniversary_step() {
 
 async function anniversary_loop() {
 	try {
+		// Before anything that can throw. This is the only code that can release the party if
+		// anniversary_step() starts failing every tick, so it must not sit downstream of it.
+		if (anniversary_travel && _anniv_travel_since
+			&& Date.now() - _anniv_travel_since > ANNIVERSARY_TRAVEL_MAX_MS) {
+			anniversary_stand_down("travel exceeded " + (ANNIVERSARY_TRAVEL_MAX_MS / 60000) + " min, forcing resume");
+		}
 		await anniversary_step();
 	} catch (e) {
-		catcher(e, "anniversary_loop");
+		// catcher() has itself been the thing that killed a loop before now — a missing comma made
+		// it undefined and the catch block threw, taking action_loop with it. Nothing in here is
+		// allowed to prevent the reschedule below.
+		try { catcher(e, "anniversary_loop"); } catch (x) { /* logging must never kill the loop */ }
 	}
 	setTimeout(anniversary_loop, ANNIVERSARY_TICK_MS);
 }
