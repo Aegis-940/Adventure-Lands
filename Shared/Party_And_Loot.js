@@ -582,6 +582,9 @@ const EXTERNAL_PANIC_MAX_MS = 60000;
 // orb equip, and the scare rejections. One at a time.
 let _panic_check_running = false;
 
+// Latched while a journey is in trouble; cleared on arrival. See the travel-panic block below.
+let _travel_panic_latched = false;
+
 // The orb slot had TWO owners. Party_And_Loot's own comment says panic_check() owns it
 // exclusively, but the healer's `luck` loadout claims rabbitsfoot and the warrior's
 // `dps_accessories` claims orbofstr — so resolve_equipment() re-equipped the loadout every 500ms
@@ -681,8 +684,24 @@ async function _panic_check_body() {
 	// scare or it escorts us to the destination and every other one it wakes on the way.
 	// Reuses the panic path rather than duplicating it: the panic set IS the jacko, and scare is
 	// unusable without it.
+	//
+	// LATCHED for the journey rather than tracking aggro tick by tick. A pack loses and re-acquires
+	// a target constantly, so an unlatched test stands down on the first quiet tick, swaps the jacko
+	// back out, and then the next re-aggro finds can_use("scare") false and has to pay another equip
+	// round trip to get it back — during which she is being hit and cannot scare. The healer holds
+	// all the aggro by design, so she is the one this happens to. One swap in when the trouble
+	// starts, one out on arrival.
 	const TRAVEL_AGGRO = t.travel_aggro ?? 1;
-	const TRAPPED_TRAVELLING = smart.moving && MONSTERS_TARGETING_ME >= TRAVEL_AGGRO;
+	if (!smart.moving) _travel_panic_latched = false;
+	else if (MONSTERS_TARGETING_ME >= TRAVEL_AGGRO) _travel_panic_latched = true;
+	const TRAPPED_TRAVELLING = _travel_panic_latched;
+
+	// Do not let the pathfinder plan a teleport we cannot finish. The town channel runs 3s and the
+	// server cancels it when we are hit, so a character standing in a pack starts the cast, takes a
+	// hit, loses it, and repeats — which is how the teleport gets "interrupted endlessly". Once
+	// scare has cleared the aggro the next path recompute can use it again. Per-character: each
+	// character has its own `smart`.
+	try { smart.use_town = MONSTERS_TARGETING_ME === 0; } catch (e) { /* runner not up */ }
 	const HARD_REASON = LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= t.aggro;
 
 	// PANIC CONDITION

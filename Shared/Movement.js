@@ -22,6 +22,11 @@
 // smarter_move() below drives the runner's pathfinder by setting smart.* directly rather than
 // calling smart_move(), so this applies to our movement too. Nothing in the runner clears the flag
 // once set. Retried once because the runner globals may not exist at script-eval time.
+//
+// This is the BASELINE only. panic_check() (Shared/Party_And_Loot.js) turns it off tick by tick
+// while monsters are targeting us, because the 3s channel cannot survive being hit. Characters that
+// do not run panic_check — the merchant — simply keep the baseline, which is right: nothing tanks
+// for him.
 function enable_smart_town() {
 	try {
 		if (typeof smart === "object" && smart) {
