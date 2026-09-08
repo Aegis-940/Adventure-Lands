@@ -271,7 +271,12 @@ async function handle_anniversary_state() {
 	} catch (e) {
 		catcher(e, "handle_anniversary_state");
 	} finally {
-		if (!anniversary_should_travel()) merchant_task = "Idle";
+		// ALWAYS back to Idle, even mid-trip. anniversary_step() is one short step, not a run that
+		// owns the merchant until it finishes -- the priority check simply re-selects this state on
+		// the next tick while the visit is live. Holding the task across ticks made a five-minute
+		// visit look identical to a five-minute hang, and MERCHANT_TASK_WATCHDOG_MS is exactly five
+		// minutes, so the watchdog force-reset every trip that used its full window.
+		merchant_task = "Idle";
 	}
 }
 

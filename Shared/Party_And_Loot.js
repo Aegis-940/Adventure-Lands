@@ -1098,21 +1098,30 @@ function anniversary_event() {
 	} catch (e) { return null; }
 }
 
-// Mirrors the client's anniversary_can_visit(). The realm comparison is skipped when those globals
-// are not reachable from here rather than guessed at: a wrong realm string would silently disable
-// the whole behaviour, which is the failure mode hardest to notice.
-function anniversary_can_visit() {
+// The client's anniversary_can_visit(), split into its individual checks. Returns null when the
+// ticket is usable, otherwise which one failed.
+//
+// As a single boolean these were indistinguishable, and they mean completely different things: a
+// ticket the server never issued (nothing we can do about it) read identically to a realm string we
+// are comparing wrongly (entirely our own bug, and one that would silently disable every visit
+// forever). The realm comparison is still skipped when those globals are unreachable rather than
+// guessed at, for the same reason.
+function anniversary_ticket_problem() {
 	try {
 		const s = anniversary_event();
+		if (!s) return "no live round";
 		const ticket = character.s && character.s.anniversary_visit;
-		if (!s || !ticket || !(ticket.ms > 0)) return false;
-		if (ticket.round !== s.round) return false;
-		if (Date.now() >= ticket.expires) return false;
+		if (!ticket) return "no ticket issued to us";
+		if (!(ticket.ms > 0)) return "ticket already spent";
+		if (ticket.round !== s.round) return `ticket is for round ${ticket.round}, live round is ${s.round}`;
+		if (Date.now() >= ticket.expires) return "ticket expired";
 
 		const region = parent.server_region, ident = parent.server_identifier;
-		if (region !== undefined && ident !== undefined && ticket.realm !== region + " " + ident) return false;
-		return true;
-	} catch (e) { return false; }
+		if (region !== undefined && ident !== undefined && ticket.realm !== region + " " + ident) {
+			return `ticket realm "${ticket.realm}" != "${region} ${ident}"`;
+		}
+		return null;
+	} catch (e) { return "ticket check threw: " + fmt_err(e); }
 }
 
 // One of ours can be the featured player. ikissyou is no_self, so the host must never try to visit
@@ -1145,7 +1154,8 @@ function anniversary_block_reason() {
 	// minutes against a 30 minute cycle, so a bare buff check would sometimes still be true when
 	// the next round opened and would skip it.
 	if (_anniv_done_round === s.round) return "already collected this round";
-	if (!anniversary_can_visit()) return "no usable visit ticket";
+	const ticket_problem = anniversary_ticket_problem();
+	if (ticket_problem) return ticket_problem;
 	try {
 		if (!G.maps[s.map] || !isFinite(s.x) || !isFinite(s.y)) return "no usable destination";
 	} catch (e) { return "no usable destination"; }
