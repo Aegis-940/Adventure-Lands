@@ -47,9 +47,9 @@ var CONFIG = {
 	// Deleting an entry retires the listing and makes the item bankable again.
 	sell_profile: [
 		{ name: "firebow", level: 9, price: 1000000000, quantity: 3 },
-		{ name: "firebow", level: 8, price: 100000000, quantity: 1 },
+		{ name: "firebow", level: 8, price: 100000000, quantity: 5 },
 		{ name: "strring", level: 4, price: 1000000000, quantity: 1 },
-		{ name: "ukey", level: 4, price: 10000000000, quantity: 1 },
+		{ name: "ukey", level: 0, price: 10000000000, quantity: 1 },
 		// { name: "hpot1", price: 1000, quantity: 500 },
 		// { name: "cscroll0", price: 90000, quantity: 10 },
 	],
@@ -352,8 +352,14 @@ function sell_slot_for(index) {
 	return TRADE_SLOTS - index;
 }
 
+let _last_sell_refresh = 0;
+
 async function refresh_sell_offers() {
 	if (!CONFIG.trading.enabled || !stand_is_open()) return;
+	// Same throttle as the buy orders. handle_idle_state() runs on the 250ms controller tick, and
+	// re-examining every listing that often is churn even when nothing needs changing.
+	if (Date.now() - _last_sell_refresh < WISHLIST_REFRESH_MS) return;
+	_last_sell_refresh = Date.now();
 
 	const buy_slots = missing_slice_flavours().length;   // hoisted: it walks the inventory per flavor
 	for (let i = 0; i < CONFIG.sell_profile.length && i < TRADE_SLOTS; i++) {
@@ -365,8 +371,13 @@ async function refresh_sell_offers() {
 
 		// A sell offer has no `b` flag (that marks a buy order). Still stocked, right item, right
 		// level and right price? Leave it: re-listing pulls the stock back out and re-posts it.
+		//
+		// `q` is absent on non-stackable goods — a firebow slot has no quantity at all — so the
+		// old `(slot.q || 0) > 0` read as 0 > 0 for every piece of gear, failed this test on every
+		// pass, and re-listed the same item into the same slot forever. Absent means one.
+		const listed_q = slot && slot.q === undefined ? 1 : (slot && slot.q);
 		if (slot && !slot.b && slot.name === entry.name && level_matches(slot, entry)
-			&& (slot.q || 0) > 0 && slot.price === entry.price) continue;
+			&& listed_q > 0 && slot.price === entry.price) continue;
 		if (slot && slot.b) continue;   // a buy order lives here; never stomp it
 
 		const num = stock_inventory_index(entry);
@@ -1066,6 +1077,7 @@ async function bank_items() {
 			if (!item || CONFIG.do_not_bank.includes(item.name) || is_stand_stock(item)) continue;
 			try {
 				await bank_store(i);
+				refresh_bank_snapshot();   // Shared/Party_And_Loot.js — keep the snapshot honest
 				game_log(`🏦 Deposited ${item.name} x${item.q || 1} to bank`);
 				banked_any = true;
 			} catch (e) {

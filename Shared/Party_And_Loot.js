@@ -858,6 +858,19 @@ function scan_bank_inventory() {
 	game_log(`📦 Bank scan complete: ${bank_inventory.length} items recorded`);
 }
 
+// character.bank is only populated while standing at the bank, and everything that reads the bank
+// away from it falls back to the localStorage snapshot. That snapshot goes stale the instant
+// anything moves in or out, which is what sent the merchant back to the bank for an item that was
+// no longer there. Re-save it after every withdrawal and deposit, while the live data is in hand.
+// Quiet on purpose: save_bank_local() logs on every call and this fires per item.
+function refresh_bank_snapshot() {
+	try {
+		if (character.bank && Object.keys(character.bank).length) {
+			localStorage.setItem("savedBank", JSON.stringify(character.bank));
+		}
+	} catch (e) { /* storage full or blocked — a stale snapshot is better than a thrown loop */ }
+}
+
 /**
  * Withdraws items from your bank using the native `bank_retrieve` call.
  * Call this while standing at your bank.
@@ -931,6 +944,7 @@ async function withdraw_item(item_name, level = null, total = null) {
 				continue;
 			}
 			await delay(100);
+			refresh_bank_snapshot();   // live data is in hand right now; take a fresh copy
 			remaining -= (itm.q || 1);
 		}
 
