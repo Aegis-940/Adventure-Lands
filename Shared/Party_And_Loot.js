@@ -125,6 +125,7 @@ function auto_buy_potions() {
 const RESET_INTERVAL_HOURS = 2;
 const RESET_WINDOW_MINUTES = 2;
 let _last_reset_bucket = null;
+let _reset_due_bucket = null;   // a reset that is owed but has been held back, not skipped
 let _suppress_periodic_reset = false;
 
 function set_suppress_reset(val) { _suppress_periodic_reset = val; }
@@ -141,13 +142,29 @@ function schedule_periodic_reset() {
 
 		const now = new Date();
 		const hour = now.getHours();
-
-		if (now.getMinutes() >= RESET_WINDOW_MINUTES) return;
-		if (hour % RESET_INTERVAL_HOURS !== 0) return;
-
 		const bucket = `${now.toDateString()}-${hour}`;
-		if (_last_reset_bucket === bucket) return;
-		_last_reset_bucket = bucket;
+
+		// A reset becomes DUE inside the window and stays due until it actually happens. Previously
+		// the window check was also the trigger, so anything that blocked the reload during those
+		// two minutes skipped that cycle entirely rather than delaying it.
+		if (hour % RESET_INTERVAL_HOURS === 0 && now.getMinutes() < RESET_WINDOW_MINUTES
+			&& _last_reset_bucket !== bucket) {
+			_reset_due_bucket = bucket;
+		}
+		if (!_reset_due_bucket || _last_reset_bucket === _reset_due_bucket) return;
+
+		// Never reload out from under a live anniversary visit. Rounds open on the hour and the
+		// half hour — the same moment this fires — and a reload mid-trip loses the travel state
+		// while the five-minute ticket keeps running, so the round is simply gone. Deferred, not
+		// cancelled: the block clears within five minutes at the latest, either by collecting or by
+		// the ticket expiring, and the reload then happens on the next tick.
+		//
+		// Checked directly rather than through set_suppress_reset(), which already has two other
+		// owners; a third writer to one boolean is how these clobber each other.
+		if (typeof anniversary_block_reason === "function" && anniversary_block_reason() === null) return;
+
+		_last_reset_bucket = _reset_due_bucket;
+		_reset_due_bucket = null;
 
 		game_log(`[reset] Periodic reload at ${hour}:00`, "#FFAA00");
 		setTimeout(() => parent.window.location.reload(), 1000);
@@ -1046,7 +1063,11 @@ var anniversary_travel = false;
 
 const ANNIVERSARY_TICK_MS = 2000;
 const ANNIVERSARY_RANGE = 65;        // skill range is 80; margin for them moving as we arrive
-const ANNIVERSARY_REISSUE_MS = 8000; // the featured player moves, so refresh the destination
+const ANNIVERSARY_REISSUE_MS = 8000; // while moving: the target walks, so refresh the destination
+// While NOT moving: retry promptly. Standing still is never right with a five-minute ticket
+// running, and a path that fails instantly must not cost the round. Floored rather than unlimited
+// so an unreachable destination cannot become a retry storm.
+const ANNIVERSARY_RETRY_MS = 2000;
 // Gap between kiss attempts. Long enough that a normal reply lands before a second cast can go out
 // (a second cast at a spent visit is what the server answers with "exception"), short enough to
 // retry promptly while still closing the last few units of distance.
@@ -1239,25 +1260,34 @@ async function anniversary_step() {
 		return true;   // keep closing in; a failed cast must not end the trip
 	}
 
-	// `!smart.moving` is the important half of this condition, not the throttle. smarter_move()
-	// hangs its interrupt and its monitor_movement chain off the single shared `smart` object, so
-	// issuing a second one while the first is live leaves two chains fighting over smart.moving:
-	// one completes and clears the flag under the other, and the survivor can leave it set with no
-	// mover behind it. handle_return_home() only re-issues while smart.moving is false, so the
-	// character then stands where it is forever — which is the stall after a kiss.
+	// Keep trying for the whole window rather than issuing one move and hoping it lands. A path can
+	// fail instantly, be interrupted by something else, or simply finish at a spot the target has
+	// already walked away from — and one attempt per five-minute ticket makes any of those the end
+	// of the round.
 	//
-	// Nothing is lost by waiting: a move already in flight is still heading to the right place, and
-	// the same pattern is why handle_return_home() guards on smart.moving too.
-	if (!smart.moving && Date.now() - _anniv_last_move > ANNIVERSARY_REISSUE_MS) {
+	// Two cadences. Not moving means retry promptly, because standing still is never right while a
+	// ticket is burning. Moving means refresh the destination on a slower beat, because the target
+	// walks and a stale destination arrives at nobody.
+	const move_is_ours = smart.moving && _anniv_move_interrupt && smart._interrupt === _anniv_move_interrupt;
+	const since_move = Date.now() - _anniv_last_move;
+	const want_move = (!smart.moving && since_move > ANNIVERSARY_RETRY_MS)
+		|| (move_is_ours && since_move > ANNIVERSARY_REISSUE_MS);
+
+	if (want_move) {
+		// Cancel our own move BEFORE issuing the next one. smarter_move() hangs its interrupt and
+		// its monitor_movement chain off the single shared `smart` object, so two live calls fight
+		// over smart.moving — one completes and clears it under the other, and the survivor can
+		// leave it set with no mover behind it, which strands the character permanently. Only ever
+		// our own: interrupting somebody else's move is how the walk home got cancelled.
+		if (move_is_ours) {
+			try { smart._interrupt("anniversary retarget"); } catch (e) { /* already settled */ }
+		}
 		_anniv_last_move = Date.now();
 		const dest = them
 			? { map: them.map || s.map, x: them.x, y: them.y }
 			: { map: s.map, x: s.x, y: s.y };
 		// Not awaited: this loop must keep re-evaluating while the move runs.
 		Promise.resolve(smarter_move(dest, null, { timeout: 60000 })).catch(() => {});
-		// smarter_move() installs its interrupt synchronously, so this is ours. Remembering which
-		// one is ours lets stand-down cancel our travel without cancelling whatever normal movement
-		// may have started after we arrived.
 		_anniv_move_interrupt = smart._interrupt;
 	}
 	return true;
