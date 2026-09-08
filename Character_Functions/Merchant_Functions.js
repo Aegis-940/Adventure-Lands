@@ -17,7 +17,21 @@ var CONFIG = {
 		crafting:   local_bool("AL_merchant_enabled_crafting", true),
 		exchanging: local_bool("AL_merchant_enabled_exchanging", false),
 		fishing:    local_bool("AL_merchant_enabled_fishing", true),
-		mining:     local_bool("AL_merchant_enabled_mining", true),
+		mining:     local_bool("AL_merchant_enabled_mining", false),
+	},
+
+	// Anniversary slice buying. Every account only ever finds ONE flavor, so the other five have to
+	// come from other players; the stand is how they reach us. Buy orders only, deliberately — a
+	// wishlist fill is atomic (their slice, our gold, one transaction) so there is no leg we can be
+	// left holding. Our own flavor is never listed: we already have a surplus of it.
+	trading: {
+		enabled: true,
+		own_flavour: "slice_citrus",
+		price: 100000,
+		quantity: 1000,
+		// Stop advertising a flavor once we hold this many. Above the realistic need so the orders
+		// simply stay up for the event.
+		target_each: 1000,
 	},
 	locations: {
 		HOME: { map: "main", x: -87, y: -96 },
@@ -217,9 +231,89 @@ async function handle_anniversary_state() {
 	}
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// MERCHANT STAND — open while idle, closed whenever we need to move.
+//
+// A merchant with an open stand cannot move, so every state other than IDLE closes it first. That
+// is enforced in set_state() rather than in each handler, because forgetting it in one place would
+// look like the merchant being stuck rather than like a stand being open.
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const SLICE_FLAVOURS = ["slice_strawberry", "slice_citrus", "slice_honey",
+	"slice_mint", "slice_blueberry", "slice_nightberry"];
+const TRADE_SLOTS = 16;              // runner_functions.js documents trade_slot as 1-16
+const WISHLIST_REFRESH_MS = 15000;   // re-checking every 250ms tick would spam trade_wishlist
+
+let _last_wishlist_refresh = 0;
+
+function stand_is_open() {
+	return !!character.stand;
+}
+
+async function open_merchant_stand() {
+	if (stand_is_open()) return;
+	try {
+		// No argument: open_stand() finds the stand item in the inventory itself.
+		await open_stand();
+	} catch (e) {
+		catcher(e, "open_merchant_stand");
+	}
+}
+
+async function close_merchant_stand() {
+	if (!stand_is_open()) return;
+	try {
+		await close_stand();
+	} catch (e) {
+		catcher(e, "close_merchant_stand");
+	}
+}
+
+function slice_count(name) {
+	let q = 0;
+	for (const item of character.items) {
+		if (item && item.name === name) q += item.q || 1;
+	}
+	return q;
+}
+
+// Flavors we still want, our own excluded — we can only ever find that one, so buying it would be
+// paying for something we already have a surplus of.
+function missing_slice_flavours() {
+	return SLICE_FLAVOURS.filter(name =>
+		name !== CONFIG.trading.own_flavour && slice_count(name) < CONFIG.trading.target_each);
+}
+
+async function refresh_slice_buy_orders() {
+	if (!CONFIG.trading.enabled || !stand_is_open()) return;
+	if (Date.now() - _last_wishlist_refresh < WISHLIST_REFRESH_MS) return;
+	_last_wishlist_refresh = Date.now();
+
+	const want = missing_slice_flavours();
+	for (let i = 0; i < want.length && i < TRADE_SLOTS; i++) {
+		const slot = character.slots["trade" + (i + 1)];
+		// `b` marks a slot as a BUY order; a sell offer has no `b`. Leave a correct order alone
+		// rather than re-emitting it every refresh.
+		if (slot && slot.b && slot.name === want[i] && (slot.q || 0) > 0) continue;
+		try {
+			// wishlist(trade_slot, name, price, level, quantity) — slices are materials, level 0.
+			await wishlist(i + 1, want[i], CONFIG.trading.price, 0, CONFIG.trading.quantity);
+			game_log(`🎂 WTB ${want[i]} x${CONFIG.trading.quantity} @ ${CONFIG.trading.price}g`, "#F0B742");
+		} catch (e) {
+			catcher(e, "refresh_slice_buy_orders");
+		}
+	}
+}
+
 async function handle_idle_state() {
 	// Only travel if not already close, so this doesn't reissue smarter_move() every tick.
-	if (character.map === HOME.map && Math.hypot(character.x - HOME.x, character.y - HOME.y) <= 10) return;
+	if (character.map === HOME.map && Math.hypot(character.x - HOME.x, character.y - HOME.y) <= 10) {
+		await open_merchant_stand();
+		await refresh_slice_buy_orders();
+		return;
+	}
+	// Still walking home: the stand has to be down or we cannot move at all.
+	await close_merchant_stand();
 	try {
 		await smarter_move(HOME);
 	} catch (e) {
@@ -500,6 +594,11 @@ async function handle_mining_state() {
 
 async function set_state(state) {
 	try {
+		// An open stand pins the merchant in place. Every state except IDLE needs to move, so the
+		// stand comes down here rather than in each handler — a handler that forgot would present
+		// as the merchant being mysteriously stuck, not as a stand being open.
+		if (state !== MERCHANT_STATES.IDLE && stand_is_open()) await close_merchant_stand();
+
 		switch (state) {
 			case MERCHANT_STATES.DEAD:       await handle_dead_state(); break;
 			case MERCHANT_STATES.ANNIVERSARY: await handle_anniversary_state(); break;
