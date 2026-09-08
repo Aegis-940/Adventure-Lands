@@ -24,13 +24,18 @@
 // once set. Retried once because the runner globals may not exist at script-eval time.
 //
 // This is the BASELINE only. panic_check() (Shared/Party_And_Loot.js) turns it off tick by tick
-// while monsters are targeting us, because the 3s channel cannot survive being hit. Characters that
-// do not run panic_check — the merchant — simply keep the baseline, which is right: nothing tanks
-// for him.
+// while monsters are targeting us, because the 3s channel cannot survive being hit.
+//
+// Off entirely for the merchant. Every destination he has — HOME (-87,-96), the bank, the potion
+// shop — already sits inside the town circle on main, so a town edge can only add a 3s channel to
+// a walk of a few hundred units; there is no route of his it shortens. Against that it costs him
+// real work: he is the one character running several independent loops (potions, mluck, the stand)
+// that fire actions during the channel and cancel it, and the only one with no panic_check() to
+// turn the flag off tick by tick. That is what stopped him reaching the bank.
 function enable_smart_town() {
 	try {
 		if (typeof smart === "object" && smart) {
-			smart.use_town = true;
+			smart.use_town = character.ctype !== "merchant";
 			return true;
 		}
 	} catch (e) { /* runner globals not up yet */ }
@@ -41,6 +46,18 @@ if (!enable_smart_town()) setTimeout(enable_smart_town, 3000);
 // Critical function. Must be declared early.
 function delay(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// True while a town channel or a door transition is in flight. Prefers the runner's own
+// is_transporting(), which is what the move executor itself gates on; the c.town/c.transport
+// fallback is there because this is called from a poll and must never throw.
+function is_teleporting() {
+	try {
+		if (typeof is_transporting === "function") return !!is_transporting(character);
+		return !!(character.c && (character.c.town || character.c.transport));
+	} catch (e) {
+		return false;
+	}
 }
 
 async function with_timeout(
@@ -135,6 +152,16 @@ function smarter_move(destination, on_done, options = {}) {
 		}
 
 		if (!smart.moving) {
+			// Mid-teleport is not stopped. A town node is a 3s channel and a door is a transition;
+			// through either, the runner's executor stands down and smart.moving can read false
+			// while the character is still very much on its way. Failing here rejected the
+			// caller's await — which is how the merchant's bank trip started aborting the moment
+			// town edges were switched on. Bounded: the channel clears within ~3s and the next
+			// poll fails for real, and MOVE_TIMEOUT still backstops.
+			if (is_teleporting()) {
+				setTimeout(monitor_movement, 200);
+				return;
+			}
 			complete(false, "movement stopped");
 			return;
 		}
