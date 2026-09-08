@@ -1003,6 +1003,7 @@ let _anniv_last_move = 0;
 let _anniv_last_kiss = 0;
 let _anniv_host_round = null;   // so the host notice prints once per round, not every tick
 let _anniv_travel_since = 0;
+let _anniv_move_interrupt = null;   // identity of OUR in-flight move, so we only cancel our own
 
 // anniversary_travel gates combat for ALL FOUR characters — should_pause_combat_loop() plus every
 // main_loop's movement branch. Nothing else can clear it, so if it is ever left set the whole party
@@ -1076,9 +1077,15 @@ function anniversary_should_travel() {
 function anniversary_stand_down(why) {
 	anniversary_travel = false;
 	_anniv_travel_since = 0;
+	// Only cancel a move that is still OURS. smart._interrupt always points at the most recent
+	// smarter_move, so once we have arrived and normal movement has taken over, an unconditional
+	// interrupt here would kill the walk home instead of our travel.
 	try {
-		if (smart.moving && typeof smart._interrupt === "function") smart._interrupt("anniversary over");
+		if (smart.moving && _anniv_move_interrupt && smart._interrupt === _anniv_move_interrupt) {
+			smart._interrupt("anniversary over");
+		}
 	} catch (e) { /* nothing in flight */ }
+	_anniv_move_interrupt = null;
 	// Recorded, not just logged: "the party stopped and I had to reload" needs to be answerable
 	// after the fact, and log() only reaches the in-game window.
 	try {
@@ -1147,14 +1154,26 @@ async function anniversary_step() {
 		return true;
 	}
 
-	if (Date.now() - _anniv_last_move > ANNIVERSARY_REISSUE_MS) {
+	// `!smart.moving` is the important half of this condition, not the throttle. smarter_move()
+	// hangs its interrupt and its monitor_movement chain off the single shared `smart` object, so
+	// issuing a second one while the first is live leaves two chains fighting over smart.moving:
+	// one completes and clears the flag under the other, and the survivor can leave it set with no
+	// mover behind it. handle_return_home() only re-issues while smart.moving is false, so the
+	// character then stands where it is forever — which is the stall after a kiss.
+	//
+	// Nothing is lost by waiting: a move already in flight is still heading to the right place, and
+	// the same pattern is why handle_return_home() guards on smart.moving too.
+	if (!smart.moving && Date.now() - _anniv_last_move > ANNIVERSARY_REISSUE_MS) {
 		_anniv_last_move = Date.now();
 		const dest = them
 			? { map: them.map || s.map, x: them.x, y: them.y }
 			: { map: s.map, x: s.x, y: s.y };
-		// Not awaited: this must keep re-evaluating while the move runs, and the move is re-issued
-		// on a throttle anyway because the target walks around.
+		// Not awaited: this loop must keep re-evaluating while the move runs.
 		Promise.resolve(smarter_move(dest, null, { timeout: 60000 })).catch(() => {});
+		// smarter_move() installs its interrupt synchronously, so this is ours. Remembering which
+		// one is ours lets stand-down cancel our travel without cancelling whatever normal movement
+		// may have started after we arrived.
+		_anniv_move_interrupt = smart._interrupt;
 	}
 	return true;
 }
