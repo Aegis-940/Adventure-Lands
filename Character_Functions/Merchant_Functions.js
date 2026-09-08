@@ -94,6 +94,8 @@ var CONFIG = {
 	},
 	do_not_bank: [],
 	min_bank_free_space: 10,
+	// Free inventory slots at or below which he drops what he's doing and empties the pack.
+	min_free_inventory_slots: 3,
 	default_gear: {
 		mainhand: { name: "broom", level: 9 },
 		offhand: { name: "wbookhs", level: 1 },
@@ -101,7 +103,9 @@ var CONFIG = {
 	// Fishing/mining sit above crafting/exchanging: all four need free bank space, but
 	// upgrading doesn't, so putting crafting/exchanging first starved fishing/mining out
 	// of a turn whenever space was scarce.
-	priorities: ["dead", "anniversary", "delivering", "upgrading", "fishing", "mining", "crafting", "exchanging", "restocking"],
+	// Banking sits directly under delivering: a full pack blocks every task below it, but a
+	// delivery run already ends in bank_items(), so it clears itself and potions stay first.
+	priorities: ["dead", "anniversary", "delivering", "banking", "upgrading", "fishing", "mining", "crafting", "exchanging", "restocking"],
 };
 
 // var, not const: Auto_Upgrade.js/Auto_Craft.js are separate eval closures that reference
@@ -127,6 +131,7 @@ const MERCHANT_STATES = {
 	ANNIVERSARY: "anniversary",
 	RESTOCKING: "restocking",
 	DELIVERING: "delivering",
+	BANKING: "banking",
 	UPGRADING: "upgrading",
 	CRAFTING: "crafting",
 	EXCHANGING: "exchanging",
@@ -194,6 +199,24 @@ function has_enough_bank_space() {
 	return bank_free_space() >= CONFIG.min_bank_free_space;
 }
 
+function free_inventory_slots() {
+	return character.items.filter(it => !it).length;
+}
+
+const BANKING_RETRY_MS = 60000;
+let _bank_retry_at = 0;
+
+// A full pack silently blocks most of what he does: withdraw_item() has nowhere to put the item,
+// craft and exchange cannot gather materials, and the fighters' clear_inventory() sends land
+// nowhere. bank_items() only ever ran at the tail of the delivering, gathering and exchange runs,
+// so a pack filled by loot pulls in between just stayed full until one of those happened to fire.
+function should_run_banking() {
+	return merchant_task === "Idle"
+		&& Date.now() >= _bank_retry_at
+		&& free_inventory_slots() <= CONFIG.min_free_inventory_slots
+		&& has_bankable_items();
+}
+
 function should_run_upgrade() {
 	// Unlike craft/exchange/fishing/mining, upgrading doesn't need free bank space up
 	// front -- it consumes scrolls and (on compound) merges stacks into fewer items.
@@ -237,6 +260,7 @@ const PRIORITY_CHECKS = {
 	// delivery or upgrade run started now would eat the whole window.
 	anniversary: { state: MERCHANT_STATES.ANNIVERSARY, should_run: () => typeof anniversary_should_travel === "function" && anniversary_should_travel() },
 	delivering:  { state: MERCHANT_STATES.DELIVERING, should_run: should_run_delivery },
+	banking:     { state: MERCHANT_STATES.BANKING,    should_run: should_run_banking },
 	upgrading:   { state: MERCHANT_STATES.UPGRADING,  should_run: should_run_upgrade },
 	crafting:    { state: MERCHANT_STATES.CRAFTING,   should_run: should_run_craft },
 	exchanging:  { state: MERCHANT_STATES.EXCHANGING, should_run: should_run_exchange },
@@ -568,6 +592,25 @@ async function handle_idle_state() {
 	}
 }
 
+// bank_items() walks to BANK_LOCATION itself, and handle_idle_state() brings him back to HOME on
+// the next tick, so this handler only has to sequence the two.
+async function handle_banking_state() {
+	if (merchant_task !== "Idle") return;
+	merchant_task = "Banking";
+	try {
+		log(`🎒 Down to ${free_inventory_slots()} free slots — emptying the pack.`, "#888");
+		await sell_items();
+		// A trip that deposits nothing would otherwise re-fire on the next 250ms controller tick,
+		// since the pack is still full and the items are still bankable. Back off instead.
+		const banked = await bank_items();
+		if (!banked) _bank_retry_at = Date.now() + BANKING_RETRY_MS;
+	} catch (e) {
+		catcher(e, "handle_banking_state");
+	} finally {
+		merchant_task = "Idle";
+	}
+}
+
 async function handle_delivering_state() {
 	if (merchant_task !== "Idle") return;
 	merchant_task = "Delivering";
@@ -850,6 +893,7 @@ async function set_state(state) {
 			case MERCHANT_STATES.DEAD:       await handle_dead_state(); break;
 			case MERCHANT_STATES.ANNIVERSARY: await handle_anniversary_state(); break;
 			case MERCHANT_STATES.DELIVERING: await handle_delivering_state(); break;
+			case MERCHANT_STATES.BANKING:    await handle_banking_state(); break;
 			case MERCHANT_STATES.UPGRADING:  await handle_upgrading_state(); break;
 			case MERCHANT_STATES.CRAFTING:   await handle_crafting_state(); break;
 			case MERCHANT_STATES.EXCHANGING: await handle_exchanging_state(); break;
