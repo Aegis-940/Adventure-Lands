@@ -918,7 +918,18 @@ async function withdraw_item(item_name, level = null, total = null) {
 			// bank_retrieve always pulls the ENTIRE stack from a slot — no partial-quantity retrieval.
 			// Must not loop this per-unit; that emptied the slot on the first call while still
 			// decrementing `remaining` per call, under-counting what actually arrived.
-			await bank_retrieve(pack_key, slot, -1);
+			//
+			// Guarded: bank_data may be the localStorage snapshot rather than live data, so a slot
+			// it lists can be empty or hold something else by now and bank_retrieve rejects with
+			// no_item. Skip that slot and keep going — other slots may still hold the item — rather
+			// than letting one stale entry abort the whole withdrawal.
+			try {
+				await bank_retrieve(pack_key, slot, -1);
+			} catch (e) {
+				game_log(`⚠️ withdraw_item: ${item_name} not in ${pack_key} slot ${slot} `
+					+ `(${(e && (e.reason || e.message)) || e})`, "#FFA500");
+				continue;
+			}
 			await delay(100);
 			remaining -= (itm.q || 1);
 		}

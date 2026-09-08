@@ -382,13 +382,27 @@ async function refresh_sell_offers() {
 	}
 }
 
-// Only true when the item is ACTUALLY IN THE BANK. That is the guard against chasing stock we no
-// longer own: once something sells out of both inventory and bank, this goes false and the merchant
-// never makes the trip, rather than looping on a withdraw that can never succeed.
+// "Is it in the bank" is necessary but NOT sufficient, because the bank data behind it is often the
+// localStorage snapshot rather than live: it happily lists an item that is no longer there. That is
+// what put the merchant in a loop — walk to the bank, bank_retrieve rejects no_item, come back,
+// snapshot still says the item exists, walk to the bank again. So a withdraw that produces nothing
+// blocks that entry for a while, and the block is what actually terminates the cycle.
+const RESTOCK_RETRY_MS = 10 * 60 * 1000;
+const _restock_blocked = {};   // "name@level" -> retry-after timestamp
+
+function restock_key(entry) {
+	return entry.name + "@" + (entry.level === undefined ? "any" : entry.level);
+}
+
+function restock_blocked(entry) {
+	return Date.now() < (_restock_blocked[restock_key(entry)] || 0);
+}
+
 function should_run_restock() {
 	if (!CONFIG.trading.enabled) return false;
 	if (merchant_task !== "Idle") return false;   // same guard the other priority checks use
 	for (const entry of CONFIG.sell_profile) {
+		if (restock_blocked(entry)) continue;
 		if (stock_inventory_count(entry) >= (entry.quantity || 1)) continue;
 		if (stock_bank_count(entry) > 0) return true;
 	}
@@ -402,13 +416,28 @@ async function handle_restocking_state() {
 			const want = entry.quantity || 1;
 			const have = stock_inventory_count(entry);
 			if (have >= want) continue;
+			if (restock_blocked(entry)) continue;
 
 			const in_bank = stock_bank_count(entry);
 			if (in_bank <= 0) continue;   // sold out; nothing to fetch
 
-			// withdraw_item(item_name, level, total) — null level means "any level".
-			await withdraw_item(entry.name, entry.level === undefined ? null : entry.level,
-				Math.min(want - have, in_bank));
+			// Per entry, so one item that cannot be fetched does not abandon the rest of the list.
+			try {
+				// withdraw_item(item_name, level, total) — null level means "any level".
+				await withdraw_item(entry.name, entry.level === undefined ? null : entry.level,
+					Math.min(want - have, in_bank));
+			} catch (e) {
+				catcher(e, "handle_restocking_state: " + restock_key(entry));
+			}
+
+			// Judge on the inventory, not on whether withdraw_item threw: a stale snapshot makes it
+			// skip every slot and return quietly having fetched nothing. If none arrived, the bank
+			// does not really hold this and asking again immediately just repeats the trip.
+			if (stock_inventory_count(entry) <= have) {
+				_restock_blocked[restock_key(entry)] = Date.now() + RESTOCK_RETRY_MS;
+				game_log(`⚠️ Restock: ${restock_key(entry)} is not in the bank as listed — `
+					+ `pausing that entry for ${RESTOCK_RETRY_MS / 60000} min`, "#FFA500");
+			}
 		}
 	} catch (e) {
 		catcher(e, "handle_restocking_state");
