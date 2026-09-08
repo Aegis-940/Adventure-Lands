@@ -1106,21 +1106,33 @@ function anniversary_is_host() {
 	} catch (e) { return false; }
 }
 
-// Is there somewhere to actually go? `available === false` means the featured player is somewhere
-// unreachable; their slot is reserved and the timer keeps running, so wait rather than stand down.
-function anniversary_should_travel() {
+// Returns null when we should be committed to this round, otherwise WHY not — a string rather than
+// a boolean so a stand-down names which of six quite different things happened. "The round ended"
+// and "our five-minute ticket ran out while we walked" want opposite responses and were being
+// logged identically as "done, resuming".
+//
+// Note what is deliberately NOT a block: s.available === false. The client is explicit that it
+// means "waiting for them to return to a reachable spot; their place is reserved; the five-minute
+// timer keeps running" — a pause, not a cancellation. Treating it as a block abandoned the trip,
+// re-engaged combat, and restarted from wherever we happened to be standing once they reappeared,
+// spending the ticket a slice at a time and often never arriving.
+function anniversary_block_reason() {
 	const s = anniversary_event();
-	if (!s || s.available === false) return false;
-	if (anniversary_is_host()) return false;
-	// Collected already this round. Scoped to the round number rather than just testing for the
-	// buff, because anniversary_kiss lasts 20 minutes against a 30 minute cycle — a bare buff check
-	// would occasionally still be true when the next round opened and would skip it.
-	if (_anniv_done_round === s.round) return false;
-	if (!anniversary_can_visit()) return false;
+	if (!s) return "no live round";
+	if (anniversary_is_host()) return "we are the featured player";
+	// Scoped to the round number rather than testing for the buff: anniversary_kiss lasts 20
+	// minutes against a 30 minute cycle, so a bare buff check would sometimes still be true when
+	// the next round opened and would skip it.
+	if (_anniv_done_round === s.round) return "already collected this round";
+	if (!anniversary_can_visit()) return "no usable visit ticket";
 	try {
-		if (!G.maps[s.map] || !isFinite(s.x) || !isFinite(s.y)) return false;
-	} catch (e) { return false; }
-	return true;
+		if (!G.maps[s.map] || !isFinite(s.x) || !isFinite(s.y)) return "no usable destination";
+	} catch (e) { return "no usable destination"; }
+	return null;
+}
+
+function anniversary_should_travel() {
+	return anniversary_block_reason() === null;
 }
 
 // Clearing the flag is not enough on its own: a smart_move to the featured player is still in
@@ -1159,8 +1171,11 @@ async function anniversary_step() {
 		log(`🎂 Anniversary: WE are the featured player (${character.name}) — staying put for visitors.`, "#F0B742", "Alerts");
 	}
 
-	if (!anniversary_should_travel()) {
-		if (anniversary_travel) anniversary_stand_down("done, resuming");
+	// Names the actual cause rather than a generic "done, resuming", which covered six of them and
+	// so said nothing about which one kept costing us the round.
+	const blocked = anniversary_block_reason();
+	if (blocked) {
+		if (anniversary_travel) anniversary_stand_down(blocked);
 		return false;
 	}
 
@@ -1183,6 +1198,12 @@ async function anniversary_step() {
 		anniversary_stand_down("buff received, back to work");
 		return false;
 	}
+
+	// Reserved but temporarily unreachable. Hold position and stay committed — combat stays
+	// disengaged and the trip is NOT abandoned, because their slot is still ours and the round
+	// timer keeps running. Standing down here and restarting when they reappeared is what spent the
+	// five-minute ticket in pieces without ever arriving.
+	if (s.available === false) return true;
 
 	// Prefer the live entity when we can see them — S.x/S.y is a periodic snapshot and they move.
 	const them = get_player(s.target);
