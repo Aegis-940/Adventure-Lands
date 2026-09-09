@@ -1056,6 +1056,9 @@ function party_cohesion_hold() {
 // Same failure mode handle_return_home() guards against: a pathfind that fails outright drops
 // smart.moving back to false immediately, so an unrate-limited re-issue becomes a retry storm.
 const FOLLOW_MOVE_RETRY_MS = 3000;
+// How far the ring point must move before abandoning a route already being computed. Her walking
+// a few steps does not change the route materially, and re-pathing for it costs the whole search.
+const FOLLOW_RETARGET_DRIFT = 80;
 let _last_follow_move = 0;
 
 function follow_reissue(dest) {
@@ -1109,19 +1112,32 @@ function follow_healer() {
 	const fd = CONFIG.movement.follow_distance;
 	if (Math.abs(dist - fd) <= 3) return;
 
-	// Cancel stale pathfinding if our distance from the ring has shifted significantly
-	if (smart.moving) {
-		if (Math.abs(dist - fd) > 40) stop_movement("follow_healer");
-		return;
-	}
-
-	// Target a point exactly follow_distance units from the healer along our current angle (approach or push-away).
+	// A point exactly follow_distance from her along our current bearing (approach or push away).
 	const angle = Math.atan2(character.y - healer.y, character.x - healer.x);
 	const target_x = healer.x + Math.cos(angle) * fd;
 	const target_y = healer.y + Math.sin(angle) * fd;
 
+	if (smart.moving) {
+		// Retarget on the DESTINATION drifting, never on our own distance from her.
+		//
+		// The old test was `|dist - fd| > 40`, which is true for the whole journey — that is WHY
+		// we are walking — so it cancelled the move on every 100ms tick. smart_move's BFS runs on
+		// an 80ms interval and needs far longer than one tick to finish a route, and re-issuing
+		// resets it, so a pathfound follow could never complete: the only branch that ever arrived
+		// was the raw move() below. Throttled as well, so even a genuinely drifting target cannot
+		// starve the search.
+		if (Date.now() - _last_follow_move > FOLLOW_MOVE_RETRY_MS
+			&& Math.hypot(smart.x - target_x, smart.y - target_y) > FOLLOW_RETARGET_DRIFT) {
+			_last_follow_move = Date.now();
+			stop_movement("follow_healer retarget");
+		}
+		return;
+	}
+
 	if (!can_move_to(target_x, target_y)) {
-		fire_and_forget_move({ x: target_x, y: target_y });
+		// Pathfound, so it goes through the throttle. The raw move() below does not: it is cheap,
+		// starts no search, and per-tick responsiveness is the whole point of the orbit.
+		follow_reissue({ x: target_x, y: target_y });
 	} else {
 		move(target_x, target_y);
 	}
@@ -1355,6 +1371,8 @@ const ANNIVERSARY_KISS_RETRY_MS = 2500;
 const ANNIVERSARY_FOREIGN_MS = 3000;
 // Grace after the server acknowledges a cast, before we are willing to cast again.
 const ANNIVERSARY_ACK_GRACE_MS = 6000;
+// How far the featured player must move before a route already being computed is worth abandoning.
+const ANNIVERSARY_RETARGET_DRIFT = 100;
 
 let _anniv_last_move = 0;
 let _anniv_last_kiss = 0;
@@ -1591,9 +1609,23 @@ async function anniversary_step() {
 	// priority and every main_loop yields to it, so taking the journey over is correct.
 	const foreign_move = smart.moving && !move_is_ours;
 
-	const want_move = (!smart.moving && since_move > ANNIVERSARY_RETRY_MS)
-		|| (move_is_ours && since_move > ANNIVERSARY_REISSUE_MS)
-		|| (foreign_move && since_move > ANNIVERSARY_FOREIGN_MS);
+	const dest = them
+		? { map: them.map || s.map, x: them.x, y: them.y }
+		: { map: s.map, x: s.x, y: s.y };
+
+	// Only re-path when the destination has genuinely moved. smart_move's BFS is not instant and
+	// re-issuing resets it, so "refresh the destination every 8s" could reset a long cross-map
+	// search before it ever finished — the target taking a few steps must not cost us the route.
+	const dest_drifted = !smart.moving
+		|| smart.map !== dest.map
+		|| Math.hypot(smart.x - dest.x, smart.y - dest.y) > ANNIVERSARY_RETARGET_DRIFT;
+
+	// Taking over a foreign journey is exempt: whatever it is aiming at, it is not ours to rely on
+	// and anniversary_stand_down() could not cancel it later.
+	const want_move = (foreign_move && since_move > ANNIVERSARY_FOREIGN_MS)
+		|| (dest_drifted && (
+			(!smart.moving && since_move > ANNIVERSARY_RETRY_MS)
+			|| (move_is_ours && since_move > ANNIVERSARY_REISSUE_MS)));
 
 	if (want_move) {
 		// Cancel BEFORE issuing the next one. smarter_move() hangs its interrupt and its
@@ -1602,9 +1634,6 @@ async function anniversary_step() {
 		// set with no mover behind it, which strands the character permanently.
 		if (smart.moving) stop_movement("anniversary retarget"); // Shared/Movement.js
 		_anniv_last_move = Date.now();
-		const dest = them
-			? { map: them.map || s.map, x: them.x, y: them.y }
-			: { map: s.map, x: s.x, y: s.y };
 		// Not awaited: this loop must keep re-evaluating while the move runs.
 		Promise.resolve(smarter_move(dest, null, { timeout: 60000 })).catch(() => {});
 		_anniv_move_interrupt = smart._interrupt;
