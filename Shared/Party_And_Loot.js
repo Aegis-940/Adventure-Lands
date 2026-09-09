@@ -1658,10 +1658,16 @@ function anniversary_destination() {
 	const s = anniversary_event();
 	if (!s) return null;
 
-	// Reserved but temporarily unreachable. Hold position and stay committed: their slot is still
-	// ours and the round timer keeps running. Standing down here and restarting when they
-	// reappeared is what spent the five-minute ticket in pieces without ever arriving.
-	if (s.available === false) return { hold: true, label: "anniversary-wait" };
+	// Reserved but temporarily unreachable. Stay committed — their slot is still ours and the round
+	// timer keeps running, and standing down here is what spent the five-minute ticket in pieces
+	// without ever arriving. But keep WALKING to where they were rather than freezing on the spot:
+	// the ticket burns either way, and being already there when they reappear is the whole game.
+	// Only genuinely hold if there is nowhere to aim at.
+	if (s.available === false) {
+		return isFinite(s.x) && isFinite(s.y)
+			? { label: "anniversary-wait", map: s.map, x: s.x, y: s.y, radius: ANNIVERSARY_RANGE - 15 }
+			: { hold: true, label: "anniversary-wait" };
+	}
 
 	// Close enough to cast — hold, so local farm movement cannot wander us back out of range
 	// between the 2s ticks that do the casting.
