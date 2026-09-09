@@ -281,6 +281,14 @@ function reposition_center() {
 		if (!healer || healer.rip || healer.map !== character.map) return null;
 		return { x: healer.x, y: healer.y };
 	}
+	// A follower orbits HER, not a fixed coordinate. The party moves — to an event, to the
+	// anniversary, to a relocated farm spot — and a centre she has left is exactly where we do not
+	// want to be. Falls back to the farm spot when she is not on our map, which is the only time a
+	// follower should be positioning against anything else.
+	if (character.name !== MOVEMENT_LEADER) {
+		const lead = get_player(MOVEMENT_LEADER);
+		if (lead && !lead.rip) return { x: lead.x, y: lead.y };
+	}
 	return locations[home][0];
 }
 

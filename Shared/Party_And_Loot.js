@@ -824,7 +824,8 @@ async function _panic_check_body() {
 // Following is scoped to TRAVEL, not to farming. Once she is standing on the spot the fighters
 // go back to reposition(), which is what actually aims cleave/5shot at a cluster — orbiting her
 // full-time would cost real damage for no coherence gain, since they're already beside her.
-const FOLLOW_SLACK = 60; // past the farm radius before she counts as having left; stops branch flapping
+// FOLLOW_SLACK lived here, for deciding whether she had left the farm spot. Following no longer
+// asks that question at all.
 
 let _leader_pos_cache = { at: 0, pos: null };
 
@@ -862,29 +863,10 @@ function leader_position() {
 	return null;
 }
 
-// True when she has left the farm spot — travelling to an event, walking back from a death,
-// heading for the anniversary target, or simply relocated by the settings window.
-function party_should_follow() {
-	if (character.name === MOVEMENT_LEADER) return false;
-	if (typeof destination === "undefined" || !destination) return false;
-
-	const pos = leader_position();
-	// Unknown (offline/never seen) or dead: there is nothing to walk with, so hold the spot and
-	// let the normal chain run. She returns to it herself on respawn.
-	if (!pos || pos.rip) return false;
-
-	// Leave WITH her. Waiting for her to clear the farm radius handed her a head start, and the
-	// seconds spent closing it are exactly when a fighter gets caught alone on the road.
-	if (pos.travelling) return true;
-
-	// Several `locations` entries omit `map` (cgoo, ent) — without this fallback their
-	// destination.map is undefined and the comparison below would follow her forever.
-	const home_map = destination.map || character.map;
-	if (pos.map !== home_map) return true;
-
-	const radius = (CONFIG.movement.circle_radius || 75) + FOLLOW_SLACK;
-	return Math.hypot(pos.x - destination.x, pos.y - destination.y) > radius;
-}
+// party_should_follow() lived here — "has she left MY farm spot?". Following is unconditional now,
+// so there is nothing left to ask: a follower belongs with her whatever she is doing, and the
+// question itself was what let them wander off to a fixed coordinate whenever she was standing on
+// it. follow_has_leader() replaces it, and only answers whether there is a leader at all.
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // LEADER-SIDE COHESION — the leader waits for stragglers.
@@ -1126,6 +1108,11 @@ function movement_goal() {
 	if (follow) return follow;
 	if (event) return event;
 
+	// Having a leader ends the list. Everything below is "decide for yourself", and a follower must
+	// not: the farm spot is a fixed coordinate, and walking to it is walking away from the party
+	// the moment she is anywhere else. Her position IS their home.
+	if (follow_has_leader()) return null;
+
 	// 6. The bscorpion farm has its own approach geometry.
 	if (home === "bscorpion") {
 		return is_at_bscorpion_farm() // Shared/Movement.js
@@ -1154,6 +1141,7 @@ function movement_local(goal, farm_step) {
 	if (goal && goal.local === "follow") return follow_step(goal);
 	if (goal && goal.local === "event") return event_step(goal.event); // Shared/Combat_Utilities.js
 	if (goal && goal.local === "anniversary") return anniversary_close_step();
+	// "farm" means: we are where we should be, run the character's own combat positioning.
 	// Farm movement must NEVER run while committed to a visit. The arbiter releases the moment we
 	// reach the goal coordinates, and if the target has walked off, those coordinates are an empty
 	// patch of town — wandering back into the farm orbit from there is how the round was lost after
@@ -1239,6 +1227,17 @@ function trail_next_point() {
 // Inside this we count as keeping station on her, which is what lets a visible event monster take
 // priority over the ring step. It is NOT the walk/pathfind boundary — line of sight is.
 const FOLLOW_STATION_RANGE = 220;
+// Inside THIS we are simply with her, and local combat positioning takes over from the ring step.
+// reposition() is centred on her, so it holds station and seeks a cluster at the same time.
+const FOLLOW_CLOSE = 120;
+
+// Is there a live leader for us to belong to? Non-leaders only; false when she is dead or offline,
+// which is when a follower goes back to running its own farm behaviour.
+function follow_has_leader() {
+	if (character.name === MOVEMENT_LEADER) return false;
+	const pos = leader_position();
+	return !!pos && !pos.rip;
+}
 
 // Where we want to stand: exactly follow_distance from her along our current bearing, whether we
 // are closing on her or being crowded off.
@@ -1251,27 +1250,34 @@ function follow_ring_point(pos) {
 // Returns a goal or null; issues nothing.
 function follow_goal() {
 	if (character.name === MOVEMENT_LEADER) return null; // she does not follow herself
-	// giantspider follows her permanently — she leads the instance run and there is no farm spot
-	// to hold. Otherwise only while she is off it.
-	if (home !== "giantspider" && !party_should_follow()) return null;
 
 	const pos = leader_position();
-	if (!pos) {
-		// Cannot place her at all. Ping and stand still rather than walk off somewhere arbitrary.
-		const now = Date.now();
-		if (now - _last_healer_ping > 2000) {
-			_last_healer_ping = now;
-			send_cm(MOVEMENT_LEADER, { type: "where_are_you" });
+	// Offline or dead — nothing to follow. Fall through to our own behaviour rather than freezing;
+	// the old {hold} here was itself a way to get stuck.
+	if (!pos || pos.rip) {
+		if (!pos) {
+			const now = Date.now();
+			if (now - _last_healer_ping > 2000) {
+				_last_healer_ping = now;
+				send_cm(MOVEMENT_LEADER, { type: "where_are_you" });
+			}
 		}
-		return { hold: true, label: "follow-lost" };
+		return null;
 	}
 
-	// STRAIGHT LINE FIRST — she is on our map and in the clear, so just walk at her. No search, and
-	// re-aiming every tick tracks her better than any planned route to where she used to be.
+	// UNCONDITIONAL. This used to be gated on party_should_follow() — "is she away from MY farm
+	// spot" — so following only engaged while she was travelling. The rest of the time each
+	// follower ran its own return-home and reposition against a fixed coordinate, which is
+	// precisely "doing whatever they want". A follower's home is wherever she is.
 	if (pos.map === character.map) {
+		const d = Math.hypot(character.x - pos.x, character.y - pos.y);
 		const ring = follow_ring_point(pos);
 		if (can_move_to(ring.x, ring.y)) {
-			const d = Math.hypot(character.x - pos.x, character.y - pos.y);
+			// Close enough to be with her: hand over to local combat positioning, which is centred
+			// on her too (see reposition_center), so we keep station AND still seek a cluster.
+			if (d <= FOLLOW_CLOSE) return { local: "farm", label: "with-leader", on_station: true };
+			// STRAIGHT LINE — no search, and re-aiming every tick tracks her better than any
+			// planned route to where she used to be.
 			return { local: "follow", label: "follow-ring", on_station: d <= FOLLOW_STATION_RANGE };
 		}
 	}
