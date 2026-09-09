@@ -957,7 +957,12 @@ function party_cohesion_hold() {
 			if (!s || s.rip) continue;
 			// Tested for EVERY member, not just the first straggler: the whole point is that this
 			// one is true while they are standing next to us.
-			if (s.anniv_pending && !_cohesion_cache.anniv) _cohesion_cache.anniv = name;
+			//
+			// has_kiss overrides pending. The buff is the objective and comes from the server, so a
+			// member who has it is done however confused their own state machine is — which is the
+			// difference between "we all have it, leave together" and one stuck flag parking the
+			// party for two minutes.
+			if (s.anniv_pending && !s.has_kiss && !_cohesion_cache.anniv) _cohesion_cache.anniv = name;
 			if (_cohesion_cache.straggler) continue;
 			const off_map = s.map !== character.map;
 			// Not measurable across a map boundary — Infinity keeps the distance comparison honest
@@ -1135,6 +1140,12 @@ function movement_goal() {
 function movement_local(goal, farm_step) {
 	if (goal && goal.local === "follow") return follow_step();
 	if (goal && goal.local === "event") return event_step(goal.event); // Shared/Combat_Utilities.js
+	if (goal && goal.local === "anniversary") return anniversary_close_step();
+	// Farm movement must NEVER run while committed to a visit. The arbiter releases the moment we
+	// reach the goal coordinates, and if the target has walked off, those coordinates are an empty
+	// patch of town — wandering back into the farm orbit from there is how the round was lost after
+	// actually arriving. Belt and braces alongside the holds in anniversary_destination().
+	if (typeof anniversary_travel !== "undefined" && anniversary_travel) return;
 	if (typeof farm_step === "function") farm_step();
 }
 
@@ -1437,6 +1448,8 @@ const ANNIVERSARY_RANGE = 65;        // skill range is 80; margin for them movin
 const ANNIVERSARY_KISS_RETRY_MS = 2500;
 // Grace after the server acknowledges a cast, before we are willing to cast again.
 const ANNIVERSARY_ACK_GRACE_MS = 6000;
+// How close to the last-known spot counts as "we are where they were" when they are not in sight.
+const ANNIVERSARY_SEEK_RADIUS = 30;
 
 // The re-issue cadences, the drift threshold and the in-flight move identity that used to live
 // here are gone: this module no longer moves anything. It decides, anniversary_destination()
@@ -1680,28 +1693,55 @@ function anniversary_destination() {
 	const s = anniversary_event();
 	if (!s) return null;
 
-	// Reserved but temporarily unreachable. Stay committed — their slot is still ours and the round
-	// timer keeps running, and standing down here is what spent the five-minute ticket in pieces
-	// without ever arriving. But keep WALKING to where they were rather than freezing on the spot:
-	// the ticket burns either way, and being already there when they reappear is the whole game.
-	// Only genuinely hold if there is nowhere to aim at.
-	if (s.available === false) {
-		return isFinite(s.x) && isFinite(s.y)
-			? { label: "anniversary-wait", map: s.map, x: s.x, y: s.y, radius: ANNIVERSARY_RANGE - 15 }
-			: { hold: true, label: "anniversary-wait" };
-	}
-
-	// Close enough to cast — hold, so local farm movement cannot wander us back out of range
-	// between the 2s ticks that do the casting.
+	// THE LIVE ENTITY IS AUTHORITATIVE. The objective is proximity to a PERSON, and the arbiter can
+	// only judge arrival at COORDINATES — so aiming at the S snapshot let it declare success at an
+	// empty patch of town the target had already walked away from. It then released, farm movement
+	// took over, and the character stood there until the ticket expired and walked home. That is
+	// "made it to town, never got the kiss, then just left".
 	const them = get_player(s.target);
-	if (them && distance(character, them) <= ANNIVERSARY_RANGE) {
-		return { hold: true, label: "anniversary-kiss" };
+
+	if (them) {
+		if (distance(character, them) <= ANNIVERSARY_RANGE) {
+			// Hold, so nothing wanders us back out of range between the 2s ticks that do the casting.
+			return { hold: true, label: "anniversary-kiss" };
+		}
+		// Straight line first, pathfinder only when geometry blocks it — the same rule as following,
+		// and for the same reason: this is a short hop to someone in sight, not a route to plan.
+		const spot = anniversary_close_point(them);
+		if (can_move_to(spot.x, spot.y)) return { local: "anniversary", label: "anniversary-close" };
+		return { label: "anniversary", map: them.map || s.map, x: them.x, y: them.y, radius: ANNIVERSARY_RANGE - 15 };
 	}
 
-	// The live entity when we can see them; the S snapshot is periodic and they walk.
-	return them
-		? { label: "anniversary", map: them.map || s.map, x: them.x, y: them.y, radius: ANNIVERSARY_RANGE - 15 }
-		: { label: "anniversary", map: s.map, x: s.x, y: s.y, radius: ANNIVERSARY_RANGE - 15 };
+	// Not visible. Walk to the snapshot — but once there, HOLD rather than hand back to farm
+	// movement. Standing where they were last seen is the best play: they are reserved to us, the
+	// round timer is still running, and they may well walk back into range.
+	const at_snapshot = character.map === s.map
+		&& isFinite(s.x) && isFinite(s.y)
+		&& Math.hypot(character.x - s.x, character.y - s.y) <= ANNIVERSARY_SEEK_RADIUS;
+
+	if (at_snapshot || !(isFinite(s.x) && isFinite(s.y))) {
+		return { hold: true, label: s.available === false ? "anniversary-wait" : "anniversary-seek" };
+	}
+	return { label: "anniversary", map: s.map, x: s.x, y: s.y, radius: ANNIVERSARY_SEEK_RADIUS };
+}
+
+// Aim well inside range rather than at its edge, so a step or two from either of us does not put
+// us straight back out of it.
+function anniversary_close_point(them) {
+	const want = ANNIVERSARY_RANGE * 0.5;
+	const angle = Math.atan2(character.y - them.y, character.x - them.x);
+	return { x: them.x + Math.cos(angle) * want, y: them.y + Math.sin(angle) * want };
+}
+
+// The LOCAL half: one raw move() toward a target we can already see. No pathfind.
+function anniversary_close_step() {
+	const s = anniversary_event();
+	if (!s) return;
+	const them = get_player(s.target);
+	if (!them) return; // nothing in sight — standing still beats farm-walking out of the area
+	if (distance(character, them) <= ANNIVERSARY_RANGE) return;
+	const spot = anniversary_close_point(them);
+	if (can_move_to(spot.x, spot.y)) move(spot.x, spot.y);
 }
 
 // The watchdog runs on its OWN timer, deliberately not inside anniversary_loop(). The loop awaits

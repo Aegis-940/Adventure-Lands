@@ -172,6 +172,10 @@ function get_full_character_state() {
 		// they walk off, so distance alone reads "together" and she leaves without them. Goes false
 		// the moment the visit is collected, the ticket expires, or the round ends.
 		anniv_pending: typeof anniversary_should_travel === "function" && anniversary_should_travel(),
+		// The buff IS the objective, and it is server truth rather than our own bookkeeping. The
+		// party leaves the moment all three combat members have it, so publishing it means a member
+		// whose state machine has got itself confused can no longer hold everyone else still.
+		has_kiss: !!(character.s && character.s.anniversary_kiss),
 		free_slots: character.items.filter(it => !it).length,
 		conditions: character.s || {}, // stunned, mluck, poisoned, etc. — see character.s
 		last_seen: Date.now(),
