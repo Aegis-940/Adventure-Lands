@@ -1100,7 +1100,11 @@ function movement_goal() {
 	// melee character short of a boss she is healing from her own, much longer, range. Only for a
 	// monster already visible: a travel goal here would be them setting off on their own again,
 	// which is the split this ordering exists to prevent.
-	if (follow && event && event.local === "event") return event;
+	//
+	// on_station, not merely "walking rather than pathfinding" — a straight-line follow now covers
+	// the whole distance, so without this a follower still 600 units behind would break off toward
+	// a visible boss instead of closing on her first.
+	if (follow && follow.on_station && event && event.local === "event") return event;
 	if (follow) return follow;
 	if (event) return event;
 
@@ -1134,13 +1138,19 @@ function movement_local(goal, farm_step) {
 	if (typeof farm_step === "function") farm_step();
 }
 
-// Beyond this we need a route to her; inside it, a raw step on the ring is enough. The step never
-// touches `smart`, so it cannot compete with the arbiter — which is why the split is here.
-// The re-issue throttle that used to live alongside this is gone; the arbiter has one for every
-// goal, which is the point of having one.
-const FOLLOW_TRAVEL_RANGE = 220;
+// Inside this we count as keeping station on her, which is what lets a visible event monster take
+// priority over the ring step. It is NOT the walk/pathfind boundary — line of sight is.
+const FOLLOW_STATION_RANGE = 220;
 
-// The TRAVEL half of following. Returns a goal or null; issues nothing.
+// Where we want to stand: exactly follow_distance from her along our current bearing, whether we
+// are closing on her or being crowded off.
+function follow_ring_point(pos) {
+	const fd = CONFIG.movement.follow_distance;
+	const angle = Math.atan2(character.y - pos.y, character.x - pos.x);
+	return { x: pos.x + Math.cos(angle) * fd, y: pos.y + Math.sin(angle) * fd };
+}
+
+// Returns a goal or null; issues nothing.
 function follow_goal() {
 	if (character.name === MOVEMENT_LEADER) return null; // she does not follow herself
 	// giantspider follows her permanently — she leads the instance run and there is no farm spot
@@ -1158,39 +1168,51 @@ function follow_goal() {
 		return { hold: true, label: "follow-lost" };
 	}
 
+	// A different map is always a pathfind: there is no straight line through a door.
 	if (pos.map !== character.map) {
 		return { label: "follow", map: pos.map, x: pos.x, y: pos.y, radius: 80 };
 	}
 
-	const d = Math.hypot(character.x - pos.x, character.y - pos.y);
-	if (d > FOLLOW_TRAVEL_RANGE) {
-		return { label: "follow", map: pos.map, x: pos.x, y: pos.y, radius: CONFIG.movement.follow_distance + 30 };
+	// STRAIGHT LINE FIRST, pathfinder only when geometry genuinely blocks it.
+	//
+	// This used to switch on distance alone — anything past 220 units got a smart_move. That made
+	// the ordinary case (same map, open ground, a few hundred units apart) pay for a BFS on a
+	// 40ms-per-80ms budget, re-planned every time she moved, when a raw move() would have walked
+	// straight to her. It was both the slowest path and the one most likely to stall, for a
+	// journey that needed no planning at all.
+	//
+	// Re-tested every tick, so a walk that runs into geometry falls through to the pathfinder on
+	// the next tick, and a pathfind that clears the obstacle drops back to walking.
+	const ring = follow_ring_point(pos);
+	if (can_move_to(ring.x, ring.y)) {
+		const d = Math.hypot(character.x - pos.x, character.y - pos.y);
+		return { local: "follow", label: "follow-ring", on_station: d <= FOLLOW_STATION_RANGE };
 	}
 
-	// Close enough that the ring step handles it.
-	return { local: "follow", label: "follow-ring" };
+	return { label: "follow", map: pos.map, x: pos.x, y: pos.y, radius: CONFIG.movement.follow_distance + 30 };
 }
 
-// The LOCAL half: one raw move() onto the follow ring. No pathfind, so it is safe to run every
-// tick, and per-tick responsiveness is the whole point of keeping station on her.
+// The LOCAL half: one raw move() onto the follow ring. Starts no pathfind, so it is safe to run
+// every tick — and re-aiming at her every tick is what makes a straight-line follow track a moving
+// leader better than a planned route to where she used to be.
 function follow_step() {
-	const healer = get_player(MOVEMENT_LEADER);
-	if (!healer || healer.rip) return;
+	// leader_position(), not get_player(). The entity is only available inside render range, so
+	// keying on it meant a leader on our own map but off-screen produced no movement at all — a
+	// non-issue while this only ran at close quarters, a stall now that it does the whole walk.
+	const pos = leader_position();
+	if (!pos || pos.rip || pos.map !== character.map) return;
 
-	_healer_last_known = { map: character.map, x: healer.x, y: healer.y };
+	const live = get_player(MOVEMENT_LEADER);
+	if (live && !live.rip) _healer_last_known = { map: character.map, x: live.x, y: live.y };
 
-	const dist = Math.hypot(character.x - healer.x, character.y - healer.y);
-	const fd = CONFIG.movement.follow_distance;
-	if (Math.abs(dist - fd) <= 3) return;
+	const dist = Math.hypot(character.x - pos.x, character.y - pos.y);
+	if (Math.abs(dist - CONFIG.movement.follow_distance) <= 3) return;
 
-	const angle = Math.atan2(character.y - healer.y, character.x - healer.x);
-	const target_x = healer.x + Math.cos(angle) * fd;
-	const target_y = healer.y + Math.sin(angle) * fd;
-
-	// can_move_to() false means geometry is in the way. Do nothing rather than pathfind: the
-	// arbiter's follow goal takes over as soon as we drift past FOLLOW_TRAVEL_RANGE, and starting a
-	// BFS from down here is exactly the second mover this refactor removed.
-	if (can_move_to(target_x, target_y)) move(target_x, target_y);
+	// follow_goal() already proved the line is clear this tick; re-checked because the cost is
+	// nothing and walking into geometry is not recoverable from down here. If it has closed, the
+	// goal falls through to the pathfinder on the next tick.
+	const ring = follow_ring_point(pos);
+	if (can_move_to(ring.x, ring.y)) move(ring.x, ring.y);
 }
 
 
