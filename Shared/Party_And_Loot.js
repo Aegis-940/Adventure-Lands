@@ -719,7 +719,15 @@ async function _panic_check_body() {
 	// hit, loses it, and repeats — which is how the teleport gets "interrupted endlessly". Once
 	// scare has cleared the aggro the next path recompute can use it again. Per-character: each
 	// character has its own `smart`.
-	try { smart.use_town = MONSTERS_TARGETING_ME === 0; } catch (e) { /* runner not up */ }
+	// Written on CHANGE only, and never mid-search. smart.use_town is read inside the BFS at every
+	// node expansion, not once when the search starts, so writing it on every 100ms tick mutated
+	// the graph underneath a search already in progress — a route could be computed half with town
+	// edges available and half without. Deferring to the next search is the point: whatever graph a
+	// search began on, it should finish on.
+	try {
+		const want_town = MONSTERS_TARGETING_ME === 0;
+		if (smart.use_town !== want_town && !smart.searching) smart.use_town = want_town;
+	} catch (e) { /* runner not up */ }
 	const HARD_REASON = LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= t.aggro;
 
 	// PANIC CONDITION
