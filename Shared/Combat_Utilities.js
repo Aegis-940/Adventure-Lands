@@ -295,6 +295,9 @@ function engage_hp_ok(e) {
 	return e.data.hp <= max * e.engage_below;
 }
 
+const EVENT_JOIN_RETRY_MS = 5000;
+let _last_event_join = 0;
+
 // Where a live event wants us, as a goal for movement_goal() to weigh. Issues no movement; the
 // join emit stays here because it is a socket action, not a journey.
 function event_goal() {
@@ -313,8 +316,14 @@ function event_goal() {
 
 	// Some events (franky, icegolem) are instances that must be joined before there is anywhere to
 	// walk to. Hold position while the join lands rather than wandering off.
+	//
+	// Throttled: this is read on every 100ms tick, so an unthrottled emit is 10 join requests a
+	// second per character for as long as the boss is live and off-screen.
 	if (target.join === true && !get_nearest_monster({ type: target.name })) {
-		parent.socket.emit("join", { name: target.name });
+		if (Date.now() - _last_event_join > EVENT_JOIN_RETRY_MS) {
+			_last_event_join = Date.now();
+			parent.socket.emit("join", { name: target.name });
+		}
 		return { hold: true, label: "event-join" };
 	}
 

@@ -1061,11 +1061,20 @@ function movement_goal() {
 	//    event, and this branch is how that decision reaches the followers. Below events, a live
 	//    boss sent them off independently while her cohesion hold kept her waiting for them.
 	const follow = follow_goal();
-	if (follow) return follow;
+	// Anything but station-keeping wins outright — we are still closing on her, or holding for her.
+	if (follow && follow.local !== "follow") return follow;
 
-	// 4. Events, for whoever is deciding for themselves — the leader, or anyone whose leader is
-	//    dead or offline and whose follow_goal() therefore came back null.
+	// 4. Events. Reached by the leader, by anyone whose leader is dead or offline, and by a
+	//    follower already standing with her — see below.
 	const event = event_goal(); // Shared/Combat_Utilities.js
+
+	// A follower ON STATION does not need the ring step when there is a fight to close into.
+	// Being with her is already satisfied at that point, and orbiting at follow_distance leaves a
+	// melee character short of a boss she is healing from her own, much longer, range. Only for a
+	// monster already visible: a travel goal here would be them setting off on their own again,
+	// which is the split this ordering exists to prevent.
+	if (follow && event && event.local === "event") return event;
+	if (follow) return follow;
 	if (event) return event;
 
 	// 5. The bscorpion farm has its own approach geometry.
