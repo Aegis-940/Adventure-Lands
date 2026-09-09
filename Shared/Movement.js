@@ -7,41 +7,41 @@
 // CORE UTILITIES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Let smart_move teleport as part of a route. The runner ships this disabled; with it set, the
-// pathfinder adds an edge to the CURRENT map's spawns[0] and the executor calls use("town") on
-// reaching that node. is_transporting() holds the walk until character.c.town clears, so nothing
-// here has to manage the 3s channel (G.skills.use_town.cooldown is 0 — the channel is the whole
-// cost). See GAME_API_REFERENCE.md.
+// The pathfinder's town-teleport edge. OFF — it cost more than it saved.
 //
-// A graph edge, not a rule: it is taken only when it genuinely shortens the route, which is why
-// there are no per-map conditions. That matters because the destination is the current map's spawn
-// and is not always useful — on `main` it is the town centre, but on `tunnel` it is the entrance at
-// (0,-16) while the mole spot is (14,-1072). The pathfinder weighs that; a hand-written "arrive,
-// then town" rule could not.
+// What it does when on: the BFS adds an edge to the CURRENT map's spawns[0] and the executor calls
+// use("town") on reaching that node, a 3s channel. See GAME_API_REFERENCE.md, which stays accurate
+// whether or not we use it.
 //
-// smarter_move() below drives the runner's pathfinder by setting smart.* directly rather than
-// calling smart_move(), so this applies to our movement too. Nothing in the runner clears the flag
-// once set. Retried once because the runner globals may not exist at script-eval time.
+// Why it is off:
+//   - The channel cannot survive being hit, and any action taken during it cancels it. Several
+//     loops run independently of movement (potions, mluck, the stand), so cancellations are
+//     routine rather than exceptional. That is what stopped the merchant reaching the bank.
+//   - The flag is read INSIDE the BFS at every node expansion, not once at search start, so
+//     anything that changes it mid-search yields a route computed half one way and half the other.
+//   - Its value was always marginal: the destination is the current map's spawn, which is the town
+//     centre on `main` but the entrance at (0,-16) on `tunnel`, nowhere near the mole spot.
 //
-// This is the BASELINE only. panic_check() (Shared/Party_And_Loot.js) turns it off tick by tick
-// while monsters are targeting us, because the 3s channel cannot survive being hit.
+// One switch, deliberately, rather than deletions scattered across two files: panic_check()
+// (Shared/Party_And_Loot.js) reads this too, and its "turn the edge off while monsters are on us"
+// logic is kept intact behind it. Set true to re-enable and nothing else needs changing.
 //
-// Off entirely for the merchant. Every destination he has — HOME (-87,-96), the bank, the potion
-// shop — already sits inside the town circle on main, so a town edge can only add a 3s channel to
-// a walk of a few hundred units; there is no route of his it shortens. Against that it costs him
-// real work: he is the one character running several independent loops (potions, mluck, the stand)
-// that fire actions during the channel and cancel it, and the only one with no panic_check() to
-// turn the flag off tick by tick. That is what stopped him reaching the bank.
-function enable_smart_town() {
+// This does NOT affect stuck_escape_check() below, which casts use_town directly as a last resort
+// when a character is genuinely stranded on the wrong map. That is a different mechanism with its
+// own paranoid guards, and it is the only way off the winterland island after an ice golem fight.
+const SMART_USE_TOWN = false;
+
+// Retried once because the runner globals may not exist at script-eval time.
+function apply_smart_town_setting() {
 	try {
 		if (typeof smart === "object" && smart) {
-			smart.use_town = character.ctype !== "merchant";
+			smart.use_town = SMART_USE_TOWN;
 			return true;
 		}
 	} catch (e) { /* runner globals not up yet */ }
 	return false;
 }
-if (!enable_smart_town()) setTimeout(enable_smart_town, 3000);
+if (!apply_smart_town_setting()) setTimeout(apply_smart_town_setting, 3000);
 
 // Critical function. Must be declared early.
 function delay(ms) {
