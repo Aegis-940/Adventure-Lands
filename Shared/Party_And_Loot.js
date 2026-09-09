@@ -925,7 +925,7 @@ let _cohesion_gave_up = false;
 let _cohesion_since = 0;
 let _cohesion_progress_at = 0;
 let _cohesion_best = { name: null, map: null, dist: Infinity };
-let _cohesion_cache = { at: 0, straggler: null, map: null, dist: Infinity, travelling: false };
+let _cohesion_cache = { at: 0, straggler: null, anniv: null, map: null, dist: Infinity, travelling: false };
 
 // True when the leader should stand still this tick. Also stops a journey already in flight —
 // declining to re-issue is not enough once smart_move owns the character.
@@ -957,11 +957,16 @@ function party_cohesion_hold() {
 	if (now - _cohesion_cache.at >= 200) {
 		_cohesion_cache.at = now;
 		_cohesion_cache.straggler = null;
+		_cohesion_cache.anniv = null;
 		for (const name of COHESION_FOLLOWERS) {
 			const s = read_state_cache(name); // Shared/Messaging.js
 			// Stale cache means offline; a corpse closes no distance and respawns in town. Neither
 			// is something to wait on.
 			if (!s || s.rip) continue;
+			// Tested for EVERY member, not just the first straggler: the whole point is that this
+			// one is true while they are standing next to us.
+			if (s.anniv_pending && !_cohesion_cache.anniv) _cohesion_cache.anniv = name;
+			if (_cohesion_cache.straggler) continue;
 			const off_map = s.map !== character.map;
 			// Not measurable across a map boundary — Infinity keeps the distance comparison honest
 			// and the map/travelling checks below carry the progress test instead.
@@ -971,8 +976,29 @@ function party_cohesion_hold() {
 			_cohesion_cache.map = s.map;
 			_cohesion_cache.dist = dist;
 			_cohesion_cache.travelling = !!s.travelling;
-			break;
 		}
+	}
+
+	// The anniversary hold, and it deliberately gets NO stall or ceiling clock. Those exist to
+	// break a wait on someone who might be stuck; this one is bounded by the game itself — a visit
+	// ticket lasts five minutes and anniv_pending goes false the moment it is spent or expires.
+	//
+	// Without it the round split the party every half hour. She reaches the featured player first,
+	// kisses, stands down, and the distance test sees the other two standing right beside her — no
+	// straggler, no hold — so she walks home mid-round. They finish, see her travelling, and trail
+	// her across the map one at a time, alone, which is the case that gets them killed.
+	if (_cohesion_cache.anniv) {
+		if (!_cohesion_holding) {
+			_cohesion_holding = true;
+			_cohesion_gave_up = false;
+			log(`⏸️ Waiting out ${_cohesion_cache.anniv}'s anniversary visit.`, "#66ccff", "Alerts");
+		}
+		// Park the straggler clocks so a long visit is not already counted against a distance hold
+		// the instant the round ends and everyone sets off home together.
+		_cohesion_since = now;
+		_cohesion_progress_at = now;
+		if (smart.moving) stop_movement("party_cohesion"); // Shared/Movement.js
+		return true;
 	}
 
 	const straggler = _cohesion_cache.straggler;

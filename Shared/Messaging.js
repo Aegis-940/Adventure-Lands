@@ -167,6 +167,11 @@ function get_full_character_state() {
 		// alone on the road. smart is per-character and always present on the runner.
 		travelling: !!(smart && smart.moving)
 			|| (typeof anniversary_travel !== "undefined" && !!anniversary_travel),
+		// Still owes an anniversary visit this round. party_cohesion_hold() needs INTENT here, not
+		// position: a member who has not kissed yet stands right beside the leader until the moment
+		// they walk off, so distance alone reads "together" and she leaves without them. Goes false
+		// the moment the visit is collected, the ticket expires, or the round ends.
+		anniv_pending: typeof anniversary_should_travel === "function" && anniversary_should_travel(),
 		free_slots: character.items.filter(it => !it).length,
 		conditions: character.s || {}, // stunned, mluck, poisoned, etc. — see character.s
 		last_seen: Date.now(),
