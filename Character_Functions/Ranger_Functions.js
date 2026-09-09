@@ -21,7 +21,7 @@ var CONFIG = {
 		use_supershot: true,
 		// Monster types to skip supershot + huntersmark on. Moles die to AoE before a single-target
 		// setup pays for itself, and the 640mp a mark+supershot cycle costs is mana scare needs.
-		skill_blacklist: ["dryad", "fireroamer", "plantoid", "mole"],
+		skill_blacklist: ["dryad", "fireroamer", "plantoid", "mole", "mummy"],
 		min_targets_for_5shot: 4,
 		min_targets_for_3shot: 2,
 		// Only join fights already in progress. Riva was pulling her own packs and then panicking
