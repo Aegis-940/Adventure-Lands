@@ -92,7 +92,11 @@ var CONFIG = {
 			{ name: "candy1",    min: 1 },
 		],
 	},
-	do_not_bank: [],
+	// Potions are bought 1000 at a time and live in the reserved slots, but a second stack landing
+	// further down the bag was being deposited and then immediately re-bought by
+	// handle_buy_potions() — HOME and the potion shop are 54 units apart, so he is always in range
+	// of it. Round trip through the bank for nothing.
+	do_not_bank: ["hpot1", "mpot1"],
 	min_bank_free_space: 10,
 	// Free inventory slots at or below which he drops what he's doing and empties the pack.
 	min_free_inventory_slots: 3,
@@ -359,12 +363,55 @@ function level_matches(item, entry) {
 	return entry.level === undefined || (item.level || 0) === entry.level;
 }
 
-// Anything listed for sale must survive bank_items(), or the deposit run would put the stock we
-// just withdrew straight back and the restock state would fetch it again on the next tick.
-// Matched on name AND level: a "+9 firebow" listing must not stop a +0 firebow being banked.
+// Does this item match a listing at all? Used where the answer must ignore quantity — NPC-selling
+// a listed item is wrong however many we have, because the vendor price and the stand price are
+// orders of magnitude apart. For BANKING, which cares very much about quantity, use
+// make_stand_stock_keeper() instead.
 function is_stand_stock(item) {
 	if (!CONFIG.trading.enabled || !item) return false;
 	return CONFIG.sell_profile.some(entry => entry.name === item.name && level_matches(item, entry));
+}
+
+// The merchant's resting gear. `broom` is both his mainhand and a SELLABLE_ITEMS entry, so during
+// any fishing or mining run — when the rod or pickaxe is equipped and the broom is in the bag —
+// it is one sell_items() call away from being gone for good. Name only, no level: an irreversible
+// sale is not the place to be clever about which one it is.
+function is_default_gear(item) {
+	if (!item) return false;
+	for (const slot in CONFIG.default_gear) {
+		const g = CONFIG.default_gear[slot];
+		if (g && g.name === item.name) return true;
+	}
+	return false;
+}
+
+// Units of an entry still worth keeping in the bag: the listing quantity minus what is already on
+// the stand.
+function stock_bag_reserve(entry) {
+	return Math.max(0, (entry.quantity || 1) - stock_listed_count(entry));
+}
+
+// Returns a predicate that answers "keep this slot back for the stand?", spending a per-entry
+// budget as the caller walks the bag in slot order.
+//
+// This is the fix for the merchant filling up on his own. is_stand_stock() protects an UNLIMITED
+// number of matching items, so every firebow +9 past the three we list sat in the bag forever:
+// bank_items() skipped it and refresh_sell_offers() had nowhere to put it. Upgrading, a generous
+// restock and party loot pulls all produce those surplus copies. Worse, once enough of them
+// accumulate has_bankable_items() reads false at zero free slots, so the banking state never even
+// fires and nothing can recover without manual help.
+function make_stand_stock_keeper() {
+	if (!CONFIG.trading.enabled) return () => false;
+	const budget = CONFIG.sell_profile.map(stock_bag_reserve);
+	return item => {
+		if (!item) return false;
+		const ei = CONFIG.sell_profile.findIndex(e => e.name === item.name && level_matches(item, e));
+		if (ei < 0 || budget[ei] <= 0) return false;
+		// Whole slot, because bank_store() deposits a whole slot — a stack that overshoots the
+		// budget still stays, which is the conservative direction.
+		budget[ei] -= (item.q || 1);
+		return true;
+	};
 }
 
 // Inventory index of a sellable unit, or -1. trade() addresses stock by inventory slot, not name.
@@ -500,6 +547,9 @@ function restock_blocked(entry) {
 function should_run_restock() {
 	if (!CONFIG.trading.enabled) return false;
 	if (merchant_task !== "Idle") return false;   // same guard the other priority checks use
+	// A withdrawal has to land somewhere. Restocking into a nearly-full bag only trips the banking
+	// state on the next tick, which then walks the stock it just fetched back to the bank.
+	if (free_inventory_slots() <= CONFIG.min_free_inventory_slots) return false;
 	for (const entry of CONFIG.sell_profile) {
 		if (restock_blocked(entry)) continue;
 		if (stock_held_count(entry) >= (entry.quantity || 1)) continue;
@@ -1045,6 +1095,10 @@ const LOOT_COLLECTION_COOLDOWN = 60000;
 let last_loot_time = 0;
 
 function should_collect_loot() {
+	// Nowhere to put it is a reason not to ask. send_to_merchant() pushes items blind — it checks
+	// our distance, never our free space — so a pull with a full bag just fails item by item while
+	// the fighters stay cluttered.
+	if (free_inventory_slots() <= CONFIG.min_free_inventory_slots) return false;
 	return Date.now() - last_loot_time >= LOOT_COLLECTION_COOLDOWN && any_party_within_range();
 }
 
@@ -1106,18 +1160,28 @@ async function opportunistic_actions_loop() {
 
 // SELLABLE_ITEMS defined in Game_Config.js
 
+// Must apply the same exclusions sell_items() does, or a bag holding nothing but stand stock sends
+// him walking to HOME for a sale that then declines every slot.
 function has_sellable_items() {
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
-		if (item && SELLABLE_ITEMS.includes(item.name)) return true;
+		if (!item || !SELLABLE_ITEMS.includes(item.name)) continue;
+		if (is_stand_stock(item) || is_default_gear(item)) continue;
+		return true;
 	}
 	return false;
 }
 
+// Walks slots in the same order as bank_items() so the two spend the stand-stock budget
+// identically — otherwise this could report "nothing to bank" for a slot the deposit run would
+// happily take, or vice versa.
 function has_bankable_items() {
+	const keep_for_stand = make_stand_stock_keeper();
 	for (let i = 3; i < character.items.length; i++) {
 		const item = character.items[i];
-		if (item && !CONFIG.do_not_bank.includes(item.name) && !is_stand_stock(item)) return true;
+		if (!item || CONFIG.do_not_bank.includes(item.name)) continue;
+		if (keep_for_stand(item)) continue;
+		return true;
 	}
 	return false;
 }
@@ -1153,14 +1217,18 @@ async function sell_items() {
 		for (let i = 0; i < character.items.length; i++) {
 			const item = character.items[i];
 			if (!item) continue;
-			if (SELLABLE_ITEMS.includes(item.name)) {
-				try {
-					sell(i, item.q || 1);
-					game_log(`💰 Sold ${item.name} x${item.q || 1}`);
-					sold_any = true;
-				} catch (e) {
-					catcher(e, "sell_items: sell " + item.name);
-				}
+			if (!SELLABLE_ITEMS.includes(item.name)) continue;
+			// SELLABLE_ITEMS matches on NAME alone, and both of these overlap it. The stand lists a
+			// strring +4 for a billion; the vendor pays pocket change for it and the sale cannot be
+			// undone. Surplus copies are banked instead, never sold.
+			if (is_stand_stock(item)) continue;
+			if (is_default_gear(item)) continue;
+			try {
+				sell(i, item.q || 1);
+				game_log(`💰 Sold ${item.name} x${item.q || 1}`);
+				sold_any = true;
+			} catch (e) {
+				catcher(e, "sell_items: sell " + item.name);
 			}
 		}
 	} catch (e) {
@@ -1188,10 +1256,15 @@ async function bank_items() {
 		await smarter_move(BANK_LOCATION);
 		await delay(1000);
 
+		const keep_for_stand = make_stand_stock_keeper();
+
 		for (let i = 3; i < character.items.length; i++) {
 			const item = character.items[i];
-			// Stand stock stays put: banking it would undo the restock trip we just made.
-			if (!item || CONFIG.do_not_bank.includes(item.name) || is_stand_stock(item)) continue;
+			if (!item || CONFIG.do_not_bank.includes(item.name)) continue;
+			// Stock we still need on the stand stays put — banking it would undo the restock trip
+			// we just made. Only up to the listing quantity, though: the surplus is exactly what
+			// was filling the bag.
+			if (keep_for_stand(item)) continue;
 			try {
 				await bank_store(i);
 				refresh_bank_snapshot();   // Shared/Party_And_Loot.js — keep the snapshot honest
