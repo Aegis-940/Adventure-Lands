@@ -243,10 +243,11 @@ const TRAVEL_REISSUE_MS = 3000;  // floor between journeys, so a BFS gets time t
 const TRAVEL_REGOAL_MS = 500;    // shorter floor when the goal itself changed — that is news
 const TRAVEL_DRIFT = 80;         // destination must move this far to be worth re-pathing
 const TRAVEL_ARRIVE = 40;        // default arrival radius
-const TRAVEL_STALL_MS = 8000;    // no ground covered for this long while travelling — re-path
-const TRAVEL_STALL_EPS = 30;     // movement under this is not progress
+const TRAVEL_STALL_MS = 8000;      // no ground covered for this long while travelling — re-path
+const TRAVEL_STALL_EPS = 30;       // movement under this is not progress
+const TRAVEL_SEARCH_MAX_MS = 20000; // a BFS that has not resolved by now is not going to
 
-let _travel = { label: null, at: 0, interrupt: null, anchor: null, anchor_at: 0 };
+let _travel = { label: null, at: 0, interrupt: null, anchor: null, anchor_at: 0, search_since: 0 };
 
 // Only ever cancels a journey THIS arbiter started. A merchant task, a looting hop or anything
 // else that still moves on its own is not ours to end.
@@ -256,7 +257,8 @@ function travel_release() {
 	}
 	_travel.interrupt = null;
 	_travel.label = null;
-	_travel.anchor = null; // standing still on purpose is not a stall
+	_travel.anchor = null;   // standing still on purpose is not a stall
+	_travel.search_since = 0;
 }
 
 function travel_arbiter(goal) {
@@ -305,6 +307,21 @@ function travel_arbiter(goal) {
 		|| smart.map !== map
 		|| Math.hypot(smart.x - goal.x, smart.y - goal.y) > TRAVEL_DRIFT;
 
+	// A BFS already in flight. Re-issuing resets queue/visited/start and throws away everything it
+	// has computed, so any re-issue cadence shorter than the search itself means the search can
+	// never finish — the character just stands there "searching" forever. Let it run.
+	//
+	// Guarded by a ceiling rather than trusted outright: a search that has not resolved in
+	// TRAVEL_SEARCH_MAX_MS is not going to, and these are runner-internal fields, so refusing to
+	// act on them indefinitely would trade one permanent stall for another.
+	const searching = !!smart.searching && !smart.found;
+	if (searching && !_travel.search_since) _travel.search_since = now;
+	if (!searching && _travel.search_since) {
+		_travel.search_since = 0;
+		_travel.anchor = null; // the walk starts now — do not charge the search to the stall clock
+	}
+	const search_overrun = _travel.search_since > 0 && now - _travel.search_since > TRAVEL_SEARCH_MAX_MS;
+
 	// PROGRESS WATCHDOG. Everything above is blind to the one failure that matters most.
 	//
 	// The moment a move is issued, smart.x/y IS the goal, so the drift term is 0 and smart.map
@@ -314,7 +331,9 @@ function travel_arbiter(goal) {
 	// character stood still until MOVE_TIMEOUT 90s later. That is the "walked for ten seconds then
 	// stalled without leaving the map" failure.
 	//
-	// Covering ground is the only honest evidence a journey is working, so track that directly.
+	// Covering ground is the only honest evidence a journey is working, so track that directly —
+	// but not while the pathfinder is legitimately still searching, which is what the ceiling above
+	// is for instead.
 	const teleporting = is_teleporting(); // a town channel or a door is progress, just invisible
 	const moved = !_travel.anchor
 		|| _travel.anchor.map !== character.map
@@ -324,11 +343,15 @@ function travel_arbiter(goal) {
 		_travel.anchor = { map: character.map, x: character.x, y: character.y };
 		_travel.anchor_at = now;
 	}
-	const stalled = !moved && !teleporting && now - _travel.anchor_at > TRAVEL_STALL_MS;
+	const stalled = !moved && !teleporting && !searching && now - _travel.anchor_at > TRAVEL_STALL_MS;
+
+	// Nothing re-issues over a live search except the search having run too long.
+	if (searching && !search_overrun) return true;
 
 	const floor = label_changed ? TRAVEL_REGOAL_MS : TRAVEL_REISSUE_MS;
-	if (now - _travel.at > floor && (drifted || foreign || stalled)) {
+	if (now - _travel.at > floor && (drifted || foreign || stalled || search_overrun)) {
 		if (stalled) log(`🧭 Re-pathing "${goal.label}" — no ground covered in ${TRAVEL_STALL_MS / 1000}s.`, "#FFA500", "Alerts");
+		if (search_overrun) log(`🧭 Re-pathing "${goal.label}" — pathfinder still searching after ${TRAVEL_SEARCH_MAX_MS / 1000}s.`, "#FFA500", "Alerts");
 		if (smart.moving) stop_movement("arbiter: " + goal.label);
 		_travel.at = now;
 		if (_travel.label !== goal.label) log(`🧭 ${goal.label}`, "#8899aa", "Alerts");
