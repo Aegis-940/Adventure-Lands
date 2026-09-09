@@ -950,6 +950,8 @@ function party_cohesion_hold() {
 		_cohesion_cache.at = now;
 		_cohesion_cache.straggler = null;
 		_cohesion_cache.anniv = null;
+		const we_still_owe_a_visit = typeof anniversary_should_travel === "function"
+			&& anniversary_should_travel();
 		for (const name of COHESION_FOLLOWERS) {
 			const s = read_state_cache(name); // Shared/Messaging.js
 			// Stale cache means offline; a corpse closes no distance and respawns in town. Neither
@@ -958,11 +960,18 @@ function party_cohesion_hold() {
 			// Tested for EVERY member, not just the first straggler: the whole point is that this
 			// one is true while they are standing next to us.
 			//
+			// Only once WE are done, though. Everyone being pending is simply what a round in
+			// progress looks like, so waiting on it while we still owe the visit ourselves would
+			// mean nobody ever sets off — a deadlock, now that cohesion outranks the anniversary.
+			// This wait means "do not walk home without them", not "do not start".
+			//
 			// has_kiss overrides pending. The buff is the objective and comes from the server, so a
 			// member who has it is done however confused their own state machine is — which is the
 			// difference between "we all have it, leave together" and one stuck flag parking the
 			// party for two minutes.
-			if (s.anniv_pending && !s.has_kiss && !_cohesion_cache.anniv) _cohesion_cache.anniv = name;
+			if (!we_still_owe_a_visit && s.anniv_pending && !s.has_kiss && !_cohesion_cache.anniv) {
+				_cohesion_cache.anniv = name;
+			}
 			if (_cohesion_cache.straggler) continue;
 			const off_map = s.map !== character.map;
 			// Not measurable across a map boundary — Infinity keeps the distance comparison honest
@@ -1077,26 +1086,30 @@ function party_cohesion_hold() {
 function movement_goal() {
 	if (!CONFIG.movement.enabled) return null;
 
-	// 1. The anniversary visit. Outranks cohesion because every character has to physically reach
-	//    the featured player themselves — there is no leading anyone to it.
-	const anniv = anniversary_destination();
-	if (anniv) return anniv;
-
-	// 2. giantspider: the leader stands still and is guided by hand; the others follow her. Below
-	//    the anniversary so a live round still gets collected from inside the instance run.
+	// 1. giantspider: the leader stands still and is guided by hand; the others follow her.
 	if (home === "giantspider" && character.name === MOVEMENT_LEADER) return null;
 
-	// 3. The leader waiting for the party. Only ever true on her.
+	// 2. The leader waiting for the party. Only ever true on her.
+	//
+	// The anniversary USED to sit above this, so the one trip that most needs the party together
+	// was the one trip with no cohesion at all: three characters pathing independently across the
+	// map to the same point, which is exactly where they got separated, lost and stuck.
 	if (party_cohesion_hold()) return { hold: true, label: "cohesion" };
 
-	// 3. Walking with the leader. ABOVE events: she decides where the party goes, including to an
-	//    event, and this branch is how that decision reaches the followers. Below events, a live
-	//    boss sent them off independently while her cohesion hold kept her waiting for them.
+	// 3. Walking with the leader. Above events AND above the anniversary: she decides where the
+	//    party goes, and this branch is how that decision reaches the followers. They escort her
+	//    the whole way and only pursue their own objective once they are standing with her.
 	const follow = follow_goal();
 	// Anything but station-keeping wins outright — we are still closing on her, or holding for her.
 	if (follow && follow.local !== "follow") return follow;
 
-	// 4. Events. Reached by the leader, by anyone whose leader is dead or offline, and by a
+	// 4. The anniversary visit, for the leader and for a follower already on station. Every
+	//    character still has to close the last stretch and cast for themselves — following her only
+	//    gets them to within follow_distance, and the skill needs 80.
+	const anniv = anniversary_destination();
+	if (anniv) return anniv;
+
+	// 5. Events. Reached by the leader, by anyone whose leader is dead or offline, and by a
 	//    follower already standing with her — see below.
 	const event = event_goal(); // Shared/Combat_Utilities.js
 
@@ -1113,14 +1126,14 @@ function movement_goal() {
 	if (follow) return follow;
 	if (event) return event;
 
-	// 5. The bscorpion farm has its own approach geometry.
+	// 6. The bscorpion farm has its own approach geometry.
 	if (home === "bscorpion") {
 		return is_at_bscorpion_farm() // Shared/Movement.js
 			? null
 			: { label: "bscorpion", map: PRIM_FARM_LOC.map, x: PRIM_FARM_LOC.x, y: PRIM_FARM_LOC.y, radius: PRIM_FARM_RADIUS };
 	}
 
-	// 6. Back to the farm spot. Distance first, monsters second: standing outside the radius means
+	// 7. Back to the farm spot. Distance first, monsters second: standing outside the radius means
 	//    walking back regardless of what happens to be on screen from here.
 	if (is_away_from_home()) {
 		return {
@@ -1216,8 +1229,14 @@ function follow_step() {
 	const live = get_player(MOVEMENT_LEADER);
 	if (live && !live.rip) _healer_last_known = { map: character.map, x: live.x, y: live.y };
 
+	// CLOSE THE GAP ONLY — never back away to restore an exact spacing.
+	//
+	// This used to hold follow_distance in both directions, so every time she walked toward a
+	// follower it reversed to re-open the gap. That is the visible doubling back: two characters
+	// shuffling against each other, neither making progress, and the move() budget spent on it.
+	// Being closer than follow_distance costs nothing. Falling behind is the entire problem.
 	const dist = Math.hypot(character.x - pos.x, character.y - pos.y);
-	if (Math.abs(dist - CONFIG.movement.follow_distance) <= 3) return;
+	if (dist <= CONFIG.movement.follow_distance) return;
 
 	// follow_goal() already proved the line is clear this tick; re-checked because the cost is
 	// nothing and walking into geometry is not recoverable from down here. If it has closed, the
