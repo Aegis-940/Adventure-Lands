@@ -373,6 +373,17 @@ async function main_loop() {
 		if (typeof anniversary_travel !== "undefined" && anniversary_travel) {
 			// fall through to the loop tail — no farming movement this tick
 		}
+		// ABOVE should_handle_events() on purpose. Myras decides where the party goes — including
+		// to an event — and this branch is how that decision reaches the followers. Below events,
+		// a single live boss sent Ulric and Riva off independently while her own cohesion hold kept
+		// her waiting for them, so she arrived minutes late or not at all and they fought it with
+		// no healer. giantspider follows her permanently; otherwise only while she is off the farm
+		// spot, so they still spread onto a cluster once the party arrives.
+		else if (CONFIG.movement.enabled && home !== "bscorpion"
+			&& (WARRIOR_TARGET === "giantspider" || party_should_follow())) {
+			follow_healer();
+		}
+
 		else if (should_handle_events()) {
 			handle_events();
 		}
@@ -380,10 +391,6 @@ async function main_loop() {
 		else if (CONFIG.movement.enabled) {
 			if (home === "bscorpion") {
 				handle_bscorpion_farm_approach(); // Shared/Movement.js
-			// giantspider follows her permanently; otherwise only while she's off the farm spot,
-			// so the party travels as one but still spreads onto a cluster once it arrives.
-			} else if (WARRIOR_TARGET === "giantspider" || party_should_follow()) {
-				follow_healer();
 			// Distance first, monsters second: standing outside the farm radius means walking back
 			// regardless of what happens to be on screen from here.
 			} else if (is_away_from_home() || !get_nearest_monster({ type: home })) {

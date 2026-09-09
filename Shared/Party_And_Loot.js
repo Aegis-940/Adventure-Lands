@@ -1134,9 +1134,12 @@ function follow_healer() {
 		// resets it, so a pathfound follow could never complete: the only branch that ever arrived
 		// was the raw move() below. Throttled as well, so even a genuinely drifting target cannot
 		// starve the search.
+		// Deliberately does NOT stamp _last_follow_move. follow_reissue() below shares that clock,
+		// so stamping here cancelled the move and then blocked its own replacement for the full 3s
+		// — a dead stop after every retarget. Letting the re-issue do the stamping gives the same
+		// "one retarget per 3s" ceiling with no gap in between.
 		if (Date.now() - _last_follow_move > FOLLOW_MOVE_RETRY_MS
 			&& Math.hypot(smart.x - target_x, smart.y - target_y) > FOLLOW_RETARGET_DRIFT) {
-			_last_follow_move = Date.now();
 			stop_movement("follow_healer retarget");
 		}
 		return;
