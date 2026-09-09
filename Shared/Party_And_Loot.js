@@ -907,8 +907,13 @@ const COHESION_PROGRESS_EPS = 30;     // distance that has to close to count as 
 
 const COHESION_FOLLOWERS = ["Ulric", "Riva"]; // combat only — Riff runs his own errands
 
+// A visit is minutes, not seconds, so this is generous — but finite, which is the point.
+const COHESION_ANNIV_MAX_MS = 120000;
+
 let _cohesion_holding = false;
 let _cohesion_gave_up = false;
+let _cohesion_anniv_since = 0;
+let _cohesion_anniv_gave_up = false;
 let _cohesion_since = 0;
 let _cohesion_progress_at = 0;
 let _cohesion_best = { name: null, map: null, dist: Infinity };
@@ -975,17 +980,34 @@ function party_cohesion_hold() {
 	// straggler, no hold — so she walks home mid-round. They finish, see her travelling, and trail
 	// her across the map one at a time, alone, which is the case that gets them killed.
 	if (_cohesion_cache.anniv) {
-		if (!_cohesion_holding) {
-			_cohesion_holding = true;
-			_cohesion_gave_up = false;
-			log(`⏸️ Waiting out ${_cohesion_cache.anniv}'s anniversary visit.`, "#66ccff", "Alerts");
+		if (!_cohesion_anniv_since) _cohesion_anniv_since = now;
+
+		// Finite after all. "Bounded by the game's five-minute ticket" was too clever: a member who
+		// dies and respawns re-arms anniv_pending every time, and the next round re-arms it again,
+		// so the wait chained and the whole party sat parked. Its own timer, kept off the straggler
+		// clocks, so neither wait can poison the other.
+		if (now - _cohesion_anniv_since <= COHESION_ANNIV_MAX_MS) {
+			if (!_cohesion_holding) {
+				_cohesion_holding = true;
+				_cohesion_gave_up = false;
+				log(`⏸️ Waiting out ${_cohesion_cache.anniv}'s anniversary visit.`, "#66ccff", "Alerts");
+			}
+			// Park the straggler clocks so a long visit is not already counted against a distance
+			// hold the instant the round ends and everyone sets off home together.
+			_cohesion_since = now;
+			_cohesion_progress_at = now;
+			if (smart.moving) stop_movement("party_cohesion"); // Shared/Movement.js
+			return true;
 		}
-		// Park the straggler clocks so a long visit is not already counted against a distance hold
-		// the instant the round ends and everyone sets off home together.
-		_cohesion_since = now;
-		_cohesion_progress_at = now;
-		if (smart.moving) stop_movement("party_cohesion"); // Shared/Movement.js
-		return true;
+
+		if (!_cohesion_anniv_gave_up) {
+			_cohesion_anniv_gave_up = true;
+			log(`⚠️ ${_cohesion_cache.anniv}'s visit is taking too long — moving on.`, "#FFA500", "Alerts");
+		}
+		// Fall through and treat them as an ordinary distance straggler from here.
+	} else {
+		_cohesion_anniv_since = 0;
+		_cohesion_anniv_gave_up = false;
 	}
 
 	const straggler = _cohesion_cache.straggler;
@@ -1402,6 +1424,7 @@ let _anniv_last_kiss = 0;
 let _anniv_kiss_acked = 0;
 let _anniv_host_round = null;   // so the host notice prints once per round, not every tick
 let _anniv_travel_since = 0;
+let _anniv_died_round = null;   // round we died in; that round's visit is written off
 
 // anniversary_travel gates combat for ALL FOUR characters — should_pause_combat_loop() plus every
 // main_loop's movement branch. Nothing else can clear it, so if it is ever left set the whole party
@@ -1473,6 +1496,11 @@ function anniversary_is_host() {
 function anniversary_block_reason() {
 	const s = anniversary_event();
 	if (!s) return "no live round";
+	// A corpse owes nobody a visit. This is what anniversary_should_travel() — and therefore the
+	// anniv_pending flag the leader's cohesion hold waits on — is derived from, so leaving it out
+	// let a dead character hold the party still.
+	if (character.rip) return "dead";
+	if (_anniv_died_round === s.round) return "died during this round";
 	if (anniversary_is_host()) return "we are the featured player";
 	// Scoped to the round number rather than testing for the buff: anniversary_kiss lasts 20
 	// minutes against a 30 minute cycle, so a bare buff check would sometimes still be true when
@@ -1516,6 +1544,22 @@ async function anniversary_tick() {
 	if (ev && anniversary_is_host() && _anniv_host_round !== ev.round) {
 		_anniv_host_round = ev.round;
 		log(`🎂 Anniversary: WE are the featured player (${character.name}) — staying put for visitors.`, "#F0B742", "Alerts");
+	}
+
+	// Dying during a visit forfeits that round, checked before anything else so the round number is
+	// still to hand.
+	//
+	// Without this the corpse kept claiming the visit: anniversary_travel stayed set, the state
+	// cache kept publishing anniv_pending, and the moment the character respawned in town the
+	// leader's anniversary hold latched onto them again while they walked back across the map
+	// alone with combat disabled — which is how one death during a round parked the whole party.
+	// The buff is not worth a corpse run, and there is another round in thirty minutes.
+	if (character.rip) {
+		if (anniversary_travel) {
+			if (ev) _anniv_died_round = ev.round;
+			anniversary_stand_down("died during the visit — sitting this round out");
+		}
+		return false;
 	}
 
 	// Names the actual cause rather than a generic "done, resuming", which covered six of them and
