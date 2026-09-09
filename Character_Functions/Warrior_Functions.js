@@ -384,7 +384,9 @@ async function main_loop() {
 			// so the party travels as one but still spreads onto a cluster once it arrives.
 			} else if (WARRIOR_TARGET === "giantspider" || party_should_follow()) {
 				follow_healer();
-			} else if (!get_nearest_monster({ type: home })) {
+			// Distance first, monsters second: standing outside the farm radius means walking back
+			// regardless of what happens to be on screen from here.
+			} else if (is_away_from_home() || !get_nearest_monster({ type: home })) {
 				handle_return_home();
 			} else if (CONFIG.movement.reposition) {
 				reposition();

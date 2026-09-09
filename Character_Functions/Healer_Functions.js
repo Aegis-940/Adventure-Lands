@@ -364,7 +364,10 @@ async function main_loop() {
 				handle_bscorpion_farm_approach(); // Shared/Movement.js
 			} else if (HEALER_TARGET === "giantspider") {
 				// No movement — remain stationary and let the user guide manually
-			} else if (!get_nearest_monster({ type: home })) {
+			// Distance first, monsters second: standing outside the farm radius means walking back
+			// regardless of what happens to be on screen from here. She leads, so her stopping
+			// short is what leaves the whole party parked outside it.
+			} else if (is_away_from_home() || !get_nearest_monster({ type: home })) {
 				handle_return_home();
 			} else if (CONFIG.movement.circle_walk) {
 				walk_in_circle();

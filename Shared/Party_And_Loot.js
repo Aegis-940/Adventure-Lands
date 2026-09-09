@@ -42,13 +42,28 @@ function should_spread() {
 const HOME_MOVE_RETRY_MS = 3000;
 let _last_home_move = 0;
 
+function home_radius() {
+	return (CONFIG.movement.circle_radius || 75) + 20;
+}
+
+// The movement chain used to reach handle_return_home() only when no home-type monster was on
+// screen. Coming back from a trip that is the wrong test: the fighters stop wherever the walk
+// happened to leave them, one visible spider is enough to send them to reposition() instead, and
+// reposition() only ever picks spots within circle_radius of the farm spot — which they cannot
+// reach with the raw move() it uses. They park there, out of range of the healer, and
+// should_pause_combat_loop() then keeps them idle because she is more than 200 away.
+function is_away_from_home() {
+	if (typeof destination === "undefined" || !destination) return false;
+	if (destination.map && character.map !== destination.map) return true;
+	return Math.hypot(character.x - destination.x, character.y - destination.y) > home_radius();
+}
+
 function handle_return_home() {
 	const dx = character.x - destination.x;
 	const dy = character.y - destination.y;
 	const dist = Math.hypot(dx, dy);
-	const home_radius = (CONFIG.movement.circle_radius || 75) + 20;
 
-	if (dist <= home_radius) return;
+	if (dist <= home_radius()) return;
 
 	if (dist < 200 && character.map === destination.map) {
 		// Short drift: raw move() keeps smart.moving false (xmove falls back to smart_move on obstacles)
@@ -888,16 +903,26 @@ function party_should_follow() {
 // Following her only closes half the gap. The fighters die on the road because she disengages,
 // they fall behind, something aggros them and there is no tank within reach — so she also has to
 // stop. This is the half that was missing, and the one that actually prevents the deaths.
-const COHESION_RADIUS = 300;        // beyond this (or off-map) a member counts as left behind
-const COHESION_RELEASE = 200;       // must close back to here before she moves off again
-const COHESION_MAX_WAIT_MS = 20000; // one member that cannot path to us must not strand the party
+const COHESION_RADIUS = 300;   // beyond this (or off-map) a member counts as left behind
+const COHESION_RELEASE = 200;  // must close back to here before she moves off again
+
+// Giving up used to be a flat 20s from the start of the hold, which is shorter than a map
+// transit: walk to the door, cross, walk back to us. So the one case that most needs her to wait
+// — a fighter still on the map behind her — was the case she reliably abandoned. The stall clock
+// now resets whenever the straggler is closing, and while off-map their own `travelling` flag
+// counts as closing, because their distance to us is not measurable from here.
+const COHESION_STALL_MS = 20000;      // no progress for this long — they are stuck, move on
+const COHESION_MAX_WAIT_MS = 180000;  // absolute ceiling, however busy they look
+const COHESION_PROGRESS_EPS = 30;     // distance that has to close to count as progress
 
 const COHESION_FOLLOWERS = ["Ulric", "Riva"]; // combat only — Riff runs his own errands
 
 let _cohesion_holding = false;
 let _cohesion_gave_up = false;
 let _cohesion_since = 0;
-let _cohesion_cache = { at: 0, straggler: null };
+let _cohesion_progress_at = 0;
+let _cohesion_best = { name: null, map: null, dist: Infinity };
+let _cohesion_cache = { at: 0, straggler: null, map: null, dist: Infinity, travelling: false };
 
 // True when the leader should stand still this tick. Also stops a journey already in flight —
 // declining to re-issue is not enough once smart_move owns the character.
@@ -911,6 +936,16 @@ function party_cohesion_hold() {
 		return false;
 	}
 
+	// Nothing to wait for once she is standing on the farm spot. The point of the hold is to stop
+	// her walking away from the party, and the local orbit never leaves circle_radius — without
+	// this the much longer ceiling below would freeze her circle-walk for minutes at a time.
+	if (!is_away_from_home()) {
+		if (_cohesion_holding) log("▶️ Home — resuming.", "#00ff00", "Alerts");
+		_cohesion_holding = false;
+		_cohesion_gave_up = false;
+		return false;
+	}
+
 	const now = Date.now();
 	// Hysteresis: once holding, they have to close well inside the leash before she sets off
 	// again, otherwise she stutters forward a step at a time on the boundary.
@@ -918,17 +953,28 @@ function party_cohesion_hold() {
 
 	if (now - _cohesion_cache.at >= 200) {
 		_cohesion_cache.at = now;
-		_cohesion_cache.straggler = COHESION_FOLLOWERS.find(name => {
+		_cohesion_cache.straggler = null;
+		for (const name of COHESION_FOLLOWERS) {
 			const s = read_state_cache(name); // Shared/Messaging.js
 			// Stale cache means offline; a corpse closes no distance and respawns in town. Neither
 			// is something to wait on.
-			if (!s || s.rip) return false;
-			if (s.map !== character.map) return true;
-			return Math.hypot(s.x - character.x, s.y - character.y) > limit;
-		}) || null;
+			if (!s || s.rip) continue;
+			const off_map = s.map !== character.map;
+			// Not measurable across a map boundary — Infinity keeps the distance comparison honest
+			// and the map/travelling checks below carry the progress test instead.
+			const dist = off_map ? Infinity : Math.hypot(s.x - character.x, s.y - character.y);
+			if (!off_map && dist <= limit) continue;
+			_cohesion_cache.straggler = name;
+			_cohesion_cache.map = s.map;
+			_cohesion_cache.dist = dist;
+			_cohesion_cache.travelling = !!s.travelling;
+			break;
+		}
 	}
 
-	if (!_cohesion_cache.straggler) {
+	const straggler = _cohesion_cache.straggler;
+
+	if (!straggler) {
 		if (_cohesion_holding) log("▶️ Party together — moving on.", "#00ff00", "Alerts");
 		_cohesion_holding = false;
 		_cohesion_gave_up = false;
@@ -939,14 +985,37 @@ function party_cohesion_hold() {
 		_cohesion_holding = true;
 		_cohesion_gave_up = false;
 		_cohesion_since = now;
-		log(`⏸️ Holding for ${_cohesion_cache.straggler}.`, "#66ccff", "Alerts");
+		_cohesion_progress_at = now;
+		_cohesion_best = { name: null, map: null, dist: Infinity };
+		log(`⏸️ Holding for ${straggler}.`, "#66ccff", "Alerts");
 	}
 
-	// Give up rather than freeze the party forever on someone geometry has snagged.
-	if (now - _cohesion_since > COHESION_MAX_WAIT_MS) {
+	// Progress = a different member, a map change (they made the transition), measurably less
+	// distance, or — while we cannot measure them at all — that they are on a journey. Anything
+	// that counts restarts the stall clock, so an honest catch-up is never cut short.
+	const closing = _cohesion_best.name !== straggler
+		|| _cohesion_best.map !== _cohesion_cache.map
+		|| _cohesion_cache.dist < _cohesion_best.dist - COHESION_PROGRESS_EPS
+		|| _cohesion_cache.travelling;
+
+	if (closing) {
+		_cohesion_progress_at = now;
+		_cohesion_best = {
+			name: straggler,
+			map: _cohesion_cache.map,
+			dist: Math.min(_cohesion_cache.dist, _cohesion_best.name === straggler ? _cohesion_best.dist : Infinity),
+		};
+	}
+
+	// Two ways out: they stopped making progress, or they have had long enough regardless. The
+	// ceiling matters because a follower whose pathfind is stuck in a retry loop keeps reporting
+	// `travelling`, which would otherwise reset the stall clock forever.
+	const stalled = now - _cohesion_progress_at > COHESION_STALL_MS;
+	const out_of_time = now - _cohesion_since > COHESION_MAX_WAIT_MS;
+	if (stalled || out_of_time) {
 		if (!_cohesion_gave_up) {
 			_cohesion_gave_up = true;
-			log(`⚠️ ${_cohesion_cache.straggler} never caught up — moving on without them.`, "#FFA500", "Alerts");
+			log(`⚠️ ${straggler} ${stalled ? "stopped closing" : "took too long"} — moving on without them.`, "#FFA500", "Alerts");
 		}
 		return false;
 	}
