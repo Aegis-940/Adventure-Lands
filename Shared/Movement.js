@@ -74,6 +74,18 @@ function halt_movement() {
 	parent.socket.emit("move", { to: { x: character.x, y: character.y } });
 }
 
+// Cancels whatever journey is in flight, from either engine. Callers used to poke
+// smart._interrupt directly, which only cancels a move that happens to be one of OURS — against a
+// move issued straight through the runner's smart_move() (fire_and_forget_move) the slot holds a
+// stale closure, and the only reason it worked at all was the smart.moving = false side effect.
+// Clearing the flag explicitly is what actually stops the runner's executor, so do that too.
+function stop_movement(reason = "interrupted") {
+	try {
+		if (typeof smart._interrupt === "function") smart._interrupt(reason);
+	} catch (e) { /* already settled */ }
+	try { smart.moving = false; } catch (e) { /* runner not up */ }
+}
+
 // Returns a Promise that always resolves/rejects; supports external interruption via halt_movement or a global flag.
 function smarter_move(destination, on_done, options = {}) {
 	if (smart.moving && typeof smart._interrupt === "function") {
@@ -84,10 +96,17 @@ function smarter_move(destination, on_done, options = {}) {
 	let interrupt_reason = null;
 	let resolve_fn, reject_fn;
 	let timeout_id = null;
+	// smart._interrupt is a single shared slot that outlives the move it belongs to, so a caller
+	// reaching for it later can invoke an already-finished move a second time. A settled promise
+	// ignores the extra resolve, but on_done does not — handle_events() passes a callback that
+	// emits a game interaction, and it was reachable twice. Settle once.
+	let settled = false;
 
 	const MOVE_TIMEOUT = options.timeout || 120000; // 120s default
 
 	smart._interrupt = (reason = "interrupted") => {
+		if (settled) return;
+		settled = true;
 		interrupted = true;
 		interrupt_reason = reason;
 		smart.moving = false;
@@ -97,6 +116,8 @@ function smarter_move(destination, on_done, options = {}) {
 	};
 
 	function complete(success = true, reason = null) {
+		if (settled) return;
+		settled = true;
 		smart.moving = false;
 		if (timeout_id) clearTimeout(timeout_id);
 		if (typeof on_done === "function") on_done(success, reason);
@@ -140,12 +161,21 @@ function smarter_move(destination, on_done, options = {}) {
 	smart.flags = {};
 	smart.searching = smart.found = false;
 
+	// Captured, NOT read live off `smart` each poll. smart.map/x/y is one shared slot that the
+	// runner's own smart_move() also writes, so a fire_and_forget_move() issued while this one is
+	// in flight silently repointed the monitor at the OTHER destination — and this promise then
+	// resolved "arrived" when the character reached somewhere it was never sent.
+	const target_map = smart.map;
+	const target_x = smart.x;
+	const target_y = smart.y;
+	const arrive_radius = options.radius || 10;
+
 	function monitor_movement() {
 		if (interrupted) return;
 
 		if (
-			character.map === smart.map &&
-			Math.hypot(character.x - smart.x, character.y - smart.y) < (options.radius || 10)
+			character.map === target_map &&
+			Math.hypot(character.x - target_x, character.y - target_y) < arrive_radius
 		) {
 			complete(true);
 			return;
@@ -252,8 +282,12 @@ function stuck_escape_check() {
 	if (typeof destination === "undefined") return;
 	if (character.rip) return;
 
-	// Being on the map we're supposed to be on IS the definition of not stuck.
-	if (character.map === destination.map) { _stuck_anchor = null; return; }
+	// Being on the map we're supposed to be on IS the definition of not stuck. Several `locations`
+	// entries carry no map at all (cgoo, ent), and `character.map === undefined` is never true —
+	// so those targets failed this test forever and could earn a use_town for standing still at
+	// their own farm spot. Treat a mapless destination as "wherever we are".
+	const home_map = destination.map || character.map;
+	if (character.map === home_map) { _stuck_anchor = null; return; }
 
 	// Never teleport out of an instance (spider dungeon) — that abandons the run, and
 	// giantspider mode drives movement through follow_healer() rather than destination.

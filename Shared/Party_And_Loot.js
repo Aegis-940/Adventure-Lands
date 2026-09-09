@@ -59,13 +59,16 @@ function is_away_from_home() {
 }
 
 function handle_return_home() {
-	const dx = character.x - destination.x;
-	const dy = character.y - destination.y;
-	const dist = Math.hypot(dx, dy);
+	// Every map shares the same coordinate origin, so a cross-map distance is meaningless — the
+	// bank at (0,-37) reads as ~100 units from a farm spot on main. Without this the early return
+	// below could fire while standing on another map entirely, and because the movement chain has
+	// already committed to this branch, NOTHING else would move the character. Silent deadlock.
+	const same_map = !destination.map || character.map === destination.map;
+	const dist = Math.hypot(character.x - destination.x, character.y - destination.y);
 
-	if (dist <= home_radius()) return;
+	if (same_map && dist <= home_radius()) return;
 
-	if (dist < 200 && character.map === destination.map) {
+	if (same_map && dist < 200) {
 		// Short drift: raw move() keeps smart.moving false (xmove falls back to smart_move on obstacles)
 		if (!character.moving && !smart.moving) move(destination.x, destination.y);
 	} else if (!smart.moving && Date.now() - _last_home_move > HOME_MOVE_RETRY_MS) {
@@ -1020,7 +1023,7 @@ function party_cohesion_hold() {
 		return false;
 	}
 
-	if (smart.moving) smart._interrupt?.("party_cohesion");
+	if (smart.moving) stop_movement("party_cohesion"); // Shared/Movement.js
 	return true;
 }
 
@@ -1064,7 +1067,7 @@ function follow_healer() {
 		// unconditional interrupt cancelled and re-issued the same cross-map path 10x/second,
 		// which never got anywhere — harmless on one map, a real trap now that this runs for
 		// every farm target.
-		if (smart.moving && smart.map !== healer_pos.map) smart._interrupt?.("follow_healer");
+		if (smart.moving && smart.map !== healer_pos.map) stop_movement("follow_healer");
 		if (!smart.moving) follow_reissue({ map: healer_pos.map, x: healer_pos.x, y: healer_pos.y });
 		return;
 	}
@@ -1082,7 +1085,7 @@ function follow_healer() {
 
 	// Cancel stale pathfinding if our distance from the ring has shifted significantly
 	if (smart.moving) {
-		if (Math.abs(dist - fd) > 40) smart._interrupt?.("follow_healer");
+		if (Math.abs(dist - fd) > 40) stop_movement("follow_healer");
 		return;
 	}
 
@@ -1322,9 +1325,14 @@ const ANNIVERSARY_RETRY_MS = 2000;
 // (a second cast at a spent visit is what the server answers with "exception"), short enough to
 // retry promptly while still closing the last few units of distance.
 const ANNIVERSARY_KISS_RETRY_MS = 2500;
+// How long a foreign journey may hold the character before the visit takes it over.
+const ANNIVERSARY_FOREIGN_MS = 3000;
+// Grace after the server acknowledges a cast, before we are willing to cast again.
+const ANNIVERSARY_ACK_GRACE_MS = 6000;
 
 let _anniv_last_move = 0;
 let _anniv_last_kiss = 0;
+let _anniv_kiss_acked = 0;
 let _anniv_host_round = null;   // so the host notice prints once per round, not every tick
 let _anniv_travel_since = 0;
 let _anniv_move_interrupt = null;   // identity of OUR in-flight move, so we only cancel our own
@@ -1466,6 +1474,7 @@ async function anniversary_step() {
 		anniversary_travel = true;
 		_anniv_travel_since = Date.now();
 		_anniv_last_move = 0;
+		_anniv_kiss_acked = 0;
 		// Snapshot the buff now: it runs 20 minutes, so it can still be up from the previous round
 		// when this one opens. Only a buff that appears DURING the trip means we just collected.
 		_anniv_had_buff = !!(character.s && character.s.anniversary_kiss);
@@ -1495,26 +1504,43 @@ async function anniversary_step() {
 	// enough, whatever the coordinates say — and at range 80 they would be on screen if we were.
 	const in_kiss_range = !!them && distance(character, them) <= ANNIVERSARY_RANGE;
 
-	if (in_kiss_range && Date.now() - _anniv_last_kiss > ANNIVERSARY_KISS_RETRY_MS) {
-		// Throttle, not a one-shot: this is also what stops a second ikissyou going out at a visit
-		// the server has already consumed, which it answers with game_response "exception" — the
-		// bare red ERROR!. It expires, so a reply that never arrives cannot wedge the round.
+	// A cast the server acknowledged but whose effect has not shown up yet. Casting again into that
+	// window is what the server answers with game_response "exception" — the bare red ERROR! — so
+	// hold off and let the buff or the spent ticket confirm it. If neither does, the cast genuinely
+	// did not take and the window expires into a normal retry.
+	const awaiting_ack = _anniv_kiss_acked > 0 && Date.now() - _anniv_kiss_acked < ANNIVERSARY_ACK_GRACE_MS;
+
+	if (in_kiss_range && !awaiting_ack && Date.now() - _anniv_last_kiss > ANNIVERSARY_KISS_RETRY_MS) {
+		// Throttle, not a one-shot: a cast that is simply out of range has to be retried, and this
+		// expires, so a reply that never arrives cannot wedge the round.
 		_anniv_last_kiss = Date.now();
 
 		// NOT awaited. use_skill() settles on the server's reply and anniversary_loop() awaits this
 		// function, so a reply that never came would stop the loop, strand anniversary_travel at
 		// true, and leave all four characters disengaged until a manual reload.
-		//
-		// The round is marked spent and the trip ended ONLY on success. Doing it before the cast
-		// meant a too_far rejection still counted as collected and stood the character down where
-		// it was — the "never quite makes it before marking the kiss complete" symptom.
 		Promise.resolve(use_skill("ikissyou", s.id)).then(
 			() => {
-				_anniv_done_round = s.round;
-				log(`🎂 Kissed ${s.target}.`, "#F0B742", "Alerts");
-				anniversary_stand_down("collected, back to work");
+				// Trust the game state, not the reply. use_skill() settles on the server's
+				// response and a response is not proof the visit was granted — standing down on
+				// the resolve alone is the "attempted, then treated as complete" symptom, and it
+				// costs the whole round because _anniv_done_round blocks every retry.
+				_anniv_kiss_acked = Date.now();
+				const got_buff = !!(character.s && character.s.anniversary_kiss);
+				const ticket_spent = !(character.s && character.s.anniversary_visit
+					&& character.s.anniversary_visit.ms > 0);
+				if (got_buff || ticket_spent) {
+					_anniv_done_round = s.round;
+					log(`🎂 Kissed ${s.target}.`, "#F0B742", "Alerts");
+					anniversary_stand_down("collected, back to work");
+				}
+				// Otherwise: say nothing and keep closing. The buff check at the top of this
+				// function and the ticket check in anniversary_block_reason() both end the trip
+				// properly the moment it is genuinely done.
 			},
-			e => log(`🎂 Anniversary kiss failed: ${fmt_err(e)}`, "#FFA500", "Alerts")
+			e => {
+				_anniv_kiss_acked = 0; // rejected outright — resume the normal retry cadence
+				log(`🎂 Anniversary kiss failed: ${fmt_err(e)}`, "#FFA500", "Alerts");
+			}
 		);
 
 		return true;   // keep closing in; a failed cast must not end the trip
@@ -1530,18 +1556,25 @@ async function anniversary_step() {
 	// walks and a stale destination arrives at nobody.
 	const move_is_ours = smart.moving && _anniv_move_interrupt && smart._interrupt === _anniv_move_interrupt;
 	const since_move = Date.now() - _anniv_last_move;
+
+	// A journey in flight that is NOT ours — a leftover follow_healer or return-home move, or the
+	// stranded "smart.moving true with no mover behind it" that one shared `smart` object makes
+	// possible — used to leave want_move false forever. The character then stood still for the
+	// entire five-minute ticket and only the six-minute watchdog freed it, which is exactly the
+	// "attempts it and never arrives" report. While a round is live this is the top movement
+	// priority and every main_loop yields to it, so taking the journey over is correct.
+	const foreign_move = smart.moving && !move_is_ours;
+
 	const want_move = (!smart.moving && since_move > ANNIVERSARY_RETRY_MS)
-		|| (move_is_ours && since_move > ANNIVERSARY_REISSUE_MS);
+		|| (move_is_ours && since_move > ANNIVERSARY_REISSUE_MS)
+		|| (foreign_move && since_move > ANNIVERSARY_FOREIGN_MS);
 
 	if (want_move) {
-		// Cancel our own move BEFORE issuing the next one. smarter_move() hangs its interrupt and
-		// its monitor_movement chain off the single shared `smart` object, so two live calls fight
-		// over smart.moving — one completes and clears it under the other, and the survivor can
-		// leave it set with no mover behind it, which strands the character permanently. Only ever
-		// our own: interrupting somebody else's move is how the walk home got cancelled.
-		if (move_is_ours) {
-			try { smart._interrupt("anniversary retarget"); } catch (e) { /* already settled */ }
-		}
+		// Cancel BEFORE issuing the next one. smarter_move() hangs its interrupt and its
+		// monitor_movement chain off the single shared `smart` object, so two live calls fight over
+		// smart.moving — one completes and clears it under the other, and the survivor can leave it
+		// set with no mover behind it, which strands the character permanently.
+		if (smart.moving) stop_movement("anniversary retarget"); // Shared/Movement.js
 		_anniv_last_move = Date.now();
 		const dest = them
 			? { map: them.map || s.map, x: them.x, y: them.y }
