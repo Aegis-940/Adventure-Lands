@@ -227,21 +227,42 @@ const ORBIT_RADIUS_FRACTIONS = [1.0, 0.66, 0.33];
 // score(x, y) returns a number (higher wins) or null to reject the candidate. The character's
 // current position is always a candidate, so "stay put" can legitimately win -- that's what
 // keeps this from thrashing when nothing has meaningfully changed.
+// Where we already stand is the INCUMBENT, not merely another candidate, and a new spot has to be
+// meaningfully better to be worth walking to.
+//
+// Without this the argmax flips to the far side of the ring for a fraction of a unit of extra
+// clearance — a 150-unit traverse to gain nothing, twice a second. It was survivable while the
+// centre was a fixed farm spot; centring on the leader means the scores shift every time she takes
+// a step, so it flips constantly. That is the visible doubling back while stationary.
+//
+// Applied here rather than in each scorer so no scorer has to remember to: the warrior's cluster
+// scorer already carried its own travel penalty, the ranger's monster-distance one never did.
+const ORBIT_TRAVEL_WEIGHT = 0.35; // score units charged per unit walked to get there
+const ORBIT_MIN_GAIN = 20;        // raw score a challenger must beat the incumbent by
+
 function best_orbit_spot(center, radius, score) {
+	// Standing here is free, so it is scored without the travel charge the challengers pay.
+	const here = score(character.x, character.y);
+	const incumbent = (here === null || here === undefined) ? -Infinity : here;
+
 	let best = null;
-	let best_score = -Infinity;
+	let best_value = -Infinity;
+	let best_raw = -Infinity;
 
 	function consider(x, y) {
 		if (!can_move_to(x, y)) return;
 		const s = score(x, y);
 		if (s === null || s === undefined) return;
-		if (s > best_score) {
-			best_score = s;
+		// Net of the walk. Two spots that score the same are not equally good if one is under our
+		// feet, and this is also what stops it picking the far side of a tie.
+		const value = s - Math.hypot(x - character.x, y - character.y) * ORBIT_TRAVEL_WEIGHT;
+		if (value > best_value) {
+			best_value = value;
+			best_raw = s;
 			best = { x, y };
 		}
 	}
 
-	consider(character.x, character.y);
 	consider(center.x, center.y);
 
 	for (const frac of ORBIT_RADIUS_FRACTIONS) {
@@ -252,6 +273,10 @@ function best_orbit_spot(center, radius, score) {
 		}
 	}
 
+	if (!best) return null;
+	// Not worth the walk. Reporting where we already are reads as "no move" to every caller, which
+	// all compare the result against move_threshold.
+	if (best_raw < incumbent + ORBIT_MIN_GAIN) return { x: character.x, y: character.y };
 	return best;
 }
 

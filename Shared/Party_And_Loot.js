@@ -1216,11 +1216,30 @@ function trail_next_point() {
 	const scan_from = Math.max(0, remaining.length - TRAIL_LOS_SCAN);
 	for (let k = remaining.length - 1; k >= scan_from; k--) {
 		const p = remaining[k];
-		if (p.m === character.map && can_move_to(p.x, p.y)) return p;
+		if (p.m === character.map && can_move_to(p.x, p.y)) {
+			// Aiming past a breadcrumb retires everything before it. Cutting a corner means never
+			// passing within TRAIL_REACHED of the ones we skipped, so without this they pile up in
+			// `remaining` forever and the fallback below picks one of them — a point behind us.
+			// That is the doubling back.
+			if (p.i - 1 > _trail_reached) _trail_reached = p.i - 1;
+			return p;
+		}
 	}
 
-	// Nothing walkable in sight. The earliest point still ahead of us — which for a map change is
-	// the breadcrumb on the far side of the door, and the one place a follower still pathfinds.
+	// Nothing in sight to walk to. Head for the NEAREST breadcrumb on our map, not the oldest one
+	// still ahead: after corner-cutting the oldest is usually behind us, and the nearest is the
+	// cheapest way back onto her route.
+	let near = null;
+	let near_d = Infinity;
+	for (const p of remaining) {
+		if (p.m !== character.map) continue;
+		const d = Math.hypot(character.x - p.x, character.y - p.y);
+		if (d < near_d) { near_d = d; near = p; }
+	}
+	if (near) return near;
+
+	// None on our map at all — the route continues through a door, which is the one place a
+	// follower still pathfinds.
 	return remaining[0];
 }
 
