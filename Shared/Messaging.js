@@ -176,6 +176,10 @@ function get_full_character_state() {
 		// party leaves the moment all three combat members have it, so publishing it means a member
 		// whose state machine has got itself confused can no longer hold everyone else still.
 		has_kiss: !!(character.s && character.s.anniversary_kiss),
+		// Breadcrumbs of the route the leader has actually walked, for the followers to trace
+		// instead of each pathfinding the same journey independently. Null on everyone else, so
+		// only one character pays to serialise it. See trail_record() in Party_And_Loot.js.
+		trail: typeof leader_trail_snapshot === "function" ? leader_trail_snapshot() : null,
 		free_slots: character.items.filter(it => !it).length,
 		conditions: character.s || {}, // stunned, mluck, poisoned, etc. — see character.s
 		last_seen: Date.now(),
@@ -183,6 +187,10 @@ function get_full_character_state() {
 }
 
 function write_state_cache() {
+	try {
+		// Before the snapshot is built, so a breadcrumb dropped this tick is published this tick.
+		if (typeof trail_record === "function") trail_record();
+	} catch (e) { /* never let the trail stop the cache being written */ }
 	try {
 		localStorage.setItem(STATE_CACHE_KEY_PREFIX + character.name, JSON.stringify(get_full_character_state()));
 	} catch (e) {

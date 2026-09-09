@@ -1151,7 +1151,7 @@ function movement_goal() {
 // Runs the local behaviour a goal asked for. Everything in here is a raw move()/xmove() that
 // starts no pathfind, so none of it can compete with the arbiter for `smart`.
 function movement_local(goal, farm_step) {
-	if (goal && goal.local === "follow") return follow_step();
+	if (goal && goal.local === "follow") return follow_step(goal);
 	if (goal && goal.local === "event") return event_step(goal.event); // Shared/Combat_Utilities.js
 	if (goal && goal.local === "anniversary") return anniversary_close_step();
 	// Farm movement must NEVER run while committed to a visit. The arbiter releases the moment we
@@ -1160,6 +1160,80 @@ function movement_local(goal, farm_step) {
 	// actually arriving. Belt and braces alongside the holds in anniversary_destination().
 	if (typeof anniversary_travel !== "undefined" && anniversary_travel) return;
 	if (typeof farm_step === "function") farm_step();
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// LEADER TRAIL — the followers walk her route instead of solving it again.
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+// Three characters pathfinding to the same distant point is three BFS searches, on a 40ms-per-80ms
+// budget each, producing three different routes that then have to be reconciled by cohesion. But
+// the leader has ALREADY solved the journey. So she drops breadcrumbs and they walk those: no
+// search on their side at all, every point known-walkable because she walked it, and they end up
+// in single file behind her rather than converging from three directions.
+const TRAIL_STEP = 60;      // drop a breadcrumb every this many units travelled
+const TRAIL_MAX = 40;       // ~2400 units of history, plenty for any single journey
+const TRAIL_REACHED = 50;   // this close to a breadcrumb counts as having passed it
+const TRAIL_LOS_SCAN = 12;  // most can_move_to() probes per pass — the test is not free
+
+let _trail = [];
+let _trail_seq = 0;
+
+// Called from write_state_cache() on every character; self-gates so only the leader pays for it.
+function trail_record() {
+	if (character.name !== MOVEMENT_LEADER) return;
+	const last = _trail[_trail.length - 1];
+	if (last && last.m === character.map
+		&& Math.hypot(character.x - last.x, character.y - last.y) < TRAIL_STEP) return;
+	// Short keys and rounded coordinates: this rides in the state cache, which is re-serialised
+	// every 100ms.
+	_trail.push({ i: ++_trail_seq, m: character.map, x: Math.round(character.x), y: Math.round(character.y) });
+	while (_trail.length > TRAIL_MAX) _trail.shift();
+}
+
+function leader_trail_snapshot() {
+	return character.name === MOVEMENT_LEADER ? _trail : null;
+}
+
+let _trail_reached = 0; // highest breadcrumb id this follower has got to
+
+// The next point on her route worth walking to, or null once we are at the head of it.
+function trail_next_point() {
+	let trail = null;
+	try {
+		const c = read_state_cache(MOVEMENT_LEADER);
+		trail = c && c.trail;
+	} catch (e) { /* storage unavailable */ }
+	if (!trail || !trail.length) return null;
+
+	// She reloaded and her sequence restarted — ours is meaningless now.
+	if (trail[trail.length - 1].i < _trail_reached) _trail_reached = 0;
+
+	// Tick off anything on our map we are effectively standing on.
+	for (const p of trail) {
+		if (p.i > _trail_reached && p.m === character.map
+			&& Math.hypot(character.x - p.x, character.y - p.y) <= TRAIL_REACHED) {
+			_trail_reached = p.i;
+		}
+	}
+
+	// Never aim behind ourselves. The cursor only advances, which is what stops a follower doubling
+	// back at a door — there the nearest breadcrumb on our own map is the one we just came from.
+	const remaining = trail.filter(p => p.i > _trail_reached);
+	if (!remaining.length) return null; // at the head of her trail; the ring step takes over
+
+	// Furthest point we can reach in a straight line, so we cut the corners she rounded rather than
+	// slavishly retracing every wiggle. Scanned newest-first and capped, since can_move_to() walks
+	// the map geometry and this runs every tick.
+	const scan_from = Math.max(0, remaining.length - TRAIL_LOS_SCAN);
+	for (let k = remaining.length - 1; k >= scan_from; k--) {
+		const p = remaining[k];
+		if (p.m === character.map && can_move_to(p.x, p.y)) return p;
+	}
+
+	// Nothing walkable in sight. The earliest point still ahead of us — which for a map change is
+	// the breadcrumb on the far side of the door, and the one place a follower still pathfinds.
+	return remaining[0];
 }
 
 // Inside this we count as keeping station on her, which is what lets a visible event monster take
@@ -1192,34 +1266,46 @@ function follow_goal() {
 		return { hold: true, label: "follow-lost" };
 	}
 
-	// A different map is always a pathfind: there is no straight line through a door.
-	if (pos.map !== character.map) {
-		return { label: "follow", map: pos.map, x: pos.x, y: pos.y, radius: 80 };
+	// STRAIGHT LINE FIRST — she is on our map and in the clear, so just walk at her. No search, and
+	// re-aiming every tick tracks her better than any planned route to where she used to be.
+	if (pos.map === character.map) {
+		const ring = follow_ring_point(pos);
+		if (can_move_to(ring.x, ring.y)) {
+			const d = Math.hypot(character.x - pos.x, character.y - pos.y);
+			return { local: "follow", label: "follow-ring", on_station: d <= FOLLOW_STATION_RANGE };
+		}
 	}
 
-	// STRAIGHT LINE FIRST, pathfinder only when geometry genuinely blocks it.
-	//
-	// This used to switch on distance alone — anything past 220 units got a smart_move. That made
-	// the ordinary case (same map, open ground, a few hundred units apart) pay for a BFS on a
-	// 40ms-per-80ms budget, re-planned every time she moved, when a raw move() would have walked
-	// straight to her. It was both the slowest path and the one most likely to stall, for a
-	// journey that needed no planning at all.
-	//
-	// Re-tested every tick, so a walk that runs into geometry falls through to the pathfinder on
-	// the next tick, and a pathfind that clears the obstacle drops back to walking.
-	const ring = follow_ring_point(pos);
-	if (can_move_to(ring.x, ring.y)) {
-		const d = Math.hypot(character.x - pos.x, character.y - pos.y);
-		return { local: "follow", label: "follow-ring", on_station: d <= FOLLOW_STATION_RANGE };
+	// Out of sight, off-map, or something solid in between. Walk HER ROUTE rather than computing
+	// our own: she has already solved this journey, every breadcrumb is walkable because she walked
+	// it, and following them puts us in single file behind her instead of arriving from a third
+	// direction that cohesion then has to reconcile.
+	const step = trail_next_point();
+	if (step) {
+		if (step.m === character.map && can_move_to(step.x, step.y)) {
+			return { local: "follow", label: "follow-trail", on_station: false, point: step };
+		}
+		// Only a short hop — to the next breadcrumb, not to wherever she has got to by now. A door
+		// crossing is the usual reason to be here.
+		return { label: "follow", map: step.m, x: step.x, y: step.y, radius: TRAIL_REACHED };
 	}
 
+	// No trail to walk (she has not moved since we last had her, or her cache is unreadable).
+	// Route to her directly, which is what every follower used to do for every journey.
 	return { label: "follow", map: pos.map, x: pos.x, y: pos.y, radius: CONFIG.movement.follow_distance + 30 };
 }
 
 // The LOCAL half: one raw move() onto the follow ring. Starts no pathfind, so it is safe to run
 // every tick — and re-aiming at her every tick is what makes a straight-line follow track a moving
 // leader better than a planned route to where she used to be.
-function follow_step() {
+function follow_step(goal) {
+	// Walking her breadcrumbs: aim at the point, not at her. She may be round a corner or on
+	// another map, and the whole reason we are on the trail is that she is not directly reachable.
+	if (goal && goal.point) {
+		if (can_move_to(goal.point.x, goal.point.y)) move(goal.point.x, goal.point.y);
+		return;
+	}
+
 	// leader_position(), not get_player(). The entity is only available inside render range, so
 	// keying on it meant a leader on our own map but off-screen produced no movement at all — a
 	// non-issue while this only ran at close quarters, a stall now that it does the whole walk.
