@@ -130,18 +130,10 @@ function get_num_chests() {
 // CHARACTER UTILITIES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function should_handle_events() {
-	const holiday_spirit = parent?.S?.holidayseason && !character?.s?.holidayspirit;
-	// Must apply the same engage_hp_ok gate handle_events() does. main_loop treats this as the
-	// first branch of an if/else chain, so answering true for an event handle_events then declines
-	// to touch leaves the character doing nothing at all -- no farming, no looting, no movement --
-	// for as long as the event is live.
-	const has_handleable_event = EVENT_LOCATIONS.some(e => {
-		const data = parent?.S?.[e.name];
-		return !!data?.live && engage_hp_ok({ ...e, data });
-	});
-	return holiday_spirit || has_handleable_event;
-}
+// should_handle_events() lived here. It was a second, looser copy of the test event_goal() already
+// makes, and keeping the two in step was its own bug source — main_loop branched on this one, then
+// handle_events() sometimes declined to act, leaving the character doing nothing at all for as long
+// as the event was live. event_goal() returning null now means exactly "no event to go to".
 
 // Shared by Warrior/Ranger's equipment resolvers — was duplicated identically in both files.
 function find_active_boss() {
@@ -163,7 +155,7 @@ function should_pause_combat_loop() {
 	// uses xmove (raw move() first) and reposition() bails while smart.moving — so this only covers
 	// genuine travel: returning home from far, delivery runs, event trips.
 	if (smart.moving) return true;
-	if (home === "giantspider") return false; // follow_healer() handles positioning instead
+	if (home === "giantspider") return false; // the follow goal handles positioning instead
 	const myras = get_player("Myras");
 	if (!myras || distance(character, myras) > 200) return true;
 
@@ -303,16 +295,52 @@ function engage_hp_ok(e) {
 	return e.data.hp <= max * e.engage_below;
 }
 
-function handle_events() {
+// Where a live event wants us, as a goal for movement_goal() to weigh. Issues no movement; the
+// join emit stays here because it is a socket action, not a journey.
+function event_goal() {
 	if (parent?.S?.holidayseason && !character?.s?.holidayspirit) {
-		if (!smart.moving) {
-			fire_and_forget_move({ to: "town" }, () => {
-				parent.socket.emit("interaction", { type: "newyear_tree" });
-			});
-		}
-		return;
+		// "town" is a name only the runner's own resolver knows — smarter_move() cannot look it up
+		// in `locations` or G.maps — so this goes out as a `to` goal.
+		return {
+			label: "holiday-tree",
+			to: "town",
+			on_arrive: () => parent.socket.emit("interaction", { type: "newyear_tree" }),
+		};
 	}
 
+	const target = best_event_target();
+	if (!target) return null;
+
+	// Some events (franky, icegolem) are instances that must be joined before there is anywhere to
+	// walk to. Hold position while the join lands rather than wandering off.
+	if (target.join === true && !get_nearest_monster({ type: target.name })) {
+		parent.socket.emit("join", { name: target.name });
+		return { hold: true, label: "event-join" };
+	}
+
+	// Already in the fight: closing to attack range is a local step, not a journey.
+	if (get_nearest_monster({ type: target.name })) {
+		return { local: "event", label: "event-" + target.name, event: target.name };
+	}
+
+	// A join-type entry carries no map/x/y, so there is nothing to path to until we are inside.
+	if (!target.map || !isFinite(target.x) || !isFinite(target.y)) {
+		return { hold: true, label: "event-join" };
+	}
+
+	return { label: "event-" + target.name, map: target.map, x: target.x, y: target.y, radius: 60 };
+}
+
+// Closes the last stretch onto a visible event monster. Raw xmove, no pathfind.
+function event_step(event_type) {
+	if (!parent?.S?.[event_type]?.live) return;
+	const monster = get_nearest_monster({ type: event_type });
+	if (!monster) return;
+	if (is_in_range(monster, "attack")) return;
+	xmove(character.x + (monster.x - character.x) / 2, character.y + (monster.y - character.y) / 2);
+}
+
+function best_event_target() {
 	const alive_sorted = EVENT_LOCATIONS
 		.map(e => {
 			const data = parent.S[e.name];
@@ -325,39 +353,10 @@ function handle_events() {
 		.filter(e => engage_hp_ok(e))
 		.sort((a, b) => (a.data.hp / a.data.max_hp) - (b.data.hp / b.data.max_hp));
 
-	if (!alive_sorted.length) return;
+	if (!alive_sorted.length) return null;
 
 	// Wabbit takes exclusive priority when alive
 	const wabbit = alive_sorted.find(e => e.name === "wabbit");
-	const target = wabbit || alive_sorted[0];
-
-	// Some events (no fixed map/x/y — franky) require joining an instance first. Keep
-	// re-joining until the monster is actually visible, then fall through to the normal
-	// move/attack handling below instead of gating on target.map, which join-type entries don't set.
-	if (target.join === true && !get_nearest_monster({ type: target.name })) {
-		parent.socket.emit("join", { name: target.name });
-		return;
-	}
-
-	if (!smart.moving) {
-		handle_specific_event(target.name, target.map, target.x, target.y);
-	}
-}
-
-async function handle_specific_event(event_type, map_name, x, y) {
-	if (!parent?.S?.[event_type]?.live) return;
-
-	const monster = get_nearest_monster({ type: event_type });
-	if (!monster) {
-		fire_and_forget_move({ x, y, map: map_name });
-		return;
-	}
-
-	const halfway_x = character.x + (monster.x - character.x) / 2;
-	const halfway_y = character.y + (monster.y - character.y) / 2;
-
-	if (!is_in_range(monster, "attack") && !smart.moving) {
-		await xmove(halfway_x, halfway_y);
-	}
+	return wabbit || alive_sorted[0];
 }
 

@@ -343,34 +343,18 @@ async function main_loop() {
 		if (HEALER_TARGET !== "fireroamer" && HEALER_TARGET !== "giantspider") panic_check();
 		stuck_escape_check(); // Shared/Movement.js
 
-		// anniversary_loop() owns movement while travelling to the featured player; the normal
-		// farm/return/circle chain would fight it for the destination.
-		if (typeof anniversary_travel !== "undefined" && anniversary_travel) {
-			// fall through to the loop tail — no farming movement this tick
-		}
-		// Above the event branch on purpose: the cross-map event trip is the journey that
-		// strands the fighters, so it is the one that most needs her to wait for them.
-		else if (party_cohesion_hold()) {
-			// A fighter is behind or off-map — hold here until they close up.
-		}
-		else if (should_handle_events()) {
-			handle_events();
-		}
-		else if (should_loot()) {
-			await handle_looting();
-		}
-		else if (CONFIG.movement.enabled) {
-			if (home === "bscorpion") {
-				handle_bscorpion_farm_approach(); // Shared/Movement.js
-			} else if (HEALER_TARGET === "giantspider") {
-				// No movement — remain stationary and let the user guide manually
-			// Distance first, monsters second: standing outside the farm radius means walking back
-			// regardless of what happens to be on screen from here. She leads, so her stopping
-			// short is what leaves the whole party parked outside it.
-			} else if (is_away_from_home() || !get_nearest_monster({ type: home })) {
-				handle_return_home();
-			} else if (CONFIG.movement.circle_walk) {
-				walk_in_circle();
+		// One decision, one mover. movement_goal() (Shared/Party_And_Loot.js) holds the whole
+		// priority list — anniversary, her cohesion hold, events, the farm spot — and
+		// travel_arbiter() (Shared/Movement.js) is the only thing that issues, re-issues or
+		// cancels a journey. Nothing in this file moves the character any more.
+		const goal = movement_goal();
+		if (!travel_arbiter(goal)) {
+			if (should_loot()) {
+				await handle_looting();
+			} else {
+				movement_local(goal, () => {
+					if (CONFIG.movement.circle_walk && get_nearest_monster({ type: home })) walk_in_circle();
+				});
 			}
 		}
 
@@ -621,7 +605,7 @@ async function maintenance_loop() {
 // MOVEMENT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// should_handle_events, handle_events, handle_specific_event, handle_return_home → Game_Config.js
+// Events and going home are movement_goal() entries now — see Shared/Party_And_Loot.js.
 
 async function walk_in_circle() {
 	if (smart.moving) return;

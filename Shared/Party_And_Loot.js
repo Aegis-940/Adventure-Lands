@@ -34,48 +34,22 @@ function should_spread() {
 	return true;
 }
 
-// main_loop() calls handle_return_home() every 100ms. When the pathfind fails outright — a
-// destination on another map it can't route to — smart.moving drops straight back to false and the
-// next tick re-issues it, so a single unreachable home becomes a permanent 10/second retry storm
-// (visible as endless "smart_move: tunnel 14 -1072" lines). Rate-limit the re-issue; nothing is
-// lost, because a move that was going to succeed is still in flight and gated by smart.moving.
-const HOME_MOVE_RETRY_MS = 3000;
-let _last_home_move = 0;
-
 function home_radius() {
 	return (CONFIG.movement.circle_radius || 75) + 20;
 }
 
-// The movement chain used to reach handle_return_home() only when no home-type monster was on
-// screen. Coming back from a trip that is the wrong test: the fighters stop wherever the walk
-// happened to leave them, one visible spider is enough to send them to reposition() instead, and
-// reposition() only ever picks spots within circle_radius of the farm spot — which they cannot
-// reach with the raw move() it uses. They park there, out of range of the healer, and
-// should_pause_combat_loop() then keeps them idle because she is more than 200 away.
+// Every map shares one coordinate origin, so a cross-map distance is meaningless — the bank at
+// (0,-37) reads as ~100 units from a farm spot on main. The map has to be checked first or a
+// character standing on another map can read as "already home".
 function is_away_from_home() {
 	if (typeof destination === "undefined" || !destination) return false;
 	if (destination.map && character.map !== destination.map) return true;
 	return Math.hypot(character.x - destination.x, character.y - destination.y) > home_radius();
 }
 
-function handle_return_home() {
-	// Every map shares the same coordinate origin, so a cross-map distance is meaningless — the
-	// bank at (0,-37) reads as ~100 units from a farm spot on main. Without this the early return
-	// below could fire while standing on another map entirely, and because the movement chain has
-	// already committed to this branch, NOTHING else would move the character. Silent deadlock.
-	const same_map = !destination.map || character.map === destination.map;
-	const dist = Math.hypot(character.x - destination.x, character.y - destination.y);
-
-	if (same_map && dist <= home_radius()) return;
-
-	if (same_map && dist < 200) {
-		// Short drift: raw move() keeps smart.moving false (xmove falls back to smart_move on obstacles)
-		if (!character.moving && !smart.moving) move(destination.x, destination.y);
-	} else if (!smart.moving && Date.now() - _last_home_move > HOME_MOVE_RETRY_MS) {
-		_last_home_move = Date.now();
-		fire_and_forget_move(destination); // Shared/Movement.js
-	}
-}
+// handle_return_home() lived here. It is gone: going home is now the last entry in
+// movement_goal()'s priority list and the arbiter walks it, with the same rate limit every other
+// goal gets. Its private HOME_MOVE_RETRY_MS throttle went with it.
 
 async function potion_loop() {
 	// Never drink mid-gather. fishing and mining each cost 120mp and channel for 5-15 seconds, so
@@ -1061,98 +1035,128 @@ function party_cohesion_hold() {
 	return true;
 }
 
-// Same failure mode handle_return_home() guards against: a pathfind that fails outright drops
-// smart.moving back to false immediately, so an unrate-limited re-issue becomes a retry storm.
-const FOLLOW_MOVE_RETRY_MS = 3000;
-// How far the ring point must move before abandoning a route already being computed. Her walking
-// a few steps does not change the route materially, and re-pathing for it costs the whole search.
-const FOLLOW_RETARGET_DRIFT = 80;
-let _last_follow_move = 0;
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// MOVEMENT GOAL — the one priority list for the three combat characters.
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
-function follow_reissue(dest) {
-	if (Date.now() - _last_follow_move < FOLLOW_MOVE_RETRY_MS) return;
-	_last_follow_move = Date.now();
-	fire_and_forget_move(dest); // Shared/Movement.js
-}
+// Everything that wants a fighter somewhere appears here, in order, and nothing outside this
+// function decides where to go. main_loop hands the winner to travel_arbiter(), which is the only
+// code that issues a journey. Adding a behaviour means adding one line here.
+function movement_goal() {
+	if (!CONFIG.movement.enabled) return null;
 
-// Orbits Myras when close, smart_moves to her when far/on a different map, falling back to her
-// state cache and then _healer_last_known. Reads CONFIG.movement.follow_distance.
-function follow_healer() {
-	const healer = get_player("Myras");
+	// 1. The anniversary visit. Outranks cohesion because every character has to physically reach
+	//    the featured player themselves — there is no leading anyone to it.
+	const anniv = anniversary_destination();
+	if (anniv) return anniv;
 
-	if (healer && !healer.rip) {
-		_healer_last_known = { map: character.map, x: healer.x, y: healer.y };
+	// 2. giantspider: the leader stands still and is guided by hand; the others follow her. Below
+	//    the anniversary so a live round still gets collected from inside the instance run.
+	if (home === "giantspider" && character.name === MOVEMENT_LEADER) return null;
+
+	// 3. The leader waiting for the party. Only ever true on her.
+	if (party_cohesion_hold()) return { hold: true, label: "cohesion" };
+
+	// 3. Walking with the leader. ABOVE events: she decides where the party goes, including to an
+	//    event, and this branch is how that decision reaches the followers. Below events, a live
+	//    boss sent them off independently while her cohesion hold kept her waiting for them.
+	const follow = follow_goal();
+	if (follow) return follow;
+
+	// 4. Events, for whoever is deciding for themselves — the leader, or anyone whose leader is
+	//    dead or offline and whose follow_goal() therefore came back null.
+	const event = event_goal(); // Shared/Combat_Utilities.js
+	if (event) return event;
+
+	// 5. The bscorpion farm has its own approach geometry.
+	if (home === "bscorpion") {
+		return is_at_bscorpion_farm() // Shared/Movement.js
+			? null
+			: { label: "bscorpion", map: PRIM_FARM_LOC.map, x: PRIM_FARM_LOC.x, y: PRIM_FARM_LOC.y, radius: PRIM_FARM_RADIUS };
 	}
 
-	const healer_pos = healer || leader_position();
+	// 6. Back to the farm spot. Distance first, monsters second: standing outside the radius means
+	//    walking back regardless of what happens to be on screen from here.
+	if (is_away_from_home()) {
+		return {
+			label: "home",
+			map: destination.map || character.map,
+			x: destination.x,
+			y: destination.y,
+			radius: home_radius(),
+		};
+	}
 
-	// Only ping when neither the entity nor her state cache can place her — the cache goes stale
-	// at 15s, so this is now a genuine last resort rather than every tick she's off-screen.
-	if (!healer_pos) {
+	return null; // where we should be — the caller's local movement takes over
+}
+
+// Runs the local behaviour a goal asked for. Everything in here is a raw move()/xmove() that
+// starts no pathfind, so none of it can compete with the arbiter for `smart`.
+function movement_local(goal, farm_step) {
+	if (goal && goal.local === "follow") return follow_step();
+	if (goal && goal.local === "event") return event_step(goal.event); // Shared/Combat_Utilities.js
+	if (typeof farm_step === "function") farm_step();
+}
+
+// Beyond this we need a route to her; inside it, a raw step on the ring is enough. The step never
+// touches `smart`, so it cannot compete with the arbiter — which is why the split is here.
+// The re-issue throttle that used to live alongside this is gone; the arbiter has one for every
+// goal, which is the point of having one.
+const FOLLOW_TRAVEL_RANGE = 220;
+
+// The TRAVEL half of following. Returns a goal or null; issues nothing.
+function follow_goal() {
+	if (character.name === MOVEMENT_LEADER) return null; // she does not follow herself
+	// giantspider follows her permanently — she leads the instance run and there is no farm spot
+	// to hold. Otherwise only while she is off it.
+	if (home !== "giantspider" && !party_should_follow()) return null;
+
+	const pos = leader_position();
+	if (!pos) {
+		// Cannot place her at all. Ping and stand still rather than walk off somewhere arbitrary.
 		const now = Date.now();
 		if (now - _last_healer_ping > 2000) {
 			_last_healer_ping = now;
-			send_cm("Myras", { type: "where_are_you" });
+			send_cm(MOVEMENT_LEADER, { type: "where_are_you" });
 		}
-		return;
+		return { hold: true, label: "follow-lost" };
 	}
 
-	if ((healer && healer.rip) || healer_pos.rip) return;
-
-	if (healer_pos.map !== character.map) {
-		// Interrupt only when the journey in flight isn't already headed for her map. The old
-		// unconditional interrupt cancelled and re-issued the same cross-map path 10x/second,
-		// which never got anywhere — harmless on one map, a real trap now that this runs for
-		// every farm target.
-		if (smart.moving && smart.map !== healer_pos.map) stop_movement("follow_healer");
-		if (!smart.moving) follow_reissue({ map: healer_pos.map, x: healer_pos.x, y: healer_pos.y });
-		return;
+	if (pos.map !== character.map) {
+		return { label: "follow", map: pos.map, x: pos.x, y: pos.y, radius: 80 };
 	}
 
-	// Same map but not yet visible — smart_move toward cached position
-	if (!healer) {
-		if (!smart.moving) follow_reissue({ x: healer_pos.x, y: healer_pos.y });
-		return;
+	const d = Math.hypot(character.x - pos.x, character.y - pos.y);
+	if (d > FOLLOW_TRAVEL_RANGE) {
+		return { label: "follow", map: pos.map, x: pos.x, y: pos.y, radius: CONFIG.movement.follow_distance + 30 };
 	}
 
-	// Healer visible — ring positioning
+	// Close enough that the ring step handles it.
+	return { local: "follow", label: "follow-ring" };
+}
+
+// The LOCAL half: one raw move() onto the follow ring. No pathfind, so it is safe to run every
+// tick, and per-tick responsiveness is the whole point of keeping station on her.
+function follow_step() {
+	const healer = get_player(MOVEMENT_LEADER);
+	if (!healer || healer.rip) return;
+
+	_healer_last_known = { map: character.map, x: healer.x, y: healer.y };
+
 	const dist = Math.hypot(character.x - healer.x, character.y - healer.y);
 	const fd = CONFIG.movement.follow_distance;
 	if (Math.abs(dist - fd) <= 3) return;
 
-	// A point exactly follow_distance from her along our current bearing (approach or push away).
 	const angle = Math.atan2(character.y - healer.y, character.x - healer.x);
 	const target_x = healer.x + Math.cos(angle) * fd;
 	const target_y = healer.y + Math.sin(angle) * fd;
 
-	if (smart.moving) {
-		// Retarget on the DESTINATION drifting, never on our own distance from her.
-		//
-		// The old test was `|dist - fd| > 40`, which is true for the whole journey — that is WHY
-		// we are walking — so it cancelled the move on every 100ms tick. smart_move's BFS runs on
-		// an 80ms interval and needs far longer than one tick to finish a route, and re-issuing
-		// resets it, so a pathfound follow could never complete: the only branch that ever arrived
-		// was the raw move() below. Throttled as well, so even a genuinely drifting target cannot
-		// starve the search.
-		// Deliberately does NOT stamp _last_follow_move. follow_reissue() below shares that clock,
-		// so stamping here cancelled the move and then blocked its own replacement for the full 3s
-		// — a dead stop after every retarget. Letting the re-issue do the stamping gives the same
-		// "one retarget per 3s" ceiling with no gap in between.
-		if (Date.now() - _last_follow_move > FOLLOW_MOVE_RETRY_MS
-			&& Math.hypot(smart.x - target_x, smart.y - target_y) > FOLLOW_RETARGET_DRIFT) {
-			stop_movement("follow_healer retarget");
-		}
-		return;
-	}
-
-	if (!can_move_to(target_x, target_y)) {
-		// Pathfound, so it goes through the throttle. The raw move() below does not: it is cheap,
-		// starts no search, and per-tick responsiveness is the whole point of the orbit.
-		follow_reissue({ x: target_x, y: target_y });
-	} else {
-		move(target_x, target_y);
-	}
+	// can_move_to() false means geometry is in the way. Do nothing rather than pathfind: the
+	// arbiter's follow goal takes over as soon as we drift past FOLLOW_TRAVEL_RANGE, and starting a
+	// BFS from down here is exactly the second mover this refactor removed.
+	if (can_move_to(target_x, target_y)) move(target_x, target_y);
 }
+
 
 // Reads this file's own `item_order` global. A plain number reserves one slot for that item; an array
 // reserves one slot per intentionally-kept duplicate (Warrior uses this for a dual-wielded weapon) —
@@ -1369,28 +1373,21 @@ var anniversary_travel = false;
 
 const ANNIVERSARY_TICK_MS = 2000;
 const ANNIVERSARY_RANGE = 65;        // skill range is 80; margin for them moving as we arrive
-const ANNIVERSARY_REISSUE_MS = 8000; // while moving: the target walks, so refresh the destination
-// While NOT moving: retry promptly. Standing still is never right with a five-minute ticket
-// running, and a path that fails instantly must not cost the round. Floored rather than unlimited
-// so an unreachable destination cannot become a retry storm.
-const ANNIVERSARY_RETRY_MS = 2000;
 // Gap between kiss attempts. Long enough that a normal reply lands before a second cast can go out
 // (a second cast at a spent visit is what the server answers with "exception"), short enough to
 // retry promptly while still closing the last few units of distance.
 const ANNIVERSARY_KISS_RETRY_MS = 2500;
-// How long a foreign journey may hold the character before the visit takes it over.
-const ANNIVERSARY_FOREIGN_MS = 3000;
 // Grace after the server acknowledges a cast, before we are willing to cast again.
 const ANNIVERSARY_ACK_GRACE_MS = 6000;
-// How far the featured player must move before a route already being computed is worth abandoning.
-const ANNIVERSARY_RETARGET_DRIFT = 100;
 
-let _anniv_last_move = 0;
+// The re-issue cadences, the drift threshold and the in-flight move identity that used to live
+// here are gone: this module no longer moves anything. It decides, anniversary_destination()
+// reports where, and the travel arbiter owns the journey along with every other goal.
+
 let _anniv_last_kiss = 0;
 let _anniv_kiss_acked = 0;
 let _anniv_host_round = null;   // so the host notice prints once per round, not every tick
 let _anniv_travel_since = 0;
-let _anniv_move_interrupt = null;   // identity of OUR in-flight move, so we only cancel our own
 
 // anniversary_travel gates combat for ALL FOUR characters — should_pause_combat_loop() plus every
 // main_loop's movement branch. Nothing else can clear it, so if it is ever left set the whole party
@@ -1479,22 +1476,13 @@ function anniversary_should_travel() {
 	return anniversary_block_reason() === null;
 }
 
-// Clearing the flag is not enough on its own: a smart_move to the featured player is still in
-// flight, and handle_return_home() only re-issues when smart.moving is false, so the character
-// would keep walking to a party they have already left. Interrupt it the same way smarter_move()
-// interrupts its own predecessor.
+// Clearing the flag is all this has to do now. anniversary_destination() goes null on the next
+// tick, movement_goal() picks whatever should happen instead, and the arbiter releases the journey
+// it owns. The identity-tracked interrupt that used to live here existed only to avoid cancelling
+// somebody else's move — with one owner there is no somebody else.
 function anniversary_stand_down(why) {
 	anniversary_travel = false;
 	_anniv_travel_since = 0;
-	// Only cancel a move that is still OURS. smart._interrupt always points at the most recent
-	// smarter_move, so once we have arrived and normal movement has taken over, an unconditional
-	// interrupt here would kill the walk home instead of our travel.
-	try {
-		if (smart.moving && _anniv_move_interrupt && smart._interrupt === _anniv_move_interrupt) {
-			smart._interrupt("anniversary over");
-		}
-	} catch (e) { /* nothing in flight */ }
-	_anniv_move_interrupt = null;
 	// Recorded, not just logged: "the party stopped and I had to reload" needs to be answerable
 	// after the fact, and log() only reaches the in-game window.
 	try {
@@ -1503,10 +1491,11 @@ function anniversary_stand_down(why) {
 	log(`🎂 Anniversary: ${why}.`, "#F0B742", "Alerts");
 }
 
-// One iteration of the visit. Split out from the loop because the merchant's loop_controller() is
-// the sole owner of his movement — he drives this from his own state machine rather than running a
-// second loop that would fight it for the destination.
-async function anniversary_step() {
+// One iteration of the visit's DECISIONS: whether a round is ours to join, whether the buff has
+// landed, and casting the kiss. It moves nothing — anniversary_destination() reports where the
+// visit wants to be and the arbiter takes it from there. The merchant drives this from his own
+// state machine rather than running a second loop.
+async function anniversary_tick() {
 	// Say it once per round rather than every tick: a host that silently does nothing looks
 	// identical to the behaviour being broken.
 	const ev = anniversary_event();
@@ -1528,7 +1517,6 @@ async function anniversary_step() {
 	if (!anniversary_travel) {
 		anniversary_travel = true;
 		_anniv_travel_since = Date.now();
-		_anniv_last_move = 0;
 		_anniv_kiss_acked = 0;
 		// Snapshot the buff now: it runs 20 minutes, so it can still be up from the previous round
 		// when this one opens. Only a buff that appears DURING the trip means we just collected.
@@ -1601,55 +1589,33 @@ async function anniversary_step() {
 		return true;   // keep closing in; a failed cast must not end the trip
 	}
 
-	// Keep trying for the whole window rather than issuing one move and hoping it lands. A path can
-	// fail instantly, be interrupted by something else, or simply finish at a spot the target has
-	// already walked away from — and one attempt per five-minute ticket makes any of those the end
-	// of the round.
-	//
-	// Two cadences. Not moving means retry promptly, because standing still is never right while a
-	// ticket is burning. Moving means refresh the destination on a slower beat, because the target
-	// walks and a stale destination arrives at nobody.
-	const move_is_ours = smart.moving && _anniv_move_interrupt && smart._interrupt === _anniv_move_interrupt;
-	const since_move = Date.now() - _anniv_last_move;
-
-	// A journey in flight that is NOT ours — a leftover follow_healer or return-home move, or the
-	// stranded "smart.moving true with no mover behind it" that one shared `smart` object makes
-	// possible — used to leave want_move false forever. The character then stood still for the
-	// entire five-minute ticket and only the six-minute watchdog freed it, which is exactly the
-	// "attempts it and never arrives" report. While a round is live this is the top movement
-	// priority and every main_loop yields to it, so taking the journey over is correct.
-	const foreign_move = smart.moving && !move_is_ours;
-
-	const dest = them
-		? { map: them.map || s.map, x: them.x, y: them.y }
-		: { map: s.map, x: s.x, y: s.y };
-
-	// Only re-path when the destination has genuinely moved. smart_move's BFS is not instant and
-	// re-issuing resets it, so "refresh the destination every 8s" could reset a long cross-map
-	// search before it ever finished — the target taking a few steps must not cost us the route.
-	const dest_drifted = !smart.moving
-		|| smart.map !== dest.map
-		|| Math.hypot(smart.x - dest.x, smart.y - dest.y) > ANNIVERSARY_RETARGET_DRIFT;
-
-	// Taking over a foreign journey is exempt: whatever it is aiming at, it is not ours to rely on
-	// and anniversary_stand_down() could not cancel it later.
-	const want_move = (foreign_move && since_move > ANNIVERSARY_FOREIGN_MS)
-		|| (dest_drifted && (
-			(!smart.moving && since_move > ANNIVERSARY_RETRY_MS)
-			|| (move_is_ours && since_move > ANNIVERSARY_REISSUE_MS)));
-
-	if (want_move) {
-		// Cancel BEFORE issuing the next one. smarter_move() hangs its interrupt and its
-		// monitor_movement chain off the single shared `smart` object, so two live calls fight over
-		// smart.moving — one completes and clears it under the other, and the survivor can leave it
-		// set with no mover behind it, which strands the character permanently.
-		if (smart.moving) stop_movement("anniversary retarget"); // Shared/Movement.js
-		_anniv_last_move = Date.now();
-		// Not awaited: this loop must keep re-evaluating while the move runs.
-		Promise.resolve(smarter_move(dest, null, { timeout: 60000 })).catch(() => {});
-		_anniv_move_interrupt = smart._interrupt;
-	}
 	return true;
+}
+
+// Where the visit wants the character to be, for movement_goal() to weigh against everything else.
+// Pure: no moves, no state changes — it is read on every 100ms main_loop tick, while the decisions
+// above run on anniversary_loop's 2s beat.
+function anniversary_destination() {
+	if (!anniversary_travel) return null;
+	const s = anniversary_event();
+	if (!s) return null;
+
+	// Reserved but temporarily unreachable. Hold position and stay committed: their slot is still
+	// ours and the round timer keeps running. Standing down here and restarting when they
+	// reappeared is what spent the five-minute ticket in pieces without ever arriving.
+	if (s.available === false) return { hold: true, label: "anniversary-wait" };
+
+	// Close enough to cast — hold, so local farm movement cannot wander us back out of range
+	// between the 2s ticks that do the casting.
+	const them = get_player(s.target);
+	if (them && distance(character, them) <= ANNIVERSARY_RANGE) {
+		return { hold: true, label: "anniversary-kiss" };
+	}
+
+	// The live entity when we can see them; the S snapshot is periodic and they walk.
+	return them
+		? { label: "anniversary", map: them.map || s.map, x: them.x, y: them.y, radius: ANNIVERSARY_RANGE - 15 }
+		: { label: "anniversary", map: s.map, x: s.x, y: s.y, radius: ANNIVERSARY_RANGE - 15 };
 }
 
 // The watchdog runs on its OWN timer, deliberately not inside anniversary_loop(). The loop awaits
@@ -1667,7 +1633,7 @@ setInterval(() => {
 
 async function anniversary_loop() {
 	try {
-		await anniversary_step();
+		await anniversary_tick();
 	} catch (e) {
 		// catcher() has itself been the thing that killed a loop before now — a missing comma made
 		// it undefined and the catch block threw, taking action_loop with it. Nothing in here is

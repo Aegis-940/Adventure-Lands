@@ -347,11 +347,11 @@ async function status_swap_trick_check(target) {
 // _healer_last_known when she's off-map and invisible.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// var, not let: shared follow_healer() (Game_Config.js) reads/writes these globals.
+// var, not let: shared follow_goal()/follow_step() (Party_And_Loot.js) read/write these globals.
 var _healer_last_known = null;
 var _last_healer_ping = 0;
 
-// follow_healer() moved to Shared/Game_Config.js; reads this file's
+// Following lives in Shared/Party_And_Loot.js as a movement goal; it reads this file's
 // CONFIG.movement.follow_distance at call time.
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -368,36 +368,14 @@ async function main_loop() {
 		panic_check();
 		stuck_escape_check(); // Shared/Movement.js
 
-		// anniversary_loop() owns movement while travelling to the featured player; the normal
-		// farm/return/reposition chain would fight it for the destination.
-		if (typeof anniversary_travel !== "undefined" && anniversary_travel) {
-			// fall through to the loop tail — no farming movement this tick
-		}
-		// ABOVE should_handle_events() on purpose. Myras decides where the party goes — including
-		// to an event — and this branch is how that decision reaches the followers. Below events,
-		// a single live boss sent Ulric and Riva off independently while her own cohesion hold kept
-		// her waiting for them, so she arrived minutes late or not at all and they fought it with
-		// no healer. giantspider follows her permanently; otherwise only while she is off the farm
-		// spot, so they still spread onto a cluster once the party arrives.
-		else if (CONFIG.movement.enabled && home !== "bscorpion"
-			&& (WARRIOR_TARGET === "giantspider" || party_should_follow())) {
-			follow_healer();
-		}
-
-		else if (should_handle_events()) {
-			handle_events();
-		}
-
-		else if (CONFIG.movement.enabled) {
-			if (home === "bscorpion") {
-				handle_bscorpion_farm_approach(); // Shared/Movement.js
-			// Distance first, monsters second: standing outside the farm radius means walking back
-			// regardless of what happens to be on screen from here.
-			} else if (is_away_from_home() || !get_nearest_monster({ type: home })) {
-				handle_return_home();
-			} else if (CONFIG.movement.reposition) {
-				reposition();
-			}
+		// One decision, one mover. movement_goal() (Shared/Party_And_Loot.js) holds the whole
+		// priority list; travel_arbiter() (Shared/Movement.js) is the only thing that issues,
+		// re-issues or cancels a journey. Nothing in this file moves the character any more.
+		const goal = movement_goal();
+		if (!travel_arbiter(goal)) {
+			movement_local(goal, () => {
+				if (CONFIG.movement.reposition && get_nearest_monster({ type: home })) reposition();
+			});
 		}
 
 	} catch (e) {
@@ -582,7 +560,7 @@ var MONSTER_GEAR_OVERRIDES = {
 // MOVEMENT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// should_handle_events, handle_events, handle_specific_event, handle_return_home → Game_Config.js
+// Events and going home are movement_goal() entries now — see Shared/Party_And_Loot.js.
 
 const REPOSITION_INTERVAL_MS = 250;
 

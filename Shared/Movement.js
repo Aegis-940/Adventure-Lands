@@ -217,6 +217,103 @@ function smarter_move(destination, on_done, options = {}) {
 
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// TRAVEL ARBITER — the single owner of long-range movement for this character.
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+// Before this existed there were three independent movers writing one shared `smart` object at
+// three different rates: main_loop's if/else chain at 100ms, anniversary_loop on its own 2s timer,
+// and party_cohesion_hold(). Every bug in this subsystem was two of them fighting — a cancel that
+// reset a BFS before it could finish, a monitor watching a destination another caller had already
+// overwritten, smart.moving left true with nothing behind it. Each fix added another interlock
+// between movers rather than removing a mover.
+//
+// So: callers no longer move. They describe where they want to be, movement_goal() picks one
+// winner, and this is the only code that issues, re-issues or cancels a journey.
+//
+// A goal is one of:
+//   null                              nothing to travel to — the caller's local movement runs
+//   { local: "<name>", label }        same, but the caller runs THAT local behaviour
+//   { hold: true, label }             stand still; stop any journey we own
+//   { label, map, x, y, radius }      travel there
+//   { label, to, on_arrive }          travel to a named runner destination ("town")
+//
+// Returns true when the arbiter is in control this tick, i.e. the caller must not move.
+
+const TRAVEL_REISSUE_MS = 3000;  // floor between journeys, so a BFS gets time to finish
+const TRAVEL_REGOAL_MS = 500;    // shorter floor when the goal itself changed — that is news
+const TRAVEL_DRIFT = 80;         // destination must move this far to be worth re-pathing
+const TRAVEL_ARRIVE = 40;        // default arrival radius
+
+let _travel = { label: null, at: 0, interrupt: null };
+
+// Only ever cancels a journey THIS arbiter started. A merchant task, a looting hop or anything
+// else that still moves on its own is not ours to end.
+function travel_release() {
+	if (_travel.interrupt && smart.moving && smart._interrupt === _travel.interrupt) {
+		stop_movement("arbiter: released");
+	}
+	_travel.interrupt = null;
+	_travel.label = null;
+}
+
+function travel_arbiter(goal) {
+	if (!goal || goal.local) {
+		travel_release();
+		return false;
+	}
+
+	if (goal.hold) {
+		travel_release();
+		if (smart.moving) stop_movement("arbiter: " + goal.label);
+		_travel.label = goal.label;
+		return true;
+	}
+
+	const now = Date.now();
+	const label_changed = _travel.label !== goal.label;
+
+	// Named destinations go through the runner's own resolver, which knows strings like "town"
+	// that smarter_move() cannot resolve from `locations` or G.maps.
+	if (goal.to) {
+		if (!smart.moving && (label_changed || now - _travel.at > TRAVEL_REISSUE_MS)) {
+			_travel.at = now;
+			_travel.label = goal.label;
+			_travel.interrupt = null; // runner smart_move installs no interrupt of its own
+			fire_and_forget_move({ to: goal.to }, goal.on_arrive);
+		}
+		return true;
+	}
+
+	const map = goal.map || character.map;
+	const radius = goal.radius || TRAVEL_ARRIVE;
+
+	if (character.map === map && Math.hypot(character.x - goal.x, character.y - goal.y) <= radius) {
+		travel_release();
+		return false; // arrived — the caller's local movement takes it from here
+	}
+
+	const ours = smart.moving && _travel.interrupt && smart._interrupt === _travel.interrupt;
+	// Somebody else's journey while we want to be elsewhere. Taking it over is right: after this
+	// refactor nothing else should be issuing one, and a stranded smart.moving with no mover behind
+	// it looks exactly the same from here.
+	const foreign = smart.moving && !ours;
+	const drifted = !smart.moving
+		|| smart.map !== map
+		|| Math.hypot(smart.x - goal.x, smart.y - goal.y) > TRAVEL_DRIFT;
+
+	const floor = label_changed ? TRAVEL_REGOAL_MS : TRAVEL_REISSUE_MS;
+	if (now - _travel.at > floor && (drifted || foreign)) {
+		if (smart.moving) stop_movement("arbiter: " + goal.label);
+		_travel.at = now;
+		_travel.label = goal.label;
+		Promise.resolve(smarter_move({ map, x: goal.x, y: goal.y }, null,
+			{ timeout: 90000, radius })).catch(() => { });
+		_travel.interrupt = smart._interrupt;
+	}
+	return true;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // MOVE TO CHARACTER'S LOCATION
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -352,11 +449,8 @@ function fire_and_forget_move(dest, on_done) {
 	} catch (e) { /* smart_move threw synchronously */ }
 }
 
-// Shared by Warrior/Healer/Ranger — approaches the farm spot via smart_move only when actually lost;
-// callers gate this on their own `home === "bscorpion"` check first.
-function handle_bscorpion_farm_approach() {
-	if (!is_at_bscorpion_farm() && !smart.moving) fire_and_forget_move(PRIM_FARM_LOC);
-}
+// handle_bscorpion_farm_approach() lived here. movement_goal() emits a bscorpion goal instead and
+// the arbiter walks it, so the approach shares the one re-issue throttle with every other journey.
 
 let cached_bscorpion_id = null;
 

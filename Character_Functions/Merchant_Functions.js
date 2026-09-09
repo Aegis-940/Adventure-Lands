@@ -295,7 +295,10 @@ async function handle_dead_state() {
 async function handle_anniversary_state() {
 	merchant_task = "Anniversary";
 	try {
-		await anniversary_step();
+		// Decide, then let the shared arbiter own the journey — the same one the fighters use, so
+		// the visit has one mover on every character rather than one per file.
+		await anniversary_tick();
+		travel_arbiter(anniversary_destination()); // Shared/Movement.js
 	} catch (e) {
 		catcher(e, "handle_anniversary_state");
 	} finally {
