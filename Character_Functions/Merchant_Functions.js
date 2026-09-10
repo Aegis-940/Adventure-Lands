@@ -232,7 +232,7 @@ async function handle_anniversary_state() {
 	try {
 		await anniversary_tick();
 		const goal = anniversary_destination();
-		if (!travel_arbiter(goal)) anniversary_close_step(goal);
+		if (!travel_arbiter(goal)) local_step(goal);
 	} catch (e) {
 		catcher(e, "handle_anniversary_state");
 	} finally {

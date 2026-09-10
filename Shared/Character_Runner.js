@@ -25,6 +25,10 @@
 // knows that. Exposed as a function so the eval-loaded character files can reach it.
 let _current_goal = null;
 
+function current_goal() {
+	return _current_goal;
+}
+
 function current_goal_label() {
 	return _current_goal ? _current_goal.label : null;
 }

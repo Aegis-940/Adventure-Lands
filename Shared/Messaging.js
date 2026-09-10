@@ -35,9 +35,6 @@ const location_responses = {};
 const CM_HANDLERS = {
 	"my_location": (name, data) => {
 		location_responses[name] = { map: data.map, x: data.x, y: data.y };
-		if (name === "Myras") {
-			_healer_last_known = { map: data.map, x: data.x, y: data.y };
-		}
 	},
 
 	"panic": (name, data) => {

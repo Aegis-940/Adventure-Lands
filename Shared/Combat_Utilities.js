@@ -142,8 +142,8 @@ function should_pause_combat_loop() {
 	if (typeof travel_is_active === "function" && travel_is_active()) return true;
 	if (smart.moving) return true;
 
-	const goal = typeof current_goal_label === "function" ? current_goal_label() : null;
-	if (goal === "follow" || goal === "follow-ring") return true;
+	const goal = typeof current_goal === "function" ? current_goal() : null;
+	if (goal && goal.chasing) return true;
 
 	if (home === "giantspider") return false;
 	const myras = get_player("Myras");

@@ -173,17 +173,16 @@ async function _panic_check_body() {
 	}
 	const HARD_REASON = LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= t.aggro;
 
-	if (HARD_REASON || TRAPPED_TRAVELLING) {
-		if (!panicking) {
-			let reason = [];
-			if (LOW_HEALTH) reason.push("low health");
-			if (LOW_MANA) reason.push("low mana");
-			if (MONSTERS_TARGETING_ME >= t.aggro) reason.push("high aggro");
-			if (TRAPPED_TRAVELLING) reason.push(`${MONSTERS_TARGETING_ME} on us while travelling`);
-			set_panic(true, reason.join(", "), false);
-			if (HARD_REASON && typeof PANIC_BROADCAST_TARGETS !== "undefined") {
-				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: true });
-			}
+	if ((HARD_REASON || TRAPPED_TRAVELLING) && !panicking) {
+		set_panic(true, [
+			LOW_HEALTH && "low health",
+			LOW_MANA && "low mana",
+			MONSTERS_TARGETING_ME >= t.aggro && "high aggro",
+			TRAPPED_TRAVELLING && `${MONSTERS_TARGETING_ME} on us while travelling`,
+		].filter(Boolean).join(", "), false);
+
+		if (HARD_REASON && typeof PANIC_BROADCAST_TARGETS !== "undefined") {
+			send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: true });
 		}
 	}
 
@@ -521,18 +520,19 @@ async function equip_once(owner, priority, sets) {
 // UNIFIED EQUIPMENT RESOLVER — Warrior/Ranger/Healer each declare their own EQUIPMENT_RULES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+function equip_group_ready(group) {
+	if (!state.equip_cooldowns) state.equip_cooldowns = {};
+	const now = performance.now();
+	if (now - (state.equip_cooldowns[group] || 0) < (CONFIG.equipment.swap_cooldown ?? 500)) return false;
+	state.equip_cooldowns[group] = now;
+	return true;
+}
+
 async function apply_equipment_rule(token, group, resolved) {
 	if (!resolved) return;
 	const sets = Array.isArray(resolved) ? resolved : [resolved];
-
 	if (sets.every(s => is_set_equipped(s))) return;
-
-	const now = performance.now();
-	const cooldown = CONFIG.equipment.swap_cooldown ?? 500;
-	if (!state.equip_cooldowns) state.equip_cooldowns = {};
-	if (now - (state.equip_cooldowns[group] || 0) < cooldown) return;
-	state.equip_cooldowns[group] = now;
-
+	if (!equip_group_ready(group)) return;
 	await equip_apply(token, sets);
 }
 
@@ -540,15 +540,10 @@ async function apply_booster_rule(group, desired_booster) {
 	if (!desired_booster) return;
 	if (locate_item(desired_booster) !== -1) return;
 
-	const now = performance.now();
-	const cooldown = CONFIG.equipment.swap_cooldown ?? 500;
-	if (!state.equip_cooldowns) state.equip_cooldowns = {};
-	if (now - (state.equip_cooldowns[group] || 0) < cooldown) return;
-
 	const other_slot = find_booster_slot();
 	if (other_slot === null) return;
+	if (!equip_group_ready(group)) return;
 
-	state.equip_cooldowns[group] = now;
 	shift(other_slot, desired_booster);
 }
 
@@ -620,21 +615,13 @@ function party_manager() {
 	}
 }
 
-function on_party_request(name) {
+function accept_if_party(name, accept) {
 	if (typeof CONFIG === "undefined") return;
-	if (CONFIG.party.group_members.includes(name)) {
-		console.log("Accepting party request from " + name);
-		accept_party_request(name);
-	}
+	if (CONFIG.party.group_members.includes(name)) accept(name);
 }
 
-function on_party_invite(name) {
-	if (typeof CONFIG === "undefined") return;
-	if (CONFIG.party.group_members.includes(name)) {
-		console.log("Accepting party invite from " + name);
-		accept_party_invite(name);
-	}
-}
+function on_party_request(name) { accept_if_party(name, accept_party_request); }
+function on_party_invite(name) { accept_if_party(name, accept_party_invite); }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // LOOT & INVENTORY
@@ -658,29 +645,32 @@ function equipment_set_item_names() {
 	return found;
 }
 
-async function send_to_merchant() {
-	const merchant_name = "Riff";
-	const merchant = get_player(merchant_name);
-
-	if (!merchant || merchant.rip) {
-		return game_log("❌ Merchant not found or dead");
+function loose_loot(start) {
+	const keep = typeof ITEMS_TO_KEEP !== "undefined" ? ITEMS_TO_KEEP : [];
+	const gear = equipment_set_item_names();
+	const out = [];
+	for (let i = start; i < character.items.length; i++) {
+		const item = character.items[i];
+		if (!item || item.l || item.s) continue;
+		if (keep.includes(item.name) || gear.has(item.name)) continue;
+		out.push({ i, item });
 	}
+	return out;
+}
+
+async function send_to_merchant() {
+	const merchant = get_player("Riff");
+	if (!merchant || merchant.rip) return game_log("❌ Merchant not found or dead");
 	if (merchant.map !== character.map || distance(character, merchant) > 400) {
 		return game_log("❌ Merchant not nearby");
 	}
 
-	const items_to_keep = typeof ITEMS_TO_KEEP !== "undefined" ? ITEMS_TO_KEEP : [];
-	const gear = equipment_set_item_names();
-
-	for (let i = LOOT_THRESHOLD; i < character.items.length; i++) {
-		const item = character.items[i];
-		if (item && !item.l && !items_to_keep.includes(item.name) && !gear.has(item.name)) {
-			await delay(150);
-			try {
-				send_item(merchant_name, i, item.q || 1);
-			} catch (e) {
-				game_log(`⚠️ Could not send item in slot ${i}: ${item.name}`);
-			}
+	for (const { i, item } of loose_loot(LOOT_THRESHOLD)) {
+		await delay(150);
+		try {
+			send_item("Riff", i, item.q || 1);
+		} catch (e) {
+			game_log(`⚠️ Could not send item in slot ${i}: ${item.name}`);
 		}
 	}
 
@@ -688,7 +678,7 @@ async function send_to_merchant() {
 	if (gold_to_send > 0) {
 		await delay(10);
 		try {
-			await send_gold(merchant_name, gold_to_send);
+			await send_gold("Riff", gold_to_send);
 		} catch (e) {
 			game_log("⚠️ Could not send gold");
 		}
@@ -696,25 +686,11 @@ async function send_to_merchant() {
 }
 
 function clear_inventory() {
-	const loot_mule = get_player("Riff");
-	if (!loot_mule) return;
+	const mule = get_player("Riff");
+	if (!mule || distance(character, mule) >= 250) return;
 
-	const dist = distance(character, loot_mule);
-
-	if (dist < 250 && character.gold > LOOT_GOLD_RESERVE) {
-		send_gold(loot_mule, character.gold - LOOT_GOLD_RESERVE);
-	}
-
-	const gear = equipment_set_item_names();
-
-	for (let i = 0; i < character.items.length; i++) {
-		const item = character.items[i];
-		if (item && !ITEMS_TO_KEEP.includes(item.name) && !gear.has(item.name) && !item.l && !item.s) {
-			if (dist < 250) {
-				send_item(loot_mule.id, i, item.q ?? 1);
-			}
-		}
-	}
+	if (character.gold > LOOT_GOLD_RESERVE) send_gold(mule, character.gold - LOOT_GOLD_RESERVE);
+	for (const { i, item } of loose_loot(0)) send_item(mule.id, i, item.q ?? 1);
 }
 
 function inventory_sorter() {
@@ -840,17 +816,8 @@ const SELLABLE_ITEMS = [
 ];
 
 function remote_sell_items() {
-	const keep = typeof ITEMS_TO_KEEP !== "undefined" ? ITEMS_TO_KEEP : [];
-	const gear = equipment_set_item_names();
-
-	for (let i = 0; i < character.items.length; i++) {
-		const item = character.items[i];
-		if (!item) continue;
-		if (item.l || item.p !== undefined) continue;
-		if (keep.includes(item.name) || gear.has(item.name)) continue;
-		if (SELLABLE_ITEMS.includes(item.name)) {
-			sell(i, item.q || 1);
-		}
+	for (const { i, item } of loose_loot(0)) {
+		if (item.p === undefined && SELLABLE_ITEMS.includes(item.name)) sell(i, item.q || 1);
 	}
 }
 
@@ -893,28 +860,40 @@ function party_cohesion_hold() {
 function follow_goal() {
 	const pos = leader_position();
 	if (!pos || pos.rip) return null;
-
 	const fd = CONFIG.movement.follow_distance;
-	if (pos.map !== character.map) return { label: "follow", map: pos.map, x: pos.x, y: pos.y, radius: fd + 30 };
-
-	const d = Math.hypot(character.x - pos.x, character.y - pos.y);
-	if (d <= (pos.travelling ? fd : COHESION_RANGE)) return { local: "farm", label: "with-leader", on_station: true };
-
-	const angle = Math.atan2(character.y - pos.y, character.x - pos.x);
-	const ring = { x: pos.x + Math.cos(angle) * fd, y: pos.y + Math.sin(angle) * fd };
-	if (!smart.moving && can_move_to(ring.x, ring.y)) {
-		return { local: "follow", label: "follow-ring", on_station: d <= COHESION_RANGE, step: ring };
-	}
-	return { label: "follow", map: pos.map, x: pos.x, y: pos.y, radius: fd + 30 };
-}
-
-function follow_step(goal) {
-	if (goal && goal.step) move(goal.step.x, goal.step.y);
+	return approach(pos, {
+		label: "follow",
+		arrive: pos.travelling ? fd : COHESION_RANGE,
+		radius: fd + 30,
+		ring: fd,
+		chasing: true,
+		arrived: { local: "farm", label: "with-leader", on_station: true },
+	});
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MOVEMENT GOAL — the one priority list for the three combat characters.
 // --------------------------------------------------------------------------------------------------------------------------------- //
+
+function approach(pos, o) {
+	const map = pos.map || character.map;
+	const travel = { label: o.label, map, x: pos.x, y: pos.y, radius: o.radius || o.arrive, chasing: o.chasing };
+	if (map !== character.map) return travel;
+
+	const d = Math.hypot(character.x - pos.x, character.y - pos.y);
+	if (d <= o.arrive) return o.arrived;
+
+	const a = Math.atan2(character.y - pos.y, character.x - pos.x);
+	const step = { x: pos.x + Math.cos(a) * o.ring, y: pos.y + Math.sin(a) * o.ring };
+	if (!smart.moving && can_move_to(step.x, step.y)) {
+		return { local: "step", label: o.label + "-close", on_station: d <= COHESION_RANGE, step, chasing: o.chasing };
+	}
+	return travel;
+}
+
+function local_step(goal) {
+	if (goal && goal.step) move(goal.step.x, goal.step.y);
+}
 
 function movement_goal() {
 	if (!CONFIG.movement.enabled) return null;
@@ -931,9 +910,8 @@ function movement_goal() {
 
 	const anniv = anniversary_destination();
 	if (anniv) {
-		const anniv_is_local = anniv.local === "anniversary" || anniv.label === "anniversary-kiss";
-		const may_take_it = !follow_has_leader() || (anniv_is_local && follow && follow.on_station);
-		if (may_take_it) return anniv;
+		const here = !!anniv.local || !!anniv.hold;
+		if (!follow_has_leader() || (here && follow && follow.on_station)) return anniv;
 	}
 
 	if (follow) return follow;
@@ -963,9 +941,8 @@ function movement_local(goal, farm_step) {
 		log("🧭 local movement skipped — a journey is still in flight", "#FFA500", "Alerts");
 		return;
 	}
-	if (goal && goal.local === "follow") return follow_step(goal);
+	if (goal && goal.local === "step") return local_step(goal);
 	if (goal && goal.local === "event") return event_step(goal.event);
-	if (goal && goal.local === "anniversary") return anniversary_close_step(goal);
 	if (typeof farm_step === "function") farm_step();
 }
 
@@ -1039,19 +1016,12 @@ function anniversary_destination() {
 
 	const them = get_player(s.target);
 	if (!them) return { label: "anniversary", map: s.map, x: s.x, y: s.y, radius: ANNIVERSARY_RANGE };
-	if (distance(character, them) <= ANNIVERSARY_RANGE) return { hold: true, label: "anniversary-kiss" };
-
-	const angle = Math.atan2(character.y - them.y, character.x - them.x);
-	const r = ANNIVERSARY_RANGE * 0.6;
-	const spot = { x: them.x + Math.cos(angle) * r, y: them.y + Math.sin(angle) * r };
-	if (!smart.moving && can_move_to(spot.x, spot.y)) {
-		return { local: "anniversary", label: "anniversary-close", step: spot };
-	}
-	return { label: "anniversary", map: character.map, x: them.x, y: them.y, radius: ANNIVERSARY_RANGE };
-}
-
-function anniversary_close_step(goal) {
-	if (goal && goal.step) move(goal.step.x, goal.step.y);
+	return approach(them, {
+		label: "anniversary",
+		arrive: ANNIVERSARY_RANGE,
+		ring: ANNIVERSARY_RANGE * 0.6,
+		arrived: { hold: true, label: "anniversary-kiss" },
+	});
 }
 
 async function anniversary_tick() {
