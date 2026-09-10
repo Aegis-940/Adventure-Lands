@@ -6,7 +6,11 @@ const COHESION_RANGE = 250;
 const COHESION_REGROUP = 120;
 const COHESION_FOLLOWERS = ["Ulric", "Riva"];
 
+// Both sides run the same band off the same two constants. The leader waits past COHESION_RANGE
+// and only resumes at COHESION_REGROUP, so a follower that stops closing at COHESION_RANGE leaves
+// a gap it will never cross while she waits forever inside it.
 let _cohesion_holding = false;
+let _cohesion_closing = false;
 
 function leader_position() {
 	if (character.name === MOVEMENT_LEADER) return null;
@@ -37,10 +41,17 @@ function party_cohesion_hold() {
 function follow_goal() {
 	const pos = leader_position();
 	if (!pos || pos.rip) return null;
+
+	const d = pos.map === character.map
+		? Math.hypot(character.x - pos.x, character.y - pos.y)
+		: Infinity;
+	if (d > COHESION_RANGE) _cohesion_closing = true;
+	else if (d <= COHESION_REGROUP) _cohesion_closing = false;
+
 	const fd = CONFIG.movement.follow_distance;
 	return approach(pos, {
 		label: "follow",
-		arrive: pos.travelling ? fd : COHESION_RANGE,
+		arrive: pos.travelling ? fd : (_cohesion_closing ? COHESION_REGROUP : COHESION_RANGE),
 		radius: fd + 30,
 		ring: fd,
 		chasing: true,
