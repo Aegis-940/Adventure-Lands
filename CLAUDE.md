@@ -26,10 +26,12 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Shared/Movement.js` | `smarter_move()`, the travel arbiter (`travel_arbiter()`), `move_to_character()`, stuck escape |
 | `Shared/Bscorpion_Farm.js` | Content-specific positioning for the desertland bscorpion/primling camp |
 | `Shared/Combat_Utilities.js` | Monster targeting/distance/aggro helpers, combat positioning (`best_orbit_spot()`) |
-| `Shared/Events.js` | Live boss/seasonal targets and the goal that walks the party to them |
+| `Shared/Events.js` | Live boss/seasonal targets, the goal that walks the party to them, and the anniversary visit |
 | `Shared/Messaging.js` | CM (character message) handlers, localStorage-backed state cache |
 | `Shared/Equipment.js` | Equipment sets, the single `batch_equip()` emitter, the slot arbiter, the rules resolver |
-| `Shared/Party_And_Loot.js` | Panic, potions, party invites, loot/inventory, remote selling, the anniversary visit |
+| `Shared/Party_Management.js` | Panic and its broadcast (`set_panic()` is the only writer), party invites, where home is |
+| `Shared/Loot_Management.js` | `loose_loot()` — what we keep, ship to the merchant, or vendor; bank withdrawal |
+| `Shared/Maintenance.js` | Potion drinking/restocking and the periodic tab reload |
 | `Shared/Cohesion.js` | Party cohesion (`follow_goal()`, `party_cohesion_hold()`) and `movement_goal()`, the one priority list |
 | `Shared/Character_Runner.js` | `run_character()` — the shared main tick loop every character starts from |
 | `Shared/Error_Handling.js` | `catcher()`, the shared error-triage/logging helper |

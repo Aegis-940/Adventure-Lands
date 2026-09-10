@@ -70,7 +70,7 @@ async function handle_stomp() {
 	const needs_swap = mainhand !== "basher";
 	const now = performance.now();
 
-	// Blocks resolve_equipment() (Shared/Party_And_Loot.js) from racing this temporary
+	// Blocks resolve_equipment() (Shared/Equipment.js) from racing this temporary
 	// weapon swap and yanking gear mid-sequence.
 	const token = equip_claim("stomp-swap", EQUIP_PRIORITY.skill);
 	if (!token) return;
@@ -100,7 +100,7 @@ async function handle_cleave() {
 	const needs_swap = mainhand !== "bataxe";
 	const now = performance.now();
 
-	// Blocks resolve_equipment() (Shared/Party_And_Loot.js) from racing this temporary
+	// Blocks resolve_equipment() (Shared/Equipment.js) from racing this temporary
 	// weapon swap and yanking gear mid-sequence.
 	const token = equip_claim("cleave-swap", EQUIP_PRIORITY.skill);
 	if (!token) return;

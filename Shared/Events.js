@@ -2,6 +2,11 @@
 // EVENTS — live boss/seasonal targets, and the goal that walks the party to them
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+on_game_event = function(data) {
+	if (!data?.name) return;
+	log(`[Event] ${data.name} spawned`, "#FF8800");
+};
+
 const EVENT_JOIN_RETRY_MS = 5000;
 let _last_event_join = 0;
 
@@ -84,4 +89,115 @@ function best_event_target() {
 
 	const wabbit = alive_sorted.find(e => e.name === "wabbit");
 	return wabbit || alive_sorted[0];
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// ANNIVERSARY EVENT — "I Kiss You"
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+var anniversary_travel = false;
+
+const ANNIVERSARY_RANGE = 40;
+const ANNIVERSARY_REFRESH_MS = 5 * 60 * 1000;
+const ANNIVERSARY_TICK_MS = 2000;
+const ANNIVERSARY_TICK_ACTIVE_MS = 400;
+
+let _anniv_died_round = null;
+let _anniv_reason = null;
+
+function anniversary_event() {
+	try {
+		const s = parent.S && parent.S.anniversary;
+		if (!s || !s.active || !s.live || !s.id) return null;
+		return Date.now() < s.expires ? s : null;
+	} catch (e) { return null; }
+}
+
+function anniversary_is_host() {
+	const s = anniversary_event();
+	return !!s && (String(character.id) === String(s.id) || character.name === s.target);
+}
+
+function anniversary_block_reason() {
+	const s = anniversary_event();
+	if (!s) return "no live round";
+	if (character.rip) return "dead";
+	if (_anniv_died_round === s.round) return "died during this round";
+	if (s.available === false) return "host is not taking visitors";
+	if (anniversary_is_host()) return "we are the featured player";
+
+	const kiss = character.s && character.s.anniversary_kiss;
+	if (kiss && (kiss.ms === undefined || kiss.ms > ANNIVERSARY_REFRESH_MS)) return "already buffed";
+
+	if (character.ctype !== "merchant"
+		&& typeof best_event_target === "function" && best_event_target()) {
+		return "a boss is up — bossing first";
+	}
+
+	const ticket = character.s && character.s.anniversary_visit;
+	if (!ticket) return "no ticket issued to us";
+	if (!(ticket.ms > 0)) return "ticket already spent";
+	if (ticket.round !== s.round) return `ticket is for round ${ticket.round}, live round is ${s.round}`;
+	if (Date.now() >= ticket.expires) return "ticket expired";
+	if (parent.server_region !== undefined && parent.server_identifier !== undefined) {
+		const realm = parent.server_region + " " + parent.server_identifier;
+		if (ticket.realm !== realm) return `ticket realm "${ticket.realm}" != "${realm}"`;
+	}
+
+	try {
+		if (!G.maps[s.map] || !isFinite(s.x) || !isFinite(s.y)) return "no usable destination";
+	} catch (e) { return "no usable destination"; }
+	return null;
+}
+
+function anniversary_should_travel() {
+	return anniversary_block_reason() === null;
+}
+
+function anniversary_destination() {
+	if (!anniversary_travel) return null;
+	const s = anniversary_event();
+	if (!s) return null;
+
+	const them = get_player(s.target);
+	if (!them) return { label: "anniversary", map: s.map, x: s.x, y: s.y, radius: ANNIVERSARY_RANGE };
+	return approach(them, {
+		label: "anniversary",
+		arrive: ANNIVERSARY_RANGE,
+		ring: ANNIVERSARY_RANGE * 0.6,
+		arrived: { hold: true, label: "anniversary-kiss" },
+	});
+}
+
+async function anniversary_tick() {
+	const s = anniversary_event();
+	if (character.rip && anniversary_travel && s) _anniv_died_round = s.round;
+
+	const reason = anniversary_block_reason();
+	if (reason !== _anniv_reason) {
+		_anniv_reason = reason;
+		log(reason ? `🎂 Anniversary: ${reason}.` : `🎂 Anniversary: visiting ${s.target} on ${s.map}.`,
+			"#F0B742", "Alerts");
+	}
+	anniversary_travel = !reason;
+	if (!anniversary_travel) return false;
+
+	let ready = true;
+	try { ready = !is_on_cooldown("ikissyou"); } catch (e) { /* skill unknown outside the event */ }
+
+	const them = get_player(s.target);
+	if (ready && them && distance(character, them) <= ANNIVERSARY_RANGE) {
+		Promise.resolve(use_skill("ikissyou", them.id)).catch(
+			e => log(`🎂 Anniversary kiss failed: ${fmt_err(e)}`, "#FFA500", "Alerts"));
+	}
+	return true;
+}
+
+async function anniversary_loop() {
+	try {
+		await anniversary_tick();
+	} catch (e) {
+		try { catcher(e, "anniversary_loop"); } catch (x) { /* logging must never kill the loop */ }
+	}
+	setTimeout(anniversary_loop, anniversary_travel ? ANNIVERSARY_TICK_ACTIVE_MS : ANNIVERSARY_TICK_MS);
 }
