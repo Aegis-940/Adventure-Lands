@@ -22,7 +22,6 @@ var CONFIG = {
 		circle_walk: true,
 		circle_speed: 1.8,
 		circle_radius: 30,
-		avoid_mobs: true
 	},
 
 	healing: {
@@ -44,7 +43,6 @@ var CONFIG = {
 	equipment: {
 		auto_swap_sets: true,
 		temporal_surge_enabled: false,
-		boss_luck_switch: true,
 		boss_hp_thresholds: {
 			mrpumpkin: 300000,
 			mrgreen: 300000,
@@ -85,7 +83,6 @@ var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE, "orbg", "mshield", "lmace", "elixirl
 
 var state = {
 	current: "idle",
-	skin_ready: false,
 	last_equip_time: 0,
 	last_loot_time: 0,
 	last_gold_swap: 0,
@@ -98,9 +95,7 @@ var state = {
 var cache = make_cache({
 	target: null,
 	heal_target: null,
-	zap_targets: [],
 	party_members: [],
-	nearest_boss: null,
 });
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -251,11 +246,6 @@ function find_zap_targets() {
 		e.visible &&
 		!e.dead
 	);
-}
-
-function find_nearest_boss() {
-	const boss = get_nearest_monster_v2({ type: CONFIG.combat.all_bosses });
-	return boss ? { mob: boss, type: boss.mtype } : null;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -521,24 +511,6 @@ async function handle_looting() {
 		state.current = "idle";
 		equip_release(token);
 	}
-}
-
-const CHEST_STORAGE_KEY = "loot_chest_ids";
-function load_chest_map() {
-	const data = get(CHEST_STORAGE_KEY);
-	return typeof data === "object" && data !== null ? data : {};
-}
-
-function remove_chest_id(id) {
-	const stored = load_chest_map();
-	if (stored[id]) {
-		delete stored[id];
-		save_chest_map(stored);
-	}
-}
-
-function save_chest_map(map) {
-	set(CHEST_STORAGE_KEY, map);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

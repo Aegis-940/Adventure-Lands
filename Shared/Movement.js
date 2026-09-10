@@ -1,5 +1,5 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// MOVEMENT — smarter_move(), the travel arbiter, move_to_character(), stuck escape
+// MOVEMENT — smarter_move(), the travel arbiter, stuck escape
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -294,45 +294,6 @@ function travel_arbiter(goal) {
 		_travel.interrupt = smart._interrupt;
 	}
 	return true;
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// MOVE TO CHARACTER'S LOCATION
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-function move_to_character(name, timeout_ms = 10000) {
-	return new Promise((resolve, reject) => {
-		let responded = false;
-
-		function handle_response(n, data) {
-			if (n !== name || !data || data.type !== "my_location") return;
-
-			responded = true;
-			remove_cm_listener(handle_response);
-			clearTimeout(timeout_id);
-
-			const { map, x, y } = data;
-			if (!map || x == null || y == null) {
-				game_log(`❌ Invalid location data from ${name}`);
-				reject({ reason: "invalid_location" });
-				return;
-			}
-
-			smarter_move({ map, x, y }).then(resolve, reject);
-		}
-
-		add_cm_listener(handle_response);
-
-		send_cm(name, { type: "where_are_you" });
-
-		const timeout_id = setTimeout(() => {
-			if (!responded) {
-				remove_cm_listener(handle_response);
-				game_log(`⚠️ No location response from ${name} within ${timeout_ms / 1000}s`);
-				reject({ reason: "timeout" });
-			}
-		}, timeout_ms);
-	});
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

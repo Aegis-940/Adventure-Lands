@@ -35,7 +35,6 @@ var CONFIG = {
 
 	equipment: {
 		auto_swap_sets: true,
-		boss_luck_switch: true,
 		boss_hp_thresholds: {
 			mrpumpkin: 200000,
 			mrgreen: 200000,
@@ -48,9 +47,6 @@ var CONFIG = {
 		mp_thresholds: { upper: 2350, lower: 2250 },
 		chest_threshold: 12,
 		swap_cooldown: 500,
-		booster_swap_enabled: true,
-		cape_swap_enabled: true,
-		coat_swap_enabled: true,
 		boss_set_swap_enabled: true,
 		weapon_swap_enabled: true
 	},
@@ -94,7 +90,6 @@ var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE, "orbg"];
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 var state = {
-	skin_ready: false,
 	last_basher_swap: 0,
 	last_cleave_swap: 0,
 	equip_cooldowns: {},

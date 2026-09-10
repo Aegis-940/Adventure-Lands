@@ -11,8 +11,6 @@ const PARTY_MEMBERS               = ["Riva", "Myras", "Riff"];
 
 const MOVEMENT_LEADER             = "Myras";
 
-const POTION_TYPES = ["mpot1", "hpot1"];
-
 const LOOT_THRESHOLD = 6;
 
 const all_bosses = ["grinch", "icegolem", "dragold", "mrgreen", "mrpumpkin", "greenjr", "jr", "franky", "rgoo", "bgoo", "crabxx"];

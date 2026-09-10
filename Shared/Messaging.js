@@ -30,13 +30,7 @@ on_cm = function (name, data) {
 	original_on_cm(name, data);
 };
 
-const location_responses = {};
-
 const CM_HANDLERS = {
-	"my_location": (name, data) => {
-		location_responses[name] = { map: data.map, x: data.x, y: data.y };
-	},
-
 	"panic": (name, data) => {
 		if (name !== "Myras") return;
 		set_panic(!!data.state, "broadcast from the healer", !!data.state);
@@ -54,31 +48,6 @@ const CM_HANDLERS = {
 				enter("spider_instance", instance_id);
 			}
 		}, 2000);
-	},
-
-	"where_are_you": (name) => {
-		send_cm(name, {
-			type: "my_location",
-			map: character.map,
-			x: character.x,
-			y: character.y
-		});
-	},
-
-	"what_potions": (name) => {
-		const counts = {};
-		for (const pot of POTION_TYPES) {
-			counts[pot] = character.items.reduce((sum, item) =>
-				item?.name === pot ? sum + (item.q || 1) : sum, 0);
-		}
-		send_cm(name, { type: "my_potions", ...counts });
-	},
-
-	"do_you_have_loot": (name) => {
-		const count = character.items.slice(6).filter(Boolean).length;
-		if (count > 0) {
-			send_cm(name, { type: "yes_i_have_loot", count });
-		}
 	},
 
 	"send_loot": async (name) => {

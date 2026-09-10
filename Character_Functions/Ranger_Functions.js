@@ -26,7 +26,6 @@ var CONFIG = {
 		reposition: true,
 		circle_radius: 75,
 		move_threshold: 10,
-		clump_radius: 30,
 		follow_distance: 15,
 	},
 
@@ -39,15 +38,8 @@ var CONFIG = {
 			franky: 999999999,
 			icegolem: 999999999,
 		},
-		mp_thresholds: { upper: 2100, lower: 1700 },
-		chest_threshold: 12,
 		swap_cooldown: 500,
-		cape_swap_enabled: false,
-		coat_swap_enabled: false,
 		boss_set_swap_enabled: true,
-		xp_set_swap_enabled: false,
-		xp_monsters: [home, "sparkbot"],
-		xp_mob_hp_threshold: 12000,
 		use_licence: false,
 	},
 
@@ -70,43 +62,6 @@ var CONFIG = {
 		delay_ms: 180000,
 		loot_month: "lootItemsJan"
 	},
-
-	selling: {
-		enabled: false,
-		whitelist: ["vitearring", "iceskates", "cclaw", "hpbelt", "ringsj", "hpamulet",
-			"warmscarf", "quiver", "snowball", "vitring", "wbreeches", "wgloves",
-			"strring", "dexring", "intring"]
-	},
-
-	upgrading: {
-		enabled: false,
-		whitelist: {}
-	},
-
-	combining: {
-		enabled: false,
-		whitelist: {
-			dexamulet: { target_level: 3, primling: 3, prim: 4 },
-			intamulet: { target_level: 3, primling: 3, prim: 4 },
-			stramulet: { target_level: 3, primling: 3, prim: 4 }
-		}
-	},
-
-	character_starter: {
-		enabled: false,
-		characters: {
-			MERCHANT: { name: "Riff", code_slot: 95 },
-			PRIEST: { name: "Myras", code_slot: 3 },
-			WARRIOR: { name: "Ulric", code_slot: 2 }
-		}
-	},
-
-	location_broadcast: {
-		enabled: true,
-		target_player: "Riff",
-		check_interval: 1000,
-		low_inventory_slots: 7
-	}
 };
 
 var destination = {
@@ -122,13 +77,12 @@ var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE, "cupid"];
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 var state = {
-	skin_ready: false,
 	equip_cooldowns: {},
 	last_reposition: 0,
 };
 
 var cache = make_cache({
-	targets: { sorted_by_hp: [], in_range: [], out_of_range: [], clumped: [], cluster_targets: [], cluster_target: null },
+	targets: { sorted_by_hp: [], in_range: [], out_of_range: [], cluster_targets: [], cluster_target: null },
 	heal_target: null,
 });
 
@@ -266,8 +220,6 @@ const update_cache = () => {
 };
 
 const update_target_cache = () => {
-	const { x: home_x, y: home_y } = locations[home][0];
-	const clump_radius = CONFIG.movement.clump_radius;
 	const sorted_by_hp = [];
 
 	for (const id in parent.entities) {
@@ -289,22 +241,15 @@ const update_target_cache = () => {
 		return b.hp - a.hp;
 	});
 
-	const in_range = [], out_of_range = [], clumped = [];
+	const in_range = [], out_of_range = [];
 
 	const within_range = RANGER_TARGET === "giantspider"
 		? mob => is_in_range(mob) && parent.distance(character, mob) <= 50
 		: mob => is_in_range(mob);
 
 	for (const mob of sorted_by_hp) {
-		if (within_range(mob)) {
-			in_range.push(mob);
-
-			if (Math.hypot(mob.x - home_x, mob.y - home_y) <= clump_radius) {
-				clumped.push(mob);
-			}
-		} else {
-			out_of_range.push(mob);
-		}
+		if (within_range(mob)) in_range.push(mob);
+		else out_of_range.push(mob);
 	}
 
 	if (RANGER_TARGET === "giantspider") {
@@ -315,7 +260,7 @@ const update_target_cache = () => {
 	const cluster_targets = scored.map(s => s.mob);
 	const cluster_target = scored[0]?.count >= 3 ? scored[0].mob : null;
 
-	return { sorted_by_hp, in_range, out_of_range, clumped, cluster_targets, cluster_target };
+	return { sorted_by_hp, in_range, out_of_range, cluster_targets, cluster_target };
 };
 
 const find_heal_target = () => {
@@ -554,21 +499,6 @@ var PANIC_THRESHOLDS = {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SELLING
 // --------------------------------------------------------------------------------------------------------------------------------- //
-
-function sell_items() {
-	if (!CONFIG.selling.enabled) return;
-
-	for (let i = 0; i < character.items.length; i++) {
-		const item = character.items[i];
-		if (!item) continue;
-
-		if (CONFIG.selling.whitelist.includes(item.name)) {
-			if (item.p === undefined && item.l !== "l") {
-				sell(i);
-			}
-		}
-	}
-}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // START ALL LOOPS

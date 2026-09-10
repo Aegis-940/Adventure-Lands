@@ -226,24 +226,3 @@ function reposition_center() {
 	}
 	return locations[home][0];
 }
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// COMBINED DAMAGE — game callback; nothing consumes should_spread() yet
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-let combined_damage_flag = false;
-let combined_damage_time = 0;
-
-on_combined_damage = function() {
-	combined_damage_flag = true;
-	combined_damage_time = Date.now();
-};
-
-function should_spread() {
-	if (!combined_damage_flag) return false;
-	if (Date.now() - combined_damage_time > 2000) {
-		combined_damage_flag = false;
-		return false;
-	}
-	return true;
-}
