@@ -14,7 +14,7 @@ var CONFIG = {
 		cleave_blacklist: ["fireroamer", "plantoid"],
 		agitate_min_mobs: 2,
 		cluster_min_mobs: 2,
-		agitate_blacklist: [],
+		agitate_blacklist: ["plantoid"],
 		agitate_fireroamer_conditions: {
 			healer_hp_pct: 0.60,
 			healer_mp_pct: 0.80,
