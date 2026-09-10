@@ -21,6 +21,7 @@ window._cmListeners = window._cmListeners || [];
 		"Shared/Combat_Utilities.js",
 		"Shared/Messaging.js",
 		"Shared/Party_And_Loot.js",
+		"Shared/Character_Runner.js",
 		"Shared/Error_Handling.js",
 		// Deliberately NOT in CRITICAL_SCRIPTS: the recorder failing must never stop the bot.
 		"Shared/Error_Log.js",
@@ -75,6 +76,7 @@ window._cmListeners = window._cmListeners || [];
 		"Shared/Combat_Utilities.js",
 		"Shared/Messaging.js",
 		"Shared/Party_And_Loot.js",
+		"Shared/Character_Runner.js",
 		"Shared/Error_Handling.js",
 	];
 

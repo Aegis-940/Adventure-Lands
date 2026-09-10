@@ -324,28 +324,9 @@ var _last_healer_ping = 0;
 // MAIN TICK LOOP
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-async function main_loop() {
-	try {
-		if (is_disabled(character)) {
-			return setTimeout(main_loop, 250);
-		}
-
-		update_cache();
-		panic_check();
-		stuck_escape_check();
-
-		const goal = movement_goal();
-		if (!travel_arbiter(goal)) {
-			movement_local(goal, () => {
-				if (CONFIG.movement.reposition && get_nearest_monster({ type: home })) reposition();
-			});
-		}
-
-	} catch (e) {
-		console.error("main_loop error:", e);
-	}
-
-	setTimeout(main_loop, TICK_RATE.main);
+// The tick lives in Shared/Character_Runner.js; this is only what makes the warrior different.
+function warrior_farm_step() {
+	if (CONFIG.movement.reposition && get_nearest_monster({ type: home })) reposition();
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -709,14 +690,13 @@ setInterval(send_updates, 20000);
 // START ALL LOOPS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-main_loop();
-action_loop();
-equipment_manager_loop();
-maintenance_loop();
-potion_loop();
-anniversary_loop();
+run_character({
+	update_cache,
+	farm_step: warrior_farm_step,
+	loops: [action_loop, equipment_manager_loop, maintenance_loop, potion_loop, anniversary_loop],
+	intervals: [[remote_sell_items, 5000]],
+});
 if (WARRIOR_TARGET === "bscorpion") prim_farm_loop();
-setInterval(remote_sell_items, 5000);
 
 
 // let last_aggro_time = 0;

@@ -366,36 +366,22 @@ var _last_healer_ping = 0;
 // MAIN TICK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const main_loop = async () => {
-	try {
-		if (is_disabled(character)) return setTimeout(main_loop, 250);
-
-		update_cache();
-		panic_check();
-		stuck_escape_check();
-
-		if (CONFIG.equipment.use_licence) {
-			let slot = locate_item("licence");
-			if (slot === -1 && (character?.s?.licenced?.ms ?? 0) < 5000) {
-				await buy("licence");
-				slot = locate_item("licence");
-			}
-			if ((character?.s?.licenced?.ms ?? 0) < 250 && slot !== -1) {
-				await consume(slot);
-			}
-		}
-
-		const goal = movement_goal();
-		if (!travel_arbiter(goal)) {
-			movement_local(goal, () => {
-				if (CONFIG.movement.reposition && get_nearest_monster({ type: home })) reposition();
-			});
-		}
-	} catch (e) {
-		console.error("main_loop error:", e);
+// The tick lives in Shared/Character_Runner.js; these are only what makes the ranger different.
+async function ranger_pre_move() {
+	if (!CONFIG.equipment.use_licence) return;
+	let slot = locate_item("licence");
+	if (slot === -1 && (character?.s?.licenced?.ms ?? 0) < 5000) {
+		await buy("licence");
+		slot = locate_item("licence");
 	}
-	setTimeout(main_loop, TICK_RATE.main);
-};
+	if ((character?.s?.licenced?.ms ?? 0) < 250 && slot !== -1) {
+		await consume(slot);
+	}
+}
+
+function ranger_farm_step() {
+	if (CONFIG.movement.reposition && get_nearest_monster({ type: home })) reposition();
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // ACTION LOOP - Attack and heal
@@ -961,12 +947,11 @@ setInterval(send_updates, 20000);
 // START ALL LOOPS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-main_loop();
-action_loop();
-skill_loop();
-equipment_manager_loop();
-maintenance_loop();
-potion_loop();
-anniversary_loop();
+run_character({
+	update_cache,
+	pre_move: ranger_pre_move,
+	farm_step: ranger_farm_step,
+	loops: [action_loop, skill_loop, equipment_manager_loop, maintenance_loop, potion_loop, anniversary_loop],
+	intervals: [[remote_sell_items, 5000]],
+});
 if (RANGER_TARGET === "bscorpion") prim_farm_loop();
-setInterval(remote_sell_items, 5000);

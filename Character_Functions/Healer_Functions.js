@@ -278,37 +278,25 @@ function find_nearest_boss() {
 // MAIN TICK LOOP - Handles state updates, caching, movement
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function main_loop() {
-	if (typeof errlog_beat === "function") errlog_beat("main_loop");
-	try {
-		if (is_disabled(character)) {
-			if (panicking) {
-				set_panic(false, "healer disabled — releasing the party", false);
-				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
-			}
-			return setTimeout(main_loop, 250);
-		}
+// The tick lives in Shared/Character_Runner.js; these are only what makes the healer different.
 
-		update_cache();
-		if (HEALER_TARGET !== "fireroamer" && HEALER_TARGET !== "giantspider") panic_check();
-		stuck_escape_check();
+// A dead or stunned healer never reaches panic_check(), so a panic she already broadcast would
+// never get its all-clear and the fighters would hold fire until they died too.
+function healer_on_disabled() {
+	if (!panicking) return;
+	set_panic(false, "healer disabled — releasing the party", false);
+	send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
+}
 
-		const goal = movement_goal();
-		if (!travel_arbiter(goal)) {
-			if (should_loot()) {
-				await handle_looting();
-			} else {
-				movement_local(goal, () => {
-					if (CONFIG.movement.circle_walk && get_nearest_monster({ type: home })) walk_in_circle();
-				});
-			}
-		}
+function healer_skip_panic_check() {
+	return HEALER_TARGET === "fireroamer" || HEALER_TARGET === "giantspider";
+}
 
-	} catch (e) {
-		console.error("main_loop error:", e);
-	}
-
-	setTimeout(main_loop, TICK_RATE.main);
+async function healer_local(goal) {
+	if (should_loot()) return handle_looting();
+	movement_local(goal, () => {
+		if (CONFIG.movement.circle_walk && get_nearest_monster({ type: home })) walk_in_circle();
+	});
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -931,13 +919,14 @@ async function run_spider_dungeon() {
 // START ALL LOOPS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-main_loop();
-action_loop();
-maintenance_loop();
-equipment_manager_loop();
-potion_loop();
-anniversary_loop();
-setInterval(remote_sell_items, 5000);
+run_character({
+	update_cache,
+	on_disabled: healer_on_disabled,
+	skip_panic_check: healer_skip_panic_check,
+	local: healer_local,
+	loops: [action_loop, maintenance_loop, equipment_manager_loop, potion_loop, anniversary_loop],
+	intervals: [[remote_sell_items, 5000]],
+});
 if (HEALER_TARGET === "bscorpion") {
 	prim_farm_loop();
 	prim_orbit_loop();
