@@ -44,9 +44,13 @@ window._cmListeners = window._cmListeners || [];
 	];
 
 	const role_scripts = {
-		"Ulric": ["Character_Functions/Warrior_Functions.js",
-		"Character_Functions/Warrior_Skills.js",
-		"Characters/Tank.js"],
+		"Ulric": ["Character_Functions/Warrior/Warrior_Config.js",
+		"Character_Functions/Warrior/Warrior_Combat.js",
+		"Character_Functions/Warrior/Warrior_Skills.js",
+		"Character_Functions/Warrior/Warrior_Equipment.js",
+		"Character_Functions/Warrior/Warrior_Movement.js",
+		"Character_Functions/Warrior/Warrior_Bscorpion.js",
+		"Character_Functions/Warrior/Warrior.js"],
 
 		"Myras": ["Character_Functions/Healer_Functions.js",
 		"Character_Functions/Healer_Skills.js",

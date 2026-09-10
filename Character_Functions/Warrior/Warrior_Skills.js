@@ -1,7 +1,5 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// WARRIOR SKILLS — separate eval closure, loaded right after Warrior_Functions.js.
-// Reads/writes that file's var globals (state/cache/CONFIG/equipment_sets) and
-// defines skill_loop().
+// WARRIOR SKILLS — warcry, cleave, agitate; started by Warrior.js
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function skill_loop() {
@@ -214,5 +212,3 @@ async function handle_taunt() {
 		}
 	}
 }
-
-skill_loop();
