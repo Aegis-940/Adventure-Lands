@@ -42,13 +42,7 @@ const CM_HANDLERS = {
 
 	"panic": (name, data) => {
 		if (name !== "Myras") return;
-		const was_panicking = (typeof panicking !== "undefined") && panicking;
-		panicking = data.state;
-		if (data.state && !was_panicking) last_panic_time = 0;
-		panic_external = data.state;
-		panic_external_since = data.state ? Date.now() : 0;
-		if (data.state) log("⚠️ Healer panicking — holding fire!", "#ffcc00", "Alerts");
-		else            log("✅ Healer panic over — resuming.", "#00ff00", "Alerts");
+		set_panic(!!data.state, "broadcast from the healer", !!data.state);
 	},
 
 	"suppress_reset": () => set_suppress_reset(true),

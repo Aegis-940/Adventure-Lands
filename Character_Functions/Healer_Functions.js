@@ -283,7 +283,7 @@ async function main_loop() {
 	try {
 		if (is_disabled(character)) {
 			if (panicking) {
-				panicking = false;
+				set_panic(false, "healer disabled — releasing the party", false);
 				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
 			}
 			return setTimeout(main_loop, 250);
@@ -640,6 +640,11 @@ var MONSTER_GEAR_OVERRIDES = {
 var panicking = false;
 var last_panic_time = 0;
 var last_safe_time = 0;
+// She never receives her own panic broadcast, so these were previously only declared on the
+// fighters. set_panic() writes them on every character, and an undeclared assignment would make an
+// implicit global rather than a scoped one.
+var panic_external = false;
+var panic_external_since = 0;
 
 var PANIC_THRESHOLDS = {
 	low_hp: 0.40, low_mp: 0.05, high_hp: 0.60, high_mp: 0.50,

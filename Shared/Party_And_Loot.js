@@ -31,6 +31,41 @@ function should_spread() {
 	return true;
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// CHARACTER MODE — one owner of the panic flags, one name for what the character is doing.
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+// panicking and panic_external were assigned from six places across three files. That is how one
+// got left set with nobody able to say who set it, and why the fix was a timeout rather than a
+// cause. Writes go through here now; every transition logs its reason, so a stuck flag names its
+// owner instead of needing to be reasoned about.
+//
+// Deliberately NOT derived from HP. Panic is latched with hysteresis on purpose — it arms at
+// low_hp and only clears at high_hp — and a pure function of current HP would flap across that
+// boundary, which is the orb churn that drove cc to 77.
+function set_panic(on, reason, external) {
+	const ext = external === undefined ? panic_external : !!external;
+	if (panicking === on && panic_external === ext) return;
+
+	if (on && !panicking) last_panic_time = 0;   // act this tick, not after the cooldown
+	panicking = !!on;
+	panic_external = ext;
+	panic_external_since = ext && on ? Date.now() : 0;
+
+	log(on ? `⚠️ Panic: ${reason}` : `✅ Panic over: ${reason}`,
+		on ? "#ffcc00" : "#00ff00", "Alerts");
+}
+
+// What the character is doing, as one value rather than three booleans read in eight files.
+// Read-only: every branch here is owned elsewhere.
+function character_mode() {
+	if (character.rip) return "dead";
+	if (typeof panicking !== "undefined" && panicking) return "panic";
+	if (typeof anniversary_travel !== "undefined" && anniversary_travel) return "anniversary";
+	if (smart && smart.moving) return "travelling";
+	return "farming";
+}
+
 function home_radius() {
 	return (CONFIG.movement.circle_radius || 75) + 20;
 }
@@ -607,17 +642,15 @@ async function _panic_check_body() {
 
 	if (HARD_REASON || TRAPPED_TRAVELLING) {
 		if (!panicking) {
-			panicking = true;
-			last_panic_time = 0;
-			if (HARD_REASON && typeof PANIC_BROADCAST_TARGETS !== "undefined") {
-				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: true });
-			}
 			let reason = [];
 			if (LOW_HEALTH) reason.push("low health");
 			if (LOW_MANA) reason.push("low mana");
 			if (MONSTERS_TARGETING_ME >= t.aggro) reason.push("high aggro");
 			if (TRAPPED_TRAVELLING) reason.push(`${MONSTERS_TARGETING_ME} on us while travelling`);
-			log(`⚠️ Panic triggered: ${reason.join(", ")}!`, "#ffcc00", "Alerts");
+			set_panic(true, reason.join(", "), false);
+			if (HARD_REASON && typeof PANIC_BROADCAST_TARGETS !== "undefined") {
+				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: true });
+			}
 		}
 	}
 
@@ -658,10 +691,8 @@ async function _panic_check_body() {
 
 	let external_hold = typeof panic_external !== "undefined" && panic_external;
 	if (external_hold && Date.now() - panic_external_since > EXTERNAL_PANIC_MAX_MS) {
-		panic_external = false;
 		external_hold = false;
-		panicking = false;
-		log("⚠️ Healer panic hold expired without an all-clear — resuming.", "#FFA500", "Alerts");
+		set_panic(false, "healer's hold expired without an all-clear", false);
 	}
 
 	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < t.aggro
@@ -678,11 +709,10 @@ async function _panic_check_body() {
 				}
 			}
 
-			panicking = false;
+			set_panic(false, "recovered", false);
 			if (typeof PANIC_BROADCAST_TARGETS !== "undefined") {
 				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
 			}
-			log("✅ Panic over.", "#00ff00", "Alerts");
 		}
 	}
 }
