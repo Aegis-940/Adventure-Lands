@@ -46,6 +46,20 @@ function halt_movement() {
 	parent.socket.emit("move", { to: { x: character.x, y: character.y } });
 }
 
+// The ONLY move a local step may make. Raw, straight-line, never pathfinds — returns false when
+// the line is blocked so the caller's goal can escalate to a travel goal instead.
+//
+// This exists because xmove() "tries move() first, falls back to smart_move()", and a local step
+// that quietly starts a journey is unfixable from the arbiter's side: the goal is local, so the
+// next tick releases and kills the search, the step runs again and starts another, and the route
+// is never found however short it is. Local steps run at 10Hz, so that is ten torn-down searches a
+// second — the boss approach that never arrives.
+function local_move(x, y) {
+	if (!can_move_to(x, y)) return false;
+	move(x, y);
+	return true;
+}
+
 function stop_movement(reason = "interrupted") {
 	try {
 		if (typeof smart._interrupt === "function") smart._interrupt(reason);

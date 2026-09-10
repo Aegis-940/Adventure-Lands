@@ -297,8 +297,15 @@ function event_goal() {
 		return { hold: true, label: "event-join" };
 	}
 
-	if (get_nearest_monster({ type: target.name })) {
-		return { local: "event", label: "event-" + target.name, event: target.name };
+	const seen = get_nearest_monster({ type: target.name });
+	if (seen) {
+		const half_x = character.x + (seen.x - character.x) / 2;
+		const half_y = character.y + (seen.y - character.y) / 2;
+		if (is_in_range(seen, "attack") || can_move_to(half_x, half_y)) {
+			return { local: "event", label: "event-" + target.name, event: target.name };
+		}
+		// In sight but not walkable to. The arbiter owns this, and it protects the search.
+		return { label: "event-" + target.name, map: seen.map || target.map, x: seen.x, y: seen.y, radius: 60 };
 	}
 
 	if (!target.map || !isFinite(target.x) || !isFinite(target.y)) {
@@ -313,7 +320,7 @@ function event_step(event_type) {
 	const monster = get_nearest_monster({ type: event_type });
 	if (!monster) return;
 	if (is_in_range(monster, "attack")) return;
-	xmove(character.x + (monster.x - character.x) / 2, character.y + (monster.y - character.y) / 2);
+	local_move(character.x + (monster.x - character.x) / 2, character.y + (monster.y - character.y) / 2);
 }
 
 function best_event_target() {

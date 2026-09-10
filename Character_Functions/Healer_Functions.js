@@ -518,9 +518,9 @@ async function walk_in_circle() {
 	const target_x = center.x + offset_x;
 	const target_y = center.y + offset_y;
 
-	if (!character.moving) {
-		await xmove(target_x, target_y);
-	}
+	// local_move, not xmove: a blocked circle point must not start a journey the arbiter kills on
+	// the next tick. Skipping is free here — the circle advances and the next point is elsewhere.
+	if (!character.moving) local_move(target_x, target_y);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
