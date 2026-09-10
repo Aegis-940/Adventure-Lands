@@ -35,7 +35,17 @@ function party_cohesion_hold() {
 		if (!s || s.rip) return false;
 		return s.map !== character.map || Math.hypot(s.x - character.x, s.y - character.y) > limit;
 	});
-	return _cohesion_holding;
+	if (_cohesion_holding) return true;
+
+	// Distance alone cannot express "wait for their kiss": they are standing next to us precisely
+	// because they are following us. While we still owe a visit we lead instead, or nobody ever
+	// reaches the featured player. anniv_pending clears on the buff, a spent or expired ticket, a
+	// death, or the round ending, so this cannot outlast the round.
+	if (typeof anniversary_should_travel === "function" && anniversary_should_travel()) return false;
+	return COHESION_FOLLOWERS.some(name => {
+		const s = read_state_cache(name);
+		return !!s && !s.rip && !!s.anniv_pending;
+	});
 }
 
 function follow_goal() {
@@ -98,8 +108,10 @@ function movement_goal() {
 
 	const anniv = anniversary_destination();
 	if (anniv) {
-		const here = !!anniv.local || !!anniv.hold;
-		if (!follow_has_leader() || (here && follow && follow.on_station)) return anniv;
+		// A same-map pathfind is allowed too: with the line blocked a local step is impossible, and
+		// the leader is holding for this visit anyway. Crossing maps alone still is not.
+		const reachable = !!anniv.local || !!anniv.hold || anniv.map === character.map;
+		if (!follow_has_leader() || (reachable && follow && follow.on_station)) return anniv;
 	}
 
 	if (follow) return follow;

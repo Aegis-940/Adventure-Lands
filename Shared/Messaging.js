@@ -140,6 +140,7 @@ function get_full_character_state() {
 		moving: character.moving,
 		travelling: typeof is_travelling === "function" && is_travelling(),
 		goal: typeof current_goal_label === "function" ? current_goal_label() : null,
+		anniv_pending: typeof anniversary_should_travel === "function" && anniversary_should_travel(),
 		has_kiss: !!(character.s && character.s.anniversary_kiss),
 		free_slots: character.items.filter(it => !it).length,
 		conditions: character.s || {},
