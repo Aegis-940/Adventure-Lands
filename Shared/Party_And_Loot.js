@@ -48,6 +48,10 @@ function set_panic(on, reason, external) {
 	if (panicking === on && panic_external === ext) return;
 
 	if (on && !panicking) last_panic_time = 0;   // act this tick, not after the cooldown
+	// Panic holds the equipment claim while it is on, so the one place that turns it off is the
+	// one place that hands the slots back. Scattering the release across the exit paths is how the
+	// flags themselves ended up with six writers.
+	if (!on) panic_equip_free();
 	panicking = !!on;
 	panic_external = ext;
 	panic_external_since = ext && on ? Date.now() : 0;
@@ -324,6 +328,12 @@ function equip_holder_name() {
 	return _equip_holder ? _equip_holder.owner : null;
 }
 
+// Keeps a long-lived claim alive against EQUIP_CLAIM_MAX_MS. The expiry exists to free slots that
+// an exception orphaned; a holder that is still running says so with this.
+function equip_refresh(token) {
+	if (equip_holds(token)) _equip_holder.at = Date.now();
+}
+
 // THE ONLY EMITTER. Everything that wants gear on goes through here, so "who can write to the
 // slots" is answerable with grep rather than by reading every loop.
 async function equip_apply(token, sets) {
@@ -562,6 +572,29 @@ let _panic_check_running = false;
 
 let _travel_panic_latched = false;
 
+// Panic owns the slots for as long as it is PANICKING, not just for the instant it puts the jacko
+// on. Releasing between ticks let the rules resolver back in mid-panic — and with scare having
+// just cleared the pack, resolve_warrior_home_loadout() reads home_count === 1 and fits "single",
+// which is the warrior ending up in double fireblade instead of fireblade + ololipop.
+//
+// This is what panic_owns_orb() used to encode, expressed as ownership rather than as a flag other
+// writers had to remember to consult.
+let _panic_equip_token = null;
+
+function panic_equip_hold() {
+	if (equip_holds(_panic_equip_token)) {
+		equip_refresh(_panic_equip_token);
+		return _panic_equip_token;
+	}
+	_panic_equip_token = equip_claim("panic", EQUIP_PRIORITY.panic);
+	return _panic_equip_token;
+}
+
+function panic_equip_free() {
+	equip_release(_panic_equip_token);
+	_panic_equip_token = null;
+}
+
 let _orb_owner = { at: 0, value: false };
 
 function loadout_manages_orb() {
@@ -654,6 +687,8 @@ async function _panic_check_body() {
 		}
 	}
 
+	if (panicking) panic_equip_hold();
+
 	if (panicking && (Date.now() - last_panic_time > t.cooldown)) {
 		last_panic_time = Date.now();
 		if (!is_set_equipped("panic")) {
@@ -661,9 +696,7 @@ async function _panic_check_body() {
 				// Top of EQUIP_PRIORITY, so this preempts a transient combat swap already in
 				// flight and revokes its token rather than queueing behind it. gear_locked could
 				// only ever block, never preempt, which is why the jacko sometimes lost the race.
-				const token = equip_claim("panic", EQUIP_PRIORITY.panic);
-				const emitted = await equip_apply(token, "panic");
-				equip_release(token);
+				const emitted = await equip_apply(panic_equip_hold(), "panic");
 				_panic_last_emit = emitted;
 				await wait_until_equipped("panic");
 			} catch (e) {
@@ -702,7 +735,7 @@ async function _panic_check_body() {
 
 			if (!loadout_manages_orb() && is_set_equipped("panic") && !is_set_equipped("orb")) {
 				try {
-					await equip_once("panic-restore", EQUIP_PRIORITY.panic, "orb");
+					await equip_apply(panic_equip_hold(), "orb");
 					await wait_until_equipped("orb");
 				} catch (e) {
 					log(`[PANIC] Failed to equip normal orb: ${fmt_err(e)}`, "#ff4444", "Errors");
