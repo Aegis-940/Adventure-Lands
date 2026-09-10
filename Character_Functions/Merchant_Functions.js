@@ -13,7 +13,7 @@ var CONFIG = {
 		upgrading:  local_bool("AL_merchant_enabled_upgrading", true),
 		crafting:   local_bool("AL_merchant_enabled_crafting", true),
 		exchanging: local_bool("AL_merchant_enabled_exchanging", false),
-		fishing:    local_bool("AL_merchant_enabled_fishing", true),
+		fishing:    local_bool("AL_merchant_enabled_fishing", false),
 		mining:     false,
 	},
 
@@ -804,8 +804,6 @@ async function loop_controller() {
 		try {
 			party_manager();
 
-			// Manual control: no states, and the stand comes down — a stand left open while you are
-			// driving him by hand is a trade you did not agree to.
 			if (!automation_enabled()) {
 				if (stand_is_open()) await close_merchant_stand();
 				merchant_task = "Idle";

@@ -1,6 +1,4 @@
-// Bank Viewer + Saver Script for Adventure Land
-
-const STACK_BANK_ITEMS = true; // Set to false to list all items individually
+const STACK_BANK_ITEMS = true;
 
 function pretty3(q) {
 	if (q < 10_000) return `${q}`;
@@ -47,8 +45,6 @@ function render_items(categories, used, total) {
 
 	items.forEach(item => {
 		const lvl_arg = item.level != null ? item.level : null;
-		// Single quotes only: this string is embedded in a double-quoted onclick="..."
-		// attribute by item_container(), so a " here would corrupt the markup.
 		const onclick = `
 		parent.$('#maincode')[0].contentWindow
 			.withdraw_item('${item.name}', ${lvl_arg}, ${1})
@@ -74,7 +70,6 @@ function render_items(categories, used, total) {
 		const tag = item.p[0]?.toUpperCase() || "?";
 		const color = tag_colors[item.p] || "grey";
 		const tag_div = `<div class="trruui imu" style="border-color:black;color:${color};">${tag}</div>`;
-		// Anchored to the END of the string: item_container()'s markup can repeat "</div></div>", so a plain .replace() could hit the wrong spot.
 		item_div = item_div.replace(/<\/div><\/div>\s*$/, `</div>${tag_div}</div>`);
 		}
 
@@ -86,7 +81,6 @@ function render_items(categories, used, total) {
 
 	html += `<div style="clear:both;"></div></div>`;
 
-	// Close any modal already open first, or open/re-render stacks a new modal instead of replacing it.
 	parent.hide_modal();
 	parent.show_modal(html, {
 	wrap: false,
@@ -145,7 +139,6 @@ function render_bank_items() {
 	}
 	});
 
-	// Stack or flatten
 	categories.forEach(cat => {
 	const flat = cat[1].flat();
 	if (STACK_BANK_ITEMS) {
@@ -190,7 +183,6 @@ function add_bank_buttons() {
 	trc.children().first().after(bank_btn);
 }
 
-// Restored from the now-removed Shared/Buttons.js; reuses the same #toprightcorner/.gamebutton pattern as add_bank_buttons() above.
 function add_reload_button() {
 	const $ = parent.$;
 	const trc = $("#toprightcorner");
@@ -209,5 +201,3 @@ function add_reload_button() {
 	trc.children().first().after(reload_btn);
 }
 add_reload_button();
-
-// Make sure your async withdraw_item() is defined in maincode BEFORE you click 🏧!

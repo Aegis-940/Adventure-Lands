@@ -4,8 +4,6 @@
 // WARRIOR_TARGET/HEALER_TARGET/RANGER_TARGET at each character's next reload.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// One entry per setting this window edits — extend this array, not copy-pasted rows.
-// type: "select" (default, a monster-name dropdown) or "checkbox" (boolean toggle).
 const SETTINGS_DESCRIPTORS = [
 	{ label: "Warrior (Ulric)", storage_key: "AL_target_Ulric", default: "bscorpion" },
 	{ label: "Healer (Myras)",  storage_key: "AL_target_Myras", default: "bscorpion" },
@@ -13,22 +11,20 @@ const SETTINGS_DESCRIPTORS = [
 	{ label: "Merchant: Upgrading",  storage_key: "AL_merchant_enabled_upgrading",  type: "checkbox", default: true },
 	{ label: "Merchant: Crafting",   storage_key: "AL_merchant_enabled_crafting",   type: "checkbox", default: true },
 	{ label: "Merchant: Exchanging", storage_key: "AL_merchant_enabled_exchanging", type: "checkbox", default: false },
-	{ label: "Merchant: Fishing",    storage_key: "AL_merchant_enabled_fishing",    type: "checkbox", default: true },
+	{ label: "Merchant: Fishing",    storage_key: "AL_merchant_enabled_fishing",    type: "checkbox", default: false },
 	{ label: "Merchant: Mining",     storage_key: "AL_merchant_enabled_mining",     type: "checkbox", default: false },
 ];
 
 const ALL_CHARACTERS = ["Ulric", "Myras", "Riva", "Riff"];
 
 function open_settings_window() {
-	// Guard against locations/send_cm (Shared/Game_Config.js, Shared/Messaging.js) not being
-	// loaded yet — cheap insurance, since this only runs on a user click.
 	if (typeof locations === "undefined" || typeof send_cm !== "function") {
 		game_log("⚠️ Settings window: still loading, try again in a moment.");
 		return;
 	}
 
 	const doc = parent.document;
-	if (doc.getElementById("settings-window")) return; // already open
+	if (doc.getElementById("settings-window")) return;
 
 	const monster_names = Object.keys(locations).sort();
 
@@ -36,7 +32,7 @@ function open_settings_window() {
 	div.id = "settings-window";
 	div.style.position = "absolute";
 	const WINDOW_WIDTH = 300;
-	const WINDOW_HEIGHT = 260; // approximate -- content auto-sizes, only used to center initially
+	const WINDOW_HEIGHT = 260;
 	div.style.left = ((parent.window.innerWidth - WINDOW_WIDTH) / 2) + "px";
 	div.style.top = ((parent.window.innerHeight - WINDOW_HEIGHT) / 2) + "px";
 	div.style.width = WINDOW_WIDTH + "px";
@@ -58,7 +54,7 @@ function open_settings_window() {
 	drag_handle.style.paddingLeft = "8px";
 	drag_handle.style.fontWeight = "bold";
 	drag_handle.textContent = "⚙️ Settings";
-	make_draggable(div, drag_handle); // Shared/Widgets.js
+	make_draggable(div, drag_handle);
 	div.appendChild(drag_handle);
 
 	const body = doc.createElement("div");
@@ -128,7 +124,6 @@ function open_settings_window() {
 			const value = setting.type === "checkbox" ? input.checked : input.value;
 			localStorage.setItem(setting.storage_key, value);
 		}
-		// Broadcast to the other 3 via the existing "reload" CM_HANDLERS entry (Shared/Messaging.js).
 		for (const name of ALL_CHARACTERS) {
 			if (name !== character.name) send_cm(name, { type: "reload" });
 		}
@@ -139,7 +134,7 @@ function open_settings_window() {
 	close_btn.textContent = "Close";
 	close_btn.style.flex = "1";
 	close_btn.style.cursor = "pointer";
-	close_btn.onclick = () => div.remove(); // discards whatever's selected -- nothing was written
+	close_btn.onclick = () => div.remove();
 
 	button_row.appendChild(save_btn);
 	button_row.appendChild(close_btn);
@@ -149,8 +144,6 @@ function open_settings_window() {
 	doc.body.appendChild(div);
 }
 
-// Waits for both #toprightcorner and #reload-btn (Remote_Bank_Viewer.js) so the ⚙️ button
-// lands right after 🔄 regardless of which of these two parallel-loaded files runs first.
 function add_settings_button() {
 	const $ = parent.$;
 	const trc = $("#toprightcorner");
