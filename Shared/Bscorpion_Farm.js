@@ -11,13 +11,6 @@ function is_at_bscorpion_farm() {
 		Math.hypot(character.x - PRIM_FARM_LOC.x, character.y - PRIM_FARM_LOC.y) < PRIM_FARM_RADIUS + 30;
 }
 
-function fire_and_forget_move(dest, on_done) {
-	try {
-		Promise.resolve(smart_move(dest, on_done)).catch(() => {});
-	} catch (e) { }
-}
-
-
 let cached_bscorpion_id = null;
 
 function find_nearest_bscorpion() {

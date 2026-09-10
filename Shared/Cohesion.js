@@ -9,6 +9,16 @@ const COHESION_FOLLOWERS = ["Ulric", "Riva"];
 let _cohesion_holding = false;
 let _cohesion_closing = false;
 
+function home_radius() {
+	return (CONFIG.movement.circle_radius || 75) + 20;
+}
+
+function is_away_from_home() {
+	if (typeof destination === "undefined" || !destination) return false;
+	if (destination.map && character.map !== destination.map) return true;
+	return Math.hypot(character.x - destination.x, character.y - destination.y) > home_radius();
+}
+
 function party_in_formation() {
 	if (typeof is_travelling === "function" && is_travelling()) return true;
 	const g = typeof current_goal === "function" ? current_goal() : null;

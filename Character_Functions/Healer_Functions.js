@@ -63,6 +63,8 @@ var CONFIG = {
 		prefer_mp: true
 	},
 
+	elixir: { name: "elixirluck", min_stock: 2 },
+
 	party: {
 		auto_manage: true,
 		group_members: ["Myras", "Ulric", "Riva", "Riff"]
@@ -75,7 +77,7 @@ var destination = {
 	y: locations[home][0].y
 };
 
-var ITEMS_TO_KEEP = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster", "pumpkinspice", "xptome", "tracker", "jacko", "orbg", "talkingskull", "mshield", "lmace", "elixirluck", "computer", "orboftemporal", "orboffire"];
+var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE, "orbg", "mshield", "lmace", "elixirluck", "orboftemporal", "orboffire"];
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATE & CACHE
@@ -93,22 +95,13 @@ var state = {
 	last_angle_update: performance.now()
 };
 
-var cache = {
+var cache = make_cache({
 	target: null,
 	heal_target: null,
 	zap_targets: [],
 	party_members: [],
 	nearest_boss: null,
-	last_update: 0,
-
-	is_valid() {
-		return performance.now() - this.last_update < CACHE_TTL;
-	},
-
-	invalidate() {
-		this.last_update = 0;
-	}
-};
+});
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // LOCATION & EQUIPMENT DATA
@@ -258,10 +251,6 @@ function find_zap_targets() {
 		e.visible &&
 		!e.dead
 	);
-}
-
-function get_party_members() {
-	return Object.keys(get_party() || {});
 }
 
 function find_nearest_boss() {
@@ -435,7 +424,7 @@ async function action_loop() {
 			if (!acted) delay = 40;
 		} else {
 			if (typeof errlog_time === "function") errlog_time("cooldown remaining", ms);
-			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
+			delay = next_action_delay(ms);
 		}
 
 	} catch (e) {
@@ -446,35 +435,6 @@ async function action_loop() {
 	if (typeof errlog_time === "function") errlog_time("iter action_loop", _t() - t_enter);
 	_al_due = _t() + delay;
 	setTimeout(action_loop, delay);
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// MAINTENANCE LOOP - Inventory, potions, party management
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-async function maintenance_loop() {
-	try {
-		if (CONFIG.potions.auto_buy) {
-			auto_buy_potions();
-		}
-
-		if (CONFIG.party.auto_manage) {
-			party_manager();
-		}
-
-		clear_inventory();
-		inventory_sorter();
-		elixir_usage();
-
-		if (character.rip/* && locate_item("xptome") !== -1*/) {
-			respawn();
-		}
-
-	} catch (e) {
-		console.error("maintenance_loop error:", e);
-	}
-
-	setTimeout(maintenance_loop, TICK_RATE.maintenance);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -610,12 +570,6 @@ var MONSTER_GEAR_OVERRIDES = {
 // HELPER FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var panicking = false;
-var last_panic_time = 0;
-var last_safe_time = 0;
-var panic_external = false;
-var panic_external_since = 0;
-
 var PANIC_THRESHOLDS = {
 	low_hp: 0.40, low_mp: 0.05, high_hp: 0.60, high_mp: 0.50,
 	aggro: 99, cooldown: 1000,
@@ -623,31 +577,7 @@ var PANIC_THRESHOLDS = {
 var PANIC_BROADCAST_TARGETS = ["Ulric", "Riva"];
 
 
-var item_order = {
-	tracktrix: 0,
-	computer: 1,
-	hpot1: 2,
-	mpot1: 3,
-	xptome: 4,
-	pumpkinspice: 5,
-	xpbooster: 6,
-	jacko: 7
-};
-
-function elixir_usage() {
-	const required = "elixirluck";
-	const current_elixir = character.slots.elixir?.name;
-	const current_qty = quantity(required);
-
-	if (current_elixir !== required) {
-		const slot = locate_item(required);
-		if (slot !== -1) use(slot);
-	}
-
-	if (current_qty < 2) {
-		buy(required, 2 - current_qty);
-	}
-}
+var item_order = { ...ITEM_ORDER_BASE };
 
 async function swap_booster(current, target) {
 	const slot = locate_item(current);

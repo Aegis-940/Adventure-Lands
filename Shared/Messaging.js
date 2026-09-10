@@ -94,6 +94,7 @@ const CM_HANDLERS = {
 function send_updates() {
 	parent.socket.emit("send_updates", {});
 }
+setInterval(send_updates, 20000);
 
 add_cm_listener((name, data) => {
 	if (!["Ulric", "Riva", "Myras", "Riff"].includes(name)) {

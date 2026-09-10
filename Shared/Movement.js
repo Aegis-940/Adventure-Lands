@@ -19,8 +19,18 @@ function apply_smart_town_setting() {
 }
 if (!apply_smart_town_setting()) setTimeout(apply_smart_town_setting, 3000);
 
-function delay(ms) {
-	return new Promise(resolve => setTimeout(resolve, ms));
+function update_town_escape(aggro_count) {
+	if (!SMART_USE_TOWN) return;
+	try {
+		const want = aggro_count === 0;
+		if (smart.use_town !== want && !smart.searching) smart.use_town = want;
+	} catch (e) { }
+}
+
+function fire_and_forget_move(dest, on_done) {
+	try {
+		Promise.resolve(smart_move(dest, on_done)).catch(() => { });
+	} catch (e) { }
 }
 
 function is_teleporting() {

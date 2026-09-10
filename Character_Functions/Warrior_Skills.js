@@ -154,10 +154,6 @@ function is_fireroamer_agitate_safe(nearby_mobs) {
 	return true;
 }
 
-function panic_mp_reserve() {
-	return (G.skills.scare?.mp || 50) + 200;
-}
-
 async function handle_agitate(tank) {
 	if (is_on_cooldown("agitate") || !tank || tank.rip) return;
 	if (character.mp < G.skills.agitate.mp + panic_mp_reserve()) return;

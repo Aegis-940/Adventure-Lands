@@ -83,6 +83,14 @@ function get_num_chests() {
 	return Object.keys(get_chests()).length;
 }
 
+function get_party_members() {
+	return Object.keys(get_party() || {});
+}
+
+function panic_mp_reserve() {
+	return (G.skills.scare?.mp || 50) + 200;
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // CHARACTER UTILITIES
 // --------------------------------------------------------------------------------------------------------------------------------- //

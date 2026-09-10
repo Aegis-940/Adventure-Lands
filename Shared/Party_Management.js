@@ -6,6 +6,12 @@
 // CHARACTER MODE — one owner of the panic flags, one name for where home is
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+var panicking = false;
+var last_panic_time = 0;
+var last_safe_time = 0;
+var panic_external = false;
+var panic_external_since = 0;
+
 function set_panic(on, reason, external) {
 	const ext = external === undefined ? panic_external : !!external;
 	if (panicking === on && panic_external === ext) return;
@@ -18,16 +24,6 @@ function set_panic(on, reason, external) {
 
 	log(on ? `⚠️ Panic: ${reason}` : `✅ Panic over: ${reason}`,
 		on ? "#ffcc00" : "#00ff00", "Alerts");
-}
-
-function home_radius() {
-	return (CONFIG.movement.circle_radius || 75) + 20;
-}
-
-function is_away_from_home() {
-	if (typeof destination === "undefined" || !destination) return false;
-	if (destination.map && character.map !== destination.map) return true;
-	return Math.hypot(character.x - destination.x, character.y - destination.y) > home_radius();
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -52,53 +48,6 @@ function panic_equip_hold() {
 function panic_equip_free() {
 	equip_release(_panic_equip_token);
 	_panic_equip_token = null;
-}
-
-let _orb_owner = { at: 0, value: false };
-
-function loadout_manages_orb() {
-	const now = Date.now();
-	if (now - _orb_owner.at < 1000) return _orb_owner.value;
-	_orb_owner.at = now;
-	_orb_owner.value = _loadout_manages_orb_uncached();
-	return _orb_owner.value;
-}
-
-function _loadout_manages_orb_uncached() {
-	try {
-		for (const group in EQUIPMENT_RULES) {
-			const rule = EQUIPMENT_RULES[group];
-			if (!rule || rule.kind !== "set" || typeof rule.resolve !== "function") continue;
-			const resolved = rule.resolve();
-			if (!resolved) continue;
-			const sets = Array.isArray(resolved) ? resolved : [resolved];
-			if (sets.some(n => (equipment_sets[n] || []).some(i => i.slot === "orb"))) return true;
-		}
-	} catch (e) { }
-	return false;
-}
-
-function set_available(set_name) {
-	try {
-		const set = equipment_sets[set_name];
-		if (!set || !set.length) return false;
-		return set.every(i => {
-			const worn = character.slots[i.slot];
-			if (worn && worn.name === i.item_name) return true;
-			return character.items.some(it => it && it.name === i.item_name);
-		});
-	} catch (e) { return false; }
-}
-
-async function wait_until_equipped(set_name, timeout_ms = 1000, interval_ms = 100) {
-	let waited = 0;
-	while (!is_set_equipped(set_name)) {
-		if (waited >= timeout_ms) {
-			throw { reason: "timeout", message: `wait_until_equipped("${set_name}"): still not equipped after ${timeout_ms}ms` };
-		}
-		await delay(interval_ms);
-		waited += interval_ms;
-	}
 }
 
 let _panic_last_emit = -1;
@@ -127,12 +76,8 @@ async function _panic_check_body() {
 
 	const TRAPPED_TRAVELLING = is_travelling() && MONSTERS_TARGETING_ME >= (t.travel_aggro ?? 1);
 
-	if (typeof SMART_USE_TOWN !== "undefined" && SMART_USE_TOWN) {
-		try {
-			const want_town = MONSTERS_TARGETING_ME === 0;
-			if (smart.use_town !== want_town && !smart.searching) smart.use_town = want_town;
-		} catch (e) { }
-	}
+	update_town_escape(MONSTERS_TARGETING_ME);
+
 	const HARD_REASON = LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= t.aggro;
 
 	if ((HARD_REASON || TRAPPED_TRAVELLING) && !panicking) {

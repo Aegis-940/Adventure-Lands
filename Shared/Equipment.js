@@ -97,6 +97,53 @@ function is_set_equipped(set_name) {
 	);
 }
 
+function set_available(set_name) {
+	try {
+		const set = equipment_sets[set_name];
+		if (!set || !set.length) return false;
+		return set.every(i => {
+			const worn = character.slots[i.slot];
+			if (worn && worn.name === i.item_name) return true;
+			return character.items.some(it => it && it.name === i.item_name);
+		});
+	} catch (e) { return false; }
+}
+
+async function wait_until_equipped(set_name, timeout_ms = 1000, interval_ms = 100) {
+	let waited = 0;
+	while (!is_set_equipped(set_name)) {
+		if (waited >= timeout_ms) {
+			throw { reason: "timeout", message: `wait_until_equipped("${set_name}"): still not equipped after ${timeout_ms}ms` };
+		}
+		await delay(interval_ms);
+		waited += interval_ms;
+	}
+}
+
+let _orb_owner = { at: 0, value: false };
+
+function loadout_manages_orb() {
+	const now = Date.now();
+	if (now - _orb_owner.at < 1000) return _orb_owner.value;
+	_orb_owner.at = now;
+	_orb_owner.value = _loadout_manages_orb_uncached();
+	return _orb_owner.value;
+}
+
+function _loadout_manages_orb_uncached() {
+	try {
+		for (const group in EQUIPMENT_RULES) {
+			const rule = EQUIPMENT_RULES[group];
+			if (!rule || rule.kind !== "set" || typeof rule.resolve !== "function") continue;
+			const resolved = rule.resolve();
+			if (!resolved) continue;
+			const sets = Array.isArray(resolved) ? resolved : [resolved];
+			if (sets.some(n => (equipment_sets[n] || []).some(i => i.slot === "orb"))) return true;
+		}
+	} catch (e) { }
+	return false;
+}
+
 async function equip_set_raw(set_name) {
 	const set = equipment_sets[set_name];
 	if (!set) {

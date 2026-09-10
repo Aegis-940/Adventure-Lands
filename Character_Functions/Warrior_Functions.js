@@ -62,6 +62,8 @@ var CONFIG = {
 		min_stock: 1000
 	},
 
+	elixir: { name: "pumpkinspice" },
+
 	party: {
 		auto_manage: true,
 		group_members: ["Myras", "Ulric", "Riva", "Riff"]
@@ -85,7 +87,7 @@ var destination = {
 	y: locations[home][0].y
 };
 
-var ITEMS_TO_KEEP = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster", "pumpkinspice", "xptome", "tracker", "jacko", "orbg", "talkingskull", "computer"];
+var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE, "orbg"];
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATE & CACHE
@@ -99,22 +101,13 @@ var state = {
 	last_reposition: 0
 };
 
-var cache = {
+var cache = make_cache({
 	target: null,
 	cluster_target: null,
 	party_members: [],
 	tank_entity: null,
 	monsters_in_cleave_range: [],
-	last_update: 0,
-
-	is_valid() {
-		return performance.now() - this.last_update < CACHE_TTL;
-	},
-
-	invalidate() {
-		this.last_update = 0;
-	}
-};
+});
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // LOCATION & EQUIPMENT DATA
@@ -236,10 +229,6 @@ function find_best_target() {
 	return get_nearest_monster_v2({ max_distance: max_dist, check_max_hp: true }) || null;
 }
 
-function get_party_members() {
-	return Object.keys(get_party() || {});
-}
-
 function find_monsters_in_cleave_range() {
 	return Object.values(parent.entities).filter(e =>
 		e?.type === "monster" &&
@@ -308,14 +297,6 @@ async function status_swap_trick_check(target) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// MAIN TICK LOOP
-// ---------------------------------------------------------------------------------------------------------------------------------
-
-function warrior_farm_step() {
-	if (CONFIG.movement.reposition && get_nearest_monster({ type: home })) reposition();
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
 // ACTION LOOP - Attack only
 // ---------------------------------------------------------------------------------------------------------------------------------
 
@@ -334,7 +315,7 @@ async function action_loop() {
 		if (ms === 0 && !is_travelling() && target) {
 			await status_swap_trick_check(target);
 		} else {
-			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
+			delay = next_action_delay(ms);
 		}
 
 	} catch (e) {
@@ -344,36 +325,6 @@ async function action_loop() {
 
 	setTimeout(action_loop, delay);
 }
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// MAINTENANCE LOOP
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-async function maintenance_loop() {
-	try {
-		if (CONFIG.potions.auto_buy) {
-			auto_buy_potions();
-		}
-
-		if (CONFIG.party.auto_manage) {
-			party_manager();
-		}
-
-		clear_inventory();
-		inventory_sorter();
-		elixir_usage();
-
-		if (character.rip) {
-			respawn();
-		}
-
-	} catch (e) {
-		console.error("maintenance_loop error:", e);
-	}
-
-	setTimeout(maintenance_loop, TICK_RATE.maintenance);
-}
-
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // EQUIPMENT RULES — consumed by the shared resolve_equipment()/equipment_manager_loop()
@@ -467,39 +418,21 @@ var MONSTER_GEAR_OVERRIDES = {
 // MOVEMENT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const REPOSITION_INTERVAL_MS = 250;
+function warrior_reposition_scorer() {
+	if (panicking) return make_distance_from_monsters_scorer();
 
-async function reposition() {
-	if (smart.moving || character.moving) return;
-	if (WARRIOR_TARGET === "bscorpion") return;
+	const target_mob = cache.cluster_target;
+	if (!target_mob || target_mob.dead) return null;
 
-	const now = performance.now();
-	if (now - state.last_reposition < REPOSITION_INTERVAL_MS) return;
-	state.last_reposition = now;
+	const reach = character.range * 0.9;
+	return (x, y) => {
+		if (Math.hypot(target_mob.x - x, target_mob.y - y) > reach) return null;
+		return -Math.hypot(character.x - x, character.y - y);
+	};
+}
 
-	const center = reposition_center();
-	if (!center) return;
-
-	let score;
-	if (panicking) {
-		score = make_distance_from_monsters_scorer();
-		if (!score) return;
-	} else {
-		const target_mob = cache.cluster_target;
-		if (!target_mob || target_mob.dead) return;
-
-		const reach = character.range * 0.9;
-		score = (x, y) => {
-			if (Math.hypot(target_mob.x - x, target_mob.y - y) > reach) return null;
-			return -Math.hypot(character.x - x, character.y - y);
-		};
-	}
-
-	const spot = best_orbit_spot(center, CONFIG.movement.circle_radius, score);
-	if (!spot) return;
-	if (Math.hypot(character.x - spot.x, character.y - spot.y) <= CONFIG.movement.move_threshold) return;
-
-	move(spot.x, spot.y);
+function reposition() {
+	orbit_reposition(warrior_reposition_scorer);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -508,35 +441,11 @@ async function reposition() {
 
 
 var item_order = {
-	tracktrix: 0,
-	computer: 1,
-	hpot1: 2,
-	mpot1: 3,
-	xptome: 4,
-	pumpkinspice: 5,
-	xpbooster: 6,
-	jacko: 7,
+	...ITEM_ORDER_BASE,
 	candycanesword: [38, 39],
 	fireblade: [40, 41],
 	bataxe: 37,
 };
-
-
-function elixir_usage() {
-	const required = "pumpkinspice";
-	const current_elixir = character.slots.elixir?.name;
-
-	if (current_elixir !== required) {
-		const slot = locate_item(required);
-		if (slot !== -1) use(slot);
-	}
-}
-
-var panicking = false;
-var last_panic_time = 0;
-var last_safe_time = 0;
-var panic_external = false;
-var panic_external_since = 0;
 
 var PANIC_THRESHOLDS = {
 	low_hp: 0.35, low_mp: 0.01, high_hp: 0.60, high_mp: 0.02,
@@ -563,15 +472,13 @@ game.on("death", data => {
 	}
 });
 
-setInterval(send_updates, 20000);
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // START ALL LOOPS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 run_character({
 	update_cache,
-	farm_step: warrior_farm_step,
+	farm_step: default_farm_step,
 	loops: [action_loop, equipment_manager_loop, maintenance_loop, potion_loop, anniversary_loop],
 	intervals: [[remote_sell_items, 5000]],
 });

@@ -58,6 +58,8 @@ var CONFIG = {
 		min_stock: 1000
 	},
 
+	elixir: { name: "pumpkinspice" },
+
 	party: {
 		auto_manage: true,
 		group_members: ["Myras", "Ulric", "Riva", "Riff"]
@@ -113,7 +115,7 @@ var destination = {
 	y: locations[home][0].y
 };
 
-var ITEMS_TO_KEEP = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster", "pumpkinspice", "xptome", "tracker", "jacko", "talkingskull", "cupid", "computer"];
+var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE, "cupid"];
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATE & CACHE
@@ -125,19 +127,10 @@ var state = {
 	last_reposition: 0,
 };
 
-var cache = {
+var cache = make_cache({
 	targets: { sorted_by_hp: [], in_range: [], out_of_range: [], clumped: [], cluster_targets: [], cluster_target: null },
 	heal_target: null,
-	last_update: 0,
-
-	is_valid() {
-		return performance.now() - this.last_update < CACHE_TTL;
-	},
-
-	invalidate() {
-		this.last_update = 0;
-	}
-};
+});
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // LOCATION & EQUIPMENT DATA
@@ -230,10 +223,6 @@ function resolve_ranger_loadout() {
 
 function resolve_ranger_orb() {
 	return set_available("orb") ? "orb" : null;
-}
-
-function panic_mp_reserve() {
-	return (G.skills.scare?.mp || 50) + 200;
 }
 
 var EQUIPMENT_RULES = {
@@ -364,10 +353,6 @@ async function ranger_pre_move() {
 	}
 }
 
-function ranger_farm_step() {
-	if (CONFIG.movement.reposition && get_nearest_monster({ type: home })) reposition();
-}
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // ACTION LOOP - Attack and heal
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -388,7 +373,7 @@ const action_loop = async () => {
 			if (healing && cupid_on) await attack(cache.heal_target);
 			else if (!healing && !cupid_on) await handle_attack();
 		} else {
-			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
+			delay = next_action_delay(ms);
 		}
 	} catch { delay = 10; }
 	setTimeout(action_loop, delay);
@@ -483,53 +468,12 @@ const skill_loop = async () => {
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// MAINTENANCE LOOP
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-const maintenance_loop = async () => {
-	try {
-		if (CONFIG.potions.auto_buy) auto_buy_potions();
-		if (CONFIG.party.auto_manage) party_manager();
-		if (CONFIG.selling.enabled) sell_items();
-
-		clear_inventory();
-		inventory_sorter();
-		elixir_usage();
-
-		if (character.rip) respawn();
-	} catch (e) {
-		console.error("maintenance_loop error:", e);
-	}
-
-	setTimeout(maintenance_loop, TICK_RATE.maintenance);
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
 // MOVEMENT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const REPOSITION_INTERVAL_MS = 250;
-
-async function reposition() {
-	if (smart.moving || character.moving) return;
-	if (RANGER_TARGET === "bscorpion") return;
-
-	const now = performance.now();
-	if (now - state.last_reposition < REPOSITION_INTERVAL_MS) return;
-	state.last_reposition = now;
-
-	const center = reposition_center();
-	if (!center) return;
-
-	const score = make_distance_from_monsters_scorer();
-	if (!score) return;
-
-	const spot = best_orbit_spot(center, CONFIG.movement.circle_radius, score);
-	if (!spot) return;
-	if (Math.hypot(character.x - spot.x, character.y - spot.y) <= CONFIG.movement.move_threshold) return;
-
-	move(spot.x, spot.y);
-};
+function reposition() {
+	orbit_reposition(make_distance_from_monsters_scorer);
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // LOOTING
@@ -600,32 +544,7 @@ async function reposition() {
 // HELPER FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var item_order = {
-	tracktrix: 0,
-	computer: 1,
-	hpot1: 2,
-	mpot1: 3,
-	xptome: 4,
-	pumpkinspice: 5,
-	xpbooster: 6,
-	jacko: 7
-};
-
-function elixir_usage() {
-	const required = "pumpkinspice";
-	const current_elixir = character.slots.elixir?.name;
-
-	if (current_elixir !== required) {
-		const slot = locate_item(required);
-		if (slot !== -1) use(slot);
-	}
-}
-
-var panicking = false;
-var last_panic_time = 0;
-var last_safe_time = 0;
-var panic_external = false;
-var panic_external_since = 0;
+var item_order = { ...ITEM_ORDER_BASE };
 
 var PANIC_THRESHOLDS = {
 	low_hp: 0.50, low_mp: 0.01, high_hp: 0.80, high_mp: 0.33,
@@ -652,19 +571,13 @@ function sell_items() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// EVENT HANDLERS
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-setInterval(send_updates, 20000);
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
 // START ALL LOOPS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 run_character({
 	update_cache,
 	pre_move: ranger_pre_move,
-	farm_step: ranger_farm_step,
+	farm_step: default_farm_step,
 	loops: [action_loop, skill_loop, equipment_manager_loop, maintenance_loop, potion_loop, anniversary_loop],
 	intervals: [[remote_sell_items, 5000]],
 });

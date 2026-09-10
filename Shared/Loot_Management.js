@@ -8,6 +8,20 @@
 
 const LOOT_GOLD_RESERVE = 10000000;
 
+const ITEMS_TO_KEEP_BASE = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster",
+	"pumpkinspice", "xptome", "tracker", "jacko", "talkingskull", "computer"];
+
+const ITEM_ORDER_BASE = {
+	tracktrix: 0,
+	computer: 1,
+	hpot1: 2,
+	mpot1: 3,
+	xptome: 4,
+	pumpkinspice: 5,
+	xpbooster: 6,
+	jacko: 7,
+};
+
 let _set_item_names = null;
 
 function equipment_set_item_names() {

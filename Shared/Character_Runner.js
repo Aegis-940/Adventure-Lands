@@ -12,6 +12,81 @@ function current_goal_label() {
 	return _current_goal ? _current_goal.label : null;
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// SHARED LOOPS — the pieces each combat character used to keep its own copy of
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function make_cache(fields) {
+	return Object.assign({
+		last_update: 0,
+		is_valid() { return performance.now() - this.last_update < CACHE_TTL; },
+		invalidate() { this.last_update = 0; },
+	}, fields);
+}
+
+function next_action_delay(ms) {
+	return ms > 200 ? 200 : ms > 50 ? 50 : 10;
+}
+
+const REPOSITION_INTERVAL_MS = 250;
+
+function orbit_reposition(make_score) {
+	if (smart.moving || character.moving) return;
+	if (home === "bscorpion") return;
+
+	const now = performance.now();
+	if (now - (state.last_reposition || 0) < REPOSITION_INTERVAL_MS) return;
+	state.last_reposition = now;
+
+	const center = reposition_center();
+	if (!center) return;
+
+	const score = make_score();
+	if (!score) return;
+
+	const spot = best_orbit_spot(center, CONFIG.movement.circle_radius, score);
+	if (!spot) return;
+	if (Math.hypot(character.x - spot.x, character.y - spot.y) <= CONFIG.movement.move_threshold) return;
+
+	move(spot.x, spot.y);
+}
+
+function default_farm_step() {
+	if (CONFIG.movement.reposition && get_nearest_monster({ type: home })) reposition();
+}
+
+function elixir_usage() {
+	const cfg = CONFIG.elixir;
+	if (!cfg || !cfg.name) return;
+
+	if (character.slots.elixir?.name !== cfg.name) {
+		const slot = locate_item(cfg.name);
+		if (slot !== -1) use(slot);
+	}
+
+	if (cfg.min_stock) {
+		const held = quantity(cfg.name);
+		if (held < cfg.min_stock) buy(cfg.name, cfg.min_stock - held);
+	}
+}
+
+async function maintenance_loop() {
+	try {
+		if (CONFIG.potions.auto_buy) auto_buy_potions();
+		if (CONFIG.party.auto_manage) party_manager();
+
+		clear_inventory();
+		inventory_sorter();
+		elixir_usage();
+
+		if (character.rip) respawn();
+	} catch (e) {
+		catcher(e, "maintenance_loop");
+	}
+
+	setTimeout(maintenance_loop, TICK_RATE.maintenance);
+}
+
 function run_character(spec) {
 	const s = spec || {};
 
