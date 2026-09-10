@@ -199,17 +199,10 @@ function add_loop_toggles(doc, content) {
 			return name.padEnd(width, " ");
 		}
 		return [
-			[pad_name("ATTACK"), typeof ATTACK_LOOP_ENABLED !== "undefined" ? ATTACK_LOOP_ENABLED : "?"],
-			[pad_name("HEAL"), typeof HEAL_LOOP_ENABLED !== "undefined" ? HEAL_LOOP_ENABLED : "?"],
-			[pad_name("MOVE"), typeof MOVE_LOOP_ENABLED !== "undefined" ? MOVE_LOOP_ENABLED : "?"],
-			[pad_name("SKILL"), typeof SKILL_LOOP_ENABLED !== "undefined" ? SKILL_LOOP_ENABLED : "?"],
-			[pad_name("PANIC"), typeof PANIC_LOOP_ENABLED !== "undefined" ? PANIC_LOOP_ENABLED : "?"],
-			[pad_name("BOSS"), typeof BOSS_LOOP_ENABLED !== "undefined" ? BOSS_LOOP_ENABLED : "?"],
-			[pad_name("ORBIT"), typeof ORBIT_LOOP_ENABLED !== "undefined" ? ORBIT_LOOP_ENABLED : "?"],
-			[pad_name("POTION"), typeof POTION_LOOP_ENABLED !== "undefined" ? POTION_LOOP_ENABLED : "?"],
-			[pad_name("LOOT"), typeof LOOT_LOOP_ENABLED !== "undefined" ? LOOT_LOOP_ENABLED : "?"],
 			[pad_name("STATE"), typeof STATE_CACHE_LOOP_ENABLED !== "undefined" ? STATE_CACHE_LOOP_ENABLED : "?"],
-			[pad_name("PRIMS"), typeof PRIM_FARM_LOOT_ENABLED !== "undefined" ? PRIM_FARM_LOOT_ENABLED : "?"],
+			[pad_name("PANIC"), typeof panicking !== "undefined" ? !!panicking : "?"],
+			[pad_name("TRAVEL"), typeof is_travelling === "function" ? is_travelling() : "?"],
+			[pad_name("GOAL"), typeof current_goal_label === "function" ? (current_goal_label() || "-") : "?"],
 		];
 	}
 

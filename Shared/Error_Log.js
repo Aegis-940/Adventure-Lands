@@ -562,6 +562,8 @@ function al_errors_clear(all) {
 		// counting — a diagnostic that fails quietly is worse than none.
 		_errlog = { session: _errlog.session, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {} };
 		_errlog_heals = [];
+		_errlog_vitals = [];
+		_errlog_was_rip = false;
 		for (const k in _errlog_beats) delete _errlog_beats[k];
 		for (const k in _errlog_beats_last) delete _errlog_beats_last[k];
 		return "cleared " + doomed.length + " key(s)";

@@ -138,7 +138,7 @@ function get_full_character_state() {
 		y: character.y,
 		rip: character.rip,
 		moving: character.moving,
-		travelling: typeof travel_is_active === "function" && travel_is_active(),
+		travelling: typeof is_travelling === "function" && is_travelling(),
 		goal: typeof current_goal_label === "function" ? current_goal_label() : null,
 		has_kiss: !!(character.s && character.s.anniversary_kiss),
 		free_slots: character.items.filter(it => !it).length,
@@ -165,10 +165,6 @@ function read_state_cache(name) {
 	} catch (e) {
 		return null;
 	}
-}
-
-function is_character_online(name) {
-	return read_state_cache(name) !== null;
 }
 
 async function state_cache_loop() {

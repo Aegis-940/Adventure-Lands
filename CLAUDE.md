@@ -22,12 +22,18 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | File | Role |
 |------|------|
 | `Bootstrapper.js` | Script loader — loads all other files from CDN in order |
-| `Shared/Game_Config.js` | Core config/constants/loop-toggles/state variables |
-| `Shared/Movement.js` | `smarter_move()`, `move_to_character()`, bscorpion/primling farm, combat orbit |
-| `Shared/Combat_Utilities.js` | Monster targeting/distance/aggro helpers, event handling |
+| `Shared/Game_Config.js` | Core config/constants/state variables |
+| `Shared/Movement.js` | `smarter_move()`, the travel arbiter (`travel_arbiter()`), `move_to_character()`, stuck escape |
+| `Shared/Bscorpion_Farm.js` | Content-specific positioning for the desertland bscorpion/primling camp |
+| `Shared/Combat_Utilities.js` | Monster targeting/distance/aggro helpers, combat positioning (`best_orbit_spot()`) |
+| `Shared/Events.js` | Live boss/seasonal targets and the goal that walks the party to them |
 | `Shared/Messaging.js` | CM (character message) handlers, localStorage-backed state cache |
-| `Shared/Party_And_Loot.js` | Party invite/accept management, shared loot/inventory/panic/equipment behaviors |
+| `Shared/Equipment.js` | Equipment sets, the single `batch_equip()` emitter, the slot arbiter, the rules resolver |
+| `Shared/Party_And_Loot.js` | Panic, potions, party invites, loot/inventory, remote selling, the anniversary visit |
+| `Shared/Cohesion.js` | Party cohesion (`follow_goal()`, `party_cohesion_hold()`) and `movement_goal()`, the one priority list |
+| `Shared/Character_Runner.js` | `run_character()` — the shared main tick loop every character starts from |
 | `Shared/Error_Handling.js` | `catcher()`, the shared error-triage/logging helper |
+| `Shared/Error_Log.js` | Persistent cross-character flight recorder; hooks only, read with `al_errors(true)` |
 | `Shared/Widgets.js` | `create_bottomrightcorner_widget()` (Gold/XP/CC/DPS meters' container) and `make_draggable()` (used by Custom_Log.js/Stats_Window.js) — all that survived removing Shared/Windows.js |
 | `Merchant_Systems/Auto_Upgrade.js` | Item upgrade profiles and automation |
 | `Merchant_Systems/Auto_Craft.js` | Crafting logic and batch orchestration — loaded by Bootstrapper.js |

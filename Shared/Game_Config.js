@@ -58,8 +58,6 @@ const HEALER_TARGET    = localStorage.getItem("AL_target_Myras") || "bscorpion";
 const WARRIOR_TARGET   = localStorage.getItem("AL_target_Ulric") || "bscorpion";
 const RANGER_TARGET    = localStorage.getItem("AL_target_Riva")  || "bscorpion";
 
-const MERCHANT_TARGET  = { map: "main", x: -87, y: -96 };
-
 const EVENT_LOCATIONS = [
 	{ name: "mrpumpkin", map: "halloween", x: -217, y: 720 },
 	{ name: "mrgreen", map: "spookytown", x: 605, y: 1000 },
@@ -90,36 +88,9 @@ const COOLDOWNS = {
 
 const CACHE_TTL = 50;
 
-const SOFT_RESTART_TIMER = 60000;
-const HARD_RESET_TIMER   = 90000;
-
-const PANIC_ORB   = "jacko";
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SECTION 3: LOOP TOGGLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let HEAL_LOOP_ENABLED         = true;
-let MOVE_LOOP_ENABLED         = false;
-let SKILL_LOOP_ENABLED        = true;
-let PANIC_LOOP_ENABLED        = true;
-let BOSS_LOOP_ENABLED         = false;
-let ORBIT_LOOP_ENABLED        = false;
-let POTION_LOOP_ENABLED       = true;
-let LOOT_LOOP_ENABLED         = true;
 let STATE_CACHE_LOOP_ENABLED  = true;
-let PRIM_FARM_LOOT_ENABLED    = true;
 let DUNGEON_LOOP_ENABLED      = false;
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// SECTION 4: STATE VARIABLES
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-let attack_mode                   = true;
-let handling_death = false;
-let timeout_interval = 30000;
-
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// Rest of this file split into Shared/Movement.js, Combat_Utilities.js, Messaging.js, Party_And_Loot.js,
-// --------------------------------------------------------------------------------------------------------------------------------- //

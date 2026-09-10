@@ -18,9 +18,13 @@ window._cmListeners = window._cmListeners || [];
 	const scripts = [
 		"Shared/Game_Config.js",
 		"Shared/Movement.js",
+		"Shared/Bscorpion_Farm.js",
 		"Shared/Combat_Utilities.js",
+		"Shared/Events.js",
 		"Shared/Messaging.js",
+		"Shared/Equipment.js",
 		"Shared/Party_And_Loot.js",
+		"Shared/Cohesion.js",
 		"Shared/Character_Runner.js",
 		"Shared/Error_Handling.js",
 		// Deliberately NOT in CRITICAL_SCRIPTS: the recorder failing must never stop the bot.
@@ -73,9 +77,13 @@ window._cmListeners = window._cmListeners || [];
 	const CRITICAL_SCRIPTS = [
 		"Shared/Game_Config.js",
 		"Shared/Movement.js",
+		"Shared/Bscorpion_Farm.js",
 		"Shared/Combat_Utilities.js",
+		"Shared/Events.js",
 		"Shared/Messaging.js",
+		"Shared/Equipment.js",
 		"Shared/Party_And_Loot.js",
+		"Shared/Cohesion.js",
 		"Shared/Character_Runner.js",
 		"Shared/Error_Handling.js",
 	];
