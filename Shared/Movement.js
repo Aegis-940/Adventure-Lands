@@ -181,8 +181,18 @@ const TRAVEL_SEARCH_MAX_MS = 20000;
 
 let _travel = { label: null, at: 0, interrupt: null, anchor: null, anchor_at: 0, search_since: 0 };
 
+// True while the pathfinder is still computing a route: moving, but nothing plotted to walk yet.
+function travel_searching() {
+	return !!smart.moving && !(smart.plot && smart.plot.length);
+}
+
 function travel_release() {
-	if (_travel.interrupt && smart.moving && smart._interrupt === _travel.interrupt) {
+	// Never tear down a search to stop. The character is standing still during one anyway, so
+	// deferring the stop until a route exists costs nothing and saves all the work — whereas
+	// cancelling here means a goal that flickers for one tick destroys the whole computation.
+	// This path and the hold branch both bypassed the guard inside travel_arbiter().
+	if (_travel.interrupt && smart.moving && smart._interrupt === _travel.interrupt
+		&& !travel_searching()) {
 		stop_movement("arbiter: released");
 	}
 	_travel.interrupt = null;
@@ -211,7 +221,10 @@ function travel_arbiter(goal) {
 
 	if (goal.hold) {
 		travel_release();
-		if (smart.moving) stop_movement("arbiter: " + goal.label);
+		// Same reasoning as travel_release(): a hold arriving mid-search waits for the route
+		// rather than binning it. We are stationary either way, and the next tick stops us once
+		// there is a plot to stop walking.
+		if (smart.moving && !travel_searching()) stop_movement("arbiter: " + goal.label);
 		if (_travel.label !== goal.label) log(`🧭 ${goal.label}`, "#8899aa", "Alerts");
 		_travel.label = goal.label;
 		return true;
@@ -244,7 +257,18 @@ function travel_arbiter(goal) {
 		|| smart.map !== map
 		|| Math.hypot(smart.x - goal.x, smart.y - goal.y) > TRAVEL_DRIFT;
 
-	const searching = !!smart.searching && !smart.found;
+	// Derived from smart.plot, NOT from smart.searching/smart.found.
+	//
+	// Those are runner internals whose lifecycle was never verified, and smarter_move() sets both
+	// to false at issue — so if the pathfinder does not put `searching` back the way this assumed,
+	// it reads false forever, this guard never engages, and the stall watchdog below tears down the
+	// search every 8 seconds. An endless loop of half-finished pathfinds, which is exactly the
+	// "never gets a chance to find a way" symptom.
+	//
+	// smart.plot is the computed route and IS verified: the runner's executor walks it with
+	// `var current = smart.plot[0]; smart.plot.splice(0, 1);`. Moving with nothing plotted
+	// therefore means the route has not been found yet.
+	const searching = travel_searching();
 	if (searching && !_travel.search_since) _travel.search_since = now;
 	if (!searching && _travel.search_since) {
 		_travel.search_since = 0;
