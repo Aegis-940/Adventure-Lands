@@ -10,6 +10,8 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 
 - **No package.json, npm, or build pipeline.** Do not suggest installing packages or running build commands.
 - **No module system.** Files are loaded sequentially via the Bootstrapper or injected manually into the game client. There are no `import`/`export` statements.
+- **Two different load mechanisms, and they scope differently.** `Shared/*.js` and `UI/*.js` load in parallel as real `<script>` tags, so their top-level `const`/`let`/`function` are all global. `Character_Functions/**` load sequentially through **indirect eval**, where `var` and `function` go global but **a top-level `const`/`let` is invisible to sibling files**. Anything shared between two files of the same character must therefore be `var` or `function`. This fails silently at runtime, not at load.
+- **Nothing in a character file may run at load time** except the entry point (`Warrior.js`, `Healer.js`, `Ranger.js`, and the tail of `Merchant_Functions.js`). Every loop starts from `run_character()`.
 - **Runtime is the browser game client.** All globals (`character`, `parent.G`, `parent.entities`, `parent.S`, `parent.socket`) are provided by the game environment — they are not bugs or undefined references.
 - **jQuery is available** as `parent.$` or `window.jQuery`. This is injected by the game client.
 - **Code is injected into iframes.** `parent.*` references are how scripts access the game's top-level scope.
@@ -40,16 +42,29 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Shared/Widgets.js` | `create_bottomrightcorner_widget()` (Gold/XP/CC/DPS meters' container) and `make_draggable()` (used by Custom_Log.js/Stats_Window.js) — all that survived removing Shared/Windows.js |
 | `Merchant_Systems/Auto_Upgrade.js` | Item upgrade profiles and automation |
 | `Merchant_Systems/Auto_Craft.js` | Crafting logic and batch orchestration — loaded by Bootstrapper.js |
-| `Characters/Tank.js` | Warrior entry point (character: Ulric) |
-| `Characters/Healer.js` | Healer entry point (character: Myras) |
-| `Characters/Ranger.js` | Ranger entry point (character: Riva) |
-| `Characters/Merchant.js` | Merchant entry point (character: Riff) |
-| `Character_Functions/Warrior_Functions.js` | Warrior combat, movement, equipment swap logic |
-| `Character_Functions/Warrior_Skills.js` | Warrior skill loop (stomp, cleave, agitate, taunt) — separate eval closure loaded after Warrior_Functions.js |
-| `Character_Functions/Healer_Functions.js` | Healing, buffs, support logic |
-| `Character_Functions/Healer_Skills.js` | Healer skill loop (curse, absorb, party heal, dark blessing) — separate eval closure loaded after Healer_Functions.js |
-| `Character_Functions/Ranger_Functions.js` | Ranged combat, multi-target abilities, equipment-swap rules (weapon/boss sets) |
-| `Character_Functions/Merchant_Functions.js` | Trading, fishing, mining, potion delivery |
+| `Character_Functions/Warrior/Warrior_Config.js` | Warrior tunables, gear sets, panic thresholds, `state`/`cache` (character: Ulric) |
+| `Character_Functions/Warrior/Warrior_Combat.js` | Warrior targeting, the sugar-rush swap trick, `action_loop()` |
+| `Character_Functions/Warrior/Warrior_Skills.js` | Warrior skill loop (stomp, cleave, agitate, taunt) |
+| `Character_Functions/Warrior/Warrior_Equipment.js` | Warrior `EQUIPMENT_RULES` resolvers and monster gear overrides |
+| `Character_Functions/Warrior/Warrior_Movement.js` | Warrior reposition scorer |
+| `Character_Functions/Warrior/Warrior_Bscorpion.js` | Bscorpion kill detection and seconds-per-kill average |
+| `Character_Functions/Warrior/Warrior.js` | Warrior entry point — windows, event handlers, `run_character()` |
+| `Character_Functions/Healer/Healer_Config.js` | Healer tunables, gear sets, panic thresholds, `state`/`cache` (character: Myras) |
+| `Character_Functions/Healer/Healer_Combat.js` | Heal target selection, aggro cap, `action_loop()` |
+| `Character_Functions/Healer/Healer_Skills.js` | Healer skill loop (curse, absorb, party heal, dark blessing) |
+| `Character_Functions/Healer/Healer_Equipment.js` | Healer `EQUIPMENT_RULES` resolvers, booster swap, temporal surge |
+| `Character_Functions/Healer/Healer_Movement.js` | Healer runner hooks (`healer_local`, panic skip) and the circle walk |
+| `Character_Functions/Healer/Healer_Looting.js` | Chest opening and the gold-gear swap around it |
+| `Character_Functions/Healer/Healer_Dungeon.js` | Spider instance run and its auto-start |
+| `Character_Functions/Healer/Healer.js` | Healer entry point — windows, `run_character()` |
+| `Character_Functions/Ranger/Ranger_Config.js` | Ranger tunables, gear sets, panic thresholds, `state`/`cache` (character: Riva) |
+| `Character_Functions/Ranger/Ranger_Combat.js` | Ranger target cache, `action_loop()`, `handle_attack()` |
+| `Character_Functions/Ranger/Ranger_Skills.js` | Ranger skill loop (hunter's mark, supershot) |
+| `Character_Functions/Ranger/Ranger_Equipment.js` | Ranger `EQUIPMENT_RULES` resolvers (weapon/boss sets) |
+| `Character_Functions/Ranger/Ranger_Movement.js` | Licence top-up and the reposition scorer |
+| `Character_Functions/Ranger/Ranger_Looting.js` | Disabled delayed-chest looting, kept for later |
+| `Character_Functions/Ranger/Ranger.js` | Ranger entry point — windows, `run_character()` |
+| `Character_Functions/Merchant_Functions.js` | Trading, fishing, mining, potion delivery, and the merchant entry point (character: Riff) |
 | `UI/DPS_Meter.js` | Real-time DPS tracking overlay |
 | `UI/Stats_Window.js` | Character stats + gold graph (Canvas API) |
 | `UI/Settings_Window.js` | Live in-game per-character target settings, persisted via localStorage, ⚙️ button next to the reload button |

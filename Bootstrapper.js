@@ -61,13 +61,17 @@ window._cmListeners = window._cmListeners || [];
 		"Character_Functions/Healer/Healer_Dungeon.js",
 		"Character_Functions/Healer/Healer.js"],
 
-		"Riva": ["Character_Functions/Ranger_Functions.js",
-		"Characters/Ranger.js"],
+		"Riva": ["Character_Functions/Ranger/Ranger_Config.js",
+		"Character_Functions/Ranger/Ranger_Combat.js",
+		"Character_Functions/Ranger/Ranger_Skills.js",
+		"Character_Functions/Ranger/Ranger_Equipment.js",
+		"Character_Functions/Ranger/Ranger_Movement.js",
+		"Character_Functions/Ranger/Ranger_Looting.js",
+		"Character_Functions/Ranger/Ranger.js"],
 
 		"Riff": ["Merchant_Systems/Auto_Upgrade.js",
 		"Merchant_Systems/Auto_Craft.js",
-		"Character_Functions/Merchant_Functions.js",
-		"Characters/Merchant.js"]
+		"Character_Functions/Merchant_Functions.js"]
 	};
 	const role_file = role_scripts[character.name] || [];
 	if (!role_scripts[character.name]) {
