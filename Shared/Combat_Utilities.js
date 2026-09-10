@@ -270,64 +270,39 @@ function engage_hp_ok(e) {
 const EVENT_JOIN_RETRY_MS = 5000;
 let _last_event_join = 0;
 
-// An event we cannot reach must not hold the character forever — going back to grind is the
-// fallback that has to always work.
-const EVENT_GIVEUP_MS = 60000;
-const EVENT_GIVEUP_COOLDOWN_MS = 300000;
-let _event_stuck = { name: null, since: 0 };
-const _event_blocked = {};
-
-function event_gave_up(name) {
-	return Date.now() < (_event_blocked[name] || 0);
-}
-
-// Returns true once we have been stuck on this event long enough to abandon it.
-function event_stuck_too_long(name) {
-	const now = Date.now();
-	if (_event_stuck.name !== name) _event_stuck = { name, since: now };
-	if (now - _event_stuck.since <= EVENT_GIVEUP_MS) return false;
-	_event_blocked[name] = now + EVENT_GIVEUP_COOLDOWN_MS;
-	_event_stuck = { name: null, since: 0 };
-	log(`⚠️ Giving up on ${name} — could not reach it. Back to grinding.`, "#FFA500", "Alerts");
-	return true;
-}
-
-function event_progressed(name) {
-	if (_event_stuck.name === name) _event_stuck = { name: null, since: 0 };
-}
-
-// A boss we are actually going for. Pure, and respects the give-up, so a boss we have abandoned
-// stops blocking the anniversary too.
-function event_engaging() {
-	const t = best_event_target();
-	return t && !event_gave_up(t.name) ? t : null;
-}
+// Joining is a socket emit, not a journey — it works from anywhere. So "the boss is live but I am
+// not in the instance yet" is a reason to keep grinding while we retry, never a reason to stand
+// still. That hold was the party hanging around doing nothing.
+let _holiday_tried = false;
 
 function event_goal() {
-	if (parent?.S?.holidayseason && !character?.s?.holidayspirit && !event_gave_up("holiday-tree")) {
-		if (event_stuck_too_long("holiday-tree")) return null;
+	// One definitive attempt. If we reached the tree and the buff still is not on us, the
+	// interaction is not available — that is an answer, not something to keep retrying.
+	if (parent?.S?.holidayseason && !character?.s?.holidayspirit && !_holiday_tried) {
 		return {
 			label: "holiday-tree",
 			to: "town",
-			on_arrive: () => parent.socket.emit("interaction", { type: "newyear_tree" }),
+			on_arrive: () => {
+				_holiday_tried = true;
+				parent.socket.emit("interaction", { type: "newyear_tree" });
+			},
 		};
 	}
+	if (character?.s?.holidayspirit) _holiday_tried = false;
 
 	const target = best_event_target();
-	if (!target || event_gave_up(target.name)) return null;
+	if (!target) return null;
 
 	if (target.join === true && !get_nearest_monster({ type: target.name })) {
-		if (event_stuck_too_long(target.name)) return null;
 		if (Date.now() - _last_event_join > EVENT_JOIN_RETRY_MS) {
 			_last_event_join = Date.now();
 			parent.socket.emit("join", { name: target.name });
 		}
-		return { hold: true, label: "event-join" };
+		return null;
 	}
 
 	const seen = get_nearest_monster({ type: target.name });
 	if (seen) {
-		event_progressed(target.name);
 		const half_x = character.x + (seen.x - character.x) / 2;
 		const half_y = character.y + (seen.y - character.y) / 2;
 		if (is_in_range(seen, "attack") || can_move_to(half_x, half_y)) {
@@ -336,10 +311,8 @@ function event_goal() {
 		return { label: "event-" + target.name, map: seen.map || target.map, x: seen.x, y: seen.y, radius: 60 };
 	}
 
-	if (!target.map || !isFinite(target.x) || !isFinite(target.y)) {
-		if (event_stuck_too_long(target.name)) return null;
-		return { hold: true, label: "event-join" };
-	}
+	// A join-type event with no coordinates: nowhere to walk to until we are inside.
+	if (!target.map || !isFinite(target.x) || !isFinite(target.y)) return null;
 
 	return { label: "event-" + target.name, map: target.map, x: target.x, y: target.y, radius: 60 };
 }

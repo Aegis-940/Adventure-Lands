@@ -754,7 +754,7 @@ function leader_position() {
 
 const COHESION_RADIUS = 150;
 const COHESION_RELEASE = 60;
-const COHESION_MAX_WAIT_MS = 60000;
+const COHESION_STUCK_REPORT_MS = 120000;
 const COHESION_FOLLOWERS = ["Ulric", "Riva"];
 
 let _hold_since = 0;
@@ -770,21 +770,37 @@ function party_cohesion_hold() {
 	_hold_at = now;
 
 	const owed = typeof anniversary_should_travel === "function" && anniversary_should_travel();
-	const limit = _hold_since ? COHESION_RELEASE : COHESION_RADIUS;
 
-	const behind = COHESION_FOLLOWERS.some(name => {
+	// A follower publishes what it has decided to do. "follow"/"follow-ring" means it is closing on
+	// us; "with-leader" means it has arrived. Reading that is exact — the leader re-deriving it
+	// from distance guesses at a decision the follower has already made.
+	const waiting_for = COHESION_FOLLOWERS.find(name => {
 		const s = read_state_cache(name);
 		if (!s || s.rip) return false;
 		if (!owed && s.anniv_pending && !s.has_kiss) return true;
-		return s.map !== character.map
-			|| Math.hypot(s.x - character.x, s.y - character.y) > limit;
+		return s.goal === "follow" || s.goal === "follow-ring";
 	});
 
-	if (!behind) _hold_since = 0;
-	else if (!_hold_since) _hold_since = now;
+	if (!waiting_for) {
+		_hold_since = 0;
+		_hold = false;
+		return false;
+	}
+	if (!_hold_since) _hold_since = now;
 
-	_hold = behind && now - _hold_since < COHESION_MAX_WAIT_MS;
-	return _hold;
+	// Not a decision — a bug detector. The conditions above resolve on their own, so a wait this
+	// long means a follower is stuck saying it is coming and never arriving.
+	if (now - _hold_since > COHESION_STUCK_REPORT_MS) {
+		const s = read_state_cache(waiting_for);
+		log(`⚠️ Cohesion stuck: ${waiting_for} has been "${s && s.goal}" for `
+			+ `${Math.round((now - _hold_since) / 1000)}s. Moving on.`, "#ff4444", "Errors");
+		_hold_since = 0;
+		_hold = false;
+		return false;
+	}
+
+	_hold = true;
+	return true;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -1160,7 +1176,7 @@ function anniversary_block_reason() {
 	if (kiss && (kiss.ms === undefined || kiss.ms > ANNIVERSARY_REFRESH_MS)) return "already buffed";
 
 	if (character.ctype !== "merchant"
-		&& typeof event_engaging === "function" && event_engaging()) {
+		&& typeof best_event_target === "function" && best_event_target()) {
 		return "a boss is up — bossing first";
 	}
 	if (anniversary_is_host()) return "we are the featured player";
