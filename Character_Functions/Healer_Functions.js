@@ -285,7 +285,11 @@ function healer_on_disabled() {
 	send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
 }
 
+// Suppressed while she is tanking those camps: scare would dump the whole pack onto the party.
+// In transit she is tanking nothing, and this was also silently disabling the travel failsafe —
+// the one case where breaking aggro is exactly what we want.
 function healer_skip_panic_check() {
+	if (typeof is_travelling === "function" && is_travelling()) return false;
 	return HEALER_TARGET === "fireroamer" || HEALER_TARGET === "giantspider";
 }
 
