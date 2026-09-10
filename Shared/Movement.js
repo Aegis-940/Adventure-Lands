@@ -256,9 +256,12 @@ function travel_release() {
 		stop_movement("arbiter: released");
 	}
 	_travel.interrupt = null;
-	_travel.label = null;
 	_travel.anchor = null;   // standing still on purpose is not a stall
 	_travel.search_since = 0;
+	// _travel.label is deliberately KEPT. It answers "did the destination change", and clearing it
+	// here made every flicker between a local goal and a travel goal — which is one can_move_to()
+	// away at any obstacle edge — look like a brand new goal. That dropped the re-issue floor from
+	// 3s to 500ms and cancelled the pathfind twice a second.
 }
 
 function travel_arbiter(goal) {
@@ -429,6 +432,15 @@ function stuck_escape_check() {
 	// Fighters only — reads `destination`, which the merchant doesn't define.
 	if (typeof destination === "undefined") return;
 	if (character.rip) return;
+
+	// Standing with the leader is not being stuck, whatever map we are on. `destination` is a
+	// follower's FARM spot, and they now legitimately live wherever she is — so a follower waiting
+	// beside her in town during an anniversary round reads as "wrong map, no progress, no monsters"
+	// and, after sixty seconds, teleported itself away from the party.
+	if (typeof follow_has_leader === "function" && follow_has_leader()) {
+		const lead = get_player(MOVEMENT_LEADER);
+		if (lead && !lead.rip) { _stuck_anchor = null; return; }
+	}
 
 	// Being on the map we're supposed to be on IS the definition of not stuck. Several `locations`
 	// entries carry no map at all (cgoo, ent), and `character.map === undefined` is never true —

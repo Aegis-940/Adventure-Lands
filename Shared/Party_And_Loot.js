@@ -901,8 +901,10 @@ let _cohesion_progress_at = 0;
 let _cohesion_best = { name: null, map: null, dist: Infinity };
 let _cohesion_cache = { at: 0, straggler: null, anniv: null, map: null, dist: Infinity, travelling: false };
 
-// True when the leader should stand still this tick. Also stops a journey already in flight —
-// declining to re-issue is not enough once smart_move owns the character.
+// True when the leader should stand still this tick. A PREDICATE — it stops nothing itself. It
+// used to call stop_movement() directly, which both duplicated what the arbiter's hold branch
+// already does and made it the last thing outside the arbiter touching movement on the fighter
+// path. movement_goal() turns a true here into a hold goal and the arbiter enforces it.
 function party_cohesion_hold() {
 	if (character.name !== MOVEMENT_LEADER) return false;
 
@@ -963,7 +965,11 @@ function party_cohesion_hold() {
 			_cohesion_cache.straggler = name;
 			_cohesion_cache.map = s.map;
 			_cohesion_cache.dist = dist;
-			_cohesion_cache.travelling = !!s.travelling;
+			// `moving` as well as `travelling`. A follower closing on us now walks with a raw
+			// move(), which sets character.moving but never smart.moving — so `travelling` went
+			// dark for exactly the members who were making the best progress, and the stall clock
+			// could fire on someone visibly walking toward us.
+			_cohesion_cache.travelling = !!(s.travelling || s.moving);
 		}
 	}
 
@@ -992,7 +998,6 @@ function party_cohesion_hold() {
 			// hold the instant the round ends and everyone sets off home together.
 			_cohesion_since = now;
 			_cohesion_progress_at = now;
-			if (smart.moving) stop_movement("party_cohesion"); // Shared/Movement.js
 			return true;
 		}
 
@@ -1054,7 +1059,6 @@ function party_cohesion_hold() {
 		return false;
 	}
 
-	if (smart.moving) stop_movement("party_cohesion"); // Shared/Movement.js
 	return true;
 }
 
