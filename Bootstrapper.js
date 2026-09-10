@@ -52,9 +52,14 @@ window._cmListeners = window._cmListeners || [];
 		"Character_Functions/Warrior/Warrior_Bscorpion.js",
 		"Character_Functions/Warrior/Warrior.js"],
 
-		"Myras": ["Character_Functions/Healer_Functions.js",
-		"Character_Functions/Healer_Skills.js",
-		"Characters/Healer.js"],
+		"Myras": ["Character_Functions/Healer/Healer_Config.js",
+		"Character_Functions/Healer/Healer_Combat.js",
+		"Character_Functions/Healer/Healer_Skills.js",
+		"Character_Functions/Healer/Healer_Equipment.js",
+		"Character_Functions/Healer/Healer_Movement.js",
+		"Character_Functions/Healer/Healer_Looting.js",
+		"Character_Functions/Healer/Healer_Dungeon.js",
+		"Character_Functions/Healer/Healer.js"],
 
 		"Riva": ["Character_Functions/Ranger_Functions.js",
 		"Characters/Ranger.js"],

@@ -1,5 +1,5 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// HEALER SKILLS — separate eval closure, loaded right after Healer_Functions.js
+// HEALER SKILLS — curse, absorb, party heal, dark blessing; started by Healer.js
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function skill_loop() {
@@ -210,5 +210,3 @@ async function handle_zapper() {
 		}
 	}
 }
-
-skill_loop();
