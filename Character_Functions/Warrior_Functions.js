@@ -3,9 +3,6 @@
 // CONFIGURATION - Toggle features here instead of editing code
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// var, not const: eval-loader scoping — Warrior_Skills.js (separate eval closure)
-// reads `home` directly, and const/let here wouldn't be visible to Game_Config.js
-// either.
 var home = WARRIOR_TARGET;
 
 var CONFIG = {
@@ -16,8 +13,6 @@ var CONFIG = {
 		cleave_min_mobs: 3,
 		cleave_blacklist: ["fireroamer", "plantoid"],
 		agitate_min_mobs: 2,
-		// Minimum other-monsters-in-explosion-radius before a mob counts as a cluster worth
-		// targeting/repositioning for. Below this, normal highest-HP targeting is better.
 		cluster_min_mobs: 2,
 		agitate_blacklist: ["plantoid"],
 		agitate_fireroamer_conditions: {
@@ -33,7 +28,7 @@ var CONFIG = {
 	movement: {
 		enabled: true,
 		reposition: true,
-		circle_radius: 35, // reposition() stays within this of the farm spot
+		circle_radius: 35,
 		move_threshold: 10,
 		follow_distance: 15,
 	},
@@ -44,8 +39,6 @@ var CONFIG = {
 		boss_hp_thresholds: {
 			mrpumpkin: 200000,
 			mrgreen: 200000,
-			// Sentinel, not a real HP value — always treated as "low," so gear swaps to
-			// luck/single-target immediately on spawn instead of waiting for HP to drop.
 			franky: 999999999,
 			icegolem: 999999999,
 		},
@@ -105,11 +98,7 @@ var state = {
 	skin_ready: false,
 	last_basher_swap: 0,
 	last_cleave_swap: 0,
-	// Set while status_swap_trick_check() is mid-sequence — resolve_equipment() (Shared/
-	// Party_And_Loot.js) checks this and skips its own gear decisions rather than racing
-	// the manual slot swap.
 	gear_locked: 0,
-	// Per-group cooldown timestamps for resolve_equipment()'s EQUIPMENT_RULES groups below.
 	equip_cooldowns: {},
 	last_reposition: 0
 };
@@ -193,8 +182,6 @@ var equipment_sets = {
 	panic: [
 		{ item_name: "jacko", slot: "orb", level: 0, l: "l" },
 	],
-	// Orb sets. The orb is its own EQUIPMENT_RULES group, so each orb lives in its own set and
-	// resolve_warrior_orb() picks between them.
 	orb_dps: [
 		{ item_name: "orbofstr", slot: "orb", level: 5, l: "l" },
 	],
@@ -215,7 +202,6 @@ function update_cache() {
 	cache.monsters_in_cleave_range = find_monsters_in_cleave_range();
 
 	if (!cache.is_valid()) {
-		// Before find_best_target(): it reads cluster_target as its priority-3 pick.
 		cache.cluster_target = find_cluster_target();
 		cache.target = find_best_target();
 		cache.party_members = get_party_members();
@@ -223,9 +209,6 @@ function update_cache() {
 	}
 }
 
-// The monster whose explosion would spread to the most others — what reposition() moves to
-// reach and find_best_target() prefers, so the splash actually lands on the dense cluster.
-// Only counts monsters in attack range, since an unreachable one is not a usable target.
 function find_cluster_target() {
 	const in_range = Object.values(parent.entities).filter(e =>
 		e?.type === "monster" &&
@@ -235,30 +218,26 @@ function find_cluster_target() {
 	);
 	if (!in_range.length) return null;
 
-	const scored = score_by_explosion_spread(in_range); // Shared/Combat_Utilities.js
+	const scored = score_by_explosion_spread(in_range);
 	return scored[0]?.count >= CONFIG.combat.cluster_min_mobs ? scored[0].mob : null;
 }
 
 function find_best_target() {
 	const max_dist = WARRIOR_TARGET === "giantspider" ? 50 : character.range;
 
-	// Priority 1: Bosses
 	for (const boss_type of CONFIG.combat.all_bosses) {
 		const boss = get_nearest_monster_v2({ type: boss_type, max_distance: max_dist });
 		if (boss) return boss;
 	}
 
-	// Priority 2: Any cursed monster in range (highest HP)
 	const cursed = get_nearest_monster_v2({ status_effects: ["cursed"], max_distance: max_dist, check_max_hp: true });
 	if (cursed) return cursed;
 
-	// Priority 3: In follow mode prefer closest; otherwise the densest explosion cluster
 	if (WARRIOR_TARGET === "giantspider") {
 		return get_nearest_monster_v2({ max_distance: max_dist }) || null;
 	}
 	if (cache.cluster_target && !cache.cluster_target.dead) return cache.cluster_target;
 
-	// Priority 4: Highest HP in range
 	return get_nearest_monster_v2({ max_distance: max_dist, check_max_hp: true }) || null;
 }
 
@@ -286,10 +265,6 @@ function mob_count() {
 	).length;
 }
 
-// Monsters where briefly slot-swapping to specific weapons (parked in reserved inventory
-// slots, see item_order) can proc a status effect. Add more entries here rather than writing
-// new near-duplicate check functions — base_set is the weapon set the swap assumes it's
-// starting from and returning to.
 const STATUS_SWAP_TRICKS = {
 	bscorpion: {
 		status: "sugarrush",
@@ -312,13 +287,8 @@ async function status_swap_trick_check(target) {
 	const trick = STATUS_SWAP_TRICKS[target?.mtype];
 	if (!trick || character.s[trick.status] !== undefined) return;
 
-	// equip_batch(slots) is a slot-swap, not an item-set — the second identical call only
-	// lands back on base_set if those slots held it to begin with. Bail if desynced instead
-	// of compounding it; resolve_equipment()'s equip_set(base_set) will correct it before next try.
 	if (!is_set_equipped(trick.base_set)) return;
 
-	// Blocks resolve_equipment() (Shared/Party_And_Loot.js) from racing this multi-step swap
-	// and yanking gear mid-sequence.
 	lock_gear();
 	try {
 		swap_trick_attempts++;
@@ -342,17 +312,13 @@ async function status_swap_trick_check(target) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// FOLLOW HEALER — used when WARRIOR_TARGET === "giantspider". Orbits Myras when
-// close; smart_moves to her when far/different map; falls back to
-// _healer_last_known when she's off-map and invisible.
+// FOLLOW HEALER — state read by follow_goal()/follow_step() in Shared/Party_And_Loot.js
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // var, not let: shared follow_goal()/follow_step() (Party_And_Loot.js) read/write these globals.
 var _healer_last_known = null;
 var _last_healer_ping = 0;
 
-// Following lives in Shared/Party_And_Loot.js as a movement goal; it reads this file's
-// CONFIG.movement.follow_distance at call time.
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN TICK LOOP
@@ -366,11 +332,8 @@ async function main_loop() {
 
 		update_cache();
 		panic_check();
-		stuck_escape_check(); // Shared/Movement.js
+		stuck_escape_check();
 
-		// One decision, one mover. movement_goal() (Shared/Party_And_Loot.js) holds the whole
-		// priority list; travel_arbiter() (Shared/Movement.js) is the only thing that issues,
-		// re-issues or cancels a journey. Nothing in this file moves the character any more.
 		const goal = movement_goal();
 		if (!travel_arbiter(goal)) {
 			movement_local(goal, () => {
@@ -396,7 +359,6 @@ async function action_loop() {
 	try {
 		if (is_disabled(character)) return setTimeout(action_loop, 50);
 
-		// Keep cache fresh even while waiting on cooldowns
 		update_cache();
 
 		const target = cache.target;
@@ -445,17 +407,11 @@ async function maintenance_loop() {
 	setTimeout(maintenance_loop, TICK_RATE.maintenance);
 }
 
-// potion_loop → Game_Config.js
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // EQUIPMENT RULES — consumed by the shared resolve_equipment()/equipment_manager_loop()
-// (Shared/Party_And_Loot.js). Each group's resolve() reproduces exactly what the old
-// per-file equipment_loop() decided; only WHERE the decision runs changed, not WHAT it
-// decides, to avoid behavior drift from this unification.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Special weapons: pause every group while wielding them, matching the original loop's
-// single shared early-return (not just the loadout group).
 function should_pause_equipment_resolve() {
 	const mainhand = character.slots?.mainhand?.name;
 	return mainhand === "basher" || mainhand === "bataxe";
@@ -477,7 +433,6 @@ function resolve_warrior_cape() {
 
 function resolve_warrior_coat() {
 	const active_boss = find_active_boss();
-	// Coat only swaps away from a boss fight, or once its HP is above threshold (early phase).
 	const boss_blocks_coat = active_boss && active_boss.data.hp <= CONFIG.equipment.boss_hp_thresholds[active_boss.name];
 	if (boss_blocks_coat) return null;
 
@@ -486,13 +441,6 @@ function resolve_warrior_coat() {
 	return null;
 }
 
-// Combined weapon+accessories decision — boss-active and home-map branches were mutually
-// exclusive in the original, including a boss-active-but-target-null case that intentionally
-// applies nothing (e.g. a boss up while already at the home map); kept as one function so
-// that case can't accidentally fall through into the home-map logic.
-// The orb alone, mirroring resolve_warrior_loadout()'s intent, and falling back to a set we
-// actually own. orbofstr has not been in the bag at all: 5,993 requests against 71,170 "not in
-// inventory" warnings, retried every 500ms forever. set_available() ends that.
 function resolve_warrior_orb() {
 	let preferred = "orb_dps";
 	if (CONFIG.equipment.boss_set_swap_enabled) {
@@ -503,7 +451,7 @@ function resolve_warrior_orb() {
 	}
 	if (set_available(preferred)) return preferred;
 	if (set_available("orb")) return "orb";
-	return null; // nothing we own — leave the slot alone rather than retrying forever
+	return null;
 }
 
 function resolve_warrior_loadout() {
@@ -535,8 +483,6 @@ function resolve_warrior_home_loadout() {
 	return sets;
 }
 
-// var, not const: resolve_equipment() (Shared/Party_And_Loot.js) reads these globals at
-// call time, and const/let here wouldn't cross the indirect-eval boundary into global scope.
 var EQUIPMENT_RULES = {
 	booster: { kind: "booster", resolve: resolve_warrior_booster },
 	cape:    { kind: "set", resolve: resolve_warrior_cape },
@@ -545,28 +491,18 @@ var EQUIPMENT_RULES = {
 	orb:     { kind: "set", resolve: resolve_warrior_orb },
 };
 
-// Each key short-circuits that one group's resolve() for that farm target.
 var MONSTER_GEAR_OVERRIDES = {
-	// resolve_warrior_home_loadout() picks "aoe" over "single" whenever mob_count() > 1 --
-	// easy to hit on bscorpion's dense spawns before things thin out. bscorpion always wants
-	// "single" (two fireblades), since status_swap_trick_check()'s sugar-rush trick requires
-	// it as the base_set. Still includes dps_accessories so earrings/rings/orb keep swapping.
 	bscorpion: { loadout: ["dps_accessories", "single"] },
 };
 
-// find_booster_slot, get_num_chests, get_num_targets → Game_Config.js
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MOVEMENT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Events and going home are movement_goal() entries now — see Shared/Party_And_Loot.js.
 
 const REPOSITION_INTERVAL_MS = 250;
 
-// Moves into attack range of the cluster target (the monster whose explosion spreads to the
-// most others), staying inside the orbit radius. Holds position when there's no cluster
-// worth chasing, rather than wandering -- melee time out of range is damage lost.
 async function reposition() {
 	if (smart.moving || character.moving) return;
 	if (WARRIOR_TARGET === "bscorpion") return;
@@ -575,25 +511,20 @@ async function reposition() {
 	if (now - state.last_reposition < REPOSITION_INTERVAL_MS) return;
 	state.last_reposition = now;
 
-	const center = reposition_center(); // Shared/Combat_Utilities.js
+	const center = reposition_center();
 	if (!center) return;
 
 	let score;
 	if (panicking) {
-		// Retreat, don't advance. Without this the warrior walks back into the pack it just
-		// scared off -- at the bottom of its HP bar, which is the only time it panics at all.
-		// Still bounded by circle_radius, so it can't kite out of the healer's reach.
-		score = make_distance_from_monsters_scorer(); // Shared/Combat_Utilities.js
+		score = make_distance_from_monsters_scorer();
 		if (!score) return;
 	} else {
 		const target_mob = cache.cluster_target;
 		if (!target_mob || target_mob.dead) return;
 
-		// Aim just inside attack range so ordinary drift doesn't immediately break contact.
 		const reach = character.range * 0.9;
 		score = (x, y) => {
 			if (Math.hypot(target_mob.x - x, target_mob.y - y) > reach) return null;
-			// Feasible: prefer the least travel, so it settles instead of circling.
 			return -Math.hypot(character.x - x, character.y - y);
 		};
 	}
@@ -602,8 +533,6 @@ async function reposition() {
 	if (!spot) return;
 	if (Math.hypot(character.x - spot.x, character.y - spot.y) <= CONFIG.movement.move_threshold) return;
 
-	// Raw move(), matching the ranger: xmove falls back to smart_move on obstacle, which
-	// would gate attacks. best_orbit_spot() already filtered on can_move_to().
 	move(spot.x, spot.y);
 }
 
@@ -611,7 +540,6 @@ async function reposition() {
 // HELPER FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// clear_inventory() moved to Shared/Game_Config.js; reads this file's ITEMS_TO_KEEP.
 
 // var, not const: shared inventory_sorter() (Game_Config.js) reads this at call time.
 var item_order = {
@@ -623,15 +551,11 @@ var item_order = {
 	pumpkinspice: 5,
 	xpbooster: 6,
 	jacko: 7,
-	candycanesword: [38, 39], // dual-wielded: two copies get their own reserved slot
+	candycanesword: [38, 39],
 	fireblade: 40,
 	bataxe: 41,
 };
 
-// inventory_sorter() moved to Shared/Game_Config.js; reads this file's item_order
-// (supports both a plain slot number and an array of reserved slots for duplicates).
-
-// auto_buy_potions → Game_Config.js
 
 function elixir_usage() {
 	const required = "pumpkinspice";
@@ -647,21 +571,14 @@ function elixir_usage() {
 var panicking = false;
 var last_panic_time = 0;
 var last_safe_time = 0;
-// Set by the healer's panic broadcast (Shared/Messaging.js). panic_check() will not clear a
-// panic it did not raise itself -- only her all-clear does -- so "hold fire" actually holds.
 var panic_external = false;
 var panic_external_since = 0;
 
-// No PANIC_BROADCAST_TARGETS here — only Healer broadcasts panic state to the fighters.
-// Recovery (high_hp) deliberately well above the trigger (low_hp): at 0.35 the warrior
-// re-entered combat still holding every mob's aggro and was back at the trigger almost
-// immediately, oscillating in the bottom fifth of its HP bar until something burst it down.
 var PANIC_THRESHOLDS = {
 	low_hp: 0.35, low_mp: 0.01, high_hp: 0.60, high_mp: 0.02,
 	aggro: 99, cooldown: 1000,
 };
 
-// panic_check() moved to Shared/Game_Config.js; reads this file's PANIC_THRESHOLDS.
 
 // party_maker() — replaced by shared party_manager() from Game_Config.js
 // function party_maker() {
@@ -684,14 +601,11 @@ var PANIC_THRESHOLDS = {
 // 	}
 // }
 
-// suicide, sleep, get_nearest_monster_v2, ms_to_next_skill, batch_equip → Game_Config.js
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // EQUIPMENT HELPERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// is_set_equipped()/equip_set() moved to Shared/Game_Config.js; reads this file's
-// own `equipment_sets` global at call time.
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SKIN CHANGER
@@ -773,10 +687,6 @@ var PANIC_THRESHOLDS = {
 // EVENT HANDLERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// panic/my_location/suppress_reset/enter_instance CM listener -> Shared/Messaging.js's
-// CM_HANDLERS.
-
-// on_party_request/on_party_invite -> Shared/Party_And_Loot.js
 
 game.on("death", data => {
 	const mob = parent.entities[data.id];
@@ -793,7 +703,6 @@ game.on("death", data => {
 	}
 });
 
-// send_updates() -> Shared/Messaging.js
 setInterval(send_updates, 20000);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -802,19 +711,13 @@ setInterval(send_updates, 20000);
 
 main_loop();
 action_loop();
-// skill_loop() is NOT started here: it's defined in Warrior_Skills.js, a separate
-// eval closure loading after this file finishes evaluating — calling it here would
-// throw ReferenceError. Warrior_Skills.js starts it itself.
 equipment_manager_loop();
 maintenance_loop();
 potion_loop();
-anniversary_loop(); // Shared/Party_And_Loot.js — 10th-anniversary featured-player visit
+anniversary_loop();
 if (WARRIOR_TARGET === "bscorpion") prim_farm_loop();
 setInterval(remote_sell_items, 5000);
 
-// // --------------------------------------------------------------------------------------------------------------------------------- //
-// // CUSTOM FUNCTION TO AGGRO MOBS IF MYRAS HAS ENOUGH MP
-// // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // let last_aggro_time = 0;
 // let last_bigbird_seen = 0;
@@ -823,12 +726,6 @@ setInterval(remote_sell_items, 5000);
 //     if (!BOSS_LOOP_ENABLED && !smart.moving && ORBIT_LOOP_ENABLED) {
 //         const now = Date.now();
 
-//         // Check for bigbird within 50 units
-//         const bigbird = Object.values(parent.entities).find(e =>
-//             e.type === "monster" &&
-//             e.mtype === "bigbird" &&
-//             parent.distance(character, e) <= 50
-//         );
 
 //         // Track last time bigbird was seen
 //         if (bigbird) {
@@ -864,7 +761,6 @@ let last_bscorpion_ids = new Set();
 async function bscorpion_kill_logger_loop() {
 	while (true) {
 		try {
-			// Get all bscorpion entities
 			const bscorps = Object.values(parent.entities).filter(e => e.type === "monster" && e.mtype === "bscorpion");
 			const alive_ids = new Set(bscorps.filter(e => !e.dead).map(e => e.id));
 			const dead_now = [...last_bscorpion_ids].filter(id => !alive_ids.has(id));
@@ -896,7 +792,6 @@ function log_bscorpion_kill() {
 	if (bscorpion_kill_times.length > 50) bscorpion_kill_times.shift();
 
 	if (bscorpion_kill_times.length > 1) {
-		// Calculate rolling average
 		let total = 0;
 		for (let i = 1; i < bscorpion_kill_times.length; i++) {
 			total += bscorpion_kill_times[i] - bscorpion_kill_times[i - 1];
@@ -908,9 +803,6 @@ function log_bscorpion_kill() {
 	}
 }
 
-// // --------------------------------------------------------------------------------------------------------------------------------- //
-// // DUNGEON LOOP
-// // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // // DUNGEON_LOOP_ENABLED = true;
 

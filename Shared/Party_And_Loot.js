@@ -1,13 +1,11 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // PARTY & LOOT — party invite/accept management, shared loot/inventory/panic/equipment behaviors
-// (split out of Game_Config.js — real <script> tag, same global scope, no eval boundary)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // GAME EVENT CALLBACKS (event-driven, replaces parent.S polling where possible)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Tracks live game events pushed by the server; scripts check LIVE_EVENTS[name] instead of polling parent.S
 const LIVE_EVENTS = {};
 
 on_game_event = function(data) {
@@ -16,7 +14,6 @@ on_game_event = function(data) {
 	log(`[Event] ${data.name} spawned`, "#FF8800");
 };
 
-// Fires on AoE damage to co-located characters; movement loops check this flag to trigger spread behavior.
 let combined_damage_flag = false;
 let combined_damage_time = 0;
 
@@ -38,28 +35,14 @@ function home_radius() {
 	return (CONFIG.movement.circle_radius || 75) + 20;
 }
 
-// Every map shares one coordinate origin, so a cross-map distance is meaningless — the bank at
-// (0,-37) reads as ~100 units from a farm spot on main. The map has to be checked first or a
-// character standing on another map can read as "already home".
 function is_away_from_home() {
 	if (typeof destination === "undefined" || !destination) return false;
 	if (destination.map && character.map !== destination.map) return true;
 	return Math.hypot(character.x - destination.x, character.y - destination.y) > home_radius();
 }
 
-// handle_return_home() lived here. It is gone: going home is now the last entry in
-// movement_goal()'s priority list and the arbiter walks it, with the same rate limit every other
-// goal gets. Its private HOME_MOVE_RETRY_MS throttle went with it.
 
 async function potion_loop() {
-	// Never drink mid-gather. fishing and mining each cost 120mp and channel for 5-15 seconds, so
-	// the merchant crosses the 500mp potion threshold about four casts into a run — and using an
-	// item cancels the channel. No fishing_*/mining_* event then arrives, so use_skill() waits out
-	// its full 20s timeout and reports skill_failed, which ends the whole gathering run. That is
-	// the "fishes a couple of times then stops without catching anything" symptom.
-	//
-	// Scoped to these two channels rather than character.c generally: a fighter must never be
-	// stopped from drinking, and only the merchant ever has these.
 	if (character.c && (character.c.fishing || character.c.mining)) {
 		return setTimeout(potion_loop, 200);
 	}
@@ -69,14 +52,6 @@ async function potion_loop() {
 
 	let used_potion = false;
 
-	// Potions share a cooldown, so the second use() in a tick is a no-op -- nothing is consumed, it
-	// simply does nothing. Which one goes first therefore depends on what the character can do with
-	// it, and that is role-specific:
-	//
-	//   healer   an mp potion (~500mp) funds a heal of ~2900hp, against ~400hp from a health
-	//            potion -- roughly 7x more healing off the same cooldown. mp always goes first
-	//            while she can cast; a health potion is close to a waste of the cooldown for her.
-	//   fighters no mana-to-health conversion, so health first once they are actually hurt.
 	const prefer_mp = CONFIG.potions.prefer_mp === true;
 	const hp_first = !prefer_mp && character.hp < character.max_hp * 0.5;
 
@@ -117,13 +92,12 @@ function auto_buy_potions() {
 const RESET_INTERVAL_HOURS = 2;
 const RESET_WINDOW_MINUTES = 2;
 let _last_reset_bucket = null;
-let _reset_due_bucket = null;   // a reset that is owed but has been held back, not skipped
+let _reset_due_bucket = null;
 let _suppress_periodic_reset = false;
 
 function set_suppress_reset(val) { _suppress_periodic_reset = val; }
 
 function schedule_periodic_reset() {
-	// Boot-seed prevents a reload loop if we come back up inside an active reset window.
 	const boot = new Date();
 	if (boot.getHours() % RESET_INTERVAL_HOURS === 0 && boot.getMinutes() < RESET_WINDOW_MINUTES) {
 		_last_reset_bucket = `${boot.toDateString()}-${boot.getHours()}`;
@@ -136,23 +110,12 @@ function schedule_periodic_reset() {
 		const hour = now.getHours();
 		const bucket = `${now.toDateString()}-${hour}`;
 
-		// A reset becomes DUE inside the window and stays due until it actually happens. Previously
-		// the window check was also the trigger, so anything that blocked the reload during those
-		// two minutes skipped that cycle entirely rather than delaying it.
 		if (hour % RESET_INTERVAL_HOURS === 0 && now.getMinutes() < RESET_WINDOW_MINUTES
 			&& _last_reset_bucket !== bucket) {
 			_reset_due_bucket = bucket;
 		}
 		if (!_reset_due_bucket || _last_reset_bucket === _reset_due_bucket) return;
 
-		// Never reload out from under a live anniversary visit. Rounds open on the hour and the
-		// half hour — the same moment this fires — and a reload mid-trip loses the travel state
-		// while the five-minute ticket keeps running, so the round is simply gone. Deferred, not
-		// cancelled: the block clears within five minutes at the latest, either by collecting or by
-		// the ticket expiring, and the reload then happens on the next tick.
-		//
-		// Checked directly rather than through set_suppress_reset(), which already has two other
-		// owners; a third writer to one boolean is how these clobber each other.
 		if (typeof anniversary_block_reason === "function" && anniversary_block_reason() === null) return;
 
 		_last_reset_bucket = _reset_due_bucket;
@@ -174,8 +137,6 @@ function find_booster_slot() {
 	return null;
 }
 
-// Throttles the missing-item warning below: resolve_equipment() retries every
-// swap_cooldown (500ms), so an item that's genuinely gone would otherwise flood the log.
 const MISSING_ITEM_WARN_INTERVAL = 30000;
 const _missing_item_warned = {};
 
@@ -187,12 +148,6 @@ function warn_missing_item(item_name, level, slot) {
 	game_log(`⚠️ batch_equip: no ${item_name} (lvl ${level}) in inventory for ${slot}`, "#FFA500");
 }
 
-// Panic owns the orb slot while it is panicking. This is an interlock, not a timing guess:
-// resolve_equipment() checks its bail once at entry and then awaits a full server round trip, and
-// equipment_manager_loop re-enters it every 25ms, so an invocation already in flight sails past the
-// bail and emits the loadout's orb straight over the jacko. That is why the panic orb usually works
-// and occasionally does not -- it only bites when a loadout equip happens to be mid-round-trip as
-// the panic starts, which makes it scale with latency.
 function panic_owns_orb() {
 	return typeof panicking !== "undefined" && !!panicking;
 }
@@ -216,22 +171,11 @@ async function batch_equip(data, set_name) {
 
 		if (!item_name) continue;
 
-		// Drop, do not race. The panic set itself is exempt.
-		// Both `panic` (jacko) and `orb` (resting) belong to panic_check, so both are exempt: the
-		// SAFE branch restores the resting orb while `panicking` is still true, on purpose. Only
-		// loadout sets are locked out.
 		if (slot === "orb" && set_name !== "panic" && set_name !== "orb" && panic_owns_orb()) continue;
 
-		// character.slots[slot] IS the item object ({name, level, l, ...} or null) per the
-		// game API, not an index into .items -- indexing .items with it would always miss.
-		// Matched on name+level only, same as is_set_equipped(), so the two agree.
 		const slot_item = parent.character.slots[slot];
 		if (slot_item && slot_item.name === item_name && (slot_item.level ?? 0) === (level ?? 0)) continue;
 
-		// Exact pass first (l included): equipment_sets uses l to tell apart two copies of the
-		// same item+level destined for different slots, e.g. Warrior's cearring l:"l"/l:"u".
-		// Then a loose pass ignoring l, since a stale/guessed l in a set definition would
-		// otherwise make the equip silently do nothing forever with no error anywhere.
 		let idx = parent.character.items.findIndex((item, j) =>
 			item && item.name === item_name && (item.level ?? 0) === (level ?? 0) && item.l === l && !claimed_slots.has(j)
 		);
@@ -242,11 +186,6 @@ async function batch_equip(data, set_name) {
 		}
 
 		if (idx === -1) {
-			// Last resort: name alone. A stale `level` in a set definition silently disabled the
-			// panic orb for hours — the jacko sat in the bag the whole time while both passes above
-			// matched on name AND level, and the miss was reported through game_log, which nothing
-			// was recording. For a survival-critical swap, equipping a same-named variant beats not
-			// equipping at all; the mismatch is reported so the set can be corrected.
 			idx = parent.character.items.findIndex((item, j) =>
 				item && item.name === item_name && !claimed_slots.has(j)
 			);
@@ -259,8 +198,6 @@ async function batch_equip(data, set_name) {
 		}
 
 		if (idx === -1) {
-			// Genuinely absent. Routed through log(..., "Errors") rather than game_log so the
-			// recorder actually sees it.
 			warn_missing_item(item_name, level, slot);
 			continue;
 		}
@@ -281,14 +218,10 @@ async function batch_equip(data, set_name) {
 	return valid_items.length;
 }
 
-// Shared by Warrior/Healer/Ranger — each reads its own file-local `equipment_sets` global at call time.
 function is_set_equipped(set_name) {
 	const set = equipment_sets[set_name];
 	if (!set) return false;
 
-	// Level compared with ?? 0 on both sides: non-upgradable items (jacko) report no `level`
-	// at all on character.slots, so a strict === against a set's `level: 0` was never true —
-	// which made is_set_equipped("panic") permanently false and blocked the scare below it.
 	return set.every(item =>
 		character.slots[item.slot]?.name === item.item_name &&
 		(character.slots[item.slot]?.level ?? 0) === (item.level ?? 0)
@@ -302,12 +235,6 @@ async function equip_set(set_name) {
 		return;
 	}
 
-	// The orb slot is contested and the panic orb has never once stayed on. batch_equip finds the
-	// jacko, matches its level, emits one item, gets no rejection — and a second later the slot
-	// still reads rabbitsfoot. Either nothing acts on the emit, or something re-equips over it.
-	// Recording every requester with the panic state settles which: a `luck requested orb` line
-	// carrying panicking=true is resolve_equipment finishing an in-flight call it entered before
-	// the bail, and is the whole answer. The recorder dedupes these, so it is a handful of rows.
 	try {
 		if (set.some(i => i.slot === "orb") && typeof errlog_record === "function") {
 			errlog_record("orb_equip", `${set_name} -> orb`
@@ -320,23 +247,8 @@ async function equip_set(set_name) {
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // UNIFIED EQUIPMENT RESOLVER — Warrior/Ranger/Healer each declare their own EQUIPMENT_RULES
-// (an object of named groups, one gear decision each) and optionally MONSTER_GEAR_OVERRIDES
-// (keyed by that character's own farm target, i.e. its `home` var — short-circuits a named
-// group to a specific set/sets for that target, generalizing what was previously a one-off
-// HEALER_TARGET check). One resolver, one driving loop per character, replacing each file's
-// separately-timed equip loop — so there is exactly one writer per character deciding gear,
-// instead of several independent loops that can race each other over the same slot.
-//
-// A group is { kind: "set", resolve } or { kind: "booster", resolve }. resolve() returns
-// null/undefined (no opinion this tick), a set name, an array of set names (applied together,
-// e.g. Warrior's home-map accessories + weapon), or for a booster group the desired booster
-// item name. Orb is deliberately never a group here — panic_check() owns that slot exclusively.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Counter, not a boolean: Warrior has three lock users (status_swap_trick_check in
-// action_loop, handle_stomp/handle_cleave in skill_loop) across two concurrently-running
-// loops. With a boolean, whichever finished first unlocked while the other was still
-// mid-swap. Always pair lock_gear() with unlock_gear() in a finally.
 function lock_gear() {
 	state.gear_locked = (state.gear_locked || 0) + 1;
 }
@@ -379,16 +291,11 @@ async function apply_booster_rule(group, desired_booster) {
 	shift(other_slot, desired_booster);
 }
 
-// Returns null when the resolver may run, otherwise why it may not. Split out so a guard
-// that silently blocks gear management forever becomes visible: EQUIPMENT_RULES being
-// invisible across the eval boundary did exactly that, and nothing threw to reveal it.
 function resolve_equipment_bail_reason() {
 	if (typeof EQUIPMENT_RULES === "undefined") return "EQUIPMENT_RULES undefined";
-	// Some characters (Ranger) never declared this toggle at all — absent means enabled,
-	// same as before this file had one gate. Only an explicit false disables it.
 	if (CONFIG.equipment?.auto_swap_sets === false) return "auto_swap_sets disabled";
-	if (panicking) return "panicking"; // panic_check() owns gear exclusively while active
-	if (state.gear_locked) return "gear_locked"; // e.g. a manual swap-trick sequence mid-flight
+	if (panicking) return "panicking";
+	if (state.gear_locked) return "gear_locked";
 	if (character.cc > COOLDOWNS.cc) return "cc above threshold";
 	if (typeof should_pause_equipment_resolve === "function" && should_pause_equipment_resolve()) return "special weapon equipped";
 	return null;
@@ -400,8 +307,6 @@ async function resolve_equipment() {
 	const overrides = (typeof MONSTER_GEAR_OVERRIDES !== "undefined" && MONSTER_GEAR_OVERRIDES[home]) || {};
 
 	for (const group in EQUIPMENT_RULES) {
-		// Re-checked per group: the check above happened before the awaits below, and a panic can
-		// begin during any of them.
 		if (resolve_equipment_bail_reason()) return;
 		const rule = EQUIPMENT_RULES[group];
 		const resolved = group in overrides ? overrides[group] : rule.resolve();
@@ -442,7 +347,7 @@ function party_manager() {
 			if (name === character.name) return;
 			if (!current_party.includes(name)) {
 				send_party_invite(name);
-				accept_party_request(name); // Optional, in case of mutual sending
+				accept_party_request(name);
 			}
 		});
 	} else if (am_member) {
@@ -453,9 +358,6 @@ function party_manager() {
 	}
 }
 
-// Game-engine-invoked callbacks — each file's own CONFIG supplies party.group_members.
-// typeof-guarded: these can fire before this character's role file (which declares CONFIG) has
-// finished loading; an early no-op is fine since party_manager() keeps retrying every tick.
 function on_party_request(name) {
 	if (typeof CONFIG === "undefined") return;
 	if (CONFIG.party.group_members.includes(name)) {
@@ -476,8 +378,6 @@ function on_party_invite(name) {
 // LOOT & INVENTORY
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Keep at least this much gold on hand when a merchant-requested loot pull fires.
-// Shared so it stays in sync with each fighter's own clear_inventory() threshold.
 const LOOT_GOLD_RESERVE = 10000000;
 
 async function send_to_merchant() {
@@ -491,8 +391,6 @@ async function send_to_merchant() {
 		return game_log("❌ Merchant not nearby");
 	}
 
-	// Each fighter file defines its own var ITEMS_TO_KEEP (items it needs on hand and
-	// must never auto-send) — fall back to nothing excluded if a file doesn't define one.
 	const items_to_keep = typeof ITEMS_TO_KEEP !== "undefined" ? ITEMS_TO_KEEP : [];
 
 	for (let i = LOOT_THRESHOLD; i < character.items.length; i++) {
@@ -518,8 +416,6 @@ async function send_to_merchant() {
 	}
 }
 
-// Self-triggered counterpart to send_to_merchant() (which fires when Riff requests loot) — runs on
-// the fighter's own schedule; reads this file's own ITEMS_TO_KEEP global at call time.
 function clear_inventory() {
 	const loot_mule = get_player("Riff");
 	if (!loot_mule) return;
@@ -540,14 +436,6 @@ function clear_inventory() {
 	}
 }
 
-// Polls is_set_equipped() instead of trusting a flat delay to guess when the client's own
-// state has caught up with an equip request — resolves as soon as it's actually equipped,
-// so scare/use_skill can't race gear that isn't on yet, and the common case (equip lands
-// fast) doesn't eat a needless fixed wait. Throws on timeout rather than returning false,
-// so a caller can't silently ignore a failed equip by forgetting to check the result.
-// Timeout is a survival budget, not a patience setting: panic awaits this before it can cast scare,
-// so every ms spent here is spent not acting. A death at 14:23:41 waited the full 3000ms and the
-// character died one second after it returned. 1000ms is the ceiling.
 async function wait_until_equipped(set_name, timeout_ms = 1000, interval_ms = 100) {
 	let waited = 0;
 	while (!is_set_equipped(set_name)) {
@@ -559,37 +447,12 @@ async function wait_until_equipped(set_name, timeout_ms = 1000, interval_ms = 10
 	}
 }
 
-// Ceiling on how long a healer-broadcast panic can hold us before we resume anyway, in case
-// her all-clear never arrives (disconnect, dropped CM). Without it a missed message would
-// leave a fighter holding fire indefinitely.
 const EXTERNAL_PANIC_MAX_MS = 60000;
 
-// Reads this file's own PANIC_THRESHOLDS global. If PANIC_BROADCAST_TARGETS is also defined
-// (currently only Healer), panic state changes are broadcast via send_cm to those targets.
-// panic_check() is async and every fighter's main_loop() calls it every 100ms WITHOUT awaiting.
-// The cooldown below is stamped on entry, but the body outlives it: wait_until_equipped() alone
-// polls for up to 1000ms against a 1000ms cooldown. So a second invocation cleared the guard and
-// ran concurrently with the first -- both calling equip_set("panic") and racing over the orb slot,
-// both casting scare. That is the doubled "Using Scare!" in the same second, the timed-out panic
-// orb equip, and the scare rejections. One at a time.
 let _panic_check_running = false;
 
-// Latched while a journey is in trouble; cleared on arrival. See the travel-panic block below.
 let _travel_panic_latched = false;
 
-// The orb slot had TWO owners. Party_And_Loot's own comment says panic_check() owns it
-// exclusively, but the healer's `luck` loadout claims rabbitsfoot and the warrior's
-// `dps_accessories` claims orbofstr — so resolve_equipment() re-equipped the loadout every 500ms
-// (apply_equipment_rule never returns early, because the set can never be fully equipped while the
-// orb holds something else) and panic_check's SAFE branch forced the `orb` set back. They fought
-// continuously, the jacko could not stay on, and scare failed with skill_cant_slot.
-//
-// The ranger is the only one whose loadout does not claim the orb, and the only one whose panic
-// has been working. That is the whole asymmetry.
-//
-// Fix without changing anyone's gear: when the loadout already manages the orb, let it do the
-// restoring and do not force the `orb` set on top. One owner at a time — panic_check while
-// panicking, resolve_equipment otherwise.
 let _orb_owner = { at: 0, value: false };
 
 function loadout_manages_orb() {
@@ -600,9 +463,6 @@ function loadout_manages_orb() {
 	return _orb_owner.value;
 }
 
-// resolve() can be expensive -- the warrior's counts nearby mobs -- and the answer only changes
-// when the loadout does. Scans EVERY group, not just `loadout`: the orb is now a first-class group
-// in its own right, so whichever group claims it, panic_check must defer the restore to it.
 function _loadout_manages_orb_uncached() {
 	try {
 		for (const group in EQUIPMENT_RULES) {
@@ -617,15 +477,6 @@ function _loadout_manages_orb_uncached() {
 	return false;
 }
 
-// Can this set be worn -- every item either already in its slot, or sitting in the bag? Name only;
-// level is batch_equip's problem. Lets a resolver fall back instead of asking for something that
-// cannot be equipped: the warrior requested orbofstr 5,993 times against 71,170 "not in inventory
-// at all" warnings.
-//
-// The already-equipped half is essential, not a nicety. Equipping moves an item OUT of
-// character.items and into character.slots, so a bag-only check reports a set as unavailable the
-// moment it is worn -- which made the healer oscillate: rabbitsfoot on, therefore "unavailable",
-// therefore fall back to talkingskull, therefore rabbitsfoot back in the bag and available again.
 function set_available(set_name) {
 	try {
 		const set = equipment_sets[set_name];
@@ -638,8 +489,6 @@ function set_available(set_name) {
 	} catch (e) { return false; }
 }
 
-// How many items the last panic equip_batch actually sent. "never emitted" and "emitted but the
-// slot did not change" look identical from the outside otherwise.
 let _panic_last_emit = -1;
 
 async function panic_check() {
@@ -652,8 +501,6 @@ async function panic_check() {
 	}
 }
 
-// AL rejects with plain objects like {reason, response, place, failed} that have no .message, so
-// the old `e.message ? e.message : e` printed "[object Object]" and told us nothing.
 function fmt_err(e) {
 	if (e && e.message) return e.message;
 	try { return JSON.stringify(e); } catch (x) { return String(e); }
@@ -671,36 +518,11 @@ async function _panic_check_body() {
 		e => e.type === "monster" && e.target === character.name && !e.dead
 	).length;
 
-	// Aggro picked up on the road. An aggressive monster follows across the whole map and there is
-	// nothing to kill it with while travelling — combat is disengaged — so it has to be shed with
-	// scare or it escorts us to the destination and every other one it wakes on the way.
-	// Reuses the panic path rather than duplicating it: the panic set IS the jacko, and scare is
-	// unusable without it.
-	//
-	// LATCHED for the journey rather than tracking aggro tick by tick. A pack loses and re-acquires
-	// a target constantly, so an unlatched test stands down on the first quiet tick, swaps the jacko
-	// back out, and then the next re-aggro finds can_use("scare") false and has to pay another equip
-	// round trip to get it back — during which she is being hit and cannot scare. The healer holds
-	// all the aggro by design, so she is the one this happens to. One swap in when the trouble
-	// starts, one out on arrival.
 	const TRAVEL_AGGRO = t.travel_aggro ?? 1;
 	if (!smart.moving) _travel_panic_latched = false;
 	else if (MONSTERS_TARGETING_ME >= TRAVEL_AGGRO) _travel_panic_latched = true;
 	const TRAPPED_TRAVELLING = _travel_panic_latched;
 
-	// Do not let the pathfinder plan a teleport we cannot finish. The town channel runs 3s and the
-	// server cancels it when we are hit, so a character standing in a pack starts the cast, takes a
-	// hit, loses it, and repeats — which is how the teleport gets "interrupted endlessly". Once
-	// scare has cleared the aggro the next path recompute can use it again. Per-character: each
-	// character has its own `smart`.
-	// Only meaningful while the town edge is enabled at all — it is not; see SMART_USE_TOWN in
-	// Shared/Movement.js. Kept behind that switch rather than deleted so re-enabling is one flag.
-	//
-	// Written on CHANGE only, and never mid-search. smart.use_town is read inside the BFS at every
-	// node expansion, not once when the search starts, so writing it on every 100ms tick mutated
-	// the graph underneath a search already in progress — a route could be computed half with town
-	// edges available and half without. Deferring to the next search is the point: whatever graph a
-	// search began on, it should finish on.
 	if (typeof SMART_USE_TOWN !== "undefined" && SMART_USE_TOWN) {
 		try {
 			const want_town = MONSTERS_TARGETING_ME === 0;
@@ -709,19 +531,10 @@ async function _panic_check_body() {
 	}
 	const HARD_REASON = LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= t.aggro;
 
-	// PANIC CONDITION
 	if (HARD_REASON || TRAPPED_TRAVELLING) {
 		if (!panicking) {
 			panicking = true;
-			// Act on this tick, not up to t.cooldown later. The cooldown below exists to throttle
-			// REPEATS, but it was also delaying the first response by however long was left on it:
-			// panic triggered at 9:11:18 and scare was not attempted until 9:11:20, by which point
-			// the healer was dead and the server rejected it as "disabled". Two seconds is a long
-			// time below 30% HP.
 			last_panic_time = 0;
-			// A travel-only panic does NOT broadcast. One mole latching onto someone walking across
-			// a map must not make the rest of the party hold fire where they are; the broadcast is
-			// for "the healer is in trouble", not "somebody is being followed".
 			if (HARD_REASON && typeof PANIC_BROADCAST_TARGETS !== "undefined") {
 				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: true });
 			}
@@ -742,8 +555,6 @@ async function _panic_check_body() {
 				_panic_last_emit = emitted;
 				await wait_until_equipped("panic");
 			} catch (e) {
-				// Say WHY. "still not equipped after 1000ms" on its own cost hours of guessing at
-				// whether the jacko was missing, mis-levelled, or just slow to land.
 				const orb = character.slots.orb;
 				const in_bags = character.items
 					.filter(i => i && i.name === "jacko")
@@ -755,10 +566,6 @@ async function _panic_check_body() {
 			}
 		}
 
-		// Deliberately NOT gated on is_set_equipped("panic") any more. That gate has already been
-		// observed reading false while the orb was on, which skipped the scare silently and left
-		// the whole party holding aggro. can_use() already checks the skill's own requirements, and
-		// a genuine rejection is now logged with a real reason rather than swallowed.
 		if (!is_on_cooldown("scare") && can_use("scare")) {
 			try {
 				log("Using Scare!", "#ffcc00", "Alerts");
@@ -770,29 +577,14 @@ async function _panic_check_body() {
 		}
 	}
 
-	// A panic the healer broadcast isn't ours to stand down from — only her all-clear ends it.
-	// Bounded so a missed/dropped all-clear can't leave a fighter permanently holding fire.
 	let external_hold = typeof panic_external !== "undefined" && panic_external;
 	if (external_hold && Date.now() - panic_external_since > EXTERNAL_PANIC_MAX_MS) {
 		panic_external = false;
 		external_hold = false;
-		// Must clear `panicking` too, not just the external flag. The SAFE branch below is
-		// gated on HIGH_HEALTH && HIGH_MANA, which a fighter being chewed on by the pack it
-		// stopped fighting will never reach — so leaving `panicking` set here kept
-		// should_pause_combat_loop() returning true forever and the timeout freed nothing.
 		panicking = false;
 		log("⚠️ Healer panic hold expired without an all-clear — resuming.", "#FFA500", "Alerts");
 	}
 
-	// SAFE CONDITION. Restore the resting orb BEFORE clearing `panicking` — resolve_equipment()'s
-	// only guard against racing this restore is `if (panicking) return`, so flipping it early
-	// (before the orb swap lands) lets resolve_equipment() fight over the orb slot mid-restore on
-	// characters whose other equipment sets also touch orb (e.g. Warrior's dps_accessories).
-	// !TRAPPED_TRAVELLING matters as much as the health gates. A healthy character shedding a
-	// chaser is HIGH_HEALTH and HIGH_MANA with aggro well under t.aggro, so without it the panic
-	// clears on the very next tick, the orb swaps straight back, and the next tick re-triggers —
-	// which is the orb churn that drove cc to 77 and got equips silently dropped by the server.
-	// Hold the jacko on until the chase is actually over.
 	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < t.aggro
 		&& !TRAPPED_TRAVELLING && panicking && !external_hold) {
 		if (Date.now() - last_safe_time > t.cooldown) {
@@ -817,22 +609,12 @@ async function _panic_check_body() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// PARTY-COHERENT MOVEMENT — the fighters walk with MOVEMENT_LEADER (Myras) rather than
-// each holding its own farm spot.
+// PARTY-COHERENT MOVEMENT — the fighters walk with MOVEMENT_LEADER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Following is scoped to TRAVEL, not to farming. Once she is standing on the spot the fighters
-// go back to reposition(), which is what actually aims cleave/5shot at a cluster — orbiting her
-// full-time would cost real damage for no coherence gain, since they're already beside her.
-// FOLLOW_SLACK lived here, for deciding whether she had left the farm spot. Following no longer
-// asks that question at all.
 
 let _leader_pos_cache = { at: 0, pos: null };
 
-// Live entity first (exact), then her own state cache (she rewrites it every 100ms and it
-// carries map/x/y, so it works across maps with no round trip), then the CM-ping cache.
-// read_state_cache() is a synchronous localStorage read and main_loop runs 10x/second, so the
-// miss path is memoised — the same reason healer_is_down() caches.
 function leader_position() {
 	if (character.name === MOVEMENT_LEADER) return null;
 
@@ -841,63 +623,43 @@ function leader_position() {
 		_leader_pos_cache.at = now;
 		let snap = null;
 		try {
-			const c = read_state_cache(MOVEMENT_LEADER); // Shared/Messaging.js
-			// `moving` as well as `travelling`: travelling is smart.moving, a journey. `moving` is
-			// any step at all, including the local farm walk — and "is she on her feet right now"
-			// is the question that decides whether a follower may stop to fight.
+			const c = read_state_cache(MOVEMENT_LEADER);
 			if (c) snap = { map: c.map, x: c.x, y: c.y, rip: !!c.rip, travelling: !!c.travelling, moving: !!c.moving };
 		} catch (e) { /* storage unavailable */ }
 		_leader_pos_cache.pos = snap;
 	}
 	const snap = _leader_pos_cache.pos;
 
-	// The live entity wins for coordinates — exact and current — but only her own snapshot knows
-	// whether she is on a journey, and that is the flag that gets the fighters moving on time.
 	const live = get_player(MOVEMENT_LEADER);
 	if (live) {
 		return {
 			map: character.map, x: live.x, y: live.y, rip: !!live.rip,
 			travelling: !!(snap && snap.travelling),
-			// Straight off the entity when we can see her — fresher than any cached snapshot.
 			moving: !!live.moving,
 		};
 	}
 	if (snap) return snap;
 
-	// _healer_last_known only exists on the characters that follow her.
 	if (typeof _healer_last_known !== "undefined" && _healer_last_known) {
 		return { ..._healer_last_known, rip: false, travelling: false, moving: false };
 	}
 	return null;
 }
 
-// party_should_follow() lived here — "has she left MY farm spot?". Following is unconditional now,
-// so there is nothing left to ask: a follower belongs with her whatever she is doing, and the
-// question itself was what let them wander off to a fixed coordinate whenever she was standing on
-// it. follow_has_leader() replaces it, and only answers whether there is a leader at all.
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // LEADER-SIDE COHESION — the leader waits for stragglers.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Following her only closes half the gap. The fighters die on the road because she disengages,
-// they fall behind, something aggros them and there is no tank within reach — so she also has to
-// stop. This is the half that was missing, and the one that actually prevents the deaths.
-const COHESION_RADIUS = 300;   // beyond this (or off-map) a member counts as left behind
-const COHESION_RELEASE = 200;  // must close back to here before she moves off again
+const COHESION_RADIUS = 300;
+const COHESION_RELEASE = 200;
 
-// Giving up used to be a flat 20s from the start of the hold, which is shorter than a map
-// transit: walk to the door, cross, walk back to us. So the one case that most needs her to wait
-// — a fighter still on the map behind her — was the case she reliably abandoned. The stall clock
-// now resets whenever the straggler is closing, and while off-map their own `travelling` flag
-// counts as closing, because their distance to us is not measurable from here.
-const COHESION_STALL_MS = 20000;      // no progress for this long — they are stuck, move on
-const COHESION_MAX_WAIT_MS = 180000;  // absolute ceiling, however busy they look
-const COHESION_PROGRESS_EPS = 30;     // distance that has to close to count as progress
+const COHESION_STALL_MS = 20000;
+const COHESION_MAX_WAIT_MS = 180000;
+const COHESION_PROGRESS_EPS = 30;
 
-const COHESION_FOLLOWERS = ["Ulric", "Riva"]; // combat only — Riff runs his own errands
+const COHESION_FOLLOWERS = ["Ulric", "Riva"];
 
-// A visit is minutes, not seconds, so this is generous — but finite, which is the point.
 const COHESION_ANNIV_MAX_MS = 120000;
 
 let _cohesion_holding = false;
@@ -909,23 +671,14 @@ let _cohesion_progress_at = 0;
 let _cohesion_best = { name: null, map: null, dist: Infinity };
 let _cohesion_cache = { at: 0, straggler: null, anniv: null, map: null, dist: Infinity, travelling: false };
 
-// True when the leader should stand still this tick. A PREDICATE — it stops nothing itself. It
-// used to call stop_movement() directly, which both duplicated what the arbiter's hold branch
-// already does and made it the last thing outside the arbiter touching movement on the fighter
-// path. movement_goal() turns a true here into a hold goal and the arbiter enforces it.
 function party_cohesion_hold() {
 	if (character.name !== MOVEMENT_LEADER) return false;
 
-	// Running for her life outranks cohesion. Standing in a pack to wait is how she dies, and the
-	// fighters are told to hold fire during her panic anyway.
 	if (typeof panicking !== "undefined" && panicking) {
 		_cohesion_holding = false;
 		return false;
 	}
 
-	// Nothing to wait for once she is standing on the farm spot. The point of the hold is to stop
-	// her walking away from the party, and the local orbit never leaves circle_radius — without
-	// this the much longer ceiling below would freeze her circle-walk for minutes at a time.
 	if (!is_away_from_home()) {
 		if (_cohesion_holding) log("▶️ Home — resuming.", "#00ff00", "Alerts");
 		_cohesion_holding = false;
@@ -934,8 +687,6 @@ function party_cohesion_hold() {
 	}
 
 	const now = Date.now();
-	// Hysteresis: once holding, they have to close well inside the leash before she sets off
-	// again, otherwise she stutters forward a step at a time on the boundary.
 	const limit = _cohesion_holding ? COHESION_RELEASE : COHESION_RADIUS;
 
 	if (now - _cohesion_cache.at >= 200) {
@@ -945,65 +696,31 @@ function party_cohesion_hold() {
 		const we_still_owe_a_visit = typeof anniversary_should_travel === "function"
 			&& anniversary_should_travel();
 		for (const name of COHESION_FOLLOWERS) {
-			const s = read_state_cache(name); // Shared/Messaging.js
-			// Stale cache means offline; a corpse closes no distance and respawns in town. Neither
-			// is something to wait on.
+			const s = read_state_cache(name);
 			if (!s || s.rip) continue;
-			// Tested for EVERY member, not just the first straggler: the whole point is that this
-			// one is true while they are standing next to us.
-			//
-			// Only once WE are done, though. Everyone being pending is simply what a round in
-			// progress looks like, so waiting on it while we still owe the visit ourselves would
-			// mean nobody ever sets off — a deadlock, now that cohesion outranks the anniversary.
-			// This wait means "do not walk home without them", not "do not start".
-			//
-			// has_kiss overrides pending. The buff is the objective and comes from the server, so a
-			// member who has it is done however confused their own state machine is — which is the
-			// difference between "we all have it, leave together" and one stuck flag parking the
-			// party for two minutes.
 			if (!we_still_owe_a_visit && s.anniv_pending && !s.has_kiss && !_cohesion_cache.anniv) {
 				_cohesion_cache.anniv = name;
 			}
 			if (_cohesion_cache.straggler) continue;
 			const off_map = s.map !== character.map;
-			// Not measurable across a map boundary — Infinity keeps the distance comparison honest
-			// and the map/travelling checks below carry the progress test instead.
 			const dist = off_map ? Infinity : Math.hypot(s.x - character.x, s.y - character.y);
 			if (!off_map && dist <= limit) continue;
 			_cohesion_cache.straggler = name;
 			_cohesion_cache.map = s.map;
 			_cohesion_cache.dist = dist;
-			// `moving` as well as `travelling`. A follower closing on us now walks with a raw
-			// move(), which sets character.moving but never smart.moving — so `travelling` went
-			// dark for exactly the members who were making the best progress, and the stall clock
-			// could fire on someone visibly walking toward us.
 			_cohesion_cache.travelling = !!(s.travelling || s.moving);
 		}
 	}
 
-	// The anniversary hold, and it deliberately gets NO stall or ceiling clock. Those exist to
-	// break a wait on someone who might be stuck; this one is bounded by the game itself — a visit
-	// ticket lasts five minutes and anniv_pending goes false the moment it is spent or expires.
-	//
-	// Without it the round split the party every half hour. She reaches the featured player first,
-	// kisses, stands down, and the distance test sees the other two standing right beside her — no
-	// straggler, no hold — so she walks home mid-round. They finish, see her travelling, and trail
-	// her across the map one at a time, alone, which is the case that gets them killed.
 	if (_cohesion_cache.anniv) {
 		if (!_cohesion_anniv_since) _cohesion_anniv_since = now;
 
-		// Finite after all. "Bounded by the game's five-minute ticket" was too clever: a member who
-		// dies and respawns re-arms anniv_pending every time, and the next round re-arms it again,
-		// so the wait chained and the whole party sat parked. Its own timer, kept off the straggler
-		// clocks, so neither wait can poison the other.
 		if (now - _cohesion_anniv_since <= COHESION_ANNIV_MAX_MS) {
 			if (!_cohesion_holding) {
 				_cohesion_holding = true;
 				_cohesion_gave_up = false;
 				log(`⏸️ Waiting out ${_cohesion_cache.anniv}'s anniversary visit.`, "#66ccff", "Alerts");
 			}
-			// Park the straggler clocks so a long visit is not already counted against a distance
-			// hold the instant the round ends and everyone sets off home together.
 			_cohesion_since = now;
 			_cohesion_progress_at = now;
 			return true;
@@ -1013,7 +730,6 @@ function party_cohesion_hold() {
 			_cohesion_anniv_gave_up = true;
 			log(`⚠️ ${_cohesion_cache.anniv}'s visit is taking too long — moving on.`, "#FFA500", "Alerts");
 		}
-		// Fall through and treat them as an ordinary distance straggler from here.
 	} else {
 		_cohesion_anniv_since = 0;
 		_cohesion_anniv_gave_up = false;
@@ -1037,9 +753,6 @@ function party_cohesion_hold() {
 		log(`⏸️ Holding for ${straggler}.`, "#66ccff", "Alerts");
 	}
 
-	// Progress = a different member, a map change (they made the transition), measurably less
-	// distance, or — while we cannot measure them at all — that they are on a journey. Anything
-	// that counts restarts the stall clock, so an honest catch-up is never cut short.
 	const closing = _cohesion_best.name !== straggler
 		|| _cohesion_best.map !== _cohesion_cache.map
 		|| _cohesion_cache.dist < _cohesion_best.dist - COHESION_PROGRESS_EPS
@@ -1054,9 +767,6 @@ function party_cohesion_hold() {
 		};
 	}
 
-	// Two ways out: they stopped making progress, or they have had long enough regardless. The
-	// ceiling matters because a follower whose pathfind is stuck in a retry loop keeps reporting
-	// `travelling`, which would otherwise reset the stall clock forever.
 	const stalled = now - _cohesion_progress_at > COHESION_STALL_MS;
 	const out_of_time = now - _cohesion_since > COHESION_MAX_WAIT_MS;
 	if (stalled || out_of_time) {
@@ -1074,81 +784,37 @@ function party_cohesion_hold() {
 // MOVEMENT GOAL — the one priority list for the three combat characters.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Everything that wants a fighter somewhere appears here, in order, and nothing outside this
-// function decides where to go. main_loop hands the winner to travel_arbiter(), which is the only
-// code that issues a journey. Adding a behaviour means adding one line here.
 function movement_goal() {
 	if (!CONFIG.movement.enabled) return null;
 
-	// 1. giantspider: the leader stands still and is guided by hand; the others follow her.
 	if (home === "giantspider" && character.name === MOVEMENT_LEADER) return null;
 
-	// 2. The leader waiting for the party. Only ever true on her.
-	//
-	// The anniversary USED to sit above this, so the one trip that most needs the party together
-	// was the one trip with no cohesion at all: three characters pathing independently across the
-	// map to the same point, which is exactly where they got separated, lost and stuck.
 	if (party_cohesion_hold()) return { hold: true, label: "cohesion" };
 
-	// 3. Walking with the leader. Above events AND above the anniversary: she decides where the
-	//    party goes, and this branch is how that decision reaches the followers. They escort her
-	//    the whole way and only pursue their own objective once they are standing with her.
 	const follow = follow_goal();
-	// A goal with no `local` is a journey — we are not with her yet, and until we are, nothing else
-	// matters. (`local` goals mean we are already there: ring step, or stationed.)
 	if (follow && !follow.local) return follow;
 
-	// 4. The anniversary visit.
-	//
-	// THE LEADER NAVIGATES; THE OTHER TWO FOLLOW. A follower never takes a travel goal from here —
-	// not to the featured player, not to their last-known spot. Three characters routing themselves
-	// to the same point is what tore the party apart every round, and she is already going there.
-	//
-	// They do still take the LOCAL parts: the final close-in and the hold to cast. Following puts
-	// them a follow_distance behind her and the skill needs 80, so without that last short step
-	// they would arrive with the party and still be a few units out of range.
 	const anniv = anniversary_destination();
 	if (anniv) {
 		const anniv_is_local = anniv.local === "anniversary" || anniv.label === "anniversary-kiss";
-		// on_station as well, matching the event rule below: a follower still a long way back
-		// closes on HER first. Breaking off toward the target from 400 units out is navigating by
-		// another name.
 		const may_take_it = !follow_has_leader() || (anniv_is_local && follow && follow.on_station);
 		if (may_take_it) return anniv;
-		// Otherwise it was navigation — fall through and keep walking with her instead.
 	}
 
-	// 5. Events. Reached by the leader, by anyone whose leader is dead or offline, and by a
-	//    follower already standing with her — see below.
-	const event = event_goal(); // Shared/Combat_Utilities.js
+	const event = event_goal();
 
-	// A follower ON STATION does not need the ring step when there is a fight to close into.
-	// Being with her is already satisfied at that point, and orbiting at follow_distance leaves a
-	// melee character short of a boss she is healing from her own, much longer, range. Only for a
-	// monster already visible: a travel goal here would be them setting off on their own again,
-	// which is the split this ordering exists to prevent.
-	//
-	// on_station, not merely "walking rather than pathfinding" — a straight-line follow now covers
-	// the whole distance, so without this a follower still 600 units behind would break off toward
-	// a visible boss instead of closing on her first.
 	if (follow && follow.on_station && event && event.local === "event") return event;
 	if (follow) return follow;
 	if (event) return event;
 
-	// Having a leader ends the list. Everything below is "decide for yourself", and a follower must
-	// not: the farm spot is a fixed coordinate, and walking to it is walking away from the party
-	// the moment she is anywhere else. Her position IS their home.
 	if (follow_has_leader()) return null;
 
-	// 6. The bscorpion farm has its own approach geometry.
 	if (home === "bscorpion") {
-		return is_at_bscorpion_farm() // Shared/Movement.js
+		return is_at_bscorpion_farm()
 			? null
 			: { label: "bscorpion", map: PRIM_FARM_LOC.map, x: PRIM_FARM_LOC.x, y: PRIM_FARM_LOC.y, radius: PRIM_FARM_RADIUS };
 	}
 
-	// 7. Back to the farm spot. Distance first, monsters second: standing outside the radius means
-	//    walking back regardless of what happens to be on screen from here.
 	if (is_away_from_home()) {
 		return {
 			label: "home",
@@ -1159,20 +825,13 @@ function movement_goal() {
 		};
 	}
 
-	return null; // where we should be — the caller's local movement takes over
+	return null;
 }
 
-// Runs the local behaviour a goal asked for. Everything in here is a raw move()/xmove() that
-// starts no pathfind, so none of it can compete with the arbiter for `smart`.
 function movement_local(goal, farm_step) {
 	if (goal && goal.local === "follow") return follow_step(goal);
-	if (goal && goal.local === "event") return event_step(goal.event); // Shared/Combat_Utilities.js
+	if (goal && goal.local === "event") return event_step(goal.event);
 	if (goal && goal.local === "anniversary") return anniversary_close_step();
-	// "farm" means: we are where we should be, run the character's own combat positioning.
-	// Farm movement must NEVER run while committed to a visit. The arbiter releases the moment we
-	// reach the goal coordinates, and if the target has walked off, those coordinates are an empty
-	// patch of town — wandering back into the farm orbit from there is how the round was lost after
-	// actually arriving. Belt and braces alongside the holds in anniversary_destination().
 	if (typeof anniversary_travel !== "undefined" && anniversary_travel) return;
 	if (typeof farm_step === "function") farm_step();
 }
@@ -1181,27 +840,19 @@ function movement_local(goal, farm_step) {
 // LEADER TRAIL — the followers walk her route instead of solving it again.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Three characters pathfinding to the same distant point is three BFS searches, on a 40ms-per-80ms
-// budget each, producing three different routes that then have to be reconciled by cohesion. But
-// the leader has ALREADY solved the journey. So she drops breadcrumbs and they walk those: no
-// search on their side at all, every point known-walkable because she walked it, and they end up
-// in single file behind her rather than converging from three directions.
-const TRAIL_STEP = 60;      // drop a breadcrumb every this many units travelled
-const TRAIL_MAX = 40;       // ~2400 units of history, plenty for any single journey
-const TRAIL_REACHED = 50;   // this close to a breadcrumb counts as having passed it
-const TRAIL_LOS_SCAN = 12;  // most can_move_to() probes per pass — the test is not free
+const TRAIL_STEP = 60;
+const TRAIL_MAX = 40;
+const TRAIL_REACHED = 50;
+const TRAIL_LOS_SCAN = 12;
 
 let _trail = [];
 let _trail_seq = 0;
 
-// Called from write_state_cache() on every character; self-gates so only the leader pays for it.
 function trail_record() {
 	if (character.name !== MOVEMENT_LEADER) return;
 	const last = _trail[_trail.length - 1];
 	if (last && last.m === character.map
 		&& Math.hypot(character.x - last.x, character.y - last.y) < TRAIL_STEP) return;
-	// Short keys and rounded coordinates: this rides in the state cache, which is re-serialised
-	// every 100ms.
 	_trail.push({ i: ++_trail_seq, m: character.map, x: Math.round(character.x), y: Math.round(character.y) });
 	while (_trail.length > TRAIL_MAX) _trail.shift();
 }
@@ -1210,9 +861,8 @@ function leader_trail_snapshot() {
 	return character.name === MOVEMENT_LEADER ? _trail : null;
 }
 
-let _trail_reached = 0; // highest breadcrumb id this follower has got to
+let _trail_reached = 0;
 
-// The next point on her route worth walking to, or null once we are at the head of it.
 function trail_next_point() {
 	let trail = null;
 	try {
@@ -1221,10 +871,8 @@ function trail_next_point() {
 	} catch (e) { /* storage unavailable */ }
 	if (!trail || !trail.length) return null;
 
-	// She reloaded and her sequence restarted — ours is meaningless now.
 	if (trail[trail.length - 1].i < _trail_reached) _trail_reached = 0;
 
-	// Tick off anything on our map we are effectively standing on.
 	for (const p of trail) {
 		if (p.i > _trail_reached && p.m === character.map
 			&& Math.hypot(character.x - p.x, character.y - p.y) <= TRAIL_REACHED) {
@@ -1232,32 +880,18 @@ function trail_next_point() {
 		}
 	}
 
-	// Never aim behind ourselves. The cursor only advances, which is what stops a follower doubling
-	// back at a door — there the nearest breadcrumb on our own map is the one we just came from.
 	const remaining = trail.filter(p => p.i > _trail_reached);
-	if (!remaining.length) return null; // at the head of her trail; the ring step takes over
+	if (!remaining.length) return null;
 
-	// Furthest point we can reach in a straight line, so we cut the corners she rounded rather than
-	// slavishly retracing every wiggle. Scanned newest-first and capped, since can_move_to() walks
-	// the map geometry and this runs every tick.
 	const scan_from = Math.max(0, remaining.length - TRAIL_LOS_SCAN);
 	for (let k = remaining.length - 1; k >= scan_from; k--) {
 		const p = remaining[k];
 		if (p.m === character.map && can_move_to(p.x, p.y)) {
-			// Aiming past a breadcrumb retires everything before it. Cutting a corner means never
-			// passing within TRAIL_REACHED of the ones we skipped, so without this they pile up in
-			// `remaining` forever and the fallback below picks one of them — a point behind us.
-			// That is the doubling back.
 			if (p.i - 1 > _trail_reached) _trail_reached = p.i - 1;
 			return p;
 		}
 	}
 
-	// Nothing in sight to walk to. Head for the NEAREST breadcrumb on our map, not the oldest one
-	// still ahead: after corner-cutting the oldest is usually behind us, and the nearest is the
-	// cheapest way back onto her route. Whatever we pick, everything older retires with it — the
-	// cursor must only ever advance, or we pick a different "nearest" each tick and shuffle
-	// between them.
 	let near = null;
 	let near_d = Infinity;
 	for (const p of remaining) {
@@ -1270,47 +904,30 @@ function trail_next_point() {
 		return near;
 	}
 
-	// None on our map at all — the route continues through a door, which is the one place a
-	// follower still pathfinds.
 	return remaining[0];
 }
 
-// Inside this we count as keeping station on her, which is what lets a visible event monster take
-// priority over the ring step. It is NOT the walk/pathfind boundary — line of sight is.
 const FOLLOW_STATION_RANGE = 220;
-// How long the straight line to her must stay clear before we abandon her trail for it. Pure
-// anti-flap: the two modes head in different directions, so switching on a single tick's reading
-// is what produced the visible doubling back.
 const FOLLOW_DIRECT_DWELL_MS = 700;
 let _follow_direct_since = 0;
-// Inside THIS we are simply with her, and local combat positioning takes over from the ring step —
-// but only once the party is SETTLED. reposition() is centred on her, so it holds station and
-// seeks a cluster at the same time; while she is walking it is the wrong behaviour entirely.
 const FOLLOW_CLOSE = 60;
 
-// Is there a live leader for us to belong to? Non-leaders only; false when she is dead or offline,
-// which is when a follower goes back to running its own farm behaviour.
 function follow_has_leader() {
 	if (character.name === MOVEMENT_LEADER) return false;
 	const pos = leader_position();
 	return !!pos && !pos.rip;
 }
 
-// Where we want to stand: exactly follow_distance from her along our current bearing, whether we
-// are closing on her or being crowded off.
 function follow_ring_point(pos) {
 	const fd = CONFIG.movement.follow_distance;
 	const angle = Math.atan2(character.y - pos.y, character.x - pos.x);
 	return { x: pos.x + Math.cos(angle) * fd, y: pos.y + Math.sin(angle) * fd };
 }
 
-// Returns a goal or null; issues nothing.
 function follow_goal() {
-	if (character.name === MOVEMENT_LEADER) return null; // she does not follow herself
+	if (character.name === MOVEMENT_LEADER) return null;
 
 	const pos = leader_position();
-	// Offline or dead — nothing to follow. Fall through to our own behaviour rather than freezing;
-	// the old {hold} here was itself a way to get stuck.
 	if (!pos || pos.rip) {
 		if (!pos) {
 			const now = Date.now();
@@ -1322,25 +939,12 @@ function follow_goal() {
 		return null;
 	}
 
-	// UNCONDITIONAL. This used to be gated on party_should_follow() — "is she away from MY farm
-	// spot" — so following only engaged while she was travelling. The rest of the time each
-	// follower ran its own return-home and reposition against a fixed coordinate, which is
-	// precisely "doing whatever they want". A follower's home is wherever she is.
 	if (pos.map === character.map) {
 		const d = Math.hypot(character.x - pos.x, character.y - pos.y);
 		const ring = follow_ring_point(pos);
 		const line_clear = can_move_to(ring.x, ring.y);
 		const now = Date.now();
 
-		// LATCHED, because these two modes point in DIFFERENT DIRECTIONS and the test between them
-		// flickers. Rounding a corner behind her, the straight line to her clears and re-blocks tick
-		// by tick: clear means walk at her, blocked means walk to a breadcrumb back around the
-		// corner. Flipping between them every 100ms is the doubling back — and when the trail side
-		// yields a travel goal the arbiter issues a pathfind that the next flip cancels, so it
-		// alternates between two half-started journeys and makes almost no progress.
-		//
-		// Close by, the direct line is trusted immediately; there is no trail worth preferring over
-		// it at that range. Further out it has to hold for a moment first.
 		if (!line_clear) _follow_direct_since = 0;
 		else if (!_follow_direct_since) _follow_direct_since = now;
 
@@ -1348,81 +952,47 @@ function follow_goal() {
 			&& (d <= FOLLOW_CLOSE * 2 || now - _follow_direct_since >= FOLLOW_DIRECT_DWELL_MS);
 
 		if (trust_direct) {
-			// Hand over to local combat positioning only once the party is SETTLED. While she is
-			// walking, keep closing — otherwise they stop dead anywhere inside FOLLOW_CLOSE, she
-			// keeps going, and they only set off again once she has opened the gap up. That
-			// stop-start is most of what the trail looks like from outside.
 			const settled = !pos.travelling && !pos.moving;
 			if (settled && d <= FOLLOW_CLOSE) return { local: "farm", label: "with-leader", on_station: true };
-			// STRAIGHT LINE — no search, and re-aiming every tick tracks her better than any
-			// planned route to where she used to be.
 			return { local: "follow", label: "follow-ring", on_station: d <= FOLLOW_STATION_RANGE };
 		}
 	} else {
-		_follow_direct_since = 0; // different map — the line means nothing
+		_follow_direct_since = 0;
 	}
 
-	// Out of sight, off-map, or something solid in between. Walk HER ROUTE rather than computing
-	// our own: she has already solved this journey, every breadcrumb is walkable because she walked
-	// it, and following them puts us in single file behind her instead of arriving from a third
-	// direction that cohesion then has to reconcile.
 	const step = trail_next_point();
 	if (step) {
 		if (step.m === character.map && can_move_to(step.x, step.y)) {
 			return { local: "follow", label: "follow-trail", on_station: false, point: step };
 		}
-		// Only a short hop — to the next breadcrumb, not to wherever she has got to by now. A door
-		// crossing is the usual reason to be here.
 		return { label: "follow", map: step.m, x: step.x, y: step.y, radius: TRAIL_REACHED };
 	}
 
-	// No trail to walk (she has not moved since we last had her, or her cache is unreadable).
-	// Route to her directly, which is what every follower used to do for every journey.
 	return { label: "follow", map: pos.map, x: pos.x, y: pos.y, radius: CONFIG.movement.follow_distance + 30 };
 }
 
-// The LOCAL half: one raw move() onto the follow ring. Starts no pathfind, so it is safe to run
-// every tick — and re-aiming at her every tick is what makes a straight-line follow track a moving
-// leader better than a planned route to where she used to be.
 function follow_step(goal) {
-	// Walking her breadcrumbs: aim at the point, not at her. She may be round a corner or on
-	// another map, and the whole reason we are on the trail is that she is not directly reachable.
 	if (goal && goal.point) {
 		if (can_move_to(goal.point.x, goal.point.y)) move(goal.point.x, goal.point.y);
 		return;
 	}
 
-	// leader_position(), not get_player(). The entity is only available inside render range, so
-	// keying on it meant a leader on our own map but off-screen produced no movement at all — a
-	// non-issue while this only ran at close quarters, a stall now that it does the whole walk.
 	const pos = leader_position();
 	if (!pos || pos.rip || pos.map !== character.map) return;
 
 	const live = get_player(MOVEMENT_LEADER);
 	if (live && !live.rip) _healer_last_known = { map: character.map, x: live.x, y: live.y };
 
-	// CLOSE THE GAP ONLY — never back away to restore an exact spacing.
-	//
-	// This used to hold follow_distance in both directions, so every time she walked toward a
-	// follower it reversed to re-open the gap. That is the visible doubling back: two characters
-	// shuffling against each other, neither making progress, and the move() budget spent on it.
-	// Being closer than follow_distance costs nothing. Falling behind is the entire problem.
 	const dist = Math.hypot(character.x - pos.x, character.y - pos.y);
 	if (dist <= CONFIG.movement.follow_distance) return;
 
-	// follow_goal() already proved the line is clear this tick; re-checked because the cost is
-	// nothing and walking into geometry is not recoverable from down here. If it has closed, the
-	// goal falls through to the pathfinder on the next tick.
 	const ring = follow_ring_point(pos);
 	if (can_move_to(ring.x, ring.y)) move(ring.x, ring.y);
 }
 
 
-// Reads this file's own `item_order` global. A plain number reserves one slot for that item; an array
-// reserves one slot per intentionally-kept duplicate (Warrior uses this for a dual-wielded weapon) —
-// extra copies beyond the reserved slots are left wherever they land.
 function inventory_sorter() {
-	const claimed = {}; // item name -> how many of its reserved slots are already assigned this pass
+	const claimed = {};
 
 	character.items.forEach((item, i) => {
 		if (!item) return;
@@ -1431,7 +1001,7 @@ function inventory_sorter() {
 
 		if (Array.isArray(spec)) {
 			const next = claimed[item.name] || 0;
-			if (next >= spec.length) return; // no reserved slot left for extra copies
+			if (next >= spec.length) return;
 			claimed[item.name] = next + 1;
 			const target = spec[next];
 			if (i !== target) swap(i, target);
@@ -1476,11 +1046,6 @@ function scan_bank_inventory() {
 	game_log(`📦 Bank scan complete: ${bank_inventory.length} items recorded`);
 }
 
-// character.bank is only populated while standing at the bank, and everything that reads the bank
-// away from it falls back to the localStorage snapshot. That snapshot goes stale the instant
-// anything moves in or out, which is what sent the merchant back to the bank for an item that was
-// no longer there. Re-save it after every withdrawal and deposit, while the live data is in hand.
-// Quiet on purpose: save_bank_local() logs on every call and this fires per item.
 function refresh_bank_snapshot() {
 	try {
 		if (character.bank && Object.keys(character.bank).length) {
@@ -1504,7 +1069,6 @@ async function withdraw_item(item_name, level = null, total = null) {
 
 	await delay(200);
 
-	// 1) Grab live bank data
 	let bank_data = character.bank;
 	if (!bank_data || Object.keys(bank_data).length === 0) {
 		bank_data = load_bank_from_local_storage();
@@ -1517,25 +1081,18 @@ async function withdraw_item(item_name, level = null, total = null) {
 	let remaining = (total != null ? total : Infinity);
 	let found_any  = false;
 
-	// 2) Iterate each "items<N>" pack
 	for (const pack_key of Object.keys(bank_data)) {
 		if (!pack_key.startsWith("items")) continue;
 		const slot_arr = bank_data[pack_key];
 		if (!Array.isArray(slot_arr)) continue;
 
-		// 3) Scan slots in this pack
 		for (let slot = 0; slot < slot_arr.length && remaining > 0; slot++) {
 			const itm = slot_arr[slot];
 			if (!itm || itm.name !== item_name) continue;
-			// An unupgraded item carries no `level` property at all, so a raw `itm.level !== 0`
-			// rejected every unlevelled item whenever level 0 was asked for — a ukey could be seen
-			// in the bank by callers that normalise, and then never withdrawn by this one.
-			// Absent means +0, which is what the rest of the codebase assumes.
 			if (level != null && (itm.level || 0) !== level) continue;
 
 			found_any = true;
 
-			// Determine which bank location to move to based on pack_key
 			const pack_num = parseInt(pack_key.replace("items", ""), 10);
 			if (!isNaN(pack_num)) {
 				if (pack_num >= 0 && pack_num <= 7 && character.map !== "bank") {
@@ -1550,14 +1107,6 @@ async function withdraw_item(item_name, level = null, total = null) {
 				}
 			}
 
-			// bank_retrieve always pulls the ENTIRE stack from a slot — no partial-quantity retrieval.
-			// Must not loop this per-unit; that emptied the slot on the first call while still
-			// decrementing `remaining` per call, under-counting what actually arrived.
-			//
-			// Guarded: bank_data may be the localStorage snapshot rather than live data, so a slot
-			// it lists can be empty or hold something else by now and bank_retrieve rejects with
-			// no_item. Skip that slot and keep going — other slots may still hold the item — rather
-			// than letting one stale entry abort the whole withdrawal.
 			try {
 				await bank_retrieve(pack_key, slot, -1);
 			} catch (e) {
@@ -1566,14 +1115,13 @@ async function withdraw_item(item_name, level = null, total = null) {
 				continue;
 			}
 			await delay(100);
-			refresh_bank_snapshot();   // live data is in hand right now; take a fresh copy
+			refresh_bank_snapshot();
 			remaining -= (itm.q || 1);
 		}
 
 		if (remaining <= 0) break;
 	}
 
-	// 4) Summarize
 	if (!found_any) {
 		game_log(`⚠️ No "${item_name}"${level != null ? ` level ${level}` : ""} found in bank.`);
 	} else if (total != null && remaining > 0) {
@@ -1614,68 +1162,30 @@ function remote_sell_items() {
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // ANNIVERSARY EVENT — "I Kiss You"
-//
-// Every 30 minutes the server features one player. Everyone online gets an `anniversary_visit`
-// ticket good for 5 minutes and one use; spending it on the featured player yields a cake slice, an
-// Anniversary Gift, and `anniversary_kiss` (+10 frequency, +6 output, 20 minutes).
-//
-// The skill has range 80, so this is a travel behaviour, not a cast. Field shapes and the client's
-// own validity test are in GAME_API_REFERENCE.md — read out of the live client, none of it guessed.
-//
-// Every character travels independently and starts the moment a round goes live. The combat three
-// disengage while travelling: no attacks, no offensive skills, no debuffs. Healing and defensive
-// behaviour continue, because the walk is exactly when something can go wrong.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// var, not const: read as a bare global by should_pause_combat_loop() and by each character's
-// main_loop across the eval boundary.
 var anniversary_travel = false;
 
 const ANNIVERSARY_TICK_MS = 2000;
-// While a visit is actually in progress this loop is doing the casting, and 2s between attempts is
-// an age against a target who is walking. Idle rounds stay on the slow beat.
 const ANNIVERSARY_TICK_ACTIVE_MS = 400;
-// Cast from here — the skill's own range is 80, this keeps a small margin for them moving as it
-// lands. Deliberately NOT where we stop: see ANNIVERSARY_HOLD_RANGE.
 const ANNIVERSARY_CAST_RANGE = 75;
-// Stop closing only here. Holding at the cast range put the character 65 units out, inside by a
-// hair, so any drift by either party pushed the cast back out of range and every attempt was made
-// from the worst spot available. Closing to 35 while casting the whole way in is strictly better:
-// more attempts, each from a better position, and arrival leaves real margin.
 const ANNIVERSARY_HOLD_RANGE = 35;
-// Buff time remaining below which the round is still worth attending. The buff lasts 20 minutes
-// against a 30 minute cycle, so one that is nearly done should be refreshed rather than skipped.
 const ANNIVERSARY_REFRESH_MS = 5 * 60 * 1000;
-// Gap between kiss attempts. Long enough that a normal reply lands before a second cast can go out
-// (a second cast at a spent visit is what the server answers with "exception"), short enough to
-// retry promptly while still closing the last few units of distance.
 const ANNIVERSARY_KISS_RETRY_MS = 2500;
-// Grace after the server acknowledges a cast, before we are willing to cast again.
 const ANNIVERSARY_ACK_GRACE_MS = 6000;
-// How close to the last-known spot counts as "we are where they were" when they are not in sight.
 const ANNIVERSARY_SEEK_RADIUS = 30;
 
-// The re-issue cadences, the drift threshold and the in-flight move identity that used to live
-// here are gone: this module no longer moves anything. It decides, anniversary_destination()
-// reports where, and the travel arbiter owns the journey along with every other goal.
 
 let _anniv_last_kiss = 0;
 let _anniv_kiss_acked = 0;
-let _anniv_host_round = null;   // so the host notice prints once per round, not every tick
+let _anniv_host_round = null;
 let _anniv_travel_since = 0;
-let _anniv_died_round = null;   // round we died in; that round's visit is written off
+let _anniv_died_round = null;
 
-// anniversary_travel gates combat for ALL FOUR characters — should_pause_combat_loop() plus every
-// main_loop's movement branch. Nothing else can clear it, so if it is ever left set the whole party
-// disengages and does not recover without a manual reload. A ticket lasts 5 minutes and a round 30,
-// so travel lasting longer than this is impossible by the game's own rules and can only mean we are
-// stuck. The ceiling is enforced in the loop, outside the step's own error handling, so it still
-// fires when the step throws every tick.
 const ANNIVERSARY_TRAVEL_MAX_MS = 6 * 60 * 1000;
-let _anniv_done_round = null;   // round we already collected in; scoped per round, not global
-let _anniv_had_buff = false;    // whether anniversary_kiss was already up when this trip started
+let _anniv_done_round = null;
+let _anniv_had_buff = false;
 
-// Mirrors the client's own anniversary_live_event().
 function anniversary_event() {
 	try {
 		const s = parent.S && parent.S.anniversary;
@@ -1684,14 +1194,6 @@ function anniversary_event() {
 	} catch (e) { return null; }
 }
 
-// The client's anniversary_can_visit(), split into its individual checks. Returns null when the
-// ticket is usable, otherwise which one failed.
-//
-// As a single boolean these were indistinguishable, and they mean completely different things: a
-// ticket the server never issued (nothing we can do about it) read identically to a realm string we
-// are comparing wrongly (entirely our own bug, and one that would silently disable every visit
-// forever). The realm comparison is still skipped when those globals are unreachable rather than
-// guessed at, for the same reason.
 function anniversary_ticket_problem() {
 	try {
 		const s = anniversary_event();
@@ -1710,10 +1212,6 @@ function anniversary_ticket_problem() {
 	} catch (e) { return "ticket check threw: " + fmt_err(e); }
 }
 
-// One of ours can be the featured player. ikissyou is no_self, so the host must never try to visit
-// themselves — there is nowhere to walk to and every cast would reject. They carry on as normal and
-// let the other three come to them. Same test the client uses to decide it is showing the host view:
-// id OR name, because only one of the two is reliable depending on how the round was announced.
 function anniversary_is_host() {
 	try {
 		const s = anniversary_event();
@@ -1722,41 +1220,15 @@ function anniversary_is_host() {
 	} catch (e) { return false; }
 }
 
-// Returns null when we should be committed to this round, otherwise WHY not — a string rather than
-// a boolean so a stand-down names which of six quite different things happened. "The round ended"
-// and "our five-minute ticket ran out while we walked" want opposite responses and were being
-// logged identically as "done, resuming".
-//
-// Note what is deliberately NOT a block: s.available === false. The client is explicit that it
-// means "waiting for them to return to a reachable spot; their place is reserved; the five-minute
-// timer keeps running" — a pause, not a cancellation. Treating it as a block abandoned the trip,
-// re-engaged combat, and restarted from wherever we happened to be standing once they reappeared,
-// spending the ticket a slice at a time and often never arriving.
 function anniversary_block_reason() {
 	const s = anniversary_event();
 	if (!s) return "no live round";
-	// A corpse owes nobody a visit. This is what anniversary_should_travel() — and therefore the
-	// anniv_pending flag the leader's cohesion hold waits on — is derived from, so leaving it out
-	// let a dead character hold the party still.
 	if (character.rip) return "dead";
 	if (_anniv_died_round === s.round) return "died during this round";
 
-	// THE BUFF IS THE OBJECTIVE, and it is server truth rather than our own bookkeeping.
-	//
-	// This check used to live only in anniversary_tick(), BELOW this function — so
-	// anniversary_should_travel() never saw it, and a character that had already collected went on
-	// publishing anniv_pending: true. The leader then held the whole party at the target waiting
-	// for someone who was already done, and nobody went back to grinding.
-	//
-	// The time test covers the other half: anniversary_kiss runs 20 minutes against a 30 minute
-	// cycle, so it can still be up from the previous round when this one opens. Plenty left means
-	// nothing to gain here; nearly expired means go and refresh it.
 	const kiss = character.s && character.s.anniversary_kiss;
 	if (kiss && (kiss.ms === undefined || kiss.ms > ANNIVERSARY_REFRESH_MS)) return "already buffed";
 	if (anniversary_is_host()) return "we are the featured player";
-	// Scoped to the round number rather than testing for the buff: anniversary_kiss lasts 20
-	// minutes against a 30 minute cycle, so a bare buff check would sometimes still be true when
-	// the next round opened and would skip it.
 	if (_anniv_done_round === s.round) return "already collected this round";
 	const ticket_problem = anniversary_ticket_problem();
 	if (ticket_problem) return ticket_problem;
@@ -1770,42 +1242,22 @@ function anniversary_should_travel() {
 	return anniversary_block_reason() === null;
 }
 
-// Clearing the flag is all this has to do now. anniversary_destination() goes null on the next
-// tick, movement_goal() picks whatever should happen instead, and the arbiter releases the journey
-// it owns. The identity-tracked interrupt that used to live here existed only to avoid cancelling
-// somebody else's move — with one owner there is no somebody else.
 function anniversary_stand_down(why) {
 	anniversary_travel = false;
 	_anniv_travel_since = 0;
-	// Recorded, not just logged: "the party stopped and I had to reload" needs to be answerable
-	// after the fact, and log() only reaches the in-game window.
 	try {
 		if (typeof errlog_record === "function") errlog_record("anniversary", "stand down: " + why);
 	} catch (e) { /* recorder absent */ }
 	log(`🎂 Anniversary: ${why}.`, "#F0B742", "Alerts");
 }
 
-// One iteration of the visit's DECISIONS: whether a round is ours to join, whether the buff has
-// landed, and casting the kiss. It moves nothing — anniversary_destination() reports where the
-// visit wants to be and the arbiter takes it from there. The merchant drives this from his own
-// state machine rather than running a second loop.
 async function anniversary_tick() {
-	// Say it once per round rather than every tick: a host that silently does nothing looks
-	// identical to the behaviour being broken.
 	const ev = anniversary_event();
 	if (ev && anniversary_is_host() && _anniv_host_round !== ev.round) {
 		_anniv_host_round = ev.round;
 		log(`🎂 Anniversary: WE are the featured player (${character.name}) — staying put for visitors.`, "#F0B742", "Alerts");
 	}
 
-	// Dying during a visit forfeits that round, checked before anything else so the round number is
-	// still to hand.
-	//
-	// Without this the corpse kept claiming the visit: anniversary_travel stayed set, the state
-	// cache kept publishing anniv_pending, and the moment the character respawned in town the
-	// leader's anniversary hold latched onto them again while they walked back across the map
-	// alone with combat disabled — which is how one death during a round parked the whole party.
-	// The buff is not worth a corpse run, and there is another round in thirty minutes.
 	if (character.rip) {
 		if (anniversary_travel) {
 			if (ev) _anniv_died_round = ev.round;
@@ -1814,8 +1266,6 @@ async function anniversary_tick() {
 		return false;
 	}
 
-	// Names the actual cause rather than a generic "done, resuming", which covered six of them and
-	// so said nothing about which one kept costing us the round.
 	const blocked = anniversary_block_reason();
 	if (blocked) {
 		if (anniversary_travel) anniversary_stand_down(blocked);
@@ -1828,47 +1278,24 @@ async function anniversary_tick() {
 		anniversary_travel = true;
 		_anniv_travel_since = Date.now();
 		_anniv_kiss_acked = 0;
-		// Snapshot the buff now: it runs 20 minutes, so it can still be up from the previous round
-		// when this one opens. Only a buff that appears DURING the trip means we just collected.
 		_anniv_had_buff = !!(character.s && character.s.anniversary_kiss);
 		log(`🎂 Anniversary: visiting ${s.target} on ${s.map}.`, "#F0B742", "Alerts");
 	}
 
-	// The buff landing IS the reward arriving, and it beats waiting for the ticket to clear
-	// server-side by a full round trip. Stand down the moment it shows up.
 	if (!_anniv_had_buff && character.s && character.s.anniversary_kiss) {
 		_anniv_done_round = s.round;
 		anniversary_stand_down("buff received, back to work");
 		return false;
 	}
 
-	// Reserved but temporarily unreachable. Hold position and stay committed — combat stays
-	// disengaged and the trip is NOT abandoned, because their slot is still ours and the round
-	// timer keeps running. Standing down here and restarting when they reappeared is what spent the
-	// five-minute ticket in pieces without ever arriving.
 	if (s.available === false) return true;
 
-	// Prefer the live entity when we can see them — S.x/S.y is a periodic snapshot and they move.
 	const them = get_player(s.target);
 
-	// The KISS requires the live entity; the MOVE below is happy to aim at the snapshot. Being
-	// within range of where they WERE is not being within range of them, and casting on the
-	// snapshot is what completed rounds from across the map. If we cannot see them we are not close
-	// enough, whatever the coordinates say — and at range 80 they would be on screen if we were.
-	// Cast from the full usable range, and keep casting the whole way in — the character does not
-	// stop until ANNIVERSARY_HOLD_RANGE, so this fires repeatedly from steadily better positions
-	// instead of once, from the edge, at the worst moment.
 	const in_kiss_range = !!them && distance(character, them) <= ANNIVERSARY_CAST_RANGE;
 
-	// A cast the server acknowledged but whose effect has not shown up yet. Casting again into that
-	// window is what the server answers with game_response "exception" — the bare red ERROR! — so
-	// hold off and let the buff or the spent ticket confirm it. If neither does, the cast genuinely
-	// did not take and the window expires into a normal retry.
 	const awaiting_ack = _anniv_kiss_acked > 0 && Date.now() - _anniv_kiss_acked < ANNIVERSARY_ACK_GRACE_MS;
 
-	// The skill has a real cooldown, so an attempt made during it is simply thrown away — and it
-	// still stamps the throttle below, pushing the NEXT attempt further out. Fails open: if the
-	// check is unavailable or throws, try anyway rather than never casting at all.
 	let off_cooldown = true;
 	try {
 		if (typeof is_on_cooldown === "function" && is_on_cooldown("ikissyou")) off_cooldown = false;
@@ -1876,21 +1303,10 @@ async function anniversary_tick() {
 
 	if (in_kiss_range && off_cooldown && !awaiting_ack
 		&& Date.now() - _anniv_last_kiss > ANNIVERSARY_KISS_RETRY_MS) {
-		// Throttle, not a one-shot: a cast that is simply out of range has to be retried, and this
-		// expires, so a reply that never arrives cannot wedge the round.
 		_anniv_last_kiss = Date.now();
 
-		// NOT awaited. use_skill() settles on the server's reply and anniversary_loop() awaits this
-		// function, so a reply that never came would stop the loop, strand anniversary_travel at
-		// true, and leave all four characters disengaged until a manual reload.
-		// The LIVE entity's id, not the snapshot's. S.anniversary.id is periodic and a target who
-		// relogged carries a different id — casting at the stale one is a rejection every time.
 		Promise.resolve(use_skill("ikissyou", them.id || s.id)).then(
 			() => {
-				// Trust the game state, not the reply. use_skill() settles on the server's
-				// response and a response is not proof the visit was granted — standing down on
-				// the resolve alone is the "attempted, then treated as complete" symptom, and it
-				// costs the whole round because _anniv_done_round blocks every retry.
 				_anniv_kiss_acked = Date.now();
 				const got_buff = !!(character.s && character.s.anniversary_kiss);
 				const ticket_spent = !(character.s && character.s.anniversary_visit
@@ -1900,55 +1316,35 @@ async function anniversary_tick() {
 					log(`🎂 Kissed ${s.target}.`, "#F0B742", "Alerts");
 					anniversary_stand_down("collected, back to work");
 				}
-				// Otherwise: say nothing and keep closing. The buff check at the top of this
-				// function and the ticket check in anniversary_block_reason() both end the trip
-				// properly the moment it is genuinely done.
 			},
 			e => {
-				_anniv_kiss_acked = 0; // rejected outright — resume the normal retry cadence
+				_anniv_kiss_acked = 0;
 				log(`🎂 Anniversary kiss failed: ${fmt_err(e)}`, "#FFA500", "Alerts");
 			}
 		);
 
-		return true;   // keep closing in; a failed cast must not end the trip
+		return true;
 	}
 
 	return true;
 }
 
-// Where the visit wants the character to be, for movement_goal() to weigh against everything else.
-// Pure: no moves, no state changes — it is read on every 100ms main_loop tick, while the decisions
-// above run on anniversary_loop's 2s beat.
 function anniversary_destination() {
 	if (!anniversary_travel) return null;
 	const s = anniversary_event();
 	if (!s) return null;
 
-	// THE LIVE ENTITY IS AUTHORITATIVE. The objective is proximity to a PERSON, and the arbiter can
-	// only judge arrival at COORDINATES — so aiming at the S snapshot let it declare success at an
-	// empty patch of town the target had already walked away from. It then released, farm movement
-	// took over, and the character stood there until the ticket expired and walked home. That is
-	// "made it to town, never got the kiss, then just left".
 	const them = get_player(s.target);
 
 	if (them) {
-		// Stop closing only once COMFORTABLY inside, not at the edge of the cast window. Holding at
-		// the cast range meant sitting 65 units out — inside by a hair, so any drift by either of
-		// us put the cast out of range, and every attempt was made from the worst possible spot.
-		// The cast fires from 75 (see anniversary_tick), so we go on casting the whole way in.
 		if (distance(character, them) <= ANNIVERSARY_HOLD_RANGE) {
 			return { hold: true, label: "anniversary-kiss" };
 		}
-		// Straight line first, pathfinder only when geometry blocks it — the same rule as following,
-		// and for the same reason: this is a short hop to someone in sight, not a route to plan.
 		const spot = anniversary_close_point(them);
 		if (can_move_to(spot.x, spot.y)) return { local: "anniversary", label: "anniversary-close" };
 		return { label: "anniversary", map: them.map || s.map, x: them.x, y: them.y, radius: ANNIVERSARY_HOLD_RANGE };
 	}
 
-	// Not visible. Walk to the snapshot — but once there, HOLD rather than hand back to farm
-	// movement. Standing where they were last seen is the best play: they are reserved to us, the
-	// round timer is still running, and they may well walk back into range.
 	const at_snapshot = character.map === s.map
 		&& isFinite(s.x) && isFinite(s.y)
 		&& Math.hypot(character.x - s.x, character.y - s.y) <= ANNIVERSARY_SEEK_RADIUS;
@@ -1959,29 +1355,22 @@ function anniversary_destination() {
 	return { label: "anniversary", map: s.map, x: s.x, y: s.y, radius: ANNIVERSARY_SEEK_RADIUS };
 }
 
-// Aim well inside range rather than at its edge, so a step or two from either of us does not put
-// us straight back out of it.
 function anniversary_close_point(them) {
 	const want = ANNIVERSARY_HOLD_RANGE * 0.6;
 	const angle = Math.atan2(character.y - them.y, character.x - them.x);
 	return { x: them.x + Math.cos(angle) * want, y: them.y + Math.sin(angle) * want };
 }
 
-// The LOCAL half: one raw move() toward a target we can already see. No pathfind.
 function anniversary_close_step() {
 	const s = anniversary_event();
 	if (!s) return;
 	const them = get_player(s.target);
-	if (!them) return; // nothing in sight — standing still beats farm-walking out of the area
+	if (!them) return;
 	if (distance(character, them) <= ANNIVERSARY_HOLD_RANGE) return;
 	const spot = anniversary_close_point(them);
 	if (can_move_to(spot.x, spot.y)) move(spot.x, spot.y);
 }
 
-// The watchdog runs on its OWN timer, deliberately not inside anniversary_loop(). The loop awaits
-// anniversary_step(), so anything that blocks in there — a use_skill whose reply never arrives —
-// stops the loop entirely, and a watchdog living inside it would be stopped at precisely the moment
-// it was needed. setInterval keeps firing regardless of what the loop is doing.
 setInterval(() => {
 	try {
 		if (anniversary_travel && _anniv_travel_since
@@ -1995,9 +1384,6 @@ async function anniversary_loop() {
 	try {
 		await anniversary_tick();
 	} catch (e) {
-		// catcher() has itself been the thing that killed a loop before now — a missing comma made
-		// it undefined and the catch block threw, taking action_loop with it. Nothing in here is
-		// allowed to prevent the reschedule below.
 		try { catcher(e, "anniversary_loop"); } catch (x) { /* logging must never kill the loop */ }
 	}
 	setTimeout(anniversary_loop, anniversary_travel ? ANNIVERSARY_TICK_ACTIVE_MS : ANNIVERSARY_TICK_MS);

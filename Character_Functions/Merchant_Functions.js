@@ -8,47 +8,22 @@ function local_bool(key, fallback) {
 	return raw === null ? fallback : raw === "true";
 }
 
-// var, not const: this file runs through Bootstrapper.js's eval-based loader, where
-// top-level const/let stay scoped to that eval and aren't visible to Game_Config.js's
-// shared CONFIG-reading functions.
 var CONFIG = {
 	enabled: {
 		upgrading:  local_bool("AL_merchant_enabled_upgrading", true),
 		crafting:   local_bool("AL_merchant_enabled_crafting", true),
 		exchanging: local_bool("AL_merchant_enabled_exchanging", false),
 		fishing:    local_bool("AL_merchant_enabled_fishing", true),
-		// Hard off, NOT local_bool. local_bool reads localStorage first, so the stored "true" from
-		// before kept winning over a changed default and mining ran anyway. To turn it back on,
-		// restore local_bool("AL_merchant_enabled_mining", true) — the ⚙️ checkbox does nothing
-		// while this is hardcoded.
 		mining:     false,
 	},
 
-	// Anniversary slice buying. Every account only ever finds ONE flavor, so the other five have to
-	// come from other players; the stand is how they reach us. Buy orders only, deliberately — a
-	// wishlist fill is atomic (their slice, our gold, one transaction) so there is no leg we can be
-	// left holding. Our own flavor is never listed: we already have a surplus of it.
 	trading: {
 		enabled: true,
 		own_flavour: "slice_citrus",
 		price: 100000,
 		quantity: 1000,
-		// Stop advertising a flavor once we hold this many. Above the realistic need so the orders
-		// simply stay up for the event.
 		target_each: 1000,
 	},
-	// Stand sell offers. An ARRAY, not a name-keyed object like UPGRADE_PROFILE, because level is
-	// part of the identity here: a +9 firebow and a +8 firebow are different goods at different
-	// prices, and a keyed object can only ever hold one entry per item name.
-	//
-	//   name      item key, e.g. "firebow"
-	//   level     exact level to sell. Omit ONLY for unlevelled goods — potions, scrolls, materials
-	//   price     gold per unit
-	//   quantity  how many to keep on the stand. Omit for 1
-	//
-	// Listed items are withdrawn from the bank as needed and never deposited again while listed.
-	// Level is matched exactly, so a +9 entry leaves your +0s free to be banked and sold normally.
-	// Deleting an entry retires the listing and makes the item bankable again.
 	sell_profile: [
 		{ name: "firebow", level: 9, price: 1000000000, quantity: 3 },
 		{ name: "firebow", level: 8, price: 100000000, quantity: 5 },
@@ -92,38 +67,22 @@ var CONFIG = {
 			{ name: "candy1",    min: 1 },
 		],
 	},
-	// Potions are bought 1000 at a time and live in the reserved slots, but a second stack landing
-	// further down the bag was being deposited and then immediately re-bought by
-	// handle_buy_potions() — HOME and the potion shop are 54 units apart, so he is always in range
-	// of it. Round trip through the bank for nothing.
 	do_not_bank: ["hpot1", "mpot1"],
 	min_bank_free_space: 10,
-	// Free inventory slots at or below which he drops what he's doing and empties the pack.
 	min_free_inventory_slots: 3,
 	default_gear: {
 		mainhand: { name: "broom", level: 9 },
 		offhand: { name: "wbookhs", level: 1 },
 	},
-	// Fishing/mining sit above crafting/exchanging: all four need free bank space, but
-	// upgrading doesn't, so putting crafting/exchanging first starved fishing/mining out
-	// of a turn whenever space was scarce.
-	// Banking sits directly under delivering: a full pack blocks every task below it, but a
-	// delivery run already ends in bank_items(), so it clears itself and potions stay first.
 	priorities: ["dead", "anniversary", "delivering", "banking", "upgrading", "fishing", "mining", "crafting", "exchanging", "restocking"],
 };
 
-// var, not const: Auto_Upgrade.js/Auto_Craft.js are separate eval closures that reference
-// HOME/BANK_LOCATION as bare globals.
 var HOME = CONFIG.locations.HOME;
 var BANK_LOCATION = CONFIG.locations.BANK_LOCATION;
 const PARTY = CONFIG.party.members;
 
-var merchant_task = "Idle"; // var so Auto_Upgrade.js can share this global
+var merchant_task = "Idle";
 
-// Bumped whenever the watchdog force-resets a stuck task. A long-running handler captures
-// this when it starts and bails if it changes -- otherwise the watchdog frees the task slot
-// while the stuck handler keeps running, loop_controller starts a second one, and the two
-// fight over movement while the watchdog re-fires every 5 minutes.
 let merchant_task_generation = 0;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -144,24 +103,12 @@ const MERCHANT_STATES = {
 	IDLE: "idle",
 };
 
-const DELIVERY_WAIT_MAX_ATTEMPTS = 40; // ~2 minutes at 3s/attempt
+const DELIVERY_WAIT_MAX_ATTEMPTS = 40;
 const FISHING_POSITION_TOLERANCE = 5;
 const MINING_POSITION_TOLERANCE = 10;
 
-// Reads each fighter's cached character.s.mluck.ms (remaining time) instead of tracking
-// our own cast history -- accurate regardless of restarts or a missed cast.
-//
-// Two thresholds, because "is a trip worth making" and "while I am standing here" are different
-// questions. A trip is worth making when someone is nearly out; once he has made it, mluck is 10
-// mana on a 100ms cooldown lasting a full hour, so topping up everyone in range is free and resets
-// the party's clocks together. Refreshing only the one member that expired is what caused the
-// piecemeal runs -- each of the other two called him out again in turn.
 const MLUCK_REFRESH_THRESHOLD_MS = 10 * 60 * 1000;
 
-// Deliberately below the hour-long duration: a character buffed moments ago sits at ~60 minutes and
-// must not be recast, because buff_nearby_party() is also driven by the 1s opportunistic loop and
-// an always-true test there would emit three casts a second forever. At 50 minutes each member is
-// re-buffed at most once per ten minutes while the merchant is nearby.
 const MLUCK_TOPUP_THRESHOLD_MS = 50 * 60 * 1000;
 
 function is_mluck_due(status) {
@@ -169,7 +116,6 @@ function is_mluck_due(status) {
 	return remaining == null || remaining < MLUCK_REFRESH_THRESHOLD_MS;
 }
 
-// Worth a cast now that we are already in range, even though it would not have justified the trip.
 function mluck_worth_topping_up(status) {
 	const remaining = status.conditions?.mluck?.ms;
 	return remaining == null || remaining < MLUCK_TOPUP_THRESHOLD_MS;
@@ -210,10 +156,6 @@ function free_inventory_slots() {
 const BANKING_RETRY_MS = 60000;
 let _bank_retry_at = 0;
 
-// A full pack silently blocks most of what he does: withdraw_item() has nowhere to put the item,
-// craft and exchange cannot gather materials, and the fighters' clear_inventory() sends land
-// nowhere. bank_items() only ever ran at the tail of the delivering, gathering and exchange runs,
-// so a pack filled by loot pulls in between just stayed full until one of those happened to fire.
 function should_run_banking() {
 	return merchant_task === "Idle"
 		&& Date.now() >= _bank_retry_at
@@ -222,8 +164,6 @@ function should_run_banking() {
 }
 
 function should_run_upgrade() {
-	// Unlike craft/exchange/fishing/mining, upgrading doesn't need free bank space up
-	// front -- it consumes scrolls and (on compound) merges stacks into fewer items.
 	return CONFIG.enabled.upgrading
 		&& merchant_task === "Idle"
 		&& character.gold >= CONFIG.upgrade_gold_threshold
@@ -260,8 +200,6 @@ function should_run_mining() {
 
 const PRIORITY_CHECKS = {
 	dead:        { state: MERCHANT_STATES.DEAD,       should_run: () => character.rip },
-	// Second only to being dead: the visit ticket lasts 5 minutes against a 30 minute round, so a
-	// delivery or upgrade run started now would eat the whole window.
 	anniversary: { state: MERCHANT_STATES.ANNIVERSARY, should_run: () => typeof anniversary_should_travel === "function" && anniversary_should_travel() },
 	delivering:  { state: MERCHANT_STATES.DELIVERING, should_run: should_run_delivery },
 	banking:     { state: MERCHANT_STATES.BANKING,    should_run: should_run_banking },
@@ -289,40 +227,26 @@ async function handle_dead_state() {
 	}
 }
 
-// Travels to the anniversary featured player and spends the visit ticket. Driven from here rather
-// than from anniversary_loop() (Shared/Party_And_Loot.js) because loop_controller() is the sole
-// owner of the merchant's movement — a second loop issuing smart_move would fight it.
 async function handle_anniversary_state() {
 	merchant_task = "Anniversary";
 	try {
-		// Decide, then let the shared arbiter own the journey — the same one the fighters use, so
-		// the visit has one mover on every character rather than one per file.
 		await anniversary_tick();
-		travel_arbiter(anniversary_destination()); // Shared/Movement.js
+		travel_arbiter(anniversary_destination());
 	} catch (e) {
 		catcher(e, "handle_anniversary_state");
 	} finally {
-		// ALWAYS back to Idle, even mid-trip. anniversary_step() is one short step, not a run that
-		// owns the merchant until it finishes -- the priority check simply re-selects this state on
-		// the next tick while the visit is live. Holding the task across ticks made a five-minute
-		// visit look identical to a five-minute hang, and MERCHANT_TASK_WATCHDOG_MS is exactly five
-		// minutes, so the watchdog force-reset every trip that used its full window.
 		merchant_task = "Idle";
 	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MERCHANT STAND — open while idle, closed whenever we need to move.
-//
-// A merchant with an open stand cannot move, so every state other than IDLE closes it first. That
-// is enforced in set_state() rather than in each handler, because forgetting it in one place would
-// look like the merchant being stuck rather than like a stand being open.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const SLICE_FLAVOURS = ["slice_strawberry", "slice_citrus", "slice_honey",
 	"slice_mint", "slice_blueberry", "slice_nightberry"];
-const TRADE_SLOTS = 16;              // runner_functions.js documents trade_slot as 1-16
-const WISHLIST_REFRESH_MS = 15000;   // re-checking every 250ms tick would spam trade_wishlist
+const TRADE_SLOTS = 16;
+const WISHLIST_REFRESH_MS = 15000;
 
 let _last_wishlist_refresh = 0;
 
@@ -333,7 +257,6 @@ function stand_is_open() {
 async function open_merchant_stand() {
 	if (stand_is_open()) return;
 	try {
-		// No argument: open_stand() finds the stand item in the inventory itself.
 		await open_stand();
 	} catch (e) {
 		catcher(e, "open_merchant_stand");
@@ -361,24 +284,15 @@ function slice_count(name) {
 // STAND STOCK — items listed for sale from CONFIG.sell_profile
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// An entry with no `level` matches any level; one with a level matches only that level exactly.
 function level_matches(item, entry) {
 	return entry.level === undefined || (item.level || 0) === entry.level;
 }
 
-// Does this item match a listing at all? Used where the answer must ignore quantity — NPC-selling
-// a listed item is wrong however many we have, because the vendor price and the stand price are
-// orders of magnitude apart. For BANKING, which cares very much about quantity, use
-// make_stand_stock_keeper() instead.
 function is_stand_stock(item) {
 	if (!CONFIG.trading.enabled || !item) return false;
 	return CONFIG.sell_profile.some(entry => entry.name === item.name && level_matches(item, entry));
 }
 
-// The merchant's resting gear. `broom` is both his mainhand and a SELLABLE_ITEMS entry, so during
-// any fishing or mining run — when the rod or pickaxe is equipped and the broom is in the bag —
-// it is one sell_items() call away from being gone for good. Name only, no level: an irreversible
-// sale is not the place to be clever about which one it is.
 function is_default_gear(item) {
 	if (!item) return false;
 	for (const slot in CONFIG.default_gear) {
@@ -388,21 +302,10 @@ function is_default_gear(item) {
 	return false;
 }
 
-// Units of an entry still worth keeping in the bag: the listing quantity minus what is already on
-// the stand.
 function stock_bag_reserve(entry) {
 	return Math.max(0, (entry.quantity || 1) - stock_listed_count(entry));
 }
 
-// Returns a predicate that answers "keep this slot back for the stand?", spending a per-entry
-// budget as the caller walks the bag in slot order.
-//
-// This is the fix for the merchant filling up on his own. is_stand_stock() protects an UNLIMITED
-// number of matching items, so every firebow +9 past the three we list sat in the bag forever:
-// bank_items() skipped it and refresh_sell_offers() had nowhere to put it. Upgrading, a generous
-// restock and party loot pulls all produce those surplus copies. Worse, once enough of them
-// accumulate has_bankable_items() reads false at zero free slots, so the banking state never even
-// fires and nothing can recover without manual help.
 function make_stand_stock_keeper() {
 	if (!CONFIG.trading.enabled) return () => false;
 	const budget = CONFIG.sell_profile.map(stock_bag_reserve);
@@ -410,14 +313,11 @@ function make_stand_stock_keeper() {
 		if (!item) return false;
 		const ei = CONFIG.sell_profile.findIndex(e => e.name === item.name && level_matches(item, e));
 		if (ei < 0 || budget[ei] <= 0) return false;
-		// Whole slot, because bank_store() deposits a whole slot — a stack that overshoots the
-		// budget still stays, which is the conservative direction.
 		budget[ei] -= (item.q || 1);
 		return true;
 	};
 }
 
-// Inventory index of a sellable unit, or -1. trade() addresses stock by inventory slot, not name.
 function stock_inventory_index(entry) {
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
@@ -434,14 +334,11 @@ function stock_inventory_count(entry) {
 	return q;
 }
 
-// Units of this entry already on the stand. Listing moves an item OUT of the inventory, so any
-// "have we got enough" test that only counts the bag reads zero for everything on display and
-// keeps withdrawing replacements until the bank is empty.
 function stock_listed_count(entry) {
 	let q = 0;
 	for (let sn = 1; sn <= TRADE_SLOTS; sn++) {
 		const slot = character.slots["trade" + sn];
-		if (!slot || slot.b) continue;   // empty, or a buy order
+		if (!slot || slot.b) continue;
 		if (slot.name === entry.name && level_matches(slot, entry)) {
 			q += (slot.q === undefined ? 1 : slot.q);
 		}
@@ -449,8 +346,6 @@ function stock_listed_count(entry) {
 	return q;
 }
 
-// What we hold in total: in the bag plus on the stand. This is the number that decides whether a
-// bank trip is warranted.
 function stock_held_count(entry) {
 	return stock_inventory_count(entry) + stock_listed_count(entry);
 }
@@ -468,8 +363,6 @@ function stock_bank_count(entry) {
 	return q;
 }
 
-// Sell offers occupy the TOP of the trade slots and buy orders the bottom, so the two allocators
-// can never collide as the number of missing flavors changes.
 function sell_slot_for(index) {
 	return TRADE_SLOTS - index;
 }
@@ -478,28 +371,20 @@ let _last_sell_refresh = 0;
 
 async function refresh_sell_offers() {
 	if (!CONFIG.trading.enabled || !stand_is_open()) return;
-	// Same throttle as the buy orders. handle_idle_state() runs on the 250ms controller tick, and
-	// re-examining every listing that often is churn even when nothing needs changing.
 	if (Date.now() - _last_sell_refresh < WISHLIST_REFRESH_MS) return;
 	_last_sell_refresh = Date.now();
 
-	// One trade slot per INVENTORY STACK, not one per profile entry. trade() lists a single
-	// inventory slot, and gear does not stack — three +9 firebows are three separate slots — so an
-	// entry of quantity 3 needs three trade slots. Listing per entry put one up and left the other
-	// two sitting in the bag. Stackables are unaffected: one slot still carries the whole quantity.
 	const buy_slots = missing_slice_flavours().length;
 
-	// What is already on the stand, per entry. `q` is absent on non-stackables, where it means one.
 	const listed = CONFIG.sell_profile.map(() => 0);
 	for (let sn = 1; sn <= TRADE_SLOTS; sn++) {
 		const slot = character.slots["trade" + sn];
-		if (!slot || slot.b) continue;   // empty, or a buy order we must not touch
+		if (!slot || slot.b) continue;
 		const ei = CONFIG.sell_profile.findIndex(e =>
 			e.name === slot.name && level_matches(slot, e) && slot.price === e.price);
 		if (ei >= 0) listed[ei] += (slot.q === undefined ? 1 : slot.q);
 	}
 
-	// Free sell slots, taken from the top down so they never meet the buy orders climbing up.
 	const free = [];
 	for (let i = 0; i < TRADE_SLOTS; i++) {
 		const sn = sell_slot_for(i);
@@ -513,31 +398,25 @@ async function refresh_sell_offers() {
 		let short = (entry.quantity || 1) - listed[ei];
 
 		while (short > 0 && free.length) {
-			// Re-scanned each pass: listing an item removes it from the bag and shifts the rest.
 			const num = stock_inventory_index(entry);
-			if (num < 0) break;   // nothing left in the bag — the restock state fetches more
+			if (num < 0) break;
 
 			const take = Math.min(short, character.items[num].q || 1);
 			const slot_no = free.shift();
 			try {
-				await trade(num, slot_no, entry.price, take);   // trade(num, trade_slot, price, quantity)
+				await trade(num, slot_no, entry.price, take);
 				game_log(`🏷️ WTS ${label} x${take} @ ${entry.price}g (slot ${slot_no})`, "#F0B742");
 			} catch (e) {
 				catcher(e, "refresh_sell_offers: " + label);
-				break;   // stop on the first failure for this entry rather than burning every slot
+				break;
 			}
 			short -= take;
 		}
 	}
 }
 
-// "Is it in the bank" is necessary but NOT sufficient, because the bank data behind it is often the
-// localStorage snapshot rather than live: it happily lists an item that is no longer there. That is
-// what put the merchant in a loop — walk to the bank, bank_retrieve rejects no_item, come back,
-// snapshot still says the item exists, walk to the bank again. So a withdraw that produces nothing
-// blocks that entry for a while, and the block is what actually terminates the cycle.
 const RESTOCK_RETRY_MS = 10 * 60 * 1000;
-const _restock_blocked = {};   // "name@level" -> retry-after timestamp
+const _restock_blocked = {};
 
 function restock_key(entry) {
 	return entry.name + "@" + (entry.level === undefined ? "any" : entry.level);
@@ -549,9 +428,7 @@ function restock_blocked(entry) {
 
 function should_run_restock() {
 	if (!CONFIG.trading.enabled) return false;
-	if (merchant_task !== "Idle") return false;   // same guard the other priority checks use
-	// A withdrawal has to land somewhere. Restocking into a nearly-full bag only trips the banking
-	// state on the next tick, which then walks the stock it just fetched back to the bank.
+	if (merchant_task !== "Idle") return false;
 	if (free_inventory_slots() <= CONFIG.min_free_inventory_slots) return false;
 	for (const entry of CONFIG.sell_profile) {
 		if (restock_blocked(entry)) continue;
@@ -566,27 +443,21 @@ async function handle_restocking_state() {
 	try {
 		for (const entry of CONFIG.sell_profile) {
 			const want = entry.quantity || 1;
-			const held = stock_held_count(entry);        // bag + stand
+			const held = stock_held_count(entry);
 			if (held >= want) continue;
 			if (restock_blocked(entry)) continue;
-			// Arrival is judged on the BAG alone: a withdrawal lands there, never on the stand.
 			const in_bag = stock_inventory_count(entry);
 
 			const in_bank = stock_bank_count(entry);
-			if (in_bank <= 0) continue;   // sold out; nothing to fetch
+			if (in_bank <= 0) continue;
 
-			// Per entry, so one item that cannot be fetched does not abandon the rest of the list.
 			try {
-				// withdraw_item(item_name, level, total) — null level means "any level".
 				await withdraw_item(entry.name, entry.level === undefined ? null : entry.level,
 					Math.min(want - held, in_bank));
 			} catch (e) {
 				catcher(e, "handle_restocking_state: " + restock_key(entry));
 			}
 
-			// Judge on the inventory, not on whether withdraw_item threw: a stale snapshot makes it
-			// skip every slot and return quietly having fetched nothing. If none arrived, the bank
-			// does not really hold this and asking again immediately just repeats the trip.
 			if (stock_inventory_count(entry) <= in_bag) {
 				_restock_blocked[restock_key(entry)] = Date.now() + RESTOCK_RETRY_MS;
 				game_log(`⚠️ Restock: ${restock_key(entry)} is not in the bank as listed — `
@@ -600,8 +471,6 @@ async function handle_restocking_state() {
 	}
 }
 
-// Flavors we still want, our own excluded — we can only ever find that one, so buying it would be
-// paying for something we already have a surplus of.
 function missing_slice_flavours() {
 	return SLICE_FLAVOURS.filter(name =>
 		name !== CONFIG.trading.own_flavour && slice_count(name) < CONFIG.trading.target_each);
@@ -615,11 +484,8 @@ async function refresh_slice_buy_orders() {
 	const want = missing_slice_flavours();
 	for (let i = 0; i < want.length && i < TRADE_SLOTS; i++) {
 		const slot = character.slots["trade" + (i + 1)];
-		// `b` marks a slot as a BUY order; a sell offer has no `b`. Leave a correct order alone
-		// rather than re-emitting it every refresh.
 		if (slot && slot.b && slot.name === want[i] && (slot.q || 0) > 0) continue;
 		try {
-			// wishlist(trade_slot, name, price, level, quantity) — slices are materials, level 0.
 			await wishlist(i + 1, want[i], CONFIG.trading.price, 0, CONFIG.trading.quantity);
 			game_log(`🎂 WTB ${want[i]} x${CONFIG.trading.quantity} @ ${CONFIG.trading.price}g`, "#F0B742");
 		} catch (e) {
@@ -629,14 +495,12 @@ async function refresh_slice_buy_orders() {
 }
 
 async function handle_idle_state() {
-	// Only travel if not already close, so this doesn't reissue smarter_move() every tick.
 	if (character.map === HOME.map && Math.hypot(character.x - HOME.x, character.y - HOME.y) <= 10) {
 		await open_merchant_stand();
 		await refresh_slice_buy_orders();
 		await refresh_sell_offers();
 		return;
 	}
-	// Still walking home: the stand has to be down or we cannot move at all.
 	await close_merchant_stand();
 	try {
 		await smarter_move(HOME);
@@ -645,16 +509,12 @@ async function handle_idle_state() {
 	}
 }
 
-// bank_items() walks to BANK_LOCATION itself, and handle_idle_state() brings him back to HOME on
-// the next tick, so this handler only has to sequence the two.
 async function handle_banking_state() {
 	if (merchant_task !== "Idle") return;
 	merchant_task = "Banking";
 	try {
 		log(`🎒 Down to ${free_inventory_slots()} free slots — emptying the pack.`, "#888");
 		await sell_items();
-		// A trip that deposits nothing would otherwise re-fire on the next 250ms controller tick,
-		// since the pack is still full and the items are still bankable. Back off instead.
 		const banked = await bank_items();
 		if (!banked) _bank_retry_at = Date.now() + BANKING_RETRY_MS;
 	} catch (e) {
@@ -670,9 +530,6 @@ async function handle_delivering_state() {
 	try {
 		log("Beginning delivery run...");
 
-		// Fighters jitter x/y constantly while orbiting their target; only re-target on a
-		// meaningful move or map change. Threshold must exceed the largest orbit diameter
-		// (2x circle_radius; Ranger's 75 is the largest), not just its radius.
 		const RETARGET_THRESHOLD = 160;
 		let last_target = null;
 
@@ -688,8 +545,6 @@ async function handle_delivering_state() {
 					if (moved_enough) {
 						log(`🎯 Delivery: heading to ${name} @ ${status.map} (${Math.round(status.x)}, ${Math.round(status.y)})`, "#888");
 
-						// "interrupted" = this re-target replaced a still-in-flight move, not
-						// a real failure.
 						smarter_move({ map: status.map, x: status.x, y: status.y })
 							.catch(e => {
 								if (e?.reason !== "interrupted") catcher(e, "handle_delivering_state: smarter_move to " + name);
@@ -721,7 +576,7 @@ async function handle_upgrading_state() {
 	if (merchant_task !== "Idle") return;
 	try {
 		log("Starting auto-upgrade process...");
-		await auto_upgrade(); // manages merchant_task itself, ends back on "Idle"
+		await auto_upgrade();
 	} catch (e) {
 		catcher(e, "handle_upgrading_state");
 		merchant_task = "Idle";
@@ -742,7 +597,7 @@ async function handle_crafting_state() {
 
 async function handle_exchanging_state() {
 	if (merchant_task !== "Idle") return;
-	await exchange_items(); // has its own exchange_items_running guard + finally reset
+	await exchange_items();
 }
 
 async function equip_default_gear() {
@@ -805,9 +660,6 @@ async function equip_tool(tool_name) {
 	return character.slots.mainhand && character.slots.mainhand.name === tool_name;
 }
 
-// use_skill() can reject with "cooldown" while is_on_cooldown() still reads false; without a
-// bound, the retry below spins forever, the task never ends, and the watchdog fires every
-// 5 minutes while a second copy of the task starts alongside it.
 const GATHERING_MAX_COOLDOWN_RETRIES = 15;
 
 async function handle_gathering_state(tool_name, skill_name, spot, tolerance, task_label) {
@@ -823,8 +675,6 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 		}
 
 		if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > tolerance) {
-			// Explicit radius: smarter_move()'s default (10) is looser than tolerance (5),
-			// which would let it "arrive" outside tolerance and abort before ever casting.
 			await smarter_move(spot, null, { radius: tolerance });
 		}
 
@@ -855,10 +705,6 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 				log(`📦 Inventory full, stopping ${skill_name}.`);
 				break;
 			}
-			// is_on_cooldown() only goes true once an attempt succeeds (caught something) --
-			// stop here and let should_run_fishing()/should_run_mining() (which gate on
-			// !is_on_cooldown()) bring the merchant back once the real cooldown clears.
-			// Waiting it out inline here instead proved unreliable.
 			if (is_on_cooldown(skill_name)) {
 				log(`✅ ${skill_name} succeeded — on cooldown now, moving on.`, "limegreen");
 				break;
@@ -880,8 +726,6 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 				break;
 			}
 
-			// character.c[skill_name] reflects this one attempt resolving, regardless of
-			// whether it succeeds -- wait for it before checking again.
 			await delay(200);
 			let channel_wait_ms = 0;
 			while (!character.rip && character.c && character.c[skill_name]) {
@@ -894,8 +738,6 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 			}
 		}
 
-		// Re-equip resting gear BEFORE selling/banking -- otherwise bank_items() could
-		// sweep the still-unequipped resting gear away, leaving the pickaxe/rod stuck on.
 		try {
 			await equip_default_gear();
 		} catch (e) {
@@ -909,13 +751,7 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 	} catch (e) {
 		catcher(e, `handle_gathering_state(${skill_name})`);
 	} finally {
-		// Only clean up if this run still owns the task slot. After a watchdog force-reset a
-		// replacement task is already running, and re-equipping resting gear / clearing
-		// merchant_task here would strip its tool and free a slot it legitimately holds.
 		if (my_generation === merchant_task_generation) {
-			// try/catch here too: an exception inside a finally block skips the rest of that
-			// finally, so an unguarded equip_default_gear() failure would skip the
-			// merchant_task reset and deadlock the state machine permanently.
 			try {
 				await equip_default_gear();
 			} catch (e) {
@@ -937,9 +773,6 @@ async function handle_mining_state() {
 
 async function set_state(state) {
 	try {
-		// An open stand pins the merchant in place. Every state except IDLE needs to move, so the
-		// stand comes down here rather than in each handler — a handler that forgot would present
-		// as the merchant being mysteriously stuck, not as a stand being open.
 		if (state !== MERCHANT_STATES.IDLE && stand_is_open()) await close_merchant_stand();
 
 		switch (state) {
@@ -961,14 +794,10 @@ async function set_state(state) {
 	}
 }
 
-// If merchant_task ever gets stuck non-"Idle" (a deadlock in some handler), every
-// should_run_*() check requires "Idle", freezing the whole state machine -- force it back
-// after a long timeout so an undiscovered deadlock self-heals instead of hanging forever.
 const MERCHANT_TASK_WATCHDOG_MS = 5 * 60 * 1000;
 let watchdog_task = merchant_task;
 let watchdog_since = Date.now();
 
-// Sole owner of movement -- every other loop in this file is passive (no smarter_move calls).
 async function loop_controller() {
 	while (true) {
 		try {
@@ -980,7 +809,7 @@ async function loop_controller() {
 			} else if (merchant_task !== "Idle" && Date.now() - watchdog_since > MERCHANT_TASK_WATCHDOG_MS) {
 				game_log(`⚠️ Merchant stuck on "${merchant_task}" for over ${MERCHANT_TASK_WATCHDOG_MS / 60000} minutes — forcing back to Idle.`, "#FF3333");
 				merchant_task = "Idle";
-				merchant_task_generation++; // tells the stuck handler to abandon its run
+				merchant_task_generation++;
 				watchdog_task = "Idle";
 				watchdog_since = Date.now();
 			}
@@ -994,8 +823,6 @@ async function loop_controller() {
 	}
 }
 
-// Game-engine-invoked callbacks (same convention as on_cm) -- not dead code despite no
-// visible call site.
 function on_party_request(name) {
 	if (PARTY.includes(name)) accept_party_request(name);
 }
@@ -1028,22 +855,14 @@ async function mluck_party_member(player) {
 	await delay(100);
 	use_skill("mluck", player);
 	await delay(200);
-	// No local bookkeeping -- the target's own cache reports the refreshed
-	// character.s.mluck.ms within ~100ms, which is_mluck_due() reads directly.
 }
 
 async function buff_nearby_party() {
 	let buffed_any = false;
 	for (const name of PARTY) {
 		const status = read_state_cache(name);
-		// Top-up threshold, not the trip threshold: everyone in range gets refreshed, not just
-		// whoever happened to expire. That is the whole point of being here.
 		if (!status || !mluck_worth_topping_up(status)) continue;
 		try {
-			// mluck's own range (320), not CONFIG.party.action_range (350). A member standing
-			// between the two gets cast at, rejected too_far, and their remaining time does not
-			// change — so the 1s opportunistic loop retries forever. That window was narrow while
-			// only near-expiry members were cast on; the wider top-up makes it easy to hit.
 			const mluck_range = (G.skills.mluck && G.skills.mluck.range) || 320;
 			const player = get_player(name);
 			if (
@@ -1065,9 +884,6 @@ async function buff_nearby_party() {
 // OPPORTUNISTIC SIDE-DECISIONS (buy potions / collect loot / buff party)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// None of these travel on their own -- each only acts if the merchant already happens to
-// be near the relevant spot/party. Don't compete in CONFIG.priorities since they cost
-// nothing to check and never block on travel.
 
 function should_buy_potions() {
 	const shop = CONFIG.locations.POTION_SHOP;
@@ -1098,9 +914,6 @@ const LOOT_COLLECTION_COOLDOWN = 60000;
 let last_loot_time = 0;
 
 function should_collect_loot() {
-	// Nowhere to put it is a reason not to ask. send_to_merchant() pushes items blind — it checks
-	// our distance, never our free space — so a pull with a full bag just fails item by item while
-	// the fighters stay cluttered.
 	if (free_inventory_slots() <= CONFIG.min_free_inventory_slots) return false;
 	return Date.now() - last_loot_time >= LOOT_COLLECTION_COOLDOWN && any_party_within_range();
 }
@@ -1143,9 +956,6 @@ async function decide_opportunistic_actions() {
 	if (should_buff_party()) await handle_buff_party();
 }
 
-// Runs concurrently with loop_controller(), not nested inside it -- set_state() blocks
-// for however long the current task takes (a delivery or fishing run can last minutes),
-// so a per-tick check there would stop checking these for that whole duration.
 async function opportunistic_actions_loop() {
 	while (true) {
 		try {
@@ -1161,10 +971,7 @@ async function opportunistic_actions_loop() {
 // SELL AND BANK ITEMS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// SELLABLE_ITEMS defined in Game_Config.js
 
-// Must apply the same exclusions sell_items() does, or a bag holding nothing but stand stock sends
-// him walking to HOME for a sale that then declines every slot.
 function has_sellable_items() {
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
@@ -1175,9 +982,6 @@ function has_sellable_items() {
 	return false;
 }
 
-// Walks slots in the same order as bank_items() so the two spend the stand-stock budget
-// identically — otherwise this could report "nothing to bank" for a slot the deposit run would
-// happily take, or vice versa.
 function has_bankable_items() {
 	const keep_for_stand = make_stand_stock_keeper();
 	for (let i = 3; i < character.items.length; i++) {
@@ -1221,9 +1025,6 @@ async function sell_items() {
 			const item = character.items[i];
 			if (!item) continue;
 			if (!SELLABLE_ITEMS.includes(item.name)) continue;
-			// SELLABLE_ITEMS matches on NAME alone, and both of these overlap it. The stand lists a
-			// strring +4 for a billion; the vendor pays pocket change for it and the sale cannot be
-			// undone. Surplus copies are banked instead, never sold.
 			if (is_stand_stock(item)) continue;
 			if (is_default_gear(item)) continue;
 			try {
@@ -1264,13 +1065,10 @@ async function bank_items() {
 		for (let i = 3; i < character.items.length; i++) {
 			const item = character.items[i];
 			if (!item || CONFIG.do_not_bank.includes(item.name)) continue;
-			// Stock we still need on the stand stays put — banking it would undo the restock trip
-			// we just made. Only up to the listing quantity, though: the surplus is exactly what
-			// was filling the bag.
 			if (keep_for_stand(item)) continue;
 			try {
 				await bank_store(i);
-				refresh_bank_snapshot();   // Shared/Party_And_Loot.js — keep the snapshot honest
+				refresh_bank_snapshot();
 				game_log(`🏦 Deposited ${item.name} x${item.q || 1} to bank`);
 				banked_any = true;
 			} catch (e) {
@@ -1384,7 +1182,6 @@ async function exchange_items() {
 		const item_config = CONFIG.exchange.targets.find(cfg => cfg.name === item_name);
 		const min_count = item_config?.min ?? 1;
 
-		// Explicit radius: smarter_move()'s default (10) is looser than EXCHANGE_POSITION_TOLERANCE (5).
 		await smarter_move(HOME, null, { radius: EXCHANGE_POSITION_TOLERANCE });
 		await delay(500);
 

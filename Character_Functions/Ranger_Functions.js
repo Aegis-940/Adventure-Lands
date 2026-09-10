@@ -3,39 +3,28 @@
 // CONFIG VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// var, not const: eval-loader scoping — Shared/Combat_Utilities.js's
-// should_pause_combat_loop() reads this global at call time, and const/let here
-// wouldn't cross the indirect-eval boundary into global scope.
 var home = RANGER_TARGET;
 
-// var, not const: eval-loader scoping — const/let here wouldn't be visible to
-// Game_Config.js's shared CONFIG-reading functions.
 var CONFIG = {
 	combat: {
 		enabled: true,
 		target_priority: ["Ulric", "Myras"],
-		always_attack: ["crabx", "bscorpion"], // Attack regardless of target
-		attack_if_targeted: [...all_bosses, "phoenix"], // Only attack if has target
-		never_attack: ["nerfedmummy"], // Never attack
+		always_attack: ["crabx", "bscorpion"],
+		attack_if_targeted: [...all_bosses, "phoenix"],
+		never_attack: ["nerfedmummy"],
 		use_hunters_mark: true,
 		use_supershot: true,
-		// Monster types to skip supershot + huntersmark on. Moles die to AoE before a single-target
-		// setup pays for itself, and the 640mp a mark+supershot cycle costs is mana scare needs.
 		skill_blacklist: ["dryad", "fireroamer", "plantoid", "mole", "mummy"],
 		min_targets_for_5shot: 4,
 		min_targets_for_3shot: 2,
-		// Only join fights already in progress. Riva was pulling her own packs and then panicking
-		// at the aggro. Engagement is gated here; target ORDER is never gated on it.
 		engage_aggroed_only: true,
-		// Below this fraction of max mp, huntersmark and supershot stop entirely so scare is
-		// always funded. Same idea as the healer's skill_min_mp_pct on curse/dark blessing.
 		skill_min_mp_pct: 0.40,
 	},
 
 	movement: {
 		enabled: true,
 		reposition: true,
-		circle_radius: 75, // reposition() stays within this of the farm spot
+		circle_radius: 75,
 		move_threshold: 10,
 		clump_radius: 30,
 		follow_distance: 15,
@@ -47,8 +36,6 @@ var CONFIG = {
 			mrgreen: 100000,
 			crabxx: 100000,
 			grinch: 100000,
-			// Sentinel, not a real HP value — always treated as "low," so gear swaps to
-			// luck immediately on spawn instead of waiting for HP to drop.
 			franky: 999999999,
 			icegolem: 999999999,
 		},
@@ -136,10 +123,7 @@ var ITEMS_TO_KEEP = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster"
 
 var state = {
 	skin_ready: false,
-	// Set while a manual swap-trick sequence is mid-flight — resolve_equipment() (Shared/
-	// Party_And_Loot.js) checks this and skips its own gear decisions to avoid racing it.
 	gear_locked: 0,
-	// Per-group cooldown timestamps for resolve_equipment()'s EQUIPMENT_RULES groups.
 	equip_cooldowns: {},
 	last_reposition: 0,
 };
@@ -220,7 +204,6 @@ var equipment_sets = {
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // EQUIPMENT RULES — consumed by the shared resolve_equipment()/equipment_manager_loop()
-// (Shared/Party_And_Loot.js).
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function resolve_ranger_weapon() {
@@ -238,8 +221,6 @@ function resolve_ranger_weapon() {
 	return "single";
 }
 
-// Booster/cape/coat/xp swaps were already disabled (commented out) before this was
-// unified — left disabled, not reintroduced as part of this refactor.
 
 function resolve_ranger_loadout() {
 	if (!CONFIG.equipment.boss_set_swap_enabled) return null;
@@ -252,17 +233,10 @@ function resolve_ranger_loadout() {
 	return character.map === destination.map ? "dps" : null;
 }
 
-// var, not const: resolve_equipment() (Shared/Party_And_Loot.js) reads these globals at
-// call time, and const/let here wouldn't cross the indirect-eval boundary into global scope.
-// The orb is a first-class group here too, even though the ranger only has one. She was already
-// the single-writer case by accident; this makes it deliberate and gives her the same place to add
-// more orbs as the others.
 function resolve_ranger_orb() {
 	return set_available("orb") ? "orb" : null;
 }
 
-// Keep scare affordable. Declining to fire another volley while too empty to escape is correct on
-// its own terms, independent of the panic interaction.
 function panic_mp_reserve() {
 	return (G.skills.scare?.mp || 50) + 200;
 }
@@ -273,11 +247,8 @@ var EQUIPMENT_RULES = {
 	orb:     { kind: "set", resolve: resolve_ranger_orb },
 };
 
-// No monster-specific overrides yet — add entries like { dryad: { weapon: "single" } } as
-// needed; each key short-circuits that one group's resolve() for that farm target.
 var MONSTER_GEAR_OVERRIDES = {};
 
-// find_booster_slot, get_num_chests, get_num_targets → Game_Config.js
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // CORE UTILITIES
@@ -286,29 +257,20 @@ var MONSTER_GEAR_OVERRIDES = {};
 const should_attack_mob = (mob) => {
 	if (!mob || mob.dead) return false;
 
-	// 1. Never attack blacklist
 	if (CONFIG.combat.never_attack.includes(mob.mtype)) return false;
 
-	// 2. Bosses: always attack
 	if (CONFIG.combat.attack_if_targeted.includes(mob.mtype)) {
 		return true;
 	}
 
-	// The whitelist and follow mode are the two paths that engage a monster nobody is fighting.
-	// Those pulls landed on Riva, not the tank, and tripped her own panic. Bosses (rules 2 and 4)
-	// stay unconditional — those engagements are deliberate.
 	const aggroed = !CONFIG.combat.engage_aggroed_only || !!mob.target;
 
-	// 3. Always attack whitelist (e.g., crabx)
 	if (CONFIG.combat.always_attack.includes(mob.mtype)) return aggroed;
 
-	// 4. Active event bosses: always attack
 	if (parent?.S?.[mob.mtype]?.live) return true;
 
-	// 5. In follow mode, attack any visible monster
 	if (RANGER_TARGET === "giantspider") return aggroed;
 
-	// 6. Default: attack if targeting party members
 	return CONFIG.combat.target_priority.includes(mob.target);
 };
 
@@ -332,7 +294,6 @@ const update_target_cache = () => {
 		}
 	}
 
-	// Sort: Bosses FIRST, then always_attack, then by HP
 	sorted_by_hp.sort((a, b) => {
 		const a_boss = CONFIG.combat.attack_if_targeted.includes(a.mtype);
 		const b_boss = CONFIG.combat.attack_if_targeted.includes(b.mtype);
@@ -363,20 +324,11 @@ const update_target_cache = () => {
 		}
 	}
 
-	// In single-target follow mode, prefer the closest target
 	if (RANGER_TARGET === "giantspider") {
 		in_range.sort((a, b) => parent.distance(character, a) - parent.distance(character, b));
 	}
 
-	// Score in-range mobs by nearby aggro'd mob count, sort densest first.
-	//
-	// Do NOT reorder this by splash strays. At a dedicated farm spot every mole in the pack is a
-	// stray until something aggros it, so a stray filter never matches and the fallback sorted her
-	// onto the MOST isolated target -- the exact opposite of AoE. Kill rate collapsed, the pack
-	// outgrew what the healer could tank, and the party died 36 times in one hour on 09-07.
-	// Self-pulled aggro is handled at engagement time by engage_aggroed_only, which is the right
-	// place for it; target ordering is for damage.
-	const scored = score_by_explosion_spread(in_range, true); // Shared/Combat_Utilities.js
+	const scored = score_by_explosion_spread(in_range, true);
 	const cluster_targets = scored.map(s => s.mob);
 	const cluster_target = scored[0]?.count >= 3 ? scored[0].mob : null;
 
@@ -403,17 +355,13 @@ const find_heal_target = () => {
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// FOLLOW HEALER — used when RANGER_TARGET === "giantspider". Orbits Myras when
-// close; smart_moves to her when far/different map; falls back to
-// _healer_last_known when she's off-map and invisible.
+// FOLLOW HEALER — state read by follow_goal()/follow_step() in Shared/Party_And_Loot.js
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // var, not let: shared follow_goal()/follow_step() (Party_And_Loot.js) read/write these globals.
 var _healer_last_known = null;
 var _last_healer_ping = 0;
 
-// Following lives in Shared/Party_And_Loot.js as a movement goal; it reads this file's
-// CONFIG.movement.follow_distance at call time.
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MAIN TICK LOOP
@@ -425,7 +373,7 @@ const main_loop = async () => {
 
 		update_cache();
 		panic_check();
-		stuck_escape_check(); // Shared/Movement.js
+		stuck_escape_check();
 
 		if (CONFIG.equipment.use_licence) {
 			let slot = locate_item("licence");
@@ -438,9 +386,6 @@ const main_loop = async () => {
 			}
 		}
 
-		// One decision, one mover. movement_goal() (Shared/Party_And_Loot.js) holds the whole
-		// priority list; travel_arbiter() (Shared/Movement.js) is the only thing that issues,
-		// re-issues or cancels a journey. Nothing in this file moves the character any more.
 		const goal = movement_goal();
 		if (!travel_arbiter(goal)) {
 			movement_local(goal, () => {
@@ -485,9 +430,6 @@ const handle_attack = async () => {
 	const min3 = CONFIG.combat.min_targets_for_3shot;
 	const mp5 = (G.skills["5shot"]?.mp + 400);
 	const mp3 = (G.skills["3shot"]?.mp + 200);
-	// scare is 50mp and the only escape she has. huntersmark (240) and supershot (400) had no mana
-	// guard whatsoever, and the basic-attack floor of 100 left no room either -- 205 scare failures
-	// with reason no_mp. Same reserve the warrior got in e46b25e.
 	const mp1 = Math.max(100, panic_mp_reserve());
 	const can_5shot = character.mp >= mp5;
 	const can_3shot = character.mp >= mp3;
@@ -499,7 +441,6 @@ const handle_attack = async () => {
 	else if (!single_target_mode && can_5shot && out_of_range.length >= min5)  { skill_call = () => use_skill("5shot", out_of_range.slice(0, 5).map(e => e.id)); }
 	else if (!single_target_mode && can_3shot && in_range.length >= min3)      { skill_call = () => use_skill("3shot", cluster_targets.slice(0, 3).map(e => e.id)); }
 	else if (can_1shot && cluster_target)               { skill_call = () => attack(cluster_target); }
-	// Basic attacks splash too, so prefer the densest target. Follow mode keeps closest-first.
 	else if (can_1shot && in_range.length >= 1)         { skill_call = () => attack(single_target_mode ? in_range[0] : (cluster_targets[0] || in_range[0])); }
 	else return;
 
@@ -539,18 +480,11 @@ const skill_loop = async () => {
 
 			const skill_allowed = !CONFIG.combat.skill_blacklist.includes(target.mtype);
 
-			// character.mp is server-authoritative and does not drop until the round trip lands, so
-			// both gates below read the SAME stale value and fired back to back: huntersmark (240)
-			// plus supershot (400) out of one 650 reading leaves 10mp, and scare then fails with
-			// no_mp -- 229 times so far. Subtract what this tick has already committed.
 			const hm_cost = G.skills.huntersmark?.mp || 0;
 			const ss_cost = G.skills.supershot?.mp || 0;
 			let committed = 0;
 			const affordable = (cost) => (character.mp - committed) >= cost + panic_mp_reserve();
 
-			// A fixed reserve alone cannot hold: action_loop spends from the same pool concurrently
-			// and neither loop sees the other's in-flight cast. Treat these as luxuries and stop
-			// them well above the escape cost, the way the healer gates curse and dark blessing.
 			const mana_for_luxuries = character.mp >= character.max_mp * (CONFIG.combat.skill_min_mp_pct ?? 0.40);
 
 			if (skill_allowed && mana_for_luxuries && CONFIG.combat.use_hunters_mark && ms_hunter === 0
@@ -595,19 +529,14 @@ const maintenance_loop = async () => {
 	setTimeout(maintenance_loop, TICK_RATE.maintenance);
 }
 
-// potion_loop → Game_Config.js
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MOVEMENT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Events and going home are movement_goal() entries now — see Shared/Party_And_Loot.js.
 
 const REPOSITION_INTERVAL_MS = 250;
 
-// Keeps as much space as possible between the ranger and the nearest monster (aggro'd or
-// not), staying inside the orbit radius. Maximin, not average distance: the goal is that
-// nothing gets close, so the single closest monster is what matters.
 async function reposition() {
 	if (smart.moving || character.moving) return;
 	if (RANGER_TARGET === "bscorpion") return;
@@ -616,17 +545,16 @@ async function reposition() {
 	if (now - state.last_reposition < REPOSITION_INTERVAL_MS) return;
 	state.last_reposition = now;
 
-	const center = reposition_center(); // Shared/Combat_Utilities.js
+	const center = reposition_center();
 	if (!center) return;
 
-	const score = make_distance_from_monsters_scorer(); // Shared/Combat_Utilities.js
+	const score = make_distance_from_monsters_scorer();
 	if (!score) return;
 
 	const spot = best_orbit_spot(center, CONFIG.movement.circle_radius, score);
 	if (!spot) return;
 	if (Math.hypot(character.x - spot.x, character.y - spot.y) <= CONFIG.movement.move_threshold) return;
 
-	// Use raw move() — xmove falls back to smart_move on obstacle, which would gate attacks
 	move(spot.x, spot.y);
 };
 
@@ -699,7 +627,6 @@ async function reposition() {
 // HELPER FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// clear_inventory() moved to Shared/Game_Config.js; reads this file's ITEMS_TO_KEEP.
 
 // var, not const: shared inventory_sorter() (Game_Config.js) reads this at call time.
 var item_order = {
@@ -713,9 +640,6 @@ var item_order = {
 	jacko: 7
 };
 
-// inventory_sorter() moved to Shared/Game_Config.js; reads this file's item_order.
-
-// auto_buy_potions → Game_Config.js
 
 function elixir_usage() {
 	const required = "pumpkinspice";
@@ -731,18 +655,14 @@ function elixir_usage() {
 var panicking = false;
 var last_panic_time = 0;
 var last_safe_time = 0;
-// Set by the healer's panic broadcast (Shared/Messaging.js). panic_check() will not clear a
-// panic it did not raise itself -- only her all-clear does -- so "hold fire" actually holds.
 var panic_external = false;
 var panic_external_since = 0;
 
-// No PANIC_BROADCAST_TARGETS here — only Healer broadcasts panic state to the fighters.
 var PANIC_THRESHOLDS = {
 	low_hp: 0.50, low_mp: 0.01, high_hp: 0.80, high_mp: 0.33,
 	aggro: 1, cooldown: 1000,
 };
 
-// panic_check() moved to Shared/Game_Config.js; reads this file's PANIC_THRESHOLDS.
 
 // party_maker() — replaced by shared party_manager() from Game_Config.js
 // function party_maker() {
@@ -765,7 +685,6 @@ var PANIC_THRESHOLDS = {
 // 	}
 // }
 
-// suicide, setInterval(suicide, 50), sleep → Game_Config.js
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // CHARACTER STARTER
@@ -959,14 +878,6 @@ async function combine_items() {
 // EQUIPMENT HELPERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// get_nearest_monster_v2, ms_to_next_skill, batch_equip → Game_Config.js
-
-// is_set_equipped()/equip_set() moved to Shared/Game_Config.js; reads this file's
-// own `equipment_sets` global at call time.
-
-// ============================================================================
-// SKIN CHANGER
-// ============================================================================
 
 // const skinConfigs = {
 // 	ranger: {
@@ -1044,12 +955,7 @@ async function combine_items() {
 // EVENT HANDLERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// panic/my_location/suppress_reset/enter_instance CM listener -> Shared/Messaging.js's
-// CM_HANDLERS.
 
-// on_party_request/on_party_invite -> Shared/Party_And_Loot.js
-
-// send_updates() -> Shared/Messaging.js
 setInterval(send_updates, 20000);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -1062,6 +968,6 @@ skill_loop();
 equipment_manager_loop();
 maintenance_loop();
 potion_loop();
-anniversary_loop(); // Shared/Party_And_Loot.js — 10th-anniversary featured-player visit
+anniversary_loop();
 if (RANGER_TARGET === "bscorpion") prim_farm_loop();
 setInterval(remote_sell_items, 5000);

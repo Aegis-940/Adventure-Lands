@@ -1,13 +1,12 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MESSAGING — CM (character message) handlers and the localStorage-backed state cache
-// (split out of Game_Config.js — real <script> tag, same global scope, no eval boundary)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // CM HANDLERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const _cmListeners = []; // unified naming
+const _cmListeners = [];
 
 function add_cm_listener(fn) {
 	if (!_cmListeners.includes(fn)) _cmListeners.push(fn);
@@ -18,7 +17,6 @@ function remove_cm_listener(fn) {
 	if (index !== -1) _cmListeners.splice(index, 1);
 }
 
-// Preserve existing handler
 const original_on_cm = typeof on_cm === "function" ? on_cm : () => {};
 
 on_cm = function (name, data) {
@@ -34,9 +32,7 @@ on_cm = function (name, data) {
 
 const location_responses = {};
 
-// Central CM message handlers
 const CM_HANDLERS = {
-	// _healer_last_known/panicking are only declared on characters that read them — no-op elsewhere.
 	"my_location": (name, data) => {
 		location_responses[name] = { map: data.map, x: data.x, y: data.y };
 		if (name === "Myras") {
@@ -48,14 +44,7 @@ const CM_HANDLERS = {
 		if (name !== "Myras") return;
 		const was_panicking = (typeof panicking !== "undefined") && panicking;
 		panicking = data.state;
-		// Dump aggro on the very next panic_check() tick. panic_check() only zeroes
-		// last_panic_time when IT raises the panic; a broadcast sets `panicking` from out here and
-		// skips that, so the fighter sat out whatever remained of the 1000ms cooldown from an
-		// earlier panic before equipping the jacko and scaring -- a full second of the party still
-		// holding the pack that is killing the healer.
 		if (data.state && !was_panicking) last_panic_time = 0;
-		// Marks this as someone else's panic so panic_check() won't clear it the moment we're
-		// personally healthy — otherwise "hold fire" lasted about one tick on the warrior.
 		panic_external = data.state;
 		panic_external_since = data.state ? Date.now() : 0;
 		if (data.state) log("⚠️ Healer panicking — holding fire!", "#ffcc00", "Alerts");
@@ -105,7 +94,6 @@ const CM_HANDLERS = {
 			await send_to_merchant();
 	},
 
-	// status_update/status_update_request removed — replaced by the localStorage state cache below.
 
 	"reload": () => {
 		setTimeout(() => parent.window.location.reload(), 500);
@@ -141,10 +129,8 @@ add_cm_listener((name, data) => {
 // STATE CACHE (localStorage — shared across all characters' browser tabs on this origin)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// localStorage is shared across all 4 characters' tabs (same origin). Each writes its own
-// snapshot every cycle; others read it synchronously via read_state_cache(name) — no CM round trip.
 const STATE_CACHE_KEY_PREFIX = "AL_char_state_";
-const STATE_CACHE_STALE_MS = 15000; // a cache older than this is treated as unknown/offline
+const STATE_CACHE_STALE_MS = 15000;
 
 function get_full_character_state() {
 	return {
@@ -161,34 +147,19 @@ function get_full_character_state() {
 		y: character.y,
 		rip: character.rip,
 		moving: character.moving,
-		// On a journey, as opposed to `moving` which is true for a single farming step. This is
-		// what lets the followers leave at the same instant the leader does instead of noticing
-		// once she has already cleared the farm radius — the gap in which they used to be caught
-		// alone on the road. smart is per-character and always present on the runner.
 		travelling: !!(smart && smart.moving)
 			|| (typeof anniversary_travel !== "undefined" && !!anniversary_travel),
-		// Still owes an anniversary visit this round. party_cohesion_hold() needs INTENT here, not
-		// position: a member who has not kissed yet stands right beside the leader until the moment
-		// they walk off, so distance alone reads "together" and she leaves without them. Goes false
-		// the moment the visit is collected, the ticket expires, or the round ends.
 		anniv_pending: typeof anniversary_should_travel === "function" && anniversary_should_travel(),
-		// The buff IS the objective, and it is server truth rather than our own bookkeeping. The
-		// party leaves the moment all three combat members have it, so publishing it means a member
-		// whose state machine has got itself confused can no longer hold everyone else still.
 		has_kiss: !!(character.s && character.s.anniversary_kiss),
-		// Breadcrumbs of the route the leader has actually walked, for the followers to trace
-		// instead of each pathfinding the same journey independently. Null on everyone else, so
-		// only one character pays to serialise it. See trail_record() in Party_And_Loot.js.
 		trail: typeof leader_trail_snapshot === "function" ? leader_trail_snapshot() : null,
 		free_slots: character.items.filter(it => !it).length,
-		conditions: character.s || {}, // stunned, mluck, poisoned, etc. — see character.s
+		conditions: character.s || {},
 		last_seen: Date.now(),
 	};
 }
 
 function write_state_cache() {
 	try {
-		// Before the snapshot is built, so a breadcrumb dropped this tick is published this tick.
 		if (typeof trail_record === "function") trail_record();
 	} catch (e) { /* never let the trail stop the cache being written */ }
 	try {
@@ -198,7 +169,6 @@ function write_state_cache() {
 	}
 }
 
-// Returns null if never written, corrupt, or stale (> STATE_CACHE_STALE_MS) — treat as unknown/offline.
 function read_state_cache(name) {
 	try {
 		const raw = localStorage.getItem(STATE_CACHE_KEY_PREFIX + name);
@@ -215,7 +185,6 @@ function is_character_online(name) {
 	return read_state_cache(name) !== null;
 }
 
-// Started by every character — keeps this character's own state cache fresh.
 async function state_cache_loop() {
 	STATE_CACHE_LOOP_ENABLED = true;
 	while (true) {
@@ -227,4 +196,3 @@ async function state_cache_loop() {
 		await delay(100);
 	}
 }
-

@@ -6,8 +6,6 @@
 // var, not const: Healer_Skills.js (separate eval closure) also reads this global.
 var home = HEALER_TARGET;
 
-// var, not const: eval-loader scoping — const/let here wouldn't be visible to
-// Game_Config.js's shared CONFIG-reading functions.
 var CONFIG = {
 	combat: {
 		enabled: true,
@@ -17,8 +15,6 @@ var CONFIG = {
 		all_bosses,
 		aggro: true,
 		aggro_cap: 5,
-		// Curse lasts 5s and amplifies damage, so spending 400mp on something already nearly dead
-		// buys nothing. The old floor was 1%, which allowed exactly that.
 		curse_min_hp_pct: 0.25,
 	},
 
@@ -35,10 +31,6 @@ var CONFIG = {
 		party_heal_min_mp: 500,
 		absorb_enabled: true,
 		dark_blessing_enabled: true,
-		// Below this share of max mp, stop spending on anything that is not healing. curse is
-		// 400mp and dark blessing 900mp; both are luxuries once the healing budget is the
-		// constraint. absorb is deliberately NOT included — it is how she takes aggro off the
-		// warrior, and cutting it moves the damage onto someone who cannot heal it.
 		skill_min_mp_pct: 0.40
 	},
 
@@ -59,8 +51,6 @@ var CONFIG = {
 			mrgreen: 300000,
 			bscorpion: 75000,
 			pinkgoblin: 75000,
-			// Sentinel, not a real HP value — always treated as "low," so gear swaps to
-			// luck immediately on spawn instead of waiting for HP to drop.
 			franky: 999999999,
 			icegolem: 999999999,
 		}
@@ -71,8 +61,6 @@ var CONFIG = {
 		hp_threshold: 400,
 		mp_threshold: 500,
 		min_stock: 1000,
-		// She turns mana into health at roughly 7:1 versus a health potion, off the same shared
-		// cooldown, so mana always comes first. Only she has that conversion.
 		prefer_mp: true
 	},
 
@@ -98,18 +86,14 @@ var ITEMS_TO_KEEP = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster"
 
 // var, not const: Healer_Skills.js (separate eval closure) also reads/writes these.
 var state = {
-	current: "idle", // idle, looting, moving
+	current: "idle",
 	skin_ready: false,
 	last_equip_time: 0,
 	last_loot_time: 0,
 	last_gold_swap: 0,
 	last_temporal_surge: 0,
 	angle: 0,
-	// Set while a manual swap sequence (gold-gear looting swap, temporal surge) is mid-flight —
-	// resolve_equipment() (Shared/Party_And_Loot.js) checks this and skips its own gear
-	// decisions to avoid racing it.
 	gear_locked: 0,
-	// Per-group cooldown timestamps for resolve_equipment()'s EQUIPMENT_RULES groups.
 	equip_cooldowns: {},
 	last_angle_update: performance.now()
 };
@@ -152,8 +136,6 @@ var equipment_sets = {
 	gold: [
 		{ item_name: "handofmidas", slot: "gloves", level: 4, l: "l" },
 	],
-	// Own set (also present in `luck`) so the gloves group below can restore them after
-	// handle_looting()'s gold swap even when an override replaces the loadout group.
 	gloves: [
 		{ item_name: "supermittens", slot: "gloves", level: 7, l: "l" },
 	],
@@ -163,8 +145,6 @@ var equipment_sets = {
 	panic: [
 		{ item_name: "jacko", slot: "orb", level: 0, l: "l" },
 	],
-	// Orb sets. The orb is its own EQUIPMENT_RULES group now, so every orb the healer might wear
-	// lives in a set of its own and resolve_healer_orb() picks between them. Add more freely.
 	orb_luck: [
 		{ item_name: "rabbitsfoot", slot: "orb", level: 1, l: "l" },
 	],
@@ -192,11 +172,6 @@ var equipment_sets = {
 function update_cache() {
 	if (!cache.is_valid()) {
 		cache.target = find_best_target();
-		// cache.nearest_boss and cache.zap_targets are not computed here any more. Nothing reads
-		// nearest_boss anywhere in the codebase, and find_zap_targets() is the only consumer of
-		// zap_targets — Healer_Skills.js calls it directly, and it early-returns while
-		// zapper_enabled is false. Both were walking parent.entities on the 50ms cache TTL to
-		// produce values nobody used, and every walk costs more as monsters pile onto her.
 		cache.party_members = get_party_members();
 		cache.last_update = performance.now();
 	}
@@ -207,20 +182,13 @@ function update_cache() {
 function find_best_target() {
 	const max_dist = HEALER_TARGET === "giantspider" ? 50 : character.range;
 
-	// Priority 1: Bosses. ONE walk, not eleven — get_nearest_monster_v2 takes an array of types and
-	// filters with includes(), so the loop was re-walking every entity in the game once per boss
-	// type. update_cache() refreshes on a 50ms TTL, so that was 220 full entity walks a second from
-	// this line alone, and the cost of each one grows with the number of monsters on her. That is
-	// why her actions get slower the more trouble she is in.
 	const boss = get_nearest_monster_v2({ type: CONFIG.combat.all_bosses, max_distance: max_dist });
 	if (boss) return boss;
 
-	// Follow mode: only attack monsters already targeting the healer, never seek new aggro
 	if (HEALER_TARGET === "giantspider") {
 		return get_nearest_monster_v2({ target: character.name, max_distance: max_dist }) || null;
 	}
 
-	// Priority 2: Aggro untargeted monsters up to effective_aggro_cap (scaled by mana %)
 	if (CONFIG.combat.aggro && count_my_aggro() < effective_aggro_cap()) {
 		const untargeted = get_nearest_monster_v2({
 			no_target: true,
@@ -229,7 +197,6 @@ function find_best_target() {
 		if (untargeted) return untargeted;
 	}
 
-	// Priority 3: Named targets
 	for (const name of CONFIG.combat.target_priority) {
 		const target = get_nearest_monster_v2({
 			target: name,
@@ -239,7 +206,6 @@ function find_best_target() {
 		if (target) return target;
 	}
 
-	// Priority 4: Highest HP monster in range (catches bosses not targeting party)
 	const highest_hp = get_nearest_monster_v2({
 		max_distance: character.range,
 		check_max_hp: true
@@ -260,7 +226,6 @@ function count_my_aggro() {
 
 function effective_aggro_cap() {
 	const mp_pct = character.max_mp > 0 ? character.mp / character.max_mp : 0;
-	// Scale linearly between 20% (→0) and 80% (→full cap), clamp outside
 	const scaled = Math.max(0, Math.min(1, (mp_pct - 0.2) / 0.6));
 	return Math.floor(CONFIG.combat.aggro_cap * scaled);
 }
@@ -274,13 +239,6 @@ function find_heal_target() {
 		const ally = get_player(name);
 		if (!ally || ally.rip) continue;
 
-		// `rip` is not enough. It lags hp reaching zero by a round trip, and a corpse at hp 0 has
-		// pct 0, so it wins the selection outright and try_heal() then pours heals into it. Every
-		// one is rejected with not_there, and a rejected heal costs NO mana and sets NO cooldown --
-		// which is exactly how the healer died 35 times at 87-99% mana with nothing in the log but
-		// thousands of not_there. An unreachable ally must not win either: try_heal() heals only
-		// the chosen target and bails when it is out of range, so locking onto someone unreachable
-		// means healing nobody at all, including ourselves.
 		if (!ally.hp || !ally.max_hp) continue;
 		if (name !== character.name && !is_in_range(ally, "heal")) continue;
 
@@ -312,10 +270,6 @@ function get_party_members() {
 	return Object.keys(get_party() || {});
 }
 
-// Also one walk instead of eleven, and this one had no max_distance so each pass covered every
-// entity on the map. Same {mob, type} shape as before; mtype off the entity is the same string the
-// loop was reporting. Ties now go to the nearest boss rather than to whichever type sat earliest in
-// all_bosses, which only differs when two boss types are up at once.
 function find_nearest_boss() {
 	const boss = get_nearest_monster_v2({ type: CONFIG.combat.all_bosses });
 	return boss ? { mob: boss, type: boss.mtype } : null;
@@ -329,9 +283,6 @@ async function main_loop() {
 	if (typeof errlog_beat === "function") errlog_beat("main_loop");
 	try {
 		if (is_disabled(character)) {
-			// A dead/stunned healer never reaches panic_check(), so a panic she already
-			// broadcast would never be followed by an all-clear — Ulric and Riva would hold
-			// fire until they died too. Release them on the way out.
 			if (panicking) {
 				panicking = false;
 				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
@@ -341,12 +292,8 @@ async function main_loop() {
 
 		update_cache();
 		if (HEALER_TARGET !== "fireroamer" && HEALER_TARGET !== "giantspider") panic_check();
-		stuck_escape_check(); // Shared/Movement.js
+		stuck_escape_check();
 
-		// One decision, one mover. movement_goal() (Shared/Party_And_Loot.js) holds the whole
-		// priority list — anniversary, her cohesion hold, events, the farm spot — and
-		// travel_arbiter() (Shared/Movement.js) is the only thing that issues, re-issues or
-		// cancels a journey. Nothing in this file moves the character any more.
 		const goal = movement_goal();
 		if (!travel_arbiter(goal)) {
 			if (should_loot()) {
@@ -383,7 +330,6 @@ async function check_temporal_surge() {
 
 	const prev_orb = character.slots.orb ? { name: character.slots.orb.name, level: character.slots.orb.level } : null;
 
-	// Blocks resolve_equipment() (Shared/Party_And_Loot.js) from racing this multi-step swap.
 	lock_gear();
 	try {
 		state.last_equip_time = performance.now();
@@ -393,7 +339,6 @@ async function check_temporal_surge() {
 		state.last_temporal_surge = Date.now();
 		state.last_equip_time = performance.now();
 
-		// Swap back to whatever set resolve_equipment() would choose
 		if (prev_orb) {
 			const inv_idx = character.items.findIndex(
 				i => i && i.name === prev_orb.name && i.level === prev_orb.level
@@ -411,45 +356,13 @@ async function check_temporal_surge() {
 // ACTION LOOP - Combat and healing only
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Lives here, not Healer_Skills.js: action_loop() calls it and starts running before
-// Healer_Skills.js (separate eval closure) has loaded.
-// AL resolves an attack/heal promise when the PROJECTILE LANDS, not when the server accepts the
-// cast — the resolve payload carries `projectile` and `eta`. So `await heal()` parks the whole loop
-// for the entire flight. Measured on eb0dc6e over 105s: 61 heals, 29 taking 250-500ms, 22 taking
-// 500-1000ms and 6 over a second, while event-loop lag stayed under 50ms and update_cache under
-// 5ms throughout. About 37 of those 105 seconds were spent blocked on that one line, unable to
-// react to anything. That is the visual delay.
-//
-// So issue the action and keep looping. Nothing was gained by waiting: the shared cooldown governs
-// when the next cast may go out, and this loop already polls it. One basic action may be in flight
-// at a time, which is what the cooldown allows anyway; the expiry is insurance so a promise that
-// never settles cannot silently stop her healing forever.
 let _basic_action_until = 0;
 
 function basic_action_busy() {
 	return Date.now() < _basic_action_until;
 }
 
-// Fires `p` without blocking the caller.
-//
-// The guard is deliberately SHORT and never waits for the promise. Holding it until the projectile
-// lands is the same mistake as awaiting: heal flights measure 200-1600ms, so an until-settled
-// interlock capped her at one cast per flight instead of one per cooldown, and action_loop then
-// spun at 10ms refusing to act — 92 iterations a second, cc at 52-59, skill_loop starved to zero
-// beats, and she died at 21:18:33 having spent 583 mana in nine seconds.
-//
-// All this needs to prevent is firing twice inside a single round trip, before parent.next_skill
-// reflects the cast. After that the shared cooldown gate above is the authority, which is what the
-// single lifetime `heal cooldown` rejection says it already does well.
 function run_basic_action(p, label) {
-	// Derived from the real cooldown, not from ping. A ping-sized guard clamped at 400ms was too
-	// short for a 100-500ms link and let a second cast out before parent.next_skill caught up:
-	// heal cooldown rejections went 1 -> 95, about 4.7% of casts wasted as emits.
-	//
-	// character.frequency is attacks per second, so 1000/frequency IS the cooldown. Holding 90% of
-	// it cannot cost her a window — the guard always expires before the cooldown does, leaving
-	// ms_to_next_skill() the authority — while still covering any round trip shorter than the
-	// cooldown itself, which is every round trip that matters here.
 	const freq = character.frequency > 0 ? character.frequency : 1.1;
 	_basic_action_until = Date.now() + (1000 / freq) * 0.9;
 	const t0 = Date.now();
@@ -459,9 +372,6 @@ function run_basic_action(p, label) {
 	);
 }
 
-// try_heal() returns "handled, do not attack", which is true both when it casts and when the
-// round-trip guard refuses. action_loop has to tell those apart — only one of them is progress,
-// and re-entering at 10ms on the other is what burns code cost.
 let _heal_cast = false;
 
 async function try_heal() {
@@ -515,11 +425,6 @@ async function action_loop() {
 		const ms = ms_to_next_skill("attack");
 
 		if (ms === 0) {
-			// The timer is free but we may still take no action — nothing hurt enough to heal, or a
-			// cast already in flight this round trip. Re-entering at 10ms in that state achieves
-			// nothing and costs code cost: at 92 iterations a second it drove cc to 52-59 and
-			// starved skill_loop to zero beats, and high cc is what silently stops the server
-			// applying equips. 40ms is invisible against a ~900ms cooldown.
 			let acted = false;
 
 			const HEALED = await try_heal();
@@ -537,10 +442,6 @@ async function action_loop() {
 			);
 			const i_need_the_timer = character.hp < my_heal_threshold;
 
-			// Travelling: heal, but never attack. An autoattack here pulls aggro we then drag across
-			// the map, and find_best_target's priority-2 would actively seek it out. Covers both the
-			// anniversary trip and any smart_move journey; walk_in_circle uses xmove and reposition
-			// bails while smart.moving, so ordinary farming does not trip this.
 			const travelling = smart.moving
 				|| (typeof anniversary_travel !== "undefined" && anniversary_travel);
 
@@ -563,8 +464,6 @@ async function action_loop() {
 		delay = 1;
 	}
 
-	// Whole-iteration cost. Everything above is a component of this, so if the total is small and
-	// heals are still far apart, the time is going somewhere outside this function.
 	if (typeof errlog_time === "function") errlog_time("iter action_loop", _t() - t_enter);
 	_al_due = _t() + delay;
 	setTimeout(action_loop, delay);
@@ -599,13 +498,11 @@ async function maintenance_loop() {
 	setTimeout(maintenance_loop, TICK_RATE.maintenance);
 }
 
-// potion_loop → Game_Config.js
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MOVEMENT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Events and going home are movement_goal() entries now — see Shared/Party_And_Loot.js.
 
 async function walk_in_circle() {
 	if (smart.moving) return;
@@ -657,8 +554,6 @@ function should_loot() {
 async function handle_looting() {
 	state.last_loot_time = performance.now();
 	state.current = "looting";
-	// Blocks resolve_equipment() (Shared/Party_And_Loot.js) from racing the gold-gear swap
-	// below with its own loadout decision.
 	lock_gear();
 
 	try {
@@ -682,10 +577,6 @@ async function handle_looting() {
 		await delay(150);
 
 		if (CONFIG.looting.equip_gold_gear) {
-			// Not equip_set("luck") here -- that was a hardcoded leftover from before
-			// MONSTER_GEAR_OVERRIDES existed and would fight any active override (e.g.
-			// fireroamer -> fireres). resolve_equipment() picks the right set on its own
-			// once state.gear_locked releases below.
 			await swap_booster("goldbooster", "luckbooster");
 			await delay(200);
 		}
@@ -717,44 +608,29 @@ function save_chest_map(map) {
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // EQUIPMENT RULES — consumed by the shared resolve_equipment()/equipment_manager_loop()
-// (Shared/Party_And_Loot.js). Not run while looting: handle_looting() sets state.gear_locked.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function resolve_healer_loadout() {
 	return "luck";
 }
 
-// Which orb to wear when panic is not holding the slot. One place to extend as more orbs arrive:
-// return a different set name on any condition you like.
 function resolve_healer_orb() {
 	if (set_available("orb_luck")) return "orb_luck";
-	if (set_available("orb")) return "orb";   // talkingskull, if the rabbitsfoot ever goes missing
-	return null;                              // own neither: leave the slot rather than retry forever
+	if (set_available("orb")) return "orb";
+	return null;
 }
 
-// var, not const: resolve_equipment() (Shared/Party_And_Loot.js) reads these globals at
-// call time, and const/let here wouldn't cross the indirect-eval boundary into global scope.
 var EQUIPMENT_RULES = {
 	loadout: { kind: "set", resolve: resolve_healer_loadout },
-	// Separate group from loadout so it survives a MONSTER_GEAR_OVERRIDES entry that only
-	// names loadout — otherwise handle_looting()'s gold gloves would never be swapped back.
 	gloves:  { kind: "set", resolve: () => "gloves" },
-	// The orb is a first-class group rather than an item smuggled inside `luck`. That gives it a
-	// single owner: panic_check takes the slot while panicking (batch_equip's interlock
-	// enforces it) and this group owns it the rest of the time.
 	orb:     { kind: "set", resolve: resolve_healer_orb },
 };
 
-// dryad/fireroamer used to be a one-off HEALER_TARGET check inside handle_equipment_swap();
-// generalized here so any farm target can override any group.
 var MONSTER_GEAR_OVERRIDES = {
 	dryad:      { loadout: "mdef" },
-	// Per-group overrides, so fireroamer swaps the orb without the loadout smuggling one.
 	fireroamer: { loadout: "fireres", orb: "orb_fire" },
 };
 
-// is_set_equipped()/equip_set() moved to Shared/Game_Config.js; reads this file's
-// own `equipment_sets` global at call time.
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // HELPER FUNCTIONS
@@ -765,16 +641,12 @@ var panicking = false;
 var last_panic_time = 0;
 var last_safe_time = 0;
 
-// Healer is the only one who broadcasts panic state to the fighters.
 var PANIC_THRESHOLDS = {
 	low_hp: 0.40, low_mp: 0.05, high_hp: 0.60, high_mp: 0.50,
 	aggro: 99, cooldown: 1000,
 };
 var PANIC_BROADCAST_TARGETS = ["Ulric", "Riva"];
 
-// panic_check() moved to Shared/Game_Config.js; reads this file's PANIC_THRESHOLDS.
-
-// clear_inventory() moved to Shared/Game_Config.js; reads this file's ITEMS_TO_KEEP.
 
 // var, not const: shared inventory_sorter() (Game_Config.js) reads this at call time.
 var item_order = {
@@ -788,9 +660,6 @@ var item_order = {
 	jacko: 7
 };
 
-// inventory_sorter() moved to Shared/Game_Config.js; reads this file's item_order.
-
-// auto_buy_potions → Game_Config.js
 
 function elixir_usage() {
 	const required = "elixirluck";
@@ -910,8 +779,6 @@ async function swap_booster(current, target) {
 // 	}
 // }
 
-// on_party_request/on_party_invite -> Shared/Party_And_Loot.js (was duplicated identically
-// across Warrior/Healer/Ranger)
 
 // game.on("death", data => {
 // 	const mob = parent.entities[data.id];
@@ -946,8 +813,6 @@ async function swap_booster(current, target) {
 // SPIDER DUNGEON
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Resolves once mob_type is confirmed alive 3 checks then absent 3 checks while
-// healer stays within spawn_radius; drifting out of range resets the absence count.
 function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 	return new Promise(resolve => {
 		let consecutive_alive = 0;
@@ -974,7 +839,6 @@ function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 					resolve();
 				}
 			} else {
-				// not yet confirmed alive, or healer drifted out of range
 				consecutive_alive = 0;
 				consecutive_dead = 0;
 			}
@@ -985,7 +849,6 @@ function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 
 let _dungeon_running = false;
 
-// Navigate all three spider bosses in order, loot after each, reload the party.
 async function run_spider_dungeon() {
 	if (_dungeon_running) {
 		log("Spider Dungeon: Already running — ignoring duplicate start.", "#FF8844");
@@ -1002,7 +865,6 @@ async function run_spider_dungeon() {
 		enter("spider_instance");
 		await delay(10000);
 
-		// Signal party to enter and wait until both are confirmed in the instance
 		log("Spider Dungeon: Signalling party to enter instance...", "#AA88FF");
 		send_cm(["Ulric", "Riva"], { type: "enter_instance", in: character.in });
 
@@ -1023,7 +885,6 @@ async function run_spider_dungeon() {
 
 		log("Spider Dungeon: Full party in instance — proceeding", "#AA88FF");
 
-		// Boss 1: spiderbr
 		log("Spider Dungeon: Moving to spiderbr...", "#AA88FF");
 		await smarter_move({ map: "spider_instance", x: 192, y: -1533 });
 		await delay(2000);
@@ -1032,7 +893,6 @@ async function run_spider_dungeon() {
 		await handle_looting();
 		await delay(10000);
 
-		// Boss 2: spiderr
 		log("Spider Dungeon: Moving to spiderr...", "#AA88FF");
 		await smarter_move({ map: "spider_instance", x: 0, y: -1515 });
 		await delay(2000);
@@ -1041,7 +901,6 @@ async function run_spider_dungeon() {
 		await handle_looting();
 		await delay(10000);
 
-		// Boss 3: spiderbl
 		log("Spider Dungeon: Moving to spiderbl...", "#AA88FF");
 		await smarter_move({ map: "spider_instance", x: -188, y: -1515 });
 		await delay(2000);
@@ -1050,7 +909,6 @@ async function run_spider_dungeon() {
 		await handle_looting();
 		await delay(10000);
 
-		// Reload all characters
 		log("Spider Dungeon: Complete — reloading party...", "#AA88FF");
 		send_cm(["Ulric", "Riva"], { type: "reload" });
 		await delay(500);
@@ -1070,13 +928,10 @@ async function run_spider_dungeon() {
 
 main_loop();
 action_loop();
-// skill_loop() is NOT started here: it's defined in Healer_Skills.js, a separate
-// eval closure loading after this one — calling it here would throw ReferenceError.
-// Healer_Skills.js starts itself once loaded.
 maintenance_loop();
 equipment_manager_loop();
 potion_loop();
-anniversary_loop(); // Shared/Party_And_Loot.js — 10th-anniversary featured-player visit
+anniversary_loop();
 setInterval(remote_sell_items, 5000);
 if (HEALER_TARGET === "bscorpion") {
 	prim_farm_loop();
@@ -1084,7 +939,6 @@ if (HEALER_TARGET === "bscorpion") {
 }
 
 if (HEALER_TARGET === "giantspider") {
-	// Wait for loops/game state to settle before auto-starting the dungeon run.
 	setTimeout(() => {
 		if (_dungeon_running) return;
 		if (character.rip) {

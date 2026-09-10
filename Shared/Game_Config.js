@@ -9,15 +9,10 @@
 const PARTY_LEADER                = "Ulric";
 const PARTY_MEMBERS               = ["Riva", "Myras", "Riff"];
 
-// Who the party walks with. Deliberately NOT PARTY_LEADER: that one is the game's party-invite
-// host (Ulric sends, the others accept), while this is the movement authority. Myras leads the
-// walk because she is the tank — the fighters must never arrive somewhere ahead of her.
 const MOVEMENT_LEADER             = "Myras";
 
-// For potion deliveries from merchant
 const POTION_TYPES = ["mpot1", "hpot1"];
 
-// Merchant collects nth item and above when collecting loot.
 const LOOT_THRESHOLD = 6;
 
 const all_bosses = ["grinch", "icegolem", "dragold", "mrgreen", "mrpumpkin", "greenjr", "jr", "franky", "rgoo", "bgoo", "crabxx"];
@@ -59,8 +54,6 @@ const locations = {
 	xscorpion:  [{ x: -495, y: 685 }],
 };
 
-// Overridable live via UI/Settings_Window.js — localStorage is shared across all 4 characters' tabs,
-// so a save from any tab applies on every character's next reload. Falls back to default otherwise.
 const HEALER_TARGET    = localStorage.getItem("AL_target_Myras") || "bscorpion";
 const WARRIOR_TARGET   = localStorage.getItem("AL_target_Ulric") || "bscorpion";
 const RANGER_TARGET    = localStorage.getItem("AL_target_Riva")  || "bscorpion";
@@ -71,9 +64,6 @@ const EVENT_LOCATIONS = [
 	{ name: "mrpumpkin", map: "halloween", x: -217, y: 720 },
 	{ name: "mrgreen", map: "spookytown", x: 605, y: 1000 },
 	{ name: "dragold", map: "cave", x: 873, y: -727 },
-	// engage_below: stay out until someone else has brought it under this share of max hp. Being
-	// first into a full-health franky means eating the opening on our own. Omit the property to
-	// engage at any hp, which is what every other entry does.
 	{ name: "franky", join: true, engage_below: 0.95 },
 	{ name: "icegolem", join: true },
 	// { name: "wabbit", dynamic: true },
@@ -100,8 +90,8 @@ const COOLDOWNS = {
 
 const CACHE_TTL = 50;
 
-const SOFT_RESTART_TIMER = 60000;    // 1 minute
-const HARD_RESET_TIMER   = 90000;    // 1.5 minutes
+const SOFT_RESTART_TIMER = 60000;
+const HARD_RESET_TIMER   = 90000;
 
 const PANIC_ORB   = "jacko";
 
@@ -127,10 +117,9 @@ let DUNGEON_LOOP_ENABLED      = false;
 
 let attack_mode                   = true;
 let handling_death = false;
-let timeout_interval = 30000; // Default timeout of 30 seconds
+let timeout_interval = 30000;
 
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // Rest of this file split into Shared/Movement.js, Combat_Utilities.js, Messaging.js, Party_And_Loot.js,
-// and Error_Handling.js — all still load as real <script> tags (Bootstrapper.js scripts[]), same global scope.
 // --------------------------------------------------------------------------------------------------------------------------------- //

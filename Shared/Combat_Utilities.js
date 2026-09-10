@@ -1,6 +1,5 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // COMBAT & CHARACTER UTILITIES — monster targeting, distance/aggro helpers, event handling
-// (split out of Game_Config.js — real <script> tag, same global scope, no eval boundary)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -101,7 +100,6 @@ function get_nearest_monster_v2(args = {}) {
 	return target;
 }
 
-// Returns true if the target character is within 500 units
 function detect_character(target) {
 	if (!target || !character || typeof target.x !== "number" || typeof target.y !== "number" || typeof character.x !== "number" || typeof character.y !== "number") return false;
 	const dx = target.x - character.x;
@@ -130,54 +128,25 @@ function get_num_chests() {
 // CHARACTER UTILITIES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// should_handle_events() lived here. It was a second, looser copy of the test event_goal() already
-// makes, and keeping the two in step was its own bug source — main_loop branched on this one, then
-// handle_events() sometimes declined to act, leaving the character doing nothing at all for as long
-// as the event was live. event_goal() returning null now means exactly "no event to go to".
 
-// Shared by Warrior/Ranger's equipment resolvers — was duplicated identically in both files.
 function find_active_boss() {
 	return EVENT_LOCATIONS
 		.map(e => ({ name: e.name, data: parent.S[e.name] }))
 		.find(e => e.data?.live);
 }
 
-// Shared by Warrior/Ranger's action_loop()/skill_loop() — was duplicated identically 4 times
-// across those two files. Not used by Healer: the healer's job during a panic is to keep
-// healing/cursing/absorbing, not back off, so it intentionally has no equivalent guard.
 function should_pause_combat_loop() {
 	if (panicking) return true;
-	// Travelling to the anniversary featured player. Disengage entirely — no attacks, no offensive
-	// skills, no debuffs — so nothing is dragged along the walk or left holding aggro behind us.
 	if (typeof anniversary_travel !== "undefined" && anniversary_travel) return true;
-	// Any smart_move journey, for the same reason: a monster hit in passing follows across the map
-	// and cannot be finished off while we are walking. Farming does NOT trip this — walk_in_circle
-	// uses xmove (raw move() first) and reposition() bails while smart.moving — so this only covers
-	// genuine travel: returning home from far, delivery runs, event trips.
 	if (smart.moving) return true;
-	if (home === "giantspider") return false; // the follow goal handles positioning instead
+	if (home === "giantspider") return false;
 	const myras = get_player("Myras");
 	if (!myras || distance(character, myras) > 200) return true;
 
-	// The healer is the tank: the warrior gathers with AoE and she pulls the aggro off him with
-	// absorb. So fighting on without her is fatal, and both of these checks exist to catch that.
-	//
-	// myras.rip is the obvious one, but it is NOT sufficient — the warrior was observed still
-	// attacking beside a dead healer on a build that already had it, which means `rip` is not
-	// reliably populated on another player's entity. Five other places in this codebase assume it
-	// is; that assumption is apparently wrong and this was the one place it mattered.
-	//
-	// Her own state cache is authoritative: it carries her own character.rip, and state_cache_loop()
-	// has no is_disabled guard so she keeps publishing it every 100ms while dead.
 	if (myras.rip) return true;
 	return healer_is_down();
 }
 
-// should_pause_combat_loop() is the first line of both action_loop and skill_loop, which
-// reschedule as fast as every 10ms. read_state_cache() is a synchronous localStorage.getItem plus
-// a JSON.parse, and in Chromium that is a blocking call into the storage backend -- running it
-// hundreds of times a second per character stalled the combat loops badly enough to be visible as
-// delayed attacks. Her death state does not change meaningfully inside 250ms.
 let _healer_down = { at: 0, down: false };
 
 function healer_is_down() {
@@ -199,9 +168,6 @@ function healer_is_down() {
 // COMBAT POSITIONING — shared by Warrior/Ranger's reposition() loops.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Scores each candidate by how many OTHER monsters sit within the character's explosion
-// radius of it, i.e. how far hitting it would spread splash damage. Returns [{mob, count}]
-// sorted densest-first. aggro_only limits the count to monsters already engaged.
 function score_by_explosion_spread(pool, aggro_only = false) {
 	const explosion_radius = character.explosion || 40;
 	const all_monsters = Object.values(parent.entities).filter(e => e?.type === "monster" && !e.dead);
@@ -223,25 +189,10 @@ function score_by_explosion_spread(pool, aggro_only = false) {
 const ORBIT_ANGLE_SAMPLES = 16;
 const ORBIT_RADIUS_FRACTIONS = [1.0, 0.66, 0.33];
 
-// Samples positions inside the orbit disc and returns the best-scoring reachable one.
-// score(x, y) returns a number (higher wins) or null to reject the candidate. The character's
-// current position is always a candidate, so "stay put" can legitimately win -- that's what
-// keeps this from thrashing when nothing has meaningfully changed.
-// Where we already stand is the INCUMBENT, not merely another candidate, and a new spot has to be
-// meaningfully better to be worth walking to.
-//
-// Without this the argmax flips to the far side of the ring for a fraction of a unit of extra
-// clearance — a 150-unit traverse to gain nothing, twice a second. It was survivable while the
-// centre was a fixed farm spot; centring on the leader means the scores shift every time she takes
-// a step, so it flips constantly. That is the visible doubling back while stationary.
-//
-// Applied here rather than in each scorer so no scorer has to remember to: the warrior's cluster
-// scorer already carried its own travel penalty, the ranger's monster-distance one never did.
-const ORBIT_TRAVEL_WEIGHT = 0.35; // score units charged per unit walked to get there
-const ORBIT_MIN_GAIN = 20;        // raw score a challenger must beat the incumbent by
+const ORBIT_TRAVEL_WEIGHT = 0.35;
+const ORBIT_MIN_GAIN = 20;
 
 function best_orbit_spot(center, radius, score) {
-	// Standing here is free, so it is scored without the travel charge the challengers pay.
 	const here = score(character.x, character.y);
 	const incumbent = (here === null || here === undefined) ? -Infinity : here;
 
@@ -253,8 +204,6 @@ function best_orbit_spot(center, radius, score) {
 		if (!can_move_to(x, y)) return;
 		const s = score(x, y);
 		if (s === null || s === undefined) return;
-		// Net of the walk. Two spots that score the same are not equally good if one is under our
-		// feet, and this is also what stops it picking the far side of a tie.
 		const value = s - Math.hypot(x - character.x, y - character.y) * ORBIT_TRAVEL_WEIGHT;
 		if (value > best_value) {
 			best_value = value;
@@ -274,16 +223,10 @@ function best_orbit_spot(center, radius, score) {
 	}
 
 	if (!best) return null;
-	// Not worth the walk. Reporting where we already are reads as "no move" to every caller, which
-	// all compare the result against move_threshold.
 	if (best_raw < incumbent + ORBIT_MIN_GAIN) return { x: character.x, y: character.y };
 	return best;
 }
 
-// Scorer for best_orbit_spot() that maximizes distance to the NEAREST monster (maximin, not
-// average — the goal is that nothing gets close). Returns null when there are no monsters to
-// keep away from, so callers can skip. Used for the ranger's normal positioning and the
-// warrior's panic retreat.
 function make_distance_from_monsters_scorer() {
 	const monsters = Object.values(parent.entities).filter(e => e?.type === "monster" && !e.dead);
 	if (!monsters.length) return null;
@@ -298,18 +241,12 @@ function make_distance_from_monsters_scorer() {
 	};
 }
 
-// Orbit center: Myras in giantspider follow mode (she leads), otherwise the farm spot.
-// Returns null when follow mode has no usable healer to orbit.
 function reposition_center() {
 	if (home === "giantspider") {
 		const healer = get_player("Myras");
 		if (!healer || healer.rip || healer.map !== character.map) return null;
 		return { x: healer.x, y: healer.y };
 	}
-	// A follower orbits HER, not a fixed coordinate. The party moves — to an event, to the
-	// anniversary, to a relocated farm spot — and a centre she has left is exactly where we do not
-	// want to be. Falls back to the farm spot when she is not on our map, which is the only time a
-	// follower should be positioning against anything else.
 	if (character.name !== MOVEMENT_LEADER) {
 		const lead = get_player(MOVEMENT_LEADER);
 		if (lead && !lead.rip) return { x: lead.x, y: lead.y };
@@ -317,10 +254,6 @@ function reposition_center() {
 	return locations[home][0];
 }
 
-// Per-event hp gate, driven by `engage_below` in EVENT_LOCATIONS. Max hp comes from G.monsters,
-// which is static game data and always present -- parent.S entries are not documented to carry
-// max_hp, and the sort below quietly produces NaN when they do not. Fails open: an event we cannot
-// size is treated as engageable rather than silently skipped forever.
 function engage_hp_ok(e) {
 	if (e.engage_below === undefined) return true;
 	const max = (G.monsters?.[e.name]?.hp) || e.data?.max_hp;
@@ -331,12 +264,8 @@ function engage_hp_ok(e) {
 const EVENT_JOIN_RETRY_MS = 5000;
 let _last_event_join = 0;
 
-// Where a live event wants us, as a goal for movement_goal() to weigh. Issues no movement; the
-// join emit stays here because it is a socket action, not a journey.
 function event_goal() {
 	if (parent?.S?.holidayseason && !character?.s?.holidayspirit) {
-		// "town" is a name only the runner's own resolver knows — smarter_move() cannot look it up
-		// in `locations` or G.maps — so this goes out as a `to` goal.
 		return {
 			label: "holiday-tree",
 			to: "town",
@@ -347,11 +276,6 @@ function event_goal() {
 	const target = best_event_target();
 	if (!target) return null;
 
-	// Some events (franky, icegolem) are instances that must be joined before there is anywhere to
-	// walk to. Hold position while the join lands rather than wandering off.
-	//
-	// Throttled: this is read on every 100ms tick, so an unthrottled emit is 10 join requests a
-	// second per character for as long as the boss is live and off-screen.
 	if (target.join === true && !get_nearest_monster({ type: target.name })) {
 		if (Date.now() - _last_event_join > EVENT_JOIN_RETRY_MS) {
 			_last_event_join = Date.now();
@@ -360,12 +284,10 @@ function event_goal() {
 		return { hold: true, label: "event-join" };
 	}
 
-	// Already in the fight: closing to attack range is a local step, not a journey.
 	if (get_nearest_monster({ type: target.name })) {
 		return { local: "event", label: "event-" + target.name, event: target.name };
 	}
 
-	// A join-type entry carries no map/x/y, so there is nothing to path to until we are inside.
 	if (!target.map || !isFinite(target.x) || !isFinite(target.y)) {
 		return { hold: true, label: "event-join" };
 	}
@@ -373,7 +295,6 @@ function event_goal() {
 	return { label: "event-" + target.name, map: target.map, x: target.x, y: target.y, radius: 60 };
 }
 
-// Closes the last stretch onto a visible event monster. Raw xmove, no pathfind.
 function event_step(event_type) {
 	if (!parent?.S?.[event_type]?.live) return;
 	const monster = get_nearest_monster({ type: event_type });
@@ -397,8 +318,6 @@ function best_event_target() {
 
 	if (!alive_sorted.length) return null;
 
-	// Wabbit takes exclusive priority when alive
 	const wabbit = alive_sorted.find(e => e.name === "wabbit");
 	return wabbit || alive_sorted[0];
 }
-
