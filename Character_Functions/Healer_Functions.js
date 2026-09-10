@@ -278,10 +278,7 @@ function find_nearest_boss() {
 // MAIN TICK LOOP - Handles state updates, caching, movement
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// The tick lives in Shared/Character_Runner.js; these are only what makes the healer different.
 
-// A dead or stunned healer never reaches panic_check(), so a panic she already broadcast would
-// never get its all-clear and the fighters would hold fire until they died too.
 function healer_on_disabled() {
 	if (!panicking) return;
 	set_panic(false, "healer disabled — releasing the party", false);
@@ -430,12 +427,6 @@ async function action_loop() {
 			);
 			const i_need_the_timer = character.hp < my_heal_threshold;
 
-			// Gates her ATTACK only — healing above this is untouched, which is the whole reason
-			// she has her own check rather than should_pause_combat_loop().
-			//
-			// travel_is_active() rather than smart.moving: the travel arbiter clears smart.moving
-			// whenever the goal goes local, so for most of a journey this read false and she
-			// attacked things in passing — picking up aggro she then dragged along the road.
 			const travelling = is_travelling();
 
 			if (!HEALED && !travelling && HEALER_TARGET !== "giantspider" && !i_need_the_timer) {
@@ -518,8 +509,6 @@ async function walk_in_circle() {
 	const target_x = center.x + offset_x;
 	const target_y = center.y + offset_y;
 
-	// local_move, not xmove: a blocked circle point must not start a journey the arbiter kills on
-	// the next tick. Skipping is free here — the circle advances and the next point is elsewhere.
 	if (!character.moving) local_move(target_x, target_y);
 }
 
@@ -633,9 +622,6 @@ var MONSTER_GEAR_OVERRIDES = {
 var panicking = false;
 var last_panic_time = 0;
 var last_safe_time = 0;
-// She never receives her own panic broadcast, so these were previously only declared on the
-// fighters. set_panic() writes them on every character, and an undeclared assignment would make an
-// implicit global rather than a scoped one.
 var panic_external = false;
 var panic_external_since = 0;
 

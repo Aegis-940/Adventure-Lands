@@ -35,22 +35,11 @@ function should_spread() {
 // CHARACTER MODE — one owner of the panic flags, one name for what the character is doing.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// panicking and panic_external were assigned from six places across three files. That is how one
-// got left set with nobody able to say who set it, and why the fix was a timeout rather than a
-// cause. Writes go through here now; every transition logs its reason, so a stuck flag names its
-// owner instead of needing to be reasoned about.
-//
-// Deliberately NOT derived from HP. Panic is latched with hysteresis on purpose — it arms at
-// low_hp and only clears at high_hp — and a pure function of current HP would flap across that
-// boundary, which is the orb churn that drove cc to 77.
 function set_panic(on, reason, external) {
 	const ext = external === undefined ? panic_external : !!external;
 	if (panicking === on && panic_external === ext) return;
 
-	if (on && !panicking) last_panic_time = 0;   // act this tick, not after the cooldown
-	// Panic holds the equipment claim while it is on, so the one place that turns it off is the
-	// one place that hands the slots back. Scattering the release across the exit paths is how the
-	// flags themselves ended up with six writers.
+	if (on && !panicking) last_panic_time = 0;
 	if (!on) panic_equip_free();
 	panicking = !!on;
 	panic_external = ext;
@@ -60,8 +49,6 @@ function set_panic(on, reason, external) {
 		on ? "#ffcc00" : "#00ff00", "Alerts");
 }
 
-// What the character is doing, as one value rather than three booleans read in eight files.
-// Read-only: every branch here is owned elsewhere.
 function character_mode() {
 	if (character.rip) return "dead";
 	if (typeof panicking !== "undefined" && panicking) return "panic";
@@ -261,8 +248,6 @@ function is_set_equipped(set_name) {
 	);
 }
 
-// Renamed from equip_set: this is the raw emit and must only ever be reached through
-// equip_apply(), which checks the claim. A bare equip_set() call site is now a grep-able bug.
 async function equip_set_raw(set_name) {
 	const set = equipment_sets[set_name];
 	if (!set) {
@@ -284,26 +269,15 @@ async function equip_set_raw(set_name) {
 // EQUIPMENT ARBITER — one owner of the equipment slots.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Slots used to be written by four or five independent deciders per character — the rules
-// resolver, panic, transient combat swaps, the status swap trick, looting gear — coordinated by a
-// hand-rolled protocol of gear_locked, panic_owns_orb() and per-group cooldowns. That protocol
-// cannot work: resolve_equipment() checked its bail once and then awaited a server round trip, so
-// an invocation already in flight sailed past it and emitted over the jacko. Intermittent, and
-// proportional to ping.
-//
-// A claim is not advisory. Higher priority PREEMPTS lower and revokes its token mid-sequence, so
-// panic no longer waits for a cleave swap to finish being polite.
 const EQUIP_PRIORITY = {
-	panic: 100,   // jacko for scare; must beat everything
-	skill: 80,    // transient combat swaps — basher, bataxe, zap, temporal
-	trick: 70,    // status swap trick
-	loot: 60,     // gold/luck gear while opening chests
-	rules: 20,    // steady-state EQUIPMENT_RULES
-	resting: 10,  // merchant default gear
+	panic: 100,
+	skill: 80,
+	trick: 70,
+	loot: 60,
+	rules: 20,
+	resting: 10,
 };
 
-// A holder that never releases — an exception on a path without a finally — must not wedge the
-// slots forever.
 const EQUIP_CLAIM_MAX_MS = 5000;
 
 let _equip_holder = null;
@@ -328,33 +302,27 @@ function equip_holder_name() {
 	return _equip_holder ? _equip_holder.owner : null;
 }
 
-// Keeps a long-lived claim alive against EQUIP_CLAIM_MAX_MS. The expiry exists to free slots that
-// an exception orphaned; a holder that is still running says so with this.
 function equip_refresh(token) {
 	if (equip_holds(token)) _equip_holder.at = Date.now();
 }
 
-// THE ONLY EMITTER. Everything that wants gear on goes through here, so "who can write to the
-// slots" is answerable with grep rather than by reading every loop.
 async function equip_apply(token, sets) {
 	if (!equip_holds(token)) return false;
 	const list = Array.isArray(sets) ? sets : [sets];
 	for (const s of list) {
-		if (!equip_holds(token)) return false;   // preempted mid-sequence
+		if (!equip_holds(token)) return false;
 		if (is_set_equipped(s)) continue;
 		await equip_set_raw(s);
 	}
 	return equip_holds(token);
 }
 
-// Same, for the trick's hand-built slot lists rather than a named set.
 async function equip_apply_slots(token, slots) {
 	if (!equip_holds(token)) return false;
 	await batch_equip(slots);
 	return equip_holds(token);
 }
 
-// Convenience for the common "claim, apply, release" with no sequence in between.
 async function equip_once(owner, priority, sets) {
 	const token = equip_claim(owner, priority);
 	if (!token) return false;
@@ -400,9 +368,6 @@ async function apply_booster_rule(group, desired_booster) {
 	shift(other_slot, desired_booster);
 }
 
-// The `panicking` and `gear_locked` clauses are gone: those were this resolver trying to stay out
-// of other writers' way, which the claim now does properly. What is left is genuinely about
-// whether the rules should run at all.
 function resolve_equipment_bail_reason() {
 	if (typeof EQUIPMENT_RULES === "undefined") return "EQUIPMENT_RULES undefined";
 	if (CONFIG.equipment?.auto_swap_sets === false) return "auto_swap_sets disabled";
@@ -414,8 +379,6 @@ function resolve_equipment_bail_reason() {
 async function resolve_equipment() {
 	if (resolve_equipment_bail_reason()) return;
 
-	// Lowest priority in the table, so anything more urgent simply refuses the claim and this
-	// returns — no bail flag to check, no window between checking it and acting on it.
 	const token = equip_claim("rules", EQUIP_PRIORITY.rules);
 	if (!token) return;
 
@@ -571,16 +534,8 @@ const EXTERNAL_PANIC_MAX_MS = 60000;
 let _panic_check_running = false;
 
 let _travel_panic_since = 0;
-// A latch that cannot clear is a permanent panic, so it also times out.
 const TRAVEL_PANIC_MAX_MS = 30000;
 
-// Panic owns the slots for as long as it is PANICKING, not just for the instant it puts the jacko
-// on. Releasing between ticks let the rules resolver back in mid-panic — and with scare having
-// just cleared the pack, resolve_warrior_home_loadout() reads home_count === 1 and fits "single",
-// which is the warrior ending up in double fireblade instead of fireblade + ololipop.
-//
-// This is what panic_owns_orb() used to encode, expressed as ownership rather than as a flag other
-// writers had to remember to consult.
 let _panic_equip_token = null;
 
 function panic_equip_hold() {
@@ -662,17 +617,6 @@ async function _panic_check_body() {
 		e => e.type === "monster" && e.target === character.name && !e.dead
 	).length;
 
-	// Latched on AGGRO, and cleared when the aggro is actually gone — not when smart.moving drops.
-	//
-	// This read `if (!smart.moving) unlatch` back when smart.moving meant "on a journey". The
-	// travel arbiter now clears smart.moving every time the goal goes local, which is constantly,
-	// so the latch flapped and `panicking` flapped with it. That matters because the warrior's
-	// reposition() REVERSES DIRECTION on panicking — retreat-from-monsters while panicking, stay
-	// near the cluster otherwise — so a flapping panic is a character walking away from the pack
-	// and back again, over and over. That is the doubling back, and it is why it correlates with
-	// panicking.
-	//
-	// Shedding the pack is what ends this, which is precisely what the scare below is for.
 	const TRAVEL_AGGRO = t.travel_aggro ?? 1;
 	const now_ms = Date.now();
 	if (is_travelling() && MONSTERS_TARGETING_ME >= TRAVEL_AGGRO) {
@@ -711,9 +655,6 @@ async function _panic_check_body() {
 		last_panic_time = Date.now();
 		if (!is_set_equipped("panic")) {
 			try {
-				// Top of EQUIP_PRIORITY, so this preempts a transient combat swap already in
-				// flight and revokes its token rather than queueing behind it. gear_locked could
-				// only ever block, never preempt, which is why the jacko sometimes lost the race.
 				const emitted = await equip_apply(panic_equip_hold(), "panic");
 				_panic_last_emit = emitted;
 				await wait_until_equipped("panic");
@@ -811,10 +752,6 @@ function leader_position() {
 // LEADER-SIDE COHESION — the leader waits for stragglers.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// They follow at follow_distance (15), so a 300-unit gap essentially never happened and she
-// essentially never waited — which is why cohesion looked broken when the real problem was
-// followers lagging with nobody stopping for them. 150 is a gap they should not be able to open
-// unless something has genuinely gone wrong; 60 is close enough to set off again.
 const COHESION_RADIUS = 150;
 const COHESION_RELEASE = 60;
 const COHESION_MAX_WAIT_MS = 60000;
@@ -828,9 +765,6 @@ function party_cohesion_hold() {
 	if (character.name !== MOVEMENT_LEADER) return false;
 	if (typeof panicking !== "undefined" && panicking) { _hold_since = 0; _hold = false; return false; }
 
-	// Memoised. read_state_cache() is a synchronous localStorage read and this runs at 10Hz on the
-	// healer, whose action loop is the most latency-sensitive thing in the party — the same reason
-	// healer_is_down() caches. Dropping the memo when this was simplified was a regression.
 	const now = Date.now();
 	if (now - _hold_at < 250) return _hold;
 	_hold_at = now;
@@ -849,7 +783,6 @@ function party_cohesion_hold() {
 	if (!behind) _hold_since = 0;
 	else if (!_hold_since) _hold_since = now;
 
-	// Never wait forever on someone who cannot reach us.
 	_hold = behind && now - _hold_since < COHESION_MAX_WAIT_MS;
 	return _hold;
 }
@@ -868,8 +801,6 @@ function movement_goal() {
 	const follow = follow_goal();
 	if (follow && !follow.local) return follow;
 
-	// BOSSING WINS. Above the anniversary, and anniversary_block_reason() blocks the visit outright
-	// while a boss is live, so in practice this is the only one of the two that can be taken.
 	const event = event_goal();
 	if (follow && follow.on_station && event && event.local === "event") return event;
 
@@ -904,10 +835,6 @@ function movement_goal() {
 	return null;
 }
 
-// Everything below raw-moves, which is only safe because travel_arbiter() guarantees no journey is
-// running when it returns false. Asserted rather than assumed: a smart_move still walking its plot
-// while these issue move() is two movers on one character, and the character oscillates between
-// them. If this ever fires, the arbiter's release path has a hole in it.
 function movement_local(goal, farm_step) {
 	if (smart.moving) {
 		log("🧭 local movement skipped — a journey is still in flight", "#FFA500", "Alerts");
@@ -925,16 +852,11 @@ function movement_local(goal, farm_step) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const FOLLOW_STATION_RANGE = 220;
-// This far behind, close up whatever she is doing — that is not combat spread, that is lost.
 const FOLLOW_CATCHUP_RANGE = 200;
-// smart.moving drops false for a tick between BFS waypoint recalcs, so an unlatched read of it
-// makes the followers break off mid-journey. Keep following for a moment after it clears.
 const FOLLOW_TRAVEL_LATCH_MS = 1500;
 
 let _leader_travel_seen = 0;
 
-// Travelling means a JOURNEY — smart_move or an anniversary trip — not merely taking a step. Her
-// farm orbit sets character.moving constantly and must not drag the party onto her heels.
 function leader_is_travelling(pos) {
 	if (pos.travelling) {
 		_leader_travel_seen = Date.now();
@@ -949,11 +871,6 @@ function follow_has_leader() {
 	return !!pos && !pos.rip;
 }
 
-// Minimum time between switching how we follow. can_move_to() is a per-tick geometry test and it
-// flickers at any obstacle edge — most of all at long range, which is exactly when a character has
-// fallen behind. Switching mode cancels whatever the last one started, so an unlatched flicker
-// alternates between binning a half-computed route and binning a walk. Now the arbiter's release
-// is unconditional, that would be a stall generator; before it, it was the doubling back.
 const FOLLOW_MODE_DWELL_MS = 1200;
 let _follow_mode = null;
 let _follow_mode_at = 0;
@@ -983,9 +900,6 @@ function follow_goal() {
 
 	const d = Math.hypot(character.x - pos.x, character.y - pos.y);
 
-	// She is not going anywhere and we are with her: stop shadowing and fight. reposition() is
-	// centred on her, so this still holds the party together while letting them spread for cleave
-	// and 5shot instead of stacking on her at follow_distance.
 	if (!leader_is_travelling(pos) && d <= FOLLOW_CATCHUP_RANGE) {
 		return { local: "farm", label: "with-leader", on_station: true };
 	}
@@ -1005,7 +919,6 @@ function follow_step() {
 	const ring = follow_ring_point(pos);
 	if (can_move_to(ring.x, ring.y)) move(ring.x, ring.y);
 }
-
 
 
 function inventory_sorter() {
@@ -1185,16 +1098,10 @@ var anniversary_travel = false;
 
 const ANNIVERSARY_TICK_MS = 2000;
 const ANNIVERSARY_TICK_ACTIVE_MS = 400;
-// Cast only from a range that actually succeeds. The skill's range is 80, but a FAILED cast is not
-// free: the client stamps its 10s cooldown optimistically, so a speculative attempt from the edge
-// costs ten seconds whether or not the server accepts it. A few of those in a row is the 30-60s
-// delay before the kiss finally lands. Closing the extra 25 units first takes under a second.
 const ANNIVERSARY_CAST_RANGE = 50;
 const ANNIVERSARY_HOLD_RANGE = 35;
 const ANNIVERSARY_REFRESH_MS = 5 * 60 * 1000;
 const ANNIVERSARY_KISS_RETRY_MS = 2500;
-// The buff lands within a server round trip, so this only needs to cover that. At 6s it compounded
-// the cooldown penalty above every time a cast was acknowledged without granting anything.
 const ANNIVERSARY_ACK_GRACE_MS = 2000;
 const ANNIVERSARY_SEEK_RADIUS = 30;
 
@@ -1252,12 +1159,6 @@ function anniversary_block_reason() {
 	const kiss = character.s && character.s.anniversary_kiss;
 	if (kiss && (kiss.ms === undefined || kiss.ms > ANNIVERSARY_REFRESH_MS)) return "already buffed";
 
-	// Bossing outranks the visit — and this has to be a BLOCK, not just a lower movement priority.
-	// anniversary_travel gates combat through should_pause_combat_loop(), so merely losing the
-	// priority would park the party at the boss without attacking it. Blocking keeps
-	// anniversary_travel false, keeps anniv_pending false so the leader holds for nobody, and
-	// resumes by itself once the boss is gone. The merchant is exempt: he does not fight, so a
-	// live boss is no reason for him to skip a round.
 	if (character.ctype !== "merchant"
 		&& typeof best_event_target === "function" && best_event_target()) {
 		return "a boss is up — bossing first";

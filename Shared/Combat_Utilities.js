@@ -135,20 +135,13 @@ function find_active_boss() {
 		.find(e => e.data?.live);
 }
 
-// Warrior and Ranger only — the healer never calls this, so nothing here can stop her healing.
 function should_pause_combat_loop() {
 	if (panicking) return true;
 	if (typeof anniversary_travel !== "undefined" && anniversary_travel) return true;
 
-	// travel_is_active() first, and smart.moving only as a backstop. The arbiter clears
-	// smart.moving whenever the goal goes local, so a straight-line follow — which is most of a
-	// journey now — left combat ENABLED for the whole walk. That is a fighter stopping to trade
-	// blows with whatever it passes, dragging the pack along and falling behind.
 	if (typeof travel_is_active === "function" && travel_is_active()) return true;
 	if (smart.moving) return true;
 
-	// Actively closing on the leader, by any route. Not "with-leader": that means stationed with
-	// her, which is exactly when they SHOULD be fighting.
 	const goal = typeof current_goal_label === "function" ? current_goal_label() : null;
 	if (goal === "follow" || goal === "follow-ring") return true;
 
@@ -304,7 +297,6 @@ function event_goal() {
 		if (is_in_range(seen, "attack") || can_move_to(half_x, half_y)) {
 			return { local: "event", label: "event-" + target.name, event: target.name };
 		}
-		// In sight but not walkable to. The arbiter owns this, and it protects the search.
 		return { label: "event-" + target.name, map: seen.map || target.map, x: seen.x, y: seen.y, radius: 60 };
 	}
 

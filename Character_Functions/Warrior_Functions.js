@@ -324,7 +324,6 @@ var _last_healer_ping = 0;
 // MAIN TICK LOOP
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-// The tick lives in Shared/Character_Runner.js; this is only what makes the warrior different.
 function warrior_farm_step() {
 	if (CONFIG.movement.reposition && get_nearest_monster({ type: home })) reposition();
 }

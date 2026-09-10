@@ -366,7 +366,6 @@ var _last_healer_ping = 0;
 // MAIN TICK LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// The tick lives in Shared/Character_Runner.js; these are only what makes the ranger different.
 async function ranger_pre_move() {
 	if (!CONFIG.equipment.use_licence) return;
 	let slot = locate_item("licence");

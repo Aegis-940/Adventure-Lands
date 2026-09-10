@@ -46,14 +46,6 @@ function halt_movement() {
 	parent.socket.emit("move", { to: { x: character.x, y: character.y } });
 }
 
-// The ONLY move a local step may make. Raw, straight-line, never pathfinds — returns false when
-// the line is blocked so the caller's goal can escalate to a travel goal instead.
-//
-// This exists because xmove() "tries move() first, falls back to smart_move()", and a local step
-// that quietly starts a journey is unfixable from the arbiter's side: the goal is local, so the
-// next tick releases and kills the search, the step runs again and starts another, and the route
-// is never found however short it is. Local steps run at 10Hz, so that is ten torn-down searches a
-// second — the boss approach that never arrives.
 function local_move(x, y) {
 	if (!can_move_to(x, y)) return false;
 	move(x, y);
@@ -195,39 +187,20 @@ const TRAVEL_SEARCH_MAX_MS = 20000;
 
 let _travel = { label: null, active: false, at: 0, interrupt: null, anchor: null, anchor_at: 0, search_since: 0 };
 
-// Is the arbiter driving a journey right now? This is what "travelling" should mean everywhere.
-// Raw smart.moving does NOT mean that any more: the arbiter clears it whenever the goal goes
-// local, so anything keyed on it toggles constantly.
 function travel_is_active() {
 	return _travel.active;
 }
 
-// "Am I on a journey?" — the question every combat and skill gate is actually asking.
-//
-// Raw smart.moving is NOT that question. It is a mechanism detail the arbiter owns, and the
-// arbiter clears it whenever the goal goes local — which a straight-line follow is. Reading it as
-// intent left attacks and offensive skills enabled for most of a walk, which is how characters
-// picked up aggro in transit and dragged it along the road.
 function is_travelling() {
 	return travel_is_active()
 		|| !!smart.moving
 		|| (typeof anniversary_travel !== "undefined" && !!anniversary_travel);
 }
 
-// True while the pathfinder is still computing a route: moving, but nothing plotted to walk yet.
 function travel_searching() {
 	return !!smart.moving && !(smart.plot && smart.plot.length);
 }
 
-// Release means NO JOURNEY IS RUNNING when this returns. Unconditionally — not "if we own it",
-// not "unless mid-search".
-//
-// It used to stop only when all three of those held, and then cleared _travel.interrupt anyway. So
-// whenever it declined to stop, it also forgot it had anything to stop: the smart_move kept
-// walking its plot while the caller, told it was free to move, started issuing raw move(). Two
-// movers on one character — the runner's executor pulling toward plot[0] every 80ms and move()
-// pulling toward its own target every 100ms. That oscillation is the doubling back, and it is
-// worst when a character is far behind because that is when the pathfind branch is in use.
 function travel_release() {
 	if (smart.moving) stop_movement("arbiter: released");
 	_travel.interrupt = null;
@@ -291,17 +264,6 @@ function travel_arbiter(goal) {
 		|| smart.map !== map
 		|| Math.hypot(smart.x - goal.x, smart.y - goal.y) > TRAVEL_DRIFT;
 
-	// Derived from smart.plot, NOT from smart.searching/smart.found.
-	//
-	// Those are runner internals whose lifecycle was never verified, and smarter_move() sets both
-	// to false at issue — so if the pathfinder does not put `searching` back the way this assumed,
-	// it reads false forever, this guard never engages, and the stall watchdog below tears down the
-	// search every 8 seconds. An endless loop of half-finished pathfinds, which is exactly the
-	// "never gets a chance to find a way" symptom.
-	//
-	// smart.plot is the computed route and IS verified: the runner's executor walks it with
-	// `var current = smart.plot[0]; smart.plot.splice(0, 1);`. Moving with nothing plotted
-	// therefore means the route has not been found yet.
 	const searching = travel_searching();
 	if (searching && !_travel.search_since) _travel.search_since = now;
 	if (!searching && _travel.search_since) {

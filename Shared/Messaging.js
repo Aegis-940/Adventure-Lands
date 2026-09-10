@@ -141,10 +141,6 @@ function get_full_character_state() {
 		y: character.y,
 		rip: character.rip,
 		moving: character.moving,
-		// The ARBITER's notion of a journey, not raw smart.moving. The arbiter clears smart.moving
-		// every time the goal goes local, so publishing that made the followers'
-		// leader_is_travelling() flap between "close to follow_distance" and "orbit at
-		// circle_radius" — opposite directions, several times a second.
 		travelling: (typeof travel_is_active === "function" && travel_is_active())
 			|| (typeof anniversary_travel !== "undefined" && !!anniversary_travel),
 		anniv_pending: typeof anniversary_should_travel === "function" && anniversary_should_travel(),
