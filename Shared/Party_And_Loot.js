@@ -1082,14 +1082,29 @@ function movement_goal() {
 	//    party goes, and this branch is how that decision reaches the followers. They escort her
 	//    the whole way and only pursue their own objective once they are standing with her.
 	const follow = follow_goal();
-	// Anything but station-keeping wins outright — we are still closing on her, or holding for her.
-	if (follow && follow.local !== "follow") return follow;
+	// A goal with no `local` is a journey — we are not with her yet, and until we are, nothing else
+	// matters. (`local` goals mean we are already there: ring step, or stationed.)
+	if (follow && !follow.local) return follow;
 
-	// 4. The anniversary visit, for the leader and for a follower already on station. Every
-	//    character still has to close the last stretch and cast for themselves — following her only
-	//    gets them to within follow_distance, and the skill needs 80.
+	// 4. The anniversary visit.
+	//
+	// THE LEADER NAVIGATES; THE OTHER TWO FOLLOW. A follower never takes a travel goal from here —
+	// not to the featured player, not to their last-known spot. Three characters routing themselves
+	// to the same point is what tore the party apart every round, and she is already going there.
+	//
+	// They do still take the LOCAL parts: the final close-in and the hold to cast. Following puts
+	// them a follow_distance behind her and the skill needs 80, so without that last short step
+	// they would arrive with the party and still be a few units out of range.
 	const anniv = anniversary_destination();
-	if (anniv) return anniv;
+	if (anniv) {
+		const anniv_is_local = anniv.local === "anniversary" || anniv.label === "anniversary-kiss";
+		// on_station as well, matching the event rule below: a follower still a long way back
+		// closes on HER first. Breaking off toward the target from 400 units out is navigating by
+		// another name.
+		const may_take_it = !follow_has_leader() || (anniv_is_local && follow && follow.on_station);
+		if (may_take_it) return anniv;
+		// Otherwise it was navigation — fall through and keep walking with her instead.
+	}
 
 	// 5. Events. Reached by the leader, by anyone whose leader is dead or offline, and by a
 	//    follower already standing with her — see below.
