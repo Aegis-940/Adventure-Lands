@@ -868,6 +868,11 @@ function movement_goal() {
 	const follow = follow_goal();
 	if (follow && !follow.local) return follow;
 
+	// BOSSING WINS. Above the anniversary, and anniversary_block_reason() blocks the visit outright
+	// while a boss is live, so in practice this is the only one of the two that can be taken.
+	const event = event_goal();
+	if (follow && follow.on_station && event && event.local === "event") return event;
+
 	const anniv = anniversary_destination();
 	if (anniv) {
 		const anniv_is_local = anniv.local === "anniversary" || anniv.label === "anniversary-kiss";
@@ -875,9 +880,6 @@ function movement_goal() {
 		if (may_take_it) return anniv;
 	}
 
-	const event = event_goal();
-
-	if (follow && follow.on_station && event && event.local === "event") return event;
 	if (follow) return follow;
 	if (event) return event;
 
@@ -1249,6 +1251,17 @@ function anniversary_block_reason() {
 
 	const kiss = character.s && character.s.anniversary_kiss;
 	if (kiss && (kiss.ms === undefined || kiss.ms > ANNIVERSARY_REFRESH_MS)) return "already buffed";
+
+	// Bossing outranks the visit — and this has to be a BLOCK, not just a lower movement priority.
+	// anniversary_travel gates combat through should_pause_combat_loop(), so merely losing the
+	// priority would park the party at the boss without attacking it. Blocking keeps
+	// anniversary_travel false, keeps anniv_pending false so the leader holds for nobody, and
+	// resumes by itself once the boss is gone. The merchant is exempt: he does not fight, so a
+	// live boss is no reason for him to skip a round.
+	if (character.ctype !== "merchant"
+		&& typeof best_event_target === "function" && best_event_target()) {
+		return "a boss is up — bossing first";
+	}
 	if (anniversary_is_host()) return "we are the featured player";
 	if (_anniv_done_round === s.round) return "already collected this round";
 	const ticket_problem = anniversary_ticket_problem();
