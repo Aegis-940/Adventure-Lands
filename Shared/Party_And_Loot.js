@@ -851,7 +851,15 @@ function movement_goal() {
 	return null;
 }
 
+// Everything below raw-moves, which is only safe because travel_arbiter() guarantees no journey is
+// running when it returns false. Asserted rather than assumed: a smart_move still walking its plot
+// while these issue move() is two movers on one character, and the character oscillates between
+// them. If this ever fires, the arbiter's release path has a hole in it.
 function movement_local(goal, farm_step) {
+	if (smart.moving) {
+		log("🧭 local movement skipped — a journey is still in flight", "#FFA500", "Alerts");
+		return;
+	}
 	if (goal && goal.local === "follow") return follow_step(goal);
 	if (goal && goal.local === "event") return event_step(goal.event);
 	if (goal && goal.local === "anniversary") return anniversary_close_step();
@@ -888,6 +896,25 @@ function follow_has_leader() {
 	return !!pos && !pos.rip;
 }
 
+// Minimum time between switching how we follow. can_move_to() is a per-tick geometry test and it
+// flickers at any obstacle edge — most of all at long range, which is exactly when a character has
+// fallen behind. Switching mode cancels whatever the last one started, so an unlatched flicker
+// alternates between binning a half-computed route and binning a walk. Now the arbiter's release
+// is unconditional, that would be a stall generator; before it, it was the doubling back.
+const FOLLOW_MODE_DWELL_MS = 1200;
+let _follow_mode = null;
+let _follow_mode_at = 0;
+
+function follow_mode(line_clear) {
+	const want = line_clear ? "direct" : "path";
+	const now = Date.now();
+	if (_follow_mode === want) return want;
+	if (_follow_mode && now - _follow_mode_at < FOLLOW_MODE_DWELL_MS) return _follow_mode;
+	_follow_mode = want;
+	_follow_mode_at = now;
+	return want;
+}
+
 function follow_ring_point(pos) {
 	const fd = CONFIG.movement.follow_distance;
 	const angle = Math.atan2(character.y - pos.y, character.x - pos.x);
@@ -912,7 +939,7 @@ function follow_goal() {
 	if (d <= fd) return { local: "farm", label: "with-leader", on_station: true };
 
 	const ring = follow_ring_point(pos);
-	if (can_move_to(ring.x, ring.y)) {
+	if (follow_mode(can_move_to(ring.x, ring.y)) === "direct") {
 		return { local: "follow", label: "follow-ring", on_station: d <= FOLLOW_STATION_RANGE };
 	}
 	return { label: "follow", map: pos.map, x: pos.x, y: pos.y, radius: fd + 30 };

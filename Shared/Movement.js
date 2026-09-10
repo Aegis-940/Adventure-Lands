@@ -186,15 +186,17 @@ function travel_searching() {
 	return !!smart.moving && !(smart.plot && smart.plot.length);
 }
 
+// Release means NO JOURNEY IS RUNNING when this returns. Unconditionally — not "if we own it",
+// not "unless mid-search".
+//
+// It used to stop only when all three of those held, and then cleared _travel.interrupt anyway. So
+// whenever it declined to stop, it also forgot it had anything to stop: the smart_move kept
+// walking its plot while the caller, told it was free to move, started issuing raw move(). Two
+// movers on one character — the runner's executor pulling toward plot[0] every 80ms and move()
+// pulling toward its own target every 100ms. That oscillation is the doubling back, and it is
+// worst when a character is far behind because that is when the pathfind branch is in use.
 function travel_release() {
-	// Never tear down a search to stop. The character is standing still during one anyway, so
-	// deferring the stop until a route exists costs nothing and saves all the work — whereas
-	// cancelling here means a goal that flickers for one tick destroys the whole computation.
-	// This path and the hold branch both bypassed the guard inside travel_arbiter().
-	if (_travel.interrupt && smart.moving && smart._interrupt === _travel.interrupt
-		&& !travel_searching()) {
-		stop_movement("arbiter: released");
-	}
+	if (smart.moving) stop_movement("arbiter: released");
 	_travel.interrupt = null;
 	_travel.anchor = null;
 	_travel.search_since = 0;
@@ -221,10 +223,6 @@ function travel_arbiter(goal) {
 
 	if (goal.hold) {
 		travel_release();
-		// Same reasoning as travel_release(): a hold arriving mid-search waits for the route
-		// rather than binning it. We are stationary either way, and the next tick stops us once
-		// there is a plot to stop walking.
-		if (smart.moving && !travel_searching()) stop_movement("arbiter: " + goal.label);
 		if (_travel.label !== goal.label) log(`🧭 ${goal.label}`, "#8899aa", "Alerts");
 		_travel.label = goal.label;
 		return true;
