@@ -477,11 +477,9 @@ async function maintenance_loop() {
 	setTimeout(maintenance_loop, TICK_RATE.maintenance);
 }
 
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MOVEMENT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
-
 
 async function walk_in_circle() {
 	if (smart.moving) return;
@@ -608,7 +606,6 @@ var MONSTER_GEAR_OVERRIDES = {
 	fireroamer: { loadout: "fireres", orb: "orb_fire" },
 };
 
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // HELPER FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -637,7 +634,6 @@ var item_order = {
 	jacko: 7
 };
 
-
 function elixir_usage() {
 	const required = "elixirluck";
 	const current_elixir = character.slots.elixir?.name;
@@ -657,134 +653,6 @@ async function swap_booster(current, target) {
 	const slot = locate_item(current);
 	if (slot !== -1) shift(slot, target);
 }
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// SKIN CHANGER
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-// const skinConfigs = {
-// 	priest: {
-// 		skin: "tm_white",
-// 		skinRing: { name: "tristone", level: 0, locked: "l" },
-// 		normalRing: { name: "ringofluck", level: 2, locked: "u" }
-// 	},
-// };
-
-// function skinNeeded(ringName, ringLevel, slot = "ring1", locked = "l", ccThreshold = 135) {
-// 	if (character.cc <= ccThreshold) {
-// 		if (character.slots[slot]?.name !== ringName || character.slots[slot]?.level !== ringLevel) {
-// 			equipIfNeeded(ringName, slot, ringLevel, locked);
-// 		}
-// 		parent.socket.emit("activate", { slot });
-// 	}
-// }
-
-// async function equipIfNeeded(itemName, slotName, level, l) {
-// 	let name = null;
-
-// 	if (typeof itemName === "object") {
-// 		name = itemName.name;
-// 		level = itemName.level;
-// 		l = itemName.l;
-// 	} else {
-// 		name = itemName;
-// 	}
-
-// 	if (character.slots[slotName] != null) {
-// 		let slotItem = character.slots[slotName];
-// 		if (slotItem.name === name && slotItem.level === level && slotItem.l === l) {
-// 			return;
-// 		}
-// 	}
-
-// 	for (let i = 0; i < character.items.length; i++) {
-// 		const item = character.items[i];
-// 		if (item != null && item.name === name && item.level === level && item.l === l) {
-// 			return equip(i, slotName);
-// 		}
-// 	}
-// }
-
-// async function skinChanger() {
-// 	const config = skinConfigs[character.ctype];
-// 	if (!config) {
-// 		console.warn(`No skin config for type: ${character.ctype}`);
-// 		state.skinReady = true; // Allow code to continue even if no config
-// 		return;
-// 	}
-
-// 	// 1. Ensure correct skin
-// 	if (character.skin !== config.skin) {
-// 		console.log(`Applying skinRing: ${config.skinRing.name} lvl ${config.skinRing.level}`);
-// 		skinNeeded(config.skinRing.name, config.skinRing.level, "ring1", config.skinRing.locked);
-// 		await delay(500);
-// 		return skinChanger();
-// 	}
-
-// 	// 2. Ensure correct normal ring
-// 	const slot = character.slots.ring1;
-// 	if (slot?.name !== config.normalRing.name || slot?.level !== config.normalRing.level) {
-// 		console.log(`Equipping normalRing: ${config.normalRing.name} lvl ${config.normalRing.level}`);
-// 		equipIfNeeded(config.normalRing.name, "ring1", config.normalRing.level, config.normalRing.locked);
-// 		await delay(500);
-// 		return skinChanger();
-// 	}
-
-// 	state.skinReady = true;
-// 	console.log(`Skin ready! ${character.ctype} has skin ${character.skin} and ring ${slot.name}`);
-// }
-
-// skinChanger();
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// EVENT HANDLERS
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-// function on_cm(name, data) {
-// 	if (name == "CrownsAnal") {
-// 		if (data.message == "location") {
-// 			respawn();
-// 			smart_move({ x: data.x, y: data.y, map: data.map });
-// 			game_log("Repsawning & Moving");
-// 		}
-// 	}
-// 	if (name == "Riff") {
-// 		if (data.message == "Heal Merch") {
-// 			use_skill("partyheal");
-// 			game_log("Party Healing Riff");
-// 		}
-// 	}
-// }
-
-
-// game.on("death", data => {
-// 	const mob = parent.entities[data.id];
-// 	if (!mob) return;
-
-// 	const mob_name = mob.mtype;
-// 	const mob_target = mob.target;
-
-// 	const partyMembers = Object.keys(get_party() || {});
-
-// 	if (mob_target === character.name || partyMembers.includes(mob_target)) {
-// 		const luck_display = mob.cooperative ? character.luckm : data.luckm;
-// 		const msg = `${mob_name} died with ${luck_display} luck`;
-// 		game_log(msg, "#96a4ff");
-// 		console.log(msg);
-// 	}
-// });
-
-// character.on("loot", data => {
-// 	if (data.id) {
-// 		console.log(`${data.opener} looted chest goldm: ${data.goldm}`);
-// 		game_log(`${data.opener} looted chest goldm: ${data.goldm}`, "gold");
-
-// 		// Remove chest ID after successful loot with delay to ensure it's gone
-// 		setTimeout(() => {
-// 			remove_chest_id(data.id);
-// 		}, 2000);
-// 	}
-// });
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SPIDER DUNGEON

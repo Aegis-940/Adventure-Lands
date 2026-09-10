@@ -217,7 +217,6 @@ function resolve_ranger_weapon() {
 	return "single";
 }
 
-
 function resolve_ranger_loadout() {
 	if (!CONFIG.equipment.boss_set_swap_enabled) return null;
 	if (character.slots?.mainhand?.name === "cupid") return null;
@@ -244,7 +243,6 @@ var EQUIPMENT_RULES = {
 };
 
 var MONSTER_GEAR_OVERRIDES = {};
-
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // CORE UTILITIES
@@ -508,11 +506,9 @@ const maintenance_loop = async () => {
 	setTimeout(maintenance_loop, TICK_RATE.maintenance);
 }
 
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MOVEMENT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
-
 
 const REPOSITION_INTERVAL_MS = 250;
 
@@ -606,7 +602,6 @@ async function reposition() {
 // HELPER FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-
 var item_order = {
 	tracktrix: 0,
 	computer: 1,
@@ -617,7 +612,6 @@ var item_order = {
 	xpbooster: 6,
 	jacko: 7
 };
-
 
 function elixir_usage() {
 	const required = "pumpkinspice";
@@ -640,45 +634,6 @@ var PANIC_THRESHOLDS = {
 	aggro: 1, cooldown: 1000,
 };
 
-
-// function party_maker() {
-// 	if (!CONFIG.party.auto_manage) return;
-// 	const group = CONFIG.party.group_members;
-// 	const leader_name = group[0];
-// 	const party = get_party() || {};
-// 	const party_lead = get_entity(leader_name);
-// 	if (character.name === leader_name) {
-// 		for (let i = 1; i < group.length; i++) {
-// 			const name = group[i];
-// 			if (name === character.name) continue;
-// 			if (party[name]) continue;
-// 			send_party_invite(name);
-// 		}
-// 	} else {
-// 		if (!party[character.name] && party_lead) {
-// 			send_party_request(leader_name);
-// 		}
-// 	}
-// }
-
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// CHARACTER STARTER
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-// function team_starter() {
-// 	if (!CONFIG.character_starter.enabled) return;
-
-// 	const active_characters = get_active_characters();
-
-// 	for (const [key, char] of Object.entries(CONFIG.character_starter.characters)) {
-// 		if (!active_characters[char.name]) {
-// 			start_character(char.name, char.code_slot);
-// 		}
-// 	}
-// }
-// setInterval(team_starter, 5000);
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SELLING
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -699,238 +654,8 @@ function sell_items() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// UPGRADING
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-async function upgrade_items() {
-	if (!CONFIG.upgrading.enabled) return;
-
-	for (let i = 0; i < character.items.length; i++) {
-		const item = character.items[i];
-		if (!item || item.p || !CONFIG.upgrading.whitelist[item.name]) continue;
-
-		const config = CONFIG.upgrading.whitelist[item.name];
-		if (item.level >= config.target_level) continue;
-
-		const grades = G.items[item.name].grades;
-		let scrollname;
-
-		if (item.level < grades[0]) scrollname = "scroll0";
-		else if (item.level < grades[1]) scrollname = "scroll1";
-		else scrollname = "scroll2";
-
-		const scroll_slot = locate_item(scrollname);
-		if (scroll_slot === -1) {
-			buy(scrollname);
-			return;
-		}
-
-		let offering_slot = null;
-		if (item.level >= config.prim) {
-			offering_slot = locate_item("offering");
-		} else if (item.level >= config.primling) {
-			offering_slot = locate_item("offeringp");
-		}
-
-		if (character.q.upgrade === undefined) {
-			try {
-				await upgrade(i, scroll_slot, offering_slot);
-			} catch (e) {
-				console.error("Upgrade failed:", e);
-			}
-		}
-		return;
-	}
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// COMBINING
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-async function combine_items() {
-	if (!CONFIG.combining.enabled) return;
-
-	const to_compound = new Map();
-
-	for (let i = 0; i < character.items.length; i++) {
-		const item = character.items[i];
-		if (!item || !CONFIG.combining.whitelist[item.name]) continue;
-
-		const config = CONFIG.combining.whitelist[item.name];
-		if (item.level >= config.target_level) continue;
-
-		const key = item.name + item.level;
-		const grade = item_grade(item);
-
-		if (!to_compound.has(key)) {
-			to_compound.set(key, [item.level, grade, i]);
-		} else {
-			to_compound.get(key).push(i);
-		}
-	}
-
-	for (const group of to_compound.values()) {
-		const item_level = group[0];
-		const grade = group[1];
-		const scroll_name = "cscroll" + grade;
-
-		for (let i = 2; i + 2 < group.length; i += 3) {
-			const scroll_slot = locate_item(scroll_name);
-			if (scroll_slot === -1) {
-				buy(scroll_name);
-				return;
-			}
-
-			const item = character.items[group[i]];
-			const config = CONFIG.combining.whitelist[item.name];
-
-			let offering_slot = null;
-			if (item_level >= config.prim) {
-				offering_slot = locate_item("offering");
-			} else if (item_level >= config.primling) {
-				offering_slot = locate_item("offeringp");
-			}
-
-			if (character.q.compound === undefined) {
-				try {
-					await compound(group[i], group[i + 1], group[i + 2], scroll_slot, offering_slot);
-				} catch (e) {
-					console.error("Compound failed:", e);
-				}
-			}
-			return;
-		}
-	}
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// UI FUNCTIONS
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-// function pingButton() {
-// 	add_top_button("Ping", character.ping.toFixed(0));
-// }
-// setInterval(pingButton, 1000);
-
-// function topButtons() {
-// 	add_top_button("Return", "R&M", () => {
-// 		send_cm(["CrownPriest", "CrownMage", "CrownTown"], {
-// 			message: "location",
-// 			x: character.x,
-// 			y: character.y,
-// 			map: character.map
-// 		});
-// 	});
-
-// 	add_top_button("showLoot", "💼", displayLoot);
-
-// 	add_top_button("Pause2", "⏸️", () => {
-// 		pause();
-// 		CONFIG.characterStarter.enabled = true
-// 	});
-
-// 	add_top_button("Stop", "🔄", () => {
-// 		stop_character("CrownMerch");
-// 		CONFIG.characterStarter.enabled = false
-// 	});
-// }
-// topButtons();
-
-// function displayLoot() {
-// 	const savedLoot = JSON.parse(localStorage.getItem(CONFIG.looting.lootMonth) || "{}");
-
-// 	const sortedLoot = {};
-// 	Object.keys(savedLoot)
-// 		.sort()
-// 		.forEach((key) => {
-// 			sortedLoot[key] = savedLoot[key];
-// 		});
-
-// 	console.log("Saved Loot (Sorted):", sortedLoot);
-// 	show_json(sortedLoot);
-// }
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// EQUIPMENT HELPERS
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-
-// const skinConfigs = {
-// 	ranger: {
-// 		skin: "tm_yellow",
-// 		skinRing: { name: "tristone", level: 2, locked: "l" },
-// 		normalRing: { name: "suckerpunch", level: 2, locked: "l" }
-// 	},
-// };
-
-// function skinNeeded(ringName, ringLevel, slot = "ring1", locked = "l", ccThreshold = 135) {
-// 	if (character.cc <= ccThreshold) {
-// 		if (character.slots[slot]?.name !== ringName || character.slots[slot]?.level !== ringLevel) {
-// 			equipIfNeeded(ringName, slot, ringLevel, locked);
-// 		}
-// 		parent.socket.emit("activate", { slot });
-// 	}
-// }
-
-// async function equipIfNeeded(itemName, slotName, level, l) {
-// 	let name = null;
-
-// 	if (typeof itemName === "object") {
-// 		name = itemName.name;
-// 		level = itemName.level;
-// 		l = itemName.l;
-// 	} else {
-// 		name = itemName;
-// 	}
-
-// 	if (character.slots[slotName] != null) {
-// 		let slotItem = character.slots[slotName];
-// 		if (slotItem.name === name && slotItem.level === level && slotItem.l === l) {
-// 			return;
-// 		}
-// 	}
-
-// 	for (let i = 0; i < character.items.length; i++) {
-// 		const item = character.items[i];
-// 		if (item != null && item.name === name && item.level === level && item.l === l) {
-// 			return equip(i, slotName);
-// 		}
-// 	}
-// }
-
-// async function skinChanger() {
-// 	const config = skinConfigs[character.ctype];
-// 	if (!config) {
-// 		console.warn(`No skin config for type: ${character.ctype}`);
-// 		state.skinReady = true;
-// 		return;
-// 	}
-
-// 	if (character.skin !== config.skin) {
-// 		console.log(`Applying skinRing: ${config.skinRing.name} lvl ${config.skinRing.level}`);
-// 		skinNeeded(config.skinRing.name, config.skinRing.level, "ring1", config.skinRing.locked);
-// 		await delay(500);
-// 		return skinChanger();
-// 	}
-
-// 	const slot = character.slots.ring1;
-// 	if (slot?.name !== config.normalRing.name || slot?.level !== config.normalRing.level) {
-// 		console.log(`Equipping normalRing: ${config.normalRing.name} lvl ${config.normalRing.level}`);
-// 		equipIfNeeded(config.normalRing.name, "ring1", config.normalRing.level, config.normalRing.locked);
-// 		await delay(500);
-// 		return skinChanger();
-// 	}
-
-// 	state.skinReady = true;
-// 	console.log(`Skin ready! ${character.ctype} has skin ${character.skin} and ring ${slot.name}`);
-// }
-
-// skinChanger();
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
 // EVENT HANDLERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
-
 
 setInterval(send_updates, 20000);
 

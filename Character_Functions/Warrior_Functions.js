@@ -140,27 +140,27 @@ var equipment_sets = {
 		{ item_name: "bataxe", slot: "mainhand", level: 9, l: "l" }
 	],
 	dps: [
-		{ item_name: "cearring", slot: "earring1", level: 5, l: "l" },
-		{ item_name: "cearring", slot: "earring2", level: 5, l: "u" },
-		{ item_name: "coat", slot: "chest", level: 13, l: "l" },
-		{ item_name: "suckerpunch", slot: "ring1", level: 2, l: "l" },
-		{ item_name: "suckerpunch", slot: "ring2", level: 2, l: "u" },
-		{ item_name: "fireblade", slot: "mainhand", level: 13, l: "s" },
-		{ item_name: "candycanesword", slot: "offhand", level: 13, l: "s" },
+		// { item_name: "cearring", slot: "earring1", level: 5, l: "l" },
+		// { item_name: "cearring", slot: "earring2", level: 5, l: "u" },
+		// { item_name: "coat", slot: "chest", level: 13, l: "l" },
+		// { item_name: "suckerpunch", slot: "ring1", level: 2, l: "l" },
+		// { item_name: "suckerpunch", slot: "ring2", level: 2, l: "u" },
+		// { item_name: "fireblade", slot: "mainhand", level: 13, l: "s" },
+		// { item_name: "candycanesword", slot: "offhand", level: 13, l: "s" },
 	],
 	luck: [
-		{ item_name: "mearring", slot: "earring1", level: 0, l: "l" },
-		{ item_name: "mearring", slot: "earring2", level: 0, l: "u" },
-		{ item_name: "ringofluck", slot: "ring2", level: 0, l: "u" },
-		{ item_name: "ringofluck", slot: "ring1", level: 0, l: "l" },
-		{ item_name: "mshield", slot: "offhand", level: 9, l: "l" },
-		{ item_name: "tshirt88", slot: "chest", level: 0, l: "l" }
+		// { item_name: "mearring", slot: "earring1", level: 0, l: "l" },
+		// { item_name: "mearring", slot: "earring2", level: 0, l: "u" },
+		// { item_name: "ringofluck", slot: "ring2", level: 0, l: "u" },
+		// { item_name: "ringofluck", slot: "ring1", level: 0, l: "l" },
+		// { item_name: "mshield", slot: "offhand", level: 9, l: "l" },
+		// { item_name: "tshirt88", slot: "chest", level: 0, l: "l" }
 	],
 	stealth: [
-		{ item_name: "stealthcape", slot: "cape", level: 0, l: "l" },
+		// { item_name: "stealthcape", slot: "cape", level: 0, l: "l" },
 	],
 	cape: [
-		{ item_name: "vcape", slot: "cape", level: 6, l: "l" },
+		// { item_name: "vcape", slot: "cape", level: 6, l: "l" },
 	],
 	mana: [
 		{ item_name: "tshirt9", slot: "chest", level: 6, l: "l" }
@@ -169,10 +169,10 @@ var equipment_sets = {
 		{ item_name: "coat", slot: "chest", level: 13, l: "l" }
 	],
 	dps_accessories: [
-		{ item_name: "cearring", slot: "earring1", level: 5, l: "l" },
-		{ item_name: "cearring", slot: "earring2", level: 5, l: "u" },
-		{ item_name: "suckerpunch", slot: "ring1", level: 2, l: "l" },
-		{ item_name: "suckerpunch", slot: "ring2", level: 2, l: "u" },
+		// { item_name: "cearring", slot: "earring1", level: 5, l: "l" },
+		// { item_name: "cearring", slot: "earring2", level: 5, l: "u" },
+		// { item_name: "suckerpunch", slot: "ring1", level: 2, l: "l" },
+		// { item_name: "suckerpunch", slot: "ring2", level: 2, l: "u" },
 	],
 	panic: [
 		{ item_name: "jacko", slot: "orb", level: 0, l: "l" },
@@ -467,7 +467,6 @@ var MONSTER_GEAR_OVERRIDES = {
 // MOVEMENT FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-
 const REPOSITION_INTERVAL_MS = 250;
 
 async function reposition() {
@@ -518,8 +517,8 @@ var item_order = {
 	xpbooster: 6,
 	jacko: 7,
 	candycanesword: [38, 39],
-	fireblade: 40,
-	bataxe: 41,
+	fireblade: [40, 41],
+	bataxe: 37,
 };
 
 
@@ -543,109 +542,6 @@ var PANIC_THRESHOLDS = {
 	low_hp: 0.35, low_mp: 0.01, high_hp: 0.60, high_mp: 0.02,
 	aggro: 99, cooldown: 1000,
 };
-
-
-// function party_maker() {
-// 	if (!CONFIG.party.auto_manage) return;
-// 	const group = CONFIG.party.group_members;
-// 	const party_lead = get_entity(group[0]);
-// 	const current_party = character.party;
-// 	const healer = get_entity("CrownPriest");
-// 	if (character.name === group[0]) {
-// 		for (let i = 1; i < group.length; i++) {
-// 			send_party_invite(group[i]);
-// 		}
-// 	} else {
-// 		if (current_party && current_party !== group[0] && healer) {
-// 			leave_party();
-// 		}
-// 		if (!current_party && party_lead) {
-// 			send_party_request(group[0]);
-// 		}
-// 	}
-// }
-
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// EQUIPMENT HELPERS
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// SKIN CHANGER
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-// const skinConfigs = {
-// 	warrior: {
-// 		skin: "tf_green",
-// 		skinRing: { name: "tristone", level: 1, locked: "l" },
-// 		normalRing: { name: "suckerpunch", level: 2, locked: "l" }
-// 	},
-// };
-
-// function skinNeeded(ringName, ringLevel, slot = "ring1", locked = "l", ccThreshold = 135) {
-// 	if (character.cc <= ccThreshold) {
-// 		if (character.slots[slot]?.name !== ringName || character.slots[slot]?.level !== ringLevel) {
-// 			equipIfNeeded(ringName, slot, ringLevel, locked);
-// 		}
-// 		parent.socket.emit("activate", { slot });
-// 	}
-// }
-
-// async function equipIfNeeded(itemName, slotName, level, l) {
-// 	let name = null;
-
-// 	if (typeof itemName === "object") {
-// 		name = itemName.name;
-// 		level = itemName.level;
-// 		l = itemName.l;
-// 	} else {
-// 		name = itemName;
-// 	}
-
-// 	if (character.slots[slotName] != null) {
-// 		let slotItem = character.slots[slotName];
-// 		if (slotItem.name === name && slotItem.level === level && slotItem.l === l) {
-// 			return;
-// 		}
-// 	}
-
-// 	for (let i = 0; i < character.items.length; i++) {
-// 		const item = character.items[i];
-// 		if (item != null && item.name === name && item.level === level && item.l === l) {
-// 			return equip(i, slotName);
-// 		}
-// 	}
-// }
-
-// async function skinChanger() {
-// 	const config = skinConfigs[character.ctype];
-// 	if (!config) {
-// 		console.warn(`No skin config for type: ${character.ctype}`);
-// 		state.skinReady = true;
-// 		return;
-// 	}
-
-// 	if (character.skin !== config.skin) {
-// 		console.log(`Applying skinRing: ${config.skinRing.name} lvl ${config.skinRing.level}`);
-// 		skinNeeded(config.skinRing.name, config.skinRing.level, "ring1", config.skinRing.locked);
-// 		await delay(500);
-// 		return skinChanger();
-// 	}
-
-// 	const slot = character.slots.ring1;
-// 	if (slot?.name !== config.normalRing.name || slot?.level !== config.normalRing.level) {
-// 		console.log(`Equipping normalRing: ${config.normalRing.name} lvl ${config.normalRing.level}`);
-// 		equipIfNeeded(config.normalRing.name, "ring1", config.normalRing.level, config.normalRing.locked);
-// 		await delay(500);
-// 		return skinChanger();
-// 	}
-
-// 	state.skinReady = true;
-// 	console.log(`Skin ready! ${character.ctype} has skin ${character.skin} and ring ${slot.name}`);
-// }
-
-// skinChanger();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // EVENT HANDLERS
@@ -682,39 +578,6 @@ run_character({
 if (WARRIOR_TARGET === "bscorpion") prim_farm_loop();
 
 
-// let last_aggro_time = 0;
-// let last_bigbird_seen = 0;
-
-// async function aggro_mobs() {
-//     if (!BOSS_LOOP_ENABLED && !smart.moving && ORBIT_LOOP_ENABLED) {
-//         const now = Date.now();
-
-
-//         // Track last time bigbird was seen
-//         if (bigbird) {
-//             last_bigbird_seen = now;
-//         }
-
-//         // Check if Myras has more than 75% mp
-//         const myras_info = get("Myras_newparty_info");
-//         const myras_has_mp = myras_info && myras_info.mp > 0.8 * myras_info.max_mp;
-
-//         // Only aggro if no bigbird nearby, Myras has enough mp, and at least 10s since last bigbird seen
-//         if (
-//             !bigbird &&
-//             myras_has_mp &&
-//             (now - last_bigbird_seen > 10000) &&
-//             (now - last_aggro_time > 30000)
-//         ) {
-//             last_aggro_time = now;
-//             await smarter_move({ x: 1280, y: 69 });
-//             await use_skill("agitate");
-//             await delay(2000);
-//             await smarter_move(WARRIOR_TARGET);
-//         }
-//     }
-// }
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // BSCORPION KILL LOGGER LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -744,7 +607,6 @@ bscorpion_kill_logger_loop()
 // BSCORPION KILL TIMER LOGGER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-
 let bscorpion_kill_count = 0;
 let bscorpion_kill_times = [];
 
@@ -766,101 +628,3 @@ function log_bscorpion_kill() {
 	}
 }
 
-
-// // DUNGEON_LOOP_ENABLED = true;
-
-// async function dungeon_loop() {
-
-//     while (true) {
-
-//         if (!DUNGEON_LOOP_ENABLED) {
-//             await delay(1000);
-//             continue;
-//         }
-
-//         // Set orbit_origin to Myras' location (map, x, y)
-//         const myras = parent.entities["Myras"];
-//         if (myras) {
-//             orbit_origin = { map: myras.map, x: myras.x, y: myras.y };
-//         } else {
-//             orbit_origin = null;
-//         }
-
-//         await delay(200);
-
-//     }
-
-// }
-
-// async function dungeon_orbit_loop() {
-
-//     const delayMs = 50;
-//     let orbit_path_index = 0;
-
-//     while (true) {
-//         // Wait until orbit loop is enabled
-//         if (!DUNGEON_LOOP_ENABLED) {
-//             await delay(100);
-//             continue;
-//         }
-
-//         // Always update orbit origin to Myras' current position
-//         const myras = parent.entities["Myras"];
-//         if (!myras) {
-//             game_log("⚠️ Myras not found for orbiting.", "#FF0000");
-//             await delay(500);
-//             continue;
-//         }
-//         orbit_origin = { map: myras.map, x: myras.x, y: myras.y };
-
-//         // Recompute orbit path every step to follow Myras
-//         set_orbit_radius(ORBIT_RADIUS);
-//         const orbit_path_points = compute_orbit_path(orbit_origin, ORBIT_RADIUS, ORBIT_STEPS);
-//         // Pick the closest point on the orbit to start
-//         let minDist = Infinity, minIdx = 0;
-//         for (let i = 0; i < orbit_path_points.length; i++) {
-//             const pt = orbit_path_points[i];
-//             const d = Math.hypot(character.real_x - pt.x, character.real_y - pt.y);
-//             if (d < minDist) {
-//                 minDist = d;
-//                 minIdx = i;
-//             }
-//         }
-//         orbit_path_index = minIdx;
-
-//         while (DUNGEON_LOOP_ENABLED) {
-//             // Update Myras' position and orbit path every step
-//             const myras = parent.entities["Myras"];
-//             if (!myras) {
-//                 game_log("⚠️ Myras not found for orbiting.", "#FF0000");
-//                 await delay(500);
-//                 break;
-//             }
-//             orbit_origin = { map: myras.map, x: myras.x, y: myras.y };
-//             set_orbit_radius(ORBIT_RADIUS);
-//             const orbit_path_points = compute_orbit_path(orbit_origin, ORBIT_RADIUS, ORBIT_STEPS);
-
-//             // Pick the next point in the orbit
-//             orbit_path_index = (orbit_path_index + 1) % orbit_path_points.length;
-//             const point = orbit_path_points[orbit_path_index];
-
-//             // Only move if not already close to the next point
-//             const dist = Math.hypot(character.real_x - point.x, character.real_y - point.y);
-//             if (!character.moving && !smart.moving && dist > MOVE_TOLERANCE) {
-//                 try {
-//                     await move(point.x, point.y);
-//                 } catch (e) {
-//                     console.error("Orbit move error:", e);
-//                 }
-//             }
-
-//             // Wait until movement is finished or interrupted
-//             while (DUNGEON_LOOP_ENABLED && (character.moving || smart.moving)) {
-//                 await new Promise(resolve => setTimeout(resolve, MOVE_CHECK_INTERVAL));
-//             }
-
-//             await delay(delayMs);
-//         }
-//     }
-
-// }
