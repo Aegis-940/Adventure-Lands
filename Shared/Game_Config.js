@@ -64,6 +64,7 @@ const EVENT_LOCATIONS = [
 	{ name: "dragold", map: "cave", x: 873, y: -727 },
 	{ name: "franky", join: true, engage_below: 0.95 },
 	{ name: "icegolem", join: true },
+	{ name: "crabxx", dynamic: true },
 	// { name: "wabbit", dynamic: true },
 ];
 
