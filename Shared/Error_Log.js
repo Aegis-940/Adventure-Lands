@@ -536,6 +536,7 @@ function al_errors(all) {
 			const rows = Object.values(blob.records || {}).sort((a, b) => b.last - a.last);
 			out[k.slice(ERRLOG_KEY.length)] = {
 				session: blob.session,
+				counts: blob.counts || {},
 				deaths: blob.deaths || [],
 				records: rows.map(r => ({
 					...r,

@@ -102,8 +102,12 @@ const ANNIVERSARY_REFRESH_MS = 5 * 60 * 1000;
 const ANNIVERSARY_TICK_MS = 2000;
 const ANNIVERSARY_TICK_ACTIVE_MS = 400;
 
+const ANNIVERSARY_KISS_RETRY_MS = 2500;
+
 let _anniv_died_round = null;
 let _anniv_reason = null;
+let _anniv_casting = false;
+let _anniv_last_kiss = 0;
 
 function anniversary_event() {
 	try {
@@ -182,13 +186,26 @@ async function anniversary_tick() {
 	anniversary_travel = !reason;
 	if (!anniversary_travel) return false;
 
+	// The floor and the in-flight latch are the backstop; the cooldown is only an optimisation on
+	// top. ikissyou exists only during the event, so is_on_cooldown may throw or read false
+	// forever — relying on it alone turned the tick rate into the cast rate, four characters
+	// emitting use_skill every 400ms for as long as they stood in range.
 	let ready = true;
-	try { ready = !is_on_cooldown("ikissyou"); } catch (e) { /* skill unknown outside the event */ }
+	try { ready = !is_on_cooldown("ikissyou"); } catch (e) { /* unknown skill: the floor bounds us */ }
 
 	const them = get_player(s.target);
-	if (ready && them && distance(character, them) <= ANNIVERSARY_RANGE) {
-		Promise.resolve(use_skill("ikissyou", them.id)).catch(
-			e => log(`🎂 Anniversary kiss failed: ${fmt_err(e)}`, "#FFA500", "Alerts"));
+	if (!_anniv_casting && ready
+		&& Date.now() - _anniv_last_kiss > ANNIVERSARY_KISS_RETRY_MS
+		&& them && distance(character, them) <= ANNIVERSARY_RANGE) {
+		_anniv_casting = true;
+		_anniv_last_kiss = Date.now();
+		Promise.resolve(use_skill("ikissyou", them.id)).then(
+			() => { _anniv_casting = false; },
+			e => {
+				_anniv_casting = false;
+				errlog_count("kiss:" + ((e && (e.reason || e.response)) || "failed"));
+				log(`🎂 Anniversary kiss failed: ${fmt_err(e)}`, "#FFA500", "Alerts");
+			});
 	}
 	return true;
 }
