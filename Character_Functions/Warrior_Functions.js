@@ -277,7 +277,7 @@ const swap_trick_history = {};
 
 async function status_swap_trick_check(target) {
 
-	attack(target);
+	Promise.resolve(attack(target)).catch(e => catcher(e, "action_loop"));
 
 	const trick = STATUS_SWAP_TRICKS[target?.mtype];
 	if (!trick || character.s[trick.status] !== undefined) return;
@@ -601,7 +601,7 @@ async function bscorpion_kill_logger_loop() {
 	}
 }
 
-bscorpion_kill_logger_loop()
+if (WARRIOR_TARGET === "bscorpion") bscorpion_kill_logger_loop();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // BSCORPION KILL TIMER LOGGER

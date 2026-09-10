@@ -19,15 +19,5 @@ loop_controller();
 // MAIN LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let last_update_time = 0;
-
-setInterval(() => {
-
-	const now = Date.now();
-	if (now - last_update_time >= 20000) {
-		parent.socket.emit("send_updates", {});
-		last_update_time = now;
-	}
-
-}, 1000);
+setInterval(send_updates, 20000);
 

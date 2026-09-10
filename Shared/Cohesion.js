@@ -61,10 +61,11 @@ function follow_goal() {
 	else if (d <= COHESION_REGROUP) _cohesion_closing = false;
 
 	const fd = CONFIG.movement.follow_distance;
+	const arrive = pos.formation ? fd : (_cohesion_closing ? COHESION_REGROUP : COHESION_RANGE);
 	return approach(pos, {
 		label: "follow",
-		arrive: pos.formation ? fd : (_cohesion_closing ? COHESION_REGROUP : COHESION_RANGE),
-		radius: fd + 30,
+		arrive,
+		radius: Math.min(fd + 30, arrive),
 		ring: fd,
 		chasing: true,
 		arrived: { local: "farm", label: "with-leader", on_station: true },

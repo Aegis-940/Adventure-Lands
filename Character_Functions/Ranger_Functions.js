@@ -491,8 +491,6 @@ const maintenance_loop = async () => {
 		if (CONFIG.potions.auto_buy) auto_buy_potions();
 		if (CONFIG.party.auto_manage) party_manager();
 		if (CONFIG.selling.enabled) sell_items();
-		if (CONFIG.upgrading.enabled) upgrade_items();
-		if (CONFIG.combining.enabled) combine_items();
 
 		clear_inventory();
 		inventory_sorter();

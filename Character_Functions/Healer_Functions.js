@@ -535,7 +535,7 @@ async function handle_looting() {
 		if (token && CONFIG.looting.equip_gold_gear && !is_set_equipped("gold") && performance.now() - state.last_gold_swap > 1000) {
 			await equip_apply(token, "gold");
 			state.last_gold_swap = performance.now();
-			swap_booster("luckbooster", "goldbooster");
+			await swap_booster("luckbooster", "goldbooster");
 			await delay(200);
 		}
 

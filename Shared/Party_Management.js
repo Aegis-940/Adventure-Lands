@@ -234,8 +234,7 @@ function party_manager() {
 }
 
 function accept_if_party(name, accept) {
-	if (typeof CONFIG === "undefined") return;
-	if (CONFIG.party.group_members.includes(name)) accept(name);
+	if (name === PARTY_LEADER || PARTY_MEMBERS.includes(name)) accept(name);
 }
 
 function on_party_request(name) { accept_if_party(name, accept_party_request); }
