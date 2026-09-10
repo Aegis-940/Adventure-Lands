@@ -12,12 +12,21 @@ const COHESION_FOLLOWERS = ["Ulric", "Riva"];
 let _cohesion_holding = false;
 let _cohesion_closing = false;
 
+// Tight whenever the leader has somewhere to be, not merely while she is moving. Going slack the
+// moment she stops is what put followers out of range at the exact instant the party had to act.
+// Farming and combat are the only times a follower should spread out.
+function party_in_formation() {
+	if (typeof is_travelling === "function" && is_travelling()) return true;
+	const g = typeof current_goal === "function" ? current_goal() : null;
+	return !!g && g.local !== "farm" && g.local !== "event";
+}
+
 function leader_position() {
 	if (character.name === MOVEMENT_LEADER) return null;
 	const c = read_state_cache(MOVEMENT_LEADER);
 	const live = get_player(MOVEMENT_LEADER);
-	if (live) return { map: character.map, x: live.x, y: live.y, rip: !!live.rip, travelling: !!(c && c.travelling) };
-	return c ? { map: c.map, x: c.x, y: c.y, rip: !!c.rip, travelling: !!c.travelling } : null;
+	if (live) return { map: character.map, x: live.x, y: live.y, rip: !!live.rip, formation: !!(c && c.formation) };
+	return c ? { map: c.map, x: c.x, y: c.y, rip: !!c.rip, formation: !!c.formation } : null;
 }
 
 function follow_has_leader() {
@@ -29,10 +38,16 @@ function party_cohesion_hold() {
 	if (character.name !== MOVEMENT_LEADER) return false;
 	if (typeof panicking !== "undefined" && panicking) { _cohesion_holding = false; return false; }
 
+	const owed = typeof anniversary_should_travel === "function" && anniversary_should_travel();
+
 	const limit = _cohesion_holding ? COHESION_REGROUP : COHESION_RANGE;
 	_cohesion_holding = COHESION_FOLLOWERS.some(name => {
 		const s = read_state_cache(name);
 		if (!s || s.rip) return false;
+		// A follower on the same visit is not a straggler: we are both converging on the featured
+		// player, not on each other. Counting it stalls us short of the target while we wait for
+		// someone walking to the same place.
+		if (owed && s.anniv_pending) return false;
 		return s.map !== character.map || Math.hypot(s.x - character.x, s.y - character.y) > limit;
 	});
 	if (_cohesion_holding) return true;
@@ -41,7 +56,7 @@ function party_cohesion_hold() {
 	// because they are following us. While we still owe a visit we lead instead, or nobody ever
 	// reaches the featured player. anniv_pending clears on the buff, a spent or expired ticket, a
 	// death, or the round ending, so this cannot outlast the round.
-	if (typeof anniversary_should_travel === "function" && anniversary_should_travel()) return false;
+	if (owed) return false;
 	return COHESION_FOLLOWERS.some(name => {
 		const s = read_state_cache(name);
 		return !!s && !s.rip && !!s.anniv_pending;
@@ -61,7 +76,7 @@ function follow_goal() {
 	const fd = CONFIG.movement.follow_distance;
 	return approach(pos, {
 		label: "follow",
-		arrive: pos.travelling ? fd : (_cohesion_closing ? COHESION_REGROUP : COHESION_RANGE),
+		arrive: pos.formation ? fd : (_cohesion_closing ? COHESION_REGROUP : COHESION_RANGE),
 		radius: fd + 30,
 		ring: fd,
 		chasing: true,
@@ -106,12 +121,12 @@ function movement_goal() {
 	const event = event_goal();
 	if (follow && follow.on_station && event && event.local === "event") return event;
 
-	const anniv = anniversary_destination();
-	if (anniv) {
-		// A same-map pathfind is allowed too: with the line blocked a local step is impossible, and
-		// the leader is holding for this visit anyway. Crossing maps alone still is not.
-		const reachable = !!anniv.local || !!anniv.hold || anniv.map === character.map;
-		if (!follow_has_leader() || (reachable && follow && follow.on_station)) return anniv;
+	// Leader only. anniversary_tick() casts from its own loop the moment the target is in range,
+	// so a follower reaches it by staying in formation — it needs no goal of its own, and giving
+	// it one made it indistinguishable from a straggler.
+	if (!follow_has_leader()) {
+		const anniv = anniversary_destination();
+		if (anniv) return anniv;
 	}
 
 	if (follow) return follow;

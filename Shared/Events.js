@@ -97,7 +97,11 @@ function best_event_target() {
 
 var anniversary_travel = false;
 
-const ANNIVERSARY_RANGE = 40;
+// The skill reaches 80. The leader parks at ARRIVE so that the whole formation — followers sit at
+// CONFIG.movement.follow_distance from her — is still inside CAST. ARRIVE + follow_distance must
+// stay well under CAST, or half the party arrives unable to act.
+const ANNIVERSARY_CAST = 70;
+const ANNIVERSARY_ARRIVE = 25;
 const ANNIVERSARY_REFRESH_MS = 5 * 60 * 1000;
 const ANNIVERSARY_TICK_MS = 2000;
 const ANNIVERSARY_TICK_ACTIVE_MS = 400;
@@ -164,11 +168,11 @@ function anniversary_destination() {
 	if (!s) return null;
 
 	const them = get_player(s.target);
-	if (!them) return { label: "anniversary", map: s.map, x: s.x, y: s.y, radius: ANNIVERSARY_RANGE };
+	if (!them) return { label: "anniversary", map: s.map, x: s.x, y: s.y, radius: ANNIVERSARY_ARRIVE };
 	return approach(them, {
 		label: "anniversary",
-		arrive: ANNIVERSARY_RANGE,
-		ring: ANNIVERSARY_RANGE * 0.6,
+		arrive: ANNIVERSARY_ARRIVE,
+		ring: ANNIVERSARY_ARRIVE * 0.6,
 		arrived: { hold: true, label: "anniversary-kiss" },
 	});
 }
@@ -196,7 +200,7 @@ async function anniversary_tick() {
 	const them = get_player(s.target);
 	if (!_anniv_casting && ready
 		&& Date.now() - _anniv_last_kiss > ANNIVERSARY_KISS_RETRY_MS
-		&& them && distance(character, them) <= ANNIVERSARY_RANGE) {
+		&& them && distance(character, them) <= ANNIVERSARY_CAST) {
 		_anniv_casting = true;
 		_anniv_last_kiss = Date.now();
 		Promise.resolve(use_skill("ikissyou", them.id)).then(
