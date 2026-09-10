@@ -98,7 +98,6 @@ var state = {
 	skin_ready: false,
 	last_basher_swap: 0,
 	last_cleave_swap: 0,
-	gear_locked: 0,
 	equip_cooldowns: {},
 	last_reposition: 0
 };
@@ -289,12 +288,13 @@ async function status_swap_trick_check(target) {
 
 	if (!is_set_equipped(trick.base_set)) return;
 
-	lock_gear();
+	const token = equip_claim("swap-trick", EQUIP_PRIORITY.trick);
+	if (!token) return;
 	try {
 		swap_trick_attempts++;
-		equip_batch(trick.swap_slots);
+		if (!await equip_apply_slots(token, trick.swap_slots)) return;
 		await delay(trick.swap_delay_ms);
-		equip_batch(trick.swap_slots);
+		if (!await equip_apply_slots(token, trick.swap_slots)) return;
 		await delay(trick.settle_delay_ms);
 
 		if (character.s[trick.status] !== undefined) {
@@ -307,7 +307,7 @@ async function status_swap_trick_check(target) {
 			swap_trick_attempts = 0;
 		}
 	} finally {
-		unlock_gear();
+		equip_release(token);
 	}
 }
 

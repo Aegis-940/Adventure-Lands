@@ -123,7 +123,6 @@ var ITEMS_TO_KEEP = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster"
 
 var state = {
 	skin_ready: false,
-	gear_locked: 0,
 	equip_cooldowns: {},
 	last_reposition: 0,
 };

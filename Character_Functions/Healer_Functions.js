@@ -93,7 +93,6 @@ var state = {
 	last_gold_swap: 0,
 	last_temporal_surge: 0,
 	angle: 0,
-	gear_locked: 0,
 	equip_cooldowns: {},
 	last_angle_update: performance.now()
 };
@@ -330,10 +329,11 @@ async function check_temporal_surge() {
 
 	const prev_orb = character.slots.orb ? { name: character.slots.orb.name, level: character.slots.orb.level } : null;
 
-	lock_gear();
+	const token = equip_claim("temporal", EQUIP_PRIORITY.skill);
+	if (!token) return false;
 	try {
 		state.last_equip_time = performance.now();
-		await equip_set("temporal");
+		if (!await equip_apply(token, "temporal")) return false;
 		await use_skill("temporalsurge");
 		log("Temporal Surge activated!", "#FFAA00");
 		state.last_temporal_surge = Date.now();
@@ -343,10 +343,10 @@ async function check_temporal_surge() {
 			const inv_idx = character.items.findIndex(
 				i => i && i.name === prev_orb.name && i.level === prev_orb.level
 			);
-			if (inv_idx !== -1) await equip(inv_idx, "orb");
+			if (inv_idx !== -1 && equip_holds(token)) await equip(inv_idx, "orb");
 		}
 	} finally {
-		unlock_gear();
+		equip_release(token);
 	}
 
 	return true;
@@ -554,11 +554,11 @@ function should_loot() {
 async function handle_looting() {
 	state.last_loot_time = performance.now();
 	state.current = "looting";
-	lock_gear();
+	const token = equip_claim("looting", EQUIP_PRIORITY.loot);
 
 	try {
-		if (CONFIG.looting.equip_gold_gear && !is_set_equipped("gold") && performance.now() - state.last_gold_swap > 1000) {
-			await equip_set("gold");
+		if (token && CONFIG.looting.equip_gold_gear && !is_set_equipped("gold") && performance.now() - state.last_gold_swap > 1000) {
+			await equip_apply(token, "gold");
 			state.last_gold_swap = performance.now();
 			swap_booster("luckbooster", "goldbooster");
 			await delay(200);
@@ -584,7 +584,7 @@ async function handle_looting() {
 		console.error("Looting error:", e);
 	} finally {
 		state.current = "idle";
-		unlock_gear();
+		equip_release(token);
 	}
 }
 

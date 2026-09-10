@@ -148,10 +148,6 @@ function warn_missing_item(item_name, level, slot) {
 	game_log(`⚠️ batch_equip: no ${item_name} (lvl ${level}) in inventory for ${slot}`, "#FFA500");
 }
 
-function panic_owns_orb() {
-	return typeof panicking !== "undefined" && !!panicking;
-}
-
 async function batch_equip(data, set_name) {
 	if (!Array.isArray(data)) {
 		return Promise.reject({ reason: "invalid", message: "Not an array" });
@@ -170,8 +166,6 @@ async function batch_equip(data, set_name) {
 		let l = data[i].l;
 
 		if (!item_name) continue;
-
-		if (slot === "orb" && set_name !== "panic" && set_name !== "orb" && panic_owns_orb()) continue;
 
 		const slot_item = parent.character.slots[slot];
 		if (slot_item && slot_item.name === item_name && (slot_item.level ?? 0) === (level ?? 0)) continue;
@@ -228,7 +222,9 @@ function is_set_equipped(set_name) {
 	);
 }
 
-async function equip_set(set_name) {
+// Renamed from equip_set: this is the raw emit and must only ever be reached through
+// equip_apply(), which checks the claim. A bare equip_set() call site is now a grep-able bug.
+async function equip_set_raw(set_name) {
 	const set = equipment_sets[set_name];
 	if (!set) {
 		console.error(`Set "${set_name}" not found.`);
@@ -246,18 +242,89 @@ async function equip_set(set_name) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// EQUIPMENT ARBITER — one owner of the equipment slots.
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+// Slots used to be written by four or five independent deciders per character — the rules
+// resolver, panic, transient combat swaps, the status swap trick, looting gear — coordinated by a
+// hand-rolled protocol of gear_locked, panic_owns_orb() and per-group cooldowns. That protocol
+// cannot work: resolve_equipment() checked its bail once and then awaited a server round trip, so
+// an invocation already in flight sailed past it and emitted over the jacko. Intermittent, and
+// proportional to ping.
+//
+// A claim is not advisory. Higher priority PREEMPTS lower and revokes its token mid-sequence, so
+// panic no longer waits for a cleave swap to finish being polite.
+const EQUIP_PRIORITY = {
+	panic: 100,   // jacko for scare; must beat everything
+	skill: 80,    // transient combat swaps — basher, bataxe, zap, temporal
+	trick: 70,    // status swap trick
+	loot: 60,     // gold/luck gear while opening chests
+	rules: 20,    // steady-state EQUIPMENT_RULES
+	resting: 10,  // merchant default gear
+};
+
+// A holder that never releases — an exception on a path without a finally — must not wedge the
+// slots forever.
+const EQUIP_CLAIM_MAX_MS = 5000;
+
+let _equip_holder = null;
+let _equip_seq = 0;
+
+function equip_claim(owner, priority) {
+	if (_equip_holder && Date.now() - _equip_holder.at > EQUIP_CLAIM_MAX_MS) _equip_holder = null;
+	if (_equip_holder && _equip_holder.priority > priority) return null;
+	_equip_holder = { owner, priority, token: ++_equip_seq, at: Date.now() };
+	return _equip_holder.token;
+}
+
+function equip_holds(token) {
+	return !!token && !!_equip_holder && _equip_holder.token === token;
+}
+
+function equip_release(token) {
+	if (equip_holds(token)) _equip_holder = null;
+}
+
+function equip_holder_name() {
+	return _equip_holder ? _equip_holder.owner : null;
+}
+
+// THE ONLY EMITTER. Everything that wants gear on goes through here, so "who can write to the
+// slots" is answerable with grep rather than by reading every loop.
+async function equip_apply(token, sets) {
+	if (!equip_holds(token)) return false;
+	const list = Array.isArray(sets) ? sets : [sets];
+	for (const s of list) {
+		if (!equip_holds(token)) return false;   // preempted mid-sequence
+		if (is_set_equipped(s)) continue;
+		await equip_set_raw(s);
+	}
+	return equip_holds(token);
+}
+
+// Same, for the trick's hand-built slot lists rather than a named set.
+async function equip_apply_slots(token, slots) {
+	if (!equip_holds(token)) return false;
+	await batch_equip(slots);
+	return equip_holds(token);
+}
+
+// Convenience for the common "claim, apply, release" with no sequence in between.
+async function equip_once(owner, priority, sets) {
+	const token = equip_claim(owner, priority);
+	if (!token) return false;
+	try {
+		return await equip_apply(token, sets);
+	} finally {
+		equip_release(token);
+	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // UNIFIED EQUIPMENT RESOLVER — Warrior/Ranger/Healer each declare their own EQUIPMENT_RULES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function lock_gear() {
-	state.gear_locked = (state.gear_locked || 0) + 1;
-}
-
-function unlock_gear() {
-	state.gear_locked = Math.max(0, (state.gear_locked || 0) - 1);
-}
-
-async function apply_equipment_rule(group, resolved) {
+async function apply_equipment_rule(token, group, resolved) {
 	if (!resolved) return;
 	const sets = Array.isArray(resolved) ? resolved : [resolved];
 
@@ -269,10 +336,7 @@ async function apply_equipment_rule(group, resolved) {
 	if (now - (state.equip_cooldowns[group] || 0) < cooldown) return;
 	state.equip_cooldowns[group] = now;
 
-	for (const s of sets) {
-		if (resolve_equipment_bail_reason()) return;
-		if (!is_set_equipped(s)) await equip_set(s);
-	}
+	await equip_apply(token, sets);
 }
 
 async function apply_booster_rule(group, desired_booster) {
@@ -291,11 +355,12 @@ async function apply_booster_rule(group, desired_booster) {
 	shift(other_slot, desired_booster);
 }
 
+// The `panicking` and `gear_locked` clauses are gone: those were this resolver trying to stay out
+// of other writers' way, which the claim now does properly. What is left is genuinely about
+// whether the rules should run at all.
 function resolve_equipment_bail_reason() {
 	if (typeof EQUIPMENT_RULES === "undefined") return "EQUIPMENT_RULES undefined";
 	if (CONFIG.equipment?.auto_swap_sets === false) return "auto_swap_sets disabled";
-	if (panicking) return "panicking";
-	if (state.gear_locked) return "gear_locked";
 	if (character.cc > COOLDOWNS.cc) return "cc above threshold";
 	if (typeof should_pause_equipment_resolve === "function" && should_pause_equipment_resolve()) return "special weapon equipped";
 	return null;
@@ -304,17 +369,26 @@ function resolve_equipment_bail_reason() {
 async function resolve_equipment() {
 	if (resolve_equipment_bail_reason()) return;
 
-	const overrides = (typeof MONSTER_GEAR_OVERRIDES !== "undefined" && MONSTER_GEAR_OVERRIDES[home]) || {};
+	// Lowest priority in the table, so anything more urgent simply refuses the claim and this
+	// returns — no bail flag to check, no window between checking it and acting on it.
+	const token = equip_claim("rules", EQUIP_PRIORITY.rules);
+	if (!token) return;
 
-	for (const group in EQUIPMENT_RULES) {
-		if (resolve_equipment_bail_reason()) return;
-		const rule = EQUIPMENT_RULES[group];
-		const resolved = group in overrides ? overrides[group] : rule.resolve();
-		if (rule.kind === "booster") {
-			await apply_booster_rule(group, resolved);
-		} else {
-			await apply_equipment_rule(group, resolved);
+	try {
+		const overrides = (typeof MONSTER_GEAR_OVERRIDES !== "undefined" && MONSTER_GEAR_OVERRIDES[home]) || {};
+
+		for (const group in EQUIPMENT_RULES) {
+			if (!equip_holds(token)) return;
+			const rule = EQUIPMENT_RULES[group];
+			const resolved = group in overrides ? overrides[group] : rule.resolve();
+			if (rule.kind === "booster") {
+				await apply_booster_rule(group, resolved);
+			} else {
+				await apply_equipment_rule(token, group, resolved);
+			}
 		}
+	} finally {
+		equip_release(token);
 	}
 }
 
@@ -551,7 +625,12 @@ async function _panic_check_body() {
 		last_panic_time = Date.now();
 		if (!is_set_equipped("panic")) {
 			try {
-				const emitted = await equip_set("panic");
+				// Top of EQUIP_PRIORITY, so this preempts a transient combat swap already in
+				// flight and revokes its token rather than queueing behind it. gear_locked could
+				// only ever block, never preempt, which is why the jacko sometimes lost the race.
+				const token = equip_claim("panic", EQUIP_PRIORITY.panic);
+				const emitted = await equip_apply(token, "panic");
+				equip_release(token);
 				_panic_last_emit = emitted;
 				await wait_until_equipped("panic");
 			} catch (e) {
@@ -592,7 +671,7 @@ async function _panic_check_body() {
 
 			if (!loadout_manages_orb() && is_set_equipped("panic") && !is_set_equipped("orb")) {
 				try {
-					await equip_set("orb");
+					await equip_once("panic-restore", EQUIP_PRIORITY.panic, "orb");
 					await wait_until_equipped("orb");
 				} catch (e) {
 					log(`[PANIC] Failed to equip normal orb: ${fmt_err(e)}`, "#ff4444", "Errors");

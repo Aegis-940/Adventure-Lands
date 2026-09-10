@@ -72,22 +72,22 @@ async function handle_stomp() {
 
 	// Blocks resolve_equipment() (Shared/Party_And_Loot.js) from racing this temporary
 	// weapon swap and yanking gear mid-sequence.
-	lock_gear();
+	const token = equip_claim("stomp-swap", EQUIP_PRIORITY.skill);
+	if (!token) return;
 	try {
 		if (needs_swap && now - state.last_basher_swap > COOLDOWNS.weapon_swap) {
 			state.last_basher_swap = now;
 			await unequip("offhand");
-			await batch_equip(equipment_sets.basher);
+			if (!await equip_apply(token, "basher")) return;
 		}
 
 		await use_skill("stomp");
 
 		if (needs_swap) {
-			const target_set = mob_count() === 1 ? "single" : "aoe";
-			await batch_equip(equipment_sets[target_set]);
+			await equip_apply(token, mob_count() === 1 ? "single" : "aoe");
 		}
 	} finally {
-		unlock_gear();
+		equip_release(token);
 	}
 }
 
@@ -102,20 +102,20 @@ async function handle_cleave() {
 
 	// Blocks resolve_equipment() (Shared/Party_And_Loot.js) from racing this temporary
 	// weapon swap and yanking gear mid-sequence.
-	lock_gear();
+	const token = equip_claim("cleave-swap", EQUIP_PRIORITY.skill);
+	if (!token) return;
 	try {
 		if (now - state.last_cleave_swap > COOLDOWNS.weapon_swap) {
 			state.last_cleave_swap = now;
 			await unequip("offhand");
-			await batch_equip(equipment_sets.bataxe);
+			if (!await equip_apply(token, "bataxe")) return;
 		}
 
 		await use_skill("cleave");
 
-		const target_set = mob_count() === 1 ? "single" : "aoe";
-		await batch_equip(equipment_sets[target_set]);
+		await equip_apply(token, mob_count() === 1 ? "single" : "aoe");
 	} finally {
-		unlock_gear();
+		equip_release(token);
 	}
 }
 

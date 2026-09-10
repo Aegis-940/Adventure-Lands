@@ -221,7 +221,7 @@ async function handle_zapper() {
 	// Equip zapper if untargeted mobs exist and we don't have it equipped
 	if (TARGETS.length > 0 && !HAS_ZAPPER && CAN_SWAP && HAS_ENOUGH_MP && character.map === destination.map) {
 		try {
-			await equip_set("zap_on");
+			await equip_once("zap-on", EQUIP_PRIORITY.skill, "zap_on");
 			state.last_equip_time = NOW;
 		} catch (e) {
 			console.error("Failed to equip zapper:", e);
@@ -245,7 +245,7 @@ async function handle_zapper() {
 	// Only unequip zapper once no untargeted mobs remain (they might respawn)
 	if (TARGETS.length === 0 && HAS_ZAPPER && CAN_SWAP && character.map === destination.map) {
 		try {
-			await equip_set("zap_off");
+			await equip_once("zap-off", EQUIP_PRIORITY.skill, "zap_off");
 			state.last_equip_time = NOW;
 		} catch (e) {
 			console.error("Failed to unequip zapper:", e);
