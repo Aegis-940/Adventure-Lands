@@ -1255,7 +1255,9 @@ function trail_next_point() {
 
 	// Nothing in sight to walk to. Head for the NEAREST breadcrumb on our map, not the oldest one
 	// still ahead: after corner-cutting the oldest is usually behind us, and the nearest is the
-	// cheapest way back onto her route.
+	// cheapest way back onto her route. Whatever we pick, everything older retires with it — the
+	// cursor must only ever advance, or we pick a different "nearest" each tick and shuffle
+	// between them.
 	let near = null;
 	let near_d = Infinity;
 	for (const p of remaining) {
@@ -1263,7 +1265,10 @@ function trail_next_point() {
 		const d = Math.hypot(character.x - p.x, character.y - p.y);
 		if (d < near_d) { near_d = d; near = p; }
 	}
-	if (near) return near;
+	if (near) {
+		if (near.i - 1 > _trail_reached) _trail_reached = near.i - 1;
+		return near;
+	}
 
 	// None on our map at all — the route continues through a door, which is the one place a
 	// follower still pathfinds.
@@ -1273,6 +1278,11 @@ function trail_next_point() {
 // Inside this we count as keeping station on her, which is what lets a visible event monster take
 // priority over the ring step. It is NOT the walk/pathfind boundary — line of sight is.
 const FOLLOW_STATION_RANGE = 220;
+// How long the straight line to her must stay clear before we abandon her trail for it. Pure
+// anti-flap: the two modes head in different directions, so switching on a single tick's reading
+// is what produced the visible doubling back.
+const FOLLOW_DIRECT_DWELL_MS = 700;
+let _follow_direct_since = 0;
 // Inside THIS we are simply with her, and local combat positioning takes over from the ring step —
 // but only once the party is SETTLED. reposition() is centred on her, so it holds station and
 // seeks a cluster at the same time; while she is walking it is the wrong behaviour entirely.
@@ -1319,7 +1329,25 @@ function follow_goal() {
 	if (pos.map === character.map) {
 		const d = Math.hypot(character.x - pos.x, character.y - pos.y);
 		const ring = follow_ring_point(pos);
-		if (can_move_to(ring.x, ring.y)) {
+		const line_clear = can_move_to(ring.x, ring.y);
+		const now = Date.now();
+
+		// LATCHED, because these two modes point in DIFFERENT DIRECTIONS and the test between them
+		// flickers. Rounding a corner behind her, the straight line to her clears and re-blocks tick
+		// by tick: clear means walk at her, blocked means walk to a breadcrumb back around the
+		// corner. Flipping between them every 100ms is the doubling back — and when the trail side
+		// yields a travel goal the arbiter issues a pathfind that the next flip cancels, so it
+		// alternates between two half-started journeys and makes almost no progress.
+		//
+		// Close by, the direct line is trusted immediately; there is no trail worth preferring over
+		// it at that range. Further out it has to hold for a moment first.
+		if (!line_clear) _follow_direct_since = 0;
+		else if (!_follow_direct_since) _follow_direct_since = now;
+
+		const trust_direct = line_clear
+			&& (d <= FOLLOW_CLOSE * 2 || now - _follow_direct_since >= FOLLOW_DIRECT_DWELL_MS);
+
+		if (trust_direct) {
 			// Hand over to local combat positioning only once the party is SETTLED. While she is
 			// walking, keep closing — otherwise they stop dead anywhere inside FOLLOW_CLOSE, she
 			// keeps going, and they only set off again once she has opened the gap up. That
@@ -1330,6 +1358,8 @@ function follow_goal() {
 			// planned route to where she used to be.
 			return { local: "follow", label: "follow-ring", on_station: d <= FOLLOW_STATION_RANGE };
 		}
+	} else {
+		_follow_direct_since = 0; // different map — the line means nothing
 	}
 
 	// Out of sight, off-map, or something solid in between. Walk HER ROUTE rather than computing

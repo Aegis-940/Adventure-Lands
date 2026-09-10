@@ -264,9 +264,26 @@ function travel_release() {
 	// 3s to 500ms and cancelled the pathfind twice a second.
 }
 
+// Local goals return before the travel logging below, so switches among them — ring step, trail
+// step, stationed — were invisible. Throttled rather than omitted, because a mode that flaps is
+// precisely what we want to see and precisely what would flood the log: alternating labels
+// appearing every 1.5s is the signature.
+let _local_label = null;
+let _local_label_at = 0;
+
+function log_local_goal(label) {
+	if (label === _local_label) return;
+	_local_label = label;
+	const now = Date.now();
+	if (now - _local_label_at < 1500) return;
+	_local_label_at = now;
+	log(`🧭 ${label}`, "#8899aa", "Alerts");
+}
+
 function travel_arbiter(goal) {
 	if (!goal || goal.local) {
 		travel_release();
+		log_local_goal(goal ? goal.label : "idle");
 		return false;
 	}
 
