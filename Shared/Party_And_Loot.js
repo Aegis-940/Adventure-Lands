@@ -32,7 +32,16 @@ function should_spread() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// CHARACTER MODE — one owner of the panic flags, one name for what the character is doing.
+// SHARED HELPERS
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function fmt_err(e) {
+	if (e && e.message) return e.message;
+	try { return JSON.stringify(e); } catch (x) { return String(e); }
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// CHARACTER MODE — one owner of the panic flags, one name for where home is
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function set_panic(on, reason, external) {
@@ -49,14 +58,6 @@ function set_panic(on, reason, external) {
 		on ? "#ffcc00" : "#00ff00", "Alerts");
 }
 
-function character_mode() {
-	if (character.rip) return "dead";
-	if (typeof panicking !== "undefined" && panicking) return "panic";
-	if (typeof anniversary_travel !== "undefined" && anniversary_travel) return "anniversary";
-	if (typeof is_travelling === "function" && is_travelling()) return "travelling";
-	return "farming";
-}
-
 function home_radius() {
 	return (CONFIG.movement.circle_radius || 75) + 20;
 }
@@ -67,6 +68,188 @@ function is_away_from_home() {
 	return Math.hypot(character.x - destination.x, character.y - destination.y) > home_radius();
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// PANIC — threat detection, the panic loadout, and the all-clear
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const EXTERNAL_PANIC_MAX_MS = 60000;
+
+let _panic_check_running = false;
+
+let _panic_equip_token = null;
+
+function panic_equip_hold() {
+	if (equip_holds(_panic_equip_token)) {
+		equip_refresh(_panic_equip_token);
+		return _panic_equip_token;
+	}
+	_panic_equip_token = equip_claim("panic", EQUIP_PRIORITY.panic);
+	return _panic_equip_token;
+}
+
+function panic_equip_free() {
+	equip_release(_panic_equip_token);
+	_panic_equip_token = null;
+}
+
+let _orb_owner = { at: 0, value: false };
+
+function loadout_manages_orb() {
+	const now = Date.now();
+	if (now - _orb_owner.at < 1000) return _orb_owner.value;
+	_orb_owner.at = now;
+	_orb_owner.value = _loadout_manages_orb_uncached();
+	return _orb_owner.value;
+}
+
+function _loadout_manages_orb_uncached() {
+	try {
+		for (const group in EQUIPMENT_RULES) {
+			const rule = EQUIPMENT_RULES[group];
+			if (!rule || rule.kind !== "set" || typeof rule.resolve !== "function") continue;
+			const resolved = rule.resolve();
+			if (!resolved) continue;
+			const sets = Array.isArray(resolved) ? resolved : [resolved];
+			if (sets.some(n => (equipment_sets[n] || []).some(i => i.slot === "orb"))) return true;
+		}
+	} catch (e) { /* rules not loaded */ }
+	return false;
+}
+
+function set_available(set_name) {
+	try {
+		const set = equipment_sets[set_name];
+		if (!set || !set.length) return false;
+		return set.every(i => {
+			const worn = character.slots[i.slot];
+			if (worn && worn.name === i.item_name) return true;
+			return character.items.some(it => it && it.name === i.item_name);
+		});
+	} catch (e) { return false; }
+}
+
+async function wait_until_equipped(set_name, timeout_ms = 1000, interval_ms = 100) {
+	let waited = 0;
+	while (!is_set_equipped(set_name)) {
+		if (waited >= timeout_ms) {
+			throw { reason: "timeout", message: `wait_until_equipped("${set_name}"): still not equipped after ${timeout_ms}ms` };
+		}
+		await delay(interval_ms);
+		waited += interval_ms;
+	}
+}
+
+let _panic_last_emit = -1;
+
+async function panic_check() {
+	if (_panic_check_running) return;
+	_panic_check_running = true;
+	try {
+		await _panic_check_body();
+	} finally {
+		_panic_check_running = false;
+	}
+}
+
+async function _panic_check_body() {
+	const t = PANIC_THRESHOLDS;
+
+	const LOW_HEALTH = character.hp < character.max_hp * t.low_hp;
+	const LOW_MANA = character.mp < character.max_mp * t.low_mp;
+	const HIGH_HEALTH = character.hp >= character.max_hp * t.high_hp;
+	const HIGH_MANA = character.mp >= character.max_mp * t.high_mp;
+
+	const MONSTERS_TARGETING_ME = Object.values(parent.entities).filter(
+		e => e.type === "monster" && e.target === character.name && !e.dead
+	).length;
+
+	const TRAPPED_TRAVELLING = is_travelling() && MONSTERS_TARGETING_ME >= (t.travel_aggro ?? 1);
+
+	if (typeof SMART_USE_TOWN !== "undefined" && SMART_USE_TOWN) {
+		try {
+			const want_town = MONSTERS_TARGETING_ME === 0;
+			if (smart.use_town !== want_town && !smart.searching) smart.use_town = want_town;
+		} catch (e) { /* runner not up */ }
+	}
+	const HARD_REASON = LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= t.aggro;
+
+	if (HARD_REASON || TRAPPED_TRAVELLING) {
+		if (!panicking) {
+			let reason = [];
+			if (LOW_HEALTH) reason.push("low health");
+			if (LOW_MANA) reason.push("low mana");
+			if (MONSTERS_TARGETING_ME >= t.aggro) reason.push("high aggro");
+			if (TRAPPED_TRAVELLING) reason.push(`${MONSTERS_TARGETING_ME} on us while travelling`);
+			set_panic(true, reason.join(", "), false);
+			if (HARD_REASON && typeof PANIC_BROADCAST_TARGETS !== "undefined") {
+				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: true });
+			}
+		}
+	}
+
+	if (panicking) panic_equip_hold();
+
+	if (panicking && (Date.now() - last_panic_time > t.cooldown)) {
+		last_panic_time = Date.now();
+		if (!is_set_equipped("panic")) {
+			try {
+				const emitted = await equip_apply(panic_equip_hold(), "panic");
+				_panic_last_emit = emitted;
+				await wait_until_equipped("panic");
+			} catch (e) {
+				const orb = character.slots.orb;
+				const in_bags = character.items
+					.filter(i => i && i.name === "jacko")
+					.map(i => "lvl" + (i.level ?? 0)).join(",") || "none";
+				log(`[PANIC] Failed to equip panic orb: ${fmt_err(e)} `
+					+ `(orb slot: ${orb ? orb.name + " lvl" + (orb.level ?? 0) : "empty"}, `
+					+ `jacko in bags: ${in_bags}, items emitted: ${_panic_last_emit}, cc: ${Math.round(character.cc || 0)})`,
+					"#ff4444", "Errors");
+			}
+		}
+
+		if (!is_on_cooldown("scare") && can_use("scare")) {
+			try {
+				log("Using Scare!", "#ffcc00", "Alerts");
+				await use_skill("scare");
+				await delay(200);
+			} catch (e) {
+				log(`[PANIC] Error using scare: ${fmt_err(e)}`, "#ff4444", "Errors");
+			}
+		}
+	}
+
+	let external_hold = typeof panic_external !== "undefined" && panic_external;
+	if (external_hold && Date.now() - panic_external_since > EXTERNAL_PANIC_MAX_MS) {
+		external_hold = false;
+		set_panic(false, "healer's hold expired without an all-clear", false);
+	}
+
+	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < t.aggro
+		&& !TRAPPED_TRAVELLING && panicking && !external_hold) {
+		if (Date.now() - last_safe_time > t.cooldown) {
+			last_safe_time = Date.now();
+
+			if (!loadout_manages_orb() && is_set_equipped("panic") && !is_set_equipped("orb")) {
+				try {
+					await equip_apply(panic_equip_hold(), "orb");
+					await wait_until_equipped("orb");
+				} catch (e) {
+					log(`[PANIC] Failed to equip normal orb: ${fmt_err(e)}`, "#ff4444", "Errors");
+				}
+			}
+
+			set_panic(false, "recovered", false);
+			if (typeof PANIC_BROADCAST_TARGETS !== "undefined") {
+				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
+			}
+		}
+	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// POTIONS
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function potion_loop() {
 	if (character.c && (character.c.fishing || character.c.mining)) {
@@ -151,7 +334,12 @@ function schedule_periodic_reset() {
 		setTimeout(() => parent.window.location.reload(), 1000);
 	}, 60000);
 }
+
 schedule_periodic_reset();
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// EQUIPMENT SETS — the only place equipment is emitted to the server
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
 function find_booster_slot() {
 	for (let i = 0; i < character.items.length; i++) {
@@ -298,10 +486,6 @@ function equip_release(token) {
 	if (equip_holds(token)) _equip_holder = null;
 }
 
-function equip_holder_name() {
-	return _equip_holder ? _equip_holder.owner : null;
-}
-
 function equip_refresh(token) {
 	if (equip_holds(token)) _equip_holder.at = Date.now();
 }
@@ -415,10 +599,6 @@ async function equipment_manager_loop() {
 // PARTY MANAGER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function is_in_party(name) {
-	return !!(parent.party && parent.party[name] !== undefined);
-}
-
 function party_manager() {
 	const am_leader = character.name === PARTY_LEADER;
 	const am_member = PARTY_MEMBERS.includes(character.name);
@@ -462,6 +642,22 @@ function on_party_invite(name) {
 
 const LOOT_GOLD_RESERVE = 10000000;
 
+let _set_item_names = null;
+
+function equipment_set_item_names() {
+	if (_set_item_names) return _set_item_names;
+	const found = new Set();
+	try {
+		for (const name in equipment_sets) {
+			for (const entry of equipment_sets[name] || []) {
+				if (entry && entry.item_name) found.add(entry.item_name);
+			}
+		}
+	} catch (e) { return found; }
+	if (found.size) _set_item_names = found;
+	return found;
+}
+
 async function send_to_merchant() {
 	const merchant_name = "Riff";
 	const merchant = get_player(merchant_name);
@@ -474,10 +670,11 @@ async function send_to_merchant() {
 	}
 
 	const items_to_keep = typeof ITEMS_TO_KEEP !== "undefined" ? ITEMS_TO_KEEP : [];
+	const gear = equipment_set_item_names();
 
 	for (let i = LOOT_THRESHOLD; i < character.items.length; i++) {
 		const item = character.items[i];
-		if (item && !item.l && !items_to_keep.includes(item.name)) {
+		if (item && !item.l && !items_to_keep.includes(item.name) && !gear.has(item.name)) {
 			await delay(150);
 			try {
 				send_item(merchant_name, i, item.q || 1);
@@ -508,434 +705,17 @@ function clear_inventory() {
 		send_gold(loot_mule, character.gold - LOOT_GOLD_RESERVE);
 	}
 
+	const gear = equipment_set_item_names();
+
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
-		if (item && !ITEMS_TO_KEEP.includes(item.name) && !item.l && !item.s) {
+		if (item && !ITEMS_TO_KEEP.includes(item.name) && !gear.has(item.name) && !item.l && !item.s) {
 			if (dist < 250) {
 				send_item(loot_mule.id, i, item.q ?? 1);
 			}
 		}
 	}
 }
-
-async function wait_until_equipped(set_name, timeout_ms = 1000, interval_ms = 100) {
-	let waited = 0;
-	while (!is_set_equipped(set_name)) {
-		if (waited >= timeout_ms) {
-			throw { reason: "timeout", message: `wait_until_equipped("${set_name}"): still not equipped after ${timeout_ms}ms` };
-		}
-		await delay(interval_ms);
-		waited += interval_ms;
-	}
-}
-
-const EXTERNAL_PANIC_MAX_MS = 60000;
-
-let _panic_check_running = false;
-
-let _travel_panic_since = 0;
-const TRAVEL_PANIC_MAX_MS = 30000;
-
-let _panic_equip_token = null;
-
-function panic_equip_hold() {
-	if (equip_holds(_panic_equip_token)) {
-		equip_refresh(_panic_equip_token);
-		return _panic_equip_token;
-	}
-	_panic_equip_token = equip_claim("panic", EQUIP_PRIORITY.panic);
-	return _panic_equip_token;
-}
-
-function panic_equip_free() {
-	equip_release(_panic_equip_token);
-	_panic_equip_token = null;
-}
-
-let _orb_owner = { at: 0, value: false };
-
-function loadout_manages_orb() {
-	const now = Date.now();
-	if (now - _orb_owner.at < 1000) return _orb_owner.value;
-	_orb_owner.at = now;
-	_orb_owner.value = _loadout_manages_orb_uncached();
-	return _orb_owner.value;
-}
-
-function _loadout_manages_orb_uncached() {
-	try {
-		for (const group in EQUIPMENT_RULES) {
-			const rule = EQUIPMENT_RULES[group];
-			if (!rule || rule.kind !== "set" || typeof rule.resolve !== "function") continue;
-			const resolved = rule.resolve();
-			if (!resolved) continue;
-			const sets = Array.isArray(resolved) ? resolved : [resolved];
-			if (sets.some(n => (equipment_sets[n] || []).some(i => i.slot === "orb"))) return true;
-		}
-	} catch (e) { /* rules not loaded */ }
-	return false;
-}
-
-function set_available(set_name) {
-	try {
-		const set = equipment_sets[set_name];
-		if (!set || !set.length) return false;
-		return set.every(i => {
-			const worn = character.slots[i.slot];
-			if (worn && worn.name === i.item_name) return true;
-			return character.items.some(it => it && it.name === i.item_name);
-		});
-	} catch (e) { return false; }
-}
-
-let _panic_last_emit = -1;
-
-async function panic_check() {
-	if (_panic_check_running) return;
-	_panic_check_running = true;
-	try {
-		await _panic_check_body();
-	} finally {
-		_panic_check_running = false;
-	}
-}
-
-function fmt_err(e) {
-	if (e && e.message) return e.message;
-	try { return JSON.stringify(e); } catch (x) { return String(e); }
-}
-
-async function _panic_check_body() {
-	const t = PANIC_THRESHOLDS;
-
-	const LOW_HEALTH = character.hp < character.max_hp * t.low_hp;
-	const LOW_MANA = character.mp < character.max_mp * t.low_mp;
-	const HIGH_HEALTH = character.hp >= character.max_hp * t.high_hp;
-	const HIGH_MANA = character.mp >= character.max_mp * t.high_mp;
-
-	const MONSTERS_TARGETING_ME = Object.values(parent.entities).filter(
-		e => e.type === "monster" && e.target === character.name && !e.dead
-	).length;
-
-	const TRAVEL_AGGRO = t.travel_aggro ?? 1;
-	const now_ms = Date.now();
-	if (is_travelling() && MONSTERS_TARGETING_ME >= TRAVEL_AGGRO) {
-		if (!_travel_panic_since) _travel_panic_since = now_ms;
-	} else if (_travel_panic_since
-		&& (MONSTERS_TARGETING_ME === 0 || now_ms - _travel_panic_since > TRAVEL_PANIC_MAX_MS)) {
-		_travel_panic_since = 0;
-	}
-	const TRAPPED_TRAVELLING = _travel_panic_since > 0;
-
-	if (typeof SMART_USE_TOWN !== "undefined" && SMART_USE_TOWN) {
-		try {
-			const want_town = MONSTERS_TARGETING_ME === 0;
-			if (smart.use_town !== want_town && !smart.searching) smart.use_town = want_town;
-		} catch (e) { /* runner not up */ }
-	}
-	const HARD_REASON = LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= t.aggro;
-
-	if (HARD_REASON || TRAPPED_TRAVELLING) {
-		if (!panicking) {
-			let reason = [];
-			if (LOW_HEALTH) reason.push("low health");
-			if (LOW_MANA) reason.push("low mana");
-			if (MONSTERS_TARGETING_ME >= t.aggro) reason.push("high aggro");
-			if (TRAPPED_TRAVELLING) reason.push(`${MONSTERS_TARGETING_ME} on us while travelling`);
-			set_panic(true, reason.join(", "), false);
-			if (HARD_REASON && typeof PANIC_BROADCAST_TARGETS !== "undefined") {
-				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: true });
-			}
-		}
-	}
-
-	if (panicking) panic_equip_hold();
-
-	if (panicking && (Date.now() - last_panic_time > t.cooldown)) {
-		last_panic_time = Date.now();
-		if (!is_set_equipped("panic")) {
-			try {
-				const emitted = await equip_apply(panic_equip_hold(), "panic");
-				_panic_last_emit = emitted;
-				await wait_until_equipped("panic");
-			} catch (e) {
-				const orb = character.slots.orb;
-				const in_bags = character.items
-					.filter(i => i && i.name === "jacko")
-					.map(i => "lvl" + (i.level ?? 0)).join(",") || "none";
-				log(`[PANIC] Failed to equip panic orb: ${fmt_err(e)} `
-					+ `(orb slot: ${orb ? orb.name + " lvl" + (orb.level ?? 0) : "empty"}, `
-					+ `jacko in bags: ${in_bags}, items emitted: ${_panic_last_emit}, cc: ${Math.round(character.cc || 0)})`,
-					"#ff4444", "Errors");
-			}
-		}
-
-		if (!is_on_cooldown("scare") && can_use("scare")) {
-			try {
-				log("Using Scare!", "#ffcc00", "Alerts");
-				await use_skill("scare");
-				await delay(200);
-			} catch (e) {
-				log(`[PANIC] Error using scare: ${fmt_err(e)}`, "#ff4444", "Errors");
-			}
-		}
-	}
-
-	let external_hold = typeof panic_external !== "undefined" && panic_external;
-	if (external_hold && Date.now() - panic_external_since > EXTERNAL_PANIC_MAX_MS) {
-		external_hold = false;
-		set_panic(false, "healer's hold expired without an all-clear", false);
-	}
-
-	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < t.aggro
-		&& !TRAPPED_TRAVELLING && panicking && !external_hold) {
-		if (Date.now() - last_safe_time > t.cooldown) {
-			last_safe_time = Date.now();
-
-			if (!loadout_manages_orb() && is_set_equipped("panic") && !is_set_equipped("orb")) {
-				try {
-					await equip_apply(panic_equip_hold(), "orb");
-					await wait_until_equipped("orb");
-				} catch (e) {
-					log(`[PANIC] Failed to equip normal orb: ${fmt_err(e)}`, "#ff4444", "Errors");
-				}
-			}
-
-			set_panic(false, "recovered", false);
-			if (typeof PANIC_BROADCAST_TARGETS !== "undefined") {
-				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
-			}
-		}
-	}
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// PARTY-COHERENT MOVEMENT — the fighters walk with MOVEMENT_LEADER
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-
-let _leader_pos_cache = { at: 0, pos: null };
-
-function leader_position() {
-	if (character.name === MOVEMENT_LEADER) return null;
-
-	const now = Date.now();
-	if (now - _leader_pos_cache.at >= 200) {
-		_leader_pos_cache.at = now;
-		let snap = null;
-		try {
-			const c = read_state_cache(MOVEMENT_LEADER);
-			if (c) snap = { map: c.map, x: c.x, y: c.y, rip: !!c.rip, travelling: !!c.travelling, moving: !!c.moving };
-		} catch (e) { /* storage unavailable */ }
-		_leader_pos_cache.pos = snap;
-	}
-	const snap = _leader_pos_cache.pos;
-
-	const live = get_player(MOVEMENT_LEADER);
-	if (live) {
-		return {
-			map: character.map, x: live.x, y: live.y, rip: !!live.rip,
-			travelling: !!(snap && snap.travelling),
-			moving: !!live.moving,
-		};
-	}
-	if (snap) return snap;
-
-	if (typeof _healer_last_known !== "undefined" && _healer_last_known) {
-		return { ..._healer_last_known, rip: false, travelling: false, moving: false };
-	}
-	return null;
-}
-
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// LEADER-SIDE COHESION — the leader waits for stragglers.
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-const COHESION_RADIUS = 150;
-const COHESION_RELEASE = 60;
-const COHESION_STUCK_REPORT_MS = 120000;
-const COHESION_FOLLOWERS = ["Ulric", "Riva"];
-
-let _hold_since = 0;
-let _hold_at = 0;
-let _hold = false;
-
-function party_cohesion_hold() {
-	if (character.name !== MOVEMENT_LEADER) return false;
-	if (typeof panicking !== "undefined" && panicking) { _hold_since = 0; _hold = false; return false; }
-
-	const now = Date.now();
-	if (now - _hold_at < 250) return _hold;
-	_hold_at = now;
-
-	const owed = typeof anniversary_should_travel === "function" && anniversary_should_travel();
-
-	// A follower publishes what it has decided to do. "follow"/"follow-ring" means it is closing on
-	// us; "with-leader" means it has arrived. Reading that is exact — the leader re-deriving it
-	// from distance guesses at a decision the follower has already made.
-	const waiting_for = COHESION_FOLLOWERS.find(name => {
-		const s = read_state_cache(name);
-		if (!s || s.rip) return false;
-		if (!owed && s.anniv_pending && !s.has_kiss) return true;
-		return s.goal === "follow" || s.goal === "follow-ring";
-	});
-
-	if (!waiting_for) {
-		_hold_since = 0;
-		_hold = false;
-		return false;
-	}
-	if (!_hold_since) _hold_since = now;
-
-	// Not a decision — a bug detector. The conditions above resolve on their own, so a wait this
-	// long means a follower is stuck saying it is coming and never arriving.
-	if (now - _hold_since > COHESION_STUCK_REPORT_MS) {
-		const s = read_state_cache(waiting_for);
-		log(`⚠️ Cohesion stuck: ${waiting_for} has been "${s && s.goal}" for `
-			+ `${Math.round((now - _hold_since) / 1000)}s. Moving on.`, "#ff4444", "Errors");
-		_hold_since = 0;
-		_hold = false;
-		return false;
-	}
-
-	_hold = true;
-	return true;
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// MOVEMENT GOAL — the one priority list for the three combat characters.
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-function movement_goal() {
-	if (!CONFIG.movement.enabled) return null;
-
-	if (home === "giantspider" && character.name === MOVEMENT_LEADER) return null;
-
-	if (party_cohesion_hold()) return { hold: true, label: "cohesion" };
-
-	const follow = follow_goal();
-	if (follow && !follow.local) return follow;
-
-	const event = event_goal();
-	if (follow && follow.on_station && event && event.local === "event") return event;
-
-	const anniv = anniversary_destination();
-	if (anniv) {
-		const anniv_is_local = anniv.local === "anniversary" || anniv.label === "anniversary-kiss";
-		const may_take_it = !follow_has_leader() || (anniv_is_local && follow && follow.on_station);
-		if (may_take_it) return anniv;
-	}
-
-	if (follow) return follow;
-	if (event) return event;
-
-	if (follow_has_leader()) return null;
-
-	if (home === "bscorpion") {
-		return is_at_bscorpion_farm()
-			? null
-			: { label: "bscorpion", map: PRIM_FARM_LOC.map, x: PRIM_FARM_LOC.x, y: PRIM_FARM_LOC.y, radius: PRIM_FARM_RADIUS };
-	}
-
-	if (is_away_from_home()) {
-		return {
-			label: "home",
-			map: destination.map || character.map,
-			x: destination.x,
-			y: destination.y,
-			radius: home_radius(),
-		};
-	}
-
-	return null;
-}
-
-function movement_local(goal, farm_step) {
-	if (smart.moving) {
-		log("🧭 local movement skipped — a journey is still in flight", "#FFA500", "Alerts");
-		return;
-	}
-	if (goal && goal.local === "follow") return follow_step(goal);
-	if (goal && goal.local === "event") return event_step(goal.event);
-	if (goal && goal.local === "anniversary") return anniversary_close_step();
-	if (typeof anniversary_travel !== "undefined" && anniversary_travel) return;
-	if (typeof farm_step === "function") farm_step();
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// FOLLOW THE LEADER — walk at her; pathfind only when the line is blocked.
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-const FOLLOW_STATION_RANGE = 220;
-const FOLLOW_CATCHUP_RANGE = 200;
-const FOLLOW_TRAVEL_LATCH_MS = 1500;
-
-let _leader_travel_seen = 0;
-
-function leader_is_travelling(pos) {
-	if (pos.travelling) {
-		_leader_travel_seen = Date.now();
-		return true;
-	}
-	return _leader_travel_seen > 0 && Date.now() - _leader_travel_seen < FOLLOW_TRAVEL_LATCH_MS;
-}
-
-function follow_has_leader() {
-	if (character.name === MOVEMENT_LEADER) return false;
-	const pos = leader_position();
-	return !!pos && !pos.rip;
-}
-
-const FOLLOW_MODE_DWELL_MS = 1200;
-let _follow_mode = null;
-let _follow_mode_at = 0;
-
-function follow_mode(line_clear) {
-	const want = line_clear ? "direct" : "path";
-	const now = Date.now();
-	if (_follow_mode === want) return want;
-	if (_follow_mode && now - _follow_mode_at < FOLLOW_MODE_DWELL_MS) return _follow_mode;
-	_follow_mode = want;
-	_follow_mode_at = now;
-	return want;
-}
-
-function follow_ring_point(pos) {
-	const fd = CONFIG.movement.follow_distance;
-	const angle = Math.atan2(character.y - pos.y, character.x - pos.x);
-	return { x: pos.x + Math.cos(angle) * fd, y: pos.y + Math.sin(angle) * fd };
-}
-
-function follow_goal() {
-	const pos = character.name === MOVEMENT_LEADER ? null : leader_position();
-	if (!pos || pos.rip) return null;
-
-	const fd = CONFIG.movement.follow_distance;
-	if (pos.map !== character.map) return { label: "follow", map: pos.map, x: pos.x, y: pos.y, radius: fd + 30 };
-
-	const d = Math.hypot(character.x - pos.x, character.y - pos.y);
-
-	if (!leader_is_travelling(pos) && d <= FOLLOW_CATCHUP_RANGE) {
-		return { local: "farm", label: "with-leader", on_station: true };
-	}
-	if (d <= fd) return { local: "farm", label: "with-leader", on_station: true };
-
-	const ring = follow_ring_point(pos);
-	if (follow_mode(can_move_to(ring.x, ring.y)) === "direct") {
-		return { local: "follow", label: "follow-ring", on_station: d <= FOLLOW_STATION_RANGE };
-	}
-	return { label: "follow", map: pos.map, x: pos.x, y: pos.y, radius: fd + 30 };
-}
-
-function follow_step() {
-	const pos = leader_position();
-	if (!pos || pos.rip || pos.map !== character.map) return;
-	if (Math.hypot(character.x - pos.x, character.y - pos.y) <= CONFIG.movement.follow_distance) return;
-	const ring = follow_ring_point(pos);
-	if (can_move_to(ring.x, ring.y)) move(ring.x, ring.y);
-}
-
 
 function inventory_sorter() {
 	const claimed = {};
@@ -955,41 +735,6 @@ function inventory_sorter() {
 			swap(i, spec);
 		}
 	});
-}
-
-let bank_inventory = [];
-
-/**
- * Scans all available bank tabs using `parent.bank`, if available.
- * Fills `bank_inventory` with metadata: name, level, quantity, tab, slot.
- */
-function scan_bank_inventory() {
-	if (!parent.bank || !Array.isArray(parent.bank)) {
-		game_log("❌ Bank data not available. Open the bank first.");
-		return;
-	}
-
-	bank_inventory = [];
-
-	for (let tab = 0; tab < parent.bank.length; tab++) {
-		const tab_items = parent.bank[tab];
-		if (!Array.isArray(tab_items)) continue;
-
-		for (let slot = 0; slot < tab_items.length; slot++) {
-			const item = tab_items[slot];
-			if (!item) continue;
-
-			bank_inventory.push({
-				name: item.name,
-				level: item.level ?? 0,
-				q: item.q ?? 1,
-				tab: tab,
-				slot: slot
-			});
-		}
-	}
-
-	game_log(`📦 Bank scan complete: ${bank_inventory.length} items recorded`);
 }
 
 function refresh_bank_snapshot() {
@@ -1095,16 +840,134 @@ const SELLABLE_ITEMS = [
 ];
 
 function remote_sell_items() {
+	const keep = typeof ITEMS_TO_KEEP !== "undefined" ? ITEMS_TO_KEEP : [];
+	const gear = equipment_set_item_names();
+
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
 		if (!item) continue;
-		if (item.l === "l" || item.p !== undefined) continue;
+		if (item.l || item.p !== undefined) continue;
+		if (keep.includes(item.name) || gear.has(item.name)) continue;
 		if (SELLABLE_ITEMS.includes(item.name)) {
 			sell(i, item.q || 1);
 		}
 	}
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// PARTY COHESION — the fighters walk with the leader; the leader waits for them.
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const COHESION_RANGE = 250;
+const COHESION_REGROUP = 120;
+const COHESION_FOLLOWERS = ["Ulric", "Riva"];
+
+let _cohesion_holding = false;
+
+function leader_position() {
+	if (character.name === MOVEMENT_LEADER) return null;
+	const c = read_state_cache(MOVEMENT_LEADER);
+	const live = get_player(MOVEMENT_LEADER);
+	if (live) return { map: character.map, x: live.x, y: live.y, rip: !!live.rip, travelling: !!(c && c.travelling) };
+	return c ? { map: c.map, x: c.x, y: c.y, rip: !!c.rip, travelling: !!c.travelling } : null;
+}
+
+function follow_has_leader() {
+	const pos = leader_position();
+	return !!pos && !pos.rip;
+}
+
+function party_cohesion_hold() {
+	if (character.name !== MOVEMENT_LEADER) return false;
+	if (typeof panicking !== "undefined" && panicking) { _cohesion_holding = false; return false; }
+
+	const limit = _cohesion_holding ? COHESION_REGROUP : COHESION_RANGE;
+	_cohesion_holding = COHESION_FOLLOWERS.some(name => {
+		const s = read_state_cache(name);
+		if (!s || s.rip) return false;
+		return s.map !== character.map || Math.hypot(s.x - character.x, s.y - character.y) > limit;
+	});
+	return _cohesion_holding;
+}
+
+function follow_goal() {
+	const pos = leader_position();
+	if (!pos || pos.rip) return null;
+
+	const fd = CONFIG.movement.follow_distance;
+	if (pos.map !== character.map) return { label: "follow", map: pos.map, x: pos.x, y: pos.y, radius: fd + 30 };
+
+	const d = Math.hypot(character.x - pos.x, character.y - pos.y);
+	if (d <= (pos.travelling ? fd : COHESION_RANGE)) return { local: "farm", label: "with-leader", on_station: true };
+
+	const angle = Math.atan2(character.y - pos.y, character.x - pos.x);
+	const ring = { x: pos.x + Math.cos(angle) * fd, y: pos.y + Math.sin(angle) * fd };
+	if (!smart.moving && can_move_to(ring.x, ring.y)) {
+		return { local: "follow", label: "follow-ring", on_station: d <= COHESION_RANGE, step: ring };
+	}
+	return { label: "follow", map: pos.map, x: pos.x, y: pos.y, radius: fd + 30 };
+}
+
+function follow_step(goal) {
+	if (goal && goal.step) move(goal.step.x, goal.step.y);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// MOVEMENT GOAL — the one priority list for the three combat characters.
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function movement_goal() {
+	if (!CONFIG.movement.enabled) return null;
+
+	if (home === "giantspider" && character.name === MOVEMENT_LEADER) return null;
+
+	if (party_cohesion_hold()) return { hold: true, label: "cohesion" };
+
+	const follow = follow_goal();
+	if (follow && !follow.local) return follow;
+
+	const event = event_goal();
+	if (follow && follow.on_station && event && event.local === "event") return event;
+
+	const anniv = anniversary_destination();
+	if (anniv) {
+		const anniv_is_local = anniv.local === "anniversary" || anniv.label === "anniversary-kiss";
+		const may_take_it = !follow_has_leader() || (anniv_is_local && follow && follow.on_station);
+		if (may_take_it) return anniv;
+	}
+
+	if (follow) return follow;
+	if (event) return event;
+
+	if (home === "bscorpion") {
+		return is_at_bscorpion_farm()
+			? null
+			: { label: "bscorpion", map: PRIM_FARM_LOC.map, x: PRIM_FARM_LOC.x, y: PRIM_FARM_LOC.y, radius: PRIM_FARM_RADIUS };
+	}
+
+	if (is_away_from_home()) {
+		return {
+			label: "home",
+			map: destination.map || character.map,
+			x: destination.x,
+			y: destination.y,
+			radius: home_radius(),
+		};
+	}
+
+	return null;
+}
+
+function movement_local(goal, farm_step) {
+	if (smart.moving) {
+		log("🧭 local movement skipped — a journey is still in flight", "#FFA500", "Alerts");
+		return;
+	}
+	if (goal && goal.local === "follow") return follow_step(goal);
+	if (goal && goal.local === "event") return event_step(goal.event);
+	if (goal && goal.local === "anniversary") return anniversary_close_step(goal);
+	if (typeof farm_step === "function") farm_step();
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // ANNIVERSARY EVENT — "I Kiss You"
@@ -1112,25 +975,13 @@ function remote_sell_items() {
 
 var anniversary_travel = false;
 
+const ANNIVERSARY_RANGE = 40;
+const ANNIVERSARY_REFRESH_MS = 5 * 60 * 1000;
 const ANNIVERSARY_TICK_MS = 2000;
 const ANNIVERSARY_TICK_ACTIVE_MS = 400;
-const ANNIVERSARY_CAST_RANGE = 50;
-const ANNIVERSARY_HOLD_RANGE = 35;
-const ANNIVERSARY_REFRESH_MS = 5 * 60 * 1000;
-const ANNIVERSARY_KISS_RETRY_MS = 2500;
-const ANNIVERSARY_ACK_GRACE_MS = 2000;
-const ANNIVERSARY_SEEK_RADIUS = 30;
 
-
-let _anniv_last_kiss = 0;
-let _anniv_kiss_acked = 0;
-let _anniv_host_round = null;
-let _anniv_travel_since = 0;
 let _anniv_died_round = null;
-
-const ANNIVERSARY_TRAVEL_MAX_MS = 6 * 60 * 1000;
-let _anniv_done_round = null;
-let _anniv_had_buff = false;
+let _anniv_reason = null;
 
 function anniversary_event() {
 	try {
@@ -1140,30 +991,9 @@ function anniversary_event() {
 	} catch (e) { return null; }
 }
 
-function anniversary_ticket_problem() {
-	try {
-		const s = anniversary_event();
-		if (!s) return "no live round";
-		const ticket = character.s && character.s.anniversary_visit;
-		if (!ticket) return "no ticket issued to us";
-		if (!(ticket.ms > 0)) return "ticket already spent";
-		if (ticket.round !== s.round) return `ticket is for round ${ticket.round}, live round is ${s.round}`;
-		if (Date.now() >= ticket.expires) return "ticket expired";
-
-		const region = parent.server_region, ident = parent.server_identifier;
-		if (region !== undefined && ident !== undefined && ticket.realm !== region + " " + ident) {
-			return `ticket realm "${ticket.realm}" != "${region} ${ident}"`;
-		}
-		return null;
-	} catch (e) { return "ticket check threw: " + fmt_err(e); }
-}
-
 function anniversary_is_host() {
-	try {
-		const s = anniversary_event();
-		if (!s) return false;
-		return String(character.id) === String(s.id) || character.name === s.target;
-	} catch (e) { return false; }
+	const s = anniversary_event();
+	return !!s && (String(character.id) === String(s.id) || character.name === s.target);
 }
 
 function anniversary_block_reason() {
@@ -1171,6 +1001,8 @@ function anniversary_block_reason() {
 	if (!s) return "no live round";
 	if (character.rip) return "dead";
 	if (_anniv_died_round === s.round) return "died during this round";
+	if (s.available === false) return "host is not taking visitors";
+	if (anniversary_is_host()) return "we are the featured player";
 
 	const kiss = character.s && character.s.anniversary_kiss;
 	if (kiss && (kiss.ms === undefined || kiss.ms > ANNIVERSARY_REFRESH_MS)) return "already buffed";
@@ -1179,10 +1011,17 @@ function anniversary_block_reason() {
 		&& typeof best_event_target === "function" && best_event_target()) {
 		return "a boss is up — bossing first";
 	}
-	if (anniversary_is_host()) return "we are the featured player";
-	if (_anniv_done_round === s.round) return "already collected this round";
-	const ticket_problem = anniversary_ticket_problem();
-	if (ticket_problem) return ticket_problem;
+
+	const ticket = character.s && character.s.anniversary_visit;
+	if (!ticket) return "no ticket issued to us";
+	if (!(ticket.ms > 0)) return "ticket already spent";
+	if (ticket.round !== s.round) return `ticket is for round ${ticket.round}, live round is ${s.round}`;
+	if (Date.now() >= ticket.expires) return "ticket expired";
+	if (parent.server_region !== undefined && parent.server_identifier !== undefined) {
+		const realm = parent.server_region + " " + parent.server_identifier;
+		if (ticket.realm !== realm) return `ticket realm "${ticket.realm}" != "${realm}"`;
+	}
+
 	try {
 		if (!G.maps[s.map] || !isFinite(s.x) || !isFinite(s.y)) return "no usable destination";
 	} catch (e) { return "no usable destination"; }
@@ -1193,143 +1032,51 @@ function anniversary_should_travel() {
 	return anniversary_block_reason() === null;
 }
 
-function anniversary_stand_down(why) {
-	anniversary_travel = false;
-	_anniv_travel_since = 0;
-	try {
-		if (typeof errlog_record === "function") errlog_record("anniversary", "stand down: " + why);
-	} catch (e) { /* recorder absent */ }
-	log(`🎂 Anniversary: ${why}.`, "#F0B742", "Alerts");
-}
-
-async function anniversary_tick() {
-	const ev = anniversary_event();
-	if (ev && anniversary_is_host() && _anniv_host_round !== ev.round) {
-		_anniv_host_round = ev.round;
-		log(`🎂 Anniversary: WE are the featured player (${character.name}) — staying put for visitors.`, "#F0B742", "Alerts");
-	}
-
-	if (character.rip) {
-		if (anniversary_travel) {
-			if (ev) _anniv_died_round = ev.round;
-			anniversary_stand_down("died during the visit — sitting this round out");
-		}
-		return false;
-	}
-
-	const blocked = anniversary_block_reason();
-	if (blocked) {
-		if (anniversary_travel) anniversary_stand_down(blocked);
-		return false;
-	}
-
-	const s = anniversary_event();
-
-	if (!anniversary_travel) {
-		anniversary_travel = true;
-		_anniv_travel_since = Date.now();
-		_anniv_kiss_acked = 0;
-		_anniv_had_buff = !!(character.s && character.s.anniversary_kiss);
-		log(`🎂 Anniversary: visiting ${s.target} on ${s.map}.`, "#F0B742", "Alerts");
-	}
-
-	if (!_anniv_had_buff && character.s && character.s.anniversary_kiss) {
-		_anniv_done_round = s.round;
-		anniversary_stand_down("buff received, back to work");
-		return false;
-	}
-
-	if (s.available === false) return true;
-
-	const them = get_player(s.target);
-
-	const in_kiss_range = !!them && distance(character, them) <= ANNIVERSARY_CAST_RANGE;
-
-	const awaiting_ack = _anniv_kiss_acked > 0 && Date.now() - _anniv_kiss_acked < ANNIVERSARY_ACK_GRACE_MS;
-
-	let off_cooldown = true;
-	try {
-		if (typeof is_on_cooldown === "function" && is_on_cooldown("ikissyou")) off_cooldown = false;
-	} catch (e) { /* unknown skill name — assume ready */ }
-
-	if (in_kiss_range && off_cooldown && !awaiting_ack
-		&& Date.now() - _anniv_last_kiss > ANNIVERSARY_KISS_RETRY_MS) {
-		_anniv_last_kiss = Date.now();
-
-		Promise.resolve(use_skill("ikissyou", them.id || s.id)).then(
-			() => {
-				_anniv_kiss_acked = Date.now();
-				const got_buff = !!(character.s && character.s.anniversary_kiss);
-				const ticket_spent = !(character.s && character.s.anniversary_visit
-					&& character.s.anniversary_visit.ms > 0);
-				if (got_buff || ticket_spent) {
-					_anniv_done_round = s.round;
-					log(`🎂 Kissed ${s.target}.`, "#F0B742", "Alerts");
-					anniversary_stand_down("collected, back to work");
-				}
-			},
-			e => {
-				_anniv_kiss_acked = 0;
-				log(`🎂 Anniversary kiss failed: ${fmt_err(e)}`, "#FFA500", "Alerts");
-			}
-		);
-
-		return true;
-	}
-
-	return true;
-}
-
 function anniversary_destination() {
 	if (!anniversary_travel) return null;
 	const s = anniversary_event();
 	if (!s) return null;
 
 	const them = get_player(s.target);
+	if (!them) return { label: "anniversary", map: s.map, x: s.x, y: s.y, radius: ANNIVERSARY_RANGE };
+	if (distance(character, them) <= ANNIVERSARY_RANGE) return { hold: true, label: "anniversary-kiss" };
 
-	if (them) {
-		if (distance(character, them) <= ANNIVERSARY_HOLD_RANGE) {
-			return { hold: true, label: "anniversary-kiss" };
-		}
-		const spot = anniversary_close_point(them);
-		if (can_move_to(spot.x, spot.y)) return { local: "anniversary", label: "anniversary-close" };
-		return { label: "anniversary", map: them.map || s.map, x: them.x, y: them.y, radius: ANNIVERSARY_HOLD_RANGE };
-	}
-
-	const at_snapshot = character.map === s.map
-		&& isFinite(s.x) && isFinite(s.y)
-		&& Math.hypot(character.x - s.x, character.y - s.y) <= ANNIVERSARY_SEEK_RADIUS;
-
-	if (at_snapshot || !(isFinite(s.x) && isFinite(s.y))) {
-		return { hold: true, label: s.available === false ? "anniversary-wait" : "anniversary-seek" };
-	}
-	return { label: "anniversary", map: s.map, x: s.x, y: s.y, radius: ANNIVERSARY_SEEK_RADIUS };
-}
-
-function anniversary_close_point(them) {
-	const want = ANNIVERSARY_HOLD_RANGE * 0.6;
 	const angle = Math.atan2(character.y - them.y, character.x - them.x);
-	return { x: them.x + Math.cos(angle) * want, y: them.y + Math.sin(angle) * want };
+	const r = ANNIVERSARY_RANGE * 0.6;
+	const spot = { x: them.x + Math.cos(angle) * r, y: them.y + Math.sin(angle) * r };
+	if (!smart.moving && can_move_to(spot.x, spot.y)) {
+		return { local: "anniversary", label: "anniversary-close", step: spot };
+	}
+	return { label: "anniversary", map: character.map, x: them.x, y: them.y, radius: ANNIVERSARY_RANGE };
 }
 
-function anniversary_close_step() {
+function anniversary_close_step(goal) {
+	if (goal && goal.step) move(goal.step.x, goal.step.y);
+}
+
+async function anniversary_tick() {
 	const s = anniversary_event();
-	if (!s) return;
-	const them = get_player(s.target);
-	if (!them) return;
-	if (distance(character, them) <= ANNIVERSARY_HOLD_RANGE) return;
-	const spot = anniversary_close_point(them);
-	if (can_move_to(spot.x, spot.y)) move(spot.x, spot.y);
-}
+	if (character.rip && anniversary_travel && s) _anniv_died_round = s.round;
 
-setInterval(() => {
-	try {
-		if (anniversary_travel && _anniv_travel_since
-			&& Date.now() - _anniv_travel_since > ANNIVERSARY_TRAVEL_MAX_MS) {
-			anniversary_stand_down("travel exceeded " + (ANNIVERSARY_TRAVEL_MAX_MS / 60000) + " min, forcing resume");
-		}
-	} catch (e) { /* a watchdog that can throw is not a watchdog */ }
-}, 5000);
+	const reason = anniversary_block_reason();
+	if (reason !== _anniv_reason) {
+		_anniv_reason = reason;
+		log(reason ? `🎂 Anniversary: ${reason}.` : `🎂 Anniversary: visiting ${s.target} on ${s.map}.`,
+			"#F0B742", "Alerts");
+	}
+	anniversary_travel = !reason;
+	if (!anniversary_travel) return false;
+
+	let ready = true;
+	try { ready = !is_on_cooldown("ikissyou"); } catch (e) { /* skill unknown outside the event */ }
+
+	const them = get_player(s.target);
+	if (ready && them && distance(character, them) <= ANNIVERSARY_RANGE) {
+		Promise.resolve(use_skill("ikissyou", them.id)).catch(
+			e => log(`🎂 Anniversary kiss failed: ${fmt_err(e)}`, "#FFA500", "Alerts"));
+	}
+	return true;
+}
 
 async function anniversary_loop() {
 	try {

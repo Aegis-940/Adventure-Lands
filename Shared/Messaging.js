@@ -141,9 +141,7 @@ function get_full_character_state() {
 		y: character.y,
 		rip: character.rip,
 		moving: character.moving,
-		travelling: (typeof travel_is_active === "function" && travel_is_active())
-			|| (typeof anniversary_travel !== "undefined" && !!anniversary_travel),
-		anniv_pending: typeof anniversary_should_travel === "function" && anniversary_should_travel(),
+		travelling: typeof travel_is_active === "function" && travel_is_active(),
 		goal: typeof current_goal_label === "function" ? current_goal_label() : null,
 		has_kiss: !!(character.s && character.s.anniversary_kiss),
 		free_slots: character.items.filter(it => !it).length,

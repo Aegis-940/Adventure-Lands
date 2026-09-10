@@ -231,7 +231,8 @@ async function handle_anniversary_state() {
 	merchant_task = "Anniversary";
 	try {
 		await anniversary_tick();
-		travel_arbiter(anniversary_destination());
+		const goal = anniversary_destination();
+		if (!travel_arbiter(goal)) anniversary_close_step(goal);
 	} catch (e) {
 		catcher(e, "handle_anniversary_state");
 	} finally {
