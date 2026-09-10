@@ -270,8 +270,42 @@ function engage_hp_ok(e) {
 const EVENT_JOIN_RETRY_MS = 5000;
 let _last_event_join = 0;
 
+// An event we cannot reach must not hold the character forever — going back to grind is the
+// fallback that has to always work.
+const EVENT_GIVEUP_MS = 60000;
+const EVENT_GIVEUP_COOLDOWN_MS = 300000;
+let _event_stuck = { name: null, since: 0 };
+const _event_blocked = {};
+
+function event_gave_up(name) {
+	return Date.now() < (_event_blocked[name] || 0);
+}
+
+// Returns true once we have been stuck on this event long enough to abandon it.
+function event_stuck_too_long(name) {
+	const now = Date.now();
+	if (_event_stuck.name !== name) _event_stuck = { name, since: now };
+	if (now - _event_stuck.since <= EVENT_GIVEUP_MS) return false;
+	_event_blocked[name] = now + EVENT_GIVEUP_COOLDOWN_MS;
+	_event_stuck = { name: null, since: 0 };
+	log(`⚠️ Giving up on ${name} — could not reach it. Back to grinding.`, "#FFA500", "Alerts");
+	return true;
+}
+
+function event_progressed(name) {
+	if (_event_stuck.name === name) _event_stuck = { name: null, since: 0 };
+}
+
+// A boss we are actually going for. Pure, and respects the give-up, so a boss we have abandoned
+// stops blocking the anniversary too.
+function event_engaging() {
+	const t = best_event_target();
+	return t && !event_gave_up(t.name) ? t : null;
+}
+
 function event_goal() {
-	if (parent?.S?.holidayseason && !character?.s?.holidayspirit) {
+	if (parent?.S?.holidayseason && !character?.s?.holidayspirit && !event_gave_up("holiday-tree")) {
+		if (event_stuck_too_long("holiday-tree")) return null;
 		return {
 			label: "holiday-tree",
 			to: "town",
@@ -280,9 +314,10 @@ function event_goal() {
 	}
 
 	const target = best_event_target();
-	if (!target) return null;
+	if (!target || event_gave_up(target.name)) return null;
 
 	if (target.join === true && !get_nearest_monster({ type: target.name })) {
+		if (event_stuck_too_long(target.name)) return null;
 		if (Date.now() - _last_event_join > EVENT_JOIN_RETRY_MS) {
 			_last_event_join = Date.now();
 			parent.socket.emit("join", { name: target.name });
@@ -292,6 +327,7 @@ function event_goal() {
 
 	const seen = get_nearest_monster({ type: target.name });
 	if (seen) {
+		event_progressed(target.name);
 		const half_x = character.x + (seen.x - character.x) / 2;
 		const half_y = character.y + (seen.y - character.y) / 2;
 		if (is_in_range(seen, "attack") || can_move_to(half_x, half_y)) {
@@ -301,6 +337,7 @@ function event_goal() {
 	}
 
 	if (!target.map || !isFinite(target.x) || !isFinite(target.y)) {
+		if (event_stuck_too_long(target.name)) return null;
 		return { hold: true, label: "event-join" };
 	}
 

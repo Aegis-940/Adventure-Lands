@@ -1160,7 +1160,7 @@ function anniversary_block_reason() {
 	if (kiss && (kiss.ms === undefined || kiss.ms > ANNIVERSARY_REFRESH_MS)) return "already buffed";
 
 	if (character.ctype !== "merchant"
-		&& typeof best_event_target === "function" && best_event_target()) {
+		&& typeof event_engaging === "function" && event_engaging()) {
 		return "a boss is up — bossing first";
 	}
 	if (anniversary_is_host()) return "we are the featured player";
