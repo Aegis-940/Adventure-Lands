@@ -842,7 +842,10 @@ function leader_position() {
 		let snap = null;
 		try {
 			const c = read_state_cache(MOVEMENT_LEADER); // Shared/Messaging.js
-			if (c) snap = { map: c.map, x: c.x, y: c.y, rip: !!c.rip, travelling: !!c.travelling };
+			// `moving` as well as `travelling`: travelling is smart.moving, a journey. `moving` is
+			// any step at all, including the local farm walk — and "is she on her feet right now"
+			// is the question that decides whether a follower may stop to fight.
+			if (c) snap = { map: c.map, x: c.x, y: c.y, rip: !!c.rip, travelling: !!c.travelling, moving: !!c.moving };
 		} catch (e) { /* storage unavailable */ }
 		_leader_pos_cache.pos = snap;
 	}
@@ -852,13 +855,18 @@ function leader_position() {
 	// whether she is on a journey, and that is the flag that gets the fighters moving on time.
 	const live = get_player(MOVEMENT_LEADER);
 	if (live) {
-		return { map: character.map, x: live.x, y: live.y, rip: !!live.rip, travelling: !!(snap && snap.travelling) };
+		return {
+			map: character.map, x: live.x, y: live.y, rip: !!live.rip,
+			travelling: !!(snap && snap.travelling),
+			// Straight off the entity when we can see her — fresher than any cached snapshot.
+			moving: !!live.moving,
+		};
 	}
 	if (snap) return snap;
 
 	// _healer_last_known only exists on the characters that follow her.
 	if (typeof _healer_last_known !== "undefined" && _healer_last_known) {
-		return { ..._healer_last_known, rip: false, travelling: false };
+		return { ..._healer_last_known, rip: false, travelling: false, moving: false };
 	}
 	return null;
 }
@@ -1265,9 +1273,10 @@ function trail_next_point() {
 // Inside this we count as keeping station on her, which is what lets a visible event monster take
 // priority over the ring step. It is NOT the walk/pathfind boundary — line of sight is.
 const FOLLOW_STATION_RANGE = 220;
-// Inside THIS we are simply with her, and local combat positioning takes over from the ring step.
-// reposition() is centred on her, so it holds station and seeks a cluster at the same time.
-const FOLLOW_CLOSE = 120;
+// Inside THIS we are simply with her, and local combat positioning takes over from the ring step —
+// but only once the party is SETTLED. reposition() is centred on her, so it holds station and
+// seeks a cluster at the same time; while she is walking it is the wrong behaviour entirely.
+const FOLLOW_CLOSE = 60;
 
 // Is there a live leader for us to belong to? Non-leaders only; false when she is dead or offline,
 // which is when a follower goes back to running its own farm behaviour.
@@ -1311,9 +1320,12 @@ function follow_goal() {
 		const d = Math.hypot(character.x - pos.x, character.y - pos.y);
 		const ring = follow_ring_point(pos);
 		if (can_move_to(ring.x, ring.y)) {
-			// Close enough to be with her: hand over to local combat positioning, which is centred
-			// on her too (see reposition_center), so we keep station AND still seek a cluster.
-			if (d <= FOLLOW_CLOSE) return { local: "farm", label: "with-leader", on_station: true };
+			// Hand over to local combat positioning only once the party is SETTLED. While she is
+			// walking, keep closing — otherwise they stop dead anywhere inside FOLLOW_CLOSE, she
+			// keeps going, and they only set off again once she has opened the gap up. That
+			// stop-start is most of what the trail looks like from outside.
+			const settled = !pos.travelling && !pos.moving;
+			if (settled && d <= FOLLOW_CLOSE) return { local: "farm", label: "with-leader", on_station: true };
 			// STRAIGHT LINE — no search, and re-aiming every tick tracks her better than any
 			// planned route to where she used to be.
 			return { local: "follow", label: "follow-ring", on_station: d <= FOLLOW_STATION_RANGE };
@@ -1590,7 +1602,20 @@ function remote_sell_items() {
 var anniversary_travel = false;
 
 const ANNIVERSARY_TICK_MS = 2000;
-const ANNIVERSARY_RANGE = 65;        // skill range is 80; margin for them moving as we arrive
+// While a visit is actually in progress this loop is doing the casting, and 2s between attempts is
+// an age against a target who is walking. Idle rounds stay on the slow beat.
+const ANNIVERSARY_TICK_ACTIVE_MS = 400;
+// Cast from here — the skill's own range is 80, this keeps a small margin for them moving as it
+// lands. Deliberately NOT where we stop: see ANNIVERSARY_HOLD_RANGE.
+const ANNIVERSARY_CAST_RANGE = 75;
+// Stop closing only here. Holding at the cast range put the character 65 units out, inside by a
+// hair, so any drift by either party pushed the cast back out of range and every attempt was made
+// from the worst spot available. Closing to 35 while casting the whole way in is strictly better:
+// more attempts, each from a better position, and arrival leaves real margin.
+const ANNIVERSARY_HOLD_RANGE = 35;
+// Buff time remaining below which the round is still worth attending. The buff lasts 20 minutes
+// against a 30 minute cycle, so one that is nearly done should be refreshed rather than skipped.
+const ANNIVERSARY_REFRESH_MS = 5 * 60 * 1000;
 // Gap between kiss attempts. Long enough that a normal reply lands before a second cast can go out
 // (a second cast at a spent visit is what the server answers with "exception"), short enough to
 // retry promptly while still closing the last few units of distance.
@@ -1685,6 +1710,19 @@ function anniversary_block_reason() {
 	// let a dead character hold the party still.
 	if (character.rip) return "dead";
 	if (_anniv_died_round === s.round) return "died during this round";
+
+	// THE BUFF IS THE OBJECTIVE, and it is server truth rather than our own bookkeeping.
+	//
+	// This check used to live only in anniversary_tick(), BELOW this function — so
+	// anniversary_should_travel() never saw it, and a character that had already collected went on
+	// publishing anniv_pending: true. The leader then held the whole party at the target waiting
+	// for someone who was already done, and nobody went back to grinding.
+	//
+	// The time test covers the other half: anniversary_kiss runs 20 minutes against a 30 minute
+	// cycle, so it can still be up from the previous round when this one opens. Plenty left means
+	// nothing to gain here; nearly expired means go and refresh it.
+	const kiss = character.s && character.s.anniversary_kiss;
+	if (kiss && (kiss.ms === undefined || kiss.ms > ANNIVERSARY_REFRESH_MS)) return "already buffed";
 	if (anniversary_is_host()) return "we are the featured player";
 	// Scoped to the round number rather than testing for the buff: anniversary_kiss lasts 20
 	// minutes against a 30 minute cycle, so a bare buff check would sometimes still be true when
@@ -1787,7 +1825,10 @@ async function anniversary_tick() {
 	// within range of where they WERE is not being within range of them, and casting on the
 	// snapshot is what completed rounds from across the map. If we cannot see them we are not close
 	// enough, whatever the coordinates say — and at range 80 they would be on screen if we were.
-	const in_kiss_range = !!them && distance(character, them) <= ANNIVERSARY_RANGE;
+	// Cast from the full usable range, and keep casting the whole way in — the character does not
+	// stop until ANNIVERSARY_HOLD_RANGE, so this fires repeatedly from steadily better positions
+	// instead of once, from the edge, at the worst moment.
+	const in_kiss_range = !!them && distance(character, them) <= ANNIVERSARY_CAST_RANGE;
 
 	// A cast the server acknowledged but whose effect has not shown up yet. Casting again into that
 	// window is what the server answers with game_response "exception" — the bare red ERROR! — so
@@ -1795,7 +1836,16 @@ async function anniversary_tick() {
 	// did not take and the window expires into a normal retry.
 	const awaiting_ack = _anniv_kiss_acked > 0 && Date.now() - _anniv_kiss_acked < ANNIVERSARY_ACK_GRACE_MS;
 
-	if (in_kiss_range && !awaiting_ack && Date.now() - _anniv_last_kiss > ANNIVERSARY_KISS_RETRY_MS) {
+	// The skill has a real cooldown, so an attempt made during it is simply thrown away — and it
+	// still stamps the throttle below, pushing the NEXT attempt further out. Fails open: if the
+	// check is unavailable or throws, try anyway rather than never casting at all.
+	let off_cooldown = true;
+	try {
+		if (typeof is_on_cooldown === "function" && is_on_cooldown("ikissyou")) off_cooldown = false;
+	} catch (e) { /* unknown skill name — assume ready */ }
+
+	if (in_kiss_range && off_cooldown && !awaiting_ack
+		&& Date.now() - _anniv_last_kiss > ANNIVERSARY_KISS_RETRY_MS) {
 		// Throttle, not a one-shot: a cast that is simply out of range has to be retried, and this
 		// expires, so a reply that never arrives cannot wedge the round.
 		_anniv_last_kiss = Date.now();
@@ -1803,7 +1853,9 @@ async function anniversary_tick() {
 		// NOT awaited. use_skill() settles on the server's reply and anniversary_loop() awaits this
 		// function, so a reply that never came would stop the loop, strand anniversary_travel at
 		// true, and leave all four characters disengaged until a manual reload.
-		Promise.resolve(use_skill("ikissyou", s.id)).then(
+		// The LIVE entity's id, not the snapshot's. S.anniversary.id is periodic and a target who
+		// relogged carries a different id — casting at the stale one is a rejection every time.
+		Promise.resolve(use_skill("ikissyou", them.id || s.id)).then(
 			() => {
 				// Trust the game state, not the reply. use_skill() settles on the server's
 				// response and a response is not proof the visit was granted — standing down on
@@ -1850,15 +1902,18 @@ function anniversary_destination() {
 	const them = get_player(s.target);
 
 	if (them) {
-		if (distance(character, them) <= ANNIVERSARY_RANGE) {
-			// Hold, so nothing wanders us back out of range between the 2s ticks that do the casting.
+		// Stop closing only once COMFORTABLY inside, not at the edge of the cast window. Holding at
+		// the cast range meant sitting 65 units out — inside by a hair, so any drift by either of
+		// us put the cast out of range, and every attempt was made from the worst possible spot.
+		// The cast fires from 75 (see anniversary_tick), so we go on casting the whole way in.
+		if (distance(character, them) <= ANNIVERSARY_HOLD_RANGE) {
 			return { hold: true, label: "anniversary-kiss" };
 		}
 		// Straight line first, pathfinder only when geometry blocks it — the same rule as following,
 		// and for the same reason: this is a short hop to someone in sight, not a route to plan.
 		const spot = anniversary_close_point(them);
 		if (can_move_to(spot.x, spot.y)) return { local: "anniversary", label: "anniversary-close" };
-		return { label: "anniversary", map: them.map || s.map, x: them.x, y: them.y, radius: ANNIVERSARY_RANGE - 15 };
+		return { label: "anniversary", map: them.map || s.map, x: them.x, y: them.y, radius: ANNIVERSARY_HOLD_RANGE };
 	}
 
 	// Not visible. Walk to the snapshot — but once there, HOLD rather than hand back to farm
@@ -1877,7 +1932,7 @@ function anniversary_destination() {
 // Aim well inside range rather than at its edge, so a step or two from either of us does not put
 // us straight back out of it.
 function anniversary_close_point(them) {
-	const want = ANNIVERSARY_RANGE * 0.5;
+	const want = ANNIVERSARY_HOLD_RANGE * 0.6;
 	const angle = Math.atan2(character.y - them.y, character.x - them.x);
 	return { x: them.x + Math.cos(angle) * want, y: them.y + Math.sin(angle) * want };
 }
@@ -1888,7 +1943,7 @@ function anniversary_close_step() {
 	if (!s) return;
 	const them = get_player(s.target);
 	if (!them) return; // nothing in sight — standing still beats farm-walking out of the area
-	if (distance(character, them) <= ANNIVERSARY_RANGE) return;
+	if (distance(character, them) <= ANNIVERSARY_HOLD_RANGE) return;
 	const spot = anniversary_close_point(them);
 	if (can_move_to(spot.x, spot.y)) move(spot.x, spot.y);
 }
@@ -1915,5 +1970,5 @@ async function anniversary_loop() {
 		// allowed to prevent the reschedule below.
 		try { catcher(e, "anniversary_loop"); } catch (x) { /* logging must never kill the loop */ }
 	}
-	setTimeout(anniversary_loop, ANNIVERSARY_TICK_MS);
+	setTimeout(anniversary_loop, anniversary_travel ? ANNIVERSARY_TICK_ACTIVE_MS : ANNIVERSARY_TICK_MS);
 }

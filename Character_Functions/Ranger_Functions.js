@@ -38,7 +38,7 @@ var CONFIG = {
 		circle_radius: 75, // reposition() stays within this of the farm spot
 		move_threshold: 10,
 		clump_radius: 30,
-		follow_distance: 30,
+		follow_distance: 15,
 	},
 
 	equipment: {
