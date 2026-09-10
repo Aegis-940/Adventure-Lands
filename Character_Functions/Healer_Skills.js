@@ -1,9 +1,5 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// HEALER SKILLS — separate eval closure, loaded right after Healer_Functions.js.
-// Reads/writes that file's var globals (state/cache/CONFIG/home/destination).
-// Defines skill_loop(), started at the bottom of this file.
-// try_heal() stays in Healer_Functions.js since its action_loop() calls it and
-// starts running before this file loads.
+// HEALER SKILLS — separate eval closure, loaded right after Healer_Functions.js
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function skill_loop() {
@@ -20,31 +16,17 @@ async function skill_loop() {
 
 		const PENALTY = character.s?.penalty_cd?.ms || 0;
 
-		// Party Heal runs FIRST and in its own try/catch: it is the survival-critical
-		// action, and a rejected use_skill() from curse/absorb used to abort the whole
-		// loop body before the heal ever fired (party wipe in the spider instance).
 		try {
 			await handle_party_heal();
 		} catch (e) {
 			console.error("handle_party_heal error:", e);
 		}
 
-		// Everything below is suspended while panicking: she does one job then, which is heal.
-		// Curse and dark blessing spend mana she needs for heals — the last death had curse failing
-		// no_mp while her pool drained 4339 -> 129 — and absorb PULLS aggro off allies onto her,
-		// which is the exact opposite of what a panic is trying to achieve.
-		// Party heal above is deliberately outside this guard.
-
 		const MP_PCT = character.max_mp ? character.mp / character.max_mp : 1;
 		const MANA_FOR_LUXURIES = MP_PCT >= (CONFIG.healing.skill_min_mp_pct ?? 0.40);
 
-		// Travelling to the anniversary featured player: heals only. curse is a debuff, absorb pulls
-		// aggro onto her deliberately, and zapperzap is damage — all three are exactly what "disengage"
-		// means. partyheal and single-target heal keep running, because the walk is when the party is
-		// most exposed. Same shape as the `!panicking` gates these already carry.
 		const TRAVELLING = is_travelling();
 
-		// Curse
 		if (!panicking && !TRAVELLING && MANA_FOR_LUXURIES && CONFIG.combat.enabled) {
 			try {
 				await handle_curse();
@@ -53,7 +35,6 @@ async function skill_loop() {
 			}
 		}
 
-		// Absorb
 		if (!panicking && !TRAVELLING && CONFIG.healing.absorb_enabled && PENALTY < 500) {
 			try {
 				await handle_absorb();
@@ -62,7 +43,6 @@ async function skill_loop() {
 			}
 		}
 
-		// Dark Blessing
 		if (!panicking && !TRAVELLING && MANA_FOR_LUXURIES && CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
 			&& character.mp >= (G.skills.darkblessing?.mp || 0)) {
 			if (HEALER_TARGET !== "bscorpion" || bscorpion_worth_buffing()) {
@@ -74,7 +54,6 @@ async function skill_loop() {
 			}
 		}
 
-		// Zapper
 		// if (CONFIG.combat.zapper_enabled) {
 		// 	await handle_zapper();
 		// }
@@ -92,20 +71,17 @@ async function handle_curse() {
 	const X = locations[home][0].x;
 	const Y = locations[home][0].y;
 
-	// Only consider monsters that are already engaged (have a target)
 	const has_target = e =>
 		e?.type === "monster" && !e.dead && e.visible && e.target && !e.immune &&
 		e.hp >= e.max_hp * (CONFIG.combat.curse_min_hp_pct ?? 0.25);
 
 	let target = null;
 
-	// Boss priority: nearest engaged boss
 	const bosses_with_target = Object.values(parent.entities)
 		.filter(e => has_target(e) && CONFIG.combat.all_bosses.includes(e.mtype))
 		.sort((a, b) => distance(character, a) - distance(character, b));
 	if (bosses_with_target.length) target = bosses_with_target[0];
 
-	// Giantspider follow mode: highest-HP monster within 50 units of the healer
 	if (!target && HEALER_TARGET === "giantspider") {
 		const nearby = Object.values(parent.entities)
 			.filter(e => has_target(e) && Math.hypot(character.x - e.x, character.y - e.y) <= 50)
@@ -113,7 +89,6 @@ async function handle_curse() {
 		if (nearby.length) target = nearby[0];
 	}
 
-	// Home-mob fallback: highest-HP engaged home mob near the spot
 	if (!target && HEALER_TARGET !== "giantspider") {
 		const home_mobs = Object.values(parent.entities)
 			.filter(e =>
@@ -136,7 +111,6 @@ async function handle_absorb() {
 	const maps_to_exclude = ["level2n", "level2w"];
 	if (maps_to_exclude.includes(character.map)) return;
 
-	// Boss check - ALWAYS absorb boss targets (highest priority)
 	// const boss = get_nearest_monster_v2({ type: CONFIG.combat.all_bosses });
 	// if (boss?.target && boss.target !== character.name) {
 	// 	const TARGET_PLAYER = get_player(boss.target);
@@ -158,8 +132,6 @@ async function handle_absorb() {
 		if (!entity || entity.type !== "monster" || entity.dead) continue;
 
 		if (entity.target && ALLIES.includes(entity.target) && entity.target !== character.name) {
-			// Range/visibility check on the ally: without it this fires at allies across
-			// the map and rejects every tick.
 			const ally = get_player(entity.target);
 			if (!ally || ally.rip || !is_in_range(ally, "absorb")) continue;
 
@@ -192,16 +164,6 @@ async function handle_party_heal() {
 	}
 	if (!hurt.length) return;
 
-	// No mana gate beyond party_heal_min_mp. An earlier version here skipped the cast whenever
-	// exactly one ally was hurt, heal was off cooldown and that ally was in range — reasoning that
-	// single-target heal could cover it for less mana. In a four-person party that describes the
-	// normal case, so partyheal almost never fired.
-	//
-	// The premise was wrong. Mana is not the scarce resource: she has died repeatedly holding
-	// 94-99% of a 6815 pool. Healing throughput is what runs out, and partyheal is throughput that
-	// does not share heal's cooldown — it is exactly what covers the windows heal cannot.
-	// Trading it away to save mana she never spends is a straight loss.
-
 	// log(`Party Heal → ${hurt.length} hurt`, "#33FF77");
 	await use_skill("partyheal");
 	last_party_heal_time = now;
@@ -217,7 +179,6 @@ async function handle_zapper() {
 
 	if (is_travelling() || character.cc > COOLDOWNS.cc) return;
 
-	// Equip zapper if untargeted mobs exist and we don't have it equipped
 	if (TARGETS.length > 0 && !HAS_ZAPPER && CAN_SWAP && HAS_ENOUGH_MP && character.map === destination.map) {
 		try {
 			await equip_once("zap-on", EQUIP_PRIORITY.skill, "zap_on");
@@ -228,7 +189,6 @@ async function handle_zapper() {
 		return;
 	}
 
-	// Zap all untargeted mobs if we have zapper equipped
 	if (TARGETS.length > 0 && HAS_ZAPPER && HAS_ENOUGH_MP && !is_on_cooldown("zapperzap")) {
 		for (const entity of TARGETS) {
 			if (is_on_cooldown("zapperzap")) break;
@@ -241,7 +201,6 @@ async function handle_zapper() {
 		}
 	}
 
-	// Only unequip zapper once no untargeted mobs remain (they might respawn)
 	if (TARGETS.length === 0 && HAS_ZAPPER && CAN_SWAP && character.map === destination.map) {
 		try {
 			await equip_once("zap-off", EQUIP_PRIORITY.skill, "zap_off");
@@ -252,6 +211,4 @@ async function handle_zapper() {
 	}
 }
 
-// Started here, not in Healer_Functions.js: that file's eval finishes before this
-// one loads, so calling skill_loop() from there would throw ReferenceError.
 skill_loop();

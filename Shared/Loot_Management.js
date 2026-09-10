@@ -97,17 +97,9 @@ function refresh_bank_snapshot() {
 		if (character.bank && Object.keys(character.bank).length) {
 			localStorage.setItem("savedBank", JSON.stringify(character.bank));
 		}
-	} catch (e) { /* storage full or blocked — a stale snapshot is better than a thrown loop */ }
+	} catch (e) { }
 }
 
-/**
- * Withdraws items from your bank using the native `bank_retrieve` call.
- * Call this while standing at your bank.
- *
- * @param {string} item_name         – The name of the item to withdraw.
- * @param {number|null} level       – (optional) Only withdraw items at this exact level.
- * @param {number|null} total       – (optional) Max total quantity to withdraw; omit to take all.
- */
 async function withdraw_item(item_name, level = null, total = null) {
 
 	const BANK_LOC1 = { map: "bank", x: 0, y: -37 };

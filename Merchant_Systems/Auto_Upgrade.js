@@ -4,7 +4,7 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const UPGRADE_INTERVAL = 75;
-const BANK_POSITION_TOLERANCE = 10; // matches smarter_move()'s default arrival radius
+const BANK_POSITION_TOLERANCE = 10;
 
 const UPGRADE_PROFILE = {
 	pouchbow:     { scroll0_until: 3, scroll1_until: 8, scroll2_until: 9, primling_from: 7, max_level: 9 },
@@ -29,7 +29,6 @@ const UPGRADE_PROFILE = {
 	lmace:        { scroll0_until: 0, scroll1_until: 0, scroll2_until: 9, primling_from: 3, max_level: 5 },
 	bataxe:       { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 6, max_level: 9 },
 	frankypants:  { scroll0_until: 0, scroll1_until: 0, scroll2_until: 10, primling_from: 3, max_level: 6 },
-	// Add more items as needed
 };
 
 const COMBINE_PROFILE = {
@@ -51,30 +50,17 @@ const COMBINE_PROFILE = {
 	orbofdex:    { scroll0_until: 0, scroll1_until: 3, scroll2_until: 6, primling_from: 1, max_level: 3 },
 	orbofstr:    { scroll0_until: 0, scroll1_until: 3, scroll2_until: 6, primling_from: 1, max_level: 3 },
 	lantern:     { scroll0_until: 0, scroll1_until: 0, scroll2_until: 6, primling_from: 0, max_level: 1 },
-	// Add more items as needed
+	molesteeth:  { scroll0_until: 0, scroll1_until: 1, scroll2_until: 6, primling_from: 0, max_level: 1 },
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // GRACE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Applying an "offeringp" to an item via upgrade() WITHOUT a scroll consumes the offering
-// and adds persistent, invisible "grace" to that item, boosting upgrade success chance —
-// repeated real (non-calculate) applications increase it until it plateaus (capped).
-//
-// Which items build grace, and from what level, is configured per-item via
-// UPGRADE_PROFILE's optional grace_from field (see auto_upgrade_item() below).
-
-// Safety backstop so a never-plateauing response can't spin forever.
 const GRACE_MAX_OFFERINGS = 5;
 
-// Grace VALUE ceiling, distinct from GRACE_MAX_OFFERINGS (a call-count backstop): stop
-// adding grace once the item's reported grace reaches this, even if the real plateau is higher.
 const GRACE_MAX = 5;
 
-// Reads item_slot's current grace via a free calculate:true check — only that response
-// shape carries a grace field. Needs a live offeringp slot to check with. Returns null if
-// no offeringp is available, or the response had no grace field.
 async function check_grace(item_slot) {
 	const offering_slot = character.items.findIndex(it => it && it.name === "offeringp");
 	if (offering_slot === -1) return null;
@@ -88,17 +74,12 @@ async function check_grace(item_slot) {
 	}
 }
 
-// Builds item_slot's grace up to its cap by applying real offeringp applications followed
-// by a free check_grace() re-read, until grace stops increasing (genuinely capped),
-// offeringp runs out, or GRACE_MAX_OFFERINGS is hit (the latter two are NOT capped).
-// Returns { grace, capped } — callers must not treat "ran out of material" as "capped".
 async function add_grace_to_cap(item_slot) {
 	let previous_grace = await check_grace(item_slot);
 	if (previous_grace == null) {
 		return { grace: null, capped: false };
 	}
 
-	// Already at/above GRACE_MAX -- don't spend anything, even if the real plateau is higher.
 	if (previous_grace >= GRACE_MAX) {
 		log(`✅ Grace already at ${previous_grace} (>= GRACE_MAX ${GRACE_MAX}) for slot ${item_slot} — skipping.`, "limegreen");
 		return { grace: previous_grace, capped: true };
@@ -111,7 +92,6 @@ async function add_grace_to_cap(item_slot) {
 			return { grace: previous_grace, capped: false };
 		}
 
-		// Same massproductionpp usage as the scrolled attempt in auto_upgrade_item() below.
 		if (can_use("massproductionpp") && character.mp >= 400) {
 			use_skill("massproductionpp");
 			await delay(20);
@@ -149,9 +129,6 @@ async function add_grace_to_cap(item_slot) {
 	return { grace: previous_grace, capped: false };
 }
 
-// Runs once before any scrolled upgrade attempts — builds grace to the cap for every
-// inventory item whose UPGRADE_PROFILE has a grace_from at or below its current level.
-// Grace must be capped BEFORE attempting the upgrade, not opportunistically mid-cycle.
 const grace_capped_slots = new Set();
 
 async function auto_grace_pass() {
@@ -217,8 +194,6 @@ async function withdraw_offering() {
 }
 
 async function withdraw_upgradeable_items() {
-	// Distance check, not exact-coordinate equality — smarter_move() only guarantees
-	// landing within its arrival radius, never an exact match.
 	if (character.map !== BANK_LOCATION.map || Math.hypot(character.x - BANK_LOCATION.x, character.y - BANK_LOCATION.y) > BANK_POSITION_TOLERANCE) {
 		await smarter_move(BANK_LOCATION, null, { radius: BANK_POSITION_TOLERANCE });
 		await delay(500);
@@ -234,7 +209,6 @@ async function withdraw_upgradeable_items() {
 		return;
 	}
 
-	// --- Withdraw UPGRADE_PROFILE items (leave at least 3 empty slots) ---
 	let free_slots = count_empty_inventory();
 	if (free_slots <= 3) {
 		game_log("❌ Not enough inventory space to withdraw upgrade items.");
@@ -272,12 +246,10 @@ async function withdraw_upgradeable_items() {
 		if (free_slots <= 3) break;
 	}
 
-	// --- Withdraw COMBINE_PROFILE items (multiples of 3, leave at least 3 empty slots) ---
 	free_slots = count_empty_inventory();
 	for (const item_name in COMBINE_PROFILE) {
 		const max_level = COMBINE_PROFILE[item_name].max_level;
 
-		// Gather all items of this type and below max_level in the bank, grouped by level
 		let level_map = {};
 		for (const pack in bank_data) {
 			if (!Array.isArray(bank_data[pack])) continue;
@@ -295,7 +267,6 @@ async function withdraw_upgradeable_items() {
 			}
 		}
 
-		// Withdraw in multiples of 3, but always leave at least 3 free slots
 		for (const level_str of Object.keys(level_map).sort((a, b) => a - b)) {
 			let level = Number(level_str);
 			let count = level_map[level];
@@ -317,8 +288,6 @@ async function withdraw_upgradeable_items() {
 							item.name === item_name &&
 							(item.level || 0) === level
 						) {
-							// `remaining` already accounts for the round's free-space budget (to_withdraw
-							// is capped by max_withdrawable) — only bail here if space is truly gone.
 							free_slots = count_empty_inventory();
 							if (free_slots <= 3) break;
 							const withdraw_count = Math.min(item.q || 1, remaining);
@@ -343,13 +312,10 @@ async function withdraw_upgradeable_items() {
 	game_log("✅ Finished withdrawing upgrade and compound items, leaving at least 3 inventory slots free.");
 }
 
-// Checked by should_run_upgrade() before entering the UPGRADING state — avoids a full
-// bank trip when there's nothing to do.
 function bank_has_upgradeable_items() {
 	const bank_data = character.bank || load_bank_from_local_storage();
 	if (!bank_data) return false;
 
-	// Single-item upgrades: any item below its profile's max_level.
 	for (const item_name in UPGRADE_PROFILE) {
 		const max_level = UPGRADE_PROFILE[item_name].max_level;
 		for (const pack in bank_data) {
@@ -362,7 +328,6 @@ function bank_has_upgradeable_items() {
 		}
 	}
 
-	// Combines need 3 matching items at the same level, below max_level, to do anything.
 	for (const item_name in COMBINE_PROFILE) {
 		const max_level = COMBINE_PROFILE[item_name].max_level;
 		const level_counts = {};
@@ -389,7 +354,6 @@ async function auto_upgrade_item(level) {
 		const profile = UPGRADE_PROFILE[item.name];
 		if (!profile || item.level >= profile.max_level) continue;
 
-		// Determine the correct scroll for this item's level
 		let scrollname =
 			item.level < profile.scroll0_until ? "scroll0"
 			: item.level < profile.scroll1_until ? "scroll1"
@@ -419,10 +383,6 @@ async function auto_upgrade_item(level) {
 			}
 		}
 
-		// Grace and primling_from's offering are separate requirements, not alternatives —
-		// an item can need both. Grace is built by auto_grace_pass() before this runs,
-		// best-effort: proceed with whatever grace was achieved rather than skipping the
-		// item forever if it never confirmed a genuine plateau.
 		if (profile.grace_from !== undefined && item.level >= profile.grace_from && !grace_capped_slots.has(i)) {
 			log(`${item.name} (level ${item.level}): proceeding with best-effort grace (not confirmed capped).`, "#FFA500");
 		}
@@ -472,8 +432,6 @@ async function auto_upgrade_item(level) {
 }
 
 async function auto_combine_item(level) {
-	// Map of combinable items by name/level, tracking each matching slot's quantity (not just
-	// slot count) — a stacked slot with q >= 3 is just as combinable as three separate slots.
 	const buckets = new Map();
 
 	for (let i = 0; i < character.items.length; i++) {
@@ -497,8 +455,6 @@ async function auto_combine_item(level) {
 		return entries.reduce((sum, e) => sum + e.qty, 0);
 	}
 
-	// Repeats a slot's index if its own stack supplies more than one of the 3 needed —
-	// compound() decrements a stacked slot once per reference.
 	function pick_three_slots(entries) {
 		const picks = [];
 		for (const entry of entries) {
@@ -512,7 +468,6 @@ async function auto_combine_item(level) {
 		return picks;
 	}
 
-	// First pass: check if any group needs a scroll, buy at most one scroll per call.
 	for (const [key, [lvl, entries]] of buckets) {
 		if (total_qty(entries) < 3) continue;
 
@@ -557,7 +512,6 @@ async function auto_combine_item(level) {
 		}
 	}
 
-	// Second pass: combine the first valid group of 3 (only if scroll is present).
 	for (const [key, [lvl, entries]] of buckets) {
 		if (total_qty(entries) < 3) continue;
 
@@ -627,8 +581,6 @@ async function auto_upgrade() {
 
 	merchant_task = "Upgrading";
 
-	// Wrapped so mid-run failures log with context here instead of bubbling up to
-	// handle_upgrading_state()'s generic catch.
 	try {
 		if (character.map !== "bank") {
 			await smarter_move(BANK_LOCATION);
@@ -640,10 +592,8 @@ async function auto_upgrade() {
 
 		await smarter_move(HOME);
 
-		// Grace-building runs as its own pass, separate from the scrolled-attempt loop below.
 		await auto_grace_pass();
 
-		// --- Upgrade all items level-by-level ---
 		let upgraded = true;
 		for (let level = 0; level <= 10; level++) {
 			upgraded = false;
@@ -653,7 +603,6 @@ async function auto_upgrade() {
 					upgraded = true;
 					await delay(UPGRADE_INTERVAL);
 				} else if (result === "end") {
-					// Stop all upgrading if "end" is returned (e.g., not enough gold)
 					game_log("❌ Ending auto-upgrade early due to insufficient gold or resources.");
 					break;
 				} else {
@@ -662,7 +611,6 @@ async function auto_upgrade() {
 			}
 		}
 
-		// --- Combine all items level-by-level ---
 		let combined = true;
 		for (let level = 0; level <= 5; level++) {
 			combined = false;
@@ -672,7 +620,6 @@ async function auto_upgrade() {
 					combined = true;
 					await delay(UPGRADE_INTERVAL);
 				} else if (result === "end") {
-					// Stop all combining if "end" is returned (e.g., not enough gold)
 					game_log("❌ Ending auto-combine early due to insufficient gold or resources.");
 					break;
 				} else {
@@ -683,9 +630,6 @@ async function auto_upgrade() {
 
 		game_log("✅ Auto upgrade and combine complete.");
 		await delay(5000);
-		// sell_items()/bank_items() directly -- each only travels if it actually has
-		// something to do; already at HOME from the upgrade bench, no reason to force a
-		// return here if bank_items() is the only one that finds anything.
 		await sell_items();
 		await bank_items();
 	} catch (e) {

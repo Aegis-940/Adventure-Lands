@@ -2,7 +2,6 @@
 // BOOTSTRAPPER (reload-safe, commit-specific, debug-enabled)           //
 // -------------------------------------------------------------------- //
 
-// Seed CM listeners up‐front
 window._cmListeners = window._cmListeners || [];
 
 (function(){
@@ -14,7 +13,6 @@ window._cmListeners = window._cmListeners || [];
 	}
 	p$.ajaxSetup({ cache: false });
 
-	// Cross-file calls happen inside functions/handlers invoked after boot, so these load in parallel.
 	const scripts = [
 		"Shared/Game_Config.js",
 		"Shared/Movement.js",
@@ -29,7 +27,6 @@ window._cmListeners = window._cmListeners || [];
 		"Shared/Cohesion.js",
 		"Shared/Character_Runner.js",
 		"Shared/Error_Handling.js",
-		// Deliberately NOT in CRITICAL_SCRIPTS: the recorder failing must never stop the bot.
 		"Shared/Error_Log.js",
 		"UI/Custom_Log.js",
 		"UI/Bank_Sorter.js",
@@ -70,13 +67,8 @@ window._cmListeners = window._cmListeners || [];
 
 	const MAX_RETRIES = 3;
 
-	// Appended to every file URL. Stays "" for an immutable @<sha> base (safe to cache
-	// forever). Set to a timestamp for the @main fallback, which jsDelivr caches for ~12h --
-	// without this, reloads keep replaying whatever @main looked like when it was first
-	// cached, so pushed fixes silently never arrive.
 	let FILE_SUFFIX = "";
 
-	// Role files depend on globals these define — abort loudly instead of failing on undefined functions.
 	const CRITICAL_SCRIPTS = [
 		"Shared/Game_Config.js",
 		"Shared/Movement.js",
@@ -93,7 +85,6 @@ window._cmListeners = window._cmListeners || [];
 		"Shared/Error_Handling.js",
 	];
 
-	// Always resolves (success: true/false) so one bad file can't block the rest of the batch.
 	function load_one(base, name) {
 		const url = base + encodeURI(name) + FILE_SUFFIX;
 		return new Promise(resolve => {
@@ -115,8 +106,6 @@ window._cmListeners = window._cmListeners || [];
 		});
 	}
 
-	// Strips comments/strings first so braces inside them don't cause false mismatch warnings.
-	// Not a full tokenizer — a brace inside a regex literal can still slip through.
 	function count_braces_excluding_literals(text) {
 		const stripped = text
 			.replace(/\/\*[\s\S]*?\*\//g, "")
@@ -130,7 +119,6 @@ window._cmListeners = window._cmListeners || [];
 		};
 	}
 
-	// Loads a role file via fetch+eval with brace-count diagnostics. Always resolves.
 	function load_role_file(base, name) {
 		const url = base + encodeURI(name) + FILE_SUFFIX;
 		return new Promise(resolve => {
@@ -147,7 +135,6 @@ window._cmListeners = window._cmListeners || [];
 					if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
 					text = text.replace(new RegExp("[\\u200B-\\u200D\\uFEFF]", "g"), "");
 					try {
-						// Indirect eval — runs in global scope; direct eval() would trap declarations in this closure.
 						(0, eval)(text);
 					} catch (e) {
 						game_log("❌ " + name + " eval error: " + e.message);
@@ -169,7 +156,6 @@ window._cmListeners = window._cmListeners || [];
 		});
 	}
 
-	// Role files load strictly in order (each may depend on the previous).
 	function load_sequential(names, loader) {
 		return names.reduce((chain, name) => chain.then(() => loader(name)), Promise.resolve());
 	}
@@ -189,25 +175,19 @@ window._cmListeners = window._cmListeners || [];
 			});
 	}
 
-	// Reuse the already-resolved commit SHA if fresh, otherwise re-resolve (avoid building on a stale SHA).
-	const MAX_BASE_AGE_MS = 10 * 60 * 1000; // 10 minutes
+	const MAX_BASE_AGE_MS = 10 * 60 * 1000;
 
 	function resolve_and_load() {
-		// Cache-busted: without this, the browser can serve a stale cached response for
-		// this exact URL even on an explicit reload, pinning the whole session to an old SHA.
 		p$.getJSON("https://api.github.com/repos/Aegis-940/Adventure-Lands/commits/main?_=" + Date.now())
 			.done(repo_data => {
 				const base = "https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@" + repo_data.sha + "/";
-				FILE_SUFFIX = ""; // @<sha> is immutable — caching it is correct
+				FILE_SUFFIX = "";
 				window.__AL_BASE__ = base;
 				window.__AL_BASE_SET_AT__ = Date.now();
 				game_log("📦 Loading commit " + repo_data.sha.slice(0, 7));
 				start_loading(base);
 			})
 			.fail(() => {
-				// Usually api.github.com's 60-req/hour unauthenticated rate limit, easy to hit
-				// with 4 characters reloading. Cache-bust the fallback so it can't serve a
-				// half-day-old @main snapshot.
 				FILE_SUFFIX = "?_=" + Date.now();
 				game_log("⚠️ Couldn't fetch SHA (GitHub rate limit?) — falling back to @main, cache-busted", "#FFA500");
 				start_loading("https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/");

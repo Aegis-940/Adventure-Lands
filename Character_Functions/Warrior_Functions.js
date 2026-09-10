@@ -79,21 +79,18 @@ var CONFIG = {
 	}
 };
 
-// var, not const: Game_Config.js's handle_return_home() reads this global.
 var destination = {
 	map: locations[home][0].map,
 	x: locations[home][0].x,
 	y: locations[home][0].y
 };
 
-// var, not const: send_to_merchant() (Shared/Game_Config.js) reads this global.
 var ITEMS_TO_KEEP = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster", "pumpkinspice", "xptome", "tracker", "jacko", "orbg", "talkingskull", "computer"];
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATE & CACHE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// var, not const: Warrior_Skills.js (separate eval closure) also reads/writes these.
 var state = {
 	skin_ready: false,
 	last_basher_swap: 0,
@@ -123,7 +120,6 @@ var cache = {
 // LOCATION & EQUIPMENT DATA
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// var, not const: shared is_set_equipped()/equip_set() (Game_Config.js) read this at call time.
 var equipment_sets = {
 	single: [
 		{ item_name: "fireblade", slot: "mainhand", level: 9, l: "l" },
@@ -512,7 +508,6 @@ async function reposition() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 
-// var, not const: shared inventory_sorter() (Game_Config.js) reads this at call time.
 var item_order = {
 	tracktrix: 0,
 	computer: 1,
@@ -538,7 +533,6 @@ function elixir_usage() {
 	}
 }
 
-// var, not let: shared panic_check() (Game_Config.js) reads/writes these globals.
 var panicking = false;
 var last_panic_time = 0;
 var last_safe_time = 0;
@@ -551,7 +545,6 @@ var PANIC_THRESHOLDS = {
 };
 
 
-// party_maker() — replaced by shared party_manager() from Game_Config.js
 // function party_maker() {
 // 	if (!CONFIG.party.auto_manage) return;
 // 	const group = CONFIG.party.group_members;

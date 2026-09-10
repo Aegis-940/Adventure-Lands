@@ -21,6 +21,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 
 | File | Role |
 |------|------|
+| `Code_Loader.js` | The one file that lives in a game code slot; fetches and evals `Bootstrapper.js` |
 | `Bootstrapper.js` | Script loader — loads all other files from CDN in order |
 | `Shared/Game_Config.js` | Core config/constants/state variables |
 | `Shared/Movement.js` | `smarter_move()`, the travel arbiter (`travel_arbiter()`), `move_to_character()`, stuck escape |
@@ -60,6 +61,8 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `UI/XP_Meter.js` | XP tracking display |
 | `UI/Game_Log.js` | Game event log (mostly commented out) |
 | `UI/Custom_Log.js` | Custom in-game log window |
+| `UI/Pause_Button.js` | Per-character pause/resume button — parks automation, leaves combat/panic/upkeep running |
+| `tools/probe_anniversary.js` | One-off dev probe pasted into a code slot/console; not part of the loaded bot |
 
 ---
 
@@ -86,8 +89,9 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 - Equipment swapping has cooldown guards — check `COOLDOWNS` before adding new swap logic
 
 ### Comments
-- Keep comments terse and strictly necessary — a short line explaining a non-obvious WHY (a hidden constraint, a subtle invariant, a workaround for a specific bug) is welcome; comments that restate what the code already makes obvious, or multi-sentence essays where one clause would do, are not
-- Commented-out code blocks are often experimental or disabled features, not dead code — ask before removing
+- **Zero code comments.** Do not add explanatory, WHY, or doc comments (including JSDoc) to any code you write — identifiers, structure, and headings should carry all the meaning
+- Section-header dividers (`// ---...--- //` dash-block, title, dash-block) are structural, not comments — keep them
+- Commented-out code blocks (disabled/experimental features) aren't comments either — leave them; ask before removing (see What to Avoid)
 
 ---
 
@@ -110,29 +114,6 @@ parent.$           // jQuery
 - **Party Members:** `Riva` (Ranger), `Myras` (Healer), `Riff` (Merchant)
 - Characters coordinate via shared globals and socket events
 - Merchant (Riff) supports others: delivers potions, collects loot, handles upgrades
-
----
-
-## Common Patterns to Follow
-
-### Loop pattern
-```javascript
-setInterval(async () => {
-    if (!CONDITION) return;
-    // action
-}, TICK_RATE);
-```
-
-### Promise-based movement
-```javascript
-await smarter_move(target, { timeout: 5000, radius: 50 });
-```
-
-### Socket emission (game actions)
-```javascript
-parent.socket.emit("move", { x: target.x, y: target.y });
-parent.socket.emit("attack", { id: target.id });
-```
 
 ---
 

@@ -1,50 +1,28 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // ERROR LOG — persistent, cross-character recorder.
-//
-// A flight recorder, not an alarm: it answers "what happened at 21:45?" after the fact. It will not
-// wake anyone up. Hooks only — every capture point wraps something that already exists, so there
-// are no record() calls scattered through the codebase. That call-site cost is what made the
-// previous diagnostics system not worth keeping.
-//
-// Five things are stored, because they answer different questions:
-//   records   deduped aggregate — "what is chronically wrong"
-//   counts    bare integers for high-volume outcomes — "how often does heal actually land"
-//   timeline  ordered ring of recent events — "what happened just before it broke"
-//   deaths    vitals, loop beats and every heal attempt before it — "why did it die"
-//   session   when this build loaded — makes "died 60s after load" visible
-//
-// records vs counts is the important split: records carry context and feed the timeline, so they
-// must stay rare. Anything that can fire ten times a second goes to counts instead, or it flushes
-// the timeline and destroys the evidence it was added to gather.
-//
-// Written to localStorage (shared across all four tabs) and POSTed to tools/error_sink.py, which
-// merges it into errors.json in the repo. Read with al_errors(true).
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const ERRLOG_KEY = "AL_errors_";
 const ERRLOG_MAX_RECORDS = 200;
 const ERRLOG_MAX_TIMELINE = 80;
-const ERRLOG_MAX_DEATHS = 6;    // localStorage cost is synchronous; the sink keeps 50
-const ERRLOG_VITALS_SAMPLES = 10;   // at 1s each, so a death carries the preceding 10s
+const ERRLOG_MAX_DEATHS = 6;
+const ERRLOG_VITALS_SAMPLES = 10;
 const ERRLOG_VITALS_MS = 1000;
-const ERRLOG_FLUSH_MS = 5000;       // localStorage.setItem is synchronous; don't do it every 2s
+const ERRLOG_FLUSH_MS = 5000;
 const ERRLOG_MSG_CAP = 400;
 
-const ERRLOG_MAX_HEALS = 15;        // heal attempts kept in full detail, attached to a death
+const ERRLOG_MAX_HEALS = 15;
 
-// Bump when the stored shape changes. Old data is dropped on load rather than merged: a log that
-// mixes builds silently answers "is the fix working?" with counts accumulated before the fix, and
-// half this week's wrong conclusions came from reading pre-fix aggregates as current behaviour.
 const ERRLOG_SCHEMA = 2;
 
 let _errlog = { session: null, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {} };
 let _errlog_dirty = false;
-let _errlog_recording = false;      // recording must never be able to trigger recording
+let _errlog_recording = false;
 let _errlog_vitals = [];
 let _errlog_was_rip = false;
-let _errlog_heals = [];             // ring of recent heal attempts, frozen into each death record
-const _errlog_beats = {};           // loop name -> total iterations since load
-const _errlog_beats_last = {};      // same, snapshotted at the previous vitals sample
+let _errlog_heals = [];
+const _errlog_beats = {};
+const _errlog_beats_last = {};
 
 function _errlog_key() {
 	return ERRLOG_KEY + ((character && character.name) || "unknown");
@@ -57,9 +35,6 @@ function _errlog_fmt(e) {
 	try { return JSON.stringify(e); } catch (x) { return String(e); }
 }
 
-// Digits normalised so "cooldown 4999ms" and "cooldown 3021ms" collapse. Without this a 40ms loop
-// erroring for an hour writes ~90,000 near-identical rows and the log is useless exactly when it
-// matters most.
 function _errlog_signature(ctx, msg) {
 	return ctx + "|" + msg.replace(/\d+/g, "#").slice(0, 200);
 }
@@ -71,9 +46,6 @@ function _errlog_build() {
 	} catch (e) { return "?"; }
 }
 
-// cc is here because "did we get disconnected for code-cost overload?" has been an open question
-// for a long time and nothing was recording it. mp is here because a no_mp rejection on scare
-// turned out to be why the warrior could never escape.
 function _errlog_context() {
 	try {
 		return {
@@ -83,17 +55,12 @@ function _errlog_context() {
 			mp: character.mp, max_mp: character.max_mp,
 			cc: Math.round(character.cc || 0),
 			rip: !!character.rip,
-			// Round-trip time to the server. Everything this bot does is a round trip, so a death
-			// record without it cannot distinguish "the code was slow" from "the connection was".
-			// A VPN sitting in that path is invisible from inside the tab otherwise.
 			ping: (parent.pings && parent.pings.length) ? Math.round(Math.min(...parent.pings)) : null,
 			panicking: (typeof panicking !== "undefined") ? !!panicking : null
 		};
 	} catch (e) { return null; }
 }
 
-// What was actually on us. Monster mix and how many had us targeted is the difference between
-// "died to a boss" and "died to a pack nobody dumped".
 function _errlog_threat() {
 	try {
 		const near = {};
@@ -123,13 +90,9 @@ function _errlog_load() {
 				counts: prev.counts || {}
 			};
 		}
-	} catch (e) { /* corrupt or blocked — start clean */ }
+	} catch (e) { }
 }
 
-// Timed, because this is the recorder's own worst-case cost and it is entirely synchronous:
-// JSON.stringify of the whole log plus a localStorage write, with four tabs serialising on one
-// origin. If the event-loop lag tail lines up with this, the flight recorder is causing the stalls
-// it is here to measure.
 function _errlog_flush() {
 	if (!_errlog_dirty) return;
 	_errlog_dirty = false;
@@ -148,7 +111,6 @@ function _errlog_flush() {
 		errlog_time("io flush setItem", Date.now() - t1);
 		errlog_count("io flush kb " + Math.round(blob.length / 1024));
 	} catch (e) {
-		// Full or blocked — dropping the record is correct; logging must never break the bot.
 	}
 }
 
@@ -168,53 +130,30 @@ function errlog_record(ctx, raw_msg) {
 			_errlog.records[sig] = {
 				ctx, msg, count: 1, first: now, last: now,
 				build: _errlog_build(),
-				where: _errlog_context()   // first occurrence only
+				where: _errlog_context()
 			};
 		}
 
-		// Ordered ring alongside the aggregate: dedupe answers "what is chronically wrong", this
-		// answers "what happened in the seconds before it broke", and they are different questions.
 		_errlog.timeline.push({ t: now, ctx, msg: msg.slice(0, 160) });
 		if (_errlog.timeline.length > ERRLOG_MAX_TIMELINE) _errlog.timeline.shift();
 
 		_errlog_dirty = true;
 	} catch (e) {
-		// Never throw out of the recorder.
 	} finally {
 		_errlog_recording = false;
 	}
 }
 
-// COUNTERS — for outcomes that happen too often to record.
-//
-// errlog_record() pushes to the 80-entry timeline, so calling it for something that fires ten times
-// a second flushes the timeline and destroys the one structure that shows what happened just before
-// a failure. Volume needs a different shape: one integer per outcome, no ordering, no timeline
-// pressure, unbounded in time. "How many heals succeeded today" and "what happened at 19:58" are
-// different questions and want different storage.
-// Deliberately does NOT set _errlog_dirty. Counting fires on every heal and every skill, so
-// marking dirty here guaranteed a synchronous JSON.stringify + localStorage.setItem of the whole
-// ~37KB log every 5s, per character, across four tabs sharing one origin. Before this existed the
-// flag was only set by errors, so a healthy character almost never flushed. That write is blocking
-// in Chromium and this file already carries one bug of exactly that shape (see healer_is_down).
-// Counts still reach the sink: _errlog_push() runs every 30s and does not consult the flag, and a
-// count lost to a reload is worth far less than a stalled heal.
 function errlog_count(bucket) {
 	try {
 		_errlog.counts[bucket] = (_errlog.counts[bucket] || 0) + 1;
-	} catch (e) { /* never throw out of the recorder */ }
+	} catch (e) { }
 }
 
-// LOOP LIVENESS. "It took no action at all" is the most expensive failure to diagnose because it
-// looks identical to "it decided not to act" — both produce silence. Counting iterations separates
-// them: the vitals sampler turns this into iterations-per-second, so a death record shows whether
-// the loop was still running while the character stood there dying.
 function errlog_beat(name) {
-	try { _errlog_beats[name] = (_errlog_beats[name] || 0) + 1; } catch (e) { /* never throw */ }
+	try { _errlog_beats[name] = (_errlog_beats[name] || 0) + 1; } catch (e) { }
 }
 
-// DURATIONS, as a histogram. A mean would hide exactly what matters — one 400ms stall inside a
-// hundred fast iterations averages to 4ms and looks fine. Buckets keep the tail visible.
 const ERRLOG_TIME_BUCKETS = [5, 20, 50, 100, 250, 500, 1000];
 
 function errlog_time(bucket, ms) {
@@ -224,24 +163,17 @@ function errlog_time(bucket, ms) {
 			if (ms < b) { label = "<" + b; break; }
 		}
 		errlog_count(bucket + " " + label);
-	} catch (e) { /* never throw */ }
+	} catch (e) { }
 }
 
-// EVENT-LOOP LAG. The one measurement that separates "the tab is starved" from "the loop is
-// waiting on a cooldown or a round trip", which look identical from outside and need opposite
-// fixes. A fixed 100ms timer that reports how late it actually fired: if this is clean while
-// actions are still slow, no amount of loop tuning will help and the delay is not CPU.
 let _errlog_lag_due = 0;
 
 function _errlog_lag_probe() {
 	const now = Date.now();
 	if (_errlog_lag_due) errlog_time("lag eventloop", now - _errlog_lag_due);
-	// Ping in the same histogram shape as the loop timings, so connection cost and code cost can be
-	// read off the same page. Sampled here rather than per-action: it is a property of the link, not
-	// of any one cast.
 	try {
 		if (parent.pings && parent.pings.length) errlog_time("net ping", Math.min(...parent.pings));
-	} catch (e) { /* not available yet */ }
+	} catch (e) { }
 	_errlog_lag_due = now + 100;
 	setTimeout(_errlog_lag_probe, 100);
 }
@@ -260,35 +192,21 @@ _errlog.session = {
 };
 _errlog_dirty = true;
 
-// 1. Uncaught exceptions. Cross-origin script failures arrive as a bare "Script error." with
-//    lineno 0, because getScript builds <script> tags without crossorigin. Recorded regardless:
-//    knowing a script died at all beats knowing nothing, which is what we had.
 window.addEventListener("error", ev => {
 	const at = ev.filename ? ` @${ev.filename}:${ev.lineno}` : "";
 	errlog_record("uncaught", (ev.message || "unknown error") + at);
 });
 
-// 2. Rejected game promises nobody awaited.
 window.addEventListener("unhandledrejection", ev => {
 	errlog_record("unhandled_rejection", ev.reason);
 });
 
-// 3. console.error — the "skill_loop error:" family, which never reaches the in-game log. This is
-//    where the no_mp rejections that were killing the warrior had been hiding all along.
 const _errlog_console_error = console.error.bind(console);
 console.error = function (...args) {
 	errlog_record("console", args.map(a => _errlog_fmt(a)).join(" "));
 	return _errlog_console_error(...args);
 };
 
-// 4. The in-game Errors tab. catcher() funnels every handled error through log(..., "Errors") and
-//    the [PANIC] messages use it directly, so one hook covers both.
-//
-//    Wrapped on a timer, not immediately: log() lives in UI/Custom_Log.js, which the Bootstrapper
-//    loads in PARALLEL with this file, so it may not exist yet at this point.
-// 4b. game_log — warn_missing_item() and the Bootstrapper report through it, and nothing was
-//     watching. That is how a panic orb that never equipped stayed invisible. Only ⚠️/❌ lines are
-//     taken, so ordinary game chatter does not flood the log.
 let _errlog_gamelog_wrapped = false;
 function _errlog_try_wrap_game_log() {
 	if (_errlog_gamelog_wrapped || typeof game_log !== "function") return;
@@ -300,7 +218,7 @@ function _errlog_try_wrap_game_log() {
 			if (text.indexOf("⚠️") === 0 || text.indexOf("❌") === 0 || text.indexOf("🛑") === 0) {
 				errlog_record("game_log", text);
 			}
-		} catch (e) { /* never break game_log */ }
+		} catch (e) { }
 		return original_game_log(msg, color);
 	};
 }
@@ -316,15 +234,6 @@ function _errlog_try_wrap_log() {
 	};
 }
 
-// 4b. Heal and skill attempts. Wrapping the API functions catches every call AND its outcome with
-//     no call sites, including the successes — which is the half we never had. A rejected heal
-//     costs no mana and sets no cooldown, so "healed a corpse 4000 times" and "never called heal"
-//     look identical from the outside: same flat mana, same absent cooldown rejections. That
-//     ambiguity is what made the 09-07 death loop take an afternoon to pin down.
-//
-//     Outcomes go to counters (unbounded, no timeline pressure); the last ERRLOG_MAX_HEALS attempts
-//     are kept in full detail and frozen into each death record, which is where detail is worth
-//     paying for.
 function _errlog_heal_outcome(snap, outcome) {
 	try {
 		snap.outcome = outcome;
@@ -332,7 +241,7 @@ function _errlog_heal_outcome(snap, outcome) {
 		_errlog_heals.push(snap);
 		if (_errlog_heals.length > ERRLOG_MAX_HEALS) _errlog_heals.shift();
 		errlog_count("heal:" + outcome + (snap.self ? ":self" : ":ally"));
-	} catch (e) { /* never break healing */ }
+	} catch (e) { }
 }
 
 function _errlog_reason(e) {
@@ -370,14 +279,9 @@ function _errlog_try_wrap_heal() {
 			);
 		};
 		_errlog_heal_wrapped = true;
-	} catch (e) { /* heal not reassignable here; skip rather than break */ }
+	} catch (e) { }
 }
 
-// 4c. Server-side exceptions. game.js renders a game_response of {response: "exception"} as a bare
-//     red "ERROR!" in the game log and nothing else — no place, no reason, nothing in the browser
-//     console, and nothing this recorder was hooking. It cost a full round of guessing to find that
-//     the string came from the game engine rather than from us. Capture the whole payload, plus the
-//     handful of other responses that indicate a request the server refused outright.
 try {
 	if (parent && parent.socket && typeof parent.socket.on === "function") {
 		parent.socket.on("game_response", data => {
@@ -386,29 +290,22 @@ try {
 				if (r === "exception" || r === "cant" || r === "not_ready") {
 					errlog_record("game_response", _errlog_fmt(data));
 				}
-			} catch (e) { /* never break the socket handler */ }
+			} catch (e) { }
 		});
 	}
-} catch (e) { /* no socket access; skip */ }
+} catch (e) { }
 
-// 5. Socket disconnects — the symptom we have never once captured, only inferred.
 try {
 	if (parent && parent.socket && typeof parent.socket.on === "function") {
 		parent.socket.on("disconnect", () => errlog_record("disconnect", "socket disconnected"));
 	}
-} catch (e) { /* no socket access; skip */ }
+} catch (e) { }
 
-// 6. Death. Detected on the rising edge of character.rip in the vitals sampler rather than through
-//    a game event, so it does not depend on event semantics that vary. The vitals ring means the
-//    record carries the ten seconds BEFORE the death, which is the part that explains it — hp/mp
-//    after you are already dead tells you nothing.
 function _errlog_sample_vitals() {
 	const v = _errlog_context();
 	if (!v) return;
 	v.t = Date.now();
 
-	// Iterations of each loop since the previous sample, i.e. per second. A row of zeroes here is
-	// the difference between a loop that died and a loop that ran and chose to do nothing.
 	try {
 		const beats = {};
 		for (const k in _errlog_beats) {
@@ -416,10 +313,8 @@ function _errlog_sample_vitals() {
 			_errlog_beats_last[k] = _errlog_beats[k];
 		}
 		v.beats = beats;
-	} catch (e) { /* never break sampling */ }
+	} catch (e) { }
 
-	// Healer only: the inputs to the heal decision. "She stood there and healed nobody" produces no
-	// error of any kind, so the only way to settle why is to record what the decision saw.
 	try {
 		if (typeof cache !== "undefined" && cache && cache.heal_target) {
 			const ht = cache.heal_target;
@@ -427,12 +322,7 @@ function _errlog_sample_vitals() {
 			v.heal_target = ht.name;
 			v.heal_thr = Math.round(Math.max(ht.max_hp * 0.5, ht.max_hp - character.heal / 1.33));
 			v.heal_tgt_hp = ht.hp;
-			// What a single-target heal actually costs, so partyheal (a flat 400) can be compared
-			// against it rather than assumed cheaper.
 			v.mp_cost = character.mp_cost;
-			// How many allies are actually below the partyheal threshold. partyheal is an AoE heal
-			// cast on the FIRST one found, so if this is usually 1 the AoE is being paid for
-			// nothing.
 			try {
 				const thr = (typeof CONFIG !== "undefined" && CONFIG.healing)
 					? CONFIG.healing.party_heal_threshold : 0.4;
@@ -440,9 +330,9 @@ function _errlog_sample_vitals() {
 					const a = get_player(n);
 					return a && !a.rip && a.hp < a.max_hp * thr;
 				}).length;
-			} catch (e) { /* party not resolvable */ }
+			} catch (e) { }
 		}
-	} catch (e) { /* not a healer, or cache not built yet */ }
+	} catch (e) { }
 	_errlog_vitals.push(v);
 	if (_errlog_vitals.length > ERRLOG_VITALS_SAMPLES) _errlog_vitals.shift();
 
@@ -454,8 +344,6 @@ function _errlog_sample_vitals() {
 			threat: _errlog_threat(),
 			status: (() => { try { return Object.keys(character.s || {}); } catch (e) { return null; } })(),
 			leading_up_to_it: _errlog_vitals.slice(),
-			// Every heal this character attempted before dying, with its outcome. "Died at full mana"
-			// is ambiguous until you can see whether the heals were never issued or were all rejected.
 			recent_heals: _errlog_heals.slice()
 		});
 		if (_errlog.deaths.length > ERRLOG_MAX_DEATHS) _errlog.deaths.shift();
@@ -469,11 +357,6 @@ setInterval(_errlog_sample_vitals, ERRLOG_VITALS_MS);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // LOCAL SINK — pushes to tools/error_sink.py so records land in the repo as errors.json.
-//
-// The page cannot write to disk, so this is the only route to a file. Optional: when the sink is
-// not running the POST simply fails, and after 3 consecutive failures we back off to one attempt
-// every 5 minutes. Failures are swallowed rather than logged — a sink error that got recorded
-// would feed itself. 127.0.0.1 counts as a trustworthy origin, so an https page may POST to it.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const ERRLOG_SINK_URL = "http://127.0.0.1:8787/errors";
@@ -522,8 +405,6 @@ setInterval(() => {
 // READOUT
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// al_errors()     -> this character
-// al_errors(true) -> all four (localStorage is shared across the tabs)
 function al_errors(all) {
 	_errlog_flush();
 	const out = {};
@@ -558,9 +439,6 @@ function al_errors_clear(all) {
 			if (k && k.indexOf(ERRLOG_KEY) === 0 && (all || k === _errlog_key())) doomed.push(k);
 		}
 		doomed.forEach(k => localStorage.removeItem(k));
-		// Must reset every structure, not just the three that existed when this was written. A
-		// missing counts object makes errlog_count() throw into its own catch and silently stop
-		// counting — a diagnostic that fails quietly is worse than none.
 		_errlog = { session: _errlog.session, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {} };
 		_errlog_heals = [];
 		_errlog_vitals = [];

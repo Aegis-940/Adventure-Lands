@@ -82,7 +82,7 @@ order.comparator = function (a, b) {
 };
 
 function get_packs_on_this_floor() {
-	const floor = character.map; // "bank", "bank_b", or "bank_u"
+	const floor = character.map;
 
 	const packs = [];
 

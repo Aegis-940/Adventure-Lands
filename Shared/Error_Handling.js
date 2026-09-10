@@ -18,8 +18,6 @@ const COOLDOWN_SKILLS = {
 	heal: "Heal",
 };
 
-// [test, label] — quiet categories are recorded but kept out of the in-game log, where the errors
-// that matter have to stay visible. A rejected call is still wasted cc and worth counting.
 const REJECTIONS = [
 	["not_there", "Monster already dead", true],
 	["too_far", "Monster out of range", false],

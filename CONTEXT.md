@@ -29,20 +29,27 @@ Shared/Game_Config.js   ← core config/constants shared by everything
     ├── Party constants       (PARTY_LEADER, PARTY_MEMBERS)
     └── Tick rates / cooldowns
 
-Shared/Movement.js           ← smarter_move(), move_to_character(), bscorpion/primling farm, combat orbit
-Shared/Combat_Utilities.js   ← monster targeting/distance/aggro helpers, event handling
+Shared/Movement.js           ← smarter_move(), travel_arbiter(), move_to_character(), stuck escape
+Shared/Bscorpion_Farm.js     ← content-specific positioning for the desertland bscorpion/primling camp
+Shared/Combat_Utilities.js   ← monster targeting/distance/aggro helpers, best_orbit_spot()
+Shared/Events.js             ← live boss/seasonal targets, the goal that walks the party to them, anniversary visit
 Shared/Messaging.js          ← CM (character message) handlers, localStorage-backed state cache
-Shared/Party_And_Loot.js     ← party invite/accept, shared loot/inventory/panic/equipment behaviors
+Shared/Equipment.js          ← equipment sets, batch_equip(), the slot arbiter, the rules resolver
+Shared/Party_Management.js   ← panic + its broadcast (set_panic()), party invites, home location
+Shared/Loot_Management.js    ← loose_loot() (keep/ship/vendor), bank withdrawal
+Shared/Maintenance.js        ← potion drinking/restocking, periodic tab reload
+Shared/Cohesion.js           ← follow_goal(), party_cohesion_hold(), movement_goal() priority list
+Shared/Character_Runner.js   ← run_character(), the shared main tick loop
 Shared/Error_Handling.js     ← catcher(), the shared error-triage/logging helper
+Shared/Error_Log.js          ← persistent cross-character flight recorder (al_errors(true))
 Shared/Widgets.js            ← create_bottomrightcorner_widget() (Gold/XP/CC/DPS meters'
                                 container) and make_draggable() (used by Custom_Log.js/
-                                Stats_Window.js) — the only pieces kept when Buttons.js/
-                                Windows.js were removed for a from-scratch UI redesign
+                                Stats_Window.js) — all that survived removing Shared/Windows.js
 
 Characters/[Role].js         ← entry point per character
-    ├── Starts periodic update loops
+    ├── Starts periodic update loops (state_cache_loop, potion_loop, etc.)
+    ├── Wires up UI (add_bank_buttons(), create_custom_log_window())
     └── Calls into Character_Functions/
-    (button/window UI setup removed pending redesign — see Buttons.js/Windows.js note above)
 
 Character_Functions/[Role]_Functions.js   ← per-role behavior
     ├── Combat ability rotations
@@ -68,11 +75,15 @@ UI/*.js                      ← overlay panels (semi-independent)
     ├── XP_Meter.js
     ├── Game_Log.js           mostly commented out — incomplete feature
     ├── Custom_Log.js         custom in-game log window
+    ├── Pause_Button.js       per-character pause/resume, leaves combat/panic/upkeep running
     └── Settings_Window.js    per-character target settings, persisted via localStorage
 
 Merchant_Systems/
     ├── Auto_Upgrade.js        item upgrade profiles (loaded for Riff)
     └── Auto_Craft.js          crafting automation and batch orchestration (loaded for Riff)
+
+Code_Loader.js                ← the only file that lives in a game code slot; fetches/evals Bootstrapper.js
+tools/probe_anniversary.js    ← one-off dev probe pasted into a code slot/console, not part of the loaded bot
 ```
 
 ---
@@ -84,7 +95,7 @@ The `Bootstrapper.js` detects which character is logged in by name, then fetches
 1. Game_Config + all Shared/UI files — loaded in parallel (none of them call into each other at load time, only from functions/handlers invoked later)
 2. Character Functions, then that character's entry point — loaded sequentially afterward, since these do call into the shared files immediately
 
-Each script is loaded with retry logic and exponential backoff. A small loader snippet pasted into each character's in-game code slot resolves the current commit SHA once and hands it to `Bootstrapper.js`, avoiding a duplicate lookup.
+Each script is loaded with retry logic and exponential backoff. `Code_Loader.js` — the only file pasted into each character's in-game code slot — just fetches and evals `Bootstrapper.js`; it deliberately does not resolve a commit SHA itself, since `Bootstrapper.js` already resolves one per load and doing it in both places doubled the `api.github.com` request rate against its 60/hour limit.
 
 ---
 
@@ -129,7 +140,7 @@ State transitions are managed in `Game_Config.js` and checked each loop tick.
 
 ### UI Overlays
 - Bottom-right-corner meters (Gold/XP/CC/DPS) share `Widgets.js`'s `create_bottomrightcorner_widget()` container; Custom_Log.js/Stats_Window.js use its `make_draggable()`
-- The rest of the buttons/windows UI (Buttons.js/Windows.js) was removed for a from-scratch redesign — not yet rebuilt
+- Top-right-corner buttons (🔄 reload, 🏧 bank, ⚙️ settings, ⏸️ pause) were rebuilt piecemeal in their own files after `Buttons.js`/`Windows.js` were removed; the rest of that UI is still pending
 - DPS Meter: per-member damage tracking, rolling event window
 - Stats Window: Canvas-based 30-minute rolling gold accumulation graph
 - Party Frames: real-time HP bars for all 4 members
@@ -177,37 +188,48 @@ CONFIG = {
 
 | File | Lines |
 |------|-------|
-| Character_Functions/Ranger_Functions.js | 1035 |
-| Character_Functions/Warrior_Functions.js | 1014 |
-| Character_Functions/Healer_Functions.js | 924 |
-| Character_Functions/Merchant_Functions.js | 852 |
-| Shared/Party_And_Loot.js | 638 |
-| Merchant_Systems/Auto_Upgrade.js | 600 |
-| Shared/Movement.js | 536 |
-| Merchant_Systems/Auto_Craft.js | 469 |
-| Character_Functions/Warrior_Skills.js | 224 |
-| Character_Functions/Healer_Skills.js | 222 |
-| Shared/Combat_Utilities.js | 194 |
-| Shared/Messaging.js | 177 |
-| Shared/Error_Handling.js | 150 |
-| Shared/Game_Config.js | 127 |
-| Shared/Widgets.js | 54 |
-| UI/DPS_Meter.js | 376 |
-| UI/Stats_Window.js | 347 |
-| UI/Settings_Window.js | 149 |
-| UI/Remote_Bank_Viewer.js | 194 |
-| UI/Bank_Sorter.js | 187 |
-| UI/Custom_Log.js | 270 |
-| UI/Party_Frames.js | 123 |
-| UI/CC_Meter.js | 125 |
-| UI/Gold_Meter.js | 114 |
-| UI/XP_Meter.js | 86 |
+| Character_Functions/Merchant_Functions.js | 1260 |
+| Character_Functions/Ranger_Functions.js | 948 |
+| Character_Functions/Healer_Functions.js | 932 |
+| Character_Functions/Warrior_Functions.js | 866 |
+| Merchant_Systems/Auto_Upgrade.js | 639 |
+| Shared/Error_Log.js | 450 |
+| Merchant_Systems/Auto_Craft.js | 391 |
+| Shared/Movement.js | 382 |
+| UI/DPS_Meter.js | 343 |
+| UI/Stats_Window.js | 313 |
+| Shared/Equipment.js | 253 |
+| Shared/Party_Management.js | 242 |
+| Shared/Combat_Utilities.js | 241 |
+| UI/Custom_Log.js | 224 |
+| Character_Functions/Warrior_Skills.js | 222 |
+| Character_Functions/Healer_Skills.js | 214 |
+| Shared/Events.js | 211 |
+| UI/Remote_Bank_Viewer.js | 203 |
+| Bootstrapper.js | 202 |
+| Shared/Loot_Management.js | 193 |
+| UI/Bank_Sorter.js | 183 |
+| Shared/Messaging.js | 182 |
+| UI/Settings_Window.js | 163 |
 | UI/Game_Log.js | 161 |
-| Bootstrapper.js | 129 |
-| Characters/Tank.js | 27 |
-| Characters/Healer.js | 38 |
-| Characters/Ranger.js | 27 |
-| Characters/Merchant.js | 47 |
+| Shared/Bscorpion_Farm.js | 156 |
+| Shared/Cohesion.js | 146 |
+| UI/Party_Frames.js | 134 |
+| Shared/Game_Config.js | 125 |
+| UI/CC_Meter.js | 122 |
+| UI/Gold_Meter.js | 99 |
+| Shared/Maintenance.js | 93 |
+| UI/XP_Meter.js | 80 |
+| Shared/Error_Handling.js | 70 |
+| Shared/Character_Runner.js | 64 |
+| Code_Loader.js | 61 |
+| Shared/Widgets.js | 46 |
+| UI/Pause_Button.js | 45 |
+| tools/probe_anniversary.js | 44 |
+| Characters/Merchant.js | 33 |
+| Characters/Healer.js | 27 |
+| Characters/Tank.js | 15 |
+| Characters/Ranger.js | 15 |
 
 ---
 
@@ -215,7 +237,7 @@ CONFIG = {
 
 - `UI/Game_Log.js` is mostly commented out — incomplete feature
 - No automated tests — all validation is done by running in the live game
-- Git commits are not descriptively labeled (all labeled "1") — history is minimal
+- The buttons/windows UI is still being rebuilt from scratch after `Buttons.js`/`Windows.js` were removed — only `Shared/Widgets.js`'s two helpers survived
 
 ---
 

@@ -109,7 +109,7 @@ async function equip_set_raw(set_name) {
 			errlog_record("orb_equip", `${set_name} -> orb`
 				+ ` (panicking=${typeof panicking !== "undefined" && !!panicking})`);
 		}
-	} catch (e) { /* recorder absent */ }
+	} catch (e) { }
 
 	return batch_equip(set, set_name);
 }

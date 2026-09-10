@@ -14,7 +14,7 @@ function apply_smart_town_setting() {
 			smart.use_town = SMART_USE_TOWN;
 			return true;
 		}
-	} catch (e) { /* runner globals not up yet */ }
+	} catch (e) { }
 	return false;
 }
 if (!apply_smart_town_setting()) setTimeout(apply_smart_town_setting, 3000);
@@ -41,8 +41,8 @@ function local_move(x, y) {
 function stop_movement(reason = "interrupted") {
 	try {
 		if (typeof smart._interrupt === "function") smart._interrupt(reason);
-	} catch (e) { /* already settled */ }
-	try { smart.moving = false; } catch (e) { /* runner not up */ }
+	} catch (e) { }
+	try { smart.moving = false; } catch (e) { }
 }
 
 function smarter_move(destination, on_done, options = {}) {

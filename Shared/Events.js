@@ -17,14 +17,9 @@ function engage_hp_ok(e) {
 	return e.data.hp <= max * e.engage_below;
 }
 
-// Joining is a socket emit, not a journey — it works from anywhere. So "the boss is live but I am
-// not in the instance yet" is a reason to keep grinding while we retry, never a reason to stand
-// still. That hold was the party hanging around doing nothing.
 let _holiday_tried = false;
 
 function event_goal() {
-	// One definitive attempt. If we reached the tree and the buff still is not on us, the
-	// interaction is not available — that is an answer, not something to keep retrying.
 	if (parent?.S?.holidayseason && !character?.s?.holidayspirit && !_holiday_tried) {
 		return {
 			label: "holiday-tree",
@@ -58,7 +53,6 @@ function event_goal() {
 		return { label: "event-" + target.name, map: seen.map || target.map, x: seen.x, y: seen.y, radius: 60 };
 	}
 
-	// A join-type event with no coordinates: nowhere to walk to until we are inside.
 	if (!target.map || !isFinite(target.x) || !isFinite(target.y)) return null;
 
 	return { label: "event-" + target.name, map: target.map, x: target.x, y: target.y, radius: 60 };
@@ -97,9 +91,6 @@ function best_event_target() {
 
 var anniversary_travel = false;
 
-// The skill reaches 80. The leader parks at ARRIVE so that the whole formation — followers sit at
-// CONFIG.movement.follow_distance from her — is still inside CAST. ARRIVE + follow_distance must
-// stay well under CAST, or half the party arrives unable to act.
 const ANNIVERSARY_CAST = 70;
 const ANNIVERSARY_ARRIVE = 25;
 const ANNIVERSARY_REFRESH_MS = 5 * 60 * 1000;
@@ -190,12 +181,8 @@ async function anniversary_tick() {
 	anniversary_travel = !reason;
 	if (!anniversary_travel) return false;
 
-	// The floor and the in-flight latch are the backstop; the cooldown is only an optimisation on
-	// top. ikissyou exists only during the event, so is_on_cooldown may throw or read false
-	// forever — relying on it alone turned the tick rate into the cast rate, four characters
-	// emitting use_skill every 400ms for as long as they stood in range.
 	let ready = true;
-	try { ready = !is_on_cooldown("ikissyou"); } catch (e) { /* unknown skill: the floor bounds us */ }
+	try { ready = !is_on_cooldown("ikissyou"); } catch (e) { }
 
 	const them = get_player(s.target);
 	if (!_anniv_casting && ready
@@ -218,7 +205,7 @@ async function anniversary_loop() {
 	try {
 		await anniversary_tick();
 	} catch (e) {
-		try { catcher(e, "anniversary_loop"); } catch (x) { /* logging must never kill the loop */ }
+		try { catcher(e, "anniversary_loop"); } catch (x) { }
 	}
 	setTimeout(anniversary_loop, anniversary_travel ? ANNIVERSARY_TICK_ACTIVE_MS : ANNIVERSARY_TICK_MS);
 }

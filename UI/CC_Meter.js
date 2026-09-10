@@ -3,7 +3,7 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const MAX_CC = 200;
-const CC_HISTORY = []; // { timestamp: number, value: number }
+const CC_HISTORY = [];
 
 const cc_meter = () => {
 	const $ = parent.$;
@@ -114,7 +114,6 @@ const update_cc_display = () => {
 
 setInterval(update_cc_display, 100);
 
-// Retry until create_bottomrightcorner_widget (Shared/Widgets.js) is loaded — no load-order guarantee.
 (function start_cc_meter() {
 	if (typeof create_bottomrightcorner_widget !== "function") {
 		return void setTimeout(start_cc_meter, 100);

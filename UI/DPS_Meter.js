@@ -1,7 +1,5 @@
-// Supported types: "Base", "Blast", "Burn", "HPS", "MPS", "DR", "RF", "DPS", "Dmg Taken" — keep the list short, a wide meter crowds the game_log window
 const DAMAGE_TYPES = ["Base", "Burn", "Blast", "DPS"];
 
-// Toggle settings
 let DISPLAY_CLASS_TYPE_COLORS = true;
 let DISPLAY_DAMAGE_TYPE_COLORS = true;
 let SHOW_OVERHEAL = false;
@@ -81,7 +79,6 @@ function init_dps_meter() {
 	);
 }
 
-// Guard against duplicate registration on script re-injection (parent.socket persists across that).
 if (parent.socket._dps_meter_hit_handler) {
 	parent.socket.off("hit", parent.socket._dps_meter_hit_handler);
 }
@@ -89,12 +86,10 @@ if (parent.socket._dps_meter_hit_handler) {
 parent.socket._dps_meter_hit_handler = data => {
 	const is_party = id => parent.party_list.includes(id);
 	try {
-		// == Party-only filter ==
 		const attacker_in_party = is_party(data.hid);
 		const target_in_party   = is_party(data.id);
 		if (!attacker_in_party && !target_in_party) return;
 
-		// == Overall sums ==
 		if (data.damage) {
 			damage += data.damage;
 			if (data.source === "burn") burn_damage  += data.damage;
@@ -107,7 +102,6 @@ parent.socket._dps_meter_hit_handler = data => {
 		}
 		if (data.manasteal) manasteal += data.manasteal;
 
-		// == Damage Return attribution (only mob→player) ==
 		if (data.dreturn && get_player(data.id) && !get_player(data.hid)) {
 			dreturn += data.dreturn;
 			const e = get_player_entry(data.id);
@@ -117,7 +111,6 @@ parent.socket._dps_meter_hit_handler = data => {
 			e.damage_events.push ({ t: performance.now(), v: data.dreturn });
 		}
 
-		// == Reflection attribution (only mob→player) ==
 		if (data.reflect && get_player(data.id) && !get_player(data.hid)) {
 			reflect += data.reflect;
 			const e = get_player_entry(data.id);
@@ -127,7 +120,6 @@ parent.socket._dps_meter_hit_handler = data => {
 			e.damage_events.push ({ t: performance.now(), v: data.reflect });
 		}
 
-		// == Damage taken by character ==
 		if (data.damage && get_player(data.id)) {
 			const e = get_player_entry(data.id);
 			if (data.damage_type === "physical") {
@@ -138,20 +130,17 @@ parent.socket._dps_meter_hit_handler = data => {
 				e.dmg_taken_mag_events.push({ t: performance.now(), v: data.damage });
 			}
 		}
-		// — self-damage from hitting a dreturn mob (physical)
 		if (data.dreturn && get_player(data.hid)) {
 			const e = get_player_entry(data.hid);
 			e.sum_damage_taken_phys += data.dreturn;
 			e.dmg_taken_phys_events.push({ t: performance.now(), v: data.dreturn });
 		}
-		// — self-damage from hitting a reflect mob (magical)
 		if (data.reflect && get_player(data.hid)) {
 			const e = get_player_entry(data.hid);
 			e.sum_damage_taken_mag += data.reflect;
 			e.dmg_taken_mag_events.push({ t: performance.now(), v: data.reflect });
 		}
 
-		// == Character actions – Heal / Lifesteal ==
 		if (get_player(data.hid) && (data.heal || data.lifesteal)) {
 			const e = get_player_entry(data.hid);
 			const healer = get_player(data.hid);
@@ -169,7 +158,6 @@ parent.socket._dps_meter_hit_handler = data => {
 			}
 		}
 
-		// == Mana steal ==
 		if (get_player(data.hid) && data.manasteal) {
 			const e = get_player_entry(data.hid);
 			const p = get_entity(data.hid);
@@ -180,7 +168,6 @@ parent.socket._dps_meter_hit_handler = data => {
 			e.mana_steal_events.push({ t: performance.now(), v: amount });
 		}
 
-		// == Other damage done (per-player breakdown) ==
 		if (data.damage && get_player(data.hid)) {
 			const e = get_player_entry(data.hid);
 			e.sum_damage += data.damage;
@@ -205,7 +192,6 @@ parent.socket.on("hit", parent.socket._dps_meter_hit_handler);
 
 const DPS_WINDOW_MS = 5 * 60 * 1000;
 
-// Drop events older than the rolling window; pushed chronologically so a prefix trim suffices.
 function prune_entry_events(entry) {
 	const cutoff = performance.now() - DPS_WINDOW_MS;
 	for (const key in entry) {
@@ -217,7 +203,6 @@ function prune_entry_events(entry) {
 	}
 }
 
-// Computes stat value using a 5-minute rolling window
 function get_type_value(type, entry) {
 	const now = performance.now();
 	const window_start = Math.max(entry.start_time, now - DPS_WINDOW_MS);
@@ -336,7 +321,6 @@ function update_dps_meter_ui() {
 			});
 			html += `<td><span style="color:#FF4C4C">${get_formatted(tot_p)}</span> | <span style="color:#6ECFF6">${get_formatted(tot_m)}</span></td>`;
 		} else if (t === "DPS") {
-			// Same 5-minute rolling window as the per-player rows above, so this reconciles with their sum.
 			const total_dps = sorted.reduce((sum, p) => sum + p.dps, 0);
 			html += `<td>${get_formatted(total_dps)}</td>`;
 		} else {
@@ -350,7 +334,6 @@ function update_dps_meter_ui() {
 	c.html(html);
 }
 
-// Retry until create_bottomrightcorner_widget (Shared/Widgets.js) is loaded — no load-order guarantee.
 (function start_dps_meter() {
 	if (typeof create_bottomrightcorner_widget !== "function") {
 		return void setTimeout(start_dps_meter, 100);

@@ -74,7 +74,7 @@ function _loadout_manages_orb_uncached() {
 			const sets = Array.isArray(resolved) ? resolved : [resolved];
 			if (sets.some(n => (equipment_sets[n] || []).some(i => i.slot === "orb"))) return true;
 		}
-	} catch (e) { /* rules not loaded */ }
+	} catch (e) { }
 	return false;
 }
 
@@ -131,7 +131,7 @@ async function _panic_check_body() {
 		try {
 			const want_town = MONSTERS_TARGETING_ME === 0;
 			if (smart.use_town !== want_town && !smart.searching) smart.use_town = want_town;
-		} catch (e) { /* runner not up */ }
+		} catch (e) { }
 	}
 	const HARD_REASON = LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= t.aggro;
 

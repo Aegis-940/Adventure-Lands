@@ -1,8 +1,5 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// CODE LOADER — the only file that lives in a game code slot. Fetches Bootstrapper.js, which does
-// everything else. Kept in the repo (which cannot load it) so it stops drifting per character.
-//
-// PASTE ONCE, replacing the slot's entire contents. Two copies in one slot both run.
+// CODE LOADER — the only file that lives in a game code slot
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 (function () {
@@ -19,8 +16,6 @@
 		try { console.log(msg); } catch (e) {}
 	}
 
-	// A slot holding two copies loads everything twice. Every Shared/*.js is then re-evaluated,
-	// their top-level consts throw "already declared", and those files define nothing at all.
 	const guard = (function () {
 		try { if (typeof parent === "object" && parent) return parent; } catch (e) {}
 		return ROOT;
@@ -28,10 +23,6 @@
 	if (Date.now() - (guard.__AL_LOAD_STARTED__ || 0) < GUARD_MS) return say("[AL] duplicate start ignored");
 	guard.__AL_LOAD_STARTED__ = Date.now();
 
-	// Mainframe runs this in a node:vm sandbox with no fetch, no XMLHttpRequest and no require —
-	// there is no way to pull code from GitHub at all, so this loader cannot work there and the
-	// bot has to be bundled into the slot instead. Stop cleanly rather than crash-loop, and report
-	// what the runtime provides so the bundle can be built against facts. Temporary scaffolding.
 	if (typeof document === "undefined") {
 		const t = n => { try { return eval("typeof " + n); } catch (e) { return "err"; } };
 		const p = n => { try { return typeof parent[n]; } catch (e) { return "err"; } };
@@ -64,9 +55,6 @@
 			});
 	}
 
-	// No commit-SHA resolution here on purpose: Bootstrapper.js already resolves one for every file
-	// it loads. Doing it in both places spent two api.github.com requests per character against a
-	// 60/hour limit, which is what produced the 403s and the fallback to a stale @main.
 	get(BASE + "Bootstrapper.js")
 		.then(text => (0, eval)(text))
 		.catch(e => say("❌ Bootstrapper load failed: " + e.message));

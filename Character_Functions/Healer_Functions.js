@@ -3,7 +3,6 @@
 // CONFIG VARIABLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// var, not const: Healer_Skills.js (separate eval closure) also reads this global.
 var home = HEALER_TARGET;
 
 var CONFIG = {
@@ -70,21 +69,18 @@ var CONFIG = {
 	},
 };
 
-// var, not const: Game_Config.js's handle_return_home() reads this global.
 var destination = {
 	map: locations[home][0].map,
 	x: locations[home][0].x,
 	y: locations[home][0].y
 };
 
-// var, not const: send_to_merchant() (Shared/Game_Config.js) reads this global.
 var ITEMS_TO_KEEP = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster", "pumpkinspice", "xptome", "tracker", "jacko", "orbg", "talkingskull", "mshield", "lmace", "elixirluck", "computer", "orboftemporal", "orboffire"];
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATE & CACHE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// var, not const: Healer_Skills.js (separate eval closure) also reads/writes these.
 var state = {
 	current: "idle",
 	skin_ready: false,
@@ -118,7 +114,6 @@ var cache = {
 // LOCATION & EQUIPMENT DATA
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// var, not const: shared is_set_equipped()/equip_set() (Game_Config.js) read this at call time.
 var equipment_sets = {
 	zap_on: [
 		{ item_name: "zapper", slot: "ring2", level: 2, l: "u" }
@@ -285,9 +280,6 @@ function healer_on_disabled() {
 	send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
 }
 
-// Suppressed while she is tanking those camps: scare would dump the whole pack onto the party.
-// In transit she is tanking nothing, and this was also silently disabling the travel failsafe —
-// the one case where breaking aggro is exactly what we want.
 function healer_skip_panic_check() {
 	if (typeof is_travelling === "function" && is_travelling()) return false;
 	return HEALER_TARGET === "fireroamer" || HEALER_TARGET === "giantspider";
@@ -310,7 +302,6 @@ async function check_temporal_surge() {
 	const now = Date.now();
 	if (now - state.last_temporal_surge < 60000) return false;
 
-	// Check for any nearby monsters
 	// const nearby = Object.values(parent.entities).some(
 	// 	e => e.type === "monster" && !e.dead
 	// );
@@ -622,7 +613,6 @@ var MONSTER_GEAR_OVERRIDES = {
 // HELPER FUNCTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// var, not let: shared panic_check() (Game_Config.js) reads/writes these globals.
 var panicking = false;
 var last_panic_time = 0;
 var last_safe_time = 0;
@@ -636,7 +626,6 @@ var PANIC_THRESHOLDS = {
 var PANIC_BROADCAST_TARGETS = ["Ulric", "Riva"];
 
 
-// var, not const: shared inventory_sorter() (Game_Config.js) reads this at call time.
 var item_order = {
 	tracktrix: 0,
 	computer: 1,

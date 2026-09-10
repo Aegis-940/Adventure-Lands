@@ -1,6 +1,6 @@
-let xp_history = []; // Store XP data over time
-const XP_ROLLING_WINDOW = 5 * 60 * 1000; // 5 minutes
-let target_xp_rate = 40000; // Your goal XP rate (per minute)
+let xp_history = [];
+const XP_ROLLING_WINDOW = 5 * 60 * 1000;
+let target_xp_rate = 40000;
 
 const init_xp_timer = () => {
 	const xp_container = create_bottomrightcorner_widget("xptimer", {
@@ -28,7 +28,6 @@ const update_xp_timer = () => {
 	const $ = parent.$;
 	const now = Date.now();
 
-	// A level-up resets the XP scale, so drop any pre-levelup history.
 	if (xp_history.length && xp_history[xp_history.length - 1].level !== character.level) {
 		xp_history = [];
 	}
@@ -36,11 +35,11 @@ const update_xp_timer = () => {
 	xp_history.push({ t: now, xp: character.xp, level: character.level });
 	xp_history = xp_history.filter(entry => entry.t >= now - XP_ROLLING_WINDOW);
 
-	if (xp_history.length < 2) return; // Not enough data
+	if (xp_history.length < 2) return;
 
 	const first_entry = xp_history[0];
 	const last_entry = xp_history[xp_history.length - 1];
-	const elapsed_time = (last_entry.t - first_entry.t) / 1000; // seconds
+	const elapsed_time = (last_entry.t - first_entry.t) / 1000;
 	const xp_gain = last_entry.xp - first_entry.xp;
 
 	if (elapsed_time <= 0 || xp_gain <= 0) return;
@@ -72,7 +71,6 @@ const get_xp_rate_color = (avg, target) => {
 
 const ncomma = (x) => x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
-// Retry until create_bottomrightcorner_widget (Shared/Widgets.js) is loaded — no load-order guarantee.
 (function start_xp_timer() {
 	if (typeof create_bottomrightcorner_widget !== "function") {
 		return void setTimeout(start_xp_timer, 100);

@@ -1,4 +1,3 @@
-// Simple Party UI - displays all 4 party members with HP, MP, XP, centered and 150px from bottom
 
 const PARTY_ORDER = ["Ulric", "Myras", "Riva", "Riff"];
 const PARTY_FRAME_WIDTH = 100;
@@ -63,8 +62,6 @@ const BAR_HEIGHT = 18;
 	}
 })();
 
-// Own character reads live values; others read Shared/Game_Config.js's localStorage-backed
-// state cache (shared across tabs), which stays current regardless of party proximity unlike get_player().
 function get_party_member_info(name) {
 	if (name === character.name) {
 		return {
@@ -78,8 +75,6 @@ function get_party_member_info(name) {
 		};
 	}
 
-	// typeof-guard: Messaging.js (defines read_state_cache) loads in parallel with no
-	// ordering guarantee, so an early tick can land before it's defined.
 	const cached = typeof read_state_cache === "function" ? read_state_cache(name) : null;
 	if (cached) {
 		return {
@@ -136,5 +131,4 @@ function render_party_ui() {
 	}
 }
 
-// Matches state_cache_loop()'s 100ms write interval (Shared/Game_Config.js).
 setInterval(render_party_ui, 100);

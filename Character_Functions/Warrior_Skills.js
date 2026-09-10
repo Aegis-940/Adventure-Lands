@@ -17,7 +17,6 @@ async function skill_loop() {
 
 		const tank = cache.tank_entity;
 
-		// Warcry
 		if (CONFIG.skills.warcry_enabled && !is_on_cooldown("warcry") && !character.s.warcry
 			&& character.mp >= G.skills.warcry.mp + panic_mp_reserve()) {
 			if (WARRIOR_TARGET !== "bscorpion" || bscorpion_worth_buffing()) {
@@ -25,32 +24,26 @@ async function skill_loop() {
 			}
 		}
 
-		// Stomp
 		// if (CONFIG.skills.stomp_enabled && tank?.hp < tank?.max_hp * 0.3) {
 		// 	await handle_stomp();
 		// }
 
-		// Cleave
 		if (CONFIG.skills.cleave_enabled && WARRIOR_TARGET !== "bscorpion" && WARRIOR_TARGET !== "giantspider") {
 			await handle_cleave();
 		}
 
-		// Agitate
 		if (CONFIG.skills.agitate_enabled && tank && WARRIOR_TARGET !== "giantspider") {
 			await handle_agitate(tank);
 		}
 
-		// Taunt
 		// if (CONFIG.skills.taunt_enabled) {
 		// 	await handle_taunt();
 		// }
 
-		// Charge
 		// if (CONFIG.skills.charge_enabled && !is_on_cooldown("charge")) {
 		// 	await use_skill("charge");
 		// }
 
-		// Hardshell
 		// if (CONFIG.skills.hardshell_enabled && !is_on_cooldown("hardshell") && character.hp < CONFIG.skills.hardshell_hp_threshold) {
 		// 	await use_skill("hardshell");
 		// }
@@ -70,8 +63,6 @@ async function handle_stomp() {
 	const needs_swap = mainhand !== "basher";
 	const now = performance.now();
 
-	// Blocks resolve_equipment() (Shared/Equipment.js) from racing this temporary
-	// weapon swap and yanking gear mid-sequence.
 	const token = equip_claim("stomp-swap", EQUIP_PRIORITY.skill);
 	if (!token) return;
 	try {
@@ -100,8 +91,6 @@ async function handle_cleave() {
 	const needs_swap = mainhand !== "bataxe";
 	const now = performance.now();
 
-	// Blocks resolve_equipment() (Shared/Equipment.js) from racing this temporary
-	// weapon swap and yanking gear mid-sequence.
 	const token = equip_claim("cleave-swap", EQUIP_PRIORITY.skill);
 	if (!token) return;
 	try {
@@ -120,7 +109,6 @@ async function handle_cleave() {
 }
 
 function can_cleave() {
-	// Fast checks first
 	if (!CONFIG.equipment.cleave_maps.includes(character.map)) return false;
 	if (is_travelling() || is_disabled(character)) return false;
 	if (character.cc >= COOLDOWNS.cc) return false;
@@ -132,7 +120,6 @@ function can_cleave() {
 	const tank = cache.tank_entity;
 	if (!tank) return false;
 
-	// Don't cleave if low boss exists
 	const low_boss = Object.values(parent.entities).find(e =>
 		e?.type === "monster" &&
 		CONFIG.combat.all_bosses.includes(e.mtype) &&
@@ -141,7 +128,6 @@ function can_cleave() {
 	);
 	if (low_boss) return false;
 
-	// Don't cleave if a blacklisted monster is in AoE range
 	const blacklisted_nearby = cache.monsters_in_cleave_range.some(e =>
 		CONFIG.combat.cleave_blacklist.includes(e.mtype)
 	);
@@ -168,11 +154,6 @@ function is_fireroamer_agitate_safe(nearby_mobs) {
 	return true;
 }
 
-// scare costs 50mp and is the only escape any character has. agitate (420) and warcry (320) had
-// no mana floor at all, so they drained the warrior to empty and his panic then failed with no_mp
-// -- six times in seven minutes of ordinary farming, logged by the error recorder. cleave already
-// reserved this way; these two did not. Not pulling more mobs while too empty to escape them is
-// the right behaviour regardless of the panic interaction.
 function panic_mp_reserve() {
 	return (G.skills.scare?.mp || 50) + 200;
 }
@@ -186,19 +167,16 @@ async function handle_agitate(tank) {
 		e.visible && !e.dead && e.type === "monster" && distance(character, e) <= skill_range
 	);
 
-	// Fireroamer is high-risk: only agitate when party-safety conditions hold
 	if (WARRIOR_TARGET === "fireroamer" && !is_fireroamer_agitate_safe(nearby_mobs)) return;
 
 	const crabx = nearby_mobs.filter(e => e.mtype === "crabx");
 	const untargeted_crabs = crabx.filter(m => !m.target);
 
-	// Crabx priority
 	if (crabx.length >= 5 && untargeted_crabs.length === 5) {
 		await use_skill("agitate");
 		return;
 	}
 
-	// Other mobs
 	const other_mobs = nearby_mobs.filter(e =>
 		["sparkbot", "jr", "greenjr", "bigbird", home].includes(e.mtype) &&
 		!CONFIG.combat.agitate_blacklist.includes(e.mtype)
@@ -241,6 +219,4 @@ async function handle_taunt() {
 	}
 }
 
-// Started here, not in Warrior_Functions.js: that file's eval finishes before this
-// one loads, so calling skill_loop() from there would throw ReferenceError.
 skill_loop();

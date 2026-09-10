@@ -108,7 +108,6 @@ function add_gold_graph(doc, content) {
 		ctx.fillText("30 Minute Window", (left + right) / 2, bottom + 5);
 
 		if (N > 1) {
-			// ±10% padding on the value range
 			const min_measured = Math.min(...data.map(d => d.amount));
 			const max_measured = Math.max(...data.map(d => d.amount));
 			const range_measured = max_measured - min_measured;
@@ -133,7 +132,6 @@ function add_gold_graph(doc, content) {
 			});
 			ctx.stroke();
 
-			// Labels for min/max measured values only
 			ctx.font = "24px pixel, monospace";
 			ctx.fillStyle = "#fff";
 			ctx.textAlign = "right";
@@ -275,7 +273,7 @@ function ui_window() {
 
 	win_el.appendChild(title_bar);
 
-	make_draggable(win_el, title_bar); // Shared/Widgets.js
+	make_draggable(win_el, title_bar);
 
 	const toggle_btn = create_element(doc, "button", {
 		text: "❌",

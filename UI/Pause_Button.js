@@ -23,8 +23,6 @@ function toggle_automation() {
 		running ? "#00ff00" : "#ffcc00", "Alerts");
 }
 
-// Waits for #settings-btn (UI/Settings_Window.js) so ⏸️ lands after ⚙️ regardless of which of
-// these parallel-loaded files runs first — same shape as add_settings_button().
 function add_pause_button() {
 	const $ = parent.$;
 	const trc = $("#toprightcorner");
@@ -42,7 +40,6 @@ function add_pause_button() {
 	settings_btn.after(pause_btn);
 	paint_pause_button();
 
-	// Another tab may have toggled it; the icon has to follow the key, not this tab's clicks.
 	setInterval(paint_pause_button, 500);
 }
 add_pause_button();

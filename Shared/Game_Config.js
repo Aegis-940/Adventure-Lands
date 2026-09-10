@@ -93,9 +93,6 @@ const CACHE_TTL = 50;
 // SECTION 3: MANUAL CONTROL
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Per character. A parked character publishes `paused` into the state cache, because the leader's
-// cohesion hold cannot otherwise tell it from a straggler and would wait out the round for someone
-// who is never coming.
 const AUTOMATION_KEY_PREFIX = "AL_automation_paused_";
 const AUTOMATION_POLL_MS = 250;
 
@@ -115,7 +112,7 @@ function automation_enabled() {
 }
 
 function set_automation(on) {
-	try { localStorage.setItem(automation_key(), on ? "0" : "1"); } catch (e) { /* storage blocked */ }
+	try { localStorage.setItem(automation_key(), on ? "0" : "1"); } catch (e) { }
 	_automation.at = 0;
 	return automation_enabled();
 }

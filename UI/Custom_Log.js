@@ -11,8 +11,6 @@ function create_custom_log_window() {
 	div.id = "custom-log-window";
 	div.style.position = "absolute";
 	const WINDOW_WIDTH = 350, WINDOW_HEIGHT = 260;
-	// make_draggable() (Shared/Widgets.js) requires pixel top/left, not bottom/right —
-	// compute an equivalent initial position from the viewport instead.
 	div.style.left = (parent.window.innerWidth - 650 - WINDOW_WIDTH) + "px";
 	div.style.top = (parent.window.innerHeight - 1 - WINDOW_HEIGHT) + "px";
 	div.style.width = WINDOW_WIDTH + "px";
@@ -42,9 +40,6 @@ function create_custom_log_window() {
 	drag_handle.style.color = "#fff";
 	drag_handle.textContent = "Custom Log";
 
-	// Shared drag implementation (Shared/Widgets.js) — uses addEventListener instead of
-	// assigning doc.onmousemove/onmouseup directly, which silently clobbers any other
-	// handler assigned the same raw way elsewhere.
 	make_draggable(div, drag_handle);
 
 	div.appendChild(drag_handle);
@@ -69,14 +64,12 @@ function create_custom_log_window() {
 	// --- Log containers for each tab ---
 	const log_containers = {};
 	const alert_states = {};
-	// For checkboxes: which tabs are included in "All"
 	const include_in_all = {
 		"General": true,
 		"Alerts": true,
 		"Errors": true
 	};
 
-	// Store all log entries for each tab for dynamic All tab updates
 	const log_history = {
 		"General": [],
 		"Alerts": [],
@@ -156,7 +149,6 @@ function create_custom_log_window() {
 
 	doc.body.appendChild(div);
 
-	// Stored on parent globally so log() can access them
 	parent._custom_log_tabs = log_containers;
 	parent._custom_log_window = div;
 	parent._custom_log_alerts = alert_states;
@@ -185,7 +177,6 @@ function update_all_tab(log_containers, log_history, include_in_all) {
 	all_div.scrollTop = all_div.scrollHeight;
 }
 
-// Overrides the built-in log() to add tabs/history/alerts
 function log(msg, color = "#fff", type = "General") {
 	create_custom_log_window();
 	const log_containers = parent._custom_log_tabs;
@@ -217,7 +208,6 @@ function log(msg, color = "#fff", type = "General") {
 	if (div._currentTab === tab_name) {
 		log_div.scrollTop = log_div.scrollHeight;
 	} else {
-		// "*" marks unread messages in a hidden tab
 		if (!alert_states[tab_name]) {
 			const alert_elem = parent.document.getElementById(`alert-tab-${tab_name.toLowerCase()}`);
 			if (alert_elem) alert_elem.textContent = "*";

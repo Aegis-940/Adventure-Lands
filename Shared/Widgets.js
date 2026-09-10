@@ -3,8 +3,6 @@
 // make_draggable() (used by UI/Custom_Log.js and UI/Stats_Window.js).
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Removes any existing element with this id, creates a styled container, inserts it right after
-// #bottomrightcorner's first child, and returns the jQuery element for the caller to append content to.
 function create_bottomrightcorner_widget(id, css) {
 	const $ = parent.$;
 	const brc = $("#bottomrightcorner");
@@ -19,7 +17,6 @@ function create_bottomrightcorner_widget(id, css) {
 // WINDOW DRAGGER
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// Shared drag state — listeners are registered once on window.top, not per-element.
 let _drag = null;
 
 (function _init_drag_listeners() {

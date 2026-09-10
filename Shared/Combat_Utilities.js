@@ -124,7 +124,7 @@ function healer_is_down() {
 			const cached = read_state_cache("Myras");
 			down = !!(cached && cached.rip);
 		}
-	} catch (e) { /* storage unavailable */ }
+	} catch (e) { }
 	_healer_down.down = down;
 	return down;
 }

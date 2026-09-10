@@ -6,15 +6,9 @@ const COHESION_RANGE = 250;
 const COHESION_REGROUP = 120;
 const COHESION_FOLLOWERS = ["Ulric", "Riva"];
 
-// Both sides run the same band off the same two constants. The leader waits past COHESION_RANGE
-// and only resumes at COHESION_REGROUP, so a follower that stops closing at COHESION_RANGE leaves
-// a gap it will never cross while she waits forever inside it.
 let _cohesion_holding = false;
 let _cohesion_closing = false;
 
-// Tight whenever the leader has somewhere to be, not merely while she is moving. Going slack the
-// moment she stops is what put followers out of range at the exact instant the party had to act.
-// Farming and combat are the only times a follower should spread out.
 function party_in_formation() {
 	if (typeof is_travelling === "function" && is_travelling()) return true;
 	const g = typeof current_goal === "function" ? current_goal() : null;
@@ -43,21 +37,12 @@ function party_cohesion_hold() {
 	const limit = _cohesion_holding ? COHESION_REGROUP : COHESION_RANGE;
 	_cohesion_holding = COHESION_FOLLOWERS.some(name => {
 		const s = read_state_cache(name);
-		// A parked character is not a straggler. Waiting for one would stall the party until
-		// whoever paused it remembers to press play.
 		if (!s || s.rip || s.paused) return false;
-		// A follower on the same visit is not a straggler: we are both converging on the featured
-		// player, not on each other. Counting it stalls us short of the target while we wait for
-		// someone walking to the same place.
 		if (owed && s.anniv_pending) return false;
 		return s.map !== character.map || Math.hypot(s.x - character.x, s.y - character.y) > limit;
 	});
 	if (_cohesion_holding) return true;
 
-	// Distance alone cannot express "wait for their kiss": they are standing next to us precisely
-	// because they are following us. While we still owe a visit we lead instead, or nobody ever
-	// reaches the featured player. anniv_pending clears on the buff, a spent or expired ticket, a
-	// death, or the round ending, so this cannot outlast the round.
 	if (owed) return false;
 	return COHESION_FOLLOWERS.some(name => {
 		const s = read_state_cache(name);
@@ -123,9 +108,6 @@ function movement_goal() {
 	const event = event_goal();
 	if (follow && follow.on_station && event && event.local === "event") return event;
 
-	// Leader only. anniversary_tick() casts from its own loop the moment the target is in range,
-	// so a follower reaches it by staying in formation — it needs no goal of its own, and giving
-	// it one made it indistinguishable from a straggler.
 	if (!follow_has_leader()) {
 		const anniv = anniversary_destination();
 		if (anniv) return anniv;

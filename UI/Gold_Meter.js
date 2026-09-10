@@ -2,11 +2,11 @@
 // GOLD METER WITH 5-MINUTE ROLLING AVERAGE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let gold_events       = [];                            // array of { t: timestamp, amount: gold }
+let gold_events       = [];
 let largest_gold_drop  = 0;
-const start_time      = Date.now();                    // for initial window growth
+const start_time      = Date.now();
 const WINDOW_MS      = 30 * 60 * 1000;
-let interval         = "hour";                        // "minute" | "hour" | "day"
+let interval         = "hour";
 
 const init_gold_meter = () => {
 	const gold_container = create_bottomrightcorner_widget("goldtimer", {
@@ -47,7 +47,6 @@ const update_gold_display = () => {
 
 setInterval(update_gold_display, 500);
 
-// Retry until create_bottomrightcorner_widget (Shared/Widgets.js) is loaded — no load-order guarantee.
 (function start_gold_meter() {
 	if (typeof create_bottomrightcorner_widget !== "function") {
 		return void setTimeout(start_gold_meter, 100);
@@ -74,7 +73,7 @@ character.on("loot", (data) => {
 const calculate_average_gold = () => {
 	const now       = Date.now();
 	const elapsed_ms = now - start_time;
-	const window_ms  = Math.min(elapsed_ms, WINDOW_MS); // window grows from 0 up to WINDOW_MS
+	const window_ms  = Math.min(elapsed_ms, WINDOW_MS);
 	const cutoff    = now - window_ms;
 
 	gold_events = gold_events.filter(e => e.t >= cutoff);
@@ -91,7 +90,6 @@ const calculate_average_gold = () => {
 	return Math.round(sum_window / divisor_seconds * unit_seconds);
 };
 
-// Change the display interval: "minute", "hour", or "day"
 const set_gold_interval = (new_interval) => {
 	if (["minute", "hour", "day"].includes(new_interval)) {
 		interval = new_interval;

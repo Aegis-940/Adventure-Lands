@@ -14,7 +14,7 @@ function is_at_bscorpion_farm() {
 function fire_and_forget_move(dest, on_done) {
 	try {
 		Promise.resolve(smart_move(dest, on_done)).catch(() => {});
-	} catch (e) { /* smart_move threw synchronously */ }
+	} catch (e) { }
 }
 
 

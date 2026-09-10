@@ -107,14 +107,12 @@ var CONFIG = {
 	}
 };
 
-// var, not const: Game_Config.js's handle_return_home() reads this global.
 var destination = {
 	map: locations[home][0].map,
 	x: locations[home][0].x,
 	y: locations[home][0].y
 };
 
-// var, not const: send_to_merchant() (Shared/Game_Config.js) reads this global.
 var ITEMS_TO_KEEP = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster", "pumpkinspice", "xptome", "tracker", "jacko", "talkingskull", "cupid", "computer"];
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -145,7 +143,6 @@ var cache = {
 // LOCATION & EQUIPMENT DATA
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-// var, not const: shared is_set_equipped()/equip_set() (Game_Config.js) read this at call time.
 var equipment_sets = {
 	single: [
 		{ item_name: "firebow", slot: "mainhand", level: 10, l: "l" },
@@ -386,10 +383,6 @@ const action_loop = async () => {
 		update_cache();
 		const ms = ms_to_next_skill("attack");
 
-		// The bow is the authority, not the intent. resolve_ranger_weapon() reads the same
-		// heal_target but lands up to swap_cooldown + a round trip later, and this loop runs every
-		// 5ms — so acting on the intent means multi-shotting with cupid on, or friendly-rejecting
-		// a heal with a damage bow. When the two disagree the swap is in flight: wait for it.
 		const cupid_on = character.slots?.mainhand?.name === "cupid";
 		const healing = !!cache.heal_target && (cupid_on || set_available("heal"));
 
@@ -452,7 +445,6 @@ const skill_loop = async () => {
 			return;
 		}
 
-		// Cupid is on to heal, not to mark and burst a monster with.
 		if (character.slots?.mainhand?.name === "cupid") {
 			setTimeout(skill_loop, 100);
 			return;
@@ -615,7 +607,6 @@ async function reposition() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 
-// var, not const: shared inventory_sorter() (Game_Config.js) reads this at call time.
 var item_order = {
 	tracktrix: 0,
 	computer: 1,
@@ -638,7 +629,6 @@ function elixir_usage() {
 	}
 }
 
-// var, not let: shared panic_check() (Game_Config.js) reads/writes these globals.
 var panicking = false;
 var last_panic_time = 0;
 var last_safe_time = 0;
@@ -651,7 +641,6 @@ var PANIC_THRESHOLDS = {
 };
 
 
-// party_maker() — replaced by shared party_manager() from Game_Config.js
 // function party_maker() {
 // 	if (!CONFIG.party.auto_manage) return;
 // 	const group = CONFIG.party.group_members;
