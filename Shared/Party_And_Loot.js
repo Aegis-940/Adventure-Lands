@@ -651,16 +651,29 @@ function leader_position() {
 // LEADER-SIDE COHESION — the leader waits for stragglers.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const COHESION_RADIUS = 300;
-const COHESION_RELEASE = 200;
+// They follow at follow_distance (15), so a 300-unit gap essentially never happened and she
+// essentially never waited — which is why cohesion looked broken when the real problem was
+// followers lagging with nobody stopping for them. 150 is a gap they should not be able to open
+// unless something has genuinely gone wrong; 60 is close enough to set off again.
+const COHESION_RADIUS = 150;
+const COHESION_RELEASE = 60;
 const COHESION_MAX_WAIT_MS = 60000;
 const COHESION_FOLLOWERS = ["Ulric", "Riva"];
 
 let _hold_since = 0;
+let _hold_at = 0;
+let _hold = false;
 
 function party_cohesion_hold() {
 	if (character.name !== MOVEMENT_LEADER) return false;
-	if (typeof panicking !== "undefined" && panicking) return false;
+	if (typeof panicking !== "undefined" && panicking) { _hold_since = 0; _hold = false; return false; }
+
+	// Memoised. read_state_cache() is a synchronous localStorage read and this runs at 10Hz on the
+	// healer, whose action loop is the most latency-sensitive thing in the party — the same reason
+	// healer_is_down() caches. Dropping the memo when this was simplified was a regression.
+	const now = Date.now();
+	if (now - _hold_at < 250) return _hold;
+	_hold_at = now;
 
 	const owed = typeof anniversary_should_travel === "function" && anniversary_should_travel();
 	const limit = _hold_since ? COHESION_RELEASE : COHESION_RADIUS;
@@ -673,10 +686,12 @@ function party_cohesion_hold() {
 			|| Math.hypot(s.x - character.x, s.y - character.y) > limit;
 	});
 
-	if (!behind) { _hold_since = 0; return false; }
-	if (!_hold_since) _hold_since = Date.now();
+	if (!behind) _hold_since = 0;
+	else if (!_hold_since) _hold_since = now;
+
 	// Never wait forever on someone who cannot reach us.
-	return Date.now() - _hold_since < COHESION_MAX_WAIT_MS;
+	_hold = behind && now - _hold_since < COHESION_MAX_WAIT_MS;
+	return _hold;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -740,6 +755,23 @@ function movement_local(goal, farm_step) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const FOLLOW_STATION_RANGE = 220;
+// This far behind, close up whatever she is doing — that is not combat spread, that is lost.
+const FOLLOW_CATCHUP_RANGE = 200;
+// smart.moving drops false for a tick between BFS waypoint recalcs, so an unlatched read of it
+// makes the followers break off mid-journey. Keep following for a moment after it clears.
+const FOLLOW_TRAVEL_LATCH_MS = 1500;
+
+let _leader_travel_seen = 0;
+
+// Travelling means a JOURNEY — smart_move or an anniversary trip — not merely taking a step. Her
+// farm orbit sets character.moving constantly and must not drag the party onto her heels.
+function leader_is_travelling(pos) {
+	if (pos.travelling) {
+		_leader_travel_seen = Date.now();
+		return true;
+	}
+	return _leader_travel_seen > 0 && Date.now() - _leader_travel_seen < FOLLOW_TRAVEL_LATCH_MS;
+}
 
 function follow_has_leader() {
 	if (character.name === MOVEMENT_LEADER) return false;
@@ -761,6 +793,13 @@ function follow_goal() {
 	if (pos.map !== character.map) return { label: "follow", map: pos.map, x: pos.x, y: pos.y, radius: fd + 30 };
 
 	const d = Math.hypot(character.x - pos.x, character.y - pos.y);
+
+	// She is not going anywhere and we are with her: stop shadowing and fight. reposition() is
+	// centred on her, so this still holds the party together while letting them spread for cleave
+	// and 5shot instead of stacking on her at follow_distance.
+	if (!leader_is_travelling(pos) && d <= FOLLOW_CATCHUP_RANGE) {
+		return { local: "farm", label: "with-leader", on_station: true };
+	}
 	if (d <= fd) return { local: "farm", label: "with-leader", on_station: true };
 
 	const ring = follow_ring_point(pos);
@@ -957,11 +996,17 @@ var anniversary_travel = false;
 
 const ANNIVERSARY_TICK_MS = 2000;
 const ANNIVERSARY_TICK_ACTIVE_MS = 400;
-const ANNIVERSARY_CAST_RANGE = 75;
+// Cast only from a range that actually succeeds. The skill's range is 80, but a FAILED cast is not
+// free: the client stamps its 10s cooldown optimistically, so a speculative attempt from the edge
+// costs ten seconds whether or not the server accepts it. A few of those in a row is the 30-60s
+// delay before the kiss finally lands. Closing the extra 25 units first takes under a second.
+const ANNIVERSARY_CAST_RANGE = 50;
 const ANNIVERSARY_HOLD_RANGE = 35;
 const ANNIVERSARY_REFRESH_MS = 5 * 60 * 1000;
 const ANNIVERSARY_KISS_RETRY_MS = 2500;
-const ANNIVERSARY_ACK_GRACE_MS = 6000;
+// The buff lands within a server round trip, so this only needs to cover that. At 6s it compounded
+// the cooldown penalty above every time a cast was acknowledged without granting anything.
+const ANNIVERSARY_ACK_GRACE_MS = 2000;
 const ANNIVERSARY_SEEK_RADIUS = 30;
 
 
