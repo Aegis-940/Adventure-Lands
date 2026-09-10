@@ -151,7 +151,6 @@ function get_full_character_state() {
 			|| (typeof anniversary_travel !== "undefined" && !!anniversary_travel),
 		anniv_pending: typeof anniversary_should_travel === "function" && anniversary_should_travel(),
 		has_kiss: !!(character.s && character.s.anniversary_kiss),
-		trail: typeof leader_trail_snapshot === "function" ? leader_trail_snapshot() : null,
 		free_slots: character.items.filter(it => !it).length,
 		conditions: character.s || {},
 		last_seen: Date.now(),
@@ -159,9 +158,6 @@ function get_full_character_state() {
 }
 
 function write_state_cache() {
-	try {
-		if (typeof trail_record === "function") trail_record();
-	} catch (e) { /* never let the trail stop the cache being written */ }
 	try {
 		localStorage.setItem(STATE_CACHE_KEY_PREFIX + character.name, JSON.stringify(get_full_character_state()));
 	} catch (e) {

@@ -653,131 +653,30 @@ function leader_position() {
 
 const COHESION_RADIUS = 300;
 const COHESION_RELEASE = 200;
-
-const COHESION_STALL_MS = 20000;
-const COHESION_MAX_WAIT_MS = 180000;
-const COHESION_PROGRESS_EPS = 30;
-
+const COHESION_MAX_WAIT_MS = 60000;
 const COHESION_FOLLOWERS = ["Ulric", "Riva"];
 
-const COHESION_ANNIV_MAX_MS = 120000;
-
-let _cohesion_holding = false;
-let _cohesion_gave_up = false;
-let _cohesion_anniv_since = 0;
-let _cohesion_anniv_gave_up = false;
-let _cohesion_since = 0;
-let _cohesion_progress_at = 0;
-let _cohesion_best = { name: null, map: null, dist: Infinity };
-let _cohesion_cache = { at: 0, straggler: null, anniv: null, map: null, dist: Infinity, travelling: false };
+let _hold_since = 0;
 
 function party_cohesion_hold() {
 	if (character.name !== MOVEMENT_LEADER) return false;
+	if (typeof panicking !== "undefined" && panicking) return false;
 
-	if (typeof panicking !== "undefined" && panicking) {
-		_cohesion_holding = false;
-		return false;
-	}
+	const owed = typeof anniversary_should_travel === "function" && anniversary_should_travel();
+	const limit = _hold_since ? COHESION_RELEASE : COHESION_RADIUS;
 
-	if (!is_away_from_home()) {
-		if (_cohesion_holding) log("▶️ Home — resuming.", "#00ff00", "Alerts");
-		_cohesion_holding = false;
-		_cohesion_gave_up = false;
-		return false;
-	}
+	const behind = COHESION_FOLLOWERS.some(name => {
+		const s = read_state_cache(name);
+		if (!s || s.rip) return false;
+		if (!owed && s.anniv_pending && !s.has_kiss) return true;
+		return s.map !== character.map
+			|| Math.hypot(s.x - character.x, s.y - character.y) > limit;
+	});
 
-	const now = Date.now();
-	const limit = _cohesion_holding ? COHESION_RELEASE : COHESION_RADIUS;
-
-	if (now - _cohesion_cache.at >= 200) {
-		_cohesion_cache.at = now;
-		_cohesion_cache.straggler = null;
-		_cohesion_cache.anniv = null;
-		const we_still_owe_a_visit = typeof anniversary_should_travel === "function"
-			&& anniversary_should_travel();
-		for (const name of COHESION_FOLLOWERS) {
-			const s = read_state_cache(name);
-			if (!s || s.rip) continue;
-			if (!we_still_owe_a_visit && s.anniv_pending && !s.has_kiss && !_cohesion_cache.anniv) {
-				_cohesion_cache.anniv = name;
-			}
-			if (_cohesion_cache.straggler) continue;
-			const off_map = s.map !== character.map;
-			const dist = off_map ? Infinity : Math.hypot(s.x - character.x, s.y - character.y);
-			if (!off_map && dist <= limit) continue;
-			_cohesion_cache.straggler = name;
-			_cohesion_cache.map = s.map;
-			_cohesion_cache.dist = dist;
-			_cohesion_cache.travelling = !!(s.travelling || s.moving);
-		}
-	}
-
-	if (_cohesion_cache.anniv) {
-		if (!_cohesion_anniv_since) _cohesion_anniv_since = now;
-
-		if (now - _cohesion_anniv_since <= COHESION_ANNIV_MAX_MS) {
-			if (!_cohesion_holding) {
-				_cohesion_holding = true;
-				_cohesion_gave_up = false;
-				log(`⏸️ Waiting out ${_cohesion_cache.anniv}'s anniversary visit.`, "#66ccff", "Alerts");
-			}
-			_cohesion_since = now;
-			_cohesion_progress_at = now;
-			return true;
-		}
-
-		if (!_cohesion_anniv_gave_up) {
-			_cohesion_anniv_gave_up = true;
-			log(`⚠️ ${_cohesion_cache.anniv}'s visit is taking too long — moving on.`, "#FFA500", "Alerts");
-		}
-	} else {
-		_cohesion_anniv_since = 0;
-		_cohesion_anniv_gave_up = false;
-	}
-
-	const straggler = _cohesion_cache.straggler;
-
-	if (!straggler) {
-		if (_cohesion_holding) log("▶️ Party together — moving on.", "#00ff00", "Alerts");
-		_cohesion_holding = false;
-		_cohesion_gave_up = false;
-		return false;
-	}
-
-	if (!_cohesion_holding) {
-		_cohesion_holding = true;
-		_cohesion_gave_up = false;
-		_cohesion_since = now;
-		_cohesion_progress_at = now;
-		_cohesion_best = { name: null, map: null, dist: Infinity };
-		log(`⏸️ Holding for ${straggler}.`, "#66ccff", "Alerts");
-	}
-
-	const closing = _cohesion_best.name !== straggler
-		|| _cohesion_best.map !== _cohesion_cache.map
-		|| _cohesion_cache.dist < _cohesion_best.dist - COHESION_PROGRESS_EPS
-		|| _cohesion_cache.travelling;
-
-	if (closing) {
-		_cohesion_progress_at = now;
-		_cohesion_best = {
-			name: straggler,
-			map: _cohesion_cache.map,
-			dist: Math.min(_cohesion_cache.dist, _cohesion_best.name === straggler ? _cohesion_best.dist : Infinity),
-		};
-	}
-
-	const stalled = now - _cohesion_progress_at > COHESION_STALL_MS;
-	const out_of_time = now - _cohesion_since > COHESION_MAX_WAIT_MS;
-	if (stalled || out_of_time) {
-		if (!_cohesion_gave_up) {
-			_cohesion_gave_up = true;
-			log(`⚠️ ${straggler} ${stalled ? "stopped closing" : "took too long"} — moving on without them.`, "#FFA500", "Alerts");
-		}
-		return false;
-	}
-
-	return true;
+	if (!behind) { _hold_since = 0; return false; }
+	if (!_hold_since) _hold_since = Date.now();
+	// Never wait forever on someone who cannot reach us.
+	return Date.now() - _hold_since < COHESION_MAX_WAIT_MS;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -837,80 +736,10 @@ function movement_local(goal, farm_step) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// LEADER TRAIL — the followers walk her route instead of solving it again.
+// FOLLOW THE LEADER — walk at her; pathfind only when the line is blocked.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const TRAIL_STEP = 60;
-const TRAIL_MAX = 40;
-const TRAIL_REACHED = 50;
-const TRAIL_LOS_SCAN = 12;
-
-let _trail = [];
-let _trail_seq = 0;
-
-function trail_record() {
-	if (character.name !== MOVEMENT_LEADER) return;
-	const last = _trail[_trail.length - 1];
-	if (last && last.m === character.map
-		&& Math.hypot(character.x - last.x, character.y - last.y) < TRAIL_STEP) return;
-	_trail.push({ i: ++_trail_seq, m: character.map, x: Math.round(character.x), y: Math.round(character.y) });
-	while (_trail.length > TRAIL_MAX) _trail.shift();
-}
-
-function leader_trail_snapshot() {
-	return character.name === MOVEMENT_LEADER ? _trail : null;
-}
-
-let _trail_reached = 0;
-
-function trail_next_point() {
-	let trail = null;
-	try {
-		const c = read_state_cache(MOVEMENT_LEADER);
-		trail = c && c.trail;
-	} catch (e) { /* storage unavailable */ }
-	if (!trail || !trail.length) return null;
-
-	if (trail[trail.length - 1].i < _trail_reached) _trail_reached = 0;
-
-	for (const p of trail) {
-		if (p.i > _trail_reached && p.m === character.map
-			&& Math.hypot(character.x - p.x, character.y - p.y) <= TRAIL_REACHED) {
-			_trail_reached = p.i;
-		}
-	}
-
-	const remaining = trail.filter(p => p.i > _trail_reached);
-	if (!remaining.length) return null;
-
-	const scan_from = Math.max(0, remaining.length - TRAIL_LOS_SCAN);
-	for (let k = remaining.length - 1; k >= scan_from; k--) {
-		const p = remaining[k];
-		if (p.m === character.map && can_move_to(p.x, p.y)) {
-			if (p.i - 1 > _trail_reached) _trail_reached = p.i - 1;
-			return p;
-		}
-	}
-
-	let near = null;
-	let near_d = Infinity;
-	for (const p of remaining) {
-		if (p.m !== character.map) continue;
-		const d = Math.hypot(character.x - p.x, character.y - p.y);
-		if (d < near_d) { near_d = d; near = p; }
-	}
-	if (near) {
-		if (near.i - 1 > _trail_reached) _trail_reached = near.i - 1;
-		return near;
-	}
-
-	return remaining[0];
-}
-
 const FOLLOW_STATION_RANGE = 220;
-const FOLLOW_DIRECT_DWELL_MS = 700;
-let _follow_direct_since = 0;
-const FOLLOW_CLOSE = 60;
 
 function follow_has_leader() {
 	if (character.name === MOVEMENT_LEADER) return false;
@@ -925,70 +754,30 @@ function follow_ring_point(pos) {
 }
 
 function follow_goal() {
-	if (character.name === MOVEMENT_LEADER) return null;
+	const pos = character.name === MOVEMENT_LEADER ? null : leader_position();
+	if (!pos || pos.rip) return null;
 
-	const pos = leader_position();
-	if (!pos || pos.rip) {
-		if (!pos) {
-			const now = Date.now();
-			if (now - _last_healer_ping > 2000) {
-				_last_healer_ping = now;
-				send_cm(MOVEMENT_LEADER, { type: "where_are_you" });
-			}
-		}
-		return null;
+	const fd = CONFIG.movement.follow_distance;
+	if (pos.map !== character.map) return { label: "follow", map: pos.map, x: pos.x, y: pos.y, radius: fd + 30 };
+
+	const d = Math.hypot(character.x - pos.x, character.y - pos.y);
+	if (d <= fd) return { local: "farm", label: "with-leader", on_station: true };
+
+	const ring = follow_ring_point(pos);
+	if (can_move_to(ring.x, ring.y)) {
+		return { local: "follow", label: "follow-ring", on_station: d <= FOLLOW_STATION_RANGE };
 	}
-
-	if (pos.map === character.map) {
-		const d = Math.hypot(character.x - pos.x, character.y - pos.y);
-		const ring = follow_ring_point(pos);
-		const line_clear = can_move_to(ring.x, ring.y);
-		const now = Date.now();
-
-		if (!line_clear) _follow_direct_since = 0;
-		else if (!_follow_direct_since) _follow_direct_since = now;
-
-		const trust_direct = line_clear
-			&& (d <= FOLLOW_CLOSE * 2 || now - _follow_direct_since >= FOLLOW_DIRECT_DWELL_MS);
-
-		if (trust_direct) {
-			const settled = !pos.travelling && !pos.moving;
-			if (settled && d <= FOLLOW_CLOSE) return { local: "farm", label: "with-leader", on_station: true };
-			return { local: "follow", label: "follow-ring", on_station: d <= FOLLOW_STATION_RANGE };
-		}
-	} else {
-		_follow_direct_since = 0;
-	}
-
-	const step = trail_next_point();
-	if (step) {
-		if (step.m === character.map && can_move_to(step.x, step.y)) {
-			return { local: "follow", label: "follow-trail", on_station: false, point: step };
-		}
-		return { label: "follow", map: step.m, x: step.x, y: step.y, radius: TRAIL_REACHED };
-	}
-
-	return { label: "follow", map: pos.map, x: pos.x, y: pos.y, radius: CONFIG.movement.follow_distance + 30 };
+	return { label: "follow", map: pos.map, x: pos.x, y: pos.y, radius: fd + 30 };
 }
 
-function follow_step(goal) {
-	if (goal && goal.point) {
-		if (can_move_to(goal.point.x, goal.point.y)) move(goal.point.x, goal.point.y);
-		return;
-	}
-
+function follow_step() {
 	const pos = leader_position();
 	if (!pos || pos.rip || pos.map !== character.map) return;
-
-	const live = get_player(MOVEMENT_LEADER);
-	if (live && !live.rip) _healer_last_known = { map: character.map, x: live.x, y: live.y };
-
-	const dist = Math.hypot(character.x - pos.x, character.y - pos.y);
-	if (dist <= CONFIG.movement.follow_distance) return;
-
+	if (Math.hypot(character.x - pos.x, character.y - pos.y) <= CONFIG.movement.follow_distance) return;
 	const ring = follow_ring_point(pos);
 	if (can_move_to(ring.x, ring.y)) move(ring.x, ring.y);
 }
+
 
 
 function inventory_sorter() {
