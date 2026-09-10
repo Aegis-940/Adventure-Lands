@@ -42,8 +42,7 @@ async function skill_loop() {
 		// aggro onto her deliberately, and zapperzap is damage — all three are exactly what "disengage"
 		// means. partyheal and single-target heal keep running, because the walk is when the party is
 		// most exposed. Same shape as the `!panicking` gates these already carry.
-		const TRAVELLING = smart.moving
-			|| (typeof anniversary_travel !== "undefined" && anniversary_travel);
+		const TRAVELLING = is_travelling();
 
 		// Curse
 		if (!panicking && !TRAVELLING && MANA_FOR_LUXURIES && CONFIG.combat.enabled) {
@@ -88,7 +87,7 @@ async function skill_loop() {
 }
 
 async function handle_curse() {
-	if (is_on_cooldown("curse") || smart.moving) return;
+	if (is_on_cooldown("curse") || is_travelling()) return;
 
 	const X = locations[home][0].x;
 	const Y = locations[home][0].y;
@@ -216,7 +215,7 @@ async function handle_zapper() {
 	const CAN_SWAP = NOW - state.last_equip_time > COOLDOWNS.zapper_swap;
 	const HAS_ENOUGH_MP = character.mp > (G?.skills?.zapperzap?.mp || 0) + 1250;
 
-	if (smart.moving || character.cc > COOLDOWNS.cc) return;
+	if (is_travelling() || character.cc > COOLDOWNS.cc) return;
 
 	// Equip zapper if untargeted mobs exist and we don't have it equipped
 	if (TARGETS.length > 0 && !HAS_ZAPPER && CAN_SWAP && HAS_ENOUGH_MP && character.map === destination.map) {

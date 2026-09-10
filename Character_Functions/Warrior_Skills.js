@@ -122,7 +122,7 @@ async function handle_cleave() {
 function can_cleave() {
 	// Fast checks first
 	if (!CONFIG.equipment.cleave_maps.includes(character.map)) return false;
-	if (smart.moving || is_disabled(character)) return false;
+	if (is_travelling() || is_disabled(character)) return false;
 	if (character.cc >= COOLDOWNS.cc) return false;
 	if (ms_to_next_skill("attack") <= 75) return false;
 
@@ -205,7 +205,7 @@ async function handle_agitate(tank) {
 	);
 	const untargeted_other = other_mobs.filter(m => !m.target);
 
-	if (other_mobs.length >= CONFIG.combat.agitate_min_mobs && untargeted_other.length >= CONFIG.combat.agitate_min_mobs && !smart.moving) {
+	if (other_mobs.length >= CONFIG.combat.agitate_min_mobs && untargeted_other.length >= CONFIG.combat.agitate_min_mobs && !is_travelling()) {
 		const needs_protecting = ["porcupine", "redfairy"];
 		const nearby_threat = needs_protecting.some(type => {
 			const target = get_nearest_monster({ type });

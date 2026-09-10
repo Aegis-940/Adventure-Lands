@@ -345,7 +345,7 @@ async function action_loop() {
 		const target = cache.target;
 		const ms = ms_to_next_skill("attack");
 
-		if (ms === 0 && smart.moving === false && target) {
+		if (ms === 0 && !is_travelling() && target) {
 			await status_swap_trick_check(target);
 		} else {
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;

@@ -396,7 +396,7 @@ const action_loop = async () => {
 		update_cache();
 		const ms = ms_to_next_skill("attack");
 
-		if (ms === 0 && smart.moving === false) {
+		if (ms === 0 && !is_travelling()) {
 			if (cache.heal_target) {
 				await attack(cache.heal_target);
 			} else await handle_attack();

@@ -66,7 +66,7 @@ function character_mode() {
 	if (character.rip) return "dead";
 	if (typeof panicking !== "undefined" && panicking) return "panic";
 	if (typeof anniversary_travel !== "undefined" && anniversary_travel) return "anniversary";
-	if (smart && smart.moving) return "travelling";
+	if (typeof is_travelling === "function" && is_travelling()) return "travelling";
 	return "farming";
 }
 
@@ -675,7 +675,7 @@ async function _panic_check_body() {
 	// Shedding the pack is what ends this, which is precisely what the scare below is for.
 	const TRAVEL_AGGRO = t.travel_aggro ?? 1;
 	const now_ms = Date.now();
-	if (smart.moving && MONSTERS_TARGETING_ME >= TRAVEL_AGGRO) {
+	if (is_travelling() && MONSTERS_TARGETING_ME >= TRAVEL_AGGRO) {
 		if (!_travel_panic_since) _travel_panic_since = now_ms;
 	} else if (_travel_panic_since
 		&& (MONSTERS_TARGETING_ME === 0 || now_ms - _travel_panic_since > TRAVEL_PANIC_MAX_MS)) {

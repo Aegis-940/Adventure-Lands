@@ -188,6 +188,18 @@ function travel_is_active() {
 	return _travel.active;
 }
 
+// "Am I on a journey?" — the question every combat and skill gate is actually asking.
+//
+// Raw smart.moving is NOT that question. It is a mechanism detail the arbiter owns, and the
+// arbiter clears it whenever the goal goes local — which a straight-line follow is. Reading it as
+// intent left attacks and offensive skills enabled for most of a walk, which is how characters
+// picked up aggro in transit and dragged it along the road.
+function is_travelling() {
+	return travel_is_active()
+		|| !!smart.moving
+		|| (typeof anniversary_travel !== "undefined" && !!anniversary_travel);
+}
+
 // True while the pathfinder is still computing a route: moving, but nothing plotted to walk yet.
 function travel_searching() {
 	return !!smart.moving && !(smart.plot && smart.plot.length);

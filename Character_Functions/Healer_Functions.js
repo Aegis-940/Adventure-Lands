@@ -430,12 +430,17 @@ async function action_loop() {
 			);
 			const i_need_the_timer = character.hp < my_heal_threshold;
 
-			const travelling = smart.moving
-				|| (typeof anniversary_travel !== "undefined" && anniversary_travel);
+			// Gates her ATTACK only — healing above this is untouched, which is the whole reason
+			// she has her own check rather than should_pause_combat_loop().
+			//
+			// travel_is_active() rather than smart.moving: the travel arbiter clears smart.moving
+			// whenever the goal goes local, so for most of a journey this read false and she
+			// attacked things in passing — picking up aggro she then dragged along the road.
+			const travelling = is_travelling();
 
 			if (!HEALED && !travelling && HEALER_TARGET !== "giantspider" && !i_need_the_timer) {
 				const TARGET = cache.target;
-				if (TARGET && is_in_range(TARGET) && smart.moving === false && !basic_action_busy()) {
+				if (TARGET && is_in_range(TARGET) && !basic_action_busy()) {
 					run_basic_action(attack(TARGET), "attack");
 					acted = true;
 				}
