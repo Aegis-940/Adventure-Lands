@@ -179,7 +179,14 @@ const TRAVEL_STALL_MS = 8000;
 const TRAVEL_STALL_EPS = 30;
 const TRAVEL_SEARCH_MAX_MS = 20000;
 
-let _travel = { label: null, at: 0, interrupt: null, anchor: null, anchor_at: 0, search_since: 0 };
+let _travel = { label: null, active: false, at: 0, interrupt: null, anchor: null, anchor_at: 0, search_since: 0 };
+
+// Is the arbiter driving a journey right now? This is what "travelling" should mean everywhere.
+// Raw smart.moving does NOT mean that any more: the arbiter clears it whenever the goal goes
+// local, so anything keyed on it toggles constantly.
+function travel_is_active() {
+	return _travel.active;
+}
 
 // True while the pathfinder is still computing a route: moving, but nothing plotted to walk yet.
 function travel_searching() {
@@ -216,12 +223,14 @@ function log_local_goal(label) {
 
 function travel_arbiter(goal) {
 	if (!goal || goal.local) {
+		_travel.active = false;
 		travel_release();
 		log_local_goal(goal ? goal.label : "idle");
 		return false;
 	}
 
 	if (goal.hold) {
+		_travel.active = false;
 		travel_release();
 		if (_travel.label !== goal.label) log(`🧭 ${goal.label}`, "#8899aa", "Alerts");
 		_travel.label = goal.label;
@@ -245,6 +254,7 @@ function travel_arbiter(goal) {
 	const radius = goal.radius || TRAVEL_ARRIVE;
 
 	if (character.map === map && Math.hypot(character.x - goal.x, character.y - goal.y) <= radius) {
+		_travel.active = false;
 		travel_release();
 		return false;
 	}
@@ -295,6 +305,7 @@ function travel_arbiter(goal) {
 		_travel.at = now;
 		if (_travel.label !== goal.label) log(`🧭 ${goal.label}`, "#8899aa", "Alerts");
 		_travel.label = goal.label;
+		_travel.active = true;
 		_travel.anchor = null;
 		Promise.resolve(smarter_move({ map, x: goal.x, y: goal.y }, null,
 			{ timeout: 90000, radius })).catch(() => { });

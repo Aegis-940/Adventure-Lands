@@ -570,7 +570,9 @@ const EXTERNAL_PANIC_MAX_MS = 60000;
 
 let _panic_check_running = false;
 
-let _travel_panic_latched = false;
+let _travel_panic_since = 0;
+// A latch that cannot clear is a permanent panic, so it also times out.
+const TRAVEL_PANIC_MAX_MS = 30000;
 
 // Panic owns the slots for as long as it is PANICKING, not just for the instant it puts the jacko
 // on. Releasing between ticks let the rules resolver back in mid-panic — and with scare having
@@ -660,10 +662,26 @@ async function _panic_check_body() {
 		e => e.type === "monster" && e.target === character.name && !e.dead
 	).length;
 
+	// Latched on AGGRO, and cleared when the aggro is actually gone — not when smart.moving drops.
+	//
+	// This read `if (!smart.moving) unlatch` back when smart.moving meant "on a journey". The
+	// travel arbiter now clears smart.moving every time the goal goes local, which is constantly,
+	// so the latch flapped and `panicking` flapped with it. That matters because the warrior's
+	// reposition() REVERSES DIRECTION on panicking — retreat-from-monsters while panicking, stay
+	// near the cluster otherwise — so a flapping panic is a character walking away from the pack
+	// and back again, over and over. That is the doubling back, and it is why it correlates with
+	// panicking.
+	//
+	// Shedding the pack is what ends this, which is precisely what the scare below is for.
 	const TRAVEL_AGGRO = t.travel_aggro ?? 1;
-	if (!smart.moving) _travel_panic_latched = false;
-	else if (MONSTERS_TARGETING_ME >= TRAVEL_AGGRO) _travel_panic_latched = true;
-	const TRAPPED_TRAVELLING = _travel_panic_latched;
+	const now_ms = Date.now();
+	if (smart.moving && MONSTERS_TARGETING_ME >= TRAVEL_AGGRO) {
+		if (!_travel_panic_since) _travel_panic_since = now_ms;
+	} else if (_travel_panic_since
+		&& (MONSTERS_TARGETING_ME === 0 || now_ms - _travel_panic_since > TRAVEL_PANIC_MAX_MS)) {
+		_travel_panic_since = 0;
+	}
+	const TRAPPED_TRAVELLING = _travel_panic_since > 0;
 
 	if (typeof SMART_USE_TOWN !== "undefined" && SMART_USE_TOWN) {
 		try {
