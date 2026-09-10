@@ -11,7 +11,7 @@ var CONFIG = {
 		target_priority: ["Myras"],
 		all_bosses,
 		cleave_min_mobs: 3,
-		cleave_blacklist: ["fireroamer"],
+		cleave_blacklist: ["fireroamer", "plantoid"],
 		agitate_min_mobs: 2,
 		cluster_min_mobs: 2,
 		agitate_blacklist: ["plantoid"],
