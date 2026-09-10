@@ -386,10 +386,16 @@ const action_loop = async () => {
 		update_cache();
 		const ms = ms_to_next_skill("attack");
 
+		// The bow is the authority, not the intent. resolve_ranger_weapon() reads the same
+		// heal_target but lands up to swap_cooldown + a round trip later, and this loop runs every
+		// 5ms — so acting on the intent means multi-shotting with cupid on, or friendly-rejecting
+		// a heal with a damage bow. When the two disagree the swap is in flight: wait for it.
+		const cupid_on = character.slots?.mainhand?.name === "cupid";
+		const healing = !!cache.heal_target && (cupid_on || set_available("heal"));
+
 		if (ms === 0 && !is_travelling()) {
-			if (cache.heal_target) {
-				await attack(cache.heal_target);
-			} else await handle_attack();
+			if (healing && cupid_on) await attack(cache.heal_target);
+			else if (!healing && !cupid_on) await handle_attack();
 		} else {
 			delay = ms > 200 ? 200 : ms > 50 ? 50 : 10;
 		}
@@ -442,6 +448,12 @@ const skill_loop = async () => {
 
 		const target = RANGER_TARGET === "giantspider" ? in_range[0] : sorted_by_hp[0];
 		if (!target || !is_in_range(target)) {
+			setTimeout(skill_loop, 100);
+			return;
+		}
+
+		// Cupid is on to heal, not to mark and burst a monster with.
+		if (character.slots?.mainhand?.name === "cupid") {
 			setTimeout(skill_loop, 100);
 			return;
 		}
