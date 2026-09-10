@@ -179,20 +179,15 @@ function add_bank_buttons() {
 	const trc = $("#toprightcorner");
 	if (!trc.length) return setTimeout(add_bank_buttons, 500);
 
-	$("#bankbutton,#saveBankButton").remove();
+	$("#bankbutton").remove();
 
 	const bank_btn = $(`
 	<div id="bankbutton" class="gamebutton"
 		 onclick="parent.$('#maincode')[0].contentWindow.render_bank_items()">
 		🏧
 	</div>`);
-	const save_btn = $((`
-	<div id="saveBankButton" class="gamebutton"
-		 onclick="parent.$('#maincode')[0].contentWindow.save_bank_local()">
-		💾
-	</div>`));
 
-	trc.children().first().after(save_btn).after(bank_btn);
+	trc.children().first().after(bank_btn);
 }
 
 // Restored from the now-removed Shared/Buttons.js; reuses the same #toprightcorner/.gamebutton pattern as add_bank_buttons() above.
