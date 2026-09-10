@@ -20,6 +20,15 @@
 // that is the point of the arbiter — and a role that wants different movement adds a goal to the
 // priority list rather than its own loop.
 
+// The goal chosen on the most recent tick. should_pause_combat_loop() reads it: what a character
+// is trying to DO is the thing that decides whether it may stop and fight, and only the runner
+// knows that. Exposed as a function so the eval-loaded character files can reach it.
+let _current_goal = null;
+
+function current_goal_label() {
+	return _current_goal ? _current_goal.label : null;
+}
+
 function run_character(spec) {
 	const s = spec || {};
 
@@ -38,6 +47,7 @@ function run_character(spec) {
 			if (typeof s.pre_move === "function") await s.pre_move();
 
 			const goal = movement_goal();
+			_current_goal = goal;
 			if (!travel_arbiter(goal)) {
 				if (typeof s.local === "function") await s.local(goal);
 				else movement_local(goal, s.farm_step);
