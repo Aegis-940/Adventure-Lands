@@ -90,7 +90,38 @@ const COOLDOWNS = {
 const CACHE_TTL = 50;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// SECTION 3: LOOP TOGGLES
+// SECTION 3: MANUAL CONTROL
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+// Per character. A parked character publishes `paused` into the state cache, because the leader's
+// cohesion hold cannot otherwise tell it from a straggler and would wait out the round for someone
+// who is never coming.
+const AUTOMATION_KEY_PREFIX = "AL_automation_paused_";
+const AUTOMATION_POLL_MS = 250;
+
+let _automation = { at: 0, on: true };
+
+function automation_key() {
+	return AUTOMATION_KEY_PREFIX + ((character && character.name) || "unknown");
+}
+
+function automation_enabled() {
+	const now = Date.now();
+	if (now - _automation.at < AUTOMATION_POLL_MS) return _automation.on;
+	_automation.at = now;
+	try { _automation.on = localStorage.getItem(automation_key()) !== "1"; }
+	catch (e) { _automation.on = true; }
+	return _automation.on;
+}
+
+function set_automation(on) {
+	try { localStorage.setItem(automation_key(), on ? "0" : "1"); } catch (e) { /* storage blocked */ }
+	_automation.at = 0;
+	return automation_enabled();
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// SECTION 4: LOOP TOGGLES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 let STATE_CACHE_LOOP_ENABLED  = true;

@@ -46,6 +46,15 @@ function run_character(spec) {
 
 			if (typeof s.update_cache === "function") s.update_cache();
 			if (typeof s.skip_panic_check !== "function" || !s.skip_panic_check()) panic_check();
+
+			// Panic stays above the gate: parked is not the same as defenceless. Everything below
+			// moves the character — including stuck_escape_check(), which fires use_town.
+			if (!automation_enabled()) {
+				_current_goal = null;
+				travel_arbiter(null);   // releases a journey already in flight
+				return setTimeout(main_tick, TICK_RATE.main);
+			}
+
 			stuck_escape_check();
 
 			if (typeof s.pre_move === "function") await s.pre_move();

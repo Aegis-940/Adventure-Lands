@@ -139,6 +139,7 @@ function get_full_character_state() {
 		rip: character.rip,
 		moving: character.moving,
 		formation: typeof party_in_formation === "function" && party_in_formation(),
+		paused: typeof automation_enabled === "function" && !automation_enabled(),
 		goal: typeof current_goal_label === "function" ? current_goal_label() : null,
 		anniv_pending: typeof anniversary_should_travel === "function" && anniversary_should_travel(),
 		has_kiss: !!(character.s && character.s.anniversary_kiss),

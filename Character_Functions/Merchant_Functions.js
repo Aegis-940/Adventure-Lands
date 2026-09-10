@@ -804,6 +804,17 @@ async function loop_controller() {
 		try {
 			party_manager();
 
+			// Manual control: no states, and the stand comes down — a stand left open while you are
+			// driving him by hand is a trade you did not agree to.
+			if (!automation_enabled()) {
+				if (stand_is_open()) await close_merchant_stand();
+				merchant_task = "Idle";
+				watchdog_task = "Idle";
+				watchdog_since = Date.now();
+				await delay(250);
+				continue;
+			}
+
 			if (merchant_task !== watchdog_task) {
 				watchdog_task = merchant_task;
 				watchdog_since = Date.now();

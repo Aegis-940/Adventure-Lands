@@ -42,7 +42,8 @@ window._cmListeners = window._cmListeners || [];
 		"UI/Party_Frames.js",
 		"UI/CC_Meter.js",
 		"UI/Stats_Window.js",
-		"UI/Settings_Window.js"
+		"UI/Settings_Window.js",
+		"UI/Pause_Button.js"
 	];
 
 	const role_scripts = {

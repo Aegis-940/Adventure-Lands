@@ -43,7 +43,9 @@ function party_cohesion_hold() {
 	const limit = _cohesion_holding ? COHESION_REGROUP : COHESION_RANGE;
 	_cohesion_holding = COHESION_FOLLOWERS.some(name => {
 		const s = read_state_cache(name);
-		if (!s || s.rip) return false;
+		// A parked character is not a straggler. Waiting for one would stall the party until
+		// whoever paused it remembers to press play.
+		if (!s || s.rip || s.paused) return false;
 		// A follower on the same visit is not a straggler: we are both converging on the featured
 		// player, not on each other. Counting it stalls us short of the target while we wait for
 		// someone walking to the same place.
@@ -59,7 +61,7 @@ function party_cohesion_hold() {
 	if (owed) return false;
 	return COHESION_FOLLOWERS.some(name => {
 		const s = read_state_cache(name);
-		return !!s && !s.rip && !!s.anniv_pending;
+		return !!s && !s.rip && !s.paused && !!s.anniv_pending;
 	});
 }
 
