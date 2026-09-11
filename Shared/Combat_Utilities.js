@@ -7,6 +7,7 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const DAMAGE_WINDOW_MS = 15000;
+const BUFFS_WORTH_LOGGING = ["warcry", "darkblessing", "mluck", "mcourage", "power", "xpower", "holidayspirit", "newcomersblessing", "energized"];
 
 let _damage_window = null;
 
@@ -14,6 +15,12 @@ function reset_damage_window() {
 	_damage_window = {
 		at: Date.now(),
 		weapon: character.slots?.mainhand?.name || "none",
+		explosion: character.explosion || 0,
+		crit: character.crit || 0,
+		critdamage: character.critdamage || 0,
+		apiercing: character.apiercing || 0,
+		attack: Math.round(character.attack || 0),
+		buffs: Object.keys(character.s || {}).filter(s => BUFFS_WORTH_LOGGING.includes(s)).join("+"),
 		direct: 0, splash: 0, burn: 0,
 		hits: 0, splashes: 0, ticks: 0
 	};
@@ -34,6 +41,8 @@ function flush_damage_window() {
 	if (w.direct > 0 && typeof errlog_sample === "function") {
 		errlog_sample("damage", {
 			weapon: w.weapon,
+			explosion: w.explosion, crit: w.crit, critdamage: w.critdamage,
+			apiercing: w.apiercing, attack: w.attack, buffs: w.buffs,
 			secs: +((Date.now() - w.at) / 1000).toFixed(1),
 			direct: Math.round(w.direct),
 			splash: Math.round(w.splash),
