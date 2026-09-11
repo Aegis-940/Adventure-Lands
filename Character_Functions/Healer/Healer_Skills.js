@@ -170,17 +170,45 @@ function party_heal_critical_count() {
 	return critical;
 }
 
+var _last_heal_choice = 0;
+
+function sample_heal_choice(fired, party_value, single_value, critical) {
+	if (!CONFIG.combat.sample_hits || typeof errlog_sample !== "function") return;
+	if (Date.now() - _last_heal_choice < 1000) return;
+	_last_heal_choice = Date.now();
+	errlog_sample("heal_choice", {
+		fired,
+		critical,
+		party_value: Math.round(party_value),
+		single_value: Math.round(single_value),
+		party_cost: (G.skills.partyheal && G.skills.partyheal.mp) || 400,
+		single_cost: Math.round(character.mp_cost || 0),
+		mp_pct: +(character.mp / character.max_mp).toFixed(2),
+		target: cache.heal_target ? cache.heal_target.name : null
+	});
+}
+
 function party_heal_outvalues_single(lowest) {
 	const party_value = party_heal_useful_total();
-	if (party_value <= 0) return false;
-
-	if (party_heal_critical_count() >= CONFIG.healing.party_heal_critical_count) return true;
-
 	const single_value = lowest ? heal_useful(lowest, character.heal) : 0;
+	const critical = party_heal_critical_count();
+
+	if (party_value <= 0) {
+		sample_heal_choice(false, party_value, single_value, critical);
+		return false;
+	}
+
+	if (critical >= CONFIG.healing.party_heal_critical_count) {
+		sample_heal_choice(true, party_value, single_value, critical);
+		return true;
+	}
+
 	const party_cost = (G.skills.partyheal && G.skills.partyheal.mp) || 400;
 	const single_cost = Math.max(character.mp_cost || 1, 1);
+	const wins = party_value / party_cost > (single_value / single_cost) * CONFIG.healing.party_heal_margin;
 
-	return party_value / party_cost > (single_value / single_cost) * CONFIG.healing.party_heal_margin;
+	sample_heal_choice(wins, party_value, single_value, critical);
+	return wins;
 }
 
 async function handle_party_heal() {

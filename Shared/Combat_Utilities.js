@@ -98,20 +98,98 @@ parent.socket._action_sampler = data => {
 	try {
 		if (!sample_hits_enabled() || !data || !data.pid) return;
 		if (data.attacker !== character.id && data.attacker !== character.name) return;
+		if (data.heal) {
+			record_pid_heal(data);
+			return;
+		}
 		_pid_weapon[data.pid] = Object.assign({ weapon: weapon_label(), at: Date.now() }, firing_stats());
 	} catch (e) { }
 };
 
 parent.socket.on("action", parent.socket._action_sampler);
 
+const _pid_heal = {};
+
+function heal_target_entity(id) {
+	if (id === character.id || id === character.name) return character;
+	return parent.entities[id] || null;
+}
+
+function record_pid_heal(data) {
+	const target = heal_target_entity(data.target);
+	const source = data.source === "partyheal" || data.source === "selfheal" ? "party" : "single";
+	const base = source === "party" ? partyheal_base() : (character.heal || 0);
+	_pid_heal[data.pid] = {
+		at: Date.now(),
+		source,
+		deficit: target ? Math.max(0, (target.max_hp || 0) - (target.hp || 0)) : 0,
+		predicted: target ? heal_delivered(target, base) : 0
+	};
+}
+
 function prune_pid_weapons() {
 	const cutoff = Date.now() - 10000;
 	for (const pid in _pid_weapon) {
 		if (_pid_weapon[pid].at < cutoff) delete _pid_weapon[pid];
 	}
+	for (const pid in _pid_heal) {
+		if (_pid_heal[pid].at < cutoff) delete _pid_heal[pid];
+	}
 }
 
 setInterval(prune_pid_weapons, 10000);
+
+let _heal_window = null;
+
+function heal_window() {
+	if (!_heal_window) {
+		_heal_window = {
+			at: Date.now(),
+			single_casts: 0, single_delivered: 0, single_predicted: 0, single_overheal: 0,
+			party_casts: 0, party_delivered: 0, party_predicted: 0, party_overheal: 0,
+			untagged: 0, poisoned_ticks: 0, ticks: 0, mp_low_ticks: 0
+		};
+	}
+	return _heal_window;
+}
+
+function tick_heal_window() {
+	if (!sample_hits_enabled() || !character.heal) return;
+	const w = heal_window();
+	w.ticks++;
+	if (character.s && character.s.poisoned) w.poisoned_ticks++;
+	if (character.max_mp && character.mp / character.max_mp < 0.25) w.mp_low_ticks++;
+}
+
+function flush_heal_window() {
+	if (!_heal_window) return;
+	const w = _heal_window;
+	if (Date.now() - w.at < DAMAGE_WINDOW_MS) return;
+	_heal_window = null;
+
+	if (!w.single_casts && !w.party_casts) return;
+	if (typeof errlog_sample !== "function") return;
+
+	errlog_sample("heal", {
+		secs: +((Date.now() - w.at) / 1000).toFixed(1),
+		heal: Math.round(character.heal || 0),
+		mp_cost: Math.round(character.mp_cost || 0),
+		rpiercing: character.rpiercing || 0,
+		single_casts: w.single_casts,
+		single_delivered: Math.round(w.single_delivered),
+		single_predicted: Math.round(w.single_predicted),
+		single_overheal: Math.round(w.single_overheal),
+		single_accuracy: w.single_predicted ? +(w.single_delivered / w.single_predicted).toFixed(3) : 0,
+		party_casts: w.party_casts,
+		party_delivered: Math.round(w.party_delivered),
+		party_predicted: Math.round(w.party_predicted),
+		party_overheal: Math.round(w.party_overheal),
+		party_accuracy: w.party_predicted ? +(w.party_delivered / w.party_predicted).toFixed(3) : 0,
+		poisoned_pct: w.ticks ? +(w.poisoned_ticks / w.ticks).toFixed(2) : 0,
+		mp_low_pct: w.ticks ? +(w.mp_low_ticks / w.ticks).toFixed(2) : 0,
+		untagged: w.untagged
+	});
+}
 
 if (parent.socket._damage_sampler) {
 	parent.socket.off("hit", parent.socket._damage_sampler);
@@ -119,7 +197,21 @@ if (parent.socket._damage_sampler) {
 
 parent.socket._damage_sampler = data => {
 	try {
-		if (!sample_hits_enabled() || !_is_my_hit(data) || !data.damage) return;
+		if (!sample_hits_enabled() || !_is_my_hit(data)) return;
+
+		if (data.heal) {
+			const w = heal_window();
+			const cast = data.pid && _pid_heal[data.pid];
+			const kind = cast ? cast.source : "single";
+			if (!cast) w.untagged++;
+			w[kind + "_casts"]++;
+			w[kind + "_delivered"] += data.heal;
+			w[kind + "_predicted"] += cast ? cast.predicted : 0;
+			w[kind + "_overheal"] += cast ? Math.max(0, data.heal - cast.deficit) : 0;
+			return;
+		}
+
+		if (!data.damage) return;
 
 		const fired = data.pid && _pid_weapon[data.pid];
 		const w = damage_window_for(fired ? fired.weapon : weapon_label(), fired);
@@ -136,6 +228,7 @@ parent.socket._damage_sampler = data => {
 parent.socket.on("hit", parent.socket._damage_sampler);
 
 setInterval(flush_damage_windows, 1000);
+setInterval(() => { try { tick_heal_window(); flush_heal_window(); } catch (e) { } }, 1000);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MONSTER & COMBAT UTILITIES
