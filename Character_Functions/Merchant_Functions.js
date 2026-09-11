@@ -12,7 +12,7 @@ var CONFIG = {
 	enabled: {
 		upgrading:  local_bool("AL_merchant_enabled_upgrading", true),
 		crafting:   local_bool("AL_merchant_enabled_crafting", true),
-		exchanging: local_bool("AL_merchant_enabled_exchanging", false),
+		exchanging: local_bool("AL_merchant_enabled_exchanging", true),
 		fishing:    local_bool("AL_merchant_enabled_fishing", false),
 		mining:     false,
 	},
