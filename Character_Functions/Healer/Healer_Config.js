@@ -68,11 +68,7 @@ var CONFIG = {
 	},
 };
 
-var destination = {
-	map: locations[home][0].map,
-	x: locations[home][0].x,
-	y: locations[home][0].y
-};
+var destination = home_destination(home);
 
 var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE, "orbg", "mshield", "lmace", "elixirluck", "orboftemporal", "orboffire"];
 

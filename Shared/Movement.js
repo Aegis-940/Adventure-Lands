@@ -318,8 +318,7 @@ function stuck_escape_check() {
 		if (lead && !lead.rip) { _stuck_anchor = null; return; }
 	}
 
-	const home_map = destination.map || character.map;
-	if (character.map === home_map) { _stuck_anchor = null; return; }
+	if (destination.map && character.map === destination.map) { _stuck_anchor = null; return; }
 
 	if (G.maps[character.map]?.instance) return;
 	if (home === "giantspider") return;

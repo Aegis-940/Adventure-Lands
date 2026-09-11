@@ -21,40 +21,67 @@ const locations = {
 	booboo:     [{ map: "spookytown", x: 375, y: -739 }],
 	bscorpion:  [{ map: "desertland", x: -408, y: -1141 }],
 	boar:       [{ map: "winterland", x: 19, y: -1109 }],
-	cgoo:       [{ x: -221, y: -274 }],
+	cgoo:       [{ map: "level4", x: -221, y: -274 }],
 	crab:       [{ map: "main", x: -11840, y: -37 }],
 	dryad:      [{ map: "mforest", x: 403, y: -347 }],
-	ent:        [{ x: -420, y: -1960 }],
+	ent:        [{ map: "desertland", x: -420, y: -1960 }],
 	fireroamer: [{ map: "desertland", x: 260, y: -800 }],
 	// fireroamer: [{ map: "desertland", x: 113, y: -412 }],
-	ghost:      [{ x: -405, y: -1642 }],
-	gscorpion:  [{ x: 390, y: -1422 }],
+	ghost:      [{ map: "halloween", x: -405, y: -1642 }],
+	gscorpion:  [{ map: "desertland", x: 390, y: -1422 }],
 	iceroamer:  [{ map: "winterland", x: 823, y: -45 }],
 	mechagnome: [{ map: "cyberland", x: 0, y: 0 }],
 	mole:       [{ map: "tunnel", x: 14, y: -1072 }],
 	mummy:      [{ map: "spookytown", x: 256, y: -1417 }],
-	odino:      [{ x: -52, y: 756 }],
+	odino:      [{ map: "mforest", x: -52, y: 756 }],
 	oneeye:     [{ map: "level2w", x: -255, y: 176 }],
-	pinkgoblin: [{ x: 485, y: 157 }],
+	pinkgoblin: [{ map: "level2e", x: 485, y: 157 }],
 	poisio:     [{ map: "main", x: -121, y: 1360 }],
 	prat:       [{ map: "level1", x: 11, y: 84 }],
-	pppompom:   [{ x: 292, y: -189 }],
+	pppompom:   [{ map: "level2n", x: 292, y: -189 }],
 	plantoid:   [{ map: "desertland", x: -780, y: -387 }],
 	rat:        [{ map: "mansion", x: 6, y: 430 }],
 	scorpion:   [{ map: "main", x: -495, y: 685 }],
-	stoneworm:  [{ x: 830, y: 7 }],
+	stoneworm:  [{ map: "spookytown", x: 830, y: 7 }],
 	spider:     [{ map: "main", x: 895, y: -145 }],
 	giantspider: [{ }],
 	squig:      [{ map: "main", x: -1175, y: 422 }],
-	targetron:  [{ x: -544, y: -275 }],
+	targetron:  [{ map: "uhills", x: -544, y: -275 }],
 	wolf:       [{ map: "winterland", x: 390, y: -2745 }],
 	wolfie:     [{ map: "winterland", x: 113, y: -2014 }],
-	xscorpion:  [{ x: -495, y: 685 }],
+	xscorpion:  [{ map: "halloween", x: -495, y: 685 }],
 };
 
 const HEALER_TARGET    = localStorage.getItem("AL_target_Myras") || "bscorpion";
 const WARRIOR_TARGET   = localStorage.getItem("AL_target_Ulric") || "bscorpion";
 const RANGER_TARGET    = localStorage.getItem("AL_target_Riva")  || "bscorpion";
+
+function location_map_for(type, loc) {
+	let only = null;
+	let seen = 0;
+	try {
+		for (const m in G.maps) {
+			for (const spawn of G.maps[m].monsters || []) {
+				if (spawn.type !== type) continue;
+				seen++;
+				if (!only) only = m;
+				const b = spawn.boundary;
+				if (b && loc.x >= b[0] && loc.y >= b[1] && loc.x <= b[2] && loc.y <= b[3]) return m;
+			}
+		}
+	} catch (e) { return null; }
+	return seen === 1 ? only : null;
+}
+
+function home_destination(type) {
+	const loc = (locations[type] || [])[0] || {};
+	const map = loc.map || location_map_for(type, loc);
+	if (!map) {
+		game_log(`⚠️ locations.${type} has no map and none could be derived — `
+			+ `travelling home is disabled for this target.`, "#FF3333");
+	}
+	return { map, x: loc.x, y: loc.y };
+}
 
 const EVENT_LOCATIONS = [
 	{ name: "mrpumpkin", map: "halloween", x: -217, y: 720 },

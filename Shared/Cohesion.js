@@ -15,7 +15,8 @@ function home_radius() {
 
 function is_away_from_home() {
 	if (typeof destination === "undefined" || !destination) return false;
-	if (destination.map && character.map !== destination.map) return true;
+	if (!destination.map || !isFinite(destination.x) || !isFinite(destination.y)) return false;
+	if (character.map !== destination.map) return true;
 	return Math.hypot(character.x - destination.x, character.y - destination.y) > home_radius();
 }
 
@@ -136,7 +137,7 @@ function movement_goal() {
 	if (is_away_from_home()) {
 		return {
 			label: "home",
-			map: destination.map || character.map,
+			map: destination.map,
 			x: destination.x,
 			y: destination.y,
 			radius: home_radius(),
