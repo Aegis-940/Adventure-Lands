@@ -22,7 +22,8 @@ function reset_damage_window() {
 		attack: Math.round(character.attack || 0),
 		buffs: Object.keys(character.s || {}).filter(s => BUFFS_WORTH_LOGGING.includes(s)).join("+"),
 		direct: 0, splash: 0, burn: 0,
-		hits: 0, splashes: 0, ticks: 0
+		hits: 0, splashes: 0, ticks: 0,
+		splash_armor: 0, direct_armor: 0
 	};
 }
 
@@ -50,6 +51,8 @@ function flush_damage_window() {
 			burn_mult: +(1 + w.burn / w.direct).toFixed(3),
 			splash_mult: +(1 + w.splash / w.direct).toFixed(3),
 			hits: w.hits, splashes: w.splashes, ticks: w.ticks,
+			splash_armor: w.splashes ? Math.round(w.splash_armor / w.splashes) : 0,
+			direct_armor: w.hits ? Math.round(w.direct_armor / w.hits) : 0,
 			per_splash: w.splashes ? +(w.splash / w.splashes / (w.direct / w.hits)).toFixed(3) : 0
 		});
 	}
@@ -69,9 +72,19 @@ parent.socket._damage_sampler = data => {
 		if (!sample_hits_enabled() || !_is_my_hit(data) || !data.damage) return;
 		if (!_damage_window) reset_damage_window();
 
+		const hit = parent.entities[data.id];
+		const armor = hit ? (hit.armor || 0) : 0;
+
 		if (data.source === "burn") { _damage_window.burn += data.damage; _damage_window.ticks++; }
-		else if (data.splash) { _damage_window.splash += data.damage; _damage_window.splashes++; }
-		else { _damage_window.direct += data.damage; _damage_window.hits++; }
+		else if (data.splash) {
+			_damage_window.splash += data.damage;
+			_damage_window.splashes++;
+			_damage_window.splash_armor += armor;
+		} else {
+			_damage_window.direct += data.damage;
+			_damage_window.hits++;
+			_damage_window.direct_armor += armor;
+		}
 	} catch (e) { }
 };
 
