@@ -3,7 +3,7 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function update_cache() {
-	cache.tank_entity = get_entity("Myras")
+	cache.tank_entity = get_entity(PARTY_TANK)
 	cache.monsters_in_cleave_range = find_monsters_in_cleave_range();
 
 	if (!cache.is_valid()) {

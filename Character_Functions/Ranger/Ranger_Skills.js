@@ -59,7 +59,7 @@ async function skill_loop() {
 				await use_skill("supershot", target);
 			}
 		} else {
-			delay = min_ms > 200 ? 100 : min_ms > 50 ? 20 : 5;
+			delay = next_action_delay(min_ms, 100);
 		}
 	} catch (e) {
 		catcher(e, "skill_loop");

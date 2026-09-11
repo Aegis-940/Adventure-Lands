@@ -20,6 +20,10 @@ var CONFIG = {
 		skill_min_mp_pct: 0.40,
 	},
 
+	safety: {
+		death_escape: true,
+	},
+
 	movement: {
 		enabled: true,
 		reposition: true,

@@ -24,6 +24,10 @@ var CONFIG = {
 		taunt_ents: false
 	},
 
+	safety: {
+		death_escape: true,
+	},
+
 	movement: {
 		enabled: true,
 		reposition: true,

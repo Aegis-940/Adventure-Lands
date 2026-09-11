@@ -57,10 +57,29 @@ function count_my_aggro() {
 	return count;
 }
 
+function sustainable_heal_dps() {
+	const frequency = character.frequency > 0 ? character.frequency : 1;
+	const budget = CONFIG.combat.heal_budget_pct === undefined ? 0.70 : CONFIG.combat.heal_budget_pct;
+	return (character.heal || 0) * frequency * budget;
+}
+
 function effective_aggro_cap() {
 	const mp_pct = character.max_mp > 0 ? character.mp / character.max_mp : 0;
 	const scaled = Math.max(0, Math.min(1, (mp_pct - 0.2) / 0.6));
-	return Math.floor(CONFIG.combat.aggro_cap * scaled);
+	const mana_cap = Math.floor(CONFIG.combat.aggro_cap * scaled);
+
+	if (!CONFIG.combat.damage_aware_aggro) return mana_cap;
+
+	const incoming = projected_incoming();
+	if (incoming.in_reach === 0) return mana_cap;
+
+	const budget = sustainable_heal_dps();
+	if (budget <= 0 || incoming.dps <= budget) return mana_cap;
+
+	const per_attacker = incoming.dps / incoming.in_reach;
+	if (per_attacker <= 0) return mana_cap;
+
+	return Math.max(0, Math.min(mana_cap, Math.floor(budget / per_attacker)));
 }
 
 function find_heal_target() {

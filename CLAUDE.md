@@ -44,14 +44,14 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Merchant_Systems/Auto_Upgrade.js` | Item upgrade profiles and automation |
 | `Merchant_Systems/Auto_Craft.js` | Crafting logic and batch orchestration — loaded by Bootstrapper.js |
 | `Character_Functions/Warrior/Warrior_Config.js` | Warrior tunables, gear sets, panic thresholds, `state`/`cache` (character: Ulric) |
-| `Character_Functions/Warrior/Warrior_Combat.js` | Warrior targeting, the sugar-rush swap trick, `action_loop()` |
-| `Character_Functions/Warrior/Warrior_Skills.js` | Warrior skill loop (stomp, cleave, agitate, taunt) |
+| `Character_Functions/Warrior/Warrior_Combat.js` | Warrior targeting, the sugar-rush swap trick, `action_loop()`; sets `cache.tank_entity` to **Myras** |
+| `Character_Functions/Warrior/Warrior_Skills.js` | Warrior skill loop (cleave, agitate, warcry); agitate donates aggro to the tank (stomp/hardshell/charge commented out) |
 | `Character_Functions/Warrior/Warrior_Equipment.js` | Warrior `EQUIPMENT_RULES` resolvers and monster gear overrides |
 | `Character_Functions/Warrior/Warrior_Movement.js` | Warrior reposition scorer |
 | `Character_Functions/Warrior/Warrior_Bscorpion.js` | Bscorpion kill detection and seconds-per-kill average |
 | `Character_Functions/Warrior/Warrior.js` | Warrior entry point — windows, event handlers, `run_character()` |
 | `Character_Functions/Healer/Healer_Config.js` | Healer tunables, gear sets, panic thresholds, `state`/`cache` (character: Myras) |
-| `Character_Functions/Healer/Healer_Combat.js` | Heal target selection, aggro cap, `action_loop()` |
+| `Character_Functions/Healer/Healer_Combat.js` | **The tank's** pull logic — heal target selection, MP-scaled aggro cap (`effective_aggro_cap()`), `action_loop()` |
 | `Character_Functions/Healer/Healer_Skills.js` | Healer skill loop (curse, absorb, party heal, dark blessing) |
 | `Character_Functions/Healer/Healer_Equipment.js` | Healer `EQUIPMENT_RULES` resolvers, booster swap, temporal surge |
 | `Character_Functions/Healer/Healer_Movement.js` | Healer runner hooks (`healer_local`, panic skip) and the circle walk |
@@ -134,10 +134,32 @@ parent.$           // jQuery
 
 ## Party Configuration
 
-- **Party Leader:** `Ulric` (Warrior/Tank)
+- **Party Leader:** `Ulric` (Warrior)
 - **Party Members:** `Riva` (Ranger), `Myras` (Healer), `Riff` (Merchant)
 - Characters coordinate via shared globals and socket events
 - Merchant (Riff) supports others: delivers potions, collects loot, handles upgrades
+
+### The Healer tanks — not the Warrior
+
+`Myras` (Healer) is the party's tank. This is the single most commonly mis-assumed thing about
+this party, so do not reason from the usual Warrior-tanks/Healer-heals layout:
+
+- `Warrior_Combat.js` hardcodes `cache.tank_entity = get_entity("Myras")`. Every warrior skill and
+  equipment decision reads that entity, never `character`.
+- The Healer deliberately pulls: `Healer_Combat.js` takes untargeted monsters while
+  `count_my_aggro() < effective_aggro_cap()`, and her cap scales with MP
+  (`(mp_pct - 0.2) / 0.6`, floored at `CONFIG.combat.aggro_cap`). Aggro is a *resource she
+  spends mana on*, not a hazard she avoids.
+- The Warrior's `agitate` exists to feed her: `handle_agitate(tank)` refuses to fire when the tank
+  is missing or dead, and checks `distance(character, tank) <= 100`.
+- Target priority runs both ways round this: the Warrior's is `["Myras"]` (kill what she holds),
+  the Healer's is `["Ulric", "Myras"]` (pull what is hitting him, then hold it).
+- So `Warrior_Skills.js`'s `stomp`/`hardshell`/`charge` are commented out, and low-HP checks like
+  `tank?.hp < tank?.max_hp * 0.3` refer to *her* HP, not his.
+
+Practical consequence: survivability work (damage projection, panic thresholds, defensive gear,
+escape logic) belongs on the **Healer**. The Warrior is a DPS/off-puller — give him damage,
+positioning, and aggro-donation logic.
 
 ---
 
