@@ -10,6 +10,9 @@ function healer_on_disabled() {
 
 function healer_skip_panic_check() {
 	if (typeof is_travelling === "function" && is_travelling()) return false;
+	if (panicking) return false;
+	if (character.hp < character.max_hp * PANIC_THRESHOLDS.low_hp) return false;
+	if (character.mp < character.max_mp * PANIC_THRESHOLDS.low_mp) return false;
 	return HEALER_TARGET === "fireroamer" || HEALER_TARGET === "giantspider";
 }
 

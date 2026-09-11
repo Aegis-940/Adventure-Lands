@@ -188,6 +188,12 @@ function sample_heal_choice(fired, party_value, single_value, critical) {
 	});
 }
 
+function party_heal_emergency() {
+	if (character.max_hp && character.hp < character.max_hp * CONFIG.healing.party_heal_self_pct) return "self";
+	if (party_heal_critical_count() >= CONFIG.healing.party_heal_critical_count) return "party";
+	return null;
+}
+
 function party_heal_outvalues_single(lowest) {
 	const party_value = party_heal_useful_total();
 	const single_value = lowest ? heal_useful(lowest, character.heal) : 0;
@@ -196,11 +202,6 @@ function party_heal_outvalues_single(lowest) {
 	if (party_value <= 0) {
 		sample_heal_choice(false, party_value, single_value, critical);
 		return false;
-	}
-
-	if (critical >= CONFIG.healing.party_heal_critical_count) {
-		sample_heal_choice(true, party_value, single_value, critical);
-		return true;
 	}
 
 	const party_cost = (G.skills.partyheal && G.skills.partyheal.mp) || 400;
@@ -217,15 +218,20 @@ async function handle_party_heal() {
 	if (character.mp <= CONFIG.healing.party_heal_min_mp) return;
 	if (is_on_cooldown("partyheal")) return;
 
-	let threshold = CONFIG.healing.party_heal_threshold;
-	if (character.map !== destination.map) {
-		threshold = 0.75;
+	const emergency = party_heal_emergency();
+
+	if (!emergency) {
+		let threshold = CONFIG.healing.party_heal_threshold;
+		if (character.map !== destination.map) {
+			threshold = 0.75;
+		}
+
+		const lowest = cache.heal_target;
+		if (!lowest || !lowest.max_hp || lowest.hp >= lowest.max_hp * threshold) return;
+		if (!party_heal_outvalues_single(lowest)) return;
+	} else {
+		sample_heal_choice(emergency, party_heal_useful_total(), 0, party_heal_critical_count());
 	}
-
-	const lowest = cache.heal_target;
-	if (!lowest || !lowest.max_hp || lowest.hp >= lowest.max_hp * threshold) return;
-
-	if (!party_heal_outvalues_single(lowest)) return;
 
 	await use_skill("partyheal");
 	last_party_heal_time = now;
