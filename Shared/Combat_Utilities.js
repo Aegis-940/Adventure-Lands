@@ -293,10 +293,17 @@ function count_neighbours(mob, radius, aggro_only, centre_metric) {
 	return count;
 }
 
+function crit_multiplier() {
+	const chance = (character.crit || 0) / 100;
+	if (chance <= 0) return 1;
+	return 1 + chance * (1 + (character.critdamage || 0) / 100);
+}
+
 function splash_bonus(mob, explosion) {
 	if (!mob || !explosion) return 0;
 
 	const radius = explosion_radius(explosion);
+	const crit = crit_multiplier();
 	let bonus = 0;
 
 	for (const id in parent.entities) {
@@ -306,7 +313,7 @@ function splash_bonus(mob, explosion) {
 		if (distance(e, mob) > radius) continue;
 
 		const reduction = defense_reduction((e.armor || 0) - (character.apiercing || 0));
-		bonus += (explosion / 100) * reduction;
+		bonus += ((explosion / 100) * reduction) / crit;
 	}
 	return bonus;
 }
