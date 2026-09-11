@@ -9,36 +9,43 @@
 const DAMAGE_WINDOW_MS = 15000;
 const BUFFS_WORTH_LOGGING = ["warcry", "darkblessing", "mluck", "mcourage", "power", "xpower", "holidayspirit", "newcomersblessing", "energized"];
 
-let _damage_window = null;
+const _damage_windows = {};
 
-function reset_damage_window() {
-	_damage_window = {
-		at: Date.now(),
-		weapon: character.slots?.mainhand?.name || "none",
-		explosion: character.explosion || 0,
-		crit: character.crit || 0,
-		critdamage: character.critdamage || 0,
-		apiercing: character.apiercing || 0,
-		attack: Math.round(character.attack || 0),
-		buffs: Object.keys(character.s || {}).filter(s => BUFFS_WORTH_LOGGING.includes(s)).join("+"),
-		direct: 0, splash: 0, burn: 0,
-		hits: 0, splashes: 0, ticks: 0,
-		splash_armor: 0, direct_armor: 0
-	};
+function damage_window_for(weapon) {
+	let w = _damage_windows[weapon];
+	if (!w) {
+		w = _damage_windows[weapon] = {
+			at: Date.now(),
+			weapon,
+			explosion: character.explosion || 0,
+			crit: character.crit || 0,
+			critdamage: character.critdamage || 0,
+			apiercing: character.apiercing || 0,
+			attack: Math.round(character.attack || 0),
+			buffs: Object.keys(character.s || {}).filter(s => BUFFS_WORTH_LOGGING.includes(s)).join("+"),
+			direct: 0, splash: 0, burn: 0,
+			hits: 0, splashes: 0, ticks: 0,
+			splash_armor: 0, direct_armor: 0
+		};
+	}
+	return w;
 }
 
 function sample_hits_enabled() {
 	return typeof CONFIG !== "undefined" && CONFIG.combat && CONFIG.combat.sample_hits;
 }
 
-function flush_damage_window() {
+function flush_damage_windows() {
 	if (!sample_hits_enabled()) return;
-	if (!_damage_window) return reset_damage_window();
+	for (const weapon in _damage_windows) {
+		const w = _damage_windows[weapon];
+		if (Date.now() - w.at < DAMAGE_WINDOW_MS) continue;
+		delete _damage_windows[weapon];
+		emit_damage_window(w);
+	}
+}
 
-	const w = _damage_window;
-	const weapon = character.slots?.mainhand?.name || "none";
-	if (Date.now() - w.at < DAMAGE_WINDOW_MS && weapon === w.weapon) return;
-
+function emit_damage_window(w) {
 	if (w.direct > 0 && typeof errlog_sample === "function") {
 		errlog_sample("damage", {
 			weapon: w.weapon,
@@ -56,7 +63,6 @@ function flush_damage_window() {
 			per_splash: w.splashes ? +(w.splash / w.splashes / (w.direct / w.hits)).toFixed(3) : 0
 		});
 	}
-	reset_damage_window();
 }
 
 function _is_my_hit(data) {
@@ -70,27 +76,20 @@ if (parent.socket._damage_sampler) {
 parent.socket._damage_sampler = data => {
 	try {
 		if (!sample_hits_enabled() || !_is_my_hit(data) || !data.damage) return;
-		if (!_damage_window) reset_damage_window();
 
+		const w = damage_window_for(character.slots?.mainhand?.name || "none");
 		const hit = parent.entities[data.id];
 		const armor = hit ? (hit.armor || 0) : 0;
 
-		if (data.source === "burn") { _damage_window.burn += data.damage; _damage_window.ticks++; }
-		else if (data.splash) {
-			_damage_window.splash += data.damage;
-			_damage_window.splashes++;
-			_damage_window.splash_armor += armor;
-		} else {
-			_damage_window.direct += data.damage;
-			_damage_window.hits++;
-			_damage_window.direct_armor += armor;
-		}
+		if (data.source === "burn") { w.burn += data.damage; w.ticks++; }
+		else if (data.splash) { w.splash += data.damage; w.splashes++; w.splash_armor += armor; }
+		else { w.direct += data.damage; w.hits++; w.direct_armor += armor; }
 	} catch (e) { }
 };
 
 parent.socket.on("hit", parent.socket._damage_sampler);
 
-setInterval(flush_damage_window, 1000);
+setInterval(flush_damage_windows, 1000);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MONSTER & COMBAT UTILITIES
