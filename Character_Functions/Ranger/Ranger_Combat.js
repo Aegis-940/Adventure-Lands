@@ -25,6 +25,7 @@ function should_attack_mob(mob) {
 function update_cache() {
 	if (cache.is_valid()) return;
 	const now = performance.now();
+	sample_set_profiles(["single", "boom"]);
 	cache.targets = update_target_cache();
 	cache.heal_target = find_heal_target();
 	cache.last_update = now;
@@ -67,7 +68,7 @@ function update_target_cache() {
 		in_range.sort((a, b) => parent.distance(character, a) - parent.distance(character, b));
 	}
 
-	const radius = explosion_radius(CONFIG.combat.pouchbow_explosion);
+	const radius = explosion_radius(pouchbow_explosion());
 	const scored = score_by_explosion_spread(in_range, true, radius);
 	const cluster_targets = scored.map(s => s.mob);
 	const cluster_target = scored[0]?.count >= 3 ? scored[0].mob : null;
@@ -214,8 +215,9 @@ function log_attack_choice(choice) {
 	if (now - _last_efficiency_log < CONFIG.combat.log_efficiency_ms) return;
 	_last_efficiency_log = now;
 
-	const k = choice.targets.map(t => count_neighbours(t, explosion_radius(CONFIG.combat.pouchbow_explosion), false));
-	log(`[RANGER] ${choice.name} x${choice.targets.length} k=[${k}] `
+	const k = choice.targets.map(t => count_neighbours(t, explosion_radius(pouchbow_explosion()), false));
+	const need = neighbours_to_beat_firebow(CONFIG.combat.burn_mult_default);
+	log(`[RANGER] ${choice.name} x${choice.targets.length} k=[${k}] need=${need === null ? "?" : need} `
 		+ `dmg=${choice.damage.toFixed(2)} mana=${choice.mana} `
 		+ `mp=${Math.round(character.mp)} lam=${mana_price().toFixed(4)} `
 		+ `wep=${character.slots?.mainhand?.name}`, "#66ccff");

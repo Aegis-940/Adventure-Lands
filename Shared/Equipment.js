@@ -97,6 +97,56 @@ function is_set_equipped(set_name) {
 	);
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// SET PROFILES — what each equipment set is actually worth, measured while it is worn
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const SET_PROFILE_KEY = "AL_set_profile_";
+const SET_PROFILE_FIELDS = ["attack", "explosion", "frequency"];
+
+let _set_profiles = null;
+
+function load_set_profiles() {
+	if (_set_profiles) return _set_profiles;
+	try {
+		_set_profiles = JSON.parse(localStorage.getItem(SET_PROFILE_KEY + character.name)) || {};
+	} catch (e) {
+		_set_profiles = {};
+	}
+	return _set_profiles;
+}
+
+function get_set_profile(set_name) {
+	return load_set_profiles()[set_name] || null;
+}
+
+function record_set_profile(set_name) {
+	if (!is_set_equipped(set_name)) return false;
+
+	const profiles = load_set_profiles();
+	const profile = { at: Date.now() };
+	for (const field of SET_PROFILE_FIELDS) profile[field] = character[field] || 0;
+
+	const previous = profiles[set_name];
+	const unchanged = previous && SET_PROFILE_FIELDS.every(f => previous[f] === profile[f]);
+	if (unchanged) return false;
+
+	profiles[set_name] = profile;
+	try {
+		localStorage.setItem(SET_PROFILE_KEY + character.name, JSON.stringify(profiles));
+	} catch (e) { }
+	return true;
+}
+
+function sample_set_profiles(set_names) {
+	for (const name of set_names) {
+		if (record_set_profile(name)) {
+			const p = get_set_profile(name);
+			log(`[GEAR] ${name}: atk=${Math.round(p.attack)} expl=${p.explosion} freq=${p.frequency.toFixed(2)}`, "#66ccff");
+		}
+	}
+}
+
 function set_available(set_name) {
 	try {
 		const set = equipment_sets[set_name];

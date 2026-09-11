@@ -2,6 +2,20 @@
 // RANGER EQUIPMENT RULES — consumed by the shared resolve_equipment()/equipment_manager_loop()
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+function pouchbow_explosion() {
+	const boom = get_set_profile("boom");
+	return (boom && boom.explosion) || CONFIG.combat.pouchbow_explosion;
+}
+
+function neighbours_to_beat_firebow(burn_mult) {
+	const single = get_set_profile("single");
+	const boom = get_set_profile("boom");
+	if (!single || !boom || !boom.attack || !boom.explosion) return null;
+
+	const ratio = (single.attack * burn_mult) / boom.attack;
+	return Math.max(0, Math.ceil((ratio - 1) / (boom.explosion / 100)));
+}
+
 function resolve_ranger_weapon() {
 	if (cache.heal_target) return "heal";
 	if (RANGER_TARGET === "giantspider") return "single";
@@ -13,9 +27,13 @@ function resolve_ranger_weapon() {
 	const best = scored && scored[0];
 	if (!best) return "single";
 
-	const needed = CONFIG.combat.attack_if_targeted.includes(best.mob.mtype)
-		? CONFIG.combat.pouchbow_min_neighbours_boss
-		: CONFIG.combat.pouchbow_min_neighbours;
+	const is_boss = CONFIG.combat.attack_if_targeted.includes(best.mob.mtype);
+	const burn_mult = is_boss ? CONFIG.combat.burn_mult_boss : CONFIG.combat.burn_mult_default;
+
+	const derived = neighbours_to_beat_firebow(burn_mult);
+	const needed = derived === null
+		? (is_boss ? CONFIG.combat.pouchbow_min_neighbours_boss : CONFIG.combat.pouchbow_min_neighbours)
+		: derived;
 
 	return best.count >= needed ? "boom" : "single";
 }
