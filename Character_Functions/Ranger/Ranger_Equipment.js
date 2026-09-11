@@ -7,13 +7,20 @@ function pouchbow_explosion() {
 	return (boom && boom.explosion) || CONFIG.combat.pouchbow_explosion;
 }
 
-function neighbours_to_beat_firebow(burn_mult) {
+function bow_values(mob) {
 	const single = get_set_profile("single");
 	const boom = get_set_profile("boom");
 	if (!single || !boom || !boom.attack || !boom.explosion) return null;
 
-	const ratio = (single.attack * burn_mult) / boom.attack;
-	return Math.max(0, Math.ceil((ratio - 1) / (boom.explosion / 100)));
+	const single_dps = (single.attack || 0) * (single.frequency || 1);
+	const burn_mult = burn_multiplier_at_dps(
+		mob, set_ability_chance("single", "burn"), single_dps, CONFIG.combat.party_dps_factor
+	);
+
+	return {
+		single: single_dps * burn_mult,
+		boom: (boom.attack || 0) * (boom.frequency || 1) * (1 + splash_bonus(mob, boom.explosion)),
+	};
 }
 
 function resolve_ranger_weapon() {
@@ -27,18 +34,10 @@ function resolve_ranger_weapon() {
 	const best = scored && scored[0];
 	if (!best) return "single";
 
-	const single = get_set_profile("single");
-	const single_dps = single ? (single.attack || 0) * (single.frequency || 1) : 0;
-	const burn_mult = burn_multiplier_at_dps(
-		best.mob, set_ability_chance("single", "burn"), single_dps, CONFIG.combat.party_dps_factor
-	);
+	const values = bow_values(best.mob);
+	if (!values) return best.count >= CONFIG.combat.pouchbow_min_neighbours ? "boom" : "single";
 
-	const derived = neighbours_to_beat_firebow(burn_mult);
-	const needed = derived === null
-		? CONFIG.combat.pouchbow_min_neighbours
-		: derived;
-
-	return best.count >= needed ? "boom" : "single";
+	return values.boom > values.single ? "boom" : "single";
 }
 
 function resolve_ranger_loadout() {

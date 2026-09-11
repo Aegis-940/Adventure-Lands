@@ -223,6 +223,24 @@ function count_neighbours(mob, radius, aggro_only, centre_metric) {
 	return count;
 }
 
+function splash_bonus(mob, explosion) {
+	if (!mob || !explosion) return 0;
+
+	const radius = explosion_radius(explosion);
+	let bonus = 0;
+
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e?.type !== "monster" || e.dead) continue;
+		if (e === mob || e.id === mob.id) continue;
+		if (distance(e, mob) > radius) continue;
+
+		const reduction = defense_reduction((e.armor || 0) - (character.apiercing || 0));
+		bonus += (explosion / 100) * reduction * reduction;
+	}
+	return bonus;
+}
+
 function score_by_explosion_spread(pool, aggro_only = false, radius, centre_metric) {
 	const r = radius === undefined ? explosion_radius() : radius;
 

@@ -65,8 +65,7 @@ function warrior_set_value(set_name, primary, cleave_targets) {
 	if (chance) value *= 1 + (chance / 100) * (burn_ticks_against(primary, profile) / 5);
 
 	if (profile.explosion > 0 && primary) {
-		const neighbours = count_neighbours(primary, explosion_radius(profile.explosion), false);
-		value *= 1 + (profile.explosion / 100) * neighbours;
+		value *= 1 + splash_bonus(primary, profile.explosion);
 	}
 
 	const cleave = cleave_contribution(set_name, cleave_targets);
