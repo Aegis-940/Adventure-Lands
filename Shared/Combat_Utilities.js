@@ -25,7 +25,8 @@ function damage_window_for(weapon) {
 			buffs: Object.keys(character.s || {}).filter(s => BUFFS_WORTH_LOGGING.includes(s)).join("+"),
 			direct: 0, splash: 0, burn: 0,
 			hits: 0, splashes: 0, ticks: 0,
-			splash_armor: 0, direct_armor: 0
+			splash_armor: 0, direct_armor: 0,
+			tagged: 0, untagged: 0
 		};
 	}
 	return w;
@@ -58,6 +59,7 @@ function emit_damage_window(w) {
 			burn_mult: +(1 + w.burn / w.direct).toFixed(3),
 			splash_mult: +(1 + w.splash / w.direct).toFixed(3),
 			hits: w.hits, splashes: w.splashes, ticks: w.ticks,
+			tagged: w.tagged, untagged: w.untagged,
 			splash_armor: w.splashes ? Math.round(w.splash_armor / w.splashes) : 0,
 			direct_armor: w.hits ? Math.round(w.direct_armor / w.hits) : 0,
 			per_splash: w.splashes ? +(w.splash / w.splashes / (w.direct / w.hits)).toFixed(3) : 0
@@ -69,6 +71,34 @@ function _is_my_hit(data) {
 	return data && (data.hid === character.id || data.hid === character.name);
 }
 
+const _pid_weapon = {};
+
+if (parent.socket._action_sampler) {
+	parent.socket.off("action", parent.socket._action_sampler);
+}
+
+parent.socket._action_sampler = data => {
+	try {
+		if (!sample_hits_enabled() || !data || !data.pid) return;
+		if (data.attacker !== character.id && data.attacker !== character.name) return;
+		_pid_weapon[data.pid] = {
+			weapon: character.slots?.mainhand?.name || "none",
+			at: Date.now()
+		};
+	} catch (e) { }
+};
+
+parent.socket.on("action", parent.socket._action_sampler);
+
+function prune_pid_weapons() {
+	const cutoff = Date.now() - 10000;
+	for (const pid in _pid_weapon) {
+		if (_pid_weapon[pid].at < cutoff) delete _pid_weapon[pid];
+	}
+}
+
+setInterval(prune_pid_weapons, 10000);
+
 if (parent.socket._damage_sampler) {
 	parent.socket.off("hit", parent.socket._damage_sampler);
 }
@@ -77,9 +107,11 @@ parent.socket._damage_sampler = data => {
 	try {
 		if (!sample_hits_enabled() || !_is_my_hit(data) || !data.damage) return;
 
-		const w = damage_window_for(character.slots?.mainhand?.name || "none");
+		const fired = data.pid && _pid_weapon[data.pid];
+		const w = damage_window_for(fired ? fired.weapon : (character.slots?.mainhand?.name || "none"));
 		const hit = parent.entities[data.id];
 		const armor = hit ? (hit.armor || 0) : 0;
+		if (fired) w.tagged++; else w.untagged++;
 
 		if (data.source === "burn") { w.burn += data.damage; w.ticks++; }
 		else if (data.splash) { w.splash += data.damage; w.splashes++; w.splash_armor += armor; }
