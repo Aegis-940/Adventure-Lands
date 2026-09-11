@@ -13,7 +13,7 @@ var CONFIG = {
 		all_bosses,
 		aggro: true,
 		aggro_cap: 5,
-		sample_hits: true,
+		sample_hits: false,
 		curse_min_hp_pct: 0.25,
 	},
 
