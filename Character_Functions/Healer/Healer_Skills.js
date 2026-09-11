@@ -108,7 +108,7 @@ async function handle_curse() {
 async function handle_absorb() {
 	if (is_on_cooldown("absorb")) return;
 
-	const maps_to_exclude = ["level2n", "level2w"];
+	const maps_to_exclude = ["level2w"];
 	if (maps_to_exclude.includes(character.map)) return;
 
 	// const boss = get_nearest_monster_v2({ type: CONFIG.combat.all_bosses });
