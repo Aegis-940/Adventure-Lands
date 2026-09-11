@@ -41,7 +41,7 @@ gathers mobs for her via `agitate`. Survivability work belongs on Myras; see CLA
 | 16 | Resolve instance keys from `G` | `Healer_Dungeon.js` | Low | — |
 | 17 | Let instances age before clearing | none (strategy) | None | — |
 | 18 | Per-monster dungeon sub-strategies | `Healer_Dungeon.js` | Med | 14, 15, 16 |
-| 19 | Multiple-attack burst (**optional**) | one `*_Combat.js` | High (CC) | 1 |
+| ✅ 19 | Multiple-attack burst (**off by default**) | `Ranger_Combat.js`, `Combat_Utilities.js` | High (CC) | 1 |
 | 20 | Leave `hardshell` disabled (**no action**) | — | None | — |
 
 ✅ marks an item that has been written. Nothing is ticked as *verified* — that needs the live client.
@@ -296,15 +296,19 @@ before the next tick. Skip entities that will die to projectiles already in flig
 **As built:** `projected_incoming()` returns `{attackers, in_reach, burst, dps}` in one pass;
 `projected_incoming_dps()` and `could_die_to_incoming()` wrap it.
 
-**One open accuracy question.** `estimate_hit_damage()` needs the armor/resistance reduction curve.
-It calls `parent.damage_multiplier(defense)` when that function exists, and otherwise falls back to
-`DEFENSE_HALF_POINT / (DEFENSE_HALF_POINT + defense)` with `DEFENSE_HALF_POINT = 900` — a curve
-fitted to the single data point in `GAME_API_REFERENCE.md` ("100 armor/resistance = ~10% reduction,
-diminishing returns"). **Confirm in-game whether `parent.damage_multiplier` is callable**; if it is,
-the fallback never runs and this question goes away. If it is not, compare `estimate_hit_damage()`
-against real `hit` event damage and correct the constant.
+**The reduction curve is the game's own, not an approximation.** `defense_reduction()` calls
+`parent.damage_multiplier(defense)` when the game exposes it, and otherwise runs a direct port of
+`damage_multiplier()` from `js/common_functions.js` in
+[kaansoral/adventureland](https://github.com/kaansoral/adventureland) — the nine-band piecewise
+curve (0.00100/unit for the first 100 armor, tapering to 0.00040 above 800), the four-band
+armor-piercing curve for negative defense, and the `min(1.32, max(0.05, …))` clamp.
 
-Evasion and crits are ignored, which biases the estimate high — the safe direction for a
+An earlier revision used a one-parameter fit, `900 / (900 + defense)`, anchored on the single data
+point in `GAME_API_REFERENCE.md`. It was exact at 0 and 100 armor and diverged badly above that —
++20% at 500, +50% at 800, +122% at 1200 — always under-stating reduction, so it over-stated incoming
+damage. Do not reintroduce it.
+
+Evasion and crits are still ignored, which biases the estimate high — the safe direction for a
 death check.
 
 ---
@@ -677,7 +681,7 @@ building once those three exist, and only if we run dungeons beyond the spider i
 
 ---
 
-## 19. Multiple-attack burst — optional, may be a net loss
+## ✅ 19. Multiple-attack burst — optional, may be a net loss
 
 **File:** one `*_Combat.js`, behind a config flag, on Riva only to start
 
@@ -706,6 +710,48 @@ push CC up hard, and high CC risks a disconnect — the source repo's own tracke
 **If attempted:** start at `NUM_ATTACKS = 3`, on Riva only, and watch CC in the in-game log. Measure
 kills-per-ten-minutes against the same farm with the flag off before keeping it. The source repo
 measures this rather than assuming it, and so should we.
+
+### As built — shipped off, with the measurement to decide it
+
+`fire_attack_burst(target)` in `Ranger_Combat.js`, fired alongside the primary attack (not after —
+the point is packets straddling the cooldown boundary). Config:
+
+- `CONFIG.combat.burst_attacks` — extra attacks, **default `0`, which is off**. The count is the
+  switch; there is no separate boolean. Set to `3` to test.
+- `CONFIG.combat.burst_max_cc` — `60`. No burst is started above it, well under
+  `COOLDOWNS.cc` (125).
+
+**Single-target only.** `3shot`/`5shot` share the `attack` cooldown so they race the same boundary,
+but they cost far more MP and CC per call, and bursting a 5-target skill multiplies both. The burst
+runs only on the plain `attack()` branches.
+
+**It composes with item 1 rather than duplicating it.** Earthiverse calls
+`reduce_cooldown(minPing + floor(N/2))` inside each burst iteration. We do not: the `_compensating`
+wrapper from item 1 already applies exactly one `reduce_cooldown` per cooldown window, deduped by
+timestamp, on whichever packet the server accepts. Bursts that lose the race reject with `cooldown`,
+never reach the wrapper's success path, and so never over-compensate. Adding earthiverse's extra
+reduction on top would double-compensate.
+
+Rejections are swallowed deliberately — most burst packets are *supposed* to be rejected. They are
+counted rather than logged: `burst_landed / burst_sent` is the hit rate.
+
+### Deciding it
+
+A COMBAT TELEMETRY section in `Combat_Utilities.js` counts kills (from the socket `hit` event, where
+`kill` actually lives — `character.on("target_hit")` does not carry it), attacks sent, and burst
+sent/landed, over a 10-minute window. It logs one line per window to Alerts and resets:
+
+```
+[COMBAT] 412 kills (412/10min), 508 attacks, burst 37/1524, cc 38, ping 41
+```
+
+`al_combat()` in the console returns the same figures for the window so far. All three characters
+count kills and attacks, so the Warrior and Healer give a baseline while only Riva bursts.
+
+**How to read it:** run a farm with `burst_attacks: 0`, note kills/10min, then run the same farm at
+`3`. Keep the burst only if kills/10min rises and `cc` stays clear of 125. A low
+`burst_landed/burst_sent` is expected and not itself a failure — one landed packet per window is the
+whole point.
 
 ---
 

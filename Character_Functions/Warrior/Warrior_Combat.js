@@ -95,6 +95,7 @@ async function status_swap_trick_check(target) {
 
 	if (can_kill_in_one_shot(target)) claim_monsters([target]);
 
+	note_attack_sent();
 	Promise.resolve(attack(target)).catch(e => catcher(e, "action_loop"));
 
 	const trick = STATUS_SWAP_TRICKS[target?.mtype];

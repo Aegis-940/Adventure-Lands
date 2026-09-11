@@ -85,7 +85,6 @@ _compensation_installer = setInterval(_install_compensation, 1000);
 const TIME_TO_DEATH_TTL_MS = 60000;
 const TIME_TO_DEATH_MAX_SAMPLES = 100;
 const MOBBING_PENALTY_PER_EXCESS = 0.2;
-const DEFENSE_HALF_POINT = 900;
 
 const _hp_samples = {};
 
@@ -132,8 +131,28 @@ setInterval(prune_hp_samples, TIME_TO_DEATH_TTL_MS);
 
 function defense_reduction(defense) {
 	if (typeof parent.damage_multiplier === "function") return parent.damage_multiplier(defense);
-	const d = Math.max(0, defense || 0);
-	return DEFENSE_HALF_POINT / (DEFENSE_HALF_POINT + d);
+
+	const d = defense || 0;
+	const clamp = (lo, hi, v) => Math.max(lo, Math.min(hi, v));
+
+	const reduction =
+		clamp(0, 100, d) * 0.00100 +
+		clamp(0, 100, d - 100) * 0.00100 +
+		clamp(0, 100, d - 200) * 0.00095 +
+		clamp(0, 100, d - 300) * 0.00090 +
+		clamp(0, 100, d - 400) * 0.00082 +
+		clamp(0, 100, d - 500) * 0.00070 +
+		clamp(0, 100, d - 600) * 0.00060 +
+		clamp(0, 100, d - 700) * 0.00050 +
+		Math.max(0, d - 800) * 0.00040;
+
+	const piercing =
+		clamp(0, 50, -d) * 0.00100 +
+		clamp(0, 50, -50 - d) * 0.00075 +
+		clamp(0, 50, -100 - d) * 0.00050 +
+		Math.max(0, -150 - d) * 0.00025;
+
+	return Math.min(1.32, Math.max(0.05, 1 - reduction + piercing));
 }
 
 function damage_type_of(entity) {
@@ -221,6 +240,68 @@ function will_burn_to_death() {
 
 	return ticks * (burned.intensity / 5) >= character.hp;
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// COMBAT TELEMETRY — kills and attack efficiency per window, read with al_combat()
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const COMBAT_WINDOW_MS = 600000;
+
+let _combat_stats = null;
+
+function reset_combat_stats() {
+	_combat_stats = { started: Date.now(), kills: 0, attacks: 0, burst_sent: 0, burst_landed: 0 };
+}
+
+reset_combat_stats();
+
+function note_attack_sent() {
+	_combat_stats.attacks++;
+}
+
+function note_burst_sent() {
+	_combat_stats.burst_sent++;
+}
+
+function note_burst_landed() {
+	_combat_stats.burst_landed++;
+}
+
+function al_combat() {
+	const minutes = (Date.now() - _combat_stats.started) / 60000;
+	return {
+		minutes: Math.round(minutes * 10) / 10,
+		kills: _combat_stats.kills,
+		kills_per_10min: minutes > 0 ? Math.round((_combat_stats.kills / minutes) * 100) / 10 : 0,
+		attacks: _combat_stats.attacks,
+		burst_sent: _combat_stats.burst_sent,
+		burst_landed: _combat_stats.burst_landed,
+		cc: Math.round(character.cc || 0),
+		ping: Math.round(min_ping())
+	};
+}
+
+if (parent.socket._combat_stats_handler) {
+	parent.socket.off("hit", parent.socket._combat_stats_handler);
+}
+
+parent.socket._combat_stats_handler = data => {
+	try {
+		if (data && data.kill && data.hid === character.id) _combat_stats.kills++;
+	} catch (e) { }
+};
+
+parent.socket.on("hit", parent.socket._combat_stats_handler);
+
+setInterval(() => {
+	const report = al_combat();
+	if (report.kills || report.attacks) {
+		log(`[COMBAT] ${report.kills} kills (${report.kills_per_10min}/10min), `
+			+ `${report.attacks} attacks, burst ${report.burst_landed}/${report.burst_sent}, `
+			+ `cc ${report.cc}, ping ${report.ping}`, "#66ccff", "Alerts");
+	}
+	reset_combat_stats();
+}, COMBAT_WINDOW_MS);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MONSTER CLAIMS — do not overkill, do not double-pull

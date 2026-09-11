@@ -592,7 +592,7 @@ handle_death()               // custom death behavior
 4. On arrival, server emits `hit` (damage resolution)
 
 ### Damage Reduction
-- `damage_multiplier(defense)`: 100 armor/resistance = ~10% reduction (diminishing returns)
+- `damage_multiplier(defense)` — defined in the game's `js/common_functions.js`, so it is callable as `parent.damage_multiplier()`. Piecewise, nine bands: 0.00100 reduction per point for the first 100 defense, then 0.00100, 0.00095, 0.00090, 0.00082, 0.00070, 0.00060, 0.00050 per 100-point band, and 0.00040 per point above 800. Negative defense (armor piercing) adds 0.00100/0.00075/0.00050 per point over three 50-point bands then 0.00025. Result clamped to `[0.05, 1.32]`. So 100 → ×0.90, 300 → ×0.705, 500 → ×0.533, 800 → ×0.353, 2000 → ×0.05 (the floor). Ported into `defense_reduction()` in `Shared/Combat_Utilities.js` as a fallback
 - Physical attacks reduced by armor, magical by resistance
 - `apiercing`/`rpiercing` bypass defense
 - Priests: heal at full power, attack at 40%

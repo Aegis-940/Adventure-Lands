@@ -214,6 +214,7 @@ async function action_loop() {
 				const TARGET = cache.target;
 				if (TARGET && is_in_range(TARGET) && !basic_action_busy()) {
 					if (can_kill_in_one_shot(TARGET)) claim_monsters([TARGET]);
+					note_attack_sent();
 					run_basic_action(attack(TARGET), "attack");
 					acted = true;
 				}

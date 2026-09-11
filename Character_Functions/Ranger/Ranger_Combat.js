@@ -151,5 +151,25 @@ async function handle_attack() {
 	const killable = chosen.filter(e => can_kill_in_one_shot(e, skill_name));
 	if (killable.length) claim_monsters(killable);
 
+	if (!skill_name) fire_attack_burst(chosen[0]);
+
+	note_attack_sent();
 	await skill_call();
+}
+
+function fire_attack_burst(target) {
+	const extra = CONFIG.combat.burst_attacks || 0;
+	if (extra <= 0 || !target) return;
+	if (character.cc >= (CONFIG.combat.burst_max_cc || 60)) return;
+
+	let remaining = extra;
+	const burst = setInterval(() => {
+		if (remaining <= 0 || character.rip || target.dead) {
+			clearInterval(burst);
+			return;
+		}
+		remaining--;
+		note_burst_sent();
+		Promise.resolve(attack(target)).then(note_burst_landed, () => { });
+	}, 1);
 }
