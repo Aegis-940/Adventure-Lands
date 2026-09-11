@@ -51,9 +51,11 @@ var CONFIG = {
 		boss_set_swap_enabled: true,
 		weapon_swap_enabled: true,
 
+		weapon_selection: "count",
 		weapon_sets: ["single", "aoe", "bataxe"],
-		weapon_hysteresis_ms: 3000,
-		weapon_switch_margin: 1.10,
+		weapon_hysteresis_ms: 6000,
+		weapon_switch_margin: 1.20,
+		cleave_swap_ms: 480,
 
 		mana_income_per_sec: 244,
 		skill_mana_reserve: 0.40,

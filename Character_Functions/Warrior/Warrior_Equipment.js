@@ -24,25 +24,35 @@ function burn_ticks_against(mob, profile) {
 	if (!def || !def.interval) return 0;
 
 	const max_ticks = Math.floor((def.duration || 0) / def.interval);
-	if (!mob || !mob.hp) return max_ticks;
+	if (!mob || !mob.max_hp) return max_ticks;
 
 	const armor = (mob.armor || 0) - (character.apiercing || 0);
 	const dps = set_dps(profile) * defense_reduction(armor) * (CONFIG.equipment.party_dps_factor || 1);
 	if (dps <= 0) return max_ticks;
 
-	return Math.max(0, Math.min(max_ticks, Math.floor(((mob.hp / dps) * 1000) / def.interval)));
+	return Math.max(0, Math.min(max_ticks, Math.floor(((mob.max_hp / dps) * 1000) / def.interval)));
 }
 
-function cleave_dps(profile, targets) {
-	if (!targets) return 0;
-
+function cleave_period() {
 	const cooldown = (G.skills.cleave.cooldown || 1200) / 1000;
-	const spare = Math.max(0, CONFIG.equipment.mana_income_per_sec - character.mp_cost * (profile.frequency || 1));
+	const spare = Math.max(0, CONFIG.equipment.mana_income_per_sec - character.mp_cost * (character.frequency || 1));
 	const budget = spare * (1 - CONFIG.equipment.skill_mana_reserve);
-	if (budget <= 0) return 0;
+	if (budget <= 0) return Infinity;
+	return Math.max(cooldown, G.skills.cleave.mp / budget);
+}
 
-	const period = Math.max(cooldown, G.skills.cleave.mp / budget);
-	return (0.5 * (profile.attack || 0) * targets) / period;
+function cleave_contribution(set_name, targets) {
+	const axe = get_set_profile("bataxe");
+	if (!axe || !axe.attack || !targets) return { dps: 0, uptime: 1 };
+
+	const period = cleave_period();
+	if (!isFinite(period)) return { dps: 0, uptime: 1 };
+
+	const dps = (0.5 * axe.attack * targets) / period;
+	if (set_name === "bataxe") return { dps, uptime: 1 };
+
+	const swap_s = (CONFIG.equipment.cleave_swap_ms || 480) / 1000;
+	return { dps, uptime: Math.max(0, 1 - swap_s / period) };
 }
 
 function warrior_set_value(set_name, primary, cleave_targets) {
@@ -51,17 +61,16 @@ function warrior_set_value(set_name, primary, cleave_targets) {
 
 	let value = set_dps(profile);
 
+	const chance = set_ability_chance(set_name, "burn");
+	if (chance) value *= 1 + (chance / 100) * (burn_ticks_against(primary, profile) / 5);
+
 	if (profile.explosion > 0 && primary) {
 		const neighbours = count_neighbours(primary, explosion_radius(profile.explosion), false);
 		value *= 1 + (profile.explosion / 100) * neighbours;
-	} else {
-		const chance = set_ability_chance(set_name, "burn");
-		if (chance) value *= 1 + (chance / 100) * (burn_ticks_against(primary, profile) / 5);
 	}
 
-	if (set_name === "bataxe") value += cleave_dps(profile, cleave_targets);
-
-	return value;
+	const cleave = cleave_contribution(set_name, cleave_targets);
+	return value * cleave.uptime + cleave.dps;
 }
 
 function best_warrior_weapon_set() {
@@ -142,6 +151,20 @@ function resolve_warrior_loadout() {
 	return resolve_warrior_home_loadout();
 }
 
+function warrior_weapon_set() {
+	if (CONFIG.equipment.weapon_selection === "value") {
+		const chosen = best_warrior_weapon_set();
+		if (chosen) return chosen;
+	}
+
+	const home_count = mob_count();
+	if (home_count === 1) return "single";
+	if (home_count > 1) return "aoe";
+	if (CONFIG.equipment.aoe_maps.includes(character.map)) return "aoe";
+	if (CONFIG.equipment.single_target_maps.includes(character.map)) return "single";
+	return null;
+}
+
 function resolve_warrior_home_loadout() {
 	if (character.map !== destination.map) return null;
 
@@ -153,11 +176,8 @@ function resolve_warrior_home_loadout() {
 		return sets;
 	}
 
-	const chosen = best_warrior_weapon_set();
+	const chosen = warrior_weapon_set();
 	if (chosen) sets.push(chosen);
-	else if (CONFIG.equipment.aoe_maps.includes(character.map)) sets.push("aoe");
-	else if (CONFIG.equipment.single_target_maps.includes(character.map)) sets.push("single");
-
 	return sets;
 }
 

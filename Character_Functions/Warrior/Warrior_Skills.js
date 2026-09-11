@@ -92,7 +92,7 @@ async function handle_cleave() {
 	const now = performance.now();
 	if (now - state.last_cleave_swap <= COOLDOWNS.weapon_swap) return;
 
-	const restore = best_warrior_weapon_set() || (mob_count() === 1 ? "single" : "aoe");
+	const restore = warrior_weapon_set() || (mob_count() === 1 ? "single" : "aoe");
 	if (restore === "bataxe") return;
 
 	const token = equip_claim("cleave-swap", EQUIP_PRIORITY.skill);
