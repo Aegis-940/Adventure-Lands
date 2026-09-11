@@ -85,6 +85,10 @@ async function handle_cleave() {
 	if (ms_until_cleave !== 0) return;
 	if (!can_cleave()) return;
 
+	if (character.slots?.mainhand?.name === "bataxe") {
+		return use_skill("cleave");
+	}
+
 	const mainhand = character.slots?.mainhand?.name;
 	const needs_swap = mainhand !== "bataxe";
 	const now = performance.now();
@@ -110,7 +114,9 @@ function can_cleave() {
 	if (!CONFIG.equipment.cleave_maps.includes(character.map)) return false;
 	if (is_travelling() || is_disabled(character)) return false;
 	if (character.cc >= COOLDOWNS.cc) return false;
-	if (ms_to_next_skill("attack") <= 75) return false;
+
+	const holding_axe = character.slots?.mainhand?.name === "bataxe";
+	if (!holding_axe && ms_to_next_skill("attack") <= 75) return false;
 
 	const required_mp = character.mp_cost * 2 + G.skills.cleave.mp + 320;
 	if (character.mp < required_mp) return false;
@@ -131,7 +137,8 @@ function can_cleave() {
 	);
 	if (blacklisted_nearby) return false;
 
-	return cache.monsters_in_cleave_range.length >= CONFIG.combat.cleave_min_mobs;
+	const min_mobs = holding_axe ? CONFIG.combat.cleave_min_mobs_held : CONFIG.combat.cleave_min_mobs;
+	return cache.monsters_in_cleave_range.length >= min_mobs;
 }
 
 function is_fireroamer_agitate_safe(nearby_mobs) {

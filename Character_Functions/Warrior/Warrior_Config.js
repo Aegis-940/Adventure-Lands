@@ -10,6 +10,7 @@ var CONFIG = {
 		target_priority: ["Myras"],
 		all_bosses,
 		cleave_min_mobs: 3,
+		cleave_min_mobs_held: 1,
 		cleave_blacklist: ["fireroamer", "plantoid", "pppompom"],
 		agitate_min_mobs: 2,
 		cluster_min_mobs: 2,
@@ -48,7 +49,15 @@ var CONFIG = {
 		chest_threshold: 12,
 		swap_cooldown: 500,
 		boss_set_swap_enabled: true,
-		weapon_swap_enabled: true
+		weapon_swap_enabled: true,
+
+		weapon_sets: ["single", "aoe", "bataxe"],
+		weapon_hysteresis_ms: 3000,
+		weapon_switch_margin: 1.10,
+
+		mana_income_per_sec: 244,
+		skill_mana_reserve: 0.40,
+		party_dps_factor: 2.0
 	},
 
 	potions: {
