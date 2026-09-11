@@ -173,18 +173,24 @@ function estimate_my_damage(entity, multiplier) {
 	return (character.attack || 0) * defense_reduction(armor) * (multiplier === undefined ? 1 : multiplier);
 }
 
+function time_to_kill_ms(mob, hp, dps, party_factor) {
+	if (!mob || !hp || dps <= 0) return Infinity;
+	const armor = (mob.armor || 0) - (character.apiercing || 0);
+	const effective = dps * defense_reduction(armor) * (party_factor || 1);
+	return effective > 0 ? (hp / effective) * 1000 : Infinity;
+}
+
 function burn_ticks_at_dps(mob, dps, party_factor) {
 	const def = G.conditions?.burned;
 	if (!def || !def.interval) return 0;
 
 	const max_ticks = Math.floor((def.duration || 0) / def.interval);
-	if (!mob || !mob.max_hp || dps <= 0) return max_ticks;
+	if (!mob) return max_ticks;
 
-	const armor = (mob.armor || 0) - (character.apiercing || 0);
-	const effective = dps * defense_reduction(armor) * (party_factor || 1);
-	if (effective <= 0) return max_ticks;
+	const ttk = time_to_kill_ms(mob, mob.max_hp, dps, party_factor);
+	if (!isFinite(ttk)) return max_ticks;
 
-	return Math.max(0, Math.min(max_ticks, Math.floor(((mob.max_hp / effective) * 1000) / def.interval)));
+	return Math.max(0, Math.min(max_ticks, Math.floor(ttk / def.interval)));
 }
 
 function burn_multiplier_at_dps(mob, chance, dps, party_factor) {

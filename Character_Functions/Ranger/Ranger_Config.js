@@ -15,7 +15,6 @@ var CONFIG = {
 		use_supershot: true,
 		skill_blacklist: ["dryad", "fireroamer", "plantoid", "mole", "mummy"],
 		engage_aggroed_only: true,
-		skill_min_mp_pct: 0.40,
 
 		lambda_headroom_low: 0.6,
 		lambda_headroom_high: 1.5,
