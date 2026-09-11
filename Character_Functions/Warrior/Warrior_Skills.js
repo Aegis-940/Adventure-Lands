@@ -89,22 +89,21 @@ async function handle_cleave() {
 		return use_skill("cleave");
 	}
 
-	const mainhand = character.slots?.mainhand?.name;
-	const needs_swap = mainhand !== "bataxe";
 	const now = performance.now();
+	if (now - state.last_cleave_swap <= COOLDOWNS.weapon_swap) return;
+
+	const restore = best_warrior_weapon_set() || (mob_count() === 1 ? "single" : "aoe");
+	if (restore === "bataxe") return;
 
 	const token = equip_claim("cleave-swap", EQUIP_PRIORITY.skill);
 	if (!token) return;
 	try {
-		if (now - state.last_cleave_swap > COOLDOWNS.weapon_swap) {
-			state.last_cleave_swap = now;
-			await unequip("offhand");
-			if (!await equip_apply(token, "bataxe")) return;
-		}
+		state.last_cleave_swap = now;
+		if (!await equip_apply(token, "bataxe")) return;
 
 		await use_skill("cleave");
 
-		await equip_apply(token, mob_count() === 1 ? "single" : "aoe");
+		await equip_apply(token, restore);
 	} finally {
 		equip_release(token);
 	}

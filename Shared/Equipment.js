@@ -23,6 +23,25 @@ function warn_missing_item(item_name, level, slot) {
 	game_log(`⚠️ batch_equip: no ${item_name} (lvl ${level}) in inventory for ${slot}`, "#FFA500");
 }
 
+function is_doublehand(item_name) {
+	const def = item_name && G.items[item_name];
+	const class_def = G.classes[character.ctype];
+	return !!(def && class_def && class_def.doublehand && class_def.doublehand[def.wtype]);
+}
+
+async function clear_offhand_for_doublehand(valid_items) {
+	if (!parent.character.slots.offhand) return false;
+	if (valid_items.some(v => v.slot === "offhand")) return false;
+
+	const two_hander = valid_items.some(v =>
+		v.slot === "mainhand" && is_doublehand(parent.character.items[v.num]?.name)
+	);
+	if (!two_hander) return false;
+
+	await unequip("offhand");
+	return true;
+}
+
 async function batch_equip(data, set_name) {
 	if (!Array.isArray(data)) {
 		return Promise.reject({ reason: "invalid", message: "Not an array" });
@@ -76,6 +95,8 @@ async function batch_equip(data, set_name) {
 	}
 
 	if (valid_items.length === 0) return 0;
+
+	await clear_offhand_for_doublehand(valid_items);
 
 	try {
 		parent.socket.emit("equip_batch", valid_items);
