@@ -185,22 +185,23 @@ function explosion_radius(explosion) {
 	return intensity / EXPLOSION_RADIUS_DIVISOR;
 }
 
-function count_neighbours(mob, radius, aggro_only) {
+function count_neighbours(mob, radius, aggro_only, centre_metric) {
 	let count = 0;
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
 		if (e?.type !== "monster" || e.dead) continue;
 		if (e === mob || e.id === mob.id) continue;
 		if (aggro_only && !e.target) continue;
-		if (Math.hypot(e.x - mob.x, e.y - mob.y) <= radius) count++;
+		const gap = centre_metric ? Math.hypot(e.x - mob.x, e.y - mob.y) : distance(e, mob);
+		if (gap <= radius) count++;
 	}
 	return count;
 }
 
-function score_by_explosion_spread(pool, aggro_only = false, radius) {
+function score_by_explosion_spread(pool, aggro_only = false, radius, centre_metric) {
 	const r = radius === undefined ? explosion_radius() : radius;
 
-	const scored = pool.map(mob => ({ mob, count: count_neighbours(mob, r, aggro_only) }));
+	const scored = pool.map(mob => ({ mob, count: count_neighbours(mob, r, aggro_only, centre_metric) }));
 
 	scored.sort((a, b) => b.count - a.count);
 	return scored;

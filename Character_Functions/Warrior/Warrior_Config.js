@@ -51,7 +51,7 @@ var CONFIG = {
 		boss_set_swap_enabled: true,
 		weapon_swap_enabled: true,
 
-		weapon_selection: "count",
+		weapon_selection: "value",
 		weapon_sets: ["single", "aoe", "bataxe"],
 		weapon_hysteresis_ms: 6000,
 		weapon_switch_margin: 1.20,
