@@ -2,6 +2,9 @@
 // HEALER COMBAT — who to heal, what to hold aggro on, and the action loop
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+var HEAL_REPORT_INTERVAL_MS = 60000;
+var _last_heal_report = 0;
+
 function update_cache() {
 	if (!cache.is_valid()) {
 		cache.target = find_best_target();
@@ -10,6 +13,11 @@ function update_cache() {
 	}
 
 	cache.heal_target = find_heal_target();
+
+	if (sample_set_profiles(HEALER_WEAPON_SETS) && Date.now() - _last_heal_report > HEAL_REPORT_INTERVAL_MS) {
+		_last_heal_report = Date.now();
+		heal_report();
+	}
 }
 
 function find_best_target() {

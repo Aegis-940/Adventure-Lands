@@ -159,7 +159,7 @@ function worn_ability_chance(ability) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const SET_PROFILE_KEY = "AL_set_profile_";
-const SET_PROFILE_FIELDS = ["attack", "explosion", "frequency"];
+const SET_PROFILE_FIELDS = ["attack", "explosion", "frequency", "heal", "int", "rpiercing", "mp_cost"];
 
 let _set_profiles = null;
 
@@ -196,12 +196,16 @@ function record_set_profile(set_name) {
 }
 
 function sample_set_profiles(set_names) {
+	let changed = false;
 	for (const name of set_names) {
 		if (record_set_profile(name)) {
+			changed = true;
 			const p = get_set_profile(name);
-			log(`[GEAR] ${name}: atk=${Math.round(p.attack)} expl=${p.explosion} freq=${p.frequency.toFixed(2)}`, "#66ccff");
+			const heal = p.heal ? ` heal=${Math.round(p.heal)} int=${Math.round(p.int)} rpierce=${Math.round(p.rpiercing)}` : "";
+			log(`[GEAR] ${name}: atk=${Math.round(p.attack)} expl=${p.explosion} freq=${p.frequency.toFixed(2)}${heal}`, "#66ccff");
 		}
 	}
+	return changed;
 }
 
 function set_available(set_name) {

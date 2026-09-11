@@ -2,6 +2,86 @@
 // HEALER EQUIPMENT RULES — consumed by the shared resolve_equipment()/equipment_manager_loop()
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// HEAL POWER — what each loadout actually heals for, read from live stats
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+var HEALER_WEAPON_SETS = ["luck", "single_target"];
+
+function live_heal_profile() {
+	return {
+		heal: character.heal || 0,
+		attack: character.attack || 0,
+		frequency: character.frequency || 1,
+		rpiercing: character.rpiercing || 0,
+		int: character.int || 0,
+		mp_cost: character.mp_cost || 0
+	};
+}
+
+function set_heal_profile(set_name) {
+	return is_set_equipped(set_name) ? live_heal_profile() : get_set_profile(set_name);
+}
+
+function healer_set_value(set_name, target) {
+	const profile = set_heal_profile(set_name);
+	if (!profile || !profile.heal) return null;
+	const who = target || cache.heal_target || character;
+	return heal_delivered(who, profile.heal, profile.rpiercing) * (profile.frequency || 1);
+}
+
+function best_healer_weapon_set(target) {
+	let best = null;
+	let best_value = -Infinity;
+	for (const name of HEALER_WEAPON_SETS) {
+		if (!set_available(name)) continue;
+		const value = healer_set_value(name, target);
+		if (value === null || value <= best_value) continue;
+		best_value = value;
+		best = name;
+	}
+	return best;
+}
+
+function heal_marginals(target) {
+	const who = target || cache.heal_target || character;
+	const base = character.heal || 0;
+	const pierce = character.rpiercing || 0;
+	const delivered = heal_delivered(who, base, pierce);
+	return {
+		delivered,
+		per_10_rpiercing: heal_delivered(who, base, pierce + 10) - delivered,
+		per_int_ceiling: character.int ? heal_delivered(who, base / character.int, pierce) : 0,
+		self_over_target: delivered > 0 ? heal_delivered(character, base) / delivered : 0
+	};
+}
+
+function heal_report() {
+	const id = heal_power_identity();
+	log(`[HEAL] power=${Math.round(id.heal)} attack=${Math.round(id.attack)} output=${id.output} int=${character.int} rpierce=${character.rpiercing || 0}`, "#33AAFF");
+	log(`[HEAL] heal x output/100 = ${Math.round(id.implied)} vs attack ${Math.round(id.attack)} — ${id.agrees ? "identity holds" : "IDENTITY BROKEN"}`, id.agrees ? "#33AAFF" : "#FF5555");
+
+	for (const name of cache.party_members || []) {
+		const ally = name === character.name ? character : get_player(name);
+		if (!ally) {
+			log(`[HEAL] ${name}: not visible to get_player()`, "#999999");
+			continue;
+		}
+		const self = name === character.name;
+		const poisoned = ally.s && ally.s.poisoned ? " POISONED" : "";
+		log(`[HEAL] ${name}: res=${ally.resistance || 0} heal→${Math.round(heal_delivered(ally, character.heal))} partyheal→${Math.round(heal_delivered(ally, partyheal_base()))}${self ? " (self, no resistance)" : ""}${poisoned}`, "#33AAFF");
+	}
+
+	const m = heal_marginals();
+	log(`[HEAL] marginals: +10 rpiercing = ${Math.round(m.per_10_rpiercing)} hp, 1 int ≤ ${Math.round(m.per_int_ceiling)} hp, self/target = ${m.self_over_target.toFixed(2)}x`, "#33AAFF");
+
+	for (const name of HEALER_WEAPON_SETS) {
+		const value = healer_set_value(name);
+		if (value === null) continue;
+		log(`[HEAL] set ${name}: ${Math.round(value)} hp/sec delivered${is_set_equipped(name) ? " (worn)" : ""}`, "#66ccff");
+	}
+}
+
 function resolve_healer_loadout() {
 	return "luck";
 }

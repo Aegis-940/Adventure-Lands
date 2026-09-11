@@ -302,6 +302,61 @@ function defense_reduction(defense) {
 	return Math.min(1.32, Math.max(0.05, 1 - reduction + piercing));
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// HEALING — the server's heal pipeline, which is not the damage pipeline
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const HEAL_POISON_FACTOR = 0.25;
+const HEAL_RESISTANCE_DIVISOR = 2;
+const PARTYHEAL_LEVEL_LADDER = [[80, 800], [72, 720], [60, 600], [0, 400]];
+
+function is_self_target(target) {
+	return !target || target === character || target.name === character.name;
+}
+
+function heal_entity(target) {
+	return is_self_target(target) ? character : target;
+}
+
+function heal_reduction(target, rpiercing) {
+	if (is_self_target(target)) return 1;
+	const pierce = rpiercing === undefined ? (character.rpiercing || 0) : rpiercing;
+	return defense_reduction(((target.resistance || 0) - pierce) / HEAL_RESISTANCE_DIVISOR);
+}
+
+function heal_poison_factor(target) {
+	const entity = heal_entity(target);
+	return entity && entity.s && entity.s.poisoned ? HEAL_POISON_FACTOR : 1;
+}
+
+function heal_delivered(target, base, rpiercing) {
+	return (base || 0) * heal_reduction(target, rpiercing) * heal_poison_factor(target);
+}
+
+function heal_useful(target, base, rpiercing) {
+	const entity = heal_entity(target);
+	if (!entity) return 0;
+	const deficit = Math.max(0, (entity.max_hp || 0) - (entity.hp || 0));
+	return Math.min(heal_delivered(target, base, rpiercing), deficit);
+}
+
+function partyheal_base(level) {
+	const lvl = level === undefined ? (character.level || 0) : level;
+	for (const [floor, base] of PARTYHEAL_LEVEL_LADDER) if (lvl >= floor) return base;
+	return 400;
+}
+
+function heal_power_identity() {
+	const output = character.output || 100;
+	return {
+		heal: character.heal || 0,
+		attack: character.attack || 0,
+		output,
+		implied: (character.heal || 0) * output / 100,
+		agrees: Math.abs((character.heal || 0) * output / 100 - (character.attack || 0)) <= 1
+	};
+}
+
 function estimate_my_damage(entity, multiplier) {
 	const info = (G.monsters && G.monsters[entity.mtype]) || {};
 	const armor = (entity.armor !== undefined ? entity.armor : info.armor || 0) - (character.apiercing || 0);
