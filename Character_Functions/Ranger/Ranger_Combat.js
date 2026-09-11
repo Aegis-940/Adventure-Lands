@@ -107,10 +107,7 @@ function burn_multiplier(mob, skill_multiplier) {
 	if (!CONFIG.combat.burn_enabled) return 1;
 	if (would_kill(mob, skill_multiplier)) return 1;
 
-	const held = character.slots?.mainhand;
-	if (!held) return 1;
-
-	const chance = item_ability_chance(held.name, held.level, "burn");
+	const chance = worn_ability_chance("burn");
 	return burn_mult_from_chance(chance, CONFIG.combat.attack_if_targeted.includes(mob.mtype));
 }
 

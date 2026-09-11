@@ -4,6 +4,7 @@
 
 function update_cache() {
 	cache.tank_entity = get_entity("Myras")
+	sample_set_profiles(["single", "aoe", "bataxe"]);
 	cache.monsters_in_cleave_range = find_monsters_in_cleave_range();
 
 	if (!cache.is_valid()) {

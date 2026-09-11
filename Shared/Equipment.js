@@ -118,11 +118,19 @@ function item_ability_chance(item_name, level, ability) {
 	return (def.attr0 || 0) + per_level * upgrade_multiplier_sum(level);
 }
 
-function set_ability_chance(set_name, slot, ability) {
+function set_ability_chance(set_name, ability) {
 	const set = equipment_sets[set_name];
-	const entry = set && set.find(i => i.slot === slot);
-	if (!entry) return 0;
-	return item_ability_chance(entry.item_name, entry.level, ability);
+	if (!set) return 0;
+	return set.reduce((sum, i) => sum + item_ability_chance(i.item_name, i.level, ability), 0);
+}
+
+function worn_ability_chance(ability) {
+	let sum = 0;
+	for (const slot in character.slots) {
+		const worn = character.slots[slot];
+		if (worn) sum += item_ability_chance(worn.name, worn.level, ability);
+	}
+	return sum;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
