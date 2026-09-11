@@ -145,26 +145,60 @@ async function handle_absorb() {
 const PARTY_HEAL_COOLDOWN = 250;
 let last_party_heal_time = 0;
 
+function heal_candidates() {
+	const members = [];
+	for (const name of cache.party_members || []) {
+		const ally = name === character.name ? character : get_player(name);
+		if (ally && !ally.rip) members.push(ally);
+	}
+	return members;
+}
+
+function party_heal_useful_total() {
+	const base = partyheal_base();
+	let total = 0;
+	for (const ally of heal_candidates()) total += heal_useful(ally, base);
+	return total;
+}
+
+function party_heal_critical_count() {
+	const pct = CONFIG.healing.party_heal_critical_pct;
+	let critical = 0;
+	for (const ally of heal_candidates()) {
+		if (ally.max_hp && ally.hp / ally.max_hp <= pct) critical++;
+	}
+	return critical;
+}
+
+function party_heal_outvalues_single(lowest) {
+	const party_value = party_heal_useful_total();
+	if (party_value <= 0) return false;
+
+	if (party_heal_critical_count() >= CONFIG.healing.party_heal_critical_count) return true;
+
+	const single_value = lowest ? heal_useful(lowest, character.heal) : 0;
+	const party_cost = (G.skills.partyheal && G.skills.partyheal.mp) || 400;
+	const single_cost = Math.max(character.mp_cost || 1, 1);
+
+	return party_value / party_cost > (single_value / single_cost) * CONFIG.healing.party_heal_margin;
+}
+
 async function handle_party_heal() {
 	const now = performance.now();
 	if (now - last_party_heal_time < PARTY_HEAL_COOLDOWN) return;
+	if (character.mp <= CONFIG.healing.party_heal_min_mp) return;
+	if (is_on_cooldown("partyheal")) return;
 
 	let threshold = CONFIG.healing.party_heal_threshold;
 	if (character.map !== destination.map) {
 		threshold = 0.75;
 	}
 
-	if (character.mp <= CONFIG.healing.party_heal_min_mp) return;
+	const lowest = cache.heal_target;
+	if (!lowest || !lowest.max_hp || lowest.hp >= lowest.max_hp * threshold) return;
 
-	const hurt = [];
-	for (const name of cache.party_members) {
-		const ally = get_player(name);
-		if (!ally || ally.rip || ally.hp >= ally.max_hp * threshold) continue;
-		hurt.push(ally);
-	}
-	if (!hurt.length) return;
+	if (!party_heal_outvalues_single(lowest)) return;
 
-	// log(`Party Heal → ${hurt.length} hurt`, "#33FF77");
 	await use_skill("partyheal");
 	last_party_heal_time = now;
 }

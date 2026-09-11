@@ -26,6 +26,9 @@ var CONFIG = {
 	healing: {
 		party_heal_threshold: 0.40,
 		party_heal_min_mp: 500,
+		party_heal_margin: 1.0,
+		party_heal_critical_pct: 0.35,
+		party_heal_critical_count: 2,
 		absorb_enabled: true,
 		dark_blessing_enabled: true,
 		skill_min_mp_pct: 0.40

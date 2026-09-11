@@ -134,9 +134,11 @@ async function try_heal() {
 	const HEAL_TARGET = cache.heal_target;
 	if (!HEAL_TARGET) return false;
 
+	const DELIVERED = heal_delivered(HEAL_TARGET, character.heal);
+
 	const HEAL_THRESHOLD = Math.max(
 		HEAL_TARGET.max_hp * 0.5,
-		HEAL_TARGET.max_hp - character.heal / 1.33
+		HEAL_TARGET.max_hp - DELIVERED / 1.33
 	);
 
 	const is_self = HEAL_TARGET === character || HEAL_TARGET.name === character.name;

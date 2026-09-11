@@ -43,16 +43,39 @@ function best_healer_weapon_set(target) {
 	return best;
 }
 
-function heal_marginals(target) {
-	const who = target || cache.heal_target || character;
+function visible_allies() {
+	const allies = [];
+	for (const name of cache.party_members || []) {
+		if (name === character.name) continue;
+		const ally = get_player(name);
+		if (ally && !ally.rip) allies.push(ally);
+	}
+	return allies;
+}
+
+function heal_marginals() {
 	const base = character.heal || 0;
 	const pierce = character.rpiercing || 0;
-	const delivered = heal_delivered(who, base, pierce);
+	const allies = visible_allies();
+
+	let best_rpiercing = 0;
+	let worst = null;
+	let worst_delivered = Infinity;
+	for (const ally of allies) {
+		const at = heal_delivered(ally, base, pierce);
+		best_rpiercing = Math.max(best_rpiercing, heal_delivered(ally, base, pierce + 10) - at);
+		if (at < worst_delivered) {
+			worst_delivered = at;
+			worst = ally;
+		}
+	}
+
 	return {
-		delivered,
-		per_10_rpiercing: heal_delivered(who, base, pierce + 10) - delivered,
-		per_int_ceiling: character.int ? heal_delivered(who, base / character.int, pierce) : 0,
-		self_over_target: delivered > 0 ? heal_delivered(character, base) / delivered : 0
+		self: heal_delivered(character, base),
+		worst_ally: worst ? worst.name : null,
+		worst_delivered: worst ? worst_delivered : 0,
+		per_10_rpiercing: best_rpiercing,
+		per_int_ceiling: character.int ? base / character.int : 0
 	};
 }
 
@@ -73,7 +96,7 @@ function heal_report() {
 	}
 
 	const m = heal_marginals();
-	log(`[HEAL] marginals: +10 rpiercing = ${Math.round(m.per_10_rpiercing)} hp, 1 int ≤ ${Math.round(m.per_int_ceiling)} hp, self/target = ${m.self_over_target.toFixed(2)}x`, "#33AAFF");
+	log(`[HEAL] marginals: +10 rpiercing = ${Math.round(m.per_10_rpiercing)} hp (best ally), 1 int ≤ ${Math.round(m.per_int_ceiling)} hp, self ${Math.round(m.self)} vs worst ally ${m.worst_ally || "none"} ${Math.round(m.worst_delivered)}`, "#33AAFF");
 
 	for (const name of HEALER_WEAPON_SETS) {
 		const value = healer_set_value(name);
