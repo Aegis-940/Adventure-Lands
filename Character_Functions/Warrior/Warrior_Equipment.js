@@ -19,20 +19,6 @@ function set_dps(profile) {
 	return (profile.attack || 0) * (profile.frequency || 1);
 }
 
-function burn_ticks_against(mob, profile) {
-	const def = G.conditions?.burned;
-	if (!def || !def.interval) return 0;
-
-	const max_ticks = Math.floor((def.duration || 0) / def.interval);
-	if (!mob || !mob.max_hp) return max_ticks;
-
-	const armor = (mob.armor || 0) - (character.apiercing || 0);
-	const dps = set_dps(profile) * defense_reduction(armor) * (CONFIG.equipment.party_dps_factor || 1);
-	if (dps <= 0) return max_ticks;
-
-	return Math.max(0, Math.min(max_ticks, Math.floor(((mob.max_hp / dps) * 1000) / def.interval)));
-}
-
 function cleave_period() {
 	const cooldown = (G.skills.cleave.cooldown || 1200) / 1000;
 	const spare = Math.max(0, CONFIG.equipment.mana_income_per_sec - character.mp_cost * (character.frequency || 1));
@@ -62,7 +48,7 @@ function warrior_set_value(set_name, primary, cleave_targets) {
 	let value = set_dps(profile);
 
 	const chance = set_ability_chance(set_name, "burn");
-	if (chance) value *= 1 + (chance / 100) * (burn_ticks_against(primary, profile) / 5);
+	if (chance) value *= burn_multiplier_at_dps(primary, chance, set_dps(profile), CONFIG.equipment.party_dps_factor);
 
 	if (profile.explosion > 0 && primary) {
 		value *= 1 + splash_bonus(primary, profile.explosion);

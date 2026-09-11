@@ -11,6 +11,7 @@ var CONFIG = {
 		all_bosses,
 		cleave_min_mobs: 3,
 		cleave_min_mobs_held: 1,
+		sample_hits: true,
 		cleave_blacklist: ["fireroamer", "plantoid", "pppompom"],
 		agitate_min_mobs: 2,
 		cluster_min_mobs: 2,
