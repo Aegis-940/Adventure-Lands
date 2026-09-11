@@ -6,7 +6,7 @@
 // HEAL POWER — what each loadout actually heals for, read from live stats
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var HEALER_WEAPON_SETS = ["luck", "single_target"];
+var HEALER_WEAPON_SETS = ["luck", "single_target", "fireres"];
 
 function live_heal_profile() {
 	return {
