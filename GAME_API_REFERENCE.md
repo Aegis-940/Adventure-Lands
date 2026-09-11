@@ -597,6 +597,56 @@ handle_death()               // custom death behavior
 - `apiercing`/`rpiercing` bypass defense
 - Priests: heal at full power, attack at 40%
 
+### Healing
+
+Heals run through the same `commence_attack` pipeline as damage, with `info.heal`/`info.positive`
+set, so most of the combat rules apply — but four of them do not work the way the damage path
+suggests, and all four matter for a self-healing tank.
+
+```
+heal = ceil( B.heal_multiplier
+           * attack
+           * (0.9 + random * 0.2)
+           * damage_multiplier( (target.resistance - attacker.rpiercing) / 2.0 ) )
+if (target.s.poisoned) heal = round(heal * 0.25)
+```
+
+- **Resistance is halved before the curve.** `(resistance - rpiercing) / 2.0`, not the raw value
+  the damage path uses. A 480-resistance target loses ~23% of the heal, not ~45%.
+- **`B.heal_multiplier` is 1 on normal servers**, 0.6 on HARDCORE only.
+- **A self-heal ignores resistance entirely.** `target === attacker` selects the same
+  `none_existent` defense key as `pure` damage, so the multiplier is exactly 1.0 and
+  `rpiercing` is zeroed too. Healing yourself is strictly better per point of heal power than
+  healing anyone else.
+- **Heals on a poisoned target are quartered.** This is a flat ×0.25 applied after everything
+  else and it is the single largest term in the whole formula. A monster whose `G.monsters`
+  entry carries `poisonous` holds `s.poisonous` permanently and applies `poisoned` on every
+  landed hit, so a tank on poisonous mobs is poisoned essentially all the time — and is
+  therefore receiving a quarter of every heal, its own included. `poisoned` also costs 10%
+  attack frequency.
+- **`heal` is snapshotted before `output` is applied.** `player.heal = player.attack` runs
+  before `attack = attack * output / 100`, so `output` debuffs — `cursed` carries
+  `output: -20` — reduce the priest's damage but not their healing.
+
+**`partyheal` and `selfheal` ignore heal power completely.** They use a flat ladder off the
+caster's level and nothing else:
+
+| level | base |
+|---|---|
+| ≥ 80 | 800 |
+| ≥ 72 | 720 |
+| ≥ 60 | 600 |
+| < 60 | 400 |
+
+That base then runs through the same variance / resistance / poison terms above. `partyheal`
+targets every party member **including the caster**; with no party it targets the caster alone.
+So a priest with 3000 heal power self-heals for ~3000 with `heal` and ~800 with `partyheal`, and
+for ~750 and ~200 respectively while poisoned.
+
+`purify` strips every `G.conditions` entry on the target that is a `buff` or `debuff` and is not
+`persistent`, adding 400 healing per condition removed. It does not discriminate — it will clear
+`poisoned` and `cursed`, but also `darkblessing`, `warcry` and `mluck`.
+
 ### Cooldowns
 - `parent.next_skill[name]` = Date objects
 - `G.skills[name].cooldown` = base ms
