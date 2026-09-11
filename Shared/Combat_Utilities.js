@@ -180,11 +180,13 @@ function time_to_kill_ms(mob, hp, dps, party_factor) {
 	return effective > 0 ? (hp / effective) * 1000 : Infinity;
 }
 
+const BURN_DURATION_MS = 5000;
+
 function burn_ticks_at_dps(mob, dps, party_factor) {
 	const def = G.conditions?.burned;
 	if (!def || !def.interval) return 0;
 
-	const max_ticks = Math.floor((def.duration || 0) / def.interval);
+	const max_ticks = Math.floor((def.duration || BURN_DURATION_MS) / def.interval);
 	if (!mob) return max_ticks;
 
 	const ttk = time_to_kill_ms(mob, mob.max_hp, dps, party_factor);
