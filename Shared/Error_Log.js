@@ -6,6 +6,7 @@ const ERRLOG_KEY = "AL_errors_";
 const ERRLOG_MAX_RECORDS = 200;
 const ERRLOG_MAX_TIMELINE = 80;
 const ERRLOG_MAX_DEATHS = 6;
+const ERRLOG_MAX_SAMPLES = 400;
 const ERRLOG_VITALS_SAMPLES = 10;
 const ERRLOG_VITALS_MS = 1000;
 const ERRLOG_FLUSH_MS = 5000;
@@ -15,7 +16,7 @@ const ERRLOG_MAX_HEALS = 15;
 
 const ERRLOG_SCHEMA = 2;
 
-let _errlog = { session: null, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {} };
+let _errlog = { session: null, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {}, samples: [] };
 let _errlog_dirty = false;
 let _errlog_recording = false;
 let _errlog_vitals = [];
@@ -87,7 +88,8 @@ function _errlog_load() {
 				records: prev.records || {},
 				timeline: prev.timeline || [],
 				deaths: prev.deaths || [],
-				counts: prev.counts || {}
+				counts: prev.counts || {},
+				samples: prev.samples || []
 			};
 		}
 	} catch (e) { }
@@ -142,6 +144,15 @@ function errlog_record(ctx, raw_msg) {
 	} finally {
 		_errlog_recording = false;
 	}
+}
+
+function errlog_sample(kind, data) {
+	try {
+		if (!_errlog.samples) _errlog.samples = [];
+		_errlog.samples.push(Object.assign({ t: Date.now(), kind }, data));
+		if (_errlog.samples.length > ERRLOG_MAX_SAMPLES) _errlog.samples.shift();
+		_errlog_dirty = true;
+	} catch (e) { }
 }
 
 function errlog_count(bucket) {
@@ -380,7 +391,8 @@ function _errlog_push() {
 				records: _errlog.records,
 				counts: _errlog.counts,
 				timeline: _errlog.timeline,
-				deaths: _errlog.deaths
+				deaths: _errlog.deaths,
+				samples: _errlog.samples
 		});
 		errlog_time("io push stringify", Date.now() - _tp);
 		fetch(ERRLOG_SINK_URL, {

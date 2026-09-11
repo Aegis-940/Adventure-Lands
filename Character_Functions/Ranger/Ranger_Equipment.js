@@ -38,25 +38,35 @@ function resolve_ranger_weapon() {
 	if (!values) return best.count >= CONFIG.combat.pouchbow_min_neighbours ? "boom" : "single";
 
 	const choice = values.boom > values.single ? "boom" : "single";
-	if (CONFIG.combat.log_bow_choice) log_bow_choice(choice, best, values);
+	if (CONFIG.combat.sample_bow_choice) sample_bow_choice(choice, best, values);
 	return choice;
 }
 
-var _logged_bow = null;
+var _last_bow_sample = 0;
 
-function log_bow_choice(choice, best, values) {
-	if (choice === _logged_bow) return;
-	_logged_bow = choice;
+function sample_bow_choice(choice, best, values) {
+	if (typeof errlog_sample !== "function") return;
+	if (Date.now() - _last_bow_sample < CONFIG.combat.sample_bow_ms) return;
+	_last_bow_sample = Date.now();
 
 	const boom = get_set_profile("boom");
 	const single = get_set_profile("single");
 	const dps = (single.attack || 0) * (single.frequency || 1);
-	const ttk = time_to_kill_ms(best.mob, best.mob.max_hp, dps, CONFIG.combat.party_dps_factor);
 
-	log(`[BOW] ${choice} ${best.mob.mtype} k=${best.count} `
-		+ `splash=${splash_bonus(best.mob, boom.explosion).toFixed(2)} `
-		+ `burn=${(values.single / dps).toFixed(3)} ttk=${(ttk / 1000).toFixed(1)}s `
-		+ `boom=${values.boom.toFixed(0)} single=${values.single.toFixed(0)}`, "#66ccff");
+	errlog_sample("bow", {
+		pick: choice,
+		mtype: best.mob.mtype,
+		k: best.count,
+		splash: +splash_bonus(best.mob, boom.explosion).toFixed(3),
+		burn: +(values.single / dps).toFixed(3),
+		ttk: Math.round(time_to_kill_ms(best.mob, best.mob.max_hp, dps, CONFIG.combat.party_dps_factor)),
+		hp: best.mob.hp,
+		max_hp: best.mob.max_hp,
+		armor: best.mob.armor,
+		boom: Math.round(values.boom),
+		single: Math.round(values.single),
+		mp: Math.round(character.mp)
+	});
 }
 
 function resolve_ranger_loadout() {

@@ -27,6 +27,7 @@ OUT = os.path.join(REPO, "errors.json")
 
 MAX_DEATHS = 50
 MAX_TIMELINE = 300
+MAX_SAMPLES = 5000
 
 
 def merge(incoming):
@@ -70,6 +71,13 @@ def merge(incoming):
     for e in incoming.get("timeline") or []:
         seen[(e.get("t"), e.get("msg"))] = e
     bucket["timeline"] = [seen[k] for k in sorted(seen, key=lambda x: x[0] or 0)][-MAX_TIMELINE:]
+
+    # Observations for analysis. The browser ring holds only the most recent few hundred, so the
+    # sink is what makes a long run's worth available at once.
+    samples = {(s.get("t"), s.get("kind")): s for s in bucket.get("samples", [])}
+    for s in incoming.get("samples") or []:
+        samples[(s.get("t"), s.get("kind"))] = s
+    bucket["samples"] = [samples[k] for k in sorted(samples, key=lambda x: x[0] or 0)][-MAX_SAMPLES:]
 
     store["_updated"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
