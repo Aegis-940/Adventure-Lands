@@ -34,7 +34,7 @@ function cleave_contribution(set_name, targets) {
 	return { dps, uptime: Math.max(0, 1 - swap_s / period) };
 }
 
-function warrior_set_value(set_name, primary, cleave_targets) {
+function warrior_set_base_value(set_name, primary) {
 	const profile = get_set_profile(set_name);
 	if (!profile || !profile.attack) return null;
 
@@ -47,8 +47,15 @@ function warrior_set_value(set_name, primary, cleave_targets) {
 		value *= 1 + splash_bonus(primary, profile.explosion);
 	}
 
+	return value;
+}
+
+function warrior_set_value(set_name, primary, cleave_targets) {
+	const base = warrior_set_base_value(set_name, primary);
+	if (base === null) return null;
+
 	const cleave = cleave_contribution(set_name, cleave_targets);
-	return value * cleave.uptime + cleave.dps;
+	return base * cleave.uptime + cleave.dps;
 }
 
 function sample_weapon_choice(from, to, primary, cleave_targets, now) {
