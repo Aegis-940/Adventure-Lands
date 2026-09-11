@@ -223,14 +223,140 @@ function will_burn_to_death() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// MONSTER CLAIMS — do not overkill, do not double-pull
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const MONSTER_CLAIM_TTL_MS = 1500;
+const MONSTER_CLAIM_MIN_INTERVAL_MS = 200;
+const MONSTER_CLAIM_MAX_CC = 100;
+const MONSTER_CLAIM_MAX_IDS = 8;
+
+const _monster_claims = {};
+
+let _last_claim_sent = 0;
+
+function claim_targets() {
+	return [PARTY_LEADER, ...PARTY_MEMBERS].filter(
+		name => name !== character.name && name !== PARTY_MERCHANT
+	);
+}
+
+function record_monster_claim(ids) {
+	const until = Date.now() + MONSTER_CLAIM_TTL_MS;
+	for (const id of ids) _monster_claims[id] = until;
+}
+
+function is_monster_claimed(id) {
+	const until = _monster_claims[id];
+	if (until === undefined) return false;
+	if (until > Date.now()) return true;
+	delete _monster_claims[id];
+	return false;
+}
+
+function claim_monsters(entities) {
+	if (Date.now() - _last_claim_sent < MONSTER_CLAIM_MIN_INTERVAL_MS) return;
+	if (character.cc >= MONSTER_CLAIM_MAX_CC) return;
+
+	const ids = [];
+	for (const e of entities) {
+		if (!e || e.dead) continue;
+		if (all_bosses.includes(e.mtype)) continue;
+		ids.push(e.id);
+		if (ids.length >= MONSTER_CLAIM_MAX_IDS) break;
+	}
+	if (!ids.length) return;
+
+	_last_claim_sent = Date.now();
+	send_cm(claim_targets(), { type: "claiming", ids });
+}
+
+function prune_monster_claims() {
+	const now = Date.now();
+	for (const id in _monster_claims) {
+		if (_monster_claims[id] <= now) delete _monster_claims[id];
+	}
+}
+
+setInterval(prune_monster_claims, MONSTER_CLAIM_TTL_MS);
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // MONSTER & COMBAT UTILITIES
 // --------------------------------------------------------------------------------------------------------------------------------- //
+
+const SKILL_LOOP_MIN_MS = 50;
 
 function ms_to_next_skill(skill) {
 	const next_skill = parent.next_skill[cooldown_key(skill)];
 	if (next_skill === undefined) return 0;
 	const ms = next_skill.getTime() - Date.now();
 	return ms < 0 ? 0 : ms;
+}
+
+function ms_to_next_of(skills) {
+	let soonest = Infinity;
+	for (const skill of skills) {
+		const ms = ms_to_next_skill(skill);
+		if (ms < soonest) soonest = ms;
+	}
+	return soonest === Infinity ? SKILL_LOOP_MIN_MS : Math.max(SKILL_LOOP_MIN_MS, soonest);
+}
+
+function monsters_within(range, from) {
+	const origin = from || character;
+	return Object.values(parent.entities).filter(e =>
+		e?.type === "monster" &&
+		!e.dead &&
+		e.visible &&
+		distance(origin, e) <= range
+	);
+}
+
+const MONSTER_RULE_RANGE = 400;
+
+function monster_overrides(rules, range) {
+	const active = {};
+	if (!rules) return active;
+
+	for (const e of monsters_within(range === undefined ? MONSTER_RULE_RANGE : range)) {
+		const rule = rules[e.mtype];
+		if (!rule) continue;
+		for (const key in rule) {
+			if (rule[key] === false || active[key] === undefined) active[key] = rule[key];
+		}
+	}
+	return active;
+}
+
+function rule_allows(overrides, key) {
+	return !overrides || overrides[key] !== false;
+}
+
+function rule_allows_for(rules, entity, key) {
+	const rule = rules && entity && rules[entity.mtype];
+	return !rule || rule[key] !== false;
+}
+
+function estimate_my_damage(entity) {
+	const info = monster_info(entity);
+	const type = character.damage_type || "physical";
+
+	if (type === "magical") {
+		const resistance = (entity.resistance !== undefined ? entity.resistance : info.resistance || 0)
+			- (character.rpiercing || 0);
+		return (character.attack || 0) * defense_reduction(resistance);
+	}
+
+	const armor = (entity.armor !== undefined ? entity.armor : info.armor || 0)
+		- (character.apiercing || 0);
+	return (character.attack || 0) * defense_reduction(armor);
+}
+
+function can_kill_in_one_shot(entity, skill) {
+	if (!entity || entity.dead) return false;
+	const g = skill && G.skills[skill];
+	const multiplier = g && g.damage_multiplier !== undefined ? g.damage_multiplier : 1;
+	return estimate_my_damage(entity) * multiplier >= entity.hp;
 }
 
 function get_nearest_monster_v2(args = {}) {
@@ -248,6 +374,8 @@ function get_nearest_monster_v2(args = {}) {
 				if (current.mtype !== args.type) continue;
 			}
 		}
+
+		if (!args.ignore_claims && is_monster_claimed(id)) continue;
 
 		if (args.min_level !== undefined && current.level < args.min_level) continue;
 		if (args.max_level !== undefined && current.level > args.max_level) continue;
@@ -360,11 +488,11 @@ function healer_is_down() {
 // COMBAT POSITIONING — shared by Warrior/Ranger's reposition() loops.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function score_by_explosion_spread(pool, aggro_only = false) {
+function count_neighbours(pool, aggro_only) {
 	const explosion_radius = character.explosion || 40;
 	const all_monsters = Object.values(parent.entities).filter(e => e?.type === "monster" && !e.dead);
 
-	const scored = pool.map(mob => {
+	return pool.map(mob => {
 		let count = 0;
 		for (const e of all_monsters) {
 			if (e === mob) continue;
@@ -373,9 +501,14 @@ function score_by_explosion_spread(pool, aggro_only = false) {
 		}
 		return { mob, count };
 	});
+}
 
-	scored.sort((a, b) => b.count - a.count);
-	return scored;
+function score_by_explosion_spread(pool, aggro_only = false) {
+	return count_neighbours(pool, aggro_only).sort((a, b) => b.count - a.count);
+}
+
+function score_by_isolation(pool, aggro_only = false) {
+	return count_neighbours(pool, aggro_only).sort((a, b) => a.count - b.count);
 }
 
 const ORBIT_ANGLE_SAMPLES = 16;
@@ -417,6 +550,31 @@ function best_orbit_spot(center, radius, score) {
 	if (!best) return null;
 	if (best_raw < incumbent + ORBIT_MIN_GAIN) return { x: character.x, y: character.y };
 	return best;
+}
+
+const KITE_MARGIN = 50;
+
+function kite_distance(entity) {
+	const info = monster_info(entity);
+	const closing = entity.charge !== undefined ? entity.charge : (entity.speed || info.speed || 0);
+	return Math.min(character.range, (entity.range || info.range || 0) + closing + KITE_MARGIN);
+}
+
+function make_kite_distance_scorer() {
+	const monsters = Object.values(parent.entities).filter(e => e?.type === "monster" && !e.dead);
+	if (!monsters.length) return null;
+
+	const wanted = monsters.map(e => ({ mob: e, want: kite_distance(e) }));
+
+	return (x, y) => {
+		let worst = Infinity;
+		for (const { mob, want } of wanted) {
+			const d = Math.hypot(mob.x - x, mob.y - y);
+			const score = d >= want ? want : d - (want - d);
+			if (score < worst) worst = score;
+		}
+		return worst;
+	};
 }
 
 function make_distance_from_monsters_scorer() {

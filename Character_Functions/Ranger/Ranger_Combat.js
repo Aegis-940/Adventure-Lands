@@ -5,6 +5,8 @@
 function should_attack_mob(mob) {
 	if (!mob || mob.dead) return false;
 
+	if (is_monster_claimed(mob.id)) return false;
+
 	if (CONFIG.combat.never_attack.includes(mob.mtype)) return false;
 
 	if (CONFIG.combat.attack_if_targeted.includes(mob.mtype)) {
@@ -137,12 +139,17 @@ async function handle_attack() {
 
 	const single_target_mode = RANGER_TARGET === "giantspider";
 	let skill_call;
-	if (!single_target_mode && can_5shot && in_range.length >= min5)           { skill_call = () => use_skill("5shot", cluster_targets.slice(0, 5).map(e => e.id)); }
-	else if (!single_target_mode && can_5shot && out_of_range.length >= min5)  { skill_call = () => use_skill("5shot", out_of_range.slice(0, 5).map(e => e.id)); }
-	else if (!single_target_mode && can_3shot && in_range.length >= min3)      { skill_call = () => use_skill("3shot", cluster_targets.slice(0, 3).map(e => e.id)); }
-	else if (can_1shot && cluster_target)               { skill_call = () => attack(cluster_target); }
-	else if (can_1shot && in_range.length >= 1)         { skill_call = () => attack(single_target_mode ? in_range[0] : (cluster_targets[0] || in_range[0])); }
+	let chosen = [];
+	let skill_name = null;
+	if (!single_target_mode && can_5shot && in_range.length >= min5)           { chosen = cluster_targets.slice(0, 5); skill_name = "5shot"; skill_call = () => use_skill("5shot", chosen.map(e => e.id)); }
+	else if (!single_target_mode && can_5shot && out_of_range.length >= min5)  { chosen = out_of_range.slice(0, 5); skill_name = "5shot"; skill_call = () => use_skill("5shot", chosen.map(e => e.id)); }
+	else if (!single_target_mode && can_3shot && in_range.length >= min3)      { chosen = cluster_targets.slice(0, 3); skill_name = "3shot"; skill_call = () => use_skill("3shot", chosen.map(e => e.id)); }
+	else if (can_1shot && cluster_target)               { chosen = [cluster_target]; skill_call = () => attack(cluster_target); }
+	else if (can_1shot && in_range.length >= 1)         { chosen = [single_target_mode ? in_range[0] : (cluster_targets[0] || in_range[0])]; skill_call = () => attack(chosen[0]); }
 	else return;
+
+	const killable = chosen.filter(e => can_kill_in_one_shot(e, skill_name));
+	if (killable.length) claim_monsters(killable);
 
 	await skill_call();
 }

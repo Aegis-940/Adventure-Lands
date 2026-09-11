@@ -10,10 +10,15 @@ var CONFIG = {
 		target_priority: ["Myras"],
 		all_bosses,
 		cleave_min_mobs: 3,
-		cleave_blacklist: ["fireroamer", "plantoid", "pppompom"],
+		cleave_max_new_aggro: 2,
 		agitate_min_mobs: 2,
 		cluster_min_mobs: 2,
-		agitate_blacklist: ["plantoid", "pppompom"],
+		prefer_isolated_targets: false,
+		monster_rules: {
+			fireroamer: { cleave: false },
+			plantoid:   { cleave: false, agitate: false },
+			pppompom:   { cleave: false, agitate: false },
+		},
 		agitate_fireroamer_conditions: {
 			healer_hp_pct: 0.60,
 			healer_mp_pct: 0.80,

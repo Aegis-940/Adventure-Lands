@@ -38,7 +38,7 @@ async function skill_loop() {
 		if (min_ms < character.ping / 10) {
 			change_target(target);
 
-			const skill_allowed = !CONFIG.combat.skill_blacklist.includes(target.mtype);
+			const skill_allowed = rule_allows_for(CONFIG.combat.monster_rules, target, "skills");
 
 			const hm_cost = G.skills.huntersmark?.mp || 0;
 			const ss_cost = G.skills.supershot?.mp || 0;

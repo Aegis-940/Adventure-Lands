@@ -16,6 +16,7 @@ var CONFIG = {
 		damage_aware_aggro: true,
 		heal_budget_pct: 0.70,
 		curse_min_hp_pct: 0.25,
+		monster_rules: {},
 	},
 
 	safety: {

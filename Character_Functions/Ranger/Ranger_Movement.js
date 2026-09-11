@@ -15,5 +15,7 @@ async function ranger_pre_move() {
 }
 
 function reposition() {
-	orbit_reposition(make_distance_from_monsters_scorer);
+	orbit_reposition(CONFIG.movement.kite_distance && !panicking
+		? make_kite_distance_scorer
+		: make_distance_from_monsters_scorer);
 }

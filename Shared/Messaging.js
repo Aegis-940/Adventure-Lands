@@ -36,6 +36,11 @@ const CM_HANDLERS = {
 		set_panic(!!data.state, "broadcast from the healer", !!data.state);
 	},
 
+	"claiming": (name, data) => {
+		if (!Array.isArray(data.ids)) return;
+		record_monster_claim(data.ids);
+	},
+
 	"suppress_reset": () => set_suppress_reset(true),
 
 	"enter_instance": (name, data) => {

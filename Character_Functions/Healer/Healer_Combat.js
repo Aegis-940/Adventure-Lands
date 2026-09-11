@@ -213,6 +213,7 @@ async function action_loop() {
 			if (!HEALED && !travelling && HEALER_TARGET !== "giantspider" && !i_need_the_timer) {
 				const TARGET = cache.target;
 				if (TARGET && is_in_range(TARGET) && !basic_action_busy()) {
+					if (can_kill_in_one_shot(TARGET)) claim_monsters([TARGET]);
 					run_basic_action(attack(TARGET), "attack");
 					acted = true;
 				}

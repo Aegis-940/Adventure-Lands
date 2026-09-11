@@ -27,17 +27,17 @@ gathers mobs for her via `agitate`. Survivability work belongs on Myras; see CLA
 | ✅ 2 | Sleep the exact cooldown | `Character_Runner.js`, `Ranger_Skills.js` | Low | 1 |
 | 3 | Respawn-timed temporal surge | `Healer_Equipment.js`, `Healer_Config.js` | Low | — |
 | 4 | Anti-stacking | `Movement.js` or `Combat_Utilities.js` | Low | — |
-| 5 | Cleave gating rework | `Warrior_Skills.js` | Low | — |
-| 6 | Cooldown-driven skill loops | `Combat_Utilities.js`, `Warrior_Skills.js` | Low | 1 |
+| ✅ 5 | Cleave gating rework | `Warrior_Skills.js`, `Warrior_Config.js` | Low | — |
+| ✅ 6 | Cooldown-driven skill loops | `Combat_Utilities.js`, `Warrior_Skills.js` | Low | 1 |
 | ✅ 7 | Time-to-death tracking | `Combat_Utilities.js` | Low | — |
 | ✅ 8 | Damage-aware aggro cap | `Combat_Utilities.js`, `Healer_Combat.js` | Med | — |
 | ✅ 9 | Projected-death escape | `Combat_Utilities.js`, `Party_Management.js` | High | 8 (shares the damage helper) |
 | ✅ 10 | Tank-specific scare policy | `Party_Management.js`, `Game_Config.js` | Med | 8, 9 |
-| 11 | Agitate/cleave/taunt arbitration | `Warrior_Skills.js` | Med | 5 |
-| 12 | Overkill prevention | `Messaging.js`, each `*_Combat.js` | Med | 7 |
-| 13 | Spread-out target sorter | `Combat_Utilities.js` | Low | — |
-| 14 | Monster-derived kite distance | `Combat_Utilities.js`, configs | Med | — |
-| 15 | Per-monster tactical overrides | `*_Config.js`, `*_Skills.js` | Med | — |
+| ✅ 11 | Agitate/cleave/taunt arbitration | `Warrior_Skills.js` | Med | 5 |
+| ✅ 12 | Overkill prevention (**kill-claims only**) | `Messaging.js`, `Combat_Utilities.js`, each `*_Combat.js` | Med | 7 |
+| ✅ 13 | Spread-out target sorter | `Combat_Utilities.js`, `Warrior_Combat.js` | Low | — |
+| ✅ 14 | Monster-derived kite distance | `Combat_Utilities.js`, `Ranger_Movement.js` | Med | — |
+| ✅ 15 | Per-monster tactical overrides | `*_Config.js`, `*_Skills.js` | Med | — |
 | 16 | Resolve instance keys from `G` | `Healer_Dungeon.js` | Low | — |
 | 17 | Let instances age before clearing | none (strategy) | None | — |
 | 18 | Per-monster dungeon sub-strategies | `Healer_Dungeon.js` | Med | 14, 15, 16 |
@@ -173,7 +173,7 @@ reposition scorer, so this is cheap insurance for two systems at once.
 
 ---
 
-## 5. Cleave gating rework (Ulric)
+## ✅ 5. Cleave gating rework (Ulric)
 
 **File:** `Character_Functions/Warrior/Warrior_Skills.js` — `should_cleave()` (~line 110)
 
@@ -192,9 +192,19 @@ Three specific changes:
   is the *equip penalty* in ms — only relevant if a weapon swap is added, but note it now so the
   number is not mistaken for an arbitrary constant later.
 
+**As built:** all three, plus a correction — `handle_cleave()` **already swaps to a bataxe**, so the
+360ms equip penalty is not hypothetical here. `cleave_attack_headroom()` returns 75 when the bataxe
+is already held and `EQUIP_PENALTY_MS` (360) when a swap is needed, so current behaviour is
+preserved in the no-swap case and the swap case stops eating an attack window.
+
+The new-aggro cap is `CONFIG.combat.cleave_max_new_aggro` (2), counting only `!e.target` monsters
+that the cleave would *not* kill outright — a mob that dies to the cleave never lands on him.
+`cleave_min_mobs` is untouched and still measures total mobs in range, which is the right question
+for "is this cleave worth the MP".
+
 ---
 
-## 6. Schedule skill loops off cooldowns, not a fixed tick
+## ✅ 6. Schedule skill loops off cooldowns, not a fixed tick
 
 **Files:** `Shared/Combat_Utilities.js` (new helper), `Character_Functions/Warrior/Warrior_Skills.js`
 
@@ -216,6 +226,16 @@ zero-cooldown skill spins the loop.
 
 **Related:** `Ranger_Skills.js` fires when `min_ms < character.ping / 10`, an unexplained heuristic.
 Once item 1 lands the condition is simply `min_ms === 0`.
+
+**As built:** `ms_to_next_of(skills)` in `Combat_Utilities.js`, floored at `SKILL_LOOP_MIN_MS` (50).
+The Warrior loop builds its skill list from the enabled flags each tick via `warrior_loop_skills()`,
+so a disabled skill never drives the schedule, and falls back to `SKILL_LOOP_IDLE_MS` (1000) when
+nothing is enabled. No ceiling: when every skill is on cooldown the loop is *supposed* to sleep, and
+when one is ready but its conditions are unmet the 50ms floor polls at a sane rate.
+
+The `character.ping / 10` heuristic in `Ranger_Skills.js` is **left alone** — with item 1's
+compensation moved into `parent.next_skill`, it evaluates to the same `raw < 1.1 × ping` it always
+did, so changing it is cosmetic rather than a fix.
 
 ---
 
@@ -441,7 +461,7 @@ The off-list gating is **not** done — it needs per-monster intent, which is it
 
 ---
 
-## 11. Agitate / cleave / taunt arbitration (Ulric)
+## ✅ 11. Agitate / cleave / taunt arbitration (Ulric)
 
 **File:** `Character_Functions/Warrior/Warrior_Skills.js`
 
@@ -459,9 +479,19 @@ Ulric gathers within 100px of Myras (`distance(character, tank) <= 100`), she pi
 Note `handle_taunt()` is currently commented out and `taunt_ents: false`. Re-enabling it is part of
 this item — do not remove the commented block, extend it.
 
+**As built:** `handle_aggro_skills(tank)` owns the arbitration. It compares
+`monsters_within(G.skills.agitate.range).length` against `cache.monsters_in_cleave_range.length`;
+when agitate reaches no more, cleave goes first and `handle_cleave()` (now returning a boolean)
+suppresses agitate if it fired. When agitate reaches more, agitate goes first and cleave gets the
+leftover.
+
+Single-target taunt is a new `taunt_single()` rather than a change to `handle_taunt()` — the latter
+is ent-specific and gated on `taunt_ents`, a different feature. Both it and its commented call site
+are untouched.
+
 ---
 
-## 12. Overkill prevention (party-wide)
+## ✅ 12. Overkill prevention (party-wide)
 
 **Files:** `Shared/Messaging.js`, each `*_Combat.js`
 
@@ -479,9 +509,32 @@ deleting a boss from a teammate's view is worse than a little overkill.
 the same fresh mob. In this party that specifically stops Ulric and Myras double-pulling during the
 agitate handoff.
 
+### As built — kill-claims only; the aggro half is wrong for this party
+
+`claim_monsters(entities)` broadcasts `{type:"claiming", ids}` to the other combat characters;
+`record_monster_claim()` in `Messaging.js` stores them with a 1.5s TTL. Claimed monsters are skipped
+by `get_nearest_monster_v2()` (Warrior and Healer targeting, overridable with `ignore_claims`) and by
+`should_attack_mob()` (Ranger). Emitted by all three when `can_kill_in_one_shot()` says the shot
+lands — the Ranger passes the skill name so `3shot` (×0.7) and `5shot` (×0.5) are scored at their
+real damage. `all_bosses` is never claimed, matching earthiverse's `SPECIAL_MONSTERS` exemption.
+
+**The "second half" is deliberately not implemented, because it would break the handoff.** I wrote
+it first and reverted it. Claiming what Ulric *pulls* means Myras skips those monsters — but her
+`target_priority: ["Ulric", "Myras"]` exists precisely so she takes what is hitting him. A pull
+claim would suppress the transfer this party is built around.
+
+The double-pull the source repo avoids is two DPS wasting an aggro action on one mob. Here the
+second "pull" *is the handoff*, so there is nothing to prevent. A claim means "I will kill this",
+never "I pulled this".
+
+**CC cost** is the live risk: one CM per claim, on a farm where everything dies in one shot. Guarded
+by `MONSTER_CLAIM_MIN_INTERVAL_MS` (200ms between sends), `MONSTER_CLAIM_MAX_CC` (skip entirely at
+cc ≥ 100) and `MONSTER_CLAIM_MAX_IDS` (8 per message). Watch `cc` on Riva first — 5shot claims up to
+five monsters at once.
+
 ---
 
-## 13. Spread-out target sorter (party-wide)
+## ✅ 13. Spread-out target sorter (party-wide)
 
 **File:** `Shared/Combat_Utilities.js` — alongside `score_by_explosion_spread()` (~line 144)
 
@@ -494,9 +547,14 @@ targets *distant from each other*.
 rather than to group them for AoE. Add it as an alternative scorer, selectable per farm, rather
 than replacing what is there.
 
+**As built:** `score_by_isolation()`, selected by `CONFIG.combat.prefer_isolated_targets` (default
+`false`) in the Warrior's `find_cluster_target()`. The neighbour count was identical in both
+directions, so the body moved to `count_neighbours()` and both scorers are now one-line sorts of it
+rather than a 15-line copy differing by one character.
+
 ---
 
-## 14. Kite distance derived from the monster
+## ✅ 14. Kite distance derived from the monster
 
 **Files:** `Shared/Combat_Utilities.js`, the per-character configs
 
@@ -518,9 +576,28 @@ strictly better than one number for every farm.
 and for her only when she is shedding a pull she cannot hold (see item 10). Do not apply this
 uniformly.
 
+### As built — Ranger only, and not via `circle_radius`
+
+**The plan's file target was wrong.** `CONFIG.movement.circle_radius` is not a kite distance: the
+orbit in `orbit_reposition()` is centred on `reposition_center()`, which is the movement leader or a
+fixed farm location. It bounds how far from the *party* a character may roam. Monster distance
+enters through the **scorers**, so that is where the change went.
+
+`kite_distance(entity)` = `min(character.range, entity.range + (entity.charge ?? entity.speed) + 50)`.
+`make_kite_distance_scorer()` scores a candidate position by the worst threat's standoff: at or
+beyond the wanted distance it scores `want` (no reward for over-running), inside it the shortfall is
+penalised double.
+
+Wired to the **Ranger only**, behind `CONFIG.movement.kite_distance` (default `true`), and skipped
+while `panicking` — in a panic the old "maximum distance from everything" scorer is the right one.
+
+**Not wired to the Warrior**, despite the plan's wording. His scorer already caps at
+`character.range * 0.9` of the cluster and minimises travel; he is melee and wants to be close, so a
+standoff distance would be either a no-op or actively wrong. **Not wired to the Healer** — she tanks.
+
 ---
 
-## 15. Per-monster tactical overrides mid-fight
+## ✅ 15. Per-monster tactical overrides mid-fight
 
 **Files:** the per-character `*_Config.js` and `*_Skills.js`
 
@@ -535,6 +612,28 @@ The extension is to let the same table carry **skill-enable flags**, so a monste
 
 This also gives `cleave_blacklist` / `agitate_blacklist` / `skill_blacklist` — currently three
 separate flat lists across three files — one structure to live in.
+
+**As built:** a `CONFIG.combat.monster_rules` table per character, keyed by monster type. All three
+blacklists are gone, migrated into it with identical contents:
+
+| was | now |
+|---|---|
+| Warrior `cleave_blacklist` / `agitate_blacklist` | `fireroamer: {cleave:false}`, `plantoid`/`pppompom`: `{cleave:false, agitate:false}` |
+| Ranger `skill_blacklist` | five types at `{skills:false}` |
+| Healer | `monster_rules: {}` — structure present, nothing to migrate |
+
+**Two resolvers, because the old lists had two different scopes** and collapsing them to one would
+have silently changed behaviour:
+
+- `monster_overrides(rules, range)` — **area** rules, merged over monsters within a range, `false`
+  winning. Cached per tick as `cache.cleave_rules` (cleave range) and `cache.agitate_rules` (agitate
+  range), matching exactly where each blacklist used to be checked. A single 400px resolve would
+  have let a fireroamer block cleave from across the screen.
+- `rule_allows_for(rules, entity, key)` — **per-target** rules, for the Ranger's skill gate and the
+  Warrior's agitate candidate filter, which tested the specific monster rather than the area.
+
+Skill-enable flags for `scare` are supported by the same table but not yet consulted anywhere — the
+tank's scare decision is party-state driven (item 10), not monster driven.
 
 ---
 
