@@ -23,7 +23,8 @@ var CONFIG = {
 		party_dps_factor: 2.0,
 
 		sample_bow_choice: true,
-		sample_bow_ms: 2000,
+		sample_bow_ms: 10000,
+		sample_hits: true,
 		pouchbow_enabled: true,
 		pouchbow_explosion: 51,
 		pouchbow_min_neighbours: 3,

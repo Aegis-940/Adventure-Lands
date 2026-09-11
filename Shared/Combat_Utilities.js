@@ -3,6 +3,74 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// DAMAGE SAMPLING — what burn and splash are actually worth, measured from hit events
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const DAMAGE_WINDOW_MS = 15000;
+
+let _damage_window = null;
+
+function reset_damage_window() {
+	_damage_window = {
+		at: Date.now(),
+		weapon: character.slots?.mainhand?.name || "none",
+		direct: 0, splash: 0, burn: 0,
+		hits: 0, splashes: 0, ticks: 0
+	};
+}
+
+function sample_hits_enabled() {
+	return typeof CONFIG !== "undefined" && CONFIG.combat && CONFIG.combat.sample_hits;
+}
+
+function flush_damage_window() {
+	if (!sample_hits_enabled()) return;
+	if (!_damage_window) return reset_damage_window();
+
+	const w = _damage_window;
+	const weapon = character.slots?.mainhand?.name || "none";
+	if (Date.now() - w.at < DAMAGE_WINDOW_MS && weapon === w.weapon) return;
+
+	if (w.direct > 0 && typeof errlog_sample === "function") {
+		errlog_sample("damage", {
+			weapon: w.weapon,
+			secs: +((Date.now() - w.at) / 1000).toFixed(1),
+			direct: Math.round(w.direct),
+			splash: Math.round(w.splash),
+			burn: Math.round(w.burn),
+			burn_mult: +(1 + w.burn / w.direct).toFixed(3),
+			splash_mult: +(1 + w.splash / w.direct).toFixed(3),
+			hits: w.hits, splashes: w.splashes, ticks: w.ticks,
+			per_splash: w.splashes ? +(w.splash / w.splashes / (w.direct / w.hits)).toFixed(3) : 0
+		});
+	}
+	reset_damage_window();
+}
+
+function _is_my_hit(data) {
+	return data && (data.hid === character.id || data.hid === character.name);
+}
+
+if (parent.socket._damage_sampler) {
+	parent.socket.off("hit", parent.socket._damage_sampler);
+}
+
+parent.socket._damage_sampler = data => {
+	try {
+		if (!sample_hits_enabled() || !_is_my_hit(data) || !data.damage) return;
+		if (!_damage_window) reset_damage_window();
+
+		if (data.source === "burn") { _damage_window.burn += data.damage; _damage_window.ticks++; }
+		else if (data.splash) { _damage_window.splash += data.damage; _damage_window.splashes++; }
+		else { _damage_window.direct += data.damage; _damage_window.hits++; }
+	} catch (e) { }
+};
+
+parent.socket.on("hit", parent.socket._damage_sampler);
+
+setInterval(flush_damage_window, 1000);
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // MONSTER & COMBAT UTILITIES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
