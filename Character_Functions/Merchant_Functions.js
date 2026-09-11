@@ -56,6 +56,8 @@ var CONFIG = {
 	},
 	exchange: {
 		targets: [
+			{ name: "seashell",     min: 1 },
+			{ name: "browne",    min: 1 },
 			{ name: "goldenegg",    min: 1 },
 			{ name: "basketofeggs", min: 1 },
 			{ name: "gem0",         min: 1 },
@@ -772,7 +774,9 @@ async function handle_mining_state() {
 
 async function set_state(state) {
 	try {
-		if (state !== MERCHANT_STATES.IDLE && stand_is_open()) await close_merchant_stand();
+		if (state !== MERCHANT_STATES.IDLE && state !== MERCHANT_STATES.EXCHANGING && stand_is_open()) {
+			await close_merchant_stand();
+		}
 
 		switch (state) {
 			case MERCHANT_STATES.DEAD:       await handle_dead_state(); break;
@@ -1102,7 +1106,6 @@ async function bank_items() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 let exchange_items_running = false;
-const EXCHANGE_POSITION_TOLERANCE = 5;
 
 function has_exchangeable_items() {
 	for (const target of CONFIG.exchange.targets) {
@@ -1156,6 +1159,7 @@ async function exchange_items() {
 
 		if (item_slot === -1) {
 			log("No exchangeable items found, attempting to withdraw from bank...", "#888");
+			await close_merchant_stand();
 			await smarter_move(BANK_LOCATION);
 			await delay(500);
 
@@ -1181,8 +1185,7 @@ async function exchange_items() {
 			}
 
 			if (item_slot === -1) {
-				log("No valid items to exchange after bank withdrawal, returning home.", "#888");
-				await smarter_move(HOME);
+				log("No valid items to exchange after bank withdrawal.", "#888");
 				return;
 			}
 		}
@@ -1190,33 +1193,28 @@ async function exchange_items() {
 		const item_config = CONFIG.exchange.targets.find(cfg => cfg.name === item_name);
 		const min_count = item_config?.min ?? 1;
 
-		await smarter_move(HOME, null, { radius: EXCHANGE_POSITION_TOLERANCE });
-		await delay(500);
-
-		log(`📍 At exchange location for ${item_name}. Starting exchange...`);
+		log(`🔁 Starting exchange for ${item_name}.`);
 
 		let keep_going = true;
 		while (keep_going) {
-			if (character.map !== HOME.map || Math.hypot(character.x - HOME.x, character.y - HOME.y) > EXCHANGE_POSITION_TOLERANCE) {
-				log("❌ Not at exchange location. Stopping.");
-				break;
-			}
-
 			for (let i = 0; i < character.items.length; i++) {
 				const itm = character.items[i];
-				if (itm && SELLABLE_ITEMS.includes(itm.name)) {
-					sell(i, itm.q || 1);
-					log(`💰 Sold ${itm.name} x${itm.q || 1}`);
-				}
+				if (!itm || !SELLABLE_ITEMS.includes(itm.name)) continue;
+				if (is_stand_stock(itm) || is_default_gear(itm)) continue;
+				sell(i, itm.q || 1);
+				log(`💰 Sold ${itm.name} x${itm.q || 1}`);
 			}
 
-			if (character.items.filter(Boolean).length >= character.items.length) {
+			if (free_inventory_slots() === 0) {
 				log(`📦 Inventory full. Selling/banking before continuing to exchange ${item_name}.`);
+				await close_merchant_stand();
 				await sell_items();
 				await bank_items();
 				await delay(200);
-				await smarter_move(HOME, null, { radius: EXCHANGE_POSITION_TOLERANCE });
-				await delay(200);
+				if (free_inventory_slots() === 0) {
+					log("📦 Still full after selling and banking — stopping the exchange.", "#FFA500");
+					break;
+				}
 				continue;
 			}
 
@@ -1247,6 +1245,7 @@ async function exchange_items() {
 		}
 
 		log(`Finished exchanging all ${item_name}`, "#00ff00");
+		await close_merchant_stand();
 		await sell_items();
 		await bank_items();
 	} catch (e) {

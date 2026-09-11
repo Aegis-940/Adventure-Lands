@@ -6,7 +6,7 @@
 // LOOT & INVENTORY
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const LOOT_GOLD_RESERVE = 10000000;
+const LOOT_GOLD_RESERVE = 100000000;
 
 const ITEMS_TO_KEEP_BASE = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster",
 	"pumpkinspice", "xptome", "tracker", "jacko", "talkingskull", "computer"];
