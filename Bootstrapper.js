@@ -70,7 +70,16 @@ window._cmListeners = window._cmListeners || [];
 
 		"Riff": ["Merchant_Systems/Auto_Upgrade.js",
 		"Merchant_Systems/Auto_Craft.js",
-		"Character_Functions/Merchant_Functions.js"]
+		"Character_Functions/Merchant/Merchant_Config.js",
+		"Character_Functions/Merchant/Merchant_Stand.js",
+		"Character_Functions/Merchant/Merchant_Inventory.js",
+		"Character_Functions/Merchant/Merchant_Exchange.js",
+		"Character_Functions/Merchant/Merchant_Gear.js",
+		"Character_Functions/Merchant/Merchant_Gathering.js",
+		"Character_Functions/Merchant/Merchant_Party.js",
+		"Character_Functions/Merchant/Merchant_Opportunistic.js",
+		"Character_Functions/Merchant/Merchant_Tasks.js",
+		"Character_Functions/Merchant/Merchant.js"]
 	};
 	const role_file = role_scripts[character.name] || [];
 	if (!role_scripts[character.name]) {

@@ -11,7 +11,8 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 - **No package.json, npm, or build pipeline.** Do not suggest installing packages or running build commands.
 - **No module system.** Files are loaded sequentially via the Bootstrapper or injected manually into the game client. There are no `import`/`export` statements.
 - **Two different load mechanisms, and they scope differently.** `Shared/*.js` and `UI/*.js` load in parallel as real `<script>` tags, so their top-level `const`/`let`/`function` are all global. `Character_Functions/**` load sequentially through **indirect eval**, where `var` and `function` go global but **a top-level `const`/`let` is invisible to sibling files**. Anything shared between two files of the same character must therefore be `var` or `function`. This fails silently at runtime, not at load.
-- **Nothing in a character file may run at load time** except the entry point (`Warrior.js`, `Healer.js`, `Ranger.js`, and the tail of `Merchant_Functions.js`). Every loop starts from `run_character()`.
+- **Nothing in a character file may run at load time** except the entry point (`Warrior.js`, `Healer.js`, `Ranger.js`, `Merchant.js`). The fighters start every loop from `run_character()`; the merchant starts `loop_controller()`.
+- **A top-level initializer may only name what has already loaded.** Function bodies run later so they can call anything, but a top-level `const X = {...}` is evaluated at load. `Merchant_Tasks.js` builds `PRIORITY_CHECKS` out of the `should_run_*` functions, so it has to load last. Getting this wrong throws inside the eval and the file defines nothing — silently.
 - **Runtime is the browser game client.** All globals (`character`, `parent.G`, `parent.entities`, `parent.S`, `parent.socket`) are provided by the game environment — they are not bugs or undefined references.
 - **jQuery is available** as `parent.$` or `window.jQuery`. This is injected by the game client.
 - **Code is injected into iframes.** `parent.*` references are how scripts access the game's top-level scope.
@@ -63,7 +64,16 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Character_Functions/Ranger/Ranger_Movement.js` | Licence top-up and the reposition scorer |
 | `Character_Functions/Ranger/Ranger_Looting.js` | Disabled delayed-chest looting, kept for later |
 | `Character_Functions/Ranger/Ranger.js` | Ranger entry point — windows, `run_character()` |
-| `Character_Functions/Merchant_Functions.js` | Trading, fishing, mining, potion delivery, and the merchant entry point (character: Riff) |
+| `Character_Functions/Merchant/Merchant_Config.js` | Merchant tunables, locations, `merchant_task` (character: Riff) |
+| `Character_Functions/Merchant/Merchant_Stand.js` | The stall: open/close, buy and sell orders, stock accounting, restocking, and the idle state |
+| `Character_Functions/Merchant/Merchant_Inventory.js` | Slot counting, vendoring `SELLABLE_ITEMS`, and the banking state |
+| `Character_Functions/Merchant/Merchant_Exchange.js` | Bank fetch task plus the exchanging he does while idle |
+| `Character_Functions/Merchant/Merchant_Gear.js` | Default loadout and gathering-tool swaps |
+| `Character_Functions/Merchant/Merchant_Gathering.js` | Shared fishing/mining run |
+| `Character_Functions/Merchant/Merchant_Party.js` | mluck, party membership, the delivery run |
+| `Character_Functions/Merchant/Merchant_Opportunistic.js` | Potions, loot collection and buffing, on their own 1Hz loop |
+| `Character_Functions/Merchant/Merchant_Tasks.js` | `PRIORITY_CHECKS`, `set_state()`, `loop_controller()` — **must load after every file it names** |
+| `Character_Functions/Merchant/Merchant.js` | Merchant entry point |
 | `UI/DPS_Meter.js` | Real-time DPS tracking overlay |
 | `UI/Stats_Window.js` | Character stats + gold graph (Canvas API) |
 | `UI/Settings_Window.js` | Live in-game per-character target settings, persisted via localStorage, ⚙️ button next to the reload button |
