@@ -10,8 +10,6 @@ const PARTY_LEADER                = "Ulric";
 const PARTY_MEMBERS               = ["Riva", "Myras", "Riff"];
 
 const MOVEMENT_LEADER             = "Myras";
-const PARTY_TANK                  = "Myras";
-const PARTY_MERCHANT              = "Riff";
 
 const LOOT_THRESHOLD = 6;
 

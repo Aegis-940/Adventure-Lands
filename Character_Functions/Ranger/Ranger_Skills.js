@@ -38,7 +38,7 @@ async function skill_loop() {
 		if (min_ms < character.ping / 10) {
 			change_target(target);
 
-			const skill_allowed = rule_allows_for(CONFIG.combat.monster_rules, target, "skills");
+			const skill_allowed = !CONFIG.combat.skill_blacklist.includes(target.mtype);
 
 			const hm_cost = G.skills.huntersmark?.mp || 0;
 			const ss_cost = G.skills.supershot?.mp || 0;
@@ -59,7 +59,7 @@ async function skill_loop() {
 				await use_skill("supershot", target);
 			}
 		} else {
-			delay = next_action_delay(min_ms, 100);
+			delay = min_ms > 200 ? 100 : min_ms > 50 ? 20 : 5;
 		}
 	} catch (e) {
 		catcher(e, "skill_loop");

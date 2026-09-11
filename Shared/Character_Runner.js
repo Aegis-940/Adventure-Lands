@@ -24,11 +24,8 @@ function make_cache(fields) {
 	}, fields);
 }
 
-const ACTION_DELAY_MAX_MS = 200;
-
-function next_action_delay(ms, max) {
-	const ceiling = max === undefined ? ACTION_DELAY_MAX_MS : max;
-	return Math.max(1, Math.min(ms, ceiling));
+function next_action_delay(ms) {
+	return ms > 200 ? 200 : ms > 50 ? 50 : 10;
 }
 
 const REPOSITION_INTERVAL_MS = 250;

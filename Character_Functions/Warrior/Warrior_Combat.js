@@ -3,10 +3,8 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function update_cache() {
-	cache.tank_entity = get_entity(PARTY_TANK)
+	cache.tank_entity = get_entity("Myras")
 	cache.monsters_in_cleave_range = find_monsters_in_cleave_range();
-	cache.cleave_rules = monster_overrides(CONFIG.combat.monster_rules, G.skills.cleave.range);
-	cache.agitate_rules = monster_overrides(CONFIG.combat.monster_rules, G.skills.agitate.range);
 
 	if (!cache.is_valid()) {
 		cache.cluster_target = find_cluster_target();
@@ -24,10 +22,6 @@ function find_cluster_target() {
 		distance(character, e) <= character.range
 	);
 	if (!in_range.length) return null;
-
-	if (CONFIG.combat.prefer_isolated_targets) {
-		return score_by_isolation(in_range)[0]?.mob || null;
-	}
 
 	const scored = score_by_explosion_spread(in_range);
 	return scored[0]?.count >= CONFIG.combat.cluster_min_mobs ? scored[0].mob : null;
@@ -93,9 +87,6 @@ var swap_trick_history = {};
 
 async function status_swap_trick_check(target) {
 
-	if (can_kill_in_one_shot(target)) claim_monsters([target]);
-
-	note_attack_sent();
 	Promise.resolve(attack(target)).catch(e => catcher(e, "action_loop"));
 
 	const trick = STATUS_SWAP_TRICKS[target?.mtype];

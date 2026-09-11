@@ -52,107 +52,6 @@ function panic_equip_free() {
 
 let _panic_last_emit = -1;
 
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// DEATH ESCAPE — react to damage that has not landed yet
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-const DEATH_ESCAPE_COOLDOWN_MS = 3000;
-
-let _last_death_escape = 0;
-
-function death_escape_enabled() {
-	return typeof CONFIG !== "undefined" && !!(CONFIG.safety && CONFIG.safety.death_escape);
-}
-
-async function trigger_death_escape(reason) {
-	if (Date.now() - _last_death_escape < DEATH_ESCAPE_COOLDOWN_MS) return;
-	_last_death_escape = Date.now();
-
-	if (is_disabled(character) || will_burn_to_death()) {
-		log(`[ESCAPE] harakiri — ${reason}`, "#ff4444", "Alerts");
-		parent.socket.emit("harakiri");
-		return;
-	}
-
-	log(`[ESCAPE] panic + scare — ${reason}`, "#ff4444", "Alerts");
-	set_panic(true, reason, false);
-	if (typeof PANIC_BROADCAST_TARGETS !== "undefined") {
-		send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: true });
-	}
-
-	if (!is_on_cooldown("scare") && can_use("scare")) {
-		try {
-			await use_skill("scare");
-		} catch (e) {
-			log(`[ESCAPE] Error using scare: ${fmt_err(e)}`, "#ff4444", "Errors");
-		}
-	}
-}
-
-function death_escape_check() {
-	if (!death_escape_enabled() || character.rip) return;
-
-	if (will_burn_to_death()) {
-		trigger_death_escape("burning to death");
-		return;
-	}
-
-	if (could_die_to_incoming()) {
-		trigger_death_escape("lethal damage inbound");
-	}
-}
-
-if (parent.socket._death_escape_handler) {
-	parent.socket.off("action", parent.socket._death_escape_handler);
-}
-
-parent.socket._death_escape_handler = data => {
-	try {
-		if (!data || data.heal) return;
-		if (data.target !== character.id && data.target !== character.name) return;
-		if (!death_escape_enabled() || character.rip) return;
-		if (!could_die_to_incoming()) return;
-		trigger_death_escape("lethal projectile inbound");
-	} catch (e) { }
-};
-
-parent.socket.on("action", parent.socket._death_escape_handler);
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// SCARE POLICY — the tank does not scatter a pull the party cannot absorb
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-const SCATTER_ALLY_HP_PCT = 0.60;
-const SCATTER_ALLY_TARGETS = 2;
-
-function scatter_absorbers() {
-	return [PARTY_LEADER, ...PARTY_MEMBERS].filter(
-		name => name !== PARTY_TANK && name !== PARTY_MERCHANT
-	);
-}
-
-function tank_scare_policy_enabled() {
-	return character.name === PARTY_TANK
-		&& typeof CONFIG !== "undefined"
-		&& !!(CONFIG.safety && CONFIG.safety.tank_scare_policy);
-}
-
-function party_can_absorb_scatter() {
-	for (const name of scatter_absorbers()) {
-		const mate = get_player(name);
-		if (!mate || mate.rip) continue;
-		if (mate.hp / mate.max_hp < SCATTER_ALLY_HP_PCT) return false;
-		if (get_num_targets(name) >= SCATTER_ALLY_TARGETS) return false;
-	}
-	return true;
-}
-
-function should_hold_scare() {
-	if (!tank_scare_policy_enabled()) return false;
-	if (could_die_to_incoming()) return false;
-	return !party_can_absorb_scatter();
-}
-
 async function panic_check() {
 	if (_panic_check_running) return;
 	_panic_check_running = true;
@@ -165,8 +64,6 @@ async function panic_check() {
 
 async function _panic_check_body() {
 	const t = PANIC_THRESHOLDS;
-
-	death_escape_check();
 
 	const LOW_HEALTH = character.hp < character.max_hp * t.low_hp;
 	const LOW_MANA = character.mp < character.max_mp * t.low_mp;
@@ -218,16 +115,12 @@ async function _panic_check_body() {
 		}
 
 		if (!is_on_cooldown("scare") && can_use("scare")) {
-			if (should_hold_scare()) {
-				log("[PANIC] Holding scare — the party cannot absorb the scatter", "#ffcc00", "Alerts");
-			} else {
-				try {
-					log("Using Scare!", "#ffcc00", "Alerts");
-					await use_skill("scare");
-					await delay(200);
-				} catch (e) {
-					log(`[PANIC] Error using scare: ${fmt_err(e)}`, "#ff4444", "Errors");
-				}
+			try {
+				log("Using Scare!", "#ffcc00", "Alerts");
+				await use_skill("scare");
+				await delay(200);
+			} catch (e) {
+				log(`[PANIC] Error using scare: ${fmt_err(e)}`, "#ff4444", "Errors");
 			}
 		}
 	}

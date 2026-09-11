@@ -13,29 +13,16 @@ var CONFIG = {
 		never_attack: ["nerfedmummy"],
 		use_hunters_mark: true,
 		use_supershot: true,
-		monster_rules: {
-			dryad:      { skills: false },
-			fireroamer: { skills: false },
-			plantoid:   { skills: false },
-			mole:       { skills: false },
-			mummy:      { skills: false },
-		},
+		skill_blacklist: ["dryad", "fireroamer", "plantoid", "mole", "mummy"],
 		min_targets_for_5shot: 4,
 		min_targets_for_3shot: 2,
-		burst_attacks: 9,
-		burst_max_cc: 80,
 		engage_aggroed_only: true,
 		skill_min_mp_pct: 0.40,
-	},
-
-	safety: {
-		death_escape: true,
 	},
 
 	movement: {
 		enabled: true,
 		reposition: true,
-		kite_distance: true,
 		circle_radius: 75,
 		move_threshold: 10,
 		follow_distance: 15,

@@ -2,20 +2,9 @@
 // WARRIOR SKILLS — warcry, cleave, agitate; started by Warrior.js
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var SKILL_LOOP_IDLE_MS = 1000;
-
-function warrior_loop_skills() {
-	const skills = [];
-	if (CONFIG.skills.warcry_enabled) skills.push("warcry");
-	if (CONFIG.skills.cleave_enabled) skills.push("cleave");
-	if (CONFIG.skills.agitate_enabled) skills.push("agitate");
-	if (CONFIG.skills.taunt_enabled) skills.push("taunt");
-	return skills;
-}
-
 async function skill_loop() {
 	if (should_pause_combat_loop()) return setTimeout(skill_loop, 100);
-	let delay = SKILL_LOOP_IDLE_MS;
+	const delay = TICK_RATE.skill;
 
 	try {
 		if (is_disabled(character)) {
@@ -37,7 +26,13 @@ async function skill_loop() {
 		// 	await handle_stomp();
 		// }
 
-		await handle_aggro_skills(tank);
+		if (CONFIG.skills.cleave_enabled && WARRIOR_TARGET !== "bscorpion" && WARRIOR_TARGET !== "giantspider") {
+			await handle_cleave();
+		}
+
+		if (CONFIG.skills.agitate_enabled && tank && WARRIOR_TARGET !== "giantspider") {
+			await handle_agitate(tank);
+		}
 
 		// if (CONFIG.skills.taunt_enabled) {
 		// 	await handle_taunt();
@@ -51,54 +46,11 @@ async function skill_loop() {
 		// 	await use_skill("hardshell");
 		// }
 
-		const skills = warrior_loop_skills();
-		delay = skills.length ? ms_to_next_of(skills) : SKILL_LOOP_IDLE_MS;
-
 	} catch (e) {
 		console.error("skill_loop error:", e);
-		delay = TICK_RATE.skill;
 	}
 
 	setTimeout(skill_loop, delay);
-}
-
-async function handle_aggro_skills(tank) {
-	const cleave_allowed = CONFIG.skills.cleave_enabled
-		&& WARRIOR_TARGET !== "bscorpion"
-		&& WARRIOR_TARGET !== "giantspider";
-	const agitate_allowed = CONFIG.skills.agitate_enabled
-		&& !!tank
-		&& WARRIOR_TARGET !== "giantspider";
-
-	if (!cleave_allowed && !agitate_allowed) return;
-
-	const agitate_reach = monsters_within(G.skills.agitate.range);
-	const prefer_cleave = agitate_reach.length <= cache.monsters_in_cleave_range.length;
-
-	let cleaved = false;
-	if (cleave_allowed && prefer_cleave) cleaved = await handle_cleave();
-
-	if (!cleaved && agitate_allowed) {
-		const taunted = await taunt_single(agitate_reach);
-		if (!taunted) await handle_agitate(tank);
-	}
-
-	if (!cleaved && cleave_allowed && !prefer_cleave) await handle_cleave();
-}
-
-async function taunt_single(candidates) {
-	if (!CONFIG.skills.taunt_enabled) return false;
-	if (candidates.length !== 1) return false;
-	if (is_on_cooldown("taunt")) return false;
-	if (character.mp < G.skills.taunt.mp + panic_mp_reserve()) return false;
-
-	const target = candidates[0];
-	if (target.target === character.name) return false;
-	if (!rule_allows_for(CONFIG.combat.monster_rules, target, "agitate")) return false;
-	if (!is_in_range(target, "taunt")) return false;
-
-	await use_skill("taunt", target.id);
-	return true;
 }
 
 async function handle_stomp() {
@@ -130,45 +82,35 @@ async function handle_stomp() {
 
 async function handle_cleave() {
 	const ms_until_cleave = ms_to_next_skill("cleave");
-	if (ms_until_cleave !== 0) return false;
-	if (!can_cleave()) return false;
+	if (ms_until_cleave !== 0) return;
+	if (!can_cleave()) return;
 
 	const mainhand = character.slots?.mainhand?.name;
 	const needs_swap = mainhand !== "bataxe";
 	const now = performance.now();
 
 	const token = equip_claim("cleave-swap", EQUIP_PRIORITY.skill);
-	if (!token) return false;
+	if (!token) return;
 	try {
 		if (now - state.last_cleave_swap > COOLDOWNS.weapon_swap) {
 			state.last_cleave_swap = now;
 			await unequip("offhand");
-			if (!await equip_apply(token, "bataxe")) return false;
+			if (!await equip_apply(token, "bataxe")) return;
 		}
 
 		await use_skill("cleave");
 
 		await equip_apply(token, mob_count() === 1 ? "single" : "aoe");
-		return true;
 	} finally {
 		equip_release(token);
 	}
-}
-
-var EQUIP_PENALTY_MS = 360;
-var CLEAVE_ATTACK_HEADROOM_MS = 75;
-
-function cleave_attack_headroom() {
-	return character.slots?.mainhand?.name === "bataxe"
-		? CLEAVE_ATTACK_HEADROOM_MS
-		: EQUIP_PENALTY_MS;
 }
 
 function can_cleave() {
 	if (!CONFIG.equipment.cleave_maps.includes(character.map)) return false;
 	if (is_travelling() || is_disabled(character)) return false;
 	if (character.cc >= COOLDOWNS.cc) return false;
-	if (ms_to_next_skill("attack") <= cleave_attack_headroom()) return false;
+	if (ms_to_next_skill("attack") <= 75) return false;
 
 	const required_mp = character.mp_cost * 2 + G.skills.cleave.mp + 320;
 	if (character.mp < required_mp) return false;
@@ -184,16 +126,12 @@ function can_cleave() {
 	);
 	if (low_boss) return false;
 
-	const in_range = cache.monsters_in_cleave_range;
+	const blacklisted_nearby = cache.monsters_in_cleave_range.some(e =>
+		CONFIG.combat.cleave_blacklist.includes(e.mtype)
+	);
+	if (blacklisted_nearby) return false;
 
-	if (!rule_allows(cache.cleave_rules, "cleave")) return false;
-
-	if (in_range.length === 1 && can_kill_in_one_shot(in_range[0])) return false;
-
-	const new_aggro = in_range.filter(e => !e.target && !can_kill_in_one_shot(e, "cleave"));
-	if (new_aggro.length > CONFIG.combat.cleave_max_new_aggro) return false;
-
-	return in_range.length >= CONFIG.combat.cleave_min_mobs;
+	return cache.monsters_in_cleave_range.length >= CONFIG.combat.cleave_min_mobs;
 }
 
 function is_fireroamer_agitate_safe(nearby_mobs) {
@@ -217,7 +155,6 @@ function is_fireroamer_agitate_safe(nearby_mobs) {
 async function handle_agitate(tank) {
 	if (is_on_cooldown("agitate") || !tank || tank.rip) return;
 	if (character.mp < G.skills.agitate.mp + panic_mp_reserve()) return;
-	if (!rule_allows(cache.agitate_rules, "agitate")) return;
 
 	const skill_range = G.skills.agitate.range;
 	const nearby_mobs = Object.values(parent.entities).filter(e =>
@@ -236,7 +173,7 @@ async function handle_agitate(tank) {
 
 	const other_mobs = nearby_mobs.filter(e =>
 		["sparkbot", "jr", "greenjr", "bigbird", home].includes(e.mtype) &&
-		rule_allows_for(CONFIG.combat.monster_rules, e, "agitate")
+		!CONFIG.combat.agitate_blacklist.includes(e.mtype)
 	);
 	const untargeted_other = other_mobs.filter(m => !m.target);
 

@@ -1,5 +1,28 @@
 # IMPROVEMENT_PLAN.md
 
+> **Status: none of this is implemented.** Items 1, 2, 5–15 and 19 were built, deployed and then
+> **fully reverted** — every `.js` file is back to commit `4e5af87`. The party showed no measurable
+> gain and attacks appeared to arrive slightly later. This file is kept as a design record for
+> building these one at a time later, not as a description of the code.
+>
+> **What went wrong, so it is not repeated:**
+>
+> - **Too much at once.** Fifteen behavioural changes shipped across three commits with no way to
+>   attribute an effect to a cause. When the party felt worse, nothing could be isolated.
+> - **No baseline.** The kill/attack telemetry arrived with item 19, at the very end. It should have
+>   been the *first* thing built, measuring the old code for a session before anything changed.
+> - **The kill-claim design was wrong** (item 12). A claim removed a monster from *every* other
+>   character's targeting for 1.5s via `get_nearest_monster_v2()` — including the tank's pull logic.
+>   Riva 5shotting five weak mobs could blind Ulric and Myras to all five. That is the most likely
+>   cause of the observed delay. A claim must be a same-instant overkill guard, not an exclusive
+>   1.5-second lock, and it must never touch the tank's target selection.
+> - **Unfalsifiable items shipped anyway.** Items 6, 8, 11, 13 and 14 were each plausible and none
+>   was measurable. Plausible is not a reason to keep code you cannot reason about.
+>
+> **If picking this up again:** build the telemetry first, run it against unchanged code for a real
+> session, then take *one* item, measure it on the same farm, and keep it only if the numbers move.
+> Items 3, 4, 16, 17 and 18 were never built and are unaffected by any of this.
+
 Twenty changes drawn from a review of [earthiverse/adventureland-bots](https://github.com/earthiverse/adventureland-bots)
 (TypeScript/Node on ALClient — none of its code ports, but the game math does).
 
@@ -23,28 +46,28 @@ gathers mobs for her via `agitate`. Survivability work belongs on Myras; see CLA
 
 | # | Item | Files | Risk | Depends on |
 |---|------|-------|------|------------|
-| ✅ 1 | `reduce_cooldown()` after skill use | `Combat_Utilities.js`, all `*_Skills.js`, `*_Combat.js` | Low | — |
-| ✅ 2 | Sleep the exact cooldown | `Character_Runner.js`, `Ranger_Skills.js` | Low | 1 |
+| 1 | `reduce_cooldown()` after skill use | `Combat_Utilities.js`, all `*_Skills.js`, `*_Combat.js` | Low | — |
+| 2 | Sleep the exact cooldown | `Character_Runner.js`, `Ranger_Skills.js` | Low | 1 |
 | 3 | Respawn-timed temporal surge | `Healer_Equipment.js`, `Healer_Config.js` | Low | — |
 | 4 | Anti-stacking | `Movement.js` or `Combat_Utilities.js` | Low | — |
-| ✅ 5 | Cleave gating rework | `Warrior_Skills.js`, `Warrior_Config.js` | Low | — |
-| ✅ 6 | Cooldown-driven skill loops | `Combat_Utilities.js`, `Warrior_Skills.js` | Low | 1 |
-| ✅ 7 | Time-to-death tracking | `Combat_Utilities.js` | Low | — |
-| ✅ 8 | Damage-aware aggro cap | `Combat_Utilities.js`, `Healer_Combat.js` | Med | — |
-| ✅ 9 | Projected-death escape | `Combat_Utilities.js`, `Party_Management.js` | High | 8 (shares the damage helper) |
-| ✅ 10 | Tank-specific scare policy | `Party_Management.js`, `Game_Config.js` | Med | 8, 9 |
-| ✅ 11 | Agitate/cleave/taunt arbitration | `Warrior_Skills.js` | Med | 5 |
-| ✅ 12 | Overkill prevention (**kill-claims only**) | `Messaging.js`, `Combat_Utilities.js`, each `*_Combat.js` | Med | 7 |
-| ✅ 13 | Spread-out target sorter | `Combat_Utilities.js`, `Warrior_Combat.js` | Low | — |
-| ✅ 14 | Monster-derived kite distance | `Combat_Utilities.js`, `Ranger_Movement.js` | Med | — |
-| ✅ 15 | Per-monster tactical overrides | `*_Config.js`, `*_Skills.js` | Med | — |
+| 5 | Cleave gating rework | `Warrior_Skills.js`, `Warrior_Config.js` | Low | — |
+| 6 | Cooldown-driven skill loops | `Combat_Utilities.js`, `Warrior_Skills.js` | Low | 1 |
+| 7 | Time-to-death tracking | `Combat_Utilities.js` | Low | — |
+| 8 | Damage-aware aggro cap | `Combat_Utilities.js`, `Healer_Combat.js` | Med | — |
+| 9 | Projected-death escape | `Combat_Utilities.js`, `Party_Management.js` | High | 8 (shares the damage helper) |
+| 10 | Tank-specific scare policy | `Party_Management.js`, `Game_Config.js` | Med | 8, 9 |
+| 11 | Agitate/cleave/taunt arbitration | `Warrior_Skills.js` | Med | 5 |
+| 12 | Overkill prevention (**kill-claims only**) | `Messaging.js`, `Combat_Utilities.js`, each `*_Combat.js` | Med | 7 |
+| 13 | Spread-out target sorter | `Combat_Utilities.js`, `Warrior_Combat.js` | Low | — |
+| 14 | Monster-derived kite distance | `Combat_Utilities.js`, `Ranger_Movement.js` | Med | — |
+| 15 | Per-monster tactical overrides | `*_Config.js`, `*_Skills.js` | Med | — |
 | 16 | Resolve instance keys from `G` | `Healer_Dungeon.js` | Low | — |
 | 17 | Let instances age before clearing | none (strategy) | None | — |
 | 18 | Per-monster dungeon sub-strategies | `Healer_Dungeon.js` | Med | 14, 15, 16 |
-| ✅ 19 | Multiple-attack burst (**off by default**) | `Ranger_Combat.js`, `Combat_Utilities.js` | High (CC) | 1 |
+| 19 | Multiple-attack burst (**off by default**) | `Ranger_Combat.js`, `Combat_Utilities.js` | High (CC) | 1 |
 | 20 | Leave `hardshell` disabled (**no action**) | — | None | — |
 
-✅ marks an item that has been written. Nothing is ticked as *verified* — that needs the live client.
+Nothing here is implemented. See the status note at the top.
 
 Items **1–2** are a correctness fix and should land before anything else measures timing.
 Items **8–10** share one new function; build it first within that group.
@@ -80,7 +103,7 @@ decision already correctly made.
 
 ---
 
-## ✅ 1. Call `reduce_cooldown()` after every skill use
+## 1. Call `reduce_cooldown()` after every skill use
 
 **Files:** `Shared/Combat_Utilities.js`, all `*_Skills.js` and `*_Combat.js`
 
@@ -114,7 +137,7 @@ timestamp should land earlier than the raw cooldown by roughly the current min p
 
 ---
 
-## ✅ 2. Sleep the exact cooldown, not a bucketed approximation
+## 2. Sleep the exact cooldown, not a bucketed approximation
 
 **Files:** `Shared/Character_Runner.js` — `next_action_delay()` (~line 27);
 `Character_Functions/Ranger/Ranger_Skills.js`
@@ -173,7 +196,7 @@ reposition scorer, so this is cheap insurance for two systems at once.
 
 ---
 
-## ✅ 5. Cleave gating rework (Ulric)
+## 5. Cleave gating rework (Ulric)
 
 **File:** `Character_Functions/Warrior/Warrior_Skills.js` — `should_cleave()` (~line 110)
 
@@ -204,7 +227,7 @@ for "is this cleave worth the MP".
 
 ---
 
-## ✅ 6. Schedule skill loops off cooldowns, not a fixed tick
+## 6. Schedule skill loops off cooldowns, not a fixed tick
 
 **Files:** `Shared/Combat_Utilities.js` (new helper), `Character_Functions/Warrior/Warrior_Skills.js`
 
@@ -239,7 +262,7 @@ did, so changing it is cosmetic rather than a fix.
 
 ---
 
-## ✅ 7. Time-to-death tracking
+## 7. Time-to-death tracking
 
 **Files:** `Shared/Combat_Utilities.js`, data source already present in `UI/DPS_Meter.js`
 
@@ -265,7 +288,7 @@ behaviour on its own.
 
 ---
 
-## ✅ The shared piece for items 8–10: projected incoming damage
+## The shared piece for items 8–10: projected incoming damage
 
 Items 8, 9 and 10 all ask the same question — *how much damage is actually inbound right now?*
 Write it once in `Shared/Combat_Utilities.js`, next to `get_num_targets()`.
@@ -313,7 +336,7 @@ death check.
 
 ---
 
-## ✅ 8. Damage-aware aggro cap (Myras)
+## 8. Damage-aware aggro cap (Myras)
 
 **File:** `Character_Functions/Healer/Healer_Combat.js` — `effective_aggro_cap()`
 
@@ -347,7 +370,7 @@ file and belongs with item 11.
 
 ---
 
-## ✅ 9. Projected-death escape (Myras first, then Riva)
+## 9. Projected-death escape (Myras first, then Riva)
 
 **Files:** `Shared/Combat_Utilities.js` (predicates), `Shared/Party_Management.js` (panic path),
 `Character_Functions/Healer/Healer.js` (socket hook)
@@ -426,7 +449,7 @@ The Merchant is the real exclusion: `Merchant_Config.js` has no `PANIC_THRESHOLD
 
 ---
 
-## ✅ 10. Tank-specific scare policy (Myras)
+## 10. Tank-specific scare policy (Myras)
 
 **File:** `Shared/Party_Management.js` (~line 117)
 
@@ -465,7 +488,7 @@ The off-list gating is **not** done — it needs per-monster intent, which is it
 
 ---
 
-## ✅ 11. Agitate / cleave / taunt arbitration (Ulric)
+## 11. Agitate / cleave / taunt arbitration (Ulric)
 
 **File:** `Character_Functions/Warrior/Warrior_Skills.js`
 
@@ -495,7 +518,7 @@ are untouched.
 
 ---
 
-## ✅ 12. Overkill prevention (party-wide)
+## 12. Overkill prevention (party-wide)
 
 **Files:** `Shared/Messaging.js`, each `*_Combat.js`
 
@@ -538,7 +561,7 @@ five monsters at once.
 
 ---
 
-## ✅ 13. Spread-out target sorter (party-wide)
+## 13. Spread-out target sorter (party-wide)
 
 **File:** `Shared/Combat_Utilities.js` — alongside `score_by_explosion_spread()` (~line 144)
 
@@ -558,7 +581,7 @@ rather than a 15-line copy differing by one character.
 
 ---
 
-## ✅ 14. Kite distance derived from the monster
+## 14. Kite distance derived from the monster
 
 **Files:** `Shared/Combat_Utilities.js`, the per-character configs
 
@@ -601,7 +624,7 @@ standoff distance would be either a no-op or actively wrong. **Not wired to the 
 
 ---
 
-## ✅ 15. Per-monster tactical overrides mid-fight
+## 15. Per-monster tactical overrides mid-fight
 
 **Files:** the per-character `*_Config.js` and `*_Skills.js`
 
@@ -681,7 +704,7 @@ building once those three exist, and only if we run dungeons beyond the spider i
 
 ---
 
-## ✅ 19. Multiple-attack burst — optional, may be a net loss
+## 19. Multiple-attack burst — optional, may be a net loss
 
 **File:** one `*_Combat.js`, behind a config flag, on Riva only to start
 
