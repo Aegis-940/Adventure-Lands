@@ -346,14 +346,25 @@ function partyheal_base(level) {
 	return 400;
 }
 
+function fear_attack_factor(fear) {
+	const f = fear === undefined ? (character.fear || 0) : fear;
+	if (f > 2) return 0.2;
+	if (f > 1) return 0.4;
+	if (f) return 0.6;
+	return 1;
+}
+
 function heal_power_identity() {
 	const output = character.output || 100;
+	const fear = character.fear || 0;
+	const implied = Math.round((character.heal || 0) * output / 100 * fear_attack_factor(fear));
 	return {
 		heal: character.heal || 0,
 		attack: character.attack || 0,
 		output,
-		implied: (character.heal || 0) * output / 100,
-		agrees: Math.abs((character.heal || 0) * output / 100 - (character.attack || 0)) <= 1
+		fear,
+		implied,
+		agrees: Math.abs(implied - (character.attack || 0)) <= 2
 	};
 }
 

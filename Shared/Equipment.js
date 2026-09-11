@@ -160,6 +160,8 @@ function worn_ability_chance(ability) {
 
 const SET_PROFILE_KEY = "AL_set_profile_";
 const SET_PROFILE_FIELDS = ["attack", "explosion", "frequency", "heal", "int", "rpiercing", "mp_cost"];
+const SET_PROFILE_MIN_INTERVAL_MS = 60000;
+const SET_PROFILE_EPSILON = 0.02;
 
 let _set_profiles = null;
 
@@ -177,16 +179,26 @@ function get_set_profile(set_name) {
 	return load_set_profiles()[set_name] || null;
 }
 
+function profile_materially_differs(previous, profile) {
+	return SET_PROFILE_FIELDS.some(field => {
+		const a = previous[field] || 0;
+		const b = profile[field] || 0;
+		if (a === b) return false;
+		return Math.abs(a - b) / Math.max(Math.abs(a), Math.abs(b), 1) > SET_PROFILE_EPSILON;
+	});
+}
+
 function record_set_profile(set_name) {
 	if (!is_set_equipped(set_name)) return false;
+	if (character.fear) return false;
 
 	const profiles = load_set_profiles();
 	const profile = { at: Date.now() };
 	for (const field of SET_PROFILE_FIELDS) profile[field] = character[field] || 0;
 
 	const previous = profiles[set_name];
-	const unchanged = previous && SET_PROFILE_FIELDS.every(f => previous[f] === profile[f]);
-	if (unchanged) return false;
+	if (previous && Date.now() - (previous.at || 0) < SET_PROFILE_MIN_INTERVAL_MS) return false;
+	if (previous && !profile_materially_differs(previous, profile)) return false;
 
 	profiles[set_name] = profile;
 	try {
