@@ -1161,6 +1161,22 @@ function find_bag_exchangeable() {
 	return null;
 }
 
+const EXCHANGE_SKILLS = ["massexchangepp", "massexchange"];
+
+async function begin_mass_exchange() {
+	for (const name of EXCHANGE_SKILLS) {
+		if (character.s?.[name]) return;
+		if (!can_use(name)) continue;
+		if (character.mp < (G.skills[name]?.mp ?? Infinity)) continue;
+		try {
+			await use_skill(name);
+			return;
+		} catch (e) {
+			catcher(e, "begin_mass_exchange: " + name);
+		}
+	}
+}
+
 async function exchange_bag_items() {
 	if (exchange_items_running) return;
 	exchange_items_running = true;
@@ -1171,7 +1187,7 @@ async function exchange_bag_items() {
 			if (!found) break;
 
 			log(`🔁 Exchanging ${found.name} (slot ${found.slot})`);
-			if (!character.q.exchange) await use_skill("massexchange");
+			if (!character.q.exchange) await begin_mass_exchange();
 			await exchange(found.slot);
 		}
 	} catch (e) {
