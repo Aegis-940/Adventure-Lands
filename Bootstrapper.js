@@ -13,8 +13,9 @@ window._cmListeners = window._cmListeners || [];
 	}
 	p$.ajaxSetup({ cache: false });
 
+	const first_script = "Shared/Game_Config.js";
+
 	const scripts = [
-		"Shared/Game_Config.js",
 		"Shared/Movement.js",
 		"Shared/Bscorpion_Farm.js",
 		"Shared/Combat_Utilities.js",
@@ -182,8 +183,17 @@ window._cmListeners = window._cmListeners || [];
 	}
 
 	function start_loading(base) {
-		Promise.all(scripts.map(name => load_one(base, name).then(ok => ({ name, ok }))))
+		load_one(base, first_script)
+			.then(ok => {
+				if (!ok) {
+					game_log("🛑 CRITICAL: failed to load " + first_script + " after retries — aborting, bot cannot function. Reload to retry.");
+					console.error("[BS] Critical script failed to load, aborting:", first_script);
+					return null;
+				}
+				return Promise.all(scripts.map(name => load_one(base, name).then(ok2 => ({ name, ok: ok2 }))));
+			})
 			.then(results => {
+				if (!results) return;
 				const failed_critical = results.filter(r => !r.ok && CRITICAL_SCRIPTS.includes(r.name));
 				if (failed_critical.length > 0) {
 					const names = failed_critical.map(r => r.name).join(", ");
