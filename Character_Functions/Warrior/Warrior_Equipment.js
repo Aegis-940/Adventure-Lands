@@ -58,6 +58,23 @@ function warrior_set_value(set_name, primary, cleave_targets) {
 	return value * cleave.uptime + cleave.dps;
 }
 
+function sample_weapon_choice(from, to, primary, cleave_targets, now) {
+	if (!CONFIG.combat.sample_hits || typeof errlog_sample !== "function") return;
+	const values = {};
+	for (const name of CONFIG.equipment.weapon_sets) {
+		const value = set_available(name) ? warrior_set_value(name, primary, cleave_targets) : null;
+		values[name] = value === null ? null : Math.round(value);
+	}
+	errlog_sample("weapon_choice", {
+		from, to, values,
+		held_ms: _weapon_choice.at ? now - _weapon_choice.at : 0,
+		cleave_targets,
+		cleave_period: +cleave_period().toFixed(2),
+		mp_pct: +(character.mp / character.max_mp).toFixed(2),
+		mob: primary ? primary.mtype : null
+	});
+}
+
 function best_warrior_weapon_set() {
 	const primary = cache.target || cache.cluster_target;
 	const cleave_targets = (cache.monsters_in_cleave_range || []).length;
@@ -80,7 +97,10 @@ function best_warrior_weapon_set() {
 		if (holding !== null && best_value < holding * CONFIG.equipment.weapon_switch_margin) return _weapon_choice.name;
 	}
 
-	if (_weapon_choice.name !== best) _weapon_choice = { name: best, at: now };
+	if (_weapon_choice.name !== best) {
+		sample_weapon_choice(_weapon_choice.name, best, primary, cleave_targets, now);
+		_weapon_choice = { name: best, at: now };
+	}
 	return best;
 }
 

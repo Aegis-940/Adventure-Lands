@@ -11,17 +11,34 @@ const BUFFS_WORTH_LOGGING = ["warcry", "darkblessing", "mluck", "mcourage", "pow
 
 const _damage_windows = {};
 
-function damage_window_for(weapon) {
+function weapon_label() {
+	const mainhand = character.slots?.mainhand?.name || "none";
+	const offhand = character.slots?.offhand?.name || "none";
+	return `${mainhand}/${offhand}`;
+}
+
+function firing_stats() {
+	return {
+		explosion: character.explosion || 0,
+		crit: character.crit || 0,
+		critdamage: character.critdamage || 0,
+		apiercing: character.apiercing || 0,
+		attack: Math.round(character.attack || 0)
+	};
+}
+
+function damage_window_for(weapon, stats) {
 	let w = _damage_windows[weapon];
 	if (!w) {
+		const s = stats || firing_stats();
 		w = _damage_windows[weapon] = {
 			at: Date.now(),
 			weapon,
-			explosion: character.explosion || 0,
-			crit: character.crit || 0,
-			critdamage: character.critdamage || 0,
-			apiercing: character.apiercing || 0,
-			attack: Math.round(character.attack || 0),
+			explosion: s.explosion,
+			crit: s.crit,
+			critdamage: s.critdamage,
+			apiercing: s.apiercing,
+			attack: s.attack,
 			buffs: Object.keys(character.s || {}).filter(s => BUFFS_WORTH_LOGGING.includes(s)).join("+"),
 			direct: 0, splash: 0, burn: 0,
 			hits: 0, splashes: 0, ticks: 0,
@@ -81,10 +98,7 @@ parent.socket._action_sampler = data => {
 	try {
 		if (!sample_hits_enabled() || !data || !data.pid) return;
 		if (data.attacker !== character.id && data.attacker !== character.name) return;
-		_pid_weapon[data.pid] = {
-			weapon: character.slots?.mainhand?.name || "none",
-			at: Date.now()
-		};
+		_pid_weapon[data.pid] = Object.assign({ weapon: weapon_label(), at: Date.now() }, firing_stats());
 	} catch (e) { }
 };
 
@@ -108,7 +122,7 @@ parent.socket._damage_sampler = data => {
 		if (!sample_hits_enabled() || !_is_my_hit(data) || !data.damage) return;
 
 		const fired = data.pid && _pid_weapon[data.pid];
-		const w = damage_window_for(fired ? fired.weapon : (character.slots?.mainhand?.name || "none"));
+		const w = damage_window_for(fired ? fired.weapon : weapon_label(), fired);
 		const hit = parent.entities[data.id];
 		const armor = hit ? (hit.armor || 0) : 0;
 		if (fired) w.tagged++; else w.untagged++;
