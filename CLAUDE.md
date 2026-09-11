@@ -173,7 +173,13 @@ for f in $(git ls-files '*.js'); do
 done
 ```
 
-If a file comes back STALE, **stop and wait** — do not retry in a loop. Retrying keeps the path
+A purge that reports `"throttled": false` can still leave `@main` serving the old
+content, because an edge refills from a GitHub mirror that is still behind. This has
+happened four times. The purge response is therefore not proof of anything — only the
+verify loop above is, and for a rename or delete, grep the *served* file for something
+you changed. **One** re-purge of just the stale paths clears it in practice.
+
+If a file is still STALE after that one retry, **stop and wait** — do not retry in a loop. Retrying keeps the path
 throttled (`throttlingReset` is in seconds and runs to ~50 minutes) and cannot succeed. The pinned
 `@<sha>` path is unaffected by any of this and serves the new content immediately, so a stale
 `@main` only matters when the loader has fallen back to it after a GitHub API 403. Check the SHA
