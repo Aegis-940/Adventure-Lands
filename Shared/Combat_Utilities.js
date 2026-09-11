@@ -146,7 +146,7 @@ function heal_window() {
 		_heal_window = {
 			at: Date.now(),
 			single_casts: 0, single_delivered: 0, single_predicted: 0, single_overheal: 0,
-			party_casts: 0, party_delivered: 0, party_predicted: 0, party_overheal: 0,
+			party_hits: 0, party_delivered: 0, party_predicted: 0, party_overheal: 0,
 			untagged: 0, poisoned_ticks: 0, ticks: 0, mp_low_ticks: 0
 		};
 	}
@@ -167,7 +167,7 @@ function flush_heal_window() {
 	if (Date.now() - w.at < DAMAGE_WINDOW_MS) return;
 	_heal_window = null;
 
-	if (!w.single_casts && !w.party_casts) return;
+	if (!w.single_casts && !w.party_hits) return;
 	if (typeof errlog_sample !== "function") return;
 
 	errlog_sample("heal", {
@@ -180,7 +180,7 @@ function flush_heal_window() {
 		single_predicted: Math.round(w.single_predicted),
 		single_overheal: Math.round(w.single_overheal),
 		single_accuracy: w.single_predicted ? +(w.single_delivered / w.single_predicted).toFixed(3) : 0,
-		party_casts: w.party_casts,
+		party_hits: w.party_hits,
 		party_delivered: Math.round(w.party_delivered),
 		party_predicted: Math.round(w.party_predicted),
 		party_overheal: Math.round(w.party_overheal),
@@ -204,7 +204,7 @@ parent.socket._damage_sampler = data => {
 			const cast = data.pid && _pid_heal[data.pid];
 			const kind = cast ? cast.source : "single";
 			if (!cast) w.untagged++;
-			w[kind + "_casts"]++;
+			if (kind === "party") w.party_hits++; else w.single_casts++;
 			w[kind + "_delivered"] += data.heal;
 			w[kind + "_predicted"] += cast ? cast.predicted : 0;
 			w[kind + "_overheal"] += cast ? Math.max(0, data.heal - cast.deficit) : 0;

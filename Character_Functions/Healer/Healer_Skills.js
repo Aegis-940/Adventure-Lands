@@ -230,7 +230,13 @@ async function handle_party_heal() {
 		if (!lowest || !lowest.max_hp || lowest.hp >= lowest.max_hp * threshold) return;
 		if (!party_heal_outvalues_single(lowest)) return;
 	} else {
-		sample_heal_choice(emergency, party_heal_useful_total(), 0, party_heal_critical_count());
+		const lowest = cache.heal_target;
+		sample_heal_choice(
+			emergency,
+			party_heal_useful_total(),
+			lowest ? heal_useful(lowest, character.heal) : 0,
+			party_heal_critical_count()
+		);
 	}
 
 	await use_skill("partyheal");
