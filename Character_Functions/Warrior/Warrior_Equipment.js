@@ -4,13 +4,6 @@
 
 var _weapon_choice = { name: null, at: 0 };
 
-function should_pause_equipment_resolve() {
-	const mainhand = character.slots?.mainhand?.name;
-	if (mainhand === "basher") return true;
-	if (mainhand === "bataxe") return _weapon_choice.name !== "bataxe";
-	return false;
-}
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // WEAPON SET VALUE — damage per second each set would actually deliver right now
 // --------------------------------------------------------------------------------------------------------------------------------- //
