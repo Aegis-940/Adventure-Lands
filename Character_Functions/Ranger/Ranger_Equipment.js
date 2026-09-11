@@ -3,18 +3,21 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function resolve_ranger_weapon() {
-	const { in_range, out_of_range } = cache.targets;
-	const min5 = CONFIG.combat.min_targets_for_5shot;
-	const min3 = CONFIG.combat.min_targets_for_3shot;
-	const can_5shot = character.mp >= (G.skills["5shot"]?.mp + 400);
-	const can_3shot = character.mp >= (G.skills["3shot"]?.mp + 200);
-
 	if (cache.heal_target) return "heal";
 	if (RANGER_TARGET === "giantspider") return "single";
-	if (can_5shot && (in_range.length >= min5 || out_of_range.length >= min5)) return "boom";
-	if (can_3shot && in_range.length >= min3) return "boom";
-	if (cache.targets.cluster_target) return "boom";
-	return "single";
+	if (!CONFIG.combat.pouchbow_enabled) return "single";
+
+	const { scored, in_range } = cache.targets;
+	if (!in_range.length) return "single";
+
+	const best = scored && scored[0];
+	if (!best) return "single";
+
+	const needed = CONFIG.combat.attack_if_targeted.includes(best.mob.mtype)
+		? CONFIG.combat.pouchbow_min_neighbours_boss
+		: CONFIG.combat.pouchbow_min_neighbours;
+
+	return best.count >= needed ? "boom" : "single";
 }
 
 function resolve_ranger_loadout() {

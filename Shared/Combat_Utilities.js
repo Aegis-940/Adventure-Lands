@@ -141,19 +141,66 @@ function healer_is_down() {
 // COMBAT POSITIONING — shared by Warrior/Ranger's reposition() loops.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function score_by_explosion_spread(pool, aggro_only = false) {
-	const explosion_radius = character.explosion || 40;
-	const all_monsters = Object.values(parent.entities).filter(e => e?.type === "monster" && !e.dead);
+function defense_reduction(defense) {
+	if (typeof parent.damage_multiplier === "function") return parent.damage_multiplier(defense);
 
-	const scored = pool.map(mob => {
-		let count = 0;
-		for (const e of all_monsters) {
-			if (e === mob) continue;
-			if (aggro_only && !e.target) continue;
-			if (Math.hypot(e.x - mob.x, e.y - mob.y) <= explosion_radius) count++;
-		}
-		return { mob, count };
-	});
+	const d = defense || 0;
+	const band = (lo, hi, v) => Math.max(lo, Math.min(hi, v));
+
+	const reduction =
+		band(0, 100, d) * 0.00100 +
+		band(0, 100, d - 100) * 0.00100 +
+		band(0, 100, d - 200) * 0.00095 +
+		band(0, 100, d - 300) * 0.00090 +
+		band(0, 100, d - 400) * 0.00082 +
+		band(0, 100, d - 500) * 0.00070 +
+		band(0, 100, d - 600) * 0.00060 +
+		band(0, 100, d - 700) * 0.00050 +
+		Math.max(0, d - 800) * 0.00040;
+
+	const piercing =
+		band(0, 50, -d) * 0.00100 +
+		band(0, 50, -50 - d) * 0.00075 +
+		band(0, 50, -100 - d) * 0.00050 +
+		Math.max(0, -150 - d) * 0.00025;
+
+	return Math.min(1.32, Math.max(0.05, 1 - reduction + piercing));
+}
+
+function estimate_my_damage(entity, multiplier) {
+	const info = (G.monsters && G.monsters[entity.mtype]) || {};
+	const armor = (entity.armor !== undefined ? entity.armor : info.armor || 0) - (character.apiercing || 0);
+	return (character.attack || 0) * defense_reduction(armor) * (multiplier === undefined ? 1 : multiplier);
+}
+
+function would_kill(entity, multiplier) {
+	if (!entity || entity.dead) return false;
+	return estimate_my_damage(entity, multiplier) >= entity.hp;
+}
+
+const EXPLOSION_RADIUS_DIVISOR = 3.6;
+
+function explosion_radius(explosion) {
+	const intensity = explosion === undefined ? (character.explosion || 0) : explosion;
+	return intensity / EXPLOSION_RADIUS_DIVISOR;
+}
+
+function count_neighbours(mob, radius, aggro_only) {
+	let count = 0;
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e?.type !== "monster" || e.dead) continue;
+		if (e === mob || e.id === mob.id) continue;
+		if (aggro_only && !e.target) continue;
+		if (Math.hypot(e.x - mob.x, e.y - mob.y) <= radius) count++;
+	}
+	return count;
+}
+
+function score_by_explosion_spread(pool, aggro_only = false, radius) {
+	const r = radius === undefined ? explosion_radius() : radius;
+
+	const scored = pool.map(mob => ({ mob, count: count_neighbours(mob, r, aggro_only) }));
 
 	scored.sort((a, b) => b.count - a.count);
 	return scored;

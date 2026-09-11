@@ -23,7 +23,7 @@ function find_cluster_target() {
 	);
 	if (!in_range.length) return null;
 
-	const scored = score_by_explosion_spread(in_range);
+	const scored = score_by_explosion_spread(in_range, false, CONFIG.combat.cluster_radius);
 	return scored[0]?.count >= CONFIG.combat.cluster_min_mobs ? scored[0].mob : null;
 }
 

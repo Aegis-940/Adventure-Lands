@@ -67,11 +67,75 @@ function update_target_cache() {
 		in_range.sort((a, b) => parent.distance(character, a) - parent.distance(character, b));
 	}
 
-	const scored = score_by_explosion_spread(in_range, true);
+	const radius = explosion_radius(CONFIG.combat.pouchbow_explosion);
+	const scored = score_by_explosion_spread(in_range, true, radius);
 	const cluster_targets = scored.map(s => s.mob);
 	const cluster_target = scored[0]?.count >= 3 ? scored[0].mob : null;
+	const best_neighbours = scored[0]?.count || 0;
 
-	return { sorted_by_hp, in_range, out_of_range, cluster_targets, cluster_target };
+	return { sorted_by_hp, in_range, out_of_range, cluster_targets, cluster_target, scored, best_neighbours };
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// MANA / DAMAGE EFFICIENCY — see the derivation in the ranger notes
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function burn_multiplier(mob, skill_multiplier) {
+	if (!CONFIG.combat.burn_enabled) return 1;
+	if (would_kill(mob, skill_multiplier)) return 1;
+	if (CONFIG.combat.attack_if_targeted.includes(mob.mtype)) return CONFIG.combat.burn_mult_boss;
+	return CONFIG.combat.burn_mult_default;
+}
+
+function target_modifier(mob, skill_multiplier) {
+	const explosion = character.explosion || 0;
+	if (explosion > 0) return 1 + (explosion / 100) * count_neighbours(mob, explosion_radius(explosion), false);
+	return burn_multiplier(mob, skill_multiplier);
+}
+
+function mana_price() {
+	const reserve = panic_mp_reserve();
+	const usable = Math.max(0, Math.min(1, (character.mp - reserve) / Math.max(1, character.max_mp - reserve)));
+	const lo = CONFIG.combat.lambda_min;
+	const hi = CONFIG.combat.lambda_max;
+	return hi - (hi - lo) * usable;
+}
+
+function score_option(mobs, count, skill_multiplier, mana, lambda, reference) {
+	if (mobs.length < count) return null;
+
+	let damage = 0;
+	for (let i = 0; i < count; i++) damage += target_modifier(mobs[i], skill_multiplier);
+	damage *= skill_multiplier / reference;
+
+	return { damage, mana, score: damage - lambda * mana };
+}
+
+function choose_attack_option(in_range, cluster_targets, out_of_range) {
+	const lambda = mana_price();
+	const primary = cluster_targets.length ? cluster_targets : in_range;
+	if (!primary.length) return null;
+
+	const reference = target_modifier(primary[0], 1) || 1;
+	const options = [];
+
+	const one = score_option(primary, 1, 1, character.mp_cost, lambda, reference);
+	if (one) options.push({ name: "attack", targets: primary.slice(0, 1), ...one });
+
+	const three = score_option(primary, 3, 0.7, G.skills["3shot"].mp, lambda, reference);
+	if (three) options.push({ name: "3shot", targets: primary.slice(0, 3), ...three });
+
+	const five_pool = primary.length >= 5 ? primary : primary.concat(out_of_range);
+	const five = score_option(five_pool, 5, 0.5, G.skills["5shot"].mp, lambda, reference);
+	if (five) options.push({ name: "5shot", targets: five_pool.slice(0, 5), ...five });
+
+	const affordable = options.filter(o => character.mp >= o.mana + panic_mp_reserve());
+	if (affordable.length) return affordable.reduce((best, o) => (o.score > best.score ? o : best));
+
+	if (character.mp >= Math.max(100, panic_mp_reserve())) {
+		return options.find(o => o.name === "attack") || null;
+	}
+	return null;
 }
 
 function find_heal_target() {
@@ -126,23 +190,33 @@ async function handle_attack() {
 	const { sorted_by_hp, in_range, out_of_range, cluster_targets, cluster_target } = cache.targets;
 	if (!sorted_by_hp.length) return;
 
-	const min5 = CONFIG.combat.min_targets_for_5shot;
-	const min3 = CONFIG.combat.min_targets_for_3shot;
-	const mp5 = (G.skills["5shot"]?.mp + 400);
-	const mp3 = (G.skills["3shot"]?.mp + 200);
-	const mp1 = Math.max(100, panic_mp_reserve());
-	const can_5shot = character.mp >= mp5;
-	const can_3shot = character.mp >= mp3;
-	const can_1shot = character.mp >= mp1;
-
 	const single_target_mode = RANGER_TARGET === "giantspider";
-	let skill_call;
-	if (!single_target_mode && can_5shot && in_range.length >= min5)           { skill_call = () => use_skill("5shot", cluster_targets.slice(0, 5).map(e => e.id)); }
-	else if (!single_target_mode && can_5shot && out_of_range.length >= min5)  { skill_call = () => use_skill("5shot", out_of_range.slice(0, 5).map(e => e.id)); }
-	else if (!single_target_mode && can_3shot && in_range.length >= min3)      { skill_call = () => use_skill("3shot", cluster_targets.slice(0, 3).map(e => e.id)); }
-	else if (can_1shot && cluster_target)               { skill_call = () => attack(cluster_target); }
-	else if (can_1shot && in_range.length >= 1)         { skill_call = () => attack(single_target_mode ? in_range[0] : (cluster_targets[0] || in_range[0])); }
-	else return;
 
-	await skill_call();
+	if (single_target_mode) {
+		if (character.mp < Math.max(100, panic_mp_reserve())) return;
+		if (!in_range.length) return;
+		return attack(in_range[0]);
+	}
+
+	const choice = choose_attack_option(in_range, cluster_targets, out_of_range);
+	if (!choice) return;
+
+	if (CONFIG.combat.log_efficiency) log_attack_choice(choice);
+
+	if (choice.name === "attack") return attack(choice.targets[0]);
+	return use_skill(choice.name, choice.targets.map(e => e.id));
+}
+
+var _last_efficiency_log = 0;
+
+function log_attack_choice(choice) {
+	const now = Date.now();
+	if (now - _last_efficiency_log < CONFIG.combat.log_efficiency_ms) return;
+	_last_efficiency_log = now;
+
+	const k = choice.targets.map(t => count_neighbours(t, explosion_radius(CONFIG.combat.pouchbow_explosion), false));
+	log(`[RANGER] ${choice.name} x${choice.targets.length} k=[${k}] `
+		+ `dmg=${choice.damage.toFixed(2)} mana=${choice.mana} `
+		+ `mp=${Math.round(character.mp)} lam=${mana_price().toFixed(4)} `
+		+ `wep=${character.slots?.mainhand?.name}`, "#66ccff");
 }

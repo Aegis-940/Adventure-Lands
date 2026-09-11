@@ -13,6 +13,7 @@ var CONFIG = {
 		cleave_blacklist: ["fireroamer", "plantoid", "pppompom"],
 		agitate_min_mobs: 2,
 		cluster_min_mobs: 2,
+		cluster_radius: 40,
 		agitate_blacklist: ["plantoid", "pppompom"],
 		agitate_fireroamer_conditions: {
 			healer_hp_pct: 0.60,

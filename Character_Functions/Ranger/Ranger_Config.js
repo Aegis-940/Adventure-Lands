@@ -14,10 +14,23 @@ var CONFIG = {
 		use_hunters_mark: true,
 		use_supershot: true,
 		skill_blacklist: ["dryad", "fireroamer", "plantoid", "mole", "mummy"],
-		min_targets_for_5shot: 4,
-		min_targets_for_3shot: 2,
 		engage_aggroed_only: true,
 		skill_min_mp_pct: 0.40,
+
+		lambda_min: 0.002,
+		lambda_max: 0.012,
+
+		burn_enabled: true,
+		burn_mult_default: 1.05,
+		burn_mult_boss: 1.41,
+
+		pouchbow_enabled: true,
+		pouchbow_explosion: 51,
+		pouchbow_min_neighbours: 2,
+		pouchbow_min_neighbours_boss: 3,
+
+		log_efficiency: true,
+		log_efficiency_ms: 5000,
 	},
 
 	movement: {
