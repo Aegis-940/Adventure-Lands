@@ -181,7 +181,8 @@ function should_run_exchange() {
 	return CONFIG.enabled.exchanging
 		&& merchant_task === "Idle"
 		&& has_enough_bank_space()
-		&& has_exchangeable_items();
+		&& !find_bag_exchangeable()
+		&& has_bank_exchangeables();
 }
 
 function should_run_fishing() {
@@ -500,6 +501,7 @@ async function handle_idle_state() {
 		await open_merchant_stand();
 		await refresh_slice_buy_orders();
 		await refresh_sell_offers();
+		if (CONFIG.enabled.exchanging) await exchange_bag_items();
 		return;
 	}
 	await close_merchant_stand();
@@ -598,7 +600,14 @@ async function handle_crafting_state() {
 
 async function handle_exchanging_state() {
 	if (merchant_task !== "Idle") return;
-	await exchange_items();
+	merchant_task = "Exchanging";
+	try {
+		await withdraw_exchangeables();
+	} catch (e) {
+		catcher(e, "handle_exchanging_state");
+	} finally {
+		merchant_task = "Idle";
+	}
 }
 
 async function equip_default_gear() {
@@ -774,9 +783,7 @@ async function handle_mining_state() {
 
 async function set_state(state) {
 	try {
-		if (state !== MERCHANT_STATES.IDLE && state !== MERCHANT_STATES.EXCHANGING && stand_is_open()) {
-			await close_merchant_stand();
-		}
+		if (state !== MERCHANT_STATES.IDLE && stand_is_open()) await close_merchant_stand();
 
 		switch (state) {
 			case MERCHANT_STATES.DEAD:       await handle_dead_state(); break;
@@ -1107,153 +1114,75 @@ async function bank_items() {
 
 let exchange_items_running = false;
 
-function has_exchangeable_items() {
+function has_bank_exchangeables() {
+	const bank_data = character.bank || load_bank_from_local_storage();
+	if (!bank_data) return false;
+
 	for (const target of CONFIG.exchange.targets) {
 		let count = 0;
-		for (const item of character.items) {
-			if (item && item.name === target.name) count += item.q || 1;
+		for (const pack in bank_data) {
+			if (!Array.isArray(bank_data[pack])) continue;
+			for (const item of bank_data[pack]) {
+				if (item && item.name === target.name) count += item.q || 1;
+			}
 		}
 		if (count >= target.min) return true;
-	}
-
-	const bank_data = character.bank || load_bank_from_local_storage();
-	if (bank_data) {
-		for (const target of CONFIG.exchange.targets) {
-			let count = 0;
-			for (const pack in bank_data) {
-				if (!Array.isArray(bank_data[pack])) continue;
-				for (const item of bank_data[pack]) {
-					if (item && item.name === target.name) count += item.q || 1;
-				}
-			}
-			if (count >= target.min) return true;
-		}
 	}
 
 	return false;
 }
 
-async function exchange_items() {
-	if (exchange_items_running) {
-		log("⚠️ Exchange already running, skipping duplicate call.");
-		return;
+function find_bag_exchangeable() {
+	for (const config of CONFIG.exchange.targets) {
+		const min_count = config.min ?? 1;
+		for (let i = 0; i < character.items.length; i++) {
+			const itm = character.items[i];
+			if (itm && itm.name === config.name && (itm.q || 1) >= min_count) {
+				return { slot: i, name: config.name };
+			}
+		}
 	}
+	return null;
+}
 
+async function exchange_bag_items() {
+	if (exchange_items_running) return;
 	exchange_items_running = true;
-	merchant_task = "Exchanging";
 
 	try {
-		let item_name = null;
-		let item_slot = -1;
-		for (const config of CONFIG.exchange.targets) {
-			for (let i = 0; i < character.items.length; i++) {
-				const itm = character.items[i];
-				if (itm && itm.name === config.name) {
-					item_slot = i;
-					item_name = config.name;
-					break;
-				}
-			}
-			if (item_slot !== -1) break;
+		while (free_inventory_slots() > CONFIG.min_free_inventory_slots) {
+			const found = find_bag_exchangeable();
+			if (!found) break;
+
+			log(`🔁 Exchanging ${found.name} (slot ${found.slot})`);
+			if (!character.q.exchange) await use_skill("massexchange");
+			await exchange(found.slot);
 		}
-
-		if (item_slot === -1) {
-			log("No exchangeable items found, attempting to withdraw from bank...", "#888");
-			await close_merchant_stand();
-			await smarter_move(BANK_LOCATION);
-			await delay(500);
-
-			let withdrew = false;
-			for (const item of CONFIG.exchange.targets) {
-				try {
-					withdraw_item(item.name, null, 9999);
-					await delay(400);
-					for (let i = 0; i < character.items.length; i++) {
-						const itm = character.items[i];
-						if (itm && itm.name === item.name) {
-							item_slot = i;
-							item_name = item.name;
-							withdrew = true;
-							log("Item withdrawn from bank: " + item.name);
-							break;
-						}
-					}
-				} catch (e) {
-					catcher(e, "exchange_items: withdraw " + item.name);
-				}
-				if (withdrew) break;
-			}
-
-			if (item_slot === -1) {
-				log("No valid items to exchange after bank withdrawal.", "#888");
-				return;
-			}
-		}
-
-		const item_config = CONFIG.exchange.targets.find(cfg => cfg.name === item_name);
-		const min_count = item_config?.min ?? 1;
-
-		log(`🔁 Starting exchange for ${item_name}.`);
-
-		let keep_going = true;
-		while (keep_going) {
-			for (let i = 0; i < character.items.length; i++) {
-				const itm = character.items[i];
-				if (!itm || !SELLABLE_ITEMS.includes(itm.name)) continue;
-				if (is_stand_stock(itm) || is_default_gear(itm)) continue;
-				sell(i, itm.q || 1);
-				log(`💰 Sold ${itm.name} x${itm.q || 1}`);
-			}
-
-			if (free_inventory_slots() === 0) {
-				log(`📦 Inventory full. Selling/banking before continuing to exchange ${item_name}.`);
-				await close_merchant_stand();
-				await sell_items();
-				await bank_items();
-				await delay(200);
-				if (free_inventory_slots() === 0) {
-					log("📦 Still full after selling and banking — stopping the exchange.", "#FFA500");
-					break;
-				}
-				continue;
-			}
-
-			let found_stack = false;
-			for (let i = 0; i < character.items.length; i++) {
-				const itm = character.items[i];
-				if (itm && itm.name === item_name && (itm.q || 1) >= min_count) {
-					try {
-						log(`🔁 Exchanging slot ${i} (${item_name} x${itm.q || 1})`);
-						if (!character.q.exchange) {
-							await use_skill("massexchange");
-						}
-						await exchange(i);
-						found_stack = true;
-					} catch (e) {
-						catcher(e, "exchange_items: exchange " + item_name);
-						keep_going = false;
-					}
-					break;
-				}
-			}
-
-			if (!found_stack) {
-				log(`✅ No more ${item_name} stacks with at least ${min_count}.`);
-				keep_going = false;
-				await delay(50);
-			}
-		}
-
-		log(`Finished exchanging all ${item_name}`, "#00ff00");
-		await close_merchant_stand();
-		await sell_items();
-		await bank_items();
 	} catch (e) {
-		catcher(e, "exchange_items");
+		catcher(e, "exchange_bag_items");
 	} finally {
 		exchange_items_running = false;
-		merchant_task = "Idle";
 	}
+}
+
+async function withdraw_exchangeables() {
+	log("🏦 Fetching exchangeables from the bank...", "#888");
+	await close_merchant_stand();
+	await smarter_move(BANK_LOCATION);
+	await delay(500);
+	refresh_bank_snapshot();
+
+	for (const target of CONFIG.exchange.targets) {
+		try {
+			await withdraw_item(target.name, null, 9999);
+		} catch (e) {
+			catcher(e, "withdraw_exchangeables: " + target.name);
+		}
+		if (find_bag_exchangeable()) return true;
+	}
+
+	log("🏦 Nothing exchangeable came out of the bank.", "#FFA500");
+	return false;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
