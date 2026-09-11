@@ -501,6 +501,7 @@ async function handle_idle_state() {
 		await open_merchant_stand();
 		await refresh_slice_buy_orders();
 		await refresh_sell_offers();
+		sell_while_idle();
 		if (CONFIG.enabled.exchanging) await exchange_bag_items();
 		return;
 	}
@@ -1001,6 +1002,34 @@ function has_sellable_items() {
 	return false;
 }
 
+function sell_sellable_items() {
+	let sold_any = false;
+	for (let i = 0; i < character.items.length; i++) {
+		const item = character.items[i];
+		if (!item || !SELLABLE_ITEMS.includes(item.name)) continue;
+		if (is_stand_stock(item) || is_default_gear(item)) continue;
+		try {
+			const sale = sell(i, item.q || 1);
+			if (sale && typeof sale.catch === "function") sale.catch(e => catcher(e, "sell: " + item.name));
+			game_log(`💰 Sold ${item.name} x${item.q || 1}`);
+			sold_any = true;
+		} catch (e) {
+			catcher(e, "sell: " + item.name);
+		}
+	}
+	return sold_any;
+}
+
+const IDLE_SELL_SETTLE_MS = 1500;
+let _idle_sell_at = 0;
+
+function sell_while_idle() {
+	if (Date.now() - _idle_sell_at < IDLE_SELL_SETTLE_MS) return;
+	if (!has_sellable_items()) return;
+	_idle_sell_at = Date.now();
+	sell_sellable_items();
+}
+
 function has_bankable_items() {
 	const keep_for_stand = make_stand_stock_keeper();
 	for (let i = 3; i < character.items.length; i++) {
@@ -1040,20 +1069,7 @@ async function sell_items() {
 		await smarter_move(HOME);
 		await delay(3000);
 
-		for (let i = 0; i < character.items.length; i++) {
-			const item = character.items[i];
-			if (!item) continue;
-			if (!SELLABLE_ITEMS.includes(item.name)) continue;
-			if (is_stand_stock(item)) continue;
-			if (is_default_gear(item)) continue;
-			try {
-				sell(i, item.q || 1);
-				game_log(`💰 Sold ${item.name} x${item.q || 1}`);
-				sold_any = true;
-			} catch (e) {
-				catcher(e, "sell_items: sell " + item.name);
-			}
-		}
+		sold_any = sell_sellable_items();
 	} catch (e) {
 		catcher(e, "sell_items");
 	} finally {
