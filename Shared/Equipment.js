@@ -98,6 +98,34 @@ function is_set_equipped(set_name) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// ITEM ABILITIES — proc chances scaled to the item's upgrade level
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const UPGRADE_LEVEL_MULTIPLIERS = { 7: 1.25, 8: 1.5, 9: 2, 10: 3, 11: 1.25, 12: 1.25 };
+
+function upgrade_multiplier_sum(level) {
+	let sum = 0;
+	for (let i = 1; i <= (level || 0); i++) sum += UPGRADE_LEVEL_MULTIPLIERS[i] || 1;
+	return sum;
+}
+
+function item_ability_chance(item_name, level, ability) {
+	const def = G.items[item_name];
+	if (!def || def.ability !== ability) return 0;
+
+	const scaling = def.upgrade || def.compound;
+	const per_level = (scaling && scaling.attr0) || 0;
+	return (def.attr0 || 0) + per_level * upgrade_multiplier_sum(level);
+}
+
+function set_ability_chance(set_name, slot, ability) {
+	const set = equipment_sets[set_name];
+	const entry = set && set.find(i => i.slot === slot);
+	if (!entry) return 0;
+	return item_ability_chance(entry.item_name, entry.level, ability);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // SET PROFILES — what each equipment set is actually worth, measured while it is worn
 // --------------------------------------------------------------------------------------------------------------------------------- //
 

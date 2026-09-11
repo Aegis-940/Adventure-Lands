@@ -28,7 +28,7 @@ function resolve_ranger_weapon() {
 	if (!best) return "single";
 
 	const is_boss = CONFIG.combat.attack_if_targeted.includes(best.mob.mtype);
-	const burn_mult = is_boss ? CONFIG.combat.burn_mult_boss : CONFIG.combat.burn_mult_default;
+	const burn_mult = burn_mult_from_chance(set_ability_chance("single", "mainhand", "burn"), is_boss);
 
 	const derived = neighbours_to_beat_firebow(burn_mult);
 	const needed = derived === null

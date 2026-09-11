@@ -17,20 +17,16 @@ var CONFIG = {
 		engage_aggroed_only: true,
 		skill_min_mp_pct: 0.40,
 
-		lambda_min: 0.002,
-		lambda_max: 0.012,
+		lambda_headroom_low: 0.6,
+		lambda_headroom_high: 1.5,
 
 		burn_enabled: true,
-		burn_mult_default: 1.05,
-		burn_mult_boss: 1.41,
+		burn_ticks_assumed: 3,
 
 		pouchbow_enabled: true,
 		pouchbow_explosion: 51,
 		pouchbow_min_neighbours: 2,
 		pouchbow_min_neighbours_boss: 3,
-
-		log_efficiency: true,
-		log_efficiency_ms: 5000,
 	},
 
 	movement: {

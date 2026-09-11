@@ -81,11 +81,37 @@ function update_target_cache() {
 // MANA / DAMAGE EFFICIENCY — see the derivation in the ranger notes
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+var SHOT_PROFILES = [
+	{ name: "attack", count: 1, multiplier: 1.0 },
+	{ name: "3shot", count: 3, multiplier: 0.7 },
+	{ name: "5shot", count: 5, multiplier: 0.5, extend: true },
+];
+
+function shot_mana(profile) {
+	return profile.name === "attack" ? character.mp_cost : (G.skills[profile.name]?.mp || 0);
+}
+
+function burn_ticks(full) {
+	const def = G.conditions?.burned;
+	if (!def || !def.interval) return 0;
+	const max_ticks = Math.floor((def.duration || 0) / def.interval);
+	return full ? max_ticks : Math.min(max_ticks, CONFIG.combat.burn_ticks_assumed);
+}
+
+function burn_mult_from_chance(chance, full) {
+	if (!chance) return 1;
+	return 1 + (chance / 100) * (burn_ticks(full) / 5);
+}
+
 function burn_multiplier(mob, skill_multiplier) {
 	if (!CONFIG.combat.burn_enabled) return 1;
 	if (would_kill(mob, skill_multiplier)) return 1;
-	if (CONFIG.combat.attack_if_targeted.includes(mob.mtype)) return CONFIG.combat.burn_mult_boss;
-	return CONFIG.combat.burn_mult_default;
+
+	const held = character.slots?.mainhand;
+	if (!held) return 1;
+
+	const chance = item_ability_chance(held.name, held.level, "burn");
+	return burn_mult_from_chance(chance, CONFIG.combat.attack_if_targeted.includes(mob.mtype));
 }
 
 function target_modifier(mob, skill_multiplier) {
@@ -94,11 +120,31 @@ function target_modifier(mob, skill_multiplier) {
 	return burn_multiplier(mob, skill_multiplier);
 }
 
+function lambda_bounds() {
+	const ladder = SHOT_PROFILES.slice().sort((a, b) => shot_mana(a) - shot_mana(b));
+
+	let cheapest = Infinity;
+	let dearest = 0;
+	for (let i = 1; i < ladder.length; i++) {
+		const extra_damage = ladder[i].count * ladder[i].multiplier - ladder[i - 1].count * ladder[i - 1].multiplier;
+		const extra_mana = shot_mana(ladder[i]) - shot_mana(ladder[i - 1]);
+		if (extra_mana <= 0 || extra_damage <= 0) continue;
+		const rate = extra_damage / extra_mana;
+		if (rate < cheapest) cheapest = rate;
+		if (rate > dearest) dearest = rate;
+	}
+
+	if (!isFinite(cheapest) || dearest <= 0) return { lo: 0.002, hi: 0.012 };
+	return {
+		lo: cheapest * CONFIG.combat.lambda_headroom_low,
+		hi: dearest * CONFIG.combat.lambda_headroom_high,
+	};
+}
+
 function mana_price() {
 	const reserve = panic_mp_reserve();
 	const usable = Math.max(0, Math.min(1, (character.mp - reserve) / Math.max(1, character.max_mp - reserve)));
-	const lo = CONFIG.combat.lambda_min;
-	const hi = CONFIG.combat.lambda_max;
+	const { lo, hi } = lambda_bounds();
 	return hi - (hi - lo) * usable;
 }
 
@@ -120,15 +166,13 @@ function choose_attack_option(in_range, cluster_targets, out_of_range) {
 	const reference = target_modifier(primary[0], 1) || 1;
 	const options = [];
 
-	const one = score_option(primary, 1, 1, character.mp_cost, lambda, reference);
-	if (one) options.push({ name: "attack", targets: primary.slice(0, 1), ...one });
-
-	const three = score_option(primary, 3, 0.7, G.skills["3shot"].mp, lambda, reference);
-	if (three) options.push({ name: "3shot", targets: primary.slice(0, 3), ...three });
-
-	const five_pool = primary.length >= 5 ? primary : primary.concat(out_of_range);
-	const five = score_option(five_pool, 5, 0.5, G.skills["5shot"].mp, lambda, reference);
-	if (five) options.push({ name: "5shot", targets: five_pool.slice(0, 5), ...five });
+	for (const profile of SHOT_PROFILES) {
+		const pool = (profile.extend && primary.length < profile.count)
+			? primary.concat(out_of_range)
+			: primary;
+		const scored = score_option(pool, profile.count, profile.multiplier, shot_mana(profile), lambda, reference);
+		if (scored) options.push({ name: profile.name, targets: pool.slice(0, profile.count), ...scored });
+	}
 
 	const affordable = options.filter(o => character.mp >= o.mana + panic_mp_reserve());
 	if (affordable.length) return affordable.reduce((best, o) => (o.score > best.score ? o : best));
@@ -202,23 +246,7 @@ async function handle_attack() {
 	const choice = choose_attack_option(in_range, cluster_targets, out_of_range);
 	if (!choice) return;
 
-	if (CONFIG.combat.log_efficiency) log_attack_choice(choice);
-
 	if (choice.name === "attack") return attack(choice.targets[0]);
 	return use_skill(choice.name, choice.targets.map(e => e.id));
 }
 
-var _last_efficiency_log = 0;
-
-function log_attack_choice(choice) {
-	const now = Date.now();
-	if (now - _last_efficiency_log < CONFIG.combat.log_efficiency_ms) return;
-	_last_efficiency_log = now;
-
-	const k = choice.targets.map(t => count_neighbours(t, explosion_radius(pouchbow_explosion()), false));
-	const need = neighbours_to_beat_firebow(CONFIG.combat.burn_mult_default);
-	log(`[RANGER] ${choice.name} x${choice.targets.length} k=[${k}] need=${need === null ? "?" : need} `
-		+ `dmg=${choice.damage.toFixed(2)} mana=${choice.mana} `
-		+ `mp=${Math.round(character.mp)} lam=${mana_price().toFixed(4)} `
-		+ `wep=${character.slots?.mainhand?.name}`, "#66ccff");
-}
