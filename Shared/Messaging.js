@@ -114,6 +114,7 @@ function get_full_character_state() {
 		anniv_pending: typeof anniversary_should_travel === "function" && anniversary_should_travel(),
 		has_kiss: !!(character.s && character.s.anniversary_kiss),
 		free_slots: character.items.filter(it => !it).length,
+		loose_slots: typeof loose_loot === "function" ? loose_loot(0).length : 0,
 		conditions: character.s || {},
 		last_seen: Date.now(),
 	};

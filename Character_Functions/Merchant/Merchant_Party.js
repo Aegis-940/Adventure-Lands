@@ -78,10 +78,10 @@ function should_run_delivery() {
 	if (merchant_task !== "Idle") return false;
 	for (const name of PARTY) {
 		const status = read_state_cache(name);
-		if (!status) continue;
+		if (!status || status.rip) continue;
 		if (is_mluck_due(status)) return true;
-		if (status.free_slots <= CONFIG.delivery.free_slots_threshold) return true;
-		if (status.gold >= CONFIG.delivery.gold_threshold) return true;
+		if (status.free_slots <= CONFIG.delivery.free_slots_threshold && status.loose_slots > 0) return true;
+		if (status.gold - LOOT_GOLD_RESERVE >= CONFIG.delivery.gold_threshold) return true;
 	}
 	return false;
 }
