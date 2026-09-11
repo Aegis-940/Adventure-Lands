@@ -22,9 +22,9 @@ var CONFIG = {
 		burn_enabled: true,
 		party_dps_factor: 2.0,
 
-		sample_bow_choice: true,
+		sample_bow_choice: false,
 		sample_bow_ms: 10000,
-		sample_hits: true,
+		sample_hits: false,
 		pouchbow_enabled: true,
 		pouchbow_explosion: 51,
 		pouchbow_min_neighbours: 3,
