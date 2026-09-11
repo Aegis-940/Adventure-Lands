@@ -30,7 +30,7 @@ function next_action_delay(ms) {
 
 const REPOSITION_INTERVAL_MS = 250;
 
-function orbit_reposition(make_score) {
+function orbit_reposition(make_score, options) {
 	if (smart.moving || character.moving) return;
 	if (home === "bscorpion") return;
 
@@ -44,7 +44,7 @@ function orbit_reposition(make_score) {
 	const score = make_score();
 	if (!score) return;
 
-	const spot = best_orbit_spot(center, CONFIG.movement.circle_radius, score);
+	const spot = best_orbit_spot(center, CONFIG.movement.circle_radius, score, options);
 	if (!spot) return;
 	if (Math.hypot(character.x - spot.x, character.y - spot.y) <= CONFIG.movement.move_threshold) return;
 

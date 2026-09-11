@@ -33,6 +33,8 @@ var CONFIG = {
 		circle_radius: 35,
 		move_threshold: 10,
 		follow_distance: 15,
+		position_min_gain: 5,
+		position_travel_weight: 0.08,
 	},
 
 	equipment: {
