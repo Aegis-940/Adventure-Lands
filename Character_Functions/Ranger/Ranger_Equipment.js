@@ -27,12 +27,15 @@ function resolve_ranger_weapon() {
 	const best = scored && scored[0];
 	if (!best) return "single";
 
-	const is_boss = CONFIG.combat.attack_if_targeted.includes(best.mob.mtype);
-	const burn_mult = burn_mult_from_chance(set_ability_chance("single", "burn"), is_boss);
+	const single = get_set_profile("single");
+	const single_dps = single ? (single.attack || 0) * (single.frequency || 1) : 0;
+	const burn_mult = burn_multiplier_at_dps(
+		best.mob, set_ability_chance("single", "burn"), single_dps, CONFIG.combat.party_dps_factor
+	);
 
 	const derived = neighbours_to_beat_firebow(burn_mult);
 	const needed = derived === null
-		? (is_boss ? CONFIG.combat.pouchbow_min_neighbours_boss : CONFIG.combat.pouchbow_min_neighbours)
+		? CONFIG.combat.pouchbow_min_neighbours
 		: derived;
 
 	return best.count >= needed ? "boom" : "single";

@@ -173,6 +173,25 @@ function estimate_my_damage(entity, multiplier) {
 	return (character.attack || 0) * defense_reduction(armor) * (multiplier === undefined ? 1 : multiplier);
 }
 
+function burn_ticks_at_dps(mob, dps, party_factor) {
+	const def = G.conditions?.burned;
+	if (!def || !def.interval) return 0;
+
+	const max_ticks = Math.floor((def.duration || 0) / def.interval);
+	if (!mob || !mob.max_hp || dps <= 0) return max_ticks;
+
+	const armor = (mob.armor || 0) - (character.apiercing || 0);
+	const effective = dps * defense_reduction(armor) * (party_factor || 1);
+	if (effective <= 0) return max_ticks;
+
+	return Math.max(0, Math.min(max_ticks, Math.floor(((mob.max_hp / effective) * 1000) / def.interval)));
+}
+
+function burn_multiplier_at_dps(mob, chance, dps, party_factor) {
+	if (!chance) return 1;
+	return 1 + (chance / 100) * (burn_ticks_at_dps(mob, dps, party_factor) / 5);
+}
+
 function would_kill(entity, multiplier) {
 	if (!entity || entity.dead) return false;
 	return estimate_my_damage(entity, multiplier) >= entity.hp;

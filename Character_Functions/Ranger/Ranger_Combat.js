@@ -91,24 +91,12 @@ function shot_mana(profile) {
 	return profile.name === "attack" ? character.mp_cost : (G.skills[profile.name]?.mp || 0);
 }
 
-function burn_ticks(full) {
-	const def = G.conditions?.burned;
-	if (!def || !def.interval) return 0;
-	const max_ticks = Math.floor((def.duration || 0) / def.interval);
-	return full ? max_ticks : Math.min(max_ticks, CONFIG.combat.burn_ticks_assumed);
-}
-
-function burn_mult_from_chance(chance, full) {
-	if (!chance) return 1;
-	return 1 + (chance / 100) * (burn_ticks(full) / 5);
-}
-
 function burn_multiplier(mob, skill_multiplier) {
 	if (!CONFIG.combat.burn_enabled) return 1;
 	if (would_kill(mob, skill_multiplier)) return 1;
 
-	const chance = worn_ability_chance("burn");
-	return burn_mult_from_chance(chance, CONFIG.combat.attack_if_targeted.includes(mob.mtype));
+	const dps = (character.attack || 0) * (character.frequency || 1);
+	return burn_multiplier_at_dps(mob, worn_ability_chance("burn"), dps, CONFIG.combat.party_dps_factor);
 }
 
 function target_modifier(mob, skill_multiplier) {

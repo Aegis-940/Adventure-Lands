@@ -21,12 +21,11 @@ var CONFIG = {
 		lambda_headroom_high: 1.5,
 
 		burn_enabled: true,
-		burn_ticks_assumed: 3,
+		party_dps_factor: 2.0,
 
 		pouchbow_enabled: true,
 		pouchbow_explosion: 51,
-		pouchbow_min_neighbours: 2,
-		pouchbow_min_neighbours_boss: 3,
+		pouchbow_min_neighbours: 3,
 	},
 
 	movement: {
