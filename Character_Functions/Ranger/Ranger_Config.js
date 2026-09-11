@@ -58,6 +58,10 @@ var CONFIG = {
 
 	looting: {
 		enabled: false,
+		chest_threshold: 3,
+		target_count: 99,
+		equip_gold_gear: false,
+		loot_cooldown: 3000,
 		delay_ms: 180000,
 		loot_month: "lootItemsJan"
 	},

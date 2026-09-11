@@ -139,10 +139,7 @@ var equipment_sets = {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 var state = {
-	current: "idle",
 	last_equip_time: 0,
-	last_loot_time: 0,
-	last_gold_swap: 0,
 	last_temporal_surge: 0,
 	angle: 0,
 	equip_cooldowns: {},

@@ -57,7 +57,6 @@ window._cmListeners = window._cmListeners || [];
 		"Character_Functions/Healer/Healer_Skills.js",
 		"Character_Functions/Healer/Healer_Equipment.js",
 		"Character_Functions/Healer/Healer_Movement.js",
-		"Character_Functions/Healer/Healer_Looting.js",
 		"Character_Functions/Healer/Healer_Dungeon.js",
 		"Character_Functions/Healer/Healer.js"],
 

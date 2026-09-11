@@ -106,6 +106,73 @@ function inventory_sorter() {
 	});
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// CHEST LOOTING — opened in place of a farm step, with the gold loadout on for the duration
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let _loot_last = 0;
+let _loot_gold_swap = 0;
+let _looting = false;
+
+function should_loot() {
+	if (!CONFIG.looting?.enabled || character.cc > COOLDOWNS.cc) return false;
+	if (_looting) return false;
+
+	const now = performance.now();
+	const stored_chest_count = Object.keys(get_chests()).length;
+	const penalty = character.s?.penalty_cd?.ms || 0;
+
+	return (
+		stored_chest_count >= CONFIG.looting.chest_threshold &&
+		character.targets < CONFIG.looting.target_count &&
+		now - _loot_last > CONFIG.looting.loot_cooldown &&
+		penalty === 0
+	);
+}
+
+async function swap_booster(current, target) {
+	const slot = locate_item(current);
+	if (slot !== -1) shift(slot, target);
+}
+
+async function handle_looting() {
+	_loot_last = performance.now();
+	_looting = true;
+	const token = equip_claim("looting", EQUIP_PRIORITY.loot);
+
+	try {
+		if (token && CONFIG.looting.equip_gold_gear && !is_set_equipped("gold")
+			&& performance.now() - _loot_gold_swap > 1000) {
+			await equip_apply(token, "gold");
+			_loot_gold_swap = performance.now();
+			await swap_booster("luckbooster", "goldbooster");
+			await delay(200);
+		}
+
+		let looted = 0;
+		const max_loots = CONFIG.looting.chest_threshold * 5;
+
+		const stored_chests = get_chests();
+		for (const chest_id in stored_chests) {
+			if (looted >= max_loots) break;
+			parent.open_chest(chest_id);
+			looted++;
+		}
+
+		await delay(150);
+
+		if (CONFIG.looting.equip_gold_gear) {
+			await swap_booster("goldbooster", "luckbooster");
+			await delay(200);
+		}
+	} catch (e) {
+		catcher(e, "handle_looting");
+	} finally {
+		_looting = false;
+		equip_release(token);
+	}
+}
+
 function refresh_bank_snapshot() {
 	try {
 		if (character.bank && Object.keys(character.bank).length) {

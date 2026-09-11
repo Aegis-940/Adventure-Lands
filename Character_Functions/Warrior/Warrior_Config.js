@@ -64,6 +64,14 @@ var CONFIG = {
 		group_members: ["Myras", "Ulric", "Riva", "Riff"]
 	},
 
+	looting: {
+		enabled: false,
+		chest_threshold: 3,
+		target_count: 99,
+		equip_gold_gear: false,
+		loot_cooldown: 3000
+	},
+
 	skills: {
 		stomp_enabled: true,
 		cleave_enabled: true,

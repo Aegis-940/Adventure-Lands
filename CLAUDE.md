@@ -33,7 +33,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Shared/Messaging.js` | CM (character message) handlers, localStorage-backed state cache |
 | `Shared/Equipment.js` | Equipment sets, the single `batch_equip()` emitter, the slot arbiter, the rules resolver |
 | `Shared/Party_Management.js` | Panic and its broadcast (`set_panic()` is the only writer), party invites, where home is |
-| `Shared/Loot_Management.js` | `loose_loot()` — what we keep, ship to the merchant, or vendor; bank withdrawal |
+| `Shared/Loot_Management.js` | `loose_loot()` — what we keep, ship to the merchant, or vendor; bank withdrawal; chest looting (`should_loot()`/`handle_looting()`, driven by each character's `CONFIG.looting`) |
 | `Shared/Maintenance.js` | Potion drinking/restocking and the periodic tab reload |
 | `Shared/Cohesion.js` | Party cohesion (`follow_goal()`, `party_cohesion_hold()`) and `movement_goal()`, the one priority list |
 | `Shared/Character_Runner.js` | `run_character()` — the shared main tick loop every character starts from |
@@ -54,7 +54,6 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Character_Functions/Healer/Healer_Skills.js` | Healer skill loop (curse, absorb, party heal, dark blessing) |
 | `Character_Functions/Healer/Healer_Equipment.js` | Healer `EQUIPMENT_RULES` resolvers, booster swap, temporal surge |
 | `Character_Functions/Healer/Healer_Movement.js` | Healer runner hooks (`healer_local`, panic skip) and the circle walk |
-| `Character_Functions/Healer/Healer_Looting.js` | Chest opening and the gold-gear swap around it |
 | `Character_Functions/Healer/Healer_Dungeon.js` | Spider instance run and its auto-start |
 | `Character_Functions/Healer/Healer.js` | Healer entry point — windows, `run_character()` |
 | `Character_Functions/Ranger/Ranger_Config.js` | Ranger tunables, gear sets, panic thresholds, `state`/`cache` (character: Riva) |

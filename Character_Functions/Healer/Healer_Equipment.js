@@ -23,11 +23,6 @@ var MONSTER_GEAR_OVERRIDES = {
 	fireroamer: { loadout: "fireres", orb: "orb_fire" },
 };
 
-async function swap_booster(current, target) {
-	const slot = locate_item(current);
-	if (slot !== -1) shift(slot, target);
-}
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // TEMPORAL SURGE
 // --------------------------------------------------------------------------------------------------------------------------------- //

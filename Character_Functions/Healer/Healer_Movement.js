@@ -14,7 +14,6 @@ function healer_skip_panic_check() {
 }
 
 async function healer_local(goal) {
-	if (should_loot()) return handle_looting();
 	movement_local(goal, () => {
 		if (CONFIG.movement.circle_walk && get_nearest_monster({ type: home })) walk_in_circle();
 	});

@@ -114,7 +114,8 @@ function run_character(spec) {
 			const goal = movement_goal();
 			_current_goal = goal;
 			if (!travel_arbiter(goal)) {
-				if (typeof s.local === "function") await s.local(goal);
+				if (should_loot()) await handle_looting();
+				else if (typeof s.local === "function") await s.local(goal);
 				else movement_local(goal, s.farm_step);
 			}
 		} catch (e) {
