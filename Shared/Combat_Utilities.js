@@ -236,7 +236,7 @@ function splash_bonus(mob, explosion) {
 		if (distance(e, mob) > radius) continue;
 
 		const reduction = defense_reduction((e.armor || 0) - (character.apiercing || 0));
-		bonus += (explosion / 100) * reduction * reduction;
+		bonus += (explosion / 100) * reduction;
 	}
 	return bonus;
 }

@@ -37,7 +37,26 @@ function resolve_ranger_weapon() {
 	const values = bow_values(best.mob);
 	if (!values) return best.count >= CONFIG.combat.pouchbow_min_neighbours ? "boom" : "single";
 
-	return values.boom > values.single ? "boom" : "single";
+	const choice = values.boom > values.single ? "boom" : "single";
+	if (CONFIG.combat.log_bow_choice) log_bow_choice(choice, best, values);
+	return choice;
+}
+
+var _logged_bow = null;
+
+function log_bow_choice(choice, best, values) {
+	if (choice === _logged_bow) return;
+	_logged_bow = choice;
+
+	const boom = get_set_profile("boom");
+	const single = get_set_profile("single");
+	const dps = (single.attack || 0) * (single.frequency || 1);
+	const ttk = time_to_kill_ms(best.mob, best.mob.max_hp, dps, CONFIG.combat.party_dps_factor);
+
+	log(`[BOW] ${choice} ${best.mob.mtype} k=${best.count} `
+		+ `splash=${splash_bonus(best.mob, boom.explosion).toFixed(2)} `
+		+ `burn=${(values.single / dps).toFixed(3)} ttk=${(ttk / 1000).toFixed(1)}s `
+		+ `boom=${values.boom.toFixed(0)} single=${values.single.toFixed(0)}`, "#66ccff");
 }
 
 function resolve_ranger_loadout() {
