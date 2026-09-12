@@ -141,9 +141,75 @@ after at a fixed spawn. Cleave hits per window is the direct readout.
 
 ---
 
-## 2. Healer circle speed
+## 2. Healer movement and monster packing
 
-**Status:** not started. Small, and fixes a provable defect.
+**Status: measured. Motion matters, geometry does not. Circle left as it was.**
+
+### What packing is worth
+
+Splash pays only inside `explosion / 3.6` — 11.7px for Ulric's `aoe`, 14.2px for Riva's
+pouchbow. Backing out of Ulric's measured splash (1590 against 2831 direct, each neighbour worth
+`0.42 × dm(300) = 0.296`) puts packing at ~1.9 neighbours. Monsters have no entity collision, so
+the ceiling is `mobs − 1`, not a geometric limit. We capture roughly **47%** of it.
+
+### Result 1 — motion beats stillness, by a lot
+
+Commanded rate cycled `1.8 / 0.6 / 0` on 2-minute arms. Matched at 4 engaged monsters:
+
+| rate | r12 | n |
+|---|---|---|
+| 1.8 | **1.67** | 15 |
+| 0.6 | 1.58 | 13 |
+| 0 | **1.33** | 18 |
+
+Moving packs **26% tighter** than standing still. Normalised against the `mobs − 1` ceiling the
+penalty for standing still is −21% at 12px, −10% at 30px, −6% at 60px — it barely changes how
+many monsters are *nearby*, it changes how they are *arranged*. A stationary target is surrounded
+by a ring whose opposite sides are two attack ranges apart; a moving one drags a trailing arc.
+Only the arc puts pairs inside the radius splash pays for. **Jay called this from visual
+observation; my prior was the opposite and was wrong.**
+
+### Result 2 — within the moving regime, geometry does nothing
+
+Radius swept `30 / 20 / 12` with the rate pinned at 3.0, 5.5 hours, 1099 orbiting windows.
+Holding **both** mob count and fear constant:
+
+| radius | r12 | n | achieved rate |
+|---|---|---|---|
+| 30 | 1.36 | 269 | 1.04 |
+| 20 | 1.37 | 271 | 1.35 |
+| 12 | 1.32 | 283 | 1.65 |
+
+Standard error 0.024, so every difference is under 2 SE with no consistent ordering — while
+achieved turn rate varied by 59% across the arms. **Turn rate is not a gradient. It is a
+threshold: any continuous motion forms the arc, and turning harder does not compress it further.**
+
+The observational correlation between slow movement and tight packing (−0.187 within matched mob
+count) is a confound — `speed` is downstream of `fear`, which measures how many monsters are on
+*her* specifically. The randomised radius arms are the clean test and they are flat.
+
+### Verdict
+
+`circle_radius: 30` and `circle_speed: 1.8` are kept unchanged — they were already on the right
+side of the only distinction that matters. `circle_experiment` is off; the machinery stays for
+future sweeps.
+
+### What is left for packing
+
+Two hypotheses, neither tested:
+
+- **Re-centre the circle on the aggro centroid.** `circle_centre()` is the hardcoded
+  `locations[home][0]`, so the path ignores where the monsters actually are — it cannot collect
+  stragglers, cannot follow a pack that has drifted, and does not sweep spawn points. This is a
+  different mechanism from turn rate (where the arc forms, not how tightly it curves) and is the
+  strongest remaining candidate. Note she is `MOVEMENT_LEADER`, so moving her centre moves
+  Ulric's orbit anchor with it.
+- **Aggro concentration.** At fixed total mob count, packing rises with how many of those
+  monsters are on one character. That is not a movement lever at all — it is item 4.
+
+### Original analysis
+
+Small, and fixes a provable defect.
 
 **Evidence.** `walk_in_circle()` uses `circle_radius: 30` and `circle_speed: 1.8` rad/s, so the
 required tangential speed is `30 × 1.8 = 54 units/sec`. Her base speed is roughly 72–80; at fear 1

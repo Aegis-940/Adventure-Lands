@@ -22,7 +22,7 @@ var CONFIG = {
 		enabled: true,
 		circle_walk: true,
 		circle_speed: 1.8,
-		circle_experiment: true,
+		circle_experiment: false,
 		circle_experiment_radii: [30, 20, 12],
 		circle_experiment_rate: 3.0,
 		circle_experiment_ms: 120000,
