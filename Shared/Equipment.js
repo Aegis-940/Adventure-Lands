@@ -29,7 +29,7 @@ function is_doublehand(item_name) {
 	return !!(def && class_def && class_def.doublehand && class_def.doublehand[def.wtype]);
 }
 
-async function clear_offhand_for_doublehand(valid_items) {
+function clear_offhand_for_doublehand(valid_items) {
 	if (!parent.character.slots.offhand) return false;
 	if (valid_items.some(v => v.slot === "offhand")) return false;
 
@@ -38,7 +38,7 @@ async function clear_offhand_for_doublehand(valid_items) {
 	);
 	if (!two_hander) return false;
 
-	await unequip("offhand");
+	parent.socket.emit("unequip", { slot: "offhand" });
 	return true;
 }
 
@@ -96,7 +96,7 @@ async function batch_equip(data, set_name) {
 
 	if (valid_items.length === 0) return 0;
 
-	await clear_offhand_for_doublehand(valid_items);
+	clear_offhand_for_doublehand(valid_items);
 
 	try {
 		parent.socket.emit("equip_batch", valid_items);
