@@ -108,7 +108,7 @@ async function handle_cleave() {
 		if (!await equip_apply(token, "bataxe")) return;
 		armed = Date.now();
 
-		await use_skill("cleave");
+		Promise.resolve(use_skill("cleave")).catch(e => catcher(e, "handle_cleave"));
 		cleaved = Date.now();
 
 		outcome = (await equip_apply(token, restore)) ? "ok" : "restore_failed";
