@@ -5,8 +5,6 @@
 const TRADE_SLOTS = 16;
 const WISHLIST_REFRESH_MS = 15000;
 
-let _last_wishlist_refresh = 0;
-
 function stand_is_open() {
 	return !!character.stand;
 }
@@ -27,14 +25,6 @@ async function close_merchant_stand() {
 	} catch (e) {
 		catcher(e, "close_merchant_stand");
 	}
-}
-
-function slice_count(name) {
-	let q = 0;
-	for (const item of character.items) {
-		if (item && item.name === name) q += item.q || 1;
-	}
-	return q;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -122,8 +112,6 @@ async function refresh_sell_offers() {
 	if (Date.now() - _last_sell_refresh < WISHLIST_REFRESH_MS) return;
 	_last_sell_refresh = Date.now();
 
-	const buy_slots = missing_slice_flavours().length;
-
 	const listed = CONFIG.sell_profile.map(() => 0);
 	for (let sn = 1; sn <= TRADE_SLOTS; sn++) {
 		const slot = character.slots["trade" + sn];
@@ -136,7 +124,6 @@ async function refresh_sell_offers() {
 	const free = [];
 	for (let i = 0; i < TRADE_SLOTS; i++) {
 		const sn = sell_slot_for(i);
-		if (sn <= buy_slots) break;
 		if (!character.slots["trade" + sn]) free.push(sn);
 	}
 
@@ -159,29 +146,6 @@ async function refresh_sell_offers() {
 				break;
 			}
 			short -= take;
-		}
-	}
-}
-
-function missing_slice_flavours() {
-	return SLICE_FLAVOURS.filter(name =>
-		name !== CONFIG.trading.own_flavour && slice_count(name) < CONFIG.trading.target_each);
-}
-
-async function refresh_slice_buy_orders() {
-	if (!CONFIG.trading.enabled || !stand_is_open()) return;
-	if (Date.now() - _last_wishlist_refresh < WISHLIST_REFRESH_MS) return;
-	_last_wishlist_refresh = Date.now();
-
-	const want = missing_slice_flavours();
-	for (let i = 0; i < want.length && i < TRADE_SLOTS; i++) {
-		const slot = character.slots["trade" + (i + 1)];
-		if (slot && slot.b && slot.name === want[i] && (slot.q || 0) > 0) continue;
-		try {
-			await wishlist(i + 1, want[i], CONFIG.trading.price, 0, CONFIG.trading.quantity);
-			game_log(`🎂 WTB ${want[i]} x${CONFIG.trading.quantity} @ ${CONFIG.trading.price}g`, "#F0B742");
-		} catch (e) {
-			catcher(e, "refresh_slice_buy_orders");
 		}
 	}
 }
@@ -253,7 +217,6 @@ async function handle_restocking_state() {
 async function handle_idle_state() {
 	if (character.map === HOME.map && Math.hypot(character.x - HOME.x, character.y - HOME.y) <= 10) {
 		await open_merchant_stand();
-		await refresh_slice_buy_orders();
 		await refresh_sell_offers();
 		sell_while_idle();
 		if (CONFIG.enabled.exchanging) await exchange_bag_items();

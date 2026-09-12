@@ -18,10 +18,6 @@ var CONFIG = {
 
 	trading: {
 		enabled: true,
-		own_flavour: "slice_citrus",
-		price: 100000,
-		quantity: 1000,
-		target_each: 1000,
 	},
 	sell_profile: [
 		{ name: "firebow", level: 9, price: 1000000000, quantity: 3 },
