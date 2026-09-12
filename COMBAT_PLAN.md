@@ -67,7 +67,45 @@ Nothing in the bot currently knows this stat exists.
 
 ## 1. Warrior movement and positioning
 
-**Status:** not started. Do this first — pure upside, no survivability risk.
+**Status: done, and it bought nothing. Kept anyway — see the verdict at the end of this item.**
+
+### Result
+
+Measured across three configurations at the same spawn:
+
+| | bataxe hits/s | aoe hits/s | aoe damage/hit | aoe splash/hit |
+|---|---|---|---|---|
+| old scorer, `radius 35`, `min_gain 20` | 1.27 | 0.98 | 2920 | 1590 |
+| new scorer, `radius 35`, `min_gain 5` | 1.27 | 0.97 | 2831 | 1590 |
+| new scorer, `radius 60`, `min_gain 5` | 1.27 | 0.97 | 2831 | 1528 |
+
+Flat to three significant figures. Overall DPS varied (6666 / 5717 / 6076) but that tracks
+idle time from a scheduled reload and an anniversary loop, not combat intensity — which is why
+intensity, not raw DPS, is the comparison that survives.
+
+### Why there was nothing to win
+
+`best_targets − here_targets` was **+1 in 71 of 74 samples at radius 35, and +1 in 56 of 56 at
+radius 60.** Widening the orbit did not expose a single richer spot. One extra cleave target is
+worth 3–7%, and only ~6 genuinely damage-driven moves per five minutes cleared even a 5% bar.
+
+The monsters are already clustered around Myras and the cleave radius is large relative to that
+cluster, so almost every reachable position covers almost the same mobs. **Position is not a
+lever at this spawn**, at any orbit radius. That is a property of the spawn, not of the scorer.
+
+### Verdict
+
+The scorer is kept. It is strictly more correct than "prefer standing still", it measurably does
+no harm, and it should matter at a spread-out spawn where the cluster is wider than cleave. But it
+earned nothing here, `circle_radius` is back to 35, and `sample_positions` is its own flag, off,
+so the damage windows stay clean for later items.
+
+**If positioning is revisited, the question to ask first is whether a spawn exists where
+`best_targets − here_targets` ever exceeds +1.** If it never does, this is finished for good.
+
+### Original analysis
+
+Do this first — pure upside, no survivability risk.
 
 **Evidence.** [`Warrior_Movement.js`](Character_Functions/Warrior/Warrior_Movement.js) is the
 entire positioning model:

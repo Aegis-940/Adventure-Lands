@@ -12,6 +12,7 @@ var CONFIG = {
 		cleave_min_mobs: 3,
 		cleave_min_mobs_held: 1,
 		sample_hits: true,
+		sample_positions: false,
 		cleave_blacklist: ["fireroamer", "plantoid", "pppompom"],
 		agitate_min_mobs: 2,
 		cluster_min_mobs: 2,
@@ -30,7 +31,7 @@ var CONFIG = {
 	movement: {
 		enabled: true,
 		reposition: true,
-		circle_radius: 60,
+		circle_radius: 35,
 		move_threshold: 10,
 		follow_distance: 15,
 		position_min_gain: 5,

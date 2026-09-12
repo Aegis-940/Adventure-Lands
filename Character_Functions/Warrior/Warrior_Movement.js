@@ -72,7 +72,7 @@ function sample_reposition() {
 	const probe = _position_probe;
 	const decision = _last_orbit_decision;
 	_position_probe = null;
-	if (!probe || !decision || !CONFIG.combat.sample_hits || typeof errlog_sample !== "function") return;
+	if (!probe || !decision || !CONFIG.combat.sample_positions || typeof errlog_sample !== "function") return;
 	if (probe.best_targets === probe.here_targets) return;
 
 	errlog_sample("position", {
