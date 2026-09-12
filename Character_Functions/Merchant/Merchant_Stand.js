@@ -2,8 +2,6 @@
 // MERCHANT STAND — open while idle, closed whenever we need to move.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const SLICE_FLAVOURS = ["slice_strawberry", "slice_citrus", "slice_honey",
-	"slice_mint", "slice_blueberry", "slice_nightberry"];
 const TRADE_SLOTS = 16;
 const WISHLIST_REFRESH_MS = 15000;
 
