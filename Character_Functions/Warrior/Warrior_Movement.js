@@ -70,17 +70,20 @@ function warrior_reposition_scorer() {
 
 function sample_reposition() {
 	const probe = _position_probe;
+	const decision = _last_orbit_decision;
 	_position_probe = null;
-	if (!probe || !CONFIG.combat.sample_hits || typeof errlog_sample !== "function") return;
+	if (!probe || !decision || !CONFIG.combat.sample_hits || typeof errlog_sample !== "function") return;
 	if (probe.best_targets === probe.here_targets) return;
 
 	errlog_sample("position", {
 		set: probe.set,
 		here_targets: probe.here_targets,
 		best_targets: probe.best_targets,
-		gain_pct: Math.round(probe.best_score - WARRIOR_POSITION_SCALE),
+		best_gain_pct: Math.round(probe.best_score - WARRIOR_POSITION_SCALE),
+		taken_gain_pct: decision.best_raw - decision.incumbent,
+		travel: decision.travel,
 		in_reach: probe.in_reach,
-		taken: probe.best_score >= WARRIOR_POSITION_SCALE + ORBIT_MIN_GAIN
+		moved: decision.moved && decision.travel > CONFIG.movement.move_threshold
 	});
 }
 

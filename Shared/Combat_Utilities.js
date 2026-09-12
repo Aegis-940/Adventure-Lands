@@ -552,9 +552,13 @@ const ORBIT_RADIUS_FRACTIONS = [1.0, 0.66, 0.33];
 const ORBIT_TRAVEL_WEIGHT = 0.35;
 const ORBIT_MIN_GAIN = 20;
 
+let _last_orbit_decision = null;
+
 function best_orbit_spot(center, radius, score, options) {
 	const min_gain = options?.min_gain ?? ORBIT_MIN_GAIN;
 	const travel_weight = options?.travel_weight ?? ORBIT_TRAVEL_WEIGHT;
+
+	_last_orbit_decision = null;
 
 	const here = score(character.x, character.y);
 	const incumbent = (here === null || here === undefined) ? -Infinity : here;
@@ -586,7 +590,16 @@ function best_orbit_spot(center, radius, score, options) {
 	}
 
 	if (!best) return null;
-	if (best_raw < incumbent + min_gain) return { x: character.x, y: character.y };
+
+	const moved = best_raw >= incumbent + min_gain;
+	_last_orbit_decision = {
+		incumbent: Math.round(incumbent),
+		best_raw: Math.round(best_raw),
+		moved,
+		travel: Math.round(Math.hypot(best.x - character.x, best.y - character.y))
+	};
+
+	if (!moved) return { x: character.x, y: character.y };
 	return best;
 }
 
