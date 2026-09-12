@@ -38,8 +38,15 @@ var SPLASH_SMOOTHING = 0.08;
 var SPLASH_STEP_MS = 250;
 var _splash_ewma = {};
 
+function attackable_monsters() {
+	const reach = character.range;
+	return (cache.monsters_in_cleave_range || []).filter(e =>
+		e && !e.dead && distance(character, e) <= reach
+	);
+}
+
 function expected_splash_bonus(explosion) {
-	const pool = (cache.monsters_in_cleave_range || []).filter(e => e && !e.dead);
+	const pool = attackable_monsters();
 	if (!pool.length) {
 		const primary = cache.target || cache.cluster_target;
 		return primary ? splash_bonus(primary, explosion) : 0;
