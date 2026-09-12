@@ -75,7 +75,29 @@ function sample_weapon_choice(from, to, primary, cleave_targets, now) {
 	});
 }
 
+var PROFILE_PROBE_MS = 20000;
+var _profile_probe = {};
+
+function unprofiled_weapon_set() {
+	const now = Date.now();
+	for (const name of CONFIG.equipment.weapon_sets) {
+		if (!set_available(name) || get_set_profile(name)) {
+			delete _profile_probe[name];
+			continue;
+		}
+		if (!_profile_probe[name]) _profile_probe[name] = now;
+		if (now - _profile_probe[name] <= PROFILE_PROBE_MS) return name;
+	}
+	return null;
+}
+
 function best_warrior_weapon_set() {
+	const probe = unprofiled_weapon_set();
+	if (probe) {
+		if (_weapon_choice.name !== probe) _weapon_choice = { name: probe, at: Date.now() };
+		return probe;
+	}
+
 	const primary = cache.target || cache.cluster_target;
 	const cleave_targets = (cache.monsters_in_cleave_range || []).length;
 
