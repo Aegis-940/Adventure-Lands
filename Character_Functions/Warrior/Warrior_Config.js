@@ -30,7 +30,7 @@ var CONFIG = {
 	movement: {
 		enabled: true,
 		reposition: true,
-		circle_radius: 35,
+		circle_radius: 60,
 		move_threshold: 10,
 		follow_distance: 15,
 		position_min_gain: 5,
