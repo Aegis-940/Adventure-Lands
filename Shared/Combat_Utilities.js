@@ -7,7 +7,7 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const DAMAGE_WINDOW_MS = 15000;
-const BUFFS_WORTH_LOGGING = ["warcry", "darkblessing", "mluck", "mcourage", "power", "xpower", "holidayspirit", "newcomersblessing", "energized"];
+const BUFFS_WORTH_LOGGING = ["warcry", "darkblessing", "mluck", "mcourage", "power", "xpower", "holidayspirit", "newcomersblessing", "energized", "anniversary_kiss", "patronsgrace"];
 
 const _damage_windows = {};
 

@@ -127,10 +127,9 @@ function model_prediction() {
 	if (!target) return null;
 
 	const explosion = character.explosion || 0;
-	const hit = (character.attack || 0) * defense_reduction((target.armor || 0) - (character.apiercing || 0));
 
 	return {
-		splash: explosion > 0 ? splash_bonus(target, explosion, hit) : 0,
+		splash: explosion > 0 ? splash_bonus(target, explosion, 0) : 0,
 		burn: burn_multiplier(target, 1)
 	};
 }

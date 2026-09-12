@@ -85,7 +85,7 @@ function model_prediction() {
 	const raw_dps = (character.attack || 0) * (character.frequency || 1);
 
 	return {
-		splash: explosion > 0 ? expected_splash_bonus(explosion, character.attack) : 0,
+		splash: explosion > 0 ? expected_splash_bonus(explosion, 0) : 0,
 		burn: burn_multiplier_at_dps(
 			target, worn_ability_chance("burn"), raw_dps,
 			CONFIG.equipment.party_dps_factor, { hp: target.hp }
