@@ -97,16 +97,44 @@ async function handle_cleave() {
 
 	const token = equip_claim("cleave-swap", EQUIP_PRIORITY.skill);
 	if (!token) return;
+
+	const t0 = Date.now();
+	let armed = 0;
+	let cleaved = 0;
+	let outcome = "swap_failed";
+
 	try {
 		state.last_cleave_swap = now;
 		if (!await equip_apply(token, "bataxe")) return;
+		armed = Date.now();
 
 		await use_skill("cleave");
+		cleaved = Date.now();
 
-		await equip_apply(token, restore);
+		outcome = (await equip_apply(token, restore)) ? "ok" : "restore_failed";
+	} catch (e) {
+		outcome = "error";
+		throw e;
 	} finally {
 		equip_release(token);
+		sample_cleave_swap(t0, armed, cleaved, outcome, restore);
 	}
+}
+
+function sample_cleave_swap(t0, armed, cleaved, outcome, restore) {
+	if (!CONFIG.combat.sample_hits || typeof errlog_sample !== "function") return;
+
+	errlog_sample("cleave_swap", {
+		outcome,
+		restore,
+		arm_ms: armed ? armed - t0 : null,
+		cleave_ms: cleaved && armed ? cleaved - armed : null,
+		restore_ms: cleaved ? Date.now() - cleaved : null,
+		total_ms: Date.now() - t0,
+		assumed_ms: CONFIG.equipment.cleave_swap_ms,
+		ping: parent.pings?.length ? Math.min(...parent.pings) : null,
+		penalty: Math.round(character.s?.penalty_cd?.ms || 0)
+	});
 }
 
 function can_cleave() {
