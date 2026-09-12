@@ -56,7 +56,7 @@ var CONFIG = {
 		weapon_swap_enabled: true,
 
 		weapon_selection: "value",
-		weapon_sets: ["single", "aoe", "bataxe"],
+		weapon_sets: ["single", "aoe"],
 		weapon_hysteresis_ms: 6000,
 		weapon_switch_margin: 1.20,
 		cleave_swap_ms: 480,
