@@ -58,6 +58,10 @@ var TARGET_TERMS = {
 
 	healthy: mob => (mob.max_hp ? (mob.hp || 0) / mob.max_hp : 0),
 
+	hp_low: mob => -(mob.hp || 0),
+
+	hp_high: mob => (mob.hp || 0),
+
 	close: mob => -distance(character, mob),
 };
 
