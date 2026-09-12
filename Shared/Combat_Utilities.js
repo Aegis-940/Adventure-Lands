@@ -494,9 +494,26 @@ function burn_ticks_at_dps(mob, dps, party_factor) {
 	return Math.max(0, Math.min(max_ticks, Math.floor(ttk / def.interval)));
 }
 
-function burn_multiplier_at_dps(mob, chance, dps, party_factor) {
+const BURN_TICK_DIVISOR = 5;
+
+function burn_multiplier_at_dps(mob, chance, dps, party_factor, frequency) {
 	if (!chance) return 1;
-	return 1 + (chance / 100) * (burn_ticks_at_dps(mob, dps, party_factor) / 5);
+
+	const def = G.conditions?.burned;
+	if (!def || !def.interval) return 1;
+
+	const rate = frequency || character.frequency || 1;
+	if (rate <= 0) return 1;
+
+	const ttk = mob ? time_to_kill_ms(mob, mob.max_hp, dps, party_factor) : Infinity;
+	const window_ms = Math.min(BURN_DURATION_MS, isFinite(ttk) ? ttk : BURN_DURATION_MS);
+	if (window_ms <= 0) return 1;
+
+	const attacks = rate * (window_ms / 1000);
+	const lit = 1 - Math.pow(1 - chance / 100, attacks);
+
+	const ticks_per_second = 1000 / def.interval;
+	return 1 + (lit * ticks_per_second) / (BURN_TICK_DIVISOR * rate);
 }
 
 function would_kill(entity, multiplier) {

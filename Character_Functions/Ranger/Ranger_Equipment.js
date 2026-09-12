@@ -14,7 +14,7 @@ function bow_values(mob) {
 
 	const single_dps = (single.attack || 0) * (single.frequency || 1);
 	const burn_mult = burn_multiplier_at_dps(
-		mob, set_ability_chance("single", "burn"), single_dps, CONFIG.combat.party_dps_factor
+		mob, set_ability_chance("single", "burn"), single_dps, CONFIG.combat.party_dps_factor, single.frequency
 	);
 
 	return {
