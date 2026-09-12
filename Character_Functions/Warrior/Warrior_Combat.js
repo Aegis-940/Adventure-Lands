@@ -8,25 +8,12 @@ function update_cache() {
 	cache.monsters_in_cleave_range = find_monsters_in_cleave_range();
 
 	if (!cache.is_valid()) {
-		cache.cluster_target = find_cluster_target();
 		cache.target = find_best_target();
 		cache.party_members = get_party_members();
 		cache.last_update = performance.now();
 	}
 }
 
-function find_cluster_target() {
-	const in_range = Object.values(parent.entities).filter(e =>
-		e?.type === "monster" &&
-		!e.dead &&
-		e.visible &&
-		distance(character, e) <= character.range
-	);
-	if (!in_range.length) return null;
-
-	const scored = score_by_explosion_spread(in_range, false, CONFIG.combat.cluster_radius, true);
-	return scored[0]?.count >= CONFIG.combat.cluster_min_mobs ? scored[0].mob : null;
-}
 
 function find_best_target() {
 	const max_dist = WARRIOR_TARGET === "giantspider" ? 50 : character.range;
@@ -42,12 +29,7 @@ function find_best_target() {
 }
 
 function find_monsters_in_cleave_range() {
-	return Object.values(parent.entities).filter(e =>
-		e?.type === "monster" &&
-		!e.dead &&
-		e.visible &&
-		distance(character, e) <= G.skills.cleave.range
-	);
+	return monsters_matching({ max_distance: G.skills.cleave.range });
 }
 
 function mob_count() {

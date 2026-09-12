@@ -276,6 +276,7 @@ function monsters_matching(args = {}) {
 		if (args.max_att !== undefined && current.attack > args.max_att) continue;
 
 		if (args.path_check && !can_move_to(current)) continue;
+		if (args.where && !args.where(current)) continue;
 
 		if (args.max_distance !== undefined && monster_distance_for(args, current) > args.max_distance) continue;
 
@@ -550,14 +551,6 @@ function splash_bonus(mob, explosion) {
 	return bonus;
 }
 
-function score_by_explosion_spread(pool, aggro_only = false, radius, centre_metric) {
-	const r = radius === undefined ? explosion_radius() : radius;
-
-	const scored = pool.map(mob => ({ mob, count: count_neighbours(mob, r, aggro_only, centre_metric) }));
-
-	scored.sort((a, b) => b.count - a.count);
-	return scored;
-}
 
 const ORBIT_ANGLE_SAMPLES = 16;
 const ORBIT_RADIUS_FRACTIONS = [1.0, 0.66, 0.33];

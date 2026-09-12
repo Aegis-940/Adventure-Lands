@@ -48,7 +48,7 @@ function attackable_monsters() {
 function expected_splash_bonus(explosion) {
 	const pool = attackable_monsters();
 	if (!pool.length) {
-		const primary = cache.target || cache.cluster_target;
+		const primary = cache.target;
 		return primary ? splash_bonus(primary, explosion) : 0;
 	}
 
@@ -137,7 +137,7 @@ function best_warrior_weapon_set() {
 		return probe;
 	}
 
-	const primary = cache.target || cache.cluster_target;
+	const primary = cache.target;
 	const cleave_targets = (cache.monsters_in_cleave_range || []).length;
 
 	let best = null;

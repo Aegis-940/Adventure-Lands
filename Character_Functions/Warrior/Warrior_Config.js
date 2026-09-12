@@ -203,7 +203,6 @@ var state = {
 
 var cache = make_cache({
 	target: null,
-	cluster_target: null,
 	party_members: [],
 	tank_entity: null,
 	monsters_in_cleave_range: [],

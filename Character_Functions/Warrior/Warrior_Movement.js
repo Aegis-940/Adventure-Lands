@@ -29,7 +29,7 @@ function warrior_position_set() {
 function warrior_reposition_scorer() {
 	_position_probe = null;
 
-	const primary = cache.target || cache.cluster_target;
+	const primary = cache.target;
 	if (!primary || primary.dead) return null;
 
 	const set_name = warrior_position_set();
