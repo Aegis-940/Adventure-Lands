@@ -133,7 +133,10 @@ function sample_cleave_swap(t0, armed, cleaved, outcome, restore) {
 		total_ms: Date.now() - t0,
 		assumed_ms: CONFIG.equipment.cleave_swap_ms,
 		ping: parent.pings?.length ? Math.min(...parent.pings) : null,
-		penalty: Math.round(character.s?.penalty_cd?.ms || 0)
+		penalty: Math.round(character.s?.penalty_cd?.ms || 0),
+		mp_pct: +(character.mp / character.max_mp).toFixed(2),
+		modelled_period: +cleave_period().toFixed(2),
+		targets: (cache.monsters_in_cleave_range || []).length
 	});
 }
 
