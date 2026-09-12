@@ -34,6 +34,38 @@ function cleave_contribution(set_name, targets) {
 	return { dps, uptime: Math.max(0, 1 - swap_s / period) };
 }
 
+var SPLASH_SMOOTHING = 0.08;
+var SPLASH_STEP_MS = 250;
+var _splash_ewma = {};
+
+function expected_splash_bonus(explosion) {
+	const pool = (cache.monsters_in_cleave_range || []).filter(e => e && !e.dead);
+	if (!pool.length) {
+		const primary = cache.target || cache.cluster_target;
+		return primary ? splash_bonus(primary, explosion) : 0;
+	}
+
+	let total = 0;
+	for (const mob of pool) total += splash_bonus(mob, explosion);
+	return total / pool.length;
+}
+
+function smoothed_splash_bonus(explosion) {
+	const sample = expected_splash_bonus(explosion);
+	const now = Date.now();
+	const state = _splash_ewma[explosion];
+
+	if (!state) {
+		_splash_ewma[explosion] = { value: sample, at: now };
+		return sample;
+	}
+	if (now - state.at >= SPLASH_STEP_MS) {
+		state.value += (sample - state.value) * SPLASH_SMOOTHING;
+		state.at = now;
+	}
+	return state.value;
+}
+
 function warrior_set_base_value(set_name, primary) {
 	const profile = get_set_profile(set_name);
 	if (!profile || !profile.attack) return null;
@@ -43,8 +75,8 @@ function warrior_set_base_value(set_name, primary) {
 	const chance = set_ability_chance(set_name, "burn");
 	if (chance) value *= burn_multiplier_at_dps(primary, chance, set_dps(profile), CONFIG.equipment.party_dps_factor);
 
-	if (profile.explosion > 0 && primary) {
-		value *= 1 + splash_bonus(primary, profile.explosion);
+	if (profile.explosion > 0) {
+		value *= 1 + smoothed_splash_bonus(profile.explosion);
 	}
 
 	return value;
