@@ -61,7 +61,7 @@ var CONFIG = {
 		weapon_sets: ["single", "aoe"],
 		weapon_hysteresis_ms: 6000,
 		weapon_switch_margin: 1.20,
-		cleave_swap_ms: 480,
+		cleave_swap_ms: 617,
 
 		mana_income_per_sec: 244,
 		skill_mana_reserve: 0.40,

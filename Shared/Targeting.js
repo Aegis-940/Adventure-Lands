@@ -126,7 +126,7 @@ function best_target(args, weights, context) {
 // SAMPLING — read the decision rather than infer it from behaviour
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var TARGET_SAMPLE_MS = 5000;
+var TARGET_SAMPLE_MS = 60000;
 var _last_target_sample = 0;
 
 function sample_target_choice(scored, context, weights) {
@@ -134,12 +134,15 @@ function sample_target_choice(scored, context, weights) {
 	if (!CONFIG.combat?.sample_targets || typeof errlog_sample !== "function") return;
 	if (!scored || scored.length < 2) return;
 
-	const now = Date.now();
-	if (now - _last_target_sample < TARGET_SAMPLE_MS) return;
-	_last_target_sample = now;
-
 	const top = scored[0];
 	const next = scored[1];
+
+	const values = scored.map(s => target_damage_value(s.mob, context || {}));
+	const traded = Math.round(values[0]) < Math.round(Math.max(...values));
+
+	const now = Date.now();
+	if (!traded && now - _last_target_sample < TARGET_SAMPLE_MS) return;
+	_last_target_sample = now;
 
 	errlog_sample("target_choice", {
 		pool: scored.length,
@@ -148,7 +151,8 @@ function sample_target_choice(scored, context, weights) {
 		runner_up_score: +next.score.toFixed(3),
 		parts: Object.keys(top.parts).reduce((o, k) => (o[k] = +top.parts[k].toFixed(3), o), {}),
 		chosen_hp_pct: top.mob.max_hp ? +((top.mob.hp || 0) / top.mob.max_hp).toFixed(2) : 0,
-		chosen_value: Math.round(target_damage_value(top.mob, context || {})),
-		best_value: Math.round(Math.max(...scored.map(s => target_damage_value(s.mob, context || {}))))
+		traded,
+		chosen_value: Math.round(values[0]),
+		best_value: Math.round(Math.max(...values))
 	});
 }
