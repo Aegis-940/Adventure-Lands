@@ -45,23 +45,24 @@ function attackable_monsters() {
 	);
 }
 
-function expected_splash_bonus(explosion) {
+function hit_against(mob, attack) {
+	return (attack || 0) * defense_reduction((mob.armor || 0) - (character.apiercing || 0));
+}
+
+function expected_splash_bonus(explosion, attack) {
 	const pool = attackable_monsters();
-	if (!pool.length) {
-		const primary = cache.target;
-		return primary ? splash_bonus(primary, explosion) : 0;
-	}
+	const mobs = pool.length ? pool : (cache.target ? [cache.target] : []);
 
 	let best = 0;
-	for (const mob of pool) {
-		const bonus = splash_bonus(mob, explosion);
+	for (const mob of mobs) {
+		const bonus = splash_bonus(mob, explosion, hit_against(mob, attack));
 		if (bonus > best) best = bonus;
 	}
 	return best;
 }
 
-function smoothed_splash_bonus(explosion) {
-	const sample = expected_splash_bonus(explosion);
+function smoothed_splash_bonus(explosion, attack) {
+	const sample = expected_splash_bonus(explosion, attack);
 	const now = Date.now();
 	const state = _splash_ewma[explosion];
 
@@ -86,7 +87,7 @@ function warrior_set_base_value(set_name, primary) {
 	if (chance) value *= burn_multiplier_at_dps(primary, chance, set_dps(profile), CONFIG.equipment.party_dps_factor, { frequency: profile.frequency });
 
 	if (profile.explosion > 0) {
-		value *= 1 + smoothed_splash_bonus(profile.explosion);
+		value *= 1 + smoothed_splash_bonus(profile.explosion, profile.attack);
 	}
 
 	return value;

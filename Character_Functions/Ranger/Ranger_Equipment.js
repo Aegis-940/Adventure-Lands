@@ -19,7 +19,7 @@ function bow_values(mob) {
 
 	return {
 		single: single_dps * burn_mult,
-		boom: (boom.attack || 0) * (boom.frequency || 1) * (1 + splash_bonus(mob, boom.explosion)),
+		boom: (boom.attack || 0) * (boom.frequency || 1) * (1 + splash_bonus(mob, boom.explosion, (boom.attack || 0) * defense_reduction((mob.armor || 0) - (character.apiercing || 0)))),
 	};
 }
 
@@ -57,7 +57,7 @@ function sample_bow_choice(choice, best, values) {
 		pick: choice,
 		mtype: best.mob.mtype,
 		k: best.count,
-		splash: +splash_bonus(best.mob, boom.explosion).toFixed(3),
+		splash: +splash_bonus(best.mob, boom.explosion, (boom.attack || 0) * defense_reduction((best.mob.armor || 0) - (character.apiercing || 0))).toFixed(3),
 		burn: +(values.single / dps).toFixed(3),
 		ttk: Math.round(time_to_kill_ms(best.mob, best.mob.max_hp, dps, CONFIG.combat.party_dps_factor)),
 		hp: best.mob.hp,

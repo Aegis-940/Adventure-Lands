@@ -535,7 +535,7 @@ function count_neighbours(mob, radius, aggro_only, centre_metric) {
 	return count;
 }
 
-function splash_bonus(mob, explosion) {
+function splash_bonus(mob, explosion, hit_damage) {
 	if (!mob || !explosion) return 0;
 
 	const radius = explosion_radius(explosion);
@@ -547,8 +547,10 @@ function splash_bonus(mob, explosion) {
 		if (e === mob || e.id === mob.id) continue;
 		if (distance(e, mob) > radius) continue;
 
-		const reduction = defense_reduction(e.armor || 0);
-		bonus += (explosion / 100) * reduction;
+		const share = (explosion / 100) * defense_reduction(e.armor || 0);
+		bonus += hit_damage > 0
+			? Math.min(share * hit_damage, e.hp || 0) / hit_damage
+			: share;
 	}
 	return bonus;
 }

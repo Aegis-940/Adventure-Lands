@@ -114,7 +114,11 @@ function burn_multiplier(mob, skill_multiplier) {
 
 function target_modifier(mob, skill_multiplier) {
 	const explosion = character.explosion || 0;
-	if (explosion > 0) return 1 + splash_bonus(mob, explosion);
+	if (explosion > 0) {
+		const hit = (character.attack || 0) * skill_multiplier
+			* defense_reduction((mob.armor || 0) - (character.apiercing || 0));
+		return 1 + splash_bonus(mob, explosion, hit);
+	}
 	return burn_multiplier(mob, skill_multiplier);
 }
 
