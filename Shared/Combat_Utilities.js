@@ -242,9 +242,14 @@ function ms_to_next_skill(skill) {
 	return ms < 0 ? 0 : ms;
 }
 
-function get_nearest_monster_v2(args = {}) {
-	let min_d = 999999, target = null;
-	let optimal_hp = args.check_max_hp ? 0 : 999999999;
+function monster_distance_for(args, mob) {
+	return args.point_for_distance_check
+		? Math.hypot(args.point_for_distance_check[0] - mob.x, args.point_for_distance_check[1] - mob.y)
+		: parent.distance(character, mob);
+}
+
+function monsters_matching(args = {}) {
+	const out = [];
 
 	for (let id in parent.entities) {
 		let current = parent.entities[id];
@@ -272,12 +277,19 @@ function get_nearest_monster_v2(args = {}) {
 
 		if (args.path_check && !can_move_to(current)) continue;
 
-		let c_dist = args.point_for_distance_check
-			? Math.hypot(args.point_for_distance_check[0] - current.x, args.point_for_distance_check[1] - current.y)
-			: parent.distance(character, current);
+		if (args.max_distance !== undefined && monster_distance_for(args, current) > args.max_distance) continue;
 
-		if (args.max_distance !== undefined && c_dist > args.max_distance) continue;
+		out.push(current);
+	}
 
+	return out;
+}
+
+function get_nearest_monster_v2(args = {}) {
+	let min_d = 999999, target = null;
+	let optimal_hp = args.check_max_hp ? 0 : 999999999;
+
+	for (const current of monsters_matching(args)) {
 		if (args.check_min_hp || args.check_max_hp) {
 			let c_hp = current.hp;
 			if ((args.check_min_hp && c_hp < optimal_hp) || (args.check_max_hp && c_hp > optimal_hp)) {
@@ -287,6 +299,7 @@ function get_nearest_monster_v2(args = {}) {
 			continue;
 		}
 
+		const c_dist = monster_distance_for(args, current);
 		if (c_dist < min_d) {
 			min_d = c_dist;
 			target = current;

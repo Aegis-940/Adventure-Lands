@@ -97,7 +97,14 @@ function score_targets(pool, weights, context) {
 function select_target(pool, weights, context) {
 	if (!pool || !pool.length) return null;
 	if (pool.length === 1) return pool[0];
-	return score_targets(pool, weights, context)[0].mob;
+
+	const scored = score_targets(pool, weights, context);
+	sample_target_choice(scored, context);
+	return scored[0].mob;
+}
+
+function best_target(args, weights, context) {
+	return select_target(monsters_matching(args), weights, context);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
