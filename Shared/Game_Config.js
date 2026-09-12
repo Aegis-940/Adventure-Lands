@@ -41,7 +41,7 @@ const locations = {
 	pppompom:   [{ map: "level2n", x: 292, y: -189 }],
 	plantoid:   [{ map: "desertland", x: -780, y: -387 }],
 	rat:        [{ map: "mansion", x: 6, y: 430 }],
-	scorpion:   [{ map: "main", x: -495, y: 685 }],
+	scorpion:   [{ map: "main", x: 1540, y: 96 }],
 	stoneworm:  [{ map: "spookytown", x: 830, y: 7 }],
 	spider:     [{ map: "main", x: 895, y: -145 }],
 	giantspider: [{ }],
