@@ -58,6 +58,10 @@ function update_target_cache() {
 		return value.get(b) - value.get(a);
 	});
 
+	const within_range = RANGER_TARGET === "giantspider"
+		? mob => is_in_range(mob) && parent.distance(character, mob) <= 50
+		: mob => is_in_range(mob);
+
 	const in_range = [], out_of_range = [];
 	for (const mob of sorted_by_hp) {
 		if (within_range(mob)) in_range.push(mob);
