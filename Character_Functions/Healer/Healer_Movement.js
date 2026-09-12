@@ -16,6 +16,107 @@ function healer_skip_panic_check() {
 	return HEALER_TARGET === "fireroamer" || HEALER_TARGET === "giantspider";
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// CLUSTER SAMPLING — how tightly the monsters are packed, which is what splash actually pays for
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+var CLUSTER_WINDOW_MS = 15000;
+var CLUSTER_RADII = [12, 14, 30, 60];
+
+var _cluster_window = null;
+var _cluster_tick = 0;
+var _cluster_angle = null;
+
+function circle_centre() {
+	return HEALER_TARGET === "giantspider" ? { x: character.x, y: character.y } : locations[home][0];
+}
+
+function engaged_monsters() {
+	const party = CONFIG.party.group_members;
+	const out = [];
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e?.type !== "monster" || e.dead || !e.visible) continue;
+		if (!e.target || !party.includes(e.target)) continue;
+		out.push(e);
+	}
+	return out;
+}
+
+function cluster_window() {
+	if (!_cluster_window) {
+		_cluster_window = {
+			at: Date.now(), ticks: 0, rate_ticks: 0,
+			mobs: 0, speed: 0, fear: 0, moving: 0,
+			radius_err: 0, commanded: 0, achieved: 0,
+			near: {}
+		};
+		for (const r of CLUSTER_RADII) _cluster_window.near[r] = 0;
+	}
+	return _cluster_window;
+}
+
+function flush_cluster_window() {
+	const w = _cluster_window;
+	if (!w || Date.now() - w.at < CLUSTER_WINDOW_MS) return;
+	_cluster_window = null;
+	if (!w.ticks || typeof errlog_sample !== "function") return;
+
+	const payload = {
+		secs: +((Date.now() - w.at) / 1000).toFixed(1),
+		mobs: +(w.mobs / w.ticks).toFixed(1),
+		speed: Math.round(w.speed / w.ticks),
+		fear: +(w.fear / w.ticks).toFixed(2),
+		moving_pct: +(w.moving / w.ticks).toFixed(2),
+		radius_err: Math.round(w.radius_err / w.ticks),
+		commanded_rate: w.rate_ticks ? +(w.commanded / w.rate_ticks).toFixed(2) : 0,
+		achieved_rate: w.rate_ticks ? +(w.achieved / w.rate_ticks).toFixed(2) : 0
+	};
+	for (const r of CLUSTER_RADII) payload["r" + r] = +(w.near[r] / w.ticks).toFixed(2);
+
+	errlog_sample("cluster", payload);
+}
+
+function tick_cluster_window() {
+	if (!CONFIG.combat.sample_cluster) return;
+
+	const now = Date.now();
+	if (now - _cluster_tick < 1000) return;
+	const dt = _cluster_tick ? (now - _cluster_tick) / 1000 : 0;
+	_cluster_tick = now;
+
+	const w = cluster_window();
+	const mobs = engaged_monsters();
+
+	w.ticks++;
+	w.mobs += mobs.length;
+	w.speed += character.speed || 0;
+	w.fear += character.fear || 0;
+	if (character.moving) w.moving++;
+
+	for (const r of CLUSTER_RADII) {
+		let total = 0;
+		for (const m of mobs) total += count_neighbours(m, r);
+		w.near[r] += mobs.length ? total / mobs.length : 0;
+	}
+
+	const centre = circle_centre();
+	const angle = Math.atan2(character.y - centre.y, character.x - centre.x);
+	w.radius_err += Math.abs(Math.hypot(character.x - centre.x, character.y - centre.y) - CONFIG.movement.circle_radius);
+
+	if (_cluster_angle !== null && dt > 0) {
+		let delta = angle - _cluster_angle;
+		while (delta > Math.PI) delta -= 2 * Math.PI;
+		while (delta < -Math.PI) delta += 2 * Math.PI;
+		w.achieved += Math.abs(delta) / dt;
+		w.commanded += CONFIG.movement.circle_speed;
+		w.rate_ticks++;
+	}
+	_cluster_angle = angle;
+
+	flush_cluster_window();
+}
+
 async function healer_local(goal) {
 	movement_local(goal, () => {
 		if (CONFIG.movement.circle_walk && get_nearest_monster({ type: home })) walk_in_circle();

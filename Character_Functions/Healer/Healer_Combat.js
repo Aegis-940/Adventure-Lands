@@ -12,6 +12,7 @@ function update_cache() {
 	cache.heal_target = find_heal_target();
 
 	sample_set_profiles(HEALER_WEAPON_SETS);
+	tick_cluster_window();
 }
 
 function find_best_target() {

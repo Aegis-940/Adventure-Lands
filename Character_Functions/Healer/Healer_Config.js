@@ -14,6 +14,7 @@ var CONFIG = {
 		aggro: true,
 		aggro_cap: 5,
 		sample_hits: false,
+		sample_cluster: true,
 		curse_min_hp_pct: 0.25,
 	},
 
