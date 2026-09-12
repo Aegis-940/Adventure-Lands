@@ -7,6 +7,7 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const DAMAGE_WINDOW_MS = 15000;
+const DAMAGE_PREDICTION_STEP_MS = 250;
 const BUFFS_WORTH_LOGGING = ["warcry", "darkblessing", "mluck", "mcourage", "power", "xpower", "holidayspirit", "newcomersblessing", "energized", "anniversary_kiss", "patronsgrace"];
 
 const _damage_windows = {};
@@ -105,12 +106,13 @@ function emit_damage_window(w) {
 			direct_armor: w.hits ? Math.round(w.direct_armor / w.hits) : 0,
 			per_splash: w.splashes ? +(w.splash / w.splashes / (w.direct / w.hits)).toFixed(3) : 0,
 
-			predicted_splash_mult: w.pred_ticks ? +(1 + w.pred_splash / w.pred_ticks).toFixed(3) : 0,
-			predicted_burn_mult: w.pred_ticks ? +(w.pred_burn / w.pred_ticks).toFixed(3) : 0,
+			pred_ticks: w.pred_ticks,
+			predicted_splash_mult: w.pred_ticks ? +(1 + w.pred_splash / w.pred_ticks).toFixed(3) : null,
+			predicted_burn_mult: w.pred_ticks ? +(w.pred_burn / w.pred_ticks).toFixed(3) : null,
 			splash_accuracy: w.pred_ticks && w.pred_splash > 0
-				? +((1 + w.splash / w.direct) / (1 + w.pred_splash / w.pred_ticks)).toFixed(3) : 0,
-			burn_accuracy: w.pred_ticks && w.pred_burn > 0
-				? +((1 + w.burn / w.direct) / (w.pred_burn / w.pred_ticks)).toFixed(3) : 0,
+				? +((1 + w.splash / w.direct) / (1 + w.pred_splash / w.pred_ticks)).toFixed(3) : null,
+			burn_accuracy: w.pred_ticks && w.pred_burn / w.pred_ticks > 1.001
+				? +((1 + w.burn / w.direct) / (w.pred_burn / w.pred_ticks)).toFixed(3) : null,
 
 			off_home_pct: w.context_ticks ? +(w.off_home / w.context_ticks).toFixed(2) : 0,
 			boss_pct: w.context_ticks ? +(w.boss_seen / w.context_ticks).toFixed(2) : 0,
@@ -262,7 +264,8 @@ parent.socket._damage_sampler = data => {
 
 parent.socket.on("hit", parent.socket._damage_sampler);
 
-setInterval(() => { try { tick_damage_windows(); } catch (e) { } flush_damage_windows(); }, 1000);
+setInterval(() => { try { tick_damage_windows(); } catch (e) { } }, DAMAGE_PREDICTION_STEP_MS);
+setInterval(flush_damage_windows, 1000);
 setInterval(() => { try { tick_heal_window(); flush_heal_window(); } catch (e) { } }, 1000);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
