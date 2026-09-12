@@ -158,9 +158,13 @@ function worn_ability_chance(ability) {
 // SET PROFILES — what each equipment set is actually worth, measured while it is worn
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const SET_PROFILE_KEY = "AL_set_profile_";
+const SET_PROFILE_KEY = "AL_set_profile2_";
 const SET_PROFILE_FIELDS = ["attack", "explosion", "frequency", "heal", "int", "rpiercing", "mp_cost"];
-const SET_PROFILE_MIN_INTERVAL_MS = 60000;
+const SET_PROFILE_MIN_INTERVAL_MS = 15000;
+const SET_PROFILE_SETTLE_MS = 600;
+const PROFILE_EXCLUDED_BUFFS = ["darkblessing", "warcry", "power", "xpower"];
+
+const _profile_pending = {};
 const SET_PROFILE_EPSILON = 0.02;
 
 let _set_profiles = null;
@@ -188,14 +192,29 @@ function profile_materially_differs(previous, profile) {
 	});
 }
 
-function record_set_profile(set_name) {
-	if (!is_set_equipped(set_name)) return false;
+function profile_conditions_ok() {
 	if (character.fear) return false;
+	const active = character.s || {};
+	return !PROFILE_EXCLUDED_BUFFS.some(buff => active[buff]);
+}
 
-	const profiles = load_set_profiles();
+function record_set_profile(set_name) {
+	if (!is_set_equipped(set_name) || !profile_conditions_ok()) {
+		delete _profile_pending[set_name];
+		return false;
+	}
+
 	const profile = { at: Date.now() };
 	for (const field of SET_PROFILE_FIELDS) profile[field] = character[field] || 0;
 
+	const pending = _profile_pending[set_name];
+	if (!pending || profile_materially_differs(pending.profile, profile)) {
+		_profile_pending[set_name] = { profile, at: Date.now() };
+		return false;
+	}
+	if (Date.now() - pending.at < SET_PROFILE_SETTLE_MS) return false;
+
+	const profiles = load_set_profiles();
 	const previous = profiles[set_name];
 	if (previous && Date.now() - (previous.at || 0) < SET_PROFILE_MIN_INTERVAL_MS) return false;
 	if (previous && !profile_materially_differs(previous, profile)) return false;
