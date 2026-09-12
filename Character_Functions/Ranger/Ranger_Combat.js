@@ -97,7 +97,7 @@ function update_target_cache() {
 var SHOT_PROFILES = [
 	{ name: "attack", count: 1, multiplier: 1.0 },
 	{ name: "3shot", count: 3, multiplier: 0.7 },
-	{ name: "5shot", count: 5, multiplier: 0.5, extend: true },
+	{ name: "5shot", count: 5, multiplier: 0.5 },
 ];
 
 function shot_mana(profile) {
@@ -151,16 +151,17 @@ function mana_price() {
 }
 
 function score_option(mobs, count, skill_multiplier, mana, lambda, reference) {
-	if (mobs.length < count) return null;
+	const hits = Math.min(count, mobs.length);
+	if (!hits) return null;
 
 	let damage = 0;
-	for (let i = 0; i < count; i++) damage += target_modifier(mobs[i], skill_multiplier);
+	for (let i = 0; i < hits; i++) damage += target_modifier(mobs[i], skill_multiplier);
 	damage *= skill_multiplier / reference;
 
-	return { damage, mana, score: damage - lambda * mana };
+	return { damage, mana, hits, score: damage - lambda * mana };
 }
 
-function choose_attack_option(in_range, cluster_targets, out_of_range) {
+function choose_attack_option(in_range, cluster_targets) {
 	const lambda = mana_price();
 	const primary = cluster_targets.length ? cluster_targets : in_range;
 	if (!primary.length) return null;
@@ -169,11 +170,8 @@ function choose_attack_option(in_range, cluster_targets, out_of_range) {
 	const options = [];
 
 	for (const profile of SHOT_PROFILES) {
-		const pool = (profile.extend && primary.length < profile.count)
-			? primary.concat(out_of_range)
-			: primary;
-		const scored = score_option(pool, profile.count, profile.multiplier, shot_mana(profile), lambda, reference);
-		if (scored) options.push({ name: profile.name, targets: pool.slice(0, profile.count), ...scored });
+		const scored = score_option(primary, profile.count, profile.multiplier, shot_mana(profile), lambda, reference);
+		if (scored) options.push({ name: profile.name, targets: primary.slice(0, scored.hits), ...scored });
 	}
 
 	const affordable = options.filter(o => character.mp >= o.mana + panic_mp_reserve());
@@ -234,7 +232,7 @@ async function action_loop() {
 }
 
 async function handle_attack() {
-	const { sorted_by_value, in_range, out_of_range, cluster_targets, cluster_target } = cache.targets;
+	const { sorted_by_value, in_range, cluster_targets } = cache.targets;
 	if (!sorted_by_value.length) return;
 
 	const single_target_mode = RANGER_TARGET === "giantspider";
@@ -245,7 +243,7 @@ async function handle_attack() {
 		return attack(in_range[0]);
 	}
 
-	const choice = choose_attack_option(in_range, cluster_targets, out_of_range);
+	const choice = choose_attack_option(in_range, cluster_targets);
 	if (!choice) return;
 
 	if (choice.name === "attack") return attack(choice.targets[0]);

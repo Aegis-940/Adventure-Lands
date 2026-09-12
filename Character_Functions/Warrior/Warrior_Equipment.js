@@ -51,7 +51,7 @@ function hit_against(mob, attack) {
 
 function expected_splash_bonus(explosion, attack) {
 	const pool = attackable_monsters();
-	const mobs = pool.length ? pool : (cache.target ? [cache.target] : []);
+	const mobs = pool.length ? pool : (cache.monsters_in_cleave_range || []);
 
 	let best = 0;
 	for (const mob of mobs) {
