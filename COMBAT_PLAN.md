@@ -217,17 +217,22 @@ A monster can hold station only inside the intersection of all discs of radius 1
 circle — a disc of radius `12 − R`. **At R = 30, 20 and 12 that disc is empty**, which is why
 those three arms were indistinguishable: all of them were in the same perpetual-chase regime.
 
-### Settled: radius 10
+### Rejected: radius 10
 
-`circle_radius` is set to **10** — just inside the 12 threshold, so a resting zone of radius 2
-exists while the orbit still moves. Chosen rather than measured: R = 12 was tested at n = 283 and
-matched R = 30, so 10 is adjacent to a known-good point and the downside is bounded by that
-measurement. The untested region below ~8 was avoided because waypoint start-stop overhead would
-dominate and any result there would be an implementation artefact.
+`circle_radius` was set to 10 on the strength of the resting-zone argument — just inside the 12
+threshold, so a disc of radius 2 exists while the orbit still moves. **It looked bad in game and
+was reverted to 30 the same session.**
 
-This is a cheap bet on a plausible model, not a finding. Two earlier models in this workstream
-(trailing-arc, and radius tied to the monster's attack range) both failed against measurement.
-The only firmly established fact is motion versus stillness, and that was already in place.
+Worth recording why the reasoning was not enough. The argument was sound about where a resting
+zone exists, but a resting zone is not the same thing as a tight stack: at R = 10 she is barely
+translating, and the whole measured effect in this workstream is that translation is what packs
+them. The model predicted the one configuration that most resembles the arm that measured worst.
+
+Three models in this workstream now — trailing-arc, radius tied to the monster's attack range, and
+the resting zone — have each looked right and each failed. The only firmly established fact is
+motion versus stillness, and it was already in place before any of this started. **`circle_radius:
+30` and `circle_speed: 1.8` are the settled answer; treat further geometry theorising here as
+disproven until something measures otherwise.**
 
 ### Rejected: centroid re-centring
 
