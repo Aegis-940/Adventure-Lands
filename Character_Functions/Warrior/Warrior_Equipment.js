@@ -206,12 +206,13 @@ function resolve_warrior_loadout() {
 	if (!CONFIG.equipment.boss_set_swap_enabled) return resolve_warrior_home_loadout();
 
 	const active_boss = find_active_boss();
-	if (active_boss) {
-		const boss_hp = active_boss.data.hp;
-		if (boss_hp > CONFIG.equipment.boss_hp_thresholds[active_boss.name]) {
-			return character.map !== destination.map ? "dps" : null;
+	const threshold = active_boss && CONFIG.equipment.boss_hp_thresholds[active_boss.name];
+
+	if (active_boss && threshold !== undefined) {
+		if (active_boss.data.hp > threshold) {
+			return character.map !== destination.map ? "dps" : resolve_warrior_home_loadout();
 		}
-		return "luck";
+		if (set_available("luck")) return "luck";
 	}
 
 	return resolve_warrior_home_loadout();

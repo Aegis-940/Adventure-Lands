@@ -324,10 +324,15 @@ function panic_mp_reserve() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 
+function boss_is_present(entry) {
+	if (entry.data.map && entry.data.map === character.map) return true;
+	return !!get_nearest_monster({ type: entry.name });
+}
+
 function find_active_boss() {
 	return EVENT_LOCATIONS
 		.map(e => ({ name: e.name, data: parent.S[e.name] }))
-		.find(e => e.data?.live);
+		.find(e => e.data?.live && boss_is_present(e));
 }
 
 function should_pause_combat_loop() {
