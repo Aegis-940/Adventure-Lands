@@ -52,9 +52,12 @@ function expected_splash_bonus(explosion) {
 		return primary ? splash_bonus(primary, explosion) : 0;
 	}
 
-	let total = 0;
-	for (const mob of pool) total += splash_bonus(mob, explosion);
-	return total / pool.length;
+	let best = 0;
+	for (const mob of pool) {
+		const bonus = splash_bonus(mob, explosion);
+		if (bonus > best) best = bonus;
+	}
+	return best;
 }
 
 function smoothed_splash_bonus(explosion) {
