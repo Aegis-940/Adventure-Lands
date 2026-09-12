@@ -27,6 +27,10 @@ var CONFIG = {
 		circle_experiment_rate: 3.0,
 		circle_experiment_ms: 120000,
 		circle_radius: 30,
+		centre_on_monsters: true,
+		centre_max_drift: 60,
+		centre_experiment: true,
+		centre_experiment_ms: 120000,
 	},
 
 	healing: {
