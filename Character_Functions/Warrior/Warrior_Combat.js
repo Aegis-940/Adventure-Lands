@@ -20,10 +20,8 @@ function find_best_target() {
 
 	const context = { explosion: character.explosion || 0, party_factor: CONFIG.equipment.party_dps_factor };
 
-	for (const boss_type of CONFIG.combat.all_bosses) {
-		const boss = best_target({ type: boss_type, max_distance: max_dist }, { close: 1 }, context);
-		if (boss) return boss;
-	}
+	const boss = best_target({ type: CONFIG.combat.all_bosses, max_distance: max_dist }, { close: 1 }, context);
+	if (boss) return boss;
 
 	return best_target({ max_distance: max_dist }, CONFIG.combat.target_weights, context);
 }

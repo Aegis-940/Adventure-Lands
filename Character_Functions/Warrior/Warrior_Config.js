@@ -14,7 +14,7 @@ var CONFIG = {
 		sample_hits: true,
 		sample_positions: false,
 		sample_targets: true,
-		target_weights: { damage: 1 },
+		target_weights: { damage: 1, close: 0.05 },
 		cleave_blacklist: ["fireroamer", "plantoid", "pppompom"],
 		agitate_min_mobs: 2,
 		cluster_min_mobs: 2,

@@ -26,7 +26,7 @@ var CONFIG = {
 		sample_bow_ms: 10000,
 		sample_hits: false,
 		sample_targets: true,
-		target_weights: { damage: 1 },
+		target_weights: { damage: 1, close: 0.05 },
 		pouchbow_enabled: true,
 		pouchbow_explosion: 51,
 		pouchbow_min_neighbours: 3,
@@ -159,6 +159,6 @@ var state = {
 };
 
 var cache = make_cache({
-	targets: { sorted_by_hp: [], in_range: [], out_of_range: [], cluster_targets: [], cluster_target: null },
+	targets: { sorted_by_value: [], in_range: [], out_of_range: [], cluster_targets: [], cluster_target: null },
 	heal_target: null,
 });

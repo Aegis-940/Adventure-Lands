@@ -2,9 +2,19 @@
 // TARGETING — one scorer for every character; eligibility stays with each character, value is shared
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+function incoming_damage_amp(mob) {
+	if (mob.incdmgamp !== undefined) return 1 + mob.incdmgamp / 100;
+
+	let amp = 0;
+	for (const name in (mob.s || {})) {
+		const def = G.conditions[name];
+		if (def && def.incdmgamp) amp += def.incdmgamp;
+	}
+	return 1 + amp / 100;
+}
+
 function attack_damage_against(mob) {
-	const amp = 1 + ((mob.incdmgamp || 0) / 100);
-	return estimate_my_damage(mob) * amp;
+	return estimate_my_damage(mob) * incoming_damage_amp(mob);
 }
 
 function splash_landed_on_neighbours(mob, explosion, hit_damage) {

@@ -46,7 +46,7 @@ function update_target_cache() {
 	const value = new Map();
 	for (const mob of pool) value.set(mob, target_damage_value(mob, context));
 
-	const sorted_by_hp = pool.sort((a, b) => {
+	const sorted_by_value = pool.sort((a, b) => {
 		const a_boss = CONFIG.combat.attack_if_targeted.includes(a.mtype);
 		const b_boss = CONFIG.combat.attack_if_targeted.includes(b.mtype);
 		if (a_boss !== b_boss) return b_boss - a_boss;
@@ -63,7 +63,7 @@ function update_target_cache() {
 		: mob => is_in_range(mob);
 
 	const in_range = [], out_of_range = [];
-	for (const mob of sorted_by_hp) {
+	for (const mob of sorted_by_value) {
 		if (within_range(mob)) in_range.push(mob);
 		else out_of_range.push(mob);
 	}
@@ -80,7 +80,7 @@ function update_target_cache() {
 	}));
 
 	return {
-		sorted_by_hp,
+		sorted_by_value,
 		in_range,
 		out_of_range,
 		cluster_targets: in_range,
@@ -230,8 +230,8 @@ async function action_loop() {
 }
 
 async function handle_attack() {
-	const { sorted_by_hp, in_range, out_of_range, cluster_targets, cluster_target } = cache.targets;
-	if (!sorted_by_hp.length) return;
+	const { sorted_by_value, in_range, out_of_range, cluster_targets, cluster_target } = cache.targets;
+	if (!sorted_by_value.length) return;
 
 	const single_target_mode = RANGER_TARGET === "giantspider";
 

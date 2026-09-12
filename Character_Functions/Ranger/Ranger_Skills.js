@@ -43,13 +43,13 @@ async function skill_loop() {
 
 		update_cache();
 
-		const { sorted_by_hp, in_range } = cache.targets;
-		if (!sorted_by_hp.length) {
+		const { sorted_by_value, in_range } = cache.targets;
+		if (!sorted_by_value.length) {
 			setTimeout(skill_loop, 200);
 			return;
 		}
 
-		const target = RANGER_TARGET === "giantspider" ? in_range[0] : sorted_by_hp[0];
+		const target = RANGER_TARGET === "giantspider" ? in_range[0] : sorted_by_value[0];
 		if (!target || !is_in_range(target)) {
 			setTimeout(skill_loop, 100);
 			return;

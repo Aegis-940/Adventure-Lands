@@ -18,7 +18,8 @@ function update_cache() {
 function healer_target_context() {
 	return {
 		explosion: character.explosion || 0,
-		party_factor: CONFIG.combat.party_dps_factor
+		party_factor: CONFIG.combat.party_dps_factor,
+		protect: CONFIG.combat.target_priority
 	};
 }
 
