@@ -24,7 +24,7 @@ var CONFIG = {
 
 		sample_bow_choice: false,
 		sample_bow_ms: 10000,
-		sample_hits: false,
+		sample_hits: true,
 		sample_targets: true,
 		target_weights: { damage: 1, close: 0.05 },
 		pouchbow_enabled: true,

@@ -43,7 +43,9 @@ function damage_window_for(weapon, stats) {
 			direct: 0, splash: 0, burn: 0,
 			hits: 0, splashes: 0, ticks: 0,
 			splash_armor: 0, direct_armor: 0,
-			tagged: 0, untagged: 0
+			tagged: 0, untagged: 0,
+			pred_splash: 0, pred_burn: 0, pred_ticks: 0,
+			off_home: 0, boss_seen: 0, context_ticks: 0
 		};
 	}
 	return w;
@@ -63,6 +65,28 @@ function flush_damage_windows() {
 	}
 }
 
+function tick_damage_windows() {
+	if (!sample_hits_enabled()) return;
+
+	const worn = weapon_label();
+	const at_home = typeof destination !== "undefined" && destination && character.map === destination.map;
+	const boss = typeof find_active_boss === "function" && !!find_active_boss();
+	const prediction = typeof model_prediction === "function" ? model_prediction() : null;
+
+	for (const weapon in _damage_windows) {
+		const w = _damage_windows[weapon];
+
+		w.context_ticks++;
+		if (!at_home) w.off_home++;
+		if (boss) w.boss_seen++;
+
+		if (!prediction || weapon !== worn) continue;
+		w.pred_splash += prediction.splash;
+		w.pred_burn += prediction.burn;
+		w.pred_ticks++;
+	}
+}
+
 function emit_damage_window(w) {
 	if (w.direct > 0 && typeof errlog_sample === "function") {
 		errlog_sample("damage", {
@@ -79,7 +103,18 @@ function emit_damage_window(w) {
 			tagged: w.tagged, untagged: w.untagged,
 			splash_armor: w.splashes ? Math.round(w.splash_armor / w.splashes) : 0,
 			direct_armor: w.hits ? Math.round(w.direct_armor / w.hits) : 0,
-			per_splash: w.splashes ? +(w.splash / w.splashes / (w.direct / w.hits)).toFixed(3) : 0
+			per_splash: w.splashes ? +(w.splash / w.splashes / (w.direct / w.hits)).toFixed(3) : 0,
+
+			predicted_splash_mult: w.pred_ticks ? +(1 + w.pred_splash / w.pred_ticks).toFixed(3) : 0,
+			predicted_burn_mult: w.pred_ticks ? +(w.pred_burn / w.pred_ticks).toFixed(3) : 0,
+			splash_accuracy: w.pred_ticks && w.pred_splash > 0
+				? +((1 + w.splash / w.direct) / (1 + w.pred_splash / w.pred_ticks)).toFixed(3) : 0,
+			burn_accuracy: w.pred_ticks && w.pred_burn > 0
+				? +((1 + w.burn / w.direct) / (w.pred_burn / w.pred_ticks)).toFixed(3) : 0,
+
+			off_home_pct: w.context_ticks ? +(w.off_home / w.context_ticks).toFixed(2) : 0,
+			boss_pct: w.context_ticks ? +(w.boss_seen / w.context_ticks).toFixed(2) : 0,
+			map: character.map
 		});
 	}
 }
@@ -227,7 +262,7 @@ parent.socket._damage_sampler = data => {
 
 parent.socket.on("hit", parent.socket._damage_sampler);
 
-setInterval(flush_damage_windows, 1000);
+setInterval(() => { try { tick_damage_windows(); } catch (e) { } flush_damage_windows(); }, 1000);
 setInterval(() => { try { tick_heal_window(); flush_heal_window(); } catch (e) { } }, 1000);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

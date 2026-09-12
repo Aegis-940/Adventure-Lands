@@ -77,6 +77,22 @@ function smoothed_splash_bonus(explosion, attack) {
 	return state.value;
 }
 
+function model_prediction() {
+	const target = cache.target;
+	if (!target) return null;
+
+	const explosion = character.explosion || 0;
+	const raw_dps = (character.attack || 0) * (character.frequency || 1);
+
+	return {
+		splash: explosion > 0 ? expected_splash_bonus(explosion, character.attack) : 0,
+		burn: burn_multiplier_at_dps(
+			target, worn_ability_chance("burn"), raw_dps,
+			CONFIG.equipment.party_dps_factor, { hp: target.hp }
+		)
+	};
+}
+
 function warrior_set_base_value(set_name, primary) {
 	const profile = get_set_profile(set_name);
 	if (!profile || !profile.attack) return null;

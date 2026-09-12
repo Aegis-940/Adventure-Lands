@@ -122,6 +122,19 @@ function target_modifier(mob, skill_multiplier) {
 	return burn_multiplier(mob, skill_multiplier);
 }
 
+function model_prediction() {
+	const target = cache.targets && cache.targets.in_range && cache.targets.in_range[0];
+	if (!target) return null;
+
+	const explosion = character.explosion || 0;
+	const hit = (character.attack || 0) * defense_reduction((target.armor || 0) - (character.apiercing || 0));
+
+	return {
+		splash: explosion > 0 ? splash_bonus(target, explosion, hit) : 0,
+		burn: burn_multiplier(target, 1)
+	};
+}
+
 function lambda_bounds() {
 	const ladder = SHOT_PROFILES.slice().sort((a, b) => shot_mana(a) - shot_mana(b));
 
