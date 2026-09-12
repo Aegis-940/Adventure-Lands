@@ -22,6 +22,36 @@ function healer_skip_panic_check() {
 
 var CLUSTER_WINDOW_MS = 15000;
 var CLUSTER_RADII = [12, 14, 30, 60];
+var CLUSTER_MIN_TICKS = 5;
+
+var _circle_arm = null;
+
+function circle_arm_index() {
+	const cfg = CONFIG.movement;
+	return Math.floor(Date.now() / cfg.circle_experiment_ms) % cfg.circle_experiment_rates.length;
+}
+
+function effective_circle_speed() {
+	const cfg = CONFIG.movement;
+	if (!cfg.circle_experiment) return cfg.circle_speed;
+
+	const index = circle_arm_index();
+	const rate = cfg.circle_experiment_rates[index];
+
+	if (_circle_arm !== index) {
+		_circle_arm = index;
+		discard_cluster_window();
+		log(`[CIRCLE] arm ${index + 1}/${cfg.circle_experiment_rates.length} — rate ${rate}`, "#66ccff");
+	}
+	return rate;
+}
+
+function discard_cluster_window() {
+	const w = _cluster_window;
+	if (!w) return;
+	if (w.ticks >= CLUSTER_MIN_TICKS) emit_cluster_window(w);
+	_cluster_window = null;
+}
 
 var _cluster_window = null;
 var _cluster_tick = 0;
@@ -60,6 +90,10 @@ function flush_cluster_window() {
 	const w = _cluster_window;
 	if (!w || Date.now() - w.at < CLUSTER_WINDOW_MS) return;
 	_cluster_window = null;
+	emit_cluster_window(w);
+}
+
+function emit_cluster_window(w) {
 	if (!w.ticks || typeof errlog_sample !== "function") return;
 
 	const payload = {
@@ -109,7 +143,7 @@ function tick_cluster_window() {
 		while (delta > Math.PI) delta -= 2 * Math.PI;
 		while (delta < -Math.PI) delta += 2 * Math.PI;
 		w.achieved += Math.abs(delta) / dt;
-		w.commanded += CONFIG.movement.circle_speed;
+		w.commanded += effective_circle_speed();
 		w.rate_ticks++;
 	}
 	_cluster_angle = angle;
@@ -136,7 +170,7 @@ async function walk_in_circle() {
 	const delta_time = current_time - state.last_angle_update;
 	state.last_angle_update = current_time;
 
-	const delta_angle = CONFIG.movement.circle_speed * (delta_time / 1000);
+	const delta_angle = effective_circle_speed() * (delta_time / 1000);
 	state.angle = (state.angle + delta_angle) % (2 * Math.PI);
 
 	const offset_x = Math.cos(state.angle) * radius;
