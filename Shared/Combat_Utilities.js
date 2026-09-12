@@ -488,16 +488,18 @@ function burn_ticks_at_dps(mob, dps, party_factor) {
 
 const BURN_TICK_DIVISOR = 5;
 
-function burn_multiplier_at_dps(mob, chance, dps, party_factor, frequency) {
+function burn_multiplier_at_dps(mob, chance, dps, party_factor, options) {
 	if (!chance) return 1;
 
 	const def = G.conditions?.burned;
 	if (!def || !def.interval) return 1;
 
-	const rate = frequency || character.frequency || 1;
+	const opts = options || {};
+	const rate = opts.frequency || character.frequency || 1;
 	if (rate <= 0) return 1;
 
-	const ttk = mob ? time_to_kill_ms(mob, mob.max_hp, dps, party_factor) : Infinity;
+	const hp = opts.hp === undefined ? (mob && mob.max_hp) : opts.hp;
+	const ttk = mob ? time_to_kill_ms(mob, hp, dps, party_factor) : Infinity;
 	const window_ms = Math.min(BURN_DURATION_MS, isFinite(ttk) ? ttk : BURN_DURATION_MS);
 	if (window_ms <= 0) return 1;
 

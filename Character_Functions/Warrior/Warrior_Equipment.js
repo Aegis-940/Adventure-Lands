@@ -80,7 +80,7 @@ function warrior_set_base_value(set_name, primary) {
 	let value = set_dps(profile);
 
 	const chance = set_ability_chance(set_name, "burn");
-	if (chance) value *= burn_multiplier_at_dps(primary, chance, set_dps(profile), CONFIG.equipment.party_dps_factor, profile.frequency);
+	if (chance) value *= burn_multiplier_at_dps(primary, chance, set_dps(profile), CONFIG.equipment.party_dps_factor, { frequency: profile.frequency });
 
 	if (profile.explosion > 0) {
 		value *= 1 + smoothed_splash_bonus(profile.explosion);

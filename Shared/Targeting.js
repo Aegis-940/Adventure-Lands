@@ -45,7 +45,7 @@ function target_damage_value(mob, options) {
 
 	const direct = Math.min(hit, mob.hp || 0);
 	const burn = burn_multiplier_at_dps(
-		mob, worn_ability_chance("burn"), hit * (character.frequency || 1), party_factor
+		mob, worn_ability_chance("burn"), hit * (character.frequency || 1), party_factor, { hp: mob.hp }
 	);
 
 	return direct * burn + splash_landed_on_neighbours(mob, explosion, hit);

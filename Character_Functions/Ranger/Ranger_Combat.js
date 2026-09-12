@@ -109,7 +109,7 @@ function burn_multiplier(mob, skill_multiplier) {
 	if (would_kill(mob, skill_multiplier)) return 1;
 
 	const dps = (character.attack || 0) * (character.frequency || 1);
-	return burn_multiplier_at_dps(mob, worn_ability_chance("burn"), dps, CONFIG.combat.party_dps_factor);
+	return burn_multiplier_at_dps(mob, worn_ability_chance("burn"), dps, CONFIG.combat.party_dps_factor, { hp: mob.hp });
 }
 
 function target_modifier(mob, skill_multiplier) {
