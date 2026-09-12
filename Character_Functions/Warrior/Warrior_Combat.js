@@ -28,6 +28,17 @@ function find_cluster_target() {
 	return scored[0]?.count >= CONFIG.combat.cluster_min_mobs ? scored[0].mob : null;
 }
 
+function warrior_target_pool(max_dist) {
+	const pool = [];
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e?.type !== "monster" || e.dead || !e.visible) continue;
+		if (distance(character, e) > max_dist) continue;
+		pool.push(e);
+	}
+	return pool;
+}
+
 function find_best_target() {
 	const max_dist = WARRIOR_TARGET === "giantspider" ? 50 : character.range;
 
@@ -36,15 +47,18 @@ function find_best_target() {
 		if (boss) return boss;
 	}
 
-	const cursed = get_nearest_monster_v2({ status_effects: ["cursed"], max_distance: max_dist, check_max_hp: true });
-	if (cursed) return cursed;
+	const pool = warrior_target_pool(max_dist);
+	if (!pool.length) return null;
+	if (pool.length === 1) return pool[0];
 
-	if (WARRIOR_TARGET === "giantspider") {
-		return get_nearest_monster_v2({ max_distance: max_dist }) || null;
-	}
-	if (cache.cluster_target && !cache.cluster_target.dead) return cache.cluster_target;
+	const context = {
+		explosion: character.explosion || 0,
+		party_factor: CONFIG.equipment.party_dps_factor
+	};
 
-	return get_nearest_monster_v2({ max_distance: max_dist, check_max_hp: true }) || null;
+	const scored = score_targets(pool, CONFIG.combat.target_weights, context);
+	sample_target_choice(scored, context);
+	return scored[0].mob;
 }
 
 function find_monsters_in_cleave_range() {

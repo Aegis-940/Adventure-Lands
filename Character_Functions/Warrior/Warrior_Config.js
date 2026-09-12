@@ -13,6 +13,8 @@ var CONFIG = {
 		cleave_min_mobs_held: 1,
 		sample_hits: true,
 		sample_positions: false,
+		sample_targets: true,
+		target_weights: { damage: 1 },
 		cleave_blacklist: ["fireroamer", "plantoid", "pppompom"],
 		agitate_min_mobs: 2,
 		cluster_min_mobs: 2,
