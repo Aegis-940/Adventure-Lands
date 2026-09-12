@@ -194,6 +194,55 @@ count) is a confound — `speed` is downstream of `fear`, which measures how man
 side of the only distinction that matters. `circle_experiment` is off; the machinery stays for
 future sweeps.
 
+### Result 3 — the approach constant is 12, not the monster's range
+
+From the monster AI (node_server.js L12245):
+
+```js
+} else if (can_attack(monster, player)) {
+    commence_attack(monster, player, "attack");
+} else if (distance(monster, player, true) > 12 && ...) {
+    monster.going_x = monster.x + (player.x - monster.x) / 2;   // midpoint, repeatedly
+    start_moving_element(monster);
+}
+```
+
+`can_attack` gates on cooldown as well as range, so between attacks every monster falls through
+to the movement branch and keeps closing until it is within **12** — regardless of its nominal
+attack range. Jay called this from observation; it is a flat constant for all general monsters.
+They also path to the *midpoint* each tick, an exponential contraction toward her position, which
+is itself a stacking force.
+
+A monster can hold station only inside the intersection of all discs of radius 12 centred on her
+circle — a disc of radius `12 − R`. **At R = 30, 20 and 12 that disc is empty**, which is why
+those three arms were indistinguishable: all of them were in the same perpetual-chase regime.
+
+### Settled: radius 10
+
+`circle_radius` is set to **10** — just inside the 12 threshold, so a resting zone of radius 2
+exists while the orbit still moves. Chosen rather than measured: R = 12 was tested at n = 283 and
+matched R = 30, so 10 is adjacent to a known-good point and the downside is bounded by that
+measurement. The untested region below ~8 was avoided because waypoint start-stop overhead would
+dominate and any result there would be an implementation artefact.
+
+This is a cheap bet on a plausible model, not a finding. Two earlier models in this workstream
+(trailing-arc, and radius tied to the monster's attack range) both failed against measurement.
+The only firmly established fact is motion versus stillness, and that was already in place.
+
+### Rejected: centroid re-centring
+
+Centring the circle on the centroid of engaged monsters does not work, and the reason is
+structural rather than a tuning problem. **The monsters are chasing her, so their centroid is
+mostly a lagged copy of her own position** — the signal carries almost no information about where
+the pack is. The centre chases her, she orbits the centre, and the result is a pursuit spiral that
+drifts until the distance clamp catches it. Measured `drift` sat at 25–26px and climbing with
+`r12` falling 1.24 → 0.87 → 0.73. Damping bounds the instability; it cannot make a
+self-referential input meaningful.
+
+The version that could work uses monsters that are **not** already engaged with her — untargeted
+mobs, or ones fighting Ulric and Riva — whose positions are genuinely independent of hers. That
+turns a movement rule into an aggro decision, so it belongs in item 4 rather than here.
+
 ### What is left for packing
 
 Two hypotheses, neither tested:

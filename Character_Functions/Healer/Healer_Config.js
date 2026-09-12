@@ -26,10 +26,10 @@ var CONFIG = {
 		circle_experiment_radii: [30, 20, 12],
 		circle_experiment_rate: 3.0,
 		circle_experiment_ms: 120000,
-		circle_radius: 30,
-		centre_on_monsters: true,
+		circle_radius: 10,
+		centre_on_monsters: false,
 		centre_max_drift: 60,
-		centre_experiment: true,
+		centre_experiment: false,
 		centre_experiment_ms: 120000,
 	},
 
