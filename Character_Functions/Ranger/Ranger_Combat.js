@@ -32,16 +32,21 @@ function update_cache() {
 }
 
 function update_target_cache() {
-	const sorted_by_hp = [];
-
+	const pool = [];
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
-		if (e.type === "monster" && should_attack_mob(e)) {
-			sorted_by_hp.push(e);
-		}
+		if (e.type === "monster" && should_attack_mob(e)) pool.push(e);
 	}
 
-	sorted_by_hp.sort((a, b) => {
+	const context = {
+		explosion: character.explosion || 0,
+		party_factor: CONFIG.combat.party_dps_factor
+	};
+
+	const value = new Map();
+	for (const mob of pool) value.set(mob, target_damage_value(mob, context));
+
+	const sorted_by_hp = pool.sort((a, b) => {
 		const a_boss = CONFIG.combat.attack_if_targeted.includes(a.mtype);
 		const b_boss = CONFIG.combat.attack_if_targeted.includes(b.mtype);
 		if (a_boss !== b_boss) return b_boss - a_boss;
@@ -50,15 +55,10 @@ function update_target_cache() {
 		const b_priority = CONFIG.combat.always_attack.includes(b.mtype);
 		if (a_priority !== b_priority) return b_priority - a_priority;
 
-		return b.hp - a.hp;
+		return value.get(b) - value.get(a);
 	});
 
 	const in_range = [], out_of_range = [];
-
-	const within_range = RANGER_TARGET === "giantspider"
-		? mob => is_in_range(mob) && parent.distance(character, mob) <= 50
-		: mob => is_in_range(mob);
-
 	for (const mob of sorted_by_hp) {
 		if (within_range(mob)) in_range.push(mob);
 		else out_of_range.push(mob);
@@ -69,12 +69,21 @@ function update_target_cache() {
 	}
 
 	const radius = explosion_radius(pouchbow_explosion());
-	const scored = score_by_explosion_spread(in_range, true, radius);
-	const cluster_targets = scored.map(s => s.mob);
-	const cluster_target = scored[0]?.count >= 3 ? scored[0].mob : null;
-	const best_neighbours = scored[0]?.count || 0;
+	const scored = in_range.map(mob => ({
+		mob,
+		count: count_neighbours(mob, radius, true),
+		value: value.get(mob) || 0
+	}));
 
-	return { sorted_by_hp, in_range, out_of_range, cluster_targets, cluster_target, scored, best_neighbours };
+	return {
+		sorted_by_hp,
+		in_range,
+		out_of_range,
+		cluster_targets: in_range,
+		cluster_target: in_range[0] || null,
+		scored,
+		best_neighbours: scored[0]?.count || 0
+	};
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

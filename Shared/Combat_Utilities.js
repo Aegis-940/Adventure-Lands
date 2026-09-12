@@ -285,28 +285,6 @@ function monsters_matching(args = {}) {
 	return out;
 }
 
-function get_nearest_monster_v2(args = {}) {
-	let min_d = 999999, target = null;
-	let optimal_hp = args.check_max_hp ? 0 : 999999999;
-
-	for (const current of monsters_matching(args)) {
-		if (args.check_min_hp || args.check_max_hp) {
-			let c_hp = current.hp;
-			if ((args.check_min_hp && c_hp < optimal_hp) || (args.check_max_hp && c_hp > optimal_hp)) {
-				optimal_hp = c_hp;
-				target = current;
-			}
-			continue;
-		}
-
-		const c_dist = monster_distance_for(args, current);
-		if (c_dist < min_d) {
-			min_d = c_dist;
-			target = current;
-		}
-	}
-	return target;
-}
 
 function get_num_targets(player_name) {
 	if (!player_name) return 0;

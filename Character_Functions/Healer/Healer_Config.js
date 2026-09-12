@@ -15,6 +15,10 @@ var CONFIG = {
 		aggro_cap: 5,
 		sample_hits: false,
 		sample_cluster: true,
+		sample_targets: true,
+		party_dps_factor: 2.0,
+		target_weights: { damage: 1 },
+		protect_weights: { hp_low: 1, damage: 0.3 },
 		curse_min_hp_pct: 0.25,
 	},
 

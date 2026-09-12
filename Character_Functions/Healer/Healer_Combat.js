@@ -15,40 +15,41 @@ function update_cache() {
 	tick_cluster_window();
 }
 
+function healer_target_context() {
+	return {
+		explosion: character.explosion || 0,
+		party_factor: CONFIG.combat.party_dps_factor
+	};
+}
+
 function find_best_target() {
 	const max_dist = HEALER_TARGET === "giantspider" ? 50 : character.range;
+	const context = healer_target_context();
 
-	const boss = get_nearest_monster_v2({ type: CONFIG.combat.all_bosses, max_distance: max_dist });
+	const boss = best_target({ type: CONFIG.combat.all_bosses, max_distance: max_dist }, { close: 1 }, context);
 	if (boss) return boss;
 
 	if (HEALER_TARGET === "giantspider") {
-		return get_nearest_monster_v2({ target: character.name, max_distance: max_dist }) || null;
+		return best_target({ target: character.name, max_distance: max_dist }, { close: 1 }, context);
 	}
 
 	if (CONFIG.combat.aggro && count_my_aggro() < effective_aggro_cap()) {
-		const untargeted = get_nearest_monster_v2({
-			no_target: true,
-			max_distance: character.range
-		});
+		const untargeted = best_target(
+			{ no_target: true, max_distance: character.range },
+			CONFIG.combat.target_weights, context
+		);
 		if (untargeted) return untargeted;
 	}
 
 	for (const name of CONFIG.combat.target_priority) {
-		const target = get_nearest_monster_v2({
-			target: name,
-			check_min_hp: true,
-			max_distance: character.range
-		});
+		const target = best_target(
+			{ target: name, max_distance: character.range },
+			CONFIG.combat.protect_weights, context
+		);
 		if (target) return target;
 	}
 
-	const highest_hp = get_nearest_monster_v2({
-		max_distance: character.range,
-		check_max_hp: true
-	});
-	if (highest_hp) return highest_hp;
-
-	return null;
+	return best_target({ max_distance: character.range }, CONFIG.combat.target_weights, context);
 }
 
 function count_my_aggro() {

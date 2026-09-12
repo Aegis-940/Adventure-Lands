@@ -25,6 +25,8 @@ var CONFIG = {
 		sample_bow_choice: false,
 		sample_bow_ms: 10000,
 		sample_hits: false,
+		sample_targets: true,
+		target_weights: { damage: 1 },
 		pouchbow_enabled: true,
 		pouchbow_explosion: 51,
 		pouchbow_min_neighbours: 3,

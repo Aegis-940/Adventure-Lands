@@ -103,7 +103,7 @@ function select_target(pool, weights, context) {
 	if (pool.length === 1) return pool[0];
 
 	const scored = score_targets(pool, weights, context);
-	sample_target_choice(scored, context);
+	sample_target_choice(scored, context, weights);
 	return scored[0].mob;
 }
 
@@ -118,7 +118,8 @@ function best_target(args, weights, context) {
 var TARGET_SAMPLE_MS = 5000;
 var _last_target_sample = 0;
 
-function sample_target_choice(scored, context) {
+function sample_target_choice(scored, context, weights) {
+	if (!weights || !weights.damage) return;
 	if (!CONFIG.combat?.sample_targets || typeof errlog_sample !== "function") return;
 	if (!scored || scored.length < 2) return;
 
