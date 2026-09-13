@@ -98,8 +98,13 @@ const ANNIVERSARY_TICK_MS = 2000;
 const ANNIVERSARY_TICK_ACTIVE_MS = 400;
 
 const ANNIVERSARY_KISS_RETRY_MS = 2500;
+const ANNIVERSARY_SEEK_TIMEOUT_MS = 30000;
+const ANNIVERSARY_SEEK_RADIUS = 400;
 
 let _anniv_died_round = null;
+let _anniv_gave_up_round = null;
+let _anniv_committed_round = null;
+let _anniv_seen_target_at = 0;
 let _anniv_reason = null;
 let _anniv_casting = false;
 let _anniv_last_kiss = 0;
@@ -117,21 +122,15 @@ function anniversary_is_host() {
 	return !!s && (String(character.id) === String(s.id) || character.name === s.target);
 }
 
-function anniversary_block_reason() {
-	const s = anniversary_event();
-	if (!s) return "no live round";
+function anniversary_abort_reason(s) {
 	if (character.rip) return "dead";
 	if (_anniv_died_round === s.round) return "died during this round";
+	if (_anniv_gave_up_round === s.round) return "gave up finding target this round";
 	if (s.available === false) return "host is not taking visitors";
 	if (anniversary_is_host()) return "we are the featured player";
 
 	const kiss = character.s && character.s.anniversary_kiss;
 	if (kiss && (kiss.ms === undefined || kiss.ms > ANNIVERSARY_REFRESH_MS)) return "already buffed";
-
-	if (character.ctype !== "merchant"
-		&& typeof best_event_target === "function" && best_event_target()) {
-		return "a boss is up — bossing first";
-	}
 
 	const ticket = character.s && character.s.anniversary_visit;
 	if (!ticket) return "no ticket issued to us";
@@ -146,6 +145,23 @@ function anniversary_block_reason() {
 	try {
 		if (!G.maps[s.map] || !isFinite(s.x) || !isFinite(s.y)) return "no usable destination";
 	} catch (e) { return "no usable destination"; }
+	return null;
+}
+
+function anniversary_block_reason() {
+	const s = anniversary_event();
+	if (!s) return "no live round";
+
+	const abort = anniversary_abort_reason(s);
+	if (abort) return abort;
+
+	if (_anniv_committed_round === s.round) return null;
+
+	if (character.ctype !== "merchant"
+		&& typeof best_event_target === "function" && best_event_target()) {
+		return "a boss is up — bossing first";
+	}
+
 	return null;
 }
 
@@ -178,13 +194,43 @@ async function anniversary_tick() {
 		log(reason ? `🎂 Anniversary: ${reason}.` : `🎂 Anniversary: visiting ${s.target} on ${s.map}.`,
 			"#F0B742", "Alerts");
 	}
+
+	const was_travelling = anniversary_travel;
 	anniversary_travel = !reason;
-	if (!anniversary_travel) return false;
+
+	if (!s) {
+		_anniv_committed_round = null;
+		return false;
+	}
+
+	if (!anniversary_travel) {
+		if (_anniv_committed_round === s.round) _anniv_committed_round = null;
+		return false;
+	}
+
+	if (!was_travelling) {
+		_anniv_committed_round = s.round;
+		_anniv_seen_target_at = Date.now();
+	}
+
+	const them = get_player(s.target);
+	const near_destination = character.map === s.map
+		&& Math.hypot(character.x - s.x, character.y - s.y) < ANNIVERSARY_SEEK_RADIUS;
+
+	if (them || !near_destination) {
+		_anniv_seen_target_at = Date.now();
+	} else if (Date.now() - _anniv_seen_target_at > ANNIVERSARY_SEEK_TIMEOUT_MS) {
+		_anniv_gave_up_round = s.round;
+		_anniv_committed_round = null;
+		anniversary_travel = false;
+		log(`🎂 Anniversary: couldn't find ${s.target} at the destination — returning to combat.`,
+			"#FFA500", "Alerts");
+		return false;
+	}
 
 	let ready = true;
 	try { ready = !is_on_cooldown("ikissyou"); } catch (e) { }
 
-	const them = get_player(s.target);
 	if (!_anniv_casting && ready
 		&& Date.now() - _anniv_last_kiss > ANNIVERSARY_KISS_RETRY_MS
 		&& them && distance(character, them) <= ANNIVERSARY_CAST) {

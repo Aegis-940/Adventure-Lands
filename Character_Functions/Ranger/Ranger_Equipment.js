@@ -27,34 +27,22 @@ function mean_of_best(values, count) {
 	return total / take;
 }
 
-function bow_values(pool) {
-	const single = get_set_profile("single");
-	const boom = get_set_profile("boom");
-	if (!single || !boom || !boom.attack || !boom.explosion) return null;
+var _bow_choice = make_weapon_choice();
+
+function ranger_set_value(set_name, pool) {
+	const profile = get_set_profile(set_name);
+	if (!profile || !profile.attack) return null;
 	if (!pool || !pool.length) return null;
 
-	const single_dps = set_dps(single);
-	const boom_dps = set_dps(boom);
-	const width = shot_width();
+	const dps = set_dps(profile);
+	const chance = set_ability_chance(set_name, "burn");
 
-	const single_each = [];
-	const boom_each = [];
+	const each = pool.map(mob => profile.explosion > 0
+		? 1 + splash_bonus(mob, profile.explosion, hit_against(mob, profile.attack))
+		: burn_multiplier_at_dps(mob, chance, dps, CONFIG.combat.party_dps_factor,
+			{ frequency: profile.frequency, hp: mob.hp }));
 
-	for (const mob of pool) {
-		single_each.push(burn_multiplier_at_dps(
-			mob, set_ability_chance("single", "burn"), single_dps,
-			CONFIG.combat.party_dps_factor, { frequency: single.frequency, hp: mob.hp }
-		));
-
-		const hit = hit_against(mob, boom.attack);
-		boom_each.push(1 + splash_bonus(mob, boom.explosion, hit));
-	}
-
-	return {
-		single: single_dps * mean_of_best(single_each, width),
-		boom: boom_dps * mean_of_best(boom_each, width),
-		width
-	};
+	return dps * mean_of_best(each, shot_width());
 }
 
 function resolve_ranger_weapon() {
@@ -65,41 +53,43 @@ function resolve_ranger_weapon() {
 	const { scored, in_range } = cache.targets;
 	if (!in_range.length) return "single";
 
-	const values = bow_values(in_range);
-	if (!values) {
-		const best = scored && scored[0];
-		return best && best.count >= CONFIG.combat.pouchbow_min_neighbours ? "boom" : "single";
-	}
+	const chosen = best_weapon_set(_bow_choice, CONFIG.equipment.weapon_sets,
+		name => ranger_set_value(name, in_range),
+		{
+			hysteresis_ms: CONFIG.equipment.weapon_hysteresis_ms,
+			margin: CONFIG.equipment.weapon_switch_margin,
+			on_change: (from, to) => {
+				if (CONFIG.combat.sample_bow_choice) sample_bow_choice(to, scored && scored[0], in_range);
+			}
+		});
+	if (chosen) return chosen;
 
-	const choice = values.boom > values.single ? "boom" : "single";
-	if (CONFIG.combat.sample_bow_choice) sample_bow_choice(choice, scored && scored[0], values);
-	return choice;
+	const best = scored && scored[0];
+	return best && best.count >= CONFIG.combat.pouchbow_min_neighbours ? "boom" : "single";
 }
 
 var _last_bow_sample = 0;
 
-function sample_bow_choice(choice, best, values) {
+function sample_bow_choice(choice, best, pool) {
 	if (typeof errlog_sample !== "function" || !best) return;
 	if (Date.now() - _last_bow_sample < CONFIG.combat.sample_bow_ms) return;
 	_last_bow_sample = Date.now();
 
-	const boom = get_set_profile("boom");
-	const single = get_set_profile("single");
-	const dps = (single.attack || 0) * (single.frequency || 1);
+	const values = {};
+	for (const name of CONFIG.equipment.weapon_sets) {
+		const v = ranger_set_value(name, pool);
+		values[name] = v === null ? null : Math.round(v);
+	}
 
 	errlog_sample("bow", {
 		pick: choice,
-		width: values.width,
+		width: shot_width(),
+		values,
 		mtype: best.mob.mtype,
 		k: best.count,
-		splash: +splash_bonus(best.mob, boom.explosion, (boom.attack || 0) * defense_reduction((best.mob.armor || 0) - (character.apiercing || 0))).toFixed(3),
-		burn: +(values.single / dps).toFixed(3),
-		ttk: Math.round(time_to_kill_ms(best.mob, best.mob.max_hp, dps, CONFIG.combat.party_dps_factor)),
 		hp: best.mob.hp,
 		max_hp: best.mob.max_hp,
 		armor: best.mob.armor,
-		boom: Math.round(values.boom),
-		single: Math.round(values.single),
 		mp: Math.round(character.mp)
 	});
 }

@@ -158,6 +158,7 @@ function worn_ability_chance(ability) {
 // SET PROFILES — what each equipment set is actually worth, measured while it is worn
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+const WEAPON_PROBE_MS = 20000;
 const SET_PROFILE_KEY = "AL_set_profile2_";
 const SET_PROFILE_FIELDS = ["attack", "explosion", "frequency", "heal", "int", "rpiercing", "mp_cost"];
 const SET_PROFILE_MIN_INTERVAL_MS = 15000;
@@ -255,6 +256,51 @@ function boss_gear_phase() {
 	if (threshold === undefined) return null;
 
 	return boss.data.hp > threshold ? "fight" : "loot";
+}
+
+function make_weapon_choice() {
+	return { name: null, at: 0, probe: {} };
+}
+
+function best_weapon_set(choice, sets, value_of, opts) {
+	const o = opts || {};
+	const now = Date.now();
+
+	for (const name of sets) {
+		if (!set_available(name) || get_set_profile(name)) {
+			delete choice.probe[name];
+			continue;
+		}
+		if (!choice.probe[name]) choice.probe[name] = now;
+		if (now - choice.probe[name] <= (o.probe_ms || WEAPON_PROBE_MS)) {
+			if (choice.name !== name) { choice.name = name; choice.at = now; }
+			return name;
+		}
+	}
+
+	let best = null;
+	let best_value = -Infinity;
+	for (const name of sets) {
+		if (!set_available(name)) continue;
+		const value = value_of(name);
+		if (value === null || value === undefined || value <= best_value) continue;
+		best_value = value;
+		best = name;
+	}
+	if (!best) return null;
+
+	if (choice.name && choice.name !== best) {
+		if (now - choice.at < (o.hysteresis_ms || 0)) return choice.name;
+		const holding = value_of(choice.name);
+		if (holding !== null && holding !== undefined && best_value < holding * (o.margin || 1)) return choice.name;
+	}
+
+	if (choice.name !== best) {
+		if (typeof o.on_change === "function") o.on_change(choice.name, best, now);
+		choice.name = best;
+		choice.at = now;
+	}
+	return best;
 }
 
 function preferred_orb(preferred, allow_xp) {

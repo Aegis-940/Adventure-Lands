@@ -6,7 +6,7 @@
 // HEAL POWER — what each loadout actually heals for, read from live stats
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var HEALER_WEAPON_SETS = ["luck", "single_target", "fireres"];
+var HEALER_PROFILE_SETS = ["luck", "single_target", "fireres"];
 
 function live_heal_profile() {
 	return {
@@ -30,17 +30,15 @@ function healer_set_value(set_name, target) {
 	return heal_delivered(who, profile.heal, profile.rpiercing) * (profile.frequency || 1);
 }
 
+var _healer_choice = make_weapon_choice();
+
 function best_healer_weapon_set(target) {
-	let best = null;
-	let best_value = -Infinity;
-	for (const name of HEALER_WEAPON_SETS) {
-		if (!set_available(name)) continue;
-		const value = healer_set_value(name, target);
-		if (value === null || value <= best_value) continue;
-		best_value = value;
-		best = name;
-	}
-	return best;
+	return best_weapon_set(_healer_choice, CONFIG.equipment.weapon_sets,
+		name => healer_set_value(name, target),
+		{
+			hysteresis_ms: CONFIG.equipment.weapon_hysteresis_ms,
+			margin: CONFIG.equipment.weapon_switch_margin
+		});
 }
 
 function visible_allies() {
@@ -98,7 +96,7 @@ function heal_report() {
 	const m = heal_marginals();
 	log(`[HEAL] marginals: +10 rpiercing = ${Math.round(m.per_10_rpiercing)} hp (best ally), 1 int ≤ ${Math.round(m.per_int_ceiling)} hp, self ${Math.round(m.self)} vs worst ally ${m.worst_ally || "none"} ${Math.round(m.worst_delivered)}`, "#33AAFF");
 
-	for (const name of HEALER_WEAPON_SETS) {
+	for (const name of HEALER_PROFILE_SETS) {
 		const value = healer_set_value(name);
 		if (value === null) continue;
 		log(`[HEAL] set ${name}: ${Math.round(value)} hp/sec delivered${is_set_equipped(name) ? " (worn)" : ""}`, "#66ccff");
@@ -106,7 +104,7 @@ function heal_report() {
 }
 
 function resolve_healer_loadout() {
-	return "luck";
+	return best_healer_weapon_set(cache.heal_target) || CONFIG.equipment.weapon_sets[0];
 }
 
 function resolve_healer_orb() {

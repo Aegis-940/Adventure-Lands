@@ -60,6 +60,11 @@ var CONFIG = {
 	equipment: {
 		auto_swap_sets: true,
 		temporal_surge_enabled: false,
+
+		weapon_sets: ["luck"],
+		weapon_hysteresis_ms: 0,
+		weapon_switch_margin: 1.0,
+
 		boss_hp_thresholds: {
 			mrpumpkin: 300000,
 			mrgreen: 300000,

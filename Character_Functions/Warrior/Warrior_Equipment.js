@@ -2,7 +2,7 @@
 // WARRIOR EQUIPMENT RULES — consumed by the shared resolve_equipment()/equipment_manager_loop()
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var _weapon_choice = { name: null, at: 0 };
+var _weapon_choice = make_weapon_choice();
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // WEAPON SET VALUE — damage per second each set would actually deliver right now
@@ -126,55 +126,27 @@ function sample_weapon_choice(from, to, primary, cleave_targets, now) {
 	});
 }
 
-var PROFILE_PROBE_MS = 20000;
-var _profile_probe = {};
-
-function unprofiled_weapon_set() {
-	const now = Date.now();
-	for (const name of CONFIG.equipment.weapon_sets) {
-		if (!set_available(name) || get_set_profile(name)) {
-			delete _profile_probe[name];
-			continue;
-		}
-		if (!_profile_probe[name]) _profile_probe[name] = now;
-		if (now - _profile_probe[name] <= PROFILE_PROBE_MS) return name;
-	}
-	return null;
-}
-
-function best_warrior_weapon_set() {
-	const probe = unprofiled_weapon_set();
-	if (probe) {
-		if (_weapon_choice.name !== probe) _weapon_choice = { name: probe, at: Date.now() };
-		return probe;
-	}
-
+function warrior_weapon_set() {
 	const primary = cache.target;
 	const cleave_targets = (cache.monsters_in_cleave_range || []).length;
 
-	let best = null;
-	let best_value = -Infinity;
-	for (const name of CONFIG.equipment.weapon_sets) {
-		if (!set_available(name)) continue;
-		const value = warrior_set_value(name, primary, cleave_targets);
-		if (value === null || value <= best_value) continue;
-		best_value = value;
-		best = name;
-	}
-	if (!best) return null;
+	const chosen = CONFIG.equipment.weapon_selection === "value"
+		? best_weapon_set(_weapon_choice, CONFIG.equipment.weapon_sets,
+			name => warrior_set_value(name, primary, cleave_targets),
+			{
+				hysteresis_ms: CONFIG.equipment.weapon_hysteresis_ms,
+				margin: CONFIG.equipment.weapon_switch_margin,
+				on_change: (from, to, now) => sample_weapon_choice(from, to, primary, cleave_targets, now)
+			})
+		: null;
+	if (chosen) return chosen;
 
-	const now = Date.now();
-	if (_weapon_choice.name && _weapon_choice.name !== best) {
-		if (now - _weapon_choice.at < CONFIG.equipment.weapon_hysteresis_ms) return _weapon_choice.name;
-		const holding = warrior_set_value(_weapon_choice.name, primary, cleave_targets);
-		if (holding !== null && best_value < holding * CONFIG.equipment.weapon_switch_margin) return _weapon_choice.name;
-	}
-
-	if (_weapon_choice.name !== best) {
-		sample_weapon_choice(_weapon_choice.name, best, primary, cleave_targets, now);
-		_weapon_choice = { name: best, at: now };
-	}
-	return best;
+	const home_count = mob_count();
+	if (home_count === 1) return "single";
+	if (home_count > 1) return "aoe";
+	if (CONFIG.equipment.aoe_maps.includes(character.map)) return "aoe";
+	if (CONFIG.equipment.single_target_maps.includes(character.map)) return "single";
+	return null;
 }
 
 function resolve_warrior_booster() {
@@ -210,19 +182,6 @@ function resolve_warrior_loadout() {
 	return resolve_warrior_home_loadout();
 }
 
-function warrior_weapon_set() {
-	if (CONFIG.equipment.weapon_selection === "value") {
-		const chosen = best_warrior_weapon_set();
-		if (chosen) return chosen;
-	}
-
-	const home_count = mob_count();
-	if (home_count === 1) return "single";
-	if (home_count > 1) return "aoe";
-	if (CONFIG.equipment.aoe_maps.includes(character.map)) return "aoe";
-	if (CONFIG.equipment.single_target_maps.includes(character.map)) return "single";
-	return null;
-}
 
 function resolve_warrior_home_loadout() {
 	if (character.map !== destination.map) return null;
