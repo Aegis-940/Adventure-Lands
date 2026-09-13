@@ -87,11 +87,13 @@ function party_cohesion_hold() {
 	const endangered = party_member_in_danger();
 
 	const limit = (endangered || _cohesion_holding) ? COHESION_REGROUP : COHESION_RANGE;
+	const travelling = typeof is_travelling === "function" && is_travelling();
 	_cohesion_holding = COHESION_FOLLOWERS.some(name => {
 		const s = read_state_cache(name);
 		if (!s || s.rip || s.paused) return false;
 		if (owed && s.anniv_pending && !endangered) return false;
-		return s.map !== character.map || Math.hypot(s.x - character.x, s.y - character.y) > limit;
+		if (s.map !== character.map) return !travelling;
+		return Math.hypot(s.x - character.x, s.y - character.y) > limit;
 	});
 	if (_cohesion_holding) return true;
 
