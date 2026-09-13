@@ -14,7 +14,7 @@ run_character({
 	on_disabled: healer_on_disabled,
 	skip_panic_check: healer_skip_panic_check,
 	local: healer_local,
-	loops: [action_loop, skill_loop, maintenance_loop, equipment_manager_loop, potion_loop, anniversary_loop],
+	loops: [action_loop, skill_loop, equipment_manager_loop, maintenance_loop, potion_loop, anniversary_loop],
 	intervals: [[remote_sell_items, 5000]],
 });
 

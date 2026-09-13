@@ -122,6 +122,6 @@ var state = {
 };
 
 var cache = make_cache({
-	targets: { sorted_by_value: [], in_range: [], out_of_range: [], cluster_targets: [], cluster_target: null },
+	targets: { sorted_by_value: [], in_range: [], scored: [] },
 	heal_target: null,
 });

@@ -2,7 +2,7 @@
 // BSCORPION KILL LOGGER — kill detection and the rolling seconds-per-kill average
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let last_bscorpion_ids = new Set();
+let counted_bscorpion_deaths = new Set();
 let bscorpion_kill_count = 0;
 let bscorpion_kill_times = [];
 
@@ -27,13 +27,18 @@ function log_bscorpion_kill() {
 async function bscorpion_kill_logger_loop() {
 	while (true) {
 		try {
-			const bscorps = Object.values(parent.entities).filter(e => e.type === "monster" && e.mtype === "bscorpion");
-			const alive_ids = new Set(bscorps.filter(e => !e.dead).map(e => e.id));
-			const dead_now = [...last_bscorpion_ids].filter(id => !alive_ids.has(id));
-			if (dead_now.length > 0) {
+			const present = new Set();
+			for (const id in parent.entities) {
+				const e = parent.entities[id];
+				if (e?.type !== "monster" || e.mtype !== "bscorpion") continue;
+				present.add(e.id);
+				if (!e.dead || counted_bscorpion_deaths.has(e.id)) continue;
+				counted_bscorpion_deaths.add(e.id);
 				log_bscorpion_kill();
 			}
-			last_bscorpion_ids = alive_ids;
+			for (const id of counted_bscorpion_deaths) {
+				if (!present.has(id)) counted_bscorpion_deaths.delete(id);
+			}
 		} catch (e) {
 			catcher(e, "bscorpion_kill_logger_loop");
 		}

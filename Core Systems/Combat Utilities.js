@@ -375,6 +375,12 @@ function boss_nearly_dead(name, hp, max_hp) {
 	return hp <= max * BOSS_NEARLY_DEAD_HP;
 }
 
+function boss_blocks_cleave(e) {
+	if (!e || e.dead || !CONFIG.combat.all_bosses.includes(e.mtype)) return false;
+	if (CONFIG.combat.cleave_boss_blacklist?.includes(e.mtype)) return true;
+	return boss_nearly_dead(e.mtype, e.hp, e.max_hp);
+}
+
 function boss_engageable(name, data) {
 	const entry = EVENT_LOCATIONS.find(e => e.name === name);
 	if (!entry || entry.engage_below === undefined) return true;

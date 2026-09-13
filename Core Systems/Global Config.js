@@ -8,7 +8,6 @@
 
 const PARTY_LEADER                = "Ulric";
 const PARTY_MEMBERS               = ["Riva", "Myras", "Riff"];
-const PARTY_ROSTER                = [PARTY_LEADER, ...PARTY_MEMBERS];
 
 const MOVEMENT_LEADER             = "Myras";
 

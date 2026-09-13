@@ -19,7 +19,7 @@ async function skill_loop() {
 		try {
 			await handle_party_heal();
 		} catch (e) {
-			console.error("handle_party_heal error:", e);
+			catcher(e, "handle_party_heal");
 		}
 
 		const MP_PCT = character.max_mp ? character.mp / character.max_mp : 1;
@@ -31,7 +31,7 @@ async function skill_loop() {
 			try {
 				await handle_curse();
 			} catch (e) {
-				console.error("handle_curse error:", e);
+				catcher(e, "handle_curse");
 			}
 		}
 
@@ -39,7 +39,7 @@ async function skill_loop() {
 			try {
 				await handle_absorb();
 			} catch (e) {
-				console.error("handle_absorb error:", e);
+				catcher(e, "handle_absorb");
 			}
 		}
 
@@ -49,7 +49,7 @@ async function skill_loop() {
 				try {
 					await use_skill("darkblessing");
 				} catch (e) {
-					console.error("darkblessing error:", e);
+					catcher(e, "darkblessing");
 				}
 			}
 		}
@@ -59,7 +59,7 @@ async function skill_loop() {
 		// }
 
 	} catch (e) {
-		console.error("skill_loop error:", e);
+		catcher(e, "skill_loop");
 	}
 
 	setTimeout(skill_loop, delay);
@@ -110,16 +110,6 @@ async function handle_absorb() {
 
 	const maps_to_exclude = ["level2w"];
 	if (maps_to_exclude.includes(character.map)) return;
-
-	// const boss = get_nearest_monster_v2({ type: CONFIG.combat.all_bosses });
-	// if (boss?.target && boss.target !== character.name) {
-	// 	const TARGET_PLAYER = get_player(boss.target);
-	// 	if (TARGET_PLAYER) {
-	// 		await use_skill("absorb", boss.target);
-	// 		log(`Boss Absorb → ${boss.mtype} from ${boss.target}`, "#FF3333");
-	// 		return;
-	// 	}
-	// }
 
 	if (!character.party) return;
 
@@ -258,7 +248,7 @@ async function handle_zapper() {
 			await equip_once("zap-on", EQUIP_PRIORITY.skill, "zap_on");
 			state.last_equip_time = NOW;
 		} catch (e) {
-			console.error("Failed to equip zapper:", e);
+			catcher(e, "equip zapper");
 		}
 		return;
 	}
@@ -270,7 +260,7 @@ async function handle_zapper() {
 			try {
 				await use_skill("zapperzap", entity);
 			} catch (e) {
-				console.error("handle_zapper error:", e);
+				catcher(e, "handle_zapper");
 			}
 		}
 	}
@@ -280,7 +270,7 @@ async function handle_zapper() {
 			await equip_once("zap-off", EQUIP_PRIORITY.skill, "zap_off");
 			state.last_equip_time = NOW;
 		} catch (e) {
-			console.error("Failed to unequip zapper:", e);
+			catcher(e, "unequip zapper");
 		}
 	}
 }

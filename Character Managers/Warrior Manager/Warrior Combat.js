@@ -14,7 +14,6 @@ function update_cache() {
 	}
 }
 
-
 function find_best_target() {
 	const max_dist = WARRIOR_TARGET === "giantspider" ? 50 : character.range;
 

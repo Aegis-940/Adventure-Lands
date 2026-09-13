@@ -27,7 +27,7 @@ function update_cache() {
 	const now = performance.now();
 	sample_set_profiles(["single", "boom"]);
 	cache.targets = update_target_cache();
-	cache.heal_target = find_heal_target();
+	cache.heal_target = find_cupid_target();
 	cache.last_update = now;
 }
 
@@ -62,11 +62,7 @@ function update_target_cache() {
 		? mob => is_in_range(mob) && parent.distance(character, mob) <= 50
 		: mob => is_in_range(mob);
 
-	const in_range = [], out_of_range = [];
-	for (const mob of sorted_by_value) {
-		if (within_range(mob)) in_range.push(mob);
-		else out_of_range.push(mob);
-	}
+	const in_range = sorted_by_value.filter(within_range);
 
 	if (RANGER_TARGET === "giantspider") {
 		in_range.sort((a, b) => parent.distance(character, a) - parent.distance(character, b));
@@ -79,15 +75,7 @@ function update_target_cache() {
 		value: value.get(mob) || 0
 	}));
 
-	return {
-		sorted_by_value,
-		in_range,
-		out_of_range,
-		cluster_targets: in_range,
-		cluster_target: in_range[0] || null,
-		scored,
-		best_neighbours: scored[0]?.count || 0
-	};
+	return { sorted_by_value, in_range, scored };
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -173,9 +161,8 @@ function score_option(mobs, count, skill_multiplier, mana, lambda, reference) {
 	return { damage, mana, hits, score: damage - lambda * mana };
 }
 
-function choose_attack_option(in_range, cluster_targets) {
+function choose_attack_option(primary) {
 	const lambda = mana_price();
-	const primary = cluster_targets.length ? cluster_targets : in_range;
 	if (!primary.length) return null;
 
 	const reference = target_modifier(primary[0], 1) || 1;
@@ -195,7 +182,7 @@ function choose_attack_option(in_range, cluster_targets) {
 	return null;
 }
 
-function find_heal_target() {
+function find_cupid_target() {
 	const healer = get_entity("Myras");
 	const threshold = (!healer || healer.rip) ? 0.9 : 0.66;
 	const party = Object.keys(get_party() || {});
@@ -256,7 +243,7 @@ async function action_loop() {
 }
 
 async function handle_attack() {
-	const { sorted_by_value, in_range, cluster_targets } = cache.targets;
+	const { sorted_by_value, in_range } = cache.targets;
 	if (!sorted_by_value.length) return;
 
 	const single_target_mode = RANGER_TARGET === "giantspider";
@@ -267,7 +254,7 @@ async function handle_attack() {
 		return attack(in_range[0]);
 	}
 
-	const choice = choose_attack_option(in_range, cluster_targets);
+	const choice = choose_attack_option(in_range);
 	if (!choice) return;
 
 	if (choice.name === "attack") return attack(choice.targets[0]);

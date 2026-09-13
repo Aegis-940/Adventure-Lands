@@ -47,7 +47,7 @@ async function skill_loop() {
 		// }
 
 	} catch (e) {
-		console.error("skill_loop error:", e);
+		catcher(e, "skill_loop");
 	}
 
 	setTimeout(skill_loop, delay);
@@ -154,18 +154,10 @@ function can_cleave() {
 	const tank = cache.tank_entity;
 	if (!tank) return false;
 
-	const low_boss = Object.values(parent.entities).find(e =>
-		e?.type === "monster" &&
-		CONFIG.combat.all_bosses.includes(e.mtype) &&
-		!e.dead &&
-		boss_nearly_dead(e.mtype, e.hp, e.max_hp)
+	const blocked_nearby = cache.monsters_in_cleave_range.some(e =>
+		CONFIG.combat.cleave_blacklist.includes(e.mtype) || boss_blocks_cleave(e)
 	);
-	if (low_boss) return false;
-
-	const blacklisted_nearby = cache.monsters_in_cleave_range.some(e =>
-		CONFIG.combat.cleave_blacklist.includes(e.mtype)
-	);
-	if (blacklisted_nearby) return false;
+	if (blocked_nearby) return false;
 
 	const min_mobs = holding_axe ? CONFIG.combat.cleave_min_mobs_held : CONFIG.combat.cleave_min_mobs;
 	return cache.monsters_in_cleave_range.length >= min_mobs;
