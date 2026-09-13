@@ -346,10 +346,13 @@ function bank_has_upgradeable_items() {
 	return false;
 }
 
+const upgrade_failed_slots = new Set();
+const combine_failed_keys = new Set();
+
 async function auto_upgrade_item(level) {
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
-		if (!item || item.level !== level) continue;
+		if (!item || item.level !== level || upgrade_failed_slots.has(i)) continue;
 
 		const profile = UPGRADE_PROFILE[item.name];
 		if (!profile || item.level >= profile.max_level) continue;
@@ -376,11 +379,14 @@ async function auto_upgrade_item(level) {
 				log(`❌ Not enough gold to buy ${scrollname} for upgrading ${item.name} (level ${item.level}). Ending auto-upgrade.`);
 				return "end";
 			}
-			else {
-				parent.buy(scrollname);
-				log(`Buying ${scrollname} for upgrading ${item.name} (level ${item.level})`);
-				return "wait";
+			log(`Buying ${scrollname} for upgrading ${item.name} (level ${item.level})`);
+			try {
+				await buy(scrollname);
+			} catch (e) {
+				catcher(e, "auto_upgrade_item: buy " + scrollname);
+				return "end";
 			}
+			return "wait";
 		}
 
 		if (profile.grace_from !== undefined && item.level >= profile.grace_from && !grace_capped_slots.has(i)) {
@@ -411,14 +417,14 @@ async function auto_upgrade_item(level) {
 				use_skill("massproductionpp");
 				await delay(20);
 			}
-			parent.socket.emit("upgrade", {
-				item_num: i,
-				scroll_num: scroll_slot,
-				offering_num: offering_slot,
-				clevel: item.level,
-			});
-			await delay(200);
 			game_log(`Upgrading ${item.name} (level ${item.level}) with ${scrollname}`);
+			try {
+				await upgrade(i, scroll_slot, offering_slot);
+			} catch (e) {
+				catcher(e, `auto_upgrade_item: ${item.name} (level ${item.level})`);
+				upgrade_failed_slots.add(i);
+				continue;
+			}
 		}
 
 		while (character.q.upgrade) {
@@ -504,11 +510,14 @@ async function auto_combine_item(level) {
 				game_log(`❌ Not enough gold to buy ${scrollname} for combining ${item_name} (level ${lvl}). Ending auto-combine.`);
 				return "end";
 			}
-			else {
-				parent.buy(scrollname);
-				game_log(`Buying ${scrollname} for combining ${item_name} (level ${lvl})`);
-				return "wait";
+			game_log(`Buying ${scrollname} for combining ${item_name} (level ${lvl})`);
+			try {
+				await buy(scrollname);
+			} catch (e) {
+				catcher(e, "auto_combine_item: buy " + scrollname);
+				return "end";
 			}
+			return "wait";
 		}
 	}
 
@@ -534,6 +543,7 @@ async function auto_combine_item(level) {
 			}
 		}
 		if (!scroll) continue;
+		if (combine_failed_keys.has(key)) continue;
 
 		if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
 			const has_primling = character.items.some(inv_item => inv_item && inv_item.name === "offeringp");
@@ -563,14 +573,15 @@ async function auto_combine_item(level) {
 			await delay(20);
 		}
 
-		parent.socket.emit("compound", {
-			items: pick_three_slots(entries),
-			scroll_num: scroll_slot,
-			offering_num: offering_slot,
-			clevel: lvl,
-		});
-		await delay(200);
+		const picks = pick_three_slots(entries);
 		game_log(`Combining 3x ${item_name} (level ${lvl}) with ${scrollname}`);
+		try {
+			await compound(picks[0], picks[1], picks[2], scroll_slot, offering_slot);
+		} catch (e) {
+			catcher(e, `auto_combine_item: ${item_name} (level ${lvl})`);
+			combine_failed_keys.add(key);
+			continue;
+		}
 		return "done";
 	}
 	game_log("No valid items found for combine.");
@@ -580,6 +591,8 @@ async function auto_combine_item(level) {
 async function auto_upgrade() {
 
 	merchant_task = "Upgrading";
+	const my_generation = merchant_task_generation;
+	const abandoned = () => my_generation !== merchant_task_generation;
 
 	try {
 		if (character.map !== "bank") {
@@ -594,10 +607,13 @@ async function auto_upgrade() {
 
 		await auto_grace_pass();
 
+		upgrade_failed_slots.clear();
+		combine_failed_keys.clear();
+
 		let upgraded = true;
-		for (let level = 0; level <= 10; level++) {
+		for (let level = 0; level <= 10 && !abandoned(); level++) {
 			upgraded = false;
-			while (true) {
+			while (!abandoned()) {
 				const result = await auto_upgrade_item(level);
 				if (result === "done" || result === "wait") {
 					upgraded = true;
@@ -612,9 +628,9 @@ async function auto_upgrade() {
 		}
 
 		let combined = true;
-		for (let level = 0; level <= 5; level++) {
+		for (let level = 0; level <= 5 && !abandoned(); level++) {
 			combined = false;
-			while (true) {
+			while (!abandoned()) {
 				const result = await auto_combine_item(level);
 				if (result === "done" || result === "wait") {
 					combined = true;
@@ -628,6 +644,11 @@ async function auto_upgrade() {
 			}
 		}
 
+		if (abandoned()) {
+			log("⚠️ Upgrading was force-reset by the watchdog — abandoning this run.", "#FFA500");
+			return;
+		}
+
 		game_log("✅ Auto upgrade and combine complete.");
 		await delay(5000);
 		await sell_items();
@@ -635,6 +656,6 @@ async function auto_upgrade() {
 	} catch (e) {
 		catcher(e, "auto_upgrade");
 	} finally {
-		merchant_task = "Idle";
+		if (!abandoned()) merchant_task = "Idle";
 	}
 }
