@@ -139,6 +139,9 @@ var equipment_sets = {
 	orb_fire: [
 		{ item_name: "orboffire", slot: "orb", level: 3, l: "l" },
 	],
+	orb_exp: [
+		{ item_name: "talkingskull", slot: "orb", level: 3, l: "l" },
+	],
 	orb: [
 		{ item_name: "talkingskull", slot: "orb", level: 3, l: "l" },
 	],
