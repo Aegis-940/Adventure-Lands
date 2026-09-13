@@ -127,6 +127,7 @@ function best_target(args, weights, context) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 var TARGET_SAMPLE_MS = 60000;
+var TARGET_TRADE_PCT = 0.25;
 var _last_target_sample = 0;
 
 function sample_target_choice(scored, context, weights) {
@@ -138,7 +139,8 @@ function sample_target_choice(scored, context, weights) {
 	const next = scored[1];
 
 	const values = scored.map(s => target_damage_value(s.mob, context || {}));
-	const traded = Math.round(values[0]) < Math.round(Math.max(...values));
+	const best = Math.max(...values);
+	const traded = best > 0 && (best - values[0]) / best > TARGET_TRADE_PCT;
 
 	const now = Date.now();
 	if (!traded && now - _last_target_sample < TARGET_SAMPLE_MS) return;

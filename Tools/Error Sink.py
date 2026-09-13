@@ -17,6 +17,7 @@ optional.
 import json
 import os
 import sys
+import time
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -27,7 +28,11 @@ OUT = os.path.join(REPO, "errors.json")
 
 MAX_DEATHS = 50
 MAX_TIMELINE = 300
-MAX_SAMPLES = 5000
+# Per KIND, not per character. A single character's cap lets the noisiest kind evict every other:
+# the healer pushes ~10 target_choice/sec, which turned over a 5000-entry ring every six minutes
+# and left 29 of her cluster samples alive. Capping per kind makes the window depend on the
+# sampling rate of that kind alone.
+MAX_SAMPLES_PER_KIND = 2000
 
 
 def merge(incoming):
@@ -77,15 +82,34 @@ def merge(incoming):
     samples = {(s.get("t"), s.get("kind")): s for s in bucket.get("samples", [])}
     for s in incoming.get("samples") or []:
         samples[(s.get("t"), s.get("kind"))] = s
-    bucket["samples"] = [samples[k] for k in sorted(samples, key=lambda x: x[0] or 0)][-MAX_SAMPLES:]
+
+    by_kind = {}
+    for k in sorted(samples, key=lambda x: x[0] or 0):
+        by_kind.setdefault(samples[k].get("kind"), []).append(samples[k])
+    kept = [s for group in by_kind.values() for s in group[-MAX_SAMPLES_PER_KIND:]]
+    bucket["samples"] = sorted(kept, key=lambda s: s.get("t") or 0)
 
     store["_updated"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
     tmp = OUT + ".tmp"
     with open(tmp, "w", encoding="utf-8") as fh:
         json.dump(store, fh, indent=1, sort_keys=True)
-    os.replace(tmp, OUT)  # atomic, so a read never sees a half-written file
+    # os.replace loses to any reader holding errors.json open on Windows (WinError 5), and the
+    # caller's except discards the whole payload when it does. Retry briefly rather than drop it.
+    for attempt in range(5):
+        try:
+            os.replace(tmp, OUT)  # atomic, so a read never sees a half-written file
+            break
+        except OSError:
+            if attempt == 4:
+                raise
+            time.sleep(0.2)
     return sum(len(v.get("records", {})) for k, v in store.items() if k != "_updated")
+
+
+LOG_EVERY_S = 60
+_last_said = {}
+_posts = {}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -106,8 +130,16 @@ class Handler(BaseHTTPRequestHandler):
             who = payload.get("character", "?")
             got = len(payload.get("records") or {})
             deaths = len(payload.get("deaths") or [])
-            print("%s  %-8s %3d records, %d deaths in; %d stored" %
-                  (datetime.now().strftime("%H:%M:%S"), who, got, deaths, total), flush=True)
+            # One line per POST was ~880/hour with four characters up and nothing ever read it.
+            # Summarise per character per minute instead; the file is a heartbeat, not a record.
+            now = time.time()
+            _posts[who] = _posts.get(who, 0) + 1
+            if now - _last_said.get(who, 0) >= LOG_EVERY_S:
+                _last_said[who] = now
+                print("%s  %-8s %3d records, %d deaths, %d stored  (%d posts since last line)" %
+                      (datetime.now().strftime("%H:%M:%S"), who, got, deaths, total, _posts[who]),
+                      flush=True)
+                _posts[who] = 0
             self.send_response(200)
         except Exception as exc:
             print("  ! %s" % exc, file=sys.stderr, flush=True)
