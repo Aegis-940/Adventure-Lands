@@ -133,7 +133,7 @@ function circle_centre() {
 }
 
 function engaged_monsters() {
-	const party = CONFIG.party.group_members;
+	const party = PARTY_ROSTER;
 	const out = [];
 	for (const id in parent.entities) {
 		const e = parent.entities[id];

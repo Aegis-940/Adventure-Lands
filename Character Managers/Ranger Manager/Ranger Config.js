@@ -6,30 +6,27 @@ var home = RANGER_TARGET;
 
 var CONFIG = {
 	combat: {
-		enabled: true,
 		target_priority: ["Ulric", "Myras"],
+		party_dps_factor: 2.0,
+
 		always_attack: ["crabx", "bscorpion"],
 		attack_if_targeted: [...all_bosses, "phoenix"],
 		never_attack: ["nerfedmummy"],
+		engage_aggroed_only: true,
+		skill_blacklist: ["dryad", "fireroamer", "plantoid", "mole", "mummy"],
 		use_hunters_mark: true,
 		use_supershot: true,
-		skill_blacklist: ["dryad", "fireroamer", "plantoid", "mole", "mummy"],
-		engage_aggroed_only: true,
-
+		burn_enabled: true,
 		lambda_headroom_low: 0.6,
 		lambda_headroom_high: 1.5,
-
-		burn_enabled: true,
-		party_dps_factor: 2.0,
+		pouchbow_enabled: true,
+		pouchbow_explosion: 51,
+		pouchbow_min_neighbours: 3,
 
 		sample_bow_choice: false,
 		sample_bow_ms: 10000,
 		sample_hits: true,
 		sample_targets: false,
-		target_weights: { damage: 1, close: 0.05 },
-		pouchbow_enabled: true,
-		pouchbow_explosion: 51,
-		pouchbow_min_neighbours: 3,
 	},
 
 	movement: {
@@ -41,26 +38,13 @@ var CONFIG = {
 	},
 
 	equipment: {
+		auto_swap_sets: true,
 		swap_cooldown: 500,
 		use_licence: false,
 
 		weapon_sets: ["single", "boom"],
 		weapon_hysteresis_ms: 0,
 		weapon_switch_margin: 1.0,
-	},
-
-	potions: {
-		auto_buy: true,
-		hp_threshold: 400,
-		mp_threshold: 500,
-		min_stock: 1000
-	},
-
-	elixir: { name: "pumpkinspice" },
-
-	party: {
-		auto_manage: true,
-		group_members: ["Myras", "Ulric", "Riva", "Riff"]
 	},
 
 	looting: {
@@ -70,7 +54,21 @@ var CONFIG = {
 		equip_gold_gear: false,
 		loot_cooldown: 3000,
 		delay_ms: 180000,
-		loot_month: "lootItemsJan"
+		loot_month: "lootItemsJan",
+	},
+
+	potions: {
+		auto_buy: true,
+		hp_threshold: 400,
+		mp_threshold: 500,
+		min_stock: 1000,
+		prefer_mp: false,
+	},
+
+	elixir: { name: "pumpkinspice" },
+
+	party: {
+		auto_manage: true,
 	},
 };
 
@@ -94,54 +92,26 @@ var equipment_sets = {
 		{ item_name: "firebow", slot: "mainhand", level: 10, l: "l" },
 		{ item_name: "t2quiver", slot: "offhand", level: 7, l: "l" },
 	],
-	dead: [
-
-	],
-
 	boom: [
 		{ item_name: "pouchbow", slot: "mainhand", level: 10, l: "l" },
 		{ item_name: "alloyquiver", slot: "offhand", level: 7, l: "l" },
 	],
-
 	burnboom: [
 		{ item_name: "firebow", slot: "mainhand", level: 10, l: "l" },
 		{ item_name: "alloyquiver", slot: "offhand", level: 5, l: "l" },
 	],
-
 	heal: [
 		{ item_name: "cupid", slot: "mainhand", level: 9, l: "l" },
 		{ item_name: "t2quiver", slot: "offhand", level: 7, l: "l" },
 	],
-
 	dps: [
 	],
-
-	luck: [
-	],
-
-	xp: [
-	],
-
-	orb: [
-		{ item_name: "orbofdex", slot: "orb", level: 4, l: "l" },
-	],
-
 	panic: [
 		{ item_name: "jacko", slot: "orb", level: 0, l: "l" },
 	],
-
-	stealth: [
+	orb: [
+		{ item_name: "orbofdex", slot: "orb", level: 4, l: "l" },
 	],
-
-	cape: [
-	],
-
-	mana: [
-	],
-
-	stat: [
-	],
-
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

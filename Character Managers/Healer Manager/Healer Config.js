@@ -7,32 +7,36 @@ var home = HEALER_TARGET;
 var CONFIG = {
 	combat: {
 		enabled: true,
-		zapper_enabled: false,
-		zapper_mobs: [home, ...all_bosses, "sparkbot"],
-		target_priority: ["Ulric", "Myras"],
 		all_bosses,
+		target_priority: ["Ulric", "Myras"],
+		target_weights: { damage: 1, close: 0.05 },
+		protect_weights: { hp_low: 1, damage: 0.3, close: 0.05 },
+		party_dps_factor: 2.0,
+
 		aggro: true,
 		aggro_cap: 5,
+		curse_min_hp_pct: 0.25,
+		zapper_enabled: false,
+		zapper_mobs: [home, ...all_bosses, "sparkbot"],
+
 		sample_hits: false,
 		sample_cluster: true,
 		sample_targets: true,
-		party_dps_factor: 2.0,
-		target_weights: { damage: 1, close: 0.05 },
-		protect_weights: { hp_low: 1, damage: 0.3, close: 0.05 },
-		curse_min_hp_pct: 0.25,
 	},
 
 	movement: {
 		enabled: true,
 		circle_walk: true,
 		circle_speed: 1.8,
+		circle_radius: 30,
+		follow_distance: 15,
+		centre_on_monsters: false,
+		centre_max_drift: 60,
+
 		circle_experiment: false,
 		circle_experiment_radii: [30, 20, 12],
 		circle_experiment_rate: 3.0,
 		circle_experiment_ms: 120000,
-		circle_radius: 30,
-		centre_on_monsters: false,
-		centre_max_drift: 60,
 		centre_experiment: false,
 		centre_experiment_ms: 120000,
 	},
@@ -46,19 +50,12 @@ var CONFIG = {
 		party_heal_self_pct: 0.50,
 		absorb_enabled: true,
 		dark_blessing_enabled: true,
-		skill_min_mp_pct: 0.40
-	},
-
-	looting: {
-		enabled: true,
-		chest_threshold: 3,
-		target_count: 99,
-		equip_gold_gear: true,
-		loot_cooldown: 3000
+		skill_min_mp_pct: 0.40,
 	},
 
 	equipment: {
 		auto_swap_sets: true,
+		swap_cooldown: 500,
 		temporal_surge_enabled: false,
 
 		weapon_sets: ["luck"],
@@ -66,19 +63,26 @@ var CONFIG = {
 		weapon_switch_margin: 1.0,
 	},
 
+	looting: {
+		enabled: true,
+		chest_threshold: 3,
+		target_count: 99,
+		equip_gold_gear: true,
+		loot_cooldown: 3000,
+	},
+
 	potions: {
 		auto_buy: true,
 		hp_threshold: 400,
 		mp_threshold: 500,
 		min_stock: 1000,
-		prefer_mp: true
+		prefer_mp: true,
 	},
 
 	elixir: { name: "elixirluck", min_stock: 2 },
 
 	party: {
 		auto_manage: true,
-		group_members: ["Myras", "Ulric", "Riva", "Riff"]
 	},
 };
 

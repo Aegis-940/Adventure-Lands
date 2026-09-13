@@ -18,7 +18,7 @@ function update_cache() {
 function find_best_target() {
 	const max_dist = WARRIOR_TARGET === "giantspider" ? 50 : character.range;
 
-	const context = { explosion: character.explosion || 0, party_factor: CONFIG.equipment.party_dps_factor };
+	const context = { explosion: character.explosion || 0, party_factor: CONFIG.combat.party_dps_factor };
 
 	const boss = best_target({ type: CONFIG.combat.all_bosses, max_distance: max_dist }, { close: 1 }, context);
 	if (boss) return boss;

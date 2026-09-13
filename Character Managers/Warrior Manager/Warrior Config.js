@@ -6,19 +6,14 @@ var home = WARRIOR_TARGET;
 
 var CONFIG = {
 	combat: {
-		enabled: true,
-		target_priority: ["Myras"],
 		all_bosses,
+		target_weights: { damage: 1, close: 0.05 },
+		party_dps_factor: 2.0,
+
 		cleave_min_mobs: 3,
 		cleave_min_mobs_held: 1,
-		sample_hits: true,
-		sample_positions: false,
-		sample_targets: true,
-		target_weights: { damage: 1, close: 0.05 },
 		cleave_blacklist: ["plantoid", "pppompom"],
 		agitate_min_mobs: 2,
-		cluster_min_mobs: 2,
-		cluster_radius: 40,
 		agitate_blacklist: ["plantoid", "pppompom"],
 		agitate_fireroamer_conditions: {
 			healer_hp_pct: 0.60,
@@ -27,7 +22,11 @@ var CONFIG = {
 			warrior_hp_pct: 0.95,
 			max_mobs_in_range: 6
 		},
-		taunt_ents: false
+		taunt_ents: false,
+
+		sample_hits: true,
+		sample_positions: false,
+		sample_targets: true,
 	},
 
 	movement: {
@@ -42,11 +41,6 @@ var CONFIG = {
 
 	equipment: {
 		auto_swap_sets: true,
-		single_target_maps: ["halloween", "spookyforest", "desertland"],
-		aoe_maps: ["cave", "main", "goobrawl", "level2n", "level2w", "mforest", "tunnel", "uhills", "winterland"],
-		cleave_maps: ["cave", "desertland", "goobrawl", "halloween", "level2n", "level2w", "main", "mforest", "spookytown", "tunnel", "uhills", "winterland", "level2e"],
-		mp_thresholds: { upper: 2350, lower: 2250 },
-		chest_threshold: 12,
 		swap_cooldown: 500,
 		weapon_swap_enabled: true,
 
@@ -54,25 +48,15 @@ var CONFIG = {
 		weapon_sets: ["single", "aoe"],
 		weapon_hysteresis_ms: 6000,
 		weapon_switch_margin: 1.20,
-		cleave_swap_ms: 617,
 
+		single_target_maps: ["halloween", "spookyforest", "desertland"],
+		aoe_maps: ["cave", "main", "goobrawl", "level2n", "level2w", "mforest", "tunnel", "uhills", "winterland"],
+		cleave_maps: ["cave", "desertland", "goobrawl", "halloween", "level2n", "level2w", "main", "mforest", "spookytown", "tunnel", "uhills", "winterland", "level2e"],
+		cleave_swap_ms: 617,
 		mana_income_per_sec: 244,
 		skill_mana_reserve: 0.40,
-		party_dps_factor: 2.0
-	},
-
-	potions: {
-		auto_buy: true,
-		hp_threshold: 400,
-		mp_threshold: 500,
-		min_stock: 1000
-	},
-
-	elixir: { name: "pumpkinspice" },
-
-	party: {
-		auto_manage: true,
-		group_members: ["Myras", "Ulric", "Riva", "Riff"]
+		mp_thresholds: { upper: 2350, lower: 2250 },
+		chest_threshold: 12,
 	},
 
 	looting: {
@@ -80,7 +64,21 @@ var CONFIG = {
 		chest_threshold: 3,
 		target_count: 99,
 		equip_gold_gear: false,
-		loot_cooldown: 3000
+		loot_cooldown: 3000,
+	},
+
+	potions: {
+		auto_buy: true,
+		hp_threshold: 400,
+		mp_threshold: 500,
+		min_stock: 1000,
+		prefer_mp: false,
+	},
+
+	elixir: { name: "pumpkinspice" },
+
+	party: {
+		auto_manage: true,
 	},
 
 	skills: {
@@ -91,8 +89,8 @@ var CONFIG = {
 		charge_enabled: true,
 		hardshell_enabled: true,
 		hardshell_hp_threshold: 12000,
-		warcry_enabled: true
-	}
+		warcry_enabled: true,
+	},
 };
 
 var destination = home_destination(home);
