@@ -163,6 +163,7 @@ const WEAPON_PROBE_MS = 20000;
 const SET_PROFILE_KEY = "AL_set_profile2_";
 const SET_PROFILE_FIELDS = ["attack", "explosion", "frequency", "heal", "int", "rpiercing", "mp_cost"];
 const SET_PROFILE_MIN_INTERVAL_MS = 15000;
+const SET_PROFILE_REPROBE_MS = 600000;
 const SET_PROFILE_SETTLE_MS = 600;
 const PROFILE_EXCLUDED_BUFFS = ["darkblessing", "warcry", "power", "xpower"];
 
@@ -183,6 +184,18 @@ function load_set_profiles() {
 
 function get_set_profile(set_name) {
 	return load_set_profiles()[set_name] || null;
+}
+
+function save_set_profiles(profiles) {
+	try {
+		localStorage.setItem(SET_PROFILE_KEY + character.name, JSON.stringify(profiles));
+	} catch (e) { }
+}
+
+function set_profile_stale(set_name, max_age_ms) {
+	const profile = get_set_profile(set_name);
+	if (!profile) return true;
+	return Date.now() - (profile.at || 0) > (max_age_ms || SET_PROFILE_REPROBE_MS);
 }
 
 function profile_materially_differs(previous, profile) {
@@ -218,13 +231,19 @@ function record_set_profile(set_name) {
 
 	const profiles = load_set_profiles();
 	const previous = profiles[set_name];
-	if (previous && Date.now() - (previous.at || 0) < SET_PROFILE_MIN_INTERVAL_MS) return false;
-	if (previous && !profile_materially_differs(previous, profile)) return false;
+	const since = previous ? Date.now() - (previous.at || 0) : Infinity;
+
+	if (previous && !profile_materially_differs(previous, profile)) {
+		if (since >= SET_PROFILE_MIN_INTERVAL_MS) {
+			previous.at = Date.now();
+			save_set_profiles(profiles);
+		}
+		return false;
+	}
+	if (since < SET_PROFILE_MIN_INTERVAL_MS) return false;
 
 	profiles[set_name] = profile;
-	try {
-		localStorage.setItem(SET_PROFILE_KEY + character.name, JSON.stringify(profiles));
-	} catch (e) { }
+	save_set_profiles(profiles);
 	return true;
 }
 
@@ -267,13 +286,17 @@ function best_weapon_set(choice, sets, value_of, opts) {
 	const o = opts || {};
 	const now = Date.now();
 
+	const probe_ms = o.probe_ms || WEAPON_PROBE_MS;
+	const reprobe_ms = o.reprobe_ms || SET_PROFILE_REPROBE_MS;
+
 	for (const name of sets) {
-		if (!set_available(name) || get_set_profile(name)) {
+		if (!set_available(name) || !set_profile_stale(name, reprobe_ms)) {
 			delete choice.probe[name];
 			continue;
 		}
-		if (!choice.probe[name]) choice.probe[name] = now;
-		if (now - choice.probe[name] <= (o.probe_ms || WEAPON_PROBE_MS)) {
+		const started = choice.probe[name];
+		if (!started || now - started > probe_ms + reprobe_ms) choice.probe[name] = now;
+		if (now - choice.probe[name] <= probe_ms) {
 			if (choice.name !== name) { choice.name = name; choice.at = now; }
 			return name;
 		}
