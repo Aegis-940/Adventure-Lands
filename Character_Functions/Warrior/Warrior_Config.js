@@ -165,10 +165,10 @@ var equipment_sets = {
 		// { item_name: "vcape", slot: "cape", level: 6, l: "l" },
 	],
 	mana: [
-		{ item_name: "tshirt9", slot: "chest", level: 6, l: "l" }
+		// { item_name: "tshirt9", slot: "chest", level: 6, l: "l" }
 	],
 	stat: [
-		{ item_name: "coat", slot: "chest", level: 13, l: "l" }
+		// { item_name: "coat", slot: "chest", level: 13, l: "l" }
 	],
 	dps_accessories: [
 		// { item_name: "cearring", slot: "earring1", level: 5, l: "l" },
@@ -180,13 +180,13 @@ var equipment_sets = {
 		{ item_name: "jacko", slot: "orb", level: 0, l: "l" },
 	],
 	orb_dps: [
-		{ item_name: "orbofstr", slot: "orb", level: 5, l: "l" },
+		{ item_name: "orbofstr", slot: "orb", level: 3, l: "l" },
 	],
 	orb_luck: [
 		{ item_name: "rabbitsfoot", slot: "orb", level: 2, l: "l" },
 	],
 	orb: [
-		{ item_name: "orbg", slot: "orb", level: 2, l: "l" },
+		{ item_name: "talkingskull", slot: "orb", level: 3, l: "l" },
 	],
 };
 
