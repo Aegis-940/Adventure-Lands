@@ -33,8 +33,8 @@ function bow_values(pool) {
 	if (!single || !boom || !boom.attack || !boom.explosion) return null;
 	if (!pool || !pool.length) return null;
 
-	const single_dps = (single.attack || 0) * (single.frequency || 1);
-	const boom_dps = (boom.attack || 0) * (boom.frequency || 1);
+	const single_dps = set_dps(single);
+	const boom_dps = set_dps(boom);
 	const width = shot_width();
 
 	const single_each = [];
@@ -46,7 +46,7 @@ function bow_values(pool) {
 			CONFIG.combat.party_dps_factor, { frequency: single.frequency, hp: mob.hp }
 		));
 
-		const hit = (boom.attack || 0) * defense_reduction((mob.armor || 0) - (character.apiercing || 0));
+		const hit = hit_against(mob, boom.attack);
 		boom_each.push(1 + splash_bonus(mob, boom.explosion, hit));
 	}
 
@@ -108,16 +108,14 @@ function resolve_ranger_loadout() {
 	if (!CONFIG.equipment.boss_set_swap_enabled) return null;
 	if (character.slots?.mainhand?.name === "cupid") return null;
 
-	const active_boss = find_active_boss();
-	if (active_boss) {
-		return active_boss.data.hp > CONFIG.equipment.boss_hp_thresholds[active_boss.name] ? "dps" : "luck";
-	}
+	const phase = boss_gear_phase();
+	if (phase) return phase === "fight" ? "dps" : "luck";
+
 	return character.map === destination.map ? "dps" : null;
 }
 
 function resolve_ranger_orb() {
-	if (behind_on_xp() && set_available("orb_exp")) return "orb_exp";
-	return set_available("orb") ? "orb" : null;
+	return preferred_orb(null);
 }
 
 var EQUIPMENT_RULES = {

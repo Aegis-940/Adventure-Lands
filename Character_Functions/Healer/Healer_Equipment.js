@@ -110,10 +110,7 @@ function resolve_healer_loadout() {
 }
 
 function resolve_healer_orb() {
-	if (behind_on_xp() && set_available("orb_exp")) return "orb_exp";
-	if (set_available("orb_luck")) return "orb_luck";
-	if (set_available("orb")) return "orb";
-	return null;
+	return preferred_orb("orb_luck");
 }
 
 var EQUIPMENT_RULES = {

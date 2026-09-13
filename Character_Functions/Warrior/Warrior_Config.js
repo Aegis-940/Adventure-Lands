@@ -185,7 +185,7 @@ var equipment_sets = {
 	orb_luck: [
 		{ item_name: "rabbitsfoot", slot: "orb", level: 2, l: "l" },
 	],
-	orb_expk: [
+	orb_exp: [
 		{ item_name: "talkingskull", slot: "orb", level: 3, l: "l" },
 	],
 	orb: [

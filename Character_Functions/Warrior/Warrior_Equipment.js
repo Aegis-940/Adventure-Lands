@@ -8,10 +8,6 @@ var _weapon_choice = { name: null, at: 0 };
 // WEAPON SET VALUE — damage per second each set would actually deliver right now
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function set_dps(profile) {
-	return (profile.attack || 0) * (profile.frequency || 1);
-}
-
 function cleave_period() {
 	const cooldown = (G.skills.cleave.cooldown || 1200) / 1000;
 	const spare = Math.max(0, CONFIG.equipment.mana_income_per_sec - character.mp_cost * (character.frequency || 1));
@@ -43,10 +39,6 @@ function attackable_monsters() {
 	return (cache.monsters_in_cleave_range || []).filter(e =>
 		e && !e.dead && distance(character, e) <= reach
 	);
-}
-
-function hit_against(mob, attack) {
-	return (attack || 0) * defense_reduction((mob.armor || 0) - (character.apiercing || 0));
 }
 
 function expected_splash_bonus(explosion, attack) {
@@ -186,11 +178,7 @@ function best_warrior_weapon_set() {
 }
 
 function resolve_warrior_booster() {
-	const active_boss = find_active_boss();
-	if (active_boss && active_boss.data.hp < CONFIG.equipment.boss_hp_thresholds[active_boss.name]) {
-		return "luckbooster";
-	}
-	return "xpbooster";
+	return boss_gear_phase() === "loot" ? "luckbooster" : "xpbooster";
 }
 
 function resolve_warrior_cape() {
@@ -200,9 +188,7 @@ function resolve_warrior_cape() {
 }
 
 function resolve_warrior_coat() {
-	const active_boss = find_active_boss();
-	const boss_blocks_coat = active_boss && active_boss.data.hp <= CONFIG.equipment.boss_hp_thresholds[active_boss.name];
-	if (boss_blocks_coat) return null;
+	if (boss_gear_phase() === "loot") return null;
 
 	if (character.mp > CONFIG.equipment.mp_thresholds.upper) return "stat";
 	if (character.mp < CONFIG.equipment.mp_thresholds.lower) return "mana";
@@ -210,32 +196,16 @@ function resolve_warrior_coat() {
 }
 
 function resolve_warrior_orb() {
-	let preferred = "orb_dps";
-	if (CONFIG.equipment.boss_set_swap_enabled) {
-		const active_boss = find_active_boss();
-		if (active_boss && active_boss.data.hp <= CONFIG.equipment.boss_hp_thresholds[active_boss.name]) {
-			preferred = "orb_luck";
-		}
-	}
-	if (preferred === "orb_dps" && behind_on_xp() && set_available("orb_exp")) return "orb_exp";
-
-	if (set_available(preferred)) return preferred;
-	if (set_available("orb")) return "orb";
-	return null;
+	const looting = CONFIG.equipment.boss_set_swap_enabled && boss_gear_phase() === "loot";
+	return preferred_orb(looting ? "orb_luck" : "orb_dps", !looting);
 }
 
 function resolve_warrior_loadout() {
 	if (!CONFIG.equipment.boss_set_swap_enabled) return resolve_warrior_home_loadout();
 
-	const active_boss = find_active_boss();
-	const threshold = active_boss && CONFIG.equipment.boss_hp_thresholds[active_boss.name];
-
-	if (active_boss && threshold !== undefined) {
-		if (active_boss.data.hp > threshold) {
-			return character.map !== destination.map ? "dps" : resolve_warrior_home_loadout();
-		}
-		if (set_available("luck")) return "luck";
-	}
+	const phase = boss_gear_phase();
+	if (phase === "fight") return character.map !== destination.map ? "dps" : resolve_warrior_home_loadout();
+	if (phase === "loot" && set_available("luck")) return "luck";
 
 	return resolve_warrior_home_loadout();
 }

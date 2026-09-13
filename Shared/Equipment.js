@@ -234,6 +234,37 @@ function sample_set_profiles(set_names) {
 	return changed;
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// SHARED RESOLVER HELPERS — the decisions every fighter makes the same way
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function set_dps(profile) {
+	return (profile.attack || 0) * (profile.frequency || 1);
+}
+
+function hit_against(mob, attack) {
+	if (!mob) return 0;
+	return (attack || 0) * defense_reduction((mob.armor || 0) - (character.apiercing || 0));
+}
+
+function boss_gear_phase() {
+	const boss = typeof find_active_boss === "function" && find_active_boss();
+	if (!boss) return null;
+
+	const threshold = CONFIG.equipment?.boss_hp_thresholds?.[boss.name];
+	if (threshold === undefined) return null;
+
+	return boss.data.hp > threshold ? "fight" : "loot";
+}
+
+function preferred_orb(preferred, allow_xp) {
+	if (allow_xp !== false && typeof behind_on_xp === "function" && behind_on_xp() && set_available("orb_exp")) {
+		return "orb_exp";
+	}
+	if (preferred && set_available(preferred)) return preferred;
+	return set_available("orb") ? "orb" : null;
+}
+
 function set_available(set_name) {
 	try {
 		const set = equipment_sets[set_name];
