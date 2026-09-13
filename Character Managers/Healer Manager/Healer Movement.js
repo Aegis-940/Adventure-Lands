@@ -13,7 +13,7 @@ function healer_skip_panic_check() {
 	if (panicking) return false;
 	if (character.hp < character.max_hp * PANIC_THRESHOLDS.low_hp) return false;
 	if (character.mp < character.max_mp * PANIC_THRESHOLDS.low_mp) return false;
-	return HEALER_TARGET === "fireroamer" || HEALER_TARGET === "giantspider";
+	return home === "fireroamer" || home === "giantspider";
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -21,7 +21,7 @@ function healer_skip_panic_check() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function circle_centre() {
-	if (HEALER_TARGET === "giantspider") return { x: character.x, y: character.y };
+	if (home === "giantspider") return { x: character.x, y: character.y };
 	return locations[home][0];
 }
 
@@ -33,7 +33,7 @@ async function healer_local(goal) {
 
 async function walk_in_circle() {
 	if (smart.moving) return;
-	if (HEALER_TARGET === "bscorpion") return;
+	if (home === "bscorpion") return;
 
 	const center = circle_centre();
 	const radius = CONFIG.movement.circle_radius;

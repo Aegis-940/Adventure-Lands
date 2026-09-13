@@ -176,7 +176,7 @@ function resolve_warrior_home_loadout() {
 	const sets = ["dps_accessories"];
 	if (!CONFIG.equipment.weapon_swap_enabled) return sets;
 
-	if (WARRIOR_TARGET === "giantspider") {
+	if (home === "giantspider") {
 		sets.push("single");
 		return sets;
 	}

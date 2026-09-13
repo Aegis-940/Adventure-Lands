@@ -47,7 +47,7 @@ function ranger_set_value(set_name, pool) {
 
 function resolve_ranger_weapon() {
 	if (cache.heal_target) return "heal";
-	if (RANGER_TARGET === "giantspider") return "single";
+	if (home === "giantspider") return "single";
 	if (!CONFIG.combat.pouchbow_enabled) return "single";
 
 	const { scored, in_range } = cache.targets;

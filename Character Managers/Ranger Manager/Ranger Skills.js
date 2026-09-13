@@ -49,7 +49,7 @@ async function skill_loop() {
 			return;
 		}
 
-		const target = RANGER_TARGET === "giantspider" ? in_range[0] : sorted_by_value[0];
+		const target = home === "giantspider" ? in_range[0] : sorted_by_value[0];
 		if (!target || !is_in_range(target)) {
 			setTimeout(skill_loop, 100);
 			return;

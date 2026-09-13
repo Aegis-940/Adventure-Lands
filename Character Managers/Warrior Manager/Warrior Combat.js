@@ -14,8 +14,20 @@ function update_cache() {
 	}
 }
 
+function cooperative_luck_logger() {
+	game.on("death", data => {
+		const mob = parent.entities[data.id];
+		if (!mob || !mob.cooperative) return;
+
+		const party_members = Object.keys(get_party() || {});
+		if (mob.target !== character.name && !party_members.includes(mob.target)) return;
+
+		log(`${mob.mtype} died with ${character.luckm} luck`, "#96a4ff", "Alerts");
+	});
+}
+
 function find_best_target() {
-	const max_dist = WARRIOR_TARGET === "giantspider" ? 50 : character.range;
+	const max_dist = home === "giantspider" ? 50 : character.range;
 
 	const context = { explosion: character.explosion || 0, party_factor: CONFIG.combat.party_dps_factor };
 

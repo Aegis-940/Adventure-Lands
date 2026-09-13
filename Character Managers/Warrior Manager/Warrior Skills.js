@@ -17,7 +17,7 @@ async function skill_loop() {
 
 		if (CONFIG.skills.warcry_enabled && !is_on_cooldown("warcry") && !character.s.warcry
 			&& character.mp >= G.skills.warcry.mp + panic_mp_reserve()) {
-			if (WARRIOR_TARGET !== "bscorpion" || bscorpion_worth_buffing()) {
+			if (home !== "bscorpion" || bscorpion_worth_buffing()) {
 				await use_skill("warcry");
 			}
 		}
@@ -26,11 +26,11 @@ async function skill_loop() {
 		// 	await handle_stomp();
 		// }
 
-		if (CONFIG.skills.cleave_enabled && WARRIOR_TARGET !== "bscorpion" && WARRIOR_TARGET !== "giantspider") {
+		if (CONFIG.skills.cleave_enabled && home !== "bscorpion" && home !== "giantspider") {
 			await handle_cleave();
 		}
 
-		if (CONFIG.skills.agitate_enabled && tank && WARRIOR_TARGET !== "giantspider") {
+		if (CONFIG.skills.agitate_enabled && tank && home !== "giantspider") {
 			await handle_agitate(tank);
 		}
 
@@ -190,7 +190,7 @@ async function handle_agitate(tank) {
 		e.visible && !e.dead && e.type === "monster" && distance(character, e) <= skill_range
 	);
 
-	if (WARRIOR_TARGET === "fireroamer" && !is_fireroamer_agitate_safe(nearby_mobs)) return;
+	if (home === "fireroamer" && !is_fireroamer_agitate_safe(nearby_mobs)) return;
 
 	const crabx = nearby_mobs.filter(e => e.mtype === "crabx");
 	const untargeted_crabs = crabx.filter(m => !m.target);

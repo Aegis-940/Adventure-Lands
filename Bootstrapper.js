@@ -51,7 +51,6 @@ window._cmListeners = window._cmListeners || [];
 		"Character Managers/Warrior Manager/Warrior Skills.js",
 		"Character Managers/Warrior Manager/Warrior Equipment.js",
 		"Character Managers/Warrior Manager/Warrior Movement.js",
-		"Character Managers/Warrior Manager/Warrior Bscorpion.js",
 		"Character Managers/Warrior Manager/Warrior.js"],
 
 		"Myras": ["Character Managers/Healer Manager/Healer Config.js",

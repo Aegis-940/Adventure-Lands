@@ -45,7 +45,7 @@ async function skill_loop() {
 
 		if (!panicking && !TRAVELLING && MANA_FOR_LUXURIES && CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
 			&& character.mp >= (G.skills.darkblessing?.mp || 0)) {
-			if (HEALER_TARGET !== "bscorpion" || bscorpion_worth_buffing()) {
+			if (home !== "bscorpion" || bscorpion_worth_buffing()) {
 				try {
 					await use_skill("darkblessing");
 				} catch (e) {
@@ -82,14 +82,14 @@ async function handle_curse() {
 		.sort((a, b) => distance(character, a) - distance(character, b));
 	if (bosses_with_target.length) target = bosses_with_target[0];
 
-	if (!target && HEALER_TARGET === "giantspider") {
+	if (!target && home === "giantspider") {
 		const nearby = Object.values(parent.entities)
 			.filter(e => has_target(e) && Math.hypot(character.x - e.x, character.y - e.y) <= 50)
 			.sort((a, b) => b.hp - a.hp);
 		if (nearby.length) target = nearby[0];
 	}
 
-	if (!target && HEALER_TARGET !== "giantspider") {
+	if (!target && home !== "giantspider") {
 		const home_mobs = Object.values(parent.entities)
 			.filter(e =>
 				has_target(e) &&

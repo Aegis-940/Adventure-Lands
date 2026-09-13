@@ -112,6 +112,7 @@ async function run_spider_dungeon() {
 }
 
 function start_spider_dungeon_when_ready() {
+	if (home !== "giantspider") return;
 	setTimeout(() => {
 		if (_dungeon_running) return;
 		if (character.rip) {

@@ -91,6 +91,11 @@ async function maintenance_loop() {
 function run_character(spec) {
 	const s = spec || {};
 
+	performance_trick();
+	create_custom_log_window();
+	add_bank_buttons();
+	state_cache_loop();
+
 	async function main_tick() {
 		if (typeof errlog_beat === "function") errlog_beat("main_loop");
 		try {
@@ -138,4 +143,6 @@ function run_character(spec) {
 	for (const entry of (s.intervals || [])) {
 		setInterval(entry[0], entry[1]);
 	}
+
+	bscorpion_start();
 }
