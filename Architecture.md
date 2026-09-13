@@ -53,8 +53,12 @@ Character Managers/[Role] Manager/   ← loaded sequentially via indirect eval, 
     ├── [Role] Movement.js        reposition scorer / movement hooks
     └── [Role].js                 entry point — wires windows and calls run_character()
 
-    Healer adds Healer Dungeon.js. Sibling files share state/cache/CONFIG as `var`
-    globals, because a top-level const/let is invisible across eval boundaries.
+    Sibling files share state/cache/CONFIG as `var` globals, because a top-level
+    const/let is invisible across eval boundaries.
+
+Dungeons/                            ← loaded in parallel as script tags, every character
+    ├── Dungeon Runner.js         wait_for_death(), party entry, run_dungeon(), auto-start
+    └── Spider Dungeon.js         SPIDER_DUNGEON definition and its run_/start_ wrappers
 
 Character Managers/Merchant Manager/  ← Riff only; no combat files
     ├── Merchant Config.js        tunables, locations, merchant_task
@@ -232,7 +236,8 @@ CONFIG = {
 | Character Managers/Merchant Manager/Merchant Party.js | 135 |
 | Interface/Party Frames.js | 134 |
 | Character Managers/Merchant Manager/Merchant Gathering.js | 130 |
-| Character Managers/Healer Manager/Healer Dungeon.js | 127 |
+| Dungeons/Dungeon Runner.js | 169 |
+| Dungeons/Spider Dungeon.js | 23 |
 | Tools/Error Sink.py | 125 |
 | Character Managers/Warrior Manager/Warrior Combat.js | 123 |
 | Interface/CC Meter.js | 122 |

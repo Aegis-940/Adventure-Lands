@@ -41,6 +41,8 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Core Systems/Character Runner.js` | `run_character()` — the shared main tick loop every character starts from |
 | `Core Systems/Error Handling.js` | `catcher()`, the shared error-triage/logging helper |
 | `Core Systems/Error Log.js` | Persistent cross-character flight recorder; hooks only, read with `al_errors(true)` |
+| `Dungeons/Dungeon Runner.js` | Shared dungeon machinery — `wait_for_death()`, party entry (`join_dungeon_instance()`/`wait_for_party_in_instance()`), `run_dungeon()`, `start_dungeon_when_ready()` |
+| `Dungeons/Spider Dungeon.js` | The `SPIDER_DUNGEON` definition (entrance, map, boss waypoints) and its `run_`/`start_` wrappers |
 | `Interface/Widget Helpers.js` | `create_bottomrightcorner_widget()` (Gold/XP/CC/DPS meters' container) and `make_draggable()` (used by Custom Log.js/Stats Window.js) — all that survived removing Windows.js |
 | `Character Managers/Warrior Manager/Warrior Config.js` | Warrior tunables, gear sets, panic thresholds, `state`/`cache` (character: Ulric) |
 | `Character Managers/Warrior Manager/Warrior Combat.js` | Warrior targeting, the sugar-rush swap trick, `action_loop()`; sets `cache.tank_entity` to **Myras** |
@@ -53,7 +55,6 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Character Managers/Healer Manager/Healer Skills.js` | Healer skill loop (curse, absorb, party heal, dark blessing) |
 | `Character Managers/Healer Manager/Healer Equipment.js` | Healer `EQUIPMENT_RULES` resolvers, booster swap, temporal surge |
 | `Character Managers/Healer Manager/Healer Movement.js` | Healer runner hooks (`healer_local`, panic skip) and the circle walk |
-| `Character Managers/Healer Manager/Healer Dungeon.js` | Spider instance run and its auto-start |
 | `Character Managers/Healer Manager/Healer.js` | Healer entry point — windows, `run_character()` |
 | `Character Managers/Ranger Manager/Ranger Config.js` | Ranger tunables, gear sets, panic thresholds, `state`/`cache` (character: Riva) |
 | `Character Managers/Ranger Manager/Ranger Combat.js` | Ranger target cache, `action_loop()`, `handle_attack()` |

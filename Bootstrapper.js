@@ -28,6 +28,8 @@
 		"Core Systems/Character Runner.js",
 		"Core Systems/Error Handling.js",
 		"Core Systems/Error Log.js",
+		"Dungeons/Dungeon Runner.js",
+		"Dungeons/Spider Dungeon.js",
 		"Interface/Custom Log.js",
 		"Interface/Bank Sort Order.js",
 		"Interface/Widget Helpers.js",
@@ -56,7 +58,6 @@
 		"Character Managers/Healer Manager/Healer Skills.js",
 		"Character Managers/Healer Manager/Healer Equipment.js",
 		"Character Managers/Healer Manager/Healer Movement.js",
-		"Character Managers/Healer Manager/Healer Dungeon.js",
 		"Character Managers/Healer Manager/Healer.js"],
 
 		"Riva": ["Character Managers/Ranger Manager/Ranger Config.js",

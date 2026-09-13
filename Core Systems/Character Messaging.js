@@ -30,9 +30,6 @@ on_cm = function (name, data) {
 	original_on_cm(name, data);
 };
 
-const ENTER_INSTANCE_MAX_ATTEMPTS = 30;
-let _join_interval = null;
-
 const CM_HANDLERS = {
 	"panic": (name, data) => {
 		if (name !== "Myras") return;
@@ -41,24 +38,7 @@ const CM_HANDLERS = {
 
 	"suppress_reset": (name, data) => set_suppress_reset(data.state !== false),
 
-	"enter_instance": (name, data) => {
-		const instance_id = data.in;
-		if (_join_interval) clearInterval(_join_interval);
-		let attempts = 0;
-		_join_interval = setInterval(() => {
-			if (character.map === "spider_instance") {
-				clearInterval(_join_interval);
-				_join_interval = null;
-				send_cm("Myras", { type: "instance_ready" });
-			} else if (++attempts > ENTER_INSTANCE_MAX_ATTEMPTS) {
-				clearInterval(_join_interval);
-				_join_interval = null;
-				game_log(`❌ Gave up entering the instance after ${ENTER_INSTANCE_MAX_ATTEMPTS} attempts`, "#FF3333");
-			} else {
-				Promise.resolve(enter("spider_instance", instance_id)).catch(() => { });
-			}
-		}, 2000);
-	},
+	"enter_instance": (name, data) => join_dungeon_instance(data),
 
 	"send_loot": async (name) => {
 			await send_to_merchant();
