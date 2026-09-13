@@ -20,6 +20,7 @@ const ITEM_ORDER_BASE = {
 	pumpkinspice: 5,
 	xpbooster: 6,
 	jacko: 7,
+	elixirluck: [5, 8],
 };
 
 let _set_item_names = null;
@@ -87,23 +88,27 @@ function clear_inventory() {
 }
 
 function inventory_sorter() {
-	const claimed = {};
+	const held = {};
 
 	character.items.forEach((item, i) => {
-		if (!item) return;
-		const spec = item_order[item.name];
-		if (spec === undefined) return;
-
-		if (Array.isArray(spec)) {
-			const next = claimed[item.name] || 0;
-			if (next >= spec.length) return;
-			claimed[item.name] = next + 1;
-			const target = spec[next];
-			if (i !== target) swap(i, target);
-		} else if (i !== spec) {
-			swap(i, spec);
-		}
+		if (!item || item_order[item.name] === undefined) return;
+		if (!held[item.name]) held[item.name] = [];
+		held[item.name].push(i);
 	});
+
+	const taken = new Set();
+
+	for (const name in item_order) {
+		const spec = item_order[name];
+		const slots = Array.isArray(spec) ? spec : [spec];
+
+		for (const i of (held[name] || [])) {
+			const slot = slots.find(s => !taken.has(s));
+			if (slot === undefined) break;
+			taken.add(slot);
+			if (i !== slot) swap(i, slot);
+		}
+	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
