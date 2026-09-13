@@ -20,7 +20,6 @@ var CONFIG = {
 		zapper_mobs: [home, ...all_bosses, "sparkbot"],
 
 		sample_hits: false,
-		sample_cluster: true,
 		sample_targets: true,
 	},
 
@@ -30,15 +29,6 @@ var CONFIG = {
 		circle_speed: 1.8,
 		circle_radius: 30,
 		follow_distance: 15,
-		centre_on_monsters: false,
-		centre_max_drift: 60,
-
-		circle_experiment: false,
-		circle_experiment_radii: [30, 20, 12],
-		circle_experiment_rate: 3.0,
-		circle_experiment_ms: 120000,
-		centre_experiment: false,
-		centre_experiment_ms: 120000,
 	},
 
 	healing: {
@@ -88,7 +78,7 @@ var CONFIG = {
 
 var destination = home_destination(home);
 
-var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE, "orbg", "mshield", "lmace", "elixirluck", "orboftemporal", "orboffire"];
+var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE, "mshield", "lmace", "elixirluck", "orboftemporal", "orboffire"];
 
 var item_order = { ...ITEM_ORDER_BASE };
 

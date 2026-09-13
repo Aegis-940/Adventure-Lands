@@ -57,41 +57,12 @@ function resolve_ranger_weapon() {
 		name => ranger_set_value(name, in_range),
 		{
 			hysteresis_ms: CONFIG.equipment.weapon_hysteresis_ms,
-			margin: CONFIG.equipment.weapon_switch_margin,
-			on_change: (from, to) => {
-				if (CONFIG.combat.sample_bow_choice) sample_bow_choice(to, scored && scored[0], in_range);
-			}
+			margin: CONFIG.equipment.weapon_switch_margin
 		});
 	if (chosen) return chosen;
 
 	const best = scored && scored[0];
 	return best && best.count >= CONFIG.combat.pouchbow_min_neighbours ? "boom" : "single";
-}
-
-var _last_bow_sample = 0;
-
-function sample_bow_choice(choice, best, pool) {
-	if (typeof errlog_sample !== "function" || !best) return;
-	if (Date.now() - _last_bow_sample < CONFIG.combat.sample_bow_ms) return;
-	_last_bow_sample = Date.now();
-
-	const values = {};
-	for (const name of CONFIG.equipment.weapon_sets) {
-		const v = ranger_set_value(name, pool);
-		values[name] = v === null ? null : Math.round(v);
-	}
-
-	errlog_sample("bow", {
-		pick: choice,
-		width: shot_width(),
-		values,
-		mtype: best.mob.mtype,
-		k: best.count,
-		hp: best.mob.hp,
-		max_hp: best.mob.max_hp,
-		armor: best.mob.armor,
-		mp: Math.round(character.mp)
-	});
 }
 
 function resolve_ranger_loadout() {

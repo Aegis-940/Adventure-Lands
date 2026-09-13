@@ -4,8 +4,6 @@
 
 var WARRIOR_POSITION_SCALE = 100;
 
-var _position_probe = null;
-
 function cleave_targets_at(x, y) {
 	const radius = G.skills.cleave.range;
 	let count = 0;
@@ -27,8 +25,6 @@ function warrior_position_set() {
 }
 
 function warrior_reposition_scorer() {
-	_position_probe = null;
-
 	const primary = cache.target;
 	if (!primary || primary.dead) return null;
 
@@ -44,47 +40,14 @@ function warrior_reposition_scorer() {
 	if (here <= 0) return null;
 
 	const reach = character.range * 0.9;
-	_position_probe = {
-		set: set_name,
-		here_targets,
-		best_targets: here_targets,
-		best_score: WARRIOR_POSITION_SCALE,
-		in_reach: 0
-	};
 
 	return (x, y) => {
 		if (Math.hypot(primary.x - x, primary.y - y) > reach) return null;
 
 		const targets = cleave_targets_at(x, y);
 		const cleave = cleave_contribution(set_name, targets);
-		const score = ((base * cleave.uptime + cleave.dps) / here) * WARRIOR_POSITION_SCALE;
-
-		_position_probe.in_reach++;
-		if (score > _position_probe.best_score) {
-			_position_probe.best_score = score;
-			_position_probe.best_targets = targets;
-		}
-		return score;
+		return ((base * cleave.uptime + cleave.dps) / here) * WARRIOR_POSITION_SCALE;
 	};
-}
-
-function sample_reposition() {
-	const probe = _position_probe;
-	const decision = _last_orbit_decision;
-	_position_probe = null;
-	if (!probe || !decision || !CONFIG.combat.sample_positions || typeof errlog_sample !== "function") return;
-	if (probe.best_targets === probe.here_targets) return;
-
-	errlog_sample("position", {
-		set: probe.set,
-		here_targets: probe.here_targets,
-		best_targets: probe.best_targets,
-		best_gain_pct: Math.round(probe.best_score - WARRIOR_POSITION_SCALE),
-		taken_gain_pct: decision.best_raw - decision.incumbent,
-		travel: decision.travel,
-		in_reach: probe.in_reach,
-		moved: decision.moved && decision.travel > CONFIG.movement.move_threshold
-	});
 }
 
 function reposition() {
@@ -96,5 +59,4 @@ function reposition() {
 		min_gain: CONFIG.movement.position_min_gain,
 		travel_weight: CONFIG.movement.position_travel_weight
 	});
-	sample_reposition();
 }

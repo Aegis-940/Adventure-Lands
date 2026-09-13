@@ -23,8 +23,6 @@ var CONFIG = {
 		pouchbow_explosion: 51,
 		pouchbow_min_neighbours: 3,
 
-		sample_bow_choice: false,
-		sample_bow_ms: 10000,
 		sample_hits: true,
 		sample_targets: false,
 	},

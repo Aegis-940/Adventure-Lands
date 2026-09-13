@@ -25,7 +25,6 @@ var CONFIG = {
 		taunt_ents: false,
 
 		sample_hits: true,
-		sample_positions: false,
 		sample_targets: true,
 	},
 
@@ -95,7 +94,7 @@ var CONFIG = {
 
 var destination = home_destination(home);
 
-var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE, "orbg"];
+var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE];
 
 var item_order = {
 	...ITEM_ORDER_BASE,
