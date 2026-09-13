@@ -5,7 +5,7 @@
 async function skill_loop() {
 	if (typeof errlog_beat === "function") errlog_beat("skill_loop");
 	// if (panicking) return setTimeout(skill_loop, 100);
-	const delay = 40;
+	const next_delay = 40;
 
 	try {
 		if (is_disabled(character)) {
@@ -62,7 +62,7 @@ async function skill_loop() {
 		catcher(e, "skill_loop");
 	}
 
-	setTimeout(skill_loop, delay);
+	setTimeout(skill_loop, next_delay);
 }
 
 async function handle_curse() {
@@ -132,8 +132,8 @@ async function handle_absorb() {
 }
 
 
-const PARTY_HEAL_COOLDOWN = 250;
-let last_party_heal_time = 0;
+var PARTY_HEAL_COOLDOWN = 250;
+var last_party_heal_time = 0;
 
 function heal_candidates() {
 	const members = [];

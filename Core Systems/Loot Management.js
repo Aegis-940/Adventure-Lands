@@ -9,9 +9,10 @@
 const LOOT_GOLD_RESERVE = 100000000;
 
 const ITEMS_TO_KEEP_BASE = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster",
-	"pumpkinspice", "xptome", "tracker", "jacko", "talkingskull", "computer"];
+	"pumpkinspice", "xptome", "tracker", "tracktrix", "jacko", "talkingskull", "computer"];
 
 const ITEM_ORDER_BASE = {
+	tracker: 0,
 	tracktrix: 0,
 	computer: 1,
 	hpot1: 2,
@@ -57,17 +58,17 @@ function reserved_gear_slots() {
 	const by_name = {};
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
-		if (!item || item.l || item.s) continue;
+		if (!item || item.s) continue;
 		if (!equipment_set_item_slots()[item.name]) continue;
 		if (!by_name[item.name]) by_name[item.name] = [];
-		by_name[item.name].push({ i, level: item.level || 0 });
+		by_name[item.name].push({ i, level: item.level || 0, locked: !!item.l });
 	}
 
 	const reserved = new Set();
 	for (const name in by_name) {
 		const needed = gear_copies_needed(name);
 		if (!needed) continue;
-		by_name[name].sort((a, b) => b.level - a.level);
+		by_name[name].sort((a, b) => (b.locked - a.locked) || (b.level - a.level));
 		for (const entry of by_name[name].slice(0, needed)) reserved.add(entry.i);
 	}
 	return reserved;

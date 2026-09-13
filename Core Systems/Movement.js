@@ -122,6 +122,7 @@ function smarter_move(destination, on_done, options = {}) {
 	smart.plot = [];
 	smart.flags = {};
 	smart.searching = smart.found = false;
+	smart.on_done = () => { };
 
 	const target_map = smart.map;
 	const target_x = smart.x;

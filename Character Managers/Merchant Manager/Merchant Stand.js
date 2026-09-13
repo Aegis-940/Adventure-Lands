@@ -2,8 +2,8 @@
 // MERCHANT STAND — open while idle, closed whenever we need to move.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const TRADE_SLOTS = 16;
-const WISHLIST_REFRESH_MS = 15000;
+var TRADE_SLOTS = 16;
+var WISHLIST_REFRESH_MS = 15000;
 
 function stand_is_open() {
 	return !!character.stand;
@@ -105,7 +105,7 @@ function sell_slot_for(index) {
 	return TRADE_SLOTS - index;
 }
 
-let _last_sell_refresh = 0;
+var _last_sell_refresh = 0;
 
 async function refresh_sell_offers() {
 	if (!CONFIG.trading.enabled || !stand_is_open()) return;
@@ -116,9 +116,12 @@ async function refresh_sell_offers() {
 	for (let sn = 1; sn <= TRADE_SLOTS; sn++) {
 		const slot = character.slots["trade" + sn];
 		if (!slot || slot.b) continue;
-		const ei = CONFIG.sell_profile.findIndex(e =>
-			e.name === slot.name && level_matches(slot, e) && slot.price === e.price);
-		if (ei >= 0) listed[ei] += (slot.q === undefined ? 1 : slot.q);
+		const ei = CONFIG.sell_profile.findIndex(e => e.name === slot.name && level_matches(slot, e));
+		if (ei < 0) continue;
+		listed[ei] += (slot.q === undefined ? 1 : slot.q);
+		if (slot.price !== CONFIG.sell_profile[ei].price) {
+			game_log(`🏷️ trade${sn} lists ${slot.name} at ${slot.price}g but the profile says ${CONFIG.sell_profile[ei].price}g — close it to relist.`, "#FFA500");
+		}
 	}
 
 	const free = [];
@@ -154,8 +157,8 @@ async function refresh_sell_offers() {
 // RESTOCKING — pulling listed stock back out of the bank
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const RESTOCK_RETRY_MS = 10 * 60 * 1000;
-const _restock_blocked = {};
+var RESTOCK_RETRY_MS = 10 * 60 * 1000;
+var _restock_blocked = {};
 
 function restock_key(entry) {
 	return entry.name + "@" + (entry.level === undefined ? "any" : entry.level);
@@ -178,7 +181,7 @@ function should_run_restock() {
 }
 
 async function handle_restocking_state() {
-	merchant_task = "Restocking";
+	const generation = begin_task("Restocking");
 	try {
 		for (const entry of CONFIG.sell_profile) {
 			const want = entry.quantity || 1;
@@ -206,7 +209,7 @@ async function handle_restocking_state() {
 	} catch (e) {
 		catcher(e, "handle_restocking_state");
 	} finally {
-		merchant_task = "Idle";
+		end_task(generation);
 	}
 }
 

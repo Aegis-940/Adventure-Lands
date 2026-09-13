@@ -2,8 +2,6 @@
 // BOOTSTRAPPER (reload-safe, commit-specific, debug-enabled)           //
 // -------------------------------------------------------------------- //
 
-window._cmListeners = window._cmListeners || [];
-
 (function(){
 	game_log("🔧 Bootstrap starting for " + character.name + "...");
 
@@ -106,6 +104,9 @@ window._cmListeners = window._cmListeners || [];
 		"Core Systems/Party Cohesion.js",
 		"Core Systems/Character Runner.js",
 		"Core Systems/Error Handling.js",
+		"Interface/Custom Log.js",
+		"Interface/Widget Helpers.js",
+		"Interface/Bank Viewer.js",
 	];
 
 	function load_one(base, name) {
@@ -220,8 +221,8 @@ window._cmListeners = window._cmListeners || [];
 				start_loading(base);
 			})
 			.fail(() => {
-				FILE_SUFFIX = "?_=" + Date.now();
-				game_log("⚠️ Couldn't fetch SHA (GitHub rate limit?) — falling back to @main, cache-busted", "#FFA500");
+				FILE_SUFFIX = "";
+				game_log("⚠️ Couldn't fetch SHA (GitHub rate limit?) — falling back to @main, which jsDelivr caches for 12h", "#FFA500");
 				start_loading("https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/");
 			});
 	}

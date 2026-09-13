@@ -2,8 +2,8 @@
 // MERCHANT PARTY — mluck, party membership, and the delivery run out to the fighters
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const MLUCK_REFRESH_THRESHOLD_MS = 10 * 60 * 1000;
-const MLUCK_TOPUP_THRESHOLD_MS = 50 * 60 * 1000;
+var MLUCK_REFRESH_THRESHOLD_MS = 10 * 60 * 1000;
+var MLUCK_TOPUP_THRESHOLD_MS = 50 * 60 * 1000;
 
 function is_mluck_due(status) {
 	const remaining = status.conditions?.mluck?.ms;
@@ -72,7 +72,7 @@ async function buff_nearby_party() {
 // DELIVERY — go to whoever needs mluck, a pack emptied, or gold taken off them
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const DELIVERY_WAIT_MAX_ATTEMPTS = 40;
+var DELIVERY_WAIT_MAX_ATTEMPTS = 40;
 
 function should_run_delivery() {
 	if (merchant_task !== "Idle") return false;
@@ -88,7 +88,7 @@ function should_run_delivery() {
 
 async function handle_delivering_state() {
 	if (merchant_task !== "Idle") return;
-	merchant_task = "Delivering";
+	const generation = begin_task("Delivering");
 	try {
 		log("Beginning delivery run...");
 
@@ -130,6 +130,6 @@ async function handle_delivering_state() {
 	} catch (e) {
 		catcher(e, "handle_delivering_state");
 	} finally {
-		merchant_task = "Idle";
+		end_task(generation);
 	}
 }

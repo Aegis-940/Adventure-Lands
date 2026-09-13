@@ -3,10 +3,10 @@
 // CONFIG
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const UPGRADE_INTERVAL = 75;
-const BANK_POSITION_TOLERANCE = 10;
+var UPGRADE_INTERVAL = 75;
+var BANK_POSITION_TOLERANCE = 10;
 
-const UPGRADE_PROFILE = {
+var UPGRADE_PROFILE = {
 	pouchbow:     { scroll0_until: 3, scroll1_until: 8, scroll2_until: 9, primling_from: 7, max_level: 9 },
 	fireblade:    { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 6, grace_from: 8, max_level: 9 },
 	firebow:      { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 6, max_level: 8 },
@@ -31,7 +31,7 @@ const UPGRADE_PROFILE = {
 	frankypants:  { scroll0_until: 0, scroll1_until: 0, scroll2_until: 10, primling_from: 3, max_level: 6 },
 };
 
-const COMBINE_PROFILE = {
+var COMBINE_PROFILE = {
 	wbook0:      { scroll0_until: 2, scroll1_until: 4, scroll2_until: 6, primling_from: 4, max_level: 3 },
 	dexring:     { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 3 },
 	strring:     { scroll0_until: 1, scroll1_until: 3, scroll2_until: 6, primling_from: 3, max_level: 3 },
@@ -57,9 +57,9 @@ const COMBINE_PROFILE = {
 // GRACE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const GRACE_MAX_OFFERINGS = 5;
+var GRACE_MAX_OFFERINGS = 5;
 
-const GRACE_MAX = 5;
+var GRACE_MAX = 5;
 
 async function check_grace(item_slot) {
 	const offering_slot = character.items.findIndex(it => it && it.name === "offeringp");
@@ -129,7 +129,7 @@ async function add_grace_to_cap(item_slot) {
 	return { grace: previous_grace, capped: false };
 }
 
-const grace_capped_slots = new Set();
+var grace_capped_slots = new Set();
 
 async function auto_grace_pass() {
 	grace_capped_slots.clear();
@@ -153,9 +153,7 @@ async function auto_grace_pass() {
 
 async function withdraw_upgrade_scrolls() {
 
-	await parent.$("#maincode")[0].contentWindow.render_bank_items();
-	await delay(1000);
-	await parent.hide_modal();
+	refresh_bank_snapshot();
 
 	const SCROLL_TYPES = ["scroll0", "scroll1", "scroll2", "cscroll0", "cscroll1", "cscroll2"];
 
@@ -346,11 +344,11 @@ function bank_has_upgradeable_items() {
 	return false;
 }
 
-const upgrade_failed_slots = new Set();
-const combine_failed_keys = new Set();
+var upgrade_failed_slots = new Set();
+var combine_failed_keys = new Set();
 
-const UPGRADE_RETRY_MS = 10 * 60 * 1000;
-let _upgrade_retry_at = 0;
+var UPGRADE_RETRY_MS = 10 * 60 * 1000;
+var _upgrade_retry_at = 0;
 
 function upgrade_run_blocked() {
 	return Date.now() < _upgrade_retry_at;

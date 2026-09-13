@@ -33,7 +33,7 @@ function supershot_value(target) {
 
 async function skill_loop() {
 	if (should_pause_combat_loop()) return setTimeout(skill_loop, 100);
-	let delay = 5;
+	let next_delay = 5;
 	try {
 		if (!CONFIG.combat.use_hunters_mark && !CONFIG.combat.use_supershot) {
 			setTimeout(skill_loop, 1000);
@@ -86,11 +86,11 @@ async function skill_loop() {
 				await use_skill("supershot", target);
 			}
 		} else {
-			delay = min_ms > 200 ? 100 : min_ms > 50 ? 20 : 5;
+			next_delay = min_ms > 200 ? 100 : min_ms > 50 ? 20 : 5;
 		}
 	} catch (e) {
 		catcher(e, "skill_loop");
-		delay = 1;
+		next_delay = 1;
 	}
-	setTimeout(skill_loop, delay);
+	setTimeout(skill_loop, next_delay);
 }

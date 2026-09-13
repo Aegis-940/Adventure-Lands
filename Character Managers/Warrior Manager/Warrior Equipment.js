@@ -56,17 +56,17 @@ function expected_splash_bonus(explosion, attack) {
 function smoothed_splash_bonus(explosion, attack) {
 	const sample = expected_splash_bonus(explosion, attack);
 	const now = Date.now();
-	const state = _splash_ewma[explosion];
+	const ewma = _splash_ewma[explosion];
 
-	if (!state) {
+	if (!ewma) {
 		_splash_ewma[explosion] = { value: sample, at: now };
 		return sample;
 	}
-	if (now - state.at >= SPLASH_STEP_MS) {
-		state.value += (sample - state.value) * SPLASH_SMOOTHING;
-		state.at = now;
+	if (now - ewma.at >= SPLASH_STEP_MS) {
+		ewma.value += (sample - ewma.value) * SPLASH_SMOOTHING;
+		ewma.at = now;
 	}
-	return state.value;
+	return ewma.value;
 }
 
 function model_prediction() {

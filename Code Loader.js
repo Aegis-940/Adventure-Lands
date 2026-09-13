@@ -4,10 +4,10 @@
 
 (function () {
 	const REPO = "Aegis-940/Adventure-Lands";
-	const BASE = `https://cdn.jsdelivr.net/gh/${REPO}@main/`;
+	const MAIN_BASE = `https://cdn.jsdelivr.net/gh/${REPO}@main/`;
+	const SHA_URL = `https://api.github.com/repos/${REPO}/commits/main`;
 	const TIMEOUT_MS = 8000;
 	const RETRIES = 2;
-	const GUARD_MS = 15000;
 
 	const ROOT = typeof globalThis !== "undefined" ? globalThis : this;
 
@@ -20,7 +20,7 @@
 		try { if (typeof parent === "object" && parent) return parent; } catch (e) {}
 		return ROOT;
 	})();
-	if (Date.now() - (guard.__AL_LOAD_STARTED__ || 0) < GUARD_MS) return say("[AL] duplicate start ignored");
+	if (guard.__AL_LOAD_STARTED__) return say("[AL] already loaded in this tab — reload the tab to restart");
 	guard.__AL_LOAD_STARTED__ = Date.now();
 
 	if (typeof document === "undefined") {
@@ -55,7 +55,24 @@
 			});
 	}
 
-	get(BASE + "Bootstrapper.js")
+	function resolve_base() {
+		return get(SHA_URL + "?_=" + Date.now())
+			.then(text => {
+				const sha = JSON.parse(text).sha;
+				if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error("bad sha");
+				window.__AL_BASE__ = `https://cdn.jsdelivr.net/gh/${REPO}@${sha}/`;
+				window.__AL_BASE_SET_AT__ = Date.now();
+				say("[AL] pinned to " + sha.slice(0, 7));
+				return window.__AL_BASE__;
+			})
+			.catch(e => {
+				say("⚠️ [AL] couldn't resolve the commit (" + e.message + ") — Bootstrapper from @main, which jsDelivr caches for 12h");
+				return MAIN_BASE;
+			});
+	}
+
+	resolve_base()
+		.then(base => get(base + "Bootstrapper.js"))
 		.then(text => (0, eval)(text))
 		.catch(e => say("❌ Bootstrapper load failed: " + e.message));
 })();

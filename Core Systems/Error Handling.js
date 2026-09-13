@@ -35,6 +35,11 @@ function cooldown_summary(msg) {
 	return null;
 }
 
+function error_out(text, color) {
+	if (typeof log === "function") return log(text, color, "Errors");
+	return game_log(text, color);
+}
+
 function catcher(e, context = "Error") {
 	let msg;
 	if (typeof e === "string") msg = e;
@@ -44,7 +49,7 @@ function catcher(e, context = "Error") {
 	}
 
 	function report(text, quiet) {
-		if (!quiet) return log(`${text} (${context})`, GENERAL_ERROR, "Errors");
+		if (!quiet) return error_out(`${text} (${context})`, GENERAL_ERROR);
 		try { if (typeof errlog_record === "function") errlog_record("quiet", `${text} (${context})`); } catch (x) {}
 	}
 
@@ -57,7 +62,7 @@ function catcher(e, context = "Error") {
 	}
 
 	const stack = e && e.stack ? `\nStack trace:\n${e.stack}` : "";
-	log(`⚠️ ${context}: ${msg}${stack}`, "#FF0000", "Errors");
+	error_out(`⚠️ ${context}: ${msg}${stack}`, "#FF0000");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

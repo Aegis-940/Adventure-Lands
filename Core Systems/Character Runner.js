@@ -89,6 +89,11 @@ async function maintenance_loop() {
 }
 
 function run_character(spec) {
+	if (window.__al_runner_started) {
+		game_log("⚠️ run_character called twice — ignoring the second start. Reload the tab to restart.", "#FFA500");
+		return;
+	}
+	window.__al_runner_started = true;
 	const s = spec || {};
 
 	performance_trick();

@@ -54,8 +54,8 @@ function sell_sellable_items() {
 	return sold_any;
 }
 
-const IDLE_SELL_SETTLE_MS = 1500;
-let _idle_sell_at = 0;
+var IDLE_SELL_SETTLE_MS = 1500;
+var _idle_sell_at = 0;
 
 function sell_while_idle() {
 	if (Date.now() - _idle_sell_at < IDLE_SELL_SETTLE_MS) return;
@@ -86,7 +86,7 @@ async function wait_for_movement_to_settle(caller_label) {
 	}
 }
 
-let sell_items_running = false;
+var sell_items_running = false;
 
 async function sell_items() {
 	if (!has_sellable_items()) return false;
@@ -112,7 +112,7 @@ async function sell_items() {
 	return sold_any;
 }
 
-let bank_items_running = false;
+var bank_items_running = false;
 
 async function bank_items() {
 	if (!has_bankable_items()) return false;
@@ -145,11 +145,7 @@ async function bank_items() {
 			}
 		}
 
-		if (banked_any) {
-			await parent.$("#maincode")[0].contentWindow.render_bank_items();
-			await delay(1000);
-			await parent.hide_modal();
-		}
+		if (banked_any) refresh_bank_snapshot();
 	} catch (e) {
 		catcher(e, "bank_items");
 	} finally {
@@ -158,8 +154,8 @@ async function bank_items() {
 	return banked_any;
 }
 
-const BANKING_RETRY_MS = 60000;
-let _bank_retry_at = 0;
+var BANKING_RETRY_MS = 60000;
+var _bank_retry_at = 0;
 
 function should_run_banking() {
 	return merchant_task === "Idle"
@@ -170,7 +166,7 @@ function should_run_banking() {
 
 async function handle_banking_state() {
 	if (merchant_task !== "Idle") return;
-	merchant_task = "Banking";
+	const generation = begin_task("Banking");
 	try {
 		log(`🎒 Down to ${free_inventory_slots()} free slots — emptying the pack.`, "#888");
 		await sell_items();
@@ -179,6 +175,6 @@ async function handle_banking_state() {
 	} catch (e) {
 		catcher(e, "handle_banking_state");
 	} finally {
-		merchant_task = "Idle";
+		end_task(generation);
 	}
 }

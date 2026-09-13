@@ -2,7 +2,7 @@
 // MERCHANT TASKS — the priority list, the dispatcher, and the loop that drives them
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const MERCHANT_STATES = {
+var MERCHANT_STATES = {
 	DEAD: "dead",
 	ANNIVERSARY: "anniversary",
 	RESTOCKING: "restocking",
@@ -25,7 +25,7 @@ async function handle_dead_state() {
 }
 
 async function handle_anniversary_state() {
-	merchant_task = "Anniversary";
+	const generation = begin_task("Anniversary");
 	try {
 		await anniversary_tick();
 		const goal = anniversary_destination();
@@ -33,7 +33,7 @@ async function handle_anniversary_state() {
 	} catch (e) {
 		catcher(e, "handle_anniversary_state");
 	} finally {
-		merchant_task = "Idle";
+		end_task(generation);
 	}
 }
 
@@ -70,13 +70,13 @@ function should_run_craft() {
 
 async function handle_crafting_state() {
 	if (merchant_task !== "Idle") return;
-	merchant_task = "Crafting";
+	const generation = begin_task("Crafting");
 	try {
 		await try_craft();
 	} catch (e) {
 		catcher(e, "handle_crafting_state");
 	} finally {
-		merchant_task = "Idle";
+		end_task(generation);
 	}
 }
 
@@ -84,7 +84,7 @@ async function handle_crafting_state() {
 // PRIORITY LIST — first match in CONFIG.priorities wins
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const PRIORITY_CHECKS = {
+var PRIORITY_CHECKS = {
 	dead:        { state: MERCHANT_STATES.DEAD,       should_run: () => character.rip },
 	anniversary: { state: MERCHANT_STATES.ANNIVERSARY, should_run: () => typeof anniversary_should_travel === "function" && anniversary_should_travel() },
 	delivering:  { state: MERCHANT_STATES.DELIVERING, should_run: should_run_delivery },
@@ -128,10 +128,10 @@ async function set_state(state) {
 	}
 }
 
-const MERCHANT_TASK_WATCHDOG_MS = 5 * 60 * 1000;
-let watchdog_task = merchant_task;
-let watchdog_since = Date.now();
-let _party_manager_at = 0;
+var MERCHANT_TASK_WATCHDOG_MS = 5 * 60 * 1000;
+var watchdog_task = merchant_task;
+var watchdog_since = Date.now();
+var _party_manager_at = 0;
 
 async function loop_controller() {
 	while (true) {
@@ -161,8 +161,8 @@ async function loop_controller() {
 				watchdog_since = Date.now();
 			}
 
-			const state = get_character_state();
-			await set_state(state);
+			const next_state = get_character_state();
+			await set_state(next_state);
 		} catch (e) {
 			catcher(e, "loop_controller");
 		}

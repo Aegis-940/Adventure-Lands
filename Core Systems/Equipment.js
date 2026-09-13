@@ -109,14 +109,27 @@ async function batch_equip(data, set_name) {
 	return valid_items.length;
 }
 
+const _worn_level_warned = {};
+
+function warn_worn_level(set_name, item, worn) {
+	const key = `${set_name}:${item.slot}`;
+	const now = Date.now();
+	if (now - (_worn_level_warned[key] || 0) < MISSING_ITEM_WARN_INTERVAL) return;
+	_worn_level_warned[key] = now;
+	log(`⚠️ set ${set_name}: ${item.item_name} in ${item.slot} is worn at lvl ${worn.level ?? 0}, `
+		+ `set says lvl ${item.level ?? 0} — treating it as equipped. Fix the set definition.`, "#FFA500", "Errors");
+}
+
 function is_set_equipped(set_name) {
 	const set = equipment_sets[set_name];
 	if (!set) return false;
 
-	return set.every(item =>
-		character.slots[item.slot]?.name === item.item_name &&
-		(character.slots[item.slot]?.level ?? 0) === (item.level ?? 0)
-	);
+	return set.every(item => {
+		const worn = character.slots[item.slot];
+		if (!worn || worn.name !== item.item_name) return false;
+		if ((worn.level ?? 0) !== (item.level ?? 0)) warn_worn_level(set_name, item, worn);
+		return true;
+	});
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -165,7 +178,8 @@ const SET_PROFILE_FIELDS = ["attack", "explosion", "frequency", "heal", "int", "
 const SET_PROFILE_MIN_INTERVAL_MS = 15000;
 const SET_PROFILE_REPROBE_MS = 600000;
 const SET_PROFILE_SETTLE_MS = 600;
-const PROFILE_EXCLUDED_BUFFS = ["darkblessing", "warcry", "power", "xpower"];
+const SET_PROFILE_FIRST_SETTLE_MS = 150;
+const PROFILE_EXCLUDED_BUFFS = ["darkblessing", "warcry", "power", "xpower", "sugarrush", "energized", "anniversary_kiss"];
 
 const _profile_pending = {};
 const SET_PROFILE_EPSILON = 0.02;
@@ -227,10 +241,11 @@ function record_set_profile(set_name) {
 		_profile_pending[set_name] = { profile, at: Date.now() };
 		return false;
 	}
-	if (Date.now() - pending.at < SET_PROFILE_SETTLE_MS) return false;
 
 	const profiles = load_set_profiles();
 	const previous = profiles[set_name];
+	const settle = previous ? SET_PROFILE_SETTLE_MS : SET_PROFILE_FIRST_SETTLE_MS;
+	if (Date.now() - pending.at < settle) return false;
 	const since = previous ? Date.now() - (previous.at || 0) : Infinity;
 
 	if (previous && !profile_materially_differs(previous, profile)) {
@@ -409,7 +424,7 @@ let _equip_seq = 0;
 
 function equip_claim(owner, priority) {
 	if (_equip_holder && Date.now() - _equip_holder.at > EQUIP_CLAIM_MAX_MS) _equip_holder = null;
-	if (_equip_holder && _equip_holder.priority > priority) return null;
+	if (_equip_holder && _equip_holder.priority >= priority) return null;
 	_equip_holder = { owner, priority, token: ++_equip_seq, at: Date.now() };
 	return _equip_holder.token;
 }
@@ -502,7 +517,8 @@ async function resolve_equipment() {
 	if (!token) return;
 
 	try {
-		const overrides = (typeof MONSTER_GEAR_OVERRIDES !== "undefined" && MONSTER_GEAR_OVERRIDES[home]) || {};
+		const at_home = typeof destination !== "undefined" && destination && character.map === destination.map;
+		const overrides = (at_home && typeof MONSTER_GEAR_OVERRIDES !== "undefined" && MONSTER_GEAR_OVERRIDES[home]) || {};
 
 		for (const group in EQUIPMENT_RULES) {
 			if (!equip_holds(token)) return;

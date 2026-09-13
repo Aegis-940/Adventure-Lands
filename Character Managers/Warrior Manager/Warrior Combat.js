@@ -38,7 +38,7 @@ function find_best_target() {
 }
 
 function find_monsters_in_cleave_range() {
-	return monsters_matching({ max_distance: G.skills.cleave.range });
+	return monsters_matching({ max_distance: G.skills.cleave.range, point_for_distance_check: [character.x, character.y] });
 }
 
 function mob_count() {
@@ -109,7 +109,7 @@ async function status_swap_trick_check(target) {
 
 async function action_loop() {
 	if (should_pause_combat_loop()) return setTimeout(action_loop, 100);
-	let delay = 10;
+	let next_delay = 10;
 
 	try {
 		if (is_disabled(character)) return setTimeout(action_loop, 50);
@@ -122,13 +122,13 @@ async function action_loop() {
 		if (ms === 0 && !is_travelling() && target) {
 			await status_swap_trick_check(target);
 		} else {
-			delay = next_action_delay(ms);
+			next_delay = next_action_delay(ms);
 		}
 
 	} catch (e) {
 		catcher(e, "action_loop");
-		delay = 1;
+		next_delay = 1;
 	}
 
-	setTimeout(action_loop, delay);
+	setTimeout(action_loop, next_delay);
 }

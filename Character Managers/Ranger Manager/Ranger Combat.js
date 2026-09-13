@@ -219,7 +219,7 @@ async function cupid_heal(target) {
 
 async function action_loop() {
 	if (should_pause_combat_loop()) return setTimeout(action_loop, 100);
-	let delay = 5;
+	let next_delay = 5;
 	try {
 		if (is_disabled(character)) return setTimeout(action_loop, 50);
 
@@ -233,13 +233,13 @@ async function action_loop() {
 			if (healing && cupid_on) await cupid_heal(cache.heal_target);
 			else if (!healing && !cupid_on) await handle_attack();
 		} else {
-			delay = next_action_delay(ms);
+			next_delay = next_action_delay(ms);
 		}
 	} catch (e) {
 		catcher(e, "action_loop");
-		delay = 10;
+		next_delay = 10;
 	}
-	setTimeout(action_loop, delay);
+	setTimeout(action_loop, next_delay);
 }
 
 async function handle_attack() {

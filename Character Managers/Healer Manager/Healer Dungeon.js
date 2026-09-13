@@ -2,13 +2,21 @@
 // SPIDER DUNGEON — the healer leads the party through the spider instance
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+var DUNGEON_BOSS_TIMEOUT_MS = 10 * 60 * 1000;
+var DUNGEON_PARTY_TIMEOUT_MS = 2 * 60 * 1000;
+
 function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
-	return new Promise(resolve => {
+	return new Promise((resolve, reject) => {
 		let consecutive_alive = 0;
 		let confirmed_alive = false;
 		let consecutive_dead = 0;
+		const started = Date.now();
 
 		const interval = setInterval(() => {
+			if (Date.now() - started > DUNGEON_BOSS_TIMEOUT_MS) {
+				clearInterval(interval);
+				return reject(new Error(`${mob_type} not confirmed dead within ${DUNGEON_BOSS_TIMEOUT_MS / 60000} min`));
+			}
 			const near_spawn = Math.hypot(character.x - spawn_x, character.y - spawn_y) < spawn_radius;
 
 			const alive = Object.values(parent.entities).some(
@@ -36,7 +44,7 @@ function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 	});
 }
 
-let _dungeon_running = false;
+var _dungeon_running = false;
 
 async function run_spider_dungeon() {
 	if (_dungeon_running) {
@@ -57,13 +65,18 @@ async function run_spider_dungeon() {
 		log("Spider Dungeon: Signalling party to enter instance...", "#AA88FF");
 		send_cm(["Ulric", "Riva"], { type: "enter_instance", in: character.in });
 
-		await new Promise(resolve => {
+		await new Promise((resolve, reject) => {
 			const confirmed = new Set();
+			const timer = setTimeout(() => {
+				remove_cm_listener(listener);
+				reject(new Error(`party did not enter the instance within ${DUNGEON_PARTY_TIMEOUT_MS / 60000} min (${confirmed.size}/2)`));
+			}, DUNGEON_PARTY_TIMEOUT_MS);
 			const listener = (name, data) => {
 				if (data.type === "instance_ready" && ["Ulric", "Riva"].includes(name)) {
 					confirmed.add(name);
 					log(`Spider Dungeon: ${name} entered instance (${confirmed.size}/2)`, "#AA88FF");
 					if (confirmed.size >= 2) {
+						clearTimeout(timer);
 						remove_cm_listener(listener);
 						resolve();
 					}
@@ -108,6 +121,7 @@ async function run_spider_dungeon() {
 	} finally {
 		_dungeon_running = false;
 		set_suppress_reset(false);
+		send_cm(["Ulric", "Riva"], { type: "suppress_reset", state: false });
 	}
 }
 

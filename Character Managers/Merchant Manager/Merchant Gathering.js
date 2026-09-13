@@ -2,9 +2,9 @@
 // MERCHANT GATHERING — fishing and mining share one run; only the tool, skill and spot differ
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const FISHING_POSITION_TOLERANCE = 5;
-const MINING_POSITION_TOLERANCE = 10;
-const GATHERING_MAX_COOLDOWN_RETRIES = 15;
+var FISHING_POSITION_TOLERANCE = 5;
+var MINING_POSITION_TOLERANCE = 10;
+var GATHERING_MAX_COOLDOWN_RETRIES = 15;
 
 async function handle_gathering_state(tool_name, skill_name, spot, tolerance, task_label) {
 	if (merchant_task !== "Idle") return;

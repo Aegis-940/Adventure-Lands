@@ -2,7 +2,7 @@
 // MERCHANT EXCHANGE — the bank fetch is a task, the exchanging itself happens while idle
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let exchange_items_running = false;
+var exchange_items_running = false;
 
 function has_bank_exchangeables() {
 	const bank_data = character.bank || load_bank_from_local_storage();
@@ -35,7 +35,7 @@ function find_bag_exchangeable() {
 	return null;
 }
 
-const EXCHANGE_SKILLS = ["massexchangepp", "massexchange"];
+var EXCHANGE_SKILLS = ["massexchangepp", "massexchange"];
 
 async function begin_mass_exchange() {
 	for (const name of EXCHANGE_SKILLS) {
@@ -91,8 +91,8 @@ async function withdraw_exchangeables() {
 	return false;
 }
 
-const EXCHANGE_RETRY_MS = 10 * 60 * 1000;
-let _exchange_retry_at = 0;
+var EXCHANGE_RETRY_MS = 10 * 60 * 1000;
+var _exchange_retry_at = 0;
 
 function should_run_exchange() {
 	return CONFIG.enabled.exchanging
@@ -105,7 +105,7 @@ function should_run_exchange() {
 
 async function handle_exchanging_state() {
 	if (merchant_task !== "Idle") return;
-	merchant_task = "Exchanging";
+	const generation = begin_task("Exchanging");
 	try {
 		const fetched = await withdraw_exchangeables();
 		if (!fetched) {
@@ -115,6 +115,6 @@ async function handle_exchanging_state() {
 	} catch (e) {
 		catcher(e, "handle_exchanging_state");
 	} finally {
-		merchant_task = "Idle";
+		end_task(generation);
 	}
 }

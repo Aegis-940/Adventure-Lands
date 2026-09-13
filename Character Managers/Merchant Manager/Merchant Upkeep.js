@@ -27,8 +27,8 @@ async function handle_buy_potions() {
 	}
 }
 
-const LOOT_COLLECTION_COOLDOWN = 60000;
-let last_loot_time = 0;
+var LOOT_COLLECTION_COOLDOWN = 60000;
+var last_loot_time = 0;
 
 function should_collect_loot() {
 	if (free_inventory_slots() <= CONFIG.min_free_inventory_slots) return false;

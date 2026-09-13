@@ -30,7 +30,7 @@ function find_best_target() {
 	if (boss) return boss;
 
 	if (home === "giantspider") {
-		return best_target({ target: character.name, max_distance: max_dist }, { close: 1 }, context);
+		return best_target({ target: [character.name], max_distance: max_dist }, { close: 1 }, context);
 	}
 
 	if (CONFIG.combat.aggro && count_my_aggro() < effective_aggro_cap()) {
@@ -43,7 +43,7 @@ function find_best_target() {
 
 	for (const name of CONFIG.combat.target_priority) {
 		const target = best_target(
-			{ target: name, max_distance: character.range },
+			{ target: [name], max_distance: character.range },
 			CONFIG.combat.protect_weights, context
 		);
 		if (target) return target;
@@ -107,7 +107,7 @@ function find_zap_targets() {
 // ACTION LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let _basic_action_until = 0;
+var _basic_action_until = 0;
 
 function basic_action_busy() {
 	return Date.now() < _basic_action_until;
@@ -123,7 +123,7 @@ function run_basic_action(p, label) {
 	);
 }
 
-let _heal_cast = false;
+var _heal_cast = false;
 
 async function try_heal() {
 	_heal_cast = false;
@@ -150,14 +150,14 @@ async function try_heal() {
 	return false;
 }
 
-let _al_due = 0;
-const _t = () => Date.now();
+var _al_due = 0;
+var _t = () => Date.now();
 
 async function action_loop() {
 	if (typeof errlog_beat === "function") errlog_beat("action_loop");
 	const t_enter = _t();
 	if (_al_due && typeof errlog_time === "function") errlog_time("lag action_loop", t_enter - _al_due);
-	let delay = 10;
+	let next_delay = 10;
 
 	try {
 		if (is_disabled(character)) {
@@ -205,18 +205,18 @@ async function action_loop() {
 				}
 			}
 
-			if (!acted) delay = 40;
+			if (!acted) next_delay = 40;
 		} else {
 			if (typeof errlog_time === "function") errlog_time("cooldown remaining", ms);
-			delay = next_action_delay(ms);
+			next_delay = next_action_delay(ms);
 		}
 
 	} catch (e) {
 		catcher(e, "action_loop");
-		delay = 1;
+		next_delay = 1;
 	}
 
 	if (typeof errlog_time === "function") errlog_time("iter action_loop", _t() - t_enter);
-	_al_due = _t() + delay;
-	setTimeout(action_loop, delay);
+	_al_due = _t() + next_delay;
+	setTimeout(action_loop, next_delay);
 }
