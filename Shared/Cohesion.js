@@ -6,7 +6,7 @@ const COHESION_RANGE = 250;
 const COHESION_REGROUP = 120;
 const COHESION_FOLLOWERS = ["Ulric", "Riva"];
 const COHESION_DANGER_HP = 0.5;
-const XP_LAG_FRACTION = 0.05;
+const XP_LAG_LEVELS = 0.5;
 
 function xp_progress(state) {
 	if (!state || !state.level) return null;
@@ -25,7 +25,7 @@ function behind_on_xp() {
 		if (theirs !== null && theirs > best) best = theirs;
 	}
 
-	return best > 0 && (best - mine) / best > XP_LAG_FRACTION;
+	return best - mine > XP_LAG_LEVELS;
 }
 
 function party_member_in_danger() {

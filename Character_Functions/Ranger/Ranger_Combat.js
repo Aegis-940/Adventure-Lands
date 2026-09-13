@@ -218,6 +218,18 @@ function find_heal_target() {
 // ACTION LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+async function cupid_heal(target) {
+	try {
+		await attack(target);
+	} catch (e) {
+		if (e && e.reason === "no_pvp") {
+			if (typeof errlog_count === "function") errlog_count("cupid heal raced the bow swap");
+			return;
+		}
+		throw e;
+	}
+}
+
 async function action_loop() {
 	if (should_pause_combat_loop()) return setTimeout(action_loop, 100);
 	let delay = 5;
@@ -231,7 +243,7 @@ async function action_loop() {
 		const healing = !!cache.heal_target && (cupid_on || set_available("heal"));
 
 		if (ms === 0 && !is_travelling()) {
-			if (healing && cupid_on) await attack(cache.heal_target);
+			if (healing && cupid_on) await cupid_heal(cache.heal_target);
 			else if (!healing && !cupid_on) await handle_attack();
 		} else {
 			delay = next_action_delay(ms);
