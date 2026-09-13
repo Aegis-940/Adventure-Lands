@@ -5,6 +5,19 @@
 const COHESION_RANGE = 250;
 const COHESION_REGROUP = 120;
 const COHESION_FOLLOWERS = ["Ulric", "Riva"];
+const COHESION_DANGER_HP = 0.5;
+
+function party_member_in_danger() {
+	if (character.max_hp && !character.rip && character.hp / character.max_hp <= COHESION_DANGER_HP) return character.name;
+
+	for (const name of COHESION_FOLLOWERS.concat([MOVEMENT_LEADER])) {
+		if (name === character.name) continue;
+		const s = read_state_cache(name);
+		if (!s || s.rip || s.paused || !s.max_hp) continue;
+		if (s.hp / s.max_hp <= COHESION_DANGER_HP) return name;
+	}
+	return null;
+}
 
 let _cohesion_holding = false;
 let _cohesion_closing = false;
@@ -41,6 +54,12 @@ function follow_has_leader() {
 
 function party_cohesion_hold() {
 	if (character.name !== MOVEMENT_LEADER) return false;
+
+	if (party_member_in_danger()) {
+		_cohesion_holding = true;
+		return true;
+	}
+
 	if (typeof panicking !== "undefined" && panicking) { _cohesion_holding = false; return false; }
 
 	const owed = typeof anniversary_should_travel === "function" && anniversary_should_travel();
