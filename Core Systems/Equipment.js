@@ -2,8 +2,9 @@
 // EQUIPMENT — sets, the batch emitter, the slot arbiter, and the rules resolver
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function find_booster_slot() {
+function find_booster_slot(exclude) {
 	for (let i = 0; i < character.items.length; i++) {
+		if (i === exclude) continue;
 		const item = character.items[i];
 		if (item && ["xpbooster", "goldbooster", "luckbooster"].includes(item.name)) {
 			return i;
@@ -463,7 +464,10 @@ async function apply_booster_rule(group, desired_booster) {
 	if (!desired_booster) return;
 	if (locate_item(desired_booster) !== -1) return;
 
-	const other_slot = find_booster_slot();
+	const reserved = desired_booster === "xpbooster" || typeof xp_booster_slot !== "function"
+		? null
+		: xp_booster_slot();
+	const other_slot = find_booster_slot(reserved);
 	if (other_slot === null) return;
 	if (!equip_group_ready(group)) return;
 

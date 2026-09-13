@@ -50,6 +50,68 @@ function auto_buy_potions() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOSTERS — everyone keeps one pointed at xp; luck and gold belong to the looting cycle and are never borrowed from
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const BOOSTER_NAMES = ["xpbooster", "goldbooster", "luckbooster"];
+const FORTUNE_BOOSTERS = ["luckbooster", "goldbooster"];
+const BOOSTER_CHECK_MS = 3600000;
+const BOOSTER_FOLLOWUP_MS = 10000;
+
+let _booster_next = 0;
+
+function booster_running(item) {
+	if (!item) return false;
+	const until = Date.parse(item.expires);
+	return isFinite(until) && until > Date.now();
+}
+
+function fortune_booster_slot() {
+	if (!CONFIG.looting || !CONFIG.looting.equip_gold_gear) return null;
+	for (let i = 0; i < character.items.length; i++) {
+		const item = character.items[i];
+		if (item && FORTUNE_BOOSTERS.includes(item.name)) return i;
+	}
+	return null;
+}
+
+function xp_booster_slot() {
+	const reserved = fortune_booster_slot();
+	for (let i = 0; i < character.items.length; i++) {
+		if (i === reserved) continue;
+		const item = character.items[i];
+		if (item && BOOSTER_NAMES.includes(item.name)) return i;
+	}
+	return null;
+}
+
+function maintain_xp_booster() {
+	const now = Date.now();
+	if (now < _booster_next) return;
+	_booster_next = now + BOOSTER_FOLLOWUP_MS;
+
+	const slot = xp_booster_slot();
+	if (slot === null) {
+		log("🧪 No xp booster held — buying one", "#66ccff", "Alerts");
+		buy("xpbooster", 1);
+		return;
+	}
+
+	const item = character.items[slot];
+	if (item.name !== "xpbooster") {
+		log(`🧪 Shifting the spare booster in slot ${slot} to xp`, "#66ccff", "Alerts");
+		shift(slot, "xpbooster");
+		return;
+	}
+
+	_booster_next = now + BOOSTER_CHECK_MS;
+	if (booster_running(item)) return;
+
+	log(`🧪 Activating the xp booster in slot ${slot}`, "#66ccff", "Alerts");
+	activate(slot);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // PERIODIC RESET - Reload the game tab every N hours, on the hour
 // --------------------------------------------------------------------------------------------------------------------------------- //
 

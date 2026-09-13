@@ -73,6 +73,7 @@ function elixir_usage() {
 async function maintenance_loop() {
 	try {
 		if (CONFIG.potions.auto_buy) auto_buy_potions();
+		maintain_xp_booster();
 		if (CONFIG.party.auto_manage) party_manager();
 
 		clear_inventory();
