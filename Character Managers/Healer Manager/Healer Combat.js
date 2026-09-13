@@ -59,6 +59,11 @@ function count_my_aggro() {
 }
 
 function effective_aggro_cap() {
+	if (dungeon_aggro_suppressed()) return 0;
+
+	const fixed = dungeon_setting("aggro_cap_fixed", null);
+	if (fixed !== null) return fixed;
+
 	const mp_pct = character.max_mp > 0 ? character.mp / character.max_mp : 0;
 	const scaled = Math.max(0, Math.min(1, (mp_pct - 0.2) / 0.6));
 	return Math.floor(dungeon_setting("aggro_cap", CONFIG.combat.aggro_cap) * scaled);

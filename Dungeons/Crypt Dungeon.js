@@ -4,8 +4,9 @@
 
 const CRYPT_VAMPIRELINGS = "vbat";
 const CRYPT_PRIORITY = [CRYPT_VAMPIRELINGS, "a3"];
-const CRYPT_OPPORTUNISTIC = ["a2", "a7", "a4", "a5"];
-const CRYPT_AVOID = ["a6", "a8"];
+const CRYPT_OPPORTUNISTIC = ["a2", "a7"];
+const CRYPT_AVOID = ["a1", "a4", "a5", "a6", "a8"];
+const CRYPT_QUOTA = { a3: 1, a7: 1, a2: 1, vbat: 7 };
 
 DUNGEONS.crypt = {
 	name: "Crypt Dungeon",
@@ -20,13 +21,15 @@ DUNGEONS.crypt = {
 	opportunistic: CRYPT_OPPORTUNISTIC,
 	avoid: CRYPT_AVOID,
 	only: [...CRYPT_PRIORITY, ...CRYPT_OPPORTUNISTIC],
+	quota: CRYPT_QUOTA,
+	suppress_aggro_when: ["a2", "a3", "a7"],
 	flags: {
 		leader_manual: true,
 		ignore_events: true,
 		center_on_tank: true,
 		combat_always_on: true,
 		single_target: true,
-		warrior_single_weapon: false,
+		warrior_single_weapon: true,
 		no_cleave: true,
 		no_agitate: false,
 		circle_on_self: true,
@@ -37,7 +40,7 @@ DUNGEONS.crypt = {
 		target_lowest_hp: true,
 		cohesion_range: 60,
 		cohesion_regroup: 40,
-		aggro_cap: 3,
+		aggro_cap_fixed: 1,
 	},
 };
 

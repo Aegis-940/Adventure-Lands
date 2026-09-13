@@ -5,7 +5,7 @@
 const DUNGEON_BOSS_TIMEOUT_MS = 10 * 60 * 1000;
 const DUNGEON_PARTY_TIMEOUT_MS = 2 * 60 * 1000;
 const DUNGEON_JOIN_MAX_ATTEMPTS = 30;
-const DUNGEON_JOIN_INTERVAL_MS = 2000;
+const DUNGEON_JOIN_INTERVAL_MS = 400;
 const DUNGEON_FOLLOWERS = ["Ulric", "Riva"];
 const DUNGEON_PARTY = ["Myras", "Ulric", "Riva"];
 const DUNGEON_LOG_COLOR = "#AA88FF";
@@ -124,9 +124,21 @@ function dungeon_avoids(mtype) {
 function dungeon_skip_target(mob) {
 	const d = active_dungeon();
 	if (!d || !mob) return false;
-	if (mob.target && DUNGEON_PARTY.includes(mob.target)) return false;
 	if (d.avoid && d.avoid.includes(mob.mtype)) return true;
+	if (mob.target && DUNGEON_PARTY.includes(mob.target)) return false;
 	if (d.only && !d.only.includes(mob.mtype)) return true;
+	return false;
+}
+
+function dungeon_aggro_suppressed() {
+	const d = active_dungeon();
+	if (!d || !d.suppress_aggro_when) return false;
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || e.dead) continue;
+		if (!d.suppress_aggro_when.includes(e.mtype)) continue;
+		if (e.target && DUNGEON_PARTY.includes(e.target)) return true;
+	}
 	return false;
 }
 
@@ -186,20 +198,30 @@ function join_dungeon_instance(data) {
 	const instance_id = data.in;
 	const map = data.map || "spider_instance";
 	if (_dungeon_join_interval) clearInterval(_dungeon_join_interval);
+
+	_dungeon_moving = true;
+	stop_movement("joining the instance");
+
 	let attempts = 0;
-	_dungeon_join_interval = setInterval(() => {
-		if (character.map === map) {
-			clearInterval(_dungeon_join_interval);
-			_dungeon_join_interval = null;
-			send_cm("Myras", { type: "instance_ready" });
-		} else if (++attempts > DUNGEON_JOIN_MAX_ATTEMPTS) {
-			clearInterval(_dungeon_join_interval);
-			_dungeon_join_interval = null;
-			game_log(`❌ Gave up entering the instance after ${DUNGEON_JOIN_MAX_ATTEMPTS} attempts`, "#FF3333");
-		} else {
-			Promise.resolve(enter(map, instance_id)).catch(() => { });
+
+	function finish(ok, message) {
+		clearInterval(_dungeon_join_interval);
+		_dungeon_join_interval = null;
+		_dungeon_moving = false;
+		if (ok) send_cm("Myras", { type: "instance_ready" });
+		else game_log(message, "#FF3333");
+	}
+
+	function attempt() {
+		if (character.map === map) return finish(true);
+		if (++attempts > DUNGEON_JOIN_MAX_ATTEMPTS) {
+			return finish(false, `❌ Gave up entering the instance after ${DUNGEON_JOIN_MAX_ATTEMPTS} attempts`);
 		}
-	}, DUNGEON_JOIN_INTERVAL_MS);
+		Promise.resolve(enter(map, instance_id)).catch(() => { });
+	}
+
+	attempt();
+	_dungeon_join_interval = setInterval(attempt, DUNGEON_JOIN_INTERVAL_MS);
 }
 
 function wait_for_party_in_instance(dungeon) {
@@ -260,6 +282,7 @@ async function run_dungeon(dungeon) {
 		await wait_for_party_in_instance(dungeon);
 
 		_dungeon_moving = false;
+		reset_dungeon_progress();
 		dungeon_log(dungeon, "Full party in instance — proceeding");
 
 		if (!dungeon.bosses || !dungeon.bosses.length) {
