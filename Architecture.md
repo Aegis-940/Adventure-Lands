@@ -53,8 +53,7 @@ Character Managers/[Role] Manager/   ← loaded sequentially via indirect eval, 
     ├── [Role] Movement.js        reposition scorer / movement hooks
     └── [Role].js                 entry point — wires windows and calls run_character()
 
-    Warrior adds Warrior Bscorpion.js; Healer adds Healer Dungeon.js;
-    Ranger adds Ranger Looting.js. Sibling files share state/cache/CONFIG as `var`
+    Healer adds Healer Dungeon.js. Sibling files share state/cache/CONFIG as `var`
     globals, because a top-level const/let is invisible across eval boundaries.
 
 Character Managers/Merchant Manager/  ← Riff only; no combat files
@@ -248,7 +247,6 @@ CONFIG = {
 | Character Managers/Merchant Manager/Merchant Config.js | 80 |
 | Character Managers/Merchant Manager/Merchant Gear.js | 72 |
 | Core Systems/Error Handling.js | 70 |
-| Character Managers/Ranger Manager/Ranger Looting.js | 64 |
 | Code Loader.js | 61 |
 | Interface/Widget Helpers.js | 46 |
 | Interface/Pause Button.js | 45 |

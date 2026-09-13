@@ -64,7 +64,6 @@
 		"Character Managers/Ranger Manager/Ranger Skills.js",
 		"Character Managers/Ranger Manager/Ranger Equipment.js",
 		"Character Managers/Ranger Manager/Ranger Movement.js",
-		"Character Managers/Ranger Manager/Ranger Looting.js",
 		"Character Managers/Ranger Manager/Ranger.js"],
 
 		"Riff": ["Character Managers/Merchant Manager/Merchant Upgrading.js",
