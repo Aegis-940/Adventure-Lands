@@ -55,20 +55,16 @@ function follow_has_leader() {
 function party_cohesion_hold() {
 	if (character.name !== MOVEMENT_LEADER) return false;
 
-	if (party_member_in_danger()) {
-		_cohesion_holding = true;
-		return true;
-	}
-
 	if (typeof panicking !== "undefined" && panicking) { _cohesion_holding = false; return false; }
 
 	const owed = typeof anniversary_should_travel === "function" && anniversary_should_travel();
+	const endangered = party_member_in_danger();
 
-	const limit = _cohesion_holding ? COHESION_REGROUP : COHESION_RANGE;
+	const limit = (endangered || _cohesion_holding) ? COHESION_REGROUP : COHESION_RANGE;
 	_cohesion_holding = COHESION_FOLLOWERS.some(name => {
 		const s = read_state_cache(name);
 		if (!s || s.rip || s.paused) return false;
-		if (owed && s.anniv_pending) return false;
+		if (owed && s.anniv_pending && !endangered) return false;
 		return s.map !== character.map || Math.hypot(s.x - character.x, s.y - character.y) > limit;
 	});
 	if (_cohesion_holding) return true;
