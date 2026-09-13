@@ -33,12 +33,6 @@ function crypt_waypoint(n) {
 	return CRYPT_ROUTE.find(w => w.n === n) || null;
 }
 
-function crypt_retreat_spot(wp) {
-	const previous = CRYPT_ROUTE.find(w => w.n === wp.n - 1);
-	if (previous) return { map: "crypt", x: previous.x, y: previous.y };
-	return DUNGEONS.crypt.spawn;
-}
-
 function crypt_visible(mtypes, radius = CRYPT_ROUTE_SIGHT) {
 	const out = [];
 	for (const id in parent.entities) {
@@ -85,11 +79,8 @@ async function crypt_fight(wp, quarry) {
 }
 
 async function crypt_retreat(wp) {
-	const spot = crypt_retreat_spot(wp);
-	log(`Crypt route: retreating to (${Math.round(spot.x)}, ${Math.round(spot.y)})`, DUNGEON_WARN_COLOR, "Alerts");
-	try {
-		await dungeon_travel(spot);
-	} catch (e) { }
+	const who = crypt_intruders().map(e => (G.monsters[e.mtype] || {}).name || e.mtype).join(", ");
+	await dungeon_bail_out(who ? `${who} blocking waypoint ${wp.n}` : `waypoint ${wp.n} unsafe`);
 	await delay(CRYPT_RETREAT_SETTLE_MS);
 }
 

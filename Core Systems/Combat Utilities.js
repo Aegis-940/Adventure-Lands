@@ -397,6 +397,7 @@ function boss_engaged() {
 }
 
 function should_pause_combat_loop() {
+	if (dungeon_bailing()) return true;
 	if (panicking) return true;
 	if (typeof anniversary_travel !== "undefined" && anniversary_travel) return true;
 

@@ -104,6 +104,7 @@ function dungeon_protected_key() {
 let _dungeon_moving = false;
 
 function dungeon_moving() {
+	if (typeof dungeon_bailing === "function" && dungeon_bailing()) return true;
 	return _dungeon_moving;
 }
 

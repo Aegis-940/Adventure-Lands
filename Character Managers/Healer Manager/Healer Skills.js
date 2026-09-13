@@ -5,6 +5,7 @@
 async function skill_loop() {
 	loop_tick("skill_loop");
 	// if (panicking) return setTimeout(skill_loop, 100);
+	if (dungeon_bailing()) return setTimeout(skill_loop, loop_next("skill_loop", 100));
 	let next_delay = TICK_RATE.skill;
 
 	try {

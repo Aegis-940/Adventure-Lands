@@ -138,6 +138,7 @@ async function try_heal() {
 
 async function action_loop() {
 	loop_tick("action_loop");
+	if (dungeon_bailing()) return setTimeout(action_loop, loop_next("action_loop", 100));
 	let next_delay = 10;
 
 	try {
@@ -165,7 +166,7 @@ async function action_loop() {
 
 			const travelling = is_travelling();
 
-			if (!healed && !travelling && !dungeon_flag("no_attack") && !i_need_the_timer) {
+			if (!healed && !travelling && !dungeon_flag("no_attack") && !dungeon_bailing() && !i_need_the_timer) {
 				const target = cache.target;
 				if (target && is_in_range(target) && !basic_action_busy()) {
 					run_basic_action(attack(target), "attack");
