@@ -13,7 +13,7 @@ function healer_skip_panic_check() {
 	if (panicking) return false;
 	if (character.hp < character.max_hp * PANIC_THRESHOLDS.low_hp) return false;
 	if (character.mp < character.max_mp * PANIC_THRESHOLDS.low_mp) return false;
-	return home === "fireroamer" || home === "giantspider";
+	return home === "fireroamer" || dungeon_flag("skip_panic");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -21,7 +21,7 @@ function healer_skip_panic_check() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function circle_centre() {
-	if (home === "giantspider") return { x: character.x, y: character.y };
+	if (dungeon_flag("circle_on_self")) return { x: character.x, y: character.y };
 	return LOCATIONS[home][0];
 }
 

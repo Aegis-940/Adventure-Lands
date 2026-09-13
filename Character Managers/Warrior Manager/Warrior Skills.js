@@ -31,7 +31,7 @@ async function skill_loop() {
 		// 	await handle_stomp();
 		// }
 
-		if (CONFIG.skills.cleave_enabled && home !== "bscorpion" && home !== "giantspider") {
+		if (CONFIG.skills.cleave_enabled && home !== "bscorpion" && !dungeon_flag("no_cleave")) {
 			try {
 				await handle_cleave();
 			} catch (e) {
@@ -39,7 +39,7 @@ async function skill_loop() {
 			}
 		}
 
-		if (CONFIG.skills.agitate_enabled && tank && home !== "giantspider") {
+		if (CONFIG.skills.agitate_enabled && tank && !dungeon_flag("no_agitate")) {
 			try {
 				await handle_agitate(tank);
 			} catch (e) {

@@ -296,7 +296,7 @@ function stuck_escape_check() {
 	if (destination.map && character.map === destination.map) { _stuck_anchor = null; return; }
 
 	if (G.maps[character.map]?.instance) return;
-	if (home === "giantspider") return;
+	if (in_dungeon()) return;
 
 	const now = Date.now();
 	const progressed = !_stuck_anchor

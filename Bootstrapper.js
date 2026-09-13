@@ -104,6 +104,7 @@
 		"Core Systems/Party Cohesion.js",
 		"Core Systems/Character Runner.js",
 		"Core Systems/Error Handling.js",
+		"Dungeons/Dungeon Runner.js",
 		"Interface/Custom Log.js",
 		"Interface/Widget Helpers.js",
 		"Interface/Bank Viewer.js",

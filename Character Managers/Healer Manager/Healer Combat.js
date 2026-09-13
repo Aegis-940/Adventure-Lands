@@ -20,13 +20,13 @@ function healer_target_context() {
 }
 
 function find_best_target() {
-	const max_dist = home === "giantspider" ? 50 : character.range;
+	const max_dist = dungeon_engage_radius();
 	const context = healer_target_context();
 
 	const boss = best_target({ type: CONFIG.combat.all_bosses, max_distance: max_dist }, { close: 1 }, context);
 	if (boss) return boss;
 
-	if (home === "giantspider") {
+	if (dungeon_flag("defensive_targeting")) {
 		return best_target({ target: [character.name], max_distance: max_dist }, { close: 1 }, context);
 	}
 
@@ -160,7 +160,7 @@ async function action_loop() {
 
 			const travelling = is_travelling();
 
-			if (!healed && !travelling && home !== "giantspider" && !i_need_the_timer) {
+			if (!healed && !travelling && !dungeon_flag("no_attack") && !i_need_the_timer) {
 				const target = cache.target;
 				if (target && is_in_range(target) && !basic_action_busy()) {
 					run_basic_action(attack(target), "attack");

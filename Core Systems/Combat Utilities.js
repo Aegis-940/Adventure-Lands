@@ -405,7 +405,7 @@ function should_pause_combat_loop() {
 	const goal = typeof current_goal === "function" ? current_goal() : null;
 	if (goal && goal.chasing) return true;
 
-	if (home === "giantspider") return false;
+	if (dungeon_flag("combat_always_on")) return false;
 	const myras = get_player("Myras");
 	if (!myras || distance(character, myras) > 200) return true;
 
@@ -671,7 +671,7 @@ function make_distance_from_monsters_scorer() {
 }
 
 function reposition_center() {
-	if (home === "giantspider") {
+	if (dungeon_flag("center_on_tank")) {
 		const healer = get_player("Myras");
 		if (!healer || healer.rip || healer.map !== character.map) return null;
 		return { x: healer.x, y: healer.y };

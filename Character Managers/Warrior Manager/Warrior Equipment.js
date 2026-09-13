@@ -151,7 +151,7 @@ function resolve_warrior_orb() {
 function resolve_warrior_weapon() {
 	if (character.map !== destination.map) return null;
 	if (!CONFIG.equipment.weapon_swap_enabled) return null;
-	if (home === "giantspider") return "single";
+	if (dungeon_flag("single_target")) return "single";
 	return warrior_weapon_set();
 }
 

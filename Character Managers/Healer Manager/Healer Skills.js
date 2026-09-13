@@ -83,14 +83,14 @@ async function handle_curse() {
 		.sort((a, b) => distance(character, a) - distance(character, b));
 	if (bosses_with_target.length) target = bosses_with_target[0];
 
-	if (!target && home === "giantspider") {
+	if (!target && dungeon_flag("absorb_nearby")) {
 		const nearby = Object.values(parent.entities)
 			.filter(e => has_target(e) && Math.hypot(character.x - e.x, character.y - e.y) <= 50)
 			.sort((a, b) => b.hp - a.hp);
 		if (nearby.length) target = nearby[0];
 	}
 
-	if (!target && home !== "giantspider") {
+	if (!target && !dungeon_flag("absorb_nearby")) {
 		const home_mobs = Object.values(parent.entities)
 			.filter(e =>
 				has_target(e) &&

@@ -18,6 +18,42 @@ function dungeon_log(dungeon, message, color = DUNGEON_LOG_COLOR) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// DUNGEON MODE — which dungeon this character is configured for, and how it bends the shared systems
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function active_dungeon() {
+	if (typeof home === "undefined") return null;
+	for (const key in DUNGEONS) {
+		if (DUNGEONS[key].home === home) return DUNGEONS[key];
+	}
+	return null;
+}
+
+function in_dungeon() {
+	return !!active_dungeon();
+}
+
+function dungeon_flag(name) {
+	const d = active_dungeon();
+	return !!(d && d.flags && d.flags[name]);
+}
+
+function dungeon_setting(name, fallback) {
+	const d = active_dungeon();
+	if (!d || !d.flags || d.flags[name] === undefined) return fallback;
+	return d.flags[name];
+}
+
+function dungeon_engage_radius() {
+	return dungeon_setting("engage_radius", character.range);
+}
+
+function dungeon_avoids(mtype) {
+	const d = active_dungeon();
+	return !!(d && d.avoid && d.avoid.includes(mtype));
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // BOSS DEATH DETECTION
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -119,6 +155,15 @@ async function run_dungeon(dungeon) {
 	set_suppress_reset(true);
 	send_cm(DUNGEON_FOLLOWERS, { type: "suppress_reset" });
 	try {
+		if (dungeon.key && !has_dungeon_key(dungeon.key)) {
+			dungeon_log(dungeon, `No ${dungeon.key} in hand — withdrawing one from the bank...`);
+			await withdraw_item(dungeon.key, null, 1);
+			if (!has_dungeon_key(dungeon.key)) {
+				dungeon_log(dungeon, `No ${dungeon.key} in the bank either — aborting.`, DUNGEON_WARN_COLOR);
+				return;
+			}
+		}
+
 		dungeon_log(dungeon, "Moving to entrance...");
 		await smarter_move(dungeon.entrance);
 		dungeon_log(dungeon, "At entrance — entering instance...");
@@ -132,6 +177,12 @@ async function run_dungeon(dungeon) {
 		await wait_for_party_in_instance(dungeon);
 
 		dungeon_log(dungeon, "Full party in instance — proceeding");
+
+		if (!dungeon.bosses || !dungeon.bosses.length) {
+			dungeon_log(dungeon, "Party assembled — movement is yours from here", "#FFAA44");
+			hold_reset_until_out(dungeon);
+			return;
+		}
 
 		for (const boss of dungeon.bosses) {
 			dungeon_log(dungeon, `Moving to ${boss.mtype}...`);
@@ -152,9 +203,30 @@ async function run_dungeon(dungeon) {
 		catcher(e, "run_dungeon");
 	} finally {
 		_dungeon_running = false;
+		if (!_dungeon_reset_hold) {
+			set_suppress_reset(false);
+			send_cm(DUNGEON_FOLLOWERS, { type: "suppress_reset", state: false });
+		}
+	}
+}
+
+let _dungeon_reset_hold = false;
+
+function hold_reset_until_out(dungeon) {
+	if (_dungeon_reset_hold) return;
+	_dungeon_reset_hold = true;
+	const watch = setInterval(() => {
+		if (character.map === dungeon.map) return;
+		clearInterval(watch);
+		_dungeon_reset_hold = false;
 		set_suppress_reset(false);
 		send_cm(DUNGEON_FOLLOWERS, { type: "suppress_reset", state: false });
-	}
+		dungeon_log(dungeon, "Left the instance — periodic reload re-enabled");
+	}, 5000);
+}
+
+function has_dungeon_key(key) {
+	return character.items.some(it => it && it.name === key);
 }
 
 function start_dungeon_when_ready(dungeon) {

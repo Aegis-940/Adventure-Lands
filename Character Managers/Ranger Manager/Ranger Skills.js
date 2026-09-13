@@ -46,7 +46,7 @@ async function skill_loop() {
 		const { sorted_by_value, in_range } = cache.targets;
 		if (!sorted_by_value.length) return setTimeout(skill_loop, loop_next("skill_loop", 200));
 
-		const target = home === "giantspider" ? in_range[0] : sorted_by_value[0];
+		const target = dungeon_flag("single_target") ? in_range[0] : sorted_by_value[0];
 		if (!target || !is_in_range(target)) return setTimeout(skill_loop, loop_next("skill_loop", 100));
 
 		if (character.slots?.mainhand?.name === "cupid") return setTimeout(skill_loop, loop_next("skill_loop", 100));

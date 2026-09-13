@@ -25,6 +25,7 @@ const LOCATIONS = {
 	cgoo:       [{ map: "level4", x: -221, y: -274 }],
 	crab:       [{ map: "main", x: -11840, y: -37 }],
 	croc:       [{ map: "main", x: 801, y: 1710 }],
+	crypt:      [{ }],
 	dryad:      [{ map: "mforest", x: 403, y: -347 }],
 	ent:        [{ map: "desertland", x: -420, y: -1960 }],
 	fireroamer: [{ map: "desertland", x: 260, y: -800 }],
@@ -55,6 +56,8 @@ const LOCATIONS = {
 	wolfie:     [{ map: "winterland", x: 113, y: -2014 }],
 	xscorpion:  [{ map: "halloween", x: -495, y: 685 }],
 };
+
+const DUNGEONS = {};
 
 const HEALER_TARGET    = localStorage.getItem("AL_target_Myras") || "bscorpion";
 const WARRIOR_TARGET   = localStorage.getItem("AL_target_Ulric") || "bscorpion";

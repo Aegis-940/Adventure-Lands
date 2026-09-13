@@ -17,7 +17,7 @@ function should_attack_mob(mob) {
 
 	if (parent?.S?.[mob.mtype]?.live) return true;
 
-	if (home === "giantspider") return aggroed;
+	if (dungeon_flag("aggroed_only")) return aggroed;
 
 	return CONFIG.combat.target_priority.includes(mob.target);
 }
@@ -54,13 +54,14 @@ function update_target_cache() {
 		return value.get(b) - value.get(a);
 	});
 
-	const within_range = home === "giantspider"
-		? mob => is_in_range(mob) && parent.distance(character, mob) <= 50
+	const engage_radius = dungeon_engage_radius();
+	const within_range = in_dungeon()
+		? mob => is_in_range(mob) && parent.distance(character, mob) <= engage_radius
 		: mob => is_in_range(mob);
 
 	const in_range = sorted_by_value.filter(within_range);
 
-	if (home === "giantspider") {
+	if (in_dungeon()) {
 		in_range.sort((a, b) => parent.distance(character, a) - parent.distance(character, b));
 	}
 
@@ -243,7 +244,7 @@ function handle_attack() {
 	const { sorted_by_value, in_range } = cache.targets;
 	if (!sorted_by_value.length) return;
 
-	const single_target_mode = home === "giantspider";
+	const single_target_mode = dungeon_flag("single_target");
 
 	if (single_target_mode) {
 		if (character.mp < Math.max(100, panic_mp_reserve())) return;

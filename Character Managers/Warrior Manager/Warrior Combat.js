@@ -25,7 +25,7 @@ function cooperative_luck_logger() {
 }
 
 function find_best_target() {
-	const max_dist = home === "giantspider" ? 50 : character.range;
+	const max_dist = dungeon_engage_radius();
 
 	const context = {
 		explosion: character.explosion || 0,

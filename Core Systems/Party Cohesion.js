@@ -153,7 +153,7 @@ function local_step(goal) {
 function movement_goal() {
 	if (!CONFIG.movement.enabled) return null;
 
-	if (home === "giantspider" && character.name === MOVEMENT_LEADER) return null;
+	if (dungeon_flag("leader_manual") && character.name === MOVEMENT_LEADER) return null;
 
 	if (party_cohesion_hold()) return { hold: true, label: "cohesion" };
 
