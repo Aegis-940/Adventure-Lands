@@ -54,16 +54,12 @@ function update_target_cache() {
 		return value.get(b) - value.get(a);
 	});
 
-	const engage_radius = dungeon_engage_radius();
-	const within_range = in_dungeon()
+	const engage_radius = dungeon_setting("engage_radius", null);
+	const within_range = engage_radius
 		? mob => is_in_range(mob) && parent.distance(character, mob) <= engage_radius
 		: mob => is_in_range(mob);
 
-	const in_range = sorted_by_value.filter(within_range);
-
-	if (in_dungeon()) {
-		in_range.sort((a, b) => parent.distance(character, a) - parent.distance(character, b));
-	}
+	const in_range = dungeon_sort_targets(sorted_by_value.filter(within_range));
 
 	const radius = explosion_radius(pouchbow_explosion());
 	const scored = in_range.map(mob => ({

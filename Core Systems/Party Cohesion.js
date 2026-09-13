@@ -11,6 +11,14 @@ const XP_LAG_CLEAR = 0.02;
 
 let _xp_lagging = false;
 
+function cohesion_range() {
+	return dungeon_setting("cohesion_range", COHESION_RANGE);
+}
+
+function cohesion_regroup() {
+	return dungeon_setting("cohesion_regroup", COHESION_REGROUP);
+}
+
 function xp_progress(state) {
 	if (!state || !state.level) return null;
 	const max_xp = state.max_xp || 0;
@@ -87,7 +95,7 @@ function party_cohesion_hold() {
 		&& typeof anniversary_should_travel === "function" && anniversary_should_travel();
 	const endangered = party_member_in_danger();
 
-	const limit = (endangered || _cohesion_holding) ? COHESION_REGROUP : COHESION_RANGE;
+	const limit = (endangered || _cohesion_holding) ? cohesion_regroup() : cohesion_range();
 	const travelling = typeof is_travelling === "function" && is_travelling();
 	_cohesion_holding = COHESION_FOLLOWERS.some(name => {
 		const s = read_state_cache(name);
@@ -112,11 +120,11 @@ function follow_goal() {
 	const d = pos.map === character.map
 		? Math.hypot(character.x - pos.x, character.y - pos.y)
 		: Infinity;
-	if (d > COHESION_RANGE) _cohesion_closing = true;
-	else if (d <= COHESION_REGROUP) _cohesion_closing = false;
+	if (d > cohesion_range()) _cohesion_closing = true;
+	else if (d <= cohesion_regroup()) _cohesion_closing = false;
 
 	const fd = CONFIG.movement.follow_distance;
-	const arrive = pos.formation ? fd : (_cohesion_closing ? COHESION_REGROUP : COHESION_RANGE);
+	const arrive = pos.formation ? fd : (_cohesion_closing ? cohesion_regroup() : cohesion_range());
 	return approach(pos, {
 		label: "follow",
 		arrive,
@@ -142,7 +150,7 @@ function approach(pos, o) {
 	const a = Math.atan2(character.y - pos.y, character.x - pos.x);
 	const step = { x: pos.x + Math.cos(a) * o.ring, y: pos.y + Math.sin(a) * o.ring };
 	if (!smart.moving && can_move_to(step.x, step.y)) {
-		return { local: "step", label: o.label + "-close", on_station: d <= COHESION_RANGE, step, chasing: o.chasing };
+		return { local: "step", label: o.label + "-close", on_station: d <= cohesion_range(), step, chasing: o.chasing };
 	}
 	return travel;
 }

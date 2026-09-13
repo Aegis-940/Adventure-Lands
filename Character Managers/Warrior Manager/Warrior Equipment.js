@@ -151,7 +151,7 @@ function resolve_warrior_orb() {
 function resolve_warrior_weapon() {
 	if (character.map !== destination.map) return null;
 	if (!CONFIG.equipment.weapon_swap_enabled) return null;
-	if (dungeon_flag("single_target")) return "single";
+	if (dungeon_flag("warrior_single_weapon")) return "single";
 	return warrior_weapon_set();
 }
 

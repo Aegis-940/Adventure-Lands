@@ -36,7 +36,7 @@ function find_best_target() {
 	const boss = best_target({ type: CONFIG.combat.all_bosses, max_distance: max_dist }, { close: 1 }, context);
 	if (boss) return boss;
 
-	return best_target({ max_distance: max_dist }, CONFIG.combat.target_weights, context);
+	return best_target({ max_distance: max_dist }, dungeon_target_weights(CONFIG.combat.target_weights), context);
 }
 
 function find_monsters_in_cleave_range() {

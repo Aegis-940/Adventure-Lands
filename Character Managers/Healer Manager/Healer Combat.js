@@ -33,7 +33,7 @@ function find_best_target() {
 	if (CONFIG.combat.aggro && count_my_aggro() < effective_aggro_cap()) {
 		const untargeted = best_target(
 			{ no_target: true, max_distance: character.range },
-			CONFIG.combat.target_weights, context
+			dungeon_target_weights(CONFIG.combat.target_weights), context
 		);
 		if (untargeted) return untargeted;
 	}
@@ -46,7 +46,7 @@ function find_best_target() {
 		if (target) return target;
 	}
 
-	return best_target({ max_distance: character.range }, CONFIG.combat.target_weights, context);
+	return best_target({ max_distance: character.range }, dungeon_target_weights(CONFIG.combat.target_weights), context);
 }
 
 function count_my_aggro() {

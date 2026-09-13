@@ -82,6 +82,16 @@ function dungeon_engage_radius() {
 	return dungeon_setting("engage_radius", character.range);
 }
 
+function dungeon_target_weights(fallback) {
+	return dungeon_flag("target_lowest_hp") ? { hp_low: 1 } : fallback;
+}
+
+function dungeon_sort_targets(list) {
+	if (dungeon_flag("target_lowest_hp")) list.sort((a, b) => (a.hp || 0) - (b.hp || 0));
+	else if (dungeon_flag("nearest_first")) list.sort((a, b) => parent.distance(character, a) - parent.distance(character, b));
+	return list;
+}
+
 function dungeon_protected_key() {
 	const d = active_dungeon();
 	return d && d.key ? d.key : null;
