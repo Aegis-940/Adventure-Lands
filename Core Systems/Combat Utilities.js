@@ -370,12 +370,21 @@ function boss_max_hp(name, data) {
 }
 
 function boss_hp_below(name, hp, max_hp) {
-	const threshold = CONFIG.equipment?.boss_hp_thresholds?.[name];
+	const threshold = CONFIG.equipment?.boss_loot_thresholds?.[name];
 	if (threshold === undefined) return null;
 
 	const max = max_hp || boss_max_hp(name, null);
 	if (!max || !hp) return null;
 	return hp <= max * threshold;
+}
+
+function boss_engageable(name, data) {
+	const entry = EVENT_LOCATIONS.find(e => e.name === name);
+	if (!entry || entry.engage_below === undefined) return true;
+
+	const max = boss_max_hp(name, data);
+	if (!max || !data?.hp) return true;
+	return data.hp <= max * entry.engage_below;
 }
 
 function should_pause_combat_loop() {

@@ -272,9 +272,9 @@ function boss_gear_phase() {
 	const boss = typeof find_active_boss === "function" && find_active_boss();
 	if (!boss) return null;
 
-	const below = boss_hp_below(boss.name, boss.data.hp, boss.data.max_hp);
-	if (below === null) return null;
+	if (!boss_engageable(boss.name, boss.data)) return null;
 
+	const below = boss_hp_below(boss.name, boss.data.hp, boss.data.max_hp);
 	return below ? "loot" : "fight";
 }
 
