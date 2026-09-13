@@ -95,11 +95,8 @@ function sample_bow_choice(choice, best, pool) {
 }
 
 function resolve_ranger_loadout() {
-	if (!CONFIG.equipment.boss_set_swap_enabled) return null;
 	if (character.slots?.mainhand?.name === "cupid") return null;
-
-	const phase = boss_gear_phase();
-	if (phase) return phase === "fight" ? "dps" : "luck";
+	if (boss_engaged()) return "dps";
 
 	return character.map === destination.map ? "dps" : null;
 }

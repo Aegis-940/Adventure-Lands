@@ -42,20 +42,12 @@ var CONFIG = {
 
 	equipment: {
 		auto_swap_sets: true,
-		boss_loot_thresholds: {
-			mrpumpkin: 0.0056,
-			mrgreen: 0.0056,
-			franky: 0.0017,
-			icegolem: 0.0125,
-			crabxx: 0.2083,
-		},
 		single_target_maps: ["halloween", "spookyforest", "desertland"],
 		aoe_maps: ["cave", "main", "goobrawl", "level2n", "level2w", "mforest", "tunnel", "uhills", "winterland"],
 		cleave_maps: ["cave", "desertland", "goobrawl", "halloween", "level2n", "level2w", "main", "mforest", "spookytown", "tunnel", "uhills", "winterland", "level2e"],
 		mp_thresholds: { upper: 2350, lower: 2250 },
 		chest_threshold: 12,
 		swap_cooldown: 500,
-		boss_set_swap_enabled: true,
 		weapon_swap_enabled: true,
 
 		weapon_selection: "value",

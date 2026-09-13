@@ -41,16 +41,7 @@ var CONFIG = {
 	},
 
 	equipment: {
-		boss_loot_thresholds: {
-			mrpumpkin: 0.0028,
-			mrgreen: 0.0028,
-			crabxx: 0.1042,
-			grinch: 0.0042,
-			franky: 0.0008,
-			icegolem: 0.0063,
-		},
 		swap_cooldown: 500,
-		boss_set_swap_enabled: true,
 		use_licence: false,
 
 		weapon_sets: ["single", "boom"],

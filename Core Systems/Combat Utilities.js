@@ -369,13 +369,10 @@ function boss_max_hp(name, data) {
 	return (G.monsters?.[name]?.hp) || data?.max_hp || 0;
 }
 
-function boss_hp_below(name, hp, max_hp) {
-	const threshold = CONFIG.equipment?.boss_loot_thresholds?.[name];
-	if (threshold === undefined) return null;
-
+function boss_nearly_dead(name, hp, max_hp) {
 	const max = max_hp || boss_max_hp(name, null);
-	if (!max || !hp) return null;
-	return hp <= max * threshold;
+	if (!max || !hp) return false;
+	return hp <= max * BOSS_NEARLY_DEAD_HP;
 }
 
 function boss_engageable(name, data) {
@@ -385,6 +382,11 @@ function boss_engageable(name, data) {
 	const max = boss_max_hp(name, data);
 	if (!max || !data?.hp) return true;
 	return data.hp <= max * entry.engage_below;
+}
+
+function boss_engaged() {
+	const boss = find_active_boss();
+	return !!boss && boss_engageable(boss.name, boss.data);
 }
 
 function should_pause_combat_loop() {

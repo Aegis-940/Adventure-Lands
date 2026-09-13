@@ -64,16 +64,6 @@ var CONFIG = {
 		weapon_sets: ["luck"],
 		weapon_hysteresis_ms: 0,
 		weapon_switch_margin: 1.0,
-
-		boss_loot_thresholds: {
-			mrpumpkin: 0.0083,
-			mrgreen: 0.0083,
-			bscorpion: 0.13,
-			pinkgoblin: 0.1786,
-			franky: 0.0025,
-			icegolem: 0.0188,
-			crabxx: 0.3125,
-		}
 	},
 
 	potions: {

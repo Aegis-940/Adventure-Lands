@@ -148,10 +148,6 @@ function warrior_weapon_set() {
 	return null;
 }
 
-function resolve_warrior_booster() {
-	return boss_gear_phase() === "loot" ? "luckbooster" : "xpbooster";
-}
-
 function resolve_warrior_cape() {
 	const chest_count = get_num_chests();
 	const num_targets = cache.tank_entity ? get_num_targets(cache.tank_entity.name) : 0;
@@ -159,25 +155,17 @@ function resolve_warrior_cape() {
 }
 
 function resolve_warrior_coat() {
-	if (boss_gear_phase() === "loot") return null;
-
 	if (character.mp > CONFIG.equipment.mp_thresholds.upper) return "stat";
 	if (character.mp < CONFIG.equipment.mp_thresholds.lower) return "mana";
 	return null;
 }
 
 function resolve_warrior_orb() {
-	const looting = CONFIG.equipment.boss_set_swap_enabled && boss_gear_phase() === "loot";
-	return preferred_orb(looting ? "orb_luck" : "orb_dps", !looting);
+	return preferred_orb("orb_dps");
 }
 
 function resolve_warrior_loadout() {
-	if (!CONFIG.equipment.boss_set_swap_enabled) return resolve_warrior_home_loadout();
-
-	const phase = boss_gear_phase();
-	if (phase === "fight") return character.map !== destination.map ? "dps" : resolve_warrior_home_loadout();
-	if (phase === "loot" && set_available("luck")) return "luck";
-
+	if (boss_engaged() && character.map !== destination.map) return "dps";
 	return resolve_warrior_home_loadout();
 }
 
@@ -199,7 +187,6 @@ function resolve_warrior_home_loadout() {
 }
 
 var EQUIPMENT_RULES = {
-	booster: { kind: "booster", resolve: resolve_warrior_booster },
 	cape:    { kind: "set", resolve: resolve_warrior_cape },
 	coat:    { kind: "set", resolve: resolve_warrior_coat },
 	loadout: { kind: "set", resolve: resolve_warrior_loadout },

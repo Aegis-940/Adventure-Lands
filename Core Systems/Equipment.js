@@ -268,16 +268,6 @@ function hit_against(mob, attack) {
 	return (attack || 0) * defense_reduction((mob.armor || 0) - (character.apiercing || 0));
 }
 
-function boss_gear_phase() {
-	const boss = typeof find_active_boss === "function" && find_active_boss();
-	if (!boss) return null;
-
-	if (!boss_engageable(boss.name, boss.data)) return null;
-
-	const below = boss_hp_below(boss.name, boss.data.hp, boss.data.max_hp);
-	return below ? "loot" : "fight";
-}
-
 function make_weapon_choice() {
 	return { name: null, at: 0, probe: {} };
 }
