@@ -10,9 +10,9 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 
 - **No package.json, npm, or build pipeline.** Do not suggest installing packages or running build commands.
 - **No module system.** Files are loaded sequentially via the Bootstrapper or injected manually into the game client. There are no `import`/`export` statements.
-- **Two different load mechanisms, and they scope differently.** `Shared/*.js` and `UI/*.js` load in parallel as real `<script>` tags, so their top-level `const`/`let`/`function` are all global. `Character_Functions/**` load sequentially through **indirect eval**, where `var` and `function` go global but **a top-level `const`/`let` is invisible to sibling files**. Anything shared between two files of the same character must therefore be `var` or `function`. This fails silently at runtime, not at load.
+- **Two different load mechanisms, and they scope differently.** `Core Systems/*.js` and `Interface/*.js` load in parallel as real `<script>` tags, so their top-level `const`/`let`/`function` are all global. `Character Managers/**` load sequentially through **indirect eval**, where `var` and `function` go global but **a top-level `const`/`let` is invisible to sibling files**. Anything shared between two files of the same character must therefore be `var` or `function`. This fails silently at runtime, not at load.
 - **Nothing in a character file may run at load time** except the entry point (`Warrior.js`, `Healer.js`, `Ranger.js`, `Merchant.js`). The fighters start every loop from `run_character()`; the merchant starts `loop_controller()`.
-- **A top-level initializer may only name what has already loaded.** Function bodies run later so they can call anything, but a top-level `const X = {...}` is evaluated at load. `Merchant_Tasks.js` builds `PRIORITY_CHECKS` out of the `should_run_*` functions, so it has to load last. Getting this wrong throws inside the eval and the file defines nothing — silently.
+- **A top-level initializer may only name what has already loaded.** Function bodies run later so they can call anything, but a top-level `const X = {...}` is evaluated at load. `Merchant Task Loop.js` builds `PRIORITY_CHECKS` out of the `should_run_*` functions, so it has to load last. Getting this wrong throws inside the eval and the file defines nothing — silently.
 - **Runtime is the browser game client.** All globals (`character`, `parent.G`, `parent.entities`, `parent.S`, `parent.socket`) are provided by the game environment — they are not bugs or undefined references.
 - **jQuery is available** as `parent.$` or `window.jQuery`. This is injected by the game client.
 - **Code is injected into iframes.** `parent.*` references are how scripts access the game's top-level scope.
@@ -24,69 +24,71 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 
 | File | Role |
 |------|------|
-| `Code_Loader.js` | The one file that lives in a game code slot; fetches and evals `Bootstrapper.js` |
+| `Code Loader.js` | The one file that lives in a game code slot; fetches and evals `Bootstrapper.js` |
 | `Bootstrapper.js` | Script loader — loads all other files from CDN in order |
-| `Shared/Game_Config.js` | Core config/constants/state variables |
-| `Shared/Movement.js` | `smarter_move()`, the travel arbiter (`travel_arbiter()`), `move_to_character()`, stuck escape |
-| `Shared/Bscorpion_Farm.js` | Content-specific positioning for the desertland bscorpion/primling camp |
-| `Shared/Combat_Utilities.js` | Monster targeting/distance/aggro helpers, combat positioning (`best_orbit_spot()`) |
-| `Shared/Events.js` | Live boss/seasonal targets, the goal that walks the party to them, and the anniversary visit |
-| `Shared/Messaging.js` | CM (character message) handlers, localStorage-backed state cache |
-| `Shared/Equipment.js` | Equipment sets, the single `batch_equip()` emitter, the slot arbiter, the rules resolver |
-| `Shared/Party_Management.js` | Panic and its broadcast (`set_panic()` is the only writer), party invites, where home is |
-| `Shared/Loot_Management.js` | `loose_loot()` — what we keep, ship to the merchant, or vendor; bank withdrawal; chest looting (`should_loot()`/`handle_looting()`, driven by each character's `CONFIG.looting`) |
-| `Shared/Maintenance.js` | Potion drinking/restocking and the periodic tab reload |
-| `Shared/Cohesion.js` | Party cohesion (`follow_goal()`, `party_cohesion_hold()`) and `movement_goal()`, the one priority list |
-| `Shared/Character_Runner.js` | `run_character()` — the shared main tick loop every character starts from |
-| `Shared/Error_Handling.js` | `catcher()`, the shared error-triage/logging helper |
-| `Shared/Error_Log.js` | Persistent cross-character flight recorder; hooks only, read with `al_errors(true)` |
-| `Shared/Widgets.js` | `create_bottomrightcorner_widget()` (Gold/XP/CC/DPS meters' container) and `make_draggable()` (used by Custom_Log.js/Stats_Window.js) — all that survived removing Shared/Windows.js |
-| `Merchant_Systems/Auto_Upgrade.js` | Item upgrade profiles and automation |
-| `Merchant_Systems/Auto_Craft.js` | Crafting logic and batch orchestration — loaded by Bootstrapper.js |
-| `Character_Functions/Warrior/Warrior_Config.js` | Warrior tunables, gear sets, panic thresholds, `state`/`cache` (character: Ulric) |
-| `Character_Functions/Warrior/Warrior_Combat.js` | Warrior targeting, the sugar-rush swap trick, `action_loop()`; sets `cache.tank_entity` to **Myras** |
-| `Character_Functions/Warrior/Warrior_Skills.js` | Warrior skill loop (cleave, agitate, warcry); agitate donates aggro to the tank (stomp/hardshell/charge commented out) |
-| `Character_Functions/Warrior/Warrior_Equipment.js` | Warrior `EQUIPMENT_RULES` resolvers and monster gear overrides |
-| `Character_Functions/Warrior/Warrior_Movement.js` | Warrior reposition scorer |
-| `Character_Functions/Warrior/Warrior_Bscorpion.js` | Bscorpion kill detection and seconds-per-kill average |
-| `Character_Functions/Warrior/Warrior.js` | Warrior entry point — windows, event handlers, `run_character()` |
-| `Character_Functions/Healer/Healer_Config.js` | Healer tunables, gear sets, panic thresholds, `state`/`cache` (character: Myras) |
-| `Character_Functions/Healer/Healer_Combat.js` | **The tank's** pull logic — heal target selection, MP-scaled aggro cap (`effective_aggro_cap()`), `action_loop()` |
-| `Character_Functions/Healer/Healer_Skills.js` | Healer skill loop (curse, absorb, party heal, dark blessing) |
-| `Character_Functions/Healer/Healer_Equipment.js` | Healer `EQUIPMENT_RULES` resolvers, booster swap, temporal surge |
-| `Character_Functions/Healer/Healer_Movement.js` | Healer runner hooks (`healer_local`, panic skip) and the circle walk |
-| `Character_Functions/Healer/Healer_Dungeon.js` | Spider instance run and its auto-start |
-| `Character_Functions/Healer/Healer.js` | Healer entry point — windows, `run_character()` |
-| `Character_Functions/Ranger/Ranger_Config.js` | Ranger tunables, gear sets, panic thresholds, `state`/`cache` (character: Riva) |
-| `Character_Functions/Ranger/Ranger_Combat.js` | Ranger target cache, `action_loop()`, `handle_attack()` |
-| `Character_Functions/Ranger/Ranger_Skills.js` | Ranger skill loop (hunter's mark, supershot) |
-| `Character_Functions/Ranger/Ranger_Equipment.js` | Ranger `EQUIPMENT_RULES` resolvers (weapon/boss sets) |
-| `Character_Functions/Ranger/Ranger_Movement.js` | Licence top-up and the reposition scorer |
-| `Character_Functions/Ranger/Ranger_Looting.js` | Disabled delayed-chest looting, kept for later |
-| `Character_Functions/Ranger/Ranger.js` | Ranger entry point — windows, `run_character()` |
-| `Character_Functions/Merchant/Merchant_Config.js` | Merchant tunables, locations, `merchant_task` (character: Riff) |
-| `Character_Functions/Merchant/Merchant_Stand.js` | The stall: open/close, buy and sell orders, stock accounting, restocking, and the idle state |
-| `Character_Functions/Merchant/Merchant_Inventory.js` | Slot counting, vendoring `SELLABLE_ITEMS`, and the banking state |
-| `Character_Functions/Merchant/Merchant_Exchange.js` | Bank fetch task plus the exchanging he does while idle |
-| `Character_Functions/Merchant/Merchant_Gear.js` | Default loadout and gathering-tool swaps |
-| `Character_Functions/Merchant/Merchant_Gathering.js` | Shared fishing/mining run |
-| `Character_Functions/Merchant/Merchant_Party.js` | mluck, party membership, the delivery run |
-| `Character_Functions/Merchant/Merchant_Opportunistic.js` | Potions, loot collection and buffing, on their own 1Hz loop |
-| `Character_Functions/Merchant/Merchant_Tasks.js` | `PRIORITY_CHECKS`, `set_state()`, `loop_controller()` — **must load after every file it names** |
-| `Character_Functions/Merchant/Merchant.js` | Merchant entry point |
-| `UI/DPS_Meter.js` | Real-time DPS tracking overlay |
-| `UI/Stats_Window.js` | Character stats + gold graph (Canvas API) |
-| `UI/Settings_Window.js` | Live in-game per-character target settings, persisted via localStorage, ⚙️ button next to the reload button |
-| `UI/Party_Frames.js` | Party HP/status display |
-| `UI/Remote_Bank_Viewer.js` | Bank access UI, plus the toprightcorner reload button (restored here after Buttons.js was removed) |
-| `UI/Bank_Sorter.js` | Bank sorting order/category definitions |
-| `UI/CC_Meter.js` | Crowd control meter |
-| `UI/Gold_Meter.js` | Gold accumulation display |
-| `UI/XP_Meter.js` | XP tracking display |
-| `UI/Game_Log.js` | Game event log (mostly commented out) |
-| `UI/Custom_Log.js` | Custom in-game log window |
-| `UI/Pause_Button.js` | Per-character pause/resume button — parks automation, leaves combat/panic/upkeep running |
-| `tools/probe_anniversary.js` | One-off dev probe pasted into a code slot/console; not part of the loaded bot |
+| `Core Systems/Global Config.js` | Core config/constants/state variables |
+| `Core Systems/Movement.js` | `smarter_move()`, the travel arbiter (`travel_arbiter()`), `move_to_character()`, stuck escape |
+| `Core Systems/Bscorpion Camp.js` | Content-specific positioning for the desertland bscorpion/primling camp |
+| `Core Systems/Combat Utilities.js` | Monster targeting/distance/aggro helpers, combat positioning (`best_orbit_spot()`) |
+| `Core Systems/Targeting.js` | `score_targets()`/`select_target()` — the one scorer every character picks targets with |
+| `Core Systems/World Events.js` | Live boss/seasonal targets, the goal that walks the party to them, and the anniversary visit |
+| `Core Systems/Character Messaging.js` | CM (character message) handlers, localStorage-backed state cache |
+| `Core Systems/Equipment.js` | Equipment sets, the single `batch_equip()` emitter, the slot arbiter, the rules resolver |
+| `Core Systems/Party Management.js` | Panic and its broadcast (`set_panic()` is the only writer), party invites, where home is |
+| `Core Systems/Loot Management.js` | `loose_loot()` — what we keep, ship to the merchant, or vendor; bank withdrawal; chest looting (`should_loot()`/`handle_looting()`, driven by each character's `CONFIG.looting`) |
+| `Core Systems/Maintenance.js` | Potion drinking/restocking and the periodic tab reload |
+| `Core Systems/Party Cohesion.js` | Party cohesion (`follow_goal()`, `party_cohesion_hold()`) and `movement_goal()`, the one priority list |
+| `Core Systems/Character Runner.js` | `run_character()` — the shared main tick loop every character starts from |
+| `Core Systems/Error Handling.js` | `catcher()`, the shared error-triage/logging helper |
+| `Core Systems/Error Log.js` | Persistent cross-character flight recorder; hooks only, read with `al_errors(true)` |
+| `Interface/Widget Helpers.js` | `create_bottomrightcorner_widget()` (Gold/XP/CC/DPS meters' container) and `make_draggable()` (used by Custom Log.js/Stats Window.js) — all that survived removing Windows.js |
+| `Character Managers/Warrior Manager/Warrior Config.js` | Warrior tunables, gear sets, panic thresholds, `state`/`cache` (character: Ulric) |
+| `Character Managers/Warrior Manager/Warrior Combat.js` | Warrior targeting, the sugar-rush swap trick, `action_loop()`; sets `cache.tank_entity` to **Myras** |
+| `Character Managers/Warrior Manager/Warrior Skills.js` | Warrior skill loop (cleave, agitate, warcry); agitate donates aggro to the tank (stomp/hardshell/charge commented out) |
+| `Character Managers/Warrior Manager/Warrior Equipment.js` | Warrior `EQUIPMENT_RULES` resolvers and monster gear overrides |
+| `Character Managers/Warrior Manager/Warrior Movement.js` | Warrior reposition scorer |
+| `Character Managers/Warrior Manager/Warrior Bscorpion.js` | Bscorpion kill detection and seconds-per-kill average |
+| `Character Managers/Warrior Manager/Warrior.js` | Warrior entry point — windows, event handlers, `run_character()` |
+| `Character Managers/Healer Manager/Healer Config.js` | Healer tunables, gear sets, panic thresholds, `state`/`cache` (character: Myras) |
+| `Character Managers/Healer Manager/Healer Combat.js` | **The tank's** pull logic — heal target selection, MP-scaled aggro cap (`effective_aggro_cap()`), `action_loop()` |
+| `Character Managers/Healer Manager/Healer Skills.js` | Healer skill loop (curse, absorb, party heal, dark blessing) |
+| `Character Managers/Healer Manager/Healer Equipment.js` | Healer `EQUIPMENT_RULES` resolvers, booster swap, temporal surge |
+| `Character Managers/Healer Manager/Healer Movement.js` | Healer runner hooks (`healer_local`, panic skip) and the circle walk |
+| `Character Managers/Healer Manager/Healer Dungeon.js` | Spider instance run and its auto-start |
+| `Character Managers/Healer Manager/Healer.js` | Healer entry point — windows, `run_character()` |
+| `Character Managers/Ranger Manager/Ranger Config.js` | Ranger tunables, gear sets, panic thresholds, `state`/`cache` (character: Riva) |
+| `Character Managers/Ranger Manager/Ranger Combat.js` | Ranger target cache, `action_loop()`, `handle_attack()` |
+| `Character Managers/Ranger Manager/Ranger Skills.js` | Ranger skill loop (hunter's mark, supershot) |
+| `Character Managers/Ranger Manager/Ranger Equipment.js` | Ranger `EQUIPMENT_RULES` resolvers (weapon/boss sets) |
+| `Character Managers/Ranger Manager/Ranger Movement.js` | Licence top-up and the reposition scorer |
+| `Character Managers/Ranger Manager/Ranger Looting.js` | Disabled delayed-chest looting, kept for later |
+| `Character Managers/Ranger Manager/Ranger.js` | Ranger entry point — windows, `run_character()` |
+| `Character Managers/Merchant Manager/Merchant Config.js` | Merchant tunables, locations, `merchant_task` (character: Riff) |
+| `Character Managers/Merchant Manager/Merchant Stand.js` | The stall: open/close, buy and sell orders, stock accounting, restocking, and the idle state |
+| `Character Managers/Merchant Manager/Merchant Inventory.js` | Slot counting, vendoring `SELLABLE_ITEMS`, and the banking state |
+| `Character Managers/Merchant Manager/Merchant Exchange.js` | Bank fetch task plus the exchanging he does while idle |
+| `Character Managers/Merchant Manager/Merchant Gear.js` | Default loadout and gathering-tool swaps |
+| `Character Managers/Merchant Manager/Merchant Gathering.js` | Shared fishing/mining run |
+| `Character Managers/Merchant Manager/Merchant Party.js` | mluck, party membership, the delivery run |
+| `Character Managers/Merchant Manager/Merchant Upkeep.js` | Potions, loot collection and buffing, on their own 1Hz loop |
+| `Character Managers/Merchant Manager/Merchant Task Loop.js` | `PRIORITY_CHECKS`, `set_state()`, `loop_controller()` — **must load after every file it names** |
+| `Character Managers/Merchant Manager/Merchant Upgrading.js` | Item upgrade profiles and automation |
+| `Character Managers/Merchant Manager/Merchant Crafting.js` | Crafting logic and batch orchestration |
+| `Character Managers/Merchant Manager/Merchant.js` | Merchant entry point |
+| `Interface/DPS Meter.js` | Real-time DPS tracking overlay |
+| `Interface/Stats Window.js` | Character stats + gold graph (Canvas API) |
+| `Interface/Settings Window.js` | Live in-game per-character target settings, persisted via localStorage, ⚙️ button next to the reload button |
+| `Interface/Party Frames.js` | Party HP/status display |
+| `Interface/Bank Viewer.js` | Bank access UI, plus the toprightcorner reload button (restored here after Buttons.js was removed) |
+| `Interface/Bank Sort Order.js` | Bank sorting order/category definitions |
+| `Interface/CC Meter.js` | Crowd control meter |
+| `Interface/Gold Meter.js` | Gold accumulation display |
+| `Interface/XP Meter.js` | XP tracking display |
+| `Interface/Game Log.js` | Game event log (mostly commented out) |
+| `Interface/Custom Log.js` | Custom in-game log window |
+| `Interface/Pause Button.js` | Per-character pause/resume button — parks automation, leaves combat/panic/upkeep running |
+| `Tools/Error Sink.py` | Local HTTP sink that receives `errlog_sample()` pushes and writes `errors.json` |
+| `Tools/Anniversary Probe.js` | One-off dev probe pasted into a code slot/console; not part of the loaded bot |
 
 ---
 
@@ -97,7 +99,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 - Constants/config keys: `UPPER_SNAKE_CASE` — e.g., `TICK_RATE`, `LOOT_THRESHOLD`
 - Top-level config objects: `CONFIG`, `STATE`
 - Internal/private: prefixed with `_` — e.g., `smart._interrupt`
-- Multi-word file/folder names: underscore-separated, e.g. `Game_Config.js`, `Character_Functions/` — no spaces in filenames (avoids `encodeURI()` friction in `Bootstrapper.js` and constant shell-quoting)
+- Multi-word file/folder names: space-separated, e.g. `Global Config.js`, `Character Managers/` — a folder names what it contains, a file names what it does. `Bootstrapper.js` already `encodeURI()`s every path and jsDelivr serves `%20` fine; shell loops over these paths must quote and use `-z`/null separators (see Deploying)
 
 ### Formatting
 - Indentation: tabs
@@ -144,9 +146,9 @@ parent.$           // jQuery
 `Myras` (Healer) is the party's tank. This is the single most commonly mis-assumed thing about
 this party, so do not reason from the usual Warrior-tanks/Healer-heals layout:
 
-- `Warrior_Combat.js` hardcodes `cache.tank_entity = get_entity("Myras")`. Every warrior skill and
+- `Warrior Combat.js` hardcodes `cache.tank_entity = get_entity("Myras")`. Every warrior skill and
   equipment decision reads that entity, never `character`.
-- The Healer deliberately pulls: `Healer_Combat.js` takes untargeted monsters while
+- The Healer deliberately pulls: `Healer Combat.js` takes untargeted monsters while
   `count_my_aggro() < effective_aggro_cap()`, and her cap scales with MP
   (`(mp_pct - 0.2) / 0.6`, floored at `CONFIG.combat.aggro_cap`). Aggro is a *resource she
   spends mana on*, not a hazard she avoids.
@@ -154,7 +156,7 @@ this party, so do not reason from the usual Warrior-tanks/Healer-heals layout:
   is missing or dead, and checks `distance(character, tank) <= 100`.
 - Target priority runs both ways round this: the Warrior's is `["Myras"]` (kill what she holds),
   the Healer's is `["Ulric", "Myras"]` (pull what is hitting him, then hold it).
-- So `Warrior_Skills.js`'s `stomp`/`hardshell`/`charge` are commented out, and low-HP checks like
+- So `Warrior Skills.js`'s `stomp`/`hardshell`/`charge` are commented out, and low-HP checks like
   `tank?.hp < tank?.max_hp * 0.3` refer to *her* HP, not his.
 
 Practical consequence: survivability work (damage projection, panic thresholds, defensive gear,
@@ -183,7 +185,7 @@ falls back to `@main`, which jsDelivr caches for 12h (`s-maxage=43200`, confirme
 headers). A query string does **not** purge that cache — only `purge.jsdelivr.net` does.
 
 So a push made while rate-limited can silently never reach the characters. This is not theoretical:
-`Party_And_Loot.js` and `Healer_Skills.js` sat on a pre-fix commit for hours while every other file
+`Party Management.js` and `Healer Skills.js` sat on a pre-fix commit for hours while every other file
 was current, producing a mixed build that made fixed bugs look unfixed.
 
 **After every push, purge and verify:**
@@ -192,14 +194,18 @@ was current, producing a mixed build that made fixed bugs look unfixed.
 # Read the purge response — do NOT discard it. purge.jsdelivr.net throttles PER PATH and reports
 # it in the JSON body: {"paths":{"...":{"throttled":true,"throttlingReset":2990}}}. A throttled
 # purge returns HTTP 200 and does nothing, so `-o /dev/null` makes the failure invisible.
-for f in $(git ls-files '*.js'); do
-  r=$(curl -s "https://purge.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/$f")
+# Paths contain SPACES: iterate with `-z` and URL-encode them as %20. An unquoted
+# `for f in $(git ls-files)` splits every path and purges nonsense.
+git ls-files -z '*.js' | while IFS= read -r -d '' f; do
+  u=${f// /%20}
+  r=$(curl -s "https://purge.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/$u")
   case "$r" in *'"throttled": true'*) echo "THROTTLED $f";; esac
 done
 # verify: compare against git blobs, NOT working-tree files — the working tree is CRLF
 # while git blobs and jsDelivr are LF, so a naive diff reports every file as stale.
-for f in $(git ls-files '*.js'); do
-  a=$(curl -s "https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/$f" | md5sum | cut -d' ' -f1)
+git ls-files -z '*.js' | while IFS= read -r -d '' f; do
+  u=${f// /%20}
+  a=$(curl -s "https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/$u" | md5sum | cut -d' ' -f1)
   b=$(git show "HEAD:$f" | md5sum | cut -d' ' -f1)
   [ "$a" != "$b" ] && echo "STALE $f"
 done
@@ -219,15 +225,15 @@ path to confirm the deploy is actually reachable:
 
 ```bash
 sha=$(git rev-parse HEAD)
-curl -s "https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@$sha/$f" | md5sum
+curl -s "https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@$sha/${f// /%20}" | md5sum
 git show "HEAD:$f" | md5sum
 ```
 
 Other loader facts worth not re-deriving:
 
-- `Code_Loader.js` lives in **game code slot 1**, not the repo's load path. Paste it **once** —
+- `Code Loader.js` lives in **game code slot 1**, not the repo's load path. Paste it **once** —
   replacing the slot's whole contents. A slot holding two copies runs both IIFEs and loads
-  everything twice, which re-evaluates every `Shared/*.js`; their top-level `const`s cannot
+  everything twice, which re-evaluates every `Core Systems/*.js`; their top-level `const`s cannot
   re-declare, so those files throw at instantiation and define **nothing**, while the first copy's
   loops keep running against a stale `character` and every action is rejected as `disabled`.
 - The base must serve executable script. `raw.githubusercontent.com` sends `text/plain` with
@@ -244,7 +250,7 @@ There is no test suite. Changes must be manually tested by injecting the modifie
 
 ## Game Engine Reference
 
-A comprehensive map of the AdventureLand game engine internals is available in [`GAME_API_REFERENCE.md`](GAME_API_REFERENCE.md). This was sourced from the [official game repo](https://github.com/kaansoral/adventureland) and covers:
+A comprehensive map of the AdventureLand game engine internals is available in [`Game API Reference.md`](Game%20API%20Reference.md). This was sourced from the [official game repo](https://github.com/kaansoral/adventureland) and covers:
 
 - **All bot API functions** — `attack()`, `heal()`, `use_skill()`, `smart_move()`, `buy()`, `upgrade()`, `compound()`, `bank_store()`, `send_cm()`, etc. with signatures, return types, and reject reasons
 - **Socket events** — every client→server and server→client event with payloads (including skill-specific payloads like `3shot`, `5shot`, `cburst`, `blink`)

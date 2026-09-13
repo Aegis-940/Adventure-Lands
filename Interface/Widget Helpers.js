@@ -1,6 +1,6 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // WIDGETS — create_bottomrightcorner_widget() (Gold/XP/CC/DPS meters' display container) and
-// make_draggable() (used by UI/Custom_Log.js and UI/Stats_Window.js).
+// make_draggable() (used by Interface/Custom Log.js and Interface/Stats Window.js).
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function create_bottomrightcorner_widget(id, css) {

@@ -1,6 +1,6 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SETTINGS WINDOW — live in-game config for per-character target monsters. Persisted via
-// localStorage (shared across all 4 characters' tabs), read back by Shared/Game_Config.js's
+// localStorage (shared across all 4 characters' tabs), read back by Core Systems/Global Config.js's
 // WARRIOR_TARGET/HEALER_TARGET/RANGER_TARGET at each character's next reload.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 

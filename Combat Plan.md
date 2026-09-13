@@ -107,7 +107,7 @@ so the damage windows stay clean for later items.
 
 Do this first — pure upside, no survivability risk.
 
-**Evidence.** [`Warrior_Movement.js`](Character_Functions/Warrior/Warrior_Movement.js) is the
+**Evidence.** [`Warrior Movement.js`](Character%20Managers/Warrior%20Manager/Warrior%20Movement.js) is the
 entire positioning model:
 
 ```js
@@ -291,7 +291,7 @@ not confound.
 
 **Status:** not started. Mostly a port of code that already works.
 
-**Evidence.** [`Healer_Skills.js`](Character_Functions/Healer/Healer_Skills.js) `handle_curse()`
+**Evidence.** [`Healer Skills.js`](Character%20Managers/Healer%20Manager/Healer%20Skills.js) `handle_curse()`
 picks the highest-HP mob with a target within 175px of the home point above 25% HP, and casts. No
 mana price, no time-to-kill check, no clustering term. Meanwhile Riva's `mark_value()` already does
 the job properly: `incdmgamp × party_dps × min(duration, ttk) × target_modifier`, gated by
@@ -338,7 +338,7 @@ The cap was not the binding constraint and does not measure the one that was.
 
 ### 4a. Incoming-damage sampler — prerequisite
 
-A mirror of the outgoing sampler in [`Shared/Combat_Utilities.js`](Shared/Combat_Utilities.js),
+A mirror of the outgoing sampler in [`Core Systems/Combat Utilities.js`](Core%20Systems/Combat%20Utilities.js),
 keyed on `data.id === character.id` instead of `data.hid`. Records incoming DPS, attacker count by
 damage type, and fear band per window. Cheap, additive, and useful on its own for diagnosing deaths.
 

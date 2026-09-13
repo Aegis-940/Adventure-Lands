@@ -38,7 +38,7 @@ async function handle_anniversary_state() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// UPGRADING & CRAFTING — thin wrappers over Merchant_Systems/
+// UPGRADING & CRAFTING — thin wrappers over Merchant Upgrading.js / Merchant Crafting.js
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function should_run_upgrade() {
