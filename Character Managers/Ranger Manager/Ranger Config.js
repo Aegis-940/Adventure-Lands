@@ -42,12 +42,12 @@ var CONFIG = {
 
 	equipment: {
 		boss_hp_thresholds: {
-			mrpumpkin: 100000,
-			mrgreen: 100000,
-			crabxx: 100000,
-			grinch: 100000,
-			franky: 999999999,
-			icegolem: 999999999,
+			mrpumpkin: 0.0028,
+			mrgreen: 0.0028,
+			crabxx: 0.95,
+			grinch: 0.0042,
+			franky: 0.95,
+			icegolem: 0.95,
 		},
 		swap_cooldown: 500,
 		boss_set_swap_enabled: true,

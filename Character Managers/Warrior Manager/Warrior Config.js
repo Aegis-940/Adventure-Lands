@@ -43,10 +43,11 @@ var CONFIG = {
 	equipment: {
 		auto_swap_sets: true,
 		boss_hp_thresholds: {
-			mrpumpkin: 200000,
-			mrgreen: 200000,
-			franky: 999999999,
-			icegolem: 999999999,
+			mrpumpkin: 0.0056,
+			mrgreen: 0.0056,
+			franky: 0.95,
+			icegolem: 0.95,
+			crabxx: 0.95,
 		},
 		single_target_maps: ["halloween", "spookyforest", "desertland"],
 		aoe_maps: ["cave", "main", "goobrawl", "level2n", "level2w", "mforest", "tunnel", "uhills", "winterland"],

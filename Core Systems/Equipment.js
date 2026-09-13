@@ -272,10 +272,10 @@ function boss_gear_phase() {
 	const boss = typeof find_active_boss === "function" && find_active_boss();
 	if (!boss) return null;
 
-	const threshold = CONFIG.equipment?.boss_hp_thresholds?.[boss.name];
-	if (threshold === undefined) return null;
+	const below = boss_hp_below(boss.name, boss.data.hp, boss.data.max_hp);
+	if (below === null) return null;
 
-	return boss.data.hp > threshold ? "fight" : "loot";
+	return below ? "loot" : "fight";
 }
 
 function make_weapon_choice() {

@@ -66,12 +66,13 @@ var CONFIG = {
 		weapon_switch_margin: 1.0,
 
 		boss_hp_thresholds: {
-			mrpumpkin: 300000,
-			mrgreen: 300000,
-			bscorpion: 75000,
-			pinkgoblin: 75000,
-			franky: 999999999,
-			icegolem: 999999999,
+			mrpumpkin: 0.0083,
+			mrgreen: 0.0083,
+			bscorpion: 0.13,
+			pinkgoblin: 0.1786,
+			franky: 0.95,
+			icegolem: 0.95,
+			crabxx: 0.95,
 		}
 	},
 

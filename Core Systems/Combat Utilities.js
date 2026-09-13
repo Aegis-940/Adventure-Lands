@@ -365,6 +365,19 @@ function find_active_boss() {
 		.find(e => e.data?.live && boss_is_present(e));
 }
 
+function boss_max_hp(name, data) {
+	return (G.monsters?.[name]?.hp) || data?.max_hp || 0;
+}
+
+function boss_hp_below(name, hp, max_hp) {
+	const threshold = CONFIG.equipment?.boss_hp_thresholds?.[name];
+	if (threshold === undefined) return null;
+
+	const max = max_hp || boss_max_hp(name, null);
+	if (!max || !hp) return null;
+	return hp <= max * threshold;
+}
+
 function should_pause_combat_loop() {
 	if (panicking) return true;
 	if (typeof anniversary_travel !== "undefined" && anniversary_travel) return true;

@@ -12,7 +12,7 @@ let _last_event_join = 0;
 
 function engage_hp_ok(e) {
 	if (e.engage_below === undefined) return true;
-	const max = (G.monsters?.[e.name]?.hp) || e.data?.max_hp;
+	const max = boss_max_hp(e.name, e.data);
 	if (!max || !e.data?.hp) return true;
 	return e.data.hp <= max * e.engage_below;
 }

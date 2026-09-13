@@ -158,7 +158,7 @@ function can_cleave() {
 		e?.type === "monster" &&
 		CONFIG.combat.all_bosses.includes(e.mtype) &&
 		!e.dead &&
-		e.hp < CONFIG.equipment.boss_hp_thresholds[e.mtype]
+		boss_hp_below(e.mtype, e.hp, e.max_hp) === true
 	);
 	if (low_boss) return false;
 
