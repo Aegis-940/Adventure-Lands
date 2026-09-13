@@ -112,10 +112,11 @@ function maintain_xp_booster() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// PERIODIC RESET - Reload the game tab every N hours, on the hour
+// PERIODIC RESET - Reload the game tab every N hours, five minutes before the hour
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const RESET_INTERVAL_HOURS = 2;
+const RESET_INTERVAL_HOURS = 4;
+const RESET_MINUTE = 55;
 const RESET_WINDOW_MINUTES = 2;
 let _last_reset_bucket = null;
 let _reset_due_bucket = null;
@@ -123,9 +124,15 @@ let _suppress_periodic_reset = false;
 
 function set_suppress_reset(val) { _suppress_periodic_reset = val; }
 
+function in_reset_window(when) {
+	const minutes = when.getMinutes();
+	if (minutes < RESET_MINUTE || minutes >= RESET_MINUTE + RESET_WINDOW_MINUTES) return false;
+	return (when.getHours() + 1) % RESET_INTERVAL_HOURS === 0;
+}
+
 function schedule_periodic_reset() {
 	const boot = new Date();
-	if (boot.getHours() % RESET_INTERVAL_HOURS === 0 && boot.getMinutes() < RESET_WINDOW_MINUTES) {
+	if (in_reset_window(boot)) {
 		_last_reset_bucket = `${boot.toDateString()}-${boot.getHours()}`;
 	}
 
@@ -136,8 +143,7 @@ function schedule_periodic_reset() {
 		const hour = now.getHours();
 		const bucket = `${now.toDateString()}-${hour}`;
 
-		if (hour % RESET_INTERVAL_HOURS === 0 && now.getMinutes() < RESET_WINDOW_MINUTES
-			&& _last_reset_bucket !== bucket) {
+		if (in_reset_window(now) && _last_reset_bucket !== bucket) {
 			_reset_due_bucket = bucket;
 		}
 		if (!_reset_due_bucket || _last_reset_bucket === _reset_due_bucket) return;
@@ -147,7 +153,7 @@ function schedule_periodic_reset() {
 		_last_reset_bucket = _reset_due_bucket;
 		_reset_due_bucket = null;
 
-		game_log(`[reset] Periodic reload at ${hour}:00`, "#FFAA00");
+		game_log(`[reset] Periodic reload at ${hour}:${String(now.getMinutes()).padStart(2, "0")}`, "#FFAA00");
 		setTimeout(() => parent.window.location.reload(), 1000);
 	}, 60000);
 }
