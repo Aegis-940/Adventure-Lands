@@ -23,30 +23,64 @@ const ITEM_ORDER_BASE = {
 	elixirluck: [5, 8],
 };
 
-let _set_item_names = null;
+let _set_item_slots = null;
 
-function equipment_set_item_names() {
-	if (_set_item_names) return _set_item_names;
-	const found = new Set();
+function equipment_set_item_slots() {
+	if (_set_item_slots) return _set_item_slots;
+	const found = {};
 	try {
 		for (const name in equipment_sets) {
 			for (const entry of equipment_sets[name] || []) {
-				if (entry && entry.item_name) found.add(entry.item_name);
+				if (!entry || !entry.item_name || !entry.slot) continue;
+				if (!found[entry.item_name]) found[entry.item_name] = new Set();
+				found[entry.item_name].add(entry.slot);
 			}
 		}
 	} catch (e) { return found; }
-	if (found.size) _set_item_names = found;
+	if (Object.keys(found).length) _set_item_slots = found;
 	return found;
+}
+
+function gear_copies_needed(item_name) {
+	const slots = equipment_set_item_slots()[item_name];
+	if (!slots) return 0;
+
+	let needed = 0;
+	for (const slot of slots) {
+		const worn = character.slots[slot];
+		if (!worn || worn.name !== item_name) needed++;
+	}
+	return needed;
+}
+
+function reserved_gear_slots() {
+	const by_name = {};
+	for (let i = 0; i < character.items.length; i++) {
+		const item = character.items[i];
+		if (!item || item.l || item.s) continue;
+		if (!equipment_set_item_slots()[item.name]) continue;
+		if (!by_name[item.name]) by_name[item.name] = [];
+		by_name[item.name].push({ i, level: item.level || 0 });
+	}
+
+	const reserved = new Set();
+	for (const name in by_name) {
+		const needed = gear_copies_needed(name);
+		if (!needed) continue;
+		by_name[name].sort((a, b) => b.level - a.level);
+		for (const entry of by_name[name].slice(0, needed)) reserved.add(entry.i);
+	}
+	return reserved;
 }
 
 function loose_loot(start) {
 	const keep = typeof ITEMS_TO_KEEP !== "undefined" ? ITEMS_TO_KEEP : [];
-	const gear = equipment_set_item_names();
+	const reserved = reserved_gear_slots();
 	const out = [];
 	for (let i = start; i < character.items.length; i++) {
 		const item = character.items[i];
 		if (!item || item.l || item.s) continue;
-		if (keep.includes(item.name) || gear.has(item.name)) continue;
+		if (keep.includes(item.name) || reserved.has(i)) continue;
 		out.push({ i, item });
 	}
 	return out;
