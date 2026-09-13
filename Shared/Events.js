@@ -133,6 +133,11 @@ function anniversary_block_reason() {
 		return "a boss is up — bossing first";
 	}
 
+	if (character.ctype !== "merchant" && typeof party_member_in_danger === "function") {
+		const hurt = party_member_in_danger();
+		if (hurt) return `${hurt} is in trouble`;
+	}
+
 	const ticket = character.s && character.s.anniversary_visit;
 	if (!ticket) return "no ticket issued to us";
 	if (!(ticket.ms > 0)) return "ticket already spent";
