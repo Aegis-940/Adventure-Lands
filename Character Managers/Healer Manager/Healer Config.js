@@ -17,7 +17,7 @@ var CONFIG = {
 		aggro_cap: 5,
 		curse_min_hp_pct: 0.25,
 		zapper_enabled: false,
-		zapper_mobs: [home, ...all_bosses, "sparkbot"],
+		zapper_mobs: [home, ...ALL_BOSSES, "sparkbot"],
 
 		sample_hits: false,
 		sample_targets: true,
