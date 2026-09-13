@@ -224,6 +224,7 @@ async function run_dungeon(dungeon) {
 		return;
 	}
 	_dungeon_running = true;
+	_dungeon_moving = true;
 	set_suppress_reset(true);
 	send_cm(DUNGEON_FOLLOWERS, { type: "suppress_reset" });
 	try {
@@ -237,7 +238,7 @@ async function run_dungeon(dungeon) {
 		}
 
 		dungeon_log(dungeon, "Moving to entrance...");
-		await dungeon_travel(dungeon.entrance);
+		await smarter_move(dungeon.entrance);
 		dungeon_log(dungeon, "At entrance — entering instance...");
 		await delay(10000);
 		enter(dungeon.map);
@@ -248,6 +249,7 @@ async function run_dungeon(dungeon) {
 
 		await wait_for_party_in_instance(dungeon);
 
+		_dungeon_moving = false;
 		dungeon_log(dungeon, "Full party in instance — proceeding");
 
 		if (!dungeon.bosses || !dungeon.bosses.length) {
@@ -273,7 +275,9 @@ async function run_dungeon(dungeon) {
 
 	} catch (e) {
 		catcher(e, "run_dungeon");
+		dungeon_log(dungeon, "Run aborted — toggle off and on to retry", DUNGEON_WARN_COLOR);
 	} finally {
+		_dungeon_moving = false;
 		_dungeon_running = false;
 		if (!_dungeon_reset_hold) {
 			set_suppress_reset(false);
