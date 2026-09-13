@@ -116,6 +116,7 @@ function resolve_ranger_loadout() {
 }
 
 function resolve_ranger_orb() {
+	if (behind_on_xp() && set_available("orb_exp")) return "orb_exp";
 	return set_available("orb") ? "orb" : null;
 }
 

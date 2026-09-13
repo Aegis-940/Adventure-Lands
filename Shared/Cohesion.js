@@ -6,6 +6,27 @@ const COHESION_RANGE = 250;
 const COHESION_REGROUP = 120;
 const COHESION_FOLLOWERS = ["Ulric", "Riva"];
 const COHESION_DANGER_HP = 0.5;
+const XP_LAG_FRACTION = 0.05;
+
+function xp_progress(state) {
+	if (!state || !state.level) return null;
+	const max_xp = state.max_xp || 0;
+	return state.level + (max_xp > 0 ? (state.xp || 0) / max_xp : 0);
+}
+
+function behind_on_xp() {
+	const mine = xp_progress(character);
+	if (mine === null) return false;
+
+	let best = mine;
+	for (const name of COHESION_FOLLOWERS.concat([MOVEMENT_LEADER])) {
+		if (name === character.name) continue;
+		const theirs = xp_progress(read_state_cache(name));
+		if (theirs !== null && theirs > best) best = theirs;
+	}
+
+	return best > 0 && (best - mine) / best > XP_LAG_FRACTION;
+}
 
 function party_member_in_danger() {
 	if (character.max_hp && !character.rip && character.hp / character.max_hp <= COHESION_DANGER_HP) return character.name;

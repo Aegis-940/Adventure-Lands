@@ -100,6 +100,7 @@ function get_full_character_state() {
 		max_hp: character.max_hp,
 		mp: character.mp,
 		max_mp: character.max_mp,
+		level: character.level,
 		xp: character.xp,
 		max_xp: character.max_xp,
 		gold: character.gold,

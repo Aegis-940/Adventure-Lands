@@ -217,6 +217,8 @@ function resolve_warrior_orb() {
 			preferred = "orb_luck";
 		}
 	}
+	if (preferred === "orb_dps" && behind_on_xp() && set_available("orb_exp")) return "orb_exp";
+
 	if (set_available(preferred)) return preferred;
 	if (set_available("orb")) return "orb";
 	return null;
