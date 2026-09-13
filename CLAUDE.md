@@ -47,7 +47,6 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Character Managers/Warrior Manager/Warrior Skills.js` | Warrior skill loop (cleave, agitate, warcry); agitate donates aggro to the tank (stomp/hardshell/charge commented out) |
 | `Character Managers/Warrior Manager/Warrior Equipment.js` | Warrior `EQUIPMENT_RULES` resolvers and monster gear overrides |
 | `Character Managers/Warrior Manager/Warrior Movement.js` | Warrior reposition scorer |
-| `Character Managers/Warrior Manager/Warrior Bscorpion.js` | Bscorpion kill detection and seconds-per-kill average |
 | `Character Managers/Warrior Manager/Warrior.js` | Warrior entry point — windows, event handlers, `run_character()` |
 | `Character Managers/Healer Manager/Healer Config.js` | Healer tunables, gear sets, panic thresholds, `state`/`cache` (character: Myras) |
 | `Character Managers/Healer Manager/Healer Combat.js` | **The tank's** pull logic — heal target selection, MP-scaled aggro cap (`effective_aggro_cap()`), `action_loop()` |
@@ -154,7 +153,8 @@ this party, so do not reason from the usual Warrior-tanks/Healer-heals layout:
   spends mana on*, not a hazard she avoids.
 - The Warrior's `agitate` exists to feed her: `handle_agitate(tank)` refuses to fire when the tank
   is missing or dead, and checks `distance(character, tank) <= 100`.
-- Target priority runs both ways round this: the Warrior's is `["Myras"]` (kill what she holds),
+- Target priority runs both ways round this: the Warrior's `target_priority` is `["Myras"]`, fed to the
+  scorer's `protects` term (kill what she holds),
   the Healer's is `["Ulric", "Myras"]` (pull what is hitting him, then hold it).
 - So `Warrior Skills.js`'s `stomp`/`hardshell`/`charge` are commented out, and low-HP checks like
   `tank?.hp < tank?.max_hp * 0.3` refer to *her* HP, not his.

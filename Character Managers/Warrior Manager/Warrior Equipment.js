@@ -130,13 +130,9 @@ function warrior_weapon_set() {
 	const cleave_targets = (cache.monsters_in_cleave_range || []).length;
 
 	const chosen = CONFIG.equipment.weapon_selection === "value"
-		? best_weapon_set(_weapon_choice, CONFIG.equipment.weapon_sets,
-			name => warrior_set_value(name, primary, cleave_targets),
-			{
-				hysteresis_ms: CONFIG.equipment.weapon_hysteresis_ms,
-				margin: CONFIG.equipment.weapon_switch_margin,
-				on_change: (from, to, now) => sample_weapon_choice(from, to, primary, cleave_targets, now)
-			})
+		? resolve_weapon_by_value(_weapon_choice, name => warrior_set_value(name, primary, cleave_targets), {
+			on_change: (from, to, now) => sample_weapon_choice(from, to, primary, cleave_targets, now)
+		})
 		: null;
 	if (chosen) return chosen;
 
@@ -148,51 +144,22 @@ function warrior_weapon_set() {
 	return null;
 }
 
-function resolve_warrior_cape() {
-	const chest_count = get_num_chests();
-	const num_targets = cache.tank_entity ? get_num_targets(cache.tank_entity.name) : 0;
-	return (chest_count >= CONFIG.equipment.chest_threshold && num_targets < 6) ? "stealth" : "cape";
-}
-
-function resolve_warrior_coat() {
-	if (character.mp > CONFIG.equipment.mp_thresholds.upper) return "stat";
-	if (character.mp < CONFIG.equipment.mp_thresholds.lower) return "mana";
-	return null;
-}
-
 function resolve_warrior_orb() {
 	return preferred_orb("orb_dps");
 }
 
-function resolve_warrior_loadout() {
-	if (boss_engaged() && character.map !== destination.map) return "dps";
-	return resolve_warrior_home_loadout();
-}
-
-
-function resolve_warrior_home_loadout() {
+function resolve_warrior_weapon() {
 	if (character.map !== destination.map) return null;
-
-	const sets = ["dps_accessories"];
-	if (!CONFIG.equipment.weapon_swap_enabled) return sets;
-
-	if (home === "giantspider") {
-		sets.push("single");
-		return sets;
-	}
-
-	const chosen = warrior_weapon_set();
-	if (chosen) sets.push(chosen);
-	return sets;
+	if (!CONFIG.equipment.weapon_swap_enabled) return null;
+	if (home === "giantspider") return "single";
+	return warrior_weapon_set();
 }
 
 var EQUIPMENT_RULES = {
-	cape:    { kind: "set", resolve: resolve_warrior_cape },
-	coat:    { kind: "set", resolve: resolve_warrior_coat },
-	loadout: { kind: "set", resolve: resolve_warrior_loadout },
-	orb:     { kind: "set", resolve: resolve_warrior_orb },
+	weapon: { kind: "set", resolve: resolve_warrior_weapon },
+	orb:    { kind: "set", resolve: resolve_warrior_orb },
 };
 
 var MONSTER_GEAR_OVERRIDES = {
-	bscorpion: { loadout: ["dps_accessories", "single"] },
+	bscorpion: { weapon: "single" },
 };

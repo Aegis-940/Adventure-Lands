@@ -3,12 +3,13 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function skill_loop() {
-	if (should_pause_combat_loop()) return setTimeout(skill_loop, 100);
-	const next_delay = TICK_RATE.skill;
+	loop_tick("skill_loop");
+	if (should_pause_combat_loop()) return setTimeout(skill_loop, loop_next("skill_loop", 100));
+	let next_delay = TICK_RATE.skill;
 
 	try {
 		if (is_disabled(character)) {
-			return setTimeout(skill_loop, 250);
+			return setTimeout(skill_loop, loop_next("skill_loop", 250));
 		}
 
 		update_cache();
@@ -18,7 +19,11 @@ async function skill_loop() {
 		if (CONFIG.skills.warcry_enabled && !is_on_cooldown("warcry") && !character.s.warcry
 			&& character.mp >= G.skills.warcry.mp + panic_mp_reserve()) {
 			if (home !== "bscorpion" || bscorpion_worth_buffing()) {
-				await use_skill("warcry");
+				try {
+					await use_skill("warcry");
+				} catch (e) {
+					catcher(e, "warcry");
+				}
 			}
 		}
 
@@ -27,11 +32,19 @@ async function skill_loop() {
 		// }
 
 		if (CONFIG.skills.cleave_enabled && home !== "bscorpion" && home !== "giantspider") {
-			await handle_cleave();
+			try {
+				await handle_cleave();
+			} catch (e) {
+				catcher(e, "handle_cleave");
+			}
 		}
 
 		if (CONFIG.skills.agitate_enabled && tank && home !== "giantspider") {
-			await handle_agitate(tank);
+			try {
+				await handle_agitate(tank);
+			} catch (e) {
+				catcher(e, "handle_agitate");
+			}
 		}
 
 		// if (CONFIG.skills.taunt_enabled) {
@@ -48,9 +61,10 @@ async function skill_loop() {
 
 	} catch (e) {
 		catcher(e, "skill_loop");
+		next_delay = TICK_RATE.retry;
 	}
 
-	setTimeout(skill_loop, next_delay);
+	setTimeout(skill_loop, loop_next("skill_loop", next_delay));
 }
 
 async function handle_stomp() {

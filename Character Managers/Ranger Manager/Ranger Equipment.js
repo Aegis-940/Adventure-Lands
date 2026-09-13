@@ -53,23 +53,11 @@ function resolve_ranger_weapon() {
 	const { scored, in_range } = cache.targets;
 	if (!in_range.length) return "single";
 
-	const chosen = best_weapon_set(_bow_choice, CONFIG.equipment.weapon_sets,
-		name => ranger_set_value(name, in_range),
-		{
-			hysteresis_ms: CONFIG.equipment.weapon_hysteresis_ms,
-			margin: CONFIG.equipment.weapon_switch_margin
-		});
+	const chosen = resolve_weapon_by_value(_bow_choice, name => ranger_set_value(name, in_range));
 	if (chosen) return chosen;
 
 	const best = scored && scored[0];
 	return best && best.count >= CONFIG.combat.pouchbow_min_neighbours ? "boom" : "single";
-}
-
-function resolve_ranger_loadout() {
-	if (character.slots?.mainhand?.name === "cupid") return null;
-	if (boss_engaged()) return "dps";
-
-	return character.map === destination.map ? "dps" : null;
 }
 
 function resolve_ranger_orb() {
@@ -77,9 +65,8 @@ function resolve_ranger_orb() {
 }
 
 var EQUIPMENT_RULES = {
-	weapon:  { kind: "set", resolve: resolve_ranger_weapon },
-	loadout: { kind: "set", resolve: resolve_ranger_loadout },
-	orb:     { kind: "set", resolve: resolve_ranger_orb },
+	weapon: { kind: "set", resolve: resolve_ranger_weapon },
+	orb:    { kind: "set", resolve: resolve_ranger_orb },
 };
 
 var MONSTER_GEAR_OVERRIDES = {};

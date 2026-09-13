@@ -33,12 +33,7 @@ function healer_set_value(set_name, target) {
 var _healer_choice = make_weapon_choice();
 
 function best_healer_weapon_set(target) {
-	return best_weapon_set(_healer_choice, CONFIG.equipment.weapon_sets,
-		name => healer_set_value(name, target),
-		{
-			hysteresis_ms: CONFIG.equipment.weapon_hysteresis_ms,
-			margin: CONFIG.equipment.weapon_switch_margin
-		});
+	return resolve_weapon_by_value(_healer_choice, name => healer_set_value(name, target));
 }
 
 function visible_allies() {

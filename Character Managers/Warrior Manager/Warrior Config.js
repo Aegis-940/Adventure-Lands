@@ -6,8 +6,9 @@ var home = WARRIOR_TARGET;
 
 var CONFIG = {
 	combat: {
-		all_bosses,
-		target_weights: { damage: 1, close: 0.05 },
+		all_bosses: ALL_BOSSES,
+		target_priority: ["Myras"],
+		target_weights: { damage: 1, protects: 1, close: 0.05 },
 		party_dps_factor: 2.0,
 
 		cleave_min_mobs: 3,
@@ -55,8 +56,6 @@ var CONFIG = {
 		cleave_swap_ms: 617,
 		mana_income_per_sec: 244,
 		skill_mana_reserve: 0.40,
-		mp_thresholds: { upper: 2350, lower: 2250 },
-		chest_threshold: 12,
 	},
 
 	looting: {
@@ -117,10 +116,6 @@ var equipment_sets = {
 	single: [
 		{ item_name: "fireblade", slot: "mainhand", level: 9, l: "l" },
 		{ item_name: "fireblade", slot: "offhand", level: 9, l: "l" },
-	],
-	sugarrush: [
-		{ item_name: "candycanesword", slot: "mainhand", level: 7, l: "l" },
-		{ item_name: "candycanesword", slot: "offhand", level: 7, l: "l" },
 	],
 	aoe: [
 		{ item_name: "fireblade", slot: "mainhand", level: 9, l: "l" },

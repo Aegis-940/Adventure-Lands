@@ -44,7 +44,6 @@ function create_custom_log_window() {
 
 	div.appendChild(drag_handle);
 
-	// --- Tabs ---
 	const tab_bar = doc.createElement("div");
 	tab_bar.style.display = "flex";
 	tab_bar.style.background = "#222";
@@ -61,7 +60,6 @@ function create_custom_log_window() {
 
 	div._currentTab = "All";
 
-	// --- Log containers for each tab ---
 	const log_containers = {};
 	const alert_states = {};
 	const include_in_all = {
@@ -88,7 +86,6 @@ function create_custom_log_window() {
 		alert_states[tab.name] = false;
 	}
 
-	// --- Tab buttons with alert indicators and checkboxes ---
 	for (const tab of tabs) {
 		const btn = doc.createElement("button");
 		btn.textContent = tab.name;

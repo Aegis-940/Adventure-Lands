@@ -164,7 +164,7 @@ function render_bank_items() {
 	});
 
 	render_items(categories, used, total);
-	save_bank_local()
+	save_bank_local();
 }
 
 function add_bank_buttons() {

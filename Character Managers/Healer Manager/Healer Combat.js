@@ -3,15 +3,12 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function update_cache() {
-	if (!cache.is_valid()) {
-		cache.target = find_best_target();
-		cache.party_members = get_party_members();
-		cache.last_update = performance.now();
-	}
-
+	if (cache.is_valid()) return;
+	cache.target = find_best_target();
+	cache.party_members = get_party_members();
 	cache.heal_target = find_heal_target();
-
 	sample_set_profiles(HEALER_PROFILE_SETS);
+	cache.last_update = performance.now();
 }
 
 function healer_target_context() {
@@ -107,42 +104,26 @@ function find_zap_targets() {
 // ACTION LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var _basic_action_until = 0;
-
-function basic_action_busy() {
-	return Date.now() < _basic_action_until;
-}
-
-function run_basic_action(p, label) {
-	const freq = character.frequency > 0 ? character.frequency : 1.1;
-	_basic_action_until = Date.now() + (1000 / freq) * 0.9;
-	const t0 = Date.now();
-	Promise.resolve(p).then(
-		() => { if (typeof errlog_time === "function") errlog_time("await " + label, Date.now() - t0); },
-		e => { catcher(e, "action_loop"); }
-	);
-}
-
 var _heal_cast = false;
 
 async function try_heal() {
 	_heal_cast = false;
-	const HEAL_TARGET = cache.heal_target;
-	if (!HEAL_TARGET) return false;
+	const heal_target = cache.heal_target;
+	if (!heal_target) return false;
 
-	const DELIVERED = heal_delivered(HEAL_TARGET, character.heal);
+	const delivered = heal_delivered(heal_target, character.heal);
 
-	const HEAL_THRESHOLD = Math.max(
-		HEAL_TARGET.max_hp * 0.5,
-		HEAL_TARGET.max_hp - DELIVERED / 1.33
+	const heal_threshold = Math.max(
+		heal_target.max_hp * 0.5,
+		heal_target.max_hp - delivered / 1.33
 	);
 
-	const is_self = HEAL_TARGET === character || HEAL_TARGET.name === character.name;
+	const is_self = heal_target === character || heal_target.name === character.name;
 
-	if (HEAL_TARGET.hp < HEAL_THRESHOLD && (is_self || is_in_range(HEAL_TARGET, "heal"))) {
-		// log(`Healing → ${HEAL_TARGET.name} (${Math.round((HEAL_TARGET.hp / HEAL_TARGET.max_hp) * 100)}%)`, "#33AAFF");
+	if (heal_target.hp < heal_threshold && (is_self || is_in_range(heal_target, "heal"))) {
+		// log(`Healing → ${heal_target.name} (${Math.round((heal_target.hp / heal_target.max_hp) * 100)}%)`, "#33AAFF");
 		if (basic_action_busy()) return true;
-		run_basic_action(heal(HEAL_TARGET), "heal");
+		run_basic_action(heal(heal_target), "heal");
 		_heal_cast = true;
 		return true;
 	}
@@ -150,44 +131,26 @@ async function try_heal() {
 	return false;
 }
 
-var _al_due = 0;
-var _t = () => Date.now();
-
 async function action_loop() {
-	if (typeof errlog_beat === "function") errlog_beat("action_loop");
-	const t_enter = _t();
-	if (_al_due && typeof errlog_time === "function") errlog_time("lag action_loop", t_enter - _al_due);
+	loop_tick("action_loop");
 	let next_delay = 10;
 
 	try {
-		if (is_disabled(character)) {
-			if (typeof errlog_count === "function") errlog_count("action_loop exit:disabled");
-			_al_due = _t() + 50;
-			return setTimeout(action_loop, 50);
-		}
+		if (is_disabled(character)) return setTimeout(action_loop, loop_next("action_loop", 50));
 
-		const t_cache = _t();
 		update_cache();
-		if (typeof errlog_time === "function") errlog_time("cpu update_cache", _t() - t_cache);
 
-		if (await check_temporal_surge()) {
-			_al_due = _t() + 100;
-			return setTimeout(action_loop, 100);
-		}
+		if (await check_temporal_surge()) return setTimeout(action_loop, loop_next("action_loop", 100));
 
 		const ms = ms_to_next_skill("attack");
 
 		if (ms === 0) {
 			let acted = false;
 
-			const HEALED = await try_heal();
+			const healed = await try_heal();
 			if (_heal_cast) acted = true;
 
-			if (panicking) {
-				if (typeof errlog_count === "function") errlog_count("action_loop exit:panicking");
-				_al_due = _t() + 100;
-				return setTimeout(action_loop, 100);
-			}
+			if (panicking) return setTimeout(action_loop, loop_next("action_loop", 100));
 
 			const my_heal_threshold = Math.max(
 				character.max_hp * 0.5,
@@ -197,26 +160,23 @@ async function action_loop() {
 
 			const travelling = is_travelling();
 
-			if (!HEALED && !travelling && home !== "giantspider" && !i_need_the_timer) {
-				const TARGET = cache.target;
-				if (TARGET && is_in_range(TARGET) && !basic_action_busy()) {
-					run_basic_action(attack(TARGET), "attack");
+			if (!healed && !travelling && home !== "giantspider" && !i_need_the_timer) {
+				const target = cache.target;
+				if (target && is_in_range(target) && !basic_action_busy()) {
+					run_basic_action(attack(target), "attack");
 					acted = true;
 				}
 			}
 
 			if (!acted) next_delay = 40;
 		} else {
-			if (typeof errlog_time === "function") errlog_time("cooldown remaining", ms);
 			next_delay = next_action_delay(ms);
 		}
 
 	} catch (e) {
 		catcher(e, "action_loop");
-		next_delay = 1;
+		next_delay = TICK_RATE.retry;
 	}
 
-	if (typeof errlog_time === "function") errlog_time("iter action_loop", _t() - t_enter);
-	_al_due = _t() + next_delay;
-	setTimeout(action_loop, next_delay);
+	setTimeout(action_loop, loop_next("action_loop", next_delay));
 }

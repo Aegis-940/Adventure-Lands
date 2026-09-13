@@ -22,7 +22,7 @@ function healer_skip_panic_check() {
 
 function circle_centre() {
 	if (home === "giantspider") return { x: character.x, y: character.y };
-	return locations[home][0];
+	return LOCATIONS[home][0];
 }
 
 async function healer_local(goal) {

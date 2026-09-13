@@ -24,7 +24,6 @@ var CONFIG = {
 		pouchbow_min_neighbours: 3,
 
 		sample_hits: true,
-		sample_targets: false,
 	},
 
 	movement: {
@@ -94,15 +93,9 @@ var equipment_sets = {
 		{ item_name: "pouchbow", slot: "mainhand", level: 10, l: "l" },
 		{ item_name: "alloyquiver", slot: "offhand", level: 7, l: "l" },
 	],
-	burnboom: [
-		{ item_name: "firebow", slot: "mainhand", level: 10, l: "l" },
-		{ item_name: "alloyquiver", slot: "offhand", level: 5, l: "l" },
-	],
 	heal: [
 		{ item_name: "cupid", slot: "mainhand", level: 9, l: "l" },
 		{ item_name: "t2quiver", slot: "offhand", level: 7, l: "l" },
-	],
-	dps: [
 	],
 	panic: [
 		{ item_name: "jacko", slot: "orb", level: 0, l: "l" },

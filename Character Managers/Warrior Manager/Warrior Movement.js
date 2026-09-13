@@ -51,10 +51,6 @@ function warrior_reposition_scorer() {
 }
 
 function reposition() {
-	if (panicking) {
-		orbit_reposition(make_distance_from_monsters_scorer);
-		return;
-	}
 	orbit_reposition(warrior_reposition_scorer, {
 		min_gain: CONFIG.movement.position_min_gain,
 		travel_weight: CONFIG.movement.position_travel_weight

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Local sink for the bot's error recorder.
 
-The game runs in a browser and cannot write to disk, so Shared/Error_Log.js POSTs its records
-here and this appends them to errors.json in the repo root — where Claude can read them on request
-without anyone copying anything out of a console.
+The game runs in a browser and cannot write to disk, so "Core Systems/Error Log.js" POSTs its
+records here and this appends them to errors.json in the repo root — where Claude can read them on
+request without anyone copying anything out of a console.
 
 Run it and leave it:
 
-    python tools/error_sink.py
+    python "Tools/Error Sink.py"
 
 Stdlib only, listens on 127.0.0.1 so nothing outside this machine can reach it, and the bot fails
 silently when it isn't running (backing off to a retry every 5 minutes), so starting it is always

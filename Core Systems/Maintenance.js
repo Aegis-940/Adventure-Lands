@@ -50,7 +50,7 @@ function auto_buy_potions() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// BOOSTERS — everyone keeps one pointed at xp; luck and gold belong to the looting cycle and are never borrowed from
+// BOOSTERS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const BOOSTER_NAMES = ["xpbooster", "goldbooster", "luckbooster"];

@@ -168,8 +168,7 @@ async function withdraw_upgrade_scrolls() {
 			withdraw_item(item);
 			await delay(400);
 		} catch (e) {
-		game_log("⚠️ Withdraw Scroll error:", "#FF0000");
-		game_log(e);
+			catcher(e, "withdraw_upgrade_scrolls: " + item);
 		}
 	}
 
@@ -181,14 +180,11 @@ async function withdraw_offering() {
 	log("Withdrawing offeringp for upgrades that require it.");
 
 	try {
-		
 		withdraw_item("offeringp");
 		await delay(400);
 	} catch (e) {
-		game_log("⚠️ Withdraw Offering error:", "#FF0000");
-		game_log(e);
-	}   
-
+		catcher(e, "withdraw_offering");
+	}
 }
 
 async function withdraw_upgradeable_items() {
@@ -616,14 +612,11 @@ async function auto_upgrade() {
 		combine_failed_keys.clear();
 		let progressed = false;
 
-		let upgraded = true;
 		for (let level = 0; level <= 10 && !abandoned(); level++) {
-			upgraded = false;
 			while (!abandoned()) {
 				const result = await auto_upgrade_item(level);
 				if (result === "done") progressed = true;
 				if (result === "done" || result === "wait") {
-					upgraded = true;
 					await delay(UPGRADE_INTERVAL);
 				} else if (result === "end") {
 					game_log("❌ Ending auto-upgrade early due to insufficient gold or resources.");
@@ -634,14 +627,11 @@ async function auto_upgrade() {
 			}
 		}
 
-		let combined = true;
 		for (let level = 0; level <= 5 && !abandoned(); level++) {
-			combined = false;
 			while (!abandoned()) {
 				const result = await auto_combine_item(level);
 				if (result === "done") progressed = true;
 				if (result === "done" || result === "wait") {
-					combined = true;
 					await delay(UPGRADE_INTERVAL);
 				} else if (result === "end") {
 					game_log("❌ Ending auto-combine early due to insufficient gold or resources.");

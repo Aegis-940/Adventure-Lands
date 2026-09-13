@@ -56,7 +56,7 @@ function find_nearest_bscorpion() {
 function bscorpion_worth_buffing() {
 	const info = find_nearest_bscorpion();
 	if (!info) return false;
-	return info.entity.hp / info.entity.max_hp >= 0.05;
+	return info.entity.hp / info.entity.max_hp >= BOSS_NEARLY_DEAD_HP;
 }
 
 const CAMP_MOVE_TOLERANCE = 3;

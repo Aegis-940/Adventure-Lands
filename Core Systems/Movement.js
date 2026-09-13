@@ -6,27 +6,6 @@
 // CORE UTILITIES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const SMART_USE_TOWN = false;
-
-function apply_smart_town_setting() {
-	try {
-		if (typeof smart === "object" && smart) {
-			smart.use_town = SMART_USE_TOWN;
-			return true;
-		}
-	} catch (e) { }
-	return false;
-}
-if (!apply_smart_town_setting()) setTimeout(apply_smart_town_setting, 3000);
-
-function update_town_escape(aggro_count) {
-	if (!SMART_USE_TOWN) return;
-	try {
-		const want = aggro_count === 0;
-		if (smart.use_town !== want && !smart.searching) smart.use_town = want;
-	} catch (e) { }
-}
-
 function fire_and_forget_move(dest, on_done) {
 	try {
 		Promise.resolve(smart_move(dest, on_done)).catch(() => { });
@@ -102,8 +81,8 @@ function smarter_move(destination, on_done, options = {}) {
 	} else if ("to" in target || "map" in target) {
 		const dest_name = target.to || target.map;
 
-		if (locations[dest_name]) {
-			const loc = locations[dest_name][0];
+		if (LOCATIONS[dest_name]) {
+			const loc = LOCATIONS[dest_name][0];
 			smart.map = loc.map || character.map;
 			smart.x = loc.x;
 			smart.y = loc.y;
@@ -163,11 +142,6 @@ function smarter_move(destination, on_done, options = {}) {
 		reject_fn = reject;
 	});
 }
-
-// Usage example:
-// let move_promise = smarter_move({ map: "main", x: 100, y: 100 }, null, { timeout: 30000, radius: 20 });
-// To interrupt: smart._interrupt("manual stop");
-
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // TRAVEL ARBITER — the single owner of long-range movement for this character.

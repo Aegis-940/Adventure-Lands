@@ -20,12 +20,43 @@ function make_cache(fields) {
 	return Object.assign({
 		last_update: 0,
 		is_valid() { return performance.now() - this.last_update < CACHE_TTL; },
-		invalidate() { this.last_update = 0; },
 	}, fields);
 }
 
 function next_action_delay(ms) {
 	return ms > 200 ? 200 : ms > 50 ? 50 : 10;
+}
+
+const _loop_due = {};
+
+function loop_tick(name) {
+	if (typeof errlog_beat === "function") errlog_beat(name);
+	const now = Date.now();
+	if (_loop_due[name] && typeof errlog_time === "function") errlog_time("lag " + name, now - _loop_due[name]);
+}
+
+function loop_next(name, ms) {
+	_loop_due[name] = Date.now() + ms;
+	return ms;
+}
+
+let _basic_action_until = 0;
+
+function basic_action_busy() {
+	return Date.now() < _basic_action_until;
+}
+
+function run_basic_action(p, label) {
+	const freq = character.frequency > 0 ? character.frequency : 1.1;
+	_basic_action_until = Date.now() + (1000 / freq) * 0.9;
+	const t0 = Date.now();
+	Promise.resolve(p).then(
+		() => { if (typeof errlog_time === "function") errlog_time("await " + label, Date.now() - t0); },
+		e => {
+			_basic_action_until = 0;
+			catcher(e, label);
+		}
+	);
 }
 
 const REPOSITION_INTERVAL_MS = 250;
@@ -41,10 +72,10 @@ function orbit_reposition(make_score, options) {
 	const center = reposition_center();
 	if (!center) return;
 
-	const score = make_score();
+	const score = panicking ? make_distance_from_monsters_scorer() : make_score();
 	if (!score) return;
 
-	const spot = best_orbit_spot(center, CONFIG.movement.circle_radius, score, options);
+	const spot = best_orbit_spot(center, CONFIG.movement.circle_radius, score, panicking ? undefined : options);
 	if (!spot) return;
 	if (Math.hypot(character.x - spot.x, character.y - spot.y) <= CONFIG.movement.move_threshold) return;
 

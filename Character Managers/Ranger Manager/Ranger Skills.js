@@ -32,33 +32,24 @@ function supershot_value(target) {
 }
 
 async function skill_loop() {
-	if (should_pause_combat_loop()) return setTimeout(skill_loop, 100);
+	loop_tick("skill_loop");
+	if (should_pause_combat_loop()) return setTimeout(skill_loop, loop_next("skill_loop", 100));
 	let next_delay = 5;
 	try {
 		if (!CONFIG.combat.use_hunters_mark && !CONFIG.combat.use_supershot) {
-			setTimeout(skill_loop, 1000);
-			return;
+			return setTimeout(skill_loop, loop_next("skill_loop", 1000));
 		}
-		if (is_disabled(character)) return setTimeout(skill_loop, 250);
+		if (is_disabled(character)) return setTimeout(skill_loop, loop_next("skill_loop", 250));
 
 		update_cache();
 
 		const { sorted_by_value, in_range } = cache.targets;
-		if (!sorted_by_value.length) {
-			setTimeout(skill_loop, 200);
-			return;
-		}
+		if (!sorted_by_value.length) return setTimeout(skill_loop, loop_next("skill_loop", 200));
 
 		const target = home === "giantspider" ? in_range[0] : sorted_by_value[0];
-		if (!target || !is_in_range(target)) {
-			setTimeout(skill_loop, 100);
-			return;
-		}
+		if (!target || !is_in_range(target)) return setTimeout(skill_loop, loop_next("skill_loop", 100));
 
-		if (character.slots?.mainhand?.name === "cupid") {
-			setTimeout(skill_loop, 100);
-			return;
-		}
+		if (character.slots?.mainhand?.name === "cupid") return setTimeout(skill_loop, loop_next("skill_loop", 100));
 
 		const ms_hunter = ms_to_next_skill("huntersmark");
 		const ms_super = ms_to_next_skill("supershot");
@@ -90,7 +81,7 @@ async function skill_loop() {
 		}
 	} catch (e) {
 		catcher(e, "skill_loop");
-		next_delay = 1;
+		next_delay = TICK_RATE.retry;
 	}
-	setTimeout(skill_loop, next_delay);
+	setTimeout(skill_loop, loop_next("skill_loop", next_delay));
 }

@@ -7,7 +7,7 @@ var home = HEALER_TARGET;
 var CONFIG = {
 	combat: {
 		enabled: true,
-		all_bosses,
+		all_bosses: ALL_BOSSES,
 		target_priority: ["Ulric", "Myras"],
 		target_weights: { damage: 1, close: 0.05 },
 		protect_weights: { hp_low: 1, damage: 0.3, close: 0.05 },
@@ -101,10 +101,8 @@ var equipment_sets = {
 		{ item_name: "ringofluck", slot: "ring2", level: 2, l: "l" }
 	],
 	luck: [
-		{ item_name: "supermittens", slot: "gloves", level: 7, l: "l" },
 		{ item_name: "lmace", slot: "mainhand", level: 8, l: "" },
 		{ item_name: "mshield", slot: "offhand", level: 8, l: "l" },
-
 	],
 	gold: [
 		{ item_name: "handofmidas", slot: "gloves", level: 4, l: "l" },

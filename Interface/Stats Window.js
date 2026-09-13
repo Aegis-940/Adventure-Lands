@@ -1,4 +1,7 @@
-// ===== Utility Functions =====
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// STATS WINDOW — loop toggles and the gold graph, opened from the console with ui_window()
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
 function apply_styles(element, styles) {
 	Object.entries(styles).forEach(([key, value]) => {
 		element.style[key] = value;

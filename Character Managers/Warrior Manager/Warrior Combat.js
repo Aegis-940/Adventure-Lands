@@ -3,15 +3,13 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function update_cache() {
-	cache.tank_entity = get_entity("Myras")
+	if (cache.is_valid()) return;
+	cache.tank_entity = get_entity("Myras");
 	sample_set_profiles(["single", "aoe", "bataxe"]);
 	cache.monsters_in_cleave_range = find_monsters_in_cleave_range();
-
-	if (!cache.is_valid()) {
-		cache.target = find_best_target();
-		cache.party_members = get_party_members();
-		cache.last_update = performance.now();
-	}
+	cache.target = find_best_target();
+	cache.party_members = get_party_members();
+	cache.last_update = performance.now();
 }
 
 function cooperative_luck_logger() {
@@ -29,7 +27,11 @@ function cooperative_luck_logger() {
 function find_best_target() {
 	const max_dist = home === "giantspider" ? 50 : character.range;
 
-	const context = { explosion: character.explosion || 0, party_factor: CONFIG.combat.party_dps_factor };
+	const context = {
+		explosion: character.explosion || 0,
+		party_factor: CONFIG.combat.party_dps_factor,
+		protect: CONFIG.combat.target_priority
+	};
 
 	const boss = best_target({ type: CONFIG.combat.all_bosses, max_distance: max_dist }, { close: 1 }, context);
 	if (boss) return boss;
@@ -72,8 +74,8 @@ var swap_trick_attempts = 0;
 var swap_trick_history = {};
 
 async function status_swap_trick_check(target) {
-
-	Promise.resolve(attack(target)).catch(e => catcher(e, "action_loop"));
+	if (basic_action_busy()) return;
+	run_basic_action(attack(target), "attack");
 
 	const trick = STATUS_SWAP_TRICKS[target?.mtype];
 	if (!trick || character.s[trick.status] !== undefined) return;
@@ -108,11 +110,12 @@ async function status_swap_trick_check(target) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function action_loop() {
-	if (should_pause_combat_loop()) return setTimeout(action_loop, 100);
+	loop_tick("action_loop");
+	if (should_pause_combat_loop()) return setTimeout(action_loop, loop_next("action_loop", 100));
 	let next_delay = 10;
 
 	try {
-		if (is_disabled(character)) return setTimeout(action_loop, 50);
+		if (is_disabled(character)) return setTimeout(action_loop, loop_next("action_loop", 50));
 
 		update_cache();
 
@@ -127,8 +130,8 @@ async function action_loop() {
 
 	} catch (e) {
 		catcher(e, "action_loop");
-		next_delay = 1;
+		next_delay = TICK_RATE.retry;
 	}
 
-	setTimeout(action_loop, next_delay);
+	setTimeout(action_loop, loop_next("action_loop", next_delay));
 }

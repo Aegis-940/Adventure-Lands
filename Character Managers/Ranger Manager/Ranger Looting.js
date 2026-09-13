@@ -43,7 +43,7 @@
 // 		for (const id of Object.keys(chestMap)) {
 // 			const storedAt = chestMap[id];
 // 			if (!storedAt) continue;
-// 			if (now - storedAt < CONFIG.looting.delayMs) continue;
+// 			if (now - storedAt < CONFIG.looting.delay_ms) continue;
 // 			await loot(id);
 // 			removeChestId(id);
 // 			looted++;

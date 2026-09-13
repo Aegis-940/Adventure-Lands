@@ -13,9 +13,9 @@ const MOVEMENT_LEADER             = "Myras";
 
 const LOOT_THRESHOLD = 6;
 
-const all_bosses = ["grinch", "icegolem", "dragold", "mrgreen", "mrpumpkin", "greenjr", "jr", "franky", "rgoo", "bgoo", "crabxx"];
+const ALL_BOSSES = ["grinch", "icegolem", "dragold", "mrgreen", "mrpumpkin", "greenjr", "jr", "franky", "rgoo", "bgoo", "crabxx"];
 
-const locations = {
+const LOCATIONS = {
 	bat:        [{ map: "cave", x: 1200, y: -782 }],
 	bbpompom:   [{ map: "winter_cave", x: -83, y: -949 }],
 	bigbird:    [{ map: "main", x: 1270, y: 245 }],
@@ -78,10 +78,10 @@ function location_map_for(type, loc) {
 }
 
 function home_destination(type) {
-	const loc = (locations[type] || [])[0] || {};
+	const loc = (LOCATIONS[type] || [])[0] || {};
 	const map = loc.map || location_map_for(type, loc);
 	if (!map) {
-		game_log(`⚠️ locations.${type} has no map and none could be derived — `
+		game_log(`⚠️ LOCATIONS.${type} has no map and none could be derived — `
 			+ `travelling home is disabled for this target.`, "#FF3333");
 	}
 	return { map, x: loc.x, y: loc.y };
@@ -105,14 +105,14 @@ const BOSS_NEARLY_DEAD_HP = 0.05;
 
 const TICK_RATE = {
 	main: 100,
-	action: 1,
 	skill: 40,
 	equipment: 25,
-	maintenance: 2000
+	maintenance: 2000,
+	retry: 10
 };
 
 const COOLDOWNS = {
-	equip_swap: 300,
+	equip_swap: 500,
 	weapon_swap: 1000,
 	zapper_swap: 200,
 	cc: 125
@@ -157,4 +157,3 @@ function set_automation(on) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 let STATE_CACHE_LOOP_ENABLED  = true;
-let DUNGEON_LOOP_ENABLED      = false;

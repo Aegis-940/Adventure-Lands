@@ -76,8 +76,6 @@ async function _panic_check_body() {
 
 	const TRAPPED_TRAVELLING = is_travelling() && MONSTERS_TARGETING_ME >= (t.travel_aggro ?? 1);
 
-	update_town_escape(MONSTERS_TARGETING_ME);
-
 	const HARD_REASON = LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= t.aggro;
 
 	if ((HARD_REASON || TRAPPED_TRAVELLING) && !panicking) {

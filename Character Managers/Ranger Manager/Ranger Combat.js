@@ -32,11 +32,7 @@ function update_cache() {
 }
 
 function update_target_cache() {
-	const pool = [];
-	for (const id in parent.entities) {
-		const e = parent.entities[id];
-		if (e.type === "monster" && should_attack_mob(e)) pool.push(e);
-	}
+	const pool = monsters_matching({ where: should_attack_mob });
 
 	const context = {
 		explosion: character.explosion || 0,
@@ -79,7 +75,7 @@ function update_target_cache() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// MANA / DAMAGE EFFICIENCY — see the derivation in the ranger notes
+// MANA / DAMAGE EFFICIENCY
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 var SHOT_PROFILES = [
@@ -218,10 +214,11 @@ async function cupid_heal(target) {
 }
 
 async function action_loop() {
-	if (should_pause_combat_loop()) return setTimeout(action_loop, 100);
+	loop_tick("action_loop");
+	if (should_pause_combat_loop()) return setTimeout(action_loop, loop_next("action_loop", 100));
 	let next_delay = 5;
 	try {
-		if (is_disabled(character)) return setTimeout(action_loop, 50);
+		if (is_disabled(character)) return setTimeout(action_loop, loop_next("action_loop", 50));
 
 		update_cache();
 		const ms = ms_to_next_skill("attack");
@@ -229,20 +226,20 @@ async function action_loop() {
 		const cupid_on = character.slots?.mainhand?.name === "cupid";
 		const healing = !!cache.heal_target && (cupid_on || set_available("heal"));
 
-		if (ms === 0 && !is_travelling()) {
-			if (healing && cupid_on) await cupid_heal(cache.heal_target);
-			else if (!healing && !cupid_on) await handle_attack();
+		if (ms === 0 && !is_travelling() && !basic_action_busy()) {
+			if (healing && cupid_on) run_basic_action(cupid_heal(cache.heal_target), "cupid");
+			else if (!healing && !cupid_on) handle_attack();
 		} else {
 			next_delay = next_action_delay(ms);
 		}
 	} catch (e) {
 		catcher(e, "action_loop");
-		next_delay = 10;
+		next_delay = TICK_RATE.retry;
 	}
-	setTimeout(action_loop, next_delay);
+	setTimeout(action_loop, loop_next("action_loop", next_delay));
 }
 
-async function handle_attack() {
+function handle_attack() {
 	const { sorted_by_value, in_range } = cache.targets;
 	if (!sorted_by_value.length) return;
 
@@ -251,13 +248,13 @@ async function handle_attack() {
 	if (single_target_mode) {
 		if (character.mp < Math.max(100, panic_mp_reserve())) return;
 		if (!in_range.length) return;
-		return attack(in_range[0]);
+		return run_basic_action(attack(in_range[0]), "attack");
 	}
 
 	const choice = choose_attack_option(in_range);
 	if (!choice) return;
 
-	if (choice.name === "attack") return attack(choice.targets[0]);
-	return use_skill(choice.name, choice.targets.map(e => e.id));
+	if (choice.name === "attack") return run_basic_action(attack(choice.targets[0]), "attack");
+	return run_basic_action(use_skill(choice.name, choice.targets.map(e => e.id)), choice.name);
 }
 

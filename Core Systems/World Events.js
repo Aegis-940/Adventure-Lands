@@ -65,21 +65,12 @@ function event_step(event_type) {
 
 function best_event_target() {
 	const alive_sorted = EVENT_LOCATIONS
-		.map(e => {
-			const data = parent.S[e.name];
-			if (e.dynamic && data?.live) {
-				return { ...e, map: data.map, x: data.x, y: data.y, data };
-			}
-			return { ...e, data };
-		})
+		.map(e => ({ ...e, data: parent.S[e.name] }))
 		.filter(e => e.data?.live)
 		.filter(e => engage_hp_ok(e))
 		.sort((a, b) => (a.data.hp / a.data.max_hp) - (b.data.hp / b.data.max_hp));
 
-	if (!alive_sorted.length) return null;
-
-	const wabbit = alive_sorted.find(e => e.name === "wabbit");
-	return wabbit || alive_sorted[0];
+	return alive_sorted.length ? alive_sorted[0] : null;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

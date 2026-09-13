@@ -81,7 +81,7 @@ add_cm_listener((name, data) => {
 		return;
 	}
 
-	const handler = CM_HANDLERS[data.type] || CM_HANDLERS["default"];
+	const handler = CM_HANDLERS[data.type];
 	if (handler) {
 		if (handler.constructor.name === "AsyncFunction") {
 			handler(name, data).catch(e => console.error("CM async handler error:", e));

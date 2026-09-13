@@ -1,7 +1,5 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// SETTINGS WINDOW — live in-game config for per-character target monsters. Persisted via
-// localStorage (shared across all 4 characters' tabs), read back by Core Systems/Global Config.js's
-// WARRIOR_TARGET/HEALER_TARGET/RANGER_TARGET at each character's next reload.
+// SETTINGS WINDOW — per-character targets and merchant toggles, persisted in localStorage
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const SETTINGS_DESCRIPTORS = [
@@ -18,7 +16,7 @@ const SETTINGS_DESCRIPTORS = [
 const ALL_CHARACTERS = ["Ulric", "Myras", "Riva", "Riff"];
 
 function open_settings_window() {
-	if (typeof locations === "undefined" || typeof send_cm !== "function") {
+	if (typeof LOCATIONS === "undefined" || typeof send_cm !== "function") {
 		game_log("⚠️ Settings window: still loading, try again in a moment.");
 		return;
 	}
@@ -26,7 +24,7 @@ function open_settings_window() {
 	const doc = parent.document;
 	if (doc.getElementById("settings-window")) return;
 
-	const monster_names = Object.keys(locations).sort();
+	const monster_names = Object.keys(LOCATIONS).sort();
 
 	const div = doc.createElement("div");
 	div.id = "settings-window";

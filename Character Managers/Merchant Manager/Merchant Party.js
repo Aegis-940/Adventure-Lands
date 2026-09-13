@@ -15,14 +15,6 @@ function mluck_worth_topping_up(status) {
 	return remaining == null || remaining < MLUCK_TOPUP_THRESHOLD_MS;
 }
 
-function on_party_request(name) {
-	if (PARTY.includes(name)) accept_party_request(name);
-}
-
-function on_party_invite(name) {
-	if (PARTY.includes(name)) accept_party_invite(name);
-}
-
 function any_party_within_range(range = CONFIG.party.nearby_trigger_range) {
 	for (const name of PARTY) {
 		const player = get_player(name);

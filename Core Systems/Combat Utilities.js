@@ -541,19 +541,6 @@ function time_to_kill_ms(mob, hp, dps, party_factor) {
 
 const BURN_DURATION_MS = 5000;
 
-function burn_ticks_at_dps(mob, dps, party_factor) {
-	const def = G.conditions?.burned;
-	if (!def || !def.interval) return 0;
-
-	const max_ticks = Math.floor((def.duration || BURN_DURATION_MS) / def.interval);
-	if (!mob) return max_ticks;
-
-	const ttk = time_to_kill_ms(mob, mob.max_hp, dps, party_factor);
-	if (!isFinite(ttk)) return max_ticks;
-
-	return Math.max(0, Math.min(max_ticks, Math.floor(ttk / def.interval)));
-}
-
 const BURN_TICK_DIVISOR = 5;
 
 function burn_multiplier_at_dps(mob, chance, dps, party_factor, options) {
@@ -693,5 +680,5 @@ function reposition_center() {
 		const lead = get_player(MOVEMENT_LEADER);
 		if (lead && !lead.rip) return { x: lead.x, y: lead.y };
 	}
-	return locations[home][0];
+	return LOCATIONS[home][0];
 }

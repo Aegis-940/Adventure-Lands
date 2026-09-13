@@ -56,7 +56,7 @@ function target_damage_value(mob, options) {
 // TERMS — each returns a raw number; the selector normalises them across the pool before weighting
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var TARGET_TERMS = {
+const TARGET_TERMS = {
 	damage: (mob, ctx) => target_damage_value(mob, ctx),
 
 	finish: mob => (attack_damage_against(mob) >= (mob.hp || 0) ? 1 : 0),
@@ -126,9 +126,9 @@ function best_target(args, weights, context) {
 // SAMPLING — read the decision rather than infer it from behaviour
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var TARGET_SAMPLE_MS = 60000;
-var TARGET_TRADE_PCT = 0.25;
-var _last_target_sample = 0;
+const TARGET_SAMPLE_MS = 60000;
+const TARGET_TRADE_PCT = 0.25;
+let _last_target_sample = 0;
 
 function sample_target_choice(scored, context, weights) {
 	if (!weights || !weights.damage) return;

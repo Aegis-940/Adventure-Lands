@@ -191,7 +191,7 @@ function _errlog_lag_probe() {
 setTimeout(_errlog_lag_probe, 100);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// CAPTURE POINTS — hooks only, no call sites elsewhere
+// CAPTURE POINTS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 _errlog_load();
@@ -367,7 +367,7 @@ function _errlog_sample_vitals() {
 setInterval(_errlog_sample_vitals, ERRLOG_VITALS_MS);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// LOCAL SINK — pushes to tools/error_sink.py so records land in the repo as errors.json.
+// LOCAL SINK
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const ERRLOG_SINK_URL = "http://127.0.0.1:8787/errors";

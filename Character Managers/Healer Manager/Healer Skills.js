@@ -3,18 +3,18 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function skill_loop() {
-	if (typeof errlog_beat === "function") errlog_beat("skill_loop");
+	loop_tick("skill_loop");
 	// if (panicking) return setTimeout(skill_loop, 100);
-	const next_delay = 40;
+	let next_delay = TICK_RATE.skill;
 
 	try {
 		if (is_disabled(character)) {
-			return setTimeout(skill_loop, 250);
+			return setTimeout(skill_loop, loop_next("skill_loop", 250));
 		}
 
 		update_cache();
 
-		const PENALTY = character.s?.penalty_cd?.ms || 0;
+		const penalty = character.s?.penalty_cd?.ms || 0;
 
 		try {
 			await handle_party_heal();
@@ -22,12 +22,12 @@ async function skill_loop() {
 			catcher(e, "handle_party_heal");
 		}
 
-		const MP_PCT = character.max_mp ? character.mp / character.max_mp : 1;
-		const MANA_FOR_LUXURIES = MP_PCT >= (CONFIG.healing.skill_min_mp_pct ?? 0.40);
+		const mp_pct = character.max_mp ? character.mp / character.max_mp : 1;
+		const mana_for_luxuries = mp_pct >= (CONFIG.healing.skill_min_mp_pct ?? 0.40);
 
-		const TRAVELLING = is_travelling();
+		const travelling = is_travelling();
 
-		if (!panicking && !TRAVELLING && MANA_FOR_LUXURIES && CONFIG.combat.enabled) {
+		if (!panicking && !travelling && mana_for_luxuries && CONFIG.combat.enabled) {
 			try {
 				await handle_curse();
 			} catch (e) {
@@ -35,7 +35,7 @@ async function skill_loop() {
 			}
 		}
 
-		if (!panicking && !TRAVELLING && CONFIG.healing.absorb_enabled && PENALTY < 500) {
+		if (!panicking && !travelling && CONFIG.healing.absorb_enabled && penalty < 500) {
 			try {
 				await handle_absorb();
 			} catch (e) {
@@ -43,7 +43,7 @@ async function skill_loop() {
 			}
 		}
 
-		if (!panicking && !TRAVELLING && MANA_FOR_LUXURIES && CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
+		if (!panicking && !travelling && mana_for_luxuries && CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
 			&& character.mp >= (G.skills.darkblessing?.mp || 0)) {
 			if (home !== "bscorpion" || bscorpion_worth_buffing()) {
 				try {
@@ -60,16 +60,17 @@ async function skill_loop() {
 
 	} catch (e) {
 		catcher(e, "skill_loop");
+		next_delay = TICK_RATE.retry;
 	}
 
-	setTimeout(skill_loop, next_delay);
+	setTimeout(skill_loop, loop_next("skill_loop", next_delay));
 }
 
 async function handle_curse() {
 	if (is_on_cooldown("curse") || is_travelling()) return;
 
-	const X = locations[home][0].x;
-	const Y = locations[home][0].y;
+	const home_x = LOCATIONS[home][0].x;
+	const home_y = LOCATIONS[home][0].y;
 
 	const has_target = e =>
 		e?.type === "monster" && !e.dead && e.visible && e.target && !e.immune &&
@@ -94,7 +95,7 @@ async function handle_curse() {
 			.filter(e =>
 				has_target(e) &&
 				e.mtype === home &&
-				Math.hypot(X - e.x, Y - e.y) <= 175
+				Math.hypot(home_x - e.x, home_y - e.y) <= 175
 			)
 			.sort((a, b) => b.hp - a.hp);
 		if (home_mobs.length) target = home_mobs[0];
@@ -113,15 +114,15 @@ async function handle_absorb() {
 
 	if (!character.party) return;
 
-	const PARTY_NAMES = Object.keys(get_party());
-	const ALLIES = PARTY_NAMES.filter(n => n !== character.name);
-	if (!ALLIES.length) return;
+	const party_names = Object.keys(get_party());
+	const allies = party_names.filter(n => n !== character.name);
+	if (!allies.length) return;
 
 	for (let id in parent.entities) {
 		const entity = parent.entities[id];
 		if (!entity || entity.type !== "monster" || entity.dead) continue;
 
-		if (entity.target && ALLIES.includes(entity.target) && entity.target !== character.name) {
+		if (entity.target && allies.includes(entity.target) && entity.target !== character.name) {
 			const ally = get_player(entity.target);
 			if (!ally || ally.rip || !is_in_range(ally, "absorb")) continue;
 
@@ -235,26 +236,26 @@ async function handle_party_heal() {
 
 
 async function handle_zapper() {
-	const TARGETS = find_zap_targets();
-	const NOW = performance.now();
-	const HAS_ZAPPER = character.slots.ring2?.name === "zapper";
-	const CAN_SWAP = NOW - state.last_equip_time > COOLDOWNS.zapper_swap;
-	const HAS_ENOUGH_MP = character.mp > (G?.skills?.zapperzap?.mp || 0) + 1250;
+	const targets = find_zap_targets();
+	const now = performance.now();
+	const has_zapper = character.slots.ring2?.name === "zapper";
+	const can_swap = now - state.last_equip_time > COOLDOWNS.zapper_swap;
+	const has_enough_mp = character.mp > (G?.skills?.zapperzap?.mp || 0) + 1250;
 
 	if (is_travelling() || character.cc > COOLDOWNS.cc) return;
 
-	if (TARGETS.length > 0 && !HAS_ZAPPER && CAN_SWAP && HAS_ENOUGH_MP && character.map === destination.map) {
+	if (targets.length > 0 && !has_zapper && can_swap && has_enough_mp && character.map === destination.map) {
 		try {
 			await equip_once("zap-on", EQUIP_PRIORITY.skill, "zap_on");
-			state.last_equip_time = NOW;
+			state.last_equip_time = now;
 		} catch (e) {
 			catcher(e, "equip zapper");
 		}
 		return;
 	}
 
-	if (TARGETS.length > 0 && HAS_ZAPPER && HAS_ENOUGH_MP && !is_on_cooldown("zapperzap")) {
-		for (const entity of TARGETS) {
+	if (targets.length > 0 && has_zapper && has_enough_mp && !is_on_cooldown("zapperzap")) {
+		for (const entity of targets) {
 			if (is_on_cooldown("zapperzap")) break;
 
 			try {
@@ -265,10 +266,10 @@ async function handle_zapper() {
 		}
 	}
 
-	if (TARGETS.length === 0 && HAS_ZAPPER && CAN_SWAP && character.map === destination.map) {
+	if (targets.length === 0 && has_zapper && can_swap && character.map === destination.map) {
 		try {
 			await equip_once("zap-off", EQUIP_PRIORITY.skill, "zap_off");
-			state.last_equip_time = NOW;
+			state.last_equip_time = now;
 		} catch (e) {
 			catcher(e, "unequip zapper");
 		}
