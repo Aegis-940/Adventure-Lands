@@ -195,7 +195,7 @@ const DPS_WINDOW_MS = 5 * 60 * 1000;
 function prune_entry_events(entry) {
 	const cutoff = performance.now() - DPS_WINDOW_MS;
 	for (const key in entry) {
-		if (!key.endsWith("Events")) continue;
+		if (!key.endsWith("_events")) continue;
 		const arr = entry[key];
 		let i = 0;
 		while (i < arr.length && arr[i].t < cutoff) i++;

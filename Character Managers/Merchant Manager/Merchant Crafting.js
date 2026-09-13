@@ -343,8 +343,15 @@ async function craft_item(craft_name) {
 }
 
 var CRAFT_MAX_BATCHES = 50;
+var CRAFT_RETRY_MS = 10 * 60 * 1000;
+var _craft_retry_at = 0;
+
+function craft_run_blocked() {
+	return Date.now() < _craft_retry_at;
+}
 
 async function try_craft() {
+	var any_crafted = false;
 	for (var t = 0; t < CONFIG.crafting.targets.length; t++) {
 		var target = CONFIG.crafting.targets[t];
 		var craft_def = parent.G.craft[target.name];
@@ -364,6 +371,7 @@ async function try_craft() {
 			var crafted = await craft_batch(target.name, batch_size);
 			total_crafted += crafted;
 			if (crafted <= 0) break;
+			any_crafted = true;
 
 			game_log(`✅ Crafted ${crafted}x ${target.name} (${total_crafted}${target_max === Infinity ? "" : "/" + target_max} this run).`);
 
@@ -376,6 +384,11 @@ async function try_craft() {
 		await sell_items();
 		await bank_items();
 		break;
+	}
+
+	if (!any_crafted) {
+		_craft_retry_at = Date.now() + CRAFT_RETRY_MS;
+		game_log(`⚠️ Craft run made no progress — not retrying for ${CRAFT_RETRY_MS / 60000} min.`, "#FFA500");
 	}
 }
 

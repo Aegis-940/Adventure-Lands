@@ -91,9 +91,13 @@ async function withdraw_exchangeables() {
 	return false;
 }
 
+const EXCHANGE_RETRY_MS = 10 * 60 * 1000;
+let _exchange_retry_at = 0;
+
 function should_run_exchange() {
 	return CONFIG.enabled.exchanging
 		&& merchant_task === "Idle"
+		&& Date.now() >= _exchange_retry_at
 		&& has_enough_bank_space()
 		&& !find_bag_exchangeable()
 		&& has_bank_exchangeables();
@@ -103,7 +107,11 @@ async function handle_exchanging_state() {
 	if (merchant_task !== "Idle") return;
 	merchant_task = "Exchanging";
 	try {
-		await withdraw_exchangeables();
+		const fetched = await withdraw_exchangeables();
+		if (!fetched) {
+			_exchange_retry_at = Date.now() + EXCHANGE_RETRY_MS;
+			game_log(`⚠️ Exchange: bank fetch produced nothing — not retrying for ${EXCHANGE_RETRY_MS / 60000} min.`, "#FFA500");
+		}
 	} catch (e) {
 		catcher(e, "handle_exchanging_state");
 	} finally {

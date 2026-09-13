@@ -13,7 +13,7 @@ var CONFIG = {
 		crafting:   local_bool("AL_merchant_enabled_crafting", true),
 		exchanging: local_bool("AL_merchant_enabled_exchanging", true),
 		fishing:    local_bool("AL_merchant_enabled_fishing", false),
-		mining:     false,
+		mining:     local_bool("AL_merchant_enabled_mining", false),
 	},
 
 	trading: {

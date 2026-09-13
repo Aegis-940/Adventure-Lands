@@ -349,6 +349,13 @@ function bank_has_upgradeable_items() {
 const upgrade_failed_slots = new Set();
 const combine_failed_keys = new Set();
 
+const UPGRADE_RETRY_MS = 10 * 60 * 1000;
+let _upgrade_retry_at = 0;
+
+function upgrade_run_blocked() {
+	return Date.now() < _upgrade_retry_at;
+}
+
 async function auto_upgrade_item(level) {
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
@@ -609,12 +616,14 @@ async function auto_upgrade() {
 
 		upgrade_failed_slots.clear();
 		combine_failed_keys.clear();
+		let progressed = false;
 
 		let upgraded = true;
 		for (let level = 0; level <= 10 && !abandoned(); level++) {
 			upgraded = false;
 			while (!abandoned()) {
 				const result = await auto_upgrade_item(level);
+				if (result === "done") progressed = true;
 				if (result === "done" || result === "wait") {
 					upgraded = true;
 					await delay(UPGRADE_INTERVAL);
@@ -632,6 +641,7 @@ async function auto_upgrade() {
 			combined = false;
 			while (!abandoned()) {
 				const result = await auto_combine_item(level);
+				if (result === "done") progressed = true;
 				if (result === "done" || result === "wait") {
 					combined = true;
 					await delay(UPGRADE_INTERVAL);
@@ -647,6 +657,11 @@ async function auto_upgrade() {
 		if (abandoned()) {
 			log("⚠️ Upgrading was force-reset by the watchdog — abandoning this run.", "#FFA500");
 			return;
+		}
+
+		if (!progressed) {
+			_upgrade_retry_at = Date.now() + UPGRADE_RETRY_MS;
+			game_log(`⚠️ Upgrade run made no progress — not retrying for ${UPGRADE_RETRY_MS / 60000} min.`, "#FFA500");
 		}
 
 		game_log("✅ Auto upgrade and combine complete.");

@@ -86,39 +86,51 @@ function loose_loot(start) {
 	return out;
 }
 
+const MERCHANT_SEND_RANGE = 400;
+const MERCHANT_AUTO_SEND_RANGE = 250;
+
+let _sending_to_merchant = false;
+
 async function send_to_merchant() {
+	if (_sending_to_merchant) return;
 	const merchant = get_player("Riff");
 	if (!merchant || merchant.rip) return game_log("❌ Merchant not found or dead");
-	if (merchant.map !== character.map || distance(character, merchant) > 400) {
+	if (merchant.map !== character.map || distance(character, merchant) > MERCHANT_SEND_RANGE) {
 		return game_log("❌ Merchant not nearby");
 	}
 
-	for (const { i, item } of loose_loot(LOOT_THRESHOLD)) {
-		await delay(150);
-		try {
-			send_item("Riff", i, item.q || 1);
-		} catch (e) {
-			game_log(`⚠️ Could not send item in slot ${i}: ${item.name}`);
+	_sending_to_merchant = true;
+	try {
+		for (const { i, item } of loose_loot(LOOT_THRESHOLD)) {
+			await delay(150);
+			try {
+				await send_item("Riff", i, item.q || 1);
+			} catch (e) {
+				game_log(`⚠️ Could not send item in slot ${i}: ${item.name}`);
+			}
 		}
-	}
 
-	const gold_to_send = character.gold - LOOT_GOLD_RESERVE;
-	if (gold_to_send > 0) {
-		await delay(10);
-		try {
-			await send_gold("Riff", gold_to_send);
-		} catch (e) {
-			game_log("⚠️ Could not send gold");
+		const gold_to_send = character.gold - LOOT_GOLD_RESERVE;
+		if (gold_to_send > 0) {
+			await delay(10);
+			try {
+				await send_gold("Riff", gold_to_send);
+			} catch (e) {
+				game_log("⚠️ Could not send gold");
+			}
 		}
+	} finally {
+		_sending_to_merchant = false;
 	}
 }
 
 function clear_inventory() {
+	if (_sending_to_merchant) return;
 	const mule = get_player("Riff");
-	if (!mule || distance(character, mule) >= 250) return;
+	if (!mule || mule.rip || distance(character, mule) >= MERCHANT_AUTO_SEND_RANGE) return;
+	if (character.gold <= LOOT_GOLD_RESERVE && !loose_loot(LOOT_THRESHOLD).length) return;
 
-	if (character.gold > LOOT_GOLD_RESERVE) send_gold(mule, character.gold - LOOT_GOLD_RESERVE);
-	for (const { i, item } of loose_loot(0)) send_item(mule.id, i, item.q ?? 1);
+	send_to_merchant().catch(e => catcher(e, "clear_inventory"));
 }
 
 function inventory_sorter() {

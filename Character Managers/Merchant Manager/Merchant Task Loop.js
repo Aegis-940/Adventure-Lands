@@ -44,6 +44,7 @@ async function handle_anniversary_state() {
 function should_run_upgrade() {
 	return CONFIG.enabled.upgrading
 		&& merchant_task === "Idle"
+		&& !upgrade_run_blocked()
 		&& character.gold >= CONFIG.upgrade_gold_threshold
 		&& bank_has_upgradeable_items();
 }
@@ -62,6 +63,7 @@ async function handle_upgrading_state() {
 function should_run_craft() {
 	return CONFIG.enabled.crafting
 		&& merchant_task === "Idle"
+		&& !craft_run_blocked()
 		&& has_enough_bank_space()
 		&& can_afford_any_craft();
 }
@@ -129,11 +131,15 @@ async function set_state(state) {
 const MERCHANT_TASK_WATCHDOG_MS = 5 * 60 * 1000;
 let watchdog_task = merchant_task;
 let watchdog_since = Date.now();
+let _party_manager_at = 0;
 
 async function loop_controller() {
 	while (true) {
 		try {
-			party_manager();
+			if (Date.now() - _party_manager_at >= TICK_RATE.maintenance) {
+				_party_manager_at = Date.now();
+				party_manager();
+			}
 
 			if (!automation_enabled()) {
 				if (stand_is_open()) await close_merchant_stand();
