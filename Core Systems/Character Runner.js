@@ -155,6 +155,8 @@ function run_character(spec) {
 
 			const goal = movement_goal();
 			_current_goal = goal;
+			if (dungeon_moving()) return setTimeout(main_tick, TICK_RATE.main);
+
 			if (!travel_arbiter(goal)) {
 				if (should_loot()) await handle_looting();
 				else if (typeof s.local === "function") await s.local(goal);

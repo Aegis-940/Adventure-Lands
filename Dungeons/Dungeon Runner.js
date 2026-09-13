@@ -82,6 +82,30 @@ function dungeon_engage_radius() {
 	return dungeon_setting("engage_radius", character.range);
 }
 
+function dungeon_protected_key() {
+	const d = active_dungeon();
+	return d && d.key ? d.key : null;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// SCRIPTED TRAVEL — the arbiter releases any movement it did not order, so it has to stand down for ours
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let _dungeon_moving = false;
+
+function dungeon_moving() {
+	return _dungeon_moving;
+}
+
+async function dungeon_travel(destination) {
+	_dungeon_moving = true;
+	try {
+		return await smarter_move(destination);
+	} finally {
+		_dungeon_moving = false;
+	}
+}
+
 function dungeon_avoids(mtype) {
 	const d = active_dungeon();
 	return !!(d && d.avoid && d.avoid.includes(mtype));
@@ -213,7 +237,7 @@ async function run_dungeon(dungeon) {
 		}
 
 		dungeon_log(dungeon, "Moving to entrance...");
-		await smarter_move(dungeon.entrance);
+		await dungeon_travel(dungeon.entrance);
 		dungeon_log(dungeon, "At entrance — entering instance...");
 		await delay(10000);
 		enter(dungeon.map);
@@ -234,7 +258,7 @@ async function run_dungeon(dungeon) {
 
 		for (const boss of dungeon.bosses) {
 			dungeon_log(dungeon, `Moving to ${boss.mtype}...`);
-			await smarter_move({ map: dungeon.map, x: boss.x, y: boss.y });
+			await dungeon_travel({ map: dungeon.map, x: boss.x, y: boss.y });
 			await delay(2000);
 			await wait_for_death(boss.mtype, boss.x, boss.y);
 			dungeon_log(dungeon, `${boss.mtype} dead — looting`);

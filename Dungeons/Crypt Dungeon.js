@@ -55,7 +55,7 @@ function crypt_go(where) {
 	const spot = d[where];
 	if (!spot) return log(`Crypt: no waypoint named ${where}`, DUNGEON_WARN_COLOR);
 	log(`Crypt: walking to ${where} (${Math.round(spot.x)}, ${Math.round(spot.y)})`, DUNGEON_LOG_COLOR);
-	return smarter_move(spot);
+	return dungeon_travel(spot);
 }
 
 function crypt_camp() { return crypt_go("camp"); }
