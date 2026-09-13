@@ -30,6 +30,7 @@
 		"Core Systems/Error Log.js",
 		"Dungeons/Dungeon Runner.js",
 		"Dungeons/Spider Dungeon.js",
+		"Dungeons/Crypt Dungeon.js",
 		"Interface/Custom Log.js",
 		"Interface/Bank Sort Order.js",
 		"Interface/Widget Helpers.js",

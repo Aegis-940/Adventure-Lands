@@ -53,6 +53,16 @@ function dungeon_avoids(mtype) {
 	return !!(d && d.avoid && d.avoid.includes(mtype));
 }
 
+function dungeon_skip_target(mob) {
+	if (!mob || !dungeon_avoids(mob.mtype)) return false;
+	return !mob.target || ![PARTY_LEADER, ...PARTY_MEMBERS].includes(mob.target);
+}
+
+function start_active_dungeon_when_ready() {
+	const d = active_dungeon();
+	if (d) start_dungeon_when_ready(d);
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // BOSS DEATH DETECTION
 // --------------------------------------------------------------------------------------------------------------------------------- //

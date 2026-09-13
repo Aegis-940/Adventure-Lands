@@ -292,6 +292,7 @@ function monsters_matching(args = {}) {
 	for (let id in parent.entities) {
 		let current = parent.entities[id];
 		if (current.type != "monster" || !current.visible || current.dead) continue;
+		if (dungeon_skip_target(current)) continue;
 
 		if (args.type) {
 			if (Array.isArray(args.type)) {

@@ -1,0 +1,89 @@
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// CRYPT DUNGEON — the healer opens the instance and then drives the party by hand
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const CRYPT_VAMPIRELINGS = "vbat";
+const CRYPT_PRIORITY = [CRYPT_VAMPIRELINGS, "a3"];
+const CRYPT_OPPORTUNISTIC = ["a2", "a7", "a4", "a5"];
+const CRYPT_AVOID = ["a6", "a8"];
+
+DUNGEONS.crypt = {
+	name: "Crypt Dungeon",
+	map: "crypt",
+	home: "crypt",
+	key: "cryptkey",
+	entrance: { map: "cave", x: -192, y: -1308 },
+	spawn: { map: "crypt", x: 0, y: 0 },
+	exit: { map: "crypt", x: -2, y: 106 },
+	camp: { map: "crypt", x: 1191, y: -385 },
+	priority: CRYPT_PRIORITY,
+	opportunistic: CRYPT_OPPORTUNISTIC,
+	avoid: CRYPT_AVOID,
+	flags: {
+		leader_manual: true,
+		center_on_tank: true,
+		combat_always_on: true,
+		single_target: true,
+		no_cleave: true,
+		no_agitate: true,
+		circle_on_self: true,
+		absorb_nearby: true,
+		aggroed_only: false,
+		defensive_targeting: false,
+		no_attack: false,
+		engage_radius: 50,
+		aggro_cap: 3,
+	},
+};
+
+function run_crypt_dungeon() {
+	return run_dungeon(DUNGEONS.crypt);
+}
+
+function start_crypt_dungeon_when_ready() {
+	start_dungeon_when_ready(DUNGEONS.crypt);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// WAYPOINTS — the healer is driven by hand, these are the spots worth returning to
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function crypt_go(where) {
+	const d = DUNGEONS.crypt;
+	const spot = d[where];
+	if (!spot) return log(`Crypt: no waypoint named ${where}`, DUNGEON_WARN_COLOR);
+	log(`Crypt: walking to ${where} (${Math.round(spot.x)}, ${Math.round(spot.y)})`, DUNGEON_LOG_COLOR);
+	return smarter_move(spot);
+}
+
+function crypt_camp() { return crypt_go("camp"); }
+function crypt_leave() { return crypt_go("exit"); }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// THREAT WATCH — what is actually near us, and whether we should be here
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const CRYPT_BOSS_TYPES = ["a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8"];
+const CRYPT_THREAT_RADIUS = 400;
+
+function crypt_bosses_near(radius = CRYPT_THREAT_RADIUS) {
+	const found = [];
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || e.dead) continue;
+		if (!CRYPT_BOSS_TYPES.includes(e.mtype)) continue;
+		if (Math.hypot(character.x - e.x, character.y - e.y) > radius) continue;
+		found.push(e);
+	}
+	return found;
+}
+
+function crypt_threat_report() {
+	const near = crypt_bosses_near();
+	if (!near.length) return log("Crypt: no bosses in view", DUNGEON_LOG_COLOR);
+	for (const e of near) {
+		const name = (G.monsters[e.mtype] || {}).name || e.mtype;
+		const avoided = CRYPT_AVOID.includes(e.mtype) ? " ⚠️ AVOID" : "";
+		log(`Crypt: ${name} (${e.mtype}) at ${Math.round(distance(character, e))}${avoided}`, DUNGEON_LOG_COLOR);
+	}
+}
