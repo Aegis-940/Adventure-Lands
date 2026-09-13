@@ -50,6 +50,10 @@ const CM_HANDLERS = {
 			await send_to_merchant();
 	},
 
+	"collect_loot": (name) => {
+		if (typeof request_delivery === "function") request_delivery(`${name} asked for a pickup`);
+	},
+
 
 	"reload": () => {
 		setTimeout(() => parent.window.location.reload(), 500);

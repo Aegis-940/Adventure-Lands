@@ -86,6 +86,7 @@ async function crypt_retreat(wp) {
 
 async function crypt_leg(wp) {
 	log(`Crypt route: heading for waypoint ${wp.n} (${wp.x}, ${wp.y})`, DUNGEON_LOG_COLOR, "Alerts");
+	dungeon_telemetry_event("leg_start", { wp: wp.n, hunt: wp.hunt.join(",") });
 
 	let arrived = false;
 	const travel = dungeon_travel({ map: "crypt", x: wp.x, y: wp.y })
@@ -164,11 +165,19 @@ async function run_crypt_route() {
 			}
 
 			log(`Crypt route: waypoint ${wp.n} complete (${outcome})`, DUNGEON_LOG_COLOR, "Alerts");
+			dungeon_telemetry_event("leg_end", { wp: wp.n, outcome, kills: Object.assign({}, _dungeon_kills) });
 			await handle_looting();
 		}
 
 		dungeon_progress_report();
 		log("Crypt route: circuit finished", DUNGEON_LOG_COLOR, "Alerts");
+
+		record_dungeon_run();
+		if (!_crypt_route_abort && collection_due()) {
+			log("Crypt route: collection due — leaving the crypt to meet Riff", DUNGEON_LOG_COLOR, "Alerts");
+			await crypt_leave();
+			await run_dungeon_collection();
+		}
 	} catch (e) {
 		catcher(e, "run_crypt_route");
 	} finally {

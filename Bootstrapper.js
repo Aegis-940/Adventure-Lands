@@ -33,6 +33,8 @@
 		"Dungeons/Crypt Dungeon.js",
 		"Dungeons/Dungeon Progress.js",
 		"Dungeons/Dungeon Escape.js",
+		"Dungeons/Dungeon Telemetry.js",
+		"Dungeons/Dungeon Collection.js",
 		"Dungeons/Crypt Route.js",
 		"Dungeons/Dungeon Mode.js",
 		"Interface/Custom Log.js",

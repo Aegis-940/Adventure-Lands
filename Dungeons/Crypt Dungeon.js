@@ -15,7 +15,7 @@ DUNGEONS.crypt = {
 	key: "cryptkey",
 	entrance: { map: "cave", x: -192, y: -1308 },
 	spawn: { map: "crypt", x: 0, y: 0 },
-	exit: { map: "crypt", x: -2, y: 106 },
+	exit: { map: "cave", x: -192, y: -1308 },
 	camp: { map: "crypt", x: 1191, y: -385 },
 	priority: CRYPT_PRIORITY,
 	opportunistic: CRYPT_OPPORTUNISTIC,

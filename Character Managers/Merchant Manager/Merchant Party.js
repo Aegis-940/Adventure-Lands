@@ -66,8 +66,21 @@ async function buff_nearby_party() {
 
 var DELIVERY_WAIT_MAX_ATTEMPTS = 40;
 
+var _delivery_requested = false;
+
+function request_delivery(reason) {
+	if (_delivery_requested) return;
+	_delivery_requested = true;
+	log(`📦 Pickup requested — ${reason}`, "#88FF88");
+}
+
+function clear_delivery_request() {
+	_delivery_requested = false;
+}
+
 function should_run_delivery() {
 	if (merchant_task !== "Idle") return false;
+	if (_delivery_requested) return true;
 	for (const name of PARTY) {
 		const status = read_state_cache(name);
 		if (!status || status.rip) continue;
@@ -122,6 +135,7 @@ async function handle_delivering_state() {
 	} catch (e) {
 		catcher(e, "handle_delivering_state");
 	} finally {
+		clear_delivery_request();
 		end_task(generation);
 	}
 }

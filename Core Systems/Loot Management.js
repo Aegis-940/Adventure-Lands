@@ -77,13 +77,13 @@ function reserved_gear_slots() {
 function loose_loot(start) {
 	const keep = typeof ITEMS_TO_KEEP !== "undefined" ? ITEMS_TO_KEEP : [];
 	const reserved = reserved_gear_slots();
-	const dungeon_key = dungeon_protected_key();
+	const dungeon_keys = dungeon_protected_keys();
 	const out = [];
 	for (let i = start; i < character.items.length; i++) {
 		const item = character.items[i];
 		if (!item || item.l || item.s) continue;
 		if (keep.includes(item.name) || reserved.has(i)) continue;
-		if (dungeon_key && item.name === dungeon_key) continue;
+		if (dungeon_keys.includes(item.name)) continue;
 		out.push({ i, item });
 	}
 	return out;

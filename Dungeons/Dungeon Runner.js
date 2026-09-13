@@ -92,9 +92,22 @@ function dungeon_sort_targets(list) {
 	return list;
 }
 
-function dungeon_protected_key() {
-	const d = active_dungeon();
-	return d && d.key ? d.key : null;
+function dungeon_telemetry_event(event, data) {
+	if (typeof errlog_sample !== "function") return;
+	errlog_sample("dungeon_event", Object.assign({
+		event,
+		map: character.map,
+		x: Math.round(character.x),
+		y: Math.round(character.y),
+	}, data || {}));
+}
+
+function dungeon_protected_keys() {
+	const keys = [];
+	for (const name in DUNGEONS) {
+		if (DUNGEONS[name].key) keys.push(DUNGEONS[name].key);
+	}
+	return keys;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

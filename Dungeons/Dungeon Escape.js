@@ -83,6 +83,7 @@ async function dungeon_bail_out(reason, broadcast = true) {
 	_dungeon_bailing = true;
 	try {
 		log(`🚨 ${d.name}: bailing out — ${reason}`, "#FF3333", "Alerts");
+		dungeon_telemetry_event("bail_start", { reason, threats: dungeon_threats().map(e => e.mtype).join(",") });
 		if (broadcast) {
 			send_cm(DUNGEON_PARTY.filter(n => n !== character.name), { type: "dungeon_bail", reason });
 		}
@@ -110,6 +111,7 @@ async function dungeon_bail_out(reason, broadcast = true) {
 			? `${d.name}: back at the entrance`
 			: `${d.name}: bail-out did not land — still out there`,
 			landed ? "#00FF00" : "#FF3333", "Alerts");
+		dungeon_telemetry_event("bail_end", { landed });
 		return landed;
 
 	} catch (e) {
