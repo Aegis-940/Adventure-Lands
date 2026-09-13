@@ -7,6 +7,7 @@ const DUNGEON_PARTY_TIMEOUT_MS = 2 * 60 * 1000;
 const DUNGEON_JOIN_MAX_ATTEMPTS = 30;
 const DUNGEON_JOIN_INTERVAL_MS = 2000;
 const DUNGEON_FOLLOWERS = ["Ulric", "Riva"];
+const DUNGEON_PARTY = ["Myras", "Ulric", "Riva"];
 const DUNGEON_LOG_COLOR = "#AA88FF";
 const DUNGEON_WARN_COLOR = "#FF8844";
 
@@ -21,12 +22,45 @@ function dungeon_log(dungeon, message, color = DUNGEON_LOG_COLOR) {
 // DUNGEON MODE — which dungeon this character is configured for, and how it bends the shared systems
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+const DUNGEON_OVERRIDE_KEY = "AL_dungeon_mode";
+
+let _dungeon_override = null;
+let _active_dungeon_cache;
+
+try {
+	_dungeon_override = localStorage.getItem(DUNGEON_OVERRIDE_KEY) || null;
+} catch (e) {
+	_dungeon_override = null;
+}
+
+function dungeon_override() {
+	return _dungeon_override;
+}
+
+function set_dungeon_override(key) {
+	_dungeon_override = key || null;
+	_active_dungeon_cache = undefined;
+	try {
+		if (_dungeon_override) localStorage.setItem(DUNGEON_OVERRIDE_KEY, _dungeon_override);
+		else localStorage.removeItem(DUNGEON_OVERRIDE_KEY);
+	} catch (e) { }
+}
+
 function active_dungeon() {
-	if (typeof home === "undefined") return null;
-	for (const key in DUNGEONS) {
-		if (DUNGEONS[key].home === home) return DUNGEONS[key];
+	if (_active_dungeon_cache !== undefined) return _active_dungeon_cache;
+
+	if (_dungeon_override && DUNGEONS[_dungeon_override]) {
+		_active_dungeon_cache = DUNGEONS[_dungeon_override];
+		return _active_dungeon_cache;
 	}
-	return null;
+
+	if (typeof home === "undefined") return null;
+
+	_active_dungeon_cache = null;
+	for (const key in DUNGEONS) {
+		if (DUNGEONS[key].home === home) _active_dungeon_cache = DUNGEONS[key];
+	}
+	return _active_dungeon_cache;
 }
 
 function in_dungeon() {
@@ -54,8 +88,12 @@ function dungeon_avoids(mtype) {
 }
 
 function dungeon_skip_target(mob) {
-	if (!mob || !dungeon_avoids(mob.mtype)) return false;
-	return !mob.target || ![PARTY_LEADER, ...PARTY_MEMBERS].includes(mob.target);
+	const d = active_dungeon();
+	if (!d || !mob) return false;
+	if (mob.target && DUNGEON_PARTY.includes(mob.target)) return false;
+	if (d.avoid && d.avoid.includes(mob.mtype)) return true;
+	if (d.only && !d.only.includes(mob.mtype)) return true;
+	return false;
 }
 
 function start_active_dungeon_when_ready() {
@@ -166,8 +204,8 @@ async function run_dungeon(dungeon) {
 	send_cm(DUNGEON_FOLLOWERS, { type: "suppress_reset" });
 	try {
 		if (dungeon.key && !has_dungeon_key(dungeon.key)) {
-			dungeon_log(dungeon, `No ${dungeon.key} in hand — withdrawing one from the bank...`);
-			await withdraw_item(dungeon.key, null, 1);
+			dungeon_log(dungeon, `No ${dungeon.key} in hand — withdrawing every one from the bank...`);
+			await withdraw_item(dungeon.key, null, dungeon.key_count);
 			if (!has_dungeon_key(dungeon.key)) {
 				dungeon_log(dungeon, `No ${dungeon.key} in the bank either — aborting.`, DUNGEON_WARN_COLOR);
 				return;
@@ -240,7 +278,7 @@ function has_dungeon_key(key) {
 }
 
 function start_dungeon_when_ready(dungeon) {
-	if (home !== dungeon.home) return;
+	if (active_dungeon() !== dungeon) return;
 	setTimeout(() => {
 		if (_dungeon_running) return;
 		if (character.rip) {
@@ -248,6 +286,13 @@ function start_dungeon_when_ready(dungeon) {
 			return;
 		}
 		if (character.map === dungeon.map) {
+			if (!dungeon.bosses || !dungeon.bosses.length) {
+				dungeon_log(dungeon, "Already inside — movement is yours", "#FFAA44");
+				set_suppress_reset(true);
+				send_cm(DUNGEON_FOLLOWERS, { type: "suppress_reset" });
+				hold_reset_until_out(dungeon);
+				return;
+			}
 			dungeon_log(dungeon, "Detected startup inside instance — restarting from entrance.", "#FFAA44");
 		}
 		dungeon_log(dungeon, "Auto-starting...");

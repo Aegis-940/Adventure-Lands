@@ -19,8 +19,10 @@ DUNGEONS.crypt = {
 	priority: CRYPT_PRIORITY,
 	opportunistic: CRYPT_OPPORTUNISTIC,
 	avoid: CRYPT_AVOID,
+	only: [...CRYPT_PRIORITY, ...CRYPT_OPPORTUNISTIC],
 	flags: {
 		leader_manual: true,
+		ignore_events: true,
 		center_on_tank: true,
 		combat_always_on: true,
 		single_target: true,

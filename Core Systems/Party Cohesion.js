@@ -83,7 +83,8 @@ function party_cohesion_hold() {
 
 	if (typeof panicking !== "undefined" && panicking) { _cohesion_holding = false; return false; }
 
-	const owed = typeof anniversary_should_travel === "function" && anniversary_should_travel();
+	const owed = !dungeon_flag("ignore_events")
+		&& typeof anniversary_should_travel === "function" && anniversary_should_travel();
 	const endangered = party_member_in_danger();
 
 	const limit = (endangered || _cohesion_holding) ? COHESION_REGROUP : COHESION_RANGE;
@@ -97,7 +98,7 @@ function party_cohesion_hold() {
 	});
 	if (_cohesion_holding) return true;
 
-	if (owed) return false;
+	if (owed || dungeon_flag("ignore_events")) return false;
 	return COHESION_FOLLOWERS.some(name => {
 		const s = read_state_cache(name);
 		return !!s && !s.rip && !s.paused && !!s.anniv_pending;
@@ -160,16 +161,20 @@ function movement_goal() {
 	const follow = follow_goal();
 	if (follow && !follow.local) return follow;
 
-	const event = event_goal();
+	const ignoring_events = dungeon_flag("ignore_events");
+
+	const event = ignoring_events ? null : event_goal();
 	if (follow && follow.on_station && event && event.local === "event") return event;
 
-	if (!follow_has_leader()) {
+	if (!follow_has_leader() && !ignoring_events) {
 		const anniv = anniversary_destination();
 		if (anniv) return anniv;
 	}
 
 	if (follow) return follow;
 	if (event) return event;
+
+	if (ignoring_events) return null;
 
 	if (home === "bscorpion") {
 		return is_at_bscorpion_farm()

@@ -31,6 +31,7 @@
 		"Dungeons/Dungeon Runner.js",
 		"Dungeons/Spider Dungeon.js",
 		"Dungeons/Crypt Dungeon.js",
+		"Dungeons/Dungeon Mode.js",
 		"Interface/Custom Log.js",
 		"Interface/Bank Sort Order.js",
 		"Interface/Widget Helpers.js",

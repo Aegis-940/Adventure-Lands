@@ -40,6 +40,8 @@ const CM_HANDLERS = {
 
 	"enter_instance": (name, data) => join_dungeon_instance(data),
 
+	"dungeon_mode": (name, data) => set_dungeon_mode(data.dungeon || null, false),
+
 	"send_loot": async (name) => {
 			await send_to_merchant();
 	},
