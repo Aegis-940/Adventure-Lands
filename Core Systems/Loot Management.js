@@ -184,23 +184,30 @@ function should_loot() {
 	);
 }
 
-async function swap_booster(current, target) {
-	const slot = locate_item(current);
-	if (slot !== -1) shift(slot, target);
+async function shift_booster(slot, target) {
+	if (slot === -1) return;
+	try {
+		await shift(slot, target);
+	} catch (e) {
+		catcher(e, "shift_booster");
+	}
 }
 
 async function handle_looting() {
 	_loot_last = performance.now();
 	_looting = true;
 	const token = equip_claim("looting", EQUIP_PRIORITY.loot);
+	let booster_slot = -1;
 
 	try {
 		if (token && CONFIG.looting.equip_gold_gear && !is_set_equipped("gold")
 			&& performance.now() - _loot_gold_swap > 1000) {
-			await equip_apply(token, "gold");
 			_loot_gold_swap = performance.now();
-			await swap_booster("luckbooster", "goldbooster");
-			await delay(200);
+			booster_slot = locate_item("luckbooster");
+			await Promise.all([
+				equip_apply(token, "gold"),
+				shift_booster(booster_slot, "goldbooster")
+			]);
 		}
 
 		let looted = 0;
@@ -213,11 +220,8 @@ async function handle_looting() {
 			looted++;
 		}
 
-		await delay(150);
-
 		if (CONFIG.looting.equip_gold_gear) {
-			await swap_booster("goldbooster", "luckbooster");
-			await delay(200);
+			await shift_booster(booster_slot !== -1 ? booster_slot : locate_item("goldbooster"), "luckbooster");
 		}
 	} catch (e) {
 		catcher(e, "handle_looting");
