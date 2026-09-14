@@ -44,8 +44,6 @@ var CONFIG = {
 		use_licence: false,
 
 		weapon_sets: ["single", "boom"],
-		weapon_hysteresis_ms: 0,
-		weapon_switch_margin: 1.0,
 	},
 
 	looting: {

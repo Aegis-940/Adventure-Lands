@@ -17,16 +17,6 @@ function shot_width() {
 	return widest;
 }
 
-function mean_of_best(values, count) {
-	if (!values.length) return 0;
-	const take = Math.min(count, values.length);
-	values.sort((a, b) => b - a);
-
-	let total = 0;
-	for (let i = 0; i < take; i++) total += values[i];
-	return total / take;
-}
-
 var _bow_choice = make_weapon_choice();
 
 function ranger_set_value(set_name, pool) {

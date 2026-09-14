@@ -541,9 +541,10 @@ function estimate_my_damage(entity, multiplier) {
 	return (character.attack || 0) * defense_reduction(armor) * (multiplier === undefined ? 1 : multiplier);
 }
 
-function time_to_kill_ms(mob, hp, dps, party_factor) {
+function time_to_kill_ms(mob, hp, dps, party_factor, apiercing) {
 	if (!mob || !hp || dps <= 0) return Infinity;
-	const armor = (mob.armor || 0) - (character.apiercing || 0);
+	const piercing = apiercing === undefined ? (character.apiercing || 0) : apiercing;
+	const armor = (mob.armor || 0) - piercing;
 	const effective = dps * defense_reduction(armor) * (party_factor || 1);
 	return effective > 0 ? (hp / effective) * 1000 : Infinity;
 }
@@ -563,7 +564,7 @@ function burn_multiplier_at_dps(mob, chance, dps, party_factor, options) {
 	if (rate <= 0) return 1;
 
 	const hp = opts.hp === undefined ? (mob && mob.max_hp) : opts.hp;
-	const ttk = mob ? time_to_kill_ms(mob, hp, dps, party_factor) : Infinity;
+	const ttk = mob ? time_to_kill_ms(mob, hp, dps, party_factor, opts.apiercing) : Infinity;
 	const window_ms = Math.min(BURN_DURATION_MS, isFinite(ttk) ? ttk : BURN_DURATION_MS);
 	if (window_ms <= 0) return 1;
 

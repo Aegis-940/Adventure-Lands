@@ -163,7 +163,7 @@ function worn_ability_chance(ability) {
 
 const WEAPON_PROBE_MS = 20000;
 const SET_PROFILE_KEY = "AL_set_profile2_";
-const SET_PROFILE_FIELDS = ["attack", "explosion", "frequency", "heal", "int", "rpiercing", "mp_cost"];
+const SET_PROFILE_FIELDS = ["attack", "explosion", "frequency", "heal", "int", "rpiercing", "apiercing", "mp_cost"];
 const SET_PROFILE_MIN_INTERVAL_MS = 15000;
 const SET_PROFILE_REPROBE_MS = 600000;
 const SET_PROFILE_SETTLE_MS = 600;
@@ -267,40 +267,122 @@ function set_dps(profile) {
 	return (profile.attack || 0) * (profile.frequency || 1);
 }
 
-function hit_against(mob, attack) {
-	if (!mob) return 0;
-	return (attack || 0) * defense_reduction((mob.armor || 0) - (character.apiercing || 0));
+function profile_apiercing(profile) {
+	return profile.apiercing === undefined ? (character.apiercing || 0) : profile.apiercing;
 }
 
+function hit_against(mob, attack, apiercing) {
+	if (!mob) return 0;
+	const piercing = apiercing === undefined ? (character.apiercing || 0) : apiercing;
+	return (attack || 0) * defense_reduction((mob.armor || 0) - piercing);
+}
+
+function mean_of_best(values, count) {
+	if (!values.length) return 0;
+	const take = Math.min(count, values.length);
+	values.sort((a, b) => b - a);
+
+	let total = 0;
+	for (let i = 0; i < take; i++) total += values[i];
+	return total / take;
+}
+
+function set_damage_value(set_name, pool, width) {
+	const profile = get_set_profile(set_name);
+	if (!profile || !profile.attack) return null;
+	if (!pool || !pool.length) return null;
+
+	const dps = set_dps(profile);
+	const chance = set_ability_chance(set_name, "burn");
+	const piercing = profile_apiercing(profile);
+	const party_factor = (CONFIG.combat && CONFIG.combat.party_dps_factor) || 1;
+
+	const each = pool.map(mob => {
+		const burn = burn_multiplier_at_dps(mob, chance, dps, party_factor,
+			{ frequency: profile.frequency, hp: mob.hp, apiercing: piercing });
+		const splash = profile.explosion > 0
+			? splash_bonus(mob, profile.explosion, hit_against(mob, profile.attack, piercing))
+			: 0;
+		return burn + splash;
+	});
+
+	return dps * mean_of_best(each, width || 1);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// WEAPON CHOICE — probe unprofiled sets while they are worn, then hold the best-valued set with hysteresis and a margin
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const WEAPON_HYSTERESIS_MS = 3000;
+const WEAPON_SWITCH_MARGIN = 1.1;
+
+var _weapon_choice = make_weapon_choice();
+
 function make_weapon_choice() {
-	return { name: null, at: 0, probe: {}, probing: null };
+	return { worn: null, since: 0, probe: {}, probing: null, proposed: null };
 }
 
 function weapon_choice_name(choice) {
-	return choice.probing || choice.name;
+	return choice.probing || choice.worn;
+}
+
+function observe_worn_set(choice, sets, now) {
+	const worn = sets.find(name => is_set_equipped(name)) || null;
+	if (worn && worn !== choice.worn) {
+		choice.worn = worn;
+		choice.since = now;
+	}
+	return choice.worn;
+}
+
+function probe_weapon_set(choice, sets, probe_ms, reprobe_ms, now) {
+	for (const name of sets) {
+		if (!set_available(name) || !set_profile_stale(name, reprobe_ms)) {
+			delete choice.probe[name];
+			continue;
+		}
+
+		let probe = choice.probe[name];
+		if (!probe || now - probe.started > probe_ms + reprobe_ms) {
+			probe = choice.probe[name] = { started: now, worn_ms: 0, last: 0 };
+		}
+		if (probe.worn_ms >= probe_ms) continue;
+
+		if (is_set_equipped(name)) {
+			if (probe.last) probe.worn_ms += now - probe.last;
+			probe.last = now;
+		} else {
+			probe.last = 0;
+		}
+		return name;
+	}
+	return null;
+}
+
+function sample_weapon_choice(choice, sets, value_of, from, to, now, context) {
+	if (!CONFIG.combat || !CONFIG.combat.sample_hits || typeof errlog_sample !== "function") return;
+
+	const values = {};
+	for (const name of sets) {
+		const value = set_available(name) ? value_of(name) : null;
+		values[name] = value === null || value === undefined ? null : Math.round(value);
+	}
+
+	errlog_sample("weapon_choice", Object.assign({
+		from, to, values,
+		held_ms: choice.since ? now - choice.since : 0,
+		mp_pct: +(character.mp / character.max_mp).toFixed(2)
+	}, typeof context === "function" ? context() : {}));
 }
 
 function best_weapon_set(choice, sets, value_of, opts) {
 	const o = opts || {};
 	const now = Date.now();
 
-	const probe_ms = o.probe_ms || WEAPON_PROBE_MS;
-	const reprobe_ms = o.reprobe_ms || SET_PROFILE_REPROBE_MS;
+	const worn = observe_worn_set(choice, sets, now);
 
-	for (const name of sets) {
-		if (!set_available(name) || !set_profile_stale(name, reprobe_ms)) {
-			delete choice.probe[name];
-			continue;
-		}
-		const started = choice.probe[name];
-		if (!started || now - started > probe_ms + reprobe_ms) choice.probe[name] = now;
-		if (now - choice.probe[name] <= probe_ms) {
-			choice.probing = name;
-			return name;
-		}
-	}
-
-	choice.probing = null;
+	choice.probing = probe_weapon_set(choice, sets, o.probe_ms || WEAPON_PROBE_MS, o.reprobe_ms || SET_PROFILE_REPROBE_MS, now);
+	if (choice.probing) return choice.probing;
 
 	let best = null;
 	let best_value = -Infinity;
@@ -313,16 +395,15 @@ function best_weapon_set(choice, sets, value_of, opts) {
 	}
 	if (!best) return null;
 
-	if (choice.name && choice.name !== best) {
-		if (now - choice.at < (o.hysteresis_ms || 0)) return choice.name;
-		const holding = value_of(choice.name);
-		if (holding !== null && holding !== undefined && best_value < holding * (o.margin || 1)) return choice.name;
+	if (worn && worn !== best && set_available(worn)) {
+		if (now - choice.since < (o.hysteresis_ms ?? WEAPON_HYSTERESIS_MS)) return worn;
+		const holding = value_of(worn);
+		if (holding !== null && holding !== undefined && best_value < holding * (o.margin ?? WEAPON_SWITCH_MARGIN)) return worn;
 	}
 
-	if (choice.name !== best) {
-		if (typeof o.on_change === "function") o.on_change(choice.name, best, now);
-		choice.name = best;
-		choice.at = now;
+	if (best !== choice.proposed) {
+		choice.proposed = best;
+		if (best !== worn) sample_weapon_choice(choice, sets, value_of, worn, best, now, o.context);
 	}
 	return best;
 }
@@ -332,6 +413,32 @@ function resolve_weapon_by_value(choice, value_of, extra) {
 		hysteresis_ms: CONFIG.equipment.weapon_hysteresis_ms,
 		margin: CONFIG.equipment.weapon_switch_margin
 	}, extra || {}));
+}
+
+function first_available_set(sets) {
+	for (const name of sets) {
+		if (set_available(name)) return name;
+	}
+	return null;
+}
+
+function resolve_weapon_set(args) {
+	const a = args || {};
+	const sets = CONFIG.equipment.weapon_sets;
+
+	if (a.forced) return a.forced;
+	if (typeof dungeon_flag === "function" && dungeon_flag("single_weapon")) return sets[0];
+
+	if (!a.pool || !a.pool.length) {
+		const now = Date.now();
+		observe_worn_set(_weapon_choice, sets, now);
+		_weapon_choice.probing = probe_weapon_set(_weapon_choice, sets, WEAPON_PROBE_MS, SET_PROFILE_REPROBE_MS, now);
+		return _weapon_choice.probing;
+	}
+
+	const chosen = resolve_weapon_by_value(_weapon_choice,
+		name => set_damage_value(name, a.pool, a.width), { context: a.context });
+	return chosen || first_available_set(sets);
 }
 
 function preferred_orb(preferred, allow_xp) {
