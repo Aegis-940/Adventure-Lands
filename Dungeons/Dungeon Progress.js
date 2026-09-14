@@ -14,7 +14,12 @@ function reset_dungeon_progress() {
 	_dungeon_run_started = Date.now();
 }
 
+function dungeon_runner_ready() {
+	return typeof active_dungeon === "function";
+}
+
 function dungeon_quota() {
+	if (!dungeon_runner_ready()) return null;
 	const d = active_dungeon();
 	return (d && d.quota) || null;
 }
@@ -89,7 +94,7 @@ if (parent.socket._dungeon_kill_handler) {
 parent.socket._dungeon_kill_handler = data => {
 	try {
 		if (!data || !data.kill || !data.id) return;
-		if (!active_dungeon()) return;
+		if (!dungeon_runner_ready() || !active_dungeon()) return;
 		const mtype = dungeon_mtype_for(data.id);
 		if (!mtype) return;
 		_dungeon_seen.delete(data.id);

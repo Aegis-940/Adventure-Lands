@@ -13,6 +13,7 @@ let _telemetry_still_since = 0;
 let _telemetry_free_since = 0;
 
 function dungeon_telemetry_on() {
+	if (typeof active_dungeon !== "function") return false;
 	return !!active_dungeon() && typeof errlog_sample === "function";
 }
 
