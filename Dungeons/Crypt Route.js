@@ -20,6 +20,14 @@ const CRYPT_FIGHT_TIMEOUT_MS = 4 * 60 * 1000;
 const CRYPT_RETREAT_SETTLE_MS = 4000;
 const CRYPT_PANIC_RETRIES = 2;
 const CRYPT_CALM_TIMEOUT_MS = 90000;
+const CRYPT_DEFAULT_RANK = 5;
+const CRYPT_PATH_THRESHOLD = 250;
+
+const CRYPT_TARGET_RULES = {
+	a7: { sight: Infinity, rank: 0 },
+	a3: { sight: 600, rank: 1 },
+	a2: { sight: 500, rank: 2 },
+};
 
 let _crypt_route_running = false;
 let _crypt_route_abort = false;
@@ -62,6 +70,16 @@ function crypt_leg_done(wp) {
 // LEGS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+function crypt_sight(mtype) {
+	const rule = CRYPT_TARGET_RULES[mtype];
+	return rule && rule.sight !== undefined ? rule.sight : CRYPT_ROUTE_SIGHT;
+}
+
+function crypt_rank(mtype) {
+	const rule = CRYPT_TARGET_RULES[mtype];
+	return rule && rule.rank !== undefined ? rule.rank : CRYPT_DEFAULT_RANK;
+}
+
 function crypt_opportunity() {
 	const quota = dungeon_quota() || {};
 	const suppressed = dungeon_suppressed_types() || [];
@@ -70,11 +88,17 @@ function crypt_opportunity() {
 		.filter(m => !suppressed.includes(m));
 	if (!wanted.length) return null;
 
-	const seen = crypt_visible(wanted);
+	const seen = [];
+	for (const mtype of wanted) {
+		for (const e of crypt_visible([mtype], crypt_sight(mtype))) seen.push(e);
+	}
 	if (!seen.length) return null;
 
-	seen.sort((a, b) =>
-		Math.hypot(character.x - a.x, character.y - a.y) - Math.hypot(character.x - b.x, character.y - b.y));
+	seen.sort((a, b) => {
+		const rank = crypt_rank(a.mtype) - crypt_rank(b.mtype);
+		if (rank) return rank;
+		return Math.hypot(character.x - a.x, character.y - a.y) - Math.hypot(character.x - b.x, character.y - b.y);
+	});
 	return seen[0];
 }
 
@@ -83,6 +107,12 @@ function crypt_step_toward(target) {
 	const dx = target.x - character.x;
 	const dy = target.y - character.y;
 	const d = Math.hypot(dx, dy) || 1;
+
+	if (d > CRYPT_PATH_THRESHOLD) {
+		dungeon_travel({ map: "crypt", x: target.x, y: target.y }).catch(() => { });
+		return;
+	}
+
 	const step = Math.min(CRYPT_CHASE_STEP, d);
 	const x = character.x + (dx / d) * step;
 	const y = character.y + (dy / d) * step;
@@ -93,8 +123,9 @@ function crypt_step_toward(target) {
 async function crypt_engage(wp, quarry) {
 	const mtype = quarry.mtype;
 	const name = (G.monsters[mtype] || {}).name || mtype;
-	log(`Crypt route: engaging ${name}`, DUNGEON_LOG_COLOR, "Alerts");
-	dungeon_telemetry_event("engage", { wp: wp.n, mtype });
+	const opened_at = Math.round(Math.hypot(character.x - quarry.x, character.y - quarry.y));
+	log(`Crypt route: engaging ${name} at ${opened_at}`, DUNGEON_LOG_COLOR, "Alerts");
+	dungeon_telemetry_event("engage", { wp: wp.n, mtype, distance: opened_at });
 
 	const until = Date.now() + CRYPT_FIGHT_TIMEOUT_MS;
 	while (Date.now() < until) {
@@ -104,7 +135,7 @@ async function crypt_engage(wp, quarry) {
 		if (crypt_intruders().length) return "intruder";
 		if (dungeon_target_done(mtype)) break;
 
-		const live = crypt_visible([mtype], CRYPT_CHASE_SIGHT);
+		const live = crypt_visible([mtype], Math.max(CRYPT_CHASE_SIGHT, crypt_sight(mtype)));
 		if (!live.length) break;
 
 		const target = live[0];
