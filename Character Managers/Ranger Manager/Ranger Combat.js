@@ -74,10 +74,25 @@ var SHOT_PROFILES = [
 	{ name: "attack", count: 1, multiplier: 1.0 },
 	{ name: "3shot", count: 3, multiplier: 0.7 },
 	{ name: "5shot", count: 5, multiplier: 0.5 },
+	{ name: "piercingshot", count: 1, multiplier: 0.75, single: true, pierces: true },
 ];
 
 function shot_mana(profile) {
 	return profile.name === "attack" ? character.mp_cost : (G.skills[profile.name]?.mp || 0);
+}
+
+function shot_usable(profile) {
+	return character.level >= (G.skills[profile.name]?.level || 0);
+}
+
+function shot_apiercing(profile) {
+	const base = character.apiercing || 0;
+	if (!profile.pierces) return base;
+	return base + (G.skills[profile.name]?.apiercing || 0);
+}
+
+function armour_factor(mob, apiercing) {
+	return defense_reduction((mob.armor || 0) - apiercing);
 }
 
 function burn_multiplier(mob, skill_multiplier) {
@@ -88,11 +103,11 @@ function burn_multiplier(mob, skill_multiplier) {
 	return burn_multiplier_at_dps(mob, worn_ability_chance("burn"), dps, CONFIG.combat.party_dps_factor, { hp: mob.hp });
 }
 
-function target_modifier(mob, skill_multiplier) {
+function target_modifier(mob, skill_multiplier, apiercing) {
+	const pierce = apiercing === undefined ? (character.apiercing || 0) : apiercing;
 	const explosion = character.explosion || 0;
 	if (explosion > 0) {
-		const hit = (character.attack || 0) * skill_multiplier
-			* defense_reduction((mob.armor || 0) - (character.apiercing || 0));
+		const hit = (character.attack || 0) * skill_multiplier * armour_factor(mob, pierce);
 		return 1 + splash_bonus(mob, explosion, hit);
 	}
 	return burn_multiplier(mob, skill_multiplier);
@@ -111,7 +126,7 @@ function model_prediction() {
 }
 
 function lambda_bounds() {
-	const ladder = SHOT_PROFILES.slice().sort((a, b) => shot_mana(a) - shot_mana(b));
+	const ladder = SHOT_PROFILES.filter(p => !p.pierces).sort((a, b) => shot_mana(a) - shot_mana(b));
 
 	let cheapest = Infinity;
 	let dearest = 0;
@@ -138,13 +153,16 @@ function mana_price() {
 	return hi - (hi - lo) * usable;
 }
 
-function score_option(mobs, count, skill_multiplier, mana, lambda, reference) {
-	const hits = Math.min(count, mobs.length);
+function score_option(mobs, profile, mana, lambda, reference) {
+	const hits = Math.min(profile.count, mobs.length);
 	if (!hits) return null;
 
+	const apiercing = shot_apiercing(profile);
 	let damage = 0;
-	for (let i = 0; i < hits; i++) damage += target_modifier(mobs[i], skill_multiplier);
-	damage *= skill_multiplier / reference;
+	for (let i = 0; i < hits; i++) {
+		damage += target_modifier(mobs[i], profile.multiplier, apiercing) * armour_factor(mobs[i], apiercing);
+	}
+	damage *= profile.multiplier / reference;
 
 	return { damage, mana, hits, score: damage - lambda * mana };
 }
@@ -153,12 +171,14 @@ function choose_attack_option(primary) {
 	const lambda = mana_price();
 	if (!primary.length) return null;
 
-	const reference = target_modifier(primary[0], 1) || 1;
+	const base_apiercing = character.apiercing || 0;
+	const reference = (target_modifier(primary[0], 1, base_apiercing) * armour_factor(primary[0], base_apiercing)) || 1;
 	const options = [];
 
 	for (const profile of SHOT_PROFILES) {
-		const scored = score_option(primary, profile.count, profile.multiplier, shot_mana(profile), lambda, reference);
-		if (scored) options.push({ name: profile.name, targets: primary.slice(0, scored.hits), ...scored });
+		if (!shot_usable(profile)) continue;
+		const scored = score_option(primary, profile, shot_mana(profile), lambda, reference);
+		if (scored) options.push({ name: profile.name, single: !!profile.single, targets: primary.slice(0, scored.hits), ...scored });
 	}
 
 	const affordable = options.filter(o => character.mp >= o.mana + panic_mp_reserve());
@@ -258,6 +278,7 @@ function handle_attack() {
 	if (!choice) return;
 
 	if (choice.name === "attack") return run_basic_action(attack(choice.targets[0]), "attack");
+	if (choice.single) return run_basic_action(use_skill(choice.name, choice.targets[0]), choice.name);
 	return run_basic_action(use_skill(choice.name, choice.targets.map(e => e.id)), choice.name);
 }
 
