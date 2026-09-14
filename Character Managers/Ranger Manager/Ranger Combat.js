@@ -225,7 +225,7 @@ async function action_loop() {
 		const cupid_on = character.slots?.mainhand?.name === "cupid";
 		const healing = !!cache.heal_target && (cupid_on || set_available("heal"));
 
-		if (ms === 0 && !is_travelling() && !basic_action_busy()) {
+		if (ms === 0 && !travel_blocks_combat() && !basic_action_busy()) {
 			if (healing && cupid_on) run_basic_action(cupid_heal(cache.heal_target), "cupid");
 			else if (!healing && !cupid_on) handle_attack();
 		} else {

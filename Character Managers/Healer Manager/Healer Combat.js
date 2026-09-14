@@ -166,7 +166,7 @@ async function action_loop() {
 			);
 			const i_need_the_timer = character.hp < my_heal_threshold;
 
-			const travelling = is_travelling();
+			const travelling = travel_blocks_combat();
 
 			if (!healed && !travelling && !dungeon_flag("no_attack") && !dungeon_bailing() && !i_need_the_timer) {
 				const target = cache.target;

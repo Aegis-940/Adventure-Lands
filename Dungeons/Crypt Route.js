@@ -14,7 +14,6 @@ const CRYPT_ROUTE_ALLOWED = ["a3", "a7", "a2"];
 const CRYPT_ROUTE_POLL_MS = 500;
 const CRYPT_ROUTE_SIGHT = 400;
 const CRYPT_CHASE_SIGHT = 700;
-const CRYPT_CHASE_STEP = 80;
 const CRYPT_ENGAGE_RANGE = 60;
 const CRYPT_FIGHT_TIMEOUT_MS = 4 * 60 * 1000;
 const CRYPT_RETREAT_SETTLE_MS = 4000;
@@ -22,7 +21,6 @@ const CRYPT_PANIC_RETRIES = 2;
 const CRYPT_CALM_TIMEOUT_MS = 90000;
 const CRYPT_MANA_TIMEOUT_MS = 3 * 60 * 1000;
 const CRYPT_DEFAULT_RANK = 5;
-const CRYPT_PATH_THRESHOLD = 250;
 const CRYPT_REPATH_EPS = 150;
 const CRYPT_LOST_GRACE_MS = 5000;
 const CRYPT_MAX_STUMBLES = 5;
@@ -143,26 +141,19 @@ function crypt_release_quarry() {
 let _crypt_path_to = null;
 
 function crypt_step_toward(target) {
-	if (smart.moving) return;
-	const dx = target.x - character.x;
-	const dy = target.y - character.y;
-	const d = Math.hypot(dx, dy) || 1;
-
-	if (d > CRYPT_PATH_THRESHOLD) {
-		if (_crypt_path_to
-			&& Math.hypot(_crypt_path_to.x - target.x, _crypt_path_to.y - target.y) < CRYPT_REPATH_EPS) return;
-		_crypt_path_to = { x: target.x, y: target.y };
-		dungeon_travel({ map: "crypt", x: target.x, y: target.y }).catch(() => { });
+	if (can_move_to(target.x, target.y)) {
+		if (smart.moving) stop_movement("crypt route: direct pursuit");
+		_crypt_path_to = null;
+		move(target.x, target.y);
 		return;
 	}
 
-	_crypt_path_to = null;
+	if (smart.moving) return;
+	if (_crypt_path_to
+		&& Math.hypot(_crypt_path_to.x - target.x, _crypt_path_to.y - target.y) < CRYPT_REPATH_EPS) return;
 
-	const step = Math.min(CRYPT_CHASE_STEP, d);
-	const x = character.x + (dx / d) * step;
-	const y = character.y + (dy / d) * step;
-	if (can_move_to(x, y)) move(x, y);
-	else dungeon_travel({ map: "crypt", x: target.x, y: target.y }).catch(() => { });
+	_crypt_path_to = { x: target.x, y: target.y };
+	dungeon_travel({ map: "crypt", x: target.x, y: target.y }).catch(() => { });
 }
 
 async function crypt_engage(wp, quarry) {

@@ -41,12 +41,20 @@ function loop_next(name, ms) {
 }
 
 let _basic_action_until = 0;
+let _basic_action_count = 0;
 
 function basic_action_busy() {
 	return Date.now() < _basic_action_until;
 }
 
+function take_basic_action_count() {
+	const n = _basic_action_count;
+	_basic_action_count = 0;
+	return n;
+}
+
 function run_basic_action(p, label) {
+	_basic_action_count++;
 	const freq = character.frequency > 0 ? character.frequency : 1.1;
 	_basic_action_until = Date.now() + (1000 / freq) * 0.9;
 	const t0 = Date.now();

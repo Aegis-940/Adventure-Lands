@@ -64,6 +64,7 @@ function dungeon_telemetry_tick() {
 		const d = active_dungeon();
 		const near = telemetry_nearby();
 		const aggro = telemetry_aggro();
+		const focus = typeof dungeon_focus_target === "function" ? dungeon_focus_target() : null;
 
 		const moved = _telemetry_last
 			? Math.round(Math.hypot(character.x - _telemetry_last.x, character.y - _telemetry_last.y))
@@ -104,6 +105,10 @@ function dungeon_telemetry_tick() {
 			target: character.target || null,
 			aggro_on_me: aggro.on_me,
 			aggro_on_party: aggro.on_party,
+			actions: typeof take_basic_action_count === "function" ? take_basic_action_count() : null,
+			focus: focus ? focus.mtype : null,
+			focus_hp: focus ? focus.hp : null,
+			focus_d: focus ? Math.round(Math.hypot(character.x - focus.x, character.y - focus.y)) : null,
 			nearest: near.nearest,
 			nearest_d: near.nearest_d,
 			nearest_target: near.nearest_target,

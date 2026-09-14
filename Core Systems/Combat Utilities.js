@@ -396,6 +396,11 @@ function boss_engaged() {
 	return !!boss && boss_engageable(boss.name, boss.data);
 }
 
+function travel_blocks_combat() {
+	if (dungeon_flag("fight_while_moving")) return false;
+	return is_travelling();
+}
+
 function should_pause_combat_loop() {
 	if (dungeon_bailing()) return true;
 	if (panicking) return true;
