@@ -2,9 +2,30 @@
 // BSCORPION / PRIMLING FARM — content-specific positioning for the desertland camp
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const PRIM_FARM_LOC = { map: "desertland", x: -409, y: -1236 };
+const PRIM_FARM_MAP = "desertland";
+const PRIM_FARM_FALLBACK = { map: PRIM_FARM_MAP, x: -409, y: -1236 };
 const PRIM_FARM_RADIUS = 105;
 const SAFETY_DISTANCE = 100;
+
+let _prim_farm_loc = null;
+
+function prim_farm_loc() {
+	if (_prim_farm_loc) return _prim_farm_loc;
+
+	const spawn = (G.maps[PRIM_FARM_MAP]?.monsters || []).find(m => m.type === "bscorpion");
+	const box = spawn?.boundary || (spawn?.boundaries || [])[0];
+
+	if (!box || box.length < 4) {
+		_prim_farm_loc = PRIM_FARM_FALLBACK;
+		log(`Bscorpion camp: no spawn boundary in G.maps.${PRIM_FARM_MAP}, using ${PRIM_FARM_FALLBACK.x}, ${PRIM_FARM_FALLBACK.y}`, "#ffb347", "Bscorpion");
+		return _prim_farm_loc;
+	}
+
+	const [x1, y1, x2, y2] = box.length > 4 ? box.slice(1) : box;
+	_prim_farm_loc = { map: PRIM_FARM_MAP, x: (x1 + x2) / 2, y: (y1 + y2) / 2 };
+	log(`Bscorpion camp centre: ${Math.round(_prim_farm_loc.x)}, ${Math.round(_prim_farm_loc.y)}`, "#ffb347", "Bscorpion");
+	return _prim_farm_loc;
+}
 
 function bscorpion_start() {
 	if (home !== "bscorpion") return;
@@ -15,8 +36,9 @@ function bscorpion_start() {
 }
 
 function is_at_bscorpion_farm() {
-	return character.map === PRIM_FARM_LOC.map &&
-		Math.hypot(character.x - PRIM_FARM_LOC.x, character.y - PRIM_FARM_LOC.y) < PRIM_FARM_RADIUS + 30;
+	const loc = prim_farm_loc();
+	return character.map === loc.map &&
+		Math.hypot(character.x - loc.x, character.y - loc.y) < PRIM_FARM_RADIUS + 30;
 }
 
 function find_nearest_bscorpion() {
@@ -45,6 +67,14 @@ function bscorpion_worth_buffing() {
 }
 
 const CAMP_MOVE_TOLERANCE = 3;
+const CAMP_STAGING_TOLERANCE = 15;
+const CAMP_RANGE_FRACTION = { Ulric: 0.80, Riva: 0.70 };
+
+function camp_engage_distance() {
+	const fraction = CAMP_RANGE_FRACTION[character.name];
+	if (!fraction) return 0;
+	return (character.range || 0) * fraction;
+}
 
 function camp_loop_parked() {
 	return !is_at_bscorpion_farm() || !automation_enabled() || is_travelling() || character.rip;
@@ -62,6 +92,30 @@ function move_distance_from_bscorpion(desired) {
 	if (character.moving && Math.hypot(character.going_x - new_x, character.going_y - new_y) <= CAMP_MOVE_TOLERANCE) return;
 
 	move(new_x, new_y);
+}
+
+function move_to_camp_station(desired) {
+	const loc = prim_farm_loc();
+	if (character.map !== loc.map) return;
+
+	const current = Math.hypot(character.x - loc.x, character.y - loc.y);
+	if (Math.abs(current - desired) <= CAMP_STAGING_TOLERANCE) return;
+
+	const angle = current > 0 ? Math.atan2(character.y - loc.y, character.x - loc.x) : 0;
+	const new_x = loc.x + Math.cos(angle) * desired;
+	const new_y = loc.y + Math.sin(angle) * desired;
+
+	if (character.moving && Math.hypot(character.going_x - new_x, character.going_y - new_y) <= CAMP_STAGING_TOLERANCE) return;
+
+	local_move(new_x, new_y);
+}
+
+function hold_camp_station() {
+	const desired = camp_engage_distance();
+	if (!desired) return;
+
+	if (find_nearest_bscorpion()) move_distance_from_bscorpion(desired);
+	else move_to_camp_station(desired);
 }
 
 function absorb_from_ally_at_camp() {
@@ -86,8 +140,7 @@ async function prim_farm_loop() {
 				continue;
 			}
 
-			if (character.name === "Ulric" && !panicking) move_distance_from_bscorpion(40);
-			if (character.name === "Riva" && !panicking) move_distance_from_bscorpion(50);
+			if (!panicking) hold_camp_station();
 			if (character.name === "Myras") absorb_from_ally_at_camp();
 		} catch (e) {
 			catcher(e, "prim_farm_loop");
@@ -112,14 +165,15 @@ async function prim_orbit_loop() {
 			const bscorp = find_nearest_bscorpion();
 			if (!bscorp) { await delay(500); continue; }
 
+			const loc = prim_farm_loc();
 			const sx = bscorp.x, sy = bscorp.y;
-			const fx = character.x - PRIM_FARM_LOC.x;
-			const fy = character.y - PRIM_FARM_LOC.y;
+			const fx = character.x - loc.x;
+			const fy = character.y - loc.y;
 
 			if (Math.abs(Math.hypot(fx, fy) - PRIM_FARM_RADIUS) > RADIUS_TOL) {
 				const away = Math.atan2(character.y - sy, character.x - sx);
-				await move(PRIM_FARM_LOC.x + Math.cos(away) * PRIM_FARM_RADIUS,
-					PRIM_FARM_LOC.y + Math.sin(away) * PRIM_FARM_RADIUS);
+				await move(loc.x + Math.cos(away) * PRIM_FARM_RADIUS,
+					loc.y + Math.sin(away) * PRIM_FARM_RADIUS);
 				await delay(80);
 				continue;
 			}
@@ -127,8 +181,8 @@ async function prim_orbit_loop() {
 			const step = ROTATE_STEP_DEG * Math.PI / 180;
 			const my_angle = Math.atan2(fy, fx);
 			const spot = a => ({
-				x: PRIM_FARM_LOC.x + Math.cos(a) * PRIM_FARM_RADIUS,
-				y: PRIM_FARM_LOC.y + Math.sin(a) * PRIM_FARM_RADIUS,
+				x: loc.x + Math.cos(a) * PRIM_FARM_RADIUS,
+				y: loc.y + Math.sin(a) * PRIM_FARM_RADIUS,
 			});
 			const cw = spot(my_angle - step);
 			const ccw = spot(my_angle + step);

@@ -185,9 +185,10 @@ function movement_goal() {
 	if (ignoring_events) return null;
 
 	if (home === "bscorpion") {
+		const loc = prim_farm_loc();
 		return is_at_bscorpion_farm()
 			? null
-			: { label: "bscorpion", map: PRIM_FARM_LOC.map, x: PRIM_FARM_LOC.x, y: PRIM_FARM_LOC.y, radius: PRIM_FARM_RADIUS };
+			: { label: "bscorpion", map: loc.map, x: loc.x, y: loc.y, radius: PRIM_FARM_RADIUS };
 	}
 
 	if (is_away_from_home()) {
