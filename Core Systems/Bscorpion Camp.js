@@ -60,10 +60,14 @@ function find_nearest_bscorpion() {
 	return { entity: nearest, distance: min_dist, x: nearest.x, y: nearest.y };
 }
 
+const CAMP_BUFF_MIN_HP = 0.25;
+
 function bscorpion_worth_buffing() {
+	if (!is_at_bscorpion_farm()) return true;
+
 	const info = find_nearest_bscorpion();
 	if (!info) return false;
-	return info.entity.hp / info.entity.max_hp >= BOSS_NEARLY_DEAD_HP;
+	return info.entity.hp / info.entity.max_hp >= CAMP_BUFF_MIN_HP;
 }
 
 const CAMP_MOVE_TOLERANCE = 3;
