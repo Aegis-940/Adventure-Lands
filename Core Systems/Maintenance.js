@@ -7,7 +7,7 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function potion_loop() {
-	if (character.c && (character.c.fishing || character.c.mining)) {
+	if (character.c && (character.c.fishing || character.c.mining || character.c.town)) {
 		return setTimeout(potion_loop, 200);
 	}
 

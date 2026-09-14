@@ -89,6 +89,7 @@ function default_farm_step() {
 function elixir_usage() {
 	const cfg = CONFIG.elixir;
 	if (!cfg || !cfg.name) return;
+	if (character.c && character.c.town) return;
 
 	if (character.slots.elixir?.name !== cfg.name) {
 		const slot = locate_item(cfg.name);

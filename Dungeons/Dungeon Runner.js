@@ -371,6 +371,36 @@ function followers_still_inside(dungeon) {
 	});
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// REJOIN WATCH — a follower who died and was ejected has to get back in, not stand outside following a leader it cannot reach
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const DUNGEON_REJOIN_WATCH_MS = 5000;
+
+function dungeon_rejoin_watch() {
+	try {
+		if (character.name === MOVEMENT_LEADER) return;
+		if (!DUNGEON_FOLLOWERS.includes(character.name)) return;
+		if (_dungeon_joining || character.rip) return;
+		if (typeof dungeon_mode_enabled !== "function" || !dungeon_mode_enabled()) return;
+		if (typeof read_state_cache !== "function") return;
+		if (typeof dungeon_bailing === "function" && dungeon_bailing()) return;
+
+		const d = active_dungeon();
+		if (!d || character.map === d.map) return;
+
+		const lead = read_state_cache(MOVEMENT_LEADER);
+		if (!lead || lead.rip || lead.map !== d.map || !lead.in) return;
+
+		game_log("🚪 Left behind — rejoining the instance", "#AA88FF");
+		join_dungeon_instance({ in: lead.in, map: d.map, entrance: d.entrance });
+	} catch (e) {
+		console.error("dungeon rejoin watch error", e);
+	}
+}
+
+setInterval(dungeon_rejoin_watch, DUNGEON_REJOIN_WATCH_MS);
+
 function followers_away_from_entrance(dungeon) {
 	const e = dungeon.entrance;
 	return DUNGEON_FOLLOWERS.filter(name => {

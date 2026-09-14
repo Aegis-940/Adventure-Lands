@@ -109,6 +109,7 @@ function get_full_character_state() {
 		max_xp: character.max_xp,
 		gold: character.gold,
 		map: character.map,
+		in: character.in,
 		x: character.x,
 		y: character.y,
 		rip: character.rip,
