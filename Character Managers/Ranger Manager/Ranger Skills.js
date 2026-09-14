@@ -11,6 +11,21 @@ function above_hp_pct(target, pct) {
 	return !!target.max_hp && target.hp >= target.max_hp * pct;
 }
 
+var SUPERSHOT_SETUP_WAIT_MS = 4000;
+var _supershot_ready_since = 0;
+
+function supershot_setup_ready(target) {
+	if (home !== "bscorpion") return true;
+
+	const now = Date.now();
+	if (!_supershot_ready_since) _supershot_ready_since = now;
+
+	const s = target.s || {};
+	if (s.marked && s.cursed) return true;
+
+	return now - _supershot_ready_since >= SUPERSHOT_SETUP_WAIT_MS;
+}
+
 function skill_pays(value, mana, target) {
 	if (value <= 0 || mana <= 0) return false;
 	const reference = target_modifier(target, 1) || 1;
@@ -64,6 +79,8 @@ async function skill_loop() {
 		const ms_super = ms_to_next_skill("supershot");
 		const min_ms = Math.min(ms_hunter, ms_super);
 
+		if (ms_super !== 0) _supershot_ready_since = 0;
+
 		if (min_ms < character.ping / 10) {
 			change_target(target);
 
@@ -83,6 +100,7 @@ async function skill_loop() {
 
 			if (skill_allowed && CONFIG.combat.use_supershot && ms_super === 0
 				&& above_hp_pct(target, CONFIG.combat.supershot_min_hp_pct)
+				&& supershot_setup_ready(target)
 				&& affordable(ss_cost) && skill_pays(supershot_value(target), ss_cost, target)) {
 				committed += ss_cost;
 				await use_skill("supershot", target);
