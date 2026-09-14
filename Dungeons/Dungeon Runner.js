@@ -161,6 +161,11 @@ async function dungeon_travel(destination) {
 	}
 }
 
+function dungeon_target_whitelist() {
+	const d = active_dungeon();
+	return d && d.only ? d.only : null;
+}
+
 function dungeon_avoids(mtype) {
 	const d = active_dungeon();
 	return !!(d && d.avoid && d.avoid.includes(mtype));

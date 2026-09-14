@@ -19,6 +19,8 @@ function should_attack_mob(mob) {
 
 	if (dungeon_flag("aggroed_only")) return aggroed;
 
+	if (dungeon_target_whitelist()) return true;
+
 	return CONFIG.combat.target_priority.includes(mob.target);
 }
 

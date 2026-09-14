@@ -401,6 +401,8 @@ function should_pause_combat_loop() {
 	if (panicking) return true;
 	if (typeof anniversary_travel !== "undefined" && anniversary_travel) return true;
 
+	if (dungeon_flag("fight_while_moving")) return false;
+
 	if (typeof travel_is_active === "function" && travel_is_active()) return true;
 	if (smart.moving) return true;
 
