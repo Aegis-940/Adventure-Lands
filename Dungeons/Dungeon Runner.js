@@ -92,6 +92,37 @@ function dungeon_sort_targets(list) {
 	return list;
 }
 
+const DUNGEON_LOOT_MAX_MS = 30000;
+const DUNGEON_LOOT_IDLE_ROUNDS = 3;
+const DUNGEON_LOOT_ROUND_MS = 400;
+
+async function dungeon_loot_everything() {
+	const until = Date.now() + DUNGEON_LOOT_MAX_MS;
+	let idle = 0;
+	let last = -1;
+
+	while (Date.now() < until) {
+		const count = Object.keys(get_chests()).length;
+		if (!count) break;
+
+		if (count === last) {
+			if (++idle >= DUNGEON_LOOT_IDLE_ROUNDS) {
+				log(`Looting: ${count} chest(s) out of reach — moving on`, DUNGEON_WARN_COLOR);
+				break;
+			}
+		} else {
+			idle = 0;
+		}
+		last = count;
+
+		await handle_looting();
+		await delay(DUNGEON_LOOT_ROUND_MS);
+	}
+
+	const left = Object.keys(get_chests()).length;
+	log(left ? `Looting: done, ${left} left behind` : "Looting: everything collected", DUNGEON_LOG_COLOR);
+}
+
 function dungeon_telemetry_event(event, data) {
 	if (typeof errlog_sample !== "function") return;
 	errlog_sample("dungeon_event", Object.assign({
@@ -406,18 +437,17 @@ async function run_dungeon_loop() {
 			}
 
 			await route();
-
 			record_dungeon_run();
-
-			if (!dungeon_mode_enabled()) {
-				dungeon_log(d, "Mode was turned off — this was the last run");
-				break;
-			}
 
 			const leave = dungeon_leave_runner();
 			if (leave) await leave();
 
 			if (collection_due()) await run_dungeon_collection();
+
+			if (!dungeon_mode_enabled()) {
+				dungeon_log(d, "Mode was turned off — that was the last run");
+				break;
+			}
 
 			await delay(DUNGEON_LOOP_SETTLE_MS);
 		}

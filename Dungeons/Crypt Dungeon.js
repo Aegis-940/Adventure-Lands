@@ -67,7 +67,18 @@ function crypt_go(where) {
 }
 
 function crypt_camp() { return crypt_go("camp"); }
-function crypt_leave() { return crypt_go("exit"); }
+
+async function crypt_leave() {
+	log("Crypt: clearing the floor before leaving", DUNGEON_LOG_COLOR, "Alerts");
+	await dungeon_loot_everything();
+
+	if (character.map === DUNGEONS.crypt.map && !dungeon_at_spawn(DUNGEONS.crypt)) {
+		await dungeon_bail_out("heading for the door", true, false);
+		await dungeon_loot_everything();
+	}
+
+	return crypt_go("exit");
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // THREAT WATCH — what is actually near us, and whether we should be here

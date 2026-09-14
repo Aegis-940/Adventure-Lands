@@ -75,15 +75,16 @@ function dungeon_at_spawn(dungeon) {
 	return Math.hypot(character.x - spawn.x, character.y - spawn.y) <= DUNGEON_SPAWN_ARRIVED;
 }
 
-async function dungeon_bail_out(reason, broadcast = true) {
+async function dungeon_bail_out(reason, broadcast = true, emergency = true) {
 	if (_dungeon_bailing) return;
 	const d = active_dungeon();
 	if (!d) return;
 
 	_dungeon_bailing = true;
 	try {
-		log(`🚨 ${d.name}: bailing out — ${reason}`, "#FF3333", "Alerts");
-		dungeon_telemetry_event("bail_start", { reason, threats: dungeon_threats().map(e => e.mtype).join(",") });
+		log(emergency ? `🚨 ${d.name}: bailing out — ${reason}` : `${d.name}: towning back — ${reason}`,
+			emergency ? "#FF3333" : DUNGEON_LOG_COLOR, "Alerts");
+		dungeon_telemetry_event("bail_start", { reason, emergency, threats: dungeon_threats().map(e => e.mtype).join(",") });
 		if (broadcast) {
 			send_cm(DUNGEON_PARTY.filter(n => n !== character.name), { type: "dungeon_bail", reason });
 		}
