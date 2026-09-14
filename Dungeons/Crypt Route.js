@@ -17,7 +17,7 @@ const CRYPT_CHASE_SIGHT = 700;
 const CRYPT_ENGAGE_RANGE = 60;
 const CRYPT_FIGHT_TIMEOUT_MS = 4 * 60 * 1000;
 const CRYPT_RETREAT_SETTLE_MS = 4000;
-const CRYPT_PANIC_RETRIES = 2;
+const CRYPT_MAX_BAILS = 10;
 const CRYPT_CALM_TIMEOUT_MS = 90000;
 const CRYPT_MANA_TIMEOUT_MS = 3 * 60 * 1000;
 const CRYPT_DEFAULT_RANK = 5;
@@ -127,7 +127,6 @@ function crypt_hold_quarry(id) {
 	if (_crypt_quarry_id === id) return;
 	_crypt_quarry_id = id;
 	set_dungeon_focus_target(id);
-	send_cm(DUNGEON_FOLLOWERS, { type: "dungeon_focus", id });
 }
 
 function crypt_release_quarry() {
@@ -135,7 +134,6 @@ function crypt_release_quarry() {
 	_crypt_quarry_id = null;
 	_crypt_path_to = null;
 	set_dungeon_focus_target(null);
-	send_cm(DUNGEON_FOLLOWERS, { type: "dungeon_focus", id: null });
 }
 
 let _crypt_path_to = null;
@@ -333,6 +331,7 @@ async function run_crypt_route() {
 	_crypt_route_running = true;
 	_crypt_route_abort = false;
 	reset_dungeon_progress();
+	reset_dungeon_bails();
 	log("Crypt route: starting", DUNGEON_LOG_COLOR, "Alerts");
 
 	try {
@@ -340,24 +339,25 @@ async function run_crypt_route() {
 			if (_crypt_route_abort) break;
 
 			let outcome = await crypt_leg(wp);
-			let panics = 0;
 
 			while (outcome === "panic" && !_crypt_route_abort) {
-				panics++;
-				log(`Crypt route: panic at waypoint ${wp.n} — falling back to the entrance (${panics}/${CRYPT_PANIC_RETRIES})`,
+				log(`Crypt route: panic at waypoint ${wp.n} — falling back to the entrance (bail ${dungeon_bail_count() + 1})`,
 					DUNGEON_WARN_COLOR, "Alerts");
-				dungeon_telemetry_event("panic_retreat", { wp: wp.n, attempt: panics });
+				dungeon_telemetry_event("panic_retreat", { wp: wp.n, bails: dungeon_bail_count() });
 
 				await crypt_retreat(wp, `panic at waypoint ${wp.n}`);
 				await crypt_wait_for_calm();
 
-				if (panics >= CRYPT_PANIC_RETRIES) {
-					log(`Crypt route: waypoint ${wp.n} abandoned after ${panics} panics`, DUNGEON_WARN_COLOR, "Alerts");
-					outcome = "panic-abandoned";
-					break;
-				}
 				if (character.rip) { outcome = "dead"; break; }
+				if (dungeon_bail_count() >= CRYPT_MAX_BAILS) { outcome = "bail-limit"; break; }
 				outcome = await crypt_leg(wp);
+			}
+
+			if (outcome === "bail-limit" || dungeon_bail_count() >= CRYPT_MAX_BAILS) {
+				log(`Crypt route: ${dungeon_bail_count()} bails this run — abandoning the dungeon`,
+					DUNGEON_WARN_COLOR, "Alerts");
+				dungeon_telemetry_event("run_abandoned", { wp: wp.n, outcome: "bail-limit", bails: dungeon_bail_count() });
+				break;
 			}
 
 			if (outcome === "dead" || outcome === "ejected") {

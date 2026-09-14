@@ -9,9 +9,18 @@ const DUNGEON_THREAT_RADIUS = 400;
 const DUNGEON_BAIL_TIMEOUT_MS = 90000;
 
 let _dungeon_bailing = false;
+let _dungeon_bail_count = 0;
 
 function dungeon_bailing() {
 	return _dungeon_bailing;
+}
+
+function dungeon_bail_count() {
+	return _dungeon_bail_count;
+}
+
+function reset_dungeon_bails() {
+	_dungeon_bail_count = 0;
 }
 
 function dungeon_threats(radius = DUNGEON_THREAT_RADIUS) {
@@ -77,10 +86,16 @@ async function dungeon_bail_out(reason, broadcast = true, emergency = true) {
 	if (!d) return;
 
 	_dungeon_bailing = true;
+	if (emergency) _dungeon_bail_count++;
 	try {
 		log(emergency ? `🚨 ${d.name}: bailing out — ${reason}` : `${d.name}: towning back — ${reason}`,
 			emergency ? "#FF3333" : DUNGEON_LOG_COLOR, "Alerts");
-		dungeon_telemetry_event("bail_start", { reason, emergency, threats: dungeon_threats().map(e => e.mtype).join(",") });
+		dungeon_telemetry_event("bail_start", {
+			reason,
+			emergency,
+			bails: _dungeon_bail_count,
+			threats: dungeon_threats().map(e => e.mtype).join(","),
+		});
 		if (broadcast) {
 			send_cm(DUNGEON_PARTY.filter(n => n !== character.name), { type: "dungeon_bail", reason });
 		}

@@ -2,9 +2,29 @@
 // HEALER COMBAT — who to heal, what to hold aggro on, and the action loop
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+var TARGET_BROADCAST_MS = 400;
+
+var _broadcast_target_id = null;
+var _broadcast_target_at = 0;
+
+function broadcast_target(target) {
+	if (!dungeon_flag("follow_focus")) return;
+
+	const id = target && target.type === "monster" ? target.id : null;
+	if (id === _broadcast_target_id) return;
+
+	const now = Date.now();
+	if (now - _broadcast_target_at < TARGET_BROADCAST_MS) return;
+
+	_broadcast_target_at = now;
+	_broadcast_target_id = id;
+	send_cm(DUNGEON_FOLLOWERS, { type: "dungeon_focus", id });
+}
+
 function update_cache() {
 	if (cache.is_valid()) return;
 	cache.target = find_best_target();
+	broadcast_target(cache.target);
 	cache.party_members = get_party_members();
 	cache.heal_target = find_heal_target();
 	sample_set_profiles(HEALER_PROFILE_SETS);

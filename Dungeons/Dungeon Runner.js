@@ -635,6 +635,8 @@ async function run_dungeon_loop() {
 			const d = active_dungeon();
 			if (!d) break;
 
+			if (character.map !== d.map && !await dungeon_keys_ready(d)) break;
+
 			if (character.map !== d.map) {
 				if (!await run_dungeon(d)) {
 					dungeon_log(d, "Could not get in — stopping the loop", DUNGEON_WARN_COLOR);
@@ -668,6 +670,31 @@ async function run_dungeon_loop() {
 
 function has_dungeon_key(key) {
 	return character.items.some(it => it && it.name === key);
+}
+
+function count_dungeon_keys(key) {
+	let held = 0;
+	for (const item of character.items) {
+		if (item && item.name === key) held += item.q || 1;
+	}
+	return held;
+}
+
+async function dungeon_keys_ready(dungeon) {
+	if (!dungeon.key || !dungeon.min_keys) return true;
+
+	let held = count_dungeon_keys(dungeon.key);
+	if (held >= dungeon.min_keys) return true;
+
+	dungeon_log(dungeon, `${held} ${dungeon.key}(s) in hand — topping up from the bank...`);
+	await withdraw_item(dungeon.key, null, dungeon.key_count);
+
+	held = count_dungeon_keys(dungeon.key);
+	if (held >= dungeon.min_keys) return true;
+
+	dungeon_log(dungeon, `Only ${held} ${dungeon.key}(s) available, need ${dungeon.min_keys} — stopping the loop`,
+		DUNGEON_WARN_COLOR);
+	return false;
 }
 
 function start_dungeon_when_ready(dungeon) {

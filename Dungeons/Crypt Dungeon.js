@@ -13,6 +13,7 @@ DUNGEONS.crypt = {
 	map: "crypt",
 	home: "crypt",
 	key: "cryptkey",
+	min_keys: 11,
 	entrance: { map: "cave", x: -192, y: -1308 },
 	spawn: { map: "crypt", x: 0, y: 0 },
 	exit: { map: "cave", x: -192, y: -1308 },
