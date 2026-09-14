@@ -18,6 +18,8 @@ const CRYPT_CHASE_STEP = 80;
 const CRYPT_ENGAGE_RANGE = 60;
 const CRYPT_FIGHT_TIMEOUT_MS = 4 * 60 * 1000;
 const CRYPT_RETREAT_SETTLE_MS = 4000;
+const CRYPT_PANIC_RETRIES = 2;
+const CRYPT_CALM_TIMEOUT_MS = 90000;
 
 let _crypt_route_running = false;
 let _crypt_route_abort = false;
@@ -62,7 +64,10 @@ function crypt_leg_done(wp) {
 
 function crypt_opportunity() {
 	const quota = dungeon_quota() || {};
-	const wanted = Object.keys(quota).filter(m => !dungeon_target_done(m));
+	const suppressed = dungeon_suppressed_types() || [];
+	const wanted = Object.keys(quota)
+		.filter(m => !dungeon_target_done(m))
+		.filter(m => !suppressed.includes(m));
 	if (!wanted.length) return null;
 
 	const seen = crypt_visible(wanted);
@@ -95,6 +100,7 @@ async function crypt_engage(wp, quarry) {
 	while (Date.now() < until) {
 		if (_crypt_route_abort) return "abort";
 		if (character.rip) return "dead";
+		if (panicking) return "panic";
 		if (crypt_intruders().length) return "intruder";
 		if (dungeon_target_done(mtype)) break;
 
@@ -121,10 +127,20 @@ async function crypt_engage(wp, quarry) {
 	return "resume";
 }
 
-async function crypt_retreat(wp) {
+async function crypt_retreat(wp, reason) {
 	const who = crypt_intruders().map(e => (G.monsters[e.mtype] || {}).name || e.mtype).join(", ");
-	await dungeon_bail_out(who ? `${who} blocking waypoint ${wp.n}` : `waypoint ${wp.n} unsafe`);
+	await dungeon_bail_out(reason || (who ? `${who} blocking waypoint ${wp.n}` : `waypoint ${wp.n} unsafe`));
 	await delay(CRYPT_RETREAT_SETTLE_MS);
+}
+
+async function crypt_wait_for_calm() {
+	const until = Date.now() + CRYPT_CALM_TIMEOUT_MS;
+	while (Date.now() < until) {
+		if (!panicking && !character.rip) return true;
+		await delay(CRYPT_ROUTE_POLL_MS);
+	}
+	log("Crypt route: panic never cleared", DUNGEON_WARN_COLOR, "Alerts");
+	return false;
 }
 
 async function crypt_advance(wp) {
@@ -135,6 +151,7 @@ async function crypt_advance(wp) {
 	while (!settled) {
 		if (_crypt_route_abort) { stop_movement("crypt route: aborted"); await travel; return "abort"; }
 		if (character.rip) { stop_movement("crypt route: dead"); await travel; return "dead"; }
+		if (panicking) { stop_movement("crypt route: panic"); await travel; return "panic"; }
 
 		if (crypt_intruders().length) {
 			stop_movement("crypt route: intruder");
@@ -169,6 +186,7 @@ async function crypt_leg(wp) {
 	while (true) {
 		if (_crypt_route_abort) return "abort";
 		if (character.rip) return "dead";
+		if (panicking) return "panic";
 		if (crypt_intruders().length) return "intruder";
 		if (crypt_leg_done(wp)) return "done";
 
@@ -205,7 +223,26 @@ async function run_crypt_route() {
 		for (const wp of CRYPT_ROUTE) {
 			if (_crypt_route_abort) break;
 
-			const outcome = await crypt_leg(wp);
+			let outcome = await crypt_leg(wp);
+			let panics = 0;
+
+			while (outcome === "panic" && !_crypt_route_abort) {
+				panics++;
+				log(`Crypt route: panic at waypoint ${wp.n} — falling back to the entrance (${panics}/${CRYPT_PANIC_RETRIES})`,
+					DUNGEON_WARN_COLOR, "Alerts");
+				dungeon_telemetry_event("panic_retreat", { wp: wp.n, attempt: panics });
+
+				await crypt_retreat(wp, `panic at waypoint ${wp.n}`);
+				await crypt_wait_for_calm();
+
+				if (panics >= CRYPT_PANIC_RETRIES) {
+					log(`Crypt route: waypoint ${wp.n} abandoned after ${panics} panics`, DUNGEON_WARN_COLOR, "Alerts");
+					outcome = "panic-abandoned";
+					break;
+				}
+				if (character.rip) { outcome = "dead"; break; }
+				outcome = await crypt_leg(wp);
+			}
 
 			if (outcome === "dead") {
 				log("Crypt route: died — stopping", DUNGEON_WARN_COLOR, "Alerts");

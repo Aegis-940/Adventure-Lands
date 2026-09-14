@@ -166,11 +166,49 @@ function dungeon_avoids(mtype) {
 	return !!(d && d.avoid && d.avoid.includes(mtype));
 }
 
+const DUNGEON_FOCUS_TTL_MS = 200;
+
+let _dungeon_focus_cache = null;
+let _dungeon_focus_at = 0;
+
+function dungeon_type_alive(mtype) {
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type === "monster" && !e.dead && e.mtype === mtype) return true;
+	}
+	return false;
+}
+
+function dungeon_suppressed_types() {
+	const now = Date.now();
+	if (now - _dungeon_focus_at < DUNGEON_FOCUS_TTL_MS) return _dungeon_focus_cache;
+
+	_dungeon_focus_at = now;
+	_dungeon_focus_cache = null;
+
+	const d = active_dungeon();
+	if (!d || !d.focus) return null;
+
+	for (const rule of d.focus) {
+		if (dungeon_target_done(rule.when)) continue;
+		if (!dungeon_type_alive(rule.when)) continue;
+		if (!_dungeon_focus_cache) _dungeon_focus_cache = [];
+		for (const m of rule.suppress) {
+			if (!_dungeon_focus_cache.includes(m)) _dungeon_focus_cache.push(m);
+		}
+	}
+	return _dungeon_focus_cache;
+}
+
 function dungeon_skip_target(mob) {
 	const d = active_dungeon();
 	if (!d || !mob) return false;
 	if (d.avoid && d.avoid.includes(mob.mtype)) return true;
 	if (mob.target && DUNGEON_PARTY.includes(mob.target)) return false;
+
+	const suppressed = dungeon_suppressed_types();
+	if (suppressed && suppressed.includes(mob.mtype)) return true;
+
 	if (d.only && !d.only.includes(mob.mtype)) return true;
 	return false;
 }
