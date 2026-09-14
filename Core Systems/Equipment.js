@@ -435,6 +435,7 @@ function resolve_weapon_set(args) {
 	const a = args || {};
 	const sets = CONFIG.equipment.weapon_sets;
 
+	if (CONFIG.equipment.weapon_swap_enabled === false) return null;
 	if (a.forced) return a.forced;
 	if (typeof dungeon_flag === "function" && dungeon_flag("single_weapon")) return sets[0];
 

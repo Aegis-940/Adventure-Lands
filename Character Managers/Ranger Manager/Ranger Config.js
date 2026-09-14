@@ -39,6 +39,7 @@ var CONFIG = {
 		swap_cooldown: 500,
 		use_licence: false,
 
+		weapon_swap_enabled: true,
 		weapon_sets: ["single", "boom"],
 	},
 

@@ -48,6 +48,7 @@ var CONFIG = {
 		swap_cooldown: 500,
 		temporal_surge_enabled: false,
 
+		weapon_swap_enabled: true,
 		weapon_sets: ["luck"],
 	},
 

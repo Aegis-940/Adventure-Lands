@@ -30,12 +30,6 @@ function healer_set_value(set_name, target) {
 	return heal_delivered(who, profile.heal, profile.rpiercing) * (profile.frequency || 1);
 }
 
-var _healer_choice = make_weapon_choice();
-
-function best_healer_weapon_set(target) {
-	return resolve_weapon_by_value(_healer_choice, name => healer_set_value(name, target));
-}
-
 function visible_allies() {
 	const allies = [];
 	for (const name of cache.party_members || []) {
@@ -99,7 +93,10 @@ function heal_report() {
 }
 
 function resolve_healer_loadout() {
-	return best_healer_weapon_set(cache.heal_target) || CONFIG.equipment.weapon_sets[0];
+	if (CONFIG.equipment.weapon_swap_enabled === false) return null;
+	const target = cache.heal_target;
+	return resolve_weapon_by_value(_weapon_choice, name => healer_set_value(name, target))
+		|| first_available_set(CONFIG.equipment.weapon_sets);
 }
 
 function resolve_healer_orb() {

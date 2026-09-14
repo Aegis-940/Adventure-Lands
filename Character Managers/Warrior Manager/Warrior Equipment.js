@@ -74,7 +74,6 @@ function resolve_warrior_orb() {
 }
 
 function resolve_warrior_weapon() {
-	if (!CONFIG.equipment.weapon_swap_enabled) return null;
 	return resolve_weapon_set({ pool: warrior_weapon_pool(), width: 1, context: weapon_choice_context() });
 }
 
