@@ -164,9 +164,11 @@ function movement_goal() {
 
 	if (dungeon_flag("leader_manual") && character.name === MOVEMENT_LEADER) return null;
 
-	if (party_cohesion_hold()) return { hold: true, label: "cohesion" };
+	const scripted_camp = home === "bscorpion";
 
-	const follow = follow_goal();
+	if (!scripted_camp && party_cohesion_hold()) return { hold: true, label: "cohesion" };
+
+	const follow = scripted_camp ? null : follow_goal();
 	if (follow && !follow.local) return follow;
 
 	const ignoring_events = dungeon_flag("ignore_events");
