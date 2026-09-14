@@ -69,12 +69,13 @@ function bscorpion_worth_buffing() {
 const CAMP_MOVE_TOLERANCE = 3;
 const CAMP_STAGING_TOLERANCE = 15;
 const CAMP_HOLD_MARGIN = 40;
-const CAMP_RANGE_FRACTION = { Ulric: 0.80, Riva: 0.70 };
+const CAMP_RANGE_CAP = 0.80;
+const CAMP_STATION = { Ulric: 34, Riva: 50 };
 
 function camp_engage_distance() {
-	const fraction = CAMP_RANGE_FRACTION[character.name];
-	if (!fraction) return 0;
-	return (character.range || 0) * fraction;
+	const preferred = CAMP_STATION[character.name];
+	if (!preferred) return 0;
+	return Math.min(preferred, (character.range || 0) * CAMP_RANGE_CAP);
 }
 
 function camp_hold_radius() {
@@ -96,7 +97,7 @@ function move_distance_from_bscorpion(desired) {
 
 	if (character.moving && Math.hypot(character.going_x - new_x, character.going_y - new_y) <= CAMP_MOVE_TOLERANCE) return;
 
-	move(new_x, new_y);
+	local_move(new_x, new_y);
 }
 
 function move_to_camp_station(desired) {
