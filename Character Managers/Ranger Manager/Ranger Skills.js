@@ -6,6 +6,11 @@
 // SKILL VALUE — damage bought, weighed against what the mana is worth elsewhere
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+function above_hp_pct(target, pct) {
+	if (!pct) return true;
+	return !!target.max_hp && target.hp >= target.max_hp * pct;
+}
+
 function skill_pays(value, mana, target) {
 	if (value <= 0 || mana <= 0) return false;
 	const reference = target_modifier(target, 1) || 1;
@@ -70,12 +75,14 @@ async function skill_loop() {
 			const affordable = (cost) => (character.mp - committed) >= cost + panic_mp_reserve();
 
 			if (skill_allowed && CONFIG.combat.use_hunters_mark && ms_hunter === 0
+				&& above_hp_pct(target, CONFIG.combat.mark_min_hp_pct)
 				&& affordable(hm_cost) && skill_pays(mark_value(target), hm_cost, target)) {
 				committed += hm_cost;
 				await use_skill("huntersmark", target);
 			}
 
 			if (skill_allowed && CONFIG.combat.use_supershot && ms_super === 0
+				&& above_hp_pct(target, CONFIG.combat.supershot_min_hp_pct)
 				&& affordable(ss_cost) && skill_pays(supershot_value(target), ss_cost, target)) {
 				committed += ss_cost;
 				await use_skill("supershot", target);

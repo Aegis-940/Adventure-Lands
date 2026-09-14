@@ -16,6 +16,8 @@ var CONFIG = {
 		skill_blacklist: ["dryad", "fireroamer", "plantoid", "mole", "mummy"],
 		use_hunters_mark: true,
 		use_supershot: true,
+		mark_min_hp_pct: 0.03,
+		supershot_min_hp_pct: 0.10,
 		burn_enabled: true,
 		lambda_headroom_low: 0.6,
 		lambda_headroom_high: 1.5,
