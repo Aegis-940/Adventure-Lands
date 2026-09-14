@@ -19,7 +19,7 @@ var CONFIG = {
 		zapper_enabled: false,
 		zapper_mobs: [home, ...ALL_BOSSES, "sparkbot"],
 
-		sample_hits: false,
+		sample_hits: true,
 		sample_targets: true,
 	},
 
