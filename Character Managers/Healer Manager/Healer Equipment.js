@@ -95,7 +95,7 @@ function heal_report() {
 function resolve_healer_loadout() {
 	if (CONFIG.equipment.weapon_swap_enabled === false) return null;
 	const target = cache.heal_target;
-	return resolve_weapon_by_value(_weapon_choice, name => healer_set_value(name, target))
+	return resolve_weapon_by_value(name => healer_set_value(name, target))
 		|| first_available_set(CONFIG.equipment.weapon_sets);
 }
 

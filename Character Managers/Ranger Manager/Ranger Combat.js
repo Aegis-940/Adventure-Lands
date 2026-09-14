@@ -27,7 +27,7 @@ function should_attack_mob(mob) {
 function update_cache() {
 	if (cache.is_valid()) return;
 	const now = performance.now();
-	sample_set_profiles(["single", "boom"]);
+	sample_set_profiles(CONFIG.equipment.weapon_sets);
 	cache.targets = update_target_cache();
 	cache.heal_target = find_cupid_target();
 	cache.last_update = now;

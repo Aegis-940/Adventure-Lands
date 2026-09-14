@@ -161,18 +161,16 @@ function worn_ability_chance(ability) {
 // SET PROFILES — what each equipment set is actually worth, measured while it is worn
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const WEAPON_PROBE_MS = 20000;
 const SET_PROFILE_KEY = "AL_set_profile2_";
 const SET_PROFILE_FIELDS = ["attack", "explosion", "frequency", "heal", "int", "rpiercing", "apiercing", "mp_cost"];
 const SET_PROFILE_MIN_INTERVAL_MS = 15000;
 const SET_PROFILE_REPROBE_MS = 600000;
 const SET_PROFILE_SETTLE_MS = 600;
 const SET_PROFILE_FIRST_SETTLE_MS = 150;
+const SET_PROFILE_EPSILON = 0.02;
 const PROFILE_EXCLUDED_BUFFS = ["darkblessing", "warcry", "power", "xpower", "sugarrush", "energized", "anniversary_kiss"];
 
 const _profile_pending = {};
-const SET_PROFILE_EPSILON = 0.02;
-
 let _set_profiles = null;
 
 function load_set_profiles() {
@@ -313,44 +311,41 @@ function set_damage_value(set_name, pool, width) {
 // WEAPON CHOICE — probe unprofiled sets while they are worn, then hold the best-valued set with hysteresis and a margin
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+const WEAPON_PROBE_MS = 20000;
 const WEAPON_HYSTERESIS_MS = 3000;
 const WEAPON_SWITCH_MARGIN = 1.1;
 
-var _weapon_choice = make_weapon_choice();
-
-function make_weapon_choice() {
-	return { worn: null, since: 0, probe: {}, probing: null, proposed: null };
-}
-
-function weapon_choice_name(choice) {
-	return choice.probing || choice.worn;
-}
+var _weapon_choice = { worn: null, since: 0, probe: {}, probing: null, proposed: null };
 
 function equipped_set_among(sets) {
 	return sets.find(name => is_set_equipped(name)) || null;
 }
 
-function observe_worn_set(choice, sets, now) {
-	const worn = equipped_set_among(sets);
-	if (worn && worn !== choice.worn) {
-		choice.worn = worn;
-		choice.since = now;
-	}
-	return choice.worn;
+function first_available_set(sets) {
+	return sets.find(name => set_available(name)) || null;
 }
 
-function probe_weapon_set(choice, sets, probe_ms, reprobe_ms, now) {
+function observe_worn_set(sets, now) {
+	const worn = equipped_set_among(sets);
+	if (worn && worn !== _weapon_choice.worn) {
+		_weapon_choice.worn = worn;
+		_weapon_choice.since = now;
+	}
+	return _weapon_choice.worn;
+}
+
+function probe_weapon_set(sets, now) {
 	for (const name of sets) {
-		if (!set_available(name) || !set_profile_stale(name, reprobe_ms)) {
-			delete choice.probe[name];
+		if (!set_available(name) || !set_profile_stale(name, SET_PROFILE_REPROBE_MS)) {
+			delete _weapon_choice.probe[name];
 			continue;
 		}
 
-		let probe = choice.probe[name];
-		if (!probe || now - probe.started > probe_ms + reprobe_ms) {
-			probe = choice.probe[name] = { started: now, worn_ms: 0, last: 0 };
+		let probe = _weapon_choice.probe[name];
+		if (!probe || now - probe.started > WEAPON_PROBE_MS + SET_PROFILE_REPROBE_MS) {
+			probe = _weapon_choice.probe[name] = { started: now, worn_ms: 0, last: 0 };
 		}
-		if (probe.worn_ms >= probe_ms) continue;
+		if (probe.worn_ms >= WEAPON_PROBE_MS) continue;
 
 		if (is_set_equipped(name)) {
 			if (probe.last) probe.worn_ms += now - probe.last;
@@ -363,7 +358,7 @@ function probe_weapon_set(choice, sets, probe_ms, reprobe_ms, now) {
 	return null;
 }
 
-function sample_weapon_choice(choice, sets, value_of, from, to, now, context) {
+function sample_weapon_choice(sets, value_of, from, to, now, context) {
 	if (!CONFIG.combat || !CONFIG.combat.sample_hits || typeof errlog_sample !== "function") return;
 
 	const values = {};
@@ -374,19 +369,19 @@ function sample_weapon_choice(choice, sets, value_of, from, to, now, context) {
 
 	errlog_sample("weapon_choice", Object.assign({
 		from, to, values,
-		held_ms: choice.since ? now - choice.since : 0,
+		held_ms: _weapon_choice.since ? now - _weapon_choice.since : 0,
 		mp_pct: +(character.mp / character.max_mp).toFixed(2)
 	}, typeof context === "function" ? context() : {}));
 }
 
-function best_weapon_set(choice, sets, value_of, opts) {
-	const o = opts || {};
+function resolve_weapon_by_value(value_of, context) {
+	const sets = CONFIG.equipment.weapon_sets;
 	const now = Date.now();
 
-	const worn = observe_worn_set(choice, sets, now);
+	const worn = observe_worn_set(sets, now);
 
-	choice.probing = probe_weapon_set(choice, sets, o.probe_ms || WEAPON_PROBE_MS, o.reprobe_ms || SET_PROFILE_REPROBE_MS, now);
-	if (choice.probing) return choice.probing;
+	_weapon_choice.probing = probe_weapon_set(sets, now);
+	if (_weapon_choice.probing) return _weapon_choice.probing;
 
 	let best = null;
 	let best_value = -Infinity;
@@ -400,35 +395,23 @@ function best_weapon_set(choice, sets, value_of, opts) {
 	if (!best) return null;
 
 	if (worn && worn !== best && set_available(worn)) {
-		if (now - choice.since < (o.hysteresis_ms ?? WEAPON_HYSTERESIS_MS)) return worn;
+		const hysteresis_ms = CONFIG.equipment.weapon_hysteresis_ms ?? WEAPON_HYSTERESIS_MS;
+		const margin = CONFIG.equipment.weapon_switch_margin ?? WEAPON_SWITCH_MARGIN;
+		if (now - _weapon_choice.since < hysteresis_ms) return worn;
 		const holding = value_of(worn);
-		if (holding !== null && holding !== undefined && best_value < holding * (o.margin ?? WEAPON_SWITCH_MARGIN)) return worn;
+		if (holding !== null && holding !== undefined && best_value < holding * margin) return worn;
 	}
 
-	if (best !== choice.proposed) {
-		choice.proposed = best;
-		if (best !== worn) sample_weapon_choice(choice, sets, value_of, worn, best, now, o.context);
+	if (best !== _weapon_choice.proposed) {
+		_weapon_choice.proposed = best;
+		if (best !== worn) sample_weapon_choice(sets, value_of, worn, best, now, context);
 	}
 	return best;
 }
 
-function resolve_weapon_by_value(choice, value_of, extra) {
-	return best_weapon_set(choice, CONFIG.equipment.weapon_sets, value_of, Object.assign({
-		hysteresis_ms: CONFIG.equipment.weapon_hysteresis_ms,
-		margin: CONFIG.equipment.weapon_switch_margin
-	}, extra || {}));
-}
-
-function first_available_set(sets) {
-	for (const name of sets) {
-		if (set_available(name)) return name;
-	}
-	return null;
-}
-
 function weapon_set_to_restore() {
 	const sets = CONFIG.equipment.weapon_sets;
-	return equipped_set_among(sets) || weapon_choice_name(_weapon_choice) || first_available_set(sets);
+	return equipped_set_among(sets) || _weapon_choice.probing || _weapon_choice.worn || first_available_set(sets);
 }
 
 function resolve_weapon_set(args) {
@@ -439,16 +422,9 @@ function resolve_weapon_set(args) {
 	if (a.forced) return a.forced;
 	if (typeof dungeon_flag === "function" && dungeon_flag("single_weapon")) return sets[0];
 
-	if (!a.pool || !a.pool.length) {
-		const now = Date.now();
-		observe_worn_set(_weapon_choice, sets, now);
-		_weapon_choice.probing = probe_weapon_set(_weapon_choice, sets, WEAPON_PROBE_MS, SET_PROFILE_REPROBE_MS, now);
-		return _weapon_choice.probing;
-	}
-
-	const chosen = resolve_weapon_by_value(_weapon_choice,
-		name => set_damage_value(name, a.pool, a.width), { context: a.context });
-	return chosen || first_available_set(sets);
+	const chosen = resolve_weapon_by_value(name => set_damage_value(name, a.pool, a.width), a.context);
+	if (chosen || !a.pool || !a.pool.length) return chosen;
+	return first_available_set(sets);
 }
 
 function preferred_orb(preferred, allow_xp) {
