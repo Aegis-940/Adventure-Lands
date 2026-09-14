@@ -128,10 +128,12 @@ function errlog_record(ctx, raw_msg) {
 		if (existing) {
 			existing.count++;
 			existing.last = now;
+			existing.last_build = _errlog_build();
 		} else {
 			_errlog.records[sig] = {
 				ctx, msg, count: 1, first: now, last: now,
 				build: _errlog_build(),
+				last_build: _errlog_build(),
 				where: _errlog_context()
 			};
 		}

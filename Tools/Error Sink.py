@@ -59,10 +59,14 @@ def retained_builds(bucket, build):
 
 
 def prune_records(recs, keep_builds):
+    # build is stamped when a signature is first seen and never rewritten, so it dates the
+    # introduction, not the last sighting. Pruning on it drops signatures that are still firing
+    # every second under current code. last_build is the one that answers "is this still live".
     cut = cutoff_ms(RECORD_MAX_AGE_H)
     return {
         sig: r for sig, r in recs.items()
-        if (not keep_builds or r.get("build") in keep_builds) and (r.get("last") or 0) >= cut
+        if (not keep_builds or (r.get("last_build") or r.get("build")) in keep_builds)
+        and (r.get("last") or 0) >= cut
     }
 
 
