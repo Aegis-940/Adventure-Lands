@@ -244,7 +244,16 @@ function dungeon_skip_target(mob) {
 	const d = active_dungeon();
 	if (!d || !mob) return false;
 	if (d.avoid && d.avoid.includes(mob.mtype)) return true;
-	if (mob.target && DUNGEON_PARTY.includes(mob.target)) return false;
+
+	const on_party = !!(mob.target && DUNGEON_PARTY.includes(mob.target));
+
+	if (d.follow_focus && character.name !== MOVEMENT_LEADER) {
+		if (on_party) return false;
+		const focus = dungeon_focus_target();
+		return !focus || mob.id !== focus.id;
+	}
+
+	if (on_party) return false;
 
 	const suppressed = dungeon_suppressed_types();
 	if (suppressed && suppressed.includes(mob.mtype)) return true;

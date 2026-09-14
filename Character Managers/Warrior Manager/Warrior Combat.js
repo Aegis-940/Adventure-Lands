@@ -125,7 +125,7 @@ async function action_loop() {
 		const target = cache.target;
 		const ms = ms_to_next_skill("attack");
 
-		if (ms === 0 && !travel_blocks_combat() && target) {
+		if (ms === 0 && !travel_blocks_combat() && target && is_in_range(target)) {
 			await status_swap_trick_check(target);
 		} else {
 			next_delay = next_action_delay(ms);

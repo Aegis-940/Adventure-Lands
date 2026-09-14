@@ -247,9 +247,12 @@ function handle_attack() {
 	if (single_target_mode) {
 		if (character.mp < Math.max(100, panic_mp_reserve())) return;
 		const forced = dungeon_focus_target();
-		const pick = (forced && is_in_range(forced)) ? forced : in_range[0];
-		if (!pick) return;
-		return run_basic_action(attack(pick), "attack");
+		if (forced) {
+			if (!is_in_range(forced)) return;
+			return run_basic_action(attack(forced), "attack");
+		}
+		if (!in_range.length) return;
+		return run_basic_action(attack(in_range[0]), "attack");
 	}
 
 	const choice = choose_attack_option(in_range);
