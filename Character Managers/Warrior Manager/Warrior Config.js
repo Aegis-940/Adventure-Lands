@@ -25,6 +25,7 @@ var CONFIG = {
 			max_mobs_in_range: 6
 		},
 		taunt_ents: false,
+		swap_trick_enabled: false,
 
 		sample_hits: true,
 		sample_targets: true,

@@ -72,6 +72,8 @@ async function status_swap_trick_check(target) {
 	if (basic_action_busy()) return;
 	run_basic_action(attack(target), "attack");
 
+	if (!CONFIG.combat.swap_trick_enabled) return;
+
 	const trick = STATUS_SWAP_TRICKS[target?.mtype];
 	if (!trick || character.s[trick.status] !== undefined) return;
 
