@@ -38,7 +38,7 @@ function bscorpion_start() {
 function is_at_bscorpion_farm() {
 	const loc = prim_farm_loc();
 	return character.map === loc.map &&
-		Math.hypot(character.x - loc.x, character.y - loc.y) < PRIM_FARM_RADIUS + 30;
+		Math.hypot(character.x - loc.x, character.y - loc.y) < camp_hold_radius();
 }
 
 function find_nearest_bscorpion() {
@@ -68,12 +68,17 @@ function bscorpion_worth_buffing() {
 
 const CAMP_MOVE_TOLERANCE = 3;
 const CAMP_STAGING_TOLERANCE = 15;
+const CAMP_HOLD_MARGIN = 40;
 const CAMP_RANGE_FRACTION = { Ulric: 0.80, Riva: 0.70 };
 
 function camp_engage_distance() {
 	const fraction = CAMP_RANGE_FRACTION[character.name];
 	if (!fraction) return 0;
 	return (character.range || 0) * fraction;
+}
+
+function camp_hold_radius() {
+	return PRIM_FARM_RADIUS + camp_engage_distance() + CAMP_HOLD_MARGIN;
 }
 
 function camp_loop_parked() {
