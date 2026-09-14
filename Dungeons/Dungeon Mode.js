@@ -1,9 +1,8 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// DUNGEON MODE — the toggle that puts the party into a dungeon, its button, and the exit watch
+// DUNGEON MODE — the toggle that puts the party into a dungeon, and its button
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const DUNGEON_BTN_ID = "dungeon-btn";
-const DUNGEON_EXIT_WATCH_MS = 2000;
 
 function dungeon_mode_enabled() {
 	return typeof dungeon_override === "function" && !!dungeon_override();
@@ -20,7 +19,12 @@ function set_dungeon_mode(key, broadcast = true) {
 	}
 
 	if (!key) {
-		if (was) log("🪦 Dungeon mode off — normal farming resumes", "#FFCC00", "Alerts");
+		if (was) {
+			log(dungeon_loop_running()
+				? "🪦 Dungeon mode off — finishing this run, then stopping"
+				: "🪦 Dungeon mode off — normal farming resumes", "#FFCC00", "Alerts");
+		}
+		if (!dungeon_loop_running()) hold_reset_for_mode(false);
 		return;
 	}
 
@@ -28,44 +32,13 @@ function set_dungeon_mode(key, broadcast = true) {
 	if (!d) return log(`Dungeon mode: no dungeon named ${key}`, DUNGEON_WARN_COLOR);
 
 	log(`⚰️ ${d.name} mode on — events, bosses and farming are ignored`, DUNGEON_LOG_COLOR, "Alerts");
-	if (character.name === MOVEMENT_LEADER && !was) start_dungeon_when_ready(d);
+	hold_reset_for_mode(true);
+	if (character.name === MOVEMENT_LEADER && !was) start_active_dungeon_when_ready();
 }
 
 function toggle_dungeon_mode() {
 	set_dungeon_mode(dungeon_mode_enabled() ? null : "crypt");
 }
-
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// EXIT WATCH — leaving the instance turns the mode off so we never walk straight back in
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-let _dungeon_was_inside = false;
-
-function dungeon_exit_watch() {
-	if (character.name !== MOVEMENT_LEADER) return;
-	if (!dungeon_mode_enabled()) {
-		_dungeon_was_inside = false;
-		return;
-	}
-
-	const d = active_dungeon();
-	if (!d) {
-		_dungeon_was_inside = false;
-		return;
-	}
-
-	if (character.map === d.map) {
-		_dungeon_was_inside = true;
-		return;
-	}
-
-	if (!_dungeon_was_inside) return;
-	_dungeon_was_inside = false;
-	log(`${d.name}: left the instance — dungeon mode disabled`, DUNGEON_WARN_COLOR, "Alerts");
-	set_dungeon_mode(null);
-}
-
-setInterval(dungeon_exit_watch, DUNGEON_EXIT_WATCH_MS);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // BUTTON

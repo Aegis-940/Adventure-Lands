@@ -23,6 +23,8 @@ DUNGEONS.crypt = {
 	only: [...CRYPT_PRIORITY, ...CRYPT_OPPORTUNISTIC],
 	quota: CRYPT_QUOTA,
 	suppress_aggro_when: ["a2", "a3", "a7"],
+	route: "run_crypt_route",
+	leave: "crypt_leave",
 	flags: {
 		leader_manual: true,
 		ignore_events: true,

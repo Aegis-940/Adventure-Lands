@@ -172,12 +172,6 @@ async function run_crypt_route() {
 		dungeon_progress_report();
 		log("Crypt route: circuit finished", DUNGEON_LOG_COLOR, "Alerts");
 
-		record_dungeon_run();
-		if (!_crypt_route_abort && collection_due()) {
-			log("Crypt route: collection due — leaving the crypt to meet Riff", DUNGEON_LOG_COLOR, "Alerts");
-			await crypt_leave();
-			await run_dungeon_collection();
-		}
 	} catch (e) {
 		catcher(e, "run_crypt_route");
 	} finally {

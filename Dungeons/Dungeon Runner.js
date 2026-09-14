@@ -158,7 +158,18 @@ function dungeon_aggro_suppressed() {
 
 function start_active_dungeon_when_ready() {
 	const d = active_dungeon();
-	if (d) start_dungeon_when_ready(d);
+	if (!d) return;
+	if (d.route) return start_dungeon_loop();
+	start_dungeon_when_ready(d);
+}
+
+function start_dungeon_loop() {
+	if (character.name !== MOVEMENT_LEADER) return;
+	setTimeout(() => {
+		if (!active_dungeon() || _dungeon_loop_running) return;
+		if (character.rip) return log("Dungeon loop: dead on startup — not starting", DUNGEON_WARN_COLOR);
+		run_dungeon_loop();
+	}, DUNGEON_START_DELAY_MS);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -267,7 +278,7 @@ function wait_for_party_in_instance(dungeon) {
 async function run_dungeon(dungeon) {
 	if (_dungeon_running) {
 		dungeon_log(dungeon, "Already running — ignoring duplicate start.", DUNGEON_WARN_COLOR);
-		return;
+		return false;
 	}
 	_dungeon_running = true;
 	_dungeon_moving = true;
@@ -279,7 +290,7 @@ async function run_dungeon(dungeon) {
 			await withdraw_item(dungeon.key, null, dungeon.key_count);
 			if (!has_dungeon_key(dungeon.key)) {
 				dungeon_log(dungeon, `No ${dungeon.key} in the bank either — aborting.`, DUNGEON_WARN_COLOR);
-				return;
+				return false;
 			}
 		}
 
@@ -300,9 +311,8 @@ async function run_dungeon(dungeon) {
 		dungeon_log(dungeon, "Full party in instance — proceeding");
 
 		if (!dungeon.bosses || !dungeon.bosses.length) {
-			dungeon_log(dungeon, "Party assembled — movement is yours from here", "#FFAA44");
-			hold_reset_until_out(dungeon);
-			return;
+			dungeon_log(dungeon, "Party assembled");
+			return true;
 		}
 
 		for (const boss of dungeon.bosses) {
@@ -320,9 +330,12 @@ async function run_dungeon(dungeon) {
 		await delay(500);
 		parent.window.location.reload();
 
+		return true;
+
 	} catch (e) {
 		catcher(e, "run_dungeon");
-		dungeon_log(dungeon, "Run aborted — toggle off and on to retry", DUNGEON_WARN_COLOR);
+		dungeon_log(dungeon, "Entry aborted", DUNGEON_WARN_COLOR);
+		return false;
 	} finally {
 		_dungeon_moving = false;
 		_dungeon_running = false;
@@ -335,17 +348,86 @@ async function run_dungeon(dungeon) {
 
 let _dungeon_reset_hold = false;
 
-function hold_reset_until_out(dungeon) {
-	if (_dungeon_reset_hold) return;
-	_dungeon_reset_hold = true;
-	const watch = setInterval(() => {
-		if (character.map === dungeon.map) return;
-		clearInterval(watch);
-		_dungeon_reset_hold = false;
-		set_suppress_reset(false);
-		send_cm(DUNGEON_FOLLOWERS, { type: "suppress_reset", state: false });
-		dungeon_log(dungeon, "Left the instance — periodic reload re-enabled");
-	}, 5000);
+function hold_reset_for_mode(on) {
+	_dungeon_reset_hold = !!on;
+	set_suppress_reset(!!on);
+	send_cm(DUNGEON_FOLLOWERS, { type: "suppress_reset", state: !!on });
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// LOOP — toggle on runs dungeons back to back; toggle off finishes the run in flight and stops
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const DUNGEON_LOOP_SETTLE_MS = 3000;
+const DUNGEON_START_DELAY_MS = 5000;
+
+let _dungeon_loop_running = false;
+
+function dungeon_loop_running() {
+	return _dungeon_loop_running;
+}
+
+function dungeon_route_runner() {
+	const d = active_dungeon();
+	if (!d || !d.route) return null;
+	const fn = window[d.route];
+	return typeof fn === "function" ? fn : null;
+}
+
+function dungeon_leave_runner() {
+	const d = active_dungeon();
+	if (!d || !d.leave) return null;
+	const fn = window[d.leave];
+	return typeof fn === "function" ? fn : null;
+}
+
+async function run_dungeon_loop() {
+	if (_dungeon_loop_running) return;
+	if (character.name !== MOVEMENT_LEADER) return;
+
+	const route = dungeon_route_runner();
+	if (!route) {
+		const d = active_dungeon();
+		log(`Dungeon loop: ${d ? d.route || "no route" : "no dungeon"} is not a loaded function`, DUNGEON_WARN_COLOR, "Alerts");
+		return;
+	}
+
+	_dungeon_loop_running = true;
+	try {
+		while (dungeon_mode_enabled()) {
+			const d = active_dungeon();
+			if (!d) break;
+
+			if (character.map !== d.map) {
+				if (!await run_dungeon(d)) {
+					dungeon_log(d, "Could not get in — stopping the loop", DUNGEON_WARN_COLOR);
+					break;
+				}
+			}
+
+			await route();
+
+			record_dungeon_run();
+
+			if (!dungeon_mode_enabled()) {
+				dungeon_log(d, "Mode was turned off — this was the last run");
+				break;
+			}
+
+			const leave = dungeon_leave_runner();
+			if (leave) await leave();
+
+			if (collection_due()) await run_dungeon_collection();
+
+			await delay(DUNGEON_LOOP_SETTLE_MS);
+		}
+	} catch (e) {
+		catcher(e, "run_dungeon_loop");
+	} finally {
+		_dungeon_loop_running = false;
+		hold_reset_for_mode(false);
+		log("⚰️ Dungeon loop stopped", "#FFCC00", "Alerts");
+	}
 }
 
 function has_dungeon_key(key) {
@@ -361,16 +443,9 @@ function start_dungeon_when_ready(dungeon) {
 			return;
 		}
 		if (character.map === dungeon.map) {
-			if (!dungeon.bosses || !dungeon.bosses.length) {
-				dungeon_log(dungeon, "Already inside — movement is yours", "#FFAA44");
-				set_suppress_reset(true);
-				send_cm(DUNGEON_FOLLOWERS, { type: "suppress_reset" });
-				hold_reset_until_out(dungeon);
-				return;
-			}
 			dungeon_log(dungeon, "Detected startup inside instance — restarting from entrance.", "#FFAA44");
 		}
 		dungeon_log(dungeon, "Auto-starting...");
 		run_dungeon(dungeon);
-	}, 5000);
+	}, DUNGEON_START_DELAY_MS);
 }
