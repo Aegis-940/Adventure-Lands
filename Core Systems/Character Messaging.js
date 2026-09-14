@@ -38,7 +38,9 @@ const CM_HANDLERS = {
 
 	"suppress_reset": (name, data) => set_suppress_reset(data.state !== false),
 
-	"enter_instance": (name, data) => join_dungeon_instance(data),
+	"enter_instance": async (name, data) => {
+		await join_dungeon_instance(data);
+	},
 
 	"dungeon_mode": (name, data) => set_dungeon_mode(data.dungeon || null, false),
 
