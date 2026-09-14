@@ -37,7 +37,20 @@ function set_dungeon_mode(key, broadcast = true) {
 }
 
 function toggle_dungeon_mode() {
-	set_dungeon_mode(dungeon_mode_enabled() ? null : "crypt");
+	if (!dungeon_mode_enabled()) {
+		clear_dungeon_stop();
+		return set_dungeon_mode("crypt");
+	}
+
+	if (dungeon_loop_running() && !dungeon_stop_requested()) {
+		request_dungeon_stop();
+		paint_dungeon_button();
+		log("🪦 Dungeon mode off after this run — press again to stop now", "#FFCC00", "Alerts");
+		return;
+	}
+
+	clear_dungeon_stop();
+	set_dungeon_mode(null);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -50,11 +63,15 @@ function paint_dungeon_button() {
 	if (!btn.length) return;
 
 	const on = dungeon_mode_enabled();
-	btn.html(on ? "⚰️" : "🪦");
-	btn.attr("title", on
-		? `Crypt mode ON for ${character.name} — click to turn off`
-		: `Enter the crypt with the party (ignores events, bosses and farming)`);
-	btn.css("filter", on ? "drop-shadow(0 0 4px #AA88FF)" : "");
+	const stopping = on && dungeon_stop_requested();
+
+	btn.html(stopping ? "🛑" : (on ? "⚰️" : "🪦"));
+	btn.attr("title", stopping
+		? `Crypt mode stops after this run — click again to stop now`
+		: (on
+			? `Crypt mode ON for ${character.name} — click to turn off`
+			: `Enter the crypt with the party (ignores events, bosses and farming)`));
+	btn.css("filter", on ? `drop-shadow(0 0 4px ${stopping ? "#FFCC00" : "#AA88FF"})` : "");
 }
 
 function add_dungeon_button() {

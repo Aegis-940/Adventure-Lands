@@ -599,9 +599,22 @@ const DUNGEON_LOOP_SETTLE_MS = 3000;
 const DUNGEON_START_DELAY_MS = 5000;
 
 let _dungeon_loop_running = false;
+let _dungeon_stop_requested = false;
 
 function dungeon_loop_running() {
 	return _dungeon_loop_running;
+}
+
+function dungeon_stop_requested() {
+	return _dungeon_stop_requested;
+}
+
+function request_dungeon_stop() {
+	_dungeon_stop_requested = true;
+}
+
+function clear_dungeon_stop() {
+	_dungeon_stop_requested = false;
 }
 
 function dungeon_route_runner() {
@@ -631,7 +644,7 @@ async function run_dungeon_loop() {
 
 	_dungeon_loop_running = true;
 	try {
-		while (dungeon_mode_enabled()) {
+		while (dungeon_mode_enabled() && !_dungeon_stop_requested) {
 			const d = active_dungeon();
 			if (!d) break;
 
@@ -652,7 +665,7 @@ async function run_dungeon_loop() {
 
 			if (collection_due()) await run_dungeon_collection();
 
-			if (!dungeon_mode_enabled()) {
+			if (!dungeon_mode_enabled() || _dungeon_stop_requested) {
 				dungeon_log(d, "Mode was turned off — that was the last run");
 				break;
 			}
@@ -663,6 +676,10 @@ async function run_dungeon_loop() {
 		catcher(e, "run_dungeon_loop");
 	} finally {
 		_dungeon_loop_running = false;
+		if (_dungeon_stop_requested) {
+			_dungeon_stop_requested = false;
+			set_dungeon_mode(null);
+		}
 		hold_reset_for_mode(false);
 		log("⚰️ Dungeon loop stopped", "#FFCC00", "Alerts");
 	}

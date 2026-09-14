@@ -82,8 +82,12 @@ function dungeon_channelling() {
 
 async function dungeon_bail_out(reason, broadcast = true, emergency = true) {
 	if (_dungeon_bailing) return;
+
 	const d = active_dungeon();
-	if (!d) return;
+	if (!d) {
+		log(`Bail-out asked for (${reason}) but no dungeon is active — ignoring`, DUNGEON_WARN_COLOR, "Alerts");
+		return false;
+	}
 
 	_dungeon_bailing = true;
 	if (emergency) _dungeon_bail_count++;

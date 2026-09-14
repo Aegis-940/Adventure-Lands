@@ -314,6 +314,7 @@ async function crypt_leg(wp) {
 
 	while (true) {
 		if (_crypt_route_abort) return "abort";
+		if (!active_dungeon()) return "abort";
 		if (character.rip) return "dead";
 		if (crypt_ejected()) return "ejected";
 		if (panicking) return "panic";
