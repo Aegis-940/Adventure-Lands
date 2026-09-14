@@ -26,13 +26,13 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(REPO, "errors.json")
 
 
-MAX_DEATHS = 50
-MAX_TIMELINE = 300
+MAX_DEATHS = 20
+MAX_TIMELINE = 100
 # Per KIND, not per character. A single character's cap lets the noisiest kind evict every other:
 # the healer pushes ~10 target_choice/sec, which turned over a 5000-entry ring every six minutes
 # and left 29 of her cluster samples alive. Capping per kind makes the window depend on the
 # sampling rate of that kind alone.
-MAX_SAMPLES_PER_KIND = 750
+MAX_SAMPLES_PER_KIND = 250
 
 # A record names a line of code. Once that line has been edited the record describes something that
 # no longer exists, so records are kept only for the build that produced them and the one before it
@@ -40,9 +40,38 @@ MAX_SAMPLES_PER_KIND = 750
 # fix. Ninety-seven builds had accumulated before this existed, and the three largest belonged to
 # code deleted days earlier.
 RETAIN_BUILDS = 2
-RECORD_MAX_AGE_H = 48
+RECORD_MAX_AGE_H = 12
 # Samples carry no build, so age is the only handle on them. They are 74% of the file.
-SAMPLE_MAX_AGE_H = 6
+SAMPLE_MAX_AGE_H = 2
+
+# Every limit above is per character and per kind, so none of them bounds the file, which is the
+# thing that actually has to stay readable. This is the one that does: over the ceiling, the
+# longest sample list loses its oldest quarter, repeatedly, until the store fits.
+MAX_BYTES = 1_500_000
+
+
+def serialise(store):
+    return json.dumps(store, sort_keys=True, separators=(",", ":"))
+
+
+def enforce_ceiling(store):
+    while True:
+        blob = serialise(store)
+        if len(blob) <= MAX_BYTES:
+            return blob
+
+        worst, worst_n = None, 0
+        for who, bucket in store.items():
+            if not isinstance(bucket, dict):
+                continue
+            n = len(bucket.get("samples") or [])
+            if n > worst_n:
+                worst, worst_n = who, n
+
+        if not worst_n:
+            return blob
+        samples = store[worst]["samples"]
+        del samples[:max(1, len(samples) // 4)]
 
 
 def cutoff_ms(hours):
@@ -138,7 +167,7 @@ def merge(incoming):
     tmp = OUT + ".tmp"
     with open(tmp, "w", encoding="utf-8") as fh:
         # Not indented: this file is read by tooling, and pretty-printing it cost a third of its size.
-        json.dump(store, fh, sort_keys=True, separators=(",", ":"))
+        fh.write(enforce_ceiling(store))
     # os.replace loses to any reader holding errors.json open on Windows (WinError 5), and the
     # caller's except discards the whole payload when it does. Retry briefly rather than drop it.
     for attempt in range(5):
@@ -152,7 +181,7 @@ def merge(incoming):
     return sum(len(v.get("records", {})) for k, v in store.items() if k != "_updated")
 
 
-LOG_EVERY_S = 60
+LOG_EVERY_S = 900
 _last_said = {}
 _posts = {}
 
@@ -196,7 +225,37 @@ class Handler(BaseHTTPRequestHandler):
         pass  # the prints above are the log; suppress the default request spam
 
 
+def sweep_on_start():
+    """A restart is also a clean-up: prune whatever the previous run left behind.
+
+    Merging only prunes the character whose payload arrived, so a character that stops posting --
+    renamed, parked, or the run simply ended -- keeps its last state forever without this.
+    """
+    if not os.path.exists(OUT):
+        return
+    try:
+        with open(OUT, encoding="utf-8") as fh:
+            store = json.load(fh)
+    except Exception:
+        return
+
+    before = os.path.getsize(OUT)
+    for bucket in store.values():
+        if not isinstance(bucket, dict):
+            continue
+        bucket["records"] = prune_records(bucket.get("records") or {}, set(bucket.get("builds") or []))
+        bucket["samples"] = prune_samples(bucket.get("samples") or [])
+        bucket["deaths"] = (bucket.get("deaths") or [])[-MAX_DEATHS:]
+        bucket["timeline"] = (bucket.get("timeline") or [])[-MAX_TIMELINE:]
+
+    blob = enforce_ceiling(store)
+    with open(OUT, "w", encoding="utf-8") as fh:
+        fh.write(blob)
+    print("swept: %.2f MB -> %.2f MB" % (before / 1048576, len(blob) / 1048576), flush=True)
+
+
 if __name__ == "__main__":
     print("error sink -> %s" % OUT)
+    sweep_on_start()
     print("listening on http://127.0.0.1:%d  (ctrl-c to stop)" % PORT, flush=True)
     HTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
