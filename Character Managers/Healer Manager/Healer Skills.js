@@ -45,9 +45,11 @@ async function skill_loop() {
 			}
 		}
 
+		if (is_on_cooldown("darkblessing")) _dark_blessing_ready_since = 0;
+
 		if (!panicking && !travelling && mana_for_luxuries && CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
 			&& character.mp >= (G.skills.darkblessing?.mp || 0)) {
-			if (home !== "bscorpion" || bscorpion_worth_buffing()) {
+			if ((home !== "bscorpion" || bscorpion_worth_buffing()) && dark_blessing_synced()) {
 				try {
 					await use_skill("darkblessing");
 				} catch (e) {
@@ -66,6 +68,21 @@ async function skill_loop() {
 	}
 
 	setTimeout(skill_loop, loop_next("skill_loop", next_delay));
+}
+
+var DARK_BLESSING_SYNC_WAIT_MS = 8000;
+var _dark_blessing_ready_since = 0;
+
+function dark_blessing_synced() {
+	if (home !== "bscorpion") return true;
+
+	const now = Date.now();
+	if (!_dark_blessing_ready_since) _dark_blessing_ready_since = now;
+
+	const warrior = get_entity("Ulric");
+	if (warrior && warrior.s && warrior.s.warcry) return true;
+
+	return now - _dark_blessing_ready_since >= DARK_BLESSING_SYNC_WAIT_MS;
 }
 
 async function handle_curse() {

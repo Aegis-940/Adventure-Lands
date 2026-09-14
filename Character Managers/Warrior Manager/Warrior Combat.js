@@ -9,7 +9,30 @@ function update_cache() {
 	cache.monsters_in_cleave_range = find_monsters_in_cleave_range();
 	cache.target = find_best_target();
 	cache.party_members = get_party_members();
+	sample_burn_state(cache.target);
 	cache.last_update = performance.now();
+}
+
+var BURN_PROBE_MS = 1000;
+var _burn_probe_at = 0;
+
+function sample_burn_state(target) {
+	if (!CONFIG.combat.sample_hits || typeof errlog_sample !== "function") return;
+	if (!target || target.mtype !== home) return;
+
+	const now = Date.now();
+	if (now - _burn_probe_at < BURN_PROBE_MS) return;
+	_burn_probe_at = now;
+
+	const burned = target.s && target.s.burned;
+	errlog_sample("burn_state", {
+		hp_pct: +(target.hp / target.max_hp).toFixed(3),
+		burned: burned ? Object.assign({}, burned) : null,
+		attack: character.attack,
+		marked: !!(target.s && target.s.marked),
+		cursed: !!(target.s && target.s.cursed),
+		buffs: Object.keys(character.s || {}).filter(b => BUFFS_WORTH_LOGGING.includes(b)).join("+")
+	});
 }
 
 function cooperative_luck_logger() {

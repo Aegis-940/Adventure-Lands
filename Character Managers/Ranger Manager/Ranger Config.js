@@ -17,7 +17,7 @@ var CONFIG = {
 		use_hunters_mark: true,
 		use_supershot: true,
 		mark_min_hp_pct: 0.03,
-		supershot_min_hp_pct: 0.10,
+		supershot_min_hp_pct: 0.85,
 		burn_enabled: true,
 		lambda_headroom_low: 0.6,
 		lambda_headroom_high: 1.5,
@@ -77,6 +77,7 @@ var item_order = { ...ITEM_ORDER_BASE };
 var PANIC_THRESHOLDS = {
 	low_hp: 0.50, low_mp: 0.01, high_hp: 0.80, high_mp: 0.33,
 	aggro: 1, cooldown: 1000,
+	aggro_by_home: { bscorpion: 99 },
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

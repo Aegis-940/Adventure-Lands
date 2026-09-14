@@ -79,13 +79,14 @@ async function _panic_check_body() {
 	const TRAPPED_TRAVELLING = !dungeon_flag("ignore_travel_panic")
 		&& is_travelling() && MONSTERS_TARGETING_ME >= (t.travel_aggro ?? 1);
 
-	const HARD_REASON = LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= t.aggro;
+	const aggro_limit = (t.aggro_by_home && t.aggro_by_home[home]) || t.aggro;
+	const HARD_REASON = LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= aggro_limit;
 
 	if ((HARD_REASON || TRAPPED_TRAVELLING) && !panicking) {
 		set_panic(true, [
 			LOW_HEALTH && "low health",
 			LOW_MANA && "low mana",
-			MONSTERS_TARGETING_ME >= t.aggro && "high aggro",
+			MONSTERS_TARGETING_ME >= aggro_limit && "high aggro",
 			TRAPPED_TRAVELLING && `${MONSTERS_TARGETING_ME} on us while travelling`,
 		].filter(Boolean).join(", "), false);
 
