@@ -40,4 +40,6 @@ var EQUIPMENT_RULES = {
 	orb:    { kind: "set", resolve: resolve_ranger_orb },
 };
 
-var MONSTER_GEAR_OVERRIDES = {};
+var MONSTER_GEAR_OVERRIDES = {
+	bscorpion: { weapon: "single" },
+};

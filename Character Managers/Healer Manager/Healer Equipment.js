@@ -110,6 +110,7 @@ var EQUIPMENT_RULES = {
 };
 
 var MONSTER_GEAR_OVERRIDES = {
+	bscorpion:  { loadout: "single_target" },
 	dryad:      { loadout: "mdef" },
 	fireroamer: { loadout: "fireres", orb: "orb_fire" },
 };
