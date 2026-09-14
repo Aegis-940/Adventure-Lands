@@ -5,10 +5,12 @@
 const TELEMETRY_TICK_MS = 2000;
 const TELEMETRY_NEARBY_RADIUS = 600;
 const TELEMETRY_STUCK_EPS = 15;
+const TELEMETRY_ENGAGED_RADIUS = 200;
 
 let _telemetry_last = null;
 let _telemetry_was_rip = false;
 let _telemetry_still_since = 0;
+let _telemetry_free_since = 0;
 
 function dungeon_telemetry_on() {
 	return !!active_dungeon() && typeof errlog_sample === "function";
@@ -70,6 +72,10 @@ function dungeon_telemetry_tick() {
 		if (moved > TELEMETRY_STUCK_EPS) _telemetry_still_since = now;
 		else if (!_telemetry_still_since) _telemetry_still_since = now;
 
+		const engaged = near.nearest_d !== null && near.nearest_d <= TELEMETRY_ENGAGED_RADIUS;
+		if (moved > TELEMETRY_STUCK_EPS || engaged) _telemetry_free_since = now;
+		else if (!_telemetry_free_since) _telemetry_free_since = now;
+
 		if (character.rip && !_telemetry_was_rip) {
 			dungeon_telemetry_event("death", {
 				nearest: near.nearest,
@@ -87,6 +93,10 @@ function dungeon_telemetry_tick() {
 			y: Math.round(character.y),
 			moved,
 			still_ms: now - _telemetry_still_since,
+			stuck_ms: now - _telemetry_free_since,
+			gold: character.gold,
+			esize: character.esize,
+			chests: Object.keys(get_chests()).length,
 			hp_pct: character.max_hp ? +(character.hp / character.max_hp).toFixed(2) : 0,
 			mp_pct: character.max_mp ? +(character.mp / character.max_mp).toFixed(2) : 0,
 			rip: !!character.rip,

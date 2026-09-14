@@ -341,6 +341,18 @@ function join_dungeon_instance(data) {
 
 const DUNGEON_EXIT_WAIT_MS = 3 * 60 * 1000;
 const DUNGEON_EXIT_POLL_MS = 1000;
+const DUNGEON_ENTER_SETTLE_MS = 3000;
+const DUNGEON_ENTER_TIMEOUT_MS = 20000;
+const DUNGEON_ENTER_POLL_MS = 250;
+
+async function wait_until_on_map(map) {
+	const until = Date.now() + DUNGEON_ENTER_TIMEOUT_MS;
+	while (Date.now() < until) {
+		if (character.map === map) return true;
+		await delay(DUNGEON_ENTER_POLL_MS);
+	}
+	return false;
+}
 
 function followers_still_inside(dungeon) {
 	return DUNGEON_FOLLOWERS.filter(name => {
@@ -416,9 +428,12 @@ async function run_dungeon(dungeon) {
 		await smarter_move(dungeon.entrance);
 		dungeon_log(dungeon, "At entrance — entering instance...");
 		await wait_for_party_out(dungeon);
-		await delay(10000);
+		await delay(DUNGEON_ENTER_SETTLE_MS);
 		enter(dungeon.map);
-		await delay(10000);
+		if (!await wait_until_on_map(dungeon.map)) {
+			dungeon_log(dungeon, "enter() never landed — aborting", DUNGEON_WARN_COLOR);
+			return false;
+		}
 
 		dungeon_log(dungeon, "Signalling party to enter instance...");
 		send_cm(DUNGEON_FOLLOWERS, { type: "enter_instance", in: character.in, map: dungeon.map });

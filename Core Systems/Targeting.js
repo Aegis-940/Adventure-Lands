@@ -132,6 +132,7 @@ let _last_target_sample = 0;
 
 function sample_target_choice(scored, context, weights) {
 	if (!weights || !weights.damage) return;
+	if (in_dungeon()) return;
 	if (!CONFIG.combat?.sample_targets || typeof errlog_sample !== "function") return;
 	if (!scored || scored.length < 2) return;
 
