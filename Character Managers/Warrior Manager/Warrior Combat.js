@@ -46,17 +46,6 @@ function find_monsters_in_cleave_range() {
 	return monsters_matching({ max_distance: G.skills.cleave.range, point_for_distance_check: [character.x, character.y] });
 }
 
-function mob_count() {
-	const tank_name = cache.tank_entity?.name;
-	if (!tank_name) return 0;
-
-	return Object.values(parent.entities).filter(e =>
-		e?.type === "monster" &&
-		e.target === tank_name &&
-		!e.dead
-	).length;
-}
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATUS SWAP TRICK
 // --------------------------------------------------------------------------------------------------------------------------------- //

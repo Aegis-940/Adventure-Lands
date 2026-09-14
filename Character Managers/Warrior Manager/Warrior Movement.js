@@ -16,23 +16,14 @@ function cleave_targets_at(x, y) {
 	return count;
 }
 
-function warrior_position_set() {
-	const chosen = weapon_choice_name(_weapon_choice);
-	if (chosen) return chosen;
-	for (const name of CONFIG.equipment.weapon_sets) {
-		if (set_available(name)) return name;
-	}
-	return null;
-}
-
 function warrior_reposition_scorer() {
 	const primary = cache.target;
 	if (!primary || primary.dead) return null;
 
-	const set_name = warrior_position_set();
+	const set_name = weapon_set_to_restore();
 	if (!set_name) return null;
 
-	const base = warrior_set_base_value(set_name, primary);
+	const base = set_damage_value(set_name, warrior_weapon_pool(), 1);
 	if (base === null || base <= 0) return null;
 
 	const here_targets = cleave_targets_at(character.x, character.y);

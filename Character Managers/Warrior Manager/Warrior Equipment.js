@@ -2,10 +2,8 @@
 // WARRIOR EQUIPMENT RULES — consumed by the shared resolve_equipment()/equipment_manager_loop()
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var _weapon_choice = make_weapon_choice();
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// WEAPON SET VALUE — damage per second each set would actually deliver right now
+// CLEAVE — what the axe swap costs and pays, used by the reposition scorer
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function cleave_period() {
@@ -30,9 +28,9 @@ function cleave_contribution(set_name, targets) {
 	return { dps, uptime: Math.max(0, 1 - swap_s / period) };
 }
 
-var SPLASH_SMOOTHING = 0.08;
-var SPLASH_STEP_MS = 250;
-var _splash_ewma = {};
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// WEAPON — the mobs a set is valued against, and the rule the shared resolver runs
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
 function attackable_monsters() {
 	const reach = character.range;
@@ -41,32 +39,18 @@ function attackable_monsters() {
 	);
 }
 
-function expected_splash_bonus(explosion, attack) {
+function warrior_weapon_pool() {
 	const pool = attackable_monsters();
-	const mobs = pool.length ? pool : (cache.monsters_in_cleave_range || []);
-
-	let best = 0;
-	for (const mob of mobs) {
-		const bonus = splash_bonus(mob, explosion, hit_against(mob, attack));
-		if (bonus > best) best = bonus;
-	}
-	return best;
+	if (pool.length) return pool;
+	return cache.target ? [cache.target] : [];
 }
 
-function smoothed_splash_bonus(explosion, attack) {
-	const sample = expected_splash_bonus(explosion, attack);
-	const now = Date.now();
-	const ewma = _splash_ewma[explosion];
-
-	if (!ewma) {
-		_splash_ewma[explosion] = { value: sample, at: now };
-		return sample;
-	}
-	if (now - ewma.at >= SPLASH_STEP_MS) {
-		ewma.value += (sample - ewma.value) * SPLASH_SMOOTHING;
-		ewma.at = now;
-	}
-	return ewma.value;
+function weapon_choice_context() {
+	return () => ({
+		cleave_targets: (cache.monsters_in_cleave_range || []).length,
+		cleave_period: +cleave_period().toFixed(2),
+		mob: cache.target ? cache.target.mtype : null
+	});
 }
 
 function model_prediction() {
@@ -77,7 +61,7 @@ function model_prediction() {
 	const raw_dps = (character.attack || 0) * (character.frequency || 1);
 
 	return {
-		splash: explosion > 0 ? expected_splash_bonus(explosion, 0) : 0,
+		splash: explosion > 0 ? splash_bonus(target, explosion, 0) : 0,
 		burn: burn_multiplier_at_dps(
 			target, worn_ability_chance("burn"), raw_dps,
 			CONFIG.combat.party_dps_factor, { hp: target.hp }
@@ -85,67 +69,13 @@ function model_prediction() {
 	};
 }
 
-function warrior_set_base_value(set_name, primary) {
-	const profile = get_set_profile(set_name);
-	if (!profile || !profile.attack) return null;
-
-	const dps = set_dps(profile);
-
-	const chance = set_ability_chance(set_name, "burn");
-	const burn = chance
-		? burn_multiplier_at_dps(primary, chance, dps, CONFIG.combat.party_dps_factor, { frequency: profile.frequency })
-		: 1;
-
-	const splash = profile.explosion > 0
-		? smoothed_splash_bonus(profile.explosion, profile.attack)
-		: 0;
-
-	return dps * (burn + splash);
-}
-
-function warrior_set_value(set_name, primary, cleave_targets) {
-	const base = warrior_set_base_value(set_name, primary);
-	if (base === null) return null;
-
-	return base * cleave_contribution(set_name, cleave_targets).uptime;
-}
-
-function weapon_choice_context(primary, cleave_targets) {
-	return () => ({
-		cleave_targets,
-		cleave_period: +cleave_period().toFixed(2),
-		mob: primary ? primary.mtype : null
-	});
-}
-
-function warrior_weapon_set() {
-	const primary = cache.target;
-	const cleave_targets = (cache.monsters_in_cleave_range || []).length;
-
-	const chosen = CONFIG.equipment.weapon_selection === "value"
-		? resolve_weapon_by_value(_weapon_choice, name => warrior_set_value(name, primary, cleave_targets), {
-			context: weapon_choice_context(primary, cleave_targets)
-		})
-		: null;
-	if (chosen) return chosen;
-
-	const home_count = mob_count();
-	if (home_count === 1) return "single";
-	if (home_count > 1) return "aoe";
-	if (CONFIG.equipment.aoe_maps.includes(character.map)) return "aoe";
-	if (CONFIG.equipment.single_target_maps.includes(character.map)) return "single";
-	return null;
-}
-
 function resolve_warrior_orb() {
 	return preferred_orb("orb_dps");
 }
 
 function resolve_warrior_weapon() {
-	if (character.map !== destination.map) return null;
 	if (!CONFIG.equipment.weapon_swap_enabled) return null;
-	if (dungeon_flag("warrior_single_weapon")) return "single";
-	return warrior_weapon_set();
+	return resolve_weapon_set({ pool: warrior_weapon_pool(), width: 1, context: weapon_choice_context() });
 }
 
 var EQUIPMENT_RULES = {

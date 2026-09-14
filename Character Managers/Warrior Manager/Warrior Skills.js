@@ -74,6 +74,7 @@ async function handle_stomp() {
 	const mainhand = character.slots?.mainhand?.name;
 	const needs_swap = mainhand !== "basher";
 	const now = performance.now();
+	const restore = weapon_set_to_restore();
 
 	const token = equip_claim("stomp-swap", EQUIP_PRIORITY.skill);
 	if (!token) return;
@@ -86,8 +87,8 @@ async function handle_stomp() {
 
 		await use_skill("stomp");
 
-		if (needs_swap) {
-			await equip_apply(token, mob_count() === 1 ? "single" : "aoe");
+		if (needs_swap && restore) {
+			await equip_apply(token, restore);
 		}
 	} finally {
 		equip_release(token);
@@ -106,8 +107,8 @@ async function handle_cleave() {
 	const now = performance.now();
 	if (now - state.last_cleave_swap <= COOLDOWNS.weapon_swap) return;
 
-	const restore = warrior_weapon_set() || (mob_count() === 1 ? "single" : "aoe");
-	if (restore === "bataxe") return;
+	const restore = weapon_set_to_restore();
+	if (!restore) return;
 
 	const token = equip_claim("cleave-swap", EQUIP_PRIORITY.skill);
 	if (!token) return;

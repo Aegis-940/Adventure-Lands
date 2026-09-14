@@ -36,7 +36,7 @@ DUNGEONS.crypt = {
 		fight_while_moving: true,
 		ignore_travel_panic: true,
 		single_target: true,
-		warrior_single_weapon: true,
+		single_weapon: true,
 		no_cleave: true,
 		no_agitate: false,
 		circle_on_self: true,

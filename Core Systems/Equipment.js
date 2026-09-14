@@ -326,8 +326,12 @@ function weapon_choice_name(choice) {
 	return choice.probing || choice.worn;
 }
 
+function equipped_set_among(sets) {
+	return sets.find(name => is_set_equipped(name)) || null;
+}
+
 function observe_worn_set(choice, sets, now) {
-	const worn = sets.find(name => is_set_equipped(name)) || null;
+	const worn = equipped_set_among(sets);
 	if (worn && worn !== choice.worn) {
 		choice.worn = worn;
 		choice.since = now;
@@ -420,6 +424,11 @@ function first_available_set(sets) {
 		if (set_available(name)) return name;
 	}
 	return null;
+}
+
+function weapon_set_to_restore() {
+	const sets = CONFIG.equipment.weapon_sets;
+	return equipped_set_among(sets) || weapon_choice_name(_weapon_choice) || first_available_set(sets);
 }
 
 function resolve_weapon_set(args) {
