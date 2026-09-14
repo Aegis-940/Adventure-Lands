@@ -19,38 +19,23 @@ function is_at_bscorpion_farm() {
 		Math.hypot(character.x - PRIM_FARM_LOC.x, character.y - PRIM_FARM_LOC.y) < PRIM_FARM_RADIUS + 30;
 }
 
-let cached_bscorpion_id = null;
-
 function find_nearest_bscorpion() {
 	let nearest = null;
 	let min_dist = Infinity;
 
-	if (cached_bscorpion_id && parent.entities[cached_bscorpion_id]) {
-		const ent = parent.entities[cached_bscorpion_id];
+	for (const id in parent.entities) {
+		const ent = parent.entities[id];
 		if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
-			nearest = ent;
-			min_dist = Math.hypot(ent.x - character.x, ent.y - character.y);
-		} else {
-			cached_bscorpion_id = null;
-		}
-	}
-
-	if (!nearest) {
-		for (const id in parent.entities) {
-			const ent = parent.entities[id];
-			if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
-				const dist = Math.hypot(ent.x - character.x, ent.y - character.y);
-				if (dist < min_dist) {
-					min_dist = dist;
-					nearest = ent;
-					cached_bscorpion_id = id;
-				}
+			const dist = Math.hypot(ent.x - character.x, ent.y - character.y);
+			if (dist < min_dist) {
+				min_dist = dist;
+				nearest = ent;
 			}
 		}
 	}
 
 	if (!nearest) return null;
-	return { entity: nearest, distance: min_dist, x: nearest.x, y: nearest.y, id: nearest.id };
+	return { entity: nearest, distance: min_dist, x: nearest.x, y: nearest.y };
 }
 
 function bscorpion_worth_buffing() {
@@ -65,19 +50,18 @@ function camp_loop_parked() {
 	return !is_at_bscorpion_farm() || !automation_enabled() || is_travelling() || character.rip;
 }
 
-async function move_distance_from_bscorpion(desired = 40, tolerance = CAMP_MOVE_TOLERANCE) {
+function move_distance_from_bscorpion(desired) {
 	const info = find_nearest_bscorpion();
-	if (!info) return false;
-	if (Math.abs(info.distance - desired) <= tolerance) return false;
+	if (!info) return;
+	if (Math.abs(info.distance - desired) <= CAMP_MOVE_TOLERANCE) return;
 
 	const angle = Math.atan2(character.y - info.y, character.x - info.x);
 	const new_x = info.x + Math.cos(angle) * desired;
 	const new_y = info.y + Math.sin(angle) * desired;
 
-	if (character.moving && Math.hypot(character.going_x - new_x, character.going_y - new_y) <= tolerance) return true;
+	if (character.moving && Math.hypot(character.going_x - new_x, character.going_y - new_y) <= CAMP_MOVE_TOLERANCE) return;
 
 	move(new_x, new_y);
-	return true;
 }
 
 function absorb_from_ally_at_camp() {
@@ -163,12 +147,10 @@ async function prim_orbit_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 let counted_bscorpion_deaths = new Set();
-let bscorpion_kill_count = 0;
 let bscorpion_kill_times = [];
 
 function log_bscorpion_kill() {
 	const now = Date.now();
-	bscorpion_kill_count++;
 	bscorpion_kill_times.push(now);
 	if (bscorpion_kill_times.length > 50) bscorpion_kill_times.shift();
 
@@ -180,7 +162,7 @@ function log_bscorpion_kill() {
 		const avg = total / (bscorpion_kill_times.length - 1);
 		log(`Seconds / Kill (Avg): ${(avg / 1000).toFixed(1)}s`, "#ffb347", "Bscorpion");
 	} else {
-		log(`Bscorpion kill #${bscorpion_kill_count}: ${new Date(now).toLocaleTimeString()} (first recorded)`, "#ffb347", "Bscorpion");
+		log(`Bscorpion kill: ${new Date(now).toLocaleTimeString()} (first recorded)`, "#ffb347", "Bscorpion");
 	}
 }
 
