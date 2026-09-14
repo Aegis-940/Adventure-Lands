@@ -547,9 +547,42 @@ async function equip_apply(token, sets) {
 	return equip_holds(token);
 }
 
+function resolve_swap_slots(items) {
+	const claimed = new Set();
+	const slots = [];
+
+	for (const item of items) {
+		const num = parent.character.items.findIndex((held, i) =>
+			held && held.name === item.item_name && !claimed.has(i)
+		);
+		if (num === -1) {
+			warn_missing_item(item.item_name, item.level ?? null, item.slot);
+			continue;
+		}
+		claimed.add(num);
+		slots.push({ num, slot: item.slot });
+	}
+
+	return slots.length ? slots : null;
+}
+
+let _swap_slots_warned = 0;
+
 async function equip_apply_slots(token, slots) {
 	if (!equip_holds(token)) return false;
-	await batch_equip(slots);
+	if (!slots || !slots.length) return false;
+
+	try {
+		await equip_batch(slots);
+	} catch (e) {
+		const now = Date.now();
+		if (now - _swap_slots_warned >= MISSING_ITEM_WARN_INTERVAL) {
+			_swap_slots_warned = now;
+			game_log(`⚠️ equip_apply_slots: ${fmt_err(e)}`, "#FFA500");
+		}
+		return false;
+	}
+
 	return equip_holds(token);
 }
 

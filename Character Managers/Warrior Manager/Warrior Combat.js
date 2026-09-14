@@ -54,7 +54,10 @@ var STATUS_SWAP_TRICKS = {
 	bscorpion: {
 		status: "sugarrush",
 		base_set: "single",
-		swap_slots: [{ num: 39, slot: "mainhand" }, { num: 40, slot: "offhand" }],
+		swap_items: [
+			{ item_name: "candycanesword", slot: "mainhand" },
+			{ item_name: "candycanesword", slot: "offhand" },
+		],
 		swap_delay_ms: 75,
 		settle_delay_ms: 225,
 		label: "Sugar Rush",
@@ -74,13 +77,16 @@ async function status_swap_trick_check(target) {
 
 	if (!is_set_equipped(trick.base_set)) return;
 
+	const slots = resolve_swap_slots(trick.swap_items);
+	if (!slots) return;
+
 	const token = equip_claim("swap-trick", EQUIP_PRIORITY.trick);
 	if (!token) return;
 	try {
 		swap_trick_attempts++;
-		if (!await equip_apply_slots(token, trick.swap_slots)) return;
+		if (!await equip_apply_slots(token, slots)) return;
 		await delay(trick.swap_delay_ms);
-		if (!await equip_apply_slots(token, trick.swap_slots)) return;
+		if (!await equip_apply_slots(token, slots)) return;
 		await delay(trick.settle_delay_ms);
 
 		if (character.s[trick.status] !== undefined) {
