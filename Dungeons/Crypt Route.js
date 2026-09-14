@@ -24,6 +24,7 @@ const CRYPT_DEFAULT_RANK = 5;
 const CRYPT_REPATH_EPS = 150;
 const CRYPT_LOST_GRACE_MS = 5000;
 const CRYPT_MAX_STUMBLES = 5;
+const CRYPT_CROWD_RADIUS = 300;
 
 const CRYPT_TARGET_RULES = {
 	a7: { sight: Infinity, rank: 0 },
@@ -62,6 +63,28 @@ function crypt_visible(mtypes, radius = CRYPT_ROUTE_SIGHT) {
 
 function crypt_intruders() {
 	return crypt_visible(CRYPT_BOSS_TYPES.filter(m => !CRYPT_ROUTE_ALLOWED.includes(m)));
+}
+
+function crypt_crowded_bosses() {
+	const near = crypt_visible(CRYPT_ROUTE_ALLOWED, CRYPT_CROWD_RADIUS);
+	const kinds = [];
+	for (const e of near) if (!kinds.includes(e.mtype)) kinds.push(e.mtype);
+	return kinds;
+}
+
+function crypt_must_disengage() {
+	if (crypt_intruders().length) return true;
+	return crypt_crowded_bosses().length >= 2;
+}
+
+function crypt_disengage_reason(wp) {
+	const intruders = crypt_intruders().map(e => (G.monsters[e.mtype] || {}).name || e.mtype);
+	if (intruders.length) return `${intruders.join(", ")} blocking waypoint ${wp.n}`;
+
+	const crowd = crypt_crowded_bosses().map(m => (G.monsters[m] || {}).name || m);
+	if (crowd.length >= 2) return `${crowd.join(" and ")} both on us at waypoint ${wp.n}`;
+
+	return `waypoint ${wp.n} unsafe`;
 }
 
 function crypt_leg_done(wp) {
@@ -169,7 +192,7 @@ async function crypt_engage(wp, quarry) {
 			if (character.rip) return "dead";
 			if (crypt_ejected()) return "ejected";
 			if (panicking) return "panic";
-			if (crypt_intruders().length) return "intruder";
+			if (crypt_must_disengage()) return "intruder";
 			if (dungeon_target_done(mtype)) break;
 
 			const target = crypt_pick_quarry(mtype);
@@ -206,8 +229,7 @@ async function crypt_engage(wp, quarry) {
 }
 
 async function crypt_retreat(wp, reason) {
-	const who = crypt_intruders().map(e => (G.monsters[e.mtype] || {}).name || e.mtype).join(", ");
-	await dungeon_bail_out(reason || (who ? `${who} blocking waypoint ${wp.n}` : `waypoint ${wp.n} unsafe`));
+	await dungeon_bail_out(reason || crypt_disengage_reason(wp));
 	await delay(CRYPT_RETREAT_SETTLE_MS);
 }
 
@@ -259,7 +281,7 @@ async function crypt_advance(wp) {
 		if (crypt_ejected()) { stop_movement("crypt route: ejected"); await travel; return "ejected"; }
 		if (panicking) { stop_movement("crypt route: panic"); await travel; return "panic"; }
 
-		if (crypt_intruders().length) {
+		if (crypt_must_disengage()) {
 			stop_movement("crypt route: intruder");
 			await travel;
 			return "intruder";
@@ -295,7 +317,7 @@ async function crypt_leg(wp) {
 		if (character.rip) return "dead";
 		if (crypt_ejected()) return "ejected";
 		if (panicking) return "panic";
-		if (crypt_intruders().length) return "intruder";
+		if (crypt_must_disengage()) return "intruder";
 		if (crypt_leg_done(wp)) return "done";
 
 		const quarry = crypt_opportunity();
@@ -370,9 +392,9 @@ async function run_crypt_route() {
 			}
 
 			if (outcome === "intruder") {
-				const who = crypt_intruders().map(e => (G.monsters[e.mtype] || {}).name || e.mtype).join(", ");
-				log(`Crypt route: ${who || "a boss"} in the way — waypoint ${wp.n} abandoned`, DUNGEON_WARN_COLOR, "Alerts");
-				await crypt_retreat(wp);
+				const reason = crypt_disengage_reason(wp);
+				log(`Crypt route: ${reason} — waypoint ${wp.n} abandoned`, DUNGEON_WARN_COLOR, "Alerts");
+				await crypt_retreat(wp, reason);
 			}
 
 			log(`Crypt route: waypoint ${wp.n} complete (${outcome})`, DUNGEON_LOG_COLOR, "Alerts");

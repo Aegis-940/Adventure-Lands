@@ -137,6 +137,8 @@ function anniversary_abort_reason(s) {
 }
 
 function anniversary_block_reason() {
+	if (dungeon_flag("ignore_events")) return "in a dungeon";
+
 	const s = anniversary_event();
 	if (!s) return "no live round";
 
