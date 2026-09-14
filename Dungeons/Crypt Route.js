@@ -13,6 +13,9 @@ const CRYPT_ROUTE = [
 const CRYPT_ROUTE_ALLOWED = ["a3", "a7", "a2"];
 const CRYPT_ROUTE_POLL_MS = 500;
 const CRYPT_ROUTE_SIGHT = 400;
+const CRYPT_CHASE_SIGHT = 700;
+const CRYPT_CHASE_STEP = 80;
+const CRYPT_ENGAGE_RANGE = 60;
 const CRYPT_FIGHT_TIMEOUT_MS = 4 * 60 * 1000;
 const CRYPT_RETREAT_SETTLE_MS = 4000;
 
@@ -57,25 +60,65 @@ function crypt_leg_done(wp) {
 // LEGS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function crypt_fight(wp, quarry) {
-	const name = (G.monsters[quarry.mtype] || {}).name || quarry.mtype;
-	log(`Crypt route: engaging ${name}`, DUNGEON_LOG_COLOR, "Alerts");
-	const until = Date.now() + CRYPT_FIGHT_TIMEOUT_MS;
+function crypt_opportunity() {
+	const quota = dungeon_quota() || {};
+	const wanted = Object.keys(quota).filter(m => !dungeon_target_done(m));
+	if (!wanted.length) return null;
 
+	const seen = crypt_visible(wanted);
+	if (!seen.length) return null;
+
+	seen.sort((a, b) =>
+		Math.hypot(character.x - a.x, character.y - a.y) - Math.hypot(character.x - b.x, character.y - b.y));
+	return seen[0];
+}
+
+function crypt_step_toward(target) {
+	if (smart.moving) return;
+	const dx = target.x - character.x;
+	const dy = target.y - character.y;
+	const d = Math.hypot(dx, dy) || 1;
+	const step = Math.min(CRYPT_CHASE_STEP, d);
+	const x = character.x + (dx / d) * step;
+	const y = character.y + (dy / d) * step;
+	if (can_move_to(x, y)) move(x, y);
+	else dungeon_travel({ map: "crypt", x: target.x, y: target.y }).catch(() => { });
+}
+
+async function crypt_engage(wp, quarry) {
+	const mtype = quarry.mtype;
+	const name = (G.monsters[mtype] || {}).name || mtype;
+	log(`Crypt route: engaging ${name}`, DUNGEON_LOG_COLOR, "Alerts");
+	dungeon_telemetry_event("engage", { wp: wp.n, mtype });
+
+	const until = Date.now() + CRYPT_FIGHT_TIMEOUT_MS;
 	while (Date.now() < until) {
 		if (_crypt_route_abort) return "abort";
 		if (character.rip) return "dead";
+		if (crypt_intruders().length) return "intruder";
+		if (dungeon_target_done(mtype)) break;
 
-		const intruders = crypt_intruders();
-		if (intruders.length) return "intruder";
+		const live = crypt_visible([mtype], CRYPT_CHASE_SIGHT);
+		if (!live.length) break;
 
-		if (crypt_leg_done(wp)) return "done";
-		if (!crypt_visible(wp.hunt).length) return "gone";
+		const target = live[0];
+		if (Math.hypot(character.x - target.x, character.y - target.y) > CRYPT_ENGAGE_RANGE) {
+			crypt_step_toward(target);
+		} else if (smart.moving) {
+			stop_movement("crypt route: in range");
+		}
 
 		await delay(CRYPT_ROUTE_POLL_MS);
 	}
-	log(`Crypt route: gave up on ${name} after ${CRYPT_FIGHT_TIMEOUT_MS / 60000} min`, DUNGEON_WARN_COLOR);
-	return "timeout";
+
+	const timed_out = Date.now() >= until;
+	if (smart.moving) stop_movement("crypt route: engagement over");
+	if (crypt_leg_done(wp)) return "done";
+	if (timed_out) {
+		log(`Crypt route: gave up on ${name} after ${CRYPT_FIGHT_TIMEOUT_MS / 60000} min`, DUNGEON_WARN_COLOR, "Alerts");
+		return "timeout";
+	}
+	return "resume";
 }
 
 async function crypt_retreat(wp) {
@@ -84,15 +127,12 @@ async function crypt_retreat(wp) {
 	await delay(CRYPT_RETREAT_SETTLE_MS);
 }
 
-async function crypt_leg(wp) {
-	log(`Crypt route: heading for waypoint ${wp.n} (${wp.x}, ${wp.y})`, DUNGEON_LOG_COLOR, "Alerts");
-	dungeon_telemetry_event("leg_start", { wp: wp.n, hunt: wp.hunt.join(",") });
-
-	let arrived = false;
+async function crypt_advance(wp) {
+	let settled = false;
 	const travel = dungeon_travel({ map: "crypt", x: wp.x, y: wp.y })
-		.then(() => { arrived = true; }, () => { arrived = true; });
+		.then(() => { settled = true; }, () => { settled = true; });
 
-	while (!arrived) {
+	while (!settled) {
 		if (_crypt_route_abort) { stop_movement("crypt route: aborted"); await travel; return "abort"; }
 		if (character.rip) { stop_movement("crypt route: dead"); await travel; return "dead"; }
 
@@ -108,22 +148,43 @@ async function crypt_leg(wp) {
 			return "done";
 		}
 
-		const quarry = crypt_visible(wp.hunt);
-		if (quarry.length) {
+		if (crypt_opportunity()) {
 			stop_movement("crypt route: quarry sighted");
 			await travel;
-			return await crypt_fight(wp, quarry[0]);
+			return "interrupted";
 		}
 
 		await delay(CRYPT_ROUTE_POLL_MS);
 	}
 
-	if (crypt_leg_done(wp)) return "done";
-	if (crypt_intruders().length) return "intruder";
-
-	const quarry = crypt_visible(wp.hunt);
-	if (quarry.length) return await crypt_fight(wp, quarry[0]);
 	return "arrived";
+}
+
+async function crypt_leg(wp) {
+	log(`Crypt route: heading for waypoint ${wp.n} (${wp.x}, ${wp.y})`, DUNGEON_LOG_COLOR, "Alerts");
+	dungeon_telemetry_event("leg_start", { wp: wp.n, hunt: wp.hunt.join(",") });
+
+	let arrived = false;
+
+	while (true) {
+		if (_crypt_route_abort) return "abort";
+		if (character.rip) return "dead";
+		if (crypt_intruders().length) return "intruder";
+		if (crypt_leg_done(wp)) return "done";
+
+		const quarry = crypt_opportunity();
+		if (quarry) {
+			const outcome = await crypt_engage(wp, quarry);
+			if (outcome !== "resume") return outcome;
+			continue;
+		}
+
+		if (arrived) return "arrived";
+
+		const step = await crypt_advance(wp);
+		if (step === "arrived") { arrived = true; continue; }
+		if (step !== "interrupted") return step;
+	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -144,14 +205,7 @@ async function run_crypt_route() {
 		for (const wp of CRYPT_ROUTE) {
 			if (_crypt_route_abort) break;
 
-			let outcome = await crypt_leg(wp);
-
-			while (outcome === "arrived" || outcome === "gone") {
-				if (_crypt_route_abort || crypt_leg_done(wp)) break;
-				const quarry = crypt_visible(wp.hunt);
-				if (!quarry.length) break;
-				outcome = await crypt_fight(wp, quarry[0]);
-			}
+			const outcome = await crypt_leg(wp);
 
 			if (outcome === "dead") {
 				log("Crypt route: died — stopping", DUNGEON_WARN_COLOR, "Alerts");
