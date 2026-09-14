@@ -3,14 +3,10 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const DUNGEON_TOWN_CHANNEL_MS = 3000;
-const DUNGEON_BAIL_STEP = 60;
 const DUNGEON_BAIL_POLL_MS = 250;
 const DUNGEON_SPAWN_ARRIVED = 120;
 const DUNGEON_THREAT_RADIUS = 400;
-const DUNGEON_BAIL_ATTEMPTS = 3;
-const DUNGEON_TOWN_ATTEMPT_MS = 12000;
-const DUNGEON_CLEAR_MS = 45000;
-const DUNGEON_CLEAR_POLL_MS = 500;
+const DUNGEON_BAIL_TIMEOUT_MS = 90000;
 
 let _dungeon_bailing = false;
 
@@ -30,26 +26,6 @@ function dungeon_threats(radius = DUNGEON_THREAT_RADIUS) {
 		if (on_us || avoided) out.push(e);
 	}
 	return out;
-}
-
-function dungeon_step_away() {
-	const threats = dungeon_threats();
-	if (!threats.length) return;
-
-	let sx = 0;
-	let sy = 0;
-	for (const t of threats) {
-		const dx = character.x - t.x;
-		const dy = character.y - t.y;
-		const m = Math.hypot(dx, dy) || 1;
-		sx += dx / m;
-		sy += dy / m;
-	}
-
-	const m = Math.hypot(sx, sy) || 1;
-	const x = character.x + (sx / m) * DUNGEON_BAIL_STEP;
-	const y = character.y + (sy / m) * DUNGEON_BAIL_STEP;
-	if (can_move_to(x, y)) move(x, y);
 }
 
 async function dungeon_scare_off() {
@@ -80,38 +56,19 @@ function dungeon_at_spawn(dungeon) {
 	return Math.hypot(character.x - spawn.x, character.y - spawn.y) <= DUNGEON_SPAWN_ARRIVED;
 }
 
-async function dungeon_town_attempt(dungeon) {
-	const until = Date.now() + DUNGEON_TOWN_ATTEMPT_MS;
-	while (Date.now() < until) {
-		if (character.map !== dungeon.map) return true;
-		if (dungeon_at_spawn(dungeon)) return true;
-		if (character.rip) return false;
-
-		if (!(character.c && character.c.town)) {
-			if (dungeon_threats().length) await dungeon_scare_off();
-			try { await use_skill("use_town"); } catch (e) { }
-		}
-
-		dungeon_step_away();
-		await delay(DUNGEON_BAIL_POLL_MS);
+function dungeon_aggressed() {
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || e.dead) continue;
+		if (e.target !== character.name) continue;
+		if (Math.hypot(character.x - e.x, character.y - e.y) > DUNGEON_THREAT_RADIUS) continue;
+		return true;
 	}
 	return false;
 }
 
-async function dungeon_fight_clear(dungeon) {
-	_dungeon_bailing = false;
-	try {
-		const until = Date.now() + DUNGEON_CLEAR_MS;
-		while (Date.now() < until) {
-			if (character.rip) return false;
-			if (character.map !== dungeon.map) return true;
-			if (!dungeon_threats().length) return true;
-			await delay(DUNGEON_CLEAR_POLL_MS);
-		}
-		return false;
-	} finally {
-		_dungeon_bailing = true;
-	}
+function dungeon_channelling() {
+	return !!(character.c && character.c.town);
 }
 
 async function dungeon_bail_out(reason, broadcast = true, emergency = true) {
@@ -131,15 +88,29 @@ async function dungeon_bail_out(reason, broadcast = true, emergency = true) {
 		stop_movement("dungeon bail-out");
 		await dungeon_scare_off();
 
-		for (let attempt = 1; attempt <= DUNGEON_BAIL_ATTEMPTS; attempt++) {
-			if (await dungeon_town_attempt(d)) break;
-			if (character.rip) break;
-			if (attempt === DUNGEON_BAIL_ATTEMPTS) break;
+		const door = { map: d.map, x: (d.spawn || {}).x || 0, y: (d.spawn || {}).y || 0 };
+		const until = Date.now() + DUNGEON_BAIL_TIMEOUT_MS;
+		let walking = null;
 
-			log(`${d.name}: teleport not landing — clearing what is on us first (${attempt})`, "#FFAA44", "Alerts");
-			dungeon_telemetry_event("bail_fight", { attempt, threats: dungeon_threats().map(e => e.mtype).join(",") });
-			await dungeon_fight_clear(d);
+		while (Date.now() < until) {
+			if (character.map !== d.map) break;
+			if (dungeon_at_spawn(d)) break;
+			if (character.rip) break;
+
+			if (dungeon_aggressed()) await dungeon_scare_off();
+
+			if (!walking) {
+				walking = dungeon_travel(door).then(() => { walking = null; }, () => { walking = null; });
+			}
+
+			if (!dungeon_channelling()) {
+				try { await use_skill("use_town"); } catch (e) { }
+			}
+
+			await delay(DUNGEON_BAIL_POLL_MS);
 		}
+
+		if (walking) stop_movement("dungeon bail-out: done");
 
 		const landed = dungeon_at_spawn(d) || character.map !== d.map;
 		log(landed

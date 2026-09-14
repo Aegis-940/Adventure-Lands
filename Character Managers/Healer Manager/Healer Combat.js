@@ -141,7 +141,6 @@ async function try_heal() {
 
 async function action_loop() {
 	loop_tick("action_loop");
-	if (dungeon_bailing()) return setTimeout(action_loop, loop_next("action_loop", 100));
 	let next_delay = 10;
 
 	try {
