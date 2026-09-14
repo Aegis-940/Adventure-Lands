@@ -166,6 +166,22 @@ function dungeon_avoids(mtype) {
 	return !!(d && d.avoid && d.avoid.includes(mtype));
 }
 
+let _dungeon_focus_target_id = null;
+
+function set_dungeon_focus_target(id) {
+	_dungeon_focus_target_id = id || null;
+}
+
+function dungeon_focus_target() {
+	if (!_dungeon_focus_target_id) return null;
+	const e = parent.entities[_dungeon_focus_target_id];
+	if (!e || e.dead || e.type !== "monster") {
+		_dungeon_focus_target_id = null;
+		return null;
+	}
+	return e;
+}
+
 const DUNGEON_FOCUS_TTL_MS = 200;
 
 let _dungeon_focus_cache = null;
@@ -318,6 +334,34 @@ function join_dungeon_instance(data) {
 	_dungeon_join_interval = setInterval(attempt, DUNGEON_JOIN_INTERVAL_MS);
 }
 
+const DUNGEON_EXIT_WAIT_MS = 3 * 60 * 1000;
+const DUNGEON_EXIT_POLL_MS = 1000;
+
+function followers_still_inside(dungeon) {
+	return DUNGEON_FOLLOWERS.filter(name => {
+		const s = read_state_cache(name);
+		return s && s.map === dungeon.map;
+	});
+}
+
+async function wait_for_party_out(dungeon) {
+	if (!followers_still_inside(dungeon).length) return true;
+
+	dungeon_log(dungeon, "Waiting for the party to clear the old instance...");
+	const until = Date.now() + DUNGEON_EXIT_WAIT_MS;
+	while (Date.now() < until) {
+		if (!followers_still_inside(dungeon).length) {
+			dungeon_log(dungeon, "Party is clear");
+			return true;
+		}
+		await delay(DUNGEON_EXIT_POLL_MS);
+	}
+
+	dungeon_log(dungeon,
+		`${followers_still_inside(dungeon).join(", ")} never left — entering anyway`, DUNGEON_WARN_COLOR);
+	return false;
+}
+
 function wait_for_party_in_instance(dungeon) {
 	return new Promise((resolve, reject) => {
 		const confirmed = new Set();
@@ -366,6 +410,7 @@ async function run_dungeon(dungeon) {
 		dungeon_log(dungeon, "Moving to entrance...");
 		await smarter_move(dungeon.entrance);
 		dungeon_log(dungeon, "At entrance — entering instance...");
+		await wait_for_party_out(dungeon);
 		await delay(10000);
 		enter(dungeon.map);
 		await delay(10000);

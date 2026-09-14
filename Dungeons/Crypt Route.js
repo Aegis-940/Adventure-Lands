@@ -102,6 +102,26 @@ function crypt_opportunity() {
 	return seen[0];
 }
 
+let _crypt_quarry_id = null;
+
+function crypt_pick_quarry(mtype) {
+	const live = crypt_visible([mtype], Math.max(CRYPT_CHASE_SIGHT, crypt_sight(mtype)));
+	if (!live.length) return null;
+
+	if (_crypt_quarry_id) {
+		const held = live.find(e => e.id === _crypt_quarry_id);
+		if (held) return held;
+	}
+
+	live.sort((a, b) => (a.hp || 0) - (b.hp || 0));
+	return live[0];
+}
+
+function crypt_release_quarry() {
+	_crypt_quarry_id = null;
+	set_dungeon_focus_target(null);
+}
+
 function crypt_step_toward(target) {
 	if (smart.moving) return;
 	const dx = target.x - character.x;
@@ -128,24 +148,30 @@ async function crypt_engage(wp, quarry) {
 	dungeon_telemetry_event("engage", { wp: wp.n, mtype, distance: opened_at });
 
 	const until = Date.now() + CRYPT_FIGHT_TIMEOUT_MS;
-	while (Date.now() < until) {
-		if (_crypt_route_abort) return "abort";
-		if (character.rip) return "dead";
-		if (panicking) return "panic";
-		if (crypt_intruders().length) return "intruder";
-		if (dungeon_target_done(mtype)) break;
+	try {
+		while (Date.now() < until) {
+			if (_crypt_route_abort) return "abort";
+			if (character.rip) return "dead";
+			if (panicking) return "panic";
+			if (crypt_intruders().length) return "intruder";
+			if (dungeon_target_done(mtype)) break;
 
-		const live = crypt_visible([mtype], Math.max(CRYPT_CHASE_SIGHT, crypt_sight(mtype)));
-		if (!live.length) break;
+			const target = crypt_pick_quarry(mtype);
+			if (!target) break;
 
-		const target = live[0];
-		if (Math.hypot(character.x - target.x, character.y - target.y) > CRYPT_ENGAGE_RANGE) {
-			crypt_step_toward(target);
-		} else if (smart.moving) {
-			stop_movement("crypt route: in range");
+			_crypt_quarry_id = target.id;
+			set_dungeon_focus_target(target.id);
+
+			if (Math.hypot(character.x - target.x, character.y - target.y) > CRYPT_ENGAGE_RANGE) {
+				crypt_step_toward(target);
+			} else if (smart.moving) {
+				stop_movement("crypt route: in range");
+			}
+
+			await delay(CRYPT_ROUTE_POLL_MS);
 		}
-
-		await delay(CRYPT_ROUTE_POLL_MS);
+	} finally {
+		crypt_release_quarry();
 	}
 
 	const timed_out = Date.now() >= until;
@@ -299,5 +325,6 @@ async function run_crypt_route() {
 	} finally {
 		_crypt_route_running = false;
 		_crypt_route_abort = false;
+		crypt_release_quarry();
 	}
 }
