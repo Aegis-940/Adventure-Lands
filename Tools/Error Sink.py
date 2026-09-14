@@ -32,7 +32,49 @@ MAX_TIMELINE = 300
 # the healer pushes ~10 target_choice/sec, which turned over a 5000-entry ring every six minutes
 # and left 29 of her cluster samples alive. Capping per kind makes the window depend on the
 # sampling rate of that kind alone.
-MAX_SAMPLES_PER_KIND = 2000
+MAX_SAMPLES_PER_KIND = 750
+
+# A record names a line of code. Once that line has been edited the record describes something that
+# no longer exists, so records are kept only for the build that produced them and the one before it
+# -- the previous build stays so a deploy does not blank the evidence for the bug it was meant to
+# fix. Ninety-seven builds had accumulated before this existed, and the three largest belonged to
+# code deleted days earlier.
+RETAIN_BUILDS = 2
+RECORD_MAX_AGE_H = 48
+# Samples carry no build, so age is the only handle on them. They are 74% of the file.
+SAMPLE_MAX_AGE_H = 6
+
+
+def cutoff_ms(hours):
+    return (time.time() - hours * 3600) * 1000
+
+
+def retained_builds(bucket, build):
+    """Track the builds this character has reported under, newest last."""
+    seen = bucket.setdefault("builds", [])
+    if build and (not seen or seen[-1] != build):
+        seen.append(build)
+    del seen[:-RETAIN_BUILDS]
+    return set(seen)
+
+
+def prune_records(recs, keep_builds):
+    cut = cutoff_ms(RECORD_MAX_AGE_H)
+    return {
+        sig: r for sig, r in recs.items()
+        if (not keep_builds or r.get("build") in keep_builds) and (r.get("last") or 0) >= cut
+    }
+
+
+def prune_samples(samples):
+    cut = cutoff_ms(SAMPLE_MAX_AGE_H)
+    by_kind = {}
+    for s in sorted(samples, key=lambda s: s.get("t") or 0):
+        if (s.get("t") or 0) < cut:
+            continue
+        by_kind.setdefault(s.get("kind"), []).append(s)
+    kept = [s for group in by_kind.values() for s in group[-MAX_SAMPLES_PER_KIND:]]
+    return sorted(kept, key=lambda s: s.get("t") or 0)
 
 
 def merge(incoming):
@@ -48,6 +90,8 @@ def merge(incoming):
     who = incoming.get("character", "unknown")
     bucket = store.setdefault(who, {})
     bucket["session"] = incoming.get("session")
+    build = incoming.get("build")
+    keep_builds = retained_builds(bucket, build)
 
     recs = bucket.setdefault("records", {})
     for sig, rec in (incoming.get("records") or {}).items():
@@ -55,6 +99,7 @@ def merge(incoming):
         # The browser holds the authoritative count; for a signature it only ever grows.
         if not prev or rec.get("count", 0) >= prev.get("count", 0):
             recs[sig] = rec
+    bucket["records"] = prune_records(recs, keep_builds)
 
     # Same rule for the high-volume outcome counters: monotonic per bucket within a session, and a
     # reload restarts them from whatever localStorage held, so take the larger of the two.
@@ -82,18 +127,14 @@ def merge(incoming):
     samples = {(s.get("t"), s.get("kind")): s for s in bucket.get("samples", [])}
     for s in incoming.get("samples") or []:
         samples[(s.get("t"), s.get("kind"))] = s
-
-    by_kind = {}
-    for k in sorted(samples, key=lambda x: x[0] or 0):
-        by_kind.setdefault(samples[k].get("kind"), []).append(samples[k])
-    kept = [s for group in by_kind.values() for s in group[-MAX_SAMPLES_PER_KIND:]]
-    bucket["samples"] = sorted(kept, key=lambda s: s.get("t") or 0)
+    bucket["samples"] = prune_samples(samples.values())
 
     store["_updated"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
     tmp = OUT + ".tmp"
     with open(tmp, "w", encoding="utf-8") as fh:
-        json.dump(store, fh, indent=1, sort_keys=True)
+        # Not indented: this file is read by tooling, and pretty-printing it cost a third of its size.
+        json.dump(store, fh, sort_keys=True, separators=(",", ":"))
     # os.replace loses to any reader holding errors.json open on Windows (WinError 5), and the
     # caller's except discards the whole payload when it does. Retry briefly rather than drop it.
     for attempt in range(5):
