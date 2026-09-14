@@ -177,9 +177,14 @@ function choose_attack_option(primary) {
 	return null;
 }
 
+var _cupid_engaged = false;
+
 function find_cupid_target() {
 	const healer = get_entity("Myras");
-	const threshold = (!healer || healer.rip) ? 0.9 : 0.66;
+	const engage = (!healer || healer.rip)
+		? CONFIG.combat.cupid_engage_pct_no_healer
+		: CONFIG.combat.cupid_engage_pct;
+	const release = Math.min(1, engage + CONFIG.combat.cupid_release_margin);
 	const party = Object.keys(get_party() || {});
 
 	let target = null, min_pct = 1;
@@ -193,7 +198,8 @@ function find_cupid_target() {
 		}
 	}
 
-	return min_pct < threshold ? target : null;
+	_cupid_engaged = min_pct < (_cupid_engaged ? release : engage);
+	return _cupid_engaged ? target : null;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -223,11 +229,11 @@ async function action_loop() {
 		const ms = ms_to_next_skill("attack");
 
 		const cupid_on = character.slots?.mainhand?.name === "cupid";
-		const healing = !!cache.heal_target && (cupid_on || set_available("heal"));
 
 		if (ms === 0 && !travel_blocks_combat() && !basic_action_busy()) {
-			if (healing && cupid_on) run_basic_action(cupid_heal(cache.heal_target), "cupid");
-			else if (!healing && !cupid_on) handle_attack();
+			if (cupid_on && cache.heal_target) run_basic_action(cupid_heal(cache.heal_target), "cupid");
+			else if (!cupid_on) handle_attack();
+			else next_delay = next_action_delay(ms);
 		} else {
 			next_delay = next_action_delay(ms);
 		}

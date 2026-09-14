@@ -273,7 +273,11 @@ function hit_against(mob, attack) {
 }
 
 function make_weapon_choice() {
-	return { name: null, at: 0, probe: {} };
+	return { name: null, at: 0, probe: {}, probing: null };
+}
+
+function weapon_choice_name(choice) {
+	return choice.probing || choice.name;
 }
 
 function best_weapon_set(choice, sets, value_of, opts) {
@@ -291,10 +295,12 @@ function best_weapon_set(choice, sets, value_of, opts) {
 		const started = choice.probe[name];
 		if (!started || now - started > probe_ms + reprobe_ms) choice.probe[name] = now;
 		if (now - choice.probe[name] <= probe_ms) {
-			if (choice.name !== name) { choice.name = name; choice.at = now; }
+			choice.probing = name;
 			return name;
 		}
 	}
+
+	choice.probing = null;
 
 	let best = null;
 	let best_value = -Infinity;

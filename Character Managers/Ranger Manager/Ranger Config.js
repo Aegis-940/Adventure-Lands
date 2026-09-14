@@ -23,6 +23,10 @@ var CONFIG = {
 		pouchbow_explosion: 51,
 		pouchbow_min_neighbours: 3,
 
+		cupid_engage_pct: 0.66,
+		cupid_engage_pct_no_healer: 0.9,
+		cupid_release_margin: 0.14,
+
 		sample_hits: true,
 	},
 

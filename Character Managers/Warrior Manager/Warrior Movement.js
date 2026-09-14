@@ -17,7 +17,8 @@ function cleave_targets_at(x, y) {
 }
 
 function warrior_position_set() {
-	if (_weapon_choice.name) return _weapon_choice.name;
+	const chosen = weapon_choice_name(_weapon_choice);
+	if (chosen) return chosen;
 	for (const name of CONFIG.equipment.weapon_sets) {
 		if (set_available(name)) return name;
 	}
