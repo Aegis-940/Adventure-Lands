@@ -5,7 +5,7 @@
 function update_cache() {
 	if (cache.is_valid()) return;
 	cache.tank_entity = get_entity("Myras");
-	sample_set_profiles(["single", "aoe", "bataxe"]);
+	sample_set_profiles(CONFIG.equipment.weapon_sets.concat("bataxe"));
 	cache.monsters_in_cleave_range = find_monsters_in_cleave_range();
 	cache.target = find_best_target();
 	cache.party_members = get_party_members();
