@@ -153,12 +153,30 @@ function dungeon_moving() {
 	return _dungeon_moving;
 }
 
+let _dungeon_travel_depth = 0;
+let _dungeon_travel_active = null;
+
 async function dungeon_travel(destination) {
+	const previous = _dungeon_travel_active;
+
+	_dungeon_travel_depth++;
 	_dungeon_moving = true;
 	try {
-		return await smarter_move(destination);
+		if (previous) {
+			stop_movement("dungeon travel: superseded");
+			try { await previous; } catch (e) { }
+		}
+
+		const journey = smarter_move(destination);
+		_dungeon_travel_active = journey;
+		try {
+			return await journey;
+		} finally {
+			if (_dungeon_travel_active === journey) _dungeon_travel_active = null;
+		}
 	} finally {
-		_dungeon_moving = false;
+		_dungeon_travel_depth--;
+		if (_dungeon_travel_depth === 0) _dungeon_moving = false;
 	}
 }
 

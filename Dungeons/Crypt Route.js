@@ -24,6 +24,8 @@ const CRYPT_MANA_TIMEOUT_MS = 3 * 60 * 1000;
 const CRYPT_DEFAULT_RANK = 5;
 const CRYPT_PATH_THRESHOLD = 250;
 const CRYPT_REPATH_EPS = 150;
+const CRYPT_LOST_GRACE_MS = 5000;
+const CRYPT_MAX_STUMBLES = 5;
 
 const CRYPT_TARGET_RULES = {
 	a7: { sight: Infinity, rank: 0 },
@@ -171,6 +173,7 @@ async function crypt_engage(wp, quarry) {
 	dungeon_telemetry_event("engage", { wp: wp.n, mtype, distance: opened_at });
 
 	const until = Date.now() + CRYPT_FIGHT_TIMEOUT_MS;
+	let lost_since = 0;
 	try {
 		while (Date.now() < until) {
 			if (_crypt_route_abort) return "abort";
@@ -181,7 +184,13 @@ async function crypt_engage(wp, quarry) {
 			if (dungeon_target_done(mtype)) break;
 
 			const target = crypt_pick_quarry(mtype);
-			if (!target) break;
+			if (!target) {
+				if (!lost_since) lost_since = Date.now();
+				if (Date.now() - lost_since >= CRYPT_LOST_GRACE_MS) break;
+				await delay(CRYPT_ROUTE_POLL_MS);
+				continue;
+			}
+			lost_since = 0;
 
 			crypt_hold_quarry(target.id);
 
@@ -251,8 +260,9 @@ async function crypt_wait_for_calm() {
 
 async function crypt_advance(wp) {
 	let settled = false;
+	let reached = false;
 	const travel = dungeon_travel({ map: "crypt", x: wp.x, y: wp.y })
-		.then(() => { settled = true; }, () => { settled = true; });
+		.then(() => { reached = true; settled = true; }, () => { settled = true; });
 
 	while (!settled) {
 		if (_crypt_route_abort) { stop_movement("crypt route: aborted"); await travel; return "abort"; }
@@ -281,7 +291,7 @@ async function crypt_advance(wp) {
 		await delay(CRYPT_ROUTE_POLL_MS);
 	}
 
-	return "arrived";
+	return reached ? "arrived" : "interrupted";
 }
 
 async function crypt_leg(wp) {
@@ -289,6 +299,7 @@ async function crypt_leg(wp) {
 	dungeon_telemetry_event("leg_start", { wp: wp.n, hunt: wp.hunt.join(",") });
 
 	let arrived = false;
+	let stumbles = 0;
 
 	while (true) {
 		if (_crypt_route_abort) return "abort";
@@ -300,6 +311,7 @@ async function crypt_leg(wp) {
 
 		const quarry = crypt_opportunity();
 		if (quarry) {
+			stumbles = 0;
 			const outcome = await crypt_engage(wp, quarry);
 			if (outcome !== "resume") return outcome;
 			continue;
@@ -308,8 +320,13 @@ async function crypt_leg(wp) {
 		if (arrived) return "arrived";
 
 		const step = await crypt_advance(wp);
-		if (step === "arrived") { arrived = true; continue; }
+		if (step === "arrived") { arrived = true; stumbles = 0; continue; }
 		if (step !== "interrupted") return step;
+
+		if (++stumbles >= CRYPT_MAX_STUMBLES) {
+			log(`Crypt route: cannot reach waypoint ${wp.n} — moving on`, DUNGEON_WARN_COLOR, "Alerts");
+			return "unreachable";
+		}
 	}
 }
 
