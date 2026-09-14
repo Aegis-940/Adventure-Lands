@@ -318,7 +318,7 @@ const SELLABLE_ITEMS = [
 	"iceskates", "carrot", "xmace", "candycanesword", "pmaceofthedead", "ornamentstaff",
 	"merry", "rednose", "xmashat", "xmasshoes", "xmassweater", "xmaspants", "mittens",
 	"angelwings", "snowflakes", "epyjamas", "ecape", "eears", "eslippers", "carrotsword",
-	"pinkie", "oozingterror", "harbringer", "quiver",
+	"pinkie", "oozingterror", "harbringer", "quiver", "fieldgen0"
 ];
 
 function remote_sell_items() {
