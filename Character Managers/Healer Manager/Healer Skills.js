@@ -28,7 +28,8 @@ async function skill_loop() {
 
 		const travelling = is_travelling();
 
-		if (!panicking && !travelling && mana_for_luxuries && CONFIG.combat.enabled) {
+		if (!travelling && CONFIG.combat.enabled
+			&& character.mp >= (G.skills.curse?.mp || 0) + panic_mp_reserve()) {
 			try {
 				await handle_curse();
 			} catch (e) {
@@ -70,9 +71,6 @@ async function skill_loop() {
 async function handle_curse() {
 	if (is_on_cooldown("curse") || is_travelling()) return;
 
-	const home_x = LOCATIONS[home][0].x;
-	const home_y = LOCATIONS[home][0].y;
-
 	const has_target = e =>
 		e?.type === "monster" && !e.dead && e.visible && e.target && !e.immune &&
 		e.hp >= e.max_hp * (CONFIG.combat.curse_min_hp_pct ?? 0.25);
@@ -93,11 +91,7 @@ async function handle_curse() {
 
 	if (!target && !dungeon_flag("absorb_nearby")) {
 		const home_mobs = Object.values(parent.entities)
-			.filter(e =>
-				has_target(e) &&
-				e.mtype === home &&
-				Math.hypot(home_x - e.x, home_y - e.y) <= 175
-			)
+			.filter(e => has_target(e) && e.mtype === home && is_in_range(e, "curse"))
 			.sort((a, b) => b.hp - a.hp);
 		if (home_mobs.length) target = home_mobs[0];
 	}
