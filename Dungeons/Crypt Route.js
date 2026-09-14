@@ -5,7 +5,7 @@
 const CRYPT_ROUTE = [
 	{ n: 1, x: 1777, y: -1509, hunt: ["a3"] },
 	{ n: 2, x: 731, y: -1074, hunt: ["a7"] },
-	{ n: 3, x: 738, y: -614, hunt: ["a7"] },
+	{ n: 3, x: 738, y: -614, hunt: ["a7"], mp_after: 0.8 },
 	{ n: 4, x: 952, y: -527, hunt: ["vbat", "a2"] },
 	{ n: 5, x: 1186, y: -379, hunt: ["vbat", "a2"] },
 ];
@@ -20,6 +20,7 @@ const CRYPT_FIGHT_TIMEOUT_MS = 4 * 60 * 1000;
 const CRYPT_RETREAT_SETTLE_MS = 4000;
 const CRYPT_PANIC_RETRIES = 2;
 const CRYPT_CALM_TIMEOUT_MS = 90000;
+const CRYPT_MANA_TIMEOUT_MS = 3 * 60 * 1000;
 const CRYPT_DEFAULT_RANK = 5;
 const CRYPT_PATH_THRESHOLD = 250;
 const CRYPT_REPATH_EPS = 150;
@@ -65,6 +66,10 @@ function crypt_intruders() {
 
 function crypt_leg_done(wp) {
 	return wp.hunt.every(m => dungeon_target_done(m));
+}
+
+function crypt_ejected() {
+	return character.map !== DUNGEONS.crypt.map;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -170,6 +175,7 @@ async function crypt_engage(wp, quarry) {
 		while (Date.now() < until) {
 			if (_crypt_route_abort) return "abort";
 			if (character.rip) return "dead";
+			if (crypt_ejected()) return "ejected";
 			if (panicking) return "panic";
 			if (crypt_intruders().length) return "intruder";
 			if (dungeon_target_done(mtype)) break;
@@ -207,6 +213,32 @@ async function crypt_retreat(wp, reason) {
 	await delay(CRYPT_RETREAT_SETTLE_MS);
 }
 
+async function crypt_wait_for_mana(pct) {
+	const want = () => character.max_mp * pct;
+	if (character.mp >= want()) return true;
+
+	log(`Crypt route: holding for mana — ${Math.round(100 * character.mp / character.max_mp)}% of ${Math.round(pct * 100)}%`,
+		DUNGEON_LOG_COLOR, "Alerts");
+	dungeon_telemetry_event("mana_hold", { mp_pct: +(character.mp / character.max_mp).toFixed(2), want: pct });
+
+	const until = Date.now() + CRYPT_MANA_TIMEOUT_MS;
+	while (Date.now() < until) {
+		if (_crypt_route_abort || character.rip || crypt_ejected()) return false;
+		if (crypt_intruders().length) {
+			log("Crypt route: mana hold broken — boss in view", DUNGEON_WARN_COLOR, "Alerts");
+			return false;
+		}
+		if (character.mp >= want()) {
+			log(`Crypt route: mana ready (${Math.round(100 * character.mp / character.max_mp)}%)`, DUNGEON_LOG_COLOR, "Alerts");
+			return true;
+		}
+		await delay(CRYPT_ROUTE_POLL_MS);
+	}
+
+	log("Crypt route: mana never reached target — carrying on", DUNGEON_WARN_COLOR, "Alerts");
+	return false;
+}
+
 async function crypt_wait_for_calm() {
 	const until = Date.now() + CRYPT_CALM_TIMEOUT_MS;
 	while (Date.now() < until) {
@@ -225,6 +257,7 @@ async function crypt_advance(wp) {
 	while (!settled) {
 		if (_crypt_route_abort) { stop_movement("crypt route: aborted"); await travel; return "abort"; }
 		if (character.rip) { stop_movement("crypt route: dead"); await travel; return "dead"; }
+		if (crypt_ejected()) { stop_movement("crypt route: ejected"); await travel; return "ejected"; }
 		if (panicking) { stop_movement("crypt route: panic"); await travel; return "panic"; }
 
 		if (crypt_intruders().length) {
@@ -260,6 +293,7 @@ async function crypt_leg(wp) {
 	while (true) {
 		if (_crypt_route_abort) return "abort";
 		if (character.rip) return "dead";
+		if (crypt_ejected()) return "ejected";
 		if (panicking) return "panic";
 		if (crypt_intruders().length) return "intruder";
 		if (crypt_leg_done(wp)) return "done";
@@ -318,8 +352,12 @@ async function run_crypt_route() {
 				outcome = await crypt_leg(wp);
 			}
 
-			if (outcome === "dead") {
-				log("Crypt route: died — stopping", DUNGEON_WARN_COLOR, "Alerts");
+			if (outcome === "dead" || outcome === "ejected") {
+				log(outcome === "dead"
+					? "Crypt route: died — this instance is over, starting a fresh one"
+					: "Crypt route: no longer in the crypt — this instance is over, starting a fresh one",
+					DUNGEON_WARN_COLOR, "Alerts");
+				dungeon_telemetry_event("run_abandoned", { wp: wp.n, outcome });
 				break;
 			}
 
@@ -332,6 +370,8 @@ async function run_crypt_route() {
 			log(`Crypt route: waypoint ${wp.n} complete (${outcome})`, DUNGEON_LOG_COLOR, "Alerts");
 			dungeon_telemetry_event("leg_end", { wp: wp.n, outcome, kills: Object.assign({}, _dungeon_kills) });
 			await handle_looting();
+
+			if (wp.mp_after && !_crypt_route_abort) await crypt_wait_for_mana(wp.mp_after);
 		}
 
 		dungeon_progress_report();

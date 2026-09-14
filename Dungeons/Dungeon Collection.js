@@ -7,6 +7,7 @@ const COLLECT_RUNS_KEY = "AL_dungeon_runs";
 const COLLECT_WAIT_MS = 5 * 60 * 1000;
 const COLLECT_DRAIN_MS = 60000;
 const COLLECT_POLL_MS = 2000;
+const COLLECT_IDLE_ROUNDS = 3;
 const COLLECT_RANGE = 300;
 
 function dungeon_runs_done() {
@@ -67,7 +68,21 @@ async function run_dungeon_collection() {
 	}
 
 	const drain = Date.now() + COLLECT_DRAIN_MS;
-	while (Date.now() < drain && loose_loot(LOOT_THRESHOLD).length) {
+	let last = -1;
+	let idle = 0;
+	while (Date.now() < drain) {
+		const left = loose_loot(LOOT_THRESHOLD).length;
+		if (!left) break;
+
+		if (left === last) {
+			if (++idle >= COLLECT_IDLE_ROUNDS) {
+				log(`📦 Collection: ${left} item(s) would not transfer — moving on`, DUNGEON_WARN_COLOR, "Alerts");
+				break;
+			}
+		} else {
+			idle = 0;
+		}
+		last = left;
 		await delay(COLLECT_POLL_MS);
 	}
 

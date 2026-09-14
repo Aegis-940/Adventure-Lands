@@ -3,11 +3,14 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const DUNGEON_TOWN_CHANNEL_MS = 3000;
-const DUNGEON_BAIL_TIMEOUT_MS = 30000;
 const DUNGEON_BAIL_STEP = 60;
 const DUNGEON_BAIL_POLL_MS = 250;
 const DUNGEON_SPAWN_ARRIVED = 120;
-const DUNGEON_TOWN_MAX_BREAKS = 3;
+const DUNGEON_THREAT_RADIUS = 400;
+const DUNGEON_BAIL_ATTEMPTS = 3;
+const DUNGEON_TOWN_ATTEMPT_MS = 12000;
+const DUNGEON_CLEAR_MS = 45000;
+const DUNGEON_CLEAR_POLL_MS = 500;
 
 let _dungeon_bailing = false;
 
@@ -15,12 +18,13 @@ function dungeon_bailing() {
 	return _dungeon_bailing;
 }
 
-function dungeon_threats() {
+function dungeon_threats(radius = DUNGEON_THREAT_RADIUS) {
 	const d = active_dungeon();
 	const out = [];
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
 		if (e.type !== "monster" || e.dead) continue;
+		if (Math.hypot(character.x - e.x, character.y - e.y) > radius) continue;
 		const on_us = e.target && DUNGEON_PARTY.includes(e.target);
 		const avoided = d && d.avoid && d.avoid.includes(e.mtype);
 		if (on_us || avoided) out.push(e);
@@ -76,6 +80,40 @@ function dungeon_at_spawn(dungeon) {
 	return Math.hypot(character.x - spawn.x, character.y - spawn.y) <= DUNGEON_SPAWN_ARRIVED;
 }
 
+async function dungeon_town_attempt(dungeon) {
+	const until = Date.now() + DUNGEON_TOWN_ATTEMPT_MS;
+	while (Date.now() < until) {
+		if (character.map !== dungeon.map) return true;
+		if (dungeon_at_spawn(dungeon)) return true;
+		if (character.rip) return false;
+
+		if (!(character.c && character.c.town)) {
+			if (dungeon_threats().length) await dungeon_scare_off();
+			try { await use_skill("use_town"); } catch (e) { }
+		}
+
+		dungeon_step_away();
+		await delay(DUNGEON_BAIL_POLL_MS);
+	}
+	return false;
+}
+
+async function dungeon_fight_clear(dungeon) {
+	_dungeon_bailing = false;
+	try {
+		const until = Date.now() + DUNGEON_CLEAR_MS;
+		while (Date.now() < until) {
+			if (character.rip) return false;
+			if (character.map !== dungeon.map) return true;
+			if (!dungeon_threats().length) return true;
+			await delay(DUNGEON_CLEAR_POLL_MS);
+		}
+		return false;
+	} finally {
+		_dungeon_bailing = true;
+	}
+}
+
 async function dungeon_bail_out(reason, broadcast = true, emergency = true) {
 	if (_dungeon_bailing) return;
 	const d = active_dungeon();
@@ -93,32 +131,14 @@ async function dungeon_bail_out(reason, broadcast = true, emergency = true) {
 		stop_movement("dungeon bail-out");
 		await dungeon_scare_off();
 
-		const until = Date.now() + DUNGEON_BAIL_TIMEOUT_MS;
-		let breaks = 0;
-		let was_channelling = false;
-
-		while (Date.now() < until) {
-			if (character.map !== d.map) break;
-			if (dungeon_at_spawn(d)) break;
+		for (let attempt = 1; attempt <= DUNGEON_BAIL_ATTEMPTS; attempt++) {
+			if (await dungeon_town_attempt(d)) break;
 			if (character.rip) break;
+			if (attempt === DUNGEON_BAIL_ATTEMPTS) break;
 
-			const channelling = !!(character.c && character.c.town);
-			if (was_channelling && !channelling) breaks++;
-			was_channelling = channelling;
-
-			if (breaks >= DUNGEON_TOWN_MAX_BREAKS) {
-				log(`${d.name}: teleport interrupted ${breaks}x — fighting out instead`, "#FF3333", "Alerts");
-				dungeon_telemetry_event("bail_abandoned", { breaks });
-				return false;
-			}
-
-			if (!channelling) {
-				if (dungeon_threats().length) await dungeon_scare_off();
-				try { use_skill("use_town"); } catch (e) { }
-			}
-
-			dungeon_step_away();
-			await delay(DUNGEON_BAIL_POLL_MS);
+			log(`${d.name}: teleport not landing — clearing what is on us first (${attempt})`, "#FFAA44", "Alerts");
+			dungeon_telemetry_event("bail_fight", { attempt, threats: dungeon_threats().map(e => e.mtype).join(",") });
+			await dungeon_fight_clear(d);
 		}
 
 		const landed = dungeon_at_spawn(d) || character.map !== d.map;
