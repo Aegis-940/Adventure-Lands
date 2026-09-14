@@ -46,7 +46,7 @@ var CONFIG = {
 		weapon_swap_enabled: true,
 
 		weapon_selection: "value",
-		weapon_sets: ["single", "aoe"],
+		weapon_sets: ["single", "aoe", "double_aoe"],
 		weapon_hysteresis_ms: 6000,
 		weapon_switch_margin: 1.20,
 
@@ -119,6 +119,10 @@ var equipment_sets = {
 	],
 	aoe: [
 		{ item_name: "fireblade", slot: "mainhand", level: 9, l: "l" },
+		{ item_name: "ololipop", slot: "offhand", level: 9, l: "l" },
+	],
+	double_aoe: [
+		{ item_name: "vhammer", slot: "mainhand", level: 6, l: "l" },
 		{ item_name: "ololipop", slot: "offhand", level: 9, l: "l" },
 	],
 	basher: [

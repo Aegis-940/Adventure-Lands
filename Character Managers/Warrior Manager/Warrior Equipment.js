@@ -89,16 +89,18 @@ function warrior_set_base_value(set_name, primary) {
 	const profile = get_set_profile(set_name);
 	if (!profile || !profile.attack) return null;
 
-	let value = set_dps(profile);
+	const dps = set_dps(profile);
 
 	const chance = set_ability_chance(set_name, "burn");
-	if (chance) value *= burn_multiplier_at_dps(primary, chance, set_dps(profile), CONFIG.combat.party_dps_factor, { frequency: profile.frequency });
+	const burn = chance
+		? burn_multiplier_at_dps(primary, chance, dps, CONFIG.combat.party_dps_factor, { frequency: profile.frequency })
+		: 1;
 
-	if (profile.explosion > 0) {
-		value *= 1 + smoothed_splash_bonus(profile.explosion, profile.attack);
-	}
+	const splash = profile.explosion > 0
+		? smoothed_splash_bonus(profile.explosion, profile.attack)
+		: 0;
 
-	return value;
+	return dps * (burn + splash);
 }
 
 function warrior_set_value(set_name, primary, cleave_targets) {
