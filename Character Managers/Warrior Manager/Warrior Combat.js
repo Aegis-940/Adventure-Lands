@@ -25,6 +25,9 @@ function cooperative_luck_logger() {
 }
 
 function find_best_target() {
+	const forced = dungeon_focus_target();
+	if (forced) return forced;
+
 	const max_dist = dungeon_engage_radius();
 
 	const context = {

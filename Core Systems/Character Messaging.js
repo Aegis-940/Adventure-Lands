@@ -44,6 +44,8 @@ const CM_HANDLERS = {
 
 	"dungeon_mode": (name, data) => set_dungeon_mode(data.dungeon || null, false),
 
+	"dungeon_focus": (name, data) => set_dungeon_focus_target(data.id || null),
+
 	"dungeon_bail": async (name, data) => {
 		await dungeon_bail_out(data.reason || `${name} called it`, false);
 	},

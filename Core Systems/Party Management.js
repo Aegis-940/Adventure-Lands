@@ -74,7 +74,8 @@ async function _panic_check_body() {
 		e => e.type === "monster" && e.target === character.name && !e.dead
 	).length;
 
-	const TRAPPED_TRAVELLING = is_travelling() && MONSTERS_TARGETING_ME >= (t.travel_aggro ?? 1);
+	const TRAPPED_TRAVELLING = !dungeon_flag("ignore_travel_panic")
+		&& is_travelling() && MONSTERS_TARGETING_ME >= (t.travel_aggro ?? 1);
 
 	const HARD_REASON = LOW_HEALTH || LOW_MANA || MONSTERS_TARGETING_ME >= t.aggro;
 

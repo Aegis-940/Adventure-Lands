@@ -22,6 +22,7 @@ const CRYPT_PANIC_RETRIES = 2;
 const CRYPT_CALM_TIMEOUT_MS = 90000;
 const CRYPT_DEFAULT_RANK = 5;
 const CRYPT_PATH_THRESHOLD = 250;
+const CRYPT_REPATH_EPS = 150;
 
 const CRYPT_TARGET_RULES = {
 	a7: { sight: Infinity, rank: 0 },
@@ -117,10 +118,22 @@ function crypt_pick_quarry(mtype) {
 	return live[0];
 }
 
-function crypt_release_quarry() {
-	_crypt_quarry_id = null;
-	set_dungeon_focus_target(null);
+function crypt_hold_quarry(id) {
+	if (_crypt_quarry_id === id) return;
+	_crypt_quarry_id = id;
+	set_dungeon_focus_target(id);
+	send_cm(DUNGEON_FOLLOWERS, { type: "dungeon_focus", id });
 }
+
+function crypt_release_quarry() {
+	if (_crypt_quarry_id === null) return;
+	_crypt_quarry_id = null;
+	_crypt_path_to = null;
+	set_dungeon_focus_target(null);
+	send_cm(DUNGEON_FOLLOWERS, { type: "dungeon_focus", id: null });
+}
+
+let _crypt_path_to = null;
 
 function crypt_step_toward(target) {
 	if (smart.moving) return;
@@ -129,9 +142,14 @@ function crypt_step_toward(target) {
 	const d = Math.hypot(dx, dy) || 1;
 
 	if (d > CRYPT_PATH_THRESHOLD) {
+		if (_crypt_path_to
+			&& Math.hypot(_crypt_path_to.x - target.x, _crypt_path_to.y - target.y) < CRYPT_REPATH_EPS) return;
+		_crypt_path_to = { x: target.x, y: target.y };
 		dungeon_travel({ map: "crypt", x: target.x, y: target.y }).catch(() => { });
 		return;
 	}
+
+	_crypt_path_to = null;
 
 	const step = Math.min(CRYPT_CHASE_STEP, d);
 	const x = character.x + (dx / d) * step;
@@ -159,8 +177,7 @@ async function crypt_engage(wp, quarry) {
 			const target = crypt_pick_quarry(mtype);
 			if (!target) break;
 
-			_crypt_quarry_id = target.id;
-			set_dungeon_focus_target(target.id);
+			crypt_hold_quarry(target.id);
 
 			if (Math.hypot(character.x - target.x, character.y - target.y) > CRYPT_ENGAGE_RANGE) {
 				crypt_step_toward(target);

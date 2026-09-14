@@ -7,6 +7,7 @@ const DUNGEON_BAIL_TIMEOUT_MS = 30000;
 const DUNGEON_BAIL_STEP = 60;
 const DUNGEON_BAIL_POLL_MS = 250;
 const DUNGEON_SPAWN_ARRIVED = 120;
+const DUNGEON_TOWN_MAX_BREAKS = 3;
 
 let _dungeon_bailing = false;
 
@@ -93,12 +94,25 @@ async function dungeon_bail_out(reason, broadcast = true, emergency = true) {
 		await dungeon_scare_off();
 
 		const until = Date.now() + DUNGEON_BAIL_TIMEOUT_MS;
+		let breaks = 0;
+		let was_channelling = false;
+
 		while (Date.now() < until) {
 			if (character.map !== d.map) break;
 			if (dungeon_at_spawn(d)) break;
 			if (character.rip) break;
 
-			if (!character.c?.town) {
+			const channelling = !!(character.c && character.c.town);
+			if (was_channelling && !channelling) breaks++;
+			was_channelling = channelling;
+
+			if (breaks >= DUNGEON_TOWN_MAX_BREAKS) {
+				log(`${d.name}: teleport interrupted ${breaks}x — fighting out instead`, "#FF3333", "Alerts");
+				dungeon_telemetry_event("bail_abandoned", { breaks });
+				return false;
+			}
+
+			if (!channelling) {
 				if (dungeon_threats().length) await dungeon_scare_off();
 				try { use_skill("use_town"); } catch (e) { }
 			}
