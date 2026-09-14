@@ -587,19 +587,6 @@ function explosion_radius(explosion) {
 	return intensity / EXPLOSION_RADIUS_DIVISOR;
 }
 
-function count_neighbours(mob, radius, aggro_only, centre_metric) {
-	let count = 0;
-	for (const id in parent.entities) {
-		const e = parent.entities[id];
-		if (e?.type !== "monster" || e.dead) continue;
-		if (e === mob || e.id === mob.id) continue;
-		if (aggro_only && !e.target) continue;
-		const gap = centre_metric ? Math.hypot(e.x - mob.x, e.y - mob.y) : distance(e, mob);
-		if (gap <= radius) count++;
-	}
-	return count;
-}
-
 function splash_bonus(mob, explosion, hit_damage) {
 	if (!mob || !explosion) return 0;
 

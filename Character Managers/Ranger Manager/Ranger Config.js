@@ -19,10 +19,6 @@ var CONFIG = {
 		burn_enabled: true,
 		lambda_headroom_low: 0.6,
 		lambda_headroom_high: 1.5,
-		pouchbow_enabled: true,
-		pouchbow_explosion: 51,
-		pouchbow_min_neighbours: 3,
-
 		cupid_engage_pct: 0.66,
 		cupid_engage_pct_no_healer: 0.9,
 		cupid_release_margin: 0.14,
@@ -115,6 +111,6 @@ var state = {
 };
 
 var cache = make_cache({
-	targets: { sorted_by_value: [], in_range: [], scored: [] },
+	targets: { sorted_by_value: [], in_range: [] },
 	heal_target: null,
 });

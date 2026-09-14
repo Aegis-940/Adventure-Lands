@@ -63,14 +63,7 @@ function update_target_cache() {
 
 	const in_range = dungeon_sort_targets(sorted_by_value.filter(within_range));
 
-	const radius = explosion_radius(pouchbow_explosion());
-	const scored = in_range.map(mob => ({
-		mob,
-		count: count_neighbours(mob, radius, true),
-		value: value.get(mob) || 0
-	}));
-
-	return { sorted_by_value, in_range, scored };
+	return { sorted_by_value, in_range };
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
