@@ -42,7 +42,7 @@ function crypt_route_running() {
 function stop_crypt_route() {
 	if (!_crypt_route_running) return;
 	_crypt_route_abort = true;
-	log("Crypt route: stopping after this step", DUNGEON_WARN_COLOR, "Alerts");
+	game_log("Crypt route: stopping after this step", DUNGEON_WARN_COLOR);
 }
 
 function crypt_waypoint(n) {
@@ -181,7 +181,7 @@ async function crypt_engage(wp, quarry) {
 	const mtype = quarry.mtype;
 	const name = (G.monsters[mtype] || {}).name || mtype;
 	const opened_at = Math.round(Math.hypot(character.x - quarry.x, character.y - quarry.y));
-	log(`Crypt route: engaging ${name} at ${opened_at}`, DUNGEON_LOG_COLOR, "Alerts");
+	game_log(`Crypt route: engaging ${name} at ${opened_at}`, DUNGEON_LOG_COLOR);
 	dungeon_telemetry_event("engage", { wp: wp.n, mtype, distance: opened_at });
 
 	const until = Date.now() + CRYPT_FIGHT_TIMEOUT_MS;
@@ -222,7 +222,7 @@ async function crypt_engage(wp, quarry) {
 	if (smart.moving) stop_movement("crypt route: engagement over");
 	if (crypt_leg_done(wp)) return "done";
 	if (timed_out) {
-		log(`Crypt route: gave up on ${name} after ${CRYPT_FIGHT_TIMEOUT_MS / 60000} min`, DUNGEON_WARN_COLOR, "Alerts");
+		game_log(`Crypt route: gave up on ${name} after ${CRYPT_FIGHT_TIMEOUT_MS / 60000} min`, DUNGEON_WARN_COLOR);
 		return "timeout";
 	}
 	return "resume";
@@ -237,25 +237,25 @@ async function crypt_wait_for_mana(pct) {
 	const want = () => character.max_mp * pct;
 	if (character.mp >= want()) return true;
 
-	log(`Crypt route: holding for mana — ${Math.round(100 * character.mp / character.max_mp)}% of ${Math.round(pct * 100)}%`,
-		DUNGEON_LOG_COLOR, "Alerts");
+	game_log(`Crypt route: holding for mana — ${Math.round(100 * character.mp / character.max_mp)}% of ${Math.round(pct * 100)}%`,
+		DUNGEON_LOG_COLOR);
 	dungeon_telemetry_event("mana_hold", { mp_pct: +(character.mp / character.max_mp).toFixed(2), want: pct });
 
 	const until = Date.now() + CRYPT_MANA_TIMEOUT_MS;
 	while (Date.now() < until) {
 		if (_crypt_route_abort || character.rip || crypt_ejected()) return false;
 		if (crypt_intruders().length) {
-			log("Crypt route: mana hold broken — boss in view", DUNGEON_WARN_COLOR, "Alerts");
+			game_log("Crypt route: mana hold broken — boss in view", DUNGEON_WARN_COLOR);
 			return false;
 		}
 		if (character.mp >= want()) {
-			log(`Crypt route: mana ready (${Math.round(100 * character.mp / character.max_mp)}%)`, DUNGEON_LOG_COLOR, "Alerts");
+			game_log(`Crypt route: mana ready (${Math.round(100 * character.mp / character.max_mp)}%)`, DUNGEON_LOG_COLOR);
 			return true;
 		}
 		await delay(CRYPT_ROUTE_POLL_MS);
 	}
 
-	log("Crypt route: mana never reached target — carrying on", DUNGEON_WARN_COLOR, "Alerts");
+	game_log("Crypt route: mana never reached target — carrying on", DUNGEON_WARN_COLOR);
 	return false;
 }
 
@@ -265,7 +265,7 @@ async function crypt_wait_for_calm() {
 		if (!panicking && !character.rip) return true;
 		await delay(CRYPT_ROUTE_POLL_MS);
 	}
-	log("Crypt route: panic never cleared", DUNGEON_WARN_COLOR, "Alerts");
+	game_log("Crypt route: panic never cleared", DUNGEON_WARN_COLOR);
 	return false;
 }
 
@@ -306,7 +306,7 @@ async function crypt_advance(wp) {
 }
 
 async function crypt_leg(wp) {
-	log(`Crypt route: heading for waypoint ${wp.n} (${wp.x}, ${wp.y})`, DUNGEON_LOG_COLOR, "Alerts");
+	game_log(`Crypt route: heading for waypoint ${wp.n} (${wp.x}, ${wp.y})`, DUNGEON_LOG_COLOR);
 	dungeon_telemetry_event("leg_start", { wp: wp.n, hunt: wp.hunt.join(",") });
 
 	let arrived = false;
@@ -336,7 +336,7 @@ async function crypt_leg(wp) {
 		if (step !== "interrupted") return step;
 
 		if (++stumbles >= CRYPT_MAX_STUMBLES) {
-			log(`Crypt route: cannot reach waypoint ${wp.n} — moving on`, DUNGEON_WARN_COLOR, "Alerts");
+			game_log(`Crypt route: cannot reach waypoint ${wp.n} — moving on`, DUNGEON_WARN_COLOR);
 			return "unreachable";
 		}
 	}
@@ -347,15 +347,15 @@ async function crypt_leg(wp) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function run_crypt_route() {
-	if (_crypt_route_running) return log("Crypt route: already running", DUNGEON_WARN_COLOR);
-	if (character.map !== "crypt") return log("Crypt route: not in the crypt", DUNGEON_WARN_COLOR);
-	if (character.name !== MOVEMENT_LEADER) return log("Crypt route: only the leader drives the route", DUNGEON_WARN_COLOR);
+	if (_crypt_route_running) return game_log("Crypt route: already running", DUNGEON_WARN_COLOR);
+	if (character.map !== "crypt") return game_log("Crypt route: not in the crypt", DUNGEON_WARN_COLOR);
+	if (character.name !== MOVEMENT_LEADER) return game_log("Crypt route: only the leader drives the route", DUNGEON_WARN_COLOR);
 
 	_crypt_route_running = true;
 	_crypt_route_abort = false;
 	reset_dungeon_progress();
 	reset_dungeon_bails();
-	log("Crypt route: starting", DUNGEON_LOG_COLOR, "Alerts");
+	game_log("Crypt route: starting", DUNGEON_LOG_COLOR);
 
 	try {
 		for (const wp of CRYPT_ROUTE) {
@@ -364,8 +364,8 @@ async function run_crypt_route() {
 			let outcome = await crypt_leg(wp);
 
 			while (outcome === "panic" && !_crypt_route_abort) {
-				log(`Crypt route: panic at waypoint ${wp.n} — falling back to the entrance (bail ${dungeon_bail_count() + 1})`,
-					DUNGEON_WARN_COLOR, "Alerts");
+				game_log(`Crypt route: panic at waypoint ${wp.n} — falling back to the entrance (bail ${dungeon_bail_count() + 1})`,
+					DUNGEON_WARN_COLOR);
 				dungeon_telemetry_event("panic_retreat", { wp: wp.n, bails: dungeon_bail_count() });
 
 				await crypt_retreat(wp, `panic at waypoint ${wp.n}`);
@@ -377,28 +377,28 @@ async function run_crypt_route() {
 			}
 
 			if (outcome === "bail-limit" || dungeon_bail_count() >= CRYPT_MAX_BAILS) {
-				log(`Crypt route: ${dungeon_bail_count()} bails this run — abandoning the dungeon`,
-					DUNGEON_WARN_COLOR, "Alerts");
+				game_log(`Crypt route: ${dungeon_bail_count()} bails this run — abandoning the dungeon`,
+					DUNGEON_WARN_COLOR);
 				dungeon_telemetry_event("run_abandoned", { wp: wp.n, outcome: "bail-limit", bails: dungeon_bail_count() });
 				break;
 			}
 
 			if (outcome === "dead" || outcome === "ejected") {
-				log(outcome === "dead"
+				game_log(outcome === "dead"
 					? "Crypt route: died — this instance is over, starting a fresh one"
 					: "Crypt route: no longer in the crypt — this instance is over, starting a fresh one",
-					DUNGEON_WARN_COLOR, "Alerts");
+					DUNGEON_WARN_COLOR);
 				dungeon_telemetry_event("run_abandoned", { wp: wp.n, outcome });
 				break;
 			}
 
 			if (outcome === "intruder") {
 				const reason = crypt_disengage_reason(wp);
-				log(`Crypt route: ${reason} — waypoint ${wp.n} abandoned`, DUNGEON_WARN_COLOR, "Alerts");
+				game_log(`Crypt route: ${reason} — waypoint ${wp.n} abandoned`, DUNGEON_WARN_COLOR);
 				await crypt_retreat(wp, reason);
 			}
 
-			log(`Crypt route: waypoint ${wp.n} complete (${outcome})`, DUNGEON_LOG_COLOR, "Alerts");
+			game_log(`Crypt route: waypoint ${wp.n} complete (${outcome})`, DUNGEON_LOG_COLOR);
 			dungeon_telemetry_event("leg_end", { wp: wp.n, outcome, kills: Object.assign({}, _dungeon_kills) });
 			await handle_looting();
 
@@ -406,7 +406,7 @@ async function run_crypt_route() {
 		}
 
 		dungeon_progress_report();
-		log("Crypt route: circuit finished", DUNGEON_LOG_COLOR, "Alerts");
+		game_log("Crypt route: circuit finished", DUNGEON_LOG_COLOR);
 
 	} catch (e) {
 		catcher(e, "run_crypt_route");

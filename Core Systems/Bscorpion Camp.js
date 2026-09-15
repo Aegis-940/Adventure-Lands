@@ -17,13 +17,13 @@ function prim_farm_loc() {
 
 	if (!box || box.length < 4) {
 		_prim_farm_loc = PRIM_FARM_FALLBACK;
-		log(`Bscorpion camp: no spawn boundary in G.maps.${PRIM_FARM_MAP}, using ${PRIM_FARM_FALLBACK.x}, ${PRIM_FARM_FALLBACK.y}`, "#ffb347", "Bscorpion");
+		game_log(`Bscorpion camp: no spawn boundary in G.maps.${PRIM_FARM_MAP}, using ${PRIM_FARM_FALLBACK.x}, ${PRIM_FARM_FALLBACK.y}`, "#ffb347");
 		return _prim_farm_loc;
 	}
 
 	const [x1, y1, x2, y2] = box.length > 4 ? box.slice(1) : box;
 	_prim_farm_loc = { map: PRIM_FARM_MAP, x: (x1 + x2) / 2, y: (y1 + y2) / 2 };
-	log(`Bscorpion camp centre: ${Math.round(_prim_farm_loc.x)}, ${Math.round(_prim_farm_loc.y)}`, "#ffb347", "Bscorpion");
+	game_log(`Bscorpion camp centre: ${Math.round(_prim_farm_loc.x)}, ${Math.round(_prim_farm_loc.y)}`, "#ffb347");
 	return _prim_farm_loc;
 }
 
@@ -224,7 +224,7 @@ function log_bscorpion_kill() {
 	bscorpion_kill_count++;
 
 	if (!previous) {
-		log(`Bscorpion kill #${bscorpion_kill_count} at ${new Date(now).toLocaleTimeString()} — timing from here`, "#ffb347", "Bscorpion");
+		game_log(`Bscorpion kill #${bscorpion_kill_count} at ${new Date(now).toLocaleTimeString()} — timing from here`, "#ffb347");
 		return;
 	}
 
@@ -233,8 +233,8 @@ function log_bscorpion_kill() {
 	if (bscorpion_kill_intervals.length > KILL_INTERVAL_SAMPLES) bscorpion_kill_intervals.shift();
 
 	const avg = bscorpion_kill_intervals.reduce((a, b) => a + b, 0) / bscorpion_kill_intervals.length;
-	log(`Bscorpion kill #${bscorpion_kill_count}: ${(interval / 1000).toFixed(1)}s `
-		+ `(avg ${(avg / 1000).toFixed(1)}s over ${bscorpion_kill_intervals.length})`, "#ffb347", "Bscorpion");
+	game_log(`Bscorpion kill #${bscorpion_kill_count}: ${(interval / 1000).toFixed(1)}s `
+		+ `(avg ${(avg / 1000).toFixed(1)}s over ${bscorpion_kill_intervals.length})`, "#ffb347");
 }
 
 async function bscorpion_kill_logger_loop() {

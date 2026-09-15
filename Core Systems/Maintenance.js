@@ -92,14 +92,14 @@ function maintain_xp_booster() {
 
 	const slot = xp_booster_slot();
 	if (slot === null) {
-		log("🧪 No xp booster held — buying one", "#66ccff", "Alerts");
+		game_log("🧪 No xp booster held — buying one", "#66ccff");
 		buy("xpbooster", 1);
 		return;
 	}
 
 	const item = character.items[slot];
 	if (item.name !== "xpbooster") {
-		log(`🧪 Shifting the spare booster in slot ${slot} to xp`, "#66ccff", "Alerts");
+		game_log(`🧪 Shifting the spare booster in slot ${slot} to xp`, "#66ccff");
 		shift(slot, "xpbooster");
 		return;
 	}
@@ -107,7 +107,7 @@ function maintain_xp_booster() {
 	_booster_next = now + BOOSTER_CHECK_MS;
 	if (booster_running(item)) return;
 
-	log(`🧪 Activating the xp booster in slot ${slot}`, "#66ccff", "Alerts");
+	game_log(`🧪 Activating the xp booster in slot ${slot}`, "#66ccff");
 	activate(slot);
 }
 

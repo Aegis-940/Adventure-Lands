@@ -69,9 +69,9 @@ async function batch_equip(data, set_name) {
 			);
 			if (idx !== -1) {
 				const found = parent.character.items[idx];
-				log(`⚠️ ${item_name} for ${slot}: set says lvl ${level ?? 0}, bag has lvl `
+				game_log(`⚠️ ${item_name} for ${slot}: set says lvl ${level ?? 0}, bag has lvl `
 					+ `${found.level ?? 0} — equipping it anyway. Fix the set definition.`,
-					"#FFA500", "Errors");
+					"#FFA500");
 			}
 		}
 
@@ -105,8 +105,8 @@ function warn_worn_level(set_name, item, worn) {
 	const now = Date.now();
 	if (now - (_worn_level_warned[key] || 0) < MISSING_ITEM_WARN_INTERVAL) return;
 	_worn_level_warned[key] = now;
-	log(`⚠️ set ${set_name}: ${item.item_name} in ${item.slot} is worn at lvl ${worn.level ?? 0}, `
-		+ `set says lvl ${item.level ?? 0} — treating it as equipped. Fix the set definition.`, "#FFA500", "Errors");
+	game_log(`⚠️ set ${set_name}: ${item.item_name} in ${item.slot} is worn at lvl ${worn.level ?? 0}, `
+		+ `set says lvl ${item.level ?? 0} — treating it as equipped. Fix the set definition.`, "#FFA500");
 }
 
 function is_set_equipped(set_name) {

@@ -4,7 +4,7 @@
 
 on_game_event = function(data) {
 	if (!data?.name) return;
-	log(`[Event] ${data.name} spawned`, "#FF8800");
+	game_log(`[Event] ${data.name} spawned`, "#FF8800");
 };
 
 const EVENT_JOIN_RETRY_MS = 5000;
@@ -182,8 +182,8 @@ async function anniversary_tick() {
 	const reason = anniversary_block_reason();
 	if (reason !== _anniv_reason) {
 		_anniv_reason = reason;
-		log(reason ? `🎂 Anniversary: ${reason}.` : `🎂 Anniversary: visiting ${s.target} on ${s.map}.`,
-			"#F0B742", "Alerts");
+		game_log(reason ? `🎂 Anniversary: ${reason}.` : `🎂 Anniversary: visiting ${s.target} on ${s.map}.`,
+			"#F0B742");
 	}
 
 	const was_travelling = anniversary_travel;
@@ -214,8 +214,8 @@ async function anniversary_tick() {
 		_anniv_gave_up_round = s.round;
 		_anniv_committed_round = null;
 		anniversary_travel = false;
-		log(`🎂 Anniversary: couldn't find ${s.target} at the destination — returning to combat.`,
-			"#FFA500", "Alerts");
+		game_log(`🎂 Anniversary: couldn't find ${s.target} at the destination — returning to combat.`,
+			"#FFA500");
 		return false;
 	}
 
@@ -232,7 +232,7 @@ async function anniversary_tick() {
 			e => {
 				_anniv_casting = false;
 				errlog_count("kiss:" + ((e && (e.reason || e.response)) || "failed"));
-				log(`🎂 Anniversary kiss failed: ${fmt_err(e)}`, "#FFA500", "Alerts");
+				game_log(`🎂 Anniversary kiss failed: ${fmt_err(e)}`, "#FFA500");
 			});
 	}
 	return true;

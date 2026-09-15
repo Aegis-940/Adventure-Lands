@@ -66,15 +66,15 @@ function start_crypt_dungeon_when_ready() {
 function crypt_go(where) {
 	const d = DUNGEONS.crypt;
 	const spot = d[where];
-	if (!spot) return log(`Crypt: no waypoint named ${where}`, DUNGEON_WARN_COLOR);
-	log(`Crypt: walking to ${where} (${Math.round(spot.x)}, ${Math.round(spot.y)})`, DUNGEON_LOG_COLOR);
+	if (!spot) return game_log(`Crypt: no waypoint named ${where}`, DUNGEON_WARN_COLOR);
+	game_log(`Crypt: walking to ${where} (${Math.round(spot.x)}, ${Math.round(spot.y)})`, DUNGEON_LOG_COLOR);
 	return dungeon_travel(spot);
 }
 
 function crypt_camp() { return crypt_go("camp"); }
 
 async function crypt_leave() {
-	log("Crypt: clearing the floor before leaving", DUNGEON_LOG_COLOR, "Alerts");
+	game_log("Crypt: clearing the floor before leaving", DUNGEON_LOG_COLOR);
 	await dungeon_loot_everything();
 
 	if (character.map === DUNGEONS.crypt.map && !dungeon_at_spawn(DUNGEONS.crypt)) {
@@ -106,10 +106,10 @@ function crypt_bosses_near(radius = CRYPT_THREAT_RADIUS) {
 
 function crypt_threat_report() {
 	const near = crypt_bosses_near();
-	if (!near.length) return log("Crypt: no bosses in view", DUNGEON_LOG_COLOR);
+	if (!near.length) return game_log("Crypt: no bosses in view", DUNGEON_LOG_COLOR);
 	for (const e of near) {
 		const name = (G.monsters[e.mtype] || {}).name || e.mtype;
 		const avoided = CRYPT_AVOID.includes(e.mtype) ? " ⚠️ AVOID" : "";
-		log(`Crypt: ${name} (${e.mtype}) at ${Math.round(distance(character, e))}${avoided}`, DUNGEON_LOG_COLOR);
+		game_log(`Crypt: ${name} (${e.mtype}) at ${Math.round(distance(character, e))}${avoided}`, DUNGEON_LOG_COLOR);
 	}
 }

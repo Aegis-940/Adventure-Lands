@@ -208,7 +208,7 @@ function movement_goal() {
 
 function movement_local(goal, farm_step) {
 	if (smart.moving) {
-		log("🧭 local movement skipped — a journey is still in flight", "#FFA500", "Alerts");
+		game_log("🧭 local movement skipped — a journey is still in flight", "#FFA500");
 		return;
 	}
 	if (goal && goal.local === "step") return local_step(goal);

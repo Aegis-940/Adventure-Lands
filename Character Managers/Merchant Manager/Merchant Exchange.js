@@ -60,7 +60,7 @@ async function exchange_bag_items() {
 			const found = find_bag_exchangeable();
 			if (!found) break;
 
-			log(`🔁 Exchanging ${found.name} (slot ${found.slot})`);
+			game_log(`🔁 Exchanging ${found.name} (slot ${found.slot})`);
 			if (!character.q.exchange) await begin_mass_exchange();
 			await exchange(found.slot);
 		}
@@ -72,7 +72,7 @@ async function exchange_bag_items() {
 }
 
 async function withdraw_exchangeables() {
-	log("🏦 Fetching exchangeables from the bank...", "#888");
+	game_log("🏦 Fetching exchangeables from the bank...", "#888");
 	await close_merchant_stand();
 	await smarter_move(BANK_LOCATION);
 	await delay(500);
@@ -87,7 +87,7 @@ async function withdraw_exchangeables() {
 		if (find_bag_exchangeable()) return true;
 	}
 
-	log("🏦 Nothing exchangeable came out of the bank.", "#FFA500");
+	game_log("🏦 Nothing exchangeable came out of the bank.", "#FFA500");
 	return false;
 }
 

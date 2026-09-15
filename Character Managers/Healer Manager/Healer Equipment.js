@@ -68,27 +68,27 @@ function heal_marginals() {
 
 function heal_report() {
 	const id = heal_power_identity();
-	log(`[HEAL] power=${Math.round(id.heal)} attack=${Math.round(id.attack)} output=${id.output} int=${character.int} rpierce=${character.rpiercing || 0}`, "#33AAFF");
-	log(`[HEAL] heal x output/100 = ${Math.round(id.implied)} vs attack ${Math.round(id.attack)} — ${id.agrees ? "identity holds" : "IDENTITY BROKEN"}`, id.agrees ? "#33AAFF" : "#FF5555");
+	game_log(`[HEAL] power=${Math.round(id.heal)} attack=${Math.round(id.attack)} output=${id.output} int=${character.int} rpierce=${character.rpiercing || 0}`, "#33AAFF");
+	game_log(`[HEAL] heal x output/100 = ${Math.round(id.implied)} vs attack ${Math.round(id.attack)} — ${id.agrees ? "identity holds" : "IDENTITY BROKEN"}`, id.agrees ? "#33AAFF" : "#FF5555");
 
 	for (const name of cache.party_members || []) {
 		const ally = name === character.name ? character : get_player(name);
 		if (!ally) {
-			log(`[HEAL] ${name}: not visible to get_player()`, "#999999");
+			game_log(`[HEAL] ${name}: not visible to get_player()`, "#999999");
 			continue;
 		}
 		const self = name === character.name;
 		const poisoned = ally.s && ally.s.poisoned ? " POISONED" : "";
-		log(`[HEAL] ${name}: res=${ally.resistance || 0} heal→${Math.round(heal_delivered(ally, character.heal))} partyheal→${Math.round(heal_delivered(ally, partyheal_base()))}${self ? " (self, no resistance)" : ""}${poisoned}`, "#33AAFF");
+		game_log(`[HEAL] ${name}: res=${ally.resistance || 0} heal→${Math.round(heal_delivered(ally, character.heal))} partyheal→${Math.round(heal_delivered(ally, partyheal_base()))}${self ? " (self, no resistance)" : ""}${poisoned}`, "#33AAFF");
 	}
 
 	const m = heal_marginals();
-	log(`[HEAL] marginals: +10 rpiercing = ${Math.round(m.per_10_rpiercing)} hp (best ally), 1 int ≤ ${Math.round(m.per_int_ceiling)} hp, self ${Math.round(m.self)} vs worst ally ${m.worst_ally || "none"} ${Math.round(m.worst_delivered)}`, "#33AAFF");
+	game_log(`[HEAL] marginals: +10 rpiercing = ${Math.round(m.per_10_rpiercing)} hp (best ally), 1 int ≤ ${Math.round(m.per_int_ceiling)} hp, self ${Math.round(m.self)} vs worst ally ${m.worst_ally || "none"} ${Math.round(m.worst_delivered)}`, "#33AAFF");
 
 	for (const name of HEALER_PROFILE_SETS) {
 		const value = healer_set_value(name);
 		if (value === null) continue;
-		log(`[HEAL] set ${name}: ${Math.round(value)} hp/sec delivered${is_set_equipped(name) ? " (worn)" : ""}`, "#66ccff");
+		game_log(`[HEAL] set ${name}: ${Math.round(value)} hp/sec delivered${is_set_equipped(name) ? " (worn)" : ""}`, "#66ccff");
 	}
 }
 
@@ -138,7 +138,7 @@ async function check_temporal_surge() {
 		state.last_equip_time = performance.now();
 		if (!await equip_apply(token, "temporal")) return false;
 		await use_skill("temporalsurge");
-		log("Temporal Surge activated!", "#FFAA00");
+		game_log("Temporal Surge activated!", "#FFAA00");
 		state.last_temporal_surge = Date.now();
 		state.last_equip_time = performance.now();
 

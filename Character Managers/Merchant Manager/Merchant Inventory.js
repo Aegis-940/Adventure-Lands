@@ -82,7 +82,7 @@ async function wait_for_movement_to_settle(caller_label) {
 		move_wait++;
 	}
 	if (character.moving) {
-		log(`⚠️ ${caller_label}: still moving after waiting, proceeding anyway.`);
+		game_log(`⚠️ ${caller_label}: still moving after waiting, proceeding anyway.`);
 	}
 }
 
@@ -91,7 +91,7 @@ var sell_items_running = false;
 async function sell_items() {
 	if (!has_sellable_items()) return false;
 	if (sell_items_running) {
-		log("⚠️ sell_items already running, skipping duplicate call.");
+		game_log("⚠️ sell_items already running, skipping duplicate call.");
 		return false;
 	}
 
@@ -117,7 +117,7 @@ var bank_items_running = false;
 async function bank_items() {
 	if (!has_bankable_items()) return false;
 	if (bank_items_running) {
-		log("⚠️ bank_items already running, skipping duplicate call.");
+		game_log("⚠️ bank_items already running, skipping duplicate call.");
 		return false;
 	}
 
@@ -168,7 +168,7 @@ async function handle_banking_state() {
 	if (merchant_task !== "Idle") return;
 	const generation = begin_task("Banking");
 	try {
-		log(`🎒 Down to ${free_inventory_slots()} free slots — emptying the pack.`, "#888");
+		game_log(`🎒 Down to ${free_inventory_slots()} free slots — emptying the pack.`, "#888");
 		await sell_items();
 		const banked = await bank_items();
 		if (!banked) _bank_retry_at = Date.now() + BANKING_RETRY_MS;

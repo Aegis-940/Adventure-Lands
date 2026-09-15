@@ -44,18 +44,18 @@ async function dungeon_scare_off() {
 			await wait_until_equipped("panic");
 		}
 	} catch (e) {
-		log(`[BAIL] could not equip jacko: ${fmt_err(e)}`, "#ff4444", "Errors");
+		game_log(`[BAIL] could not equip jacko: ${fmt_err(e)}`, "#ff4444");
 	}
 
 	try {
 		if (!is_on_cooldown("scare") && can_use("scare")) {
-			log("[BAIL] Scare", "#ffcc00", "Alerts");
+			game_log("[BAIL] Scare", "#ffcc00");
 			await use_skill("scare");
 			await delay(200);
 			return true;
 		}
 	} catch (e) {
-		log(`[BAIL] scare failed: ${fmt_err(e)}`, "#ff4444", "Errors");
+		game_log(`[BAIL] scare failed: ${fmt_err(e)}`, "#ff4444");
 	}
 	return false;
 }
@@ -85,15 +85,15 @@ async function dungeon_bail_out(reason, broadcast = true, emergency = true) {
 
 	const d = active_dungeon();
 	if (!d) {
-		log(`Bail-out asked for (${reason}) but no dungeon is active — ignoring`, DUNGEON_WARN_COLOR, "Alerts");
+		game_log(`Bail-out asked for (${reason}) but no dungeon is active — ignoring`, DUNGEON_WARN_COLOR);
 		return false;
 	}
 
 	_dungeon_bailing = true;
 	if (emergency) _dungeon_bail_count++;
 	try {
-		log(emergency ? `🚨 ${d.name}: bailing out — ${reason}` : `${d.name}: towning back — ${reason}`,
-			emergency ? "#FF3333" : DUNGEON_LOG_COLOR, "Alerts");
+		game_log(emergency ? `🚨 ${d.name}: bailing out — ${reason}` : `${d.name}: towning back — ${reason}`,
+			emergency ? "#FF3333" : DUNGEON_LOG_COLOR);
 		dungeon_telemetry_event("bail_start", {
 			reason,
 			emergency,
@@ -132,10 +132,10 @@ async function dungeon_bail_out(reason, broadcast = true, emergency = true) {
 		if (walking) stop_movement("dungeon bail-out: done");
 
 		const landed = dungeon_at_spawn(d) || character.map !== d.map;
-		log(landed
+		game_log(landed
 			? `${d.name}: back at the entrance`
 			: `${d.name}: bail-out did not land — still out there`,
-			landed ? "#00FF00" : "#FF3333", "Alerts");
+			landed ? "#00FF00" : "#FF3333");
 		dungeon_telemetry_event("bail_end", { landed });
 		return landed;
 

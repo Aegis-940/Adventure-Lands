@@ -16,7 +16,7 @@ let _dungeon_running = false;
 let _dungeon_joining = false;
 
 function dungeon_log(dungeon, message, color = DUNGEON_LOG_COLOR) {
-	log(`${dungeon.name}: ${message}`, color);
+	game_log(`${dungeon.name}: ${message}`, color);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -108,7 +108,7 @@ async function dungeon_loot_everything() {
 
 		if (count === last) {
 			if (++idle >= DUNGEON_LOOT_IDLE_ROUNDS) {
-				log(`Looting: ${count} chest(s) out of reach — moving on`, DUNGEON_WARN_COLOR);
+				game_log(`Looting: ${count} chest(s) out of reach — moving on`, DUNGEON_WARN_COLOR);
 				break;
 			}
 		} else {
@@ -121,7 +121,7 @@ async function dungeon_loot_everything() {
 	}
 
 	const left = Object.keys(get_chests()).length;
-	log(left ? `Looting: done, ${left} left behind` : "Looting: everything collected", DUNGEON_LOG_COLOR);
+	game_log(left ? `Looting: done, ${left} left behind` : "Looting: everything collected", DUNGEON_LOG_COLOR);
 }
 
 function dungeon_telemetry_event(event, data) {
@@ -285,7 +285,7 @@ function start_dungeon_loop() {
 	if (character.name !== MOVEMENT_LEADER) return;
 	setTimeout(() => {
 		if (!active_dungeon() || _dungeon_loop_running) return;
-		if (character.rip) return log("Dungeon loop: dead on startup — not starting", DUNGEON_WARN_COLOR);
+		if (character.rip) return game_log("Dungeon loop: dead on startup — not starting", DUNGEON_WARN_COLOR);
 		run_dungeon_loop();
 	}, DUNGEON_START_DELAY_MS);
 }
@@ -321,7 +321,7 @@ function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 				consecutive_dead++;
 				if (consecutive_dead >= 3) {
 					clearInterval(interval);
-					log(`[Dungeon] ${mob_type} confirmed dead`, DUNGEON_LOG_COLOR);
+					game_log(`[Dungeon] ${mob_type} confirmed dead`, DUNGEON_LOG_COLOR);
 					resolve();
 				}
 			} else {
@@ -638,7 +638,7 @@ async function run_dungeon_loop() {
 	const route = dungeon_route_runner();
 	if (!route) {
 		const d = active_dungeon();
-		log(`Dungeon loop: ${d ? d.route || "no route" : "no dungeon"} is not a loaded function`, DUNGEON_WARN_COLOR, "Alerts");
+		game_log(`Dungeon loop: ${d ? d.route || "no route" : "no dungeon"} is not a loaded function`, DUNGEON_WARN_COLOR);
 		return;
 	}
 
@@ -681,7 +681,7 @@ async function run_dungeon_loop() {
 			set_dungeon_mode(null);
 		}
 		hold_reset_for_mode(false);
-		log("⚰️ Dungeon loop stopped", "#FFCC00", "Alerts");
+		game_log("⚰️ Dungeon loop stopped", "#FFCC00");
 	}
 }
 

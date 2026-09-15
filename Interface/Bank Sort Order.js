@@ -385,7 +385,7 @@ async function consolidate_bank_floor(packs) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function sort_all_bank() {
-	if (!character.bank) return log("Not inside the bank");
+	if (!character.bank) return game_log("Not inside the bank");
 
 	bank_merge_disabled = false;
 	const floors = bank_floors_with_items();
@@ -412,7 +412,7 @@ async function sort_all_bank() {
 }
 
 function sort_bank_floor(packs_on_floor, inv_indices, sorted_bank, i_running) {
-	if (!character.bank) return log("Not inside the bank");
+	if (!character.bank) return game_log("Not inside the bank");
 
 	if (!inv_indices) {
 	inv_indices = [];
@@ -420,7 +420,7 @@ function sort_bank_floor(packs_on_floor, inv_indices, sorted_bank, i_running) {
 		if (!character.items[i]) inv_indices.push(i);
 	}
 	}
-	if (inv_indices.length == 0) return log("Make some space in inventory");
+	if (inv_indices.length == 0) return game_log("Make some space in inventory");
 	if (!sorted_bank) {
 	let bank_array = [];
 	for (let bank_pack of packs_on_floor) {
@@ -450,7 +450,7 @@ function sort_bank_floor(packs_on_floor, inv_indices, sorted_bank, i_running) {
 			sorted_bank[bank_pack][i]
 			)
 		) {
-			log("Swapping empty " + inv_pointer + " with " + i + bank_pack);
+			game_log("Swapping empty " + inv_pointer + " with " + i + bank_pack);
 			parent.socket.emit("bank", {
 			operation: "swap",
 			pack: bank_pack,
@@ -479,7 +479,7 @@ function sort_bank_floor(packs_on_floor, inv_indices, sorted_bank, i_running) {
 			sorted_bank[bank_pack][i]
 			)
 		) {
-			log({ operation: "swap", pack: bank_pack, str: i, inv: inv_pointer });
+			game_log({ operation: "swap", pack: bank_pack, str: i, inv: inv_pointer });
 			parent.socket.emit("bank", {
 			operation: "swap",
 			inv: inv_pointer,

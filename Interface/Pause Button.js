@@ -18,9 +18,9 @@ function paint_pause_button() {
 function toggle_automation() {
 	const running = set_automation(!automation_enabled());
 	paint_pause_button();
-	log(running ? `▶️ ${character.name} resumed`
+	game_log(running ? `▶️ ${character.name} resumed`
 		: `⏸️ ${character.name} parked — combat, panic and potions still run`,
-		running ? "#00ff00" : "#ffcc00", "Alerts");
+		running ? "#00ff00" : "#ffcc00");
 }
 
 function add_pause_button() {

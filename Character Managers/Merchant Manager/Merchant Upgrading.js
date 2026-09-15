@@ -83,14 +83,14 @@ async function add_grace_to_cap(item_slot) {
 	}
 
 	if (previous_grace >= GRACE_MAX) {
-		log(`✅ Grace already at ${previous_grace} (>= GRACE_MAX ${GRACE_MAX}) for slot ${item_slot} — skipping.`, "limegreen");
+		game_log(`✅ Grace already at ${previous_grace} (>= GRACE_MAX ${GRACE_MAX}) for slot ${item_slot} — skipping.`, "limegreen");
 		return { grace: previous_grace, capped: true };
 	}
 
 	for (let attempt = 0; attempt < GRACE_MAX_OFFERINGS; attempt++) {
 		const offering_slot = character.items.findIndex(it => it && it.name === "offeringp");
 		if (offering_slot === -1) {
-			log(`⚠️ Ran out of offeringp before grace capped (at ${previous_grace}) for slot ${item_slot}.`, "#FFA500");
+			game_log(`⚠️ Ran out of offeringp before grace capped (at ${previous_grace}) for slot ${item_slot}.`, "#FFA500");
 			return { grace: previous_grace, capped: false };
 		}
 
@@ -109,25 +109,25 @@ async function add_grace_to_cap(item_slot) {
 
 		const current_grace = await check_grace(item_slot);
 		if (current_grace == null) {
-			log(`⚠️ Ran out of offeringp (or no grace field) re-checking grace (at ${previous_grace}) for slot ${item_slot}.`, "#FFA500");
+			game_log(`⚠️ Ran out of offeringp (or no grace field) re-checking grace (at ${previous_grace}) for slot ${item_slot}.`, "#FFA500");
 			return { grace: previous_grace, capped: false };
 		}
 
 		if (current_grace <= previous_grace) {
-			log(`✅ Grace capped at ${current_grace} for slot ${item_slot}.`, "limegreen");
+			game_log(`✅ Grace capped at ${current_grace} for slot ${item_slot}.`, "limegreen");
 			return { grace: current_grace, capped: true };
 		}
 
-		log(`Grace: ${previous_grace} -> ${current_grace}`);
+		game_log(`Grace: ${previous_grace} -> ${current_grace}`);
 		previous_grace = current_grace;
 
 		if (previous_grace >= GRACE_MAX) {
-			log(`✅ Grace reached ${previous_grace} (>= GRACE_MAX ${GRACE_MAX}) for slot ${item_slot} — stopping.`, "limegreen");
+			game_log(`✅ Grace reached ${previous_grace} (>= GRACE_MAX ${GRACE_MAX}) for slot ${item_slot} — stopping.`, "limegreen");
 			return { grace: previous_grace, capped: true };
 		}
 	}
 
-	log(`⚠️ Grace still rising after ${GRACE_MAX_OFFERINGS} offerings (at ${previous_grace}) for slot ${item_slot} — stopping as a safety backstop.`, "#FFA500");
+	game_log(`⚠️ Grace still rising after ${GRACE_MAX_OFFERINGS} offerings (at ${previous_grace}) for slot ${item_slot} — stopping as a safety backstop.`, "#FFA500");
 	return { grace: previous_grace, capped: false };
 }
 
@@ -179,7 +179,7 @@ async function withdraw_upgrade_scrolls() {
 
 async function withdraw_offering() {
 
-	log("Withdrawing offeringp for upgrades that require it.");
+	game_log("Withdrawing offeringp for upgrades that require it.");
 
 	try {
 		withdraw_item("offeringp");
@@ -379,10 +379,10 @@ async function auto_upgrade_item(level) {
 		if (!scroll) {
 			const scroll_cost = G.items[scrollname]?.g || 0;
 			if (character.gold < scroll_cost) {
-				log(`❌ Not enough gold to buy ${scrollname} for upgrading ${item.name} (level ${item.level}). Ending auto-upgrade.`);
+				game_log(`❌ Not enough gold to buy ${scrollname} for upgrading ${item.name} (level ${item.level}). Ending auto-upgrade.`);
 				return "end";
 			}
-			log(`Buying ${scrollname} for upgrading ${item.name} (level ${item.level})`);
+			game_log(`Buying ${scrollname} for upgrading ${item.name} (level ${item.level})`);
 			try {
 				await buy(scrollname);
 			} catch (e) {
@@ -393,7 +393,7 @@ async function auto_upgrade_item(level) {
 		}
 
 		if (profile.grace_from !== undefined && item.level >= profile.grace_from && !grace_capped_slots.has(i)) {
-			log(`${item.name} (level ${item.level}): proceeding with best-effort grace (not confirmed capped).`, "#FFA500");
+			game_log(`${item.name} (level ${item.level}): proceeding with best-effort grace (not confirmed capped).`, "#FFA500");
 		}
 
 		let offering_slot = null;
@@ -406,7 +406,7 @@ async function auto_upgrade_item(level) {
 				}
 			}
 			if (offering_slot === null) {
-				log(`Skipping ${item.name} (level ${item.level}): No offeringp found for upgrade requiring it.`);
+				game_log(`Skipping ${item.name} (level ${item.level}): No offeringp found for upgrade requiring it.`);
 				continue;
 			}
 		}
@@ -645,7 +645,7 @@ async function auto_upgrade() {
 		}
 
 		if (abandoned()) {
-			log("⚠️ Upgrading was force-reset by the watchdog — abandoning this run.", "#FFA500");
+			game_log("⚠️ Upgrading was force-reset by the watchdog — abandoning this run.", "#FFA500");
 			return;
 		}
 

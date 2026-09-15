@@ -46,21 +46,21 @@ function record_dungeon_kill(mtype) {
 
 	_dungeon_kills[mtype] = dungeon_kills(mtype) + 1;
 	const name = (G.monsters[mtype] || {}).name || mtype;
-	log(`☠️ ${name} ${dungeon_kills(mtype)}/${quota[mtype]}`, "#88FF88", "Alerts");
+	game_log(`☠️ ${name} ${dungeon_kills(mtype)}/${quota[mtype]}`, "#88FF88");
 
-	if (dungeon_target_done(mtype)) log(`✅ ${name} complete`, "#00FF00", "Alerts");
-	if (dungeon_quota_met()) log("🏆 Dungeon quota complete", "#00FF00", "Alerts");
+	if (dungeon_target_done(mtype)) game_log(`✅ ${name} complete`, "#00FF00");
+	if (dungeon_quota_met()) game_log("🏆 Dungeon quota complete", "#00FF00");
 }
 
 function dungeon_progress_report() {
 	const quota = dungeon_quota();
-	if (!quota) return log("No dungeon quota active", DUNGEON_WARN_COLOR);
+	if (!quota) return game_log("No dungeon quota active", DUNGEON_WARN_COLOR);
 	const mins = Math.round((Date.now() - _dungeon_run_started) / 60000);
-	log(`Dungeon progress (${mins} min):`, DUNGEON_LOG_COLOR);
+	game_log(`Dungeon progress (${mins} min):`, DUNGEON_LOG_COLOR);
 	for (const mtype of Object.keys(quota)) {
 		const name = (G.monsters[mtype] || {}).name || mtype;
 		const mark = dungeon_target_done(mtype) ? "✅" : "  ";
-		log(`${mark} ${name}: ${dungeon_kills(mtype)}/${quota[mtype]}`, DUNGEON_LOG_COLOR);
+		game_log(`${mark} ${name}: ${dungeon_kills(mtype)}/${quota[mtype]}`, DUNGEON_LOG_COLOR);
 	}
 }
 

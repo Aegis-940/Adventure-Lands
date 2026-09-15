@@ -22,8 +22,8 @@ function set_panic(on, reason, external) {
 	panic_external = ext;
 	panic_external_since = ext && on ? Date.now() : 0;
 
-	log(on ? `⚠️ Panic: ${reason}` : `✅ Panic over: ${reason}`,
-		on ? "#ffcc00" : "#00ff00", "Alerts");
+	game_log(on ? `⚠️ Panic: ${reason}` : `✅ Panic over: ${reason}`,
+		on ? "#ffcc00" : "#00ff00");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -109,20 +109,20 @@ async function _panic_check_body() {
 				const in_bags = character.items
 					.filter(i => i && i.name === "jacko")
 					.map(i => "lvl" + (i.level ?? 0)).join(",") || "none";
-				log(`[PANIC] Failed to equip panic orb: ${fmt_err(e)} `
+				game_log(`[PANIC] Failed to equip panic orb: ${fmt_err(e)} `
 					+ `(orb slot: ${orb ? orb.name + " lvl" + (orb.level ?? 0) : "empty"}, `
 					+ `jacko in bags: ${in_bags}, items emitted: ${_panic_last_emit}, cc: ${Math.round(character.cc || 0)})`,
-					"#ff4444", "Errors");
+					"#ff4444");
 			}
 		}
 
 		if (!is_on_cooldown("scare") && can_use("scare")) {
 			try {
-				log("Using Scare!", "#ffcc00", "Alerts");
+				game_log("Using Scare!", "#ffcc00");
 				await use_skill("scare");
 				await delay(200);
 			} catch (e) {
-				log(`[PANIC] Error using scare: ${fmt_err(e)}`, "#ff4444", "Errors");
+				game_log(`[PANIC] Error using scare: ${fmt_err(e)}`, "#ff4444");
 			}
 		}
 	}
@@ -143,7 +143,7 @@ async function _panic_check_body() {
 					await equip_apply(panic_equip_hold(), "orb");
 					await wait_until_equipped("orb");
 				} catch (e) {
-					log(`[PANIC] Failed to equip normal orb: ${fmt_err(e)}`, "#ff4444", "Errors");
+					game_log(`[PANIC] Failed to equip normal orb: ${fmt_err(e)}`, "#ff4444");
 				}
 			}
 

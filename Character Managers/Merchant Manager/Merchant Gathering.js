@@ -14,7 +14,7 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 	try {
 		const tool_available = await ensure_tool_available(tool_name);
 		if (!tool_available) {
-			log(`❌ No ${tool_name} available (not in inventory, bank, or craftable).`);
+			game_log(`❌ No ${tool_name} available (not in inventory, bank, or craftable).`);
 			return;
 		}
 
@@ -24,33 +24,33 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 
 		const tool_equipped = await equip_tool(tool_name);
 		if (!tool_equipped) {
-			log(`❌ Could not equip ${tool_name} at the ${skill_name} spot.`);
+			game_log(`❌ Could not equip ${tool_name} at the ${skill_name} spot.`);
 			return;
 		}
 
 		while (true) {
 			if (my_generation !== merchant_task_generation) {
-				log(`⚠️ ${task_label} was force-reset by the watchdog — abandoning this run.`, "#FFA500");
+				game_log(`⚠️ ${task_label} was force-reset by the watchdog — abandoning this run.`, "#FFA500");
 				return;
 			}
 			if (character.rip) {
-				log(`❌ Died while ${skill_name}, stopping.`);
+				game_log(`❌ Died while ${skill_name}, stopping.`);
 				break;
 			}
 			if (!character.slots.mainhand || character.slots.mainhand.name !== tool_name) {
-				log(`❌ ${tool_name} not equipped, stopping ${skill_name}.`);
+				game_log(`❌ ${tool_name} not equipped, stopping ${skill_name}.`);
 				break;
 			}
 			if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > tolerance) {
-				log(`❌ Not at ${skill_name} spot, stopping.`);
+				game_log(`❌ Not at ${skill_name} spot, stopping.`);
 				break;
 			}
 			if (character.items.filter(Boolean).length >= character.items.length) {
-				log(`📦 Inventory full, stopping ${skill_name}.`);
+				game_log(`📦 Inventory full, stopping ${skill_name}.`);
 				break;
 			}
 			if (is_on_cooldown(skill_name)) {
-				log(`✅ ${skill_name} succeeded — on cooldown now, moving on.`, "limegreen");
+				game_log(`✅ ${skill_name} succeeded — on cooldown now, moving on.`, "limegreen");
 				break;
 			}
 
@@ -60,7 +60,7 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 			} catch (e) {
 				if (e?.reason === "cooldown") {
 					if (++cooldown_retries > GATHERING_MAX_COOLDOWN_RETRIES) {
-						log(`⚠️ ${skill_name}: use_skill kept reporting cooldown while is_on_cooldown() read false — giving up this run.`, "#FFA500");
+						game_log(`⚠️ ${skill_name}: use_skill kept reporting cooldown while is_on_cooldown() read false — giving up this run.`, "#FFA500");
 						break;
 					}
 					await delay(2000);
@@ -76,7 +76,7 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 				await delay(200);
 				channel_wait_ms += 200;
 				if (channel_wait_ms >= 15000) {
-					log(`⚠️ ${skill_name}: still channeling after ${channel_wait_ms / 1000}s per character.c — giving up waiting.`, "#FFA500");
+					game_log(`⚠️ ${skill_name}: still channeling after ${channel_wait_ms / 1000}s per character.c — giving up waiting.`, "#FFA500");
 					break;
 				}
 			}
@@ -88,10 +88,10 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 			catcher(e, `handle_gathering_state(${skill_name}): equip_default_gear`);
 		}
 
-		log(`🏁 ${skill_name} loop ended, selling/banking...`, "#888");
+		game_log(`🏁 ${skill_name} loop ended, selling/banking...`, "#888");
 		await sell_items();
 		await bank_items();
-		log(`✅ Selling/banking finished for ${skill_name}.`, "#888");
+		game_log(`✅ Selling/banking finished for ${skill_name}.`, "#888");
 	} catch (e) {
 		catcher(e, `handle_gathering_state(${skill_name})`);
 	} finally {
@@ -102,7 +102,7 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 				catcher(e, `handle_gathering_state(${skill_name}): equip_default_gear`);
 			}
 			merchant_task = "Idle";
-			log(`🔁 ${task_label} cycle finished, back to Idle.`, "#888");
+			game_log(`🔁 ${task_label} cycle finished, back to Idle.`, "#888");
 		}
 	}
 }

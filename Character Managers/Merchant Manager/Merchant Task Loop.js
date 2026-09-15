@@ -52,7 +52,7 @@ function should_run_upgrade() {
 async function handle_upgrading_state() {
 	if (merchant_task !== "Idle") return;
 	try {
-		log("Starting auto-upgrade process...");
+		game_log("Starting auto-upgrade process...");
 		await auto_upgrade();
 	} catch (e) {
 		catcher(e, "handle_upgrading_state");

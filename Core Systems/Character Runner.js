@@ -137,7 +137,6 @@ function run_character(spec) {
 	const s = spec || {};
 
 	performance_trick();
-	create_custom_log_window();
 	add_bank_buttons();
 	state_cache_loop();
 

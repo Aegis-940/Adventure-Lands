@@ -43,7 +43,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Core Systems/Error Log.js` | Persistent cross-character flight recorder; hooks only, read with `al_errors(true)` |
 | `Dungeons/Dungeon Runner.js` | Shared dungeon machinery — `wait_for_death()`, party entry (`join_dungeon_instance()`/`wait_for_party_in_instance()`), `run_dungeon()`, `start_dungeon_when_ready()` |
 | `Dungeons/Spider Dungeon.js` | The `SPIDER_DUNGEON` definition (entrance, map, boss waypoints) and its `run_`/`start_` wrappers |
-| `Interface/Widget Helpers.js` | `create_bottomrightcorner_widget()` (Gold/XP/CC/DPS meters' container) and `make_draggable()` (used by Custom Log.js/Stats Window.js) — all that survived removing Windows.js |
+| `Interface/Widget Helpers.js` | `create_bottomrightcorner_widget()` (Gold/XP/CC/DPS meters' container) and `make_draggable()` (used by Settings Window.js/Stats Window.js) — all that survived removing Windows.js |
 | `Character Managers/Warrior Manager/Warrior Config.js` | Warrior tunables, gear sets, panic thresholds, `state`/`cache` (character: Ulric) |
 | `Character Managers/Warrior Manager/Warrior Combat.js` | Warrior targeting, the sugar-rush swap trick, `action_loop()`; sets `cache.tank_entity` to **Myras** |
 | `Character Managers/Warrior Manager/Warrior Skills.js` | Warrior skill loop (cleave, agitate, warcry); agitate donates aggro to the tank (stomp/hardshell/charge commented out) |
@@ -83,8 +83,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Interface/CC Meter.js` | Crowd control meter |
 | `Interface/Gold Meter.js` | Gold accumulation display |
 | `Interface/XP Meter.js` | XP tracking display |
-| `Interface/Game Log.js` | The one log window — wraps `parent.add_log`, adds timestamps, category filters (gold/kills/items/errors) and the Log/Filtered tabs, and resizes `#gamelog` 50% wider (leftward, over the canvas) and 25% taller |
-| `Interface/Custom Log.js` | The `log()` shim — routes every call into `al_log_push()`; `create_custom_log_window()` is now just `enhance_game_log()` |
+| `Interface/Game Log.js` | The one log window — wraps `parent.add_log`, adds timestamps, category filters (gold/kills/items/errors) and the Log/Filtered tabs, and resizes `#gamelog` 50% wider (leftward, over the canvas) and 25% taller. Self-starts at load; there is no `log()` any more, everything goes through `game_log()` |
 | `Interface/Pause Button.js` | Per-character pause/resume button — parks automation, leaves combat/panic/upkeep running |
 | `Tools/Error Sink.py` | Local HTTP sink that receives `errlog_sample()` pushes and writes `errors.json` |
 | `Tools/Anniversary Probe.js` | One-off dev probe pasted into a code slot/console; not part of the loaded bot |

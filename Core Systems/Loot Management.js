@@ -273,11 +273,11 @@ async function withdraw_item(item_name, level = null, total = null) {
 			const pack_num = parseInt(pack_key.replace("items", ""), 10);
 			if (!isNaN(pack_num)) {
 				if (pack_num >= 0 && pack_num <= 7 && character.map !== "bank") {
-					log(`Moving to Bank for pack ${pack_key}`);
+					game_log(`Moving to Bank for pack ${pack_key}`);
 					await smarter_move(BANK_LOC1);
 					await delay(200);
 				} else if (pack_num >= 8 && pack_num <= 14 && character.map !== "bank_b") {
-					log(`Moving to Bank Basement for pack ${pack_key}`);
+					game_log(`Moving to Bank Basement for pack ${pack_key}`);
 					await smarter_move(BANK_LOC1);
 					await smarter_move(BANK_LOC2);
 					await delay(200);

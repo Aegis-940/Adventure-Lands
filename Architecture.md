@@ -85,8 +85,7 @@ Interface/*.js                    ← overlay panels (semi-independent)
     ├── CC Meter.js
     ├── Gold Meter.js
     ├── XP Meter.js
-    ├── Game Log.js               mostly commented out — incomplete feature
-    ├── Custom Log.js             custom in-game log window
+    ├── Game Log.js               the one log window — timestamps, category filters, Log/Filtered tabs, resized #gamelog
     ├── Pause Button.js           per-character pause/resume, leaves combat/panic/upkeep running
     └── Settings Window.js        per-character target settings, persisted via localStorage
 
@@ -148,7 +147,7 @@ State transitions are managed in `Global Config.js` and checked each loop tick.
 - Handles fishing and mining for resources
 
 ### UI Overlays
-- Bottom-right-corner meters (Gold/XP/CC/DPS) share `Widget Helpers.js`'s `create_bottomrightcorner_widget()` container; Custom Log.js/Stats Window.js use its `make_draggable()`
+- Bottom-right-corner meters (Gold/XP/CC/DPS) share `Widget Helpers.js`'s `create_bottomrightcorner_widget()` container; Settings Window.js/Stats Window.js use its `make_draggable()`
 - Top-right-corner buttons (🔄 reload, 🏧 bank, ⚙️ settings, ⏸️ pause) were rebuilt piecemeal in their own files after `Buttons.js`/`Windows.js` were removed; the rest of that UI is still pending
 - DPS Meter: per-member damage tracking, rolling event window
 - Stats Window: Canvas-based 30-minute rolling gold accumulation graph
@@ -213,7 +212,6 @@ CONFIG = {
 | Character Managers/Warrior Manager/Warrior Skills.js | 251 |
 | Bootstrapper.js | 235 |
 | Character Managers/Merchant Manager/Merchant Stand.js | 231 |
-| Interface/Custom Log.js | 224 |
 | Character Managers/Healer Manager/Healer Combat.js | 223 |
 | Character Managers/Warrior Manager/Warrior Equipment.js | 212 |
 | Character Managers/Warrior Manager/Warrior Config.js | 212 |

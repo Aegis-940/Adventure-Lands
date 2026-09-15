@@ -20,18 +20,18 @@ function set_dungeon_mode(key, broadcast = true) {
 
 	if (!key) {
 		if (was) {
-			log(dungeon_loop_running()
+			game_log(dungeon_loop_running()
 				? "🪦 Dungeon mode off — finishing this run, then stopping"
-				: "🪦 Dungeon mode off — normal farming resumes", "#FFCC00", "Alerts");
+				: "🪦 Dungeon mode off — normal farming resumes", "#FFCC00");
 		}
 		if (!dungeon_loop_running()) hold_reset_for_mode(false);
 		return;
 	}
 
 	const d = active_dungeon();
-	if (!d) return log(`Dungeon mode: no dungeon named ${key}`, DUNGEON_WARN_COLOR);
+	if (!d) return game_log(`Dungeon mode: no dungeon named ${key}`, DUNGEON_WARN_COLOR);
 
-	log(`⚰️ ${d.name} mode on — events, bosses and farming are ignored`, DUNGEON_LOG_COLOR, "Alerts");
+	game_log(`⚰️ ${d.name} mode on — events, bosses and farming are ignored`, DUNGEON_LOG_COLOR);
 	hold_reset_for_mode(true);
 	if (character.name === MOVEMENT_LEADER && !was) start_active_dungeon_when_ready();
 }
@@ -45,7 +45,7 @@ function toggle_dungeon_mode() {
 	if (dungeon_loop_running() && !dungeon_stop_requested()) {
 		request_dungeon_stop();
 		paint_dungeon_button();
-		log("🪦 Dungeon mode off after this run — press again to stop now", "#FFCC00", "Alerts");
+		game_log("🪦 Dungeon mode off after this run — press again to stop now", "#FFCC00");
 		return;
 	}
 

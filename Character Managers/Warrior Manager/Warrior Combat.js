@@ -43,7 +43,7 @@ function cooperative_luck_logger() {
 		const party_members = Object.keys(get_party() || {});
 		if (mob.target !== character.name && !party_members.includes(mob.target)) return;
 
-		log(`${mob.mtype} died with ${character.luckm} luck`, "#96a4ff", "Alerts");
+		game_log(`${mob.mtype} died with ${character.luckm} luck`, "#96a4ff");
 	});
 }
 
@@ -120,7 +120,7 @@ async function status_swap_trick_check(target) {
 			history.push(swap_trick_attempts);
 			if (history.length > 30) history.shift();
 			const avg = history.reduce((a, b) => a + b, 0) / history.length;
-			log(`${trick.label} activated! Avg attempts: ${avg.toFixed(1)}`, trick.color, "Alerts");
+			game_log(`${trick.label} activated! Avg attempts: ${avg.toFixed(1)}`, trick.color);
 			swap_trick_attempts = 0;
 		}
 	} finally {

@@ -21,13 +21,13 @@ function dungeon_runs_done() {
 function record_dungeon_run() {
 	const n = dungeon_runs_done() + 1;
 	try { localStorage.setItem(COLLECT_RUNS_KEY, String(n)); } catch (e) { }
-	log(`Dungeon run ${n} complete`, DUNGEON_LOG_COLOR, "Alerts");
+	game_log(`Dungeon run ${n} complete`, DUNGEON_LOG_COLOR);
 	return n;
 }
 
 function reset_dungeon_runs() {
 	try { localStorage.removeItem(COLLECT_RUNS_KEY); } catch (e) { }
-	log("Dungeon run counter reset", DUNGEON_LOG_COLOR, "Alerts");
+	game_log("Dungeon run counter reset", DUNGEON_LOG_COLOR);
 }
 
 function collection_due() {
@@ -38,7 +38,7 @@ function collection_due() {
 async function run_dungeon_collection() {
 	if (character.name !== MOVEMENT_LEADER) return false;
 
-	log("📦 Collection: summoning Riff", DUNGEON_LOG_COLOR, "Alerts");
+	game_log("📦 Collection: summoning Riff", DUNGEON_LOG_COLOR);
 	dungeon_telemetry_event("collect_start", { runs: dungeon_runs_done() });
 	send_cm("Riff", { type: "collect_loot" });
 
@@ -54,12 +54,12 @@ async function run_dungeon_collection() {
 	}
 
 	if (!arrived) {
-		log("📦 Collection: Riff never arrived — carrying on", DUNGEON_WARN_COLOR, "Alerts");
+		game_log("📦 Collection: Riff never arrived — carrying on", DUNGEON_WARN_COLOR);
 		dungeon_telemetry_event("collect_end", { ok: false });
 		return false;
 	}
 
-	log("📦 Collection: Riff is here — handing over", DUNGEON_LOG_COLOR, "Alerts");
+	game_log("📦 Collection: Riff is here — handing over", DUNGEON_LOG_COLOR);
 	send_cm(DUNGEON_FOLLOWERS, { type: "send_loot" });
 	try {
 		await send_to_merchant();
@@ -76,7 +76,7 @@ async function run_dungeon_collection() {
 
 		if (left === last) {
 			if (++idle >= COLLECT_IDLE_ROUNDS) {
-				log(`📦 Collection: ${left} item(s) would not transfer — moving on`, DUNGEON_WARN_COLOR, "Alerts");
+				game_log(`📦 Collection: ${left} item(s) would not transfer — moving on`, DUNGEON_WARN_COLOR);
 				break;
 			}
 		} else {
@@ -86,7 +86,7 @@ async function run_dungeon_collection() {
 		await delay(COLLECT_POLL_MS);
 	}
 
-	log("📦 Collection: done", "#00FF00", "Alerts");
+	game_log("📦 Collection: done", "#00FF00");
 	dungeon_telemetry_event("collect_end", { ok: true });
 	return true;
 }

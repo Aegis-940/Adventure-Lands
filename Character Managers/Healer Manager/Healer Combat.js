@@ -149,7 +149,7 @@ async function try_heal() {
 	const is_self = heal_target === character || heal_target.name === character.name;
 
 	if (heal_target.hp < heal_threshold && (is_self || is_in_range(heal_target, "heal"))) {
-		// log(`Healing → ${heal_target.name} (${Math.round((heal_target.hp / heal_target.max_hp) * 100)}%)`, "#33AAFF");
+		// game_log(`Healing → ${heal_target.name} (${Math.round((heal_target.hp / heal_target.max_hp) * 100)}%)`, "#33AAFF");
 		if (basic_action_busy()) return true;
 		run_basic_action(heal(heal_target), "heal");
 		_heal_cast = true;

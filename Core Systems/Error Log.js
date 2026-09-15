@@ -236,17 +236,6 @@ function _errlog_try_wrap_game_log() {
 	};
 }
 
-let _errlog_log_wrapped = false;
-function _errlog_try_wrap_log() {
-	if (_errlog_log_wrapped || typeof log !== "function") return;
-	_errlog_log_wrapped = true;
-	const original_log = log;
-	log = function (msg, color, type) {
-		if (type === "Errors") errlog_record("ingame", msg);
-		return original_log(msg, color, type);
-	};
-}
-
 function _errlog_heal_outcome(snap, outcome) {
 	try {
 		snap.outcome = outcome;
@@ -408,7 +397,6 @@ function _errlog_push() {
 }
 
 setInterval(() => {
-	_errlog_try_wrap_log();
 	_errlog_try_wrap_game_log();
 	_errlog_try_wrap_heal();
 	_errlog_flush();

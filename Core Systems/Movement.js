@@ -186,7 +186,7 @@ function log_local_goal(label) {
 	const now = Date.now();
 	if (now - _local_label_at < 1500) return;
 	_local_label_at = now;
-	log(`🧭 ${label}`, "#8899aa", "Alerts");
+	game_log(`🧭 ${label}`, "#8899aa");
 }
 
 function travel_arbiter(goal) {
@@ -200,7 +200,7 @@ function travel_arbiter(goal) {
 	if (goal.hold) {
 		_travel.active = false;
 		travel_release();
-		if (_travel.label !== goal.label) log(`🧭 ${goal.label}`, "#8899aa", "Alerts");
+		if (_travel.label !== goal.label) game_log(`🧭 ${goal.label}`, "#8899aa");
 		_travel.label = goal.label;
 		return true;
 	}
@@ -256,11 +256,11 @@ function travel_arbiter(goal) {
 
 	const floor = label_changed ? TRAVEL_REGOAL_MS : TRAVEL_REISSUE_MS;
 	if (now - _travel.at > floor && (drifted || foreign || stalled || search_overrun)) {
-		if (stalled) log(`🧭 Re-pathing "${goal.label}" — no ground covered in ${TRAVEL_STALL_MS / 1000}s.`, "#FFA500", "Alerts");
-		if (search_overrun) log(`🧭 Re-pathing "${goal.label}" — pathfinder still searching after ${TRAVEL_SEARCH_MAX_MS / 1000}s.`, "#FFA500", "Alerts");
+		if (stalled) game_log(`🧭 Re-pathing "${goal.label}" — no ground covered in ${TRAVEL_STALL_MS / 1000}s.`, "#FFA500");
+		if (search_overrun) game_log(`🧭 Re-pathing "${goal.label}" — pathfinder still searching after ${TRAVEL_SEARCH_MAX_MS / 1000}s.`, "#FFA500");
 		if (smart.moving) stop_movement("arbiter: " + goal.label);
 		_travel.at = now;
-		if (_travel.label !== goal.label) log(`🧭 ${goal.label}`, "#8899aa", "Alerts");
+		if (_travel.label !== goal.label) game_log(`🧭 ${goal.label}`, "#8899aa");
 		_travel.label = goal.label;
 		_travel.active = true;
 		_travel.anchor = null;

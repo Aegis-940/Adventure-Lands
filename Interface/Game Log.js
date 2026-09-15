@@ -105,7 +105,11 @@ function al_log_render_all() {
 
 function al_log_hook() {
 	const st = al_log_state();
-	if (st.hooked || typeof parent.add_log !== "function") return;
+	if (st.hooked) return;
+	if (typeof parent.add_log !== "function") {
+		st.hooked = true;
+		return void game_log("⚠️ Game log: parent.add_log is missing — native lines stay untimestamped and unfilterable", "#FFA500");
+	}
 
 	st.hooked = true;
 	parent.__al_add_log = parent.add_log;
@@ -294,3 +298,10 @@ function enhance_game_log() {
 		parent.addEventListener("resize", () => setTimeout(al_log_apply_geometry, 100));
 	}
 }
+
+(function start_game_log() {
+	if (!parent.document.getElementById("gamelog")) {
+		return void setTimeout(start_game_log, 100);
+	}
+	enhance_game_log();
+})();

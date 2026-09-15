@@ -18,7 +18,7 @@ async function handle_buy_potions() {
 			}
 			const to_buy = MAX_POTS - total;
 			if (to_buy > MIN_BUY) {
-				log(`🧪 Buying ${to_buy} x ${pot} (you have ${total})`);
+				game_log(`🧪 Buying ${to_buy} x ${pot} (you have ${total})`);
 				buy(pot, to_buy);
 			}
 		}
@@ -48,7 +48,7 @@ async function handle_collect_loot() {
 			send_cm(name, { type: "send_loot" });
 			await delay(200);
 		}
-		log("Requested loot from nearby party members.", "limegreen");
+		game_log("Requested loot from nearby party members.", "limegreen");
 		last_loot_time = Date.now();
 	} catch (e) {
 		catcher(e, "handle_collect_loot");
