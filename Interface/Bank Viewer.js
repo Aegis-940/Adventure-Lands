@@ -102,7 +102,7 @@ function render_items(floors) {
 	bank_floor_counts = floors.map(f => `${f.used}/${f.total}`);
 
 	let html = `
-	<div style="position:relative; box-sizing:border-box; display:flex; flex-direction:column; border:5px solid gray; background:black; padding:10px; width:80vw; height:80vh;">
+	<div style="position:fixed; left:50%; top:8vh; transform:translateX(-50%); z-index:100; box-sizing:border-box; display:flex; flex-direction:column; border:5px solid gray; background:black; padding:10px; width:80vw; max-width:1200px; min-width:520px; min-height:300px; max-height:84vh;">
 		<div id="bank-slot-count" style="position:absolute; top:5px; right:10px; font-size:24px; color:white; z-index:10;">
 		${bank_floor_counts[bank_floor_view]}
 		</div>
@@ -118,7 +118,7 @@ function render_items(floors) {
 	});
 
 	html += `<div style="clear:both;"></div></div>`;
-	html += `<div style="flex:1 1 auto; overflow-y:auto; overflow-x:hidden;">`;
+	html += `<div style="flex:0 1 auto; overflow-y:auto; overflow-x:hidden;">`;
 
 	floors.forEach((floor, i) => {
 	html += `<div id="bank-floor-${i}" style="display:${i === bank_floor_view ? "block" : "none"};">`;
