@@ -161,16 +161,18 @@ function stackable_bank_item(item) {
 	return !!item && !item.l && !item.b && bank_stack_cap(item.name) > 1;
 }
 
+const INVENTORY_SLOTS = 42;
+
 function free_inventory_slots() {
 	const free = [];
-	for (let i = 0; i < character.items.length; i++) if (!character.items[i]) free.push(i);
+	for (let i = 0; i < INVENTORY_SLOTS; i++) if (!character.items[i]) free.push(i);
 	return free;
 }
 
 function inventory_slots_of(key) {
 	const slots = [];
 
-	for (let i = 0; i < character.items.length; i++) {
+	for (let i = 0; i < INVENTORY_SLOTS; i++) {
 		const itm = character.items[i];
 		if (itm && bank_stack_key(itm) === key) slots.push(i);
 	}
@@ -246,7 +248,7 @@ async function pull_bank_slot(entry) {
 	);
 
 	if (!ok) {
-		game_log(`⚠️ Consolidation could not withdraw ${entry.key.split("|")[0]}`, "#FFA500");
+		game_log(`⚠️ Could not withdraw ${entry.key.split("|")[0]} from ${entry.pack}:${entry.slot}`, "#FFA500");
 		return -1;
 	}
 
@@ -256,21 +258,15 @@ async function pull_bank_slot(entry) {
 }
 
 async function split_off(inv_slot, key, amount) {
-	const empty_before = free_inventory_slots();
-
 	const find_piece = function () {
-		const here = character.items[inv_slot];
-		if (here && bank_stack_key(here) === key && (here.q || 1) === amount) return inv_slot;
-		for (const slot of empty_before) {
-			const itm = character.items[slot];
-			if (itm && bank_stack_key(itm) === key && (itm.q || 1) === amount) return slot;
-		}
-		return -1;
+		const found = inventory_slots_of(key).filter((slot) => item_q(slot) === amount);
+		return found.length ? found[0] : -1;
 	};
 
 	const ok = await bank_op(() => split(inv_slot, amount), () => find_piece() >= 0);
 	if (!ok) {
-		game_log(`⚠️ Consolidation could not split ${key.split("|")[0]}`, "#FFA500");
+		const held = inventory_slots_of(key).map((slot) => item_q(slot)).join("/");
+		game_log(`⚠️ Split of ${key.split("|")[0]} for ${amount} gave ${held || "nothing"}`, "#FFA500");
 		return -1;
 	}
 
@@ -321,6 +317,7 @@ async function consolidate_stack_group(group, packs) {
 		const target = partials[0];
 		const donor = partials[partials.length - 1];
 		const need = cap - target.q;
+		game_log(`🧺 ${name} ${donor.pack}:${donor.slot} q${donor.q} → ${target.pack}:${target.slot} q${target.q}, need ${need}`, "#999999");
 
 		const pulled = await pull_bank_slot(donor);
 		if (pulled < 0) break;
