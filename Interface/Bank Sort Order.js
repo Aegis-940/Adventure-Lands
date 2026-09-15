@@ -178,6 +178,20 @@ function inventory_slots_of(key) {
 	return slots;
 }
 
+function bank_slots_of(packs, key) {
+	const slots = [];
+
+	for (const pack of packs) {
+		const arr = character.bank[pack];
+		if (!Array.isArray(arr)) continue;
+		for (let i = 0; i < arr.length; i++) {
+			if (arr[i] && bank_stack_key(arr[i]) === key) slots.push({ key, pack, slot: i, q: arr[i].q || 1 });
+		}
+	}
+
+	return slots;
+}
+
 function find_partial_bank_stacks(packs) {
 	const groups = {};
 
@@ -224,7 +238,7 @@ async function pull_bank_slot(entry) {
 	);
 
 	if (!ok) {
-		game_log(`⚠️ Consolidation could not withdraw ${entry.key}`, "#FFA500");
+		game_log(`⚠️ Consolidation could not withdraw ${entry.key.split("|")[0]}`, "#FFA500");
 		return -1;
 	}
 
@@ -247,32 +261,30 @@ async function split_off(inv_slot, key, amount) {
 
 	const ok = await bank_op(() => split(inv_slot, amount), () => find_piece() >= 0);
 	if (!ok) {
-		game_log(`⚠️ Consolidation could not split ${key}`, "#FFA500");
+		game_log(`⚠️ Consolidation could not split ${key.split("|")[0]}`, "#FFA500");
 		return -1;
 	}
 
 	return find_piece();
 }
 
-async function store_onto(inv_slot, pack, slot) {
-	const before = character.bank[pack][slot];
-	const before_q = before ? before.q || 1 : 0;
+async function stack_into_pack(inv_slot, pack, key, packs) {
+	const occupied = bank_slots_of(packs, key).length;
 
-	const ok = await bank_op(
-		() => bank_store(inv_slot, pack, slot),
-		() => {
-			const after = character.bank[pack][slot];
-			return !!after && (after.q || 1) > before_q && !character.items[inv_slot];
-		}
+	return await bank_op(
+		() => bank_store(inv_slot, pack),
+		() => !character.items[inv_slot] && bank_slots_of(packs, key).length <= occupied
 	);
-
-	if (!ok) game_log(`⚠️ Consolidation could not store into ${pack}:${slot}`, "#FFA500");
-	return ok;
 }
 
-async function consolidate_stack_group(group) {
+async function put_back(inv_slot, pack) {
+	return await bank_op(() => bank_store(inv_slot, pack), () => !character.items[inv_slot]);
+}
+
+async function consolidate_stack_group(group, packs) {
 	const key = group[0].key;
 	const cap = group[0].cap;
+
 	if (inventory_slots_of(key).length) {
 		game_log(`⏭️ Skipped ${key.split("|")[0]} — already in inventory`, "#999999");
 		return 0;
@@ -283,49 +295,36 @@ async function consolidate_stack_group(group) {
 		return 0;
 	}
 
-	const banked_q = function (entry) {
-		const itm = character.bank[entry.pack][entry.slot];
-		return itm && bank_stack_key(itm) === key ? itm.q || 1 : 0;
-	};
-
-	const queue = group.slice().sort((a, b) => b.q - a.q);
-	let target = queue.shift();
 	let topped = 0;
 
-	for (const donor of queue) {
-		if (bank_merge_disabled) break;
+	for (let step = 0; step < group.length * 2 && !bank_merge_disabled; step++) {
+		const partials = bank_slots_of(packs, key).filter((entry) => entry.q < cap);
+		if (partials.length < 2) break;
 
-		const held = banked_q(donor);
-		const need = cap - banked_q(target);
-		if (need <= 0 || held <= 0) {
-			target = donor;
-			continue;
-		}
+		partials.sort((a, b) => b.q - a.q);
+		const target = partials[0];
+		const donor = partials[partials.length - 1];
+		const need = cap - target.q;
 
 		const inv = await pull_bank_slot(donor);
-		if (inv < 0) continue;
+		if (inv < 0) break;
 
-		const splitting = held > need;
 		let give = inv;
-		if (splitting) {
+		if (donor.q > need) {
 			give = await split_off(inv, key, need);
 			if (give < 0) {
-				await store_onto(inv, donor.pack, donor.slot);
-				continue;
+				await put_back(inv, donor.pack);
+				break;
 			}
 		}
 
-		if (await store_onto(give, target.pack, target.slot)) topped++;
+		if (await stack_into_pack(give, target.pack, key, packs)) topped++;
 		else {
 			bank_merge_disabled = true;
 			game_log("⚠️ Bank slots did not stack, consolidation stopped", "#FFA500");
 		}
 
-		for (const slot of inventory_slots_of(key)) {
-			await store_onto(slot, donor.pack, donor.slot);
-		}
-
-		if (splitting && !bank_merge_disabled) target = donor;
+		for (const slot of inventory_slots_of(key)) await put_back(slot, donor.pack);
 	}
 
 	return topped;
@@ -341,7 +340,7 @@ async function consolidate_bank_floor(packs) {
 		let changed = false;
 		for (const group of groups) {
 			if (bank_merge_disabled) break;
-			const gained = await consolidate_stack_group(group);
+			const gained = await consolidate_stack_group(group, packs);
 			if (gained > 0) {
 				topped += gained;
 				changed = true;
