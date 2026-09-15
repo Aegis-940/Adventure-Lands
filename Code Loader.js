@@ -39,10 +39,10 @@
 		return;
 	}
 
-	function get(url, tries) {
+	function get(url, mode, tries) {
 		tries = tries || 0;
 		return Promise.race([
-			fetch(url, { cache: "no-store" }),
+			fetch(url, { cache: mode || "no-store" }),
 			new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), TIMEOUT_MS))
 		])
 			.then(res => {
@@ -50,10 +50,12 @@
 				return res.text();
 			})
 			.catch(e => {
-				if (tries < RETRIES) return get(url, tries + 1);
+				if (tries < RETRIES) return get(url, mode, tries + 1);
 				throw e;
 			});
 	}
+
+	let pinned = false;
 
 	function resolve_base() {
 		return get(SHA_URL + "?_=" + Date.now())
@@ -62,6 +64,7 @@
 				if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error("bad sha");
 				window.__AL_BASE__ = `https://cdn.jsdelivr.net/gh/${REPO}@${sha}/`;
 				window.__AL_BASE_SET_AT__ = Date.now();
+				pinned = true;
 				say("[AL] pinned to " + sha.slice(0, 7));
 				return window.__AL_BASE__;
 			})
@@ -72,7 +75,7 @@
 	}
 
 	resolve_base()
-		.then(base => get(base + "Bootstrapper.js"))
+		.then(base => get(base + "Bootstrapper.js", pinned ? "default" : "no-store"))
 		.then(text => (0, eval)(text))
 		.catch(e => say("❌ Bootstrapper load failed: " + e.message));
 })();

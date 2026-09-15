@@ -9,7 +9,8 @@
 	if (!p$) {
 		return void game_log("❌ [Bootstrapper99] jQuery not found!");
 	}
-	p$.ajaxSetup({ cache: false });
+
+	let CACHE_OK = false;
 
 	const first_script = "Core Systems/Global Config.js";
 
@@ -94,8 +95,6 @@
 
 	const MAX_RETRIES = 3;
 
-	let FILE_SUFFIX = "";
-
 	const CRITICAL_SCRIPTS = [
 		"Core Systems/Global Config.js",
 		"Core Systems/Movement.js",
@@ -119,10 +118,10 @@
 	];
 
 	function load_one(base, name) {
-		const url = base + encodeURI(name) + FILE_SUFFIX;
+		const url = base + encodeURI(name);
 		return new Promise(resolve => {
 			function attempt(retries) {
-				p$.getScript(url)
+				p$.ajax({ url: url, dataType: "script", cache: CACHE_OK })
 					.done(() => resolve(true))
 					.fail((_, s, e) => {
 						if (retries < MAX_RETRIES) {
@@ -139,61 +138,41 @@
 		});
 	}
 
-	function count_braces_excluding_literals(text) {
-		const stripped = text
-			.replace(/\/\*[\s\S]*?\*\//g, "")
-			.replace(/\/\/[^\n]*/g, "")
-			.replace(/`(?:\\.|[^`\\])*`/g, "")
-			.replace(/"(?:\\.|[^"\\])*"/g, "")
-			.replace(/'(?:\\.|[^'\\])*'/g, "");
-		return {
-			opens: (stripped.match(/{/g) || []).length,
-			closes: (stripped.match(/}/g) || []).length
-		};
-	}
-
-	function load_role_file(base, name) {
-		const url = base + encodeURI(name) + FILE_SUFFIX;
+	function fetch_role_file(base, name) {
+		const url = base + encodeURI(name);
 		return new Promise(resolve => {
 			function attempt(retries) {
-				p$.get(url, function(text) {
-					console.log("[BS] Fetched", name, "length=", text.length);
-					console.log("[BS] Start of", name, ":\n", text.slice(0, 200));
-					console.log("[BS] End of",   name, ":\n", text.slice(-200));
-					const { opens, closes } = count_braces_excluding_literals(text);
-					console.log("[BS] brace counts { } →", opens, closes);
-					if (opens !== closes) {
-						console.warn("[BS] Brace mismatch detected in", name);
-					}
-					if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-					text = text.replace(new RegExp("[\\u200B-\\u200D\\uFEFF]", "g"), "");
-					try {
-						(0, eval)(text);
-					} catch (e) {
-						game_log("❌ " + name + " eval error: " + e.message);
-						console.error(e);
-					}
-					resolve();
-				}).fail((_, s, e) => {
-					if (retries < MAX_RETRIES) {
-						game_log(`🔄 Retrying to load ${name} (${retries + 1}/${MAX_RETRIES})...`);
-						setTimeout(() => attempt(retries + 1), 500 + 500 * retries);
-					} else {
-						game_log("❌ Failed to fetch " + name + ": " + s);
-						console.error("URL:", url, "err:", e);
-						resolve();
-					}
-				});
+				p$.ajax({ url: url, dataType: "text", cache: CACHE_OK })
+					.done(text => resolve(text))
+					.fail((_, s, e) => {
+						if (retries < MAX_RETRIES) {
+							game_log(`🔄 Retrying to load ${name} (${retries + 1}/${MAX_RETRIES})...`);
+							setTimeout(() => attempt(retries + 1), 500 + 500 * retries);
+						} else {
+							game_log("❌ Failed to fetch " + name + ": " + s);
+							console.error("URL:", url, "err:", e);
+							resolve(null);
+						}
+					});
 			}
 			attempt(0);
 		});
 	}
 
-	function load_sequential(names, loader) {
-		return names.reduce((chain, name) => chain.then(() => loader(name)), Promise.resolve());
+	function eval_role_file(name, text) {
+		if (text === null) return;
+		if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+		text = text.replace(new RegExp("[\\u200B-\\u200D\\uFEFF]", "g"), "");
+		try {
+			(0, eval)(text);
+		} catch (e) {
+			game_log("❌ " + name + " eval error: " + e.message);
+			console.error(e);
+		}
 	}
 
 	function start_loading(base) {
+		const role_texts = Promise.all(role_file.map(name => fetch_role_file(base, name)));
 		load_one(base, first_script)
 			.then(ok => {
 				if (!ok) {
@@ -212,8 +191,11 @@
 					console.error("[BS] Critical script(s) failed to load, aborting role-file load:", names);
 					return;
 				}
-				return load_sequential(role_file, name => load_role_file(base, name))
-					.then(() => game_log("✅ All scripts loaded."));
+				return role_texts
+					.then(texts => {
+						role_file.forEach((name, i) => eval_role_file(name, texts[i]));
+						game_log("✅ All scripts loaded.");
+					});
 			});
 	}
 
@@ -223,20 +205,21 @@
 		p$.getJSON("https://api.github.com/repos/Aegis-940/Adventure-Lands/commits/main?_=" + Date.now())
 			.done(repo_data => {
 				const base = "https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@" + repo_data.sha + "/";
-				FILE_SUFFIX = "";
 				window.__AL_BASE__ = base;
 				window.__AL_BASE_SET_AT__ = Date.now();
+				CACHE_OK = true;
 				game_log("📦 Loading commit " + repo_data.sha.slice(0, 7));
 				start_loading(base);
 			})
 			.fail(() => {
-				FILE_SUFFIX = "";
+				CACHE_OK = false;
 				game_log("⚠️ Couldn't fetch SHA (GitHub rate limit?) — falling back to @main, which jsDelivr caches for 12h", "#FFA500");
 				start_loading("https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/");
 			});
 	}
 
 	if (window.__AL_BASE__ && window.__AL_BASE_SET_AT__ && (Date.now() - window.__AL_BASE_SET_AT__) < MAX_BASE_AGE_MS) {
+		CACHE_OK = true;
 		start_loading(window.__AL_BASE__);
 	} else {
 		resolve_and_load();
