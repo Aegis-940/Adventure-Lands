@@ -198,61 +198,85 @@ function find_partial_bank_stacks(packs) {
 	return Object.values(groups).filter((group) => group.length > 1);
 }
 
-async function pull_bank_slot(entry) {
+const BANK_OP_TIMEOUT = 4000;
+
+async function bank_op(start, done) {
 	try {
-		await bank_retrieve(entry.pack, entry.slot, -1);
+		const promise = start();
+		if (promise && promise.catch) promise.catch(() => { });
 	} catch (e) {
+		return false;
+	}
+
+	const until = Date.now() + BANK_OP_TIMEOUT;
+	while (Date.now() < until) {
+		await delay(100);
+		if (done()) return true;
+	}
+
+	return false;
+}
+
+async function pull_bank_slot(entry) {
+	const ok = await bank_op(
+		() => bank_retrieve(entry.pack, entry.slot, -1),
+		() => inventory_slots_of(entry.key).length > 0
+	);
+
+	if (!ok) {
 		game_log(`⚠️ Consolidation could not withdraw ${entry.key}`, "#FFA500");
 		return -1;
 	}
 
-	await delay(200);
 	const held = inventory_slots_of(entry.key);
-	return held.length ? held[held.length - 1] : -1;
+	return held[held.length - 1];
 }
 
 async function split_off(inv_slot, key, amount) {
 	const empty_before = free_inventory_slots();
 
-	try {
-		await split(inv_slot, amount);
-	} catch (e) {
+	const find_piece = function () {
+		const here = character.items[inv_slot];
+		if (here && bank_stack_key(here) === key && (here.q || 1) === amount) return inv_slot;
+		for (const slot of empty_before) {
+			const itm = character.items[slot];
+			if (itm && bank_stack_key(itm) === key && (itm.q || 1) === amount) return slot;
+		}
+		return -1;
+	};
+
+	const ok = await bank_op(() => split(inv_slot, amount), () => find_piece() >= 0);
+	if (!ok) {
 		game_log(`⚠️ Consolidation could not split ${key}`, "#FFA500");
 		return -1;
 	}
 
-	await delay(200);
-	const here = character.items[inv_slot];
-	if (here && bank_stack_key(here) === key && (here.q || 1) === amount) return inv_slot;
-
-	for (const slot of empty_before) {
-		const itm = character.items[slot];
-		if (itm && bank_stack_key(itm) === key && (itm.q || 1) === amount) return slot;
-	}
-
-	return -1;
+	return find_piece();
 }
 
 async function store_onto(inv_slot, pack, slot) {
 	const before = character.bank[pack][slot];
 	const before_q = before ? before.q || 1 : 0;
 
-	try {
-		await bank_store(inv_slot, pack, slot);
-	} catch (e) {
-		game_log(`⚠️ Consolidation could not store into ${pack}:${slot}`, "#FFA500");
-		return false;
-	}
+	const ok = await bank_op(
+		() => bank_store(inv_slot, pack, slot),
+		() => {
+			const after = character.bank[pack][slot];
+			return !!after && (after.q || 1) > before_q && !character.items[inv_slot];
+		}
+	);
 
-	await delay(200);
-	const after = character.bank[pack][slot];
-	return !!after && (after.q || 1) > before_q && !character.items[inv_slot];
+	if (!ok) game_log(`⚠️ Consolidation could not store into ${pack}:${slot}`, "#FFA500");
+	return ok;
 }
 
 async function consolidate_stack_group(group) {
 	const key = group[0].key;
 	const cap = group[0].cap;
-	if (inventory_slots_of(key).length) return 0;
+	if (inventory_slots_of(key).length) {
+		game_log(`⏭️ Skipped ${key.split("|")[0]} — already in inventory`, "#999999");
+		return 0;
+	}
 
 	if (free_inventory_slots().length < 2) {
 		game_log("⚠️ Bank consolidation needs 2 free inventory slots");
