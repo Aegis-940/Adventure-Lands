@@ -113,6 +113,7 @@
 		"Dungeons/Dungeon Runner.js",
 		"Dungeons/Dungeon Escape.js",
 		"Interface/Custom Log.js",
+		"Interface/Game Log.js",
 		"Interface/Widget Helpers.js",
 		"Interface/Bank Viewer.js",
 	];
