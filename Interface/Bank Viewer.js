@@ -1,5 +1,14 @@
 const STACK_BANK_ITEMS = true;
 
+const BANK_FLOORS = [
+	{ label: "Ground", first: 0, last: 7 },
+	{ label: "Basement", first: 8, last: 23 },
+	{ label: "Upstairs", first: 24, last: 47 }
+];
+
+let bank_floor_view = 0;
+let bank_floor_counts = [];
+
 function pretty3(q) {
 	if (q < 10_000) return `${q}`;
 	if (q >= 1_000_000) return q >= 100_000_000 ? `${Math.floor(q / 1_000_000)}m` : `${strip(q / 1_000_000)}m`;
@@ -27,14 +36,9 @@ function load_bank_from_local_storage() {
 	return null;
 }
 
-function render_items(categories, used, total) {
+function render_floor_categories(categories) {
 	categories = categories.filter(([, items]) => items.length > 0);
-	let html = `
-	<div style="position:relative; border:5px solid gray; background:black; padding:10px; width:90%; height:90%;">
-		<div style="position:absolute; top:5px; right:10px; font-size:24px; color:white; z-index:10;">
-		${used}/${total}
-		</div>
-	`;
+	let html = "";
 
 	categories.forEach(([label, items]) => {
 	html += `
@@ -79,7 +83,49 @@ function render_items(categories, used, total) {
 	html += `</div></div>`;
 	});
 
+	html += `<div style="clear:both;"></div>`;
+	return html;
+}
+
+function select_bank_floor(index) {
+	const $ = parent.$;
+	bank_floor_view = index;
+	BANK_FLOORS.forEach((floor, i) => {
+	$(`#bank-floor-${i}`).css("display", i === index ? "block" : "none");
+	$(`#bank-tab-${i}`).css("color", i === index ? "#ffd400" : "");
+	});
+	$("#bank-slot-count").text(bank_floor_counts[index] || "");
+}
+
+function render_items(floors) {
+	if (bank_floor_view >= floors.length) bank_floor_view = 0;
+	bank_floor_counts = floors.map(f => `${f.used}/${f.total}`);
+
+	let html = `
+	<div style="position:relative; border:5px solid gray; background:black; padding:10px; width:90%; height:90%;">
+		<div id="bank-slot-count" style="position:absolute; top:5px; right:10px; font-size:24px; color:white; z-index:10;">
+		${bank_floor_counts[bank_floor_view]}
+		</div>
+		<div style="margin-bottom:10px;">
+	`;
+
+	floors.forEach((floor, i) => {
+	html += `
+		<div id="bank-tab-${i}" class="gamebutton gamebutton-small"
+			 style="float:left; margin-right:5px; ${i === bank_floor_view ? "color:#ffd400;" : ""}"
+			 onclick="parent.$('#maincode')[0].contentWindow.select_bank_floor(${i})">${floor.label}</div>
+	`;
+	});
+
 	html += `<div style="clear:both;"></div></div>`;
+
+	floors.forEach((floor, i) => {
+	html += `<div id="bank-floor-${i}" style="display:${i === bank_floor_view ? "block" : "none"};">`;
+	html += render_floor_categories(floor.categories);
+	html += `</div>`;
+	});
+
+	html += `</div>`;
 
 	parent.hide_modal();
 	parent.show_modal(html, {
@@ -89,10 +135,7 @@ function render_items(categories, used, total) {
 	});
 }
 
-function render_bank_items() {
-	const bank_data = character.bank || load_bank_from_local_storage();
-	if (!bank_data) return;
-
+function collect_floor_categories(bank_data, packs) {
 	const slot_ids = [
 	"helmet","chest","pants","gloves","shoes","cape","ring",
 	"earring","amulet","belt","orb","weapon","shield",
@@ -127,11 +170,11 @@ function render_bank_items() {
 		(type === "exchange" && def.e)
 		) {
 		let slice = [];
-		for (let pack in bank_data) {
+		packs.forEach(pack => {
 			let arr = bank_data[pack];
-			if (!Array.isArray(arr)) continue;
+			if (!Array.isArray(arr)) return;
 			arr.forEach(it => { if (it && it.name === id) slice.push(it); });
-		}
+		});
 		slice.sort(itm_cmp);
 		categories[ci][1].push(slice);
 		break;
@@ -155,15 +198,34 @@ function render_bank_items() {
 	cat[1].sort((a, b) => (a.name === b.name ? 0 : (a.name > b.name ? 1 : -1)));
 	});
 
-	let used = 0, total = 0;
-	Object.values(bank_data).forEach(arr => {
-	if (Array.isArray(arr)) {
-		total += arr.length;
-		used += arr.filter(x => !!x).length;
+	return categories;
+}
+
+function render_bank_items() {
+	const bank_data = character.bank || load_bank_from_local_storage();
+	if (!bank_data) return;
+
+	const floors = BANK_FLOORS.map(floor => {
+	const packs = [];
+	for (let i = floor.first; i <= floor.last; i++) {
+		if (Array.isArray(bank_data[`items${i}`])) packs.push(`items${i}`);
 	}
+
+	let used = 0, total = 0;
+	packs.forEach(pack => {
+		total += bank_data[pack].length;
+		used += bank_data[pack].filter(x => !!x).length;
 	});
 
-	render_items(categories, used, total);
+	return {
+		label: floor.label,
+		categories: collect_floor_categories(bank_data, packs),
+		used,
+		total
+	};
+	});
+
+	render_items(floors);
 	save_bank_local();
 }
 
