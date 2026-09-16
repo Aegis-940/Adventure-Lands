@@ -32,6 +32,21 @@ function clear_offhand_for_doublehand(valid_items) {
 	return true;
 }
 
+const MAINHAND_FLIGHT_MS = 1500;
+
+var _mainhand_flight = { pending: null, until: 0 };
+
+function mainhand_in_flight() {
+	if (!_mainhand_flight.pending) return null;
+	if (Date.now() > _mainhand_flight.until) _mainhand_flight.pending = null;
+	else if (character.slots?.mainhand?.name === _mainhand_flight.pending) _mainhand_flight.pending = null;
+	return _mainhand_flight.pending;
+}
+
+function mainhand_intent() {
+	return mainhand_in_flight() || character.slots?.mainhand?.name || null;
+}
+
 async function batch_equip(data, set_name) {
 	if (!Array.isArray(data)) {
 		return Promise.reject({ reason: "invalid", message: "Not an array" });
@@ -87,6 +102,12 @@ async function batch_equip(data, set_name) {
 	if (valid_items.length === 0) return 0;
 
 	clear_offhand_for_doublehand(valid_items);
+
+	const mainhand_swap = valid_items.find(v => v.slot === "mainhand");
+	if (mainhand_swap) {
+		_mainhand_flight.pending = parent.character.items[mainhand_swap.num]?.name || null;
+		_mainhand_flight.until = Date.now() + MAINHAND_FLIGHT_MS;
+	}
 
 	try {
 		parent.socket.emit("equip_batch", valid_items);

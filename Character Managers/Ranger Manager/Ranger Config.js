@@ -24,6 +24,7 @@ var CONFIG = {
 		cupid_engage_pct: 0.66,
 		cupid_engage_pct_no_healer: 0.9,
 		cupid_release_margin: 0.14,
+		cupid_arm_ms: 400,
 
 		sample_hits: true,
 	},

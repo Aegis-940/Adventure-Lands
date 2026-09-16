@@ -191,6 +191,7 @@ function choose_attack_option(primary) {
 }
 
 var _cupid_engaged = false;
+var _cupid_dip_since = 0;
 
 function cupid_blocked() {
 	if (!set_available("heal")) return true;
@@ -202,6 +203,7 @@ function cupid_blocked() {
 function find_cupid_target() {
 	if (cupid_blocked()) {
 		_cupid_engaged = false;
+		_cupid_dip_since = 0;
 		return null;
 	}
 
@@ -217,14 +219,29 @@ function find_cupid_target() {
 	for (const name of party) {
 		if (name === character.name) continue;
 		const ally = get_player(name);
-		if (ally?.hp && ally?.max_hp && !ally.rip) {
+		if (ally?.hp && ally?.max_hp && !ally.rip && is_in_range(ally)) {
 			const pct = ally.hp / ally.max_hp;
 			if (pct < min_pct) { min_pct = pct; target = ally; }
 		}
 	}
 
-	_cupid_engaged = min_pct < (_cupid_engaged ? release : engage);
-	return _cupid_engaged ? target : null;
+	if (_cupid_engaged) {
+		_cupid_engaged = min_pct < release;
+		if (!_cupid_engaged) _cupid_dip_since = 0;
+		return _cupid_engaged ? target : null;
+	}
+
+	const now = Date.now();
+	if (min_pct >= engage) {
+		_cupid_dip_since = 0;
+		return null;
+	}
+
+	if (!_cupid_dip_since) _cupid_dip_since = now;
+	if (now - _cupid_dip_since < CONFIG.combat.cupid_arm_ms) return null;
+
+	_cupid_engaged = true;
+	return target;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -253,12 +270,12 @@ async function action_loop() {
 		update_cache();
 		const ms = ms_to_next_skill("attack");
 
-		const cupid_on = character.slots?.mainhand?.name === "cupid";
+		const cupid_live = mainhand_intent() === "cupid";
 		const want_heal = !!cache.heal_target;
 
 		if (ms === 0 && !travel_blocks_combat() && !basic_action_busy()) {
-			if (want_heal && cupid_on) run_basic_action(cupid_heal(cache.heal_target), "cupid");
-			else if (!want_heal && !cupid_on) handle_attack();
+			if (want_heal && cupid_live) run_basic_action(cupid_heal(cache.heal_target), "cupid");
+			else if (!want_heal && !cupid_live) handle_attack();
 			else next_delay = next_action_delay(ms);
 		} else {
 			next_delay = next_action_delay(ms);

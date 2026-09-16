@@ -73,7 +73,7 @@ async function skill_loop() {
 			: (dungeon_flag("single_target") ? in_range[0] : sorted_by_value[0]);
 		if (!target || !is_in_range(target)) return setTimeout(skill_loop, loop_next("skill_loop", 100));
 
-		if (cache.heal_target || character.slots?.mainhand?.name === "cupid") return setTimeout(skill_loop, loop_next("skill_loop", 100));
+		if (cache.heal_target || mainhand_intent() === "cupid") return setTimeout(skill_loop, loop_next("skill_loop", 100));
 
 		const ms_hunter = ms_to_next_skill("huntersmark");
 		const ms_super = ms_to_next_skill("supershot");
