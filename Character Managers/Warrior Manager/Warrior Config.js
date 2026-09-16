@@ -16,7 +16,7 @@ var CONFIG = {
 		cleave_blacklist: ["pppompom"],
 		cleave_boss_blacklist: ["franky", "icegolem"],
 		agitate_min_mobs: 2,
-		agitate_blacklist: ["plantoid", "pppompom"],
+		agitate_blacklist: ["pppompom"],
 		agitate_fireroamer_conditions: {
 			healer_hp_pct: 0.60,
 			healer_mp_pct: 0.80,
