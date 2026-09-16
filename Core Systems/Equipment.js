@@ -166,7 +166,7 @@ function item_ability_chance(item_name, level, ability) {
 function set_ability_chance(set_name, ability) {
 	const set = equipment_sets[set_name];
 	if (!set) return 0;
-	return set.reduce((sum, i) => sum + item_ability_chance(i.item_name, i.level, ability), 0);
+	return set.reduce((sum, i) => sum + item_ability_chance(i.item_name, set_entry_level(i) ?? i.level, ability), 0);
 }
 
 function worn_ability_chance(ability) {
@@ -214,9 +214,28 @@ function save_set_profiles(profiles) {
 	} catch (e) { }
 }
 
+function set_entry_level(entry) {
+	const worn = character.slots[entry.slot];
+	if (worn && worn.name === entry.item_name) return worn.level ?? 0;
+
+	const exact = character.items.find(it =>
+		it && it.name === entry.item_name && (it.level ?? 0) === (entry.level ?? 0));
+	if (exact) return exact.level ?? 0;
+
+	const any = character.items.find(it => it && it.name === entry.item_name);
+	return any ? (any.level ?? 0) : null;
+}
+
+function set_gear_signature(set_name) {
+	const set = equipment_sets[set_name];
+	if (!set) return "";
+	return set.map(entry => `${entry.item_name}:${set_entry_level(entry) ?? "?"}`).join("|");
+}
+
 function set_profile_stale(set_name, max_age_ms) {
 	const profile = get_set_profile(set_name);
 	if (!profile) return true;
+	if (profile.gear && profile.gear !== set_gear_signature(set_name)) return true;
 	return Date.now() - (profile.at || 0) > (max_age_ms || SET_PROFILE_REPROBE_MS);
 }
 
@@ -241,11 +260,11 @@ function record_set_profile(set_name) {
 		return false;
 	}
 
-	const profile = { at: Date.now() };
+	const profile = { at: Date.now(), gear: set_gear_signature(set_name) };
 	for (const field of SET_PROFILE_FIELDS) profile[field] = character[field] || 0;
 
 	const pending = _profile_pending[set_name];
-	if (!pending || profile_materially_differs(pending.profile, profile)) {
+	if (!pending || pending.profile.gear !== profile.gear || profile_materially_differs(pending.profile, profile)) {
 		_profile_pending[set_name] = { profile, at: Date.now() };
 		return false;
 	}
@@ -257,8 +276,9 @@ function record_set_profile(set_name) {
 	const since = previous ? Date.now() - (previous.at || 0) : Infinity;
 
 	if (previous && !profile_materially_differs(previous, profile)) {
-		if (since >= SET_PROFILE_MIN_INTERVAL_MS) {
+		if (since >= SET_PROFILE_MIN_INTERVAL_MS || previous.gear !== profile.gear) {
 			previous.at = Date.now();
+			previous.gear = profile.gear;
 			save_set_profiles(profiles);
 		}
 		return false;
