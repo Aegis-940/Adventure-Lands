@@ -192,7 +192,19 @@ function choose_attack_option(primary) {
 
 var _cupid_engaged = false;
 
+function cupid_blocked() {
+	if (!set_available("heal")) return true;
+	const at_home = typeof destination !== "undefined" && destination && character.map === destination.map;
+	const overrides = (at_home && typeof MONSTER_GEAR_OVERRIDES !== "undefined" && MONSTER_GEAR_OVERRIDES[home]) || {};
+	return "weapon" in overrides;
+}
+
 function find_cupid_target() {
+	if (cupid_blocked()) {
+		_cupid_engaged = false;
+		return null;
+	}
+
 	const healer = get_entity("Myras");
 	const engage = (!healer || healer.rip)
 		? CONFIG.combat.cupid_engage_pct_no_healer
@@ -242,10 +254,11 @@ async function action_loop() {
 		const ms = ms_to_next_skill("attack");
 
 		const cupid_on = character.slots?.mainhand?.name === "cupid";
+		const want_heal = !!cache.heal_target;
 
 		if (ms === 0 && !travel_blocks_combat() && !basic_action_busy()) {
-			if (cupid_on && cache.heal_target) run_basic_action(cupid_heal(cache.heal_target), "cupid");
-			else if (!cupid_on) handle_attack();
+			if (want_heal && cupid_on) run_basic_action(cupid_heal(cache.heal_target), "cupid");
+			else if (!want_heal && !cupid_on) handle_attack();
 			else next_delay = next_action_delay(ms);
 		} else {
 			next_delay = next_action_delay(ms);
