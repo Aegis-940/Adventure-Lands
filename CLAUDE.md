@@ -63,7 +63,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Character Managers/Ranger Manager/Ranger Movement.js` | Licence top-up and the reposition scorer |
 | `Character Managers/Ranger Manager/Ranger.js` | Ranger entry point — windows, `run_character()` |
 | `Character Managers/Merchant Manager/Merchant Config.js` | Merchant tunables, locations, `merchant_task` (character: Riff) |
-| `Character Managers/Merchant Manager/Merchant Stand.js` | The stall: open/close, buy and sell orders, stock accounting, restocking, and the idle state |
+| `Character Managers/Merchant Manager/Merchant Stand.js` | The stall: open/close and the idle state |
 | `Character Managers/Merchant Manager/Merchant Inventory.js` | Slot counting, vendoring `SELLABLE_ITEMS`, and the banking state |
 | `Character Managers/Merchant Manager/Merchant Exchange.js` | Bank fetch task plus the exchanging he does while idle |
 | `Character Managers/Merchant Manager/Merchant Gear.js` | Default loadout and gathering-tool swaps |

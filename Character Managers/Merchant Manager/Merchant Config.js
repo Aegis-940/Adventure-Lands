@@ -16,15 +16,6 @@ var CONFIG = {
 		mining:     local_bool("AL_merchant_enabled_mining", false),
 	},
 
-	trading: {
-		enabled: true,
-	},
-	sell_profile: [
-		{ name: "firebow", level: 9, price: 1000000000, quantity: 3 },
-		{ name: "firebow", level: 8, price: 100000000, quantity: 5 },
-		{ name: "strring", level: 4, price: 1000000000, quantity: 1 },
-		{ name: "ukey", level: 0, price: 20000000000, quantity: 1 },
-	],
 	locations: {
 		HOME: { map: "main", x: -87, y: -96 },
 		BANK_LOCATION: { map: "bank", x: 0, y: -37 },
@@ -69,7 +60,7 @@ var CONFIG = {
 		mainhand: { name: "broom", level: 9 },
 		offhand: { name: "wbookhs", level: 1 },
 	},
-	priorities: ["dead", "anniversary", "delivering", "banking", "upgrading", "fishing", "mining", "crafting", "exchanging", "restocking"],
+	priorities: ["dead", "anniversary", "delivering", "banking", "upgrading", "fishing", "mining", "crafting", "exchanging"],
 };
 
 var HOME = CONFIG.locations.HOME;

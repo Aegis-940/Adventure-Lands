@@ -23,14 +23,14 @@ function has_enough_bank_space() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// VENDORING — SELLABLE_ITEMS, minus anything the stand lists or the merchant wears
+// VENDORING — SELLABLE_ITEMS, minus anything the merchant wears
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function has_sellable_items() {
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
 		if (!item || !SELLABLE_ITEMS.includes(item.name)) continue;
-		if (is_stand_stock(item) || is_default_gear(item)) continue;
+		if (is_default_gear(item)) continue;
 		return true;
 	}
 	return false;
@@ -41,7 +41,7 @@ function sell_sellable_items() {
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
 		if (!item || !SELLABLE_ITEMS.includes(item.name)) continue;
-		if (is_stand_stock(item) || is_default_gear(item)) continue;
+		if (is_default_gear(item)) continue;
 		try {
 			const sale = sell(i, item.q || 1);
 			if (sale && typeof sale.catch === "function") sale.catch(e => catcher(e, "sell: " + item.name));
@@ -65,11 +65,9 @@ function sell_while_idle() {
 }
 
 function has_bankable_items() {
-	const keep_for_stand = make_stand_stock_keeper();
 	for (let i = 3; i < character.items.length; i++) {
 		const item = character.items[i];
 		if (!item || CONFIG.do_not_bank.includes(item.name)) continue;
-		if (keep_for_stand(item)) continue;
 		return true;
 	}
 	return false;
@@ -129,12 +127,9 @@ async function bank_items() {
 		await smarter_move(BANK_LOCATION);
 		await delay(1000);
 
-		const keep_for_stand = make_stand_stock_keeper();
-
 		for (let i = 3; i < character.items.length; i++) {
 			const item = character.items[i];
 			if (!item || CONFIG.do_not_bank.includes(item.name)) continue;
-			if (keep_for_stand(item)) continue;
 			try {
 				await bank_store(i);
 				refresh_bank_snapshot();

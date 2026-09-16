@@ -5,7 +5,6 @@
 var MERCHANT_STATES = {
 	DEAD: "dead",
 	ANNIVERSARY: "anniversary",
-	RESTOCKING: "restocking",
 	DELIVERING: "delivering",
 	BANKING: "banking",
 	UPGRADING: "upgrading",
@@ -94,7 +93,6 @@ var PRIORITY_CHECKS = {
 	exchanging:  { state: MERCHANT_STATES.EXCHANGING, should_run: should_run_exchange },
 	fishing:     { state: MERCHANT_STATES.FISHING,    should_run: should_run_fishing },
 	mining:      { state: MERCHANT_STATES.MINING,     should_run: should_run_mining },
-	restocking:  { state: MERCHANT_STATES.RESTOCKING, should_run: should_run_restock },
 };
 
 function get_character_state() {
@@ -119,7 +117,6 @@ async function set_state(state) {
 			case MERCHANT_STATES.EXCHANGING: await handle_exchanging_state(); break;
 			case MERCHANT_STATES.FISHING:    await handle_fishing_state(); break;
 			case MERCHANT_STATES.MINING:     await handle_mining_state(); break;
-			case MERCHANT_STATES.RESTOCKING: await handle_restocking_state(); break;
 			case MERCHANT_STATES.IDLE: await handle_idle_state(); break;
 			default: break;
 		}
