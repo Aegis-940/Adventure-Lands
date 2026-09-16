@@ -120,7 +120,7 @@ var equipment_sets = {
 		{ item_name: "ololipop", slot: "offhand", level: 9, l: "l" },
 	],
 	double_aoe: [
-		{ item_name: "vhammer", slot: "mainhand", level: 6, l: "l" },
+		{ item_name: "vhammer", slot: "mainhand", level: 7, l: "l" },
 		{ item_name: "ololipop", slot: "offhand", level: 9, l: "l" },
 	],
 	basher: [
