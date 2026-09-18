@@ -124,6 +124,10 @@ async function _panic_check_body() {
 			} catch (e) {
 				game_log(`[PANIC] Error using scare: ${fmt_err(e)}`, "#ff4444");
 			}
+		} else if (typeof errlog_count === "function") {
+			errlog_count(`scare blocked cd=${is_on_cooldown("scare")}`
+				+ ` can_use=${can_use("scare")} jacko=${is_set_equipped("panic")}`
+				+ ` orb=${character.slots.orb ? character.slots.orb.name : "empty"}`);
 		}
 	}
 
