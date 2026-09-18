@@ -9,6 +9,10 @@ Run it and leave it:
 
     python "Tools/Error Sink.py"
 
+Or install it as a logon task so it is always up, and never has to be remembered:
+
+    powershell -ExecutionPolicy Bypass -File "Tools/Install Error Sink.ps1"
+
 Stdlib only, listens on 127.0.0.1 so nothing outside this machine can reach it, and the bot fails
 silently when it isn't running (backing off to a retry every 5 minutes), so starting it is always
 optional.
@@ -17,6 +21,7 @@ optional.
 import json
 import os
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -24,6 +29,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 PORT = 8787
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(REPO, "errors.json")
+LOG = os.path.join(REPO, "errors.log")
+LOG_MAX_BYTES = 1_000_000
 
 
 MAX_DEATHS = 20
@@ -46,8 +53,18 @@ SAMPLE_MAX_AGE_H = 2
 
 # Every limit above is per character and per kind, so none of them bounds the file, which is the
 # thing that actually has to stay readable. This is the one that does: over the ceiling, the
-# longest sample list loses its oldest quarter, repeatedly, until the store fits.
+# longest list loses its oldest quarter, repeatedly, until the store fits.
 MAX_BYTES = 1_500_000
+
+# Evicted in this order, and a later field is only touched once every earlier one is empty, so the
+# cheap observations go long before the record of a death does.
+TRIMMABLE = ("samples", "timeline", "deaths")
+
+BUCKET_FIELDS = ("records", "samples", "deaths", "timeline", "counts")
+
+# The maintenance sweep and a POST both rewrite the whole store, and the server is single-threaded
+# only with respect to requests.
+STORE_LOCK = threading.RLock()
 
 
 def serialise(store):
@@ -60,18 +77,23 @@ def enforce_ceiling(store):
         if len(blob) <= MAX_BYTES:
             return blob
 
-        worst, worst_n = None, 0
-        for who, bucket in store.items():
-            if not isinstance(bucket, dict):
-                continue
-            n = len(bucket.get("samples") or [])
-            if n > worst_n:
-                worst, worst_n = who, n
+        trimmed = False
+        for field in TRIMMABLE:
+            worst, worst_n = None, 0
+            for who, bucket in store.items():
+                if not isinstance(bucket, dict):
+                    continue
+                n = len(bucket.get(field) or [])
+                if n > worst_n:
+                    worst, worst_n = who, n
+            if worst_n:
+                victim = store[worst][field]
+                del victim[:max(1, len(victim) // 4)]
+                trimmed = True
+                break
 
-        if not worst_n:
+        if not trimmed:
             return blob
-        samples = store[worst]["samples"]
-        del samples[:max(1, len(samples) // 4)]
 
 
 def cutoff_ms(hours):
@@ -110,15 +132,38 @@ def prune_samples(samples):
     return sorted(kept, key=lambda s: s.get("t") or 0)
 
 
+def load_store():
+    if not os.path.exists(OUT):
+        return {}
+    try:
+        with open(OUT, encoding="utf-8") as fh:
+            return json.load(fh)
+    except Exception:
+        return {}
+
+
+def write_store(store):
+    blob = enforce_ceiling(store)
+    tmp = OUT + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        # Not indented: this file is read by tooling, and pretty-printing it cost a third of its size.
+        fh.write(blob)
+    # os.replace loses to any reader holding errors.json open on Windows (WinError 5), and the
+    # caller's except discards the whole payload when it does. Retry briefly rather than drop it.
+    for attempt in range(5):
+        try:
+            os.replace(tmp, OUT)  # atomic, so a read never sees a half-written file
+            break
+        except OSError:
+            if attempt == 4:
+                raise
+            time.sleep(0.2)
+    return blob
+
+
 def merge(incoming):
     """Merge one character's payload into errors.json."""
-    store = {}
-    if os.path.exists(OUT):
-        try:
-            with open(OUT, encoding="utf-8") as fh:
-                store = json.load(fh)
-        except Exception:
-            store = {}
+    store = load_store()
 
     who = incoming.get("character", "unknown")
     bucket = store.setdefault(who, {})
@@ -163,21 +208,7 @@ def merge(incoming):
     bucket["samples"] = prune_samples(samples.values())
 
     store["_updated"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-
-    tmp = OUT + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as fh:
-        # Not indented: this file is read by tooling, and pretty-printing it cost a third of its size.
-        fh.write(enforce_ceiling(store))
-    # os.replace loses to any reader holding errors.json open on Windows (WinError 5), and the
-    # caller's except discards the whole payload when it does. Retry briefly rather than drop it.
-    for attempt in range(5):
-        try:
-            os.replace(tmp, OUT)  # atomic, so a read never sees a half-written file
-            break
-        except OSError:
-            if attempt == 4:
-                raise
-            time.sleep(0.2)
+    write_store(store)
     return sum(len(v.get("records", {})) for k, v in store.items() if k != "_updated")
 
 
@@ -200,7 +231,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             n = int(self.headers.get("content-length", 0))
             payload = json.loads(self.rfile.read(n).decode("utf-8"))
-            total = merge(payload)
+            with STORE_LOCK:
+                total = merge(payload)
             who = payload.get("character", "?")
             got = len(payload.get("records") or {})
             deaths = len(payload.get("deaths") or [])
@@ -225,37 +257,75 @@ class Handler(BaseHTTPRequestHandler):
         pass  # the prints above are the log; suppress the default request spam
 
 
-def sweep_on_start():
-    """A restart is also a clean-up: prune whatever the previous run left behind.
+SWEEP_EVERY_S = 900
 
-    Merging only prunes the character whose payload arrived, so a character that stops posting --
-    renamed, parked, or the run simply ended -- keeps its last state forever without this.
+
+def sweep(label):
+    """Prune every character, not just the one whose payload arrived.
+
+    Merging only prunes the poster, so a character that stops posting -- renamed, parked, or the run
+    simply ended -- keeps its last state forever without this. A sink that is meant to stay up for
+    weeks cannot do that only at startup, so the maintenance thread calls this on a timer too.
     """
-    if not os.path.exists(OUT):
+    with STORE_LOCK:
+        if not os.path.exists(OUT):
+            return
+        store = load_store()
+        if not store:
+            return
+
+        before = os.path.getsize(OUT)
+        for bucket in store.values():
+            if not isinstance(bucket, dict):
+                continue
+            bucket["records"] = prune_records(bucket.get("records") or {}, set(bucket.get("builds") or []))
+            bucket["samples"] = prune_samples(bucket.get("samples") or [])
+            bucket["deaths"] = (bucket.get("deaths") or [])[-MAX_DEATHS:]
+            bucket["timeline"] = (bucket.get("timeline") or [])[-MAX_TIMELINE:]
+
+        # A probe, a typo or a retired character leaves a bucket behind that holds nothing. It costs
+        # nothing to keep and reads as a character, so drop it; a real poster rebuilds its own.
+        for who in [w for w, b in store.items()
+                    if isinstance(b, dict) and not any(b.get(f) for f in BUCKET_FIELDS)]:
+            del store[who]
+
+        blob = write_store(store)
+
+    print("%s  %s: %.2f MB -> %.2f MB" %
+          (datetime.now().strftime("%H:%M:%S"), label, before / 1048576, len(blob) / 1048576),
+          flush=True)
+
+
+def maintenance_loop():
+    while True:
+        time.sleep(SWEEP_EVERY_S)
+        try:
+            sweep("swept")
+        except Exception as exc:
+            print("  ! sweep failed: %s" % exc, file=sys.stderr, flush=True)
+
+
+def detach_logging():
+    """Under pythonw.exe -- how the logon task runs it -- there is no console and sys.stdout is
+    None, which turns the first print() into an AttributeError. Send the log to a file instead."""
+    if sys.stdout is not None and sys.stderr is not None:
         return
     try:
-        with open(OUT, encoding="utf-8") as fh:
-            store = json.load(fh)
+        if os.path.exists(LOG) and os.path.getsize(LOG) > LOG_MAX_BYTES:
+            os.replace(LOG, LOG + ".old")
+        fh = open(LOG, "a", encoding="utf-8", buffering=1)
+        sys.stdout = fh
+        sys.stderr = fh
     except Exception:
-        return
-
-    before = os.path.getsize(OUT)
-    for bucket in store.values():
-        if not isinstance(bucket, dict):
-            continue
-        bucket["records"] = prune_records(bucket.get("records") or {}, set(bucket.get("builds") or []))
-        bucket["samples"] = prune_samples(bucket.get("samples") or [])
-        bucket["deaths"] = (bucket.get("deaths") or [])[-MAX_DEATHS:]
-        bucket["timeline"] = (bucket.get("timeline") or [])[-MAX_TIMELINE:]
-
-    blob = enforce_ceiling(store)
-    with open(OUT, "w", encoding="utf-8") as fh:
-        fh.write(blob)
-    print("swept: %.2f MB -> %.2f MB" % (before / 1048576, len(blob) / 1048576), flush=True)
+        devnull = open(os.devnull, "w")
+        sys.stdout = devnull
+        sys.stderr = devnull
 
 
 if __name__ == "__main__":
+    detach_logging()
     print("error sink -> %s" % OUT)
-    sweep_on_start()
+    sweep("swept on start")
+    threading.Thread(target=maintenance_loop, daemon=True).start()
     print("listening on http://127.0.0.1:%d  (ctrl-c to stop)" % PORT, flush=True)
     HTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
