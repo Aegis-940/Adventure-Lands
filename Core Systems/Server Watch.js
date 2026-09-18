@@ -12,6 +12,7 @@ const SERVER_WATCH = {
 	entry_stale_ms: 10 * 60 * 1000,
 	server_list_ms: 30 * 60 * 1000,
 	list_retry_ms: 60000,
+	list_pending_ms: 30000,
 	history_length: 6,
 };
 
@@ -43,6 +44,8 @@ var _watch_state = {};
 var _watch_table = {};
 var _watch_servers = null;
 var _watch_servers_at = 0;
+var _watch_list_pending_at = 0;
+var _watch_complained = null;
 var _watch_owner = false;
 var _hop_attempts = 0;
 var _hop_called_at = 0;
@@ -129,6 +132,42 @@ function claim_watch_lease() {
 // OBSERVERS — an unauthenticated socket per realm, listening for server_info
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+function game_frames() {
+	const frames = [];
+
+	const add = frame => {
+		try {
+			if (frame && !frames.includes(frame)) frames.push(frame);
+		} catch (e) { }
+	};
+
+	try { add(window.parent); } catch (e) { }
+	try { add(window.top); } catch (e) { }
+	try { add(window.parent && window.parent.parent); } catch (e) { }
+	add(window);
+
+	return frames;
+}
+
+function frame_servers() {
+	for (const frame of game_frames()) {
+		try {
+			const list = frame.X && frame.X.servers;
+			if (list && collect_servers(list).length) return list;
+		} catch (e) { }
+	}
+	return null;
+}
+
+function api_frame() {
+	for (const frame of game_frames()) {
+		try {
+			if (typeof frame.api_call === "function") return frame;
+		} catch (e) { }
+	}
+	return null;
+}
+
 function collect_servers(list) {
 	const servers = [];
 
@@ -172,23 +211,32 @@ function adopt_servers(servers, source) {
 	return true;
 }
 
+function complain_once(message, color) {
+	if (_watch_complained === message) return;
+	_watch_complained = message;
+	game_log(message, color);
+}
+
 function fetch_server_list() {
 	if (_watch_servers && Date.now() - _watch_servers_at < SERVER_WATCH.server_list_ms) return;
+	if (Date.now() - _watch_list_pending_at < SERVER_WATCH.list_pending_ms) return;
 
-	if (adopt_servers(collect_servers(parent.X && parent.X.servers), "X.servers")) return;
+	if (adopt_servers(collect_servers(frame_servers()), "X.servers")) return;
 
-	if (typeof parent.api_call !== "function") {
-		return void game_log("❌ Server watch: no X.servers and no api_call — cannot list realms", "#FF3333");
+	const frame = api_frame();
+	if (!frame) {
+		return complain_once("❌ Server watch: no X.servers in any frame and no api_call — cannot list realms", "#FF3333");
 	}
 
+	_watch_list_pending_at = Date.now();
 	_watch_servers_at = Date.now();
-	parent.api_call("get_servers", {}, {
+	frame.api_call("get_servers", {}, {
 		callback: response => {
+			_watch_list_pending_at = 0;
 			const message = response && response[0] && (response[0].message || response[0]);
-			const servers = collect_servers(message);
-			if (!adopt_servers(servers, "get_servers")) {
+			if (!adopt_servers(collect_servers(message), "get_servers")) {
 				_watch_servers_at = Date.now() - SERVER_WATCH.server_list_ms + SERVER_WATCH.list_retry_ms;
-				game_log("⚠️ Server watch: get_servers returned nothing usable", "#FFA500");
+				complain_once("⚠️ Server watch: get_servers returned nothing usable", "#FFA500");
 			}
 		},
 	});
@@ -265,6 +313,17 @@ function server_watch_debug() {
 	game_log(`🛰️ X.servers: ${((parent.X && parent.X.servers) || []).length} · mine: ${(_watch_servers || []).length}`
 		+ ` · shared: ${(listed.realms || []).length} by ${listed.by || "nobody"}`, "#7FD1FF");
 	game_log(`🛰️ realm: ${my_realm()} · table: ${Object.keys(stored.realms || {}).join(", ") || "empty"}`, "#7FD1FF");
+
+	const names = ["parent", "top", "grandparent", "self"];
+	game_frames().forEach((frame, i) => {
+		let count = "blocked";
+		let api = "blocked";
+		try {
+			count = ((frame.X && frame.X.servers) || []).length;
+			api = typeof frame.api_call === "function";
+		} catch (e) { }
+		game_log(`      frame ${names[i] || i}: X.servers=${count} api_call=${api}`, "#7FD1FF");
+	});
 
 	for (const realm in _watch_sockets) {
 		game_log(`      ${realm}: ${_watch_state[realm] || "opening"}`, "#7FD1FF");

@@ -174,7 +174,7 @@ function timers_html() {
 	html += timers_heading(`Other realms — ${lease ? lease.name : "no watcher"}`);
 
 	if (!others.length) {
-		html += timers_row("observers", "no realms listed yet", "#888");
+		html += timers_row("observers", "no realms listed — run server_watch_debug()", "#FFA500");
 	}
 
 	for (const realm of others) {
