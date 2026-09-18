@@ -5,6 +5,7 @@
 const ERRLOG_KEY = "AL_errors_";
 const ERRLOG_MAX_RECORDS = 200;
 const ERRLOG_MAX_TIMELINE = 80;
+const ERRLOG_TIMELINE_SIG_CAP = Math.ceil(ERRLOG_MAX_TIMELINE * 0.25);
 const ERRLOG_MAX_DEATHS = 6;
 const ERRLOG_MAX_SAMPLES = 400;
 const ERRLOG_VITALS_SAMPLES = 10;
@@ -116,6 +117,26 @@ function _errlog_flush() {
 	}
 }
 
+function _errlog_timeline_sig(ctx, msg) {
+	return ctx + "|" + String(msg).replace(/\d+/g, "#");
+}
+
+function _errlog_push_timeline(ctx, msg, now) {
+	const tl = _errlog.timeline;
+	tl.push({ t: now, ctx, msg });
+	if (tl.length <= ERRLOG_MAX_TIMELINE) return;
+
+	const sig = _errlog_timeline_sig(ctx, msg);
+	let held = 0;
+	for (const e of tl) if (_errlog_timeline_sig(e.ctx, e.msg) === sig) held++;
+
+	if (held > ERRLOG_TIMELINE_SIG_CAP) {
+		const i = tl.findIndex(e => _errlog_timeline_sig(e.ctx, e.msg) === sig);
+		if (i !== -1) return void tl.splice(i, 1);
+	}
+	tl.shift();
+}
+
 function errlog_record(ctx, raw_msg) {
 	if (_errlog_recording) return;
 	_errlog_recording = true;
@@ -138,8 +159,7 @@ function errlog_record(ctx, raw_msg) {
 			};
 		}
 
-		_errlog.timeline.push({ t: now, ctx, msg: msg.slice(0, 160) });
-		if (_errlog.timeline.length > ERRLOG_MAX_TIMELINE) _errlog.timeline.shift();
+		_errlog_push_timeline(ctx, msg.slice(0, 160), now);
 
 		_errlog_dirty = true;
 	} catch (e) {

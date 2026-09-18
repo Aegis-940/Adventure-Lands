@@ -38,12 +38,23 @@ a second way a record can be absent without the event having stopped.
 two builds this character reported under (`RETAIN_BUILDS = 2`). Deploy twice and the evidence for
 the bug you were chasing is gone. A missing record does **not** mean the event stopped happening.
 
-**2. `counts` are peaks, not totals.** The sink merges with `max(incoming, stored)`. The stored
-value is the highest any single session reached, and it never decreases. Do not compare a `counts`
-value against a `records` count — they cover different windows and different merge rules.
+**2. `counts` are lifetime running totals, and dividing one by a session length is wrong.** The
+browser restores `counts` from `localStorage` on start, so a reload continues them rather than
+resetting; the sink then merges with `max(incoming, stored)` so the value can never go down. A
+counter therefore spans every session since localStorage was last cleared — often days.
+
+**To get a rate you must take a delta between two readings**, and divide by the *elapsed* time
+between them, not by the current session. `lag eventloop` is the usable clock: its probe ticks at
+10Hz, so `delta(lag eventloop) / 10` is seconds of actual running time, gaps and reloads excluded.
+
+This trap was walked into twice in one session, the second time within minutes of correcting the
+first: 190 scare gate evaluations were divided by a 65-minute session and reported as "a panic
+every 20 seconds". The true figure, from `records[].first`/`last` on the panic signature, was **one
+per 13.4 minutes over 67 hours** — a claim the operator falsified instantly from the game itself.
+Ground truth beat the telemetry because the telemetry was read wrong.
 
 **3. Some counters have no producer.** `skill:scare:ok`, `skill:partyheal:ok` and friends come from
-a `use_skill` wrapper that no longer exists in the source. `max()` preserves them forever, so they
+a `use_skill` wrapper that no longer exists in the source. Nothing ever decrements them, so they
 look like live telemetry. **Grep for the producer before trusting any counter.**
 
 **4. `game_log` is filtered by prefix.** The wrapper records a message only if it starts with
