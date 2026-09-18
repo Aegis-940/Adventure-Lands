@@ -12,12 +12,13 @@ const ERRLOG_VITALS_SAMPLES = 10;
 const ERRLOG_VITALS_MS = 1000;
 const ERRLOG_FLUSH_MS = 5000;
 const ERRLOG_MSG_CAP = 400;
+const ERRLOG_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const ERRLOG_MAX_HEALS = 15;
 
 const ERRLOG_SCHEMA = 2;
 
-let _errlog = { session: null, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {}, samples: [] };
+let _errlog = { session: null, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {}, counts_since: 0, samples: [] };
 let _errlog_dirty = false;
 let _errlog_recording = false;
 let _errlog_vitals = [];
@@ -90,6 +91,7 @@ function _errlog_load() {
 				timeline: prev.timeline || [],
 				deaths: prev.deaths || [],
 				counts: prev.counts || {},
+				counts_since: prev.counts_since || 0,
 				samples: prev.samples || []
 			};
 		}
@@ -146,6 +148,10 @@ function errlog_record(ctx, raw_msg) {
 		const now = Date.now();
 
 		const existing = _errlog.records[sig];
+		if (existing && now - existing.first > ERRLOG_WINDOW_MS) {
+			existing.count = 0;
+			existing.first = now;
+		}
 		if (existing) {
 			existing.count++;
 			existing.last = now;
@@ -179,6 +185,12 @@ function errlog_sample(kind, data) {
 
 function errlog_count(bucket) {
 	try {
+		const now = Date.now();
+		if (!_errlog.counts_since) _errlog.counts_since = now;
+		if (now - _errlog.counts_since > ERRLOG_WINDOW_MS) {
+			_errlog.counts = {};
+			_errlog.counts_since = now;
+		}
 		_errlog.counts[bucket] = (_errlog.counts[bucket] || 0) + 1;
 	} catch (e) { }
 }
@@ -462,7 +474,7 @@ function al_errors_clear(all) {
 			if (k && k.indexOf(ERRLOG_KEY) === 0 && (all || k === _errlog_key())) doomed.push(k);
 		}
 		doomed.forEach(k => localStorage.removeItem(k));
-		_errlog = { session: _errlog.session, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {} };
+		_errlog = { session: _errlog.session, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {}, counts_since: Date.now(), samples: [] };
 		_errlog_heals = [];
 		_errlog_vitals = [];
 		_errlog_was_rip = false;

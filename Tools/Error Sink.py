@@ -179,14 +179,20 @@ def merge(incoming):
             recs[sig] = rec
     bucket["records"] = prune_records(recs, keep_builds)
 
-    # Same rule for the high-volume outcome counters: monotonic per bucket within a session, and a
-    # reload restarts them from whatever localStorage held, so take the larger of the two.
-    counts = bucket.setdefault("counts", {})
-    for k, v in (incoming.get("counts") or {}).items():
-        try:
-            counts[k] = max(int(v), int(counts.get(k, 0)))
-        except (TypeError, ValueError):
-            counts[k] = v
+    # The counters only ever climb within a window, and a reload resumes them from localStorage, so
+    # take the larger of the two. When the browser rolls the window it stamps a newer counts_since,
+    # and taking the larger would then pin the old totals forever -- so a newer stamp replaces.
+    inc_since = incoming.get("counts_since") or 0
+    if inc_since > (bucket.get("counts_since") or 0):
+        bucket["counts"] = dict(incoming.get("counts") or {})
+        bucket["counts_since"] = inc_since
+    else:
+        counts = bucket.setdefault("counts", {})
+        for k, v in (incoming.get("counts") or {}).items():
+            try:
+                counts[k] = max(int(v), int(counts.get(k, 0)))
+            except (TypeError, ValueError):
+                counts[k] = v
 
     # Deaths and timeline accumulate across reloads, which the browser's own ring cannot do --
     # a reload wipes its buffer, and a reload is exactly what follows the interesting failures.

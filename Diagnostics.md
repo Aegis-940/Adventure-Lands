@@ -20,7 +20,7 @@ they prune differently. **Absence of evidence in this file is almost never evide
 | Bucket | What it is | Client cap | Store cap / pruning |
 |---|---|---|---|
 | `records` | One entry per distinct message signature, with a count | 200 | last **2 builds**, last **12h** |
-| `counts` | Monotonic named counters | none | never pruned, merged with `max()` |
+| `counts` | Named counters, rolling 24h window (`counts_since`) | none | `max()` merge, replaced when `counts_since` advances |
 | `timeline` | Ordered `{t, ctx, msg}` events | 80 | last **100**, keyed `(t, msg)` |
 | `deaths` | Death snapshots + 10s of vitals + last 15 heals | 6 | last **20**, keyed `t` |
 | `samples` | Structured observations by kind | 400 | **250 per kind**, last **2h** |
@@ -38,10 +38,12 @@ a second way a record can be absent without the event having stopped.
 two builds this character reported under (`RETAIN_BUILDS = 2`). Deploy twice and the evidence for
 the bug you were chasing is gone. A missing record does **not** mean the event stopped happening.
 
-**2. `counts` are lifetime running totals, and dividing one by a session length is wrong.** The
-browser restores `counts` from `localStorage` on start, so a reload continues them rather than
-resetting; the sink then merges with `max(incoming, stored)` so the value can never go down. A
-counter therefore spans every session since localStorage was last cleared — often days.
+**2. `counts` and `records[].count` roll on a 24h window; dividing one by a session length is
+still wrong.** The browser restores both from `localStorage`, so a reload continues them rather
+than resetting. Since 2026-09-18 each rolls once its window passes 24h — a record resets
+`count`/`first`, and the whole `counts` bucket clears and re-stamps `counts_since`. So a counter
+spans *at most* a day, never the 67 hours that used to be possible, but it still spans far more
+than one session.
 
 **To get a rate you must take a delta between two readings**, and divide by the *elapsed* time
 between them, not by the current session. `lag eventloop` is the usable clock: its probe ticks at
