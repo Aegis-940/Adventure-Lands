@@ -167,13 +167,10 @@ function inventory_sorter() {
 let _loot_last = 0;
 let _looting = false;
 
-const GOLD_GEAR_LINGER_MS = 5000;
 const GOLD_GEAR_WAIT_MS = 1500;
 
 function gold_gear_wanted() {
-	if (!CONFIG.looting?.equip_gold_gear) return false;
-	if (_looting) return true;
-	return _loot_last > 0 && performance.now() - _loot_last < GOLD_GEAR_LINGER_MS;
+	return !!CONFIG.looting?.equip_gold_gear && _looting;
 }
 
 function should_loot() {

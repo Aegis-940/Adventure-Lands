@@ -74,12 +74,16 @@ asking `gold_gear_wanted()` — which lives with looting, where the knowledge be
 `panic_check()` waits for the orb. `equip_claim("looting")` and `EQUIP_PRIORITY.loot` are gone;
 the priority ladder is down from six levels to four.
 
-The churn was never really the split. Gold gear was being put on and taken off around *each* 3s
-loot, when she loots continuously while farming — two equips per cycle against a server that
-accepts one per two seconds, which saturated her equip channel and filled her 100-event timeline
-with 86 `not_ready` responses covering three minutes. `gold_gear_wanted()` makes "looting is
-active" a state with duration (`_looting`, or looted within 5s) rather than an instant, so a burst
-of loots costs one swap pair instead of one per loot.
+`gold_gear_wanted()` is exactly `_looting` — gold on while chests are being opened, normal gloves
+the moment they are not. That is the behaviour that was always intended and it is unchanged; only
+the ownership moved.
+
+**A wrong turn worth recording.** The first attempt added a 5s linger so that consecutive loots
+would not thrash the slot, on the theory that the churn (two equips per 3s cycle, against a server
+accepting one per two seconds) was worth removing. It was not: `loot_cooldown` is 3s, so a 5s
+linger never expires while farming and the combat gloves simply never came back. The swap-back had
+already been called out as deliberate, and the churn was a stated design cost rather than a defect.
+Single ownership was the goal; the swap rate was not ours to trade away.
 
 **All four persistent gear deciders are now one per slot.** What remains claiming slots is the five
 transient skill procedures, which is what the arbiter is for.
