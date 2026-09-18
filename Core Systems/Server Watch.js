@@ -17,6 +17,7 @@ const SERVER_WATCH = {
 	notice_grace_ms: 15000,
 	snapshot_ms: 5 * 60 * 1000,
 	snapshot_hold_ms: 4000,
+	snapshot_max_ms: 20000,
 	stagger_ms: 1500,
 	window_lead_min: 2,
 	window_tail_min: 45,
@@ -49,6 +50,7 @@ var _watch_since = Date.now();
 var _watch_sockets = {};
 var _watch_state = {};
 var _watch_holding = {};
+var _watch_opened_at = {};
 var _snapshot_due = {};
 var _regions_cache = null;
 var _regions_cache_at = 0;
@@ -322,6 +324,7 @@ function realm_should_hold(realm) {
 
 function start_observer(server, snapshot) {
 	_watch_holding[server.realm] = !snapshot;
+	_watch_opened_at[server.realm] = Date.now();
 	_snapshot_due[server.realm] = Date.now() + SERVER_WATCH.snapshot_ms;
 	_watch_sockets[server.realm] = open_observer(server, snapshot);
 }
@@ -360,11 +363,16 @@ function observers_tick() {
 			continue;
 		}
 
+		if (open && now - (_watch_opened_at[realm] || 0) > SERVER_WATCH.snapshot_max_ms) {
+			park_observer(realm);
+			continue;
+		}
+
 		if (!open && now >= (_snapshot_due[realm] || 0)) start_observer(server, true);
 	}
 }
 
-function observer_socket(server) {
+function observer_socket(server, snapshot) {
 	const io = observer_io();
 	const secure = String(location.protocol).indexOf("https") === 0;
 	const address = server.port ? server.host + ":" + server.port : server.host;
@@ -373,6 +381,7 @@ function observer_socket(server) {
 		secure,
 		query: "map_protocol=1&no_graphics=1",
 		rejectUnauthorized: false,
+		reconnection: !snapshot,
 	};
 
 	if (server.path) options.path = server.path;
@@ -390,7 +399,7 @@ function observer_io() {
 }
 
 function open_observer(server, snapshot) {
-	const socket = observer_socket(server);
+	const socket = observer_socket(server, snapshot);
 
 	socket.on("connect", () => {
 		_watch_state[server.realm] = snapshot ? "sampling" : "connected";
@@ -429,6 +438,7 @@ function close_observer(realm) {
 	try { socket.disconnect(); } catch (e) { }
 	delete _watch_sockets[realm];
 	delete _watch_state[realm];
+	delete _watch_opened_at[realm];
 }
 
 function server_watch_probe() {
