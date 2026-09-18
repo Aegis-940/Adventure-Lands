@@ -30,75 +30,107 @@ function timers_heading(text) {
 }
 
 function server_clock(schedule) {
-	if (!schedule) return null;
-	const offset = schedule.time_offset || 0;
+	if (!schedule || !isFinite(schedule.time_offset)) return "";
+
 	const now = new Date();
-	const local = (now.getUTCHours() + 24 + offset) % 24;
+	const local = (now.getUTCHours() + 24 + schedule.time_offset) % 24;
+	const night = schedule.night === undefined ? local <= 5 : schedule.night;
+
 	return `${String(local).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")}`
-		+ (schedule.night ? " 🌙" : "");
+		+ (night ? " 🌙" : "");
 }
 
-function timers_realm_html(realm, seen, detailed) {
-	if (!seen) return timers_row(realm, "not watched", "#888");
-
+function realm_line(realm, states) {
 	const now = Date.now();
-	let html = "";
+	const seen = realm_timers(realm);
+	const short = realm.split(" ").slice(1).join(" ") || realm;
+	const here = realm === my_realm();
+	const label = `<span style="color:${here ? "#9FE08F" : "#bbb"};">`
+		+ `&nbsp;&nbsp;${short}${here ? " ◀" : ""}</span>`;
+
+	if (!seen) return timers_row(label, (states || {})[realm] || "waiting", "#666");
 
 	for (const name in seen.bosses) {
 		const boss = seen.bosses[name];
 		const max = boss_max_hp(name, boss);
 		const pct = max && isFinite(boss.hp) ? `${Math.round((boss.hp / max) * 100)}%` : "?";
-		const left = boss.end ? fmt_eta(boss.end - now) : "no limit";
-		const where = detailed && boss.map ? ` ${boss.map}${isFinite(boss.x) ? ` ${Math.round(boss.x)},${Math.round(boss.y)}` : ""}` : "";
-		html += timers_row(`⚔️ ${name}${where}`, `${pct} · ${left}`, "#FF9B6A");
-		if (detailed && boss.target) html += timers_row("&nbsp;&nbsp;holding", boss.target, "#888");
+		const left = boss.end ? ` · ${fmt_eta(boss.end - now)}` : "";
+		return timers_row(label, `⚔️ ${name} ${pct}${left}`, "#FF9B6A");
 	}
 
 	for (const name in seen.windows) {
-		html += timers_row(`🎲 ${name}`, fmt_eta(seen.windows[name] - now), "#FFD479");
+		return timers_row(label, `🎲 ${name} · ${fmt_eta(seen.windows[name] - now)}`, "#FFD479");
 	}
 
 	for (const name in seen.spawns) {
-		html += timers_row(`🥚 ${name}`, fmt_eta(seen.spawns[name] - now), "#9FE08F");
-	}
-
-	if (detailed && seen.schedule) {
-		const clock = server_clock(seen.schedule);
-		if (clock) html += timers_row("🕑 server clock", clock, "#888");
-		html += timers_row("dailies", (seen.schedule.dailies || []).map(h => `${h}:00`).join(", "), "#888");
-		html += timers_row("nightlies", (seen.schedule.nightlies || []).map(h => `${h}:00`).join(", "), "#888");
+		return timers_row(label, `🥚 ${name} in ${fmt_eta(seen.spawns[name] - now)}`, "#9FE08F");
 	}
 
 	const last = (seen.history || [])[0];
-	if (last) html += timers_last_html(last, now);
+	if (last) {
+		const style = TIMERS_OUTCOMES[last.outcome] || TIMERS_OUTCOMES.gone;
+		return timers_row(label,
+			`${style.icon} ${last.name} ${last.outcome} ${fmt_eta(now - last.at)} ago ${last.present ? "🟢" : "⚪"}`,
+			style.color);
+	}
 
-	if (!html) html = timers_row(realm, "quiet", "#888");
-	return html;
+	return timers_row(label, "quiet", "#666");
 }
 
-function timers_schedule_html() {
-	if (typeof next_slot_per_region !== "function") return "";
+function timers_tracker_html() {
+	if (typeof region_schedules !== "function") return "";
 
 	const now = Date.now();
 	const regions = region_schedules();
-	const slots = next_slot_per_region();
+	const stored = (typeof storage_read === "function" && storage_read(SERVER_WATCH_KEY)) || {};
+	const next = {};
 
-	if (!slots.length) return timers_row("schedule", "no realms known yet", "#888");
-
-	let html = "";
-	let assumed = false;
-
-	for (const slot of slots) {
-		const group = regions[slot.region] || {};
-		if (!group.observed) assumed = true;
-		const names = slot.realms.map(r => r.split(" ").slice(1).join(" ")).join("/");
-		const mark = group.observed ? "" : "*";
-		html += timers_row(`${slot.region} ${names}${mark} · ${slot.kind} ${slot.hour}:00`,
-			fmt_eta(slot.at - now),
-			slot.kind === "nightly" ? "#C9A7FF" : "#FFD479");
+	for (const slot of next_slot_per_region()) {
+		if (!next[slot.region] || slot.at < next[slot.region].at) next[slot.region] = slot;
 	}
 
-	if (assumed) html += timers_row("*", "schedule assumed from region, not yet observed", "#666");
+	const names = Object.keys(regions).sort();
+	if (!names.length) return timers_missing_html();
+
+	let html = "";
+
+	for (const region of names) {
+		const group = regions[region];
+		const slot = next[region];
+		const clock = server_clock({ time_offset: group.offset });
+		const when = slot
+			? `${slot.kind} ${slot.hour}:00 in ${fmt_eta(slot.at - now)}`
+			: "schedule unknown";
+
+		html += `<div style="display:flex;justify-content:space-between;gap:12px;margin-top:6px;">`
+			+ `<span style="color:#7FD1FF;font-weight:bold;">${region}`
+			+ `<span style="color:#666;font-weight:normal;"> ${clock}${group.observed ? "" : " *"}</span></span>`
+			+ `<span style="color:${slot && slot.kind === "nightly" ? "#C9A7FF" : "#FFD479"};white-space:nowrap;">${when}</span></div>`;
+
+		for (const realm of group.realms) html += realm_line(realm, stored.states);
+	}
+
+	return html;
+}
+
+function timers_missing_html() {
+	let html = timers_row("observers", "no realms listed", "#FFA500");
+
+	if (typeof server_watch_probe === "function") {
+		for (const row of server_watch_probe()) {
+			html += timers_row(`frame ${row.frame}`,
+				`X.servers ${row.servers} · usable ${row.usable} · api_call ${row.api}`, "#888");
+			if (row.sample) {
+				html += `<div style="color:#777;word-break:break-all;margin-bottom:4px;">`
+					+ row.sample.replace(/&/g, "&amp;").replace(/</g, "&lt;") + `</div>`;
+			}
+		}
+	}
+
+	if (typeof _watch_complained !== "undefined" && _watch_complained) {
+		html += timers_row("last error", _watch_complained, "#FFA500");
+	}
+
 	return html;
 }
 
@@ -177,52 +209,14 @@ function timers_hop_html() {
 function timers_html() {
 	if (!timers_ready()) return timers_row("server watch", "not loaded", "#FF7B7B");
 
-	const mine = my_realm();
 	const realms = typeof watch_realms === "function" ? watch_realms() : {};
 	const lease = typeof storage_read === "function" ? storage_read(SERVER_WATCH_LEASE_KEY) : null;
 
-	let html = timers_heading("Next event window — every region and slot");
-	html += timers_schedule_html();
-
-	html += timers_heading(`This realm — ${mine}`);
-	html += timers_realm_html(mine, local_timers(), true);
+	let html = timers_heading(`Event tracker — ${lease ? lease.name : "no watcher"}`);
+	html += timers_tracker_html();
 	html += timers_seasons_html();
 
-	const stored = (typeof storage_read === "function" && storage_read(SERVER_WATCH_KEY)) || {};
-	const others = (typeof known_realms === "function" ? known_realms() : Object.keys(realms))
-		.filter(r => r !== mine).sort();
-
-	html += timers_heading(`Other realms — ${lease ? lease.name : "no watcher"}`);
-
-	if (!others.length) {
-		html += timers_row("observers", "no realms listed", "#FFA500");
-		if (typeof server_watch_probe === "function") {
-			for (const row of server_watch_probe()) {
-				html += timers_row(`frame ${row.frame}`,
-					`X.servers ${row.servers} · usable ${row.usable} · api_call ${row.api}`, "#888");
-				if (row.sample) {
-					html += `<div style="color:#777;word-break:break-all;margin-bottom:4px;">`
-						+ row.sample.replace(/&/g, "&amp;").replace(/</g, "&lt;") + `</div>`;
-				}
-			}
-		}
-		if (typeof _watch_complained !== "undefined" && _watch_complained) {
-			html += timers_row("last error", _watch_complained, "#FFA500");
-		}
-	}
-
-	for (const realm of others) {
-		const seen = realms[realm];
-		if (!seen) {
-			html += timers_row(realm, (stored.states || {})[realm] || "waiting", "#888");
-			continue;
-		}
-		const age = Math.round((Date.now() - (seen.at || 0)) / 1000);
-		html += timers_heading(`${realm} <span style="float:right;font-weight:normal;color:#888;">${age}s ago</span>`);
-		html += timers_realm_html(realm, seen, false);
-	}
-
-	html += timers_heading("Recent events — 🟢 we were there (order shuffles per realm at boot)");
+	html += timers_heading("Recent events — 🟢 we were there");
 	html += timers_history_html(realms);
 
 	html += timers_heading("Server hop");
@@ -250,7 +244,7 @@ function open_timers_window() {
 	const div = doc.createElement("div");
 	div.id = TIMERS_WINDOW_ID;
 	div.style.position = "absolute";
-	const WINDOW_WIDTH = 340;
+	const WINDOW_WIDTH = 380;
 	div.style.left = (parent.window.innerWidth - WINDOW_WIDTH - 24) + "px";
 	div.style.top = "80px";
 	div.style.width = WINDOW_WIDTH + "px";

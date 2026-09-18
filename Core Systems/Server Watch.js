@@ -15,6 +15,12 @@ const SERVER_WATCH = {
 	list_pending_ms: 30000,
 	history_length: 6,
 	notice_grace_ms: 15000,
+	snapshot_ms: 5 * 60 * 1000,
+	snapshot_hold_ms: 4000,
+	stagger_ms: 1500,
+	window_lead_min: 2,
+	window_tail_min: 45,
+	region_cache_ms: 5000,
 };
 
 const SERVER_HOP = {
@@ -42,6 +48,10 @@ const SERVER_HOP_LAST_KEY = "AL_server_hop_last";
 var _watch_since = Date.now();
 var _watch_sockets = {};
 var _watch_state = {};
+var _watch_holding = {};
+var _snapshot_due = {};
+var _regions_cache = null;
+var _regions_cache_at = 0;
 var _watch_table = {};
 var _watch_servers = null;
 var _watch_servers_at = 0;
@@ -236,10 +246,14 @@ function adopt_servers(servers, source) {
 			+ servers.map(s => s.realm).join(", "), "#7FD1FF");
 	}
 
+	servers.forEach((server, i) => {
+		if (!(server.realm in _snapshot_due)) _snapshot_due[server.realm] = Date.now() + i * SERVER_WATCH.stagger_ms;
+	});
+
 	publish_server_list(servers);
 	if (_watch_owner) {
 		publish_watch();
-		open_observers();
+		observers_tick();
 	}
 	return true;
 }
@@ -275,21 +289,78 @@ function fetch_server_list() {
 	});
 }
 
-function open_observers() {
+function cached_regions() {
+	if (_regions_cache && Date.now() - _regions_cache_at < SERVER_WATCH.region_cache_ms) return _regions_cache;
+	_regions_cache = region_schedules();
+	_regions_cache_at = Date.now();
+	return _regions_cache;
+}
+
+function region_in_window(region) {
+	const group = cached_regions()[region];
+	if (!group) return false;
+
+	const now = new Date();
+	const minutes = ((now.getUTCHours() + 24 + group.offset) % 24) * 60 + now.getUTCMinutes();
+
+	for (const hour of (group.dailies || []).concat(group.nightlies || [])) {
+		let since = minutes - hour * 60;
+		if (since < -720) since += 1440;
+		if (since > 720) since -= 1440;
+		if (since >= -SERVER_WATCH.window_lead_min && since <= SERVER_WATCH.window_tail_min) return true;
+	}
+
+	return false;
+}
+
+function realm_should_hold(realm) {
+	const known = _watch_table[realm];
+	if (known && Object.keys(known.bosses || {}).length) return true;
+	if (known && Object.keys(known.windows || {}).length) return true;
+	return region_in_window(realm.split(" ")[0]);
+}
+
+function start_observer(server, snapshot) {
+	_watch_holding[server.realm] = !snapshot;
+	_snapshot_due[server.realm] = Date.now() + SERVER_WATCH.snapshot_ms;
+	_watch_sockets[server.realm] = open_observer(server, snapshot);
+}
+
+function park_observer(realm) {
+	close_observer(realm);
+	_watch_state[realm] = "idle";
+}
+
+function observers_tick() {
 	if (!_watch_owner || !_watch_servers) return;
 	if (!observer_io()) {
 		return void complain_once("❌ Server watch: no io in any frame — observers cannot connect", "#FF3333");
 	}
 
 	const mine = my_realm();
-	for (const server of _watch_servers) {
-		if (server.realm === mine) continue;
-		if (_watch_sockets[server.realm]) continue;
-		_watch_sockets[server.realm] = open_observer(server);
-	}
+	const now = Date.now();
 
-	for (const realm in _watch_sockets) {
-		if (realm === mine) close_observer(realm);
+	for (const server of _watch_servers) {
+		const realm = server.realm;
+
+		if (realm === mine) {
+			if (_watch_sockets[realm]) park_observer(realm);
+			continue;
+		}
+
+		const open = !!_watch_sockets[realm];
+
+		if (realm_should_hold(realm)) {
+			if (!open) start_observer(server, false);
+			continue;
+		}
+
+		if (open && _watch_holding[realm]) {
+			park_observer(realm);
+			continue;
+		}
+
+		if (!open && now >= (_snapshot_due[realm] || 0)) start_observer(server, true);
 	}
 }
 
@@ -318,11 +389,11 @@ function observer_io() {
 	return null;
 }
 
-function open_observer(server) {
+function open_observer(server, snapshot) {
 	const socket = observer_socket(server);
 
 	socket.on("connect", () => {
-		_watch_state[server.realm] = "connected";
+		_watch_state[server.realm] = snapshot ? "sampling" : "connected";
 	});
 	socket.on("connect_error", e => {
 		if (_watch_state[server.realm] === "failed") return;
@@ -334,9 +405,10 @@ function open_observer(server) {
 	});
 
 	socket.on("welcome", data => {
-		_watch_state[server.realm] = "welcomed";
+		_watch_state[server.realm] = snapshot ? "sampled" : "welcomed";
 		if (data && data.S) absorb_server_info(server.realm, data.S);
 		socket.emit("loaded", { success: 1, width: 1920, height: 1080, scale: 2 });
+		if (snapshot) setTimeout(() => park_observer(server.realm), SERVER_WATCH.snapshot_hold_ms);
 	});
 
 	socket.on("notice", data => absorb_notice(server.realm, data && data.message));
@@ -946,7 +1018,7 @@ async function server_watch_loop() {
 				}
 				fetch_server_list();
 				if (_watch_owner) {
-					open_observers();
+					observers_tick();
 					watch_local_notices();
 					track_local_realm();
 					publish_watch();
