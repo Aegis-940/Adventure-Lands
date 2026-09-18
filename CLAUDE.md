@@ -35,6 +35,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Core Systems/Movement Positioning.js` | `best_orbit_spot()`, `make_distance_from_monsters_scorer()`, `reposition_center()` and `orbit_reposition()` — scoring candidate spots around a centre |
 | `Core Systems/Targeting.js` | `score_targets()`/`select_target()` — the one scorer every character picks targets with |
 | `Core Systems/World Events.js` | Live boss/seasonal targets, the goal that walks the party to them, and the anniversary visit |
+| `Core Systems/Server Watch.js` | Observer sockets on the other realms (`get_servers` + `server_info`), `bosses_elsewhere()`, and the `change_server` hop that goes and joins them and comes back |
 | `Core Systems/Character Messaging.js` | CM (character message) handlers, localStorage-backed state cache |
 | `Core Systems/Equipment Manager.js` | Equipment sets, the single `batch_equip()` emitter, the slot arbiter, and the rules resolver — the one file that changes what is worn |
 | `Core Systems/Equipment Valuation.js` | What each set is worth: ability procs, measured set profiles, damage maths, and the one weapon chooser (`resolve_weapon_set()`/`set_damage_value()`) every fighter uses. Returns names and numbers; equips nothing |

@@ -14,5 +14,6 @@ equip_default_gear();
 opportunistic_actions_loop();
 potion_loop();
 state_cache_loop();
+if (typeof server_watch_loop === "function") server_watch_loop();
 
 loop_controller();
