@@ -150,7 +150,7 @@ async function prim_farm_loop() {
 				continue;
 			}
 
-			if (!panicking) hold_camp_station();
+			hold_camp_station();
 			if (character.name === "Myras") absorb_from_ally_at_camp();
 		} catch (e) {
 			catcher(e, "prim_farm_loop");

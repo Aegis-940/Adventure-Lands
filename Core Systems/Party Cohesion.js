@@ -89,8 +89,6 @@ function follow_has_leader() {
 function party_cohesion_hold() {
 	if (character.name !== MOVEMENT_LEADER) return false;
 
-	if (typeof panicking !== "undefined" && panicking) { _cohesion_holding = false; return false; }
-
 	const owed = !dungeon_flag("ignore_events")
 		&& typeof anniversary_should_travel === "function" && anniversary_should_travel();
 	const endangered = party_member_in_danger();

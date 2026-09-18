@@ -65,10 +65,24 @@ what allowed the bypass in the first place — has been removed, so single owner
 structural rather than conventional.
 
 **Panic is movement-agnostic and does not appear here.** Its job is to dump aggro; it may do that
-while moving, standing still or orbiting. `orbit_reposition()` lost the internal
-`panicking ? distance_scorer : make_score()` ternary that had it silently changing the warrior's
-and ranger's positioning, and is now purely "best reachable spot by this score". No local
-positioning decider consults `panicking`.
+while moving, standing still or orbiting. Three couplings were removed:
+
+- `orbit_reposition()` carried a `panicking ? distance_scorer : make_score()` ternary that silently
+  swapped the warrior's and ranger's position scorer. It now scores by the character's own scorer
+  and nothing else.
+- `party_cohesion_hold()` returned early while panicking, so the leader stopped waiting for a
+  lagging party member. Cohesion no longer knows about panic.
+- `prim_farm_loop()` skipped `hold_camp_station()` while panicking. The bscorpion camp now holds
+  station regardless.
+
+No movement decider reads `panicking`. The remaining references are combat (`should_pause_combat_loop`),
+skills, equipment, and panic's own state handling.
+
+**Deliberate exception:** the crypt route (`Crypt Route.js:194,265,282,320`) still treats panic as
+one of five route interrupts alongside `abort`, `dead`, `ejected` and `intruder`, handing off to
+`crypt_wait_for_calm()`. That is scripted-sequence safety in the same family as `dungeon_bailing()`,
+not positional logic. If it is ever untangled, the fix is a separate "route should pause" signal
+rather than deleting the check.
 
 Two findings that changed the plan, both from reading rather than assuming:
 
