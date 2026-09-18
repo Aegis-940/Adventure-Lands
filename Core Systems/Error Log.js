@@ -228,7 +228,8 @@ function _errlog_try_wrap_game_log() {
 	game_log = function (msg, color) {
 		try {
 			const text = String(msg);
-			if (text.indexOf("⚠️") === 0 || text.indexOf("❌") === 0 || text.indexOf("🛑") === 0) {
+			if (text.indexOf("⚠️") === 0 || text.indexOf("❌") === 0 || text.indexOf("🛑") === 0
+				|| text.indexOf("[") === 0) {
 				errlog_record("game_log", text);
 			}
 		} catch (e) { }
