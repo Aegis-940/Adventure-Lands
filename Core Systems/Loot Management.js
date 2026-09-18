@@ -165,8 +165,16 @@ function inventory_sorter() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 let _loot_last = 0;
-let _loot_gold_swap = 0;
 let _looting = false;
+
+const GOLD_GEAR_LINGER_MS = 5000;
+const GOLD_GEAR_WAIT_MS = 1500;
+
+function gold_gear_wanted() {
+	if (!CONFIG.looting?.equip_gold_gear) return false;
+	if (_looting) return true;
+	return _loot_last > 0 && performance.now() - _loot_last < GOLD_GEAR_LINGER_MS;
+}
 
 function should_loot() {
 	if (!CONFIG.looting?.enabled || character.cc > COOLDOWNS.cc) return false;
@@ -198,16 +206,14 @@ async function shift_booster(slot, target) {
 async function handle_looting() {
 	_loot_last = performance.now();
 	_looting = true;
-	const token = equip_claim("looting", EQUIP_PRIORITY.loot);
 	let booster_slot = -1;
 
 	try {
-		if (token && CONFIG.looting.equip_gold_gear && !is_set_equipped("gold")
-			&& performance.now() - _loot_gold_swap > 1000) {
-			_loot_gold_swap = performance.now();
+		if (CONFIG.looting.equip_gold_gear && !is_set_equipped("gold")) {
 			booster_slot = locate_item("luckbooster");
 			await Promise.all([
-				equip_apply(token, "gold"),
+				wait_until_equipped("gold", GOLD_GEAR_WAIT_MS).catch(e =>
+					game_log(`[LOOT] gold gear never arrived: ${fmt_err(e)}`, "#FFA500")),
 				shift_booster(booster_slot, "goldbooster")
 			]);
 		}
@@ -229,7 +235,6 @@ async function handle_looting() {
 		catcher(e, "handle_looting");
 	} finally {
 		_looting = false;
-		equip_release(token);
 	}
 }
 

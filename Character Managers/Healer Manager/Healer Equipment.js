@@ -102,6 +102,11 @@ function resolve_healer_loadout() {
 		|| first_available_set(CONFIG.equipment.weapon_sets);
 }
 
+function resolve_healer_gloves() {
+	if (gold_gear_wanted()) return "gold";
+	return gear_override("gloves") || "gloves";
+}
+
 function resolve_healer_orb() {
 	if (panicking) return "panic";
 	return gear_override("orb") || preferred_orb("orb_luck");
@@ -109,7 +114,7 @@ function resolve_healer_orb() {
 
 var EQUIPMENT_RULES = {
 	loadout: { kind: "set", resolve: resolve_healer_loadout },
-	gloves:  { kind: "set", resolve: () => "gloves" },
+	gloves:  { kind: "set", resolve: resolve_healer_gloves },
 	orb:     { kind: "set", resolve: resolve_healer_orb },
 };
 

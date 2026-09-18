@@ -68,9 +68,21 @@ Net 71 deletions against 25 insertions.
 during a bail, so the bail path takes over. Clean mutual exclusion, like bscorpion. It now uses
 `equip_once()` rather than holding a persistent claim.
 
-**Still split:** the gold gloves (`handle_looting`) remain their own decider. Only the healer has a
-`gold` set, so it is a one-slot, one-character case; folding it into her `gloves` resolver is the
-next slice.
+**Gold gloves consolidated too (2026-09-18).** `resolve_healer_gloves()` now owns the gloves slot,
+asking `gold_gear_wanted()` — which lives with looting, where the knowledge belongs.
+`handle_looting()` stopped equipping and became a consumer, waiting for the gloves like
+`panic_check()` waits for the orb. `equip_claim("looting")` and `EQUIP_PRIORITY.loot` are gone;
+the priority ladder is down from six levels to four.
+
+The churn was never really the split. Gold gear was being put on and taken off around *each* 3s
+loot, when she loots continuously while farming — two equips per cycle against a server that
+accepts one per two seconds, which saturated her equip channel and filled her 100-event timeline
+with 86 `not_ready` responses covering three minutes. `gold_gear_wanted()` makes "looting is
+active" a state with duration (`_looting`, or looted within 5s) rather than an instant, so a burst
+of loots costs one swap pair instead of one per loot.
+
+**All four persistent gear deciders are now one per slot.** What remains claiming slots is the five
+transient skill procedures, which is what the arbiter is for.
 
 ### Before
 

@@ -202,7 +202,6 @@ const EQUIP_PRIORITY = {
 	panic: 100,
 	skill: 80,
 	trick: 70,
-	loot: 60,
 	rules: 20,
 	resting: 10,
 };
