@@ -57,7 +57,29 @@ Deletes: claims, tokens, leases, priority levels, per-group cooldowns, `loadout_
 
 ---
 
-## 2. Where to stand — split six ways, with no arbiter at all
+## 2. Where to stand — CONSOLIDATED (2026-09-18)
+
+`movement_local()` now owns it. `panicking` is decided once, at the top of that function, ahead of
+every other branch; `orbit_reposition()` lost its internal `panicking` ternary and is now purely
+"best spot by this score"; the healer's `healer_local` override is gone and she is wired with an
+ordinary `farm_step` like the other two. The `s.local` escape hatch in `run_character` — which is
+what allowed the bypass in the first place — has been removed, so single ownership is now
+structural rather than conventional.
+
+Two findings that changed the plan, both from reading rather than assuming:
+
+- **bscorpion was never a split.** Every other decider explicitly bails on `home === "bscorpion"`
+  and its own loops are already gated on `!panicking`. That is a mode switch with clean mutual
+  exclusion, not competing ownership. Left alone.
+- **`stuck_escape_check()` is not local positioning.** It returns early when
+  `character.map === destination.map`, so it only acts while travelling. It belongs to "where to
+  go", not "where to stand". Left alone.
+
+The original description follows, for the record.
+
+### Before
+
+Split six ways, with no arbiter at all
 
 | Decider | Where |
 |---|---|

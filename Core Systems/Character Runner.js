@@ -68,6 +68,7 @@ function run_basic_action(p, label) {
 }
 
 const REPOSITION_INTERVAL_MS = 250;
+const REPOSITION_MOVE_THRESHOLD = 10;
 
 function orbit_reposition(make_score, options) {
 	if (smart.moving || character.moving) return;
@@ -80,14 +81,19 @@ function orbit_reposition(make_score, options) {
 	const center = reposition_center();
 	if (!center) return;
 
-	const score = panicking ? make_distance_from_monsters_scorer() : make_score();
+	const score = make_score();
 	if (!score) return;
 
-	const spot = best_orbit_spot(center, CONFIG.movement.circle_radius, score, panicking ? undefined : options);
+	const spot = best_orbit_spot(center, CONFIG.movement.circle_radius, score, options);
 	if (!spot) return;
-	if (Math.hypot(character.x - spot.x, character.y - spot.y) <= CONFIG.movement.move_threshold) return;
+	const threshold = CONFIG.movement.move_threshold ?? REPOSITION_MOVE_THRESHOLD;
+	if (Math.hypot(character.x - spot.x, character.y - spot.y) <= threshold) return;
 
 	move(spot.x, spot.y);
+}
+
+function panic_step() {
+	orbit_reposition(make_distance_from_monsters_scorer);
 }
 
 function default_farm_step() {
@@ -167,7 +173,6 @@ function run_character(spec) {
 
 			if (!travel_arbiter(goal)) {
 				if (should_loot()) await handle_looting();
-				else if (typeof s.local === "function") await s.local(goal);
 				else movement_local(goal, s.farm_step);
 			}
 		} catch (e) {

@@ -25,14 +25,11 @@ function circle_centre() {
 	return LOCATIONS[home][0];
 }
 
-async function healer_local(goal) {
-	movement_local(goal, () => {
-		if (CONFIG.movement.circle_walk && get_nearest_monster({ type: home })) walk_in_circle();
-	});
+function healer_farm_step() {
+	if (CONFIG.movement.circle_walk && get_nearest_monster({ type: home })) walk_in_circle();
 }
 
-async function walk_in_circle() {
-	if (smart.moving) return;
+function walk_in_circle() {
 	if (home === "bscorpion") return;
 
 	const center = circle_centre();
