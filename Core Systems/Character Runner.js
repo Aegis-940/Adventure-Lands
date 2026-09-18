@@ -92,10 +92,6 @@ function orbit_reposition(make_score, options) {
 	move(spot.x, spot.y);
 }
 
-function panic_step() {
-	orbit_reposition(make_distance_from_monsters_scorer);
-}
-
 function default_farm_step() {
 	if (CONFIG.movement.reposition && get_nearest_monster({ type: home })) reposition();
 }

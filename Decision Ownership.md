@@ -59,12 +59,16 @@ Deletes: claims, tokens, leases, priority levels, per-group cooldowns, `loadout_
 
 ## 2. Where to stand — CONSOLIDATED (2026-09-18)
 
-`movement_local()` now owns it. `panicking` is decided once, at the top of that function, ahead of
-every other branch; `orbit_reposition()` lost its internal `panicking` ternary and is now purely
-"best spot by this score"; the healer's `healer_local` override is gone and she is wired with an
-ordinary `farm_step` like the other two. The `s.local` escape hatch in `run_character` — which is
+`movement_local()` now owns it. The healer's `healer_local` override is gone and she is wired with
+an ordinary `farm_step` like the other two, and the `s.local` escape hatch in `run_character` —
 what allowed the bypass in the first place — has been removed, so single ownership is now
 structural rather than conventional.
+
+**Panic is movement-agnostic and does not appear here.** Its job is to dump aggro; it may do that
+while moving, standing still or orbiting. `orbit_reposition()` lost the internal
+`panicking ? distance_scorer : make_score()` ternary that had it silently changing the warrior's
+and ranger's positioning, and is now purely "best reachable spot by this score". No local
+positioning decider consults `panicking`.
 
 Two findings that changed the plan, both from reading rather than assuming:
 

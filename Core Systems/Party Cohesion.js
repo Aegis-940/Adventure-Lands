@@ -211,7 +211,6 @@ function movement_local(goal, farm_step) {
 		game_log("🧭 local movement skipped — a journey is still in flight", "#FFA500");
 		return;
 	}
-	if (typeof panicking !== "undefined" && panicking) return panic_step();
 	if (goal && goal.local === "step") return local_step(goal);
 	if (goal && goal.local === "event") return event_step(goal.event);
 	if (goal && goal.local === "loot") return loot_step();
