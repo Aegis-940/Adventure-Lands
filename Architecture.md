@@ -36,7 +36,8 @@ Core Systems/*.js                 ← loaded in parallel as real <script> tags
     ├── Targeting.js              score_targets()/select_target() — one scorer for every character
     ├── World Events.js           live boss/seasonal targets, the walk to them, the anniversary visit
     ├── Character Messaging.js    CM handlers, localStorage-backed state cache
-    ├── Equipment.js              equipment sets, batch_equip(), slot arbiter, rules resolver
+    ├── Equipment Manager.js      equipment sets, batch_equip(), slot arbiter, rules resolver
+    ├── Equipment Valuation.js    ability procs, set profiles, damage maths, weapon choice
     ├── Party Management.js       panic + its broadcast (set_panic()), party invites, home location
     ├── Loot Management.js        loose_loot() (keep/ship/vendor), bank withdrawal, chest looting
     ├── Maintenance.js            potion drinking/restocking, periodic tab reload
@@ -198,7 +199,8 @@ CONFIG = {
 |------|-------|
 | Core Systems/Combat Utilities.js | 679 |
 | Character Managers/Merchant Manager/Merchant Upgrading.js | 640 |
-| Core Systems/Equipment.js | 514 |
+| Core Systems/Equipment Manager.js | 360 |
+| Core Systems/Equipment Valuation.js | 329 |
 | Core Systems/Error Log.js | 462 |
 | Character Managers/Merchant Manager/Merchant Crafting.js | 391 |
 | Core Systems/Movement.js | 352 |

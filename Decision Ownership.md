@@ -80,7 +80,7 @@ Nine independent contexts decide this character's gear, and nothing reconciles t
 
 | Decider | Where | Wants |
 |---|---|---|
-| `resolve_equipment()` | `Equipment.js:657` (25ms loop) | rules loadout |
+| `resolve_equipment()` | `Equipment Manager.js` (25ms loop) | rules loadout |
 | `handle_looting()` | `Loot Management.js:210` | `gold` |
 | `panic_check()` | `Party Management.js:104,147` | `panic`, then `orb` back |
 | `check_temporal_surge()` | `Healer Equipment.js:139,149` | `temporal`, then raw `equip()` |
