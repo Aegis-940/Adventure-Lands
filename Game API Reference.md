@@ -562,7 +562,9 @@ Live totals (`G.version 6732`): **580 items, 129 monsters, 54 maps, 133 NPCs, 12
 **Timers.** `end` and `spawn` are server `Date`s, so they arrive as ISO strings — parse with
 `new Date(v).getTime()`. `end` is the moment the event window closes (`G.events[name].duration`,
 40 min for crabxx/franky/icegolem). `spawn` is the next spawn time for a dead seasonal boss,
-`G.monsters[name].respawn` minutes after death (120s on the first spawn of a season).
+`G.monsters[name].respawn` **seconds** after death — 120s for the first spawn of a season.
+Seasonal values: `mrpumpkin` 54 min, `mrgreen` 94 min, `dragold` 3 h, `snowman`/`wabbit`/`pinkgoo`
+60 min.
 
 **Schedule.** Event hours are *server-local*: the server computes
 `(UTC hour + time_offset) % 24` and fires when that equals a `dailies`/`nightlies` entry, on the
@@ -573,9 +575,17 @@ The events rotate through fixed queues that are **not** broadcast —
 advance but *which* event fires is only knowable by watching the rotation.
 
 **No timers exist for ordinary world bosses** (`phoenix`, `mvampire`, `fvampire`, `greenjr`, `jr`,
-`stompy`, `cutebee`, `goldenbat`, …). They are not in `E` at all; they respawn on
-`G.monsters[name].respawn` **minutes** after death, and only the server knows when that was.
-Tracking them means observing deaths yourself.
+`stompy`, `cutebee`, `goldenbat`, …). They are not in `E` at all, so nothing is broadcast about
+them — the only way to know is to observe the death yourself and add the interval.
+
+`G.monsters[name].respawn` is in **seconds** (`mvampire` 18 min, `fvampire` 24 min, `stompy` 36 min,
+`greenjr`/`jr` 8 min). The scheduler (`server.js`, on death) splits on 200: at or below, the delay
+is `respawn * 1000` ms plus <1s of jitter; above 200 it is `respawn * (720–1200)` ms, i.e. the
+interval randomized by ±20%, so long respawns are not exactly predictable. Monsters flagged
+`special` (and spawn points flagged `special`) never take this path at all — their appearances are
+driven by `spawn_special_monster()`, which is why `respawn` on a rare like `phoenix` does not mean
+what it appears to. `respawn: -1` (`cutebee`, `goldenbat`, `crabxx`) means it never respawns on its
+own.
 
 **Cross-server.** `broadcast()` is `io.emit()`, so an unauthenticated socket receives `server_info`,
 `game_event` (boss spawn announcements), `notice` and `server_message` for that realm — this is what
