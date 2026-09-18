@@ -168,16 +168,46 @@ function api_frame() {
 	return null;
 }
 
+function server_endpoint(server) {
+	let host = String(server.addr || server.ip || server.actual_ip || server.host || "");
+	let port = server.port;
+
+	host = host.replace(/^wss?:\/\//, "").replace(/\/+$/, "");
+	if (host.indexOf(":") >= 0) {
+		const parts = host.split(":");
+		host = parts[0];
+		if (!port) port = parts[1];
+	}
+
+	return { host, port };
+}
+
+function server_realm(server) {
+	if (server.region && server.name) return realm_key(server.region, server.name);
+
+	const key = String(server.key || server.server || "");
+	const parts = key.match(/^(EU|US|ASIA)[ _-]?(.*)$/i);
+	return parts ? realm_key(parts[1].toUpperCase(), parts[2]) : key;
+}
+
 function collect_servers(list) {
 	const servers = [];
 
 	for (const id in (list || {})) {
 		const server = list[id];
-		const host = server && (server.addr || server.ip);
-		if (!host || !server.port) continue;
-		if (SERVER_WATCH.skip_servers.includes(server.name)) continue;
+		if (!server || typeof server !== "object") continue;
+
+		const endpoint = server_endpoint(server);
+		if (!endpoint.host || !endpoint.port) continue;
+
+		const realm = server_realm(server);
+		if (!realm) continue;
+
+		const name = server.name || realm.split(" ").slice(1).join(" ");
+		if (SERVER_WATCH.skip_servers.includes(String(name).toUpperCase())) continue;
 		if (server.pvp || server.gameplay === "hardcore" || server.gameplay === "dungeon") continue;
-		servers.push({ realm: realm_key(server.region, server.name), host, port: server.port });
+
+		servers.push({ realm, host: endpoint.host, port: endpoint.port });
 	}
 
 	return servers;
@@ -308,12 +338,14 @@ function server_watch_probe() {
 	const names = ["parent", "top", "grandparent", "self"];
 
 	return game_frames().map((frame, i) => {
-		const row = { frame: names[i] || String(i), servers: "blocked", api: "blocked" };
+		const row = { frame: names[i] || String(i), servers: "blocked", api: "blocked", sample: "" };
 		try {
 			const list = frame.X && frame.X.servers;
-			row.servers = list ? Object.keys(list).length : 0;
+			const keys = list ? Object.keys(list) : [];
+			row.servers = keys.length;
 			row.usable = list ? collect_servers(list).length : 0;
 			row.api = typeof frame.api_call === "function";
+			if (keys.length && !row.usable) row.sample = JSON.stringify(list[keys[0]]).slice(0, 200);
 		} catch (e) { }
 		return row;
 	});
@@ -331,6 +363,7 @@ function server_watch_debug() {
 
 	for (const row of server_watch_probe()) {
 		game_log(`      frame ${row.frame}: X.servers=${row.servers} usable=${row.usable} api_call=${row.api}`, "#7FD1FF");
+		if (row.sample) game_log(`         sample: ${row.sample}`, "#888");
 	}
 	if (_watch_complained) game_log(`      last error: ${_watch_complained}`, "#FFA500");
 

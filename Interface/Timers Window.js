@@ -179,6 +179,10 @@ function timers_html() {
 			for (const row of server_watch_probe()) {
 				html += timers_row(`frame ${row.frame}`,
 					`X.servers ${row.servers} · usable ${row.usable} · api_call ${row.api}`, "#888");
+				if (row.sample) {
+					html += `<div style="color:#777;word-break:break-all;margin-bottom:4px;">`
+						+ row.sample.replace(/&/g, "&amp;").replace(/</g, "&lt;") + `</div>`;
+				}
 			}
 		}
 		if (typeof _watch_complained !== "undefined" && _watch_complained) {
