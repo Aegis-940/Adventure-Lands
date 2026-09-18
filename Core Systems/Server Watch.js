@@ -32,6 +32,7 @@ const REALM_TIME_OFFSETS = { EU: 1, US: -5, ASIA: 7 };
 const EVENT_SLOT_HOURS = { dailies: [13, 20], nightlies: [23] };
 
 const SERVER_WATCH_KEY = "AL_server_watch";
+const SERVER_LIST_KEY = "AL_server_list";
 const SERVER_WATCH_LEASE_KEY = "AL_server_watch_owner";
 const SERVER_HOP_KEY = "AL_server_hop";
 const SERVER_HOP_LAST_KEY = "AL_server_hop_last";
@@ -143,6 +144,14 @@ function collect_servers(list) {
 	return servers;
 }
 
+function publish_server_list(servers) {
+	const stored = storage_read(SERVER_LIST_KEY);
+	if (stored && (stored.realms || []).length >= servers.length
+		&& Date.now() - (stored.at || 0) < SERVER_WATCH.server_list_ms) return;
+
+	storage_write(SERVER_LIST_KEY, { at: Date.now(), by: character.name, realms: servers.map(s => s.realm) });
+}
+
 function adopt_servers(servers, source) {
 	if (!servers.length) return false;
 
@@ -155,8 +164,11 @@ function adopt_servers(servers, source) {
 			+ servers.map(s => s.realm).join(", "), "#7FD1FF");
 	}
 
-	publish_watch();
-	open_observers();
+	publish_server_list(servers);
+	if (_watch_owner) {
+		publish_watch();
+		open_observers();
+	}
 	return true;
 }
 
@@ -249,7 +261,9 @@ function server_watch_debug() {
 	const stored = storage_read(SERVER_WATCH_KEY) || {};
 
 	game_log(`🛰️ lease: ${lease ? lease.name : "none"} · me: ${character.name} · owner: ${_watch_owner}`, "#7FD1FF");
-	game_log(`🛰️ X.servers: ${((parent.X && parent.X.servers) || []).length} · listed: ${(_watch_servers || []).length} · published: ${(stored.list || []).length}`, "#7FD1FF");
+	const listed = storage_read(SERVER_LIST_KEY) || {};
+	game_log(`🛰️ X.servers: ${((parent.X && parent.X.servers) || []).length} · mine: ${(_watch_servers || []).length}`
+		+ ` · shared: ${(listed.realms || []).length} by ${listed.by || "nobody"}`, "#7FD1FF");
 	game_log(`🛰️ realm: ${my_realm()} · table: ${Object.keys(stored.realms || {}).join(", ") || "empty"}`, "#7FD1FF");
 
 	for (const realm in _watch_sockets) {
@@ -404,9 +418,10 @@ function next_event_windows(schedule) {
 
 function known_realms() {
 	const stored = storage_read(SERVER_WATCH_KEY) || {};
+	const listed = storage_read(SERVER_LIST_KEY) || {};
 	const realms = [];
 
-	for (const realm of (stored.list || [])) {
+	for (const realm of (listed.realms || []).concat(stored.list || [])) {
 		if (!realms.includes(realm)) realms.push(realm);
 	}
 	for (const realm in (stored.realms || {})) {
@@ -695,8 +710,8 @@ async function server_watch_loop() {
 					_watch_owner = owned;
 					if (!owned) close_observers();
 				}
+				fetch_server_list();
 				if (_watch_owner) {
-					fetch_server_list();
 					open_observers();
 					publish_watch();
 				}

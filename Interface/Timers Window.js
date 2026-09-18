@@ -8,6 +8,13 @@ const TIMERS_HISTORY_SHOWN = 8;
 
 let _timers_interval = null;
 
+function timers_build_tag() {
+	const base = window.__AL_BASE__ || "";
+	const pinned = base.match(/@([0-9a-f]{7,40})\//);
+	if (pinned) return pinned[1].slice(0, 7);
+	return base.indexOf("@main") >= 0 ? "main (SHA lookup failed)" : "unknown";
+}
+
 function timers_ready() {
 	return typeof my_realm === "function" && typeof fmt_eta === "function" && typeof local_timers === "function";
 }
@@ -186,6 +193,8 @@ function timers_html() {
 
 	html += timers_heading("Server hop");
 	html += timers_hop_html();
+
+	html += `<div style="margin-top:8px;color:#555;text-align:right;">build ${timers_build_tag()}</div>`;
 
 	return html;
 }
