@@ -232,6 +232,8 @@ async function handle_party_heal() {
 		const lowest = cache.heal_target;
 		if (!lowest || !lowest.max_hp || lowest.hp >= lowest.max_hp * threshold) return;
 		if (!party_heal_outvalues_single(lowest)) return;
+	} else if (emergency === "self") {
+		if (!party_heal_outvalues_single(cache.heal_target)) return;
 	} else {
 		const lowest = cache.heal_target;
 		sample_heal_choice(
