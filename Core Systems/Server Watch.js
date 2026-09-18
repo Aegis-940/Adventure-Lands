@@ -304,6 +304,21 @@ function close_observer(realm) {
 	delete _watch_state[realm];
 }
 
+function server_watch_probe() {
+	const names = ["parent", "top", "grandparent", "self"];
+
+	return game_frames().map((frame, i) => {
+		const row = { frame: names[i] || String(i), servers: "blocked", api: "blocked" };
+		try {
+			const list = frame.X && frame.X.servers;
+			row.servers = list ? Object.keys(list).length : 0;
+			row.usable = list ? collect_servers(list).length : 0;
+			row.api = typeof frame.api_call === "function";
+		} catch (e) { }
+		return row;
+	});
+}
+
 function server_watch_debug() {
 	const lease = storage_read(SERVER_WATCH_LEASE_KEY);
 	const stored = storage_read(SERVER_WATCH_KEY) || {};
@@ -314,16 +329,10 @@ function server_watch_debug() {
 		+ ` · shared: ${(listed.realms || []).length} by ${listed.by || "nobody"}`, "#7FD1FF");
 	game_log(`🛰️ realm: ${my_realm()} · table: ${Object.keys(stored.realms || {}).join(", ") || "empty"}`, "#7FD1FF");
 
-	const names = ["parent", "top", "grandparent", "self"];
-	game_frames().forEach((frame, i) => {
-		let count = "blocked";
-		let api = "blocked";
-		try {
-			count = ((frame.X && frame.X.servers) || []).length;
-			api = typeof frame.api_call === "function";
-		} catch (e) { }
-		game_log(`      frame ${names[i] || i}: X.servers=${count} api_call=${api}`, "#7FD1FF");
-	});
+	for (const row of server_watch_probe()) {
+		game_log(`      frame ${row.frame}: X.servers=${row.servers} usable=${row.usable} api_call=${row.api}`, "#7FD1FF");
+	}
+	if (_watch_complained) game_log(`      last error: ${_watch_complained}`, "#FFA500");
 
 	for (const realm in _watch_sockets) {
 		game_log(`      ${realm}: ${_watch_state[realm] || "opening"}`, "#7FD1FF");
@@ -580,11 +589,16 @@ function local_timers() {
 
 		if (entry.live === false && entry.spawn) {
 			seen.spawns[name] = to_ms(entry.spawn);
-		} else if (entry.live) {
-			seen.bosses[name] = { ...entry, end: to_ms(entry.end) };
-		} else if (entry.end && !watched.includes(name)) {
-			seen.windows[name] = to_ms(entry.end);
+			continue;
 		}
+
+		if (entry.live && watched.includes(name)) {
+			seen.bosses[name] = { ...entry, end: to_ms(entry.end) };
+			continue;
+		}
+
+		const ends = to_ms(entry.end || entry.expires);
+		if (ends) seen.windows[name] = ends;
 	}
 
 	return seen;

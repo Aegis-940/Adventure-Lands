@@ -174,7 +174,16 @@ function timers_html() {
 	html += timers_heading(`Other realms — ${lease ? lease.name : "no watcher"}`);
 
 	if (!others.length) {
-		html += timers_row("observers", "no realms listed — run server_watch_debug()", "#FFA500");
+		html += timers_row("observers", "no realms listed", "#FFA500");
+		if (typeof server_watch_probe === "function") {
+			for (const row of server_watch_probe()) {
+				html += timers_row(`frame ${row.frame}`,
+					`X.servers ${row.servers} · usable ${row.usable} · api_call ${row.api}`, "#888");
+			}
+		}
+		if (typeof _watch_complained !== "undefined" && _watch_complained) {
+			html += timers_row("last error", _watch_complained, "#FFA500");
+		}
 	}
 
 	for (const realm of others) {
