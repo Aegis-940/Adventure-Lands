@@ -569,10 +569,18 @@ Seasonal values: `mrpumpkin` 54 min, `mrgreen` 94 min, `dragold` 3 h, `snowman`/
 **Schedule.** Event hours are *server-local*: the server computes
 `(UTC hour + time_offset) % 24` and fires when that equals a `dailies`/`nightlies` entry, on the
 hour. `time_offset` is `EU +1`, `US -5`, `ASIA +7`. `night` is true for local hours 0–5.
-The events rotate through fixed queues that are **not** broadcast —
-`dailies = ["crabxx", "goobrawl", "abtesting"]` and `nightlies = ["icegolem", "franky"]`, each
-`shift()`ed and pushed back per trigger — so the *time* of the next daily/nightly is knowable in
-advance but *which* event fires is only knowable by watching the rotation.
+`time_offset` is set from `TIMEO[region]` — **per region, not per server** — so every server in a
+region fires its daily and nightly slots at the same instant, and regions are staggered against each
+other. In UTC the daily slots land at 12:00/19:00 (EU), 18:00/01:00 (US) and 06:00/13:00 (ASIA),
+the nightlies at 22:00 (EU), 04:00 (US) and 16:00 (ASIA).
+
+*Which* event fires is a different matter and is **not** broadcast. Each server process holds
+`dailies = ["crabxx", "goobrawl", "abtesting"]` and `nightlies = ["icegolem", "franky"]`, calls
+`shuffle()` on both at boot, then `shift()`s and pushes back one per trigger. So the order is a
+random permutation chosen per server per restart: servers in the same region start their events
+simultaneously but almost always start *different* ones, and the only way to know a server's order
+is to watch it. A server restarted within 2 minutes of the hour (`msince(server_start) > 2`) skips
+that slot entirely.
 
 **No timers exist for ordinary world bosses** (`phoenix`, `mvampire`, `fvampire`, `greenjr`, `jr`,
 `stompy`, `cutebee`, `goldenbat`, …). They are not in `E` at all, so nothing is broadcast about

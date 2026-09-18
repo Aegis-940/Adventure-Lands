@@ -12,6 +12,7 @@ const SERVER_WATCH = {
 	entry_stale_ms: 10 * 60 * 1000,
 	server_list_ms: 30 * 60 * 1000,
 	list_retry_ms: 60000,
+	history_length: 6,
 };
 
 const SERVER_HOP = {
@@ -208,8 +209,10 @@ function absorb_server_info(realm, data) {
 	const known = _watch_table[realm] || { at: 0, bosses: {}, spawns: {}, windows: {} };
 	if (!known.spawns) known.spawns = {};
 	if (!known.windows) known.windows = {};
+	if (!known.history) known.history = [];
 
 	const watched = EVENT_LOCATIONS.map(e => e.name);
+	const before = Object.keys(known.bosses).concat(Object.keys(known.windows));
 
 	for (const name in data) {
 		const entry = data[name];
@@ -250,6 +253,18 @@ function absorb_server_info(realm, data) {
 	for (const name in known.windows) {
 		if (!(name in data)) delete known.windows[name];
 	}
+
+	for (const name of Object.keys(known.bosses).concat(Object.keys(known.windows))) {
+		if (before.includes(name)) continue;
+		const boss = known.bosses[name];
+		const max = boss ? boss_max_hp(name, boss) : 0;
+		known.history.unshift({
+			name,
+			at: Date.now(),
+			pct: max && isFinite(boss.hp) ? Math.round((boss.hp / max) * 100) : null,
+		});
+	}
+	known.history = known.history.slice(0, SERVER_WATCH.history_length);
 
 	known.at = Date.now();
 	_watch_table[realm] = known;

@@ -4,8 +4,7 @@
 
 const TIMERS_WINDOW_ID = "timers-window";
 const TIMERS_REFRESH_MS = 1000;
-const TIMERS_DAILY_ROTATION = ["crabxx", "goobrawl", "abtesting"];
-const TIMERS_NIGHTLY_ROTATION = ["icegolem", "franky"];
+const TIMERS_HISTORY_SHOWN = 8;
 
 let _timers_interval = null;
 
@@ -75,6 +74,28 @@ function timers_realm_html(realm, seen, detailed) {
 	return html;
 }
 
+function timers_history_html(realms) {
+	const now = Date.now();
+	const rows = [];
+
+	for (const realm in realms) {
+		for (const entry of (realms[realm].history || [])) {
+			rows.push({ realm, name: entry.name, at: entry.at, pct: entry.pct });
+		}
+	}
+
+	if (!rows.length) return timers_row("observed", "nothing yet — starts are recorded as they happen", "#888");
+
+	rows.sort((a, b) => b.at - a.at);
+
+	let html = "";
+	for (const row of rows.slice(0, TIMERS_HISTORY_SHOWN)) {
+		const seen = row.pct === null || row.pct === undefined ? "" : ` at ${row.pct}%`;
+		html += timers_row(`${row.realm} · ${row.name}`, `${fmt_eta(now - row.at)} ago${seen}`, "#C9A7FF");
+	}
+	return html;
+}
+
 function timers_seasons_html() {
 	const flags = [];
 	for (const name in (parent.S || {})) {
@@ -129,9 +150,8 @@ function timers_html() {
 		html += timers_realm_html(realm, realms[realm], false);
 	}
 
-	html += timers_heading("Rotation (not broadcast — inferred order)");
-	html += timers_row("dailies", TIMERS_DAILY_ROTATION.join(" → "), "#888");
-	html += timers_row("nightlies", TIMERS_NIGHTLY_ROTATION.join(" → "), "#888");
+	html += timers_heading("Recent starts (each realm shuffles its own order at boot)");
+	html += timers_history_html(realms);
 
 	html += timers_heading("Server hop");
 	html += timers_hop_html();
