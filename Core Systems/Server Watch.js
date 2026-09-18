@@ -28,6 +28,9 @@ const SERVER_HOP = {
 	max_attempts: 3,
 };
 
+const REALM_TIME_OFFSETS = { EU: 1, US: -5, ASIA: 7 };
+const EVENT_SLOT_HOURS = { dailies: [13, 20], nightlies: [23] };
+
 const SERVER_WATCH_KEY = "AL_server_watch";
 const SERVER_WATCH_LEASE_KEY = "AL_server_watch_owner";
 const SERVER_HOP_KEY = "AL_server_hop";
@@ -152,6 +155,7 @@ function fetch_server_list() {
 
 			_watch_servers = servers;
 			game_log(`🛰️ Server watch: ${servers.length} realms listed`, "#7FD1FF");
+			publish_watch();
 			open_observers();
 		},
 	});
@@ -269,7 +273,16 @@ function absorb_server_info(realm, data) {
 	known.at = Date.now();
 	_watch_table[realm] = known;
 
-	storage_write(SERVER_WATCH_KEY, { owner: character.name, at: Date.now(), realms: _watch_table });
+	publish_watch();
+}
+
+function publish_watch() {
+	storage_write(SERVER_WATCH_KEY, {
+		owner: character.name,
+		at: Date.now(),
+		realms: _watch_table,
+		list: _watch_servers ? _watch_servers.map(s => s.realm) : [],
+	});
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -332,6 +345,80 @@ function next_event_windows(schedule) {
 	(schedule.nightlies || []).forEach(h => windows.push({ kind: "nightly", at: next_utc_hour(((h - offset) % 24 + 24) % 24) }));
 
 	return windows.sort((a, b) => a.at - b.at);
+}
+
+function known_realms() {
+	const stored = storage_read(SERVER_WATCH_KEY) || {};
+	const realms = [];
+
+	for (const realm of (stored.list || [])) {
+		if (!realms.includes(realm)) realms.push(realm);
+	}
+	for (const realm in (stored.realms || {})) {
+		if (!realms.includes(realm)) realms.push(realm);
+	}
+
+	const mine = my_realm();
+	if (mine && !realms.includes(mine)) realms.push(mine);
+
+	return realms;
+}
+
+function region_schedules() {
+	const seen = watch_realms();
+	const mine = my_realm();
+	const regions = {};
+
+	for (const realm of known_realms()) {
+		const region = realm.split(" ")[0];
+		if (!regions[region]) regions[region] = { realms: [], offset: null, dailies: null, nightlies: null, observed: false };
+		const group = regions[region];
+		if (!group.realms.includes(realm)) group.realms.push(realm);
+
+		const schedule = realm === mine
+			? (parent.S && parent.S.schedule)
+			: (seen[realm] && seen[realm].schedule);
+		if (!schedule) continue;
+
+		group.observed = true;
+		if (group.offset === null && isFinite(schedule.time_offset)) group.offset = schedule.time_offset;
+		if (!group.dailies && schedule.dailies) group.dailies = schedule.dailies;
+		if (!group.nightlies && schedule.nightlies) group.nightlies = schedule.nightlies;
+	}
+
+	for (const region in regions) {
+		const group = regions[region];
+		if (group.offset === null) group.offset = REALM_TIME_OFFSETS[region] === undefined ? 0 : REALM_TIME_OFFSETS[region];
+		if (!group.dailies) group.dailies = EVENT_SLOT_HOURS.dailies;
+		if (!group.nightlies) group.nightlies = EVENT_SLOT_HOURS.nightlies;
+		group.realms.sort();
+	}
+
+	return regions;
+}
+
+function upcoming_event_slots(horizon_hours) {
+	const regions = region_schedules();
+	const horizon = Date.now() + (horizon_hours || 26) * 60 * 60 * 1000;
+	const slots = [];
+
+	for (const region in regions) {
+		const group = regions[region];
+		const kinds = [["daily", group.dailies], ["nightly", group.nightlies]];
+
+		for (const kind of kinds) {
+			for (const hour of kind[1]) {
+				const utc_hour = ((hour - group.offset) % 24 + 24) % 24;
+				let at = next_utc_hour(utc_hour);
+				while (at < horizon) {
+					slots.push({ at, kind: kind[0], region, hour, realms: group.realms });
+					at += 24 * 60 * 60 * 1000;
+				}
+			}
+		}
+	}
+
+	return slots.sort((a, b) => a.at - b.at);
 }
 
 function realm_timers(realm) {
@@ -542,6 +629,7 @@ async function server_watch_loop() {
 				if (_watch_owner) {
 					fetch_server_list();
 					open_observers();
+					publish_watch();
 				}
 				server_hop_tick();
 			}

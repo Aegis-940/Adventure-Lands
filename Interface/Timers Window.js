@@ -5,6 +5,8 @@
 const TIMERS_WINDOW_ID = "timers-window";
 const TIMERS_REFRESH_MS = 1000;
 const TIMERS_HISTORY_SHOWN = 8;
+const TIMERS_SLOTS_SHOWN = 10;
+const TIMERS_SCHEDULE_HORIZON_H = 30;
 
 let _timers_interval = null;
 
@@ -55,14 +57,6 @@ function timers_realm_html(realm, seen, detailed) {
 		html += timers_row(`🥚 ${name}`, fmt_eta(seen.spawns[name] - now), "#9FE08F");
 	}
 
-	const windows = next_event_windows(seen.schedule);
-	if (windows.length) {
-		html += timers_row(`⏳ next ${windows[0].kind}`, fmt_eta(windows[0].at - now), "#C9A7FF");
-		if (detailed && windows[1]) {
-			html += timers_row(`⏳ then ${windows[1].kind}`, fmt_eta(windows[1].at - now), "#C9A7FF");
-		}
-	}
-
 	if (detailed && seen.schedule) {
 		const clock = server_clock(seen.schedule);
 		if (clock) html += timers_row("🕑 server clock", clock, "#888");
@@ -71,6 +65,32 @@ function timers_realm_html(realm, seen, detailed) {
 	}
 
 	if (!html) html = timers_row(realm, "quiet", "#888");
+	return html;
+}
+
+function timers_schedule_html() {
+	if (typeof upcoming_event_slots !== "function") return "";
+
+	const now = Date.now();
+	const regions = region_schedules();
+	const slots = upcoming_event_slots(TIMERS_SCHEDULE_HORIZON_H).slice(0, TIMERS_SLOTS_SHOWN);
+
+	if (!slots.length) return timers_row("schedule", "no realms known yet", "#888");
+
+	let html = "";
+	let assumed = false;
+
+	for (const slot of slots) {
+		const group = regions[slot.region] || {};
+		if (!group.observed) assumed = true;
+		const names = slot.realms.map(r => r.split(" ").slice(1).join(" ")).join("/");
+		const mark = group.observed ? "" : "*";
+		html += timers_row(`${slot.region} ${names}${mark} · ${slot.kind} ${slot.hour}:00`,
+			fmt_eta(slot.at - now),
+			slot.kind === "nightly" ? "#C9A7FF" : "#FFD479");
+	}
+
+	if (assumed) html += timers_row("*", "schedule assumed from region, not yet observed", "#666");
 	return html;
 }
 
@@ -135,7 +155,10 @@ function timers_html() {
 	const realms = typeof watch_realms === "function" ? watch_realms() : {};
 	const lease = typeof storage_read === "function" ? storage_read(SERVER_WATCH_LEASE_KEY) : null;
 
-	let html = timers_heading(`This realm — ${mine}`);
+	let html = timers_heading("Next event windows — every realm");
+	html += timers_schedule_html();
+
+	html += timers_heading(`This realm — ${mine}`);
 	html += timers_realm_html(mine, local_timers(), true);
 	html += timers_seasons_html();
 
