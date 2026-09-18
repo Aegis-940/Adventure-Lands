@@ -70,7 +70,7 @@ function is_away_from_home() {
 function party_in_formation() {
 	if (typeof is_travelling === "function" && is_travelling()) return true;
 	const g = typeof current_goal === "function" ? current_goal() : null;
-	return !!g && g.local !== "farm" && g.local !== "event";
+	return !!g && g.local !== "farm" && g.local !== "event" && g.local !== "loot";
 }
 
 function leader_position() {
@@ -213,5 +213,6 @@ function movement_local(goal, farm_step) {
 	}
 	if (goal && goal.local === "step") return local_step(goal);
 	if (goal && goal.local === "event") return event_step(goal.event);
+	if (goal && goal.local === "loot") return loot_step();
 	if (typeof farm_step === "function") farm_step();
 }

@@ -176,8 +176,10 @@ function should_loot() {
 	const stored_chest_count = Object.keys(get_chests()).length;
 	const penalty = character.s?.penalty_cd?.ms || 0;
 
+	const draining = typeof boss_field_draining === "function" && boss_field_draining();
+
 	return (
-		stored_chest_count >= CONFIG.looting.chest_threshold &&
+		stored_chest_count >= (draining ? 1 : CONFIG.looting.chest_threshold) &&
 		character.targets < CONFIG.looting.target_count &&
 		now - _loot_last > CONFIG.looting.loot_cooldown &&
 		penalty === 0

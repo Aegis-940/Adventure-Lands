@@ -30,7 +30,14 @@ function event_goal() {
 	if (character?.s?.holidayspirit) _holiday_tried = false;
 
 	const target = best_event_target();
-	if (!target) return null;
+	boss_field_watch(target);
+
+	if (!target) {
+		if (character.ctype === "priest" && boss_field_draining()) {
+			return { local: "loot", label: "boss-loot" };
+		}
+		return null;
+	}
 
 	if (target.join === true && !get_nearest_monster({ type: target.name })) {
 		if (Date.now() - _last_event_join > EVENT_JOIN_RETRY_MS) {
@@ -71,6 +78,54 @@ function best_event_target() {
 		.sort((a, b) => (a.data.hp / a.data.max_hp) - (b.data.hp / b.data.max_hp));
 
 	return alive_sorted.length ? alive_sorted[0] : null;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOSS FIELD — the healer drains the chests where the boss fell before the party moves on
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const BOSS_LOOT_GRACE_MS = 20000;
+const BOSS_LOOT_REACH = 200;
+
+let _boss_field = null;
+
+function boss_field_watch(target) {
+	if (target) {
+		_boss_field = { map: character.map, at: Date.now() };
+		return;
+	}
+	if (!_boss_field) return;
+	if (character.map !== _boss_field.map || Date.now() - _boss_field.at > BOSS_LOOT_GRACE_MS) {
+		_boss_field = null;
+	}
+}
+
+function boss_field_draining() {
+	return !!_boss_field && Object.keys(get_chests()).length > 0;
+}
+
+function nearest_chest() {
+	const chests = get_chests();
+	let best = null;
+	let best_distance = Infinity;
+
+	for (const id in chests) {
+		const chest = chests[id];
+		const d = Math.hypot(character.x - chest.x, character.y - chest.y);
+		if (d < best_distance) {
+			best_distance = d;
+			best = chest;
+		}
+	}
+
+	return best;
+}
+
+function loot_step() {
+	const chest = nearest_chest();
+	if (!chest) return;
+	if (Math.hypot(character.x - chest.x, character.y - chest.y) <= BOSS_LOOT_REACH) return;
+	local_move(chest.x, chest.y);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
