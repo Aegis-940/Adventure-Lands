@@ -22,6 +22,7 @@ const SERVER_WATCH = {
 	window_lead_min: 2,
 	window_tail_min: 45,
 	region_cache_ms: 5000,
+	dps_decay_ms: 15000,
 };
 
 const SERVER_HOP = {
@@ -516,15 +517,33 @@ function absorb_server_info(realm, data) {
 		}
 
 		delete known.spawns[name];
-		known.bosses[name] = {
+
+		const prior = known.bosses[name];
+		const boss = {
 			live: true,
 			hp: entry.hp,
 			max_hp: entry.max_hp,
 			map: entry.map,
 			x: entry.x,
 			y: entry.y,
+			target: entry.target || null,
 			end: to_ms(entry.end),
+			at: Date.now(),
+			dps: prior ? prior.dps || 0 : 0,
+			damaged_at: prior ? prior.damaged_at || 0 : 0,
 		};
+
+		if (prior && isFinite(prior.hp) && isFinite(boss.hp)) {
+			const seconds = (boss.at - (prior.at || boss.at)) / 1000;
+			if (boss.hp < prior.hp && seconds >= 0.5) {
+				boss.dps = Math.round((prior.hp - boss.hp) / seconds);
+				boss.damaged_at = boss.at;
+			} else if (boss.at - boss.damaged_at > SERVER_WATCH.dps_decay_ms) {
+				boss.dps = 0;
+			}
+		}
+
+		known.bosses[name] = boss;
 	}
 
 	for (const name in known.spawns) {
@@ -694,11 +713,16 @@ function bosses_elsewhere() {
 			if (ratio > SERVER_HOP.join_below) continue;
 			if (data.end && data.end - Date.now() < SERVER_HOP.min_window_ms) continue;
 
-			found.push({ realm, name, data, ratio });
+			const busy = !!data.target || (data.dps > 0 && Date.now() - (data.damaged_at || 0) < SERVER_WATCH.dps_decay_ms);
+			found.push({ realm, name, data, ratio, busy, dps: data.dps || 0 });
 		}
 	}
 
-	return found.sort((a, b) => a.ratio - b.ratio);
+	return found.sort((a, b) => {
+		if (a.busy !== b.busy) return a.busy ? -1 : 1;
+		if (b.dps !== a.dps) return b.dps - a.dps;
+		return a.ratio - b.ratio;
+	});
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

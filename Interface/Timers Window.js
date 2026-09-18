@@ -29,6 +29,13 @@ function timers_heading(text) {
 	return `<div style="margin:8px 0 4px;color:#7FD1FF;font-weight:bold;border-bottom:1px solid #444;">${text}</div>`;
 }
 
+function fmt_short(value) {
+	const n = Number(value) || 0;
+	if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
+	if (n >= 1000) return Math.round(n / 1000) + "k";
+	return String(Math.round(n));
+}
+
 function server_clock(schedule) {
 	if (!schedule || !isFinite(schedule.time_offset)) return "";
 
@@ -55,7 +62,10 @@ function realm_line(realm, states) {
 		const max = boss_max_hp(name, boss);
 		const pct = max && isFinite(boss.hp) ? `${Math.round((boss.hp / max) * 100)}%` : "?";
 		const left = boss.end ? ` · ${fmt_eta(boss.end - now)}` : "";
-		return timers_row(label, `⚔️ ${name} ${pct}${left}`, "#FF9B6A");
+		const busy = boss.target || (boss.dps && now - (boss.damaged_at || 0) < 15000)
+			? ` · 🔥${fmt_short(boss.dps)}`
+			: " · idle";
+		return timers_row(label, `⚔️ ${name} ${pct}${left}${busy}`, "#FF9B6A");
 	}
 
 	for (const name in seen.windows) {
@@ -199,8 +209,11 @@ function timers_hop_html() {
 	}
 
 	const candidates = typeof bosses_elsewhere === "function" ? bosses_elsewhere() : [];
-	if (candidates.length) {
-		html += timers_row("joinable now", candidates.map(c => `${c.name} ${Math.round(c.ratio * 100)}% (${c.realm})`).join(", "), "#FF9B6A");
+	for (const candidate of candidates.slice(0, 3)) {
+		html += timers_row(candidate === candidates[0] ? "joinable now" : "&nbsp;",
+			`${candidate.name} ${Math.round(candidate.ratio * 100)}% on ${candidate.realm}`
+			+ (candidate.busy ? ` · 🔥${fmt_short(candidate.dps)}` : " · idle"),
+			candidate.busy ? "#FF9B6A" : "#888");
 	}
 
 	return html;
