@@ -29,6 +29,10 @@ var CONFIG = {
 		circle_speed: 1.8,
 		circle_radius: 30,
 		follow_distance: 15,
+		kite_mobs: ["crabxx"],
+		kite_buffer: 5,
+		kite_slack: 15,
+		kite_area_radius: 250,
 	},
 
 	healing: {
