@@ -27,7 +27,54 @@ the split and the mechanism has nothing left to do.
 
 ---
 
-## 1. What to wear — split nine ways
+## 1. What to wear — ORB SLOT CONSOLIDATED (2026-09-18)
+
+Reading the nine deciders showed they are **two different kinds**, which the original audit missed:
+
+- **Persistent state** — "while X is true, wear Y": the rules resolver, looting's gold gloves,
+  panic's jacko, the dungeon bail. These genuinely compete, and they are what caused the ping-pong.
+- **Transient procedures** — "equip, cast, restore": the warrior's basher and cleave swaps, the
+  swap trick, temporal surge, the zapper. These need momentary exclusive ownership of a slot, which
+  is what a lock is *for*. Forcing them into a declarative decider would be the god-function
+  mistake. They keep `equip_claim` at `skill`/`trick` priority, and that use is correct.
+
+A third decider also turned up that the audit had not counted: **`MONSTER_GEAR_OVERRIDES`**.
+`resolve_equipment()` consulted it *instead of* the group resolver, so at bscorpion the override
+replaced the orb rule outright — which would have silently clobbered panic once panic moved into
+the resolver.
+
+**What changed.** Each group resolver is now the single owner of its slot, composing all three
+inputs in order:
+
+```js
+function resolve_warrior_orb() {
+    if (panicking) return "panic";
+    return gear_override("orb") || preferred_orb("orb_dps");
+}
+```
+
+`resolve_equipment()` is now just "ask each group, apply the answer" — the override branch is gone,
+replaced by a shared `gear_override(group)` the resolvers call themselves. `panic_check()` became a
+*consumer*: it waits for the orb it needs rather than equipping it.
+
+Deleted outright: `panic_equip_hold()`, `panic_equip_free()`, `_panic_equip_token`,
+`_panic_last_emit`, the panic equip block, the recovery's orb-restore block, and
+`loadout_manages_orb()` with its cache and uncached twin — 25 lines whose only job was answering
+"does the loadout own the orb?", a question that only existed because ownership was ambiguous.
+Net 71 deletions against 25 insertions.
+
+**Deliberate exception:** `dungeon_scare_off()` still equips the jacko itself, because
+`equipment_manager_loop` is parked while `dungeon_bailing()` is true — the resolver is switched off
+during a bail, so the bail path takes over. Clean mutual exclusion, like bscorpion. It now uses
+`equip_once()` rather than holding a persistent claim.
+
+**Still split:** the gold gloves (`handle_looting`) remain their own decider. Only the healer has a
+`gold` set, so it is a one-slot, one-character case; folding it into her `gloves` resolver is the
+next slice.
+
+### Before
+
+Split nine ways
 
 Nine independent contexts decide this character's gear, and nothing reconciles their answers:
 

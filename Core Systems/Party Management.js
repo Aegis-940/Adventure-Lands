@@ -17,7 +17,6 @@ function set_panic(on, reason, external) {
 	if (panicking === on && panic_external === ext) return;
 
 	if (on && !panicking) last_panic_time = 0;
-	if (!on) panic_equip_free();
 	panicking = !!on;
 	panic_external = ext;
 	panic_external_since = ext && on ? Date.now() : 0;
@@ -27,30 +26,12 @@ function set_panic(on, reason, external) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// PANIC — threat detection, the panic loadout, and the all-clear
+// PANIC — threat detection, the aggro dump, and the all-clear
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const EXTERNAL_PANIC_MAX_MS = 60000;
 
 let _panic_check_running = false;
-
-let _panic_equip_token = null;
-
-function panic_equip_hold() {
-	if (equip_holds(_panic_equip_token)) {
-		equip_refresh(_panic_equip_token);
-		return _panic_equip_token;
-	}
-	_panic_equip_token = equip_claim("panic", EQUIP_PRIORITY.panic);
-	return _panic_equip_token;
-}
-
-function panic_equip_free() {
-	equip_release(_panic_equip_token);
-	_panic_equip_token = null;
-}
-
-let _panic_last_emit = -1;
 
 async function panic_check() {
 	if (_panic_check_running) return;
@@ -95,23 +76,19 @@ async function _panic_check_body() {
 		}
 	}
 
-	if (panicking) panic_equip_hold();
-
 	if (panicking && (Date.now() - last_panic_time > t.cooldown)) {
 		last_panic_time = Date.now();
 		if (!is_set_equipped("panic")) {
 			try {
-				const emitted = await equip_apply(panic_equip_hold(), "panic");
-				_panic_last_emit = emitted;
 				await wait_until_equipped("panic");
 			} catch (e) {
 				const orb = character.slots.orb;
 				const in_bags = character.items
 					.filter(i => i && i.name === "jacko")
 					.map(i => "lvl" + (i.level ?? 0)).join(",") || "none";
-				game_log(`[PANIC] Failed to equip panic orb: ${fmt_err(e)} `
+				game_log(`[PANIC] Panic orb never arrived: ${fmt_err(e)} `
 					+ `(orb slot: ${orb ? orb.name + " lvl" + (orb.level ?? 0) : "empty"}, `
-					+ `jacko in bags: ${in_bags}, items emitted: ${_panic_last_emit}, cc: ${Math.round(character.cc || 0)})`,
+					+ `jacko in bags: ${in_bags}, cc: ${Math.round(character.cc || 0)})`,
 					"#ff4444");
 			}
 		}
@@ -141,15 +118,6 @@ async function _panic_check_body() {
 		&& !TRAPPED_TRAVELLING && panicking && !external_hold) {
 		if (Date.now() - last_safe_time > t.cooldown) {
 			last_safe_time = Date.now();
-
-			if (!loadout_manages_orb() && is_set_equipped("panic") && !is_set_equipped("orb")) {
-				try {
-					await equip_apply(panic_equip_hold(), "orb");
-					await wait_until_equipped("orb");
-				} catch (e) {
-					game_log(`[PANIC] Failed to equip normal orb: ${fmt_err(e)}`, "#ff4444");
-				}
-			}
 
 			set_panic(false, "recovered", false);
 			if (typeof PANIC_BROADCAST_TARGETS !== "undefined") {

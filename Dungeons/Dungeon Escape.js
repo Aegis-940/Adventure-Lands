@@ -40,7 +40,7 @@ function dungeon_threats(radius = DUNGEON_THREAT_RADIUS) {
 async function dungeon_scare_off() {
 	try {
 		if (!is_set_equipped("panic")) {
-			await equip_apply(panic_equip_hold(), "panic");
+			await equip_once("bail", EQUIP_PRIORITY.panic, "panic");
 			await wait_until_equipped("panic");
 		}
 	} catch (e) {
@@ -144,6 +144,5 @@ async function dungeon_bail_out(reason, broadcast = true, emergency = true) {
 		return false;
 	} finally {
 		_dungeon_bailing = false;
-		if (typeof panicking === "undefined" || !panicking) panic_equip_free();
 	}
 }

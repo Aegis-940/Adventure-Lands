@@ -499,30 +499,6 @@ async function wait_until_equipped(set_name, timeout_ms = 1000, interval_ms = 10
 	}
 }
 
-let _orb_owner = { at: 0, value: false };
-
-function loadout_manages_orb() {
-	const now = Date.now();
-	if (now - _orb_owner.at < 1000) return _orb_owner.value;
-	_orb_owner.at = now;
-	_orb_owner.value = _loadout_manages_orb_uncached();
-	return _orb_owner.value;
-}
-
-function _loadout_manages_orb_uncached() {
-	try {
-		for (const group in EQUIPMENT_RULES) {
-			const rule = EQUIPMENT_RULES[group];
-			if (!rule || rule.kind !== "set" || typeof rule.resolve !== "function") continue;
-			const resolved = rule.resolve();
-			if (!resolved) continue;
-			const sets = Array.isArray(resolved) ? resolved : [resolved];
-			if (sets.some(n => (equipment_sets[n] || []).some(i => i.slot === "orb"))) return true;
-		}
-	} catch (e) { }
-	return false;
-}
-
 async function equip_set_raw(set_name) {
 	const set = equipment_sets[set_name];
 	if (!set) {
@@ -657,9 +633,15 @@ async function apply_equipment_rule(token, group, resolved) {
 	await equip_apply(token, sets);
 }
 
+function gear_override(group) {
+	const at_home = typeof destination !== "undefined" && destination && character.map === destination.map;
+	if (!at_home) return null;
+	const overrides = (typeof MONSTER_GEAR_OVERRIDES !== "undefined" && MONSTER_GEAR_OVERRIDES[home]) || {};
+	return group in overrides ? overrides[group] : null;
+}
+
 function resolve_equipment_bail_reason() {
 	if (typeof EQUIPMENT_RULES === "undefined") return "EQUIPMENT_RULES undefined";
-	if (typeof panicking !== "undefined" && panicking) return "panicking";
 	if (CONFIG.equipment?.auto_swap_sets === false) return "auto_swap_sets disabled";
 	if (character.cc > COOLDOWNS.cc) return "cc above threshold";
 	return null;
@@ -672,14 +654,9 @@ async function resolve_equipment() {
 	if (!token) return;
 
 	try {
-		const at_home = typeof destination !== "undefined" && destination && character.map === destination.map;
-		const overrides = (at_home && typeof MONSTER_GEAR_OVERRIDES !== "undefined" && MONSTER_GEAR_OVERRIDES[home]) || {};
-
 		for (const group in EQUIPMENT_RULES) {
 			if (!equip_holds(token)) return;
-			const rule = EQUIPMENT_RULES[group];
-			const resolved = group in overrides ? overrides[group] : rule.resolve();
-			await apply_equipment_rule(token, group, resolved);
+			await apply_equipment_rule(token, group, EQUIPMENT_RULES[group].resolve());
 		}
 	} finally {
 		equip_release(token);

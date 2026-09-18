@@ -94,13 +94,17 @@ function heal_report() {
 
 function resolve_healer_loadout() {
 	if (CONFIG.equipment.weapon_swap_enabled === false) return null;
+	const override = gear_override("loadout");
+	if (override) return override;
+
 	const target = cache.heal_target;
 	return resolve_weapon_by_value(name => healer_set_value(name, target))
 		|| first_available_set(CONFIG.equipment.weapon_sets);
 }
 
 function resolve_healer_orb() {
-	return preferred_orb("orb_luck");
+	if (panicking) return "panic";
+	return gear_override("orb") || preferred_orb("orb_luck");
 }
 
 var EQUIPMENT_RULES = {

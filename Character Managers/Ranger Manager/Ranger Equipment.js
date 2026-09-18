@@ -21,6 +21,9 @@ function weapon_choice_context(pool, width) {
 }
 
 function resolve_ranger_weapon() {
+	const override = gear_override("weapon");
+	if (override) return override;
+
 	const pool = cache.targets.in_range;
 	const width = shot_width();
 	return resolve_weapon_set({
@@ -32,7 +35,8 @@ function resolve_ranger_weapon() {
 }
 
 function resolve_ranger_orb() {
-	return preferred_orb(null);
+	if (panicking) return "panic";
+	return gear_override("orb") || preferred_orb(null);
 }
 
 var EQUIPMENT_RULES = {
