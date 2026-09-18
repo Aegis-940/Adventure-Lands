@@ -544,11 +544,43 @@ Live totals (`G.version 6732`): **580 items, 129 monsters, 54 maps, 133 NPCs, 12
 | `G.titles` | Title/property bonuses |
 
 ### Server Data (`parent.S`)
-Live event/boss status. Keys = event names when active:
-```
-S.holidayseason, S.pinkgoo, S.goblin, S.dragold, ...
-```
-Each has: `live`, `hp`, `x`, `y`, `map` (when applicable).
+
+`S` is the server's event table `E`, replaced wholesale on every `server_info` broadcast
+(`S = data` in `js/game.js`), so it always reflects current server state. Verified against
+`node/server_functions.js` (`event_loop`, `broadcast_e`).
+
+| Shape | Who has it | Fields |
+|-------|-----------|--------|
+| Live cooperative event | `crabxx`, `franky`, `icegolem` | `live, map, hp, max_hp, target, x, y, end` |
+| Live seasonal monster | `mrpumpkin`, `mrgreen`, `dragold`, `grinch`, `snowman`, `wabbit`, `pinkgoo`, `tiger` | `live, map, hp, max_hp, target, x, y` (no `x`/`y` for roamers like `slenderman`) |
+| Dead seasonal monster | same list, while its parent season is running | `{live: false, spawn}` |
+| Minigame | `goobrawl` | `{end}` |
+| Minigame | `abtesting` | `{end, signup_end, A, B, id}` |
+| Season flag | `halloween`, `holidayseason`, `lunarnewyear`, `valentines`, `egghunt` | `true` |
+| Schedule | `schedule` | `{time_offset, dailies: [13, 20], nightlies: [23], night}` |
+
+**Timers.** `end` and `spawn` are server `Date`s, so they arrive as ISO strings — parse with
+`new Date(v).getTime()`. `end` is the moment the event window closes (`G.events[name].duration`,
+40 min for crabxx/franky/icegolem). `spawn` is the next spawn time for a dead seasonal boss,
+`G.monsters[name].respawn` minutes after death (120s on the first spawn of a season).
+
+**Schedule.** Event hours are *server-local*: the server computes
+`(UTC hour + time_offset) % 24` and fires when that equals a `dailies`/`nightlies` entry, on the
+hour. `time_offset` is `EU +1`, `US -5`, `ASIA +7`. `night` is true for local hours 0–5.
+The events rotate through fixed queues that are **not** broadcast —
+`dailies = ["crabxx", "goobrawl", "abtesting"]` and `nightlies = ["icegolem", "franky"]`, each
+`shift()`ed and pushed back per trigger — so the *time* of the next daily/nightly is knowable in
+advance but *which* event fires is only knowable by watching the rotation.
+
+**No timers exist for ordinary world bosses** (`phoenix`, `mvampire`, `fvampire`, `greenjr`, `jr`,
+`stompy`, `cutebee`, `goldenbat`, …). They are not in `E` at all; they respawn on
+`G.monsters[name].respawn` **minutes** after death, and only the server knows when that was.
+Tracking them means observing deaths yourself.
+
+**Cross-server.** `broadcast()` is `io.emit()`, so an unauthenticated socket receives `server_info`,
+`game_event` (boss spawn announcements), `notice` and `server_message` for that realm — this is what
+`Core Systems/Server Watch.js` relies on. `realm_broadcast()` does relay between realms, but only
+for level-ups, rare drops and new players, never for boss spawns.
 
 ---
 

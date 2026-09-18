@@ -17,6 +17,7 @@ const SERVER_WATCH = {
 const SERVER_HOP = {
 	enabled: true,
 	join_below: 0.95,
+	min_window_ms: 3 * 60 * 1000,
 	cooldown_ms: 5 * 60 * 1000,
 	max_stay_ms: 15 * 60 * 1000,
 	settle_ms: 45000,
@@ -51,6 +52,23 @@ function realm_key(region, identifier) {
 
 function my_realm() {
 	return realm_key(parent.server_region, parent.server_identifier);
+}
+
+function to_ms(value) {
+	if (value === undefined || value === null) return null;
+	const ms = value instanceof Date ? value.getTime() : new Date(value).getTime();
+	return isFinite(ms) ? ms : null;
+}
+
+function fmt_eta(ms) {
+	if (!isFinite(ms)) return "?";
+	const left = Math.max(0, Math.round(ms / 1000));
+	const h = Math.floor(left / 3600);
+	const m = Math.floor((left % 3600) / 60);
+	const s = left % 60;
+	if (h) return `${h}h${String(m).padStart(2, "0")}m`;
+	if (m) return `${m}m${String(s).padStart(2, "0")}s`;
+	return `${s}s`;
 }
 
 function storage_read(key) {
@@ -187,16 +205,34 @@ function close_observers() {
 function absorb_server_info(realm, data) {
 	if (!data) return;
 
-	const known = _watch_table[realm] || { at: 0, bosses: {} };
+	const known = _watch_table[realm] || { at: 0, bosses: {}, spawns: {}, windows: {} };
+	if (!known.spawns) known.spawns = {};
+	if (!known.windows) known.windows = {};
+
 	const watched = EVENT_LOCATIONS.map(e => e.name);
 
 	for (const name in data) {
-		if (!watched.includes(name)) continue;
 		const entry = data[name];
-		if (!entry || entry.live === false) {
-			delete known.bosses[name];
+
+		if (name === "schedule") {
+			known.schedule = entry;
 			continue;
 		}
+
+		if (entry && entry.end && !watched.includes(name)) {
+			known.windows[name] = to_ms(entry.end);
+			continue;
+		}
+
+		if (!watched.includes(name)) continue;
+
+		if (!entry || entry.live === false) {
+			delete known.bosses[name];
+			if (entry && entry.spawn) known.spawns[name] = to_ms(entry.spawn);
+			continue;
+		}
+
+		delete known.spawns[name];
 		known.bosses[name] = {
 			live: true,
 			hp: entry.hp,
@@ -204,7 +240,15 @@ function absorb_server_info(realm, data) {
 			map: entry.map,
 			x: entry.x,
 			y: entry.y,
+			end: to_ms(entry.end),
 		};
+	}
+
+	for (const name in known.spawns) {
+		if (!(name in data)) delete known.spawns[name];
+	}
+	for (const name in known.windows) {
+		if (!(name in data)) delete known.windows[name];
 	}
 
 	known.at = Date.now();
@@ -244,6 +288,7 @@ function bosses_elsewhere() {
 
 			const ratio = data.hp / max;
 			if (ratio > SERVER_HOP.join_below) continue;
+			if (data.end && data.end - Date.now() < SERVER_HOP.min_window_ms) continue;
 
 			found.push({ realm, name, data, ratio });
 		}
@@ -252,19 +297,96 @@ function bosses_elsewhere() {
 	return found.sort((a, b) => a.ratio - b.ratio);
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// TIMERS — event windows, seasonal respawns, and the daily/nightly schedule
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function next_utc_hour(hour) {
+	const now = new Date();
+	const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), hour, 0, 0, 0));
+	if (next.getTime() <= now.getTime()) next.setUTCDate(next.getUTCDate() + 1);
+	return next.getTime();
+}
+
+function next_event_windows(schedule) {
+	if (!schedule) return [];
+	const offset = schedule.time_offset || 0;
+	const windows = [];
+
+	(schedule.dailies || []).forEach(h => windows.push({ kind: "daily", at: next_utc_hour(((h - offset) % 24 + 24) % 24) }));
+	(schedule.nightlies || []).forEach(h => windows.push({ kind: "nightly", at: next_utc_hour(((h - offset) % 24 + 24) % 24) }));
+
+	return windows.sort((a, b) => a.at - b.at);
+}
+
+function realm_timers(realm) {
+	if (realm === my_realm()) return local_timers();
+	const seen = watch_realms()[realm];
+	return seen || null;
+}
+
+function local_timers() {
+	const seen = { at: Date.now(), bosses: {}, spawns: {}, windows: {}, schedule: parent.S && parent.S.schedule };
+	const watched = EVENT_LOCATIONS.map(e => e.name);
+
+	for (const name in (parent.S || {})) {
+		const entry = parent.S[name];
+		if (!entry || typeof entry !== "object") continue;
+
+		if (entry.live === false && entry.spawn) {
+			seen.spawns[name] = to_ms(entry.spawn);
+		} else if (entry.live) {
+			seen.bosses[name] = { ...entry, end: to_ms(entry.end) };
+		} else if (entry.end && !watched.includes(name)) {
+			seen.windows[name] = to_ms(entry.end);
+		}
+	}
+
+	return seen;
+}
+
+function timer_lines(realm) {
+	const seen = realm_timers(realm);
+	if (!seen) return [`${realm}: not watched`];
+
+	const lines = [];
+	const now = Date.now();
+
+	for (const name in seen.bosses) {
+		const boss = seen.bosses[name];
+		const max = boss_max_hp(name, boss);
+		const pct = max && isFinite(boss.hp) ? ` ${Math.round((boss.hp / max) * 100)}%` : "";
+		const ends = boss.end ? `, ${fmt_eta(boss.end - now)} left` : "";
+		lines.push(`live: ${name}${pct} on ${boss.map || "?"}${ends}`);
+	}
+
+	for (const name in seen.windows) {
+		lines.push(`live: ${name}, ${fmt_eta(seen.windows[name] - now)} left`);
+	}
+
+	for (const name in seen.spawns) {
+		lines.push(`${name} respawns in ${fmt_eta(seen.spawns[name] - now)}`);
+	}
+
+	const next = next_event_windows(seen.schedule)[0];
+	if (next) lines.push(`next ${next.kind} event in ${fmt_eta(next.at - now)}`);
+
+	if (!lines.length) lines.push("quiet");
+
+	const age = Math.round((now - (seen.at || 0)) / 1000);
+	return lines.map((line, i) => i === lines.length - 1 ? `${line} (${age}s ago)` : line);
+}
+
 function server_watch_report() {
-	const realms = watch_realms();
 	const mine = my_realm();
 	const lease = storage_read(SERVER_WATCH_LEASE_KEY);
+	const realms = Object.keys(watch_realms());
 
 	game_log(`🛰️ Realm ${mine} — watcher ${lease ? lease.name : "none"}`, "#7FD1FF");
 
-	for (const realm in realms) {
-		const seen = realms[realm];
-		const names = Object.keys(seen.bosses || {});
-		const age = Math.round((Date.now() - (seen.at || 0)) / 1000);
-		game_log(`   ${realm}: ${names.length ? names.map(n => `${n} ${Math.round((seen.bosses[n].hp / (boss_max_hp(n, seen.bosses[n]) || 1)) * 100)}%`).join(", ") : "quiet"} (${age}s ago)`,
-			"#7FD1FF");
+	for (const realm of [mine].concat(realms.filter(r => r !== mine))) {
+		game_log(`   ${realm}`, "#7FD1FF");
+		for (const line of timer_lines(realm)) game_log(`      ${line}`, "#7FD1FF");
 	}
 }
 
