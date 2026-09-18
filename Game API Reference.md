@@ -621,6 +621,14 @@ The `welcome` payload carries `{S, region, name, pvp, gameplay}` — **`data.S` 
 table**, so a fresh observer has that realm's timers immediately instead of waiting for the next
 `server_info` broadcast.
 
+**Do not emit `loaded` unless you want to be a real observer.** `welcome` costs the server nothing,
+but the `loaded` handler is what registers `observers[socket.id]`, gives it `B.vision`, calls
+`resume_instance()` — waking a map the server had paused — and starts `send_all_xy()` entity
+streaming to it. A socket that connects and never emits `loaded` still receives every `broadcast()`
+(`server_info`, `game_event`, `notice`, `server_message`) because those are `io.emit()`, with none
+of that per-entity work. The server's own socket protection (`limitdc`) counts calls a client
+*emits*, so a pure listener never approaches it.
+
 ---
 
 ## Event System

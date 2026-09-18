@@ -407,7 +407,6 @@ function open_observer(server, snapshot) {
 	socket.on("welcome", data => {
 		_watch_state[server.realm] = snapshot ? "sampled" : "welcomed";
 		if (data && data.S) absorb_server_info(server.realm, data.S);
-		socket.emit("loaded", { success: 1, width: 1920, height: 1080, scale: 2 });
 		if (snapshot) setTimeout(() => park_observer(server.realm), SERVER_WATCH.snapshot_hold_ms);
 	});
 
