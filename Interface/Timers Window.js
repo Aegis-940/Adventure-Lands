@@ -1,5 +1,5 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// TIMERS WINDOW — every countdown the client can see: realms, events, respawns, conditions, cooldowns
+// TIMERS WINDOW — the server-side countdowns: event windows, seasonal respawns, the realm schedule
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const TIMERS_WINDOW_ID = "timers-window";
@@ -83,45 +83,6 @@ function timers_seasons_html() {
 	return flags.length ? timers_row("seasons", flags.join(", "), "#9FE08F") : "";
 }
 
-function timers_conditions_html() {
-	const s = character.s || {};
-	const timed = [];
-	const flags = [];
-
-	for (const name in s) {
-		const cond = s[name];
-		const definition = (G.conditions && G.conditions[name]) || {};
-		const label = definition.name || name;
-		if (cond && isFinite(cond.ms) && cond.ms > 0) timed.push({ label, ms: cond.ms, bad: !!definition.debuff });
-		else flags.push(label);
-	}
-
-	timed.sort((a, b) => a.ms - b.ms);
-
-	let html = "";
-	for (const c of timed) html += timers_row(c.bad ? `☠️ ${c.label}` : `✨ ${c.label}`, fmt_eta(c.ms), c.bad ? "#FF7B7B" : "#9FE08F");
-	if (flags.length) html += timers_row("flags", flags.join(", "), "#888");
-	if (!html) html = timers_row("conditions", "none", "#888");
-	return html;
-}
-
-function timers_cooldowns_html() {
-	const now = Date.now();
-	const rows = [];
-
-	for (const name in (parent.next_skill || {})) {
-		const at = parent.next_skill[name];
-		const ms = (at instanceof Date ? at.getTime() : new Date(at).getTime()) - now;
-		if (isFinite(ms) && ms > 250) rows.push({ name, ms });
-	}
-
-	rows.sort((a, b) => a.ms - b.ms);
-
-	let html = "";
-	for (const row of rows.slice(0, 8)) html += timers_row(`⏱️ ${row.name}`, fmt_eta(row.ms), "#FFD479");
-	return html || timers_row("cooldowns", "all ready", "#888");
-}
-
 function timers_hop_html() {
 	const state = typeof storage_read === "function" ? storage_read(SERVER_HOP_KEY) : null;
 	const last = typeof storage_read === "function" ? storage_read(SERVER_HOP_LAST_KEY) : null;
@@ -172,14 +133,8 @@ function timers_html() {
 	html += timers_row("dailies", TIMERS_DAILY_ROTATION.join(" → "), "#888");
 	html += timers_row("nightlies", TIMERS_NIGHTLY_ROTATION.join(" → "), "#888");
 
-	html += timers_heading(`${character.name} — server hop`);
+	html += timers_heading("Server hop");
 	html += timers_hop_html();
-
-	html += timers_heading(`${character.name} — conditions`);
-	html += timers_conditions_html();
-
-	html += timers_heading(`${character.name} — cooldowns`);
-	html += timers_cooldowns_html();
 
 	return html;
 }
@@ -261,7 +216,7 @@ function add_timers_button() {
 	$("#timers-btn").remove();
 
 	const timers_btn = $(`
-	<div id="timers-btn" class="gamebutton" style="cursor: pointer;" title="Event, respawn and cooldown timers">
+	<div id="timers-btn" class="gamebutton" style="cursor: pointer;" title="Event windows, respawns and the realm schedule">
 		⏳
 	</div>`);
 	timers_btn.on("click", open_timers_window);

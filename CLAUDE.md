@@ -89,7 +89,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Interface/Gold Meter.js` | Gold accumulation display |
 | `Interface/XP Meter.js` | XP tracking display |
 | `Interface/Game Log.js` | The one log window — wraps `parent.add_log`, adds timestamps, category filters (gold/kills/items/errors) and the Log/Filtered tabs, and resizes `#gamelog` 50% wider (leftward, over the canvas) and 25% taller. Self-starts at load; there is no `log()` any more, everything goes through `game_log()` |
-| `Interface/Timers Window.js` | ⏳ button next to the pause button — a live panel of every countdown the client can see: event windows, seasonal respawns, the daily/nightly schedule per realm, hop state, conditions and skill cooldowns |
+| `Interface/Timers Window.js` | ⏳ button next to the pause button — a live panel of the server-side countdowns: event windows, seasonal respawns, the daily/nightly schedule per realm, and hop state |
 | `Interface/Pause Button.js` | Per-character pause/resume button — parks automation, leaves combat/panic/upkeep running |
 | `Tools/Error Sink.py` | Local HTTP sink that receives `errlog_sample()` pushes and writes `errors.json` |
 | `Tools/Anniversary Probe.js` | One-off dev probe pasted into a code slot/console; not part of the loaded bot |
