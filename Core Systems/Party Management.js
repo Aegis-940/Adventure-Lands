@@ -96,6 +96,7 @@ async function _panic_check_body() {
 		if (!is_on_cooldown("scare") && can_use("scare")) {
 			try {
 				game_log("Using Scare!", "#ffcc00");
+				if (typeof errlog_count === "function") errlog_count("scare fired");
 				await use_skill("scare");
 				await delay(200);
 			} catch (e) {
