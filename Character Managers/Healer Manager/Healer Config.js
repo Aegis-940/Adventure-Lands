@@ -29,10 +29,6 @@ var CONFIG = {
 		circle_speed: 1.8,
 		circle_radius: 30,
 		follow_distance: 15,
-		kite_mobs: ["crabxx"],
-		kite_buffer: 5,
-		kite_slack: 15,
-		kite_area_radius: 250,
 	},
 
 	healing: {
@@ -87,7 +83,7 @@ var item_order = { ...ITEM_ORDER_BASE };
 
 var PANIC_THRESHOLDS = {
 	low_hp: 0.40, low_mp: 0.05, high_hp: 0.60, high_mp: 0.50,
-	aggro: 99, travel_aggro: 3, scare_hp: 0.20, cooldown: 1000,
+	aggro: 99, cooldown: 1000,
 };
 
 var PANIC_BROADCAST_TARGETS = ["Ulric", "Riva"];

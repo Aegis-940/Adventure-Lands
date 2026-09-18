@@ -416,16 +416,10 @@ function should_pause_combat_loop() {
 
 	if (dungeon_flag("combat_always_on")) return false;
 	const myras = get_player("Myras");
-	if (!myras || distance(character, myras) > healer_coverage(myras)) return true;
+	if (!myras || distance(character, myras) > 200) return true;
 
 	if (myras.rip) return true;
 	return healer_is_down();
-}
-
-const HEALER_COVERAGE_MIN = 200;
-
-function healer_coverage(healer) {
-	return Math.max(HEALER_COVERAGE_MIN, healer.range || 0);
 }
 
 let _healer_down = { at: 0, down: false };

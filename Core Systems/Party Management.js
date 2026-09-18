@@ -52,12 +52,6 @@ function panic_equip_free() {
 
 let _panic_last_emit = -1;
 
-function panic_scare_allowed() {
-	const limit = PANIC_THRESHOLDS.scare_hp;
-	if (limit === undefined) return true;
-	return character.hp < character.max_hp * limit;
-}
-
 async function panic_check() {
 	if (_panic_check_running) return;
 	_panic_check_running = true;
@@ -122,7 +116,7 @@ async function _panic_check_body() {
 			}
 		}
 
-		if (panic_scare_allowed() && !is_on_cooldown("scare") && can_use("scare")) {
+		if (!is_on_cooldown("scare") && can_use("scare")) {
 			try {
 				game_log("Using Scare!", "#ffcc00");
 				await use_skill("scare");

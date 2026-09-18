@@ -88,18 +88,16 @@ function dark_blessing_synced() {
 async function handle_curse() {
 	if (is_on_cooldown("curse") || is_travelling()) return;
 
-	const curseable = e =>
-		e?.type === "monster" && !e.dead && e.visible && !e.immune &&
+	const has_target = e =>
+		e?.type === "monster" && !e.dead && e.visible && e.target && !e.immune &&
 		e.hp >= e.max_hp * (CONFIG.combat.curse_min_hp_pct ?? 0.25);
-
-	const has_target = e => curseable(e) && !!e.target;
 
 	let target = null;
 
-	const bosses = Object.values(parent.entities)
-		.filter(e => curseable(e) && CONFIG.combat.all_bosses.includes(e.mtype))
+	const bosses_with_target = Object.values(parent.entities)
+		.filter(e => has_target(e) && CONFIG.combat.all_bosses.includes(e.mtype))
 		.sort((a, b) => distance(character, a) - distance(character, b));
-	if (bosses.length) target = bosses[0];
+	if (bosses_with_target.length) target = bosses_with_target[0];
 
 	if (!target && dungeon_flag("absorb_nearby")) {
 		const nearby = Object.values(parent.entities)
