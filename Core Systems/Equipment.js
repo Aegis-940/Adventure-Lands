@@ -617,11 +617,13 @@ async function equip_once(owner, priority, sets) {
 // UNIFIED EQUIPMENT RESOLVER — Warrior/Ranger/Healer each declare their own EQUIPMENT_RULES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function equip_group_ready(group) {
+function equip_group_ready(group, key) {
 	if (!state.equip_cooldowns) state.equip_cooldowns = {};
+	const last = state.equip_cooldowns[group];
 	const now = performance.now();
-	if (now - (state.equip_cooldowns[group] || 0) < (CONFIG.equipment.swap_cooldown ?? COOLDOWNS.equip_swap)) return false;
-	state.equip_cooldowns[group] = now;
+	if (last && last.key === key
+		&& now - last.at < (CONFIG.equipment.swap_cooldown ?? COOLDOWNS.equip_swap)) return false;
+	state.equip_cooldowns[group] = { key, at: now };
 	return true;
 }
 
@@ -629,7 +631,7 @@ async function apply_equipment_rule(token, group, resolved) {
 	if (!resolved) return;
 	const sets = Array.isArray(resolved) ? resolved : [resolved];
 	if (sets.every(s => is_set_equipped(s))) return;
-	if (!equip_group_ready(group)) return;
+	if (!equip_group_ready(group, sets.join("+"))) return;
 	await equip_apply(token, sets);
 }
 
