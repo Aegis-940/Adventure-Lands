@@ -192,6 +192,7 @@ function sample_heal_choice(fired, party_value, single_value, critical) {
 }
 
 function party_heal_emergency() {
+	if (character.max_hp && character.hp < character.max_hp * CONFIG.healing.party_heal_self_pct) return "self";
 	if (party_heal_critical_count() >= CONFIG.healing.party_heal_critical_count) return "party";
 	return null;
 }
