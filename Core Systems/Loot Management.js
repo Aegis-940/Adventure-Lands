@@ -173,21 +173,24 @@ function gold_gear_wanted() {
 	return !!CONFIG.looting?.equip_gold_gear && _looting;
 }
 
+function looting_blocked() {
+	if (!CONFIG.looting?.enabled) return "disabled";
+	if (character.cc > COOLDOWNS.cc) return "cc";
+	if ((character.s?.penalty_cd?.ms || 0) > 0) return "penalty_cd";
+	return null;
+}
+
 function should_loot() {
-	if (!CONFIG.looting?.enabled || character.cc > COOLDOWNS.cc) return false;
-	if (_looting) return false;
+	if (looting_blocked() || _looting) return false;
 
 	const now = performance.now();
 	const stored_chest_count = Object.keys(get_chests()).length;
-	const penalty = character.s?.penalty_cd?.ms || 0;
-
 	const draining = typeof boss_field_draining === "function" && boss_field_draining();
 
 	return (
 		stored_chest_count >= (draining ? 1 : CONFIG.looting.chest_threshold) &&
 		character.targets < CONFIG.looting.target_count &&
-		now - _loot_last > CONFIG.looting.loot_cooldown &&
-		penalty === 0
+		now - _loot_last > CONFIG.looting.loot_cooldown
 	);
 }
 
@@ -201,6 +204,13 @@ async function shift_booster(slot, target) {
 }
 
 async function handle_looting() {
+	const blocked = looting_blocked();
+	if (blocked) {
+		if (typeof errlog_count === "function") errlog_count("looting blocked " + blocked);
+		return;
+	}
+	if (_looting) return;
+
 	_loot_last = performance.now();
 	_looting = true;
 	let booster_slot = -1;

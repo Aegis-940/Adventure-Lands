@@ -20,9 +20,9 @@ the split and the mechanism has nothing left to do.
 |---|---|---|---|---|---|
 | 1 | **What to wear** | `resolve_equipment()` | 8 | lock + 6 priorities + rate limiter | **split** |
 | 2 | **Where to stand** | `movement_local()` | 6 | ordering only — no arbiter | **split** |
-| 3 | **When to loot** | `should_loot()` | 3 bypass it | none | **leaky** |
-| 4 | **Where to go** | `movement_goal()` | merchant, dungeons | separate by design | **acceptable** |
-| 5 | **Am I in danger** | `_panic_check_body()` | 2 signal sources, 1 leak | `set_panic()` sole writer | **good** |
+| 3 | **When to loot** | `handle_looting()` | none — 2 trigger kinds | shared `_looting`/`_loot_last` | **done** |
+| 4 | **Where to go** | `movement_goal()` | none — merchant/dungeons are modes | mutual exclusion | **confirmed** |
+| 5 | **Am I in danger** | `_panic_check_body()` | none — 5 signal sources | `set_panic()` sole writer | **confirmed** |
 | 6 | **What to attack** | `find_best_target()` | none | none needed | **the model** |
 
 ---
@@ -187,23 +187,46 @@ branches within it rather than parallel loops.
 
 ---
 
-## 3. When to loot — one decider, three bypasses
+## 3. When to loot — NOT A SPLIT; enforcement moved (2026-09-18)
 
-`should_loot()` owns the decision and `Character Runner.js:169` respects it. Three callers invoke
-`handle_looting()` directly without asking: `Crypt Route.js:403`, `Dungeon Runner.js:119` and
-`:561`. Not currently known to cause a bug, but it means `should_loot()`'s guards — chest count, cc
-ceiling, `penalty_cd`, target count — are silently skipped in dungeons.
+The audit called this leaky. Reading it, `handle_looting()` is the sole owner of the *act*; what
+differs is the trigger. Ambient (`should_loot()` from `main_tick`) asks "are enough chests lying
+around". Scripted (after a crypt waypoint, inside the dungeon loot sweep, after a boss dies) says
+"we just cleared this, sweep it". They share `_looting` and `_loot_last`, so they interleave rather
+than conflict: ambient stands down while `_looting`, and every scripted sweep pushes the ambient
+cooldown forward. One writer, several signals — the same shape as panic, which the audit graded
+good.
+
+The one real gap was that three safety checks lived in `should_loot()`, so only the ambient path
+consulted them: the `cc` ceiling (125), an active `penalty_cd`, and `CONFIG.looting.enabled`. A
+dungeon sweep ran regardless of all three.
+
+They now live in `looting_blocked()`, checked inside `handle_looting()` itself, so every caller
+gets them without having to remember — the same move as making `batch_equip` own its own cooldown.
+`should_loot()` keeps only the ambient trigger question. `handle_looting()` also gained a
+`_looting` re-entrancy guard, which it needed: the dungeon loops run beside `main_tick`, so a
+scripted sweep could previously start on top of an ambient one. Blocked attempts are counted.
 
 ---
 
-## 4. Where to go — acceptable
+## 4. Where to go — CONFIRMED SEPARATE (2026-09-18)
 
 `movement_goal()` is a genuine single decider for the three fighters, composing `follow_goal()`,
-`event_goal()` and `anniversary_destination()`. This is already the shape we want.
+`event_goal()` and `anniversary_destination()`.
 
-The merchant runs its own state machine (`loop_controller` + `PRIORITY_CHECKS`) and calls
-`smarter_move` from eight files; dungeons route their own movement. Both are plausibly legitimate
-separations rather than splits of one decision — worth confirming before touching.
+The two suspected splits are neither, and this was checked rather than assumed:
+
+- **The merchant never calls `run_character()`.** `Merchant.js` starts `loop_controller()`, so
+  `movement_goal()` does not execute for Riff at all. Its own decider is `get_character_state()` —
+  an ordered walk over `CONFIG.priorities` against `PRIORITY_CHECKS`, the same shape as
+  `movement_goal()`. The eight files calling `smarter_move` are executing a chosen state, not
+  choosing one.
+- **Dungeons short-circuit ahead of the arbiter.** `dungeon_moving()` is checked in `main_tick`
+  before `travel_arbiter`, so dungeon routing and `movement_goal()` are mutually exclusive.
+
+Untidy but not a decision defect: `merchant_task` is written from six places across four files. It
+is a status label the watchdog reads, not the state machine's state — though the watchdog does act
+on it, so it is not purely cosmetic.
 
 ---
 
@@ -213,8 +236,13 @@ separations rather than splits of one decision — worth confirming before touch
 own `_panic_check_body()`, the healer's CM broadcast, and `healer_on_disabled()` on death. That is
 one owner with several inputs, which is correct.
 
-The leak: `dungeon_bail_out()` equips the `panic` set directly rather than going through
-`panic_check()`, so gear and panic state can disagree during a bail.
+Re-verified 2026-09-18: five `set_panic()` call sites, all legitimate signals — the trigger, the
+external-hold expiry and the recovery in `_panic_check_body()`, the healer's CM broadcast, and
+`healer_on_disabled()` on death.
+
+The one exception stands and is deliberate: `dungeon_scare_off()` equips the `panic` set itself
+because `equipment_manager_loop` is parked while `dungeon_bailing()` is true. The resolver is
+switched off, so the bail path takes over — mutual exclusion, not a competing owner.
 
 ---
 
@@ -226,8 +254,12 @@ Three clean layers, no coordination needed anywhere:
 - `find_best_target()` — one per character, writes `cache.target`
 - `handle_attack()` — consumes it, decides nothing
 
-**This is exactly the composable-decider shape.** When consolidating #1 and #2, copy this, not an
-abstraction imported from elsewhere.
+**This is exactly the composable-decider shape.** #1 and #2 were consolidated by copying it rather
+than importing an abstraction.
+
+Re-verified 2026-09-18: exactly one writer of the target cache per character —
+`find_best_target()` on the warrior and healer, `update_target_cache()` on the ranger — and every
+`attack()` call site reads from that cache rather than choosing for itself.
 
 ---
 
