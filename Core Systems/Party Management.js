@@ -52,6 +52,19 @@ function panic_equip_free() {
 
 let _panic_last_emit = -1;
 
+async function try_scare() {
+	if (is_on_cooldown("scare") || !can_use("scare")) return false;
+	try {
+		game_log("Using Scare!", "#ffcc00");
+		await use_skill("scare");
+		await delay(200);
+		return true;
+	} catch (e) {
+		game_log(`[PANIC] Error using scare: ${fmt_err(e)}`, "#ff4444");
+		return false;
+	}
+}
+
 async function panic_check() {
 	if (_panic_check_running) return;
 	_panic_check_running = true;
@@ -99,6 +112,9 @@ async function _panic_check_body() {
 
 	if (panicking && (Date.now() - last_panic_time > t.cooldown)) {
 		last_panic_time = Date.now();
+
+		await try_scare();
+
 		if (!is_set_equipped("panic")) {
 			try {
 				const emitted = await equip_apply(panic_equip_hold(), "panic");
@@ -116,15 +132,7 @@ async function _panic_check_body() {
 			}
 		}
 
-		if (!is_on_cooldown("scare") && can_use("scare")) {
-			try {
-				game_log("Using Scare!", "#ffcc00");
-				await use_skill("scare");
-				await delay(200);
-			} catch (e) {
-				game_log(`[PANIC] Error using scare: ${fmt_err(e)}`, "#ff4444");
-			}
-		}
+		await try_scare();
 	}
 
 	let external_hold = typeof panic_external !== "undefined" && panic_external;

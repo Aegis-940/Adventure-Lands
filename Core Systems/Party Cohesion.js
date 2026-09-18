@@ -168,8 +168,6 @@ function movement_goal() {
 
 	if (!scripted_camp && party_cohesion_hold()) return { hold: true, label: "cohesion" };
 
-	if (!scripted_camp && typeof panicking !== "undefined" && panicking) return null;
-
 	const follow = scripted_camp ? null : follow_goal();
 	if (follow && !follow.local) return follow;
 

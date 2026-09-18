@@ -34,29 +34,8 @@ function circle_centre() {
 	return LOCATIONS[home][0];
 }
 
-var PANIC_FLEE_RADIUS = 160;
-var PANIC_FLEE_MIN_STEP = 12;
-
-function panic_retreat() {
-	if (smart.moving || character.moving) return;
-	if (home === "bscorpion") return;
-
-	const score = make_distance_from_monsters_scorer();
-	if (!score) return;
-
-	const spot = best_orbit_spot(
-		{ x: character.x, y: character.y }, PANIC_FLEE_RADIUS, score,
-		{ min_gain: 0, travel_weight: 0 }
-	);
-	if (!spot) return;
-	if (Math.hypot(character.x - spot.x, character.y - spot.y) <= PANIC_FLEE_MIN_STEP) return;
-
-	local_move(spot.x, spot.y);
-}
-
 async function healer_local(goal) {
 	movement_local(goal, () => {
-		if (panicking) return panic_retreat();
 		if (CONFIG.movement.circle_walk && get_nearest_monster({ type: home })) walk_in_circle();
 	});
 }
