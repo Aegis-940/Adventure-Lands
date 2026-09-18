@@ -4,6 +4,7 @@
 
 const ERRLOG_KEY = "AL_errors_";
 const ERRLOG_MAX_RECORDS = 200;
+const ERRLOG_MAX_COUNTS = 400;
 const ERRLOG_MAX_TIMELINE = 80;
 const ERRLOG_TIMELINE_SIG_CAP = Math.ceil(ERRLOG_MAX_TIMELINE * 0.25);
 const ERRLOG_MAX_DEATHS = 6;
@@ -114,7 +115,7 @@ function _errlog_flush() {
 		const t1 = Date.now();
 		localStorage.setItem(_errlog_key(), blob);
 		errlog_time("io flush setItem", Date.now() - t1);
-		errlog_count("io flush kb " + Math.round(blob.length / 1024));
+		errlog_size("io flush kb", Math.round(blob.length / 1024));
 	} catch (e) {
 	}
 }
@@ -191,7 +192,10 @@ function errlog_count(bucket) {
 			_errlog.counts = {};
 			_errlog.counts_since = now;
 		}
-		_errlog.counts[bucket] = (_errlog.counts[bucket] || 0) + 1;
+		let key = bucket;
+		if (_errlog.counts[key] === undefined
+			&& Object.keys(_errlog.counts).length >= ERRLOG_MAX_COUNTS) key = "counts overflow";
+		_errlog.counts[key] = (_errlog.counts[key] || 0) + 1;
 	} catch (e) { }
 }
 
@@ -200,6 +204,17 @@ function errlog_beat(name) {
 }
 
 const ERRLOG_TIME_BUCKETS = [5, 20, 50, 100, 250, 500, 1000];
+const ERRLOG_SIZE_BUCKETS = [16, 32, 64, 128, 256, 512, 1024];
+
+function errlog_size(bucket, kb) {
+	try {
+		let label = "1024+";
+		for (const b of ERRLOG_SIZE_BUCKETS) {
+			if (kb < b) { label = "<" + b; break; }
+		}
+		errlog_count(bucket + " " + label);
+	} catch (e) { }
+}
 
 function errlog_time(bucket, ms) {
 	try {
@@ -275,8 +290,13 @@ function _errlog_heal_outcome(snap, outcome) {
 		snap.ms = Date.now() - snap.t;
 		_errlog_heals.push(snap);
 		if (_errlog_heals.length > ERRLOG_MAX_HEALS) _errlog_heals.shift();
-		errlog_count("heal:" + outcome + (snap.self ? ":self" : ":ally"));
+		errlog_count("heal:" + _errlog_outcome_key(outcome) + (snap.self ? ":self" : ":ally"));
 	} catch (e) { }
+}
+
+function _errlog_outcome_key(outcome) {
+	const s = String(outcome).replace(/\d+/g, "#");
+	return s.length <= 24 ? s : "error";
 }
 
 function _errlog_reason(e) {

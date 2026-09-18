@@ -20,7 +20,7 @@ they prune differently. **Absence of evidence in this file is almost never evide
 | Bucket | What it is | Client cap | Store cap / pruning |
 |---|---|---|---|
 | `records` | One entry per distinct message signature, with a count | 200 | last **2 builds**, last **12h** |
-| `counts` | Named counters, rolling 24h window (`counts_since`) | none | `max()` merge, replaced when `counts_since` advances |
+| `counts` | Named counters, rolling 24h window (`counts_since`) | **400 keys**, then `counts overflow` | `max()` merge, replaced when `counts_since` advances |
 | `timeline` | Ordered `{t, ctx, msg}` events | 80 | last **100**, keyed `(t, msg)` |
 | `deaths` | Death snapshots + 10s of vitals + last 15 heals | 6 | last **20**, keyed `t` |
 | `samples` | Structured observations by kind | 400 | **250 per kind**, last **2h** |
@@ -75,6 +75,26 @@ recorded. Every other server rejection is invisible.
 **7. Truncation and eviction.** Record messages cap at 400 chars, timeline messages at 160. Over
 1.5MB the sink repeatedly drops the oldest quarter of the longest list, in the order
 `samples` → `timeline` → `deaths`. A gap in the timeline may be eviction rather than quiet.
+
+### Every capture is capped
+
+No dataset here may grow without a ceiling. Audited 2026-09-18:
+
+| Capture | Ceiling |
+|---|---|
+| `records` | 200 signatures, LRU evicted; `count`/`first` roll at 24h |
+| `counts` | 400 keys, then everything lands in `counts overflow`; values roll at 24h |
+| `timeline` | 80 entries, no signature above a quarter of them |
+| `deaths` | 6 client / 20 store, rolling — deliberately no age limit |
+| `samples` | 400 client / 250 per kind / 2h |
+| whole file | 1.5MB, oldest quarter of the longest list dropped |
+| DPS meter events | 5-minute window |
+| `swap_trick_history` | 30 per monster type |
+
+Two ways an unbounded *key family* can sneak in, both now closed: a counter name
+interpolating a raw value (`io flush kb 163` produced **242 of Myras's 326 keys** before it was
+bucketed), and one interpolating an error message (`heal:<outcome>` fell back to a 60-char slice).
+When adding a counter, the name must come from a fixed set, a bucketed number, or a bounded enum.
 
 ### Which bucket answers which question
 
