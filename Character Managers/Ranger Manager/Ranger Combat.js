@@ -271,10 +271,11 @@ async function action_loop() {
 		const ms = ms_to_next_skill("attack");
 
 		const cupid_live = mainhand_intent() === "cupid";
+		const cupid_worn = character.slots.mainhand?.name === "cupid";
 		const want_heal = !!cache.heal_target;
 
 		if (ms === 0 && !travel_blocks_combat() && !basic_action_busy()) {
-			if (want_heal && cupid_live) run_basic_action(cupid_heal(cache.heal_target), "cupid");
+			if (want_heal && cupid_worn) run_basic_action(cupid_heal(cache.heal_target), "cupid");
 			else if (!want_heal && !cupid_live) handle_attack();
 			else next_delay = next_action_delay(ms);
 		} else {
