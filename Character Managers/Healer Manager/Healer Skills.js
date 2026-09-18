@@ -192,7 +192,6 @@ function sample_heal_choice(fired, party_value, single_value, critical) {
 }
 
 function party_heal_emergency() {
-	if (character.max_hp && character.hp < character.max_hp * CONFIG.healing.party_heal_self_pct) return "self";
 	if (party_heal_critical_count() >= CONFIG.healing.party_heal_critical_count) return "party";
 	return null;
 }
@@ -232,8 +231,6 @@ async function handle_party_heal() {
 		const lowest = cache.heal_target;
 		if (!lowest || !lowest.max_hp || lowest.hp >= lowest.max_hp * threshold) return;
 		if (!party_heal_outvalues_single(lowest)) return;
-	} else if (emergency === "self") {
-		if (!party_heal_outvalues_single(cache.heal_target)) return;
 	} else {
 		const lowest = cache.heal_target;
 		sample_heal_choice(

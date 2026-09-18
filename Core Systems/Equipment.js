@@ -47,40 +47,6 @@ function mainhand_intent() {
 	return mainhand_in_flight() || character.slots?.mainhand?.name || null;
 }
 
-const EQUIP_COOLDOWN_MS = 2000;
-const EQUIP_WAIT_MAX_MS = 3000;
-
-var _equip_ready_at = 0;
-var _equip_chain = Promise.resolve();
-
-function equip_cooldown_remaining() {
-	return Math.max(0, _equip_ready_at - Date.now());
-}
-
-function note_equip_cooldown(ms) {
-	const until = Date.now() + Math.max(0, ms || EQUIP_COOLDOWN_MS);
-	if (until > _equip_ready_at) _equip_ready_at = until;
-}
-
-function equip_gate(fn) {
-	const run = _equip_chain.then(fn, fn);
-	_equip_chain = run.then(() => { }, () => { });
-	return run;
-}
-
-try {
-	if (parent && parent.socket && typeof parent.socket.on === "function") {
-		parent.socket.on("game_response", data => {
-			try {
-				if (data && data.place === "equip") {
-					if (data.response === "not_ready") note_equip_cooldown(data.ms);
-					else if (!data.failed) note_equip_cooldown(EQUIP_COOLDOWN_MS);
-				}
-			} catch (e) { }
-		});
-	}
-} catch (e) { }
-
 async function batch_equip(data, set_name) {
 	if (!Array.isArray(data)) {
 		return Promise.reject({ reason: "invalid", message: "Not an array" });
@@ -89,23 +55,6 @@ async function batch_equip(data, set_name) {
 		return Promise.reject({ reason: "invalid", message: "Too many items" });
 	}
 
-	return equip_gate(async () => {
-		if (!equip_needs_change(data)) return 0;
-		const wait = Math.min(equip_cooldown_remaining(), EQUIP_WAIT_MAX_MS);
-		if (wait > 0) await delay(wait);
-		return _batch_equip_now(data, set_name);
-	});
-}
-
-function equip_needs_change(data) {
-	return data.some(d => {
-		if (!d || !d.item_name) return false;
-		const worn = parent.character.slots[d.slot];
-		return !worn || worn.name !== d.item_name || (worn.level ?? 0) !== (d.level ?? 0);
-	});
-}
-
-async function _batch_equip_now(data, set_name) {
 	let valid_items = [];
 	let claimed_slots = new Set();
 
@@ -162,7 +111,6 @@ async function _batch_equip_now(data, set_name) {
 
 	try {
 		parent.socket.emit("equip_batch", valid_items);
-		note_equip_cooldown(EQUIP_COOLDOWN_MS);
 		await parent.push_deferred("equip_batch");
 	} catch (error) {
 		console.error("batch_equip error:", error);
@@ -711,6 +659,7 @@ async function apply_equipment_rule(token, group, resolved) {
 
 function resolve_equipment_bail_reason() {
 	if (typeof EQUIPMENT_RULES === "undefined") return "EQUIPMENT_RULES undefined";
+	if (typeof panicking !== "undefined" && panicking) return "panicking";
 	if (CONFIG.equipment?.auto_swap_sets === false) return "auto_swap_sets disabled";
 	if (character.cc > COOLDOWNS.cc) return "cc above threshold";
 	return null;

@@ -3,17 +3,8 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function healer_on_disabled() {
-	if (!panicking) return;
-
-	if (!character.rip) {
-		if (character.hp < character.max_hp * PANIC_THRESHOLDS.high_hp) return;
-		const on_me = Object.values(parent.entities).filter(
-			e => e.type === "monster" && e.target === character.name && !e.dead
-		).length;
-		if (on_me > 0) return;
-	}
-
-	set_panic(false, "healer disabled — releasing the party", false);
+	if (!panicking || !character.rip) return;
+	set_panic(false, "healer died — releasing the party", false);
 	send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
 }
 
