@@ -69,6 +69,9 @@ function timers_realm_html(realm, seen, detailed) {
 		html += timers_row("nightlies", (seen.schedule.nightlies || []).map(h => `${h}:00`).join(", "), "#888");
 	}
 
+	const last = (seen.history || [])[0];
+	if (last) html += timers_last_html(last, now);
+
 	if (!html) html = timers_row(realm, "quiet", "#888");
 	return html;
 }
@@ -99,24 +102,42 @@ function timers_schedule_html() {
 	return html;
 }
 
+const TIMERS_OUTCOMES = {
+	started: { icon: "▶️", color: "#FFD479" },
+	killed: { icon: "💀", color: "#9FE08F" },
+	expired: { icon: "⌛", color: "#888" },
+	gone: { icon: "❔", color: "#888" },
+};
+
+function timers_last_html(last, now) {
+	const style = TIMERS_OUTCOMES[last.outcome] || TIMERS_OUTCOMES.gone;
+	const seen = last.outcome === "started" && last.pct !== null && last.pct !== undefined ? ` at ${last.pct}%` : "";
+	const there = last.present ? "🟢 we were there" : "⚪ away";
+
+	return timers_row(`${style.icon} ${last.name} ${last.outcome}${seen}`,
+		`${fmt_eta(now - last.at)} ago · ${there}`, style.color);
+}
+
 function timers_history_html(realms) {
 	const now = Date.now();
 	const rows = [];
 
 	for (const realm in realms) {
 		for (const entry of (realms[realm].history || [])) {
-			rows.push({ realm, name: entry.name, at: entry.at, pct: entry.pct });
+			rows.push({ realm, ...entry });
 		}
 	}
 
-	if (!rows.length) return timers_row("observed", "nothing yet — starts are recorded as they happen", "#888");
+	if (!rows.length) return timers_row("observed", "nothing yet — events are recorded as they happen", "#888");
 
 	rows.sort((a, b) => b.at - a.at);
 
 	let html = "";
 	for (const row of rows.slice(0, TIMERS_HISTORY_SHOWN)) {
-		const seen = row.pct === null || row.pct === undefined ? "" : ` at ${row.pct}%`;
-		html += timers_row(`${row.realm} · ${row.name}`, `${fmt_eta(now - row.at)} ago${seen}`, "#C9A7FF");
+		const style = TIMERS_OUTCOMES[row.outcome] || TIMERS_OUTCOMES.gone;
+		const there = row.present ? "🟢" : "⚪";
+		html += timers_row(`${style.icon} ${row.realm} · ${row.name} ${row.outcome}`,
+			`${fmt_eta(now - row.at)} ago ${there}`, style.color);
 	}
 	return html;
 }
@@ -201,7 +222,7 @@ function timers_html() {
 		html += timers_realm_html(realm, seen, false);
 	}
 
-	html += timers_heading("Recent starts (each realm shuffles its own order at boot)");
+	html += timers_heading("Recent events — 🟢 we were there (order shuffles per realm at boot)");
 	html += timers_history_html(realms);
 
 	html += timers_heading("Server hop");

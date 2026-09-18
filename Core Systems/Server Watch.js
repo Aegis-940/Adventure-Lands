@@ -14,6 +14,7 @@ const SERVER_WATCH = {
 	list_retry_ms: 60000,
 	list_pending_ms: 30000,
 	history_length: 6,
+	notice_grace_ms: 15000,
 };
 
 const SERVER_HOP = {
@@ -46,6 +47,8 @@ var _watch_servers = null;
 var _watch_servers_at = 0;
 var _watch_list_pending_at = 0;
 var _watch_complained = null;
+var _local_live = null;
+var _local_notices = false;
 var _watch_owner = false;
 var _hop_attempts = 0;
 var _hop_called_at = 0;
@@ -336,6 +339,8 @@ function open_observer(server) {
 		socket.emit("loaded", { success: 1, width: 1920, height: 1080, scale: 2 });
 	});
 
+	socket.on("notice", data => absorb_notice(server.realm, data && data.message));
+
 	socket.on("server_info", data => {
 		if (_watch_state[server.realm] !== "reporting") {
 			_watch_state[server.realm] = "reporting";
@@ -448,22 +453,121 @@ function absorb_server_info(realm, data) {
 		if (!(name in data)) delete known.windows[name];
 	}
 
-	for (const name of Object.keys(known.bosses).concat(Object.keys(known.windows))) {
-		if (before.includes(name)) continue;
-		const boss = known.bosses[name];
-		const max = boss ? boss_max_hp(name, boss) : 0;
-		known.history.unshift({
-			name,
-			at: Date.now(),
-			pct: max && isFinite(boss.hp) ? Math.round((boss.hp / max) * 100) : null,
-		});
-	}
-	known.history = known.history.slice(0, SERVER_WATCH.history_length);
-
 	known.at = Date.now();
 	_watch_table[realm] = known;
 
+	const after = Object.keys(known.bosses).concat(Object.keys(known.windows));
+
+	for (const name of after) {
+		if (before.includes(name)) continue;
+		const boss = known.bosses[name];
+		const max = boss ? boss_max_hp(name, boss) : 0;
+		record_event(realm, name, "started", max && isFinite(boss.hp) ? Math.round((boss.hp / max) * 100) : null);
+	}
+
+	for (const name of before) {
+		if (after.includes(name)) continue;
+		if (recent_event(realm, name, SERVER_WATCH.notice_grace_ms)) continue;
+		record_event(realm, name, known.spawns[name] ? "killed" : "gone");
+	}
+
 	publish_watch();
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// WHAT HAPPENED — starts, kills and whether the party was on that realm at the time
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+var _monster_names = null;
+
+function monster_type_for(display) {
+	if (!_monster_names) {
+		_monster_names = {};
+		for (const type in (G.monsters || {})) {
+			_monster_names[G.monsters[type].name] = type;
+		}
+	}
+	return _monster_names[display] || null;
+}
+
+function realm_record(realm) {
+	if (!_watch_table[realm]) _watch_table[realm] = { at: Date.now(), bosses: {}, spawns: {}, windows: {}, history: [] };
+	if (!_watch_table[realm].history) _watch_table[realm].history = [];
+	return _watch_table[realm];
+}
+
+function recent_event(realm, name, within_ms) {
+	const known = _watch_table[realm];
+	if (!known || !known.history) return false;
+	return known.history.some(e => e.name === name && Date.now() - e.at < within_ms);
+}
+
+function record_event(realm, name, outcome, pct) {
+	const known = realm_record(realm);
+
+	known.history.unshift({
+		name,
+		outcome,
+		at: Date.now(),
+		pct: pct === undefined ? null : pct,
+		present: realm === my_realm(),
+	});
+	known.history = known.history.slice(0, SERVER_WATCH.history_length);
+
+	if (outcome !== "started") {
+		game_log(`🛰️ ${name} ${outcome} on ${realm}${realm === my_realm() ? " — we were there" : ""}`, "#7FD1FF");
+	}
+}
+
+function absorb_notice(realm, message) {
+	if (!message) return;
+
+	let outcome = null;
+	if (message.indexOf(" has been defeated!") >= 0) outcome = "killed";
+	else if (message.indexOf(" Event is over") >= 0) outcome = "expired";
+	if (!outcome) return;
+
+	const display = message.split(outcome === "killed" ? " has been defeated!" : " Event is over")[0].trim();
+	const type = monster_type_for(display);
+	if (!type) return;
+	if (recent_event(realm, type, SERVER_WATCH.notice_grace_ms)) return;
+
+	record_event(realm, type, outcome);
+	publish_watch();
+}
+
+function track_local_realm() {
+	const mine = my_realm();
+	const watched = EVENT_LOCATIONS.map(e => e.name);
+	const live = watched.filter(name => parent.S && parent.S[name] && parent.S[name].live);
+
+	if (_local_live === null) {
+		_local_live = live;
+		return;
+	}
+
+	for (const name of live) {
+		if (!_local_live.includes(name)) record_event(mine, name, "started");
+	}
+
+	for (const name of _local_live) {
+		if (live.includes(name)) continue;
+		if (recent_event(mine, name, SERVER_WATCH.notice_grace_ms)) continue;
+		const entry = parent.S && parent.S[name];
+		record_event(mine, name, entry && entry.spawn ? "killed" : "gone");
+	}
+
+	if (_local_live.length !== live.length) publish_watch();
+	_local_live = live;
+}
+
+function watch_local_notices() {
+	if (_local_notices) return;
+	try {
+		if (!parent.socket) return;
+		parent.socket.on("notice", data => absorb_notice(my_realm(), data && data.message));
+		_local_notices = true;
+	} catch (e) { }
 }
 
 function publish_watch() {
@@ -655,6 +759,9 @@ function local_timers() {
 		if (ends) seen.windows[name] = ends;
 	}
 
+	const stored = watch_realms()[my_realm()];
+	if (stored && stored.history) seen.history = stored.history;
+
 	return seen;
 }
 
@@ -840,6 +947,8 @@ async function server_watch_loop() {
 				fetch_server_list();
 				if (_watch_owner) {
 					open_observers();
+					watch_local_notices();
+					track_local_realm();
 					publish_watch();
 				}
 				server_hop_tick();
