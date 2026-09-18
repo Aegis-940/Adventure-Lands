@@ -600,6 +600,27 @@ own.
 `Core Systems/Server Watch.js` relies on. `realm_broadcast()` does relay between realms, but only
 for level-ups, rare drops and new players, never for boss spawns.
 
+**The realm list and how to connect to one.** `X.servers` (a global on the **top window** — not on
+`parent`, which from a code iframe is the character frame where `G`/`socket`/`entities` live) holds
+every realm. The live shape is **not** the `{addr, port}` in the open-source snapshot:
+
+```json
+{"name":"I","region":"EU","players":80,"key":"SR_EU_I",
+ "address":"de.adventure.land","path":"/ws1/","msgpack_path":"/ws1-msgpack/"}
+```
+
+There is no port — realms are multiplexed on one host by socket.io `path`. The client's own
+`init_socket()` does exactly this, and an observer socket must match it:
+
+```js
+io(server.address, { path: server.path, secure: true, transports: ["websocket"],
+    query: "map_protocol=1&no_graphics=1", rejectUnauthorized: false })
+```
+
+The `welcome` payload carries `{S, region, name, pvp, gameplay}` — **`data.S` is the whole event
+table**, so a fresh observer has that realm's timers immediately instead of waiting for the next
+`server_info` broadcast.
+
 ---
 
 ## Event System

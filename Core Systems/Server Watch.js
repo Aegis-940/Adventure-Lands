@@ -169,7 +169,7 @@ function api_frame() {
 }
 
 function server_endpoint(server) {
-	let host = String(server.addr || server.ip || server.actual_ip || server.host || "");
+	let host = String(server.address || server.addr || server.ip || server.actual_ip || server.host || "");
 	let port = server.port;
 
 	host = host.replace(/^wss?:\/\//, "").replace(/\/+$/, "");
@@ -179,7 +179,7 @@ function server_endpoint(server) {
 		if (!port) port = parts[1];
 	}
 
-	return { host, port };
+	return { host, port, path: server.path };
 }
 
 function server_realm(server) {
@@ -198,7 +198,7 @@ function collect_servers(list) {
 		if (!server || typeof server !== "object") continue;
 
 		const endpoint = server_endpoint(server);
-		if (!endpoint.host || !endpoint.port) continue;
+		if (!endpoint.host || !(endpoint.port || endpoint.path)) continue;
 
 		const realm = server_realm(server);
 		if (!realm) continue;
@@ -207,7 +207,7 @@ function collect_servers(list) {
 		if (SERVER_WATCH.skip_servers.includes(String(name).toUpperCase())) continue;
 		if (server.pvp || server.gameplay === "hardcore" || server.gameplay === "dungeon") continue;
 
-		servers.push({ realm, host: endpoint.host, port: endpoint.port });
+		servers.push({ realm, host: endpoint.host, port: endpoint.port, path: endpoint.path });
 	}
 
 	return servers;
@@ -274,8 +274,8 @@ function fetch_server_list() {
 
 function open_observers() {
 	if (!_watch_owner || !_watch_servers) return;
-	if (typeof parent.io === "undefined") {
-		return void game_log("❌ Server watch: parent.io is missing — observers cannot connect", "#FF3333");
+	if (!observer_io()) {
+		return void complain_once("❌ Server watch: no io in any frame — observers cannot connect", "#FF3333");
 	}
 
 	const mine = my_realm();
@@ -290,8 +290,33 @@ function open_observers() {
 	}
 }
 
+function observer_socket(server) {
+	const io = observer_io();
+	const secure = String(location.protocol).indexOf("https") === 0;
+	const address = server.port ? server.host + ":" + server.port : server.host;
+	const options = {
+		transports: ["websocket"],
+		secure,
+		query: "map_protocol=1&no_graphics=1",
+		rejectUnauthorized: false,
+	};
+
+	if (server.path) options.path = server.path;
+
+	return typeof io === "function" ? io(address, options) : io.connect(address, options);
+}
+
+function observer_io() {
+	for (const frame of game_frames()) {
+		try {
+			if (frame.io) return frame.io;
+		} catch (e) { }
+	}
+	return null;
+}
+
 function open_observer(server) {
-	const socket = parent.io.connect("wss://" + server.host + ":" + server.port, { transports: ["websocket"] });
+	const socket = observer_socket(server);
 
 	socket.on("connect", () => {
 		_watch_state[server.realm] = "connected";
@@ -305,14 +330,10 @@ function open_observer(server) {
 		_watch_state[server.realm] = "disconnected";
 	});
 
-	socket.on("welcome", () => {
+	socket.on("welcome", data => {
 		_watch_state[server.realm] = "welcomed";
-		socket.emit("loaded", {
-			success: 1,
-			width: parent.screen.width,
-			height: parent.screen.height,
-			scale: parent.scale,
-		});
+		if (data && data.S) absorb_server_info(server.realm, data.S);
+		socket.emit("loaded", { success: 1, width: 1920, height: 1080, scale: 2 });
 	});
 
 	socket.on("server_info", data => {
