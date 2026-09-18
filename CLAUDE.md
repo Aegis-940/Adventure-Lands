@@ -29,7 +29,10 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Core Systems/Global Config.js` | Core config/constants/state variables |
 | `Core Systems/Movement Manager.js` | The two movement owners — `movement_goal()` (where to go, the one priority list) and `movement_local()` (where to stand) — plus the machinery they drive: `smarter_move()`, the travel arbiter (`travel_arbiter()`), `move_to_character()`, stuck escape |
 | `Core Systems/Bscorpion Camp.js` | Content-specific positioning for the desertland bscorpion/primling camp |
-| `Core Systems/Combat Utilities.js` | Monster targeting/distance/aggro helpers, combat positioning (`best_orbit_spot()`) |
+| `Core Systems/Combat Utilities.js` | Monster and entity queries (`monsters_matching()`, `get_num_targets()`), boss and party state predicates (`boss_engaged()`, `healer_is_down()`, `should_pause_combat_loop()`) |
+| `Core Systems/Combat Formulas.js` | The server's damage and heal arithmetic — `defense_reduction()`, `heal_delivered()`/`heal_useful()`/`partyheal_base()`, `burn_multiplier_at_dps()`, `splash_bonus()`, `time_to_kill_ms()`. Computes values, acts on nothing |
+| `Core Systems/Combat Sampling.js` | Hit and heal telemetry — the `hit`/`action` socket samplers and the damage/heal windows they feed. Self-starting at load |
+| `Core Systems/Movement Positioning.js` | `best_orbit_spot()`, `make_distance_from_monsters_scorer()`, `reposition_center()` and `orbit_reposition()` — scoring candidate spots around a centre |
 | `Core Systems/Targeting.js` | `score_targets()`/`select_target()` — the one scorer every character picks targets with |
 | `Core Systems/World Events.js` | Live boss/seasonal targets, the goal that walks the party to them, and the anniversary visit |
 | `Core Systems/Character Messaging.js` | CM (character message) handlers, localStorage-backed state cache |

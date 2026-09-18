@@ -32,7 +32,10 @@ Core Systems/Global Config.js     ← core config/constants shared by everything
 Core Systems/*.js                 ← loaded in parallel as real <script> tags
     ├── Movement Manager.js       movement_goal() + movement_local(), smarter_move(), travel_arbiter(), stuck escape
     ├── Bscorpion Camp.js         positioning for the desertland bscorpion/primling camp
-    ├── Combat Utilities.js       monster queries, damage/heal models, best_orbit_spot()
+    ├── Combat Utilities.js       monster/entity queries, boss + party state predicates
+    ├── Combat Formulas.js        damage/heal arithmetic (defense, burn, splash, heal pipeline)
+    ├── Combat Sampling.js        hit/action socket samplers, damage + heal windows
+    ├── Movement Positioning.js   best_orbit_spot(), scorers, reposition_center(), orbit_reposition()
     ├── Targeting.js              score_targets()/select_target() — one scorer for every character
     ├── World Events.js           live boss/seasonal targets, the walk to them, the anniversary visit
     ├── Character Messaging.js    CM handlers, localStorage-backed state cache
@@ -197,7 +200,10 @@ CONFIG = {
 
 | File | Lines |
 |------|-------|
-| Core Systems/Combat Utilities.js | 679 |
+| Core Systems/Combat Sampling.js | 267 |
+| Core Systems/Combat Utilities.js | 172 |
+| Core Systems/Combat Formulas.js | 168 |
+| Core Systems/Movement Positioning.js | 103 |
 | Character Managers/Merchant Manager/Merchant Upgrading.js | 640 |
 | Core Systems/Equipment Manager.js | 360 |
 | Core Systems/Equipment Valuation.js | 329 |
