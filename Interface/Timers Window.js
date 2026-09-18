@@ -202,18 +202,18 @@ function timers_hop_html() {
 	if (state && state.away) {
 		html += timers_row("hop", state.returning ? `returning to ${state.home}` : `${state.boss} on ${state.away}`, "#7FD1FF");
 		if (state.left_at) html += timers_row("returns by", fmt_eta(state.left_at + SERVER_HOP.max_stay_ms - now), "#7FD1FF");
-	} else if (last && now - (last.at || 0) < SERVER_HOP.cooldown_ms) {
-		html += timers_row("hop cooldown", fmt_eta(last.at + SERVER_HOP.cooldown_ms - now), "#888");
 	} else {
-		html += timers_row("hop", "ready", "#888");
+		const reason = typeof hop_reason === "function" ? hop_reason() : null;
+		html += timers_row("hop", reason || "ready to go", reason ? "#888" : "#9FE08F");
 	}
 
-	const candidates = typeof bosses_elsewhere === "function" ? bosses_elsewhere() : [];
-	for (const candidate of candidates.slice(0, 3)) {
-		html += timers_row(candidate === candidates[0] ? "joinable now" : "&nbsp;",
+	const candidates = typeof remote_boss_candidates === "function" ? remote_boss_candidates() : [];
+	for (const candidate of candidates.slice(0, 4)) {
+		const heat = candidate.busy ? `🔥${fmt_short(candidate.dps)}` : "idle";
+		html += timers_row(candidate.skip ? "&nbsp;&nbsp;skipped" : "&nbsp;&nbsp;joinable",
 			`${candidate.name} ${Math.round(candidate.ratio * 100)}% on ${candidate.realm}`
-			+ (candidate.busy ? ` · 🔥${fmt_short(candidate.dps)}` : " · idle"),
-			candidate.busy ? "#FF9B6A" : "#888");
+			+ ` · ${candidate.skip || heat}`,
+			candidate.skip ? "#888" : "#FF9B6A");
 	}
 
 	return html;

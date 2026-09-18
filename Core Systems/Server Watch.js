@@ -691,38 +691,48 @@ function watch_realms() {
 	return stored.realms;
 }
 
-function bosses_elsewhere() {
+function remote_boss_candidates() {
 	const mine = my_realm();
 	const realms = watch_realms();
+	const now = Date.now();
 	const found = [];
 
 	for (const realm in realms) {
 		if (realm === mine) continue;
 		const seen = realms[realm];
-		if (!seen || Date.now() - (seen.at || 0) > SERVER_WATCH.entry_stale_ms) continue;
+		if (!seen) continue;
+
+		const stale = now - (seen.at || 0) > SERVER_WATCH.entry_stale_ms;
 
 		for (const name in seen.bosses) {
 			const data = seen.bosses[name];
 			if (!data || !data.live) continue;
 
 			const max = boss_max_hp(name, data);
-			if (!max || !isFinite(data.hp)) continue;
-			if (!boss_engageable(name, data)) continue;
+			const ratio = max && isFinite(data.hp) ? data.hp / max : 1;
+			const busy = !!data.target
+				|| (data.dps > 0 && now - (data.damaged_at || 0) < SERVER_WATCH.dps_decay_ms);
 
-			const ratio = data.hp / max;
-			if (ratio > SERVER_HOP.join_below) continue;
-			if (data.end && data.end - Date.now() < SERVER_HOP.min_window_ms) continue;
+			const candidate = { realm, name, data, ratio, busy, dps: data.dps || 0, skip: null };
 
-			const busy = !!data.target || (data.dps > 0 && Date.now() - (data.damaged_at || 0) < SERVER_WATCH.dps_decay_ms);
-			found.push({ realm, name, data, ratio, busy, dps: data.dps || 0 });
+			if (stale) candidate.skip = "stale";
+			else if (!busy && ratio > SERVER_HOP.join_below) candidate.skip = "nobody fighting it";
+			else if (data.end && data.end - now < SERVER_HOP.min_window_ms) candidate.skip = "window closing";
+
+			found.push(candidate);
 		}
 	}
 
 	return found.sort((a, b) => {
+		if (!a.skip !== !b.skip) return a.skip ? 1 : -1;
 		if (a.busy !== b.busy) return a.busy ? -1 : 1;
 		if (b.dps !== a.dps) return b.dps - a.dps;
 		return a.ratio - b.ratio;
 	});
+}
+
+function bosses_elsewhere() {
+	return remote_boss_candidates().filter(candidate => !candidate.skip);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -942,6 +952,23 @@ function hop_blocked() {
 	return null;
 }
 
+function hop_reason() {
+	if (character.ctype === "merchant") return "merchant follows, never leads";
+
+	const blocked = hop_blocked();
+	if (blocked) return blocked;
+
+	const last = storage_read(SERVER_HOP_LAST_KEY);
+	if (last && Date.now() - (last.at || 0) < SERVER_HOP.cooldown_ms) {
+		return `cooling down ${fmt_eta(last.at + SERVER_HOP.cooldown_ms - Date.now())}`;
+	}
+
+	if (typeof best_event_target === "function" && best_event_target()) return "a boss is up on our realm";
+	if (!bosses_elsewhere().length) return "nothing joinable elsewhere";
+
+	return null;
+}
+
 function hop_to_realm(realm, why) {
 	if (Date.now() - _hop_called_at < SERVER_HOP.call_guard_ms) return;
 
@@ -1012,13 +1039,7 @@ function server_hop_tick() {
 	if (state && state.away === mine) return hop_arrived(state);
 	if (state) return hop_to_realm(state.away, state.returning ? "returning home" : `${state.boss} is up there`);
 
-	if (character.ctype === "merchant") return;
-	if (hop_blocked()) return;
-
-	const last = storage_read(SERVER_HOP_LAST_KEY);
-	if (last && Date.now() - (last.at || 0) < SERVER_HOP.cooldown_ms) return;
-
-	if (typeof best_event_target === "function" && best_event_target()) return;
+	if (hop_reason()) return;
 
 	const target = bosses_elsewhere()[0];
 	if (!target) return;

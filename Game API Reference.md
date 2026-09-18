@@ -582,6 +582,18 @@ simultaneously but almost always start *different* ones, and the only way to kno
 is to watch it. A server restarted within 2 minutes of the hour (`msince(server_start) > 2`) skips
 that slot entirely.
 
+**Cooperative events: HP is not a progress bar.** A monster flagged `1hp` takes **1 damage per hit**
+(2 on a crit) regardless of your damage — `if (target["1hp"]) attack = (def.crit && 2) || 1;`.
+`crabxx` carries that flag for as long as **any `crabx` is alive**, so its 960,000 HP pool barely
+moves while the raid clears the adds, then melts once they are dead. Never gate "is this fight
+underway" on a coop boss's HP percentage; use `E[name].target` (who it is holding) or a damage rate.
+
+**Contribution points decide coop loot, and two multipliers dominate them** (`add_coop_points`):
+`1hp` targets score a flat 1 per hit, **`hopsickness` divides your points by 4**, and a character
+whose `p.home` equals the realm it is fighting on gets **×5**. So a visitor with hop sickness earns
+one twentieth the rate of a local on their home server. Set home with
+`parent.socket.emit("set_home")`.
+
 **No timers exist for ordinary world bosses** (`phoenix`, `mvampire`, `fvampire`, `greenjr`, `jr`,
 `stompy`, `cutebee`, `goldenbat`, …). They are not in `E` at all, so nothing is broadcast about
 them — the only way to know is to observe the death yourself and add the interval.
