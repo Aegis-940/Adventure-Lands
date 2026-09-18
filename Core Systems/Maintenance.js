@@ -6,6 +6,8 @@
 // POTIONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+const POTION_POLL_MS = 50;
+
 async function potion_loop() {
 	if (character.c && (character.c.fishing || character.c.mining || character.c.town)) {
 		return setTimeout(potion_loop, 200);
@@ -29,7 +31,7 @@ async function potion_loop() {
 	if (hp_first) { drink_hp(); drink_mp(); }
 	else { drink_mp(); drink_hp(); }
 
-	setTimeout(potion_loop, used_potion ? 2050 : 10);
+	setTimeout(potion_loop, used_potion ? 2050 : POTION_POLL_MS);
 }
 
 // function suicide() {

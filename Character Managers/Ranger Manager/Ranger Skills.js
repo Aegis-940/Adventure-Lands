@@ -51,10 +51,12 @@ function supershot_value(target) {
 	return multiplier * (character.attack || 0) * (target_modifier(target, multiplier) || 1);
 }
 
+var _last_sent_target = null;
+
 async function skill_loop() {
 	loop_tick("skill_loop");
 	if (should_pause_combat_loop()) return setTimeout(skill_loop, loop_next("skill_loop", 100));
-	let next_delay = 5;
+	let next_delay = TICK_RATE.skill;
 	try {
 		if (!CONFIG.combat.use_hunters_mark && !CONFIG.combat.use_supershot) {
 			return setTimeout(skill_loop, loop_next("skill_loop", 1000));
@@ -82,7 +84,10 @@ async function skill_loop() {
 		if (ms_super !== 0) _supershot_ready_since = 0;
 
 		if (min_ms < character.ping / 10) {
-			change_target(target);
+			if (_last_sent_target !== target.id) {
+				_last_sent_target = target.id;
+				change_target(target);
+			}
 
 			const skill_allowed = !CONFIG.combat.skill_blacklist.includes(target.mtype);
 
