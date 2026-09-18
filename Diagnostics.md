@@ -80,7 +80,9 @@ recorded. Every other server rejection is invisible.
   `records`, and only within the build window.
 - **"In what order?"** — `timeline`. It accumulates across reloads in the store, unlike the
   browser's own ring.
-- **"How often?"** — `counts`, remembering it is a per-session peak.
+- **"How often?"** — a *delta* between two `counts` readings over `delta(lag eventloop)/10`
+  seconds. Never a raw `counts` value over a session length. For a message rather than a counter,
+  `records[].count` over `first`..`last` is a real rate over a real window.
 - **"What was the state?"** — `deaths[].leading_up_to_it` (1Hz vitals), `deaths[].recent_heals`,
   and `samples`.
 - **"Why did this branch not run?"** — nothing, usually. That is the gap the instrumentation pass
@@ -131,6 +133,11 @@ Recorded so they are not repeated:
   (trap 4).
 - *"Myras's gloves swap widened Riva's cupid swap window"* — different characters. The equip
   cooldown is per-character; Riva's channel is idle at one bounce per 25.5s.
+- *"Myras panics every 20 seconds"* — summed two cumulative counters and divided by one session
+  (trap 2). Real rate: one per 13.4 minutes across 67 hours. Falsified by the operator from the
+  game before the telemetry was re-read.
+- *"The 200Hz loops were costing `cc`"* — plausible and unchecked. Observed cc peaks at 72, 61 and
+  42 against a ceiling of 125. The `change_target` spam was real; the `cc` cost was not.
 - *"Removing the self partyheal is an efficiency win"* — `partyheal` ignores heal power entirely
   (flat 800 at her level, 400 mp) but runs on its own 200ms cooldown beside the attack timer that
   gates `heal`. It is a second healing channel, not a worse first one. The efficiency argument only
