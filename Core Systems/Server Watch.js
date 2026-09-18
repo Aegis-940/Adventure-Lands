@@ -4,7 +4,7 @@
 
 const SERVER_WATCH = {
 	enabled: true,
-	skip_servers: ["TEST", "PVP"],
+	skip_servers: ["TEST", "PVP", "HARDCORE", "DUNGEON"],
 	watcher_order: ["Riff", "Ulric", "Myras", "Riva"],
 	tick_ms: 5000,
 	lease_ms: 20000,
@@ -38,6 +38,7 @@ const SERVER_HOP_LAST_KEY = "AL_server_hop_last";
 
 var _watch_since = Date.now();
 var _watch_sockets = {};
+var _watch_state = {};
 var _watch_table = {};
 var _watch_servers = null;
 var _watch_servers_at = 0;
@@ -127,36 +128,56 @@ function claim_watch_lease() {
 // OBSERVERS — an unauthenticated socket per realm, listening for server_info
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+function collect_servers(list) {
+	const servers = [];
+
+	for (const id in (list || {})) {
+		const server = list[id];
+		const host = server && (server.addr || server.ip);
+		if (!host || !server.port) continue;
+		if (SERVER_WATCH.skip_servers.includes(server.name)) continue;
+		if (server.pvp || server.gameplay === "hardcore" || server.gameplay === "dungeon") continue;
+		servers.push({ realm: realm_key(server.region, server.name), host, port: server.port });
+	}
+
+	return servers;
+}
+
+function adopt_servers(servers, source) {
+	if (!servers.length) return false;
+
+	const before = _watch_servers ? _watch_servers.length : 0;
+	_watch_servers = servers;
+	_watch_servers_at = Date.now();
+
+	if (before !== servers.length) {
+		game_log(`🛰️ Server watch: ${servers.length} realms from ${source} — `
+			+ servers.map(s => s.realm).join(", "), "#7FD1FF");
+	}
+
+	publish_watch();
+	open_observers();
+	return true;
+}
+
 function fetch_server_list() {
-	if (typeof parent.api_call !== "function") return;
 	if (_watch_servers && Date.now() - _watch_servers_at < SERVER_WATCH.server_list_ms) return;
+
+	if (adopt_servers(collect_servers(parent.X && parent.X.servers), "X.servers")) return;
+
+	if (typeof parent.api_call !== "function") {
+		return void game_log("❌ Server watch: no X.servers and no api_call — cannot list realms", "#FF3333");
+	}
 
 	_watch_servers_at = Date.now();
 	parent.api_call("get_servers", {}, {
 		callback: response => {
-			const message = response && response[0] && response[0].message;
-			if (!message) {
+			const message = response && response[0] && (response[0].message || response[0]);
+			const servers = collect_servers(message);
+			if (!adopt_servers(servers, "get_servers")) {
 				_watch_servers_at = Date.now() - SERVER_WATCH.server_list_ms + SERVER_WATCH.list_retry_ms;
-				return;
+				game_log("⚠️ Server watch: get_servers returned nothing usable", "#FFA500");
 			}
-
-			const servers = [];
-			for (const id in message) {
-				const server = message[id];
-				if (!server || !server.ip || !server.port) continue;
-				if (SERVER_WATCH.skip_servers.includes(server.name)) continue;
-				if (server.pvp) continue;
-				servers.push({
-					realm: realm_key(server.region, server.name),
-					ip: server.ip,
-					port: server.port,
-				});
-			}
-
-			_watch_servers = servers;
-			game_log(`🛰️ Server watch: ${servers.length} realms listed`, "#7FD1FF");
-			publish_watch();
-			open_observers();
 		},
 	});
 }
@@ -180,9 +201,22 @@ function open_observers() {
 }
 
 function open_observer(server) {
-	const socket = parent.io.connect("wss://" + server.ip + ":" + server.port, { transports: ["websocket"] });
+	const socket = parent.io.connect("wss://" + server.host + ":" + server.port, { transports: ["websocket"] });
+
+	socket.on("connect", () => {
+		_watch_state[server.realm] = "connected";
+	});
+	socket.on("connect_error", e => {
+		if (_watch_state[server.realm] === "failed") return;
+		_watch_state[server.realm] = "failed";
+		game_log(`⚠️ Server watch: ${server.realm} would not connect (${(e && e.message) || "error"})`, "#FFA500");
+	});
+	socket.on("disconnect", () => {
+		_watch_state[server.realm] = "disconnected";
+	});
 
 	socket.on("welcome", () => {
+		_watch_state[server.realm] = "welcomed";
 		socket.emit("loaded", {
 			success: 1,
 			width: parent.screen.width,
@@ -191,7 +225,13 @@ function open_observer(server) {
 		});
 	});
 
-	socket.on("server_info", data => absorb_server_info(server.realm, data));
+	socket.on("server_info", data => {
+		if (_watch_state[server.realm] !== "reporting") {
+			_watch_state[server.realm] = "reporting";
+			game_log(`🛰️ ${server.realm} is reporting`, "#7FD1FF");
+		}
+		absorb_server_info(server.realm, data);
+	});
 
 	return socket;
 }
@@ -201,6 +241,20 @@ function close_observer(realm) {
 	if (!socket) return;
 	try { socket.disconnect(); } catch (e) { }
 	delete _watch_sockets[realm];
+	delete _watch_state[realm];
+}
+
+function server_watch_debug() {
+	const lease = storage_read(SERVER_WATCH_LEASE_KEY);
+	const stored = storage_read(SERVER_WATCH_KEY) || {};
+
+	game_log(`🛰️ lease: ${lease ? lease.name : "none"} · me: ${character.name} · owner: ${_watch_owner}`, "#7FD1FF");
+	game_log(`🛰️ X.servers: ${((parent.X && parent.X.servers) || []).length} · listed: ${(_watch_servers || []).length} · published: ${(stored.list || []).length}`, "#7FD1FF");
+	game_log(`🛰️ realm: ${my_realm()} · table: ${Object.keys(stored.realms || {}).join(", ") || "empty"}`, "#7FD1FF");
+
+	for (const realm in _watch_sockets) {
+		game_log(`      ${realm}: ${_watch_state[realm] || "opening"}`, "#7FD1FF");
+	}
 }
 
 function close_observers() {
@@ -282,6 +336,7 @@ function publish_watch() {
 		at: Date.now(),
 		realms: _watch_table,
 		list: _watch_servers ? _watch_servers.map(s => s.realm) : [],
+		states: _watch_state,
 	});
 }
 

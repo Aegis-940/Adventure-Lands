@@ -160,15 +160,25 @@ function timers_html() {
 	html += timers_realm_html(mine, local_timers(), true);
 	html += timers_seasons_html();
 
-	html += timers_heading("Other realms");
-	const others = Object.keys(realms).filter(r => r !== mine).sort();
+	const stored = (typeof storage_read === "function" && storage_read(SERVER_WATCH_KEY)) || {};
+	const others = (typeof known_realms === "function" ? known_realms() : Object.keys(realms))
+		.filter(r => r !== mine).sort();
+
+	html += timers_heading(`Other realms — ${lease ? lease.name : "no watcher"}`);
+
 	if (!others.length) {
-		html += timers_row("observers", lease ? `${lease.name} watching, nothing reported yet` : "no watcher", "#888");
+		html += timers_row("observers", "no realms listed yet", "#888");
 	}
+
 	for (const realm of others) {
-		const age = Math.round((Date.now() - (realms[realm].at || 0)) / 1000);
+		const seen = realms[realm];
+		if (!seen) {
+			html += timers_row(realm, (stored.states || {})[realm] || "waiting", "#888");
+			continue;
+		}
+		const age = Math.round((Date.now() - (seen.at || 0)) / 1000);
 		html += timers_heading(`${realm} <span style="float:right;font-weight:normal;color:#888;">${age}s ago</span>`);
-		html += timers_realm_html(realm, realms[realm], false);
+		html += timers_realm_html(realm, seen, false);
 	}
 
 	html += timers_heading("Recent starts (each realm shuffles its own order at boot)");
@@ -202,7 +212,7 @@ function open_timers_window() {
 	div.style.top = "80px";
 	div.style.width = WINDOW_WIDTH + "px";
 	div.style.maxHeight = (parent.window.innerHeight - 140) + "px";
-	div.style.background = "rgba(0,0,0,0.88)";
+	div.style.background = "rgba(12,12,12,0.96)";
 	div.style.color = "#fff";
 	div.style.zIndex = 9999;
 	div.style.fontSize = "12px";
