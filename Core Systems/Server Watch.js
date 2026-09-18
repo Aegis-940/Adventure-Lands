@@ -421,6 +421,20 @@ function upcoming_event_slots(horizon_hours) {
 	return slots.sort((a, b) => a.at - b.at);
 }
 
+function next_slot_per_region() {
+	const seen = {};
+	const next = [];
+
+	for (const slot of upcoming_event_slots(26)) {
+		const key = `${slot.region}|${slot.kind}|${slot.hour}`;
+		if (seen[key]) continue;
+		seen[key] = true;
+		next.push(slot);
+	}
+
+	return next;
+}
+
 function realm_timers(realm) {
 	if (realm === my_realm()) return local_timers();
 	const seen = watch_realms()[realm];

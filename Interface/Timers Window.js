@@ -5,8 +5,6 @@
 const TIMERS_WINDOW_ID = "timers-window";
 const TIMERS_REFRESH_MS = 1000;
 const TIMERS_HISTORY_SHOWN = 8;
-const TIMERS_SLOTS_SHOWN = 10;
-const TIMERS_SCHEDULE_HORIZON_H = 30;
 
 let _timers_interval = null;
 
@@ -69,11 +67,11 @@ function timers_realm_html(realm, seen, detailed) {
 }
 
 function timers_schedule_html() {
-	if (typeof upcoming_event_slots !== "function") return "";
+	if (typeof next_slot_per_region !== "function") return "";
 
 	const now = Date.now();
 	const regions = region_schedules();
-	const slots = upcoming_event_slots(TIMERS_SCHEDULE_HORIZON_H).slice(0, TIMERS_SLOTS_SHOWN);
+	const slots = next_slot_per_region();
 
 	if (!slots.length) return timers_row("schedule", "no realms known yet", "#888");
 
@@ -155,7 +153,7 @@ function timers_html() {
 	const realms = typeof watch_realms === "function" ? watch_realms() : {};
 	const lease = typeof storage_read === "function" ? storage_read(SERVER_WATCH_LEASE_KEY) : null;
 
-	let html = timers_heading("Next event windows — every realm");
+	let html = timers_heading("Next event window — every region and slot");
 	html += timers_schedule_html();
 
 	html += timers_heading(`This realm — ${mine}`);
