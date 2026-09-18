@@ -20,6 +20,7 @@ optional.
 
 import json
 import os
+import subprocess
 import sys
 import threading
 import time
@@ -311,6 +312,63 @@ def maintenance_loop():
             print("  ! sweep failed: %s" % exc, file=sys.stderr, flush=True)
 
 
+SOURCE = os.path.abspath(__file__)
+SOURCE_POLL_S = 5
+RESTART = threading.Event()
+
+
+class Sink(HTTPServer):
+    # Off, so a second sink fails to bind instead of silently splitting the traffic with the first.
+    # That is what keeps a restart from leaving two of these alive.
+    allow_reuse_address = False
+
+
+def bind_server(attempts=20, wait=0.5):
+    """Take the port, waiting out the previous process's socket if a restart is still letting go."""
+    for _ in range(attempts):
+        try:
+            return Sink(("127.0.0.1", PORT), Handler)
+        except OSError:
+            time.sleep(wait)
+    return None
+
+
+def source_mtime():
+    try:
+        return os.path.getmtime(SOURCE)
+    except OSError:
+        return 0.0
+
+
+def restart_watch(server, known):
+    """Re-exec when this file changes, so editing the sink is enough to deploy it.
+
+    It runs as a logon task and stays up for weeks, so without this every change needs someone to
+    remember a manual restart. The new source is compiled before exec: a half-written or broken
+    file leaves the running copy alone rather than taking the sink down with it.
+    """
+    while True:
+        time.sleep(SOURCE_POLL_S)
+        seen = source_mtime()
+        if not seen or seen == known:
+            continue
+        known = seen
+        try:
+            with open(SOURCE, encoding="utf-8") as fh:
+                compile(fh.read(), SOURCE, "exec")
+        except Exception as exc:
+            print("  ! source changed but will not compile, staying on the running copy: %s" % exc,
+                  file=sys.stderr, flush=True)
+            continue
+        print("%s  source changed -- restarting" % datetime.now().strftime("%H:%M:%S"), flush=True)
+        # The respawn belongs to the main thread. Doing it here would race: shutdown() lets
+        # serve_forever() return, the interpreter reaches the end of __main__, and this daemon
+        # thread is killed before it can spawn anything.
+        RESTART.set()
+        server.shutdown()
+        return
+
+
 def detach_logging():
     """Under pythonw.exe -- how the logon task runs it -- there is no console and sys.stdout is
     None, which turns the first print() into an AttributeError. Send the log to a file instead."""
@@ -333,5 +391,16 @@ if __name__ == "__main__":
     print("error sink -> %s" % OUT)
     sweep("swept on start")
     threading.Thread(target=maintenance_loop, daemon=True).start()
+    httpd = bind_server()
+    if httpd is None:
+        print("port %d is already served -- another sink owns it, leaving it alone" % PORT,
+              file=sys.stderr, flush=True)
+        sys.exit(0)
+    threading.Thread(target=restart_watch, args=(httpd, source_mtime()), daemon=True).start()
     print("listening on http://127.0.0.1:%d  (ctrl-c to stop)" % PORT, flush=True)
-    HTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
+    httpd.serve_forever()
+    httpd.server_close()
+    if RESTART.is_set():
+        # Not os.execv: on Windows it does not quote, so a path with a space in it -- which this
+        # one has -- is split and the replacement process dies on a truncated filename.
+        subprocess.Popen([sys.executable, SOURCE], cwd=os.path.dirname(SOURCE), close_fds=True)
