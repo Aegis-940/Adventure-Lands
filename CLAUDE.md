@@ -27,7 +27,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Code Loader.js` | The one file that lives in a game code slot; fetches and evals `Bootstrapper.js` |
 | `Bootstrapper.js` | Script loader — loads all other files from CDN in order |
 | `Core Systems/Global Config.js` | Core config/constants/state variables |
-| `Core Systems/Movement.js` | `smarter_move()`, the travel arbiter (`travel_arbiter()`), `move_to_character()`, stuck escape |
+| `Core Systems/Movement Manager.js` | The two movement owners — `movement_goal()` (where to go, the one priority list) and `movement_local()` (where to stand) — plus the machinery they drive: `smarter_move()`, the travel arbiter (`travel_arbiter()`), `move_to_character()`, stuck escape |
 | `Core Systems/Bscorpion Camp.js` | Content-specific positioning for the desertland bscorpion/primling camp |
 | `Core Systems/Combat Utilities.js` | Monster targeting/distance/aggro helpers, combat positioning (`best_orbit_spot()`) |
 | `Core Systems/Targeting.js` | `score_targets()`/`select_target()` — the one scorer every character picks targets with |
@@ -38,7 +38,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Core Systems/Party Management.js` | Panic and its broadcast (`set_panic()` is the only writer), party invites, where home is |
 | `Core Systems/Loot Management.js` | `loose_loot()` — what we keep, ship to the merchant, or vendor; bank withdrawal; chest looting (`should_loot()`/`handle_looting()`, driven by each character's `CONFIG.looting`) |
 | `Core Systems/Maintenance.js` | Potion drinking/restocking and the periodic tab reload |
-| `Core Systems/Party Cohesion.js` | Party cohesion (`follow_goal()`, `party_cohesion_hold()`) and `movement_goal()`, the one priority list |
+| `Core Systems/Party Cohesion.js` | Cohesion only — `follow_goal()`, `party_cohesion_hold()`, `leader_position()`, `behind_on_xp()`. A service `movement_goal()` consults; decides no movement itself |
 | `Core Systems/Character Runner.js` | `run_character()` — the shared main tick loop every character starts from |
 | `Core Systems/Error Handling.js` | `catcher()`, the shared error-triage/logging helper |
 | `Core Systems/Error Log.js` | Persistent cross-character flight recorder; hooks only, read with `al_errors(true)` |

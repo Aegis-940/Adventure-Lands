@@ -15,7 +15,7 @@
 	const first_script = "Core Systems/Global Config.js";
 
 	const scripts = [
-		"Core Systems/Movement.js",
+		"Core Systems/Movement Manager.js",
 		"Core Systems/Bscorpion Camp.js",
 		"Core Systems/Combat Utilities.js",
 		"Core Systems/Targeting.js",
@@ -97,7 +97,7 @@
 
 	const CRITICAL_SCRIPTS = [
 		"Core Systems/Global Config.js",
-		"Core Systems/Movement.js",
+		"Core Systems/Movement Manager.js",
 		"Core Systems/Bscorpion Camp.js",
 		"Core Systems/Combat Utilities.js",
 		"Core Systems/Targeting.js",

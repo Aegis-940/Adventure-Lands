@@ -1,5 +1,5 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// MOVEMENT — smarter_move(), the travel arbiter, stuck escape
+// MOVEMENT MANAGER — where to go and where to stand, smarter_move(), the travel arbiter, stuck escape
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -324,4 +324,86 @@ function stuck_escape_check() {
 	_stuck_since = now;
 	game_log(`🚨 Stuck on ${character.map} for ${Math.round(stuck_ms / 1000)}s — using town to escape.`, "#FF3333");
 	use_skill("use_town");
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// MOVEMENT GOAL — the one priority list for the three combat characters.
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function approach(pos, o) {
+	const map = pos.map || character.map;
+	const travel = { label: o.label, map, x: pos.x, y: pos.y, radius: o.radius || o.arrive, chasing: o.chasing };
+	if (map !== character.map) return travel;
+
+	const d = Math.hypot(character.x - pos.x, character.y - pos.y);
+	if (d <= o.arrive) return o.arrived;
+
+	const a = Math.atan2(character.y - pos.y, character.x - pos.x);
+	const step = { x: pos.x + Math.cos(a) * o.ring, y: pos.y + Math.sin(a) * o.ring };
+	if (!smart.moving && can_move_to(step.x, step.y)) {
+		return { local: "step", label: o.label + "-close", on_station: d <= cohesion_range(), step, chasing: o.chasing };
+	}
+	return travel;
+}
+
+function local_step(goal) {
+	if (goal && goal.step) move(goal.step.x, goal.step.y);
+}
+
+function movement_goal() {
+	if (!CONFIG.movement.enabled) return null;
+
+	if (dungeon_flag("leader_manual") && character.name === MOVEMENT_LEADER) return null;
+
+	const scripted_camp = home === "bscorpion";
+
+	if (!scripted_camp && party_cohesion_hold()) return { hold: true, label: "cohesion" };
+
+	const follow = scripted_camp ? null : follow_goal();
+	if (follow && !follow.local) return follow;
+
+	const ignoring_events = dungeon_flag("ignore_events");
+
+	const event = ignoring_events ? null : event_goal();
+	if (follow && follow.on_station && event && event.local === "event") return event;
+
+	if (!follow_has_leader() && !ignoring_events) {
+		const anniv = anniversary_destination();
+		if (anniv) return anniv;
+	}
+
+	if (follow) return follow;
+	if (event) return event;
+
+	if (ignoring_events) return null;
+
+	if (home === "bscorpion") {
+		const loc = prim_farm_loc();
+		return is_at_bscorpion_farm()
+			? null
+			: { label: "bscorpion", map: loc.map, x: loc.x, y: loc.y, radius: PRIM_FARM_RADIUS };
+	}
+
+	if (is_away_from_home()) {
+		return {
+			label: "home",
+			map: destination.map,
+			x: destination.x,
+			y: destination.y,
+			radius: home_radius(),
+		};
+	}
+
+	return null;
+}
+
+function movement_local(goal, farm_step) {
+	if (smart.moving) {
+		game_log("🧭 local movement skipped — a journey is still in flight", "#FFA500");
+		return;
+	}
+	if (goal && goal.local === "step") return local_step(goal);
+	if (goal && goal.local === "event") return event_step(goal.event);
+	if (goal && goal.local === "loot") return loot_step();
+	if (typeof farm_step === "function") farm_step();
 }

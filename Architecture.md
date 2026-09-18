@@ -30,7 +30,7 @@ Core Systems/Global Config.js     ← core config/constants shared by everything
     └── Tick rates / cooldowns
 
 Core Systems/*.js                 ← loaded in parallel as real <script> tags
-    ├── Movement.js               smarter_move(), travel_arbiter(), move_to_character(), stuck escape
+    ├── Movement Manager.js       movement_goal() + movement_local(), smarter_move(), travel_arbiter(), stuck escape
     ├── Bscorpion Camp.js         positioning for the desertland bscorpion/primling camp
     ├── Combat Utilities.js       monster queries, damage/heal models, best_orbit_spot()
     ├── Targeting.js              score_targets()/select_target() — one scorer for every character
@@ -41,7 +41,7 @@ Core Systems/*.js                 ← loaded in parallel as real <script> tags
     ├── Party Management.js       panic + its broadcast (set_panic()), party invites, home location
     ├── Loot Management.js        loose_loot() (keep/ship/vendor), bank withdrawal, chest looting
     ├── Maintenance.js            potion drinking/restocking, periodic tab reload
-    ├── Party Cohesion.js         follow_goal(), party_cohesion_hold(), movement_goal() priority list
+    ├── Party Cohesion.js         follow_goal(), party_cohesion_hold(), leader_position(), behind_on_xp()
     ├── Character Runner.js       run_character(), the shared main tick loop
     ├── Error Handling.js         catcher(), the shared error-triage/logging helper
     └── Error Log.js              persistent cross-character flight recorder (al_errors(true))
@@ -203,7 +203,7 @@ CONFIG = {
 | Core Systems/Equipment Valuation.js | 329 |
 | Core Systems/Error Log.js | 462 |
 | Character Managers/Merchant Manager/Merchant Crafting.js | 391 |
-| Core Systems/Movement.js | 352 |
+| Core Systems/Movement Manager.js | 410 |
 | Interface/DPS Meter.js | 343 |
 | Interface/Stats Window.js | 313 |
 | Character Managers/Healer Manager/Healer Skills.js | 286 |
@@ -218,7 +218,7 @@ CONFIG = {
 | Character Managers/Warrior Manager/Warrior Equipment.js | 212 |
 | Character Managers/Warrior Manager/Warrior Config.js | 212 |
 | Interface/Bank Viewer.js | 203 |
-| Core Systems/Party Cohesion.js | 199 |
+| Core Systems/Party Cohesion.js | 134 |
 | Core Systems/Party Management.js | 186 |
 | Character Managers/Merchant Manager/Merchant Inventory.js | 184 |
 | Interface/Bank Sort Order.js | 183 |
