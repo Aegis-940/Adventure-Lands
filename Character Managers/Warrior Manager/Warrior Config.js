@@ -13,7 +13,7 @@ var CONFIG = {
 
 		cleave_min_mobs: 3,
 		cleave_min_mobs_held: 1,
-		cleave_blacklist: ["pppompom"],
+		cleave_blacklist: ["pppompom", "porcupine"],
 		cleave_boss_blacklist: ["franky", "icegolem"],
 		agitate_min_mobs: 2,
 		agitate_blacklist: ["pppompom"],
