@@ -159,7 +159,8 @@ Quick-reference for the AdventureLand game engine internals. Originally sourced 
 | `stop_character` | `stop_character(name)` | void | |
 | `command_character` | `command_character(name, code_snippet)` | void | Execute code on another character |
 | `get_active_characters` | `get_active_characters()` | object | States: "self", "starting", "loading", "active", "code" |
-| `change_server` | `change_server(region, name)` | void | e.g., `change_server("EU","I")` |
+| `change_server` | `change_server(region, name)` | void | **A runner function — a bare global in the code frame, NOT `parent.change_server`.** Navigates `parent.window.location` to `/character/<name>/in/<region>/<name>/`, so it hops that one character and reloads its frame. e.g. `change_server("EU","I")` |
+| `get_servers` | `get_servers()` | array | Runner wrapper for `parent.X.servers` |
 | `respawn` | `respawn()` | Promise | |
 
 ### Persistent Storage

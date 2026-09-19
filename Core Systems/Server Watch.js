@@ -981,15 +981,37 @@ function hop_to_realm(realm, why) {
 		return;
 	}
 
-	if (typeof parent.change_server !== "function") {
-		game_log("❌ parent.change_server is missing — cannot server hop", "#FF3333");
-		storage_clear(SERVER_HOP_KEY);
-		return;
-	}
-
 	const parts = realm.split(" ");
 	game_log(`🛰️ Hopping to ${realm} — ${why}`, "#7FD1FF");
-	parent.change_server(parts[0], parts[1]);
+
+	if (!change_realm(parts[0], parts[1])) {
+		game_log("❌ No way to change realm — server hop disabled", "#FF3333");
+		storage_clear(SERVER_HOP_KEY);
+	}
+}
+
+function change_realm(region, identifier) {
+	if (typeof change_server === "function") {
+		change_server(region, identifier);
+		return true;
+	}
+
+	for (const frame of game_frames()) {
+		try {
+			if (typeof frame.change_server === "function") {
+				frame.change_server(region, identifier);
+				return true;
+			}
+		} catch (e) { }
+	}
+
+	try {
+		parent.window.location.href = "/character/" + encodeURIComponent(character.name)
+			+ "/in/" + encodeURIComponent(region) + "/" + encodeURIComponent(identifier) + "/";
+		return true;
+	} catch (e) { }
+
+	return false;
 }
 
 function begin_return(state) {
