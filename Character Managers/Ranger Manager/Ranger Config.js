@@ -65,7 +65,7 @@ var CONFIG = {
 	potions: {
 		auto_buy: true,
 		hp_threshold: 400,
-		mp_threshold: 500,
+		mp_threshold: 300,
 		min_stock: 1000,
 		prefer_mp: false,
 	},
