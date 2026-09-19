@@ -28,6 +28,7 @@ function update_cache() {
 	if (cache.is_valid()) return;
 	const now = performance.now();
 	sample_set_profiles(CONFIG.equipment.weapon_sets);
+	sample_chest_stats();
 	cache.targets = update_target_cache();
 	cache.heal_target = find_cupid_target();
 	cache.last_update = now;

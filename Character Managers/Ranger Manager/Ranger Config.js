@@ -26,6 +26,9 @@ var CONFIG = {
 		cupid_release_margin: 0.14,
 		cupid_arm_ms: 400,
 
+		mp_regen_period_s: 4,
+		mp_regen_default: 60,
+
 		sample_hits: true,
 	},
 
@@ -44,6 +47,11 @@ var CONFIG = {
 
 		weapon_swap_enabled: true,
 		weapon_sets: ["single", "boom"],
+
+		chest_swap_enabled: true,
+		chest_sets: ["dps_chest", "mana_chest"],
+		chest_hysteresis_ms: 8000,
+		chest_switch_margin: 1.04,
 	},
 
 	looting: {
@@ -97,6 +105,12 @@ var equipment_sets = {
 	heal: [
 		{ item_name: "cupid", slot: "mainhand", level: 9, l: "l" },
 		{ item_name: "t2quiver", slot: "offhand", level: 7, l: "l" },
+	],
+	dps_chest: [
+		{ item_name: "coat", slot: "chest", level: 9, l: "l" },
+	],
+	mana_chest: [
+		{ item_name: "tshirt9", slot: "chest", level: 5, l: "l" },
 	],
 	panic: [
 		{ item_name: "jacko", slot: "orb", level: 0, l: "l" },
