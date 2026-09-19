@@ -47,8 +47,8 @@ var CONFIG = {
 
 		chest_swap_enabled: true,
 		chest_sets: { dps: "dps_chest", mana: "mana_chest" },
-		chest_mana_slack_pct: 0.10,
 		chest_mana_max_engage_pct: 0.75,
+		chest_min_hold_ms: 2000,
 	},
 
 	looting: {

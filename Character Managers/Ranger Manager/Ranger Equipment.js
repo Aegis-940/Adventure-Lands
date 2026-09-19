@@ -44,6 +44,7 @@ function resolve_ranger_orb() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 var _mana_chest_engaged = false;
+var _mana_chest_worn_since = 0;
 
 function desired_shot(pool) {
 	let best = SHOT_PROFILES[0];
@@ -75,9 +76,9 @@ function mana_chest_band() {
 
 	const chasing = crossover <= character.max_mp * (CONFIG.equipment.chest_mana_max_engage_pct ?? 0.75);
 	const engage = chasing ? crossover : floor;
-	const slack = character.max_mp * (CONFIG.equipment.chest_mana_slack_pct ?? 0.10);
+	const release = Math.min(character.max_mp, chasing ? character.max_mp : crossover);
 
-	return { crossover, floor, chasing, engage, release: Math.min(character.max_mp, engage + slack) };
+	return { crossover, floor, chasing, engage, release };
 }
 
 function mana_chest_shot() {
@@ -94,11 +95,18 @@ function mana_chest_wanted() {
 		return false;
 	}
 
+	const sets = CONFIG.equipment.chest_sets || {};
 	const band = mana_chest_band();
+
 	if (_mana_chest_engaged) {
-		if (character.mp >= band.release) _mana_chest_engaged = false;
+		if (!_mana_chest_worn_since && sets.mana && is_set_equipped(sets.mana)) _mana_chest_worn_since = Date.now();
+		const worn_ms = _mana_chest_worn_since ? Date.now() - _mana_chest_worn_since : 0;
+		if (character.mp >= band.release && worn_ms >= (CONFIG.equipment.chest_min_hold_ms ?? 2000)) {
+			_mana_chest_engaged = false;
+		}
 	} else if (character.mp < band.engage) {
 		_mana_chest_engaged = true;
+		_mana_chest_worn_since = 0;
 	}
 
 	return _mana_chest_engaged;
@@ -121,23 +129,24 @@ function chest_report() {
 	const shot = mana_chest_shot();
 	const band = mana_chest_band();
 
-	const widest = pool.length ? desired_shot(pool).name : "nothing";
+	const widest = pool.length ? desired_shot(pool) : null;
 	const picked = pool.length ? choose_attack_option(pool) : null;
 	const { lo, hi } = lambda_bounds();
-	const needed = lo / (CONFIG.combat.lambda_headroom_low || 1);
 
 	game_log(`[CHEST] ${pool.length} in range, mp ${Math.round(character.mp)}/${character.max_mp}`
 		+ `${shot ? "" : " (no mana pressure)"}`, "#66ccff");
-	game_log(`[CHEST] scorer fires ${picked ? picked.name : "nothing"}, widest would be ${widest} — `
-		+ `lambda ${mana_price().toFixed(4)}, needs under ${needed.toFixed(4)} (range ${lo.toFixed(4)}-${hi.toFixed(4)})`, "#66ccff");
+	game_log(`[CHEST] scorer fires ${picked ? picked.name : "nothing"}, widest would be ${widest ? widest.name : "nothing"}`
+		+ `${picked && widest && picked.name === widest.name ? " — agree" : " — priced down"}, `
+		+ `lambda ${mana_price().toFixed(4)} in ${lo.toFixed(4)}-${hi.toFixed(4)}`, "#66ccff");
 
-	if (pool.length) {
-		const profile = desired_shot(pool);
-		const hits = Math.min(profile.count, pool.length);
-		const gross = shot_mana(profile);
-		const rebate = manasteal_rebate(pool, profile, hits, shot_apiercing(profile));
-		game_log(`[CHEST] ${profile.name} costs ${Math.round(gross)} mp, steals back ${Math.round(rebate)} `
-			+ `→ net ${Math.round(Math.max(0, gross - rebate))} over ${hits} hits`, "#66ccff");
+	if (widest) {
+		const hits = Math.min(widest.count, pool.length);
+		const apiercing = shot_apiercing(widest);
+		const gross = shot_mana(widest);
+		const per_point = shot_stealable_damage(pool, widest, hits, apiercing) / 100;
+		const rebate = manasteal_rebate(pool, widest, hits, apiercing);
+		game_log(`[CHEST] ${widest.name} costs ${Math.round(gross)} mp over ${hits} hits — `
+			+ `each 1% manasteal returns ${Math.round(per_point)} mp, worn now ${Math.round(rebate)}`, "#66ccff");
 	}
 	game_log(`[CHEST] widest-shot crossover ${Math.round(band.crossover)} `
 		+ `(${Math.round(100 * band.crossover / character.max_mp)}%), next rung ${Math.round(band.floor)} `

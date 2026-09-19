@@ -153,18 +153,20 @@ function mana_price() {
 	return hi - (hi - lo) * usable;
 }
 
+function shot_stealable_damage(mobs, profile, hits, apiercing) {
+	const explosion = character.explosion || 0;
+	let total = 0;
+	for (let i = 0; i < hits; i++) {
+		const hit = (character.attack || 0) * profile.multiplier * armour_factor(mobs[i], apiercing);
+		total += explosion > 0 ? hit * (1 + splash_bonus(mobs[i], explosion, hit)) : hit;
+	}
+	return total;
+}
+
 function manasteal_rebate(mobs, profile, hits, apiercing) {
 	const steal = (character.manasteal || 0) / 100;
 	if (steal <= 0) return 0;
-
-	const explosion = character.explosion || 0;
-	let stolen = 0;
-	for (let i = 0; i < hits; i++) {
-		const hit = (character.attack || 0) * profile.multiplier * armour_factor(mobs[i], apiercing);
-		stolen += explosion > 0 ? hit * (1 + splash_bonus(mobs[i], explosion, hit)) : hit;
-	}
-
-	return steal * stolen;
+	return steal * shot_stealable_damage(mobs, profile, hits, apiercing);
 }
 
 function score_option(mobs, profile, mana, lambda, reference) {
