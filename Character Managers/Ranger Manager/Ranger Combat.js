@@ -180,12 +180,21 @@ function score_option(mobs, profile, mana, lambda, reference) {
 	}
 	damage *= profile.multiplier / reference;
 
-	const net = Math.max(0, mana - manasteal_rebate(mobs, profile, hits, apiercing));
+	const net = lambda > 0 ? Math.max(0, mana - manasteal_rebate(mobs, profile, hits, apiercing)) : mana;
 	return { damage, mana, net, hits, score: damage - lambda * net };
 }
 
+function combat_mana_reserve() {
+	let reserve = panic_mp_reserve();
+	if (!CONFIG.combat.mana_is_free) return reserve;
+
+	if (CONFIG.combat.use_hunters_mark) reserve += G.skills.huntersmark?.mp || 0;
+	if (CONFIG.combat.use_supershot) reserve += G.skills.supershot?.mp || 0;
+	return reserve;
+}
+
 function choose_attack_option(primary) {
-	const lambda = mana_price();
+	const lambda = CONFIG.combat.mana_is_free ? 0 : mana_price();
 	if (!primary.length) return null;
 
 	const base_apiercing = character.apiercing || 0;
@@ -198,7 +207,7 @@ function choose_attack_option(primary) {
 		if (scored) options.push({ name: profile.name, single: !!profile.single, targets: primary.slice(0, scored.hits), ...scored });
 	}
 
-	const affordable = options.filter(o => character.mp >= o.mana + panic_mp_reserve());
+	const affordable = options.filter(o => character.mp >= o.mana + combat_mana_reserve());
 	if (affordable.length) return affordable.reduce((best, o) => (o.score > best.score ? o : best));
 
 	if (character.mp >= Math.max(100, panic_mp_reserve())) {

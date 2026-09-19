@@ -25,6 +25,7 @@ var CONFIG = {
 		cupid_engage_pct_no_healer: 0.9,
 		cupid_release_margin: 0.14,
 		cupid_arm_ms: 400,
+		mana_is_free: true,
 
 		sample_hits: true,
 	},
@@ -47,6 +48,7 @@ var CONFIG = {
 
 		chest_swap_enabled: true,
 		chest_sets: { dps: "dps_chest", mana: "mana_chest" },
+		chest_release_pct: 0.90,
 		chest_mana_max_engage_pct: 0.75,
 		chest_refill_shots: 3,
 		chest_min_hold_ms: 2000,
