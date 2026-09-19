@@ -92,13 +92,6 @@ function set_gear_signature(set_name) {
 	return set.map(entry => `${entry.item_name}:${set_entry_level(entry) ?? "?"}`).join("|");
 }
 
-function set_profile_stale(set_name, max_age_ms) {
-	const profile = get_set_profile(set_name);
-	if (!profile) return true;
-	if (profile.gear && profile.gear !== set_gear_signature(set_name)) return true;
-	return Date.now() - (profile.at || 0) > (max_age_ms || SET_PROFILE_REPROBE_MS);
-}
-
 function profile_materially_differs(previous, profile) {
 	return SET_PROFILE_FIELDS.some(field => {
 		const a = previous[field] || 0;
@@ -209,7 +202,7 @@ function set_damage_value(set_name, pool, width) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// WEAPON CHOICE — probe unprofiled sets while they are worn, then hold the best-valued set with hysteresis and a margin
+// WEAPON CHOICE — probe only sets we cannot value yet, then wear the best-valued set
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const WEAPON_PROBE_MS = 20000;
@@ -235,9 +228,15 @@ function observe_worn_set(sets, now) {
 	return _weapon_choice.worn;
 }
 
+function set_profile_unusable(set_name) {
+	const profile = get_set_profile(set_name);
+	if (!profile || !profile.attack) return true;
+	return !!profile.gear && profile.gear !== set_gear_signature(set_name);
+}
+
 function probe_weapon_set(sets, now) {
 	for (const name of sets) {
-		if (!set_available(name) || !set_profile_stale(name, SET_PROFILE_REPROBE_MS)) {
+		if (!set_available(name) || !set_profile_unusable(name)) {
 			delete _weapon_choice.probe[name];
 			continue;
 		}
@@ -257,6 +256,12 @@ function probe_weapon_set(sets, now) {
 		return name;
 	}
 	return null;
+}
+
+function min_swap_interval_ms() {
+	const attacks = CONFIG.equipment.weapon_min_swap_attacks ?? 0;
+	if (!attacks) return 0;
+	return (attacks * 1000) / (character.frequency || 1);
 }
 
 function sample_weapon_choice(sets, value_of, from, to, now, context) {
@@ -295,12 +300,19 @@ function resolve_weapon_by_value(value_of, context) {
 	}
 	if (!best) return null;
 
+	const hysteresis_ms = CONFIG.equipment.weapon_hysteresis_ms ?? WEAPON_HYSTERESIS_MS;
+	const margin = CONFIG.equipment.weapon_switch_margin ?? WEAPON_SWITCH_MARGIN;
+
 	if (worn && worn !== best && set_available(worn)) {
-		const hysteresis_ms = CONFIG.equipment.weapon_hysteresis_ms ?? WEAPON_HYSTERESIS_MS;
-		const margin = CONFIG.equipment.weapon_switch_margin ?? WEAPON_SWITCH_MARGIN;
-		if (now - _weapon_choice.since < hysteresis_ms) return worn;
-		const holding = value_of(worn);
-		if (holding !== null && holding !== undefined && best_value < holding * margin) return worn;
+		if (hysteresis_ms > 0 && now - _weapon_choice.since < hysteresis_ms) return worn;
+
+		const min_swap_ms = min_swap_interval_ms();
+		if (min_swap_ms > 0 && now - _weapon_choice.since < min_swap_ms) return worn;
+
+		if (margin > 1) {
+			const holding = value_of(worn);
+			if (holding !== null && holding !== undefined && best_value < holding * margin) return worn;
+		}
 	}
 
 	if (best !== _weapon_choice.proposed) {

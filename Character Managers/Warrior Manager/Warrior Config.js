@@ -47,8 +47,9 @@ var CONFIG = {
 		weapon_swap_enabled: true,
 
 		weapon_sets: ["single", "aoe", "double_aoe"],
-		weapon_hysteresis_ms: 6000,
-		weapon_switch_margin: 1.20,
+		weapon_hysteresis_ms: 0,
+		weapon_switch_margin: 1.0,
+		weapon_min_swap_attacks: 1,
 
 		cleave_maps: ["cave", "desertland", "goobrawl", "halloween", "level2n", "level2w", "main", "mforest", "spookytown", "tunnel", "uhills", "winterland", "level2e"],
 		cleave_swap_ms: 617,
