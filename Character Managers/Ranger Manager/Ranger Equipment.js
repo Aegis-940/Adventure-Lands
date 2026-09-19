@@ -78,9 +78,8 @@ function mana_chest_band() {
 	const engage = chasing ? crossover : floor;
 
 	const pool = cache.targets.in_range || [];
-	const buffer = pool.length
-		? shot_mana(desired_shot(pool)) * (CONFIG.equipment.chest_refill_shots ?? 3)
-		: 0;
+	const picked = pool.length ? choose_attack_option(pool) : null;
+	const buffer = picked ? picked.mana * (CONFIG.equipment.chest_refill_shots ?? 3) : 0;
 	const target = buffer ? Math.min(crossover, engage + buffer) : crossover;
 	const release = Math.min(character.max_mp, chasing ? character.max_mp : target);
 
