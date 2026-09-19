@@ -71,9 +71,9 @@ function widest_shot_crossover_mp() {
 
 function mana_chest_band() {
 	const crossover = widest_shot_crossover_mp();
-	const chasing = crossover <= character.max_mp * (CONFIG.equipment.chest_mana_max_engage_pct || 1);
-	const engage = chasing ? crossover : character.max_mp * (CONFIG.equipment.chest_mana_floor_pct || 0);
-	const slack = character.max_mp * (CONFIG.equipment.chest_mana_slack_pct || 0);
+	const chasing = crossover <= character.max_mp * (CONFIG.equipment.chest_mana_max_engage_pct ?? 0.75);
+	const engage = chasing ? crossover : character.max_mp * (CONFIG.equipment.chest_mana_floor_pct ?? 0.40);
+	const slack = character.max_mp * (CONFIG.equipment.chest_mana_slack_pct ?? 0.10);
 
 	return { crossover, chasing, engage, release: Math.min(character.max_mp, engage + slack) };
 }
