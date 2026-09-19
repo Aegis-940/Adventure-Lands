@@ -130,6 +130,15 @@ function chest_report() {
 		+ `${shot ? "" : " (no mana pressure)"}`, "#66ccff");
 	game_log(`[CHEST] scorer fires ${picked ? picked.name : "nothing"}, widest would be ${widest} — `
 		+ `lambda ${mana_price().toFixed(4)}, needs under ${needed.toFixed(4)} (range ${lo.toFixed(4)}-${hi.toFixed(4)})`, "#66ccff");
+
+	if (pool.length) {
+		const profile = desired_shot(pool);
+		const hits = Math.min(profile.count, pool.length);
+		const gross = shot_mana(profile);
+		const rebate = manasteal_rebate(pool, profile, hits, shot_apiercing(profile));
+		game_log(`[CHEST] ${profile.name} costs ${Math.round(gross)} mp, steals back ${Math.round(rebate)} `
+			+ `→ net ${Math.round(Math.max(0, gross - rebate))} over ${hits} hits`, "#66ccff");
+	}
 	game_log(`[CHEST] widest-shot crossover ${Math.round(band.crossover)} `
 		+ `(${Math.round(100 * band.crossover / character.max_mp)}%), next rung ${Math.round(band.floor)} `
 		+ `(${Math.round(100 * band.floor / character.max_mp)}%) — `
