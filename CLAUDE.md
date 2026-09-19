@@ -35,7 +35,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Core Systems/Movement Positioning.js` | `best_orbit_spot()`, `make_distance_from_monsters_scorer()`, `reposition_center()` and `orbit_reposition()` — scoring candidate spots around a centre |
 | `Core Systems/Targeting.js` | `score_targets()`/`select_target()` — the one scorer every character picks targets with |
 | `Core Systems/World Events.js` | Live boss/seasonal targets, the goal that walks the party to them, and the anniversary visit |
-| `Core Systems/Server Watch.js` | Observer sockets on the other realms (`get_servers` + `server_info`), `bosses_elsewhere()`, and the `change_server` hop that goes and joins them and comes back |
+| `Core Systems/Server Watch.js` | **Disabled** (`SERVER_WATCH.enabled`/`SERVER_HOP.enabled` are `false`, so `server_watch_loop()` idles). Observer sockets on the other realms (`get_servers` + `server_info`), `bosses_elsewhere()`, and the `change_server` hop that goes and joins them and comes back |
 | `Core Systems/Character Messaging.js` | CM (character message) handlers, localStorage-backed state cache |
 | `Core Systems/Equipment Manager.js` | Equipment sets, the single `batch_equip()` emitter, the slot arbiter, and the rules resolver — the one file that changes what is worn |
 | `Core Systems/Equipment Valuation.js` | What each set is worth: ability procs, measured set profiles, damage maths, and the one weapon chooser (`resolve_weapon_set()`/`set_damage_value()`) every fighter uses. Returns names and numbers; equips nothing |
@@ -89,7 +89,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Interface/Gold Meter.js` | Gold accumulation display |
 | `Interface/XP Meter.js` | XP tracking display |
 | `Interface/Game Log.js` | The one log window — wraps `parent.add_log`, adds timestamps, category filters (gold/kills/items/errors) and the Log/Filtered tabs, and resizes `#gamelog` 50% wider (leftward, over the canvas) and 25% taller. Self-starts at load; there is no `log()` any more, everything goes through `game_log()` |
-| `Interface/Timers Window.js` | ⏳ button next to the pause button — a live panel of the server-side countdowns: event windows, seasonal respawns, the daily/nightly schedule per realm, and hop state |
+| `Interface/Timers Window.js` | **Disabled** — not in the Bootstrapper's load list, so no ⏳ button. A live panel of the server-side countdowns: event windows, seasonal respawns, the daily/nightly schedule per realm, and hop state |
 | `Interface/Pause Button.js` | Per-character pause/resume button — parks automation, leaves combat/panic/upkeep running |
 | `Tools/Error Sink.py` | Local HTTP sink that receives `errlog_sample()` pushes and writes `errors.json` |
 | `Tools/Anniversary Probe.js` | One-off dev probe pasted into a code slot/console; not part of the loaded bot |

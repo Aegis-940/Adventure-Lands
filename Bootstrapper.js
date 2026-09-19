@@ -54,8 +54,7 @@
 		"Interface/CC Meter.js",
 		"Interface/Stats Window.js",
 		"Interface/Settings Window.js",
-		"Interface/Pause Button.js",
-		"Interface/Timers Window.js"
+		"Interface/Pause Button.js"
 	];
 
 	const role_scripts = {

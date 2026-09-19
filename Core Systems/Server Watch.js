@@ -3,7 +3,7 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const SERVER_WATCH = {
-	enabled: true,
+	enabled: false,
 	skip_servers: ["TEST", "PVP", "HARDCORE", "DUNGEON"],
 	watcher_order: ["Riff", "Ulric", "Myras", "Riva"],
 	tick_ms: 5000,
@@ -26,7 +26,7 @@ const SERVER_WATCH = {
 };
 
 const SERVER_HOP = {
-	enabled: true,
+	enabled: false,
 	join_below: 0.95,
 	min_window_ms: 3 * 60 * 1000,
 	cooldown_ms: 5 * 60 * 1000,
