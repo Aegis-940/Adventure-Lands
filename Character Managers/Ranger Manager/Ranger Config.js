@@ -45,6 +45,9 @@ var CONFIG = {
 
 		weapon_swap_enabled: true,
 		weapon_sets: ["single", "boom"],
+		weapon_hysteresis_ms: 0,
+		weapon_switch_margin: 1.0,
+		weapon_min_swap_attacks: 1,
 
 		chest_swap_enabled: true,
 		chest_sets: { dps: "dps_chest", mana: "mana_chest" },
