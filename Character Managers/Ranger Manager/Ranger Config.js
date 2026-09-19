@@ -49,7 +49,6 @@ var CONFIG = {
 		chest_sets: { dps: "dps_chest", mana: "mana_chest" },
 		chest_mana_slack_pct: 0.10,
 		chest_mana_max_engage_pct: 0.75,
-		chest_mana_floor_pct: 0.40,
 	},
 
 	looting: {

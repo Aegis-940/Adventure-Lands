@@ -58,24 +58,26 @@ function desired_shot(pool) {
 	return best;
 }
 
-function widest_shot_crossover_mp() {
+function shot_rung_crossover_mp(rate) {
 	const { lo, hi } = lambda_bounds();
 	if (hi <= lo) return 0;
 
-	const cheapest = lo / (CONFIG.combat.lambda_headroom_low || 1);
-	const usable = Math.min(1, Math.max(0, (hi - cheapest) / (hi - lo)));
+	const usable = Math.min(1, Math.max(0, (hi - rate) / (hi - lo)));
 	const reserve = panic_mp_reserve();
 
 	return reserve + usable * (character.max_mp - reserve);
 }
 
 function mana_chest_band() {
-	const crossover = widest_shot_crossover_mp();
+	const { lo, hi } = lambda_bounds();
+	const crossover = shot_rung_crossover_mp(lo / (CONFIG.combat.lambda_headroom_low || 1));
+	const floor = shot_rung_crossover_mp(hi / (CONFIG.combat.lambda_headroom_high || 1));
+
 	const chasing = crossover <= character.max_mp * (CONFIG.equipment.chest_mana_max_engage_pct ?? 0.75);
-	const engage = chasing ? crossover : character.max_mp * (CONFIG.equipment.chest_mana_floor_pct ?? 0.40);
+	const engage = chasing ? crossover : floor;
 	const slack = character.max_mp * (CONFIG.equipment.chest_mana_slack_pct ?? 0.10);
 
-	return { crossover, chasing, engage, release: Math.min(character.max_mp, engage + slack) };
+	return { crossover, floor, chasing, engage, release: Math.min(character.max_mp, engage + slack) };
 }
 
 function mana_chest_shot() {
@@ -129,8 +131,9 @@ function chest_report() {
 	game_log(`[CHEST] scorer fires ${picked ? picked.name : "nothing"}, widest would be ${widest} — `
 		+ `lambda ${mana_price().toFixed(4)}, needs under ${needed.toFixed(4)} (range ${lo.toFixed(4)}-${hi.toFixed(4)})`, "#66ccff");
 	game_log(`[CHEST] widest-shot crossover ${Math.round(band.crossover)} `
-		+ `(${Math.round(100 * band.crossover / character.max_mp)}% of pool) — `
-		+ `${band.chasing ? "chasing it" : "out of reach, holding the starvation floor"}`, "#66ccff");
+		+ `(${Math.round(100 * band.crossover / character.max_mp)}%), next rung ${Math.round(band.floor)} `
+		+ `(${Math.round(100 * band.floor / character.max_mp)}%) — `
+		+ `${band.chasing ? "chasing the widest" : "widest out of reach, defending the next rung"}`, "#66ccff");
 	game_log(`[CHEST] engage below ${Math.round(band.engage)}, release above ${Math.round(band.release)} `
 		+ `— ${_mana_chest_engaged ? "engaged" : "idle"}`, "#66ccff");
 	game_log(`[CHEST] wearing ${is_set_equipped(sets.mana) ? sets.mana : is_set_equipped(sets.dps) ? sets.dps : "neither"}, `
