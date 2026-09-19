@@ -47,7 +47,7 @@ var CONFIG = {
 
 		chest_swap_enabled: true,
 		chest_sets: { dps: "dps_chest", mana: "mana_chest" },
-		chest_mana_engage_pct: 0.50,
+		chest_mana_engage_pct: 0.40,
 		chest_mana_release_pct: 0.80,
 	},
 
