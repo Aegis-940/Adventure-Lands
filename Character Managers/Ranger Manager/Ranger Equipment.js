@@ -58,11 +58,24 @@ function desired_shot(pool) {
 	return best;
 }
 
+function widest_shot_crossover_mp() {
+	const { lo, hi } = lambda_bounds();
+	if (hi <= lo) return 0;
+
+	const cheapest = lo / (CONFIG.combat.lambda_headroom_low || 1);
+	const usable = Math.min(1, Math.max(0, (hi - cheapest) / (hi - lo)));
+	const reserve = panic_mp_reserve();
+
+	return reserve + usable * (character.max_mp - reserve);
+}
+
 function mana_chest_band() {
-	return {
-		engage: character.max_mp * (CONFIG.equipment.chest_mana_engage_pct || 0),
-		release: character.max_mp * (CONFIG.equipment.chest_mana_release_pct || 1)
-	};
+	const crossover = widest_shot_crossover_mp();
+	const chasing = crossover <= character.max_mp * (CONFIG.equipment.chest_mana_max_engage_pct || 1);
+	const engage = chasing ? crossover : character.max_mp * (CONFIG.equipment.chest_mana_floor_pct || 0);
+	const slack = character.max_mp * (CONFIG.equipment.chest_mana_slack_pct || 0);
+
+	return { crossover, chasing, engage, release: Math.min(character.max_mp, engage + slack) };
 }
 
 function mana_chest_shot() {
@@ -108,6 +121,9 @@ function chest_report() {
 
 	game_log(`[CHEST] ${pool.length} in range, want ${pool.length ? desired_shot(pool).name : "nothing"}`
 		+ `${shot ? "" : " (no mana pressure)"}, mp ${Math.round(character.mp)}/${character.max_mp}`, "#66ccff");
+	game_log(`[CHEST] widest-shot crossover ${Math.round(band.crossover)} `
+		+ `(${Math.round(100 * band.crossover / character.max_mp)}% of pool) — `
+		+ `${band.chasing ? "chasing it" : "out of reach, holding the starvation floor"}`, "#66ccff");
 	game_log(`[CHEST] engage below ${Math.round(band.engage)}, release above ${Math.round(band.release)} `
 		+ `— ${_mana_chest_engaged ? "engaged" : "idle"}`, "#66ccff");
 	game_log(`[CHEST] wearing ${is_set_equipped(sets.mana) ? sets.mana : is_set_equipped(sets.dps) ? sets.dps : "neither"}, `
