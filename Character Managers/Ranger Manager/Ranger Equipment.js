@@ -119,8 +119,15 @@ function chest_report() {
 	const shot = mana_chest_shot();
 	const band = mana_chest_band();
 
-	game_log(`[CHEST] ${pool.length} in range, want ${pool.length ? desired_shot(pool).name : "nothing"}`
-		+ `${shot ? "" : " (no mana pressure)"}, mp ${Math.round(character.mp)}/${character.max_mp}`, "#66ccff");
+	const widest = pool.length ? desired_shot(pool).name : "nothing";
+	const picked = pool.length ? choose_attack_option(pool) : null;
+	const { lo, hi } = lambda_bounds();
+	const needed = lo / (CONFIG.combat.lambda_headroom_low || 1);
+
+	game_log(`[CHEST] ${pool.length} in range, mp ${Math.round(character.mp)}/${character.max_mp}`
+		+ `${shot ? "" : " (no mana pressure)"}`, "#66ccff");
+	game_log(`[CHEST] scorer fires ${picked ? picked.name : "nothing"}, widest would be ${widest} — `
+		+ `lambda ${mana_price().toFixed(4)}, needs under ${needed.toFixed(4)} (range ${lo.toFixed(4)}-${hi.toFixed(4)})`, "#66ccff");
 	game_log(`[CHEST] widest-shot crossover ${Math.round(band.crossover)} `
 		+ `(${Math.round(100 * band.crossover / character.max_mp)}% of pool) — `
 		+ `${band.chasing ? "chasing it" : "out of reach, holding the starvation floor"}`, "#66ccff");
