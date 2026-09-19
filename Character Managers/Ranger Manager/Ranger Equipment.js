@@ -40,87 +40,10 @@ function resolve_ranger_orb() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// CHEST CHOICE — the coat pays in damage, the manasteal shirt pays in shots the damage could not otherwise afford
+// CHEST CHOICE — the coat by default, dipping into the manasteal shirt for as long as it takes to refill the pool
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var CHEST_STATS_KEY = "AL_chest_stats_";
-var CHEST_STATS_REPROBE_MS = 600000;
-var CHEST_STATS_SETTLE_MS = 600;
-var CHEST_STATS_EPSILON = 0.02;
-
-var _chest_choice = { worn: null, since: 0, probe: {}, probing: null, proposed: null };
-var _chest_pending = {};
-var _chest_stats = null;
-
-function chest_sets() {
-	return CONFIG.equipment.chest_sets || [];
-}
-
-function load_chest_stats() {
-	if (_chest_stats) return _chest_stats;
-	try {
-		_chest_stats = JSON.parse(localStorage.getItem(CHEST_STATS_KEY + character.name)) || {};
-	} catch (e) {
-		_chest_stats = {};
-	}
-	return _chest_stats;
-}
-
-function chest_stats_key(set_name) {
-	return `${set_name}@${equipped_set_among(CONFIG.equipment.weapon_sets) || "none"}`;
-}
-
-function live_chest_stats() {
-	return {
-		at: Date.now(),
-		attack: character.attack || 0,
-		frequency: character.frequency || 1,
-		apiercing: character.apiercing || 0,
-		manasteal: character.manasteal || 0,
-		mp_regen: character.mp_regen || 0,
-		mp_cost: character.mp_cost || 0
-	};
-}
-
-function chest_stats(set_name) {
-	return load_chest_stats()[chest_stats_key(set_name)] || null;
-}
-
-function chest_stats_stale(set_name) {
-	const stored = chest_stats(set_name);
-	if (!stored) return true;
-	return Date.now() - (stored.at || 0) > CHEST_STATS_REPROBE_MS;
-}
-
-function chest_stats_current(set_name) {
-	const stored = chest_stats(set_name);
-	if (!stored || chest_stats_stale(set_name)) return false;
-	return Math.abs((character.attack || 0) - stored.attack) <= Math.max(stored.attack, 1) * CHEST_STATS_EPSILON;
-}
-
-function sample_chest_stats() {
-	for (const name of chest_sets()) {
-		if (!is_set_equipped(name) || !profile_conditions_ok() || chest_stats_current(name)) {
-			delete _chest_pending[name];
-			continue;
-		}
-
-		const key = chest_stats_key(name);
-		const pending = _chest_pending[name];
-		if (!pending || pending.key !== key) {
-			_chest_pending[name] = { key, at: Date.now() };
-			continue;
-		}
-		if (Date.now() - pending.at < CHEST_STATS_SETTLE_MS) continue;
-
-		const store = load_chest_stats();
-		store[key] = live_chest_stats();
-		delete _chest_pending[name];
-		try {
-			localStorage.setItem(CHEST_STATS_KEY + character.name, JSON.stringify(store));
-		} catch (e) { }
-	}
-}
+var _mana_chest_engaged = false;
 
 function desired_shot(pool) {
 	let best = SHOT_PROFILES[0];
@@ -135,52 +58,35 @@ function desired_shot(pool) {
 	return best;
 }
 
-function shot_output(stats, shot, pool) {
-	const hits = Math.min(shot.count, pool.length);
-	if (!hits) return { direct: 0, effective: 0 };
+function mana_chest_band() {
+	return {
+		engage: character.max_mp * (CONFIG.equipment.chest_mana_engage_pct || 0),
+		release: character.max_mp * (CONFIG.equipment.chest_mana_release_pct || 1)
+	};
+}
 
-	const piercing = (stats.apiercing || 0) + (shot.pierces ? (G.skills[shot.name]?.apiercing || 0) : 0);
-	const per_hit = (stats.attack || 0) * shot.multiplier * (stats.frequency || 1);
+function mana_chest_shot() {
+	const pool = cache.targets.in_range;
+	if (!pool.length) return null;
 
-	let direct = 0;
-	let effective = 0;
-	for (let i = 0; i < hits; i++) {
-		const armour = armour_factor(pool[i], piercing);
-		direct += armour;
-		effective += target_modifier(pool[i], shot.multiplier, piercing) * armour;
+	const shot = desired_shot(pool);
+	return shot_mana(shot) > character.mp_cost ? shot : null;
+}
+
+function mana_chest_wanted() {
+	if (panicking || !mana_chest_shot()) {
+		_mana_chest_engaged = false;
+		return false;
 	}
 
-	return { direct: per_hit * direct, effective: per_hit * effective };
-}
+	const band = mana_chest_band();
+	if (_mana_chest_engaged) {
+		if (character.mp >= band.release) _mana_chest_engaged = false;
+	} else if (character.mp < band.engage) {
+		_mana_chest_engaged = true;
+	}
 
-function stats_shot_mana(stats, shot) {
-	return shot.name === "attack" ? (stats.mp_cost || 0) : (G.skills[shot.name]?.mp || 0);
-}
-
-function chest_mana_income(stats, output) {
-	const regen = stats.mp_regen || CONFIG.combat.mp_regen_default || 0;
-	return regen / (CONFIG.combat.mp_regen_period_s || 1) + (stats.manasteal || 0) / 100 * output.direct;
-}
-
-function chest_value(set_name, pool, shot) {
-	const stats = chest_stats(set_name);
-	if (!stats || !stats.attack || !pool.length) return null;
-
-	const output = shot_output(stats, shot, pool);
-	const basic = shot_output(stats, SHOT_PROFILES[0], pool);
-
-	const spend = stats_shot_mana(stats, shot) * (stats.frequency || 1);
-	const basic_spend = stats_shot_mana(stats, SHOT_PROFILES[0]) * (stats.frequency || 1);
-	if (spend <= basic_spend) return output.effective;
-
-	const income = chest_mana_income(stats, output);
-	const deficit = Math.min(Math.max(0, spend - income), spend - basic_spend);
-
-	return output.effective - deficit * (output.effective - basic.effective) / (spend - basic_spend);
-}
-
-function chest_choice_context(pool, shot) {
-	return () => ({ shot: shot.name, in_range: pool.length });
+	return _mana_chest_engaged;
 }
 
 function resolve_ranger_chest() {
@@ -189,48 +95,23 @@ function resolve_ranger_chest() {
 	const override = gear_override("chest");
 	if (override) return override;
 
-	const sets = chest_sets();
-	if (!sets.length) return null;
-
-	const pool = cache.targets.in_range;
-	const shot = desired_shot(pool);
-
-	const chosen = resolve_weapon_by_value(name => chest_value(name, pool, shot), chest_choice_context(pool, shot), {
-		sets,
-		choice: _chest_choice,
-		label: "chest_choice",
-		stale: chest_stats_stale,
-		hysteresis_ms: CONFIG.equipment.chest_hysteresis_ms,
-		margin: CONFIG.equipment.chest_switch_margin
-	});
-
-	return chosen || first_available_set(sets);
+	const sets = CONFIG.equipment.chest_sets || {};
+	if (sets.mana && mana_chest_wanted() && set_available(sets.mana)) return sets.mana;
+	return sets.dps && set_available(sets.dps) ? sets.dps : null;
 }
 
 function chest_report() {
+	const sets = CONFIG.equipment.chest_sets || {};
 	const pool = cache.targets.in_range || [];
-	const shot = desired_shot(pool);
-	const weapon = equipped_set_among(CONFIG.equipment.weapon_sets) || "none";
+	const shot = mana_chest_shot();
+	const band = mana_chest_band();
 
-	game_log(`[CHEST] ${pool.length} in range with ${weapon}, want ${shot.name}, `
-		+ `mp ${Math.round(character.mp)}/${character.max_mp} regen ${character.mp_regen ?? "undefined"}`, "#66ccff");
-
-	for (const name of chest_sets()) {
-		const stats = chest_stats(name);
-		if (!stats) {
-			game_log(`[CHEST] ${name}: unmeasured with ${weapon}`, "#999999");
-			continue;
-		}
-
-		const output = shot_output(stats, shot, pool);
-		const spend = stats_shot_mana(stats, shot) * (stats.frequency || 1);
-		const income = chest_mana_income(stats, output);
-		const value = chest_value(name, pool, shot);
-
-		game_log(`[CHEST] ${name}: ${Math.round(output.effective)} dps, `
-			+ `${income.toFixed(1)} mp/s in vs ${spend.toFixed(1)} out, steal ${stats.manasteal || 0}% `
-			+ `→ sustained ${value === null ? "?" : Math.round(value)}${is_set_equipped(name) ? " (worn)" : ""}`, "#66ccff");
-	}
+	game_log(`[CHEST] ${pool.length} in range, want ${pool.length ? desired_shot(pool).name : "nothing"}`
+		+ `${shot ? "" : " (no mana pressure)"}, mp ${Math.round(character.mp)}/${character.max_mp}`, "#66ccff");
+	game_log(`[CHEST] engage below ${Math.round(band.engage)}, release above ${Math.round(band.release)} `
+		+ `— ${_mana_chest_engaged ? "engaged" : "idle"}`, "#66ccff");
+	game_log(`[CHEST] wearing ${is_set_equipped(sets.mana) ? sets.mana : is_set_equipped(sets.dps) ? sets.dps : "neither"}, `
+		+ `steal ${character.manasteal || 0}%`, "#66ccff");
 }
 
 var EQUIPMENT_RULES = {

@@ -226,25 +226,25 @@ function first_available_set(sets) {
 	return sets.find(name => set_available(name)) || null;
 }
 
-function observe_worn_set(sets, now, choice) {
+function observe_worn_set(sets, now) {
 	const worn = equipped_set_among(sets);
-	if (worn && worn !== choice.worn) {
-		choice.worn = worn;
-		choice.since = now;
+	if (worn && worn !== _weapon_choice.worn) {
+		_weapon_choice.worn = worn;
+		_weapon_choice.since = now;
 	}
-	return choice.worn;
+	return _weapon_choice.worn;
 }
 
-function probe_weapon_set(sets, now, choice, stale) {
+function probe_weapon_set(sets, now) {
 	for (const name of sets) {
-		if (!set_available(name) || !stale(name)) {
-			delete choice.probe[name];
+		if (!set_available(name) || !set_profile_stale(name, SET_PROFILE_REPROBE_MS)) {
+			delete _weapon_choice.probe[name];
 			continue;
 		}
 
-		let probe = choice.probe[name];
+		let probe = _weapon_choice.probe[name];
 		if (!probe || now - probe.started > WEAPON_PROBE_MS + SET_PROFILE_REPROBE_MS) {
-			probe = choice.probe[name] = { started: now, worn_ms: 0, last: 0 };
+			probe = _weapon_choice.probe[name] = { started: now, worn_ms: 0, last: 0 };
 		}
 		if (probe.worn_ms >= WEAPON_PROBE_MS) continue;
 
@@ -259,7 +259,7 @@ function probe_weapon_set(sets, now, choice, stale) {
 	return null;
 }
 
-function sample_weapon_choice(sets, value_of, from, to, now, context, choice, label) {
+function sample_weapon_choice(sets, value_of, from, to, now, context) {
 	if (!CONFIG.combat || !CONFIG.combat.sample_hits || typeof errlog_sample !== "function") return;
 
 	const values = {};
@@ -268,25 +268,21 @@ function sample_weapon_choice(sets, value_of, from, to, now, context, choice, la
 		values[name] = value === null || value === undefined ? null : Math.round(value);
 	}
 
-	errlog_sample(label, Object.assign({
+	errlog_sample("weapon_choice", Object.assign({
 		from, to, values,
-		held_ms: choice.since ? now - choice.since : 0,
+		held_ms: _weapon_choice.since ? now - _weapon_choice.since : 0,
 		mp_pct: +(character.mp / character.max_mp).toFixed(2)
 	}, typeof context === "function" ? context() : {}));
 }
 
-function resolve_weapon_by_value(value_of, context, options) {
-	const opts = options || {};
-	const sets = opts.sets || CONFIG.equipment.weapon_sets;
-	const choice = opts.choice || _weapon_choice;
-	const label = opts.label || "weapon_choice";
-	const stale = opts.stale || (name => set_profile_stale(name, SET_PROFILE_REPROBE_MS));
+function resolve_weapon_by_value(value_of, context) {
+	const sets = CONFIG.equipment.weapon_sets;
 	const now = Date.now();
 
-	const worn = observe_worn_set(sets, now, choice);
+	const worn = observe_worn_set(sets, now);
 
-	choice.probing = probe_weapon_set(sets, now, choice, stale);
-	if (choice.probing) return choice.probing;
+	_weapon_choice.probing = probe_weapon_set(sets, now);
+	if (_weapon_choice.probing) return _weapon_choice.probing;
 
 	let best = null;
 	let best_value = -Infinity;
@@ -300,16 +296,16 @@ function resolve_weapon_by_value(value_of, context, options) {
 	if (!best) return null;
 
 	if (worn && worn !== best && set_available(worn)) {
-		const hysteresis_ms = opts.hysteresis_ms ?? CONFIG.equipment.weapon_hysteresis_ms ?? WEAPON_HYSTERESIS_MS;
-		const margin = opts.margin ?? CONFIG.equipment.weapon_switch_margin ?? WEAPON_SWITCH_MARGIN;
-		if (now - choice.since < hysteresis_ms) return worn;
+		const hysteresis_ms = CONFIG.equipment.weapon_hysteresis_ms ?? WEAPON_HYSTERESIS_MS;
+		const margin = CONFIG.equipment.weapon_switch_margin ?? WEAPON_SWITCH_MARGIN;
+		if (now - _weapon_choice.since < hysteresis_ms) return worn;
 		const holding = value_of(worn);
 		if (holding !== null && holding !== undefined && best_value < holding * margin) return worn;
 	}
 
-	if (best !== choice.proposed) {
-		choice.proposed = best;
-		if (best !== worn) sample_weapon_choice(sets, value_of, worn, best, now, context, choice, label);
+	if (best !== _weapon_choice.proposed) {
+		_weapon_choice.proposed = best;
+		if (best !== worn) sample_weapon_choice(sets, value_of, worn, best, now, context);
 	}
 	return best;
 }

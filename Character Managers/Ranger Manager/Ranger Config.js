@@ -26,9 +26,6 @@ var CONFIG = {
 		cupid_release_margin: 0.14,
 		cupid_arm_ms: 400,
 
-		mp_regen_period_s: 4,
-		mp_regen_default: 60,
-
 		sample_hits: true,
 	},
 
@@ -49,9 +46,9 @@ var CONFIG = {
 		weapon_sets: ["single", "boom"],
 
 		chest_swap_enabled: true,
-		chest_sets: ["dps_chest", "mana_chest"],
-		chest_hysteresis_ms: 8000,
-		chest_switch_margin: 1.04,
+		chest_sets: { dps: "dps_chest", mana: "mana_chest" },
+		chest_mana_engage_pct: 0.50,
+		chest_mana_release_pct: 0.80,
 	},
 
 	looting: {
