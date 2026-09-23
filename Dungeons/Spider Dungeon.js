@@ -24,6 +24,7 @@ DUNGEONS.spider = {
 		aggroed_only: true,
 		defensive_targeting: true,
 		no_attack: true,
+		orb: "orb_luck",
 		engage_radius: 50,
 	},
 	bosses: [
