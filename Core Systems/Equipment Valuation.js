@@ -208,8 +208,9 @@ function set_damage_value(set_name, pool, width) {
 const WEAPON_PROBE_MS = 20000;
 const WEAPON_HYSTERESIS_MS = 3000;
 const WEAPON_SWITCH_MARGIN = 1.1;
+const WEAPON_SMOOTHING_MS = 300;
 
-var _weapon_choice = { worn: null, since: 0, probe: {}, probing: null, proposed: null };
+var _weapon_choice = { worn: null, since: 0, probe: {}, probing: null, proposed: null, values: {} };
 
 function equipped_set_among(sets) {
 	return sets.find(name => is_set_equipped(name)) || null;
@@ -258,23 +259,47 @@ function probe_weapon_set(sets, now) {
 	return null;
 }
 
+function smoothed_set_value(set_name, raw, now) {
+	if (raw === null || raw === undefined) {
+		delete _weapon_choice.values[set_name];
+		return raw;
+	}
+
+	const window_ms = CONFIG.equipment.weapon_smoothing_ms ?? WEAPON_SMOOTHING_MS;
+	const previous = _weapon_choice.values[set_name];
+
+	if (window_ms <= 0 || !previous || now - previous.at > window_ms * 4) {
+		_weapon_choice.values[set_name] = { value: raw, at: now };
+		return raw;
+	}
+
+	const alpha = Math.min(1, (now - previous.at) / window_ms);
+	const value = previous.value + (raw - previous.value) * alpha;
+	_weapon_choice.values[set_name] = { value, at: now };
+	return value;
+}
+
 function min_swap_interval_ms() {
 	const attacks = CONFIG.equipment.weapon_min_swap_attacks ?? 0;
 	if (!attacks) return 0;
 	return (attacks * 1000) / (character.frequency || 1);
 }
 
-function sample_weapon_choice(sets, value_of, from, to, now, context) {
+function sample_weapon_choice(sets, value_of, valued, from, to, now, context) {
 	if (!CONFIG.combat || !CONFIG.combat.sample_hits || typeof errlog_sample !== "function") return;
 
 	const values = {};
+	const raw = {};
 	for (const name of sets) {
-		const value = set_available(name) ? value_of(name) : null;
+		const value = valued[name];
 		values[name] = value === null || value === undefined ? null : Math.round(value);
+
+		const unsmoothed = set_available(name) ? value_of(name) : null;
+		raw[name] = unsmoothed === null || unsmoothed === undefined ? null : Math.round(unsmoothed);
 	}
 
 	errlog_sample("weapon_choice", Object.assign({
-		from, to, values,
+		from, to, values, raw,
 		held_ms: _weapon_choice.since ? now - _weapon_choice.since : 0,
 		mp_pct: +(character.mp / character.max_mp).toFixed(2)
 	}, typeof context === "function" ? context() : {}));
@@ -289,11 +314,16 @@ function resolve_weapon_by_value(value_of, context) {
 	_weapon_choice.probing = probe_weapon_set(sets, now);
 	if (_weapon_choice.probing) return _weapon_choice.probing;
 
+	const valued = {};
 	let best = null;
 	let best_value = -Infinity;
 	for (const name of sets) {
-		if (!set_available(name)) continue;
-		const value = value_of(name);
+		if (!set_available(name)) {
+			delete _weapon_choice.values[name];
+			continue;
+		}
+		const value = smoothed_set_value(name, value_of(name), now);
+		valued[name] = value;
 		if (value === null || value === undefined || value <= best_value) continue;
 		best_value = value;
 		best = name;
@@ -310,14 +340,14 @@ function resolve_weapon_by_value(value_of, context) {
 		if (min_swap_ms > 0 && now - _weapon_choice.since < min_swap_ms) return worn;
 
 		if (margin > 1) {
-			const holding = value_of(worn);
+			const holding = valued[worn];
 			if (holding !== null && holding !== undefined && best_value < holding * margin) return worn;
 		}
 	}
 
 	if (best !== _weapon_choice.proposed) {
 		_weapon_choice.proposed = best;
-		if (best !== worn) sample_weapon_choice(sets, value_of, worn, best, now, context);
+		if (best !== worn) sample_weapon_choice(sets, value_of, valued, worn, best, now, context);
 	}
 	return best;
 }

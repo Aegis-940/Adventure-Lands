@@ -95,6 +95,8 @@ async function handle_stomp() {
 	}
 }
 
+var CLEAVE_RESTORE_TIMEOUT_MS = 800;
+
 async function handle_cleave() {
 	const ms_until_cleave = ms_to_next_skill("cleave");
 	if (ms_until_cleave !== 0) return;
@@ -110,41 +112,44 @@ async function handle_cleave() {
 	const restore = weapon_set_to_restore();
 	if (!restore) return;
 
+	const arm = equip_plan("bataxe");
+	if (!arm.ops.length) return;
+
+	const back = equip_plan(restore, arm.shadow);
+	if (!back.ops.length) return;
+
 	const token = equip_claim("cleave-swap", EQUIP_PRIORITY.skill);
 	if (!token) return;
 
 	const t0 = Date.now();
-	let armed = 0;
-	let cleaved = 0;
-	let outcome = "swap_failed";
+	state.last_cleave_swap = now;
 
+	emit_equip_ops(arm.ops);
+	parent.socket.emit("skill", { name: "cleave" });
+	emit_equip_ops(back.ops);
+	parent.next_skill.cleave = new Date(Date.now() + G.skills.cleave.cooldown);
+
+	hold_until_restored(token, restore, t0, Date.now()).catch(e => catcher(e, "handle_cleave"));
+}
+
+async function hold_until_restored(token, restore, t0, burst) {
+	let outcome = "ok";
 	try {
-		state.last_cleave_swap = now;
-		if (!await equip_apply(token, "bataxe")) return;
-		armed = Date.now();
-
-		Promise.resolve(use_skill("cleave")).catch(e => catcher(e, "handle_cleave"));
-		cleaved = Date.now();
-
-		outcome = (await equip_apply(token, restore)) ? "ok" : "restore_failed";
-	} catch (e) {
-		outcome = "error";
-		throw e;
+		if (!await wait_for_set(restore, CLEAVE_RESTORE_TIMEOUT_MS)) outcome = "restore_failed";
 	} finally {
 		equip_release(token);
-		sample_cleave_swap(t0, armed, cleaved, outcome, restore);
+		sample_cleave_swap(t0, burst, outcome, restore);
 	}
 }
 
-function sample_cleave_swap(t0, armed, cleaved, outcome, restore) {
+function sample_cleave_swap(t0, burst, outcome, restore) {
 	if (!CONFIG.combat.sample_hits || typeof errlog_sample !== "function") return;
 
 	errlog_sample("cleave_swap", {
 		outcome,
 		restore,
-		arm_ms: armed ? armed - t0 : null,
-		cleave_ms: cleaved && armed ? cleaved - armed : null,
-		restore_ms: cleaved ? Date.now() - cleaved : null,
+		burst_ms: burst ? burst - t0 : null,
+		settle_ms: burst ? Date.now() - burst : null,
 		total_ms: Date.now() - t0,
 		assumed_ms: CONFIG.equipment.cleave_swap_ms,
 		ping: parent.pings?.length ? Math.min(...parent.pings) : null,
@@ -161,7 +166,6 @@ function can_cleave() {
 	if (character.cc >= COOLDOWNS.cc) return false;
 
 	const holding_axe = character.slots?.mainhand?.name === "bataxe";
-	if (!holding_axe && ms_to_next_skill("attack") <= 75) return false;
 
 	const required_mp = character.mp_cost * 2 + G.skills.cleave.mp + 320;
 	if (character.mp < required_mp) return false;

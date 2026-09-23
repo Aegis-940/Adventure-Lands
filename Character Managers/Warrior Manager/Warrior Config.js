@@ -49,10 +49,11 @@ var CONFIG = {
 		weapon_sets: ["single", "aoe", "double_aoe"],
 		weapon_hysteresis_ms: 0,
 		weapon_switch_margin: 1.0,
-		weapon_min_swap_attacks: 1,
+		weapon_min_swap_attacks: 0.25,
+		weapon_smoothing_ms: 300,
 
 		cleave_maps: ["cave", "desertland", "goobrawl", "halloween", "level2n", "level2w", "main", "mforest", "spookytown", "tunnel", "uhills", "winterland", "level2e"],
-		cleave_swap_ms: 617,
+		cleave_swap_ms: 0,
 		mana_income_per_sec: 244,
 		skill_mana_reserve: 0.40,
 	},

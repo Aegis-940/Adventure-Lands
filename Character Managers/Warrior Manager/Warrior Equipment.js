@@ -24,7 +24,8 @@ function cleave_contribution(set_name, targets) {
 	const dps = (0.5 * axe.attack * targets) / period;
 	if (set_name === "bataxe") return { dps, uptime: 1 };
 
-	const swap_s = (CONFIG.equipment.cleave_swap_ms || 480) / 1000;
+	const swap_s = (CONFIG.equipment.cleave_swap_ms ?? 480) / 1000;
+	if (swap_s <= 0) return { dps, uptime: 1 };
 	return { dps, uptime: Math.max(0, 1 - swap_s / period) };
 }
 

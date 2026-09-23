@@ -38,7 +38,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Core Systems/World Events.js` | Live boss/seasonal targets, the goal that walks the party to them, and the anniversary visit |
 | `Core Systems/Server Watch.js` | **Disabled** (`SERVER_WATCH.enabled`/`SERVER_HOP.enabled` are `false`, so `server_watch_loop()` idles). Observer sockets on the other realms (`get_servers` + `server_info`), `bosses_elsewhere()`, and the `change_server` hop that goes and joins them and comes back |
 | `Core Systems/Character Messaging.js` | CM (character message) handlers, localStorage-backed state cache |
-| `Core Systems/Equipment Manager.js` | Equipment sets, the single `batch_equip()` emitter, the slot arbiter, and the rules resolver — the one file that changes what is worn |
+| `Core Systems/Equipment Manager.js` | Equipment sets, the single `batch_equip()` emitter, the slot arbiter, the shadow-inventory planner (`equip_plan()`/`emit_equip_ops()`) that resolves a chain of sets ahead of the server's acks, and the rules resolver — the one file that changes what is worn |
 | `Core Systems/Equipment Valuation.js` | What each set is worth: ability procs, measured set profiles, damage maths, and the one weapon chooser (`resolve_weapon_set()`/`set_damage_value()`) every fighter uses. Returns names and numbers; equips nothing |
 | `Core Systems/Party Management.js` | Panic and its broadcast (`set_panic()` is the only writer), party invites, where home is |
 | `Core Systems/Loot Management.js` | `loose_loot()` — what we keep, ship to the merchant, or vendor; bank withdrawal; chest looting (`should_loot()`/`handle_looting()`, driven by each character's `CONFIG.looting`) |

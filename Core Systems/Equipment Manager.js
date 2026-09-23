@@ -291,6 +291,97 @@ async function equip_once(owner, priority, sets) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// PLANNED SWAPS — resolve a chain of sets against the inventory the server will have, not the one we can see yet
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function shadow_item(source) {
+	return source ? { name: source.name, level: source.level ?? 0, l: source.l } : null;
+}
+
+function shadow_inventory() {
+	const slots = {};
+	for (const slot in parent.character.slots) slots[slot] = shadow_item(parent.character.slots[slot]);
+
+	return { items: parent.character.items.map(shadow_item), slots };
+}
+
+function shadow_find(shadow, item_name, level, l) {
+	let num = shadow.items.findIndex(it => it && it.name === item_name && it.level === (level ?? 0) && it.l === l);
+	if (num === -1) num = shadow.items.findIndex(it => it && it.name === item_name && it.level === (level ?? 0));
+	if (num === -1) num = shadow.items.findIndex(it => it && it.name === item_name);
+	return num;
+}
+
+function shadow_equip(shadow, num, slot) {
+	const incoming = shadow.items[num];
+	shadow.items[num] = shadow.slots[slot] || null;
+	shadow.slots[slot] = incoming;
+}
+
+function shadow_unequip(shadow, slot) {
+	if (!shadow.slots[slot]) return false;
+	const num = shadow.items.findIndex(it => !it);
+	if (num === -1) return false;
+	shadow.items[num] = shadow.slots[slot];
+	shadow.slots[slot] = null;
+	return true;
+}
+
+function plan_set_equip(shadow, set_name) {
+	const set = equipment_sets[set_name];
+	if (!set || !set.length) return [];
+
+	const ops = [];
+	const mainhand = set.find(e => e.slot === "mainhand");
+	const keeps_offhand = set.some(e => e.slot === "offhand");
+
+	if (mainhand && !keeps_offhand && shadow.slots.offhand && is_doublehand(mainhand.item_name)) {
+		if (shadow_unequip(shadow, "offhand")) ops.push({ event: "unequip", payload: { slot: "offhand" } });
+	}
+
+	const items = [];
+	for (const entry of set) {
+		const worn = shadow.slots[entry.slot];
+		if (worn && worn.name === entry.item_name && worn.level === (entry.level ?? 0)) continue;
+
+		const num = shadow_find(shadow, entry.item_name, entry.level, entry.l);
+		if (num === -1) {
+			warn_missing_item(entry.item_name, entry.level, entry.slot);
+			continue;
+		}
+
+		items.push({ num, slot: entry.slot });
+		shadow_equip(shadow, num, entry.slot);
+	}
+
+	if (items.length) ops.push({ event: "equip_batch", payload: items });
+	return ops;
+}
+
+function equip_plan(set_names, shadow) {
+	const inventory = shadow || shadow_inventory();
+	const names = Array.isArray(set_names) ? set_names : [set_names];
+
+	let ops = [];
+	for (const name of names) ops = ops.concat(plan_set_equip(inventory, name));
+
+	return { ops, shadow: inventory };
+}
+
+function emit_equip_ops(ops) {
+	for (const op of ops) parent.socket.emit(op.event, op.payload);
+}
+
+async function wait_for_set(set_name, timeout_ms) {
+	const deadline = Date.now() + (timeout_ms || 1000);
+	while (!is_set_equipped(set_name)) {
+		if (Date.now() >= deadline) return false;
+		await delay(20);
+	}
+	return true;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // UNIFIED EQUIPMENT RESOLVER — Warrior/Ranger/Healer each declare their own EQUIPMENT_RULES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
