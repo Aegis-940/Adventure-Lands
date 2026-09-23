@@ -9,6 +9,7 @@ DUNGEONS.spider = {
 	entrance: { map: "gateway", x: -322, y: -203 },
 	flags: {
 		leader_manual: true,
+		ignore_events: true,
 		center_on_tank: true,
 		combat_always_on: true,
 		single_target: true,
