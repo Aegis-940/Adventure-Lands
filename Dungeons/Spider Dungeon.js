@@ -6,6 +6,8 @@ DUNGEONS.spider = {
 	name: "Spider Dungeon",
 	map: "spider_instance",
 	home: "giantspider",
+	key: "spiderkey",
+	key_count: 1,
 	entrance: { map: "gateway", x: -322, y: -203 },
 	flags: {
 		leader_manual: true,
