@@ -34,6 +34,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Core Systems/Combat Sampling.js` | Hit and heal telemetry — the `hit`/`action` socket samplers and the damage/heal windows they feed. Self-starting at load |
 | `Core Systems/Movement Positioning.js` | `best_orbit_spot()`, `make_distance_from_monsters_scorer()`, `reposition_center()` and `orbit_reposition()` — scoring candidate spots around a centre |
 | `Core Systems/Targeting.js` | `score_targets()`/`select_target()` — the one scorer every character picks targets with |
+| `Core Systems/Porcupine Guard.js` | **Temporary** — keeps Ulric off porcupines (no targeting, single set when one is within splash reach) and puts them first on Riva's list. Every call site is `typeof`-guarded; delete the file's Bootstrapper line to remove |
 | `Core Systems/World Events.js` | Live boss/seasonal targets, the goal that walks the party to them, and the anniversary visit |
 | `Core Systems/Server Watch.js` | **Disabled** (`SERVER_WATCH.enabled`/`SERVER_HOP.enabled` are `false`, so `server_watch_loop()` idles). Observer sockets on the other realms (`get_servers` + `server_info`), `bosses_elsewhere()`, and the `change_server` hop that goes and joins them and comes back |
 | `Core Systems/Character Messaging.js` | CM (character message) handlers, localStorage-backed state cache |

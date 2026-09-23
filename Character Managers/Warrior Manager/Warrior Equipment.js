@@ -75,7 +75,10 @@ function resolve_warrior_orb() {
 }
 
 function resolve_warrior_weapon() {
-	return gear_override("weapon")
+	const guard = typeof porcupine_guard_weapon === "function" ? porcupine_guard_weapon() : null;
+
+	return guard
+		|| gear_override("weapon")
 		|| resolve_weapon_set({ pool: warrior_weapon_pool(), width: 1, context: weapon_choice_context() });
 }
 

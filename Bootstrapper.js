@@ -22,6 +22,7 @@
 		"Core Systems/Combat Sampling.js",
 		"Core Systems/Movement Positioning.js",
 		"Core Systems/Targeting.js",
+		"Core Systems/Porcupine Guard.js",
 		"Core Systems/World Events.js",
 		"Core Systems/Server Watch.js",
 		"Core Systems/Character Messaging.js",

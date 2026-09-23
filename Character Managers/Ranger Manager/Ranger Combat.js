@@ -7,6 +7,8 @@ function should_attack_mob(mob) {
 
 	if (CONFIG.combat.never_attack.includes(mob.mtype)) return false;
 
+	if (typeof porcupine_guard_rank === "function" && porcupine_guard_rank(mob)) return true;
+
 	if (CONFIG.combat.attack_if_targeted.includes(mob.mtype)) {
 		return true;
 	}
@@ -44,7 +46,13 @@ function update_target_cache() {
 	const value = new Map();
 	for (const mob of pool) value.set(mob, target_damage_value(mob, context));
 
+	const guard_rank = typeof porcupine_guard_rank === "function" ? porcupine_guard_rank : () => 0;
+
 	const sorted_by_value = pool.sort((a, b) => {
+		const a_guard = guard_rank(a);
+		const b_guard = guard_rank(b);
+		if (a_guard !== b_guard) return b_guard - a_guard;
+
 		const a_boss = CONFIG.combat.attack_if_targeted.includes(a.mtype);
 		const b_boss = CONFIG.combat.attack_if_targeted.includes(b.mtype);
 		if (a_boss !== b_boss) return b_boss - a_boss;
