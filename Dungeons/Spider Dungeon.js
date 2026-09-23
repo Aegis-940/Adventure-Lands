@@ -7,8 +7,9 @@ DUNGEONS.spider = {
 	map: "spider_instance",
 	home: "giantspider",
 	key: "spiderkey",
-	key_count: 1,
+	key_count: 5,
 	entrance: { map: "gateway", x: -322, y: -203 },
+	exit: { map: "gateway", x: -322, y: -203 },
 	flags: {
 		leader_manual: true,
 		ignore_events: true,

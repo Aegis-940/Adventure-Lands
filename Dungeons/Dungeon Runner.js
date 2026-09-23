@@ -3,6 +3,7 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const DUNGEON_BOSS_TIMEOUT_MS = 10 * 60 * 1000;
+const DUNGEON_ABSENT_ROUNDS = 8;
 const DUNGEON_PARTY_TIMEOUT_MS = 2 * 60 * 1000;
 const DUNGEON_JOIN_TIMEOUT_MS = 90000;
 const DUNGEON_JOIN_INTERVAL_MS = 400;
@@ -316,12 +317,14 @@ function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 				consecutive_alive++;
 				consecutive_dead = 0;
 				if (consecutive_alive >= 3) confirmed_alive = true;
-			} else if (confirmed_alive && near_spawn) {
+			} else if (near_spawn) {
 				consecutive_alive = 0;
 				consecutive_dead++;
-				if (consecutive_dead >= 3) {
+				if (consecutive_dead >= (confirmed_alive ? 3 : DUNGEON_ABSENT_ROUNDS)) {
 					clearInterval(interval);
-					game_log(`[Dungeon] ${mob_type} confirmed dead`, DUNGEON_LOG_COLOR);
+					game_log(confirmed_alive
+						? `[Dungeon] ${mob_type} confirmed dead`
+						: `[Dungeon] ${mob_type} was not here — already dead`, DUNGEON_LOG_COLOR);
 					resolve();
 				}
 			} else {
@@ -558,9 +561,18 @@ async function run_dungeon(dungeon) {
 			await delay(2000);
 			await wait_for_death(boss.mtype, boss.x, boss.y);
 			dungeon_log(dungeon, `${boss.mtype} dead — looting`);
-			await handle_looting();
-			await delay(10000);
+			await dungeon_loot_everything();
 		}
+
+		dungeon_log(dungeon, "Bosses down — heading out");
+		try {
+			await dungeon_travel(dungeon.exit || dungeon.entrance);
+		} catch (e) {
+			dungeon_log(dungeon, "Could not walk out — reloading from inside", DUNGEON_WARN_COLOR);
+		}
+
+		record_dungeon_run();
+		if (collection_due()) await run_dungeon_collection();
 
 		dungeon_log(dungeon, "Complete — reloading party...");
 		send_cm(DUNGEON_FOLLOWERS, { type: "reload" });
@@ -716,7 +728,7 @@ async function dungeon_keys_ready(dungeon) {
 
 function start_dungeon_when_ready(dungeon) {
 	if (active_dungeon() !== dungeon) return;
-	setTimeout(() => {
+	setTimeout(async () => {
 		if (_dungeon_running) return;
 		if (character.rip) {
 			dungeon_log(dungeon, "Character is dead on startup — not auto-starting.", DUNGEON_WARN_COLOR);
@@ -726,6 +738,11 @@ function start_dungeon_when_ready(dungeon) {
 			dungeon_log(dungeon, "Detected startup inside instance — restarting from entrance.", "#FFAA44");
 		}
 		dungeon_log(dungeon, "Auto-starting...");
-		run_dungeon(dungeon);
+
+		const ok = await run_dungeon(dungeon);
+		if (!ok && dungeon_mode_enabled()) {
+			dungeon_log(dungeon, "Run could not start — turning the mode off", DUNGEON_WARN_COLOR);
+			set_dungeon_mode(null);
+		}
 	}, DUNGEON_START_DELAY_MS);
 }
