@@ -3,6 +3,8 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function shot_width() {
+	if (dungeon_flag("single_target")) return 1;
+
 	let widest = 1;
 	for (const profile of SHOT_PROFILES) {
 		if (profile.count <= widest) continue;

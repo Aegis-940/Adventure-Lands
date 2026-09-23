@@ -15,7 +15,6 @@ DUNGEONS.spider = {
 		center_on_tank: true,
 		combat_always_on: true,
 		single_target: true,
-		single_weapon: true,
 		nearest_first: true,
 		no_cleave: true,
 		no_agitate: true,
