@@ -13,6 +13,7 @@ DUNGEONS.spider = {
 		leader_manual: true,
 		ignore_events: true,
 		center_on_tank: true,
+		stack_on_center: true,
 		combat_always_on: true,
 		single_target: true,
 		nearest_first: true,

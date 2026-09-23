@@ -74,14 +74,14 @@ function reposition_center() {
 		if (lead && !lead.rip) return { x: lead.x, y: lead.y };
 	}
 	return LOCATIONS[home][0];
-}
+}
 
 const REPOSITION_INTERVAL_MS = 250;
 const REPOSITION_MOVE_THRESHOLD = 10;
 
 function orbit_reposition(make_score, options) {
 	if (smart.moving || character.moving) return;
-	if (home === "bscorpion") return;
+	if (home === "bscorpion" && !in_dungeon()) return;
 
 	const now = performance.now();
 	if (now - (state.last_reposition || 0) < REPOSITION_INTERVAL_MS) return;
@@ -90,12 +90,19 @@ function orbit_reposition(make_score, options) {
 	const center = reposition_center();
 	if (!center) return;
 
+	const threshold = CONFIG.movement.move_threshold ?? REPOSITION_MOVE_THRESHOLD;
+
+	if (dungeon_flag("stack_on_center")) {
+		if (Math.hypot(character.x - center.x, character.y - center.y) <= threshold) return;
+		if (!can_move_to(center.x, center.y)) return;
+		return move(center.x, center.y);
+	}
+
 	const score = make_score();
 	if (!score) return;
 
 	const spot = best_orbit_spot(center, CONFIG.movement.circle_radius, score, options);
 	if (!spot) return;
-	const threshold = CONFIG.movement.move_threshold ?? REPOSITION_MOVE_THRESHOLD;
 	if (Math.hypot(character.x - spot.x, character.y - spot.y) <= threshold) return;
 
 	move(spot.x, spot.y);
