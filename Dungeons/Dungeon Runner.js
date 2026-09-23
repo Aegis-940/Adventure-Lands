@@ -2,7 +2,6 @@
 // DUNGEON RUNNER — the shared machinery every dungeon run is driven by
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const DUNGEON_BOSS_TIMEOUT_MS = 10 * 60 * 1000;
 const DUNGEON_ABSENT_ROUNDS = 8;
 const DUNGEON_PARTY_TIMEOUT_MS = 2 * 60 * 1000;
 const DUNGEON_JOIN_TIMEOUT_MS = 90000;
@@ -297,21 +296,45 @@ function start_dungeon_loop() {
 
 function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 	return new Promise((resolve, reject) => {
+		const dungeon = active_dungeon();
+		const map = dungeon ? dungeon.map : character.map;
+
 		let consecutive_alive = 0;
 		let confirmed_alive = false;
 		let consecutive_dead = 0;
-		const started = Date.now();
+		let killed = false;
+
+		function on_hit(data) {
+			if (!data || !data.kill || !data.id) return;
+			const e = parent.entities[data.id];
+			if (e && e.mtype === mob_type) killed = true;
+		}
+		parent.socket.on("hit", on_hit);
+
+		function settle(finish, value) {
+			clearInterval(interval);
+			parent.socket.off("hit", on_hit);
+			finish(value);
+		}
 
 		const interval = setInterval(() => {
-			if (Date.now() - started > DUNGEON_BOSS_TIMEOUT_MS) {
-				clearInterval(interval);
-				return reject(new Error(`${mob_type} not confirmed dead within ${DUNGEON_BOSS_TIMEOUT_MS / 60000} min`));
+			if (character.rip) {
+				return settle(reject, new Error(`died before ${mob_type} was confirmed dead`));
 			}
+			if (character.map !== map) {
+				return settle(reject, new Error(`left ${map} before ${mob_type} was confirmed dead`));
+			}
+
 			const near_spawn = Math.hypot(character.x - spawn_x, character.y - spawn_y) < spawn_radius;
 
 			const alive = Object.values(parent.entities).some(
 				e => e.type === "monster" && e.mtype === mob_type && !e.dead
 			);
+
+			if (killed && !alive) {
+				game_log(`[Dungeon] ${mob_type} kill confirmed`, DUNGEON_LOG_COLOR);
+				return settle(resolve);
+			}
 
 			if (alive) {
 				consecutive_alive++;
@@ -321,11 +344,10 @@ function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 				consecutive_alive = 0;
 				consecutive_dead++;
 				if (consecutive_dead >= (confirmed_alive ? 3 : DUNGEON_ABSENT_ROUNDS)) {
-					clearInterval(interval);
 					game_log(confirmed_alive
 						? `[Dungeon] ${mob_type} confirmed dead`
 						: `[Dungeon] ${mob_type} was not here — already dead`, DUNGEON_LOG_COLOR);
-					resolve();
+					return settle(resolve);
 				}
 			} else {
 				consecutive_alive = 0;
