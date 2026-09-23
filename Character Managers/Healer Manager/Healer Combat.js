@@ -134,8 +134,7 @@ function find_zap_targets() {
 
 var _heal_cast = false;
 
-async function try_heal() {
-	_heal_cast = false;
+function heal_wanted() {
 	const heal_target = cache.heal_target;
 	if (!heal_target) return false;
 
@@ -148,11 +147,20 @@ async function try_heal() {
 
 	const is_self = heal_target === character || heal_target.name === character.name;
 
-	if (heal_target.hp < heal_threshold && (is_self || is_in_range(heal_target, "heal"))) {
+	return heal_target.hp < heal_threshold && (is_self || is_in_range(heal_target, "heal"));
+}
+
+async function try_heal() {
+	_heal_cast = false;
+	const heal_target = cache.heal_target;
+	if (!heal_target) return false;
+
+	if (heal_wanted()) {
 		// game_log(`Healing → ${heal_target.name} (${Math.round((heal_target.hp / heal_target.max_hp) * 100)}%)`, "#33AAFF");
 		if (basic_action_busy()) return true;
 		run_basic_action(heal(heal_target), "heal");
 		_heal_cast = true;
+		state.last_heal_cast = Date.now();
 		return true;
 	}
 

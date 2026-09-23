@@ -92,10 +92,26 @@ function heal_report() {
 	}
 }
 
+var HEAL_LOADOUT_HOLD_MS = 1500;
+
+function dungeon_loadout() {
+	const attack_set = dungeon_setting("attack_loadout", null);
+	const heal_set = dungeon_setting("heal_loadout", null);
+	if (!attack_set || !heal_set) return null;
+
+	const healing = heal_wanted() || Date.now() - (state.last_heal_cast || 0) < HEAL_LOADOUT_HOLD_MS;
+	const wanted = healing ? heal_set : attack_set;
+
+	return set_available(wanted) ? wanted : null;
+}
+
 function resolve_healer_loadout() {
 	if (CONFIG.equipment.weapon_swap_enabled === false) return null;
 	const override = gear_override("loadout");
 	if (override) return override;
+
+	const in_dungeon_loadout = dungeon_loadout();
+	if (in_dungeon_loadout) return in_dungeon_loadout;
 
 	const target = cache.heal_target;
 	return resolve_weapon_by_value(name => healer_set_value(name, target))
