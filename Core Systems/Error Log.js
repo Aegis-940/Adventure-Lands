@@ -16,10 +16,12 @@ const ERRLOG_MSG_CAP = 400;
 const ERRLOG_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const ERRLOG_MAX_HEALS = 15;
+const ERRLOG_MAX_ALIVE = 480;
+const ERRLOG_HEARTBEAT_MS = 60000;
 
 const ERRLOG_SCHEMA = 2;
 
-let _errlog = { session: null, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {}, counts_since: 0, samples: [] };
+let _errlog = { session: null, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {}, counts_since: 0, samples: [], alive: [] };
 let _errlog_dirty = false;
 let _errlog_recording = false;
 let _errlog_vitals = [];
@@ -93,7 +95,8 @@ function _errlog_load() {
 				deaths: prev.deaths || [],
 				counts: prev.counts || {},
 				counts_since: prev.counts_since || 0,
-				samples: prev.samples || []
+				samples: prev.samples || [],
+				alive: prev.alive || []
 			};
 		}
 	} catch (e) { }
@@ -410,6 +413,27 @@ function _errlog_sample_vitals() {
 
 setInterval(_errlog_sample_vitals, ERRLOG_VITALS_MS);
 
+function _errlog_heartbeat() {
+	try {
+		if (!_errlog.alive) _errlog.alive = [];
+		_errlog.alive.push({
+			t: Date.now(),
+			map: character.map,
+			hp: character.max_hp ? Math.round(100 * character.hp / character.max_hp) : 0,
+			mp: character.max_mp ? Math.round(100 * character.mp / character.max_mp) : 0,
+			rip: !!character.rip,
+			panicking: (typeof panicking !== "undefined") ? !!panicking : null,
+			held: (typeof panic_since !== "undefined" && panic_since)
+				? Math.round((Date.now() - panic_since) / 1000) : 0,
+			goal: (typeof current_goal_label === "function") ? current_goal_label() : null
+		});
+		while (_errlog.alive.length > ERRLOG_MAX_ALIVE) _errlog.alive.shift();
+		_errlog_dirty = true;
+	} catch (e) { }
+}
+
+setInterval(_errlog_heartbeat, ERRLOG_HEARTBEAT_MS);
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // LOCAL SINK
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -436,7 +460,8 @@ function _errlog_push() {
 				counts: _errlog.counts,
 				timeline: _errlog.timeline,
 				deaths: _errlog.deaths,
-				samples: _errlog.samples
+				samples: _errlog.samples,
+				alive: _errlog.alive
 		});
 		errlog_time("io push stringify", Date.now() - _tp);
 		fetch(ERRLOG_SINK_URL, {
@@ -494,7 +519,7 @@ function al_errors_clear(all) {
 			if (k && k.indexOf(ERRLOG_KEY) === 0 && (all || k === _errlog_key())) doomed.push(k);
 		}
 		doomed.forEach(k => localStorage.removeItem(k));
-		_errlog = { session: _errlog.session, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {}, counts_since: Date.now(), samples: [] };
+		_errlog = { session: _errlog.session, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {}, counts_since: Date.now(), samples: [], alive: [] };
 		_errlog_heals = [];
 		_errlog_vitals = [];
 		_errlog_was_rip = false;

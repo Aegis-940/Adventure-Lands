@@ -399,6 +399,10 @@ async function apply_equipment_rule(token, group, resolved) {
 	if (!resolved) return;
 	const sets = Array.isArray(resolved) ? resolved : [resolved];
 	if (sets.every(s => is_set_equipped(s))) return;
+	if (!sets.every(s => set_available(s))) {
+		if (typeof errlog_count === "function") errlog_count(`equip unavailable ${group}`);
+		return;
+	}
 	if (!equip_group_ready(group, sets.join("+"))) return;
 	await equip_apply(token, sets);
 }

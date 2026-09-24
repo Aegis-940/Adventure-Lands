@@ -11,12 +11,15 @@ var last_panic_time = 0;
 var last_safe_time = 0;
 var panic_external = false;
 var panic_external_since = 0;
+var panic_since = 0;
 
 function set_panic(on, reason, external) {
 	const ext = external === undefined ? panic_external : !!external;
 	if (panicking === on && panic_external === ext) return;
 
 	if (on && !panicking) last_panic_time = 0;
+	if (on && !panicking) panic_since = Date.now();
+	if (!on) panic_since = 0;
 	panicking = !!on;
 	panic_external = ext;
 	panic_external_since = ext && on ? Date.now() : 0;
@@ -30,6 +33,7 @@ function set_panic(on, reason, external) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const EXTERNAL_PANIC_MAX_MS = 60000;
+const SELF_PANIC_MAX_MS = 60000;
 
 let _panic_check_running = false;
 
@@ -113,6 +117,16 @@ async function _panic_check_body() {
 	if (external_hold && Date.now() - panic_external_since > EXTERNAL_PANIC_MAX_MS) {
 		external_hold = false;
 		set_panic(false, "healer's hold expired without an all-clear", false);
+	}
+
+	if (panicking && !external_hold && !LOW_HEALTH && !TRAPPED_TRAVELLING
+		&& panic_since && Date.now() - panic_since > SELF_PANIC_MAX_MS) {
+		set_panic(false, "held too long with health intact — releasing to recover", false);
+		if (typeof errlog_count === "function") errlog_count("panic released on timeout");
+		if (typeof PANIC_BROADCAST_TARGETS !== "undefined") {
+			send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
+		}
+		return;
 	}
 
 	if (HIGH_HEALTH && HIGH_MANA && MONSTERS_TARGETING_ME < t.aggro

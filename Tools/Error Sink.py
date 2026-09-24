@@ -41,6 +41,9 @@ MAX_TIMELINE = 100
 # and left 29 of her cluster samples alive. Capping per kind makes the window depend on the
 # sampling rate of that kind alone.
 MAX_SAMPLES_PER_KIND = 250
+# One beat a minute, so this is about sixteen hours of uptime evidence per character -- enough for
+# an overnight stall to still be legible when it is read the next morning.
+MAX_ALIVE = 1000
 
 # A record names a line of code. Once that line has been edited the record describes something that
 # no longer exists, so records are kept only for the build that produced them and the one before it
@@ -59,9 +62,9 @@ MAX_BYTES = 1_500_000
 
 # Evicted in this order, and a later field is only touched once every earlier one is empty, so the
 # cheap observations go long before the record of a death does.
-TRIMMABLE = ("samples", "timeline", "deaths")
+TRIMMABLE = ("samples", "alive", "timeline", "deaths")
 
-BUCKET_FIELDS = ("records", "samples", "deaths", "timeline", "counts")
+BUCKET_FIELDS = ("records", "samples", "deaths", "timeline", "counts", "alive")
 
 # The maintenance sweep and a POST both rewrite the whole store, and the server is single-threaded
 # only with respect to requests.
@@ -213,6 +216,13 @@ def merge(incoming):
     for s in incoming.get("samples") or []:
         samples[(s.get("t"), s.get("kind"))] = s
     bucket["samples"] = prune_samples(samples.values())
+
+    # Heartbeats answer "was the tab still running", so they must outlive the sample age cut --
+    # an overnight freeze is only legible the next morning, hours after SAMPLE_MAX_AGE_H.
+    beats = {b.get("t"): b for b in bucket.get("alive", [])}
+    for b in incoming.get("alive") or []:
+        beats[b.get("t")] = b
+    bucket["alive"] = [beats[k] for k in sorted(beats, key=lambda x: x or 0)][-MAX_ALIVE:]
 
     store["_updated"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     write_store(store)
