@@ -91,6 +91,8 @@ function get_party_member_info(name) {
 	return { name };
 }
 
+let _party_frames_html = "";
+
 function render_party_ui() {
 	let container = parent.document.getElementById("simple-party-ui-container");
 	if (!container) {
@@ -98,7 +100,7 @@ function render_party_ui() {
 		container.id = "simple-party-ui-container";
 		parent.document.body.appendChild(container);
 	}
-	container.innerHTML = "";
+	let html = "";
 	for (const name of PARTY_ORDER) {
 		const info = get_party_member_info(name);
 		const hp = info.hp ?? 0;
@@ -110,9 +112,7 @@ function render_party_ui() {
 		const hp_pct = Math.max(0, Math.min(100, (hp / max_hp) * 100));
 		const mp_pct = Math.max(0, Math.min(100, (mp / max_mp) * 100));
 		const xp_pct = Math.max(0, Math.min(100, (xp / max_xp) * 100));
-		const frame = parent.document.createElement("div");
-		frame.className = "simple-party-frame";
-		frame.innerHTML = `
+		html += `<div class="simple-party-frame">
 			<div class="simple-party-name">${info.name ?? name}</div>
 			<div class="simple-party-bar">
 				<div class="simple-party-bar-inner bar-hp" style="width:${hp_pct}%;"></div>
@@ -126,9 +126,12 @@ function render_party_ui() {
 				<div class="simple-party-bar-inner bar-xp" style="width:${xp_pct}%;"></div>
 				<div class="bar-label">XP: ${xp_pct.toFixed(1)}%</div>
 			</div>
-		`;
-		container.appendChild(frame);
+		</div>`;
 	}
+
+	if (html === _party_frames_html) return;
+	_party_frames_html = html;
+	container.innerHTML = html;
 }
 
-setInterval(render_party_ui, 100);
+setInterval(render_party_ui, 250);

@@ -96,6 +96,8 @@ add_cm_listener((name, data) => {
 
 const STATE_CACHE_KEY_PREFIX = "AL_char_state_";
 const STATE_CACHE_STALE_MS = 15000;
+const STATE_CACHE_WRITE_MS = 500;
+const STATE_CACHE_HEARTBEAT_MS = 5000;
 
 function get_full_character_state() {
 	return {
@@ -126,9 +128,23 @@ function get_full_character_state() {
 	};
 }
 
+let _state_cache_sig = "";
+let _state_cache_wrote = 0;
+
 function write_state_cache() {
 	try {
-		localStorage.setItem(STATE_CACHE_KEY_PREFIX + character.name, JSON.stringify(get_full_character_state()));
+		const state = get_full_character_state();
+		const now = state.last_seen;
+		state.last_seen = 0;
+		const sig = JSON.stringify(state);
+		if (sig === _state_cache_sig && now - _state_cache_wrote < STATE_CACHE_HEARTBEAT_MS) return;
+		_state_cache_sig = sig;
+		_state_cache_wrote = now;
+		state.last_seen = now;
+
+		const t0 = Date.now();
+		localStorage.setItem(STATE_CACHE_KEY_PREFIX + character.name, JSON.stringify(state));
+		if (typeof errlog_time === "function") errlog_time("io state setItem", Date.now() - t0);
 	} catch (e) {
 		catcher(e, "write_state_cache");
 	}
@@ -154,6 +170,6 @@ async function state_cache_loop() {
 			continue;
 		}
 		write_state_cache();
-		await delay(100);
+		await delay(STATE_CACHE_WRITE_MS);
 	}
 }
