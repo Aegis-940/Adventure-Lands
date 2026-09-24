@@ -9,7 +9,9 @@ function create_bottomrightcorner_widget(id, css) {
 	brc.find("#" + id).remove();
 
 	const container = $(`<div id="${id}"></div>`).css(css || {});
-	brc.children().first().after(container);
+	const first = brc.children().first();
+	if (first.length) first.after(container);
+	else brc.append(container);
 	return container;
 }
 

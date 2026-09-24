@@ -191,6 +191,7 @@ parent.socket._dps_meter_hit_handler = data => {
 parent.socket.on("hit", parent.socket._dps_meter_hit_handler);
 
 const DPS_WINDOW_MS = 5 * 60 * 1000;
+const DPS_MAX_EVENTS = 20000;
 
 function prune_entry_events(entry) {
 	const cutoff = performance.now() - DPS_WINDOW_MS;
@@ -200,7 +201,20 @@ function prune_entry_events(entry) {
 		let i = 0;
 		while (i < arr.length && arr[i].t < cutoff) i++;
 		if (i > 0) arr.splice(0, i);
+		if (arr.length > DPS_MAX_EVENTS) arr.splice(0, arr.length - DPS_MAX_EVENTS);
 	}
+}
+
+function prune_dps_events() {
+	let deepest = 0;
+	for (const id in player_damage_sums) {
+		const entry = player_damage_sums[id];
+		prune_entry_events(entry);
+		for (const key in entry) {
+			if (key.endsWith("_events") && entry[key].length > deepest) deepest = entry[key].length;
+		}
+	}
+	if (typeof errlog_size === "function") errlog_size("mem dps events", deepest);
 }
 
 function get_type_value(type, entry) {
@@ -270,8 +284,12 @@ function calculate_dps_for_entry(entry) {
 
 function update_dps_meter_ui() {
 	const $ = parent.$;
-	const c = $("#dpsmetercontent");
-	if (!c.length) return;
+	let c = $("#dpsmetercontent");
+	if (!c.length) {
+		init_dps_meter();
+		c = $("#dpsmetercontent");
+		if (!c.length) return;
+	}
 
 	const elapsed_ms = performance.now() - METER_START;
 	const hrs = Math.floor(elapsed_ms / 3600000);
@@ -286,13 +304,15 @@ function update_dps_meter_ui() {
 	});
 	html += "</tr>";
 
-	Object.values(player_damage_sums).forEach(prune_entry_events);
-
 	const sorted = Object.entries(player_damage_sums)
-		.map(([id, e]) => ({ id, dps: calculate_dps_for_entry(e), e }))
+		.map(([id, e]) => {
+			const vals = {};
+			DAMAGE_TYPES.forEach(t => vals[t] = get_type_value(t, e));
+			return { id, vals, dps: calculate_dps_for_entry(e) };
+		})
 		.sort((a, b) => b.dps - a.dps);
 
-	sorted.forEach(({ id, e }) => {
+	sorted.forEach(({ id, vals }) => {
 		const p = get_player(id);
 		if (!p) return;
 		const name_col = DISPLAY_CLASS_TYPE_COLORS
@@ -301,11 +321,10 @@ function update_dps_meter_ui() {
 		html += `<tr><td style="color:${name_col}">${p.name}</td>`;
 		DAMAGE_TYPES.forEach(t => {
 			if (t === "Dmg Taken") {
-				const { phys, mag } = get_type_value(t, e);
+				const { phys, mag } = vals[t];
 				html += `<td><span style="color:#FF4C4C">${get_formatted(phys)}</span> | <span style="color:#6ECFF6">${get_formatted(mag)}</span></td>`;
 			} else {
-				const val = get_type_value(t, e);
-				html += `<td>${get_formatted(val)}</td>`;
+				html += `<td>${get_formatted(vals[t])}</td>`;
 			}
 		});
 		html += "</tr>";
@@ -315,17 +334,13 @@ function update_dps_meter_ui() {
 	DAMAGE_TYPES.forEach(t => {
 		if (t === "Dmg Taken") {
 			let tot_p = 0, tot_m = 0;
-			Object.values(player_damage_sums).forEach(e => {
-				const { phys, mag } = get_type_value(t, e);
-				tot_p += phys; tot_m += mag;
-			});
+			sorted.forEach(({ vals }) => { tot_p += vals[t].phys; tot_m += vals[t].mag; });
 			html += `<td><span style="color:#FF4C4C">${get_formatted(tot_p)}</span> | <span style="color:#6ECFF6">${get_formatted(tot_m)}</span></td>`;
 		} else if (t === "DPS") {
-			const total_dps = sorted.reduce((sum, p) => sum + p.dps, 0);
-			html += `<td>${get_formatted(total_dps)}</td>`;
+			html += `<td>${get_formatted(sorted.reduce((sum, p) => sum + p.dps, 0))}</td>`;
 		} else {
 			let tot = 0;
-			Object.values(player_damage_sums).forEach(e => tot += get_type_value(t, e));
+			sorted.forEach(({ vals }) => tot += vals[t]);
 			html += `<td>${get_formatted(tot)}</td>`;
 		}
 	});
@@ -341,3 +356,4 @@ function update_dps_meter_ui() {
 	init_dps_meter();
 })();
 setInterval(update_dps_meter_ui, 250);
+setInterval(prune_dps_events, 1000);
