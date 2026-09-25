@@ -237,10 +237,10 @@ function _errlog_lag_probe() {
 	try {
 		if (parent.pings && parent.pings.length) errlog_time("net ping", Math.min(...parent.pings));
 	} catch (e) { }
-	_errlog_lag_due = now + 100;
-	setTimeout(_errlog_lag_probe, 100);
+	_errlog_lag_due = now + 500;
+	setTimeout(_errlog_lag_probe, 500);
 }
-setTimeout(_errlog_lag_probe, 100);
+setTimeout(_errlog_lag_probe, 500);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // CAPTURE POINTS

@@ -112,7 +112,7 @@ const update_cc_display = () => {
 };
 
 
-setInterval(update_cc_display, 100);
+setInterval(update_cc_display, 200);
 
 (function start_cc_meter() {
 	if (typeof create_bottomrightcorner_widget !== "function") {
