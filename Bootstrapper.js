@@ -160,18 +160,21 @@
 		]
 	};
 
+	const DEFAULT_SKIP = [].concat(SKIP_GROUPS.ui, SKIP_GROUPS.dungeon, SKIP_GROUPS.telemetry);
+
 	function requested_skips() {
 		try {
 			const raw = localStorage.getItem(SKIP_KEY);
-			if (!raw) return [];
-			const list = JSON.parse(raw);
-			return Array.isArray(list) ? list.filter(n => typeof n === "string") : [];
-		} catch (e) {
-			return [];
-		}
+			if (raw) {
+				const list = JSON.parse(raw);
+				if (Array.isArray(list)) return { src: "localStorage", list: list.filter(n => typeof n === "string") };
+			}
+		} catch (e) { }
+		return { src: "build", list: DEFAULT_SKIP };
 	}
 
-	const requested = requested_skips();
+	const skip_src = requested_skips();
+	const requested = skip_src.list;
 	const refused = requested.filter(n => CRITICAL_SCRIPTS.includes(n));
 	const skip_list = requested.filter(n => !CRITICAL_SCRIPTS.includes(n));
 	const active_scripts = scripts.filter(n => !skip_list.includes(n));
@@ -180,7 +183,7 @@
 		game_log("🛡️ Refusing to skip critical: " + refused.join(", "), "#FF6666");
 	}
 	if (skip_list.length) {
-		game_log("⏭️ Skipping " + skip_list.length + " of " + scripts.length + ": " + skip_list.join(", "), "#FFA500");
+		game_log("⏭️ Skipping " + skip_list.length + " of " + scripts.length + " [" + skip_src.src + "]: " + skip_list.join(", "), "#FFA500");
 	}
 
 	window.al_skip = function (...names) {
@@ -198,12 +201,12 @@
 
 	window.al_skip_clear = function () {
 		localStorage.removeItem(SKIP_KEY);
-		game_log("⏭️ AL_skip cleared — reload all characters to apply", "#FFA500");
+		game_log("⏭️ override removed — reverting to build default (" + DEFAULT_SKIP.length + " skipped); al_skip([]) forces none", "#FFA500");
 	};
 
 	window.al_skip_show = function () {
-		game_log("⏭️ AL_skip (" + requested.length + "): " + (requested.join(", ") || "none"));
-		return { requested: requested, active: active_scripts.length, total: scripts.length };
+		game_log("⏭️ skip [" + skip_src.src + "] (" + requested.length + "): " + (requested.join(", ") || "none"));
+		return { source: skip_src.src, requested: requested, active: active_scripts.length, total: scripts.length };
 	};
 
 	function load_one(base, name) {
