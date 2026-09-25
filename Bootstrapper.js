@@ -93,7 +93,7 @@
 		"Character Managers/Merchant Manager/Merchant Task Loop.js",
 		"Character Managers/Merchant Manager/Merchant.js"]
 	};
-	const BARE_FOR = ["Riff"];
+	const BARE_FOR = [];
 	const bare = BARE_FOR.includes(character.name);
 	const SKIP_ROLE_FOR = [];
 	const role_skipped = bare || SKIP_ROLE_FOR.includes(character.name);
