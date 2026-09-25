@@ -93,9 +93,14 @@
 		"Character Managers/Merchant Manager/Merchant Task Loop.js",
 		"Character Managers/Merchant Manager/Merchant.js"]
 	};
-	const role_file = role_scripts[character.name] || [];
+	const SKIP_ROLE_FOR = ["Riff"];
+	const role_skipped = SKIP_ROLE_FOR.includes(character.name);
+	const role_file = role_skipped ? [] : (role_scripts[character.name] || []);
 	if (!role_scripts[character.name]) {
 		game_log("⚠️ No role script for " + character.name);
+	}
+	if (role_skipped) {
+		game_log("⏭️ Role scripts skipped for " + character.name + " — no automation will start", "#FFA500");
 	}
 
 	const MAX_RETRIES = 3;
@@ -160,7 +165,7 @@
 		]
 	};
 
-	const DEFAULT_SKIP = [].concat(SKIP_GROUPS.ui);
+	const DEFAULT_SKIP = [];
 
 	function requested_skips() {
 		try {
