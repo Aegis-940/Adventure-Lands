@@ -127,6 +127,85 @@
 		"Interface/Bank Viewer.js",
 	];
 
+	// -------------------------------------------------------------------- //
+	// SKIP LIST — localStorage-driven, for bisecting load cost             //
+	// -------------------------------------------------------------------- //
+
+	const SKIP_KEY = "AL_skip";
+
+	const SKIP_GROUPS = {
+		ui: [
+			"Interface/XP Meter.js",
+			"Interface/Gold Meter.js",
+			"Interface/DPS Meter.js",
+			"Interface/Party Frames.js",
+			"Interface/CC Meter.js",
+			"Interface/Stats Window.js",
+			"Interface/Settings Window.js",
+			"Interface/Pause Button.js",
+			"Interface/Bank Sort Order.js"
+		],
+		dungeon: [
+			"Dungeons/Spider Dungeon.js",
+			"Dungeons/Crypt Dungeon.js",
+			"Dungeons/Crypt Route.js",
+			"Dungeons/Dungeon Progress.js",
+			"Dungeons/Dungeon Telemetry.js",
+			"Dungeons/Dungeon Collection.js",
+			"Dungeons/Dungeon Mode.js"
+		],
+		telemetry: [
+			"Core Systems/Error Log.js",
+			"Core Systems/Porcupine Guard.js"
+		]
+	};
+
+	function requested_skips() {
+		try {
+			const raw = localStorage.getItem(SKIP_KEY);
+			if (!raw) return [];
+			const list = JSON.parse(raw);
+			return Array.isArray(list) ? list.filter(n => typeof n === "string") : [];
+		} catch (e) {
+			return [];
+		}
+	}
+
+	const requested = requested_skips();
+	const refused = requested.filter(n => CRITICAL_SCRIPTS.includes(n));
+	const skip_list = requested.filter(n => !CRITICAL_SCRIPTS.includes(n));
+	const active_scripts = scripts.filter(n => !skip_list.includes(n));
+
+	if (refused.length) {
+		game_log("🛡️ Refusing to skip critical: " + refused.join(", "), "#FF6666");
+	}
+	if (skip_list.length) {
+		game_log("⏭️ Skipping " + skip_list.length + " of " + scripts.length + ": " + skip_list.join(", "), "#FFA500");
+	}
+
+	window.al_skip = function (...names) {
+		const flat = (names.length === 1 && Array.isArray(names[0])) ? names[0] : names;
+		localStorage.setItem(SKIP_KEY, JSON.stringify(flat));
+		game_log("⏭️ AL_skip set (" + flat.length + ") — reload all characters to apply", "#FFA500");
+		return flat;
+	};
+
+	window.al_skip_group = function (...groups) {
+		const flat = [];
+		groups.forEach(g => (SKIP_GROUPS[g] || []).forEach(n => flat.push(n)));
+		return window.al_skip(flat);
+	};
+
+	window.al_skip_clear = function () {
+		localStorage.removeItem(SKIP_KEY);
+		game_log("⏭️ AL_skip cleared — reload all characters to apply", "#FFA500");
+	};
+
+	window.al_skip_show = function () {
+		game_log("⏭️ AL_skip (" + requested.length + "): " + (requested.join(", ") || "none"));
+		return { requested: requested, active: active_scripts.length, total: scripts.length };
+	};
+
 	function load_one(base, name) {
 		const url = base + encodeURI(name);
 		return new Promise(resolve => {
@@ -190,7 +269,7 @@
 					console.error("[BS] Critical script failed to load, aborting:", first_script);
 					return null;
 				}
-				return Promise.all(scripts.map(name => load_one(base, name).then(ok2 => ({ name, ok: ok2 }))));
+				return Promise.all(active_scripts.map(name => load_one(base, name).then(ok2 => ({ name, ok: ok2 }))));
 			})
 			.then(results => {
 				if (!results) return;
