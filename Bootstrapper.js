@@ -160,7 +160,7 @@
 		]
 	};
 
-	const DEFAULT_SKIP = [].concat(SKIP_GROUPS.ui, SKIP_GROUPS.dungeon, SKIP_GROUPS.telemetry);
+	const DEFAULT_SKIP = [].concat(SKIP_GROUPS.ui);
 
 	function requested_skips() {
 		try {
