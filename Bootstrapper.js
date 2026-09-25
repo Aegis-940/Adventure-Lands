@@ -93,16 +93,9 @@
 		"Character Managers/Merchant Manager/Merchant Task Loop.js",
 		"Character Managers/Merchant Manager/Merchant.js"]
 	};
-	const BARE_FOR = [];
-	const bare = BARE_FOR.includes(character.name);
-	const SKIP_ROLE_FOR = [];
-	const role_skipped = bare || SKIP_ROLE_FOR.includes(character.name);
-	const role_file = role_skipped ? [] : (role_scripts[character.name] || []);
+	const role_file = role_scripts[character.name] || [];
 	if (!role_scripts[character.name]) {
 		game_log("⚠️ No role script for " + character.name);
-	}
-	if (role_skipped) {
-		game_log("⏭️ Role scripts skipped for " + character.name + " — no automation will start", "#FFA500");
 	}
 
 	const MAX_RETRIES = 3;
@@ -133,88 +126,6 @@
 		"Interface/Widget Helpers.js",
 		"Interface/Bank Viewer.js",
 	];
-
-	// -------------------------------------------------------------------- //
-	// SKIP LIST — localStorage-driven, for bisecting load cost             //
-	// -------------------------------------------------------------------- //
-
-	const SKIP_KEY = "AL_skip";
-
-	const SKIP_GROUPS = {
-		ui: [
-			"Interface/XP Meter.js",
-			"Interface/Gold Meter.js",
-			"Interface/DPS Meter.js",
-			"Interface/Party Frames.js",
-			"Interface/CC Meter.js",
-			"Interface/Stats Window.js",
-			"Interface/Settings Window.js",
-			"Interface/Pause Button.js",
-			"Interface/Bank Sort Order.js"
-		],
-		dungeon: [
-			"Dungeons/Spider Dungeon.js",
-			"Dungeons/Crypt Dungeon.js",
-			"Dungeons/Crypt Route.js",
-			"Dungeons/Dungeon Progress.js",
-			"Dungeons/Dungeon Telemetry.js",
-			"Dungeons/Dungeon Collection.js",
-			"Dungeons/Dungeon Mode.js"
-		],
-		telemetry: [
-			"Core Systems/Error Log.js",
-			"Core Systems/Porcupine Guard.js"
-		]
-	};
-
-	const DEFAULT_SKIP = [];
-
-	function requested_skips() {
-		try {
-			const raw = localStorage.getItem(SKIP_KEY);
-			if (raw) {
-				const list = JSON.parse(raw);
-				if (Array.isArray(list)) return { src: "localStorage", list: list.filter(n => typeof n === "string") };
-			}
-		} catch (e) { }
-		return { src: "build", list: DEFAULT_SKIP };
-	}
-
-	const skip_src = requested_skips();
-	const requested = skip_src.list;
-	const refused = requested.filter(n => CRITICAL_SCRIPTS.includes(n));
-	const skip_list = requested.filter(n => !CRITICAL_SCRIPTS.includes(n));
-	const active_scripts = scripts.filter(n => !skip_list.includes(n));
-
-	if (refused.length) {
-		game_log("🛡️ Refusing to skip critical: " + refused.join(", "), "#FF6666");
-	}
-	if (skip_list.length) {
-		game_log("⏭️ Skipping " + skip_list.length + " of " + scripts.length + " [" + skip_src.src + "]: " + skip_list.join(", "), "#FFA500");
-	}
-
-	window.al_skip = function (...names) {
-		const flat = (names.length === 1 && Array.isArray(names[0])) ? names[0] : names;
-		localStorage.setItem(SKIP_KEY, JSON.stringify(flat));
-		game_log("⏭️ AL_skip set (" + flat.length + ") — reload all characters to apply", "#FFA500");
-		return flat;
-	};
-
-	window.al_skip_group = function (...groups) {
-		const flat = [];
-		groups.forEach(g => (SKIP_GROUPS[g] || []).forEach(n => flat.push(n)));
-		return window.al_skip(flat);
-	};
-
-	window.al_skip_clear = function () {
-		localStorage.removeItem(SKIP_KEY);
-		game_log("⏭️ override removed — reverting to build default (" + DEFAULT_SKIP.length + " skipped); al_skip([]) forces none", "#FFA500");
-	};
-
-	window.al_skip_show = function () {
-		game_log("⏭️ skip [" + skip_src.src + "] (" + requested.length + "): " + (requested.join(", ") || "none"));
-		return { source: skip_src.src, requested: requested, active: active_scripts.length, total: scripts.length };
-	};
 
 	function load_one(base, name) {
 		const url = base + encodeURI(name);
@@ -271,9 +182,6 @@
 	}
 
 	function start_loading(base) {
-		if (bare) {
-			return void game_log("⏭️ BARE for " + character.name + " — loading nothing at all", "#FFA500");
-		}
 		const role_texts = Promise.all(role_file.map(name => fetch_role_file(base, name)));
 		load_one(base, first_script)
 			.then(ok => {
@@ -282,7 +190,7 @@
 					console.error("[BS] Critical script failed to load, aborting:", first_script);
 					return null;
 				}
-				return Promise.all(active_scripts.map(name => load_one(base, name).then(ok2 => ({ name, ok: ok2 }))));
+				return Promise.all(scripts.map(name => load_one(base, name).then(ok2 => ({ name, ok: ok2 }))));
 			})
 			.then(results => {
 				if (!results) return;
