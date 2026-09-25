@@ -93,8 +93,10 @@
 		"Character Managers/Merchant Manager/Merchant Task Loop.js",
 		"Character Managers/Merchant Manager/Merchant.js"]
 	};
-	const SKIP_ROLE_FOR = ["Riff"];
-	const role_skipped = SKIP_ROLE_FOR.includes(character.name);
+	const BARE_FOR = [];
+	const bare = BARE_FOR.includes(character.name);
+	const SKIP_ROLE_FOR = [];
+	const role_skipped = bare || SKIP_ROLE_FOR.includes(character.name);
 	const role_file = role_skipped ? [] : (role_scripts[character.name] || []);
 	if (!role_scripts[character.name]) {
 		game_log("⚠️ No role script for " + character.name);
@@ -269,6 +271,9 @@
 	}
 
 	function start_loading(base) {
+		if (bare) {
+			return void game_log("⏭️ BARE for " + character.name + " — loading nothing at all", "#FFA500");
+		}
 		const role_texts = Promise.all(role_file.map(name => fetch_role_file(base, name)));
 		load_one(base, first_script)
 			.then(ok => {
