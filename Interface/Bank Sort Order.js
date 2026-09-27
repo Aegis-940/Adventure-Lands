@@ -159,7 +159,7 @@ function stackable_bank_item(item) {
 
 const INVENTORY_SLOTS = 42;
 
-function free_inventory_slots() {
+function empty_slot_indices() {
 	const free = [];
 	for (let i = 0; i < INVENTORY_SLOTS; i++) if (!character.items[i]) free.push(i);
 	return free;
@@ -298,7 +298,7 @@ async function consolidate_stack_group(group, packs) {
 		return 0;
 	}
 
-	if (free_inventory_slots().length < 3) {
+	if (empty_slot_indices().length < 3) {
 		game_log("⚠️ Bank consolidation needs 3 free inventory slots");
 		return 0;
 	}

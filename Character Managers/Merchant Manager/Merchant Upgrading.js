@@ -68,7 +68,7 @@ function inventory_slot(item_name) {
 	return slot === -1 ? null : slot;
 }
 
-function bank_items(bank_data) {
+function bank_contents(bank_data) {
 	const found = [];
 	for (const pack in bank_data) {
 		if (!Array.isArray(bank_data[pack])) continue;
@@ -179,7 +179,7 @@ async function withdraw_upgrade_scrolls() {
 
 	const SCROLL_TYPES = ["scroll0", "scroll1", "scroll2", "cscroll0", "cscroll1", "cscroll2"];
 
-	const empty_slots = character.items.filter(it => !it).length;
+	const empty_slots = free_inventory_slots();
 	if (empty_slots < 10) {
 		game_log(`❌ Not enough inventory space to withdraw scrolls. Need at least 10 free slots, have ${empty_slots}.`);
 		return;
@@ -215,17 +215,13 @@ async function withdraw_upgradeable_items() {
 		await delay(500);
 	}
 
-	function count_empty_inventory() {
-		return character.items.filter(it => !it).length;
-	}
-
 	let bank_data = character.bank || load_bank_from_local_storage();
 	if (!bank_data) {
 		game_log("No bank data available. Please open the bank or save bank data first.");
 		return;
 	}
 
-	let free_slots = count_empty_inventory();
+	let free_slots = free_inventory_slots();
 	if (free_slots <= 3) {
 		game_log("❌ Not enough inventory space to withdraw upgrade items.");
 		return;
@@ -234,8 +230,8 @@ async function withdraw_upgradeable_items() {
 	for (const item_name in UPGRADE_PROFILE) {
 		const max_level = UPGRADE_PROFILE[item_name].max_level;
 
-		for (const item of bank_items(bank_data)) {
-			free_slots = count_empty_inventory();
+		for (const item of bank_contents(bank_data)) {
+			free_slots = free_inventory_slots();
 			if (free_slots <= 3) break;
 			if (item.name !== item_name || !below_max_level(item, max_level)) continue;
 
@@ -246,14 +242,14 @@ async function withdraw_upgradeable_items() {
 			}
 		}
 
-		if (count_empty_inventory() <= 3) break;
+		if (free_inventory_slots() <= 3) break;
 	}
 
 	for (const item_name in COMBINE_PROFILE) {
 		const max_level = COMBINE_PROFILE[item_name].max_level;
 
 		let level_map = {};
-		for (const item of bank_items(bank_data)) {
+		for (const item of bank_contents(bank_data)) {
 			if (item.name !== item_name || !below_max_level(item, max_level)) continue;
 			const lvl = item.level || 0;
 			level_map[lvl] = (level_map[lvl] || 0) + (item.q || 1);
@@ -264,15 +260,15 @@ async function withdraw_upgradeable_items() {
 			let count = level_map[level];
 
 			while (count >= 3) {
-				free_slots = count_empty_inventory();
+				free_slots = free_inventory_slots();
 				let max_withdrawable = Math.floor((free_slots - 3) / 3) * 3;
 				if (max_withdrawable < 3) break;
 				let to_withdraw = Math.min(Math.floor(count / 3) * 3, max_withdrawable);
 				if (to_withdraw < 3) break;
 
 				let remaining = to_withdraw;
-				for (const item of bank_items(bank_data)) {
-					if (remaining <= 0 || count_empty_inventory() <= 3) break;
+				for (const item of bank_contents(bank_data)) {
+					if (remaining <= 0 || free_inventory_slots() <= 3) break;
 					if (item.name !== item_name || (item.level || 0) !== level) continue;
 
 					const withdraw_count = Math.min(item.q || 1, remaining);
@@ -283,11 +279,11 @@ async function withdraw_upgradeable_items() {
 						await delay(400);
 					}
 				}
-				if (count_empty_inventory() <= 3 || count < 3) break;
+				if (free_inventory_slots() <= 3 || count < 3) break;
 			}
-			if (count_empty_inventory() <= 3) break;
+			if (free_inventory_slots() <= 3) break;
 		}
-		if (count_empty_inventory() <= 3) break;
+		if (free_inventory_slots() <= 3) break;
 	}
 
 	game_log("✅ Finished withdrawing upgrade and compound items, leaving at least 3 inventory slots free.");
@@ -299,7 +295,7 @@ function bank_has_upgradeable_items() {
 
 	for (const item_name in UPGRADE_PROFILE) {
 		const max_level = UPGRADE_PROFILE[item_name].max_level;
-		for (const item of bank_items(bank_data)) {
+		for (const item of bank_contents(bank_data)) {
 			if (item.name === item_name && below_max_level(item, max_level)) return true;
 		}
 	}
@@ -307,7 +303,7 @@ function bank_has_upgradeable_items() {
 	for (const item_name in COMBINE_PROFILE) {
 		const max_level = COMBINE_PROFILE[item_name].max_level;
 		const level_counts = {};
-		for (const item of bank_items(bank_data)) {
+		for (const item of bank_contents(bank_data)) {
 			if (item.name !== item_name || !below_max_level(item, max_level)) continue;
 			const lvl = item.level || 0;
 			level_counts[lvl] = (level_counts[lvl] || 0) + (item.q || 1);

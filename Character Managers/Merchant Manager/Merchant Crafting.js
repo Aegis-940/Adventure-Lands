@@ -51,7 +51,7 @@ function find_recipe_slots(req) {
 }
 
 function max_craftable_by_space(item_name) {
-	const free_slots = character.items.filter(it => !it).length;
+	const free_slots = free_inventory_slots();
 	const usable_free_slots = Math.max(0, free_slots - CONFIG.min_free_inventory_slots);
 
 	const stack_size = parent.G.items[item_name]?.s;

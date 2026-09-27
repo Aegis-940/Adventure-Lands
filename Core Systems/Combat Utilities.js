@@ -69,6 +69,10 @@ function get_num_targets(player_name) {
 	return count;
 }
 
+function free_inventory_slots() {
+	return character.items.filter(it => !it).length;
+}
+
 function get_num_chests() {
 	return Object.keys(get_chests()).length;
 }

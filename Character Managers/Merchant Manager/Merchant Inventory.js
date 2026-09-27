@@ -2,10 +2,6 @@
 // MERCHANT INVENTORY — counting slots, vendoring junk, and emptying the pack into the bank
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function free_inventory_slots() {
-	return character.items.filter(it => !it).length;
-}
-
 function bank_free_space() {
 	const bank_data = character.bank || load_bank_from_local_storage();
 	if (!bank_data) return 0;
