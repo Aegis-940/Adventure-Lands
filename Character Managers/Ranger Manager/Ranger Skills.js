@@ -83,7 +83,7 @@ async function skill_loop() {
 
 		if (ms_super !== 0) _supershot_ready_since = 0;
 
-		if (min_ms < character.ping / 10) {
+		if (min_ms === 0) {
 			if (_last_sent_target !== target.id) {
 				_last_sent_target = target.id;
 				change_target(target);

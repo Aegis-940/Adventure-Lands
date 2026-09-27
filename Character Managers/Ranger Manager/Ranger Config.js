@@ -9,8 +9,8 @@ var CONFIG = {
 		target_priority: ["Ulric", "Myras"],
 		party_dps_factor: 2.0,
 
-		always_attack: ["crabx"],
-		attack_if_targeted: [...ALL_BOSSES, "phoenix", "bscorpion"],
+		always_attack: [...ALL_BOSSES, "phoenix", "bscorpion"],
+		attack_if_targeted: ["crabx"],
 		never_attack: ["nerfedmummy"],
 		engage_aggroed_only: true,
 		skill_blacklist: ["dryad", "fireroamer", "plantoid", "mole", "mummy"],
@@ -44,7 +44,7 @@ var CONFIG = {
 
 		weapon_sets: ["single", "boom"],
 		weapon_hysteresis_ms: 0,
-		weapon_switch_margin: 1.0,
+		weapon_switch_margin: 1.1,
 		weapon_min_swap_attacks: 1,
 
 		chest_swap_enabled: true,

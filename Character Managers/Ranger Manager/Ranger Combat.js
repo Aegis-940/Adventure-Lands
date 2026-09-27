@@ -9,13 +9,11 @@ function should_attack_mob(mob) {
 
 	if (typeof porcupine_guard_rank === "function" && porcupine_guard_rank(mob)) return true;
 
-	if (CONFIG.combat.attack_if_targeted.includes(mob.mtype)) {
-		return true;
-	}
+	if (CONFIG.combat.always_attack.includes(mob.mtype)) return true;
 
 	const aggroed = !CONFIG.combat.engage_aggroed_only || !!mob.target;
 
-	if (CONFIG.combat.always_attack.includes(mob.mtype)) return aggroed;
+	if (CONFIG.combat.attack_if_targeted.includes(mob.mtype)) return aggroed;
 
 	if (parent?.S?.[mob.mtype]?.live) return true;
 
@@ -53,12 +51,12 @@ function update_target_cache() {
 		const b_guard = guard_rank(b);
 		if (a_guard !== b_guard) return b_guard - a_guard;
 
-		const a_boss = CONFIG.combat.attack_if_targeted.includes(a.mtype);
-		const b_boss = CONFIG.combat.attack_if_targeted.includes(b.mtype);
+		const a_boss = CONFIG.combat.always_attack.includes(a.mtype);
+		const b_boss = CONFIG.combat.always_attack.includes(b.mtype);
 		if (a_boss !== b_boss) return b_boss - a_boss;
 
-		const a_priority = CONFIG.combat.always_attack.includes(a.mtype);
-		const b_priority = CONFIG.combat.always_attack.includes(b.mtype);
+		const a_priority = CONFIG.combat.attack_if_targeted.includes(a.mtype);
+		const b_priority = CONFIG.combat.attack_if_targeted.includes(b.mtype);
 		if (a_priority !== b_priority) return b_priority - a_priority;
 
 		return value.get(b) - value.get(a);
@@ -309,7 +307,7 @@ async function action_loop() {
 		const want_heal = !!cache.heal_target;
 
 		if (ms === 0 && !travel_blocks_combat() && !basic_action_busy()) {
-			if (want_heal && cupid_worn) run_basic_action(cupid_heal(cache.heal_target), "cupid");
+			if (want_heal && cupid_worn && cupid_live) run_basic_action(cupid_heal(cache.heal_target), "cupid");
 			else if (!want_heal && !cupid_live) handle_attack();
 			else next_delay = next_action_delay(ms);
 		} else {

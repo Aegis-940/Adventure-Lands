@@ -122,6 +122,10 @@ async function panic_response() {
 		return;
 	}
 	if (is_on_cooldown("scare")) return;
+	if (character.mp < G.skills.scare.mp) {
+		errlog_count("scare no mp");
+		return;
+	}
 	if (!can_use("scare")) {
 		errlog_count(`scare unusable orb=${character.slots.orb ? character.slots.orb.name : "empty"}`);
 		return;
