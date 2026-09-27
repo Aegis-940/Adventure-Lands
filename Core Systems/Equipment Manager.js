@@ -35,34 +35,6 @@ function clear_offhand_for_doublehand(valid_items) {
 const MAINHAND_FLIGHT_MS = 1500;
 const EQUIP_ACK_TIMEOUT_MS = 1000;
 
-// --------------------------------------------------------------------------------------------------------------------------------- //
-// SERVER REFUSAL — an equip the server answered not_ready is not re-sent until the ms it quoted have passed.
-// That is the only wait equips ever observe; there is no cooldown of our own.
-// --------------------------------------------------------------------------------------------------------------------------------- //
-
-let _equip_refused_until = 0;
-
-function equip_refused_ms() {
-	return Math.max(0, _equip_refused_until - Date.now());
-}
-
-function equip_refused(label) {
-	if (equip_refused_ms() <= 0) return false;
-	errlog_count(`equip waiting on server refusal ${label}`);
-	return true;
-}
-
-if (parent.socket._equip_not_ready_handler) {
-	parent.socket.off("game_response", parent.socket._equip_not_ready_handler);
-}
-
-parent.socket._equip_not_ready_handler = data => {
-	if (!data || data.place !== "equip" || data.reason !== "not_ready") return;
-	if (data.ms > 0) _equip_refused_until = Math.max(_equip_refused_until, Date.now() + data.ms);
-};
-
-parent.socket.on("game_response", parent.socket._equip_not_ready_handler);
-
 var _mainhand_flight = { pending: null, until: 0 };
 
 function mainhand_in_flight() {
@@ -129,8 +101,6 @@ async function batch_equip(data, set_name) {
 	}
 
 	if (valid_items.length === 0) return 0;
-
-	if (equip_refused(set_name || "slots")) return 0;
 
 	clear_offhand_for_doublehand(valid_items);
 
@@ -411,7 +381,6 @@ async function apply_equipment_rule(token, group, resolved) {
 		errlog_count(`equip unavailable ${group}`);
 		return;
 	}
-	if (equip_refused(sets.join("+"))) return;
 	await equip_apply(token, sets);
 }
 

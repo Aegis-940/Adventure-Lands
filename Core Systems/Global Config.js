@@ -221,6 +221,16 @@ function storage_write(key, value) {
 	}
 }
 
+const STATE_CACHE_KEY_PREFIX = "AL_char_state_";
+const STATE_CACHE_STALE_MS = 15000;
+
+function read_state_cache(name) {
+	const state = storage_read(STATE_CACHE_KEY_PREFIX + name);
+	if (!state) return null;
+	if (Date.now() - state.last_seen > STATE_CACHE_STALE_MS) return null;
+	return state;
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SECTION 2c: FLIGHT RECORDER STUBS — Error Log.js replaces these when it loads; absent, every call is a no-op
 // --------------------------------------------------------------------------------------------------------------------------------- //

@@ -94,8 +94,6 @@ add_cm_listener((name, data) => {
 // STATE CACHE (localStorage — shared across all characters' browser tabs on this origin)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const STATE_CACHE_KEY_PREFIX = "AL_char_state_";
-const STATE_CACHE_STALE_MS = 15000;
 const STATE_CACHE_WRITE_MS = 500;
 const STATE_CACHE_HEARTBEAT_MS = 5000;
 
@@ -148,13 +146,6 @@ function write_state_cache() {
 	} catch (e) {
 		catcher(e, "write_state_cache");
 	}
-}
-
-function read_state_cache(name) {
-	const state = storage_read(STATE_CACHE_KEY_PREFIX + name);
-	if (!state) return null;
-	if (Date.now() - state.last_seen > STATE_CACHE_STALE_MS) return null;
-	return state;
 }
 
 async function state_cache_loop() {
