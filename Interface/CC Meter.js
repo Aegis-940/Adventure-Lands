@@ -1,117 +1,68 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// CC METER DISPLAY (0 - 200) with rolling min/max markers and 60s average
+// CC METER — 0-200 bar with rolling 60s min/max markers and average
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const MAX_CC = 200;
+const CC_WINDOW_MS = 60000;
+
 const CC_HISTORY = [];
 
-const cc_meter = () => {
-	const $ = parent.$;
-
-	const cc_container = create_bottomrightcorner_widget("ccmeter", {
-		width:        "100%",
-		marginTop:    "4px",
-		marginBottom: "-4px",
-		fontSize:     "20px",
-		color:        "white",
-		textAlign:    "center",
-		display:      "table",
-	});
-
-	const cc_bar = $('<div id="ccbar"></div>').css({
-		display:       "table-cell",
-		verticalAlign: "middle",
-		width:         "100%",
-		height:        "28px",
-		background:    "rgba(0,0,0,0.3)",
-		border:        "2px solid gray",
-		position:      "relative",
-	});
-
-	const cc_fill = $('<div id="ccfill"></div>').css({
-		position:   "absolute",
-		top:        0,
-		left:       0,
-		height:     "100%",
-		width:      "0%",
-		background: "linear-gradient(to right, #1e90ff, #4169e1)",
-	});
-
-	const cc_text = $('<div id="cctext"></div>').css({
-		position:       "absolute",
-		top:            0,
-		left:           0,
-		width:          "100%",
-		height:         "100%",
-		display:        "flex",
-		alignItems:     "center",
-		justifyContent: "center",
-		fontWeight:     "bold",
-		color:          "#FFFFFF",
-		textShadow:     "1px 1px 2px black",
-		pointerEvents:  "none",
-	});
-
-	const low_mark = $('<div id="low_mark"></div>').css({
-		position:       "absolute",
-		top:            "0px",
-		width:          "2px",
-		height:         "100%",
-		background:     "red",
-		opacity:        0.6,
-		pointerEvents:  "none",
-	});
-
-	const high_mark = $('<div id="high_mark"></div>').css({
-		position:       "absolute",
-		top:            "0px",
-		width:          "2px",
-		height:         "100%",
-		background:     "lime",
-		opacity:        0.6,
-		pointerEvents:  "none",
-	});
-
-	const cc_average = $('<div id="ccaverage"></div>').css({
-		width:        "100%",
-		fontSize:     "14px",
-		color:        "#AAAAAA",
-		textAlign:    "center",
-		marginTop:    "2px",
-		textShadow:   "1px 1px 1px black",
-		pointerEvents:"none",
-	});
-
-	cc_bar.append(cc_fill).append(low_mark).append(high_mark).append(cc_text);
-	cc_container.append(cc_bar).append(cc_average);
+const CC_BAR_CSS = {
+	width: "100%", height: "28px", position: "relative",
+	background: "rgba(0,0,0,0.3)", border: "2px solid gray",
 };
 
-const update_cc_display = () => {
+const CC_MARK_CSS = {
+	position: "absolute", top: "0px", width: "2px", height: "100%",
+	opacity: 0.6, pointerEvents: "none",
+};
+
+function build_cc_bar(content) {
+	const $ = parent.$;
+
+	const bar = $('<div id="ccbar"></div>').css(CC_BAR_CSS);
+
+	bar.append($('<div id="ccfill"></div>').css({
+		position: "absolute", top: 0, left: 0, height: "100%", width: "0%",
+		background: "linear-gradient(to right, #1e90ff, #4169e1)",
+	}));
+	bar.append($('<div id="cclow"></div>').css({ ...CC_MARK_CSS, background: "red" }));
+	bar.append($('<div id="cchigh"></div>').css({ ...CC_MARK_CSS, background: "lime" }));
+	bar.append($('<div id="cctext"></div>').css({
+		position: "absolute", top: 0, left: 0, width: "100%", height: "100%",
+		display: "flex", alignItems: "center", justifyContent: "center",
+		fontWeight: "bold", color: "#FFFFFF", textShadow: "1px 1px 2px black",
+		pointerEvents: "none",
+	}));
+
+	content.append(bar);
+}
+
+function update_cc_bar() {
 	const $ = parent.$;
 	const now = Date.now();
-	const current_cc = Math.min(character.cc, MAX_CC);
-	const percent = Math.floor((current_cc / MAX_CC) * 100);
+	const current = Math.min(character.cc, MAX_CC);
 
-	CC_HISTORY.push({ timestamp: now, value: current_cc });
-	while (CC_HISTORY.length && CC_HISTORY[0].timestamp < now - 60000) {
-		CC_HISTORY.shift();
-	}
+	CC_HISTORY.push({ t: now, v: current });
+	prune_before(CC_HISTORY, now - CC_WINDOW_MS);
 
-	const values = CC_HISTORY.map(e => e.value);
-	const min = Math.min(...values);
-	const max = Math.max(...values);
-	const avg = Math.floor(values.reduce((a, b) => a + b, 0) / values.length || 0);
+	const values = CC_HISTORY.map(e => e.v);
+	const average = Math.floor(values.reduce((a, b) => a + b, 0) / values.length || 0);
+	const pct = value => `${Math.floor((value / MAX_CC) * 100)}%`;
 
-	const min_percent = Math.floor((min / MAX_CC) * 100);
-	const max_percent = Math.floor((max / MAX_CC) * 100);
+	$("#ccfill").css("width", pct(current));
+	$("#cclow").css("left", pct(Math.min(...values)));
+	$("#cchigh").css("left", pct(Math.max(...values)));
+	$("#cctext").text(`CC: ${Math.floor(current)}/${MAX_CC} (Avg: ${average})`);
+}
 
-	$("#ccfill").css("width", `${percent}%`);
-	$("#cctext").text(`CC: ${Math.floor(current_cc)}/${MAX_CC} (Avg: ${avg})`);
-	$("#low_mark").css("left", `${min_percent}%`);
-	$("#high_mark").css("left", `${max_percent}%`);
-};
-
-
-setInterval(update_cc_display, 200);
-
-cc_meter();
+register_widget("ccmeter", {
+	tick_ms: 200,
+	container: {
+		width: "100%", marginTop: "4px", marginBottom: "-4px",
+		fontSize: "20px", color: "white", textAlign: "center", display: "table",
+	},
+	content: { display: "table-cell", verticalAlign: "middle", width: "100%" },
+	init: build_cc_bar,
+	render: update_cc_bar,
+});

@@ -1,94 +1,56 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// GOLD METER WITH 5-MINUTE ROLLING AVERAGE
+// GOLD METER — rolling gold/hour and the biggest chest of the session
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let gold_events       = [];
-let largest_gold_drop  = 0;
-const start_time      = Date.now();
-const WINDOW_MS      = 30 * 60 * 1000;
-let interval         = "hour";
+const GOLD_START = Date.now();
+const GOLD_WINDOW_MS = 30 * 60 * 1000;
+const GOLD_UNIT_SECONDS = { minute: 60, hour: 3600, day: 86400 };
 
-const init_gold_meter = () => {
-	const gold_container = create_bottomrightcorner_widget("goldtimer", {
-		fontSize:     "25px",
-		color:        "white",
-		textAlign:    "center",
-		display:      "table",
-		overflow:     "hidden",
-		marginBottom: "-5px",
-		width:        "100%",
-	});
+let gold_events = [];
+let largest_gold_drop = 0;
+let gold_interval = "hour";
 
-	parent.$('<div id="goldtimercontent"></div>')
-		.css({ display: "table-cell", verticalAlign: "middle" })
-		.appendTo(gold_container);
-};
+function calculate_average_gold() {
+	const now = Date.now();
+	const window_ms = Math.min(now - GOLD_START, GOLD_WINDOW_MS);
+	if (window_ms <= 0) return 0;
 
-const format_gold_string = (average_gold) => `
-	<div>${average_gold.toLocaleString("en")} Gold/${interval.charAt(0).toUpperCase() + interval.slice(1)}</div>
-	<div>${largest_gold_drop.toLocaleString("en")} Jackpot</div>
-`;
+	prune_before(gold_events, now - window_ms);
 
-const update_gold_display = () => {
-	const $           = parent.$;
-	const average_gold = calculate_average_gold();
-	$("#goldtimercontent").html(format_gold_string(average_gold)).css({
-		background:      "black",
-		backgroundColor: "rgba(0, 0, 0, 0.6)",
-		border:          "solid gray",
-		borderWidth:     "4px 4px",
-		height:          "50px",
-		lineHeight:      "25px",
-		fontSize:        "25px",
-		color:           "#FFD700",
-		textAlign:       "center",
-	});
-};
+	const per_second = window_sum(gold_events, now - window_ms) / (window_ms / 1000);
+	return Math.round(per_second * GOLD_UNIT_SECONDS[gold_interval]);
+}
 
-setInterval(update_gold_display, 500);
+function set_gold_interval(new_interval) {
+	if (GOLD_UNIT_SECONDS[new_interval]) gold_interval = new_interval;
+	else game_log(`Invalid gold interval "${new_interval}" — use minute, hour or day`, "#FFA500");
+}
 
-init_gold_meter();
-
-character.on("loot", (data) => {
-	if (data.gold && typeof data.gold === "number" && !Number.isNaN(data.gold)) {
-		const party_share        = parent.party[character.name]?.share || 1;
-		const total_gold_in_chest  = Math.round(data.gold / party_share);
-		const now               = Date.now();
-
-		gold_events.push({ t: now, amount: total_gold_in_chest });
-
-		if (total_gold_in_chest > largest_gold_drop) {
-			largest_gold_drop = total_gold_in_chest;
-		}
-	} else {
-		console.warn("Invalid gold value:", data.gold);
-	}
+register_widget("goldtimer", {
+	tick_ms: 500,
+	container: {
+		fontSize: "25px", color: "white", textAlign: "center", display: "table",
+		overflow: "hidden", marginBottom: "-5px", width: "100%",
+	},
+	content: {
+		display: "table-cell", verticalAlign: "middle",
+		background: "black", backgroundColor: "rgba(0, 0, 0, 0.6)",
+		border: "solid gray", borderWidth: "4px 4px",
+		height: "50px", lineHeight: "25px", fontSize: "25px",
+		color: "#FFD700", textAlign: "center",
+	},
+	render: () => `
+		<div>${commas(calculate_average_gold())} Gold/${gold_interval.charAt(0).toUpperCase() + gold_interval.slice(1)}</div>
+		<div>${commas(largest_gold_drop)} Jackpot</div>
+	`,
 });
 
-const calculate_average_gold = () => {
-	const now       = Date.now();
-	const elapsed_ms = now - start_time;
-	const window_ms  = Math.min(elapsed_ms, WINDOW_MS);
-	const cutoff    = now - window_ms;
+character.on("loot", (data) => {
+	if (typeof data.gold !== "number" || Number.isNaN(data.gold)) return;
 
-	gold_events = gold_events.filter(e => e.t >= cutoff);
+	const party_share = parent.party[character.name]?.share || 1;
+	const chest_total = Math.round(data.gold / party_share);
 
-	const sum_window = gold_events.reduce((sum, e) => sum + e.amount, 0);
-
-	const divisor_seconds = window_ms / 1000;
-	if (divisor_seconds <= 0) return 0;
-
-	const unit_seconds = interval === "minute" ? 60
-						: interval === "hour"   ? 3600
-						:                          86400;
-
-	return Math.round(sum_window / divisor_seconds * unit_seconds);
-};
-
-const set_gold_interval = (new_interval) => {
-	if (["minute", "hour", "day"].includes(new_interval)) {
-		interval = new_interval;
-	} else {
-		console.warn("Invalid interval. Use 'minute', 'hour', or 'day'.");
-	}
-};
+	gold_events.push({ t: Date.now(), v: chest_total });
+	if (chest_total > largest_gold_drop) largest_gold_drop = chest_total;
+});

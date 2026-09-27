@@ -62,23 +62,6 @@ function get_player_entry(id) {
 	return player_damage_sums[id];
 }
 
-function get_formatted(val) {
-	return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-
-function init_dps_meter() {
-	const container = create_bottomrightcorner_widget("dpsmeter", {
-		fontSize: "20px", color: "white", textAlign: "center", display: "table",
-		overflow: "hidden", marginBottom: "-3px", width: "100%", backgroundColor: "rgba(0,0,0,0.6)"
-	});
-	container.append(
-		parent.$("<div id='dpsmetercontent'></div>").css({
-			display: "table-cell", verticalAlign: "middle", padding: "2px",
-			border: "4px solid grey"
-		})
-	);
-}
-
 if (parent.socket._dps_meter_hit_handler) {
 	parent.socket.off("hit", parent.socket._dps_meter_hit_handler);
 }
@@ -197,10 +180,7 @@ function prune_entry_events(entry) {
 	const cutoff = performance.now() - DPS_WINDOW_MS;
 	for (const key in entry) {
 		if (!key.endsWith("_events")) continue;
-		const arr = entry[key];
-		let i = 0;
-		while (i < arr.length && arr[i].t < cutoff) i++;
-		if (i > 0) arr.splice(0, i);
+		const arr = prune_before(entry[key], cutoff);
 		if (arr.length > DPS_MAX_EVENTS) arr.splice(0, arr.length - DPS_MAX_EVENTS);
 	}
 }
@@ -217,138 +197,100 @@ function prune_dps_events() {
 	errlog_size("mem dps events", deepest);
 }
 
+const DAMAGE_TYPE_SERIES = {
+	DPS: "damage_events",
+	Burn: "burn_events",
+	Blast: "blast_events",
+	Base: "base_events",
+	HPS: "heal_events",
+	MPS: "mana_steal_events",
+	DR: "dreturn_events",
+	RF: "reflect_events",
+};
+
 function get_type_value(type, entry) {
 	const now = performance.now();
 	const window_start = Math.max(entry.start_time, now - DPS_WINDOW_MS);
 	const window_ms = now - window_start;
-	if (window_ms <= 0) return 0;
+	if (window_ms <= 0) return type === "Dmg Taken" ? { phys: 0, mag: 0 } : 0;
 
-	function sum_events(arr) {
-		return arr.reduce((sum, ev) => ev.t >= window_start ? sum + ev.v : sum, 0);
+	const per_second = series => Math.floor(window_sum(entry[series], window_start) * 1000 / window_ms);
+
+	if (type === "Dmg Taken") {
+		return { phys: per_second("dmg_taken_phys_events"), mag: per_second("dmg_taken_mag_events") };
 	}
 
-	switch (type) {
-		case "DPS": {
-			const total = sum_events(entry.damage_events);
-			return Math.floor(total * 1000 / window_ms);
-		}
-		case "Burn": {
-			const total = sum_events(entry.burn_events);
-			return Math.floor(total * 1000 / window_ms);
-		}
-		case "Blast": {
-			const total = sum_events(entry.blast_events);
-			return Math.floor(total * 1000 / window_ms);
-		}
-		case "Base": {
-			const total = sum_events(entry.base_events);
-			return Math.floor(total * 1000 / window_ms);
-		}
-		case "HPS": {
-			const total = sum_events(entry.heal_events);
-			return Math.floor(total * 1000 / window_ms);
-		}
-		case "MPS": {
-			const total = sum_events(entry.mana_steal_events);
-			return Math.floor(total * 1000 / window_ms);
-		}
-		case "DR": {
-			const total = sum_events(entry.dreturn_events);
-			return Math.floor(total * 1000 / window_ms);
-		}
-		case "RF": {
-			const total = sum_events(entry.reflect_events);
-			return Math.floor(total * 1000 / window_ms);
-		}
-		case "Dmg Taken": {
-			const phys = sum_events(entry.dmg_taken_phys_events);
-			const mag  = sum_events(entry.dmg_taken_mag_events);
-			return {
-				phys: Math.floor(phys * 1000 / window_ms),
-				mag:  Math.floor(mag  * 1000 / window_ms)
-			};
-		}
-		default:
-			return 0;
-	}
+	const series = DAMAGE_TYPE_SERIES[type];
+	return series ? per_second(series) : 0;
 }
 
-function calculate_dps_for_entry(entry) {
-	const now = performance.now();
-	const window_start = Math.max(entry.start_time, now - DPS_WINDOW_MS);
-	const window_ms = now - window_start;
-	if (window_ms <= 0) return 0;
-	const total = entry.damage_events.reduce((sum, ev) => ev.t >= window_start ? sum + ev.v : sum, 0);
-	return Math.floor(total * 1000 / window_ms);
+function dps_cell(type, value) {
+	if (type !== "Dmg Taken") return `<td>${commas(value)}</td>`;
+	return `<td><span style="color:#FF4C4C">${commas(value.phys)}</span>`
+		+ ` | <span style="color:#6ECFF6">${commas(value.mag)}</span></td>`;
 }
 
-function update_dps_meter_ui() {
-	const $ = parent.$;
-	let c = $("#dpsmetercontent");
-	if (!c.length) {
-		init_dps_meter();
-		c = $("#dpsmetercontent");
-		if (!c.length) return;
-	}
+function dps_total(type, rows) {
+	if (type !== "Dmg Taken") return rows.reduce((sum, r) => sum + r.vals[type], 0);
+	return {
+		phys: rows.reduce((sum, r) => sum + r.vals[type].phys, 0),
+		mag: rows.reduce((sum, r) => sum + r.vals[type].mag, 0),
+	};
+}
 
+function dps_meter_html() {
 	const elapsed_ms = performance.now() - METER_START;
 	const hrs = Math.floor(elapsed_ms / 3600000);
 	const mins = Math.floor((elapsed_ms % 3600000) / 60000);
 
-	let html = `<div>👑 Elapsed Time: ${hrs}h ${mins}m 👑</div>` +
-		'<table border="1" style="width:100%"><tr><th></th>';
-
-	DAMAGE_TYPES.forEach(t => {
-		const col = DISPLAY_DAMAGE_TYPE_COLORS ? DAMAGE_TYPE_COLORS[t] || "white" : "white";
-		html += `<th style="color:${col}">${t}</th>`;
-	});
-	html += "</tr>";
-
-	const sorted = Object.entries(player_damage_sums)
-		.map(([id, e]) => {
+	const rows = Object.keys(player_damage_sums)
+		.map(id => {
+			const entry = player_damage_sums[id];
 			const vals = {};
-			DAMAGE_TYPES.forEach(t => vals[t] = get_type_value(t, e));
-			return { id, vals, dps: calculate_dps_for_entry(e) };
+			for (const type of DAMAGE_TYPES) vals[type] = get_type_value(type, entry);
+			return { player: get_player(id), vals, dps: get_type_value("DPS", entry) };
 		})
+		.filter(row => row.player)
 		.sort((a, b) => b.dps - a.dps);
 
-	sorted.forEach(({ id, vals }) => {
-		const p = get_player(id);
-		if (!p) return;
-		const name_col = DISPLAY_CLASS_TYPE_COLORS
-			? CLASS_COLORS[p.ctype.toLowerCase()] || "#FFFFFF"
-			: "#FFFFFF";
-		html += `<tr><td style="color:${name_col}">${p.name}</td>`;
-		DAMAGE_TYPES.forEach(t => {
-			if (t === "Dmg Taken") {
-				const { phys, mag } = vals[t];
-				html += `<td><span style="color:#FF4C4C">${get_formatted(phys)}</span> | <span style="color:#6ECFF6">${get_formatted(mag)}</span></td>`;
-			} else {
-				html += `<td>${get_formatted(vals[t])}</td>`;
-			}
-		});
-		html += "</tr>";
-	});
+	const headers = DAMAGE_TYPES
+		.map(type => {
+			const colour = DISPLAY_DAMAGE_TYPE_COLORS ? DAMAGE_TYPE_COLORS[type] || "white" : "white";
+			return `<th style="color:${colour}">${type}</th>`;
+		})
+		.join("");
 
-	html += `<tr><td style="color:${DAMAGE_TYPE_COLORS["DPS"]}">Total DPS</td>`;
-	DAMAGE_TYPES.forEach(t => {
-		if (t === "Dmg Taken") {
-			let tot_p = 0, tot_m = 0;
-			sorted.forEach(({ vals }) => { tot_p += vals[t].phys; tot_m += vals[t].mag; });
-			html += `<td><span style="color:#FF4C4C">${get_formatted(tot_p)}</span> | <span style="color:#6ECFF6">${get_formatted(tot_m)}</span></td>`;
-		} else if (t === "DPS") {
-			html += `<td>${get_formatted(sorted.reduce((sum, p) => sum + p.dps, 0))}</td>`;
-		} else {
-			let tot = 0;
-			sorted.forEach(({ vals }) => tot += vals[t]);
-			html += `<td>${get_formatted(tot)}</td>`;
-		}
-	});
+	const body = rows
+		.map(({ player, vals }) => {
+			const colour = DISPLAY_CLASS_TYPE_COLORS
+				? CLASS_COLORS[player.ctype.toLowerCase()] || "#FFFFFF"
+				: "#FFFFFF";
+			return `<tr><td style="color:${colour}">${player.name}</td>`
+				+ DAMAGE_TYPES.map(type => dps_cell(type, vals[type])).join("")
+				+ "</tr>";
+		})
+		.join("");
 
-	html += "</tr></table>";
-	c.html(html);
+	const totals = `<tr><td style="color:${DAMAGE_TYPE_COLORS.DPS}">Total DPS</td>`
+		+ DAMAGE_TYPES.map(type => dps_cell(type, dps_total(type, rows))).join("")
+		+ "</tr>";
+
+	return `<div>👑 Elapsed Time: ${hrs}h ${mins}m 👑</div>`
+		+ '<table border="1" style="width:100%">'
+		+ `<tr><th></th>${headers}</tr>${body}${totals}</table>`;
 }
 
-init_dps_meter();
-setInterval(update_dps_meter_ui, 250);
+register_widget("dpsmeter", {
+	tick_ms: 250,
+	container: {
+		fontSize: "20px", color: "white", textAlign: "center", display: "table",
+		overflow: "hidden", marginBottom: "-3px", width: "100%", backgroundColor: "rgba(0,0,0,0.6)",
+	},
+	content: {
+		display: "table-cell", verticalAlign: "middle", padding: "2px",
+		border: "4px solid grey",
+	},
+	render: () => dps_meter_html(),
+});
+
 setInterval(prune_dps_events, 1000);
