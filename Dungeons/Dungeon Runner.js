@@ -244,7 +244,7 @@ function dungeon_suppressed_types() {
 function dungeon_skip_target(mob) {
 	const d = active_dungeon();
 	if (!d || !mob) return false;
-	if (d.avoid && d.avoid.includes(mob.mtype)) return true;
+	if (dungeon_avoids(mob.mtype)) return true;
 
 	const on_party = !!(mob.target && DUNGEON_PARTY.includes(mob.target));
 

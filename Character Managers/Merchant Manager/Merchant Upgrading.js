@@ -63,9 +63,29 @@ var GRACE_MAX_OFFERINGS = 5;
 
 var GRACE_MAX = 5;
 
+function inventory_slot(item_name) {
+	const slot = character.items.findIndex(it => it && it.name === item_name);
+	return slot === -1 ? null : slot;
+}
+
+function bank_items(bank_data) {
+	const found = [];
+	for (const pack in bank_data) {
+		if (!Array.isArray(bank_data[pack])) continue;
+		for (const item of bank_data[pack]) {
+			if (item) found.push(item);
+		}
+	}
+	return found;
+}
+
+function below_max_level(item, max_level) {
+	return typeof item.level !== "number" || item.level < max_level;
+}
+
 async function check_grace(item_slot) {
-	const offering_slot = character.items.findIndex(it => it && it.name === "offeringp");
-	if (offering_slot === -1) return null;
+	const offering_slot = inventory_slot("offeringp");
+	if (offering_slot === null) return null;
 
 	try {
 		const response = await upgrade(item_slot, null, offering_slot, true);
@@ -88,8 +108,8 @@ async function add_grace_to_cap(item_slot) {
 	}
 
 	for (let attempt = 0; attempt < GRACE_MAX_OFFERINGS; attempt++) {
-		const offering_slot = character.items.findIndex(it => it && it.name === "offeringp");
-		if (offering_slot === -1) {
+		const offering_slot = inventory_slot("offeringp");
+		if (offering_slot === null) {
 			game_log(`⚠️ Ran out of offeringp before grace capped (at ${previous_grace}) for slot ${item_slot}.`, "#FFA500");
 			return { grace: previous_grace, capped: false };
 		}
@@ -214,53 +234,29 @@ async function withdraw_upgradeable_items() {
 	for (const item_name in UPGRADE_PROFILE) {
 		const max_level = UPGRADE_PROFILE[item_name].max_level;
 
-		for (const pack in bank_data) {
-			if (!Array.isArray(bank_data[pack])) continue;
-			for (let slot = 0; slot < bank_data[pack].length; slot++) {
-				const item = bank_data[pack][slot];
-				if (
-					item &&
-					item.name === item_name &&
-					(typeof item.level !== "number" || item.level < max_level)
-				) {
-					free_slots = count_empty_inventory();
-					if (free_slots <= 3) break;
-					const max_withdrawable = free_slots - 3;
-					const to_withdraw = Math.min(item.q || 1, max_withdrawable);
-					if (to_withdraw > 0) {
-						withdraw_item(item_name, item.level, to_withdraw);
-						await delay(400);
-					}
-				}
-				free_slots = count_empty_inventory();
-				if (free_slots <= 3) break;
-			}
+		for (const item of bank_items(bank_data)) {
 			free_slots = count_empty_inventory();
 			if (free_slots <= 3) break;
+			if (item.name !== item_name || !below_max_level(item, max_level)) continue;
+
+			const to_withdraw = Math.min(item.q || 1, free_slots - 3);
+			if (to_withdraw > 0) {
+				withdraw_item(item_name, item.level, to_withdraw);
+				await delay(400);
+			}
 		}
-		free_slots = count_empty_inventory();
-		if (free_slots <= 3) break;
+
+		if (count_empty_inventory() <= 3) break;
 	}
 
-	free_slots = count_empty_inventory();
 	for (const item_name in COMBINE_PROFILE) {
 		const max_level = COMBINE_PROFILE[item_name].max_level;
 
 		let level_map = {};
-		for (const pack in bank_data) {
-			if (!Array.isArray(bank_data[pack])) continue;
-			for (let slot = 0; slot < bank_data[pack].length; slot++) {
-				const item = bank_data[pack][slot];
-				if (
-					item &&
-					item.name === item_name &&
-					(typeof item.level !== "number" || item.level < max_level)
-				) {
-					const lvl = item.level || 0;
-					if (!level_map[lvl]) level_map[lvl] = 0;
-					level_map[lvl] += item.q || 1;
-				}
-			}
+		for (const item of bank_items(bank_data)) {
+			if (item.name !== item_name || !below_max_level(item, max_level)) continue;
+			const lvl = item.level || 0;
+			level_map[lvl] = (level_map[lvl] || 0) + (item.q || 1);
 		}
 
 		for (const level_str of Object.keys(level_map).sort((a, b) => a - b)) {
@@ -275,28 +271,17 @@ async function withdraw_upgradeable_items() {
 				if (to_withdraw < 3) break;
 
 				let remaining = to_withdraw;
-				for (const pack in bank_data) {
-					if (!Array.isArray(bank_data[pack])) continue;
-					for (let slot = 0; slot < bank_data[pack].length; slot++) {
-						const item = bank_data[pack][slot];
-						if (
-							item &&
-							item.name === item_name &&
-							(item.level || 0) === level
-						) {
-							free_slots = count_empty_inventory();
-							if (free_slots <= 3) break;
-							const withdraw_count = Math.min(item.q || 1, remaining);
-							if (withdraw_count > 0) {
-								withdraw_item(item_name, level, withdraw_count);
-								remaining -= withdraw_count;
-								count -= withdraw_count;
-								await delay(400);
-							}
-							if (remaining <= 0 || count_empty_inventory() <= 3) break;
-						}
-					}
+				for (const item of bank_items(bank_data)) {
 					if (remaining <= 0 || count_empty_inventory() <= 3) break;
+					if (item.name !== item_name || (item.level || 0) !== level) continue;
+
+					const withdraw_count = Math.min(item.q || 1, remaining);
+					if (withdraw_count > 0) {
+						withdraw_item(item_name, level, withdraw_count);
+						remaining -= withdraw_count;
+						count -= withdraw_count;
+						await delay(400);
+					}
 				}
 				if (count_empty_inventory() <= 3 || count < 3) break;
 			}
@@ -314,28 +299,19 @@ function bank_has_upgradeable_items() {
 
 	for (const item_name in UPGRADE_PROFILE) {
 		const max_level = UPGRADE_PROFILE[item_name].max_level;
-		for (const pack in bank_data) {
-			if (!Array.isArray(bank_data[pack])) continue;
-			for (const item of bank_data[pack]) {
-				if (item && item.name === item_name && (typeof item.level !== "number" || item.level < max_level)) {
-					return true;
-				}
-			}
+		for (const item of bank_items(bank_data)) {
+			if (item.name === item_name && below_max_level(item, max_level)) return true;
 		}
 	}
 
 	for (const item_name in COMBINE_PROFILE) {
 		const max_level = COMBINE_PROFILE[item_name].max_level;
 		const level_counts = {};
-		for (const pack in bank_data) {
-			if (!Array.isArray(bank_data[pack])) continue;
-			for (const item of bank_data[pack]) {
-				if (item && item.name === item_name && (typeof item.level !== "number" || item.level < max_level)) {
-					const lvl = item.level || 0;
-					level_counts[lvl] = (level_counts[lvl] || 0) + (item.q || 1);
-					if (level_counts[lvl] >= 3) return true;
-				}
-			}
+		for (const item of bank_items(bank_data)) {
+			if (item.name !== item_name || !below_max_level(item, max_level)) continue;
+			const lvl = item.level || 0;
+			level_counts[lvl] = (level_counts[lvl] || 0) + (item.q || 1);
+			if (level_counts[lvl] >= 3) return true;
 		}
 	}
 
@@ -365,16 +341,8 @@ async function auto_upgrade_item(level) {
 			: item.level < profile.scroll1_until ? "scroll1"
 			: "scroll2";
 
-		let scroll_slot = null;
-		let scroll = null;
-		for (let j = 0; j < character.items.length; j++) {
-			const inv_item = character.items[j];
-			if (inv_item && inv_item.name === scrollname) {
-				scroll_slot = j;
-				scroll = inv_item;
-				break;
-			}
-		}
+		const scroll_slot = inventory_slot(scrollname);
+		const scroll = scroll_slot === null ? null : character.items[scroll_slot];
 
 		if (!scroll) {
 			const scroll_cost = G.items[scrollname]?.g || 0;
@@ -398,13 +366,7 @@ async function auto_upgrade_item(level) {
 
 		let offering_slot = null;
 		if (profile.primling_from !== undefined && item.level >= profile.primling_from) {
-			for (let j = 0; j < character.items.length; j++) {
-				const inv_item = character.items[j];
-				if (inv_item && inv_item.name === "offeringp") {
-					offering_slot = j;
-					break;
-				}
-			}
+			offering_slot = inventory_slot("offeringp");
 			if (offering_slot === null) {
 				game_log(`Skipping ${item.name} (level ${item.level}): No offeringp found for upgrade requiring it.`);
 				continue;
@@ -488,16 +450,8 @@ async function auto_combine_item(level) {
 			: lvl < profile.scroll1_until ? "cscroll1"
 			: "cscroll2";
 
-		let scroll_slot = null;
-		let scroll = null;
-		for (let j = 0; j < character.items.length; j++) {
-			const inv_item = character.items[j];
-			if (inv_item && inv_item.name === scrollname) {
-				scroll_slot = j;
-				scroll = inv_item;
-				break;
-			}
-		}
+		const scroll_slot = inventory_slot(scrollname);
+		const scroll = scroll_slot === null ? null : character.items[scroll_slot];
 
 		if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
 			const has_primling = character.items.some(inv_item => inv_item && inv_item.name === "offeringp");
@@ -535,16 +489,8 @@ async function auto_combine_item(level) {
 			: lvl < profile.scroll1_until ? "cscroll1"
 			: "cscroll2";
 
-		let scroll_slot = null;
-		let scroll = null;
-		for (let j = 0; j < character.items.length; j++) {
-			const inv_item = character.items[j];
-			if (inv_item && inv_item.name === scrollname) {
-				scroll_slot = j;
-				scroll = inv_item;
-				break;
-			}
-		}
+		const scroll_slot = inventory_slot(scrollname);
+		const scroll = scroll_slot === null ? null : character.items[scroll_slot];
 		if (!scroll) continue;
 		if (combine_failed_keys.has(key)) continue;
 
@@ -558,13 +504,7 @@ async function auto_combine_item(level) {
 
 		let offering_slot = null;
 		if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
-			for (let j = 0; j < character.items.length; j++) {
-				const inv_item = character.items[j];
-				if (inv_item && inv_item.name === "offeringp") {
-					offering_slot = j;
-					break;
-				}
-			}
+			offering_slot = inventory_slot("offeringp");
 			if (offering_slot === null) {
 				game_log("No offeringp found for combine requiring it.");
 				return "wait";

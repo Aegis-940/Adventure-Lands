@@ -101,28 +101,26 @@
 
 	const MAX_RETRIES = 3;
 
-	const CRITICAL_SCRIPTS = [
-		"Core Systems/Movement Manager.js",
-		"Core Systems/Bscorpion Camp.js",
-		"Core Systems/Combat Utilities.js",
-		"Core Systems/Combat Formulas.js",
-		"Core Systems/Combat Sampling.js",
-		"Core Systems/Movement Positioning.js",
-		"Core Systems/Targeting.js",
-		"Core Systems/World Events.js",
-		"Core Systems/Character Messaging.js",
-		"Core Systems/Equipment Manager.js",
-		"Core Systems/Equipment Valuation.js",
-		"Core Systems/Party Management.js",
-		"Core Systems/Loot Management.js",
-		"Core Systems/Maintenance.js",
-		"Core Systems/Party Cohesion.js",
-		"Core Systems/Character Runner.js",
-		"Core Systems/Error Handling.js",
-		"Dungeons/Dungeon Runner.js",
-		"Dungeons/Dungeon Escape.js",
-		"Interface/Bank Viewer.js",
-	];
+	const OPTIONAL_SCRIPTS = new Set([
+		"Core Systems/Porcupine Guard.js",
+		"Core Systems/Error Log.js",
+		"Dungeons/Spider Dungeon.js",
+		"Dungeons/Crypt Dungeon.js",
+		"Dungeons/Dungeon Progress.js",
+		"Dungeons/Dungeon Telemetry.js",
+		"Dungeons/Dungeon Collection.js",
+		"Dungeons/Crypt Route.js",
+		"Dungeons/Dungeon Mode.js",
+		"Interface/Bank Sort Order.js",
+		"Interface/XP Meter.js",
+		"Interface/Gold Meter.js",
+		"Interface/DPS Meter.js",
+		"Interface/Party Frames.js",
+		"Interface/CC Meter.js",
+		"Interface/Stats Window.js",
+		"Interface/Settings Window.js",
+		"Interface/Pause Button.js",
+	]);
 
 	function load_one(base, name) {
 		const url = base + encodeURI(name);
@@ -192,7 +190,7 @@
 			})
 			.then(results => {
 				if (!results) return;
-				const failed_critical = results.filter(r => !r.ok && CRITICAL_SCRIPTS.includes(r.name));
+				const failed_critical = results.filter(r => !r.ok && !OPTIONAL_SCRIPTS.has(r.name));
 				if (failed_critical.length > 0) {
 					const names = failed_critical.map(r => r.name).join(", ");
 					game_log("🛑 CRITICAL: failed to load " + names + " after retries — aborting, bot cannot function. Reload to retry.");
