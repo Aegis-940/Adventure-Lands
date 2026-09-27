@@ -43,7 +43,7 @@ var CONFIG = {
 
 	equipment: {
 		auto_swap_sets: true,
-		swap_cooldown: 500,
+		swap_cooldown: 2250,
 		weapon_swap_enabled: true,
 
 		weapon_sets: ["single", "aoe", "double_aoe"],

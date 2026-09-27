@@ -33,6 +33,7 @@ function clear_offhand_for_doublehand(valid_items) {
 }
 
 const MAINHAND_FLIGHT_MS = 1500;
+const EQUIP_ACK_TIMEOUT_MS = 1000;
 
 var _mainhand_flight = { pending: null, until: 0 };
 
@@ -110,8 +111,9 @@ async function batch_equip(data, set_name) {
 	}
 
 	try {
+		const ack = parent.push_deferred("equip_batch").catch(() => { });
 		parent.socket.emit("equip_batch", valid_items);
-		await parent.push_deferred("equip_batch");
+		await Promise.race([ack, delay(EQUIP_ACK_TIMEOUT_MS)]);
 	} catch (error) {
 		console.error("batch_equip error:", error);
 		return Promise.reject({ reason: "invalid", message: "Failed to equip" });
@@ -389,8 +391,7 @@ function equip_group_ready(group, key) {
 	if (!state.equip_cooldowns) state.equip_cooldowns = {};
 	const last = state.equip_cooldowns[group];
 	const now = performance.now();
-	if (last && last.key === key
-		&& now - last.at < (CONFIG.equipment.swap_cooldown ?? COOLDOWNS.equip_swap)) return false;
+	if (last && now - last.at < (CONFIG.equipment.swap_cooldown ?? COOLDOWNS.equip_swap)) return false;
 	state.equip_cooldowns[group] = { key, at: now };
 	return true;
 }

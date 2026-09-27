@@ -45,7 +45,7 @@ var CONFIG = {
 
 	equipment: {
 		auto_swap_sets: true,
-		swap_cooldown: 500,
+		swap_cooldown: 2250,
 		temporal_surge_enabled: false,
 
 		weapon_swap_enabled: true,
