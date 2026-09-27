@@ -92,15 +92,12 @@ function heal_report() {
 	}
 }
 
-var HEAL_LOADOUT_HOLD_MS = 1500;
-
 function dungeon_loadout() {
 	const attack_set = dungeon_setting("attack_loadout", null);
 	const heal_set = dungeon_setting("heal_loadout", null);
 	if (!attack_set || !heal_set) return null;
 
-	const healing = heal_wanted() || Date.now() - (state.last_heal_cast || 0) < HEAL_LOADOUT_HOLD_MS;
-	const wanted = healing ? heal_set : attack_set;
+	const wanted = heal_wanted() ? heal_set : attack_set;
 
 	return set_available(wanted) ? wanted : null;
 }

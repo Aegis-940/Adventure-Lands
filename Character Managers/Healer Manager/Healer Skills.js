@@ -144,9 +144,6 @@ async function handle_absorb() {
 }
 
 
-var PARTY_HEAL_COOLDOWN = 250;
-var last_party_heal_time = 0;
-
 function heal_candidates() {
 	const members = [];
 	for (const name of cache.party_members || []) {
@@ -215,8 +212,6 @@ function party_heal_outvalues_single(lowest) {
 }
 
 async function handle_party_heal() {
-	const now = performance.now();
-	if (now - last_party_heal_time < PARTY_HEAL_COOLDOWN) return;
 	if (character.mp <= CONFIG.healing.party_heal_min_mp) return;
 	if (is_on_cooldown("partyheal")) return;
 
@@ -242,7 +237,6 @@ async function handle_party_heal() {
 	}
 
 	await use_skill("partyheal");
-	last_party_heal_time = now;
 }
 
 

@@ -24,7 +24,6 @@ var CONFIG = {
 		cupid_engage_pct: 0.66,
 		cupid_engage_pct_no_healer: 0.9,
 		cupid_release_margin: 0.14,
-		cupid_arm_ms: 400,
 		mana_is_free: true,
 
 		sample_hits: true,
@@ -52,7 +51,6 @@ var CONFIG = {
 		chest_release_pct: 0.90,
 		chest_mana_max_engage_pct: 0.75,
 		chest_refill_shots: 3,
-		chest_min_hold_ms: 2000,
 	},
 
 	looting: { ...LOOTING_DEFAULTS },

@@ -95,8 +95,6 @@ async function handle_stomp() {
 	}
 }
 
-var CLEAVE_RESTORE_TIMEOUT_MS = 800;
-
 async function handle_cleave() {
 	const ms_until_cleave = ms_to_next_skill("cleave");
 	if (ms_until_cleave !== 0) return;
@@ -118,46 +116,13 @@ async function handle_cleave() {
 	const back = equip_plan(restore, arm.shadow);
 	if (!back.ops.length) return;
 
-	const token = equip_claim("cleave-swap", EQUIP_PRIORITY.skill);
-	if (!token) return;
-
-	const t0 = Date.now();
 	state.last_cleave_swap = now;
 
 	emit_equip_ops(arm.ops);
 	parent.socket.emit("skill", { name: "cleave" });
 	emit_equip_ops(back.ops);
 	parent.next_skill.cleave = new Date(Date.now() + G.skills.cleave.cooldown);
-
-	hold_until_restored(token, restore, t0, Date.now()).catch(e => catcher(e, "handle_cleave"));
-}
-
-async function hold_until_restored(token, restore, t0, burst) {
-	let outcome = "ok";
-	try {
-		if (!await wait_for_set(restore, CLEAVE_RESTORE_TIMEOUT_MS)) outcome = "restore_failed";
-	} finally {
-		equip_release(token);
-		sample_cleave_swap(t0, burst, outcome, restore);
-	}
-}
-
-function sample_cleave_swap(t0, burst, outcome, restore) {
-	if (!CONFIG.combat.sample_hits) return;
-
-	errlog_sample("cleave_swap", {
-		outcome,
-		restore,
-		burst_ms: burst ? burst - t0 : null,
-		settle_ms: burst ? Date.now() - burst : null,
-		total_ms: Date.now() - t0,
-		assumed_ms: CONFIG.equipment.cleave_swap_ms,
-		ping: parent.pings?.length ? Math.min(...parent.pings) : null,
-		penalty: Math.round(character.s?.penalty_cd?.ms || 0),
-		mp_pct: +(character.mp / character.max_mp).toFixed(2),
-		modelled_period: +cleave_period().toFixed(2),
-		targets: (cache.monsters_in_cleave_range || []).length
-	});
+	errlog_count("cleave swap fired");
 }
 
 function can_cleave() {

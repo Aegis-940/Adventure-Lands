@@ -129,7 +129,6 @@ var equipment_sets = {
 var state = {
 	last_equip_time: 0,
 	last_temporal_surge: 0,
-	last_heal_cast: 0,
 	angle: 0,
 	last_angle_update: performance.now()
 };

@@ -360,15 +360,6 @@ function emit_equip_ops(ops) {
 	for (const op of ops) parent.socket.emit(op.event, op.payload);
 }
 
-async function wait_for_set(set_name, timeout_ms) {
-	const deadline = Date.now() + (timeout_ms || 1000);
-	while (!is_set_equipped(set_name)) {
-		if (Date.now() >= deadline) return false;
-		await delay(20);
-	}
-	return true;
-}
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // UNIFIED EQUIPMENT RESOLVER — Warrior/Ranger/Healer each declare their own EQUIPMENT_RULES
 // --------------------------------------------------------------------------------------------------------------------------------- //

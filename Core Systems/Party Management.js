@@ -32,8 +32,6 @@ function set_panic(on, reason, external) {
 const EXTERNAL_PANIC_MAX_MS = 60000;
 const SELF_PANIC_MAX_MS = 60000;
 
-let _panic_check_running = false;
-
 function monsters_targeting_me() {
 	let count = 0;
 	for (const id in parent.entities) {
@@ -77,17 +75,7 @@ function release_panic(reason, broadcast) {
 	if (broadcast) send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
 }
 
-async function panic_check() {
-	if (_panic_check_running) return;
-	_panic_check_running = true;
-	try {
-		await _panic_check_body();
-	} finally {
-		_panic_check_running = false;
-	}
-}
-
-async function _panic_check_body() {
+function panic_check() {
 	if (dungeon_bailing()) return;
 
 	const threat = panic_threat();
@@ -99,7 +87,7 @@ async function _panic_check_body() {
 		return;
 	}
 
-	await panic_response();
+	panic_response();
 
 	if (panic_external) {
 		if (Date.now() - panic_external_since > EXTERNAL_PANIC_MAX_MS) {
@@ -116,7 +104,7 @@ async function _panic_check_body() {
 	}
 }
 
-async function panic_response() {
+function panic_response() {
 	if (!is_set_equipped("panic")) {
 		errlog_count("panic waiting for orb");
 		return;
@@ -131,13 +119,10 @@ async function panic_response() {
 		return;
 	}
 
-	try {
-		game_log("Using Scare!", "#ffcc00");
-		errlog_count("scare fired");
-		await use_skill("scare");
-	} catch (e) {
-		game_log(`[PANIC] Error using scare: ${fmt_err(e)}`, "#ff4444");
-	}
+	game_log("Using Scare!", "#ffcc00");
+	errlog_count("scare fired");
+	parent.next_skill.scare = new Date(Date.now() + G.skills.scare.cooldown);
+	use_skill("scare").catch(e => game_log(`[PANIC] Error using scare: ${fmt_err(e)}`, "#ff4444"));
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

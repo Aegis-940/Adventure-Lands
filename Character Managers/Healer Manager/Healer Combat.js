@@ -160,7 +160,6 @@ async function try_heal() {
 		if (basic_action_busy()) return true;
 		run_basic_action(heal(heal_target), "heal");
 		_heal_cast = true;
-		state.last_heal_cast = Date.now();
 		return true;
 	}
 

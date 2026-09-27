@@ -46,7 +46,6 @@ function resolve_ranger_orb() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 var _mana_chest_engaged = false;
-var _mana_chest_worn_since = 0;
 
 function desired_shot(pool) {
 	let best = SHOT_PROFILES[0];
@@ -114,20 +113,8 @@ function mana_chest_wanted() {
 		return false;
 	}
 
-	const sets = CONFIG.equipment.chest_sets || {};
 	const band = mana_chest_band();
-
-	if (_mana_chest_engaged) {
-		if (!_mana_chest_worn_since && sets.mana && is_set_equipped(sets.mana)) _mana_chest_worn_since = Date.now();
-		const worn_ms = _mana_chest_worn_since ? Date.now() - _mana_chest_worn_since : 0;
-		if (character.mp >= band.release && worn_ms >= (CONFIG.equipment.chest_min_hold_ms ?? 2000)) {
-			_mana_chest_engaged = false;
-		}
-	} else if (character.mp < band.engage) {
-		_mana_chest_engaged = true;
-		_mana_chest_worn_since = 0;
-	}
-
+	_mana_chest_engaged = _mana_chest_engaged ? character.mp < band.release : character.mp < band.engage;
 	return _mana_chest_engaged;
 }
 

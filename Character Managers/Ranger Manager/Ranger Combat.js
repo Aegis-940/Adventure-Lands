@@ -223,7 +223,6 @@ function choose_attack_option(primary) {
 }
 
 var _cupid_engaged = false;
-var _cupid_dip_since = 0;
 
 function cupid_blocked() {
 	if (!set_available("heal")) return true;
@@ -235,7 +234,6 @@ function cupid_blocked() {
 function find_cupid_target() {
 	if (cupid_blocked()) {
 		_cupid_engaged = false;
-		_cupid_dip_since = 0;
 		return null;
 	}
 
@@ -257,23 +255,8 @@ function find_cupid_target() {
 		}
 	}
 
-	if (_cupid_engaged) {
-		_cupid_engaged = min_pct < release;
-		if (!_cupid_engaged) _cupid_dip_since = 0;
-		return _cupid_engaged ? target : null;
-	}
-
-	const now = Date.now();
-	if (min_pct >= engage) {
-		_cupid_dip_since = 0;
-		return null;
-	}
-
-	if (!_cupid_dip_since) _cupid_dip_since = now;
-	if (now - _cupid_dip_since < CONFIG.combat.cupid_arm_ms) return null;
-
-	_cupid_engaged = true;
-	return target;
+	_cupid_engaged = _cupid_engaged ? min_pct < release : min_pct < engage;
+	return _cupid_engaged ? target : null;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
