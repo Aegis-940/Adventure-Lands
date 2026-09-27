@@ -124,7 +124,7 @@ function resolve_healer_gloves() {
 }
 
 function resolve_healer_orb() {
-	if (panicking) return "panic";
+	if (panic_orb_wanted()) return "panic";
 
 	const dungeon_orb = dungeon_setting("orb", null);
 	if (dungeon_orb && set_available(dungeon_orb)) return dungeon_orb;
