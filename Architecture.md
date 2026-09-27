@@ -23,13 +23,17 @@
 Code Loader.js                    ← the only file in a game code slot; fetches/evals Bootstrapper.js
 Bootstrapper.js                   ← loads everything else from CDN (jsdelivr), in order
 
-Core Systems/Global Config.js     ← awaited FIRST, with Widget Helpers.js; everything may assume it
+Core Systems/Global Config.js     ← awaited FIRST (with Widget Helpers + Game Log); assume it exists
     ├── Location database     (monster spawn locations per map)
-    ├── Party constants       (PARTY_LEADER, PARTY_MEMBERS, MOVEMENT_LEADER)
+    ├── Party constants       (PARTY_LEADER, PARTY_MEMBERS, MOVEMENT_LEADER, DUNGEON_PARTY)
     ├── Shared config defaults (LOOTING_/POTION_/EQUIPMENT_DEFAULTS, PANIC_ORB_SET)
     ├── farm_target_for()/farm_target_key() — the per-character farm target
     ├── storage_read()/storage_write() — the one JSON-backed localStorage seam
-    ├── No-op errlog_* stubs  (Error Log.js replaces them; call sites never guard)
+    ├── Cross-character `var`s (home, destination, CONFIG, cache, ITEMS_TO_KEEP,
+    │                          MONSTER_GEAR_OVERRIDES, EQUIPMENT_RULES, panic flags)
+    │                          declared with neutral defaults so no reader guards on typeof
+    ├── No-op stubs           (errlog_*, and the one-role-only request_delivery,
+    │                          model_prediction, get_character_state)
     └── Tick rates / cooldowns
 
 Core Systems/*.js                 ← loaded in parallel as real <script> tags
@@ -105,7 +109,9 @@ Interface/*.js                    ← overlay panels (semi-independent)
     ├── CC Meter.js
     ├── Gold Meter.js
     ├── XP Meter.js
-    ├── Game Log.js               the one log window — timestamps, category filters, Log/Filtered tabs, resized #gamelog
+    ├── Game Log.js               the one log window — timestamps, category filters, Log/Filtered
+    │                             tabs, resized #gamelog. Also first-stage, so al_log_push() is
+    │                             always there for the error path
     ├── Pause Button.js           per-character pause/resume, leaves combat/panic/upkeep running
     └── Settings Window.js        per-character target settings, persisted via localStorage
 
@@ -121,7 +127,7 @@ Tools/                            ← dev scaffolding, not loaded by the bot
 
 The `Bootstrapper.js` detects which character is logged in by name, then fetches and evaluates the appropriate scripts from a CDN (jsdelivr):
 
-1. **First stage, awaited:** `Global Config.js` and `Interface/Widget Helpers.js`. Everything loaded later may assume both are present. A failure here aborts the load.
+1. **First stage, awaited:** `Global Config.js`, `Interface/Widget Helpers.js` and `Interface/Game Log.js`. Everything loaded later may assume all three are present — that is what lets the meters build their widgets as they load, the error path call `al_log_push()` directly, and every reader of a cross-character symbol skip the `typeof` guard. A failure here aborts the load.
 2. **Second stage, parallel:** every other Core Systems / Dungeons / Interface file, as real `<script>` tags. A failure in one named in `CRITICAL_SCRIPTS` aborts; others are allowed to be missing.
 3. **Third stage, sequential:** that character's `Character Managers/` files via indirect eval, then its entry point — these call into the shared files immediately.
 
@@ -174,6 +180,18 @@ from the entry point, not from this tick.
 - Delivers potions when members run low
 - Runs `Merchant Upgrading.js` profiles to improve party gear
 - Handles fishing and mining for resources
+
+### Guards
+
+There are 15 `typeof` checks left in the repo and each has a reason: the `Porcupine Guard.js` removal
+seam (4), `Code Loader.js` running standalone in a code slot before anything exists (3), the game's
+own optional `on_cm` and priest-only `heal`, four optional callback *parameters* (`on_done`,
+`farm_step`, `context`), and two lookups checking that a dungeon's named hook resolves to a function.
+
+Anything else is a symptom, not a fix. A symbol that several characters read belongs in
+`Global Config.js` with a default; an optional diagnostic belongs there as a no-op stub the real file
+overwrites; a DOM dependency belongs behind a poll-and-retry. A function in `CRITICAL_SCRIPTS` cannot
+be absent at all, so guarding it is dead code.
 
 ### UI Overlays
 - Bottom-right-corner meters (Gold/XP/CC/DPS) are each one `register_widget(id, { container, content, init, render, tick_ms })` call into `Widget Helpers.js`, which builds the container, runs the render tick, and rebuilds the widget if the game UI drops it. They share `commas()`, `prune_before()` and `window_sum()` from the same file; Settings Window.js/Stats Window.js use its `make_draggable()`
