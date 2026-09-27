@@ -61,15 +61,15 @@ function home_radius() {
 }
 
 function is_away_from_home() {
-	if (typeof destination === "undefined" || !destination) return false;
+	if (!destination) return false;
 	if (!destination.map || !isFinite(destination.x) || !isFinite(destination.y)) return false;
 	if (character.map !== destination.map) return true;
 	return Math.hypot(character.x - destination.x, character.y - destination.y) > home_radius();
 }
 
 function party_in_formation() {
-	if (typeof is_travelling === "function" && is_travelling()) return true;
-	const g = typeof current_goal === "function" ? current_goal() : null;
+	if (is_travelling()) return true;
+	const g = current_goal();
 	return !!g && g.local !== "farm" && g.local !== "event" && g.local !== "loot";
 }
 
@@ -90,11 +90,11 @@ function party_cohesion_hold() {
 	if (character.name !== MOVEMENT_LEADER) return false;
 
 	const owed = !dungeon_ignores_events()
-		&& typeof anniversary_should_travel === "function" && anniversary_should_travel();
+		&& anniversary_should_travel();
 	const endangered = party_member_in_danger();
 
 	const limit = (endangered || _cohesion_holding) ? cohesion_regroup() : cohesion_range();
-	const travelling = typeof is_travelling === "function" && is_travelling();
+	const travelling = is_travelling();
 	_cohesion_holding = COHESION_FOLLOWERS.some(name => {
 		const s = read_state_cache(name);
 		if (!s || s.rip || s.paused) return false;

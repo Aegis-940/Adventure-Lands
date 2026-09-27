@@ -13,7 +13,6 @@ let _telemetry_still_since = 0;
 let _telemetry_free_since = 0;
 
 function dungeon_telemetry_on() {
-	if (typeof active_dungeon !== "function") return false;
 	return !!active_dungeon();
 }
 
@@ -105,7 +104,7 @@ function dungeon_telemetry_tick() {
 			target: character.target || null,
 			aggro_on_me: aggro.on_me,
 			aggro_on_party: aggro.on_party,
-			actions: typeof take_basic_action_count === "function" ? take_basic_action_count() : null,
+			actions: take_basic_action_count(),
 			focus: focus ? focus.mtype : null,
 			focus_hp: focus ? focus.hp : null,
 			focus_d: focus ? Math.round(Math.hypot(character.x - focus.x, character.y - focus.y)) : null,
@@ -114,7 +113,7 @@ function dungeon_telemetry_tick() {
 			nearest_target: near.nearest_target,
 			counts: near.counts,
 			smart_moving: !!smart.moving,
-			goal: typeof current_goal_label === "function" ? current_goal_label() : null,
+			goal: current_goal_label(),
 			bailing: dungeon_bailing(),
 			channelling: !!(character.c && character.c.town),
 			kills: Object.assign({}, _dungeon_kills),

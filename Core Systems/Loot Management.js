@@ -75,7 +75,7 @@ function reserved_gear_slots() {
 }
 
 function loose_loot(start) {
-	const keep = typeof ITEMS_TO_KEEP !== "undefined" ? ITEMS_TO_KEEP : [];
+	const keep = ITEMS_TO_KEEP;
 	const reserved = reserved_gear_slots();
 	const dungeon_keys = dungeon_protected_keys();
 	const out = [];
@@ -185,7 +185,7 @@ function should_loot() {
 
 	const now = performance.now();
 	const stored_chest_count = Object.keys(get_chests()).length;
-	const draining = typeof boss_field_draining === "function" && boss_field_draining();
+	const draining = boss_field_draining();
 
 	return (
 		stored_chest_count >= (draining ? 1 : CONFIG.looting.chest_threshold) &&

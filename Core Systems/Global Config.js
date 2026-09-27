@@ -11,6 +11,9 @@ const PARTY_MEMBERS               = ["Riva", "Myras", "Riff"];
 
 const MOVEMENT_LEADER             = "Myras";
 
+const DUNGEON_PARTY               = ["Myras", "Ulric", "Riva"];
+const DUNGEON_FOLLOWERS           = ["Ulric", "Riva"];
+
 const LOOT_THRESHOLD = 6;
 
 const ALL_BOSSES = ["grinch", "icegolem", "dragold", "mrgreen", "mrpumpkin", "greenjr", "jr", "franky", "rgoo", "bgoo", "crabxx"];
@@ -141,6 +144,36 @@ const EQUIPMENT_DEFAULTS = {
 const PANIC_ORB_SET = [
 	{ item_name: "jacko", slot: "orb", level: 0, l: "l" },
 ];
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// SECTION 1c: CROSS-CHARACTER SYMBOLS — declared here so every reader can assume they exist
+//
+// Core Systems is shared by all four characters, but several of these are only filled in by the
+// fighters; the merchant leaves them at the defaults below. Declaring them once here is what lets
+// every call site read them directly instead of guarding on typeof.
+//
+// `var`, not const/let: the character files re-declare the same names through indirect eval, and a
+// lexical declaration here would collide with that. Ownership is unchanged — `Party Management.js`
+// is still the only writer of the panic state, each `[Role] Config.js` of its own config.
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+var home = null;
+var destination = null;
+var CONFIG = {};
+var cache = null;
+
+var ITEMS_TO_KEEP = [];
+var MONSTER_GEAR_OVERRIDES = {};
+var EQUIPMENT_RULES = null;
+
+var PANIC_BROADCAST_TARGETS = [];
+var panicking = false;
+var panic_external = false;
+var panic_since = 0;
+
+function request_delivery() { }
+function model_prediction() { return null; }
+function get_character_state() { return null; }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SECTION 2: CONSTANTS

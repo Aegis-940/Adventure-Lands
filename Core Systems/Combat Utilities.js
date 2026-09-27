@@ -135,14 +135,14 @@ function travel_blocks_combat() {
 function should_pause_combat_loop() {
 	if (dungeon_bailing()) return true;
 	if (panicking) return true;
-	if (typeof anniversary_travel !== "undefined" && anniversary_travel) return true;
+	if (anniversary_travel) return true;
 
 	if (dungeon_flag("fight_while_moving")) return false;
 
-	if (typeof travel_is_active === "function" && travel_is_active()) return true;
+	if (travel_is_active()) return true;
 	if (smart.moving) return true;
 
-	const goal = typeof current_goal === "function" ? current_goal() : null;
+	const goal = current_goal();
 	if (goal && goal.chasing) return true;
 
 	if (dungeon_flag("combat_always_on")) return false;
@@ -159,13 +159,8 @@ function healer_is_down() {
 	const now = Date.now();
 	if (now - _healer_down.at < 250) return _healer_down.down;
 	_healer_down.at = now;
-	let down = false;
-	try {
-		if (typeof read_state_cache === "function") {
-			const cached = read_state_cache("Myras");
-			down = !!(cached && cached.rip);
-		}
-	} catch (e) { }
+	const cached = read_state_cache("Myras");
+	const down = !!(cached && cached.rip);
 	_healer_down.down = down;
 	return down;
 }

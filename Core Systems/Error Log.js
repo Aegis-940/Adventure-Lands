@@ -62,7 +62,7 @@ function _errlog_context() {
 			cc: Math.round(character.cc || 0),
 			rip: !!character.rip,
 			ping: (parent.pings && parent.pings.length) ? Math.round(Math.min(...parent.pings)) : null,
-			panicking: (typeof panicking !== "undefined") ? !!panicking : null
+			panicking: !!panicking
 		};
 	} catch (e) { return null; }
 }
@@ -272,7 +272,7 @@ console.error = function (...args) {
 
 let _errlog_gamelog_wrapped = false;
 function _errlog_try_wrap_game_log() {
-	if (_errlog_gamelog_wrapped || typeof game_log !== "function") return;
+	if (_errlog_gamelog_wrapped) return;
 	_errlog_gamelog_wrapped = true;
 	const original_game_log = game_log;
 	game_log = function (msg, color) {
@@ -374,7 +374,7 @@ function _errlog_sample_vitals() {
 	} catch (e) { }
 
 	try {
-		if (typeof cache !== "undefined" && cache && cache.heal_target) {
+		if (cache && cache.heal_target) {
 			const ht = cache.heal_target;
 			v.heal_stat = character.heal;
 			v.heal_target = ht.name;
@@ -382,7 +382,7 @@ function _errlog_sample_vitals() {
 			v.heal_tgt_hp = ht.hp;
 			v.mp_cost = character.mp_cost;
 			try {
-				const thr = (typeof CONFIG !== "undefined" && CONFIG.healing)
+				const thr = CONFIG.healing
 					? CONFIG.healing.party_heal_threshold : 0.4;
 				v.hurt = (cache.party_members || []).filter(n => {
 					const a = get_player(n);
@@ -422,10 +422,10 @@ function _errlog_heartbeat() {
 			hp: character.max_hp ? Math.round(100 * character.hp / character.max_hp) : 0,
 			mp: character.max_mp ? Math.round(100 * character.mp / character.max_mp) : 0,
 			rip: !!character.rip,
-			panicking: (typeof panicking !== "undefined") ? !!panicking : null,
-			held: (typeof panic_since !== "undefined" && panic_since)
+			panicking: !!panicking,
+			held: panic_since
 				? Math.round((Date.now() - panic_since) / 1000) : 0,
-			goal: (typeof current_goal_label === "function") ? current_goal_label() : null
+			goal: current_goal_label()
 		});
 		while (_errlog.alive.length > ERRLOG_MAX_ALIVE) _errlog.alive.shift();
 		_errlog_dirty = true;

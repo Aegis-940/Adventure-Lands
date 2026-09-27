@@ -14,7 +14,7 @@ function fire_and_forget_move(dest, on_done) {
 
 function is_teleporting() {
 	try {
-		if (typeof is_transporting === "function") return !!is_transporting(character);
+		return !!is_transporting(character);
 		return !!(character.c && (character.c.town || character.c.transport));
 	} catch (e) {
 		return false;
@@ -285,10 +285,10 @@ let _stuck_since = 0;
 let _last_stuck_escape = 0;
 
 function stuck_escape_check() {
-	if (typeof destination === "undefined") return;
+	if (!destination) return;
 	if (character.rip) return;
 
-	if (typeof follow_has_leader === "function" && follow_has_leader()) {
+	if (follow_has_leader()) {
 		const lead = get_player(MOVEMENT_LEADER);
 		if (lead && !lead.rip) { _stuck_anchor = null; return; }
 	}

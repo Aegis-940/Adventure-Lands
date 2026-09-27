@@ -36,7 +36,7 @@ function cooldown_summary(msg) {
 
 function error_out(text, color) {
 	errlog_record("ingame", text);
-	if (typeof al_log_push === "function") return al_log_push(text, color, "errors");
+	return al_log_push(text, color, "errors");
 	return game_log(text, color);
 }
 

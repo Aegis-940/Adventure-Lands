@@ -66,16 +66,10 @@ function add_gold_graph(doc, content) {
 	let gold_graph_samples = [];
 
 	function add_gold_sample_on_loot() {
-		if (typeof calculate_average_gold === "function") {
-			const value = calculate_average_gold();
-			const now = Date.now();
-			gold_graph_samples.push({ t: now, amount: value });
-
-			const cutoff = now - GOLD_GRAPH_WINDOW_MS;
-			gold_graph_samples = gold_graph_samples.filter(s => s.t >= cutoff);
-
-			draw_gold_graph();
-		}
+		const now = Date.now();
+		gold_graph_samples.push({ t: now, amount: calculate_average_gold() });
+		gold_graph_samples = gold_graph_samples.filter(s => s.t >= now - GOLD_GRAPH_WINDOW_MS);
+		draw_gold_graph();
 	}
 
 	character.on("loot", (data) => {
@@ -200,20 +194,15 @@ function add_loop_toggles(doc, content) {
 			return name.padEnd(width, " ");
 		}
 		return [
-			[pad_name("STATE"), typeof STATE_CACHE_LOOP_ENABLED !== "undefined" ? STATE_CACHE_LOOP_ENABLED : "?"],
-			[pad_name("PANIC"), typeof panicking !== "undefined" ? !!panicking : "?"],
-			[pad_name("TRAVEL"), typeof is_travelling === "function" ? is_travelling() : "?"],
-			[pad_name("GOAL"), typeof current_goal_label === "function" ? (current_goal_label() || "-") : "?"],
+			[pad_name("STATE"), STATE_CACHE_LOOP_ENABLED],
+			[pad_name("PANIC"), panicking],
+			[pad_name("TRAVEL"), is_travelling()],
+			[pad_name("GOAL"), current_goal_label() || "-"],
 		];
 	}
 
 	function get_current_state() {
-		if (typeof get_character_state === "function") {
-			try {
-				return get_character_state();
-			} catch (e) { return "?"; }
-		}
-		return "?";
+		return get_character_state() || "?";
 	}
 
 	function update_table() {

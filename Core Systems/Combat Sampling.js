@@ -50,7 +50,7 @@ function damage_window_for(weapon, stats) {
 }
 
 function sample_hits_enabled() {
-	return typeof CONFIG !== "undefined" && CONFIG.combat && CONFIG.combat.sample_hits;
+	return CONFIG.combat && CONFIG.combat.sample_hits;
 }
 
 function flush_damage_windows() {
@@ -67,9 +67,9 @@ function tick_damage_windows() {
 	if (!sample_hits_enabled()) return;
 
 	const worn = weapon_label();
-	const at_home = typeof destination !== "undefined" && destination && character.map === destination.map;
-	const boss = typeof find_active_boss === "function" && !!find_active_boss();
-	const prediction = typeof model_prediction === "function" ? model_prediction() : null;
+	const at_home = destination && character.map === destination.map;
+	const boss = !!find_active_boss();
+	const prediction = model_prediction();
 
 	for (const weapon in _damage_windows) {
 		const w = _damage_windows[weapon];

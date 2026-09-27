@@ -16,11 +16,6 @@ const SETTINGS_DESCRIPTORS = [
 const ALL_CHARACTERS = ["Ulric", "Myras", "Riva", "Riff"];
 
 function open_settings_window() {
-	if (typeof LOCATIONS === "undefined" || typeof send_cm !== "function") {
-		game_log("⚠️ Settings window: still loading, try again in a moment.");
-		return;
-	}
-
 	const doc = parent.document;
 	if (doc.getElementById("settings-window")) return;
 

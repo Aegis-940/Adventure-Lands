@@ -75,7 +75,7 @@ async function _panic_check_body() {
 			TRAPPED_TRAVELLING && `${MONSTERS_TARGETING_ME} on us while travelling`,
 		].filter(Boolean).join(", "), false);
 
-		if (HARD_REASON && typeof PANIC_BROADCAST_TARGETS !== "undefined") {
+		if (HARD_REASON) {
 			send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: true });
 		}
 	}
@@ -113,7 +113,7 @@ async function _panic_check_body() {
 		}
 	}
 
-	let external_hold = typeof panic_external !== "undefined" && panic_external;
+	let external_hold = panic_external;
 	if (external_hold && Date.now() - panic_external_since > EXTERNAL_PANIC_MAX_MS) {
 		external_hold = false;
 		set_panic(false, "healer's hold expired without an all-clear", false);
@@ -123,9 +123,7 @@ async function _panic_check_body() {
 		&& panic_since && Date.now() - panic_since > SELF_PANIC_MAX_MS) {
 		set_panic(false, "held too long with health intact — releasing to recover", false);
 		errlog_count("panic released on timeout");
-		if (typeof PANIC_BROADCAST_TARGETS !== "undefined") {
-			send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
-		}
+		send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
 		return;
 	}
 
@@ -135,9 +133,7 @@ async function _panic_check_body() {
 			last_safe_time = Date.now();
 
 			set_panic(false, "recovered", false);
-			if (typeof PANIC_BROADCAST_TARGETS !== "undefined") {
-				send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
-			}
+			send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
 		}
 	}
 }

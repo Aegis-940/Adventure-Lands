@@ -55,7 +55,7 @@ const CM_HANDLERS = {
 	},
 
 	"collect_loot": (name) => {
-		if (typeof request_delivery === "function") request_delivery(`${name} asked for a pickup`);
+		request_delivery(`${name} asked for a pickup`);
 	},
 
 
@@ -116,13 +116,13 @@ function get_full_character_state() {
 		y: character.y,
 		rip: character.rip,
 		moving: character.moving,
-		formation: typeof party_in_formation === "function" && party_in_formation(),
-		paused: typeof automation_enabled === "function" && !automation_enabled(),
-		goal: typeof current_goal_label === "function" ? current_goal_label() : null,
-		anniv_pending: typeof anniversary_should_travel === "function" && anniversary_should_travel(),
+		formation: party_in_formation(),
+		paused: !automation_enabled(),
+		goal: current_goal_label(),
+		anniv_pending: anniversary_should_travel(),
 		has_kiss: !!(character.s && character.s.anniversary_kiss),
 		free_slots: character.items.filter(it => !it).length,
-		loose_slots: typeof loose_loot === "function" ? loose_loot(0).length : 0,
+		loose_slots: loose_loot(0).length,
 		conditions: character.s || {},
 		last_seen: Date.now(),
 	};

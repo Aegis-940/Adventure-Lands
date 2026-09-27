@@ -149,7 +149,7 @@ function is_set_equipped(set_name) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function preferred_orb(preferred, allow_xp) {
-	if (allow_xp !== false && typeof behind_on_xp === "function" && behind_on_xp() && set_available("orb_exp")) {
+	if (allow_xp !== false && behind_on_xp() && set_available("orb_exp")) {
 		return "orb_exp";
 	}
 	if (preferred && set_available(preferred)) return preferred;
@@ -189,7 +189,7 @@ async function equip_set_raw(set_name) {
 	try {
 		if (set.some(i => i.slot === "orb")) {
 			errlog_record("orb_equip", `${set_name} -> orb`
-				+ ` (panicking=${typeof panicking !== "undefined" && !!panicking})`);
+				+ ` (panicking=${panicking})`);
 		}
 	} catch (e) { }
 
@@ -409,14 +409,14 @@ async function apply_equipment_rule(token, group, resolved) {
 }
 
 function gear_override(group) {
-	const at_home = typeof destination !== "undefined" && destination && character.map === destination.map;
+	const at_home = destination && character.map === destination.map;
 	if (!at_home) return null;
-	const overrides = (typeof MONSTER_GEAR_OVERRIDES !== "undefined" && MONSTER_GEAR_OVERRIDES[home]) || {};
+	const overrides = MONSTER_GEAR_OVERRIDES[home] || {};
 	return group in overrides ? overrides[group] : null;
 }
 
 function resolve_equipment_bail_reason() {
-	if (typeof EQUIPMENT_RULES === "undefined") return "EQUIPMENT_RULES undefined";
+	if (!EQUIPMENT_RULES) return "EQUIPMENT_RULES undefined";
 	if (CONFIG.equipment?.auto_swap_sets === false) return "auto_swap_sets disabled";
 	if (character.cc > COOLDOWNS.cc) return "cc above threshold";
 	return null;

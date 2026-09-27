@@ -15,6 +15,7 @@
 	const first_scripts = [
 		"Core Systems/Global Config.js",
 		"Interface/Widget Helpers.js",
+		"Interface/Game Log.js",
 	];
 
 	const scripts = [
@@ -47,7 +48,6 @@
 		"Dungeons/Crypt Route.js",
 		"Dungeons/Dungeon Mode.js",
 		"Interface/Bank Sort Order.js",
-		"Interface/Game Log.js",
 		"Interface/XP Meter.js",
 		"Interface/Gold Meter.js",
 		"Interface/DPS Meter.js",
@@ -121,7 +121,6 @@
 		"Core Systems/Error Handling.js",
 		"Dungeons/Dungeon Runner.js",
 		"Dungeons/Dungeon Escape.js",
-		"Interface/Game Log.js",
 		"Interface/Bank Viewer.js",
 	];
 

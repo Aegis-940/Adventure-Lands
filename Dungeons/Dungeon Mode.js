@@ -98,7 +98,6 @@ function paint_dungeon_buttons() {
 }
 
 function add_dungeon_buttons() {
-	if (typeof DUNGEON_PARTY === "undefined") return setTimeout(add_dungeon_buttons, 500);
 	if (!DUNGEON_PARTY.includes(character.name)) return;
 
 	const $ = parent.$;

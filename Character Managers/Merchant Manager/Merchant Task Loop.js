@@ -85,7 +85,7 @@ async function handle_crafting_state() {
 
 var PRIORITY_CHECKS = {
 	dead:        { state: MERCHANT_STATES.DEAD,       should_run: () => character.rip },
-	anniversary: { state: MERCHANT_STATES.ANNIVERSARY, should_run: () => typeof anniversary_should_travel === "function" && anniversary_should_travel() },
+	anniversary: { state: MERCHANT_STATES.ANNIVERSARY, should_run: () => anniversary_should_travel() },
 	delivering:  { state: MERCHANT_STATES.DELIVERING, should_run: should_run_delivery },
 	banking:     { state: MERCHANT_STATES.BANKING,    should_run: should_run_banking },
 	upgrading:   { state: MERCHANT_STATES.UPGRADING,  should_run: should_run_upgrade },

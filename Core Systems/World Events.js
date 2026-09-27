@@ -193,7 +193,7 @@ function anniversary_abort_reason(s) {
 
 function anniversary_block_reason() {
 	if (dungeon_ignores_events()) return "in a dungeon";
-	if (typeof home !== "undefined" && home === "bscorpion") return "farming bscorpion";
+	if (home === "bscorpion") return "farming bscorpion";
 
 	const s = anniversary_event();
 	if (!s) return "no live round";
@@ -204,7 +204,7 @@ function anniversary_block_reason() {
 	if (_anniv_committed_round === s.round) return null;
 
 	if (character.ctype !== "merchant"
-		&& typeof best_event_target === "function" && best_event_target()) {
+		&& best_event_target()) {
 		return "a boss is up — bossing first";
 	}
 

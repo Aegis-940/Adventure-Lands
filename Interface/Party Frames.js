@@ -75,7 +75,7 @@ function get_party_member_info(name) {
 		};
 	}
 
-	const cached = typeof read_state_cache === "function" ? read_state_cache(name) : null;
+	const cached = read_state_cache(name);
 	if (cached) {
 		return {
 			name: cached.name,

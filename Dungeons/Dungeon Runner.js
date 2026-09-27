@@ -7,8 +7,6 @@ const DUNGEON_PARTY_TIMEOUT_MS = 2 * 60 * 1000;
 const DUNGEON_JOIN_TIMEOUT_MS = 90000;
 const DUNGEON_JOIN_INTERVAL_MS = 400;
 const DUNGEON_ENTRANCE_RANGE = 150;
-const DUNGEON_FOLLOWERS = ["Ulric", "Riva"];
-const DUNGEON_PARTY = ["Myras", "Ulric", "Riva"];
 const DUNGEON_LOG_COLOR = "#AA88FF";
 const DUNGEON_WARN_COLOR = "#FF8844";
 
@@ -55,7 +53,7 @@ function active_dungeon() {
 		return _active_dungeon_cache;
 	}
 
-	if (typeof home === "undefined") return null;
+	if (!home) return null;
 
 	_active_dungeon_cache = null;
 	for (const key in DUNGEONS) {
@@ -437,8 +435,7 @@ function dungeon_rejoin_watch() {
 		if (character.name === MOVEMENT_LEADER) return;
 		if (!DUNGEON_FOLLOWERS.includes(character.name)) return;
 		if (_dungeon_joining || character.rip) return;
-		if (typeof dungeon_mode_enabled !== "function" || !dungeon_mode_enabled()) return;
-		if (typeof read_state_cache !== "function") return;
+		if (!dungeon_override()) return;
 		if (dungeon_bailing()) return;
 
 		const d = active_dungeon();

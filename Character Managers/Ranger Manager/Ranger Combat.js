@@ -229,8 +229,8 @@ var _cupid_dip_since = 0;
 
 function cupid_blocked() {
 	if (!set_available("heal")) return true;
-	const at_home = typeof destination !== "undefined" && destination && character.map === destination.map;
-	const overrides = (at_home && typeof MONSTER_GEAR_OVERRIDES !== "undefined" && MONSTER_GEAR_OVERRIDES[home]) || {};
+	const at_home = destination && character.map === destination.map;
+	const overrides = (at_home && MONSTER_GEAR_OVERRIDES[home]) || {};
 	return "weapon" in overrides;
 }
 
