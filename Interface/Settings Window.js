@@ -3,9 +3,9 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const SETTINGS_DESCRIPTORS = [
-	{ label: "Warrior (Ulric)", storage_key: "AL_target_Ulric", default: "bscorpion" },
-	{ label: "Healer (Myras)",  storage_key: "AL_target_Myras", default: "bscorpion" },
-	{ label: "Ranger (Riva)",   storage_key: "AL_target_Riva",  default: "bscorpion" },
+	{ label: "Warrior (Ulric)", storage_key: farm_target_key("Ulric"), default: DEFAULT_FARM_TARGET },
+	{ label: "Healer (Myras)",  storage_key: farm_target_key("Myras"), default: DEFAULT_FARM_TARGET },
+	{ label: "Ranger (Riva)",   storage_key: farm_target_key("Riva"),  default: DEFAULT_FARM_TARGET },
 	{ label: "Merchant: Upgrading",  storage_key: "AL_merchant_enabled_upgrading",  type: "checkbox", default: true },
 	{ label: "Merchant: Crafting",   storage_key: "AL_merchant_enabled_crafting",   type: "checkbox", default: true },
 	{ label: "Merchant: Exchanging", storage_key: "AL_merchant_enabled_exchanging", type: "checkbox", default: true },

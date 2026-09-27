@@ -2,7 +2,7 @@
 // RANGER CONFIG — tunables, gear sets, panic thresholds, and the mutable state the other Ranger files share
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var home = RANGER_TARGET;
+var home = farm_target_for(character.name);
 
 var CONFIG = {
 	combat: {
@@ -39,11 +39,9 @@ var CONFIG = {
 	},
 
 	equipment: {
-		auto_swap_sets: true,
-		swap_cooldown: 2250,
+		...EQUIPMENT_DEFAULTS,
 		use_licence: false,
 
-		weapon_swap_enabled: true,
 		weapon_sets: ["single", "boom"],
 		weapon_hysteresis_ms: 0,
 		weapon_switch_margin: 1.0,
@@ -57,21 +55,9 @@ var CONFIG = {
 		chest_min_hold_ms: 2000,
 	},
 
-	looting: {
-		enabled: false,
-		chest_threshold: 3,
-		target_count: 99,
-		equip_gold_gear: false,
-		loot_cooldown: 3000,
-	},
+	looting: { ...LOOTING_DEFAULTS },
 
-	potions: {
-		auto_buy: true,
-		hp_threshold: 400,
-		mp_threshold: 300,
-		min_stock: 1000,
-		prefer_mp: false,
-	},
+	potions: { ...POTION_DEFAULTS, mp_threshold: 300 },
 
 	elixir: { name: "pumpkinspice" },
 
@@ -115,9 +101,7 @@ var equipment_sets = {
 	mana_chest: [
 		{ item_name: "tshirt9", slot: "chest", level: 5, l: "l" },
 	],
-	panic: [
-		{ item_name: "jacko", slot: "orb", level: 0, l: "l" },
-	],
+	panic: PANIC_ORB_SET,
 	orb: [
 		{ item_name: "orbofdex", slot: "orb", level: 4, l: "l" },
 	],

@@ -2,7 +2,7 @@
 // HEALER CONFIG — tunables, gear sets, panic thresholds, and the mutable state the other Healer files share
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var home = HEALER_TARGET;
+var home = farm_target_for(character.name);
 
 var CONFIG = {
 	combat: {
@@ -44,29 +44,15 @@ var CONFIG = {
 	},
 
 	equipment: {
-		auto_swap_sets: true,
-		swap_cooldown: 2250,
+		...EQUIPMENT_DEFAULTS,
 		temporal_surge_enabled: false,
 
-		weapon_swap_enabled: true,
 		weapon_sets: ["luck"],
 	},
 
-	looting: {
-		enabled: true,
-		chest_threshold: 3,
-		target_count: 99,
-		equip_gold_gear: true,
-		loot_cooldown: 3000,
-	},
+	looting: { ...LOOTING_DEFAULTS, enabled: true, equip_gold_gear: true },
 
-	potions: {
-		auto_buy: true,
-		hp_threshold: 400,
-		mp_threshold: 500,
-		min_stock: 1000,
-		prefer_mp: true,
-	},
+	potions: { ...POTION_DEFAULTS, prefer_mp: true },
 
 	elixir: { name: "elixirluck", min_stock: 2 },
 
@@ -112,9 +98,7 @@ var equipment_sets = {
 	single_target: [
 		{ item_name: "firestaff", slot: "mainhand", level: 8, l: "l" },
 	],
-	panic: [
-		{ item_name: "jacko", slot: "orb", level: 0, l: "l" },
-	],
+	panic: PANIC_ORB_SET,
 	orb_luck: [
 		{ item_name: "rabbitsfoot", slot: "orb", level: 1, l: "l" },
 	],

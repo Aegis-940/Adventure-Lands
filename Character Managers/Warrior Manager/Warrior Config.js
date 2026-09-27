@@ -2,7 +2,7 @@
 // WARRIOR CONFIG — tunables, gear sets, panic thresholds, and the mutable state the other Warrior files share
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var home = WARRIOR_TARGET;
+var home = farm_target_for(character.name);
 
 var CONFIG = {
 	combat: {
@@ -42,9 +42,7 @@ var CONFIG = {
 	},
 
 	equipment: {
-		auto_swap_sets: true,
-		swap_cooldown: 2250,
-		weapon_swap_enabled: true,
+		...EQUIPMENT_DEFAULTS,
 
 		weapon_sets: ["single", "aoe", "double_aoe"],
 		weapon_hysteresis_ms: 0,
@@ -58,21 +56,9 @@ var CONFIG = {
 		skill_mana_reserve: 0.40,
 	},
 
-	looting: {
-		enabled: false,
-		chest_threshold: 3,
-		target_count: 99,
-		equip_gold_gear: false,
-		loot_cooldown: 3000,
-	},
+	looting: { ...LOOTING_DEFAULTS },
 
-	potions: {
-		auto_buy: true,
-		hp_threshold: 400,
-		mp_threshold: 500,
-		min_stock: 1000,
-		prefer_mp: false,
-	},
+	potions: { ...POTION_DEFAULTS },
 
 	elixir: { name: "pumpkinspice" },
 
@@ -166,9 +152,7 @@ var equipment_sets = {
 		// { item_name: "suckerpunch", slot: "ring1", level: 2, l: "l" },
 		// { item_name: "suckerpunch", slot: "ring2", level: 2, l: "u" },
 	],
-	panic: [
-		{ item_name: "jacko", slot: "orb", level: 0, l: "l" },
-	],
+	panic: PANIC_ORB_SET,
 	orb_dps: [
 		{ item_name: "orbofstr", slot: "orb", level: 3, l: "l" },
 	],

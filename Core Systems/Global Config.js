@@ -59,9 +59,19 @@ const LOCATIONS = {
 
 const DUNGEONS = {};
 
-const HEALER_TARGET    = localStorage.getItem("AL_target_Myras") || "bscorpion";
-const WARRIOR_TARGET   = localStorage.getItem("AL_target_Ulric") || "bscorpion";
-const RANGER_TARGET    = localStorage.getItem("AL_target_Riva")  || "bscorpion";
+const DEFAULT_FARM_TARGET = "bscorpion";
+
+function farm_target_key(name) {
+	return "AL_target_" + name;
+}
+
+function farm_target_for(name) {
+	try {
+		return localStorage.getItem(farm_target_key(name)) || DEFAULT_FARM_TARGET;
+	} catch (e) {
+		return DEFAULT_FARM_TARGET;
+	}
+}
 
 function location_map_for(type, loc) {
 	let only = null;
@@ -101,6 +111,36 @@ const EVENT_LOCATIONS = [
 ];
 
 const BOSS_NEARLY_DEAD_HP = 0.05;
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// SECTION 1b: SHARED CONFIG DEFAULTS — each fighter spreads these and overrides only what it tunes
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const LOOTING_DEFAULTS = {
+	enabled: false,
+	chest_threshold: 3,
+	target_count: 99,
+	equip_gold_gear: false,
+	loot_cooldown: 3000,
+};
+
+const POTION_DEFAULTS = {
+	auto_buy: true,
+	hp_threshold: 400,
+	mp_threshold: 500,
+	min_stock: 1000,
+	prefer_mp: false,
+};
+
+const EQUIPMENT_DEFAULTS = {
+	auto_swap_sets: true,
+	swap_cooldown: 2250,
+	weapon_swap_enabled: true,
+};
+
+const PANIC_ORB_SET = [
+	{ item_name: "jacko", slot: "orb", level: 0, l: "l" },
+];
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SECTION 2: CONSTANTS
