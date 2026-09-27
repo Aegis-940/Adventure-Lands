@@ -383,11 +383,16 @@ async function wait_for_set(set_name, timeout_ms) {
 // UNIFIED EQUIPMENT RESOLVER — Warrior/Ranger/Healer each declare their own EQUIPMENT_RULES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+const PANIC_SWAP_COOLDOWN = 250;
+
 function equip_group_ready(group, key) {
 	if (!state.equip_cooldowns) state.equip_cooldowns = {};
 	const last = state.equip_cooldowns[group];
 	const now = performance.now();
-	if (last && now - last.at < (CONFIG.equipment.swap_cooldown ?? COOLDOWNS.equip_swap)) return false;
+	const cooldown = key === "panic"
+		? PANIC_SWAP_COOLDOWN
+		: (CONFIG.equipment.swap_cooldown ?? COOLDOWNS.equip_swap);
+	if (last && now - last.at < cooldown) return false;
 	state.equip_cooldowns[group] = { key, at: now };
 	return true;
 }
@@ -400,7 +405,10 @@ async function apply_equipment_rule(token, group, resolved) {
 		errlog_count(`equip unavailable ${group}`);
 		return;
 	}
-	if (!equip_group_ready(group, sets.join("+"))) return;
+	if (!equip_group_ready(group, sets.join("+"))) {
+		if (sets.includes("panic")) errlog_count(`panic swap gated ${group}`);
+		return;
+	}
 	await equip_apply(token, sets);
 }
 
