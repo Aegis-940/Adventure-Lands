@@ -29,17 +29,10 @@ function set_panic(on, reason, external) {
 // PANIC — binary. A threat latches it on; it stays on through the orb and the scare, and only an all-clear releases it.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const PANIC_MIN_HOLD_MS = 3000;
-const PANIC_ORB_LINGER_MS = 5000;
 const EXTERNAL_PANIC_MAX_MS = 60000;
 const SELF_PANIC_MAX_MS = 60000;
 
 let _panic_check_running = false;
-let _panic_cleared_at = 0;
-
-function panic_orb_wanted() {
-	return panicking || Date.now() - _panic_cleared_at < PANIC_ORB_LINGER_MS;
-}
 
 function monsters_targeting_me() {
 	let count = 0;
@@ -81,7 +74,6 @@ function panic_clear(threat) {
 
 function release_panic(reason, broadcast) {
 	set_panic(false, reason, false);
-	_panic_cleared_at = Date.now();
 	if (broadcast) send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
 }
 
@@ -116,12 +108,9 @@ async function _panic_check_body() {
 		return;
 	}
 
-	const held = Date.now() - panic_since;
-	if (held < PANIC_MIN_HOLD_MS) return;
-
 	if (panic_clear(threat)) return release_panic("recovered", true);
 
-	if (held > SELF_PANIC_MAX_MS && !threat.low_health && !threat.trapped) {
+	if (Date.now() - panic_since > SELF_PANIC_MAX_MS && !threat.low_health && !threat.trapped) {
 		errlog_count("panic released on timeout");
 		release_panic("held too long with health intact — releasing to recover", true);
 	}

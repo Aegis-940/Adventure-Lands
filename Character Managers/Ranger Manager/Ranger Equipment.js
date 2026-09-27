@@ -37,7 +37,7 @@ function resolve_ranger_weapon() {
 }
 
 function resolve_ranger_orb() {
-	if (panic_orb_wanted()) return "panic";
+	if (panicking) return "panic";
 	return gear_override("orb") || preferred_orb(null);
 }
 
