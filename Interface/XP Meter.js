@@ -71,10 +71,5 @@ const get_xp_rate_color = (avg, target) => {
 
 const ncomma = (x) => x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
-(function start_xp_timer() {
-	if (typeof create_bottomrightcorner_widget !== "function") {
-		return void setTimeout(start_xp_timer, 100);
-	}
-	init_xp_timer();
-})();
+init_xp_timer();
 setInterval(update_xp_timer, 500);

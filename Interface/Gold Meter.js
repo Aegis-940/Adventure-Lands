@@ -47,12 +47,7 @@ const update_gold_display = () => {
 
 setInterval(update_gold_display, 500);
 
-(function start_gold_meter() {
-	if (typeof create_bottomrightcorner_widget !== "function") {
-		return void setTimeout(start_gold_meter, 100);
-	}
-	init_gold_meter();
-})();
+init_gold_meter();
 
 character.on("loot", (data) => {
 	if (data.gold && typeof data.gold === "number" && !Number.isNaN(data.gold)) {

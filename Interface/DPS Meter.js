@@ -349,11 +349,6 @@ function update_dps_meter_ui() {
 	c.html(html);
 }
 
-(function start_dps_meter() {
-	if (typeof create_bottomrightcorner_widget !== "function") {
-		return void setTimeout(start_dps_meter, 100);
-	}
-	init_dps_meter();
-})();
+init_dps_meter();
 setInterval(update_dps_meter_ui, 250);
 setInterval(prune_dps_events, 1000);

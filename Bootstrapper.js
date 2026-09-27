@@ -12,7 +12,10 @@
 
 	let CACHE_OK = false;
 
-	const first_script = "Core Systems/Global Config.js";
+	const first_scripts = [
+		"Core Systems/Global Config.js",
+		"Interface/Widget Helpers.js",
+	];
 
 	const scripts = [
 		"Core Systems/Movement Manager.js",
@@ -44,7 +47,6 @@
 		"Dungeons/Crypt Route.js",
 		"Dungeons/Dungeon Mode.js",
 		"Interface/Bank Sort Order.js",
-		"Interface/Widget Helpers.js",
 		"Interface/Game Log.js",
 		"Interface/XP Meter.js",
 		"Interface/Gold Meter.js",
@@ -100,7 +102,6 @@
 	const MAX_RETRIES = 3;
 
 	const CRITICAL_SCRIPTS = [
-		"Core Systems/Global Config.js",
 		"Core Systems/Movement Manager.js",
 		"Core Systems/Bscorpion Camp.js",
 		"Core Systems/Combat Utilities.js",
@@ -121,7 +122,6 @@
 		"Dungeons/Dungeon Runner.js",
 		"Dungeons/Dungeon Escape.js",
 		"Interface/Game Log.js",
-		"Interface/Widget Helpers.js",
 		"Interface/Bank Viewer.js",
 	];
 
@@ -181,11 +181,12 @@
 
 	function start_loading(base) {
 		const role_texts = Promise.all(role_file.map(name => fetch_role_file(base, name)));
-		load_one(base, first_script)
-			.then(ok => {
-				if (!ok) {
-					game_log("🛑 CRITICAL: failed to load " + first_script + " after retries — aborting, bot cannot function. Reload to retry.");
-					console.error("[BS] Critical script failed to load, aborting:", first_script);
+		Promise.all(first_scripts.map(name => load_one(base, name).then(ok => ({ name, ok }))))
+			.then(first_results => {
+				const failed = first_results.filter(r => !r.ok).map(r => r.name);
+				if (failed.length) {
+					game_log("🛑 CRITICAL: failed to load " + failed.join(", ") + " after retries — aborting, bot cannot function. Reload to retry.");
+					console.error("[BS] Critical script failed to load, aborting:", failed);
 					return null;
 				}
 				return Promise.all(scripts.map(name => load_one(base, name).then(ok2 => ({ name, ok: ok2 }))));

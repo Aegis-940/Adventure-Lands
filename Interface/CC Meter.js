@@ -114,9 +114,4 @@ const update_cc_display = () => {
 
 setInterval(update_cc_display, 200);
 
-(function start_cc_meter() {
-	if (typeof create_bottomrightcorner_widget !== "function") {
-		return void setTimeout(start_cc_meter, 100);
-	}
-	cc_meter();
-})();
+cc_meter();
