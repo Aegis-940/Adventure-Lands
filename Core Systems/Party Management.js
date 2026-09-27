@@ -31,7 +31,7 @@ function set_panic(on, reason, external) {
 // PANIC — binary. A threat latches it on; it stays on through the orb and the scare, and only an all-clear releases it.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const PANIC_EQUIP_WAIT_MS = 2500;
+const PANIC_EQUIP_WAIT_MS = 3000;
 const PANIC_MIN_HOLD_MS = 3000;
 const PANIC_ORB_LINGER_MS = 5000;
 const EXTERNAL_PANIC_MAX_MS = 60000;

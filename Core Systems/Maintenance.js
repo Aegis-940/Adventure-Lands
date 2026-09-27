@@ -8,6 +8,11 @@
 
 const POTION_POLL_MS = 50;
 
+function potions_should_yield() {
+	if (panicking && !is_set_equipped("panic")) return true;
+	return equip_starved() && character.hp >= character.max_hp * 0.5;
+}
+
 async function potion_loop() {
 	if (character.c && (character.c.fishing || character.c.mining || character.c.town)) {
 		return setTimeout(potion_loop, 200);
@@ -21,15 +26,21 @@ async function potion_loop() {
 	const prefer_mp = CONFIG.potions.prefer_mp === true;
 	const hp_first = !prefer_mp && character.hp < character.max_hp * 0.5;
 
-	const drink_mp = () => {
-		if (MP_MISSING >= CONFIG.potions.mp_threshold) { use("mp"); used_potion = true; }
+	const drink = kind => {
+		use(kind);
+		arm_item_cooldown(2000);
+		used_potion = true;
 	};
-	const drink_hp = () => {
-		if (HP_MISSING >= CONFIG.potions.hp_threshold) { use("hp"); used_potion = true; }
-	};
+	const drink_mp = () => { if (MP_MISSING >= CONFIG.potions.mp_threshold) drink("mp"); };
+	const drink_hp = () => { if (HP_MISSING >= CONFIG.potions.hp_threshold) drink("hp"); };
 
-	if (hp_first) { drink_hp(); drink_mp(); }
-	else { drink_mp(); drink_hp(); }
+	if (potions_should_yield()) {
+		errlog_count("potion yielded to equip");
+	} else if (hp_first) {
+		drink_hp(); drink_mp();
+	} else {
+		drink_mp(); drink_hp();
+	}
 
 	setTimeout(potion_loop, used_potion ? 2050 : POTION_POLL_MS);
 }

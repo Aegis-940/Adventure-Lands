@@ -51,6 +51,19 @@ function arm_item_cooldown(ms) {
 	if (until > _item_cooldown_until) _item_cooldown_until = until;
 }
 
+let _equip_starved_at = 0;
+
+function equip_starved() {
+	return Date.now() - _equip_starved_at < 500;
+}
+
+function item_cooldown_blocks(label) {
+	if (item_cooldown_ms() <= 0) return false;
+	_equip_starved_at = Date.now();
+	errlog_count(`equip held by item cooldown ${label}`);
+	return true;
+}
+
 if (parent.socket._equip_not_ready_handler) {
 	parent.socket.off("game_response", parent.socket._equip_not_ready_handler);
 }
@@ -129,10 +142,7 @@ async function batch_equip(data, set_name) {
 
 	if (valid_items.length === 0) return 0;
 
-	if (item_cooldown_ms() > 0) {
-		errlog_count(`equip held by item cooldown ${set_name || "slots"}`);
-		return 0;
-	}
+	if (item_cooldown_blocks(set_name || "slots")) return 0;
 
 	clear_offhand_for_doublehand(valid_items);
 
@@ -438,6 +448,7 @@ async function apply_equipment_rule(token, group, resolved) {
 		errlog_count(`equip unavailable ${group}`);
 		return;
 	}
+	if (item_cooldown_blocks(sets.join("+"))) return;
 	if (!equip_group_ready(group, sets.join("+"))) {
 		if (sets.includes("panic")) errlog_count(`panic swap gated ${group}`);
 		return;
