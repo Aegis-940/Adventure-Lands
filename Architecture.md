@@ -23,10 +23,13 @@
 Code Loader.js                    ← the only file in a game code slot; fetches/evals Bootstrapper.js
 Bootstrapper.js                   ← loads everything else from CDN (jsdelivr), in order
 
-Core Systems/Global Config.js     ← core config/constants shared by everything; loaded FIRST, alone
-    ├── Loop toggle globals   (ATTACK_LOOP_ENABLED, etc.)
+Core Systems/Global Config.js     ← awaited FIRST, with Widget Helpers.js; everything may assume it
     ├── Location database     (monster spawn locations per map)
-    ├── Party constants       (PARTY_LEADER, PARTY_MEMBERS)
+    ├── Party constants       (PARTY_LEADER, PARTY_MEMBERS, MOVEMENT_LEADER)
+    ├── Shared config defaults (LOOTING_/POTION_/EQUIPMENT_DEFAULTS, PANIC_ORB_SET)
+    ├── farm_target_for()/farm_target_key() — the per-character farm target
+    ├── storage_read()/storage_write() — the one JSON-backed localStorage seam
+    ├── No-op errlog_* stubs  (Error Log.js replaces them; call sites never guard)
     └── Tick rates / cooldowns
 
 Core Systems/*.js                 ← loaded in parallel as real <script> tags
@@ -61,12 +64,23 @@ Character Managers/[Role] Manager/   ← loaded sequentially via indirect eval, 
     const/let is invisible across eval boundaries.
 
 Dungeons/                            ← loaded in parallel as script tags, every character
-    ├── Dungeon Runner.js         wait_for_death(), party entry, run_dungeon(), auto-start
-    └── Spider Dungeon.js         SPIDER_DUNGEON definition and its run_/start_ wrappers
+    ├── Dungeon Runner.js         party entry, run_dungeon(), the flag accessors, scripted travel
+    ├── Dungeon Mode.js           the on/off toggle and its toprightcorner buttons
+    ├── Dungeon Progress.js       kills this run, and whether the quota is met
+    ├── Dungeon Escape.js         bail-out: scare, walk away, town back to the entrance
+    ├── Dungeon Telemetry.js      per-run flight recorder, pushed as errlog samples
+    ├── Dungeon Collection.js     every few runs, meet Riff outside and hand the haul over
+    ├── Spider Dungeon.js         DUNGEONS.spider definition and its run_/start_ wrappers
+    ├── Crypt Dungeon.js          DUNGEONS.crypt definition and its run_/start_ wrappers
+    └── Crypt Route.js            the crypt's waypoint circuit and when to back out
+
+    A dungeon's `flags` are read through dungeon_flag()/dungeon_setting() at the
+    decision they affect. They are contextual overrides, not a second config:
+    most have no CONFIG counterpart, so they are deliberately NOT merged into it.
 
 Character Managers/Merchant Manager/  ← Riff only; no combat files
     ├── Merchant Config.js        tunables, locations, merchant_task
-    ├── Merchant Stand.js         the stall: open/close, orders, stock, restocking, idle
+    ├── Merchant Stand.js         the stall: open/close and the idle state
     ├── Merchant Inventory.js     slot counting, vendoring SELLABLE_ITEMS, banking
     ├── Merchant Exchange.js      bank fetch task plus idle exchanging
     ├── Merchant Gear.js          default loadout and gathering-tool swaps
@@ -80,7 +94,9 @@ Character Managers/Merchant Manager/  ← Riff only; no combat files
     └── Merchant.js               entry point
 
 Interface/*.js                    ← overlay panels (semi-independent)
-    ├── Widget Helpers.js         create_bottomrightcorner_widget(), make_draggable()
+    ├── Widget Helpers.js         register_widget() + create_bottomrightcorner_widget(),
+    │                             commas()/prune_before()/window_sum(), make_draggable()
+    │                             — awaited in the first stage, not one of the parallel loads
     ├── DPS Meter.js
     ├── Stats Window.js           Canvas-based gold graph
     ├── Party Frames.js
@@ -95,7 +111,8 @@ Interface/*.js                    ← overlay panels (semi-independent)
 
 Tools/                            ← dev scaffolding, not loaded by the bot
     ├── Error Sink.py             local HTTP sink for errlog_sample() pushes -> errors.json
-    └── Anniversary Probe.js      one-off probe pasted into a code slot/console
+    ├── Anniversary Probe.js      one-off probe pasted into a code slot/console
+    └── Crypt Probe.js            one-off probe for crypt geometry
 ```
 
 ---
@@ -104,25 +121,33 @@ Tools/                            ← dev scaffolding, not loaded by the bot
 
 The `Bootstrapper.js` detects which character is logged in by name, then fetches and evaluates the appropriate scripts from a CDN (jsdelivr):
 
-1. Global Config, then all Core Systems/Interface files — loaded in parallel (none of them call into each other at load time, only from functions/handlers invoked later)
-2. Character Functions, then that character's entry point — loaded sequentially afterward, since these do call into the shared files immediately
+1. **First stage, awaited:** `Global Config.js` and `Interface/Widget Helpers.js`. Everything loaded later may assume both are present. A failure here aborts the load.
+2. **Second stage, parallel:** every other Core Systems / Dungeons / Interface file, as real `<script>` tags. A failure in one named in `CRITICAL_SCRIPTS` aborts; others are allowed to be missing.
+3. **Third stage, sequential:** that character's `Character Managers/` files via indirect eval, then its entry point — these call into the shared files immediately.
+
+**Second-stage files execute in network-completion order, not list order.** So nothing in stage 2 may depend on another stage-2 file *at load time* — only from functions and handlers invoked later. Two patterns exist for genuine load-time needs: move the dependency into stage 1 (which is why Widget Helpers is there — the meters build their widgets as they load), or poll for it and retry, as the toprightcorner button chain does for the DOM element it attaches to. Adding or removing a stage-2 file reshuffles the race and can expose a latent dependency that had been winning by luck.
 
 Each script is loaded with retry logic and exponential backoff. `Code Loader.js` — the only file pasted into each character's in-game code slot — just fetches and evals `Bootstrapper.js`; it deliberately does not resolve a commit SHA itself, since `Bootstrapper.js` already resolves one per load and doing it in both places doubled the `api.github.com` request rate against its 60/hour limit.
 
 ---
 
-## State Machine
+## The Main Tick
 
-Each character operates across these behavioral states:
+There is no state-machine object. `run_character()` in `Core Systems/Character Runner.js` runs one
+`main_tick` and the order of its checks *is* the priority:
 
-| State | Trigger | Behavior |
-|-------|---------|----------|
-| `normal` | Default | Hunt monsters, loot, patrol |
-| `boss` | Boss detected via `parent.S` | Prioritize boss, swap to boss gear |
-| `panic` | HP too low | Flee, stop attacking, heal |
-| `dead` | Character HP = 0 | Wait for respawn, rejoin party |
+1. `is_disabled(character)` — dead or otherwise out of action; run the character's `on_disabled` hook and retry in 250ms
+2. the character's `update_cache()`, then `panic_check()` unless its `skip_panic_check()` says otherwise
+3. `automation_enabled()` — if paused, drop the goal, release the travel arbiter, and idle
+4. `stuck_escape_check()`, then the character's optional `pre_move()`
+5. `movement_goal()` — the one priority list for *where to go* (events, bosses, cohesion, home)
+6. `dungeon_moving()` — a scripted dungeon walk owns movement, so yield to it
+7. `travel_arbiter(goal)` — if it takes the goal, it owns movement this tick
+8. otherwise `should_loot()` → `handle_looting()`, else `movement_local(goal, farm_step)` for *where to stand*
 
-State transitions are managed in `Global Config.js` and checked each loop tick.
+Panic lives in `Core Systems/Party Management.js` (`set_panic()` is its only writer) and is broadcast
+to the party over CM. Combat, skills, equipment and upkeep run as their own independent loops started
+from the entry point, not from this tick.
 
 ---
 
@@ -135,9 +160,9 @@ State transitions are managed in `Global Config.js` and checked each loop tick.
 - Predictive movement: calculates where enemy will be, not where it is
 
 ### Combat Loops
-- Each character has `setInterval`-based loops for attack, skills, and movement
-- Toggleable via boolean globals (`ATTACK_LOOP_ENABLED`, etc.)
-- Targets selected by priority (current target → nearest monster → boss)
+- Each character starts its own `action_loop()`, `skill_loop()` and `equipment_manager_loop()` from its entry point; they self-reschedule with `setTimeout`, independently of the main tick
+- There are no per-loop enable globals. Automation is paused per character through the ⏸️ button, which `automation_enabled()` reads from localStorage; panic and upkeep keep running
+- Targets come from one scorer for everyone — `score_targets()`/`select_target()` in `Core Systems/Targeting.js`, weighted per character by `CONFIG.combat.target_weights`
 
 ### Equipment Auto-Swap
 - Multiple swap profiles: single-target, multi-target, boss, XP farm
@@ -151,8 +176,8 @@ State transitions are managed in `Global Config.js` and checked each loop tick.
 - Handles fishing and mining for resources
 
 ### UI Overlays
-- Bottom-right-corner meters (Gold/XP/CC/DPS) share `Widget Helpers.js`'s `create_bottomrightcorner_widget()` container; Settings Window.js/Stats Window.js use its `make_draggable()`
-- Top-right-corner buttons (🔄 reload, 🏧 bank, ⚙️ settings, ⏸️ pause) were rebuilt piecemeal in their own files after `Buttons.js`/`Windows.js` were removed; the rest of that UI is still pending
+- Bottom-right-corner meters (Gold/XP/CC/DPS) are each one `register_widget(id, { container, content, init, render, tick_ms })` call into `Widget Helpers.js`, which builds the container, runs the render tick, and rebuilds the widget if the game UI drops it. They share `commas()`, `prune_before()` and `window_sum()` from the same file; Settings Window.js/Stats Window.js use its `make_draggable()`
+- Top-right-corner buttons (🔄 reload, 🏧 bank, ⚙️ settings, ⏸️ pause, ⚰️/🕷️ dungeon) were rebuilt piecemeal in their own files after `Buttons.js`/`Windows.js` were removed. Each attaches after the previous one's element and polls until it exists, so they chain safely regardless of load order
 - DPS Meter: per-member damage tracking, rolling event window
 - Stats Window: Canvas-based 30-minute rolling gold accumulation graph
 - Party Frames: real-time HP bars for all 4 members
@@ -162,119 +187,54 @@ State transitions are managed in `Global Config.js` and checked each loop tick.
 
 ## Configuration
 
-Each character function file has a local `CONFIG` object at the top. There is no centralized config file — this is intentional for per-role isolation.
+Each character's `[Role] Config.js` owns its own `CONFIG` object — per-role isolation is deliberate,
+and most values live only there. The exception is the handful that were byte-identical in all three
+fighters: `Global Config.js` holds `LOOTING_DEFAULTS`, `POTION_DEFAULTS`, `EQUIPMENT_DEFAULTS` and
+`PANIC_ORB_SET`, which each config spreads and then overrides, so every tuned value is still visible
+where it is tuned:
 
-**Common config fields:**
 ```javascript
-CONFIG = {
-    combat: {
-        enabled: true,
-        target_priority: ["monster_name", ...],
-    },
-    movement: {
-        circle_walk: true,
-        circle_radius: 100,
-        circle_speed: 0.002,
-    },
-    equipment: {
-        auto_swap_sets: { boss: [...], normal: [...] },
-        boss_luck_switch: true,
-    },
-    potions: {
-        auto_buy: true,
-        hp_threshold: 0.5,
-        mp_threshold: 0.3,
-    },
-    looting: {
-        enabled: true,
-        chest_threshold: 1000,
-    }
-}
+var CONFIG = {
+    combat:    { target_priority: ["Myras"], target_weights: { damage: 1, protects: 1, close: 0.05 }, ... },
+    movement:  { enabled: true, reposition: true, circle_radius: 35, follow_distance: 15, ... },
+    equipment: { ...EQUIPMENT_DEFAULTS, weapon_sets: ["single", "aoe", "double_aoe"], ... },
+    looting:   { ...LOOTING_DEFAULTS },
+    potions:   { ...POTION_DEFAULTS },
+    skills:    { cleave_enabled: true, agitate_enabled: true, ... },
+};
 ```
+
+Alongside `CONFIG`, each config file also declares `home`, `destination`, `PANIC_THRESHOLDS`,
+`equipment_sets`, `ITEMS_TO_KEEP`, `item_order`, and the mutable `state`/`cache` its siblings share.
+All of these are `var`, because a top-level `const`/`let` is invisible across the eval boundary
+between sibling character files.
+
+Read the real values from the config files — the snippet above is shape, not settings.
 
 ---
 
 ## File Size Reference
 
-*(Line counts as of the naming pass — see git history for drift; don't treat this table as authoritative if it's been a while since a restructure.)*
+Deliberately not tabulated here — a snapshot of line counts went stale within one restructure and
+listed files that no longer existed. Get it from git instead:
 
-| File | Lines |
-|------|-------|
-| Core Systems/Combat Sampling.js | 267 |
-| Core Systems/Combat Utilities.js | 172 |
-| Core Systems/Combat Formulas.js | 168 |
-| Core Systems/Movement Positioning.js | 103 |
-| Character Managers/Merchant Manager/Merchant Upgrading.js | 640 |
-| Core Systems/Equipment Manager.js | 360 |
-| Core Systems/Equipment Valuation.js | 329 |
-| Core Systems/Error Log.js | 462 |
-| Character Managers/Merchant Manager/Merchant Crafting.js | 391 |
-| Core Systems/Movement Manager.js | 410 |
-| Interface/DPS Meter.js | 343 |
-| Interface/Stats Window.js | 313 |
-| Character Managers/Healer Manager/Healer Skills.js | 286 |
-| Character Managers/Ranger Manager/Ranger Combat.js | 276 |
-| Core Systems/Loot Management.js | 274 |
-| Character Managers/Healer Manager/Healer Movement.js | 261 |
-| Core Systems/World Events.js | 257 |
-| Character Managers/Warrior Manager/Warrior Skills.js | 251 |
-| Bootstrapper.js | 235 |
-| Character Managers/Merchant Manager/Merchant Stand.js | 231 |
-| Character Managers/Healer Manager/Healer Combat.js | 223 |
-| Character Managers/Warrior Manager/Warrior Equipment.js | 212 |
-| Character Managers/Warrior Manager/Warrior Config.js | 212 |
-| Interface/Bank Viewer.js | 203 |
-| Core Systems/Party Cohesion.js | 134 |
-| Core Systems/Party Management.js | 186 |
-| Character Managers/Merchant Manager/Merchant Inventory.js | 184 |
-| Interface/Bank Sort Order.js | 183 |
-| Character Managers/Healer Manager/Healer Config.js | 172 |
-| Character Managers/Ranger Manager/Ranger Config.js | 168 |
-| Character Managers/Merchant Manager/Merchant Task Loop.js | 165 |
-| Interface/Settings Window.js | 163 |
-| Character Managers/Healer Manager/Healer Equipment.js | 163 |
-| Interface/Game Log.js | 161 |
-| Core Systems/Targeting.js | 158 |
-| Core Systems/Global Config.js | 154 |
-| Core Systems/Character Messaging.js | 154 |
-| Core Systems/Bscorpion Camp.js | 149 |
-| Core Systems/Character Runner.js | 140 |
-| Character Managers/Merchant Manager/Merchant Party.js | 135 |
-| Interface/Party Frames.js | 134 |
-| Character Managers/Merchant Manager/Merchant Gathering.js | 130 |
-| Dungeons/Dungeon Runner.js | 169 |
-| Dungeons/Spider Dungeon.js | 23 |
-| Tools/Error Sink.py | 125 |
-| Character Managers/Warrior Manager/Warrior Combat.js | 123 |
-| Interface/CC Meter.js | 122 |
-| Character Managers/Ranger Manager/Ranger Equipment.js | 117 |
-| Character Managers/Merchant Manager/Merchant Exchange.js | 112 |
-| Character Managers/Warrior Manager/Warrior Movement.js | 100 |
-| Interface/Gold Meter.js | 99 |
-| Character Managers/Ranger Manager/Ranger Skills.js | 96 |
-| Core Systems/Maintenance.js | 93 |
-| Character Managers/Merchant Manager/Merchant Upkeep.js | 85 |
-| Interface/XP Meter.js | 80 |
-| Character Managers/Merchant Manager/Merchant Config.js | 80 |
-| Character Managers/Merchant Manager/Merchant Gear.js | 72 |
-| Core Systems/Error Handling.js | 70 |
-| Code Loader.js | 61 |
-| Interface/Widget Helpers.js | 46 |
-| Interface/Pause Button.js | 45 |
-| Tools/Anniversary Probe.js | 44 |
-| Character Managers/Warrior Manager/Warrior Bscorpion.js | 42 |
-| Character Managers/Warrior Manager/Warrior.js | 37 |
-| Character Managers/Healer Manager/Healer.js | 28 |
-| Character Managers/Ranger Manager/Ranger.js | 20 |
-| Character Managers/Ranger Manager/Ranger Movement.js | 19 |
-| Character Managers/Merchant Manager/Merchant.js | 15 |
+```bash
+git ls-files -z '*.js' | while IFS= read -r -d '' f; do
+  printf "%6d  %s
+" "$(git show "HEAD:$f" | wc -l)" "$f"
+done | sort -rn
+```
+
+Count against git blobs rather than the working tree: the tree is CRLF while blobs are LF.
+
 ---
 
 ## Known Gaps / Ongoing Work
 
-- `Interface/Game Log.js` is mostly commented out — incomplete feature
-- No automated tests — all validation is done by running in the live game
-- The buttons/windows UI is still being rebuilt from scratch after `Buttons.js`/`Windows.js` were removed — only `Interface/Widget Helpers.js`'s two helpers survived
+- No automated tests — all validation is done by running in the live game. The only mechanical check available offline is a delimiter-balance pass over the changed files
+- `Core Systems/Porcupine Guard.js` is explicitly temporary; every call site is `typeof`-guarded so deleting its Bootstrapper line removes it cleanly
+- The buttons/windows UI is still incomplete after `Buttons.js`/`Windows.js` were removed — reload, bank, settings, pause and the dungeon toggles were rebuilt in their own files, but the rest was not
+- `storage_read()`/`storage_write()` cover the JSON-backed values only. The bare-string stores (`automation_enabled()`, the dungeon override, Settings Window, `Error Log.js`'s key scan) still call `localStorage` directly, deliberately — `storage_read()` would `JSON.parse` a bare string and return null. Every one of those calls is inside a function and wrapped in try/catch, so a browser blocking site data degrades rather than breaking the load
 
 ---
 

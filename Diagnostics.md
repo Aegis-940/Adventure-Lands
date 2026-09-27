@@ -186,9 +186,13 @@ so it is not rediscovered as one. Riva's channel, by contrast, is idle.
 
 ## Making failure loud
 
-The codebase currently has **157 `catch` blocks, 38 of them completely empty, and 7 `errlog_count`
-call sites.** Every bug above that took hours to find was silent; the one that took ninety seconds
-had been given a name by whoever wrote it.
+The codebase currently has **166 `catch` blocks, 44 of them completely empty, against 8
+`errlog_count` call sites.** Every bug above that took hours to find was silent; the one that took
+ninety seconds had been given a name by whoever wrote it.
+
+(Recount rather than trusting those numbers — they drift. `catch` blocks: `grep -rnoE "catch *\(" --include=*.js .`;
+call sites: `grep -rn "errlog_count(" --include=*.js . | grep -v "Error Log.js"`. Note `errlog_*` no
+longer needs a `typeof` guard — `Global Config.js` stubs it — so adding a counter is now one line.)
 
 The principle: **a failure that is not counted is not a failure you will find.** Counting is
 cheaper than guarding, and unlike a guard it does not destroy the evidence for its own cause.
