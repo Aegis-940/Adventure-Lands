@@ -30,9 +30,9 @@ function next_action_delay(ms) {
 const _loop_due = {};
 
 function loop_tick(name) {
-	if (typeof errlog_beat === "function") errlog_beat(name);
+	errlog_beat(name);
 	const now = Date.now();
-	if (_loop_due[name] && typeof errlog_time === "function") errlog_time("lag " + name, now - _loop_due[name]);
+	if (_loop_due[name]) errlog_time("lag " + name, now - _loop_due[name]);
 }
 
 function loop_next(name, ms) {
@@ -59,7 +59,7 @@ function run_basic_action(p, label) {
 	_basic_action_until = Date.now() + (1000 / freq) * 0.9;
 	const t0 = Date.now();
 	Promise.resolve(p).then(
-		() => { if (typeof errlog_time === "function") errlog_time("await " + label, Date.now() - t0); },
+		() => { errlog_time("await " + label, Date.now() - t0); },
 		e => {
 			_basic_action_until = 0;
 			catcher(e, label);
@@ -118,7 +118,7 @@ function run_character(spec) {
 	state_cache_loop();
 
 	async function main_tick() {
-		if (typeof errlog_beat === "function") errlog_beat("main_loop");
+		errlog_beat("main_loop");
 		try {
 			if (is_disabled(character)) {
 				if (typeof s.on_disabled === "function") s.on_disabled();

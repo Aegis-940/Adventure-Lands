@@ -206,7 +206,7 @@ async function shift_booster(slot, target) {
 async function handle_looting() {
 	const blocked = looting_blocked();
 	if (blocked) {
-		if (typeof errlog_count === "function") errlog_count("looting blocked " + blocked);
+		errlog_count("looting blocked " + blocked);
 		return;
 	}
 	if (_looting) return;
@@ -245,12 +245,15 @@ async function handle_looting() {
 	}
 }
 
+const SAVED_BANK_KEY = "savedBank";
+
 function refresh_bank_snapshot() {
-	try {
-		if (character.bank && Object.keys(character.bank).length) {
-			localStorage.setItem("savedBank", JSON.stringify(character.bank));
-		}
-	} catch (e) { }
+	if (!character.bank || !Object.keys(character.bank).length) return false;
+	return storage_write(SAVED_BANK_KEY, character.bank);
+}
+
+function load_bank_from_local_storage() {
+	return storage_read(SAVED_BANK_KEY);
 }
 
 async function withdraw_item(item_name, level = null, total = null) {

@@ -176,7 +176,7 @@ function party_heal_critical_count() {
 var _last_heal_choice = 0;
 
 function sample_heal_choice(fired, party_value, single_value, critical) {
-	if (!CONFIG.combat.sample_hits || typeof errlog_sample !== "function") return;
+	if (!CONFIG.combat.sample_hits) return;
 	if (Date.now() - _last_heal_choice < 1000) return;
 	_last_heal_choice = Date.now();
 	errlog_sample("heal_choice", {

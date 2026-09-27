@@ -35,7 +35,7 @@ function cooldown_summary(msg) {
 }
 
 function error_out(text, color) {
-	if (typeof errlog_record === "function") errlog_record("ingame", text);
+	errlog_record("ingame", text);
 	if (typeof al_log_push === "function") return al_log_push(text, color, "errors");
 	return game_log(text, color);
 }
@@ -50,7 +50,7 @@ function catcher(e, context = "Error") {
 
 	function report(text, quiet) {
 		if (!quiet) return error_out(`${text} (${context})`, GENERAL_ERROR);
-		try { if (typeof errlog_record === "function") errlog_record("quiet", `${text} (${context})`); } catch (x) {}
+		try { errlog_record("quiet", `${text} (${context})`); } catch (x) {}
 	}
 
 	const cd = cooldown_summary(msg || "");

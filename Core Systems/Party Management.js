@@ -100,13 +100,13 @@ async function _panic_check_body() {
 		if (!is_on_cooldown("scare") && can_use("scare")) {
 			try {
 				game_log("Using Scare!", "#ffcc00");
-				if (typeof errlog_count === "function") errlog_count("scare fired");
+				errlog_count("scare fired");
 				await use_skill("scare");
 				await delay(200);
 			} catch (e) {
 				game_log(`[PANIC] Error using scare: ${fmt_err(e)}`, "#ff4444");
 			}
-		} else if (typeof errlog_count === "function") {
+		} else {
 			errlog_count(`scare blocked cd=${is_on_cooldown("scare")}`
 				+ ` can_use=${can_use("scare")} jacko=${is_set_equipped("panic")}`
 				+ ` orb=${character.slots.orb ? character.slots.orb.name : "empty"}`);
@@ -122,7 +122,7 @@ async function _panic_check_body() {
 	if (panicking && !external_hold && !LOW_HEALTH && !TRAPPED_TRAVELLING
 		&& panic_since && Date.now() - panic_since > SELF_PANIC_MAX_MS) {
 		set_panic(false, "held too long with health intact — releasing to recover", false);
-		if (typeof errlog_count === "function") errlog_count("panic released on timeout");
+		errlog_count("panic released on timeout");
 		if (typeof PANIC_BROADCAST_TARGETS !== "undefined") {
 			send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
 		}

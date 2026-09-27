@@ -214,7 +214,7 @@ function prune_dps_events() {
 			if (key.endsWith("_events") && entry[key].length > deepest) deepest = entry[key].length;
 		}
 	}
-	if (typeof errlog_size === "function") errlog_size("mem dps events", deepest);
+	errlog_size("mem dps events", deepest);
 }
 
 function get_type_value(type, entry) {

@@ -143,23 +143,18 @@ function write_state_cache() {
 		state.last_seen = now;
 
 		const t0 = Date.now();
-		localStorage.setItem(STATE_CACHE_KEY_PREFIX + character.name, JSON.stringify(state));
-		if (typeof errlog_time === "function") errlog_time("io state setItem", Date.now() - t0);
+		storage_write(STATE_CACHE_KEY_PREFIX + character.name, state);
+		errlog_time("io state setItem", Date.now() - t0);
 	} catch (e) {
 		catcher(e, "write_state_cache");
 	}
 }
 
 function read_state_cache(name) {
-	try {
-		const raw = localStorage.getItem(STATE_CACHE_KEY_PREFIX + name);
-		if (!raw) return null;
-		const state = JSON.parse(raw);
-		if (Date.now() - state.last_seen > STATE_CACHE_STALE_MS) return null;
-		return state;
-	} catch (e) {
-		return null;
-	}
+	const state = storage_read(STATE_CACHE_KEY_PREFIX + name);
+	if (!state) return null;
+	if (Date.now() - state.last_seen > STATE_CACHE_STALE_MS) return null;
+	return state;
 }
 
 async function state_cache_loop() {

@@ -187,7 +187,7 @@ async function equip_set_raw(set_name) {
 	}
 
 	try {
-		if (set.some(i => i.slot === "orb") && typeof errlog_record === "function") {
+		if (set.some(i => i.slot === "orb")) {
 			errlog_record("orb_equip", `${set_name} -> orb`
 				+ ` (panicking=${typeof panicking !== "undefined" && !!panicking})`);
 		}
@@ -401,7 +401,7 @@ async function apply_equipment_rule(token, group, resolved) {
 	const sets = Array.isArray(resolved) ? resolved : [resolved];
 	if (sets.every(s => is_set_equipped(s))) return;
 	if (!sets.every(s => set_available(s))) {
-		if (typeof errlog_count === "function") errlog_count(`equip unavailable ${group}`);
+		errlog_count(`equip unavailable ${group}`);
 		return;
 	}
 	if (!equip_group_ready(group, sets.join("+"))) return;

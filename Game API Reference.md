@@ -609,8 +609,9 @@ what it appears to. `respawn: -1` (`cutebee`, `goldenbat`, `crabxx`) means it ne
 own.
 
 **Cross-server.** `broadcast()` is `io.emit()`, so an unauthenticated socket receives `server_info`,
-`game_event` (boss spawn announcements), `notice` and `server_message` for that realm — this is what
-`Core Systems/Server Watch.js` relies on. `realm_broadcast()` does relay between realms, but only
+`game_event` (boss spawn announcements), `notice` and `server_message` for that realm — this is the
+hook a cross-realm boss watcher would rely on (the retired `Core Systems/Server Watch.js` did; see
+git history). `realm_broadcast()` does relay between realms, but only
 for level-ups, rare drops and new players, never for boss spawns.
 
 **The realm list and how to connect to one.** `X.servers` (a global on the **top window** — not on

@@ -56,11 +56,7 @@ let _set_profiles = null;
 
 function load_set_profiles() {
 	if (_set_profiles) return _set_profiles;
-	try {
-		_set_profiles = JSON.parse(localStorage.getItem(SET_PROFILE_KEY + character.name)) || {};
-	} catch (e) {
-		_set_profiles = {};
-	}
+	_set_profiles = storage_read(SET_PROFILE_KEY + character.name) || {};
 	return _set_profiles;
 }
 
@@ -69,9 +65,7 @@ function get_set_profile(set_name) {
 }
 
 function save_set_profiles(profiles) {
-	try {
-		localStorage.setItem(SET_PROFILE_KEY + character.name, JSON.stringify(profiles));
-	} catch (e) { }
+	storage_write(SET_PROFILE_KEY + character.name, profiles);
 }
 
 function set_entry_level(entry) {
@@ -286,7 +280,7 @@ function min_swap_interval_ms() {
 }
 
 function sample_weapon_choice(sets, value_of, valued, from, to, now, context) {
-	if (!CONFIG.combat || !CONFIG.combat.sample_hits || typeof errlog_sample !== "function") return;
+	if (!CONFIG.combat || !CONFIG.combat.sample_hits) return;
 
 	const values = {};
 	const raw = {};

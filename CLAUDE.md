@@ -26,7 +26,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 |------|------|
 | `Code Loader.js` | The one file that lives in a game code slot; fetches and evals `Bootstrapper.js` |
 | `Bootstrapper.js` | Script loader — loads all other files from CDN in order |
-| `Core Systems/Global Config.js` | Core config/constants/state variables |
+| `Core Systems/Global Config.js` | Core config/constants/state variables, the `storage_read()`/`storage_write()` pair every JSON-backed localStorage value goes through, and the no-op `errlog_*` stubs `Error Log.js` replaces when it loads |
 | `Core Systems/Movement Manager.js` | The two movement owners — `movement_goal()` (where to go, the one priority list) and `movement_local()` (where to stand) — plus the machinery they drive: `smarter_move()`, the travel arbiter (`travel_arbiter()`), `move_to_character()`, stuck escape |
 | `Core Systems/Bscorpion Camp.js` | Content-specific positioning for the desertland bscorpion/primling camp |
 | `Core Systems/Combat Utilities.js` | Monster and entity queries (`monsters_matching()`, `get_num_targets()`), boss and party state predicates (`boss_engaged()`, `healer_is_down()`, `should_pause_combat_loop()`) |
@@ -36,7 +36,6 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Core Systems/Targeting.js` | `score_targets()`/`select_target()` — the one scorer every character picks targets with |
 | `Core Systems/Porcupine Guard.js` | **Temporary** — keeps Ulric off porcupines (no targeting, single set when one is within splash reach) and puts them first on Riva's list. Every call site is `typeof`-guarded; delete the file's Bootstrapper line to remove |
 | `Core Systems/World Events.js` | Live boss/seasonal targets, the goal that walks the party to them, and the anniversary visit |
-| `Core Systems/Server Watch.js` | **Disabled** (`SERVER_WATCH.enabled`/`SERVER_HOP.enabled` are `false`, so `server_watch_loop()` idles). Observer sockets on the other realms (`get_servers` + `server_info`), `bosses_elsewhere()`, and the `change_server` hop that goes and joins them and comes back |
 | `Core Systems/Character Messaging.js` | CM (character message) handlers, localStorage-backed state cache |
 | `Core Systems/Equipment Manager.js` | Equipment sets, the single `batch_equip()` emitter, the slot arbiter, the shadow-inventory planner (`equip_plan()`/`emit_equip_ops()`) that resolves a chain of sets ahead of the server's acks, and the rules resolver — the one file that changes what is worn |
 | `Core Systems/Equipment Valuation.js` | What each set is worth: ability procs, measured set profiles, damage maths, and the one weapon chooser (`resolve_weapon_set()`/`set_damage_value()`) every fighter uses. Returns names and numbers; equips nothing |
@@ -46,9 +45,16 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Core Systems/Party Cohesion.js` | Cohesion only — `follow_goal()`, `party_cohesion_hold()`, `leader_position()`, `behind_on_xp()`. A service `movement_goal()` consults; decides no movement itself |
 | `Core Systems/Character Runner.js` | `run_character()` — the shared main tick loop every character starts from |
 | `Core Systems/Error Handling.js` | `catcher()`, the shared error-triage/logging helper |
-| `Core Systems/Error Log.js` | Persistent cross-character flight recorder; hooks only, read with `al_errors(true)` |
-| `Dungeons/Dungeon Runner.js` | Shared dungeon machinery — `wait_for_death()`, party entry (`join_dungeon_instance()`/`wait_for_party_in_instance()`), `run_dungeon()`, `start_dungeon_when_ready()` |
-| `Dungeons/Spider Dungeon.js` | The `SPIDER_DUNGEON` definition (entrance, map, boss waypoints) and its `run_`/`start_` wrappers |
+| `Core Systems/Error Log.js` | Persistent cross-character flight recorder; hooks only, read with `al_errors(true)`. Defines the real `errlog_*` over `Global Config.js`'s stubs, so call sites never guard on it |
+| `Dungeons/Dungeon Runner.js` | Shared dungeon machinery — `wait_for_death()`, party entry (`join_dungeon_instance()`/`wait_for_party_in_instance()`), `run_dungeon()`, `start_dungeon_when_ready()`, and the `dungeon_override` the mode toggle persists |
+| `Dungeons/Dungeon Mode.js` | The on/off toggle that puts the party into a dungeon (`set_dungeon_mode()`, `toggle_dungeon_mode()`) and its toprightcorner buttons |
+| `Dungeons/Dungeon Progress.js` | What this run has killed and whether the quota is met — `record_dungeon_kill()`, `dungeon_quota_met()` |
+| `Dungeons/Dungeon Escape.js` | Bail-out — scare the pursuit off, walk away, town back to the instance entrance (`dungeon_bailing()`, `dungeon_threats()`) |
+| `Dungeons/Dungeon Telemetry.js` | Flight recorder for dungeon runs, pushed to the local sink as `errlog_sample()` calls |
+| `Dungeons/Dungeon Collection.js` | Every few runs the party meets Riff outside and hands the haul over (`collection_due()`) |
+| `Dungeons/Spider Dungeon.js` | The `DUNGEONS.spider` definition (entrance, map, boss waypoints) and its `run_`/`start_` wrappers |
+| `Dungeons/Crypt Dungeon.js` | The `DUNGEONS.crypt` definition and its `run_`/`start_` wrappers |
+| `Dungeons/Crypt Route.js` | The crypt's waypoint circuit, what each leg is hunting, and when to back out |
 | `Interface/Widget Helpers.js` | `create_bottomrightcorner_widget()` (Gold/XP/CC/DPS meters' container) and `make_draggable()` (used by Settings Window.js/Stats Window.js) — all that survived removing Windows.js |
 | `Character Managers/Warrior Manager/Warrior Config.js` | Warrior tunables, gear sets, panic thresholds, `state`/`cache` (character: Ulric) |
 | `Character Managers/Warrior Manager/Warrior Combat.js` | Warrior targeting, the sugar-rush swap trick, `action_loop()`; sets `cache.tank_entity` to **Myras** |
@@ -90,10 +96,10 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Interface/Gold Meter.js` | Gold accumulation display |
 | `Interface/XP Meter.js` | XP tracking display |
 | `Interface/Game Log.js` | The one log window — wraps `parent.add_log`, adds timestamps, category filters (gold/kills/items/errors) and the Log/Filtered tabs, and resizes `#gamelog` 50% wider (leftward, over the canvas) and 25% taller. Self-starts at load; there is no `log()` any more, everything goes through `game_log()` |
-| `Interface/Timers Window.js` | **Disabled** — not in the Bootstrapper's load list, so no ⏳ button. A live panel of the server-side countdowns: event windows, seasonal respawns, the daily/nightly schedule per realm, and hop state |
 | `Interface/Pause Button.js` | Per-character pause/resume button — parks automation, leaves combat/panic/upkeep running |
 | `Tools/Error Sink.py` | Local HTTP sink that receives `errlog_sample()` pushes and writes `errors.json` |
 | `Tools/Anniversary Probe.js` | One-off dev probe pasted into a code slot/console; not part of the loaded bot |
+| `Tools/Crypt Probe.js` | One-off dev probe for crypt geometry; not part of the loaded bot |
 
 ---
 

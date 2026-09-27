@@ -143,7 +143,7 @@ async function hold_until_restored(token, restore, t0, burst) {
 }
 
 function sample_cleave_swap(t0, burst, outcome, restore) {
-	if (!CONFIG.combat.sample_hits || typeof errlog_sample !== "function") return;
+	if (!CONFIG.combat.sample_hits) return;
 
 	errlog_sample("cleave_swap", {
 		outcome,

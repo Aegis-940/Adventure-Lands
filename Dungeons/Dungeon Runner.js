@@ -125,7 +125,6 @@ async function dungeon_loot_everything() {
 }
 
 function dungeon_telemetry_event(event, data) {
-	if (typeof errlog_sample !== "function") return;
 	errlog_sample("dungeon_event", Object.assign({
 		event,
 		map: character.map,

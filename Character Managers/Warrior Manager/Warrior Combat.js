@@ -17,7 +17,7 @@ var BURN_PROBE_MS = 1000;
 var _burn_probe_at = 0;
 
 function sample_burn_state(target) {
-	if (!CONFIG.combat.sample_hits || typeof errlog_sample !== "function") return;
+	if (!CONFIG.combat.sample_hits) return;
 	if (!target || target.mtype !== home) return;
 
 	const now = Date.now();

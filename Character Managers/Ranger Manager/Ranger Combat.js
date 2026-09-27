@@ -287,7 +287,7 @@ async function cupid_heal(target) {
 		await attack(target);
 	} catch (e) {
 		if (e && e.reason === "no_pvp") {
-			if (typeof errlog_count === "function") errlog_count("cupid heal raced the bow swap");
+			errlog_count("cupid heal raced the bow swap");
 			return;
 		}
 		throw e;

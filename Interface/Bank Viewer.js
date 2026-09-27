@@ -21,19 +21,7 @@ function strip(num) {
 }
 
 function save_bank_local() {
-	if (character.bank) {
-	localStorage.setItem("savedBank", JSON.stringify(character.bank));
-	game_log("💾 Bank saved!");
-	} else {
-	game_log("⚠️ No bank data found.");
-	}
-}
-
-function load_bank_from_local_storage() {
-	const saved = localStorage.getItem("savedBank");
-	if (saved) return JSON.parse(saved);
-	game_log("⚠️ No saved bank data.");
-	return null;
+	game_log(refresh_bank_snapshot() ? "💾 Bank saved!" : "⚠️ No bank data found.");
 }
 
 function render_floor_categories(categories) {

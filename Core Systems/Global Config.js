@@ -128,6 +128,39 @@ function delay(ms) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// SECTION 2b: JSON-BACKED STORAGE — the one read/write pair for structured localStorage values
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function storage_read(key) {
+	try {
+		const raw = localStorage.getItem(key);
+		return raw ? JSON.parse(raw) : null;
+	} catch (e) {
+		return null;
+	}
+}
+
+function storage_write(key, value) {
+	try {
+		localStorage.setItem(key, JSON.stringify(value));
+		return true;
+	} catch (e) {
+		return false;
+	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// SECTION 2c: FLIGHT RECORDER STUBS — Error Log.js replaces these when it loads; absent, every call is a no-op
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function errlog_record() { }
+function errlog_sample() { }
+function errlog_count() { }
+function errlog_beat() { }
+function errlog_size() { }
+function errlog_time() { }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // SECTION 3: MANUAL CONTROL
 // --------------------------------------------------------------------------------------------------------------------------------- //
 

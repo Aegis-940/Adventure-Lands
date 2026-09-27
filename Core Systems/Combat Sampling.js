@@ -86,7 +86,7 @@ function tick_damage_windows() {
 }
 
 function emit_damage_window(w) {
-	if (w.direct > 0 && typeof errlog_sample === "function") {
+	if (w.direct > 0) {
 		errlog_sample("damage", {
 			weapon: w.weapon,
 			explosion: w.explosion, crit: w.crit, critdamage: w.critdamage,
@@ -202,7 +202,6 @@ function flush_heal_window() {
 	_heal_window = null;
 
 	if (!w.single_casts && !w.party_hits) return;
-	if (typeof errlog_sample !== "function") return;
 
 	errlog_sample("heal", {
 		secs: +((Date.now() - w.at) / 1000).toFixed(1),
