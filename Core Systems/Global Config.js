@@ -137,7 +137,7 @@ const POTION_DEFAULTS = {
 
 const EQUIPMENT_DEFAULTS = {
 	auto_swap_sets: true,
-	swap_cooldown: 2250,
+	swap_cooldown: 250,
 	weapon_swap_enabled: true,
 };
 
@@ -188,7 +188,7 @@ const TICK_RATE = {
 };
 
 const COOLDOWNS = {
-	equip_swap: 2250,
+	equip_swap: 250,
 	weapon_swap: 1000,
 	zapper_swap: 200,
 	cc: 125

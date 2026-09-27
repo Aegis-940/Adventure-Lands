@@ -111,9 +111,10 @@ async function batch_equip(data, set_name) {
 	}
 
 	try {
-		const ack = parent.push_deferred("equip_batch").catch(() => { });
+		const ack = parent.push_deferred("equip_batch").then(() => true, () => true);
 		parent.socket.emit("equip_batch", valid_items);
-		await Promise.race([ack, delay(EQUIP_ACK_TIMEOUT_MS)]);
+		const acked = await Promise.race([ack, delay(EQUIP_ACK_TIMEOUT_MS).then(() => false)]);
+		if (!acked) errlog_count(`equip ack timeout ${set_name || "slots"}`);
 	} catch (error) {
 		console.error("batch_equip error:", error);
 		return Promise.reject({ reason: "invalid", message: "Failed to equip" });
