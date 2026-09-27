@@ -15,7 +15,7 @@ async function skill_loop() {
 
 		update_cache();
 
-		const penalty = character.s?.penalty_cd?.ms || 0;
+		const penalty = character.s.penalty_cd?.ms || 0;
 
 		try {
 			await handle_party_heal();
@@ -24,12 +24,12 @@ async function skill_loop() {
 		}
 
 		const mp_pct = character.max_mp ? character.mp / character.max_mp : 1;
-		const mana_for_luxuries = mp_pct >= (CONFIG.healing.skill_min_mp_pct ?? 0.40);
+		const mana_for_luxuries = mp_pct >= CONFIG.healing.skill_min_mp_pct;
 
 		const travelling = is_travelling();
 
 		if (!travelling && CONFIG.combat.enabled
-			&& character.mp >= (G.skills.curse?.mp || 0) + panic_mp_reserve()) {
+			&& character.mp >= G.skills.curse.mp + panic_mp_reserve()) {
 			try {
 				await handle_curse();
 			} catch (e) {
@@ -48,7 +48,7 @@ async function skill_loop() {
 		if (is_on_cooldown("darkblessing")) _dark_blessing_ready_since = 0;
 
 		if (!panicking && !travelling && mana_for_luxuries && CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
-			&& character.mp >= (G.skills.darkblessing?.mp || 0)) {
+			&& character.mp >= G.skills.darkblessing.mp) {
 			if ((home !== "bscorpion" || bscorpion_worth_buffing()) && dark_blessing_synced()) {
 				try {
 					await use_skill("darkblessing");
@@ -91,8 +91,8 @@ async function handle_curse() {
 	if (is_on_cooldown("curse") || is_travelling()) return;
 
 	const has_target = e =>
-		e?.type === "monster" && !e.dead && e.visible && e.target && !e.immune &&
-		e.hp >= e.max_hp * (CONFIG.combat.curse_min_hp_pct ?? 0.25);
+		e.type === "monster" && !e.dead && e.visible && e.target && !e.immune &&
+		e.hp >= e.max_hp * CONFIG.combat.curse_min_hp_pct;
 
 	let target = null;
 
@@ -144,27 +144,18 @@ async function handle_absorb() {
 }
 
 
-function heal_candidates() {
-	const members = [];
-	for (const name of cache.party_members || []) {
-		const ally = name === character.name ? character : get_player(name);
-		if (ally && !ally.rip) members.push(ally);
-	}
-	return members;
-}
-
 function party_heal_useful_total() {
 	const base = partyheal_base();
 	let total = 0;
-	for (const ally of heal_candidates()) total += heal_useful(ally, base);
+	for (const ally of party_allies()) total += heal_useful(ally, base);
 	return total;
 }
 
 function party_heal_critical_count() {
 	const pct = CONFIG.healing.party_heal_critical_pct;
 	let critical = 0;
-	for (const ally of heal_candidates()) {
-		if (ally.max_hp && ally.hp / ally.max_hp <= pct) critical++;
+	for (const ally of party_allies()) {
+		if (ally.hp / ally.max_hp <= pct) critical++;
 	}
 	return critical;
 }
@@ -245,7 +236,7 @@ async function handle_zapper() {
 	const now = performance.now();
 	const has_zapper = character.slots.ring2?.name === "zapper";
 	const can_swap = now - state.last_equip_time > COOLDOWNS.zapper_swap;
-	const has_enough_mp = character.mp > (G?.skills?.zapperzap?.mp || 0) + 1250;
+	const has_enough_mp = character.mp > G.skills.zapperzap.mp + 1250;
 
 	if (is_travelling() || character.cc > COOLDOWNS.cc) return;
 

@@ -30,20 +30,10 @@ function healer_set_value(set_name, target) {
 	return heal_delivered(who, profile.heal, profile.rpiercing) * (profile.frequency || 1);
 }
 
-function visible_allies() {
-	const allies = [];
-	for (const name of cache.party_members || []) {
-		if (name === character.name) continue;
-		const ally = get_player(name);
-		if (ally && !ally.rip) allies.push(ally);
-	}
-	return allies;
-}
-
 function heal_marginals() {
 	const base = character.heal || 0;
 	const pierce = character.rpiercing || 0;
-	const allies = visible_allies();
+	const allies = party_allies().filter(ally => ally !== character);
 
 	let best_rpiercing = 0;
 	let worst = null;

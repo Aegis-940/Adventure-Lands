@@ -92,17 +92,21 @@ function effective_aggro_cap() {
 	return Math.floor(dungeon_setting("aggro_cap", CONFIG.combat.aggro_cap) * scaled);
 }
 
+function party_allies() {
+	const allies = [];
+	for (const name of cache.party_members) {
+		const ally = name === character.name ? character : get_player(name);
+		if (ally && !ally.rip) allies.push(ally);
+	}
+	return allies;
+}
+
 function find_heal_target() {
-	const party_names = Object.keys(get_party() || {});
 	let lowest = character;
 	let lowest_pct = character.hp / character.max_hp;
 
-	for (const name of party_names) {
-		const ally = get_player(name);
-		if (!ally || ally.rip) continue;
-
-		if (!ally.hp || !ally.max_hp) continue;
-		if (name !== character.name && !is_in_range(ally, "heal")) continue;
+	for (const ally of party_allies()) {
+		if (ally !== character && !is_in_range(ally, "heal")) continue;
 
 		const pct = ally.hp / ally.max_hp;
 		if (pct < lowest_pct) {
@@ -132,8 +136,6 @@ function find_zap_targets() {
 // ACTION LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var _heal_cast = false;
-
 function heal_wanted() {
 	const heal_target = cache.heal_target;
 	if (!heal_target) return false;
@@ -145,25 +147,13 @@ function heal_wanted() {
 		heal_target.max_hp - delivered / 1.33
 	);
 
-	const is_self = heal_target === character || heal_target.name === character.name;
-
-	return heal_target.hp < heal_threshold && (is_self || is_in_range(heal_target, "heal"));
+	return heal_target.hp < heal_threshold && (heal_target === character || is_in_range(heal_target, "heal"));
 }
 
-async function try_heal() {
-	_heal_cast = false;
-	const heal_target = cache.heal_target;
-	if (!heal_target) return false;
-
-	if (heal_wanted()) {
-		// game_log(`Healing → ${heal_target.name} (${Math.round((heal_target.hp / heal_target.max_hp) * 100)}%)`, "#33AAFF");
-		if (basic_action_busy()) return true;
-		run_basic_action(heal(heal_target), "heal");
-		_heal_cast = true;
-		return true;
-	}
-
-	return false;
+function attack_wanted() {
+	if (panicking || travel_blocks_combat() || dungeon_flag("no_attack") || dungeon_bailing()) return false;
+	const target = cache.target;
+	return !!target && is_in_range(target);
 }
 
 async function action_loop() {
@@ -180,30 +170,10 @@ async function action_loop() {
 		const ms = ms_to_next_skill("attack");
 
 		if (ms === 0) {
-			let acted = false;
-
-			const healed = await try_heal();
-			if (_heal_cast) acted = true;
-
-			if (panicking) return setTimeout(action_loop, loop_next("action_loop", 100));
-
-			const my_heal_threshold = Math.max(
-				character.max_hp * 0.5,
-				character.max_hp - character.heal / 1.33
-			);
-			const i_need_the_timer = character.hp < my_heal_threshold;
-
-			const travelling = travel_blocks_combat();
-
-			if (!healed && !travelling && !dungeon_flag("no_attack") && !dungeon_bailing() && !i_need_the_timer) {
-				const target = cache.target;
-				if (target && is_in_range(target) && !basic_action_busy()) {
-					run_basic_action(attack(target), "attack");
-					acted = true;
-				}
-			}
-
-			if (!acted) next_delay = 40;
+			if (basic_action_busy()) next_delay = 40;
+			else if (heal_wanted()) run_basic_action(heal(cache.heal_target), "heal");
+			else if (attack_wanted()) run_basic_action(attack(cache.target), "attack");
+			else next_delay = 40;
 		} else {
 			next_delay = next_action_delay(ms);
 		}

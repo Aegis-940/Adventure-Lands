@@ -24,7 +24,7 @@ function clear_offhand_for_doublehand(valid_items) {
 	if (valid_items.some(v => v.slot === "offhand")) return false;
 
 	const two_hander = valid_items.some(v =>
-		v.slot === "mainhand" && is_doublehand(parent.character.items[v.num]?.name)
+		v.slot === "mainhand" && is_doublehand(parent.character.items[v.num].name)
 	);
 	if (!two_hander) return false;
 
@@ -40,12 +40,12 @@ var _mainhand_flight = { pending: null, until: 0 };
 function mainhand_in_flight() {
 	if (!_mainhand_flight.pending) return null;
 	if (Date.now() > _mainhand_flight.until) _mainhand_flight.pending = null;
-	else if (character.slots?.mainhand?.name === _mainhand_flight.pending) _mainhand_flight.pending = null;
+	else if (character.slots.mainhand?.name === _mainhand_flight.pending) _mainhand_flight.pending = null;
 	return _mainhand_flight.pending;
 }
 
 function mainhand_intent() {
-	return mainhand_in_flight() || character.slots?.mainhand?.name || null;
+	return mainhand_in_flight() || character.slots.mainhand?.name || null;
 }
 
 async function batch_equip(data, set_name) {
@@ -106,7 +106,7 @@ async function batch_equip(data, set_name) {
 
 	const mainhand_swap = valid_items.find(v => v.slot === "mainhand");
 	if (mainhand_swap) {
-		_mainhand_flight.pending = parent.character.items[mainhand_swap.num]?.name || null;
+		_mainhand_flight.pending = parent.character.items[mainhand_swap.num].name;
 		_mainhand_flight.until = Date.now() + MAINHAND_FLIGHT_MS;
 	}
 
@@ -158,15 +158,13 @@ function preferred_orb(preferred, allow_xp) {
 }
 
 function set_available(set_name) {
-	try {
-		const set = equipment_sets[set_name];
-		if (!set || !set.length) return false;
-		return set.every(i => {
-			const worn = character.slots[i.slot];
-			if (worn && worn.name === i.item_name) return true;
-			return character.items.some(it => it && it.name === i.item_name);
-		});
-	} catch (e) { return false; }
+	const set = equipment_sets[set_name];
+	if (!set || !set.length) return false;
+	return set.every(i => {
+		const worn = character.slots[i.slot];
+		if (worn && worn.name === i.item_name) return true;
+		return character.items.some(it => it && it.name === i.item_name);
+	});
 }
 
 async function equip_set_raw(set_name) {
@@ -176,12 +174,9 @@ async function equip_set_raw(set_name) {
 		return;
 	}
 
-	try {
-		if (set.some(i => i.slot === "orb")) {
-			errlog_record("orb_equip", `${set_name} -> orb`
-				+ ` (panicking=${panicking})`);
-		}
-	} catch (e) { }
+	if (set.some(i => i.slot === "orb")) {
+		errlog_record("orb_equip", `${set_name} -> orb (panicking=${panicking})`);
+	}
 
 	return batch_equip(set, set_name);
 }
@@ -383,8 +378,7 @@ function gear_override(group) {
 }
 
 function resolve_equipment_bail_reason() {
-	if (!EQUIPMENT_RULES) return "EQUIPMENT_RULES undefined";
-	if (CONFIG.equipment?.auto_swap_sets === false) return "auto_swap_sets disabled";
+	if (CONFIG.equipment.auto_swap_sets === false) return "auto_swap_sets disabled";
 	if (character.cc > COOLDOWNS.cc) return "cc above threshold";
 	return null;
 }
@@ -416,6 +410,6 @@ async function equipment_manager_loop() {
 		} catch (e) {
 			catcher(e, "equipment_manager_loop");
 		}
-		await delay(TICK_RATE.equipment ?? 25);
+		await delay(TICK_RATE.equipment);
 	}
 }

@@ -75,7 +75,7 @@ function mana_chest_band() {
 		const pool = cache.targets.in_range || [];
 		const option = pool.length ? choose_attack_option(pool) : null;
 		const engage = combat_mana_reserve() + (option ? option.mana : 0);
-		const wanted = character.max_mp * (CONFIG.equipment.chest_release_pct ?? 0.90);
+		const wanted = character.max_mp * CONFIG.equipment.chest_release_pct;
 
 		return {
 			free: true, chasing: false, crossover: 0, floor: engage,
@@ -87,12 +87,12 @@ function mana_chest_band() {
 	const crossover = shot_rung_crossover_mp(lo / (CONFIG.combat.lambda_headroom_low || 1));
 	const floor = shot_rung_crossover_mp(hi / (CONFIG.combat.lambda_headroom_high || 1));
 
-	const chasing = crossover <= character.max_mp * (CONFIG.equipment.chest_mana_max_engage_pct ?? 0.75);
+	const chasing = crossover <= character.max_mp * CONFIG.equipment.chest_mana_max_engage_pct;
 	const engage = chasing ? crossover : floor;
 
 	const pool = cache.targets.in_range || [];
 	const picked = pool.length ? choose_attack_option(pool) : null;
-	const buffer = picked ? picked.mana * (CONFIG.equipment.chest_refill_shots ?? 3) : 0;
+	const buffer = picked ? picked.mana * CONFIG.equipment.chest_refill_shots : 0;
 	const target = buffer ? Math.min(crossover, engage + buffer) : crossover;
 	const release = Math.min(character.max_mp, chasing ? character.max_mp : target);
 

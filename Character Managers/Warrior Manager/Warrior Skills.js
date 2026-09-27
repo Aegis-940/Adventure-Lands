@@ -71,7 +71,7 @@ async function handle_stomp() {
 	if (is_on_cooldown("stomp")) return;
 	if (ms_to_next_skill("attack") <= 75) return;
 
-	const mainhand = character.slots?.mainhand?.name;
+	const mainhand = character.slots.mainhand?.name;
 	const needs_swap = mainhand !== "basher";
 	const now = performance.now();
 	const restore = weapon_set_to_restore();
@@ -100,7 +100,7 @@ async function handle_cleave() {
 	if (ms_until_cleave !== 0) return;
 	if (!can_cleave()) return;
 
-	if (character.slots?.mainhand?.name === "bataxe") {
+	if (character.slots.mainhand?.name === "bataxe") {
 		return use_skill("cleave");
 	}
 
@@ -130,7 +130,7 @@ function can_cleave() {
 	if (is_travelling() || is_disabled(character)) return false;
 	if (character.cc >= COOLDOWNS.cc) return false;
 
-	const holding_axe = character.slots?.mainhand?.name === "bataxe";
+	const holding_axe = character.slots.mainhand?.name === "bataxe";
 
 	const required_mp = character.mp_cost * 2 + G.skills.cleave.mp + 320;
 	if (character.mp < required_mp) return false;

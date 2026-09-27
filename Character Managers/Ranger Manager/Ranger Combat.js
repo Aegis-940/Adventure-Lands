@@ -15,7 +15,7 @@ function should_attack_mob(mob) {
 
 	if (CONFIG.combat.attack_if_targeted.includes(mob.mtype)) return aggroed;
 
-	if (parent?.S?.[mob.mtype]?.live) return true;
+	if (parent.S[mob.mtype]?.live) return true;
 
 	if (dungeon_flag("aggroed_only")) return aggroed;
 
@@ -84,17 +84,17 @@ var SHOT_PROFILES = [
 ];
 
 function shot_mana(profile) {
-	return profile.name === "attack" ? character.mp_cost : (G.skills[profile.name]?.mp || 0);
+	return profile.name === "attack" ? character.mp_cost : G.skills[profile.name].mp;
 }
 
 function shot_usable(profile) {
-	return character.level >= (G.skills[profile.name]?.level || 0);
+	return character.level >= (G.skills[profile.name].level || 0);
 }
 
 function shot_apiercing(profile) {
 	const base = character.apiercing || 0;
 	if (!profile.pierces) return base;
-	return base + (G.skills[profile.name]?.apiercing || 0);
+	return base + (G.skills[profile.name].apiercing || 0);
 }
 
 function armour_factor(mob, apiercing) {
@@ -194,8 +194,8 @@ function combat_mana_reserve() {
 	let reserve = panic_mp_reserve();
 	if (!CONFIG.combat.mana_is_free) return reserve;
 
-	if (CONFIG.combat.use_hunters_mark) reserve += G.skills.huntersmark?.mp || 0;
-	if (CONFIG.combat.use_supershot) reserve += G.skills.supershot?.mp || 0;
+	if (CONFIG.combat.use_hunters_mark) reserve += G.skills.huntersmark.mp;
+	if (CONFIG.combat.use_supershot) reserve += G.skills.supershot.mp;
 	return reserve;
 }
 
@@ -249,7 +249,7 @@ function find_cupid_target() {
 	for (const name of party) {
 		if (name === character.name) continue;
 		const ally = get_player(name);
-		if (ally?.hp && ally?.max_hp && !ally.rip && is_in_range(ally)) {
+		if (ally && !ally.rip && is_in_range(ally)) {
 			const pct = ally.hp / ally.max_hp;
 			if (pct < min_pct) { min_pct = pct; target = ally; }
 		}

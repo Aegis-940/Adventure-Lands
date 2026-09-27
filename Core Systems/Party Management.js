@@ -48,7 +48,7 @@ function panic_threat() {
 	const low_health = character.hp < character.max_hp * t.low_hp;
 	const low_mana = character.mp < character.max_mp * t.low_mp;
 	const high_aggro = on_me >= aggro_limit;
-	const trapped = !dungeon_flag("ignore_travel_panic") && is_travelling() && on_me >= (t.travel_aggro ?? 1);
+	const trapped = !dungeon_flag("ignore_travel_panic") && is_travelling() && on_me >= 1;
 
 	return {
 		on_me, aggro_limit, low_health, trapped,

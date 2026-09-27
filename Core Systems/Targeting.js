@@ -25,7 +25,7 @@ function splash_landed_on_neighbours(mob, explosion, hit_damage) {
 
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
-		if (e?.type !== "monster" || e.dead) continue;
+		if (e.type !== "monster" || e.dead) continue;
 		if (e === mob || e.id === mob.id) continue;
 		if (distance(e, mob) > radius) continue;
 
@@ -133,7 +133,7 @@ let _last_target_sample = 0;
 function sample_target_choice(scored, context, weights) {
 	if (!weights || !weights.damage) return;
 	if (in_dungeon()) return;
-	if (!CONFIG.combat?.sample_targets) return;
+	if (!CONFIG.combat.sample_targets) return;
 	if (!scored || scored.length < 2) return;
 
 	const top = scored[0];

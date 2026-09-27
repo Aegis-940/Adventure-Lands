@@ -9,7 +9,7 @@ function cleave_targets_at(x, y) {
 	let count = 0;
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
-		if (e?.type !== "monster" || e.dead || !e.visible) continue;
+		if (e.type !== "monster" || e.dead || !e.visible) continue;
 		if (CONFIG.combat.cleave_blacklist.includes(e.mtype)) continue;
 		if (Math.hypot(e.x - x, e.y - y) <= radius) count++;
 	}

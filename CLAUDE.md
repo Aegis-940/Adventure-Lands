@@ -35,7 +35,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Core Systems/Global Config.js` | **Awaited first, with `Widget Helpers.js` and `Game Log.js`** — everything may assume it. Core config/constants, party constants (including `DUNGEON_PARTY`), the shared fighter config defaults, `farm_target_for()`, the `storage_read()`/`storage_write()` pair every JSON-backed localStorage value goes through, the no-op `errlog_*` stubs, and the `var` declarations of every cross-character symbol so no reader needs a `typeof` guard |
 | `Core Systems/Movement Manager.js` | The two movement owners — `movement_goal()` (where to go, the one priority list) and `movement_local()` (where to stand) — plus the machinery they drive: `smarter_move()`, the travel arbiter (`travel_arbiter()`), `move_to_character()`, stuck escape |
 | `Core Systems/Bscorpion Camp.js` | Content-specific positioning for the desertland bscorpion/primling camp |
-| `Core Systems/Combat Utilities.js` | Monster and entity queries (`monsters_matching()`, `get_num_targets()`, `get_num_chests()`), boss and party state predicates (`find_active_boss()`, `boss_engageable()`, `healer_is_down()`, `should_pause_combat_loop()`) |
+| `Core Systems/Combat Utilities.js` | Monster and entity queries (`monsters_matching()`, `get_num_targets()`, `get_num_chests()`), boss and party state predicates (`find_active_boss()`, `boss_engageable()`, `should_pause_combat_loop()`) |
 | `Core Systems/Combat Formulas.js` | The server's damage and heal arithmetic — `defense_reduction()`, `heal_delivered()`/`heal_useful()`/`partyheal_base()`, `burn_multiplier_at_dps()`, `splash_bonus()`, `time_to_kill_ms()`. Computes values, acts on nothing |
 | `Core Systems/Combat Sampling.js` | Hit and heal telemetry — the `hit`/`action` socket samplers and the damage/heal windows they feed. Self-starting at load |
 | `Core Systems/Movement Positioning.js` | `best_orbit_spot()`, `make_distance_from_monsters_scorer()`, `reposition_center()` and `orbit_reposition()` — scoring candidate spots around a centre |
@@ -129,7 +129,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 - Section headers use `// ---...--- //` dash-block dividers
 - Async loops use `setInterval(async () => { ... }, tickRate)` pattern
 - Movement returns Promises — use `smarter_move().then(...)` or `await smarter_move(...)`
-- Equipment swapping has **no cooldown of its own** — swaps are meant to react in milliseconds. The only wait an equip observes is a server `not_ready` refusal, honoured for exactly the `ms` it quotes (`equip_refused()` in Equipment Manager). Potions are unrelated to equipment in every way, cooldowns included; do not couple them
+- Equipment swapping has **no cooldown of its own** — swaps are meant to react in milliseconds, and no equip path waits on anything: not a timer, not a hold, not a server refusal. The reference is the warrior's cleave swap, which emits arm, skill and restore in one burst and returns. Potions are unrelated to equipment in every way, cooldowns included; do not couple them
 
 ### Comments
 - **Zero code comments.** Do not add explanatory, WHY, or doc comments (including JSDoc) to any code you write — identifiers, structure, and headings should carry all the meaning

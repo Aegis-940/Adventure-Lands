@@ -6,7 +6,7 @@
 function ms_to_next_skill(skill) {
 	const next_skill = parent.next_skill[skill];
 	if (next_skill === undefined) return 0;
-	const ping = parent.pings?.length ? Math.min(...parent.pings) : 0;
+	const ping = parent.pings.length ? Math.min(...parent.pings) : 0;
 	const ms = next_skill.getTime() - Date.now() - ping;
 	return ms < 0 ? 0 : ms;
 }
@@ -82,7 +82,7 @@ function get_party_members() {
 }
 
 function panic_mp_reserve() {
-	return (G.skills.scare?.mp || 50) + 200;
+	return G.skills.scare.mp + 200;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -101,19 +101,19 @@ function find_active_boss() {
 		.find(e => e.data?.live && boss_is_present(e));
 }
 
-function boss_max_hp(name, data) {
-	return (G.monsters?.[name]?.hp) || data?.max_hp || 0;
+function boss_max_hp(name) {
+	return G.monsters[name].hp;
 }
 
 function boss_nearly_dead(name, hp, max_hp) {
-	const max = max_hp || boss_max_hp(name, null);
+	const max = max_hp || boss_max_hp(name);
 	if (!max || !hp) return false;
 	return hp <= max * BOSS_NEARLY_DEAD_HP;
 }
 
 function boss_blocks_cleave(e) {
 	if (!e || e.dead || !CONFIG.combat.all_bosses.includes(e.mtype)) return false;
-	if (CONFIG.combat.cleave_boss_blacklist?.includes(e.mtype)) return true;
+	if (CONFIG.combat.cleave_boss_blacklist.includes(e.mtype)) return true;
 	return boss_nearly_dead(e.mtype, e.hp, e.max_hp);
 }
 
@@ -121,8 +121,8 @@ function boss_engageable(name, data) {
 	const entry = EVENT_LOCATIONS.find(e => e.name === name);
 	if (!entry || entry.engage_below === undefined) return true;
 
-	const max = boss_max_hp(name, data);
-	if (!max || !data?.hp) return true;
+	const max = boss_max_hp(name);
+	if (!max || !data.hp) return true;
 	return data.hp <= max * entry.engage_below;
 }
 
@@ -148,18 +148,5 @@ function should_pause_combat_loop() {
 	const myras = get_player("Myras");
 	if (!myras || distance(character, myras) > 200) return true;
 
-	if (myras.rip) return true;
-	return healer_is_down();
-}
-
-let _healer_down = { at: 0, down: false };
-
-function healer_is_down() {
-	const now = Date.now();
-	if (now - _healer_down.at < 250) return _healer_down.down;
-	_healer_down.at = now;
-	const cached = read_state_cache("Myras");
-	const down = !!(cached && cached.rip);
-	_healer_down.down = down;
-	return down;
+	return myras.rip;
 }

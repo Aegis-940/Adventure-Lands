@@ -93,13 +93,10 @@ var STATUS_SWAP_TRICKS = {
 var swap_trick_attempts = 0;
 var swap_trick_history = {};
 
-async function status_swap_trick_check(target) {
-	if (basic_action_busy()) return;
-	run_basic_action(attack(target), "attack");
-
+async function status_swap_trick(target) {
 	if (!CONFIG.combat.swap_trick_enabled) return;
 
-	const trick = STATUS_SWAP_TRICKS[target?.mtype];
+	const trick = STATUS_SWAP_TRICKS[target.mtype];
 	if (!trick || character.s[trick.status] !== undefined) return;
 
 	if (!is_set_equipped(trick.base_set)) return;
@@ -148,7 +145,10 @@ async function action_loop() {
 		const ms = ms_to_next_skill("attack");
 
 		if (ms === 0 && !travel_blocks_combat() && target && is_in_range(target)) {
-			await status_swap_trick_check(target);
+			if (!basic_action_busy()) {
+				run_basic_action(attack(target), "attack");
+				await status_swap_trick(target);
+			}
 		} else {
 			next_delay = next_action_delay(ms);
 		}

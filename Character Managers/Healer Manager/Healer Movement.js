@@ -4,8 +4,7 @@
 
 function healer_on_disabled() {
 	if (!panicking || !character.rip) return;
-	set_panic(false, "healer died — releasing the party", false);
-	send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
+	release_panic("healer died — releasing the party", true);
 }
 
 function healer_skip_panic_check() {

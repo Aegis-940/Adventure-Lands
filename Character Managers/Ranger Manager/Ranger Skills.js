@@ -34,8 +34,8 @@ function skill_pays(value, mana, target) {
 }
 
 function mark_value(target) {
-	const cond = G.conditions?.marked;
-	if (!cond || !cond.incdmgamp) return 0;
+	const cond = G.conditions.marked;
+	if (!cond.incdmgamp) return 0;
 	if (target.s?.marked) return 0;
 
 	const own_dps = (character.attack || 0) * (character.frequency || 1);
@@ -47,7 +47,7 @@ function mark_value(target) {
 }
 
 function supershot_value(target) {
-	const multiplier = G.skills.supershot?.damage_multiplier || 1.5;
+	const multiplier = G.skills.supershot.damage_multiplier;
 	return multiplier * (character.attack || 0) * (target_modifier(target, multiplier) || 1);
 }
 
@@ -91,8 +91,8 @@ async function skill_loop() {
 
 			const skill_allowed = !CONFIG.combat.skill_blacklist.includes(target.mtype);
 
-			const hm_cost = G.skills.huntersmark?.mp || 0;
-			const ss_cost = G.skills.supershot?.mp || 0;
+			const hm_cost = G.skills.huntersmark.mp;
+			const ss_cost = G.skills.supershot.mp;
 			let committed = 0;
 			const affordable = (cost) => (character.mp - committed) >= cost + panic_mp_reserve();
 
