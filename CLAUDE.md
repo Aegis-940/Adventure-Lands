@@ -129,7 +129,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 - Section headers use `// ---...--- //` dash-block dividers
 - Async loops use `setInterval(async () => { ... }, tickRate)` pattern
 - Movement returns Promises — use `smarter_move().then(...)` or `await smarter_move(...)`
-- Equipment swapping has cooldown guards — check `COOLDOWNS` before adding new swap logic
+- Equipment swapping has **no cooldown of its own** — swaps are meant to react in milliseconds. The only wait an equip observes is a server `not_ready` refusal, honoured for exactly the `ms` it quotes (`equip_refused()` in Equipment Manager). Potions are unrelated to equipment in every way, cooldowns included; do not couple them
 
 ### Comments
 - **Zero code comments.** Do not add explanatory, WHY, or doc comments (including JSDoc) to any code you write — identifiers, structure, and headings should carry all the meaning

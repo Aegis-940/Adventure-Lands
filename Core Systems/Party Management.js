@@ -144,7 +144,7 @@ async function panic_response() {
 				.map(i => "lvl" + (i.level ?? 0)).join(",") || "none";
 			game_log(`[PANIC] Panic orb never arrived: ${fmt_err(e)} `
 				+ `(orb slot: ${orb ? orb.name + " lvl" + (orb.level ?? 0) : "empty"}, `
-				+ `item cd: ${item_cooldown_ms()}ms, `
+				+ `server refusal left: ${equip_refused_ms()}ms, `
 				+ `jacko in bags: ${in_bags}, cc: ${Math.round(character.cc || 0)})`,
 				"#ff4444");
 			return;

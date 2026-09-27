@@ -174,7 +174,6 @@ var equipment_sets = {
 var state = {
 	last_basher_swap: 0,
 	last_cleave_swap: 0,
-	equip_cooldowns: {},
 	last_reposition: 0
 };
 

@@ -36,31 +36,19 @@ const MAINHAND_FLIGHT_MS = 1500;
 const EQUIP_ACK_TIMEOUT_MS = 1000;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// ITEM COOLDOWN — the server refuses an equip while one is armed, and says how long it has left.
-// Learned from its own refusals, so it needs no assumption about what armed it.
+// SERVER REFUSAL — an equip the server answered not_ready is not re-sent until the ms it quoted have passed.
+// That is the only wait equips ever observe; there is no cooldown of our own.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-let _item_cooldown_until = 0;
+let _equip_refused_until = 0;
 
-function item_cooldown_ms() {
-	return Math.max(0, _item_cooldown_until - Date.now());
+function equip_refused_ms() {
+	return Math.max(0, _equip_refused_until - Date.now());
 }
 
-function arm_item_cooldown(ms) {
-	const until = Date.now() + ms;
-	if (until > _item_cooldown_until) _item_cooldown_until = until;
-}
-
-let _equip_starved_at = 0;
-
-function equip_starved() {
-	return Date.now() - _equip_starved_at < 500;
-}
-
-function item_cooldown_blocks(label) {
-	if (item_cooldown_ms() <= 0) return false;
-	_equip_starved_at = Date.now();
-	errlog_count(`equip held by item cooldown ${label}`);
+function equip_refused(label) {
+	if (equip_refused_ms() <= 0) return false;
+	errlog_count(`equip waiting on server refusal ${label}`);
 	return true;
 }
 
@@ -70,7 +58,7 @@ if (parent.socket._equip_not_ready_handler) {
 
 parent.socket._equip_not_ready_handler = data => {
 	if (!data || data.place !== "equip" || data.reason !== "not_ready") return;
-	if (data.ms > 0) arm_item_cooldown(data.ms);
+	if (data.ms > 0) _equip_refused_until = Math.max(_equip_refused_until, Date.now() + data.ms);
 };
 
 parent.socket.on("game_response", parent.socket._equip_not_ready_handler);
@@ -142,7 +130,7 @@ async function batch_equip(data, set_name) {
 
 	if (valid_items.length === 0) return 0;
 
-	if (item_cooldown_blocks(set_name || "slots")) return 0;
+	if (equip_refused(set_name || "slots")) return 0;
 
 	clear_offhand_for_doublehand(valid_items);
 
@@ -426,20 +414,6 @@ async function wait_for_set(set_name, timeout_ms) {
 // UNIFIED EQUIPMENT RESOLVER — Warrior/Ranger/Healer each declare their own EQUIPMENT_RULES
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const PANIC_SWAP_COOLDOWN = 250;
-
-function equip_group_ready(group, key) {
-	if (!state.equip_cooldowns) state.equip_cooldowns = {};
-	const last = state.equip_cooldowns[group];
-	const now = performance.now();
-	const cooldown = key === "panic"
-		? PANIC_SWAP_COOLDOWN
-		: (CONFIG.equipment.swap_cooldown ?? COOLDOWNS.equip_swap);
-	if (last && now - last.at < cooldown) return false;
-	state.equip_cooldowns[group] = { key, at: now };
-	return true;
-}
-
 async function apply_equipment_rule(token, group, resolved) {
 	if (!resolved) return;
 	const sets = Array.isArray(resolved) ? resolved : [resolved];
@@ -448,11 +422,7 @@ async function apply_equipment_rule(token, group, resolved) {
 		errlog_count(`equip unavailable ${group}`);
 		return;
 	}
-	if (item_cooldown_blocks(sets.join("+"))) return;
-	if (!equip_group_ready(group, sets.join("+"))) {
-		if (sets.includes("panic")) errlog_count(`panic swap gated ${group}`);
-		return;
-	}
+	if (equip_refused(sets.join("+"))) return;
 	await equip_apply(token, sets);
 }
 
