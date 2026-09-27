@@ -7,7 +7,6 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 var panicking = false;
-var last_panic_time = 0;
 var panic_external = false;
 var panic_external_since = 0;
 var panic_since = 0;
@@ -16,7 +15,6 @@ function set_panic(on, reason, external) {
 	const ext = external === undefined ? panic_external : !!external;
 	if (panicking === on && panic_external === ext) return;
 
-	if (on && !panicking) last_panic_time = 0;
 	if (on && !panicking) panic_since = Date.now();
 	if (!on) panic_since = 0;
 	panicking = !!on;
@@ -31,7 +29,6 @@ function set_panic(on, reason, external) {
 // PANIC — binary. A threat latches it on; it stays on through the orb and the scare, and only an all-clear releases it.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const PANIC_EQUIP_WAIT_MS = 3000;
 const PANIC_MIN_HOLD_MS = 3000;
 const PANIC_ORB_LINGER_MS = 5000;
 const EXTERNAL_PANIC_MAX_MS = 60000;
@@ -131,30 +128,13 @@ async function _panic_check_body() {
 }
 
 async function panic_response() {
-	if (Date.now() - last_panic_time < PANIC_THRESHOLDS.cooldown) return;
-	last_panic_time = Date.now();
-
 	if (!is_set_equipped("panic")) {
-		try {
-			await wait_until_equipped("panic", PANIC_EQUIP_WAIT_MS);
-		} catch (e) {
-			const orb = character.slots.orb;
-			const in_bags = character.items
-				.filter(i => i && i.name === "jacko")
-				.map(i => "lvl" + (i.level ?? 0)).join(",") || "none";
-			game_log(`[PANIC] Panic orb never arrived: ${fmt_err(e)} `
-				+ `(orb slot: ${orb ? orb.name + " lvl" + (orb.level ?? 0) : "empty"}, `
-				+ `server refusal left: ${equip_refused_ms()}ms, `
-				+ `jacko in bags: ${in_bags}, cc: ${Math.round(character.cc || 0)})`,
-				"#ff4444");
-			return;
-		}
+		errlog_count("panic waiting for orb");
+		return;
 	}
-
-	if (is_on_cooldown("scare") || !can_use("scare")) {
-		errlog_count(`scare blocked cd=${is_on_cooldown("scare")}`
-			+ ` can_use=${can_use("scare")} jacko=${is_set_equipped("panic")}`
-			+ ` orb=${character.slots.orb ? character.slots.orb.name : "empty"}`);
+	if (is_on_cooldown("scare")) return;
+	if (!can_use("scare")) {
+		errlog_count(`scare unusable orb=${character.slots.orb ? character.slots.orb.name : "empty"}`);
 		return;
 	}
 

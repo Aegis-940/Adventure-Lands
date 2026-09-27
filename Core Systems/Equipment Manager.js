@@ -199,17 +199,6 @@ function set_available(set_name) {
 	} catch (e) { return false; }
 }
 
-async function wait_until_equipped(set_name, timeout_ms = 1000, interval_ms = 100) {
-	let waited = 0;
-	while (!is_set_equipped(set_name)) {
-		if (waited >= timeout_ms) {
-			throw { reason: "timeout", message: `wait_until_equipped("${set_name}"): still not equipped after ${timeout_ms}ms` };
-		}
-		await delay(interval_ms);
-		waited += interval_ms;
-	}
-}
-
 async function equip_set_raw(set_name) {
 	const set = equipment_sets[set_name];
 	if (!set) {

@@ -74,8 +74,6 @@ function remember_dungeon_entities() {
 	}
 }
 
-setInterval(remember_dungeon_entities, PROGRESS_SEEN_MS);
-
 function dungeon_mtype_for(id) {
 	const live = parent.entities[id];
 	if (live && live.mtype) return live.mtype;

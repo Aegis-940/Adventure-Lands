@@ -167,8 +167,6 @@ function inventory_sorter() {
 let _loot_last = 0;
 let _looting = false;
 
-const GOLD_GEAR_WAIT_MS = 2500;
-
 function gold_gear_wanted() {
 	return !!CONFIG.looting?.equip_gold_gear && _looting;
 }
@@ -216,13 +214,9 @@ async function handle_looting() {
 	let booster_slot = -1;
 
 	try {
-		if (CONFIG.looting.equip_gold_gear && !is_set_equipped("gold")) {
+		if (CONFIG.looting.equip_gold_gear) {
 			booster_slot = locate_item("luckbooster");
-			await Promise.all([
-				wait_until_equipped("gold", GOLD_GEAR_WAIT_MS).catch(e =>
-					game_log(`[LOOT] gold gear never arrived: ${fmt_err(e)}`, "#FFA500")),
-				shift_booster(booster_slot, "goldbooster")
-			]);
+			await shift_booster(booster_slot, "goldbooster");
 		}
 
 		let looted = 0;

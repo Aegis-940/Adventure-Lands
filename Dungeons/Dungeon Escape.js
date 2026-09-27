@@ -39,16 +39,13 @@ function dungeon_threats(radius = DUNGEON_THREAT_RADIUS) {
 
 async function dungeon_scare_off() {
 	try {
-		if (!is_set_equipped("panic")) {
-			await equip_once("bail", EQUIP_PRIORITY.panic, "panic");
-			await wait_until_equipped("panic");
-		}
+		if (!is_set_equipped("panic")) await equip_once("bail", EQUIP_PRIORITY.panic, "panic");
 	} catch (e) {
 		game_log(`[BAIL] could not equip jacko: ${fmt_err(e)}`, "#ff4444");
 	}
 
 	try {
-		if (!is_on_cooldown("scare") && can_use("scare")) {
+		if (is_set_equipped("panic") && !is_on_cooldown("scare") && can_use("scare")) {
 			game_log("[BAIL] Scare", "#ffcc00");
 			await use_skill("scare");
 			await delay(200);

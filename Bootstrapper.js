@@ -106,8 +106,6 @@
 		"Core Systems/Error Log.js",
 		"Dungeons/Spider Dungeon.js",
 		"Dungeons/Crypt Dungeon.js",
-		"Dungeons/Dungeon Progress.js",
-		"Dungeons/Dungeon Telemetry.js",
 		"Dungeons/Dungeon Collection.js",
 		"Dungeons/Crypt Route.js",
 		"Dungeons/Dungeon Mode.js",

@@ -124,5 +124,3 @@ function dungeon_telemetry_tick() {
 		console.error("dungeon telemetry error", e);
 	}
 }
-
-setInterval(dungeon_telemetry_tick, TELEMETRY_TICK_MS);
