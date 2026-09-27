@@ -35,6 +35,33 @@ function clear_offhand_for_doublehand(valid_items) {
 const MAINHAND_FLIGHT_MS = 1500;
 const EQUIP_ACK_TIMEOUT_MS = 1000;
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// ITEM COOLDOWN — the server refuses an equip while one is armed, and says how long it has left.
+// Learned from its own refusals, so it needs no assumption about what armed it.
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+let _item_cooldown_until = 0;
+
+function item_cooldown_ms() {
+	return Math.max(0, _item_cooldown_until - Date.now());
+}
+
+function arm_item_cooldown(ms) {
+	const until = Date.now() + ms;
+	if (until > _item_cooldown_until) _item_cooldown_until = until;
+}
+
+if (parent.socket._equip_not_ready_handler) {
+	parent.socket.off("game_response", parent.socket._equip_not_ready_handler);
+}
+
+parent.socket._equip_not_ready_handler = data => {
+	if (!data || data.place !== "equip" || data.reason !== "not_ready") return;
+	if (data.ms > 0) arm_item_cooldown(data.ms);
+};
+
+parent.socket.on("game_response", parent.socket._equip_not_ready_handler);
+
 var _mainhand_flight = { pending: null, until: 0 };
 
 function mainhand_in_flight() {
@@ -101,6 +128,11 @@ async function batch_equip(data, set_name) {
 	}
 
 	if (valid_items.length === 0) return 0;
+
+	if (item_cooldown_ms() > 0) {
+		errlog_count(`equip held by item cooldown ${set_name || "slots"}`);
+		return 0;
+	}
 
 	clear_offhand_for_doublehand(valid_items);
 

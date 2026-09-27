@@ -32,6 +32,7 @@ function set_panic(on, reason, external) {
 // PANIC — threat detection, the aggro dump, and the all-clear
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+const PANIC_EQUIP_WAIT_MS = 2500;
 const EXTERNAL_PANIC_MAX_MS = 60000;
 const SELF_PANIC_MAX_MS = 60000;
 
@@ -84,7 +85,7 @@ async function _panic_check_body() {
 		last_panic_time = Date.now();
 		if (!is_set_equipped("panic")) {
 			try {
-				await wait_until_equipped("panic");
+				await wait_until_equipped("panic", PANIC_EQUIP_WAIT_MS);
 			} catch (e) {
 				const orb = character.slots.orb;
 				const in_bags = character.items
@@ -92,6 +93,7 @@ async function _panic_check_body() {
 					.map(i => "lvl" + (i.level ?? 0)).join(",") || "none";
 				game_log(`[PANIC] Panic orb never arrived: ${fmt_err(e)} `
 					+ `(orb slot: ${orb ? orb.name + " lvl" + (orb.level ?? 0) : "empty"}, `
+					+ `item cd: ${item_cooldown_ms()}ms, `
 					+ `jacko in bags: ${in_bags}, cc: ${Math.round(character.cc || 0)})`,
 					"#ff4444");
 			}
