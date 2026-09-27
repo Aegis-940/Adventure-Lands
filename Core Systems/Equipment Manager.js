@@ -228,10 +228,6 @@ function equip_release(token) {
 	if (equip_holds(token)) _equip_holder = null;
 }
 
-function equip_refresh(token) {
-	if (equip_holds(token)) _equip_holder.at = Date.now();
-}
-
 async function equip_apply(token, sets) {
 	if (!equip_holds(token)) return false;
 	const list = Array.isArray(sets) ? sets : [sets];

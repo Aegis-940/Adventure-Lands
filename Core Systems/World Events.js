@@ -101,7 +101,7 @@ function boss_field_watch(target) {
 }
 
 function boss_field_draining() {
-	return !!_boss_field && Object.keys(get_chests()).length > 0;
+	return !!_boss_field && get_num_chests() > 0;
 }
 
 function nearest_chest() {

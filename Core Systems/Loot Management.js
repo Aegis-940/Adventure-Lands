@@ -184,7 +184,7 @@ function should_loot() {
 	if (looting_blocked() || _looting) return false;
 
 	const now = performance.now();
-	const stored_chest_count = Object.keys(get_chests()).length;
+	const stored_chest_count = get_num_chests();
 	const draining = boss_field_draining();
 
 	return (

@@ -97,7 +97,7 @@ function dungeon_telemetry_tick() {
 			stuck_ms: now - _telemetry_free_since,
 			gold: character.gold,
 			esize: character.esize,
-			chests: Object.keys(get_chests()).length,
+			chests: get_num_chests(),
 			hp_pct: character.max_hp ? +(character.hp / character.max_hp).toFixed(2) : 0,
 			mp_pct: character.max_mp ? +(character.mp / character.max_mp).toFixed(2) : 0,
 			rip: !!character.rip,

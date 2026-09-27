@@ -122,11 +122,6 @@ function boss_engageable(name, data) {
 	return data.hp <= max * entry.engage_below;
 }
 
-function boss_engaged() {
-	const boss = find_active_boss();
-	return !!boss && boss_engageable(boss.name, boss.data);
-}
-
 function travel_blocks_combat() {
 	if (dungeon_flag("fight_while_moving")) return false;
 	return is_travelling();

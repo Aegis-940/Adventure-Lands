@@ -105,10 +105,6 @@ function bank_packs_on_floor(map) {
 	return packs;
 }
 
-function get_packs_on_this_floor() {
-	return bank_packs_on_floor(character.map);
-}
-
 function bank_floors_with_items() {
 	const floors = [];
 

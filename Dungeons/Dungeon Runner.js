@@ -105,7 +105,7 @@ async function dungeon_loot_everything() {
 	let last = -1;
 
 	while (Date.now() < until) {
-		const count = Object.keys(get_chests()).length;
+		const count = get_num_chests();
 		if (!count) break;
 
 		if (count === last) {
@@ -122,7 +122,7 @@ async function dungeon_loot_everything() {
 		await delay(DUNGEON_LOOT_ROUND_MS);
 	}
 
-	const left = Object.keys(get_chests()).length;
+	const left = get_num_chests();
 	game_log(left ? `Looting: done, ${left} left behind` : "Looting: everything collected", DUNGEON_LOG_COLOR);
 }
 
