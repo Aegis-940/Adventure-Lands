@@ -357,7 +357,7 @@ function resolve_weapon_set(args) {
 
 	if (CONFIG.equipment.weapon_swap_enabled === false) return null;
 	if (a.forced) return a.forced;
-	if (typeof dungeon_flag === "function" && dungeon_flag("single_weapon")) return sets[0];
+	if (dungeon_flag("single_weapon")) return sets[0];
 
 	const chosen = resolve_weapon_by_value(name => set_damage_value(name, a.pool, a.width), a.context);
 	if (chosen || !a.pool || !a.pool.length) return chosen;

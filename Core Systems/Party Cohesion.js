@@ -89,7 +89,7 @@ function follow_has_leader() {
 function party_cohesion_hold() {
 	if (character.name !== MOVEMENT_LEADER) return false;
 
-	const owed = !dungeon_flag("ignore_events")
+	const owed = !dungeon_ignores_events()
 		&& typeof anniversary_should_travel === "function" && anniversary_should_travel();
 	const endangered = party_member_in_danger();
 
@@ -104,7 +104,7 @@ function party_cohesion_hold() {
 	});
 	if (_cohesion_holding) return true;
 
-	if (owed || dungeon_flag("ignore_events")) return false;
+	if (owed || dungeon_ignores_events()) return false;
 	return COHESION_FOLLOWERS.some(name => {
 		const s = read_state_cache(name);
 		return !!s && !s.rip && !s.paused && !!s.anniv_pending;

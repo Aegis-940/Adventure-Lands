@@ -48,7 +48,7 @@ async function panic_check() {
 }
 
 async function _panic_check_body() {
-	if (typeof dungeon_bailing === "function" && dungeon_bailing()) return;
+	if (dungeon_bailing()) return;
 
 	const t = PANIC_THRESHOLDS;
 

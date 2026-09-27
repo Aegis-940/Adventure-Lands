@@ -441,7 +441,7 @@ async function resolve_equipment() {
 async function equipment_manager_loop() {
 	while (true) {
 		try {
-			if (typeof dungeon_bailing === "function" && dungeon_bailing()) {
+			if (dungeon_bailing()) {
 				await delay(250);
 				continue;
 			}

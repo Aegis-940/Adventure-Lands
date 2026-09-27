@@ -85,6 +85,8 @@ function dark_blessing_synced() {
 	return now - _dark_blessing_ready_since >= DARK_BLESSING_SYNC_WAIT_MS;
 }
 
+var CURSE_NEARBY_RANGE = 50;
+
 async function handle_curse() {
 	if (is_on_cooldown("curse") || is_travelling()) return;
 
@@ -99,18 +101,15 @@ async function handle_curse() {
 		.sort((a, b) => distance(character, a) - distance(character, b));
 	if (bosses_with_target.length) target = bosses_with_target[0];
 
-	if (!target && dungeon_flag("absorb_nearby")) {
-		const nearby = Object.values(parent.entities)
-			.filter(e => has_target(e) && Math.hypot(character.x - e.x, character.y - e.y) <= 50)
-			.sort((a, b) => b.hp - a.hp);
-		if (nearby.length) target = nearby[0];
-	}
+	if (!target) {
+		const candidates = dungeon_flag("absorb_nearby")
+			? Object.values(parent.entities)
+				.filter(e => has_target(e) && Math.hypot(character.x - e.x, character.y - e.y) <= CURSE_NEARBY_RANGE)
+			: Object.values(parent.entities)
+				.filter(e => has_target(e) && e.mtype === home && is_in_range(e, "curse"));
 
-	if (!target && !dungeon_flag("absorb_nearby")) {
-		const home_mobs = Object.values(parent.entities)
-			.filter(e => has_target(e) && e.mtype === home && is_in_range(e, "curse"))
-			.sort((a, b) => b.hp - a.hp);
-		if (home_mobs.length) target = home_mobs[0];
+		candidates.sort((a, b) => b.hp - a.hp);
+		if (candidates.length) target = candidates[0];
 	}
 
 	if (target && is_in_range(target, "curse")) {

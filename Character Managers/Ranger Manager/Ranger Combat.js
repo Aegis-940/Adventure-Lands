@@ -64,7 +64,7 @@ function update_target_cache() {
 		return value.get(b) - value.get(a);
 	});
 
-	const engage_radius = dungeon_setting("engage_radius", null);
+	const engage_radius = dungeon_engage_radius(null);
 	const within_range = engage_radius
 		? mob => is_in_range(mob) && parent.distance(character, mob) <= engage_radius
 		: mob => is_in_range(mob);

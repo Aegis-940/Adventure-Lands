@@ -64,7 +64,7 @@ function find_best_target() {
 
 	const guard = typeof porcupine_guard_allows === "function" ? porcupine_guard_allows : undefined;
 
-	return best_target({ max_distance: max_dist, where: guard }, dungeon_target_weights(CONFIG.combat.target_weights), context);
+	return best_target({ max_distance: max_dist, where: guard }, dungeon_target_weights(), context);
 }
 
 function find_monsters_in_cleave_range() {

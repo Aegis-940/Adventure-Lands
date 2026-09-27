@@ -64,7 +64,7 @@ function dungeon_telemetry_tick() {
 		const d = active_dungeon();
 		const near = telemetry_nearby();
 		const aggro = telemetry_aggro();
-		const focus = typeof dungeon_focus_target === "function" ? dungeon_focus_target() : null;
+		const focus = dungeon_focus_target();
 
 		const moved = _telemetry_last
 			? Math.round(Math.hypot(character.x - _telemetry_last.x, character.y - _telemetry_last.y))
@@ -115,7 +115,7 @@ function dungeon_telemetry_tick() {
 			counts: near.counts,
 			smart_moving: !!smart.moving,
 			goal: typeof current_goal_label === "function" ? current_goal_label() : null,
-			bailing: typeof dungeon_bailing === "function" && dungeon_bailing(),
+			bailing: dungeon_bailing(),
 			channelling: !!(character.c && character.c.town),
 			kills: Object.assign({}, _dungeon_kills),
 		});

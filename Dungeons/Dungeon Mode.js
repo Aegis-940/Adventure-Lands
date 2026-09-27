@@ -8,7 +8,7 @@ const DUNGEON_BUTTONS = [
 ];
 
 function dungeon_mode_enabled() {
-	return typeof dungeon_override === "function" && !!dungeon_override();
+	return !!dungeon_override();
 }
 
 function set_dungeon_mode(key, broadcast = true) {

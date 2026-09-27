@@ -79,12 +79,16 @@ function dungeon_setting(name, fallback) {
 	return d.flags[name];
 }
 
-function dungeon_engage_radius() {
-	return dungeon_setting("engage_radius", character.range);
+function dungeon_engage_radius(fallback) {
+	return dungeon_setting("engage_radius", fallback === undefined ? character.range : fallback);
 }
 
-function dungeon_target_weights(fallback) {
-	return dungeon_flag("target_lowest_hp") ? { hp_low: 1 } : fallback;
+function dungeon_ignores_events() {
+	return dungeon_flag("ignore_events");
+}
+
+function dungeon_target_weights() {
+	return dungeon_flag("target_lowest_hp") ? { hp_low: 1 } : CONFIG.combat.target_weights;
 }
 
 function dungeon_sort_targets(list) {
@@ -148,7 +152,7 @@ function dungeon_protected_keys() {
 let _dungeon_moving = false;
 
 function dungeon_moving() {
-	if (typeof dungeon_bailing === "function" && dungeon_bailing()) return true;
+	if (dungeon_bailing()) return true;
 	return _dungeon_moving;
 }
 
@@ -435,7 +439,7 @@ function dungeon_rejoin_watch() {
 		if (_dungeon_joining || character.rip) return;
 		if (typeof dungeon_mode_enabled !== "function" || !dungeon_mode_enabled()) return;
 		if (typeof read_state_cache !== "function") return;
-		if (typeof dungeon_bailing === "function" && dungeon_bailing()) return;
+		if (dungeon_bailing()) return;
 
 		const d = active_dungeon();
 		if (!d || character.map === d.map) return;

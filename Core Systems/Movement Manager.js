@@ -362,7 +362,7 @@ function movement_goal() {
 	const follow = scripted_camp ? null : follow_goal();
 	if (follow && !follow.local) return follow;
 
-	const ignoring_events = dungeon_flag("ignore_events");
+	const ignoring_events = dungeon_ignores_events();
 
 	const event = ignoring_events ? null : event_goal();
 	if (follow && follow.on_station && event && event.local === "event") return event;
