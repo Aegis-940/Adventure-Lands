@@ -26,9 +26,9 @@ async function skill_loop() {
 		const mp_pct = character.max_mp ? character.mp / character.max_mp : 1;
 		const mana_for_luxuries = mp_pct >= CONFIG.healing.skill_min_mp_pct;
 
-		const travelling = is_travelling();
+		const paused = should_pause_combat_loop();
 
-		if (!travelling && CONFIG.combat.enabled
+		if (!paused && CONFIG.combat.enabled
 			&& character.mp >= G.skills.curse.mp + panic_mp_reserve()) {
 			try {
 				await handle_curse();
@@ -37,7 +37,7 @@ async function skill_loop() {
 			}
 		}
 
-		if (!panicking && !travelling && CONFIG.healing.absorb_enabled && penalty < 500) {
+		if (!paused && CONFIG.healing.absorb_enabled && penalty < 500) {
 			try {
 				await handle_absorb();
 			} catch (e) {
@@ -47,7 +47,7 @@ async function skill_loop() {
 
 		if (is_on_cooldown("darkblessing")) _dark_blessing_ready_since = 0;
 
-		if (!panicking && !travelling && mana_for_luxuries && CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
+		if (!paused && mana_for_luxuries && CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
 			&& character.mp >= G.skills.darkblessing.mp) {
 			if ((home !== "bscorpion" || bscorpion_worth_buffing()) && dark_blessing_synced()) {
 				try {
@@ -88,7 +88,7 @@ function dark_blessing_synced() {
 var CURSE_NEARBY_RANGE = 50;
 
 async function handle_curse() {
-	if (is_on_cooldown("curse") || is_travelling()) return;
+	if (is_on_cooldown("curse")) return;
 
 	const has_target = e =>
 		e.type === "monster" && !e.dead && e.visible && e.target && !e.immune &&

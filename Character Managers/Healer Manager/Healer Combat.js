@@ -151,7 +151,7 @@ function heal_wanted() {
 }
 
 function attack_wanted() {
-	if (panicking || travel_blocks_combat() || dungeon_flag("no_attack") || dungeon_bailing()) return false;
+	if (should_pause_combat_loop() || dungeon_flag("no_attack")) return false;
 	const target = cache.target;
 	return !!target && is_in_range(target);
 }

@@ -145,8 +145,8 @@ function should_pause_combat_loop() {
 	if (goal && goal.chasing) return true;
 
 	if (dungeon_flag("combat_always_on")) return false;
-	const myras = get_player("Myras");
-	if (!myras || distance(character, myras) > 200) return true;
-
-	return myras.rip;
+	if (character.name === MOVEMENT_LEADER) return false;
+	const leader = get_player(MOVEMENT_LEADER);
+	if (!leader || distance(character, leader) > 200) return true;
+	return leader.rip;
 }
