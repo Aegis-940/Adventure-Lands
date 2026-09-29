@@ -165,8 +165,37 @@ def write_store(store):
     return blob
 
 
+TIMELINE_ARCHIVE = os.path.join(REPO, "errors_timeline.jsonl")
+
+
+def archive_timeline(who, entries):
+    """Append-only: the store trims its timeline to MAX_TIMELINE, and a freeze's last minutes were
+    pushed out by the next morning's traffic before anyone read them. Nothing trims this file."""
+    with open(TIMELINE_ARCHIVE, "a", encoding="utf-8") as fh:
+        for e in sorted(entries, key=lambda x: x.get("t") or 0):
+            stamp = datetime.fromtimestamp((e.get("t") or 0) / 1000).strftime("%Y-%m-%d %H:%M:%S")
+            fh.write(json.dumps({"at": stamp, "character": who, **e}, ensure_ascii=False) + "\n")
+
+
+def merge_lifecycle(incoming):
+    """A sendBeacon from the page as it is hidden, frozen or resumed. It carries one entry and
+    arrives when the page may be about to stop running, so it goes straight to the archive."""
+    store = load_store()
+    who = incoming.get("character", "unknown")
+    entry = {"t": incoming["lifecycle"].get("t"), "ctx": "lifecycle", "msg": incoming["lifecycle"].get("msg")}
+    bucket = store.setdefault(who, {})
+    timeline = bucket.setdefault("timeline", [])
+    timeline.append(entry)
+    bucket["timeline"] = sorted(timeline, key=lambda x: x.get("t") or 0)[-MAX_TIMELINE:]
+    archive_timeline(who, [entry])
+    write_store(store)
+    return len(store)
+
+
 def merge(incoming):
     """Merge one character's payload into errors.json."""
+    if "lifecycle" in incoming:
+        return merge_lifecycle(incoming)
     store = load_store()
 
     who = incoming.get("character", "unknown")
@@ -206,9 +235,16 @@ def merge(incoming):
     bucket["deaths"] = [deaths[k] for k in sorted(deaths)][-MAX_DEATHS:]
 
     seen = {(e.get("t"), e.get("msg")): e for e in bucket.get("timeline", [])}
+    fresh = []
     for e in incoming.get("timeline") or []:
-        seen[(e.get("t"), e.get("msg"))] = e
+        key = (e.get("t"), e.get("msg"))
+        if key not in seen and (e.get("t") or 0) > bucket.get("archived_to", 0):
+            fresh.append(e)
+        seen[key] = e
     bucket["timeline"] = [seen[k] for k in sorted(seen, key=lambda x: x[0] or 0)][-MAX_TIMELINE:]
+    if fresh:
+        archive_timeline(who, fresh)
+        bucket["archived_to"] = max(e.get("t") or 0 for e in fresh)
 
     # Observations for analysis. The browser ring holds only the most recent few hundred, so the
     # sink is what makes a long run's worth available at once.

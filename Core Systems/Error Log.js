@@ -270,6 +270,24 @@ console.error = function (...args) {
 	return _errlog_console_error(...args);
 };
 
+function _errlog_lifecycle(event) {
+	const msg = `${event} visibility=${document.visibilityState}`;
+	errlog_record("lifecycle", msg);
+	try {
+		navigator.sendBeacon(ERRLOG_SINK_URL, JSON.stringify({
+			character: character.name,
+			build: _errlog_build(),
+			lifecycle: { t: Date.now(), msg }
+		}));
+	} catch (e) { }
+}
+
+document.addEventListener("visibilitychange", () => _errlog_lifecycle("visibilitychange"));
+document.addEventListener("freeze", () => _errlog_lifecycle("freeze"));
+document.addEventListener("resume", () => _errlog_lifecycle("resume"));
+window.addEventListener("pagehide", () => _errlog_lifecycle("pagehide"));
+window.addEventListener("pageshow", () => _errlog_lifecycle("pageshow"));
+
 let _errlog_gamelog_wrapped = false;
 function _errlog_try_wrap_game_log() {
 	if (_errlog_gamelog_wrapped) return;

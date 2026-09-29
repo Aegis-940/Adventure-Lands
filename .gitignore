@@ -4,3 +4,4 @@ errors.json.tmp
 errors.log*
 __pycache__/
 logs/
+errors_timeline.jsonl
