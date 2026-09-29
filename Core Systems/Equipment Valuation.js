@@ -226,7 +226,8 @@ function observe_worn_set(sets, now) {
 function set_profile_unusable(set_name) {
 	const profile = get_set_profile(set_name);
 	if (!profile || !profile.attack) return true;
-	return !!profile.gear && profile.gear !== set_gear_signature(set_name);
+	if (profile.gear && profile.gear !== set_gear_signature(set_name)) return true;
+	return Date.now() - (profile.at || 0) > SET_PROFILE_REPROBE_MS;
 }
 
 function probe_weapon_set(sets, now) {
