@@ -49,7 +49,7 @@ const SET_PROFILE_REPROBE_MS = 600000;
 const SET_PROFILE_SETTLE_MS = 600;
 const SET_PROFILE_FIRST_SETTLE_MS = 150;
 const SET_PROFILE_EPSILON = 0.02;
-const PROFILE_EXCLUDED_BUFFS = ["darkblessing", "warcry", "power", "xpower", "sugarrush", "energized", "anniversary_kiss"];
+const PROFILE_EXCLUDED_BUFFS = ["darkblessing", "warcry", "power", "xpower", "sugarrush", "energized"];
 
 const _profile_pending = {};
 let _set_profiles = null;
