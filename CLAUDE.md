@@ -106,6 +106,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Tools/Error Sink.py` | Local HTTP sink that receives `errlog_sample()` pushes and writes `errors.json` |
 | `Tools/Anniversary Probe.js` | One-off dev probe pasted into a code slot/console; not part of the loaded bot |
 | `Tools/Crypt Probe.js` | One-off dev probe for crypt geometry; not part of the loaded bot |
+| `Tools/Drag Probe.js` | One-off dev probe: reports what receives mouse events over the game UI, into the game log; not part of the loaded bot |
 
 ---
 
