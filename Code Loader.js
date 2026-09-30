@@ -11,7 +11,20 @@
 
 	const ROOT = typeof globalThis !== "undefined" ? globalThis : this;
 
+	const SINK_URL = "http://127.0.0.1:8787/errors";
+
+	function beacon(msg) {
+		try {
+			navigator.sendBeacon(SINK_URL, JSON.stringify({
+				character: (typeof character === "object" && character && character.name) || "unknown",
+				build: "loader",
+				lifecycle: { t: Date.now(), msg: "loader " + msg }
+			}));
+		} catch (e) {}
+	}
+
 	function say(msg) {
+		beacon(msg);
 		try { if (typeof game_log === "function") return game_log(msg); } catch (e) {}
 		try { console.log(msg); } catch (e) {}
 	}
@@ -22,6 +35,7 @@
 	})();
 	if (guard.__AL_LOAD_STARTED__) return say("[AL] already loaded in this tab — reload the tab to restart");
 	guard.__AL_LOAD_STARTED__ = Date.now();
+	beacon("started");
 
 	if (typeof document === "undefined") {
 		const t = n => { try { return eval("typeof " + n); } catch (e) { return "err"; } };
@@ -76,6 +90,10 @@
 
 	resolve_base()
 		.then(base => get(base + "Bootstrapper.js", pinned ? "default" : "no-store"))
-		.then(text => (0, eval)(text))
+		.then(text => {
+			beacon("bootstrapper fetched, evaluating");
+			(0, eval)(text);
+			beacon("bootstrapper evaluated");
+		})
 		.catch(e => say("❌ Bootstrapper load failed: " + e.message));
 })();

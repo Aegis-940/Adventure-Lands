@@ -14,7 +14,7 @@ let _dungeon_running = false;
 let _dungeon_joining = false;
 
 function dungeon_log(dungeon, message, color = DUNGEON_LOG_COLOR) {
-	game_log(`${dungeon.name}: ${message}`, color);
+	game_log(`[${dungeon.name}] ${message}`, color);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
