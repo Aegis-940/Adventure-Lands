@@ -5,3 +5,10 @@ errors.log*
 __pycache__/
 logs/
 errors_timeline.jsonl
+
+# Runtime data written by Tools/Watchdog.py.
+watchdog.json
+watchdog.json.tmp
+watchdog.jsonl
+watchdog.log*
+watchdog.pause
