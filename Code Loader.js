@@ -88,12 +88,30 @@
 			});
 	}
 
-	resolve_base()
-		.then(base => get(base + "Bootstrapper.js", pinned ? "default" : "no-store"))
-		.then(text => {
-			beacon("bootstrapper fetched, evaluating");
-			(0, eval)(text);
-			beacon("bootstrapper evaluated");
-		})
-		.catch(e => say("❌ Bootstrapper load failed: " + e.message));
+	const RETRY_STEP_MS = 5000;
+	const RETRY_MAX_MS = 60000;
+
+	function boot(attempt) {
+		resolve_base()
+			.then(base => get(base + "Bootstrapper.js", pinned ? "default" : "no-store"))
+			.then(
+				text => {
+					beacon("bootstrapper fetched on attempt " + attempt + ", evaluating");
+					try {
+						(0, eval)(text);
+						beacon("bootstrapper evaluated");
+					} catch (e) {
+						say("❌ Bootstrapper threw while evaluating: " + e.message);
+					}
+				},
+				e => {
+					const wait = Math.min(RETRY_MAX_MS, RETRY_STEP_MS * attempt);
+					say("❌ Bootstrapper fetch failed on attempt " + attempt + " (" + e.message
+						+ ") — retrying in " + Math.round(wait / 1000) + "s");
+					setTimeout(() => boot(attempt + 1), wait);
+				}
+			);
+	}
+
+	boot(1);
 })();
