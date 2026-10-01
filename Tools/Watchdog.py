@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import base64
+import glob
 import json
 import os
 import re
@@ -32,6 +33,17 @@ CALL_TIMEOUT_S = 10
 STALE_S = 300
 MAX_RELOADS_PER_HOUR = 4
 LOG_REPEAT_S = 600
+
+NET_ROUND_PINGS = 1800
+NET_RETRY_S = 60
+NET_MIN_MISSES = 2
+NET_NOTIFY_S = 3
+GAME_HOST = "de.adventure.land"
+NORD_LOGS = os.path.join(os.environ.get("LOCALAPPDATA", ""), "NordVPN", "logs")
+NORD_CONNECTED = re.compile(r"VpnConnectionState change: Connected - .*?\(([\w.-]+)\)")
+UPLINK = ("$r = Get-NetRoute -DestinationPrefix 0.0.0.0/0 | Where-Object InterfaceAlias -notlike 'Nord*' | "
+          "Sort-Object RouteMetric | Select-Object -First 1; "
+          "\"$($r.NextHop) $((Get-NetIPAddress -InterfaceIndex $r.ifIndex -AddressFamily IPv4).IPAddress)\"")
 
 WANTED = {
     "Page.frameRequestedNavigation",
@@ -71,6 +83,9 @@ PROBE = """(() => {
 WRITE_LOCK = threading.Lock()
 PAGES_LOCK = threading.Lock()
 PAGES = {}
+NET_LOCK = threading.Lock()
+NET = {}
+NET_PROCS = []
 
 
 def stamp(t=None):
@@ -87,8 +102,9 @@ def beacon(who, msg):
         pass
 
 
-def record(page, kind, notify=True, **fields):
-    who = (page.who if page else None) or (("?" + page.id[:6]) if page else "browser")
+def record(page, kind, notify=True, who=None, **fields):
+    named = page.who if page else who
+    who = named or (("?" + page.id[:6]) if page else "host")
     entry = {"at": stamp(), "character": who, "kind": kind, **fields}
     if page:
         entry["target"] = page.id[:8]
@@ -98,9 +114,95 @@ def record(page, kind, notify=True, **fields):
             fh.write(line + "\n")
         print("%s  %-8s %-24s %s" % (entry["at"][11:], who, kind,
                                      json.dumps(fields, ensure_ascii=False)[:300]), flush=True)
-    if notify and page and page.who:
+    if notify and named:
         threading.Thread(target=beacon, daemon=True,
-                         args=(page.who, kind + " " + json.dumps(fields, ensure_ascii=False)[:400])).start()
+                         args=(named, kind + " " + json.dumps(fields, ensure_ascii=False)[:400])).start()
+
+
+def powershell(command):
+    return subprocess.run(["powershell", "-NoProfile", "-Command", command], capture_output=True, text=True,
+                          timeout=30, creationflags=subprocess.CREATE_NO_WINDOW).stdout.strip()
+
+
+def vpn_endpoint():
+    for path in sorted(glob.glob(os.path.join(NORD_LOGS, "app-2*.log")), reverse=True):
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            found = NORD_CONNECTED.findall(fh.read())
+        if found:
+            return found[-1], socket.gethostbyname(found[-1])
+    return None, None
+
+
+def net_targets():
+    gateway, local = (powershell(UPLINK).split() + [None, None])[:2]
+    server, endpoint = vpn_endpoint()
+    targets = [
+        ("router", gateway, None, "LAN only"),
+        ("isp", endpoint if local else None, local, "outside the tunnel to VPN server %s" % server),
+        ("tunnel", "1.1.1.1", None, "through the tunnel, nearby exit"),
+        ("game", socket.gethostbyname(GAME_HOST), None, "through the tunnel to %s" % GAME_HOST),
+    ]
+    return [t for t in targets if t[1]]
+
+
+def net_observe(label, ok, line):
+    now = time.time()
+    outage = None
+    with NET_LOCK:
+        s = NET[label]
+        if ok:
+            if s["down_since"] and s["misses"] >= NET_MIN_MISSES:
+                outage = {"target": label, "host": s["host"], "since": stamp(s["down_since"]),
+                          "seconds": round(now - s["down_since"]), "misses": s["misses"], "error": s["error"],
+                          "others_down": sorted(k for k, v in NET.items() if k != label and v["down_since"])}
+                s["last_outage"] = "%s for %ss" % (outage["since"], outage["seconds"])
+            s.update(up=True, down_since=None, misses=0)
+        else:
+            if not s["down_since"]:
+                s["down_since"] = now
+                s["error"] = line[:80]
+            s["misses"] += 1
+            s["up"] = False
+    if outage:
+        record(None, "net_outage", who="network", notify=outage["seconds"] >= NET_NOTIFY_S, **outage)
+
+
+def net_ping(label, host, source):
+    args = ["ping", "-n", str(NET_ROUND_PINGS), "-w", "1000"] + (["-S", source] if source else []) + [host]
+    proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace",
+                            creationflags=subprocess.CREATE_NO_WINDOW)
+    NET_PROCS.append(proc)
+    try:
+        for line in proc.stdout:
+            line = line.strip()
+            if not line or line.startswith(("Pinging", "Ping statistics", "Packets", "Approximate", "Minimum")):
+                continue
+            net_observe(label, line.startswith("Reply from") and "unreachable" not in line, line)
+    finally:
+        proc.kill()
+        NET_PROCS.remove(proc)
+
+
+def net_probe():
+    while True:
+        try:
+            targets = net_targets()
+        except Exception as exc:
+            record(None, "net_probe_failed", who="network", notify=False, error=str(exc))
+            time.sleep(NET_RETRY_S)
+            continue
+        record(None, "net_probe", who="network", notify=False,
+               targets={label: "%s (%s)" % (host, why) for label, host, _, why in targets})
+        threads = []
+        for label, host, source, _ in targets:
+            with NET_LOCK:
+                NET.setdefault(label, {"down_since": None, "misses": 0, "error": None, "last_outage": None,
+                                       "up": None})["host"] = host
+            t = threading.Thread(target=net_ping, args=(label, host, source), daemon=True)
+            t.start()
+            threads.append(t)
+        for t in threads:
+            t.join()
 
 
 class Socket:
@@ -422,8 +524,12 @@ def write_status(up):
     now = time.time()
     with PAGES_LOCK:
         pages = [p.status(now) for p in PAGES.values()]
+    with NET_LOCK:
+        network = {label: {"host": s["host"], "up": s["up"], "last_outage": s["last_outage"],
+                           "down_for_s": round(now - s["down_since"]) if s["down_since"] else 0}
+                   for label, s in NET.items()}
     blob = json.dumps({"updated": stamp(now), "browser": up, "paused": os.path.exists(PAUSE),
-                       "pages": sorted(pages, key=lambda p: p["name"] or "")}, indent=1)
+                       "network": network, "pages": sorted(pages, key=lambda p: p["name"] or "")}, indent=1)
     tmp = STATUS + ".tmp"
     with open(tmp, "w", encoding="utf-8") as fh:
         fh.write(blob)
@@ -489,6 +595,7 @@ def main():
         return
     print("%s  watchdog on 127.0.0.1:%d -> %s" % (stamp(), PORT, EVENTS), flush=True)
     known = source_mtime()
+    threading.Thread(target=net_probe, daemon=True).start()
     browser_up = None
     while True:
         try:
@@ -498,7 +605,7 @@ def main():
             targets = []
             up = False
         if up != browser_up:
-            record(None, "browser", reachable=up, port=PORT)
+            record(None, "browser", who="host", notify=False, reachable=up, port=PORT)
             browser_up = up
         with PAGES_LOCK:
             for t in targets:
@@ -511,6 +618,8 @@ def main():
         if changed:
             print("%s  source changed -- restarting" % stamp(), flush=True)
             lock.close()
+            for proc in list(NET_PROCS):
+                proc.kill()
             subprocess.Popen([sys.executable, SOURCE], cwd=os.path.dirname(SOURCE), close_fds=True)
             os._exit(0)
         time.sleep(LIST_EVERY_S)
