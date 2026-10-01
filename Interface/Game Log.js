@@ -122,6 +122,10 @@ function al_log_hook() {
 		}
 		al_log_push(message, color);
 	};
+	window.addEventListener("pagehide", () => {
+		parent.add_log = parent.__al_add_log;
+		st.hooked = false;
+	});
 }
 
 function al_log_seed() {
