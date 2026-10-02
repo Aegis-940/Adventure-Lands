@@ -238,16 +238,9 @@ function find_cupid_target() {
 	}
 
 	const healer = get_entity("Myras");
-	const healer_up = healer && !healer.rip;
-
-	if (healer_up && healer.mp / healer.max_mp >= CONFIG.combat.cupid_healer_mp_pct) {
-		_cupid_engaged = false;
-		return null;
-	}
-
-	const engage = healer_up
-		? CONFIG.combat.cupid_engage_pct
-		: CONFIG.combat.cupid_engage_pct_no_healer;
+	const engage = (!healer || healer.rip)
+		? CONFIG.combat.cupid_engage_pct_no_healer
+		: CONFIG.combat.cupid_engage_pct;
 	const release = Math.min(1, engage + CONFIG.combat.cupid_release_margin);
 	const party = Object.keys(get_party() || {});
 
