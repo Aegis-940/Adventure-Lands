@@ -57,6 +57,7 @@ async function exchange_bag_items() {
 
 	try {
 		while (free_inventory_slots() > CONFIG.min_free_inventory_slots) {
+			sell_while_idle();
 			const found = find_bag_exchangeable();
 			if (!found) break;
 
