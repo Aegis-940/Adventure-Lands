@@ -37,18 +37,15 @@ function find_bag_exchangeable() {
 
 var EXCHANGE_SKILLS = ["massexchangepp", "massexchange"];
 
-async function begin_mass_exchange() {
+function begin_mass_exchange() {
 	for (const name of EXCHANGE_SKILLS) {
-		if (character.s?.[name]) return;
+		if (character.s?.[name]) return name;
 		if (!can_use(name)) continue;
 		if (character.mp < (G.skills[name]?.mp ?? Infinity)) continue;
-		try {
-			await use_skill(name);
-			return;
-		} catch (e) {
-			catcher(e, "begin_mass_exchange: " + name);
-		}
+		use_skill(name).catch(e => catcher(e, "begin_mass_exchange: " + name));
+		return name;
 	}
+	return null;
 }
 
 async function exchange_bag_items() {
@@ -62,8 +59,10 @@ async function exchange_bag_items() {
 			if (!found) break;
 
 			game_log(`🔁 Exchanging ${found.name} (slot ${found.slot})`);
-			if (!character.q.exchange) await begin_mass_exchange();
+			const buff = begin_mass_exchange();
+			const started = Date.now();
 			await exchange(found.slot);
+			errlog_sample("exchange", { item: found.name, buff, ms: Date.now() - started, mp: character.mp });
 		}
 	} catch (e) {
 		catcher(e, "exchange_bag_items");
