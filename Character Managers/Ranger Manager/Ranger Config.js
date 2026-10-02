@@ -23,6 +23,7 @@ var CONFIG = {
 		lambda_headroom_high: 1.5,
 		cupid_engage_pct: 0.66,
 		cupid_engage_pct_no_healer: 0.9,
+		cupid_healer_mp_pct: 0.5,
 		cupid_release_margin: 0.14,
 		mana_is_free: true,
 
