@@ -142,7 +142,7 @@ function run_character(spec) {
 			_current_goal = goal;
 			if (dungeon_moving()) return setTimeout(main_tick, TICK_RATE.main);
 
-			if (!travel_arbiter(goal)) {
+			if (!travel_arbiter(goal) || goal.hold) {
 				if (should_loot()) await handle_looting();
 				else movement_local(goal, s.farm_step);
 			}
