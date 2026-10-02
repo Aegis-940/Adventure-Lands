@@ -70,6 +70,10 @@ function panic_clear(threat) {
 		&& !threat.trapped;
 }
 
+function panic_scare_spent(threat) {
+	return threat.on_me === 0 || is_on_cooldown("scare");
+}
+
 function release_panic(reason, broadcast) {
 	set_panic(false, reason, false);
 	if (broadcast) send_cm(PANIC_BROADCAST_TARGETS, { type: "panic", state: false });
@@ -96,7 +100,7 @@ function panic_check() {
 		return;
 	}
 
-	if (panic_clear(threat)) return release_panic("recovered", true);
+	if (panic_clear(threat) && panic_scare_spent(threat)) return release_panic("recovered", true);
 
 	if (Date.now() - panic_since > SELF_PANIC_MAX_MS && !threat.low_health && !threat.trapped) {
 		errlog_count("panic released on timeout");

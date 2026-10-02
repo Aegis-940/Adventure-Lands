@@ -33,6 +33,9 @@ on_cm = function (name, data) {
 const CM_HANDLERS = {
 	"panic": (name, data) => {
 		if (name !== "Myras") return;
+		if (!data.state && panicking && !panic_scare_spent(panic_threat())) {
+			return set_panic(true, "holding for our own scare", false);
+		}
 		set_panic(!!data.state, "broadcast from the healer", !!data.state);
 	},
 
