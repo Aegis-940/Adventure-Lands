@@ -90,7 +90,7 @@ function party_cohesion_hold() {
 	if (character.name !== MOVEMENT_LEADER) return false;
 
 	const owed = !dungeon_ignores_events()
-		&& (anniversary_should_travel() || anniversary_leading());
+		&& anniversary_should_travel();
 	const endangered = party_member_in_danger();
 
 	const limit = (endangered || _cohesion_holding) ? cohesion_regroup() : cohesion_range();
@@ -102,7 +102,13 @@ function party_cohesion_hold() {
 		if (s.map !== character.map) return !travelling;
 		return Math.hypot(s.x - character.x, s.y - character.y) > limit;
 	});
-	return _cohesion_holding;
+	if (_cohesion_holding) return true;
+
+	if (owed || dungeon_ignores_events()) return false;
+	return COHESION_FOLLOWERS.some(name => {
+		const s = read_state_cache(name);
+		return !!s && !s.rip && !s.paused && !!s.anniv_pending;
+	});
 }
 
 function follow_goal() {

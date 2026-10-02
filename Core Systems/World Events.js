@@ -165,20 +165,11 @@ function anniversary_is_host() {
 	return !!s && (String(character.id) === String(s.id) || character.name === s.target);
 }
 
-function anniversary_round_reason(s) {
+function anniversary_abort_reason(s) {
 	if (character.rip) return "dead";
 	if (_anniv_died_round === s.round) return "died during this round";
 	if (_anniv_gave_up_round === s.round) return "gave up finding target this round";
 	if (s.available === false) return "host is not taking visitors";
-	try {
-		if (!G.maps[s.map] || !isFinite(s.x) || !isFinite(s.y)) return "no usable destination";
-	} catch (e) { return "no usable destination"; }
-	return null;
-}
-
-function anniversary_abort_reason(s) {
-	const round = anniversary_round_reason(s);
-	if (round) return round;
 	if (anniversary_is_host()) return "we are the featured player";
 
 	const kiss = character.s && character.s.anniversary_kiss;
@@ -193,22 +184,11 @@ function anniversary_abort_reason(s) {
 		const realm = parent.server_region + " " + parent.server_identifier;
 		if (ticket.realm !== realm) return `ticket realm "${ticket.realm}" != "${realm}"`;
 	}
+
+	try {
+		if (!G.maps[s.map] || !isFinite(s.x) || !isFinite(s.y)) return "no usable destination";
+	} catch (e) { return "no usable destination"; }
 	return null;
-}
-
-function anniversary_followers_pending() {
-	return COHESION_FOLLOWERS.some(name => {
-		const s = read_state_cache(name);
-		return !!s && !s.rip && !s.paused && !!s.anniv_pending;
-	});
-}
-
-function anniversary_leading() {
-	if (character.name !== MOVEMENT_LEADER) return false;
-	if (dungeon_ignores_events() || home === "bscorpion") return false;
-	const s = anniversary_event();
-	if (!s || anniversary_round_reason(s)) return false;
-	return anniversary_followers_pending();
 }
 
 function anniversary_block_reason() {
@@ -236,7 +216,7 @@ function anniversary_should_travel() {
 }
 
 function anniversary_destination() {
-	if (!anniversary_travel && !anniversary_leading()) return null;
+	if (!anniversary_travel) return null;
 	const s = anniversary_event();
 	if (!s) return null;
 

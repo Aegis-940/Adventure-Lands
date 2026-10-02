@@ -134,7 +134,7 @@ function travel_blocks_combat() {
 function should_pause_combat_loop() {
 	if (dungeon_bailing()) return true;
 	if (panicking) return true;
-	if (!follow_has_leader() && (anniversary_travel || anniversary_leading())) return true;
+	if (anniversary_travel && !follow_has_leader()) return true;
 
 	if (dungeon_flag("fight_while_moving")) return false;
 
