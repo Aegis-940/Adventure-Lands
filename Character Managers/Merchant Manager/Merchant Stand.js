@@ -5,6 +5,7 @@
 var STAND_SETTLE_MS = 2000;
 var STAND_TICK_MS = 100;
 var _still_since = 0;
+var _stand_retry_at = 0;
 
 function standing_still() {
 	return !character.moving && !smart.moving && !is_teleporting() && !character.rip;
@@ -23,8 +24,8 @@ async function stand_loop() {
 	while (true) {
 		try {
 			const want = stand_wanted();
-			if (want && !character.stand) {
-				_still_since = Date.now();
+			if (want && !character.stand && Date.now() >= _stand_retry_at) {
+				_stand_retry_at = Date.now() + STAND_SETTLE_MS;
 				await open_stand();
 			} else if (!want && character.stand) {
 				await close_stand();
