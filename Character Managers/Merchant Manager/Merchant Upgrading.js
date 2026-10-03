@@ -3,7 +3,6 @@
 // CONFIG
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var UPGRADE_INTERVAL = 75;
 var BANK_POSITION_TOLERANCE = 10;
 
 var UPGRADE_PROFILE = {
@@ -99,15 +98,12 @@ function scroll_for(profile, level, prefix) {
 		: `${prefix}2`;
 }
 
-async function use_mass_production(level) {
+function use_mass_production(level) {
 	if (level >= 2 && can_use("massproductionpp") && character.mp >= 400) {
 		use_skill("massproductionpp");
 	} else if (can_use("massproduction")) {
 		use_skill("massproduction");
-	} else {
-		return;
 	}
-	await delay(20);
 }
 
 async function buy_scrolls(scrollname, count, context) {
@@ -157,7 +153,7 @@ async function add_grace_to_cap(item_slot) {
 			return { grace: previous_grace, capped: false };
 		}
 
-		await use_mass_production(character.items[item_slot].level);
+		use_mass_production(character.items[item_slot].level);
 
 		try {
 			await upgrade(item_slot, null, offering_slot, false);
@@ -369,7 +365,7 @@ async function auto_upgrade_item(level) {
 		}
 
 		if (!character.q.upgrade) {
-			await use_mass_production(item.level);
+			use_mass_production(item.level);
 			game_log(`Upgrading ${item.name} (level ${item.level}) with ${scrollname}`);
 			try {
 				await upgrade(i, scroll_slot, offering_slot);
@@ -480,7 +476,7 @@ async function auto_combine_item(level) {
 			}
 		}
 
-		await use_mass_production(lvl);
+		use_mass_production(lvl);
 
 		const picks = pick_three_slots(entries);
 		game_log(`Combining 3x ${item_name} (level ${lvl}) with ${scrollname}`);
@@ -539,14 +535,10 @@ async function upgrade_pass(abandoned) {
 				progressed = true;
 				task_heartbeat();
 			}
-			if (result === "done" || result === "wait") {
-				await delay(UPGRADE_INTERVAL);
-			} else if (result === "end") {
+			if (result === "end") {
 				game_log("❌ Ending auto-upgrade early due to insufficient gold or resources.");
-				break;
-			} else {
-				break;
 			}
+			if (result !== "done" && result !== "wait") break;
 		}
 	}
 
@@ -589,14 +581,10 @@ async function auto_upgrade() {
 				await make_upgrade_room();
 				const result = await auto_combine_item(level);
 				if (result === "done") progressed = true;
-				if (result === "done" || result === "wait") {
-					await delay(UPGRADE_INTERVAL);
-				} else if (result === "end") {
+				if (result === "end") {
 					game_log("❌ Ending auto-combine early due to insufficient gold or resources.");
-					break;
-				} else {
-					break;
 				}
+				if (result !== "done" && result !== "wait") break;
 			}
 		}
 
