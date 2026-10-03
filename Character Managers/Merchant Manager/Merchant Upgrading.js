@@ -496,6 +496,7 @@ async function auto_combine_item(level) {
 var UPGRADE_BUY_RESERVE_SLOTS = 5;
 
 function upgrade_buy_count(item_name) {
+	if (!CONFIG.enabled.buying) return 0;
 	const spare_gold = character.gold - CONFIG.upgrade_gold_threshold;
 	return Math.max(0, Math.min(
 		free_inventory_slots() - UPGRADE_BUY_RESERVE_SLOTS,

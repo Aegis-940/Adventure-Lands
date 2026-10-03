@@ -10,6 +10,7 @@ function local_bool(key, fallback) {
 var CONFIG = {
 	enabled: {
 		upgrading:  local_bool("AL_merchant_enabled_upgrading", true),
+		buying:     local_bool("AL_merchant_enabled_buying", true),
 		crafting:   local_bool("AL_merchant_enabled_crafting", true),
 		exchanging: local_bool("AL_merchant_enabled_exchanging", true),
 		fishing:    local_bool("AL_merchant_enabled_fishing", false),
