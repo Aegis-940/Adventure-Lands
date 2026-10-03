@@ -22,22 +22,23 @@ function has_enough_bank_space() {
 // VENDORING — SELLABLE_ITEMS, minus anything the merchant wears
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function has_sellable_items() {
-	for (let i = 0; i < character.items.length; i++) {
-		const item = character.items[i];
-		if (!item || !SELLABLE_ITEMS.includes(item.name)) continue;
-		if (is_default_gear(item)) continue;
-		return true;
-	}
+function keep_nothing() {
 	return false;
 }
 
-function sell_sellable_items() {
+function sellable(item, keep) {
+	return item && SELLABLE_ITEMS.includes(item.name) && !is_default_gear(item) && !keep(item);
+}
+
+function has_sellable_items(keep = keep_nothing) {
+	return character.items.some(item => sellable(item, keep));
+}
+
+function sell_sellable_items(keep = keep_nothing) {
 	let sold_any = false;
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
-		if (!item || !SELLABLE_ITEMS.includes(item.name)) continue;
-		if (is_default_gear(item)) continue;
+		if (!sellable(item, keep)) continue;
 		try {
 			const sale = sell(i, item.q || 1);
 			if (sale && typeof sale.catch === "function") sale.catch(e => catcher(e, "sell: " + item.name));
@@ -60,11 +61,13 @@ function sell_while_idle() {
 	sell_sellable_items();
 }
 
-function has_bankable_items() {
+function bankable(item, keep) {
+	return item && !CONFIG.do_not_bank.includes(item.name) && !keep(item);
+}
+
+function has_bankable_items(keep = keep_nothing) {
 	for (let i = 3; i < character.items.length; i++) {
-		const item = character.items[i];
-		if (!item || CONFIG.do_not_bank.includes(item.name)) continue;
-		return true;
+		if (bankable(character.items[i], keep)) return true;
 	}
 	return false;
 }
@@ -82,8 +85,8 @@ async function wait_for_movement_to_settle(caller_label) {
 
 var sell_items_running = false;
 
-async function sell_items() {
-	if (!has_sellable_items()) return false;
+async function sell_items(keep = keep_nothing) {
+	if (!has_sellable_items(keep)) return false;
 	if (sell_items_running) {
 		game_log("⚠️ sell_items already running, skipping duplicate call.");
 		return false;
@@ -97,7 +100,7 @@ async function sell_items() {
 		await smarter_move(HOME);
 		await delay(3000);
 
-		sold_any = sell_sellable_items();
+		sold_any = sell_sellable_items(keep);
 	} catch (e) {
 		catcher(e, "sell_items");
 	} finally {
@@ -108,8 +111,8 @@ async function sell_items() {
 
 var bank_items_running = false;
 
-async function bank_items() {
-	if (!has_bankable_items()) return false;
+async function bank_items(keep = keep_nothing) {
+	if (!has_bankable_items(keep)) return false;
 	if (bank_items_running) {
 		game_log("⚠️ bank_items already running, skipping duplicate call.");
 		return false;
@@ -125,7 +128,7 @@ async function bank_items() {
 
 		for (let i = 3; i < character.items.length; i++) {
 			const item = character.items[i];
-			if (!item || CONFIG.do_not_bank.includes(item.name)) continue;
+			if (!bankable(item, keep)) continue;
 			try {
 				await bank_store(i);
 				refresh_bank_snapshot();

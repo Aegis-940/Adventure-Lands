@@ -209,6 +209,33 @@ async function auto_grace_pass() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// ROOM — loot the fighters hand over mid-run is sold or banked; the upgrade stock stays
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+var UPGRADE_SCROLLS = ["scroll0", "scroll1", "scroll2", "cscroll0", "cscroll1", "cscroll2"];
+
+function upgrade_job_item(item) {
+	if (UPGRADE_SCROLLS.includes(item.name) || item.name === "offeringp") return true;
+	const profile = UPGRADE_PROFILE[item.name] || COMBINE_PROFILE[item.name];
+	return !!profile && below_max_level(item, profile.max_level);
+}
+
+async function make_upgrade_room() {
+	if (free_inventory_slots() > UPGRADE_BUY_RESERVE_SLOTS) return;
+
+	if (has_sellable_items(upgrade_job_item)) {
+		sell_sellable_items(upgrade_job_item);
+		return;
+	}
+
+	if (!has_bankable_items(upgrade_job_item)) return;
+	game_log(`🎒 Down to ${free_inventory_slots()} free slots mid-upgrade — banking handed-over loot.`, "#888");
+	await bank_items(upgrade_job_item);
+	await smarter_move(HOME);
+	task_heartbeat();
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // AUTO UPGRADE
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -216,15 +243,13 @@ async function withdraw_upgrade_scrolls() {
 
 	refresh_bank_snapshot();
 
-	const SCROLL_TYPES = ["scroll0", "scroll1", "scroll2", "cscroll0", "cscroll1", "cscroll2"];
-
 	const empty_slots = free_inventory_slots();
 	if (empty_slots < 10) {
 		game_log(`❌ Not enough inventory space to withdraw scrolls. Need at least 10 free slots, have ${empty_slots}.`);
 		return;
 	}
 
-	for (const item of SCROLL_TYPES) {
+	for (const item of UPGRADE_SCROLLS) {
 		try {
 			await withdraw_item(item);
 		} catch (e) {
@@ -508,6 +533,7 @@ async function upgrade_pass(abandoned) {
 
 	for (let level = 0; level <= 10 && !abandoned(); level++) {
 		while (!abandoned()) {
+			await make_upgrade_room();
 			const result = await auto_upgrade_item(level);
 			if (result === "done") {
 				progressed = true;
@@ -534,6 +560,8 @@ async function auto_upgrade() {
 	const abandoned = () => my_generation !== merchant_task_generation;
 
 	try {
+		await sell_items(upgrade_job_item);
+		await bank_items(upgrade_job_item);
 		if (character.map !== "bank") {
 			await smarter_move(BANK_LOCATION);
 		}
@@ -558,6 +586,7 @@ async function auto_upgrade() {
 
 		for (let level = 0; level <= 5 && !abandoned(); level++) {
 			while (!abandoned()) {
+				await make_upgrade_room();
 				const result = await auto_combine_item(level);
 				if (result === "done") progressed = true;
 				if (result === "done" || result === "wait") {
