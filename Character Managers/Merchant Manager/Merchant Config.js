@@ -38,7 +38,7 @@ var CONFIG = {
 		mp_threshold: 500,
 	},
 	crafting: {
-		targets: [{ name: "basketofeggs", min: 25, max: 9999 }],
+		targets: [{ name: "coat", stock: 25 }],
 	},
 	exchange: {
 		targets: [

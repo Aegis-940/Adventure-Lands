@@ -4,7 +4,7 @@
 
 function can_afford_any_craft() {
 	for (const target of CONFIG.crafting.targets) {
-		if (max_craftable_now(target) >= (target.min ?? 1)) return true;
+		if (max_obtainable_now(target) >= (target.min ?? 1)) return true;
 	}
 	return false;
 }
@@ -128,6 +128,18 @@ function max_craftable_now(target) {
 	return max_affordable_count(craft_def, count);
 }
 
+function max_buyable_now(target) {
+	return Math.max(0, Math.min(
+		target.stock - total_held(target.name, 0),
+		max_craftable_by_space(target.name),
+		Math.floor(character.gold / parent.G.items[target.name].g)
+	));
+}
+
+function max_obtainable_now(target) {
+	return target.stock != null ? max_buyable_now(target) : max_craftable_now(target);
+}
+
 function compute_missing_ingredients(craft_def, count) {
 	const missing = [];
 	for (const req of craft_recipe_items(craft_def)) {
@@ -246,6 +258,28 @@ async function craft_batch(craft_name, count) {
 	return crafted;
 }
 
+async function buy_batch(item_name, count) {
+	try {
+		await smart_move("basics");
+	} catch (e) {
+		catcher(e, "buy_batch: travel to basics NPC");
+		return 0;
+	}
+
+	let bought = 0;
+	while (bought < count) {
+		try {
+			await buy(item_name);
+		} catch (e) {
+			catcher(e, "buy_batch: buy " + item_name);
+			break;
+		}
+		bought++;
+	}
+
+	return bought;
+}
+
 async function craft_item(craft_name) {
 	const craft_def = parent.G.craft[craft_name];
 	if (craft_def == null) return "no_recipe";
@@ -341,26 +375,24 @@ function craft_run_blocked() {
 async function try_craft() {
 	let any_crafted = false;
 	for (const target of CONFIG.crafting.targets) {
-		const craft_def = parent.G.craft[target.name];
-		if (craft_def == null) continue;
-
-		const desired_count = max_craftable_now(target);
+		const desired_count = max_obtainable_now(target);
 		if (desired_count < (target.min ?? 1)) continue;
 
+		const buying = target.stock != null;
 		const target_max = target.max ?? Infinity;
 		let total_crafted = 0;
 
 		for (let batch = 0; batch < CRAFT_MAX_BATCHES && total_crafted < target_max; batch++) {
 			const remaining = target_max - total_crafted;
-			const batch_size = Math.min(max_craftable_now(target), remaining);
+			const batch_size = Math.min(max_obtainable_now(target), remaining);
 			if (batch_size <= 0) break;
 
-			const crafted = await craft_batch(target.name, batch_size);
+			const crafted = buying ? await buy_batch(target.name, batch_size) : await craft_batch(target.name, batch_size);
 			total_crafted += crafted;
 			if (crafted <= 0) break;
 			any_crafted = true;
 
-			game_log(`✅ Crafted ${crafted}x ${target.name} (${total_crafted}${target_max === Infinity ? "" : "/" + target_max} this run).`);
+			game_log(`✅ ${buying ? "Bought" : "Crafted"} ${crafted}x ${target.name} (${total_crafted}${target_max === Infinity ? "" : "/" + target_max} this run).`);
 
 			if (total_crafted >= target_max) break;
 
