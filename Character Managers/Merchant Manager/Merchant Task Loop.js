@@ -105,8 +105,6 @@ function get_character_state() {
 
 async function set_state(state) {
 	try {
-		if (state !== MERCHANT_STATES.IDLE && stand_is_open()) await close_merchant_stand();
-
 		switch (state) {
 			case MERCHANT_STATES.DEAD:       await handle_dead_state(); break;
 			case MERCHANT_STATES.ANNIVERSARY: await handle_anniversary_state(); break;
@@ -143,7 +141,6 @@ async function loop_controller() {
 			}
 
 			if (!automation_enabled()) {
-				if (stand_is_open()) await close_merchant_stand();
 				merchant_task = "Idle";
 				watchdog_task = "Idle";
 				watchdog_since = Date.now();

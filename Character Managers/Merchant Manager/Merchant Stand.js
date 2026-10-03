@@ -1,41 +1,51 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// MERCHANT STAND — open while idle, closed whenever we need to move.
+// MERCHANT STAND — open whenever he is standing still, closed the moment he moves
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function stand_is_open() {
-	return !!character.stand;
+var STAND_SETTLE_MS = 2000;
+var STAND_TICK_MS = 100;
+var _still_since = 0;
+
+function standing_still() {
+	return !character.moving && !smart.moving && !is_teleporting() && !character.rip;
 }
 
-async function open_merchant_stand() {
-	if (stand_is_open()) return;
-	try {
-		await open_stand();
-	} catch (e) {
-		catcher(e, "open_merchant_stand");
+function stand_wanted() {
+	if (!standing_still()) {
+		_still_since = 0;
+		return false;
+	}
+	if (!_still_since) _still_since = Date.now();
+	return automation_enabled() && Date.now() - _still_since >= STAND_SETTLE_MS;
+}
+
+async function stand_loop() {
+	while (true) {
+		try {
+			const want = stand_wanted();
+			if (want && !character.stand) {
+				_still_since = Date.now();
+				await open_stand();
+			} else if (!want && character.stand) {
+				await close_stand();
+			}
+		} catch (e) {
+			catcher(e, "stand_loop");
+		}
+		await delay(STAND_TICK_MS);
 	}
 }
 
-async function close_merchant_stand() {
-	if (!stand_is_open()) return;
-	try {
-		await close_stand();
-	} catch (e) {
-		catcher(e, "close_merchant_stand");
-	}
-}
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// IDLE — stand up at HOME, selling junk and exchanging while he waits
+// IDLE — wait at HOME, selling junk and exchanging
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function handle_idle_state() {
 	if (character.map === HOME.map && Math.hypot(character.x - HOME.x, character.y - HOME.y) <= 10) {
-		await open_merchant_stand();
 		sell_while_idle();
 		if (CONFIG.enabled.exchanging) await exchange_bag_items();
 		return;
 	}
-	await close_merchant_stand();
 	try {
 		await smarter_move(HOME);
 	} catch (e) {

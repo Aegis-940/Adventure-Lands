@@ -73,7 +73,6 @@ async function exchange_bag_items() {
 
 async function withdraw_exchangeables() {
 	game_log("🏦 Fetching exchangeables from the bank...", "#888");
-	await close_merchant_stand();
 	await smarter_move(BANK_LOCATION);
 	await delay(500);
 	refresh_bank_snapshot();
