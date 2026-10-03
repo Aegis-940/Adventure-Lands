@@ -527,6 +527,65 @@ async function auto_combine_item(level) {
 	return "none";
 }
 
+var UPGRADE_BUY_RESERVE_SLOTS = 5;
+
+function upgrade_buy_count(item_name) {
+	const spare_gold = character.gold - CONFIG.upgrade_gold_threshold;
+	return Math.max(0, Math.min(
+		free_inventory_slots() - UPGRADE_BUY_RESERVE_SLOTS,
+		Math.floor(spare_gold / parent.G.items[item_name].g)
+	));
+}
+
+function can_buy_for_upgrade() {
+	return CONFIG.upgrade_buy.some(item_name => upgrade_buy_count(item_name) > 0);
+}
+
+async function buy_for_upgrade() {
+	for (const item_name of CONFIG.upgrade_buy) {
+		const count = upgrade_buy_count(item_name);
+		let bought = 0;
+		while (bought < count) {
+			try {
+				await buy(item_name);
+			} catch (e) {
+				catcher(e, "buy_for_upgrade: " + item_name);
+				break;
+			}
+			bought++;
+		}
+		if (bought > 0) {
+			game_log(`🛒 Bought ${bought}x ${item_name} to upgrade.`);
+			task_heartbeat();
+		}
+	}
+}
+
+async function upgrade_pass(abandoned) {
+	upgrade_failed_slots.clear();
+	let progressed = false;
+
+	for (let level = 0; level <= 10 && !abandoned(); level++) {
+		while (!abandoned()) {
+			const result = await auto_upgrade_item(level);
+			if (result === "done") {
+				progressed = true;
+				task_heartbeat();
+			}
+			if (result === "done" || result === "wait") {
+				await delay(UPGRADE_INTERVAL);
+			} else if (result === "end") {
+				game_log("❌ Ending auto-upgrade early due to insufficient gold or resources.");
+				break;
+			} else {
+				break;
+			}
+		}
+	}
+
+	return progressed;
+}
+
 async function auto_upgrade() {
 
 	merchant_task = "Upgrading";
@@ -546,24 +605,15 @@ async function auto_upgrade() {
 
 		await auto_grace_pass();
 
-		upgrade_failed_slots.clear();
 		combine_failed_keys.clear();
 		let progressed = false;
+		let pass_progressed = false;
 
-		for (let level = 0; level <= 10 && !abandoned(); level++) {
-			while (!abandoned()) {
-				const result = await auto_upgrade_item(level);
-				if (result === "done") progressed = true;
-				if (result === "done" || result === "wait") {
-					await delay(UPGRADE_INTERVAL);
-				} else if (result === "end") {
-					game_log("❌ Ending auto-upgrade early due to insufficient gold or resources.");
-					break;
-				} else {
-					break;
-				}
-			}
-		}
+		do {
+			await buy_for_upgrade();
+			pass_progressed = await upgrade_pass(abandoned);
+			if (pass_progressed) progressed = true;
+		} while (pass_progressed && !abandoned());
 
 		for (let level = 0; level <= 5 && !abandoned(); level++) {
 			while (!abandoned()) {

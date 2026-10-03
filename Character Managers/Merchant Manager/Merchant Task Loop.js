@@ -45,7 +45,7 @@ function should_run_upgrade() {
 		&& merchant_task === "Idle"
 		&& !upgrade_run_blocked()
 		&& character.gold >= CONFIG.upgrade_gold_threshold
-		&& bank_has_upgradeable_items();
+		&& (bank_has_upgradeable_items() || can_buy_for_upgrade());
 }
 
 async function handle_upgrading_state() {
@@ -129,6 +129,10 @@ var MERCHANT_TASK_WATCHDOG_MS = 5 * 60 * 1000;
 var watchdog_task = merchant_task;
 var watchdog_since = Date.now();
 var _party_manager_at = 0;
+
+function task_heartbeat() {
+	watchdog_since = Date.now();
+}
 
 async function loop_controller() {
 	while (true) {

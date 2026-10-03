@@ -33,12 +33,13 @@ var CONFIG = {
 		gold_threshold: 20000000,
 	},
 	upgrade_gold_threshold: 100000000,
+	upgrade_buy: ["coat"],
 	potions: {
 		hp_threshold: 500,
 		mp_threshold: 500,
 	},
 	crafting: {
-		targets: [{ name: "coat", stock: 25 }],
+		targets: [],
 	},
 	exchange: {
 		targets: [
