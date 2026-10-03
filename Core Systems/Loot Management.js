@@ -255,8 +255,6 @@ async function withdraw_item(item_name, level = null, total = null) {
 	const BANK_LOC1 = { map: "bank", x: 0, y: -37 };
 	const BANK_LOC2 = { map: "bank_b", x: -265, y: -344 };
 
-	await delay(200);
-
 	let bank_data = character.bank;
 	if (!bank_data || Object.keys(bank_data).length === 0) {
 		bank_data = load_bank_from_local_storage();
@@ -302,7 +300,6 @@ async function withdraw_item(item_name, level = null, total = null) {
 					+ `(${(e && (e.reason || e.message)) || e})`, "#FFA500");
 				continue;
 			}
-			await delay(100);
 			refresh_bank_snapshot();
 			remaining -= (itm.q || 1);
 		}

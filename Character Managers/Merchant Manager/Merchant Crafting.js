@@ -12,8 +12,6 @@ function can_afford_any_craft() {
 var CRAFT_LOCATION = { map: "main", x: 0, y: 492 };
 var CRAFT_POSITION_TOLERANCE = 5;
 
-var CRAFT_INTERVAL = 300;
-
 function bank_quantity_for(item_name, level) {
 	const bank_data = character.bank || load_bank_from_local_storage();
 	if (!bank_data) return 0;
@@ -152,44 +150,47 @@ async function gather_ingredients_for_batch(craft_def, count) {
 		const missing = compute_missing_ingredients(craft_def, count);
 		if (missing.length === 0) return true;
 
-		let made_progress = false;
+		const from_bank = missing.filter(need => bank_quantity_for(need.name, need.level) > 0);
+		const to_buy = missing.filter(need => !from_bank.includes(need));
 
-		for (const need of missing) {
-			if (bank_quantity_for(need.name, need.level) > 0) {
-				try {
-					await withdraw_item(need.name, need.level, need.amount);
-				} catch (e) {
-					catcher(e, "gather_ingredients_for_batch: withdraw " + need.name);
-				}
-				made_progress = true;
-				continue;
-			}
-
-			const basics = parent.G.npcs["basics"];
+		const basics = parent.G.npcs["basics"];
+		let cost = 0;
+		for (const need of to_buy) {
 			if (!basics.items.includes(need.name)) {
 				game_log(`❌ Missing ${need.amount}x ${need.name} for crafting — not in bank, not buyable.`);
 				return false;
 			}
-
-			const item_def = parent.G.items[need.name];
-			const cost = (item_def.g || 0) * need.amount;
-			if (character.gold < cost) {
-				game_log(`❌ Not enough gold to buy ${need.amount}x ${need.name} for crafting.`);
-				return false;
-			}
-
-			try {
-				await smart_move("basics");
-			} catch (e) {
-				catcher(e, "gather_ingredients_for_batch: travel to basics NPC");
-				return false;
-			}
-			buy(need.name, need.amount);
-			await delay(300);
-			made_progress = true;
+			cost += (parent.G.items[need.name].g || 0) * need.amount;
+		}
+		if (character.gold < cost) {
+			game_log(`❌ Not enough gold to buy ${to_buy.map(need => `${need.amount}x ${need.name}`).join(", ")} for crafting.`);
+			return false;
 		}
 
-		if (!made_progress) return false;
+		for (const need of from_bank) {
+			try {
+				await withdraw_item(need.name, need.level, need.amount);
+			} catch (e) {
+				catcher(e, "gather_ingredients_for_batch: withdraw " + need.name);
+			}
+		}
+
+		if (to_buy.length === 0) continue;
+
+		try {
+			await smart_move("basics");
+		} catch (e) {
+			catcher(e, "gather_ingredients_for_batch: travel to basics NPC");
+			return false;
+		}
+		for (const need of to_buy) {
+			try {
+				await buy(need.name, need.amount);
+			} catch (e) {
+				catcher(e, "gather_ingredients_for_batch: buy " + need.name);
+				return false;
+			}
+		}
 	}
 
 	return compute_missing_ingredients(craft_def, count).length === 0;
@@ -240,7 +241,6 @@ async function craft_batch(craft_name, count) {
 			break;
 		}
 		crafted++;
-		await delay(CRAFT_INTERVAL);
 	}
 
 	return crafted;
@@ -364,8 +364,10 @@ async function try_craft() {
 
 			if (total_crafted >= target_max) break;
 
-			await sell_items();
-			await bank_items();
+			if (max_craftable_by_space(target.name) <= 0) {
+				await sell_items();
+				await bank_items();
+			}
 		}
 
 		await sell_items();

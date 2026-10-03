@@ -83,6 +83,49 @@ function below_max_level(item, max_level) {
 	return typeof item.level !== "number" || item.level < max_level;
 }
 
+function bank_level_counts(bank_data, item_name, max_level) {
+	const counts = {};
+	for (const item of bank_contents(bank_data)) {
+		if (item.name !== item_name || !below_max_level(item, max_level)) continue;
+		const lvl = item.level || 0;
+		counts[lvl] = (counts[lvl] || 0) + (item.q || 1);
+	}
+	return counts;
+}
+
+function scroll_for(profile, level, prefix) {
+	return level < profile.scroll0_until ? `${prefix}0`
+		: level < profile.scroll1_until ? `${prefix}1`
+		: `${prefix}2`;
+}
+
+async function use_mass_production(level) {
+	if (level >= 2 && can_use("massproductionpp") && character.mp >= 400) {
+		use_skill("massproductionpp");
+	} else if (can_use("massproduction")) {
+		use_skill("massproduction");
+	} else {
+		return;
+	}
+	await delay(20);
+}
+
+async function buy_scrolls(scrollname, count, context) {
+	const n = Math.min(count, Math.floor(character.gold / G.items[scrollname].g));
+	if (n <= 0) {
+		game_log(`❌ Not enough gold to buy ${scrollname} for ${context}.`);
+		return false;
+	}
+	game_log(`Buying ${n}x ${scrollname} for ${context}`);
+	try {
+		await buy(scrollname, n);
+	} catch (e) {
+		catcher(e, "buy_scrolls: " + scrollname);
+		return false;
+	}
+	return true;
+}
+
 async function check_grace(item_slot) {
 	const offering_slot = inventory_slot("offeringp");
 	if (offering_slot === null) return null;
@@ -114,10 +157,7 @@ async function add_grace_to_cap(item_slot) {
 			return { grace: previous_grace, capped: false };
 		}
 
-		if (can_use("massproductionpp") && character.mp >= 400) {
-			use_skill("massproductionpp");
-			await delay(20);
-		}
+		await use_mass_production(character.items[item_slot].level);
 
 		try {
 			await upgrade(item_slot, null, offering_slot, false);
@@ -125,7 +165,6 @@ async function add_grace_to_cap(item_slot) {
 			catcher(e, "add_grace_to_cap: upgrade");
 			return { grace: previous_grace, capped: false };
 		}
-		await delay(300);
 
 		const current_grace = await check_grace(item_slot);
 		if (current_grace == null) {
@@ -187,8 +226,7 @@ async function withdraw_upgrade_scrolls() {
 
 	for (const item of SCROLL_TYPES) {
 		try {
-			withdraw_item(item);
-			await delay(400);
+			await withdraw_item(item);
 		} catch (e) {
 			catcher(e, "withdraw_upgrade_scrolls: " + item);
 		}
@@ -202,8 +240,7 @@ async function withdraw_offering() {
 	game_log("Withdrawing offeringp for upgrades that require it.");
 
 	try {
-		withdraw_item("offeringp");
-		await delay(400);
+		await withdraw_item("offeringp");
 	} catch (e) {
 		catcher(e, "withdraw_offering");
 	}
@@ -221,67 +258,26 @@ async function withdraw_upgradeable_items() {
 		return;
 	}
 
-	let free_slots = free_inventory_slots();
-	if (free_slots <= 3) {
+	if (free_inventory_slots() <= 3) {
 		game_log("❌ Not enough inventory space to withdraw upgrade items.");
 		return;
 	}
 
 	for (const item_name in UPGRADE_PROFILE) {
-		const max_level = UPGRADE_PROFILE[item_name].max_level;
-
-		for (const item of bank_contents(bank_data)) {
-			free_slots = free_inventory_slots();
-			if (free_slots <= 3) break;
-			if (item.name !== item_name || !below_max_level(item, max_level)) continue;
-
-			const to_withdraw = Math.min(item.q || 1, free_slots - 3);
-			if (to_withdraw > 0) {
-				withdraw_item(item_name, item.level, to_withdraw);
-				await delay(400);
-			}
+		const level_counts = bank_level_counts(bank_data, item_name, UPGRADE_PROFILE[item_name].max_level);
+		for (const level of Object.keys(level_counts).map(Number).sort((a, b) => a - b)) {
+			const to_withdraw = Math.min(level_counts[level], free_inventory_slots() - 3);
+			if (to_withdraw <= 0) break;
+			await withdraw_item(item_name, level, to_withdraw);
 		}
-
 		if (free_inventory_slots() <= 3) break;
 	}
 
 	for (const item_name in COMBINE_PROFILE) {
-		const max_level = COMBINE_PROFILE[item_name].max_level;
-
-		let level_map = {};
-		for (const item of bank_contents(bank_data)) {
-			if (item.name !== item_name || !below_max_level(item, max_level)) continue;
-			const lvl = item.level || 0;
-			level_map[lvl] = (level_map[lvl] || 0) + (item.q || 1);
-		}
-
-		for (const level_str of Object.keys(level_map).sort((a, b) => a - b)) {
-			let level = Number(level_str);
-			let count = level_map[level];
-
-			while (count >= 3) {
-				free_slots = free_inventory_slots();
-				let max_withdrawable = Math.floor((free_slots - 3) / 3) * 3;
-				if (max_withdrawable < 3) break;
-				let to_withdraw = Math.min(Math.floor(count / 3) * 3, max_withdrawable);
-				if (to_withdraw < 3) break;
-
-				let remaining = to_withdraw;
-				for (const item of bank_contents(bank_data)) {
-					if (remaining <= 0 || free_inventory_slots() <= 3) break;
-					if (item.name !== item_name || (item.level || 0) !== level) continue;
-
-					const withdraw_count = Math.min(item.q || 1, remaining);
-					if (withdraw_count > 0) {
-						withdraw_item(item_name, level, withdraw_count);
-						remaining -= withdraw_count;
-						count -= withdraw_count;
-						await delay(400);
-					}
-				}
-				if (free_inventory_slots() <= 3 || count < 3) break;
-			}
-			if (free_inventory_slots() <= 3) break;
+		const level_counts = bank_level_counts(bank_data, item_name, COMBINE_PROFILE[item_name].max_level);
+		for (const level of Object.keys(level_counts).map(Number).sort((a, b) => a - b)) {
+			const sets = Math.min(Math.floor(level_counts[level] / 3), Math.floor((free_inventory_slots() - 3) / 3));
+			if (sets > 0) await withdraw_item(item_name, level, sets * 3);
 		}
 		if (free_inventory_slots() <= 3) break;
 	}
@@ -294,21 +290,11 @@ function bank_has_upgradeable_items() {
 	if (!bank_data) return false;
 
 	for (const item_name in UPGRADE_PROFILE) {
-		const max_level = UPGRADE_PROFILE[item_name].max_level;
-		for (const item of bank_contents(bank_data)) {
-			if (item.name === item_name && below_max_level(item, max_level)) return true;
-		}
+		if (Object.keys(bank_level_counts(bank_data, item_name, UPGRADE_PROFILE[item_name].max_level)).length) return true;
 	}
 
 	for (const item_name in COMBINE_PROFILE) {
-		const max_level = COMBINE_PROFILE[item_name].max_level;
-		const level_counts = {};
-		for (const item of bank_contents(bank_data)) {
-			if (item.name !== item_name || !below_max_level(item, max_level)) continue;
-			const lvl = item.level || 0;
-			level_counts[lvl] = (level_counts[lvl] || 0) + (item.q || 1);
-			if (level_counts[lvl] >= 3) return true;
-		}
+		if (Object.values(bank_level_counts(bank_data, item_name, COMBINE_PROFILE[item_name].max_level)).some(q => q >= 3)) return true;
 	}
 
 	return false;
@@ -332,28 +318,16 @@ async function auto_upgrade_item(level) {
 		const profile = UPGRADE_PROFILE[item.name];
 		if (!profile || item.level >= profile.max_level) continue;
 
-		let scrollname =
-			item.level < profile.scroll0_until ? "scroll0"
-			: item.level < profile.scroll1_until ? "scroll1"
-			: "scroll2";
-
+		const scrollname = scroll_for(profile, item.level, "scroll");
 		const scroll_slot = inventory_slot(scrollname);
-		const scroll = scroll_slot === null ? null : character.items[scroll_slot];
 
-		if (!scroll) {
-			const scroll_cost = G.items[scrollname]?.g || 0;
-			if (character.gold < scroll_cost) {
-				game_log(`❌ Not enough gold to buy ${scrollname} for upgrading ${item.name} (level ${item.level}). Ending auto-upgrade.`);
-				return "end";
-			}
-			game_log(`Buying ${scrollname} for upgrading ${item.name} (level ${item.level})`);
-			try {
-				await buy(scrollname);
-			} catch (e) {
-				catcher(e, "auto_upgrade_item: buy " + scrollname);
-				return "end";
-			}
-			return "wait";
+		if (scroll_slot === null) {
+			const needed = character.items.filter((it, j) => {
+				const it_profile = it && UPGRADE_PROFILE[it.name];
+				return it_profile && it.level === level && it.level < it_profile.max_level
+					&& !upgrade_failed_slots.has(j) && scroll_for(it_profile, level, "scroll") === scrollname;
+			}).length;
+			return await buy_scrolls(scrollname, needed, `upgrading ${item.name} (level ${item.level})`) ? "wait" : "end";
 		}
 
 		if (profile.grace_from !== undefined && item.level >= profile.grace_from && !grace_capped_slots.has(i)) {
@@ -370,14 +344,7 @@ async function auto_upgrade_item(level) {
 		}
 
 		if (!character.q.upgrade) {
-			if (item.level <= 2 && can_use("massproduction")) {
-				use_skill("massproduction");
-				await delay(20);
-			}
-			if (item.level >= 3 && can_use("massproductionpp") && character.mp >= 400) {
-				use_skill("massproductionpp");
-				await delay(20);
-			}
+			await use_mass_production(item.level);
 			game_log(`Upgrading ${item.name} (level ${item.level}) with ${scrollname}`);
 			try {
 				await upgrade(i, scroll_slot, offering_slot);
@@ -389,7 +356,7 @@ async function auto_upgrade_item(level) {
 		}
 
 		while (character.q.upgrade) {
-			await delay(100);
+			await delay(50);
 		}
 
 		return "done";
@@ -440,14 +407,8 @@ async function auto_combine_item(level) {
 
 		const item_name = key.split(":")[0];
 		const profile = COMBINE_PROFILE[item_name];
-
-		let scrollname =
-			lvl < profile.scroll0_until ? "cscroll0"
-			: lvl < profile.scroll1_until ? "cscroll1"
-			: "cscroll2";
-
-		const scroll_slot = inventory_slot(scrollname);
-		const scroll = scroll_slot === null ? null : character.items[scroll_slot];
+		const scrollname = scroll_for(profile, lvl, "cscroll");
+		if (inventory_slot(scrollname) !== null) continue;
 
 		if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
 			const has_primling = character.items.some(inv_item => inv_item && inv_item.name === "offeringp");
@@ -457,21 +418,13 @@ async function auto_combine_item(level) {
 			}
 		}
 
-		if (!scroll) {
-			const scroll_cost = G.items[scrollname]?.g || 0;
-			if (character.gold < scroll_cost) {
-				game_log(`❌ Not enough gold to buy ${scrollname} for combining ${item_name} (level ${lvl}). Ending auto-combine.`);
-				return "end";
+		let needed = 0;
+		for (const [other_key, [, other_entries]] of buckets) {
+			if (scroll_for(COMBINE_PROFILE[other_key.split(":")[0]], lvl, "cscroll") === scrollname) {
+				needed += Math.floor(total_qty(other_entries) / 3);
 			}
-			game_log(`Buying ${scrollname} for combining ${item_name} (level ${lvl})`);
-			try {
-				await buy(scrollname);
-			} catch (e) {
-				catcher(e, "auto_combine_item: buy " + scrollname);
-				return "end";
-			}
-			return "wait";
 		}
+		return await buy_scrolls(scrollname, needed, `combining ${item_name} (level ${lvl})`) ? "wait" : "end";
 	}
 
 	for (const [key, [lvl, entries]] of buckets) {
@@ -480,14 +433,9 @@ async function auto_combine_item(level) {
 		const item_name = key.split(":")[0];
 		const profile = COMBINE_PROFILE[item_name];
 
-		let scrollname =
-			lvl < profile.scroll0_until ? "cscroll0"
-			: lvl < profile.scroll1_until ? "cscroll1"
-			: "cscroll2";
-
+		const scrollname = scroll_for(profile, lvl, "cscroll");
 		const scroll_slot = inventory_slot(scrollname);
-		const scroll = scroll_slot === null ? null : character.items[scroll_slot];
-		if (!scroll) continue;
+		if (scroll_slot === null) continue;
 		if (combine_failed_keys.has(key)) continue;
 
 		if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
@@ -507,10 +455,7 @@ async function auto_combine_item(level) {
 			}
 		}
 
-		if (can_use("massproduction")) {
-			use_skill("massproduction");
-			await delay(20);
-		}
+		await use_mass_production(lvl);
 
 		const picks = pick_three_slots(entries);
 		game_log(`Combining 3x ${item_name} (level ${lvl}) with ${scrollname}`);
@@ -543,17 +488,13 @@ function can_buy_for_upgrade() {
 
 async function buy_for_upgrade() {
 	for (const item_name of CONFIG.upgrade_buy) {
-		const count = upgrade_buy_count(item_name);
-		let bought = 0;
-		while (bought < count) {
-			try {
-				await buy(item_name);
-			} catch (e) {
+		const purchases = Array.from({ length: upgrade_buy_count(item_name) }, () =>
+			buy(item_name).then(() => true, e => {
 				catcher(e, "buy_for_upgrade: " + item_name);
-				break;
-			}
-			bought++;
-		}
+				return false;
+			})
+		);
+		const bought = (await Promise.all(purchases)).filter(Boolean).length;
 		if (bought > 0) {
 			game_log(`🛒 Bought ${bought}x ${item_name} to upgrade.`);
 			task_heartbeat();
@@ -641,7 +582,6 @@ async function auto_upgrade() {
 		}
 
 		game_log("✅ Auto upgrade and combine complete.");
-		await delay(5000);
 		await sell_items();
 		await bank_items();
 	} catch (e) {
