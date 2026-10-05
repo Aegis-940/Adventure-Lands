@@ -25,7 +25,7 @@ var CONFIG = {
 			max_mobs_in_range: 6
 		},
 		taunt_ents: false,
-		swap_trick_enabled: false,
+		swap_trick_enabled: true,
 
 		sample_hits: true,
 		sample_targets: true,
@@ -116,6 +116,10 @@ var equipment_sets = {
 	],
 	bataxe: [
 		{ item_name: "bataxe", slot: "mainhand", level: 9, l: "l" }
+	],
+	candycane: [
+		{ item_name: "candycanesword", slot: "mainhand" },
+		{ item_name: "candycanesword", slot: "offhand" },
 	],
 	dps: [
 		// { item_name: "cearring", slot: "earring1", level: 5, l: "l" },

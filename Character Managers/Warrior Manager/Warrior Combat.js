@@ -87,13 +87,7 @@ function find_monsters_in_cleave_range() {
 var STATUS_SWAP_TRICKS = {
 	bscorpion: {
 		status: "sugarrush",
-		base_set: "single",
-		swap_items: [
-			{ item_name: "candycanesword", slot: "mainhand" },
-			{ item_name: "candycanesword", slot: "offhand" },
-		],
-		swap_delay_ms: 75,
-		settle_delay_ms: 225,
+		set: "candycane",
 		label: "Sugar Rush",
 		color: "#ff69b4",
 	},
@@ -102,38 +96,40 @@ var STATUS_SWAP_TRICKS = {
 var swap_trick_attempts = 0;
 var swap_trick_history = {};
 
-async function status_swap_trick(target) {
+function status_swap_trick(target) {
 	if (!CONFIG.combat.swap_trick_enabled) return;
 
 	const trick = STATUS_SWAP_TRICKS[target.mtype];
-	if (!trick || character.s[trick.status] !== undefined) return;
+	if (!trick) return;
 
-	if (!is_set_equipped(trick.base_set)) return;
-
-	const slots = resolve_swap_slots(trick.swap_items);
-	if (!slots) return;
-
-	const token = equip_claim("swap-trick", EQUIP_PRIORITY.trick);
-	if (!token) return;
-	try {
-		swap_trick_attempts++;
-		if (!await equip_apply_slots(token, slots)) return;
-		await delay(trick.swap_delay_ms);
-		if (!await equip_apply_slots(token, slots)) return;
-		await delay(trick.settle_delay_ms);
-
-		if (character.s[trick.status] !== undefined) {
-			if (!swap_trick_history[target.mtype]) swap_trick_history[target.mtype] = [];
-			const history = swap_trick_history[target.mtype];
-			history.push(swap_trick_attempts);
-			if (history.length > 30) history.shift();
-			const avg = history.reduce((a, b) => a + b, 0) / history.length;
-			game_log(`${trick.label} activated! Avg attempts: ${avg.toFixed(1)}`, trick.color);
-			swap_trick_attempts = 0;
-		}
-	} finally {
-		equip_release(token);
+	if (character.s[trick.status] !== undefined) {
+		if (swap_trick_attempts) record_swap_trick(target.mtype, trick);
+		return;
 	}
+
+	const restore = weapon_set_to_restore();
+	if (!restore) return;
+
+	const arm = equip_plan(trick.set);
+	if (!arm.ops.length) return;
+
+	const back = equip_plan(restore, arm.shadow);
+	if (!back.ops.length) return;
+
+	swap_trick_attempts++;
+	emit_equip_ops(arm.ops, back.shadow);
+	emit_equip_ops(back.ops, back.shadow);
+	errlog_count("swap trick fired");
+}
+
+function record_swap_trick(mtype, trick) {
+	if (!swap_trick_history[mtype]) swap_trick_history[mtype] = [];
+	const history = swap_trick_history[mtype];
+	history.push(swap_trick_attempts);
+	if (history.length > 30) history.shift();
+	const avg = history.reduce((a, b) => a + b, 0) / history.length;
+	game_log(`${trick.label} activated after ${swap_trick_attempts}! Avg attempts: ${avg.toFixed(1)}`, trick.color);
+	swap_trick_attempts = 0;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -156,7 +152,7 @@ async function action_loop() {
 		if (ms === 0 && !travel_blocks_combat() && target && is_in_range(target)) {
 			if (!basic_action_busy()) {
 				run_basic_action(attack(target), "attack");
-				await status_swap_trick(target);
+				status_swap_trick(target);
 			}
 		} else {
 			next_delay = next_action_delay(ms);
