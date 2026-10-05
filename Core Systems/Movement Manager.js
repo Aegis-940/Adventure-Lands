@@ -457,7 +457,7 @@ function town_shortcut_plan() {
 	if (follow_has_leader() || !town_shortcut_eligible()) return;
 	if (!smart.moving || !smart.found || smart.use_town) return;
 	const goal = current_goal();
-	if (!goal || goal.local || goal.hold || goal.disengage) return;
+	if (!goal || goal.local || goal.hold) return;
 	if (!party_untargeted()) return;
 
 	const now = Date.now();
