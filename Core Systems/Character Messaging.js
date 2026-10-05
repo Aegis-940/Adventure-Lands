@@ -119,6 +119,7 @@ function get_full_character_state() {
 		moving: character.moving,
 		formation: party_in_formation(),
 		disengaging: disengaging(),
+		heading: travel_heading(),
 		paused: !automation_enabled(),
 		goal: current_goal_label(),
 		anniv_pending: anniversary_should_travel(),

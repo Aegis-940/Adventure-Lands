@@ -8,6 +8,7 @@ const COHESION_FOLLOWERS = ["Ulric", "Riva"];
 const COHESION_DANGER_HP = 0.5;
 const XP_LAG_LEVELS = 0.05;
 const XP_LAG_CLEAR = 0.02;
+const FOLLOW_HEADING_LABELS = ["follow-heading", "follow-wait"];
 
 let _xp_lagging = false;
 
@@ -78,8 +79,15 @@ function leader_position() {
 	const c = read_state_cache(MOVEMENT_LEADER);
 	const live = get_player(MOVEMENT_LEADER);
 	const disengaging = !!(c && c.disengaging);
-	if (live) return { map: character.map, x: live.x, y: live.y, rip: !!live.rip, formation: !!(c && c.formation), disengaging };
-	return c ? { map: c.map, x: c.x, y: c.y, rip: !!c.rip, formation: !!c.formation, disengaging } : null;
+	const heading = c ? c.heading : null;
+	if (live) return { map: character.map, x: live.x, y: live.y, rip: !!live.rip, formation: !!(c && c.formation), disengaging, heading };
+	return c ? { map: c.map, x: c.x, y: c.y, rip: !!c.rip, formation: !!c.formation, disengaging, heading } : null;
+}
+
+function travel_heading() {
+	const g = current_goal();
+	if (!g || g.local || g.hold || !isFinite(g.x) || !isFinite(g.y)) return null;
+	return { map: g.map || character.map, x: g.x, y: g.y, radius: g.radius || TRAVEL_ARRIVE };
 }
 
 function follow_has_leader() {
@@ -100,6 +108,7 @@ function party_cohesion_hold() {
 		const s = read_state_cache(name);
 		if (!s || s.rip || s.paused) return false;
 		if (owed && s.anniv_pending && !endangered) return false;
+		if (FOLLOW_HEADING_LABELS.includes(s.goal) && !endangered) return false;
 		if (s.map !== character.map) return !travelling;
 		return Math.hypot(s.x - character.x, s.y - character.y) > limit;
 	});
@@ -124,7 +133,7 @@ function follow_goal() {
 
 	const fd = CONFIG.movement.follow_distance;
 	const arrive = pos.formation ? fd : (_cohesion_closing ? cohesion_regroup() : cohesion_range());
-	return approach(pos, {
+	const near = approach(pos, {
 		label: "follow",
 		arrive,
 		radius: Math.min(fd + 30, arrive),
@@ -133,4 +142,12 @@ function follow_goal() {
 		disengage: pos.disengaging,
 		arrived: { local: "farm", label: "with-leader", on_station: true, disengage: pos.disengaging },
 	});
+	if (near.local || !pos.heading || in_dungeon()) return near;
+	return follow_heading(pos.heading, pos.disengaging);
+}
+
+function follow_heading(h, disengage) {
+	const there = character.map === h.map && Math.hypot(character.x - h.x, character.y - h.y) <= h.radius;
+	if (there) return { hold: true, label: "follow-wait", chasing: true, disengage };
+	return { label: "follow-heading", map: h.map, x: h.x, y: h.y, radius: h.radius, chasing: true, disengage };
 }
