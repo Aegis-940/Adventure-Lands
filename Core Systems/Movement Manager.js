@@ -350,6 +350,10 @@ function local_step(goal) {
 	if (goal && goal.step) move(goal.step.x, goal.step.y);
 }
 
+function local_wait() {
+	if (character.moving) move(character.real_x, character.real_y);
+}
+
 function movement_goal() {
 	if (!CONFIG.movement.enabled) return null;
 
@@ -405,6 +409,7 @@ function movement_local(goal, farm_step) {
 		return;
 	}
 	if (goal && goal.local === "step") return local_step(goal);
+	if (goal && goal.local === "wait") return local_wait();
 	if (goal && goal.local === "event") return event_step(goal.event);
 	if (goal && goal.local === "loot") return loot_step();
 	if (typeof farm_step === "function") farm_step();

@@ -8,7 +8,7 @@ const COHESION_FOLLOWERS = ["Ulric", "Riva"];
 const COHESION_DANGER_HP = 0.5;
 const XP_LAG_LEVELS = 0.05;
 const XP_LAG_CLEAR = 0.02;
-const FOLLOW_HEADING_LABELS = ["follow-heading", "follow-wait"];
+const FOLLOW_LEASH = 80;
 
 let _xp_lagging = false;
 
@@ -108,7 +108,6 @@ function party_cohesion_hold() {
 		const s = read_state_cache(name);
 		if (!s || s.rip || s.paused) return false;
 		if (owed && s.anniv_pending && !endangered) return false;
-		if (FOLLOW_HEADING_LABELS.includes(s.goal) && !endangered) return false;
 		if (s.map !== character.map) return !travelling;
 		return Math.hypot(s.x - character.x, s.y - character.y) > limit;
 	});
@@ -143,11 +142,23 @@ function follow_goal() {
 		arrived: { local: "farm", label: "with-leader", on_station: true, disengage: pos.disengaging },
 	});
 	if (near.local || !pos.heading || in_dungeon()) return near;
-	return follow_heading(pos.heading, pos.disengaging);
+	return follow_heading(pos, pos.heading, pos.disengaging);
 }
 
-function follow_heading(h, disengage) {
+function follow_heading(pos, h, disengage) {
 	const there = character.map === h.map && Math.hypot(character.x - h.x, character.y - h.y) <= h.radius;
-	if (there) return { hold: true, label: "follow-wait", chasing: true, disengage };
+	if (there || ahead_of_leader(pos, h)) return { local: "wait", label: "follow-wait", chasing: true, disengage };
 	return { label: "follow-heading", map: h.map, x: h.x, y: h.y, radius: h.radius, chasing: true, disengage };
+}
+
+function ahead_of_leader(pos, h) {
+	if (pos.map !== character.map) return character.map === h.map;
+	if (Math.hypot(character.x - pos.x, character.y - pos.y) <= FOLLOW_LEASH) return false;
+
+	const live = get_player(MOVEMENT_LEADER);
+	if (live && live.moving) {
+		return (character.x - live.x) * (live.going_x - live.x) + (character.y - live.y) * (live.going_y - live.y) > 0;
+	}
+	if (character.map !== h.map) return false;
+	return Math.hypot(character.x - h.x, character.y - h.y) < Math.hypot(pos.x - h.x, pos.y - h.y);
 }
