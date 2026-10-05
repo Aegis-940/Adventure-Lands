@@ -354,6 +354,161 @@ function travel_arbiter(goal) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// TOWN SHORTCUT — channel the town teleport while still walking, and land further along the route
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const TOWN_MIN_GAIN_MS = 3000;
+const TOWN_RECHECK_MS = 1000;
+const TOWN_OWN_MS = 2000;
+const TOWN_SAMPLE_PX = 30;
+const TOWN_LANDED_RANGE = 150;
+
+let _town = { checked_at: 0, cast_at: 0, label: null, copying: false, channel: null, logged: null };
+
+function town_spawn() {
+	const s = G.maps[character.map].spawns[0];
+	return { x: s[0], y: s[1] };
+}
+
+function plot_route(head) {
+	const route = head.slice();
+	for (let i = 0; i < smart.plot.length; i++) {
+		const node = smart.plot[i];
+		if (node.map !== character.map || node.transport || node.town) break;
+		route.push({ x: node.x, y: node.y, idx: i });
+	}
+	return route;
+}
+
+function best_join(route, origin) {
+	let best = null;
+	let along = 0;
+	for (let i = 1; i < route.length; i++) {
+		const a = route[i - 1];
+		const b = route[i];
+		const len = Math.hypot(b.x - a.x, b.y - a.y);
+		const n = Math.max(1, Math.ceil(len / TOWN_SAMPLE_PX));
+		for (let s = 1; s <= n; s++) {
+			const x = a.x + (b.x - a.x) * s / n;
+			const y = a.y + (b.y - a.y) * s / n;
+			const gain = along + len * s / n - Math.hypot(x - origin.x, y - origin.y);
+			if (best && gain <= best.gain) continue;
+			if (!can_move({ map: character.map, x: origin.x, y: origin.y, going_x: x, going_y: y, base: character.base })) continue;
+			best = { x, y, gain, next: b.idx };
+		}
+		along += len;
+	}
+	return best;
+}
+
+function party_untargeted() {
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || e.dead) continue;
+		if (e.target === character.name || COHESION_FOLLOWERS.includes(e.target)) return false;
+	}
+	return true;
+}
+
+function town_shortcut_eligible() {
+	if (character.rip || G.maps[character.map].instance || in_dungeon()) return false;
+	return monsters_targeting_me() === 0;
+}
+
+function town_cast(label, copying) {
+	_town.cast_at = Date.now();
+	_town.label = label;
+	_town.copying = copying;
+	Promise.resolve(use_skill("use_town")).catch(() => { });
+}
+
+function town_cancel(ch, reason) {
+	ch.mine = false;
+	cancel_town_channel();
+	errlog_count("town shortcut cancelled");
+	game_log(`🌀 Town teleport cancelled — ${reason}`, "#8899aa");
+}
+
+function town_channel_watch(ch) {
+	if (!ch.mine) return;
+	if (ch.copying) {
+		const lead = get_player(MOVEMENT_LEADER);
+		if (!lead || lead.c.town) return;
+		const s = town_spawn();
+		if (Math.hypot(lead.x - s.x, lead.y - s.y) <= TOWN_LANDED_RANGE) return;
+		town_cancel(ch, `${MOVEMENT_LEADER} stopped hers`);
+		return;
+	}
+	if (travel_is_active() && current_goal_label() === ch.label) return;
+	town_cancel(ch, "the journey changed");
+}
+
+function town_copy_leader() {
+	if (!follow_has_leader() || !town_shortcut_eligible()) return false;
+	const lead = get_player(MOVEMENT_LEADER);
+	if (!lead || lead.rip || !lead.c.town) return false;
+	if (Date.now() - _town.cast_at < TOWN_RECHECK_MS) return true;
+	game_log(`🌀 Following ${MOVEMENT_LEADER}'s town teleport`, "#8899aa");
+	town_cast(null, true);
+	return true;
+}
+
+function town_shortcut_plan() {
+	if (follow_has_leader() || !town_shortcut_eligible()) return;
+	if (!smart.moving || !smart.found || smart.use_town) return;
+	const goal = current_goal();
+	if (!goal || goal.local || goal.hold || goal.disengage) return;
+	if (!party_untargeted()) return;
+
+	const now = Date.now();
+	if (now - _town.checked_at < TOWN_RECHECK_MS) return;
+	_town.checked_at = now;
+
+	const head = [{ x: character.real_x, y: character.real_y, idx: -1 }];
+	if (character.moving) head.push({ x: character.going_x, y: character.going_y, idx: -1 });
+	const join = best_join(plot_route(head), town_spawn());
+	if (!join) return;
+
+	const saved_ms = join.gain / character.speed * 1000 - G.conditions.town.duration - min_ping();
+	if (saved_ms < TOWN_MIN_GAIN_MS) return;
+
+	errlog_count("town shortcut cast");
+	if (_town.logged !== goal.label) {
+		_town.logged = goal.label;
+		game_log(`🌀 Town shortcut on "${goal.label}" — saves ~${Math.round(saved_ms / 1000)}s`, "#8899aa");
+	}
+	town_cast(goal.label, false);
+}
+
+function town_shortcut_check() {
+	if (town_channelling()) {
+		if (!_town.channel) {
+			_town.channel = { mine: Date.now() - _town.cast_at < TOWN_OWN_MS, copying: _town.copying, label: _town.label, landed: false };
+		}
+		return town_channel_watch(_town.channel);
+	}
+	if (_town.channel) {
+		if (_town.channel.mine && !_town.channel.landed) errlog_count("town shortcut interrupted");
+		_town.channel = null;
+	}
+	if (town_copy_leader()) return;
+	town_shortcut_plan();
+}
+
+function town_landed(data) {
+	const ch = _town.channel;
+	if (!ch || !data.effect || !town_channelling()) return;
+	ch.landed = true;
+	_town.logged = null;
+	errlog_count("town shortcut landed");
+	if (!smart.moving || !smart.found) return;
+	const route = plot_route([{ x: character.going_x, y: character.going_y, idx: -1 }]);
+	const join = best_join(route, { x: character.real_x, y: character.real_y });
+	if (!join) return;
+	smart.plot = [{ map: character.map, x: join.x, y: join.y }].concat(smart.plot.slice(join.next));
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // STUCK ESCAPE — last resort when pathfinding cannot leave where we are
 // --------------------------------------------------------------------------------------------------------------------------------- //
 

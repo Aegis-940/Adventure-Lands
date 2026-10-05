@@ -921,9 +921,34 @@ if (current.town) { use("town"); }
 ```
 
 `is_transporting(entity)` returns true while `entity.c.town` is set, and the move executor is gated
-on `!is_transporting(character)`, so the walk resumes by itself once the channel lands. Setting
-`smart.use_town = true` is therefore the whole integration — and because it is a graph edge, it is
-only taken when it genuinely shortens the path.
+on `!is_transporting(character)`, so the native executor stops issuing moves for the whole channel.
+
+**Do not use the native town edge for speed** — verified 2026-10-05 against `runner_functions.js`
+and `node/server.js`:
+
+- `bfs()` is unweighted: every edge costs one hop. A town edge costs the same as one 15px step (5px
+  within 80px of the start or target, where `baby_steps` apply), and it is queued *before* the walking
+  moves at every node. A 3s channel is worth ~165px of walking at speed 55, so the BFS towns on trips
+  where walking is faster.
+- The executor's `use("town")` is fire-and-forget. 80ms later `c.town` is usually not back from the
+  server yet, so it walks to the post-spawn node, fails `can_move_to`, logs "Lost the path..." and
+  re-searches from a position the teleport then invalidates.
+- The server wipes `player.c` (every channel) on: any attack, heal or skill (`commence_attack`),
+  **any `equip`, `equip_batch` or `unequip`**, and taking damage. It refuses the cast with
+  `cant_escape` when `player.targets > 5`. Moving does **not** cancel it (`can_move: true`), nor do
+  potions (`use` hp/mp touches no channel).
+- `c` is in `player_to_client`, so other players see a channel: `get_player(name).c.town`.
+- The landing is `transport_player_to(player, player.in, undefined, 1)`: the client gets `new_map`
+  with `effect: 1` on the same map, and `character.on("new_map")` fires synchronously after
+  `real_x/real_y` are updated — before the executor's next tick. `c.town` is still set at that moment;
+  the following `player` update clears it. It also calls `decay_s(player, 4000)` and adds 812ms of
+  `penalty_cd`.
+
+So the bot never sets `smart.use_town` for speed. The town shortcut in `Movement Manager.js` keeps the
+search walk-only, casts the channel *while the walk continues* when the route passes in sight of
+`spawns[0]` and the time saved exceeds the channel by 3s, and on landing splices the route to the
+best point reachable from the spawn. An interrupted channel costs nothing — the walk never stopped.
+`smart.use_town` remains only as the travel arbiter's last resort when there is no walking route.
 
 **Per-map, the destination is that map's own spawn, which is not always helpful:**
 

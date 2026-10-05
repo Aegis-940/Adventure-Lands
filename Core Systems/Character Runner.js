@@ -123,6 +123,7 @@ function run_character(spec) {
 	performance_trick();
 	add_bank_buttons();
 	state_cache_loop();
+	character.on("new_map", town_landed);
 
 	async function main_tick() {
 		errlog_beat("main_loop");
@@ -144,6 +145,7 @@ function run_character(spec) {
 
 			stuck_escape_check();
 			channel_walk();
+			town_shortcut_check();
 
 			if (typeof s.pre_move === "function") await s.pre_move();
 
