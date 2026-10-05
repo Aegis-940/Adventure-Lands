@@ -123,12 +123,17 @@ function warrior_clear_overlap(target) {
 	return true;
 }
 
+function warrior_engage_step(target) {
+	if (!is_in_range(target)) {
+		warrior_close_in(target);
+		return true;
+	}
+	return warrior_clear_overlap(target);
+}
+
 function warrior_farm_step() {
 	const target = cache.target;
-	if (target && !target.dead) {
-		if (!is_in_range(target)) return warrior_close_in(target);
-		if (warrior_clear_overlap(target)) return;
-	}
+	if (target && !target.dead && warrior_engage_step(target)) return;
 	default_farm_step();
 }
 

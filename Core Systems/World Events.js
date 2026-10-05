@@ -63,9 +63,11 @@ function event_goal() {
 	return { label: "event-" + target.name, map: target.map, x: target.x, y: target.y, radius: 60, disengage: true };
 }
 
-function event_step(event_type) {
+function event_step(event_type, engage_step) {
 	const boss = get_nearest_monster({ type: event_type });
-	if (!boss || is_in_range(boss, "attack")) return;
+	if (!boss) return;
+	if (engage_step) return engage_step(boss);
+	if (is_in_range(boss, "attack")) return;
 	const d = Math.hypot(boss.x - character.x, boss.y - character.y);
 	const f = Math.max(0, (d - character.range * EVENT_REACH) / d);
 	local_move(character.x + (boss.x - character.x) * f, character.y + (boss.y - character.y) * f);

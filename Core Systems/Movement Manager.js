@@ -666,14 +666,14 @@ function movement_goal() {
 	return null;
 }
 
-function movement_local(goal, farm_step) {
+function movement_local(goal, farm_step, engage_step) {
 	if (smart.moving) {
 		game_log("🧭 local movement skipped — a journey is still in flight", "#FFA500");
 		return;
 	}
 	if (goal && goal.local === "step") return local_step(goal);
 	if (goal && goal.local === "wait") return local_wait();
-	if (goal && goal.local === "event") return event_step(goal.event);
+	if (goal && goal.local === "event") return event_step(goal.event, engage_step);
 	if (goal && goal.local === "loot") return loot_step();
 	if (goal && goal.local === "camp") return camp_step();
 	if (goal && goal.disengage) return;

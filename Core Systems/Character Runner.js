@@ -156,7 +156,7 @@ function run_character(spec) {
 
 			if (!travel_arbiter(goal) || goal.hold) {
 				if (should_loot()) await handle_looting();
-				else movement_local(goal, s.farm_step);
+				else movement_local(goal, s.farm_step, s.engage_step);
 			}
 		} catch (e) {
 			console.error("main_tick error:", e);
