@@ -341,7 +341,7 @@ function approach(pos, o) {
 	const a = Math.atan2(character.y - pos.y, character.x - pos.x);
 	const step = { x: pos.x + Math.cos(a) * o.ring, y: pos.y + Math.sin(a) * o.ring };
 	if (!smart.moving && can_move_to(step.x, step.y)) {
-		return { local: "step", label: o.label + "-close", on_station: d <= cohesion_range(), step, chasing: o.chasing, disengage: o.disengage };
+		return { local: "step", label: o.label + "-close", step, chasing: o.chasing, disengage: o.disengage };
 	}
 	return travel;
 }
@@ -362,16 +362,16 @@ function movement_goal() {
 	const scripted_camp = home === "bscorpion";
 	const ignoring_events = dungeon_ignores_events();
 
+	const event = ignoring_events ? null : event_goal();
+	if (event && event.pursuit) return event;
+
 	if (!scripted_camp && party_cohesion_hold()) {
-		const ahead = ignoring_events ? null : event_goal() || anniversary_destination();
+		const ahead = event || anniversary_destination();
 		return { hold: true, label: "cohesion", disengage: !!(ahead && ahead.disengage) };
 	}
 
 	const follow = scripted_camp ? null : follow_goal();
 	if (follow && !follow.local) return follow;
-
-	const event = ignoring_events ? null : event_goal();
-	if (follow && follow.on_station && event && event.local === "event") return event;
 
 	if (!follow_has_leader() && !ignoring_events) {
 		const anniv = anniversary_destination();

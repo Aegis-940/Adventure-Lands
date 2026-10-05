@@ -8,6 +8,7 @@ on_game_event = function(data) {
 };
 
 const EVENT_JOIN_RETRY_MS = 5000;
+const EVENT_REACH = 0.8;
 let _last_event_join = 0;
 
 function engage_hp_ok(e) {
@@ -50,12 +51,11 @@ function event_goal() {
 
 	const seen = get_nearest_monster({ type: target.name });
 	if (seen) {
-		const half_x = character.x + (seen.x - character.x) / 2;
-		const half_y = character.y + (seen.y - character.y) / 2;
-		if (is_in_range(seen, "attack") || can_move_to(half_x, half_y)) {
-			return { local: "event", label: "event-" + target.name, event: target.name };
+		const label = "event-" + target.name;
+		if (is_in_range(seen, "attack") || can_move_to(seen.x, seen.y)) {
+			return { local: "event", pursuit: true, label, event: target.name };
 		}
-		return { label: "event-" + target.name, map: seen.map || target.map, x: seen.x, y: seen.y, radius: 60, disengage: true };
+		return { pursuit: true, label, event: target.name, map: character.map, x: seen.x, y: seen.y, radius: character.range * EVENT_REACH };
 	}
 
 	if (!target.map || !isFinite(target.x) || !isFinite(target.y)) return null;
@@ -64,11 +64,16 @@ function event_goal() {
 }
 
 function event_step(event_type) {
-	if (!parent?.S?.[event_type]?.live) return;
-	const monster = get_nearest_monster({ type: event_type });
-	if (!monster) return;
-	if (is_in_range(monster, "attack")) return;
-	local_move(character.x + (monster.x - character.x) / 2, character.y + (monster.y - character.y) / 2);
+	const boss = get_nearest_monster({ type: event_type });
+	if (!boss || is_in_range(boss, "attack")) return;
+	const d = Math.hypot(boss.x - character.x, boss.y - character.y);
+	const f = Math.max(0, (d - character.range * EVENT_REACH) / d);
+	local_move(character.x + (boss.x - character.x) * f, character.y + (boss.y - character.y) * f);
+}
+
+function pursued_boss() {
+	const g = current_goal();
+	return g && g.pursuit ? get_nearest_monster({ type: g.event }) : null;
 }
 
 function best_event_target() {
@@ -76,7 +81,8 @@ function best_event_target() {
 		.map(e => ({ ...e, data: parent.S[e.name] }))
 		.filter(e => e.data?.live)
 		.filter(e => engage_hp_ok(e))
-		.sort((a, b) => (a.data.hp / a.data.max_hp) - (b.data.hp / b.data.max_hp));
+		.map(e => ({ ...e, seen: !!get_nearest_monster({ type: e.name }) }))
+		.sort((a, b) => (b.seen - a.seen) || (a.data.hp / a.data.max_hp) - (b.data.hp / b.data.max_hp));
 
 	return alive_sorted.length ? alive_sorted[0] : null;
 }

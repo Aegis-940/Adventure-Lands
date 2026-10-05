@@ -100,6 +100,10 @@ function resolve_healer_loadout() {
 	const in_dungeon_loadout = dungeon_loadout();
 	if (in_dungeon_loadout) return in_dungeon_loadout;
 
+	if (cache.target && CONFIG.combat.all_bosses.includes(cache.target.mtype) && set_available("single_target")) {
+		return "single_target";
+	}
+
 	const target = cache.heal_target;
 	return resolve_weapon_by_value(name => healer_set_value(name, target))
 		|| first_available_set(CONFIG.equipment.weapon_sets);

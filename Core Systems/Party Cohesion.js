@@ -139,7 +139,7 @@ function follow_goal() {
 		ring: fd,
 		chasing: true,
 		disengage: pos.disengaging,
-		arrived: { local: "farm", label: "with-leader", on_station: true, disengage: pos.disengaging },
+		arrived: { local: "farm", label: "with-leader", disengage: pos.disengaging },
 	});
 	if (near.local || !pos.heading || in_dungeon()) return near;
 	return follow_heading(pos, pos.heading, pos.disengaging);
