@@ -158,7 +158,7 @@ function schedule_periodic_reset() {
 		_reset_due_bucket = null;
 
 		game_log(`[reset] Periodic reload at ${hour}:${String(now.getMinutes()).padStart(2, "0")}`, "#FFAA00");
-		setTimeout(() => parent.window.location.reload(), 1000);
+		staggered_reload();
 	}, 60000);
 }
 

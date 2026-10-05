@@ -200,6 +200,20 @@ function delay(ms) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// SECTION 2a: RELOADS — a party-wide reload restarts one character at a time, never all four in the same second
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const RELOAD_ORDER = ["Myras", "Ulric", "Riva", "Riff"];
+const RELOAD_BASE_MS = 500;
+const RELOAD_STAGGER_MS = 6000;
+
+function staggered_reload() {
+	const wait = RELOAD_BASE_MS + RELOAD_ORDER.indexOf(character.name) * RELOAD_STAGGER_MS;
+	game_log(`[reload] Restarting in ${Math.round(wait / 1000)}s`, "#FFAA00");
+	setTimeout(() => parent.window.location.reload(), wait);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // SECTION 2b: JSON-BACKED STORAGE — the one read/write pair for structured localStorage values
 // --------------------------------------------------------------------------------------------------------------------------------- //
 

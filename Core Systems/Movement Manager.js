@@ -396,6 +396,8 @@ function stuck_escape_check() {
 	const now = Date.now();
 	if (_stuck_escape) return stuck_escape_settle(now);
 
+	if (!is_travelling()) { _stuck_anchor = null; return; }
+
 	if (follow_has_leader()) {
 		const lead = get_player(MOVEMENT_LEADER);
 		if (lead && !lead.rip) { _stuck_anchor = null; return; }

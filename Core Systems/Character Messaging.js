@@ -64,9 +64,7 @@ const CM_HANDLERS = {
 	},
 
 
-	"reload": () => {
-		setTimeout(() => parent.window.location.reload(), 500);
-	}
+	"reload": () => staggered_reload()
 };
 
 function send_updates() {

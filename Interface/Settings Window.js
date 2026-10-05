@@ -121,7 +121,7 @@ function open_settings_window() {
 		for (const name of ALL_CHARACTERS) {
 			if (name !== character.name) send_cm(name, { type: "reload" });
 		}
-		parent.window.location.reload();
+		staggered_reload();
 	};
 
 	const close_btn = doc.createElement("button");
