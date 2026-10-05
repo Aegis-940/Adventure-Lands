@@ -231,6 +231,23 @@ function swap_penalty_logger() {
 	parent.socket.on("skill_timeout", parent.socket._swap_penalty_logger);
 }
 
+function sugar_rush_roll_logger() {
+	if (parent.socket._sugar_rush_roll_logger) {
+		parent.socket.off("hit", parent.socket._sugar_rush_roll_logger);
+	}
+
+	parent.socket._sugar_rush_roll_logger = data => {
+		if (!data || data.hid !== character.id || data.splash || data.miss || data.evade) return;
+		if (data.source !== "attack" && data.source !== "cleave") return;
+		const canes = ["mainhand", "offhand"].filter(slot =>
+			character.slots[slot] && character.slots[slot].name === SUGAR_RUSH.set).length;
+		errlog_count(`sugar rush roll ${data.source} ${canes}`);
+		if (data.trigger === SUGAR_RUSH.status) errlog_count(`sugar rush proc ${data.source} ${canes}`);
+	};
+
+	parent.socket.on("hit", parent.socket._sugar_rush_roll_logger);
+}
+
 var CC_REPORT_MS = 20000;
 
 function cc_report_logger() {
