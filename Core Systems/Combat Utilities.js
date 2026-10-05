@@ -82,7 +82,7 @@ function get_party_members() {
 }
 
 function panic_mp_reserve() {
-	return G.skills.scare.mp + 200;
+	return skill_mp_cost("scare") + 200;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

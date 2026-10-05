@@ -72,7 +72,7 @@ PROBE = """(() => {
     };
     for (const f of document.querySelectorAll("iframe")) {
         try {
-            const beat = f.contentWindow.eval("typeof _errlog === 'object' && _errlog.alive.length ? _errlog.alive[_errlog.alive.length - 1].t : null");
+            const beat = f.contentWindow.eval("typeof main_beat_at === 'number' ? main_beat_at : (typeof _errlog === 'object' && _errlog.alive.length ? _errlog.alive[_errlog.alive.length - 1].t : null)");
             out.frames++;
             if (beat) out.beat = Math.max(out.beat || 0, beat);
         } catch (e) {}

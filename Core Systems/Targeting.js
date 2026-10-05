@@ -43,10 +43,11 @@ function target_damage_value(mob, options) {
 	const hit = attack_damage_against(mob);
 	if (hit <= 0) return 0;
 
-	const direct = Math.min(hit, mob.hp || 0);
+	const left = remaining_hp(mob);
+	const direct = Math.min(hit, left);
 	const raw_dps = (character.attack || 0) * (character.frequency || 1);
 	const burn = burn_multiplier_at_dps(
-		mob, worn_ability_chance("burn"), raw_dps, party_factor, { hp: mob.hp }
+		mob, worn_ability_chance("burn"), raw_dps, party_factor, { hp: left }
 	);
 
 	return direct * burn + splash_landed_on_neighbours(mob, explosion, hit);
@@ -59,7 +60,10 @@ function target_damage_value(mob, options) {
 const TARGET_TERMS = {
 	damage: (mob, ctx) => target_damage_value(mob, ctx),
 
-	finish: mob => (attack_damage_against(mob) >= (mob.hp || 0) ? 1 : 0),
+	finish: mob => {
+		const left = remaining_hp(mob);
+		return left > 0 && attack_damage_against(mob) >= left ? 1 : 0;
+	},
 
 	untargeted: mob => (mob.target ? 0 : 1),
 

@@ -8,7 +8,7 @@
 
 function above_hp_pct(target, pct) {
 	if (!pct) return true;
-	return !!target.max_hp && target.hp >= target.max_hp * pct;
+	return !!target.max_hp && remaining_hp(target) >= target.max_hp * pct;
 }
 
 var SUPERSHOT_SETUP_WAIT_MS = 4000;
@@ -39,7 +39,7 @@ function mark_value(target) {
 	if (target.s?.marked) return 0;
 
 	const own_dps = (character.attack || 0) * (character.frequency || 1);
-	const ttk = time_to_kill_ms(target, target.hp, own_dps, CONFIG.combat.party_dps_factor);
+	const ttk = time_to_kill_ms(target, remaining_hp(target), own_dps, CONFIG.combat.party_dps_factor);
 	const seconds = Math.min(cond.duration || 0, ttk) / 1000;
 
 	const party_dps = own_dps * (CONFIG.combat.party_dps_factor || 1);
@@ -48,7 +48,7 @@ function mark_value(target) {
 
 function supershot_value(target) {
 	const multiplier = G.skills.supershot.damage_multiplier;
-	return multiplier * (character.attack || 0) * (target_modifier(target, multiplier) || 1);
+	return Math.min(multiplier * (character.attack || 0) * (target_modifier(target, multiplier) || 1), remaining_hp(target));
 }
 
 var _last_sent_target = null;
@@ -91,8 +91,8 @@ async function skill_loop() {
 
 			const skill_allowed = !CONFIG.combat.skill_blacklist.includes(target.mtype);
 
-			const hm_cost = G.skills.huntersmark.mp;
-			const ss_cost = G.skills.supershot.mp;
+			const hm_cost = skill_mp_cost("huntersmark");
+			const ss_cost = skill_mp_cost("supershot");
 			let committed = 0;
 			const affordable = (cost) => (character.mp - committed) >= cost + panic_mp_reserve();
 

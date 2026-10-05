@@ -16,20 +16,22 @@ async function potion_loop() {
 	const HP_MISSING = character.max_hp - character.hp;
 	const MP_MISSING = character.max_mp - character.mp;
 
-	let used_potion = false;
-
 	const prefer_mp = CONFIG.potions.prefer_mp === true;
-	const hp_first = !prefer_mp && character.hp < character.max_hp * 0.5;
+	const scare_short = panicking && character.mp < skill_mp_cost("scare");
+	const hp_first = !prefer_mp && !scare_short && character.hp < character.max_hp * 0.5;
 
 	const drink_mp = () => {
-		if (MP_MISSING >= CONFIG.potions.mp_threshold) { use("mp"); used_potion = true; }
+		if (MP_MISSING < CONFIG.potions.mp_threshold) return false;
+		use("mp");
+		return true;
 	};
 	const drink_hp = () => {
-		if (HP_MISSING >= CONFIG.potions.hp_threshold) { use("hp"); used_potion = true; }
+		if (HP_MISSING < CONFIG.potions.hp_threshold) return false;
+		use("hp");
+		return true;
 	};
 
-	if (hp_first) { drink_hp(); drink_mp(); }
-	else { drink_mp(); drink_hp(); }
+	const used_potion = hp_first ? (drink_hp() || drink_mp()) : (drink_mp() || drink_hp());
 
 	setTimeout(potion_loop, used_potion ? 2050 : POTION_POLL_MS);
 }

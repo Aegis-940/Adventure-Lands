@@ -142,6 +142,69 @@ parent.socket._action_sampler = data => {
 
 parent.socket.on("action", parent.socket._action_sampler);
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// IN FLIGHT — party damage already on its way, so a monster about to die is not worth another shot
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const INFLIGHT_DISCOUNT = 0.9;
+const INFLIGHT_GRACE_MS = 300;
+
+const _inflight = {};
+
+function inflight_defense(target, attacker) {
+	const shooter = attacker === character.name ? character : parent.entities[attacker];
+	const magical = !!shooter && G.classes[shooter.ctype].damage_type === "magical";
+	return magical ? (target.resistance || 0) : (target.armor || 0);
+}
+
+if (parent.socket._inflight_tracker) {
+	parent.socket.off("action", parent.socket._inflight_tracker);
+}
+
+parent.socket._inflight_tracker = data => {
+	try {
+		if (!data || !data.pid || !data.damage || data.heal) return;
+		if (!DUNGEON_PARTY.includes(data.attacker)) return;
+		const target = parent.entities[data.target];
+		if (!target || target.type !== "monster") return;
+		_inflight[data.pid] = {
+			target: target.id,
+			damage: data.damage * defense_reduction(inflight_defense(target, data.attacker)) * INFLIGHT_DISCOUNT,
+			until: Date.now() + (data.eta || 0) + INFLIGHT_GRACE_MS,
+		};
+	} catch (e) { }
+};
+
+parent.socket.on("action", parent.socket._inflight_tracker);
+
+if (parent.socket._inflight_landed) {
+	parent.socket.off("hit", parent.socket._inflight_landed);
+}
+
+parent.socket._inflight_landed = data => {
+	if (data && data.pid) delete _inflight[data.pid];
+};
+
+parent.socket.on("hit", parent.socket._inflight_landed);
+
+function pending_damage(mob) {
+	const now = Date.now();
+	let total = 0;
+	for (const pid in _inflight) {
+		const shot = _inflight[pid];
+		if (shot.until < now) {
+			delete _inflight[pid];
+			continue;
+		}
+		if (shot.target === mob.id) total += shot.damage;
+	}
+	return total;
+}
+
+function remaining_hp(mob) {
+	return Math.max(0, (mob.hp || 0) - pending_damage(mob));
+}
+
 const _pid_heal = {};
 
 function heal_target_entity(id) {

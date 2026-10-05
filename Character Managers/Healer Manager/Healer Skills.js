@@ -29,7 +29,7 @@ async function skill_loop() {
 		const paused = should_pause_combat_loop();
 
 		if (!paused && CONFIG.combat.enabled
-			&& character.mp >= G.skills.curse.mp + panic_mp_reserve()) {
+			&& character.mp >= skill_mp_cost("curse") + panic_mp_reserve()) {
 			try {
 				await handle_curse();
 			} catch (e) {
@@ -48,7 +48,7 @@ async function skill_loop() {
 		if (is_on_cooldown("darkblessing")) _dark_blessing_ready_since = 0;
 
 		if (!paused && mana_for_luxuries && CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
-			&& character.mp >= G.skills.darkblessing.mp) {
+			&& character.mp >= skill_mp_cost("darkblessing")) {
 			if ((home !== "bscorpion" || bscorpion_worth_buffing()) && dark_blessing_synced()) {
 				try {
 					await use_skill("darkblessing");
@@ -90,7 +90,7 @@ var CURSE_NEARBY_RANGE = 50;
 var CURSE_MP_FLOOR_PCT = 0.35;
 
 function curse_mp_floor() {
-	return Math.max(character.max_mp * CURSE_MP_FLOOR_PCT, 2 * (character.mp_cost || 0) + G.skills.partyheal.mp);
+	return Math.max(character.max_mp * CURSE_MP_FLOOR_PCT, 2 * (character.mp_cost || 0) + skill_mp_cost("partyheal"));
 }
 
 function party_focus_ids() {
@@ -104,7 +104,7 @@ function party_focus_ids() {
 
 async function handle_curse() {
 	if (is_on_cooldown("curse")) return;
-	if (character.mp - G.skills.curse.mp < curse_mp_floor()) return;
+	if (character.mp - skill_mp_cost("curse") < curse_mp_floor()) return;
 
 	const has_target = e =>
 		e.type === "monster" && !e.dead && e.visible && e.target && !e.immune && !cave_bystander(e) &&
@@ -141,7 +141,7 @@ async function handle_absorb() {
 	if (maps_to_exclude.includes(character.map)) return;
 
 	if (!character.party) return;
-	if (character.mp - G.skills.absorb.mp < character.mp_cost) return;
+	if (character.mp - skill_mp_cost("absorb") < character.mp_cost) return;
 
 	const allies = Object.keys(get_party())
 		.filter(n => n !== character.name)
@@ -194,7 +194,7 @@ function sample_heal_choice(fired, party_value, single_value, critical) {
 		critical,
 		party_value: Math.round(party_value),
 		single_value: Math.round(single_value),
-		party_cost: (G.skills.partyheal && G.skills.partyheal.mp) || 400,
+		party_cost: skill_mp_cost("partyheal"),
 		single_cost: Math.round(character.mp_cost || 0),
 		mp_pct: +(character.mp / character.max_mp).toFixed(2),
 		target: cache.heal_target ? cache.heal_target.name : null
@@ -218,7 +218,7 @@ function party_heal_outvalues_single(lowest) {
 		return false;
 	}
 
-	const party_cost = (G.skills.partyheal && G.skills.partyheal.mp) || 400;
+	const party_cost = skill_mp_cost("partyheal");
 	const single_cost = Math.max(character.mp_cost || 1, 1);
 	const wins = party_value / party_cost > (single_value / single_cost) * CONFIG.healing.party_heal_margin;
 
@@ -260,7 +260,7 @@ async function handle_zapper() {
 	const now = performance.now();
 	const has_zapper = character.slots.ring2?.name === "zapper";
 	const can_swap = now - state.last_equip_time > COOLDOWNS.zapper_swap;
-	const has_enough_mp = character.mp > G.skills.zapperzap.mp + 1250;
+	const has_enough_mp = character.mp > skill_mp_cost("zapperzap") + 1250;
 
 	if (is_travelling() || character.cc > COOLDOWNS.cc) return;
 

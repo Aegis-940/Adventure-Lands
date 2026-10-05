@@ -101,6 +101,7 @@
 	}
 
 	const MAX_RETRIES = 3;
+	const REQUEST_TIMEOUT_MS = 10000;
 
 	const OPTIONAL_SCRIPTS = new Set([
 		"Core Systems/Porcupine Guard.js",
@@ -125,7 +126,7 @@
 		const url = base + encodeURI(name);
 		return new Promise(resolve => {
 			function attempt(retries) {
-				p$.ajax({ url: url, dataType: "script", cache: CACHE_OK })
+				p$.ajax({ url: url, dataType: "script", cache: CACHE_OK, timeout: REQUEST_TIMEOUT_MS })
 					.done(() => resolve(true))
 					.fail((_, s, e) => {
 						if (retries < MAX_RETRIES) {
@@ -146,7 +147,7 @@
 		const url = base + encodeURI(name);
 		return new Promise(resolve => {
 			function attempt(retries) {
-				p$.ajax({ url: url, dataType: "text", cache: CACHE_OK })
+				p$.ajax({ url: url, dataType: "text", cache: CACHE_OK, timeout: REQUEST_TIMEOUT_MS })
 					.done(text => resolve(text))
 					.fail((_, s, e) => {
 						if (retries < MAX_RETRIES) {
@@ -207,7 +208,7 @@
 	const MAX_BASE_AGE_MS = 10 * 60 * 1000;
 
 	function resolve_and_load() {
-		p$.getJSON("https://api.github.com/repos/Aegis-940/Adventure-Lands/commits/main?_=" + Date.now())
+		p$.ajax({ url: "https://api.github.com/repos/Aegis-940/Adventure-Lands/commits/main?_=" + Date.now(), dataType: "json", timeout: REQUEST_TIMEOUT_MS })
 			.done(repo_data => {
 				const base = "https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@" + repo_data.sha + "/";
 				window.__AL_BASE__ = base;

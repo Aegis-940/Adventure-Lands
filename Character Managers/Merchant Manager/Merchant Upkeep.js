@@ -75,6 +75,7 @@ async function decide_opportunistic_actions() {
 
 async function opportunistic_actions_loop() {
 	while (true) {
+		main_beat();
 		try {
 			await decide_opportunistic_actions();
 		} catch (e) {

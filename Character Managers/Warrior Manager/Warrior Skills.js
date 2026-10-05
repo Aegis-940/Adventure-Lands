@@ -17,7 +17,7 @@ async function skill_loop() {
 		const tank = cache.tank_entity;
 
 		if (CONFIG.skills.warcry_enabled && !is_on_cooldown("warcry") && !character.s.warcry
-			&& character.mp >= G.skills.warcry.mp + panic_mp_reserve()) {
+			&& character.mp >= skill_mp_cost("warcry") + panic_mp_reserve()) {
 			if (home !== "bscorpion" || bscorpion_worth_buffing()) {
 				try {
 					await use_skill("warcry");
@@ -97,7 +97,7 @@ function stomp_wanted(tank) {
 
 function handle_stomp(tank) {
 	if (ms_to_next_skill("stomp") !== 0) return;
-	if (character.mp < G.skills.stomp.mp + panic_mp_reserve()) return;
+	if (character.mp < skill_mp_cost("stomp") + panic_mp_reserve()) return;
 	if (character.cc >= COOLDOWNS.cc || is_disabled(character)) return;
 	if (!stomp_weapon_ready() || !stomp_wanted(tank)) return;
 
@@ -162,7 +162,7 @@ function can_cleave() {
 
 	const holding_axe = character.slots.mainhand?.name === "bataxe";
 
-	const required_mp = character.mp_cost * 2 + G.skills.cleave.mp + 320;
+	const required_mp = character.mp_cost * 2 + skill_mp_cost("cleave") + 320;
 	if (character.mp < required_mp) return false;
 
 	const tank = cache.tank_entity;
@@ -198,7 +198,7 @@ function is_fireroamer_agitate_safe(nearby_mobs) {
 async function handle_agitate(tank) {
 	if (is_on_cooldown("agitate") || !tank || tank.rip) return;
 	if (endangered(tank)) return;
-	if (character.mp < G.skills.agitate.mp + panic_mp_reserve()) return;
+	if (character.mp < skill_mp_cost("agitate") + panic_mp_reserve()) return;
 
 	const skill_range = G.skills.agitate.range;
 	const nearby_mobs = Object.values(parent.entities).filter(e =>

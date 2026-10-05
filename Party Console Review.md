@@ -46,7 +46,7 @@ Line numbers are ours unless prefixed `theirs:`. Their paths are relative to the
 | Skills | [K4 mp_reduction in skill costs](#k4) | S | None | Low |
 | Survival | [S1 MP-first potions while panicking](#s1) | S | Low | Med |
 | Survival | [S2 Retreat step for Riva in panic](#s2) | M | Med | Low–Med |
-| Survival | [S3 Free regen skills](#s3) | S | Low | Low |
+| Survival | [S3 Free regen skills](#s3) — withdrawn | — | — | None |
 | Events | [E1 `join` teleports the party back to the entrance](#e1) | S | Low | Med |
 | Events | [E2 Crabxx engage gate (lost fix)](#e2) | S | Low | Med |
 | Events | [E3 Monster Hunt quests](#e3) | L | Med | Med |
@@ -74,6 +74,10 @@ Line numbers are ours unless prefixed `theirs:`. Their paths are relative to the
 walking continues (`channel_walk()`), cancels it when the journey that wanted it ends, and M6 cruise
 applies to all three fighters. T7's cause was not a server refusal — the `not_ready` replies were potions —
 but the rules loop re-sending the jacko swap from a stale inventory view, which flipped the orb back.
+Also done: K2, K3, K4, S1, I1, I2, C1, C2. S1 found the potion loop drinking HP and MP in the same tick —
+they share one cooldown, so the second was always refused (the 60k `not_ready` lines). C2: only `rat` was a
+real error (sign flip, `y: 430` → `-430`); stoneworm, wolfie and mechagnome deliberately sit between their
+spawn boxes. S3 withdrawn (see below).
 
 **Suggested order:** M1 + M3 + I1 + C1 first (small, and each is failing today) → R1 + R2 + R3 (merchant gold) →
 T1, then G1, one at a time so each can be measured → the rest.
@@ -409,11 +413,12 @@ nearest enemy (theirs: `shared.js:270-277`). Use `make_distance_from_monsters_sc
 panicking and the scare is spent. **Never on Myras** (a tank must not leave a pull); watch heal range.
 
 ### <a id="s3"></a>S3 — Free regen skills
-**Size** S · **Risk** Low · **Benefit** Low
+**Withdrawn — the assessment was wrong.**
 
-We never cast `regen_hp` / `regen_mp`. Theirs fills idle cooldowns with them (HP if below 50%, then MP, then
-whichever is missing; theirs: `shared.js:12301-12313`). Check `G.skills.regen_*.share` and `use("mp")` with no
-potions first.
+`G.skills.regen_hp` / `regen_mp` are in `cooldown_group: "potion"` with `cooldown_multiplier: 2`: each one locks
+both potions and both regens for 4s (a potion locks them for 2s) and restores only 50 HP / 100 MP. And
+`use("hp")` / `use("mp")` with no potion in the bag already fall back to exactly that regen. Casting regen is
+therefore strictly worse than a potion while potions last, and redundant once they run out.
 
 ---
 

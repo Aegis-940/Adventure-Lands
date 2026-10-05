@@ -26,7 +26,7 @@ const LOCATIONS = {
 	bscorpion:  [{ map: "desertland", x: -408, y: -1141 }],
 	boar:       [{ map: "winterland", x: 19, y: -1109 }],
 	cgoo:       [{ map: "level4", x: -221, y: -274 }],
-	crab:       [{ map: "main", x: -11840, y: -37 }],
+	crab:       [{ map: "main", x: -1184, y: -37 }],
 	croc:       [{ map: "main", x: 801, y: 1710 }],
 	crypt:      [{ }],
 	dryad:      [{ map: "mforest", x: 403, y: -347 }],
@@ -48,7 +48,7 @@ const LOCATIONS = {
 	prat:       [{ map: "level1", x: 11, y: 84 }],
 	pppompom:   [{ map: "level2n", x: 292, y: -189 }],
 	plantoid:   [{ map: "desertland", x: -780, y: -387 }],
-	rat:        [{ map: "mansion", x: 6, y: 430 }],
+	rat:        [{ map: "mansion", x: 6, y: -430 }],
 	scorpion:   [{ map: "main", x: 1520, y: -58 }],
 	stoneworm:  [{ map: "spookytown", x: 830, y: 7 }],
 	spider:     [{ map: "main", x: 895, y: -145 }],
@@ -234,6 +234,12 @@ function read_state_cache(name) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SECTION 2c: FLIGHT RECORDER STUBS — Error Log.js replaces these when it loads; absent, every call is a no-op
 // --------------------------------------------------------------------------------------------------------------------------------- //
+
+var main_beat_at = 0;
+
+function main_beat() {
+	main_beat_at = Date.now();
+}
 
 function errlog_record() { }
 function errlog_sample() { }

@@ -119,6 +119,7 @@ function run_character(spec) {
 
 	async function main_tick() {
 		errlog_beat("main_loop");
+		main_beat();
 		try {
 			if (is_disabled(character)) {
 				if (typeof s.on_disabled === "function") s.on_disabled();

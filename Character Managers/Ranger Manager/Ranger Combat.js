@@ -84,7 +84,7 @@ var SHOT_PROFILES = [
 ];
 
 function shot_mana(profile) {
-	return profile.name === "attack" ? character.mp_cost : G.skills[profile.name].mp;
+	return profile.name === "attack" ? character.mp_cost : skill_mp_cost(profile.name);
 }
 
 function shot_usable(profile) {
@@ -106,7 +106,7 @@ function burn_multiplier(mob, skill_multiplier) {
 	if (would_kill(mob, skill_multiplier)) return 1;
 
 	const dps = (character.attack || 0) * (character.frequency || 1);
-	return burn_multiplier_at_dps(mob, worn_ability_chance("burn"), dps, CONFIG.combat.party_dps_factor, { hp: mob.hp });
+	return burn_multiplier_at_dps(mob, worn_ability_chance("burn"), dps, CONFIG.combat.party_dps_factor, { hp: remaining_hp(mob) });
 }
 
 function target_modifier(mob, skill_multiplier, apiercing) {
@@ -194,8 +194,8 @@ function combat_mana_reserve() {
 	let reserve = panic_mp_reserve();
 	if (!CONFIG.combat.mana_is_free) return reserve;
 
-	if (CONFIG.combat.use_hunters_mark) reserve += G.skills.huntersmark.mp;
-	if (CONFIG.combat.use_supershot) reserve += G.skills.supershot.mp;
+	if (CONFIG.combat.use_hunters_mark) reserve += skill_mp_cost("huntersmark");
+	if (CONFIG.combat.use_supershot) reserve += skill_mp_cost("supershot");
 	return reserve;
 }
 

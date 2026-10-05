@@ -95,6 +95,14 @@ function heal_power_identity() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// COSTS — what a skill actually charges, after the caster's mp_reduction
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function skill_mp_cost(name) {
+	return (G.skills[name].mp || 0) * (100 - (character.mp_reduction || 0)) / 100;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // INCOMING — what the monsters on someone deal to them, as the game client itself estimates it
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -140,6 +148,10 @@ function endangered(target) {
 	return target.hp < target.max_hp * ENDANGER_HP_PCT || projected_hp(target) < target.max_hp * ENDANGER_FLOOR_PCT;
 }
 
+function crit_multiplier(crit, critdamage) {
+	return 1 + Math.min(1, (crit || 0) / 100) * (1 + (critdamage || 0) / 100);
+}
+
 function estimate_my_damage(entity, multiplier) {
 	const info = (G.monsters && G.monsters[entity.mtype]) || {};
 	const armor = (entity.armor !== undefined ? entity.armor : info.armor || 0) - (character.apiercing || 0);
@@ -182,7 +194,7 @@ function burn_multiplier_at_dps(mob, chance, dps, party_factor, options) {
 
 function would_kill(entity, multiplier) {
 	if (!entity || entity.dead) return false;
-	return estimate_my_damage(entity, multiplier) >= entity.hp;
+	return estimate_my_damage(entity, multiplier) >= remaining_hp(entity);
 }
 
 const EXPLOSION_RADIUS_DIVISOR = 3.6;

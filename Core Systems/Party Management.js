@@ -112,7 +112,7 @@ function scare_off() {
 	if (cave_paused()) return false;
 	if (is_on_cooldown("scare")) return false;
 	if (monsters_targeting_me() === 0) return false;
-	if (character.mp < G.skills.scare.mp) {
+	if (character.mp < skill_mp_cost("scare")) {
 		errlog_count("scare no mp");
 		return false;
 	}

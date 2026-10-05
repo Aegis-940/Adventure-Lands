@@ -43,7 +43,7 @@ function worn_ability_chance(ability) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const SET_PROFILE_KEY = "AL_set_profile2_";
-const SET_PROFILE_FIELDS = ["attack", "explosion", "frequency", "heal", "int", "rpiercing", "apiercing", "mp_cost"];
+const SET_PROFILE_FIELDS = ["attack", "explosion", "frequency", "heal", "int", "rpiercing", "apiercing", "mp_cost", "crit", "critdamage"];
 const SET_PROFILE_MIN_INTERVAL_MS = 15000;
 const SET_PROFILE_REPROBE_MS = 600000;
 const SET_PROFILE_SETTLE_MS = 600;
@@ -150,7 +150,7 @@ function sample_set_profiles(set_names) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function set_dps(profile) {
-	return (profile.attack || 0) * (profile.frequency || 1);
+	return (profile.attack || 0) * (profile.frequency || 1) * crit_multiplier(profile.crit, profile.critdamage);
 }
 
 function profile_apiercing(profile) {

@@ -11,7 +11,7 @@ function cleave_period() {
 	const spare = Math.max(0, CONFIG.equipment.mana_income_per_sec - character.mp_cost * (character.frequency || 1));
 	const budget = spare * (1 - CONFIG.equipment.skill_mana_reserve);
 	if (budget <= 0) return Infinity;
-	return Math.max(cooldown, G.skills.cleave.mp / budget);
+	return Math.max(cooldown, skill_mp_cost("cleave") / budget);
 }
 
 function cleave_contribution(set_name, targets) {
