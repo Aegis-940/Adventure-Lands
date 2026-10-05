@@ -619,17 +619,19 @@ function local_wait() {
 	if (character.moving) move(character.real_x, character.real_y);
 }
 
-const EVADE_GAP = 120;
+const EVADE_STEP = 150;
 const EVADE_TURNS = [0, 0.6, -0.6, 1.2, -1.2, 1.8, -1.8];
-const EVADE_REGOAL_PX = 8;
+const EVADE_HEADING_TOLERANCE = 0.6;
+
+function angle_apart(a, b) {
+	return Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+}
 
 function evade_point(threat) {
-	const base = Math.atan2(character.y - threat.y, character.x - threat.x);
-	const gap = (threat.range || 0) + EVADE_GAP;
+	const away = Math.atan2(character.y - threat.y, character.x - threat.x);
 	for (const turn of EVADE_TURNS) {
-		const angle = base + turn;
-		const r = centre_distance_for_gap({ x: threat.x, y: threat.y, entity: threat }, angle, gap);
-		const point = { x: threat.x + Math.cos(angle) * r, y: threat.y + Math.sin(angle) * r };
+		const angle = away + turn;
+		const point = { x: character.x + Math.cos(angle) * EVADE_STEP, y: character.y + Math.sin(angle) * EVADE_STEP };
 		if (can_move_to(point.x, point.y)) return point;
 	}
 	return null;
@@ -637,10 +639,13 @@ function evade_point(threat) {
 
 function evade_step(threat) {
 	scare_off();
+	if (character.moving) {
+		const heading = Math.atan2(character.going_y - character.y, character.going_x - character.x);
+		const away = Math.atan2(character.y - threat.y, character.x - threat.x);
+		if (angle_apart(heading, away) < EVADE_HEADING_TOLERANCE) return;
+	}
 	const point = evade_point(threat);
-	if (!point) return;
-	if (character.moving && Math.hypot(character.going_x - point.x, character.going_y - point.y) <= EVADE_REGOAL_PX) return;
-	move(point.x, point.y);
+	if (point) move(point.x, point.y);
 }
 
 function movement_goal() {

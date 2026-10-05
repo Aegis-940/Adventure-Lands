@@ -50,6 +50,7 @@ function event_goal() {
 	}
 
 	const seen = get_nearest_monster({ type: target.name });
+	if (seen && boss_strayed(seen)) return null;
 	if (seen) {
 		const label = "event-" + target.name;
 		if (is_in_range(seen, "attack") || can_move_to(seen.x, seen.y)) {

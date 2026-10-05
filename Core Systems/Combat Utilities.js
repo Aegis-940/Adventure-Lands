@@ -125,7 +125,6 @@ function boss_blocks_cleave(e) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const LETHAL_HIT_PCT = 0.5;
-const LETHAL_REACH_MARGIN = 80;
 const SPLASH_TOUCH_MARGIN = 10;
 
 function hit_too_big(mob, player) {
@@ -159,12 +158,31 @@ function lethal_pursuer() {
 		if (e.type !== "monster" || e.dead || e.target !== character.name) continue;
 		if (!hit_too_big(e, character)) continue;
 		const gap = distance(character, e);
-		if (gap < (e.range || 0) + LETHAL_REACH_MARGIN && gap < nearest_gap) {
+		if (gap < nearest_gap) {
 			nearest = e;
 			nearest_gap = gap;
 		}
 	}
 	return nearest;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOSS LEASH — a boss that has left its spawn area is chasing someone; following it only drags the fight across the map
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const BOSS_LEASH_MARGIN = 200;
+
+function boss_home_area(mob) {
+	const spawns = (G.maps[mob.map || character.map] || {}).monsters || [];
+	const entry = spawns.find(s => s.type === mob.mtype && s.boundary);
+	return entry ? entry.boundary : null;
+}
+
+function boss_strayed(mob) {
+	const area = boss_home_area(mob);
+	if (!area) return false;
+	const m = BOSS_LEASH_MARGIN;
+	return mob.x < area[0] - m || mob.y < area[1] - m || mob.x > area[2] + m || mob.y > area[3] + m;
 }
 
 function boss_engageable(name, data) {
