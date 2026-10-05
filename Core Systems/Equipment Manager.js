@@ -13,6 +13,10 @@ function warn_missing_item(item_name, level, slot) {
 	game_log(`⚠️ batch_equip: no ${item_name} (lvl ${level}) in inventory for ${slot}`, "#FFA500");
 }
 
+function level_fits(item_level, wanted) {
+	return wanted === undefined || (item_level ?? 0) === wanted;
+}
+
 function is_doublehand(item_name) {
 	const def = item_name && G.items[item_name];
 	const class_def = G.classes[character.ctype];
@@ -88,15 +92,15 @@ async function batch_equip(data, set_name) {
 		if (!item_name) continue;
 
 		const slot_item = parent.character.slots[slot];
-		if (slot_item && slot_item.name === item_name && (slot_item.level ?? 0) === (level ?? 0)) continue;
+		if (slot_item && slot_item.name === item_name && level_fits(slot_item.level, level)) continue;
 		if (slot_in_flight(slot) === item_name) continue;
 
 		let idx = parent.character.items.findIndex((item, j) =>
-			item && item.name === item_name && (item.level ?? 0) === (level ?? 0) && item.l === l && !claimed_slots.has(j)
+			item && item.name === item_name && level_fits(item.level, level) && item.l === l && !claimed_slots.has(j)
 		);
 		if (idx === -1) {
 			idx = parent.character.items.findIndex((item, j) =>
-				item && item.name === item_name && (item.level ?? 0) === (level ?? 0) && !claimed_slots.has(j)
+				item && item.name === item_name && level_fits(item.level, level) && !claimed_slots.has(j)
 			);
 		}
 
@@ -157,7 +161,7 @@ function is_set_equipped(set_name) {
 	return set.every(item => {
 		if (slot_intent(item.slot) !== item.item_name) return false;
 		const worn = character.slots[item.slot];
-		if (worn && worn.name === item.item_name && (worn.level ?? 0) !== (item.level ?? 0)) warn_worn_level(set_name, item, worn);
+		if (worn && worn.name === item.item_name && !level_fits(worn.level, item.level)) warn_worn_level(set_name, item, worn);
 		return true;
 	});
 }
@@ -302,7 +306,7 @@ function plan_set_equip(shadow, set_name) {
 	const items = [];
 	for (const entry of set) {
 		const worn = shadow.slots[entry.slot];
-		if (worn && worn.name === entry.item_name && worn.level === (entry.level ?? 0)) continue;
+		if (worn && worn.name === entry.item_name && level_fits(worn.level, entry.level)) continue;
 
 		const num = shadow_find(shadow, entry.item_name, entry.level, entry.l);
 		if (num === -1) {
