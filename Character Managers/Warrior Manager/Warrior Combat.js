@@ -87,13 +87,14 @@ function find_monsters_in_cleave_range() {
 var SUGAR_RUSH = {
 	status: "sugarrush",
 	set: "candycane",
-	hold_ms: 50,
+	max_hold_ms: 200,
 	label: "Sugar Rush",
 	color: "#ff69b4",
 };
 
 var CLEAVE_SET = "bataxe";
 var SWAP_TRICK_HIT_TICK_MS = 7;
+var SWAP_TRICK_MARGIN_MS = 20;
 
 var swap_trick_attempts = 0;
 var swap_trick_history = [];
@@ -117,25 +118,42 @@ function sugar_rush_wanted() {
 	return false;
 }
 
-function swing_lands_in_hold(target) {
-	const gap = distance(character, target);
-	if (gap <= 0) {
+function max_hold_ms() {
+	return Math.min(SUGAR_RUSH.max_hold_ms, 1000 / character.frequency - SWAP_TRICK_MARGIN_MS);
+}
+
+function hold_to_land(mob) {
+	const gap = distance(character, mob);
+	if (gap <= 0) return null;
+	return swap_trick_flight_ms(gap) + SWAP_TRICK_HIT_TICK_MS + SWAP_TRICK_MARGIN_MS;
+}
+
+function swing_hold(target) {
+	const hold = hold_to_land(target);
+	if (hold === null) {
 		errlog_count("swap trick skipped: hitboxes overlap");
-		return false;
+		return 0;
 	}
 
-	const flight = swap_trick_flight_ms(gap);
-	errlog_time("swap trick flight", flight);
-	if (flight + SWAP_TRICK_HIT_TICK_MS < SUGAR_RUSH.hold_ms) return true;
+	errlog_time("swap trick hold", hold);
+	if (hold <= max_hold_ms()) return hold;
 
 	errlog_count("swap trick skipped: too far");
-	return false;
+	return 0;
+}
+
+function cleave_hold() {
+	const cap = max_hold_ms();
+	const holds = cache.monsters_in_cleave_range.map(mob => hold_to_land(mob)).filter(h => h !== null && h <= cap);
+	errlog_count(`swap trick cleave rolls ${holds.length}`);
+	return holds.length ? Math.max(...holds) : 0;
 }
 
 function swing_swaps(target) {
 	const cleave = cleave_ready();
-	const sugar_rush = sugar_rush_wanted() && (cleave || swing_lands_in_hold(target));
-	if (cleave || sugar_rush) weapon_burst(cleave, sugar_rush);
+	const rush = sugar_rush_wanted();
+	const hold = rush ? Math.max(swing_hold(target), cleave ? cleave_hold() : 0) : 0;
+	if (cleave || hold > 0) weapon_burst(cleave, hold);
 }
 
 function restore_weapon_set(token, fallback) {
@@ -144,7 +162,8 @@ function restore_weapon_set(token, fallback) {
 	equip_release(token);
 }
 
-function weapon_burst(cleave, sugar_rush) {
+function weapon_burst(cleave, hold_ms) {
+	const sugar_rush = hold_ms > 0;
 	const restore = chosen_weapon_set();
 	if (!restore) return false;
 
@@ -176,7 +195,7 @@ function weapon_burst(cleave, sugar_rush) {
 
 	swap_trick_attempts++;
 	errlog_count("swap trick fired");
-	setTimeout(() => restore_weapon_set(token, restore), SUGAR_RUSH.hold_ms);
+	setTimeout(() => restore_weapon_set(token, restore), hold_ms);
 	return true;
 }
 

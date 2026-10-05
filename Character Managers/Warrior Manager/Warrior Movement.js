@@ -32,9 +32,15 @@ function warrior_reposition_scorer() {
 	if (here <= 0) return null;
 
 	const reach = character.range * 0.9;
+	const probe = { x: 0, y: 0, awidth: get_width(character), aheight: get_height(character) };
 
 	return (x, y) => {
 		if (Math.hypot(primary.x - x, primary.y - y) > reach) return null;
+		if (CONFIG.combat.swap_trick_enabled) {
+			probe.x = x;
+			probe.y = y;
+			if (distance(probe, primary) <= 0) return null;
+		}
 
 		const targets = cleave_targets_at(x, y);
 		const cleave = cleave_contribution(set_name, targets);
@@ -93,11 +99,28 @@ function warrior_close_in(target) {
 	if (!character.moving) move(_warrior_detour.x, _warrior_detour.y);
 }
 
+var SWAP_TRICK_EDGE_GAP = 4;
+
+function warrior_clear_overlap(target) {
+	if (!CONFIG.combat.swap_trick_enabled || character.moving || distance(character, target) > 0) return false;
+
+	const angle = Math.atan2(character.y - target.y, character.x - target.x);
+	const r = centre_distance_for_gap({ x: target.x, y: target.y, entity: target }, angle, SWAP_TRICK_EDGE_GAP);
+	const x = target.x + Math.cos(angle) * r;
+	const y = target.y + Math.sin(angle) * r;
+	if (!can_move_to(x, y)) return false;
+
+	move(x, y);
+	errlog_count("swap trick overlap cleared");
+	return true;
+}
+
 function warrior_farm_step() {
 	const target = cache.target;
 	if (dungeon_setting("melee_engage_radius", null) && target && !target.dead && !is_in_range(target)) {
 		return warrior_close_in(target);
 	}
+	if (target && !target.dead && warrior_clear_overlap(target)) return;
 	default_farm_step();
 }
 
