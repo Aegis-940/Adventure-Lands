@@ -39,7 +39,7 @@ function warrior_reposition_scorer() {
 		if (CONFIG.combat.swap_trick_enabled) {
 			probe.x = x;
 			probe.y = y;
-			if (distance(probe, primary) <= 0) return null;
+			if (distance(probe, primary) < SWAP_TRICK_MIN_GAP) return null;
 		}
 
 		const targets = cleave_targets_at(x, y);
@@ -99,13 +99,16 @@ function warrior_close_in(target) {
 	if (!character.moving) move(_warrior_detour.x, _warrior_detour.y);
 }
 
-var SWAP_TRICK_EDGE_GAP = 4;
+var SWAP_TRICK_MIN_GAP = 4;
+var SWAP_TRICK_EDGE_GAP = 12;
 
 function warrior_clear_overlap(target) {
-	if (!CONFIG.combat.swap_trick_enabled || character.moving || distance(character, target) > 0) return false;
+	if (!CONFIG.combat.swap_trick_enabled || character.moving) return false;
+	if (distance(character, target) >= SWAP_TRICK_MIN_GAP) return false;
 
+	const gap = Math.min(SWAP_TRICK_EDGE_GAP, character.range / 2);
 	const angle = Math.atan2(character.y - target.y, character.x - target.x);
-	const r = centre_distance_for_gap({ x: target.x, y: target.y, entity: target }, angle, SWAP_TRICK_EDGE_GAP);
+	const r = centre_distance_for_gap({ x: target.x, y: target.y, entity: target }, angle, gap);
 	const x = target.x + Math.cos(angle) * r;
 	const y = target.y + Math.sin(angle) * r;
 	if (!can_move_to(x, y)) return false;

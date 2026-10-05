@@ -80,21 +80,23 @@ function dungeon_mtype_for(id) {
 	return _dungeon_seen.get(id) || null;
 }
 
-if (parent.socket._dungeon_kill_handler) {
-	parent.socket.off("hit", parent.socket._dungeon_kill_handler);
-}
-
-parent.socket._dungeon_kill_handler = data => {
-	try {
-		if (!data || !data.kill || !data.id) return;
-		if (!active_dungeon()) return;
-		const mtype = dungeon_mtype_for(data.id);
-		if (!mtype) return;
-		_dungeon_seen.delete(data.id);
-		record_dungeon_kill(mtype);
-	} catch (e) {
-		console.error("dungeon kill handler error", e);
+function track_dungeon_kills() {
+	if (parent.socket._dungeon_kill_handler) {
+		parent.socket.off("hit", parent.socket._dungeon_kill_handler);
 	}
-};
 
-parent.socket.on("hit", parent.socket._dungeon_kill_handler);
+	parent.socket._dungeon_kill_handler = data => {
+		try {
+			if (!data || !data.kill || !data.id) return;
+			if (!active_dungeon()) return;
+			const mtype = dungeon_mtype_for(data.id);
+			if (!mtype) return;
+			_dungeon_seen.delete(data.id);
+			record_dungeon_kill(mtype);
+		} catch (e) {
+			console.error("dungeon kill handler error", e);
+		}
+	};
+
+	parent.socket.on("hit", parent.socket._dungeon_kill_handler);
+}

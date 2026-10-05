@@ -383,6 +383,20 @@ function equip_plan(set_names, shadow) {
 	return { ops, shadow: inventory };
 }
 
+const EQUIP_PENALTY_MS = 120;
+
+function ops_penalty(ops) {
+	let items = 0;
+	for (const op of ops) {
+		if (op.event === "equip_batch") items += op.payload.length;
+	}
+	return items * EQUIP_PENALTY_MS;
+}
+
+function penalty_left() {
+	return character.s.penalty_cd ? character.s.penalty_cd.ms : 0;
+}
+
 function emit_equip_ops(ops, shadow) {
 	for (const op of ops) {
 		parent.push_deferred(op.event).catch(() => { });

@@ -455,6 +455,7 @@ function dungeon_rejoin_watch() {
 }
 
 function start_dungeon_watchers() {
+	track_dungeon_kills();
 	setInterval(dungeon_rejoin_watch, DUNGEON_REJOIN_WATCH_MS);
 	setInterval(remember_dungeon_entities, PROGRESS_SEEN_MS);
 	setInterval(dungeon_telemetry_tick, TELEMETRY_TICK_MS);

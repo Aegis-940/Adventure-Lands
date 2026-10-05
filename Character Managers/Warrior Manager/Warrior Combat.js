@@ -87,7 +87,6 @@ function find_monsters_in_cleave_range() {
 var SUGAR_RUSH = {
 	status: "sugarrush",
 	set: "candycane",
-	max_hold_ms: 200,
 	label: "Sugar Rush",
 	color: "#ff69b4",
 };
@@ -118,8 +117,10 @@ function sugar_rush_wanted() {
 	return false;
 }
 
-function max_hold_ms() {
-	return Math.min(SUGAR_RUSH.max_hold_ms, 1000 / character.frequency - SWAP_TRICK_MARGIN_MS);
+function free_hold_ms(armed_penalty, restore_penalty) {
+	const swing_ms = 1000 / character.frequency;
+	const free = Math.max(swing_ms - restore_penalty, armed_penalty);
+	return Math.min(free, swing_ms - SWAP_TRICK_MARGIN_MS);
 }
 
 function hold_to_land(mob) {
@@ -128,32 +129,35 @@ function hold_to_land(mob) {
 	return swap_trick_flight_ms(gap) + SWAP_TRICK_HIT_TICK_MS + SWAP_TRICK_MARGIN_MS;
 }
 
-function swing_hold(target) {
-	const hold = hold_to_land(target);
-	if (hold === null) {
-		errlog_count("swap trick skipped: hitboxes overlap");
-		return 0;
+function burst_hold(swing_target, cleave_mobs, cap) {
+	let hold = 0;
+
+	if (swing_target) {
+		const h = hold_to_land(swing_target);
+		if (h === null) errlog_count("swap trick skipped: hitboxes overlap");
+		else if (h > cap) errlog_count("swap trick skipped: too far");
+		else hold = h;
 	}
 
-	errlog_time("swap trick hold", hold);
-	if (hold <= max_hold_ms()) return hold;
+	if (cleave_mobs) {
+		let rolls = 0;
+		for (const mob of cleave_mobs) {
+			const h = hold_to_land(mob);
+			if (h === null || h > cap) continue;
+			rolls++;
+			if (h > hold) hold = h;
+		}
+		errlog_count(`swap trick cleave rolls ${rolls}`);
+		errlog_count(`swap trick cleave missed ${cleave_mobs.length - rolls}`);
+	}
 
-	errlog_count("swap trick skipped: too far");
-	return 0;
-}
-
-function cleave_hold() {
-	const cap = max_hold_ms();
-	const holds = cache.monsters_in_cleave_range.map(mob => hold_to_land(mob)).filter(h => h !== null && h <= cap);
-	errlog_count(`swap trick cleave rolls ${holds.length}`);
-	return holds.length ? Math.max(...holds) : 0;
+	return hold;
 }
 
 function swing_swaps(target) {
 	const cleave = cleave_ready();
 	const rush = sugar_rush_wanted();
-	const hold = rush ? Math.max(swing_hold(target), cleave ? cleave_hold() : 0) : 0;
-	if (cleave || hold > 0) weapon_burst(cleave, hold);
+	if (cleave || rush) weapon_burst(cleave, rush, target);
 }
 
 function restore_weapon_set(token, fallback) {
@@ -162,8 +166,7 @@ function restore_weapon_set(token, fallback) {
 	equip_release(token);
 }
 
-function weapon_burst(cleave, hold_ms) {
-	const sugar_rush = hold_ms > 0;
+function weapon_burst(cleave, rush, swing_target) {
 	const restore = chosen_weapon_set();
 	if (!restore) return false;
 
@@ -173,29 +176,34 @@ function weapon_burst(cleave, hold_ms) {
 	const axe = equip_plan(cleave ? CLEAVE_SET : []);
 	const shadow = axe.shadow;
 	const axe_worn = !!shadow.slots.mainhand && shadow.slots.mainhand.name === CLEAVE_SET;
-	const candy = equip_plan(sugar_rush ? SUGAR_RUSH.set : [], shadow);
+	const candy = equip_plan(rush ? SUGAR_RUSH.set : [], shadow);
 	const back = equip_plan(restore, shadow);
 
 	const will_cleave = cleave && axe_worn;
-	const will_rush = sugar_rush && candy.ops.length > 0;
-	const armed = axe.ops.length + candy.ops.length > 0;
-	if ((!will_cleave && !will_rush) || (armed && !back.ops.length)) {
+	const armed_penalty = penalty_left() + ops_penalty(axe.ops) + ops_penalty(candy.ops);
+	const cap = free_hold_ms(armed_penalty, ops_penalty(back.ops));
+	const hold = candy.ops.length
+		? burst_hold(swing_target, will_cleave ? cache.monsters_in_cleave_range : null, cap)
+		: 0;
+
+	if ((!will_cleave && !hold) || !back.ops.length) {
 		equip_release(token);
 		return false;
 	}
 
 	emit_equip_ops(axe.ops, shadow);
 	if (will_cleave) fire_cleave();
-	emit_equip_ops(candy.ops, shadow);
 
-	if (!will_rush) {
+	if (!hold) {
 		restore_weapon_set(token, restore);
 		return true;
 	}
 
+	emit_equip_ops(candy.ops, shadow);
 	swap_trick_attempts++;
 	errlog_count("swap trick fired");
-	setTimeout(() => restore_weapon_set(token, restore), hold_ms);
+	errlog_time("swap trick hold", hold);
+	setTimeout(() => restore_weapon_set(token, restore), hold);
 	return true;
 }
 

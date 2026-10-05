@@ -37,7 +37,7 @@ async function skill_loop() {
 
 		if (!swing_possible(cache.target)) {
 			try {
-				if (cleave_ready()) weapon_burst(true, sugar_rush_wanted() ? cleave_hold() : 0);
+				if (cleave_ready()) weapon_burst(true, sugar_rush_wanted(), null);
 			} catch (e) {
 				catcher(e, "cleave");
 			}
