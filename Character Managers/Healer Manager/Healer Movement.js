@@ -29,8 +29,6 @@ function healer_farm_step() {
 }
 
 function walk_in_circle() {
-	if (home === "bscorpion") return;
-
 	const center = circle_centre();
 	const radius = CONFIG.movement.circle_radius;
 

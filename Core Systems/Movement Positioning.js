@@ -81,7 +81,6 @@ const REPOSITION_MOVE_THRESHOLD = 10;
 
 function orbit_reposition(make_score, options) {
 	if (smart.moving || character.moving) return;
-	if (home === "bscorpion" && !in_dungeon()) return;
 
 	const now = performance.now();
 	if (now - (state.last_reposition || 0) < REPOSITION_INTERVAL_MS) return;

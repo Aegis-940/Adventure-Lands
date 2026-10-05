@@ -72,7 +72,7 @@ function is_away_from_home() {
 function party_in_formation() {
 	if (is_travelling()) return true;
 	const g = current_goal();
-	return !!g && g.local !== "farm" && g.local !== "event" && g.local !== "loot";
+	return !!g && g.local !== "farm" && g.local !== "event" && g.local !== "loot" && g.local !== "camp";
 }
 
 function leader_position() {

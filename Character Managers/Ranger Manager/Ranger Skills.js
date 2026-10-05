@@ -15,7 +15,7 @@ var SUPERSHOT_SETUP_WAIT_MS = 4000;
 var _supershot_ready_since = 0;
 
 function supershot_setup_ready(target) {
-	if (home !== "bscorpion") return true;
+	if (!is_at_bscorpion_farm()) return true;
 
 	const now = Date.now();
 	if (!_supershot_ready_since) _supershot_ready_since = now;

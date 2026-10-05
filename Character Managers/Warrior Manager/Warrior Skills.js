@@ -18,7 +18,7 @@ async function skill_loop() {
 
 		if (CONFIG.skills.warcry_enabled && !is_on_cooldown("warcry") && !character.s.warcry
 			&& character.mp >= skill_mp_cost("warcry") + panic_mp_reserve()) {
-			if (home !== "bscorpion" || bscorpion_worth_buffing()) {
+			if (bscorpion_worth_buffing()) {
 				try {
 					await use_skill("warcry");
 				} catch (e) {
@@ -35,7 +35,7 @@ async function skill_loop() {
 			}
 		}
 
-		if (CONFIG.skills.cleave_enabled && home !== "bscorpion" && !dungeon_flag("no_cleave")) {
+		if (CONFIG.skills.cleave_enabled && !is_at_bscorpion_farm() &&!dungeon_flag("no_cleave")) {
 			try {
 				await handle_cleave();
 			} catch (e) {

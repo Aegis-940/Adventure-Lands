@@ -29,9 +29,6 @@ function prim_farm_loc() {
 
 function bscorpion_start() {
 	if (home !== "bscorpion") return;
-
-	prim_farm_loop();
-	if (character.name === "Myras") prim_orbit_loop();
 	if (character.name === "Ulric") bscorpion_kill_logger_loop();
 }
 
@@ -42,7 +39,7 @@ function at_bscorpion_farm(pos) {
 }
 
 function is_at_bscorpion_farm() {
-	return at_bscorpion_farm(character);
+	return home === "bscorpion" && at_bscorpion_farm(character);
 }
 
 function party_camped(event) {
@@ -162,7 +159,7 @@ function hold_camp_station() {
 }
 
 function camp_absorb_target() {
-	if (home !== "bscorpion" || camp_loop_parked()) return null;
+	if (camp_loop_parked()) return null;
 
 	const info = find_nearest_bscorpion();
 	if (!info) return null;
@@ -175,67 +172,42 @@ function camp_absorb_target() {
 	return ally.name;
 }
 
-async function prim_farm_loop() {
-	while (true) {
-		try {
-			if (camp_loop_parked()) {
-				await delay(100);
-				continue;
-			}
+const ORBIT_RADIUS_TOL = 2;
+const ORBIT_STEP_DEG = 10;
 
-			hold_camp_station();
-		} catch (e) {
-			catcher(e, "prim_farm_loop");
-		}
+function camp_orbit_step() {
+	if (character.moving) return;
 
-		await delay(100);
+	const bscorp = find_nearest_bscorpion();
+	if (!bscorp) return;
+
+	const loc = prim_farm_loc();
+	const sx = bscorp.x, sy = bscorp.y;
+	const fx = character.x - loc.x;
+	const fy = character.y - loc.y;
+
+	if (Math.abs(Math.hypot(fx, fy) - PRIM_FARM_RADIUS) > ORBIT_RADIUS_TOL) {
+		const away = Math.atan2(character.y - sy, character.x - sx);
+		move(loc.x + Math.cos(away) * PRIM_FARM_RADIUS, loc.y + Math.sin(away) * PRIM_FARM_RADIUS);
+		return;
 	}
+
+	const step = ORBIT_STEP_DEG * Math.PI / 180;
+	const my_angle = Math.atan2(fy, fx);
+	const spot = a => ({
+		x: loc.x + Math.cos(a) * PRIM_FARM_RADIUS,
+		y: loc.y + Math.sin(a) * PRIM_FARM_RADIUS,
+	});
+	const cw = spot(my_angle - step);
+	const ccw = spot(my_angle + step);
+	const away_from_scorpion = Math.hypot(cw.x - sx, cw.y - sy) > Math.hypot(ccw.x - sx, ccw.y - sy) ? cw : ccw;
+
+	move(away_from_scorpion.x, away_from_scorpion.y);
 }
 
-async function prim_orbit_loop() {
-
-	const RADIUS_TOL = 2;
-	const ROTATE_STEP_DEG = 10;
-
-	while (true) {
-		try {
-			if (camp_loop_parked()) {
-				await delay(100);
-				continue;
-			}
-
-			const bscorp = find_nearest_bscorpion();
-			if (!bscorp) { await delay(500); continue; }
-
-			const loc = prim_farm_loc();
-			const sx = bscorp.x, sy = bscorp.y;
-			const fx = character.x - loc.x;
-			const fy = character.y - loc.y;
-
-			if (Math.abs(Math.hypot(fx, fy) - PRIM_FARM_RADIUS) > RADIUS_TOL) {
-				const away = Math.atan2(character.y - sy, character.x - sx);
-				await move(loc.x + Math.cos(away) * PRIM_FARM_RADIUS,
-					loc.y + Math.sin(away) * PRIM_FARM_RADIUS);
-				await delay(80);
-				continue;
-			}
-
-			const step = ROTATE_STEP_DEG * Math.PI / 180;
-			const my_angle = Math.atan2(fy, fx);
-			const spot = a => ({
-				x: loc.x + Math.cos(a) * PRIM_FARM_RADIUS,
-				y: loc.y + Math.sin(a) * PRIM_FARM_RADIUS,
-			});
-			const cw = spot(my_angle - step);
-			const ccw = spot(my_angle + step);
-			const away_from_scorpion = Math.hypot(cw.x - sx, cw.y - sy) > Math.hypot(ccw.x - sx, ccw.y - sy) ? cw : ccw;
-
-			await move(away_from_scorpion.x, away_from_scorpion.y);
-		} catch (e) {
-			catcher(e, "prim_orbit_loop");
-		}
-		await delay(100);
-	}
+function camp_step() {
+	if (character.name === MOVEMENT_LEADER) camp_orbit_step();
+	else hold_camp_station();
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

@@ -49,7 +49,7 @@ async function skill_loop() {
 
 		if (!paused && mana_for_luxuries && CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
 			&& character.mp >= skill_mp_cost("darkblessing")) {
-			if ((home !== "bscorpion" || bscorpion_worth_buffing()) && dark_blessing_synced()) {
+			if (bscorpion_worth_buffing() && dark_blessing_synced()) {
 				try {
 					await use_skill("darkblessing");
 				} catch (e) {
@@ -74,7 +74,7 @@ var DARK_BLESSING_SYNC_WAIT_MS = 8000;
 var _dark_blessing_ready_since = 0;
 
 function dark_blessing_synced() {
-	if (home !== "bscorpion") return true;
+	if (!is_at_bscorpion_farm()) return true;
 
 	const now = Date.now();
 	if (!_dark_blessing_ready_since) _dark_blessing_ready_since = now;

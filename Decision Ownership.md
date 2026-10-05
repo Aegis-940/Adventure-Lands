@@ -152,6 +152,14 @@ Two findings that changed the plan, both from reading rather than assuming:
 - **bscorpion was never a split.** Every other decider explicitly bails on `home === "bscorpion"`
   and its own loops are already gated on `!panicking`. That is a mode switch with clean mutual
   exclusion, not competing ownership. Left alone.
+
+  **Wrong — corrected 2026-10-05.** The camp loops parked only on `is_travelling()`, and a follow
+  step, a cohesion wait and a boss approach are all *local* goals, not travel. So while a boss
+  pulled the party away, `prim_farm_loop()` kept dragging Ulric and Riva back to the scorpion.
+  The loops are gone: `movement_goal()` returns `{ local: "camp" }` when the party is camped and
+  `movement_local()` dispatches it to `camp_step()`, so the camp positions only when nothing else
+  is the goal. The camp-only skill rules (no cleave, the blessing/warcry sync, the supershot setup
+  wait) also keyed on `home` and so applied at bosses too; they now key on `is_at_bscorpion_farm()`.
 - **`stuck_escape_check()` is not local positioning.** It returns early when
   `character.map === destination.map`, so it only acts while travelling. It belongs to "where to
   go", not "where to stand". Left alone.

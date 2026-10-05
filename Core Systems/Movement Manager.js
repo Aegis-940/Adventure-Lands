@@ -494,7 +494,7 @@ function movement_goal() {
 	if (home === "bscorpion") {
 		const loc = prim_farm_loc();
 		return is_at_bscorpion_farm()
-			? null
+			? { local: "camp", label: "bscorpion-camp" }
 			: { label: "bscorpion", map: loc.map, x: loc.x, y: loc.y, radius: PRIM_FARM_RADIUS };
 	}
 
@@ -520,6 +520,7 @@ function movement_local(goal, farm_step) {
 	if (goal && goal.local === "wait") return local_wait();
 	if (goal && goal.local === "event") return event_step(goal.event);
 	if (goal && goal.local === "loot") return loot_step();
+	if (goal && goal.local === "camp") return camp_step();
 	if (goal && goal.disengage) return;
 	if (typeof farm_step === "function") farm_step();
 }
