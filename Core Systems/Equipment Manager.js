@@ -77,7 +77,7 @@ function mainhand_intent() {
 // SENT VIEW — the inventory the server will hold once every swap we have sent lands, so no swap is planned from a stale one
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const EQUIP_REPLY_PLACES = ["equip_batch", "equip", "unequip"];
+const EQUIP_REPLY_PLACES = ["equip_batch", "equip", "unequip", "imove"];
 
 var _equip_sent = null;
 
@@ -96,6 +96,10 @@ function note_sent(event, payload) {
 
 	if (event === "unequip") {
 		shadow_unequip(shadow, payload.slot);
+	} else if (event === "imove") {
+		const moved = shadow.items[payload.a];
+		shadow.items[payload.a] = shadow.items[payload.b];
+		shadow.items[payload.b] = moved;
 	} else {
 		for (const p of payload) shadow_equip(shadow, p.num, p.slot);
 	}
@@ -116,6 +120,12 @@ parent.socket._equip_reply_counter = data => {
 };
 
 parent.socket.on("game_response", parent.socket._equip_reply_counter);
+
+function inventory_move(a, b) {
+	parent.push_deferred("imove").catch(() => { });
+	parent.socket.emit("imove", { a, b });
+	note_sent("imove", { a, b });
+}
 
 async function batch_equip(data, set_name) {
 	if (!Array.isArray(data)) {

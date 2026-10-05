@@ -54,7 +54,7 @@ function find_best_target() {
 	const pursued = pursued_boss();
 	if (pursued) return pursued;
 
-	const max_dist = dungeon_setting("melee_engage_radius", dungeon_engage_radius());
+	const max_dist = dungeon_setting("melee_engage_radius", dungeon_engage_radius(CONFIG.combat.engage_radius));
 
 	const context = {
 		explosion: character.explosion || 0,
@@ -62,18 +62,21 @@ function find_best_target() {
 		protect: CONFIG.combat.target_priority
 	};
 
-	const boss = best_target({ type: CONFIG.combat.all_bosses, max_distance: max_dist }, { close: 1 }, context);
+	const boss = best_target({ type: CONFIG.combat.all_bosses, max_distance: max_dist, where: warrior_may_engage }, { close: 1 }, context);
 	if (boss) return boss;
 
 	const guard = typeof porcupine_guard_allows === "function" ? porcupine_guard_allows : undefined;
-	const where = mob => warrior_may_engage(mob) && (!guard || guard(mob));
+	const allowed = mob => warrior_may_engage(mob) && (!guard || guard(mob));
+	const weights = dungeon_target_weights();
 
-	return best_target({ max_distance: max_dist, where }, dungeon_target_weights(), context);
+	return best_target({ max_distance: max_dist, where: mob => is_in_range(mob) && allowed(mob) }, weights, context)
+		|| best_target({ max_distance: max_dist, where: allowed }, weights, context);
 }
 
 function warrior_may_engage(mob) {
-	if (!dungeon_setting("melee_engage_radius", null)) return true;
-	return !!mob.target || is_in_range(mob);
+	if (is_in_range(mob)) return true;
+	if (dungeon_setting("melee_engage_radius", null)) return !!mob.target;
+	return DUNGEON_PARTY.includes(mob.target);
 }
 
 function find_monsters_in_cleave_range() {
@@ -154,9 +157,15 @@ function burst_hold(swing_target, cleave_mobs, cap) {
 	return hold;
 }
 
+function swing_trick_affordable() {
+	if (character.cc < CONFIG.combat.swing_trick_cc_budget) return true;
+	errlog_count("swap trick skipped: call cost");
+	return false;
+}
+
 function swing_swaps(target) {
 	const cleave = cleave_ready();
-	const rush = sugar_rush_wanted();
+	const rush = sugar_rush_wanted() && (cleave || swing_trick_affordable());
 	if (cleave || rush) weapon_burst(cleave, rush, target);
 }
 
@@ -220,6 +229,28 @@ function swap_penalty_logger() {
 	};
 
 	parent.socket.on("skill_timeout", parent.socket._swap_penalty_logger);
+}
+
+var CC_REPORT_MS = 20000;
+
+function cc_report_logger() {
+	if (parent.socket._cc_report_logger) {
+		parent.socket.off("ccreport", parent.socket._cc_report_logger);
+	}
+
+	parent.socket._cc_report_logger = data => {
+		if (!data || !data.calls) return;
+		const by_method = {};
+		let total = 0;
+		for (const call of data.calls) {
+			by_method[call[1]] = +((by_method[call[1]] || 0) + call[2]).toFixed(2);
+			total += call[2];
+		}
+		errlog_sample("cc_report", { total: +total.toFixed(1), climit: data.climit, by_method });
+	};
+
+	parent.socket.on("ccreport", parent.socket._cc_report_logger);
+	setInterval(() => parent.socket.emit("ccreport"), CC_REPORT_MS);
 }
 
 function record_swap_trick() {

@@ -48,11 +48,14 @@ function warrior_reposition_scorer() {
 	};
 }
 
-var WARRIOR_CLOSE_IN_REACH = 0.8;
 var WARRIOR_DETOUR_DIRECTIONS = 16;
 var WARRIOR_DETOUR_RADII = [80, 160, 320];
 var WARRIOR_DETOUR_ARRIVE = 10;
 var WARRIOR_DETOUR_SEARCH_MS = 1000;
+var WARRIOR_REGOAL_PX = 8;
+
+var SWAP_TRICK_MIN_GAP = 4;
+var SWAP_TRICK_EDGE_GAP = 12;
 
 var _warrior_detour = null;
 var _warrior_detour_at = 0;
@@ -73,10 +76,20 @@ function warrior_detour_point(goal) {
 	return best;
 }
 
+function warrior_engage_point(target) {
+	const gap = Math.min(SWAP_TRICK_EDGE_GAP, character.range / 2);
+	const angle = Math.atan2(character.y - target.y, character.x - target.x);
+	const r = centre_distance_for_gap({ x: target.x, y: target.y, entity: target }, angle, gap);
+	return { x: target.x + Math.cos(angle) * r, y: target.y + Math.sin(angle) * r };
+}
+
+function heading_to(goal) {
+	return character.moving && Math.hypot(character.going_x - goal.x, character.going_y - goal.y) <= WARRIOR_REGOAL_PX;
+}
+
 function warrior_close_in(target) {
-	const d = Math.hypot(target.x - character.x, target.y - character.y);
-	const f = Math.max(0, (d - character.range * WARRIOR_CLOSE_IN_REACH) / d);
-	const goal = { x: character.x + (target.x - character.x) * f, y: character.y + (target.y - character.y) * f };
+	const goal = warrior_engage_point(target);
+	if (heading_to(goal)) return;
 
 	if (local_move(goal.x, goal.y)) {
 		_warrior_detour = null;
@@ -99,31 +112,23 @@ function warrior_close_in(target) {
 	if (!character.moving) move(_warrior_detour.x, _warrior_detour.y);
 }
 
-var SWAP_TRICK_MIN_GAP = 4;
-var SWAP_TRICK_EDGE_GAP = 12;
-
 function warrior_clear_overlap(target) {
 	if (!CONFIG.combat.swap_trick_enabled || character.moving) return false;
 	if (distance(character, target) >= SWAP_TRICK_MIN_GAP) return false;
 
-	const gap = Math.min(SWAP_TRICK_EDGE_GAP, character.range / 2);
-	const angle = Math.atan2(character.y - target.y, character.x - target.x);
-	const r = centre_distance_for_gap({ x: target.x, y: target.y, entity: target }, angle, gap);
-	const x = target.x + Math.cos(angle) * r;
-	const y = target.y + Math.sin(angle) * r;
-	if (!can_move_to(x, y)) return false;
+	const goal = warrior_engage_point(target);
+	if (!local_move(goal.x, goal.y)) return false;
 
-	move(x, y);
 	errlog_count("swap trick overlap cleared");
 	return true;
 }
 
 function warrior_farm_step() {
 	const target = cache.target;
-	if (dungeon_setting("melee_engage_radius", null) && target && !target.dead && !is_in_range(target)) {
-		return warrior_close_in(target);
+	if (target && !target.dead) {
+		if (!is_in_range(target)) return warrior_close_in(target);
+		if (warrior_clear_overlap(target)) return;
 	}
-	if (target && !target.dead && warrior_clear_overlap(target)) return;
 	default_farm_step();
 }
 

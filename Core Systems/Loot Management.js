@@ -137,25 +137,25 @@ function clear_inventory() {
 }
 
 function inventory_sorter() {
-	const held = {};
+	if (equip_transient() || equip_pending()) return;
 
-	character.items.forEach((item, i) => {
-		if (!item || item_order[item.name] === undefined) return;
-		if (!held[item.name]) held[item.name] = [];
-		held[item.name].push(i);
-	});
-
-	const taken = new Set();
+	const items = character.items.slice();
 
 	for (const name in item_order) {
 		const spec = item_order[name];
 		const slots = Array.isArray(spec) ? spec : [spec];
+		const placed = new Set(slots.filter(s => items[s] && items[s].name === name));
 
-		for (const i of (held[name] || [])) {
-			const slot = slots.find(s => !taken.has(s));
-			if (slot === undefined) break;
-			taken.add(slot);
-			if (i !== slot) swap(i, slot);
+		for (const slot of slots) {
+			if (placed.has(slot)) continue;
+			const from = items.findIndex((item, i) => item && item.name === name && !placed.has(i));
+			if (from === -1) break;
+
+			inventory_move(from, slot);
+			const moved = items[from];
+			items[from] = items[slot];
+			items[slot] = moved;
+			placed.add(slot);
 		}
 	}
 }

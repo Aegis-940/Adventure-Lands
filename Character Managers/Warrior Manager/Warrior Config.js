@@ -25,7 +25,9 @@ var CONFIG = {
 			max_mobs_in_range: 6
 		},
 		taunt_ents: false,
+		engage_radius: 150,
 		swap_trick_enabled: true,
+		swing_trick_cc_budget: 100,
 
 		sample_hits: true,
 		sample_targets: true,
