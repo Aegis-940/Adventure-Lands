@@ -136,6 +136,7 @@ async function handle_cleave() {
 
 	const now = performance.now();
 	if (now - state.last_cleave_swap <= COOLDOWNS.weapon_swap) return;
+	if (now < state.weapon_swap_busy_until) return;
 
 	const restore = weapon_set_to_restore();
 	if (!restore) return;
@@ -147,6 +148,7 @@ async function handle_cleave() {
 	if (!back.ops.length) return;
 
 	state.last_cleave_swap = now;
+	state.weapon_swap_busy_until = now + WEAPON_SWAP_SETTLE_MS;
 
 	emit_equip_ops(arm.ops, back.shadow);
 	parent.socket.emit("skill", { name: "cleave" });

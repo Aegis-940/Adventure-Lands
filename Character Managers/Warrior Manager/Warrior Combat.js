@@ -88,13 +88,21 @@ var STATUS_SWAP_TRICKS = {
 	bscorpion: {
 		status: "sugarrush",
 		set: "candycane",
+		hold_ms: 50,
 		label: "Sugar Rush",
 		color: "#ff69b4",
 	},
 };
 
+var SWAP_TRICK_HIT_TICK_MS = 7;
+var WEAPON_SWAP_SETTLE_MS = 250;
+
 var swap_trick_attempts = 0;
 var swap_trick_history = {};
+
+function swap_trick_flight_ms(gap) {
+	return (1000 * gap) / G.projectiles[G.classes[character.ctype].projectile].speed;
+}
 
 function status_swap_trick(target) {
 	if (!CONFIG.combat.swap_trick_enabled) return;
@@ -107,6 +115,22 @@ function status_swap_trick(target) {
 		return;
 	}
 
+	const now = performance.now();
+	if (now < state.weapon_swap_busy_until) return;
+
+	const gap = distance(character, target);
+	if (gap <= 0) {
+		errlog_count("swap trick skipped: hitboxes overlap");
+		return;
+	}
+
+	const flight = swap_trick_flight_ms(gap);
+	errlog_time("swap trick flight", flight);
+	if (flight + SWAP_TRICK_HIT_TICK_MS >= trick.hold_ms) {
+		errlog_count("swap trick skipped: too far");
+		return;
+	}
+
 	const restore = weapon_set_to_restore();
 	if (!restore) return;
 
@@ -116,9 +140,10 @@ function status_swap_trick(target) {
 	const back = equip_plan(restore, arm.shadow);
 	if (!back.ops.length) return;
 
+	state.weapon_swap_busy_until = now + trick.hold_ms + WEAPON_SWAP_SETTLE_MS;
 	swap_trick_attempts++;
 	emit_equip_ops(arm.ops, back.shadow);
-	emit_equip_ops(back.ops, back.shadow);
+	setTimeout(() => emit_equip_ops(back.ops, back.shadow), trick.hold_ms);
 	errlog_count("swap trick fired");
 }
 

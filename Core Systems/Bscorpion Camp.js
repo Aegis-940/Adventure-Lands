@@ -75,6 +75,8 @@ const CAMP_STAGING_TOLERANCE = 15;
 const CAMP_HOLD_MARGIN = 40;
 const CAMP_RANGE_CAP = 0.80;
 const CAMP_STATION = { Ulric: 34, Riva: 50 };
+const CAMP_EDGE_GAP = { Ulric: 6 };
+const CAMP_GAP_SEARCH_PX = 200;
 
 function camp_engage_distance() {
 	const preferred = CAMP_STATION[character.name];
@@ -90,12 +92,31 @@ function camp_loop_parked() {
 	return !is_at_bscorpion_farm() || !automation_enabled() || is_travelling() || character.rip;
 }
 
-function move_distance_from_bscorpion(desired) {
-	const info = find_nearest_bscorpion();
-	if (!info) return;
+function centre_distance_for_gap(info, angle, gap) {
+	const probe = { x: 0, y: 0, awidth: get_width(character), aheight: get_height(character) };
+	let near = 0;
+	let far = CAMP_GAP_SEARCH_PX;
+	for (let i = 0; i < 16; i++) {
+		const r = (near + far) / 2;
+		probe.x = info.x + Math.cos(angle) * r;
+		probe.y = info.y + Math.sin(angle) * r;
+		if (distance(probe, info.entity) < gap) near = r;
+		else far = r;
+	}
+	return far;
+}
+
+function station_distance(info, angle) {
+	const gap = CAMP_EDGE_GAP[character.name];
+	if (gap === undefined) return camp_engage_distance();
+	return centre_distance_for_gap(info, angle, gap);
+}
+
+function move_distance_from_bscorpion(info) {
+	const angle = Math.atan2(character.y - info.y, character.x - info.x);
+	const desired = station_distance(info, angle);
 	if (Math.abs(info.distance - desired) <= CAMP_MOVE_TOLERANCE) return;
 
-	const angle = Math.atan2(character.y - info.y, character.x - info.x);
 	const new_x = info.x + Math.cos(angle) * desired;
 	const new_y = info.y + Math.sin(angle) * desired;
 
@@ -124,7 +145,8 @@ function hold_camp_station() {
 	const desired = camp_engage_distance();
 	if (!desired) return;
 
-	if (find_nearest_bscorpion()) move_distance_from_bscorpion(desired);
+	const info = find_nearest_bscorpion();
+	if (info) move_distance_from_bscorpion(info);
 	else move_to_camp_station(desired);
 }
 

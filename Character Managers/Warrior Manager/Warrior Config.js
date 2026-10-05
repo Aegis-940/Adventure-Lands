@@ -177,6 +177,7 @@ var equipment_sets = {
 
 var state = {
 	last_cleave_swap: 0,
+	weapon_swap_busy_until: 0,
 	last_reposition: 0
 };
 
