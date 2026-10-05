@@ -239,8 +239,8 @@ function sugar_rush_roll_logger() {
 	parent.socket._sugar_rush_roll_logger = data => {
 		if (!data || data.hid !== character.id || data.splash || data.miss || data.evade) return;
 		if (data.source !== "attack" && data.source !== "cleave") return;
-		const canes = ["mainhand", "offhand"].filter(slot =>
-			character.slots[slot] && character.slots[slot].name === SUGAR_RUSH.set).length;
+		const canes = equipment_sets[SUGAR_RUSH.set].filter(entry =>
+			character.slots[entry.slot] && character.slots[entry.slot].name === entry.item_name).length;
 		errlog_count(`sugar rush roll ${data.source} ${canes}`);
 		if (data.trigger === SUGAR_RUSH.status) errlog_count(`sugar rush proc ${data.source} ${canes}`);
 	};

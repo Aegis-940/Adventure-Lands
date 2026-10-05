@@ -77,12 +77,14 @@ function mainhand_intent() {
 // SENT VIEW — the inventory the server will hold once every swap we have sent lands, so no swap is planned from a stale one
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const EQUIP_REPLY_PLACES = ["equip_batch", "equip", "unequip", "imove"];
-
 var _equip_sent = null;
 
+function replies_outstanding(sent) {
+	return sent.due.equip_batch + sent.due.unequip + sent.due.imove;
+}
+
 function equip_pending() {
-	if (_equip_sent && (_equip_sent.replies_due <= 0 || Date.now() > _equip_sent.until)) _equip_sent = null;
+	if (_equip_sent && (replies_outstanding(_equip_sent) <= 0 || Date.now() > _equip_sent.until)) _equip_sent = null;
 	return !!_equip_sent;
 }
 
@@ -104,11 +106,9 @@ function note_sent(event, payload) {
 		for (const p of payload) shadow_equip(shadow, p.num, p.slot);
 	}
 
-	_equip_sent = {
-		shadow,
-		replies_due: (_equip_sent ? _equip_sent.replies_due : 0) + 1,
-		until: Date.now() + SLOT_FLIGHT_MS,
-	};
+	const due = _equip_sent ? Object.assign({}, _equip_sent.due) : { equip_batch: 0, unequip: 0, imove: 0 };
+	due[event]++;
+	_equip_sent = { shadow, due, until: Date.now() + SLOT_FLIGHT_MS };
 }
 
 if (parent.socket._equip_reply_counter) {
@@ -121,8 +121,13 @@ function live_matches_sent(slot) {
 	return (sent ? sent.name : null) === (live ? live.name : null);
 }
 
+function reply_event(data) {
+	if (data.place === "equip") return data.failed ? "equip_batch" : null;
+	return data.place;
+}
+
 parent.socket._equip_reply_counter = data => {
-	if (!data || !EQUIP_REPLY_PLACES.includes(data.place)) return;
+	if (!data || !data.place) return;
 	if (data.place === "equip_batch" && Array.isArray(data.slots)) {
 		for (const result of data.slots) {
 			if (typeof result === "string") errlog_count(`equip_batch item ${result}`);
@@ -130,8 +135,11 @@ parent.socket._equip_reply_counter = data => {
 	}
 	if (!_equip_sent) return;
 
-	_equip_sent.replies_due--;
-	if (_equip_sent.replies_due === 0) {
+	const event = reply_event(data);
+	if (!_equip_sent.due[event]) return;
+
+	_equip_sent.due[event]--;
+	if (replies_outstanding(_equip_sent) === 0) {
 		const current = live_matches_sent("mainhand") && live_matches_sent("offhand");
 		errlog_count(current ? "equip reply: live current" : "equip reply: live behind");
 	}
