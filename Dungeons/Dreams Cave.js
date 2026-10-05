@@ -100,6 +100,7 @@ DUNGEONS.dreams = {
 		skip_panic: true,
 		no_agitate: true,
 		absorb_nearby: true,
+		melee_engage_radius: DREAMS_THREAT_RADIUS,
 	},
 };
 

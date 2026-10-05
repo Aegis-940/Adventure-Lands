@@ -42,6 +42,22 @@ function warrior_reposition_scorer() {
 	};
 }
 
+var WARRIOR_CLOSE_IN_REACH = 0.8;
+
+function warrior_close_in(target) {
+	const d = Math.hypot(target.x - character.x, target.y - character.y);
+	const f = Math.max(0, (d - character.range * WARRIOR_CLOSE_IN_REACH) / d);
+	local_move(character.x + (target.x - character.x) * f, character.y + (target.y - character.y) * f);
+}
+
+function warrior_farm_step() {
+	const target = cache.target;
+	if (dungeon_setting("melee_engage_radius", null) && target && !target.dead && !is_in_range(target)) {
+		return warrior_close_in(target);
+	}
+	default_farm_step();
+}
+
 function reposition() {
 	orbit_reposition(warrior_reposition_scorer, {
 		min_gain: CONFIG.movement.position_min_gain,

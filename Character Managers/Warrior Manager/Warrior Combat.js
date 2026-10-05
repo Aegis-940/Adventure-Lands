@@ -54,7 +54,7 @@ function find_best_target() {
 	const pursued = pursued_boss();
 	if (pursued) return pursued;
 
-	const max_dist = dungeon_engage_radius();
+	const max_dist = dungeon_setting("melee_engage_radius", dungeon_engage_radius());
 
 	const context = {
 		explosion: character.explosion || 0,
@@ -66,8 +66,14 @@ function find_best_target() {
 	if (boss) return boss;
 
 	const guard = typeof porcupine_guard_allows === "function" ? porcupine_guard_allows : undefined;
+	const where = mob => warrior_may_engage(mob) && (!guard || guard(mob));
 
-	return best_target({ max_distance: max_dist, where: guard }, dungeon_target_weights(), context);
+	return best_target({ max_distance: max_dist, where }, dungeon_target_weights(), context);
+}
+
+function warrior_may_engage(mob) {
+	if (!dungeon_setting("melee_engage_radius", null)) return true;
+	return !!mob.target || is_in_range(mob);
 }
 
 function find_monsters_in_cleave_range() {
