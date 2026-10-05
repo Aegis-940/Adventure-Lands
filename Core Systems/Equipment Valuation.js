@@ -43,6 +43,7 @@ function worn_ability_chance(ability) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const SET_PROFILE_KEY = "AL_set_profile2_";
+const SET_PROFILE_SCHEMA = 3;
 const SET_PROFILE_FIELDS = ["attack", "explosion", "frequency", "heal", "int", "rpiercing", "apiercing", "mp_cost", "crit", "critdamage"];
 const SET_PROFILE_MIN_INTERVAL_MS = 15000;
 const SET_PROFILE_REPROBE_MS = 600000;
@@ -101,14 +102,21 @@ function profile_conditions_ok() {
 	return !PROFILE_EXCLUDED_BUFFS.some(buff => active[buff]);
 }
 
+function set_worn(set_name) {
+	return equipment_sets[set_name].every(entry => {
+		const worn = character.slots[entry.slot];
+		return !!worn && worn.name === entry.item_name;
+	});
+}
+
 function record_set_profile(set_name) {
 	if (equip_transient() || equip_pending()) return false;
-	if (!is_set_equipped(set_name) || !profile_conditions_ok()) {
+	if (!set_worn(set_name) || !profile_conditions_ok()) {
 		delete _profile_pending[set_name];
 		return false;
 	}
 
-	const profile = { at: Date.now(), gear: set_gear_signature(set_name) };
+	const profile = { at: Date.now(), gear: set_gear_signature(set_name), schema: SET_PROFILE_SCHEMA };
 	for (const field of SET_PROFILE_FIELDS) profile[field] = character[field] || 0;
 
 	const pending = _profile_pending[set_name];
@@ -124,9 +132,10 @@ function record_set_profile(set_name) {
 	const since = previous ? Date.now() - (previous.at || 0) : Infinity;
 
 	if (previous && !profile_materially_differs(previous, profile)) {
-		if (since >= SET_PROFILE_MIN_INTERVAL_MS || previous.gear !== profile.gear) {
+		if (since >= SET_PROFILE_MIN_INTERVAL_MS || previous.gear !== profile.gear || previous.schema !== SET_PROFILE_SCHEMA) {
 			previous.at = Date.now();
 			previous.gear = profile.gear;
+			previous.schema = SET_PROFILE_SCHEMA;
 			save_set_profiles(profiles);
 		}
 		return false;
@@ -227,6 +236,7 @@ function observe_worn_set(sets, now) {
 function set_profile_unusable(set_name) {
 	const profile = get_set_profile(set_name);
 	if (!profile || !profile.attack) return true;
+	if (profile.schema !== SET_PROFILE_SCHEMA) return true;
 	if (profile.gear && profile.gear !== set_gear_signature(set_name)) return true;
 	return Date.now() - (profile.at || 0) > SET_PROFILE_REPROBE_MS;
 }
