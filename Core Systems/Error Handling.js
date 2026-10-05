@@ -12,6 +12,7 @@ const COOLDOWN_SKILLS = {
 	attack: "Attack",
 	"3shot": "3-Shot",
 	"5shot": "5-Shot",
+	piercingshot: "Piercing Shot",
 	supershot: "Super Shot",
 	huntersmark: "Hunters Mark",
 	heal: "Heal",
