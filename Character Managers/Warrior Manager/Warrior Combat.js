@@ -151,6 +151,21 @@ function status_swap_trick(target) {
 	errlog_count("swap trick fired");
 }
 
+function swap_penalty_logger() {
+	if (parent.socket._swap_penalty_logger) {
+		parent.socket.off("skill_timeout", parent.socket._swap_penalty_logger);
+	}
+
+	parent.socket._swap_penalty_logger = data => {
+		if (!data || data.penalty === undefined) return;
+		if (data.name !== "attack" && data.name !== "cleave") return;
+		const rush = character.s.sugarrush !== undefined ? " rush" : "";
+		errlog_time(`penalty ${data.name}${rush}`, data.penalty);
+	};
+
+	parent.socket.on("skill_timeout", parent.socket._swap_penalty_logger);
+}
+
 function record_swap_trick(mtype, trick) {
 	if (!swap_trick_history[mtype]) swap_trick_history[mtype] = [];
 	const history = swap_trick_history[mtype];
