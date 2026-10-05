@@ -77,8 +77,9 @@ function leader_position() {
 	if (character.name === MOVEMENT_LEADER) return null;
 	const c = read_state_cache(MOVEMENT_LEADER);
 	const live = get_player(MOVEMENT_LEADER);
-	if (live) return { map: character.map, x: live.x, y: live.y, rip: !!live.rip, formation: !!(c && c.formation) };
-	return c ? { map: c.map, x: c.x, y: c.y, rip: !!c.rip, formation: !!c.formation } : null;
+	const disengaging = !!(c && c.disengaging);
+	if (live) return { map: character.map, x: live.x, y: live.y, rip: !!live.rip, formation: !!(c && c.formation), disengaging };
+	return c ? { map: c.map, x: c.x, y: c.y, rip: !!c.rip, formation: !!c.formation, disengaging } : null;
 }
 
 function follow_has_leader() {
@@ -129,6 +130,7 @@ function follow_goal() {
 		radius: Math.min(fd + 30, arrive),
 		ring: fd,
 		chasing: true,
-		arrived: { local: "farm", label: "with-leader", on_station: true },
+		disengage: pos.disengaging,
+		arrived: { local: "farm", label: "with-leader", on_station: true, disengage: pos.disengaging },
 	});
 }

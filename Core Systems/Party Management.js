@@ -48,7 +48,7 @@ function panic_threat() {
 	const low_health = character.hp < character.max_hp * t.low_hp;
 	const low_mana = character.mp < character.max_mp * t.low_mp;
 	const high_aggro = on_me >= aggro_limit;
-	const trapped = !dungeon_flag("ignore_travel_panic") && is_travelling() && on_me >= 1;
+	const trapped = !dungeon_flag("ignore_travel_panic") && !disengaging() && is_travelling() && on_me >= 1;
 
 	return {
 		on_me, aggro_limit, low_health, trapped,
@@ -91,7 +91,7 @@ function panic_check() {
 		return;
 	}
 
-	panic_response();
+	scare_off();
 
 	if (panic_external) {
 		if (Date.now() - panic_external_since > EXTERNAL_PANIC_MAX_MS) {
@@ -108,9 +108,9 @@ function panic_check() {
 	}
 }
 
-function panic_response() {
+function scare_off() {
 	if (!is_set_equipped("panic")) {
-		errlog_count("panic waiting for orb");
+		errlog_count("scare waiting for orb");
 		return;
 	}
 	if (is_on_cooldown("scare")) return;
@@ -127,6 +127,19 @@ function panic_response() {
 	errlog_count("scare fired");
 	parent.next_skill.scare = new Date(Date.now() + G.skills.scare.cooldown);
 	use_skill("scare").catch(e => game_log(`[PANIC] Error using scare: ${fmt_err(e)}`, "#ff4444"));
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// DISENGAGE — walking off a fight to an event: stop fighting, keep jacko on, scare off whatever follows
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function disengaging() {
+	const g = current_goal();
+	return !!(g && g.disengage);
+}
+
+function disengage_check() {
+	if (disengaging() && monsters_targeting_me() > 0) scare_off();
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

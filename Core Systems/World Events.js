@@ -21,6 +21,7 @@ function event_goal() {
 		return {
 			label: "holiday-tree",
 			to: "town",
+			disengage: true,
 			on_arrive: () => {
 				_holiday_tried = true;
 				parent.socket.emit("interaction", { type: "newyear_tree" });
@@ -54,12 +55,12 @@ function event_goal() {
 		if (is_in_range(seen, "attack") || can_move_to(half_x, half_y)) {
 			return { local: "event", label: "event-" + target.name, event: target.name };
 		}
-		return { label: "event-" + target.name, map: seen.map || target.map, x: seen.x, y: seen.y, radius: 60 };
+		return { label: "event-" + target.name, map: seen.map || target.map, x: seen.x, y: seen.y, radius: 60, disengage: true };
 	}
 
 	if (!target.map || !isFinite(target.x) || !isFinite(target.y)) return null;
 
-	return { label: "event-" + target.name, map: target.map, x: target.x, y: target.y, radius: 60 };
+	return { label: "event-" + target.name, map: target.map, x: target.x, y: target.y, radius: 60, disengage: true };
 }
 
 function event_step(event_type) {
@@ -221,12 +222,13 @@ function anniversary_destination() {
 	if (!s) return null;
 
 	const them = get_player(s.target);
-	if (!them) return { label: "anniversary", map: s.map, x: s.x, y: s.y, radius: ANNIVERSARY_ARRIVE };
+	if (!them) return { label: "anniversary", map: s.map, x: s.x, y: s.y, radius: ANNIVERSARY_ARRIVE, disengage: true };
 	return approach(them, {
 		label: "anniversary",
 		arrive: ANNIVERSARY_ARRIVE,
 		ring: ANNIVERSARY_ARRIVE * 0.6,
-		arrived: { hold: true, label: "anniversary-kiss" },
+		disengage: true,
+		arrived: { hold: true, label: "anniversary-kiss", disengage: true },
 	});
 }
 

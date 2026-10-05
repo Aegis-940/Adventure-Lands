@@ -71,7 +71,7 @@ function model_prediction() {
 }
 
 function resolve_warrior_orb() {
-	if (panicking) return "panic";
+	if (panicking || disengaging()) return "panic";
 	return gear_override("orb") || preferred_orb("orb_dps");
 }
 

@@ -332,7 +332,7 @@ function stuck_escape_check() {
 
 function approach(pos, o) {
 	const map = pos.map || character.map;
-	const travel = { label: o.label, map, x: pos.x, y: pos.y, radius: o.radius || o.arrive, chasing: o.chasing };
+	const travel = { label: o.label, map, x: pos.x, y: pos.y, radius: o.radius || o.arrive, chasing: o.chasing, disengage: o.disengage };
 	if (map !== character.map) return travel;
 
 	const d = Math.hypot(character.x - pos.x, character.y - pos.y);
@@ -341,7 +341,7 @@ function approach(pos, o) {
 	const a = Math.atan2(character.y - pos.y, character.x - pos.x);
 	const step = { x: pos.x + Math.cos(a) * o.ring, y: pos.y + Math.sin(a) * o.ring };
 	if (!smart.moving && can_move_to(step.x, step.y)) {
-		return { local: "step", label: o.label + "-close", on_station: d <= cohesion_range(), step, chasing: o.chasing };
+		return { local: "step", label: o.label + "-close", on_station: d <= cohesion_range(), step, chasing: o.chasing, disengage: o.disengage };
 	}
 	return travel;
 }
@@ -356,13 +356,15 @@ function movement_goal() {
 	if (dungeon_flag("leader_manual") && character.name === MOVEMENT_LEADER) return null;
 
 	const scripted_camp = home === "bscorpion";
+	const ignoring_events = dungeon_ignores_events();
 
-	if (!scripted_camp && party_cohesion_hold()) return { hold: true, label: "cohesion" };
+	if (!scripted_camp && party_cohesion_hold()) {
+		const ahead = ignoring_events ? null : event_goal() || anniversary_destination();
+		return { hold: true, label: "cohesion", disengage: !!(ahead && ahead.disengage) };
+	}
 
 	const follow = scripted_camp ? null : follow_goal();
 	if (follow && !follow.local) return follow;
-
-	const ignoring_events = dungeon_ignores_events();
 
 	const event = ignoring_events ? null : event_goal();
 	if (follow && follow.on_station && event && event.local === "event") return event;
