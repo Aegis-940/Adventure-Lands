@@ -3,11 +3,14 @@
 // COMBAT UTILITIES — monster and entity queries, boss and party state predicates
 
 
+function min_ping() {
+	return parent.pings.length ? Math.min(...parent.pings) : 0;
+}
+
 function ms_to_next_skill(skill) {
 	const next_skill = parent.next_skill[skill];
 	if (next_skill === undefined) return 0;
-	const ping = parent.pings.length ? Math.min(...parent.pings) : 0;
-	const ms = next_skill.getTime() - Date.now() - ping;
+	const ms = next_skill.getTime() - Date.now() - min_ping();
 	return ms < 0 ? 0 : ms;
 }
 

@@ -53,15 +53,21 @@ function take_basic_action_count() {
 	return n;
 }
 
+function basic_action_retry_at(e) {
+	if (!e || e.reason !== "cooldown" || !(e.ms > 0)) return 0;
+	return Date.now() + e.ms - min_ping();
+}
+
 function run_basic_action(p, label) {
 	_basic_action_count++;
 	const freq = character.frequency > 0 ? character.frequency : 1.1;
-	_basic_action_until = Date.now() + (1000 / freq) * 0.9;
+	const until = Date.now() + 1000 / freq;
+	_basic_action_until = until;
 	const t0 = Date.now();
 	Promise.resolve(p).then(
 		() => { errlog_time("await " + label, Date.now() - t0); },
 		e => {
-			_basic_action_until = 0;
+			if (_basic_action_until === until) _basic_action_until = basic_action_retry_at(e);
 			catcher(e, label);
 		}
 	);
