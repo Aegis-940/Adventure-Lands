@@ -938,3 +938,124 @@ Ten maps are flagged `instance` (`crypt`, `dungeon0`, `tomb`, `spider_instance`,
 `abtesting`, `duelland`, `cgallery`, `shellsisland`, `original_main`). Nothing in `G` marks a map as
 town-forbidden, so behaviour inside an instance is **unverified** — do not assume it returns you to
 the instance spawn rather than ejecting you.
+
+## Cave of Many Dreams — verified 2026-10-05 against `G.version 17478`
+
+A daily, generated, three-floor dungeon. Sources: the client's own `js/generated_zones.js` (the
+whole cave client), the `cave_*` wrappers at the end of `js/runner_functions.js`, `G.events.dreams`,
+and the official guide (`POST /api/load_article` with body `{"name":"cave-of-many-dreams","guide":true}`;
+the public guide URL only serves the game shell).
+
+### Rules (server-enforced)
+
+| rule | value |
+|---|---|
+| party | **one in-game party of at most 3** — a 4-member party is refused `party_too_large`. Riff must leave before entry |
+| visits | **one per account per day**, shared by every character on the account (`daily_opening_used`); resets at midnight on the account's home server. A server restart that ends a visit refunds it; reload/disconnect does not |
+| entry | every party member near Dorr (`G.maps.main.npcs` id `dreamkeeper`, position `(816, 1200)`) and out of combat (`bring_party_to_keeper`) |
+| clock | 24 minutes; paused only during forced votes; keeps running while nobody is inside |
+| XP | `xp_multiplier: 10` on cave enemies |
+| death | no XP/gold/item loss. `respawn()` calls Nera — it does **not** leave the cave: revive in place for 1 Amber per fallen character from the shared purse, or free at this floor's doorway |
+| exit | `cave_exit()` leaves for good (`cant_reenter`), alive, even while fallen or voting. Magiport cannot enter or leave |
+| resume | after a reload/disconnect, walk to Dorr on the **same server** and `cave_enter()` again; `cave_info().resume = {server, run}`; returns `resumed: true`. Fallen characters stay fallen |
+
+### API
+
+```js
+cave_info()                 // → visit {available, unlimited, resets, server_time, home, resume?}
+cave_enter()                // beside Dorr; 150s timeout (generation can be slow)
+cave_reply(choice, option)  // vote: choice.id, option.id
+cave_buy(room)              // floor merchant, paid from the shared cave gold
+cave_exit()
+cave_talk(room, actor)      // chat with a passing traveler; does not pause anything
+```
+
+All are `parent.cave_request(action, fields)` → `socket.emit("interaction", {...fields, type: "cave", action, request_id})`,
+settled by a `game_response` with matching `request_id` and `place: "interaction"`. Failures reject
+`{reason}`; reasons have phrases at `cave.error.<reason>` (`distance`, `cave_paused`, `vote_closed`,
+`already_voted`, `stale_choice`, `sold_out`, `gold_not_enough`, `zone_busy`, `generation_busy`, ...).
+
+While `character.cave.paused` or `character.cave_entering` is set, **every** action is rejected
+`cave_paused` / `cave_entering` (`functions.js`), so action loops must idle rather than spam.
+
+### `character.cave` (null outside)
+
+Pushed by the server and mirrored into `character.cave`; `character.on("cave", state => ...)` fires on
+every update.
+
+| field | meaning |
+|---|---|
+| `run` | 24-hex id; maps are `"zone_" + run + "_" + floor` and change every visit — use `character.map` |
+| `floor` | 0, 1, 2 |
+| `expires`, `remaining_ms`, `server_time`, `paused`, `paused_at` | clock; remaining is `remaining_ms` while paused, else `expires` minus server-adjusted now |
+| `gold`, `amber` | the **shared purse**. Cave gold never becomes carried gold; spend it. Caps `gold_limit 60000`, `amber_limit 36`. Unspent Amber pays out on explicit exit or run end |
+| `doors[]` | `{floor, x, y, to, down, locked, map?}` — `to === "main"` is the exit |
+| `objectives[]` | `{id, floor, kind, name, name_message, x, y, done, required, waves?}`; `kind` is `fight` (guard camp), `boss` (floor keeper), `encounter` (the marked vote), `farm` |
+| `choice` | the current vote, below |
+| `hunts[]`, `practice[]` | timed side tasks `{kills, count, deadline}` / `{name, hp, deadline}` |
+| `supplies[]` | `tool`, `lamp`, `decoy`, `truce`, `message` — unlock `needs:` options later |
+| `rewards[]` | `{id, recipient, where: purse/inventory/gold/mail, item?, gold?, amber?, slot?}` |
+
+Each floor has **three required objectives** (guard camp, keeper, marked encounter). The stairs down
+stay `locked` until all are `done`; a `transport` to a locked stair fails `seal_closed`. Floor 3 has
+no stairs down — finish its three objectives, then exit.
+
+### Moving
+
+Generated floor geometry arrives in chunks and is installed into `G.maps[key]` / `G.geometry[key]`,
+so ordinary pathfinding works: the client's own "walk here" is
+`smart_smart_move("map", map, {map, x, y})`. Stairs are ordinary doors —
+`G.maps[character.map].doors` entries where `door[4]` is the destination map and `door[5]` its
+spawn — taken with `transport(door[4], door[5])`. Generated maps are flagged `.generated`, not
+`.instance`.
+
+### Monsters and NPCs
+
+Cave entities carry `entity.cave = {side, room, citizen?, ...}`. Attack only `side` `enemy` or
+`predator`; `duel_left`/`duel_right` are the two parties of a conflict vote and become enemies only
+according to the side the vote took. `neutral`, `ally`, `victim` and citizens are clickable NPCs
+(`game.js` routes their click to `cave_talk`) — hitting them is never wanted. Cave monsters are
+spawned at a `level`; base stats from `G.monsters.cave_*`:
+
+| monster | hp | attack | note |
+|---|---|---|---|
+| `cave_wolf` | 48,000 | 480 | armor 300, res 200 — "six level 100 wolves" options summon these |
+| `cave_scorpion` | 24,000 | 100 | armor 200 |
+| `cave_spider` | 18,000 | 80 | |
+| `cave_sentinel` (keeper) | 16,000 | 140 | armor 500 |
+| `cave_mothkeeper` (keeper) | 14,000 | 90 magical | range 240 |
+| `cave_lockbreaker` (keeper) | 12,000 | 100 | armor 300 |
+| `cave_bat` | 9,600 | 50 | res 120 |
+| `cave_broodmother` | 8,000 | 80 | |
+| `cave_darkmage` | 1,000 | **100,000 magical** | rare (0.2%); targets mages first; only his reflected spell kills him |
+
+Camps (`G.events.dreams.camps[floor]`) are three packs each; the next pack comes 10s after a clear.
+F1 Amber Nest / Bat Roost, F2 Flooded Hollow / Guard Outpost, F3 Venom Burrow / Deep Roost.
+
+### Votes
+
+`choice = {id, title, text, deadline, resolved, votes: {name: option}, options: [{id, label, cost?, amber?, unavailable?}], people, scene, shop?, fallback}`.
+One vote per character, fallen included; 60s (`vote_ms`); majority settles early, otherwise
+plurality at the deadline. The cave is paused until it resolves.
+
+The 50 encounters are all in `G.events.dreams.encounters`, and **option ids are globally meaningful**
+(`e02_3`, or `left/right/neither/both/peace/testimony` and `save/watch/lure/aid/finish/cover` for the
+conflict and rescue types), so a client can look an offered option up and see its `effect`,
+`cost`/`amber`, `needs` (a supply) and `outcomes` (`{weight, reward}` or `{weight, fight: [mtype, n]}`)
+before voting. Every encounter has a `leave` option. Every client can compute the same answer from
+`G`, so all three vote identically without messaging.
+
+### Loot and shops
+
+Cave chests: `loot(id)` within 400px (centre to centre), not while fallen or paused. Each camp pack
+gives a reward plus a chest of 1,500 cave gold + 1 Amber; each keeper 4,000; finishing floor 3,
+10,000 + 5 Amber. Item rewards go to a random **original** party member's bag, or mail if full.
+Each floor's merchant sells one item from `G.events.dreams.merchant_stock` for cave gold
+(`choice.shop = {room, name, price, sold, nearby}`; `cave_buy(room)` when `resolved && nearby`).
+
+### Priest revival
+
+`revive` (priest, 500 MP, cooldown 200, range 240) consumes an `essenceoflife` and only works once the
+gravestone has been healed to full — `heal()` the fallen player until `hp === max_hp`, then
+`use_skill("revive", name)`. `target.c.revival` is set while it channels. This is Myras's free
+alternative to paying Nera in Amber.
