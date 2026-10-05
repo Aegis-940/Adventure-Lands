@@ -6,12 +6,17 @@ var WARRIOR_POSITION_SCALE = 100;
 
 function cleave_targets_at(x, y) {
 	const radius = G.skills.cleave.range;
+	const probe = { x, y, awidth: get_width(character), aheight: get_height(character) };
 	let count = 0;
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
-		if (e.type !== "monster" || e.dead || !e.visible) continue;
-		if (CONFIG.combat.cleave_blacklist.includes(e.mtype)) continue;
-		if (Math.hypot(e.x - x, e.y - y) <= radius) count++;
+		if (e.type !== "monster" || e.dead) continue;
+		const gap = distance(probe, e);
+		if (CONFIG.combat.cleave_blacklist.includes(e.mtype)) {
+			if (gap < radius + SKILL_BLOCKER_MARGIN) return 0;
+			continue;
+		}
+		if (e.visible && gap < radius) count++;
 	}
 	return count;
 }

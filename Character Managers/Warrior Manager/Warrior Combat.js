@@ -94,7 +94,7 @@ function warrior_may_engage(mob) {
 }
 
 function find_monsters_in_cleave_range() {
-	return monsters_matching({ max_distance: G.skills.cleave.range, point_for_distance_check: [character.x, character.y] });
+	return monsters_matching({ max_distance: G.skills.cleave.range });
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
