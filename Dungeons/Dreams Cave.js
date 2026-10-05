@@ -105,6 +105,7 @@ DUNGEONS.dreams = {
 let _dreams_running = false;
 let _dreams_checking = false;
 let _dreams_next_check = 0;
+let _dreams_boss_waiting = false;
 let _dreams_returning = false;
 let _dreams_return_at = 0;
 let _dreams_voted = null;
@@ -183,16 +184,36 @@ function dreams_visit_usable(visit) {
 	return !!(visit.available || visit.unlimited);
 }
 
+function dreams_boss_engaged() {
+	if (best_event_target() || boss_field_draining()) return true;
+	return DUNGEON_FOLLOWERS.some(name => {
+		const s = read_state_cache(name);
+		return !!s && !!s.goal && s.goal.startsWith("event-");
+	});
+}
+
+function dreams_boss_wait(engaged) {
+	if (engaged === _dreams_boss_waiting) return engaged;
+	_dreams_boss_waiting = engaged;
+	if (engaged) dreams_log("A boss is up — the cave waits until it is done");
+	return engaged;
+}
+
 async function dreams_daily_check() {
 	if (_dreams_checking || Date.now() < _dreams_next_check) return;
 	if (dungeon_override() || character.rip || panicking || !automation_enabled()) return;
 	if (G.events.dreams.disabled) return;
+	if (dreams_boss_wait(dreams_boss_engaged())) return;
 
 	_dreams_checking = true;
 	_dreams_next_check = Date.now() + DREAMS_CHECK_MS;
 	try {
 		const visit = await cave_info();
 		if (!dreams_visit_usable(visit)) return;
+		if (dreams_boss_wait(dreams_boss_engaged())) {
+			_dreams_next_check = 0;
+			return;
+		}
 		dreams_log(visit.resume ? "An unfinished visit is waiting — taking the party back" : "Today's visit is unused — taking the party in");
 		set_dungeon_mode("dreams");
 	} catch (e) {
