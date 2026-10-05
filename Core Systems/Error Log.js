@@ -187,6 +187,13 @@ function errlog_sample(kind, data) {
 	} catch (e) { }
 }
 
+function errlog_timeline(ctx, msg) {
+	try {
+		_errlog_push_timeline(ctx, String(msg).slice(0, 160), Date.now());
+		_errlog_dirty = true;
+	} catch (e) { }
+}
+
 function errlog_count(bucket) {
 	try {
 		const now = Date.now();

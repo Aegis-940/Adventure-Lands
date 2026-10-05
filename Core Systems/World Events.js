@@ -50,6 +50,7 @@ function event_goal() {
 	}
 
 	const seen = get_nearest_monster({ type: target.name });
+	if (seen) boss_watch(seen);
 	if (seen && boss_strayed(seen)) return null;
 	if (seen) {
 		const label = "event-" + target.name;
@@ -62,6 +63,22 @@ function event_goal() {
 	if (!target.map || !isFinite(target.x) || !isFinite(target.y)) return null;
 
 	return { label: "event-" + target.name, map: target.map, x: target.x, y: target.y, radius: 60, disengage: true };
+}
+
+const BOSS_WATCH_MS = 10000;
+let _boss_watch_at = 0;
+
+function boss_watch(boss) {
+	const now = Date.now();
+	if (now - _boss_watch_at < BOSS_WATCH_MS) return;
+	_boss_watch_at = now;
+
+	const pct = boss.max_hp ? Math.round((100 * boss.hp) / boss.max_hp) : 0;
+	const flags = [boss_strayed(boss) && "strayed", panicking && "panic", lethal_pursuer() && "evading"].filter(Boolean).join(" ");
+	errlog_timeline("boss_watch",
+		`${boss.mtype} ${pct}% -> ${boss.target || "none"} @${Math.round(boss.x)},${Math.round(boss.y)}`
+		+ ` | me @${Math.round(character.x)},${Math.round(character.y)} d${Math.round(distance(character, boss))}`
+		+ ` hp${Math.round((100 * character.hp) / character.max_hp)}% ${current_goal_label() || "-"} ${flags}`);
 }
 
 function event_step(event_type, engage_step) {

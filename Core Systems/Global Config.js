@@ -260,6 +260,7 @@ function errlog_count() { }
 function errlog_beat() { }
 function errlog_size() { }
 function errlog_time() { }
+function errlog_timeline() { }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SECTION 3: MANUAL CONTROL
