@@ -331,7 +331,7 @@ const SELLABLE_ITEMS = [
 	"merry", "rednose", "xmashat", "xmasshoes", "xmassweater", "xmaspants", "mittens",
 	"angelwings", "snowflakes", "epyjamas", "ecape", "eears", "eslippers", "carrotsword",
 	"pinkie", "oozingterror", "harbringer", "quiver", "fieldgen0", "confetti", "cake", "partyhat", "poker", "ftrinket",
-	"intamulet", "dexamulet", "stramulet", "strbelt", "dexbelt", "intebelt",
+	"intamulet", "dexamulet", "stramulet", "strbelt", "dexbelt", "intbelt",
 ];
 
 function remote_sell_items() {
