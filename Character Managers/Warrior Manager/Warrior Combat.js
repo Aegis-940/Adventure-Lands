@@ -57,7 +57,7 @@ function find_best_target() {
 	const max_dist = dungeon_setting("melee_engage_radius", dungeon_engage_radius(CONFIG.combat.engage_radius));
 
 	const context = {
-		explosion: character.explosion || 0,
+		gear: swing_gear(),
 		party_factor: CONFIG.combat.party_dps_factor,
 		protect: CONFIG.combat.target_priority
 	};
@@ -71,6 +71,20 @@ function find_best_target() {
 
 	return best_target({ max_distance: max_dist, where: mob => is_in_range(mob) && allowed(mob) }, weights, context)
 		|| best_target({ max_distance: max_dist, where: allowed }, weights, context);
+}
+
+function swing_gear() {
+	const set_name = weapon_set_to_restore();
+	const profile = set_name && get_set_profile(set_name);
+	if (!profile || !profile.attack) return null;
+
+	return {
+		attack: profile.attack,
+		frequency: profile.frequency || 1,
+		explosion: profile.explosion || 0,
+		apiercing: profile_apiercing(profile),
+		burn_chance: set_ability_chance(set_name, "burn"),
+	};
 }
 
 function warrior_may_engage(mob) {

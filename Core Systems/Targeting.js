@@ -13,8 +13,22 @@ function incoming_damage_amp(mob) {
 	return 1 + amp / 100;
 }
 
-function attack_damage_against(mob) {
-	return estimate_my_damage(mob) * incoming_damage_amp(mob);
+function live_gear(explosion) {
+	return {
+		attack: character.attack || 0,
+		frequency: character.frequency || 1,
+		explosion: explosion === undefined ? (character.explosion || 0) : explosion,
+		apiercing: character.apiercing || 0,
+		burn_chance: worn_ability_chance("burn"),
+	};
+}
+
+function context_gear(ctx) {
+	return ctx.gear || live_gear(ctx.explosion);
+}
+
+function attack_damage_against(mob, gear) {
+	return hit_against(mob, gear.attack, gear.apiercing) * incoming_damage_amp(mob);
 }
 
 function splash_landed_on_neighbours(mob, explosion, hit_damage) {
@@ -37,20 +51,20 @@ function splash_landed_on_neighbours(mob, explosion, hit_damage) {
 
 function target_damage_value(mob, options) {
 	const opts = options || {};
-	const explosion = opts.explosion === undefined ? (character.explosion || 0) : opts.explosion;
+	const gear = context_gear(opts);
 	const party_factor = opts.party_factor || 1;
 
-	const hit = attack_damage_against(mob);
+	const hit = attack_damage_against(mob, gear);
 	if (hit <= 0) return 0;
 
 	const left = remaining_hp(mob);
 	const direct = Math.min(hit, left);
-	const raw_dps = (character.attack || 0) * (character.frequency || 1);
 	const burn = burn_multiplier_at_dps(
-		mob, worn_ability_chance("burn"), raw_dps, party_factor, { hp: left }
+		mob, gear.burn_chance, gear.attack * gear.frequency, party_factor,
+		{ frequency: gear.frequency, hp: left, apiercing: gear.apiercing }
 	);
 
-	return direct * burn + splash_landed_on_neighbours(mob, explosion, hit);
+	return direct * burn + splash_landed_on_neighbours(mob, gear.explosion, hit);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -60,9 +74,9 @@ function target_damage_value(mob, options) {
 const TARGET_TERMS = {
 	damage: (mob, ctx) => target_damage_value(mob, ctx),
 
-	finish: mob => {
+	finish: (mob, ctx) => {
 		const left = remaining_hp(mob);
-		return left > 0 && attack_damage_against(mob) >= left ? 1 : 0;
+		return left > 0 && attack_damage_against(mob, context_gear(ctx)) >= left ? 1 : 0;
 	},
 
 	untargeted: mob => (mob.target ? 0 : 1),
