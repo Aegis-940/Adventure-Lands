@@ -466,11 +466,12 @@ function movement_goal() {
 
 	if (dungeon_flag("leader_manual") && character.name === MOVEMENT_LEADER) return null;
 
-	const scripted_camp = home === "bscorpion";
 	const ignoring_events = dungeon_ignores_events();
 
 	const event = ignoring_events ? null : event_goal();
 	if (event && event.pursuit) return event;
+
+	const scripted_camp = party_camped(event);
 
 	if (!scripted_camp && party_cohesion_hold()) {
 		const ahead = event || anniversary_destination();

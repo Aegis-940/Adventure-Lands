@@ -35,10 +35,21 @@ function bscorpion_start() {
 	if (character.name === "Ulric") bscorpion_kill_logger_loop();
 }
 
-function is_at_bscorpion_farm() {
+function at_bscorpion_farm(pos) {
 	const loc = prim_farm_loc();
-	return character.map === loc.map &&
-		Math.hypot(character.x - loc.x, character.y - loc.y) < camp_hold_radius();
+	return pos.map === loc.map &&
+		Math.hypot(pos.x - loc.x, pos.y - loc.y) < camp_hold_radius();
+}
+
+function is_at_bscorpion_farm() {
+	return at_bscorpion_farm(character);
+}
+
+function party_camped(event) {
+	if (home !== "bscorpion" || event) return false;
+	if (character.name === MOVEMENT_LEADER) return is_at_bscorpion_farm();
+	const pos = leader_position();
+	return !pos || at_bscorpion_farm(pos);
 }
 
 function find_nearest_bscorpion() {
