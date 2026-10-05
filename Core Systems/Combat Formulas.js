@@ -94,6 +94,52 @@ function heal_power_identity() {
 	};
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// INCOMING — what the monsters on someone deal to them, as the game client itself estimates it
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const INCOMING_MARGIN = 1.1;
+const CURSED_OUTPUT_FACTOR = 0.8;
+const ENDANGER_SECONDS = 2;
+const ENDANGER_FLOOR_PCT = 0.3;
+const ENDANGER_HP_PCT = 0.6;
+
+function monster_hit_on(m, target) {
+	const def = G.monsters[m.mtype];
+	const kind = m.damage_type || def.damage_type;
+	if (kind === "pure") return m.attack;
+	const defense = kind === "physical"
+		? (target.armor || 0) - (m.apiercing || def.apiercing || 0)
+		: (target.resistance || 0) - (m.rpiercing || def.rpiercing || 0);
+	return m.attack * defense_reduction(defense);
+}
+
+function monster_dps_on(m, target) {
+	const cursed = m.s && m.s.cursed ? CURSED_OUTPUT_FACTOR : 1;
+	return monster_hit_on(m, target) * (m.frequency || 0) * cursed * INCOMING_MARGIN;
+}
+
+function incoming_dps(target) {
+	let total = 0;
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || e.dead || e.target !== target.name) continue;
+		total += monster_dps_on(e, target);
+	}
+	return total;
+}
+
+function projected_hp(target, extra_dps, healing_dps) {
+	const net = Math.max(0, incoming_dps(target) + (extra_dps || 0) - (healing_dps || 0));
+	return target.hp - ENDANGER_SECONDS * net;
+}
+
+function endangered(target) {
+	if (!target || target.rip || !target.max_hp) return false;
+	if (incoming_dps(target) <= 0) return false;
+	return target.hp < target.max_hp * ENDANGER_HP_PCT || projected_hp(target) < target.max_hp * ENDANGER_FLOOR_PCT;
+}
+
 function estimate_my_damage(entity, multiplier) {
 	const info = (G.monsters && G.monsters[entity.mtype]) || {};
 	const armor = (entity.armor !== undefined ? entity.armor : info.armor || 0) - (character.apiercing || 0);

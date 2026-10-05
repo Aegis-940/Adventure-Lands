@@ -70,7 +70,10 @@ Line numbers are ours unless prefixed `theirs:`. Their paths are relative to the
 | Config | [C2 Other farm spots outside their spawn box](#c2) | S | None | Low |
 | Infra | [I6 Tracktrix on every fighter](#i6) | S | None | Low |
 
-**Done:** M1–M7 (all of Movement).
+**Done:** M1–M7 (all of Movement); T1–T7 (all of Tank survival). M1 now casts the town teleport while
+walking continues (`channel_walk()`), cancels it when the journey that wanted it ends, and M6 cruise
+applies to all three fighters. T7's cause was not a server refusal — the `not_ready` replies were potions —
+but the rules loop re-sending the jacko swap from a stale inventory view, which flipped the orb back.
 
 **Suggested order:** M1 + M3 + I1 + C1 first (small, and each is failing today) → R1 + R2 + R3 (merchant gold) →
 T1, then G1, one at a time so each can be measured → the rest.

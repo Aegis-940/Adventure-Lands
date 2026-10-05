@@ -109,25 +109,25 @@ function panic_check() {
 }
 
 function scare_off() {
-	if (cave_paused()) return;
-	if (!is_set_equipped("panic")) {
-		errlog_count("scare waiting for orb");
-		return;
-	}
-	if (is_on_cooldown("scare")) return;
+	if (cave_paused()) return false;
+	if (is_on_cooldown("scare")) return false;
+	if (monsters_targeting_me() === 0) return false;
 	if (character.mp < G.skills.scare.mp) {
 		errlog_count("scare no mp");
-		return;
+		return false;
 	}
-	if (!can_use("scare")) {
-		errlog_count(`scare unusable orb=${character.slots.orb ? character.slots.orb.name : "empty"}`);
-		return;
+	if (!set_available("panic")) {
+		errlog_count("scare no jacko");
+		return false;
 	}
 
-	game_log("Using Scare!", "#ffcc00");
-	errlog_count("scare fired");
+	const arm = equip_plan("panic");
+	emit_equip_ops(arm.ops, arm.shadow);
 	parent.next_skill.scare = new Date(Date.now() + G.skills.scare.cooldown);
+	errlog_count(arm.ops.length ? "scare fired with swap" : "scare fired");
+	game_log("Using Scare!", "#ffcc00");
 	use_skill("scare").catch(e => game_log(`[PANIC] Error using scare: ${fmt_err(e)}`, "#ff4444"));
+	return true;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

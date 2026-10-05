@@ -43,9 +43,9 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Core Systems/Porcupine Guard.js` | **Temporary** — keeps Ulric off porcupines (no targeting, single set when one is within splash reach) and puts them first on Riva's list. Every call site is `typeof`-guarded; delete the file's Bootstrapper line to remove |
 | `Core Systems/World Events.js` | Live boss/seasonal targets, the goal that walks the party to them, and the anniversary visit |
 | `Core Systems/Character Messaging.js` | CM (character message) handlers, localStorage-backed state cache |
-| `Core Systems/Equipment Manager.js` | Equipment sets, the single `batch_equip()` emitter, the slot arbiter, the shadow-inventory planner (`equip_plan()`/`emit_equip_ops()`) that resolves a chain of sets ahead of the server's acks, and the rules resolver — the one file that changes what is worn |
+| `Core Systems/Equipment Manager.js` | Equipment sets, the single `batch_equip()` emitter, the slot arbiter, the shadow-inventory planner (`equip_plan()`/`emit_equip_ops()`) that resolves a chain of sets ahead of the server's acks, and the rules resolver — the one file that changes what is worn. Every swap sent is recorded per slot for 1.5s (`slot_in_flight()`/`slot_intent()`), and `is_set_equipped()` reads that intent, so the rules loop never re-sends a swap from a stale inventory view — re-sending used stale indices and flipped the orb straight back. `emit_equip_ops()` queues a reply deferred for every op so the server's FIFO replies stay aligned |
 | `Core Systems/Equipment Valuation.js` | What each set is worth: ability procs, measured set profiles, damage maths, and the one weapon chooser (`resolve_weapon_set()`/`set_damage_value()`) every fighter uses. Returns names and numbers; equips nothing |
-| `Core Systems/Party Management.js` | Panic and its broadcast (`set_panic()` is the only writer), party invites, where home is |
+| `Core Systems/Party Management.js` | Panic and its broadcast (`set_panic()` is the only writer), party invites, where home is. `scare_off()` sends the jacko swap and the scare in one burst (`equip_plan("panic")` → `emit_equip_ops()` → `use_skill("scare")`), the cleave pattern — it never waits for the rules loop to put the orb on first |
 | `Core Systems/Loot Management.js` | `loose_loot()` — what we keep, ship to the merchant, or vendor; bank withdrawal; chest looting (`should_loot()`/`handle_looting()`, driven by each character's `CONFIG.looting`) |
 | `Core Systems/Maintenance.js` | Potion drinking/restocking and the periodic tab reload |
 | `Core Systems/Party Cohesion.js` | Cohesion only — `follow_goal()`, `party_cohesion_hold()`, `leader_position()`, `behind_on_xp()`. A service `movement_goal()` consults; decides no movement itself |
@@ -65,7 +65,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Interface/Widget Helpers.js` | **Loaded in the awaited first stage with `Global Config.js`**, so everything else may assume it. `register_widget()` — the one container/render-tick the Gold/XP/CC/DPS meters are each a single call into — plus `create_bottomrightcorner_widget()`, the rolling-window helpers (`commas()`, `prune_before()`, `window_sum()`) and `make_draggable()` (Settings Window.js/Stats Window.js) |
 | `Character Managers/Warrior Manager/Warrior Config.js` | Warrior tunables, gear sets, panic thresholds, `state`/`cache` (character: Ulric) |
 | `Character Managers/Warrior Manager/Warrior Combat.js` | Warrior targeting, the sugar-rush swap trick, `action_loop()`; sets `cache.tank_entity` to **Myras** |
-| `Character Managers/Warrior Manager/Warrior Skills.js` | Warrior skill loop (cleave, agitate, warcry); agitate donates aggro to the tank (stomp/hardshell/charge commented out) |
+| `Character Managers/Warrior Manager/Warrior Skills.js` | Warrior skill loop (cleave, agitate, warcry, stomp); agitate donates aggro to the tank but stands down while she is `endangered()`; stomp stuns her attackers when she is endangered or below 60%, only with a basher-type weapon worn or the `basher` set in the bag, swapped in and out in one burst like cleave (hardshell/charge commented out) |
 | `Character Managers/Warrior Manager/Warrior Equipment.js` | Warrior `EQUIPMENT_RULES` resolvers and monster gear overrides |
 | `Character Managers/Warrior Manager/Warrior Movement.js` | Warrior reposition scorer |
 | `Character Managers/Warrior Manager/Warrior.js` | Warrior entry point — windows, event handlers, `run_character()` |
@@ -178,8 +178,11 @@ this party, so do not reason from the usual Warrior-tanks/Healer-heals layout:
 - Target priority runs both ways round this: the Warrior's `target_priority` is `["Myras"]`, fed to the
   scorer's `protects` term (kill what she holds),
   the Healer's is `["Ulric", "Myras"]` (pull what is hitting him, then hold it).
-- So `Warrior Skills.js`'s `stomp`/`hardshell`/`charge` are commented out, and low-HP checks like
-  `tank?.hp < tank?.max_hp * 0.3` refer to *her* HP, not his.
+- So `Warrior Skills.js`'s `hardshell`/`charge` are commented out, its stomp protects *her*, and
+  low-HP checks like `tank.hp < tank.max_hp * 0.6` refer to *her* HP, not his.
+- Her absorb and her own pulls are gated on projected damage (`tank_can_take()` in `Healer Combat.js`,
+  over `incoming_dps()` in `Combat Formulas.js`): nothing is taken on if she would fall below 30% within
+  2s net of her own healing. She pulls nothing while Ulric or Riva is dead or off her map.
 
 Practical consequence: survivability work (damage projection, panic thresholds, defensive gear,
 escape logic) belongs on the **Healer**. The Warrior is a DPS/off-puller — give him damage,

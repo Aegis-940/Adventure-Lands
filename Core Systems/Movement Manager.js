@@ -34,6 +34,23 @@ function stop_movement(reason = "interrupted") {
 	try { smart.moving = false; } catch (e) { }
 }
 
+function town_channelling() {
+	return !!(character.c && character.c.town);
+}
+
+function cancel_town_channel() {
+	if (town_channelling()) Promise.resolve(stop("town")).catch(() => { });
+}
+
+function channel_walk() {
+	if (!town_channelling() || !smart.moving || !smart.found || character.moving) return;
+	const next = smart.plot && smart.plot[0];
+	if (!next || next.town || next.transport || next.map !== character.map) return;
+	if (!can_move_to(next.x, next.y)) return;
+	smart.plot.splice(0, 1);
+	move(next.x, next.y);
+}
+
 const NATIVE_SEARCH_FAILED = "failed";
 const MOVE_NO_PATH = "no path";
 const MOVE_TIMEOUT_REASON = "timeout";
@@ -49,6 +66,7 @@ function smarter_move(destination, on_done, options = {}) {
 	let timeout_id = null;
 	let settled = false;
 	let native_failure = null;
+	const town_allowed = !!options.town;
 
 	const MOVE_TIMEOUT = options.timeout || 120000;
 
@@ -59,6 +77,7 @@ function smarter_move(destination, on_done, options = {}) {
 		interrupt_reason = reason;
 		smart.moving = false;
 		smart.use_town = false;
+		if (town_allowed) cancel_town_channel();
 		if (timeout_id) clearTimeout(timeout_id);
 		if (typeof on_done === "function") on_done(false, reason);
 		if (reject_fn) reject_fn({ success: false, reason });
@@ -69,6 +88,7 @@ function smarter_move(destination, on_done, options = {}) {
 		settled = true;
 		smart.moving = false;
 		smart.use_town = false;
+		if (town_allowed) cancel_town_channel();
 		if (timeout_id) clearTimeout(timeout_id);
 		if (typeof on_done === "function") on_done(success, reason);
 		if (success && resolve_fn) resolve_fn({ success: true });

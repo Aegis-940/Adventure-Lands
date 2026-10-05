@@ -29,23 +29,43 @@ function clear_offhand_for_doublehand(valid_items) {
 	if (!two_hander) return false;
 
 	parent.socket.emit("unequip", { slot: "offhand" });
+	note_slot_flight("offhand", null);
 	return true;
 }
 
-const MAINHAND_FLIGHT_MS = 1500;
+const SLOT_FLIGHT_MS = 1500;
 const EQUIP_ACK_TIMEOUT_MS = 1000;
 
-var _mainhand_flight = { pending: null, until: 0 };
+var _slot_flight = {};
+
+function note_slot_flight(slot, name) {
+	_slot_flight[slot] = { name, until: Date.now() + SLOT_FLIGHT_MS };
+}
+
+function slot_in_flight(slot) {
+	const flight = _slot_flight[slot];
+	if (!flight) return undefined;
+	const worn = character.slots[slot];
+	const landed = flight.name ? !!worn && worn.name === flight.name : !worn;
+	if (landed || Date.now() > flight.until) {
+		delete _slot_flight[slot];
+		return undefined;
+	}
+	return flight.name;
+}
+
+function slot_intent(slot) {
+	const flight = slot_in_flight(slot);
+	if (flight !== undefined) return flight;
+	return character.slots[slot] ? character.slots[slot].name : null;
+}
 
 function mainhand_in_flight() {
-	if (!_mainhand_flight.pending) return null;
-	if (Date.now() > _mainhand_flight.until) _mainhand_flight.pending = null;
-	else if (character.slots.mainhand?.name === _mainhand_flight.pending) _mainhand_flight.pending = null;
-	return _mainhand_flight.pending;
+	return slot_in_flight("mainhand") || null;
 }
 
 function mainhand_intent() {
-	return mainhand_in_flight() || character.slots.mainhand?.name || null;
+	return slot_intent("mainhand");
 }
 
 async function batch_equip(data, set_name) {
@@ -69,6 +89,7 @@ async function batch_equip(data, set_name) {
 
 		const slot_item = parent.character.slots[slot];
 		if (slot_item && slot_item.name === item_name && (slot_item.level ?? 0) === (level ?? 0)) continue;
+		if (slot_in_flight(slot) === item_name) continue;
 
 		let idx = parent.character.items.findIndex((item, j) =>
 			item && item.name === item_name && (item.level ?? 0) === (level ?? 0) && item.l === l && !claimed_slots.has(j)
@@ -104,11 +125,7 @@ async function batch_equip(data, set_name) {
 
 	clear_offhand_for_doublehand(valid_items);
 
-	const mainhand_swap = valid_items.find(v => v.slot === "mainhand");
-	if (mainhand_swap) {
-		_mainhand_flight.pending = parent.character.items[mainhand_swap.num].name;
-		_mainhand_flight.until = Date.now() + MAINHAND_FLIGHT_MS;
-	}
+	for (const v of valid_items) note_slot_flight(v.slot, parent.character.items[v.num].name);
 
 	try {
 		const ack = parent.push_deferred("equip_batch").then(() => true, () => true);
@@ -138,9 +155,9 @@ function is_set_equipped(set_name) {
 	if (!set) return false;
 
 	return set.every(item => {
+		if (slot_intent(item.slot) !== item.item_name) return false;
 		const worn = character.slots[item.slot];
-		if (!worn || worn.name !== item.item_name) return false;
-		if ((worn.level ?? 0) !== (item.level ?? 0)) warn_worn_level(set_name, item, worn);
+		if (worn && worn.name === item.item_name && (worn.level ?? 0) !== (item.level ?? 0)) warn_worn_level(set_name, item, worn);
 		return true;
 	});
 }
@@ -351,8 +368,13 @@ function equip_plan(set_names, shadow) {
 	return { ops, shadow: inventory };
 }
 
-function emit_equip_ops(ops) {
-	for (const op of ops) parent.socket.emit(op.event, op.payload);
+function emit_equip_ops(ops, shadow) {
+	for (const op of ops) {
+		parent.push_deferred(op.event).catch(() => { });
+		parent.socket.emit(op.event, op.payload);
+		const slots = op.event === "equip_batch" ? op.payload.map(p => p.slot) : [op.payload.slot];
+		for (const slot of slots) note_slot_flight(slot, shadow.slots[slot] ? shadow.slots[slot].name : null);
+	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

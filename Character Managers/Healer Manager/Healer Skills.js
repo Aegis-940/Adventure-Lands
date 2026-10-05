@@ -87,12 +87,28 @@ function dark_blessing_synced() {
 
 var CURSE_NEARBY_RANGE = 50;
 
+var CURSE_MP_FLOOR_PCT = 0.35;
+
+function curse_mp_floor() {
+	return Math.max(character.max_mp * CURSE_MP_FLOOR_PCT, 2 * (character.mp_cost || 0) + G.skills.partyheal.mp);
+}
+
+function party_focus_ids() {
+	const ids = [];
+	for (const name of COHESION_FOLLOWERS) {
+		const ally = get_player(name);
+		if (ally && ally.target) ids.push(ally.target);
+	}
+	return ids;
+}
+
 async function handle_curse() {
 	if (is_on_cooldown("curse")) return;
+	if (character.mp - G.skills.curse.mp < curse_mp_floor()) return;
 
 	const has_target = e =>
 		e.type === "monster" && !e.dead && e.visible && e.target && !e.immune && !cave_bystander(e) &&
-		e.hp >= e.max_hp * CONFIG.combat.curse_min_hp_pct;
+		!(e.s && e.s.cursed) && e.hp >= e.max_hp * CONFIG.combat.curse_min_hp_pct;
 
 	let target = null;
 
@@ -108,7 +124,8 @@ async function handle_curse() {
 			: Object.values(parent.entities)
 				.filter(e => has_target(e) && e.mtype === home && is_in_range(e, "curse"));
 
-		candidates.sort((a, b) => b.hp - a.hp);
+		const focus = party_focus_ids();
+		candidates.sort((a, b) => (focus.includes(b.id) - focus.includes(a.id)) || (b.hp - a.hp));
 		if (candidates.length) target = candidates[0];
 	}
 
@@ -124,22 +141,28 @@ async function handle_absorb() {
 	if (maps_to_exclude.includes(character.map)) return;
 
 	if (!character.party) return;
+	if (character.mp - G.skills.absorb.mp < character.mp_cost) return;
 
-	const party_names = Object.keys(get_party());
-	const allies = party_names.filter(n => n !== character.name);
-	if (!allies.length) return;
+	const allies = Object.keys(get_party())
+		.filter(n => n !== character.name)
+		.map(n => get_player(n))
+		.filter(ally => ally && !ally.rip && is_in_range(ally, "absorb"))
+		.sort((a, b) => a.hp / a.max_hp - b.hp / b.max_hp);
 
-	for (let id in parent.entities) {
-		const entity = parent.entities[id];
-		if (!entity || entity.type !== "monster" || entity.dead) continue;
-
-		if (entity.target && allies.includes(entity.target) && entity.target !== character.name) {
-			const ally = get_player(entity.target);
-			if (!ally || ally.rip || !is_in_range(ally, "absorb")) continue;
-
-			await use_skill("absorb", entity.target);
-			return;
+	for (const ally of allies) {
+		let added = 0;
+		for (const id in parent.entities) {
+			const e = parent.entities[id];
+			if (e.type === "monster" && !e.dead && e.target === ally.name) added += monster_dps_on(e, character);
 		}
+		if (!added) continue;
+		if (!tank_can_take(added)) {
+			errlog_count("absorb refused: tank headroom");
+			continue;
+		}
+
+		await use_skill("absorb", ally.name);
+		return;
 	}
 }
 
@@ -180,6 +203,7 @@ function sample_heal_choice(fired, party_value, single_value, critical) {
 
 function party_heal_emergency() {
 	if (character.max_hp && character.hp < character.max_hp * CONFIG.healing.party_heal_self_pct) return "self";
+	if (character.max_hp && projected_hp(character, 0, self_heal_rate()) < character.max_hp * ENDANGER_FLOOR_PCT) return "self";
 	if (party_heal_critical_count() >= CONFIG.healing.party_heal_critical_count) return "party";
 	return null;
 }

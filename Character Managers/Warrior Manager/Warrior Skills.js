@@ -27,9 +27,13 @@ async function skill_loop() {
 			}
 		}
 
-		// if (CONFIG.skills.stomp_enabled && tank?.hp < tank?.max_hp * 0.3) {
-		// 	await handle_stomp();
-		// }
+		if (CONFIG.skills.stomp_enabled && tank) {
+			try {
+				handle_stomp(tank);
+			} catch (e) {
+				catcher(e, "handle_stomp");
+			}
+		}
 
 		if (CONFIG.skills.cleave_enabled && home !== "bscorpion" && !dungeon_flag("no_cleave")) {
 			try {
@@ -67,32 +71,58 @@ async function skill_loop() {
 	setTimeout(skill_loop, loop_next("skill_loop", next_delay));
 }
 
-async function handle_stomp() {
-	if (is_on_cooldown("stomp")) return;
-	if (ms_to_next_skill("attack") <= 75) return;
+var STOMP_SET = "basher";
+var STOMP_TANK_HP_PCT = 0.6;
 
-	const mainhand = character.slots.mainhand?.name;
-	const needs_swap = mainhand !== "basher";
-	const now = performance.now();
-	const restore = weapon_set_to_restore();
+function stomp_weapon_worn() {
+	const worn = character.slots.mainhand;
+	return !!worn && G.items[worn.name].wtype === G.skills.stomp.wtype;
+}
 
-	const token = equip_claim("stomp-swap", EQUIP_PRIORITY.skill);
-	if (!token) return;
-	try {
-		if (needs_swap && now - state.last_basher_swap > COOLDOWNS.weapon_swap) {
-			state.last_basher_swap = now;
-			await unequip("offhand");
-			if (!await equip_apply(token, "basher")) return;
-		}
+function stomp_weapon_ready() {
+	return stomp_weapon_worn() || set_available(STOMP_SET);
+}
 
-		await use_skill("stomp");
+function stomp_wanted(tank) {
+	if (tank.rip) return false;
+	if (!endangered(tank) && tank.hp >= tank.max_hp * STOMP_TANK_HP_PCT) return false;
 
-		if (needs_swap && restore) {
-			await equip_apply(token, restore);
-		}
-	} finally {
-		equip_release(token);
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || e.dead || e.target !== tank.name) continue;
+		if (distance(character, e) <= G.skills.stomp.range) return true;
 	}
+	return false;
+}
+
+function handle_stomp(tank) {
+	if (ms_to_next_skill("stomp") !== 0) return;
+	if (character.mp < G.skills.stomp.mp + panic_mp_reserve()) return;
+	if (character.cc >= COOLDOWNS.cc || is_disabled(character)) return;
+	if (!stomp_weapon_ready() || !stomp_wanted(tank)) return;
+
+	if (stomp_weapon_worn()) {
+		parent.socket.emit("skill", { name: "stomp" });
+		parent.next_skill.stomp = new Date(Date.now() + G.skills.stomp.cooldown);
+		errlog_count("stomp fired");
+		return;
+	}
+
+	const restore = weapon_set_to_restore();
+	if (!restore) return;
+
+	const arm = equip_plan(STOMP_SET);
+	if (!arm.ops.length) return;
+
+	const back = equip_plan(restore, arm.shadow);
+	if (!back.ops.length) return;
+
+	emit_equip_ops(arm.ops, back.shadow);
+	parent.socket.emit("skill", { name: "stomp" });
+	emit_equip_ops(back.ops, back.shadow);
+	parent.next_skill.stomp = new Date(Date.now() + G.skills.stomp.cooldown);
+	errlog_count("stomp swap fired");
+	game_log(`Stomp — Myras at ${Math.round(100 * tank.hp / tank.max_hp)}%`, "#FFA600");
 }
 
 async function handle_cleave() {
@@ -118,9 +148,9 @@ async function handle_cleave() {
 
 	state.last_cleave_swap = now;
 
-	emit_equip_ops(arm.ops);
+	emit_equip_ops(arm.ops, back.shadow);
 	parent.socket.emit("skill", { name: "cleave" });
-	emit_equip_ops(back.ops);
+	emit_equip_ops(back.ops, back.shadow);
 	parent.next_skill.cleave = new Date(Date.now() + G.skills.cleave.cooldown);
 	errlog_count("cleave swap fired");
 }
@@ -167,6 +197,7 @@ function is_fireroamer_agitate_safe(nearby_mobs) {
 
 async function handle_agitate(tank) {
 	if (is_on_cooldown("agitate") || !tank || tank.rip) return;
+	if (endangered(tank)) return;
 	if (character.mp < G.skills.agitate.mp + panic_mp_reserve()) return;
 
 	const skill_range = G.skills.agitate.range;

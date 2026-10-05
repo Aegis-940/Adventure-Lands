@@ -147,23 +147,38 @@ function follow_goal() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// CRUISE — while she travels, the leader walks no faster than her slowest follower
+// CRUISE — while travelling, each fighter walks no faster than the slowest of the three
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const CRUISE_RELEASE = 500;
 const CRUISE_RETUNE_MS = 1000;
+const CRUISE_SETTLE_MS = 1000;
 
 let _cruise = undefined;
 let _cruise_at = 0;
+let _cruise_released_at = 0;
 let _natural_speed = 0;
 
+function cruise_natural_speed() {
+	return _cruise ? _natural_speed : character.speed;
+}
+
+function cruise_caught_up() {
+	if (character.name === MOVEMENT_LEADER) return true;
+	const pos = leader_position();
+	if (!pos || pos.rip || pos.map !== character.map) return false;
+	return Math.hypot(character.x - pos.x, character.y - pos.y) <= cohesion_regroup();
+}
+
 function cruise_target(goal) {
-	if (character.name !== MOVEMENT_LEADER || character.rip) return null;
+	if (character.rip) return null;
 	if (!goal || goal.local || goal.hold) return null;
 	if (monsters_targeting_me() > 0) return null;
+	if (!cruise_caught_up()) return null;
 
 	let slowest = Infinity;
-	for (const name of COHESION_FOLLOWERS) {
+	for (const name of COHESION_FOLLOWERS.concat([MOVEMENT_LEADER])) {
+		if (name === character.name) continue;
 		const s = read_state_cache(name);
 		if (!s || s.rip || s.paused || !s.speed) continue;
 		if (s.speed < slowest) slowest = s.speed;
@@ -172,12 +187,14 @@ function cruise_target(goal) {
 }
 
 function party_cruise(goal) {
-	if (!_cruise) _natural_speed = character.speed;
+	const now = Date.now();
+	if (!_cruise && now - _cruise_released_at >= CRUISE_SETTLE_MS) _natural_speed = character.speed;
 	const want = cruise_target(goal);
 	if (want === _cruise) return;
 
-	const now = Date.now();
-	if (want && _cruise && now - _cruise_at < CRUISE_RETUNE_MS) return;
+	const urgent = !want && (character.rip || monsters_targeting_me() > 0);
+	if (!urgent && now - _cruise_at < CRUISE_RETUNE_MS) return;
+	if (!want) _cruise_released_at = now;
 	_cruise = want;
 	_cruise_at = now;
 	Promise.resolve(cruise(want || CRUISE_RELEASE)).catch(() => { });

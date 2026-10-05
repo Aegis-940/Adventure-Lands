@@ -120,7 +120,7 @@ function get_full_character_state() {
 		y: character.y,
 		rip: character.rip,
 		moving: character.moving,
-		speed: character.speed,
+		speed: cruise_natural_speed(),
 		formation: party_in_formation(),
 		disengaging: disengaging(),
 		heading: travel_heading(),

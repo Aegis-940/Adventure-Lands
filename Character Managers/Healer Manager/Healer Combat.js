@@ -58,7 +58,7 @@ function find_best_target() {
 
 	if (CONFIG.combat.aggro && count_my_aggro() < effective_aggro_cap()) {
 		const untargeted = best_target(
-			{ no_target: true, max_distance: character.range },
+			{ no_target: true, max_distance: character.range, where: m => tank_can_take(monster_dps_on(m, character)) },
 			dungeon_target_weights(), context
 		);
 		if (untargeted) return untargeted;
@@ -84,8 +84,25 @@ function count_my_aggro() {
 	return count;
 }
 
+function self_heal_rate() {
+	return heal_delivered(character, character.heal) * (character.frequency || 0);
+}
+
+function tank_can_take(added_dps) {
+	return projected_hp(character, added_dps, self_heal_rate()) > character.max_hp * ENDANGER_FLOOR_PCT;
+}
+
+function fighter_down() {
+	return COHESION_FOLLOWERS.some(name => {
+		const s = read_state_cache(name);
+		if (!s || s.paused) return false;
+		return s.rip || (s.map !== character.map && !is_travelling());
+	});
+}
+
 function effective_aggro_cap() {
 	if (dungeon_aggro_suppressed()) return 0;
+	if (fighter_down()) return 0;
 
 	const fixed = dungeon_setting("aggro_cap_fixed", null);
 	if (fixed !== null) return fixed;

@@ -136,6 +136,7 @@ function run_character(spec) {
 			}
 
 			stuck_escape_check();
+			channel_walk();
 
 			if (typeof s.pre_move === "function") await s.pre_move();
 
