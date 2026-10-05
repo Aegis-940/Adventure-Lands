@@ -161,18 +161,18 @@ function hold_camp_station() {
 	else move_to_camp_station(desired);
 }
 
-function absorb_from_ally_at_camp() {
+function camp_absorb_target() {
+	if (home !== "bscorpion" || camp_loop_parked()) return null;
+
 	const info = find_nearest_bscorpion();
-	if (!info) return;
+	if (!info) return null;
 	const bscorp = info.entity;
-	if (!bscorp.target || bscorp.target === character.name) return;
-	if (info.distance < SAFETY_DISTANCE) return;
+	if (!bscorp.target || bscorp.target === character.name) return null;
+	if (info.distance < SAFETY_DISTANCE) return null;
 
 	const ally = get_player(bscorp.target);
-	if (!ally || ally.rip || !is_in_range(ally, "absorb")) return;
-	if (!can_use("absorb")) return;
-
-	Promise.resolve(use_skill("absorb", bscorp.target)).catch(e => catcher(e, "prim_farm_loop: absorb"));
+	if (!ally || ally.rip || !is_in_range(ally, "absorb")) return null;
+	return ally.name;
 }
 
 async function prim_farm_loop() {
@@ -184,7 +184,6 @@ async function prim_farm_loop() {
 			}
 
 			hold_camp_station();
-			if (character.name === "Myras") absorb_from_ally_at_camp();
 		} catch (e) {
 			catcher(e, "prim_farm_loop");
 		}

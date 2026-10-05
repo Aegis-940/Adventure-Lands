@@ -143,6 +143,12 @@ async function handle_absorb() {
 	if (!character.party) return;
 	if (character.mp - skill_mp_cost("absorb") < character.mp_cost) return;
 
+	const camp_ally = camp_absorb_target();
+	if (camp_ally) {
+		await use_skill("absorb", camp_ally);
+		return;
+	}
+
 	const allies = Object.keys(get_party())
 		.filter(n => n !== character.name)
 		.map(n => get_player(n))
