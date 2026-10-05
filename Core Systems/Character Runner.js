@@ -130,6 +130,7 @@ function run_character(spec) {
 
 			if (!automation_enabled()) {
 				_current_goal = null;
+				party_cruise(null);
 				travel_arbiter(null);
 				return setTimeout(main_tick, TICK_RATE.main);
 			}
@@ -140,6 +141,7 @@ function run_character(spec) {
 
 			const goal = movement_goal();
 			_current_goal = goal;
+			party_cruise(goal);
 			disengage_check();
 			if (dungeon_moving()) return setTimeout(main_tick, TICK_RATE.main);
 

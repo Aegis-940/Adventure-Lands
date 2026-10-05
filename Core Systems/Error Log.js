@@ -297,7 +297,7 @@ function _errlog_try_wrap_game_log() {
 		try {
 			const text = String(msg);
 			if (text.indexOf("⚠️") === 0 || text.indexOf("❌") === 0 || text.indexOf("🛑") === 0
-				|| text.indexOf("🎂") === 0 || text.indexOf("[") === 0) {
+				|| text.indexOf("🎂") === 0 || text.indexOf("🚨") === 0 || text.indexOf("[") === 0) {
 				errlog_record("game_log", text);
 			}
 		} catch (e) { }
@@ -443,7 +443,12 @@ function _errlog_heartbeat() {
 			panicking: !!panicking,
 			held: panic_since
 				? Math.round((Date.now() - panic_since) / 1000) : 0,
-			goal: current_goal_label()
+			goal: current_goal_label(),
+			x: Math.round(character.x),
+			y: Math.round(character.y),
+			smart: smart.moving ? (smart.found ? "walking" : (smart.searching ? "searching" : "starting")) : null,
+			plot: smart.plot ? smart.plot.length : 0,
+			fails: travel_failures(),
 		});
 		while (_errlog.alive.length > ERRLOG_MAX_ALIVE) _errlog.alive.shift();
 		_errlog_dirty = true;

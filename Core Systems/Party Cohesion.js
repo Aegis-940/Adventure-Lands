@@ -9,6 +9,7 @@ const COHESION_DANGER_HP = 0.5;
 const XP_LAG_LEVELS = 0.05;
 const XP_LAG_CLEAR = 0.02;
 const FOLLOW_LEASH = 80;
+const FOLLOW_RING = 0.8;
 
 let _xp_lagging = false;
 
@@ -136,13 +137,50 @@ function follow_goal() {
 		label: "follow",
 		arrive,
 		radius: Math.min(fd + 30, arrive),
-		ring: fd,
+		ring: fd * FOLLOW_RING,
 		chasing: true,
 		disengage: pos.disengaging,
 		arrived: { local: "farm", label: "with-leader", disengage: pos.disengaging },
 	});
 	if (near.local || !pos.heading || in_dungeon()) return near;
 	return follow_heading(pos, pos.heading, pos.disengaging);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// CRUISE — while she travels, the leader walks no faster than her slowest follower
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const CRUISE_RELEASE = 500;
+const CRUISE_RETUNE_MS = 1000;
+
+let _cruise = undefined;
+let _cruise_at = 0;
+let _natural_speed = 0;
+
+function cruise_target(goal) {
+	if (character.name !== MOVEMENT_LEADER || character.rip) return null;
+	if (!goal || goal.local || goal.hold) return null;
+	if (monsters_targeting_me() > 0) return null;
+
+	let slowest = Infinity;
+	for (const name of COHESION_FOLLOWERS) {
+		const s = read_state_cache(name);
+		if (!s || s.rip || s.paused || !s.speed) continue;
+		if (s.speed < slowest) slowest = s.speed;
+	}
+	return slowest < _natural_speed ? Math.floor(slowest) : null;
+}
+
+function party_cruise(goal) {
+	if (!_cruise) _natural_speed = character.speed;
+	const want = cruise_target(goal);
+	if (want === _cruise) return;
+
+	const now = Date.now();
+	if (want && _cruise && now - _cruise_at < CRUISE_RETUNE_MS) return;
+	_cruise = want;
+	_cruise_at = now;
+	Promise.resolve(cruise(want || CRUISE_RELEASE)).catch(() => { });
 }
 
 function follow_heading(pos, h, disengage) {

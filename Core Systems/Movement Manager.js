@@ -34,6 +34,10 @@ function stop_movement(reason = "interrupted") {
 	try { smart.moving = false; } catch (e) { }
 }
 
+const NATIVE_SEARCH_FAILED = "failed";
+const MOVE_NO_PATH = "no path";
+const MOVE_TIMEOUT_REASON = "timeout";
+
 function smarter_move(destination, on_done, options = {}) {
 	if (smart.moving && typeof smart._interrupt === "function") {
 		smart._interrupt("interrupted");
@@ -44,6 +48,7 @@ function smarter_move(destination, on_done, options = {}) {
 	let resolve_fn, reject_fn;
 	let timeout_id = null;
 	let settled = false;
+	let native_failure = null;
 
 	const MOVE_TIMEOUT = options.timeout || 120000;
 
@@ -53,6 +58,7 @@ function smarter_move(destination, on_done, options = {}) {
 		interrupted = true;
 		interrupt_reason = reason;
 		smart.moving = false;
+		smart.use_town = false;
 		if (timeout_id) clearTimeout(timeout_id);
 		if (typeof on_done === "function") on_done(false, reason);
 		if (reject_fn) reject_fn({ success: false, reason });
@@ -62,6 +68,7 @@ function smarter_move(destination, on_done, options = {}) {
 		if (settled) return;
 		settled = true;
 		smart.moving = false;
+		smart.use_town = false;
 		if (timeout_id) clearTimeout(timeout_id);
 		if (typeof on_done === "function") on_done(success, reason);
 		if (success && resolve_fn) resolve_fn({ success: true });
@@ -97,11 +104,14 @@ function smarter_move(destination, on_done, options = {}) {
 		return Promise.reject({ reason: "invalid destination" });
 	}
 
+	smart.use_town = !!options.town;
 	smart.moving = true;
 	smart.plot = [];
 	smart.flags = {};
 	smart.searching = smart.found = false;
-	smart.on_done = () => { };
+	smart.on_done = (done, reason) => {
+		if (!done) native_failure = reason || NATIVE_SEARCH_FAILED;
+	};
 
 	const target_map = smart.map;
 	const target_x = smart.x;
@@ -124,7 +134,7 @@ function smarter_move(destination, on_done, options = {}) {
 				setTimeout(monitor_movement, 200);
 				return;
 			}
-			complete(false, "movement stopped");
+			complete(false, native_failure === NATIVE_SEARCH_FAILED ? MOVE_NO_PATH : "movement stopped");
 			return;
 		}
 
@@ -134,7 +144,7 @@ function smarter_move(destination, on_done, options = {}) {
 	setTimeout(monitor_movement, 200);
 
 	timeout_id = setTimeout(() => {
-		smart._interrupt("timeout");
+		smart._interrupt(MOVE_TIMEOUT_REASON);
 	}, MOVE_TIMEOUT);
 
 	return new Promise((resolve, reject) => {
@@ -154,9 +164,16 @@ const TRAVEL_DRIFT = 80;
 const TRAVEL_ARRIVE = 40;
 const TRAVEL_STALL_MS = 8000;
 const TRAVEL_STALL_EPS = 30;
-const TRAVEL_SEARCH_MAX_MS = 20000;
+const TRAVEL_SEARCH_MAX_MS = 60000;
+const TRAVEL_TOWN_AFTER_FAILURES = 2;
+const TRAVEL_PROGRESS_RESET = 200;
+const TRAVEL_FAILURE_LOG_EVERY = 10;
+const TRAVEL_COUNTED_FAILURES = [MOVE_NO_PATH, MOVE_TIMEOUT_REASON];
 
-let _travel = { label: null, active: false, at: 0, interrupt: null, anchor: null, anchor_at: 0, search_since: 0 };
+let _travel = {
+	label: null, active: false, at: 0, interrupt: null, anchor: null, anchor_at: 0, search_since: 0,
+	failures: 0, fail_from: null, town: false,
+};
 
 function travel_is_active() {
 	return _travel.active;
@@ -167,7 +184,38 @@ function is_travelling() {
 }
 
 function travel_searching() {
-	return !!smart.moving && !(smart.plot && smart.plot.length);
+	return !!smart.moving && !!smart.searching && !smart.found;
+}
+
+function travel_failures() {
+	return _travel.failures;
+}
+
+function travel_reset_failures() {
+	_travel.failures = 0;
+	_travel.fail_from = null;
+}
+
+function travel_failed(label, reason) {
+	if (_travel.label !== label) return;
+	if (!_travel.fail_from) _travel.fail_from = { map: character.map, x: character.x, y: character.y };
+	_travel.failures++;
+	if (_travel.failures <= TRAVEL_TOWN_AFTER_FAILURES + 1 || _travel.failures % TRAVEL_FAILURE_LOG_EVERY === 0) {
+		game_log(`🚨 "${label}" failed (${reason}) — ${_travel.failures} in a row`, "#FFA500");
+	}
+}
+
+function travel_progress_check() {
+	const from = _travel.fail_from;
+	if (!from) return;
+	if (from.map !== character.map
+		|| Math.hypot(character.x - from.x, character.y - from.y) > TRAVEL_PROGRESS_RESET) {
+		travel_reset_failures();
+	}
+}
+
+function travel_town_allowed() {
+	return _travel.failures >= TRAVEL_TOWN_AFTER_FAILURES && monsters_targeting_me() === 0;
 }
 
 function travel_release() {
@@ -221,8 +269,12 @@ function travel_arbiter(goal) {
 	const map = goal.map || character.map;
 	const radius = goal.radius || TRAVEL_ARRIVE;
 
+	if (label_changed) travel_reset_failures();
+	else travel_progress_check();
+
 	if (character.map === map && Math.hypot(character.x - goal.x, character.y - goal.y) <= radius) {
 		_travel.active = false;
+		travel_reset_failures();
 		travel_release();
 		return false;
 	}
@@ -256,16 +308,26 @@ function travel_arbiter(goal) {
 
 	const floor = label_changed ? TRAVEL_REGOAL_MS : TRAVEL_REISSUE_MS;
 	if (now - _travel.at > floor && (drifted || foreign || stalled || search_overrun)) {
-		if (stalled) game_log(`🧭 Re-pathing "${goal.label}" — no ground covered in ${TRAVEL_STALL_MS / 1000}s.`, "#FFA500");
-		if (search_overrun) game_log(`🧭 Re-pathing "${goal.label}" — pathfinder still searching after ${TRAVEL_SEARCH_MAX_MS / 1000}s.`, "#FFA500");
-		if (smart.moving) stop_movement("arbiter: " + goal.label);
+		const label = goal.label;
+		if (stalled) {
+			travel_failed(label, `no ground covered in ${TRAVEL_STALL_MS / 1000}s`);
+			_travel.anchor_at = now;
+		}
+		if (search_overrun) travel_failed(label, `pathfinder still searching after ${TRAVEL_SEARCH_MAX_MS / 1000}s`);
+		if (smart.moving) stop_movement("arbiter: " + label);
 		_travel.at = now;
-		if (_travel.label !== goal.label) game_log(`🧭 ${goal.label}`, "#8899aa");
-		_travel.label = goal.label;
+		if (_travel.label !== label) game_log(`🧭 ${label}`, "#8899aa");
+		_travel.label = label;
 		_travel.active = true;
-		_travel.anchor = null;
-		Promise.resolve(smarter_move({ map, x: goal.x, y: goal.y }, null,
-			{ timeout: 90000, radius })).catch(() => { });
+
+		const town = travel_town_allowed();
+		if (town && !_travel.town) game_log(`🚨 "${label}": no walking route — allowing the town teleport`, "#FFA500");
+		_travel.town = town;
+
+		Promise.resolve(smarter_move({ map, x: goal.x, y: goal.y }, null, { timeout: 90000, radius, town }))
+			.catch(e => {
+				if (e && TRAVEL_COUNTED_FAILURES.includes(e.reason)) travel_failed(label, e.reason);
+			});
 		_travel.interrupt = smart._interrupt;
 	}
 	return true;
@@ -278,15 +340,41 @@ function travel_arbiter(goal) {
 const STUCK_MOVE_EPSILON = 20;
 const STUCK_REQUIRED_MS = 60000;
 const STUCK_ESCAPE_COOLDOWN_MS = 300000;
-const STUCK_ENEMY_RADIUS = 300;
+const STUCK_TOWN_WAIT_MS = 12000;
+const STUCK_RETRY_MS = 15000;
+const STUCK_LANDED_RANGE = 150;
 
 let _stuck_anchor = null;
 let _stuck_since = 0;
 let _last_stuck_escape = 0;
+let _stuck_escape = null;
+
+function stuck_escape_landed() {
+	const from = _stuck_escape;
+	if (character.map !== from.map) return true;
+	const spawn = G.maps[character.map].spawns[0];
+	return Math.hypot(character.x - spawn[0], character.y - spawn[1]) <= STUCK_LANDED_RANGE;
+}
+
+function stuck_escape_settle(now) {
+	if (stuck_escape_landed()) {
+		_last_stuck_escape = now;
+		_stuck_escape = null;
+		game_log("🚨 Stuck escape landed", "#00FF00");
+		return;
+	}
+	if (now - _stuck_escape.at < STUCK_TOWN_WAIT_MS) return;
+	_stuck_escape = null;
+	_last_stuck_escape = now - STUCK_ESCAPE_COOLDOWN_MS + STUCK_RETRY_MS;
+	game_log(`🚨 Stuck escape did not land — retrying in ${STUCK_RETRY_MS / 1000}s`, "#FFA500");
+}
 
 function stuck_escape_check() {
 	if (!destination) return;
 	if (character.rip) return;
+
+	const now = Date.now();
+	if (_stuck_escape) return stuck_escape_settle(now);
 
 	if (follow_has_leader()) {
 		const lead = get_player(MOVEMENT_LEADER);
@@ -295,10 +383,8 @@ function stuck_escape_check() {
 
 	if (destination.map && character.map === destination.map) { _stuck_anchor = null; return; }
 
-	if (G.maps[character.map]?.instance) return;
-	if (in_dungeon()) return;
+	if (G.maps[character.map].instance || character.cave) return;
 
-	const now = Date.now();
 	const progressed = !_stuck_anchor
 		|| _stuck_anchor.map !== character.map
 		|| Math.hypot(character.x - _stuck_anchor.x, character.y - _stuck_anchor.y) > STUCK_MOVE_EPSILON;
@@ -314,16 +400,12 @@ function stuck_escape_check() {
 	if (character.c?.town) return;
 	if (now - _last_stuck_escape < STUCK_ESCAPE_COOLDOWN_MS) return;
 
-	const enemy_near = Object.values(parent.entities).some(e =>
-		e?.type === "monster" && !e.dead && distance(character, e) < STUCK_ENEMY_RADIUS
-	);
-	if (enemy_near) return;
-	if (get_num_targets(character.name) > 0) return;
+	if (monsters_targeting_me() > 0) return;
 
-	_last_stuck_escape = now;
 	_stuck_since = now;
+	_stuck_escape = { at: now, map: character.map };
 	game_log(`🚨 Stuck on ${character.map} for ${Math.round(stuck_ms / 1000)}s — using town to escape.`, "#FF3333");
-	use_skill("use_town");
+	Promise.resolve(use_skill("use_town")).catch(() => { });
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

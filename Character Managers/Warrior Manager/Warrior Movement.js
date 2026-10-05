@@ -43,11 +43,54 @@ function warrior_reposition_scorer() {
 }
 
 var WARRIOR_CLOSE_IN_REACH = 0.8;
+var WARRIOR_DETOUR_DIRECTIONS = 16;
+var WARRIOR_DETOUR_RADII = [80, 160, 320];
+var WARRIOR_DETOUR_ARRIVE = 10;
+var WARRIOR_DETOUR_SEARCH_MS = 1000;
+
+var _warrior_detour = null;
+var _warrior_detour_at = 0;
+
+function warrior_detour_point(goal) {
+	let best = null;
+	for (const r of WARRIOR_DETOUR_RADII) {
+		for (let i = 0; i < WARRIOR_DETOUR_DIRECTIONS; i++) {
+			const a = (2 * Math.PI * i) / WARRIOR_DETOUR_DIRECTIONS;
+			const x = character.real_x + Math.cos(a) * r;
+			const y = character.real_y + Math.sin(a) * r;
+			if (!can_move_to(x, y)) continue;
+			if (!can_move({ map: character.map, x, y, going_x: goal.x, going_y: goal.y, base: character.base })) continue;
+			const cost = r + Math.hypot(goal.x - x, goal.y - y);
+			if (!best || cost < best.cost) best = { x, y, cost };
+		}
+	}
+	return best;
+}
 
 function warrior_close_in(target) {
 	const d = Math.hypot(target.x - character.x, target.y - character.y);
 	const f = Math.max(0, (d - character.range * WARRIOR_CLOSE_IN_REACH) / d);
-	local_move(character.x + (target.x - character.x) * f, character.y + (target.y - character.y) * f);
+	const goal = { x: character.x + (target.x - character.x) * f, y: character.y + (target.y - character.y) * f };
+
+	if (local_move(goal.x, goal.y)) {
+		_warrior_detour = null;
+		return;
+	}
+
+	if (_warrior_detour
+		&& Math.hypot(character.x - _warrior_detour.x, character.y - _warrior_detour.y) <= WARRIOR_DETOUR_ARRIVE) {
+		_warrior_detour = null;
+	}
+
+	if (!_warrior_detour) {
+		const now = Date.now();
+		if (now - _warrior_detour_at < WARRIOR_DETOUR_SEARCH_MS) return;
+		_warrior_detour_at = now;
+		_warrior_detour = warrior_detour_point(goal);
+		if (!_warrior_detour) return;
+	}
+
+	if (!character.moving) move(_warrior_detour.x, _warrior_detour.y);
 }
 
 function warrior_farm_step() {
