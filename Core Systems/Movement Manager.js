@@ -361,7 +361,7 @@ const TOWN_MIN_GAIN_MS = 3000;
 const TOWN_RECHECK_MS = 1000;
 const TOWN_OWN_MS = 2000;
 const TOWN_SAMPLE_PX = 30;
-const TOWN_LANDED_RANGE = 150;
+const TOWN_JUMP_PX = 100;
 
 let _town = { checked_at: 0, cast_at: 0, label: null, copying: false, channel: null, logged: null };
 
@@ -432,10 +432,16 @@ function town_cancel(ch, reason) {
 function town_channel_watch(ch) {
 	if (!ch.mine) return;
 	if (ch.copying) {
+		if (ch.lead_landed) return;
 		const lead = get_player(MOVEMENT_LEADER);
-		if (!lead || lead.c.town) return;
-		const s = town_spawn();
-		if (Math.hypot(lead.x - s.x, lead.y - s.y) <= TOWN_LANDED_RANGE) return;
+		if (lead && lead.c.town) {
+			ch.lead_at = { x: lead.x, y: lead.y };
+			return;
+		}
+		if (!lead || !ch.lead_at || Math.hypot(lead.x - ch.lead_at.x, lead.y - ch.lead_at.y) > TOWN_JUMP_PX) {
+			ch.lead_landed = true;
+			return;
+		}
 		town_cancel(ch, `${MOVEMENT_LEADER} stopped hers`);
 		return;
 	}
