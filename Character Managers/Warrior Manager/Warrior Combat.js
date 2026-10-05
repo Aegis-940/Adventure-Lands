@@ -81,74 +81,103 @@ function find_monsters_in_cleave_range() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// STATUS SWAP TRICK
+// WEAPON BURST — swing, cleave on the axe, hold the candy canes while the hits land, then the chosen set
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var STATUS_SWAP_TRICKS = {
-	bscorpion: {
-		status: "sugarrush",
-		set: "candycane",
-		hold_ms: 50,
-		label: "Sugar Rush",
-		color: "#ff69b4",
-	},
+var SUGAR_RUSH = {
+	status: "sugarrush",
+	set: "candycane",
+	hold_ms: 50,
+	label: "Sugar Rush",
+	color: "#ff69b4",
 };
 
+var CLEAVE_SET = "bataxe";
 var SWAP_TRICK_HIT_TICK_MS = 7;
-var WEAPON_SWAP_SETTLE_MS = 250;
 
 var swap_trick_attempts = 0;
-var swap_trick_history = {};
+var swap_trick_history = [];
 
 function swap_trick_flight_ms(gap) {
 	return (1000 * gap) / G.projectiles[G.classes[character.ctype].projectile].speed;
 }
 
-function status_swap_trick(target) {
-	if (!CONFIG.combat.swap_trick_enabled) return;
+function swing_possible(target) {
+	return !!target && !travel_blocks_combat() && is_in_range(target);
+}
 
-	const trick = STATUS_SWAP_TRICKS[target.mtype];
-	if (!trick) return;
+function chosen_weapon_set() {
+	return resolve_warrior_weapon() || weapon_set_to_restore();
+}
 
-	if (character.s[trick.status] !== undefined) {
-		if (swap_trick_attempts) record_swap_trick(target.mtype, trick);
-		return;
-	}
+function sugar_rush_wanted() {
+	if (!CONFIG.combat.swap_trick_enabled) return false;
+	if (character.s[SUGAR_RUSH.status] === undefined) return true;
+	if (swap_trick_attempts) record_swap_trick();
+	return false;
+}
 
-	const now = performance.now();
-	if (now < state.weapon_swap_busy_until) return;
-
+function swing_lands_in_hold(target) {
 	const gap = distance(character, target);
 	if (gap <= 0) {
 		errlog_count("swap trick skipped: hitboxes overlap");
-		return;
+		return false;
 	}
 
 	const flight = swap_trick_flight_ms(gap);
 	errlog_time("swap trick flight", flight);
-	if (flight + SWAP_TRICK_HIT_TICK_MS >= trick.hold_ms) {
-		errlog_count("swap trick skipped: too far");
-		return;
+	if (flight + SWAP_TRICK_HIT_TICK_MS < SUGAR_RUSH.hold_ms) return true;
+
+	errlog_count("swap trick skipped: too far");
+	return false;
+}
+
+function swing_swaps(target) {
+	const cleave = cleave_ready();
+	const sugar_rush = sugar_rush_wanted() && (cleave || swing_lands_in_hold(target));
+	if (cleave || sugar_rush) weapon_burst(cleave, sugar_rush);
+}
+
+function restore_weapon_set(token, fallback) {
+	const back = equip_plan(chosen_weapon_set() || fallback);
+	emit_equip_ops(back.ops, back.shadow);
+	equip_release(token);
+}
+
+function weapon_burst(cleave, sugar_rush) {
+	const restore = chosen_weapon_set();
+	if (!restore) return false;
+
+	const token = equip_claim("weapon-burst", EQUIP_PRIORITY.skill);
+	if (!token) return false;
+
+	const axe = equip_plan(cleave ? CLEAVE_SET : []);
+	const shadow = axe.shadow;
+	const axe_worn = !!shadow.slots.mainhand && shadow.slots.mainhand.name === CLEAVE_SET;
+	const candy = equip_plan(sugar_rush ? SUGAR_RUSH.set : [], shadow);
+	const back = equip_plan(restore, shadow);
+
+	const will_cleave = cleave && axe_worn;
+	const will_rush = sugar_rush && candy.ops.length > 0;
+	const armed = axe.ops.length + candy.ops.length > 0;
+	if ((!will_cleave && !will_rush) || (armed && !back.ops.length)) {
+		equip_release(token);
+		return false;
 	}
 
-	const restore = weapon_set_to_restore();
-	if (!restore) return;
+	emit_equip_ops(axe.ops, shadow);
+	if (will_cleave) fire_cleave();
+	emit_equip_ops(candy.ops, shadow);
 
-	const arm = equip_plan(trick.set);
-	if (!arm.ops.length) return;
+	if (!will_rush) {
+		restore_weapon_set(token, restore);
+		return true;
+	}
 
-	const back = equip_plan(restore, arm.shadow);
-	if (!back.ops.length) return;
-
-	const token = equip_claim("swap-trick", EQUIP_PRIORITY.skill);
-	if (!token) return;
-
-	state.weapon_swap_busy_until = now + trick.hold_ms + WEAPON_SWAP_SETTLE_MS;
 	swap_trick_attempts++;
-	emit_equip_ops(arm.ops, back.shadow);
-	setTimeout(() => emit_equip_ops(back.ops, back.shadow), trick.hold_ms);
-	setTimeout(() => equip_release(token), trick.hold_ms + WEAPON_SWAP_SETTLE_MS);
 	errlog_count("swap trick fired");
+	setTimeout(() => restore_weapon_set(token, restore), SUGAR_RUSH.hold_ms);
+	return true;
 }
 
 function swap_penalty_logger() {
@@ -166,13 +195,11 @@ function swap_penalty_logger() {
 	parent.socket.on("skill_timeout", parent.socket._swap_penalty_logger);
 }
 
-function record_swap_trick(mtype, trick) {
-	if (!swap_trick_history[mtype]) swap_trick_history[mtype] = [];
-	const history = swap_trick_history[mtype];
-	history.push(swap_trick_attempts);
-	if (history.length > 30) history.shift();
-	const avg = history.reduce((a, b) => a + b, 0) / history.length;
-	game_log(`${trick.label} activated after ${swap_trick_attempts}! Avg attempts: ${avg.toFixed(1)}`, trick.color);
+function record_swap_trick() {
+	swap_trick_history.push(swap_trick_attempts);
+	if (swap_trick_history.length > 30) swap_trick_history.shift();
+	const avg = swap_trick_history.reduce((a, b) => a + b, 0) / swap_trick_history.length;
+	game_log(`${SUGAR_RUSH.label} activated after ${swap_trick_attempts}! Avg attempts: ${avg.toFixed(1)}`, SUGAR_RUSH.color);
 	swap_trick_attempts = 0;
 }
 
@@ -193,10 +220,10 @@ async function action_loop() {
 		const target = cache.target;
 		const ms = ms_to_next_skill("attack");
 
-		if (ms === 0 && !travel_blocks_combat() && target && is_in_range(target)) {
+		if (ms === 0 && swing_possible(target)) {
 			if (!basic_action_busy()) {
 				run_basic_action(attack(target), "attack");
-				status_swap_trick(target);
+				swing_swaps(target);
 			}
 		} else {
 			next_delay = next_action_delay(ms);

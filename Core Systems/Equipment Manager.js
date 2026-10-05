@@ -23,17 +23,18 @@ function is_doublehand(item_name) {
 	return !!(def && class_def && class_def.doublehand && class_def.doublehand[def.wtype]);
 }
 
-function clear_offhand_for_doublehand(valid_items) {
-	if (!parent.character.slots.offhand) return false;
+function clear_offhand_for_doublehand(valid_items, view) {
+	if (!view.slots.offhand) return false;
 	if (valid_items.some(v => v.slot === "offhand")) return false;
 
 	const two_hander = valid_items.some(v =>
-		v.slot === "mainhand" && is_doublehand(parent.character.items[v.num].name)
+		v.slot === "mainhand" && is_doublehand(view.items[v.num].name)
 	);
 	if (!two_hander) return false;
 
 	parent.socket.emit("unequip", { slot: "offhand" });
 	note_slot_flight("offhand", null);
+	note_sent("unequip", { slot: "offhand" });
 	return true;
 }
 
@@ -72,6 +73,50 @@ function mainhand_intent() {
 	return slot_intent("mainhand");
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// SENT VIEW — the inventory the server will hold once every swap we have sent lands, so no swap is planned from a stale one
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const EQUIP_REPLY_PLACES = ["equip_batch", "equip", "unequip"];
+
+var _equip_sent = null;
+
+function equip_pending() {
+	if (_equip_sent && (_equip_sent.replies_due <= 0 || Date.now() > _equip_sent.until)) _equip_sent = null;
+	return !!_equip_sent;
+}
+
+function equip_view() {
+	if (!equip_pending()) return shadow_inventory();
+	return { items: _equip_sent.shadow.items.slice(), slots: Object.assign({}, _equip_sent.shadow.slots) };
+}
+
+function note_sent(event, payload) {
+	const shadow = equip_view();
+
+	if (event === "unequip") {
+		shadow_unequip(shadow, payload.slot);
+	} else {
+		for (const p of payload) shadow_equip(shadow, p.num, p.slot);
+	}
+
+	_equip_sent = {
+		shadow,
+		replies_due: (_equip_sent ? _equip_sent.replies_due : 0) + 1,
+		until: Date.now() + SLOT_FLIGHT_MS,
+	};
+}
+
+if (parent.socket._equip_reply_counter) {
+	parent.socket.off("game_response", parent.socket._equip_reply_counter);
+}
+
+parent.socket._equip_reply_counter = data => {
+	if (_equip_sent && data && EQUIP_REPLY_PLACES.includes(data.place)) _equip_sent.replies_due--;
+};
+
+parent.socket.on("game_response", parent.socket._equip_reply_counter);
+
 async function batch_equip(data, set_name) {
 	if (!Array.isArray(data)) {
 		return Promise.reject({ reason: "invalid", message: "Not an array" });
@@ -82,6 +127,7 @@ async function batch_equip(data, set_name) {
 
 	let valid_items = [];
 	let claimed_slots = new Set();
+	const view = equip_view();
 
 	for (let i = 0; i < data.length; i++) {
 		let item_name = data[i].item_name;
@@ -91,25 +137,25 @@ async function batch_equip(data, set_name) {
 
 		if (!item_name) continue;
 
-		const slot_item = parent.character.slots[slot];
+		const slot_item = view.slots[slot];
 		if (slot_item && slot_item.name === item_name && level_fits(slot_item.level, level)) continue;
 		if (slot_in_flight(slot) === item_name) continue;
 
-		let idx = parent.character.items.findIndex((item, j) =>
+		let idx = view.items.findIndex((item, j) =>
 			item && item.name === item_name && level_fits(item.level, level) && item.l === l && !claimed_slots.has(j)
 		);
 		if (idx === -1) {
-			idx = parent.character.items.findIndex((item, j) =>
+			idx = view.items.findIndex((item, j) =>
 				item && item.name === item_name && level_fits(item.level, level) && !claimed_slots.has(j)
 			);
 		}
 
 		if (idx === -1) {
-			idx = parent.character.items.findIndex((item, j) =>
+			idx = view.items.findIndex((item, j) =>
 				item && item.name === item_name && !claimed_slots.has(j)
 			);
 			if (idx !== -1) {
-				const found = parent.character.items[idx];
+				const found = view.items[idx];
 				game_log(`⚠️ ${item_name} for ${slot}: set says lvl ${level ?? 0}, bag has lvl `
 					+ `${found.level ?? 0} — equipping it anyway. Fix the set definition.`,
 					"#FFA500");
@@ -127,9 +173,10 @@ async function batch_equip(data, set_name) {
 
 	if (valid_items.length === 0) return 0;
 
-	clear_offhand_for_doublehand(valid_items);
+	clear_offhand_for_doublehand(valid_items, view);
 
-	for (const v of valid_items) note_slot_flight(v.slot, parent.character.items[v.num].name);
+	for (const v of valid_items) note_slot_flight(v.slot, view.items[v.num].name);
+	note_sent("equip_batch", valid_items);
 
 	try {
 		const ack = parent.push_deferred("equip_batch").then(() => true, () => true);
@@ -233,6 +280,10 @@ function equip_release(token) {
 	if (equip_holds(token)) _equip_holder = null;
 }
 
+function equip_transient() {
+	if (!_equip_holder || Date.now() - _equip_holder.at > EQUIP_CLAIM_MAX_MS) return false;
+	return _equip_holder.priority > EQUIP_PRIORITY.rules;
+}
 async function equip_apply(token, sets) {
 	if (!equip_holds(token)) return false;
 	const list = Array.isArray(sets) ? sets : [sets];
@@ -323,7 +374,7 @@ function plan_set_equip(shadow, set_name) {
 }
 
 function equip_plan(set_names, shadow) {
-	const inventory = shadow || shadow_inventory();
+	const inventory = shadow || equip_view();
 	const names = Array.isArray(set_names) ? set_names : [set_names];
 
 	let ops = [];
@@ -336,6 +387,7 @@ function emit_equip_ops(ops, shadow) {
 	for (const op of ops) {
 		parent.push_deferred(op.event).catch(() => { });
 		parent.socket.emit(op.event, op.payload);
+		note_sent(op.event, op.payload);
 		const slots = op.event === "equip_batch" ? op.payload.map(p => p.slot) : [op.payload.slot];
 		for (const slot of slots) note_slot_flight(slot, shadow.slots[slot] ? shadow.slots[slot].name : null);
 	}

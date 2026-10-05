@@ -102,6 +102,7 @@ function profile_conditions_ok() {
 }
 
 function record_set_profile(set_name) {
+	if (equip_transient() || equip_pending()) return false;
 	if (!is_set_equipped(set_name) || !profile_conditions_ok()) {
 		delete _profile_pending[set_name];
 		return false;

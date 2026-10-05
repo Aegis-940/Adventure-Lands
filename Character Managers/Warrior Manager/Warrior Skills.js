@@ -35,11 +35,11 @@ async function skill_loop() {
 			}
 		}
 
-		if (CONFIG.skills.cleave_enabled && !is_at_bscorpion_farm() &&!dungeon_flag("no_cleave")) {
+		if (!swing_possible(cache.target)) {
 			try {
-				await handle_cleave();
+				if (cleave_ready()) weapon_burst(true, sugar_rush_wanted());
 			} catch (e) {
-				catcher(e, "handle_cleave");
+				catcher(e, "cleave");
 			}
 		}
 
@@ -108,7 +108,7 @@ function handle_stomp(tank) {
 		return;
 	}
 
-	const restore = weapon_set_to_restore();
+	const restore = chosen_weapon_set();
 	if (!restore) return;
 
 	const arm = equip_plan(STOMP_SET);
@@ -125,34 +125,13 @@ function handle_stomp(tank) {
 	game_log(`Stomp — Myras at ${Math.round(100 * tank.hp / tank.max_hp)}%`, "#FFA600");
 }
 
-async function handle_cleave() {
-	const ms_until_cleave = ms_to_next_skill("cleave");
-	if (ms_until_cleave !== 0) return;
-	if (!can_cleave()) return;
+function cleave_ready() {
+	if (!CONFIG.skills.cleave_enabled || is_at_bscorpion_farm() || dungeon_flag("no_cleave")) return false;
+	return ms_to_next_skill("cleave") === 0 && can_cleave();
+}
 
-	if (character.slots.mainhand?.name === "bataxe") {
-		return use_skill("cleave");
-	}
-
-	const now = performance.now();
-	if (now - state.last_cleave_swap <= COOLDOWNS.weapon_swap) return;
-	if (now < state.weapon_swap_busy_until) return;
-
-	const restore = weapon_set_to_restore();
-	if (!restore) return;
-
-	const arm = equip_plan("bataxe");
-	if (!arm.ops.length) return;
-
-	const back = equip_plan(restore, arm.shadow);
-	if (!back.ops.length) return;
-
-	state.last_cleave_swap = now;
-	state.weapon_swap_busy_until = now + WEAPON_SWAP_SETTLE_MS;
-
-	emit_equip_ops(arm.ops, back.shadow);
+function fire_cleave() {
 	parent.socket.emit("skill", { name: "cleave" });
-	emit_equip_ops(back.ops, back.shadow);
 	parent.next_skill.cleave = new Date(Date.now() + G.skills.cleave.cooldown);
 	errlog_count("cleave swap fired");
 }
