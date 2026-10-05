@@ -46,6 +46,7 @@
 		"Dungeons/Dungeon Telemetry.js",
 		"Dungeons/Dungeon Collection.js",
 		"Dungeons/Crypt Route.js",
+		"Dungeons/Dreams Cave.js",
 		"Dungeons/Dungeon Mode.js",
 		"Interface/Bank Sort Order.js",
 		"Interface/XP Meter.js",

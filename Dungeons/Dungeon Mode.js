@@ -5,6 +5,7 @@
 const DUNGEON_BUTTONS = [
 	{ key: "crypt", id: "dungeon-btn", on: "⚰️", off: "🪦", stopping: "🛑" },
 	{ key: "spider", id: "spider-btn", on: "🕷️", off: "🕸️", stopping: "🛑" },
+	{ key: "dreams", id: "dreams-btn", on: "🌙", off: "💤", stopping: "🛑" },
 ];
 
 function dungeon_mode_enabled() {

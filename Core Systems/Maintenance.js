@@ -139,7 +139,7 @@ function schedule_periodic_reset() {
 	}
 
 	setInterval(() => {
-		if (_suppress_periodic_reset) return;
+		if (_suppress_periodic_reset || character.cave) return;
 
 		const now = new Date();
 		const hour = now.getHours();

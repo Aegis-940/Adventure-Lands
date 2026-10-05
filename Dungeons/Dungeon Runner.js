@@ -157,7 +157,7 @@ function dungeon_moving() {
 let _dungeon_travel_depth = 0;
 let _dungeon_travel_active = null;
 
-async function dungeon_travel(destination) {
+async function dungeon_travel(destination, options) {
 	const previous = _dungeon_travel_active;
 
 	_dungeon_travel_depth++;
@@ -168,7 +168,7 @@ async function dungeon_travel(destination) {
 			try { await previous; } catch (e) { }
 		}
 
-		const journey = smarter_move(destination);
+		const journey = smarter_move(destination, null, options);
 		_dungeon_travel_active = journey;
 		try {
 			return await journey;
@@ -242,6 +242,8 @@ function dungeon_suppressed_types() {
 }
 
 function dungeon_skip_target(mob) {
+	if (mob.cave && !cave_hostile(mob)) return true;
+
 	const d = active_dungeon();
 	if (!d || !mob) return false;
 	if (dungeon_avoids(mob.mtype)) return true;
@@ -278,6 +280,7 @@ function dungeon_aggro_suppressed() {
 function start_active_dungeon_when_ready() {
 	const d = active_dungeon();
 	if (!d) return;
+	if (d.start) return d.start();
 	if (d.route) return start_dungeon_loop();
 	start_dungeon_when_ready(d);
 }
@@ -455,6 +458,7 @@ function start_dungeon_watchers() {
 	setInterval(dungeon_rejoin_watch, DUNGEON_REJOIN_WATCH_MS);
 	setInterval(remember_dungeon_entities, PROGRESS_SEEN_MS);
 	setInterval(dungeon_telemetry_tick, TELEMETRY_TICK_MS);
+	setInterval(dreams_watch, DREAMS_WATCH_MS);
 }
 
 function followers_away_from_entrance(dungeon) {

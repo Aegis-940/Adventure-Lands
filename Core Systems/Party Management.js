@@ -152,8 +152,9 @@ function party_manager() {
 	const current_party = Object.keys(parent.party || {});
 
 	if (am_leader) {
+		current_party.filter(party_excluded).forEach(kick_party_member);
 		PARTY_MEMBERS.forEach(name => {
-			if (name === character.name) return;
+			if (name === character.name || party_excluded(name)) return;
 			if (!current_party.includes(name)) {
 				send_party_invite(name);
 				accept_party_request(name);
@@ -167,7 +168,12 @@ function party_manager() {
 	}
 }
 
+function party_excluded(name) {
+	return dungeon_flag("party_only") && !DUNGEON_PARTY.includes(name);
+}
+
 function accept_if_party(name, accept) {
+	if (party_excluded(name)) return;
 	if (name === PARTY_LEADER || PARTY_MEMBERS.includes(name)) accept(name);
 }
 

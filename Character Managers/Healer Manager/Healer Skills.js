@@ -91,7 +91,7 @@ async function handle_curse() {
 	if (is_on_cooldown("curse")) return;
 
 	const has_target = e =>
-		e.type === "monster" && !e.dead && e.visible && e.target && !e.immune &&
+		e.type === "monster" && !e.dead && e.visible && e.target && !e.immune && !cave_bystander(e) &&
 		e.hp >= e.max_hp * CONFIG.combat.curse_min_hp_pct;
 
 	let target = null;

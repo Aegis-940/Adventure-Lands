@@ -49,6 +49,8 @@ const CM_HANDLERS = {
 
 	"dungeon_focus": (name, data) => set_dungeon_focus_target(data.id || null),
 
+	"dreams_exit": () => dreams_leave(),
+
 	"dungeon_bail": async (name, data) => {
 		await dungeon_bail_out(data.reason || `${name} called it`, false);
 	},
@@ -113,6 +115,7 @@ function get_full_character_state() {
 		gold: character.gold,
 		map: character.map,
 		in: character.in,
+		cave_run: character.cave ? character.cave.run : null,
 		x: character.x,
 		y: character.y,
 		rip: character.rip,

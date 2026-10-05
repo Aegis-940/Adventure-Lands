@@ -975,8 +975,9 @@ settled by a `game_response` with matching `request_id` and `place: "interaction
 `{reason}`; reasons have phrases at `cave.error.<reason>` (`distance`, `cave_paused`, `vote_closed`,
 `already_voted`, `stale_choice`, `sold_out`, `gold_not_enough`, `zone_busy`, `generation_busy`, ...).
 
-While `character.cave.paused` or `character.cave_entering` is set, **every** action is rejected
-`cave_paused` / `cave_entering` (`functions.js`), so action loops must idle rather than spam.
+While `character.cave.paused` or `character.cave_entering` is set, the client refuses `move()`
+(`cave_paused` / `cave_entering`, in `functions.js`), and the guide says to pause the combat routine
+for the duration of the vote.
 
 ### `character.cave` (null outside)
 

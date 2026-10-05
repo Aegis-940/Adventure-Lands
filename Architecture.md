@@ -76,7 +76,8 @@ Dungeons/                            ← loaded in parallel as script tags, ever
     ├── Dungeon Collection.js     every few runs, meet Riff outside and hand the haul over
     ├── Spider Dungeon.js         DUNGEONS.spider definition and its run_/start_ wrappers
     ├── Crypt Dungeon.js          DUNGEONS.crypt definition and its run_/start_ wrappers
-    └── Crypt Route.js            the crypt's waypoint circuit and when to back out
+    ├── Crypt Route.js            the crypt's waypoint circuit and when to back out
+    └── Dreams Cave.js            DUNGEONS.dreams: daily Cave of Many Dreams run, votes, stairs, exit
 
     A dungeon's `flags` are read through dungeon_flag()/dungeon_setting() at the
     decision they affect. They are contextual overrides, not a second config:

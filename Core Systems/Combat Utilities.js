@@ -132,6 +132,7 @@ function travel_blocks_combat() {
 }
 
 function should_pause_combat_loop() {
+	if (character.cave && character.cave.paused) return true;
 	if (dungeon_bailing()) return true;
 	if (panicking) return true;
 	if (anniversary_travel && !follow_has_leader()) return true;
