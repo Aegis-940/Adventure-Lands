@@ -357,6 +357,9 @@ function local_wait() {
 function movement_goal() {
 	if (!CONFIG.movement.enabled) return null;
 
+	const dreams = dreams_goal();
+	if (dreams) return dreams;
+
 	if (dungeon_flag("leader_manual") && character.name === MOVEMENT_LEADER) return null;
 
 	const scripted_camp = home === "bscorpion";

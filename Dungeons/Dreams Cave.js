@@ -4,6 +4,7 @@
 
 const DREAMS_DORR = { map: "main", x: 816, y: 1200 };
 const DREAMS_DORR_RANGE = 150;
+const DREAMS_DORR_ARRIVE = 30;
 const DREAMS_WATCH_MS = 1000;
 const DREAMS_POLL_MS = 250;
 const DREAMS_CHECK_MS = 10 * 60 * 1000;
@@ -176,6 +177,43 @@ function dreams_party_engaged() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// MOVEMENT GOAL — walking to Dorr is a disengage, like walking to a boss; inside, a follower never strays after an absent leader
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function dreams_at_dorr() {
+	return character.map === DREAMS_DORR.map
+		&& Math.hypot(character.x - DREAMS_DORR.x, character.y - DREAMS_DORR.y) <= DREAMS_DORR_ARRIVE;
+}
+
+function dreams_leader_inside() {
+	const lead = read_state_cache(MOVEMENT_LEADER);
+	return !!lead && !!lead.cave_run;
+}
+
+function dreams_goal() {
+	if (!dreams_mode_on()) return null;
+
+	if (character.cave) {
+		if (character.name === MOVEMENT_LEADER) return null;
+		const lead = read_state_cache(MOVEMENT_LEADER);
+		if (lead && lead.cave_run === character.cave.run) return null;
+		return { hold: true, label: "dreams-wait-for-leader" };
+	}
+
+	if (character.cave_entering) return null;
+	if (character.name !== MOVEMENT_LEADER && !dreams_leader_inside()) return null;
+	if (dreams_at_dorr()) return { hold: true, label: "dreams-dorr" };
+	return {
+		label: "dreams-dorr",
+		map: DREAMS_DORR.map,
+		x: DREAMS_DORR.x,
+		y: DREAMS_DORR.y,
+		radius: DREAMS_DORR_ARRIVE,
+		disengage: true,
+	};
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // DAILY CHECK — the leader asks once every ten minutes whether today's visit is still unused
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -263,8 +301,11 @@ async function dreams_enter() {
 
 	for (let attempt = 1; attempt <= DREAMS_ENTRY_ATTEMPTS; attempt++) {
 		if (!dreams_mode_on()) return false;
-		dreams_log(resume ? "Walking to Dorr to return to our visit" : `Gathering the party at Dorr (attempt ${attempt})`);
-		try { await dungeon_travel(DREAMS_DORR, { radius: 30 }); } catch (e) { }
+		dreams_log(resume ? "Disengaging and walking to Dorr to return to our visit" : `Disengaging and gathering the party at Dorr (attempt ${attempt})`);
+		if (!await dreams_until(() => dreams_at_dorr() || !dreams_mode_on(), DREAMS_ASSEMBLE_MS)) {
+			dreams_log("Never reached Dorr", DUNGEON_WARN_COLOR);
+			continue;
+		}
 		if (!resume && !await dreams_wait_for_entry_party()) continue;
 
 		try {
@@ -669,16 +710,14 @@ async function dreams_follow_floor(cave) {
 async function dreams_follower_return() {
 	if (_dreams_returning || Date.now() < _dreams_return_at) return;
 	if (!dreams_mode_on() || character.rip || character.cave_entering) return;
-	const lead = read_state_cache(MOVEMENT_LEADER);
-	if (!lead || !lead.cave_run) return;
+	if (!dreams_leader_inside() || !dreams_at_dorr()) return;
 
 	_dreams_returning = true;
 	_dreams_return_at = Date.now() + DREAMS_RETURN_RETRY_MS;
 	try {
 		const visit = await cave_info();
 		if (!visit.resume || visit.resume.server !== dreams_server()) return;
-		game_log("🌙 Left outside — walking back to Dorr", DUNGEON_LOG_COLOR);
-		await dungeon_travel(DREAMS_DORR, { radius: 30 });
+		game_log("🌙 Back at Dorr — returning to the cave", DUNGEON_LOG_COLOR);
 		await cave_enter();
 	} catch (e) {
 		game_log(`🌙 Could not return to the cave: ${dreams_reason(e)}`, DUNGEON_WARN_COLOR);
