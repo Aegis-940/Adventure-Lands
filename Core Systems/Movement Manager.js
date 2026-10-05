@@ -412,5 +412,6 @@ function movement_local(goal, farm_step) {
 	if (goal && goal.local === "wait") return local_wait();
 	if (goal && goal.local === "event") return event_step(goal.event);
 	if (goal && goal.local === "loot") return loot_step();
+	if (goal && goal.disengage) return;
 	if (typeof farm_step === "function") farm_step();
 }
