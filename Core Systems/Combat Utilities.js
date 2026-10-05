@@ -174,11 +174,12 @@ const BOSS_LEASH_MARGIN = 200;
 
 function boss_home_area(mob) {
 	const spawns = (G.maps[mob.map || character.map] || {}).monsters || [];
-	const entry = spawns.find(s => s.type === mob.mtype && s.boundary);
+	const entry = spawns.find(s => s.type === mob.mtype && s.boundary && !s.roam);
 	return entry ? entry.boundary : null;
 }
 
 function boss_strayed(mob) {
+	if (!mob.target) return false;
 	const area = boss_home_area(mob);
 	if (!area) return false;
 	const m = BOSS_LEASH_MARGIN;
