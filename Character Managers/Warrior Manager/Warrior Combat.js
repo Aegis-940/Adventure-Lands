@@ -140,10 +140,14 @@ function status_swap_trick(target) {
 	const back = equip_plan(restore, arm.shadow);
 	if (!back.ops.length) return;
 
+	const token = equip_claim("swap-trick", EQUIP_PRIORITY.skill);
+	if (!token) return;
+
 	state.weapon_swap_busy_until = now + trick.hold_ms + WEAPON_SWAP_SETTLE_MS;
 	swap_trick_attempts++;
 	emit_equip_ops(arm.ops, back.shadow);
 	setTimeout(() => emit_equip_ops(back.ops, back.shadow), trick.hold_ms);
+	setTimeout(() => equip_release(token), trick.hold_ms + WEAPON_SWAP_SETTLE_MS);
 	errlog_count("swap trick fired");
 }
 
