@@ -606,8 +606,8 @@ async function run_dungeon(dungeon) {
 
 		dungeon_log(dungeon, "Complete — reloading party...");
 		send_cm(DUNGEON_FOLLOWERS, { type: "reload" });
-		await delay(500);
-		parent.window.location.reload();
+		staggered_reload();
+		await delay(RELOAD_BASE_MS + RELOAD_STAGGER_MS);
 
 		return true;
 
