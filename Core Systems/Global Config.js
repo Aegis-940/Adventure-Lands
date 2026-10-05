@@ -205,7 +205,7 @@ function delay(ms) {
 
 const RELOAD_ORDER = ["Myras", "Ulric", "Riva", "Riff"];
 const RELOAD_BASE_MS = 500;
-const RELOAD_STAGGER_MS = 6000;
+const RELOAD_STAGGER_MS = 2500;
 
 function staggered_reload() {
 	const wait = RELOAD_BASE_MS + RELOAD_ORDER.indexOf(character.name) * RELOAD_STAGGER_MS;
