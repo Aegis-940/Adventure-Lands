@@ -115,8 +115,26 @@ if (parent.socket._equip_reply_counter) {
 	parent.socket.off("game_response", parent.socket._equip_reply_counter);
 }
 
+function live_matches_sent(slot) {
+	const sent = _equip_sent.shadow.slots[slot];
+	const live = parent.character.slots[slot];
+	return (sent ? sent.name : null) === (live ? live.name : null);
+}
+
 parent.socket._equip_reply_counter = data => {
-	if (_equip_sent && data && EQUIP_REPLY_PLACES.includes(data.place)) _equip_sent.replies_due--;
+	if (!data || !EQUIP_REPLY_PLACES.includes(data.place)) return;
+	if (data.place === "equip_batch" && Array.isArray(data.slots)) {
+		for (const result of data.slots) {
+			if (typeof result === "string") errlog_count(`equip_batch item ${result}`);
+		}
+	}
+	if (!_equip_sent) return;
+
+	_equip_sent.replies_due--;
+	if (_equip_sent.replies_due === 0) {
+		const current = live_matches_sent("mainhand") && live_matches_sent("offhand");
+		errlog_count(current ? "equip reply: live current" : "equip reply: live behind");
+	}
 };
 
 parent.socket.on("game_response", parent.socket._equip_reply_counter);
