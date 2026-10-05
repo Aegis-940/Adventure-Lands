@@ -113,6 +113,7 @@ function run_character(spec) {
 	window.__al_runner_started = true;
 	const s = spec || {};
 
+	cruise(500).catch(() => { });
 	performance_trick();
 	add_bank_buttons();
 	state_cache_loop();
@@ -131,7 +132,6 @@ function run_character(spec) {
 
 			if (!automation_enabled()) {
 				_current_goal = null;
-				party_cruise(null);
 				travel_arbiter(null);
 				return setTimeout(main_tick, TICK_RATE.main);
 			}
@@ -143,7 +143,6 @@ function run_character(spec) {
 
 			const goal = movement_goal();
 			_current_goal = goal;
-			party_cruise(goal);
 			disengage_check();
 			if (dungeon_moving()) return setTimeout(main_tick, TICK_RATE.main);
 
