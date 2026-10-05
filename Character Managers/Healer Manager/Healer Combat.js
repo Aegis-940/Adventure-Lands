@@ -141,7 +141,7 @@ function find_zap_targets() {
 
 function heal_wanted() {
 	const heal_target = cache.heal_target;
-	if (!heal_target) return false;
+	if (!heal_target || cave_paused()) return false;
 
 	const delivered = heal_delivered(heal_target, character.heal);
 

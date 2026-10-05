@@ -109,6 +109,7 @@ function panic_check() {
 }
 
 function scare_off() {
+	if (cave_paused()) return;
 	if (!is_set_equipped("panic")) {
 		errlog_count("scare waiting for orb");
 		return;

@@ -38,7 +38,6 @@ const DREAMS_VOTE_RETRY = ["timeout", "disconnected"];
 const DREAMS_VOTE_SETTLED = ["vote_closed", "already_voted"];
 
 const DREAMS_EFFECT_RANK = {
-	wolves: 100,
 	bad_double: 95,
 	hunt_double: 90,
 	both: 85,
@@ -84,7 +83,12 @@ const DREAMS_EFFECT_RANK = {
 	leave: 2,
 	time: 1,
 	pay: 0,
+	wolves: -100,
 };
+
+const DREAMS_REVIVE_HERE = "here";
+const DREAMS_REVIVE_LANDING = "landing";
+const DREAMS_REVIVE_CLEAR_RADIUS = 300;
 
 const DREAMS_UNKNOWN_RANK = 5;
 
@@ -628,7 +632,25 @@ function dreams_option_score(option, encounter) {
 	return (DREAMS_EFFECT_RANK[def.effect] || 0) - (option.amber || 0) * DREAMS_AMBER_PENALTY - gold;
 }
 
+function dreams_hostile_near_body() {
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || e.dead || !e.cave || !cave_hostile(e)) continue;
+		if (Math.hypot(e.x - character.x, e.y - character.y) <= DREAMS_REVIVE_CLEAR_RADIUS) return true;
+	}
+	return false;
+}
+
+function dreams_revival_option(choice) {
+	const here = choice.options.find(o => o.id === DREAMS_REVIVE_HERE && !o.unavailable);
+	const landing = choice.options.find(o => o.id === DREAMS_REVIVE_LANDING && !o.unavailable);
+	if (here && (!landing || !dreams_hostile_near_body())) return here;
+	return landing || null;
+}
+
 function dreams_pick_option(choice) {
+	if (choice.options.some(o => o.id === DREAMS_REVIVE_LANDING)) return dreams_revival_option(choice);
+
 	const encounter = dreams_encounter_for(choice);
 	let best = null;
 	let best_score = -Infinity;
