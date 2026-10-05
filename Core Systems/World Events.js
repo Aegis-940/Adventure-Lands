@@ -135,6 +135,7 @@ function loot_step() {
 
 var anniversary_travel = false;
 
+const ANNIVERSARY_ENABLED = false;
 const ANNIVERSARY_CAST = 70;
 const ANNIVERSARY_ARRIVE = 25;
 const ANNIVERSARY_REFRESH_MS = 5 * 60 * 1000;
@@ -193,6 +194,7 @@ function anniversary_abort_reason(s) {
 }
 
 function anniversary_block_reason() {
+	if (!ANNIVERSARY_ENABLED) return "disabled";
 	if (dungeon_ignores_events()) return "in a dungeon";
 	if (home === "bscorpion") return "farming bscorpion";
 
