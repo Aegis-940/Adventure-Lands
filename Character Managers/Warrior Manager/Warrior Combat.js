@@ -51,22 +51,26 @@ function find_best_target() {
 	const forced = dungeon_focus_target();
 	if (forced) return forced;
 
+	const gear = swing_gear();
+	const explosion = gear ? gear.explosion : (character.explosion || 0);
+	const touchable = mob => warrior_may_engage(mob) && safe_to_touch(mob, explosion);
+
 	const pursued = pursued_boss();
-	if (pursued) return pursued;
+	if (pursued && safe_to_touch(pursued, explosion)) return pursued;
 
 	const max_dist = dungeon_setting("melee_engage_radius", dungeon_engage_radius(CONFIG.combat.engage_radius));
 
 	const context = {
-		gear: swing_gear(),
+		gear,
 		party_factor: CONFIG.combat.party_dps_factor,
 		protect: CONFIG.combat.target_priority
 	};
 
-	const boss = best_target({ type: CONFIG.combat.all_bosses, max_distance: max_dist, where: warrior_may_engage }, { close: 1 }, context);
+	const boss = best_target({ type: CONFIG.combat.all_bosses, max_distance: max_dist, where: touchable }, { close: 1 }, context);
 	if (boss) return boss;
 
 	const guard = typeof porcupine_guard_allows === "function" ? porcupine_guard_allows : undefined;
-	const allowed = mob => warrior_may_engage(mob) && (!guard || guard(mob));
+	const allowed = mob => touchable(mob) && (!guard || guard(mob));
 	const weights = dungeon_target_weights();
 
 	return best_target({ max_distance: max_dist, where: mob => is_in_range(mob) && allowed(mob) }, weights, context)

@@ -120,6 +120,53 @@ function boss_blocks_cleave(e) {
 	return boss_nearly_dead(e.mtype, e.hp, e.max_hp);
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// LETHAL MONSTERS — a monster with no target turns on whoever touches it first, so nobody touches one whose hit they cannot take
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const LETHAL_HIT_PCT = 0.5;
+const LETHAL_REACH_MARGIN = 80;
+const SPLASH_TOUCH_MARGIN = 10;
+
+function hit_too_big(mob, player) {
+	return monster_hit_on(mob, player) >= player.max_hp * LETHAL_HIT_PCT;
+}
+
+function must_not_touch(mob) {
+	return !mob.target && hit_too_big(mob, character);
+}
+
+function splash_would_touch(mob, explosion) {
+	if (!explosion) return false;
+	const radius = explosion_radius(explosion) + SPLASH_TOUCH_MARGIN;
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || e.dead || e.id === mob.id) continue;
+		if (must_not_touch(e) && distance(e, mob) <= radius) return true;
+	}
+	return false;
+}
+
+function safe_to_touch(mob, explosion) {
+	return !must_not_touch(mob) && !splash_would_touch(mob, explosion);
+}
+
+function lethal_pursuer() {
+	let nearest = null;
+	let nearest_gap = Infinity;
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || e.dead || e.target !== character.name) continue;
+		if (!hit_too_big(e, character)) continue;
+		const gap = distance(character, e);
+		if (gap < (e.range || 0) + LETHAL_REACH_MARGIN && gap < nearest_gap) {
+			nearest = e;
+			nearest_gap = gap;
+		}
+	}
+	return nearest;
+}
+
 function boss_engageable(name, data) {
 	const entry = EVENT_LOCATIONS.find(e => e.name === name);
 	if (!entry || entry.engage_below === undefined) return true;

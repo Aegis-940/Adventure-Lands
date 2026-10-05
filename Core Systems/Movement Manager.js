@@ -619,8 +619,35 @@ function local_wait() {
 	if (character.moving) move(character.real_x, character.real_y);
 }
 
+const EVADE_GAP = 120;
+const EVADE_TURNS = [0, 0.6, -0.6, 1.2, -1.2, 1.8, -1.8];
+const EVADE_REGOAL_PX = 8;
+
+function evade_point(threat) {
+	const base = Math.atan2(character.y - threat.y, character.x - threat.x);
+	const gap = (threat.range || 0) + EVADE_GAP;
+	for (const turn of EVADE_TURNS) {
+		const angle = base + turn;
+		const r = centre_distance_for_gap({ x: threat.x, y: threat.y, entity: threat }, angle, gap);
+		const point = { x: threat.x + Math.cos(angle) * r, y: threat.y + Math.sin(angle) * r };
+		if (can_move_to(point.x, point.y)) return point;
+	}
+	return null;
+}
+
+function evade_step(threat) {
+	scare_off();
+	const point = evade_point(threat);
+	if (!point) return;
+	if (character.moving && Math.hypot(character.going_x - point.x, character.going_y - point.y) <= EVADE_REGOAL_PX) return;
+	move(point.x, point.y);
+}
+
 function movement_goal() {
 	if (!CONFIG.movement.enabled) return null;
+
+	const threat = lethal_pursuer();
+	if (threat) return { local: "evade", label: "evade-" + threat.mtype, threat };
 
 	const dreams = dreams_goal();
 	if (dreams) return dreams;
@@ -679,6 +706,7 @@ function movement_local(goal, farm_step, engage_step) {
 	}
 	if (goal && goal.local === "step") return local_step(goal);
 	if (goal && goal.local === "wait") return local_wait();
+	if (goal && goal.local === "evade") return evade_step(goal.threat);
 	if (goal && goal.local === "event") return event_step(goal.event, engage_step);
 	if (goal && goal.local === "loot") return loot_step();
 	if (goal && goal.local === "camp") return camp_step();

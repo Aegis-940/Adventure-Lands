@@ -43,13 +43,15 @@ function find_best_target() {
 	const forced = dungeon_focus_target();
 	if (forced) return forced;
 
+	const touchable = m => safe_to_touch(m, character.explosion || 0);
+
 	const pursued = pursued_boss();
-	if (pursued) return pursued;
+	if (pursued && touchable(pursued)) return pursued;
 
 	const max_dist = dungeon_engage_radius();
 	const context = healer_target_context();
 
-	const boss = best_target({ type: CONFIG.combat.all_bosses, max_distance: max_dist }, { close: 1 }, context);
+	const boss = best_target({ type: CONFIG.combat.all_bosses, max_distance: max_dist, where: touchable }, { close: 1 }, context);
 	if (boss) return boss;
 
 	if (dungeon_flag("defensive_targeting")) {
@@ -58,7 +60,7 @@ function find_best_target() {
 
 	if (CONFIG.combat.aggro && count_my_aggro() < effective_aggro_cap()) {
 		const untargeted = best_target(
-			{ no_target: true, max_distance: character.range, where: m => tank_can_take(monster_dps_on(m, character)) },
+			{ no_target: true, max_distance: character.range, where: m => touchable(m) && tank_can_take(monster_dps_on(m, character)) },
 			dungeon_target_weights(), context
 		);
 		if (untargeted) return untargeted;
@@ -72,7 +74,7 @@ function find_best_target() {
 		if (target) return target;
 	}
 
-	return best_target({ max_distance: character.range }, dungeon_target_weights(), context);
+	return best_target({ max_distance: character.range, where: touchable }, dungeon_target_weights(), context);
 }
 
 function count_my_aggro() {

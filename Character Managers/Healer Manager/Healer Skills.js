@@ -157,11 +157,18 @@ async function handle_absorb() {
 
 	for (const ally of allies) {
 		let added = 0;
+		let lethal = false;
 		for (const id in parent.entities) {
 			const e = parent.entities[id];
-			if (e.type === "monster" && !e.dead && e.target === ally.name) added += monster_dps_on(e, character);
+			if (e.type !== "monster" || e.dead || e.target !== ally.name) continue;
+			added += monster_dps_on(e, character);
+			if (hit_too_big(e, character)) lethal = true;
 		}
 		if (!added) continue;
+		if (lethal) {
+			errlog_count("absorb refused: lethal hit");
+			continue;
+		}
 		if (!tank_can_take(added)) {
 			errlog_count("absorb refused: tank headroom");
 			continue;
