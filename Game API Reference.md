@@ -990,7 +990,7 @@ every update.
 | `floor` | 0, 1, 2 |
 | `expires`, `remaining_ms`, `server_time`, `paused`, `paused_at` | clock; remaining is `remaining_ms` while paused, else `expires` minus server-adjusted now |
 | `gold`, `amber` | the **shared purse**. Cave gold never becomes carried gold; spend it. Caps `gold_limit 60000`, `amber_limit 36`. Unspent Amber pays out on explicit exit or run end |
-| `doors[]` | `{floor, x, y, to, down, locked, map?}` — `to === "main"` is the exit |
+| `doors[]` | `{x, y, to, down, locked, map?}` for the **current floor only** — `to === "main"` is the exit. Do not filter by a `floor` field: the client never does, and a run that did walked out after floor 1 |
 | `objectives[]` | `{id, floor, kind, name, name_message, x, y, done, required, waves?}`; `kind` is `fight` (guard camp), `boss` (floor keeper), `encounter` (the marked vote), `farm` |
 | `choice` | the current vote, below |
 | `hunts[]`, `practice[]` | timed side tasks `{kills, count, deadline}` / `{name, hp, deadline}` |

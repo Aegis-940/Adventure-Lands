@@ -5,6 +5,7 @@
 const DREAMS_DORR = { map: "main", x: 816, y: 1200 };
 const DREAMS_DORR_RANGE = 150;
 const DREAMS_DORR_ARRIVE = 30;
+const DREAMS_FLOORS = 3;
 const DREAMS_WATCH_MS = 1000;
 const DREAMS_POLL_MS = 250;
 const DREAMS_CHECK_MS = 10 * 60 * 1000;
@@ -34,6 +35,7 @@ const DREAMS_HOSTILE_SIDES = ["enemy", "predator"];
 const DREAMS_DUEL_SIDES = ["duel_left", "duel_right"];
 const DREAMS_UNTOUCHABLE = ["cave_darkmage"];
 const DREAMS_VOTE_RETRY = ["timeout", "disconnected"];
+const DREAMS_VOTE_SETTLED = ["vote_closed", "already_voted"];
 
 const DREAMS_EFFECT_RANK = {
 	wolves: 100,
@@ -408,11 +410,11 @@ function dreams_door(map, door) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function dreams_open_stairs(cave) {
-	return cave.doors.find(d => d.down && !d.locked && d.floor === cave.floor) || null;
+	return cave.doors.find(d => d.down && !d.locked) || null;
 }
 
 function dreams_last_floor(cave) {
-	return !cave.doors.some(d => d.down && d.floor === cave.floor);
+	return cave.floor >= DREAMS_FLOORS - 1 && !cave.doors.some(d => d.down);
 }
 
 function dreams_label(objective) {
@@ -482,6 +484,11 @@ async function dreams_floors() {
 				floor = cave.floor;
 				goal = null;
 				dreams_log(`Floor ${floor + 1}`);
+				dungeon_telemetry_event("dreams_floor", {
+					floor,
+					doors: JSON.stringify(cave.doors),
+					objectives: JSON.stringify(cave.objectives.map(o => ({ id: o.id, kind: o.kind, floor: o.floor, required: o.required, done: o.done }))),
+				});
 			}
 
 			if (cave.paused || character.rip) {
@@ -654,7 +661,7 @@ function dreams_vote(cave) {
 	});
 	cave_reply(choice.id, option.id).catch(e => {
 		const reason = dreams_reason(e);
-		dreams_log(`Vote refused: ${reason}`, DUNGEON_WARN_COLOR);
+		if (!DREAMS_VOTE_SETTLED.includes(reason)) dreams_log(`Vote refused: ${reason}`, DUNGEON_WARN_COLOR);
 		if (_dreams_voted === choice.id && DREAMS_VOTE_RETRY.includes(reason)) _dreams_voted = null;
 	});
 }
@@ -693,7 +700,7 @@ async function dreams_follow_floor(cave) {
 	if (_dreams_returning || character.rip || cave.paused) return;
 	const lead = read_state_cache(MOVEMENT_LEADER);
 	if (!lead || lead.cave_run !== cave.run || lead.map === character.map) return;
-	const door = cave.doors.find(d => d.floor === cave.floor && d.to === lead.map && !d.locked);
+	const door = cave.doors.find(d => d.to === lead.map && !d.locked);
 	if (!door) return;
 
 	_dreams_returning = true;
