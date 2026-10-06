@@ -89,10 +89,30 @@ function event_step(event_type, engage_step) {
 	const boss = get_nearest_monster({ type: event_type });
 	if (!boss) return;
 	if (engage_step) return engage_step(boss);
+	const gap = event_stand_off(event_type);
+	if (gap !== null) return stand_off_step(boss, gap);
 	if (is_in_range(boss, "attack")) return;
 	const d = Math.hypot(boss.x - character.x, boss.y - character.y);
 	const f = Math.max(0, (d - character.range * EVENT_REACH) / d);
 	local_move(character.x + (boss.x - character.x) * f, character.y + (boss.y - character.y) * f);
+}
+
+const EVENT_STAND_TOLERANCE = 10;
+
+function event_stand_off(event_type) {
+	const entry = EVENT_LOCATIONS.find(e => e.name === event_type);
+	if (!entry.stand_off) return null;
+	const warrior = read_state_cache("Ulric");
+	if (!warrior || warrior.rip || warrior.map !== character.map) return null;
+	return warrior.range * entry.stand_off;
+}
+
+function stand_off_step(boss, gap) {
+	if (character.moving) return;
+	if (Math.abs(distance(character, boss) - gap) <= EVENT_STAND_TOLERANCE) return;
+	const angle = Math.atan2(character.y - boss.y, character.x - boss.x);
+	const r = centre_distance_for_gap({ x: boss.x, y: boss.y, entity: boss }, angle, gap);
+	local_move(boss.x + Math.cos(angle) * r, boss.y + Math.sin(angle) * r);
 }
 
 function pursued_boss() {

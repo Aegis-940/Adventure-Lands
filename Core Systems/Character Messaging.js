@@ -116,6 +116,7 @@ function get_full_character_state() {
 		cave_run: character.cave ? character.cave.run : null,
 		x: character.x,
 		y: character.y,
+		range: character.range,
 		rip: character.rip,
 		moving: character.moving,
 		formation: party_in_formation(),
