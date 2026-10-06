@@ -10,7 +10,7 @@ const XP_LAG_LEVELS = 0.05;
 const XP_LAG_CLEAR = 0.02;
 const FOLLOW_LEASH = 80;
 const FOLLOW_RING = 0.8;
-const TRAIL_SPACING = 25;
+const TRAIL_CORNER = 20;
 const TRAIL_MAX = 60;
 const TRAIL_JUMP = 120;
 
@@ -132,31 +132,31 @@ function leader_waits_for_party(event) {
 	return followers.some(s => s.map !== character.map || Math.hypot(s.x - character.x, s.y - character.y) > cohesion_range());
 }
 
-let _trail = { map: null, crumbs: [] };
+let _trail = { map: null, crumbs: [], seen: null, leg: null };
 
 function record_leader_trail() {
-	if (_trail.map !== character.map) _trail = { map: character.map, crumbs: [] };
 	const live = get_player(MOVEMENT_LEADER);
 	if (!live) return;
-	if (live.rip) {
-		_trail.crumbs = [];
-		return;
+	const here = { x: live.x, y: live.y };
+	if (_trail.map !== character.map || !_trail.seen || Math.hypot(here.x - _trail.seen.x, here.y - _trail.seen.y) > TRAIL_JUMP) {
+		_trail = { map: character.map, crumbs: [], seen: here, leg: null };
 	}
-	const last = _trail.crumbs[_trail.crumbs.length - 1];
-	if (last) {
-		const d = Math.hypot(live.x - last.x, live.y - last.y);
-		if (d < TRAIL_SPACING) return;
-		if (d > TRAIL_JUMP) _trail.crumbs = [];
-	}
-	_trail.crumbs.push({ x: live.x, y: live.y });
+	_trail.seen = here;
+	const leg = live.moving ? { x: live.going_x, y: live.going_y } : here;
+	if (_trail.leg && Math.hypot(leg.x - _trail.leg.x, leg.y - _trail.leg.y) < 1) return;
+	const turned_at_end = _trail.leg && Math.hypot(here.x - _trail.leg.x, here.y - _trail.leg.y) < TRAIL_CORNER;
+	_trail.crumbs.push(turned_at_end ? _trail.leg : here);
+	_trail.leg = leg;
 	if (_trail.crumbs.length > TRAIL_MAX) _trail.crumbs.shift();
 }
 
 function trail_point() {
-	for (let i = _trail.crumbs.length - 1; i >= 0; i--) {
-		const c = _trail.crumbs[i];
-		if (!can_move_to(c.x, c.y)) continue;
-		return Math.hypot(character.x - c.x, character.y - c.y) > TRAIL_SPACING ? c : null;
+	const live = get_player(MOVEMENT_LEADER);
+	const points = live ? _trail.crumbs.concat([{ x: live.x, y: live.y }]) : _trail.crumbs;
+	for (let i = points.length - 1; i >= 0; i--) {
+		const p = points[i];
+		if (!can_move_to(p.x, p.y)) continue;
+		return Math.hypot(character.x - p.x, character.y - p.y) > LOCAL_MOVE_SLOP ? p : null;
 	}
 	return null;
 }
