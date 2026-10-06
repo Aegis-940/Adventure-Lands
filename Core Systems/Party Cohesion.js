@@ -125,6 +125,13 @@ function party_cohesion_hold(event) {
 	});
 }
 
+function leader_waits_for_party(event) {
+	if (character.name !== MOVEMENT_LEADER) return false;
+	const followers = COHESION_FOLLOWERS.map(name => read_state_cache(name)).filter(s => s && !s.rip && !s.paused);
+	if (followers.some(s => s.goal === event.label)) return false;
+	return followers.some(s => s.map !== character.map || Math.hypot(s.x - character.x, s.y - character.y) > cohesion_range());
+}
+
 let _trail = { map: null, crumbs: [] };
 
 function record_leader_trail() {

@@ -186,6 +186,7 @@ function smarter_move(destination, on_done, options = {}) {
 const TRAVEL_REISSUE_MS = 3000;
 const TRAVEL_REGOAL_MS = 500;
 const TRAVEL_DRIFT = 80;
+const TRAVEL_DRIFT_FRACTION = 0.3;
 const TRAVEL_ARRIVE = 40;
 const TRAVEL_STALL_MS = 8000;
 const TRAVEL_STALL_EPS = 30;
@@ -306,9 +307,10 @@ function travel_arbiter(goal) {
 
 	const ours = smart.moving && _travel.interrupt && smart._interrupt === _travel.interrupt;
 	const foreign = smart.moving && !ours;
+	const remaining = map === character.map ? Math.hypot(character.x - goal.x, character.y - goal.y) : Infinity;
 	const drifted = !smart.moving
 		|| smart.map !== map
-		|| Math.hypot(smart.x - goal.x, smart.y - goal.y) > TRAVEL_DRIFT;
+		|| Math.hypot(smart.x - goal.x, smart.y - goal.y) > Math.max(TRAVEL_DRIFT, remaining * TRAVEL_DRIFT_FRACTION);
 
 	const searching = travel_searching();
 	if (searching && !_travel.search_since) _travel.search_since = now;
@@ -671,7 +673,10 @@ function movement_goal() {
 	const ignoring_events = dungeon_ignores_events();
 
 	const event = ignoring_events ? null : event_goal();
-	if (event && event.pursuit) return event;
+	if (event && event.pursuit) {
+		if (!leader_waits_for_party(event)) return event;
+		return { hold: true, label: "cohesion", disengage: false };
+	}
 
 	const scripted_camp = party_camped(event);
 
