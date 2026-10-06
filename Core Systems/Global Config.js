@@ -104,8 +104,8 @@ function home_destination(type) {
 }
 
 const EVENT_LOCATIONS = [
-	{ name: "mrpumpkin", map: "halloween", x: -217, y: 720 },
-	{ name: "mrgreen", map: "spookytown", x: 605, y: 1000 },
+	{ name: "mrpumpkin", map: "halloween", x: -217, y: 720, leash: false },
+	{ name: "mrgreen", map: "spookytown", x: 605, y: 1000, leash: false },
 	{ name: "dragold", map: "cave", x: 873, y: -727 },
 	{ name: "franky", join: true, engage_below: 0.95, leash: false, spot: { x: -19, y: 36 }, avoid: ["oneeye"] },
 	{ name: "icegolem", join: true, engage_below: 0.95 },
