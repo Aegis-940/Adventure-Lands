@@ -140,18 +140,16 @@ function find_heal_target() {
 	return lowest;
 }
 
-function find_zap_targets() {
-	if (!CONFIG.combat.zapper_enabled) return [];
+function zap_target() {
+	if (!CONFIG.combat.zapper_enabled || !is_at_bscorpion_farm()) return null;
 
-	return Object.values(parent.entities).filter(e =>
-		e &&
-		e.type === "monster" &&
-		!e.target &&
-		CONFIG.combat.zapper_mobs.includes(e.mtype) &&
-		is_in_range(e, "zapperzap") &&
-		e.visible &&
-		!e.dead
-	);
+	const info = find_nearest_bscorpion();
+	if (!info) return null;
+
+	const bscorp = info.entity;
+	if (!bscorp.target) return null;
+	if (remaining_hp(bscorp) < bscorp.max_hp * CONFIG.combat.zapper_until_hp_pct) return null;
+	return bscorp;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

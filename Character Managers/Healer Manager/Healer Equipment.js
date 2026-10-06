@@ -123,10 +123,15 @@ function resolve_healer_orb() {
 	return gear_override("orb") || preferred_orb("orb_luck");
 }
 
+function resolve_healer_ring() {
+	return zap_target() ? "zap_on" : "zap_off";
+}
+
 var EQUIPMENT_RULES = {
 	loadout: { kind: "set", resolve: resolve_healer_loadout },
 	gloves:  { kind: "set", resolve: resolve_healer_gloves },
 	orb:     { kind: "set", resolve: resolve_healer_orb },
+	ring:    { kind: "set", resolve: resolve_healer_ring },
 };
 
 var MONSTER_GEAR_OVERRIDES = {

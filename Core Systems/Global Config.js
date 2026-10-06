@@ -188,7 +188,6 @@ const TICK_RATE = {
 };
 
 const COOLDOWNS = {
-	zapper_swap: 200,
 	cc: 160
 };
 

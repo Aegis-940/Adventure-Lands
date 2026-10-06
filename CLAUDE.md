@@ -71,7 +71,7 @@ Adventure-Lands is a **browser-injected JavaScript game automation bot** for the
 | `Character Managers/Warrior Manager/Warrior.js` | Warrior entry point — windows, event handlers, `run_character()` |
 | `Character Managers/Healer Manager/Healer Config.js` | Healer tunables, gear sets, panic thresholds, `state`/`cache` (character: Myras) |
 | `Character Managers/Healer Manager/Healer Combat.js` | **The tank's** pull logic — heal target selection, MP-scaled aggro cap (`effective_aggro_cap()`), `action_loop()` |
-| `Character Managers/Healer Manager/Healer Skills.js` | Healer skill loop (curse, absorb, party heal, dark blessing) |
+| `Character Managers/Healer Manager/Healer Skills.js` | Healer skill loop (curse, absorb, party heal, dark blessing, zap). Zap is the bscorpion camp's mana dump: the `ring` rule in `Healer Equipment.js` wears the zapper on ring2 while a fighting scorpion is above `zapper_until_hp_pct` (5%, so the ring of luck is back on for the kill — the drop rolls on the luck of the scorpion's target), and she zaps only while she would stay under `CONFIG.potions.mp_threshold` missing. She has no mana regen, so every zap is paid in MP potions (140 MP ≈ 28 gold for ~190 damage), and spending below that band would keep `prefer_mp` drinking MP every 2s and never reach an HP potion |
 | `Character Managers/Healer Manager/Healer Equipment.js` | Healer `EQUIPMENT_RULES` resolvers, booster swap, temporal surge |
 | `Character Managers/Healer Manager/Healer Movement.js` | Healer runner hooks (`healer_local`, panic skip) and the circle walk |
 | `Character Managers/Healer Manager/Healer.js` | Healer entry point — windows, `run_character()` |

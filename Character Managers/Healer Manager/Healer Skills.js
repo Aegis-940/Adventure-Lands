@@ -58,9 +58,13 @@ async function skill_loop() {
 			}
 		}
 
-		// if (CONFIG.combat.zapper_enabled) {
-		// 	await handle_zapper();
-		// }
+		if (!paused) {
+			try {
+				await handle_zapper();
+			} catch (e) {
+				catcher(e, "handle_zapper");
+			}
+		}
 
 	} catch (e) {
 		catcher(e, "skill_loop");
@@ -268,43 +272,17 @@ async function handle_party_heal() {
 }
 
 
+function zapper_worn() {
+	return ["ring1", "ring2"].some(slot => character.slots[slot] && character.slots[slot].name === "zapper");
+}
+
+function zap_mp_spare() {
+	return character.max_mp - character.mp + skill_mp_cost("zapperzap") < CONFIG.potions.mp_threshold;
+}
+
 async function handle_zapper() {
-	const targets = find_zap_targets();
-	const now = performance.now();
-	const has_zapper = character.slots.ring2?.name === "zapper";
-	const can_swap = now - state.last_equip_time > COOLDOWNS.zapper_swap;
-	const has_enough_mp = character.mp > skill_mp_cost("zapperzap") + 1250;
+	if (is_on_cooldown("zapperzap") || !zapper_worn() || !zap_mp_spare()) return;
 
-	if (is_travelling() || character.cc > COOLDOWNS.cc) return;
-
-	if (targets.length > 0 && !has_zapper && can_swap && has_enough_mp && character.map === destination.map) {
-		try {
-			await equip_once("zap-on", EQUIP_PRIORITY.skill, "zap_on");
-			state.last_equip_time = now;
-		} catch (e) {
-			catcher(e, "equip zapper");
-		}
-		return;
-	}
-
-	if (targets.length > 0 && has_zapper && has_enough_mp && !is_on_cooldown("zapperzap")) {
-		for (const entity of targets) {
-			if (is_on_cooldown("zapperzap")) break;
-
-			try {
-				await use_skill("zapperzap", entity);
-			} catch (e) {
-				catcher(e, "handle_zapper");
-			}
-		}
-	}
-
-	if (targets.length === 0 && has_zapper && can_swap && character.map === destination.map) {
-		try {
-			await equip_once("zap-off", EQUIP_PRIORITY.skill, "zap_off");
-			state.last_equip_time = now;
-		} catch (e) {
-			catcher(e, "unequip zapper");
-		}
-	}
+	const target = zap_target();
+	if (target && is_in_range(target, "zapperzap")) await use_skill("zapperzap", target);
 }

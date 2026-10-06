@@ -34,7 +34,7 @@ Reading the nine deciders showed they are **two different kinds**, which the ori
 - **Persistent state** — "while X is true, wear Y": the rules resolver, looting's gold gloves,
   panic's jacko, the dungeon bail. These genuinely compete, and they are what caused the ping-pong.
 - **Transient procedures** — "equip, cast, restore": the warrior's basher and cleave swaps, the
-  swap trick, temporal surge, the zapper. These need momentary exclusive ownership of a slot, which
+  swap trick, temporal surge. These need momentary exclusive ownership of a slot, which
   is what a lock is *for*. Forcing them into a declarative decider would be the god-function
   mistake. They keep `equip_claim` at `skill`/`trick` priority, and that use is correct.
 
@@ -85,8 +85,9 @@ linger never expires while farming and the combat gloves simply never came back.
 already been called out as deliberate, and the churn was a stated design cost rather than a defect.
 Single ownership was the goal; the swap rate was not ours to trade away.
 
-**All four persistent gear deciders are now one per slot.** What remains claiming slots is the five
-transient skill procedures, which is what the arbiter is for.
+**All four persistent gear deciders are now one per slot.** What remains claiming slots is the
+transient skill procedures, which is what the arbiter is for. The zapper left that list on
+2026-10-07: it is worn for a whole scorpion fight, so it is a persistent `ring` rule on the healer.
 
 ### Before
 
