@@ -404,6 +404,57 @@ function best_join(route, origin) {
 	return best;
 }
 
+const SPAWN_GRID = 20;
+const SPAWN_STEPS = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, Math.SQRT2], [1, -1, Math.SQRT2], [-1, 1, Math.SQRT2], [-1, -1, Math.SQRT2]];
+const _spawn_walk = {};
+
+function spawn_walk_field(map) {
+	const g = G.geometry[map];
+	const s = G.maps[map].spawns[0];
+	const origin = [Math.round(s[0] / SPAWN_GRID), Math.round(s[1] / SPAWN_GRID)];
+	const dist = { [origin[0] + "," + origin[1]]: 0 };
+	const queue = [origin];
+	for (let h = 0; h < queue.length; h++) {
+		const [cx, cy] = queue[h];
+		const d = dist[cx + "," + cy];
+		for (const [dx, dy, w] of SPAWN_STEPS) {
+			const x = cx + dx;
+			const y = cy + dy;
+			const key = x + "," + y;
+			const nd = d + w * SPAWN_GRID;
+			if (dist[key] !== undefined && dist[key] <= nd) continue;
+			if (x * SPAWN_GRID < g.min_x || x * SPAWN_GRID > g.max_x || y * SPAWN_GRID < g.min_y || y * SPAWN_GRID > g.max_y) continue;
+			if (!can_move({ map, x: cx * SPAWN_GRID, y: cy * SPAWN_GRID, going_x: x * SPAWN_GRID, going_y: y * SPAWN_GRID, base: character.base })) continue;
+			if (dist[key] === undefined) queue.push([x, y]);
+			dist[key] = nd;
+		}
+	}
+	return dist;
+}
+
+function walk_from_spawn(x, y) {
+	const field = _spawn_walk[character.map] || (_spawn_walk[character.map] = spawn_walk_field(character.map));
+	const d = field[Math.round(x / SPAWN_GRID) + "," + Math.round(y / SPAWN_GRID)];
+	return d === undefined ? Infinity : d;
+}
+
+function best_spawn_join(route) {
+	let best = null;
+	let along = 0;
+	for (let i = 1; i < route.length; i++) {
+		const a = route[i - 1];
+		const b = route[i];
+		const len = Math.hypot(b.x - a.x, b.y - a.y);
+		const n = Math.max(1, Math.ceil(len / TOWN_SAMPLE_PX));
+		for (let s = 1; s <= n; s++) {
+			const gain = along + len * s / n - walk_from_spawn(a.x + (b.x - a.x) * s / n, a.y + (b.y - a.y) * s / n);
+			if (!best || gain > best.gain) best = { gain };
+		}
+		along += len;
+	}
+	return best;
+}
+
 function party_untargeted() {
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
@@ -486,7 +537,7 @@ function town_shortcut_plan() {
 
 	const head = [{ x: character.real_x, y: character.real_y, idx: -1 }];
 	if (character.moving) head.push({ x: character.going_x, y: character.going_y, idx: -1 });
-	const join = best_join(plot_route(head), town_spawn());
+	const join = best_spawn_join(plot_route(head));
 	if (!join) return;
 
 	const saved_ms = join.gain / character.speed * 1000 - G.conditions.town.duration - min_ping();
@@ -524,8 +575,12 @@ function town_landed(data) {
 	if (!smart.moving || !smart.found) return;
 	const route = plot_route([{ x: character.going_x, y: character.going_y, idx: -1 }]);
 	const join = best_join(route, { x: character.real_x, y: character.real_y });
-	if (!join) return;
-	smart.plot = [{ map: character.map, x: join.x, y: join.y }].concat(smart.plot.slice(join.next));
+	if (join) {
+		smart.plot = [{ map: character.map, x: join.x, y: join.y }].concat(smart.plot.slice(join.next));
+		return;
+	}
+	smart.plot = [];
+	smart.found = smart.searching = false;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
