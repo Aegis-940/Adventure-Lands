@@ -93,7 +93,7 @@ function swing_gear() {
 
 function warrior_may_engage(mob) {
 	if (is_in_range(mob)) return true;
-	if (dungeon_setting("melee_engage_radius", null)) return !!mob.target;
+	if (dungeon_setting("melee_engage_radius", null)) return true;
 	return DUNGEON_PARTY.includes(mob.target);
 }
 

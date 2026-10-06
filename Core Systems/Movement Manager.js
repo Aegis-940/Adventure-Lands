@@ -27,6 +27,11 @@ function local_move(x, y) {
 	return true;
 }
 
+function standoff_point(target, reach) {
+	const a = Math.atan2(character.y - target.y, character.x - target.x);
+	return { x: target.x + Math.cos(a) * reach, y: target.y + Math.sin(a) * reach };
+}
+
 function stop_movement(reason = "interrupted") {
 	try {
 		if (typeof smart._interrupt === "function") smart._interrupt(reason);

@@ -22,6 +22,8 @@ const DREAMS_ARRIVE = 40;
 const DREAMS_DOOR_ARRIVE = 20;
 const DREAMS_WALK_TIMEOUT_MS = 60000;
 const DREAMS_THREAT_RADIUS = 250;
+const DREAMS_STANDOFF = 0.9;
+const DREAMS_OPENER = "Ulric";
 const DREAMS_LAG_RANGE = 250;
 const DREAMS_TOGETHER_MS = 90000;
 const DREAMS_POKE_AFTER_MS = 20000;
@@ -107,6 +109,7 @@ DUNGEONS.dreams = {
 		no_agitate: true,
 		absorb_nearby: true,
 		melee_engage_radius: DREAMS_THREAT_RADIUS,
+		ranged_engage_radius: DREAMS_THREAT_RADIUS,
 	},
 };
 
@@ -203,8 +206,8 @@ function dreams_goal() {
 	if (character.cave) {
 		if (character.name === MOVEMENT_LEADER) return null;
 		const lead = read_state_cache(MOVEMENT_LEADER);
-		if (lead && lead.cave_run === character.cave.run) return null;
-		return { hold: true, label: "dreams-wait-for-leader" };
+		if (!lead || lead.cave_run !== character.cave.run) return { hold: true, label: "dreams-wait-for-leader" };
+		return dreams_fight_goal();
 	}
 
 	if (character.cave_entering) return null;
@@ -388,21 +391,41 @@ async function dreams_walk(spot, radius) {
 	return true;
 }
 
-function dreams_close_in() {
-	const threats = dreams_threats()
-		.sort((a, b) => distance(character, a) - distance(character, b));
-	const target = threats[0];
+function dreams_left_to_opener(mob) {
+	if (mob.target) return false;
+	const opener = get_player(DREAMS_OPENER);
+	return !!opener && !opener.rip && distance(opener, mob) <= DREAMS_THREAT_RADIUS && !hit_too_big(mob, opener);
+}
 
-	if (distance(character, target) <= character.range * 0.9) {
-		if (smart.moving) stop_movement("dreams: in range");
+function dreams_close_in() {
+	const target = dreams_threats()
+		.filter(e => !dreams_left_to_opener(e))
+		.sort((a, b) => distance(character, a) - distance(character, b))[0];
+	const reach = character.range * DREAMS_STANDOFF;
+
+	if (!target || distance(character, target) <= reach) {
+		if (smart.moving) stop_movement("dreams: holding");
+		else local_wait();
 		return;
 	}
-	if (can_move_to(target.x, target.y)) {
+	const stand = standoff_point(target, reach);
+	if (can_move_to(stand.x, stand.y)) {
 		if (smart.moving) stop_movement("dreams: direct approach");
-		move(target.x, target.y);
+		local_step({ step: stand });
 		return;
 	}
 	if (!smart.moving) dungeon_travel({ map: character.map, x: target.x, y: target.y }).catch(() => { });
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// FOLLOWERS IN A FIGHT — anything hostile within reach is fought where it stands, as long as Myras is not left behind
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function dreams_fight_goal() {
+	if (!dreams_threats().some(e => distance(character, e) <= DREAMS_THREAT_RADIUS)) return null;
+	const lead = get_player(MOVEMENT_LEADER);
+	if (lead && !lead.rip && Math.hypot(character.x - lead.x, character.y - lead.y) > cohesion_range()) return null;
+	return { local: "farm", label: "dreams-fight" };
 }
 
 function dreams_door(map, door) {
