@@ -237,6 +237,7 @@ function log_bscorpion_kill() {
 	if (bscorpion_kill_intervals.length > KILL_INTERVAL_SAMPLES) bscorpion_kill_intervals.shift();
 
 	const avg = bscorpion_kill_intervals.reduce((a, b) => a + b, 0) / bscorpion_kill_intervals.length;
+	errlog_timeline("bscorpion_kill", `${(interval / 1000).toFixed(1)}s avg ${(avg / 1000).toFixed(1)}s/${bscorpion_kill_intervals.length}`);
 	game_log(`Bscorpion kill #${bscorpion_kill_count}: ${(interval / 1000).toFixed(1)}s `
 		+ `(avg ${(avg / 1000).toFixed(1)}s over ${bscorpion_kill_intervals.length})`, "#ffb347");
 }

@@ -127,7 +127,8 @@ function handle_stomp(tank) {
 }
 
 function cleave_ready() {
-	if (!CONFIG.skills.cleave_enabled || is_at_bscorpion_farm() || dungeon_flag("no_cleave")) return false;
+	if (!CONFIG.skills.cleave_enabled || dungeon_flag("no_cleave")) return false;
+	if (is_at_bscorpion_farm() && character.s[SUGAR_RUSH.status]) return false;
 	return ms_to_next_skill("cleave") === 0 && can_cleave();
 }
 
@@ -167,7 +168,8 @@ function can_cleave() {
 	);
 	if (blocked) return false;
 
-	const min_mobs = holding_axe ? CONFIG.combat.cleave_min_mobs_held : CONFIG.combat.cleave_min_mobs;
+	const one_is_enough = holding_axe || is_at_bscorpion_farm();
+	const min_mobs = one_is_enough ? CONFIG.combat.cleave_min_mobs_held : CONFIG.combat.cleave_min_mobs;
 	return cache.monsters_in_cleave_range.length >= min_mobs;
 }
 
