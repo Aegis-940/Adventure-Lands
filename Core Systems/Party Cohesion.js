@@ -190,7 +190,7 @@ function follow_goal() {
 		arrived: { local: "farm", label: "with-leader", disengage: pos.disengaging },
 	});
 	if (near.local) return near;
-	if (pos.map === character.map) {
+	if (pos.map === character.map && !smart.moving) {
 		const point = trail_point();
 		if (point) return { local: "trail", label: "follow-trail", point, chasing: true, disengage: pos.disengaging };
 	}
