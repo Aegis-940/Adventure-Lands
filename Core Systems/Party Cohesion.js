@@ -8,7 +8,6 @@ const COHESION_FOLLOWERS = ["Ulric", "Riva"];
 const COHESION_DANGER_HP = 0.5;
 const XP_LAG_LEVELS = 0.05;
 const XP_LAG_CLEAR = 0.02;
-const FOLLOW_LEASH = 80;
 const FOLLOW_RING = 0.8;
 const TRAIL_CORNER = 20;
 const TRAIL_MAX = 60;
@@ -83,15 +82,8 @@ function leader_position() {
 	const c = read_state_cache(MOVEMENT_LEADER);
 	const live = get_player(MOVEMENT_LEADER);
 	const disengaging = !!(c && c.disengaging);
-	const heading = c ? c.heading : null;
-	if (live) return { map: character.map, x: live.x, y: live.y, rip: !!live.rip, formation: !!(c && c.formation), disengaging, heading };
-	return c ? { map: c.map, x: c.x, y: c.y, rip: !!c.rip, formation: !!c.formation, disengaging, heading } : null;
-}
-
-function travel_heading() {
-	const g = current_goal();
-	if (!g || g.local || g.hold || !isFinite(g.x) || !isFinite(g.y)) return null;
-	return { map: g.map || character.map, x: g.x, y: g.y, radius: g.radius || TRAVEL_ARRIVE };
+	if (live) return { map: character.map, x: live.x, y: live.y, rip: !!live.rip, formation: !!(c && c.formation), disengaging };
+	return c ? { map: c.map, x: c.x, y: c.y, rip: !!c.rip, formation: !!c.formation, disengaging } : null;
 }
 
 function follow_has_leader() {
@@ -187,31 +179,9 @@ function follow_goal() {
 		ring: fd * FOLLOW_RING,
 		chasing: true,
 		disengage: pos.disengaging,
-		arrived: { local: "farm", label: "with-leader", disengage: pos.disengaging },
+		arrived: { local: pos.formation ? "keep" : "farm", label: "with-leader", disengage: pos.disengaging },
 	});
 	if (near.local) return near;
-	if (pos.map === character.map && !smart.moving) {
-		const point = trail_point();
-		if (point) return { local: "trail", label: "follow-trail", point, chasing: true, disengage: pos.disengaging };
-	}
-	if (!pos.heading || in_dungeon()) return near;
-	return follow_heading(pos, pos.heading, pos.disengaging);
-}
-
-function follow_heading(pos, h, disengage) {
-	const there = character.map === h.map && Math.hypot(character.x - h.x, character.y - h.y) <= h.radius;
-	if (there || ahead_of_leader(pos, h)) return { local: "wait", label: "follow-wait", chasing: true, disengage };
-	return { label: "follow-heading", map: h.map, x: h.x, y: h.y, radius: h.radius, chasing: true, disengage };
-}
-
-function ahead_of_leader(pos, h) {
-	if (pos.map !== character.map) return character.map === h.map;
-	if (Math.hypot(character.x - pos.x, character.y - pos.y) <= FOLLOW_LEASH) return false;
-
-	const live = get_player(MOVEMENT_LEADER);
-	if (live && live.moving) {
-		return (character.x - live.x) * (live.going_x - live.x) + (character.y - live.y) * (live.going_y - live.y) > 0;
-	}
-	if (character.map !== h.map) return false;
-	return Math.hypot(character.x - h.x, character.y - h.y) < Math.hypot(pos.x - h.x, pos.y - h.y);
+	const point = pos.map === character.map && !smart.moving ? trail_point() : null;
+	return point ? { local: "trail", label: "follow-trail", point, chasing: true, disengage: pos.disengaging } : near;
 }

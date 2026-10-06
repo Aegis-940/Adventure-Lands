@@ -13,12 +13,7 @@ function fire_and_forget_move(dest, on_done) {
 }
 
 function is_teleporting() {
-	try {
-		return !!is_transporting(character);
-		return !!(character.c && (character.c.town || character.c.transport));
-	} catch (e) {
-		return false;
-	}
+	return is_transporting(character);
 }
 
 function local_move(x, y) {
@@ -742,6 +737,7 @@ function movement_local(goal, farm_step, engage_step) {
 	if (goal && goal.local === "event") return event_step(goal.event, engage_step);
 	if (goal && goal.local === "loot") return loot_step();
 	if (goal && goal.local === "camp") return camp_step();
+	if (goal && goal.local === "keep") return;
 	if (goal && goal.disengage) return;
 	if (typeof farm_step === "function") farm_step();
 }
