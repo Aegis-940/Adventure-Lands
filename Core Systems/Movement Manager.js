@@ -611,8 +611,12 @@ function approach(pos, o) {
 	return travel;
 }
 
+const LOCAL_MOVE_SLOP = 15;
+
 function local_step(goal) {
-	if (goal && goal.step) move(goal.step.x, goal.step.y);
+	if (!goal || !goal.step) return;
+	if (character.moving && Math.hypot(character.going_x - goal.step.x, character.going_y - goal.step.y) < LOCAL_MOVE_SLOP) return;
+	move(goal.step.x, goal.step.y);
 }
 
 function local_wait() {
@@ -710,6 +714,7 @@ function movement_local(goal, farm_step, engage_step) {
 		return;
 	}
 	if (goal && goal.local === "step") return local_step(goal);
+	if (goal && goal.local === "trail") return trail_step(goal);
 	if (goal && goal.local === "wait") return local_wait();
 	if (goal && goal.local === "evade") return evade_step(goal.threat);
 	if (goal && goal.local === "event") return event_step(goal.event, engage_step);

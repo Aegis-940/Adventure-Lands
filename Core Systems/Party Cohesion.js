@@ -10,6 +10,9 @@ const XP_LAG_LEVELS = 0.05;
 const XP_LAG_CLEAR = 0.02;
 const FOLLOW_LEASH = 80;
 const FOLLOW_RING = 0.8;
+const TRAIL_SPACING = 25;
+const TRAIL_MAX = 60;
+const TRAIL_JUMP = 120;
 
 let _xp_lagging = false;
 
@@ -121,7 +124,43 @@ function party_cohesion_hold() {
 	});
 }
 
+let _trail = { map: null, crumbs: [] };
+
+function record_leader_trail() {
+	if (_trail.map !== character.map) _trail = { map: character.map, crumbs: [] };
+	const live = get_player(MOVEMENT_LEADER);
+	if (!live) return;
+	if (live.rip) {
+		_trail.crumbs = [];
+		return;
+	}
+	const last = _trail.crumbs[_trail.crumbs.length - 1];
+	if (last) {
+		const d = Math.hypot(live.x - last.x, live.y - last.y);
+		if (d < TRAIL_SPACING) return;
+		if (d > TRAIL_JUMP) _trail.crumbs = [];
+	}
+	_trail.crumbs.push({ x: live.x, y: live.y });
+	if (_trail.crumbs.length > TRAIL_MAX) _trail.crumbs.shift();
+}
+
+function trail_point() {
+	for (let i = _trail.crumbs.length - 1; i >= 0; i--) {
+		const c = _trail.crumbs[i];
+		if (!can_move_to(c.x, c.y)) continue;
+		return Math.hypot(character.x - c.x, character.y - c.y) > TRAIL_SPACING ? c : null;
+	}
+	return null;
+}
+
+function trail_step(goal) {
+	const p = goal.point;
+	if (character.moving && Math.hypot(character.going_x - p.x, character.going_y - p.y) < LOCAL_MOVE_SLOP) return;
+	move(p.x, p.y);
+}
+
 function follow_goal() {
+	record_leader_trail();
 	const pos = leader_position();
 	if (!pos || pos.rip) return null;
 
@@ -142,7 +181,12 @@ function follow_goal() {
 		disengage: pos.disengaging,
 		arrived: { local: "farm", label: "with-leader", disengage: pos.disengaging },
 	});
-	if (near.local || !pos.heading || in_dungeon()) return near;
+	if (near.local) return near;
+	if (pos.map === character.map) {
+		const point = trail_point();
+		if (point) return { local: "trail", label: "follow-trail", point, chasing: true, disengage: pos.disengaging };
+	}
+	if (!pos.heading || in_dungeon()) return near;
 	return follow_heading(pos, pos.heading, pos.disengaging);
 }
 
