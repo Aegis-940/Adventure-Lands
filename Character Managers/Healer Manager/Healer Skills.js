@@ -277,7 +277,7 @@ function zapper_worn() {
 }
 
 function zap_mp_spare() {
-	return character.max_mp - character.mp + skill_mp_cost("zapperzap") < CONFIG.potions.mp_threshold;
+	return character.mp - skill_mp_cost("zapperzap") >= character.max_mp * CONFIG.combat.zapper_min_mp_pct;
 }
 
 async function handle_zapper() {

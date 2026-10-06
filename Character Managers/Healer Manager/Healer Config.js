@@ -18,6 +18,7 @@ var CONFIG = {
 		curse_min_hp_pct: 0.03,
 		zapper_enabled: true,
 		zapper_until_hp_pct: 0.05,
+		zapper_min_mp_pct: 0.80,
 
 		sample_hits: true,
 		sample_targets: true,
