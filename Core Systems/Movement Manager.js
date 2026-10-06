@@ -366,7 +366,7 @@ const TOWN_SAMPLE_PX = 30;
 const TOWN_JUMP_PX = 100;
 const TOWN_SPAWN_NEAR = 150;
 
-let _town = { checked_at: 0, cast_at: 0, label: null, copying: false, channel: null, logged: null };
+let _town = { checked_at: 0, cast_at: 0, label: null, mode: null, lead_at: null, channel: null, logged: null };
 
 function town_spawn() {
 	const s = G.maps[character.map].spawns[0];
@@ -469,43 +469,46 @@ function town_shortcut_eligible() {
 	return monsters_targeting_me() === 0;
 }
 
-function town_cast(label, copying) {
+function town_note(event, ch) {
+	errlog_count("town shortcut " + event);
+	errlog_timeline("town", `${event} ${ch.mode}${ch.label ? " " + ch.label : ""} @${Math.round(character.x)},${Math.round(character.y)} ${character.map}`);
+}
+
+function town_cast(label, mode, lead_at) {
 	_town.cast_at = Date.now();
 	_town.label = label;
-	_town.copying = copying;
+	_town.mode = mode;
+	_town.lead_at = lead_at;
 	Promise.resolve(use_skill("use_town")).catch(() => { });
 }
 
 function town_cancel(ch, reason) {
 	ch.mine = false;
 	cancel_town_channel();
-	errlog_count("town shortcut cancelled");
+	town_note("cancelled", ch);
 	game_log(`🌀 Town teleport cancelled — ${reason}`, "#8899aa");
 }
 
 function town_channel_watch(ch) {
-	if (!ch.mine) return;
-	if (ch.copying) {
-		if (ch.lead_landed) return;
-		const lead = get_player(MOVEMENT_LEADER);
-		if (lead && lead.c.town) {
-			ch.lead_at = { x: lead.x, y: lead.y };
-			return;
-		}
-		if (!lead || !ch.lead_at || Math.hypot(lead.x - ch.lead_at.x, lead.y - ch.lead_at.y) > TOWN_JUMP_PX) {
-			ch.lead_landed = true;
-			return;
-		}
-		town_cancel(ch, `${MOVEMENT_LEADER} stopped hers`);
+	if (!ch.mine || ch.mode === "join" || ch.lead_landed) return;
+	if (ch.mode === "own") {
+		if (travel_is_active() && current_goal_label() === ch.label) return;
+		town_cancel(ch, "the journey changed");
 		return;
 	}
-	if (travel_is_active() && current_goal_label() === ch.label) return;
-	town_cancel(ch, "the journey changed");
+	const lead = get_player(MOVEMENT_LEADER);
+	if (lead && lead.c.town) {
+		ch.lead_at = { x: lead.x, y: lead.y };
+		return;
+	}
+	if (!lead || Math.hypot(lead.x - ch.lead_at.x, lead.y - ch.lead_at.y) > TOWN_JUMP_PX) {
+		ch.lead_landed = true;
+		return;
+	}
+	town_cancel(ch, `${MOVEMENT_LEADER} stopped hers`);
 }
 
-function town_joins_leader() {
-	const lead = get_player(MOVEMENT_LEADER);
-	if (lead && lead.c.town) return true;
+function leader_waiting_at_spawn() {
 	const pos = leader_position();
 	const s = town_spawn();
 	return pos.map === character.map
@@ -514,13 +517,16 @@ function town_joins_leader() {
 }
 
 function town_copy_leader() {
-	if (!follow_has_leader() || !town_shortcut_eligible() || !town_joins_leader()) return false;
+	if (!follow_has_leader() || !town_shortcut_eligible()) return false;
+	const lead = get_player(MOVEMENT_LEADER);
+	const mode = lead && lead.c.town ? "copy" : leader_waiting_at_spawn() ? "join" : null;
+	if (!mode) return false;
 	if (Date.now() - _town.cast_at < TOWN_RECHECK_MS) return true;
-	if (_town.logged !== "follow") {
-		_town.logged = "follow";
-		game_log(`🌀 Teleporting to ${MOVEMENT_LEADER} at the spawn`, "#8899aa");
+	if (_town.logged !== mode) {
+		_town.logged = mode;
+		game_log(mode === "copy" ? `🌀 Following ${MOVEMENT_LEADER}'s town teleport` : `🌀 Teleporting to ${MOVEMENT_LEADER} at the spawn`, "#8899aa");
 	}
-	town_cast(null, true);
+	town_cast(null, mode, mode === "copy" ? { x: lead.x, y: lead.y } : null);
 	return true;
 }
 
@@ -548,18 +554,20 @@ function town_shortcut_plan() {
 		_town.logged = goal.label;
 		game_log(`🌀 Town shortcut on "${goal.label}" — saves ~${Math.round(saved_ms / 1000)}s`, "#8899aa");
 	}
-	town_cast(goal.label, false);
+	town_cast(goal.label, "own", null);
 }
 
 function town_shortcut_check() {
 	if (town_channelling()) {
 		if (!_town.channel) {
-			_town.channel = { mine: Date.now() - _town.cast_at < TOWN_OWN_MS, copying: _town.copying, label: _town.label, landed: false };
+			const mine = Date.now() - _town.cast_at < TOWN_OWN_MS;
+			_town.channel = { mine, mode: _town.mode, label: _town.label, lead_at: _town.lead_at, landed: false };
+			if (mine) town_note("channelling", _town.channel);
 		}
 		return town_channel_watch(_town.channel);
 	}
 	if (_town.channel) {
-		if (_town.channel.mine && !_town.channel.landed) errlog_count("town shortcut interrupted");
+		if (_town.channel.mine && !_town.channel.landed) town_note("interrupted", _town.channel);
 		_town.channel = null;
 	}
 	if (town_copy_leader()) return;
@@ -571,7 +579,7 @@ function town_landed(data) {
 	if (!ch || !data.effect || !town_channelling()) return;
 	ch.landed = true;
 	_town.logged = null;
-	errlog_count("town shortcut landed");
+	town_note("landed", ch);
 	if (!smart.moving || !smart.found) return;
 	const route = plot_route([{ x: character.going_x, y: character.going_y, idx: -1 }]);
 	const join = best_join(route, { x: character.real_x, y: character.real_y });
