@@ -190,6 +190,8 @@ const BOSS_RETURN_MARGIN = 150;
 const _boss_strayed = {};
 
 function boss_home_area(mob) {
+	const event = EVENT_LOCATIONS.find(e => e.name === mob.mtype);
+	if (event && event.leash === false) return null;
 	const spawns = (G.maps[mob.map || character.map] || {}).monsters || [];
 	const entry = spawns.find(s => s.type === mob.mtype && s.boundary && !s.roam);
 	return entry ? entry.boundary : null;

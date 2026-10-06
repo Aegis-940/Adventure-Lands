@@ -59,6 +59,11 @@ function event_goal() {
 		return { pursuit: true, label, event: target.name, map: character.map, x: seen.x, y: seen.y, radius: character.range * EVENT_REACH };
 	}
 
+	if (target.join) {
+		const area = boss_home_area(seen);
+		return { label, map: character.map, x: (area[0] + area[2]) / 2, y: (area[1] + area[3]) / 2, radius: 60, disengage: true };
+	}
+
 	if (!target.map || !isFinite(target.x) || !isFinite(target.y)) return null;
 
 	return { label, map: target.map, x: target.x, y: target.y, radius: 60, disengage: true };
