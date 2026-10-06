@@ -670,7 +670,7 @@ function movement_goal() {
 
 	const scripted_camp = party_camped(event);
 
-	if (!scripted_camp && party_cohesion_hold()) {
+	if (!scripted_camp && party_cohesion_hold(event)) {
 		const ahead = event || anniversary_destination();
 		return { hold: true, label: "cohesion", disengage: !!(ahead && ahead.disengage) };
 	}

@@ -171,6 +171,9 @@ function lethal_pursuer() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const BOSS_LEASH_MARGIN = 200;
+const BOSS_RETURN_MARGIN = 150;
+
+const _boss_strayed = {};
 
 function boss_home_area(mob) {
 	const spawns = (G.maps[mob.map || character.map] || {}).monsters || [];
@@ -179,11 +182,12 @@ function boss_home_area(mob) {
 }
 
 function boss_strayed(mob) {
-	if (!mob.target) return false;
 	const area = boss_home_area(mob);
 	if (!area) return false;
-	const m = BOSS_LEASH_MARGIN;
-	return mob.x < area[0] - m || mob.y < area[1] - m || mob.x > area[2] + m || mob.y > area[3] + m;
+	const m = _boss_strayed[mob.id] ? BOSS_RETURN_MARGIN : BOSS_LEASH_MARGIN;
+	const outside = mob.x < area[0] - m || mob.y < area[1] - m || mob.x > area[2] + m || mob.y > area[3] + m;
+	_boss_strayed[mob.id] = !!mob.target && outside;
+	return _boss_strayed[mob.id];
 }
 
 function boss_engageable(name, data) {

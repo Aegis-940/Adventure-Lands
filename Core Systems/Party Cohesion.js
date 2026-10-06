@@ -99,7 +99,7 @@ function follow_has_leader() {
 	return !!pos && !pos.rip;
 }
 
-function party_cohesion_hold() {
+function party_cohesion_hold(event) {
 	if (character.name !== MOVEMENT_LEADER) return false;
 
 	const owed = !dungeon_ignores_events()
@@ -111,6 +111,7 @@ function party_cohesion_hold() {
 	_cohesion_holding = COHESION_FOLLOWERS.some(name => {
 		const s = read_state_cache(name);
 		if (!s || s.rip || s.paused) return false;
+		if (event && s.goal === event.label) return false;
 		if (owed && s.anniv_pending && !endangered) return false;
 		if (s.map !== character.map) return !travelling;
 		return Math.hypot(s.x - character.x, s.y - character.y) > limit;

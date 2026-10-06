@@ -49,11 +49,10 @@ function event_goal() {
 		return null;
 	}
 
+	const label = "event-" + target.name;
 	const seen = get_nearest_monster({ type: target.name });
 	if (seen) boss_watch(seen);
-	if (seen && boss_strayed(seen)) return null;
-	if (seen) {
-		const label = "event-" + target.name;
+	if (seen && !boss_strayed(seen)) {
 		if (is_in_range(seen, "attack") || can_move_to(seen.x, seen.y)) {
 			return { local: "event", pursuit: true, label, event: target.name };
 		}
@@ -62,7 +61,7 @@ function event_goal() {
 
 	if (!target.map || !isFinite(target.x) || !isFinite(target.y)) return null;
 
-	return { label: "event-" + target.name, map: target.map, x: target.x, y: target.y, radius: 60, disengage: true };
+	return { label, map: target.map, x: target.x, y: target.y, radius: 60, disengage: true };
 }
 
 const BOSS_WATCH_MS = 10000;
