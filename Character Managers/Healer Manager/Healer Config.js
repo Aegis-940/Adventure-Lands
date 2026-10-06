@@ -17,7 +17,6 @@ var CONFIG = {
 		aggro_cap: 5,
 		curse_min_hp_pct: 0.03,
 		zapper_enabled: true,
-		zapper_until_hp_pct: 0.05,
 		zapper_min_mp_pct: 0.60,
 
 		sample_hits: true,
@@ -46,7 +45,8 @@ var CONFIG = {
 
 	equipment: {
 		...EQUIPMENT_DEFAULTS,
-		temporal_surge_enabled: false,
+		temporal_surge_enabled: true,
+		luck_gear_hp_pct: 0.10,
 
 		weapon_sets: ["luck"],
 	},
@@ -98,10 +98,18 @@ var equipment_sets = {
 	],
 	single_target: [
 		{ item_name: "firestaff", slot: "mainhand", level: 8, l: "l" },
+		{ item_name: "mshield", slot: "offhand", level: 8, l: "l" },
+	],
+	single_target_dps: [
+		{ item_name: "firestaff", slot: "mainhand", level: 8, l: "l" },
+		{ item_name: "exoarm", slot: "offhand", level: 1, l: "l" },
 	],
 	panic: PANIC_ORB_SET,
 	orb_luck: [
 		{ item_name: "rabbitsfoot", slot: "orb", level: 1, l: "l" },
+	],
+	orb_crit: [
+		{ item_name: "cave_loaded_die", slot: "orb", level: 0, l: "l" },
 	],
 	orb_fire: [
 		{ item_name: "orboffire", slot: "orb", level: 3, l: "l" },
@@ -128,8 +136,6 @@ var equipment_sets = {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 var state = {
-	last_equip_time: 0,
-	last_temporal_surge: 0,
 	angle: 0,
 	last_angle_update: performance.now()
 };

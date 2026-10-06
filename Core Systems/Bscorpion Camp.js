@@ -82,7 +82,8 @@ const CAMP_MOVE_TOLERANCE = 3;
 const CAMP_STAGING_TOLERANCE = 15;
 const CAMP_HOLD_MARGIN = 40;
 const CAMP_RANGE_CAP = 0.80;
-const CAMP_STATION = { Ulric: 34, Riva: 50 };
+const CAMP_STATION = { Ulric: 34, Riva: 150 };
+const CAMP_STAGING = { Riva: { x: 0, y: 150 } };
 const CAMP_EDGE_GAP = { Ulric: 6 };
 const CAMP_GAP_SEARCH_PX = 200;
 
@@ -137,13 +138,12 @@ function move_to_camp_station(desired) {
 	const loc = prim_farm_loc();
 	if (character.map !== loc.map) return;
 
-	const current = Math.hypot(character.x - loc.x, character.y - loc.y);
-	if (Math.abs(current - desired) <= CAMP_STAGING_TOLERANCE) return;
+	const offset = CAMP_STAGING[character.name];
+	const angle = Math.atan2(character.y - loc.y, character.x - loc.x);
+	const new_x = offset ? loc.x + offset.x : loc.x + Math.cos(angle) * desired;
+	const new_y = offset ? loc.y + offset.y : loc.y + Math.sin(angle) * desired;
 
-	const angle = current > 0 ? Math.atan2(character.y - loc.y, character.x - loc.x) : 0;
-	const new_x = loc.x + Math.cos(angle) * desired;
-	const new_y = loc.y + Math.sin(angle) * desired;
-
+	if (Math.hypot(character.x - new_x, character.y - new_y) <= CAMP_STAGING_TOLERANCE) return;
 	if (character.moving && Math.hypot(character.going_x - new_x, character.going_y - new_y) <= CAMP_STAGING_TOLERANCE) return;
 
 	local_move(new_x, new_y);

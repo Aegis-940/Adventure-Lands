@@ -94,6 +94,7 @@ function dungeon_loadout() {
 
 function resolve_healer_loadout() {
 	if (CONFIG.equipment.weapon_swap_enabled === false) return null;
+	if (bscorpion_damage_window() && set_available("single_target_dps")) return "single_target_dps";
 	const override = gear_override("loadout");
 	if (override) return override;
 
@@ -120,6 +121,7 @@ function resolve_healer_orb() {
 	const dungeon_orb = dungeon_setting("orb", null);
 	if (dungeon_orb && set_available(dungeon_orb)) return dungeon_orb;
 
+	if (bscorpion_damage_window() && set_available("orb_crit")) return "orb_crit";
 	return gear_override("orb") || preferred_orb("orb_luck");
 }
 
@@ -141,41 +143,55 @@ var MONSTER_GEAR_OVERRIDES = {
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// TEMPORAL SURGE
+// TEMPORAL SURGE — cast the moment the bscorpion dies, so its pending respawn is hastened
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function check_temporal_surge() {
-	if (!CONFIG.equipment.temporal_surge_enabled) return false;
+var SURGE_WINDOW_MS = 6000;
+var SURGE_REACH_PX = 160;
 
-	const now = Date.now();
-	if (now - state.last_temporal_surge < 60000) return false;
+var _surge_watch = null;
+
+function surge_pending_respawn() {
+	const info = find_nearest_bscorpion();
+	if (info) {
+		_surge_watch = { x: info.x, y: info.y, died_at: 0 };
+		return null;
+	}
+	if (!_surge_watch) return null;
+	if (!_surge_watch.died_at) _surge_watch.died_at = Date.now();
+	if (Date.now() - _surge_watch.died_at > SURGE_WINDOW_MS) return null;
+	return _surge_watch;
+}
+
+function check_temporal_surge() {
+	if (!CONFIG.equipment.temporal_surge_enabled || !is_at_bscorpion_farm()) {
+		_surge_watch = null;
+		return false;
+	}
+
+	const pending = surge_pending_respawn();
+	if (!pending) return false;
+	if (is_on_cooldown("temporalsurge") || character.mp < skill_mp_cost("temporalsurge")) return false;
+	if (Math.hypot(character.x - pending.x, character.y - pending.y) >= SURGE_REACH_PX) return false;
+	if (!set_available("temporal")) return false;
 
 	// const nearby = Object.values(parent.entities).some(
 	// 	e => e.type === "monster" && !e.dead
 	// );
 	// if (nearby) return false;
 
-	const prev_orb = character.slots.orb ? { name: character.slots.orb.name, level: character.slots.orb.level } : null;
-
 	const token = equip_claim("temporal", EQUIP_PRIORITY.skill);
 	if (!token) return false;
-	try {
-		state.last_equip_time = performance.now();
-		if (!await equip_apply(token, "temporal")) return false;
-		await use_skill("temporalsurge");
-		game_log("Temporal Surge activated!", "#FFAA00");
-		state.last_temporal_surge = Date.now();
-		state.last_equip_time = performance.now();
 
-		if (prev_orb) {
-			const inv_idx = character.items.findIndex(
-				i => i && i.name === prev_orb.name && i.level === prev_orb.level
-			);
-			if (inv_idx !== -1 && equip_holds(token)) await equip(inv_idx, "orb");
-		}
-	} finally {
-		equip_release(token);
-	}
+	const arm = equip_plan("temporal");
+	emit_equip_ops(arm.ops, arm.shadow);
+	use_skill("temporalsurge").catch(e => catcher(e, "temporalsurge"));
+	const back = equip_plan(resolve_healer_orb(), arm.shadow);
+	emit_equip_ops(back.ops, arm.shadow);
+	equip_release(token);
 
+	_surge_watch = null;
+	errlog_count("temporal surge on respawn");
+	game_log("Temporal Surge on the bscorpion respawn", "#FFAA00");
 	return true;
 }

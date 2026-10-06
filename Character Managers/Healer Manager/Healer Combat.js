@@ -140,16 +140,20 @@ function find_heal_target() {
 	return lowest;
 }
 
-function zap_target() {
-	if (!CONFIG.combat.zapper_enabled || !is_at_bscorpion_farm()) return null;
+function bscorpion_damage_window() {
+	if (!is_at_bscorpion_farm()) return null;
 
 	const info = find_nearest_bscorpion();
 	if (!info) return null;
 
 	const bscorp = info.entity;
 	if (!bscorp.target) return null;
-	if (remaining_hp(bscorp) < bscorp.max_hp * CONFIG.combat.zapper_until_hp_pct) return null;
+	if (remaining_hp(bscorp) < bscorp.max_hp * CONFIG.equipment.luck_gear_hp_pct) return null;
 	return bscorp;
+}
+
+function zap_target() {
+	return CONFIG.combat.zapper_enabled ? bscorpion_damage_window() : null;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
