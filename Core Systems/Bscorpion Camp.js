@@ -84,6 +84,8 @@ const CAMP_HOLD_MARGIN = 40;
 const CAMP_RANGE_CAP = 0.80;
 const CAMP_STATION = { Ulric: 34, Riva: 150 };
 const CAMP_STAGING = { Riva: { x: 0, y: 150 } };
+const CAMP_STATION_LEASH = { Riva: 200 };
+const CAMP_LEASH_STEP = Math.PI / 36;
 const CAMP_EDGE_GAP = { Ulric: 6 };
 const CAMP_GAP_SEARCH_PX = 200;
 
@@ -121,14 +123,27 @@ function station_distance(info, angle) {
 	return centre_distance_for_gap(info, angle, gap);
 }
 
-function move_distance_from_bscorpion(info) {
-	const angle = Math.atan2(character.y - info.y, character.x - info.x);
-	const desired = station_distance(info, angle);
-	if (Math.abs(info.distance - desired) <= CAMP_MOVE_TOLERANCE) return;
+function station_angle(info, desired) {
+	const current = Math.atan2(character.y - info.y, character.x - info.x);
+	const leash = CAMP_STATION_LEASH[character.name];
+	if (!leash) return current;
 
+	const loc = prim_farm_loc();
+	const fits = a => Math.hypot(info.x + Math.cos(a) * desired - loc.x, info.y + Math.sin(a) * desired - loc.y) <= leash;
+	for (let step = 0; step <= 36; step++) {
+		if (fits(current + step * CAMP_LEASH_STEP)) return current + step * CAMP_LEASH_STEP;
+		if (fits(current - step * CAMP_LEASH_STEP)) return current - step * CAMP_LEASH_STEP;
+	}
+	return Math.atan2(loc.y - info.y, loc.x - info.x);
+}
+
+function move_distance_from_bscorpion(info) {
+	const angle = station_angle(info, camp_engage_distance());
+	const desired = station_distance(info, angle);
 	const new_x = info.x + Math.cos(angle) * desired;
 	const new_y = info.y + Math.sin(angle) * desired;
 
+	if (Math.hypot(character.x - new_x, character.y - new_y) <= CAMP_MOVE_TOLERANCE) return;
 	if (character.moving && Math.hypot(character.going_x - new_x, character.going_y - new_y) <= CAMP_MOVE_TOLERANCE) return;
 
 	local_move(new_x, new_y);
