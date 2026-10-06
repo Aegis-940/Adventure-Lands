@@ -102,7 +102,7 @@ var equipment_sets = {
 	],
 	panic: PANIC_ORB_SET,
 	orb: [
-		{ item_name: "orbofdex", slot: "orb", level: 4, l: "l" },
+		{ item_name: "cave_loaded_die", slot: "orb", level: 1, l: "l" },
 	],
 };
 
