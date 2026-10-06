@@ -369,6 +369,7 @@ const TOWN_RECHECK_MS = 1000;
 const TOWN_OWN_MS = 2000;
 const TOWN_SAMPLE_PX = 30;
 const TOWN_JUMP_PX = 100;
+const TOWN_SPAWN_NEAR = 150;
 
 let _town = { checked_at: 0, cast_at: 0, label: null, copying: false, channel: null, logged: null };
 
@@ -456,12 +457,23 @@ function town_channel_watch(ch) {
 	town_cancel(ch, "the journey changed");
 }
 
-function town_copy_leader() {
-	if (!follow_has_leader() || !town_shortcut_eligible()) return false;
+function town_joins_leader() {
 	const lead = get_player(MOVEMENT_LEADER);
-	if (!lead || lead.rip || !lead.c.town) return false;
+	if (lead && lead.c.town) return true;
+	const pos = leader_position();
+	const s = town_spawn();
+	return pos.map === character.map
+		&& Math.hypot(pos.x - s.x, pos.y - s.y) <= TOWN_SPAWN_NEAR
+		&& Math.hypot(character.x - pos.x, character.y - pos.y) > cohesion_range();
+}
+
+function town_copy_leader() {
+	if (!follow_has_leader() || !town_shortcut_eligible() || !town_joins_leader()) return false;
 	if (Date.now() - _town.cast_at < TOWN_RECHECK_MS) return true;
-	game_log(`🌀 Following ${MOVEMENT_LEADER}'s town teleport`, "#8899aa");
+	if (_town.logged !== "follow") {
+		_town.logged = "follow";
+		game_log(`🌀 Teleporting to ${MOVEMENT_LEADER} at the spawn`, "#8899aa");
+	}
 	town_cast(null, true);
 	return true;
 }
