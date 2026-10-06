@@ -84,8 +84,9 @@ const CAMP_HOLD_MARGIN = 40;
 const CAMP_RANGE_CAP = 0.80;
 const CAMP_STATION = { Ulric: 34, Riva: 150 };
 const CAMP_STAGING = { Riva: { x: 0, y: 150 } };
-const CAMP_STATION_LEASH = { Riva: 200 };
-const CAMP_LEASH_STEP = Math.PI / 36;
+const CAMP_STATION_SIDE = { Riva: Math.PI };
+const CAMP_STATION_LEASH = 250;
+const CAMP_SIDE_STEP = Math.PI / 36;
 const CAMP_EDGE_GAP = { Ulric: 6 };
 const CAMP_GAP_SEARCH_PX = 200;
 
@@ -124,21 +125,25 @@ function station_distance(info, angle) {
 }
 
 function station_angle(info, desired) {
-	const current = Math.atan2(character.y - info.y, character.x - info.x);
-	const leash = CAMP_STATION_LEASH[character.name];
-	if (!leash) return current;
+	const side = CAMP_STATION_SIDE[character.name];
+	if (side === undefined) return Math.atan2(character.y - info.y, character.x - info.x);
 
 	const loc = prim_farm_loc();
-	const fits = a => Math.hypot(info.x + Math.cos(a) * desired - loc.x, info.y + Math.sin(a) * desired - loc.y) <= leash;
+	const fits = a => {
+		const x = info.x + Math.cos(a) * desired;
+		const y = info.y + Math.sin(a) * desired;
+		return Math.hypot(x - loc.x, y - loc.y) <= CAMP_STATION_LEASH && can_move_to(x, y);
+	};
 	for (let step = 0; step <= 36; step++) {
-		if (fits(current + step * CAMP_LEASH_STEP)) return current + step * CAMP_LEASH_STEP;
-		if (fits(current - step * CAMP_LEASH_STEP)) return current - step * CAMP_LEASH_STEP;
+		if (fits(side + step * CAMP_SIDE_STEP)) return side + step * CAMP_SIDE_STEP;
+		if (fits(side - step * CAMP_SIDE_STEP)) return side - step * CAMP_SIDE_STEP;
 	}
-	return Math.atan2(loc.y - info.y, loc.x - info.x);
+	return null;
 }
 
 function move_distance_from_bscorpion(info) {
 	const angle = station_angle(info, camp_engage_distance());
+	if (angle === null) return;
 	const desired = station_distance(info, angle);
 	const new_x = info.x + Math.cos(angle) * desired;
 	const new_y = info.y + Math.sin(angle) * desired;
