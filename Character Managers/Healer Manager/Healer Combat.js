@@ -68,7 +68,7 @@ function find_best_target() {
 
 	for (const name of CONFIG.combat.target_priority) {
 		const target = best_target(
-			{ target: [name], max_distance: character.range },
+			{ target: [name], max_distance: character.range, where: touchable },
 			CONFIG.combat.protect_weights, context
 		);
 		if (target) return target;
