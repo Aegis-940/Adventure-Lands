@@ -88,31 +88,31 @@ function boss_watch(boss) {
 function event_step(event_type, engage_step) {
 	const boss = get_nearest_monster({ type: event_type });
 	if (!boss) return;
+	if (event_spot_step(event_type, boss)) return;
 	if (engage_step) return engage_step(boss);
-	const gap = event_stand_off(event_type);
-	if (gap !== null) return stand_off_step(boss, gap);
 	if (is_in_range(boss, "attack")) return;
 	const d = Math.hypot(boss.x - character.x, boss.y - character.y);
 	const f = Math.max(0, (d - character.range * EVENT_REACH) / d);
 	local_move(character.x + (boss.x - character.x) * f, character.y + (boss.y - character.y) * f);
 }
 
-const EVENT_STAND_TOLERANCE = 10;
+const EVENT_SPOT_RADIUS = 50;
+const EVENT_SPOT_BOSS_REACH = 100;
 
-function event_stand_off(event_type) {
-	const entry = EVENT_LOCATIONS.find(e => e.name === event_type);
-	if (!entry.stand_off) return null;
-	const warrior = read_state_cache("Ulric");
-	if (!warrior || warrior.rip || warrior.map !== character.map) return null;
-	return warrior.range * entry.stand_off;
+function event_rule_here() {
+	return EVENT_LOCATIONS.find(e => e.avoid && parent.S[e.name]?.live && parent.S[e.name].map === character.map) || null;
 }
 
-function stand_off_step(boss, gap) {
-	if (character.moving) return;
-	if (Math.abs(distance(character, boss) - gap) <= EVENT_STAND_TOLERANCE) return;
-	const angle = Math.atan2(character.y - boss.y, character.x - boss.x);
-	const r = centre_distance_for_gap({ x: boss.x, y: boss.y, entity: boss }, angle, gap);
-	local_move(boss.x + Math.cos(angle) * r, boss.y + Math.sin(angle) * r);
+function at_event_spot(entry) {
+	return Math.hypot(character.x - entry.spot.x, character.y - entry.spot.y) <= EVENT_SPOT_RADIUS;
+}
+
+function event_spot_step(event_type, boss) {
+	const entry = EVENT_LOCATIONS.find(e => e.name === event_type);
+	if (!entry.spot || at_event_spot(entry)) return false;
+	if (Math.hypot(boss.x - entry.spot.x, boss.y - entry.spot.y) > EVENT_SPOT_BOSS_REACH) return false;
+	if (character.moving && Math.hypot(character.going_x - entry.spot.x, character.going_y - entry.spot.y) <= EVENT_SPOT_RADIUS) return true;
+	return local_move(entry.spot.x, entry.spot.y);
 }
 
 function pursued_boss() {

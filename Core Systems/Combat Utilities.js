@@ -131,22 +131,14 @@ function hit_too_big(mob, player) {
 	return monster_hit_on(mob, player) >= player.max_hp * LETHAL_HIT_PCT;
 }
 
-function exclusive_boss_type() {
-	const entry = EVENT_LOCATIONS.find(e => e.exclusive && parent.S[e.name]?.live && parent.S[e.name].map === character.map);
-	return entry ? entry.name : null;
-}
-
 function off_limits(mob) {
-	const only = exclusive_boss_type();
-	return !!only && mob.mtype !== only;
+	const rule = event_rule_here();
+	if (!rule || mob.mtype === rule.name) return false;
+	return rule.avoid.includes(mob.mtype) || !at_event_spot(rule);
 }
 
 function must_not_touch(mob) {
 	return off_limits(mob) || (!mob.target && hit_too_big(mob, character));
-}
-
-function must_not_aggro(mob) {
-	return !mob.target && (off_limits(mob) || hit_too_big(mob, character));
 }
 
 function splash_would_touch(mob, explosion) {
@@ -155,7 +147,7 @@ function splash_would_touch(mob, explosion) {
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
 		if (e.type !== "monster" || e.dead || e.id === mob.id) continue;
-		if (must_not_aggro(e) && distance(e, mob) <= radius) return true;
+		if (must_not_touch(e) && distance(e, mob) <= radius) return true;
 	}
 	return false;
 }
