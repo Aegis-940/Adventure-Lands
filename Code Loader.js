@@ -69,31 +69,49 @@
 			});
 	}
 
-	let pinned = false;
+	const SHA_BASES = [
+		sha => `https://cdn.jsdelivr.net/gh/${REPO}@${sha}/`,
+		sha => `https://rawcdn.githack.com/${REPO}/${sha}/`,
+	];
 
-	function resolve_base() {
+	function resolve_sha() {
 		return get(SHA_URL + "?_=" + Date.now())
 			.then(text => {
 				const sha = JSON.parse(text).sha;
 				if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error("bad sha");
-				window.__AL_BASE__ = `https://cdn.jsdelivr.net/gh/${REPO}@${sha}/`;
-				window.__AL_BASE_SET_AT__ = Date.now();
-				pinned = true;
 				say("[AL] pinned to " + sha.slice(0, 7));
-				return window.__AL_BASE__;
+				return sha;
 			})
 			.catch(e => {
 				say("⚠️ [AL] couldn't resolve the commit (" + e.message + ") — Bootstrapper from @main, which jsDelivr caches for 12h");
-				return MAIN_BASE;
+				return null;
 			});
+	}
+
+	function fetch_pinned(sha, i) {
+		const base = SHA_BASES[i](sha);
+		return get(base + "Bootstrapper.js", "default")
+			.then(text => {
+				window.__AL_BASE__ = base;
+				window.__AL_BASE_SET_AT__ = Date.now();
+				if (i > 0) say("[AL] jsDelivr failed — loading from " + base);
+				return text;
+			})
+			.catch(e => {
+				if (i + 1 < SHA_BASES.length) return fetch_pinned(sha, i + 1);
+				throw e;
+			});
+	}
+
+	function fetch_bootstrapper() {
+		return resolve_sha().then(sha => sha ? fetch_pinned(sha, 0) : get(MAIN_BASE + "Bootstrapper.js", "no-store"));
 	}
 
 	const RETRY_STEP_MS = 5000;
 	const RETRY_MAX_MS = 60000;
 
 	function boot(attempt) {
-		resolve_base()
-			.then(base => get(base + "Bootstrapper.js", pinned ? "default" : "no-store"))
+		fetch_bootstrapper()
 			.then(
 				text => {
 					beacon("bootstrapper fetched on attempt " + attempt + ", evaluating");

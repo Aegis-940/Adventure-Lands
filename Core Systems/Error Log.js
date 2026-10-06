@@ -47,7 +47,7 @@ function _errlog_signature(ctx, msg) {
 
 function _errlog_build() {
 	try {
-		const m = (window.__AL_BASE__ || "").match(/@([0-9a-f]{7,40})\//);
+		const m = (window.__AL_BASE__ || "").match(/[@/]([0-9a-f]{40})\//);
 		return m ? m[1].slice(0, 7) : "main";
 	} catch (e) { return "?"; }
 }
