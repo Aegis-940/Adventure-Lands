@@ -87,10 +87,10 @@ const CAMP_EDGE_GAP = { Ulric: 6 };
 const CAMP_GAP_SEARCH_PX = 200;
 
 const CAMP_RAIL = {
-	Riva: { x: -390, y: -1250, angle: 215 * Math.PI / 180, length: 320, wait: 150 },
+	Riva: { x: -390, y: -1250, angle: 215 * Math.PI / 180, length: 360, wait: 150 },
 };
 const CAMP_RAIL_STEP = 5;
-const CAMP_AURA_CLEARANCE = 110;
+const CAMP_AURA_CLEARANCE = 130;
 
 function camp_engage_distance() {
 	const preferred = CAMP_STATION[character.name];
