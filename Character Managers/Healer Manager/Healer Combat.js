@@ -164,6 +164,12 @@ function bscorpion_luck_due(bscorp) {
 	return true;
 }
 
+function bscorpion_luck_window() {
+	if (!is_at_bscorpion_farm()) return false;
+	const info = find_nearest_bscorpion();
+	return !!info && !!info.entity.target && bscorpion_luck_due(info.entity);
+}
+
 function bscorpion_damage_window() {
 	if (!is_at_bscorpion_farm()) return null;
 

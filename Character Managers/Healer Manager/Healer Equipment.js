@@ -186,7 +186,7 @@ function resolve_healer_camp() {
 	}
 	log_camp_kill();
 	if (!camp_gear_owned()) return null;
-	if (!bscorpion_damage_window()) return camp_gear_set("camp_luck_live", equipment_sets.camp_luck);
+	if (bscorpion_luck_window()) return camp_gear_set("camp_luck_live", equipment_sets.camp_luck);
 
 	remember_fight_amulet();
 	const fight = equipment_sets.camp_fight.filter(entry => CONFIG.combat.zapper_enabled || entry.item_name !== "zapper");
