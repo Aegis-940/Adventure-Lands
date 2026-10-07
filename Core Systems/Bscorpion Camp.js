@@ -82,13 +82,15 @@ const CAMP_MOVE_TOLERANCE = 3;
 const CAMP_STAGING_TOLERANCE = 15;
 const CAMP_HOLD_MARGIN = 40;
 const CAMP_RANGE_CAP = 0.80;
-const CAMP_STATION = { Ulric: 34, Riva: 150 };
-const CAMP_STAGING = { Riva: { x: 0, y: 150 } };
-const CAMP_STATION_SIDE = { Riva: Math.PI };
-const CAMP_STATION_LEASH = 250;
-const CAMP_SIDE_STEP = Math.PI / 36;
+const CAMP_STATION = { Ulric: 34 };
 const CAMP_EDGE_GAP = { Ulric: 6 };
 const CAMP_GAP_SEARCH_PX = 200;
+
+const CAMP_RAIL = {
+	Riva: { x: -390, y: -1250, angle: 215 * Math.PI / 180, length: 320, wait: 150 },
+};
+const CAMP_RAIL_STEP = 5;
+const CAMP_AURA_CLEARANCE = 110;
 
 function camp_engage_distance() {
 	const preferred = CAMP_STATION[character.name];
@@ -97,6 +99,12 @@ function camp_engage_distance() {
 }
 
 function camp_hold_radius() {
+	const rail = CAMP_RAIL[character.name];
+	if (rail) {
+		const loc = prim_farm_loc();
+		const end = rail_point(rail, rail.length);
+		return Math.hypot(end.x - loc.x, end.y - loc.y) + CAMP_HOLD_MARGIN;
+	}
 	return PRIM_FARM_RADIUS + camp_engage_distance() + CAMP_HOLD_MARGIN;
 }
 
@@ -124,26 +132,8 @@ function station_distance(info, angle) {
 	return centre_distance_for_gap(info, angle, gap);
 }
 
-function station_angle(info, desired) {
-	const side = CAMP_STATION_SIDE[character.name];
-	if (side === undefined) return Math.atan2(character.y - info.y, character.x - info.x);
-
-	const loc = prim_farm_loc();
-	const fits = a => {
-		const x = info.x + Math.cos(a) * desired;
-		const y = info.y + Math.sin(a) * desired;
-		return Math.hypot(x - loc.x, y - loc.y) <= CAMP_STATION_LEASH && can_move_to(x, y);
-	};
-	for (let step = 0; step <= 36; step++) {
-		if (fits(side + step * CAMP_SIDE_STEP)) return side + step * CAMP_SIDE_STEP;
-		if (fits(side - step * CAMP_SIDE_STEP)) return side - step * CAMP_SIDE_STEP;
-	}
-	return null;
-}
-
 function move_distance_from_bscorpion(info) {
-	const angle = station_angle(info, camp_engage_distance());
-	if (angle === null) return;
+	const angle = Math.atan2(character.y - info.y, character.x - info.x);
 	const desired = station_distance(info, angle);
 	const new_x = info.x + Math.cos(angle) * desired;
 	const new_y = info.y + Math.sin(angle) * desired;
@@ -158,10 +148,9 @@ function move_to_camp_station(desired) {
 	const loc = prim_farm_loc();
 	if (character.map !== loc.map) return;
 
-	const offset = CAMP_STAGING[character.name];
 	const angle = Math.atan2(character.y - loc.y, character.x - loc.x);
-	const new_x = offset ? loc.x + offset.x : loc.x + Math.cos(angle) * desired;
-	const new_y = offset ? loc.y + offset.y : loc.y + Math.sin(angle) * desired;
+	const new_x = loc.x + Math.cos(angle) * desired;
+	const new_y = loc.y + Math.sin(angle) * desired;
 
 	if (Math.hypot(character.x - new_x, character.y - new_y) <= CAMP_STAGING_TOLERANCE) return;
 	if (character.moving && Math.hypot(character.going_x - new_x, character.going_y - new_y) <= CAMP_STAGING_TOLERANCE) return;
@@ -169,7 +158,46 @@ function move_to_camp_station(desired) {
 	local_move(new_x, new_y);
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// CAMP RAIL — a wall-free line out of the camp; Riva stands on it as close to the scorpion as the weakness aura allows
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function rail_point(rail, t) {
+	return { x: rail.x + Math.cos(rail.angle) * t, y: rail.y + Math.sin(rail.angle) * t };
+}
+
+function rail_nearest(rail) {
+	const along = (character.x - rail.x) * Math.cos(rail.angle) + (character.y - rail.y) * Math.sin(rail.angle);
+	return rail_point(rail, Math.max(0, Math.min(rail.length, along)));
+}
+
+function rail_station(rail, bscorp) {
+	const probe = { x: 0, y: 0, awidth: get_width(character), aheight: get_height(character) };
+	for (let t = 0; t <= rail.length; t += CAMP_RAIL_STEP) {
+		const spot = rail_point(rail, t);
+		probe.x = spot.x;
+		probe.y = spot.y;
+		if (distance(probe, bscorp) >= CAMP_AURA_CLEARANCE) return spot;
+	}
+	return rail_point(rail, rail.length);
+}
+
+function rail_step(rail) {
+	const info = find_nearest_bscorpion();
+	const spot = info ? rail_station(rail, info.entity) : rail_point(rail, rail.wait);
+
+	if (Math.hypot(character.x - spot.x, character.y - spot.y) <= CAMP_MOVE_TOLERANCE) return;
+	if (character.moving && Math.hypot(character.going_x - spot.x, character.going_y - spot.y) <= CAMP_MOVE_TOLERANCE) return;
+	if (local_move(spot.x, spot.y)) return;
+
+	const join = rail_nearest(rail);
+	local_move(join.x, join.y);
+}
+
 function hold_camp_station() {
+	const rail = CAMP_RAIL[character.name];
+	if (rail) return rail_step(rail);
+
 	const desired = camp_engage_distance();
 	if (!desired) return;
 
