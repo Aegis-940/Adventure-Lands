@@ -93,7 +93,7 @@ function shot_usable(profile) {
 }
 
 function shot_apiercing(profile) {
-	const base = character.apiercing || 0;
+	const base = 2 * (character.apiercing || 0);
 	if (!profile.pierces) return base;
 	return base + (G.skills[profile.name].apiercing || 0);
 }
@@ -204,7 +204,7 @@ function choose_attack_option(primary) {
 	const lambda = CONFIG.combat.mana_is_free ? 0 : mana_price();
 	if (!primary.length) return null;
 
-	const base_apiercing = character.apiercing || 0;
+	const base_apiercing = shot_apiercing(SHOT_PROFILES[0]);
 	const reference = (target_modifier(primary[0], 1, base_apiercing) * armour_factor(primary[0], base_apiercing)) || 1;
 	const options = [];
 
@@ -291,6 +291,7 @@ async function action_loop() {
 		if (is_disabled(character)) return setTimeout(action_loop, loop_next("action_loop", 50));
 
 		update_cache();
+		if (camp_temporal_surge()) return setTimeout(action_loop, loop_next("action_loop", 100));
 		const ms = ms_to_next_skill("attack");
 
 		const cupid_live = mainhand_intent() === "cupid";

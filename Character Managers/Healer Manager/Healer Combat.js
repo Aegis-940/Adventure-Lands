@@ -189,7 +189,7 @@ async function action_loop() {
 
 		update_cache();
 
-		if (await check_temporal_surge()) return setTimeout(action_loop, loop_next("action_loop", 100));
+		if (camp_temporal_surge()) return setTimeout(action_loop, loop_next("action_loop", 100));
 
 		const ms = ms_to_next_skill("attack");
 

@@ -259,6 +259,76 @@ function camp_step() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// TEMPORAL SURGE — cast the moment the bscorpion dies to hasten its respawn; Riva takes the deaths Myras's cooldown misses
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const SURGE_PRIORITY = ["Myras", "Riva"];
+const SURGE_WINDOW_MS = 6000;
+const SURGE_REACH_PX = 160;
+const SURGE_YIELD_MS = 800;
+const SURGE_CLOCK_SLACK_MS = 2000;
+
+var surge_cast_at = 0;
+let _surge_watch = null;
+
+function surge_pending_respawn() {
+	const info = find_nearest_bscorpion();
+	if (info) {
+		_surge_watch = { entity: info.entity, died_at: 0 };
+		return null;
+	}
+	if (!_surge_watch) return null;
+	if (!_surge_watch.died_at) _surge_watch.died_at = Date.now();
+	if (Date.now() - _surge_watch.died_at > SURGE_WINDOW_MS) return null;
+	return _surge_watch;
+}
+
+function surge_left_to_another(pending) {
+	const rank = SURGE_PRIORITY.indexOf(character.name);
+	if (rank <= 0) return false;
+	if (Date.now() - pending.died_at < SURGE_YIELD_MS) return true;
+	return SURGE_PRIORITY.slice(0, rank).some(name => {
+		const state = read_state_cache(name);
+		return !!state && state.surge_at >= pending.died_at - SURGE_CLOCK_SLACK_MS;
+	});
+}
+
+function camp_temporal_surge() {
+	if (!CONFIG.equipment.temporal_surge_enabled || !is_at_bscorpion_farm()) {
+		_surge_watch = null;
+		return false;
+	}
+
+	const pending = surge_pending_respawn();
+	if (!pending) return false;
+	if (is_on_cooldown("temporalsurge") || character.mp < skill_mp_cost("temporalsurge")) return false;
+	if (distance(character, pending.entity) >= SURGE_REACH_PX) return false;
+	if (!set_available("temporal")) return false;
+	if (surge_left_to_another(pending)) return false;
+
+	// const nearby = Object.values(parent.entities).some(
+	// 	e => e.type === "monster" && !e.dead
+	// );
+	// if (nearby) return false;
+
+	const token = equip_claim("temporal", EQUIP_PRIORITY.skill);
+	if (!token) return false;
+
+	const arm = equip_plan("temporal");
+	emit_equip_ops(arm.ops, arm.shadow);
+	use_skill("temporalsurge").catch(e => catcher(e, "temporalsurge"));
+	const back = equip_plan(EQUIPMENT_RULES.orb.resolve(), arm.shadow);
+	emit_equip_ops(back.ops, arm.shadow);
+	equip_release(token);
+
+	surge_cast_at = Date.now();
+	_surge_watch = null;
+	errlog_count("temporal surge on respawn");
+	game_log("Temporal Surge on the bscorpion respawn", "#FFAA00");
+	return true;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // KILL LOGGER — kill detection and the rolling seconds-per-kill average
 // --------------------------------------------------------------------------------------------------------------------------------- //
 

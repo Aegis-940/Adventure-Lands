@@ -41,6 +41,7 @@ var CONFIG = {
 	equipment: {
 		...EQUIPMENT_DEFAULTS,
 		use_licence: false,
+		temporal_surge_enabled: true,
 
 		weapon_sets: ["single", "boom"],
 		weapon_hysteresis_ms: 0,
@@ -103,6 +104,9 @@ var equipment_sets = {
 	panic: PANIC_ORB_SET,
 	orb: [
 		{ item_name: "cave_loaded_die", slot: "orb", level: 1, l: "l" },
+	],
+	temporal: [
+		{ item_name: "orboftemporal", slot: "orb", level: 0, l: "l" },
 	],
 };
 

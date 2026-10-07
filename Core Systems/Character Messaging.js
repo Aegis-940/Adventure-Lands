@@ -124,6 +124,7 @@ function get_full_character_state() {
 		goal: current_goal_label(),
 		anniv_pending: anniversary_should_travel(),
 		has_kiss: !!(character.s && character.s.anniversary_kiss),
+		surge_at: surge_cast_at,
 		free_slots: free_inventory_slots(),
 		loose_slots: loose_loot(0).length,
 		conditions: character.s || {},
