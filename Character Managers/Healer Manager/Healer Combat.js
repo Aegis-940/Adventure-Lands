@@ -140,6 +140,30 @@ function find_heal_target() {
 	return lowest;
 }
 
+var KILL_RATE_WINDOW_MS = 2000;
+var KILL_RATE_MIN_SPAN_MS = 500;
+
+var _bscorpion_hp_trace = [];
+var _luck_latched_id = null;
+
+function bscorpion_kill_rate(bscorp) {
+	const now = Date.now();
+	const trace = _bscorpion_hp_trace;
+	if (trace.length && trace[0].id !== bscorp.id) trace.length = 0;
+	if (!trace.length || now - trace[trace.length - 1].t >= 100) trace.push({ id: bscorp.id, t: now, hp: bscorp.hp });
+	while (now - trace[0].t > KILL_RATE_WINDOW_MS) trace.shift();
+	if (!trace.length || now - trace[0].t < KILL_RATE_MIN_SPAN_MS) return 0;
+	return Math.max(0, (trace[0].hp - bscorp.hp) / (now - trace[0].t));
+}
+
+function bscorpion_luck_due(bscorp) {
+	if (_luck_latched_id === bscorp.id) return true;
+	const lead_hp = bscorpion_kill_rate(bscorp) * CONFIG.equipment.luck_lead_ms;
+	if (remaining_hp(bscorp) > lead_hp + CONFIG.equipment.luck_burst_hp) return false;
+	_luck_latched_id = bscorp.id;
+	return true;
+}
+
 function bscorpion_damage_window() {
 	if (!is_at_bscorpion_farm()) return null;
 
@@ -148,7 +172,7 @@ function bscorpion_damage_window() {
 
 	const bscorp = info.entity;
 	if (!bscorp.target) return null;
-	if (remaining_hp(bscorp) < bscorp.max_hp * CONFIG.equipment.luck_gear_hp_pct) return null;
+	if (bscorpion_luck_due(bscorp)) return null;
 	return bscorp;
 }
 

@@ -46,7 +46,8 @@ var CONFIG = {
 	equipment: {
 		...EQUIPMENT_DEFAULTS,
 		temporal_surge_enabled: true,
-		luck_gear_hp_pct: 0.10,
+		luck_lead_ms: 600,
+		luck_burst_hp: 15000,
 
 		weapon_sets: ["luck"],
 	},
@@ -80,9 +81,6 @@ var PANIC_BROADCAST_TARGETS = ["Ulric", "Riva"];
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 var equipment_sets = {
-	zap_on: [
-		{ item_name: "zapper", slot: "ring2", level: 2, l: "u" }
-	],
 	zap_off: [
 		{ item_name: "ringofluck", slot: "ring2", level: 2, l: "l" }
 	],
@@ -100,16 +98,24 @@ var equipment_sets = {
 		{ item_name: "firestaff", slot: "mainhand", level: 8, l: "l" },
 		{ item_name: "mshield", slot: "offhand", level: 8, l: "l" },
 	],
-	single_target_dps: [
+	camp_fight: [
 		{ item_name: "firestaff", slot: "mainhand", level: 8, l: "l" },
 		{ item_name: "exoarm", slot: "offhand", level: 1, l: "l" },
+		{ item_name: "cave_loaded_die", slot: "orb", level: 0, l: "l" },
+		{ item_name: "zapper", slot: "ring2", level: 2, l: "u" },
+		{ item_name: "coat", slot: "chest", level: 10, l: "l" },
+	],
+	camp_luck: [
+		{ item_name: "lmace", slot: "mainhand", level: 8, l: "" },
+		{ item_name: "mshield", slot: "offhand", level: 8, l: "l" },
+		{ item_name: "rabbitsfoot", slot: "orb", level: 1, l: "l" },
+		{ item_name: "ringofluck", slot: "ring2", level: 2, l: "l" },
+		{ item_name: "cdragon", slot: "chest", level: 0, l: "l" },
+		{ item_name: "spookyamulet", slot: "amulet", level: 2, l: "l" },
 	],
 	panic: PANIC_ORB_SET,
 	orb_luck: [
 		{ item_name: "rabbitsfoot", slot: "orb", level: 1, l: "l" },
-	],
-	orb_crit: [
-		{ item_name: "cave_loaded_die", slot: "orb", level: 0, l: "l" },
 	],
 	orb_fire: [
 		{ item_name: "orboffire", slot: "orb", level: 3, l: "l" },

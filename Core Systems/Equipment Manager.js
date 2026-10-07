@@ -409,6 +409,16 @@ function plan_set_equip(shadow, set_name) {
 	return ops;
 }
 
+function rules_set_for_slot(slot) {
+	for (const group in EQUIPMENT_RULES) {
+		const resolved = EQUIPMENT_RULES[group].resolve();
+		for (const name of Array.isArray(resolved) ? resolved : [resolved]) {
+			if (name && equipment_sets[name] && equipment_sets[name].some(entry => entry.slot === slot)) return name;
+		}
+	}
+	return null;
+}
+
 function equip_plan(set_names, shadow) {
 	const inventory = shadow || equip_view();
 	const names = Array.isArray(set_names) ? set_names : [set_names];

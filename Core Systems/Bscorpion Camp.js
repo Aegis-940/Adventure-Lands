@@ -317,7 +317,7 @@ function camp_temporal_surge() {
 	const arm = equip_plan("temporal");
 	emit_equip_ops(arm.ops, arm.shadow);
 	use_skill("temporalsurge").catch(e => catcher(e, "temporalsurge"));
-	const back = equip_plan(EQUIPMENT_RULES.orb.resolve(), arm.shadow);
+	const back = equip_plan(rules_set_for_slot("orb") || [], arm.shadow);
 	emit_equip_ops(back.ops, arm.shadow);
 	equip_release(token);
 
