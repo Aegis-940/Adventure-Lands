@@ -108,7 +108,7 @@ const EVENT_LOCATIONS = [
 	{ name: "mrgreen", map: "spookytown", x: 605, y: 1000, leash: false },
 	{ name: "dragold", map: "cave", x: 873, y: -727 },
 	{ name: "franky", join: true, engage_below: 0.95, leash: false, spot: { x: -19, y: 36 }, avoid: ["oneeye"] },
-	{ name: "icegolem", join: true, engage_below: 0.95 },
+	// { name: "icegolem", join: true, engage_below: 0.95 },
 	{ name: "crabxx", join: true, engage_below: 0.95 },
 	// { name: "wabbit", dynamic: true },
 ];
