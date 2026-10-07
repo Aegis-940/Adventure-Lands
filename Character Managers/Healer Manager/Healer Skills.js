@@ -92,6 +92,16 @@ function dark_blessing_synced() {
 var CURSE_NEARBY_RANGE = 50;
 
 var CURSE_MP_FLOOR_PCT = 0.35;
+var CURSE_RECAST_MARGIN_MS = 150;
+
+function curse_flight_ms(target) {
+	return 1000 * distance(character, target) / G.projectiles[G.skills.curse.projectile].speed;
+}
+
+function curse_expiring(e) {
+	const cursed = e.s && e.s.cursed;
+	return !cursed || cursed.ms <= curse_flight_ms(e) + min_ping() + CURSE_RECAST_MARGIN_MS;
+}
 
 function curse_mp_floor() {
 	return Math.max(character.max_mp * CURSE_MP_FLOOR_PCT, 2 * (character.mp_cost || 0) + skill_mp_cost("partyheal"));
@@ -112,7 +122,7 @@ async function handle_curse() {
 
 	const has_target = e =>
 		e.type === "monster" && !e.dead && e.visible && e.target && !e.immune && !cave_bystander(e) &&
-		!(e.s && e.s.cursed) && e.hp >= e.max_hp * CONFIG.combat.curse_min_hp_pct;
+		curse_expiring(e) && e.hp >= e.max_hp * CONFIG.combat.curse_min_hp_pct;
 
 	let target = null;
 
