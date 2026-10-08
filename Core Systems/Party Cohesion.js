@@ -94,27 +94,16 @@ function follow_has_leader() {
 function party_cohesion_hold(event) {
 	if (character.name !== MOVEMENT_LEADER) return false;
 
-	const owed = !dungeon_ignores_events()
-		&& anniversary_should_travel();
-	const endangered = party_member_in_danger();
-
-	const limit = (endangered || _cohesion_holding) ? cohesion_regroup() : cohesion_range();
+	const limit = (party_member_in_danger() || _cohesion_holding) ? cohesion_regroup() : cohesion_range();
 	const travelling = is_travelling();
 	_cohesion_holding = COHESION_FOLLOWERS.some(name => {
 		const s = read_state_cache(name);
 		if (!s || s.rip || s.paused) return false;
 		if (event && s.goal === event.label) return false;
-		if (owed && s.anniv_pending && !endangered) return false;
 		if (s.map !== character.map) return !travelling;
 		return Math.hypot(s.x - character.x, s.y - character.y) > limit;
 	});
-	if (_cohesion_holding) return true;
-
-	if (owed || dungeon_ignores_events()) return false;
-	return COHESION_FOLLOWERS.some(name => {
-		const s = read_state_cache(name);
-		return !!s && !s.rip && !s.paused && !!s.anniv_pending;
-	});
+	return _cohesion_holding;
 }
 
 function leader_waits_for_party(event) {

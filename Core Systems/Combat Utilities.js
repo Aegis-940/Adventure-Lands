@@ -220,7 +220,6 @@ function should_pause_combat_loop() {
 	if (cave_paused()) return true;
 	if (dungeon_bailing()) return true;
 	if (panicking) return true;
-	if (anniversary_travel && !follow_has_leader()) return true;
 	if (disengaging()) return true;
 
 	if (dungeon_flag("fight_while_moving")) return false;

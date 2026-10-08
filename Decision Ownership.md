@@ -220,8 +220,8 @@ scripted sweep could previously start on top of an ambient one. Blocked attempts
 
 ## 4. Where to go — CONFIRMED SEPARATE (2026-09-18)
 
-`movement_goal()` is a genuine single decider for the three fighters, composing `follow_goal()`,
-`event_goal()` and `anniversary_destination()`.
+`movement_goal()` is a genuine single decider for the three fighters, composing `follow_goal()` and
+`event_goal()`.
 
 The two suspected splits are neither, and this was checked rather than assumed:
 

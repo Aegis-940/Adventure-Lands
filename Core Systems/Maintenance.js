@@ -152,8 +152,6 @@ function schedule_periodic_reset() {
 		}
 		if (!_reset_due_bucket || _last_reset_bucket === _reset_due_bucket) return;
 
-		if (anniversary_block_reason() === null) return;
-
 		_last_reset_bucket = _reset_due_bucket;
 		_reset_due_bucket = null;
 

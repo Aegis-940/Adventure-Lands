@@ -44,7 +44,6 @@ var CONFIG = {
 	},
 	exchange: {
 		targets: [
-			{ name: "anniversarygift",  min: 1 },
 			{ name: "seashell",         min: 20 },
 			{ name: "brownenvelope",    min: 1 },
 			{ name: "goldenegg",    	min: 1 },
@@ -63,7 +62,7 @@ var CONFIG = {
 		mainhand: { name: "broom", level: 9 },
 		offhand: { name: "wbookhs", level: 1 },
 	},
-	priorities: ["dead", "anniversary", "delivering", "banking", "upgrading", "fishing", "mining", "crafting", "exchanging"],
+	priorities: ["dead", "delivering", "banking", "upgrading", "fishing", "mining", "crafting", "exchanging"],
 };
 
 var HOME = CONFIG.locations.HOME;

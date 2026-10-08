@@ -32,7 +32,6 @@ across characters even though the raw counters are `max()`-merged peaks from dif
 | Merchant task loop / upkeep | 250 / 1000ms | ok |
 | Combat Sampling tickers | 250 / 1000 / 10000ms | ok |
 | Error Log vitals / lag probe | 1000 / 100ms | ok |
-| `anniversary_loop` | 2000ms, 400ms while travelling | ok |
 
 ---
 

@@ -751,18 +751,10 @@ function movement_goal() {
 	const scripted_camp = party_camped(event);
 
 	if (!scripted_camp && party_cohesion_hold(event)) {
-		const ahead = event || anniversary_destination();
-		return { hold: true, label: "cohesion", disengage: !!(ahead && ahead.disengage) };
+		return { hold: true, label: "cohesion", disengage: !!(event && event.disengage) };
 	}
 
 	const follow = scripted_camp ? null : follow_goal();
-	if (follow && !follow.local) return follow;
-
-	if (!follow_has_leader() && !ignoring_events) {
-		const anniv = anniversary_destination();
-		if (anniv) return anniv;
-	}
-
 	if (follow) return follow;
 	if (event) return event;
 

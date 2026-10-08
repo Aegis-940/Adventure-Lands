@@ -4,7 +4,6 @@
 
 var MERCHANT_STATES = {
 	DEAD: "dead",
-	ANNIVERSARY: "anniversary",
 	DELIVERING: "delivering",
 	BANKING: "banking",
 	UPGRADING: "upgrading",
@@ -20,19 +19,6 @@ async function handle_dead_state() {
 		if (character.rip) await respawn();
 	} catch (e) {
 		catcher(e, "handle_dead_state");
-	}
-}
-
-async function handle_anniversary_state() {
-	const generation = begin_task("Anniversary");
-	try {
-		await anniversary_tick();
-		const goal = anniversary_destination();
-		if (!travel_arbiter(goal)) local_step(goal);
-	} catch (e) {
-		catcher(e, "handle_anniversary_state");
-	} finally {
-		end_task(generation);
 	}
 }
 
@@ -85,7 +71,6 @@ async function handle_crafting_state() {
 
 var PRIORITY_CHECKS = {
 	dead:        { state: MERCHANT_STATES.DEAD,       should_run: () => character.rip },
-	anniversary: { state: MERCHANT_STATES.ANNIVERSARY, should_run: () => anniversary_should_travel() },
 	delivering:  { state: MERCHANT_STATES.DELIVERING, should_run: should_run_delivery },
 	banking:     { state: MERCHANT_STATES.BANKING,    should_run: should_run_banking },
 	upgrading:   { state: MERCHANT_STATES.UPGRADING,  should_run: should_run_upgrade },
@@ -107,7 +92,6 @@ async function set_state(state) {
 	try {
 		switch (state) {
 			case MERCHANT_STATES.DEAD:       await handle_dead_state(); break;
-			case MERCHANT_STATES.ANNIVERSARY: await handle_anniversary_state(); break;
 			case MERCHANT_STATES.DELIVERING: await handle_delivering_state(); break;
 			case MERCHANT_STATES.BANKING:    await handle_banking_state(); break;
 			case MERCHANT_STATES.UPGRADING:  await handle_upgrading_state(); break;

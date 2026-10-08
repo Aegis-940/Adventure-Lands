@@ -44,7 +44,7 @@ Core Systems/*.js                 ← loaded in parallel as real <script> tags
     ├── Combat Sampling.js        hit/action socket samplers, damage + heal windows
     ├── Movement Positioning.js   best_orbit_spot(), scorers, reposition_center(), orbit_reposition()
     ├── Targeting.js              score_targets()/select_target() — one scorer for every character
-    ├── World Events.js           live boss/seasonal targets, the walk to them, the anniversary visit
+    ├── World Events.js           live boss/seasonal targets, the walk to them
     ├── Character Messaging.js    CM handlers, localStorage-backed state cache
     ├── Equipment Manager.js      equipment sets, batch_equip(), slot arbiter, rules resolver
     ├── Equipment Valuation.js    ability procs, set profiles, damage maths, weapon choice
@@ -118,7 +118,6 @@ Interface/*.js                    ← overlay panels (semi-independent)
 
 Tools/                            ← dev scaffolding, not loaded by the bot
     ├── Error Sink.py             local HTTP sink for errlog_sample() pushes -> errors.json
-    ├── Anniversary Probe.js      one-off probe pasted into a code slot/console
     └── Crypt Probe.js            one-off probe for crypt geometry
 ```
 
