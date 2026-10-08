@@ -34,7 +34,7 @@ var CONFIG = {
 		gold_threshold: 20000000,
 	},
 	upgrade_gold_threshold: 100000000,
-	upgrade_buy: ["coat"],
+	upgrade_buy: ["pants"],
 	potions: {
 		hp_threshold: 500,
 		mp_threshold: 500,
