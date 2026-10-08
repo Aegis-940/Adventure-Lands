@@ -93,6 +93,8 @@ const DREAMS_REVIVE_LANDING = "landing";
 const DREAMS_REVIVE_CLEAR_RADIUS = 300;
 
 const DREAMS_UNKNOWN_RANK = 5;
+const DREAMS_NO_STAIRS_ESCORT_RANK = 1;
+const DREAMS_ESCORT_LEASH = 200;
 
 DUNGEONS.dreams = {
 	name: "Cave of Many Dreams",
@@ -123,6 +125,7 @@ let _dreams_voted = null;
 let _dreams_bought = null;
 let _dreams_lag_since = 0;
 let _dreams_poked_at = 0;
+let _dreams_escort = null;
 const _dreams_chests = {};
 const _dreams_skipped = {};
 
@@ -383,13 +386,13 @@ function dreams_walk_interrupted() {
 		|| dreams_threats().length > 0 || dreams_wait_for_party();
 }
 
-async function dreams_walk(spot, radius) {
+async function dreams_walk(spot, radius, stop_when) {
 	let settled = false;
 	const journey = dungeon_travel({ map: character.map, x: spot.x, y: spot.y }, { radius, timeout: DREAMS_WALK_TIMEOUT_MS })
 		.then(() => { settled = true; }, () => { settled = true; });
 
 	while (!settled) {
-		if (dreams_walk_interrupted()) {
+		if (dreams_walk_interrupted() || (stop_when && stop_when())) {
 			stop_movement("dreams: walk interrupted");
 			await journey;
 			return false;
@@ -515,6 +518,35 @@ async function dreams_descend(door) {
 	}
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// ESCORT — an escort only finishes when its traveler reaches the stairs down, which stay locked until it does
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function dreams_floor_key(cave) {
+	return cave.run + ":" + cave.floor;
+}
+
+function dreams_escort(cave) {
+	if (_dreams_escort !== dreams_floor_key(cave)) return null;
+	const objective = cave.objectives.find(o => o.floor === cave.floor && o.kind === "encounter" && o.required && !o.done);
+	const stairs = cave.doors.find(d => d.down);
+	if (!objective || !stairs) return null;
+	return { objective, stairs };
+}
+
+function dreams_escortee(escort) {
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.cave && e.cave.room === escort.objective.id && cave_bystander(e)) return e;
+	}
+	return null;
+}
+
+function dreams_escort_lagging(escort) {
+	const traveler = dreams_escortee(escort);
+	return !!traveler && distance(character, traveler) > DREAMS_ESCORT_LEASH;
+}
+
 async function dreams_still_inside() {
 	if (character.cave) return true;
 	return dreams_until(() => !!character.cave, DREAMS_LEFT_GRACE_MS);
@@ -522,6 +554,7 @@ async function dreams_still_inside() {
 
 async function dreams_floors() {
 	let goal = null;
+	let heading = null;
 	let idle_since = 0;
 	let floor = -1;
 
@@ -531,6 +564,7 @@ async function dreams_floors() {
 			if (cave.floor !== floor) {
 				floor = cave.floor;
 				goal = null;
+				heading = null;
 				dreams_log(`Floor ${floor + 1}`);
 				dungeon_telemetry_event("dreams_floor", {
 					floor,
@@ -557,8 +591,39 @@ async function dreams_floors() {
 				continue;
 			}
 
+			const escort = dreams_escort(cave);
+			if (escort) {
+				if (heading !== "escort") {
+					heading = "escort";
+					idle_since = 0;
+					const traveler = dreams_escortee(escort);
+					dreams_log(`Floor ${floor + 1}: escorting ${traveler ? traveler.name || traveler.mtype : "the traveler (not in sight)"} to the stairs down`);
+					dungeon_telemetry_event("dreams_escort", { floor, id: escort.objective.id, seen: !!traveler });
+				}
+				const lagging = dreams_escort_lagging(escort);
+				if (!lagging && Math.hypot(character.x - escort.stairs.x, character.y - escort.stairs.y) > DREAMS_ARRIVE) {
+					idle_since = 0;
+					await dreams_walk(escort.stairs, DREAMS_ARRIVE, () => dreams_escort_lagging(escort));
+					continue;
+				}
+				if (lagging && smart.moving) stop_movement("dreams: waiting for the escort");
+				if (!idle_since) idle_since = Date.now();
+				if (Date.now() - idle_since > DREAMS_ROOM_IDLE_MS) {
+					dreams_log(`The escort is not finishing at the stairs — giving it up`, DUNGEON_WARN_COLOR);
+					dungeon_telemetry_event("dreams_escort_abandoned", { floor, id: escort.objective.id, lagging });
+					_dreams_escort = null;
+					idle_since = 0;
+				}
+				await delay(DREAMS_POLL_MS);
+				continue;
+			}
+
 			const stairs = dreams_open_stairs(cave);
 			if (stairs) {
+				if (heading !== "stairs") {
+					heading = "stairs";
+					dreams_log(`Floor ${floor + 1}: heading for the stairs down`);
+				}
 				await dreams_descend(stairs);
 				continue;
 			}
@@ -573,8 +638,9 @@ async function dreams_floors() {
 				continue;
 			}
 
-			if (!goal || next.id !== goal.id) {
+			if (!goal || next.id !== goal.id || heading !== goal.id) {
 				goal = next;
+				heading = goal.id;
 				idle_since = 0;
 				dreams_log(`Floor ${floor + 1}: heading for ${dreams_label(goal)}`);
 				dungeon_telemetry_event("dreams_objective", { floor, id: goal.id, kind: goal.kind });
@@ -673,7 +739,12 @@ function dreams_option_score(option, encounter) {
 	const def = encounter && encounter.options.find(o => o.id === option.id);
 	const gold = (option.cost || 0) / 1000;
 	if (!def) return DREAMS_UNKNOWN_RANK + (option.amber ? 1 : 0) - gold;
-	return (DREAMS_EFFECT_RANK[def.effect] || 0) - (option.amber || 0) * DREAMS_AMBER_PENALTY - gold;
+	return dreams_effect_rank(def.effect) - (option.amber || 0) * DREAMS_AMBER_PENALTY - gold;
+}
+
+function dreams_effect_rank(effect) {
+	if (effect === "escort" && !character.cave.doors.some(d => d.down)) return DREAMS_NO_STAIRS_ESCORT_RANK;
+	return DREAMS_EFFECT_RANK[effect] || 0;
 }
 
 function dreams_hostile_near_body() {
@@ -717,12 +788,15 @@ function dreams_vote(cave) {
 	if (!option) return;
 
 	_dreams_voted = choice.id;
+	const encounter = dreams_encounter_for(choice);
+	const def = encounter && encounter.options.find(o => o.id === option.id);
+	if (def && def.effect === "escort") _dreams_escort = dreams_floor_key(cave);
 	dreams_log(`Vote on "${choice.title}": ${option.label}`);
 	dungeon_telemetry_event("dreams_vote", {
 		choice: choice.id,
 		title: choice.title,
 		option: option.id,
-		encounter: (dreams_encounter_for(choice) || {}).id || null,
+		encounter: (encounter || {}).id || null,
 		offered: choice.options.map(o => o.id).join(","),
 	});
 	cave_reply(choice.id, option.id).catch(e => {
