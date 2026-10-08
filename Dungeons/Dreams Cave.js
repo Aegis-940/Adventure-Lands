@@ -168,12 +168,20 @@ function cave_bystander(mob) {
 	return !!mob.cave && !cave_hostile(mob);
 }
 
+function dreams_in_fight(mob, lead) {
+	if (DUNGEON_PARTY.includes(mob.target)) return true;
+	if (distance(character, mob) <= DREAMS_THREAT_RADIUS) return true;
+	return !!lead && distance(lead, mob) <= DREAMS_THREAT_RADIUS;
+}
+
 function dreams_threats() {
+	const lead = character.name === MOVEMENT_LEADER ? null : get_player(MOVEMENT_LEADER);
+	const anchor = lead && !lead.rip ? lead : null;
 	const out = [];
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
 		if (e.type !== "monster" || e.dead || !e.cave || !cave_hostile(e)) continue;
-		if (DUNGEON_PARTY.includes(e.target) || distance(character, e) <= DREAMS_THREAT_RADIUS) out.push(e);
+		if (dreams_in_fight(e, anchor)) out.push(e);
 	}
 	return out;
 }
@@ -418,14 +426,27 @@ function dreams_close_in() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// FOLLOWERS IN A FIGHT — anything hostile within reach is fought where it stands, as long as Myras is not left behind
+// FOLLOWERS IN A FIGHT — Myras's fight is theirs too: close on it in a straight line, path round a wall, fight once in range
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+function dreams_fight_mob() {
+	return dreams_threats()
+		.filter(e => !must_not_touch(e))
+		.sort((a, b) => distance(character, a) - distance(character, b))[0] || null;
+}
+
 function dreams_fight_goal() {
-	if (!dreams_threats().some(e => distance(character, e) <= DREAMS_THREAT_RADIUS)) return null;
 	const lead = get_player(MOVEMENT_LEADER);
 	if (lead && !lead.rip && Math.hypot(character.x - lead.x, character.y - lead.y) > cohesion_range()) return null;
-	return { local: "farm", label: "dreams-fight" };
+
+	const mob = dreams_fight_mob();
+	if (!mob) return null;
+	if (is_in_range(mob)) return { local: "farm", label: "dreams-fight" };
+
+	const reach = character.range * DREAMS_STANDOFF;
+	const stand = standoff_point(mob, reach);
+	if (can_move_to(stand.x, stand.y)) return { local: "step", label: "dreams-fight-close", step: stand };
+	return { label: "dreams-fight-path", map: character.map, x: mob.x, y: mob.y, radius: reach };
 }
 
 function dreams_door(map, door) {
