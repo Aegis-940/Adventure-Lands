@@ -101,7 +101,7 @@ var equipment_sets = {
 	camp_fight: [
 		{ item_name: "firestaff", slot: "mainhand", level: 8, l: "l" },
 		{ item_name: "exoarm", slot: "offhand", level: 1, l: "l" },
-		{ item_name: "cave_loaded_die", slot: "orb", level: 0, l: "l" },
+		{ item_name: "cave_loaded_die", slot: "orb", level: 1, l: "l" },
 		{ item_name: "zapper", slot: "ring2", level: 2, l: "u" },
 		{ item_name: "coat", slot: "chest", level: 10, l: "l" },
 	],
