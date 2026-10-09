@@ -27,6 +27,7 @@ var CONFIG = {
 		},
 		taunt_ents: false,
 		taunt_bosses: ["mrpumpkin", "mrgreen"],
+		taunt_exempt: ["CrownTown", "CrownsAnal", "CrownPriest"],
 		engage_radius: 150,
 		swap_trick_enabled: true,
 		swing_trick_cc_budget: 160,
