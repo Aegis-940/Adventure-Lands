@@ -26,6 +26,7 @@ var CONFIG = {
 			max_mobs_in_range: 6
 		},
 		taunt_ents: false,
+		taunt_bosses: ["mrpumpkin", "mrgreen"],
 		engage_radius: 150,
 		swap_trick_enabled: true,
 		swing_trick_cc_budget: 160,

@@ -94,7 +94,7 @@ function dungeon_loadout() {
 
 function resolve_healer_loadout() {
 	if (CONFIG.equipment.weapon_swap_enabled === false) return null;
-	if (camp_gear_owned()) return null;
+	if (fight_gear_owned()) return null;
 	const override = gear_override("loadout");
 	if (override) return override;
 
@@ -121,23 +121,24 @@ function resolve_healer_orb() {
 	const dungeon_orb = dungeon_setting("orb", null);
 	if (dungeon_orb && set_available(dungeon_orb)) return dungeon_orb;
 
-	if (camp_gear_owned()) return null;
+	if (fight_gear_owned()) return null;
 	return gear_override("orb") || preferred_orb("orb_luck");
 }
 
 function resolve_healer_ring() {
-	return camp_gear_owned() ? null : "zap_off";
+	return fight_gear_owned() ? null : "zap_off";
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// CAMP GEAR — at the bscorpion camp one rule owns every swapped slot, so each switch is a single equip_batch
+// FIGHT GEAR — at the bscorpion camp or a tanked boss one rule owns every swapped slot, so each switch is a single equip_batch
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 var _camp_fight_amulet = null;
 var _kill_watch = null;
 
-function camp_gear_owned() {
-	return is_at_bscorpion_farm() && !panicking && !disengaging() && CONFIG.equipment.weapon_swap_enabled !== false;
+function fight_gear_owned() {
+	if (!is_at_bscorpion_farm() && !tank_boss_nearby()) return false;
+	return !panicking && !disengaging() && CONFIG.equipment.weapon_swap_enabled !== false;
 }
 
 function camp_gear_held(entry) {
@@ -179,17 +180,17 @@ function log_camp_kill() {
 	_kill_watch = null;
 }
 
-function resolve_healer_camp() {
-	if (!is_at_bscorpion_farm()) {
-		_kill_watch = null;
-		return null;
-	}
-	log_camp_kill();
-	if (!camp_gear_owned()) return null;
-	if (bscorpion_luck_window()) return camp_gear_set("camp_luck_live", equipment_sets.camp_luck);
+function resolve_healer_fight() {
+	const at_camp = is_at_bscorpion_farm();
+	if (at_camp) log_camp_kill();
+	else _kill_watch = null;
+
+	if (!fight_gear_owned()) return null;
+	if (luck_window()) return camp_gear_set("camp_luck_live", equipment_sets.camp_luck);
 
 	remember_fight_amulet();
-	const fight = equipment_sets.camp_fight.filter(entry => CONFIG.combat.zapper_enabled || entry.item_name !== "zapper");
+	const zapping = at_camp && CONFIG.combat.zapper_enabled;
+	const fight = equipment_sets.camp_fight.filter(entry => zapping || entry.item_name !== "zapper");
 	return camp_gear_set("camp_fight_live", _camp_fight_amulet ? fight.concat(_camp_fight_amulet) : fight);
 }
 
@@ -198,7 +199,7 @@ var EQUIPMENT_RULES = {
 	gloves:  { kind: "set", resolve: resolve_healer_gloves },
 	orb:     { kind: "set", resolve: resolve_healer_orb },
 	ring:    { kind: "set", resolve: resolve_healer_ring },
-	camp:    { kind: "set", resolve: resolve_healer_camp },
+	fight:   { kind: "set", resolve: resolve_healer_fight },
 };
 
 var MONSTER_GEAR_OVERRIDES = {

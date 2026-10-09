@@ -108,7 +108,7 @@ PER_ROLE = {
     # deliberately one per character; the four never load together
     "CONFIG", "home", "destination", "cache", "state", "equipment_sets",
     "ITEMS_TO_KEEP", "item_order", "PANIC_THRESHOLDS", "EQUIPMENT_RULES",
-    "MONSTER_GEAR_OVERRIDES", "PANIC_BROADCAST_TARGETS", "update_cache",
+    "MONSTER_GEAR_OVERRIDES", "BOSS_GEAR_OVERRIDES", "PANIC_BROADCAST_TARGETS", "update_cache",
     "action_loop", "skill_loop", "reposition", "model_prediction", "panicking",
     "panic_external", "panic_since", "request_delivery", "get_character_state",
     "find_best_target", "weapon_choice_context",

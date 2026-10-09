@@ -163,6 +163,13 @@ async function handle_absorb() {
 		return;
 	}
 
+	const boss_ally = boss_absorb_target();
+	if (boss_ally) {
+		await use_skill("absorb", boss_ally);
+		errlog_count("absorb boss");
+		return;
+	}
+
 	const allies = Object.keys(get_party())
 		.filter(n => n !== character.name)
 		.map(n => get_player(n))
@@ -193,6 +200,23 @@ async function handle_absorb() {
 	}
 }
 
+function boss_absorb_target() {
+	const party = get_party();
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || e.dead || !CONFIG.combat.tank_bosses.includes(e.mtype)) continue;
+		if (!e.target || e.target === character.name || !party[e.target]) continue;
+
+		const ally = get_player(e.target);
+		if (!ally || ally.rip || !is_in_range(ally, "absorb")) continue;
+		if (hit_too_big(e, character)) {
+			errlog_count("absorb boss refused: lethal hit");
+			continue;
+		}
+		return ally.name;
+	}
+	return null;
+}
 
 function party_heal_useful_total() {
 	const base = partyheal_base();

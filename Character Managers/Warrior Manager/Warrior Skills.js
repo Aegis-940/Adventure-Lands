@@ -51,9 +51,13 @@ async function skill_loop() {
 			}
 		}
 
-		// if (CONFIG.skills.taunt_enabled) {
-		// 	await handle_taunt();
-		// }
+		if (CONFIG.skills.taunt_enabled && tank) {
+			try {
+				await handle_taunt(tank);
+			} catch (e) {
+				catcher(e, "handle_taunt");
+			}
+		}
 
 		// if (CONFIG.skills.charge_enabled && !is_on_cooldown("charge")) {
 		// 	await use_skill("charge");
@@ -223,25 +227,25 @@ async function handle_agitate(tank) {
 	}
 }
 
-async function handle_taunt() {
-	if (is_on_cooldown("taunt")) return;
-	if (!CONFIG.combat.taunt_ents) return;
+function taunt_wanted(e, tank) {
+	if (CONFIG.combat.taunt_ents && e.mtype === "ent") return e.target !== character.name;
+	if (!CONFIG.combat.taunt_bosses.includes(e.mtype)) return false;
+	return !!e.target && e.target !== character.name && e.target !== tank.name;
+}
 
-	const skill_range = G.skills.taunt.range;
-	const ents = Object.values(parent.entities).filter(e =>
-		e.type === "monster" &&
-		e.mtype === "ent" &&
-		e.target !== character.name &&
-		e.visible &&
-		!e.dead &&
-		distance(character, e) <= skill_range
-	);
+async function handle_taunt(tank) {
+	if (is_on_cooldown("taunt") || tank.rip) return;
+	if (character.mp < skill_mp_cost("taunt") + panic_mp_reserve()) return;
+	if (distance(character, tank) > G.skills.absorb.range) return;
 
-	for (const ent of ents) {
-		if (is_in_range(ent, "taunt")) {
-			await use_skill("taunt", ent.id);
-			game_log(`Taunting ${ent.name}`, "#FFA600");
-			break;
-		}
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || e.dead || !e.visible) continue;
+		if (!taunt_wanted(e, tank) || !is_in_range(e, "taunt")) continue;
+
+		await use_skill("taunt", e.id);
+		errlog_count(`taunt ${e.mtype}`);
+		game_log(`Taunting ${e.name} off ${e.target}`, "#FFA600");
+		return;
 	}
 }

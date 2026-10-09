@@ -226,10 +226,7 @@ function choose_attack_option(primary) {
 var _cupid_engaged = false;
 
 function cupid_blocked() {
-	if (!set_available("heal")) return true;
-	const at_home = destination && character.map === destination.map;
-	const overrides = (at_home && MONSTER_GEAR_OVERRIDES[home]) || {};
-	return "weapon" in overrides;
+	return !set_available("heal") || gear_override("weapon") !== null;
 }
 
 function find_cupid_target() {

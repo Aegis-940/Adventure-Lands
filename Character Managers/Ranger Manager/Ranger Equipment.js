@@ -178,3 +178,8 @@ var EQUIPMENT_RULES = {
 var MONSTER_GEAR_OVERRIDES = {
 	bscorpion: { weapon: "single" },
 };
+
+var BOSS_GEAR_OVERRIDES = {
+	mrpumpkin: { weapon: "single", chest: "dps_chest" },
+	mrgreen:   { weapon: "single", chest: "dps_chest" },
+};

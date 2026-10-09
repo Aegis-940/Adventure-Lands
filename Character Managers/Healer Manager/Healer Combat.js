@@ -143,31 +143,44 @@ function find_heal_target() {
 var KILL_RATE_WINDOW_MS = 2000;
 var KILL_RATE_MIN_SPAN_MS = 500;
 
-var _bscorpion_hp_trace = [];
+var _kill_hp_trace = [];
 var _luck_latched_id = null;
 
-function bscorpion_kill_rate(bscorp) {
+function kill_rate(mob) {
 	const now = Date.now();
-	const trace = _bscorpion_hp_trace;
-	if (trace.length && trace[0].id !== bscorp.id) trace.length = 0;
-	if (!trace.length || now - trace[trace.length - 1].t >= 100) trace.push({ id: bscorp.id, t: now, hp: bscorp.hp });
+	const trace = _kill_hp_trace;
+	if (trace.length && trace[0].id !== mob.id) trace.length = 0;
+	if (!trace.length || now - trace[trace.length - 1].t >= 100) trace.push({ id: mob.id, t: now, hp: mob.hp });
 	while (now - trace[0].t > KILL_RATE_WINDOW_MS) trace.shift();
 	if (!trace.length || now - trace[0].t < KILL_RATE_MIN_SPAN_MS) return 0;
-	return Math.max(0, (trace[0].hp - bscorp.hp) / (now - trace[0].t));
+	return Math.max(0, (trace[0].hp - mob.hp) / (now - trace[0].t));
 }
 
-function bscorpion_luck_due(bscorp) {
-	if (_luck_latched_id === bscorp.id) return true;
-	const lead_hp = bscorpion_kill_rate(bscorp) * CONFIG.equipment.luck_lead_ms;
-	if (remaining_hp(bscorp) > lead_hp + CONFIG.equipment.luck_burst_hp) return false;
-	_luck_latched_id = bscorp.id;
+function luck_due(mob) {
+	if (_luck_latched_id === mob.id) return true;
+	const lead_hp = kill_rate(mob) * CONFIG.equipment.luck_lead_ms;
+	if (remaining_hp(mob) > lead_hp + CONFIG.equipment.luck_burst_hp) return false;
+	_luck_latched_id = mob.id;
 	return true;
 }
 
-function bscorpion_luck_window() {
-	if (!is_at_bscorpion_farm()) return false;
+function tank_boss_nearby() {
+	for (const type of CONFIG.combat.tank_bosses) {
+		const boss = get_nearest_monster({ type });
+		if (boss) return boss;
+	}
+	return null;
+}
+
+function luck_kill_target() {
+	if (!is_at_bscorpion_farm()) return tank_boss_nearby();
 	const info = find_nearest_bscorpion();
-	return !!info && !!info.entity.target && bscorpion_luck_due(info.entity);
+	return info ? info.entity : null;
+}
+
+function luck_window() {
+	const mob = luck_kill_target();
+	return !!mob && !!mob.target && luck_due(mob);
 }
 
 function bscorpion_damage_window() {
@@ -178,7 +191,7 @@ function bscorpion_damage_window() {
 
 	const bscorp = info.entity;
 	if (!bscorp.target) return null;
-	if (bscorpion_luck_due(bscorp)) return null;
+	if (luck_due(bscorp)) return null;
 	return bscorp;
 }
 

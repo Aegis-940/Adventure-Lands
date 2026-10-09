@@ -164,6 +164,7 @@ var cache = null;
 var equipment_sets = {};
 var ITEMS_TO_KEEP = [];
 var MONSTER_GEAR_OVERRIDES = {};
+var BOSS_GEAR_OVERRIDES = {};
 var EQUIPMENT_RULES = null;
 
 var PANIC_BROADCAST_TARGETS = [];

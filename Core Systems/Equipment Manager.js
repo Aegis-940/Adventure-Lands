@@ -468,7 +468,17 @@ async function apply_equipment_rule(token, group, resolved) {
 	await equip_apply(token, sets);
 }
 
+function boss_gear_here() {
+	for (const name in BOSS_GEAR_OVERRIDES) {
+		if (get_nearest_monster({ type: name })) return BOSS_GEAR_OVERRIDES[name];
+	}
+	return null;
+}
+
 function gear_override(group) {
+	const boss = boss_gear_here();
+	if (boss && group in boss) return boss[group];
+
 	const at_home = destination && character.map === destination.map;
 	if (!at_home) return null;
 	const overrides = MONSTER_GEAR_OVERRIDES[home] || {};
