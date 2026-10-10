@@ -36,6 +36,7 @@ const LOCATIONS = {
 	frog:       [{ map: "main", x: -1125, y: 1118 }],
 	ghost:      [{ map: "halloween", x: -405, y: -1642 }],
 	gscorpion:  [{ map: "desertland", x: 390, y: -1422 }],
+	harpy:      [{ map: "winter_cove", x: 135, y: -311 }],
 	iceroamer:  [{ map: "winterland", x: 823, y: -45 }],
 	mechagnome: [{ map: "cyberland", x: 0, y: 0 }],
 	mole:       [{ map: "tunnel", x: 14, y: -1072 }],
