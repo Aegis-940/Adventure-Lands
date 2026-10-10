@@ -1,5 +1,5 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// LUCKY SLOT TRACKER — every scroll upgrade roll per inventory slot, and the odds that slot is the account's lucky slot
+// LUCKY SLOT TRACKER — every scroll upgrade roll per inventory slot, and the odds that slot is this character's lucky slot
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const SLOT_ROLL_KEY = "AL_upgrade_slot_rolls";
