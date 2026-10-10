@@ -312,6 +312,7 @@ function oldest_shell_age() {
 }
 
 function handle_stomp(tank) {
+	rime_stomp_overdue_check("skill loop");
 	publish_stomp_ready();
 	log_new_shells();
 	close_shell_windows();
@@ -401,9 +402,29 @@ function rime_stomp_watcher() {
 			}
 		}
 		if (changed) schedule_rime_stomp();
+		_rime_last_packet_at = now;
+		rime_stomp_overdue_check("entities");
+	};
+
+	if (parent.socket._rime_stomp_hit_check) parent.socket.off("hit", parent.socket._rime_stomp_hit_check);
+	parent.socket._rime_stomp_hit_check = () => {
+		_rime_last_packet_at = Date.now();
+		rime_stomp_overdue_check("hit");
 	};
 
 	parent.socket.on("entities", parent.socket._rime_stomp_watcher);
+	parent.socket.on("hit", parent.socket._rime_stomp_hit_check);
+}
+
+var _rime_last_packet_at = 0;
+var RIME_STOMP_LATE_MS = 50;
+
+function rime_stomp_overdue_check(via) {
+	const now = Date.now();
+	for (const id in _rime_stomp_plans) {
+		const plan = _rime_stomp_plans[id];
+		if (!plan.done && plan.fire_at <= now) return rime_deadline_stomp(via);
+	}
 }
 
 function rime_plan_distance(id) {
@@ -423,14 +444,23 @@ function schedule_rime_stomp() {
 		if (!plan.done) earliest = Math.min(earliest, plan.fire_at);
 	}
 	if (!isFinite(earliest)) return;
-	_rime_stomp_timer = setTimeout(rime_deadline_stomp, Math.max(0, earliest - Date.now()));
+	_rime_stomp_timer = setTimeout(() => rime_deadline_stomp("timer"), Math.max(0, earliest - Date.now()));
 }
 
-function rime_deadline_stomp() {
+function rime_deadline_stomp(via) {
+	clearTimeout(_rime_stomp_timer);
 	_rime_stomp_timer = null;
 	const now = Date.now();
 	const due = Object.keys(_rime_stomp_plans).filter(id => !_rime_stomp_plans[id].done && _rime_stomp_plans[id].fire_at <= now + 5);
 	for (const id of due) _rime_stomp_plans[id].done = true;
+	if (due.length) {
+		const late = now - Math.min(...due.map(id => _rime_stomp_plans[id].fire_at));
+		errlog_count(`rime deadline via ${via}`);
+		if (late > RIME_STOMP_LATE_MS) {
+			errlog_count(`rime deadline late via ${via}`);
+			errlog_timeline("rime_watch", `deadline ${late}ms late, fired by ${via}, last packet ${now - _rime_last_packet_at}ms before`);
+		}
+	}
 
 	try {
 		if (!due.length) return;
