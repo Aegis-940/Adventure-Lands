@@ -171,11 +171,12 @@ function rime_shell_held(mob) {
 
 const RIME_HOLD_GEAR_RANGE = 400;
 
-function rime_shell_hold_near() {
+function rime_hold_gear_wanted() {
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
 		if (e.type !== "monster" || e.dead || !rime_shell_ability(e)) continue;
-		if (distance(character, e) <= RIME_HOLD_GEAR_RANGE && rime_shell_held(e)) return true;
+		if (distance(character, e) > RIME_HOLD_GEAR_RANGE) continue;
+		if (e.s?.rimeshell || rime_shell_held(e)) return true;
 	}
 	return false;
 }

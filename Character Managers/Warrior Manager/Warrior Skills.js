@@ -341,7 +341,7 @@ function handle_stomp(tank) {
 	}
 }
 
-var RIME_STOMP_MARGIN_MS = 250;
+var RIME_STOMP_MARGIN_MS = 150;
 var RIME_RTT_FLOOR_MS = 300;
 var RIME_RTT_PAD_MS = 100;
 var RIME_PLAN_TTL_MS = 10000;

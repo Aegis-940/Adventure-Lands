@@ -162,7 +162,7 @@ The one file that changes what is worn: equipment sets, the single `batch_equip(
 **Swap penalty.** Each item equipped adds 120ms of the server's `penalty_cd`, which is added to the next skill or attack's cooldown. So a swap belongs *after* the skill it serves.
 
 **Overrides.** `gear_override(group)` checks these in order:
-1. `RIME_HOLD_GEAR`, while a held Djinn is within 400 (see Warrior Skills)
+1. `RIME_HOLD_GEAR`, while a held Djinn or a shell is within 400 (`rime_hold_gear_wanted()`, see Warrior Skills)
 2. `BOSS_GEAR_OVERRIDES` (per character, keyed by boss, default `{}` in `Global Config.js`), while that boss is in sight
 3. the `MONSTER_GEAR_OVERRIDES` of `home`
 
@@ -331,7 +331,7 @@ Stomp's first job is the Rime Djinn's shell (`mob.s.rimeshell`). At half HP the 
 
 **Stomping at the deadline.** Stomp is held to the shell's deadline.
 - `rime_stomp_watcher()` reads each shell off the `entities` socket packet as it arrives. Its `s.rimeshell.ms` is the server's remaining time; the client applies entity updates only on its next draw frame and counts `ms` down locally.
-- `rime_deadline_stomp()` fires on a timer at `arrival + ms − rtt − 250ms` (`RIME_STOMP_MARGIN_MS`), ~2.65–2.75s into the 3s. `rime_rtt()` is the median of the last 10 pings + 100, never under 300. The highest of the 10 read 405–456 on every spike and landed stomps at 2.38–2.60s.
+- `rime_deadline_stomp()` fires on a timer at `arrival + ms − rtt − 150ms` (`RIME_STOMP_MARGIN_MS`), ~2.75–2.85s into the 3s. It was 250 (~2.66s) until 10-10 22:12: of 21 stomped shells in the 20 minutes before, seven had landed 31–32k of the 32k — about 80–100ms short. `rime_rtt()` is the median of the last 10 pings + 100, never under 300. The highest of the 10 read 405–456 on every spike and landed stomps at 2.38–2.60s.
 - It does not fire if every due shell has since gone (a packet carrying `s` without `rimeshell`: broken by damage), which keeps stomp for the next Djinn.
 - A blocked stomp retries every 25ms while a send still lands in time (`seen + ms − rtt`), then reports unbroken. The timer is not trusted alone: every `entities` and `hit` packet, and the skill loop, run `rime_stomp_overdue_check()` and fire an overdue stomp themselves — at 22:04 on 10-10 the timer fired 1.45s late (4.1s into the shell; damage happened to break it), the signature of a frame the browser throttles while it is not on screen, and packets keep arriving at full rate while timers do not. A stomp more than 50ms late logs `deadline Nms late, fired by <timer|entities|hit|skill loop>, last packet Nms before`.
 
@@ -346,7 +346,7 @@ Stomp's first job is the Rime Djinn's shell (`mob.s.rimeshell`). At half HP the 
 
 The band is measured by `remaining_hp()` less the burn still to tick (`pending_burn()`: intensity × ms left). The 18:58 wipe on 10-10 was a Djinn held at the old 6% band (38k) and carried across by 33k of Ulric's burn, which reaches ~9k/s for 5s. So the band must also cover a fresh burn from a hit already in flight. The hold sits inside `must_not_touch()`, so targeting, multishot, splash and the cleave/agitate blockers all respect it. His readiness reaches Riva and Myras as `stomp_ready_at` in the state cache (`null` without a basher).
 
-**Gear while held.** The Djinns stand bunched on Myras, so with splash gear on, `splash_would_touch()` made every Djinn beside a held one untouchable, and the party stopped attacking altogether. While a held Djinn is within 400, `gear_override()` returns `RIME_HOLD_GEAR` first (Ulric and Riva: `single`, default `{}` in `Global Config.js`), so they keep hitting the Djinns near full HP and those already past half.
+**Gear while held.** The Djinns stand bunched on Myras, so with splash gear on, `splash_would_touch()` made every Djinn beside a held one untouchable, and the party stopped attacking altogether. While a held Djinn is within 400, `gear_override()` returns `RIME_HOLD_GEAR` first (Ulric and Riva: `single`, default `{}` in `Global Config.js`), so they keep hitting the Djinns near full HP and those already past half. The same override holds while a shell is up within 400: burn counts toward the break (broken shells all total ≥32k with direct damage as low as 21k), and over 43 shells on 10-10 those with Ulric's fireblade burn broke 70% of the time against 45% in his burnless vhammer set, Riva's firebow 54% against 40% in boom gear.
 
 At the Djinns, Ulric wears `orb_dps` (he was in the XP skull every logged fight). Myras wears her `single_target` loadout (firestaff + mshield, so heals rise with attack and her armour is unchanged), `orb_dps` (loaded die +1) and `dps_chest` (coat +10, through a `chest` rule that only follows an override and stands down while the `fight` rule owns the slots). Weapons are left to the chooser so AoE stays on when they stack.
 
