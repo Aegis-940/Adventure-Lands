@@ -170,7 +170,7 @@ function profile_apiercing(profile) {
 function hit_against(mob, attack, apiercing) {
 	if (!mob) return 0;
 	const piercing = apiercing === undefined ? (character.apiercing || 0) : apiercing;
-	return (attack || 0) * defense_reduction((mob.armor || 0) - piercing);
+	return (attack || 0) * defense_reduction(pierced_defense(mob.armor, piercing));
 }
 
 function mean_of_best(values, count) {

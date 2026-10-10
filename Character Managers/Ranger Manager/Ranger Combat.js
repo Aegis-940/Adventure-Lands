@@ -111,7 +111,7 @@ function burn_multiplier(mob, skill_multiplier) {
 }
 
 function target_modifier(mob, skill_multiplier, apiercing) {
-	const pierce = apiercing === undefined ? (character.apiercing || 0) : apiercing;
+	const pierce = apiercing === undefined ? shot_apiercing(SHOT_PROFILES[0]) : apiercing;
 	const explosion = character.explosion || 0;
 	if (explosion > 0) {
 		const hit = (character.attack || 0) * skill_multiplier * armour_factor(mob, pierce);

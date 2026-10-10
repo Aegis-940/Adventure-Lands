@@ -28,6 +28,10 @@ function defense_reduction(defense) {
 	return Math.min(1.32, Math.max(0.05, 1 - reduction + piercing));
 }
 
+function pierced_defense(defense, piercing) {
+	return (defense || 0) - 2 * (piercing || 0);
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // HEALING — the server's heal pipeline, which is not the damage pipeline
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -117,8 +121,8 @@ function monster_hit_on(m, target) {
 	const kind = m.damage_type || def.damage_type;
 	if (kind === "pure") return m.attack;
 	const defense = kind === "physical"
-		? (target.armor || 0) - (m.apiercing || def.apiercing || 0)
-		: (target.resistance || 0) - (m.rpiercing || def.rpiercing || 0);
+		? pierced_defense(target.armor, m.apiercing || def.apiercing)
+		: pierced_defense(target.resistance, m.rpiercing || def.rpiercing);
 	return m.attack * defense_reduction(defense);
 }
 
@@ -154,14 +158,14 @@ function crit_multiplier(crit, critdamage) {
 
 function estimate_my_damage(entity, multiplier) {
 	const info = (G.monsters && G.monsters[entity.mtype]) || {};
-	const armor = (entity.armor !== undefined ? entity.armor : info.armor || 0) - (character.apiercing || 0);
+	const armor = pierced_defense(entity.armor !== undefined ? entity.armor : info.armor, character.apiercing);
 	return (character.attack || 0) * defense_reduction(armor) * (multiplier === undefined ? 1 : multiplier);
 }
 
 function time_to_kill_ms(mob, hp, dps, party_factor, apiercing) {
 	if (!mob || !hp || dps <= 0) return Infinity;
 	const piercing = apiercing === undefined ? (character.apiercing || 0) : apiercing;
-	const armor = (mob.armor || 0) - piercing;
+	const armor = pierced_defense(mob.armor, piercing);
 	const effective = dps * defense_reduction(armor) * (party_factor || 1);
 	return effective > 0 ? (hp / effective) * 1000 : Infinity;
 }

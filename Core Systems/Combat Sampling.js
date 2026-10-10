@@ -154,7 +154,9 @@ const _inflight = {};
 function inflight_defense(target, attacker) {
 	const shooter = attacker === character.name ? character : parent.entities[attacker];
 	const magical = !!shooter && G.classes[shooter.ctype].damage_type === "magical";
-	return magical ? (target.resistance || 0) : (target.armor || 0);
+	return magical
+		? pierced_defense(target.resistance, shooter.rpiercing)
+		: pierced_defense(target.armor, shooter && shooter.apiercing);
 }
 
 if (parent.socket._inflight_tracker) {
