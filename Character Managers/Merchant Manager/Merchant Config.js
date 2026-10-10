@@ -45,6 +45,7 @@ var CONFIG = {
 	exchange: {
 		targets: [
 			{ name: "anniversarygift",  min: 1 },
+			{ name: "gift0",  min: 1 },
 			{ name: "seashell",         min: 20 },
 			{ name: "brownenvelope",    min: 1 },
 			{ name: "goldenegg",    	min: 1 },
