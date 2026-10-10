@@ -86,17 +86,8 @@ function likeliest_slot(odds) {
 	return odds.indexOf(Math.max(...odds));
 }
 
-function upgrade_slot_for(slot) {
-	const data = slot_rolls();
-	const odds = lucky_slot_odds(data);
-	const best = likeliest_slot(odds);
-	if (odds[best] >= LUCKY_SLOT_CONFIDENCE) return best;
-
-	let target = slot;
-	for (let i = 0; i < SLOT_COUNT; i++) {
-		if (data[i].n < data[target].n) target = i;
-	}
-	return target;
+function upgrade_slot_for() {
+	return likeliest_slot(lucky_slot_odds(slot_rolls()));
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
