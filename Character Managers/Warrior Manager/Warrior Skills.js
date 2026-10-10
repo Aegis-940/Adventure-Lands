@@ -210,7 +210,8 @@ function log_shell_window(id, w, mob) {
 	const lead = w.first_hit ? w.first_hit - w.start : 0;
 	const rate = w.first_hit ? w.total / Math.max(100, end - w.first_hit) * 1000 : 0;
 	const projected = rate * Math.max(0, RIME_SHELL_WINDOW_MS - lead) / 1000;
-	const outcome = w.stomped_at ? "stomped" : !mob ? "out of sight" : mob.dead ? "died" : "ended unstomped";
+	const outcome = w.stomped_at ? "stomped" : !mob ? "out of sight" : mob.dead ? "died"
+		: `gone before stomp, now ${Object.keys(mob.s || {}).join("+") || "no conditions"}`;
 	const by = Object.entries(w.by)
 		.sort((a, b) => b[1] - a[1])
 		.slice(0, 6)
@@ -230,6 +231,7 @@ function close_shell_windows() {
 		if (e && !e.dead && e.s?.rimeshell) continue;
 		log_shell_window(id, _rime_shell_window[id], e);
 		delete _rime_shell_window[id];
+		if (_rime_stomp_plans[id]) _rime_stomp_plans[id].done = true;
 	}
 }
 
@@ -258,11 +260,16 @@ function publish_stomp_ready() {
 }
 
 function mark_shells_stomped() {
+	for (const id in _rime_stomp_plans) {
+		const plan = _rime_stomp_plans[id];
+		if (!plan.gone && rime_plan_distance(id) <= G.skills.stomp.range) plan.done = true;
+	}
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
 		if (e.type !== "monster" || !e.s?.rimeshell) continue;
 		if (distance(character, e) > G.skills.stomp.range) continue;
 		_rime_shell_reported[id] = true;
+		if (_rime_stomp_plans[id]) _rime_stomp_plans[id].done = true;
 		const w = shell_window(e);
 		if (!w.stomped_at) w.stomped_at = Date.now();
 	}
@@ -290,14 +297,15 @@ function handle_stomp(tank) {
 	close_shell_windows();
 	const casting = rime_shell_casting();
 	const shell = casting && distance(character, casting) <= G.skills.stomp.range ? casting : null;
-	if (casting && !shell) report_unbroken_shell(casting, `${Math.round(distance(character, casting))}px away`);
+	if (casting && !shell && !rime_stomp_planned()) report_unbroken_shell(casting, `${Math.round(distance(character, casting))}px away`);
 
+	const planned = !!shell && rime_stomp_planned();
 	const blocked = stomp_blocked();
 	if (blocked) {
-		if (shell) report_unbroken_shell(shell, blocked);
+		if (shell && !planned) report_unbroken_shell(shell, blocked);
 		return;
 	}
-	if (shell && oldest_shell_age() < RIME_SHELL_STOMP_DELAY_MS) return;
+	if (shell && (planned || oldest_shell_age() < RIME_SHELL_STOMP_DELAY_MS)) return;
 	if (!stomp_wanted(tank, shell) || !fire_stomp()) return;
 	publish_stomp_ready();
 	write_state_cache();
@@ -309,6 +317,125 @@ function handle_stomp(tank) {
 		game_log(`Stomp — breaking Rime Shell on ${shell.name}`, "#FFA600");
 	} else {
 		game_log(`Stomp — Myras at ${Math.round(100 * tank.hp / tank.max_hp)}%`, "#FFA600");
+	}
+}
+
+var RIME_STOMP_MARGIN_MS = 400;
+var RIME_RTT_FLOOR_MS = 300;
+var RIME_PLAN_TTL_MS = 10000;
+var RIME_RETRY_MS = 25;
+var _rime_stomp_plans = {};
+var _rime_stomp_timer = null;
+
+function rime_rtt() {
+	return Math.max(RIME_RTT_FLOOR_MS, ...parent.pings.slice(-10));
+}
+
+function rime_stomp_planned() {
+	for (const id in _rime_stomp_plans) if (!_rime_stomp_plans[id].done) return true;
+	return false;
+}
+
+function rime_stomp_watcher() {
+	if (parent.socket._rime_stomp_watcher) parent.socket.off("entities", parent.socket._rime_stomp_watcher);
+
+	parent.socket._rime_stomp_watcher = data => {
+		if (!data || !data.monsters) return;
+		const now = Date.now();
+		for (const id in _rime_stomp_plans) {
+			if (now - _rime_stomp_plans[id].seen > RIME_PLAN_TTL_MS) delete _rime_stomp_plans[id];
+		}
+
+		let changed = false;
+		for (const m of data.monsters) {
+			const plan = _rime_stomp_plans[m.id];
+			if (plan && m.x !== undefined) { plan.x = m.x; plan.y = m.y; }
+			if (!m.s) continue;
+
+			const shell = m.s.rimeshell;
+			if (!shell || !shell.ms) {
+				if (plan) plan.gone = true;
+				continue;
+			}
+			const fire_at = now + shell.ms - rime_rtt() - RIME_STOMP_MARGIN_MS;
+			if (!plan) {
+				_rime_stomp_plans[m.id] = { seen: now, ms: shell.ms, fire_at, mtype: m.type, x: m.x, y: m.y, done: false, gone: false };
+				changed = true;
+			} else if (!plan.done && fire_at < plan.fire_at) {
+				plan.fire_at = fire_at;
+				changed = true;
+			}
+		}
+		if (changed) schedule_rime_stomp();
+	};
+
+	parent.socket.on("entities", parent.socket._rime_stomp_watcher);
+}
+
+function rime_plan_distance(id) {
+	const e = parent.entities[id];
+	if (e) return distance(character, e);
+	const plan = _rime_stomp_plans[id];
+	return Math.hypot(character.x - plan.x, character.y - plan.y);
+}
+
+function schedule_rime_stomp() {
+	clearTimeout(_rime_stomp_timer);
+	_rime_stomp_timer = null;
+
+	let earliest = Infinity;
+	for (const id in _rime_stomp_plans) {
+		const plan = _rime_stomp_plans[id];
+		if (!plan.done) earliest = Math.min(earliest, plan.fire_at);
+	}
+	if (!isFinite(earliest)) return;
+	_rime_stomp_timer = setTimeout(rime_deadline_stomp, Math.max(0, earliest - Date.now()));
+}
+
+function rime_deadline_stomp() {
+	_rime_stomp_timer = null;
+	const now = Date.now();
+	const due = Object.keys(_rime_stomp_plans).filter(id => !_rime_stomp_plans[id].done && _rime_stomp_plans[id].fire_at <= now + 5);
+	for (const id of due) _rime_stomp_plans[id].done = true;
+
+	try {
+		if (!due.length) return;
+		const live = due.filter(id => !_rime_stomp_plans[id].gone);
+		if (!live.length) {
+			errlog_count("rime deadline: shell gone before the deadline");
+			return;
+		}
+		const id = live.find(i => rime_plan_distance(i) <= G.skills.stomp.range);
+		const shell = parent.entities[id || live[0]] || { id: id || live[0], name: "Rime Djinn" };
+		if (!id) return report_unbroken_shell(shell, `at deadline: ${Math.round(rime_plan_distance(live[0]))}px away`);
+
+		const plan = _rime_stomp_plans[id];
+		const blocked = stomp_blocked() || (fire_stomp() ? null : "stomp swap failed");
+		if (blocked) {
+			if (now + RIME_RETRY_MS < plan.seen + plan.ms - rime_rtt()) {
+				plan.done = false;
+				plan.fire_at = now + RIME_RETRY_MS;
+				errlog_count(`rime deadline retry: ${blocked.replace(/\d+s$/, "Ns")}`);
+				return;
+			}
+			return report_unbroken_shell(shell, `at deadline: ${blocked}`);
+		}
+
+		publish_stomp_ready();
+		write_state_cache();
+		const rtt = parent.pings.length ? parent.pings[parent.pings.length - 1] : 0;
+		const duration = G.monsters[plan.mtype].abilities.rimeshell.duration;
+		const into = duration - plan.ms + (now - plan.seen) + rtt;
+		mark_shells_stomped();
+		errlog_count("stomp rime shell at deadline");
+		errlog_timeline("rime_watch",
+			`stomp on shell ${id} at deadline: ${now - plan.seen}ms after seen with ${plan.ms}ms left, `
+			+ `planned rtt ${rime_rtt()} margin ${RIME_STOMP_MARGIN_MS}, last ping ${rtt} → ~${Math.round(into)}ms into the shell on arrival`);
+		game_log(`Stomp — breaking Rime Shell on ${shell.name} at the deadline`, "#FFA600");
+	} catch (e) {
+		catcher(e, "rime_deadline_stomp");
+	} finally {
+		schedule_rime_stomp();
 	}
 }
 
