@@ -183,3 +183,5 @@ var BOSS_GEAR_OVERRIDES = {
 	mrpumpkin: { weapon: "single", chest: "dps_chest" },
 	mrgreen:   { weapon: "single", chest: "dps_chest" },
 };
+
+var RIME_HOLD_GEAR = { weapon: "single" };

@@ -476,6 +476,8 @@ function boss_gear_here() {
 }
 
 function gear_override(group) {
+	if (group in RIME_HOLD_GEAR && rime_shell_hold_near()) return RIME_HOLD_GEAR[group];
+
 	const boss = boss_gear_here();
 	if (boss && group in boss) return boss[group];
 

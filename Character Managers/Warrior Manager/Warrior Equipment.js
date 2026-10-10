@@ -96,3 +96,5 @@ var BOSS_GEAR_OVERRIDES = {
 	mrpumpkin: { weapon: "single", orb: "orb_dps" },
 	mrgreen:   { weapon: "single", orb: "orb_dps" },
 };
+
+var RIME_HOLD_GEAR = { weapon: "single" };
