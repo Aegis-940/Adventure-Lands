@@ -121,7 +121,21 @@ function report_unbroken_shell(shell, reason) {
 	game_log(`Rime Shell on ${shell.name} — cannot stomp: ${reason}`, "#FF4444");
 }
 
+function publish_stomp_ready() {
+	const next = parent.next_skill.stomp;
+	stomp_ready_at = stomp_weapon_ready() ? (next ? +next : 0) : null;
+}
+
+function mark_shells_stomped() {
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || !e.s?.rimeshell) continue;
+		if (distance(character, e) <= G.skills.stomp.range) _rime_shell_reported[id] = true;
+	}
+}
+
 function handle_stomp(tank) {
+	publish_stomp_ready();
 	const casting = rime_shell_casting();
 	const shell = casting && distance(character, casting) <= G.skills.stomp.range ? casting : null;
 	if (casting && !shell) report_unbroken_shell(casting, `${Math.round(distance(character, casting))}px away`);
@@ -131,35 +145,40 @@ function handle_stomp(tank) {
 		if (shell) report_unbroken_shell(shell, blocked);
 		return;
 	}
-	if (!stomp_wanted(tank, shell)) return;
+	if (!stomp_wanted(tank, shell) || !fire_stomp()) return;
 
 	if (shell) {
+		mark_shells_stomped();
 		errlog_count("stomp rime shell");
 		game_log(`Stomp — breaking Rime Shell on ${shell.name}`, "#FFA600");
+	} else {
+		game_log(`Stomp — Myras at ${Math.round(100 * tank.hp / tank.max_hp)}%`, "#FFA600");
 	}
+}
 
+function fire_stomp() {
 	if (stomp_weapon_worn()) {
 		parent.socket.emit("skill", { name: "stomp" });
 		parent.next_skill.stomp = new Date(Date.now() + G.skills.stomp.cooldown);
 		errlog_count("stomp fired");
-		return;
+		return true;
 	}
 
 	const restore = chosen_weapon_set();
-	if (!restore) return;
+	if (!restore) return false;
 
 	const arm = equip_plan(STOMP_SET);
-	if (!arm.ops.length) return;
+	if (!arm.ops.length) return false;
 
 	const back = equip_plan(restore, arm.shadow);
-	if (!back.ops.length) return;
+	if (!back.ops.length) return false;
 
 	emit_equip_ops(arm.ops, back.shadow);
 	parent.socket.emit("skill", { name: "stomp" });
 	emit_equip_ops(back.ops, back.shadow);
 	parent.next_skill.stomp = new Date(Date.now() + G.skills.stomp.cooldown);
 	errlog_count("stomp swap fired");
-	if (!shell) game_log(`Stomp — Myras at ${Math.round(100 * tank.hp / tank.max_hp)}%`, "#FFA600");
+	return true;
 }
 
 function cleave_ready() {

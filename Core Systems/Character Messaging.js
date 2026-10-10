@@ -123,6 +123,7 @@ function get_full_character_state() {
 		paused: !automation_enabled(),
 		goal: current_goal_label(),
 		surge_at: surge_cast_at,
+		stomp_ready_at: stomp_ready_at,
 		free_slots: free_inventory_slots(),
 		loose_slots: loose_loot(0).length,
 		conditions: character.s || {},

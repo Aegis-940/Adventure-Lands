@@ -56,7 +56,7 @@ var CONFIG = {
 		weapon_min_swap_attacks: 0.25,
 		weapon_smoothing_ms: 300,
 
-		cleave_maps: ["cave", "desertland", "goobrawl", "halloween", "level2n", "level2w", "main", "mforest", "spookytown", "tunnel", "uhills", "winterland", "level2e"],
+		cleave_maps: ["cave", "desertland", "goobrawl", "halloween", "level2n", "level2w", "main", "mforest", "spookytown", "tunnel", "uhills", "winterland", "level2e", "winter_cove"],
 		cleave_swap_ms: 0,
 		mana_income_per_sec: 244,
 		skill_mana_reserve: 0.40,

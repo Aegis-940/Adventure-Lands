@@ -122,6 +122,29 @@ function rime_shell_casting() {
 	return nearest;
 }
 
+var stomp_ready_at = null;
+
+const RIME_SHELL_BREAKER = "Ulric";
+const RIME_SHELL_HOLD_BAND = 0.04;
+const RIME_SHELL_STOMP_LEAD_MS = 2000;
+
+function rime_shell_stomp_covers(mob) {
+	const breaker = get_player(RIME_SHELL_BREAKER);
+	if (!breaker || breaker.rip || distance(breaker, mob) > G.skills.stomp.range) return false;
+	const ready_at = character.name === RIME_SHELL_BREAKER
+		? stomp_ready_at
+		: read_state_cache(RIME_SHELL_BREAKER)?.stomp_ready_at;
+	return ready_at != null && ready_at - Date.now() <= RIME_SHELL_STOMP_LEAD_MS;
+}
+
+function rime_shell_held(mob) {
+	const shell = rime_shell_ability(mob);
+	if (!shell) return false;
+	const margin = remaining_hp(mob) - mob.max_hp * shell.threshold;
+	if (margin <= 0 || margin > mob.max_hp * RIME_SHELL_HOLD_BAND) return false;
+	return !rime_shell_stomp_covers(mob);
+}
+
 function rime_shell_pending_within(range) {
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
@@ -166,7 +189,7 @@ function off_limits(mob) {
 }
 
 function must_not_touch(mob) {
-	return off_limits(mob) || (!mob.target && hit_too_big(mob, character));
+	return off_limits(mob) || rime_shell_held(mob) || (!mob.target && hit_too_big(mob, character));
 }
 
 function splash_would_touch(mob, explosion) {
