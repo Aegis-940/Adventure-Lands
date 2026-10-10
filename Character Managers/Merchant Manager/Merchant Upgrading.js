@@ -370,8 +370,9 @@ async function auto_upgrade_item(level) {
 			}
 		}
 
+		let slot = i;
 		if (!character.q.upgrade) {
-			const slot = upgrade_slot_for(i);
+			slot = upgrade_slot_for(i);
 			use_mass_production(item.level);
 			game_log(`Upgrading ${item.name} (level ${item.level}) with ${scrollname} in slot ${slot}`);
 			try {
@@ -387,6 +388,10 @@ async function auto_upgrade_item(level) {
 
 		while (character.q.upgrade) {
 			await delay(50);
+		}
+
+		if (slot !== i && (character.items[slot] || character.items[i])) {
+			await swap(slot, i).catch(e => catcher(e, `auto_upgrade_item: swap back ${slot} -> ${i}`));
 		}
 
 		return "done";

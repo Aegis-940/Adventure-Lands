@@ -55,7 +55,7 @@ var CONFIG = {
 			// { name: "candy1",   	 	min: 1 },
 		],
 	},
-	do_not_bank: ["hpot1", "mpot1"],
+	do_not_bank: ["tracker", "computer", "hpot1", "mpot1"],
 	min_bank_free_space: 10,
 	min_free_inventory_slots: 3,
 	default_gear: {

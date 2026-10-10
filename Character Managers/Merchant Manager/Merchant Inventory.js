@@ -66,10 +66,7 @@ function bankable(item, keep) {
 }
 
 function has_bankable_items(keep = keep_nothing) {
-	for (let i = 3; i < character.items.length; i++) {
-		if (bankable(character.items[i], keep)) return true;
-	}
-	return false;
+	return character.items.some(item => bankable(item, keep));
 }
 
 async function wait_for_movement_to_settle(caller_label) {
@@ -126,7 +123,7 @@ async function bank_items(keep = keep_nothing) {
 		await smarter_move(BANK_LOCATION);
 		await delay(1000);
 
-		for (let i = 3; i < character.items.length; i++) {
+		for (let i = 0; i < character.items.length; i++) {
 			const item = character.items[i];
 			if (!bankable(item, keep)) continue;
 			try {
