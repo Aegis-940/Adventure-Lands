@@ -5,7 +5,7 @@
 const SLOT_ROLL_KEY = "AL_upgrade_slot_rolls";
 const SLOT_COUNT = 42;
 const SLOT_ROLL_HIGH = 9630;
-const LUCKY_SLOT_CONFIDENCE = 0.999;
+const LUCKY_SLOT_CONFIDENCE = 0.9999;
 
 const LUCKY_P_ZERO = 0.4 * 0.0001 + 0.6 * 0.0121 / 0.975;
 const LUCKY_P_HIGH = 0.4 * 0.0369;
@@ -122,7 +122,7 @@ function ensure_slot_luck_styles() {
 }
 
 function odds_text(p) {
-	return `${(p * 100).toFixed(1)}%`;
+	return `${(p * 100).toFixed(p > 0.99 ? 2 : 1)}%`;
 }
 
 function show_slot_luck() {
