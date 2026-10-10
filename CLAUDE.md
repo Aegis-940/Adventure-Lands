@@ -4,235 +4,173 @@
 
 Adventure-Lands is a **browser-injected JavaScript game automation bot** for the AdventureLand MMO. It controls a party of 4 characters (Warrior, Healer, Ranger, Merchant) through role-based scripts loaded directly into the game client. There is no build system, bundler, or Node.js runtime — all code runs in the browser.
 
+The code has no comments by convention, so the reasoning behind each system (mechanics, tuned numbers, past incidents) lives in [`Design Notes.md`](Design%20Notes.md). **Read a file's section there before changing it.**
+
 ---
 
 ## Environment & Constraints
 
-- **No package.json, npm, or build pipeline.** Do not suggest installing packages or running build commands.
-- **No module system.** Files are loaded sequentially via the Bootstrapper or injected manually into the game client. There are no `import`/`export` statements.
-- **Two different load mechanisms, and they scope differently.** `Core Systems/*.js` and `Interface/*.js` load in parallel as real `<script>` tags, so their top-level `const`/`let`/`function` are all global. `Character Managers/**` load sequentially through **indirect eval**, where `var` and `function` go global but **a top-level `const`/`let` is invisible to sibling files**. Anything shared between two files of the same character must therefore be `var` or `function`. This fails silently at runtime, not at load.
+- **No package.json, npm, build pipeline, or module system.** No `import`/`export`/`require()`. Files are fetched by the Bootstrapper or injected into the game client.
+- **Two load mechanisms that scope differently:**
+  - `Core Systems/`, `Dungeons/` and `Interface/` load in parallel as real `<script>` tags, so their top-level `const`/`let`/`function` are all global.
+  - `Character Managers/**` load sequentially through **indirect eval**. `var` and `function` go global, but a top-level `const`/`let` is invisible to sibling files. Anything shared between two files of the same character must be `var` or `function`. Getting this wrong fails silently at runtime, not at load.
 - **Nothing in a character file may run at load time** except the entry point (`Warrior.js`, `Healer.js`, `Ranger.js`, `Merchant.js`). The fighters start every loop from `run_character()`; the merchant starts `loop_controller()`.
-- **A top-level initializer may only name what has already loaded.** Function bodies run later so they can call anything, but a top-level `const X = {...}` is evaluated at load. `Merchant Task Loop.js` builds `PRIORITY_CHECKS` out of the `should_run_*` functions, so it has to load last. Getting this wrong throws inside the eval and the file defines nothing — silently.
-- **The parallel batch executes in network-completion order, not list order.** Only `Core Systems/Global Config.js` and `Interface/Widget Helpers.js` are awaited first; every other `Core Systems`/`Dungeons`/`Interface` file races. So **adding or removing a Bootstrapper entry reshuffles that race** and can expose a latent load-time dependency that had been winning by luck — this is how deleting `Server Watch.js` broke the DPS meter. Before changing the list, check what runs at load time in the affected files (`grep -n "^[a-z_][a-z_0-9]*("`), not just what they declare. Two fixes exist, both already in the repo: promote the dependency to the first stage (why Widget Helpers is there), or poll for it and retry (how the toprightcorner button chain attaches). A guarded initialiser is worthless if an unguarded `setInterval` can reach the same code path.
-- **If it's written correctly, you don't need guards.** Do not add `typeof x === "function"` / `typeof x !== "undefined"` checks or defensive fallbacks. Treat any you find as a symptom and fix the cause. There are only four legitimate guards in this repo, and they are the template for the only acceptable reasons: `Porcupine Guard.js` (a documented removal seam), `Code Loader.js` (runs standalone in a code slot before anything exists), the game's own optional callbacks (`on_cm`, and `heal`, which only a priest has), and optional *callback parameters* (`on_done`, `farm_step`, `context`) — which are an API contract, not defence. Everything else has a structural fix:
-  - **needed everywhere** → declare it in `Global Config.js`, the awaited first stage. It already declares the cross-character symbols (`home`, `destination`, `CONFIG`, `cache`, `ITEMS_TO_KEEP`, `MONSTER_GEAR_OVERRIDES`, `EQUIPMENT_RULES`, `PANIC_BROADCAST_TARGETS`, the panic flags) with neutral defaults, because `Core Systems` is shared by all four characters but only the fighters fill most of them in. **These must be `var`** — the character files re-declare the same names through indirect eval, and a top-level `const`/`let` in a classic script would make that a SyntaxError.
-  - **optional diagnostics** → a no-op stub the real file overwrites, as `Global Config.js` does for `errlog_*` and for the one-role-only `request_delivery`, `model_prediction` and `get_character_state`.
-  - **waiting on DOM another file creates** → poll for the element and retry, as the toprightcorner button chain does.
-  - **in `CRITICAL_SCRIPTS`** → it cannot be absent; a load failure aborts the bot. Guarding it is dead code.
-- **Runtime is the browser game client.** All globals (`character`, `parent.G`, `parent.entities`, `parent.S`, `parent.socket`) are provided by the game environment — they are not bugs or undefined references.
-- **jQuery is available** as `parent.$` or `window.jQuery`. This is injected by the game client.
-- **Code is injected into iframes.** `parent.*` references are how scripts access the game's top-level scope.
-- **`"Common Variables.js"` has been deleted.** It was merged or removed — do not reference or recreate it.
+- **A top-level initializer may only name what has already loaded.** `Merchant Task Loop.js` builds `PRIORITY_CHECKS` from the `should_run_*` functions, so it loads last. A failing initializer throws inside the eval and the file defines nothing, silently.
+- **The parallel batch runs in network-completion order, not list order.** Only the first stage (`Global Config.js`, `Widget Helpers.js`, `Game Log.js`) is awaited. Adding or removing a Bootstrapper entry reshuffles the race and can expose a load-time dependency that had been winning by luck (deleting `Server Watch.js` broke the DPS meter this way). Before changing the list, check what *runs* at load in the affected files (`grep -n "^[a-z_][a-z_0-9]*("`), not just what they declare. There are two fixes: promote the dependency to the first stage, or poll for it and retry. A guarded initializer is worthless if an unguarded `setInterval` can reach the same code path.
+- **If it's written correctly, you don't need guards.** Don't add `typeof x === "function"`/`!== "undefined"` checks or defensive fallbacks; treat any you find as a symptom and fix the cause. There are four legitimate kinds of guard, and they are the only acceptable reasons:
+  - `Porcupine Guard.js`, a documented removal seam
+  - `Code Loader.js`, which runs standalone in a code slot before anything else exists
+  - the game's optional callbacks (`on_cm`, and `heal`, which only a priest has)
+  - optional callback *parameters* (`on_done`, `farm_step`, `context`), which are an API contract, not defence
+
+  Everything else has a structural fix:
+  - **Needed everywhere:** declare it in `Global Config.js` with a neutral default. These must be `var`, because character files re-declare the same names through eval, and a classic-script `const` would make that a SyntaxError.
+  - **Optional or one-role-only:** add a no-op stub in `Global Config.js` that the real file overwrites (`errlog_*`, `request_delivery`, `upgrade_slot_for`, …).
+  - **Waiting on DOM another file creates:** poll for the element and retry (the toprightcorner button chain).
+  - **A required script** (anything not in the Bootstrapper's `OPTIONAL_SCRIPTS`): it cannot be absent, because a load failure aborts the bot, so a guard on it is dead code.
+- **Game globals are not bugs:** `character`, `parent.G`, `parent.entities`, `parent.S`, `parent.socket`, and jQuery as `parent.$`/`window.jQuery`. Code runs in iframes; `parent.*` is the game's top-level scope.
+- **No logical assignment operators** (`??=`, `||=`, `&&=`): the client's engine rejects them and the whole file fails to eval.
+- `"Common Variables.js"` has been deleted. Don't reference or recreate it.
 
 ---
 
-## File Roles (Quick Reference)
+## File Map
+
+Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). The overall architecture is in [`Architecture.md`](Architecture.md).
+
+**Loader**
 
 | File | Role |
 |------|------|
-| `Code Loader.js` | The one file that lives in a game code slot; fetches and evals `Bootstrapper.js` from jsDelivr, falling back to `rawcdn.githack.com` at the same SHA (correct `application/javascript`, CORS `*`) — on 10-07 jsDelivr's `/gh/` backend 503'd every uncached commit while npm and cached commits still served. Whichever base works becomes `window.__AL_BASE__`, which the Bootstrapper loads everything else from |
-| `Bootstrapper.js` | Script loader — loads all other files from CDN in order |
-| `Core Systems/Global Config.js` | **Awaited first, with `Widget Helpers.js` and `Game Log.js`** — everything may assume it. Core config/constants, party constants (including `DUNGEON_PARTY`), the shared fighter config defaults, `farm_target_for()`, the `storage_read()`/`storage_write()` pair every JSON-backed localStorage value goes through, the no-op `errlog_*` stubs, and the `var` declarations of every cross-character symbol so no reader needs a `typeof` guard |
-| `Core Systems/Movement Manager.js` | The two movement owners — `movement_goal()` (where to go, the one priority list) and `movement_local()` (where to stand) — plus the machinery they drive: `smarter_move()`, the travel arbiter (`travel_arbiter()`), `move_to_character()`, stuck escape. The arbiter counts a goal's failures (no path, timeout, stall, a search over 60s) and on the second, with nothing targeting us, re-issues the journey with the pathfinder's town edge on (`smart.use_town`, set only for that journey and cleared when it ends — the BFS reads it at every node). The drift that re-issues a journey scales with the distance left (30%, never under 80px) and ignores a cross-map target's coordinates: re-searching every 3s for a leader moving 1500px away kept followers standing in searches. A hold or a local goal parks a found route (`travel_park()`: the current leg's end plus the remaining plot) and stops the character; when the same goal (label and coordinates) comes back, the route is re-armed through `smarter_move`'s `plot` option (`travel_parked_plot()`, counted as `travel resumed parked route`) instead of searched — every cohesion hold used to cost a full search on resume, and the game's pathfinder works 40ms in every 80ms while the window is visible, standing still with the "Hmm…" bubble. A journey the arbiter released itself is re-issued at once, not after the 3s floor. A native search failure reaches `smarter_move` through `smart.on_done` (reason `failed`, or no reason after the executor's own "Lost the path" re-search) and settles the journey as `no path` on the spot; `interrupted` is the native `smart_move` re-entering and is ignored. That is the way out of walled pockets like the ice golem landing; the stuck escape behind it only ignores real instances and the cave. The **town shortcut** (`town_shortcut_check()`, every main tick) is the speed use of town and never touches `smart.use_town`: only the movement leader (or a fighter with no leader) plans it — on any travel goal including `disengage` ones (event walks are all `disengage`, and not attacking is what keeps a channel alive), nothing targeting the party, outside instances and dungeon mode — when walking on from `spawns[0]` to a point on the route saves 3s beyond the channel. The walk from the spawn is read from a per-map field of walking distances (`walk_from_spawn()`: a flood fill from `spawns[0]` over a 20px grid with the game's own `can_move()`, built once per map on first use in ~250ms and within 1–8% of the game's routes, always long). It replaced a straight-line test that found no join at all on desertland, where the spawn's way to the transporter bends four times: the camp → transporter walk is 2,627px (58s at 45) against 13s by town, and the bot never took it. On landing, a route point in a straight line is spliced in; otherwise the search restarts from the landing (`smart.found = false`). The channel is cast while the walk continues, so an interruption (heals, swaps, hits all cancel it server-side) just leaves her walking; it re-evaluates each second. Followers copy a channel they see on the leader (`get_player(MOVEMENT_LEADER).c.town`) and cancel theirs if she stops hers short — her position is recorded the moment the copy is cast (`mode: "copy"`), so a channel of hers that a heal cuts short before the follower's own has started is still caught; recording it only once his channel was up let Ulric and Riva teleport out of the bscorpion camp without her (10-07 09:18). Her channel vanishing is read with a 1s grace (`TOWN_LEAD_GONE_GRACE_MS` — her own re-cast after a heal interrupts her comes up to 1s later, and a 400ms grace still cancelled the copies at 19:29:50 on 10-10), and it counts as landed when she stands within 30px of `spawns[0]` or her channel had been up 2.5s (`TOWN_LEAD_SEEN_LANDED_MS`): in a follower's view her entity's `c.town` clears before her position jumps, and 195 of 384 follower cancels over 10-05..10-10 came in the second she landed, each turning into a `join` cast and a cohesion hold. Myras's heals and party heal run while disengaged by choice, and her orb swaps to the jacko as the trip starts, so her first channel is often interrupted. A follower more than cohesion range from her while she is within 150px of `spawns[0]` teleports too (`mode: "join"`, `leader_waiting_at_spawn()`, never cancelled), every second until it lands — every town on a map lands on the same spot, so one missed copy (Ulric, targeted or interrupted by his own swaps) no longer leaves the party split across the map, each half waiting for the other; `town_landed()` (every main tick while a channel is open, and `character.on("new_map")`) recognises the landing by position — the character within 30px of `spawns[0]` — never by `c.town`: on her own client `c.town` clears a tick *before* the position jumps, so the channel used to be dropped as "interrupted" before `new_map` fired (63 of Myras's 210 landings over 10-05..10-10, and on 10-10 19:30 the stale plot made her and Riva cast a second, pointless channel from halloween's spawn). Her own channel survives a cohesion hold and a goal change shorter than 500ms (`TOWN_OWN_CHANGE_GRACE_MS`): at 20:40:22 on 10-10 a hold for Riva, still a map behind, cancelled her channel at 3.0s, by which time Ulric's copy had passed the 2.5s "landed" mark, so he teleported alone, walked 1,450px back to her, and all three teleported again. A vanished channel is therefore kept for 1s (`TOWN_LANDING_GRACE_MS`) before it counts as interrupted, nothing is cast within 150px of the spawn (`town_shortcut_eligible()`, which also stops a `join` from the spawn itself), the planner refuses a plot whose first node is not reachable from here, and a follower already at the spawn while she is channelling (seen live, or `town` in her state cache when she is out of view) waits for her (`await-town` in `follow_goal()`) instead of walking off. A parked route whose first node is a door is re-armed only beside that door (`is_door_close()`), never one that starts with a town node. Every local step goes through `walk()`, which is `move()` behind the game's `can_walk()`: a bare `move()` within 8s of a door transport, or while disabled, rejects with `unable`, and the follow steps fired through a door crossing were the `unhandled_rejection` lines of 10-10. On landing it splices the route onto the best point reachable from the landing. Why the native town edge is not used is in `Game API Reference.md` |
-| `Core Systems/Bscorpion Camp.js` | Content-specific positioning for the desertland bscorpion/primling camp. It owns no loop of its own for movement: `movement_goal()` returns `{ local: "camp" }` while camped and `movement_local()` runs `camp_step()` (Myras orbits, Ulric/Riva hold station). Riva moves on a fixed rail (`CAMP_RAIL`): a wall-free line from (-390,-1250) running north-west (215°) for 360px through the open ground — a solid wall runs ~140px north of the camp centre and pillars and walls sit to the south-west, so any position computed relative to the moving scorpion eventually landed behind one. She stands at the rail point nearest the camp that is ≥130px (hitbox to hitbox) from the scorpion, clear of its `weakness_aura` (−10 dex/str, −30 speed for 20s, re-applied every 4s within 100px, first tick 0–4s after spawn), and waits 150px along it between spawns, where all of the spawn box is within her 222 range. Simulated over the spawn box and Myras's orbit every fight position has such a point within range (worst 145), at most 345px along. No single north-west spot can cover the box: its far corner is ~234px edge to edge from its own north-west corner. Her hold radius is the rail's far end plus the margin, so retreating never turns the goal into travel. `camp_temporal_surge()` casts temporal surge the moment the scorpion dies: the server cuts every pending respawn within 160px (hitbox to hitbox) of the caster to `remaining × 0.85 − 1000ms`, so the 6.45s respawn becomes ~4.5s (orb in, cast, orb back via the caster's own `orb` rule, one burst like scare). Myras casts first; Riva (`SURGE_PRIORITY`) waits 800ms and casts only if Myras's `surge_at` in the state cache shows she didn't, so with two 60s cooldowns against a ~38s loop every death is surged. Ulric is not a caster: cleave keeps his 1,890 MP near empty. At the camp `should_pause_combat_loop()` never pauses a follower for being beyond cohesion range of the leader (the general rule reads `cohesion_range()`, 250 — it was a fixed 200 while `follow_goal()` let a follower stand up to 250 away, a band where he neither moved nor fought): that formation rule stopped Riva shooting whenever Myras's orbit took her to the far side — and waits for a respawn 150px south of the camp centre (`CAMP_STAGING`): the scorpion's `weakness_aura` (−10 dex/str, −30 speed for 20s, re-applied every 4s within 100px hitbox to hitbox, first tick 0–4s after spawn) cost her ~3.4% at her old 50px, and from that waiting spot every spawn point is still within her ~220 range. Camp-only behaviour keys on `is_at_bscorpion_farm()` (which includes the `home` check), never on `home` alone, so none of it follows the party to a boss. `party_camped()` is the only carve-out from cohesion: following and Myras's cohesion hold are off only while no event is up and Myras is at the camp, so boss trips and the walk back keep the party together. Ulric cleaves the lone scorpion (a one-mob minimum at the camp): each cleave is half a swing of bataxe damage and its own sugar rush roll, mana-bound by `can_cleave()`; it stands down while sugar rush is up, where the bataxe swap's penalty costs more than a 274ms swing. Every kill interval goes to the timeline as `bscorpion_kill`, so a change can be measured against the last session instead of remembered |
-| `Core Systems/Combat Utilities.js` | Monster and entity queries (`monsters_matching()`, `get_num_targets()`, `get_num_chests()`), boss and party state predicates (`is_coop_boss()`, the Rime Djinn's shell — `rime_shell_casting()`, `rime_shell_pending_within()`, `rime_shell_held()`, `find_active_boss()`, `boss_engageable()`, `should_pause_combat_loop()`), and the lethal-monster rule: a monster with no target turns on whoever touches it first (a hit or a splash), so `must_not_touch()`/`safe_to_touch()` keep every fighter's targeting, splash, cleave, agitate, stomp and Myras's absorb off any untargeted monster whose hit (`monster_hit_on()`) is half their max HP or more, and `lethal_pursuer()` drives the `evade` movement goal when one targets them anyway, at any distance: scare, and keep stepping directly away until it lets go (scare, or the server's ~608px chase leash) — a fighter walking back to Myras with it in tow drags it across the map. An `EVENT_LOCATIONS` entry with `avoid` (franky: `["oneeye"]`) widens that rule while its boss is live on our map (`off_limits()`): the `avoid` types are untouchable outright, targeted or not, and until a fighter is within 50px of the entry's `spot` every monster but the boss is too. That one predicate covers targeting, Riva's multishot, splash, and the agitate/stomp/cleave blockers, so the party fights only Franky on the way in and, from the spot, anything that is not a oneeye. `boss_strayed()` leashes boss pursuit to the boss's spawn `boundary` from `G.maps[map].monsters` (+200px out, latched per boss until it is back within +150px — mrpumpkin's usual fight spot is 136px outside its boundary, so a tighter return margin would never resume): a boss outside it with a target is chasing someone, and following it only drags the fight into town. Spawns flagged `roam` (icegolem) have no leash, and neither does an `EVENT_LOCATIONS` entry with `leash: false` — franky's spawn entry in `G` is a copy of the oneeye pen, so the event's real spot (~0,32) read as strayed and sent Myras home and back through `join` in a loop. A `join` boss that does stray falls back to the centre of its spawn area on its map, never `null`, and a boss walking home with no target is still pursued. Only crabxx (16,000 attack) crosses that line today; boss pursuit (`8e809d3`) without it fed it to Riva 32 times in one spawn. mrpumpkin, mrgreen and franky are `leash: false` in `EVENT_LOCATIONS`: other parties kite them a few hundred px and fight them there — at 20:34 on 10-06 mrpumpkin was fought for minutes at (152,816), 350px from its spawn, while ours stood at its spawn point with combat targeting a boss movement would not approach (`Monster out of range` spam) |
-| `Core Systems/Combat Formulas.js` | The server's damage and heal arithmetic — `defense_reduction()`, `heal_delivered()`/`heal_useful()`/`partyheal_base()`, `burn_multiplier_at_dps()`, `splash_bonus()`, `time_to_kill_ms()`, `crit_multiplier()`, `skill_mp_cost()` (the server's `mp × (100 − mp_reduction)/100` — never read `G.skills.X.mp` raw), and `incoming_dps()`/`projected_hp()`/`endangered()` (the game client's own estimate of what the monsters on someone deal). Computes values, acts on nothing |
-| `Core Systems/Combat Sampling.js` | Hit and heal telemetry — the `hit`/`action` socket samplers and the damage/heal windows they feed — plus the party's in-flight damage ledger: every fighter's `action` is recorded by `pid` (after the target's armor, or resistance for Myras, × 0.9) until its `hit` lands or its `eta` passes, and `remaining_hp(mob)` is what targeting, `would_kill()` and Riva's skills read instead of `mob.hp`. Self-starting at load |
-| `Core Systems/Boss Profiler.js` | Per-fight profile of every player on a cooperative boss (`is_coop_boss()`) in sight — ours and strangers — from the `action`/`hit` sockets and a 1s sample of each player entity. The server sends strangers `attack`, `frequency`, `range`, `speed`, `armor`, `resistance`, `level`, `s`, `slots` (full items) and `pdps`, but never crit, piercing or explosion, so those are measured from hits: actions by type, damage by source (burn/splash/skill), crit rate and multiplier, burn procs, sugar rush, damage taken from the boss, buff and weapon time-share, distance and gear. Coop points are not damage: the server also gives `0.25 ×` the boss's raw hit on a player (tank points), `1.8 ×` net heals on coop fighters, `× 5` on the character's home server and `÷ 4` with `hopsickness`, so `coop_per_explained` (coop gain over boss damage + tank points) shows which one is moving a player's score. One `boss_profile` sample per fight per observer when the boss dies or is out of sight 15s, and a `📊` boss-dps line in the game log; the sink appends every one to `boss_profiles.jsonl` (samples in `errors.json` age out in 2h). Each fight also records the boss's own condition uptime (`boss_conditions`: marked, cursed, burned …) and each player's share of samples under 20% MP (`mp_low_pct`). `al_boss_profiles("makiz")` reads the last 10 in the console |
-| `Core Systems/Movement Positioning.js` | `best_orbit_spot()`, `make_distance_from_monsters_scorer()`, `reposition_center()` and `orbit_reposition()` — scoring candidate spots around a centre |
-| `Core Systems/Targeting.js` | `score_targets()`/`select_target()` — the one scorer every character picks targets with. Damage is valued with `context.gear` (attack, frequency, explosion, apiercing, burn chance) when the caller passes one, otherwise with the live gear; Ulric passes his swing set's measured profile (`swing_gear()`), because the cache refreshes every 50ms and often caught him mid-swap in candy canes or the bataxe, scoring every target without splash or burn |
-| `Core Systems/Porcupine Guard.js` | **Temporary** — keeps Ulric off porcupines (no targeting, single set when one is within splash reach) and puts them first on Riva's list. Every call site is `typeof`-guarded; delete the file's Bootstrapper line to remove |
-| `Core Systems/World Events.js` | Live boss/seasonal targets, the goal that walks the party to them. Pursuit stops when the boss strays from its spawn area (`boss_strayed()`), and the event goal falls back to the walk to its spawn point — a non-pursuit `disengage` goal, so the party waits there together under cohesion. It used to return `null`, which sent Myras `home` mid-fight while the followers pursued the boss on its return. Pursuit itself bypasses following and cohesion (each fighter closes to its own range — or, for an entry with a `spot` (franky: -19,36), every fighter first walks to within 50px of it while the boss is within 100px of it, then fights from there; Ulric's `engage_step` takes over inside that radius. The spot keeps the party together and away from the oneeye pen), so `party_cohesion_hold(event)` does not hold for a follower whose goal is the same event. While a boss is in sight each fighter writes a `boss_watch` timeline line every 10s (boss HP and target, positions, distance, goal, panic/evade) via `errlog_timeline()`, which goes to `errors_timeline.jsonl` without creating a record — read those first after a boss goes wrong |
-| `Core Systems/Character Messaging.js` | CM (character message) handlers, localStorage-backed state cache |
-| `Core Systems/Equipment Manager.js` | Equipment sets, the single `batch_equip()` emitter, the slot arbiter, the shadow-inventory planner (`equip_plan()`/`emit_equip_ops()`) that resolves a chain of sets ahead of the server's acks, and the rules resolver — the one file that changes what is worn. Every swap sent is recorded per slot for 1.5s (`slot_in_flight()`/`slot_intent()`), and `is_set_equipped()` reads that intent, so the rules loop never re-sends a swap from a stale inventory view — re-sending used stale indices and flipped the orb straight back. `emit_equip_ops()` queues a reply deferred for every op so the server's FIFO replies stay aligned. Every planner (`equip_plan()`, `batch_equip()`) starts from the **sent view** (`equip_view()`): the inventory the server will hold once every equip/unequip we have sent is answered, counted off `game_response` replies per event (the server sends the `player` update before the reply), with a 1.5s backstop. A bare `place: "equip"` reply only counts when `failed` (the failed form of an `equip_batch`) — potions are answered under `equip` too, and counting them settled swaps that had not landed. Matching the live inventory is no landing signal — a swap and its restore end where they started. Each item equipped adds 120ms of the server's `penalty_cd`, which is added to the next skill or attack's cooldown, so a swap belongs *after* the skill it serves. `gear_override(group)` reads `BOSS_GEAR_OVERRIDES` (per character, keyed by boss, default `{}` in `Global Config.js`) while that boss is in sight, before the `MONSTER_GEAR_OVERRIDES` of `home` — Ulric and Riva wear their single-target sets (and Ulric's loaded die, Riva's coat) on mrpumpkin and mrgreen, which also keeps Riva off cupid there |
-| `Core Systems/Equipment Valuation.js` | What each set is worth: ability procs, measured set profiles, damage maths, and the one weapon chooser (`resolve_weapon_set()`/`set_damage_value()`) every fighter uses. Returns names and numbers; equips nothing. Set profiles pause (not reset) while a skill claim is held or a swap is unanswered (`equip_transient()`/`equip_pending()`), so the per-swing candy-cane swap does not starve them, and record only from the items actually in the slots (`set_worn()`), never the intended set — a profile taken from candy canes still in hand once valued `double_aoe` without its explosion, and the chooser then never wore it again to correct it. Profiles carry `schema: SET_PROFILE_SCHEMA`; one without it counts as unusable and is re-measured |
-| `Core Systems/Party Management.js` | Panic and its broadcast (`set_panic()` is the only writer), party invites, where home is. `scare_off()` sends the jacko swap and the scare in one burst (`equip_plan("panic")` → `emit_equip_ops()` → `use_skill("scare")`), the cleave pattern — it never waits for the rules loop to put the orb on first |
-| `Core Systems/Loot Management.js` | `loose_loot()` — what we keep, ship to the merchant, or vendor; bank withdrawal; chest looting (`should_loot()`/`handle_looting()`, driven by each character's `CONFIG.looting`); `inventory_sorter()`, which keeps `item_order` items on their bag slots — it waits out any swap in progress and moves through `inventory_move()`, so the sent view sees every move. Sorting from a stale inventory mid-swap moved the fireblades out from under the restore and left Ulric in candy canes |
-| `Core Systems/Maintenance.js` | Potion drinking/restocking and the periodic tab reload. HP and MP potions (and the regen skills) share one cooldown, so `potion_loop()` drinks at most one per tick — MP first while panicking without the mana to scare. Regen is never worth casting: it shares that cooldown, locks it for twice as long, and is what `use("hp"/"mp")` already falls back to with no potions |
-| `Core Systems/Party Cohesion.js` | Cohesion only — `follow_goal()`, `party_cohesion_hold()`, `leader_position()`, `behind_on_xp()`. A service `movement_goal()` consults; decides no movement itself. Followers keep a breadcrumb trail of the leader's turning points (`record_leader_trail()`: a crumb each time her move target — `going_x`/`going_y`, which every player broadcasts — changes, the last 60, wiped on a map change or a jump over 120px — a teleport). Every crumb joins the next by a straight leg she actually walked, so a follower on her trail can always see the next one; crumbs sampled every 25px did not, because the chord between the samples either side of a corner cuts through the wall. When the step beside her is out of sight, `follow_goal()` returns `{ local: "trail" }` to the newest crumb (or her live position) in a straight line, so a corner costs no pathfinder search; a journey to her own position is the fallback while no crumb is in sight, and is cancelled the moment a step beside her or a crumb comes into line of sight (`approach()` and `trail_point()` no longer wait for `smart.moving` to clear) — a journey that ran to completion walked the follower to where she had been, up to 80px or 30% of the distance behind her, before the next search. In formation the step aims at her move target (`pos.going`, her `going_x`/`going_y`) 12px short, so a follower walks her leg with her instead of arriving inside 15px, stopping, and re-stepping every few px (`with-leader` and `follow-close` alternated about equally in the alive samples). When she is on another map the trail still runs to her last seen position (`_trail.seen`, at the door she used) before the cross-map search starts from there; the trail is per map, and `trail_point()` returns nothing once the follower has changed map. There is no `follow-heading` any more: pathing to her destination gave the follower a route of its own, a long cross-map search, and the `follow-wait` logic to stop it overtaking her, all to avoid re-searching for a moving target, which the arbiter's distance-scaled drift now does instead. A follower that has reached her while she is in formation (travelling or holding) gets `{ local: "keep" }`, not the farm step: `warrior_farm_step()` walked Ulric off to every monster attacking the party mid-trip, which is why he, never Riva, was the straggler in all 23 cohesion holds over 17h. Before this, every corner stopped the follower for a search, sent it on its own route to her destination, and the hand-back to a local step cancelled that journey — the pauses and loop-backs that held Myras in `cohesion` for about a third of her boss travel. Myras does not pursue a boss while `party_cohesion_hold(event)` holds — a live follower off her map or beyond the range, unless that follower is itself on the event; the same call, with its 250/120 hysteresis, decides the pursuit wait and the ordinary hold (a separate `leader_waits_for_party()` without hysteresis flipped her between pursuit and hold each tick as a follower hovered at 250, and any one follower on the boss exempted her, so on 10-09 06:45 Riva walked 1,100px alone to mrpumpkin, 40s late): pursuit otherwise bypasses cohesion, and the tank pulled bosses alone with the party still maps behind. A follower in turn does not pursue while she is live on his map, beyond the range (`cohesion_closing()`, the follower's own 250/120 hysteresis) and not herself on the event (`follower_holds_back()`), so her cohesion hold pulls him back to her instead of leaving the tank behind |
-| `Core Systems/Character Runner.js` | `run_character()` — the shared main tick loop every character starts from |
-| `Core Systems/Error Handling.js` | `catcher()`, the shared error-triage/logging helper |
-| `Core Systems/Error Log.js` | Persistent cross-character flight recorder; hooks only, read with `al_errors(true)`. Defines the real `errlog_*` over `Global Config.js`'s stubs, so call sites never guard on it. Records game-log lines by prefix (`ERRLOG_GAMELOG_PREFIXES`): the bot's ⚠️ ❌ 🛑 🎂 🚨 🧭 🌀 and `[` lines, and the game's own pathfinder lines ("Searching for a path", "Path found", "Path not found", "Lost the path"), so a goal flip or a search loop shows in `errors_timeline.jsonl` as it happens — until 10-10 the 🧭 goal changes and the searches were the one thing the recorder could not see |
-| `Dungeons/Dungeon Runner.js` | Shared dungeon machinery — `wait_for_death()`, party entry (`join_dungeon_instance()`/`wait_for_party_in_instance()`), `run_dungeon()`, `start_dungeon_when_ready()`, and the `dungeon_override` the mode toggle persists |
-| `Dungeons/Dungeon Mode.js` | The on/off toggle that puts the party into a dungeon (`set_dungeon_mode()`, `toggle_dungeon_mode()`) and its toprightcorner buttons |
-| `Dungeons/Dungeon Progress.js` | What this run has killed and whether the quota is met — `record_dungeon_kill()`, `dungeon_quota_met()` |
-| `Dungeons/Dungeon Escape.js` | Bail-out — scare the pursuit off, walk away, town back to the instance entrance (`dungeon_bailing()`, `dungeon_threats()`) |
-| `Dungeons/Dungeon Telemetry.js` | Flight recorder for dungeon runs, pushed to the local sink as `errlog_sample()` calls |
-| `Dungeons/Dungeon Collection.js` | Every few runs the party meets Riff outside and hands the haul over (`collection_due()`) |
-| `Dungeons/Spider Dungeon.js` | The `DUNGEONS.spider` definition (entrance, map, boss waypoints) and its `run_`/`start_` wrappers |
-| `Dungeons/Crypt Dungeon.js` | The `DUNGEONS.crypt` definition and its `run_`/`start_` wrappers |
-| `Dungeons/Crypt Route.js` | The crypt's waypoint circuit, what each leg is hunting, and when to back out |
-| `Dungeons/Dreams Cave.js` | `DUNGEONS.dreams` — the daily Cave of Many Dreams. Myras checks `cave_info()` every 10 min and switches the mode on when the account's visit is unused and no boss is being engaged (`dreams_boss_engaged()`); once on, the mode's `ignore_events` keeps `event_goal()` — boss walks and `join` teleports — from pulling anyone out until the run ends; the `party_only` flag makes Ulric kick Riff (the cave holds 3). `dreams_goal()` is first in `movement_goal()`: the walk to Dorr is a `disengage` goal (stop attacking, jacko, scare — followers inherit it through the state cache), the wait at Dorr is a plain hold so they defend themselves, and a follower inside whose leader is outside holds rather than path to her (that path would leave through the exit door). Then `cave_enter()`, clear each floor's required objectives, take the stairs, exit after floor 3. Every fighter votes the same option from `G.events.dreams.encounters` (`DREAMS_EFFECT_RANK`, risky fights first — except the six level-100 wolves, which wiped the party on floor 3 and are ranked last). An escort ("Keep the Crate Cold") only finishes when the traveler reaches the stairs down, which stay locked until it does, so after an escort vote Myras walks it to the stairs down (`dreams_escort()`), stopping whenever it is more than 200px behind and giving up after 90s idle; walking only to unlocked stairs or the encounter marker left the escort unfinished for 11 minutes on 10-08 and for good on floor 3 on 10-07 — floor 3 has no stairs down, so an escort there ranks below leaving (`dreams_effect_rank()`); Nera revives in place only when nothing hostile is near the body, otherwise at the free landing and loots chests in reach. Inside, a follower within cohesion range of Myras treats her fight as its own: a hostile is in the fight when it targets the party or is within 250 of the follower **or of Myras** (`dreams_in_fight()`) — measuring only from the follower left Ulric and Riva standing on `with-leader` 100–250px behind her, with the mobs she was killing 340–480px from them, for up to 18s with no actions (10-08). The goal owns the approach to the nearest touchable one (`dreams_fight_goal()`): in range → `dreams-fight` (the farm step), a straight line to 0.9× range → `dreams-fight-close` (a local step), otherwise `dreams-fight-path` (a travel goal through the arbiter). Leaving the approach to the farm steps froze both side by side when a wall stood between them and the mob: `ranger_close_in()` gives up without a straight line and Ulric's detour search often finds none. The `melee_engage_radius` flag makes Ulric open on any hostile out to 250, idle or not, and walk into melee (`warrior_may_engage()`, `warrior_farm_step()`); `ranged_engage_radius` makes Riva walk to 0.9× her range of her best target when nothing is in range (`ranger_close_in()`). Myras (`dreams_close_in()`) stops at 0.9× her range rather than walking into the mob, and leaves an idle mob to Ulric once it is within his 250 and its hit is under half his HP (`dreams_left_to_opener()`), so the warrior opens and she absorbs; any mob already attacking someone, or one he cannot reach or take, she still closes on, which also walks him into reach. `cave_hostile()` is the side check `dungeon_skip_target()` uses so travelers and allies are never hit. Mechanics are in `Game API Reference.md` |
-| `Interface/Widget Helpers.js` | **Loaded in the awaited first stage with `Global Config.js`**, so everything else may assume it. `register_widget()` — the one container/render-tick the Gold/XP/CC/DPS/Boss Contribution meters are each a single call into — plus `create_bottomrightcorner_widget()`, `add_toprightcorner_button()` (polls for the corner, replaces any button with its id), `CLASS_COLORS`, the coop-point helpers (`coop_contributors()`, `coop_share_weight()`, `coop_total_weight()`: the server's loot share), the rolling-window helpers (`commas()`, `prune_before()`, `window_sum()`) and `make_draggable()` (Settings Window.js/Stats Window.js) |
-| `Character Managers/Warrior Manager/Warrior Config.js` | Warrior tunables, gear sets, panic thresholds, `state`/`cache` (character: Ulric) |
-| `Character Managers/Warrior Manager/Warrior Combat.js` | Warrior targeting, `action_loop()`, and `weapon_burst()` — the one weapon swap each swing makes: swing → bataxe → cleave (when ready) → candy canes held until the swing's and every cleave hit's flight has landed → the weapon chooser's current set. Sugar rush is rolled per hit when it lands (a cleave rolls once per monster), while damage, burn and splash are fixed at launch. The hold is capped where it starts to cost the next swing penalty (`free_hold_ms()`: each equip adds 120ms of `penalty_cd` the moment it is sent, so holding to `swing interval − restore penalty` is free — ~460ms, covering most of cleave's 160px). A hit on an overlapping hitbox resolves inside the attack handler and cannot roll, so `Warrior Movement.js` steps him out to a 12px gap once he is under 4px. Off while sugar rush is up: a proc does refresh it to 10s, but at rush attack speed each swap's penalty costs more swings than the refresh is worth. Call cost (server limit 200 per 4s, disconnect above it): a 2-item `equip_batch` costs 7.5, `unequip` 9, so a plain-swing swap is 15 per roll while the candy step of a cleave burst is 7.5 for one roll per monster; the plain-swing swap therefore stands down above `CONFIG.combat.swing_trick_cc_budget`. `cc_report_logger()` samples the server's per-method breakdown every 20s (`cc_report` samples); sets `cache.tank_entity` to **Myras** |
-| `Character Managers/Warrior Manager/Warrior Skills.js` | Warrior skill loop (agitate, warcry, stomp, and cleave only when no swing is coming — otherwise it rides the swing's `weapon_burst()`); cleave and agitate refuse to fire with a `cleave_blacklist`/`agitate_blockers` monster (porcupines reflect) within their range + 25px (`blocker_within()`), measured hitbox to hitbox like the server — a centre-distance check let porcupines just past 160px get cleaved; agitate donates aggro to the tank but stands down while she is `endangered()`; stomp stuns her attackers when she is endangered or below 60%, only with a basher-type weapon worn or the `basher` set in the bag, swapped in and out in one burst like cleave. Stomp's first job is the Rime Djinn's shell (`mob.s.rimeshell`): at half HP it casts for 3s, and unless it is stunned or takes 5% of its max HP (64k–112k — the party deals ~10–15k/s) it fires a 20,000 magical bolt at up to three contributors within 260, which one-shot all three fighters at once on 10-10. So stomp is held to the shell's deadline: `rime_stomp_watcher()` reads each shell off the `entities` socket packet as it arrives (its `s.rimeshell.ms` is the server's remaining time; the client applies entity updates only on its next draw frame and counts `ms` down locally), and `rime_deadline_stomp()` fires on a timer at `arrival + ms − rtt − 250ms` (`rime_rtt()`: the median of the last 10 pings + 100, never under 300 — the highest of the 10 read 405–456 on every spike and landed stomps at 2.38–2.60s; `RIME_STOMP_MARGIN_MS`), ~2.65–2.75s into the 3s — unless every due shell has since gone (a packet carrying `s` without `rimeshell`: broken by damage), which keeps stomp for the next Djinn. A blocked stomp retries every 25ms while a send still lands in time (`seen + ms − rtt`), then reports unbroken. A shell stomp needs only stomp's own 120 MP (`stomp_blocked(0)`) — keeping the scare reserve refused it at ~600 MP at 21:09 on 10-10 and the bolt killed all three — and `stomp_ready_at` reads `null` below stomp + 300 MP (`RIME_STOMP_MP_BUFFER`), so no Djinn is let across half while he could not pay for it. A shell whose packet carries no `ms` falls back to the 1s stomp in `handle_stomp()` once the oldest shell within 400 has been up 1s (`RIME_SHELL_STOMP_DELAY_MS`, so a second Djinn shelling just after the first is caught by the same stun — a stun applied before a shell starts does not break it; six shells went unbroken that way) regardless of Myras, and writes the state cache at once, and is held while any Djinn in range is still above half (`rime_shell_pending_within()`), since its 24s cooldown would otherwise often be running when the shell comes; a shell it cannot stomp is logged once with the reason (`rime shell unbroken: …`). Every shell, stomp and server refusal of a stomp also goes to the timeline as `rime_watch` (`rime_shell_logger()`): each shell's line names who damaged that Djinn inside the band while it should have been held (`ledger.held`, by attacker, burn separate) — the hold still leaked on 10-10 (wipes at 18:06 and 18:21, each a second Djinn shelling during stomp's cooldown), so read those lines first after the next Djinn wipe. Each shell also gets two lines when it ends (`log_shell_window()`): `shell … <outcome> Nms: total (direct + burn) of need, first hit, stack` and `shell … by <attacker:source>` (the timeline caps a line at 160 chars). The window runs from the shell's first `entities` packet to the stomp or to the packet that drops `rimeshell` (`plan.gone_at`) — measured from the draw-frame sighting it missed early hits and counted hits after the break, so stomped shells showed 32–34k and broken ones 26–30k. The outcome comes from that packet's conditions: `broken` (it carries `rimeexposed`), `stomped`, or `gone (…)` without `rimeexposed`, which is the bolt; counters `rime shell broken/stomped/gone`. Burn is split out because it is the prime suspect for damage the break does not count; the ability's live `G` entry is dumped once at load (`rimeshell ability …`). While a shell is up it is every fighter's first target (`rime_shell_casting()` in each `find_best_target()`, and `shelled_first()` at the head of Riva's list, so it is mark's and supershot's target). Riva picks her shot by the damage landing on the shelled Djinn (`choose_shell_shot()`): the arrow aimed at it plus, with explosion worn, each other arrow's hit × explosion % × its armour when that arrow's target is within splash radius of it, other targets taken nearest to it first — a plain shot in single gear (a 3shot is 0.7× on it, and the hold puts her in single gear whenever another Djinn nearby is held), a 3shot in boom gear once two Djinns stand within ~14px of it (~1.26×). Her total-damage chooser kept firing 3shots in single gear. At the Djinns Ulric wears `orb_dps` (he was in the XP skull every logged fight) and Myras her `single_target` loadout (firestaff + mshield, so heals rise with attack and her armour is unchanged), `orb_dps` (loaded die +1) and `dps_chest` (coat +10, through a `chest` rule that only follows an override and stands down while the `fight` rule owns the slots); weapons are left to the chooser so AoE stays on when they stack. One stomp breaks every shell within 400, but two Djinns crossing half within 24s of each other still wiped the party, so a Djinn within 12% of max HP above half (by `remaining_hp()` less the burn still to tick, `pending_burn()`: intensity × ms left — the 18:58 wipe on 10-10 was a Djinn held at the old 6% band (38k) carried across by 33k of Ulric's burn, which reaches ~9k/s for 5s, so the band must also cover a fresh burn from a hit already in flight) is off-limits to every fighter unless it is the one closest to half (`rime_shell_next()` — one crossing at a time; only it takes damage, so it stays the closest), no shell is up, and his stomp is ready within 1.5s with him within 400 of it (`rime_shell_held()`, inside `must_not_touch()`, so targeting, multishot, splash and the cleave/agitate blockers all respect it). His readiness reaches Riva and Myras as `stomp_ready_at` in the state cache (`null` without a basher). The Djinns stand bunched on Myras, so with splash gear on `splash_would_touch()` made every Djinn beside a held one untouchable and the party stopped attacking altogether; while a held Djinn is within 400, `gear_override()` returns `RIME_HOLD_GEAR` first (Ulric and Riva: `single`, default `{}` in `Global Config.js`), so they keep hitting the Djinns near full HP and those already past half; taunt (`handle_taunt()`) pulls a `taunt_bosses` boss (mrpumpkin, mrgreen) onto him whenever it is on anyone but him, Myras or a `taunt_exempt` player (CrownTown, CrownsAnal, CrownPriest) and she is within absorb range of him — the boss's `coop` makes every player fighting it friendly to the server's taunt check, so this steals it from other parties too (hardshell/charge commented out) |
-| `Character Managers/Warrior Manager/Warrior Equipment.js` | Warrior `EQUIPMENT_RULES` resolvers and monster gear overrides |
-| `Character Managers/Warrior Manager/Warrior Movement.js` | Warrior reposition scorer, and the farm step that keeps him engaged: he targets anything within `CONFIG.combat.engage_radius` that is attacking the party (or already in reach), walks to a 12px hitbox gap when it is out of reach, and steps back out to 12px once he is under 4px (`warrior_engage_step()`, which the runner also hands to `event_step()` as `engage_step`, so he holds the same gap on a boss instead of walking to `range × EVENT_REACH` and standing inside its hitbox) — every move is skipped while he is already heading there, since each `move` costs 2.5 call cost |
-| `Character Managers/Warrior Manager/Warrior.js` | Warrior entry point — windows, event handlers, `run_character()` |
-| `Character Managers/Healer Manager/Healer Config.js` | Healer tunables, gear sets, panic thresholds, `state`/`cache` (character: Myras) |
-| `Character Managers/Healer Manager/Healer Combat.js` | **The tank's** pull logic — heal target selection, MP-scaled aggro cap (`effective_aggro_cap()`), `action_loop()` |
-| `Character Managers/Healer Manager/Healer Skills.js` | Healer skill loop (curse, absorb, party heal, dark blessing, zap). A `tank_bosses` boss (mrpumpkin, mrgreen) on a party member — usually Ulric, straight after his taunt — is absorbed onto her (`boss_absorb_target()`) without the `tank_can_take()` headroom check; only a hit of half her HP or more refuses it. Curse is recast while the old one is still on (`curse_expiring()`: remaining ≤ projectile flight + ping + 150ms): its cooldown equals its 5s duration and the server never checks for an existing curse, so waiting for it to drop left a ~0.5s gap plus the slow (240 speed) flight in every 5.5s. Zap is the bscorpion camp's mana dump: the `ring` rule in `Healer Equipment.js` wears the zapper on ring2 inside `bscorpion_damage_window()` (the ring of luck is back on for the kill), and she zaps down to `zapper_min_mp_pct` (60%) and lets MP potions top her up. All of it is camp-only — `zap_target()` returns nothing unless `is_at_bscorpion_farm()`, so off the camp the ring of luck stays on and the floor never applies. She has no mana regen, so the zap rate is set by the potion cooldown (500 MP per 2s ≈ 1.8 zaps/s), not the floor — the floor is only her reserve |
-| `Character Managers/Healer Manager/Healer Equipment.js` | Healer `EQUIPMENT_RULES` resolvers and booster swap. At the bscorpion camp, and while a `tank_bosses` boss is in sight (`tank_boss_nearby()`), one rule, `fight`, owns every swapped slot (the loadout/orb/ring rules stand down while `fight_gear_owned()`; panic still takes the orb), so each switch is a single `equip_batch`: `camp_fight` (firestaff, exoarm, loaded die, zapper, coat+10, plus the amulet she wore, remembered and kept off the loot list) while `bscorpion_damage_window()` holds, `camp_luck` (lmace, mshield, rabbit's foot, ring of luck, Lucky cdragon, spookyamulet+2) only from then until the kill (`luck_window()`, over `luck_kill_target()`: the scorpion at the camp, the boss elsewhere — where `camp_fight` goes on without the zapper, since zap is camp-only); the moment it dies she goes straight back to `camp_fight`, so that swap's penalty lands in the respawn, not the next pull. Primlings (`offeringp`, 5%) roll on `5% × (1 + luck/100)` of the scorpion's target at the kill — Myras — so luck matters only at that instant: `luck_due()` switches once the scorpion's remaining HP is within `luck_lead_ms` (600) of its measured kill rate plus `luck_burst_hp` (15,000, one supershot crit), latched per scorpion. Every kill is counted as `bscorpion kill: target …, luck gear on/off` |
-| `Character Managers/Healer Manager/Healer Movement.js` | Healer runner hooks (`healer_local`, panic skip) and the circle walk — `walk_in_circle()` aims half a radian ahead on the circle (`CIRCLE_LEAD`) through `local_step()`, so she keeps walking instead of being issued a ~5px move each time she stops |
-| `Character Managers/Healer Manager/Healer.js` | Healer entry point — windows, `run_character()` |
-| `Character Managers/Ranger Manager/Ranger Config.js` | Ranger tunables, gear sets, panic thresholds, `state`/`cache` (character: Riva) |
-| `Character Managers/Ranger Manager/Ranger Combat.js` | Ranger target cache, `action_loop()`, `handle_attack()`. `shot_apiercing()` counts her own armour piercing twice, as the server does (it adds the attacker's piercing into the hit's and then subtracts both): at 226 piercing a plain shot (×0.952 vs the bscorpion's 500 armour) beats piercing shot (0.75 × 1.188), which the single count had backwards. With a cooperative boss in range the shot chooser sees only the boss (`coop_boss_only()`, over `is_coop_boss()`: cooperative *and* in `ALL_BOSSES` — the Rime Djinn is cooperative but a farm mob, and reading it as a boss left its adds unshot): it scores total damage over its targets, so with two adds beside mrpumpkin a 3-shot (0.7× each) beat a plain shot, and on 10-10 she fired ~336 of them — 2.26M into adds, which earn no coop points, her 200 MP each starving her into skipped shots, and her boss DPS down from ~9,500 to 7,513 |
-| `Character Managers/Ranger Manager/Ranger Skills.js` | Ranger skill loop (hunter's mark, supershot) |
-| `Character Managers/Ranger Manager/Ranger Equipment.js` | Ranger `EQUIPMENT_RULES` resolvers (weapon/boss sets) |
-| `Character Managers/Ranger Manager/Ranger Movement.js` | Licence top-up and the reposition scorer |
-| `Character Managers/Ranger Manager/Ranger.js` | Ranger entry point — windows, `run_character()` |
-| `Character Managers/Merchant Manager/Merchant Config.js` | Merchant tunables, locations, `merchant_task` (character: Riff) |
-| `Character Managers/Merchant Manager/Merchant Stand.js` | The stall — `stand_loop()` opens it whenever he has stood still for 2s and closes it the moment he moves (an open stand pins speed to 10) — and the idle state |
-| `Character Managers/Merchant Manager/Merchant Inventory.js` | Slot counting, vendoring `SELLABLE_ITEMS`, and the banking state |
-| `Character Managers/Merchant Manager/Merchant Exchange.js` | Bank fetch task plus the exchanging he does while idle |
-| `Character Managers/Merchant Manager/Merchant Gear.js` | Default loadout and gathering-tool swaps |
-| `Character Managers/Merchant Manager/Merchant Gathering.js` | Shared fishing/mining run |
-| `Character Managers/Merchant Manager/Merchant Party.js` | mluck, party membership, the delivery run |
-| `Character Managers/Merchant Manager/Merchant Upkeep.js` | Potions, loot collection and buffing, on their own 1Hz loop |
-| `Character Managers/Merchant Manager/Merchant Task Loop.js` | `PRIORITY_CHECKS`, `set_state()`, `loop_controller()` — **must load after every file it names** |
-| `Character Managers/Merchant Manager/Merchant Upgrading.js` | Item upgrade profiles and automation |
-| `Character Managers/Merchant Manager/Merchant Crafting.js` | Crafting logic and batch orchestration |
-| `Character Managers/Merchant Manager/Merchant.js` | Merchant entry point |
-| `Interface/DPS Meter.js` | Real-time DPS tracking overlay |
-| `Interface/Boss Contribution.js` | Coop boss contribution overlay (after Crowns3bc's): every visible player's `s.coop.p` on the same boss as us (`s.coop.id`), with the loot share the server will award — `p^0.65 / (0.1 + Σp^0.65)`, from `issue_monster_awards()`. A share at or under 0.25% earns no drop and shows in red. Hidden while no one in sight has coop points |
-| `Interface/Kill Tracker.js` | kpm/kph/kpd top buttons: session kill rate counted from the server's `kill_credit` (sent to every party member for every party kill, and to coop contributors over 0.25%) |
-| `Interface/Lucky Slot Tracker.js` | 🍀 button and the search for Riff's lucky upgrade slot. The server picks one slot 0–41 per character, for good (`player.p.item_num`; `imove` never moves it, only the cyberland mainframe's `swap a b` chat command does), and on a scroll upgrade of the item in that slot replaces 60% of rolls with `max(rand/10000, roll × 0.975 − 0.012)` (server `upgrade` handler). Only scroll upgrades count (`p.scroll` of type `uscroll`): compounds never get it, and a grace offering (`upgrade(item, null, offeringp)`) rolls a fixed 0.999999 that the old tracker counted as a 99.99 in every slot it graced. Per slot it stores every roll (`n`), 00.00s and rolls over 96.3 in localStorage `AL_upgrade_slot_rolls` (shared by all four windows; only Riff upgrades). Each roll is evidence: a 00.00 is 74.9× likelier in the lucky slot, an over-96.3 0.4×, anything else 1.0153×, so the odds per slot are exact Bayes over a uniform prior. `upgrade_slot_for(slot)` (pass-through stub in `Global Config.js`, since the file is optional) returns the likeliest slot — every upgrade goes where the evidence is, since a roll in the suspect slot moves its odds and a roll elsewhere barely does: simulated, a median ~1,850 rolls to 99.9% (p90 ~5,600) against ~10,900 (p90 ~20,000) for rolling every slot equally, with no wrong pick either way (the threshold's error rate does not depend on the sampling order). The label flips to "LUCKY SLOT FOUND" at 99.99% (`LUCKY_SLOT_CONFIDENCE`), ~40 rolls past 99.9% under focusing; the label is informational only, so a fluke leader keeps being rolled and sinks on its own. `auto_upgrade_item()` swaps the item there before each upgrade and back to its own slot after, so Riff's layout (tracker, computer, hpot1, mpot1 in slots 0–3, then scrolls and primlings) holds; `bank_items()` protects those four by name through `do_not_bank`, never by slot index — skipping slots 0–2 by index banked the tracker and computer the first time a swap displaced them. `q_data` is sent at each roll digit and again for success/failure with the same four digits, so a roll counts once per slot until a new upgrade starts there (fewer than four digits) |
-| `Interface/Metrics Graphs.js` | 📊 popout (after Crowns3bc's): session gold, XP (carried across level-ups), party DPS by damage type, kills per mob, loot per item, and boss contribution as the server's loot share. Gold/XP samples are taken every 5s in the background, so the line charts have history when it opens; the rest renders only while it is open |
-| `Interface/Stats Window.js` | Character stats + gold graph (Canvas API) |
-| `Interface/Settings Window.js` | Live in-game per-character target settings, persisted via localStorage, ⚙️ button next to the reload button |
-| `Interface/Party Frames.js` | Party HP/status display |
-| `Interface/Bank Viewer.js` | Bank access UI, plus the toprightcorner reload button (restored here after Buttons.js was removed) |
-| `Interface/Bank Sort Order.js` | Bank sorting order/category definitions |
-| `Interface/CC Meter.js` | Crowd control meter |
-| `Interface/Gold Meter.js` | Gold accumulation display |
-| `Interface/XP Meter.js` | XP tracking display |
-| `Interface/Game Log.js` | **Loaded in the awaited first stage**, so `al_log_push()` is guaranteed on the error path. The one log window — wraps `parent.add_log`, adds timestamps, category filters (gold/kills/items/errors) and the Log/Filtered tabs, and resizes `#gamelog` 50% wider (leftward, over the canvas) and 25% taller. Self-starts at load; there is no `log()` any more, everything goes through `game_log()` |
-| `Interface/Pause Button.js` | Per-character pause/resume button — parks automation, leaves combat/panic/upkeep running |
-| `Tools/Error Sink.py` | Local HTTP sink that receives `errlog_sample()` pushes and writes `errors.json` |
-| `Tools/Watchdog.py` | Outside-the-page watchdog over the client's DevTools port (9222). Logs every navigation, document request/failure, crash and dialog per window to `watchdog.jsonl` (script-initiated reloads carry the calling function and line), mirrors them into the sink's timeline, and reloads a window whose main-loop heartbeat (`main_beat_at`, stamped by the fighters' `main_tick` and Riff's upkeep loop; the `_errlog` heartbeat for a tab still on older code) has been silent 5 min — only after it has seen that window alive, at most 4 times an hour. Live state in `watchdog.json`; create `watchdog.pause` in the repo root to observe without reloading. Also pings four layers every second — `router` (LAN), `isp` (the NordVPN server, sourced from the Ethernet address so it bypasses the tunnel; the kill switch blocks every other outside host), `tunnel` (1.1.1.1) and `game` (`de.adventure.land`) — and logs each outage of 2+ misses as `net_outage` with which other layers were down at the time. **Read `watchdog.jsonl` first after the next dead character** |
-| `Tools/Install Watchdog.ps1` | Registers the watchdog as a logon task and sets the client's WebView2 flags (anti-throttling + `--remote-debugging-port=9222`) in `HKCU\Software\Policies\Microsoft\Edge\WebView2\AdditionalBrowserArguments` under `Adventure Land.exe`, deleting the user-wide `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS`, which would override it and leak the port to every WebView2 app. Takes effect only after Steam **and** the client are fully restarted |
-| `Tools/Crypt Probe.js` | One-off dev probe for crypt geometry; not part of the loaded bot |
-| `Tools/Drag Probe.js` | One-off dev probe: reports what receives mouse events over the game UI, into the game log; not part of the loaded bot |
+| `Code Loader.js` | The only file in a game code slot (slot 1). Evals `Bootstrapper.js` from jsDelivr, falling back to githack at the same SHA, and sets `window.__AL_BASE__` |
+| `Bootstrapper.js` | Loads everything else from `__AL_BASE__`: the first stage awaited, then the parallel batch, then the role files |
+
+**Core Systems** (shared by all four characters)
+
+| File | Role |
+|------|------|
+| `Global Config.js` | **First stage.** Constants, party constants, shared fighter defaults, `storage_read()`/`storage_write()`, `var` declarations of every cross-character symbol, and no-op stubs |
+| `Movement Manager.js` | `movement_goal()` (where to go) and `movement_local()` (where to stand), `smarter_move()`, the travel arbiter, parked routes, `walk()`, stuck escape, and the town shortcut |
+| `Movement Positioning.js` | `best_orbit_spot()`, `reposition_center()`, `orbit_reposition()`: scoring candidate spots around a centre |
+| `Party Cohesion.js` | `follow_goal()` with the leader's breadcrumb trail, `party_cohesion_hold()`, `leader_position()`. Consulted by `movement_goal()`; moves nothing itself |
+| `Bscorpion Camp.js` | Desertland bscorpion camp positioning (`camp_step()`, Riva's rail) and temporal surge on each kill |
+| `World Events.js` | Live boss/seasonal targets and the goal that walks the party to them |
+| `Combat Utilities.js` | Entity queries, boss/party predicates, the Rime shell predicates, `should_pause_combat_loop()`, the lethal-monster rule (`must_not_touch()`) and the boss leash (`boss_strayed()`) |
+| `Combat Formulas.js` | The server's damage/heal arithmetic, `skill_mp_cost()`, `incoming_dps()`/`endangered()`. Computes, never acts |
+| `Combat Sampling.js` | Hit/heal telemetry and the in-flight damage ledger behind `remaining_hp(mob)` |
+| `Targeting.js` | `score_targets()`/`select_target()`, the one target scorer |
+| `Boss Profiler.js` | Per-fight profile of every player on a coop boss, written to `boss_profiles.jsonl`. `al_boss_profiles()` reads it |
+| `Porcupine Guard.js` | **Temporary.** Keeps Ulric off porcupines; remove by deleting its Bootstrapper line |
+| `Character Messaging.js` | CM handlers and the localStorage-backed state cache |
+| `Equipment Manager.js` | The only thing that changes what is worn: sets, `batch_equip()`, the planner over the sent view, slot intent, rules resolver, `gear_override()` |
+| `Equipment Valuation.js` | Measured set profiles and the one weapon chooser (`resolve_weapon_set()`). Equips nothing |
+| `Party Management.js` | Panic (`set_panic()` is the only writer) and its broadcast, `scare_off()`, invites, home |
+| `Loot Management.js` | Keep/ship/vendor decisions, bank withdrawal, chest looting, `inventory_sorter()` |
+| `Maintenance.js` | Potions (one per tick, shared cooldown) and the periodic tab reload |
+| `Character Runner.js` | `run_character()`, the shared main tick |
+| `Error Handling.js` | `catcher()` |
+| `Error Log.js` | Cross-character flight recorder; defines the real `errlog_*`. Read with `al_errors(true)` |
+
+**Dungeons**
+
+| File | Role |
+|------|------|
+| `Dungeon Runner.js` | Shared machinery: party entry, `run_dungeon()`, `start_dungeon_when_ready()`, `dungeon_override` |
+| `Dungeon Mode.js` | The on/off toggle and its toprightcorner buttons |
+| `Dungeon Progress.js` | Kill quota tracking |
+| `Dungeon Escape.js` | Bail-out: scare, walk away, town back to the entrance |
+| `Dungeon Telemetry.js` | Dungeon flight recorder via `errlog_sample()` |
+| `Dungeon Collection.js` | Every few runs, hand the haul to Riff |
+| `Spider Dungeon.js`, `Crypt Dungeon.js`, `Crypt Route.js` | Dungeon definitions and the crypt's waypoint circuit |
+| `Dreams Cave.js` | The daily Cave of Many Dreams: entry, voting, escorts, fighting inside |
+
+**Interface**
+
+| File | Role |
+|------|------|
+| `Widget Helpers.js` | **First stage.** `register_widget()`, toprightcorner buttons, `CLASS_COLORS`, coop-share and rolling-window helpers, `make_draggable()` |
+| `Game Log.js` | **First stage.** The one log window; everything goes through `game_log()` |
+| `DPS Meter.js`, `Gold Meter.js`, `XP Meter.js`, `CC Meter.js` | Overlays |
+| `Boss Contribution.js` | Coop points and loot share of everyone on our boss |
+| `Kill Tracker.js` | kpm/kph/kpd from `kill_credit` |
+| `Lucky Slot Tracker.js` | Bayesian search for Riff's lucky upgrade slot; `upgrade_slot_for()` |
+| `Metrics Graphs.js` | 📊 session graphs popout |
+| `Stats Window.js`, `Settings Window.js`, `Party Frames.js`, `Pause Button.js` | Stats/gold graph, per-character settings, party HP, pause automation |
+| `Bank Viewer.js`, `Bank Sort Order.js` | Bank UI (plus the reload button) and sort order |
+
+**Character Managers** — each character has `<Role> Config.js` (tunables, gear sets, `state`/`cache`), `Combat`, `Skills`, `Equipment`, `Movement`, and the entry point `<Role>.js`.
+
+| Character | Notes |
+|-----------|-------|
+| Warrior — Ulric | `weapon_burst()` (the per-swing candy-cane swap) in Combat; cleave/agitate/stomp/taunt and the **Rime Djinn shell stomp** in Skills; `warrior_engage_step()` in Movement |
+| Healer — Myras | **The tank.** Pull logic and `effective_aggro_cap()` in Combat; curse/absorb/zap in Skills; the `fight` rule (camp/boss loadouts, luck at the kill) in Equipment |
+| Ranger — Riva | Shot chooser (`shot_apiercing()`, `coop_boss_only()`) in Combat; mark/supershot in Skills |
+| Merchant — Riff | Split into Stand, Inventory, Exchange, Gear, Gathering, Party, Upkeep, Upgrading, Crafting. `Merchant Task Loop.js` **must load last** |
+
+**Tools** (run outside the game)
+
+| File | Role |
+|------|------|
+| `Error Sink.py` / `Install Error Sink.ps1` | Local HTTP sink for `errlog_sample()` pushes → `errors.json`, `errors_timeline.jsonl`; logon-task installer |
+| `Watchdog.py` / `Install Watchdog.ps1` | DevTools-port watchdog: logs navigations and network outages, reloads silent windows. **Read `watchdog.jsonl` first after a dead character** |
+| `Lint.py` | `python Tools/Lint.py`: duplicate globals, orphaned ternaries, constant conditions |
+| `Crypt Probe.js`, `Drag Probe.js` | One-off dev probes, not loaded |
 
 ---
 
 ## Code Conventions
 
-### Naming
-- Functions and variables: `snake_case` — e.g., `smarter_move()`, `start_attack_loop()`
-- Constants/config keys: `UPPER_SNAKE_CASE` — e.g., `TICK_RATE`, `LOOT_THRESHOLD`
-- Top-level config objects: `CONFIG`, `STATE`
-- Internal/private: prefixed with `_` — e.g., `smart._interrupt`
-- Multi-word file/folder names: space-separated, e.g. `Global Config.js`, `Character Managers/` — a folder names what it contains, a file names what it does. `Bootstrapper.js` already `encodeURI()`s every path and jsDelivr serves `%20` fine; shell loops over these paths must quote and use `-z`/null separators (see Deploying)
-
-### Formatting
-- Indentation: tabs
-- String quotes: double quotes by default; single quotes only to avoid escaping (e.g. a string containing a `"`); template literals for interpolation
-- Braces: same-line (K&R) — `function foo() {`, not `function foo()\n{`
-- Statements are semicolon-terminated
-
-### Structure
-- Each character function file has a `CONFIG` object at the top for tunable settings
-- Section headers use `// ---...--- //` dash-block dividers
-- Async loops use `setInterval(async () => { ... }, tickRate)` pattern
-- Movement returns Promises — use `smarter_move().then(...)` or `await smarter_move(...)`
-- Equipment swapping has **no cooldown of its own** — swaps are meant to react in milliseconds, and no equip path waits on anything: not a timer, not a hold, not a server refusal. The reference is the warrior's cleave swap, which emits arm, skill and restore in one burst and returns. Potions are unrelated to equipment in every way, cooldowns included; do not couple them
-
-### Comments
-- **Zero code comments.** Do not add explanatory, WHY, or doc comments (including JSDoc) to any code you write — identifiers, structure, and headings should carry all the meaning
-- Section-header dividers (`// ---...--- //` dash-block, title, dash-block) are structural, not comments — keep them
-- Commented-out code blocks (disabled/experimental features) aren't comments either — leave them; ask before removing (see What to Avoid)
+- **Naming:** `snake_case` functions and variables; `UPPER_SNAKE_CASE` constants; `_` prefix for internals. File and folder names are space-separated words (`Global Config.js`): a folder names what it contains, a file names what it does.
+- **Formatting:** tabs; double quotes (single only to avoid escaping, template literals for interpolation); K&R braces; semicolons.
+- **Structure:** a local `CONFIG` at the top of each character file; `// ---...--- //` dash-block section headers; loops as `setInterval(async () => { ... }, tick)`; movement returns Promises.
+- **Equipment swaps have no cooldown.** Swaps react in milliseconds, and no equip path waits on a timer, a hold or a server refusal. The reference is the warrior's cleave: arm, skill, restore in one burst, then return. Potions are unrelated to equipment, cooldowns included.
+- **Zero code comments.** No explanatory, WHY or JSDoc comments; put the reasoning in `Design Notes.md` instead. Section-header dividers are structural, and commented-out code is not a comment either: leave it, and ask before removing it.
 
 ---
 
-## Key Game Globals (Do Not Flag as Errors)
+## Party
 
-```javascript
-character          // current character state (HP, mana, position, inventory)
-parent.entities    // all entities in game world
-parent.G           // game data (maps, items, NPCs, crafting)
-parent.S           // server data (boss status)
-parent.socket      // WebSocket to game server
-parent.$           // jQuery
-```
-
----
-
-## Party Configuration
-
-- **Party Leader:** `Ulric` (Warrior)
-- **Party Members:** `Riva` (Ranger), `Myras` (Healer), `Riff` (Merchant)
-- Characters coordinate via shared globals and socket events
-- Merchant (Riff) supports others: delivers potions, collects loot, handles upgrades
+- **Leader:** `Ulric` (Warrior). **Members:** `Riva` (Ranger), `Myras` (Healer), `Riff` (Merchant, usually on another map, so `get_player("Riff")` returning null is normal).
+- Riff supports the others: delivers potions, collects loot, upgrades.
 
 ### The Healer tanks — not the Warrior
 
-`Myras` (Healer) is the party's tank. This is the single most commonly mis-assumed thing about
-this party, so do not reason from the usual Warrior-tanks/Healer-heals layout:
+This is the most commonly mis-assumed thing about the party.
 
-- `Warrior Combat.js` hardcodes `cache.tank_entity = get_entity("Myras")`. Every warrior skill and
-  equipment decision reads that entity, never `character`.
-- The Healer deliberately pulls: `Healer Combat.js` takes untargeted monsters while
-  `count_my_aggro() < effective_aggro_cap()`, and her cap scales with MP
-  (`(mp_pct - 0.2) / 0.6`, floored at `CONFIG.combat.aggro_cap`). Aggro is a *resource she
-  spends mana on*, not a hazard she avoids.
-- The Warrior's `agitate` exists to feed her: `handle_agitate(tank)` refuses to fire when the tank
-  is missing or dead, and checks `distance(character, tank) <= 100`.
-- Target priority runs both ways round this: the Warrior's `target_priority` is `["Myras"]`, fed to the
-  scorer's `protects` term (kill what she holds),
-  the Healer's is `["Ulric", "Myras"]` (pull what is hitting him, then hold it).
-- So `Warrior Skills.js`'s `hardshell`/`charge` are commented out, its stomp protects *her*, and
-  low-HP checks like `tank.hp < tank.max_hp * 0.6` refer to *her* HP, not his.
-- Her absorb and her own pulls are gated on projected damage (`tank_can_take()` in `Healer Combat.js`,
-  over `incoming_dps()` in `Combat Formulas.js`): nothing is taken on if she would fall below 30% within
-  2s net of her own healing. She pulls nothing while Ulric or Riva is dead or off her map.
+- `Warrior Combat.js` sets `cache.tank_entity = get_entity("Myras")`; warrior skill and equipment decisions read that, not `character`.
+- Myras deliberately pulls untargeted monsters while `count_my_aggro() < effective_aggro_cap()`, a cap that scales with MP. Aggro is a resource she spends mana on.
+- Ulric's `agitate` feeds her (it refuses when she is dead/missing or more than 100 away), his stomp protects *her*, and his `hardshell`/`charge` are commented out. Low-HP checks like `tank.hp < tank.max_hp * 0.6` mean *her* HP.
+- Target priority: Warrior `["Myras"]` (kill what she holds); Healer `["Ulric", "Myras"]` (pull what hits him, then hold it).
+- Her absorb and pulls are gated by `tank_can_take()`: nothing is taken on if she would drop below 30% within 2s, net of healing. She pulls nothing while Ulric or Riva is dead or off her map.
 
-Practical consequence: survivability work (damage projection, panic thresholds, defensive gear,
-escape logic) belongs on the **Healer**. The Warrior is a DPS/off-puller — give him damage,
-positioning, and aggro-donation logic.
+So survivability work (damage projection, panic, defensive gear, escape) belongs on the **Healer**. The Warrior gets damage, positioning and aggro donation.
 
 ---
 
 ## What to Avoid
 
-- Do not add `import`/`export`, `require()`, or module syntax
-- Do not suggest TypeScript, transpilation, or build tools
-- Do not add `package.json` or dependency management
-- Do not remove commented-out code without confirming with the user
-- Do not refactor across multiple files speculatively — changes are hard to test without the live game
-- Do not add error handling for scenarios that can't happen in game context (e.g., `character` being null)
-- Do not centralize config unless explicitly asked — each file's `CONFIG` is intentionally local. `Global Config.js` holds only the values that were byte-identical in all three fighters (`LOOTING_DEFAULTS`, `POTION_DEFAULTS`, `EQUIPMENT_DEFAULTS`, `PANIC_ORB_SET`), spread and overridden per character so every tuned value stays visible where it is tuned
-- Do not merge a dungeon's `flags` into `CONFIG`. They are contextual overrides read at the decision they affect; most have no `CONFIG` counterpart, so merging would mean inventing ~20 dungeon-only `CONFIG` keys, making `CONFIG` mutable, and owning an apply/revert lifecycle that can leave a stale override after the mode is switched off
+- Module syntax, TypeScript, transpilation, build tools, `package.json`
+- Removing commented-out code without asking
+- Speculative multi-file refactors (hard to test without the live game)
+- Error handling for impossible game states (e.g. `character` being null)
+- Centralizing config unless asked. Each file's `CONFIG` is intentionally local. `Global Config.js` holds only values that were identical in all three fighters (`LOOTING_DEFAULTS`, `POTION_DEFAULTS`, `EQUIPMENT_DEFAULTS`, `PANIC_ORB_SET`), spread and overridden per character
+- Merging a dungeon's `flags` into `CONFIG`. They are contextual overrides read at the decision they affect; merging would mean ~20 dungeon-only keys, a mutable `CONFIG`, and an apply/revert lifecycle that can leave stale overrides
 
 ---
 
 ## Deploying (purge jsDelivr after every push)
 
-The bot loads from `cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@<sha>/`, resolved via
-`api.github.com`. That API allows **60 unauthenticated requests/hour per IP**; on 403 the loader
-falls back to `@main`, which jsDelivr caches for 12h (`s-maxage=43200`, confirmed in the response
-headers). A query string does **not** purge that cache — only `purge.jsdelivr.net` does.
+Characters load `cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@<sha>/`, with the SHA resolved through `api.github.com` (60 unauthenticated requests/hour per IP). On a 403 the loader falls back to `@main`, which jsDelivr caches for 12h; a query string does not purge it. A push made while rate-limited can therefore never reach the characters, and a mixed build makes fixed bugs look unfixed.
 
-So a push made while rate-limited can silently never reach the characters. This is not theoretical:
-`Party Management.js` and `Healer Skills.js` sat on a pre-fix commit for hours while every other file
-was current, producing a mixed build that made fixed bugs look unfixed.
-
-**After every push, purge and verify:**
+**After every push, purge and verify.** Paths contain spaces, so iterate with `-z` and encode them as `%20`. Read the purge response: a throttled purge returns HTTP 200 and does nothing.
 
 ```bash
-# Read the purge response — do NOT discard it. purge.jsdelivr.net throttles PER PATH and reports
-# it in the JSON body: {"paths":{"...":{"throttled":true,"throttlingReset":2990}}}. A throttled
-# purge returns HTTP 200 and does nothing, so `-o /dev/null` makes the failure invisible.
-# Paths contain SPACES: iterate with `-z` and URL-encode them as %20. An unquoted
-# `for f in $(git ls-files)` splits every path and purges nonsense.
 git ls-files -z '*.js' | while IFS= read -r -d '' f; do
   u=${f// /%20}
   r=$(curl -s "https://purge.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/$u")
   case "$r" in *'"throttled": true'*) echo "THROTTLED $f";; esac
 done
-# verify: compare against git blobs, NOT working-tree files — the working tree is CRLF
-# while git blobs and jsDelivr are LF, so a naive diff reports every file as stale.
+# verify against git blobs (LF), not the working tree (CRLF)
 git ls-files -z '*.js' | while IFS= read -r -d '' f; do
   u=${f// /%20}
   a=$(curl -s "https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/$u" | md5sum | cut -d' ' -f1)
@@ -241,56 +179,25 @@ git ls-files -z '*.js' | while IFS= read -r -d '' f; do
 done
 ```
 
-A purge that reports `"throttled": false` can still leave `@main` serving the old
-content, because an edge refills from a GitHub mirror that is still behind. This has
-happened four times. The purge response is therefore not proof of anything — only the
-verify loop above is, and for a rename or delete, grep the *served* file for something
-you changed. **One** re-purge of just the stale paths clears it in practice.
+- `"throttled": false` is not proof: an edge can refill from a lagging GitHub mirror. Only the verify loop is proof. For a rename or delete, grep the *served* file for something you changed.
+- Re-purge stale paths **once**. If a path is still stale, stop: retrying keeps it throttled (`throttlingReset`, up to ~50 min). The pinned `@<sha>` path serves new content immediately; confirm with `curl -s ".../Adventure-Lands@$(git rev-parse HEAD)/<path>" | md5sum` against `git show "HEAD:<path>" | md5sum`.
 
-If a file is still STALE after that one retry, **stop and wait** — do not retry in a loop. Retrying keeps the path
-throttled (`throttlingReset` is in seconds and runs to ~50 minutes) and cannot succeed. The pinned
-`@<sha>` path is unaffected by any of this and serves the new content immediately, so a stale
-`@main` only matters when the loader has fallen back to it after a GitHub API 403. Check the SHA
-path to confirm the deploy is actually reachable:
+Loader facts:
 
-```bash
-sha=$(git rev-parse HEAD)
-curl -s "https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@$sha/${f// /%20}" | md5sum
-git show "HEAD:$f" | md5sum
-```
-
-Other loader facts worth not re-deriving:
-
-- `Code Loader.js` lives in **game code slot 1**, not the repo's load path. Paste it **once** —
-  replacing the slot's whole contents. A slot holding two copies runs both IIFEs and loads
-  everything twice, which re-evaluates every `Core Systems/*.js`; their top-level `const`s cannot
-  re-declare, so those files throw at instantiation and define **nothing**, while the first copy's
-  loops keep running against a stale `character` and every action is rejected as `disabled`.
-- The base must serve executable script. `raw.githubusercontent.com` sends `text/plain` with
-  `nosniff`, so `getScript` refuses it — a raw base fails all 18 files even though a `fetch`+`eval`
-  of `Bootstrapper.js` from raw succeeds.
-- `log()` and `game_log()` write to the **in-game** log windows, never the browser console. Ask for
-  the in-game log when diagnosing; the browser console does not contain them.
-
-## Testing
-
-There is no test suite. Changes must be manually tested by injecting the modified script into the live game client. When suggesting changes, keep them minimal and easy to verify in-game.
+- Paste `Code Loader.js` into slot 1 **once**, replacing the whole slot. Two copies load everything twice: the `Core Systems` files can't re-declare their `const`s and define nothing, while the first copy's loops run against a stale `character`.
+- The base must serve executable script. `raw.githubusercontent.com` sends `text/plain` + `nosniff`, so `getScript` refuses it.
+- `game_log()` writes to the **in-game** log, not the browser console. Ask for the in-game log when diagnosing.
 
 ---
 
-## Game Engine Reference
+## Testing
 
-A comprehensive map of the AdventureLand game engine internals is available in [`Game API Reference.md`](Game%20API%20Reference.md). This was sourced from the [official game repo](https://github.com/kaansoral/adventureland) and covers:
+There is no test suite. Changes are tested by injecting into the live game client, so keep them minimal and easy to verify in-game. `python Tools/Lint.py` catches cross-file global collisions before a push.
 
-- **All bot API functions** — `attack()`, `heal()`, `use_skill()`, `smart_move()`, `buy()`, `upgrade()`, `compound()`, `bank_store()`, `send_cm()`, etc. with signatures, return types, and reject reasons
-- **Socket events** — every client→server and server→client event with payloads (including skill-specific payloads like `3shot`, `5shot`, `cburst`, `blink`)
-- **`character` object** — all properties (stats, slots, inventory, status effects, channeling, bank, queue)
-- **`parent.entities`** — monster vs player properties
-- **`parent.G` data** — items, monsters, maps, skills, NPCs, geometry, crafting, sets
-- **`parent.S` server data** — live boss/event status
-- **Event system** — `character.on()` events and overridable callbacks
-- **Combat system** — damage flow, reduction formula, cooldowns, disable checks
-- **Movement system** — smart_move BFS internals, collision geometry, doors/transporters
-- **Item system** — upgrade/compound multipliers, grade thresholds, scroll types
+---
 
-**When to consult it:** Before suggesting improvements to bot combat, movement, item management, or any game API usage — check the reference to confirm exact function signatures, valid parameters, and available events rather than guessing.
+## References
+
+- [`Design Notes.md`](Design%20Notes.md): why each system works the way it does
+- [`Game API Reference.md`](Game%20API%20Reference.md): game engine internals (API signatures and reject reasons, socket events, `character`/`G`/`S`, combat and movement internals). Check it before changing combat, movement or item code.
+- [`Architecture.md`](Architecture.md), [`Diagnostics.md`](Diagnostics.md) (reading `errors.json`), [`Decision Ownership.md`](Decision%20Ownership.md), [`Loop Cadence.md`](Loop%20Cadence.md)
