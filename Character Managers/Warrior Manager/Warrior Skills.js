@@ -136,11 +136,14 @@ function rime_shell_logger() {
 	if (parent.socket._rime_band_logger) parent.socket.off("hit", parent.socket._rime_band_logger);
 	if (parent.socket._stomp_reply_logger) parent.socket.off("game_response", parent.socket._stomp_reply_logger);
 
+	errlog_timeline("rime_watch", `rimeshell ability ${JSON.stringify(G.monsters.rimedjinn.abilities.rimeshell)}`);
+
 	parent.socket._rime_band_logger = data => {
 		if (!data || !data.damage) return;
 		const mob = parent.entities[data.id];
 		const shell = mob && rime_shell_ability(mob);
 		if (!shell) return;
+		if (mob.s?.rimeshell) record_shell_hit(mob, data);
 		const margin = mob.hp - mob.max_hp * shell.threshold;
 		if (margin > mob.max_hp * RIME_SHELL_HOLD_BAND) delete _rime_band_damage[mob.id];
 		if (margin <= 0 || margin > mob.max_hp * RIME_SHELL_HOLD_BAND) return;
@@ -162,11 +165,80 @@ function rime_shell_logger() {
 	parent.socket.on("game_response", parent.socket._stomp_reply_logger);
 }
 
+var RIME_SHELL_BREAK_PCT = 0.05;
+var RIME_SHELL_WINDOW_MS = 3000;
+var RIME_STACK_RADIUS = 15;
+var _rime_shell_window = {};
+
+function kilo(v) {
+	return `${Math.round(v / 1000)}k`;
+}
+
+function rime_stack_size(mob) {
+	let n = 0;
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e === mob || e.type !== "monster" || e.dead || !rime_shell_ability(e)) continue;
+		if (distance(e, mob) <= RIME_STACK_RADIUS) n++;
+	}
+	return n;
+}
+
+function shell_window(mob) {
+	if (!_rime_shell_window[mob.id]) {
+		_rime_shell_window[mob.id] = {
+			start: Date.now(), max_hp: mob.max_hp, stack: rime_stack_size(mob),
+			total: 0, by: {}, first_hit: 0, stomped_at: 0
+		};
+	}
+	return _rime_shell_window[mob.id];
+}
+
+function record_shell_hit(mob, data) {
+	const w = shell_window(mob);
+	if (w.stomped_at) return;
+	const source = data.source === "burn" ? "burn" : data.splash ? "splash" : (data.source || "attack");
+	const who = `${data.hid}:${source}`;
+	if (!w.first_hit) w.first_hit = Date.now();
+	w.total += data.damage;
+	w.by[who] = (w.by[who] || 0) + data.damage;
+}
+
+function log_shell_window(id, w, mob) {
+	const end = w.stomped_at || Date.now();
+	const need = w.max_hp * RIME_SHELL_BREAK_PCT;
+	const lead = w.first_hit ? w.first_hit - w.start : 0;
+	const rate = w.first_hit ? w.total / Math.max(100, end - w.first_hit) * 1000 : 0;
+	const projected = rate * Math.max(0, RIME_SHELL_WINDOW_MS - lead) / 1000;
+	const outcome = w.stomped_at ? "stomped" : !mob ? "out of sight" : mob.dead ? "died" : "ended unstomped";
+	const by = Object.entries(w.by)
+		.sort((a, b) => b[1] - a[1])
+		.slice(0, 6)
+		.map(([who, dmg]) => `${who} ${kilo(dmg)}`)
+		.join(", ");
+
+	errlog_count(`rime shell damage ${projected >= need ? "would" : "would not"} break`);
+	errlog_timeline("rime_watch",
+		`shell ${id} window ${end - w.start}ms ${outcome}: ${kilo(w.total)} dealt, first hit ${lead}ms in, `
+		+ `${kilo(rate)}/s → ${kilo(projected)} in 3s of ${kilo(need)} needed `
+		+ `(${Math.round(100 * projected / need)}%) | stack ${w.stack} | ${by || "no hits"}`);
+}
+
+function close_shell_windows() {
+	for (const id in _rime_shell_window) {
+		const e = parent.entities[id];
+		if (e && !e.dead && e.s?.rimeshell) continue;
+		log_shell_window(id, _rime_shell_window[id], e);
+		delete _rime_shell_window[id];
+	}
+}
+
 function log_new_shells() {
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
 		if (e.type !== "monster" || e.dead || !e.s?.rimeshell || _rime_shell_logged[id]) continue;
 		_rime_shell_logged[id] = true;
+		shell_window(e);
 
 		const wait = ms_to_next_skill("stomp");
 		const ledger = _rime_band_damage[id] || { total: 0, held: {} };
@@ -189,7 +261,10 @@ function mark_shells_stomped() {
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
 		if (e.type !== "monster" || !e.s?.rimeshell) continue;
-		if (distance(character, e) <= G.skills.stomp.range) _rime_shell_reported[id] = true;
+		if (distance(character, e) > G.skills.stomp.range) continue;
+		_rime_shell_reported[id] = true;
+		const w = shell_window(e);
+		if (!w.stomped_at) w.stomped_at = Date.now();
 	}
 }
 
@@ -212,6 +287,7 @@ function oldest_shell_age() {
 function handle_stomp(tank) {
 	publish_stomp_ready();
 	log_new_shells();
+	close_shell_windows();
 	const casting = rime_shell_casting();
 	const shell = casting && distance(character, casting) <= G.skills.stomp.range ? casting : null;
 	if (casting && !shell) report_unbroken_shell(casting, `${Math.round(distance(character, casting))}px away`);

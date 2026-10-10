@@ -54,11 +54,13 @@ function find_best_target() {
 	const gear = swing_gear();
 	const explosion = gear ? gear.explosion : (character.explosion || 0);
 	const touchable = mob => warrior_may_engage(mob) && safe_to_touch(mob, explosion);
+	const max_dist = dungeon_setting("melee_engage_radius", dungeon_engage_radius(CONFIG.combat.engage_radius));
+
+	const shelled = rime_shell_casting();
+	if (shelled && touchable(shelled) && distance(character, shelled) <= max_dist) return shelled;
 
 	const pursued = pursued_boss();
 	if (pursued && safe_to_touch(pursued, explosion)) return pursued;
-
-	const max_dist = dungeon_setting("melee_engage_radius", dungeon_engage_radius(CONFIG.combat.engage_radius));
 
 	const context = {
 		gear,

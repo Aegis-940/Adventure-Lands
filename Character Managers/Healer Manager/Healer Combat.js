@@ -45,6 +45,9 @@ function find_best_target() {
 
 	const touchable = m => safe_to_touch(m, character.explosion || 0);
 
+	const shelled = rime_shell_casting();
+	if (shelled && touchable(shelled) && is_in_range(shelled)) return shelled;
+
 	const pursued = pursued_boss();
 	if (pursued && touchable(pursued)) return pursued;
 

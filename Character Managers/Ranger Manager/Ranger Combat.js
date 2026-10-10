@@ -62,6 +62,7 @@ function update_target_cache() {
 
 		return value.get(b) - value.get(a);
 	});
+	shelled_first(sorted_by_value);
 
 	const engage_radius = dungeon_engage_radius(null);
 	const within_range = engage_radius
@@ -71,6 +72,12 @@ function update_target_cache() {
 	const in_range = dungeon_sort_targets(sorted_by_value.filter(within_range));
 
 	return { sorted_by_value, in_range };
+}
+
+function shelled_first(pool) {
+	const shelled = rime_shell_casting();
+	const i = shelled ? pool.indexOf(shelled) : -1;
+	if (i > 0) pool.unshift(pool.splice(i, 1)[0]);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
