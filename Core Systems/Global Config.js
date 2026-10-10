@@ -49,6 +49,7 @@ const LOCATIONS = {
 	pppompom:   [{ map: "level2n", x: 292, y: -189 }],
 	plantoid:   [{ map: "desertland", x: -780, y: -387 }],
 	rat:        [{ map: "mansion", x: 6, y: -430 }],
+	rimedjinn:  [{ map: "winter_cove", x: 16, y: -1684 }],
 	scorpion:   [{ map: "main", x: 1520, y: -58 }],
 	stoneworm:  [{ map: "spookytown", x: 830, y: 7 }],
 	spider:     [{ map: "main", x: 895, y: -145 }],
