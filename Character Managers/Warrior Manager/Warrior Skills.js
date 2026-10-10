@@ -27,7 +27,7 @@ async function skill_loop() {
 			}
 		}
 
-		if (CONFIG.skills.stomp_enabled && tank) {
+		if (CONFIG.skills.stomp_enabled) {
 			try {
 				handle_stomp(tank);
 			} catch (e) {
@@ -87,8 +87,10 @@ function stomp_weapon_ready() {
 	return stomp_weapon_worn() || set_available(STOMP_SET);
 }
 
-function stomp_wanted(tank) {
-	if (tank.rip) return false;
+function stomp_wanted(tank, shell) {
+	if (shell) return true;
+	if (rime_shell_pending_within(G.skills.stomp.range)) return false;
+	if (!tank || tank.rip) return false;
 	if (blocker_within(G.skills.stomp.range, must_not_touch)) return false;
 	if (!endangered(tank) && tank.hp >= tank.max_hp * STOMP_TANK_HP_PCT) return false;
 
@@ -100,11 +102,41 @@ function stomp_wanted(tank) {
 	return false;
 }
 
+function stomp_blocked() {
+	const wait = ms_to_next_skill("stomp");
+	if (wait !== 0) return `cooldown ${Math.ceil(wait / 1000)}s`;
+	if (character.mp < skill_mp_cost("stomp") + panic_mp_reserve()) return "no mp";
+	if (character.cc >= COOLDOWNS.cc) return "call cost";
+	if (is_disabled(character)) return "disabled";
+	if (!stomp_weapon_ready()) return "no basher";
+	return null;
+}
+
+var _rime_shell_reported = {};
+
+function report_unbroken_shell(shell, reason) {
+	if (_rime_shell_reported[shell.id]) return;
+	_rime_shell_reported[shell.id] = true;
+	errlog_count(`rime shell unbroken: ${reason}`);
+	game_log(`Rime Shell on ${shell.name} — cannot stomp: ${reason}`, "#FF4444");
+}
+
 function handle_stomp(tank) {
-	if (ms_to_next_skill("stomp") !== 0) return;
-	if (character.mp < skill_mp_cost("stomp") + panic_mp_reserve()) return;
-	if (character.cc >= COOLDOWNS.cc || is_disabled(character)) return;
-	if (!stomp_weapon_ready() || !stomp_wanted(tank)) return;
+	const casting = rime_shell_casting();
+	const shell = casting && distance(character, casting) <= G.skills.stomp.range ? casting : null;
+	if (casting && !shell) report_unbroken_shell(casting, `${Math.round(distance(character, casting))}px away`);
+
+	const blocked = stomp_blocked();
+	if (blocked) {
+		if (shell) report_unbroken_shell(shell, blocked);
+		return;
+	}
+	if (!stomp_wanted(tank, shell)) return;
+
+	if (shell) {
+		errlog_count("stomp rime shell");
+		game_log(`Stomp — breaking Rime Shell on ${shell.name}`, "#FFA600");
+	}
 
 	if (stomp_weapon_worn()) {
 		parent.socket.emit("skill", { name: "stomp" });
@@ -127,7 +159,7 @@ function handle_stomp(tank) {
 	emit_equip_ops(back.ops, back.shadow);
 	parent.next_skill.stomp = new Date(Date.now() + G.skills.stomp.cooldown);
 	errlog_count("stomp swap fired");
-	game_log(`Stomp — Myras at ${Math.round(100 * tank.hp / tank.max_hp)}%`, "#FFA600");
+	if (!shell) game_log(`Stomp — Myras at ${Math.round(100 * tank.hp / tank.max_hp)}%`, "#FFA600");
 }
 
 function cleave_ready() {

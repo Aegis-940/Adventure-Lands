@@ -108,6 +108,30 @@ function is_coop_boss(mob) {
 	return !!mob.cooperative && ALL_BOSSES.includes(mob.mtype);
 }
 
+function rime_shell_ability(mob) {
+	return G.monsters[mob.mtype].abilities?.rimeshell;
+}
+
+function rime_shell_casting() {
+	let nearest = null;
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || e.dead || !e.s?.rimeshell) continue;
+		if (!nearest || distance(character, e) < distance(character, nearest)) nearest = e;
+	}
+	return nearest;
+}
+
+function rime_shell_pending_within(range) {
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || e.dead) continue;
+		const shell = rime_shell_ability(e);
+		if (shell && e.hp > e.max_hp * shell.threshold && distance(character, e) <= range) return true;
+	}
+	return false;
+}
+
 function boss_max_hp(name) {
 	return G.monsters[name].hp;
 }
