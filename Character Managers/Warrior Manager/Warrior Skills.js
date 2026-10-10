@@ -320,15 +320,18 @@ function handle_stomp(tank) {
 	}
 }
 
-var RIME_STOMP_MARGIN_MS = 400;
+var RIME_STOMP_MARGIN_MS = 250;
 var RIME_RTT_FLOOR_MS = 300;
+var RIME_RTT_PAD_MS = 100;
 var RIME_PLAN_TTL_MS = 10000;
 var RIME_RETRY_MS = 25;
 var _rime_stomp_plans = {};
 var _rime_stomp_timer = null;
 
 function rime_rtt() {
-	return Math.max(RIME_RTT_FLOOR_MS, ...parent.pings.slice(-10));
+	const recent = parent.pings.slice(-10).sort((a, b) => a - b);
+	const median = recent.length ? recent[Math.floor(recent.length / 2)] : 0;
+	return Math.max(RIME_RTT_FLOOR_MS, median + RIME_RTT_PAD_MS);
 }
 
 function rime_stomp_planned() {

@@ -320,6 +320,39 @@ async function action_loop() {
 	setTimeout(action_loop, loop_next("action_loop", next_delay));
 }
 
+function shell_shot_damage(shelled, targets, profile) {
+	const apiercing = shot_apiercing(profile);
+	const explosion = character.explosion || 0;
+	const radius = explosion_radius(explosion);
+	let damage = 0;
+	for (const mob of targets) {
+		const hit = (character.attack || 0) * profile.multiplier * armour_factor(mob, apiercing);
+		if (mob === shelled) damage += hit;
+		else if (explosion && distance(mob, shelled) <= radius) damage += hit * (explosion / 100) * defense_reduction(shelled.armor || 0);
+	}
+	return damage;
+}
+
+function choose_shell_shot(shelled, in_range) {
+	const others = in_range.filter(e => e !== shelled).sort((a, b) => distance(a, shelled) - distance(b, shelled));
+	const primary = [shelled, ...others];
+	let best = null;
+
+	for (const profile of SHOT_PROFILES) {
+		if (!shot_usable(profile)) continue;
+		if (character.mp < shot_mana(profile) + panic_mp_reserve()) continue;
+		const targets = primary.slice(0, profile.single ? 1 : profile.count);
+		const damage = shell_shot_damage(shelled, targets, profile);
+		const total = targets.length * profile.multiplier;
+		if (!best || damage > best.damage || (damage === best.damage && total > best.total)) {
+			best = { name: profile.name, single: !!profile.single, targets, damage, total };
+		}
+	}
+
+	if (best) errlog_count(`shell shot ${best.name}${character.explosion ? " boom" : ""}`);
+	return best;
+}
+
 function coop_boss_only(in_range) {
 	const boss = in_range.find(is_coop_boss);
 	return boss ? [boss] : in_range;
@@ -342,7 +375,10 @@ function handle_attack() {
 		return run_basic_action(attack(in_range[0]), "attack");
 	}
 
-	const choice = choose_attack_option(coop_boss_only(in_range));
+	const shelled = rime_shell_casting();
+	const choice = shelled && in_range.includes(shelled)
+		? choose_shell_shot(shelled, in_range)
+		: choose_attack_option(coop_boss_only(in_range));
 	if (!choice) return;
 
 	if (choice.name === "attack") return run_basic_action(attack(choice.targets[0]), "attack");
