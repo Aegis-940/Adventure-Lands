@@ -143,7 +143,7 @@ function rime_shell_logger() {
 		const mob = parent.entities[data.id];
 		const shell = mob && rime_shell_ability(mob);
 		if (!shell) return;
-		if (mob.s?.rimeshell) record_shell_hit(mob, data);
+		if (shell_hit_counts(mob)) record_shell_hit(mob, data);
 		const margin = mob.hp - mob.max_hp * shell.threshold;
 		if (margin > mob.max_hp * RIME_SHELL_HOLD_BAND) delete _rime_band_damage[mob.id];
 		if (margin <= 0 || margin > mob.max_hp * RIME_SHELL_HOLD_BAND) return;
@@ -166,7 +166,7 @@ function rime_shell_logger() {
 }
 
 var RIME_SHELL_BREAK_PCT = 0.05;
-var RIME_SHELL_WINDOW_MS = 3000;
+var RIME_SHELL_OVERRUN_MS = 1000;
 var RIME_STACK_RADIUS = 15;
 var _rime_shell_window = {};
 
@@ -184,14 +184,24 @@ function rime_stack_size(mob) {
 	return n;
 }
 
-function shell_window(mob) {
+function shell_window(mob, start) {
 	if (!_rime_shell_window[mob.id]) {
 		_rime_shell_window[mob.id] = {
-			start: Date.now(), max_hp: mob.max_hp, stack: rime_stack_size(mob),
-			total: 0, by: {}, first_hit: 0, stomped_at: 0
+			start: start || Date.now(), max_hp: mob.max_hp, stack: rime_stack_size(mob),
+			total: 0, burn: 0, by: {}, first_hit: 0, stomped_at: 0
 		};
 	}
 	return _rime_shell_window[mob.id];
+}
+
+function shell_open(id, e) {
+	const plan = _rime_stomp_plans[id];
+	if (!plan) return !!e?.s?.rimeshell;
+	return !plan.gone && Date.now() < plan.best_at + plan.best_ms + RIME_SHELL_OVERRUN_MS;
+}
+
+function shell_hit_counts(mob) {
+	return shell_open(mob.id, mob);
 }
 
 function record_shell_hit(mob, data) {
@@ -201,37 +211,44 @@ function record_shell_hit(mob, data) {
 	const who = `${data.hid}:${source}`;
 	if (!w.first_hit) w.first_hit = Date.now();
 	w.total += data.damage;
+	if (source === "burn") w.burn += data.damage;
 	w.by[who] = (w.by[who] || 0) + data.damage;
 }
 
-function log_shell_window(id, w, mob) {
-	const end = w.stomped_at || Date.now();
+function shell_outcome(w, mob, plan) {
+	if (w.stomped_at) return "stomped";
+	if (!mob) return "out of sight";
+	if (mob.dead) return "died";
+	const conditions = plan && plan.gone_s ? plan.gone_s : Object.keys(mob.s || {});
+	return conditions.includes("rimeexposed") ? "broken" : `gone (${conditions.join("+") || "no conditions"})`;
+}
+
+function log_shell_window(id, w, mob, plan) {
+	const end = w.stomped_at || (plan && plan.gone_at) || Date.now();
 	const need = w.max_hp * RIME_SHELL_BREAK_PCT;
 	const lead = w.first_hit ? w.first_hit - w.start : 0;
-	const rate = w.first_hit ? w.total / Math.max(100, end - w.first_hit) * 1000 : 0;
-	const projected = rate * Math.max(0, RIME_SHELL_WINDOW_MS - lead) / 1000;
-	const outcome = w.stomped_at ? "stomped" : !mob ? "out of sight" : mob.dead ? "died"
-		: `gone before stomp, now ${Object.keys(mob.s || {}).join("+") || "no conditions"}`;
+	const outcome = shell_outcome(w, mob, plan);
 	const by = Object.entries(w.by)
 		.sort((a, b) => b[1] - a[1])
 		.slice(0, 6)
 		.map(([who, dmg]) => `${who} ${kilo(dmg)}`)
 		.join(", ");
 
-	errlog_count(`rime shell damage ${projected >= need ? "would" : "would not"} break`);
+	errlog_count(`rime shell ${outcome.split(" ")[0]}`);
 	errlog_timeline("rime_watch",
-		`shell ${id} window ${end - w.start}ms ${outcome}: ${kilo(w.total)} dealt, first hit ${lead}ms in, `
-		+ `${kilo(rate)}/s → ${kilo(projected)} in 3s of ${kilo(need)} needed `
-		+ `(${Math.round(100 * projected / need)}%) | stack ${w.stack} | ${by || "no hits"}`);
+		`shell ${id} ${outcome} ${end - w.start}ms: ${kilo(w.total)} (${kilo(w.total - w.burn)} direct + ${kilo(w.burn)} burn) `
+		+ `of ${kilo(need)}, first hit ${lead}ms, stack ${w.stack}`);
+	errlog_timeline("rime_watch", `shell ${id} by ${by || "no hits"}`);
 }
 
 function close_shell_windows() {
 	for (const id in _rime_shell_window) {
 		const e = parent.entities[id];
-		if (e && !e.dead && e.s?.rimeshell) continue;
-		log_shell_window(id, _rime_shell_window[id], e);
+		if (e && !e.dead && shell_open(id, e)) continue;
+		const plan = _rime_stomp_plans[id];
+		log_shell_window(id, _rime_shell_window[id], e, plan);
 		delete _rime_shell_window[id];
-		if (_rime_stomp_plans[id]) _rime_stomp_plans[id].done = true;
+		if (plan) plan.done = true;
 	}
 }
 
@@ -360,15 +377,26 @@ function rime_stomp_watcher() {
 
 			const shell = m.s.rimeshell;
 			if (!shell || !shell.ms) {
-				if (plan) plan.gone = true;
+				if (plan && !plan.gone) {
+					plan.gone = true;
+					plan.gone_at = now;
+					plan.gone_s = Object.keys(m.s);
+				}
 				continue;
 			}
 			const fire_at = now + shell.ms - rime_rtt() - RIME_STOMP_MARGIN_MS;
 			if (!plan) {
-				_rime_stomp_plans[m.id] = { seen: now, ms: shell.ms, fire_at, mtype: m.type, x: m.x, y: m.y, done: false, gone: false };
+				_rime_stomp_plans[m.id] = {
+					seen: now, ms: shell.ms, best_at: now, best_ms: shell.ms, fire_at,
+					mtype: m.type, x: m.x, y: m.y, done: false, gone: false
+				};
+				const e = parent.entities[m.id];
+				if (e) shell_window(e, now);
 				changed = true;
 			} else if (!plan.done && fire_at < plan.fire_at) {
 				plan.fire_at = fire_at;
+				plan.best_at = now;
+				plan.best_ms = shell.ms;
 				changed = true;
 			}
 		}
@@ -431,12 +459,13 @@ function rime_deadline_stomp() {
 		write_state_cache();
 		const rtt = parent.pings.length ? parent.pings[parent.pings.length - 1] : 0;
 		const duration = G.monsters[plan.mtype].abilities.rimeshell.duration;
-		const into = duration - plan.ms + (now - plan.seen) + rtt;
+		const into = duration - plan.best_ms + (now - plan.best_at) + rtt;
+		const shift = plan.seen + plan.ms - (plan.best_at + plan.best_ms);
 		mark_shells_stomped();
 		errlog_count("stomp rime shell at deadline");
 		errlog_timeline("rime_watch",
-			`stomp on shell ${id} at deadline: ${now - plan.seen}ms after seen with ${plan.ms}ms left, `
-			+ `planned rtt ${rime_rtt()} margin ${RIME_STOMP_MARGIN_MS}, last ping ${rtt} → ~${Math.round(into)}ms into the shell on arrival`);
+			`stomp on shell ${id} at deadline: ~${Math.round(into)}ms into the shell on arrival, ${now - plan.seen}ms after first update, `
+			+ `best update ${shift}ms earlier, rtt ${rime_rtt()}/${rtt}`);
 		game_log(`Stomp — breaking Rime Shell on ${shell.name} at the deadline`, "#FFA600");
 	} catch (e) {
 		catcher(e, "rime_deadline_stomp");
