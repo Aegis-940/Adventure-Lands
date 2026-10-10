@@ -223,7 +223,7 @@ function boss_profile_tick() {
 
 	for (const id in parent.entities) {
 		const boss = parent.entities[id];
-		if (boss.type !== "monster" || !boss.cooperative || boss.dead || _boss_fights_done[id]) continue;
+		if (boss.type !== "monster" || !is_coop_boss(boss) || boss.dead || _boss_fights_done[id]) continue;
 		if (!_boss_fights[id]) _boss_fights[id] = new_boss_fight(boss);
 		const fight = _boss_fights[id];
 		fight.last_seen = now;

@@ -314,7 +314,7 @@ async function action_loop() {
 }
 
 function coop_boss_only(in_range) {
-	const boss = in_range.find(mob => mob.cooperative);
+	const boss = in_range.find(is_coop_boss);
 	return boss ? [boss] : in_range;
 }
 

@@ -104,6 +104,10 @@ function find_active_boss() {
 		.find(e => e.data?.live && boss_is_present(e));
 }
 
+function is_coop_boss(mob) {
+	return !!mob.cooperative && ALL_BOSSES.includes(mob.mtype);
+}
+
 function boss_max_hp(name) {
 	return G.monsters[name].hp;
 }
