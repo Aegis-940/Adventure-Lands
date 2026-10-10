@@ -322,6 +322,6 @@ function should_pause_combat_loop() {
 	if (character.name === MOVEMENT_LEADER) return false;
 	const leader = get_player(MOVEMENT_LEADER);
 	const defending = monsters_targeting_me() > 0;
-	if (!leader || distance(character, leader) > 200) return !defending;
+	if (!leader || distance(character, leader) > cohesion_range()) return !defending;
 	return leader.rip && !defending;
 }

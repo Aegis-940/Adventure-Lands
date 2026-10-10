@@ -51,7 +51,6 @@ function channel_walk() {
 	move(next.x, next.y);
 }
 
-const NATIVE_SEARCH_FAILED = "failed";
 const MOVE_NO_PATH = "no path";
 const MOVE_TIMEOUT_REASON = "timeout";
 
@@ -65,7 +64,6 @@ function smarter_move(destination, on_done, options = {}) {
 	let resolve_fn, reject_fn;
 	let timeout_id = null;
 	let settled = false;
-	let native_failure = null;
 	const town_allowed = !!options.town;
 
 	const MOVE_TIMEOUT = options.timeout || 120000;
@@ -129,8 +127,12 @@ function smarter_move(destination, on_done, options = {}) {
 	smart.plot = [];
 	smart.flags = {};
 	smart.searching = smart.found = false;
+	if (options.plot) {
+		smart.plot = options.plot;
+		smart.searching = smart.found = true;
+	}
 	smart.on_done = (done, reason) => {
-		if (!done) native_failure = reason || NATIVE_SEARCH_FAILED;
+		if (!done && reason !== "interrupted") complete(false, MOVE_NO_PATH);
 	};
 
 	const target_map = smart.map;
@@ -154,7 +156,7 @@ function smarter_move(destination, on_done, options = {}) {
 				setTimeout(monitor_movement, 200);
 				return;
 			}
-			complete(false, native_failure === NATIVE_SEARCH_FAILED ? MOVE_NO_PATH : "movement stopped");
+			complete(false, "movement stopped");
 			return;
 		}
 
@@ -193,8 +195,9 @@ const TRAVEL_COUNTED_FAILURES = [MOVE_NO_PATH, MOVE_TIMEOUT_REASON];
 
 let _travel = {
 	label: null, active: false, at: 0, interrupt: null, anchor: null, anchor_at: 0, search_since: 0,
-	failures: 0, fail_from: null, town: false,
+	failures: 0, fail_from: null, town: false, released: false,
 };
+let _parked = null;
 
 function travel_is_active() {
 	return _travel.active;
@@ -239,8 +242,33 @@ function travel_town_allowed() {
 	return _travel.failures >= TRAVEL_TOWN_AFTER_FAILURES && monsters_targeting_me() === 0;
 }
 
+function travel_park() {
+	const ours = smart.moving && _travel.interrupt && smart._interrupt === _travel.interrupt;
+	if (!ours || !smart.found) return;
+	const plot = character.moving
+		? [{ map: character.map, x: character.going_x, y: character.going_y }].concat(smart.plot)
+		: smart.plot.slice();
+	_parked = { label: _travel.label, map: smart.map, x: smart.x, y: smart.y, plot };
+	if (character.moving) move(character.real_x, character.real_y);
+}
+
+function travel_parked_plot(label, map, x, y) {
+	const p = _parked;
+	_parked = null;
+	if (!p || p.label !== label || p.map !== map || p.x !== x || p.y !== y) return null;
+	const first = p.plot[0];
+	if (!first) return null;
+	if (first.transport || first.town) return p.plot;
+	if (first.map !== character.map || !can_move_to(first.x, first.y)) return null;
+	return p.plot;
+}
+
 function travel_release() {
-	if (smart.moving) stop_movement("arbiter: released");
+	if (smart.moving) {
+		travel_park();
+		stop_movement("arbiter: released");
+		_travel.released = true;
+	}
 	_travel.interrupt = null;
 	_travel.anchor = null;
 	_travel.search_since = 0;
@@ -328,7 +356,7 @@ function travel_arbiter(goal) {
 
 	if (searching && !search_overrun) return true;
 
-	const floor = label_changed ? TRAVEL_REGOAL_MS : TRAVEL_REISSUE_MS;
+	const floor = _travel.released && !smart.moving ? 0 : label_changed ? TRAVEL_REGOAL_MS : TRAVEL_REISSUE_MS;
 	if (now - _travel.at > floor && (drifted || foreign || stalled || search_overrun)) {
 		const label = goal.label;
 		if (stalled) {
@@ -338,6 +366,7 @@ function travel_arbiter(goal) {
 		if (search_overrun) travel_failed(label, `pathfinder still searching after ${TRAVEL_SEARCH_MAX_MS / 1000}s`);
 		if (smart.moving) stop_movement("arbiter: " + label);
 		_travel.at = now;
+		_travel.released = false;
 		if (_travel.label !== label) game_log(`🧭 ${label}`, "#8899aa");
 		_travel.label = label;
 		_travel.active = true;
@@ -346,7 +375,9 @@ function travel_arbiter(goal) {
 		if (town && !_travel.town) game_log(`🚨 "${label}": no walking route — allowing the town teleport`, "#FFA500");
 		_travel.town = town;
 
-		Promise.resolve(smarter_move({ map, x: goal.x, y: goal.y }, null, { timeout: 90000, radius, town }))
+		const plot = travel_parked_plot(label, map, goal.x, goal.y);
+		if (plot) errlog_count("travel resumed parked route");
+		Promise.resolve(smarter_move({ map, x: goal.x, y: goal.y }, null, { timeout: 90000, radius, town, plot }))
 			.catch(e => {
 				if (e && TRAVEL_COUNTED_FAILURES.includes(e.reason)) travel_failed(label, e.reason);
 			});
@@ -365,6 +396,8 @@ const TOWN_OWN_MS = 2000;
 const TOWN_SAMPLE_PX = 30;
 const TOWN_JUMP_PX = 100;
 const TOWN_SPAWN_NEAR = 150;
+const TOWN_LANDED_PX = 30;
+const TOWN_LEAD_GONE_GRACE_MS = 400;
 
 let _town = { checked_at: 0, cast_at: 0, label: null, mode: null, lead_at: null, channel: null, logged: null };
 
@@ -499,12 +532,21 @@ function town_channel_watch(ch) {
 	const lead = get_player(MOVEMENT_LEADER);
 	if (lead && lead.c.town) {
 		ch.lead_at = { x: lead.x, y: lead.y };
+		ch.lead_gone_at = 0;
 		return;
 	}
-	if (!lead || Math.hypot(lead.x - ch.lead_at.x, lead.y - ch.lead_at.y) > TOWN_JUMP_PX) {
+	const s = town_spawn();
+	if (!lead
+		|| Math.hypot(lead.x - ch.lead_at.x, lead.y - ch.lead_at.y) > TOWN_JUMP_PX
+		|| Math.hypot(lead.x - s.x, lead.y - s.y) <= TOWN_LANDED_PX) {
 		ch.lead_landed = true;
 		return;
 	}
+	if (!ch.lead_gone_at) {
+		ch.lead_gone_at = Date.now();
+		return;
+	}
+	if (Date.now() - ch.lead_gone_at < TOWN_LEAD_GONE_GRACE_MS) return;
 	town_cancel(ch, `${MOVEMENT_LEADER} stopped hers`);
 }
 
@@ -574,9 +616,11 @@ function town_shortcut_check() {
 	town_shortcut_plan();
 }
 
-function town_landed(data) {
+function town_landed() {
 	const ch = _town.channel;
-	if (!ch || !data.effect || !town_channelling()) return;
+	if (!ch || ch.landed) return;
+	const s = town_spawn();
+	if (Math.hypot(character.real_x - s.x, character.real_y - s.y) > TOWN_LANDED_PX) return;
 	ch.landed = true;
 	_town.logged = null;
 	town_note("landed", ch);
@@ -678,13 +722,15 @@ function approach(pos, o) {
 	if (map !== character.map) return travel;
 
 	const d = Math.hypot(character.x - pos.x, character.y - pos.y);
-	if (d <= o.arrive) return o.arrived;
+	if (d <= o.arrive && !o.aim) return o.arrived;
 
-	const a = Math.atan2(character.y - pos.y, character.x - pos.x);
-	const step = { x: pos.x + Math.cos(a) * o.ring, y: pos.y + Math.sin(a) * o.ring };
-	if (!smart.moving && can_move_to(step.x, step.y)) {
+	const aim = o.aim || pos;
+	const a = Math.atan2(character.y - aim.y, character.x - aim.x);
+	const step = { x: aim.x + Math.cos(a) * o.ring, y: aim.y + Math.sin(a) * o.ring };
+	if (can_move_to(step.x, step.y)) {
 		return { local: "step", label: o.label + "-close", step, chasing: o.chasing, disengage: o.disengage };
 	}
+	if (d <= o.arrive) return o.arrived;
 	return travel;
 }
 
@@ -744,8 +790,8 @@ function movement_goal() {
 
 	const event = ignoring_events ? null : event_goal();
 	if (event && event.pursuit) {
-		if (!leader_waits_for_party(event)) return event;
-		return { hold: true, label: "cohesion", disengage: false };
+		if (leader_waits_for_party(event)) return { hold: true, label: "cohesion", disengage: false };
+		if (!follower_holds_back(event)) return event;
 	}
 
 	const scripted_camp = party_camped(event);

@@ -82,8 +82,11 @@ function leader_position() {
 	const c = read_state_cache(MOVEMENT_LEADER);
 	const live = get_player(MOVEMENT_LEADER);
 	const disengaging = !!(c && c.disengaging);
-	if (live) return { map: character.map, x: live.x, y: live.y, rip: !!live.rip, formation: !!(c && c.formation), disengaging };
-	return c ? { map: c.map, x: c.x, y: c.y, rip: !!c.rip, formation: !!c.formation, disengaging } : null;
+	if (live) {
+		const going = live.moving ? { x: live.going_x, y: live.going_y } : null;
+		return { map: character.map, x: live.x, y: live.y, going, rip: !!live.rip, formation: !!(c && c.formation), disengaging };
+	}
+	return c ? { map: c.map, x: c.x, y: c.y, going: null, rip: !!c.rip, formation: !!c.formation, disengaging } : null;
 }
 
 function follow_has_leader() {
@@ -108,9 +111,20 @@ function party_cohesion_hold(event) {
 
 function leader_waits_for_party(event) {
 	if (character.name !== MOVEMENT_LEADER) return false;
-	const followers = COHESION_FOLLOWERS.map(name => read_state_cache(name)).filter(s => s && !s.rip && !s.paused);
-	if (followers.some(s => s.goal === event.label)) return false;
-	return followers.some(s => s.map !== character.map || Math.hypot(s.x - character.x, s.y - character.y) > cohesion_range());
+	return COHESION_FOLLOWERS.some(name => {
+		const s = read_state_cache(name);
+		if (!s || s.rip || s.paused || s.goal === event.label) return false;
+		return s.map !== character.map || Math.hypot(s.x - character.x, s.y - character.y) > cohesion_range();
+	});
+}
+
+function follower_holds_back(event) {
+	if (character.name === MOVEMENT_LEADER) return false;
+	const pos = leader_position();
+	if (!pos || pos.rip || pos.map !== character.map) return false;
+	if (Math.hypot(character.x - pos.x, character.y - pos.y) <= cohesion_range()) return false;
+	const c = read_state_cache(MOVEMENT_LEADER);
+	return !c || c.goal !== event.label;
 }
 
 let _trail = { map: null, crumbs: [], seen: null, leg: null };
@@ -132,8 +146,10 @@ function record_leader_trail() {
 }
 
 function trail_point() {
+	if (_trail.map !== character.map) return null;
 	const live = get_player(MOVEMENT_LEADER);
-	const points = live ? _trail.crumbs.concat([{ x: live.x, y: live.y }]) : _trail.crumbs;
+	const last = live ? { x: live.x, y: live.y } : _trail.seen;
+	const points = last ? _trail.crumbs.concat([last]) : _trail.crumbs;
 	for (let i = points.length - 1; i >= 0; i--) {
 		const p = points[i];
 		if (!can_move_to(p.x, p.y)) continue;
@@ -166,11 +182,12 @@ function follow_goal() {
 		arrive,
 		radius: Math.min(fd + 30, arrive),
 		ring: fd * FOLLOW_RING,
+		aim: pos.formation ? pos.going : null,
 		chasing: true,
 		disengage: pos.disengaging,
 		arrived: { local: pos.formation ? "keep" : "farm", label: "with-leader", disengage: pos.disengaging },
 	});
 	if (near.local) return near;
-	const point = pos.map === character.map && !smart.moving ? trail_point() : null;
+	const point = trail_point();
 	return point ? { local: "trail", label: "follow-trail", point, chasing: true, disengage: pos.disengaging } : near;
 }

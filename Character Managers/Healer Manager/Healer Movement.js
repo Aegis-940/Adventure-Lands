@@ -28,6 +28,8 @@ function healer_farm_step() {
 	if (CONFIG.movement.circle_walk && get_nearest_monster({ type: home })) walk_in_circle();
 }
 
+var CIRCLE_LEAD = 0.5;
+
 function walk_in_circle() {
 	const center = circle_centre();
 	const radius = CONFIG.movement.circle_radius;
@@ -39,10 +41,8 @@ function walk_in_circle() {
 	const delta_angle = CONFIG.movement.circle_speed * (delta_time / 1000);
 	state.angle = (state.angle + delta_angle) % (2 * Math.PI);
 
-	const offset_x = Math.cos(state.angle) * radius;
-	const offset_y = Math.sin(state.angle) * radius;
-	const target_x = center.x + offset_x;
-	const target_y = center.y + offset_y;
-
-	if (!character.moving) local_move(target_x, target_y);
+	const ahead = state.angle + CIRCLE_LEAD;
+	const step = { x: center.x + Math.cos(ahead) * radius, y: center.y + Math.sin(ahead) * radius };
+	if (!can_move_to(step.x, step.y)) return;
+	local_step({ step });
 }
