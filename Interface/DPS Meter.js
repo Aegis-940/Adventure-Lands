@@ -17,15 +17,6 @@ const DAMAGE_TYPE_COLORS = {
 	"Dmg Taken": "#FF4C4C"
 };
 
-const CLASS_COLORS = {
-	mage: "#3FC7EB",
-	paladin: "#F48CBA",
-	priest: "#FFFFFF",
-	ranger: "#AAD372",
-	rogue: "#FFF468",
-	warrior: "#C69B6D"
-};
-
 let damage = 0, burn_damage = 0, blast_damage = 0, base_damage = 0;
 let base_heal = 0, lifesteal = 0, manasteal = 0, dreturn = 0, reflect = 0;
 const METER_START = performance.now();

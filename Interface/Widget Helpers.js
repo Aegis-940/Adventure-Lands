@@ -1,6 +1,6 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// WIDGETS — the bottom-right meter container (Gold/XP/CC/DPS), the render tick they share, and
-// make_draggable() (used by Interface/Settings Window.js and Interface/Stats Window.js).
+// WIDGETS — the bottom-right meter container (Gold/XP/CC/DPS/Boss Contribution), the render tick they share,
+// CLASS_COLORS, and make_draggable() (used by Interface/Settings Window.js and Interface/Stats Window.js).
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function create_bottomrightcorner_widget(id, css) {
@@ -33,6 +33,15 @@ function register_widget(id, opts) {
 		if (typeof html === "string") content.html(html);
 	}, opts.tick_ms || 500);
 }
+
+const CLASS_COLORS = {
+	mage: "#3FC7EB",
+	paladin: "#F48CBA",
+	priest: "#FFFFFF",
+	ranger: "#AAD372",
+	rogue: "#FFF468",
+	warrior: "#C69B6D"
+};
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // ROLLING WINDOWS — the {t, v} event series every meter keeps
