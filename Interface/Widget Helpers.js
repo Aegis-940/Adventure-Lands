@@ -43,6 +43,42 @@ const CLASS_COLORS = {
 	warrior: "#C69B6D"
 };
 
+function add_toprightcorner_button(id, label, on_click) {
+	const $ = parent.$;
+	const trc = $("#toprightcorner");
+	if (!trc.length) return setTimeout(() => add_toprightcorner_button(id, label, on_click), 500);
+
+	$("#" + id).remove();
+
+	const button = $(`<div id="${id}" class="gamebutton" style="cursor: pointer;">${label}</div>`);
+	if (on_click) button.on("click", on_click);
+	trc.children().first().after(button);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// COOP POINTS — every visible player's points on our cooperative boss, and the server's loot share formula (issue_monster_awards)
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const COOP_SHARE_POWER = 0.65;
+const COOP_CREDIT_SHARE = 0.0025;
+
+function coop_contributors() {
+	const coop_id = character.s.coop?.id;
+	const players = [character, ...Object.values(parent.entities).filter(e => e.type === "character")];
+	return players
+		.filter(p => p.s?.coop?.p && (!coop_id || p.s.coop.id === coop_id))
+		.map(p => ({ name: p.name, ctype: p.ctype, points: p.s.coop.p }))
+		.sort((a, b) => b.points - a.points);
+}
+
+function coop_share_weight(points) {
+	return Math.pow(Math.max(0, points), COOP_SHARE_POWER);
+}
+
+function coop_total_weight(entries) {
+	return 0.1 + entries.reduce((sum, e) => sum + coop_share_weight(e.points), 0);
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // ROLLING WINDOWS — the {t, v} event series every meter keeps
 // --------------------------------------------------------------------------------------------------------------------------------- //

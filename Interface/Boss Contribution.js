@@ -2,22 +2,7 @@
 // BOSS CONTRIBUTION — every visible player's coop points on our cooperative boss, and the loot share the server will give them
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const COOP_SHARE_POWER = 0.65;
-const COOP_CREDIT_SHARE = 0.0025;
 const COOP_ROWS_PER_COLUMN = 6;
-
-function coop_contributors() {
-	const coop_id = character.s.coop?.id;
-	const players = [character, ...Object.values(parent.entities).filter(e => e.type === "character")];
-	return players
-		.filter(p => p.s?.coop?.p && (!coop_id || p.s.coop.id === coop_id))
-		.map(p => ({ name: p.name, ctype: p.ctype, points: p.s.coop.p }))
-		.sort((a, b) => b.points - a.points);
-}
-
-function coop_share_weight(points) {
-	return Math.pow(Math.max(0, points), COOP_SHARE_POWER);
-}
 
 function coop_cell(entry, max_points, total_weight, width) {
 	const colour = CLASS_COLORS[entry.ctype.toLowerCase()] || "#FFFFFF";
@@ -39,7 +24,7 @@ function boss_contribution_html(content) {
 	if (!entries.length) return "";
 
 	const max_points = Math.max(1, entries[0].points);
-	const total_weight = 0.1 + entries.reduce((sum, e) => sum + coop_share_weight(e.points), 0);
+	const total_weight = coop_total_weight(entries);
 	const columns = Math.ceil(entries.length / COOP_ROWS_PER_COLUMN);
 	const rows = Math.min(COOP_ROWS_PER_COLUMN, entries.length);
 	const width = (100 / columns).toFixed(1);
