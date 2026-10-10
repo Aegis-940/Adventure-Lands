@@ -16,10 +16,15 @@ function is_teleporting() {
 	return is_transporting(character);
 }
 
-function local_move(x, y) {
-	if (!can_move_to(x, y)) return false;
+function walk(x, y) {
+	if (!can_walk(character)) return false;
 	move(x, y);
 	return true;
+}
+
+function local_move(x, y) {
+	if (!can_move_to(x, y)) return false;
+	return walk(x, y);
 }
 
 function standoff_point(target, reach) {
@@ -48,7 +53,7 @@ function channel_walk() {
 	if (!next || next.town || next.transport || next.map !== character.map) return;
 	if (!can_move_to(next.x, next.y)) return;
 	smart.plot.splice(0, 1);
-	move(next.x, next.y);
+	walk(next.x, next.y);
 }
 
 const MOVE_NO_PATH = "no path";
@@ -249,7 +254,7 @@ function travel_park() {
 		? [{ map: character.map, x: character.going_x, y: character.going_y }].concat(smart.plot)
 		: smart.plot.slice();
 	_parked = { label: _travel.label, map: smart.map, x: smart.x, y: smart.y, plot };
-	if (character.moving) move(character.real_x, character.real_y);
+	if (character.moving) walk(character.real_x, character.real_y);
 }
 
 function travel_parked_plot(label, map, x, y) {
@@ -257,8 +262,12 @@ function travel_parked_plot(label, map, x, y) {
 	_parked = null;
 	if (!p || p.label !== label || p.map !== map || p.x !== x || p.y !== y) return null;
 	const first = p.plot[0];
-	if (!first) return null;
-	if (first.transport || first.town) return p.plot;
+	if (!first || first.town) return null;
+	if (first.transport) {
+		const at_door = G.maps[character.map].doors.some(door =>
+			door[4] === first.map && is_door_close(character.map, door, character.real_x, character.real_y));
+		return at_door ? p.plot : null;
+	}
 	if (first.map !== character.map || !can_move_to(first.x, first.y)) return null;
 	return p.plot;
 }
@@ -398,6 +407,7 @@ const TOWN_JUMP_PX = 100;
 const TOWN_SPAWN_NEAR = 150;
 const TOWN_LANDED_PX = 30;
 const TOWN_LANDING_GRACE_MS = 1000;
+const TOWN_OWN_CHANGE_GRACE_MS = 500;
 const TOWN_LEAD_GONE_GRACE_MS = 1000;
 const TOWN_LEAD_SEEN_LANDED_MS = 2500;
 
@@ -533,7 +543,16 @@ function town_cancel(ch, reason) {
 function town_channel_watch(ch) {
 	if (!ch.mine || ch.landed || ch.mode === "join" || ch.lead_landed) return;
 	if (ch.mode === "own") {
-		if (travel_is_active() && current_goal_label() === ch.label) return;
+		const g = current_goal();
+		if ((g && g.hold) || (travel_is_active() && current_goal_label() === ch.label)) {
+			ch.changed_at = 0;
+			return;
+		}
+		if (!ch.changed_at) {
+			ch.changed_at = Date.now();
+			return;
+		}
+		if (Date.now() - ch.changed_at < TOWN_OWN_CHANGE_GRACE_MS) return;
 		town_cancel(ch, "the journey changed");
 		return;
 	}
@@ -759,11 +778,11 @@ const LOCAL_MOVE_SLOP = 15;
 function local_step(goal) {
 	if (!goal || !goal.step) return;
 	if (character.moving && Math.hypot(character.going_x - goal.step.x, character.going_y - goal.step.y) < LOCAL_MOVE_SLOP) return;
-	move(goal.step.x, goal.step.y);
+	walk(goal.step.x, goal.step.y);
 }
 
 function local_wait() {
-	if (character.moving) move(character.real_x, character.real_y);
+	if (character.moving) walk(character.real_x, character.real_y);
 }
 
 const EVADE_STEP = 150;
@@ -792,7 +811,7 @@ function evade_step(threat) {
 		if (angle_apart(heading, away) < EVADE_HEADING_TOLERANCE) return;
 	}
 	const point = evade_point(threat);
-	if (point) move(point.x, point.y);
+	if (point) walk(point.x, point.y);
 }
 
 function movement_goal() {
@@ -809,14 +828,15 @@ function movement_goal() {
 	const ignoring_events = dungeon_ignores_events();
 
 	const event = ignoring_events ? null : event_goal();
+	const scripted_camp = party_camped(event);
+	const cohesion_hold = !scripted_camp && party_cohesion_hold(event);
+
 	if (event && event.pursuit) {
-		if (leader_waits_for_party(event)) return { hold: true, label: "cohesion", disengage: false };
+		if (cohesion_hold) return { hold: true, label: "cohesion", disengage: false };
 		if (!follower_holds_back(event)) return event;
 	}
 
-	const scripted_camp = party_camped(event);
-
-	if (!scripted_camp && party_cohesion_hold(event)) {
+	if (cohesion_hold) {
 		return { hold: true, label: "cohesion", disengage: !!(event && event.disengage) };
 	}
 

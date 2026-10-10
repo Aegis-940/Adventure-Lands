@@ -295,6 +295,9 @@ document.addEventListener("resume", () => _errlog_lifecycle("resume"));
 window.addEventListener("pagehide", () => _errlog_lifecycle("pagehide"));
 window.addEventListener("pageshow", () => _errlog_lifecycle("pageshow"));
 
+const ERRLOG_GAMELOG_PREFIXES = ["⚠️", "❌", "🛑", "🎂", "🚨", "🧭", "🌀", "[",
+	"Searching for a path", "Path found", "Path not found", "Lost the path"];
+
 let _errlog_gamelog_wrapped = false;
 function _errlog_try_wrap_game_log() {
 	if (_errlog_gamelog_wrapped) return;
@@ -303,10 +306,7 @@ function _errlog_try_wrap_game_log() {
 	game_log = function (msg, color) {
 		try {
 			const text = String(msg);
-			if (text.indexOf("⚠️") === 0 || text.indexOf("❌") === 0 || text.indexOf("🛑") === 0
-				|| text.indexOf("🎂") === 0 || text.indexOf("🚨") === 0 || text.indexOf("[") === 0) {
-				errlog_record("game_log", text);
-			}
+			if (ERRLOG_GAMELOG_PREFIXES.some(p => text.indexOf(p) === 0)) errlog_record("game_log", text);
 		} catch (e) { }
 		return original_game_log(msg, color);
 	};

@@ -84,9 +84,9 @@ function leader_position() {
 	const disengaging = !!(c && c.disengaging);
 	if (live) {
 		const going = live.moving ? { x: live.going_x, y: live.going_y } : null;
-		return { map: character.map, x: live.x, y: live.y, going, rip: !!live.rip, formation: !!(c && c.formation), disengaging };
+		return { map: character.map, x: live.x, y: live.y, going, town: !!live.c.town, rip: !!live.rip, formation: !!(c && c.formation), disengaging };
 	}
-	return c ? { map: c.map, x: c.x, y: c.y, going: null, rip: !!c.rip, formation: !!c.formation, disengaging } : null;
+	return c ? { map: c.map, x: c.x, y: c.y, going: null, town: !!c.town, rip: !!c.rip, formation: !!c.formation, disengaging } : null;
 }
 
 function follow_has_leader() {
@@ -109,20 +109,17 @@ function party_cohesion_hold(event) {
 	return _cohesion_holding;
 }
 
-function leader_waits_for_party(event) {
-	if (character.name !== MOVEMENT_LEADER) return false;
-	return COHESION_FOLLOWERS.some(name => {
-		const s = read_state_cache(name);
-		if (!s || s.rip || s.paused || s.goal === event.label) return false;
-		return s.map !== character.map || Math.hypot(s.x - character.x, s.y - character.y) > cohesion_range();
-	});
+function cohesion_closing(d) {
+	if (d > cohesion_range()) _cohesion_closing = true;
+	else if (d <= cohesion_regroup()) _cohesion_closing = false;
+	return _cohesion_closing;
 }
 
 function follower_holds_back(event) {
 	if (character.name === MOVEMENT_LEADER) return false;
 	const pos = leader_position();
 	if (!pos || pos.rip || pos.map !== character.map) return false;
-	if (Math.hypot(character.x - pos.x, character.y - pos.y) <= cohesion_range()) return false;
+	if (!cohesion_closing(Math.hypot(character.x - pos.x, character.y - pos.y))) return false;
 	const c = read_state_cache(MOVEMENT_LEADER);
 	return !c || c.goal !== event.label;
 }
@@ -161,7 +158,7 @@ function trail_point() {
 function trail_step(goal) {
 	const p = goal.point;
 	if (character.moving && Math.hypot(character.going_x - p.x, character.going_y - p.y) < LOCAL_MOVE_SLOP) return;
-	move(p.x, p.y);
+	walk(p.x, p.y);
 }
 
 function follow_goal() {
@@ -172,16 +169,14 @@ function follow_goal() {
 	const d = pos.map === character.map
 		? Math.hypot(character.x - pos.x, character.y - pos.y)
 		: Infinity;
-	if (d > cohesion_range()) _cohesion_closing = true;
-	else if (d <= cohesion_regroup()) _cohesion_closing = false;
+	const closing = cohesion_closing(d);
 
-	const live = get_player(MOVEMENT_LEADER);
-	if (live && live.c.town && town_near_spawn()) {
+	if (pos.town && pos.map === character.map && town_near_spawn()) {
 		return { local: "keep", label: "await-town", disengage: pos.disengaging };
 	}
 
 	const fd = CONFIG.movement.follow_distance;
-	const arrive = pos.formation ? fd : (_cohesion_closing ? cohesion_regroup() : cohesion_range());
+	const arrive = pos.formation ? fd : (closing ? cohesion_regroup() : cohesion_range());
 	const near = approach(pos, {
 		label: "follow",
 		arrive,
