@@ -118,7 +118,7 @@ var equipment_sets = {
 		{ item_name: "ololipop", slot: "offhand", level: 9, l: "l" },
 	],
 	basher: [
-		{ item_name: "basher", slot: "mainhand", level: 8, l: "l" }
+		{ item_name: "wbasher", slot: "mainhand", level: 0 }
 	],
 	bataxe: [
 		{ item_name: "bataxe", slot: "mainhand", level: 9, l: "l" }
