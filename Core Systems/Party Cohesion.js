@@ -175,6 +175,11 @@ function follow_goal() {
 	if (d > cohesion_range()) _cohesion_closing = true;
 	else if (d <= cohesion_regroup()) _cohesion_closing = false;
 
+	const live = get_player(MOVEMENT_LEADER);
+	if (live && live.c.town && town_near_spawn()) {
+		return { local: "keep", label: "await-town", disengage: pos.disengaging };
+	}
+
 	const fd = CONFIG.movement.follow_distance;
 	const arrive = pos.formation ? fd : (_cohesion_closing ? cohesion_regroup() : cohesion_range());
 	const near = approach(pos, {

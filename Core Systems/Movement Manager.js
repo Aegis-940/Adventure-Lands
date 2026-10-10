@@ -397,7 +397,9 @@ const TOWN_SAMPLE_PX = 30;
 const TOWN_JUMP_PX = 100;
 const TOWN_SPAWN_NEAR = 150;
 const TOWN_LANDED_PX = 30;
-const TOWN_LEAD_GONE_GRACE_MS = 400;
+const TOWN_LANDING_GRACE_MS = 1000;
+const TOWN_LEAD_GONE_GRACE_MS = 1000;
+const TOWN_LEAD_SEEN_LANDED_MS = 2500;
 
 let _town = { checked_at: 0, cast_at: 0, label: null, mode: null, lead_at: null, channel: null, logged: null };
 
@@ -497,8 +499,14 @@ function party_untargeted() {
 	return true;
 }
 
+function town_near_spawn() {
+	const s = town_spawn();
+	return Math.hypot(character.real_x - s.x, character.real_y - s.y) <= TOWN_SPAWN_NEAR;
+}
+
 function town_shortcut_eligible() {
 	if (character.rip || G.maps[character.map].instance || in_dungeon()) return false;
+	if (town_near_spawn()) return false;
 	return monsters_targeting_me() === 0;
 }
 
@@ -523,30 +531,33 @@ function town_cancel(ch, reason) {
 }
 
 function town_channel_watch(ch) {
-	if (!ch.mine || ch.mode === "join" || ch.lead_landed) return;
+	if (!ch.mine || ch.landed || ch.mode === "join" || ch.lead_landed) return;
 	if (ch.mode === "own") {
 		if (travel_is_active() && current_goal_label() === ch.label) return;
 		town_cancel(ch, "the journey changed");
 		return;
 	}
 	const lead = get_player(MOVEMENT_LEADER);
+	const now = Date.now();
 	if (lead && lead.c.town) {
 		ch.lead_at = { x: lead.x, y: lead.y };
+		if (!ch.lead_seen_at || ch.lead_gone_at) ch.lead_seen_at = now;
 		ch.lead_gone_at = 0;
 		return;
 	}
 	const s = town_spawn();
 	if (!lead
 		|| Math.hypot(lead.x - ch.lead_at.x, lead.y - ch.lead_at.y) > TOWN_JUMP_PX
-		|| Math.hypot(lead.x - s.x, lead.y - s.y) <= TOWN_LANDED_PX) {
+		|| Math.hypot(lead.x - s.x, lead.y - s.y) <= TOWN_LANDED_PX
+		|| (ch.lead_seen_at && now - ch.lead_seen_at >= TOWN_LEAD_SEEN_LANDED_MS)) {
 		ch.lead_landed = true;
 		return;
 	}
 	if (!ch.lead_gone_at) {
-		ch.lead_gone_at = Date.now();
+		ch.lead_gone_at = now;
 		return;
 	}
-	if (Date.now() - ch.lead_gone_at < TOWN_LEAD_GONE_GRACE_MS) return;
+	if (now - ch.lead_gone_at < TOWN_LEAD_GONE_GRACE_MS) return;
 	town_cancel(ch, `${MOVEMENT_LEADER} stopped hers`);
 }
 
@@ -578,6 +589,8 @@ function town_shortcut_plan() {
 	const goal = current_goal();
 	if (!goal || goal.local || goal.hold) return;
 	if (!party_untargeted()) return;
+	const first = smart.plot[0];
+	if (first && !first.transport && !first.town && (first.map !== character.map || !can_move_to(first.x, first.y))) return;
 
 	const now = Date.now();
 	if (now - _town.checked_at < TOWN_RECHECK_MS) return;
@@ -600,16 +613,23 @@ function town_shortcut_plan() {
 }
 
 function town_shortcut_check() {
+	const ch = _town.channel;
+	if (ch && !ch.landed) town_landed();
 	if (town_channelling()) {
 		if (!_town.channel) {
 			const mine = Date.now() - _town.cast_at < TOWN_OWN_MS;
-			_town.channel = { mine, mode: _town.mode, label: _town.label, lead_at: _town.lead_at, landed: false };
+			_town.channel = { mine, mode: _town.mode, label: _town.label, lead_at: _town.lead_at, landed: false, gone_at: 0 };
 			if (mine) town_note("channelling", _town.channel);
 		}
+		_town.channel.gone_at = 0;
 		return town_channel_watch(_town.channel);
 	}
-	if (_town.channel) {
-		if (_town.channel.mine && !_town.channel.landed) town_note("interrupted", _town.channel);
+	if (ch) {
+		if (!ch.landed) {
+			if (!ch.gone_at) ch.gone_at = Date.now();
+			if (Date.now() - ch.gone_at < TOWN_LANDING_GRACE_MS) return;
+			if (ch.mine) town_note("interrupted", ch);
+		}
 		_town.channel = null;
 	}
 	if (town_copy_leader()) return;
