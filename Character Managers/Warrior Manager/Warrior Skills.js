@@ -134,6 +134,22 @@ function mark_shells_stomped() {
 	}
 }
 
+var RIME_SHELL_STOMP_DELAY_MS = 1000;
+var _rime_shell_seen = {};
+
+function oldest_shell_age() {
+	const now = Date.now();
+	let oldest = 0;
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || e.dead || !e.s?.rimeshell) continue;
+		if (distance(character, e) > G.skills.stomp.range) continue;
+		if (!_rime_shell_seen[id]) _rime_shell_seen[id] = now;
+		oldest = Math.max(oldest, now - _rime_shell_seen[id]);
+	}
+	return oldest;
+}
+
 function handle_stomp(tank) {
 	publish_stomp_ready();
 	const casting = rime_shell_casting();
@@ -145,7 +161,10 @@ function handle_stomp(tank) {
 		if (shell) report_unbroken_shell(shell, blocked);
 		return;
 	}
+	if (shell && oldest_shell_age() < RIME_SHELL_STOMP_DELAY_MS) return;
 	if (!stomp_wanted(tank, shell) || !fire_stomp()) return;
+	publish_stomp_ready();
+	write_state_cache();
 
 	if (shell) {
 		mark_shells_stomped();

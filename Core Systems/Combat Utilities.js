@@ -125,16 +125,40 @@ function rime_shell_casting() {
 var stomp_ready_at = null;
 
 const RIME_SHELL_BREAKER = "Ulric";
-const RIME_SHELL_HOLD_BAND = 0.04;
-const RIME_SHELL_STOMP_LEAD_MS = 2000;
+const RIME_SHELL_HOLD_BAND = 0.06;
+const RIME_SHELL_STOMP_LEAD_MS = 1500;
 
 function rime_shell_stomp_covers(mob) {
 	const breaker = get_player(RIME_SHELL_BREAKER);
 	if (!breaker || breaker.rip || distance(breaker, mob) > G.skills.stomp.range) return false;
+	if (rime_shell_casting()) return false;
 	const ready_at = character.name === RIME_SHELL_BREAKER
 		? stomp_ready_at
 		: read_state_cache(RIME_SHELL_BREAKER)?.stomp_ready_at;
 	return ready_at != null && ready_at - Date.now() <= RIME_SHELL_STOMP_LEAD_MS;
+}
+
+function rime_shell_band_margin(mob) {
+	const shell = rime_shell_ability(mob);
+	if (!shell) return null;
+	const margin = mob.hp - mob.max_hp * shell.threshold;
+	return margin > 0 && margin <= mob.max_hp * RIME_SHELL_HOLD_BAND ? margin : null;
+}
+
+function rime_shell_next() {
+	let next = null;
+	let next_margin = Infinity;
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || e.dead) continue;
+		const margin = rime_shell_band_margin(e);
+		if (margin === null) continue;
+		if (margin < next_margin || (margin === next_margin && e.id < next.id)) {
+			next = e;
+			next_margin = margin;
+		}
+	}
+	return next;
 }
 
 function rime_shell_held(mob) {
@@ -142,7 +166,7 @@ function rime_shell_held(mob) {
 	if (!shell) return false;
 	const margin = remaining_hp(mob) - mob.max_hp * shell.threshold;
 	if (margin <= 0 || margin > mob.max_hp * RIME_SHELL_HOLD_BAND) return false;
-	return !rime_shell_stomp_covers(mob);
+	return rime_shell_next() !== mob || !rime_shell_stomp_covers(mob);
 }
 
 const RIME_HOLD_GEAR_RANGE = 400;
