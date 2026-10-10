@@ -177,6 +177,16 @@ def archive_timeline(who, entries):
             fh.write(json.dumps({"at": stamp, "character": who, **e}, ensure_ascii=False) + "\n")
 
 
+BOSS_PROFILE_ARCHIVE = os.path.join(REPO, "boss_profiles.jsonl")
+
+
+def archive_boss_profiles(who, samples):
+    with open(BOSS_PROFILE_ARCHIVE, "a", encoding="utf-8") as fh:
+        for s in sorted(samples, key=lambda x: x.get("t") or 0):
+            stamp = datetime.fromtimestamp((s.get("t") or 0) / 1000).strftime("%Y-%m-%d %H:%M:%S")
+            fh.write(json.dumps({"at": stamp, "character": who, **s}, ensure_ascii=False) + "\n")
+
+
 def merge_lifecycle(incoming):
     """A sendBeacon from the page as it is hidden, frozen or resumed. It carries one entry and
     arrives when the page may be about to stop running, so it goes straight to the archive."""
@@ -252,6 +262,12 @@ def merge(incoming):
     for s in incoming.get("samples") or []:
         samples[(s.get("t"), s.get("kind"))] = s
     bucket["samples"] = prune_samples(samples.values())
+
+    profiles = [s for s in incoming.get("samples") or []
+                if s.get("kind") == "boss_profile" and (s.get("t") or 0) > bucket.get("profiles_archived_to", 0)]
+    if profiles:
+        archive_boss_profiles(who, profiles)
+        bucket["profiles_archived_to"] = max(s.get("t") or 0 for s in profiles)
 
     # Heartbeats answer "was the tab still running", so they must outlive the sample age cut --
     # an overnight freeze is only legible the next morning, hours after SAMPLE_MAX_AGE_H.

@@ -24,6 +24,7 @@
 		"Core Systems/Combat Utilities.js",
 		"Core Systems/Combat Formulas.js",
 		"Core Systems/Combat Sampling.js",
+		"Core Systems/Boss Profiler.js",
 		"Core Systems/Movement Positioning.js",
 		"Core Systems/Targeting.js",
 		"Core Systems/Porcupine Guard.js",
@@ -109,6 +110,7 @@
 
 	const OPTIONAL_SCRIPTS = new Set([
 		"Core Systems/Porcupine Guard.js",
+		"Core Systems/Boss Profiler.js",
 		"Core Systems/Error Log.js",
 		"Dungeons/Spider Dungeon.js",
 		"Dungeons/Crypt Dungeon.js",

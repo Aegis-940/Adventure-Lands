@@ -5,6 +5,7 @@ errors.log*
 __pycache__/
 logs/
 errors_timeline.jsonl
+boss_profiles.jsonl
 
 # Runtime data written by Tools/Watchdog.py.
 watchdog.json
