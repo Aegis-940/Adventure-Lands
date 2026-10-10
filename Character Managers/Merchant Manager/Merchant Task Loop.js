@@ -31,7 +31,7 @@ function should_run_upgrade() {
 		&& merchant_task === "Idle"
 		&& !upgrade_run_blocked()
 		&& character.gold >= CONFIG.upgrade_gold_threshold
-		&& (bank_has_upgradeable_items() || can_buy_for_upgrade());
+		&& (inventory_has_upgradeable_items() || bank_has_upgradeable_items() || can_buy_for_upgrade());
 }
 
 async function handle_upgrading_state() {

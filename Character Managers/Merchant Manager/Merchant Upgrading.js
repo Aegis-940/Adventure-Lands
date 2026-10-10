@@ -306,19 +306,25 @@ async function withdraw_upgradeable_items() {
 	game_log("✅ Finished withdrawing upgrade and compound items, leaving at least 3 inventory slots free.");
 }
 
-function bank_has_upgradeable_items() {
-	const bank_data = character.bank || load_bank_from_local_storage();
-	if (!bank_data) return false;
-
+function has_upgradeable_items(packs) {
 	for (const item_name in UPGRADE_PROFILE) {
-		if (Object.keys(bank_level_counts(bank_data, item_name, UPGRADE_PROFILE[item_name].max_level)).length) return true;
+		if (Object.keys(bank_level_counts(packs, item_name, UPGRADE_PROFILE[item_name].max_level)).length) return true;
 	}
 
 	for (const item_name in COMBINE_PROFILE) {
-		if (Object.values(bank_level_counts(bank_data, item_name, COMBINE_PROFILE[item_name].max_level)).some(q => q >= 3)) return true;
+		if (Object.values(bank_level_counts(packs, item_name, COMBINE_PROFILE[item_name].max_level)).some(q => q >= 3)) return true;
 	}
 
 	return false;
+}
+
+function bank_has_upgradeable_items() {
+	const bank_data = character.bank || load_bank_from_local_storage();
+	return !!bank_data && has_upgradeable_items(bank_data);
+}
+
+function inventory_has_upgradeable_items() {
+	return has_upgradeable_items({ items: character.items });
 }
 
 var upgrade_failed_slots = new Set();
