@@ -124,6 +124,12 @@ var equipment_sets = {
 	orb_exp: [
 		{ item_name: "talkingskull", slot: "orb", level: 3, l: "l" },
 	],
+	orb_dps: [
+		{ item_name: "cave_loaded_die", slot: "orb", level: 1, l: "l" },
+	],
+	dps_chest: [
+		{ item_name: "coat", slot: "chest", level: 10, l: "l" },
+	],
 	orb: [
 		{ item_name: "talkingskull", slot: "orb", level: 3, l: "l" },
 	],
