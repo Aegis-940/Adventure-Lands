@@ -78,6 +78,7 @@ function mainhand_intent() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 var _equip_sent = null;
+var _unequip_landings = [];
 
 function replies_outstanding(sent) {
 	return sent.due.equip_batch + sent.due.unequip + sent.due.imove;
@@ -94,10 +95,11 @@ function equip_view() {
 }
 
 function note_sent(event, payload) {
+	if (!equip_pending()) _unequip_landings = [];
 	const shadow = equip_view();
 
 	if (event === "unequip") {
-		shadow_unequip(shadow, payload.slot);
+		_unequip_landings.push(shadow_unequip(shadow, payload.slot));
 	} else if (event === "imove") {
 		const moved = shadow.items[payload.a];
 		shadow.items[payload.a] = shadow.items[payload.b];
@@ -121,6 +123,18 @@ function live_matches_sent(slot) {
 	return (sent ? sent.name : null) === (live ? live.name : null);
 }
 
+function settle_landing(num, failed) {
+	if (num === undefined || num === -1 || failed) return;
+	const guessed = _equip_sent.shadow.items[num];
+	if (!guessed || !guessed.guess) return;
+	const live = parent.character.items[num];
+	if (live && live.name === guessed.name && (live.level ?? 0) === guessed.level) {
+		_equip_sent.shadow.items[num] = shadow_item(live);
+	} else {
+		errlog_count(`unequip landed elsewhere: ${guessed.name}`);
+	}
+}
+
 function reply_event(data) {
 	if (data.place === "equip") return data.failed ? "equip_batch" : null;
 	return data.place;
@@ -139,6 +153,7 @@ parent.socket._equip_reply_counter = data => {
 	if (!_equip_sent.due[event]) return;
 
 	_equip_sent.due[event]--;
+	if (event === "unequip") settle_landing(_unequip_landings.shift(), data.failed);
 	if (replies_outstanding(_equip_sent) === 0) {
 		const current = live_matches_sent("mainhand") && live_matches_sent("offhand");
 		errlog_count(current ? "equip reply: live current" : "equip reply: live behind");
@@ -179,7 +194,7 @@ async function batch_equip(data, set_name) {
 
 		const idx = best_copy(view.items, item_name, level, l, claimed_slots);
 		if (idx === -1) {
-			warn_missing_item(item_name, level, slot);
+			if (!copy_landing(view.items, item_name)) warn_missing_item(item_name, level, slot);
 			continue;
 		}
 		if (!level_fits(view.items[idx].level, level)) {
@@ -359,7 +374,7 @@ function best_copy(items, item_name, level, l, taken) {
 	let best_rank = null;
 	for (let i = 0; i < items.length; i++) {
 		const it = items[i];
-		if (!it || it.name !== item_name || (taken && taken.has(i))) continue;
+		if (!it || it.guess || it.name !== item_name || (taken && taken.has(i))) continue;
 		if (level !== undefined && (it.level ?? 0) < level) continue;
 		const rank = copy_rank(it, level, l);
 		if (best === -1 || rank_beats(rank, best_rank)) {
@@ -368,6 +383,10 @@ function best_copy(items, item_name, level, l, taken) {
 		}
 	}
 	return best;
+}
+
+function copy_landing(items, item_name) {
+	return items.some(it => it && it.guess && it.name === item_name);
 }
 
 function shadow_find(shadow, item_name, level, l) {
@@ -381,12 +400,12 @@ function shadow_equip(shadow, num, slot) {
 }
 
 function shadow_unequip(shadow, slot) {
-	if (!shadow.slots[slot]) return false;
+	if (!shadow.slots[slot]) return -1;
 	const num = shadow.items.findIndex(it => !it);
-	if (num === -1) return false;
-	shadow.items[num] = shadow.slots[slot];
+	if (num === -1) return -1;
+	shadow.items[num] = Object.assign({ guess: true }, shadow.slots[slot]);
 	shadow.slots[slot] = null;
-	return true;
+	return num;
 }
 
 function plan_set_equip(shadow, set_name) {
@@ -398,7 +417,7 @@ function plan_set_equip(shadow, set_name) {
 	const keeps_offhand = set.some(e => e.slot === "offhand");
 
 	if (mainhand && !keeps_offhand && shadow.slots.offhand && is_doublehand(mainhand.item_name)) {
-		if (shadow_unequip(shadow, "offhand")) ops.push({ event: "unequip", payload: { slot: "offhand" } });
+		if (shadow_unequip(shadow, "offhand") !== -1) ops.push({ event: "unequip", payload: { slot: "offhand" } });
 	}
 
 	const items = [];
@@ -408,7 +427,7 @@ function plan_set_equip(shadow, set_name) {
 
 		const num = shadow_find(shadow, entry.item_name, entry.level, entry.l);
 		if (num === -1) {
-			warn_missing_item(entry.item_name, entry.level, entry.slot);
+			if (!copy_landing(shadow.items, entry.item_name)) warn_missing_item(entry.item_name, entry.level, entry.slot);
 			continue;
 		}
 
