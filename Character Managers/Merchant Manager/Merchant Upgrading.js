@@ -371,13 +371,16 @@ async function auto_upgrade_item(level) {
 		}
 
 		if (!character.q.upgrade) {
+			const slot = upgrade_slot_for(i);
 			use_mass_production(item.level);
-			game_log(`Upgrading ${item.name} (level ${item.level}) with ${scrollname}`);
+			game_log(`Upgrading ${item.name} (level ${item.level}) with ${scrollname} in slot ${slot}`);
 			try {
-				await upgrade(i, scroll_slot, offering_slot);
+				if (slot !== i) await swap(i, slot);
+				await upgrade(slot, inventory_slot(scrollname), offering_slot === null ? null : inventory_slot("offeringp"));
 			} catch (e) {
 				catcher(e, `auto_upgrade_item: ${item.name} (level ${item.level})`);
 				upgrade_failed_slots.add(i);
+				upgrade_failed_slots.add(slot);
 				continue;
 			}
 		}

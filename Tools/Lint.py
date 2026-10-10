@@ -127,8 +127,8 @@ for f in files:
 for name, where in sorted(declared.items()):
     if len(where) < 2 or name in PER_ROLE:
         continue
-    if name.startswith("errlog_"):
-        continue  # Global Config stubs, replaced by Error Log by design
+    if name.startswith("errlog_") or name == "upgrade_slot_for":
+        continue  # Global Config stubs, replaced by Error Log / Lucky Slot Tracker by design
     roles = {w.split("/")[1] for w in where if w.startswith("Character Managers/")}
     if len(roles) == len(where) and len(roles) > 1:
         continue  # one per character, never loaded together
