@@ -8,6 +8,7 @@ const BOSS_PROFILE_KILL_GRACE_MS = 3000;
 const BOSS_PROFILE_MIN_SECS = 10;
 const BOSS_PROFILE_HISTORY = 10;
 const BOSS_PROFILE_TANK_MULT = 0.25;
+const BOSS_PROFILE_MP_LOW = 0.2;
 
 const _boss_fights = {};
 const _boss_fights_done = {};
@@ -21,6 +22,8 @@ function new_boss_fight(boss) {
 		first: Date.now(),
 		last_seen: Date.now(),
 		killed_at: 0,
+		ticks: 0,
+		conditions: {},
 		players: {}
 	};
 }
@@ -34,7 +37,7 @@ function fight_player(fight, name) {
 			boss_dmg: 0, other_dmg: 0,
 			kills: 0, sugarrush: 0, lifesteal: 0, burn_procs: 0, heal: 0,
 			tanked_raw: 0, tanked: 0, tanked_hits: 0,
-			ticks: 0, dead: 0, targeted: 0, dist_sum: 0,
+			ticks: 0, dead: 0, targeted: 0, dist_sum: 0, mp_low: 0,
 			attack_sum: 0, freq_sum: 0, pdps_sum: 0,
 			buffs: {}, weapons: {},
 			coop_first: null, coop_last: null,
@@ -184,6 +187,7 @@ function sample_fight_player(fight, boss, pl) {
 	p.ticks++;
 	if (pl.rip) p.dead++;
 	if (boss.target === pl.name) p.targeted++;
+	if (pl.max_mp && pl.mp < pl.max_mp * BOSS_PROFILE_MP_LOW) p.mp_low++;
 	p.dist_sum += distance(pl, boss);
 	p.attack_sum += pl.attack || 0;
 	p.freq_sum += pl.frequency || 0;
@@ -224,6 +228,8 @@ function boss_profile_tick() {
 		const fight = _boss_fights[id];
 		fight.last_seen = now;
 		fight.hp_last = boss.hp;
+		fight.ticks++;
+		for (const key in boss.s || {}) fight.conditions[key] = (fight.conditions[key] || 0) + 1;
 		for (const pl of players) sample_fight_player(fight, boss, pl);
 	}
 
@@ -284,6 +290,7 @@ function player_profile(p) {
 		dist_avg: p.ticks ? Math.round(p.dist_sum / p.ticks) : null,
 		targeted_pct: profile_ratio(p.targeted, p.ticks, 2),
 		dead_pct: profile_ratio(p.dead, p.ticks, 2),
+		mp_low_pct: profile_ratio(p.mp_low, p.ticks, 2),
 		ticks: p.ticks,
 		actions: p.actions,
 		hits: p.hits,
@@ -305,6 +312,9 @@ function emit_boss_profile(fight) {
 	}
 	if (!Object.keys(players).length) return;
 
+	const conditions = {};
+	for (const key in fight.conditions) conditions[key] = profile_ratio(fight.conditions[key], fight.ticks, 2);
+
 	const report = {
 		boss: fight.mtype,
 		boss_id: fight.id,
@@ -312,6 +322,7 @@ function emit_boss_profile(fight) {
 		killed: !!fight.killed_at,
 		hp_left: fight.killed_at ? 0 : fight.hp_last,
 		fight_secs: +secs.toFixed(1),
+		boss_conditions: conditions,
 		observer: character.name,
 		server: parent.server_region + parent.server_identifier,
 		home: character.home || null,

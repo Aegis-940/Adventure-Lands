@@ -313,6 +313,11 @@ async function action_loop() {
 	setTimeout(action_loop, loop_next("action_loop", next_delay));
 }
 
+function coop_boss_only(in_range) {
+	const boss = in_range.find(mob => mob.cooperative);
+	return boss ? [boss] : in_range;
+}
+
 function handle_attack() {
 	const { sorted_by_value, in_range } = cache.targets;
 	if (!sorted_by_value.length) return;
@@ -330,7 +335,7 @@ function handle_attack() {
 		return run_basic_action(attack(in_range[0]), "attack");
 	}
 
-	const choice = choose_attack_option(in_range);
+	const choice = choose_attack_option(coop_boss_only(in_range));
 	if (!choice) return;
 
 	if (choice.name === "attack") return run_basic_action(attack(choice.targets[0]), "attack");
