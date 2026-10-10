@@ -118,7 +118,66 @@ function report_unbroken_shell(shell, reason) {
 	if (_rime_shell_reported[shell.id]) return;
 	_rime_shell_reported[shell.id] = true;
 	errlog_count(`rime shell unbroken: ${reason}`);
+	errlog_timeline("rime_watch", `shell ${shell.id} unbroken: ${reason}`);
 	game_log(`Rime Shell on ${shell.name} — cannot stomp: ${reason}`, "#FF4444");
+}
+
+var _rime_band_damage = {};
+var _rime_shell_logged = {};
+
+function rime_band_held(mob) {
+	if (ms_to_next_skill("stomp") > RIME_SHELL_STOMP_LEAD_MS) return true;
+	const casting = rime_shell_casting();
+	if (casting && casting !== mob) return true;
+	return rime_shell_next() !== mob;
+}
+
+function rime_shell_logger() {
+	if (parent.socket._rime_band_logger) parent.socket.off("hit", parent.socket._rime_band_logger);
+	if (parent.socket._stomp_reply_logger) parent.socket.off("game_response", parent.socket._stomp_reply_logger);
+
+	parent.socket._rime_band_logger = data => {
+		if (!data || !data.damage) return;
+		const mob = parent.entities[data.id];
+		const shell = mob && rime_shell_ability(mob);
+		if (!shell) return;
+		const margin = mob.hp - mob.max_hp * shell.threshold;
+		if (margin > mob.max_hp * RIME_SHELL_HOLD_BAND) delete _rime_band_damage[mob.id];
+		if (margin <= 0 || margin > mob.max_hp * RIME_SHELL_HOLD_BAND) return;
+
+		const ledger = _rime_band_damage[mob.id] || (_rime_band_damage[mob.id] = { total: 0, held: {} });
+		ledger.total += data.damage;
+		if (!rime_band_held(mob)) return;
+		const who = data.source === "burn" ? `${data.hid}:burn` : String(data.hid);
+		ledger.held[who] = (ledger.held[who] || 0) + data.damage;
+	};
+
+	parent.socket._stomp_reply_logger = data => {
+		if (!data || data.place !== "stomp" || !data.failed) return;
+		errlog_count(`stomp refused: ${data.response}`);
+		errlog_timeline("rime_watch", `stomp refused: ${data.response}`);
+	};
+
+	parent.socket.on("hit", parent.socket._rime_band_logger);
+	parent.socket.on("game_response", parent.socket._stomp_reply_logger);
+}
+
+function log_new_shells() {
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || e.dead || !e.s?.rimeshell || _rime_shell_logged[id]) continue;
+		_rime_shell_logged[id] = true;
+
+		const wait = ms_to_next_skill("stomp");
+		const ledger = _rime_band_damage[id] || { total: 0, held: {} };
+		const held = Object.entries(ledger.held)
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 4)
+			.map(([who, dmg]) => `${who} ${Math.round(dmg / 1000)}k`)
+			.join(", ");
+		errlog_timeline("rime_watch",
+			`shell ${id} ${Math.round(distance(character, e))}px stomp ${wait ? Math.ceil(wait / 1000) + "s" : "ready"} | band ${Math.round(ledger.total / 1000)}k, held: ${held || "none"}`);
+	}
 }
 
 function publish_stomp_ready() {
@@ -152,6 +211,7 @@ function oldest_shell_age() {
 
 function handle_stomp(tank) {
 	publish_stomp_ready();
+	log_new_shells();
 	const casting = rime_shell_casting();
 	const shell = casting && distance(character, casting) <= G.skills.stomp.range ? casting : null;
 	if (casting && !shell) report_unbroken_shell(casting, `${Math.round(distance(character, casting))}px away`);
@@ -169,6 +229,7 @@ function handle_stomp(tank) {
 	if (shell) {
 		mark_shells_stomped();
 		errlog_count("stomp rime shell");
+		errlog_timeline("rime_watch", `stomp on shell ${shell.id}, ${Math.round(oldest_shell_age())}ms in`);
 		game_log(`Stomp — breaking Rime Shell on ${shell.name}`, "#FFA600");
 	} else {
 		game_log(`Stomp — Myras at ${Math.round(100 * tank.hp / tank.max_hp)}%`, "#FFA600");
