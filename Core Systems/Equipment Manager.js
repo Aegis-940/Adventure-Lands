@@ -177,30 +177,15 @@ async function batch_equip(data, set_name) {
 		if (slot_item && slot_item.name === item_name && level_fits(slot_item.level, level)) continue;
 		if (slot_in_flight(slot) === item_name) continue;
 
-		let idx = view.items.findIndex((item, j) =>
-			item && item.name === item_name && level_fits(item.level, level) && item.l === l && !claimed_slots.has(j)
-		);
-		if (idx === -1) {
-			idx = view.items.findIndex((item, j) =>
-				item && item.name === item_name && level_fits(item.level, level) && !claimed_slots.has(j)
-			);
-		}
-
-		if (idx === -1) {
-			idx = view.items.findIndex((item, j) =>
-				item && item.name === item_name && !claimed_slots.has(j)
-			);
-			if (idx !== -1) {
-				const found = view.items[idx];
-				game_log(`⚠️ ${item_name} for ${slot}: set says lvl ${level ?? 0}, bag has lvl `
-					+ `${found.level ?? 0} — equipping it anyway. Fix the set definition.`,
-					"#FFA500");
-			}
-		}
-
+		const idx = best_copy(view.items, item_name, level, l, claimed_slots);
 		if (idx === -1) {
 			warn_missing_item(item_name, level, slot);
 			continue;
+		}
+		if (!level_fits(view.items[idx].level, level)) {
+			game_log(`⚠️ ${item_name} for ${slot}: set says lvl ${level}, bag has lvl `
+				+ `${view.items[idx].level ?? 0} — equipping it anyway. Fix the set definition.`,
+				"#FFA500");
 		}
 
 		valid_items.push({ num: idx, slot: slot });
@@ -356,11 +341,37 @@ function shadow_inventory() {
 	return { items: parent.character.items.map(shadow_item), slots };
 }
 
+function copy_rank(item, level, l) {
+	const lvl = item.level ?? 0;
+	if (level === undefined) return [lvl, item.l === l ? 1 : 0];
+	return [lvl === level ? 1 : 0, item.l === l ? 1 : 0, -lvl];
+}
+
+function rank_beats(a, b) {
+	for (let k = 0; k < a.length; k++) {
+		if (a[k] !== b[k]) return a[k] > b[k];
+	}
+	return false;
+}
+
+function best_copy(items, item_name, level, l, taken) {
+	let best = -1;
+	let best_rank = null;
+	for (let i = 0; i < items.length; i++) {
+		const it = items[i];
+		if (!it || it.name !== item_name || (taken && taken.has(i))) continue;
+		if (level !== undefined && (it.level ?? 0) < level) continue;
+		const rank = copy_rank(it, level, l);
+		if (best === -1 || rank_beats(rank, best_rank)) {
+			best = i;
+			best_rank = rank;
+		}
+	}
+	return best;
+}
+
 function shadow_find(shadow, item_name, level, l) {
-	let num = shadow.items.findIndex(it => it && it.name === item_name && it.level === (level ?? 0) && it.l === l);
-	if (num === -1) num = shadow.items.findIndex(it => it && it.name === item_name && it.level === (level ?? 0));
-	if (num === -1) num = shadow.items.findIndex(it => it && it.name === item_name);
-	return num;
+	return best_copy(shadow.items, item_name, level, l, null);
 }
 
 function shadow_equip(shadow, num, slot) {

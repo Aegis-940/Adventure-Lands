@@ -159,6 +159,8 @@ The one file that changes what is worn: equipment sets, the single `batch_equip(
 
 **The sent view.** Every planner (`equip_plan()`, `batch_equip()`) starts from the sent view (`equip_view()`): the inventory the server will hold once every equip/unequip we have sent is answered. It is counted off `game_response` replies per event (the server sends the `player` update before the reply), with a 1.5s backstop. A bare `place: "equip"` reply only counts when `failed` (the failed form of an `equip_batch`). Potions are answered under `equip` too, and counting them settled swaps that had not landed. Matching the live inventory is no landing signal, because a swap and its restore end where they started.
 
+**Which copy.** `best_copy()` picks the bag copy for both planners: the set's exact level first, then its lock, and never a copy below the set's level (one above is equipped with a warning, the upgrade case). A set without a `level` takes the highest. It used to try level 0 first, so every sugar-rush burst put a freshly looted +0 candy cane in Ulric's hand. That copy was on `SELLABLE_ITEMS`, and the sale landed on the bag index the real weapon had just been swapped into.
+
 **Swap penalty.** Each item equipped adds 120ms of the server's `penalty_cd`, which is added to the next skill or attack's cooldown. So a swap belongs *after* the skill it serves.
 
 **Overrides.** `gear_override(group)` checks these in order:
@@ -181,6 +183,10 @@ Panic and its broadcast (`set_panic()` is the only writer), party invites, and w
 ### `Loot Management.js`
 
 `loose_loot()` (what we keep, ship to the merchant, or vendor), bank withdrawal, and chest looting (`should_loot()`/`handle_looting()`, driven by each character's `CONFIG.looting`).
+
+**Reserved gear.** `reserved_gear_slots()` ranks every copy of a set item, worn and bagged (locked first, then level), and keeps the top N, where N is how many slots the sets wear it in. Bag copies in that top N are never shipped or sold. It used to count a slot as covered by any worn copy of the name, so a junk copy in the hand made the real one in the bag look spare.
+
+**Sending and selling wait out swaps.** An `equip_batch` moves the worn item into the bag index it took from, and the client sees that only when the reply arrives. `remote_sell_items()` skips the tick while a swap is in flight. `send_to_merchant()` re-checks each index just before sending it (`still_loose()`), because its list was built seconds earlier. A skipped item goes on the next pass.
 
 `inventory_sorter()` keeps `item_order` items on their bag slots. It waits out any swap in progress and moves through `inventory_move()`, so the sent view sees every move. Sorting from a stale inventory mid-swap moved the fireblades out from under the restore and left Ulric in candy canes.
 

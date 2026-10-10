@@ -42,34 +42,29 @@ function equipment_set_item_slots() {
 	return found;
 }
 
-function gear_copies_needed(item_name) {
-	const slots = equipment_set_item_slots()[item_name];
-	if (!slots) return 0;
-
-	let needed = 0;
-	for (const slot of slots) {
-		const worn = character.slots[slot];
-		if (!worn || worn.name !== item_name) needed++;
-	}
-	return needed;
-}
-
 function reserved_gear_slots() {
-	const by_name = {};
+	const set_slots = equipment_set_item_slots();
+	const copies = {};
+	const add = (name, i, item) => {
+		if (!copies[name]) copies[name] = [];
+		copies[name].push({ i, level: item.level || 0, locked: !!item.l });
+	};
+
+	for (const slot in character.slots) {
+		const worn = character.slots[slot];
+		if (worn && set_slots[worn.name]) add(worn.name, -1, worn);
+	}
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
-		if (!item || item.s) continue;
-		if (!equipment_set_item_slots()[item.name]) continue;
-		if (!by_name[item.name]) by_name[item.name] = [];
-		by_name[item.name].push({ i, level: item.level || 0, locked: !!item.l });
+		if (item && !item.s && set_slots[item.name]) add(item.name, i, item);
 	}
 
 	const reserved = new Set();
-	for (const name in by_name) {
-		const needed = gear_copies_needed(name);
-		if (!needed) continue;
-		by_name[name].sort((a, b) => (b.locked - a.locked) || (b.level - a.level));
-		for (const entry of by_name[name].slice(0, needed)) reserved.add(entry.i);
+	for (const name in copies) {
+		copies[name].sort((a, b) => (b.locked - a.locked) || (b.level - a.level));
+		for (const entry of copies[name].slice(0, set_slots[name].size)) {
+			if (entry.i !== -1) reserved.add(entry.i);
+		}
 	}
 	return reserved;
 }
@@ -89,6 +84,17 @@ function loose_loot(start) {
 	return out;
 }
 
+function swap_in_flight() {
+	return equip_transient() || equip_pending();
+}
+
+function still_loose(i, item) {
+	if (swap_in_flight()) return false;
+	const now = character.items[i];
+	if (!now || now.name !== item.name || (now.level || 0) !== (item.level || 0)) return false;
+	return loose_loot(i).some(entry => entry.i === i);
+}
+
 const MERCHANT_SEND_RANGE = 400;
 const MERCHANT_AUTO_SEND_RANGE = 250;
 
@@ -106,8 +112,9 @@ async function send_to_merchant() {
 	try {
 		for (const { i, item } of loose_loot(LOOT_THRESHOLD)) {
 			await delay(150);
+			if (!still_loose(i, item)) continue;
 			try {
-				await send_item("Riff", i, item.q || 1);
+				await send_item("Riff", i, character.items[i].q || 1);
 			} catch (e) {
 				game_log(`⚠️ Could not send item in slot ${i}: ${item.name}`);
 			}
@@ -137,7 +144,7 @@ function clear_inventory() {
 }
 
 function inventory_sorter() {
-	if (equip_transient() || equip_pending()) return;
+	if (swap_in_flight()) return;
 
 	const items = character.items.slice();
 
@@ -335,6 +342,7 @@ const SELLABLE_ITEMS = [
 ];
 
 function remote_sell_items() {
+	if (swap_in_flight()) return;
 	for (const { i, item } of loose_loot(0)) {
 		if (item.p === undefined && SELLABLE_ITEMS.includes(item.name)) sell(i, item.q || 1);
 	}
