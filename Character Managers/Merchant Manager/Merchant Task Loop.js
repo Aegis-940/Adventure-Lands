@@ -6,6 +6,7 @@ var MERCHANT_STATES = {
 	DEAD: "dead",
 	DELIVERING: "delivering",
 	BANKING: "banking",
+	LOLIPOPS: "lolipops",
 	UPGRADING: "upgrading",
 	CRAFTING: "crafting",
 	EXCHANGING: "exchanging",
@@ -45,6 +46,23 @@ async function handle_upgrading_state() {
 	}
 }
 
+function should_run_lolipop_push() {
+	return lolipop_run.active && merchant_task === "Idle";
+}
+
+async function handle_lolipop_state() {
+	if (merchant_task !== "Idle") return;
+	const generation = begin_task("Lolipops");
+	try {
+		await lolipop_push_step();
+	} catch (e) {
+		catcher(e, "lolipop_push_step");
+		stop_lolipop_push("an upgrade call failed, see the error above");
+	} finally {
+		end_task(generation);
+	}
+}
+
 function should_run_craft() {
 	return CONFIG.enabled.crafting
 		&& merchant_task === "Idle"
@@ -73,6 +91,7 @@ var PRIORITY_CHECKS = {
 	dead:        { state: MERCHANT_STATES.DEAD,       should_run: () => character.rip },
 	delivering:  { state: MERCHANT_STATES.DELIVERING, should_run: should_run_delivery },
 	banking:     { state: MERCHANT_STATES.BANKING,    should_run: should_run_banking },
+	lolipops:    { state: MERCHANT_STATES.LOLIPOPS,   should_run: should_run_lolipop_push },
 	upgrading:   { state: MERCHANT_STATES.UPGRADING,  should_run: should_run_upgrade },
 	crafting:    { state: MERCHANT_STATES.CRAFTING,   should_run: should_run_craft },
 	exchanging:  { state: MERCHANT_STATES.EXCHANGING, should_run: should_run_exchange },
@@ -94,6 +113,7 @@ async function set_state(state) {
 			case MERCHANT_STATES.DEAD:       await handle_dead_state(); break;
 			case MERCHANT_STATES.DELIVERING: await handle_delivering_state(); break;
 			case MERCHANT_STATES.BANKING:    await handle_banking_state(); break;
+			case MERCHANT_STATES.LOLIPOPS:   await handle_lolipop_state(); break;
 			case MERCHANT_STATES.UPGRADING:  await handle_upgrading_state(); break;
 			case MERCHANT_STATES.CRAFTING:   await handle_crafting_state(); break;
 			case MERCHANT_STATES.EXCHANGING: await handle_exchanging_state(); break;

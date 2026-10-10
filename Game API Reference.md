@@ -77,7 +77,7 @@ Quick-reference for the AdventureLand game engine internals. Originally sourced 
 
 | Function | Signature | Returns | Notes |
 |----------|-----------|---------|-------|
-| `upgrade` | `upgrade(item_num, scroll_num, offering_num?, only_calculate?)` | Promise | Resolve: `{success, level, num}` |
+| `upgrade` | `upgrade(item_num, scroll_num, offering_num?, only_calculate?)` | Promise | Resolves at completion: `{success, level, num}`, or `{failed: true, success: false}` when the item is lost. `only_calculate` resolves at once with `{chance, grace, ...}` and consumes nothing. An offering alone (scroll `null`) gets **two** replies, so queue a second `parent.push_deferred("upgrade")` (see Design Notes → lolipop push) |
 | `compound` | `compound(item0, item1, item2, scroll_num, offering_num?, only_calculate?)` | Promise | 3 same items + scroll |
 | `craft` | `craft(i0,i1,...,i8)` | Promise | 3x3 grid (inventory indices, null for empty) |
 | `auto_craft` | `auto_craft(name)` | Promise | Auto-picks items |

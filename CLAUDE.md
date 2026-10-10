@@ -105,7 +105,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | Warrior — Ulric | `weapon_burst()` (the per-swing candy-cane swap) in Combat; cleave/agitate/stomp/taunt and the **Rime Djinn shell stomp** in Skills; `warrior_engage_step()` in Movement |
 | Healer — Myras | **The tank.** Pull logic and `effective_aggro_cap()` in Combat; curse/absorb/zap in Skills; the `fight` rule (camp/boss loadouts, luck at the kill) in Equipment |
 | Ranger — Riva | Shot chooser (`shot_apiercing()`, `coop_boss_only()`) in Combat; mark/supershot in Skills |
-| Merchant — Riff | Split into Stand, Inventory, Exchange, Gear, Gathering, Party, Upkeep, Upgrading, Crafting. `Merchant Task Loop.js` **must load last** |
+| Merchant — Riff | Split into Stand, Inventory, Exchange, Gear, Gathering, Party, Upkeep, Upgrading, Crafting. `Merchant Task Loop.js` **must load last**. `lolipop_push()` (Upgrading) is the on-demand ololipop +10 run |
 
 **Tools** (run outside the game)
 

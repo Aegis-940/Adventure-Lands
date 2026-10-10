@@ -424,6 +424,24 @@ Shot choice on a shelled Djinn is under Warrior Skills → the Rime Djinn's shel
 
 `stand_loop()` opens the stall whenever he has stood still for 2s and closes it the moment he moves, because an open stand pins speed to 10.
 
+### `Merchant Upgrading.js` — lolipop push
+
+`lolipop_push()` in Riff's console runs every ololipop in stock from +8 to +10; `lolipop_push_stop()` ends it. The call only sets `lolipop_run.active` (localStorage `AL_lolipop_push`, so a reload resumes it). The `lolipops` priority, after banking and before upgrading, then runs one `lolipop_push_step()` per pass of the task loop, so deliveries still interleave. A step stocks the kit from the bank, walks HOME (the server refuses upgrades inside the bank), fails the glolipops that are due, graces the ololipop and rolls it.
+
+**The server's rules** (`node/server.js`, `socket.on("upgrade")`; checked 2026-10-11):
+- Base odds are `G.upgrades[igrade][new_level]`: ololipop 7% for +9, 2.4% for +10. A scroll of higher grade than the item, or a higher-grade offering, makes the roll "high", and the chance is capped at `min(base+0.36, 3×base)` (otherwise `min(base+0.24, 2×base)`). That is 21% for +9 (scroll2 + primling) and 7.2% for +10 (scroll3; only Primordial Essence reaches the cap, a primling stalls near 6%). `upgrade_chance_cap()` computes the same cap.
+- Grace = `min(new_level+1, item.grace + min(3, p.ugrace[lvl]/4.5) + igrace) + min(6, S.ugrace[lvl]/3) + p.ograce/3.2`. The two `ugrace` stacks are per *level*, for any item: every failure adds to them and any success at that level (anyone's, for the server-wide `S`) zeroes them. So a failed glolipop raises the next ololipop's chance at the same level, and an ololipop success wipes it.
+- A primling offered alone (`upgrade(item, null, offeringp)`) never fails and adds 0.5 `item.grace`, which stays on the item through later levels.
+- `upgrade(..., true)` returns the exact chance and grace without consuming anything. It leaves out the lucky slot, which acts on the roll.
+
+**Why this schedule.** Simulated over 43 ololipops and 25 glolipops (scratch `sim.js`), the chance of at least one +10 is ~54% with the lucky slot, ~48% without; scroll2 + Essence instead of scroll3 drops it to ~42%. All +8 rolls come first, because each failed +10 roll stacks the next one. Two glolipop fails after each +8→+9 success beat more: the glolipops then last the whole run, and a bigger stack is overtaken by the ololipops' own failures past the cap. They are worth ~0.5 points or ~60 primlings, because primling grace reaches the same 21% cap. Glolipops roll on scroll1 with no primling and never in the lucky slot, so they fail as often as possible: a glolipop success resets the stack too.
+
+**Grace to the cap, not beyond.** Each roll is graced one primling at a time until the server's chance reaches the cap, or stops rising. At +8 one primling is kept back for the roll itself. Expect ~8 primlings per +8 roll and a handful per +9, ~380 in total from grace 1. Mass production is spent only on scroll rolls (12s saved each) and not on 1s grace offerings.
+
+**The double reply.** A primling offered alone gets two replies at completion, `upgrade_offering_success` then `upgrade_success`, replayed in one synchronous loop. The client resolves `upgrade` promises FIFO, so `offer_grace()` queues a second `upgrade` deferred before the reply can arrive, and drains it if the offering is refused. Without it, the stray reply resolves the next chance check with no `chance` in it. (`add_grace_to_cap()` in the auto upgrader still logs a "Weird resolve_deferred issue" console error per offering for the same reason.)
+
+**What it buys and when it stops.** It buys scroll1 and scroll2 from the NPC as needed, and never scroll3, Essence or primlings. It stops, with a summary of rolls, wins, glolipops failed and primlings graced, when no ololipop is left at +8 or +9, when a required item (the ololipop, its scroll or its offering) is out, or when an upgrade call is refused (a locked item, for instance).
+
 ---
 
 ## Tools

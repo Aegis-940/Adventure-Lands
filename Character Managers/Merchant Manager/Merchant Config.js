@@ -64,7 +64,7 @@ var CONFIG = {
 		mainhand: { name: "broom", level: 9 },
 		offhand: { name: "wbookhs", level: 1 },
 	},
-	priorities: ["dead", "delivering", "banking", "upgrading", "fishing", "mining", "crafting", "exchanging"],
+	priorities: ["dead", "delivering", "banking", "lolipops", "upgrading", "fishing", "mining", "crafting", "exchanging"],
 };
 
 var HOME = CONFIG.locations.HOME;
