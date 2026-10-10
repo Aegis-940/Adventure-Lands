@@ -11,6 +11,10 @@ function above_hp_pct(target, pct) {
 	return !!target.max_hp && remaining_hp(target) >= target.max_hp * pct;
 }
 
+function supershot_min_hp_pct() {
+	return is_at_bscorpion_farm() ? CONFIG.combat.camp_supershot_min_hp_pct : CONFIG.combat.supershot_min_hp_pct;
+}
+
 var SUPERSHOT_SETUP_WAIT_MS = 4000;
 var _supershot_ready_since = 0;
 
@@ -104,7 +108,7 @@ async function skill_loop() {
 			}
 
 			if (skill_allowed && CONFIG.combat.use_supershot && ms_super === 0
-				&& above_hp_pct(target, CONFIG.combat.supershot_min_hp_pct)
+				&& above_hp_pct(target, supershot_min_hp_pct())
 				&& supershot_setup_ready(target)
 				&& affordable(ss_cost) && skill_pays(supershot_value(target), ss_cost, target)) {
 				committed += ss_cost;
