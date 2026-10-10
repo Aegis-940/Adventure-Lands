@@ -315,7 +315,7 @@ async function action_loop() {
 		const target = cache.target;
 		const ms = ms_to_next_skill("attack");
 
-		if (ms === 0 && swing_possible(target)) {
+		if (ms === 0 && swing_possible(target) && !stomp_mana_reserved()) {
 			if (!basic_action_busy()) {
 				run_basic_action(attack(target), "attack");
 				swing_swaps(target);

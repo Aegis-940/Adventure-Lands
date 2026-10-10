@@ -273,6 +273,12 @@ function log_new_shells() {
 
 var RIME_STOMP_MP_BUFFER = 300;
 
+function stomp_mana_reserved() {
+	const shell_coming = rime_stomp_planned() || rime_shell_pending_within(G.skills.stomp.range);
+	if (!shell_coming) return false;
+	return character.mp - character.mp_cost < skill_mp_cost("stomp");
+}
+
 function publish_stomp_ready() {
 	const next = parent.next_skill.stomp;
 	const affordable = character.mp >= skill_mp_cost("stomp") + RIME_STOMP_MP_BUFFER;
