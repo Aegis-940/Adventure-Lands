@@ -32,6 +32,7 @@ function supershot_setup_ready(target) {
 
 function skill_pays(value, mana, target) {
 	if (value <= 0 || mana <= 0) return false;
+	if (CONFIG.combat.mana_is_free) return true;
 	const reference = target_modifier(target, 1) || 1;
 	const lambda = mana_price() * (character.attack || 0) * reference;
 	return value > lambda * mana;
