@@ -207,6 +207,11 @@ function remaining_hp(mob) {
 	return Math.max(0, (mob.hp || 0) - pending_damage(mob));
 }
 
+function pending_burn(mob) {
+	const burn = mob.s && mob.s.burned;
+	return burn ? burn.intensity * burn.ms / 1000 : 0;
+}
+
 const _pid_heal = {};
 
 function heal_target_entity(id) {

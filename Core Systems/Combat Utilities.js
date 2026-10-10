@@ -125,7 +125,7 @@ function rime_shell_casting() {
 var stomp_ready_at = null;
 
 const RIME_SHELL_BREAKER = "Ulric";
-const RIME_SHELL_HOLD_BAND = 0.06;
+const RIME_SHELL_HOLD_BAND = 0.12;
 const RIME_SHELL_STOMP_LEAD_MS = 1500;
 
 function rime_shell_stomp_covers(mob) {
@@ -138,10 +138,13 @@ function rime_shell_stomp_covers(mob) {
 	return ready_at != null && ready_at - Date.now() <= RIME_SHELL_STOMP_LEAD_MS;
 }
 
+function rime_shell_margin(mob) {
+	return remaining_hp(mob) - pending_burn(mob) - mob.max_hp * rime_shell_ability(mob).threshold;
+}
+
 function rime_shell_band_margin(mob) {
-	const shell = rime_shell_ability(mob);
-	if (!shell) return null;
-	const margin = mob.hp - mob.max_hp * shell.threshold;
+	if (!rime_shell_ability(mob)) return null;
+	const margin = rime_shell_margin(mob);
 	return margin > 0 && margin <= mob.max_hp * RIME_SHELL_HOLD_BAND ? margin : null;
 }
 
@@ -162,10 +165,7 @@ function rime_shell_next() {
 }
 
 function rime_shell_held(mob) {
-	const shell = rime_shell_ability(mob);
-	if (!shell) return false;
-	const margin = remaining_hp(mob) - mob.max_hp * shell.threshold;
-	if (margin <= 0 || margin > mob.max_hp * RIME_SHELL_HOLD_BAND) return false;
+	if (rime_shell_band_margin(mob) === null) return false;
 	return rime_shell_next() !== mob || !rime_shell_stomp_covers(mob);
 }
 
