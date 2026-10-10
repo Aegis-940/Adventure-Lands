@@ -32,7 +32,7 @@ function supershot_setup_ready(target) {
 
 function skill_pays(value, mana, target) {
 	if (value <= 0 || mana <= 0) return false;
-	if (CONFIG.combat.mana_is_free) return true;
+	if (mana_free()) return true;
 	const reference = target_modifier(target, 1) || 1;
 	const lambda = mana_price() * (character.attack || 0) * reference;
 	return value > lambda * mana;
@@ -111,7 +111,8 @@ async function skill_loop() {
 			if (skill_allowed && CONFIG.combat.use_supershot && ms_super === 0
 				&& above_hp_pct(target, supershot_min_hp_pct())
 				&& supershot_setup_ready(target)
-				&& affordable(ss_cost) && skill_pays(supershot_value(target), ss_cost, target)) {
+				&& affordable(ss_cost)
+				&& (ALL_BOSSES.includes(target.mtype) || skill_pays(supershot_value(target), ss_cost, target))) {
 				committed += ss_cost;
 				await use_skill("supershot", target);
 			}

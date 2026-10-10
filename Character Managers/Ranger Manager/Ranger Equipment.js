@@ -71,7 +71,7 @@ function shot_rung_crossover_mp(rate) {
 }
 
 function mana_chest_band() {
-	if (CONFIG.combat.mana_is_free) {
+	if (mana_free()) {
 		const pool = cache.targets.in_range || [];
 		const option = pool.length ? choose_attack_option(pool) : null;
 		const engage = combat_mana_reserve() + (option ? option.mana : 0);

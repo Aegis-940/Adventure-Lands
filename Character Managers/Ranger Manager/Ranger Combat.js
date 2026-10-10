@@ -191,9 +191,13 @@ function score_option(mobs, profile, mana, lambda, reference) {
 	return { damage, mana, net, hits, score: damage - lambda * net };
 }
 
+function mana_free() {
+	return CONFIG.combat.mana_is_free && set_available(CONFIG.equipment.chest_sets.mana);
+}
+
 function combat_mana_reserve() {
 	let reserve = panic_mp_reserve();
-	if (!CONFIG.combat.mana_is_free) return reserve;
+	if (!mana_free()) return reserve;
 
 	if (CONFIG.combat.use_hunters_mark) reserve += skill_mp_cost("huntersmark");
 	if (CONFIG.combat.use_supershot) reserve += skill_mp_cost("supershot");
@@ -201,7 +205,7 @@ function combat_mana_reserve() {
 }
 
 function choose_attack_option(primary) {
-	const lambda = CONFIG.combat.mana_is_free ? 0 : mana_price();
+	const lambda = mana_free() ? 0 : mana_price();
 	if (!primary.length) return null;
 
 	const base_apiercing = shot_apiercing(SHOT_PROFILES[0]);
