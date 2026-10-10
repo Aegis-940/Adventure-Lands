@@ -102,10 +102,10 @@ function stomp_wanted(tank, shell) {
 	return false;
 }
 
-function stomp_blocked() {
+function stomp_blocked(mp_reserve) {
 	const wait = ms_to_next_skill("stomp");
 	if (wait !== 0) return `cooldown ${Math.ceil(wait / 1000)}s`;
-	if (character.mp < skill_mp_cost("stomp") + panic_mp_reserve()) return "no mp";
+	if (character.mp < skill_mp_cost("stomp") + mp_reserve) return "no mp";
 	if (character.cc >= COOLDOWNS.cc) return "call cost";
 	if (is_disabled(character)) return "disabled";
 	if (!stomp_weapon_ready()) return "no basher";
@@ -254,9 +254,12 @@ function log_new_shells() {
 	}
 }
 
+var RIME_STOMP_MP_BUFFER = 300;
+
 function publish_stomp_ready() {
 	const next = parent.next_skill.stomp;
-	stomp_ready_at = stomp_weapon_ready() ? (next ? +next : 0) : null;
+	const affordable = character.mp >= skill_mp_cost("stomp") + RIME_STOMP_MP_BUFFER;
+	stomp_ready_at = stomp_weapon_ready() && affordable ? (next ? +next : 0) : null;
 }
 
 function mark_shells_stomped() {
@@ -300,7 +303,7 @@ function handle_stomp(tank) {
 	if (casting && !shell && !rime_stomp_planned()) report_unbroken_shell(casting, `${Math.round(distance(character, casting))}px away`);
 
 	const planned = !!shell && rime_stomp_planned();
-	const blocked = stomp_blocked();
+	const blocked = stomp_blocked(shell ? 0 : panic_mp_reserve());
 	if (blocked) {
 		if (shell && !planned) report_unbroken_shell(shell, blocked);
 		return;
@@ -413,7 +416,7 @@ function rime_deadline_stomp() {
 		if (!id) return report_unbroken_shell(shell, `at deadline: ${Math.round(rime_plan_distance(live[0]))}px away`);
 
 		const plan = _rime_stomp_plans[id];
-		const blocked = stomp_blocked() || (fire_stomp() ? null : "stomp swap failed");
+		const blocked = stomp_blocked(0) || (fire_stomp() ? null : "stomp swap failed");
 		if (blocked) {
 			if (now + RIME_RETRY_MS < plan.seen + plan.ms - rime_rtt()) {
 				plan.done = false;
