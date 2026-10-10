@@ -15,6 +15,7 @@ var CONFIG = {
 		cleave_min_mobs_held: 1,
 		cleave_blacklist: ["pppompom", "porcupine"],
 		cleave_boss_blacklist: ["franky", "icegolem"],
+		cleave_lone_bosses: ["mrpumpkin", "mrgreen"],
 		agitate_min_mobs: 2,
 		agitate_blacklist: ["pppompom"],
 		agitate_blockers: ["porcupine", "redfairy"],

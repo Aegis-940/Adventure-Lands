@@ -172,7 +172,8 @@ function can_cleave() {
 	);
 	if (blocked) return false;
 
-	const one_is_enough = holding_axe || is_at_bscorpion_farm();
+	const lone_boss = cache.monsters_in_cleave_range.some(m => CONFIG.combat.cleave_lone_bosses.includes(m.mtype));
+	const one_is_enough = holding_axe || is_at_bscorpion_farm() || lone_boss;
 	const min_mobs = one_is_enough ? CONFIG.combat.cleave_min_mobs_held : CONFIG.combat.cleave_min_mobs;
 	return cache.monsters_in_cleave_range.length >= min_mobs;
 }
