@@ -215,6 +215,7 @@ var UPGRADE_SCROLLS = ["scroll0", "scroll1", "scroll2", "cscroll0", "cscroll1", 
 
 function upgrade_job_item(item) {
 	if (UPGRADE_SCROLLS.includes(item.name) || item.name === "offeringp") return true;
+	if (item.name === CONFIG.upgrade_target.name) return below_max_level(item, CONFIG.upgrade_target.level);
 	const profile = UPGRADE_PROFILE[item.name] || COMBINE_PROFILE[item.name];
 	return !!profile && below_max_level(item, profile.max_level);
 }
@@ -232,6 +233,68 @@ async function make_upgrade_room() {
 	await bank_items(upgrade_job_item);
 	await smarter_move(HOME);
 	task_heartbeat();
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// UPGRADE TARGET — n copies of one item at +m, worked highest copy first, before the profile items
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function held_items(name) {
+	const bank_data = character.bank || load_bank_from_local_storage() || {};
+	return character.items.concat(bank_contents(bank_data)).filter(it => it && it.name === name);
+}
+
+function upgrade_target_open() {
+	const target = CONFIG.upgrade_target;
+	return !!target.name && held_items(target.name).filter(it => (it.level || 0) >= target.level).length < target.count;
+}
+
+function target_profile(name) {
+	const grades = G.items[name].grades;
+	return UPGRADE_PROFILE[name] || { scroll0_until: grades[0], scroll1_until: grades[1] };
+}
+
+function npc_sells(name) {
+	return Object.values(G.npcs).some(npc => (npc.items || []).includes(name));
+}
+
+function highest_target_slot() {
+	const target = CONFIG.upgrade_target;
+	let best = null;
+	character.items.forEach((it, i) => {
+		if (!it || it.name !== target.name || (it.level || 0) >= target.level || upgrade_failed_slots.has(i)) return;
+		if (best === null || (it.level || 0) > (character.items[best].level || 0)) best = i;
+	});
+	return best;
+}
+
+async function upgrade_target_pass(abandoned) {
+	if (!upgrade_target_open()) return false;
+	upgrade_failed_slots.clear();
+	const profile = target_profile(CONFIG.upgrade_target.name);
+	let progressed = false;
+
+	while (!abandoned() && upgrade_target_open()) {
+		await make_upgrade_room();
+		const slot = highest_target_slot();
+		if (slot === null) break;
+		const scrollname = scroll_for(profile, character.items[slot].level || 0, "scroll");
+		const needed = character.items.filter(it => it && it.name === CONFIG.upgrade_target.name
+			&& (it.level || 0) < CONFIG.upgrade_target.level && scroll_for(profile, it.level || 0, "scroll") === scrollname).length;
+		const result = await upgrade_slot(slot, profile, needed);
+		if (result === "done") {
+			progressed = true;
+			task_heartbeat();
+		} else if (result !== "wait" && result !== "failed") {
+			break;
+		}
+	}
+
+	if (progressed && !upgrade_target_open()) {
+		const target = CONFIG.upgrade_target;
+		game_log(`🎯 Upgrade target reached: ${target.count}x ${target.name} +${target.level}.`, "limegreen");
+	}
+	return progressed;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -287,7 +350,18 @@ async function withdraw_upgradeable_items() {
 		return;
 	}
 
+	const target = upgrade_target_open() ? CONFIG.upgrade_target : null;
+	if (target) {
+		const level_counts = bank_level_counts(bank_data, target.name, target.level);
+		for (const level of Object.keys(level_counts).map(Number).sort((a, b) => b - a)) {
+			const to_withdraw = Math.min(level_counts[level], free_inventory_slots() - 3);
+			if (to_withdraw <= 0) break;
+			await withdraw_item(target.name, level, to_withdraw);
+		}
+	}
+
 	for (const item_name in UPGRADE_PROFILE) {
+		if (target && item_name === target.name) continue;
 		const level_counts = bank_level_counts(bank_data, item_name, UPGRADE_PROFILE[item_name].max_level);
 		for (const level of Object.keys(level_counts).map(Number).sort((a, b) => a - b)) {
 			const to_withdraw = Math.min(level_counts[level], free_inventory_slots() - 3);
@@ -310,6 +384,9 @@ async function withdraw_upgradeable_items() {
 }
 
 function has_upgradeable_items(packs) {
+	const target = CONFIG.upgrade_target;
+	if (upgrade_target_open() && Object.keys(bank_level_counts(packs, target.name, target.level)).length) return true;
+
 	for (const item_name in UPGRADE_PROFILE) {
 		if (Object.keys(bank_level_counts(packs, item_name, UPGRADE_PROFILE[item_name].max_level)).length) return true;
 	}
@@ -340,64 +417,72 @@ function upgrade_run_blocked() {
 	return Date.now() < _upgrade_retry_at;
 }
 
+async function upgrade_slot(i, profile, needed) {
+	const item = character.items[i];
+	const scrollname = scroll_for(profile, item.level, "scroll");
+
+	if (inventory_slot(scrollname) === null) {
+		return await buy_scrolls(scrollname, needed, `upgrading ${item.name} (level ${item.level})`) ? "wait" : "end";
+	}
+
+	if (profile.grace_from !== undefined && item.level >= profile.grace_from && !grace_capped_slots.has(i)) {
+		game_log(`${item.name} (level ${item.level}): proceeding with best-effort grace (not confirmed capped).`, "#FFA500");
+	}
+
+	let offering_slot = null;
+	if (profile.primling_from !== undefined && item.level >= profile.primling_from) {
+		offering_slot = inventory_slot("offeringp");
+		if (offering_slot === null) {
+			game_log(`Skipping ${item.name} (level ${item.level}): No offeringp found for upgrade requiring it.`);
+			return "skip";
+		}
+	}
+
+	let slot = i;
+	if (!character.q.upgrade) {
+		slot = upgrade_slot_for(i);
+		use_mass_production(item.level);
+		game_log(`Upgrading ${item.name} (level ${item.level}) with ${scrollname} in slot ${slot}`);
+		try {
+			if (slot !== i) await swap(i, slot);
+			await upgrade(slot, inventory_slot(scrollname), offering_slot === null ? null : inventory_slot("offeringp"));
+		} catch (e) {
+			catcher(e, `upgrade_slot: ${item.name} (level ${item.level})`);
+			upgrade_failed_slots.add(i);
+			upgrade_failed_slots.add(slot);
+			return "failed";
+		}
+	}
+
+	while (character.q.upgrade) {
+		await delay(50);
+	}
+
+	if (slot !== i && (character.items[slot] || character.items[i])) {
+		await swap(slot, i).catch(e => catcher(e, `upgrade_slot: swap back ${slot} -> ${i}`));
+	}
+
+	return "done";
+}
+
 async function auto_upgrade_item(level) {
+	const target = upgrade_target_open() ? CONFIG.upgrade_target.name : null;
+	const eligible = (it, j) => {
+		const profile = it && UPGRADE_PROFILE[it.name];
+		return !!profile && it.name !== target && it.level === level && it.level < profile.max_level && !upgrade_failed_slots.has(j);
+	};
+
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
-		if (!item || item.level !== level || upgrade_failed_slots.has(i)) continue;
+		if (!eligible(item, i)) continue;
 
 		const profile = UPGRADE_PROFILE[item.name];
-		if (!profile || item.level >= profile.max_level) continue;
+		const scrollname = scroll_for(profile, level, "scroll");
+		const needed = character.items.filter((it, j) => eligible(it, j) && scroll_for(UPGRADE_PROFILE[it.name], level, "scroll") === scrollname).length;
 
-		const scrollname = scroll_for(profile, item.level, "scroll");
-		const scroll_slot = inventory_slot(scrollname);
-
-		if (scroll_slot === null) {
-			const needed = character.items.filter((it, j) => {
-				const it_profile = it && UPGRADE_PROFILE[it.name];
-				return it_profile && it.level === level && it.level < it_profile.max_level
-					&& !upgrade_failed_slots.has(j) && scroll_for(it_profile, level, "scroll") === scrollname;
-			}).length;
-			return await buy_scrolls(scrollname, needed, `upgrading ${item.name} (level ${item.level})`) ? "wait" : "end";
-		}
-
-		if (profile.grace_from !== undefined && item.level >= profile.grace_from && !grace_capped_slots.has(i)) {
-			game_log(`${item.name} (level ${item.level}): proceeding with best-effort grace (not confirmed capped).`, "#FFA500");
-		}
-
-		let offering_slot = null;
-		if (profile.primling_from !== undefined && item.level >= profile.primling_from) {
-			offering_slot = inventory_slot("offeringp");
-			if (offering_slot === null) {
-				game_log(`Skipping ${item.name} (level ${item.level}): No offeringp found for upgrade requiring it.`);
-				continue;
-			}
-		}
-
-		let slot = i;
-		if (!character.q.upgrade) {
-			slot = upgrade_slot_for(i);
-			use_mass_production(item.level);
-			game_log(`Upgrading ${item.name} (level ${item.level}) with ${scrollname} in slot ${slot}`);
-			try {
-				if (slot !== i) await swap(i, slot);
-				await upgrade(slot, inventory_slot(scrollname), offering_slot === null ? null : inventory_slot("offeringp"));
-			} catch (e) {
-				catcher(e, `auto_upgrade_item: ${item.name} (level ${item.level})`);
-				upgrade_failed_slots.add(i);
-				upgrade_failed_slots.add(slot);
-				continue;
-			}
-		}
-
-		while (character.q.upgrade) {
-			await delay(50);
-		}
-
-		if (slot !== i && (character.items[slot] || character.items[i])) {
-			await swap(slot, i).catch(e => catcher(e, `auto_upgrade_item: swap back ${slot} -> ${i}`));
-		}
-
-		return "done";
+		const result = await upgrade_slot(i, profile, needed);
+		if (result === "skip" || result === "failed") continue;
+		return result;
 	}
 	game_log("No valid items found for upgrade.");
 	return "none";
@@ -512,32 +597,43 @@ async function auto_combine_item(level) {
 
 var UPGRADE_BUY_RESERVE_SLOTS = 5;
 
-function upgrade_buy_count(item_name) {
-	if (!CONFIG.enabled.buying) return 0;
+function target_base_odds(target) {
+	const igrade = upgrade_grade(G.items[target.name], 0);
+	let odds = 1;
+	for (let level = 1; level <= target.level; level++) odds *= G.upgrades[igrade][level];
+	return odds;
+}
+
+function upgrade_buy_count() {
+	const target = CONFIG.upgrade_target;
+	if (!upgrade_target_open() || !npc_sells(target.name)) return 0;
+	const held = held_items(target.name);
+	if (held.some(it => (it.level || 0) < target.level)) return 0;
+	const missing = target.count - held.filter(it => (it.level || 0) >= target.level).length;
 	const spare_gold = character.gold - CONFIG.upgrade_gold_threshold;
 	return Math.max(0, Math.min(
+		Math.ceil(missing / target_base_odds(target)),
 		free_inventory_slots() - UPGRADE_BUY_RESERVE_SLOTS,
-		Math.floor(spare_gold / parent.G.items[item_name].g)
+		Math.floor(spare_gold / parent.G.items[target.name].g)
 	));
 }
 
 function can_buy_for_upgrade() {
-	return CONFIG.upgrade_buy.some(item_name => upgrade_buy_count(item_name) > 0);
+	return upgrade_buy_count() > 0;
 }
 
 async function buy_for_upgrade() {
-	for (const item_name of CONFIG.upgrade_buy) {
-		const purchases = Array.from({ length: upgrade_buy_count(item_name) }, () =>
-			buy(item_name).then(() => true, e => {
-				catcher(e, "buy_for_upgrade: " + item_name);
-				return false;
-			})
-		);
-		const bought = (await Promise.all(purchases)).filter(Boolean).length;
-		if (bought > 0) {
-			game_log(`🛒 Bought ${bought}x ${item_name} to upgrade.`);
-			task_heartbeat();
-		}
+	const item_name = CONFIG.upgrade_target.name;
+	const purchases = Array.from({ length: upgrade_buy_count() }, () =>
+		buy(item_name).then(() => true, e => {
+			catcher(e, "buy_for_upgrade: " + item_name);
+			return false;
+		})
+	);
+	const bought = (await Promise.all(purchases)).filter(Boolean).length;
+	if (bought > 0) {
+		game_log(`🛒 Bought ${bought}x ${item_name} to upgrade.`);
+		task_heartbeat();
 	}
 }
 
@@ -590,7 +686,8 @@ async function auto_upgrade() {
 
 		do {
 			await buy_for_upgrade();
-			pass_progressed = await upgrade_pass(abandoned);
+			const target_progressed = await upgrade_target_pass(abandoned);
+			pass_progressed = await upgrade_pass(abandoned) || target_progressed;
 			if (pass_progressed) progressed = true;
 		} while (pass_progressed && !abandoned());
 
@@ -677,9 +774,8 @@ function stop_lolipop_push(reason) {
 }
 
 function stock_of(name, level) {
-	const bank_data = character.bank || load_bank_from_local_storage() || {};
-	return character.items.concat(bank_contents(bank_data))
-		.filter(it => it && it.name === name && (level === undefined || (it.level || 0) === level))
+	return held_items(name)
+		.filter(it => level === undefined || (it.level || 0) === level)
 		.reduce((n, it) => n + (it.q || 1), 0);
 }
 

@@ -424,6 +424,19 @@ Shot choice on a shelled Djinn is under Warrior Skills → the Rime Djinn's shel
 
 `stand_loop()` opens the stall whenever he has stood still for 2s and closes it the moment he moves, because an open stand pins speed to 10.
 
+### `Merchant Upgrading.js` — upgrade target
+
+The settings window's Upgrading toggle carries a target: an item, a level m and a count n (`CONFIG.upgrade_target`, localStorage `AL_merchant_upgrade_target`/`_level`/`_count`). While fewer than n copies at +m or above are held (bag and bank, `upgrade_target_open()`), each upgrade run works the target before the `UPGRADE_PROFILE` items. The profile pass skips the target's name until it is met, then upgrades it as before if it has a profile.
+
+- **Highest copy first.** `upgrade_target_pass()` always rolls the copy closest to +m, so the run stops as soon as n are made and lower copies are only spent when higher ones fail. Withdrawal also takes the highest copies first.
+- **Scrolls.** The item's `UPGRADE_PROFILE` decides scrolls and primlings, ignoring its `max_level`. An item without a profile gets `target_profile()`: the cheapest scroll the server accepts at each grade, no primlings. A target past the grade that scroll2 covers (grade 3, e.g. lolipops beyond +10) is refused by the server, and the copy is skipped as failed.
+- **Buying replaced the "Buy to upgrade" toggle and the hard-coded coat list.** With Upgrading on, Riff buys base copies of the target when an NPC sells it (`npc_sells()`, over `G.npcs[*].items`) and none below +m are left. A batch is capped by gold above `upgrade_gold_threshold`, free slots, and the copies the base odds say are still needed (`target_base_odds()`, the product of `G.upgrades` up to +m with no grace). So a coat +7 ×2 target buys ~50 at most, not a bag-full each run.
+- **Never vendored.** `sellable()` exempts the target's name, so junk-list items (helmet, shoes…) aren't sold out from under it.
+
+The Crafting toggle carries one craft target (`AL_merchant_craft_target`), which becomes `CONFIG.crafting.targets`. `try_craft()` crafts it as far as ingredients, free slots and gold allow. The settings window lists only recipes that produce an item (`makeawishjar` has none).
+
+The settings window saves on **Reload All** (every character, staggered as before) or **Reload One** (this window's character only); **Close** discards. Merchant settings are read when Riff's files load, so they need a reload of Riff.
+
 ### `Merchant Upgrading.js` — lolipop push
 
 `lolipop_push()` in Riff's console runs every ololipop in stock from +8 to +10; `lolipop_push_stop()` ends it. The call only sets `lolipop_run.active` (localStorage `AL_lolipop_push`, so a reload resumes it). The `lolipops` priority, after banking and before upgrading, then runs one `lolipop_push_step()` per pass of the task loop, so deliveries still interleave. A step stocks the kit from the bank, walks HOME (the server refuses upgrades inside the bank), fails the glolipops that are due, graces the ololipop and rolls it.

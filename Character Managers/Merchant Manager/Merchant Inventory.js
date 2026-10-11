@@ -27,7 +27,7 @@ function keep_nothing() {
 }
 
 function sellable(item, keep) {
-	return item && SELLABLE_ITEMS.includes(item.name) && !is_default_gear(item) && !keep(item);
+	return item && SELLABLE_ITEMS.includes(item.name) && item.name !== CONFIG.upgrade_target.name && !is_default_gear(item) && !keep(item);
 }
 
 function has_sellable_items(keep = keep_nothing) {

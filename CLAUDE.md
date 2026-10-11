@@ -95,7 +95,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | `Kill Tracker.js` | kpm/kph/kpd from `kill_credit` |
 | `Lucky Slot Tracker.js` | Bayesian search for Riff's lucky upgrade slot; `upgrade_slot_for()` |
 | `Metrics Graphs.js` | 📊 session graphs popout |
-| `Stats Window.js`, `Settings Window.js`, `Party Frames.js`, `Pause Button.js` | Stats/gold graph, per-character settings, party HP, pause automation |
+| `Stats Window.js`, `Settings Window.js`, `Party Frames.js`, `Pause Button.js` | Stats/gold graph, per-character settings (farm targets, merchant toggles, upgrade and craft targets), party HP, pause automation |
 | `Bank Viewer.js`, `Bank Sort Order.js` | Bank UI (plus the reload button) and sort order |
 
 **Character Managers** — each character has `<Role> Config.js` (tunables, gear sets, `state`/`cache`), `Combat`, `Skills`, `Equipment`, `Movement`, and the entry point `<Role>.js`.

@@ -3,12 +3,15 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const SETTINGS_DESCRIPTORS = [
-	{ label: "Warrior (Ulric)", storage_key: farm_target_key("Ulric"), default: DEFAULT_FARM_TARGET },
-	{ label: "Healer (Myras)",  storage_key: farm_target_key("Myras"), default: DEFAULT_FARM_TARGET },
-	{ label: "Ranger (Riva)",   storage_key: farm_target_key("Riva"),  default: DEFAULT_FARM_TARGET },
+	{ label: "Warrior (Ulric)", storage_key: farm_target_key("Ulric"), type: "select", options: monster_options, default: DEFAULT_FARM_TARGET },
+	{ label: "Healer (Myras)",  storage_key: farm_target_key("Myras"), type: "select", options: monster_options, default: DEFAULT_FARM_TARGET },
+	{ label: "Ranger (Riva)",   storage_key: farm_target_key("Riva"),  type: "select", options: monster_options, default: DEFAULT_FARM_TARGET },
 	{ label: "Merchant: Upgrading",  storage_key: "AL_merchant_enabled_upgrading",  type: "checkbox", default: true },
-	{ label: "Merchant: Buy to upgrade", storage_key: "AL_merchant_enabled_buying", type: "checkbox", default: true },
-	{ label: "Merchant: Crafting",  storage_key: "AL_merchant_enabled_crafting",   type: "checkbox", default: true },
+	{ label: "Target item",  storage_key: "AL_merchant_upgrade_target", type: "select", options: upgrade_target_options, default: "", indent: true },
+	{ label: "Target level", storage_key: "AL_merchant_upgrade_level",  type: "number", min: 1, max: 12,  default: 10, indent: true },
+	{ label: "Target count", storage_key: "AL_merchant_upgrade_count",  type: "number", min: 1, max: 999, default: 1,  indent: true },
+	{ label: "Merchant: Crafting",   storage_key: "AL_merchant_enabled_crafting",   type: "checkbox", default: true },
+	{ label: "Craft target", storage_key: "AL_merchant_craft_target",   type: "select", options: craft_target_options,   default: "", indent: true },
 	{ label: "Merchant: Exchanging", storage_key: "AL_merchant_enabled_exchanging", type: "checkbox", default: true },
 	{ label: "Merchant: Fishing",    storage_key: "AL_merchant_enabled_fishing",    type: "checkbox", default: false },
 	{ label: "Merchant: Mining",     storage_key: "AL_merchant_enabled_mining",     type: "checkbox", default: false },
@@ -16,19 +19,94 @@ const SETTINGS_DESCRIPTORS = [
 
 const ALL_CHARACTERS = ["Ulric", "Myras", "Riva", "Riff"];
 
+function monster_options() {
+	return Object.keys(LOCATIONS).sort().map(name => ({ value: name, text: name }));
+}
+
+function item_options(names) {
+	const options = names
+		.map(name => ({ value: name, text: `${G.items[name].name} (${name})` }))
+		.sort((a, b) => a.text.localeCompare(b.text));
+	return [{ value: "", text: "(none)" }].concat(options);
+}
+
+function upgrade_target_options() {
+	return item_options(Object.keys(G.items).filter(name => G.items[name].upgrade));
+}
+
+function craft_target_options() {
+	return item_options(Object.keys(G.craft).filter(name => G.items[name]));
+}
+
+function settings_input(doc, setting, stored) {
+	const input = doc.createElement(setting.type === "select" ? "select" : "input");
+
+	if (setting.type === "checkbox") {
+		input.type = "checkbox";
+		input.checked = stored === null ? setting.default : stored === "true";
+		return input;
+	}
+
+	if (setting.type === "number") {
+		input.type = "number";
+		input.min = setting.min;
+		input.max = setting.max;
+		input.style.width = "70px";
+		input.value = stored === null ? setting.default : stored;
+		return input;
+	}
+
+	input.style.width = "100%";
+	for (const { value, text } of setting.options()) {
+		const option = doc.createElement("option");
+		option.value = value;
+		option.textContent = text;
+		input.appendChild(option);
+	}
+	input.value = stored === null ? setting.default : stored;
+	return input;
+}
+
+function settings_row(doc, setting, input) {
+	const row = doc.createElement(setting.type === "checkbox" ? "label" : "div");
+	row.style.display = "flex";
+	row.style.gap = setting.type === "select" ? "2px" : "6px";
+	row.style.flexDirection = setting.type === "select" ? "column" : "row";
+	row.style.alignItems = setting.type === "select" ? "stretch" : "center";
+	if (setting.type === "number") row.style.justifyContent = "space-between";
+	if (setting.type === "checkbox") row.style.cursor = "pointer";
+	if (setting.indent) row.style.marginLeft = "22px";
+
+	const label = doc.createElement("span");
+	label.textContent = setting.label;
+	if (setting.type === "checkbox") {
+		row.appendChild(input);
+		row.appendChild(label);
+	} else {
+		row.appendChild(label);
+		row.appendChild(input);
+	}
+	return row;
+}
+
+function save_settings(inputs) {
+	for (const setting of SETTINGS_DESCRIPTORS) {
+		const input = inputs[setting.storage_key];
+		localStorage.setItem(setting.storage_key, setting.type === "checkbox" ? input.checked : input.value);
+	}
+}
+
 function open_settings_window() {
 	const doc = parent.document;
 	if (doc.getElementById("settings-window")) return;
 
-	const monster_names = Object.keys(LOCATIONS).sort();
-
 	const div = doc.createElement("div");
 	div.id = "settings-window";
 	div.style.position = "absolute";
-	const WINDOW_WIDTH = 300;
-	const WINDOW_HEIGHT = 260;
+	const WINDOW_WIDTH = 320;
+	const WINDOW_HEIGHT = 480;
 	div.style.left = ((parent.window.innerWidth - WINDOW_WIDTH) / 2) + "px";
-	div.style.top = ((parent.window.innerHeight - WINDOW_HEIGHT) / 2) + "px";
+	div.style.top = Math.max(0, (parent.window.innerHeight - WINDOW_HEIGHT) / 2) + "px";
 	div.style.width = WINDOW_WIDTH + "px";
 	div.style.background = "rgba(0,0,0,0.85)";
 	div.style.color = "#fff";
@@ -59,48 +137,9 @@ function open_settings_window() {
 
 	const inputs = {};
 	for (const setting of SETTINGS_DESCRIPTORS) {
-		const stored = localStorage.getItem(setting.storage_key);
-
-		if (setting.type === "checkbox") {
-			const row = doc.createElement("label");
-			row.style.display = "flex";
-			row.style.alignItems = "center";
-			row.style.gap = "6px";
-			row.style.cursor = "pointer";
-
-			const checkbox = doc.createElement("input");
-			checkbox.type = "checkbox";
-			checkbox.checked = stored === null ? setting.default : stored === "true";
-			row.appendChild(checkbox);
-			row.appendChild(doc.createTextNode(setting.label));
-
-			inputs[setting.storage_key] = checkbox;
-			body.appendChild(row);
-			continue;
-		}
-
-		const row = doc.createElement("div");
-		row.style.display = "flex";
-		row.style.flexDirection = "column";
-		row.style.gap = "2px";
-
-		const label = doc.createElement("label");
-		label.textContent = setting.label;
-		row.appendChild(label);
-
-		const select = doc.createElement("select");
-		select.style.width = "100%";
-		for (const name of monster_names) {
-			const option = doc.createElement("option");
-			option.value = name;
-			option.textContent = name;
-			select.appendChild(option);
-		}
-		select.value = stored || setting.default;
-		inputs[setting.storage_key] = select;
-		row.appendChild(select);
-
-		body.appendChild(row);
+		const input = settings_input(doc, setting, localStorage.getItem(setting.storage_key));
+		inputs[setting.storage_key] = input;
+		body.appendChild(settings_row(doc, setting, input));
 	}
 
 	const button_row = doc.createElement("div");
@@ -108,30 +147,28 @@ function open_settings_window() {
 	button_row.style.gap = "8px";
 	button_row.style.marginTop = "6px";
 
-	const save_btn = doc.createElement("button");
-	save_btn.textContent = "Save and Reload";
-	save_btn.style.flex = "1";
-	save_btn.style.cursor = "pointer";
-	save_btn.onclick = () => {
-		for (const setting of SETTINGS_DESCRIPTORS) {
-			const input = inputs[setting.storage_key];
-			const value = setting.type === "checkbox" ? input.checked : input.value;
-			localStorage.setItem(setting.storage_key, value);
-		}
-		for (const name of ALL_CHARACTERS) {
-			if (name !== character.name) send_cm(name, { type: "reload" });
-		}
-		staggered_reload();
-	};
-
-	const close_btn = doc.createElement("button");
-	close_btn.textContent = "Close";
-	close_btn.style.flex = "1";
-	close_btn.style.cursor = "pointer";
-	close_btn.onclick = () => div.remove();
-
-	button_row.appendChild(save_btn);
-	button_row.appendChild(close_btn);
+	const buttons = [
+		["Reload All", () => {
+			save_settings(inputs);
+			for (const name of ALL_CHARACTERS) {
+				if (name !== character.name) send_cm(name, { type: "reload" });
+			}
+			staggered_reload();
+		}],
+		["Reload One", () => {
+			save_settings(inputs);
+			parent.window.location.reload();
+		}],
+		["Close", () => div.remove()],
+	];
+	for (const [text, onclick] of buttons) {
+		const button = doc.createElement("button");
+		button.textContent = text;
+		button.style.flex = "1";
+		button.style.cursor = "pointer";
+		button.onclick = onclick;
+		button_row.appendChild(button);
+	}
 	body.appendChild(button_row);
 
 	div.appendChild(body);

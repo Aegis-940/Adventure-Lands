@@ -7,10 +7,19 @@ function local_bool(key, fallback) {
 	return raw === null ? fallback : raw === "true";
 }
 
+function local_number(key, fallback) {
+	const raw = localStorage.getItem(key);
+	return raw === null ? fallback : Number(raw);
+}
+
+function local_craft_targets() {
+	const name = localStorage.getItem("AL_merchant_craft_target");
+	return name ? [{ name }] : [];
+}
+
 var CONFIG = {
 	enabled: {
 		upgrading:  local_bool("AL_merchant_enabled_upgrading", true),
-		buying:     local_bool("AL_merchant_enabled_buying", true),
 		crafting:   local_bool("AL_merchant_enabled_crafting", true),
 		exchanging: local_bool("AL_merchant_enabled_exchanging", true),
 		fishing:    local_bool("AL_merchant_enabled_fishing", false),
@@ -34,13 +43,17 @@ var CONFIG = {
 		gold_threshold: 20000000,
 	},
 	upgrade_gold_threshold: 100000000,
-	upgrade_buy: ["coat"],
+	upgrade_target: {
+		name: localStorage.getItem("AL_merchant_upgrade_target") || "",
+		level: local_number("AL_merchant_upgrade_level", 10),
+		count: local_number("AL_merchant_upgrade_count", 1),
+	},
 	potions: {
 		hp_threshold: 500,
 		mp_threshold: 500,
 	},
 	crafting: {
-		targets: [],
+		targets: local_craft_targets(),
 	},
 	exchange: {
 		targets: [
