@@ -204,13 +204,22 @@ def spot_rates(db, column, value, since_t=0):
 def survey_rows(db, state):
     """One row per spot with a result or ledger data. The live survey state, when there is one, decides which
     spots are still on the list and what their status is: a spot dropped from the list disappears, and a spot
-    put back with survey_retry() shows as pending or running rather than its old result."""
+    put back with survey_retry() shows as pending or running rather than its old result. A spot's rates count
+    only the ledger windows since its latest retry, and everything since the latest survey_reset()."""
+    reset_t = db.execute("SELECT MAX(t) FROM survey WHERE status = 'reset'").fetchone()[0] or 0
+    since = {}
     status = {}
-    for spot, st, at_spot_s, deaths, visits in db.execute(
-            "SELECT spot, status, at_spot_s, deaths, visits FROM survey WHERE spot IS NOT NULL ORDER BY t"):
+    for t, spot, st, at_spot_s, deaths, visits in db.execute(
+            "SELECT t, spot, status, at_spot_s, deaths, visits FROM survey WHERE spot IS NOT NULL AND t >= ? ORDER BY t",
+            (reset_t,)):
+        if st == "retry":
+            since[spot] = t
+            status[spot] = {"status": "pending", "visits": visits}
+            continue
         status[spot] = {"status": st, "clock_min": round((at_spot_s or 0) / 60, 1), "visit_deaths": deaths,
                         "visits": visits}
-    spots = {s for (s,) in db.execute("SELECT DISTINCT survey_spot FROM ledger WHERE survey_spot IS NOT NULL")}
+    spots = {s for (s,) in db.execute("SELECT DISTINCT survey_spot FROM ledger WHERE survey_spot IS NOT NULL AND t >= ?",
+                                      (reset_t,))}
     spots |= set(status)
     if state:
         listed = {p["type"]: p for p in state.get("spots") or []}
@@ -220,7 +229,8 @@ def survey_rows(db, state):
             p = listed[spot]
             status[spot] = {**status.get(spot, {}), "status": "running" if spot == current else p["status"],
                             "visits": p.get("visits")}
-    rows = [{"spot": spot, **status.get(spot, {"status": "running"}), "rates": spot_rates(db, "survey_spot", spot)}
+    rows = [{"spot": spot, **status.get(spot, {"status": "running"}),
+             "rates": spot_rates(db, "survey_spot", spot, since.get(spot, reset_t))}
             for spot in spots]
     return sorted(rows, key=lambda r: -(r["rates"] or {}).get("score", -1))
 

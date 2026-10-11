@@ -240,10 +240,12 @@ function survey_retry(type) {
 		survey.index = i;
 	}
 	storage_write(SURVEY_KEY, survey);
+	errlog_archive("survey_spot", { spot: type, status: "retry", visits: spot.visits, was: spot.status });
 	return `${type} is pending again (was ${spot.status}); it is visited when the current spot finishes`;
 }
 
 function survey_reset() {
 	localStorage.removeItem(SURVEY_KEY);
+	errlog_archive("survey_spot", { spot: null, status: "reset" });
 	return "survey reset — the next tick starts again at " + SURVEY_SPOTS[0];
 }
