@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS ledger (
     kills_by_type TEXT, spot_kills_by_type TEXT, party TEXT, gear TEXT);
 CREATE TABLE IF NOT EXISTS survey (
     character TEXT, t INTEGER, at TEXT, spot TEXT, status TEXT, visits INTEGER, at_spot_s INTEGER,
-    travel_s INTEGER, deaths INTEGER, holds_lost INTEGER);
+    travel_s INTEGER, deaths INTEGER);
 CREATE TABLE IF NOT EXISTS tracker (character TEXT, t INTEGER, at TEXT, level INTEGER, monsters TEXT, max TEXT);
 CREATE TABLE IF NOT EXISTS tracker_kills (character TEXT, t INTEGER, mtype TEXT, kills INTEGER);
 CREATE TABLE IF NOT EXISTS boss_profiles (character TEXT, t INTEGER, at TEXT, boss TEXT, killed INTEGER,
@@ -58,9 +58,9 @@ def add_ledger(db, r):
 
 
 def add_survey(db, r):
-    db.execute("INSERT INTO survey VALUES (?,?,?,?,?,?,?,?,?,?)", (
+    db.execute("INSERT INTO survey VALUES (?,?,?,?,?,?,?,?,?)", (
         r.get("character"), r.get("t"), r.get("at"), r.get("spot"), r.get("status"), r.get("visits"),
-        r.get("at_spot_s"), r.get("travel_s"), r.get("deaths"), r.get("holds_lost")))
+        r.get("at_spot_s"), r.get("travel_s"), r.get("deaths")))
 
 
 def add_tracker(db, r):
@@ -159,10 +159,10 @@ def band(value, bands):
 def survey_report():
     db = connect()
     status = {}
-    for spot, st, at_spot_s, deaths, holds, visits in db.execute(
-            "SELECT spot, status, at_spot_s, deaths, holds_lost, visits FROM survey "
+    for spot, st, at_spot_s, deaths, visits in db.execute(
+            "SELECT spot, status, at_spot_s, deaths, visits FROM survey "
             "WHERE spot IS NOT NULL ORDER BY t"):
-        status[spot] = (st, at_spot_s, deaths, holds, visits)
+        status[spot] = (st, at_spot_s, deaths, visits)
 
     rows = []
     for (spot,) in db.execute("SELECT DISTINCT survey_spot FROM ledger WHERE survey_spot IS NOT NULL"):
@@ -186,17 +186,17 @@ def survey_report():
 
     measured = sorted([r for r in rows if r[1]], key=lambda r: -r[1]["score"])
     seen = {r[0] for r in rows}
-    print("%-11s %-11s %5s %8s %12s %-8s %10s %-8s %6s %6s %5s %6s" % (
-        "spot", "status", "min", "kills/h", "gold/h", "", "xp/min", "", "score", "deaths", "holds", "crowd"))
+    print("%-11s %-11s %5s %8s %12s %-8s %10s %-8s %6s %6s %6s" % (
+        "spot", "status", "min", "kills/h", "gold/h", "", "xp/min", "", "score", "deaths", "crowd"))
     for spot, m in measured:
-        st, _, deaths, holds, _ = status.get(spot, ("running", 0, 0, 0, 0))
-        print("%-11s %-11s %5.0f %8.0f %12s %-8s %10s %-8s %6.2f %6s %5s %6d" % (
+        st, _, deaths, _ = status.get(spot, ("running", 0, 0, 0))
+        print("%-11s %-11s %5.0f %8.0f %12s %-8s %10s %-8s %6.2f %6s %6d" % (
             spot, st, m["min"], m["kills_hr"], "{:,.0f}".format(m["gold_hr"]), band(m["gold_hr"], GOLD_BANDS),
-            "{:,.0f}".format(m["xp_min"]), band(m["xp_min"], XP_BANDS), m["score"], deaths, holds, m["crowd"]))
-    for spot, (st, at_spot_s, deaths, holds, visits) in status.items():
+            "{:,.0f}".format(m["xp_min"]), band(m["xp_min"], XP_BANDS), m["score"], deaths, m["crowd"]))
+    for spot, (st, at_spot_s, deaths, visits) in status.items():
         if spot not in seen or not dict(rows).get(spot):
-            print("%-11s %-11s %5.0f  (no ledger data at the spot; %s visit(s), %s deaths, %s holds lost)" % (
-                spot, st, (at_spot_s or 0) / 60, visits, deaths, holds))
+            print("%-11s %-11s %5.0f  (no ledger data at the spot; %s visit(s), %s deaths)" % (
+                spot, st, (at_spot_s or 0) / 60, visits, deaths))
     print("\nscore = gold/hr / 20M + XP/min / 1M (2.0 = healthy on both). Gold is party chest gold seen by %s;"
           " XP/min is the mean across fighters." % SURVEY_OWNER)
 

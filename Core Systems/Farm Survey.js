@@ -14,8 +14,6 @@ const SURVEY_SPOT_MS = 30 * 60 * 1000;
 const SURVEY_OCCUPANCY_MS = 5000;
 const SURVEY_TRAVEL_LIMIT_MS = 20 * 60 * 1000;
 const SURVEY_UNSAFE_DEATHS = 2;
-const SURVEY_HOLD_LOST_MS = 15000;
-const SURVEY_UNSAFE_HOLDS_LOST = 3;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATE — localStorage, shared by every character's iframe
@@ -62,7 +60,6 @@ function switch_home(type) {
 
 let _survey_tick_at = 0;
 const _survey_rip = {};
-const _survey_hold = {};
 
 function survey_begin_visit(spot) {
 	spot.visits++;
@@ -70,7 +67,6 @@ function survey_begin_visit(spot) {
 	spot.travel_ms = 0;
 	spot.occupancy_ms = 0;
 	spot.deaths = 0;
-	spot.holds_lost = 0;
 	spot.visit_started = Date.now();
 	game_log(`🧭 Survey: heading to ${spot.type} (visit ${spot.visits})`, "#66ccff");
 }
@@ -94,7 +90,6 @@ function survey_finish(survey, status) {
 		at_spot_s: Math.round(spot.at_spot_ms / 1000),
 		travel_s: Math.round(spot.travel_ms / 1000),
 		deaths: spot.deaths,
-		holds_lost: spot.holds_lost,
 	});
 	game_log(`🧭 Survey: ${spot.type} ${status} after ${Math.round(spot.at_spot_ms / 60000)} min at the spot`, "#66ccff");
 
@@ -113,31 +108,15 @@ function survey_count_deaths(spot) {
 	for (const name of COHESION_FOLLOWERS.concat([MOVEMENT_LEADER])) {
 		const s = name === character.name ? character : read_state_cache(name);
 		const rip = !!(s && s.rip);
-		if (rip && _survey_rip[name] === false) spot.deaths++;
+		if (rip && _survey_rip[name] === false && in_farm_area(s.map, s.x, s.y)) {
+			spot.deaths++;
+			game_log(`🧭 Survey: ${name} died at ${spot.type} (${spot.deaths}/${SURVEY_UNSAFE_DEATHS})`, "#FFA500");
+		}
 		_survey_rip[name] = rip;
 	}
 }
 
-function survey_count_lost_holds(spot, now) {
-	for (const name of COHESION_FOLLOWERS) {
-		const held_on_them = Object.values(parent.entities).some(e =>
-			e.type === "monster" && !e.dead && e.target === name && !ALL_BOSSES.includes(e.mtype));
-		const hold = _survey_hold[name];
-		if (!held_on_them) {
-			delete _survey_hold[name];
-			continue;
-		}
-		if (!hold) {
-			_survey_hold[name] = { since: now, counted: false };
-		} else if (!hold.counted && now - hold.since >= SURVEY_HOLD_LOST_MS) {
-			hold.counted = true;
-			spot.holds_lost++;
-			game_log(`🧭 Survey: ${name} held a monster for ${SURVEY_HOLD_LOST_MS / 1000}s at ${spot.type} (${spot.holds_lost})`, "#FFA500");
-		}
-	}
-}
-
-function survey_owner_tick(now, dt) {
+function survey_owner_tick(dt) {
 	const survey = survey_read() || survey_new();
 	if (survey.complete) return;
 
@@ -167,12 +146,9 @@ function survey_owner_tick(now, dt) {
 	}
 
 	if (!on_event) survey_count_deaths(spot);
-	if (here) {
-		spot.at_spot_ms += dt;
-		survey_count_lost_holds(spot, now);
-	}
+	if (here) spot.at_spot_ms += dt;
 
-	if (spot.deaths >= SURVEY_UNSAFE_DEATHS || spot.holds_lost >= SURVEY_UNSAFE_HOLDS_LOST) survey_finish(survey, "unsafe");
+	if (spot.deaths >= SURVEY_UNSAFE_DEATHS) survey_finish(survey, "unsafe");
 	else if (spot.at_spot_ms >= SURVEY_SPOT_MS) survey_finish(survey, "done");
 
 	storage_write(SURVEY_KEY, survey);
@@ -190,7 +166,7 @@ function survey_tick() {
 	if (!survey_selected()) return;
 	const target = survey_target();
 	if (target !== home) switch_home(target);
-	if (character.name === SURVEY_OWNER) survey_owner_tick(now, dt);
+	if (character.name === SURVEY_OWNER) survey_owner_tick(dt);
 }
 
 function farm_survey_start() {

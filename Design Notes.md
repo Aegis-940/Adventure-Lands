@@ -271,7 +271,7 @@ The `*SURVEY*` farm target (`SURVEY_FARM_TARGET`). `farm_target_for()` resolves 
 - Arrival is her first `at_farm_spot()` tick. Travel time that isn't an event detour counts toward `SURVEY_TRAVEL_LIMIT_MS` (20 min); past it the spot is `unreachable`.
 - For the first 5s at the spot, any non-party player in the spawn area ends the visit: `skipped` on the first pass, `occupied` on the retry. Skipped spots are retried after every pending spot.
 - The clock is her at-spot time; 30 minutes makes the spot `done`.
-- `unsafe` at 2 fighter deaths in the visit (seen as a rip transition, outside event detours), or 3 lost holds. A lost hold is a non-boss monster targeting Ulric or Riva continuously for 15s. Panics are no signal: she panics 50–160 times a day at the bscorpion camp alone, mostly "low health".
+- `unsafe` at 2 fighter deaths at the spot in one visit: a rip transition (hers, or one seen in the state cache) where the body lies inside the farm area, outside event detours. A death on the way there or on a boss detour does not count. Deaths are the only measure; a "lost hold" rule (a monster on Ulric or Riva for 15s) was dropped on 10-11.
 - Each status change is archived as a `survey_spot` record to `survey.jsonl`.
 
 `survey_status()` prints the state; `survey_reset()` starts again from the first spot. sparkbot and targetron share one uhills spawn area, so at either the party fights both.

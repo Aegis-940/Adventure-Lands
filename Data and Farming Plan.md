@@ -37,7 +37,7 @@ How each part works is in `Design Notes.md` (`Farm Ledger.js`, `Farm Survey.js`,
 | Candidate monsters | Around bscorpion and below, no bosses. Draft list below, hand-edited before the survey runs |
 | Time per spot | 30 minutes of at-spot data. No shuffling, no control visits back to bscorpion |
 | Bosses and events | The survey yields to World Events as farming does now. Time away does not count; the visit resumes afterwards |
-| Safety | 2 deaths in one visit, or Myras unable to hold the pack, marks the spot **unsafe** and the survey moves on |
+| Safety | 2 deaths at the spot in one visit marks the spot **unsafe** and the survey moves on |
 | Occupied spawns | Another player at the spawn on arrival: skip it, retry after the rest of the list. Still occupied on retry: mark it **occupied** and move on |
 | Farm target | New `*SURVEY*` farm target. While the survey is incomplete it resolves to the current survey spot; once complete it resolves to `bscorpion` |
 | Running time | Unattended, overnight, as long as it needs |
@@ -114,7 +114,7 @@ The sink, or a `Tools/` script, builds a SQLite file (Python stdlib `sqlite3`) f
 1. Travel to the spot. Ledger windows count toward it only while `at_spot`. A spot not reached after 20 minutes of travel (event detours excluded) is marked `unreachable`.
 2. On arrival, if another player is at the spawn, mark the spot `skipped` and move on. Skipped spots are retried after the rest of the list; a second failure marks the spot `occupied`.
 3. Collect 30 minutes of at-spot time. Boss/event detours pause the clock; the visit resumes afterwards.
-4. 2 deaths in the visit, or Myras unable to hold the pack, marks the spot `unsafe`. "Unable to hold" is measured as 3 lost holds: a non-boss monster targeting Ulric or Riva for 15s straight. Panic counts were rejected as the signal, since Myras panics 50–160 times a day at the bscorpion camp alone.
+4. 2 fighter deaths at the spot in one visit marks it `unsafe`. Deaths while travelling or on a boss detour don't count.
 5. After the last spot (and the retries), mark the survey complete; `*SURVEY*` now resolves to `bscorpion`.
 
 ### Spot-specific code
@@ -199,7 +199,7 @@ The sink already runs an HTTP server; it serves a local page that reads the SQLi
 ## To confirm during implementation
 
 - Each fighter carries a tracker. *The snapshot logs `⚠️ Tracker snapshot skipped: no tracker in the bag` when one doesn't.*
-- Whether achievement progress is account-wide (`max_stats`) and how party kills are credited.
+- ~~Whether achievement progress is account-wide (`max_stats`) and how party kills are credited.~~ **Account-wide.** The first snapshots (10-11 18:59) give each fighter its own count (bscorpion: Ulric 61,305, Myras 61,534, Riva 61,248) and the same `max.monsters.bscorpion = [98112, "Myras"]`: the account's best with the character who holds it. The server takes the larger, so every character has bscorpion's 10k milestone. The 98k includes `monsters_diff`, the server's per-kill difficulty score, so it runs ahead of the raw count.
 - ~~Reload vs runtime reassignment for changing spot.~~ Runtime reassignment.
 - ~~That nothing in `Diagnostics.md`'s workflow depends on archived `game_response` lines.~~ It reads `records`, which still hold them.
 - ~~`sparkbot` needs a `LOCATIONS` entry before it can be surveyed.~~ Added.
