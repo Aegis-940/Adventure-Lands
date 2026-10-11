@@ -187,4 +187,5 @@ function run_character(spec) {
 	bscorpion_start();
 	farm_ledger_start();
 	farm_survey_start();
+	danger_log_start();
 }

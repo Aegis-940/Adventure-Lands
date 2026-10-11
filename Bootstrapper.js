@@ -39,6 +39,7 @@
 		"Core Systems/Character Runner.js",
 		"Core Systems/Farm Ledger.js",
 		"Core Systems/Farm Survey.js",
+		"Core Systems/Danger Log.js",
 		"Core Systems/Error Handling.js",
 		"Core Systems/Error Log.js",
 		"Dungeons/Dungeon Runner.js",

@@ -38,6 +38,9 @@ CREATE TABLE IF NOT EXISTS tracker_monsters (character TEXT, t INTEGER, mtype TE
 CREATE TABLE IF NOT EXISTS boss_profiles (character TEXT, t INTEGER, at TEXT, boss TEXT, killed INTEGER,
     fight_secs REAL, raw TEXT);
 CREATE TABLE IF NOT EXISTS deaths (character TEXT, t INTEGER, at TEXT, msg TEXT);
+CREATE TABLE IF NOT EXISTS danger (character TEXT, t INTEGER, at TEXT, kind TEXT, map TEXT, home TEXT, goal TEXT,
+    killer TEXT, min_hp_pct INTEGER, low_for_s INTEGER, damage_10s INTEGER, targeting INTEGER, mp_pct INTEGER,
+    panicking INTEGER, raw TEXT);
 CREATE TABLE IF NOT EXISTS bscorpion_kills (character TEXT, t INTEGER, at TEXT, secs REAL, avg_secs REAL);
 CREATE INDEX IF NOT EXISTS ledger_spot ON ledger (survey_spot, character);
 CREATE INDEX IF NOT EXISTS ledger_home ON ledger (home, character);
@@ -81,6 +84,13 @@ def add_tracker(db, r):
     db.executemany("INSERT INTO tracker_monsters VALUES (?,?,?,?,?,?,?)", rows)
 
 
+def add_danger(db, r):
+    db.execute("INSERT INTO danger VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (
+        r.get("character"), r.get("t"), r.get("at"), r.get("kind"), r.get("map"), r.get("home"), r.get("goal"),
+        r.get("killer"), 0 if r.get("kind") == "death" else r.get("min_hp_pct"), r.get("low_for_s"), r.get("damage_10s"),
+        r.get("targeting"), r.get("mp_pct"), 1 if r.get("panicking") else 0, json.dumps(r)))
+
+
 def add_boss_profile(db, r):
     db.execute("INSERT INTO boss_profiles VALUES (?,?,?,?,?,?,?)", (
         r.get("character"), r.get("t"), r.get("at"), r.get("boss"), 1 if r.get("killed") else 0,
@@ -105,6 +115,7 @@ SOURCES = [
     ("ledger.jsonl", add_ledger, ["ledger"]),
     ("survey.jsonl", add_survey, ["survey"]),
     ("tracker.jsonl", add_tracker, ["tracker", "tracker_monsters"]),
+    ("danger.jsonl", add_danger, ["danger"]),
     ("boss_profiles.jsonl", add_boss_profile, ["boss_profiles"]),
     ("errors_timeline.jsonl", add_timeline, ["deaths", "bscorpion_kills"]),
 ]
@@ -277,6 +288,54 @@ def trends(db, now_ms):
     return {"bscorpion_kill_secs": kills, "deaths_per_day": deaths}
 
 
+DANGER_EVENTS = 60
+DANGER_MATCH_MS = 15000
+
+
+def danger(db, now_ms):
+    """Deaths and close calls, newest first. Deaths from the timeline before the danger log existed (or from a
+    character not running it) appear without detail, unless a detailed death of the same character is within 15s."""
+    events = []
+    detailed = []
+    for raw, t, who in db.execute("SELECT raw, t, character FROM danger ORDER BY t DESC LIMIT ?", (DANGER_EVENTS,)):
+        r = json.loads(raw)
+        events.append(r)
+        if r.get("kind") == "death":
+            detailed.append((who, t))
+    for who, t, at, msg in db.execute("SELECT character, t, at, msg FROM deaths ORDER BY t DESC LIMIT ?", (DANGER_EVENTS,)):
+        if any(w == who and abs(t - dt) < DANGER_MATCH_MS for w, dt in detailed):
+            continue
+        events.append({"kind": "death", "character": who, "t": t, "at": at, "note": msg, "detail": False})
+    events.sort(key=lambda e: -(e.get("t") or 0))
+    counts = {}
+    for label, since in (("day", now_ms - 24 * HOUR_MS), ("week", now_ms - 7 * 24 * HOUR_MS)):
+        logged = db.execute("SELECT character, t FROM deaths WHERE t >= ?", (since,)).fetchall()
+        extra = [(w, t) for w, t in db.execute("SELECT character, t FROM danger WHERE kind = 'death' AND t >= ?", (since,))
+                 if not any(lw == w and abs(lt - t) < DANGER_MATCH_MS for lw, lt in logged)]
+        deaths = len(logged) + len(extra)
+        close = db.execute("SELECT COUNT(*) FROM danger WHERE kind = 'close_call' AND t >= ?", (since,)).fetchone()[0]
+        counts[label] = {"deaths": deaths, "close_calls": close}
+    return {"events": events[:DANGER_EVENTS], "counts": counts}
+
+
+POTION_CD_S = 2.05
+POTION_MP = 500
+
+
+def mana_measured(db, now_ms):
+    """Each fighter's potion use as a share of the 2.05s potion limit, last hour and last day."""
+    out = []
+    for (who,) in db.execute("SELECT DISTINCT character FROM ledger ORDER BY character").fetchall():
+        row = {"character": who}
+        for label, since in (("hour", now_ms - HOUR_MS), ("day", now_ms - 24 * HOUR_MS)):
+            secs, mp, hp = db.execute("SELECT SUM(window_s), SUM(mp_pots), SUM(hp_pots) FROM ledger WHERE character = ? AND t >= ?",
+                                      (who, since)).fetchone()
+            row[label] = None if not secs else {"cap_pct": round((mp + hp) * POTION_CD_S / secs * 100),
+                                                "mp_s": round(mp * POTION_MP / secs), "minutes": round(secs / 60)}
+        out.append(row)
+    return out
+
+
 def model():
     m = read_json(MODEL)
     if not m:
@@ -289,7 +348,7 @@ def model():
                 top_slots.append({"character": who, "slot": slot, "worn": s["worn"], **best})
     top_slots.sort(key=lambda r: -r["gain_pct"])
     return {
-        "generated": m.get("generated"), "monster": m.get("monster"), "calibration": m.get("calibration"),
+        "generated": m.get("generated"), "monster": m.get("monster"), "calibration": m.get("calibration"), "mana": m.get("mana"),
         "upgrades": (m.get("upgrades") or [])[:12], "achievements": (m.get("achievements") or [])[:20],
         "slots": top_slots[:15], "assumptions": m.get("assumptions"),
     }
@@ -315,6 +374,8 @@ def status():
         },
         "survey": {"state": survey_state(errors), "results": survey_rows(db)},
         "trends": trends(db, now_ms),
+        "danger": danger(db, now_ms),
+        "mana": mana_measured(db, now_ms),
         "model": model(),
         "bands": {"gold": GOLD_BANDS, "xp": XP_BANDS},
     }

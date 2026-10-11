@@ -269,7 +269,7 @@ The `*SURVEY*` farm target (`SURVEY_FARM_TARGET`). `farm_target_for()` resolves 
 **Visit rules**, all in `survey_owner_tick()` on Myras's 1s tick:
 
 - Arrival is her first `at_farm_spot()` tick. Travel time that isn't an event detour counts toward `SURVEY_TRAVEL_LIMIT_MS` (20 min); past it the spot is `unreachable`.
-- For the first 5s at the spot, any non-party player in the spawn area ends the visit: `skipped` on the first pass, `occupied` on the retry. Skipped spots are retried after every pending spot.
+- For the first 5s at the spot, any non-party player inside the spawn box itself (no margin) ends the visit: `skipped` on the first pass, `occupied` on the retry. Skipped spots are retried after every pending spot. The 200px margin that decides *being at* the spot was used for this too until 10-11 19:50, and skipped sparkbot, targetron and xscorpion on players merely nearby: xscorpion's widened box reaches Mr. Pumpkin's spawn, where players wait for the event.
 - The clock is her at-spot time; 30 minutes makes the spot `done`.
 - `unsafe` at 2 fighter deaths at the spot in one visit: a rip transition (hers, or one seen in the state cache) where the body lies inside the farm area, outside event detours. A death on the way there or on a boss detour does not count. Deaths are the only measure; a "lost hold" rule (a monster on Ulric or Riva for 15s) was dropped on 10-11.
 - Each status change is archived as a `survey_spot` record to `survey.jsonl`.
@@ -277,6 +277,16 @@ The `*SURVEY*` farm target (`SURVEY_FARM_TARGET`). `farm_target_for()` resolves 
 **Editing the spot list mid-survey.** The saved state carries its own spot list, so Myras reconciles it against `SURVEY_SPOTS` on every tick (`survey_reconcile()`): removed spots go (if the party is on one, it moves on to the next pending spot), new ones join as pending, finished results are kept, and a completed survey reopens when a spot is added. The reconciled state is saved at once: the tick returns early while the party's `home` still names the old spot, and without that write it re-reconciled every second without moving on.
 
 `survey_status()` prints the state; `survey_reset()` starts again from the first spot. sparkbot and targetron share one uhills spawn area, so at either the party fights both.
+
+### `Danger Log.js`
+
+Every death and close call, per fighter, through `errlog_archive("danger")` to `danger.jsonl`. It keeps the last 80 hits *on this character* from the `hit` socket (attacker resolved to a monster type or player name at the moment of the hit, damage, burn/crit), and a 250ms tick watches HP.
+
+- **Close call:** HP under 30% opens an episode; the lowest point is snapshotted; recovering to 60% records it with `min_hp_pct` and `low_for_s`.
+- **Death:** the rip transition records the snapshot at death, `killer` = the last hit's source, and how long HP had been under 30% (`low_for_s`, null for a death from above 30%).
+- **Snapshot:** map, position, home, goal, panic, HP/MP %, damage taken in the last 10s by source (top 5) and the biggest hit, monsters targeting this character and monsters within 300px by type, debuffs, teammates' HP from the state cache, HP/MP potions left.
+
+The status page lists them newest first; deaths from the timeline before the log existed (or from a character not running it) appear without detail unless a detailed death of the same character is within 15s.
 
 ### `Error Log.js`
 
@@ -555,6 +565,10 @@ The server's stat pipeline, offline, for Ulric and Riva. It runs the game's own 
 **Calibration on 10-11:** Riva 2,430 attack vs 2,428 measured, 1.628 attack speed vs 1.628. Ulric 2,310 vs 2,254 and 1.562 vs 1.568. Ulric's crit reads 31.6% against 28.3% measured because his per-swing swap (`weapon_burst()`) starts many swings in candy canes or the bataxe, which the recorded gear doesn't show.
 
 **Damage** is attack × (1 + crit × (1 + critdamage)) × attack speed × the armour curve, per fighter, summed; the Can Opener's sunder uptime is shared across both (`1 − Π(1 − p)^(hits in 5s)`). Burn, splash, cleave and multishot are out, so AOE and burn weapons are undervalued: the slot report's "scythe for Ulric" ignores his fireblade burn and cleave.
+
+**Mana.** `p.mp_cost` is the server's: class base + level term + item/buff `mp_cost` + crit × 1.25 + lifesteal × 1.5 + manasteal ÷ 5 + armour pierce ÷ 15, so crit, lifesteal and pierce gear make every swing dearer (Ulric 45 MP per attack, Riva 74). Income is potions, 500 MP per 2.05s (244 MP/s), plus manasteal: hit damage × manasteal %, capped by the monster's own MP per kill (the server steals from `target.mp`). There is no passive regen. Spend is measured: MP potions per second over the last 24h of ledger windows (at that farm target when there are any). Skill spend is measured minus modelled attack spend plus manasteal. Cast counts can't come from boss profiles: the profiler counts a cleave once per target struck, while the server charges its 720 MP once per cast.
+
+Measured spend is what was spent, not what was wanted: at the potion limit the skill-mana reserve hides the demand. So the model works at the margin. A fighter at 90%+ of the potion limit is mana-bound: mana a change frees buys skills and mana it costs comes out of skills. Below that, extra cost first uses the spare headroom. Skill mana is valued as Ulric's cleave (0.5× a hit per target, 1 target at bscorpion, 3 elsewhere); Riva's skills are cooldown-bound, so her spare mana has no damage value. Cleave's sugar-rush rolls are not valued, which is most of why Ulric spends ~135 MP/s on skills at the camp: a lone-scorpion cleave is ~1.7 damage per MP against a 45 MP basic attack. Riva's `tshirt9` (manasteal 1.5% at +5), worn only in her mana band, is worth about 60 MP/s while on. Slot and upgrade rows carry the damage-only gain, the mana-adjusted gain (ranked) and the change in MP/s; `mana` prints each budget and the swaps that free mana.
 
 **Upgrade cost** is the expected gold to rebuild the item one level higher at base odds (`G.upgrades`/`G.compounds` at the item's grade, its own grade of scroll): `value(L+1) = (value(L) [×3 for a compound] + scroll) / p`, from `G.items[x].g` at +0. Primlings, grace and the lucky slot are out, so it overstates the cost at high levels.
 

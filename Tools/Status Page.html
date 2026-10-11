@@ -199,9 +199,18 @@ details ul { margin: 6px 0 0; padding-left: 18px; }
 			<div class="chart" id="kill-chart"></div>
 		</section>
 		<section class="card">
-			<h2>Deaths per day</h2>
-			<div class="meta">All characters, last 14 days</div>
+			<h2>Deaths and close calls</h2>
+			<div class="tiles" id="danger-tiles"></div>
+			<div class="meta" style="margin-top:8px">Deaths per day, all characters, last 14 days</div>
 			<div class="chart" id="death-chart"></div>
+		</section>
+	</div>
+
+	<div class="section">
+		<section class="card">
+			<h2>Danger events</h2>
+			<div class="meta">Newest first. A close call is HP under 30% that recovered to 60%. "Against" is the killing blow for a death and the biggest damage source for a close call, from the last 10 seconds of hits.</div>
+			<div class="scroll" id="danger-events"></div>
 		</section>
 	</div>
 
@@ -214,6 +223,8 @@ details ul { margin: 6px 0 0; padding-left: 18px; }
 		<section class="card">
 			<h2>Gear</h2>
 			<div class="meta" id="gear-meta"></div>
+			<h3>Mana</h3>
+			<div class="scroll" id="mana"></div>
 			<h3>Best item swap per slot</h3>
 			<div class="scroll" id="slots"></div>
 			<h3>Best +1 upgrades per gold</h3>
@@ -555,6 +566,72 @@ function render_trends(t) {
 	column_chart($("death-chart"), every_day(t.deaths_per_day, 14));
 }
 
+function clock_time(t) {
+	const d = new Date(t);
+	const today = new Date().toDateString() === d.toDateString();
+	return (today ? "" : d.toLocaleDateString([], { month: "short", day: "numeric" }) + " ")
+		+ d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+const DANGER_SHOWN = 20;
+let danger_all = false;
+
+function render_danger(d) {
+	const c = d.counts;
+	$("danger-tiles").innerHTML = stat_tile("Deaths, 24 h", c.day.deaths, `7 days: ${c.week.deaths}`)
+		+ stat_tile("Close calls, 24 h", c.day.close_calls, `7 days: ${c.week.close_calls}`);
+	const shown = danger_all ? d.events : d.events.slice(0, DANGER_SHOWN);
+	$("danger-events").innerHTML = table(
+		[{ label: "When" }, { label: "Who" }, { label: "Event" }, { label: "Where" }, { label: "Against" }, { label: "Dmg 10s", n: 1 },
+			{ label: "Low HP", n: 1 }, { label: "On them", n: 1 }, { label: "MP", n: 1 }, { label: "Context" }],
+		shown.map(e => {
+			const kind = e.kind === "death" ? chip("var(--critical)", "✕", "death") : chip("var(--warning)", "!", "close call");
+			if (e.detail === false) {
+				return [`<span title="${esc(e.at)}">${esc(clock_time(e.t))}</span>`, esc(e.character), kind, esc((e.note || "").replace(/^died on /, "").split(" ")[0]),
+					'<span class="meta">no detail (before the danger log)</span>', "–", "–", "–", "–", ""];
+			}
+			const top = (e.sources || [])[0];
+			const against = e.kind === "death" ? (e.killer || (top && top.name)) : (top && top.name);
+			const against_title = (e.sources || []).map(s => `${s.name}: ${s.damage.toLocaleString()} in ${s.hits} hits`).join("\n")
+				+ (e.biggest ? `\nbiggest hit ${e.biggest.damage.toLocaleString()} from ${e.biggest.from}${e.biggest.crit ? " (crit)" : ""}${e.biggest.source ? " [" + e.biggest.source + "]" : ""}` : "");
+			const context = [
+				e.panicking ? "panicking" : "",
+				(e.debuffs || []).length ? (e.debuffs || []).join(", ") : "",
+				e.potions && e.potions.hp < 50 ? `hp pots ${e.potions.hp}` : "",
+				e.potions && e.potions.mp < 50 ? `mp pots ${e.potions.mp}` : "",
+				Object.entries(e.party || {}).filter(([, v]) => v === "dead" || (typeof v === "number" && v < 40)).map(([n, v]) => `${n} ${v === "dead" ? "dead" : v + "%"}`).join(", "),
+				e.low_for_s ? `under 30% for ${e.low_for_s}s` : "",
+			].filter(Boolean).join(" · ");
+			const where = esc(e.map || "") + (e.goal ? `<div class="meta">${esc(e.goal)}</div>` : "");
+			return [`<span title="${esc(e.at)}">${esc(clock_time(e.t))}</span>`, esc(e.character), kind, where,
+				`<span title="${esc(against_title)}">${esc(against || "?")}</span>`,
+				compact(e.damage_10s), e.kind === "death" ? "0%" : (e.min_hp_pct + "%"), e.targeting === undefined ? "–" : e.targeting,
+				e.mp_pct === undefined ? "–" : e.mp_pct + "%", esc(context)];
+		}))
+		+ (d.events.length > DANGER_SHOWN
+			? `<div class="tabs" style="margin-top:8px"><button id="danger-more">${danger_all ? "Show newest " + DANGER_SHOWN : "Show all " + d.events.length}</button></div>` : "");
+	const more = $("danger-more");
+	if (more) more.onclick = () => { danger_all = !danger_all; render_danger(d); };
+}
+
+function render_mana(measured, modelled) {
+	const by = Object.fromEntries((modelled || []).map(b => [b.character, b]));
+	const pct = r => {
+		if (!r) return "–";
+		const color = r.cap_pct >= 90 ? "var(--critical)" : r.cap_pct >= 75 ? "var(--warning)" : "var(--good)";
+		const label = r.cap_pct >= 90 ? "bound" : r.cap_pct >= 75 ? "near" : "ok";
+		return `<span class="chip"><span style="color:var(--text-primary);font-variant-numeric:tabular-nums">${r.cap_pct}%</span><span class="dot" style="background:${color}"></span>${label}</span>`;
+	};
+	$("mana").innerHTML = table(
+		[{ label: "Who" }, { label: "Potion limit used, 1 h" }, { label: "24 h" }, { label: "MP/attack", n: 1 }, { label: "Attacks MP/s", n: 1 }, { label: "Skills MP/s", n: 1 }, { label: "Spare MP/s", n: 1 }],
+		(measured || []).map(m => {
+			const b = by[m.character];
+			const parts = b ? Object.entries(b.mp_parts).filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join(", ") : "";
+			return [esc(m.character), pct(m.hour), pct(m.day), b ? `<span title="${esc(parts)}">${b.mp_per_attack}</span>` : "–",
+				b ? b.attack_mp_s : "–", b && b.skill_mp_s !== null ? b.skill_mp_s : "–", b && b.headroom_mp_s !== null ? b.headroom_mp_s : "–"];
+		}));
+}
+
 function render_model(m) {
 	if (!m) {
 		["achievements", "slots", "upgrades"].forEach(id => $(id).innerHTML = '<div class="empty">No party_model.json yet. The sink writes it every 15 minutes.</div>');
@@ -626,6 +703,8 @@ async function refresh_status() {
 		render_farming(STATUS.farming);
 		render_survey(STATUS.survey);
 		render_trends(STATUS.trends);
+		render_danger(STATUS.danger);
+		render_mana(STATUS.mana, STATUS.model && STATUS.model.mana);
 		render_model(STATUS.model);
 	} catch (e) {
 		show_error(e);

@@ -31,12 +31,11 @@ function farm_area_boxes(type, map) {
 	return boxes;
 }
 
-function in_farm_area(map, x, y) {
+function in_farm_area(map, x, y, margin = FARM_AREA_MARGIN) {
 	if (!destination || !destination.map || map !== destination.map) return false;
 	const boxes = farm_area_boxes(home, destination.map);
 	if (!boxes.length) return Math.hypot(x - destination.x, y - destination.y) <= FARM_AREA_FALLBACK_RADIUS;
-	return boxes.some(b => x >= b[0] - FARM_AREA_MARGIN && x <= b[2] + FARM_AREA_MARGIN
-		&& y >= b[1] - FARM_AREA_MARGIN && y <= b[3] + FARM_AREA_MARGIN);
+	return boxes.some(b => x >= b[0] - margin && x <= b[2] + margin && y >= b[1] - margin && y <= b[3] + margin);
 }
 
 function is_event_goal(label) {
@@ -58,7 +57,7 @@ function foreign_players_in_farm_area() {
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
 		if (e.type !== "character" || e.npc || LEDGER_PARTY.includes(e.name)) continue;
-		if (in_farm_area(character.map, e.x, e.y)) count++;
+		if (in_farm_area(character.map, e.x, e.y, 0)) count++;
 	}
 	return count;
 }

@@ -22,6 +22,15 @@
 	const SCORE_PER_KILL = 1.6;
 	const SUNDER_ARMOR = 200;
 	const SUNDER_MS = 5000;
+	const POTION_MP = 500;
+	const POTION_CD_S = 2.05;
+	const POTION_MP_S = POTION_MP / POTION_CD_S;
+	const MANA_BOUND_CAP_PCT = 90;
+	const MANA_WINDOW_MS = 24 * 60 * 60 * 1000;
+	const CLEAVE_MP = 720;
+	const CLEAVE_MULT = 0.5;
+	const CLEAVE_TARGETS = { bscorpion: 1 };
+	const CLEAVE_TARGETS_DEFAULT = 3;
 	const SURVEY_OWNER = "Myras";
 	const SLOTS = ["mainhand", "offhand", "helmet", "chest", "pants", "shoes", "gloves", "belt", "amulet",
 		"ring1", "ring2", "earring1", "earring2", "orb", "cape"];
@@ -35,7 +44,7 @@
 		crit: "crit", critdamage: "critdamage", hp: "max_hp", mp: "max_mp", speed: "speed", lifesteal: "lifesteal",
 		manasteal: "manasteal", apiercing: "apiercing", rpiercing: "rpiercing", output: "output", attack: "a_attack",
 		explosion: "explosion", blast: "blast", evasion: "evasion", miss: "miss", reflection: "reflection",
-		dreturn: "dreturn", luck: "xluck", gold: "xgold", xp: "xxp", courage: "courage",
+		dreturn: "dreturn", luck: "xluck", gold: "xgold", xp: "xxp", courage: "courage", mp_cost: "a_mp_cost",
 	};
 	const DAMAGE_STATS = ["str", "dex", "int", "attack", "apiercing", "crit", "critdamage", "frequency", "output"];
 
@@ -127,7 +136,7 @@
 		for (const prop of ["attack", "frequency", "armor", "resistance", "apiercing", "rpiercing", "crit", "critdamage", "output", "speed"]) {
 			p[prop] = c[prop] || 0;
 		}
-		for (const prop of ["a_attack", "lifesteal", "manasteal", "explosion", "max_hp", "max_mp", "xluck", "xgold", "xxp"]) p[prop] = 0;
+		for (const prop of ["a_attack", "a_mp_cost", "lifesteal", "manasteal", "explosion", "max_hp", "max_mp", "xluck", "xgold", "xxp"]) p[prop] = 0;
 		for (const stat in c.stats) {
 			let v = c.stats[stat] + LEVEL * c.lstats[stat];
 			if (LEVEL > 40) v += (LEVEL - 40) * c.lstats[stat];
@@ -184,6 +193,14 @@
 		p.frequency += Math.min(LEVEL, 80) / 164 + Math.min(160, p.dex) / 640 + Math.max(p.dex - 160, 0) / 925 + p.int / 1575;
 		p.output = Math.max(5, p.output);
 		p.attack = p.attack * p.output / 100;
+
+		const pierce = c.damage_type === "physical" ? p.apiercing : p.rpiercing;
+		p.mp_parts = {
+			base: c.mp_cost + Math.min(LEVEL, 80) * (c.mp_cost / 10), items: p.a_mp_cost, crit: p.crit * 1.25,
+			lifesteal: p.lifesteal * 1.5, manasteal: p.manasteal / 5, pierce: pierce / 15,
+		};
+		p.mp_cost = Math.max(1, Math.round(Object.values(p.mp_parts).reduce((a, b) => a + b, 0)));
+		p.max_mp += p.int * 15 + LEVEL * 5 + (c.mp || 0);
 		return p;
 	}
 
@@ -200,16 +217,77 @@
 		return 1 - miss;
 	}
 
-	function party_dps(party, monster) {
+	function hit_damage(p, monster, q) {
 		const armor = G.monsters[monster].armor || 0;
+		const crit = 1 + Math.min(100, p.crit) / 100 * (1 + (p.critdamage || 0) / 100);
+		const curve = (1 - q) * game.damage_multiplier(armor - p.apiercing) + q * game.damage_multiplier(armor - SUNDER_ARMOR - p.apiercing);
+		return p.attack * crit * curve;
+	}
+
+	function party_dps(party, monster) {
 		const q = sunder_uptime(party);
-		let total = 0;
-		for (const p of party) {
-			const crit = 1 + Math.min(100, p.crit) / 100 * (1 + (p.critdamage || 0) / 100);
-			const curve = (1 - q) * game.damage_multiplier(armor - p.apiercing) + q * game.damage_multiplier(armor - SUNDER_ARMOR - p.apiercing);
-			total += p.attack * crit * p.frequency * curve;
+		return party.reduce((total, p) => total + hit_damage(p, monster, q) * p.frequency, 0);
+	}
+
+	// ----------------------------------------------------------------------------------------------------------------------------- //
+	// MANA — potions (500 MP per 2.05s) plus manasteal in; attacks and skills out. Measured spend comes from the ledger
+	// ----------------------------------------------------------------------------------------------------------------------------- //
+
+	function measured_mana(name, monster) {
+		const since = Date.now() - MANA_WINDOW_MS;
+		let rows = ledger.filter(r => r.character === name && r.t >= since && r.home === monster);
+		if (!rows.length) rows = ledger.filter(r => r.character === name && r.t >= since);
+		const secs = rows.reduce((a, r) => a + (r.window_s || 0), 0);
+		if (!secs) return null;
+		const mp = rows.reduce((a, r) => a + ((r.potions || {}).mp || 0), 0);
+		const hp = rows.reduce((a, r) => a + ((r.potions || {}).hp || 0), 0);
+		return { minutes: Math.round(secs / 60), at_home: rows[0].home === monster, potion_mp_s: mp * POTION_MP / secs,
+			cap_pct: (mp + hp) * POTION_CD_S / secs * 100 };
+	}
+
+	function manasteal_mp_s(p, monster, party) {
+		if (!p.manasteal) return 0;
+		const def = G.monsters[monster];
+		const q = sunder_uptime(party);
+		const mine = hit_damage(p, monster, q) * p.frequency;
+		const kill_s = def.hp / Math.max(1, party_dps(party, monster));
+		return Math.min(mine * p.manasteal / 100, (def.mp || 0) / kill_s);
+	}
+
+	function skill_mp_value(p, monster, party) {
+		if (p.cls !== "warrior") return 0;
+		const targets = CLEAVE_TARGETS[monster] || CLEAVE_TARGETS_DEFAULT;
+		return targets * CLEAVE_MULT * hit_damage(p, monster, sunder_uptime(party)) / (CLEAVE_MP + targets * p.mp_cost * 0.02);
+	}
+
+	function mana_budget(pl, p, monster, party) {
+		const measured = measured_mana(pl.name, monster);
+		const attack = p.frequency * p.mp_cost;
+		const steal = manasteal_mp_s(p, monster, party);
+		const spend = measured ? measured.potion_mp_s + steal : null;
+		const bound = !!measured && measured.cap_pct >= MANA_BOUND_CAP_PCT;
+		return {
+			character: pl.name, max_mp: Math.round(p.max_mp), mp_per_attack: p.mp_cost,
+			mp_parts: Object.fromEntries(Object.entries(p.mp_parts).map(([k, v]) => [k, +v.toFixed(1)])),
+			attack_mp_s: Math.round(attack), manasteal_mp_s: Math.round(steal), potion_mp_s_cap: Math.round(POTION_MP_S),
+			measured, skill_mp_s: measured ? Math.max(0, Math.round(spend - attack)) : null,
+			headroom_mp_s: measured ? (bound ? 0 : Math.max(0, Math.round(POTION_MP_S + steal - spend))) : null,
+			bound, skill_dmg_per_mp: +skill_mp_value(p, monster, party).toFixed(2),
+		};
+	}
+
+	function mana_adjustment(pl, before, after, monster, party_before, party_after, budget) {
+		const cost = (after.frequency * after.mp_cost - manasteal_mp_s(after, monster, party_after))
+			- (before.frequency * before.mp_cost - manasteal_mp_s(before, monster, party_before));
+		if (!budget.measured || Math.abs(cost) < 1e-9) return { mp_s: cost, dps: 0 };
+		const value = skill_mp_value(after, monster, party_after);
+		if (cost > 0) {
+			const short = Math.max(0, cost - budget.headroom_mp_s);
+			const from_skills = Math.min(short, budget.skill_mp_s);
+			const from_attacks = short - from_skills;
+			return { mp_s: cost, dps: -from_skills * value - from_attacks / after.mp_cost * hit_damage(after, monster, sunder_uptime(party_after)) };
 		}
-		return total;
+		return { mp_s: cost, dps: budget.bound ? -cost * value : 0 };
 	}
 
 	const players = {};
@@ -230,10 +308,34 @@
 			{ buffs: pl.buffs, extra_score }));
 	}
 
+	const _budgets = {};
+
+	function budget_for(pl, monster) {
+		const key = pl.name + "|" + monster;
+		if (!_budgets[key]) {
+			const party = party_with(null);
+			_budgets[key] = mana_budget(pl, party[Object.keys(players).indexOf(pl.name)], monster, party);
+		}
+		return _budgets[key];
+	}
+
+	function gain_detail(monster, changes, extra_score) {
+		const party_before = party_with(null);
+		const party_after = party_with(changes, extra_score);
+		const before = party_dps(party_before, monster);
+		const after = party_dps(party_after, monster);
+		let mana_dps = 0;
+		let mp_s = 0;
+		Object.values(players).forEach((pl, i) => {
+			const adj = mana_adjustment(pl, party_before[i], party_after[i], monster, party_before, party_after, budget_for(pl, monster));
+			mana_dps += adj.dps;
+			mp_s += adj.mp_s;
+		});
+		return { gain: (after / before - 1) * 100, mana_gain: ((after + mana_dps) / before - 1) * 100, mp_s };
+	}
+
 	function gain_pct(monster, changes, extra_score) {
-		const before = party_dps(party_with(null), monster);
-		const after = party_dps(party_with(changes, extra_score), monster);
-		return (after / before - 1) * 100;
+		return gain_detail(monster, changes, extra_score).mana_gain;
 	}
 
 	// ----------------------------------------------------------------------------------------------------------------------------- //
@@ -285,7 +387,8 @@
 					const same = worn && worn.name === name;
 					const change = { [slot]: same ? { ...worn, level: lv } : { name, level: lv, stat_type: def.stat ? main : undefined } };
 					if (slot === "mainhand" && game.doublehand_types.includes(def.wtype)) change.offhand = null;
-					rows.push({ item: name, level: lv, gain_pct: +gain_pct(monster, { [pl.name]: change }).toFixed(2) });
+					const g = gain_detail(monster, { [pl.name]: change });
+					rows.push({ item: name, level: lv, gain_pct: +g.mana_gain.toFixed(2), damage_only_pct: +g.gain.toFixed(2), mp_s: +g.mp_s.toFixed(1) });
 				}
 				rows.sort((a, b) => b.gain_pct - a.gain_pct);
 				out[pl.name][slot] = { worn: worn ? worn.name + "+" + (worn.level || 0) : null, best: rows.slice(0, top) };
@@ -327,11 +430,13 @@
 				const now = build_value(def, level);
 				const next = build_value(def, level + 1);
 				if (!s.p || now === null || next === null) continue;
-				const gain = gain_pct(monster, { [pl.name]: { [slot]: { ...worn, level: level + 1 } } });
+				const g = gain_detail(monster, { [pl.name]: { [slot]: { ...worn, level: level + 1 } } });
+				const gain = g.mana_gain;
 				const cost = next - now;
 				rows.push({
 					character: pl.name, slot, item: worn.name, from: level, to: level + 1,
-					gain_pct: +gain.toFixed(2), chance: s.p, scroll: s.scroll, expected_gold: Math.round(cost),
+					gain_pct: +gain.toFixed(2), damage_only_pct: +g.gain.toFixed(2), mp_s: +g.mp_s.toFixed(1),
+					chance: s.p, scroll: s.scroll, expected_gold: Math.round(cost),
 					pct_per_10m_gold: cost > 0 ? +(gain / cost * 1e7).toFixed(3) : null,
 				});
 			}
@@ -389,10 +494,17 @@
 			|| (b.gain_pct || 0) - (a.gain_pct || 0) || (a.hours || 1e9) - (b.hours || 1e9) || a.needed - b.needed);
 	}
 
+	function mana_report(monster) {
+		const party = party_with(null);
+		return Object.values(players).map((pl, i) => mana_budget(pl, party[i], monster, party));
+	}
+
 	const ASSUMPTIONS = [
 		"Damage = attack × crit × attack speed × the armour curve, per hit; burn, splash, cleave and multishot are left out, so AOE gear is undervalued.",
 		"Buffs are applied at the uptimes measured in each fighter's latest boss profile.",
 		"Sunder (Can Opener) is assumed to proc like burn: attr0 % per hit on the target, 200 armour for 5s.",
+		"Mana: income is potions (500 MP per 2.05s) plus manasteal, capped by the monster's MP per kill. A fighter at 90%+ of the potion limit in the last 24h of ledger windows is mana-bound: mana a change frees buys skills, and mana it costs comes out of skills (then attacks). Below the limit, extra cost first uses the unspent headroom.",
+		"Skill mana is valued as Ulric's cleave (720 MP, 0.5× a hit per target; 1 target at bscorpion, 3 elsewhere). Cleave's sugar-rush rolls are not valued. Riva's skills are cooldown-bound, so her spare mana has no damage value.",
 		"Upgrade cost is the expected gold to rebuild the item one level higher at base odds with the item's own grade of scroll; primlings, grace and the lucky slot are left out.",
 		"Milestones are reached at the account's best monster score; score per kill is 1.6 (three fighters partied, Riff away).",
 		"Kill rates come from Myras's ledger at that farm target, so only farmed or surveyed monsters have one.",
@@ -415,6 +527,25 @@
 			console.log(`${pad(c.character, 6)} profile ${c.profile_at} (${c.boss})  attack ${c.attack.model} vs ${c.attack.measured}  `
 				+ `speed ${c.frequency.model} vs ${c.frequency.measured}  crit ${c.crit.model}% vs ${c.crit.measured}%  pierce ${c.apiercing}`);
 		}
+	} else if (command === "mana") {
+		for (const b of mana_report(monster)) {
+			const m = b.measured;
+			console.log(`${pad(b.character, 6)} max MP ${b.max_mp}  MP per attack ${b.mp_per_attack} (`
+				+ Object.entries(b.mp_parts).filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join(", ") + ")");
+			console.log(`       attacks ${b.attack_mp_s} MP/s  manasteal +${b.manasteal_mp_s} MP/s  potion limit ${b.potion_mp_s_cap} MP/s`);
+			console.log(m ? `       measured over ${m.minutes} min${m.at_home ? "" : " (not at " + monster + ")"}: potions ${Math.round(m.potion_mp_s)} MP/s = `
+				+ `${Math.round(m.cap_pct)}% of the potion limit, skills ~${b.skill_mp_s} MP/s, headroom ${b.headroom_mp_s} MP/s  ${b.bound ? "MANA-BOUND" : "not bound"}`
+				: "       no ledger data in the last 24h");
+			console.log(`       skill damage per MP ${b.skill_dmg_per_mp}`);
+		}
+		console.log("\nTop mana changes (gear swaps that free mana or fix the limit), by mana-adjusted party damage:");
+		const swaps = [];
+		const slots = best_per_slot(monster, 40);
+		for (const who in slots) for (const slot in slots[who]) for (const r of slots[who][slot].best) {
+			if (r.mp_s < -0.5 && r.gain_pct > 0) swaps.push({ who, slot, ...r });
+		}
+		swaps.sort((a, b) => b.gain_pct - a.gain_pct).slice(0, 12).forEach(r => console.log(`  ${pad(r.who, 6)} ${pad(r.slot, 9)} ${pad(r.item + "+" + r.level, 22)} `
+			+ `${lpad(r.gain_pct.toFixed(2) + "%", 7)} (damage only ${r.damage_only_pct.toFixed(2)}%)  ${r.mp_s.toFixed(1)} MP/s`));
 	} else if (command === "slots") {
 		const out = best_per_slot(monster, 5);
 		for (const name in out) {
@@ -439,7 +570,7 @@
 	} else if (command === "json") {
 		const out = {
 			generated: new Date().toISOString(), monster, game_version: G.version,
-			calibration: calibrate(), upgrades: upgrades(monster), slots: best_per_slot(monster, 5),
+			calibration: calibrate(), mana: mana_report(monster), upgrades: upgrades(monster), slots: best_per_slot(monster, 5),
 			achievements: achievements(monster), assumptions: ASSUMPTIONS,
 		};
 		fs.writeFileSync(path.join(REPO, "party_model.json"), JSON.stringify(out));
@@ -450,6 +581,7 @@
 			'node "Tools/Party Model.js" slots [monster]          best item per slot, by party damage against the monster',
 			'node "Tools/Party Model.js" upgrades [monster]       +1 on each worn item, by party damage per gold',
 			'node "Tools/Party Model.js" achievements [monster]   kill-score milestones, by party damage per hour of farming',
+			'node "Tools/Party Model.js" mana [monster]           each fighter\'s mana budget, and the gear changes that free mana',
 			'node "Tools/Party Model.js" json [monster]           all of the above to party_model.json, for the status page',
 			"",
 			"The monster defaults to bscorpion. Gear and measured stats come from each fighter's latest boss_profiles.jsonl",
@@ -458,7 +590,7 @@
 		process.exitCode = 2;
 	}
 	if (command === "achievements") console.log("\n* = boss or event monster");
-	if (["calibrate", "slots", "upgrades", "achievements"].includes(command)) console.log("\n" + ASSUMPTIONS.map(a => "* " + a).join("\n"));
+	if (["calibrate", "slots", "upgrades", "achievements", "mana"].includes(command)) console.log("\n" + ASSUMPTIONS.map(a => "* " + a).join("\n"));
 })().catch(e => {
 	console.error(e.message || e);
 	process.exitCode = 1;

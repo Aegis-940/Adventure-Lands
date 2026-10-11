@@ -9,6 +9,7 @@ boss_profiles.jsonl
 ledger.jsonl
 tracker.jsonl
 survey.jsonl
+danger.jsonl
 al_data.sqlite
 al_data.sqlite-journal
 party_model.json
