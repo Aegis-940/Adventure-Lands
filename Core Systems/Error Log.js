@@ -295,7 +295,7 @@ document.addEventListener("resume", () => _errlog_lifecycle("resume"));
 window.addEventListener("pagehide", () => _errlog_lifecycle("pagehide"));
 window.addEventListener("pageshow", () => _errlog_lifecycle("pageshow"));
 
-const ERRLOG_GAMELOG_PREFIXES = ["⚠️", "❌", "🛑", "🎂", "🚨", "🧭", "🌀", "[",
+const ERRLOG_GAMELOG_PREFIXES = ["⚠️", "❌", "🛑", "🎂", "🚨", "🧭", "🌀", "[", "🍭", "🎉", "✅ Ololipop",
 	"Searching for a path", "Path found", "Path not found", "Lost the path"];
 
 let _errlog_gamelog_wrapped = false;
