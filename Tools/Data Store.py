@@ -150,14 +150,17 @@ def ingest_file(db, name, add, tables):
 
 
 def connect():
-    db = sqlite3.connect(DB)
+    db = sqlite3.connect(DB, timeout=60)
     db.executescript(SCHEMA)
     return db
 
 
 def ingest():
+    """Takes the write lock before reading any offset, so two ingests at once (the sink's sweep and a status
+    request) run one after the other instead of both inserting the same lines."""
     db = connect()
     with db:
+        db.execute("BEGIN IMMEDIATE")
         added = {name: ingest_file(db, name, add, tables) for name, add, tables in SOURCES}
     db.close()
     return added
@@ -427,6 +430,7 @@ def model():
 
 
 def status():
+    ingest()
     now_ms = int(time.time() * 1000)
     errors = read_json(ERRORS)
     db = connect()

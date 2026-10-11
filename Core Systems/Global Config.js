@@ -273,6 +273,7 @@ function errlog_size() { }
 function errlog_time() { }
 function errlog_timeline() { }
 function errlog_archive() { }
+function errlog_send_archive() { }
 
 function upgrade_slot_for(slot) { return slot; }
 

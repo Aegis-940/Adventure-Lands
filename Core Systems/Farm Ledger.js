@@ -176,6 +176,11 @@ function ledger_tick() {
 	if (now - _ledger.started >= LEDGER_WINDOW_MS) ledger_close(now);
 }
 
+function ledger_flush() {
+	ledger_close(Date.now());
+	errlog_send_archive();
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // TRACKER SNAPSHOT — once a day, the server's per-monster kill counts and the account's max stats
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -231,4 +236,5 @@ function farm_ledger_start() {
 	parent.socket.on("tracker", parent.socket._ledger_tracker_handler);
 
 	setInterval(ledger_tick, LEDGER_TICK_MS);
+	window.addEventListener("pagehide", ledger_flush);
 }

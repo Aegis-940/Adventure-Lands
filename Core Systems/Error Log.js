@@ -519,6 +519,17 @@ function _errlog_push() {
 	}
 }
 
+function errlog_send_archive() {
+	try {
+		navigator.sendBeacon(ERRLOG_SINK_URL, JSON.stringify({
+			character: character.name,
+			build: _errlog_build(),
+			session: _errlog.session,
+			archive: _errlog.archive.filter(e => e.t >= _errlog_last_push)
+		}));
+	} catch (e) { }
+}
+
 setInterval(() => {
 	_errlog_try_wrap_game_log();
 	_errlog_try_wrap_heal();
