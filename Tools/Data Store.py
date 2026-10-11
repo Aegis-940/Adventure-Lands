@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS tracker_monsters (character TEXT, t INTEGER, mtype TE
 CREATE TABLE IF NOT EXISTS boss_profiles (character TEXT, t INTEGER, at TEXT, boss TEXT, killed INTEGER,
     fight_secs REAL, raw TEXT);
 CREATE TABLE IF NOT EXISTS deaths (character TEXT, t INTEGER, at TEXT, msg TEXT);
-CREATE TABLE IF NOT EXISTS danger (character TEXT, t INTEGER, at TEXT, kind TEXT, map TEXT, home TEXT, goal TEXT,
+CREATE TABLE IF NOT EXISTS danger (character TEXT, t INTEGER, at TEXT, event TEXT, map TEXT, home TEXT, goal TEXT,
     killer TEXT, min_hp_pct INTEGER, low_for_s INTEGER, damage_10s INTEGER, targeting INTEGER, mp_pct INTEGER,
     panicking INTEGER, raw TEXT);
 CREATE TABLE IF NOT EXISTS bscorpion_kills (character TEXT, t INTEGER, at TEXT, secs REAL, avg_secs REAL);
@@ -87,8 +87,8 @@ def add_tracker(db, r):
 
 def add_danger(db, r):
     db.execute("INSERT INTO danger VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (
-        r.get("character"), r.get("t"), r.get("at"), r.get("kind"), r.get("map"), r.get("home"), r.get("goal"),
-        r.get("killer"), 0 if r.get("kind") == "death" else r.get("min_hp_pct"), r.get("low_for_s"), r.get("damage_10s"),
+        r.get("character"), r.get("t"), r.get("at"), r.get("event"), r.get("map"), r.get("home"), r.get("goal"),
+        r.get("killer"), 0 if r.get("event") == "death" else r.get("min_hp_pct"), r.get("low_for_s"), r.get("damage_10s"),
         r.get("targeting"), r.get("mp_pct"), 1 if r.get("panicking") else 0, json.dumps(r)))
 
 
@@ -375,20 +375,20 @@ def danger(db, now_ms):
     for raw, t, who in db.execute("SELECT raw, t, character FROM danger ORDER BY t DESC LIMIT ?", (DANGER_EVENTS,)):
         r = json.loads(raw)
         events.append(r)
-        if r.get("kind") == "death":
+        if r.get("event") == "death":
             detailed.append((who, t))
     for who, t, at, msg in db.execute("SELECT character, t, at, msg FROM deaths ORDER BY t DESC LIMIT ?", (DANGER_EVENTS,)):
         if any(w == who and abs(t - dt) < DANGER_MATCH_MS for w, dt in detailed):
             continue
-        events.append({"kind": "death", "character": who, "t": t, "at": at, "note": msg, "detail": False})
+        events.append({"event": "death", "character": who, "t": t, "at": at, "note": msg, "detail": False})
     events.sort(key=lambda e: -(e.get("t") or 0))
     counts = {}
     for label, since in (("day", now_ms - 24 * HOUR_MS), ("week", now_ms - 7 * 24 * HOUR_MS)):
         logged = db.execute("SELECT character, t FROM deaths WHERE t >= ?", (since,)).fetchall()
-        extra = [(w, t) for w, t in db.execute("SELECT character, t FROM danger WHERE kind = 'death' AND t >= ?", (since,))
+        extra = [(w, t) for w, t in db.execute("SELECT character, t FROM danger WHERE event = 'death' AND t >= ?", (since,))
                  if not any(lw == w and abs(lt - t) < DANGER_MATCH_MS for lw, lt in logged)]
         deaths = len(logged) + len(extra)
-        close = db.execute("SELECT COUNT(*) FROM danger WHERE kind = 'close_call' AND t >= ?", (since,)).fetchone()[0]
+        close = db.execute("SELECT COUNT(*) FROM danger WHERE event = 'close_call' AND t >= ?", (since,)).fetchone()[0]
         counts[label] = {"deaths": deaths, "close_calls": close}
     return {"events": events[:DANGER_EVENTS], "counts": counts}
 

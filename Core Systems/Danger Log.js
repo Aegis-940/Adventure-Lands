@@ -74,9 +74,9 @@ function danger_context() {
 	};
 }
 
-function danger_record(kind, extra) {
-	errlog_archive("danger", Object.assign({ kind }, extra));
-	errlog_count("danger " + kind);
+function danger_record(event, extra) {
+	errlog_archive("danger", Object.assign({ event }, extra));
+	errlog_count("danger " + event);
 }
 
 function danger_tick() {

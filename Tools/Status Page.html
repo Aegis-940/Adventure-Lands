@@ -589,13 +589,13 @@ function render_danger(d) {
 		[{ label: "When" }, { label: "Who" }, { label: "Event" }, { label: "Where" }, { label: "Against" }, { label: "Dmg 10s", n: 1 },
 			{ label: "Low HP", n: 1 }, { label: "On them", n: 1 }, { label: "MP", n: 1 }, { label: "Context" }],
 		shown.map(e => {
-			const kind = e.kind === "death" ? chip("var(--critical)", "✕", "death") : chip("var(--warning)", "!", "close call");
+			const kind = e.event === "death" ? chip("var(--critical)", "✕", "death") : chip("var(--warning)", "!", "close call");
 			if (e.detail === false) {
 				return [`<span title="${esc(e.at)}">${esc(clock_time(e.t))}</span>`, esc(e.character), kind, esc((e.note || "").replace(/^died on /, "").split(" ")[0]),
 					'<span class="meta">no detail (before the danger log)</span>', "–", "–", "–", "–", ""];
 			}
 			const top = (e.sources || [])[0];
-			const against = e.kind === "death" ? (e.killer || (top && top.name)) : (top && top.name);
+			const against = e.event === "death" ? (e.killer || (top && top.name)) : (top && top.name);
 			const against_title = (e.sources || []).map(s => `${s.name}: ${s.damage.toLocaleString()} in ${s.hits} hits`).join("\n")
 				+ (e.biggest ? `\nbiggest hit ${e.biggest.damage.toLocaleString()} from ${e.biggest.from}${e.biggest.crit ? " (crit)" : ""}${e.biggest.source ? " [" + e.biggest.source + "]" : ""}` : "");
 			const context = [
@@ -609,7 +609,7 @@ function render_danger(d) {
 			const where = esc(e.map || "") + (e.goal ? `<div class="meta">${esc(e.goal)}</div>` : "");
 			return [`<span title="${esc(e.at)}">${esc(clock_time(e.t))}</span>`, esc(e.character), kind, where,
 				`<span title="${esc(against_title)}">${esc(against || "?")}</span>`,
-				compact(e.damage_10s), e.kind === "death" ? "0%" : (e.min_hp_pct + "%"), e.targeting === undefined ? "–" : e.targeting,
+				compact(e.damage_10s), e.event === "death" ? "0%" : (e.min_hp_pct + "%"), e.targeting === undefined ? "–" : e.targeting,
 				e.mp_pct === undefined ? "–" : e.mp_pct + "%", esc(context)];
 		}))
 		+ (d.events.length > DANGER_SHOWN
