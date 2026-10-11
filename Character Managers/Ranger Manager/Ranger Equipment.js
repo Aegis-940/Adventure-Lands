@@ -182,6 +182,7 @@ var MONSTER_GEAR_OVERRIDES = {
 var BOSS_GEAR_OVERRIDES = {
 	mrpumpkin: { weapon: "single", chest: "dps_chest" },
 	mrgreen:   { weapon: "single", chest: "dps_chest" },
+	crabxx:    { weapon: "boom" },
 };
 
 var RIME_HOLD_GEAR = { weapon: "single" };

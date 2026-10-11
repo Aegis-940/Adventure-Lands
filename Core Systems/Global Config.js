@@ -112,7 +112,7 @@ const EVENT_LOCATIONS = [
 	{ name: "dragold", map: "cave", x: 873, y: -727 },
 	{ name: "franky", join: true, engage_below: 0.95, leash: false, spot: { x: -19, y: 36 }, avoid: ["oneeye"] },
 	// { name: "icegolem", join: true, engage_below: 0.95 },
-	{ name: "crabxx", join: true, kite: { x: -1000, y: 1700, radius: 220 } },
+	{ name: "crabxx", join: true, kite: { x: -1000, y: 1700, radius: 105 } },
 	// { name: "wabbit", dynamic: true },
 ];
 

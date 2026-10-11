@@ -96,6 +96,7 @@ var MONSTER_GEAR_OVERRIDES = {
 var BOSS_GEAR_OVERRIDES = {
 	mrpumpkin: { weapon: "single", orb: "orb_dps" },
 	mrgreen:   { weapon: "single", orb: "orb_dps" },
+	crabxx:    { weapon: "double_aoe" },
 };
 
 var RIME_HOLD_GEAR = { weapon: "single" };
