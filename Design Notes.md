@@ -273,7 +273,7 @@ The `*SURVEY*` farm target (`SURVEY_FARM_TARGET`). `farm_target_for()` resolves 
 
 - Arrival is her first `at_farm_spot()` tick. Travel time that isn't an event detour counts toward `SURVEY_TRAVEL_LIMIT_MS` (20 min); past it the spot is `unreachable`.
 - For the first 5s at the spot, any non-party player inside the spawn box itself (no margin) ends the visit: `skipped` on the first pass, `occupied` on the retry. Skipped spots are retried after every pending spot. The 200px margin that decides *being at* the spot was used for this too until 10-11 19:50, and skipped sparkbot, targetron and xscorpion on players merely nearby: xscorpion's widened box reaches Mr. Pumpkin's spawn, where players wait for the event.
-- The clock is her at-spot time; 30 minutes makes the spot `done`.
+- The clock is her at-spot time; 60 minutes makes the spot `done` (30 until 10-11). A `done` spot short of `SURVEY_SPOT_MS` is reopened as pending with its clock kept (`survey_extend()`), so raising the target extends finished spots instead of restarting them. The reopened visit starts fresh (travel, occupancy, the two-death rule), and the report sums the ledger windows of every visit since the spot's last retry.
 - `unsafe` at 2 fighter deaths at the spot in one visit: a rip transition (hers, or one seen in the state cache) where the body lies inside the farm area, outside event detours. A death on the way there or on a boss detour does not count. Deaths are the only measure; a "lost hold" rule (a monster on Ulric or Riva for 15s) was dropped on 10-11.
 - Each status change is archived as a `survey_spot` record to `survey.jsonl`.
 

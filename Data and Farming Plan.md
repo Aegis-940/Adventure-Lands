@@ -34,7 +34,7 @@ How each part works is in `Design Notes.md` (`Farm Ledger.js`, `Farm Survey.js`,
 | Drop value | Ignored |
 | Buff normalisation | None; buffs balance out over the survey |
 | Candidate monsters | Around bscorpion and below, no bosses. Draft list below, hand-edited before the survey runs |
-| Time per spot | 30 minutes of at-spot data. No shuffling, no control visits back to bscorpion |
+| Time per spot | 60 minutes of at-spot data (30 until 10-11; finished spots were reopened to make up the difference). No shuffling, no control visits back to bscorpion |
 | Bosses and events | The survey yields to World Events as farming does now. Time away does not count; the visit resumes afterwards |
 | Safety | 2 deaths at the spot in one visit marks the spot **unsafe** and the survey moves on |
 | Occupied spawns | Another player at the spawn on arrival: skip it, retry after the rest of the list. Still occupied on retry: mark it **occupied** and move on |
@@ -112,7 +112,7 @@ The sink, or a `Tools/` script, builds a SQLite file (Python stdlib `sqlite3`) f
 
 1. Travel to the spot. Ledger windows count toward it only while `at_spot`. A spot not reached after 20 minutes of travel (event detours excluded) is marked `unreachable`.
 2. On arrival, if another player is at the spawn, mark the spot `skipped` and move on. Skipped spots are retried after the rest of the list; a second failure marks the spot `occupied`.
-3. Collect 30 minutes of at-spot time. Boss/event detours pause the clock; the visit resumes afterwards.
+3. Collect 60 minutes of at-spot time. Boss/event detours pause the clock; the visit resumes afterwards.
 4. 2 fighter deaths at the spot in one visit marks it `unsafe`. Deaths while travelling or on a boss detour don't count.
 5. After the last spot (and the retries), mark the survey complete; `*SURVEY*` now resolves to `bscorpion`.
 
@@ -145,7 +145,7 @@ Run in this order. Filter used: not a boss or co-op monster, on a normal map, HP
 
 Excluded by the filter: training dummies; single long-respawn monsters (mvampire 18 min, fvampire 24 min, skeletor 16 min, mechagnome 8 min); ent (8M HP); everything under 20k HP.
 
-13 spots × 30 min ≈ 6.5 hours of at-spot time, plus travel and event detours: about one to two nights. The list in code is `SURVEY_SPOTS` in `Farm Survey.js`. sparkbot now has a `LOCATIONS` entry (its spawn box centre). sparkbot and targetron share one uhills spawn area, so their results will overlap.
+13 spots × 60 min ≈ 13 hours of at-spot time, plus travel and event detours: about two to three nights. The list in code is `SURVEY_SPOTS` in `Farm Survey.js`. sparkbot now has a `LOCATIONS` entry (its spawn box centre). sparkbot and targetron share one uhills spawn area, so their results will overlap.
 
 ### Results
 

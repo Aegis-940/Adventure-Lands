@@ -1,5 +1,5 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// FARM SURVEY — the *SURVEY* farm target: 30 minutes at each spot in turn, then bscorpion. Myras owns the state; everyone follows it
+// FARM SURVEY — the *SURVEY* farm target: 60 minutes at each spot in turn, then bscorpion. Myras owns the state; everyone follows it
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const SURVEY_KEY = "AL_survey";
@@ -10,7 +10,7 @@ const SURVEY_SPOTS = [
 ];
 
 const SURVEY_TICK_MS = 1000;
-const SURVEY_SPOT_MS = 30 * 60 * 1000;
+const SURVEY_SPOT_MS = 60 * 60 * 1000;
 const SURVEY_OCCUPANCY_MS = 5000;
 const SURVEY_TRAVEL_LIMIT_MS = 20 * 60 * 1000;
 const SURVEY_UNSAFE_DEATHS = 2;
@@ -56,7 +56,7 @@ function switch_home(type) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// VISIT — arrival and the occupancy check, the 30-minute clock, and the safety stop
+// VISIT — arrival and the occupancy check, the 60-minute clock, and the safety stop
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 let _survey_tick_at = 0;
@@ -91,6 +91,21 @@ function survey_reconcile(survey) {
 	survey.complete = next === -1;
 	if (next !== -1) survey.index = next;
 	game_log(`🧭 Survey: spot list changed${removed.length ? ", dropped " + removed.join(", ") : ""}`, "#66ccff");
+	return true;
+}
+
+function survey_extend(survey) {
+	const short = survey.spots.filter(s => s.status === "done" && s.at_spot_ms < SURVEY_SPOT_MS);
+	if (!short.length) return false;
+	for (const spot of short) {
+		spot.status = "pending";
+		spot.visit_started = 0;
+	}
+	if (survey.complete) {
+		survey.complete = false;
+		survey.index = survey_next_index(survey);
+	}
+	game_log(`🧭 Survey: ${short.map(s => s.type).join(", ")} reopened for ${SURVEY_SPOT_MS / 60000} min at the spot`, "#66ccff");
 	return true;
 }
 
@@ -135,7 +150,8 @@ function survey_count_deaths(spot) {
 
 function survey_owner_tick(dt) {
 	const survey = survey_read() || survey_new();
-	if (survey_reconcile(survey)) storage_write(SURVEY_KEY, survey);
+	const reconciled = survey_reconcile(survey);
+	if (survey_extend(survey) || reconciled) storage_write(SURVEY_KEY, survey);
 	if (survey.complete) return;
 
 	const spot = survey.spots[survey.index];
