@@ -289,6 +289,8 @@ Every death and close call, per fighter, through `errlog_archive("danger")` to `
 - **Death:** the rip transition records the snapshot at death, `killer` = the last hit's source, and how long HP had been under 30% (`low_for_s`, null for a death from above 30%).
 - **Snapshot:** map, position, home, goal, panic, HP/MP %, damage taken in the last 10s by source (top 5) and the biggest hit, monsters targeting this character and monsters within 300px by type, debuffs, teammates' HP from the state cache, HP/MP potions left.
 
+The event type is the `event` field, never `kind`: `errlog_archive()` merges the data over `{ kind }`, and `kind` is what the sink routes on. Until 10-11 it was `kind`, so every record went out as kind `death` or `close_call` and none reached `danger.jsonl`; three were recovered from the archive rings.
+
 The status page lists them newest first; deaths from the timeline before the log existed (or from a character not running it) appear without detail unless a detailed death of the same character is within 15s.
 
 ### `Error Log.js`
