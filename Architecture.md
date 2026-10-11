@@ -121,7 +121,9 @@ Interface/*.js                    ← overlay panels (semi-independent)
 Tools/                            ← dev scaffolding, not loaded by the bot
     ├── Error Sink.py             local HTTP sink for errlog_sample() pushes -> errors.json;
     │                             archives ledger/tracker/survey records to .jsonl files
-    ├── Data Store.py             al_data.sqlite built from the .jsonl archives; the survey report
+    ├── Data Store.py             al_data.sqlite built from the .jsonl archives; the survey report; status JSON
+    ├── Party Model.js            offline stat/damage model: gear swaps, +1 upgrades, milestone ranking
+    ├── Status Page.html          the status page the sink serves at http://127.0.0.1:8787/
     └── Crypt Probe.js            one-off probe for crypt geometry
 ```
 

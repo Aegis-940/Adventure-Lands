@@ -11,6 +11,8 @@ tracker.jsonl
 survey.jsonl
 al_data.sqlite
 al_data.sqlite-journal
+party_model.json
+Tools/.cache/
 
 # Runtime data written by Tools/Watchdog.py.
 watchdog.json

@@ -15,9 +15,9 @@ Goals 2–4 all need numbers we do not keep today, so the foundation (Workstream
 |---|---|
 | 0a–0d data foundation | **Built 2026-10-11**: `Error Log.js` (archive lane, `game_response` off the timeline), `Farm Ledger.js`, `Error Sink.py`, `Tools/Data Store.py` |
 | 1 survey | **Built 2026-10-11**: `Farm Survey.js`, `*SURVEY*` in Settings. Not yet run in-game |
-| 2 achievements | Not started |
-| 3 equipment | Not started |
-| 4 status page | Not started |
+| 2 achievements | **Built 2026-10-11**: `node "Tools/Party Model.js" achievements`. Hours fill in as the survey measures kill rates |
+| 3 equipment | **Built 2026-10-11**: `Tools/Party Model.js` (`calibrate`, `slots`, `upgrades`) |
+| 4 status page | **Built 2026-10-11**: `http://127.0.0.1:8787/` while the sink runs (`Tools/Status Page.html`) |
 
 How each part works is in `Design Notes.md` (`Farm Ledger.js`, `Farm Survey.js`, `Error Log.js`, `Data Store.py`).
 

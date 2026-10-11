@@ -18,8 +18,10 @@ silently when it isn't running (backing off to a retry every 5 minutes), so star
 optional.
 """
 
+import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -342,6 +344,29 @@ class Handler(BaseHTTPRequestHandler):
         self._cors()
         self.end_headers()
 
+    def do_GET(self):
+        """The status page at /, and its data at /api/status (built fresh by Data Store.py on each call)."""
+        try:
+            route = self.path.split("?")[0]
+            if route in ("/", "/status"):
+                with open(STATUS_PAGE, "rb") as fh:
+                    body, ctype = fh.read(), "text/html; charset=utf-8"
+            elif route == "/api/status":
+                body, ctype = json.dumps(load_data_store().status()).encode("utf-8"), "application/json"
+            else:
+                self.send_response(404)
+                self.end_headers()
+                return
+            self.send_response(200)
+            self.send_header("content-type", ctype)
+            self.send_header("cache-control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+        except Exception as exc:
+            print("  ! GET %s: %s" % (self.path, exc), file=sys.stderr, flush=True)
+            self.send_response(500)
+            self.end_headers()
+
     def log_message(self, *args):
         pass  # the prints above are the log; suppress the default request spam
 
@@ -386,29 +411,46 @@ def sweep(label):
 
 
 DATA_STORE = os.path.join(REPO, "Tools", "Data Store.py")
+PARTY_MODEL = os.path.join(REPO, "Tools", "Party Model.js")
+STATUS_PAGE = os.path.join(REPO, "Tools", "Status Page.html")
+
+
+def load_data_store():
+    """Loaded per request, so an edit to Data Store.py shows on the page without restarting the sink."""
+    spec = importlib.util.spec_from_file_location("data_store", DATA_STORE)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def run_tool(label, argv):
+    """A separate process, so a slow or broken tool never holds the store lock or takes the sink down."""
+    done = subprocess.run(argv, cwd=REPO, capture_output=True, text=True, timeout=600,
+                          creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    if done.returncode:
+        print("  ! %s failed: %s" % (label, (done.stderr or done.stdout).strip()[-500:]), file=sys.stderr, flush=True)
 
 
 def refresh_data_store():
-    """Bring al_data.sqlite up to date with the archives. A separate process, so a slow or broken
-    ingest never holds the store lock or takes the sink down."""
-    done = subprocess.run([sys.executable, DATA_STORE, "ingest"], cwd=REPO, capture_output=True, text=True,
-                          timeout=600, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-    if done.returncode:
-        print("  ! data store ingest failed: %s" % (done.stderr or done.stdout).strip()[-500:],
-              file=sys.stderr, flush=True)
+    run_tool("data store ingest", [sys.executable, DATA_STORE, "ingest"])
+    node = shutil.which("node")
+    if node:
+        run_tool("party model", [node, PARTY_MODEL, "json"])
+    else:
+        print("  ! node not found on PATH; party_model.json is not refreshed", file=sys.stderr, flush=True)
 
 
 def maintenance_loop():
     while True:
+        try:
+            refresh_data_store()
+        except Exception as exc:
+            print("  ! data store refresh failed: %s" % exc, file=sys.stderr, flush=True)
         time.sleep(SWEEP_EVERY_S)
         try:
             sweep("swept")
         except Exception as exc:
             print("  ! sweep failed: %s" % exc, file=sys.stderr, flush=True)
-        try:
-            refresh_data_store()
-        except Exception as exc:
-            print("  ! data store refresh failed: %s" % exc, file=sys.stderr, flush=True)
 
 
 SOURCE = os.path.abspath(__file__)

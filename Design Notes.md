@@ -540,6 +540,26 @@ The settings window saves on **Reload All** (every character, staggered as befor
 
 `survey` prints one row per spot: party gold/hr from Myras's `spot_chest_gold`, kills/hr from her `spot_kills`, XP/min as the mean of the fighters' own rates, the bands from the plan, and `score = gold/hr ÷ 20M + XP/min ÷ 1M`.
 
+`status` is the status page's JSON: each character's last heartbeat and death from `errors.json`, farming rates (last hour, last day, and per farm target over 7 days at the spot), the survey (Myras's latest `survey_state` sample, sent once a minute, plus the per-spot results), the bscorpion kill-time and death trends, and a trimmed `party_model.json`.
+
+### `Party Model.js`
+
+The server's stat pipeline, offline, for Ulric and Riva. It runs the game's own `data.js` and `common_functions.js` (cached a day in `Tools/.cache`) in a `vm` context, so `calculate_item_properties()` (levels, class extras such as the Scorpion Seal's warrior block, shiny/stat_type) and `damage_multiplier()` are the game's code, not a copy. Everything is inside one async function, so `Lint.py` sees no globals.
+
+**What it reproduces from `calculate_player_stats()`:** class base stats with the level brackets (each main-stat point per level counts again past 40, 55 and 65, and once less past 80: Ulric's base str is 203 at 91, not 101), item stats via `apply_stats` (frequency ÷ 100), offhand attack × 0.7, the mainhand/offhand wtype modifiers, exact-count set bonuses, ability `attr0` summed across items, milestone stats (`monster_stats`, from the account's best monster score in the tracker snapshot), `attack = class attack + item_attack × main/20 + a_attack`, then `× output/100`, and attack speed from level, dex and int. Buffs are added at the uptimes measured in the boss profile; an elixir whose `expires` is before the profile is dropped.
+
+**Calibration on 10-11:** Riva 2,430 attack vs 2,428 measured, 1.628 attack speed vs 1.628. Ulric 2,310 vs 2,254 and 1.562 vs 1.568. Ulric's crit reads 31.6% against 28.3% measured because his per-swing swap (`weapon_burst()`) starts many swings in candy canes or the bataxe, which the recorded gear doesn't show.
+
+**Damage** is attack × (1 + crit × (1 + critdamage)) × attack speed × the armour curve, per fighter, summed; the Can Opener's sunder uptime is shared across both (`1 − Π(1 − p)^(hits in 5s)`). Burn, splash, cleave and multishot are out, so AOE and burn weapons are undervalued: the slot report's "scythe for Ulric" ignores his fireblade burn and cleave.
+
+**Upgrade cost** is the expected gold to rebuild the item one level higher at base odds (`G.upgrades`/`G.compounds` at the item's grade, its own grade of scroll): `value(L+1) = (value(L) [×3 for a compound] + scroll) / p`, from `G.items[x].g` at +0. Primlings, grace and the lucky slot are out, so it overstates the cost at high levels.
+
+**Milestones** take the next unreached `[score, "stat", stat, amount]` per monster at the account's best score. Gain is the party damage with the reward applied to both fighters; hours use Myras's at-the-spot kill rate at that farm target × 1.6 score per kill, so only farmed or surveyed monsters have one.
+
+### `Status Page.html`
+
+Served by the sink: `/` is the page, `/api/status` its data, built by `Data Store.py` loaded fresh per request (an edit shows without restarting the sink). After each ingest the sink also runs `node "Tools/Party Model.js" json`; without `node` on PATH it logs and the gear and milestone panels stay on the last file. The page refreshes every 30s. One series hue, status colours only with an icon and a label, light and dark themes from the dataviz reference palette. The kill-time line breaks across gaps over 90 minutes rather than drawing a line through hours with no kills.
+
 ### `Watchdog.py`
 
 An outside-the-page watchdog over the client's DevTools port (9222). **Read `watchdog.jsonl` first after the next dead character.**

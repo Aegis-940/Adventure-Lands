@@ -4,6 +4,7 @@
     python "Tools/Data Store.py" ingest     bring the database up to date (the sink does this every 15 minutes)
     python "Tools/Data Store.py" rebuild    delete the database and ingest everything again
     python "Tools/Data Store.py" survey     survey results, one row per spot
+    python "Tools/Data Store.py" status     the status page's JSON
 
 The .jsonl files are the record. The database is derived from them, so it can be deleted at any time.
 Ingest is incremental: each file's byte offset is remembered, and a file that shrank is re-read from
@@ -15,6 +16,7 @@ import os
 import re
 import sqlite3
 import sys
+import time
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB = os.path.join(REPO, "al_data.sqlite")
@@ -164,49 +166,160 @@ def band(value, bands):
     return next(name for floor, name in bands if value >= floor)
 
 
-def survey_report():
-    db = connect()
+def spot_rates(db, column, value, since_t=0):
+    """At-the-spot rates for the ledger windows where `column` = value. Party gold and kills come from the
+    survey owner's windows (chest gold is the whole chest, so one character's view is the party's); XP/min
+    is the mean of each fighter's own rate."""
+    owner = db.execute(
+        "SELECT SUM(at_spot_s), SUM(spot_chest_gold), SUM(spot_kills), MAX(players_nearby) "
+        "FROM ledger WHERE %s = ? AND character = ? AND t >= ?" % column, (value, SURVEY_OWNER, since_t)).fetchone()
+    secs, gold, kills, crowd = (owner[0] or 0, owner[1] or 0, owner[2] or 0, owner[3] or 0)
+    if not secs:
+        return None
+    xp_rates = [xp * 60 / s for xp, s in db.execute(
+        "SELECT SUM(spot_xp), SUM(at_spot_s) FROM ledger WHERE %s = ? AND t >= ? GROUP BY character" % column,
+        (value, since_t)) if s]
+    deaths = db.execute("SELECT SUM(deaths) FROM ledger WHERE %s = ? AND t >= ?" % column,
+                        (value, since_t)).fetchone()[0] or 0
+    gold_hr = gold * 3600 / secs
+    xp_min = sum(xp_rates) / len(xp_rates) if xp_rates else 0
+    return {
+        "minutes": round(secs / 60, 1), "kills_hr": round(kills * 3600 / secs), "gold_hr": round(gold_hr),
+        "gold_band": band(gold_hr, GOLD_BANDS), "xp_min": round(xp_min), "xp_band": band(xp_min, XP_BANDS),
+        "score": round(gold_hr / GOLD_HEALTHY + xp_min / XP_MIN_HEALTHY, 2), "crowd": crowd, "deaths": deaths,
+    }
+
+
+def survey_rows(db):
     status = {}
     for spot, st, at_spot_s, deaths, visits in db.execute(
-            "SELECT spot, status, at_spot_s, deaths, visits FROM survey "
-            "WHERE spot IS NOT NULL ORDER BY t"):
-        status[spot] = (st, at_spot_s, deaths, visits)
+            "SELECT spot, status, at_spot_s, deaths, visits FROM survey WHERE spot IS NOT NULL ORDER BY t"):
+        status[spot] = {"status": st, "clock_min": round((at_spot_s or 0) / 60, 1), "visit_deaths": deaths,
+                        "visits": visits}
+    spots = {s for (s,) in db.execute("SELECT DISTINCT survey_spot FROM ledger WHERE survey_spot IS NOT NULL")}
+    rows = [{"spot": spot, **status.get(spot, {"status": "running"}), "rates": spot_rates(db, "survey_spot", spot)}
+            for spot in spots | set(status)]
+    return sorted(rows, key=lambda r: -(r["rates"] or {}).get("score", -1))
 
-    rows = []
-    for (spot,) in db.execute("SELECT DISTINCT survey_spot FROM ledger WHERE survey_spot IS NOT NULL"):
-        owner = db.execute(
-            "SELECT SUM(at_spot_s), SUM(spot_chest_gold), SUM(spot_kills), MAX(players_nearby) "
-            "FROM ledger WHERE survey_spot = ? AND character = ?", (spot, SURVEY_OWNER)).fetchone()
-        secs, gold, kills, crowd = (owner[0] or 0, owner[1] or 0, owner[2] or 0, owner[3] or 0)
-        xp_rates = [xp * 60 / s for xp, s in db.execute(
-            "SELECT SUM(spot_xp), SUM(at_spot_s) FROM ledger WHERE survey_spot = ? GROUP BY character", (spot,))
-            if s]
-        if not secs:
-            rows.append((spot, None))
-            continue
-        gold_hr = gold * 3600 / secs
-        xp_min = sum(xp_rates) / len(xp_rates) if xp_rates else 0
-        rows.append((spot, {
-            "min": secs / 60, "kills_hr": kills * 3600 / secs, "gold_hr": gold_hr, "xp_min": xp_min,
-            "score": gold_hr / GOLD_HEALTHY + xp_min / XP_MIN_HEALTHY, "crowd": crowd,
-        }))
+
+def survey_report():
+    db = connect()
+    rows = survey_rows(db)
     db.close()
-
-    measured = sorted([r for r in rows if r[1]], key=lambda r: -r[1]["score"])
-    seen = {r[0] for r in rows}
     print("%-11s %-11s %5s %8s %12s %-8s %10s %-8s %6s %6s %6s" % (
         "spot", "status", "min", "kills/h", "gold/h", "", "xp/min", "", "score", "deaths", "crowd"))
-    for spot, m in measured:
-        st, _, deaths, _ = status.get(spot, ("running", 0, 0, 0))
-        print("%-11s %-11s %5.0f %8.0f %12s %-8s %10s %-8s %6.2f %6s %6d" % (
-            spot, st, m["min"], m["kills_hr"], "{:,.0f}".format(m["gold_hr"]), band(m["gold_hr"], GOLD_BANDS),
-            "{:,.0f}".format(m["xp_min"]), band(m["xp_min"], XP_BANDS), m["score"], deaths, m["crowd"]))
-    for spot, (st, at_spot_s, deaths, visits) in status.items():
-        if spot not in seen or not dict(rows).get(spot):
-            print("%-11s %-11s %5.0f  (no ledger data at the spot; %s visit(s), %s deaths)" % (
-                spot, st, (at_spot_s or 0) / 60, visits, deaths))
+    for r in rows:
+        m = r["rates"]
+        if not m:
+            print("%-11s %-11s %5.0f  (no ledger data at the spot; %s visit(s))" % (
+                r["spot"], r["status"], r.get("clock_min") or 0, r.get("visits")))
+            continue
+        print("%-11s %-11s %5.0f %8d %12s %-8s %10s %-8s %6.2f %6s %6d" % (
+            r["spot"], r["status"], m["minutes"], m["kills_hr"], "{:,}".format(m["gold_hr"]), m["gold_band"],
+            "{:,}".format(m["xp_min"]), m["xp_band"], m["score"], m["deaths"], m["crowd"]))
     print("\nscore = gold/hr / 20M + XP/min / 1M (2.0 = healthy on both). Gold is party chest gold seen by %s;"
           " XP/min is the mean across fighters." % SURVEY_OWNER)
+
+
+# --------------------------------------------------------------------------------------------------------------------------------- #
+# STATUS — everything the status page shows, as one JSON document
+# --------------------------------------------------------------------------------------------------------------------------------- #
+
+ERRORS = os.path.join(REPO, "errors.json")
+MODEL = os.path.join(REPO, "party_model.json")
+CHARACTERS = ["Ulric", "Myras", "Riva", "Riff"]
+HOUR_MS = 3600 * 1000
+
+
+def read_json(path):
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return None
+
+
+def live(errors):
+    out = []
+    for name in CHARACTERS:
+        bucket = (errors or {}).get(name) or {}
+        deaths = bucket.get("deaths") or []
+        out.append({"character": name, "beat": (bucket.get("alive") or [None])[-1],
+                    "last_death": deaths[-1].get("t") if deaths else None})
+    return out
+
+
+def overall_rates(db, since_t):
+    owner = db.execute("SELECT SUM(window_s), SUM(chest_gold), SUM(kills) FROM ledger WHERE character = ? AND t >= ?",
+                       (SURVEY_OWNER, since_t)).fetchone()
+    secs, gold, kills = owner[0] or 0, owner[1] or 0, owner[2] or 0
+    if not secs:
+        return None
+    xp_rates = [xp * 60 / s for xp, s in db.execute(
+        "SELECT SUM(xp), SUM(window_s) FROM ledger WHERE t >= ? GROUP BY character", (since_t,)) if s]
+    xp_min = sum(xp_rates) / len(xp_rates) if xp_rates else 0
+    gold_hr = gold * 3600 / secs
+    return {"minutes": round(secs / 60), "gold_hr": round(gold_hr), "xp_min": round(xp_min),
+            "kills_hr": round(kills * 3600 / secs), "gold_band": band(gold_hr, GOLD_BANDS), "xp_band": band(xp_min, XP_BANDS)}
+
+
+def survey_state(errors):
+    samples = [s for s in ((errors or {}).get(SURVEY_OWNER) or {}).get("samples") or [] if s.get("kind") == "survey_state"]
+    return samples[-1] if samples else None
+
+
+def trends(db, now_ms):
+    kills = [{"t": int(t), "avg_secs": round(a, 1), "n": n} for t, a, n in db.execute(
+        "SELECT (t / ?) * ?, AVG(secs), COUNT(*) FROM bscorpion_kills WHERE t >= ? AND secs < 120 "
+        "GROUP BY t / ? ORDER BY 1", (HOUR_MS, HOUR_MS, now_ms - 72 * HOUR_MS, HOUR_MS))]
+    deaths = [{"day": d, "n": n} for d, n in db.execute(
+        "SELECT substr(at, 1, 10), COUNT(*) FROM deaths WHERE t >= ? GROUP BY 1 ORDER BY 1", (now_ms - 14 * 24 * HOUR_MS,))]
+    return {"bscorpion_kill_secs": kills, "deaths_per_day": deaths}
+
+
+def model():
+    m = read_json(MODEL)
+    if not m:
+        return None
+    top_slots = []
+    for who, slots in (m.get("slots") or {}).items():
+        for slot, s in slots.items():
+            best = next((b for b in s.get("best") or [] if b["gain_pct"] > 0.05), None)
+            if best:
+                top_slots.append({"character": who, "slot": slot, "worn": s["worn"], **best})
+    top_slots.sort(key=lambda r: -r["gain_pct"])
+    return {
+        "generated": m.get("generated"), "monster": m.get("monster"), "calibration": m.get("calibration"),
+        "upgrades": (m.get("upgrades") or [])[:12], "achievements": (m.get("achievements") or [])[:20],
+        "slots": top_slots[:15], "assumptions": m.get("assumptions"),
+    }
+
+
+def status():
+    now_ms = int(time.time() * 1000)
+    errors = read_json(ERRORS)
+    db = connect()
+    week = now_ms - 7 * 24 * HOUR_MS
+    by_home = []
+    for (home,) in db.execute("SELECT DISTINCT home FROM ledger WHERE home IS NOT NULL").fetchall():
+        rates = spot_rates(db, "home", home, week)
+        if rates:
+            by_home.append({"home": home, **rates})
+    out = {
+        "generated": now_ms,
+        "live": live(errors),
+        "farming": {
+            "last_hour": overall_rates(db, now_ms - HOUR_MS),
+            "last_day": overall_rates(db, now_ms - 24 * HOUR_MS),
+            "by_home": sorted(by_home, key=lambda r: -r["score"]),
+        },
+        "survey": {"state": survey_state(errors), "results": survey_rows(db)},
+        "trends": trends(db, now_ms),
+        "model": model(),
+        "bands": {"gold": GOLD_BANDS, "xp": XP_BANDS},
+    }
+    db.close()
+    return out
 
 
 def main():
@@ -222,6 +335,8 @@ def main():
     elif command == "survey":
         ingest()
         survey_report()
+    elif command == "status":
+        print(json.dumps(status(), indent=1))
     else:
         print(__doc__)
         sys.exit(2)

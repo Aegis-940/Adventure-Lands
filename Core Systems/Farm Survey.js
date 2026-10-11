@@ -14,6 +14,7 @@ const SURVEY_SPOT_MS = 30 * 60 * 1000;
 const SURVEY_OCCUPANCY_MS = 5000;
 const SURVEY_TRAVEL_LIMIT_MS = 20 * 60 * 1000;
 const SURVEY_UNSAFE_DEATHS = 2;
+const SURVEY_REPORT_MS = 60000;
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // STATE — localStorage, shared by every character's iframe
@@ -152,6 +153,24 @@ function survey_owner_tick(dt) {
 	else if (spot.at_spot_ms >= SURVEY_SPOT_MS) survey_finish(survey, "done");
 
 	storage_write(SURVEY_KEY, survey);
+	survey_report_state(survey);
+}
+
+let _survey_reported_at = 0;
+
+function survey_report_state(survey) {
+	const now = Date.now();
+	if (!survey.complete && now - _survey_reported_at < SURVEY_REPORT_MS) return;
+	_survey_reported_at = now;
+	errlog_sample("survey_state", {
+		index: survey.index,
+		complete: survey.complete,
+		spot_minutes: SURVEY_SPOT_MS / 60000,
+		spots: survey.spots.map(s => ({
+			type: s.type, status: s.status, visits: s.visits, at_spot_s: Math.round(s.at_spot_ms / 1000),
+			arrived: !!s.arrived, deaths: s.deaths || 0,
+		})),
+	});
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

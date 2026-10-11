@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Party Status</title>
+<style>
+:root {
+	color-scheme: light;
+	--page: #f9f9f7;
+	--surface-1: #fcfcfb;
+	--text-primary: #0b0b0b;
+	--text-secondary: #52514e;
+	--text-muted: #898781;
+	--grid: #e1e0d9;
+	--axis: #c3c2b7;
+	--border: rgba(11, 11, 11, 0.10);
+	--series-1: #2a78d6;
+	--series-1-wash: rgba(42, 120, 214, 0.10);
+	--track: #cde2fb;
+	--good: #0ca30c;
+	--warning: #fab219;
+	--serious: #ec835a;
+	--critical: #d03b3b;
+	--neutral: #898781;
+}
+@media (prefers-color-scheme: dark) {
+	:root:where(:not([data-theme="light"])) {
+		color-scheme: dark;
+		--page: #0d0d0d;
+		--surface-1: #1a1a19;
+		--text-primary: #ffffff;
+		--text-secondary: #c3c2b7;
+		--text-muted: #898781;
+		--grid: #2c2c2a;
+		--axis: #383835;
+		--border: rgba(255, 255, 255, 0.10);
+		--series-1: #3987e5;
+		--series-1-wash: rgba(57, 135, 229, 0.10);
+		--track: #184f95;
+	}
+}
+:root[data-theme="dark"] {
+	color-scheme: dark;
+	--page: #0d0d0d;
+	--surface-1: #1a1a19;
+	--text-primary: #ffffff;
+	--text-secondary: #c3c2b7;
+	--text-muted: #898781;
+	--grid: #2c2c2a;
+	--axis: #383835;
+	--border: rgba(255, 255, 255, 0.10);
+	--series-1: #3987e5;
+	--series-1-wash: rgba(57, 135, 229, 0.10);
+	--track: #184f95;
+}
+* { box-sizing: border-box; }
+body {
+	margin: 0;
+	background: var(--page);
+	color: var(--text-primary);
+	font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 48px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; margin-bottom: 16px; }
+h1 { font-size: 22px; font-weight: 600; margin: 0; }
+h2 { font-size: 15px; font-weight: 600; margin: 0 0 10px; }
+h3 { font-size: 13px; font-weight: 600; margin: 14px 0 6px; color: var(--text-secondary); }
+.meta { color: var(--text-muted); font-size: 12px; }
+.grid { display: grid; gap: 14px; min-width: 0; }
+.grid > * { min-width: 0; }
+.cols-2 { grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); }
+.cols-4 { grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); }
+section.card {
+	background: var(--surface-1);
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	padding: 14px 16px;
+	min-width: 0;
+}
+.section { margin-top: 18px; }
+.char { display: flex; flex-direction: column; gap: 6px; }
+.char-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.char-name { font-weight: 600; font-size: 15px; }
+.where { color: var(--text-secondary); font-size: 12px; overflow-wrap: anywhere; }
+.meter { display: grid; grid-template-columns: 26px 1fr 42px; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
+.meter .track { height: 8px; border-radius: 4px; background: var(--track); overflow: hidden; }
+.meter .fill { height: 100%; border-radius: 4px; background: var(--series-1); }
+.meter .num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+.chip .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: 12px; }
+.tile .label { color: var(--text-secondary); font-size: 12px; }
+.tile .value { font-size: 26px; font-weight: 600; }
+.tile .sub { color: var(--text-muted); font-size: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font-weight: 600; color: var(--text-secondary); font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+td { padding: 6px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+tr:last-child td { border-bottom: none; }
+.scroll { overflow-x: auto; }
+.empty { color: var(--text-muted); font-size: 13px; padding: 6px 0; }
+.spots { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; }
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; height: auto; }
+.chart text { fill: var(--text-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.tip {
+	position: absolute; pointer-events: none; display: none;
+	background: var(--surface-1); color: var(--text-primary);
+	border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px;
+	font-size: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); white-space: nowrap; z-index: 2;
+}
+details { margin-top: 10px; color: var(--text-secondary); font-size: 12px; }
+details ul { margin: 6px 0 0; padding-left: 18px; }
+.err { color: var(--critical); }
+</style>
+</head>
+<body>
+<main>
+	<header>
+		<h1>Party status</h1>
+		<div class="meta" id="updated">Loading…</div>
+	</header>
+
+	<div class="grid cols-4" id="live"></div>
+
+	<div class="section grid cols-2">
+		<section class="card">
+			<h2>Farming</h2>
+			<div class="tiles" id="tiles"></div>
+			<h3>By farm target, last 7 days, time at the spot</h3>
+			<div class="scroll" id="by-home"></div>
+		</section>
+		<section class="card">
+			<h2>Survey</h2>
+			<div id="survey-now"></div>
+			<div class="spots" id="survey-spots"></div>
+			<h3>Results, best combined score first</h3>
+			<div class="scroll" id="survey-results"></div>
+		</section>
+	</div>
+
+	<div class="section grid cols-2">
+		<section class="card">
+			<h2>Bscorpion seconds per kill</h2>
+			<div class="meta">Hourly average, last 72 hours</div>
+			<div class="chart" id="kill-chart"></div>
+		</section>
+		<section class="card">
+			<h2>Deaths per day</h2>
+			<div class="meta">All characters, last 14 days</div>
+			<div class="chart" id="death-chart"></div>
+		</section>
+	</div>
+
+	<div class="section grid cols-2">
+		<section class="card">
+			<h2>Next kill-score milestones</h2>
+			<div class="meta" id="ach-meta"></div>
+			<div class="scroll" id="achievements"></div>
+		</section>
+		<section class="card">
+			<h2>Gear</h2>
+			<div class="meta" id="gear-meta"></div>
+			<h3>Best item swap per slot</h3>
+			<div class="scroll" id="slots"></div>
+			<h3>Best +1 upgrades per gold</h3>
+			<div class="scroll" id="upgrades"></div>
+			<details id="assumptions"></details>
+		</section>
+	</div>
+</main>
+
+<script>
+const REFRESH_MS = 30000;
+const STALE_MS = 3 * 60 * 1000;
+const STATUS = {
+	done: { color: "var(--good)", icon: "✓", label: "done" },
+	running: { color: "var(--series-1)", icon: "▶", label: "running" },
+	pending: { color: "var(--neutral)", icon: "·", label: "pending" },
+	skipped: { color: "var(--warning)", icon: "↻", label: "skipped, retry later" },
+	occupied: { color: "var(--warning)", icon: "⊘", label: "occupied" },
+	unreachable: { color: "var(--serious)", icon: "⊘", label: "unreachable" },
+	unsafe: { color: "var(--critical)", icon: "✕", label: "unsafe" },
+};
+const BAND = {
+	high: { color: "var(--good)", icon: "▲" },
+	healthy: { color: "var(--good)", icon: "●" },
+	average: { color: "var(--good)", icon: "●" },
+	fair: { color: "var(--warning)", icon: "◐" },
+	low: { color: "var(--serious)", icon: "▼" },
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s === null || s === undefined ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function compact(v) {
+	if (v === null || v === undefined) return "–";
+	const a = Math.abs(v);
+	if (a >= 1e9) return (v / 1e9).toFixed(1) + "B";
+	if (a >= 1e6) return (v / 1e6).toFixed(1) + "M";
+	if (a >= 1e3) return (v / 1e3).toFixed(a >= 1e5 ? 0 : 1) + "K";
+	return String(Math.round(v * 10) / 10);
+}
+function ago(ms) {
+	const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+	if (s < 90) return s + "s ago";
+	if (s < 5400) return Math.round(s / 60) + " min ago";
+	return Math.round(s / 3600) + " h ago";
+}
+function chip(color, icon, label) {
+	return `<span class="chip"><span class="dot" style="background:${color}"></span>${esc(icon)} ${esc(label)}</span>`;
+}
+function band(name) {
+	const b = BAND[name] || { color: "var(--neutral)", icon: "" };
+	return chip(b.color, b.icon, name);
+}
+function rated(value, name) {
+	const b = BAND[name] || { color: "var(--neutral)", icon: "" };
+	return `<span class="chip"><span style="color:var(--text-primary);font-variant-numeric:tabular-nums">${compact(value)}</span>`
+		+ `<span class="dot" style="background:${b.color}"></span>${esc(b.icon)} ${esc(name)}</span>`;
+}
+
+function table(head, rows) {
+	if (!rows.length) return '<div class="empty">No data yet.</div>';
+	return "<table><thead><tr>" + head.map(h => `<th class="${h.n ? "n" : ""}">${esc(h.label)}</th>`).join("")
+		+ "</tr></thead><tbody>" + rows.map(r => "<tr>" + r.map((c, i) => `<td class="${head[i].n ? "n" : ""}">${c}</td>`).join("") + "</tr>").join("")
+		+ "</tbody></table>";
+}
+
+function render_live(live) {
+	$("live").innerHTML = live.map(c => {
+		const b = c.beat;
+		let state;
+		if (!b) state = chip("var(--neutral)", "?", "no data");
+		else if (Date.now() - b.t > STALE_MS) state = chip("var(--warning)", "⏸", "stale " + ago(b.t));
+		else if (b.rip) state = chip("var(--critical)", "✕", "dead");
+		else if (b.panicking) state = chip("var(--serious)", "!", "panicking");
+		else state = chip("var(--good)", "✓", "alive");
+		const meters = b ? ["HP", "MP"].map(k => {
+			const v = k === "HP" ? b.hp : b.mp;
+			return `<div class="meter"><span>${k}</span><div class="track"><div class="fill" style="width:${Math.max(0, Math.min(100, v))}%"></div></div><span class="num">${v}%</span></div>`;
+		}).join("") : "";
+		return `<section class="card char">
+			<div class="char-top"><span class="char-name">${esc(c.character)}</span>${state}</div>
+			<div class="where">${b ? esc(b.map) + (b.goal ? " · " + esc(b.goal) : "") : ""}</div>
+			${meters}
+			<div class="meta">${b ? "heartbeat " + ago(b.t) : ""}${c.last_death ? " · last death " + ago(c.last_death) : ""}</div>
+		</section>`;
+	}).join("");
+}
+
+function render_farming(f) {
+	const tile = (label, v, b, sub) => `<div class="tile"><div class="label">${esc(label)}</div><div class="value">${v}</div>`
+		+ `<div class="sub">${b ? band(b) : ""}${sub ? " " + esc(sub) : ""}</div></div>`;
+	const h = f.last_hour, d = f.last_day;
+	$("tiles").innerHTML = [
+		tile("Gold per hour, last hour", compact(h && h.gold_hr), h && h.gold_band, d ? "24 h: " + compact(d.gold_hr) : ""),
+		tile("XP per minute, last hour", compact(h && h.xp_min), h && h.xp_band, d ? "24 h: " + compact(d.xp_min) : ""),
+		tile("Kills per hour, last hour", compact(h && h.kills_hr), null, d ? "24 h: " + compact(d.kills_hr) : ""),
+	].join("");
+	$("by-home").innerHTML = table(
+		[{ label: "Target" }, { label: "Min", n: 1 }, { label: "Gold/h" }, { label: "XP/min" }, { label: "Kills/h", n: 1 }, { label: "Score", n: 1 }],
+		f.by_home.map(r => [esc(r.home), r.minutes.toFixed(0), rated(r.gold_hr, r.gold_band), rated(r.xp_min, r.xp_band), r.kills_hr, r.score.toFixed(2)]));
+}
+
+function render_survey(s) {
+	const st = s.state;
+	if (st && st.spots) {
+		const cur = st.spots[st.index];
+		const pct = st.complete ? 100 : Math.min(100, cur.at_spot_s / 60 / st.spot_minutes * 100);
+		$("survey-now").innerHTML = st.complete
+			? `<div class="tile"><div class="value">Complete</div><div class="sub">Reported ${ago(st.t)}</div></div>`
+			: `<div class="tile"><div class="label">Current spot · ${cur.arrived ? "at the spot" : "travelling"} · reported ${ago(st.t)}</div>`
+				+ `<div class="value">${esc(cur.type)}</div></div>`
+				+ `<div class="meter" style="grid-template-columns: 1fr 74px"><div class="track"><div class="fill" style="width:${pct}%"></div></div>`
+				+ `<span class="num">${Math.floor(cur.at_spot_s / 60)} / ${st.spot_minutes} min</span></div>`;
+		$("survey-spots").innerHTML = st.spots.map((p, i) => {
+			const key = !st.complete && i === st.index ? "running" : p.status;
+			const m = STATUS[key] || STATUS.pending;
+			return chip(m.color, m.icon, p.type + (key === "pending" ? "" : " " + m.label));
+		}).join("");
+	} else {
+		$("survey-now").innerHTML = '<div class="empty">No live survey report in the last two hours. Set the fighters\' farm target to *SURVEY* to run one.</div>';
+		$("survey-spots").innerHTML = "";
+	}
+	$("survey-results").innerHTML = table(
+		[{ label: "Spot" }, { label: "Status" }, { label: "Min", n: 1 }, { label: "Gold/h" }, { label: "XP/min" }, { label: "Kills/h", n: 1 }, { label: "Score", n: 1 }, { label: "Deaths", n: 1 }],
+		s.results.map(r => {
+			const m = STATUS[r.status] || STATUS.running;
+			const x = r.rates;
+			return [esc(r.spot), chip(m.color, m.icon, m.label), x ? x.minutes.toFixed(0) : "–", x ? rated(x.gold_hr, x.gold_band) : "–",
+				x ? rated(x.xp_min, x.xp_band) : "–", x ? x.kills_hr : "–", x ? x.score.toFixed(2) : "–", x ? x.deaths : (r.visit_deaths || 0)];
+		}));
+}
+
+function axis_ticks(lo, hi, count) {
+	const span = hi - lo || 1;
+	const step = Math.pow(10, Math.floor(Math.log10(span / count)));
+	const nice = [1, 2, 5, 10].map(m => m * step).find(s => span / s <= count) || step * 10;
+	const out = [];
+	for (let v = Math.ceil(lo / nice) * nice; v <= hi + 1e-9; v += nice) out.push(+v.toFixed(6));
+	return out;
+}
+
+function line_chart(el, points, fmt_x, fmt_y, unit, gap_ms) {
+	if (points.length < 2) { el.innerHTML = '<div class="empty">Not enough data yet.</div>'; return; }
+	const W = 560, H = 220, L = 40, R = 16, T = 12, B = 26;
+	const xs = points.map(p => p.x), ys = points.map(p => p.y);
+	const x0 = Math.min(...xs), x1 = Math.max(...xs);
+	const ticks = axis_ticks(Math.min(...ys) * 0.95, Math.max(...ys) * 1.05, 4);
+	const y0 = ticks[0], y1 = ticks[ticks.length - 1];
+	const sx = x => L + (x - x0) / (x1 - x0 || 1) * (W - L - R);
+	const sy = y => T + (1 - (y - y0) / (y1 - y0 || 1)) * (H - T - B);
+	const path = points.map((p, i) => (i && p.x - points[i - 1].x <= gap_ms ? "L" : "M") + sx(p.x).toFixed(1) + " " + sy(p.y).toFixed(1)).join(" ");
+	const grid = ticks.map(t => `<line x1="${L}" x2="${W - R}" y1="${sy(t)}" y2="${sy(t)}" stroke="var(--grid)" stroke-width="1"/>`
+		+ `<text x="${L - 6}" y="${sy(t) + 4}" text-anchor="end">${fmt_y(t)}</text>`).join("");
+	const xt = [[points[0], "start"], [points[Math.floor(points.length / 2)], "middle"], [points[points.length - 1], "end"]]
+		.map(([p, anchor]) => `<text x="${sx(p.x)}" y="${H - 6}" text-anchor="${anchor}">${fmt_x(p.x)}</text>`).join("");
+	const last = points[points.length - 1];
+	el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="line chart">${grid}
+		<line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" stroke="var(--axis)" stroke-width="1"/>
+		<path d="${path}" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+		<circle cx="${sx(last.x)}" cy="${sy(last.y)}" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/>
+		${xt}
+		<line class="cross" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="var(--axis)" stroke-width="1" visibility="hidden"/>
+		<circle class="hover-dot" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2" visibility="hidden"/>
+		<rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/>
+	</svg><div class="tip"></div>`;
+	const svg = el.querySelector("svg"), tip = el.querySelector(".tip"), cross = svg.querySelector(".cross"), dot = svg.querySelector(".hover-dot");
+	svg.addEventListener("pointermove", ev => {
+		const box = svg.getBoundingClientRect();
+		const vx = (ev.clientX - box.left) / box.width * W;
+		let best = points[0];
+		for (const p of points) if (Math.abs(sx(p.x) - vx) < Math.abs(sx(best.x) - vx)) best = p;
+		cross.setAttribute("x1", sx(best.x)); cross.setAttribute("x2", sx(best.x)); cross.setAttribute("visibility", "visible");
+		dot.setAttribute("cx", sx(best.x)); dot.setAttribute("cy", sy(best.y)); dot.setAttribute("visibility", "visible");
+		tip.innerHTML = `${esc(fmt_x(best.x, true))}<br><b>${esc(fmt_y(best.y))}</b> ${esc(unit)}${best.n ? " · " + best.n + " kills" : ""}`;
+		tip.style.display = "block";
+		const px = sx(best.x) / W * box.width;
+		tip.style.left = Math.min(px + 10, box.width - tip.offsetWidth) + "px";
+		tip.style.top = (sy(best.y) / H * box.height - 40) + "px";
+	});
+	svg.addEventListener("pointerleave", () => { tip.style.display = "none"; cross.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); });
+}
+
+function column_chart(el, bars) {
+	if (!bars.length) { el.innerHTML = '<div class="empty">No deaths recorded.</div>'; return; }
+	const W = 560, H = 220, L = 32, R = 12, T = 12, B = 26;
+	const ticks = axis_ticks(0, Math.max(...bars.map(b => b.n)), 4);
+	const top = ticks[ticks.length - 1] || 1;
+	const band_w = (W - L - R) / bars.length;
+	const bw = Math.min(24, band_w * 0.6);
+	const sy = v => T + (1 - v / top) * (H - T - B);
+	const grid = ticks.map(t => `<line x1="${L}" x2="${W - R}" y1="${sy(t)}" y2="${sy(t)}" stroke="var(--grid)" stroke-width="1"/>`
+		+ `<text x="${L - 6}" y="${sy(t) + 4}" text-anchor="end">${t}</text>`).join("");
+	const r = 4;
+	const cols = bars.map((b, i) => {
+		const x = L + i * band_w + (band_w - bw) / 2, y = sy(b.n), h = H - B - y;
+		const rr = Math.min(r, h, bw / 2);
+		const d = h > 0 ? `M${x} ${H - B} V${y + rr} Q${x} ${y} ${x + rr} ${y} H${x + bw - rr} Q${x + bw} ${y} ${x + bw} ${y + rr} V${H - B} Z` : "";
+		return `<g data-i="${i}"><rect x="${L + i * band_w}" y="${T}" width="${band_w}" height="${H - T - B}" fill="transparent"/>`
+			+ (d ? `<path d="${d}" fill="var(--series-1)"/>` : "")
+			+ `<text x="${x + bw / 2}" y="${H - 6}" text-anchor="middle">${esc(b.day.slice(8))}</text></g>`;
+	}).join("");
+	el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="deaths per day">${grid}
+		<line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" stroke="var(--axis)" stroke-width="1"/>${cols}</svg><div class="tip"></div>`;
+	const svg = el.querySelector("svg"), tip = el.querySelector(".tip");
+	svg.querySelectorAll("g[data-i]").forEach(g => {
+		g.addEventListener("pointermove", () => {
+			const b = bars[+g.dataset.i], box = svg.getBoundingClientRect();
+			tip.innerHTML = `${esc(b.day)}<br><b>${b.n}</b> deaths`;
+			tip.style.display = "block";
+			const px = (L + (+g.dataset.i + 0.5) * band_w) / W * box.width;
+			tip.style.left = Math.min(px + 10, box.width - tip.offsetWidth) + "px";
+			tip.style.top = (sy(b.n) / H * box.height - 40) + "px";
+		});
+		g.addEventListener("pointerleave", () => { tip.style.display = "none"; });
+	});
+}
+
+function every_day(rows, days) {
+	const seen = Object.fromEntries(rows.map(r => [r.day, r.n]));
+	const out = [];
+	for (let i = days - 1; i >= 0; i--) {
+		const d = new Date(Date.now() - i * 86400000);
+		const day = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+		out.push({ day, n: seen[day] || 0 });
+	}
+	return out;
+}
+
+function render_trends(t) {
+	const pts = t.bscorpion_kill_secs.map(p => ({ x: p.t, y: p.avg_secs, n: p.n }));
+	const fx = (x, long) => {
+		const d = new Date(x);
+		return long ? d.toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" }) : d.toLocaleString([], { weekday: "short", hour: "2-digit" });
+	};
+	line_chart($("kill-chart"), pts, fx, v => (Math.round(v * 10) / 10).toString(), "s per kill", 90 * 60 * 1000);
+	column_chart($("death-chart"), every_day(t.deaths_per_day, 14));
+}
+
+function render_model(m) {
+	if (!m) {
+		["achievements", "slots", "upgrades"].forEach(id => $(id).innerHTML = '<div class="empty">No party_model.json yet. The sink writes it every 15 minutes.</div>');
+		return;
+	}
+	const cal = (m.calibration || []).map(c => `${c.character} attack ${c.attack.model} vs ${c.attack.measured} measured`).join(" · ");
+	$("ach-meta").textContent = `Gain is party damage against ${m.monster}. Hours use the measured kill rate × 1.6 score per kill.`;
+	$("gear-meta").textContent = `Against ${m.monster}, model run ${ago(Date.parse(m.generated))}. ${cal}.`;
+	$("achievements").innerHTML = table(
+		[{ label: "Monster" }, { label: "Score", n: 1 }, { label: "Next at", n: 1 }, { label: "Reward" }, { label: "Gain", n: 1 }, { label: "Hours", n: 1 }],
+		m.achievements.map(a => [esc(a.monster) + (a.boss ? " ★" : ""), compact(a.score), compact(a.next_at), esc(a.reward),
+			a.gain_pct === null ? "–" : a.gain_pct.toFixed(2) + "%", a.hours === null ? "no rate" : a.hours]));
+	$("slots").innerHTML = table(
+		[{ label: "Who" }, { label: "Slot" }, { label: "Worn" }, { label: "Swap to" }, { label: "Gain", n: 1 }],
+		m.slots.map(s => [esc(s.character), esc(s.slot), esc(s.worn), esc(s.item + "+" + s.level), "+" + s.gain_pct.toFixed(2) + "%"]));
+	$("upgrades").innerHTML = table(
+		[{ label: "Who" }, { label: "Item" }, { label: "Step" }, { label: "Gain", n: 1 }, { label: "Odds", n: 1 }, { label: "Gold", n: 1 }, { label: "%/10M", n: 1 }],
+		m.upgrades.map(u => [esc(u.character), esc(u.item), u.from + "→" + u.to, u.gain_pct.toFixed(2) + "%", Math.round(u.chance * 100) + "%",
+			compact(u.expected_gold), u.pct_per_10m_gold === null ? "–" : u.pct_per_10m_gold.toFixed(2)]));
+	$("assumptions").innerHTML = "<summary>Model assumptions</summary><ul>" + (m.assumptions || []).map(a => `<li>${esc(a)}</li>`).join("") + "</ul>";
+}
+
+async function refresh() {
+	try {
+		const res = await fetch("/api/status", { cache: "no-store" });
+		if (!res.ok) throw new Error(res.status + " " + res.statusText);
+		const d = await res.json();
+		render_live(d.live);
+		render_farming(d.farming);
+		render_survey(d.survey);
+		render_trends(d.trends);
+		render_model(d.model);
+		$("updated").textContent = "Updated " + new Date(d.generated).toLocaleTimeString() + " · refreshes every 30s";
+	} catch (e) {
+		$("updated").innerHTML = `<span class="err">Could not reach the sink: ${esc(e.message)}</span>`;
+	}
+}
+refresh();
+setInterval(refresh, REFRESH_MS);
+</script>
+</body>
+</html>
