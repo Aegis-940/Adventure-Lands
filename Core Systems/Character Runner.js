@@ -124,6 +124,7 @@ function run_character(spec) {
 	add_bank_buttons();
 	state_cache_loop();
 	character.on("new_map", town_landed);
+	character.on("new_map", map_changed);
 
 	async function main_tick() {
 		errlog_beat("main_loop");

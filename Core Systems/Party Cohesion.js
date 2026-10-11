@@ -156,6 +156,43 @@ function trail_point() {
 	return null;
 }
 
+const PASSAGE_RETRY_MS = 1000;
+const TRANSPORTER_REACH = 75;
+let _passage_sent_at = 0;
+
+function leader_passage(pos) {
+	if (_trail.map !== character.map || !_trail.seen) return null;
+	const seen = _trail.seen;
+	for (const door of G.maps[character.map].doors) {
+		if (door[4] !== pos.map) continue;
+		if (is_door_close(character.map, door, seen.x, seen.y)) return { to: door[4], s: door[5] || 0, door };
+	}
+	const place = G.npcs.transporter.places[pos.map];
+	if (place === undefined) return null;
+	for (const npc of G.maps[character.map].npcs) {
+		if (npc.id !== "transporter") continue;
+		const at = { x: npc.position[0], y: npc.position[1] };
+		if (Math.hypot(at.x - seen.x, at.y - seen.y) < TRANSPORTER_REACH) return { to: pos.map, s: place, at };
+	}
+	return null;
+}
+
+function passage_usable(p) {
+	if (p.door) {
+		return is_door_close(character.map, p.door, character.real_x, character.real_y)
+			&& can_use_door(character.map, p.door, character.real_x, character.real_y);
+	}
+	return Math.hypot(p.at.x - character.real_x, p.at.y - character.real_y) < TRANSPORTER_REACH;
+}
+
+function passage_step(goal) {
+	const now = Date.now();
+	if (now - _passage_sent_at < PASSAGE_RETRY_MS) return;
+	_passage_sent_at = now;
+	parent.socket.emit("transport", { to: goal.passage.to, s: goal.passage.s });
+	Promise.resolve(parent.push_deferred("transport")).catch(() => { });
+}
+
 function trail_step(goal) {
 	const p = goal.point;
 	if (Math.hypot(character.x - p.x, character.y - p.y) < LOCAL_MOVE_SLOP) return;
@@ -175,6 +212,13 @@ function follow_goal() {
 
 	if (pos.town && pos.map === character.map && town_near_spawn()) {
 		return { local: "keep", label: "await-town", passive: true, disengage: pos.disengaging };
+	}
+
+	if (pos.map !== character.map) {
+		const passage = leader_passage(pos);
+		if (passage && passage_usable(passage)) {
+			return { local: "passage", label: "follow-door", passage, chasing: true, disengage: pos.disengaging };
+		}
 	}
 
 	const fd = CONFIG.movement.follow_distance;

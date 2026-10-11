@@ -687,6 +687,16 @@ function town_shortcut_check() {
 	town_shortcut_plan();
 }
 
+let _map_seen = null;
+
+function map_changed() {
+	if (character.map === _map_seen) return;
+	const from = _map_seen;
+	_map_seen = character.map;
+	if (!from) return;
+	errlog_timeline("map", `${from} -> ${character.map} @${Math.round(character.real_x)},${Math.round(character.real_y)} ${current_goal_label() || "-"}`);
+}
+
 function town_landed() {
 	const ch = _town.channel;
 	if (!ch || ch.landed) return;
@@ -905,6 +915,7 @@ function movement_local(goal, farm_step, engage_step) {
 	}
 	if (goal && goal.local === "step") return local_step(goal);
 	if (goal && goal.local === "trail") return trail_step(goal);
+	if (goal && goal.local === "passage") return passage_step(goal);
 	if (goal && goal.local === "wait") return local_wait();
 	if (goal && goal.local === "evade") return evade_step(goal.threat);
 	if (goal && goal.local === "kite") return kite_step(goal.event);
