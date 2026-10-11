@@ -15,6 +15,7 @@ import json
 import os
 import re
 import sqlite3
+import statistics
 import sys
 import time
 
@@ -167,14 +168,37 @@ def ingest():
 # --------------------------------------------------------------------------------------------------------------------------------- #
 
 SURVEY_OWNER = "Myras"
-GOLD_HEALTHY = 20_000_000
-XP_MIN_HEALTHY = 1_000_000
-GOLD_BANDS = [(30_000_000, "high"), (20_000_000, "healthy"), (5_000_000, "fair"), (0, "low")]
-XP_BANDS = [(1_500_000, "high"), (1_000_000, "average"), (500_000, "fair"), (0, "low")]
+BANDS = [(1.25, "high"), (0.8, "average"), (0.5, "fair"), (0, "low")]
+REFERENCE_MIN_MINUTES = 10
 
 
-def band(value, bands):
-    return next(name for floor, name in bands if value >= floor)
+def band(ratio):
+    return next(name for floor, name in BANDS if ratio >= floor)
+
+
+def farm_reference(measured):
+    """The yardstick every rate is judged by: the median gold/hr and XP/min across the farm spots measured for at
+    least REFERENCE_MIN_MINUTES at the spot (every measured spot while none has that long). `measured` is
+    (spot, rates) pairs; a spot measured both by the survey and as a farm target counts once, from whichever
+    has more minutes."""
+    best = {}
+    for spot, r in measured:
+        if r and (spot not in best or r["minutes"] > best[spot]["minutes"]):
+            best[spot] = r
+    pool = {s: r for s, r in best.items() if r["minutes"] >= REFERENCE_MIN_MINUTES} or best
+    if not pool:
+        return None
+    return {"gold_hr": round(statistics.median(r["gold_hr"] for r in pool.values())),
+            "xp_min": round(statistics.median(r["xp_min"] for r in pool.values())), "spots": sorted(pool)}
+
+
+def judge(rates, ref):
+    """Bands are the ratio to the reference median; score is the two ratios summed, so 2.0 is a typical spot."""
+    if rates and ref:
+        gold = rates["gold_hr"] / ref["gold_hr"] if ref["gold_hr"] else 0
+        xp = rates["xp_min"] / ref["xp_min"] if ref["xp_min"] else 0
+        rates.update(gold_band=band(gold), xp_band=band(xp), score=round(gold + xp, 2))
+    return rates
 
 
 def spot_rates(db, column, value, since_t=0):
@@ -196,8 +220,7 @@ def spot_rates(db, column, value, since_t=0):
     xp_min = sum(xp_rates) / len(xp_rates) if xp_rates else 0
     return {
         "minutes": round(secs / 60, 1), "kills_hr": round(kills * 3600 / secs), "gold_hr": round(gold_hr),
-        "gold_band": band(gold_hr, GOLD_BANDS), "xp_min": round(xp_min), "xp_band": band(xp_min, XP_BANDS),
-        "score": round(gold_hr / GOLD_HEALTHY + xp_min / XP_MIN_HEALTHY, 2), "crowd": crowd, "deaths": deaths,
+        "xp_min": round(xp_min), "crowd": crowd, "deaths": deaths,
     }
 
 
@@ -229,16 +252,39 @@ def survey_rows(db, state):
             p = listed[spot]
             status[spot] = {**status.get(spot, {}), "status": "running" if spot == current else p["status"],
                             "visits": p.get("visits")}
-    rows = [{"spot": spot, **status.get(spot, {"status": "running"}),
+    return [{"spot": spot, **status.get(spot, {"status": "running"}),
              "rates": spot_rates(db, "survey_spot", spot, since.get(spot, reset_t))}
             for spot in spots]
-    return sorted(rows, key=lambda r: -(r["rates"] or {}).get("score", -1))
+
+
+def farm_rates(db, errors, now_ms):
+    """Every farming rate the reports show, judged against one reference built from the survey's spots and the
+    last 7 days' farm targets."""
+    by_home = []
+    for (home,) in db.execute("SELECT DISTINCT home FROM ledger WHERE home IS NOT NULL").fetchall():
+        rates = spot_rates(db, "home", home, now_ms - 7 * 24 * HOUR_MS)
+        if rates and rates["minutes"] >= 1:
+            by_home.append({"home": home, **rates})
+    survey = survey_rows(db, survey_state(errors))
+    ref = farm_reference([(r["home"], r) for r in by_home] + [(r["spot"], r["rates"]) for r in survey])
+    for r in by_home:
+        judge(r, ref)
+    for r in survey:
+        judge(r["rates"], ref)
+    return {
+        "reference": ref,
+        "last_hour": judge(overall_rates(db, now_ms - HOUR_MS), ref),
+        "last_day": judge(overall_rates(db, now_ms - 24 * HOUR_MS), ref),
+        "by_home": sorted(by_home, key=lambda r: -r.get("score", -1)),
+        "survey": sorted(survey, key=lambda r: -(r["rates"] or {}).get("score", -1)),
+    }
 
 
 def survey_report():
     db = connect()
-    rows = survey_rows(db, survey_state(read_json(ERRORS)))
+    farm = farm_rates(db, read_json(ERRORS), int(time.time() * 1000))
     db.close()
+    rows, ref = farm["survey"], farm["reference"]
     print("%-11s %-11s %5s %8s %12s %-8s %10s %-8s %6s %6s %6s" % (
         "spot", "status", "min", "kills/h", "gold/h", "", "xp/min", "", "score", "deaths", "crowd"))
     for r in rows:
@@ -250,8 +296,12 @@ def survey_report():
         print("%-11s %-11s %5.0f %8d %12s %-8s %10s %-8s %6.2f %6s %6d" % (
             r["spot"], r["status"], m["minutes"], m["kills_hr"], "{:,}".format(m["gold_hr"]), m["gold_band"],
             "{:,}".format(m["xp_min"]), m["xp_band"], m["score"], m["deaths"], m["crowd"]))
-    print("\nscore = gold/hr / 20M + XP/min / 1M (2.0 = healthy on both). Gold is party chest gold seen by %s;"
-          " XP/min is the mean across fighters." % SURVEY_OWNER)
+    if ref:
+        print("\nReference: the median of %d measured spots (%s): %s gold/h, %s XP/min." % (
+            len(ref["spots"]), ", ".join(ref["spots"]), "{:,}".format(ref["gold_hr"]), "{:,}".format(ref["xp_min"])))
+        print("Bands are the ratio to it: high >= 1.25x, average >= 0.8x, fair >= 0.5x, low below."
+              " score = gold ratio + XP ratio (2.0 = typical on both).")
+    print("Gold is party chest gold seen by %s; XP/min is the mean across fighters." % SURVEY_OWNER)
 
 
 # --------------------------------------------------------------------------------------------------------------------------------- #
@@ -293,7 +343,7 @@ def overall_rates(db, since_t):
     xp_min = sum(xp_rates) / len(xp_rates) if xp_rates else 0
     gold_hr = gold * 3600 / secs
     return {"minutes": round(secs / 60), "gold_hr": round(gold_hr), "xp_min": round(xp_min),
-            "kills_hr": round(kills * 3600 / secs), "gold_band": band(gold_hr, GOLD_BANDS), "xp_band": band(xp_min, XP_BANDS)}
+            "kills_hr": round(kills * 3600 / secs)}
 
 
 def survey_state(errors):
@@ -380,26 +430,16 @@ def status():
     now_ms = int(time.time() * 1000)
     errors = read_json(ERRORS)
     db = connect()
-    week = now_ms - 7 * 24 * HOUR_MS
-    by_home = []
-    for (home,) in db.execute("SELECT DISTINCT home FROM ledger WHERE home IS NOT NULL").fetchall():
-        rates = spot_rates(db, "home", home, week)
-        if rates and rates["minutes"] >= 1:
-            by_home.append({"home": home, **rates})
+    farm = farm_rates(db, errors, now_ms)
     out = {
         "generated": now_ms,
         "live": live(errors),
-        "farming": {
-            "last_hour": overall_rates(db, now_ms - HOUR_MS),
-            "last_day": overall_rates(db, now_ms - 24 * HOUR_MS),
-            "by_home": sorted(by_home, key=lambda r: -r["score"]),
-        },
-        "survey": {"state": survey_state(errors), "results": survey_rows(db, survey_state(errors))},
+        "farming": {k: farm[k] for k in ("reference", "last_hour", "last_day", "by_home")},
+        "survey": {"state": survey_state(errors), "results": farm["survey"]},
         "trends": trends(db, now_ms),
         "danger": danger(db, now_ms),
         "mana": mana_measured(db, now_ms),
         "model": model(),
-        "bands": {"gold": GOLD_BANDS, "xp": XP_BANDS},
     }
     db.close()
     return out

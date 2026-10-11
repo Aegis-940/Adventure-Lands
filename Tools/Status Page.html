@@ -179,6 +179,7 @@ details ul { margin: 6px 0 0; padding-left: 18px; }
 	<div class="section grid cols-2">
 		<section class="card">
 			<h2>Farming</h2>
+			<div class="meta" id="farm-reference"></div>
 			<div class="tiles" id="tiles"></div>
 			<h3>By farm target, last 7 days, time at the spot</h3>
 			<div class="scroll" id="by-home"></div>
@@ -251,7 +252,6 @@ const SURVEY_STATUS = {
 };
 const BAND = {
 	high: { color: "var(--good)", icon: "▲" },
-	healthy: { color: "var(--good)", icon: "●" },
 	average: { color: "var(--good)", icon: "●" },
 	fair: { color: "var(--warning)", icon: "◐" },
 	low: { color: "var(--serious)", icon: "▼" },
@@ -417,7 +417,11 @@ function render_session() {
 function render_farming(f) {
 	const tile = (label, v, b, sub) => `<div class="tile"><div class="label">${esc(label)}</div><div class="value">${v}</div>`
 		+ `<div class="sub">${b ? band(b) : ""}${sub ? " " + esc(sub) : ""}</div></div>`;
-	const h = f.last_hour, d = f.last_day;
+	const h = f.last_hour, d = f.last_day, ref = f.reference;
+	$("farm-reference").textContent = ref
+		? `Bands and score are relative to the median of ${ref.spots.length} measured spots (${ref.spots.join(", ")}): `
+			+ `${compact(ref.gold_hr)} gold/h, ${compact(ref.xp_min)} XP/min. High ≥ 1.25×, average ≥ 0.8×, fair ≥ 0.5×, low below. Score 2.0 = typical on both.`
+		: "Bands appear once a farm spot has been measured.";
 	$("tiles").innerHTML = [
 		tile("Gold per hour, last hour", compact(h && h.gold_hr), h && h.gold_band, d ? "24 h: " + compact(d.gold_hr) : ""),
 		tile("XP per minute, last hour", compact(h && h.xp_min), h && h.xp_band, d ? "24 h: " + compact(d.xp_min) : ""),

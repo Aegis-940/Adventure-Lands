@@ -29,9 +29,8 @@ How each part works is in `Design Notes.md` (`Farm Ledger.js`, `Farm Survey.js`,
 
 | Topic | Decision |
 |---|---|
-| Gold/hr bands | Low ≈ 5M, healthy ≈ 20M, high > 30M |
-| XP bands (per **minute**) | Low ≈ 500k, average ≈ 1M, high > 1.5M |
-| Combined score | `gold_per_hr / 20M + xp_per_min / 1M` (2.0 = healthy on both) |
+| Gold/hr and XP/min bands | **Relative, from 10-11.** The ratio to the median of the measured farm spots (10+ min at the spot): high ≥ 1.25×, average ≥ 0.8×, fair ≥ 0.5×, low below. The first guidelines (gold low ≈ 5M, healthy ≈ 20M, high > 30M; XP/min low ≈ 500k, average ≈ 1M, high > 1.5M) were fixed numbers |
+| Combined score | `gold_per_hr / median gold + xp_per_min / median XP` (2.0 = a typical spot on both). Was `/ 20M + / 1M` |
 | Drop value | Ignored |
 | Buff normalisation | None; buffs balance out over the survey |
 | Candidate monsters | Around bscorpion and below, no bosses. Draft list below, hand-edited before the survey runs |
