@@ -134,7 +134,7 @@ Run in this order. Filter used: not a boss or co-op monster, on a normal map, HP
 | 5 | targetron | uhills ×4 | 325k | 377 phys | 160 / 140 | 400k | 1.23 | 6s | yes | |
 | 6 | harpy | ***REJECTED***
 | 7 | xscorpion | halloween ×6 | 140k | 720 phys | 400 / 0 | 172k | 1.23 | 16s | yes | |
-| 8 | odino | mforest ×7 | 165k | 550 phys | 135 / 65 | 140k | 0.85 | 3s | yes | |
+| 8 | odino | mforest ×7 | 165k | 550 phys | 135 / 65 | 140k | 0.85 | 3s | yes | Fairies (100 hits/s) beside the path and the pen. First visit (10-11) `unsafe`: agitate pulled the greenfairy. Fixed in `hit_too_big()`; re-queue with `survey_retry("odino")` |
 | 9 | plantoid | desertland ×4 ×2 | 120k | 640 phys | 160 / 190 | 96k | 0.80 | 18s | yes | |
 | 10 | fireroamer | desertland ×4 + ×2 | 84k | 320 mag | 120 / 320 | 64k | 0.76 | 2s | yes | Burn |
 | 11 | pppompom | level2n ×6 + ×7 | 64k | 920 phys | 0 / 480 | 62k | 0.97 | 4s | yes | Poison |

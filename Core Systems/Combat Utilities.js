@@ -215,7 +215,8 @@ const LETHAL_HIT_PCT = 0.5;
 const SPLASH_TOUCH_MARGIN = 10;
 
 function hit_too_big(mob, player) {
-	return monster_hit_on(mob, player) >= player.max_hp * LETHAL_HIT_PCT;
+	const hit = monster_hit_on(mob, player);
+	return hit >= player.max_hp * LETHAL_HIT_PCT || hit * mob.frequency >= player.max_hp;
 }
 
 function off_limits(mob) {

@@ -114,6 +114,8 @@ PER_ROLE = {
     "find_best_target", "weapon_choice_context",
 }
 
+GLOBAL_DEFAULTS = "Core Systems/Global Config.js"
+
 declared = {}
 for f in files:
     if f in ("Bootstrapper.js", "Code Loader.js"):
@@ -129,9 +131,10 @@ for name, where in sorted(declared.items()):
         continue
     if name.startswith("errlog_") or name == "upgrade_slot_for":
         continue  # Global Config stubs, replaced by Error Log / Lucky Slot Tracker by design
-    roles = {w.split("/")[1] for w in where if w.startswith("Character Managers/")}
-    if len(roles) == len(where) and len(roles) > 1:
-        continue  # one per character, never loaded together
+    overrides = where - {GLOBAL_DEFAULTS}
+    roles = {w.split("/")[1] for w in overrides if w.startswith("Character Managers/")}
+    if len(roles) == len(overrides) and (len(roles) > 1 or GLOBAL_DEFAULTS in where):
+        continue  # one per character, never loaded together, over Global Config's neutral default if any
     print(f"GLOBAL COLLISION '{name}' in {sorted(where)}")
     problems += 1
 
