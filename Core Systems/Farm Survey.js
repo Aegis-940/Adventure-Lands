@@ -5,8 +5,8 @@
 const SURVEY_KEY = "AL_survey";
 const SURVEY_OWNER = MOVEMENT_LEADER;
 const SURVEY_SPOTS = [
-	"bscorpion", "sparkbot", "targetron", "xscorpion", "odino", "plantoid",
-	"fireroamer", "pppompom", "dryad", "wolf", "gscorpion", "bigbird", "scorpion",
+	"odino", "plantoid", "fireroamer", "bscorpion", "sparkbot", "targetron", "xscorpion",
+	"dryad", "wolf", "gscorpion", "bigbird", "scorpion", "pppompom",
 ];
 
 const SURVEY_TICK_MS = 1000;
@@ -258,6 +258,18 @@ function survey_retry(type) {
 	storage_write(SURVEY_KEY, survey);
 	errlog_archive("survey_spot", { spot: type, status: "retry", visits: spot.visits, was: spot.status });
 	return `${type} is pending again (was ${spot.status}); it is visited when the current spot finishes`;
+}
+
+function survey_move_on() {
+	const survey = survey_read();
+	if (!survey || survey.complete) return "no survey running";
+	const spot = survey.spots[survey.index];
+	const next = survey.spots.findIndex((s, i) => i !== survey.index && s.status === "pending");
+	if (next === -1) return `${spot.type} is the only pending spot`;
+	spot.visit_started = 0;
+	survey.index = next;
+	storage_write(SURVEY_KEY, survey);
+	return `${spot.type} stays pending with ${Math.round(spot.at_spot_ms / 60000)} min; heading to ${survey.spots[next].type}`;
 }
 
 function survey_reset() {

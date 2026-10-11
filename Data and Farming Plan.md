@@ -122,7 +122,7 @@ Only bscorpion (`Bscorpion Camp.js`) and fireroamer have bespoke handling. Every
 
 ### Draft spot list (hand-edit before running)
 
-Run in this order. Filter used: not a boss or co-op monster, on a normal map, HP ≤ ~bscorpion, attack ≤ 1.25× bscorpion, HP ≥ 20k.
+Drafted in this order; the run order is `SURVEY_SPOTS` (from 10-11: odino, plantoid, fireroamer, bscorpion, sparkbot, targetron, xscorpion, dryad, wolf, gscorpion, bigbird, scorpion, pppompom). Filter used: not a boss or co-op monster, on a normal map, HP ≤ ~bscorpion, attack ≤ 1.25× bscorpion, HP ≥ 20k.
 
 | # | Monster | Map × count | HP | Attack | Armor / res | XP | XP/HP | Respawn | `LOCATIONS` | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
