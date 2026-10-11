@@ -110,6 +110,19 @@ tr:last-child td { border-bottom: none; }
 	border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px;
 	font-size: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); white-space: nowrap; z-index: 2;
 }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tabs button {
+	font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 6px; cursor: pointer;
+	background: transparent; color: var(--text-secondary); border: 1px solid var(--border);
+}
+.tabs button[aria-selected="true"] { color: var(--text-primary); border-color: var(--series-1); box-shadow: inset 0 -2px 0 var(--series-1); }
+.bars { display: grid; grid-template-columns: minmax(70px, max-content) 1fr max-content; gap: 6px 10px; align-items: center; font-size: 13px; }
+.bars .bar { height: 10px; border-radius: 0 4px 4px 0; background: var(--series-1); min-width: 2px; }
+.bars .bar.party { background: var(--series-1); }
+.bars .bar.other { background: var(--axis); }
+.bars .v { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-secondary); white-space: nowrap; }
+.bars .k { overflow-wrap: anywhere; }
+.session-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
 details { margin-top: 10px; color: var(--text-secondary); font-size: 12px; }
 details ul { margin: 6px 0 0; padding-left: 18px; }
 .err { color: var(--critical); }
@@ -123,6 +136,45 @@ details ul { margin: 6px 0 0; padding-left: 18px; }
 	</header>
 
 	<div class="grid cols-4" id="live"></div>
+
+	<div class="section">
+		<div class="session-head">
+			<h2 style="margin:0">Session <span class="meta" id="session-meta"></span></h2>
+			<div class="tabs" id="session-tabs" role="tablist"></div>
+		</div>
+		<div class="grid cols-2">
+			<section class="card">
+				<h2>Gold</h2>
+				<div class="tiles" id="s-gold"></div>
+				<div class="chart" id="s-gold-chart"></div>
+			</section>
+			<section class="card">
+				<h2>XP</h2>
+				<div class="tiles" id="s-xp"></div>
+				<div class="chart" id="s-xp-chart"></div>
+			</section>
+			<section class="card">
+				<h2>Damage</h2>
+				<div class="tiles" id="s-dps"></div>
+				<div class="scroll" id="s-dps-table"></div>
+			</section>
+			<section class="card">
+				<h2>Boss contribution</h2>
+				<div class="tiles" id="s-coop"></div>
+				<div id="s-coop-bars"></div>
+			</section>
+			<section class="card">
+				<h2>Kills</h2>
+				<div class="tiles" id="s-kills"></div>
+				<div id="s-kill-bars"></div>
+			</section>
+			<section class="card">
+				<h2>Items looted</h2>
+				<div class="tiles" id="s-items"></div>
+				<div id="s-item-bars"></div>
+			</section>
+		</div>
+	</div>
 
 	<div class="section grid cols-2">
 		<section class="card">
@@ -172,9 +224,12 @@ details ul { margin: 6px 0 0; padding-left: 18px; }
 </main>
 
 <script>
-const REFRESH_MS = 30000;
+const LIVE_MS = 1000;
+const STATUS_MS = 15000;
+const LIVE_FRESH_MS = 5000;
 const STALE_MS = 3 * 60 * 1000;
-const STATUS = {
+const CHARACTERS = ["Ulric", "Myras", "Riva", "Riff"];
+const SURVEY_STATUS = {
 	done: { color: "var(--good)", icon: "✓", label: "done" },
 	running: { color: "var(--series-1)", icon: "▶", label: "running" },
 	pending: { color: "var(--neutral)", icon: "·", label: "pending" },
@@ -227,26 +282,125 @@ function table(head, rows) {
 		+ "</tbody></table>";
 }
 
-function render_live(live) {
-	$("live").innerHTML = live.map(c => {
-		const b = c.beat;
+function live_vitals(name) {
+	const snap = LIVE && LIVE.characters[name];
+	if (!snap || LIVE.now - snap.t > LIVE_FRESH_MS) return null;
+	const v = snap.vitals;
+	return {
+		t: snap.t, live: true, map: v.map, goal: v.goal, rip: v.rip, panicking: v.panicking, target: v.target,
+		hp: v.max_hp ? Math.round(100 * v.hp / v.max_hp) : 0, mp: v.max_mp ? Math.round(100 * v.mp / v.max_mp) : 0,
+		hp_abs: v.hp, mp_abs: v.mp, level: v.level, xp_pct: v.max_xp ? 100 * v.xp / v.max_xp : 0,
+	};
+}
+
+function render_live() {
+	const names = STATUS ? STATUS_LIVE.map(c => c.character) : CHARACTERS;
+	$("live").innerHTML = names.map(name => {
+		const c = (STATUS_LIVE || []).find(x => x.character === name) || { character: name };
+		const b = live_vitals(name) || c.beat;
 		let state;
 		if (!b) state = chip("var(--neutral)", "?", "no data");
 		else if (Date.now() - b.t > STALE_MS) state = chip("var(--warning)", "⏸", "stale " + ago(b.t));
 		else if (b.rip) state = chip("var(--critical)", "✕", "dead");
 		else if (b.panicking) state = chip("var(--serious)", "!", "panicking");
 		else state = chip("var(--good)", "✓", "alive");
-		const meters = b ? ["HP", "MP"].map(k => {
-			const v = k === "HP" ? b.hp : b.mp;
-			return `<div class="meter"><span>${k}</span><div class="track"><div class="fill" style="width:${Math.max(0, Math.min(100, v))}%"></div></div><span class="num">${v}%</span></div>`;
-		}).join("") : "";
+		const meter = (k, v, abs) => `<div class="meter"><span>${k}</span><div class="track"><div class="fill" style="width:${Math.max(0, Math.min(100, v))}%"></div></div>`
+			+ `<span class="num" title="${abs === undefined ? "" : esc(abs.toLocaleString())}">${Math.round(v)}%</span></div>`;
+		const meters = b ? meter("HP", b.hp, b.hp_abs) + meter("MP", b.mp, b.mp_abs) + (b.level ? meter("L" + b.level, b.xp_pct) : "") : "";
+		const where = b ? esc(b.map) + (b.goal ? " · " + esc(b.goal) : "") + (b.target ? " · ⌖ " + esc(b.target) : "") : "";
 		return `<section class="card char">
-			<div class="char-top"><span class="char-name">${esc(c.character)}</span>${state}</div>
-			<div class="where">${b ? esc(b.map) + (b.goal ? " · " + esc(b.goal) : "") : ""}</div>
+			<div class="char-top"><span class="char-name">${esc(name)}</span>${state}</div>
+			<div class="where">${where}</div>
 			${meters}
-			<div class="meta">${b ? "heartbeat " + ago(b.t) : ""}${c.last_death ? " · last death " + ago(c.last_death) : ""}</div>
+			<div class="meta">${b ? (b.live ? "live" : "heartbeat " + ago(b.t)) : ""}${c.last_death ? " · last death " + ago(c.last_death) : ""}</div>
 		</section>`;
 	}).join("");
+}
+
+function bar_rows(rows, empty) {
+	if (!rows.length) return `<div class="empty">${esc(empty)}</div>`;
+	const top = Math.max(1, ...rows.map(r => r.value));
+	return '<div class="bars">' + rows.map(r =>
+		`<span class="k">${r.label}</span><div><div class="bar ${r.cls || ""}" style="width:${(r.value / top * 100).toFixed(1)}%"></div></div><span class="v">${r.text}</span>`
+	).join("") + "</div>";
+}
+
+function duration(seconds) {
+	if (!isFinite(seconds) || seconds <= 0) return "–";
+	const d = Math.floor(seconds / 86400), h = Math.floor(seconds % 86400 / 3600), m = Math.floor(seconds % 3600 / 60);
+	return d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : `${m}m`;
+}
+
+function stat_tile(label, value, sub) {
+	return `<div class="tile"><div class="label">${esc(label)}</div><div class="value">${value}</div>${sub ? `<div class="sub">${sub}</div>` : ""}</div>`;
+}
+
+function history_chart(el, values, sample_s, scale, unit) {
+	const end = LIVE.now;
+	const pts = values.map((v, i) => ({ x: end - (values.length - 1 - i) * sample_s * 1000, y: v * scale }));
+	const fx = (x, long) => {
+		const s = Math.round((end - x) / 1000);
+		return s < 5 ? "now" : (long ? Math.floor(s / 60) + "m " + (s % 60) + "s ago" : "−" + Math.round(s / 60) + "m");
+	};
+	line_chart(el, pts, fx, v => compact(v), unit, Infinity);
+}
+
+function render_tabs() {
+	const names = Object.keys((LIVE && LIVE.characters) || {}).sort((a, b) => CHARACTERS.indexOf(a) - CHARACTERS.indexOf(b));
+	if (!names.includes(session_of) && names.length) session_of = names.includes("Myras") ? "Myras" : names[0];
+	const html = names.map(n => `<button role="tab" aria-selected="${n === session_of}" data-name="${esc(n)}">${esc(n)}</button>`).join("");
+	if ($("session-tabs").innerHTML !== html) $("session-tabs").innerHTML = html;
+}
+
+function render_session() {
+	render_tabs();
+	const s = LIVE && LIVE.characters[session_of];
+	if (!s) {
+		$("session-meta").textContent = "· waiting for the characters' live feed (reload them if this persists)";
+		return;
+	}
+	const secs = Math.max(1, s.session_s);
+	const age = Math.round((LIVE.now - s.t) / 1000);
+	$("session-meta").textContent = `· ${s.character} since its last reload, ${duration(secs)}${age > 3 ? " · last update " + age + "s ago" : ""}`;
+
+	$("s-gold").innerHTML = stat_tile("Gold per hour", compact(s.gold.total / secs * 3600))
+		+ stat_tile("Largest drop", compact(s.gold.largest)) + stat_tile("Total gold", compact(s.gold.total));
+	history_chart($("s-gold-chart"), s.history.gold, s.history.sample_s, 3600, "gold/h (session average)");
+
+	const xp_s = s.xp.total / secs;
+	const v = s.vitals;
+	$("s-xp").innerHTML = stat_tile("XP per minute", compact(xp_s * 60))
+		+ stat_tile("Time to level", duration(xp_s > 0 ? (v.max_xp - v.xp) / xp_s : 0)) + stat_tile("Total XP", compact(s.xp.total));
+	history_chart($("s-xp-chart"), s.history.xp, s.history.sample_s, 60, "XP/min (session average)");
+
+	const party_dps = s.damage.reduce((sum, d) => sum + d.rates.DPS, 0);
+	const own = s.damage.find(d => d.name === s.character);
+	$("s-dps").innerHTML = stat_tile("Party DPS", compact(party_dps)) + stat_tile("Own DPS", compact(own ? own.rates.DPS : 0))
+		+ stat_tile("Session", duration(secs));
+	const kinds = [["DPS", "DPS"], ["Base", "Base"], ["Cleave", "Cleave"], ["Blast", "Blast"], ["Burn", "Burn"], ["HPS", "Heal/s"], ["MPS", "Mana/s"], ["DR", "Return"], ["Reflect", "Reflect"]]
+		.filter(([k]) => k === "DPS" || s.damage.some(d => d.rates[k] > 0));
+	$("s-dps-table").innerHTML = table(
+		[{ label: "Who" }].concat(kinds.map(([, label]) => ({ label, n: 1 }))),
+		s.damage.map(d => [esc(d.name)].concat(kinds.map(([k]) => compact(d.rates[k])))));
+
+	const kill_rate = s.kills.total / secs * 3600;
+	$("s-kills").innerHTML = stat_tile("Kills per hour", compact(kill_rate)) + stat_tile("Total kills", compact(s.kills.total));
+	$("s-kill-bars").innerHTML = bar_rows(Object.entries(s.kills.by_mob).sort((a, b) => b[1] - a[1]).map(([m, n]) => ({
+		label: esc(m), value: n, text: `${n.toLocaleString()} · ${(n / s.kills.total * 100).toFixed(0)}% · ${compact(n / secs * 3600)}/h`,
+	})), "No kills yet.");
+
+	const items = Object.entries(s.items).sort((a, b) => b[1] - a[1]);
+	$("s-items").innerHTML = stat_tile("Total looted", compact(items.reduce((sum, [, q]) => sum + q, 0))) + stat_tile("Unique items", items.length);
+	$("s-item-bars").innerHTML = bar_rows(items.slice(0, 20).map(([name, q]) => ({
+		label: esc(name), value: q, text: `${q.toLocaleString()} · ${compact(q / secs * 86400)}/day`,
+	})), "No items looted yet.");
+
+	const c = s.coop;
+	$("s-coop").innerHTML = stat_tile("Party points", compact(c.party_points)) + stat_tile("Party loot share", (c.party_share * 100).toFixed(2) + "%");
+	$("s-coop-bars").innerHTML = bar_rows(c.entries.map(e => ({
+		label: esc(e.name) + (e.party ? " ★" : ""), value: e.points, cls: e.party ? "party" : "other",
+		text: `${compact(e.points)} · ${(e.share * 100).toFixed(2)}%`,
+	})), "No boss in sight. Contribution shows while a coop boss is engaged.");
 }
 
 function render_farming(f) {
@@ -276,7 +430,7 @@ function render_survey(s) {
 				+ `<span class="num">${Math.floor(cur.at_spot_s / 60)} / ${st.spot_minutes} min</span></div>`;
 		$("survey-spots").innerHTML = st.spots.map((p, i) => {
 			const key = !st.complete && i === st.index ? "running" : p.status;
-			const m = STATUS[key] || STATUS.pending;
+			const m = SURVEY_STATUS[key] || SURVEY_STATUS.pending;
 			return chip(m.color, m.icon, p.type + (key === "pending" ? "" : " " + m.label));
 		}).join("");
 	} else {
@@ -286,7 +440,7 @@ function render_survey(s) {
 	$("survey-results").innerHTML = table(
 		[{ label: "Spot" }, { label: "Status" }, { label: "Min", n: 1 }, { label: "Gold/h" }, { label: "XP/min" }, { label: "Kills/h", n: 1 }, { label: "Score", n: 1 }, { label: "Deaths", n: 1 }],
 		s.results.map(r => {
-			const m = STATUS[r.status] || STATUS.running;
+			const m = SURVEY_STATUS[r.status] || SURVEY_STATUS.running;
 			const x = r.rates;
 			return [esc(r.spot), chip(m.color, m.icon, m.label), x ? x.minutes.toFixed(0) : "–", x ? rated(x.gold_hr, x.gold_band) : "–",
 				x ? rated(x.xp_min, x.xp_band) : "–", x ? x.kills_hr : "–", x ? x.score.toFixed(2) : "–", x ? x.deaths : (r.visit_deaths || 0)];
@@ -298,11 +452,13 @@ function axis_ticks(lo, hi, count) {
 	const step = Math.pow(10, Math.floor(Math.log10(span / count)));
 	const nice = [1, 2, 5, 10].map(m => m * step).find(s => span / s <= count) || step * 10;
 	const out = [];
-	for (let v = Math.ceil(lo / nice) * nice; v <= hi + 1e-9; v += nice) out.push(+v.toFixed(6));
+	const start = Math.floor(lo / nice) * nice;
+	for (let i = 0; start + (i - 1) * nice < hi - 1e-9 || i < 2; i++) out.push(+(start + i * nice).toFixed(6));
 	return out;
 }
 
 function line_chart(el, points, fmt_x, fmt_y, unit, gap_ms) {
+	if (el.matches(":hover") && el.querySelector("svg")) return;
 	if (points.length < 2) { el.innerHTML = '<div class="empty">Not enough data yet.</div>'; return; }
 	const W = 560, H = 220, L = 40, R = 16, T = 12, B = 26;
 	const xs = points.map(p => p.x), ys = points.map(p => p.y);
@@ -421,23 +577,67 @@ function render_model(m) {
 	$("assumptions").innerHTML = "<summary>Model assumptions</summary><ul>" + (m.assumptions || []).map(a => `<li>${esc(a)}</li>`).join("") + "</ul>";
 }
 
-async function refresh() {
+let LIVE = null;
+let STATUS = null;
+let STATUS_LIVE = null;
+let session_of = (() => { try { return localStorage.getItem("al_status_session") || "Myras"; } catch (e) { return "Myras"; } })();
+let live_busy = false;
+let status_busy = false;
+
+$("session-tabs").addEventListener("click", ev => {
+	const b = ev.target.closest("button[data-name]");
+	if (!b) return;
+	session_of = b.dataset.name;
+	try { localStorage.setItem("al_status_session", session_of); } catch (e) { }
+	render_session();
+});
+
+function show_error(e) {
+	$("updated").innerHTML = `<span class="err">Could not reach the sink: ${esc(e.message)}</span>`;
+}
+
+async function refresh_live() {
+	if (live_busy) return;
+	live_busy = true;
+	try {
+		const res = await fetch("/api/live", { cache: "no-store" });
+		if (!res.ok) throw new Error(res.status + " " + res.statusText);
+		LIVE = await res.json();
+		render_live();
+		render_session();
+		$("updated").textContent = "Live " + new Date(LIVE.now).toLocaleTimeString() + " · every 1s"
+			+ (STATUS ? " · history " + new Date(STATUS.generated).toLocaleTimeString() + " · every 15s" : "");
+	} catch (e) {
+		show_error(e);
+	} finally {
+		live_busy = false;
+	}
+}
+
+async function refresh_status() {
+	if (status_busy) return;
+	status_busy = true;
 	try {
 		const res = await fetch("/api/status", { cache: "no-store" });
 		if (!res.ok) throw new Error(res.status + " " + res.statusText);
-		const d = await res.json();
-		render_live(d.live);
-		render_farming(d.farming);
-		render_survey(d.survey);
-		render_trends(d.trends);
-		render_model(d.model);
-		$("updated").textContent = "Updated " + new Date(d.generated).toLocaleTimeString() + " · refreshes every 30s";
+		STATUS = await res.json();
+		STATUS_LIVE = STATUS.live;
+		render_live();
+		render_farming(STATUS.farming);
+		render_survey(STATUS.survey);
+		render_trends(STATUS.trends);
+		render_model(STATUS.model);
 	} catch (e) {
-		$("updated").innerHTML = `<span class="err">Could not reach the sink: ${esc(e.message)}</span>`;
+		show_error(e);
+	} finally {
+		status_busy = false;
 	}
 }
-refresh();
-setInterval(refresh, REFRESH_MS);
+
+refresh_status();
+refresh_live();
+setInterval(refresh_live, LIVE_MS);
+setInterval(refresh_status, STATUS_MS);
 </script>
 </body>
 </html>

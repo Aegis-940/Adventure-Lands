@@ -96,7 +96,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | `Boss Contribution.js` | Coop points and loot share of everyone on our boss |
 | `Kill Tracker.js` | kpm/kph/kpd from `kill_credit` |
 | `Lucky Slot Tracker.js` | Bayesian search for Riff's lucky upgrade slot; `upgrade_slot_for()` |
-| `Metrics Graphs.js` | 📊 session graphs popout |
+| `Metrics Graphs.js` | 📊 session graphs popout, and the once-a-second live feed of the same numbers to the status page |
 | `Stats Window.js`, `Settings Window.js`, `Party Frames.js`, `Pause Button.js` | Stats/gold graph, per-character settings (farm targets, merchant toggles, upgrade and craft targets), party HP, pause automation |
 | `Bank Viewer.js`, `Bank Sort Order.js` | Bank UI (plus the reload button) and sort order |
 
@@ -116,7 +116,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | `Error Sink.py` / `Install Error Sink.ps1` | Local HTTP sink for `errlog_sample()` pushes → `errors.json`, `errors_timeline.jsonl`, and the `errlog_archive()` lane → `ledger.jsonl`, `tracker.jsonl`, `survey.jsonl`; logon-task installer |
 | `Data Store.py` | `al_data.sqlite`, rebuilt incrementally from the `.jsonl` archives (the sink runs `ingest` every 15 min). `python "Tools/Data Store.py" survey` prints the survey results; `status` is the status page's JSON |
 | `Party Model.js` | Node, run outside the game: the server's stat pipeline for Ulric and Riva over the game's own `data.js` and `calculate_item_properties()`. `calibrate`, `slots`, `upgrades`, `achievements`, `json` (→ `party_model.json`, refreshed by the sink every 15 min) |
-| `Status Page.html` | The status page, served by the sink at `http://127.0.0.1:8787/` from `/api/status` |
+| `Status Page.html` | The status page, served by the sink at `http://127.0.0.1:8787/`: `/api/live` every 1s (the characters' 📊 snapshots, memory only), `/api/status` every 15s |
 | `Watchdog.py` / `Install Watchdog.ps1` | DevTools-port watchdog: logs navigations and network outages, reloads silent windows. **Read `watchdog.jsonl` first after a dead character** |
 | `Lint.py` | `python Tools/Lint.py`: duplicate globals, orphaned ternaries, constant conditions |
 | `Crypt Probe.js`, `Drag Probe.js` | One-off dev probes, not loaded |

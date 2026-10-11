@@ -27,7 +27,7 @@ import sys
 import threading
 import time
 from datetime import datetime, timezone
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 PORT = 8787
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -71,6 +71,9 @@ BUCKET_FIELDS = ("records", "samples", "deaths", "timeline", "counts", "alive")
 # The maintenance sweep and a POST both rewrite the whole store, and the server is single-threaded
 # only with respect to requests.
 STORE_LOCK = threading.RLock()
+
+LIVE = {}
+LIVE_LOCK = threading.Lock()
 
 
 def serialise(store):
@@ -319,6 +322,8 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_POST(self):
+        if self.path.split("?")[0] == "/live":
+            return self.live_post()
         try:
             n = int(self.headers.get("content-length", 0))
             payload = json.loads(self.rfile.read(n).decode("utf-8"))
@@ -344,8 +349,24 @@ class Handler(BaseHTTPRequestHandler):
         self._cors()
         self.end_headers()
 
+    def live_post(self):
+        """Each character's 📊 session snapshot, once a second. Memory only: the page wants the latest,
+        and the ledger already keeps the history."""
+        try:
+            n = int(self.headers.get("content-length", 0))
+            payload = json.loads(self.rfile.read(n).decode("utf-8"))
+            with LIVE_LOCK:
+                LIVE[payload.get("character", "?")] = payload
+            self.send_response(204)
+        except Exception as exc:
+            print("  ! live: %s" % exc, file=sys.stderr, flush=True)
+            self.send_response(400)
+        self._cors()
+        self.end_headers()
+
     def do_GET(self):
-        """The status page at /, and its data at /api/status (built fresh by Data Store.py on each call)."""
+        """The status page at /, its data at /api/status (built fresh by Data Store.py on each call), and the
+        characters' live session snapshots at /api/live."""
         try:
             route = self.path.split("?")[0]
             if route in ("/", "/status"):
@@ -353,6 +374,10 @@ class Handler(BaseHTTPRequestHandler):
                     body, ctype = fh.read(), "text/html; charset=utf-8"
             elif route == "/api/status":
                 body, ctype = json.dumps(load_data_store().status()).encode("utf-8"), "application/json"
+            elif route == "/api/live":
+                with LIVE_LOCK:
+                    body = json.dumps({"now": int(time.time() * 1000), "characters": LIVE}).encode("utf-8")
+                ctype = "application/json"
             else:
                 self.send_response(404)
                 self.end_headers()
@@ -458,10 +483,13 @@ SOURCE_POLL_S = 5
 RESTART = threading.Event()
 
 
-class Sink(HTTPServer):
+class Sink(ThreadingHTTPServer):
     # Off, so a second sink fails to bind instead of silently splitting the traffic with the first.
     # That is what keeps a restart from leaving two of these alive.
     allow_reuse_address = False
+    # Threaded so the once-a-second live posts and page polls never queue behind an errors.json merge;
+    # STORE_LOCK still serialises the merges themselves.
+    daemon_threads = True
 
 
 def bind_server(attempts=20, wait=0.5):

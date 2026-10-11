@@ -365,6 +365,8 @@ The 🍀 button and the search for Riff's lucky upgrade slot.
 
 📊 popout, after Crowns3bc's: session gold, XP (carried across level-ups), party DPS by damage type, kills per mob, loot per item, and boss contribution as the server's loot share. Gold and XP samples are taken every 5s in the background, so the line charts have history when it opens. The rest renders only while it is open.
 
+**Live feed.** Every second each character POSTs `metrics_snapshot()` to the sink's `/live`: the same session totals, damage rates per party member and type, the top 12 coop contributors with their loot share, the last 5 minutes of gold/XP samples, and live vitals (HP/MP, level progress, map, goal, target, panic, wallet). The sink keeps only the latest per character, in memory, for the status page's Session section. The goal comes from the character's own state cache, not `current_goal_label()`: that lives in `Character Runner.js`, in the same parallel batch, and the 1s interval could reach it before it loads. A failed post pauses the feed for 30s, and a post still in flight skips the next tick.
+
 ---
 
 ## Warrior (Ulric)
@@ -558,7 +560,9 @@ The server's stat pipeline, offline, for Ulric and Riva. It runs the game's own 
 
 ### `Status Page.html`
 
-Served by the sink: `/` is the page, `/api/status` its data, built by `Data Store.py` loaded fresh per request (an edit shows without restarting the sink). After each ingest the sink also runs `node "Tools/Party Model.js" json`; without `node` on PATH it logs and the gear and milestone panels stay on the last file. The page refreshes every 30s. One series hue, status colours only with an icon and a label, light and dark themes from the dataviz reference palette. The kill-time line breaks across gaps over 90 minutes rather than drawing a line through hours with no kills.
+Served by the sink: `/` is the page, `/api/status` its history and model data (built by `Data Store.py`, loaded fresh per request, so an edit shows without restarting the sink), `/api/live` the characters' latest 📊 snapshots. After each ingest the sink also runs `node "Tools/Party Model.js" json`; without `node` on PATH it logs and the gear and milestone panels stay on the last file.
+
+The page polls `/api/live` every second (character cards and the Session section, one tab per character, mirroring the 📊 popout) and `/api/status` every 15s. A poll still in flight skips the next tick. The sink is a `ThreadingHTTPServer`, so a 1.5 MB `errors.json` merge (still serialised by `STORE_LOCK`) never delays the live feed. A chart under the pointer is not redrawn, so its tooltip survives the 1s refresh. One series hue, status colours only with an icon and a label, light and dark themes from the dataviz reference palette. The kill-time line breaks across gaps over 90 minutes rather than drawing a line through hours with no kills.
 
 ### `Watchdog.py`
 

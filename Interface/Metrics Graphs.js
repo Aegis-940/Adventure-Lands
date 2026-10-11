@@ -188,6 +188,80 @@ character.on("loot", data => {
 setInterval(metrics_sample, METRICS_SAMPLE_MS);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// LIVE FEED — the same numbers, once a second, to the sink's status page
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const METRICS_LIVE_URL = "http://127.0.0.1:8787/live";
+const METRICS_LIVE_MS = 1000;
+const METRICS_LIVE_BACKOFF_MS = 30000;
+const METRICS_LIVE_COOP_ROWS = 12;
+
+let _metrics_live_busy = false;
+let _metrics_live_paused_until = 0;
+
+function metrics_damage_snapshot() {
+	return Object.keys(metrics.damage).map(id => {
+		const player = get_player(id);
+		const rates = {};
+		for (const type in METRICS_DAMAGE_TYPES) rates[type] = metrics_damage_rate(id, type);
+		return { name: player ? player.name : id, ctype: player ? player.ctype : null, rates };
+	}).sort((a, b) => b.rates.DPS - a.rates.DPS);
+}
+
+function metrics_coop_snapshot() {
+	const entries = coop_contributors();
+	const total_weight = coop_total_weight(entries);
+	const party = entries.filter(e => parent.party_list.includes(e.name));
+	return {
+		party_points: party.reduce((sum, e) => sum + e.points, 0),
+		party_share: entries.length ? party.reduce((sum, e) => sum + coop_share_weight(e.points), 0) / total_weight : 0,
+		entries: entries.slice(0, METRICS_LIVE_COOP_ROWS).map(e => ({
+			name: e.name, ctype: e.ctype, points: e.points, share: coop_share_weight(e.points) / total_weight,
+			party: parent.party_list.includes(e.name),
+		})),
+	};
+}
+
+function metrics_snapshot() {
+	metrics_track_xp();
+	const target = parent.entities[character.target];
+	const own_state = read_state_cache(character.name);
+	return {
+		character: character.name,
+		t: Date.now(),
+		session_s: Math.round(metrics_elapsed_s()),
+		vitals: {
+			ctype: character.ctype, level: character.level, xp: character.xp, max_xp: parent.G.levels[character.level],
+			hp: character.hp, max_hp: character.max_hp, mp: character.mp, max_mp: character.max_mp,
+			map: character.map, x: Math.round(character.x), y: Math.round(character.y), rip: !!character.rip,
+			goal: own_state ? own_state.goal : null, panicking: !!panicking, wallet: character.gold, cc: Math.round(character.cc || 0),
+			target: target ? (target.mtype || target.name) : null,
+		},
+		gold: { total: metrics.gold, largest: metrics.largest_gold },
+		xp: { total: metrics.xp },
+		kills: { total: metrics.kills, by_mob: metrics.mob_kills },
+		items: metrics.items,
+		damage: metrics_damage_snapshot(),
+		coop: metrics_coop_snapshot(),
+		history: {
+			gold: metrics.gold_history.map(s => s.v),
+			xp: metrics.xp_history.map(s => s.v),
+			sample_s: METRICS_SAMPLE_MS / 1000,
+		},
+	};
+}
+
+function metrics_publish() {
+	if (_metrics_live_busy || Date.now() < _metrics_live_paused_until) return;
+	_metrics_live_busy = true;
+	fetch(METRICS_LIVE_URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(metrics_snapshot()) })
+		.catch(() => { _metrics_live_paused_until = Date.now() + METRICS_LIVE_BACKOFF_MS; })
+		.finally(() => { _metrics_live_busy = false; });
+}
+
+setInterval(metrics_publish, METRICS_LIVE_MS);
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // FORMATTING
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
