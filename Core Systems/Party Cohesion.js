@@ -84,9 +84,31 @@ function leader_position() {
 	const disengaging = !!(c && c.disengaging);
 	if (live) {
 		const going = live.moving ? { x: live.going_x, y: live.going_y } : null;
-		return { map: character.map, x: live.x, y: live.y, going, town: !!live.c.town, rip: !!live.rip, formation: !!(c && c.formation), disengaging };
+		return { map: character.map, x: live.x, y: live.y, going, speed: live.speed, town: !!live.c.town, rip: !!live.rip, formation: !!(c && c.formation), disengaging };
 	}
-	return c ? { map: c.map, x: c.x, y: c.y, going: null, town: !!c.town, rip: !!c.rip, formation: !!c.formation, disengaging } : null;
+	return c ? { map: c.map, x: c.x, y: c.y, going: null, speed: c.speed, town: !!c.town, rip: !!c.rip, formation: !!c.formation, disengaging } : null;
+}
+
+const PACE_MATCH_PX = 1;
+const PACE_GAIN = 0.4;
+const PACE_FREE_PX = 100;
+const PACE_FREE = 500;
+const PACE_SEND_MS = 250;
+let _pace = { sent: PACE_FREE, at: 0 };
+
+function follow_pace(pos, d) {
+	if (!pos.formation || !pos.speed || d >= PACE_FREE_PX) return null;
+	return Math.round(pos.speed + Math.max(0, d - PACE_MATCH_PX) * PACE_GAIN);
+}
+
+function convoy_pace(goal) {
+	const cap = goal && goal.pace ? goal.pace : PACE_FREE;
+	if (cap === _pace.sent) return;
+	const now = Date.now();
+	if (cap !== PACE_FREE && now - _pace.at < PACE_SEND_MS) return;
+	_pace.sent = cap;
+	_pace.at = now;
+	Promise.resolve(cruise(cap)).catch(() => { });
 }
 
 function follow_has_leader() {
@@ -209,6 +231,7 @@ function follow_goal() {
 		? Math.hypot(character.x - pos.x, character.y - pos.y)
 		: Infinity;
 	const closing = cohesion_closing(d);
+	const pace = follow_pace(pos, d);
 
 	if (pos.town && pos.map === character.map && town_near_spawn()) {
 		return { local: "keep", label: "await-town", passive: true, disengage: pos.disengaging };
@@ -231,9 +254,12 @@ function follow_goal() {
 		aim: pos.formation ? pos.going : null,
 		chasing: true,
 		disengage: pos.disengaging,
-		arrived: { local: pos.formation ? "keep" : "farm", label: "with-leader", disengage: pos.disengaging },
+		arrived: { local: pos.formation ? "keep" : "farm", label: "with-leader", pace, disengage: pos.disengaging },
 	});
-	if (near.local) return near;
+	if (near.local) {
+		near.pace = pace;
+		return near;
+	}
 	const point = trail_point();
-	return point ? { local: "trail", label: "follow-trail", point, chasing: true, disengage: pos.disengaging } : near;
+	return point ? { local: "trail", label: "follow-trail", point, pace, chasing: true, disengage: pos.disengaging } : near;
 }

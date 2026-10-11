@@ -118,6 +118,7 @@ function get_full_character_state() {
 		y: character.y,
 		rip: character.rip,
 		moving: character.moving,
+		speed: character.speed,
 		town: town_channelling(),
 		formation: party_in_formation(),
 		disengaging: disengaging(),

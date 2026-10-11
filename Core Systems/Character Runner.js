@@ -152,6 +152,7 @@ function run_character(spec) {
 
 			const goal = movement_goal();
 			_current_goal = goal;
+			convoy_pace(goal);
 			disengage_check();
 			if (dungeon_moving()) return setTimeout(main_tick, TICK_RATE.main);
 
