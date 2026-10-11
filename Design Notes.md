@@ -496,6 +496,12 @@ The exception is a boss that `takes_one_damage()` (crabxx behind its crabx): the
 
 Shot choice on a shelled Djinn is under Warrior Skills → the Rime Djinn's shell.
 
+**Free mana.** With the manasteal shirt in the bag (`mana_free()`), the chooser takes the biggest shot it can afford above the scare reserve alone. With two or more targets in range she should multishot all the time; a plain shot there means something is wrong. Until 10-11 the floor also held hunter's mark and supershot (640 MP), even at plantoid and fireroamer, where both skills are blacklisted. That is 47% of her 1,880 MP: a 5-shot needed 1,210 and a 3-shot 1,090, and she shot single targets anywhere between 250 and 1,090. Mark and supershot now fire only when the mana is there (their own check is the scare reserve).
+
+### `Ranger Equipment.js` — chest
+
+In free-mana mode the shirt goes on `chest_engage_shots` (2) of the widest wanted shot (`desired_shot()`) above the point where that shot stops being affordable: 1,210 MP for a 5-shot. It comes off at 90%. The engage line used to follow the shot the chooser could afford *now*, so it fell as she did (1,210 → 1,090 → 964). She settled near 1,090 in the coat, where potions alone pay for a 3-shot/plain mix of about 60/40, and the shirt was on in only 2 of 29 ledger snapshots. The +5 shirt steals 1.5%, worth about 80–110 MP per 5-shot on five targets. That doesn't fully pay for 5-shots alongside potions, but it does pay for 3-shots, so she settles at the 5-shot line and alternates 5- and 3-shots.
+
 ---
 
 ## Merchant (Riff)

@@ -202,15 +202,6 @@ function mana_free() {
 	return CONFIG.combat.mana_is_free && set_available(CONFIG.equipment.chest_sets.mana);
 }
 
-function combat_mana_reserve() {
-	let reserve = panic_mp_reserve();
-	if (!mana_free()) return reserve;
-
-	if (CONFIG.combat.use_hunters_mark) reserve += skill_mp_cost("huntersmark");
-	if (CONFIG.combat.use_supershot) reserve += skill_mp_cost("supershot");
-	return reserve;
-}
-
 function choose_attack_option(primary) {
 	const lambda = mana_free() ? 0 : mana_price();
 	if (!primary.length) return null;
@@ -225,7 +216,7 @@ function choose_attack_option(primary) {
 		if (scored) options.push({ name: profile.name, single: !!profile.single, targets: primary.slice(0, scored.hits), ...scored });
 	}
 
-	const affordable = options.filter(o => character.mp >= o.mana + combat_mana_reserve());
+	const affordable = options.filter(o => character.mp >= o.mana + panic_mp_reserve());
 	if (affordable.length) return affordable.reduce((best, o) => (o.score > best.score ? o : best));
 
 	if (character.mp >= Math.max(100, panic_mp_reserve())) {

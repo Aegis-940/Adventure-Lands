@@ -73,12 +73,13 @@ function shot_rung_crossover_mp(rate) {
 function mana_chest_band() {
 	if (mana_free()) {
 		const pool = cache.targets.in_range || [];
-		const option = pool.length ? choose_attack_option(pool) : null;
-		const engage = combat_mana_reserve() + (option ? option.mana : 0);
+		const shot_mp = pool.length ? shot_mana(desired_shot(pool)) : 0;
+		const floor = panic_mp_reserve() + shot_mp;
+		const engage = floor + shot_mp * CONFIG.equipment.chest_engage_shots;
 		const wanted = character.max_mp * CONFIG.equipment.chest_release_pct;
 
 		return {
-			free: true, chasing: false, crossover: 0, floor: engage,
+			free: true, chasing: false, crossover: 0, floor,
 			engage, release: Math.min(character.max_mp, Math.max(wanted, engage + 1))
 		};
 	}
@@ -155,8 +156,8 @@ function chest_report() {
 			+ `each 1% manasteal returns ${Math.round(per_point)} mp, worn now ${Math.round(rebate)}`, "#66ccff");
 	}
 	if (band.free) {
-		game_log(`[CHEST] free-mana mode — floor ${Math.round(band.engage)} `
-			+ `(reserve ${combat_mana_reserve()} plus one shot), biggest affordable shot wins`, "#66ccff");
+		game_log(`[CHEST] free-mana mode — widest shot affordable down to ${Math.round(band.floor)} `
+			+ `(scare reserve ${panic_mp_reserve()} plus one ${widest ? widest.name : "shot"}), biggest affordable shot wins`, "#66ccff");
 	} else {
 		game_log(`[CHEST] widest-shot crossover ${Math.round(band.crossover)} `
 			+ `(${Math.round(100 * band.crossover / character.max_mp)}%), next rung ${Math.round(band.floor)} `
