@@ -61,6 +61,7 @@ var WARRIOR_REGOAL_PX = 8;
 
 var SWAP_TRICK_MIN_GAP = 4;
 var SWAP_TRICK_EDGE_GAP = 12;
+var WARRIOR_CHASE_GAP = 20;
 
 var _warrior_detour = null;
 var _warrior_detour_at = 0;
@@ -129,7 +130,7 @@ function warrior_clear_overlap(target) {
 }
 
 function warrior_engage_step(target) {
-	if (!is_in_range(target)) {
+	if (!is_in_range(target) || (target.moving && distance(character, target) > WARRIOR_CHASE_GAP)) {
 		warrior_close_in(target);
 		return true;
 	}
