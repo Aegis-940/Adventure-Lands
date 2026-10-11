@@ -96,11 +96,11 @@ var equipment_sets = {
 		{ item_name: "supermittens", slot: "gloves", level: 7, l: "l" },
 	],
 	single_target: [
-		{ item_name: "firestaff", slot: "mainhand", level: 8, l: "l" },
+		{ item_name: "firestaff", slot: "mainhand", level: 9, l: "l" },
 		{ item_name: "mshield", slot: "offhand", level: 8, l: "l" },
 	],
 	camp_fight: [
-		{ item_name: "firestaff", slot: "mainhand", level: 8, l: "l" },
+		{ item_name: "firestaff", slot: "mainhand", level: 9, l: "l" },
 		{ item_name: "exoarm", slot: "offhand", level: 1, l: "l" },
 		{ item_name: "cave_loaded_die", slot: "orb", level: 1, l: "l" },
 		{ item_name: "zapper", slot: "ring2", level: 0, l: "u" },
