@@ -149,14 +149,14 @@ function trail_point() {
 	const points = last ? _trail.crumbs.concat([last]) : _trail.crumbs;
 	for (let i = points.length - 1; i >= 0; i--) {
 		const p = points[i];
-		if (!can_move_to(p.x, p.y)) continue;
-		return Math.hypot(character.x - p.x, character.y - p.y) > LOCAL_MOVE_SLOP ? p : null;
+		if (can_move_to(p.x, p.y)) return p;
 	}
 	return null;
 }
 
 function trail_step(goal) {
 	const p = goal.point;
+	if (Math.hypot(character.x - p.x, character.y - p.y) < LOCAL_MOVE_SLOP) return;
 	if (character.moving && Math.hypot(character.going_x - p.x, character.going_y - p.y) < LOCAL_MOVE_SLOP) return;
 	walk(p.x, p.y);
 }
@@ -172,7 +172,7 @@ function follow_goal() {
 	const closing = cohesion_closing(d);
 
 	if (pos.town && pos.map === character.map && town_near_spawn()) {
-		return { local: "keep", label: "await-town", disengage: pos.disengaging };
+		return { local: "keep", label: "await-town", passive: true, disengage: pos.disengaging };
 	}
 
 	const fd = CONFIG.movement.follow_distance;

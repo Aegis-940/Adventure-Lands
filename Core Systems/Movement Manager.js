@@ -136,8 +136,8 @@ function smarter_move(destination, on_done, options = {}) {
 		smart.plot = options.plot;
 		smart.searching = smart.found = true;
 	}
-	smart.on_done = (done, reason) => {
-		if (!done && reason !== "interrupted") complete(false, MOVE_NO_PATH);
+	smart.on_done = done => {
+		if (!done && !smart.moving) complete(false, MOVE_NO_PATH);
 	};
 
 	const target_map = smart.map;
@@ -181,6 +181,34 @@ function smarter_move(destination, on_done, options = {}) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// ROUTE RESPLICE — when the next node is out of reach, continue from the first later node in sight instead of searching again
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const ROUTE_RESPLICE_LOOKAHEAD = 12;
+
+function route_resplice() {
+	if (!smart.moving || !smart.found || character.moving || !smart.plot.length) return;
+	const first = smart.plot[0];
+	if (first.map !== character.map || first.transport || first.town) return;
+	if (can_move_to(first.x, first.y)) return;
+	const limit = Math.min(smart.plot.length, ROUTE_RESPLICE_LOOKAHEAD);
+	for (let i = 1; i < limit; i++) {
+		const node = smart.plot[i];
+		if (node.map !== character.map || node.transport || node.town) return;
+		if (!can_move_to(node.x, node.y)) continue;
+		errlog_count("route respliced");
+		smart.plot.splice(0, i);
+		return;
+	}
+}
+
+const native_smart_move_logic = smart_move_logic;
+smart_move_logic = function () {
+	route_resplice();
+	native_smart_move_logic();
+};
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // TRAVEL ARBITER — the single owner of long-range movement for this character.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -196,6 +224,7 @@ const TRAVEL_SEARCH_MAX_MS = 60000;
 const TRAVEL_TOWN_AFTER_FAILURES = 2;
 const TRAVEL_PROGRESS_RESET = 200;
 const TRAVEL_FAILURE_LOG_EVERY = 10;
+const TRAVEL_JOURNEY_TIMEOUT_MS = 300000;
 const TRAVEL_COUNTED_FAILURES = [MOVE_NO_PATH, MOVE_TIMEOUT_REASON];
 
 let _travel = {
@@ -247,9 +276,12 @@ function travel_town_allowed() {
 	return _travel.failures >= TRAVEL_TOWN_AFTER_FAILURES && monsters_targeting_me() === 0;
 }
 
+function travel_ours() {
+	return !!(smart.moving && _travel.interrupt && smart._interrupt === _travel.interrupt);
+}
+
 function travel_park() {
-	const ours = smart.moving && _travel.interrupt && smart._interrupt === _travel.interrupt;
-	if (!ours || !smart.found) return;
+	if (!travel_ours() || !smart.found) return;
 	const plot = character.moving
 		? [{ map: character.map, x: character.going_x, y: character.going_y }].concat(smart.plot)
 		: smart.plot.slice();
@@ -297,6 +329,7 @@ function log_local_goal(label) {
 
 function travel_arbiter(goal) {
 	if (!goal || goal.local) {
+		if (goal && goal.passive && travel_ours() && travel_searching()) return true;
 		_travel.active = false;
 		travel_release();
 		log_local_goal(goal ? goal.label : "idle");
@@ -337,8 +370,7 @@ function travel_arbiter(goal) {
 		return false;
 	}
 
-	const ours = smart.moving && _travel.interrupt && smart._interrupt === _travel.interrupt;
-	const foreign = smart.moving && !ours;
+	const foreign = smart.moving && !travel_ours();
 	const remaining = map === character.map ? Math.hypot(character.x - goal.x, character.y - goal.y) : Infinity;
 	const drifted = !smart.moving
 		|| smart.map !== map
@@ -386,7 +418,7 @@ function travel_arbiter(goal) {
 
 		const plot = travel_parked_plot(label, map, goal.x, goal.y);
 		if (plot) errlog_count("travel resumed parked route");
-		Promise.resolve(smarter_move({ map, x: goal.x, y: goal.y }, null, { timeout: 90000, radius, town, plot }))
+		Promise.resolve(smarter_move({ map, x: goal.x, y: goal.y }, null, { timeout: TRAVEL_JOURNEY_TIMEOUT_MS, radius, town, plot }))
 			.catch(e => {
 				if (e && TRAVEL_COUNTED_FAILURES.includes(e.reason)) travel_failed(label, e.reason);
 			});
@@ -763,9 +795,8 @@ function approach(pos, o) {
 	const d = Math.hypot(character.x - pos.x, character.y - pos.y);
 	if (d <= o.arrive && !o.aim) return o.arrived;
 
-	const aim = o.aim || pos;
-	const a = Math.atan2(character.y - aim.y, character.x - aim.x);
-	const step = { x: aim.x + Math.cos(a) * o.ring, y: aim.y + Math.sin(a) * o.ring };
+	let step = standoff_point(o.aim || pos, o.ring);
+	if (o.aim && !can_move_to(step.x, step.y)) step = standoff_point(pos, o.ring);
 	if (can_move_to(step.x, step.y)) {
 		return { local: "step", label: o.label + "-close", step, chasing: o.chasing, disengage: o.disengage };
 	}
@@ -868,7 +899,7 @@ function movement_goal() {
 
 function movement_local(goal, farm_step, engage_step) {
 	if (smart.moving) {
-		game_log("🧭 local movement skipped — a journey is still in flight", "#FFA500");
+		if (!goal || !goal.passive) game_log("🧭 local movement skipped — a journey is still in flight", "#FFA500");
 		return;
 	}
 	if (goal && goal.local === "step") return local_step(goal);

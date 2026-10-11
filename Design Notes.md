@@ -38,7 +38,13 @@ The two movement owners are `movement_goal()` (where to go: the one priority lis
 
 **Released journeys.** A journey the arbiter released itself is re-issued at once, not after the 3s floor.
 
-**Native search failure.** A native search failure reaches `smarter_move` through `smart.on_done` (reason `failed`, or no reason after the executor's own "Lost the path" re-search) and settles the journey as `no path` on the spot. `interrupted` means the native `smart_move` re-entered, and is ignored. Settling on failure is the way out of walled pockets like the ice golem landing. The stuck escape behind it skips only real instances and the cave.
+**Passive goals keep a search alive.** A search is not parkable, so a local goal that releases it throws the work away. A `passive` local goal (`boss-loot`, `await-town`) leaves an unfinished search of ours running instead; once found, the next tick parks it as usual. `boss-loot` coming and going with the chest count threw a 20s cross-map search home away four times in a row on 10-11 10:55. `movement_local()` stays silent for a passive goal while the search runs, and the runner still loots under it.
+
+**Journey cap.** `TRAVEL_JOURNEY_TIMEOUT_MS` is 300s. At 90s the walk home from halloween timed out twice on 10-11 with the followers in formation the whole way, and each timeout counted as a failure toward the town escalation.
+
+**Native search failure.** A native search failure reaches `smarter_move` through `smart.on_done` and settles the journey as `no path` on the spot. It is told apart from the native `smart_move` re-entering (its own "Lost the path" recovery, or `stop()`) by state, not reason: `bfs()` clears `smart.moving` before calling `on_done`, the re-entry calls it while `smart.moving` is still set, and after one recovery the native closure drops the reason altogether — reading the reason produced the spurious `"home" failed (no path)` of 10-11 10:29. Settling on failure is the way out of walled pockets like the ice golem landing. The stuck escape behind it skips only real instances and the cave.
+
+**Route resplice.** `route_resplice()` runs ahead of the game's `smart_move_logic` (wrapped by name; the game's 80ms interval calls it by global lookup). When the next node is out of line of sight it continues from the first later node in sight, up to 12 ahead, so the game's "Lost the path" (a full re-search) is the fallback rather than the rule. 10 of the 13 lost paths on 10-11 were one two-minute chain on winter_cove, a search every 5–10s.
 
 **`walk()`.** Every local step goes through `walk()`, which is `move()` behind the game's `can_walk()`. A bare `move()` within 8s of a door transport, or while disabled, rejects with `unable`. The follow steps fired through a door crossing were the `unhandled_rejection` lines of 10-10.
 
@@ -147,6 +153,8 @@ Live boss and seasonal targets, and the goal that walks the party to them.
 
 **Pursuit.** Pursuit bypasses following and cohesion: each fighter closes to its own range. For an entry with a `spot` (franky: -19,36), every fighter first walks to within 50px of the spot while the boss is within 100px of it, then fights from there; Ulric's `engage_step` takes over inside that radius. The spot keeps the party together and away from the oneeye pen. `party_cohesion_hold(event)` does not hold for a follower whose goal is the same event.
 
+**Draining the field.** After the boss dies Myras stays on `boss-loot` (a `passive` local goal) while `boss_field_draining()` holds: a chest in sight, or one seen within the last 3s (`BOSS_LOOT_LINGER_MS`), inside the 20s field grace. Without the linger the goal flipped to `home` and back on every chest, and each flip cancelled the search home.
+
 **`boss_watch`.** While a boss is in sight each fighter writes a `boss_watch` timeline line every 10s (boss HP and target, positions, distance, goal, panic/evade) via `errlog_timeline()`. It goes to `errors_timeline.jsonl` without creating a record. Read those lines first after a boss fight goes wrong.
 
 ### `Equipment Manager.js`
@@ -206,7 +214,11 @@ Cohesion only: `follow_goal()`, `party_cohesion_hold()`, `leader_position()`, `b
 
 **Following the trail.** When the step beside her is out of sight, `follow_goal()` returns `{ local: "trail" }` to the newest crumb (or her live position) in a straight line, so a corner costs no pathfinder search. A journey to her own position is the fallback while no crumb is in sight. It is cancelled the moment a step beside her or a crumb comes into line of sight (`approach()` and `trail_point()` no longer wait for `smart.moving` to clear). A journey that ran to completion walked the follower to where she had been, up to 80px or 30% of the distance behind her, before the next search.
 
-**Walking with her.** In formation the step aims at her move target (`pos.going`, her `going_x`/`going_y`) 12px short, so a follower walks her leg with her. Before, it arrived inside 15px, stopped, and re-stepped every few px: `with-leader` and `follow-close` alternated about equally in the alive samples.
+`trail_point()` returns the newest visible point even when the follower already stands on it (`trail_step()` then issues nothing). It used to return `null` for "already here", which `follow_goal()` read as "nothing in sight" and answered with a journey: together with the far-point-only step below, each follower started and cancelled a `follow` journey every 1–2s for the whole walk to a boss — 685 searches in the 14h to 10-11 12:00, 26 in one minute, all on trips and none at the camp.
+
+**Walking with her.** In formation the step aims at her move target (`pos.going`, her `going_x`/`going_y`) 12px short, so a follower walks her leg with her. Before, it arrived inside 15px, stopped, and re-stepped every few px: `with-leader` and `follow-close` alternated about equally in the alive samples. When the far point is out of line of sight the step falls back to her own position; the game's executor stops her for a tick between route legs, so her move target flips between the far end of a leg and her own spot, and a far-only step alternated between a step and a journey on every corner.
+
+**Reading the 🧭 lines.** They are throttled to one per 1.5s per character and only on a label change, and a re-issued journey of the same label logs nothing, so a goal that flips and returns inside 1.5s shows only as two lines of the same label. Read the game's "Searching for a path" lines beside them.
 
 **Across maps.** When she is on another map the trail still runs to her last seen position (`_trail.seen`, at the door she used) before the cross-map search starts from there. The trail is per map, and `trail_point()` returns nothing once the follower has changed map.
 

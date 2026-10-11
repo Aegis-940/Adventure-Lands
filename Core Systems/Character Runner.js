@@ -154,7 +154,8 @@ function run_character(spec) {
 			disengage_check();
 			if (dungeon_moving()) return setTimeout(main_tick, TICK_RATE.main);
 
-			if (!travel_arbiter(goal) || goal.hold) {
+			const travelling = travel_arbiter(goal);
+			if (!travelling || goal.hold || goal.passive) {
 				if (should_loot()) await handle_looting();
 				else movement_local(goal, s.farm_step, s.engage_step);
 			}

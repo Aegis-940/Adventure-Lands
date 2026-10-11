@@ -36,7 +36,7 @@ function event_goal() {
 
 	if (!target) {
 		if (character.ctype === "priest" && boss_field_draining()) {
-			return { local: "loot", label: "boss-loot" };
+			return { local: "loot", label: "boss-loot", passive: true };
 		}
 		return null;
 	}
@@ -136,6 +136,7 @@ function best_event_target() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const BOSS_LOOT_GRACE_MS = 20000;
+const BOSS_LOOT_LINGER_MS = 3000;
 const BOSS_LOOT_REACH = 200;
 
 let _boss_field = null;
@@ -152,7 +153,12 @@ function boss_field_watch(target) {
 }
 
 function boss_field_draining() {
-	return !!_boss_field && get_num_chests() > 0;
+	if (!_boss_field) return false;
+	if (get_num_chests() > 0) {
+		_boss_field.chest_at = Date.now();
+		return true;
+	}
+	return !!_boss_field.chest_at && Date.now() - _boss_field.chest_at < BOSS_LOOT_LINGER_MS;
 }
 
 function nearest_chest() {
