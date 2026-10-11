@@ -257,11 +257,28 @@ function load_bank_from_local_storage() {
 	return storage_read(SAVED_BANK_KEY);
 }
 
-async function withdraw_item(item_name, level = null, total = null) {
+async function wait_for_bank(map) {
+	for (let waited = 0; waited < 3000 && !(character.bank && character.map === map); waited += 50) {
+		await delay(50);
+	}
+}
 
+async function go_to_bank_floor(map) {
 	const BANK_LOC1 = { map: "bank", x: 0, y: -37 };
 	const BANK_LOC2 = { map: "bank_b", x: -265, y: -344 };
+	if (character.map === map) return;
+	if (map === "bank") {
+		game_log("Moving to Bank");
+		await smarter_move(BANK_LOC1);
+	} else if (map === "bank_b") {
+		game_log("Moving to Bank Basement");
+		await smarter_move(BANK_LOC1);
+		await smarter_move(BANK_LOC2);
+	}
+	await wait_for_bank(map);
+}
 
+async function withdraw_item(item_name, level = null, total = null) {
 	let bank_data = character.bank;
 	if (!bank_data || Object.keys(bank_data).length === 0) {
 		bank_data = load_bank_from_local_storage();
@@ -271,53 +288,42 @@ async function withdraw_item(item_name, level = null, total = null) {
 		}
 	}
 
-	let remaining = (total != null ? total : Infinity);
-	let found_any  = false;
-
+	let wanted = total != null ? total : Infinity;
+	const floors = {};
 	for (const pack_key of Object.keys(bank_data)) {
-		if (!pack_key.startsWith("items")) continue;
-		const slot_arr = bank_data[pack_key];
-		if (!Array.isArray(slot_arr)) continue;
-
-		for (let slot = 0; slot < slot_arr.length && remaining > 0; slot++) {
-			const itm = slot_arr[slot];
-			if (!itm || itm.name !== item_name) continue;
-			if (level != null && (itm.level || 0) !== level) continue;
-
-			found_any = true;
-
-			const pack_num = parseInt(pack_key.replace("items", ""), 10);
-			if (!isNaN(pack_num)) {
-				if (pack_num >= 0 && pack_num <= 7 && character.map !== "bank") {
-					game_log(`Moving to Bank for pack ${pack_key}`);
-					await smarter_move(BANK_LOC1);
-					await delay(200);
-				} else if (pack_num >= 8 && pack_num <= 14 && character.map !== "bank_b") {
-					game_log(`Moving to Bank Basement for pack ${pack_key}`);
-					await smarter_move(BANK_LOC1);
-					await smarter_move(BANK_LOC2);
-					await delay(200);
-				}
-			}
-
-			try {
-				await bank_retrieve(pack_key, slot, -1);
-			} catch (e) {
-				game_log(`⚠️ withdraw_item: ${item_name} not in ${pack_key} slot ${slot} `
-					+ `(${(e && (e.reason || e.message)) || e})`, "#FFA500");
-				continue;
-			}
-			refresh_bank_snapshot();
-			remaining -= (itm.q || 1);
-		}
-
-		if (remaining <= 0) break;
+		if (!pack_key.startsWith("items") || !Array.isArray(bank_data[pack_key])) continue;
+		bank_data[pack_key].forEach((itm, slot) => {
+			if (wanted <= 0 || !itm || itm.name !== item_name || (level != null && (itm.level || 0) !== level)) return;
+			const floor = parent.bank_packs[pack_key][0];
+			if (!floors[floor]) floors[floor] = [];
+			floors[floor].push({ pack_key, slot, q: itm.q || 1 });
+			wanted -= itm.q || 1;
+		});
 	}
 
-	if (!found_any) {
+	if (!Object.keys(floors).length) {
 		game_log(`⚠️ No "${item_name}"${level != null ? ` level ${level}` : ""} found in bank.`);
-	} else if (total != null && remaining > 0) {
-		const got = total - remaining;
+		return;
+	}
+
+	let got = 0;
+	for (const floor of Object.keys(floors)) {
+		await go_to_bank_floor(floor);
+		const picks = floors[floor];
+		const results = await Promise.allSettled(picks.map(pick => bank_retrieve(pick.pack_key, pick.slot, -1)));
+		results.forEach((result, k) => {
+			if (result.status === "fulfilled") {
+				got += picks[k].q;
+				return;
+			}
+			const e = result.reason;
+			game_log(`⚠️ withdraw_item: ${item_name} not in ${picks[k].pack_key} slot ${picks[k].slot} `
+				+ `(${(e && (e.reason || e.message)) || e})`, "#FFA500");
+		});
+		refresh_bank_snapshot();
+	}
+
+	if (total != null && got < total) {
 		game_log(`⚠️ Only retrieved ${got}/${total} of ${item_name}.`);
 	}
 }

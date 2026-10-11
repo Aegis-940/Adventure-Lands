@@ -424,18 +424,13 @@ async function upgrade_slot(i, profile, needed) {
 		}
 	}
 
-	let slot = i;
 	if (!character.q.upgrade) {
-		slot = upgrade_slot_for(i);
 		use_mass_production(item.level);
-		game_log(`Upgrading ${item.name} (level ${item.level}) with ${scrollname} in slot ${slot}`);
 		try {
-			if (slot !== i) await swap(i, slot);
-			await upgrade(slot, inventory_slot(scrollname), offering_slot === null ? null : inventory_slot("offeringp"));
+			await upgrade_in_lucky_slot(i, inventory_slot(scrollname), offering_slot === null ? null : inventory_slot("offeringp"));
 		} catch (e) {
 			catcher(e, `upgrade_slot: ${item.name} (level ${item.level})`);
 			upgrade_failed_slots.add(i);
-			upgrade_failed_slots.add(slot);
 			return "failed";
 		}
 	}
@@ -444,11 +439,45 @@ async function upgrade_slot(i, profile, needed) {
 		await delay(50);
 	}
 
-	if (slot !== i && (character.items[slot] || character.items[i])) {
-		await swap(slot, i).catch(e => catcher(e, `upgrade_slot: swap back ${slot} -> ${i}`));
+	return "done";
+}
+
+var _lucky_parked = null;
+
+function swapped_index(slot, a, b) {
+	return slot === a ? b : slot === b ? a : slot;
+}
+
+async function upgrade_in_lucky_slot(i, scroll, offering) {
+	const item = character.items[i];
+	const lucky = upgrade_slot_for(i);
+	if (_lucky_parked && _lucky_parked.lucky !== lucky) await restore_lucky_slot();
+
+	game_log(`Upgrading ${item.name} (level ${item.level || 0}) in slot ${lucky}`);
+	const moved = [];
+	if (i !== lucky) {
+		if (!_lucky_parked) _lucky_parked = { lucky, parked: i };
+		else if (_lucky_parked.parked === i) _lucky_parked = null;
+		moved.push(swap(i, lucky));
 	}
 
-	return "done";
+	parent.socket.emit("upgrade", {
+		item_num: lucky,
+		scroll_num: swapped_index(scroll, i, lucky),
+		offering_num: offering === null ? null : swapped_index(offering, i, lucky),
+		clevel: item.level || 0,
+	});
+	const [result] = await Promise.all([parent.push_deferred("upgrade"), ...moved]);
+	return result;
+}
+
+async function restore_lucky_slot() {
+	if (!_lucky_parked) return;
+	const { lucky, parked } = _lucky_parked;
+	_lucky_parked = null;
+	if (character.items[lucky] || character.items[parked]) {
+		await swap(lucky, parked).catch(e => catcher(e, `restore_lucky_slot: ${lucky} <-> ${parked}`));
+	}
 }
 
 async function auto_upgrade_item(level, plan) {
@@ -638,6 +667,7 @@ async function upgrade_pass(abandoned, plan) {
 		}
 	}
 
+	await restore_lucky_slot();
 	return progressed;
 }
 

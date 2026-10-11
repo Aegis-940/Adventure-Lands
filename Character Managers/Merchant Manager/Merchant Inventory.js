@@ -106,6 +106,27 @@ async function sell_items(keep = keep_nothing) {
 	return sold_any;
 }
 
+function plan_bank_stores(keep) {
+	const packs = Object.keys(character.bank)
+		.filter(pack => pack.startsWith("items") && Array.isArray(character.bank[pack]) && parent.bank_packs[pack][0] === character.map);
+	const free = {};
+	for (const pack of packs) free[pack] = character.bank[pack].filter(it => !it).length;
+
+	const stores = [];
+	character.items.forEach((item, slot) => {
+		if (!bankable(item, keep)) return;
+		const stack = packs.find(pack => character.bank[pack].some(it => parent.can_stack(it, item, null, { ignore_pvp: true })));
+		const pack = stack || packs.find(p => free[p] > 0);
+		if (!pack) {
+			game_log(`⚠️ No bank space on this floor for ${item.name}.`, "#FFA500");
+			return;
+		}
+		if (!stack) free[pack]--;
+		stores.push({ slot, pack, item });
+	});
+	return stores;
+}
+
 var bank_items_running = false;
 
 async function bank_items(keep = keep_nothing) {
@@ -121,20 +142,19 @@ async function bank_items(keep = keep_nothing) {
 	let banked_any = false;
 	try {
 		await smarter_move(BANK_LOCATION);
-		await delay(1000);
+		await wait_for_bank(BANK_LOCATION.map);
 
-		for (let i = 0; i < character.items.length; i++) {
-			const item = character.items[i];
-			if (!bankable(item, keep)) continue;
-			try {
-				await bank_store(i);
-				refresh_bank_snapshot();
-				game_log(`🏦 Deposited ${item.name} x${item.q || 1} to bank`);
-				banked_any = true;
-			} catch (e) {
-				catcher(e, "bank_items: bank_store " + item.name);
+		const stores = plan_bank_stores(keep);
+		const results = await Promise.allSettled(stores.map(store => bank_store(store.slot, store.pack)));
+		results.forEach((result, k) => {
+			const item = stores[k].item;
+			if (result.status === "rejected") {
+				catcher(result.reason, "bank_items: bank_store " + item.name);
+				return;
 			}
-		}
+			game_log(`🏦 Deposited ${item.name} x${item.q || 1} to bank`);
+			banked_any = true;
+		});
 
 		if (banked_any) refresh_bank_snapshot();
 	} catch (e) {

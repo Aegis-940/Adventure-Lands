@@ -40,7 +40,7 @@ function bank_quantity_for(item_name, level) {
 	for (const pack in bank_data) {
 		if (!Array.isArray(bank_data[pack])) continue;
 		for (const it of bank_data[pack]) {
-			if (it && it.name === item_name && (level == null || (it.level || 0) === level)) {
+			if (item_matches(it, item_name, level)) {
 				qty += it.q || 1;
 			}
 		}
@@ -48,24 +48,17 @@ function bank_quantity_for(item_name, level) {
 	return qty;
 }
 
-function craft_recipe_items(craft_def) {
-	return craft_def.items.map(([item_quantity, item_name]) => {
-		const item = parent.G.items[item_name];
-		return { name: item_name, quantity: item_quantity, level: item.scroll === true ? 0 : null };
-	});
+function item_matches(item, name, level) {
+	return !!item && item.name === name && (level == null || (item.level || 0) === level);
 }
 
-function find_recipe_slots(req) {
-	const picks = [];
-	let remaining = req.quantity;
-	for (let i = 0; i < character.items.length && remaining > 0; i++) {
-		const item = character.items[i];
-		if (!item || item.name !== req.name || (req.level != null && item.level !== req.level)) continue;
-		const take = Math.min(item.q || 1, remaining);
-		for (let k = 0; k < take; k++) picks.push(i);
-		remaining -= take;
-	}
-	return remaining > 0 ? null : picks;
+function craft_recipe_items(craft_def) {
+	return craft_def.items.map(([item_quantity, item_name, item_level]) => ({ name: item_name, quantity: item_quantity, level: item_level || 0 }));
+}
+
+function find_recipe_slot(req, bag) {
+	const slot = bag.findIndex(it => item_matches(it, req.name, req.level) && (it.q || 1) >= req.quantity);
+	return slot === -1 ? null : slot;
 }
 
 function max_craftable_by_space(item_name) {
@@ -90,7 +83,7 @@ function max_craftable_by_space(item_name) {
 function total_held(name, level) {
 	let have = bank_quantity_for(name, level);
 	for (const item of character.items) {
-		if (item && item.name === name && (level == null || item.level === level)) {
+		if (item_matches(item, name, level)) {
 			have += item.q || 1;
 		}
 	}
@@ -152,7 +145,7 @@ function compute_missing_ingredients(craft_def, count) {
 		const needed = req.quantity * count;
 		let have = 0;
 		for (const item of character.items) {
-			if (item && item.name === req.name && (req.level == null || item.level === req.level)) {
+			if (item_matches(item, req.name, req.level)) {
 				have += item.q || 1;
 			}
 		}
@@ -221,16 +214,26 @@ async function gather_ingredients_for_batch(craft_def, count) {
 	return compute_missing_ingredients(craft_def, count).length === 0;
 }
 
-function recipe_slot_array(recipe) {
-	let craft_slots = [];
-	for (const req of recipe) {
-		const slots = find_recipe_slots(req);
-		if (!slots) return null;
-		craft_slots = craft_slots.concat(slots);
-	}
-	const craft_array = craft_slots.slice(0, 9);
+function recipe_slot_array(recipe, bag) {
+	const craft_array = recipe.map(req => find_recipe_slot(req, bag));
+	if (craft_array.includes(null)) return null;
 	while (craft_array.length < 9) craft_array.push(null);
 	return craft_array;
+}
+
+function plan_crafts(recipe, count) {
+	const bag = character.items.map(it => it && { name: it.name, level: it.level, q: it.q || 1 });
+	const grids = [];
+	while (grids.length < count) {
+		const grid = recipe_slot_array(recipe, bag);
+		if (!grid) break;
+		recipe.forEach((req, k) => {
+			bag[grid[k]].q -= req.quantity;
+			if (bag[grid[k]].q <= 0) bag[grid[k]] = null;
+		});
+		grids.push(grid);
+	}
+	return grids;
 }
 
 async function craft_batch(craft_name, count) {
@@ -247,23 +250,11 @@ async function craft_batch(craft_name, count) {
 		return 0;
 	}
 
-	const recipe = craft_recipe_items(craft_def);
-	let crafted = 0;
-
-	while (crafted < count) {
-		const craft_array = recipe_slot_array(recipe);
-		if (!craft_array) break;
-
-		try {
-			await craft(...craft_array);
-		} catch (e) {
-			catcher(e, "craft_batch: craft " + craft_name);
-			break;
-		}
-		crafted++;
-	}
-
-	return crafted;
+	const grids = plan_crafts(craft_recipe_items(craft_def), count);
+	const results = await Promise.allSettled(grids.map(grid => craft(...grid)));
+	const refused = results.find(result => result.status === "rejected");
+	if (refused) catcher(refused.reason, "craft_batch: craft " + craft_name);
+	return results.filter(result => result.status === "fulfilled").length;
 }
 
 async function craft_item(craft_name) {
@@ -275,16 +266,10 @@ async function craft_item(craft_name) {
 	if (cost > character.gold) return "missing";
 
 	let missing = 0;
-	let craft_slots = [];
 	let buyable_missing = [];
 
 	for (const req of craft_recipe_items(craft_def)) {
-		const recipe_slots = find_recipe_slots(req);
-
-		if (recipe_slots) {
-			craft_slots = craft_slots.concat(recipe_slots);
-			continue;
-		}
+		if (find_recipe_slot(req, character.items) !== null) continue;
 
 		if (bank_quantity_for(req.name, req.level) > 0) {
 			try {
@@ -319,11 +304,8 @@ async function craft_item(craft_name) {
 			return "missing";
 		}
 
-		const craft_array = craft_slots.slice(0, 9);
-		while (craft_array.length < 9) craft_array.push(null);
-
 		try {
-			await craft(...craft_array);
+			await craft(...recipe_slot_array(craft_recipe_items(craft_def), character.items));
 		} catch (e) {
 			catcher(e, "craft_item: craft " + craft_name);
 			return "missing";
