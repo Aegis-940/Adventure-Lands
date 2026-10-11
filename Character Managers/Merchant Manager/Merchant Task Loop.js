@@ -75,7 +75,7 @@ async function handle_crafting_state() {
 	if (merchant_task !== "Idle") return;
 	const generation = begin_task("Crafting");
 	try {
-		await try_craft();
+		await try_craft(() => generation !== merchant_task_generation);
 	} catch (e) {
 		catcher(e, "handle_crafting_state");
 	} finally {

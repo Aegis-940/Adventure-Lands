@@ -12,6 +12,26 @@ function can_afford_any_craft() {
 var CRAFT_LOCATION = { map: "main", x: 0, y: 492 };
 var CRAFT_POSITION_TOLERANCE = 5;
 
+function has_computer() {
+	return character.items.some(it => it && it.name === "computer");
+}
+
+async function leave_bank() {
+	if (character.map.startsWith("bank")) await smarter_move(HOME);
+}
+
+async function go_to_craftsman() {
+	if (has_computer()) return leave_bank();
+	if (character.map !== CRAFT_LOCATION.map || Math.hypot(character.x - CRAFT_LOCATION.x, character.y - CRAFT_LOCATION.y) > CRAFT_POSITION_TOLERANCE) {
+		await smarter_move(CRAFT_LOCATION, null, { radius: CRAFT_POSITION_TOLERANCE });
+	}
+}
+
+async function go_to_basics() {
+	if (has_computer()) return leave_bank();
+	await smart_move("basics");
+}
+
 function bank_quantity_for(item_name, level) {
 	const bank_data = character.bank || load_bank_from_local_storage();
 	if (!bank_data) return 0;
@@ -147,7 +167,7 @@ var GATHER_MAX_ROUNDS = 10;
 
 async function buy_amount(item_name, amount) {
 	if (parent.G.items[item_name].s) return buy(item_name, amount);
-	for (let k = 0; k < amount; k++) await buy(item_name);
+	await Promise.all(Array.from({ length: amount }, () => buy(item_name)));
 }
 
 async function gather_ingredients_for_batch(craft_def, count) {
@@ -183,7 +203,7 @@ async function gather_ingredients_for_batch(craft_def, count) {
 		if (to_buy.length === 0) continue;
 
 		try {
-			await smart_move("basics");
+			await go_to_basics();
 		} catch (e) {
 			catcher(e, "gather_ingredients_for_batch: travel to basics NPC");
 			return false;
@@ -220,16 +240,11 @@ async function craft_batch(craft_name, count) {
 	const gathered = await gather_ingredients_for_batch(craft_def, count);
 	if (!gathered) return 0;
 
-	if (
-		character.map !== CRAFT_LOCATION.map ||
-		Math.hypot(character.x - CRAFT_LOCATION.x, character.y - CRAFT_LOCATION.y) > CRAFT_POSITION_TOLERANCE
-	) {
-		try {
-			await smarter_move(CRAFT_LOCATION, null, { radius: CRAFT_POSITION_TOLERANCE });
-		} catch (e) {
-			catcher(e, "craft_batch: travel to craft location");
-			return 0;
-		}
+	try {
+		await go_to_craftsman();
+	} catch (e) {
+		catcher(e, "craft_batch: travel to craft location");
+		return 0;
 	}
 
 	const recipe = craft_recipe_items(craft_def);
@@ -297,16 +312,11 @@ async function craft_item(craft_name) {
 	}
 
 	if (missing === 0) {
-		if (
-			character.map !== CRAFT_LOCATION.map ||
-			Math.hypot(character.x - CRAFT_LOCATION.x, character.y - CRAFT_LOCATION.y) > CRAFT_POSITION_TOLERANCE
-		) {
-			try {
-				await smarter_move(CRAFT_LOCATION, null, { radius: CRAFT_POSITION_TOLERANCE });
-			} catch (e) {
-				catcher(e, "craft_item: travel to craft location");
-				return "missing";
-			}
+		try {
+			await go_to_craftsman();
+		} catch (e) {
+			catcher(e, "craft_item: travel to craft location");
+			return "missing";
 		}
 
 		const craft_array = craft_slots.slice(0, 9);
@@ -323,7 +333,7 @@ async function craft_item(craft_name) {
 
 	if (buyable_missing.length === missing && buyable_missing.length) {
 		try {
-			await smart_move("basics");
+			await go_to_basics();
 		} catch (e) {
 			catcher(e, "craft_item: travel to basics NPC");
 			return "missing";
@@ -343,7 +353,21 @@ function craft_run_blocked() {
 	return Date.now() < _craft_retry_at;
 }
 
-async function try_craft() {
+function upgrades_crafted(item_name) {
+	return CONFIG.enabled.upgrading
+		&& ((item_name === CONFIG.upgrade_target.name && upgrade_target_open()) || !!UPGRADE_PROFILE[item_name]);
+}
+
+async function upgrade_crafted(item_name, abandoned) {
+	if (!upgrades_crafted(item_name)) return;
+	if (has_computer()) await leave_bank();
+	else await smarter_move(HOME);
+	game_log(`⬆️ Upgrading the ${item_name} just crafted before crafting more.`);
+	await upgrade_target_pass(abandoned);
+	await upgrade_pass(abandoned, profile_plan());
+}
+
+async function try_craft(abandoned) {
 	let any_crafted = false;
 	for (const target of CONFIG.crafting.targets) {
 		const craft_def = parent.G.craft[target.name];
@@ -355,7 +379,7 @@ async function try_craft() {
 		const target_max = target.max ?? Infinity;
 		let total_crafted = 0;
 
-		for (let batch = 0; batch < CRAFT_MAX_BATCHES && total_crafted < target_max; batch++) {
+		for (let batch = 0; batch < CRAFT_MAX_BATCHES && total_crafted < target_max && !abandoned(); batch++) {
 			const remaining = target_max - total_crafted;
 			const batch_size = Math.min(max_craftable_now(target), remaining);
 			if (batch_size <= 0) break;
@@ -366,6 +390,9 @@ async function try_craft() {
 			any_crafted = true;
 
 			game_log(`✅ Crafted ${crafted}x ${target.name} (${total_crafted}${target_max === Infinity ? "" : "/" + target_max} this run).`);
+			task_heartbeat();
+
+			await upgrade_crafted(target.name, abandoned);
 
 			if (total_crafted >= target_max) break;
 

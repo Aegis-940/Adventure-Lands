@@ -236,7 +236,7 @@ async function make_upgrade_room() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// UPGRADE TARGET — n copies of one item at +m, worked highest copy first, before the profile items
+// UPGRADE TARGET — n copies of one item at +m, batch-upgraded level by level before the profile items
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function held_items(name) {
@@ -258,37 +258,23 @@ function npc_sells(name) {
 	return Object.values(G.npcs).some(npc => (npc.items || []).includes(name));
 }
 
-function highest_target_slot() {
+function target_plan() {
 	const target = CONFIG.upgrade_target;
-	let best = null;
-	character.items.forEach((it, i) => {
-		if (!it || it.name !== target.name || (it.level || 0) >= target.level || upgrade_failed_slots.has(i)) return;
-		if (best === null || (it.level || 0) > (character.items[best].level || 0)) best = i;
-	});
-	return best;
+	const profile = target_profile(target.name);
+	return item => item.name === target.name && (item.level || 0) < target.level ? profile : null;
+}
+
+function profile_plan() {
+	const target = upgrade_target_open() ? CONFIG.upgrade_target.name : null;
+	return item => {
+		const profile = UPGRADE_PROFILE[item.name];
+		return profile && item.name !== target && (item.level || 0) < profile.max_level ? profile : null;
+	};
 }
 
 async function upgrade_target_pass(abandoned) {
 	if (!upgrade_target_open()) return false;
-	upgrade_failed_slots.clear();
-	const profile = target_profile(CONFIG.upgrade_target.name);
-	let progressed = false;
-
-	while (!abandoned() && upgrade_target_open()) {
-		await make_upgrade_room();
-		const slot = highest_target_slot();
-		if (slot === null) break;
-		const scrollname = scroll_for(profile, character.items[slot].level || 0, "scroll");
-		const needed = character.items.filter(it => it && it.name === CONFIG.upgrade_target.name
-			&& (it.level || 0) < CONFIG.upgrade_target.level && scroll_for(profile, it.level || 0, "scroll") === scrollname).length;
-		const result = await upgrade_slot(slot, profile, needed);
-		if (result === "done") {
-			progressed = true;
-			task_heartbeat();
-		} else if (result !== "wait" && result !== "failed") {
-			break;
-		}
-	}
+	const progressed = await upgrade_pass(abandoned, target_plan());
 
 	if (progressed && !upgrade_target_open()) {
 		const target = CONFIG.upgrade_target;
@@ -465,20 +451,16 @@ async function upgrade_slot(i, profile, needed) {
 	return "done";
 }
 
-async function auto_upgrade_item(level) {
-	const target = upgrade_target_open() ? CONFIG.upgrade_target.name : null;
-	const eligible = (it, j) => {
-		const profile = it && UPGRADE_PROFILE[it.name];
-		return !!profile && it.name !== target && it.level === level && it.level < profile.max_level && !upgrade_failed_slots.has(j);
-	};
+async function auto_upgrade_item(level, plan) {
+	const eligible = (it, j) => !!it && (it.level || 0) === level && !upgrade_failed_slots.has(j) && !!plan(it);
 
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
 		if (!eligible(item, i)) continue;
 
-		const profile = UPGRADE_PROFILE[item.name];
+		const profile = plan(item);
 		const scrollname = scroll_for(profile, level, "scroll");
-		const needed = character.items.filter((it, j) => eligible(it, j) && scroll_for(UPGRADE_PROFILE[it.name], level, "scroll") === scrollname).length;
+		const needed = character.items.filter((it, j) => eligible(it, j) && scroll_for(plan(it), level, "scroll") === scrollname).length;
 
 		const result = await upgrade_slot(i, profile, needed);
 		if (result === "skip" || result === "failed") continue;
@@ -637,14 +619,14 @@ async function buy_for_upgrade() {
 	}
 }
 
-async function upgrade_pass(abandoned) {
+async function upgrade_pass(abandoned, plan) {
 	upgrade_failed_slots.clear();
 	let progressed = false;
 
-	for (let level = 0; level <= 10 && !abandoned(); level++) {
+	for (let level = 0; level < 12 && !abandoned(); level++) {
 		while (!abandoned()) {
 			await make_upgrade_room();
-			const result = await auto_upgrade_item(level);
+			const result = await auto_upgrade_item(level, plan);
 			if (result === "done") {
 				progressed = true;
 				task_heartbeat();
@@ -687,7 +669,7 @@ async function auto_upgrade() {
 		do {
 			await buy_for_upgrade();
 			const target_progressed = await upgrade_target_pass(abandoned);
-			pass_progressed = await upgrade_pass(abandoned) || target_progressed;
+			pass_progressed = await upgrade_pass(abandoned, profile_plan()) || target_progressed;
 			if (pass_progressed) progressed = true;
 		} while (pass_progressed && !abandoned());
 
