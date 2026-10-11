@@ -201,21 +201,33 @@ def spot_rates(db, column, value, since_t=0):
     }
 
 
-def survey_rows(db):
+def survey_rows(db, state):
+    """One row per spot with a result or ledger data. The live survey state, when there is one, decides which
+    spots are still on the list and what their status is: a spot dropped from the list disappears, and a spot
+    put back with survey_retry() shows as pending or running rather than its old result."""
     status = {}
     for spot, st, at_spot_s, deaths, visits in db.execute(
             "SELECT spot, status, at_spot_s, deaths, visits FROM survey WHERE spot IS NOT NULL ORDER BY t"):
         status[spot] = {"status": st, "clock_min": round((at_spot_s or 0) / 60, 1), "visit_deaths": deaths,
                         "visits": visits}
     spots = {s for (s,) in db.execute("SELECT DISTINCT survey_spot FROM ledger WHERE survey_spot IS NOT NULL")}
+    spots |= set(status)
+    if state:
+        listed = {p["type"]: p for p in state.get("spots") or []}
+        current = None if state.get("complete") else (state["spots"][state["index"]]["type"])
+        spots &= set(listed)
+        for spot in spots:
+            p = listed[spot]
+            status[spot] = {**status.get(spot, {}), "status": "running" if spot == current else p["status"],
+                            "visits": p.get("visits")}
     rows = [{"spot": spot, **status.get(spot, {"status": "running"}), "rates": spot_rates(db, "survey_spot", spot)}
-            for spot in spots | set(status)]
+            for spot in spots]
     return sorted(rows, key=lambda r: -(r["rates"] or {}).get("score", -1))
 
 
 def survey_report():
     db = connect()
-    rows = survey_rows(db)
+    rows = survey_rows(db, survey_state(read_json(ERRORS)))
     db.close()
     print("%-11s %-11s %5s %8s %12s %-8s %10s %-8s %6s %6s %6s" % (
         "spot", "status", "min", "kills/h", "gold/h", "", "xp/min", "", "score", "deaths", "crowd"))
@@ -362,7 +374,7 @@ def status():
     by_home = []
     for (home,) in db.execute("SELECT DISTINCT home FROM ledger WHERE home IS NOT NULL").fetchall():
         rates = spot_rates(db, "home", home, week)
-        if rates:
+        if rates and rates["minutes"] >= 1:
             by_home.append({"home": home, **rates})
     out = {
         "generated": now_ms,
@@ -372,7 +384,7 @@ def status():
             "last_day": overall_rates(db, now_ms - 24 * HOUR_MS),
             "by_home": sorted(by_home, key=lambda r: -r["score"]),
         },
-        "survey": {"state": survey_state(errors), "results": survey_rows(db)},
+        "survey": {"state": survey_state(errors), "results": survey_rows(db, survey_state(errors))},
         "trends": trends(db, now_ms),
         "danger": danger(db, now_ms),
         "mana": mana_measured(db, now_ms),

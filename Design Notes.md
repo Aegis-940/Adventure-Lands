@@ -276,7 +276,7 @@ The `*SURVEY*` farm target (`SURVEY_FARM_TARGET`). `farm_target_for()` resolves 
 
 **Editing the spot list mid-survey.** The saved state carries its own spot list, so Myras reconciles it against `SURVEY_SPOTS` on every tick (`survey_reconcile()`): removed spots go (if the party is on one, it moves on to the next pending spot), new ones join as pending, finished results are kept, and a completed survey reopens when a spot is added. The reconciled state is saved at once: the tick returns early while the party's `home` still names the old spot, and without that write it re-reconciled every second without moving on.
 
-`survey_status()` prints the state; `survey_reset()` starts again from the first spot. sparkbot and targetron share one uhills spawn area, so at either the party fights both.
+`survey_status()` prints the state; `survey_retry("odino")` puts a finished spot back to pending with its clock at zero (it is visited when the current spot finishes); `survey_reset()` starts again from the first spot. The survey report and the status page take the spot list and statuses from the live `survey_state` sample, so a spot dropped from `SURVEY_SPOTS` disappears and a retried spot shows pending, not its old result; spots with under a minute at the spot are left out of the by-spot table. sparkbot and targetron share one uhills spawn area, so at either the party fights both.
 
 ### `Danger Log.js`
 

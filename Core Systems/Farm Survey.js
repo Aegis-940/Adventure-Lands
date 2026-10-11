@@ -227,6 +227,22 @@ function survey_status() {
 		+ (survey.complete ? "\ncomplete" : "");
 }
 
+function survey_retry(type) {
+	const survey = survey_read();
+	if (!survey) return "no survey yet";
+	const i = survey.spots.findIndex(s => s.type === type);
+	if (i === -1) return `${type} is not on the survey list`;
+	const spot = survey.spots[i];
+	if (i === survey.index && !survey.complete) return `${type} is the spot being surveyed now`;
+	survey.spots[i] = { type, status: "pending", visits: spot.visits, at_spot_ms: 0 };
+	if (survey.complete) {
+		survey.complete = false;
+		survey.index = i;
+	}
+	storage_write(SURVEY_KEY, survey);
+	return `${type} is pending again (was ${spot.status}); it is visited when the current spot finishes`;
+}
+
 function survey_reset() {
 	localStorage.removeItem(SURVEY_KEY);
 	return "survey reset — the next tick starts again at " + SURVEY_SPOTS[0];
