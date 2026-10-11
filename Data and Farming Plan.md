@@ -129,7 +129,7 @@ Run in this order. Filter used: not a boss or co-op monster, on a normal map, HP
 |---|---|---|---|---|---|---|---|---|---|---|
 | 1 | bscorpion | desertland ×1 | 577k | 3,200 phys | 500 / 240 | 635k | 1.10 | 6s | yes | Current camp |
 | 2 | oneeye | ***REJECTED***
-| 3 | pinkgoblin | level2e ×3 | 420k | 2,400 mag | 200 / 350 | 460k | 1.10 | 40s | yes | Self-healing |
+| 3 | pinkgoblin | ***REJECTED*** (10-11: the party can't out-damage its self-healing)
 | 4 | sparkbot | uhills ×4 | 325k | 754 mag | 140 / 160 | 400k | 1.23 | 6s | **no** | Needs a `LOCATIONS` entry |
 | 5 | targetron | uhills ×4 | 325k | 377 phys | 160 / 140 | 400k | 1.23 | 6s | yes | |
 | 6 | harpy | ***REJECTED***
@@ -146,7 +146,7 @@ Run in this order. Filter used: not a boss or co-op monster, on a normal map, HP
 
 Excluded by the filter: training dummies; single long-respawn monsters (mvampire 18 min, fvampire 24 min, skeletor 16 min, mechagnome 8 min); ent (8M HP); everything under 20k HP.
 
-14 spots × 30 min ≈ 7 hours of at-spot time, plus travel and event detours: about one to two nights. The list in code is `SURVEY_SPOTS` in `Farm Survey.js`. sparkbot now has a `LOCATIONS` entry (its spawn box centre). sparkbot and targetron share one uhills spawn area, so their results will overlap.
+13 spots × 30 min ≈ 6.5 hours of at-spot time, plus travel and event detours: about one to two nights. The list in code is `SURVEY_SPOTS` in `Farm Survey.js`. sparkbot now has a `LOCATIONS` entry (its spawn box centre). sparkbot and targetron share one uhills spawn area, so their results will overlap.
 
 ### Results
 

@@ -5,7 +5,7 @@
 const SURVEY_KEY = "AL_survey";
 const SURVEY_OWNER = MOVEMENT_LEADER;
 const SURVEY_SPOTS = [
-	"bscorpion", "pinkgoblin", "sparkbot", "targetron", "xscorpion", "odino", "plantoid",
+	"bscorpion", "sparkbot", "targetron", "xscorpion", "odino", "plantoid",
 	"fireroamer", "pppompom", "dryad", "wolf", "gscorpion", "bigbird", "scorpion",
 ];
 
@@ -78,6 +78,22 @@ function survey_next_index(survey) {
 	return survey.spots.findIndex(s => s.status === "skipped");
 }
 
+function survey_reconcile(survey) {
+	const current = survey.complete ? null : survey.spots[survey.index].type;
+	const kept = SURVEY_SPOTS.map(type => survey.spots.find(s => s.type === type)
+		|| { type, status: "pending", visits: 0, at_spot_ms: 0 });
+	if (kept.length === survey.spots.length && kept.every((s, i) => s === survey.spots[i])) return false;
+
+	const removed = survey.spots.filter(s => !SURVEY_SPOTS.includes(s.type)).map(s => s.type);
+	survey.spots = kept;
+	const at = kept.findIndex(s => s.type === current);
+	const next = at !== -1 ? at : survey_next_index(survey);
+	survey.complete = next === -1;
+	if (next !== -1) survey.index = next;
+	game_log(`🧭 Survey: spot list changed${removed.length ? ", dropped " + removed.join(", ") : ""}`, "#66ccff");
+	return true;
+}
+
 function survey_finish(survey, status) {
 	const spot = survey.spots[survey.index];
 	spot.status = status;
@@ -119,6 +135,7 @@ function survey_count_deaths(spot) {
 
 function survey_owner_tick(dt) {
 	const survey = survey_read() || survey_new();
+	if (survey_reconcile(survey)) storage_write(SURVEY_KEY, survey);
 	if (survey.complete) return;
 
 	const spot = survey.spots[survey.index];

@@ -274,6 +274,8 @@ The `*SURVEY*` farm target (`SURVEY_FARM_TARGET`). `farm_target_for()` resolves 
 - `unsafe` at 2 fighter deaths at the spot in one visit: a rip transition (hers, or one seen in the state cache) where the body lies inside the farm area, outside event detours. A death on the way there or on a boss detour does not count. Deaths are the only measure; a "lost hold" rule (a monster on Ulric or Riva for 15s) was dropped on 10-11.
 - Each status change is archived as a `survey_spot` record to `survey.jsonl`.
 
+**Editing the spot list mid-survey.** The saved state carries its own spot list, so Myras reconciles it against `SURVEY_SPOTS` on every tick (`survey_reconcile()`): removed spots go (if the party is on one, it moves on to the next pending spot), new ones join as pending, finished results are kept, and a completed survey reopens when a spot is added. The reconciled state is saved at once: the tick returns early while the party's `home` still names the old spot, and without that write it re-reconciled every second without moving on.
+
 `survey_status()` prints the state; `survey_reset()` starts again from the first spot. sparkbot and targetron share one uhills spawn area, so at either the party fights both.
 
 ### `Error Log.js`
