@@ -258,7 +258,7 @@ One `ledger` record per fighter every 5 minutes, through `errlog_archive()` to `
 - **A window closes early when `home` changes**, and carries the `home` and `survey_spot` it started with. A window straddling a spot change would otherwise credit the old spot's minutes to the new one.
 - Also per window: deaths, potions drunk (`potions_drunk`, counted in `potion_loop()`), the most foreign players seen in the spawn area, fighters on this map, `goldm`/`xpm`/`luckm`, and a gear signature.
 
-**Tracker snapshot.** Once a day per fighter it emits the game's `tracker` call and archives `monsters` (kill counts per type) and `max` (`player.max_stats`) to `tracker.jsonl`. The server answers only while a `tracker` or `supercomputer` is in the bag (`computer` alone does not set `player.tracker`). The client renders the tracker window on every reply, so the handler closes it (`hide_modal`), but only for a reply within 10s of our own request.
+**Tracker snapshot.** Once a day per fighter it emits the game's `tracker` call and archives `monsters` (kills per type), `monsters_diff` and `max` (`player.max_stats`) to `tracker.jsonl`. **Achievements run on monster score, not kills**: own score is `monsters + monsters_diff` (each kill adds its `calculate_monster_score()` − 1 to the diff), and the server takes the larger of that and the account best, `max.monsters[type][0]`. A kill scores 1.6 for each fighter with all three partied and Riff away; the formula is in the plan's Workstream 2. The server answers only while a `tracker` or `supercomputer` is in the bag (`computer` alone does not set `player.tracker`). The client renders the tracker window on every reply, so the handler closes it (`hide_modal`), but only for a reply within 10s of our own request.
 
 ### `Farm Survey.js`
 
@@ -536,7 +536,7 @@ The settings window saves on **Reload All** (every character, staggered as befor
 
 ### `Data Store.py`
 
-`al_data.sqlite`, derived from the archives and safe to delete: `ledger.jsonl`, `survey.jsonl`, `tracker.jsonl` (plus `tracker_kills`, one row per monster), `boss_profiles.jsonl`, and from `errors_timeline.jsonl` the `death` and `bscorpion_kill` lines. Ingest is incremental by byte offset per file, and a file that shrank is re-read from the start. The sink runs `ingest` after every 15-minute sweep, in a subprocess so a slow ingest never holds the store lock. The first full ingest of 81 MB took 4s; an incremental one takes half a second.
+`al_data.sqlite`, derived from the archives and safe to delete: `ledger.jsonl`, `survey.jsonl`, `tracker.jsonl` (plus `tracker_monsters`: kills, own score and account-best score per monster), `boss_profiles.jsonl`, and from `errors_timeline.jsonl` the `death` and `bscorpion_kill` lines. Ingest is incremental by byte offset per file, and a file that shrank is re-read from the start. The sink runs `ingest` after every 15-minute sweep, in a subprocess so a slow ingest never holds the store lock. The first full ingest of 81 MB took 4s; an incremental one takes half a second.
 
 `survey` prints one row per spot: party gold/hr from Myras's `spot_chest_gold`, kills/hr from her `spot_kills`, XP/min as the mean of the fighters' own rates, the bands from the plan, and `score = gold/hr ÷ 20M + XP/min ÷ 1M`.
 

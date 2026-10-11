@@ -212,7 +212,7 @@ function tracker_reply(data) {
 	if (Date.now() - _tracker_asked_at > TRACKER_REPLY_MS) return;
 	parent.hide_modal(true);
 	storage_write(tracker_key(), Date.now());
-	errlog_archive("tracker", { level: character.level, monsters: data.monsters, max: data.max });
+	errlog_archive("tracker", { level: character.level, monsters: data.monsters, monsters_diff: data.monsters_diff, max: data.max });
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

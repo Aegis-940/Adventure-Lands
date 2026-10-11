@@ -156,11 +156,24 @@ One row per spot: status (`done` / `occupied` / `unsafe`), at-spot minutes, kill
 
 ## Workstream 2: Achievement ranking (goal 2)
 
-- **Rewards:** `G.monsters[m].achievements` (`[kills, "stat", stat, amount]`). Examples: bscorpion +0.5 dex at 1k and 10k kills; mrpumpkin +10 apiercing at 50k, +1 crit at 100k; ent +25 attack at 100k.
-- **Progress:** tracker snapshot (0c). The server's achievement code reads `max(own count, max_stats.monsters[m][0])`, and `max_stats` comes from the account record at login, so progress may be account-wide. In a party, every credited member's count goes up per kill. Confirm both from the first snapshot.
-- **Rate:** kills/hr at that monster, from the ledger or the survey.
+**Milestones are in monster score, not kills.** The server compares each threshold in `G.monsters[m].achievements` (`[score, "stat", stat, amount]`) with `max(own score, account best)`, where own score is `monsters[m] + monsters_diff[m]` and the account best is `max_stats.monsters[m][0]`.
+
+**Score per kill** (`calculate_monster_score()`, server.js) starts at 1, then:
+
+| Condition | Score |
+|---|---|
+| Each other fighter of ours in the party | +0.3 |
+| Our merchant within 600px of the scoring character | −0.2, plus −0.1 more as a party merchant |
+| The scoring character is over 600px from the monster and has under 1% of the credit | −0.3 |
+
+On a coop monster every adjustment is halved. So with Ulric, Myras and Riva partied and Riff away, every kill scores **1.6** for each fighter: Myras's 61,534 bscorpion kills × 1.6 ≈ 98,450, against the account best of 98,112. A Riff delivery within 600px drops it to 1.3 for its duration.
+
+- **Progress:** the tracker snapshot. Own score needs `monsters_diff`, which the snapshot archives from 10-11 on (`tracker_monsters.score`; the first three snapshots predate it); the account best (`account_score`) is in every snapshot.
+- **Rate:** score/hr = kills/hr from the ledger × the score per kill (1.6 for a normal party; measured per monster as Δscore ÷ Δkills between two snapshots).
 - **Value:** % party damage per stat point, from the combat model (Workstream 3).
-- **Rank:** value of the reward ÷ hours of farming still needed.
+- **Rank:** value of the reward ÷ hours of farming still needed (score still needed ÷ score/hr).
+
+Examples: bscorpion +0.5 dex at 1k and 10k score (both reached: account best 98,112); plantoid +5 resistance at 1M (account best 718,717, so about 176k more kills at 1.6); mrpumpkin +10 apiercing at 50k (account best 905); ent +25 attack at 100k.
 
 ---
 
@@ -199,7 +212,7 @@ The sink already runs an HTTP server; it serves a local page that reads the SQLi
 ## To confirm during implementation
 
 - Each fighter carries a tracker. *The snapshot logs `⚠️ Tracker snapshot skipped: no tracker in the bag` when one doesn't.*
-- ~~Whether achievement progress is account-wide (`max_stats`) and how party kills are credited.~~ **Account-wide.** The first snapshots (10-11 18:59) give each fighter its own count (bscorpion: Ulric 61,305, Myras 61,534, Riva 61,248) and the same `max.monsters.bscorpion = [98112, "Myras"]`: the account's best with the character who holds it. The server takes the larger, so every character has bscorpion's 10k milestone. The 98k includes `monsters_diff`, the server's per-kill difficulty score, so it runs ahead of the raw count.
+- ~~Whether achievement progress is account-wide (`max_stats`) and how party kills are credited.~~ **Account-wide, and measured in monster score, not kills.** See Workstream 2. The first snapshots (10-11 18:59) give each fighter its own kill count (bscorpion: Ulric 61,305, Myras 61,534, Riva 61,248) and the same `max.monsters.bscorpion = [98112, "Myras"]`: the account's best score with the character who holds it.
 - ~~Reload vs runtime reassignment for changing spot.~~ Runtime reassignment.
 - ~~That nothing in `Diagnostics.md`'s workflow depends on archived `game_response` lines.~~ It reads `records`, which still hold them.
 - ~~`sparkbot` needs a `LOCATIONS` entry before it can be surveyed.~~ Added.

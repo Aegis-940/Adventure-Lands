@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS survey (
     character TEXT, t INTEGER, at TEXT, spot TEXT, status TEXT, visits INTEGER, at_spot_s INTEGER,
     travel_s INTEGER, deaths INTEGER);
 CREATE TABLE IF NOT EXISTS tracker (character TEXT, t INTEGER, at TEXT, level INTEGER, monsters TEXT, max TEXT);
-CREATE TABLE IF NOT EXISTS tracker_kills (character TEXT, t INTEGER, mtype TEXT, kills INTEGER);
+CREATE TABLE IF NOT EXISTS tracker_monsters (character TEXT, t INTEGER, mtype TEXT, kills INTEGER, score REAL,
+    account_score REAL, account_holder TEXT);
 CREATE TABLE IF NOT EXISTS boss_profiles (character TEXT, t INTEGER, at TEXT, boss TEXT, killed INTEGER,
     fight_secs REAL, raw TEXT);
 CREATE TABLE IF NOT EXISTS deaths (character TEXT, t INTEGER, at TEXT, msg TEXT);
@@ -67,8 +68,15 @@ def add_tracker(db, r):
     db.execute("INSERT INTO tracker VALUES (?,?,?,?,?,?)", (
         r.get("character"), r.get("t"), r.get("at"), r.get("level"),
         json.dumps(r.get("monsters") or {}), json.dumps(r.get("max") or {})))
-    db.executemany("INSERT INTO tracker_kills VALUES (?,?,?,?)", [
-        (r.get("character"), r.get("t"), mtype, n) for mtype, n in (r.get("monsters") or {}).items()])
+    kills = r.get("monsters") or {}
+    diff = r.get("monsters_diff")
+    best = (r.get("max") or {}).get("monsters") or {}
+    rows = []
+    for mtype in set(kills) | set(best):
+        account = best.get(mtype) or [None, None]
+        score = kills.get(mtype, 0) + diff.get(mtype, 0) if diff is not None else None
+        rows.append((r.get("character"), r.get("t"), mtype, kills.get(mtype, 0), score, account[0], account[1]))
+    db.executemany("INSERT INTO tracker_monsters VALUES (?,?,?,?,?,?,?)", rows)
 
 
 def add_boss_profile(db, r):
@@ -94,7 +102,7 @@ def add_timeline(db, r):
 SOURCES = [
     ("ledger.jsonl", add_ledger, ["ledger"]),
     ("survey.jsonl", add_survey, ["survey"]),
-    ("tracker.jsonl", add_tracker, ["tracker", "tracker_kills"]),
+    ("tracker.jsonl", add_tracker, ["tracker", "tracker_monsters"]),
     ("boss_profiles.jsonl", add_boss_profile, ["boss_profiles"]),
     ("errors_timeline.jsonl", add_timeline, ["deaths", "bscorpion_kills"]),
 ]
