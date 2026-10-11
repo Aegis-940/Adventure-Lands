@@ -156,7 +156,10 @@ function run_character(spec) {
 
 			const travelling = travel_arbiter(goal);
 			if (!travelling || goal.hold || goal.passive) {
-				if (should_loot()) await handle_looting();
+				if (goal && goal.local === "kite") {
+					if (should_loot()) handle_looting();
+					movement_local(goal, s.farm_step, s.engage_step);
+				} else if (should_loot()) await handle_looting();
 				else movement_local(goal, s.farm_step, s.engage_step);
 			}
 		} catch (e) {

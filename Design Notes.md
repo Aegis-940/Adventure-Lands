@@ -161,8 +161,8 @@ Live boss and seasonal targets, and the goal that walks the party to them.
 - Whoever crabxx targets gets `{ local: "kite" }` (same label as the event, so followers don't hold back and Myras's cohesion hold never applies; `movement_goal()` returns it before cohesion). `kite_step()` runs `orbit_away()` on the entry's ring: (-1000,1700), the server's `join` landing point, radius 220. Clear of walls at 180–240 by a geometry check.
 - Pure pursuit puts a chaser on an inner circle of radius R·v_chaser/v_kiter, trailing by √(R² − r²): a cursed crabxx ~114px behind Myras, the adds ~199px, inside their 218px chase limit. So the adds stay on her in the middle of the ring, where Ulric cleaves them. A bigger ring buys crabxx distance and loses the adds.
 - Myras curses the kited boss whenever `curse_expiring()`, ignoring her curse MP floor. `tank_can_take()` leaves the kited boss out of her absorb headroom, `boss_absorb_target()` takes it off a party member (`tank_bosses` includes crabxx) without the lethal-hit refusal, and the generic absorb pulls adds spawned on Ulric and Riva. Ulric does not agitate with a kited boss within range: the server's agitate takes every monster on any party member, crabxx off Myras included. His stomp is fine; it only stuns.
-- While `1hp`, Ulric and Riva leave crabxx alone and kill crabx (Ulric's `warrior_event_step()` closes on his own target). Myras keeps hitting it so it never goes 20s unattacked.
-- No looting while kiting (`looting_blocked()` → `kiting`): looting takes the movement tick and Myras's gold gloves are −20 speed. The boss-field drain collects the chests after the kill.
+- Ulric and Riva stay on crabxx throughout and use their AOE on the adds only while it also hits the boss. Riva's multishot keeps crabxx first while it `takes_one_damage()` (Ranger Combat → boss only), and Ulric cleaves during a boss pursuit only with the boss inside the cleave. Killing crabx is what ends the 1hp phase.
+- Myras loots while kiting. Elsewhere looting replaces the movement tick; on a `kite` goal the runner starts `handle_looting()` without awaiting it and still takes the orbit step. Her gold gloves (−20 speed) are on only while `_looting`, a few hundred ms per burst. Chests open within 400px (server `open_chest`), which covers the 440px ring.
 
 **Draining the field.** After the boss dies Myras stays on `boss-loot` (a `passive` local goal) while `boss_field_draining()` holds: a chest in sight, or one seen within the last 3s (`BOSS_LOOT_LINGER_MS`), inside the 20s field grace. Without the linger the goal flipped to `home` and back on every chest, and each flip cancelled the search home.
 
@@ -203,7 +203,7 @@ Panic and its broadcast (`set_panic()` is the only writer), party invites, and w
 
 ### `Loot Management.js`
 
-`loose_loot()` (what we keep, ship to the merchant, or vendor), bank withdrawal, and chest looting (`should_loot()`/`handle_looting()`, driven by each character's `CONFIG.looting`). Looting is blocked while kiting a boss (`kited_boss()`).
+`loose_loot()` (what we keep, ship to the merchant, or vendor), bank withdrawal, and chest looting (`should_loot()`/`handle_looting()`, driven by each character's `CONFIG.looting`). On a `kite` goal it runs alongside the orbit step instead of in place of it (World Events → kiting).
 
 **Reserved gear.** `reserved_gear_slots()` ranks every copy of a set item, worn and bagged (locked first, then level), and keeps the top N, where N is how many slots the sets wear it in. Bag copies in that top N are never shipped or sold. It used to count a slot as covered by any worn copy of the name, so a junk copy in the hand made the real one in the bag look spare.
 
@@ -350,7 +350,9 @@ Agitate, warcry, stomp, and taunt; cleave fires here only when no swing is comin
 
 **Blockers.** Cleave and agitate refuse to fire with a `cleave_blacklist`/`agitate_blockers` monster (porcupines reflect) within their range + 25px (`blocker_within()`), measured hitbox to hitbox like the server. A centre-distance check let porcupines just past 160px get cleaved.
 
-**Agitate** donates aggro to the tank but stands down while she is `endangered()`.
+**Boss pursuit.** During a boss pursuit he cleaves only with the pursued boss inside the cleave, so the AOE always includes the boss.
+
+**Agitate** donates aggro to the tank but stands down while she is `endangered()`, and never fires with a kited boss in range (World Events → kiting).
 
 **Stomp** stuns her attackers when she is endangered or below 60%, only with a basher-type weapon worn or the `basher` set in the bag, swapped in and out in one burst like cleave.
 
@@ -393,7 +395,7 @@ The timeline caps a line at 160 chars. The window runs from the shell's first `e
 
 ### `Warrior Movement.js`
 
-The reposition scorer and the farm step that keeps him engaged. He targets anything within `CONFIG.combat.engage_radius` that is attacking the party (or already in reach), walks to a 12px hitbox gap when it is out of reach, and steps back out to 12px once he is under 4px. That is `warrior_engage_step()`, which the runner also hands to `event_step()` as `engage_step` (through `warrior_event_step()`, which engages his own target instead while the boss `takes_one_damage()`), so he holds the same gap on a boss instead of walking to `range × EVENT_REACH` and standing inside its hitbox. Every move is skipped while he is already heading there, since each `move` costs 2.5 call cost.
+The reposition scorer and the farm step that keeps him engaged. He targets anything within `CONFIG.combat.engage_radius` that is attacking the party (or already in reach), walks to a 12px hitbox gap when it is out of reach, and steps back out to 12px once he is under 4px. That is `warrior_engage_step()`, which the runner also hands to `event_step()` as `engage_step`, so he holds the same gap on a boss instead of walking to `range × EVENT_REACH` and standing inside its hitbox. Every move is skipped while he is already heading there, since each `move` costs 2.5 call cost.
 
 ---
 
@@ -437,7 +439,7 @@ Target cache, `action_loop()`, `handle_attack()`.
 
 **Boss only.** With a cooperative boss in range the shot chooser sees only the boss (`coop_boss_only()`, over `is_coop_boss()`: cooperative *and* in `ALL_BOSSES`). The Rime Djinn is cooperative but a farm mob, and reading it as a boss left its adds unshot. The chooser scores total damage over its targets, so with two adds beside mrpumpkin a 3-shot (0.7× each) beat a plain shot. On 10-10 she fired ~336 of them: 2.26M into adds, which earn no coop points, her 200 MP each starving her into skipped shots, and her boss DPS down from ~9,500 to 7,513.
 
-A monster that `takes_one_damage()` (crabxx behind its crabx) is not in her pool at all, so with the adds alive she shoots them; boss-only resumes the moment the flag drops.
+The exception is a boss that `takes_one_damage()` (crabxx behind its crabx): there the adds are the boss's shield, so the chooser sees the boss first and the adds after it. Every multishot then includes the boss, and a plain shot goes to the boss. Boss-only resumes the moment the flag drops.
 
 Shot choice on a shelled Djinn is under Warrior Skills → the Rime Djinn's shell.
 

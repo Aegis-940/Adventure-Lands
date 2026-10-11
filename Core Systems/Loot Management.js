@@ -182,7 +182,6 @@ function looting_blocked() {
 	if (!CONFIG.looting?.enabled) return "disabled";
 	if (character.cc > COOLDOWNS.cc) return "cc";
 	if ((character.s?.penalty_cd?.ms || 0) > 0) return "penalty_cd";
-	if (kited_boss()) return "kiting";
 	return null;
 }
 

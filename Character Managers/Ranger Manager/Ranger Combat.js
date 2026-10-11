@@ -7,7 +7,6 @@ function should_attack_mob(mob) {
 
 	if (CONFIG.combat.never_attack.includes(mob.mtype)) return false;
 	if (!safe_to_touch(mob, character.explosion || 0)) return false;
-	if (takes_one_damage(mob)) return false;
 
 	if (typeof porcupine_guard_rank === "function" && porcupine_guard_rank(mob)) return true;
 
@@ -356,7 +355,9 @@ function choose_shell_shot(shelled, in_range) {
 
 function coop_boss_only(in_range) {
 	const boss = in_range.find(is_coop_boss);
-	return boss ? [boss] : in_range;
+	if (!boss) return in_range;
+	if (!takes_one_damage(boss)) return [boss];
+	return [boss, ...in_range.filter(m => m !== boss)];
 }
 
 function handle_attack() {
