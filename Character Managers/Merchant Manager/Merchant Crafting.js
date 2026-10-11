@@ -145,6 +145,11 @@ function compute_missing_ingredients(craft_def, count) {
 
 var GATHER_MAX_ROUNDS = 10;
 
+async function buy_amount(item_name, amount) {
+	if (parent.G.items[item_name].s) return buy(item_name, amount);
+	for (let k = 0; k < amount; k++) await buy(item_name);
+}
+
 async function gather_ingredients_for_batch(craft_def, count) {
 	for (let round = 0; round < GATHER_MAX_ROUNDS; round++) {
 		const missing = compute_missing_ingredients(craft_def, count);
@@ -185,7 +190,7 @@ async function gather_ingredients_for_batch(craft_def, count) {
 		}
 		for (const need of to_buy) {
 			try {
-				await buy(need.name, need.amount);
+				await buy_amount(need.name, need.amount);
 			} catch (e) {
 				catcher(e, "gather_ingredients_for_batch: buy " + need.name);
 				return false;

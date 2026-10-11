@@ -51,7 +51,7 @@ Quick-reference for the AdventureLand game engine internals. Originally sourced 
 
 | Function | Signature | Returns | Notes |
 |----------|-----------|---------|-------|
-| `buy` | `buy(name, quantity?)` | Promise | Resolve: `{name, num, q, cost}` |
+| `buy` | `buy(name, quantity?)` | Promise | Resolve: `{name, num, q, cost}`. The server forces `quantity` to 1 for an item without `s` (non-stackable), so buy those one call each |
 | `buy_with_gold` | `buy_with_gold(name, quantity?)` | Promise | |
 | `buy_with_shells` | `buy_with_shells(name, quantity?)` | Promise | |
 | `sell` | `sell(num, quantity?)` | Promise | num = inventory index 0-41 |
