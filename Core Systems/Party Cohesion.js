@@ -146,20 +146,21 @@ function follower_holds_back(event) {
 	return !c || c.goal !== event.label;
 }
 
-let _trail = { map: null, crumbs: [], seen: null, leg: null };
+let _trail = { map: null, crumbs: [], seen: null, leg: null, exhausted: false };
 
 function record_leader_trail() {
 	const live = get_player(MOVEMENT_LEADER);
 	if (!live) return;
 	const here = { x: live.x, y: live.y };
 	if (_trail.map !== character.map || !_trail.seen || Math.hypot(here.x - _trail.seen.x, here.y - _trail.seen.y) > TRAIL_JUMP) {
-		_trail = { map: character.map, crumbs: [], seen: here, leg: null };
+		_trail = { map: character.map, crumbs: [], seen: here, leg: null, exhausted: false };
 	}
 	_trail.seen = here;
 	const leg = live.moving ? { x: live.going_x, y: live.going_y } : here;
 	if (_trail.leg && Math.hypot(leg.x - _trail.leg.x, leg.y - _trail.leg.y) < 1) return;
 	const turned_at_end = _trail.leg && Math.hypot(here.x - _trail.leg.x, here.y - _trail.leg.y) < TRAIL_CORNER;
 	_trail.crumbs.push(turned_at_end ? _trail.leg : here);
+	_trail.exhausted = false;
 	_trail.leg = leg;
 	if (_trail.crumbs.length > TRAIL_MAX) _trail.crumbs.shift();
 }
@@ -168,12 +169,16 @@ function trail_point() {
 	if (_trail.map !== character.map) return null;
 	const live = get_player(MOVEMENT_LEADER);
 	const last = live ? { x: live.x, y: live.y, live: true } : _trail.seen;
-	const points = last ? _trail.crumbs.concat([last]) : _trail.crumbs;
+	const points = _trail.exhausted
+		? (live ? [last] : [])
+		: (last ? _trail.crumbs.concat([last]) : _trail.crumbs);
 	for (let i = points.length - 1; i >= 0; i--) {
 		const p = points[i];
 		if (!can_move_to(p.x, p.y)) continue;
 		if (Math.hypot(character.x - p.x, character.y - p.y) > LOCAL_MOVE_SLOP) return p;
-		return p.live ? p : null;
+		if (p.live) return p;
+		_trail.exhausted = true;
+		return null;
 	}
 	return null;
 }
@@ -197,6 +202,12 @@ function leader_passage(pos) {
 		if (Math.hypot(at.x - seen.x, at.y - seen.y) < TRANSPORTER_REACH) return { to: pos.map, s: place, at };
 	}
 	return null;
+}
+
+function passage_point(p) {
+	if (!p.door) return p.at;
+	const spawn = G.maps[character.map].spawns[p.door[6]];
+	return { x: spawn[0], y: spawn[1] };
 }
 
 function passage_usable(p) {
@@ -239,8 +250,14 @@ function follow_goal() {
 
 	if (pos.map !== character.map) {
 		const passage = leader_passage(pos);
-		if (passage && passage_usable(passage)) {
-			return { local: "passage", label: "follow-door", passage, chasing: true, disengage: pos.disengaging };
+		if (passage) {
+			if (passage_usable(passage)) {
+				return { local: "passage", label: "follow-door", passage, chasing: true, disengage: pos.disengaging };
+			}
+			const at = passage_point(passage);
+			if (can_move_to(at.x, at.y)) {
+				return { local: "step", label: "follow-door", step: at, chasing: true, disengage: pos.disengaging };
+			}
 		}
 	}
 
