@@ -76,7 +76,7 @@ async function skill_loop() {
 }
 
 var STOMP_SET = "basher";
-var STOMP_TANK_HP_PCT = 0.6;
+var STOMP_TANK_HP_PCT = 0.35;
 
 function stomp_weapon_worn() {
 	const worn = character.slots.mainhand;
@@ -92,7 +92,7 @@ function stomp_wanted(tank, shell) {
 	if (rime_shell_pending_within(G.skills.stomp.range)) return false;
 	if (!tank || tank.rip) return false;
 	if (blocker_within(G.skills.stomp.range, must_not_touch)) return false;
-	if (!endangered(tank) && tank.hp >= tank.max_hp * STOMP_TANK_HP_PCT) return false;
+	if (tank.hp >= tank.max_hp * STOMP_TANK_HP_PCT) return false;
 
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
