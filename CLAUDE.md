@@ -68,6 +68,8 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | `Loot Management.js` | Keep/ship/vendor decisions, bank withdrawal, chest looting, `inventory_sorter()` |
 | `Maintenance.js` | Potions (one per tick, shared cooldown) and the periodic tab reload |
 | `Character Runner.js` | `run_character()`, the shared main tick |
+| `Farm Ledger.js` | 5-minute ledger windows (gold, chest gold, XP, kills, deaths, potions; at the farm spot vs away) and the daily tracker snapshot, archived through `errlog_archive()` |
+| `Farm Survey.js` | The `*SURVEY*` farm target: 30 minutes at each spot in `SURVEY_SPOTS`, then `bscorpion`. Myras writes the state; every fighter switches `home` at runtime. `survey_status()`/`survey_reset()` in the console |
 | `Error Handling.js` | `catcher()` |
 | `Error Log.js` | Cross-character flight recorder; defines the real `errlog_*`. Read with `al_errors(true)` |
 
@@ -111,7 +113,8 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 
 | File | Role |
 |------|------|
-| `Error Sink.py` / `Install Error Sink.ps1` | Local HTTP sink for `errlog_sample()` pushes → `errors.json`, `errors_timeline.jsonl`; logon-task installer |
+| `Error Sink.py` / `Install Error Sink.ps1` | Local HTTP sink for `errlog_sample()` pushes → `errors.json`, `errors_timeline.jsonl`, and the `errlog_archive()` lane → `ledger.jsonl`, `tracker.jsonl`, `survey.jsonl`; logon-task installer |
+| `Data Store.py` | `al_data.sqlite`, rebuilt incrementally from the `.jsonl` archives (the sink runs `ingest` every 15 min). `python "Tools/Data Store.py" survey` prints the survey results |
 | `Watchdog.py` / `Install Watchdog.ps1` | DevTools-port watchdog: logs navigations and network outages, reloads silent windows. **Read `watchdog.jsonl` first after a dead character** |
 | `Lint.py` | `python Tools/Lint.py`: duplicate globals, orphaned ternaries, constant conditions |
 | `Crypt Probe.js`, `Drag Probe.js` | One-off dev probes, not loaded |

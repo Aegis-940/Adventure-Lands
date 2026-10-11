@@ -53,6 +53,7 @@ const LOCATIONS = {
 	rat:        [{ map: "mansion", x: 6, y: -430 }],
 	rimedjinn:  [{ map: "winter_cove", x: 16, y: -1684 }],
 	scorpion:   [{ map: "main", x: 1520, y: -58 }],
+	sparkbot:   [{ map: "uhills", x: -575, y: -275 }],
 	stoneworm:  [{ map: "spookytown", x: 830, y: 7 }],
 	spider:     [{ map: "main", x: 895, y: -145 }],
 	giantspider: [{ }],
@@ -66,17 +67,23 @@ const LOCATIONS = {
 const DUNGEONS = {};
 
 const DEFAULT_FARM_TARGET = "bscorpion";
+const SURVEY_FARM_TARGET = "*SURVEY*";
 
 function farm_target_key(name) {
 	return "AL_target_" + name;
 }
 
-function farm_target_for(name) {
+function farm_target_setting(name) {
 	try {
 		return localStorage.getItem(farm_target_key(name)) || DEFAULT_FARM_TARGET;
 	} catch (e) {
 		return DEFAULT_FARM_TARGET;
 	}
+}
+
+function farm_target_for(name) {
+	const chosen = farm_target_setting(name);
+	return chosen === SURVEY_FARM_TARGET ? survey_target() : chosen;
 }
 
 function location_map_for(type, loc) {
@@ -265,6 +272,7 @@ function errlog_beat() { }
 function errlog_size() { }
 function errlog_time() { }
 function errlog_timeline() { }
+function errlog_archive() { }
 
 function upgrade_slot_for(slot) { return slot; }
 

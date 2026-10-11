@@ -8,6 +8,8 @@
 
 const POTION_POLL_MS = 50;
 
+let potions_drunk = { hp: 0, mp: 0 };
+
 async function potion_loop() {
 	if (character.c && (character.c.fishing || character.c.mining || character.c.town)) {
 		return setTimeout(potion_loop, 200);
@@ -23,11 +25,13 @@ async function potion_loop() {
 	const drink_mp = () => {
 		if (MP_MISSING < CONFIG.potions.mp_threshold) return false;
 		use("mp");
+		potions_drunk.mp++;
 		return true;
 	};
 	const drink_hp = () => {
 		if (HP_MISSING < CONFIG.potions.hp_threshold) return false;
 		use("hp");
+		potions_drunk.hp++;
 		return true;
 	};
 

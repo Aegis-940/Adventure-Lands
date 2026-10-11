@@ -9,6 +9,7 @@ const ERRLOG_MAX_TIMELINE = 80;
 const ERRLOG_TIMELINE_SIG_CAP = Math.ceil(ERRLOG_MAX_TIMELINE * 0.25);
 const ERRLOG_MAX_DEATHS = 6;
 const ERRLOG_MAX_SAMPLES = 400;
+const ERRLOG_MAX_ARCHIVE = 100;
 const ERRLOG_VITALS_SAMPLES = 10;
 const ERRLOG_VITALS_MS = 1000;
 const ERRLOG_FLUSH_MS = 5000;
@@ -21,7 +22,7 @@ const ERRLOG_HEARTBEAT_MS = 60000;
 
 const ERRLOG_SCHEMA = 2;
 
-let _errlog = { session: null, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {}, counts_since: 0, samples: [], alive: [] };
+let _errlog = { session: null, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {}, counts_since: 0, samples: [], alive: [], archive: [] };
 let _errlog_dirty = false;
 let _errlog_recording = false;
 let _errlog_vitals = [];
@@ -96,7 +97,8 @@ function _errlog_load() {
 				counts: prev.counts || {},
 				counts_since: prev.counts_since || 0,
 				samples: prev.samples || [],
-				alive: prev.alive || []
+				alive: prev.alive || [],
+				archive: prev.archive || []
 			};
 		}
 	} catch (e) { }
@@ -144,6 +146,10 @@ function _errlog_push_timeline(ctx, msg, now) {
 }
 
 function errlog_record(ctx, raw_msg) {
+	_errlog_store(ctx, raw_msg, true);
+}
+
+function _errlog_store(ctx, raw_msg, on_timeline) {
 	if (_errlog_recording) return;
 	_errlog_recording = true;
 	try {
@@ -169,7 +175,7 @@ function errlog_record(ctx, raw_msg) {
 			};
 		}
 
-		_errlog_push_timeline(ctx, msg.slice(0, 160), now);
+		if (on_timeline) _errlog_push_timeline(ctx, msg.slice(0, 160), now);
 
 		_errlog_dirty = true;
 	} catch (e) {
@@ -183,6 +189,14 @@ function errlog_sample(kind, data) {
 		if (!_errlog.samples) _errlog.samples = [];
 		_errlog.samples.push(Object.assign({ t: Date.now(), kind }, data));
 		if (_errlog.samples.length > ERRLOG_MAX_SAMPLES) _errlog.samples.shift();
+		_errlog_dirty = true;
+	} catch (e) { }
+}
+
+function errlog_archive(kind, data) {
+	try {
+		_errlog.archive.push(Object.assign({ t: Date.now(), kind }, data));
+		if (_errlog.archive.length > ERRLOG_MAX_ARCHIVE) _errlog.archive.shift();
 		_errlog_dirty = true;
 	} catch (e) { }
 }
@@ -371,7 +385,7 @@ try {
 			try {
 				const r = (data && (data.response || data)) || "";
 				if (r === "exception" || r === "cant" || r === "not_ready") {
-					errlog_record("game_response", _errlog_fmt(data));
+					_errlog_store("game_response", _errlog_fmt(data), false);
 				}
 			} catch (e) { }
 		});
@@ -491,7 +505,8 @@ function _errlog_push() {
 				timeline: _errlog.timeline,
 				deaths: _errlog.deaths,
 				samples: _errlog.samples,
-				alive: _errlog.alive
+				alive: _errlog.alive,
+				archive: _errlog.archive
 		});
 		errlog_time("io push stringify", Date.now() - _tp);
 		fetch(ERRLOG_SINK_URL, {
@@ -549,7 +564,7 @@ function al_errors_clear(all) {
 			if (k && k.indexOf(ERRLOG_KEY) === 0 && (all || k === _errlog_key())) doomed.push(k);
 		}
 		doomed.forEach(k => localStorage.removeItem(k));
-		_errlog = { session: _errlog.session, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {}, counts_since: Date.now(), samples: [], alive: [] };
+		_errlog = { session: _errlog.session, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {}, counts_since: Date.now(), samples: [], alive: [], archive: [] };
 		_errlog_heals = [];
 		_errlog_vitals = [];
 		_errlog_was_rip = false;

@@ -20,7 +20,8 @@ const SETTINGS_DESCRIPTORS = [
 const ALL_CHARACTERS = ["Ulric", "Myras", "Riva", "Riff"];
 
 function monster_options() {
-	return Object.keys(LOCATIONS).sort().map(name => ({ value: name, text: name }));
+	return [{ value: SURVEY_FARM_TARGET, text: SURVEY_FARM_TARGET }]
+		.concat(Object.keys(LOCATIONS).sort().map(name => ({ value: name, text: name })));
 }
 
 function item_options(names) {

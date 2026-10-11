@@ -9,6 +9,20 @@ Four goals, one data foundation:
 
 Goals 2–4 all need numbers we do not keep today, so the foundation (Workstream 0) comes first.
 
+## Status
+
+| Workstream | State |
+|---|---|
+| 0a–0d data foundation | **Built 2026-10-11**: `Error Log.js` (archive lane, `game_response` off the timeline), `Farm Ledger.js`, `Error Sink.py`, `Tools/Data Store.py` |
+| 1 survey | **Built 2026-10-11**: `Farm Survey.js`, `*SURVEY*` in Settings. Not yet run in-game |
+| 2 achievements | Not started |
+| 3 equipment | Not started |
+| 4 status page | Not started |
+
+How each part works is in `Design Notes.md` (`Farm Ledger.js`, `Farm Survey.js`, `Error Log.js`, `Data Store.py`).
+
+**To run the survey:** set all three fighters' farm target to `*SURVEY*` in Settings. `survey_status()` in Myras's console shows progress; `python "Tools/Data Store.py" survey` prints the results.
+
 ---
 
 ## Decisions
@@ -93,14 +107,14 @@ The sink, or a `Tools/` script, builds a SQLite file (Python stdlib `sqlite3`) f
 - **Reload per spot change**: the proven path, roughly every 30 minutes.
 - **Reassign `home`/`destination` at runtime**: lighter, but every reader of `home` must be checked first (`Bscorpion Camp.js`, `Movement Manager.js:891`, the fireroamer cases in `Healer Movement.js` and `Warrior Skills.js`, `Dungeon Runner.js:60`, `Combat Sampling.js:70`, `Equipment Manager.js:514`).
 
-Decide during implementation.
+**Decided: runtime reassignment.** Every reader looks `home`/`destination` up when it runs; the only cache, `active_dungeon()`, never sees a survey spot. `switch_home()` in `Farm Survey.js` reassigns both.
 
 ### Visit rules
 
-1. Travel to the spot. Ledger windows count toward it only while `at_spot`.
+1. Travel to the spot. Ledger windows count toward it only while `at_spot`. A spot not reached after 20 minutes of travel (event detours excluded) is marked `unreachable`.
 2. On arrival, if another player is at the spawn, mark the spot `skipped` and move on. Skipped spots are retried after the rest of the list; a second failure marks the spot `occupied`.
 3. Collect 30 minutes of at-spot time. Boss/event detours pause the clock; the visit resumes afterwards.
-4. 2 deaths in the visit, or Myras unable to hold the pack, marks the spot `unsafe`.
+4. 2 deaths in the visit, or Myras unable to hold the pack, marks the spot `unsafe`. "Unable to hold" is measured as 3 lost holds: a non-boss monster targeting Ulric or Riva for 15s straight. Panic counts were rejected as the signal, since Myras panics 50–160 times a day at the bscorpion camp alone.
 5. After the last spot (and the retries), mark the survey complete; `*SURVEY*` now resolves to `bscorpion`.
 
 ### Spot-specific code
@@ -114,11 +128,11 @@ Run in this order. Filter used: not a boss or co-op monster, on a normal map, HP
 | # | Monster | Map × count | HP | Attack | Armor / res | XP | XP/HP | Respawn | `LOCATIONS` | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 1 | bscorpion | desertland ×1 | 577k | 3,200 phys | 500 / 240 | 635k | 1.10 | 6s | yes | Current camp |
-| 2 | oneeye | level2w ×5 | 420k | 480 phys | 160 / 160 | 582k | 1.39 | 4s | yes | Stone ability |
+| 2 | oneeye | ***REJECTED***
 | 3 | pinkgoblin | level2e ×3 | 420k | 2,400 mag | 200 / 350 | 460k | 1.10 | 40s | yes | Self-healing |
 | 4 | sparkbot | uhills ×4 | 325k | 754 mag | 140 / 160 | 400k | 1.23 | 6s | **no** | Needs a `LOCATIONS` entry |
 | 5 | targetron | uhills ×4 | 325k | 377 phys | 160 / 140 | 400k | 1.23 | 6s | yes | |
-| 6 | harpy | winter_cove ×5 | 160k | 1,720 mag | 160 / 600 | 192k | 1.20 | 4s | yes | Warps on hit |
+| 6 | harpy | ***REJECTED***
 | 7 | xscorpion | halloween ×6 | 140k | 720 phys | 400 / 0 | 172k | 1.23 | 16s | yes | |
 | 8 | odino | mforest ×7 | 165k | 550 phys | 135 / 65 | 140k | 0.85 | 3s | yes | |
 | 9 | plantoid | desertland ×4 ×2 | 120k | 640 phys | 160 / 190 | 96k | 0.80 | 18s | yes | |
@@ -132,7 +146,7 @@ Run in this order. Filter used: not a boss or co-op monster, on a normal map, HP
 
 Excluded by the filter: training dummies; single long-respawn monsters (mvampire 18 min, fvampire 24 min, skeletor 16 min, mechagnome 8 min); ent (8M HP); everything under 20k HP.
 
-16 spots × 30 min ≈ 8 hours of at-spot time, plus travel and event detours: about one to two nights.
+14 spots × 30 min ≈ 7 hours of at-spot time, plus travel and event detours: about one to two nights. The list in code is `SURVEY_SPOTS` in `Farm Survey.js`. sparkbot now has a `LOCATIONS` entry (its spawn box centre). sparkbot and targetron share one uhills spawn area, so their results will overlap.
 
 ### Results
 
@@ -184,8 +198,8 @@ The sink already runs an HTTP server; it serves a local page that reads the SQLi
 
 ## To confirm during implementation
 
-- Each fighter carries a tracker.
+- Each fighter carries a tracker. *The snapshot logs `⚠️ Tracker snapshot skipped: no tracker in the bag` when one doesn't.*
 - Whether achievement progress is account-wide (`max_stats`) and how party kills are credited.
-- Reload vs runtime reassignment for changing spot.
-- That nothing in `Diagnostics.md`'s workflow depends on archived `game_response` lines.
-- `sparkbot` needs a `LOCATIONS` entry before it can be surveyed.
+- ~~Reload vs runtime reassignment for changing spot.~~ Runtime reassignment.
+- ~~That nothing in `Diagnostics.md`'s workflow depends on archived `game_response` lines.~~ It reads `records`, which still hold them.
+- ~~`sparkbot` needs a `LOCATIONS` entry before it can be surveyed.~~ Added.

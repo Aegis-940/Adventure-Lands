@@ -28,7 +28,6 @@ function prim_farm_loc() {
 }
 
 function bscorpion_start() {
-	if (home !== "bscorpion") return;
 	if (character.name === "Ulric") bscorpion_kill_logger_loop();
 }
 

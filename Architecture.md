@@ -53,6 +53,8 @@ Core Systems/*.js                 ← loaded in parallel as real <script> tags
     ├── Maintenance.js            potion drinking/restocking, periodic tab reload
     ├── Party Cohesion.js         follow_goal(), party_cohesion_hold(), leader_position(), behind_on_xp()
     ├── Character Runner.js       run_character(), the shared main tick loop
+    ├── Farm Ledger.js            5-minute gold/XP/kill windows (at the spot vs away), daily tracker snapshot
+    ├── Farm Survey.js            the *SURVEY* farm target: 30 min per spot, then bscorpion
     ├── Error Handling.js         catcher(), the shared error-triage/logging helper
     └── Error Log.js              persistent cross-character flight recorder (al_errors(true))
 
@@ -117,7 +119,9 @@ Interface/*.js                    ← overlay panels (semi-independent)
     └── Settings Window.js        per-character target settings, persisted via localStorage
 
 Tools/                            ← dev scaffolding, not loaded by the bot
-    ├── Error Sink.py             local HTTP sink for errlog_sample() pushes -> errors.json
+    ├── Error Sink.py             local HTTP sink for errlog_sample() pushes -> errors.json;
+    │                             archives ledger/tracker/survey records to .jsonl files
+    ├── Data Store.py             al_data.sqlite built from the .jsonl archives; the survey report
     └── Crypt Probe.js            one-off probe for crypt geometry
 ```
 

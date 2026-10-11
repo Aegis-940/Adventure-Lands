@@ -180,11 +180,29 @@ def archive_timeline(who, entries):
 BOSS_PROFILE_ARCHIVE = os.path.join(REPO, "boss_profiles.jsonl")
 
 
-def archive_boss_profiles(who, samples):
-    with open(BOSS_PROFILE_ARCHIVE, "a", encoding="utf-8") as fh:
+def archive_samples(path, who, samples):
+    with open(path, "a", encoding="utf-8") as fh:
         for s in sorted(samples, key=lambda x: x.get("t") or 0):
             stamp = datetime.fromtimestamp((s.get("t") or 0) / 1000).strftime("%Y-%m-%d %H:%M:%S")
             fh.write(json.dumps({"at": stamp, "character": who, **s}, ensure_ascii=False) + "\n")
+
+
+# The page's errlog_archive() lane: one file per kind, each entry written once (the page re-sends its
+# whole ring every push, so a per-kind high-water mark on t is what keeps the files duplicate-free).
+ARCHIVES = {
+    "ledger": os.path.join(REPO, "ledger.jsonl"),
+    "tracker": os.path.join(REPO, "tracker.jsonl"),
+    "survey_spot": os.path.join(REPO, "survey.jsonl"),
+}
+
+
+def archive_lane(bucket, who, entries):
+    marks = bucket.setdefault("archived", {})
+    for kind, path in ARCHIVES.items():
+        fresh = [e for e in entries if e.get("kind") == kind and (e.get("t") or 0) > marks.get(kind, 0)]
+        if fresh:
+            archive_samples(path, who, fresh)
+            marks[kind] = max(e.get("t") or 0 for e in fresh)
 
 
 def merge_lifecycle(incoming):
@@ -266,8 +284,10 @@ def merge(incoming):
     profiles = [s for s in incoming.get("samples") or []
                 if s.get("kind") == "boss_profile" and (s.get("t") or 0) > bucket.get("profiles_archived_to", 0)]
     if profiles:
-        archive_boss_profiles(who, profiles)
+        archive_samples(BOSS_PROFILE_ARCHIVE, who, profiles)
         bucket["profiles_archived_to"] = max(s.get("t") or 0 for s in profiles)
+
+    archive_lane(bucket, who, incoming.get("archive") or [])
 
     # Heartbeats answer "was the tab still running", so they must outlive the sample age cut --
     # an overnight freeze is only legible the next morning, hours after SAMPLE_MAX_AGE_H.
@@ -365,6 +385,19 @@ def sweep(label):
           flush=True)
 
 
+DATA_STORE = os.path.join(REPO, "Tools", "Data Store.py")
+
+
+def refresh_data_store():
+    """Bring al_data.sqlite up to date with the archives. A separate process, so a slow or broken
+    ingest never holds the store lock or takes the sink down."""
+    done = subprocess.run([sys.executable, DATA_STORE, "ingest"], cwd=REPO, capture_output=True, text=True,
+                          timeout=600, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    if done.returncode:
+        print("  ! data store ingest failed: %s" % (done.stderr or done.stdout).strip()[-500:],
+              file=sys.stderr, flush=True)
+
+
 def maintenance_loop():
     while True:
         time.sleep(SWEEP_EVERY_S)
@@ -372,6 +405,10 @@ def maintenance_loop():
             sweep("swept")
         except Exception as exc:
             print("  ! sweep failed: %s" % exc, file=sys.stderr, flush=True)
+        try:
+            refresh_data_store()
+        except Exception as exc:
+            print("  ! data store refresh failed: %s" % exc, file=sys.stderr, flush=True)
 
 
 SOURCE = os.path.abspath(__file__)

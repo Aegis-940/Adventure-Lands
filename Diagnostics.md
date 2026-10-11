@@ -70,7 +70,8 @@ signature is first seen and never updated, while `last` and `last_build` do upda
 count is in the thousands has one context snapshot, from whenever it first fired.
 
 **6. `game_response` is filtered too.** Only `exception`, `cant` and `not_ready` responses are
-recorded. Every other server rejection is invisible.
+recorded. Every other server rejection is invisible. Since 2026-10-11 even those are `records` only:
+they never reach the timeline, so `errors_timeline.jsonl` holds them only up to that date.
 
 **7. Truncation and eviction.** Record messages cap at 400 chars, timeline messages at 160. Over
 1.5MB the sink repeatedly drops the oldest quarter of the longest list, in the order

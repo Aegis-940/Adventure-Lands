@@ -6,6 +6,11 @@ __pycache__/
 logs/
 errors_timeline.jsonl
 boss_profiles.jsonl
+ledger.jsonl
+tracker.jsonl
+survey.jsonl
+al_data.sqlite
+al_data.sqlite-journal
 
 # Runtime data written by Tools/Watchdog.py.
 watchdog.json

@@ -248,9 +248,41 @@ What this replaced: every corner stopped the follower for a search and sent it o
 
 A follower in turn does not pursue while she is live on his map, beyond the range (`cohesion_closing()`, the follower's own 250/120 hysteresis) and not herself on the event (`follower_holds_back()`). So her cohesion hold pulls him back to her instead of leaving the tank behind.
 
+### `Farm Ledger.js`
+
+One `ledger` record per fighter every 5 minutes, through `errlog_archive()` to `ledger.jsonl`. Plan: [`Data and Farming Plan.md`](Data%20and%20Farming%20Plan.md).
+
+- **At the spot vs away.** Each 1s tick decides `at_farm_spot()`: alive, inside the farm target's spawn boxes on the destination map widened by 200px, enough to take in the far end of Riva's bscorpion rail (a 400px circle round the destination when the target has no spawn box), and no event goal (`event-*`, `boss-loot`, `holiday-tree`) on this character or on Myras. Gold, XP and kills land in `total` always and in `spot` only while at the spot, so a spot's rate is `spot` over `at_spot_s`, with travel and boss detours excluded.
+- **Gold comes from chests, not the wallet.** The fighters send gold to Riff, so a wallet delta undercounts. Every party member gets its own `chest_opened` with its share of each chest (server `open_chest`), so `gold` is this character's share and `chest_gold` (`gold / share`, the Gold Meter's formula) is the whole chest. Party gold/hr is one character's `chest_gold`, never a sum across characters.
+- **XP** is the `character.xp` delta carried across level-ups with `G.levels`. It is net, so XP lost on a death shows.
+- **A window closes early when `home` changes**, and carries the `home` and `survey_spot` it started with. A window straddling a spot change would otherwise credit the old spot's minutes to the new one.
+- Also per window: deaths, potions drunk (`potions_drunk`, counted in `potion_loop()`), the most foreign players seen in the spawn area, fighters on this map, `goldm`/`xpm`/`luckm`, and a gear signature.
+
+**Tracker snapshot.** Once a day per fighter it emits the game's `tracker` call and archives `monsters` (kill counts per type) and `max` (`player.max_stats`) to `tracker.jsonl`. The server answers only while a `tracker` or `supercomputer` is in the bag (`computer` alone does not set `player.tracker`). The client renders the tracker window on every reply, so the handler closes it (`hide_modal`), but only for a reply within 10s of our own request.
+
+### `Farm Survey.js`
+
+The `*SURVEY*` farm target (`SURVEY_FARM_TARGET`). `farm_target_for()` resolves it to the survey's current spot, or to `DEFAULT_FARM_TARGET` once the survey is complete. Set it on all three fighters; Myras (`SURVEY_OWNER`) is the only writer of the state, in localStorage `AL_survey`, which every iframe shares.
+
+**Runtime spot changes, not reloads.** Every reader of `home` and `destination` looks them up when it runs (movement, `MONSTER_GEAR_OVERRIDES`, the fireroamer and bscorpion branches), so `switch_home()` reassigns both and the next tick follows. The one cache is `active_dungeon()`, and no survey spot is a dungeon. The bscorpion kill logger now starts for Ulric whatever the home, since it parks itself away from the camp.
+
+**Visit rules**, all in `survey_owner_tick()` on Myras's 1s tick:
+
+- Arrival is her first `at_farm_spot()` tick. Travel time that isn't an event detour counts toward `SURVEY_TRAVEL_LIMIT_MS` (20 min); past it the spot is `unreachable`.
+- For the first 5s at the spot, any non-party player in the spawn area ends the visit: `skipped` on the first pass, `occupied` on the retry. Skipped spots are retried after every pending spot.
+- The clock is her at-spot time; 30 minutes makes the spot `done`.
+- `unsafe` at 2 fighter deaths in the visit (seen as a rip transition, outside event detours), or 3 lost holds. A lost hold is a non-boss monster targeting Ulric or Riva continuously for 15s. Panics are no signal: she panics 50–160 times a day at the bscorpion camp alone, mostly "low health".
+- Each status change is archived as a `survey_spot` record to `survey.jsonl`.
+
+`survey_status()` prints the state; `survey_reset()` starts again from the first spot. sparkbot and targetron share one uhills spawn area, so at either the party fights both.
+
 ### `Error Log.js`
 
 Persistent cross-character flight recorder; hooks only, read with `al_errors(true)`. It defines the real `errlog_*` over `Global Config.js`'s stubs, so call sites never guard on it.
+
+**`game_response` replies are records only.** The `exception`/`cant`/`not_ready` replies still count in `records`, but no longer go to the timeline, so they no longer reach `errors_timeline.jsonl`. They were 63% of its bytes (50.6 of 81 MB by 10-11), mostly Myras's.
+
+**The archive lane.** `errlog_archive(kind, data)` keeps its own ring of 100 (`_errlog.archive`, about 8 hours of ledger windows), pushed with every payload. Records meant to be kept for good (`ledger`, `tracker`, `survey_spot`) go there instead of `samples`, where Myras's ~10 `target_choice` samples a second turn the 400-sample ring over in about 40s, close to the 30s push interval. The sink writes each kind to its own `.jsonl` once, by a per-kind high-water mark on `t`.
 
 It records game-log lines by prefix (`ERRLOG_GAMELOG_PREFIXES`): the bot's ⚠️ ❌ 🛑 🎂 🚨 🧭 🌀 and `[` lines, and the game's own pathfinder lines ("Searching for a path", "Path found", "Path not found", "Lost the path"). So a goal flip or a search loop shows in `errors_timeline.jsonl` as it happens. Until 10-10 the 🧭 goal changes and the searches were the one thing the recorder could not see.
 
@@ -501,6 +533,12 @@ The settings window saves on **Reload All** (every character, staggered as befor
 ---
 
 ## Tools
+
+### `Data Store.py`
+
+`al_data.sqlite`, derived from the archives and safe to delete: `ledger.jsonl`, `survey.jsonl`, `tracker.jsonl` (plus `tracker_kills`, one row per monster), `boss_profiles.jsonl`, and from `errors_timeline.jsonl` the `death` and `bscorpion_kill` lines. Ingest is incremental by byte offset per file, and a file that shrank is re-read from the start. The sink runs `ingest` after every 15-minute sweep, in a subprocess so a slow ingest never holds the store lock. The first full ingest of 81 MB took 4s; an incremental one takes half a second.
+
+`survey` prints one row per spot: party gold/hr from Myras's `spot_chest_gold`, kills/hr from her `spot_kills`, XP/min as the mean of the fighters' own rates, the bands from the plan, and `score = gold/hr ÷ 20M + XP/min ÷ 1M`.
 
 ### `Watchdog.py`
 
