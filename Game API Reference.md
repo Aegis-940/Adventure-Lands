@@ -588,6 +588,15 @@ that slot entirely.
 `crabxx` carries that flag for as long as **any `crabx` is alive**, so its 960,000 HP pool barely
 moves while the raid clears the adds, then melts once they are dead. Never gate "is this fight
 underway" on a coop boss's HP percentage; use `E[name].target` (who it is holding) or a damage rate.
+Clients see the flag as `mob["1hp"]` (`monster_to_client`).
+
+**A monster with a target moves at its `charge` speed, not `speed`** (`calculate_monster_stats`:
+`if (monster.target || monster.focus) monster.speed = G.monsters[type].charge`). crabxx is `speed` 30
+in `G` but chases at 80; the client's `mob.speed` shows the live value. A boss's `spawns` entry
+(`[[1000, "crabx"]]`) fires only while it has a target, every interval, on a random player holding coop
+points within 400px *in the target's party*; the add targets that player and, being `stype: "spawn"`,
+is removed (not sent home) whenever it loses its target. A monster drops its target past
+`min(range/1.6, 240) + min(100, attack/5) + 161` px (crabx ~218, crabxx ~289) or after 20s unattacked.
 
 **Contribution points decide coop loot, and two multipliers dominate them** (`add_coop_points`):
 `1hp` targets score a flat 1 per hit, **`hopsickness` divides your points by 4**, and a character

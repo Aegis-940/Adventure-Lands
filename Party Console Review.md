@@ -77,7 +77,8 @@ but the rules loop re-sending the jacko swap from a stale inventory view, which 
 Also done: K2, K3, K4, S1, I1, I2, C1, C2. S1 found the potion loop drinking HP and MP in the same tick —
 they share one cooldown, so the second was always refused (the 60k `not_ready` lines). C2: only `rat` was a
 real error (sign flip, `y: 430` → `-430`); stoneworm, wolfie and mechagnome deliberately sit between their
-spawn boxes. S3 withdrawn (see below).
+spawn boxes. S3 withdrawn (see below). E2: crabxx has no engage gate at all now and Myras kites it
+(Design Notes → `World Events.js`, kiting).
 
 **Suggested order:** M1 + M3 + I1 + C1 first (small, and each is failing today) → R1 + R2 + R3 (merchant gold) →
 T1, then G1, one at a time so each can be measured → the rest.

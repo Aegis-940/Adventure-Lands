@@ -859,6 +859,7 @@ function movement_goal() {
 	const ignoring_events = dungeon_ignores_events();
 
 	const event = ignoring_events ? null : event_goal();
+	if (event && event.local === "kite") return event;
 	const scripted_camp = party_camped(event);
 	const cohesion_hold = !scripted_camp && party_cohesion_hold(event);
 
@@ -906,6 +907,7 @@ function movement_local(goal, farm_step, engage_step) {
 	if (goal && goal.local === "trail") return trail_step(goal);
 	if (goal && goal.local === "wait") return local_wait();
 	if (goal && goal.local === "evade") return evade_step(goal.threat);
+	if (goal && goal.local === "kite") return kite_step(goal.event);
 	if (goal && goal.local === "event") return event_step(goal.event, engage_step);
 	if (goal && goal.local === "loot") return loot_step();
 	if (goal && goal.local === "camp") return camp_step();

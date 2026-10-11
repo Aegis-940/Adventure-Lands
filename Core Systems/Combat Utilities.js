@@ -224,8 +224,20 @@ function off_limits(mob) {
 	return rule.avoid.includes(mob.mtype) || !at_event_spot(rule);
 }
 
+function kite_ring(mob) {
+	const event = EVENT_LOCATIONS.find(e => e.name === mob.mtype);
+	return event && event.kite ? event.kite : null;
+}
+
+function takes_one_damage(mob) {
+	return !!mob["1hp"];
+}
+
 function must_not_touch(mob) {
-	return off_limits(mob) || rime_shell_held(mob) || (!mob.target && hit_too_big(mob, character));
+	if (off_limits(mob) || rime_shell_held(mob)) return true;
+	if (mob.target) return false;
+	if (kite_ring(mob)) return character.name !== BOSS_KITER;
+	return hit_too_big(mob, character);
 }
 
 function splash_would_touch(mob, explosion) {
@@ -249,7 +261,7 @@ function lethal_pursuer() {
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
 		if (e.type !== "monster" || e.dead || e.target !== character.name) continue;
-		if (!hit_too_big(e, character)) continue;
+		if (kite_ring(e) || !hit_too_big(e, character)) continue;
 		const gap = distance(character, e);
 		if (gap < nearest_gap) {
 			nearest = e;

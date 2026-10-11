@@ -52,6 +52,9 @@ function event_goal() {
 	const label = "event-" + target.name;
 	const seen = get_nearest_monster({ type: target.name });
 	if (seen) boss_watch(seen);
+	if (seen && seen.target === character.name && kite_ring(seen)) {
+		return { local: "kite", pursuit: true, label, event: target.name };
+	}
 	if (seen && !boss_strayed(seen)) {
 		if (is_in_range(seen, "attack") || can_move_to(seen.x, seen.y)) {
 			return { local: "event", pursuit: true, label, event: target.name };
@@ -118,6 +121,16 @@ function event_spot_step(event_type, boss) {
 function pursued_boss() {
 	const g = current_goal();
 	return g && g.pursuit ? get_nearest_monster({ type: g.event }) : null;
+}
+
+function kited_boss() {
+	const g = current_goal();
+	return g && g.local === "kite" ? get_nearest_monster({ type: g.event }) : null;
+}
+
+function kite_step(event_type) {
+	const boss = get_nearest_monster({ type: event_type });
+	if (boss) orbit_away(kite_ring(boss), boss);
 }
 
 function best_event_target() {

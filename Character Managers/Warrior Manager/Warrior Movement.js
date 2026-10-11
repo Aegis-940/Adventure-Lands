@@ -136,6 +136,11 @@ function warrior_engage_step(target) {
 	return warrior_clear_overlap(target);
 }
 
+function warrior_event_step(boss) {
+	const target = cache.target;
+	return warrior_engage_step(takes_one_damage(boss) && target && !target.dead ? target : boss);
+}
+
 function warrior_farm_step() {
 	const target = cache.target;
 	if (target && !target.dead && warrior_engage_step(target)) return;

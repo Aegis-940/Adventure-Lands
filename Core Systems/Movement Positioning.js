@@ -106,3 +106,35 @@ function orbit_reposition(make_score, options) {
 
 	move(spot.x, spot.y);
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// ORBIT AWAY — walk a fixed ring, always stepping the way that leaves the chaser behind
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const ORBIT_RADIUS_TOL = 2;
+const ORBIT_STEP_DEG = 10;
+
+function orbit_away(ring, threat) {
+	if (character.moving) return;
+
+	const fx = character.x - ring.x;
+	const fy = character.y - ring.y;
+
+	if (Math.abs(Math.hypot(fx, fy) - ring.radius) > ORBIT_RADIUS_TOL) {
+		const away = Math.atan2(character.y - threat.y, character.x - threat.x);
+		move(ring.x + Math.cos(away) * ring.radius, ring.y + Math.sin(away) * ring.radius);
+		return;
+	}
+
+	const step = ORBIT_STEP_DEG * Math.PI / 180;
+	const my_angle = Math.atan2(fy, fx);
+	const spot = a => ({
+		x: ring.x + Math.cos(a) * ring.radius,
+		y: ring.y + Math.sin(a) * ring.radius,
+	});
+	const cw = spot(my_angle - step);
+	const ccw = spot(my_angle + step);
+	const away_from_threat = Math.hypot(cw.x - threat.x, cw.y - threat.y) > Math.hypot(ccw.x - threat.x, ccw.y - threat.y) ? cw : ccw;
+
+	move(away_from_threat.x, away_from_threat.y);
+}

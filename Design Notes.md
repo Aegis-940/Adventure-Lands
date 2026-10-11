@@ -80,7 +80,7 @@ Why the native town edge is not used is in [`Game API Reference.md`](Game%20API%
 
 ### `Bscorpion Camp.js`
 
-Positioning for the desertland bscorpion/primling camp. It owns no movement loop of its own: `movement_goal()` returns `{ local: "camp" }` while camped and `movement_local()` runs `camp_step()`. Myras orbits; Ulric and Riva hold station.
+Positioning for the desertland bscorpion/primling camp. It owns no movement loop of its own: `movement_goal()` returns `{ local: "camp" }` while camped and `movement_local()` runs `camp_step()`. Myras orbits; Ulric and Riva hold station. The orbit itself is `orbit_away()` in `Movement Positioning.js` (a 105px ring around the camp centre, 10° steps toward whichever neighbour is further from the scorpion), shared with the crabxx kite.
 
 **Riva's rail (`CAMP_RAIL`).** A wall-free line from (-390,-1250) running north-west (215°) for 360px through the open ground. A solid wall runs ~140px north of the camp centre, and pillars and walls sit to the south-west, so any position computed relative to the moving scorpion eventually landed behind one of them.
 - She stands at the rail point nearest the camp that is ≥130px (hitbox to hitbox) from the scorpion, clear of its `weakness_aura`. The aura is −10 dex/str and −30 speed for 20s, re-applied every 4s within 100px, with the first tick 0–4s after spawn. At her old 50px it cost her ~3.4%.
@@ -103,6 +103,8 @@ Positioning for the desertland bscorpion/primling camp. It owns no movement loop
 Monster and entity queries (`monsters_matching()`, `get_num_targets()`, `get_num_chests()`), boss and party state predicates (`is_coop_boss()`, the Rime Djinn's shell predicates `rime_shell_casting()`, `rime_shell_pending_within()` and `rime_shell_held()`, plus `find_active_boss()`, `boss_engageable()`, `should_pause_combat_loop()`), and the lethal-monster rule.
 
 **Lethal monsters.** A monster with no target turns on whoever touches it first, with a hit or a splash. So `must_not_touch()`/`safe_to_touch()` keep every fighter's targeting, splash, cleave, agitate, stomp and Myras's absorb off any untargeted monster whose hit (`monster_hit_on()`) is half their max HP or more. `lethal_pursuer()` drives the `evade` movement goal when one targets them anyway, at any distance: scare, then keep stepping directly away until it lets go (scare, or the server's ~608px chase leash). A fighter walking back to Myras with it in tow drags it across the map.
+
+**Kited bosses are the exception.** An `EVENT_LOCATIONS` entry with `kite` (crabxx) is never an evade threat: whoever it targets kites it on the ring instead of scaring it off. Untargeted, only `BOSS_KITER` (Myras) may touch it, whatever its hit, so the first hit always lands it on the kiter; once it holds a target anyone may hit it. `takes_one_damage()` reads the server's `1hp` flag (crabxx while any crabx lives anywhere on the server: every hit does 1, 2 on a crit).
 
 **`avoid` and `off_limits()`.** An `EVENT_LOCATIONS` entry with `avoid` (franky: `["oneeye"]`) widens that rule while its boss is live on our map. The `avoid` types are untouchable outright, targeted or not, and until a fighter is within 50px of the entry's `spot`, every monster but the boss is untouchable too. That one predicate covers targeting, Riva's multishot, splash and the agitate/stomp/cleave blockers. So the party fights only Franky on the way in and, from the spot, anything that is not a oneeye.
 
@@ -153,6 +155,15 @@ Live boss and seasonal targets, and the goal that walks the party to them.
 
 **Pursuit.** Pursuit bypasses following and cohesion: each fighter closes to its own range. For an entry with a `spot` (franky: -19,36), every fighter first walks to within 50px of the spot while the boss is within 100px of it, then fights from there; Ulric's `engage_step` takes over inside that radius. The spot keeps the party together and away from the oneeye pen. `party_cohesion_hold(event)` does not hold for a follower whose goal is the same event.
 
+**Kiting (crabxx).** crabxx has no engage gate: the party joins at full HP. Its HP never moves while crabx live, so the old 95% gate kept the party at the bscorpion camp through every spawn from 09-30 to 10-11. The fight, from the server source:
+- It hits for 16,000 every 3.3s with 45 range (~7,000 on Myras, ~7,800 on Ulric, ~9,100 = 90% on Riva). Its speed is 30 idle, but the server sets a monster's speed to its `charge` while it has a target, so it chases at 80. Curse's −20 takes that to 60, under Myras's ~70, so the kite holds only while the curse is up.
+- While it has a target it spawns a crabx every 1s on a random player with coop points within 400px, in the target's party only, targeting that player. A spawned crabx (4,200 HP, 240 attack, charge 30) disappears when it loses its target: its chase limit is ~218px, crabxx's ~289px. Both drop a target not attacked for 20s.
+- Whoever crabxx targets gets `{ local: "kite" }` (same label as the event, so followers don't hold back and Myras's cohesion hold never applies; `movement_goal()` returns it before cohesion). `kite_step()` runs `orbit_away()` on the entry's ring: (-1000,1700), the server's `join` landing point, radius 220. Clear of walls at 180–240 by a geometry check.
+- Pure pursuit puts a chaser on an inner circle of radius R·v_chaser/v_kiter, trailing by √(R² − r²): a cursed crabxx ~114px behind Myras, the adds ~199px, inside their 218px chase limit. So the adds stay on her in the middle of the ring, where Ulric cleaves them. A bigger ring buys crabxx distance and loses the adds.
+- Myras curses the kited boss whenever `curse_expiring()`, ignoring her curse MP floor. `tank_can_take()` leaves the kited boss out of her absorb headroom, `boss_absorb_target()` takes it off a party member (`tank_bosses` includes crabxx) without the lethal-hit refusal, and the generic absorb pulls adds spawned on Ulric and Riva. Ulric does not agitate with a kited boss within range: the server's agitate takes every monster on any party member, crabxx off Myras included. His stomp is fine; it only stuns.
+- While `1hp`, Ulric and Riva leave crabxx alone and kill crabx (Ulric's `warrior_event_step()` closes on his own target). Myras keeps hitting it so it never goes 20s unattacked.
+- No looting while kiting (`looting_blocked()` → `kiting`): looting takes the movement tick and Myras's gold gloves are −20 speed. The boss-field drain collects the chests after the kill.
+
 **Draining the field.** After the boss dies Myras stays on `boss-loot` (a `passive` local goal) while `boss_field_draining()` holds: a chest in sight, or one seen within the last 3s (`BOSS_LOOT_LINGER_MS`), inside the 20s field grace. Without the linger the goal flipped to `home` and back on every chest, and each flip cancelled the search home.
 
 **`boss_watch`.** While a boss is in sight each fighter writes a `boss_watch` timeline line every 10s (boss HP and target, positions, distance, goal, panic/evade) via `errlog_timeline()`. It goes to `errors_timeline.jsonl` without creating a record. Read those lines first after a boss fight goes wrong.
@@ -192,7 +203,7 @@ Panic and its broadcast (`set_panic()` is the only writer), party invites, and w
 
 ### `Loot Management.js`
 
-`loose_loot()` (what we keep, ship to the merchant, or vendor), bank withdrawal, and chest looting (`should_loot()`/`handle_looting()`, driven by each character's `CONFIG.looting`).
+`loose_loot()` (what we keep, ship to the merchant, or vendor), bank withdrawal, and chest looting (`should_loot()`/`handle_looting()`, driven by each character's `CONFIG.looting`). Looting is blocked while kiting a boss (`kited_boss()`).
 
 **Reserved gear.** `reserved_gear_slots()` ranks every copy of a set item, worn and bagged (locked first, then level), and keeps the top N, where N is how many slots the sets wear it in. Bag copies in that top N are never shipped or sold. It used to count a slot as covered by any worn copy of the name, so a junk copy in the hand made the real one in the bag look spare.
 
@@ -382,7 +393,7 @@ The timeline caps a line at 160 chars. The window runs from the shell's first `e
 
 ### `Warrior Movement.js`
 
-The reposition scorer and the farm step that keeps him engaged. He targets anything within `CONFIG.combat.engage_radius` that is attacking the party (or already in reach), walks to a 12px hitbox gap when it is out of reach, and steps back out to 12px once he is under 4px. That is `warrior_engage_step()`, which the runner also hands to `event_step()` as `engage_step`, so he holds the same gap on a boss instead of walking to `range × EVENT_REACH` and standing inside its hitbox. Every move is skipped while he is already heading there, since each `move` costs 2.5 call cost.
+The reposition scorer and the farm step that keeps him engaged. He targets anything within `CONFIG.combat.engage_radius` that is attacking the party (or already in reach), walks to a 12px hitbox gap when it is out of reach, and steps back out to 12px once he is under 4px. That is `warrior_engage_step()`, which the runner also hands to `event_step()` as `engage_step` (through `warrior_event_step()`, which engages his own target instead while the boss `takes_one_damage()`), so he holds the same gap on a boss instead of walking to `range × EVENT_REACH` and standing inside its hitbox. Every move is skipped while he is already heading there, since each `move` costs 2.5 call cost.
 
 ---
 
@@ -392,7 +403,7 @@ The reposition scorer and the farm step that keeps him engaged. He targets anyth
 
 Curse, absorb, party heal, dark blessing, zap.
 
-**Boss absorb.** A `tank_bosses` boss (mrpumpkin, mrgreen) on a party member (usually Ulric, straight after his taunt) is absorbed onto her (`boss_absorb_target()`) without the `tank_can_take()` headroom check. Only a hit of half her HP or more refuses it.
+**Boss absorb.** A `tank_bosses` boss (mrpumpkin, mrgreen, crabxx) on a party member (usually Ulric, straight after his taunt) is absorbed onto her (`boss_absorb_target()`) without the `tank_can_take()` headroom check. Only a hit of half her HP or more refuses it, and never for a kited boss, which she outruns instead (World Events → kiting).
 
 **Curse** is recast while the old one is still on (`curse_expiring()`: remaining ≤ projectile flight + ping + 150ms). Its cooldown equals its 5s duration and the server never checks for an existing curse, so waiting for it to drop left a ~0.5s gap plus the slow (240 speed) flight in every 5.5s.
 
@@ -425,6 +436,8 @@ Target cache, `action_loop()`, `handle_attack()`.
 **Armour piercing.** `shot_apiercing()` counts her own armour piercing twice, as the server does: it adds the attacker's piercing into the hit's and then subtracts both. At 226 piercing a plain shot (×0.952 vs the bscorpion's 500 armour) beats piercing shot (0.75 × 1.188), which the single count had backwards.
 
 **Boss only.** With a cooperative boss in range the shot chooser sees only the boss (`coop_boss_only()`, over `is_coop_boss()`: cooperative *and* in `ALL_BOSSES`). The Rime Djinn is cooperative but a farm mob, and reading it as a boss left its adds unshot. The chooser scores total damage over its targets, so with two adds beside mrpumpkin a 3-shot (0.7× each) beat a plain shot. On 10-10 she fired ~336 of them: 2.26M into adds, which earn no coop points, her 200 MP each starving her into skipped shots, and her boss DPS down from ~9,500 to 7,513.
+
+A monster that `takes_one_damage()` (crabxx behind its crabx) is not in her pool at all, so with the adds alive she shoots them; boss-only resumes the moment the flag drops.
 
 Shot choice on a shelled Djinn is under Warrior Skills → the Rime Djinn's shell.
 

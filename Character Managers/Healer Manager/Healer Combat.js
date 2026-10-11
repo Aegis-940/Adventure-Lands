@@ -94,7 +94,9 @@ function self_heal_rate() {
 }
 
 function tank_can_take(added_dps) {
-	return projected_hp(character, added_dps, self_heal_rate()) > character.max_hp * ENDANGER_FLOOR_PCT;
+	const kited = kited_boss();
+	const outrun = kited ? monster_dps_on(kited, character) : 0;
+	return projected_hp(character, added_dps - outrun, self_heal_rate()) > character.max_hp * ENDANGER_FLOOR_PCT;
 }
 
 function fighter_down() {

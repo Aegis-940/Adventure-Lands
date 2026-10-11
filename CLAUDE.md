@@ -51,7 +51,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 |------|------|
 | `Global Config.js` | **First stage.** Constants, party constants, shared fighter defaults, `storage_read()`/`storage_write()`, `var` declarations of every cross-character symbol, and no-op stubs |
 | `Movement Manager.js` | `movement_goal()` (where to go) and `movement_local()` (where to stand), `smarter_move()`, the travel arbiter, parked routes, `walk()`, stuck escape, and the town shortcut |
-| `Movement Positioning.js` | `best_orbit_spot()`, `reposition_center()`, `orbit_reposition()`: scoring candidate spots around a centre |
+| `Movement Positioning.js` | `best_orbit_spot()`, `reposition_center()`, `orbit_reposition()`: scoring candidate spots around a centre. `orbit_away()`: the ring walk shared by the bscorpion camp and the crabxx kite |
 | `Party Cohesion.js` | `follow_goal()` with the leader's breadcrumb trail, `party_cohesion_hold()`, `leader_position()`. Consulted by `movement_goal()`; moves nothing itself |
 | `Bscorpion Camp.js` | Desertland bscorpion camp positioning (`camp_step()`, Riva's rail) and temporal surge on each kill |
 | `World Events.js` | Live boss/seasonal targets and the goal that walks the party to them |

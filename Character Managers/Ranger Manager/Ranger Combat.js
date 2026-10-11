@@ -7,6 +7,7 @@ function should_attack_mob(mob) {
 
 	if (CONFIG.combat.never_attack.includes(mob.mtype)) return false;
 	if (!safe_to_touch(mob, character.explosion || 0)) return false;
+	if (takes_one_damage(mob)) return false;
 
 	if (typeof porcupine_guard_rank === "function" && porcupine_guard_rank(mob)) return true;
 

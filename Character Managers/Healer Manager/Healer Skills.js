@@ -118,6 +118,13 @@ function party_focus_ids() {
 
 async function handle_curse() {
 	if (is_on_cooldown("curse")) return;
+
+	const kited = kited_boss();
+	if (kited) {
+		if (curse_expiring(kited) && is_in_range(kited, "curse")) await use_skill("curse", kited);
+		return;
+	}
+
 	if (character.mp - skill_mp_cost("curse") < curse_mp_floor()) return;
 
 	const has_target = e =>
@@ -209,7 +216,7 @@ function boss_absorb_target() {
 
 		const ally = get_player(e.target);
 		if (!ally || ally.rip || !is_in_range(ally, "absorb")) continue;
-		if (hit_too_big(e, character)) {
+		if (!kite_ring(e) && hit_too_big(e, character)) {
 			errlog_count("absorb boss refused: lethal hit");
 			continue;
 		}

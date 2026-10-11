@@ -220,37 +220,11 @@ function camp_absorb_target() {
 	return ally.name;
 }
 
-const ORBIT_RADIUS_TOL = 2;
-const ORBIT_STEP_DEG = 10;
-
 function camp_orbit_step() {
-	if (character.moving) return;
-
 	const bscorp = find_nearest_bscorpion();
 	if (!bscorp) return;
-
 	const loc = prim_farm_loc();
-	const sx = bscorp.x, sy = bscorp.y;
-	const fx = character.x - loc.x;
-	const fy = character.y - loc.y;
-
-	if (Math.abs(Math.hypot(fx, fy) - PRIM_FARM_RADIUS) > ORBIT_RADIUS_TOL) {
-		const away = Math.atan2(character.y - sy, character.x - sx);
-		move(loc.x + Math.cos(away) * PRIM_FARM_RADIUS, loc.y + Math.sin(away) * PRIM_FARM_RADIUS);
-		return;
-	}
-
-	const step = ORBIT_STEP_DEG * Math.PI / 180;
-	const my_angle = Math.atan2(fy, fx);
-	const spot = a => ({
-		x: loc.x + Math.cos(a) * PRIM_FARM_RADIUS,
-		y: loc.y + Math.sin(a) * PRIM_FARM_RADIUS,
-	});
-	const cw = spot(my_angle - step);
-	const ccw = spot(my_angle + step);
-	const away_from_scorpion = Math.hypot(cw.x - sx, cw.y - sy) > Math.hypot(ccw.x - sx, ccw.y - sy) ? cw : ccw;
-
-	move(away_from_scorpion.x, away_from_scorpion.y);
+	orbit_away({ x: loc.x, y: loc.y, radius: PRIM_FARM_RADIUS }, bscorp);
 }
 
 function camp_step() {
