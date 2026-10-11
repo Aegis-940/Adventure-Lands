@@ -145,11 +145,13 @@ function record_leader_trail() {
 function trail_point() {
 	if (_trail.map !== character.map) return null;
 	const live = get_player(MOVEMENT_LEADER);
-	const last = live ? { x: live.x, y: live.y } : _trail.seen;
+	const last = live ? { x: live.x, y: live.y, live: true } : _trail.seen;
 	const points = last ? _trail.crumbs.concat([last]) : _trail.crumbs;
 	for (let i = points.length - 1; i >= 0; i--) {
 		const p = points[i];
-		if (can_move_to(p.x, p.y)) return p;
+		if (!can_move_to(p.x, p.y)) continue;
+		if (Math.hypot(character.x - p.x, character.y - p.y) > LOCAL_MOVE_SLOP) return p;
+		return p.live ? p : null;
 	}
 	return null;
 }
