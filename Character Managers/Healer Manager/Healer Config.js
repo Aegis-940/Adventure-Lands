@@ -17,6 +17,7 @@ var CONFIG = {
 		aggro_cap: 5,
 		tank_bosses: ["mrpumpkin", "mrgreen", "crabxx"],
 		curse_min_hp_pct: 0.03,
+		no_curse_homes: ["sparkbot", "targetron"],
 		zapper_enabled: true,
 		zapper_min_mp_pct: 0.60,
 
