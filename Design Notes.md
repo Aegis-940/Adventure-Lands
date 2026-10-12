@@ -477,7 +477,7 @@ Curse, absorb, party heal, dark blessing, zap.
 
 The moment the target dies she goes straight back to `camp_fight`, so that swap's penalty lands in the respawn, not the next pull.
 
-**Everyday loadout.** Away from the camp and bosses she wears `luck`: lmace+8 with the exoarm+1 (mshield+8 until 10-12). The arm trades the shield's 16 luck for +11 int, +30 str (HP) and +20 armour, for survivability at uhills, where holding all eight sparkbots and targetrons is ~5,200 DPS on her 13.6k HP. The mshield stays in `single_target` (bosses) and `camp_luck` (luck at the kill).
+**The uhills spawn.** At sparkbot/targetron, `MONSTER_GEAR_OVERRIDES` puts her in `luck_exoarm`: lmace+8 with the exoarm+1 instead of the mshield+8. The arm trades the shield's 16 luck for +9 int, +30 str and +46 armour as measured (max HP 13,594 → 14,224, armour 447 → 493), because holding all eight sparkbots and targetrons is ~5,200 DPS on her. Everywhere else `luck` keeps the mshield.
 
 **Why luck only at the kill.** Primlings (`offeringp`, 5%) roll on `5% × (1 + luck/100)` of the scorpion's target at the kill, which is Myras, so luck matters only at that instant. `luck_due()` switches once the scorpion's remaining HP is within `luck_lead_ms` (600) of its measured kill rate plus `luck_burst_hp` (15,000, one supershot crit), latched per scorpion. Every kill is counted as `bscorpion kill: target …, luck gear on/off`.
 
