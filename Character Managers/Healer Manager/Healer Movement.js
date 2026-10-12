@@ -29,6 +29,7 @@ function healer_farm_step() {
 }
 
 var CIRCLE_LEAD = 0.5;
+var CIRCLE_PACE = 0.9;
 
 function walk_in_circle() {
 	const center = circle_centre();
@@ -38,7 +39,8 @@ function walk_in_circle() {
 	const delta_time = current_time - state.last_angle_update;
 	state.last_angle_update = current_time;
 
-	const delta_angle = CONFIG.movement.circle_speed * (delta_time / 1000);
+	const angular_speed = Math.min(CONFIG.movement.circle_speed, CIRCLE_PACE * character.speed / radius);
+	const delta_angle = angular_speed * (delta_time / 1000);
 	state.angle = (state.angle + delta_angle) % (2 * Math.PI);
 
 	const ahead = state.angle + CIRCLE_LEAD;

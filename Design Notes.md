@@ -145,6 +145,8 @@ A per-fight profile of every player on a cooperative boss (`is_coop_boss()`) in 
 
 `score_targets()`/`select_target()`: the one scorer every character picks targets with. Damage is valued with `context.gear` (attack, frequency, explosion, apiercing, burn chance) when the caller passes one, otherwise with the live gear. Ulric passes his swing set's measured profile (`swing_gear()`). The live cache refreshes every 50ms and often caught him mid-swap in candy canes or the bataxe, scoring every target without splash or burn.
 
+**Farm focus.** At a clumped spawn (`FARM_FOCUS_HOMES`: sparkbot, targetron) the party stacks its damage amplifiers on one monster: Myras curses it (+20% damage taken), Riva marks it (hunter's mark; her supershot follows the same target) and Ulric swings at it, while splash spreads the rest across the clump. Myras chooses (`choose_farm_focus()` in her `update_cache()`): the current focus while it lives, is in curse range and is on a party member, else the highest-HP monster on a party member, so the debuffs go where they have the longest to pay. It is held until it dies, because "highest HP" re-evaluated each tick would jump to the next full-HP monster the moment the first is hit. One character decides and writes the id to localStorage (`AL_farm_focus`, only on change) so the three never latch different monsters; the others read it with `farm_focus()`. Riva's attacks and multishots are untouched, only her mark. Unlike `dungeon_focus_target()`, which also redirects Riva's shots, this never narrows anyone's attacks to one target. Her curse only goes on the focus while there is one, which also covers both monster types: the generic curse only considered monsters of the farm target's own type.
+
 ### `Porcupine Guard.js`
 
 Temporary. Keeps Ulric off porcupines (no targeting, and his single set when one is within splash reach) and puts them first on Riva's list. Every call site is `typeof`-guarded; delete the file's Bootstrapper line to remove it.
@@ -392,7 +394,7 @@ The 🍀 button and the search for Riff's lucky upgrade slot.
 
 Targeting, `action_loop()`, and `weapon_burst()`. Sets `cache.tank_entity` to **Myras**.
 
-**Cursed first at uhills** (`cursed_first_homes`: sparkbot, targetron). After the Rime shell, a pursued boss and any boss, he takes the cursed monster (Myras's curse: +20% damage taken) when one is touchable within his engage radius; otherwise the normal scorer decides. At this spawn the monsters stand clumped on Myras, so his explosion reaches all of them whichever he hits, and the direct hit is best spent where it is amplified.
+**Farm focus at uhills** (`Targeting.js`, `FARM_FOCUS_HOMES`: sparkbot, targetron). After the Rime shell, a pursued boss and any boss, he takes the party's farm focus when it is touchable within his engage radius; otherwise the normal scorer decides. At this spawn the monsters stand clumped on Myras, so his explosion reaches all of them whichever he hits, and the direct hit is best spent where it is amplified.
 
 **The swing burst.** `weapon_burst()` is the one weapon swap each swing makes: swing → bataxe → cleave (when ready) → candy canes, held until the flight of the swing and of every cleave hit has landed → the weapon chooser's current set.
 - Sugar rush is rolled per hit when it lands (a cleave rolls once per monster), while damage, burn and splash are fixed at launch.
@@ -490,6 +492,8 @@ The same override also wears `uhills_orb` (stillwaterlens+1), `uhills_gloves` (x
 ### `Healer Movement.js`
 
 Runner hooks (`healer_local`, panic skip) and the circle walk. `walk_in_circle()` aims half a radian ahead on the circle (`CIRCLE_LEAD`) through `local_step()`, so she keeps walking instead of being issued a ~5px move each time she stops.
+
+**The circle's pace follows her speed** (`CIRCLE_PACE`): the angle advances at the lower of `circle_speed` (1.8 rad/s) and 90% of her speed over the radius, so the point she chases never outruns her and the circle keeps its 30px. Fear slows her hard: the server's fear is the count of physical (or magical) attackers over her courage (or mcourage), and each level takes 20/40/70/80/90/100 off her speed. She has physical courage 2 (a priest's base; STR adds none for her), so four targetrons at uhills are fear 2 and her speed falls from 72 to 32, three more levels to ~5. At a fixed 1.8 rad/s the point ran at 54 px/s, she cut inside it, and the orbit shrank to ~18px when feared (measured 10-12). Fear costs her speed and attack only; `fear_affects_heal` is off on the server.
 
 ---
 
