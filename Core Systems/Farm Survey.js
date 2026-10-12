@@ -152,7 +152,7 @@ function survey_owner_tick(dt) {
 	const survey = survey_read() || survey_new();
 	const reconciled = survey_reconcile(survey);
 	if (survey_extend(survey) || reconciled) storage_write(SURVEY_KEY, survey);
-	if (survey.complete) return;
+	if (survey.complete) return void survey_report_state(survey);
 
 	const spot = survey.spots[survey.index];
 	if (home !== spot.type) return;
@@ -193,7 +193,7 @@ let _survey_reported_at = 0;
 
 function survey_report_state(survey) {
 	const now = Date.now();
-	if (!survey.complete && now - _survey_reported_at < SURVEY_REPORT_MS) return;
+	if (now - _survey_reported_at < SURVEY_REPORT_MS) return;
 	_survey_reported_at = now;
 	errlog_sample("survey_state", {
 		index: survey.index,

@@ -231,7 +231,9 @@ def survey_rows(db, state):
     """One row per spot with a result or ledger data. The live survey state, when there is one, decides which
     spots are still on the list and what their status is: a spot dropped from the list disappears, and a spot
     put back with survey_retry() shows as pending or running rather than its old result. A spot's rates count
-    only the ledger windows since its latest retry, and everything since the latest survey_reset()."""
+    only the ledger windows since its latest retry, and everything since the latest survey_reset(). Without a
+    live state, only spots with a recorded status are listed: a ledger window alone cannot say whether its spot
+    is still on the list."""
     reset_t = db.execute("SELECT MAX(t) FROM survey WHERE status = 'reset'").fetchone()[0] or 0
     since = {}
     status = {}
@@ -244,10 +246,10 @@ def survey_rows(db, state):
             continue
         status[spot] = {"status": st, "clock_min": round((at_spot_s or 0) / 60, 1), "visit_deaths": deaths,
                         "visits": visits}
-    spots = {s for (s,) in db.execute("SELECT DISTINCT survey_spot FROM ledger WHERE survey_spot IS NOT NULL AND t >= ?",
-                                      (reset_t,))}
-    spots |= set(status)
+    spots = set(status)
     if state:
+        spots |= {s for (s,) in db.execute("SELECT DISTINCT survey_spot FROM ledger WHERE survey_spot IS NOT NULL AND t >= ?",
+                                           (reset_t,))}
         listed = {p["type"]: p for p in state.get("spots") or []}
         current = None if state.get("complete") else (state["spots"][state["index"]]["type"])
         spots &= set(listed)
