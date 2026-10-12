@@ -87,7 +87,7 @@ var equipment_sets = {
 	],
 	luck: [
 		{ item_name: "lmace", slot: "mainhand", level: 8, l: "" },
-		{ item_name: "mshield", slot: "offhand", level: 8, l: "l" },
+		{ item_name: "exoarm", slot: "offhand", level: 1, l: "l" },
 	],
 	gold: [
 		{ item_name: "handofmidas", slot: "gloves", level: 4, l: "l" },

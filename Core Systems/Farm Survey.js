@@ -5,7 +5,7 @@
 const SURVEY_KEY = "AL_survey";
 const SURVEY_OWNER = MOVEMENT_LEADER;
 const SURVEY_SPOTS = [
-	"odino", "plantoid", "fireroamer", "bscorpion", "sparkbot", "targetron", "xscorpion",
+	"odino", "plantoid", "fireroamer", "bscorpion", "sparkbot", "xscorpion",
 	"dryad", "wolf", "gscorpion", "bigbird", "scorpion", "pppompom",
 ];
 

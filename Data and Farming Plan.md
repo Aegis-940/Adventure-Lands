@@ -122,7 +122,7 @@ Only bscorpion (`Bscorpion Camp.js`) and fireroamer have bespoke handling. Every
 
 ### Draft spot list (hand-edit before running)
 
-Drafted in this order; the run order is `SURVEY_SPOTS` (from 10-11: odino, plantoid, fireroamer, bscorpion, sparkbot, targetron, xscorpion, dryad, wolf, gscorpion, bigbird, scorpion, pppompom). Filter used: not a boss or co-op monster, on a normal map, HP ≤ ~bscorpion, attack ≤ 1.25× bscorpion, HP ≥ 20k.
+Drafted in this order; the run order is `SURVEY_SPOTS` (from 10-11: odino, plantoid, fireroamer, bscorpion, sparkbot (with targetron), xscorpion, dryad, wolf, gscorpion, bigbird, scorpion, pppompom). Filter used: not a boss or co-op monster, on a normal map, HP ≤ ~bscorpion, attack ≤ 1.25× bscorpion, HP ≥ 20k.
 
 | # | Monster | Map × count | HP | Attack | Armor / res | XP | XP/HP | Respawn | `LOCATIONS` | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -145,7 +145,7 @@ Drafted in this order; the run order is `SURVEY_SPOTS` (from 10-11: odino, plant
 
 Excluded by the filter: training dummies; single long-respawn monsters (mvampire 18 min, fvampire 24 min, skeletor 16 min, mechagnome 8 min); ent (8M HP); everything under 20k HP.
 
-13 spots × 60 min ≈ 13 hours of at-spot time, plus travel and event detours: about two to three nights. The list in code is `SURVEY_SPOTS` in `Farm Survey.js`. sparkbot now has a `LOCATIONS` entry (its spawn box centre). sparkbot and targetron share one uhills spawn area, so their results will overlap.
+13 spots × 60 min ≈ 13 hours of at-spot time, plus travel and event detours: about two to three nights. The list in code is `SURVEY_SPOTS` in `Farm Survey.js`. sparkbot now has a `LOCATIONS` entry (its spawn box centre). sparkbot and targetron share one uhills spawn area, so from 10-12 the survey has one spot for both (`sparkbot`).
 
 ### Results
 
