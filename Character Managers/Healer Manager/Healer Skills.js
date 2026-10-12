@@ -138,7 +138,9 @@ async function handle_curse() {
 		.sort((a, b) => distance(character, a) - distance(character, b));
 	if (bosses_with_target.length) target = bosses_with_target[0];
 
-	if (!target) {
+	if (!target && cache.farm_focus) {
+		target = has_target(cache.farm_focus) ? cache.farm_focus : null;
+	} else if (!target) {
 		const candidates = dungeon_flag("absorb_nearby")
 			? Object.values(parent.entities)
 				.filter(e => has_target(e) && Math.hypot(character.x - e.x, character.y - e.y) <= CURSE_NEARBY_RANGE)

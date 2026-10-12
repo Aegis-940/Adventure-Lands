@@ -75,8 +75,10 @@ async function skill_loop() {
 
 		const forced = dungeon_focus_target();
 		if (forced && !is_in_range(forced)) return setTimeout(skill_loop, loop_next("skill_loop", 100));
+		const focus = farm_focus();
 		const target = forced
 			? forced
+			: focus && is_in_range(focus) ? focus
 			: (dungeon_flag("single_target") ? in_range[0] : sorted_by_value[0]);
 		if (!target || !is_in_range(target)) return setTimeout(skill_loop, loop_next("skill_loop", 100));
 

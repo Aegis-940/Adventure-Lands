@@ -27,6 +27,7 @@ function update_cache() {
 	broadcast_target(cache.target);
 	cache.party_members = get_party_members();
 	cache.heal_target = find_heal_target();
+	cache.farm_focus = choose_farm_focus(m => is_in_range(m, "curse") && safe_to_touch(m, character.explosion || 0));
 	sample_set_profiles(HEALER_PROFILE_SETS);
 	cache.last_update = performance.now();
 }

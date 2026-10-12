@@ -75,10 +75,8 @@ function find_best_target() {
 	const allowed = mob => touchable(mob) && (!guard || guard(mob));
 	const weights = dungeon_target_weights();
 
-	if (CONFIG.combat.cursed_first_homes.includes(home)) {
-		const cursed = best_target({ max_distance: max_dist, where: mob => !!(mob.s && mob.s.cursed) && allowed(mob) }, weights, context);
-		if (cursed) return cursed;
-	}
+	const focus = farm_focus();
+	if (focus && allowed(focus) && distance(character, focus) <= max_dist) return focus;
 
 	return best_target({ max_distance: max_dist, where: mob => is_in_range(mob) && allowed(mob) }, weights, context)
 		|| best_target({ max_distance: max_dist, where: allowed }, weights, context);

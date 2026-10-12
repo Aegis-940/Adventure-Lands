@@ -177,3 +177,45 @@ function sample_target_choice(scored, context, weights) {
 		best_value: Math.round(Math.max(...values))
 	});
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// FARM FOCUS — at a clumped spawn Myras picks one target, the party's debuffs and Ulric's swings go on it; held until it dies
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const FARM_FOCUS_KEY = "AL_farm_focus";
+const FARM_FOCUS_HOMES = ["sparkbot", "targetron"];
+
+function farm_focus_here() {
+	return FARM_FOCUS_HOMES.includes(home) && !!destination && character.map === destination.map;
+}
+
+function farm_focus_engaged(mob) {
+	return !!mob && !mob.dead && mob.type === "monster" && get_party_members().includes(mob.target);
+}
+
+function farm_focus_id() {
+	const saved = storage_read(FARM_FOCUS_KEY);
+	return saved ? saved.id : null;
+}
+
+function farm_focus() {
+	if (!farm_focus_here()) return null;
+	const mob = parent.entities[farm_focus_id()];
+	return farm_focus_engaged(mob) ? mob : null;
+}
+
+function choose_farm_focus(where) {
+	if (!farm_focus_here()) return null;
+	const kept = farm_focus();
+	if (kept && where(kept)) return kept;
+
+	let best = null;
+	for (const id in parent.entities) {
+		const mob = parent.entities[id];
+		if (!farm_focus_engaged(mob) || !where(mob)) continue;
+		if (!best || mob.hp > best.hp || (mob.hp === best.hp && mob.id < best.id)) best = mob;
+	}
+	const id = best ? best.id : null;
+	if (id !== farm_focus_id()) storage_write(FARM_FOCUS_KEY, id ? { id, at: Date.now() } : null);
+	return best;
+}
