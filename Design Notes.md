@@ -392,6 +392,8 @@ The 🍀 button and the search for Riff's lucky upgrade slot.
 
 Targeting, `action_loop()`, and `weapon_burst()`. Sets `cache.tank_entity` to **Myras**.
 
+**Cursed first at uhills** (`cursed_first_homes`: sparkbot, targetron). After the Rime shell, a pursued boss and any boss, he takes the cursed monster (Myras's curse: +20% damage taken) when one is touchable within his engage radius; otherwise the normal scorer decides. At this spawn the monsters stand clumped on Myras, so his explosion reaches all of them whichever he hits, and the direct hit is best spent where it is amplified.
+
 **The swing burst.** `weapon_burst()` is the one weapon swap each swing makes: swing → bataxe → cleave (when ready) → candy canes, held until the flight of the swing and of every cleave hit has landed → the weapon chooser's current set.
 - Sugar rush is rolled per hit when it lands (a cleave rolls once per monster), while damage, burn and splash are fixed at launch.
 - The hold is capped where it starts to cost the next swing a penalty (`free_hold_ms()`). Each equip adds 120ms of `penalty_cd` the moment it is sent, so holding to `swing interval − restore penalty` is free: ~460ms, which covers most of cleave's 160px.

@@ -30,6 +30,7 @@ var CONFIG = {
 		taunt_bosses: ["mrpumpkin", "mrgreen"],
 		taunt_exempt: ["CrownTown", "CrownsAnal", "CrownPriest"],
 		engage_radius: 150,
+		cursed_first_homes: ["sparkbot", "targetron"],
 		swap_trick_enabled: true,
 		swing_trick_cc_budget: 160,
 
