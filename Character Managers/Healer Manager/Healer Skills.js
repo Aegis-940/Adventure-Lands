@@ -138,7 +138,7 @@ async function handle_curse() {
 		.sort((a, b) => distance(character, a) - distance(character, b));
 	if (bosses_with_target.length) target = bosses_with_target[0];
 
-	if (!target) {
+	if (!target && !CONFIG.combat.no_curse_homes.includes(home)) {
 		const candidates = dungeon_flag("absorb_nearby")
 			? Object.values(parent.entities)
 				.filter(e => has_target(e) && Math.hypot(character.x - e.x, character.y - e.y) <= CURSE_NEARBY_RANGE)
