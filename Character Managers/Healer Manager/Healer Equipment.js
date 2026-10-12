@@ -129,6 +129,10 @@ function resolve_healer_chest() {
 	return fight_gear_owned() ? null : gear_override("chest");
 }
 
+function resolve_healer_amulet() {
+	return fight_gear_owned() ? null : gear_override("amulet");
+}
+
 function resolve_healer_ring() {
 	return fight_gear_owned() ? null : "zap_off";
 }
@@ -203,6 +207,7 @@ var EQUIPMENT_RULES = {
 	gloves:  { kind: "set", resolve: resolve_healer_gloves },
 	orb:     { kind: "set", resolve: resolve_healer_orb },
 	chest:   { kind: "set", resolve: resolve_healer_chest },
+	amulet:  { kind: "set", resolve: resolve_healer_amulet },
 	ring:    { kind: "set", resolve: resolve_healer_ring },
 	fight:   { kind: "set", resolve: resolve_healer_fight },
 };
@@ -211,7 +216,7 @@ var MONSTER_GEAR_OVERRIDES = {
 	bscorpion:  { loadout: "single_target", orb: "orb_luck" },
 	dryad:      { loadout: "mdef" },
 	fireroamer: { loadout: "fireres", orb: "orb_fire" },
-	sparkbot:   { loadout: "luck_exoarm" },
-	targetron:  { loadout: "luck_exoarm" },
+	sparkbot:   { loadout: "luck_exoarm", orb: "uhills_orb", gloves: "uhills_gloves", chest: "uhills_chest", amulet: "uhills_amulet" },
+	targetron:  { loadout: "luck_exoarm", orb: "uhills_orb", gloves: "uhills_gloves", chest: "uhills_chest", amulet: "uhills_amulet" },
 	rimedjinn:  { loadout: "single_target", orb: "orb_dps", chest: "dps_chest" },
 };

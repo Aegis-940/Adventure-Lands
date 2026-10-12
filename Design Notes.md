@@ -481,6 +481,8 @@ The moment the target dies she goes straight back to `camp_fight`, so that swap'
 
 **The uhills spawn.** At sparkbot/targetron, `MONSTER_GEAR_OVERRIDES` puts her in `luck_exoarm`: lmace+8 with the exoarm+1 instead of the mshield+8. The arm trades the shield's 16 luck for +9 int, +30 str and +46 armour as measured (max HP 13,594 → 14,224, armour 447 → 493), because holding all eight sparkbots and targetrons is ~5,200 DPS on her. Everywhere else `luck` keeps the mshield.
 
+The same override also wears `uhills_orb` (stillwaterlens+1), `uhills_gloves` (xgloves+6), `uhills_chest` (xarmor+5) and `uhills_amulet` (t2intamulet+1), chosen on 10-12 from the bank by effective HP against the spawn's even physical/magical damage and by how much raw monster DPS her single heals out-heal. Modelled together: armour 493 → 632, resistance 497 → 641, INT 385 → 403, EHP +19%, out-healing +29% (about 6.5 → 8.5 of the spawn's monsters, each ~1,176 raw DPS), so with all eight on her the single heals nearly cover what party heal had to. They give up the talkingskull's XP, spookyamulet's and cdragon's luck, and 3% attack speed from the supermittens. The `amulet` rule, like `chest`, only follows an override, so both keep the uhills pieces after she leaves until another set replaces them.
+
 **Why luck only at the kill.** Primlings (`offeringp`, 5%) roll on `5% × (1 + luck/100)` of the scorpion's target at the kill, which is Myras, so luck matters only at that instant. `luck_due()` switches once the scorpion's remaining HP is within `luck_lead_ms` (600) of its measured kill rate plus `luck_burst_hp` (15,000, one supershot crit), latched per scorpion. Every kill is counted as `bscorpion kill: target …, luck gear on/off`.
 
 ### `Healer Movement.js`

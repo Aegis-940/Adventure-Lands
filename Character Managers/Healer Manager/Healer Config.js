@@ -94,6 +94,18 @@ var equipment_sets = {
 		{ item_name: "lmace", slot: "mainhand", level: 8, l: "" },
 		{ item_name: "exoarm", slot: "offhand", level: 1, l: "l" },
 	],
+	uhills_orb: [
+		{ item_name: "stillwaterlens", slot: "orb", level: 1, l: "l" },
+	],
+	uhills_gloves: [
+		{ item_name: "xgloves", slot: "gloves", level: 6, l: "l" },
+	],
+	uhills_chest: [
+		{ item_name: "xarmor", slot: "chest", level: 5, l: "l" },
+	],
+	uhills_amulet: [
+		{ item_name: "t2intamulet", slot: "amulet", level: 1, l: "l" },
+	],
 	gold: [
 		{ item_name: "handofmidas", slot: "gloves", level: 4, l: "l" },
 	],
