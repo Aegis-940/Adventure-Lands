@@ -6,20 +6,20 @@
 var BANK_POSITION_TOLERANCE = 10;
 
 var UPGRADE_PROFILE = {
-	pouchbow:     { scroll0_until: 3, scroll1_until: 8, scroll2_until: 9, primling_from: 7, max_level: 9 },
+	pouchbow:     { scroll0_until: 0, scroll1_until: 8, scroll2_until: 9, primling_from: 7, max_level: 9 },
 	fireblade:    { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 6, grace_from: 8, max_level: 9 },
 	firebow:      { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 6, max_level: 8 },
 	firestaff:    { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 7, max_level: 8 },
-	hbow:         { scroll0_until: 3, scroll1_until: 6, scroll2_until: 8, primling_from: 7, max_level: 7 },
-	wingedboots:  { scroll0_until: 2, scroll1_until: 6, scroll2_until: 10, primling_from: 5, max_level: 9 },
+	hbow:         { scroll0_until: 0, scroll1_until: 6, scroll2_until: 8, primling_from: 7, max_level: 7 },
+	wingedboots:  { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 5, max_level: 9 },
 	cape:         { scroll0_until: 0, scroll1_until: 5, scroll2_until: 6, primling_from: 5, max_level: 5 },
-	coat:         { scroll0_until: 4, scroll1_until: 8, scroll2_until: 9, primling_from: 8, max_level: 10 },
-	pants:        { scroll0_until: 4, scroll1_until: 8, scroll2_until: 9, primling_from: 8, max_level: 10 },
-	ololipop:     { scroll0_until: 1, scroll1_until: 8, scroll2_until: 9, primling_from: 5, max_level: 8 },
-	quiver:       { scroll0_until: 3, scroll1_until: 6, scroll2_until: 9, primling_from: 7, max_level: 6 },
+	coat:         { scroll0_until: 0, scroll1_until: 8, scroll2_until: 9, primling_from: 8, max_level: 10 },
+	pants:        { scroll0_until: 0, scroll1_until: 8, scroll2_until: 9, primling_from: 8, max_level: 10 },
+	ololipop:     { scroll0_until: 0, scroll1_until: 8, scroll2_until: 9, primling_from: 5, max_level: 8 },
+	quiver:       { scroll0_until: 0, scroll1_until: 6, scroll2_until: 9, primling_from: 7, max_level: 6 },
 	crossbow:     { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 6, max_level: 7 },
 	basher:       { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 6, max_level: 8 },
-	broom:        { scroll0_until: 2, scroll1_until: 7, scroll2_until: 9, primling_from: 7, max_level: 7 },
+	broom:        { scroll0_until: 0, scroll1_until: 7, scroll2_until: 9, primling_from: 7, max_level: 7 },
 	harbringer:   { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 4, max_level: 7 },
 	t2quiver:     { scroll0_until: 0, scroll1_until: 4, scroll2_until: 9, primling_from: 4, max_level: 7 },
 	mshield:      { scroll0_until: 0, scroll1_until: 0, scroll2_until: 9, primling_from: 3, max_level: 8 },
@@ -29,7 +29,7 @@ var UPGRADE_PROFILE = {
 	frankypants:  { scroll0_until: 0, scroll1_until: 0, scroll2_until: 10, primling_from: 3, max_level: 7 },
 	djinncrown:   { scroll0_until: 0, scroll1_until: 2, scroll2_until: 10, primling_from: 4, max_level: 7 },
 	covemantle:   { scroll0_until: 0, scroll1_until: 2, scroll2_until: 10, primling_from: 4, max_level: 4 },
-	cave_mothsteps: { scroll0_until: 3, scroll1_until: 6, scroll2_until: 10, primling_from: 4, max_level: 6 },
+	cave_mothsteps: { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 4, max_level: 6 },
 };
 
 var COMBINE_PROFILE = {
@@ -250,7 +250,7 @@ function upgrade_target_open() {
 
 function target_profile(name) {
 	const grades = G.items[name].grades;
-	return UPGRADE_PROFILE[name] || { scroll0_until: grades[0], scroll1_until: grades[1] };
+	return UPGRADE_PROFILE[name] || { scroll0_until: 0, scroll1_until: grades[0] };
 }
 
 function npc_sells(name) {

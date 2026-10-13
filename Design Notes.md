@@ -531,12 +531,16 @@ In free-mana mode the shirt goes on `chest_engage_shots` (2) of the widest wante
 
 **Nothing upgraded is vendored.** `vendorable()` (`Loot Management.js`) is the one test both sellers use, the fighters' `remote_sell_items()` and Riff's `sellable()`: on `SELLABLE_ITEMS` *and* below +1. `SELLABLE_ITEMS` names junk drops, and a +1 or better copy is either something Riff paid scrolls for or a lucky drop, so it's banked instead.
 
+### `Merchant Upgrading.js` — scroll a grade above
+
+Every `UPGRADE_PROFILE` uses scroll1 from +0 (`scroll0_until: 0`). The server treats a scroll of higher grade than the item as "high": the chance becomes `p×1.2 + 0.01`, the cap rises to `min(p0+0.36, 3×p0)`, and the item gains 0.4 grace, which it carries to every later level. Scroll0 on a grade-0 item gets none of that, and how far above the item the scroll is makes no difference: scroll2 at +0 scored the same as scroll1. Simulated over the profiles (2026-10-13), scroll1 from +0 instead of scroll0 raised yield 24% for pouchbow and wingedboots to +9, ~50% for coat and pants to +8, 17% for hbow and quiver, 8–9% for broom and cave_mothsteps. The reverse doesn't pay: scroll1 instead of scroll2 at pouchbow's +8 (grade 1) dropped +10s from 4.9 to 3.3 per 10k.
+
 ### `Merchant Upgrading.js` — upgrade target
 
 The settings window's Upgrading toggle carries a target: an item, a level m and a count n (`CONFIG.upgrade_target`, localStorage `AL_merchant_upgrade_target`/`_level`/`_count`). While fewer than n copies at +m or above are held (bag and bank, `upgrade_target_open()`), each upgrade run works the target before the `UPGRADE_PROFILE` items. The profile pass skips the target's name until it is met, then upgrades it as before if it has a profile.
 
 - **Batched like everything else.** `upgrade_target_pass()` is `upgrade_pass()` over `target_plan()`: every copy goes +0→+1, then every copy +1→+2, up to +m, the same level-by-level batch as the profile items (`profile_plan()`). It can overshoot n, which is wanted: a spare at +m costs nothing. Withdrawal takes the highest copies first when the bag can't hold them all.
-- **Scrolls.** The item's `UPGRADE_PROFILE` decides scrolls and primlings, ignoring its `max_level`. An item without a profile gets `target_profile()`: the cheapest scroll the server accepts at each grade, no primlings. A target past the grade that scroll2 covers (grade 3, e.g. lolipops beyond +10) is refused by the server, and the copy is skipped as failed.
+- **Scrolls.** The item's `UPGRADE_PROFILE` decides scrolls and primlings, ignoring its `max_level`. An item without a profile gets `target_profile()`: a scroll one grade above the item (scroll1 below its first grade boundary, scroll2 after), no primlings. A target past the grade that scroll2 covers (grade 3, e.g. lolipops beyond +10) is refused by the server, and the copy is skipped as failed.
 - **Buying replaced the "Buy to upgrade" toggle and the hard-coded coat list.** With Upgrading on, Riff buys base copies of the target when an NPC sells it (`npc_sells()`, over `G.npcs[*].items`) and none below +m are left. A batch is capped by gold above `upgrade_gold_threshold`, free slots, and the copies the base odds say are still needed (`target_base_odds()`, the product of `G.upgrades` up to +m with no grace). So a coat +7 ×2 target buys ~50 at most, not a bag-full each run.
 - **Never vendored.** `sellable()` exempts the target's name, so junk-list items (helmet, shoes…) aren't sold out from under it.
 
