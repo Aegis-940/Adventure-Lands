@@ -67,7 +67,7 @@ var CONFIG = {
 			{ name: "gem1",         	min: 1 },
 			{ name: "armorbox",     	min: 1 },
 			{ name: "weaponbox",    	min: 1 },
-			// { name: "candy1",   	 	min: 1 },
+			{ name: "candy1",   	 	min: 1 },
 		],
 	},
 	do_not_bank: ["tracker", "computer", "hpot1", "mpot1"],
