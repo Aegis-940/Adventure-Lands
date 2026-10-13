@@ -347,9 +347,13 @@ const SELLABLE_ITEMS = [
 	"intamulet", "dexamulet", "stramulet", "strbelt", "dexbelt", "intbelt", "glolipop", "broom"
 ];
 
+function vendorable(item) {
+	return SELLABLE_ITEMS.includes(item.name) && (item.level || 0) < 1;
+}
+
 function remote_sell_items() {
 	if (swap_in_flight()) return;
 	for (const { i, item } of loose_loot(0)) {
-		if (item.p === undefined && SELLABLE_ITEMS.includes(item.name)) sell(i, item.q || 1);
+		if (item.p === undefined && vendorable(item)) sell(i, item.q || 1);
 	}
 }
