@@ -525,6 +525,10 @@ In free-mana mode the shirt goes on `chest_engage_shots` (2) of the widest wante
 
 `stand_loop()` opens the stall whenever he has stood still for 2s and closes it the moment he moves, because an open stand pins speed to 10.
 
+### `Merchant Gear.js`
+
+`is_default_gear()` protects only the copy Riff wears: the default slot's name **and** level (`broom` +9, `wbookhs` +1). Matching by name alone kept every broom off the vendor list once `broom` was added to `SELLABLE_ITEMS`, because his mainhand is a broom.
+
 ### `Merchant Upgrading.js` — upgrade target
 
 The settings window's Upgrading toggle carries a target: an item, a level m and a count n (`CONFIG.upgrade_target`, localStorage `AL_merchant_upgrade_target`/`_level`/`_count`). While fewer than n copies at +m or above are held (bag and bank, `upgrade_target_open()`), each upgrade run works the target before the `UPGRADE_PROFILE` items. The profile pass skips the target's name until it is met, then upgrades it as before if it has a profile.

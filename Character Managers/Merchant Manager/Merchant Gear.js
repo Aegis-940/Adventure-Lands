@@ -6,7 +6,7 @@ function is_default_gear(item) {
 	if (!item) return false;
 	for (const slot in CONFIG.default_gear) {
 		const g = CONFIG.default_gear[slot];
-		if (g && g.name === item.name) return true;
+		if (g && g.name === item.name && (item.level || 0) === g.level) return true;
 	}
 	return false;
 }
