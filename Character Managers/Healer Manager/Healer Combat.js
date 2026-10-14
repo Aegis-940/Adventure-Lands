@@ -201,8 +201,26 @@ function bscorpion_damage_window() {
 	return bscorp;
 }
 
+function zap_pull_home() {
+	return CONFIG.combat.zapper_enabled && CONFIG.combat.zap_pull_homes.includes(home);
+}
+
+function zap_pull_target() {
+	if (!zap_pull_home() || !CONFIG.combat.aggro) return null;
+	if (count_my_aggro() >= effective_aggro_cap()) return null;
+
+	return best_target({
+		type: home,
+		no_target: true,
+		max_distance: G.skills.zapperzap.range,
+		where: m => !is_in_range(m) && safe_to_touch(m, character.explosion || 0)
+			&& tank_can_take(monster_dps_on(m, character))
+	}, { close: 1 }, healer_target_context());
+}
+
 function zap_target() {
-	return CONFIG.combat.zapper_enabled ? bscorpion_damage_window() : null;
+	if (!CONFIG.combat.zapper_enabled) return null;
+	return bscorpion_damage_window() || zap_pull_target();
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

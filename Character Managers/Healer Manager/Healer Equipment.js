@@ -134,7 +134,8 @@ function resolve_healer_amulet() {
 }
 
 function resolve_healer_ring() {
-	return fight_gear_owned() ? null : "zap_off";
+	if (fight_gear_owned()) return null;
+	return zap_pull_home() ? "zap_on" : "zap_off";
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -216,6 +217,7 @@ var MONSTER_GEAR_OVERRIDES = {
 	bscorpion:  { loadout: "single_target", orb: "orb_luck" },
 	dryad:      { loadout: "mdef" },
 	fireroamer: { loadout: "fireres", orb: "orb_fire" },
+	mummy:      { orb: "orb_luck" },
 	sparkbot:   { loadout: "luck_exoarm", orb: "uhills_orb", gloves: "uhills_gloves", chest: "uhills_chest", amulet: "uhills_amulet" },
 	targetron:  { loadout: "luck_exoarm", orb: "uhills_orb", gloves: "uhills_gloves", chest: "uhills_chest", amulet: "uhills_amulet" },
 	rimedjinn:  { loadout: "single_target", orb: "orb_dps", chest: "dps_chest" },

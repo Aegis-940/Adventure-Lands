@@ -20,6 +20,7 @@ var CONFIG = {
 		no_curse_homes: ["sparkbot", "targetron"],
 		zapper_enabled: true,
 		zapper_min_mp_pct: 0.60,
+		zap_pull_homes: ["mummy"],
 
 		sample_hits: true,
 		sample_targets: true,
@@ -85,6 +86,9 @@ var PANIC_BROADCAST_TARGETS = ["Ulric", "Riva"];
 var equipment_sets = {
 	zap_off: [
 		{ item_name: "ringofluck", slot: "ring2", level: 2, l: "l" }
+	],
+	zap_on: [
+		{ item_name: "zapper", slot: "ring2", level: 0, l: "u" }
 	],
 	luck: [
 		{ item_name: "lmace", slot: "mainhand", level: 8, l: "" },
