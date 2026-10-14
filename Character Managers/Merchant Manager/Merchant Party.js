@@ -4,6 +4,9 @@
 
 var MLUCK_REFRESH_THRESHOLD_MS = 10 * 60 * 1000;
 var MLUCK_TOPUP_THRESHOLD_MS = 50 * 60 * 1000;
+var MLUCK_TAKEOVER_COOLDOWN_MS = 60 * 1000;
+
+var _mluck_takeover_at = {};
 
 function is_mluck_due(status) {
 	const remaining = status.conditions?.mluck?.ms;
@@ -13,8 +16,9 @@ function is_mluck_due(status) {
 function mluck_wanted(player) {
 	const mluck = player.s.mluck;
 	if (!mluck) return true;
-	if (mluck.strong && mluck.f !== character.name) return false;
-	return mluck.ms < MLUCK_TOPUP_THRESHOLD_MS;
+	if (mluck.f === character.name) return mluck.ms < MLUCK_TOPUP_THRESHOLD_MS;
+	if (mluck.strong) return false;
+	return Date.now() - (_mluck_takeover_at[player.name] || 0) >= MLUCK_TAKEOVER_COOLDOWN_MS;
 }
 
 function players_wanting_mluck() {
@@ -45,6 +49,7 @@ async function buff_nearby_players() {
 	for (const player of players_wanting_mluck()) {
 		if (character.mp < G.skills.mluck.mp) break;
 		try {
+			if (player.s.mluck && player.s.mluck.f !== character.name) _mluck_takeover_at[player.name] = Date.now();
 			use_skill("mluck", player);
 			buffed.push(player.name);
 		} catch (e) {
