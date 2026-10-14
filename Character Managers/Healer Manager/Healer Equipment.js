@@ -135,7 +135,7 @@ function resolve_healer_amulet() {
 
 function resolve_healer_ring() {
 	if (fight_gear_owned()) return null;
-	return zap_pull_home() ? "zap_on" : "zap_off";
+	return zap_pull_home() ? "zap_on" : null;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

@@ -6,7 +6,7 @@
   "gear.orb": "uhills_orb",
   "gear.chest": "uhills_chest",
   "gear.amulet": "uhills_amulet",
-  "gear.ring": "zap_off",
+  "gear.ring": null,
   "gear.fight": null,
   "target": "s1",
   "heal_target": "Myras",

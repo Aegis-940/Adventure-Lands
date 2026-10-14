@@ -81,9 +81,6 @@ var PANIC_BROADCAST_TARGETS = ["Ulric", "Riva"];
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 var equipment_sets = {
-	zap_off: [
-		{ item_name: "ringofluck", slot: "ring2", level: 2, l: "l" }
-	],
 	zap_on: [
 		{ item_name: "zapper", slot: "ring2", level: 0, l: "u" }
 	],
