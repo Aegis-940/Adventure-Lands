@@ -12,8 +12,8 @@ Reviewed 2026-10-14 before execution. The review's changes are folded in and lis
 
 | Phase | Title | Behaviour change | Status |
 |---|---|---|---|
-| 0 | Safety net: harness, snapshots, golden decisions, ratchet lint, docs triage | none | not started |
-| 1 | Boot kernel: boot phase, scheduler, events, storage, console API | none | not started |
+| 0 | Safety net: harness, snapshots, golden decisions, ratchet lint, docs triage | none | **done** 2026-10-15 (live on `main`) |
+| 1 | Boot kernel: boot phase, scheduler, events, storage, console API | none | **1.1–1.6 built on `overhaul`**, harness-green against 25 fixtures; awaiting a watched merge. 1.2b (combat loops) not started |
 | 2 | Encounters (the monster behaviour redesign) | small, per encounter | not started |
 | 3 | Deciders and actuators | per decision | not started |
 | 4 | Telemetry on the event bus | none | not started |
@@ -249,7 +249,7 @@ Docs triage: fix the drift listed in §4, and add this plan to the References in
 - [x] 0.1 dependency graph with load-time vs call-time edges (transitive through functions and load-time callbacks)
 - [x] 0.2 snapshot recorder and sink lane, all five triggers (live at the next reload; fixtures accumulate from then)
 - [x] 0.3 harness boots all four roles over `runner_functions.js` (one push: the game's `common_functions.js` supplies `parent.distance`/`is_disabled`, the other game-client functions are recording stubs)
-- [ ] 0.4 goldens recorded from the current farm's fixtures, Myras panic-heal golden included
+- [x] 0.4 goldens recorded from the current farm's fixtures, Myras panic-heal golden included (15 live fixtures: farm, panic, mrpumpkin, mrgreen; plus 10 synthetic)
 - [x] 0.5 build SHA on every archived record, and a `build` column in `ledger`/`danger`/`survey`
 - [x] 0.6 `Data Store.py compare`
 - [x] 0.7 ratchet lint, baseline committed, docs drift fixed
@@ -336,12 +336,13 @@ Six to seven pushes. The first reload after any of them is the live test for all
 
 ### Phase 1 checklist
 
-- [ ] 1.1 boot phase, named boot errors, `needs`
-- [ ] 1.2 scheduler with kinds from the 0.3 inventory, `al_loops()`
-- [ ] 1.3 events with per-subscriber catcher and ordered fan-out, `wrap_parent`
-- [ ] 1.4 storage registry
-- [ ] 1.5 console API
-- [ ] 1.6 batches 1–6
+- [x] 1.1 boot phase, named boot errors, `needs` (on `overhaul`)
+- [x] 1.2a scheduler for every `setInterval` loop, `fixed` timing, `al_loops()` (on `overhaul`, D13)
+- [ ] 1.2b the self-rescheduling `setTimeout` loops (41) and `while (true)` loops (8), the combat loops among them: a timing change, measured per D4
+- [x] 1.3 events with a per-subscriber catcher, legacy-keyed slots, `wrap_parent`, `off_socket` (on `overhaul`)
+- [x] 1.4 storage registry (on `overhaul`)
+- [x] 1.5 console API (on `overhaul`)
+- [x] 1.6 Core, Dungeons, Interface, roles (on `overhaul`): every Phase 1 ratchet counter at zero outside `Kernel/` except one deliberate call initializer (the merchant's `CONFIG`)
 
 **Exit:** ratchet counters for top-level statements, raw loops, raw socket/character/DOM handlers, `parent.X =` and direct `localStorage` are all zero outside `Kernel/`. `CLAUDE.md`'s two-load-mechanisms section is rewritten: "nothing at load", "network-completion order" and "Merchant Task Loop loads last" retire; the `var`/`const` eval rule stays. `al_loops()` lists the same loops at the same rates as the Phase 0 inventory. Pause still leaves combat running (checked by the `combat` kind's golden).
 
@@ -774,6 +775,13 @@ Reloads are the user's; a reload may carry any number of pushes. Live measuremen
 - **D10 Stage on `overhaul`; `main` is what runs unattended.** The bot reloads itself every four hours at x:55 and the watchdog reloads silent windows, so "deploy and stop, the user reloads" doesn't hold: `main` goes live within hours whether or not anyone is watching. Changes to loaded files are staged on `overhaul` and merged with the user present. Only files the bot never loads, and the throw-proof telemetry of 0.2/0.5, go straight to `main`.
 - **D11 Rare fixtures gate only the step that needs them.** A panic or close-call fixture is required before 3.2, not to leave Phase 0.
 - **D12 Goldens are deterministic or they are noise.** The clock, the stored values and `Math.random` come from the fixture. Each fixture runs in a fresh context, and `check` runs every fixture twice.
+
+**2026-10-15 (overnight run)**
+
+- **D13 Phase 1 converts only `setInterval` loops; the combat loops are their own measured step (1.2b).** All 30 `setInterval` loops moved to `every(…, { fixed: true })`, which is plain `setInterval` timing, so nothing ticks differently. The 41 self-rescheduling `setTimeout` loops and 8 `while (true)` loops include `action_loop`, `skill_loop`, `potion_loop`, `main_tick` and the equipment loop; moving those changes timing, which D4 puts in the behaviour tier.
+- **D14 Snapshots are throttled per trigger.** Riva's panic trigger is one mob on her, and overnight it snapshotted 903 times (about 51KB each, 102MB). Panics now snapshot at most once per 5 minutes and close calls once a minute; farm windows, deaths and bosses are unthrottled.
+- **D15 Promotion strips private fields.** Live snapshots carry the account id (`owner`), `ipass`, friends, shells, code slots and PIXI internals. `promote` drops those keys and every underscore-prefixed key at every depth, drops the role cache, keeps only the storage the deciders read, and hashes strangers' names. Checked on all 15 committed fixtures.
+- **Open for the user: the reload order puts the tank first.** At the 23:55 self-reload `RELOAD_ORDER` restarted Myras first in the middle of a pull of about 8 mummies. They switched to Riva (dead 5s later, on the old build), and Ulric and Myras booted into the new build already dead. 03:55 and 07:55 caused no deaths, so it depends on the pull at that moment. Reloading the tank last, or waiting for a lull before the reload, would remove it; that is a behaviour change at the current farm, so it needs your go-ahead.
 - **D9 Gates belong to the loop or skill entry, never to a shared runner.** The Pause Button leaves combat running and Myras heals while panicking; both are deliberate and both would have been broken by the first draft's uniform `automation` kind and runner-level mode gate. Loop kinds (1.2) and skill gates (3.2) are taken from the inventory of today's behaviour and pinned by goldens.
 
 ---
