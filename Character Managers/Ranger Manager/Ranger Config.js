@@ -10,7 +10,6 @@ var CONFIG = {
 		party_dps_factor: 2.0,
 
 		always_attack: [...ALL_BOSSES, "bscorpion"],
-		attack_if_targeted: ["crabx"],
 		engage_aggroed_only: true,
 		skill_blacklist: ["dryad", "fireroamer", "plantoid", "mole"],
 		use_hunters_mark: true,

@@ -493,18 +493,8 @@ async function apply_equipment_rule(token, group, resolved) {
 	await equip_apply(token, sets);
 }
 
-function boss_gear_here() {
-	for (const name in BOSS_GEAR_OVERRIDES) {
-		if (get_nearest_monster({ type: name })) return BOSS_GEAR_OVERRIDES[name];
-	}
-	return null;
-}
-
 function gear_override(group) {
 	if (group in RIME_HOLD_GEAR && rime_hold_gear_wanted()) return RIME_HOLD_GEAR[group];
-
-	const boss = boss_gear_here();
-	if (boss && group in boss) return boss[group];
 
 	const encountered = encounter_gear(group);
 	if (encountered) return encountered;

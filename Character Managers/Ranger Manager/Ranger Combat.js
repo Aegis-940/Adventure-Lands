@@ -14,7 +14,7 @@ function should_attack_mob(mob) {
 
 	const aggroed = !CONFIG.combat.engage_aggroed_only || !!mob.target;
 
-	if (CONFIG.combat.attack_if_targeted.includes(mob.mtype)) return aggroed;
+	if (encounter_trait("attack_if_targeted", mob)) return aggroed;
 
 	if (parent.S[mob.mtype]?.live) return true;
 
@@ -54,8 +54,8 @@ function update_target_cache() {
 		const b_boss = CONFIG.combat.always_attack.includes(b.mtype);
 		if (a_boss !== b_boss) return b_boss - a_boss;
 
-		const a_priority = CONFIG.combat.attack_if_targeted.includes(a.mtype);
-		const b_priority = CONFIG.combat.attack_if_targeted.includes(b.mtype);
+		const a_priority = !!encounter_trait("attack_if_targeted", a);
+		const b_priority = !!encounter_trait("attack_if_targeted", b);
 		if (a_priority !== b_priority) return b_priority - a_priority;
 
 		return value.get(b) - value.get(a);

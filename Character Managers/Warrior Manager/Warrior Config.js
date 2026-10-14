@@ -13,8 +13,6 @@ var CONFIG = {
 
 		cleave_min_mobs: 3,
 		cleave_min_mobs_held: 1,
-		cleave_boss_blacklist: ["franky", "icegolem"],
-		cleave_lone_bosses: ["mrpumpkin", "mrgreen"],
 		agitate_min_mobs: 2,
 		agitate_fireroamer_conditions: {
 			healer_hp_pct: 0.60,
@@ -24,7 +22,6 @@ var CONFIG = {
 			max_mobs_in_range: 6
 		},
 		taunt_ents: false,
-		taunt_bosses: ["mrpumpkin", "mrgreen"],
 		taunt_exempt: ["CrownTown", "CrownsAnal", "CrownPriest"],
 		engage_radius: 150,
 		swap_trick_enabled: true,

@@ -50,8 +50,10 @@ An encounter is everything one monster, spawn or boss changes about how the part
 
 There are two kinds of answer:
 
-- **Context answers** (`gear`, `settings`) come from the encounters live right now. Encounter gear sits inside `gear_override()`, below the rime hold and boss gear (not encounters yet) and above the remaining `MONSTER_GEAR_OVERRIDES`; Ulric's weapon resolver also asks `encounter_gear()` first, for the porcupine. A `spawn` encounter is live when `home` is one of its `homes` and the character is on the destination map, which is the rule `gear_override()` used. A `hazard` or `situation` encounter is live while its own `active(ctx)` says so. The highest tier answers (situation, then hazard, then spawn); an answer of `null` passes to the next. Two live encounters of the same tier answering the same question is a configuration error, counted once in the flight recorder and settled by encounter name.
-- **Mob answers** (`allows`, `rank`) apply to the encounter's `mtypes` wherever the mob is met, live or not, so a porcupine is protected at any spawn. Any veto wins; ranks add. An encounter with only mob answers needs no tier and is never live.
+- **Context answers** (`gear`, `settings`) come from the encounters live right now. Encounter gear sits inside `gear_override()`, below the rime hold (not an encounter yet) and above the remaining `MONSTER_GEAR_OVERRIDES`. A `spawn` encounter is live when `home` is one of its `homes` and the character is on the destination map, which is the rule `gear_override()` used. A `hazard` or `situation` encounter is live while its own `active(ctx)` says so. The highest tier answers (situation, then hazard, then spawn); an answer of `null` passes to the next. Two live encounters of the same tier answering the same question is a configuration error, counted once in the flight recorder and settled by encounter name.
+- **Mob answers** (`allows`, `rank`, `traits`) apply to the encounter's `mtypes` wherever the mob is met, live or not, so a porcupine is protected at any spawn. Any veto wins; ranks add. An encounter with only mob answers needs no tier and is never live.
+
+`traits` are the positive facts `allows` cannot say: `encounter_trait("tank", mob)` (Myras tanks it), `taunt`, `cleave_alone` (one in reach is enough to cleave), `hold_cleave`, `attack_if_targeted`, `agitate_pack`. `encounter_mtypes("tank")` lists every monster type with a trait, for code that searches by type.
 
 The actions `allows` can veto: `attack` (target it), `cleave` and `agitate` (fire the skill while it is within reach, through `blocker_within()`), and `pull` (count it as a reason for Ulric to agitate).
 
@@ -69,7 +71,9 @@ Monster types with a rule or two and no spawn of their own, kept in one file bec
 - **redfairy:** Ulric doesn't agitate with one in reach. The mforest fairies hit for 2,400–4,000 magical at frequency 100 with unlimited range, so a pulled one never stops hitting.
 - **nerfedmummy:** Riva never shoots one.
 
-Phoenix was in Riva's `always_attack` list, at boss priority. It was taken out on 2026-10-15, as the party no longer meets them. crabx stays in Riva's `attack_if_targeted` list until the crabxx boss becomes an encounter, since it is that boss's add.
+- **franky, icegolem:** Ulric holds his cleave while one is within reach (`hold_cleave`, read by `boss_blocks_cleave()`). Unlike `cleave: false` it doesn't steer his position away from it: he fights these bosses in melee.
+
+Phoenix was in Riva's `always_attack` list, at boss priority. It was taken out on 2026-10-15, as the party no longer meets them.
 
 ### `Mummy.js`
 
@@ -82,6 +86,14 @@ The spookytown spawn. It moved out of four role files on 2026-10-15: Myras's orb
 **Ulric doesn't agitate mummies** (`pull: false`). The server's agitate also takes every monster already on a party member, so there it took the whole pack off Myras for her to absorb back. A 120s probe on 10-14 counted ~9 agitates a minute (~5.7 mummies each) and ~10.5 absorbs. That is ~63 MP/s of his ~250 MP/s potion income, and every fighter there was drinking 145 of the 150 potions the cooldown allows per 5 minutes. The pull was redundant: the mummy rage box hands the whole spawn to the party every 4.2s, spawns were targeted 0.9s after appearing, and Myras's zap pull (Healer Skills → zap) now takes fresh spawns straight onto her. The mana goes to cleave instead.
 
 **Riva spends no skills on a mummy** (`skills: false`): no hunter's mark or supershot. Mummies die to AoE before a single-target setup pays for itself, and the 640 MP a mark and supershot cycle costs is mana her scare needs (the same reason as the `skill_blacklist` spawns).
+
+### `Halloween Bosses.js`
+
+mrpumpkin and mrgreen share one encounter, because every rule is the same for both. While either is in sight Ulric wears `single` and `orb_dps` and Riva `single` and `dps_chest` (which also keeps her off cupid). Myras tanks them (`tank`: her fight rule and boss absorb, Healer Equipment and Skills), Ulric taunts them off other players (`taunt`, Warrior Skills) and cleaves with only the boss in reach (`cleave_alone`). Until 2026-10-15 this was `BOSS_GEAR_OVERRIDES` in two Equipment files plus `tank_bosses`, `taunt_bosses` and `cleave_lone_bosses`.
+
+### `Crabxx.js`
+
+The kited boss (its event line is commented out, so the party ignores it today) and the crabx it spawns. While crabxx is in sight Ulric wears `double_aoe` and Riva `boom`, and Myras tanks it. Riva shoots a crabx only once it is on someone (`attack_if_targeted`) and ranks those after bosses, and Ulric agitates when exactly five untargeted crabx are in reach (`agitate_pack: 5`). The kite itself stays generic: any `EVENT_LOCATIONS` entry with `kite` is kited (Movement Positioning, Combat Utilities).
 
 ### `Porcupine.js`
 
@@ -99,7 +111,7 @@ Awaited first, together with `Widget Helpers.js` and `Game Log.js`, so everythin
 - `farm_target_for()`
 - the `storage_read()`/`storage_write()` pair that every JSON-backed localStorage value goes through
 - the no-op `errlog_*` stubs, plus stubs for the one-role-only `request_delivery`, `model_prediction`, `get_character_state` and `upgrade_slot_for`
-- the `var` declarations of every cross-character symbol (`home`, `destination`, `CONFIG`, `cache`, `ITEMS_TO_KEEP`, `MONSTER_GEAR_OVERRIDES`, `BOSS_GEAR_OVERRIDES`, `RIME_HOLD_GEAR`, `EQUIPMENT_RULES`, `PANIC_BROADCAST_TARGETS`, the panic flags), so no reader needs a `typeof` guard
+- the `var` declarations of every cross-character symbol (`home`, `destination`, `CONFIG`, `cache`, `ITEMS_TO_KEEP`, `MONSTER_GEAR_OVERRIDES`, `RIME_HOLD_GEAR`, `EQUIPMENT_RULES`, `PANIC_BROADCAST_TARGETS`, the panic flags), so no reader needs a `typeof` guard
 
 ### `Movement Manager.js` — movement
 
@@ -235,8 +247,8 @@ Live boss and seasonal targets, and the goal that walks the party to them.
 - While it has a target it spawns a crabx every 1s on a random player with coop points within 400px, in the target's party only, targeting that player. A spawned crabx (4,200 HP, 240 attack, charge 30) disappears when it loses its target: its chase limit is ~218px, crabxx's ~289px. Both drop a target not attacked for 20s.
 - Whoever crabxx targets gets `{ local: "kite" }` (same label as the event, so followers don't hold back and Myras's cohesion hold never applies; `movement_goal()` returns it before cohesion). `kite_step()` runs `orbit_away()` on the entry's ring: (-1000,1700), the server's `join` landing point, radius 105 (the camp orbit's size). Clear of walls at every radius up to 240 by a geometry check.
 - The ring is small so every monster stacks in its middle for AOE, and that costs Myras hits. Pure pursuit puts a chaser on an inner circle of radius R·v_chaser/v_kiter, trailing by √(R² − r²). At 105 a cursed crabxx trails ~54px centre to centre, inside its reach: its 54×39 hitbox (crabx ×1.5) plus 45 range needs ~85–100px. So it lands its ~7,000 hit (49% of her HP) whenever its 3.3s swing comes up beside her. The adds circle at ~45px from the centre, a tight stack for cleave (160) and splash. Kiting it clean needs about R ≥ 190 (220 gave ~114px), but then the adds trail ~200px behind her instead of stacking; that was the first version, and the party asked for the stack.
-- Ulric (`double_aoe`) and Riva (`boom`) wear their splash sets the whole time crabxx is in sight (`BOSS_GEAR_OVERRIDES`).
-- Myras curses the kited boss whenever `curse_expiring()`, ignoring her curse MP floor. `tank_can_take()` leaves the kited boss out of her absorb headroom, `boss_absorb_target()` takes it off a party member (`tank_bosses` includes crabxx) without the lethal-hit refusal, and the generic absorb pulls adds spawned on Ulric and Riva. Ulric does not agitate with a kited boss within range: the server's agitate takes every monster on any party member, crabxx off Myras included. His stomp is fine; it only stuns.
+- Ulric (`double_aoe`) and Riva (`boom`) wear their splash sets the whole time crabxx is in sight (the crabxx encounter's gear).
+- Myras curses the kited boss whenever `curse_expiring()`, ignoring her curse MP floor. `tank_can_take()` leaves the kited boss out of her absorb headroom, `boss_absorb_target()` takes it off a party member (crabxx has Myras's `tank` trait) without the lethal-hit refusal, and the generic absorb pulls adds spawned on Ulric and Riva. Ulric does not agitate with a kited boss within range: the server's agitate takes every monster on any party member, crabxx off Myras included. His stomp is fine; it only stuns.
 - Ulric and Riva stay on crabxx throughout and use their AOE on the adds only while it also hits the boss. Riva's multishot keeps crabxx first while it `takes_one_damage()` (Ranger Combat → boss only), and Ulric cleaves during a boss pursuit only with the boss inside the cleave. Killing crabx is what ends the 1hp phase.
 - Myras loots while kiting. Elsewhere looting replaces the movement tick; on a `kite` goal the runner starts `handle_looting()` without awaiting it and still takes the orbit step. Her gold gloves (−20 speed) are on only while `_looting`, a few hundred ms per burst. Chests open within 400px (server `open_chest`), which covers the ring.
 
@@ -262,8 +274,10 @@ The one file that changes what is worn: equipment sets, the single `batch_equip(
 
 **Overrides.** `gear_override(group)` checks these in order:
 1. `RIME_HOLD_GEAR`, while a held Djinn or a shell is within 400 (`rime_hold_gear_wanted()`, see Warrior Skills)
-2. `BOSS_GEAR_OVERRIDES` (per character, keyed by boss, default `{}` in `Global Config.js`), while that boss is in sight
-3. the `MONSTER_GEAR_OVERRIDES` of `home`
+2. `encounter_gear(group)`: the live encounters, highest tier first. A boss in sight (situation), then a porcupine nearby (hazard), then the spawn of `home` (spawn)
+3. the `MONSTER_GEAR_OVERRIDES` of `home`, for spawns not yet moved to encounters
+
+Ulric's porcupine weapon used to be checked before the rime hold and boss gear. Now it comes after them; a porcupine never meets either (desertland against winter_cove and the boss maps).
 
 Ulric and Riva wear their single-target sets (and Ulric's loaded die, Riva's coat) on mrpumpkin and mrgreen, which also keeps Riva off cupid there.
 
@@ -495,7 +509,7 @@ Agitate, warcry, stomp, and taunt; cleave fires here only when no swing is comin
 
 **Stomp** stuns her attackers when she is below 35%. It does not use `endangered()`, which already fires below 60% whenever she is taking damage, so it saves the stun for real emergencies. It works only with a basher-type weapon worn or the `basher` set in the bag, swapped in and out in one burst like cleave.
 
-**Taunt** (`handle_taunt()`) pulls a `taunt_bosses` boss (mrpumpkin, mrgreen) onto him whenever it is on anyone but him, Myras or a `taunt_exempt` player (CrownTown, CrownsAnal, CrownPriest), provided she is within absorb range of him. The boss's `coop` makes every player fighting it friendly to the server's taunt check, so this steals it from other parties too.
+**Taunt** (`handle_taunt()`) pulls a boss with the `taunt` trait (mrpumpkin, mrgreen) onto him whenever it is on anyone but him, Myras or a `taunt_exempt` player (CrownTown, CrownsAnal, CrownPriest), provided she is within absorb range of him. The boss's `coop` makes every player fighting it friendly to the server's taunt check, so this steals it from other parties too.
 
 ### `Warrior Skills.js` — the Rime Djinn's shell
 
@@ -544,7 +558,7 @@ The reposition scorer and the farm step that keeps him engaged. He targets anyth
 
 Curse, absorb, party heal, dark blessing, zap.
 
-**Boss absorb.** A `tank_bosses` boss (mrpumpkin, mrgreen, crabxx) on a party member (usually Ulric, straight after his taunt) is absorbed onto her (`boss_absorb_target()`) without the `tank_can_take()` headroom check. Only a hit of half her HP or more refuses it, and never for a kited boss, which she outruns instead (World Events → kiting).
+**Boss absorb.** A boss with her `tank` trait (mrpumpkin, mrgreen, crabxx) on a party member (usually Ulric, straight after his taunt) is absorbed onto her (`boss_absorb_target()`) without the `tank_can_take()` headroom check. Only a hit of half her HP or more refuses it, and never for a kited boss, which she outruns instead (World Events → kiting).
 
 **Curse** is recast while the old one is still on (`curse_expiring()`: remaining ≤ projectile flight + ping + 150ms). Its cooldown equals its 5s duration and the server never checks for an existing curse, so waiting for it to drop left a ~0.5s gap plus the slow (240 speed) flight in every 5.5s.
 
@@ -558,7 +572,7 @@ Curse, absorb, party heal, dark blessing, zap.
 
 `EQUIPMENT_RULES` resolvers and the booster swap.
 
-**One rule owns the fight.** At the bscorpion camp, and while a `tank_bosses` boss is in sight (`tank_boss_nearby()`), one rule, `fight`, owns every swapped slot. The loadout/orb/ring rules stand down while `fight_gear_owned()`; panic still takes the orb. So each switch is a single `equip_batch`:
+**One rule owns the fight.** At the bscorpion camp, and while a boss with her `tank` trait is in sight (`tank_boss_nearby()`), one rule, `fight`, owns every swapped slot. The loadout/orb/ring rules stand down while `fight_gear_owned()`; panic still takes the orb. So each switch is a single `equip_batch`:
 - `camp_fight` (firestaff, exoarm, loaded die, zapper, coat+10, plus the amulet she wore, remembered and kept off the loot list) while `bscorpion_damage_window()` holds
 - `camp_luck` (lmace, mshield, rabbit's foot, ring of luck, Lucky cdragon, spookyamulet+2) only from then until the kill (`luck_window()`, over `luck_kill_target()`: the scorpion at the camp, the boss elsewhere, where `camp_fight` goes on without the zapper since the fight rule only zaps at the camp)
 

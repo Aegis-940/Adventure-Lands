@@ -4,7 +4,7 @@
 
 const ENCOUNTER_TIERS = ["situation", "hazard", "spawn"];
 const ENCOUNTER_ROLES = ["warrior", "priest", "ranger", "merchant", "all"];
-const ENCOUNTER_KEYS = ["tier", "homes", "mtypes", "active", "gear", "settings", "allows", "rank", "enter", "leave"];
+const ENCOUNTER_KEYS = ["tier", "homes", "mtypes", "active", "gear", "settings", "allows", "rank", "traits", "enter", "leave"];
 const ENCOUNTER_RADIUS = 600;
 
 const _encounters = {};
@@ -139,6 +139,24 @@ function encounter_allows(action, mob) {
 	return true;
 }
 
+function encounter_trait(name, mob) {
+	for (const enc of _encounters_by_mtype[mob.mtype] || []) {
+		for (const traits of encounter_answers(enc, "traits")) {
+			if (name in traits) return traits[name];
+		}
+	}
+	return null;
+}
+
+function encounter_mtypes(trait) {
+	const out = [];
+	for (const name of Object.keys(_encounters).sort()) {
+		const enc = _encounters[name];
+		if (encounter_answers(enc, "traits").some(traits => traits[trait])) out.push(...enc.mtypes);
+	}
+	return out;
+}
+
 function encounter_rank(mob) {
 	let rank = 0;
 	for (const enc of _encounters_by_mtype[mob.mtype] || []) {
@@ -175,8 +193,8 @@ function encounter_problems() {
 		if (!enc.tier && !(enc.mtypes || []).length) say("an encounter needs a tier or mtypes");
 		if (enc.tier === "spawn" && !Array.isArray(enc.homes)) say("a spawn encounter needs homes");
 		if (enc.tier && enc.tier !== "spawn" && typeof enc.active !== "function") say(`a ${enc.tier} encounter needs active(ctx)`);
-		if ((enc.allows || enc.rank) && !(enc.mtypes || []).length) say("allows and rank need mtypes");
-		for (const section of ["gear", "settings", "allows", "rank"]) {
+		if ((enc.allows || enc.rank || enc.traits) && !(enc.mtypes || []).length) say("allows, rank and traits need mtypes");
+		for (const section of ["gear", "settings", "allows", "rank", "traits"]) {
 			for (const role in enc[section] || {}) if (!ENCOUNTER_ROLES.includes(role)) say(`${section} has unknown role ${role}`);
 		}
 		const gear = (enc.gear || {})[character.ctype] || {};

@@ -22,3 +22,17 @@ encounter("nerfedmummy", {
 		ranger: { attack: false },
 	},
 });
+
+encounter("franky", {
+	mtypes: ["franky"],
+	traits: {
+		warrior: { hold_cleave: true },
+	},
+});
+
+encounter("icegolem", {
+	mtypes: ["icegolem"],
+	traits: {
+		warrior: { hold_cleave: true },
+	},
+});

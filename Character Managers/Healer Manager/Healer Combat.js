@@ -171,7 +171,7 @@ function luck_due(mob) {
 }
 
 function tank_boss_nearby() {
-	for (const type of CONFIG.combat.tank_bosses) {
+	for (const type of encounter_mtypes("tank")) {
 		const boss = get_nearest_monster({ type });
 		if (boss) return boss;
 	}

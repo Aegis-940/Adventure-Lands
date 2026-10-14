@@ -576,7 +576,7 @@ function can_cleave() {
 	const boss = pursued_boss();
 	if (boss && !cache.monsters_in_cleave_range.includes(boss)) return false;
 
-	const lone_boss = cache.monsters_in_cleave_range.some(m => CONFIG.combat.cleave_lone_bosses.includes(m.mtype));
+	const lone_boss = cache.monsters_in_cleave_range.some(m => encounter_trait("cleave_alone", m));
 	const one_is_enough = holding_axe || is_at_bscorpion_farm() || lone_boss;
 	const min_mobs = one_is_enough ? CONFIG.combat.cleave_min_mobs_held : CONFIG.combat.cleave_min_mobs;
 	return cache.monsters_in_cleave_range.length >= min_mobs;
@@ -613,12 +613,13 @@ async function handle_agitate(tank) {
 
 	if (home === "fireroamer" && !is_fireroamer_agitate_safe(nearby_mobs)) return;
 
-	const crabx = nearby_mobs.filter(e => e.mtype === "crabx");
-	const untargeted_crabs = crabx.filter(m => !m.target);
-
-	if (crabx.length >= 5 && untargeted_crabs.length === 5) {
-		await use_skill("agitate");
-		return;
+	for (const type of encounter_mtypes("agitate_pack")) {
+		const size = encounter_trait("agitate_pack", { mtype: type });
+		const pack = nearby_mobs.filter(e => e.mtype === type);
+		if (pack.length >= size && pack.filter(m => !m.target).length === size) {
+			await use_skill("agitate");
+			return;
+		}
 	}
 
 	const other_mobs = nearby_mobs.filter(e =>
@@ -634,7 +635,7 @@ async function handle_agitate(tank) {
 
 function taunt_wanted(e, tank) {
 	if (CONFIG.combat.taunt_ents && e.mtype === "ent") return e.target !== character.name;
-	if (!CONFIG.combat.taunt_bosses.includes(e.mtype)) return false;
+	if (!encounter_trait("taunt", e)) return false;
 	if (!e.target || CONFIG.combat.taunt_exempt.includes(e.target)) return false;
 	return e.target !== character.name && e.target !== tank.name;
 }

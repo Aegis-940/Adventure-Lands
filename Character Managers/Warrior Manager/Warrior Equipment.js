@@ -76,8 +76,7 @@ function resolve_warrior_orb() {
 }
 
 function resolve_warrior_weapon() {
-	return encounter_gear("weapon")
-		|| gear_override("weapon")
+	return gear_override("weapon")
 		|| resolve_weapon_set({ pool: warrior_weapon_pool(), width: 1, context: weapon_choice_context() });
 }
 
@@ -89,12 +88,6 @@ var EQUIPMENT_RULES = {
 var MONSTER_GEAR_OVERRIDES = {
 	bscorpion: { weapon: "single", orb: "orb_dps" },
 	rimedjinn: { orb: "orb_dps" },
-};
-
-var BOSS_GEAR_OVERRIDES = {
-	mrpumpkin: { weapon: "single", orb: "orb_dps" },
-	mrgreen:   { weapon: "single", orb: "orb_dps" },
-	crabxx:    { weapon: "double_aoe" },
 };
 
 var RIME_HOLD_GEAR = { weapon: "single" };

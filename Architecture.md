@@ -63,7 +63,9 @@ Encounters/                          ← the registry in the first stage; one op
     ├── Encounter Registry.js     encounter(), the context, and the questions shared and role code ask
     ├── Porcupine.js              hazard: Ulric never touches one, Riva kills them first
     ├── Mummy.js                  spawn: zap pull, luck orb, no curse, no agitate, no ranger skills
-    └── Monster Rules.js          pppompom, redfairy, nerfedmummy: a rule or two each, no spawn of their own
+    ├── Halloween Bosses.js       mrpumpkin and mrgreen: Myras tanks, Ulric taunts, single-target sets
+    ├── Crabxx.js                 the kited boss and its crabx adds
+    └── Monster Rules.js          pppompom, redfairy, nerfedmummy, franky, icegolem: a rule or two each
 
 Character Managers/[Role] Manager/   ← loaded sequentially via indirect eval, per character
     ├── [Role] Config.js          tunables, gear sets, panic thresholds, state/cache
@@ -187,7 +189,7 @@ from the entry point, not from this tick.
 ### Equipment Auto-Swap
 - Multiple swap profiles: single-target, multi-target, boss, XP farm
 - No cooldown: swaps react in milliseconds. Slot intent and the sent view stop the rules loop re-sending from a stale inventory
-- Overrides by situation: the Rime Djinn hold, a boss in sight (`BOSS_GEAR_OVERRIDES`), then the farm spot (`MONSTER_GEAR_OVERRIDES`)
+- Overrides by situation: the Rime Djinn hold, then the live encounters (a boss in sight, a porcupine nearby, the farm spot), then the remaining `MONSTER_GEAR_OVERRIDES`
 
 ### Merchant Logistics
 - Periodically visits party members to collect loot

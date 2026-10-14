@@ -203,7 +203,7 @@ function boss_nearly_dead(name, hp, max_hp) {
 
 function boss_blocks_cleave(e) {
 	if (!e || e.dead || !CONFIG.combat.all_bosses.includes(e.mtype)) return false;
-	if (CONFIG.combat.cleave_boss_blacklist.includes(e.mtype)) return true;
+	if (encounter_trait("hold_cleave", e)) return true;
 	return boss_nearly_dead(e.mtype, e.hp, e.max_hp);
 }
 

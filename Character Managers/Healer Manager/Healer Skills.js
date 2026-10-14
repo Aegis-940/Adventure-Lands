@@ -223,7 +223,7 @@ function boss_absorb_target() {
 	const party = get_party();
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
-		if (e.type !== "monster" || e.dead || !CONFIG.combat.tank_bosses.includes(e.mtype)) continue;
+		if (e.type !== "monster" || e.dead || !encounter_trait("tank", e)) continue;
 		if (!e.target || e.target === character.name || !party[e.target]) continue;
 
 		const ally = get_player(e.target);
