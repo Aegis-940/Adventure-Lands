@@ -561,15 +561,16 @@ async function command_smoke(files) {
 async function command_load() {
 	let failed = 0;
 	for (const reversed of [false, true]) for (const name of PARTY) {
-		const { log, game_errors } = await boot(minimal_fixture(name), { entry: true, reversed });
+		const { ctx, log, game_errors } = await boot(minimal_fixture(name), { entry: true, reversed });
 		const bot_errors = log.errors.slice(game_errors);
+		for (const problem of ctx.encounter_problems()) bot_errors.push({ file: "encounter", message: problem, where: "" });
 		const intervals = log.timers.filter(t => t.kind === "interval").length;
 		const timeouts = log.timers.filter(t => t.kind === "timeout").length;
 		const label = name + (reversed ? " (each stage reversed)" : "");
 		console.log(`${label.padEnd(28)} ${bot_errors.length || log.console_errors.length ? "FAIL" : "ok  "}  ${log.socket_on.length} socket handlers, `
 			+ `${intervals} intervals, ${timeouts} timeouts, ${log.emits.length} emits at boot`
 			+ (game_errors ? `  (${game_errors} errors in the game's own scripts)` : ""));
-		for (const e of log.errors) console.log(`   ${e.file}: ${e.message}${e.where ? "  @ " + e.where : ""}`);
+		for (const e of [...log.errors.slice(0, game_errors), ...bot_errors]) console.log(`   ${e.file}: ${e.message}${e.where ? "  @ " + e.where : ""}`);
 		for (const e of log.console_errors) console.log(`   console.error: ${e}`);
 		if (bot_errors.length || log.console_errors.length) failed++;
 	}

@@ -35,13 +35,12 @@
   "Character Managers/Healer Manager/Healer Movement.js": 1,
   "Character Managers/Ranger Manager/Ranger Config.js": 10,
   "Character Managers/Ranger Manager/Ranger Equipment.js": 4,
-  "Character Managers/Warrior Manager/Warrior Config.js": 12,
+  "Character Managers/Warrior Manager/Warrior Config.js": 10,
   "Character Managers/Warrior Manager/Warrior Equipment.js": 5,
   "Character Managers/Warrior Manager/Warrior Skills.js": 7,
   "Core Systems/Bscorpion Camp.js": 5,
   "Core Systems/Loot Management.js": 1,
   "Core Systems/Movement Manager.js": 2,
-  "Core Systems/Porcupine Guard.js": 1,
   "Core Systems/Targeting.js": 2
  },
  "self_timeout": {
@@ -62,9 +61,6 @@
   "Interface/Settings Window.js": 1
  },
  "typeof_guard": {
-  "Character Managers/Ranger Manager/Ranger Combat.js": 2,
-  "Character Managers/Warrior Manager/Warrior Combat.js": 1,
-  "Character Managers/Warrior Manager/Warrior Equipment.js": 1,
   "Core Systems/Character Messaging.js": 1,
   "Core Systems/Error Log.js": 1
  },

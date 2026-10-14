@@ -14,7 +14,7 @@ Reviewed 2026-10-14 before execution. The review's changes are folded in and lis
 |---|---|---|---|
 | 0 | Safety net: harness, snapshots, golden decisions, ratchet lint, docs triage | none | **done** 2026-10-15 (live on `main`) |
 | 1 | Boot kernel: boot phase, scheduler, events, storage, console API | none | **1.1–1.6 merged to `main`** 2026-10-15, harness-green against 25 fixtures; live from the next reload, then `compare` per D4. 1.2b (combat loops) not started |
-| 2 | Encounters (the monster behaviour redesign) | small, per encounter | not started |
+| 2 | Encounters (the monster behaviour redesign) | small, per encounter | **registry and porcupine built on `overhaul`**, harness-green against 34 fixtures |
 | 3 | Deciders and actuators | per decision | not started |
 | 4 | Telemetry on the event bus | none | not started |
 | 5 | World model (optional) | small (timing) | not started |
@@ -465,8 +465,8 @@ One encounter per push. Sources are from the 2026-10-14 inventory (Appendix B). 
 
 ### Phase 2 checklist
 
-- [ ] 2.1–2.6 registry, context, tiers, questions, attribution, lint
-- [ ] 2.8.1 porcupine
+- [x] 2.1–2.6 registry, context, tiers, questions (gear, settings, allows, rank), attribution, spec checks in the harness (on `overhaul`). Still to come as encounters need them: `encounter_goal`, `encounter_step`, the 📊 live feed of active encounters, the settings-are-read lint
+- [x] 2.8.1 porcupine (on `overhaul`): a pure move, 9 synthetic fixtures whose goldens fail without it; `typeof` count down 4
 - [ ] 2.8.2 mob traits
 - [ ] 2.8.3 mummy (current farm; pure move)
 - [ ] 2.8.4 uhills, dryad, fireroamer and the settings knobs (as reached)

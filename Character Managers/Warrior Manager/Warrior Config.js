@@ -13,12 +13,12 @@ var CONFIG = {
 
 		cleave_min_mobs: 3,
 		cleave_min_mobs_held: 1,
-		cleave_blacklist: ["pppompom", "porcupine"],
+		cleave_blacklist: ["pppompom"],
 		cleave_boss_blacklist: ["franky", "icegolem"],
 		cleave_lone_bosses: ["mrpumpkin", "mrgreen"],
 		agitate_min_mobs: 2,
 		agitate_blacklist: ["pppompom", "mummy"],
-		agitate_blockers: ["porcupine", "redfairy"],
+		agitate_blockers: ["redfairy"],
 		agitate_fireroamer_conditions: {
 			healer_hp_pct: 0.60,
 			healer_mp_pct: 0.80,

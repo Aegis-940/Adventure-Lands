@@ -19,7 +19,7 @@ const MONSTER_WORDS_EXCLUDED = new Set(["target"]);
 
 const EMIT_CALLS = new Set(["equip", "unequip", "use_skill", "attack", "heal", "move", "smart_move"]);
 
-const REGISTRATION_CALLS = new Set(["on_boot", "console_api"]);
+const REGISTRATION_CALLS = new Set(["on_boot", "console_api", "encounter"]);
 
 const REGISTRY_OBJECTS = new Set(["DUNGEONS"]);
 

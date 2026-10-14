@@ -23,6 +23,7 @@
 		"Core Systems/Global Config.js",
 		"Interface/Widget Helpers.js",
 		"Interface/Game Log.js",
+		"Encounters/Encounter Registry.js",
 	];
 
 	const scripts = [
@@ -35,7 +36,7 @@
 		"Core Systems/Boss Profiler.js",
 		"Core Systems/Movement Positioning.js",
 		"Core Systems/Targeting.js",
-		"Core Systems/Porcupine Guard.js",
+		"Encounters/Porcupine.js",
 		"Core Systems/World Events.js",
 		"Core Systems/Character Messaging.js",
 		"Core Systems/Equipment Manager.js",
@@ -119,7 +120,7 @@
 	const REQUEST_TIMEOUT_MS = 10000;
 
 	const OPTIONAL_SCRIPTS = new Set([
-		"Core Systems/Porcupine Guard.js",
+		"Encounters/Porcupine.js",
 		"Core Systems/Boss Profiler.js",
 		"Core Systems/Error Log.js",
 		"Dungeons/Spider Dungeon.js",

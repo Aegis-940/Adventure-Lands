@@ -569,7 +569,7 @@ function can_cleave() {
 	if (!tank) return false;
 
 	const blocked = blocker_within(G.skills.cleave.range, e =>
-		CONFIG.combat.cleave_blacklist.includes(e.mtype) || boss_blocks_cleave(e) || must_not_touch(e)
+		CONFIG.combat.cleave_blacklist.includes(e.mtype) || !encounter_allows("cleave", e) || boss_blocks_cleave(e) || must_not_touch(e)
 	);
 	if (blocked) return false;
 
@@ -604,7 +604,8 @@ async function handle_agitate(tank) {
 	if (is_on_cooldown("agitate") || !tank || tank.rip) return;
 	if (endangered(tank)) return;
 	if (character.mp < skill_mp_cost("agitate") + panic_mp_reserve()) return;
-	if (blocker_within(G.skills.agitate.range, e => CONFIG.combat.agitate_blockers.includes(e.mtype) || must_not_touch(e) || kite_ring(e))) return;
+	if (blocker_within(G.skills.agitate.range, e => CONFIG.combat.agitate_blockers.includes(e.mtype) || !encounter_allows("agitate", e)
+		|| must_not_touch(e) || kite_ring(e))) return;
 
 	const skill_range = G.skills.agitate.range;
 	const nearby_mobs = Object.values(parent.entities).filter(e =>

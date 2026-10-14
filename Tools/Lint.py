@@ -25,9 +25,9 @@ import re
 import subprocess
 import sys
 
-files = [f for f in subprocess.run(
-    ["git", "ls-files", "-z", "*.js"], capture_output=True, text=True
-).stdout.split("\0") if f]
+files = sorted(set(f for f in subprocess.run(
+    ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard", "*.js"], capture_output=True, text=True
+).stdout.split("\0") if f and os.path.exists(f)))
 
 
 def strip_noise(src):

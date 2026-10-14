@@ -71,8 +71,7 @@ function find_best_target() {
 	const boss = best_target({ type: CONFIG.combat.all_bosses, max_distance: max_dist, where: touchable }, { close: 1 }, context);
 	if (boss) return boss;
 
-	const guard = typeof porcupine_guard_allows === "function" ? porcupine_guard_allows : undefined;
-	const allowed = mob => touchable(mob) && (!guard || guard(mob));
+	const allowed = mob => touchable(mob) && encounter_allows("attack", mob);
 	const weights = dungeon_target_weights();
 
 	const focus = farm_focus();

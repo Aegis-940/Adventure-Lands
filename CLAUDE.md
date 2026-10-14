@@ -19,8 +19,7 @@ The code has no comments by convention, so the reasoning behind each system (mec
 - **A top-level initializer may only name what has already loaded.** `Merchant Task Loop.js` builds `PRIORITY_CHECKS` from the `should_run_*` functions, so it loads last. A failing initializer throws inside the eval and the file defines nothing, silently.
 - **Scripts arrive in network order, but nothing runs until boot.** Before the kernel, the parallel batch *ran* in network-completion order, and adding or removing an entry could expose a load-time dependency that had been winning by luck (deleting `Server Watch.js` broke the DPS meter this way). Now order only matters among boot steps, and those follow the list. The remaining load-time hazard is a top-level *initializer* that calls another file (`var x = f()`): lint counts these as `call_initializers`. The one left on purpose is the merchant's `CONFIG`, which reads storage and is used on the following lines; role files evaluate after every shared script anyway.
 - **Loops, handlers and storage go through `Kernel/`:** `every(name, { ms, kind, fixed })` for timers, `on_socket(event, key, fn)` / `on_character` / `on_dom` for subscriptions, `wrap_parent(name, make)` for overriding a game-window function, and `storage_*` for localStorage. Socket and DOM handlers are kept under a fixed key on their target and replaced, never stacked, because the game window outlives the code iframe. Self-rescheduling `setTimeout` loops and `while (true)` loops (the combat loops among them) are not converted yet; that is the measured step 1.2b of `Overhaul Plan.md`.
-- **If it's written correctly, you don't need guards.** Don't add `typeof x === "function"`/`!== "undefined"` checks or defensive fallbacks; treat any you find as a symptom and fix the cause. There are four legitimate kinds of guard, and they are the only acceptable reasons:
-  - `Porcupine Guard.js`, a documented removal seam
+- **If it's written correctly, you don't need guards.** Don't add `typeof x === "function"`/`!== "undefined"` checks or defensive fallbacks; treat any you find as a symptom and fix the cause. There are three legitimate kinds of guard, and they are the only acceptable reasons:
   - `Code Loader.js`, which runs standalone in a code slot before anything else exists
   - the game's optional callbacks (`on_cm`, and `heal`, which only a priest has)
   - optional callback *parameters* (`on_done`, `farm_step`, `context`), which are an API contract, not defence
@@ -71,7 +70,6 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | `Combat Sampling.js` | Hit/heal telemetry and the in-flight damage ledger behind `remaining_hp(mob)` |
 | `Targeting.js` | `score_targets()`/`select_target()`, the one target scorer |
 | `Boss Profiler.js` | Per-fight profile of every player on a coop boss, written to `boss_profiles.jsonl`. `al_boss_profiles()` reads it |
-| `Porcupine Guard.js` | **Temporary.** Keeps Ulric off porcupines; remove by deleting its Bootstrapper line |
 | `Character Messaging.js` | CM handlers and the localStorage-backed state cache |
 | `Equipment Manager.js` | The only thing that changes what is worn: sets, `batch_equip()`, the planner over the sent view, slot intent, rules resolver, `gear_override()` |
 | `Equipment Valuation.js` | Measured set profiles and the one weapon chooser (`resolve_weapon_set()`). Equips nothing |
@@ -84,6 +82,13 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | `Farm Survey.js` | The `*SURVEY*` farm target: 60 minutes at each spot in `SURVEY_SPOTS`, then `bscorpion`. Myras writes the state; every fighter switches `home` at runtime. `survey_status()`/`survey_retry(spot)`/`survey_move_on()`/`survey_reset()` in the console |
 | `Error Handling.js` | `catcher()` |
 | `Error Log.js` | Cross-character flight recorder; defines the real `errlog_*`. Read with `al_errors(true)` |
+
+**Encounters** (everything specific to one monster, spawn or boss; see Phase 2 of `Overhaul Plan.md`)
+
+| File | Role |
+|------|------|
+| `Encounter Registry.js` | **First stage.** `encounter(name, spec)` registers at load. Shared and role code ask `encounter_gear(group)`, `encounter_setting(name, fallback)`, `encounter_allows(action, mob)` and `encounter_rank(mob)`; the role default stays at the call site. `why("gear.weapon")`, `encounters_active()` and `encounter_problems()` in the console |
+| `Porcupine.js` | Hazard: Ulric never attacks, cleaves or agitates near a porcupine and wears his single set within splash reach; Riva ranks them first. Optional: deleting its Bootstrapper line removes the behaviour |
 
 **Dungeons**
 

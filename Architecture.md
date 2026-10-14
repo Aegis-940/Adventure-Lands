@@ -59,6 +59,10 @@ Core Systems/*.js                 ← loaded in parallel as real <script> tags
     ├── Error Handling.js         catcher(), the shared error-triage/logging helper
     └── Error Log.js              persistent cross-character flight recorder (al_errors(true))
 
+Encounters/                          ← the registry in the first stage; one optional file per encounter
+    ├── Encounter Registry.js     encounter(), the context, and the questions shared and role code ask
+    └── Porcupine.js              hazard: Ulric never touches one, Riva kills them first
+
 Character Managers/[Role] Manager/   ← loaded sequentially via indirect eval, per character
     ├── [Role] Config.js          tunables, gear sets, panic thresholds, state/cache
     ├── [Role] Combat.js          target cache and action_loop()
@@ -191,8 +195,7 @@ from the entry point, not from this tick.
 
 ### Guards
 
-There are 15 `typeof` checks left in the repo and each has a reason: the `Porcupine Guard.js` removal
-seam (4), `Code Loader.js` running standalone in a code slot before anything exists (3), the game's
+There are 11 `typeof` checks left in the repo and each has a reason: `Code Loader.js` running standalone in a code slot before anything exists (3), the game's
 own optional `on_cm` and priest-only `heal`, four optional callback *parameters* (`on_done`,
 `farm_step`, `context`), and two lookups checking that a dungeon's named hook resolves to a function.
 
@@ -258,7 +261,6 @@ Count against git blobs rather than the working tree: the tree is CRLF while blo
 ## Known Gaps / Ongoing Work
 
 - No automated tests — all validation is done by running in the live game. Offline checks are `python Tools/Lint.py` (global collisions, the overhaul ratchet, `--graph` for load-time dependencies) and the harness in `Tests/` as it lands (see `Overhaul Plan.md`)
-- `Core Systems/Porcupine Guard.js` is explicitly temporary; every call site is `typeof`-guarded so deleting its Bootstrapper line removes it cleanly
 - The buttons/windows UI is still incomplete after `Buttons.js`/`Windows.js` were removed — reload, bank, settings, pause and the dungeon toggles were rebuilt in their own files, but the rest was not
 - `storage_read()`/`storage_write()` cover the JSON-backed values only. The bare-string stores (`automation_enabled()`, the dungeon override, Settings Window, `Error Log.js`'s key scan) still call `localStorage` directly, deliberately — `storage_read()` would `JSON.parse` a bare string and return null. Every one of those calls is inside a function and wrapped in try/catch, so a browser blocking site data degrades rather than breaking the load
 

@@ -42,6 +42,29 @@ Every localStorage access goes through `storage_read`/`storage_write` (JSON) or 
 
 ---
 
+## Encounters
+
+### `Encounter Registry.js`
+
+An encounter is everything one monster, spawn or boss changes about how the party plays, in one file. The file registers a spec with `encounter(name, spec)` at load and does nothing else; shared and role code ask questions at the decision they affect, and keep the role's default at the call site (`encounter_setting("curse", true)`), so an encounter holds only deviations.
+
+There are two kinds of answer:
+
+- **Context answers** (`gear`, `settings`) come from the encounters live right now. A `spawn` encounter is live when `home` is one of its `homes` and the character is on the destination map, which is the rule `gear_override()` used. A `hazard` or `situation` encounter is live while its own `active(ctx)` says so. The highest tier answers (situation, then hazard, then spawn); an answer of `null` passes to the next. Two live encounters of the same tier answering the same question is a configuration error, counted once in the flight recorder and settled by encounter name.
+- **Mob answers** (`allows`, `rank`) apply to the encounter's `mtypes` wherever the mob is met, live or not, so a porcupine is protected at any spawn. Any veto wins; ranks add.
+
+`ctx` (`encounter_context()`) is rebuilt at most once per `CACHE_TTL`: the character, the visible monsters within 600 (`ctx.mobs.of(type)`), `home` and `destination`. Rebuilding it is also when activity changes, so `enter`/`leave` hooks and the `encounter_enter`/`encounter_leave` bus topics fire then.
+
+Each answer records which encounter gave it: `why("gear.weapon")` in the console. `encounter_problems()` checks every spec (known keys, tiers and roles, `active` where needed, `mtypes` for mob answers, gear set names in the role's `equipment_sets`), and the harness `load` command fails on any problem.
+
+Encounter files are optional scripts: a missing file means its answers are absent and nothing else.
+
+### `Porcupine.js`
+
+Porcupines reflect damage. Ulric never targets one, his cleave and agitate refuse to fire with one within reach (`blocker_within()`, the same check as the other blockers), and he wears his single set while one is within his range + 40 (splash reach). Riva ranks them above everything else, bosses included, and shoots them whenever they are safe to touch, so they die before Ulric has to work around them. This was `Porcupine Guard.js`, a temporary file whose four call sites were `typeof`-guarded so deleting it removed the behaviour; as an encounter it is still removed by deleting its Bootstrapper line, with no guards.
+
+---
+
 ## Core Systems
 
 ### `Global Config.js`
@@ -174,10 +197,6 @@ A per-fight profile of every player on a cooperative boss (`is_coop_boss()`) in 
 `score_targets()`/`select_target()`: the one scorer every character picks targets with. Damage is valued with `context.gear` (attack, frequency, explosion, apiercing, burn chance) when the caller passes one, otherwise with the live gear. Ulric passes his swing set's measured profile (`swing_gear()`). The live cache refreshes every 50ms and often caught him mid-swap in candy canes or the bataxe, scoring every target without splash or burn.
 
 **Farm focus.** At a clumped spawn (`FARM_FOCUS_HOMES`: sparkbot, targetron) the party stacks its damage amplifiers on one monster: Myras curses it (+20% damage taken), Riva marks it (hunter's mark; her supershot follows the same target) and Ulric swings at it, while splash spreads the rest across the clump. Myras chooses (`choose_farm_focus()` in her `update_cache()`): the current focus while it lives, is in curse range and is on a party member, else the highest-HP monster on a party member, so the debuffs go where they have the longest to pay. It is held until it dies, because "highest HP" re-evaluated each tick would jump to the next full-HP monster the moment the first is hit. One character decides and writes the id to localStorage (`AL_farm_focus`, only on change) so the three never latch different monsters; the others read it with `farm_focus()`. Riva's attacks and multishots are untouched, only her mark. Unlike `dungeon_focus_target()`, which also redirects Riva's shots, this never narrows anyone's attacks to one target. Her curse only goes on the focus while there is one, which also covers both monster types: the generic curse only considered monsters of the farm target's own type.
-
-### `Porcupine Guard.js`
-
-Temporary. Keeps Ulric off porcupines (no targeting, and his single set when one is within splash reach) and puts them first on Riva's list. Every call site is `typeof`-guarded; delete the file's Bootstrapper line to remove it.
 
 ### `World Events.js`
 
@@ -444,7 +463,7 @@ Targeting, `action_loop()`, and `weapon_burst()`. Sets `cache.tank_entity` to **
 
 Agitate, warcry, stomp, and taunt; cleave fires here only when no swing is coming, otherwise it rides the swing's `weapon_burst()`. Hardshell and charge are commented out.
 
-**Blockers.** Cleave and agitate refuse to fire with a `cleave_blacklist`/`agitate_blockers` monster (porcupines reflect) within their range + 25px (`blocker_within()`), measured hitbox to hitbox like the server. A centre-distance check let porcupines just past 160px get cleaved.
+**Blockers.** Cleave and agitate refuse to fire with a `cleave_blacklist`/`agitate_blockers` monster, or one an encounter forbids (`encounter_allows("cleave"/"agitate", mob)`: porcupines reflect), within their range + 25px (`blocker_within()`), measured hitbox to hitbox like the server. A centre-distance check let porcupines just past 160px get cleaved.
 
 **Boss pursuit.** During a boss pursuit he cleaves only with the pursued boss inside the cleave, so the AOE always includes the boss.
 
