@@ -85,7 +85,7 @@ function _errlog_threat() {
 
 function _errlog_load() {
 	try {
-		const raw = localStorage.getItem(_errlog_key());
+		const raw = storage_raw_read(_errlog_key());
 		const prev = raw ? JSON.parse(raw) : null;
 		if (prev && prev.records && prev.schema === ERRLOG_SCHEMA) {
 			_errlog = {
@@ -118,7 +118,7 @@ function _errlog_flush() {
 		const blob = JSON.stringify(_errlog);
 		errlog_time("io flush stringify", Date.now() - t0);
 		const t1 = Date.now();
-		localStorage.setItem(_errlog_key(), blob);
+		storage_raw_write(_errlog_key(), blob);
 		errlog_time("io flush setItem", Date.now() - t1);
 		errlog_size("io flush kb", Math.round(blob.length / 1024));
 	} catch (e) {
@@ -261,35 +261,39 @@ function _errlog_lag_probe() {
 	_errlog_lag_due = now + 500;
 	setTimeout(_errlog_lag_probe, 500);
 }
-setTimeout(_errlog_lag_probe, 500);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // CAPTURE POINTS
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-_errlog_load();
+function _errlog_start_session() {
+	_errlog_load();
+	_errlog.session = {
+		started: Date.now(),
+		build: _errlog_build(),
+		character: (character && character.name) || "unknown"
+	};
+	_errlog_dirty = true;
+}
 
-_errlog.session = {
-	started: Date.now(),
-	build: _errlog_build(),
-	character: (character && character.name) || "unknown"
-};
-_errlog_dirty = true;
-
-window.addEventListener("error", ev => {
+function _errlog_on_error(ev) {
 	const at = ev.filename ? ` @${ev.filename}:${ev.lineno}` : "";
 	errlog_record("uncaught", (ev.message || "unknown error") + at);
-});
+}
 
-window.addEventListener("unhandledrejection", ev => {
+function _errlog_on_rejection(ev) {
 	errlog_record("unhandled_rejection", ev.reason);
-});
+}
 
-const _errlog_console_error = console.error.bind(console);
-console.error = function (...args) {
-	errlog_record("console", args.map(a => _errlog_fmt(a)).join(" "));
-	return _errlog_console_error(...args);
-};
+let _errlog_console_error = null;
+
+function _errlog_wrap_console_error() {
+	_errlog_console_error = console.error.bind(console);
+	console.error = function (...args) {
+		errlog_record("console", args.map(a => _errlog_fmt(a)).join(" "));
+		return _errlog_console_error(...args);
+	};
+}
 
 function _errlog_lifecycle(event) {
 	const msg = `${event} visibility=${document.visibilityState}`;
@@ -303,11 +307,6 @@ function _errlog_lifecycle(event) {
 	} catch (e) { }
 }
 
-document.addEventListener("visibilitychange", () => _errlog_lifecycle("visibilitychange"));
-document.addEventListener("freeze", () => _errlog_lifecycle("freeze"));
-document.addEventListener("resume", () => _errlog_lifecycle("resume"));
-window.addEventListener("pagehide", () => _errlog_lifecycle("pagehide"));
-window.addEventListener("pageshow", () => _errlog_lifecycle("pageshow"));
 
 const ERRLOG_GAMELOG_PREFIXES = ["⚠️", "❌", "🛑", "🎂", "🚨", "🧭", "🌀", "[", "🍭", "🎉", "✅ Ololipop",
 	"Searching for a path", "Path found", "Path not found", "Lost the path"];
@@ -379,37 +378,23 @@ function _errlog_try_wrap_heal() {
 	} catch (e) { }
 }
 
-try {
-	if (parent && parent.socket && typeof parent.socket.on === "function") {
-		parent.socket.on("game_response", data => {
-			try {
-				const r = (data && (data.response || data)) || "";
-				if (r === "exception" || r === "cant" || r === "not_ready") {
-					_errlog_store("game_response", _errlog_fmt(data), false);
-				}
-			} catch (e) { }
-		});
-	}
-} catch (e) { }
+function _errlog_on_game_response(data) {
+	try {
+		const r = (data && (data.response || data)) || "";
+		if (r === "exception" || r === "cant" || r === "not_ready") {
+			_errlog_store("game_response", _errlog_fmt(data), false);
+		}
+	} catch (e) { }
+}
 
-try {
-	if (parent && parent.socket && typeof parent.socket.on === "function") {
-		parent.socket.on("disconnect", () => errlog_record("disconnect", "socket disconnected"));
-	}
-} catch (e) { }
-
-try {
-	if (parent && parent.socket && typeof parent.socket.on === "function") {
-		parent.socket.on("limitdcreport", data => {
-			const calls = Object.keys(data.calls || {})
-				.map(k => k + " " + (+data.calls[k]).toFixed(1)).join(", ");
-			errlog_record("limitdc", "booted over " + data.climit + ": " + calls);
-			errlog_timeline("limitdc", "calls " + calls + " | " + (current_goal_label() || "-")
-				+ " @" + Math.round(character.real_x) + "," + Math.round(character.real_y) + " " + character.map);
-			_errlog_flush();
-		});
-	}
-} catch (e) { }
+function _errlog_on_limitdc(data) {
+	const calls = Object.keys(data.calls || {})
+		.map(k => k + " " + (+data.calls[k]).toFixed(1)).join(", ");
+	errlog_record("limitdc", "booted over " + data.climit + ": " + calls);
+	errlog_timeline("limitdc", "calls " + calls + " | " + (current_goal_label() || "-")
+		+ " @" + Math.round(character.real_x) + "," + Math.round(character.real_y) + " " + character.map);
+	_errlog_flush();
+}
 
 function _errlog_sample_vitals() {
 	const v = _errlog_context();
@@ -463,7 +448,6 @@ function _errlog_sample_vitals() {
 	_errlog_was_rip = rip;
 }
 
-setInterval(_errlog_sample_vitals, ERRLOG_VITALS_MS);
 
 function _errlog_heartbeat() {
 	try {
@@ -489,7 +473,6 @@ function _errlog_heartbeat() {
 	} catch (e) { }
 }
 
-setInterval(_errlog_heartbeat, ERRLOG_HEARTBEAT_MS);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // LOCAL SINK
@@ -543,12 +526,12 @@ function errlog_send_archive() {
 	} catch (e) { }
 }
 
-setInterval(() => {
+function _errlog_flush_tick() {
 	_errlog_try_wrap_game_log();
 	_errlog_try_wrap_heal();
 	_errlog_flush();
 	_errlog_push();
-}, ERRLOG_FLUSH_MS);
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SNAPSHOTS — everything the deciders read, posted straight to the sink as an offline test fixture; never kept in localStorage
@@ -612,16 +595,10 @@ function _snapshot_entities() {
 	return out;
 }
 
-function _errlog_storage_keys() {
-	const keys = [];
-	for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
-	return keys.filter(Boolean);
-}
-
 function _snapshot_storage() {
 	const out = {};
-	for (const k of _errlog_storage_keys()) {
-		if (k.startsWith("AL_") && !k.startsWith(ERRLOG_KEY)) out[k] = localStorage.getItem(k);
+	for (const k of storage_keys()) {
+		if (k.startsWith("AL_") && !k.startsWith(ERRLOG_KEY)) out[k] = storage_raw_read(k);
 	}
 	return out;
 }
@@ -688,10 +665,10 @@ function al_errors(all) {
 	_errlog_flush();
 	const out = {};
 	try {
-		for (const k of _errlog_storage_keys()) {
+		for (const k of storage_keys()) {
 			if (k.indexOf(ERRLOG_KEY) !== 0) continue;
 			if (!all && k !== _errlog_key()) continue;
-			const blob = JSON.parse(localStorage.getItem(k)) || {};
+			const blob = JSON.parse(storage_raw_read(k)) || {};
 			const rows = Object.values(blob.records || {}).sort((a, b) => b.last - a.last);
 			out[k.slice(ERRLOG_KEY.length)] = {
 				session: blob.session,
@@ -712,10 +689,10 @@ function al_errors(all) {
 function al_errors_clear(all) {
 	try {
 		const doomed = [];
-		for (const k of _errlog_storage_keys()) {
+		for (const k of storage_keys()) {
 			if (k.indexOf(ERRLOG_KEY) === 0 && (all || k === _errlog_key())) doomed.push(k);
 		}
-		doomed.forEach(k => localStorage.removeItem(k));
+		doomed.forEach(k => storage_remove(k));
 		_errlog = { session: _errlog.session, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {}, counts_since: Date.now(), samples: [], alive: [], archive: [] };
 		_errlog_heals = [];
 		_errlog_vitals = [];
@@ -725,3 +702,26 @@ function al_errors_clear(all) {
 		return "cleared " + doomed.length + " key(s)";
 	} catch (e) { return "clear failed: " + _errlog_fmt(e); }
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Error Log", () => {
+	_errlog_start_session();
+	_errlog_wrap_console_error();
+	on_dom(window, "error", "errlog_error", _errlog_on_error);
+	on_dom(window, "unhandledrejection", "errlog_rejection", _errlog_on_rejection);
+	on_dom(document, "visibilitychange", "errlog_visibilitychange", () => _errlog_lifecycle("visibilitychange"));
+	on_dom(document, "freeze", "errlog_freeze", () => _errlog_lifecycle("freeze"));
+	on_dom(document, "resume", "errlog_resume", () => _errlog_lifecycle("resume"));
+	on_dom(window, "pagehide", "errlog_pagehide", () => _errlog_lifecycle("pagehide"));
+	on_dom(window, "pageshow", "errlog_pageshow", () => _errlog_lifecycle("pageshow"));
+	on_socket("game_response", "errlog_game_response", _errlog_on_game_response);
+	on_socket("disconnect", "errlog_disconnect", () => errlog_record("disconnect", "socket disconnected"));
+	on_socket("limitdcreport", "errlog_limitdc", _errlog_on_limitdc);
+	setTimeout(_errlog_lag_probe, 500);
+	every("errlog vitals", { ms: ERRLOG_VITALS_MS, kind: "telemetry", fixed: true }, _errlog_sample_vitals);
+	every("errlog heartbeat", { ms: ERRLOG_HEARTBEAT_MS, kind: "telemetry", fixed: true }, _errlog_heartbeat);
+	every("errlog flush", { ms: ERRLOG_FLUSH_MS, kind: "telemetry", fixed: true }, _errlog_flush_tick);
+});

@@ -19,7 +19,7 @@ function remove_cm_listener(fn) {
 
 const original_on_cm = typeof on_cm === "function" ? on_cm : () => {};
 
-on_cm = function (name, data) {
+function cm_dispatch(name, data) {
 	_cmListeners.forEach(fn => {
 		try {
 			fn(name, data);
@@ -28,7 +28,7 @@ on_cm = function (name, data) {
 		}
 	});
 	original_on_cm(name, data);
-};
+}
 
 const CM_HANDLERS = {
 	"panic": (name, data) => {
@@ -70,9 +70,8 @@ const CM_HANDLERS = {
 function send_updates() {
 	parent.socket.emit("send_updates", {});
 }
-setInterval(send_updates, 20000);
 
-add_cm_listener((name, data) => {
+function cm_handle(name, data) {
 	if (!["Ulric", "Riva", "Myras", "Riff"].includes(name)) {
 		game_log("❌ Unauthorized CM from " + name);
 		return;
@@ -90,7 +89,7 @@ add_cm_listener((name, data) => {
 			}
 		}
 	}
-});
+}
 
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -166,3 +165,13 @@ async function state_cache_loop() {
 		await delay(STATE_CACHE_WRITE_MS);
 	}
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Character Messaging", () => {
+	on_cm = cm_dispatch;
+	add_cm_listener(cm_handle);
+	every("send updates", { ms: 20000, kind: "automation", fixed: true }, send_updates);
+});

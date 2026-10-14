@@ -148,21 +148,6 @@ function profile_hit(data) {
 	}
 }
 
-if (parent.socket._boss_profile_action) {
-	parent.socket.off("action", parent.socket._boss_profile_action);
-}
-parent.socket._boss_profile_action = data => {
-	try { profile_action(data); } catch (e) { }
-};
-parent.socket.on("action", parent.socket._boss_profile_action);
-
-if (parent.socket._boss_profile_hit) {
-	parent.socket.off("hit", parent.socket._boss_profile_hit);
-}
-parent.socket._boss_profile_hit = data => {
-	try { profile_hit(data); } catch (e) { }
-};
-parent.socket.on("hit", parent.socket._boss_profile_hit);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SAMPLING
@@ -245,7 +230,6 @@ function boss_profile_tick() {
 	}
 }
 
-setInterval(() => { try { boss_profile_tick(); } catch (e) { } }, BOSS_PROFILE_TICK_MS);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // REPORT
@@ -345,3 +329,13 @@ function al_boss_profiles(name) {
 	if (!name) return _boss_profile_history;
 	return _boss_profile_history.map(r => Object.assign({ boss: r.boss, fight_secs: r.fight_secs }, r.players[name] || {}));
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Boss Profiler", () => {
+	on_socket("action", "boss_profile_action", data => { try { profile_action(data); } catch (e) { } });
+	on_socket("hit", "boss_profile_hit", data => { try { profile_hit(data); } catch (e) { } });
+	every("boss profile", { ms: BOSS_PROFILE_TICK_MS, kind: "telemetry", fixed: true }, () => { try { boss_profile_tick(); } catch (e) { } });
+});

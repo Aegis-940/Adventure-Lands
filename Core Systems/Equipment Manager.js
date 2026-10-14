@@ -113,9 +113,6 @@ function note_sent(event, payload) {
 	_equip_sent = { shadow, due, until: Date.now() + SLOT_FLIGHT_MS };
 }
 
-if (parent.socket._equip_reply_counter) {
-	parent.socket.off("game_response", parent.socket._equip_reply_counter);
-}
 
 function live_matches_sent(slot) {
 	const sent = _equip_sent.shadow.slots[slot];
@@ -140,7 +137,7 @@ function reply_event(data) {
 	return data.place;
 }
 
-parent.socket._equip_reply_counter = data => {
+function equip_reply_counter(data) {
 	if (!data || !data.place) return;
 	if (data.place === "equip_batch" && Array.isArray(data.slots)) {
 		for (const result of data.slots) {
@@ -158,9 +155,7 @@ parent.socket._equip_reply_counter = data => {
 		const current = live_matches_sent("mainhand") && live_matches_sent("offhand");
 		errlog_count(current ? "equip reply: live current" : "equip reply: live behind");
 	}
-};
-
-parent.socket.on("game_response", parent.socket._equip_reply_counter);
+}
 
 function inventory_move(a, b) {
 	parent.push_deferred("imove").catch(() => { });
@@ -553,3 +548,11 @@ async function equipment_manager_loop() {
 		await delay(TICK_RATE.equipment);
 	}
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Equipment Manager", () => {
+	on_socket("game_response", "equip_reply_counter", equip_reply_counter);
+});

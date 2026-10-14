@@ -222,13 +222,7 @@ function survey_tick() {
 }
 
 function farm_survey_start() {
-	setInterval(() => {
-		try {
-			survey_tick();
-		} catch (e) {
-			catcher(e, "survey_tick");
-		}
-	}, SURVEY_TICK_MS);
+	every("survey_tick", { ms: SURVEY_TICK_MS, kind: "automation", fixed: true }, survey_tick);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -273,7 +267,7 @@ function survey_move_on() {
 }
 
 function survey_reset() {
-	localStorage.removeItem(SURVEY_KEY);
+	storage_remove(SURVEY_KEY);
 	errlog_archive("survey_spot", { spot: null, status: "reset" });
 	return "survey reset — the next tick starts again at " + SURVEY_SPOTS[0];
 }

@@ -124,11 +124,7 @@ function _is_my_hit(data) {
 
 const _pid_weapon = {};
 
-if (parent.socket._action_sampler) {
-	parent.socket.off("action", parent.socket._action_sampler);
-}
-
-parent.socket._action_sampler = data => {
+function action_sampler(data) {
 	try {
 		if (!sample_hits_enabled() || !data || !data.pid) return;
 		if (data.attacker !== character.id && data.attacker !== character.name) return;
@@ -138,9 +134,7 @@ parent.socket._action_sampler = data => {
 		}
 		_pid_weapon[data.pid] = Object.assign({ weapon: weapon_label(), at: Date.now() }, firing_stats());
 	} catch (e) { }
-};
-
-parent.socket.on("action", parent.socket._action_sampler);
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // IN FLIGHT — party damage already on its way, so a monster about to die is not worth another shot
@@ -159,11 +153,7 @@ function inflight_defense(target, attacker) {
 		: pierced_defense(target.armor, shooter && shooter.apiercing);
 }
 
-if (parent.socket._inflight_tracker) {
-	parent.socket.off("action", parent.socket._inflight_tracker);
-}
-
-parent.socket._inflight_tracker = data => {
+function inflight_tracker(data) {
 	try {
 		if (!data || !data.pid || !data.damage || data.heal) return;
 		if (!DUNGEON_PARTY.includes(data.attacker)) return;
@@ -175,19 +165,11 @@ parent.socket._inflight_tracker = data => {
 			until: Date.now() + (data.eta || 0) + INFLIGHT_GRACE_MS,
 		};
 	} catch (e) { }
-};
-
-parent.socket.on("action", parent.socket._inflight_tracker);
-
-if (parent.socket._inflight_landed) {
-	parent.socket.off("hit", parent.socket._inflight_landed);
 }
 
-parent.socket._inflight_landed = data => {
+function inflight_landed(data) {
 	if (data && data.pid) delete _inflight[data.pid];
-};
-
-parent.socket.on("hit", parent.socket._inflight_landed);
+}
 
 function pending_damage(mob) {
 	const now = Date.now();
@@ -241,8 +223,6 @@ function prune_pid_weapons() {
 	}
 }
 
-setInterval(prune_pid_weapons, 10000);
-
 let _heal_window = null;
 
 function heal_window() {
@@ -294,11 +274,7 @@ function flush_heal_window() {
 	});
 }
 
-if (parent.socket._damage_sampler) {
-	parent.socket.off("hit", parent.socket._damage_sampler);
-}
-
-parent.socket._damage_sampler = data => {
+function damage_sampler(data) {
 	try {
 		if (!sample_hits_enabled() || !_is_my_hit(data)) return;
 
@@ -326,10 +302,19 @@ parent.socket._damage_sampler = data => {
 		else if (data.splash) { w.splash += data.damage; w.splashes++; w.splash_armor += armor; }
 		else { w.direct += data.damage; w.hits++; w.direct_armor += armor; }
 	} catch (e) { }
-};
+}
 
-parent.socket.on("hit", parent.socket._damage_sampler);
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
-setInterval(() => { try { tick_damage_windows(); } catch (e) { } }, DAMAGE_PREDICTION_STEP_MS);
-setInterval(flush_damage_windows, 1000);
-setInterval(() => { try { tick_heal_window(); flush_heal_window(); } catch (e) { } }, 1000);
+on_boot("Combat Sampling", () => {
+	on_socket("action", "action_sampler", action_sampler);
+	on_socket("action", "inflight_tracker", inflight_tracker);
+	on_socket("hit", "inflight_landed", inflight_landed);
+	on_socket("hit", "damage_sampler", damage_sampler);
+	every("prune pid weapons", { ms: 10000, kind: "telemetry", fixed: true }, prune_pid_weapons);
+	every("damage windows", { ms: DAMAGE_PREDICTION_STEP_MS, kind: "telemetry", fixed: true }, () => { try { tick_damage_windows(); } catch (e) { } });
+	every("flush damage windows", { ms: 1000, kind: "telemetry", fixed: true }, flush_damage_windows);
+	every("heal window", { ms: 1000, kind: "telemetry", fixed: true }, () => { try { tick_heal_window(); flush_heal_window(); } catch (e) { } });
+});

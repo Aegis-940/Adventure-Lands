@@ -144,7 +144,7 @@ function schedule_periodic_reset() {
 		_last_reset_bucket = `${boot.toDateString()}-${boot.getHours()}`;
 	}
 
-	setInterval(() => {
+	every("periodic reset", { ms: 60000, kind: "safety", fixed: true }, () => {
 		if (_suppress_periodic_reset || character.cave) return;
 
 		const now = new Date();
@@ -161,7 +161,13 @@ function schedule_periodic_reset() {
 
 		game_log(`[reset] Periodic reload at ${hour}:${String(now.getMinutes()).padStart(2, "0")}`, "#FFAA00");
 		staggered_reload();
-	}, 60000);
+	});
 }
 
-schedule_periodic_reset();
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Maintenance", () => {
+	schedule_periodic_reset();
+});

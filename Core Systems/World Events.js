@@ -2,10 +2,10 @@
 // EVENTS — live boss/seasonal targets, and the goal that walks the party to them
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-on_game_event = function(data) {
+function announce_game_event(data) {
 	if (!data?.name) return;
 	game_log(`[Event] ${data.name} spawned`, "#FF8800");
-};
+}
 
 const EVENT_JOIN_RETRY_MS = 5000;
 const EVENT_REACH = 0.8;
@@ -197,3 +197,11 @@ function loot_step() {
 	if (Math.hypot(character.x - chest.x, character.y - chest.y) <= BOSS_LOOT_REACH) return;
 	local_move(chest.x, chest.y);
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("World Events", () => {
+	on_game_event = announce_game_event;
+});

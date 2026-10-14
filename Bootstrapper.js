@@ -23,6 +23,7 @@
 	];
 
 	const scripts = [
+		"Core Systems/Error Log.js",
 		"Core Systems/Movement Manager.js",
 		"Core Systems/Bscorpion Camp.js",
 		"Core Systems/Combat Utilities.js",
@@ -45,7 +46,6 @@
 		"Core Systems/Farm Survey.js",
 		"Core Systems/Danger Log.js",
 		"Core Systems/Error Handling.js",
-		"Core Systems/Error Log.js",
 		"Dungeons/Dungeon Runner.js",
 		"Dungeons/Spider Dungeon.js",
 		"Dungeons/Crypt Dungeon.js",

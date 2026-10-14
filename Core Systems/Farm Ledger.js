@@ -226,16 +226,9 @@ function tracker_reply(data) {
 
 function farm_ledger_start() {
 	_ledger = ledger_window(Date.now());
-	character.on("loot", ledger_on_loot);
-
-	if (parent.socket._ledger_kill_handler) parent.socket.off("kill_credit", parent.socket._ledger_kill_handler);
-	parent.socket._ledger_kill_handler = data => ledger_add_kill(data.mtype);
-	parent.socket.on("kill_credit", parent.socket._ledger_kill_handler);
-
-	if (parent.socket._ledger_tracker_handler) parent.socket.off("tracker", parent.socket._ledger_tracker_handler);
-	parent.socket._ledger_tracker_handler = tracker_reply;
-	parent.socket.on("tracker", parent.socket._ledger_tracker_handler);
-
-	setInterval(ledger_tick, LEDGER_TICK_MS);
-	window.addEventListener("pagehide", ledger_flush);
+	on_character("loot", "ledger_loot", ledger_on_loot);
+	on_socket("kill_credit", "ledger_kill_handler", data => ledger_add_kill(data.mtype));
+	on_socket("tracker", "ledger_tracker_handler", tracker_reply);
+	every("ledger", { ms: LEDGER_TICK_MS, kind: "telemetry", fixed: true }, ledger_tick);
+	on_dom(window, "pagehide", "ledger_flush", ledger_flush);
 }

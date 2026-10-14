@@ -203,10 +203,11 @@ function route_resplice() {
 }
 
 const native_smart_move_logic = smart_move_logic;
-smart_move_logic = function () {
+
+function routed_smart_move_logic() {
 	route_resplice();
 	native_smart_move_logic();
-};
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // TRAVEL ARBITER — the single owner of long-range movement for this character.
@@ -926,3 +927,11 @@ function movement_local(goal, farm_step, engage_step) {
 	if (goal && goal.disengage) return;
 	if (typeof farm_step === "function") farm_step();
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Movement Manager", () => {
+	smart_move_logic = routed_smart_move_logic;
+});

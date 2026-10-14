@@ -1,7 +1,5 @@
 {
  "add_event_listener": {
-  "Core Systems/Error Log.js": 7,
-  "Core Systems/Farm Ledger.js": 1,
   "Interface/Game Log.js": 2,
   "Interface/Widget Helpers.js": 3
  },
@@ -11,12 +9,9 @@
   "Character Managers/Merchant Manager/Merchant Upgrading.js": 1,
   "Character Managers/Ranger Manager/Ranger Config.js": 3,
   "Character Managers/Warrior Manager/Warrior Config.js": 3,
-  "Core Systems/Error Log.js": 1,
   "Interface/Settings Window.js": 1
  },
  "character_on": {
-  "Core Systems/Character Runner.js": 2,
-  "Core Systems/Farm Ledger.js": 1,
   "Interface/Gold Meter.js": 1,
   "Interface/Metrics Graphs.js": 1,
   "Interface/Stats Window.js": 1
@@ -50,8 +45,6 @@
  },
  "local_storage": {
   "Character Managers/Merchant Manager/Merchant Config.js": 4,
-  "Core Systems/Error Log.js": 7,
-  "Core Systems/Farm Survey.js": 1,
   "Dungeons/Dungeon Collection.js": 3,
   "Dungeons/Dungeon Runner.js": 3,
   "Interface/Settings Window.js": 2
@@ -93,15 +86,6 @@
  },
  "set_interval": {
   "Character Managers/Warrior Manager/Warrior Combat.js": 1,
-  "Core Systems/Boss Profiler.js": 1,
-  "Core Systems/Character Messaging.js": 1,
-  "Core Systems/Character Runner.js": 1,
-  "Core Systems/Combat Sampling.js": 4,
-  "Core Systems/Danger Log.js": 1,
-  "Core Systems/Error Log.js": 3,
-  "Core Systems/Farm Ledger.js": 1,
-  "Core Systems/Farm Survey.js": 1,
-  "Core Systems/Maintenance.js": 1,
   "Dungeons/Dungeon Mode.js": 1,
   "Dungeons/Dungeon Runner.js": 5,
   "Interface/DPS Meter.js": 1,
@@ -115,12 +99,6 @@
  "socket_on_off": {
   "Character Managers/Warrior Manager/Warrior Combat.js": 6,
   "Character Managers/Warrior Manager/Warrior Skills.js": 8,
-  "Core Systems/Boss Profiler.js": 4,
-  "Core Systems/Combat Sampling.js": 8,
-  "Core Systems/Danger Log.js": 2,
-  "Core Systems/Equipment Manager.js": 2,
-  "Core Systems/Error Log.js": 3,
-  "Core Systems/Farm Ledger.js": 4,
   "Dungeons/Dungeon Progress.js": 2,
   "Dungeons/Dungeon Runner.js": 2,
   "Interface/DPS Meter.js": 2,
@@ -129,18 +107,6 @@
   "Interface/Metrics Graphs.js": 4
  },
  "top_level_statements": {
-  "Character Managers/Healer Manager/Healer.js": 1,
-  "Character Managers/Merchant Manager/Merchant.js": 10,
-  "Character Managers/Ranger Manager/Ranger.js": 1,
-  "Character Managers/Warrior Manager/Warrior.js": 1,
-  "Core Systems/Boss Profiler.js": 7,
-  "Core Systems/Character Messaging.js": 3,
-  "Core Systems/Combat Sampling.js": 16,
-  "Core Systems/Equipment Manager.js": 3,
-  "Core Systems/Error Log.js": 18,
-  "Core Systems/Maintenance.js": 1,
-  "Core Systems/Movement Manager.js": 1,
-  "Core Systems/World Events.js": 1,
   "Dungeons/Dungeon Mode.js": 1,
   "Dungeons/Dungeon Runner.js": 1,
   "Interface/Bank Sort Order.js": 7,

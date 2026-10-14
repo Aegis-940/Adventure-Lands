@@ -134,14 +134,6 @@ function boss_snapshot_check(now) {
 }
 
 function danger_log_start() {
-	if (parent.socket._danger_hit_handler) parent.socket.off("hit", parent.socket._danger_hit_handler);
-	parent.socket._danger_hit_handler = danger_on_hit;
-	parent.socket.on("hit", parent.socket._danger_hit_handler);
-	setInterval(() => {
-		try {
-			danger_tick();
-		} catch (e) {
-			catcher(e, "danger_tick");
-		}
-	}, DANGER_TICK_MS);
+	on_socket("hit", "danger_hit_handler", danger_on_hit);
+	every("danger_tick", { ms: DANGER_TICK_MS, kind: "telemetry", fixed: true }, danger_tick);
 }

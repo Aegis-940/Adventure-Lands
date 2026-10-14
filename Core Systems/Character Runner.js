@@ -123,8 +123,8 @@ function run_character(spec) {
 	performance_trick();
 	add_bank_buttons();
 	state_cache_loop();
-	character.on("new_map", town_landed);
-	character.on("new_map", map_changed);
+	on_character("new_map", "town_landed", town_landed);
+	on_character("new_map", "map_changed", map_changed);
 
 	async function main_tick() {
 		errlog_beat("main_loop");
@@ -181,7 +181,7 @@ function run_character(spec) {
 	}
 
 	for (const entry of (s.intervals || [])) {
-		setInterval(entry[0], entry[1]);
+		every(entry[0].name, { ms: entry[1], kind: "automation", fixed: true }, entry[0]);
 	}
 
 	bscorpion_start();
