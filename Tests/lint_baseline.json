@@ -30,17 +30,14 @@
   "Interface/Bank Sort Order.js": 2
  },
  "monster_literals": {
-  "Character Managers/Healer Manager/Healer Config.js": 2,
-  "Character Managers/Healer Manager/Healer Equipment.js": 6,
-  "Character Managers/Healer Manager/Healer Movement.js": 1,
-  "Character Managers/Ranger Manager/Ranger Config.js": 6,
+  "Character Managers/Healer Manager/Healer Equipment.js": 2,
+  "Character Managers/Ranger Manager/Ranger Config.js": 2,
   "Character Managers/Ranger Manager/Ranger Equipment.js": 1,
   "Character Managers/Warrior Manager/Warrior Equipment.js": 2,
-  "Character Managers/Warrior Manager/Warrior Skills.js": 6,
+  "Character Managers/Warrior Manager/Warrior Skills.js": 1,
   "Core Systems/Bscorpion Camp.js": 5,
   "Core Systems/Loot Management.js": 1,
-  "Core Systems/Movement Manager.js": 2,
-  "Core Systems/Targeting.js": 2
+  "Core Systems/Movement Manager.js": 2
  },
  "self_timeout": {
   "Character Managers/Healer Manager/Healer Combat.js": 3,

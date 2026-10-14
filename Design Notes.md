@@ -73,7 +73,32 @@ Monster types with a rule or two and no spawn of their own, kept in one file bec
 
 - **franky, icegolem:** Ulric holds his cleave while one is within reach (`hold_cleave`, read by `boss_blocks_cleave()`). Unlike `cleave: false` it doesn't steer his position away from it: he fights these bosses in melee.
 
+- **plantoid, mole:** Riva spends no skills on one (`skills: false`). The recorded reason is for moles: they die to AoE before mark and supershot pay for themselves, and the 640 MP is mana her scare needs. None was recorded for plantoids (or for the dryad and fireroamer entries that came from the same list).
+- **jr, greenjr, bigbird:** always a reason for Ulric to agitate (`pull: true`), on any map, beside the monsters of `home`.
+
 Phoenix was in Riva's `always_attack` list, at boss priority. It was taken out on 2026-10-15, as the party no longer meets them.
+
+### `Uhills.js`
+
+The sparkbot and targetron clump (`homes` holds both). Sparkbots also keep the `pull` trait, so Ulric agitates them wherever he meets them. Until 2026-10-15 this was Myras's two duplicated gear entries, `no_curse_homes`, `FARM_FOCUS_HOMES` and a literal in Ulric's agitate list.
+
+**Her gear.** The encounter puts her in `luck_exoarm`: lmace+8 with the exoarm+1 instead of the mshield+8. The arm trades the shield's 16 luck for +9 int, +30 str and +46 armour as measured (max HP 13,594 → 14,224, armour 447 → 493), because holding all eight sparkbots and targetrons is ~5,200 DPS on her. Everywhere else `luck` keeps the mshield.
+
+It also wears `uhills_orb` (stillwaterlens+1), `uhills_gloves` (xgloves+6), `uhills_chest` (xarmor+5) and `uhills_amulet` (t2intamulet+1), chosen on 10-12 from the bank by effective HP against the spawn's even physical/magical damage and by how much raw monster DPS her single heals out-heal. Modelled together: armour 493 → 632, resistance 497 → 641, INT 385 → 403, EHP +19%, out-healing +29% (about 6.5 → 8.5 of the spawn's monsters, each ~1,176 raw DPS), so with all eight on her the single heals nearly cover what party heal had to. They give up the talkingskull's XP, spookyamulet's and cdragon's luck, and 3% attack speed from the supermittens. The `amulet` rule, like `chest`, only follows an override, so both keep the uhills pieces after she leaves until another set replaces them.
+
+**Curse at uhills.** Measured there on 10-12 over 3 minutes, her mana was 225 MP/s out against the 244 MP/s potion limit: swings 80, curse 58, party heal 45, absorb 26, dark blessing 15. Curse and dark blessing spend whatever is above ~40% MP, and the party-heal spikes when she holds 7+ monsters (77–103 MP/s over a heavier 20 minutes) drained her below 25% about a fifth of the time. Curse was dropped there (c822cb5), brought back with the uhills survivability gear (ae01caf), and dropped again the same day (`curse: false`) because she still couldn't sustain mana with it on. Bosses are still cursed, and the farm focus still steers Riva's mark and Ulric's swings.
+
+**Farm focus** (`farm_focus: true`, every role): the party stacks curse, mark and swings on one monster. The mechanism is in Targeting.
+
+### `Dryad.js`
+
+The mforest spawn: Myras wears her magic-defence loadout (`mdef`), and Riva spends no skills on a dryad.
+
+### `Fireroamer.js`
+
+The desertland fireroamer spawn: Myras wears `fireres` and `orb_fire`, and skips her panic check (`skip_panic`; low HP and MP still trigger it). Ulric agitates only while Myras is above 60% HP and 80% MP, Riva and he are above 95% HP, and no more than six monsters are in range (`agitate_conditions`). Riva spends no skills on a fireroamer.
+
+These used to apply whenever `home` was fireroamer. As settings of a spawn encounter they hold only on the spawn's map, so away from it, at a boss or in town, Myras's panic check runs again (one golden re-recorded, `synthetic-fireroamer-away-Myras`).
 
 ### `Mummy.js`
 
@@ -232,7 +257,7 @@ A per-fight profile of every player on a cooperative boss (`is_coop_boss()`) in 
 
 `score_targets()`/`select_target()`: the one scorer every character picks targets with. Damage is valued with `context.gear` (attack, frequency, explosion, apiercing, burn chance) when the caller passes one, otherwise with the live gear. Ulric passes his swing set's measured profile (`swing_gear()`). The live cache refreshes every 50ms and often caught him mid-swap in candy canes or the bataxe, scoring every target without splash or burn.
 
-**Farm focus.** At a clumped spawn (`FARM_FOCUS_HOMES`: sparkbot, targetron) the party stacks its damage amplifiers on one monster: Myras curses it (+20% damage taken), Riva marks it (hunter's mark; her supershot follows the same target) and Ulric swings at it, while splash spreads the rest across the clump. Myras chooses (`choose_farm_focus()` in her `update_cache()`): the current focus while it lives, is in curse range and is on a party member, else the highest-HP monster on a party member, so the debuffs go where they have the longest to pay. It is held until it dies, because "highest HP" re-evaluated each tick would jump to the next full-HP monster the moment the first is hit. One character decides and writes the id to localStorage (`AL_farm_focus`, only on change) so the three never latch different monsters; the others read it with `farm_focus()`. Riva's attacks and multishots are untouched, only her mark. Unlike `dungeon_focus_target()`, which also redirects Riva's shots, this never narrows anyone's attacks to one target. Her curse only goes on the focus while there is one, which also covers both monster types: the generic curse only considered monsters of the farm target's own type.
+**Farm focus.** At a clumped spawn (the uhills encounter's `farm_focus` setting) the party stacks its damage amplifiers on one monster: Myras curses it (+20% damage taken), Riva marks it (hunter's mark; her supershot follows the same target) and Ulric swings at it, while splash spreads the rest across the clump. Myras chooses (`choose_farm_focus()` in her `update_cache()`): the current focus while it lives, is in curse range and is on a party member, else the highest-HP monster on a party member, so the debuffs go where they have the longest to pay. It is held until it dies, because "highest HP" re-evaluated each tick would jump to the next full-HP monster the moment the first is hit. One character decides and writes the id to localStorage (`AL_farm_focus`, only on change) so the three never latch different monsters; the others read it with `farm_focus()`. Riva's attacks and multishots are untouched, only her mark. Unlike `dungeon_focus_target()`, which also redirects Riva's shots, this never narrows anyone's attacks to one target. Her curse only goes on the focus while there is one, which also covers both monster types: the generic curse only considered monsters of the farm target's own type.
 
 ### `World Events.js`
 
@@ -354,7 +379,7 @@ One `ledger` record per fighter every 5 minutes, through `errlog_archive()` to `
 
 The `*SURVEY*` farm target (`SURVEY_FARM_TARGET`). `farm_target_for()` resolves it to the survey's current spot, or to `DEFAULT_FARM_TARGET` once the survey is complete. Set it on all three fighters; Myras (`SURVEY_OWNER`) is the only writer of the state, in localStorage `AL_survey`, which every iframe shares.
 
-**Runtime spot changes, not reloads.** Every reader of `home` and `destination` looks them up when it runs (movement, `MONSTER_GEAR_OVERRIDES`, the fireroamer and bscorpion branches), so `switch_home()` reassigns both and the next tick follows. The one cache is `active_dungeon()`, and no survey spot is a dungeon. The bscorpion kill logger now starts for Ulric whatever the home, since it parks itself away from the camp.
+**Runtime spot changes, not reloads.** Every reader of `home` and `destination` looks them up when it runs (movement, the encounters, `MONSTER_GEAR_OVERRIDES`, the bscorpion branches), so `switch_home()` reassigns both and the next tick follows. The one cache is `active_dungeon()`, and no survey spot is a dungeon. The bscorpion kill logger now starts for Ulric whatever the home, since it parks itself away from the camp.
 
 **Visit rules**, all in `survey_owner_tick()` on Myras's 1s tick:
 
@@ -487,7 +512,7 @@ The 🍀 button and the search for Riff's lucky upgrade slot.
 
 Targeting, `action_loop()`, and `weapon_burst()`. Sets `cache.tank_entity` to **Myras**.
 
-**Farm focus at uhills** (`Targeting.js`, `FARM_FOCUS_HOMES`: sparkbot, targetron). After the Rime shell, a pursued boss and any boss, he takes the party's farm focus when it is touchable within his engage radius; otherwise the normal scorer decides. At this spawn the monsters stand clumped on Myras, so his explosion reaches all of them whichever he hits, and the direct hit is best spent where it is amplified.
+**Farm focus at uhills** (`Targeting.js`, the uhills encounter's `farm_focus`). After the Rime shell, a pursued boss and any boss, he takes the party's farm focus when it is touchable within his engage radius; otherwise the normal scorer decides. At this spawn the monsters stand clumped on Myras, so his explosion reaches all of them whichever he hits, and the direct hit is best spent where it is amplified.
 
 **The swing burst.** `weapon_burst()` is the one weapon swap each swing makes: swing → bataxe → cleave (when ready) → candy canes, held until the flight of the swing and of every cleave hit has landed → the weapon chooser's current set.
 - Sugar rush is rolled per hit when it lands (a cleave rolls once per monster), while damage, burn and splash are fixed at launch.
@@ -562,8 +587,6 @@ Curse, absorb, party heal, dark blessing, zap.
 
 **Curse** is recast while the old one is still on (`curse_expiring()`: remaining ≤ projectile flight + ping + 150ms). Its cooldown equals its 5s duration and the server never checks for an existing curse, so waiting for it to drop left a ~0.5s gap plus the slow (240 speed) flight in every 5.5s.
 
-**Curse at uhills.** Measured there on 10-12 over 3 minutes, her mana was 225 MP/s out against the 244 MP/s potion limit: swings 80, curse 58, party heal 45, absorb 26, dark blessing 15. Curse and dark blessing spend whatever is above ~40% MP, and the party-heal spikes when she holds 7+ monsters (77–103 MP/s over a heavier 20 minutes) drained her below 25% about a fifth of the time. Curse was dropped there (c822cb5), brought back with the uhills survivability gear (ae01caf), and dropped again the same day (`no_curse_homes`: sparkbot, targetron) because she still couldn't sustain mana with it on. Bosses are still cursed, and the farm focus still steers Riva's mark and Ulric's swings.
-
 **Zap** is the bscorpion camp's mana dump. The `ring` rule in `Healer Equipment.js` wears the zapper on ring2 inside `bscorpion_damage_window()` (the ring of luck is back on for the kill), and she zaps down to `zapper_min_mp_pct` (60%) and lets MP potions top her up. The damage zap is camp-only: `bscorpion_damage_window()` returns nothing unless `is_at_bscorpion_farm()`, so off the camp (and off the zap-pull homes below) the ring of luck stays on and the floor never applies. She has no mana regen, so the zap rate is set by the potion cooldown (500 MP per 2s ≈ 1.8 zaps/s), not the floor; the floor is only her reserve.
 
 **Zap has its own loop.** Zap is instant, has a 200ms cooldown, and shares no cooldown with attack, so `zap_loop` runs it every `TICK_RATE.skill` (40ms), awaiting each cast. Inside `skill_loop` it ran last, behind awaited party heal, curse, absorb and dark blessing (each a ~200ms round trip), and fired 9 times in a 2-minute probe. The pull spends down to `zapper_min_mp_pct` (60%), like the camp's damage zap. It is gated by `fighter_down()` and `tank_can_take()`, not by `effective_aggro_cap()`. That cap is 5 only at 80% MP or more and 3 at 60%, so it blocked the zap whenever the zap had spent her mana. The rage box hands every mummy to the party within 4.2s anyway, so the cap protected nothing there; `tank_can_take()` is the real limit. A first build on 10-14 that kept the cap pinned her at 61% MP: spawn→targeted 1.2s, 2.1 untargeted mummies, and under one mummy of HP on the party 28% of the time, even though the kill rate rose from 1.70 to 1.78/s once Ulric stopped agitating. Drops roll on the luck of the monster's target at the kill (`issue_monster_award`), which at mummies is her ~90% of the time, so the zapper costs the ring of luck's 20 luck if she holds one again. On 10-14 she had none. The `mummy` override wears `orb_luck` (rabbit's foot+1) for the same reason, in place of `preferred_orb()`'s talkingskull while `behind_on_xp()`.
@@ -577,10 +600,6 @@ Curse, absorb, party heal, dark blessing, zap.
 - `camp_luck` (lmace, mshield, rabbit's foot, ring of luck, Lucky cdragon, spookyamulet+2) only from then until the kill (`luck_window()`, over `luck_kill_target()`: the scorpion at the camp, the boss elsewhere, where `camp_fight` goes on without the zapper since the fight rule only zaps at the camp)
 
 The moment the target dies she goes straight back to `camp_fight`, so that swap's penalty lands in the respawn, not the next pull.
-
-**The uhills spawn.** At sparkbot/targetron, `MONSTER_GEAR_OVERRIDES` puts her in `luck_exoarm`: lmace+8 with the exoarm+1 instead of the mshield+8. The arm trades the shield's 16 luck for +9 int, +30 str and +46 armour as measured (max HP 13,594 → 14,224, armour 447 → 493), because holding all eight sparkbots and targetrons is ~5,200 DPS on her. Everywhere else `luck` keeps the mshield.
-
-The same override also wears `uhills_orb` (stillwaterlens+1), `uhills_gloves` (xgloves+6), `uhills_chest` (xarmor+5) and `uhills_amulet` (t2intamulet+1), chosen on 10-12 from the bank by effective HP against the spawn's even physical/magical damage and by how much raw monster DPS her single heals out-heal. Modelled together: armour 493 → 632, resistance 497 → 641, INT 385 → 403, EHP +19%, out-healing +29% (about 6.5 → 8.5 of the spawn's monsters, each ~1,176 raw DPS), so with all eight on her the single heals nearly cover what party heal had to. They give up the talkingskull's XP, spookyamulet's and cdragon's luck, and 3% attack speed from the supermittens. The `amulet` rule, like `chest`, only follows an override, so both keep the uhills pieces after she leaves until another set replaces them.
 
 **Why luck only at the kill.** Primlings (`offeringp`, 5%) roll on `5% × (1 + luck/100)` of the scorpion's target at the kill, which is Myras, so luck matters only at that instant. `luck_due()` switches once the scorpion's remaining HP is within `luck_lead_ms` (600) of its measured kill rate plus `luck_burst_hp` (15,000, one supershot crit), latched per scorpion. Every kill is counted as `bscorpion kill: target …, luck gear on/off`.
 

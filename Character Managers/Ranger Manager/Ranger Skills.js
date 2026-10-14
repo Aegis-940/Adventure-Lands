@@ -96,7 +96,7 @@ async function skill_loop() {
 				change_target(target);
 			}
 
-			const skill_allowed = !CONFIG.combat.skill_blacklist.includes(target.mtype) && encounter_allows("skills", target);
+			const skill_allowed = encounter_allows("skills", target);
 
 			const hm_cost = skill_mp_cost("huntersmark");
 			const ss_cost = skill_mp_cost("supershot");

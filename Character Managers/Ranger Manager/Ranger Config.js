@@ -11,7 +11,6 @@ var CONFIG = {
 
 		always_attack: [...ALL_BOSSES, "bscorpion"],
 		engage_aggroed_only: true,
-		skill_blacklist: ["dryad", "fireroamer", "plantoid", "mole"],
 		use_hunters_mark: true,
 		use_supershot: true,
 		mark_min_hp_pct: 0.03,

@@ -582,9 +582,7 @@ function can_cleave() {
 	return cache.monsters_in_cleave_range.length >= min_mobs;
 }
 
-function is_fireroamer_agitate_safe(nearby_mobs) {
-	const cond = CONFIG.combat.agitate_fireroamer_conditions;
-
+function agitate_conditions_met(cond, nearby_mobs) {
 	const healer = get_player("Myras");
 	const ranger = get_player("Riva");
 
@@ -611,7 +609,8 @@ async function handle_agitate(tank) {
 		e.visible && !e.dead && e.type === "monster" && distance(character, e) <= skill_range
 	);
 
-	if (home === "fireroamer" && !is_fireroamer_agitate_safe(nearby_mobs)) return;
+	const conditions = encounter_setting("agitate_conditions", null);
+	if (conditions && !agitate_conditions_met(conditions, nearby_mobs)) return;
 
 	for (const type of encounter_mtypes("agitate_pack")) {
 		const size = encounter_trait("agitate_pack", { mtype: type });
@@ -623,8 +622,7 @@ async function handle_agitate(tank) {
 	}
 
 	const other_mobs = nearby_mobs.filter(e =>
-		["sparkbot", "jr", "greenjr", "bigbird", home].includes(e.mtype) &&
-		encounter_allows("pull", e)
+		(e.mtype === home || encounter_trait("pull", e)) && encounter_allows("pull", e)
 	);
 	const untargeted_other = other_mobs.filter(m => !m.target);
 

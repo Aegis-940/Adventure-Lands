@@ -36,3 +36,31 @@ encounter("icegolem", {
 		warrior: { hold_cleave: true },
 	},
 });
+
+encounter("plantoid", {
+	mtypes: ["plantoid"],
+	allows: {
+		ranger: { skills: false },
+	},
+});
+
+encounter("mole", {
+	mtypes: ["mole"],
+	allows: {
+		ranger: { skills: false },
+	},
+});
+
+encounter("jr", {
+	mtypes: ["jr", "greenjr"],
+	traits: {
+		warrior: { pull: true },
+	},
+});
+
+encounter("bigbird", {
+	mtypes: ["bigbird"],
+	traits: {
+		warrior: { pull: true },
+	},
+});

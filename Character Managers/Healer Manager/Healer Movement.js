@@ -12,7 +12,7 @@ function healer_skip_panic_check() {
 	if (panicking) return false;
 	if (character.hp < character.max_hp * PANIC_THRESHOLDS.low_hp) return false;
 	if (character.mp < character.max_mp * PANIC_THRESHOLDS.low_mp) return false;
-	return home === "fireroamer" || dungeon_flag("skip_panic");
+	return encounter_setting("skip_panic", false) || dungeon_flag("skip_panic");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

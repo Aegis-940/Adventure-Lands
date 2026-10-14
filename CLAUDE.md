@@ -90,9 +90,11 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | `Encounter Registry.js` | **First stage.** `encounter(name, spec)` registers at load. Shared and role code ask `encounter_gear(group)`, `encounter_setting(name, fallback)`, `encounter_allows(action, mob)`, `encounter_rank(mob)` and `encounter_trait(name, mob)`; the role default stays at the call site. `why("gear.weapon")`, `encounters_active()` and `encounter_problems()` in the console |
 | `Porcupine.js` | Hazard: Ulric never attacks, cleaves or agitates near a porcupine and wears his single set within splash reach; Riva ranks them first. Optional: deleting its Bootstrapper line removes the behaviour |
 | `Mummy.js` | Spawn: Myras wears her luck orb and the `zap_on` ring and zap-pulls fresh mummies, and doesn't curse them; Ulric doesn't agitate them; Riva spends no mark or supershot on them |
+| `Uhills.js` | Spawn (sparkbot, targetron): Myras's luck gear and no curse, the party's farm focus, Ulric agitates sparkbots |
+| `Dryad.js`, `Fireroamer.js` | Spawns: Myras's mdef or fire-resistance gear, fireroamer's skipped panic check and agitate conditions, no ranger skills |
 | `Halloween Bosses.js` | mrpumpkin and mrgreen: Myras tanks, Ulric taunts them onto himself and cleaves with one in reach, single-target sets for Ulric and Riva |
 | `Crabxx.js` | The kited boss (event off today) and its crabx adds: AOE sets, Myras tanks, Riva shoots adds only once targeted, Ulric agitates a pack of five |
-| `Monster Rules.js` | Single monster types with a rule or two and no spawn of their own: pppompom (no cleave near one, not a reason to agitate), redfairy (no agitate near one), nerfedmummy (Riva never shoots one), franky and icegolem (Ulric holds his cleave near one) |
+| `Monster Rules.js` | Single monster types with a rule or two and no spawn of their own: pppompom (no cleave near one, not a reason to agitate), redfairy (no agitate near one), nerfedmummy (Riva never shoots one), franky and icegolem (Ulric holds his cleave near one), plantoid and mole (no ranger skills), jr, greenjr and bigbird (always a reason to agitate) |
 
 **Dungeons**
 

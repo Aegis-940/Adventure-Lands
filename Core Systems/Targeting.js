@@ -183,10 +183,8 @@ function sample_target_choice(scored, context, weights) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const FARM_FOCUS_KEY = "AL_farm_focus";
-const FARM_FOCUS_HOMES = ["sparkbot", "targetron"];
-
 function farm_focus_here() {
-	return FARM_FOCUS_HOMES.includes(home) && !!destination && character.map === destination.map;
+	return encounter_setting("farm_focus", false);
 }
 
 function farm_focus_engaged(mob) {

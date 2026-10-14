@@ -597,6 +597,14 @@
   },
   {
    "call": [
+    "encounter_setting"
+   ],
+   "from": "Character Managers/Healer Manager/Healer Movement.js",
+   "load": [],
+   "to": "Encounters/Encounter Registry.js"
+  },
+  {
+   "call": [
     "party_allies",
     "self_heal_rate",
     "tank_can_take",
@@ -3045,6 +3053,7 @@
    "call": [
     "encounter_allows",
     "encounter_mtypes",
+    "encounter_setting",
     "encounter_trait"
    ],
    "from": "Character Managers/Warrior Manager/Warrior Skills.js",
@@ -4750,9 +4759,7 @@
   {
    "call": [
     "CONFIG",
-    "destination",
-    "errlog_sample",
-    "home"
+    "errlog_sample"
    ],
    "from": "Core Systems/Targeting.js",
    "load": [],
@@ -4765,6 +4772,14 @@
    "from": "Core Systems/Targeting.js",
    "load": [],
    "to": "Dungeons/Dungeon Runner.js"
+  },
+  {
+   "call": [
+    "encounter_setting"
+   ],
+   "from": "Core Systems/Targeting.js",
+   "load": [],
+   "to": "Encounters/Encounter Registry.js"
   },
   {
    "call": [
@@ -5754,6 +5769,16 @@
    "to": "Encounters/Encounter Registry.js"
   },
   {
+   "call": [],
+   "from": "Encounters/Dryad.js",
+   "load": [
+    "_encounters",
+    "_encounters_by_mtype",
+    "encounter"
+   ],
+   "to": "Encounters/Encounter Registry.js"
+  },
+  {
    "call": [
     "errlog_count"
    ],
@@ -5789,6 +5814,16 @@
     "console_api"
    ],
    "to": "Kernel/Kernel.js"
+  },
+  {
+   "call": [],
+   "from": "Encounters/Fireroamer.js",
+   "load": [
+    "_encounters",
+    "_encounters_by_mtype",
+    "encounter"
+   ],
+   "to": "Encounters/Encounter Registry.js"
   },
   {
    "call": [],
@@ -5831,6 +5866,16 @@
   {
    "call": [],
    "from": "Encounters/Porcupine.js",
+   "load": [
+    "_encounters",
+    "_encounters_by_mtype",
+    "encounter"
+   ],
+   "to": "Encounters/Encounter Registry.js"
+  },
+  {
+   "call": [],
+   "from": "Encounters/Uhills.js",
    "load": [
     "_encounters",
     "_encounters_by_mtype",
@@ -7082,11 +7127,25 @@
    "stage": "parallel",
    "statements": []
   },
+  "Encounters/Dryad.js": {
+   "call_initializers": [],
+   "optional": true,
+   "role": null,
+   "stage": "parallel",
+   "statements": []
+  },
   "Encounters/Encounter Registry.js": {
    "call_initializers": [],
    "optional": false,
    "role": null,
    "stage": "first",
+   "statements": []
+  },
+  "Encounters/Fireroamer.js": {
+   "call_initializers": [],
+   "optional": true,
+   "role": null,
+   "stage": "parallel",
    "statements": []
   },
   "Encounters/Halloween Bosses.js": {
@@ -7111,6 +7170,13 @@
    "statements": []
   },
   "Encounters/Porcupine.js": {
+   "call_initializers": [],
+   "optional": true,
+   "role": null,
+   "stage": "parallel",
+   "statements": []
+  },
+  "Encounters/Uhills.js": {
    "call_initializers": [],
    "optional": true,
    "role": null,
@@ -7282,6 +7348,9 @@
   "Encounters/Mummy.js",
   "Encounters/Halloween Bosses.js",
   "Encounters/Crabxx.js",
+  "Encounters/Uhills.js",
+  "Encounters/Dryad.js",
+  "Encounters/Fireroamer.js",
   "Core Systems/World Events.js",
   "Core Systems/Character Messaging.js",
   "Core Systems/Equipment Manager.js",

@@ -146,7 +146,7 @@ async function handle_curse() {
 		.sort((a, b) => distance(character, a) - distance(character, b));
 	if (bosses_with_target.length) target = bosses_with_target[0];
 
-	if (!target && (CONFIG.combat.no_curse_homes.includes(home) || !encounter_setting("curse", true))) return;
+	if (!target && !encounter_setting("curse", true)) return;
 
 	if (!target && cache.farm_focus) {
 		target = has_target(cache.farm_focus) ? cache.farm_focus : null;

@@ -14,13 +14,6 @@ var CONFIG = {
 		cleave_min_mobs: 3,
 		cleave_min_mobs_held: 1,
 		agitate_min_mobs: 2,
-		agitate_fireroamer_conditions: {
-			healer_hp_pct: 0.60,
-			healer_mp_pct: 0.80,
-			ranger_hp_pct: 0.95,
-			warrior_hp_pct: 0.95,
-			max_mobs_in_range: 6
-		},
 		taunt_ents: false,
 		taunt_exempt: ["CrownTown", "CrownsAnal", "CrownPriest"],
 		engage_radius: 150,

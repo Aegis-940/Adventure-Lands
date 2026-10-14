@@ -63,9 +63,10 @@ Encounters/                          ← the registry in the first stage; one op
     ├── Encounter Registry.js     encounter(), the context, and the questions shared and role code ask
     ├── Porcupine.js              hazard: Ulric never touches one, Riva kills them first
     ├── Mummy.js                  spawn: zap pull, luck orb, no curse, no agitate, no ranger skills
+    ├── Uhills.js, Dryad.js, Fireroamer.js   spawns: Myras's gear, settings, ranger skills
     ├── Halloween Bosses.js       mrpumpkin and mrgreen: Myras tanks, Ulric taunts, single-target sets
     ├── Crabxx.js                 the kited boss and its crabx adds
-    └── Monster Rules.js          pppompom, redfairy, nerfedmummy, franky, icegolem: a rule or two each
+    └── Monster Rules.js          single monster types with a rule or two each
 
 Character Managers/[Role] Manager/   ← loaded sequentially via indirect eval, per character
     ├── [Role] Config.js          tunables, gear sets, panic thresholds, state/cache
