@@ -13,8 +13,8 @@ Reviewed 2026-10-14 before execution. The review's changes are folded in and lis
 | Phase | Title | Behaviour change | Status |
 |---|---|---|---|
 | 0 | Safety net: harness, snapshots, golden decisions, ratchet lint, docs triage | none | **done** 2026-10-15 (live on `main`) |
-| 1 | Boot kernel: boot phase, scheduler, events, storage, console API | none | **1.1–1.6 merged to `main`** 2026-10-15, harness-green against 25 fixtures; live from the next reload, then `compare` per D4. 1.2b (combat loops) not started |
-| 2 | Encounters (the monster behaviour redesign) | small, per encounter | **registry and porcupine built on `overhaul`**, harness-green against 34 fixtures |
+| 1 | Boot kernel: boot phase, scheduler, events, storage, console API | none | **1.1–1.7 live** 2026-10-15. `compare` at bscorpion against Oct 12–14: **same** (6 full windows; kills, XP, potions within 1.5%, no deaths or close calls). 1.2b (combat loops) not started |
+| 2 | Encounters (the monster behaviour redesign) | small, per encounter | **registry, porcupine and monster rules live** 2026-10-15 (2.1–2.6, 2.8.1, 2.8.2); 2.8.3 onward not started |
 | 3 | Deciders and actuators | per decision | not started |
 | 4 | Telemetry on the event bus | none | not started |
 | 5 | World model (optional) | small (timing) | not started |
