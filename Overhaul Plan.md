@@ -13,7 +13,7 @@ Reviewed 2026-10-14 before execution. The review's changes are folded in and lis
 | Phase | Title | Behaviour change | Status |
 |---|---|---|---|
 | 0 | Safety net: harness, snapshots, golden decisions, ratchet lint, docs triage | none | **done** 2026-10-15 (live on `main`) |
-| 1 | Boot kernel: boot phase, scheduler, events, storage, console API | none | **1.1–1.6 built on `overhaul`**, harness-green against 25 fixtures; awaiting a watched merge. 1.2b (combat loops) not started |
+| 1 | Boot kernel: boot phase, scheduler, events, storage, console API | none | **1.1–1.6 merged to `main`** 2026-10-15, harness-green against 25 fixtures; live from the next reload, then `compare` per D4. 1.2b (combat loops) not started |
 | 2 | Encounters (the monster behaviour redesign) | small, per encounter | not started |
 | 3 | Deciders and actuators | per decision | not started |
 | 4 | Telemetry on the event bus | none | not started |
