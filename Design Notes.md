@@ -14,6 +14,32 @@ The one file that lives in a game code slot. It fetches and evals `Bootstrapper.
 
 ---
 
+## Kernel
+
+### `Kernel.js`
+
+Files register boot steps at load with `on_boot(file, fn)` and the Bootstrapper calls `kernel_boot()` once, after the role files. Steps run in Bootstrapper list order, not the order scripts happened to arrive in, so the parallel batch can no longer race itself: every file's declarations exist before any step runs. A throwing step is caught, logged with its file and recorded (`errlog_record("boot", …)`), and the other steps still run; the role entry point's failure is logged as fatal. `al_boot()` reports what ran, skipped and failed.
+
+Error Log is first in the parallel list so its step runs first. Its step loads the saved session; a step that recorded something before it would have had its record overwritten by that load.
+
+The four role entry points are boot steps too, so `run_character()` starts after every shared step, as it used to start after every shared script.
+
+### `Scheduler.js`
+
+`every(name, { ms, kind, fixed }, fn)` is the only interval. Phase 1 converted only `setInterval` loops, all with `fixed: true` (plain `setInterval` timing), so nothing ticks differently. Callbacks that swallowed their own errors still do; the rest now reach `catcher(e, name)` instead of the window error handler. `kind` (`automation`, `combat`, `safety`, `telemetry`, `ui`) only labels a loop for now. The self-rescheduling `setTimeout` loops (`action_loop`, `skill_loop`, `potion_loop`, `main_tick`, …) and the `while (true)` loops are untouched, because moving them changes timing (step 1.2b, measured).
+
+### `Events.js`
+
+`parent.socket` and the game window outlive the code iframe, and the iframe can die without `pagehide` (the 2026-10-01 freeze removed it on a disconnect). So every socket handler is kept under a fixed slot on `parent.socket`, and the previous one is removed before the new one goes on. The slots keep the names the hand-written handlers used (`_equip_reply_counter`, `_damage_sampler`, …), so the first kernel boot after a pre-kernel iframe still removes that iframe's handlers. DOM listeners and `wrap_parent` work the same way on their targets. Each handler runs inside `catcher`, so one throwing handler no longer stops the rest for that event.
+
+Two fixes came with it. Game Log's `add_log` hook used to check an "already hooked" flag kept on the game window. After an iframe died without `pagehide` the flag stayed set, and the next iframe never hooked the log at all. `wrap_parent` now re-hooks on every boot from the true original. And Widget Helpers' `window.top` drag listeners no longer accumulate one pair per iframe.
+
+### `Storage.js`
+
+Every localStorage access goes through `storage_read`/`storage_write` (JSON) or `storage_raw_read`/`storage_raw_write`/`storage_remove`/`storage_keys` (strings), each wrapped as before so a browser blocking site data degrades instead of throwing. `STORAGE_KEYS` registers every key prefix with its owner. Dungeon Runner reads its override lazily on first use, so no caller can see it before it is read.
+
+---
+
 ## Core Systems
 
 ### `Global Config.js`

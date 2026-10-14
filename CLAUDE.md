@@ -14,9 +14,10 @@ The code has no comments by convention, so the reasoning behind each system (mec
 - **Two load mechanisms that scope differently:**
   - `Core Systems/`, `Dungeons/` and `Interface/` load in parallel as real `<script>` tags, so their top-level `const`/`let`/`function` are all global.
   - `Character Managers/**` load sequentially through **indirect eval**. `var` and `function` go global, but a top-level `const`/`let` is invisible to sibling files. Anything shared between two files of the same character must be `var` or `function`. Getting this wrong fails silently at runtime, not at load.
-- **Nothing in a character file may run at load time** except the entry point (`Warrior.js`, `Healer.js`, `Ranger.js`, `Merchant.js`). The fighters start every loop from `run_character()`; the merchant starts `loop_controller()`.
+- **Nothing runs at load.** Every file's top level is declarations and registrations: `on_boot("File Name", fn)`, `console_api({...})` and `DUNGEONS.x = {...}`. The work goes in the file's boot step. After every script has loaded and the role files are evaluated, the Bootstrapper calls `kernel_boot()`, which runs the steps once, **in Bootstrapper list order**: the first stage, the parallel batch (Error Log first), then the role files, with the entry point (`Warrior`, `Healer`, `Ranger`, `Merchant`) last. A throwing step is named in the game log and `al_boot()`, and the rest still run. The ratchet in `python Tools/Lint.py` fails any new top-level statement outside `Kernel/`.
 - **A top-level initializer may only name what has already loaded.** `Merchant Task Loop.js` builds `PRIORITY_CHECKS` from the `should_run_*` functions, so it loads last. A failing initializer throws inside the eval and the file defines nothing, silently.
-- **The parallel batch runs in network-completion order, not list order.** Only the first stage (`Global Config.js`, `Widget Helpers.js`, `Game Log.js`) is awaited. Adding or removing a Bootstrapper entry reshuffles the race and can expose a load-time dependency that had been winning by luck (deleting `Server Watch.js` broke the DPS meter this way). Before changing the list, check what *runs* at load in the affected files (`grep -n "^[a-z_][a-z_0-9]*("`), not just what they declare. There are two fixes: promote the dependency to the first stage, or poll for it and retry. A guarded initializer is worthless if an unguarded `setInterval` can reach the same code path.
+- **Scripts arrive in network order, but nothing runs until boot.** Before the kernel, the parallel batch *ran* in network-completion order, and adding or removing an entry could expose a load-time dependency that had been winning by luck (deleting `Server Watch.js` broke the DPS meter this way). Now order only matters among boot steps, and those follow the list. The remaining load-time hazard is a top-level *initializer* that calls another file (`var x = f()`): lint counts these as `call_initializers`. The one left on purpose is the merchant's `CONFIG`, which reads storage and is used on the following lines; role files evaluate after every shared script anyway.
+- **Loops, handlers and storage go through `Kernel/`:** `every(name, { ms, kind, fixed })` for timers, `on_socket(event, key, fn)` / `on_character` / `on_dom` for subscriptions, `wrap_parent(name, make)` for overriding a game-window function, and `storage_*` for localStorage. Socket and DOM handlers are kept under a fixed key on their target and replaced, never stacked, because the game window outlives the code iframe. Self-rescheduling `setTimeout` loops and `while (true)` loops (the combat loops among them) are not converted yet; that is the measured step 1.2b of `Overhaul Plan.md`.
 - **If it's written correctly, you don't need guards.** Don't add `typeof x === "function"`/`!== "undefined"` checks or defensive fallbacks; treat any you find as a symptom and fix the cause. There are four legitimate kinds of guard, and they are the only acceptable reasons:
   - `Porcupine Guard.js`, a documented removal seam
   - `Code Loader.js`, which runs standalone in a code slot before anything else exists
@@ -43,13 +44,22 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | File | Role |
 |------|------|
 | `Code Loader.js` | The only file in a game code slot (slot 1). Evals `Bootstrapper.js` from jsDelivr, falling back to githack at the same SHA, and sets `window.__AL_BASE__` |
-| `Bootstrapper.js` | Loads everything else from `__AL_BASE__`: the first stage awaited, then the parallel batch, then the role files |
+| `Bootstrapper.js` | Loads everything else from `__AL_BASE__`: the first stage awaited, then the parallel batch, then the role files, then `kernel_boot()` |
+
+**Kernel** (first stage; declarations only)
+
+| File | Role |
+|------|------|
+| `Kernel.js` | `on_boot()`/`kernel_boot()`: the boot phase. `al_boot()` reports what ran, skipped and failed. `console_api()`/`al_help()` list the console entry points |
+| `Scheduler.js` | `every()`, the only interval; `stop_loop()`; `al_loops()` lists every loop with its kind, rate, runs and last error |
+| `Events.js` | `on_socket`/`off_socket`, `on_character`, `on_dom`, `wrap_parent`, `parent_slot`, and the internal bus `bus_on`/`bus_emit` |
+| `Storage.js` | The only code that touches localStorage (`storage_read/write`, `storage_raw_read/write`, `storage_remove`, `storage_keys`), and `STORAGE_KEYS`, the register of every key prefix |
 
 **Core Systems** (shared by all four characters)
 
 | File | Role |
 |------|------|
-| `Global Config.js` | **First stage.** Constants, party constants, shared fighter defaults, `storage_read()`/`storage_write()`, `var` declarations of every cross-character symbol, and no-op stubs |
+| `Global Config.js` | **First stage.** Constants, party constants, shared fighter defaults, `var` declarations of every cross-character symbol, and no-op stubs |
 | `Movement Manager.js` | `movement_goal()` (where to go) and `movement_local()` (where to stand), `smarter_move()`, the travel arbiter, parked routes, `walk()`, stuck escape, and the town shortcut |
 | `Movement Positioning.js` | `best_orbit_spot()`, `reposition_center()`, `orbit_reposition()`: scoring candidate spots around a centre. `orbit_away()`: the ring walk shared by the bscorpion camp and the crabxx kite |
 | `Party Cohesion.js` | `follow_goal()` with the leader's breadcrumb trail, `party_cohesion_hold()`, `leader_position()`. Consulted by `movement_goal()`; moves nothing itself |
