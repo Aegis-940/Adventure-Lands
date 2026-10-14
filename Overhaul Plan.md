@@ -4,7 +4,7 @@ A worklist, not a reference. It restructures the bot into a standardized, better
 
 Baseline: commit `6ad5629`, 2026-10-14. Line references are to that commit and drift as work lands; search by function name if a line has moved.
 
-Reviewed 2026-10-14 before execution. The review's changes are folded in and listed in §17 (D6–D9).
+Reviewed 2026-10-14 before execution. The review's changes are folded in and listed in §17 (D6–D9). A second review the same evening added D10–D12 (staging branch, rare fixtures, deterministic goldens).
 
 ---
 
@@ -56,7 +56,9 @@ When this plan is done:
 
 ## 3. Ground rules for every step
 
-- **The characters keep running.** The bot is live for the whole plan. A push is safe to leave deployed for as long as the user chooses not to reload; the first reload after several pushes tests all of them at once, so the unit of live measurement is a reload, not a push (D6).
+- **The characters keep running.** The bot is live for the whole plan. The unit of live measurement is a reload, not a push (D6).
+- **`main` is live within hours.** The bot reloads itself at x:55 whenever `(hour + 1) % 4 === 0` (`Maintenance.js` `in_reset_window`: 3:55, 7:55, 11:55, 15:55, 19:55, 23:55), and the watchdog reloads silent windows. Whatever is on `main` then runs whether or not anyone is watching (D10).
+- **Stage on `overhaul`, merge while watched.** Any change to a file the bot loads goes to the `overhaul` branch. It reaches `main` only when the user is present to watch the next reload. The exceptions, which may go straight to `main`, are files the bot never loads (`Tools/`, `Tests/`, `.md`) and changes that only add telemetry and cannot throw into their callers (0.2, 0.5).
 - **Don't touch the current farm's behaviour.** While a spawn is the farm (mummies at spookytown as of 2026-10-14), the only step allowed to touch its code paths is a pure move with identical goldens recorded from live fixtures at that spawn. Anything that changes behaviour at the current farm waits until the farm moves, or ships only with the user's explicit go-ahead.
 - **One step per push.** A regression has exactly one suspect.
 - **Behaviour-neutral steps are proven neutral offline** by golden decisions (Phase 0) before the push, and watched live afterwards; the ledger confirms per reload or per phase, not per push (D4).
@@ -162,6 +164,10 @@ A snapshot holds everything a decider reads:
 - party state from the CM state cache
 - `home`, `destination`, current goal, `panicking`, `panic_external`, the active dungeon, the role `cache`
 - build SHA, character, role, timestamp
+- **the clock the deciders read:** `Date.now()`, `performance.now()`, `parent.next_skill`, `character.s` timers, `parent.pings`
+- **the stored values the deciders read:** the set profiles (`AL_set_profiles_<name>`, which drive the weapon chooser), farm focus (`AL_farm_focus`), the farm target
+
+The recorder lives inside Error Log as `errlog_snapshot(label)`, with a no-op stub in Global Config like the other `errlog_*`. Its body is wrapped the way `errlog_archive()` is, so a bug in it can only lose a snapshot, never throw into the code that called it.
 
 Triggers:
 
@@ -173,7 +179,7 @@ Triggers:
 
 Fixtures come from wherever the party is. The current farm and whichever bosses and panics happen are enough to start; other spawns accumulate when the farm moves (D6).
 
-**Exit:** at least 3 ordinary fixtures and 1 panic or close-call fixture from the current farm, and the recorder armed for bosses. Fixtures from other spawns are not an exit condition; the steps that need them wait for them (2.8).
+**Exit:** at least 3 ordinary fixtures from the current farm and the recorder armed for panics, close calls and bosses. A panic or close-call fixture is not an exit condition, because those are rare. It's required before 3.2 (the skill runner), the only step whose golden needs one (D11). Fixtures from other spawns are not an exit condition either; the steps that need them wait for them (2.8).
 
 ### 0.3 Offline harness
 
@@ -183,6 +189,7 @@ Fixtures come from wherever the party is. The current farm and whichever bosses 
 - `runner_functions.js` reads `parent.character`, `parent.entities`, `parent.G`, `parent.S`, `parent.socket`, `parent.smart`, `parent.pings`, `parent.next_skill` and friends, so the fake `parent` is built from the fixture: a socket stub that records `emit`s and accepts `on`/`off`, a jQuery stub, `entities` and `character` from the fixture, `S` and `pings` from the fixture or defaults.
 - It loads the bot files in Bootstrapper order: script-tag files with `runInContext`, role files with indirect eval in the context, `Interface/` skipped with stubs for `register_widget`, `add_toprightcorner_button`, `game_log`, `al_log_push`.
 - Timers are captured, not run. Load-time `setInterval`s and socket subscriptions are recorded as data: this also produces the Phase 1 loop and handler inventory, with each loop's kind (1.2) decided from what it does today.
+- **Deterministic per fixture.** Each fixture runs in a fresh context (deciders hold latches such as `_mana_chest_engaged` and the per-scorpion luck latch). `Date.now()` and `performance.now()` are frozen to the fixture's clock, `localStorage` is seeded from the fixture's stored values, and `Math.random` is seeded. A decider that reads anything else from outside shows up as a golden that differs between two runs of the same fixture, which `check` tests by running every fixture twice.
 - `node Tests/Harness.js load` boots all four roles and reports any load-time throw by file.
 
 Before Phase 1 the harness has to work around top-level side effects. Phase 1 removes them, and the harness gets simpler as it goes.
@@ -224,6 +231,7 @@ Without `home` it uses the home the party was at during each build's windows and
 | Counter | Allowed in |
 |---|---|
 | top-level executable statements (anything at file top level that is not a declaration or a kernel registration call) | `Kernel/`, `Code Loader.js`, `Bootstrapper.js` |
+| top-level initializers that call a bot function (`var destination = home_destination(home)`): they run at load just as a statement does. Literals, `new Set/Map`, spreads of constants and game data reads (`G.*`) don't count | `Kernel/`, `Global Config.js` constants |
 | raw `setInterval` / `while (true)` / self-rescheduling `setTimeout` | `Kernel/Scheduler.js` |
 | raw `parent.socket.on/off`, `character.on`, `addEventListener` | `Kernel/Events.js` |
 | `parent.X =` assignment | `Kernel/Events.js` (`wrap_parent`) |
@@ -295,7 +303,8 @@ every("equipment", { ms: TICK_RATE.equipment, kind: "combat" }, resolve_equipmen
 
 ### 1.3 Events (`Kernel/Events.js`)
 
-- `on_socket(event, key, fn)`: one real listener per socket event, fanning out to subscribers by key. Re-registering a key replaces it, so the 24 hand-rolled `parent.socket._name` off/on pairs become one line each. Everything is removed on `pagehide`.
+- `on_socket(event, key, fn)`: one real listener per socket event, fanning out to subscribers by key. Re-registering a key replaces it, so the 24 hand-rolled `parent.socket._name` off/on pairs become one line each.
+- **Leftovers are cleared at boot, not only on `pagehide`.** `parent.socket` outlives the code iframe, and the iframe can die without `pagehide` firing (the 2026-10-01 freeze removed it on a disconnect). Today each file stores its handler on `parent.socket` and calls `off` on the previous one at load for exactly this reason. The kernel keeps its real listeners in `parent.__al_listeners` and removes any it finds there before registering. `wrap_parent` likewise restores the original saved in `parent.__al_wrapped` before wrapping again. `pagehide` teardown stays as a courtesy.
 - **Each subscriber runs inside its own `catcher`**, so one throwing subscriber cannot starve the rest (today a throw in one `socket.on` handler skips the later handlers for that event).
 - **Subscribers run in registration order**, which is boot order, which is Bootstrapper list order. Combat Sampling's in-flight ledger therefore updates before anything that reads `remaining_hp()` in the same event, as today.
 - `on_character(event, key, fn)` does the same for `character.on`.
@@ -691,8 +700,8 @@ Dropped from the first draft: re-ordering every file's sections to a standard sh
 1. `python Tools/Lint.py` with no new problems, and the ratchet not increased (lower the baseline in the same commit if a count dropped).
 2. `node Tests/Harness.js load`: all four roles boot.
 3. `node Tests/Harness.js check`: goldens identical, or re-recorded with the reason in the commit message.
-4. Commit, push, then purge and verify jsDelivr as in `CLAUDE.md` (stop after one re-purge; the pinned `@sha` serves immediately).
-5. Stop. The user reloads when they choose. Several pushes may stack up before a reload; that is expected.
+4. Commit. A change to a file the bot loads is pushed to `overhaul`, not `main` (D10). A `main` push is purged and verified on jsDelivr as in `CLAUDE.md` (stop after one re-purge; the pinned `@sha` serves immediately).
+5. Stop. `overhaul` is merged to `main` only with the user present, and the next reload, theirs or the x:55 one, is then watched. Several pushes may stack up before a merge; that is expected.
 6. After the next reload, watch `errors.json` for new buckets and `danger.jsonl` for close calls over the first hour. Any new error bucket or death that names a changed subsystem is treated as `worse` without waiting for the ledger.
 7. When the D4 sample for the tier has accrued at the current home: `python "Tools/Data Store.py" compare <old> <new>`. Record the verdict against every step that went live in that reload. `worse` means revert the whole reload's steps, push and purge, then bisect offline with the harness before putting any of them back. Don't fix forward on top of a regression.
 
@@ -762,6 +771,9 @@ Reloads are the user's; a reload may carry any number of pushes. Live measuremen
 - **D6 The characters keep running, and the current farm is not a test bed.** The bot stays live throughout; fixtures and ledger windows come from wherever the party already is and whatever bosses and panics happen. Nothing in this plan relocates the party, starts the survey, or changes behaviour at the current farm. Encounter migration order follows the farm (2.8).
 - **D7 Phase 1 is a boot kernel, not a module registry.** `define()`/dependency wrapping of 80 files, the `expose` bridge and its removal are deferred (Appendix D). Reasons: 15–17 mechanical pushes for a benefit the boot phase and lint provide; an unplanned Core → role dependency inversion (16 Core files read role `CONFIG`/`cache`/`state`); and a bridge that would have to be removed again. Files stay classic scripts; the `var`/`const` eval rule stays and is documented.
 - **D8 Phase order is 0, 1, encounters, deciders/actuators, then the optional phases.** Encounters are the design change the overhaul is for and need only the boot kernel. The telemetry bus and world model are refactors with no behaviour payoff and go last, if at all. The world model, if built, is lazy per field and never a gate.
+- **D10 Stage on `overhaul`; `main` is what runs unattended.** The bot reloads itself every four hours at x:55 and the watchdog reloads silent windows, so "deploy and stop, the user reloads" doesn't hold: `main` goes live within hours whether or not anyone is watching. Changes to loaded files are staged on `overhaul` and merged with the user present. Only files the bot never loads, and the throw-proof telemetry of 0.2/0.5, go straight to `main`.
+- **D11 Rare fixtures gate only the step that needs them.** A panic or close-call fixture is required before 3.2, not to leave Phase 0.
+- **D12 Goldens are deterministic or they are noise.** The clock, the stored values and `Math.random` come from the fixture. Each fixture runs in a fresh context, and `check` runs every fixture twice.
 - **D9 Gates belong to the loop or skill entry, never to a shared runner.** The Pause Button leaves combat running and Myras heals while panicking; both are deliberate and both would have been broken by the first draft's uniform `automation` kind and runner-level mode gate. Loop kinds (1.2) and skill gates (3.2) are taken from the inventory of today's behaviour and pinned by goldens.
 
 ---
