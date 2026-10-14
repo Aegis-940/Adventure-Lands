@@ -2,7 +2,7 @@
 // WARRIOR CONFIG — tunables, gear sets, panic thresholds, and the mutable state the other Warrior files share
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var home = farm_target_for(character.name);
+var home = null;
 
 var CONFIG = {
 	combat: {
@@ -84,7 +84,7 @@ var CONFIG = {
 	},
 };
 
-var destination = home_destination(home);
+var destination = null;
 
 var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE];
 
@@ -185,9 +185,19 @@ var state = {
 	last_reposition: 0
 };
 
-var cache = make_cache({
-	target: null,
-	party_members: [],
-	tank_entity: null,
-	monsters_in_cleave_range: [],
+var cache = null;
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Warrior Config", () => {
+	home = farm_target_for(character.name);
+	destination = home_destination(home);
+	cache = make_cache({
+		target: null,
+		party_members: [],
+		tank_entity: null,
+		monsters_in_cleave_range: [],
+	});
 });

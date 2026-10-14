@@ -304,6 +304,7 @@ async function boot(fixture, options) {
 	}
 
 	await new Promise(r => setImmediate(r));
+	log.console_errors.push(..._unhandled.splice(0).map(e => "unhandled rejection: " + e));
 	return { ctx, log, game_errors };
 }
 
@@ -563,6 +564,9 @@ async function command_check() {
 	console.log(`${list.length} fixtures, ${failed} failing`);
 	return failed ? 1 : 0;
 }
+
+const _unhandled = [];
+process.on("unhandledRejection", reason => { _unhandled.push(error_text(reason)); });
 
 async function main() {
 	const [cmd, ...args] = process.argv.slice(2);

@@ -240,26 +240,18 @@ function weapon_burst(cleave, rush, swing_target) {
 }
 
 function swap_penalty_logger() {
-	if (parent.socket._swap_penalty_logger) {
-		parent.socket.off("skill_timeout", parent.socket._swap_penalty_logger);
-	}
-
-	parent.socket._swap_penalty_logger = data => {
+	const _swap_penalty_logger = data => {
 		if (!data || data.penalty === undefined) return;
 		if (data.name !== "attack" && data.name !== "cleave") return;
 		const rush = character.s.sugarrush !== undefined ? " rush" : "";
 		errlog_time(`penalty ${data.name}${rush}`, data.penalty);
 	};
 
-	parent.socket.on("skill_timeout", parent.socket._swap_penalty_logger);
+	on_socket("skill_timeout", "swap_penalty_logger", _swap_penalty_logger);
 }
 
 function sugar_rush_roll_logger() {
-	if (parent.socket._sugar_rush_roll_logger) {
-		parent.socket.off("hit", parent.socket._sugar_rush_roll_logger);
-	}
-
-	parent.socket._sugar_rush_roll_logger = data => {
+	const _sugar_rush_roll_logger = data => {
 		if (!data || data.hid !== character.id || data.splash || data.miss || data.evade) return;
 		if (data.source !== "attack" && data.source !== "cleave") return;
 		const canes = equipment_sets[SUGAR_RUSH.set].filter(entry =>
@@ -268,17 +260,13 @@ function sugar_rush_roll_logger() {
 		if (data.trigger === SUGAR_RUSH.status) errlog_count(`sugar rush proc ${data.source} ${canes}`);
 	};
 
-	parent.socket.on("hit", parent.socket._sugar_rush_roll_logger);
+	on_socket("hit", "sugar_rush_roll_logger", _sugar_rush_roll_logger);
 }
 
 var CC_REPORT_MS = 20000;
 
 function cc_report_logger() {
-	if (parent.socket._cc_report_logger) {
-		parent.socket.off("ccreport", parent.socket._cc_report_logger);
-	}
-
-	parent.socket._cc_report_logger = data => {
+	const _cc_report_logger = data => {
 		if (!data || !data.calls) return;
 		const by_method = {};
 		let total = 0;
@@ -289,8 +277,8 @@ function cc_report_logger() {
 		errlog_sample("cc_report", { total: +total.toFixed(1), climit: data.climit, by_method });
 	};
 
-	parent.socket.on("ccreport", parent.socket._cc_report_logger);
-	setInterval(() => parent.socket.emit("ccreport"), CC_REPORT_MS);
+	on_socket("ccreport", "cc_report_logger", _cc_report_logger);
+	every("cc report", { ms: CC_REPORT_MS, kind: "telemetry", fixed: true }, () => parent.socket.emit("ccreport"));
 }
 
 function record_swap_trick() {

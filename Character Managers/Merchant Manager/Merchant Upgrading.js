@@ -755,7 +755,7 @@ var LOLIPOP_PUSH = {
 
 var LOLIPOP_RUN_KEY = "AL_lolipop_push";
 
-var lolipop_run = storage_read(LOLIPOP_RUN_KEY) || { active: false };
+var lolipop_run = { active: false };
 
 function save_lolipop_run() {
 	storage_write(LOLIPOP_RUN_KEY, lolipop_run);
@@ -967,3 +967,11 @@ async function lolipop_push_step() {
 	if (stage === 8) await lolipop_sacrifices();
 	if (lolipop_run.active) await lolipop_roll(stage);
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Merchant Upgrading", () => {
+	lolipop_run = storage_read(LOLIPOP_RUN_KEY) || { active: false };
+});

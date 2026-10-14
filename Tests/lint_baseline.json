@@ -1,10 +1,6 @@
 {
  "call_initializers": {
-  "Character Managers/Healer Manager/Healer Config.js": 3,
-  "Character Managers/Merchant Manager/Merchant Config.js": 1,
-  "Character Managers/Merchant Manager/Merchant Upgrading.js": 1,
-  "Character Managers/Ranger Manager/Ranger Config.js": 3,
-  "Character Managers/Warrior Manager/Warrior Config.js": 3
+  "Character Managers/Merchant Manager/Merchant Config.js": 1
  },
  "emits": {
   "Character Managers/Healer Manager/Healer Combat.js": 2,
@@ -32,9 +28,6 @@
   "Dungeons/Crypt Route.js": 1,
   "Dungeons/Dungeon Escape.js": 1,
   "Interface/Bank Sort Order.js": 2
- },
- "local_storage": {
-  "Character Managers/Merchant Manager/Merchant Config.js": 4
  },
  "monster_literals": {
   "Character Managers/Healer Manager/Healer Config.js": 7,
@@ -67,13 +60,6 @@
   "Interface/Game Log.js": 1,
   "Interface/Pause Button.js": 1,
   "Interface/Settings Window.js": 1
- },
- "set_interval": {
-  "Character Managers/Warrior Manager/Warrior Combat.js": 1
- },
- "socket_on_off": {
-  "Character Managers/Warrior Manager/Warrior Combat.js": 6,
-  "Character Managers/Warrior Manager/Warrior Skills.js": 8
  },
  "typeof_guard": {
   "Character Managers/Ranger Manager/Ranger Combat.js": 2,

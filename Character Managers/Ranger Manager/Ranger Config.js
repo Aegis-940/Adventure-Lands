@@ -2,7 +2,7 @@
 // RANGER CONFIG — tunables, gear sets, panic thresholds, and the mutable state the other Ranger files share
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var home = farm_target_for(character.name);
+var home = null;
 
 var CONFIG = {
 	combat: {
@@ -68,7 +68,7 @@ var CONFIG = {
 	},
 };
 
-var destination = home_destination(home);
+var destination = null;
 
 var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE, "cupid"];
 
@@ -120,7 +120,17 @@ var state = {
 	last_reposition: 0,
 };
 
-var cache = make_cache({
-	targets: { sorted_by_value: [], in_range: [] },
-	heal_target: null,
+var cache = null;
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Ranger Config", () => {
+	home = farm_target_for(character.name);
+	destination = home_destination(home);
+	cache = make_cache({
+		targets: { sorted_by_value: [], in_range: [] },
+		heal_target: null,
+	});
 });

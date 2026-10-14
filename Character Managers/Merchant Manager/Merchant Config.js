@@ -3,17 +3,17 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function local_bool(key, fallback) {
-	const raw = localStorage.getItem(key);
+	const raw = storage_raw_read(key);
 	return raw === null ? fallback : raw === "true";
 }
 
 function local_number(key, fallback) {
-	const raw = localStorage.getItem(key);
+	const raw = storage_raw_read(key);
 	return raw === null ? fallback : Number(raw);
 }
 
 function local_craft_targets() {
-	const name = localStorage.getItem("AL_merchant_craft_target");
+	const name = storage_raw_read("AL_merchant_craft_target");
 	return name ? [{ name }] : [];
 }
 
@@ -44,7 +44,7 @@ var CONFIG = {
 	},
 	upgrade_gold_threshold: 100000000,
 	upgrade_target: {
-		name: localStorage.getItem("AL_merchant_upgrade_target") || "",
+		name: storage_raw_read("AL_merchant_upgrade_target") || "",
 		level: local_number("AL_merchant_upgrade_level", 10),
 		count: local_number("AL_merchant_upgrade_count", 1),
 	},

@@ -133,12 +133,10 @@ function rime_band_held(mob) {
 }
 
 function rime_shell_logger() {
-	if (parent.socket._rime_band_logger) parent.socket.off("hit", parent.socket._rime_band_logger);
-	if (parent.socket._stomp_reply_logger) parent.socket.off("game_response", parent.socket._stomp_reply_logger);
 
 	errlog_timeline("rime_watch", `rimeshell ability ${JSON.stringify(G.monsters.rimedjinn.abilities.rimeshell)}`);
 
-	parent.socket._rime_band_logger = data => {
+	const _rime_band_logger = data => {
 		if (!data || !data.damage) return;
 		const mob = parent.entities[data.id];
 		const shell = mob && rime_shell_ability(mob);
@@ -155,14 +153,14 @@ function rime_shell_logger() {
 		ledger.held[who] = (ledger.held[who] || 0) + data.damage;
 	};
 
-	parent.socket._stomp_reply_logger = data => {
+	const _stomp_reply_logger = data => {
 		if (!data || data.place !== "stomp" || !data.failed) return;
 		errlog_count(`stomp refused: ${data.response}`);
 		errlog_timeline("rime_watch", `stomp refused: ${data.response}`);
 	};
 
-	parent.socket.on("hit", parent.socket._rime_band_logger);
-	parent.socket.on("game_response", parent.socket._stomp_reply_logger);
+	on_socket("hit", "rime_band_logger", _rime_band_logger);
+	on_socket("game_response", "stomp_reply_logger", _stomp_reply_logger);
 }
 
 var RIME_SHELL_BREAK_PCT = 0.05;
@@ -367,9 +365,8 @@ function rime_stomp_planned() {
 }
 
 function rime_stomp_watcher() {
-	if (parent.socket._rime_stomp_watcher) parent.socket.off("entities", parent.socket._rime_stomp_watcher);
 
-	parent.socket._rime_stomp_watcher = data => {
+	const _rime_stomp_watcher = data => {
 		if (!data || !data.monsters) return;
 		const now = Date.now();
 		for (const id in _rime_stomp_plans) {
@@ -412,14 +409,13 @@ function rime_stomp_watcher() {
 		rime_stomp_overdue_check("entities");
 	};
 
-	if (parent.socket._rime_stomp_hit_check) parent.socket.off("hit", parent.socket._rime_stomp_hit_check);
-	parent.socket._rime_stomp_hit_check = () => {
+	const _rime_stomp_hit_check = () => {
 		_rime_last_packet_at = Date.now();
 		rime_stomp_overdue_check("hit");
 	};
 
-	parent.socket.on("entities", parent.socket._rime_stomp_watcher);
-	parent.socket.on("hit", parent.socket._rime_stomp_hit_check);
+	on_socket("entities", "rime_stomp_watcher", _rime_stomp_watcher);
+	on_socket("hit", "rime_stomp_hit_check", _rime_stomp_hit_check);
 }
 
 var _rime_last_packet_at = 0;

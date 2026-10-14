@@ -2,7 +2,7 @@
 // HEALER CONFIG — tunables, gear sets, panic thresholds, and the mutable state the other Healer files share
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var home = farm_target_for(character.name);
+var home = null;
 
 var CONFIG = {
 	combat: {
@@ -66,7 +66,7 @@ var CONFIG = {
 	},
 };
 
-var destination = home_destination(home);
+var destination = null;
 
 var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE, "mshield", "lmace", "elixirluck", "orboftemporal", "orboffire"];
 
@@ -174,8 +174,18 @@ var state = {
 	last_angle_update: performance.now()
 };
 
-var cache = make_cache({
-	target: null,
-	heal_target: null,
-	party_members: [],
+var cache = null;
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Healer Config", () => {
+	home = farm_target_for(character.name);
+	destination = home_destination(home);
+	cache = make_cache({
+		target: null,
+		heal_target: null,
+		party_members: [],
+	});
 });
