@@ -535,6 +535,10 @@ In free-mana mode the shirt goes on `chest_engage_shots` (2) of the widest wante
 
 `stand_loop()` opens the stall whenever he has stood still for 2s and closes it the moment he moves, because an open stand pins speed to 10.
 
+### `Merchant Party.js` — mluck
+
+`buff_nearby_players()` casts mluck on every player on the map within range (320), party or stranger, whose buff is missing or under 50 minutes, on the 1s opportunistic loop and at the end of a delivery run. Strangers are worth it because the server gives the caster a copy of a looted item 2% of the time for anyone whose `mluck.f` is him. It reads the live `s.mluck` off `parent.entities`, not the state cache, so it sees strangers and the true remaining time. The server lets a cast replace someone else's mluck only when it isn't `strong`, and a buff is `strong` when the caster's owner is the target's, so another merchant's buff on his own characters can't be taken: `mluck_wanted()` skips those instead of spending 10 MP on a cast that changes nothing. Casts are 200ms apart (cooldown 100ms) and stop when MP runs short.
+
 ### `Merchant Gear.js`
 
 `is_default_gear()` protects only the copy Riff wears: the default slot's name **and** level (`broom` +9, `wbookhs` +1). Matching by name alone kept every broom off the vendor list once `broom` was added to `SELLABLE_ITEMS`, because his mainhand is a broom.

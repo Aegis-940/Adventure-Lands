@@ -74,7 +74,7 @@ Line numbers are ours unless prefixed `theirs:`. Their paths are relative to the
 walking continues (`channel_walk()`), cancels it when the journey that wanted it ends, and M6 cruise
 applies to all three fighters. T7's cause was not a server refusal — the `not_ready` replies were potions —
 but the rules loop re-sending the jacko swap from a stale inventory view, which flipped the orb back.
-Also done: K2, K3, K4, S1, I1, I2, C1, C2. S1 found the potion loop drinking HP and MP in the same tick —
+Also done: K2, K3, K4, S1, I1, I2, C1, C2, R4. S1 found the potion loop drinking HP and MP in the same tick —
 they share one cooldown, so the second was always refused (the 60k `not_ready` lines). C2: only `rat` was a
 real error (sign flip, `y: 430` → `-430`); stoneworm, wolfie and mechagnome deliberately sit between their
 spawn boxes. S3 withdrawn (see below). E2: crabxx has no engage gate at all now and Myras kites it

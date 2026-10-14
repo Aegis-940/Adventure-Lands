@@ -10,9 +10,19 @@ function is_mluck_due(status) {
 	return remaining == null || remaining < MLUCK_REFRESH_THRESHOLD_MS;
 }
 
-function mluck_worth_topping_up(status) {
-	const remaining = status.conditions?.mluck?.ms;
-	return remaining == null || remaining < MLUCK_TOPUP_THRESHOLD_MS;
+function mluck_wanted(player) {
+	const mluck = player.s.mluck;
+	if (!mluck) return true;
+	if (mluck.strong && mluck.f !== character.name) return false;
+	return mluck.ms < MLUCK_TOPUP_THRESHOLD_MS;
+}
+
+function players_wanting_mluck() {
+	return Object.values(parent.entities).filter(e =>
+		e.type === "character" && !e.npc && !e.rip &&
+		Math.hypot(character.x - e.x, character.y - e.y) <= G.skills.mluck.range &&
+		mluck_wanted(e)
+	);
 }
 
 function any_party_within_range(range = CONFIG.party.nearby_trigger_range) {
@@ -30,34 +40,19 @@ function any_party_within_range(range = CONFIG.party.nearby_trigger_range) {
 	return false;
 }
 
-async function mluck_party_member(player) {
-	change_target(player);
-	await delay(100);
-	use_skill("mluck", player);
-	await delay(200);
-}
-
-async function buff_nearby_party() {
-	let buffed_any = false;
-	for (const name of PARTY) {
-		const status = read_state_cache(name);
-		if (!status || !mluck_worth_topping_up(status)) continue;
+async function buff_nearby_players() {
+	const buffed = [];
+	for (const player of players_wanting_mluck()) {
+		if (character.mp < G.skills.mluck.mp) break;
 		try {
-			const mluck_range = (G.skills.mluck && G.skills.mluck.range) || 320;
-			const player = get_player(name);
-			if (
-				!player || player.rip || character.map !== player.map ||
-				Math.hypot(character.x - player.x, character.y - player.y) > mluck_range
-			) {
-				continue;
-			}
-			await mluck_party_member(player);
-			buffed_any = true;
+			use_skill("mluck", player);
+			buffed.push(player.name);
 		} catch (e) {
-			catcher(e, "buff_nearby_party: " + name);
+			catcher(e, "buff_nearby_players: " + player.name);
 		}
+		await delay(200);
 	}
-	if (buffed_any) game_log("Cast MLuck.", "limegreen");
+	if (buffed.length) game_log(`Cast MLuck on ${buffed.join(", ")}.`, "limegreen");
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -129,7 +124,7 @@ async function handle_delivering_state() {
 			game_log("⚠️ No party member came within range — heading home anyway.", "#FFA500");
 		}
 
-		await buff_nearby_party();
+		await buff_nearby_players();
 		await sell_items();
 		await bank_items();
 	} catch (e) {

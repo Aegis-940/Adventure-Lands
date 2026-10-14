@@ -55,22 +55,22 @@ async function handle_collect_loot() {
 	}
 }
 
-function should_buff_party() {
-	return any_party_within_range();
+function should_buff_players() {
+	return players_wanting_mluck().length > 0;
 }
 
-async function handle_buff_party() {
+async function handle_buff_players() {
 	try {
-		await buff_nearby_party();
+		await buff_nearby_players();
 	} catch (e) {
-		catcher(e, "handle_buff_party");
+		catcher(e, "handle_buff_players");
 	}
 }
 
 async function decide_opportunistic_actions() {
 	if (should_buy_potions()) await handle_buy_potions();
 	if (should_collect_loot()) await handle_collect_loot();
-	if (should_buff_party()) await handle_buff_party();
+	if (should_buff_players()) await handle_buff_players();
 }
 
 async function opportunistic_actions_loop() {
