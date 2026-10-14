@@ -89,6 +89,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 |------|------|
 | `Encounter Registry.js` | **First stage.** `encounter(name, spec)` registers at load. Shared and role code ask `encounter_gear(group)`, `encounter_setting(name, fallback)`, `encounter_allows(action, mob)` and `encounter_rank(mob)`; the role default stays at the call site. `why("gear.weapon")`, `encounters_active()` and `encounter_problems()` in the console |
 | `Porcupine.js` | Hazard: Ulric never attacks, cleaves or agitates near a porcupine and wears his single set within splash reach; Riva ranks them first. Optional: deleting its Bootstrapper line removes the behaviour |
+| `Mummy.js` | Spawn: Myras wears her luck orb and the `zap_on` ring and zap-pulls fresh mummies, and doesn't curse them; Ulric doesn't agitate them; Riva spends no mark or supershot on them |
 | `Monster Rules.js` | Single monster types with a rule or two and no spawn of their own: pppompom (no cleave near one, not a reason to agitate), redfairy (no agitate near one), nerfedmummy (Riva never shoots one) |
 
 **Dungeons**

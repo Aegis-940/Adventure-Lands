@@ -623,7 +623,7 @@ async function handle_agitate(tank) {
 
 	const other_mobs = nearby_mobs.filter(e =>
 		["sparkbot", "jr", "greenjr", "bigbird", home].includes(e.mtype) &&
-		!CONFIG.combat.agitate_blacklist.includes(e.mtype) && encounter_allows("pull", e)
+		encounter_allows("pull", e)
 	);
 	const untargeted_other = other_mobs.filter(m => !m.target);
 

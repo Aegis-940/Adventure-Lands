@@ -38,6 +38,7 @@
 		"Core Systems/Targeting.js",
 		"Encounters/Porcupine.js",
 		"Encounters/Monster Rules.js",
+		"Encounters/Mummy.js",
 		"Core Systems/World Events.js",
 		"Core Systems/Character Messaging.js",
 		"Core Systems/Equipment Manager.js",
@@ -123,6 +124,7 @@
 	const OPTIONAL_SCRIPTS = new Set([
 		"Encounters/Porcupine.js",
 		"Encounters/Monster Rules.js",
+		"Encounters/Mummy.js",
 		"Core Systems/Boss Profiler.js",
 		"Core Systems/Error Log.js",
 		"Dungeons/Spider Dungeon.js",

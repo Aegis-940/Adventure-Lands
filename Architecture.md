@@ -62,6 +62,7 @@ Core Systems/*.js                 ← loaded in parallel as real <script> tags
 Encounters/                          ← the registry in the first stage; one optional file per encounter
     ├── Encounter Registry.js     encounter(), the context, and the questions shared and role code ask
     ├── Porcupine.js              hazard: Ulric never touches one, Riva kills them first
+    ├── Mummy.js                  spawn: zap pull, luck orb, no curse, no agitate, no ranger skills
     └── Monster Rules.js          pppompom, redfairy, nerfedmummy: a rule or two each, no spawn of their own
 
 Character Managers/[Role] Manager/   ← loaded sequentially via indirect eval, per character

@@ -17,7 +17,7 @@
    "passive": false
   },
   "pause_combat": false,
-  "skill.zap_pull_home": true,
+  "skill.zap_pull_home": false,
   "skill.aggro_cap": 5,
   "skill.fight_gear_owned": true,
   "panic.state": {

@@ -217,7 +217,6 @@ var MONSTER_GEAR_OVERRIDES = {
 	bscorpion:  { loadout: "single_target", orb: "orb_luck" },
 	dryad:      { loadout: "mdef" },
 	fireroamer: { loadout: "fireres", orb: "orb_fire" },
-	mummy:      { orb: "orb_luck" },
 	sparkbot:   { loadout: "luck_exoarm", orb: "uhills_orb", gloves: "uhills_gloves", chest: "uhills_chest", amulet: "uhills_amulet" },
 	targetron:  { loadout: "luck_exoarm", orb: "uhills_orb", gloves: "uhills_gloves", chest: "uhills_chest", amulet: "uhills_amulet" },
 	rimedjinn:  { loadout: "single_target", orb: "orb_dps", chest: "dps_chest" },

@@ -558,12 +558,28 @@ async function command_smoke(files) {
 	return failed ? 1 : 0;
 }
 
+async function unread_settings(ctx) {
+	const lists = (await game_sources()).lists;
+	const files = new Set([...lists.kernel, ...lists.first, ...lists.parallel, ...Object.values(lists.roles).flat()]);
+	const text = [...files].map(read_repo_file).join("\n");
+	const specs = vm.runInContext("_encounters", ctx);
+	const out = [];
+	for (const name in specs) {
+		for (const role in specs[name].settings || {}) {
+			for (const key in specs[name].settings[role]) {
+				if (!text.includes(`encounter_setting("${key}"`)) out.push(`${name}: setting ${key} is never read`);
+			}
+		}
+	}
+	return out;
+}
+
 async function command_load() {
 	let failed = 0;
 	for (const reversed of [false, true]) for (const name of PARTY) {
 		const { ctx, log, game_errors } = await boot(minimal_fixture(name), { entry: true, reversed });
 		const bot_errors = log.errors.slice(game_errors);
-		for (const problem of ctx.encounter_problems()) bot_errors.push({ file: "encounter", message: problem, where: "" });
+		for (const problem of [...ctx.encounter_problems(), ...await unread_settings(ctx)]) bot_errors.push({ file: "encounter", message: problem, where: "" });
 		const intervals = log.timers.filter(t => t.kind === "interval").length;
 		const timeouts = log.timers.filter(t => t.kind === "timeout").length;
 		const label = name + (reversed ? " (each stage reversed)" : "");

@@ -202,7 +202,7 @@ function bscorpion_damage_window() {
 }
 
 function zap_pull_home() {
-	return CONFIG.combat.zapper_enabled && CONFIG.combat.zap_pull_homes.includes(home);
+	return CONFIG.combat.zapper_enabled && encounter_setting("zap_pull", false);
 }
 
 function zap_pull_target() {

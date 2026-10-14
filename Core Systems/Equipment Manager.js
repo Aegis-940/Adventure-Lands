@@ -506,6 +506,9 @@ function gear_override(group) {
 	const boss = boss_gear_here();
 	if (boss && group in boss) return boss[group];
 
+	const encountered = encounter_gear(group);
+	if (encountered) return encountered;
+
 	const at_home = destination && character.map === destination.map;
 	if (!at_home) return null;
 	const overrides = MONSTER_GEAR_OVERRIDES[home] || {};
