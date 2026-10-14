@@ -195,7 +195,7 @@ function build_context(fixture, G, log) {
 	const timers = log.timers;
 	let timer_id = 1;
 	const capture = kind => (fn, ms) => {
-		timers.push({ kind, ms, name: (fn && fn.name) || "anonymous" });
+		timers.push({ kind, ms, name: (fn && fn.name) || "anonymous", fn });
 		return timer_id++;
 	};
 
@@ -287,7 +287,24 @@ async function boot(fixture, options) {
 		run_file(ctx, file, read_repo_file(file), "eval", log);
 	}
 
+	if (ctx.kernel_boot) {
+		const base = f => path.basename(f, ".js");
+		const order = [...game.lists.first, ...game.lists.parallel, ...role_files];
+		const failed = new Set(log.errors.slice(game_errors).map(e => e.file));
+		const loaded = order.filter(f => !failed.has(f) && (options.entry || !ENTRY_POINTS.has(path.basename(f))));
+		const plan = { order: order.map(base), loaded: loaded.map(base), optional: game.lists.optional.map(base),
+			entry: role_files.length ? base(role_files[role_files.length - 1]) : null };
+		try {
+			ctx.kernel_boot(plan);
+		} catch (e) {
+			log.errors.push({ file: "kernel_boot", message: String(e && e.message || e), where: "" });
+		}
+		const report = ctx.al_boot();
+		for (const f of report.failed) log.errors.push({ file: "boot " + f.file, message: f.reason, where: "" });
+	}
+
 	await new Promise(r => setImmediate(r));
+	log.console_errors.push(..._unhandled.splice(0).map(e => "unhandled rejection: " + e));
 	return { ctx, log, game_errors };
 }
 
@@ -467,6 +484,70 @@ function stable(value) {
 	return JSON.stringify(value, Object.keys(value).sort(), 1);
 }
 
+function smoke_payloads(ctx) {
+	const me = ctx.character;
+	const mob = Object.values(ctx.parent.entities).find(e => e.type === "monster") || { id: "m0", mtype: "mummy" };
+	return {
+		hit: [{ hid: me.id, id: mob.id, damage: 120, source: "attack", pid: "p1" }, { hid: mob.id, id: me.id, damage: 80, source: "attack" },
+			{ hid: me.id, id: mob.id, damage: 120, source: "attack", kill: true }],
+		action: [{ attacker: me.name, target: mob.id, pid: "p1", damage: 120, eta: 200, type: "attack" }],
+		kill_credit: [{ mtype: mob.mtype || "mummy", id: mob.id }],
+		game_response: [{ place: "equip_batch", slots: [] }, { response: "not_ready", place: "use_skill" }, { place: "stomp", failed: true, response: "cooldown" }],
+		skill_timeout: [{ name: "attack", ms: 500, penalty: 120 }],
+		ccreport: [{ calls: [[0, "attack", 1.5], [0, "move", 2]], climit: 200 }],
+		entities: [{ type: "all", monsters: [], players: [] }],
+		tracker: [{ monsters: {}, monsters_diff: {}, max: {} }],
+		q_data: [{ q: {}, num: 0, p: {} }],
+		disconnect: [undefined],
+		limitdcreport: [{ calls: { attack: 10 }, climit: 200 }],
+	};
+}
+
+async function command_smoke(files) {
+	const list = files.length ? files : fixture_files().filter(f => /mummy-pull|calm-Riff/.test(f));
+	let failed = 0;
+	for (const file of list) {
+		const fixture = load_fixture(file);
+		const { ctx, log } = await boot(fixture, { entry: true });
+		const before = log.console_errors.length;
+		const throws = [];
+		const payloads = smoke_payloads(ctx);
+		const fired = {};
+		for (const event in ctx.parent.socket.listeners) {
+			for (const fn of ctx.parent.socket.listeners[event].slice()) {
+				for (const payload of payloads[event] || [{}]) {
+					fired[event] = (fired[event] || 0) + 1;
+					try {
+						fn(payload);
+					} catch (e) {
+						throws.push(`socket ${event}: ${error_text(e)}`);
+					}
+				}
+			}
+		}
+		const intervals = log.timers.filter(t => t.kind === "interval");
+		for (let round = 0; round < 3; round++) {
+			for (const t of intervals) {
+				try {
+					t.fn();
+				} catch (e) {
+					throws.push(`interval ${t.name}: ${error_text(e)}`);
+				}
+			}
+		}
+		await new Promise(r => setImmediate(r));
+		const errors = log.console_errors.slice(before).concat(_unhandled.splice(0).map(e => "unhandled rejection: " + e));
+		const key = fixture_key(file);
+		const bad = throws.length + errors.length;
+		if (bad) failed++;
+		console.log(`${bad ? "ERRORS" : "ok    "} ${key}: ${Object.values(fired).reduce((a, b) => a + b, 0)} handler calls `
+			+ `over ${Object.keys(fired).length} events, ${intervals.length} intervals x3`);
+		for (const t of throws) console.log("   " + t.slice(0, 300));
+		for (const e of errors) console.log("   " + e.slice(0, 300));
+	}
+	return failed ? 1 : 0;
+}
+
 async function command_load() {
 	let failed = 0;
 	for (const name of PARTY) {
@@ -548,12 +629,16 @@ async function command_check() {
 	return failed ? 1 : 0;
 }
 
+const _unhandled = [];
+process.on("unhandledRejection", reason => { _unhandled.push(error_text(reason)); });
+
 async function main() {
 	const [cmd, ...args] = process.argv.slice(2);
 	if (cmd === "load") return command_load();
 	if (cmd === "decide") return command_decide(args[0]);
 	if (cmd === "golden") return command_golden(args);
 	if (cmd === "check") return command_check();
+	if (cmd === "smoke") return command_smoke(args);
 	if (cmd === "promote") {
 		console.log("promoted " + promote(args[0], args.slice(1).join(" ")));
 		return 0;
