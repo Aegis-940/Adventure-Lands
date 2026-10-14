@@ -1,9 +1,9 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// UHILLS — the sparkbot and targetron clump: Myras wears her luck set and no curse, the party stacks its debuffs on one farm focus,
+// TARGETRON-SPARKBOT — the uhills clump of targetrons and sparkbots: Myras wears her luck set and no curse, the party stacks its debuffs on one farm focus,
 // and Ulric agitates sparkbots wherever he meets them
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-encounter("uhills", {
+encounter("targetron-sparkbot", {
 	tier: "spawn",
 	homes: ["sparkbot", "targetron"],
 	mtypes: ["sparkbot"],
