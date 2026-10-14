@@ -195,7 +195,7 @@ function build_context(fixture, G, log) {
 	const timers = log.timers;
 	let timer_id = 1;
 	const capture = kind => (fn, ms) => {
-		timers.push({ kind, ms, name: (fn && fn.name) || "anonymous" });
+		timers.push({ kind, ms, name: (fn && fn.name) || "anonymous", fn });
 		return timer_id++;
 	};
 
@@ -484,6 +484,70 @@ function stable(value) {
 	return JSON.stringify(value, Object.keys(value).sort(), 1);
 }
 
+function smoke_payloads(ctx) {
+	const me = ctx.character;
+	const mob = Object.values(ctx.parent.entities).find(e => e.type === "monster") || { id: "m0", mtype: "mummy" };
+	return {
+		hit: [{ hid: me.id, id: mob.id, damage: 120, source: "attack", pid: "p1" }, { hid: mob.id, id: me.id, damage: 80, source: "attack" },
+			{ hid: me.id, id: mob.id, damage: 120, source: "attack", kill: true }],
+		action: [{ attacker: me.name, target: mob.id, pid: "p1", damage: 120, eta: 200, type: "attack" }],
+		kill_credit: [{ mtype: mob.mtype || "mummy", id: mob.id }],
+		game_response: [{ place: "equip_batch", slots: [] }, { response: "not_ready", place: "use_skill" }, { place: "stomp", failed: true, response: "cooldown" }],
+		skill_timeout: [{ name: "attack", ms: 500, penalty: 120 }],
+		ccreport: [{ calls: [[0, "attack", 1.5], [0, "move", 2]], climit: 200 }],
+		entities: [{ type: "all", monsters: [], players: [] }],
+		tracker: [{ monsters: {}, monsters_diff: {}, max: {} }],
+		q_data: [{ q: {}, num: 0, p: {} }],
+		disconnect: [undefined],
+		limitdcreport: [{ calls: { attack: 10 }, climit: 200 }],
+	};
+}
+
+async function command_smoke(files) {
+	const list = files.length ? files : fixture_files().filter(f => /mummy-pull|calm-Riff/.test(f));
+	let failed = 0;
+	for (const file of list) {
+		const fixture = load_fixture(file);
+		const { ctx, log } = await boot(fixture, { entry: true });
+		const before = log.console_errors.length;
+		const throws = [];
+		const payloads = smoke_payloads(ctx);
+		const fired = {};
+		for (const event in ctx.parent.socket.listeners) {
+			for (const fn of ctx.parent.socket.listeners[event].slice()) {
+				for (const payload of payloads[event] || [{}]) {
+					fired[event] = (fired[event] || 0) + 1;
+					try {
+						fn(payload);
+					} catch (e) {
+						throws.push(`socket ${event}: ${error_text(e)}`);
+					}
+				}
+			}
+		}
+		const intervals = log.timers.filter(t => t.kind === "interval");
+		for (let round = 0; round < 3; round++) {
+			for (const t of intervals) {
+				try {
+					t.fn();
+				} catch (e) {
+					throws.push(`interval ${t.name}: ${error_text(e)}`);
+				}
+			}
+		}
+		await new Promise(r => setImmediate(r));
+		const errors = log.console_errors.slice(before).concat(_unhandled.splice(0).map(e => "unhandled rejection: " + e));
+		const key = fixture_key(file);
+		const bad = throws.length + errors.length;
+		if (bad) failed++;
+		console.log(`${bad ? "ERRORS" : "ok    "} ${key}: ${Object.values(fired).reduce((a, b) => a + b, 0)} handler calls `
+			+ `over ${Object.keys(fired).length} events, ${intervals.length} intervals x3`);
+		for (const t of throws) console.log("   " + t.slice(0, 300));
+		for (const e of errors) console.log("   " + e.slice(0, 300));
+	}
+	return failed ? 1 : 0;
+}
+
 async function command_load() {
 	let failed = 0;
 	for (const name of PARTY) {
@@ -574,6 +638,7 @@ async function main() {
 	if (cmd === "decide") return command_decide(args[0]);
 	if (cmd === "golden") return command_golden(args);
 	if (cmd === "check") return command_check();
+	if (cmd === "smoke") return command_smoke(args);
 	if (cmd === "promote") {
 		console.log("promoted " + promote(args[0], args.slice(1).join(" ")));
 		return 0;
