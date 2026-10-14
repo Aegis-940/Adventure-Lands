@@ -14,7 +14,7 @@ Reviewed 2026-10-14 before execution. The review's changes are folded in and lis
 |---|---|---|---|
 | 0 | Safety net: harness, snapshots, golden decisions, ratchet lint, docs triage | none | **done** 2026-10-15 (live on `main`) |
 | 1 | Boot kernel: boot phase, scheduler, events, storage, console API | none | **1.1–1.7 live** 2026-10-15. `compare` at bscorpion against Oct 12–14: **same** (6 full windows; kills, XP, potions within 1.5%, no deaths or close calls). 1.2b (combat loops) not started |
-| 2 | Encounters (the monster behaviour redesign) | small, per encounter | 2.1–2.6, 2.8.1, 2.8.2 live 2026-10-15; **2.8.3–2.8.5, 2.8.8 built on `overhaul`**, matching 68 fixtures including 10 live bscorpion ones recorded on `main`. Left: 2.8.6 rime Djinn (no fixtures), 2.8.7 bscorpion (current farm: needs the go-ahead) |
+| 2 | Encounters (the monster behaviour redesign) | small, per encounter | **everything but the rime Djinn merged to `main`** 2026-10-15 (2.1–2.6, 2.8.1–2.8.5, 2.8.7, 2.8.8, the ring fix), matching 68 fixtures including 10 live bscorpion ones recorded on the previous build. Left: 2.8.6 rime Djinn |
 | 3 | Deciders and actuators | per decision | not started |
 | 4 | Telemetry on the event bus | none | not started |
 | 5 | World model (optional) | small (timing) | not started |
