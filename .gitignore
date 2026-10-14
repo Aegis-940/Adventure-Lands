@@ -21,3 +21,5 @@ watchdog.json.tmp
 watchdog.jsonl
 watchdog.log*
 watchdog.pause
+
+snapshots.jsonl

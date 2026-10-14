@@ -78,7 +78,7 @@ When this plan is done:
 | Direct `localStorage` | 26 calls in 7 files, 20 distinct `AL_*` keys | Phase 1: storage registry |
 | `typeof` guards | 14 (4 of them Porcupine Guard) | Phase 4 removes the 4; rest stay legitimate |
 | Monster-name literals outside the allowed lists | ~65 (see Appendix B) | Phase 4 |
-| Override systems | 5: `MONSTER_GEAR_OVERRIDES`, `BOSS_GEAR_OVERRIDES`, `RIME_HOLD_GEAR`, dungeon `flags` (31 keys), the `*_homes`/blacklist lists | Phase 4: one |
+| Override systems | 5: `MONSTER_GEAR_OVERRIDES`, `BOSS_GEAR_OVERRIDES`, `RIME_HOLD_GEAR`, dungeon `flags` (31 keys), the `*_homes`/blacklist lists | Phase 4: the four non-dungeon systems become one; dungeon flags stay (D2) |
 | Hand-rolled equip bursts (`equip_plan` + `emit_equip_ops`) | 4 sites | Phase 5 |
 | Raw `equip()`/`unequip()` | 3 (Merchant Gear) | Phase 5 |
 | Logger loops started from Ulric's entry point | 5 of 12 | Phase 2 |
@@ -115,7 +115,7 @@ Bootstrapper.js                fetch everything, then kernel_boot(character.name
 Kernel/                        first stage: Kernel.js, Scheduler.js, Events.js, Storage.js
 Core Systems/                  shared modules (some split in Phase 6)
 Encounters/                    one file per encounter (Phase 4)
-Dungeons/                      dungeon machinery; definitions become encounters (step 4.9)
+Dungeons/                      dungeon machinery and definitions; flags stay their own system (D2)
 Interface/                     widgets, windows, toolbar
 Character Managers/            role modules and role manifests
 Tests/                         Node harness, fixtures, goldens; never loaded by the Bootstrapper
@@ -139,7 +139,7 @@ Extend `Tools/Lint.py` with `--graph`: for each file, the top-level names it def
 
 ### 0.2 Snapshot recorder
 
-A `snapshot` lane through `errlog_archive()`, plus a sink lane in `Tools/Error Sink.py` (`archive_lane` paths dict) writing `snapshots.jsonl`.
+A `snapshot` lane through `errlog_archive()`, plus a sink lane in `Tools/Error Sink.py` (`archive_lane` paths dict) writing `snapshots.jsonl` (gitignored; fixtures are promoted from it with anonymisation, per D5).
 
 A snapshot holds everything a decider reads:
 
@@ -194,7 +194,7 @@ Check that every `.jsonl` line written by the sink carries the build SHA (`_errl
 
 `python "Tools/Data Store.py" compare <build_a> <build_b> [home]` reports kills/h, deaths/h, gold/h, XP/h, potions/h and close calls/h at the spot for each build, with the existing `band()`/`judge()` noise bands. The verdict is `same`, `better`, `worse` or `not enough data`.
 
-The minimum sample is 6 ledger windows (30 minutes) at the same home per build. Below that, the verdict is `not enough data`, never `same`.
+The minimum sample follows D4: 6 windows (30 minutes) at the same home per build for behaviour-neutral steps, 12 for steps that change timing or behaviour. Below that, the verdict is `not enough data`, never `same`.
 
 ### 0.7 Ratchet lint and docs triage
 
@@ -356,7 +356,9 @@ Each of these keeps its file and moves its handlers onto topics:
 
 ### 2.4 Logging levels
 
-`log(level, msg)` with `info`, `warn`, `error`, `event` and `debug` levels, where colour and prefix come from the level. This is the same set `ERRLOG_GAMELOG_PREFIXES` already infers from emojis. `game_log(msg, color)` stays as the underlying writer. Converting the 255 call sites is mechanical and done file by file alongside other work, never as its own sweep. *(Open question Q3.)*
+`log(level, msg)` with `info`, `warn`, `error`, `event` and `debug` levels, where colour and prefix come from the level. This is the same set `ERRLOG_GAMELOG_PREFIXES` already infers from emojis. `game_log(msg, color)` stays as the underlying writer. `warn` and `error` also count into the flight recorder by level, which replaces Error Log's emoji-prefix inference.
+
+Conversion (D3): a file's `game_log` calls are converted in the commit that changes that file for a non-mechanical reason in Phases 2–6. They're never converted inside a Phase 1 batch, whose diffs must stay header and footer only. Whatever is left is swept file by file in 6.2.
 
 ### 2.5 Record context
 
@@ -367,7 +369,7 @@ Every archived record carries build, character, home and active encounters (home
 - [ ] 2.1 normalised topics
 - [ ] 2.2 bot events emitted at their owners
 - [ ] 2.3 subscribers moved; logger loops gone from the entry points
-- [ ] 2.4 log levels (if Q3 = yes)
+- [ ] 2.4 `log(level, msg)` in place; call sites converted as files are touched (D3)
 - [ ] 2.5 record context
 
 **Exit:** no socket handler outside `Kernel/Events.js`. The entry points list only behaviour loops. Ledger, danger and survey `.jsonl` output is unchanged except for the added fields, checked by diffing a window from each build.
@@ -458,7 +460,7 @@ define("encounter:porcupine", ["encounters", "combat_utilities"], ({ encounter }
 - Role keys are `character.ctype` values (`warrior`, `priest`, `ranger`, `merchant`) plus `all`.
 - An answer is data, or a function of `world` when it depends on the situation. There's no condition language.
 - An encounter may hold its own state and define `enter(world)` / `leave(world)`. Deleting the file deletes the state, the hooks and the special cases.
-- **Folder name:** `Encounters/`. *(Open question Q1.)*
+- **Folder name:** `Encounters/` (D1).
 
 ### 4.2 Activity and tiers
 
@@ -520,7 +522,10 @@ One encounter per push. Sources are from the 2026-10-14 inventory (Appendix B).
 4. **Bosses** (`situation`): mrpumpkin and mrgreen (`BOSS_GEAR_OVERRIDES`, `tank_bosses`, `cleave_lone_bosses`, `taunt_bosses`), franky and icegolem (`cleave_boss_blacklist`), crabxx (`takes_one_damage` at Combat Utilities 233, the `coop_boss_only` exception in Ranger Combat 347, the crabx agitate at Warrior Skills 620, boss gear, the kite via `orbit_away`). After this step `BOSS_GEAR_OVERRIDES` is gone. `ALL_BOSSES`, `EVENT_LOCATIONS`, `boss_strayed()` and `is_coop_boss()` stay generic.
 5. **Rime Djinn** (`spawn` + `situation`): Warrior Skills 90–456 (shell windows, stomp planning, the watcher, the deadline stomp), the Combat Utilities predicates 111–184, Ranger Combat `shelled_first` (77) and shell shots (314–347), `RIME_HOLD_GEAR` (Warrior, Ranger), its gear entries (Warrior, Healer), the Warrior Skills socket handlers (164–165, 421–422), the `rime_shell_logger` and `rime_stomp_watcher` loops. Uses `step` for the stomp, `enter`/`leave` for the shell windows, and keeps the hot-path exception from 3.2. After this step `RIME_HOLD_GEAR` is gone and Warrior Skills is the warrior's skill table only.
 6. **Bscorpion** (`spawn`): `Core Systems/Bscorpion Camp.js` (360 lines: camp step, Riva's rail, temporal surge, the kill logger), Myras's `fight` rule in Healer Equipment (`fight_gear_owned`, `camp_fight`/`camp_luck`, `luck_window`, `log_camp_kill`, the remembered amulet), the Healer Combat/Skills references, the Movement Manager branch at 891 (→ `encounter_goal` returning `{ local: "camp" }`), Ranger `aggro_by_home`, Warrior `bscorpion_worth_buffing`, the gear entries in three files, `PRIM_FARM_*` constants. The most tangled, so last. It may take two pushes: positioning and gear, then the fight rule and luck.
-7. **Dungeons as encounters** (optional, *Q2*): each `DUNGEONS.x.flags` block becomes the dungeon encounter's answers, active while the dungeon is active. Entry, keys, routes and boss walks stay in Dungeon Runner. The 31 flags map in Appendix C. `dungeon_flag`/`dungeon_setting` disappear, and their 38 call sites become ordinary questions. This isn't merging flags into `CONFIG` (which `CLAUDE.md` rules out): answers are still read at the decision.
+7. **Dungeons stay a separate system** (D2). `dungeon_flag()`/`dungeon_setting()` and their 38 call sites remain. The one thing this phase adds is a precedence rule, because the two systems meet at the same decisions:
+   - **Inside an active dungeon, the dungeon's flags win** over every encounter answer to the same decision. Spawn-tier encounters are never active there anyway, because `home` is the dungeon's home.
+   - Today the order is inconsistent: `resolve_healer_orb()` checks the dungeon orb before `gear_override()`, but `resolve_healer_loadout()` checks `gear_override()` before `dungeon_loadout()`. Step 4.8.3 makes every resolver use the same order (dungeon flag, then encounter, then role default), and re-records any golden that changes.
+   - Mob hooks (`allows`, `rank`) still apply inside dungeons, so a porcupine trait holds everywhere. A dungeon flag that vetoes an action (`no_cleave`) is checked alongside `encounter_allows()`, and either can veto.
 
 ### 4.9 What stays out
 
@@ -538,7 +543,7 @@ One encounter per push. Sources are from the 2026-10-14 inventory (Appendix B).
 - [ ] 4.8.4 bosses
 - [ ] 4.8.5 rime Djinn
 - [ ] 4.8.6 bscorpion
-- [ ] 4.8.7 dungeons (if Q2 = yes)
+- [ ] 4.8.7 dungeon/encounter precedence applied in every resolver
 
 **Exit:** the monster-literal ratchet is zero. `gear_override()`, `MONSTER_GEAR_OVERRIDES`, `BOSS_GEAR_OVERRIDES`, `RIME_HOLD_GEAR` and the `*_homes`/blacklist lists are gone. The `typeof` count is down by 4. Design Notes has one section per encounter, with the bscorpion camp, rime shell and uhills paragraphs moved into them.
 
@@ -677,7 +682,7 @@ Drop `expose: true` everywhere, and set every ratchet counter to fail at zero.
 | Config | role `CONFIG` local; defaults at the call site for encounter settings; shared defaults only for values identical across roles |
 | Monsters | named only in encounters and the allow-listed enumerations |
 | Server calls | only in actuators |
-| Logging | `log(level, msg)` for people (if Q3), `errlog_*`/events for data |
+| Logging | `log(level, msg)` for people, `errlog_*`/events for data |
 | Comments | none; reasoning in Design Notes; commented-out code kept verbatim |
 | Syntax | no `??=`/`||=`/`&&=`; optional chaining is fine (already used) |
 
@@ -690,7 +695,7 @@ Drop `expose: true` everywhere, and set every ratchet counter to fail at zero.
 3. `node Tests/Harness.js check`: goldens identical, or re-recorded with the reason in the commit message.
 4. Commit, push, then purge and verify jsDelivr as in `CLAUDE.md` (stop after one re-purge; the pinned `@sha` serves immediately).
 5. Stop. The user reloads when they choose.
-6. After at least 6 ledger windows at the same home on the new build: `python "Tools/Data Store.py" compare <old> <new> <home>`. Also check `errors.json` for new buckets and `danger.jsonl` for close calls.
+6. After the D4 minimum of ledger windows at the same home on the new build (6, or 12 for timing or behaviour steps): `python "Tools/Data Store.py" compare <old> <new> <home>`. Also check `errors.json` for new buckets and `danger.jsonl` for close calls.
 7. Record the verdict against the step's checkbox. `worse` means revert, then push and purge, then investigate. Don't fix forward on top of a regression.
 
 Many small pushes run into jsDelivr purge throttling (§Deploying in `CLAUDE.md`). Pace pushes so each purge succeeds, and rely on the pinned SHA when one doesn't.
@@ -725,7 +730,7 @@ Rough count of pushes, each independently shippable:
 | 1 | 15–17 |
 | 2 | 5–6 |
 | 3 | 5–7 |
-| 4 | 9–11 |
+| 4 | 8–10 |
 | 5 | 9–11 |
 | 6 | 10–12 |
 | **Total** | **~60–70** |
@@ -734,13 +739,20 @@ Phase 0 is worth doing on its own even if nothing else follows: every later chan
 
 ---
 
-## 17. Open questions for the user
+## 17. Decisions (2026-10-14)
 
-- **Q1** Folder name: `Encounters/` (covers spawns, places and bosses) or `Monsters/`?
-- **Q2** Fold dungeons into encounters (4.8.7), or leave dungeon flags as their own system?
-- **Q3** Introduce log levels (2.4) and convert the 255 `game_log` call sites gradually?
-- **Q4** Ledger gate: is "6 windows at the same home, verdict from the existing noise bands" the bar, or tighter?
-- **Q5** `Tests/` in the repo (never loaded by the bot), with fixtures committed? Snapshots may include party and item data.
+- **D1 Folder name: `Encounters/`.** It covers spawns, places and bosses, not only single monsters.
+- **D2 Dungeons stay a separate system.** Dungeon flags are not folded into encounters. Inside an active dungeon its flags win over encounter answers, and the resolvers are made consistent about that order (4.8.7).
+- **D3 Log levels: yes, converted gradually.** `log(level, msg)` arrives in Phase 2. Call sites are converted when their file is touched for a non-mechanical reason, never inside a Phase 1 batch, and the remainder is swept in 6.2 (see 2.4).
+- **D4 The ledger gate has two tiers:**
+  - *Behaviour-neutral steps* (Phases 1, 2, 6 and the mechanical parts of 4): at least 6 windows (30 min) at the same home per build, verdict from the existing `band()`/`judge()` noise bands.
+  - *Steps that change timing or behaviour* (Phase 3, 4.8.5 rime, 4.8.6 bscorpion, 4.8.7, every Phase 5 step): at least 12 windows (1 hour) per build, and at two spawns where the step isn't spawn-specific.
+  - In both tiers, any death at the spot on the new build is read in `danger.jsonl` before a verdict is given. `worse` on kills/h or deaths/h beyond the band means revert, then investigate.
+  - While the farm survey is running, `home` changes every hour, so compare per spot. Don't start a measured step in the last 30 minutes of a survey visit.
+- **D5 `Tests/` is committed; raw snapshots are not.**
+  - The repo is public (jsDelivr serves it), so `snapshots.jsonl` stays machine-local and gitignored like the other archives.
+  - `node Tests/Harness.js promote <id>` copies a chosen snapshot into `Tests/fixtures/`. On the way it replaces every non-party player name with a stable hash, drops chat and trade data, and keeps only the fields deciders read.
+  - The harness, goldens and promoted fixtures are committed. Fixtures are capped at about 60, and each one carries a label saying what it's for.
 
 ---
 
@@ -789,9 +801,11 @@ Counted with `G.monsters` names from `Tools/.cache/data.js` against string liter
 
 Allow-listed, staying where they are: Global Config (`LOCATIONS`, `ALL_BOSSES`, `EVENT_LOCATIONS`), Farm Survey (`SURVEY_SPOTS`), dungeon definitions and routes (Crypt Dungeon, Crypt Route, Spider Dungeon, Dreams Cave, Dungeon Mode).
 
-## Appendix C — Dungeon flags → encounter questions (for 4.8.7)
+## Appendix C — Dungeon flags by the encounter question they meet (for 4.8.7)
 
-| Flag | Question |
+Dungeon flags stay their own system (D2). This table shows where a flag and an encounter answer can reach the same decision, which is where 4.8.7's precedence applies.
+
+| Flag | Meets |
 |---|---|
 | `no_cleave`, `no_agitate`, `no_attack` | `allows` |
 | `single_target`, `aggroed_only`, `nearest_first`, `target_lowest_hp`, `defensive_targeting`, `follow_focus` | `setting` (targeting/shot choice) |
