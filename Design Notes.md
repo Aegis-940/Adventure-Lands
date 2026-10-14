@@ -414,6 +414,8 @@ Agitate, warcry, stomp, and taunt; cleave fires here only when no swing is comin
 
 **Agitate** donates aggro to the tank but stands down while she is `endangered()`, and never fires with a kited boss in range (World Events → kiting).
 
+**Not at mummies** (`agitate_blacklist`). The server's agitate also takes every monster already on a party member, so there it took the whole pack off Myras for her to absorb back. A 120s probe on 10-14 counted ~9 agitates a minute (~5.7 mummies each) and ~10.5 absorbs. That is ~63 MP/s of his ~250 MP/s potion income, and every fighter there was drinking 145 of the 150 potions the cooldown allows per 5 minutes. The pull was redundant: the mummy rage box hands the whole spawn to the party every 4.2s, spawns were targeted 0.9s after appearing, and Myras's zap pull (Healer Skills → zap) now takes fresh spawns straight onto her. The mana goes to cleave instead.
+
 **Stomp** stuns her attackers when she is below 35%. It does not use `endangered()`, which already fires below 60% whenever she is taking damage, so it saves the stun for real emergencies. It works only with a basher-type weapon worn or the `basher` set in the bag, swapped in and out in one burst like cleave.
 
 **Taunt** (`handle_taunt()`) pulls a `taunt_bosses` boss (mrpumpkin, mrgreen) onto him whenever it is on anyone but him, Myras or a `taunt_exempt` player (CrownTown, CrownsAnal, CrownPriest), provided she is within absorb range of him. The boss's `coop` makes every player fighting it friendly to the server's taunt check, so this steals it from other parties too.
