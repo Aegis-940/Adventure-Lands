@@ -89,148 +89,31 @@ function leader_position() {
 	return c ? { map: c.map, x: c.x, y: c.y, going: null, speed: c.speed, town: !!c.town, rip: !!c.rip, formation: !!c.formation, disengaging } : null;
 }
 
-const PACE_MATCH_PX = 1;
-const PACE_GAIN = 0.4;
-const PACE_FREE_PX = 100;
+const PACE_MATCH_PX = 25;
+const PACE_FREE_PX = 60;
 const PACE_FREE = 500;
-const PACE_SEND_MS = 250;
-let _pace = { sent: PACE_FREE, at: 0 };
+const PACE_SEND_MS = 1000;
+let _pace = { sent: PACE_FREE, at: 0, matched: false };
 
 function follow_pace(pos, d) {
-	if (!pos.formation || !pos.speed || d >= PACE_FREE_PX) return null;
-	return Math.round(pos.speed + Math.max(0, d - PACE_MATCH_PX) * PACE_GAIN);
+	if (!pos.formation || !pos.speed) return null;
+	if (_pace.matched ? d >= PACE_FREE_PX : d > PACE_MATCH_PX) {
+		_pace.matched = false;
+		return null;
+	}
+	_pace.matched = true;
+	return Math.round(pos.speed);
 }
 
 function convoy_pace(goal) {
 	const cap = goal && goal.pace ? goal.pace : PACE_FREE;
+	if (!goal || !goal.pace) _pace.matched = false;
 	if (cap === _pace.sent) return;
 	const now = Date.now();
 	if (cap !== PACE_FREE && now - _pace.at < PACE_SEND_MS) return;
 	_pace.sent = cap;
 	_pace.at = now;
 	Promise.resolve(cruise(cap)).catch(() => { });
-}
-
-function follow_has_leader() {
-	const pos = leader_position();
-	return !!pos && !pos.rip;
-}
-
-function party_cohesion_hold(event) {
-	if (character.name !== MOVEMENT_LEADER) return false;
-
-	const limit = (party_member_in_danger() || _cohesion_holding) ? cohesion_regroup() : cohesion_range();
-	const travelling = is_travelling();
-	_cohesion_holding = COHESION_FOLLOWERS.some(name => {
-		const s = read_state_cache(name);
-		if (!s || s.rip || s.paused) return false;
-		if (event && s.goal === event.label) return false;
-		if (s.map !== character.map) return !travelling;
-		return Math.hypot(s.x - character.x, s.y - character.y) > limit;
-	});
-	return _cohesion_holding;
-}
-
-function cohesion_closing(d) {
-	if (d > cohesion_range()) _cohesion_closing = true;
-	else if (d <= cohesion_regroup()) _cohesion_closing = false;
-	return _cohesion_closing;
-}
-
-function follower_holds_back(event) {
-	if (character.name === MOVEMENT_LEADER) return false;
-	const pos = leader_position();
-	if (!pos || pos.rip || pos.map !== character.map) return false;
-	if (!cohesion_closing(Math.hypot(character.x - pos.x, character.y - pos.y))) return false;
-	const c = read_state_cache(MOVEMENT_LEADER);
-	return !c || c.goal !== event.label;
-}
-
-let _trail = { map: null, crumbs: [], seen: null, leg: null, exhausted: false };
-
-function record_leader_trail() {
-	const live = get_player(MOVEMENT_LEADER);
-	if (!live) return;
-	const here = { x: live.x, y: live.y };
-	if (_trail.map !== character.map || !_trail.seen || Math.hypot(here.x - _trail.seen.x, here.y - _trail.seen.y) > TRAIL_JUMP) {
-		_trail = { map: character.map, crumbs: [], seen: here, leg: null, exhausted: false };
-	}
-	_trail.seen = here;
-	const leg = live.moving ? { x: live.going_x, y: live.going_y } : here;
-	if (_trail.leg && Math.hypot(leg.x - _trail.leg.x, leg.y - _trail.leg.y) < 1) return;
-	const turned_at_end = _trail.leg && Math.hypot(here.x - _trail.leg.x, here.y - _trail.leg.y) < TRAIL_CORNER;
-	_trail.crumbs.push(turned_at_end ? _trail.leg : here);
-	_trail.exhausted = false;
-	_trail.leg = leg;
-	if (_trail.crumbs.length > TRAIL_MAX) _trail.crumbs.shift();
-}
-
-function trail_point() {
-	if (_trail.map !== character.map) return null;
-	const live = get_player(MOVEMENT_LEADER);
-	const last = live ? { x: live.x, y: live.y, live: true } : _trail.seen;
-	const points = _trail.exhausted
-		? (live ? [last] : [])
-		: (last ? _trail.crumbs.concat([last]) : _trail.crumbs);
-	for (let i = points.length - 1; i >= 0; i--) {
-		const p = points[i];
-		if (!can_move_to(p.x, p.y)) continue;
-		if (Math.hypot(character.x - p.x, character.y - p.y) > LOCAL_MOVE_SLOP) return p;
-		if (p.live) return p;
-		_trail.exhausted = true;
-		return null;
-	}
-	return null;
-}
-
-const PASSAGE_RETRY_MS = 1000;
-const TRANSPORTER_REACH = 75;
-let _passage_sent_at = 0;
-
-function leader_passage(pos) {
-	if (_trail.map !== character.map || !_trail.seen) return null;
-	const seen = _trail.seen;
-	for (const door of G.maps[character.map].doors) {
-		if (door[4] !== pos.map) continue;
-		if (is_door_close(character.map, door, seen.x, seen.y)) return { to: door[4], s: door[5] || 0, door };
-	}
-	const place = G.npcs.transporter.places[pos.map];
-	if (place === undefined) return null;
-	for (const npc of G.maps[character.map].npcs) {
-		if (npc.id !== "transporter") continue;
-		const at = { x: npc.position[0], y: npc.position[1] };
-		if (Math.hypot(at.x - seen.x, at.y - seen.y) < TRANSPORTER_REACH) return { to: pos.map, s: place, at };
-	}
-	return null;
-}
-
-function passage_point(p) {
-	if (!p.door) return p.at;
-	const spawn = G.maps[character.map].spawns[p.door[6]];
-	return { x: spawn[0], y: spawn[1] };
-}
-
-function passage_usable(p) {
-	if (p.door) {
-		return is_door_close(character.map, p.door, character.real_x, character.real_y)
-			&& can_use_door(character.map, p.door, character.real_x, character.real_y);
-	}
-	return Math.hypot(p.at.x - character.real_x, p.at.y - character.real_y) < TRANSPORTER_REACH;
-}
-
-function passage_step(goal) {
-	const now = Date.now();
-	if (now - _passage_sent_at < PASSAGE_RETRY_MS) return;
-	_passage_sent_at = now;
-	parent.socket.emit("transport", { to: goal.passage.to, s: goal.passage.s });
-	Promise.resolve(parent.push_deferred("transport")).catch(() => { });
-}
-
-function trail_step(goal) {
-	const p = goal.point;
-	if (Math.hypot(character.x - p.x, character.y - p.y) < LOCAL_MOVE_SLOP) return;
-	if (character.moving && Math.hypot(character.going_x - p.x, character.going_y - p.y) < LOCAL_MOVE_SLOP) return;
-	walk(p.x, p.y);
 }
 
 function follow_goal() {

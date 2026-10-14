@@ -398,6 +398,19 @@ try {
 	}
 } catch (e) { }
 
+try {
+	if (parent && parent.socket && typeof parent.socket.on === "function") {
+		parent.socket.on("limitdcreport", data => {
+			const calls = Object.keys(data.calls || {})
+				.map(k => k + " " + (+data.calls[k]).toFixed(1)).join(", ");
+			errlog_record("limitdc", "booted over " + data.climit + ": " + calls);
+			errlog_timeline("limitdc", "calls " + calls + " | " + (current_goal_label() || "-")
+				+ " @" + Math.round(character.real_x) + "," + Math.round(character.real_y) + " " + character.map);
+			_errlog_flush();
+		});
+	}
+} catch (e) { }
+
 function _errlog_sample_vitals() {
 	const v = _errlog_context();
 	if (!v) return;
