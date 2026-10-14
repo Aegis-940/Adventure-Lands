@@ -6,7 +6,7 @@
 var BANK_POSITION_TOLERANCE = 10;
 
 var UPGRADE_PROFILE = {
-	pouchbow:     { scroll0_until: 0, scroll1_until: 8, scroll2_until: 9, primling_from: 7, max_level: 9 },
+	pouchbow:     { scroll0_until: 0, scroll1_until: 8, scroll2_until: 9, primling_from: 6, max_level: 9 },
 	fireblade:    { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 6, grace_from: 8, max_level: 9 },
 	firebow:      { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 6, max_level: 8 },
 	firestaff:    { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 7, max_level: 8 },
@@ -26,7 +26,7 @@ var UPGRADE_PROFILE = {
 	supermittens: { scroll0_until: 0, scroll1_until: 0, scroll2_until: 9, primling_from: 3, max_level: 4 },
 	lmace:        { scroll0_until: 0, scroll1_until: 0, scroll2_until: 9, primling_from: 3, max_level: 5 },
 	bataxe:       { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 6, max_level: 9 },
-	frankypants:  { scroll0_until: 0, scroll1_until: 0, scroll2_until: 10, primling_from: 3, max_level: 7 },
+	// frankypants:  { scroll0_until: 0, scroll1_until: 0, scroll2_until: 10, primling_from: 3, max_level: 7 },
 	djinncrown:   { scroll0_until: 0, scroll1_until: 2, scroll2_until: 10, primling_from: 4, max_level: 7 },
 	covemantle:   { scroll0_until: 0, scroll1_until: 2, scroll2_until: 10, primling_from: 4, max_level: 4 },
 	cave_mothsteps: { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 4, max_level: 6 },
