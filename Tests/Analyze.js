@@ -36,10 +36,11 @@ function literal_strings(node) {
 
 function bootstrap_lists(parser) {
 	const ast = parser.parse(read_repo_file("Bootstrapper.js"), PARSE_OPTIONS);
-	const lists = { first: [], parallel: [], roles: {}, optional: [] };
+	const lists = { kernel: [], first: [], parallel: [], roles: {}, optional: [] };
 	walk_all(ast, node => {
 		if (node.type !== "VariableDeclarator" || node.id.type !== "Identifier") return;
 		const name = node.id.name;
+		if (name === "kernel_scripts") lists.kernel = literal_strings(node.init);
 		if (name === "first_scripts") lists.first = literal_strings(node.init);
 		if (name === "scripts") lists.parallel = literal_strings(node.init);
 		if (name === "OPTIONAL_SCRIPTS") lists.optional = literal_strings(node.init);
@@ -140,6 +141,7 @@ function analyze_file(parser, name, text, monsters) {
 		call_initializers: [],
 		refs_load: new Set(),
 		refs_call: new Set(),
+		calls_load: new Set(),
 		counters: {
 			top_level_statements: 0,
 			call_initializers: 0,
@@ -252,6 +254,8 @@ function analyze_file(parser, name, text, monsters) {
 	function visit(node, depth) {
 		if (!node || typeof node.type !== "string") return;
 		count_patterns(node);
+		if (depth === 0 && (node.type === "CallExpression" || node.type === "NewExpression")
+			&& node.callee.type === "Identifier" && !is_local(node.callee.name)) result.calls_load.add(node.callee.name);
 		switch (node.type) {
 			case "FunctionDeclaration":
 			case "FunctionExpression":
@@ -359,6 +363,7 @@ function analyze_file(parser, name, text, monsters) {
 	}
 
 	result.refs_load = [...result.refs_load].sort();
+	result.calls_load = [...result.calls_load].sort();
 	result.refs_call = [...result.refs_call].sort();
 	for (const fn in result.function_refs) result.function_refs[fn] = [...result.function_refs[fn]].sort();
 	return result;
@@ -472,6 +477,32 @@ function strongly_connected(nodes, edges) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// STAGES — a call made at load must name something an earlier stage defined, because files within a stage run in arrival order
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const STAGE_RANK = { kernel: 0, first: 1, parallel: 2, role: 3 };
+
+function loads_before(lists, files, definer, caller) {
+	if (STAGE_RANK[files[definer].stage] < STAGE_RANK[files[caller].stage]) return true;
+	const role = files[caller].role;
+	return !!role && files[definer].role === role && lists.roles[role].indexOf(definer) < lists.roles[role].indexOf(caller);
+}
+
+function stage_violations(lists, files) {
+	const out = [];
+	for (const name in files) {
+		const role = files[name].role;
+		for (const id of files[name].calls_load) {
+			if (files[name].defines[id] !== undefined || BUILTIN_CALLEES.has(id)) continue;
+			const definers = Object.keys(files).filter(f => files[f].defines[id] !== undefined && (!files[f].role || files[f].role === role));
+			if (!definers.length || definers.some(f => loads_before(lists, files, f, name))) continue;
+			out.push({ file: name, call: id, defined_in: definers });
+		}
+	}
+	return out;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // ENTRY
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -484,13 +515,14 @@ async function analyze() {
 	vm.runInContext(await source("data.js"), game);
 	const monsters = new Set(Object.keys(game.G.monsters).filter(m => !MONSTER_WORDS_EXCLUDED.has(m)));
 
-	const order = [...lists.first, ...lists.parallel];
+	const order = [...lists.kernel, ...lists.first, ...lists.parallel];
 	for (const role in lists.roles) lists.roles[role].forEach(f => { if (!order.includes(f)) order.push(f); });
 
 	const files = {};
 	for (const name of order) {
 		files[name] = analyze_file(parser, name, read_repo_file(name), monsters);
-		files[name].stage = lists.first.includes(name) ? "first" : lists.parallel.includes(name) ? "parallel" : "role";
+		files[name].stage = lists.kernel.includes(name) ? "kernel" : lists.first.includes(name) ? "first"
+			: lists.parallel.includes(name) ? "parallel" : "role";
 		files[name].role = role_of(lists, name);
 		files[name].optional = lists.optional.includes(name);
 	}
@@ -506,6 +538,7 @@ async function analyze() {
 		edges,
 		cycles: strongly_connected(shared, edges.filter(e => shared.includes(e.from) && shared.includes(e.to))),
 		load_cycles: strongly_connected(shared, load_edges.filter(e => shared.includes(e.from) && shared.includes(e.to))),
+		stage_violations: stage_violations(lists, files),
 	};
 }
 

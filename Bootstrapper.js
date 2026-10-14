@@ -12,11 +12,14 @@
 
 	let CACHE_OK = false;
 
-	const first_scripts = [
+	const kernel_scripts = [
 		"Kernel/Kernel.js",
 		"Kernel/Scheduler.js",
 		"Kernel/Events.js",
 		"Kernel/Storage.js",
+	];
+
+	const first_scripts = [
 		"Core Systems/Global Config.js",
 		"Interface/Widget Helpers.js",
 		"Interface/Game Log.js",
@@ -160,6 +163,17 @@
 		});
 	}
 
+	function load_stage(base, names) {
+		return Promise.all(names.map(name => load_one(base, name).then(ok => ({ name, ok }))))
+			.then(results => {
+				const failed = results.filter(r => !r.ok).map(r => r.name);
+				if (!failed.length) return true;
+				game_log("🛑 CRITICAL: failed to load " + failed.join(", ") + " after retries — aborting, bot cannot function. Reload to retry.");
+				console.error("[BS] Critical script failed to load, aborting:", failed);
+				return false;
+			});
+	}
+
 	function fetch_role_file(base, name) {
 		const url = base + encodeURI(name);
 		return new Promise(resolve => {
@@ -200,8 +214,8 @@
 	}
 
 	function boot(results, role_results) {
-		const all = [...first_scripts, ...scripts, ...role_file];
-		const ok = new Set(first_scripts
+		const all = [...kernel_scripts, ...first_scripts, ...scripts, ...role_file];
+		const ok = new Set(kernel_scripts.concat(first_scripts)
 			.concat(results.filter(r => r.ok).map(r => r.name))
 			.concat(role_results.filter(r => r.ok).map(r => r.name)));
 		kernel_boot({
@@ -214,16 +228,9 @@
 
 	function start_loading(base) {
 		const role_texts = Promise.all(role_file.map(name => fetch_role_file(base, name)));
-		Promise.all(first_scripts.map(name => load_one(base, name).then(ok => ({ name, ok }))))
-			.then(first_results => {
-				const failed = first_results.filter(r => !r.ok).map(r => r.name);
-				if (failed.length) {
-					game_log("🛑 CRITICAL: failed to load " + failed.join(", ") + " after retries — aborting, bot cannot function. Reload to retry.");
-					console.error("[BS] Critical script failed to load, aborting:", failed);
-					return null;
-				}
-				return Promise.all(scripts.map(name => load_one(base, name).then(ok2 => ({ name, ok: ok2 }))));
-			})
+		load_stage(base, kernel_scripts)
+			.then(ok => ok && load_stage(base, first_scripts))
+			.then(ok => ok ? Promise.all(scripts.map(name => load_one(base, name).then(ok2 => ({ name, ok: ok2 })))) : null)
 			.then(results => {
 				if (!results) return;
 				const failed_critical = results.filter(r => !r.ok && !OPTIONAL_SCRIPTS.has(r.name));

@@ -188,6 +188,11 @@ def write_json(path, data):
 result = analyze()
 counts = ratchet_counts(result)
 
+for v in result["stage_violations"]:
+    print(f"STAGE {v['file']} calls {v['call']}() at load, but {', '.join(v['defined_in'])} "
+          f"is not in an earlier stage: files within a stage run in arrival order")
+    problems += 1
+
 if "--graph" in sys.argv:
     graph = {
         "order": result["order"],

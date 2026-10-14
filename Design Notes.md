@@ -20,6 +20,8 @@ The one file that lives in a game code slot. It fetches and evals `Bootstrapper.
 
 Files register boot steps at load with `on_boot(file, fn)` and the Bootstrapper calls `kernel_boot()` once, after the role files. Steps run in Bootstrapper list order, not the order scripts happened to arrive in, so the parallel batch can no longer race itself: every file's declarations exist before any step runs. A throwing step is caught, logged with its file and recorded (`errlog_record("boot", …)`), and the other steps still run; the role entry point's failure is logged as fatal. `al_boot()` reports what ran, skipped and failed.
 
+`Kernel/` loads as its own stage, awaited before the first stage. Until 2026-10-15 the kernel files shared the first stage with Global Config, Widget Helpers and Game Log, and that stage is a `Promise.all`: its files run in arrival order. Widget Helpers and Game Log call `on_boot()` at load, so whichever arrived before `Kernel.js` threw `on_boot is not defined` and silently lost its boot step (no toolbar buttons, or no log hook). It never happened live because `Kernel.js` is small and requested first. Lint now checks stage order and the harness boots every role a second time with each stage reversed; either would have caught it.
+
 Error Log is first in the parallel list so its step runs first. Its step loads the saved session; a step that recorded something before it would have had its record overwritten by that load.
 
 The four role entry points are boot steps too, so `run_character()` starts after every shared step, as it used to start after every shared script.

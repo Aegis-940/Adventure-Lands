@@ -134,9 +134,10 @@ Tools/                            ← dev scaffolding, not loaded by the bot
 
 The `Bootstrapper.js` detects which character is logged in by name, then fetches and evaluates the appropriate scripts from a CDN (jsdelivr):
 
-1. **First stage, awaited:** `Global Config.js`, `Interface/Widget Helpers.js` and `Interface/Game Log.js`. Everything loaded later may assume all three are present — that is what lets the meters build their widgets as they load, the error path call `al_log_push()` directly, and every reader of a cross-character symbol skip the `typeof` guard. A failure here aborts the load.
-2. **Second stage, parallel:** every other Core Systems / Dungeons / Interface file, as real `<script>` tags. A failure in any file not named in `OPTIONAL_SCRIPTS` aborts; the optional ones are allowed to be missing.
-3. **Third stage, sequential:** that character's `Character Managers/` files via indirect eval, then its entry point — these call into the shared files immediately.
+1. **Kernel stage, awaited:** `Kernel/Kernel.js`, `Scheduler.js`, `Events.js`, `Storage.js`. Declarations only, so every later file may register (`on_boot`, `console_api`) at load.
+2. **First stage, awaited:** `Global Config.js`, `Interface/Widget Helpers.js` and `Interface/Game Log.js`. Everything loaded later may assume all three are present — that is what lets the meters build their widgets as they load, the error path call `al_log_push()` directly, and every reader of a cross-character symbol skip the `typeof` guard. A failure here aborts the load.
+3. **Parallel stage:** every other Core Systems / Dungeons / Interface file, as real `<script>` tags. A failure in any file not named in `OPTIONAL_SCRIPTS` aborts; the optional ones are allowed to be missing.
+4. **Role stage, sequential:** that character's `Character Managers/` files via indirect eval, then its entry point — these call into the shared files immediately.
 
 **Second-stage files execute in network-completion order, not list order.** So nothing in stage 2 may depend on another stage-2 file *at load time* — only from functions and handlers invoked later. Two patterns exist for genuine load-time needs: move the dependency into stage 1 (which is why Widget Helpers is there — the meters build their widgets as they load), or poll for it and retry, as the toprightcorner button chain does for the DOM element it attaches to. Adding or removing a stage-2 file reshuffles the race and can expose a latent dependency that had been winning by luck.
 
