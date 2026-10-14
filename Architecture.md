@@ -1,4 +1,4 @@
-# CONTEXT.md — Project Overview & Architecture
+# Architecture — Project Overview
 
 ## What This Project Is
 
@@ -10,8 +10,8 @@
 
 | Character | Class | Role |
 |-----------|-------|------|
-| Ulric | Warrior | Party leader, tank, melee DPS, cleave |
-| Myras | Priest | Healer, buffer, crowd control support |
+| Ulric | Warrior | Party leader, melee DPS, cleave, feeds aggro to Myras |
+| Myras | Priest | The tank: pulls and holds aggro within an MP-scaled cap, heals the party |
 | Riva | Ranger | Ranged DPS, multi-shot (3-shot/5-shot) |
 | Riff | Merchant | Logistics — potions, loot, upgrades, crafting |
 
@@ -135,7 +135,7 @@ Tools/                            ← dev scaffolding, not loaded by the bot
 The `Bootstrapper.js` detects which character is logged in by name, then fetches and evaluates the appropriate scripts from a CDN (jsdelivr):
 
 1. **First stage, awaited:** `Global Config.js`, `Interface/Widget Helpers.js` and `Interface/Game Log.js`. Everything loaded later may assume all three are present — that is what lets the meters build their widgets as they load, the error path call `al_log_push()` directly, and every reader of a cross-character symbol skip the `typeof` guard. A failure here aborts the load.
-2. **Second stage, parallel:** every other Core Systems / Dungeons / Interface file, as real `<script>` tags. A failure in one named in `CRITICAL_SCRIPTS` aborts; others are allowed to be missing.
+2. **Second stage, parallel:** every other Core Systems / Dungeons / Interface file, as real `<script>` tags. A failure in any file not named in `OPTIONAL_SCRIPTS` aborts; the optional ones are allowed to be missing.
 3. **Third stage, sequential:** that character's `Character Managers/` files via indirect eval, then its entry point — these call into the shared files immediately.
 
 **Second-stage files execute in network-completion order, not list order.** So nothing in stage 2 may depend on another stage-2 file *at load time* — only from functions and handlers invoked later. Two patterns exist for genuine load-time needs: move the dependency into stage 1 (which is why Widget Helpers is there — the meters build their widgets as they load), or poll for it and retry, as the toprightcorner button chain does for the DOM element it attaches to. Adding or removing a stage-2 file reshuffles the race and can expose a latent dependency that had been winning by luck.
@@ -179,8 +179,8 @@ from the entry point, not from this tick.
 
 ### Equipment Auto-Swap
 - Multiple swap profiles: single-target, multi-target, boss, XP farm
-- Cooldown guards prevent rapid re-swapping
-- Boss HP thresholds trigger gear changes mid-fight
+- No cooldown: swaps react in milliseconds. Slot intent and the sent view stop the rules loop re-sending from a stale inventory
+- Overrides by situation: the Rime Djinn hold, a boss in sight (`BOSS_GEAR_OVERRIDES`), then the farm spot (`MONSTER_GEAR_OVERRIDES`)
 
 ### Merchant Logistics
 - Periodically visits party members to collect loot
@@ -197,7 +197,7 @@ own optional `on_cm` and priest-only `heal`, four optional callback *parameters*
 
 Anything else is a symptom, not a fix. A symbol that several characters read belongs in
 `Global Config.js` with a default; an optional diagnostic belongs there as a no-op stub the real file
-overwrites; a DOM dependency belongs behind a poll-and-retry. A function in `CRITICAL_SCRIPTS` cannot
+overwrites; a DOM dependency belongs behind a poll-and-retry. A function in a file not in `OPTIONAL_SCRIPTS` cannot
 be absent at all, so guarding it is dead code.
 
 ### UI Overlays
@@ -256,7 +256,7 @@ Count against git blobs rather than the working tree: the tree is CRLF while blo
 
 ## Known Gaps / Ongoing Work
 
-- No automated tests — all validation is done by running in the live game. The only mechanical check available offline is a delimiter-balance pass over the changed files
+- No automated tests — all validation is done by running in the live game. Offline checks are `python Tools/Lint.py` (global collisions, the overhaul ratchet, `--graph` for load-time dependencies) and the harness in `Tests/` as it lands (see `Overhaul Plan.md`)
 - `Core Systems/Porcupine Guard.js` is explicitly temporary; every call site is `typeof`-guarded so deleting its Bootstrapper line removes it cleanly
 - The buttons/windows UI is still incomplete after `Buttons.js`/`Windows.js` were removed — reload, bank, settings, pause and the dungeon toggles were rebuilt in their own files, but the rest was not
 - `storage_read()`/`storage_write()` cover the JSON-backed values only. The bare-string stores (`automation_enabled()`, the dungeon override, Settings Window, `Error Log.js`'s key scan) still call `localStorage` directly, deliberately — `storage_read()` would `JSON.parse` a bare string and return null. Every one of those calls is inside a function and wrapped in try/catch, so a browser blocking site data degrades rather than breaking the load

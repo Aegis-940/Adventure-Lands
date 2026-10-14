@@ -9,9 +9,18 @@ Catches what a brace-balance pass cannot:
     overwrites one with the other depending on Bootstrapper load order
   * duplicate top-level const/let across classic scripts (a load-time SyntaxError)
 
+  * the ratchet: every legacy pattern the overhaul removes, counted per file
+    against Tests/lint_baseline.json; a count may go down, never up
+
+Options:
+  --graph     write Tests/dependency_graph.json (load-time and call-time edges)
+  --baseline  rewrite Tests/lint_baseline.json from the current counts
+
 Exit code is non-zero when anything is found.
 """
 import io
+import json
+import os
 import re
 import subprocess
 import sys
@@ -137,6 +146,84 @@ for name, where in sorted(declared.items()):
         continue  # one per character, never loaded together, over Global Config's neutral default if any
     print(f"GLOBAL COLLISION '{name}' in {sorted(where)}")
     problems += 1
+
+# 5. the ratchet: legacy patterns per file may go down, never up
+RATCHET_ALLOWED = {
+    "monster_literals": ("Core Systems/Global Config.js", "Core Systems/Farm Survey.js", "Encounters/",
+                         "Dungeons/Crypt Dungeon.js", "Dungeons/Crypt Route.js", "Dungeons/Spider Dungeon.js",
+                         "Dungeons/Dreams Cave.js", "Dungeons/Dungeon Mode.js"),
+    "set_interval": ("Kernel/",), "while_true": ("Kernel/",), "self_timeout": ("Kernel/",),
+    "socket_on_off": ("Kernel/",), "character_on": ("Kernel/",), "add_event_listener": ("Kernel/",),
+    "parent_assign": ("Kernel/",), "local_storage": ("Kernel/",), "top_level_statements": ("Kernel/",),
+    "call_initializers": ("Kernel/",),
+}
+BASELINE = os.path.join("Tests", "lint_baseline.json")
+GRAPH = os.path.join("Tests", "dependency_graph.json")
+
+
+def analyze():
+    out = subprocess.run(["node", os.path.join("Tests", "Analyze.js")], capture_output=True)
+    if out.returncode:
+        sys.exit("Tests/Analyze.js failed:\n" + out.stderr.decode("utf-8", "replace"))
+    return json.loads(out.stdout.decode("utf-8"))
+
+
+def ratchet_counts(result):
+    counts = {}
+    for name, facts in result["files"].items():
+        for counter, n in facts["counters"].items():
+            if name.startswith(RATCHET_ALLOWED.get(counter, ())):
+                continue
+            if n:
+                counts.setdefault(counter, {})[name] = n
+    return counts
+
+
+def write_json(path, data):
+    with io.open(path, "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(data, fh, indent=1, sort_keys=True, ensure_ascii=False)
+        fh.write("\n")
+
+
+result = analyze()
+counts = ratchet_counts(result)
+
+if "--graph" in sys.argv:
+    graph = {
+        "order": result["order"],
+        "files": {n: {k: f[k] for k in ("stage", "role", "optional", "statements", "call_initializers")}
+                  for n, f in result["files"].items()},
+        "edges": result["edges"],
+        "cycles": result["cycles"],
+        "load_cycles": result["load_cycles"],
+    }
+    write_json(GRAPH, graph)
+    print(f"wrote {GRAPH}: {len(graph['edges'])} edges, {len(graph['cycles'])} call cycles, "
+          f"{len(graph['load_cycles'])} load cycles")
+
+if "--baseline" in sys.argv:
+    write_json(BASELINE, counts)
+    print(f"wrote {BASELINE}")
+
+if os.path.exists(BASELINE):
+    with io.open(BASELINE, encoding="utf-8") as fh:
+        baseline = json.load(fh)
+    lowered = 0
+    print("\nratchet (now / baseline):")
+    for counter in sorted(set(counts) | set(baseline)):
+        now, was = counts.get(counter, {}), baseline.get(counter, {})
+        print(f"  {counter:22s} {sum(now.values()):5d} / {sum(was.values()):5d}")
+        for name in sorted(set(now) | set(was)):
+            n, b = now.get(name, 0), was.get(name, 0)
+            if n > b:
+                print(f"RATCHET {counter} rose in {name}: {b} -> {n}")
+                problems += 1
+            elif n < b:
+                lowered += 1
+    if lowered:
+        print(f"  {lowered} counts went down: run `python Tools/Lint.py --baseline` in the same commit")
+else:
+    print(f"\nno {BASELINE}: run `python Tools/Lint.py --baseline` to start the ratchet")
 
 print(f"\n{len(files)} files checked, {problems} problems")
 sys.exit(1 if problems else 0)

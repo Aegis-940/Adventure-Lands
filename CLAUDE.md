@@ -198,7 +198,7 @@ Loader facts:
 
 ## Testing
 
-There is no test suite. Changes are tested by injecting into the live game client, so keep them minimal and easy to verify in-game. `python Tools/Lint.py` catches cross-file global collisions before a push.
+There is no test suite yet (the overhaul's `Tests/` harness is being built). Changes are tested by injecting into the live game client, so keep them minimal and easy to verify in-game. `python Tools/Lint.py` catches cross-file global collisions and runs the overhaul ratchet before a push: a legacy-pattern count per file may go down, never up (lower `Tests/lint_baseline.json` with `--baseline` in the commit that removes one). `--graph` rewrites `Tests/dependency_graph.json`, whose load-time edges are what can race in the parallel batch.
 
 ---
 

@@ -165,7 +165,7 @@ A snapshot holds everything a decider reads:
 - `home`, `destination`, current goal, `panicking`, `panic_external`, the active dungeon, the role `cache`
 - build SHA, character, role, timestamp
 - **the clock the deciders read:** `Date.now()`, `performance.now()`, `parent.next_skill`, `character.s` timers, `parent.pings`
-- **the stored values the deciders read:** the set profiles (`AL_set_profiles_<name>`, which drive the weapon chooser), farm focus (`AL_farm_focus`), the farm target
+- **the stored values the deciders read:** the set profiles (`AL_set_profile2_<name>`, which drive the weapon chooser), farm focus (`AL_farm_focus`), the farm target
 
 The recorder lives inside Error Log as `errlog_snapshot(label)`, with a no-op stub in Global Config like the other `errlog_*`. Its body is wrapped the way `errlog_archive()` is, so a bug in it can only lose a snapshot, never throw into the code that called it.
 
@@ -246,13 +246,13 @@ Docs triage: fix the drift listed in §4, and add this plan to the References in
 
 ### Phase 0 checklist
 
-- [ ] 0.1 dependency graph with load-time vs call-time edges
+- [x] 0.1 dependency graph with load-time vs call-time edges (transitive through functions and load-time callbacks)
 - [ ] 0.2 snapshot recorder and sink lane, all five triggers
 - [ ] 0.3 harness boots all four roles over `runner_functions.js` (3–4 pushes)
 - [ ] 0.4 goldens recorded from the current farm's fixtures, Myras panic-heal golden included
 - [ ] 0.5 build SHA on every archived record
 - [ ] 0.6 `Data Store.py compare`
-- [ ] 0.7 ratchet lint, baseline committed, docs drift fixed
+- [x] 0.7 ratchet lint, baseline committed, docs drift fixed
 
 **Exit:** `node Tests/Harness.js check` passes on main, the ratchet runs in lint, and a compare of the last two builds at the current home returns a verdict.
 
