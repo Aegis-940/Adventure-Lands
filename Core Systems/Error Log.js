@@ -595,6 +595,7 @@ function _snapshot_body(source, entity) {
 		real_y: get_y(entity),
 		awidth: get_width(entity),
 		aheight: get_height(entity),
+		visible: !!entity.visible,
 	});
 }
 

@@ -1,0 +1,25 @@
+{
+ "decisions": {
+  "update_cache": "ok",
+  "gear.weapon": null,
+  "gear.orb": null,
+  "target": "m1",
+  "tank": "Myras",
+  "goal": {
+   "label": "with-leader",
+   "local": "keep",
+   "hold": false,
+   "passive": false
+  },
+  "pause_combat": false,
+  "skill.cleave_ready": false,
+  "skill.sugar_rush_wanted": true,
+  "skill.stomp_weapon_ready": false,
+  "skill.bscorpion_worth_buffing": true,
+  "panic.state": {
+   "panicking": false,
+   "panic_external": false
+  }
+ },
+ "emits": []
+}

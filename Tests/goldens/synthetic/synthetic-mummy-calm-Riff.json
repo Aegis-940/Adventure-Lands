@@ -1,0 +1,11 @@
+{
+ "decisions": {
+  "pause_combat": false,
+  "merchant.state": "delivering",
+  "panic.state": {
+   "panicking": false,
+   "panic_external": false
+  }
+ },
+ "emits": []
+}

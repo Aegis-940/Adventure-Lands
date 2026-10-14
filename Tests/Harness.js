@@ -210,6 +210,7 @@ function build_context(fixture, G, log) {
 		clearTimeout() { },
 		clearInterval() { },
 		requestAnimationFrame: capture("raf"),
+		is_server: false,
 		queueMicrotask,
 		Date: FrozenDate,
 		Math: math,

@@ -1,0 +1,32 @@
+{
+ "decisions": {
+  "update_cache": "ok",
+  "gear.weapon": null,
+  "gear.chest": null,
+  "gear.orb": null,
+  "targets.in_range": [
+   "m1",
+   "m2",
+   "m3",
+   "m4",
+   "m5",
+   "m6"
+  ],
+  "shot": "5shot",
+  "heal_target": null,
+  "goal": {
+   "label": "follow-close",
+   "local": "step",
+   "hold": false,
+   "passive": false
+  },
+  "pause_combat": false,
+  "skill.shot_width": 5,
+  "skill.mana_free": false,
+  "panic.state": {
+   "panicking": false,
+   "panic_external": false
+  }
+ },
+ "emits": []
+}
