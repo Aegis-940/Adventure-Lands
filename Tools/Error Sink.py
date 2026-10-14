@@ -75,6 +75,12 @@ STORE_LOCK = threading.RLock()
 LIVE = {}
 LIVE_LOCK = threading.Lock()
 
+# The overhaul's decision fixtures (Tests/Harness.js promote reads them). Posted by errlog_snapshot(),
+# appended here and nowhere else: they never touch the page's localStorage.
+SNAPSHOT_ARCHIVE = os.path.join(REPO, "snapshots.jsonl")
+SNAPSHOT_MAX_BYTES = 200 * 1024 * 1024
+SNAPSHOT_LOCK = threading.Lock()
+
 
 def serialise(store):
     return json.dumps(store, sort_keys=True, separators=(",", ":"))
@@ -325,6 +331,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path.split("?")[0] == "/live":
             return self.live_post()
+        if self.path.split("?")[0] == "/snapshot":
+            return self.snapshot_post()
         try:
             n = int(self.headers.get("content-length", 0))
             payload = json.loads(self.rfile.read(n).decode("utf-8"))
@@ -361,6 +369,23 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(204)
         except Exception as exc:
             print("  ! live: %s" % exc, file=sys.stderr, flush=True)
+            self.send_response(400)
+        self._cors()
+        self.end_headers()
+
+    def snapshot_post(self):
+        try:
+            n = int(self.headers.get("content-length", 0))
+            payload = json.loads(self.rfile.read(n).decode("utf-8"))
+            stamp = datetime.fromtimestamp((payload.get("t") or 0) / 1000).strftime("%Y-%m-%d %H:%M:%S")
+            with SNAPSHOT_LOCK:
+                if os.path.exists(SNAPSHOT_ARCHIVE) and os.path.getsize(SNAPSHOT_ARCHIVE) > SNAPSHOT_MAX_BYTES:
+                    os.replace(SNAPSHOT_ARCHIVE, SNAPSHOT_ARCHIVE + ".old")
+                with open(SNAPSHOT_ARCHIVE, "a", encoding="utf-8") as fh:
+                    fh.write(json.dumps({"at": stamp, **payload}, ensure_ascii=False) + "\n")
+            self.send_response(204)
+        except Exception as exc:
+            print("  ! snapshot: %s" % exc, file=sys.stderr, flush=True)
             self.send_response(400)
         self._cors()
         self.end_headers()

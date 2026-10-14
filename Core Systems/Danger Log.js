@@ -9,8 +9,11 @@ const DANGER_HIT_WINDOW_MS = 10000;
 const DANGER_HITS_KEPT = 80;
 const DANGER_NEARBY_PX = 300;
 const DANGER_SOURCES_KEPT = 5;
+const BOSS_SNAPSHOT_MS = 60000;
+const BOSS_SNAPSHOT_RANGE = 400;
 
 let _danger_hits = [];
+let _boss_snapshot = { id: null, at: 0 };
 let _danger_episode = null;
 let _danger_rip = false;
 
@@ -90,10 +93,12 @@ function danger_tick() {
 			killer: ctx.last_hit ? ctx.last_hit.from : null,
 			low_for_s: _danger_episode ? Math.round((now - _danger_episode.started) / 1000) : null,
 		}));
+		errlog_snapshot("death");
 		_danger_episode = null;
 	} else if (!rip) {
 		if (!_danger_episode && hp_pct < CLOSE_CALL_PCT) {
 			_danger_episode = { started: now, min_pct: hp_pct, at_min: danger_context() };
+			errlog_snapshot("close_call");
 		} else if (_danger_episode) {
 			if (hp_pct < _danger_episode.min_pct) {
 				_danger_episode.min_pct = hp_pct;
@@ -109,6 +114,23 @@ function danger_tick() {
 		}
 	}
 	_danger_rip = rip;
+	boss_snapshot_check(now);
+}
+
+function boss_snapshot_check(now) {
+	let boss = null;
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || e.dead || !ALL_BOSSES.includes(e.mtype) || e.hp >= e.max_hp) continue;
+		if (distance(character, e) <= BOSS_SNAPSHOT_RANGE) {
+			boss = e;
+			break;
+		}
+	}
+	if (!boss) return;
+	if (boss.id === _boss_snapshot.id && now - _boss_snapshot.at < BOSS_SNAPSHOT_MS) return;
+	_boss_snapshot = { id: boss.id, at: now };
+	errlog_snapshot("boss " + boss.mtype);
 }
 
 function danger_log_start() {

@@ -150,6 +150,7 @@ function ledger_close(now) {
 		luckm: character.luckm,
 		gear: gear_signature(),
 	});
+	if (at_farm_spot()) errlog_snapshot("farm");
 	_ledger = ledger_window(now);
 }
 

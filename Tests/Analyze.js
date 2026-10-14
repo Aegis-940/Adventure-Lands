@@ -223,7 +223,7 @@ function analyze_file(parser, name, text, monsters) {
 		if (node.type === "BinaryExpression" && /^[!=]==?$/.test(node.operator)) {
 			const [a, b] = [node.left, node.right];
 			const guard = (u, l) => u.type === "UnaryExpression" && u.operator === "typeof" && u.argument.type === "Identifier"
-				&& l.type === "Literal" && (l.value === "function" || l.value === "undefined");
+				&& !is_local(u.argument.name) && l.type === "Literal" && (l.value === "function" || l.value === "undefined");
 			if (guard(a, b) || guard(b, a)) site("typeof_guard", node);
 		}
 		if (node.type === "Literal" && typeof node.value === "string" && monsters.has(node.value)) {

@@ -172,7 +172,7 @@ The recorder lives inside Error Log as `errlog_snapshot(label)`, with a no-op st
 Triggers:
 
 - `al_snapshot(label)` in the console
-- every Danger Log close call and death, at the episode minimum (`danger_context()` already runs there)
+- every Danger Log close call (when the episode opens) and death
 - one per ledger window at the farm spot, so the current spawn accumulates ordinary fixtures without anyone doing anything
 - panic start (`set_panic(true)`)
 - coop boss engage (first hit on a boss in `ALL_BOSSES`) and every 60s while on it, so each boss fight leaves fixtures
@@ -220,7 +220,7 @@ These are characterization tests: they say what the code *does*, not what it sho
 
 ### 0.6 Ledger regression check
 
-`python "Tools/Data Store.py" compare <build_a> <build_b> [home]` reports kills/h, deaths/h, gold/h, XP/h, potions/h and close calls/h at the spot for each build, with the existing `band()`/`judge()` noise bands. The verdict is `same`, `better`, `worse` or `not enough data`.
+`python "Tools/Data Store.py" compare <A> <B> [--home H] [--tier neutral|behaviour]` takes two builds (7-char SHA) or two local-time ranges (`2026-10-14T18:00..2026-10-14T21:40`, for windows recorded before 0.5 stamped builds). It reports per-hour kills, XP, gold and MP potions from full 5-minute windows at the spot, plus deaths and close calls, for each build. A metric is `same` unless its change exceeds both 2 standard errors of the difference (from each build's own window-to-window variance) and 2%. (The first draft named `band()`/`judge()`, but those rank farm spots against each other and aren't noise bands.) The verdict is `same`, `better`, `worse`, `not enough data`, or "read danger.jsonl" when B has a death. Measured at mummies on 10-14: 15 windows per side resolve kills/h to ±1.8%.
 
 Without `home` it uses the home the party was at during each build's windows and refuses to compare across different homes. The minimum sample follows D4. Below it, the verdict is `not enough data`, never `same`.
 
@@ -247,11 +247,11 @@ Docs triage: fix the drift listed in §4, and add this plan to the References in
 ### Phase 0 checklist
 
 - [x] 0.1 dependency graph with load-time vs call-time edges (transitive through functions and load-time callbacks)
-- [ ] 0.2 snapshot recorder and sink lane, all five triggers
+- [x] 0.2 snapshot recorder and sink lane, all five triggers (live at the next reload; fixtures accumulate from then)
 - [x] 0.3 harness boots all four roles over `runner_functions.js` (one push: the game's `common_functions.js` supplies `parent.distance`/`is_disabled`, the other game-client functions are recording stubs)
 - [ ] 0.4 goldens recorded from the current farm's fixtures, Myras panic-heal golden included
-- [ ] 0.5 build SHA on every archived record
-- [ ] 0.6 `Data Store.py compare`
+- [x] 0.5 build SHA on every archived record, and a `build` column in `ledger`/`danger`/`survey`
+- [x] 0.6 `Data Store.py compare`
 - [x] 0.7 ratchet lint, baseline committed, docs drift fixed
 
 **Exit:** `node Tests/Harness.js check` passes on main, the ratchet runs in lint, and a compare of the last two builds at the current home returns a verdict.

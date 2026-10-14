@@ -195,7 +195,7 @@ function errlog_sample(kind, data) {
 
 function errlog_archive(kind, data) {
 	try {
-		_errlog.archive.push(Object.assign({ t: Date.now(), kind }, data));
+		_errlog.archive.push(Object.assign({ t: Date.now(), kind, build: _errlog_build() }, data));
 		if (_errlog.archive.length > ERRLOG_MAX_ARCHIVE) _errlog.archive.shift();
 		_errlog_dirty = true;
 	} catch (e) { }
@@ -551,6 +551,135 @@ setInterval(() => {
 }, ERRLOG_FLUSH_MS);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// SNAPSHOTS — everything the deciders read, posted straight to the sink as an offline test fixture; never kept in localStorage
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const SNAPSHOT_URL = "http://127.0.0.1:8787/snapshot";
+const SNAPSHOT_RANGE = 600;
+const SNAPSHOT_ENTITIES_KEPT = 40;
+const SNAPSHOT_DEPTH = 4;
+
+function _snapshot_plain(value, depth) {
+	if (typeof value === "function") return undefined;
+	if (value === null || typeof value !== "object") return value;
+	if (Object.prototype.toString.call(value) === "[object Date]") return value.getTime();
+	if (depth <= 0) return undefined;
+	if (Array.isArray(value)) {
+		return value.map(v => {
+			const p = _snapshot_plain(v, depth - 1);
+			return p === undefined ? null : p;
+		});
+	}
+	const proto = Object.getPrototypeOf(value);
+	if (proto !== null && Object.getPrototypeOf(proto) !== null) return undefined;
+	const out = {};
+	for (const k in value) {
+		const p = _snapshot_plain(value[k], depth - 1);
+		if (p !== undefined) out[k] = p;
+	}
+	return out;
+}
+
+function _snapshot_fields(source) {
+	const out = {};
+	for (const k in source) {
+		const p = _snapshot_plain(source[k], SNAPSHOT_DEPTH);
+		if (p !== undefined) out[k] = p;
+	}
+	return out;
+}
+
+function _snapshot_body(source, entity) {
+	return Object.assign(_snapshot_fields(source), {
+		real_x: get_x(entity),
+		real_y: get_y(entity),
+		awidth: get_width(entity),
+		aheight: get_height(entity),
+	});
+}
+
+function _snapshot_entities() {
+	const near = [];
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		const d = distance(character, e);
+		if (!(d > SNAPSHOT_RANGE)) near.push({ d: d || 0, id, e });
+	}
+	near.sort((a, b) => a.d - b.d);
+	const out = {};
+	for (const n of near.slice(0, SNAPSHOT_ENTITIES_KEPT)) out[n.id] = _snapshot_body(n.e, n.e);
+	return out;
+}
+
+function _errlog_storage_keys() {
+	const keys = [];
+	for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+	return keys.filter(Boolean);
+}
+
+function _snapshot_storage() {
+	const out = {};
+	for (const k of _errlog_storage_keys()) {
+		if (k.startsWith("AL_") && !k.startsWith(ERRLOG_KEY)) out[k] = localStorage.getItem(k);
+	}
+	return out;
+}
+
+function _snapshot_next_skill() {
+	const out = {};
+	for (const k in parent.next_skill) {
+		const v = parent.next_skill[k];
+		out[k] = v instanceof Date ? v.getTime() : Number(v);
+	}
+	return out;
+}
+
+function errlog_snapshot(label) {
+	try {
+		const t = Date.now();
+		const dungeon = active_dungeon();
+		const sha = (window.__AL_BASE__ || "").match(/@([0-9a-f]{40})\//);
+		const snapshot = {
+			id: character.name + "-" + t,
+			label,
+			t,
+			perf: performance.now(),
+			build: _errlog_build(),
+			build_sha: sha ? sha[1] : null,
+			name: character.name,
+			ctype: character.ctype,
+			server_region: parent.server_region,
+			server_identifier: parent.server_identifier,
+			character: _snapshot_body(parent.character, character),
+			entities: _snapshot_entities(),
+			chests: _snapshot_plain(parent.chests, 3),
+			party_info: _snapshot_plain(parent.party, 3),
+			party_list: _snapshot_plain(parent.party_list, 2),
+			next_skill: _snapshot_next_skill(),
+			pings: _snapshot_plain(parent.pings, 2),
+			S: _snapshot_plain(parent.S, SNAPSHOT_DEPTH),
+			storage: _snapshot_storage(),
+			home,
+			destination: _snapshot_plain(destination, 2),
+			goal: _snapshot_plain(current_goal(), 3),
+			panicking,
+			panic_external,
+			panic_since,
+			dungeon: dungeon ? dungeon.name : null,
+			cache: _snapshot_plain(cache, 3),
+		};
+		fetch(SNAPSHOT_URL, {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify(snapshot)
+		}).catch(() => errlog_count("snapshot not delivered"));
+		errlog_count("snapshot " + label.split(" ")[0]);
+	} catch (e) {
+		errlog_count("snapshot failed");
+	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // READOUT
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -558,9 +687,8 @@ function al_errors(all) {
 	_errlog_flush();
 	const out = {};
 	try {
-		for (let i = 0; i < localStorage.length; i++) {
-			const k = localStorage.key(i);
-			if (!k || k.indexOf(ERRLOG_KEY) !== 0) continue;
+		for (const k of _errlog_storage_keys()) {
+			if (k.indexOf(ERRLOG_KEY) !== 0) continue;
 			if (!all && k !== _errlog_key()) continue;
 			const blob = JSON.parse(localStorage.getItem(k)) || {};
 			const rows = Object.values(blob.records || {}).sort((a, b) => b.last - a.last);
@@ -583,9 +711,8 @@ function al_errors(all) {
 function al_errors_clear(all) {
 	try {
 		const doomed = [];
-		for (let i = 0; i < localStorage.length; i++) {
-			const k = localStorage.key(i);
-			if (k && k.indexOf(ERRLOG_KEY) === 0 && (all || k === _errlog_key())) doomed.push(k);
+		for (const k of _errlog_storage_keys()) {
+			if (k.indexOf(ERRLOG_KEY) === 0 && (all || k === _errlog_key())) doomed.push(k);
 		}
 		doomed.forEach(k => localStorage.removeItem(k));
 		_errlog = { session: _errlog.session, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {}, counts_since: Date.now(), samples: [], alive: [], archive: [] };

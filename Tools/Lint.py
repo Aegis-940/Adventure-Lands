@@ -102,8 +102,8 @@ for f in files:
 # 3. duplicate top-level const/let across classic scripts (SyntaxError at load)
 seen = {}
 for f in files:
-    if f.startswith("Character Managers/") or f in ("Code Loader.js", "Bootstrapper.js"):
-        continue  # eval'd or standalone, separate scope rules
+    if f.startswith(("Character Managers/", "Tests/", "Tools/")) or f in ("Code Loader.js", "Bootstrapper.js"):
+        continue  # eval'd, standalone or Node modules: separate scope rules
     clean = strip_noise(io.open(f, encoding="utf-8-sig").read())
     for m in re.finditer(r"^(?:const|let)\s+([A-Za-z_$][\w$]*)", clean, re.M):
         seen.setdefault(m.group(1), []).append(f)
@@ -127,7 +127,7 @@ GLOBAL_DEFAULTS = "Core Systems/Global Config.js"
 
 declared = {}
 for f in files:
-    if f in ("Bootstrapper.js", "Code Loader.js"):
+    if f in ("Bootstrapper.js", "Code Loader.js") or f.startswith(("Tests/", "Tools/")):
         continue
     clean = strip_noise(io.open(f, encoding="utf-8-sig").read())
     for pattern in (r"^(?:async\s+)?function\s+([A-Za-z_$][\w$]*)",

@@ -15,11 +15,13 @@ function set_panic(on, reason, external) {
 	const ext = external === undefined ? panic_external : !!external;
 	if (panicking === on && panic_external === ext) return;
 
+	const starting = !!on && !panicking;
 	if (on && !panicking) panic_since = Date.now();
 	if (!on) panic_since = 0;
 	panicking = !!on;
 	panic_external = ext;
 	panic_external_since = ext && on ? Date.now() : 0;
+	if (starting) setTimeout(() => errlog_snapshot("panic"));
 
 	game_log(on ? `⚠️ Panic: ${reason}` : `✅ Panic over: ${reason}`,
 		on ? "#ffcc00" : "#00ff00");

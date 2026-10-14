@@ -5,6 +5,9 @@
     python "Tools/Data Store.py" rebuild    delete the database and ingest everything again
     python "Tools/Data Store.py" survey     survey results, one row per spot
     python "Tools/Data Store.py" status     the status page's JSON
+    python "Tools/Data Store.py" compare A B [--home H] [--tier neutral|behaviour]
+                                            two builds (7-char SHA) or time ranges (2026-10-14T21:00..2026-10-14T23:55)
+                                            at the same home: per-window rates, change, and a verdict
 
 The .jsonl files are the record. The database is derived from them, so it can be deleted at any time.
 Ingest is incremental: each file's byte offset is remembered, and a file that shrank is re-read from
@@ -29,10 +32,10 @@ CREATE TABLE IF NOT EXISTS ledger (
     survey_spot TEXT, level INTEGER, gold INTEGER, chest_gold INTEGER, xp INTEGER, kills INTEGER,
     spot_gold INTEGER, spot_chest_gold INTEGER, spot_xp INTEGER, spot_kills INTEGER, deaths INTEGER,
     hp_pots INTEGER, mp_pots INTEGER, players_nearby INTEGER, goldm REAL, xpm REAL, luckm REAL,
-    kills_by_type TEXT, spot_kills_by_type TEXT, party TEXT, gear TEXT);
+    kills_by_type TEXT, spot_kills_by_type TEXT, party TEXT, gear TEXT, build TEXT);
 CREATE TABLE IF NOT EXISTS survey (
     character TEXT, t INTEGER, at TEXT, spot TEXT, status TEXT, visits INTEGER, at_spot_s INTEGER,
-    travel_s INTEGER, deaths INTEGER);
+    travel_s INTEGER, deaths INTEGER, build TEXT);
 CREATE TABLE IF NOT EXISTS tracker (character TEXT, t INTEGER, at TEXT, level INTEGER, monsters TEXT, max TEXT);
 CREATE TABLE IF NOT EXISTS tracker_monsters (character TEXT, t INTEGER, mtype TEXT, kills INTEGER, score REAL,
     account_score REAL, account_holder TEXT);
@@ -41,7 +44,7 @@ CREATE TABLE IF NOT EXISTS boss_profiles (character TEXT, t INTEGER, at TEXT, bo
 CREATE TABLE IF NOT EXISTS deaths (character TEXT, t INTEGER, at TEXT, msg TEXT);
 CREATE TABLE IF NOT EXISTS danger (character TEXT, t INTEGER, at TEXT, event TEXT, map TEXT, home TEXT, goal TEXT,
     killer TEXT, min_hp_pct INTEGER, low_for_s INTEGER, damage_10s INTEGER, targeting INTEGER, mp_pct INTEGER,
-    panicking INTEGER, raw TEXT);
+    panicking INTEGER, raw TEXT, build TEXT);
 CREATE TABLE IF NOT EXISTS bscorpion_kills (character TEXT, t INTEGER, at TEXT, secs REAL, avg_secs REAL);
 CREATE INDEX IF NOT EXISTS ledger_spot ON ledger (survey_spot, character);
 CREATE INDEX IF NOT EXISTS ledger_home ON ledger (home, character);
@@ -55,19 +58,19 @@ def count(kills):
 def add_ledger(db, r):
     spot = r.get("spot") or {}
     potions = r.get("potions") or {}
-    db.execute("INSERT INTO ledger VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (
+    db.execute("INSERT INTO ledger VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (
         r.get("character"), r.get("t"), r.get("at"), r.get("window_s"), r.get("at_spot_s"), r.get("map"),
         r.get("home"), r.get("survey_spot"), r.get("level"), r.get("gold"), r.get("chest_gold"), r.get("xp"),
         count(r.get("kills")), spot.get("gold"), spot.get("chest_gold"), spot.get("xp"), count(spot.get("kills")),
         r.get("deaths"), potions.get("hp"), potions.get("mp"), r.get("players_nearby"), r.get("goldm"),
         r.get("xpm"), r.get("luckm"), json.dumps(r.get("kills") or {}), json.dumps(spot.get("kills") or {}),
-        json.dumps(r.get("party") or []), json.dumps(r.get("gear") or {})))
+        json.dumps(r.get("party") or []), json.dumps(r.get("gear") or {}), r.get("build")))
 
 
 def add_survey(db, r):
-    db.execute("INSERT INTO survey VALUES (?,?,?,?,?,?,?,?,?)", (
+    db.execute("INSERT INTO survey VALUES (?,?,?,?,?,?,?,?,?,?)", (
         r.get("character"), r.get("t"), r.get("at"), r.get("spot"), r.get("status"), r.get("visits"),
-        r.get("at_spot_s"), r.get("travel_s"), r.get("deaths")))
+        r.get("at_spot_s"), r.get("travel_s"), r.get("deaths"), r.get("build")))
 
 
 def add_tracker(db, r):
@@ -86,10 +89,10 @@ def add_tracker(db, r):
 
 
 def add_danger(db, r):
-    db.execute("INSERT INTO danger VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (
+    db.execute("INSERT INTO danger VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (
         r.get("character"), r.get("t"), r.get("at"), r.get("event"), r.get("map"), r.get("home"), r.get("goal"),
         r.get("killer"), 0 if r.get("event") == "death" else r.get("min_hp_pct"), r.get("low_for_s"), r.get("damage_10s"),
-        r.get("targeting"), r.get("mp_pct"), 1 if r.get("panicking") else 0, json.dumps(r)))
+        r.get("targeting"), r.get("mp_pct"), 1 if r.get("panicking") else 0, json.dumps(r), r.get("build")))
 
 
 def add_boss_profile(db, r):
@@ -149,9 +152,15 @@ def ingest_file(db, name, add, tables):
     return added
 
 
+BUILD_COLUMN_TABLES = ("ledger", "survey", "danger")
+
+
 def connect():
     db = sqlite3.connect(DB, timeout=60)
     db.executescript(SCHEMA)
+    for table in BUILD_COLUMN_TABLES:
+        if "build" not in [c[1] for c in db.execute("PRAGMA table_info(%s)" % table)]:
+            db.execute("ALTER TABLE %s ADD COLUMN build TEXT" % table)
     return db
 
 
@@ -451,8 +460,121 @@ def status():
     return out
 
 
+# --------------------------------------------------------------------------------------------------------------------------------- #
+# BUILD COMPARISON — the overhaul's live check: one build against another at the same home, full windows at the spot only
+# --------------------------------------------------------------------------------------------------------------------------------- #
+
+COMPARE_MIN_WINDOWS = {"neutral": 6, "behaviour": 12}
+COMPARE_PARTY_PROXY = "Myras"
+COMPARE_FIGHTERS = ("Ulric", "Myras", "Riva")
+COMPARE_MIN_CHANGE = 0.02
+
+
+def compare_selector(arg):
+    """A 7+ hex build SHA, or a local-time range 'start..end' (either side may be empty)."""
+    if re.fullmatch(r"[0-9a-f]{7,40}", arg):
+        return "build = ?", (arg[:7],), arg[:7]
+    start, _, end = arg.partition("..")
+    to_ms = lambda s: int(time.mktime(time.strptime(s, "%Y-%m-%dT%H:%M")) * 1000)
+    lo = to_ms(start) if start else 0
+    hi = to_ms(end) if end else 2 ** 53
+    return "t >= ? AND t < ?", (lo, hi), arg
+
+
+def compare_windows(db, where, args, home, who):
+    return db.execute(
+        "SELECT window_s, spot_kills, spot_xp, spot_gold + spot_chest_gold, deaths, hp_pots, mp_pots FROM ledger "
+        "WHERE %s AND home = ? AND character = ? AND window_s BETWEEN 280 AND 320 AND at_spot_s >= window_s * 0.95"
+        % where, args + (home, who)).fetchall()
+
+
+def per_hour(rows, i):
+    return [r[i] * 3600.0 / r[0] for r in rows if r[i] is not None]
+
+
+def compare_metric(a, b):
+    """Change in the mean, and the change's standard error, both as fractions of A's mean."""
+    if len(a) < 2 or len(b) < 2:
+        return None
+    ma, mb = statistics.mean(a), statistics.mean(b)
+    if not ma:
+        return None
+    se = (statistics.variance(a) / len(a) + statistics.variance(b) / len(b)) ** 0.5
+    return {"a": ma, "b": mb, "change": (mb - ma) / ma, "se": se / ma}
+
+
+def metric_verdict(m):
+    if not m:
+        return "n/a"
+    if abs(m["change"]) <= max(2 * m["se"], COMPARE_MIN_CHANGE):
+        return "same"
+    return "better" if m["change"] > 0 else "worse"
+
+
+def compare_report(arg_a, arg_b, home=None, tier="neutral"):
+    ingest()
+    db = connect()
+    wa, xa, label_a = compare_selector(arg_a)
+    wb, xb, label_b = compare_selector(arg_b)
+    if not home:
+        row = db.execute("SELECT home, COUNT(*) FROM ledger WHERE %s GROUP BY home ORDER BY 2 DESC LIMIT 1" % wb,
+                         xb).fetchone()
+        home = row[0] if row else None
+    if not home:
+        print("no ledger windows for %s" % label_b)
+        return "not enough data"
+
+    need = COMPARE_MIN_WINDOWS[tier]
+    print("compare at %s, %s tier (at least %d full windows at the spot per build)" % (home, tier, need))
+    print("  A = %s    B = %s" % (label_a, label_b))
+    verdicts = []
+    deaths_b = 0
+    for who in COMPARE_FIGHTERS:
+        ra, rb = compare_windows(db, wa, xa, home, who), compare_windows(db, wb, xb, home, who)
+        deaths_b += sum(r[4] or 0 for r in rb)
+        print("  %s: %d / %d windows" % (who, len(ra), len(rb)))
+        metrics = [("xp/h", 2)]
+        if who == COMPARE_PARTY_PROXY:
+            metrics = [("kills/h", 1), ("xp/h", 2), ("gold/h", 3)]
+        for name, i in metrics + [("mp pots/h", 6)]:
+            m = compare_metric(per_hour(ra, i), per_hour(rb, i))
+            v = metric_verdict(m) if len(ra) >= need and len(rb) >= need else "not enough data"
+            if m:
+                print("    %-10s %12.1f -> %12.1f  %+6.1f%%  (2 SE %4.1f%%)  %s" % (
+                    name, m["a"], m["b"], 100 * m["change"], 200 * m["se"], v))
+            if name in ("kills/h", "xp/h"):
+                verdicts.append(v)
+
+    close = db.execute("SELECT COUNT(*) FROM danger WHERE %s AND home = ? AND event = 'close_call'" % wb,
+                       xb + (home,)).fetchone()[0]
+    print("  B: %d deaths at the spot, %d close calls" % (deaths_b, close))
+
+    if "not enough data" in verdicts:
+        verdict = "not enough data"
+    elif "worse" in verdicts:
+        verdict = "worse"
+    elif deaths_b:
+        verdict = "read danger.jsonl before calling it"
+    elif "better" in verdicts:
+        verdict = "better"
+    else:
+        verdict = "same"
+    print("verdict: %s" % verdict)
+    db.close()
+    return verdict
+
+
 def main():
     command = sys.argv[1] if len(sys.argv) > 1 else "ingest"
+    if command == "compare":
+        args = sys.argv[2:]
+        flags = {args[i]: args[i + 1] for i in range(len(args) - 1) if args[i].startswith("--")}
+        plain = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or not args[i - 1].startswith("--"))]
+        if len(plain) != 2:
+            print(__doc__)
+            sys.exit(2)
+        compare_report(plain[0], plain[1], flags.get("--home"), flags.get("--tier", "neutral"))
+        return
     if command == "rebuild":
         if os.path.exists(DB):
             os.remove(DB)
