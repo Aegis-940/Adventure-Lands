@@ -1719,6 +1719,7 @@
   },
   {
    "call": [
+    "encounter_allows",
     "encounter_rank"
    ],
    "from": "Character Managers/Ranger Manager/Ranger Combat.js",
@@ -5672,6 +5673,16 @@
    "to": "Kernel/Kernel.js"
   },
   {
+   "call": [],
+   "from": "Encounters/Monster Rules.js",
+   "load": [
+    "_encounters",
+    "_encounters_by_mtype",
+    "encounter"
+   ],
+   "to": "Encounters/Encounter Registry.js"
+  },
+  {
    "call": [
     "monsters_matching"
    ],
@@ -6933,6 +6944,13 @@
    "stage": "first",
    "statements": []
   },
+  "Encounters/Monster Rules.js": {
+   "call_initializers": [],
+   "optional": true,
+   "role": null,
+   "stage": "parallel",
+   "statements": []
+  },
   "Encounters/Porcupine.js": {
    "call_initializers": [],
    "optional": true,
@@ -7101,6 +7119,7 @@
   "Core Systems/Movement Positioning.js",
   "Core Systems/Targeting.js",
   "Encounters/Porcupine.js",
+  "Encounters/Monster Rules.js",
   "Core Systems/World Events.js",
   "Core Systems/Character Messaging.js",
   "Core Systems/Equipment Manager.js",

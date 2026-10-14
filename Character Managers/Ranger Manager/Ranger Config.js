@@ -9,9 +9,8 @@ var CONFIG = {
 		target_priority: ["Ulric", "Myras"],
 		party_dps_factor: 2.0,
 
-		always_attack: [...ALL_BOSSES, "phoenix", "bscorpion"],
+		always_attack: [...ALL_BOSSES, "bscorpion"],
 		attack_if_targeted: ["crabx"],
-		never_attack: ["nerfedmummy"],
 		engage_aggroed_only: true,
 		skill_blacklist: ["dryad", "fireroamer", "plantoid", "mole", "mummy"],
 		use_hunters_mark: true,

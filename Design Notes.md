@@ -51,13 +51,25 @@ An encounter is everything one monster, spawn or boss changes about how the part
 There are two kinds of answer:
 
 - **Context answers** (`gear`, `settings`) come from the encounters live right now. A `spawn` encounter is live when `home` is one of its `homes` and the character is on the destination map, which is the rule `gear_override()` used. A `hazard` or `situation` encounter is live while its own `active(ctx)` says so. The highest tier answers (situation, then hazard, then spawn); an answer of `null` passes to the next. Two live encounters of the same tier answering the same question is a configuration error, counted once in the flight recorder and settled by encounter name.
-- **Mob answers** (`allows`, `rank`) apply to the encounter's `mtypes` wherever the mob is met, live or not, so a porcupine is protected at any spawn. Any veto wins; ranks add.
+- **Mob answers** (`allows`, `rank`) apply to the encounter's `mtypes` wherever the mob is met, live or not, so a porcupine is protected at any spawn. Any veto wins; ranks add. An encounter with only mob answers needs no tier and is never live.
+
+The actions `allows` can veto: `attack` (target it), `cleave` and `agitate` (fire the skill while it is within reach, through `blocker_within()`), and `pull` (count it as a reason for Ulric to agitate).
 
 `ctx` (`encounter_context()`) is rebuilt at most once per `CACHE_TTL`: the character, the visible monsters within 600 (`ctx.mobs.of(type)`), `home` and `destination`. Rebuilding it is also when activity changes, so `enter`/`leave` hooks and the `encounter_enter`/`encounter_leave` bus topics fire then.
 
 Each answer records which encounter gave it: `why("gear.weapon")` in the console. `encounter_problems()` checks every spec (known keys, tiers and roles, `active` where needed, `mtypes` for mob answers, gear set names in the role's `equipment_sets`), and the harness `load` command fails on any problem.
 
 Encounter files are optional scripts: a missing file means its answers are absent and nothing else.
+
+### `Monster Rules.js`
+
+Monster types with a rule or two and no spawn of their own, kept in one file because each is a few lines with no state. A monster that grows gear, settings or hooks moves to its own file.
+
+- **pppompom:** Ulric doesn't cleave with one in reach and doesn't count them as a reason to agitate.
+- **redfairy:** Ulric doesn't agitate with one in reach. The mforest fairies hit for 2,400–4,000 magical at frequency 100 with unlimited range, so a pulled one never stops hitting.
+- **nerfedmummy:** Riva never shoots one.
+
+Phoenix was in Riva's `always_attack` list, at boss priority. It was taken out on 2026-10-15, as the party no longer meets them. crabx stays in Riva's `attack_if_targeted` list until the crabxx boss becomes an encounter, since it is that boss's add.
 
 ### `Porcupine.js`
 
@@ -463,7 +475,7 @@ Targeting, `action_loop()`, and `weapon_burst()`. Sets `cache.tank_entity` to **
 
 Agitate, warcry, stomp, and taunt; cleave fires here only when no swing is coming, otherwise it rides the swing's `weapon_burst()`. Hardshell and charge are commented out.
 
-**Blockers.** Cleave and agitate refuse to fire with a `cleave_blacklist`/`agitate_blockers` monster, or one an encounter forbids (`encounter_allows("cleave"/"agitate", mob)`: porcupines reflect), within their range + 25px (`blocker_within()`), measured hitbox to hitbox like the server. A centre-distance check let porcupines just past 160px get cleaved.
+**Blockers.** Cleave and agitate refuse to fire with a monster an encounter forbids (`encounter_allows("cleave"/"agitate", mob)`: porcupines reflect, pppompom, redfairy) within their range + 25px (`blocker_within()`), measured hitbox to hitbox like the server. A centre-distance check let porcupines just past 160px get cleaved.
 
 **Boss pursuit.** During a boss pursuit he cleaves only with the pursued boss inside the cleave, so the AOE always includes the boss.
 

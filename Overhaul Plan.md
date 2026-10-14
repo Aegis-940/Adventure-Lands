@@ -467,7 +467,7 @@ One encounter per push. Sources are from the 2026-10-14 inventory (Appendix B). 
 
 - [x] 2.1–2.6 registry, context, tiers, questions (gear, settings, allows, rank), attribution, spec checks in the harness (on `overhaul`). Still to come as encounters need them: `encounter_goal`, `encounter_step`, the 📊 live feed of active encounters, the settings-are-read lint
 - [x] 2.8.1 porcupine (on `overhaul`): a pure move, 9 synthetic fixtures whose goldens fail without it; `typeof` count down 4
-- [ ] 2.8.2 mob traits
+- [x] 2.8.2 mob traits (on `overhaul`): pppompom, redfairy and nerfedmummy in `Encounters/Monster Rules.js`, pinned by 6 synthetic fixtures; `cleave_blacklist`, `agitate_blockers` and `never_attack` are gone. Phoenix left Riva's `always_attack` (the user's call: the party has moved past phoenix). crabx moves with the crabxx boss (2.8.5); `taunt_ents` (off) stays
 - [ ] 2.8.3 mummy (current farm; pure move)
 - [ ] 2.8.4 uhills, dryad, fireroamer and the settings knobs (as reached)
 - [ ] 2.8.5 bosses (as fought)

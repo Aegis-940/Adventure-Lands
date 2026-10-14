@@ -61,7 +61,7 @@ function encounter_live(enc, ctx) {
 function encounters_refresh(ctx) {
 	const live = Object.keys(_encounters).sort()
 		.map(name => _encounters[name])
-		.filter(enc => encounter_live(enc, ctx))
+		.filter(enc => enc.tier && encounter_live(enc, ctx))
 		.sort((a, b) => ENCOUNTER_TIERS.indexOf(a.tier) - ENCOUNTER_TIERS.indexOf(b.tier));
 
 	for (const enc of live) {
@@ -170,9 +170,11 @@ function encounter_problems() {
 		const enc = _encounters[name];
 		const say = text => problems.push(`${name}: ${text}`);
 		for (const key in enc) if (key !== "name" && !ENCOUNTER_KEYS.includes(key)) say(`unknown key ${key}`);
-		if (!ENCOUNTER_TIERS.includes(enc.tier)) say(`unknown tier ${enc.tier}`);
+		if ("tier" in enc && !ENCOUNTER_TIERS.includes(enc.tier)) say(`unknown tier ${enc.tier}`);
+		if ((enc.gear || enc.settings || enc.enter || enc.leave) && !enc.tier) say("gear, settings, enter and leave need a tier");
+		if (!enc.tier && !(enc.mtypes || []).length) say("an encounter needs a tier or mtypes");
 		if (enc.tier === "spawn" && !Array.isArray(enc.homes)) say("a spawn encounter needs homes");
-		if (enc.tier !== "spawn" && typeof enc.active !== "function") say(`a ${enc.tier} encounter needs active(ctx)`);
+		if (enc.tier && enc.tier !== "spawn" && typeof enc.active !== "function") say(`a ${enc.tier} encounter needs active(ctx)`);
 		if ((enc.allows || enc.rank) && !(enc.mtypes || []).length) say("allows and rank need mtypes");
 		for (const section of ["gear", "settings", "allows", "rank"]) {
 			for (const role in enc[section] || {}) if (!ENCOUNTER_ROLES.includes(role)) say(`${section} has unknown role ${role}`);

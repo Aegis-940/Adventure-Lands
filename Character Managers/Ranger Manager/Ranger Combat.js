@@ -5,7 +5,7 @@
 function should_attack_mob(mob) {
 	if (!mob || mob.dead) return false;
 
-	if (CONFIG.combat.never_attack.includes(mob.mtype)) return false;
+	if (!encounter_allows("attack", mob)) return false;
 	if (!safe_to_touch(mob, character.explosion || 0)) return false;
 
 	if (encounter_rank(mob) > 0) return true;

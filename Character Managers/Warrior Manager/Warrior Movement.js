@@ -12,7 +12,7 @@ function cleave_targets_at(x, y) {
 		const e = parent.entities[id];
 		if (e.type !== "monster" || e.dead) continue;
 		const gap = distance(probe, e);
-		if (CONFIG.combat.cleave_blacklist.includes(e.mtype) || !encounter_allows("cleave", e)) {
+		if (!encounter_allows("cleave", e)) {
 			if (gap < radius + SKILL_BLOCKER_MARGIN) return 0;
 			continue;
 		}
