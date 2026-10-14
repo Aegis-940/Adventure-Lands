@@ -139,7 +139,7 @@ function rime_shell_logger() {
 	const _rime_band_logger = data => {
 		if (!data || !data.damage) return;
 		const mob = parent.entities[data.id];
-		const shell = mob && rime_shell_ability(mob);
+		const shell = mob && mob.type === "monster" && rime_shell_ability(mob);
 		if (!shell) return;
 		if (shell_hit_counts(mob)) record_shell_hit(mob, data);
 		const margin = mob.hp - mob.max_hp * shell.threshold;
