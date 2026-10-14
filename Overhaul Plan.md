@@ -248,7 +248,7 @@ Docs triage: fix the drift listed in §4, and add this plan to the References in
 
 - [x] 0.1 dependency graph with load-time vs call-time edges (transitive through functions and load-time callbacks)
 - [ ] 0.2 snapshot recorder and sink lane, all five triggers
-- [ ] 0.3 harness boots all four roles over `runner_functions.js` (3–4 pushes)
+- [x] 0.3 harness boots all four roles over `runner_functions.js` (one push: the game's `common_functions.js` supplies `parent.distance`/`is_disabled`, the other game-client functions are recording stubs)
 - [ ] 0.4 goldens recorded from the current farm's fixtures, Myras panic-heal golden included
 - [ ] 0.5 build SHA on every archived record
 - [ ] 0.6 `Data Store.py compare`
