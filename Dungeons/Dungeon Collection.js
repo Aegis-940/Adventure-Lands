@@ -11,22 +11,18 @@ const COLLECT_IDLE_ROUNDS = 3;
 const COLLECT_RANGE = 300;
 
 function dungeon_runs_done() {
-	try {
-		return parseInt(localStorage.getItem(COLLECT_RUNS_KEY) || "0", 10) || 0;
-	} catch (e) {
-		return 0;
-	}
+	return parseInt(storage_raw_read(COLLECT_RUNS_KEY) || "0", 10) || 0;
 }
 
 function record_dungeon_run() {
 	const n = dungeon_runs_done() + 1;
-	try { localStorage.setItem(COLLECT_RUNS_KEY, String(n)); } catch (e) { }
+	storage_raw_write(COLLECT_RUNS_KEY, n);
 	game_log(`Dungeon run ${n} complete`, DUNGEON_LOG_COLOR);
 	return n;
 }
 
 function reset_dungeon_runs() {
-	try { localStorage.removeItem(COLLECT_RUNS_KEY); } catch (e) { }
+	storage_remove(COLLECT_RUNS_KEY);
 	game_log("Dungeon run counter reset", DUNGEON_LOG_COLOR);
 }
 

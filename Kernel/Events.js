@@ -25,6 +25,14 @@ function on_socket(event, key, fn) {
 	_listeners.push({ target: socket, event, slot, socket: true });
 }
 
+function off_socket(event, key) {
+	const socket = parent.socket;
+	const slot = "_" + key;
+	if (!socket[slot]) return;
+	socket.off(event, socket[slot]);
+	delete socket[slot];
+}
+
 function on_character(event, key, fn) {
 	character.on(event, guarded(fn, `character ${event} ${key}`));
 }

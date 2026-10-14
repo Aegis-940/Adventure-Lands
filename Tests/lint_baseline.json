@@ -45,8 +45,6 @@
  },
  "local_storage": {
   "Character Managers/Merchant Manager/Merchant Config.js": 4,
-  "Dungeons/Dungeon Collection.js": 3,
-  "Dungeons/Dungeon Runner.js": 3,
   "Interface/Settings Window.js": 2
  },
  "monster_literals": {
@@ -86,8 +84,6 @@
  },
  "set_interval": {
   "Character Managers/Warrior Manager/Warrior Combat.js": 1,
-  "Dungeons/Dungeon Mode.js": 1,
-  "Dungeons/Dungeon Runner.js": 5,
   "Interface/DPS Meter.js": 1,
   "Interface/Kill Tracker.js": 1,
   "Interface/Metrics Graphs.js": 3,
@@ -99,16 +95,12 @@
  "socket_on_off": {
   "Character Managers/Warrior Manager/Warrior Combat.js": 6,
   "Character Managers/Warrior Manager/Warrior Skills.js": 8,
-  "Dungeons/Dungeon Progress.js": 2,
-  "Dungeons/Dungeon Runner.js": 2,
   "Interface/DPS Meter.js": 2,
   "Interface/Kill Tracker.js": 2,
   "Interface/Lucky Slot Tracker.js": 2,
   "Interface/Metrics Graphs.js": 4
  },
  "top_level_statements": {
-  "Dungeons/Dungeon Mode.js": 1,
-  "Dungeons/Dungeon Runner.js": 1,
   "Interface/Bank Sort Order.js": 7,
   "Interface/Bank Viewer.js": 1,
   "Interface/Boss Contribution.js": 1,

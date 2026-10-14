@@ -122,6 +122,13 @@ function add_dungeon_buttons() {
 
 	paint_dungeon_buttons();
 
-	setInterval(paint_dungeon_buttons, 500);
+	every("dungeon buttons", { ms: 500, kind: "ui", fixed: true }, paint_dungeon_buttons);
 }
-add_dungeon_buttons();
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Dungeon Mode", () => {
+	add_dungeon_buttons();
+});

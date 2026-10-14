@@ -81,11 +81,7 @@ function dungeon_mtype_for(id) {
 }
 
 function track_dungeon_kills() {
-	if (parent.socket._dungeon_kill_handler) {
-		parent.socket.off("hit", parent.socket._dungeon_kill_handler);
-	}
-
-	parent.socket._dungeon_kill_handler = data => {
+	on_socket("hit", "dungeon_kill_handler", data => {
 		try {
 			if (!data || !data.kill || !data.id) return;
 			if (!active_dungeon()) return;
@@ -96,7 +92,5 @@ function track_dungeon_kills() {
 		} catch (e) {
 			console.error("dungeon kill handler error", e);
 		}
-	};
-
-	parent.socket.on("hit", parent.socket._dungeon_kill_handler);
+	});
 }

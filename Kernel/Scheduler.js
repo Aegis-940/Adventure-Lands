@@ -34,6 +34,12 @@ function every(name, options, fn) {
 	return loop;
 }
 
+function stop_loop(loop) {
+	clearInterval(loop.timer);
+	const i = _loops.indexOf(loop);
+	if (i !== -1) _loops.splice(i, 1);
+}
+
 function stop_loops() {
 	for (const loop of _loops) clearInterval(loop.timer);
 }

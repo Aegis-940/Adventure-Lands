@@ -23,33 +23,26 @@ function dungeon_log(dungeon, message, color = DUNGEON_LOG_COLOR) {
 
 const DUNGEON_OVERRIDE_KEY = "AL_dungeon_mode";
 
-let _dungeon_override = null;
+let _dungeon_override;
 let _active_dungeon_cache;
 
-try {
-	_dungeon_override = localStorage.getItem(DUNGEON_OVERRIDE_KEY) || null;
-} catch (e) {
-	_dungeon_override = null;
-}
-
 function dungeon_override() {
+	if (_dungeon_override === undefined) _dungeon_override = storage_raw_read(DUNGEON_OVERRIDE_KEY) || null;
 	return _dungeon_override;
 }
 
 function set_dungeon_override(key) {
 	_dungeon_override = key || null;
 	_active_dungeon_cache = undefined;
-	try {
-		if (_dungeon_override) localStorage.setItem(DUNGEON_OVERRIDE_KEY, _dungeon_override);
-		else localStorage.removeItem(DUNGEON_OVERRIDE_KEY);
-	} catch (e) { }
+	if (_dungeon_override) storage_raw_write(DUNGEON_OVERRIDE_KEY, _dungeon_override);
+	else storage_remove(DUNGEON_OVERRIDE_KEY);
 }
 
 function active_dungeon() {
 	if (_active_dungeon_cache !== undefined) return _active_dungeon_cache;
 
-	if (_dungeon_override && DUNGEONS[_dungeon_override]) {
-		_active_dungeon_cache = DUNGEONS[_dungeon_override];
+	if (dungeon_override() && DUNGEONS[dungeon_override()]) {
+		_active_dungeon_cache = DUNGEONS[dungeon_override()];
 		return _active_dungeon_cache;
 	}
 
@@ -313,15 +306,15 @@ function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 			const e = parent.entities[data.id];
 			if (e && e.mtype === mob_type) killed = true;
 		}
-		parent.socket.on("hit", on_hit);
+		on_socket("hit", "wait_for_death_hit", on_hit);
 
 		function settle(finish, value) {
-			clearInterval(interval);
-			parent.socket.off("hit", on_hit);
+			stop_loop(poll);
+			off_socket("hit", "wait_for_death_hit");
 			finish(value);
 		}
 
-		const interval = setInterval(() => {
+		const poll = every("wait for death " + mob_type, { ms: 500, kind: "automation", fixed: true }, () => {
 			if (character.rip) {
 				return settle(reject, new Error(`died before ${mob_type} was confirmed dead`));
 			}
@@ -357,7 +350,7 @@ function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 				consecutive_alive = 0;
 				consecutive_dead = 0;
 			}
-		}, 500);
+		});
 
 	});
 }
@@ -456,10 +449,10 @@ function dungeon_rejoin_watch() {
 
 function start_dungeon_watchers() {
 	track_dungeon_kills();
-	setInterval(dungeon_rejoin_watch, DUNGEON_REJOIN_WATCH_MS);
-	setInterval(remember_dungeon_entities, PROGRESS_SEEN_MS);
-	setInterval(dungeon_telemetry_tick, TELEMETRY_TICK_MS);
-	setInterval(dreams_watch, DREAMS_WATCH_MS);
+	every("dungeon rejoin watch", { ms: DUNGEON_REJOIN_WATCH_MS, kind: "automation", fixed: true }, dungeon_rejoin_watch);
+	every("dungeon entities", { ms: PROGRESS_SEEN_MS, kind: "automation", fixed: true }, remember_dungeon_entities);
+	every("dungeon telemetry", { ms: TELEMETRY_TICK_MS, kind: "telemetry", fixed: true }, dungeon_telemetry_tick);
+	every("dreams watch", { ms: DREAMS_WATCH_MS, kind: "automation", fixed: true }, dreams_watch);
 }
 
 function followers_away_from_entrance(dungeon) {
