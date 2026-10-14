@@ -206,16 +206,13 @@ function zap_pull_home() {
 }
 
 function zap_pull_target() {
-	if (!zap_pull_home() || !CONFIG.combat.aggro) return null;
-	if (character.mp - skill_mp_cost("zapperzap") < character.max_mp * CONFIG.combat.zap_pull_min_mp_pct) return null;
-	if (count_my_aggro() >= effective_aggro_cap()) return null;
+	if (!zap_pull_home() || !CONFIG.combat.aggro || fighter_down()) return null;
 
 	return best_target({
 		type: home,
 		no_target: true,
 		max_distance: G.skills.zapperzap.range,
-		where: m => !is_in_range(m) && safe_to_touch(m, character.explosion || 0)
-			&& tank_can_take(monster_dps_on(m, character))
+		where: m => safe_to_touch(m, character.explosion || 0) && tank_can_take(monster_dps_on(m, character))
 	}, { close: 1 }, healer_target_context());
 }
 

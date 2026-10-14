@@ -21,7 +21,6 @@ var CONFIG = {
 		zapper_enabled: true,
 		zapper_min_mp_pct: 0.60,
 		zap_pull_homes: ["mummy"],
-		zap_pull_min_mp_pct: 0.80,
 
 		sample_hits: true,
 		sample_targets: true,

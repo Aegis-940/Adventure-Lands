@@ -58,20 +58,28 @@ async function skill_loop() {
 			}
 		}
 
-		if (!paused) {
-			try {
-				await handle_zapper();
-			} catch (e) {
-				catcher(e, "handle_zapper");
-			}
-		}
-
 	} catch (e) {
 		catcher(e, "skill_loop");
 		next_delay = TICK_RATE.retry;
 	}
 
 	setTimeout(skill_loop, loop_next("skill_loop", next_delay));
+}
+
+async function zap_loop() {
+	loop_tick("zap_loop");
+	let next_delay = TICK_RATE.skill;
+
+	try {
+		if (!is_disabled(character) && !dungeon_bailing() && !cave_paused() && !should_pause_combat_loop()) {
+			await handle_zapper();
+		}
+	} catch (e) {
+		catcher(e, "zap_loop");
+		next_delay = TICK_RATE.retry;
+	}
+
+	setTimeout(zap_loop, loop_next("zap_loop", next_delay));
 }
 
 var DARK_BLESSING_SYNC_WAIT_MS = 8000;

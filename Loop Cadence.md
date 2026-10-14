@@ -21,6 +21,7 @@ across characters even though the raw counters are `max()`-merged peaks from dif
 | `action_loop` (Warrior, Healer) | 10ms, backs off via `next_action_delay()` | ok |
 | `action_loop` (Ranger) | **5ms** | asymmetric — see below |
 | `skill_loop` (Warrior, Healer) | `TICK_RATE.skill` 40ms | ok |
+| `zap_loop` (Healer) | `TICK_RATE.skill` 40ms, each cast awaited | ok: zap's own 200ms cooldown, off `skill_loop`'s awaits |
 | `skill_loop` (Ranger) | **5ms, no backoff on the hot path** | **fixed** |
 | `potion_loop` | **10ms** between drinks | **fixed** |
 | `equipment_manager_loop` | `TICK_RATE.equipment` 25ms | now justified — see below |
