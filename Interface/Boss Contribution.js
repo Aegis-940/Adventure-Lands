@@ -42,14 +42,20 @@ function boss_contribution_html(content) {
 	return `<div>👑 Boss Contribution 👑</div><table style="width:100%;border-collapse:collapse"><tbody>${body}</tbody></table>`;
 }
 
-register_widget("bosscontribution", {
-	tick_ms: 250,
-	container: {
-		fontSize: "20px", color: "white", textAlign: "center", width: "100%",
-		backgroundColor: "rgba(0,0,0,0.7)", marginBottom: "-3px",
-	},
-	content: {
-		padding: "2px", border: "4px solid grey",
-	},
-	render: content => boss_contribution_html(content),
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Boss Contribution", () => {
+	register_widget("bosscontribution", {
+		tick_ms: 250,
+		container: {
+			fontSize: "20px", color: "white", textAlign: "center", width: "100%",
+			backgroundColor: "rgba(0,0,0,0.7)", marginBottom: "-3px",
+		},
+		content: {
+			padding: "2px", border: "4px solid grey",
+		},
+		render: content => boss_contribution_html(content),
+	});
 });

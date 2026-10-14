@@ -26,31 +26,37 @@ function set_gold_interval(new_interval) {
 	else game_log(`Invalid gold interval "${new_interval}" — use minute, hour or day`, "#FFA500");
 }
 
-register_widget("goldtimer", {
-	tick_ms: 500,
-	container: {
-		fontSize: "25px", color: "white", textAlign: "center", display: "table",
-		overflow: "hidden", marginBottom: "-5px", width: "100%",
-	},
-	content: {
-		display: "table-cell", verticalAlign: "middle",
-		background: "black", backgroundColor: "rgba(0, 0, 0, 0.6)",
-		border: "solid gray", borderWidth: "4px 4px",
-		height: "50px", lineHeight: "25px", fontSize: "25px",
-		color: "#FFD700", textAlign: "center",
-	},
-	render: () => `
-		<div>${commas(calculate_average_gold())} Gold/${gold_interval.charAt(0).toUpperCase() + gold_interval.slice(1)}</div>
-		<div>${commas(largest_gold_drop)} Jackpot</div>
-	`,
-});
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
-character.on("loot", (data) => {
-	if (typeof data.gold !== "number" || Number.isNaN(data.gold)) return;
+on_boot("Gold Meter", () => {
+	register_widget("goldtimer", {
+		tick_ms: 500,
+		container: {
+			fontSize: "25px", color: "white", textAlign: "center", display: "table",
+			overflow: "hidden", marginBottom: "-5px", width: "100%",
+		},
+		content: {
+			display: "table-cell", verticalAlign: "middle",
+			background: "black", backgroundColor: "rgba(0, 0, 0, 0.6)",
+			border: "solid gray", borderWidth: "4px 4px",
+			height: "50px", lineHeight: "25px", fontSize: "25px",
+			color: "#FFD700", textAlign: "center",
+		},
+		render: () => `
+			<div>${commas(calculate_average_gold())} Gold/${gold_interval.charAt(0).toUpperCase() + gold_interval.slice(1)}</div>
+			<div>${commas(largest_gold_drop)} Jackpot</div>
+		`,
+	});
 
-	const party_share = parent.party[character.name]?.share || 1;
-	const chest_total = Math.round(data.gold / party_share);
+	on_character("loot", "gold_meter", (data) => {
+		if (typeof data.gold !== "number" || Number.isNaN(data.gold)) return;
 
-	gold_events.push({ t: Date.now(), v: chest_total });
-	if (chest_total > largest_gold_drop) largest_gold_drop = chest_total;
+		const party_share = parent.party[character.name]?.share || 1;
+		const chest_total = Math.round(data.gold / party_share);
+
+		gold_events.push({ t: Date.now(), v: chest_total });
+		if (chest_total > largest_gold_drop) largest_gold_drop = chest_total;
+	});
 });

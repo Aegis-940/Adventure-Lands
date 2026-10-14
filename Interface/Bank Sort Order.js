@@ -3,83 +3,85 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 var al_items = {};
-const order = {};
-al_items.order = order;
+function build_bank_order() {
+	const order = {};
 
-order.names = [
-	"Helmets",
-	"Armors",
-	"Underarmors",
-	"Gloves",
-	"Shoes",
-	"Capes",
-	"Rings",
-	"Earrings",
-	"Amulets",
-	"Belts",
-	"Orbs",
-	"Weapons",
-	"Shields",
-	"Offhands",
-	"Elixirs",
-	"Potions",
-	"Scrolls",
-	"Crafting and Collecting",
-	"Exchangeables",
-	"Others",
-];
+	order.names = [
+		"Helmets",
+		"Armors",
+		"Underarmors",
+		"Gloves",
+		"Shoes",
+		"Capes",
+		"Rings",
+		"Earrings",
+		"Amulets",
+		"Belts",
+		"Orbs",
+		"Weapons",
+		"Shields",
+		"Offhands",
+		"Elixirs",
+		"Potions",
+		"Scrolls",
+		"Crafting and Collecting",
+		"Exchangeables",
+		"Others",
+	];
 
-order.ids = [
-	"helmet",
-	"chest",
-	"pants",
-	"gloves",
-	"shoes",
-	"cape",
-	"ring",
-	"earring",
-	"amulet",
-	"belt",
-	"orb",
-	"weapon",
-	"shield",
-	"offhand",
-	"elixir",
-	"pot",
-	"scroll",
-	"material",
-	"exchange",
-	"",
-];
+	order.ids = [
+		"helmet",
+		"chest",
+		"pants",
+		"gloves",
+		"shoes",
+		"cape",
+		"ring",
+		"earring",
+		"amulet",
+		"belt",
+		"orb",
+		"weapon",
+		"shield",
+		"offhand",
+		"elixir",
+		"pot",
+		"scroll",
+		"material",
+		"exchange",
+		"",
+	];
 
-order.item_ids = order.ids.map((_id) => []);
-object_sort(G.items, "gold_value").forEach(function (b) {
-	if (!b[1].ignore)
-	for (var c = 0; c < order.ids.length; c++)
-		if (
-		!order.ids[c] ||
-		b[1].type == order.ids[c] ||
-		("offhand" == order.ids[c] &&
-			in_arr(b[1].type, ["source", "quiver", "misc_offhand"])) ||
-		("scroll" == order.ids[c] &&
-			in_arr(b[1].type, ["cscroll", "uscroll", "pscroll", "offering"])) ||
-		("exchange" == order.ids[c] && G.items[b[0]].e)
-		) {
-		order.item_ids[c].push(b[0]);
-		break;
-		}
-});
-order.flat_iids = order.item_ids.flat();
-order.comparator = function (a, b) {
-	return (
-	(a == null) - (b == null) ||
-	(a != null &&
-		(order.flat_iids.indexOf(a.name) - order.flat_iids.indexOf(b.name) ||
-		(a.name < b.name && -1) ||
-		+(a.name > b.name) ||
-		b.level - a.level))
-	);
-};
+	order.item_ids = order.ids.map((_id) => []);
+	object_sort(G.items, "gold_value").forEach(function (b) {
+		if (!b[1].ignore)
+		for (var c = 0; c < order.ids.length; c++)
+			if (
+			!order.ids[c] ||
+			b[1].type == order.ids[c] ||
+			("offhand" == order.ids[c] &&
+				in_arr(b[1].type, ["source", "quiver", "misc_offhand"])) ||
+			("scroll" == order.ids[c] &&
+				in_arr(b[1].type, ["cscroll", "uscroll", "pscroll", "offering"])) ||
+			("exchange" == order.ids[c] && G.items[b[0]].e)
+			) {
+			order.item_ids[c].push(b[0]);
+			break;
+			}
+	});
+	order.flat_iids = order.item_ids.flat();
+	order.comparator = function (a, b) {
+		return (
+		(a == null) - (b == null) ||
+		(a != null &&
+			(order.flat_iids.indexOf(a.name) - order.flat_iids.indexOf(b.name) ||
+			(a.name < b.name && -1) ||
+			+(a.name > b.name) ||
+			b.level - a.level))
+		);
+	};
+	return order;
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // FLOORS
@@ -492,3 +494,11 @@ function sort_bank_floor(packs_on_floor, inv_indices, sorted_bank, i_running) {
 
 	return sorted_bank;
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Bank Sort Order", () => {
+	al_items.order = build_bank_order();
+});

@@ -72,7 +72,7 @@ function add_gold_graph(doc, content) {
 		draw_gold_graph();
 	}
 
-	character.on("loot", (data) => {
+	on_character("loot", "stats_gold_graph", (data) => {
 		if (data.gold && typeof data.gold === "number" && !Number.isNaN(data.gold)) {
 			add_gold_sample_on_loot();
 		}
@@ -216,7 +216,7 @@ function add_loop_toggles(doc, content) {
 	}
 
 	update_table();
-	setInterval(update_table, 500);
+	every("stats toggles", { ms: 500, kind: "ui", fixed: true }, update_table);
 
 	return toggles_section;
 }

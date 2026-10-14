@@ -11,15 +11,6 @@ const KILL_RATES = [
 
 let tracked_kills = 0;
 
-if (parent.socket._kill_tracker_handler) {
-	parent.socket.off("kill_credit", parent.socket._kill_tracker_handler);
-}
-
-parent.socket._kill_tracker_handler = () => {
-	tracked_kills++;
-};
-
-parent.socket.on("kill_credit", parent.socket._kill_tracker_handler);
 
 function update_kill_rates() {
 	const per_second = tracked_kills / ((performance.now() - KILL_TRACKER_START) / 1000);
@@ -28,5 +19,12 @@ function update_kill_rates() {
 	}
 }
 
-KILL_RATES.slice().reverse().forEach(rate => add_toprightcorner_button(rate.id, `0 ${rate.unit}`));
-setInterval(update_kill_rates, 1000);
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Kill Tracker", () => {
+	on_socket("kill_credit", "kill_tracker_handler", () => { tracked_kills++; });
+	KILL_RATES.slice().reverse().forEach(rate => add_toprightcorner_button(rate.id, `0 ${rate.unit}`));
+	every("kill rates", { ms: 1000, kind: "ui", fixed: true }, update_kill_rates);
+});

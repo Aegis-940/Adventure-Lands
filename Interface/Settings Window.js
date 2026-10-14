@@ -2,20 +2,22 @@
 // SETTINGS WINDOW — per-character targets and merchant toggles, persisted in localStorage
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const SETTINGS_DESCRIPTORS = [
-	{ label: "Warrior (Ulric)", storage_key: farm_target_key("Ulric"), type: "select", options: monster_options, default: DEFAULT_FARM_TARGET },
-	{ label: "Healer (Myras)",  storage_key: farm_target_key("Myras"), type: "select", options: monster_options, default: DEFAULT_FARM_TARGET },
-	{ label: "Ranger (Riva)",   storage_key: farm_target_key("Riva"),  type: "select", options: monster_options, default: DEFAULT_FARM_TARGET },
-	{ label: "Merchant: Upgrading",  storage_key: "AL_merchant_enabled_upgrading",  type: "checkbox", default: true },
-	{ label: "Target item",  storage_key: "AL_merchant_upgrade_target", type: "select", options: upgrade_target_options, default: "", indent: true },
-	{ label: "Target level", storage_key: "AL_merchant_upgrade_level",  type: "number", min: 1, max: 12,  default: 10, indent: true },
-	{ label: "Target count", storage_key: "AL_merchant_upgrade_count",  type: "number", min: 1, max: 999, default: 1,  indent: true },
-	{ label: "Merchant: Crafting",   storage_key: "AL_merchant_enabled_crafting",   type: "checkbox", default: true },
-	{ label: "Craft target", storage_key: "AL_merchant_craft_target",   type: "select", options: craft_target_options,   default: "", indent: true },
-	{ label: "Merchant: Exchanging", storage_key: "AL_merchant_enabled_exchanging", type: "checkbox", default: true },
-	{ label: "Merchant: Fishing",    storage_key: "AL_merchant_enabled_fishing",    type: "checkbox", default: false },
-	{ label: "Merchant: Mining",     storage_key: "AL_merchant_enabled_mining",     type: "checkbox", default: false },
-];
+function settings_descriptors() {
+	return [
+		{ label: "Warrior (Ulric)", storage_key: farm_target_key("Ulric"), type: "select", options: monster_options, default: DEFAULT_FARM_TARGET },
+		{ label: "Healer (Myras)",  storage_key: farm_target_key("Myras"), type: "select", options: monster_options, default: DEFAULT_FARM_TARGET },
+		{ label: "Ranger (Riva)",   storage_key: farm_target_key("Riva"),  type: "select", options: monster_options, default: DEFAULT_FARM_TARGET },
+		{ label: "Merchant: Upgrading",  storage_key: "AL_merchant_enabled_upgrading",  type: "checkbox", default: true },
+		{ label: "Target item",  storage_key: "AL_merchant_upgrade_target", type: "select", options: upgrade_target_options, default: "", indent: true },
+		{ label: "Target level", storage_key: "AL_merchant_upgrade_level",  type: "number", min: 1, max: 12,  default: 10, indent: true },
+		{ label: "Target count", storage_key: "AL_merchant_upgrade_count",  type: "number", min: 1, max: 999, default: 1,  indent: true },
+		{ label: "Merchant: Crafting",   storage_key: "AL_merchant_enabled_crafting",   type: "checkbox", default: true },
+		{ label: "Craft target", storage_key: "AL_merchant_craft_target",   type: "select", options: craft_target_options,   default: "", indent: true },
+		{ label: "Merchant: Exchanging", storage_key: "AL_merchant_enabled_exchanging", type: "checkbox", default: true },
+		{ label: "Merchant: Fishing",    storage_key: "AL_merchant_enabled_fishing",    type: "checkbox", default: false },
+		{ label: "Merchant: Mining",     storage_key: "AL_merchant_enabled_mining",     type: "checkbox", default: false },
+	];
+}
 
 const ALL_CHARACTERS = ["Ulric", "Myras", "Riva", "Riff"];
 
@@ -91,9 +93,9 @@ function settings_row(doc, setting, input) {
 }
 
 function save_settings(inputs) {
-	for (const setting of SETTINGS_DESCRIPTORS) {
+	for (const setting of settings_descriptors()) {
 		const input = inputs[setting.storage_key];
-		localStorage.setItem(setting.storage_key, setting.type === "checkbox" ? input.checked : input.value);
+		storage_raw_write(setting.storage_key, setting.type === "checkbox" ? input.checked : input.value);
 	}
 }
 
@@ -137,8 +139,8 @@ function open_settings_window() {
 	body.style.gap = "8px";
 
 	const inputs = {};
-	for (const setting of SETTINGS_DESCRIPTORS) {
-		const input = settings_input(doc, setting, localStorage.getItem(setting.storage_key));
+	for (const setting of settings_descriptors()) {
+		const input = settings_input(doc, setting, storage_raw_read(setting.storage_key));
 		inputs[setting.storage_key] = input;
 		body.appendChild(settings_row(doc, setting, input));
 	}
@@ -192,4 +194,9 @@ function add_settings_button() {
 
 	reload_btn.after(settings_btn);
 }
-add_settings_button();
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Settings Window", add_settings_button);

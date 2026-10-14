@@ -40,6 +40,11 @@ function add_pause_button() {
 	settings_btn.after(pause_btn);
 	paint_pause_button();
 
-	setInterval(paint_pause_button, 500);
+	every("pause button", { ms: 500, kind: "ui", fixed: true }, paint_pause_button);
 }
-add_pause_button();
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Pause Button", add_pause_button);

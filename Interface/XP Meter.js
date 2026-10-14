@@ -50,15 +50,21 @@ function xp_meter_lines() {
 		+ `<br><span style="color: ${color}">${commas(per_second * 60)} XP/min</span>`;
 }
 
-register_widget("xptimer", {
-	tick_ms: 500,
-	container: {
-		background: "black", backgroundColor: "rgba(0, 0, 0, 0.6)",
-		border: "solid gray", borderWidth: "4px 4px",
-		width: "98%", height: "66px", fontSize: "25px", color: "#00FF00",
-		textAlign: "center", display: "table", overflow: "hidden", marginBottom: "-5px",
-	},
-	content: { display: "table-cell", verticalAlign: "middle" },
-	init: content => content.html('Estimated time until level up:<br><span style="font-size: 30px;">Loading...</span><br><span>(Kill something!)</span>'),
-	render: () => xp_meter_lines(),
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("XP Meter", () => {
+	register_widget("xptimer", {
+		tick_ms: 500,
+		container: {
+			background: "black", backgroundColor: "rgba(0, 0, 0, 0.6)",
+			border: "solid gray", borderWidth: "4px 4px",
+			width: "98%", height: "66px", fontSize: "25px", color: "#00FF00",
+			textAlign: "center", display: "table", overflow: "hidden", marginBottom: "-5px",
+		},
+		content: { display: "table-cell", verticalAlign: "middle" },
+		init: content => content.html('Estimated time until level up:<br><span style="font-size: 30px;">Loading...</span><br><span>(Kill something!)</span>'),
+		render: () => xp_meter_lines(),
+	});
 });

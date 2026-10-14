@@ -56,13 +56,19 @@ function update_cc_bar() {
 	$("#cctext").text(`CC: ${Math.floor(current)}/${MAX_CC} (Avg: ${average})`);
 }
 
-register_widget("ccmeter", {
-	tick_ms: 200,
-	container: {
-		width: "100%", marginTop: "4px", marginBottom: "-4px",
-		fontSize: "20px", color: "white", textAlign: "center", display: "table",
-	},
-	content: { display: "table-cell", verticalAlign: "middle", width: "100%" },
-	init: build_cc_bar,
-	render: update_cc_bar,
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("CC Meter", () => {
+	register_widget("ccmeter", {
+		tick_ms: 200,
+		container: {
+			width: "100%", marginTop: "4px", marginBottom: "-4px",
+			fontSize: "20px", color: "white", textAlign: "center", display: "table",
+		},
+		content: { display: "table-cell", verticalAlign: "middle", width: "100%" },
+		init: build_cc_bar,
+		render: update_cc_bar,
+	});
 });

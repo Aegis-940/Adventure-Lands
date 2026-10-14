@@ -3,7 +3,7 @@ const PARTY_ORDER = ["Ulric", "Myras", "Riva", "Riff"];
 const PARTY_FRAME_WIDTH = 100;
 const BAR_HEIGHT = 18;
 
-(function() {
+function inject_party_frames() {
 	const css = `
 	#simple-party-ui-container {
 		position: fixed;
@@ -60,7 +60,7 @@ const BAR_HEIGHT = 18;
 		style.textContent = css;
 		parent.document.head.appendChild(style);
 	}
-})();
+}
 
 function get_party_member_info(name) {
 	if (name === character.name) {
@@ -134,4 +134,11 @@ function render_party_ui() {
 	container.innerHTML = html;
 }
 
-setInterval(render_party_ui, 250);
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Party Frames", () => {
+	inject_party_frames();
+	every("party frames", { ms: 250, kind: "ui", fixed: true }, render_party_ui);
+});

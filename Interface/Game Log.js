@@ -3,19 +3,14 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function al_log_state() {
-	if (!parent.__al_log) {
-		parent.__al_log = {
-			entries: [],
-			show: { gold: true, kills: true, items: true, errors: true },
-			tab: "log",
-			base_w: 0,
-			base_h: 0,
-			hooked: false,
-			seeded: false,
-			resize_hooked: false
-		};
-	}
-	return parent.__al_log;
+	return parent_slot("__al_log", () => ({
+		entries: [],
+		show: { gold: true, kills: true, items: true, errors: true },
+		tab: "log",
+		base_w: 0,
+		base_h: 0,
+		seeded: false
+	}));
 }
 
 function al_log_filters() {
@@ -104,16 +99,11 @@ function al_log_render_all() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function al_log_hook() {
-	const st = al_log_state();
-	if (st.hooked) return;
 	if (typeof parent.add_log !== "function") {
-		st.hooked = true;
 		return void game_log("⚠️ Game log: parent.add_log is missing — native lines stay untimestamped and unfilterable", "#FFA500");
 	}
 
-	st.hooked = true;
-	parent.__al_add_log = parent.add_log;
-	parent.add_log = function(message, color) {
+	wrap_parent("add_log", () => function (message, color) {
 		if (parent.mode && parent.mode.dom_tests) return;
 		if (parent.inside === "payments") return;
 		if (parent.game_logs) {
@@ -121,10 +111,6 @@ function al_log_hook() {
 			while (parent.game_logs.length > 1000) parent.game_logs.shift();
 		}
 		al_log_push(message, color);
-	};
-	window.addEventListener("pagehide", () => {
-		parent.add_log = parent.__al_add_log;
-		st.hooked = false;
 	});
 }
 
@@ -296,16 +282,18 @@ function enhance_game_log() {
 	al_log_hook();
 	al_log_render_all();
 
-	const st = al_log_state();
-	if (!st.resize_hooked) {
-		st.resize_hooked = true;
-		parent.addEventListener("resize", () => setTimeout(al_log_apply_geometry, 100));
-	}
+	on_dom(parent, "resize", "game_log_resize", () => setTimeout(al_log_apply_geometry, 100));
 }
 
-(function start_game_log() {
+function start_game_log() {
 	if (!parent.document.getElementById("gamelog")) {
 		return void setTimeout(start_game_log, 100);
 	}
 	enhance_game_log();
-})();
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Game Log", start_game_log);

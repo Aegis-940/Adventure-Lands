@@ -159,33 +159,12 @@ function metrics_sample() {
 	metrics_push_sample(metrics.xp_history, metrics.xp / elapsed);
 }
 
-if (parent.socket._metrics_hit_handler) {
-	parent.socket.off("hit", parent.socket._metrics_hit_handler);
-}
-parent.socket._metrics_hit_handler = metrics_record_hit;
-parent.socket.on("hit", parent.socket._metrics_hit_handler);
-
-if (parent.socket._metrics_kill_handler) {
-	parent.socket.off("kill_credit", parent.socket._metrics_kill_handler);
-}
-parent.socket._metrics_kill_handler = data => {
+function metrics_record_kill(data) {
 	metrics.kills++;
 	metrics.mob_kills[data.mtype] = (metrics.mob_kills[data.mtype] || 0) + 1;
-};
-parent.socket.on("kill_credit", parent.socket._metrics_kill_handler);
+}
 
-character.on("loot", data => {
-	if (typeof data.gold === "number" && !Number.isNaN(data.gold)) {
-		const chest_total = Math.round(data.gold / (parent.party[character.name]?.share || 1));
-		metrics.gold += chest_total;
-		if (chest_total > metrics.largest_gold) metrics.largest_gold = chest_total;
-	}
-	for (const item of data.items || []) {
-		metrics.items[item.name] = (metrics.items[item.name] || 0) + (item.q || 1);
-	}
-});
 
-setInterval(metrics_sample, METRICS_SAMPLE_MS);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // LIVE FEED — the same numbers, once a second, to the sink's status page
@@ -259,7 +238,6 @@ function metrics_publish() {
 		.finally(() => { _metrics_live_busy = false; });
 }
 
-setInterval(metrics_publish, METRICS_LIVE_MS);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // FORMATTING
@@ -784,7 +762,7 @@ function create_metrics_dashboard() {
 
 function close_metrics_dashboard() {
 	parent.$("#metrics_dashboard, #metrics_backdrop").hide();
-	clearInterval(metrics_view.timer);
+	stop_loop(metrics_view.timer);
 	metrics_view.timer = null;
 }
 
@@ -795,9 +773,29 @@ function toggle_metrics_dashboard() {
 
 	$("#metrics_dashboard, #metrics_backdrop").show();
 	metrics_render();
-	if (!metrics_view.timer) metrics_view.timer = setInterval(metrics_render, 1000);
+	if (!metrics_view.timer) metrics_view.timer = every("metrics dashboard", { ms: 1000, kind: "ui", fixed: true }, metrics_render);
 }
 
-parent.$("#metrics_dashboard, #metrics_backdrop, #metrics_dashboard_styles").remove();
-parent.$(parent.document).off(".metrics_dashboard");
-add_toprightcorner_button("metrics_button", "📊", toggle_metrics_dashboard);
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Metrics Graphs", () => {
+	on_socket("hit", "metrics_hit_handler", metrics_record_hit);
+	on_socket("kill_credit", "metrics_kill_handler", metrics_record_kill);
+	on_character("loot", "metrics", data => {
+		if (typeof data.gold === "number" && !Number.isNaN(data.gold)) {
+			const chest_total = Math.round(data.gold / (parent.party[character.name]?.share || 1));
+			metrics.gold += chest_total;
+			if (chest_total > metrics.largest_gold) metrics.largest_gold = chest_total;
+		}
+		for (const item of data.items || []) {
+			metrics.items[item.name] = (metrics.items[item.name] || 0) + (item.q || 1);
+		}
+	});
+	every("metrics sample", { ms: METRICS_SAMPLE_MS, kind: "ui", fixed: true }, metrics_sample);
+	every("metrics live feed", { ms: METRICS_LIVE_MS, kind: "telemetry", fixed: true }, metrics_publish);
+	parent.$("#metrics_dashboard, #metrics_backdrop, #metrics_dashboard_styles").remove();
+	parent.$(parent.document).off(".metrics_dashboard");
+	add_toprightcorner_button("metrics_button", "📊", toggle_metrics_dashboard);
+});

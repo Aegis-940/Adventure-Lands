@@ -56,12 +56,6 @@ function record_slot_roll(event) {
 	if (parent.$("#slot_luck_dashboard").is(":visible")) show_slot_luck();
 }
 
-if (parent.socket._slot_roll_handler) {
-	parent.socket.off("q_data", parent.socket._slot_roll_handler);
-}
-
-parent.socket._slot_roll_handler = record_slot_roll;
-parent.socket.on("q_data", parent.socket._slot_roll_handler);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // ODDS
@@ -168,4 +162,11 @@ function show_slot_luck() {
 	parent.show_modal(html, { wrap: false, hideinbackground: true, title: "Lucky Slots" });
 }
 
-add_toprightcorner_button("slot_luck_button", "🍀", show_slot_luck);
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Lucky Slot Tracker", () => {
+	on_socket("q_data", "slot_roll_handler", record_slot_roll);
+	add_toprightcorner_button("slot_luck_button", "🍀", show_slot_luck);
+});

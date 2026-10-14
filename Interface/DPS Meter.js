@@ -53,11 +53,7 @@ function get_player_entry(id) {
 	return player_damage_sums[id];
 }
 
-if (parent.socket._dps_meter_hit_handler) {
-	parent.socket.off("hit", parent.socket._dps_meter_hit_handler);
-}
-
-parent.socket._dps_meter_hit_handler = data => {
+function dps_meter_hit(data) {
 	const is_party = id => parent.party_list.includes(id);
 	try {
 		const attacker_in_party = is_party(data.hid);
@@ -160,9 +156,7 @@ parent.socket._dps_meter_hit_handler = data => {
 	} catch (err) {
 		console.error("hit handler error", err);
 	}
-};
-
-parent.socket.on("hit", parent.socket._dps_meter_hit_handler);
+}
 
 const DPS_WINDOW_MS = 5 * 60 * 1000;
 const DPS_MAX_EVENTS = 20000;
@@ -271,17 +265,23 @@ function dps_meter_html() {
 		+ `<tr><th></th>${headers}</tr>${body}${totals}</table>`;
 }
 
-register_widget("dpsmeter", {
-	tick_ms: 250,
-	container: {
-		fontSize: "20px", color: "white", textAlign: "center", display: "table",
-		overflow: "hidden", marginBottom: "-3px", width: "100%", backgroundColor: "rgba(0,0,0,0.6)",
-	},
-	content: {
-		display: "table-cell", verticalAlign: "middle", padding: "2px",
-		border: "4px solid grey",
-	},
-	render: () => dps_meter_html(),
-});
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
 
-setInterval(prune_dps_events, 1000);
+on_boot("DPS Meter", () => {
+	on_socket("hit", "dps_meter_hit_handler", dps_meter_hit);
+	register_widget("dpsmeter", {
+		tick_ms: 250,
+		container: {
+			fontSize: "20px", color: "white", textAlign: "center", display: "table",
+			overflow: "hidden", marginBottom: "-3px", width: "100%", backgroundColor: "rgba(0,0,0,0.6)",
+		},
+		content: {
+			display: "table-cell", verticalAlign: "middle", padding: "2px",
+			border: "4px solid grey",
+		},
+		render: () => dps_meter_html(),
+	});
+	every("prune dps events", { ms: 1000, kind: "ui", fixed: true }, prune_dps_events);
+});

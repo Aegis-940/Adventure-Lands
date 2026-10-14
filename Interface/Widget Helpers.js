@@ -27,11 +27,11 @@ function register_widget(id, opts) {
 
 	let content = build();
 
-	setInterval(() => {
+	every("widget " + id, { ms: opts.tick_ms || 500, kind: "ui", fixed: true }, () => {
 		if (!$("#" + id).length) content = build();
 		const html = opts.render(content);
 		if (typeof html === "string") content.html(html);
-	}, opts.tick_ms || 500);
+	});
 }
 
 const CLASS_COLORS = {
@@ -108,21 +108,20 @@ function window_sum(events, cutoff) {
 
 let _drag = null;
 
-(function _init_drag_listeners() {
-	window.top.addEventListener("mousemove", e => {
+function drag_move(e) {
 	if (!_drag) return;
 	const dx = e.clientX - _drag.start_x;
 	const dy = e.clientY - _drag.start_y;
 	_drag.el.style.top  = `${_drag.start_top  + dy}px`;
 	_drag.el.style.left = `${_drag.start_left + dx}px`;
-	});
-	window.top.addEventListener("mouseup", () => {
+}
+
+function drag_end() {
 	_drag = null;
-	});
-})();
+}
 
 function make_draggable(el, handle = el) {
-	handle.addEventListener("mousedown", e => {
+	on_dom(handle, "mousedown", "drag_start", e => {
 	_drag = {
 		el,
 		start_x:    e.clientX,
@@ -133,3 +132,12 @@ function make_draggable(el, handle = el) {
 	e.preventDefault();
 	});
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Widget Helpers", () => {
+	on_dom(window.top, "mousemove", "drag_move", drag_move);
+	on_dom(window.top, "mouseup", "drag_end", drag_end);
+});

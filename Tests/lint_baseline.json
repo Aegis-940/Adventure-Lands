@@ -1,20 +1,10 @@
 {
- "add_event_listener": {
-  "Interface/Game Log.js": 2,
-  "Interface/Widget Helpers.js": 3
- },
  "call_initializers": {
   "Character Managers/Healer Manager/Healer Config.js": 3,
   "Character Managers/Merchant Manager/Merchant Config.js": 1,
   "Character Managers/Merchant Manager/Merchant Upgrading.js": 1,
   "Character Managers/Ranger Manager/Ranger Config.js": 3,
-  "Character Managers/Warrior Manager/Warrior Config.js": 3,
-  "Interface/Settings Window.js": 1
- },
- "character_on": {
-  "Interface/Gold Meter.js": 1,
-  "Interface/Metrics Graphs.js": 1,
-  "Interface/Stats Window.js": 1
+  "Character Managers/Warrior Manager/Warrior Config.js": 3
  },
  "emits": {
   "Character Managers/Healer Manager/Healer Combat.js": 2,
@@ -44,8 +34,7 @@
   "Interface/Bank Sort Order.js": 2
  },
  "local_storage": {
-  "Character Managers/Merchant Manager/Merchant Config.js": 4,
-  "Interface/Settings Window.js": 2
+  "Character Managers/Merchant Manager/Merchant Config.js": 4
  },
  "monster_literals": {
   "Character Managers/Healer Manager/Healer Config.js": 7,
@@ -61,9 +50,6 @@
   "Core Systems/Movement Manager.js": 2,
   "Core Systems/Porcupine Guard.js": 1,
   "Core Systems/Targeting.js": 2
- },
- "parent_assign": {
-  "Interface/Game Log.js": 4
  },
  "self_timeout": {
   "Character Managers/Healer Manager/Healer Combat.js": 3,
@@ -83,39 +69,11 @@
   "Interface/Settings Window.js": 1
  },
  "set_interval": {
-  "Character Managers/Warrior Manager/Warrior Combat.js": 1,
-  "Interface/DPS Meter.js": 1,
-  "Interface/Kill Tracker.js": 1,
-  "Interface/Metrics Graphs.js": 3,
-  "Interface/Party Frames.js": 1,
-  "Interface/Pause Button.js": 1,
-  "Interface/Stats Window.js": 1,
-  "Interface/Widget Helpers.js": 1
+  "Character Managers/Warrior Manager/Warrior Combat.js": 1
  },
  "socket_on_off": {
   "Character Managers/Warrior Manager/Warrior Combat.js": 6,
-  "Character Managers/Warrior Manager/Warrior Skills.js": 8,
-  "Interface/DPS Meter.js": 2,
-  "Interface/Kill Tracker.js": 2,
-  "Interface/Lucky Slot Tracker.js": 2,
-  "Interface/Metrics Graphs.js": 4
- },
- "top_level_statements": {
-  "Interface/Bank Sort Order.js": 7,
-  "Interface/Bank Viewer.js": 1,
-  "Interface/Boss Contribution.js": 1,
-  "Interface/CC Meter.js": 1,
-  "Interface/DPS Meter.js": 5,
-  "Interface/Game Log.js": 1,
-  "Interface/Gold Meter.js": 2,
-  "Interface/Kill Tracker.js": 5,
-  "Interface/Lucky Slot Tracker.js": 4,
-  "Interface/Metrics Graphs.js": 12,
-  "Interface/Party Frames.js": 2,
-  "Interface/Pause Button.js": 1,
-  "Interface/Settings Window.js": 1,
-  "Interface/Widget Helpers.js": 1,
-  "Interface/XP Meter.js": 1
+  "Character Managers/Warrior Manager/Warrior Skills.js": 8
  },
  "typeof_guard": {
   "Character Managers/Ranger Manager/Ranger Combat.js": 2,
