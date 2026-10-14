@@ -1,0 +1,24 @@
+{
+ "decisions": {
+  "update_cache": "ok",
+  "gear.loadout": null,
+  "gear.gloves": "gloves",
+  "gear.orb": null,
+  "gear.chest": null,
+  "gear.amulet": null,
+  "gear.ring": "zap_off",
+  "gear.fight": null,
+  "target": "q1",
+  "heal_target": "Myras",
+  "goal": null,
+  "pause_combat": false,
+  "skill.zap_pull_home": false,
+  "skill.aggro_cap": 4,
+  "skill.fight_gear_owned": false,
+  "panic.state": {
+   "panicking": false,
+   "panic_external": false
+  }
+ },
+ "emits": []
+}
