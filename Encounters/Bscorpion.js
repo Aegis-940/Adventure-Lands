@@ -1,5 +1,5 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// BSCORPION / PRIMLING FARM — content-specific positioning for the desertland camp
+// BSCORPION — the desertland camp: positioning, Riva's rail, temporal surge and the kill logger, then the encounter itself
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const PRIM_FARM_MAP = "desertland";
@@ -358,3 +358,29 @@ async function bscorpion_kill_logger_loop() {
 		await delay(250);
 	}
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// ENCOUNTER — the camp as the party's home: where to go, what to wear, and Riva's panic and target rules
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+encounter("bscorpion", {
+	tier: "spawn",
+	homes: ["bscorpion"],
+	mtypes: ["bscorpion"],
+	goal: () => {
+		if (is_at_bscorpion_farm()) return { local: "camp", label: "bscorpion-camp" };
+		const loc = prim_farm_loc();
+		return { label: "bscorpion", map: loc.map, x: loc.x, y: loc.y, radius: PRIM_FARM_RADIUS };
+	},
+	gear: {
+		warrior: { weapon: "single", orb: "orb_dps" },
+		ranger: { weapon: "single" },
+		priest: { loadout: "single_target", orb: "orb_luck" },
+	},
+	home_settings: {
+		ranger: { panic_aggro: 99 },
+	},
+	traits: {
+		ranger: { always_attack: true },
+	},
+});

@@ -889,12 +889,8 @@ function movement_goal() {
 
 	if (ignoring_events) return null;
 
-	if (home === "bscorpion") {
-		const loc = prim_farm_loc();
-		return is_at_bscorpion_farm()
-			? { local: "camp", label: "bscorpion-camp" }
-			: { label: "bscorpion", map: loc.map, x: loc.x, y: loc.y, radius: PRIM_FARM_RADIUS };
-	}
+	const spawn_goal = encounter_goal();
+	if (spawn_goal) return spawn_goal;
 
 	if (is_away_from_home()) {
 		return {

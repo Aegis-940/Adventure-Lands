@@ -4,7 +4,8 @@
 
 const ENCOUNTER_TIERS = ["situation", "hazard", "spawn"];
 const ENCOUNTER_ROLES = ["warrior", "priest", "ranger", "merchant", "all"];
-const ENCOUNTER_KEYS = ["tier", "homes", "mtypes", "active", "gear", "settings", "allows", "rank", "traits", "enter", "leave"];
+const ENCOUNTER_KEYS = ["tier", "homes", "mtypes", "active", "goal", "gear", "settings", "home_settings", "allows", "rank", "traits",
+	"enter", "leave"];
 const ENCOUNTER_RADIUS = 600;
 
 const _encounters = {};
@@ -127,6 +128,36 @@ function encounter_setting(name, fallback) {
 	return found ? found.value : fallback;
 }
 
+function encounters_of_home() {
+	return Object.keys(_encounters).sort()
+		.map(name => _encounters[name])
+		.filter(enc => enc.tier === "spawn" && enc.homes.includes(home));
+}
+
+function encounter_home_setting(name, fallback) {
+	for (const enc of encounters_of_home()) {
+		for (const answers of encounter_answers(enc, "home_settings")) {
+			if (!(name in answers)) continue;
+			const value = encounter_resolve(answers[name], encounter_context());
+			if (value === null || value === undefined) continue;
+			encounter_attribute("home_settings." + name, enc.name, value);
+			return value;
+		}
+	}
+	return fallback;
+}
+
+function encounter_goal() {
+	for (const enc of encounters_of_home()) {
+		if (!enc.goal) continue;
+		const goal = enc.goal(encounter_context());
+		if (!goal) continue;
+		encounter_attribute("goal", enc.name, goal.label || goal.local);
+		return goal;
+	}
+	return null;
+}
+
 function encounter_allows(action, mob) {
 	for (const enc of _encounters_by_mtype[mob.mtype] || []) {
 		for (const rules of encounter_answers(enc, "allows")) {
@@ -192,9 +223,11 @@ function encounter_problems() {
 		if ((enc.gear || enc.settings || enc.enter || enc.leave) && !enc.tier) say("gear, settings, enter and leave need a tier");
 		if (!enc.tier && !(enc.mtypes || []).length) say("an encounter needs a tier or mtypes");
 		if (enc.tier === "spawn" && !Array.isArray(enc.homes)) say("a spawn encounter needs homes");
+		if ((enc.home_settings || enc.goal) && enc.tier !== "spawn") say("home_settings and goal belong to a spawn encounter");
+		if (enc.goal && typeof enc.goal !== "function") say("goal must be a function of ctx");
 		if (enc.tier && enc.tier !== "spawn" && typeof enc.active !== "function") say(`a ${enc.tier} encounter needs active(ctx)`);
 		if ((enc.allows || enc.rank || enc.traits) && !(enc.mtypes || []).length) say("allows, rank and traits need mtypes");
-		for (const section of ["gear", "settings", "allows", "rank", "traits"]) {
+		for (const section of ["gear", "settings", "home_settings", "allows", "rank", "traits"]) {
 			for (const role in enc[section] || {}) if (!ENCOUNTER_ROLES.includes(role)) say(`${section} has unknown role ${role}`);
 		}
 		const gear = (enc.gear || {})[character.ctype] || {};

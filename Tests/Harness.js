@@ -567,9 +567,11 @@ async function unread_settings(ctx) {
 	const specs = vm.runInContext("_encounters", ctx);
 	const out = [];
 	for (const name in specs) {
-		for (const role in specs[name].settings || {}) {
-			for (const key in specs[name].settings[role]) {
-				if (!text.includes(`encounter_setting("${key}"`)) out.push(`${name}: setting ${key} is never read`);
+		for (const [section, reader] of [["settings", "encounter_setting"], ["home_settings", "encounter_home_setting"]]) {
+			for (const role in specs[name][section] || {}) {
+				for (const key in specs[name][section][role]) {
+					if (!text.includes(`${reader}("${key}"`)) out.push(`${name}: ${section} ${key} is never read`);
+				}
 			}
 		}
 	}

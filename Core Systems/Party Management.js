@@ -46,7 +46,7 @@ function monsters_targeting_me() {
 function panic_threat() {
 	const t = PANIC_THRESHOLDS;
 	const on_me = monsters_targeting_me();
-	const aggro_limit = (t.aggro_by_home && t.aggro_by_home[home]) || t.aggro;
+	const aggro_limit = encounter_home_setting("panic_aggro", null) || t.aggro;
 	const low_health = character.hp < character.max_hp * t.low_hp;
 	const low_mana = character.mp < character.max_mp * t.low_mp;
 	const high_aggro = on_me >= aggro_limit;

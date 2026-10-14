@@ -9,7 +9,7 @@ var CONFIG = {
 		target_priority: ["Ulric", "Myras"],
 		party_dps_factor: 2.0,
 
-		always_attack: [...ALL_BOSSES, "bscorpion"],
+		always_attack: [...ALL_BOSSES],
 		engage_aggroed_only: true,
 		use_hunters_mark: true,
 		use_supershot: true,
@@ -74,7 +74,6 @@ var item_order = { ...ITEM_ORDER_BASE };
 var PANIC_THRESHOLDS = {
 	low_hp: 0.50, low_mp: 0.01, high_hp: 0.80, high_mp: 0.33,
 	aggro: 1,
-	aggro_by_home: { bscorpion: 99 },
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

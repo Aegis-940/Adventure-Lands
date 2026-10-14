@@ -38,7 +38,6 @@ Core Systems/Global Config.js     ← awaited FIRST (with Widget Helpers + Game 
 
 Core Systems/*.js                 ← loaded in parallel as real <script> tags
     ├── Movement Manager.js       movement_goal() + movement_local(), smarter_move(), travel_arbiter(), stuck escape
-    ├── Bscorpion Camp.js         positioning for the desertland bscorpion/primling camp
     ├── Combat Utilities.js       monster/entity queries, boss + party state predicates
     ├── Combat Formulas.js        damage/heal arithmetic (defense, burn, splash, heal pipeline)
     ├── Combat Sampling.js        hit/action socket samplers, damage + heal windows
@@ -62,6 +61,7 @@ Core Systems/*.js                 ← loaded in parallel as real <script> tags
 Encounters/                          ← the registry in the first stage; one optional file per encounter
     ├── Encounter Registry.js     encounter(), the context, and the questions shared and role code ask
     ├── Porcupine.js              hazard: Ulric never touches one, Riva kills them first
+    ├── Bscorpion.js              the current farm (required): camp positioning, temporal surge, kill logger, goal and gear
     ├── Mummy.js                  spawn: zap pull, luck orb, no curse, no agitate, no ranger skills
     ├── Targetron-Sparkbot.js, Dryad.js, Fireroamer.js   spawns: Myras's gear, settings, ranger skills
     ├── Halloween Bosses.js       mrpumpkin and mrgreen: Myras tanks, Ulric taunts, single-target sets

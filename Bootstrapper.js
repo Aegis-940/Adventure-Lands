@@ -29,7 +29,7 @@
 	const scripts = [
 		"Core Systems/Error Log.js",
 		"Core Systems/Movement Manager.js",
-		"Core Systems/Bscorpion Camp.js",
+		"Encounters/Bscorpion.js",
 		"Core Systems/Combat Utilities.js",
 		"Core Systems/Combat Formulas.js",
 		"Core Systems/Combat Sampling.js",

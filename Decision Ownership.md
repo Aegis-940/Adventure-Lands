@@ -175,7 +175,7 @@ Split six ways, with no arbiter at all
 |---|---|
 | `orbit_reposition()` | `Character Runner.js:90` |
 | `walk_in_circle()` | `Healer Movement.js:53` |
-| bscorpion camp | `Bscorpion Camp.js:104,120,185,201` — **its own loop**, outside `movement_local` |
+| bscorpion camp | `Encounters/Bscorpion.js` (`camp_step()`) — **its own loop**, outside `movement_local` |
 | `local_step()` (cohesion) | `Party Cohesion.js:159` |
 | event approach / chest drain | `World Events.js:70,128` |
 | crypt waypoints | `Crypt Route.js:168` |

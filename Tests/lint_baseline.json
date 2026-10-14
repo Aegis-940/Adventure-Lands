@@ -16,7 +16,6 @@
   "Character Managers/Warrior Manager/Warrior Combat.js": 2,
   "Character Managers/Warrior Manager/Warrior Movement.js": 1,
   "Character Managers/Warrior Manager/Warrior Skills.js": 7,
-  "Core Systems/Bscorpion Camp.js": 1,
   "Core Systems/Character Messaging.js": 1,
   "Core Systems/Equipment Manager.js": 4,
   "Core Systems/Farm Ledger.js": 1,
@@ -27,17 +26,14 @@
   "Core Systems/World Events.js": 2,
   "Dungeons/Crypt Route.js": 1,
   "Dungeons/Dungeon Escape.js": 1,
+  "Encounters/Bscorpion.js": 1,
   "Interface/Bank Sort Order.js": 2
  },
  "monster_literals": {
-  "Character Managers/Healer Manager/Healer Equipment.js": 2,
-  "Character Managers/Ranger Manager/Ranger Config.js": 2,
-  "Character Managers/Ranger Manager/Ranger Equipment.js": 1,
-  "Character Managers/Warrior Manager/Warrior Equipment.js": 2,
+  "Character Managers/Healer Manager/Healer Equipment.js": 1,
+  "Character Managers/Warrior Manager/Warrior Equipment.js": 1,
   "Character Managers/Warrior Manager/Warrior Skills.js": 1,
-  "Core Systems/Bscorpion Camp.js": 5,
-  "Core Systems/Loot Management.js": 1,
-  "Core Systems/Movement Manager.js": 2
+  "Core Systems/Loot Management.js": 1
  },
  "self_timeout": {
   "Character Managers/Healer Manager/Healer Combat.js": 3,
@@ -65,9 +61,9 @@
   "Character Managers/Merchant Manager/Merchant Stand.js": 1,
   "Character Managers/Merchant Manager/Merchant Task Loop.js": 1,
   "Character Managers/Merchant Manager/Merchant Upkeep.js": 1,
-  "Core Systems/Bscorpion Camp.js": 1,
   "Core Systems/Character Messaging.js": 1,
   "Core Systems/Equipment Manager.js": 1,
-  "Dungeons/Crypt Route.js": 1
+  "Dungeons/Crypt Route.js": 1,
+  "Encounters/Bscorpion.js": 1
  }
 }

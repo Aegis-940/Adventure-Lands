@@ -10,7 +10,7 @@ function should_attack_mob(mob) {
 
 	if (encounter_rank(mob) > 0) return true;
 
-	if (CONFIG.combat.always_attack.includes(mob.mtype)) return true;
+	if (CONFIG.combat.always_attack.includes(mob.mtype) || encounter_trait("always_attack", mob)) return true;
 
 	const aggroed = !CONFIG.combat.engage_aggroed_only || !!mob.target;
 
@@ -50,8 +50,8 @@ function update_target_cache() {
 		const b_rank = encounter_rank(b);
 		if (a_rank !== b_rank) return b_rank - a_rank;
 
-		const a_boss = CONFIG.combat.always_attack.includes(a.mtype);
-		const b_boss = CONFIG.combat.always_attack.includes(b.mtype);
+		const a_boss = CONFIG.combat.always_attack.includes(a.mtype) || !!encounter_trait("always_attack", a);
+		const b_boss = CONFIG.combat.always_attack.includes(b.mtype) || !!encounter_trait("always_attack", b);
 		if (a_boss !== b_boss) return b_boss - a_boss;
 
 		const a_priority = !!encounter_trait("attack_if_targeted", a);

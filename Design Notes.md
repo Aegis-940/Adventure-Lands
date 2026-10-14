@@ -112,6 +112,37 @@ The spookytown spawn. It moved out of four role files on 2026-10-15: Myras's orb
 
 **Riva spends no skills on a mummy** (`skills: false`): no hunter's mark or supershot. Mummies die to AoE before a single-target setup pays for itself, and the 640 MP a mark and supershot cycle costs is mana her scare needs (the same reason as the `skill_blacklist` spawns).
 
+### `Bscorpion.js`
+
+The desertland camp, the current farm since 2026-10-15. It moved from `Core Systems/Bscorpion Camp.js` the same day, and its spec took over the bscorpion lines from three `MONSTER_GEAR_OVERRIDES`, Riva's `always_attack` and `aggro_by_home`, and the `home === "bscorpion"` branch in `movement_goal()`:
+
+- `goal` (asked wherever the party is while bscorpion is home): the camp step at the camp, the walk to its centre otherwise.
+- `gear`: Ulric `single` and `orb_dps`, Riva `single`, Myras `single_target` and `orb_luck`, while on the map.
+- `home_settings`: Riva's panic aggro limit is 99, while bscorpion is home, on any map, so a boss trip from the camp keeps it.
+- `traits`: Riva always shoots a bscorpion and ranks it with the bosses.
+
+Unlike the other encounter files this one is required, not optional: Movement Manager, Character Runner and every fighter's role files call its functions directly (`camp_step()`, `is_at_bscorpion_farm()`, `camp_temporal_surge()`, `bscorpion_worth_buffing()`). Myras's fight rule stays in Healer Equipment because the tanked bosses use it too.
+
+#### Positioning
+
+Positioning for the desertland bscorpion/primling camp. It owns no movement loop of its own: `movement_goal()` returns `{ local: "camp" }` while camped and `movement_local()` runs `camp_step()`. Myras orbits; Ulric and Riva hold station. The orbit itself is `orbit_away()` in `Movement Positioning.js` (a 105px ring around the camp centre, 10° steps toward whichever neighbour is further from the scorpion), shared with the crabxx kite.
+
+**Riva's rail (`CAMP_RAIL`).** A wall-free line from (-390,-1250) running north-west (215°) for 360px through the open ground. A solid wall runs ~140px north of the camp centre, and pillars and walls sit to the south-west, so any position computed relative to the moving scorpion eventually landed behind one of them.
+- She stands at the rail point nearest the camp that is ≥130px (hitbox to hitbox) from the scorpion, clear of its `weakness_aura`. The aura is −10 dex/str and −30 speed for 20s, re-applied every 4s within 100px, with the first tick 0–4s after spawn. At her old 50px it cost her ~3.4%.
+- Between spawns she waits 150px along the rail, where all of the spawn box is within her 222 range.
+- Simulated over the spawn box and Myras's orbit, every fight position has such a point within range (worst 145), at most 345px along. No single north-west spot can cover the box: its far corner is ~234px edge to edge from its own north-west corner.
+- Her hold radius is the rail's far end plus the margin, so retreating never turns the goal into travel.
+
+**Temporal surge.** `camp_temporal_surge()` casts temporal surge the moment the scorpion dies. The server cuts every pending respawn within 160px (hitbox to hitbox) of the caster to `remaining × 0.85 − 1000ms`, so the 6.45s respawn becomes ~4.5s. The orb goes in, the cast goes out and the orb goes back via the caster's own `orb` rule, in one burst like scare. Myras casts first. Riva (`SURGE_PRIORITY`) waits 800ms and casts only if Myras's `surge_at` in the state cache shows she didn't. With two 60s cooldowns against a ~38s loop, every death is surged. Ulric is not a caster: cleave keeps his 1,890 MP near empty.
+
+**Combat pause.** At the camp `should_pause_combat_loop()` never pauses a follower for being beyond cohesion range of the leader. That formation rule stopped Riva shooting whenever Myras's orbit took her to the far side. The general rule reads `cohesion_range()` (250); it was a fixed 200 while `follow_goal()` let a follower stand up to 250 away, a band where he neither moved nor fought.
+
+**Scoping.** Camp-only behaviour keys on `is_at_bscorpion_farm()` (which includes the `home` check), never on `home` alone, so none of it follows the party to a boss. `party_camped()` is the only carve-out from cohesion: following and Myras's cohesion hold are off only while no event is up and Myras is at the camp, so boss trips and the walk back keep the party together.
+
+**Ulric's cleave.** Ulric cleaves the lone scorpion (a one-mob minimum at the camp). Each cleave is half a swing of bataxe damage and its own sugar rush roll, mana-bound by `can_cleave()`. It stands down while sugar rush is up, where the bataxe swap's penalty costs more than a 274ms swing.
+
+**Measurement.** Every kill interval goes to the timeline as `bscorpion_kill`, so a change can be measured against the last session instead of remembered.
+
 ### `Halloween Bosses.js`
 
 mrpumpkin and mrgreen share one encounter, because every rule is the same for both. While either is in sight Ulric wears `single` and `orb_dps` and Riva `single` and `dps_chest` (which also keeps her off cupid). Myras tanks them (`tank`: her fight rule and boss absorb, Healer Equipment and Skills), Ulric taunts them off other players (`taunt`, Warrior Skills) and cleaves with only the boss in reach (`cleave_alone`). Until 2026-10-15 this was `BOSS_GEAR_OVERRIDES` in two Equipment files plus `tank_bosses`, `taunt_bosses` and `cleave_lone_bosses`.
@@ -189,26 +220,6 @@ Why the native town edge is not used is in [`Game API Reference.md`](Game%20API%
 - Nothing is cast within 150px of the spawn (`town_shortcut_eligible()`, which also stops a `join` from the spawn itself).
 - The planner refuses a plot whose first node is not reachable from here.
 - A follower already at the spawn while she is channelling (seen live, or `town` in her state cache when she is out of view) waits for her (`await-town` in `follow_goal()`) instead of walking off.
-
-### `Bscorpion Camp.js`
-
-Positioning for the desertland bscorpion/primling camp. It owns no movement loop of its own: `movement_goal()` returns `{ local: "camp" }` while camped and `movement_local()` runs `camp_step()`. Myras orbits; Ulric and Riva hold station. The orbit itself is `orbit_away()` in `Movement Positioning.js` (a 105px ring around the camp centre, 10° steps toward whichever neighbour is further from the scorpion), shared with the crabxx kite.
-
-**Riva's rail (`CAMP_RAIL`).** A wall-free line from (-390,-1250) running north-west (215°) for 360px through the open ground. A solid wall runs ~140px north of the camp centre, and pillars and walls sit to the south-west, so any position computed relative to the moving scorpion eventually landed behind one of them.
-- She stands at the rail point nearest the camp that is ≥130px (hitbox to hitbox) from the scorpion, clear of its `weakness_aura`. The aura is −10 dex/str and −30 speed for 20s, re-applied every 4s within 100px, with the first tick 0–4s after spawn. At her old 50px it cost her ~3.4%.
-- Between spawns she waits 150px along the rail, where all of the spawn box is within her 222 range.
-- Simulated over the spawn box and Myras's orbit, every fight position has such a point within range (worst 145), at most 345px along. No single north-west spot can cover the box: its far corner is ~234px edge to edge from its own north-west corner.
-- Her hold radius is the rail's far end plus the margin, so retreating never turns the goal into travel.
-
-**Temporal surge.** `camp_temporal_surge()` casts temporal surge the moment the scorpion dies. The server cuts every pending respawn within 160px (hitbox to hitbox) of the caster to `remaining × 0.85 − 1000ms`, so the 6.45s respawn becomes ~4.5s. The orb goes in, the cast goes out and the orb goes back via the caster's own `orb` rule, in one burst like scare. Myras casts first. Riva (`SURGE_PRIORITY`) waits 800ms and casts only if Myras's `surge_at` in the state cache shows she didn't. With two 60s cooldowns against a ~38s loop, every death is surged. Ulric is not a caster: cleave keeps his 1,890 MP near empty.
-
-**Combat pause.** At the camp `should_pause_combat_loop()` never pauses a follower for being beyond cohesion range of the leader. That formation rule stopped Riva shooting whenever Myras's orbit took her to the far side. The general rule reads `cohesion_range()` (250); it was a fixed 200 while `follow_goal()` let a follower stand up to 250 away, a band where he neither moved nor fought.
-
-**Scoping.** Camp-only behaviour keys on `is_at_bscorpion_farm()` (which includes the `home` check), never on `home` alone, so none of it follows the party to a boss. `party_camped()` is the only carve-out from cohesion: following and Myras's cohesion hold are off only while no event is up and Myras is at the camp, so boss trips and the walk back keep the party together.
-
-**Ulric's cleave.** Ulric cleaves the lone scorpion (a one-mob minimum at the camp). Each cleave is half a swing of bataxe damage and its own sugar rush roll, mana-bound by `can_cleave()`. It stands down while sugar rush is up, where the bataxe swap's penalty costs more than a 274ms swing.
-
-**Measurement.** Every kill interval goes to the timeline as `bscorpion_kill`, so a change can be measured against the last session instead of remembered.
 
 ### `Combat Utilities.js`
 

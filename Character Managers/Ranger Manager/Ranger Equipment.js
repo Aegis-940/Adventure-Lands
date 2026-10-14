@@ -176,8 +176,4 @@ var EQUIPMENT_RULES = {
 	orb:    { kind: "set", resolve: resolve_ranger_orb },
 };
 
-var MONSTER_GEAR_OVERRIDES = {
-	bscorpion: { weapon: "single" },
-};
-
 var RIME_HOLD_GEAR = { weapon: "single" };

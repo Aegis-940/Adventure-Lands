@@ -86,7 +86,6 @@ var EQUIPMENT_RULES = {
 };
 
 var MONSTER_GEAR_OVERRIDES = {
-	bscorpion: { weapon: "single", orb: "orb_dps" },
 	rimedjinn: { orb: "orb_dps" },
 };
 

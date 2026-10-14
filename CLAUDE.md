@@ -63,7 +63,6 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | `Movement Manager.js` | `movement_goal()` (where to go) and `movement_local()` (where to stand), `smarter_move()`, the travel arbiter, parked routes, `walk()`, stuck escape, and the town shortcut |
 | `Movement Positioning.js` | `best_orbit_spot()`, `reposition_center()`, `orbit_reposition()`: scoring candidate spots around a centre. `orbit_away()`: the ring walk shared by the bscorpion camp and the crabxx kite |
 | `Party Cohesion.js` | `follow_goal()` with the leader's breadcrumb trail, `party_cohesion_hold()`, `leader_position()`. Consulted by `movement_goal()`; moves nothing itself |
-| `Bscorpion Camp.js` | Desertland bscorpion camp positioning (`camp_step()`, Riva's rail) and temporal surge on each kill |
 | `World Events.js` | Live boss/seasonal targets and the goal that walks the party to them |
 | `Combat Utilities.js` | Entity queries, boss/party predicates, the Rime shell predicates, `should_pause_combat_loop()`, the lethal-monster rule (`must_not_touch()`) and the boss leash (`boss_strayed()`) |
 | `Combat Formulas.js` | The server's damage/heal arithmetic, `skill_mp_cost()`, `incoming_dps()`/`endangered()`. Computes, never acts |
@@ -87,8 +86,9 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 
 | File | Role |
 |------|------|
-| `Encounter Registry.js` | **First stage.** `encounter(name, spec)` registers at load. Shared and role code ask `encounter_gear(group)`, `encounter_setting(name, fallback)`, `encounter_allows(action, mob)`, `encounter_rank(mob)` and `encounter_trait(name, mob)`; the role default stays at the call site. `why("gear.weapon")`, `encounters_active()` and `encounter_problems()` in the console |
+| `Encounter Registry.js` | **First stage.** `encounter(name, spec)` registers at load. Shared and role code ask `encounter_gear(group)`, `encounter_setting(name, fallback)`, `encounter_allows(action, mob)`, `encounter_rank(mob)` and `encounter_trait(name, mob)`, plus `encounter_home_setting(name, fallback)` and `encounter_goal()` for answers that follow `home` onto any map; the role default stays at the call site. `why("gear.weapon")`, `encounters_active()` and `encounter_problems()` in the console |
 | `Porcupine.js` | Hazard: Ulric never attacks, cleaves or agitates near a porcupine and wears his single set within splash reach; Riva ranks them first. Optional: deleting its Bootstrapper line removes the behaviour |
+| `Bscorpion.js` | **The current farm. Required, not optional.** The desertland camp: positioning (`camp_step()`, Riva's rail), temporal surge on each kill, the kill logger, and the spec: goal, gear, Riva's panic limit (a `home_settings` answer, so it follows home onto boss trips) and her always-shoot trait |
 | `Mummy.js` | Spawn: Myras wears her luck orb and the `zap_on` ring and zap-pulls fresh mummies, and doesn't curse them; Ulric doesn't agitate them; Riva spends no mark or supershot on them |
 | `Targetron-Sparkbot.js` | Spawn (the uhills targetrons and sparkbots): Myras's luck gear and no curse, the party's farm focus, Ulric agitates sparkbots |
 | `Dryad.js`, `Fireroamer.js` | Spawns: Myras's mdef or fire-resistance gear, fireroamer's skipped panic check and agitate conditions, no ranger skills |

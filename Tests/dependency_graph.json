@@ -1,7 +1,6 @@
 {
  "cycles": [
   [
-   "Core Systems/Bscorpion Camp.js",
    "Core Systems/Character Messaging.js",
    "Core Systems/Character Runner.js",
    "Core Systems/Combat Formulas.js",
@@ -28,6 +27,7 @@
    "Dungeons/Dungeon Progress.js",
    "Dungeons/Dungeon Runner.js",
    "Dungeons/Dungeon Telemetry.js",
+   "Encounters/Bscorpion.js",
    "Encounters/Encounter Registry.js",
    "Interface/Bank Viewer.js",
    "Interface/Game Log.js",
@@ -54,16 +54,6 @@
    "from": "Character Managers/Healer Manager/Healer Combat.js",
    "load": [],
    "to": "Character Managers/Healer Manager/Healer Equipment.js"
-  },
-  {
-   "call": [
-    "camp_temporal_surge",
-    "find_nearest_bscorpion",
-    "is_at_bscorpion_farm"
-   ],
-   "from": "Character Managers/Healer Manager/Healer Combat.js",
-   "load": [],
-   "to": "Core Systems/Bscorpion Camp.js"
   },
   {
    "call": [
@@ -184,6 +174,16 @@
   },
   {
    "call": [
+    "camp_temporal_surge",
+    "find_nearest_bscorpion",
+    "is_at_bscorpion_farm"
+   ],
+   "from": "Character Managers/Healer Manager/Healer Combat.js",
+   "load": [],
+   "to": "Encounters/Bscorpion.js"
+  },
+  {
+   "call": [
     "encounter_mtypes",
     "encounter_setting"
    ],
@@ -271,31 +271,6 @@
     "equipment_sets"
    ],
    "to": "Character Managers/Healer Manager/Healer Config.js"
-  },
-  {
-   "call": [
-    "find_nearest_bscorpion",
-    "is_at_bscorpion_farm"
-   ],
-   "from": "Character Managers/Healer Manager/Healer Equipment.js",
-   "load": [
-    "CAMP_HOLD_MARGIN",
-    "CAMP_RAIL",
-    "CAMP_RANGE_CAP",
-    "CAMP_STATION",
-    "PRIM_FARM_FALLBACK",
-    "PRIM_FARM_MAP",
-    "PRIM_FARM_RADIUS",
-    "_prim_farm_loc",
-    "at_bscorpion_farm",
-    "camp_engage_distance",
-    "camp_hold_radius",
-    "find_nearest_bscorpion",
-    "is_at_bscorpion_farm",
-    "prim_farm_loc",
-    "rail_point"
-   ],
-   "to": "Core Systems/Bscorpion Camp.js"
   },
   {
    "call": [],
@@ -507,6 +482,31 @@
    "to": "Dungeons/Dungeon Runner.js"
   },
   {
+   "call": [
+    "find_nearest_bscorpion",
+    "is_at_bscorpion_farm"
+   ],
+   "from": "Character Managers/Healer Manager/Healer Equipment.js",
+   "load": [
+    "CAMP_HOLD_MARGIN",
+    "CAMP_RAIL",
+    "CAMP_RANGE_CAP",
+    "CAMP_STATION",
+    "PRIM_FARM_FALLBACK",
+    "PRIM_FARM_MAP",
+    "PRIM_FARM_RADIUS",
+    "_prim_farm_loc",
+    "at_bscorpion_farm",
+    "camp_engage_distance",
+    "camp_hold_radius",
+    "find_nearest_bscorpion",
+    "is_at_bscorpion_farm",
+    "prim_farm_loc",
+    "rail_point"
+   ],
+   "to": "Encounters/Bscorpion.js"
+  },
+  {
    "call": [],
    "from": "Character Managers/Healer Manager/Healer Equipment.js",
    "load": [
@@ -628,16 +628,6 @@
   },
   {
    "call": [
-    "bscorpion_worth_buffing",
-    "camp_absorb_target",
-    "is_at_bscorpion_farm"
-   ],
-   "from": "Character Managers/Healer Manager/Healer Skills.js",
-   "load": [],
-   "to": "Core Systems/Bscorpion Camp.js"
-  },
-  {
-   "call": [
     "loop_next",
     "loop_tick"
    ],
@@ -737,6 +727,16 @@
    "from": "Character Managers/Healer Manager/Healer Skills.js",
    "load": [],
    "to": "Dungeons/Dungeon Runner.js"
+  },
+  {
+   "call": [
+    "bscorpion_worth_buffing",
+    "camp_absorb_target",
+    "is_at_bscorpion_farm"
+   ],
+   "from": "Character Managers/Healer Manager/Healer Skills.js",
+   "load": [],
+   "to": "Encounters/Bscorpion.js"
   },
   {
    "call": [
@@ -1657,14 +1657,6 @@
   },
   {
    "call": [
-    "camp_temporal_surge"
-   ],
-   "from": "Character Managers/Ranger Manager/Ranger Combat.js",
-   "load": [],
-   "to": "Core Systems/Bscorpion Camp.js"
-  },
-  {
-   "call": [
     "basic_action_busy",
     "loop_next",
     "loop_tick",
@@ -1775,6 +1767,14 @@
    "from": "Character Managers/Ranger Manager/Ranger Combat.js",
    "load": [],
    "to": "Dungeons/Dungeon Runner.js"
+  },
+  {
+   "call": [
+    "camp_temporal_surge"
+   ],
+   "from": "Character Managers/Ranger Manager/Ranger Combat.js",
+   "load": [],
+   "to": "Encounters/Bscorpion.js"
   },
   {
    "call": [
@@ -2183,14 +2183,6 @@
   },
   {
    "call": [
-    "is_at_bscorpion_farm"
-   ],
-   "from": "Character Managers/Ranger Manager/Ranger Skills.js",
-   "load": [],
-   "to": "Core Systems/Bscorpion Camp.js"
-  },
-  {
-   "call": [
     "loop_next",
     "loop_tick"
    ],
@@ -2266,6 +2258,14 @@
    "from": "Character Managers/Ranger Manager/Ranger Skills.js",
    "load": [],
    "to": "Dungeons/Dungeon Runner.js"
+  },
+  {
+   "call": [
+    "is_at_bscorpion_farm"
+   ],
+   "from": "Character Managers/Ranger Manager/Ranger Skills.js",
+   "load": [],
+   "to": "Encounters/Bscorpion.js"
   },
   {
    "call": [
@@ -2846,14 +2846,6 @@
   },
   {
    "call": [
-    "centre_distance_for_gap"
-   ],
-   "from": "Character Managers/Warrior Manager/Warrior Movement.js",
-   "load": [],
-   "to": "Core Systems/Bscorpion Camp.js"
-  },
-  {
-   "call": [
     "default_farm_step"
    ],
    "from": "Character Managers/Warrior Manager/Warrior Movement.js",
@@ -2903,6 +2895,14 @@
   },
   {
    "call": [
+    "centre_distance_for_gap"
+   ],
+   "from": "Character Managers/Warrior Manager/Warrior Movement.js",
+   "load": [],
+   "to": "Encounters/Bscorpion.js"
+  },
+  {
+   "call": [
     "encounter_allows"
    ],
    "from": "Character Managers/Warrior Manager/Warrior Movement.js",
@@ -2931,15 +2931,6 @@
    "from": "Character Managers/Warrior Manager/Warrior Skills.js",
    "load": [],
    "to": "Character Managers/Warrior Manager/Warrior Config.js"
-  },
-  {
-   "call": [
-    "bscorpion_worth_buffing",
-    "is_at_bscorpion_farm"
-   ],
-   "from": "Character Managers/Warrior Manager/Warrior Skills.js",
-   "load": [],
-   "to": "Core Systems/Bscorpion Camp.js"
   },
   {
    "call": [
@@ -3048,6 +3039,15 @@
    "from": "Character Managers/Warrior Manager/Warrior Skills.js",
    "load": [],
    "to": "Dungeons/Dungeon Runner.js"
+  },
+  {
+   "call": [
+    "bscorpion_worth_buffing",
+    "is_at_bscorpion_farm"
+   ],
+   "from": "Character Managers/Warrior Manager/Warrior Skills.js",
+   "load": [],
+   "to": "Encounters/Bscorpion.js"
   },
   {
    "call": [
@@ -3209,93 +3209,6 @@
   },
   {
    "call": [
-    "skill_mp_cost"
-   ],
-   "from": "Core Systems/Bscorpion Camp.js",
-   "load": [],
-   "to": "Core Systems/Combat Formulas.js"
-  },
-  {
-   "call": [
-    "EQUIP_PRIORITY",
-    "emit_equip_ops",
-    "equip_claim",
-    "equip_plan",
-    "equip_release",
-    "rules_set_for_slot",
-    "set_available"
-   ],
-   "from": "Core Systems/Bscorpion Camp.js",
-   "load": [],
-   "to": "Core Systems/Equipment Manager.js"
-  },
-  {
-   "call": [
-    "catcher"
-   ],
-   "from": "Core Systems/Bscorpion Camp.js",
-   "load": [],
-   "to": "Core Systems/Error Handling.js"
-  },
-  {
-   "call": [
-    "errlog_count",
-    "errlog_timeline"
-   ],
-   "from": "Core Systems/Bscorpion Camp.js",
-   "load": [],
-   "to": "Core Systems/Error Log.js"
-  },
-  {
-   "call": [
-    "CONFIG",
-    "MOVEMENT_LEADER",
-    "automation_enabled",
-    "delay",
-    "errlog_count",
-    "errlog_timeline",
-    "home",
-    "read_state_cache"
-   ],
-   "from": "Core Systems/Bscorpion Camp.js",
-   "load": [],
-   "to": "Core Systems/Global Config.js"
-  },
-  {
-   "call": [
-    "is_travelling",
-    "local_move"
-   ],
-   "from": "Core Systems/Bscorpion Camp.js",
-   "load": [],
-   "to": "Core Systems/Movement Manager.js"
-  },
-  {
-   "call": [
-    "orbit_away"
-   ],
-   "from": "Core Systems/Bscorpion Camp.js",
-   "load": [],
-   "to": "Core Systems/Movement Positioning.js"
-  },
-  {
-   "call": [
-    "leader_position"
-   ],
-   "from": "Core Systems/Bscorpion Camp.js",
-   "load": [],
-   "to": "Core Systems/Party Cohesion.js"
-  },
-  {
-   "call": [
-    "surge_cast_at"
-   ],
-   "from": "Core Systems/Character Messaging.js",
-   "load": [],
-   "to": "Core Systems/Bscorpion Camp.js"
-  },
-  {
-   "call": [
     "current_goal_label"
    ],
    "from": "Core Systems/Character Messaging.js",
@@ -3421,6 +3334,14 @@
    "to": "Dungeons/Dungeon Runner.js"
   },
   {
+   "call": [
+    "surge_cast_at"
+   ],
+   "from": "Core Systems/Character Messaging.js",
+   "load": [],
+   "to": "Encounters/Bscorpion.js"
+  },
+  {
    "call": [],
    "from": "Core Systems/Character Messaging.js",
    "load": [
@@ -3452,14 +3373,6 @@
    "from": "Core Systems/Character Runner.js",
    "load": [],
    "to": "(role files)"
-  },
-  {
-   "call": [
-    "bscorpion_start"
-   ],
-   "from": "Core Systems/Character Runner.js",
-   "load": [],
-   "to": "Core Systems/Bscorpion Camp.js"
   },
   {
    "call": [
@@ -3593,6 +3506,14 @@
    "from": "Core Systems/Character Runner.js",
    "load": [],
    "to": "Dungeons/Dungeon Runner.js"
+  },
+  {
+   "call": [
+    "bscorpion_start"
+   ],
+   "from": "Core Systems/Character Runner.js",
+   "load": [],
+   "to": "Encounters/Bscorpion.js"
   },
   {
    "call": [
@@ -4425,18 +4346,6 @@
   },
   {
    "call": [
-    "PRIM_FARM_RADIUS",
-    "camp_step",
-    "is_at_bscorpion_farm",
-    "party_camped",
-    "prim_farm_loc"
-   ],
-   "from": "Core Systems/Movement Manager.js",
-   "load": [],
-   "to": "Core Systems/Bscorpion Camp.js"
-  },
-  {
-   "call": [
     "current_goal",
     "current_goal_label"
    ],
@@ -4469,8 +4378,7 @@
     "MOVEMENT_LEADER",
     "destination",
     "errlog_count",
-    "errlog_timeline",
-    "home"
+    "errlog_timeline"
    ],
    "from": "Core Systems/Movement Manager.js",
    "load": [],
@@ -4531,6 +4439,23 @@
    "from": "Core Systems/Movement Manager.js",
    "load": [],
    "to": "Dungeons/Dungeon Runner.js"
+  },
+  {
+   "call": [
+    "camp_step",
+    "party_camped"
+   ],
+   "from": "Core Systems/Movement Manager.js",
+   "load": [],
+   "to": "Encounters/Bscorpion.js"
+  },
+  {
+   "call": [
+    "encounter_goal"
+   ],
+   "from": "Core Systems/Movement Manager.js",
+   "load": [],
+   "to": "Encounters/Encounter Registry.js"
   },
   {
    "call": [],
@@ -4673,8 +4598,7 @@
     "PARTY_LEADER",
     "PARTY_MEMBERS",
     "errlog_count",
-    "errlog_snapshot",
-    "home"
+    "errlog_snapshot"
    ],
    "from": "Core Systems/Party Management.js",
    "load": [],
@@ -4711,6 +4635,14 @@
    "from": "Core Systems/Party Management.js",
    "load": [],
    "to": "Dungeons/Dungeon Runner.js"
+  },
+  {
+   "call": [
+    "encounter_home_setting"
+   ],
+   "from": "Core Systems/Party Management.js",
+   "load": [],
+   "to": "Encounters/Encounter Registry.js"
   },
   {
    "call": [
@@ -5759,6 +5691,95 @@
    "to": "Dungeons/Dungeon Runner.js"
   },
   {
+   "call": [
+    "skill_mp_cost"
+   ],
+   "from": "Encounters/Bscorpion.js",
+   "load": [],
+   "to": "Core Systems/Combat Formulas.js"
+  },
+  {
+   "call": [
+    "EQUIP_PRIORITY",
+    "emit_equip_ops",
+    "equip_claim",
+    "equip_plan",
+    "equip_release",
+    "rules_set_for_slot",
+    "set_available"
+   ],
+   "from": "Encounters/Bscorpion.js",
+   "load": [],
+   "to": "Core Systems/Equipment Manager.js"
+  },
+  {
+   "call": [
+    "catcher"
+   ],
+   "from": "Encounters/Bscorpion.js",
+   "load": [],
+   "to": "Core Systems/Error Handling.js"
+  },
+  {
+   "call": [
+    "errlog_count",
+    "errlog_timeline"
+   ],
+   "from": "Encounters/Bscorpion.js",
+   "load": [],
+   "to": "Core Systems/Error Log.js"
+  },
+  {
+   "call": [
+    "CONFIG",
+    "MOVEMENT_LEADER",
+    "automation_enabled",
+    "delay",
+    "errlog_count",
+    "errlog_timeline",
+    "home",
+    "read_state_cache"
+   ],
+   "from": "Encounters/Bscorpion.js",
+   "load": [],
+   "to": "Core Systems/Global Config.js"
+  },
+  {
+   "call": [
+    "is_travelling",
+    "local_move"
+   ],
+   "from": "Encounters/Bscorpion.js",
+   "load": [],
+   "to": "Core Systems/Movement Manager.js"
+  },
+  {
+   "call": [
+    "orbit_away"
+   ],
+   "from": "Encounters/Bscorpion.js",
+   "load": [],
+   "to": "Core Systems/Movement Positioning.js"
+  },
+  {
+   "call": [
+    "leader_position"
+   ],
+   "from": "Encounters/Bscorpion.js",
+   "load": [],
+   "to": "Core Systems/Party Cohesion.js"
+  },
+  {
+   "call": [],
+   "from": "Encounters/Bscorpion.js",
+   "load": [
+    "_encounters",
+    "_encounters_by_mtype",
+    "encounter"
+   ],
+   "to": "Encounters/Encounter Registry.js"
+  },
+  {
    "call": [],
    "from": "Encounters/Crabxx.js",
    "load": [
@@ -5875,7 +5896,7 @@
   },
   {
    "call": [],
-   "from": "Encounters/Uhills.js",
+   "from": "Encounters/Targetron-Sparkbot.js",
    "load": [
     "_encounters",
     "_encounters_by_mtype",
@@ -6896,13 +6917,6 @@
    "stage": "parallel",
    "statements": []
   },
-  "Core Systems/Bscorpion Camp.js": {
-   "call_initializers": [],
-   "optional": false,
-   "role": null,
-   "stage": "parallel",
-   "statements": []
-  },
   "Core Systems/Character Messaging.js": {
    "call_initializers": [],
    "optional": false,
@@ -7120,6 +7134,13 @@
    "stage": "parallel",
    "statements": []
   },
+  "Encounters/Bscorpion.js": {
+   "call_initializers": [],
+   "optional": false,
+   "role": null,
+   "stage": "parallel",
+   "statements": []
+  },
   "Encounters/Crabxx.js": {
    "call_initializers": [],
    "optional": true,
@@ -7176,7 +7197,7 @@
    "stage": "parallel",
    "statements": []
   },
-  "Encounters/Uhills.js": {
+  "Encounters/Targetron-Sparkbot.js": {
    "call_initializers": [],
    "optional": true,
    "role": null,
@@ -7336,7 +7357,7 @@
   "Encounters/Encounter Registry.js",
   "Core Systems/Error Log.js",
   "Core Systems/Movement Manager.js",
-  "Core Systems/Bscorpion Camp.js",
+  "Encounters/Bscorpion.js",
   "Core Systems/Combat Utilities.js",
   "Core Systems/Combat Formulas.js",
   "Core Systems/Combat Sampling.js",
@@ -7348,7 +7369,7 @@
   "Encounters/Mummy.js",
   "Encounters/Halloween Bosses.js",
   "Encounters/Crabxx.js",
-  "Encounters/Uhills.js",
+  "Encounters/Targetron-Sparkbot.js",
   "Encounters/Dryad.js",
   "Encounters/Fireroamer.js",
   "Core Systems/World Events.js",
