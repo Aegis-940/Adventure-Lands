@@ -1,0 +1,32 @@
+{
+ "decisions": {
+  "update_cache": "ok",
+  "gear.weapon": "single",
+  "gear.chest": "dps_chest",
+  "gear.orb": "orb",
+  "targets.in_range": [
+   "7819545",
+   "7825350",
+   "7825365",
+   "7825398",
+   "7825400",
+   "7825401"
+  ],
+  "shot": "5shot",
+  "heal_target": null,
+  "goal": {
+   "label": "event-mrpumpkin",
+   "local": "event",
+   "hold": false,
+   "passive": false
+  },
+  "pause_combat": false,
+  "skill.shot_width": 5,
+  "skill.mana_free": true,
+  "panic.state": {
+   "panicking": false,
+   "panic_external": false
+  }
+ },
+ "emits": []
+}

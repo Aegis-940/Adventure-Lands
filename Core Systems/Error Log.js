@@ -541,6 +541,9 @@ const SNAPSHOT_URL = "http://127.0.0.1:8787/snapshot";
 const SNAPSHOT_RANGE = 600;
 const SNAPSHOT_ENTITIES_KEPT = 40;
 const SNAPSHOT_DEPTH = 4;
+const SNAPSHOT_MIN_MS = { panic: 300000, close_call: 60000 };
+
+const _snapshot_last = {};
 
 function _snapshot_plain(value, depth) {
 	if (typeof value === "function") return undefined;
@@ -615,6 +618,9 @@ function _snapshot_next_skill() {
 function errlog_snapshot(label) {
 	try {
 		const t = Date.now();
+		const kind = label.split(" ")[0];
+		if (t - (_snapshot_last[kind] || 0) < (SNAPSHOT_MIN_MS[kind] || 0)) return;
+		_snapshot_last[kind] = t;
 		const dungeon = active_dungeon();
 		const sha = (window.__AL_BASE__ || "").match(/@([0-9a-f]{40})\//);
 		const snapshot = {
@@ -651,7 +657,7 @@ function errlog_snapshot(label) {
 			headers: { "content-type": "application/json" },
 			body: JSON.stringify(snapshot)
 		}).catch(() => errlog_count("snapshot not delivered"));
-		errlog_count("snapshot " + label.split(" ")[0]);
+		errlog_count("snapshot " + kind);
 	} catch (e) {
 		errlog_count("snapshot failed");
 	}

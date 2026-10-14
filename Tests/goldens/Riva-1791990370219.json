@@ -1,0 +1,32 @@
+{
+ "decisions": {
+  "update_cache": "ok",
+  "gear.weapon": "boom",
+  "gear.chest": "mana_chest",
+  "gear.orb": "orb",
+  "targets.in_range": [
+   "7708589",
+   "7708601",
+   "7708602",
+   "7708608",
+   "7708617",
+   "7708613"
+  ],
+  "shot": "5shot",
+  "heal_target": null,
+  "goal": {
+   "label": "with-leader",
+   "local": "farm",
+   "hold": false,
+   "passive": false
+  },
+  "pause_combat": false,
+  "skill.shot_width": 5,
+  "skill.mana_free": true,
+  "panic.state": {
+   "panicking": false,
+   "panic_external": false
+  }
+ },
+ "emits": []
+}

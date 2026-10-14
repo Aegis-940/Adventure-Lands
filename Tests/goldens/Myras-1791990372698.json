@@ -1,0 +1,24 @@
+{
+ "decisions": {
+  "update_cache": "ok",
+  "gear.loadout": "luck",
+  "gear.gloves": "gloves",
+  "gear.orb": "orb_luck",
+  "gear.chest": null,
+  "gear.amulet": null,
+  "gear.ring": "zap_on",
+  "gear.fight": null,
+  "target": "7708687",
+  "heal_target": "Myras",
+  "goal": null,
+  "pause_combat": false,
+  "skill.zap_pull_home": true,
+  "skill.aggro_cap": 3,
+  "skill.fight_gear_owned": false,
+  "panic.state": {
+   "panicking": false,
+   "panic_external": false
+  }
+ },
+ "emits": []
+}

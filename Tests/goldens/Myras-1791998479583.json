@@ -1,0 +1,29 @@
+{
+ "decisions": {
+  "update_cache": "ok",
+  "gear.loadout": null,
+  "gear.gloves": "gloves",
+  "gear.orb": null,
+  "gear.chest": null,
+  "gear.amulet": null,
+  "gear.ring": null,
+  "gear.fight": "camp_fight_live",
+  "target": "7811073",
+  "heal_target": "Riva",
+  "goal": {
+   "label": "event-mrgreen",
+   "local": "event",
+   "hold": false,
+   "passive": false
+  },
+  "pause_combat": false,
+  "skill.zap_pull_home": true,
+  "skill.aggro_cap": 5,
+  "skill.fight_gear_owned": true,
+  "panic.state": {
+   "panicking": false,
+   "panic_external": false
+  }
+ },
+ "emits": []
+}

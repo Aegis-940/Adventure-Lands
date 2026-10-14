@@ -1,0 +1,25 @@
+{
+ "decisions": {
+  "update_cache": "ok",
+  "gear.weapon": "double_aoe",
+  "gear.orb": "panic",
+  "target": "7839455",
+  "tank": "Myras",
+  "goal": {
+   "label": "with-leader",
+   "local": "farm",
+   "hold": false,
+   "passive": false
+  },
+  "pause_combat": true,
+  "skill.cleave_ready": false,
+  "skill.sugar_rush_wanted": true,
+  "skill.stomp_weapon_ready": true,
+  "skill.bscorpion_worth_buffing": true,
+  "panic.state": {
+   "panicking": true,
+   "panic_external": false
+  }
+ },
+ "emits": []
+}
