@@ -473,7 +473,7 @@ One encounter per push. Sources are from the 2026-10-14 inventory (Appendix B). 
 - [x] 2.8.5 bosses (on `overhaul`): `Encounters/Halloween Bosses.js` (mrpumpkin and mrgreen as one encounter), `Encounters/Crabxx.js` (with its crabx adds), franky and icegolem in Monster Rules. A pure move against the 6 live boss fixtures and 6 new synthetic ones. Adds `traits` (positive mob facts: `tank`, `taunt`, `cleave_alone`, `hold_cleave`, `attack_if_targeted`, `agitate_pack`). `BOSS_GEAR_OVERRIDES`, `boss_gear_here()`, `tank_bosses`, `taunt_bosses`, `cleave_lone_bosses`, `cleave_boss_blacklist` and `attack_if_targeted` are gone
 - [ ] 2.8.6 rime Djinn (as reached)
 - [ ] 2.8.7 bscorpion (as reached)
-- [ ] 2.8.8 dungeon/encounter precedence applied in every resolver
+- [x] 2.8.8 dungeon/encounter precedence (on `overhaul`): `resolve_healer_loadout()` now asks `dungeon_loadout()` before `gear_override()`, like the orb; every other resolver already did or has no dungeon setting. No golden changed: inside a dungeon no spawn encounter is live, and no boss or hazard answers `loadout`
 
 Steps marked "as reached" may stay open for weeks without blocking Phase 3. The phase is exited when every encounter whose spawn the party has visited since Phase 0 is migrated.
 

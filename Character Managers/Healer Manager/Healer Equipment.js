@@ -95,11 +95,11 @@ function dungeon_loadout() {
 function resolve_healer_loadout() {
 	if (CONFIG.equipment.weapon_swap_enabled === false) return null;
 	if (fight_gear_owned()) return null;
-	const override = gear_override("loadout");
-	if (override) return override;
-
 	const in_dungeon_loadout = dungeon_loadout();
 	if (in_dungeon_loadout) return in_dungeon_loadout;
+
+	const override = gear_override("loadout");
+	if (override) return override;
 
 	if (cache.target && CONFIG.combat.all_bosses.includes(cache.target.mtype) && set_available("single_target")) {
 		return "single_target";
