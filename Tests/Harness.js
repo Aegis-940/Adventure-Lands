@@ -400,6 +400,7 @@ const DECIDE = `(function () {
 		return g ? { label: g.label || null, local: g.local || null, hold: !!g.hold, passive: !!g.passive } : null;
 	});
 	attempt("pause_combat", () => should_pause_combat_loop());
+	attempt("farm_focus_here", () => farm_focus_here());
 
 	if (character.ctype === "warrior") {
 		attempt("skill.cleave_ready", () => cleave_ready());
@@ -411,6 +412,7 @@ const DECIDE = `(function () {
 		attempt("skill.zap_pull_home", () => zap_pull_home());
 		attempt("skill.aggro_cap", () => effective_aggro_cap());
 		attempt("skill.fight_gear_owned", () => fight_gear_owned());
+		attempt("skill.skip_panic", () => healer_skip_panic_check());
 	}
 	if (character.ctype === "ranger") {
 		attempt("skill.shot_width", () => shot_width());

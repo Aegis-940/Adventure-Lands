@@ -17,6 +17,7 @@
    "passive": false
   },
   "pause_combat": true,
+  "farm_focus_here": false,
   "skill.shot_width": 5,
   "skill.mana_free": true,
   "panic.state": {

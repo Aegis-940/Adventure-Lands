@@ -17,9 +17,11 @@
    "passive": false
   },
   "pause_combat": false,
+  "farm_focus_here": false,
   "skill.zap_pull_home": true,
   "skill.aggro_cap": 5,
   "skill.fight_gear_owned": true,
+  "skill.skip_panic": false,
   "panic.state": {
    "panicking": false,
    "panic_external": false

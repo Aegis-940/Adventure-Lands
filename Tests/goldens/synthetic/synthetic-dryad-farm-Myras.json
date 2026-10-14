@@ -1,0 +1,26 @@
+{
+ "decisions": {
+  "update_cache": "ok",
+  "gear.loadout": "mdef",
+  "gear.gloves": "gloves",
+  "gear.orb": null,
+  "gear.chest": null,
+  "gear.amulet": null,
+  "gear.ring": "zap_off",
+  "gear.fight": null,
+  "target": "d1",
+  "heal_target": "Myras",
+  "goal": null,
+  "pause_combat": false,
+  "farm_focus_here": false,
+  "skill.zap_pull_home": false,
+  "skill.aggro_cap": 5,
+  "skill.fight_gear_owned": false,
+  "skill.skip_panic": false,
+  "panic.state": {
+   "panicking": false,
+   "panic_external": false
+  }
+ },
+ "emits": []
+}

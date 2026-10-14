@@ -1,6 +1,7 @@
 {
  "decisions": {
   "pause_combat": false,
+  "farm_focus_here": false,
   "merchant.state": "delivering",
   "panic.state": {
    "panicking": false,

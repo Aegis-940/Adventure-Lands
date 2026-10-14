@@ -1,0 +1,29 @@
+{
+ "decisions": {
+  "update_cache": "ok",
+  "gear.weapon": null,
+  "gear.chest": null,
+  "gear.orb": null,
+  "targets.in_range": [
+   "r1",
+   "r2"
+  ],
+  "shot": "3shot",
+  "heal_target": null,
+  "goal": {
+   "label": "follow-close",
+   "local": "step",
+   "hold": false,
+   "passive": false
+  },
+  "pause_combat": false,
+  "farm_focus_here": false,
+  "skill.shot_width": 5,
+  "skill.mana_free": false,
+  "panic.state": {
+   "panicking": false,
+   "panic_external": false
+  }
+ },
+ "emits": []
+}

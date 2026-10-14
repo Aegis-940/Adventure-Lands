@@ -12,9 +12,11 @@
   "heal_target": "Myras",
   "goal": null,
   "pause_combat": false,
+  "farm_focus_here": false,
   "skill.zap_pull_home": true,
   "skill.aggro_cap": 0,
   "skill.fight_gear_owned": false,
+  "skill.skip_panic": false,
   "panic.state": {
    "panicking": false,
    "panic_external": false
