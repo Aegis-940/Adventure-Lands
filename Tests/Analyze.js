@@ -12,12 +12,16 @@ const PARSE_OPTIONS = { ecmaVersion: "latest", sourceType: "script", locations: 
 const BUILTIN_CALLEES = new Set([
 	"Set", "Map", "WeakMap", "WeakSet", "Object", "Array", "Math", "JSON", "Date", "Number", "String", "Boolean",
 	"RegExp", "Promise", "Symbol", "Error", "parseInt", "parseFloat", "isFinite", "isNaN", "encodeURI", "encodeURIComponent",
-	"G",
+	"G", "performance",
 ]);
 
 const MONSTER_WORDS_EXCLUDED = new Set(["target"]);
 
 const EMIT_CALLS = new Set(["equip", "unequip", "use_skill", "attack", "heal", "move", "smart_move"]);
+
+const REGISTRATION_CALLS = new Set(["on_boot", "console_api"]);
+
+const REGISTRY_OBJECTS = new Set(["DUNGEONS"]);
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // BOOTSTRAPPER LISTS — the load order is read from Bootstrapper.js itself, never copied
@@ -119,6 +123,14 @@ function callee_root(callee) {
 	return node.type === "Identifier" ? node.name : null;
 }
 
+function is_registration(stmt) {
+	if (stmt.type !== "ExpressionStatement") return false;
+	const e = stmt.expression;
+	if (e.type === "CallExpression" && e.callee.type === "Identifier" && REGISTRATION_CALLS.has(e.callee.name)) return true;
+	return e.type === "AssignmentExpression" && e.operator === "=" && e.left.type === "MemberExpression"
+		&& e.left.object.type === "Identifier" && REGISTRY_OBJECTS.has(e.left.object.name) && e.right.type === "ObjectExpression";
+}
+
 function analyze_file(parser, name, text, monsters) {
 	const ast = parser.parse(text, PARSE_OPTIONS);
 	const lines = text.split("\n");
@@ -146,6 +158,7 @@ function analyze_file(parser, name, text, monsters) {
 		monsters: [],
 		sites: {},
 		function_refs: {},
+		registrations: [],
 	};
 
 	const site = (counter, node) => {
@@ -331,6 +344,11 @@ function analyze_file(parser, name, text, monsters) {
 			continue;
 		}
 		if (stmt.type === "EmptyStatement") continue;
+		if (is_registration(stmt)) {
+			result.registrations.push({ line, text: lines[line - 1].trim().slice(0, 100) });
+			visit(stmt, 0);
+			continue;
+		}
 		result.counters.top_level_statements++;
 		if (!result.sites.top_level_statements) result.sites.top_level_statements = [];
 		result.sites.top_level_statements.push(line);

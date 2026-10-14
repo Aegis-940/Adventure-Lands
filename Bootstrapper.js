@@ -13,6 +13,10 @@
 	let CACHE_OK = false;
 
 	const first_scripts = [
+		"Kernel/Kernel.js",
+		"Kernel/Scheduler.js",
+		"Kernel/Events.js",
+		"Kernel/Storage.js",
 		"Core Systems/Global Config.js",
 		"Interface/Widget Helpers.js",
 		"Interface/Game Log.js",
@@ -178,15 +182,34 @@
 	}
 
 	function eval_role_file(name, text) {
-		if (text === null) return;
+		if (text === null) return false;
 		if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
 		text = text.replace(new RegExp("[\\u200B-\\u200D\\uFEFF]", "g"), "");
 		try {
 			(0, eval)(text);
+			return true;
 		} catch (e) {
 			game_log("❌ " + name + " eval error: " + e.message);
 			console.error(e);
+			return false;
 		}
+	}
+
+	function base_name(name) {
+		return name.split("/").pop().replace(/\.js$/, "");
+	}
+
+	function boot(results, role_results) {
+		const all = [...first_scripts, ...scripts, ...role_file];
+		const ok = new Set(first_scripts
+			.concat(results.filter(r => r.ok).map(r => r.name))
+			.concat(role_results.filter(r => r.ok).map(r => r.name)));
+		kernel_boot({
+			order: all.map(base_name),
+			loaded: all.filter(n => ok.has(n)).map(base_name),
+			optional: [...OPTIONAL_SCRIPTS].map(base_name),
+			entry: role_file.length ? base_name(role_file[role_file.length - 1]) : null,
+		});
 	}
 
 	function start_loading(base) {
@@ -212,8 +235,9 @@
 				}
 				return role_texts
 					.then(texts => {
-						role_file.forEach((name, i) => eval_role_file(name, texts[i]));
+						const role_results = role_file.map((name, i) => ({ name, ok: eval_role_file(name, texts[i]) }));
 						game_log("✅ All scripts loaded.");
+						boot(results, role_results);
 					});
 			});
 	}

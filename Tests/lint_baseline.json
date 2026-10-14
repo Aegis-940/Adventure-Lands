@@ -6,15 +6,12 @@
   "Interface/Widget Helpers.js": 3
  },
  "call_initializers": {
-  "Character Managers/Healer Manager/Healer Config.js": 4,
+  "Character Managers/Healer Manager/Healer Config.js": 3,
   "Character Managers/Merchant Manager/Merchant Config.js": 1,
   "Character Managers/Merchant Manager/Merchant Upgrading.js": 1,
   "Character Managers/Ranger Manager/Ranger Config.js": 3,
   "Character Managers/Warrior Manager/Warrior Config.js": 3,
   "Core Systems/Error Log.js": 1,
-  "Interface/DPS Meter.js": 1,
-  "Interface/Kill Tracker.js": 1,
-  "Interface/Metrics Graphs.js": 1,
   "Interface/Settings Window.js": 1
  },
  "character_on": {
@@ -55,7 +52,6 @@
   "Character Managers/Merchant Manager/Merchant Config.js": 4,
   "Core Systems/Error Log.js": 7,
   "Core Systems/Farm Survey.js": 1,
-  "Core Systems/Global Config.js": 5,
   "Dungeons/Dungeon Collection.js": 3,
   "Dungeons/Dungeon Runner.js": 3,
   "Interface/Settings Window.js": 2
@@ -145,11 +141,8 @@
   "Core Systems/Maintenance.js": 1,
   "Core Systems/Movement Manager.js": 1,
   "Core Systems/World Events.js": 1,
-  "Dungeons/Crypt Dungeon.js": 1,
-  "Dungeons/Dreams Cave.js": 1,
   "Dungeons/Dungeon Mode.js": 1,
   "Dungeons/Dungeon Runner.js": 1,
-  "Dungeons/Spider Dungeon.js": 1,
   "Interface/Bank Sort Order.js": 7,
   "Interface/Bank Viewer.js": 1,
   "Interface/Boss Contribution.js": 1,

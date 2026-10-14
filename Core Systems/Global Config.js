@@ -74,11 +74,7 @@ function farm_target_key(name) {
 }
 
 function farm_target_setting(name) {
-	try {
-		return localStorage.getItem(farm_target_key(name)) || DEFAULT_FARM_TARGET;
-	} catch (e) {
-		return DEFAULT_FARM_TARGET;
-	}
+	return storage_raw_read(farm_target_key(name)) || DEFAULT_FARM_TARGET;
 }
 
 function farm_target_for(name) {
@@ -224,26 +220,8 @@ function staggered_reload() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// SECTION 2b: JSON-BACKED STORAGE — the one read/write pair for structured localStorage values
+// SECTION 2b: THE PARTY STATE CACHE — read through Kernel/Storage.js, which owns every localStorage access
 // --------------------------------------------------------------------------------------------------------------------------------- //
-
-function storage_read(key) {
-	try {
-		const raw = localStorage.getItem(key);
-		return raw ? JSON.parse(raw) : null;
-	} catch (e) {
-		return null;
-	}
-}
-
-function storage_write(key, value) {
-	try {
-		localStorage.setItem(key, JSON.stringify(value));
-		return true;
-	} catch (e) {
-		return false;
-	}
-}
 
 const STATE_CACHE_KEY_PREFIX = "AL_char_state_";
 const STATE_CACHE_STALE_MS = 15000;
@@ -295,13 +273,12 @@ function automation_enabled() {
 	const now = Date.now();
 	if (now - _automation.at < AUTOMATION_POLL_MS) return _automation.on;
 	_automation.at = now;
-	try { _automation.on = localStorage.getItem(automation_key()) !== "1"; }
-	catch (e) { _automation.on = true; }
+	_automation.on = storage_raw_read(automation_key()) !== "1";
 	return _automation.on;
 }
 
 function set_automation(on) {
-	try { localStorage.setItem(automation_key(), on ? "0" : "1"); } catch (e) { }
+	storage_raw_write(automation_key(), on ? "0" : "1");
 	_automation.at = 0;
 	return automation_enabled();
 }

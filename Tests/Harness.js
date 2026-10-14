@@ -287,6 +287,22 @@ async function boot(fixture, options) {
 		run_file(ctx, file, read_repo_file(file), "eval", log);
 	}
 
+	if (ctx.kernel_boot) {
+		const base = f => path.basename(f, ".js");
+		const order = [...game.lists.first, ...game.lists.parallel, ...role_files];
+		const failed = new Set(log.errors.slice(game_errors).map(e => e.file));
+		const loaded = order.filter(f => !failed.has(f) && (options.entry || !ENTRY_POINTS.has(path.basename(f))));
+		const plan = { order: order.map(base), loaded: loaded.map(base), optional: game.lists.optional.map(base),
+			entry: role_files.length ? base(role_files[role_files.length - 1]) : null };
+		try {
+			ctx.kernel_boot(plan);
+		} catch (e) {
+			log.errors.push({ file: "kernel_boot", message: String(e && e.message || e), where: "" });
+		}
+		const report = ctx.al_boot();
+		for (const f of report.failed) log.errors.push({ file: "boot " + f.file, message: f.reason, where: "" });
+	}
+
 	await new Promise(r => setImmediate(r));
 	return { ctx, log, game_errors };
 }
