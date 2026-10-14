@@ -1,0 +1,1287 @@
+{
+ "id": "Riva-1792019311086",
+ "label": "live: Riva farm bscorpion (314a892)\r",
+ "t": 1792019311086,
+ "perf": 2704638.5999999046,
+ "build": "314a892",
+ "build_sha": "314a892656721c4bef43d12f23bdfb4ac6b14976",
+ "name": "Riva",
+ "ctype": "ranger",
+ "server_region": "US",
+ "server_identifier": "IV",
+ "character": {
+  "tempDisplayObjectParent": null,
+  "alpha": 1,
+  "visible": true,
+  "renderable": true,
+  "worldAlpha": 1,
+  "filterArea": null,
+  "children": [
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
+  ],
+  "blendMode": 0,
+  "shader": null,
+  "cachedTint": 16777215,
+  "vertexTrimmedData": null,
+  "pluginName": "sprite",
+  "roundPixels": false,
+  "cskin": "12",
+  "i": 1,
+  "j": 2,
+  "skin": "marmor5a",
+  "stype": "full",
+  "updates": 152835,
+  "cscale": 2,
+  "in": "desertland",
+  "map": "desertland",
+  "hp": 9780,
+  "max_hp": 9780,
+  "mp": 1871,
+  "max_mp": 1945,
+  "xp": 301602507,
+  "attack": 2862,
+  "heal": 0,
+  "frequency": 1.6255601333040357,
+  "speed": 99,
+  "range": 222,
+  "armor": 416,
+  "resistance": 475,
+  "level": 92,
+  "rip": false,
+  "afk": true,
+  "s": {
+   "halloween2": {
+    "ms": 27594789
+   },
+   "mluck": {
+    "ms": 2052851,
+    "f": "Riff",
+    "strong": true
+   },
+   "warcry": {
+    "ms": 2550,
+    "f": "Ulric"
+   },
+   "darkblessing": {
+    "ms": 3124,
+    "f": "Myras"
+   }
+  },
+  "c": {},
+  "q": {},
+  "age": 470,
+  "pdps": 1874355.0963664243,
+  "id": "Riva",
+  "guild": null,
+  "stand": false,
+  "cx": {
+   "head": "makeup117",
+   "hair": "hairdo106"
+  },
+  "slots": {
+   "ring1": {
+    "name": "suckerpunch",
+    "level": 0
+   },
+   "ring2": {
+    "name": "suckerpunch",
+    "level": 0
+   },
+   "earring1": {
+    "name": "dexearring",
+    "level": 2
+   },
+   "earring2": {
+    "name": "molesteeth",
+    "level": 2,
+    "p": null
+   },
+   "belt": {
+    "name": "dexbelt",
+    "level": 4,
+    "p": null
+   },
+   "mainhand": {
+    "name": "firebow",
+    "level": 10,
+    "l": "l",
+    "acc": 1,
+    "ach": "firehazard"
+   },
+   "offhand": {
+    "name": "t2quiver",
+    "level": 7,
+    "l": "l"
+   },
+   "helmet": {
+    "name": "fury",
+    "level": 7,
+    "acc": 1,
+    "stat_type": "dex"
+   },
+   "chest": {
+    "name": "coat",
+    "level": 9,
+    "stat_type": "dex",
+    "l": "l"
+   },
+   "pants": {
+    "name": "pants",
+    "level": 10,
+    "stat_type": "dex",
+    "l": "l"
+   },
+   "shoes": {
+    "name": "wingedboots",
+    "level": 9,
+    "stat_type": "dex"
+   },
+   "gloves": {
+    "name": "supermittens",
+    "level": 7,
+    "stat_type": "dex"
+   },
+   "amulet": {
+    "name": "dexamulet",
+    "level": 4
+   },
+   "orb": {
+    "name": "cave_loaded_die",
+    "level": 1,
+    "p": null,
+    "l": "l"
+   },
+   "elixir": {
+    "name": "pumpkinspice",
+    "expires": "2026-10-14T23:09:19.661Z",
+    "ex": true
+   },
+   "cape": {
+    "name": "ecape",
+    "level": 7,
+    "stat_type": "dex"
+   }
+  },
+  "ctype": "ranger",
+  "int": 70,
+  "str": 56,
+  "dex": 355,
+  "vit": 91,
+  "for": 23.5,
+  "mp_cost": 74,
+  "mp_reduction": 0,
+  "max_xp": 27000000000,
+  "goldm": 1.135,
+  "xpm": 1.48,
+  "luckm": 1.18,
+  "encouragement": {
+   "totals": {
+    "gold": 1,
+    "xp": 1,
+    "luck": 1
+   },
+   "statuses": [
+    {
+     "id": "encouragement_new",
+     "active": false,
+     "reason": "expired"
+    },
+    {
+     "id": "encouragement_lonewolf",
+     "active": false,
+     "reason": "another_character"
+    },
+    {
+     "id": "encouragement_returning",
+     "active": false,
+     "reason": "away"
+    }
+   ],
+   "characterCount": 5,
+   "blocked": false,
+   "groupReady": true
+  },
+  "isize": 42,
+  "esize": 27,
+  "gold": 99404494,
+  "targets": 0,
+  "m": 12,
+  "evasion": 1.25,
+  "miss": 0,
+  "reflection": 3,
+  "lifesteal": 4,
+  "manasteal": 0,
+  "rpiercing": 62,
+  "apiercing": 239,
+  "crit": 27.125,
+  "critdamage": 12,
+  "dreturn": 1,
+  "tax": 0.01,
+  "xrange": 25,
+  "pnresistance": 11,
+  "firesistance": 0,
+  "fzresistance": 0,
+  "phresistance": 0,
+  "stresistance": 0,
+  "incdmgamp": 0,
+  "stun": 0,
+  "blast": 0,
+  "explosion": 0,
+  "courage": 2,
+  "mcourage": 2,
+  "pcourage": 2,
+  "fear": 0,
+  "items": [
+   {
+    "name": "tracker"
+   },
+   {
+    "name": "computer"
+   },
+   {
+    "name": "hpot1",
+    "q": 1456
+   },
+   {
+    "name": "mpot1",
+    "q": 1714
+   },
+   {
+    "name": "xptome",
+    "q": 1
+   },
+   {
+    "name": "pumpkinspice",
+    "q": 650
+   },
+   {
+    "name": "xpbooster",
+    "level": 0,
+    "expires": "2026-11-12T01:56:08.471Z"
+   },
+   {
+    "name": "jacko",
+    "level": 0,
+    "l": "l"
+   },
+   {
+    "name": "pouchbow",
+    "level": 10,
+    "l": "l",
+    "acc": 1
+   },
+   {
+    "name": "cupid",
+    "level": 9,
+    "l": "l",
+    "acc": 1
+   },
+   {
+    "name": "alloyquiver",
+    "level": 7,
+    "l": "l"
+   },
+   {
+    "name": "candy1",
+    "q": 79
+   },
+   {
+    "name": "tshirt9",
+    "level": 5,
+    "l": "l"
+   },
+   {
+    "name": "orboftemporal",
+    "level": 0,
+    "l": "l"
+   },
+   {
+    "name": "candy0",
+    "q": 2
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
+  ],
+  "cc": 44,
+  "home": "USIV",
+  "acx": {},
+  "xcx": [
+   "makeup105",
+   "makeup117",
+   "mmakeup00",
+   "fmakeup01",
+   "fmakeup02",
+   "fmakeup03",
+   "marmor5a",
+   "hairdo106",
+   "mbody2b",
+   "hairdo206",
+   "facemakeup02"
+  ],
+  "pzazz": 5,
+  "last_ms": 1792019311079,
+  "cxc": {},
+  "name": "Riva",
+  "walking": null,
+  "animations": {},
+  "fx": {
+   "aaa": null,
+   "attack": null,
+   "wcry": true,
+   "db": true
+  },
+  "emblems": {},
+  "real_alpha": 1,
+  "real_x": -598.8837712936929,
+  "real_y": -1396.2619912695168,
+  "type": "character",
+  "me": 1,
+  "base": {
+   "h": 8,
+   "v": 7,
+   "vn": 2
+  },
+  "awidth": 27,
+  "aheight": 34,
+  "explanation": "Hey Adventurer! This is your very own character that is a PIXI.Sprite Object. Adventure Land uses PIXI to draw things. You can learn more about it: https://www.pixijs.com/ and draw your own stuff via CODE! (Technical) Since your character is a special object, it doesn't get drawn like other entities, therefore your real character object has static x and y values. The character object in Code is an Object that mimics and extends your actual character Object. It's kinda complicated, but the only difference is that your real character object has different x and y values.",
+  "ping": 199.27500000000003,
+  "vision": [
+   700,
+   500
+  ],
+  "pixel_name_font": "pixel|Riva",
+  "ntag_cache": "Riva|undefined|92|28|19|ranger|false|false|false|pixel",
+  "filter_list": [
+   null
+  ],
+  "last_fear": 0,
+  "updateOrder": 85431871,
+  "zOrder": 1396.2619912695168,
+  "displayOrder": 115,
+  "stats": {
+   "str": 56,
+   "dex": 355,
+   "int": 70,
+   "vit": 91,
+   "for": 23.5
+  },
+  "a_angle": 19.961601525444173,
+  "angle": 19.961601525444173,
+  "a_direction": 2,
+  "direction": 2,
+  "from_x": -602.979531515138,
+  "from_y": -1399.129873451272,
+  "going_x": -598.8837712936929,
+  "going_y": -1396.2619912695168,
+  "moving": false,
+  "ref_speed": 99,
+  "vx": 0,
+  "vy": 0,
+  "ms_walk": 1792019310762,
+  "target": "8130375",
+  "focus": "Riva",
+  "party": "Ulric",
+  "move_num": 52491147,
+  "last_stop": 1792019310895,
+  "last_walking": 9206,
+  "tp": 0,
+  "appearing": false,
+  "accessible": false,
+  "accessibleTitle": null,
+  "accessibleHint": null,
+  "tabIndex": 0,
+  "interactive": false,
+  "interactiveChildren": true,
+  "hitArea": null,
+  "buttonMode": false,
+  "cursor": null,
+  "trackedPointers": {},
+  "parentLayer": null,
+  "zIndex": 0,
+  "layerableChildren": true
+ },
+ "entities": {
+  "8130375": {
+   "tempDisplayObjectParent": null,
+   "alpha": 1,
+   "visible": true,
+   "renderable": true,
+   "worldAlpha": 1,
+   "filterArea": null,
+   "children": [
+    null,
+    null,
+    null
+   ],
+   "blendMode": 0,
+   "shader": null,
+   "cachedTint": 16777215,
+   "vertexTrimmedData": null,
+   "pluginName": "sprite",
+   "roundPixels": false,
+   "cskin": "12",
+   "i": 1,
+   "j": 2,
+   "skin": "bscorpion",
+   "stype": "full",
+   "updates": 226,
+   "type": "monster",
+   "mtype": "bscorpion",
+   "in": "desertland",
+   "map": "desertland",
+   "hp": 463366,
+   "max_hp": 576900,
+   "mp": 11538,
+   "max_mp": 11538,
+   "speed": 38,
+   "xp": 634800,
+   "attack": 3200,
+   "frequency": 0.6,
+   "rage": 0,
+   "aggro": 0.8,
+   "armor": 500,
+   "resistance": 240,
+   "damage_type": "physical",
+   "respawn": 6,
+   "range": 32,
+   "name": "Black Scorpion",
+   "abilities": {
+    "weakness_aura": {
+     "aura": true,
+     "condition": "weakness",
+     "radius": 100,
+     "cooldown": 4000
+    }
+   },
+   "id": "8130375",
+   "move_num": 52490893,
+   "target": "Myras",
+   "s": {
+    "poisonous": {
+     "ms": 99999999994168
+    },
+    "weakness_aura": {
+     "ms": 1789,
+     "ability": true
+    },
+    "marked": {
+     "ms": 4665
+    },
+    "burned": {
+     "ms": 3540,
+     "intensity": 4231,
+     "fid": "Myras",
+     "f": "Myras",
+     "last": "2026-10-14T23:08:32.154Z"
+    }
+   },
+   "last_ms": 1792019311079,
+   "walking": 11,
+   "animations": {},
+   "fx": {},
+   "emblems": {},
+   "c": {},
+   "real_alpha": 1,
+   "real_x": -438.7065033441596,
+   "real_y": -1338.8873618122682,
+   "vx": 35.57779742461333,
+   "vy": -19.40607132252409,
+   "level": 1,
+   "interactive": true,
+   "cursor": "pointer",
+   "base": {
+    "h": 12,
+    "v": 7.5,
+    "vn": 2
+   },
+   "drawn": true,
+   "resync": false,
+   "engaged_move": 52490893,
+   "moving": true,
+   "abs": false,
+   "from_x": -439.38248149522724,
+   "from_y": -1338.5186464571402,
+   "going_x": -400,
+   "going_y": -1360,
+   "ref_speed": 38,
+   "angle": -28.610459665974812,
+   "hp_width": 22,
+   "hp_level": 1,
+   "hp_color": 11609895,
+   "filter_list": [],
+   "ms_walk": 1792019310844,
+   "updateOrder": 85431982,
+   "zOrder": 1338.8873618122682,
+   "displayOrder": 129,
+   "a_direction": 2,
+   "direction": 2,
+   "last_stop": 1792019307795,
+   "last_walking": 2,
+   "accessible": false,
+   "accessibleTitle": null,
+   "accessibleHint": null,
+   "tabIndex": 0,
+   "interactiveChildren": true,
+   "hitArea": null,
+   "buttonMode": true,
+   "trackedPointers": {},
+   "parentLayer": null,
+   "zIndex": 0,
+   "layerableChildren": true,
+   "awidth": 30,
+   "aheight": 30
+  },
+  "Ulric": {
+   "tempDisplayObjectParent": null,
+   "alpha": 1,
+   "visible": true,
+   "renderable": true,
+   "worldAlpha": 1,
+   "filterArea": null,
+   "children": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "blendMode": 0,
+   "shader": null,
+   "cachedTint": 16777215,
+   "vertexTrimmedData": null,
+   "pluginName": "sprite",
+   "roundPixels": false,
+   "cskin": "12",
+   "i": 1,
+   "j": 2,
+   "skin": "marmor6d",
+   "stype": "full",
+   "updates": 226,
+   "cscale": 1,
+   "in": "desertland",
+   "map": "desertland",
+   "hp": 16810,
+   "max_hp": 16810,
+   "mp": 726,
+   "max_mp": 1990,
+   "xp": 6030049742,
+   "attack": 2640,
+   "heal": 0,
+   "frequency": 1.4238713463027488,
+   "speed": 79,
+   "range": 43,
+   "armor": 519,
+   "resistance": 406,
+   "level": 91,
+   "party": "Ulric",
+   "rip": false,
+   "afk": true,
+   "target": "8130375",
+   "focus": "Ulric",
+   "s": {
+    "halloween2": {
+     "ms": 27594757
+    },
+    "mluck": {
+     "ms": 2056188,
+     "f": "Riff",
+     "strong": true
+    },
+    "weakness": {
+     "ms": 17731
+    },
+    "warcry": {
+     "ms": 2518,
+     "f": "Ulric"
+    },
+    "darkblessing": {
+     "ms": 3092,
+     "f": "Myras"
+    },
+    "penalty_cd": {
+     "ms": 223
+    }
+   },
+   "c": {},
+   "q": {},
+   "age": 470,
+   "pdps": 2127164.999268922,
+   "id": "Ulric",
+   "move_num": 52491161,
+   "guild": null,
+   "stand": false,
+   "cx": {
+    "head": "makeup117",
+    "hair": "hairdo105"
+   },
+   "slots": {
+    "ring1": {
+     "name": "suckerpunch",
+     "level": 0
+    },
+    "ring2": {
+     "name": "suckerpunch",
+     "level": 0
+    },
+    "earring1": {
+     "name": "molesteeth",
+     "level": 2,
+     "p": null,
+     "l": "l"
+    },
+    "earring2": {
+     "name": "cearring",
+     "level": 4,
+     "p": null
+    },
+    "belt": {
+     "name": "strbelt",
+     "level": 4,
+     "p": null
+    },
+    "mainhand": {
+     "name": "fireblade",
+     "level": 9,
+     "l": "l",
+     "acc": 4,
+     "ach": "firehazard"
+    },
+    "offhand": {
+     "name": "fireblade",
+     "level": 9,
+     "l": "l",
+     "acc": 2
+    },
+    "helmet": {
+     "name": "fury",
+     "level": 7,
+     "acc": 1,
+     "stat_type": "str"
+    },
+    "chest": {
+     "name": "coat",
+     "level": 10,
+     "stat_type": "str",
+     "l": "l"
+    },
+    "pants": {
+     "name": "fallen",
+     "level": 5,
+     "p": "shiny",
+     "stat_type": "str",
+     "l": "l"
+    },
+    "shoes": {
+     "name": "wingedboots",
+     "level": 9,
+     "stat_type": "str"
+    },
+    "gloves": {
+     "name": "supermittens",
+     "level": 7,
+     "stat_type": "str"
+    },
+    "amulet": {
+     "name": "stramulet",
+     "level": 3,
+     "l": "l"
+    },
+    "orb": {
+     "name": "cave_loaded_die",
+     "level": 1,
+     "p": null,
+     "l": "l"
+    },
+    "elixir": {
+     "name": "pumpkinspice",
+     "expires": "2026-10-14T23:09:12.748Z",
+     "ex": true
+    },
+    "cape": {
+     "name": "angelwings",
+     "level": 3,
+     "stat_type": "str",
+     "ps": [
+      "festive"
+     ],
+     "p": "festive",
+     "acc": 330085,
+     "ach": "festive"
+    }
+   },
+   "ctype": "warrior",
+   "external": true,
+   "player": true,
+   "pzazz": 4,
+   "last_ms": 1792019311079,
+   "cxc": {},
+   "name": "Ulric",
+   "walking": null,
+   "animations": {},
+   "fx": {
+    "db": true,
+    "wcry": true,
+    "aaa": null,
+    "attack": null
+   },
+   "emblems": {},
+   "real_alpha": 1,
+   "real_x": -460.4410337872439,
+   "real_y": -1295.151012261051,
+   "type": "character",
+   "base": {
+    "h": 8,
+    "v": 7,
+    "vn": 2
+   },
+   "awidth": 27,
+   "aheight": 34,
+   "interactive": true,
+   "drawn": true,
+   "resync": false,
+   "engaged_move": 52491161,
+   "angle": -69.5864261069728,
+   "a_direction": 2,
+   "direction": 2,
+   "moving": false,
+   "pixel_name_font": "pixel|Ulric",
+   "ntag_cache": "Ulric|undefined|false|false|false|false|false|false|false|pixel",
+   "filter_list": [
+    null
+   ],
+   "updateOrder": 85431984,
+   "zOrder": 1295.151012261051,
+   "displayOrder": 142,
+   "a_angle": -68.13278500876308,
+   "ms_walk": 1792019310861,
+   "last_stop": 1792019310927,
+   "last_walking": 11,
+   "abs": false,
+   "from_x": -461.8496026610946,
+   "from_y": -1291.3662294204662,
+   "going_x": -460.4410337872439,
+   "going_y": -1295.151012261051,
+   "ref_speed": 79,
+   "vx": 0,
+   "vy": 0,
+   "y_disp": null,
+   "accessible": false,
+   "accessibleTitle": null,
+   "accessibleHint": null,
+   "tabIndex": 0,
+   "interactiveChildren": true,
+   "hitArea": null,
+   "buttonMode": false,
+   "cursor": null,
+   "trackedPointers": {},
+   "parentLayer": null,
+   "zIndex": 0,
+   "layerableChildren": true
+  },
+  "Myras": {
+   "tempDisplayObjectParent": null,
+   "alpha": 1,
+   "visible": true,
+   "renderable": true,
+   "worldAlpha": 1,
+   "filterArea": null,
+   "children": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "blendMode": 0,
+   "shader": null,
+   "cachedTint": 16777215,
+   "vertexTrimmedData": null,
+   "pluginName": "sprite",
+   "roundPixels": false,
+   "cskin": "11",
+   "i": 1,
+   "j": 1,
+   "skin": "mbody5e",
+   "stype": "full",
+   "updates": 226,
+   "cscale": 1,
+   "in": "desertland",
+   "map": "desertland",
+   "hp": 13063,
+   "max_hp": 13378,
+   "mp": 4689,
+   "max_mp": 7360,
+   "xp": 9159822498,
+   "attack": 2085,
+   "heal": 3022,
+   "frequency": 1.407080671699574,
+   "speed": 59,
+   "range": 216,
+   "armor": 594,
+   "resistance": 649,
+   "level": 91,
+   "party": "Ulric",
+   "rip": false,
+   "afk": true,
+   "target": "8130375",
+   "focus": "Myras",
+   "s": {
+    "halloween2": {
+     "ms": 27594802
+    },
+    "mluck": {
+     "ms": 2054597,
+     "f": "Riff",
+     "strong": true
+    },
+    "weakness": {
+     "ms": 5783
+    },
+    "warcry": {
+     "ms": 2495,
+     "f": "Ulric"
+    },
+    "darkblessing": {
+     "ms": 3069,
+     "f": "Myras"
+    }
+   },
+   "c": {},
+   "q": {},
+   "age": 470,
+   "pdps": 987913.80882397,
+   "id": "Myras",
+   "move_num": 52491175,
+   "guild": null,
+   "stand": false,
+   "cx": {
+    "head": "fmakeup01"
+   },
+   "slots": {
+    "ring1": {
+     "name": "cring",
+     "level": 4,
+     "p": null
+    },
+    "ring2": {
+     "level": 0,
+     "name": "zapper",
+     "l": "l"
+    },
+    "earring1": {
+     "name": "cearring",
+     "level": 3,
+     "p": null
+    },
+    "earring2": {
+     "name": "cearring",
+     "level": 3,
+     "p": null
+    },
+    "belt": {
+     "name": "intbelt",
+     "level": 4,
+     "p": null
+    },
+    "mainhand": {
+     "name": "firestaff",
+     "level": 9,
+     "l": "l",
+     "acc": 1
+    },
+    "offhand": {
+     "name": "exoarm",
+     "level": 1,
+     "p": null,
+     "l": "l"
+    },
+    "helmet": {
+     "name": "oxhelmet",
+     "ps": [
+      "lucky"
+     ],
+     "p": "lucky",
+     "acc": 1
+    },
+    "chest": {
+     "name": "coat",
+     "level": 10,
+     "stat_type": "int",
+     "l": "l"
+    },
+    "pants": {
+     "name": "starkillers",
+     "level": 6,
+     "stat_type": "int"
+    },
+    "shoes": {
+     "name": "wingedboots",
+     "level": 9,
+     "stat_type": "int",
+     "l": "l"
+    },
+    "gloves": {
+     "name": "supermittens",
+     "level": 7,
+     "stat_type": "int",
+     "l": "l"
+    },
+    "amulet": {
+     "name": "spookyamulet",
+     "level": 2,
+     "l": "l"
+    },
+    "orb": {
+     "name": "cave_loaded_die",
+     "level": 1,
+     "p": null,
+     "l": "l"
+    },
+    "elixir": {
+     "name": "elixirluck",
+     "expires": "2026-10-14T23:40:58.177Z",
+     "ex": true
+    },
+    "cape": {
+     "name": "covemantle",
+     "level": 6,
+     "stat_type": "int"
+    }
+   },
+   "ctype": "priest",
+   "external": true,
+   "player": true,
+   "pzazz": 4,
+   "last_ms": 1792019311079,
+   "cxc": {},
+   "name": "Myras",
+   "walking": 19,
+   "animations": {},
+   "fx": {
+    "db": true,
+    "wcry": true,
+    "aaa": null,
+    "attack": null
+   },
+   "emblems": {},
+   "real_alpha": 1,
+   "real_x": -311.23058790345783,
+   "real_y": -1223.3571970867754,
+   "type": "character",
+   "base": {
+    "h": 8,
+    "v": 7,
+    "vn": 2
+   },
+   "awidth": 27,
+   "aheight": 34,
+   "interactive": true,
+   "drawn": true,
+   "resync": false,
+   "engaged_move": 52491175,
+   "moving": true,
+   "abs": false,
+   "from_x": -310.52318111741465,
+   "from_y": -1224.8347538601704,
+   "going_x": -318.4267958883007,
+   "going_y": -1208.3265159277246,
+   "ref_speed": 59,
+   "vx": -37.23193610753551,
+   "vy": 77.76614596815814,
+   "angle": 115.58360433486817,
+   "pixel_name_font": "pixel|Myras",
+   "ntag_cache": "Myras|undefined|false|false|false|false|false|false|false|pixel",
+   "filter_list": [
+    null
+   ],
+   "ms_walk": 1792019310777,
+   "updateOrder": 85431983,
+   "zOrder": 1223.3571970867754,
+   "displayOrder": 173,
+   "a_direction": 1,
+   "direction": 1,
+   "last_stop": 1792019310977,
+   "last_walking": 19,
+   "a_angle": -144.62873080493597,
+   "accessible": false,
+   "accessibleTitle": null,
+   "accessibleHint": null,
+   "tabIndex": 0,
+   "interactiveChildren": true,
+   "hitArea": null,
+   "buttonMode": false,
+   "cursor": null,
+   "trackedPointers": {},
+   "parentLayer": null,
+   "zIndex": 0,
+   "layerableChildren": true
+  }
+ },
+ "chests": {},
+ "party_info": {
+  "Ulric": {
+   "skin": "marmor6d",
+   "level": 91,
+   "type": "warrior",
+   "x": -446.94686629888434,
+   "y": -1288.4947590972151,
+   "in": "desertland",
+   "map": "desertland",
+   "share": 0.3333333322222216,
+   "pdps": 2268328.7490861528,
+   "l": 3,
+   "xp": 16,
+   "luck": 0,
+   "gold": 5,
+   "cx": {
+    "head": "makeup117",
+    "hair": "hairdo105"
+   }
+  },
+  "Myras": {
+   "skin": "mbody5e",
+   "level": 91,
+   "type": "priest",
+   "x": -318.4267958883007,
+   "y": -1208.3265159277246,
+   "in": "desertland",
+   "map": "desertland",
+   "share": 0.3333333322222216,
+   "pdps": 1073262.0110299625,
+   "l": 3,
+   "xp": 16,
+   "luck": 0,
+   "gold": 5,
+   "cx": {
+    "head": "fmakeup01"
+   }
+  },
+  "Riva": {
+   "skin": "marmor5a",
+   "level": 92,
+   "type": "ranger",
+   "x": -512.8728066433488,
+   "y": -1336.0364654526568,
+   "in": "desertland",
+   "map": "desertland",
+   "share": 0.3333333322222216,
+   "pdps": 2024460.1204580304,
+   "l": 3,
+   "xp": 16,
+   "luck": 0,
+   "gold": 5,
+   "cx": {
+    "head": "makeup117",
+    "hair": "hairdo106"
+   }
+  },
+  "Riff": {
+   "skin": "marmor12a",
+   "level": 73,
+   "type": "merchant",
+   "x": -87,
+   "y": -96,
+   "in": "main",
+   "map": "main",
+   "share": 0,
+   "pdps": 0,
+   "l": 3,
+   "xp": 16,
+   "luck": 0,
+   "gold": 5,
+   "cx": {
+    "head": "makeup117",
+    "hair": "hairdo521",
+    "hat": "hat404"
+   }
+  }
+ },
+ "party_list": [
+  "Ulric",
+  "Myras",
+  "Riva",
+  "Riff"
+ ],
+ "next_skill": {
+  "attack": 1792019311251,
+  "use_hp": 1792019312355,
+  "use_mp": 1792019312355,
+  "use_town": 1792016603524,
+  "arcane_needle": 1792019311251,
+  "piercingshot": 1792019311251,
+  "fanofknives": 1792019311251,
+  "3shot": 1792019311251,
+  "5shot": 1792019311251,
+  "heal": 1792019311251,
+  "huntersmark": 1792019315768,
+  "regen_hp": 1792019312355,
+  "regen_mp": 1792019312355,
+  "supershot": 1792019336367,
+  "temporalsurge": 1792019361954
+ },
+ "pings": [
+  197,
+  200,
+  199,
+  198,
+  197,
+  196,
+  198,
+  199,
+  196,
+  197,
+  200,
+  196,
+  196,
+  203,
+  200,
+  196,
+  198,
+  214,
+  198,
+  197,
+  197,
+  201,
+  197,
+  219,
+  197,
+  197,
+  197,
+  198,
+  213,
+  201,
+  196,
+  197,
+  197,
+  199,
+  204,
+  196,
+  198,
+  197,
+  197,
+  198
+ ],
+ "S": {
+  "schedule": {
+   "time_offset": -5,
+   "dailies": [
+    13,
+    20
+   ],
+   "nightlies": [
+    23
+   ],
+   "night": false
+  },
+  "event_flags": {
+   "anniversary": false,
+   "holidayseason": false,
+   "lunarnewyear": false,
+   "valentines": false,
+   "egghunt": false,
+   "halloween": true
+  },
+  "slenderman": {
+   "live": true,
+   "map": "spookytown",
+   "hp": 66666,
+   "max_hp": 66666
+  },
+  "halloween": true,
+  "mrpumpkin": {
+   "live": false,
+   "spawn": "2026-10-14T23:42:27.672Z"
+  },
+  "mrgreen": {
+   "live": false,
+   "spawn": "2026-10-15T00:15:20.116Z"
+  }
+ },
+ "storage": {
+  "AL_merchant_enabled_upgrading": "true",
+  "AL_set_profile2_Myras": "{\"luck\":{\"at\":1792019300457,\"gear\":\"lmace:8|mshield:8\",\"schema\":3,\"attack\":1314,\"explosion\":0,\"frequency\":1.3434100367789392,\"heal\":2987,\"int\":376,\"rpiercing\":198,\"apiercing\":77,\"mp_cost\":62,\"crit\":3.2,\"critdamage\":0},\"fireres\":{\"at\":1791732104027,\"gear\":\"wbookhs:2\",\"schema\":3,\"attack\":1260,\"explosion\":0,\"frequency\":1.3779288859852883,\"heal\":2863,\"int\":359,\"rpiercing\":193,\"apiercing\":77,\"mp_cost\":62,\"crit\":3.2,\"critdamage\":0},\"single_target\":{\"at\":1792018139915,\"gear\":\"firestaff:9|mshield:8\",\"schema\":3,\"attack\":1270,\"explosion\":0,\"frequency\":1.3269021002710026,\"heal\":2886,\"int\":350,\"rpiercing\":198,\"apiercing\":77,\"mp_cost\":62,\"crit\":3.2,\"critdamage\":0}}",
+  "AL_merchant_enabled_mining": "false",
+  "AL_tracker_at_Myras": "1791964801431",
+  "AL_merchant_upgrade_target": "",
+  "AL_lolipop_push": "{\"active\":false,\"due\":2,\"rolls\":{\"8\":0,\"9\":12},\"wins\":{\"8\":0,\"9\":0},\"sacrificed\":0,\"graced\":0}",
+  "AL_char_state_Myras": "{\"name\":\"Myras\",\"hp\":13063,\"max_hp\":13378,\"mp\":4689,\"max_mp\":7360,\"level\":91,\"xp\":9159822498,\"max_xp\":20000000000,\"gold\":99599526,\"map\":\"desertland\",\"in\":\"desertland\",\"cave_run\":null,\"x\":-310.9563041999761,\"y\":-1223.9300919923758,\"rip\":false,\"moving\":true,\"speed\":59,\"town\":false,\"formation\":false,\"disengaging\":false,\"paused\":false,\"goal\":\"bscorpion-camp\",\"surge_at\":1792019265718,\"stomp_ready_at\":null,\"free_slots\":14,\"loose_slots\":3,\"conditions\":{\"halloween2\":{\"ms\":27595079},\"mluck\":{\"ms\":2054874,\"f\":\"Riff\",\"strong\":true},\"weakness\":{\"ms\":6060},\"warcry\":{\"ms\":2772,\"f\":\"Ulric\"},\"darkblessing\":{\"ms\":3346,\"f\":\"Myras\"}},\"last_seen\":1792019310818}",
+  "AL_merchant_enabled_crafting": "false",
+  "AL_automation_paused_Riff": "0",
+  "AL_farm_focus": "{\"id\":\"4008330\",\"at\":1791785982661}",
+  "AL_target_Riva": "bscorpion",
+  "AL_char_state_Ulric": "{\"name\":\"Ulric\",\"hp\":16810,\"max_hp\":16810,\"mp\":799,\"max_mp\":1990,\"level\":91,\"xp\":6030049742,\"max_xp\":20000000000,\"gold\":99918566,\"map\":\"desertland\",\"in\":\"desertland\",\"cave_run\":null,\"x\":-461.8496026610946,\"y\":-1291.3662294204662,\"rip\":false,\"moving\":false,\"speed\":79,\"town\":false,\"formation\":false,\"disengaging\":false,\"paused\":false,\"goal\":\"bscorpion-camp\",\"surge_at\":0,\"stomp_ready_at\":0,\"free_slots\":24,\"loose_slots\":3,\"conditions\":{\"halloween2\":{\"ms\":27595162},\"mluck\":{\"ms\":2056593,\"f\":\"Riff\",\"strong\":true},\"weakness\":{\"ms\":18136},\"warcry\":{\"ms\":2923,\"f\":\"Ulric\"},\"darkblessing\":{\"ms\":3497,\"f\":\"Myras\"}},\"last_seen\":1792019310658}",
+  "AL_automation_paused_Myras": "0",
+  "AL_char_state_Riff": "{\"name\":\"Riff\",\"hp\":11248,\"max_hp\":11548,\"mp\":4003,\"max_mp\":4055,\"level\":73,\"xp\":310781267,\"max_xp\":510000000,\"gold\":1158964422,\"map\":\"main\",\"in\":\"main\",\"cave_run\":null,\"x\":-87,\"y\":-96,\"rip\":false,\"moving\":false,\"speed\":10,\"town\":false,\"formation\":false,\"disengaging\":false,\"paused\":false,\"goal\":null,\"surge_at\":0,\"stomp_ready_at\":null,\"free_slots\":37,\"loose_slots\":3,\"conditions\":{\"newcomersblessing\":{\"ms\":1653158,\"f\":\"Pico\"},\"mluck\":{\"ms\":2904260,\"f\":\"SmoteMerch\"},\"paladin_aura_bulwark\":{\"ms\":55792,\"f\":\"Rataladin\",\"rank\":3,\"armor\":50,\"hp\":700}},\"last_seen\":1792019310952}",
+  "AL_merchant_upgrade_level": "",
+  "AL_merchant_enabled_fishing": "false",
+  "AL_merchant_upgrade_count": "",
+  "AL_automation_paused_Ulric": "0",
+  "AL_survey": "{\"started\":1791705604972,\"index\":7,\"complete\":false,\"spots\":[{\"type\":\"odino\",\"status\":\"done\",\"visits\":3,\"at_spot_ms\":3600992,\"arrived\":true,\"travel_ms\":27010,\"occupancy_ms\":5999,\"deaths\":0,\"visit_started\":0,\"finished\":1791720080330},{\"type\":\"plantoid\",\"status\":\"done\",\"visits\":2,\"at_spot_ms\":3600017,\"arrived\":true,\"travel_ms\":31991,\"occupancy_ms\":5010,\"deaths\":0,\"visit_started\":0,\"finished\":1791722367323},{\"type\":\"fireroamer\",\"status\":\"done\",\"visits\":2,\"at_spot_ms\":3600030,\"arrived\":true,\"travel_ms\":17006,\"occupancy_ms\":5003,\"deaths\":0,\"visit_started\":0,\"finished\":1791724861362},{\"type\":\"bscorpion\",\"status\":\"done\",\"visits\":2,\"at_spot_ms\":3600010,\"arrived\":true,\"travel_ms\":46001,\"occupancy_ms\":5012,\"deaths\":0,\"holds_lost\":0,\"visit_started\":0,\"finished\":1791727224384},{\"type\":\"sparkbot\",\"status\":\"done\",\"visits\":3,\"at_spot_ms\":3600014,\"arrived\":true,\"travel_ms\":46992,\"occupancy_ms\":6000,\"deaths\":0,\"visit_started\":0,\"finished\":1791772817100},{\"type\":\"xscorpion\",\"status\":\"skipped\",\"visits\":3,\"at_spot_ms\":0,\"arrived\":true,\"travel_ms\":46992,\"occupancy_ms\":1011,\"deaths\":0,\"visit_started\":0,\"finished\":1791772865103},{\"type\":\"dryad\",\"status\":\"done\",\"visits\":1,\"at_spot_ms\":3600457,\"arrived\":true,\"travel_ms\":102982,\"occupancy_ms\":6000,\"deaths\":0,\"visit_started\":0,\"finished\":1791732110820},{\"type\":\"wolf\",\"status\":\"pending\",\"visits\":3,\"at_spot_ms\":54007,\"arrived\":true,\"travel_ms\":46989,\"occupancy_ms\":5008,\"deaths\":0,\"visit_started\":1791772866100},{\"type\":\"gscorpion\",\"status\":\"done\",\"visits\":1,\"at_spot_ms\":3600971,\"arrived\":true,\"travel_ms\":52998,\"occupancy_ms\":6001,\"deaths\":0,\"visit_started\":0,\"finished\":1791737562816},{\"type\":\"bigbird\",\"status\":\"done\",\"visits\":2,\"at_spot_ms\":3600013,\"arrived\":true,\"travel_ms\":56992,\"occupancy_ms\":5010,\"deaths\":0,\"visit_started\":0,\"finished\":1791749945580},{\"type\":\"scorpion\",\"status\":\"done\",\"visits\":1,\"at_spot_ms\":3600030,\"arrived\":true,\"travel_ms\":8997,\"occupancy_ms\":5040,\"deaths\":0,\"visit_started\":0,\"finished\":1791741715576},{\"type\":\"pppompom\",\"status\":\"done\",\"visits\":2,\"at_spot_ms\":3600010,\"arrived\":true,\"travel_ms\":32998,\"occupancy_ms\":5999,\"deaths\":0,\"visit_started\":0,\"finished\":1791744970582}],\"completed\":1791749945581}",
+  "AL_target_Myras": "bscorpion",
+  "AL_merchant_craft_target": "firestaff",
+  "AL_dungeon_runs": "49",
+  "AL_tracker_at_Riva": "1791964801114",
+  "AL_automation_paused_Riva": "0",
+  "AL_tracker_at_Ulric": "1791964800588",
+  "AL_set_profile2_Riva": "{\"single\":{\"at\":1792019293033,\"gear\":\"firebow:10|t2quiver:7\",\"schema\":3,\"attack\":2303,\"explosion\":0,\"frequency\":1.5255601333040358,\"heal\":0,\"int\":70,\"rpiercing\":62,\"apiercing\":239,\"mp_cost\":74,\"crit\":27.125,\"critdamage\":12},\"boom\":{\"at\":1792018109853,\"gear\":\"pouchbow:10|alloyquiver:7\",\"schema\":3,\"attack\":1489,\"explosion\":51,\"frequency\":1.5196141873580897,\"heal\":0,\"int\":70,\"rpiercing\":62,\"apiercing\":239,\"mp_cost\":74,\"crit\":27.125,\"critdamage\":12}}",
+  "AL_target_Ulric": "bscorpion",
+  "AL_merchant_enabled_buying": "false",
+  "AL_char_state_Riva": "{\"name\":\"Riva\",\"hp\":9780,\"max_hp\":9780,\"mp\":1871,\"max_mp\":1945,\"level\":92,\"xp\":301602507,\"max_xp\":27000000000,\"gold\":99404494,\"map\":\"desertland\",\"in\":\"desertland\",\"cave_run\":null,\"x\":-602.979531515138,\"y\":-1399.129873451272,\"rip\":false,\"moving\":false,\"speed\":99,\"town\":false,\"formation\":false,\"disengaging\":false,\"paused\":false,\"goal\":\"bscorpion-camp\",\"surge_at\":1792019301616,\"stomp_ready_at\":null,\"free_slots\":27,\"loose_slots\":2,\"conditions\":{\"halloween2\":{\"ms\":27594987},\"mluck\":{\"ms\":2053049,\"f\":\"Riff\",\"strong\":true},\"warcry\":{\"ms\":2748,\"f\":\"Ulric\"},\"darkblessing\":{\"ms\":3322,\"f\":\"Myras\"}},\"last_seen\":1792019310837}",
+  "AL_set_profile2_Ulric": "{\"single\":{\"at\":1792019291732,\"gear\":\"fireblade:9|fireblade:9\",\"schema\":3,\"attack\":2125,\"explosion\":0,\"frequency\":1.3238713463027487,\"heal\":0,\"int\":76,\"rpiercing\":62,\"apiercing\":271,\"mp_cost\":73,\"crit\":31.625,\"critdamage\":12},\"bataxe\":{\"at\":1791048777424,\"gear\":\"bataxe:9\",\"attack\":2870,\"explosion\":0,\"frequency\":1.2694864256678282,\"heal\":0,\"int\":75,\"rpiercing\":57,\"apiercing\":181,\"mp_cost\":56},\"aoe\":{\"at\":1792017682839,\"gear\":\"fireblade:9|ololipop:9\",\"schema\":3,\"attack\":2006,\"explosion\":42,\"frequency\":1.2794963463027487,\"heal\":0,\"int\":76,\"rpiercing\":82,\"apiercing\":271,\"mp_cost\":62,\"crit\":23.125,\"critdamage\":0},\"double_aoe\":{\"at\":1792018110072,\"gear\":\"vhammer:8|ololipop:9\",\"schema\":3,\"attack\":2349,\"explosion\":70,\"frequency\":1.2194963463027486,\"heal\":0,\"int\":76,\"rpiercing\":62,\"apiercing\":271,\"mp_cost\":66,\"crit\":23.125,\"critdamage\":0}}",
+  "AL_merchant_enabled_exchanging": "false"
+ },
+ "home": "bscorpion",
+ "destination": {
+  "map": "desertland",
+  "x": -408,
+  "y": -1141
+ },
+ "goal": {
+  "local": "camp",
+  "label": "bscorpion-camp"
+ },
+ "panicking": false,
+ "panic_external": false,
+ "panic_since": 0,
+ "dungeon": null
+}

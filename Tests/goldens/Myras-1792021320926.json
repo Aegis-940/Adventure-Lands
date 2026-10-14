@@ -1,0 +1,31 @@
+{
+ "decisions": {
+  "update_cache": "ok",
+  "gear.loadout": null,
+  "gear.gloves": "gloves",
+  "gear.orb": null,
+  "gear.chest": null,
+  "gear.amulet": null,
+  "gear.ring": null,
+  "gear.fight": "camp_fight_live",
+  "target": "8159240",
+  "heal_target": "Myras",
+  "goal": {
+   "label": "bscorpion-camp",
+   "local": "camp",
+   "hold": false,
+   "passive": false
+  },
+  "pause_combat": false,
+  "farm_focus_here": false,
+  "skill.zap_pull_home": false,
+  "skill.aggro_cap": 3,
+  "skill.fight_gear_owned": true,
+  "skill.skip_panic": false,
+  "panic.state": {
+   "panicking": false,
+   "panic_external": false
+  }
+ },
+ "emits": []
+}

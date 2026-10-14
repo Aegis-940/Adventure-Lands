@@ -1,0 +1,26 @@
+{
+ "decisions": {
+  "update_cache": "ok",
+  "gear.weapon": "single",
+  "gear.orb": "orb_dps",
+  "target": "8130375",
+  "tank": "Myras",
+  "goal": {
+   "label": "bscorpion-camp",
+   "local": "camp",
+   "hold": false,
+   "passive": false
+  },
+  "pause_combat": false,
+  "farm_focus_here": false,
+  "skill.cleave_ready": false,
+  "skill.sugar_rush_wanted": true,
+  "skill.stomp_weapon_ready": true,
+  "skill.bscorpion_worth_buffing": true,
+  "panic.state": {
+   "panicking": false,
+   "panic_external": false
+  }
+ },
+ "emits": []
+}
