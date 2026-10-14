@@ -1,0 +1,28 @@
+{
+ "decisions": {
+  "update_cache": "ok",
+  "gear.weapon": "boom",
+  "gear.chest": "dps_chest",
+  "gear.orb": "panic",
+  "targets.in_range": [
+   "7838852",
+   "7838916"
+  ],
+  "shot": "3shot",
+  "heal_target": null,
+  "goal": {
+   "label": "with-leader",
+   "local": "farm",
+   "hold": false,
+   "passive": false
+  },
+  "pause_combat": true,
+  "skill.shot_width": 5,
+  "skill.mana_free": true,
+  "panic.state": {
+   "panicking": true,
+   "panic_external": false
+  }
+ },
+ "emits": []
+}

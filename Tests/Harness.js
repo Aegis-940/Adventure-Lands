@@ -438,6 +438,11 @@ async function decide(fixture) {
 // PROMOTION — a live snapshot becomes a committed fixture, with every stranger's name replaced by a stable hash
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+const FIXTURE_STORAGE = ["AL_automation_paused_", "AL_target_", "AL_char_state_", "AL_set_profile2_", "AL_farm_focus",
+	"AL_survey", "AL_dungeon_mode", "AL_dungeon_runs", "AL_lolipop_push", "AL_merchant_", "AL_tracker_at_"];
+
+const PRIVATE_KEYS = new Set(["owner", "ipass", "friends", "cash", "code", "cid", "auth", "secret", "email", "chat", "trade", "messages"]);
+
 function anonymise(snapshot) {
 	const party = new Set(PARTY);
 	const hash = n => "p_" + crypto.createHash("sha256").update(String(n)).digest("hex").slice(0, 10);
@@ -452,7 +457,7 @@ function anonymise(snapshot) {
 		if (v && typeof v === "object") {
 			const out = {};
 			for (const k in v) {
-				if (k === "chat" || k === "trade" || k === "messages") continue;
+				if (PRIVATE_KEYS.has(k) || k.startsWith("_")) continue;
 				out[rename(k)] = walk(v[k]);
 			}
 			return out;
@@ -470,6 +475,10 @@ function promote(which, label) {
 	const fixture = anonymise(snapshot);
 	fixture.label = label || fixture.label || "";
 	delete fixture.at;
+	delete fixture.cache;
+	for (const k in fixture.storage || {}) {
+		if (!FIXTURE_STORAGE.some(p => k.startsWith(p))) delete fixture.storage[k];
+	}
 	fs.mkdirSync(FIXTURES, { recursive: true });
 	const file = path.join(FIXTURES, String(fixture.id).replace(/[^\w.-]/g, "_") + ".json");
 	fs.writeFileSync(file, JSON.stringify(fixture, null, 1) + "\n");

@@ -1,0 +1,25 @@
+{
+ "decisions": {
+  "update_cache": "ok",
+  "gear.weapon": "single",
+  "gear.orb": "orb_dps",
+  "target": "7819545",
+  "tank": "Myras",
+  "goal": {
+   "label": "event-mrpumpkin",
+   "local": "event",
+   "hold": false,
+   "passive": false
+  },
+  "pause_combat": false,
+  "skill.cleave_ready": true,
+  "skill.sugar_rush_wanted": true,
+  "skill.stomp_weapon_ready": true,
+  "skill.bscorpion_worth_buffing": true,
+  "panic.state": {
+   "panicking": false,
+   "panic_external": false
+  }
+ },
+ "emits": []
+}
