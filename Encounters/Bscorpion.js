@@ -284,15 +284,12 @@ function camp_temporal_surge() {
 	// );
 	// if (nearby) return false;
 
-	const token = equip_claim("temporal", EQUIP_PRIORITY.skill);
-	if (!token) return false;
-
-	const arm = equip_plan("temporal");
-	emit_equip_ops(arm.ops, arm.shadow);
-	use_skill("temporalsurge").catch(e => catcher(e, "temporalsurge"));
-	const back = equip_plan(rules_set_for_slot("orb") || [], arm.shadow);
-	emit_equip_ops(back.ops, arm.shadow);
-	equip_release(token);
+	if (!equip_burst({
+		owner: "temporal",
+		arm: "temporal",
+		between: () => use_skill("temporalsurge").catch(e => catcher(e, "temporalsurge")),
+		restore: () => rules_set_for_slot("orb"),
+	})) return false;
 
 	surge_cast_at = Date.now();
 	_surge_watch = null;
