@@ -16,7 +16,7 @@ Reviewed 2026-10-14 before execution. The review's changes are folded in and lis
 | 1 | Boot kernel: boot phase, scheduler, events, storage, console API | none | **done**: 1.1–1.7 live 2026-10-15 (`compare` at bscorpion: same); 1.2b live the same day (timing identical offline; 3 windows at bscorpion: kills, XP and potions within 2%, no deaths, close calls or loop errors, worst loop lag 11ms) |
 | 2 | Encounters (the monster behaviour redesign) | small, per encounter | **done**: live 2026-10-15, monster literals outside encounters at 0. Deferred: the rime stomp as an encounter `step` once live Djinn fixtures exist |
 | 3 | Deciders and actuators | per decision | 3.1–3.5 built on `overhaul` 2026-10-15 (every burst, skill tick, action tick and local step pinned and identical; Riff's gear through the planner; `merchant_task` has one writer). 3.6: ratchet kept at 48, zero deferred. **Live 2026-10-15 on 0821e79: `compare` same** (12 windows at bscorpion, no deaths or close calls) |
-| 4 | Data for decisions (rewritten 2026-10-15) | none, except experiments the user approves | not started |
+| 4 | Data for decisions (rewritten 2026-10-15) | none, except experiments the user approves | 4.1 live 2026-10-15 (sink and store); **4.2–4.7 built on `overhaul`**, every pin identical. Exit waits on a day of decision data after the merge |
 | 5 | World model | — | **dropped** 2026-10-15 (D17) |
 | 6 | File hygiene and docs (trimmed) | none | not started |
 
@@ -626,7 +626,7 @@ One normalised outcome handler: `hit`, `action` and `kill_credit` subscribed onc
 
 ### Phase 4 checklist
 
-- [x] 4.1 existing samples archived, lane sizes measured, budget set (live 2026-10-15: damage, heal, target_choice, cc_report; about 14 MB/day together; weapon_choice and burn_state not archived)
+- [x] 4.1 existing samples archived, lane sizes measured, budget set (live 2026-10-15: damage, heal, target_choice, cc_report; about 14 MB/day together; weapon_choice and burn_state not archived). **Budget: 20 MB/day across all lanes**, with decisions adding about 0.5. Checked against the files' growth after the first full day
 - [x] 4.2 context on every record (on `overhaul`: build, home, map, goal, encounters; `variant` arrives with 4.6)
 - [x] 4.3 decisions recorded at the choke points, rolled up per window; last 50 on each danger record (on `overhaul`: `Core Systems/Decision Log.js`. Casts are counted from the server's `skill_timeout`, which catches every path, raw emits included; target choice is already the archived `target_choice` sample)
 - [x] 4.4 one outcome feed; damage and kills attributed to decisions (on `overhaul`: attributed per window by hit `source`, which is what question 1 needs; per-projectile linking was not needed. Combat Sampling keeps its own handlers, because the in-flight ledger must run first and exactly)
