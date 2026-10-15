@@ -280,35 +280,16 @@ function record_swap_trick() {
 // ACTION LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+var WARRIOR_ACTION = { ms: 10, gate: "combat", act: warrior_action };
+
 function action_loop() {
-	every("action_loop", { ms: 10, kind: "combat", beat: true }, action_tick);
+	start_action_loop(WARRIOR_ACTION);
 }
 
-async function action_tick() {
-	if (should_pause_combat_loop()) return 100;
-	let next_delay = 10;
-
-	try {
-		if (is_disabled(character)) return 50;
-
-		update_cache();
-
-		const target = cache.target;
-		const ms = ms_to_next_skill("attack");
-
-		if (ms === 0 && swing_possible(target) && !stomp_mana_reserved()) {
-			if (!basic_action_busy()) {
-				run_basic_action(attack(target), "attack");
-				swing_swaps(target);
-			}
-		} else {
-			next_delay = next_action_delay(ms);
-		}
-
-	} catch (e) {
-		catcher(e, "action_loop");
-		next_delay = TICK_RATE.retry;
-	}
-
-	return next_delay;
+function warrior_action(ms) {
+	const target = cache.target;
+	if (ms !== 0 || !swing_possible(target) || stomp_mana_reserved()) return next_action_delay(ms);
+	if (basic_action_busy()) return;
+	run_basic_action(attack(target), "attack");
+	swing_swaps(target);
 }

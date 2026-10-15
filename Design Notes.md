@@ -426,6 +426,10 @@ What this replaced: every corner stopped the follower for a search and sent it o
 
 A follower in turn does not pursue while she is live on his map, beyond the range (`cohesion_closing()`, the follower's own 250/120 hysteresis) and not herself on the event (`follower_holds_back()`). So her cohesion hold pulls him back to her instead of leaving the tank behind.
 
+### `Character Runner.js` (the action runner)
+
+`run_action(action)` is one pass of a role's action loop, started by `start_action_loop(action)`. The preamble is shared: the gate (`combat` returns 100ms while paused, `alive` doesn't stop, as Myras heals through panic), 50ms while disabled, `update_cache()`, the role's `before` (Myras's and Riva's temporal surge, 100ms when it fires), and a caught error retries at `TICK_RATE.retry`. The role's `act(ms)` gets the attack cooldown and chooses one basic action through `run_basic_action()`; it returns a delay, or nothing for the role's cadence (`WARRIOR_ACTION` and `HEALER_ACTION` 10ms, `RANGER_ACTION` 5ms, Loop Cadence §3).
+
 ### `Skill Runner.js`
 
 `run_skills(table, context)` is one pass over a role's skill table (`WARRIOR_SKILLS`, `HEALER_SKILLS`, `RANGER_SKILLS`, each in that role's Skills file). Each entry is `{ name, gate, wanted, cast }`, taken in order: the gate, then `wanted(context)`, then `await cast(context)`, all inside the entry's own `catcher` under its name. One skill throwing no longer skips the skills after it.

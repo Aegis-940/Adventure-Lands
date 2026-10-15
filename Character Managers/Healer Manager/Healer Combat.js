@@ -245,35 +245,16 @@ function attack_wanted() {
 	return !!target && is_in_range(target);
 }
 
+var HEALER_ACTION = { ms: 10, gate: "alive", before: () => camp_temporal_surge(), act: healer_action };
+
 function action_loop() {
-	every("action_loop", { ms: 10, kind: "combat", beat: true }, action_tick);
+	start_action_loop(HEALER_ACTION);
 }
 
-async function action_tick() {
-	let next_delay = 10;
-
-	try {
-		if (is_disabled(character)) return 50;
-
-		update_cache();
-
-		if (camp_temporal_surge()) return 100;
-
-		const ms = ms_to_next_skill("attack");
-
-		if (ms === 0) {
-			if (basic_action_busy()) next_delay = 40;
-			else if (heal_wanted()) run_basic_action(heal(cache.heal_target), "heal");
-			else if (attack_wanted()) run_basic_action(attack(cache.target), "attack");
-			else next_delay = 40;
-		} else {
-			next_delay = next_action_delay(ms);
-		}
-
-	} catch (e) {
-		catcher(e, "action_loop");
-		next_delay = TICK_RATE.retry;
-	}
-
-	return next_delay;
+function healer_action(ms) {
+	if (ms !== 0) return next_action_delay(ms);
+	if (basic_action_busy()) return 40;
+	if (heal_wanted()) run_basic_action(heal(cache.heal_target), "heal");
+	else if (attack_wanted()) run_basic_action(attack(cache.target), "attack");
+	else return 40;
 }

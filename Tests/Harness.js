@@ -528,6 +528,8 @@ const TICKS = {
 	ranger: ["skill_tick", "skill_tick ready", "action_tick", "action_tick ready"],
 };
 
+const ACTIONS = { warrior: "WARRIOR_ACTION", priest: "HEALER_ACTION", ranger: "RANGER_ACTION" };
+
 const TICK_HANDLERS = {
 	warrior: ["handle_stomp", "weapon_burst", "handle_agitate", "handle_taunt"],
 	priest: ["handle_party_heal", "handle_curse", "handle_absorb", "handle_zapper"],
@@ -557,7 +559,8 @@ async function run_tick(fixture, name) {
 	ctx.catcher = (e, where) => { sent.push({ event: "caught", payload: { where, message: String(e && e.message || e).slice(0, 120) } }); };
 	log.emits.length = 0;
 	let result = "pending";
-	vm.runInContext(tick + "()", ctx).then(r => { result = r === undefined ? null : r; }, e => { result = "THREW: " + (e && e.message || e); });
+	const call = tick === "action_tick" ? `run_action(${ACTIONS[fixture.character.ctype]})` : tick + "()";
+	vm.runInContext(call, ctx).then(r => { result = r === undefined ? null : r; }, e => { result = "THREW: " + (e && e.message || e); });
 	for (let i = 0; i < 20; i++) await new Promise(r => setImmediate(r));
 	sent.push(...log.emits.splice(0));
 	return { result, sent: JSON.parse(JSON.stringify(sent)) };

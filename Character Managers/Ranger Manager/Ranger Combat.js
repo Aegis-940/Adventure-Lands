@@ -274,36 +274,19 @@ async function cupid_heal(target) {
 	}
 }
 
+var RANGER_ACTION = { ms: 5, gate: "combat", before: () => camp_temporal_surge(), act: ranger_action };
+
 function action_loop() {
-	every("action_loop", { ms: 5, kind: "combat", beat: true }, action_tick);
+	start_action_loop(RANGER_ACTION);
 }
 
-async function action_tick() {
-	if (should_pause_combat_loop()) return 100;
-	let next_delay = 5;
-	try {
-		if (is_disabled(character)) return 50;
-
-		update_cache();
-		if (camp_temporal_surge()) return 100;
-		const ms = ms_to_next_skill("attack");
-
-		const cupid_live = mainhand_intent() === "cupid";
-		const cupid_worn = character.slots.mainhand?.name === "cupid";
-		const want_heal = !!cache.heal_target;
-
-		if (ms === 0 && !travel_blocks_combat() && !basic_action_busy()) {
-			if (want_heal && cupid_worn && cupid_live) run_basic_action(cupid_heal(cache.heal_target), "cupid");
-			else if (!want_heal && !cupid_live) handle_attack();
-			else next_delay = next_action_delay(ms);
-		} else {
-			next_delay = next_action_delay(ms);
-		}
-	} catch (e) {
-		catcher(e, "action_loop");
-		next_delay = TICK_RATE.retry;
-	}
-	return next_delay;
+function ranger_action(ms) {
+	if (ms !== 0 || travel_blocks_combat() || basic_action_busy()) return next_action_delay(ms);
+	const cupid_live = mainhand_intent() === "cupid";
+	const want_heal = !!cache.heal_target;
+	if (want_heal && character.slots.mainhand?.name === "cupid" && cupid_live) run_basic_action(cupid_heal(cache.heal_target), "cupid");
+	else if (!want_heal && !cupid_live) handle_attack();
+	else return next_action_delay(ms);
 }
 
 function coop_boss_only(in_range) {

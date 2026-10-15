@@ -60,6 +60,24 @@ function run_basic_action(p, label) {
 	);
 }
 
+function start_action_loop(action) {
+	every("action_loop", { ms: action.ms, kind: "combat", beat: true }, () => run_action(action));
+}
+
+async function run_action(action) {
+	if (action.gate === "combat" && should_pause_combat_loop()) return 100;
+	try {
+		if (is_disabled(character)) return 50;
+		update_cache();
+		if (action.before && action.before()) return 100;
+		const next = action.act(ms_to_next_skill("attack"));
+		return next === undefined ? action.ms : next;
+	} catch (e) {
+		catcher(e, "action_loop");
+		return TICK_RATE.retry;
+	}
+}
+
 function default_farm_step() {
 	if (CONFIG.movement.reposition && get_nearest_monster({ type: home })) reposition();
 }

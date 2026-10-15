@@ -185,7 +185,8 @@ from the entry point, not from this tick.
 - Predictive movement: calculates where enemy will be, not where it is
 
 ### Combat Loops
-- Each character starts its own `action_loop()`, `skill_loop()` and `equipment_manager_loop()` from its entry point; they self-reschedule with `setTimeout`, independently of the main tick
+- Each character starts its own `action_loop()`, `skill_loop()` and `equipment_manager_loop()` from its entry point; each is an `every()` loop whose body returns its next delay, independently of the main tick
+- The action loop is shared: `start_action_loop(ROLE_ACTION)` in Character Runner runs `run_action()` (pause gate, disabled, cache, the role's `before`, then its `act(ms)`), and the role supplies only its cadence, gate and choice of basic action. The skill loops run their role's table through `run_skills()`
 - There are no per-loop enable globals. Automation is paused per character through the ⏸️ button, which `automation_enabled()` reads from localStorage; panic and upkeep keep running
 - Targets come from one scorer for everyone — `score_targets()`/`select_target()` in `Core Systems/Targeting.js`, weighted per character by `CONFIG.combat.target_weights`
 
