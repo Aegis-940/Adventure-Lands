@@ -21,6 +21,7 @@
    "Core Systems/Movement Positioning.js",
    "Core Systems/Party Cohesion.js",
    "Core Systems/Party Management.js",
+   "Core Systems/Settings.js",
    "Core Systems/World Events.js",
    "Dungeons/Dreams Cave.js",
    "Dungeons/Dungeon Collection.js",
@@ -422,6 +423,16 @@
    "call": [],
    "from": "Character Managers/Healer Manager/Healer Equipment.js",
    "load": [
+    "_cmListeners",
+    "add_cm_listener",
+    "remove_cm_listener"
+   ],
+   "to": "Core Systems/Character Messaging.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Healer Manager/Healer Equipment.js",
+   "load": [
     "_current_goal",
     "current_goal",
     "current_goal_label"
@@ -461,7 +472,10 @@
    "call": [],
    "from": "Character Managers/Healer Manager/Healer Equipment.js",
    "load": [
-    "cave_paused"
+    "boss_engageable",
+    "boss_max_hp",
+    "cave_paused",
+    "get_num_chests"
    ],
    "to": "Core Systems/Combat Utilities.js"
   },
@@ -474,12 +488,19 @@
    ],
    "from": "Character Managers/Healer Manager/Healer Equipment.js",
    "load": [
+    "EQUIP_CLAIM_MAX_MS",
+    "EQUIP_PRIORITY",
     "MISSING_ITEM_WARN_INTERVAL",
+    "_equip_holder",
+    "_equip_sent",
     "_slot_flight",
     "_worn_level_warned",
+    "equip_pending",
+    "equip_transient",
     "is_set_equipped",
     "level_fits",
     "preferred_orb",
+    "replies_outstanding",
     "set_available",
     "slot_in_flight",
     "slot_intent",
@@ -521,6 +542,20 @@
    "to": "Core Systems/Equipment Valuation.js"
   },
   {
+   "call": [],
+   "from": "Character Managers/Healer Manager/Healer Equipment.js",
+   "load": [
+    "COOLDOWN_SKILLS",
+    "GENERAL_ERROR",
+    "REJECTIONS",
+    "catcher",
+    "cooldown_summary",
+    "error_out",
+    "fmt_err"
+   ],
+   "to": "Core Systems/Error Handling.js"
+  },
+  {
    "call": [
     "errlog_count"
    ],
@@ -529,15 +564,30 @@
     "ERRLOG_CONTEXT_MS",
     "ERRLOG_MAX_COUNTS",
     "ERRLOG_MAX_SAMPLES",
+    "ERRLOG_MAX_TIMELINE",
+    "ERRLOG_MSG_CAP",
+    "ERRLOG_TIMELINE_SIG_CAP",
+    "ERRLOG_TIME_BUCKETS",
     "ERRLOG_WINDOW_MS",
     "_errlog",
+    "_errlog_beats",
     "_errlog_build",
+    "_errlog_context",
     "_errlog_dirty",
+    "_errlog_fmt",
+    "_errlog_push_timeline",
     "_errlog_record_context",
     "_errlog_record_ctx",
     "_errlog_record_ctx_at",
+    "_errlog_recording",
+    "_errlog_signature",
+    "_errlog_store",
+    "_errlog_timeline_sig",
+    "errlog_beat",
     "errlog_count",
-    "errlog_sample"
+    "errlog_record",
+    "errlog_sample",
+    "errlog_time"
    ],
    "to": "Core Systems/Error Log.js"
   },
@@ -559,19 +609,42 @@
    ],
    "from": "Character Managers/Healer Manager/Healer Equipment.js",
    "load": [
+    "AUTOMATION_KEY_PREFIX",
+    "AUTOMATION_POLL_MS",
     "CACHE_TTL",
     "CONFIG",
+    "COOLDOWNS",
+    "DEFAULT_FARM_TARGET",
     "DUNGEONS",
+    "DUNGEON_FOLLOWERS",
+    "DUNGEON_PARTY",
+    "EVENT_LOCATIONS",
+    "ITEMS_TO_KEEP",
+    "LOCATIONS",
+    "LOOT_THRESHOLD",
     "MOVEMENT_LEADER",
+    "RELOAD_BASE_MS",
+    "RELOAD_ORDER",
+    "RELOAD_STAGGER_MS",
     "STATE_CACHE_KEY_PREFIX",
     "STATE_CACHE_STALE_MS",
+    "SURVEY_FARM_TARGET",
+    "_automation",
+    "automation_enabled",
+    "automation_key",
+    "delay",
     "destination",
     "equipment_sets",
+    "errlog_beat",
     "errlog_count",
+    "errlog_record",
     "errlog_sample",
+    "errlog_time",
+    "farm_target_key",
     "home",
     "panicking",
-    "read_state_cache"
+    "read_state_cache",
+    "staggered_reload"
    ],
    "to": "Core Systems/Global Config.js"
   },
@@ -581,10 +654,53 @@
    ],
    "from": "Character Managers/Healer Manager/Healer Equipment.js",
    "load": [
+    "LOOT_GOLD_RESERVE",
+    "MERCHANT_SEND_RANGE",
+    "SAVED_BANK_KEY",
+    "_loot_last",
     "_looting",
-    "gold_gear_wanted"
+    "_sending_to_merchant",
+    "_set_item_slots",
+    "equipment_set_item_slots",
+    "go_to_bank_floor",
+    "gold_gear_wanted",
+    "handle_looting",
+    "load_bank_from_local_storage",
+    "loose_loot",
+    "looting_blocked",
+    "refresh_bank_snapshot",
+    "reserved_gear_slots",
+    "send_to_merchant",
+    "shift_booster",
+    "still_loose",
+    "swap_in_flight",
+    "wait_for_bank",
+    "withdraw_item"
    ],
    "to": "Core Systems/Loot Management.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Healer Manager/Healer Equipment.js",
+   "load": [
+    "_suppress_periodic_reset",
+    "set_suppress_reset"
+   ],
+   "to": "Core Systems/Maintenance.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Healer Manager/Healer Equipment.js",
+   "load": [
+    "MOVE_NO_PATH",
+    "MOVE_TIMEOUT_REASON",
+    "cancel_town_channel",
+    "is_teleporting",
+    "smarter_move",
+    "stop_movement",
+    "town_channelling"
+   ],
+   "to": "Core Systems/Movement Manager.js"
   },
   {
    "call": [],
@@ -612,17 +728,171 @@
    "to": "Core Systems/Party Management.js"
   },
   {
+   "call": [],
+   "from": "Character Managers/Healer Manager/Healer Equipment.js",
+   "load": [
+    "EXCHANGE_DEFAULTS",
+    "SETTING_KEY_PREFIX",
+    "_settings",
+    "_settings_index",
+    "craft_target_options",
+    "dungeon_options",
+    "exchangeables",
+    "item_options",
+    "monster_options",
+    "setting",
+    "setting_options",
+    "setting_value",
+    "settings_index",
+    "settings_list",
+    "settings_registry",
+    "settings_stamp",
+    "upgrade_target_options"
+   ],
+   "to": "Core Systems/Settings.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Healer Manager/Healer Equipment.js",
+   "load": [
+    "BOSS_LOOT_LINGER_MS",
+    "_boss_field",
+    "best_event_target",
+    "boss_field_draining",
+    "engage_hp_ok"
+   ],
+   "to": "Core Systems/World Events.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Healer Manager/Healer Equipment.js",
+   "load": [
+    "DREAMS_CHECK_MS",
+    "_dreams_boss_waiting",
+    "_dreams_checking",
+    "_dreams_next_check",
+    "dreams_boss_engaged",
+    "dreams_boss_wait",
+    "dreams_due_visit",
+    "dreams_log",
+    "dreams_mode_on",
+    "dreams_reason",
+    "dreams_server",
+    "dreams_visit_usable"
+   ],
+   "to": "Dungeons/Dreams Cave.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Healer Manager/Healer Equipment.js",
+   "load": [
+    "COLLECT_DRAIN_MS",
+    "COLLECT_EVERY_RUNS",
+    "COLLECT_IDLE_ROUNDS",
+    "COLLECT_POLL_MS",
+    "COLLECT_RANGE",
+    "COLLECT_RUNS_KEY",
+    "COLLECT_WAIT_MS",
+    "collection_due",
+    "dungeon_runs_done",
+    "record_dungeon_run",
+    "run_dungeon_collection"
+   ],
+   "to": "Dungeons/Dungeon Collection.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Healer Manager/Healer Equipment.js",
+   "load": [
+    "DUNGEON_BUTTONS",
+    "choose_dungeon",
+    "dungeon_mode_enabled",
+    "dungeon_name_for",
+    "paint_dungeon_buttons",
+    "set_dungeon_mode",
+    "toggle_dungeon_mode"
+   ],
+   "to": "Dungeons/Dungeon Mode.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Healer Manager/Healer Equipment.js",
+   "load": [
+    "_dungeon_kills",
+    "_dungeon_run_started",
+    "_dungeon_seen",
+    "reset_dungeon_progress"
+   ],
+   "to": "Dungeons/Dungeon Progress.js"
+  },
+  {
    "call": [
     "dungeon_setting"
    ],
    "from": "Character Managers/Healer Manager/Healer Equipment.js",
    "load": [
+    "DUNGEON_ABSENT_ROUNDS",
+    "DUNGEON_ASSEMBLE_RANGE",
+    "DUNGEON_ASSEMBLE_WAIT_MS",
+    "DUNGEON_ENTER_POLL_MS",
+    "DUNGEON_ENTER_SETTLE_MS",
+    "DUNGEON_ENTER_TIMEOUT_MS",
+    "DUNGEON_EXIT_POLL_MS",
+    "DUNGEON_EXIT_WAIT_MS",
+    "DUNGEON_LOG_COLOR",
+    "DUNGEON_LOOP_SETTLE_MS",
+    "DUNGEON_LOOT_IDLE_ROUNDS",
+    "DUNGEON_LOOT_MAX_MS",
+    "DUNGEON_LOOT_ROUND_MS",
     "DUNGEON_OVERRIDE_KEY",
+    "DUNGEON_PARTY_TIMEOUT_MS",
+    "DUNGEON_RESUME_KEY",
+    "DUNGEON_START_DELAY_MS",
+    "DUNGEON_WARN_COLOR",
     "_active_dungeon_cache",
+    "_dungeon_loop_running",
+    "_dungeon_moving",
     "_dungeon_override",
+    "_dungeon_reset_hold",
+    "_dungeon_running",
+    "_dungeon_stop_requested",
+    "_dungeon_travel_active",
+    "_dungeon_travel_depth",
     "active_dungeon",
+    "clear_dungeon_stop",
+    "count_dungeon_keys",
+    "dreams_handover",
+    "dungeon_choice",
+    "dungeon_keys_ready",
+    "dungeon_leave_runner",
+    "dungeon_log",
+    "dungeon_loop_running",
+    "dungeon_loot_everything",
     "dungeon_override",
-    "dungeon_setting"
+    "dungeon_protected_keys",
+    "dungeon_resume",
+    "dungeon_route_runner",
+    "dungeon_setting",
+    "dungeon_stop_requested",
+    "dungeon_telemetry_event",
+    "dungeon_travel",
+    "followers_away_from_entrance",
+    "followers_still_inside",
+    "has_dungeon_key",
+    "hold_reset_for_mode",
+    "request_dungeon_stop",
+    "run_dungeon",
+    "run_dungeon_loop",
+    "set_dungeon_override",
+    "set_dungeon_resume",
+    "start_active_dungeon_when_ready",
+    "start_dungeon_loop",
+    "start_dungeon_when_ready",
+    "wait_for_death",
+    "wait_for_party_at_entrance",
+    "wait_for_party_in_instance",
+    "wait_for_party_out",
+    "wait_until_on_map"
    ],
    "to": "Dungeons/Dungeon Runner.js"
   },
@@ -683,8 +953,27 @@
    "call": [],
    "from": "Character Managers/Healer Manager/Healer Equipment.js",
    "load": [
+    "al_log_category",
+    "al_log_entry_node",
+    "al_log_filters",
+    "al_log_is_shown",
+    "al_log_push",
+    "al_log_stamp",
+    "al_log_state"
+   ],
+   "to": "Interface/Game Log.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Healer Manager/Healer Equipment.js",
+   "load": [
+    "_listeners",
     "_topics",
-    "bus_emit"
+    "bus_emit",
+    "guarded",
+    "off_socket",
+    "on_socket",
+    "parent_slot"
    ],
    "to": "Kernel/Events.js"
   },
@@ -692,8 +981,22 @@
    "call": [],
    "from": "Character Managers/Healer Manager/Healer Equipment.js",
    "load": [
+    "_loops",
+    "every",
+    "run_loop",
+    "stop_loop"
+   ],
+   "to": "Kernel/Scheduler.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Healer Manager/Healer Equipment.js",
+   "load": [
     "storage_raw_read",
-    "storage_read"
+    "storage_raw_write",
+    "storage_read",
+    "storage_remove",
+    "storage_write"
    ],
    "to": "Kernel/Storage.js"
   },
@@ -1006,18 +1309,18 @@
   },
   {
    "call": [
-    "storage_raw_read"
+    "setting"
    ],
    "from": "Character Managers/Merchant Manager/Merchant Config.js",
-   "load": [
-    "storage_raw_read"
-   ],
-   "to": "Kernel/Storage.js"
+   "load": [],
+   "to": "Core Systems/Settings.js"
   },
   {
    "call": [
     "CONFIG",
-    "HOME"
+    "HOME",
+    "craft_targets",
+    "upgrade_target"
    ],
    "from": "Character Managers/Merchant Manager/Merchant Crafting.js",
    "load": [],
@@ -1084,6 +1387,14 @@
    "from": "Character Managers/Merchant Manager/Merchant Crafting.js",
    "load": [],
    "to": "Core Systems/Movement Manager.js"
+  },
+  {
+   "call": [
+    "setting"
+   ],
+   "from": "Character Managers/Merchant Manager/Merchant Crafting.js",
+   "load": [],
+   "to": "Core Systems/Settings.js"
   },
   {
    "call": [
@@ -1159,6 +1470,15 @@
   },
   {
    "call": [
+    "exchangeables",
+    "setting"
+   ],
+   "from": "Character Managers/Merchant Manager/Merchant Exchange.js",
+   "load": [],
+   "to": "Core Systems/Settings.js"
+  },
+  {
+   "call": [
     "CONFIG",
     "begin_task",
     "merchant_task",
@@ -1212,6 +1532,14 @@
    "from": "Character Managers/Merchant Manager/Merchant Gathering.js",
    "load": [],
    "to": "Core Systems/Movement Manager.js"
+  },
+  {
+   "call": [
+    "setting"
+   ],
+   "from": "Character Managers/Merchant Manager/Merchant Gathering.js",
+   "load": [],
+   "to": "Core Systems/Settings.js"
   },
   {
    "call": [
@@ -1270,7 +1598,8 @@
     "HOME",
     "begin_task",
     "end_task",
-    "merchant_task"
+    "merchant_task",
+    "upgrade_target"
    ],
    "from": "Character Managers/Merchant Manager/Merchant Inventory.js",
    "load": [],
@@ -1383,7 +1712,6 @@
   },
   {
    "call": [
-    "CONFIG",
     "HOME"
    ],
    "from": "Character Managers/Merchant Manager/Merchant Stand.js",
@@ -1433,6 +1761,14 @@
   },
   {
    "call": [
+    "setting"
+   ],
+   "from": "Character Managers/Merchant Manager/Merchant Stand.js",
+   "load": [],
+   "to": "Core Systems/Settings.js"
+  },
+  {
+   "call": [
     "every"
    ],
    "from": "Character Managers/Merchant Manager/Merchant Stand.js",
@@ -1453,7 +1789,9 @@
    "load": [
     "CONFIG",
     "PARTY",
-    "merchant_task"
+    "craft_targets",
+    "merchant_task",
+    "upgrade_target"
    ],
    "to": "Character Managers/Merchant Manager/Merchant Config.js"
   },
@@ -1487,6 +1825,7 @@
    "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
    "load": [
     "_exchange_retry_at",
+    "exchange_targets",
     "find_bag_exchangeable",
     "has_bank_exchangeables",
     "should_run_exchange"
@@ -1582,17 +1921,106 @@
    "call": [],
    "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
    "load": [
-    "free_inventory_slots"
+    "_cmListeners",
+    "add_cm_listener",
+    "remove_cm_listener"
+   ],
+   "to": "Core Systems/Character Messaging.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
+   "load": [
+    "_current_goal",
+    "current_goal_label"
+   ],
+   "to": "Core Systems/Character Runner.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
+   "load": [
+    "boss_engageable",
+    "boss_max_hp",
+    "free_inventory_slots",
+    "get_num_chests"
    ],
    "to": "Core Systems/Combat Utilities.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
+   "load": [
+    "EQUIP_CLAIM_MAX_MS",
+    "EQUIP_PRIORITY",
+    "_equip_holder",
+    "_equip_sent",
+    "equip_pending",
+    "equip_transient",
+    "replies_outstanding"
+   ],
+   "to": "Core Systems/Equipment Manager.js"
   },
   {
    "call": [
     "catcher"
    ],
    "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
-   "load": [],
+   "load": [
+    "COOLDOWN_SKILLS",
+    "GENERAL_ERROR",
+    "REJECTIONS",
+    "catcher",
+    "cooldown_summary",
+    "error_out",
+    "fmt_err"
+   ],
    "to": "Core Systems/Error Handling.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
+   "load": [
+    "ERRLOG_CONTEXT_MS",
+    "ERRLOG_MAX_COUNTS",
+    "ERRLOG_MAX_SAMPLES",
+    "ERRLOG_MAX_TIMELINE",
+    "ERRLOG_MSG_CAP",
+    "ERRLOG_TIMELINE_SIG_CAP",
+    "ERRLOG_TIME_BUCKETS",
+    "ERRLOG_WINDOW_MS",
+    "_errlog",
+    "_errlog_beats",
+    "_errlog_build",
+    "_errlog_context",
+    "_errlog_dirty",
+    "_errlog_fmt",
+    "_errlog_push_timeline",
+    "_errlog_record_context",
+    "_errlog_record_ctx",
+    "_errlog_record_ctx_at",
+    "_errlog_recording",
+    "_errlog_signature",
+    "_errlog_store",
+    "_errlog_timeline_sig",
+    "errlog_beat",
+    "errlog_count",
+    "errlog_record",
+    "errlog_sample",
+    "errlog_time"
+   ],
+   "to": "Core Systems/Error Log.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
+   "load": [
+    "EXPERIMENTS",
+    "EXPERIMENT_BLOCK_MIN",
+    "experiment_variant",
+    "experiment_variants"
+   ],
+   "to": "Core Systems/Experiments.js"
   },
   {
    "call": [
@@ -1601,9 +2029,40 @@
    ],
    "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
    "load": [
+    "AUTOMATION_KEY_PREFIX",
+    "AUTOMATION_POLL_MS",
+    "CONFIG",
+    "COOLDOWNS",
+    "DEFAULT_FARM_TARGET",
+    "DUNGEONS",
+    "DUNGEON_FOLLOWERS",
+    "DUNGEON_PARTY",
+    "EVENT_LOCATIONS",
+    "ITEMS_TO_KEEP",
+    "LOCATIONS",
+    "LOOT_THRESHOLD",
+    "MOVEMENT_LEADER",
+    "RELOAD_BASE_MS",
+    "RELOAD_ORDER",
+    "RELOAD_STAGGER_MS",
     "STATE_CACHE_KEY_PREFIX",
     "STATE_CACHE_STALE_MS",
-    "read_state_cache"
+    "SURVEY_FARM_TARGET",
+    "_automation",
+    "automation_enabled",
+    "automation_key",
+    "delay",
+    "equipment_sets",
+    "errlog_beat",
+    "errlog_count",
+    "errlog_record",
+    "errlog_sample",
+    "errlog_time",
+    "farm_target_key",
+    "home",
+    "panicking",
+    "read_state_cache",
+    "staggered_reload"
    ],
    "to": "Core Systems/Global Config.js"
   },
@@ -1612,32 +2071,287 @@
    "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
    "load": [
     "LOOT_GOLD_RESERVE",
+    "MERCHANT_SEND_RANGE",
     "SAVED_BANK_KEY",
-    "load_bank_from_local_storage"
+    "_loot_last",
+    "_looting",
+    "_sending_to_merchant",
+    "_set_item_slots",
+    "equipment_set_item_slots",
+    "go_to_bank_floor",
+    "handle_looting",
+    "load_bank_from_local_storage",
+    "loose_loot",
+    "looting_blocked",
+    "refresh_bank_snapshot",
+    "reserved_gear_slots",
+    "send_to_merchant",
+    "shift_booster",
+    "still_loose",
+    "swap_in_flight",
+    "wait_for_bank",
+    "withdraw_item"
    ],
    "to": "Core Systems/Loot Management.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
+   "load": [
+    "_suppress_periodic_reset",
+    "set_suppress_reset"
+   ],
+   "to": "Core Systems/Maintenance.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
+   "load": [
+    "MOVE_NO_PATH",
+    "MOVE_TIMEOUT_REASON",
+    "cancel_town_channel",
+    "is_teleporting",
+    "smarter_move",
+    "stop_movement",
+    "town_channelling"
+   ],
+   "to": "Core Systems/Movement Manager.js"
   },
   {
    "call": [
     "party_manager"
    ],
    "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
-   "load": [],
+   "load": [
+    "panicking"
+   ],
    "to": "Core Systems/Party Management.js"
+  },
+  {
+   "call": [
+    "setting"
+   ],
+   "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
+   "load": [
+    "EXCHANGE_DEFAULTS",
+    "SETTING_KEY_PREFIX",
+    "_settings",
+    "_settings_index",
+    "craft_target_options",
+    "dungeon_options",
+    "exchangeables",
+    "item_options",
+    "monster_options",
+    "setting",
+    "setting_options",
+    "setting_value",
+    "settings_index",
+    "settings_list",
+    "settings_registry",
+    "settings_stamp",
+    "upgrade_target_options"
+   ],
+   "to": "Core Systems/Settings.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
+   "load": [
+    "BOSS_LOOT_LINGER_MS",
+    "_boss_field",
+    "best_event_target",
+    "boss_field_draining",
+    "engage_hp_ok"
+   ],
+   "to": "Core Systems/World Events.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
+   "load": [
+    "DREAMS_CHECK_MS",
+    "_dreams_boss_waiting",
+    "_dreams_checking",
+    "_dreams_next_check",
+    "dreams_boss_engaged",
+    "dreams_boss_wait",
+    "dreams_due_visit",
+    "dreams_log",
+    "dreams_mode_on",
+    "dreams_reason",
+    "dreams_server",
+    "dreams_visit_usable"
+   ],
+   "to": "Dungeons/Dreams Cave.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
+   "load": [
+    "COLLECT_DRAIN_MS",
+    "COLLECT_EVERY_RUNS",
+    "COLLECT_IDLE_ROUNDS",
+    "COLLECT_POLL_MS",
+    "COLLECT_RANGE",
+    "COLLECT_RUNS_KEY",
+    "COLLECT_WAIT_MS",
+    "collection_due",
+    "dungeon_runs_done",
+    "record_dungeon_run",
+    "run_dungeon_collection"
+   ],
+   "to": "Dungeons/Dungeon Collection.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
+   "load": [
+    "DUNGEON_BUTTONS",
+    "choose_dungeon",
+    "dungeon_mode_enabled",
+    "dungeon_name_for",
+    "paint_dungeon_buttons",
+    "set_dungeon_mode",
+    "toggle_dungeon_mode"
+   ],
+   "to": "Dungeons/Dungeon Mode.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
+   "load": [
+    "_dungeon_kills",
+    "_dungeon_run_started",
+    "_dungeon_seen",
+    "reset_dungeon_progress"
+   ],
+   "to": "Dungeons/Dungeon Progress.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
+   "load": [
+    "DUNGEON_ABSENT_ROUNDS",
+    "DUNGEON_ASSEMBLE_RANGE",
+    "DUNGEON_ASSEMBLE_WAIT_MS",
+    "DUNGEON_ENTER_POLL_MS",
+    "DUNGEON_ENTER_SETTLE_MS",
+    "DUNGEON_ENTER_TIMEOUT_MS",
+    "DUNGEON_EXIT_POLL_MS",
+    "DUNGEON_EXIT_WAIT_MS",
+    "DUNGEON_LOG_COLOR",
+    "DUNGEON_LOOP_SETTLE_MS",
+    "DUNGEON_LOOT_IDLE_ROUNDS",
+    "DUNGEON_LOOT_MAX_MS",
+    "DUNGEON_LOOT_ROUND_MS",
+    "DUNGEON_OVERRIDE_KEY",
+    "DUNGEON_PARTY_TIMEOUT_MS",
+    "DUNGEON_RESUME_KEY",
+    "DUNGEON_START_DELAY_MS",
+    "DUNGEON_WARN_COLOR",
+    "_active_dungeon_cache",
+    "_dungeon_loop_running",
+    "_dungeon_moving",
+    "_dungeon_override",
+    "_dungeon_reset_hold",
+    "_dungeon_running",
+    "_dungeon_stop_requested",
+    "_dungeon_travel_active",
+    "_dungeon_travel_depth",
+    "active_dungeon",
+    "clear_dungeon_stop",
+    "count_dungeon_keys",
+    "dreams_handover",
+    "dungeon_choice",
+    "dungeon_keys_ready",
+    "dungeon_leave_runner",
+    "dungeon_log",
+    "dungeon_loop_running",
+    "dungeon_loot_everything",
+    "dungeon_override",
+    "dungeon_protected_keys",
+    "dungeon_resume",
+    "dungeon_route_runner",
+    "dungeon_stop_requested",
+    "dungeon_telemetry_event",
+    "dungeon_travel",
+    "followers_away_from_entrance",
+    "followers_still_inside",
+    "has_dungeon_key",
+    "hold_reset_for_mode",
+    "request_dungeon_stop",
+    "run_dungeon",
+    "run_dungeon_loop",
+    "set_dungeon_override",
+    "set_dungeon_resume",
+    "start_active_dungeon_when_ready",
+    "start_dungeon_loop",
+    "start_dungeon_when_ready",
+    "wait_for_death",
+    "wait_for_party_at_entrance",
+    "wait_for_party_in_instance",
+    "wait_for_party_out",
+    "wait_until_on_map"
+   ],
+   "to": "Dungeons/Dungeon Runner.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
+   "load": [
+    "_encounters_live",
+    "encounters_live_names"
+   ],
+   "to": "Encounters/Encounter Registry.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
+   "load": [
+    "al_log_category",
+    "al_log_entry_node",
+    "al_log_filters",
+    "al_log_is_shown",
+    "al_log_push",
+    "al_log_stamp",
+    "al_log_state"
+   ],
+   "to": "Interface/Game Log.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
+   "load": [
+    "_listeners",
+    "guarded",
+    "off_socket",
+    "on_socket",
+    "parent_slot"
+   ],
+   "to": "Kernel/Events.js"
   },
   {
    "call": [
     "every"
    ],
    "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
-   "load": [],
+   "load": [
+    "_loops",
+    "every",
+    "run_loop",
+    "stop_loop"
+   ],
    "to": "Kernel/Scheduler.js"
   },
   {
    "call": [],
    "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
    "load": [
-    "storage_read"
+    "storage_raw_read",
+    "storage_raw_write",
+    "storage_read",
+    "storage_remove",
+    "storage_write"
    ],
    "to": "Kernel/Storage.js"
   },
@@ -1648,7 +2362,8 @@
     "HOME",
     "begin_task",
     "end_task",
-    "merchant_task_generation"
+    "merchant_task_generation",
+    "upgrade_target"
    ],
    "from": "Character Managers/Merchant Manager/Merchant Upgrading.js",
    "load": [],
@@ -2259,6 +2974,16 @@
    "call": [],
    "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
    "load": [
+    "_cmListeners",
+    "add_cm_listener",
+    "remove_cm_listener"
+   ],
+   "to": "Core Systems/Character Messaging.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
+   "load": [
     "_current_goal",
     "current_goal",
     "current_goal_label"
@@ -2301,6 +3026,9 @@
    ],
    "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
    "load": [
+    "boss_engageable",
+    "boss_max_hp",
+    "get_num_chests",
     "panic_mp_reserve"
    ],
    "to": "Core Systems/Combat Utilities.js"
@@ -2313,12 +3041,19 @@
    ],
    "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
    "load": [
+    "EQUIP_CLAIM_MAX_MS",
+    "EQUIP_PRIORITY",
     "MISSING_ITEM_WARN_INTERVAL",
+    "_equip_holder",
+    "_equip_sent",
     "_slot_flight",
     "_worn_level_warned",
+    "equip_pending",
+    "equip_transient",
     "is_set_equipped",
     "level_fits",
     "preferred_orb",
+    "replies_outstanding",
     "set_available",
     "slot_in_flight",
     "slot_intent",
@@ -2372,18 +3107,47 @@
    "call": [],
    "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
    "load": [
+    "COOLDOWN_SKILLS",
+    "GENERAL_ERROR",
+    "REJECTIONS",
+    "catcher",
+    "cooldown_summary",
+    "error_out",
+    "fmt_err"
+   ],
+   "to": "Core Systems/Error Handling.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
+   "load": [
     "ERRLOG_CONTEXT_MS",
     "ERRLOG_MAX_COUNTS",
     "ERRLOG_MAX_SAMPLES",
+    "ERRLOG_MAX_TIMELINE",
+    "ERRLOG_MSG_CAP",
+    "ERRLOG_TIMELINE_SIG_CAP",
+    "ERRLOG_TIME_BUCKETS",
     "ERRLOG_WINDOW_MS",
     "_errlog",
+    "_errlog_beats",
     "_errlog_build",
+    "_errlog_context",
     "_errlog_dirty",
+    "_errlog_fmt",
+    "_errlog_push_timeline",
     "_errlog_record_context",
     "_errlog_record_ctx",
     "_errlog_record_ctx_at",
+    "_errlog_recording",
+    "_errlog_signature",
+    "_errlog_store",
+    "_errlog_timeline_sig",
+    "errlog_beat",
     "errlog_count",
-    "errlog_sample"
+    "errlog_record",
+    "errlog_sample",
+    "errlog_time"
    ],
    "to": "Core Systems/Error Log.js"
   },
@@ -2404,21 +3168,95 @@
    ],
    "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
    "load": [
+    "AUTOMATION_KEY_PREFIX",
+    "AUTOMATION_POLL_MS",
     "CACHE_TTL",
     "CONFIG",
+    "COOLDOWNS",
+    "DEFAULT_FARM_TARGET",
     "DUNGEONS",
+    "DUNGEON_FOLLOWERS",
+    "DUNGEON_PARTY",
+    "EVENT_LOCATIONS",
+    "ITEMS_TO_KEEP",
+    "LOCATIONS",
+    "LOOT_THRESHOLD",
     "MOVEMENT_LEADER",
+    "RELOAD_BASE_MS",
+    "RELOAD_ORDER",
+    "RELOAD_STAGGER_MS",
     "STATE_CACHE_KEY_PREFIX",
     "STATE_CACHE_STALE_MS",
+    "SURVEY_FARM_TARGET",
+    "_automation",
+    "automation_enabled",
+    "automation_key",
+    "delay",
     "destination",
     "equipment_sets",
+    "errlog_beat",
     "errlog_count",
+    "errlog_record",
     "errlog_sample",
+    "errlog_time",
+    "farm_target_key",
     "home",
     "panicking",
-    "read_state_cache"
+    "read_state_cache",
+    "staggered_reload"
    ],
    "to": "Core Systems/Global Config.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
+   "load": [
+    "LOOT_GOLD_RESERVE",
+    "MERCHANT_SEND_RANGE",
+    "SAVED_BANK_KEY",
+    "_loot_last",
+    "_looting",
+    "_sending_to_merchant",
+    "_set_item_slots",
+    "equipment_set_item_slots",
+    "go_to_bank_floor",
+    "handle_looting",
+    "load_bank_from_local_storage",
+    "loose_loot",
+    "looting_blocked",
+    "refresh_bank_snapshot",
+    "reserved_gear_slots",
+    "send_to_merchant",
+    "shift_booster",
+    "still_loose",
+    "swap_in_flight",
+    "wait_for_bank",
+    "withdraw_item"
+   ],
+   "to": "Core Systems/Loot Management.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
+   "load": [
+    "_suppress_periodic_reset",
+    "set_suppress_reset"
+   ],
+   "to": "Core Systems/Maintenance.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
+   "load": [
+    "MOVE_NO_PATH",
+    "MOVE_TIMEOUT_REASON",
+    "cancel_town_channel",
+    "is_teleporting",
+    "smarter_move",
+    "stop_movement",
+    "town_channelling"
+   ],
+   "to": "Core Systems/Movement Manager.js"
   },
   {
    "call": [],
@@ -2446,17 +3284,171 @@
    "to": "Core Systems/Party Management.js"
   },
   {
+   "call": [],
+   "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
+   "load": [
+    "EXCHANGE_DEFAULTS",
+    "SETTING_KEY_PREFIX",
+    "_settings",
+    "_settings_index",
+    "craft_target_options",
+    "dungeon_options",
+    "exchangeables",
+    "item_options",
+    "monster_options",
+    "setting",
+    "setting_options",
+    "setting_value",
+    "settings_index",
+    "settings_list",
+    "settings_registry",
+    "settings_stamp",
+    "upgrade_target_options"
+   ],
+   "to": "Core Systems/Settings.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
+   "load": [
+    "BOSS_LOOT_LINGER_MS",
+    "_boss_field",
+    "best_event_target",
+    "boss_field_draining",
+    "engage_hp_ok"
+   ],
+   "to": "Core Systems/World Events.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
+   "load": [
+    "DREAMS_CHECK_MS",
+    "_dreams_boss_waiting",
+    "_dreams_checking",
+    "_dreams_next_check",
+    "dreams_boss_engaged",
+    "dreams_boss_wait",
+    "dreams_due_visit",
+    "dreams_log",
+    "dreams_mode_on",
+    "dreams_reason",
+    "dreams_server",
+    "dreams_visit_usable"
+   ],
+   "to": "Dungeons/Dreams Cave.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
+   "load": [
+    "COLLECT_DRAIN_MS",
+    "COLLECT_EVERY_RUNS",
+    "COLLECT_IDLE_ROUNDS",
+    "COLLECT_POLL_MS",
+    "COLLECT_RANGE",
+    "COLLECT_RUNS_KEY",
+    "COLLECT_WAIT_MS",
+    "collection_due",
+    "dungeon_runs_done",
+    "record_dungeon_run",
+    "run_dungeon_collection"
+   ],
+   "to": "Dungeons/Dungeon Collection.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
+   "load": [
+    "DUNGEON_BUTTONS",
+    "choose_dungeon",
+    "dungeon_mode_enabled",
+    "dungeon_name_for",
+    "paint_dungeon_buttons",
+    "set_dungeon_mode",
+    "toggle_dungeon_mode"
+   ],
+   "to": "Dungeons/Dungeon Mode.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
+   "load": [
+    "_dungeon_kills",
+    "_dungeon_run_started",
+    "_dungeon_seen",
+    "reset_dungeon_progress"
+   ],
+   "to": "Dungeons/Dungeon Progress.js"
+  },
+  {
    "call": [
     "dungeon_flag"
    ],
    "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
    "load": [
+    "DUNGEON_ABSENT_ROUNDS",
+    "DUNGEON_ASSEMBLE_RANGE",
+    "DUNGEON_ASSEMBLE_WAIT_MS",
+    "DUNGEON_ENTER_POLL_MS",
+    "DUNGEON_ENTER_SETTLE_MS",
+    "DUNGEON_ENTER_TIMEOUT_MS",
+    "DUNGEON_EXIT_POLL_MS",
+    "DUNGEON_EXIT_WAIT_MS",
+    "DUNGEON_LOG_COLOR",
+    "DUNGEON_LOOP_SETTLE_MS",
+    "DUNGEON_LOOT_IDLE_ROUNDS",
+    "DUNGEON_LOOT_MAX_MS",
+    "DUNGEON_LOOT_ROUND_MS",
     "DUNGEON_OVERRIDE_KEY",
+    "DUNGEON_PARTY_TIMEOUT_MS",
+    "DUNGEON_RESUME_KEY",
+    "DUNGEON_START_DELAY_MS",
+    "DUNGEON_WARN_COLOR",
     "_active_dungeon_cache",
+    "_dungeon_loop_running",
+    "_dungeon_moving",
     "_dungeon_override",
+    "_dungeon_reset_hold",
+    "_dungeon_running",
+    "_dungeon_stop_requested",
+    "_dungeon_travel_active",
+    "_dungeon_travel_depth",
     "active_dungeon",
+    "clear_dungeon_stop",
+    "count_dungeon_keys",
+    "dreams_handover",
+    "dungeon_choice",
     "dungeon_flag",
-    "dungeon_override"
+    "dungeon_keys_ready",
+    "dungeon_leave_runner",
+    "dungeon_log",
+    "dungeon_loop_running",
+    "dungeon_loot_everything",
+    "dungeon_override",
+    "dungeon_protected_keys",
+    "dungeon_resume",
+    "dungeon_route_runner",
+    "dungeon_stop_requested",
+    "dungeon_telemetry_event",
+    "dungeon_travel",
+    "followers_away_from_entrance",
+    "followers_still_inside",
+    "has_dungeon_key",
+    "hold_reset_for_mode",
+    "request_dungeon_stop",
+    "run_dungeon",
+    "run_dungeon_loop",
+    "set_dungeon_override",
+    "set_dungeon_resume",
+    "start_active_dungeon_when_ready",
+    "start_dungeon_loop",
+    "start_dungeon_when_ready",
+    "wait_for_death",
+    "wait_for_party_at_entrance",
+    "wait_for_party_in_instance",
+    "wait_for_party_out",
+    "wait_until_on_map"
    ],
    "to": "Dungeons/Dungeon Runner.js"
   },
@@ -2490,8 +3482,27 @@
    "call": [],
    "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
    "load": [
+    "al_log_category",
+    "al_log_entry_node",
+    "al_log_filters",
+    "al_log_is_shown",
+    "al_log_push",
+    "al_log_stamp",
+    "al_log_state"
+   ],
+   "to": "Interface/Game Log.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
+   "load": [
+    "_listeners",
     "_topics",
-    "bus_emit"
+    "bus_emit",
+    "guarded",
+    "off_socket",
+    "on_socket",
+    "parent_slot"
    ],
    "to": "Kernel/Events.js"
   },
@@ -2499,8 +3510,22 @@
    "call": [],
    "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
    "load": [
+    "_loops",
+    "every",
+    "run_loop",
+    "stop_loop"
+   ],
+   "to": "Kernel/Scheduler.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
+   "load": [
     "storage_raw_read",
-    "storage_read"
+    "storage_raw_write",
+    "storage_read",
+    "storage_remove",
+    "storage_write"
    ],
    "to": "Kernel/Storage.js"
   },
@@ -2851,6 +3876,16 @@
    "to": "Character Managers/Warrior Manager/Warrior Skills.js"
   },
   {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Combat.js",
+   "load": [
+    "_cmListeners",
+    "add_cm_listener",
+    "remove_cm_listener"
+   ],
+   "to": "Core Systems/Character Messaging.js"
+  },
+  {
    "call": [
     "basic_action_busy",
     "next_action_delay",
@@ -2914,8 +3949,10 @@
    "load": [
     "LETHAL_HIT_PCT",
     "boss_blocks_cleave",
+    "boss_engageable",
     "boss_max_hp",
     "boss_nearly_dead",
+    "get_num_chests",
     "hit_too_big",
     "kite_ring",
     "min_ping",
@@ -2961,6 +3998,7 @@
     "_equip_sent",
     "_equip_seq",
     "_missing_item_warned",
+    "_parked_restore",
     "_slot_flight",
     "_unequip_landings",
     "_worn_level_warned",
@@ -2975,7 +4013,9 @@
     "equip_pending",
     "equip_plan",
     "equip_release",
+    "equip_transient",
     "equip_view",
+    "finish_parked_restore",
     "is_doublehand",
     "is_set_equipped",
     "level_fits",
@@ -2987,6 +4027,7 @@
     "rank_beats",
     "replies_outstanding",
     "restore_burst",
+    "send_restore",
     "set_available",
     "shadow_equip",
     "shadow_find",
@@ -3055,7 +4096,8 @@
     "REJECTIONS",
     "catcher",
     "cooldown_summary",
-    "error_out"
+    "error_out",
+    "fmt_err"
    ],
    "to": "Core Systems/Error Handling.js"
   },
@@ -3076,6 +4118,7 @@
     "ERRLOG_TIME_BUCKETS",
     "ERRLOG_WINDOW_MS",
     "_errlog",
+    "_errlog_beats",
     "_errlog_build",
     "_errlog_context",
     "_errlog_dirty",
@@ -3088,6 +4131,7 @@
     "_errlog_signature",
     "_errlog_store",
     "_errlog_timeline_sig",
+    "errlog_beat",
     "errlog_count",
     "errlog_record",
     "errlog_sample",
@@ -3115,24 +4159,44 @@
    ],
    "from": "Character Managers/Warrior Manager/Warrior Combat.js",
    "load": [
+    "AUTOMATION_KEY_PREFIX",
+    "AUTOMATION_POLL_MS",
     "BOSS_KITER",
     "BOSS_NEARLY_DEAD_HP",
     "CACHE_TTL",
     "CONFIG",
     "COOLDOWNS",
+    "DEFAULT_FARM_TARGET",
     "DUNGEONS",
+    "DUNGEON_FOLLOWERS",
+    "DUNGEON_PARTY",
     "EVENT_LOCATIONS",
+    "ITEMS_TO_KEEP",
+    "LOCATIONS",
+    "LOOT_THRESHOLD",
+    "MOVEMENT_LEADER",
+    "RELOAD_BASE_MS",
+    "RELOAD_ORDER",
+    "RELOAD_STAGGER_MS",
     "STATE_CACHE_KEY_PREFIX",
     "STATE_CACHE_STALE_MS",
+    "SURVEY_FARM_TARGET",
+    "_automation",
+    "automation_enabled",
+    "automation_key",
+    "delay",
     "destination",
     "equipment_sets",
+    "errlog_beat",
     "errlog_count",
     "errlog_record",
     "errlog_sample",
     "errlog_time",
+    "farm_target_key",
     "home",
     "panicking",
-    "read_state_cache"
+    "read_state_cache",
+    "staggered_reload"
    ],
    "to": "Core Systems/Global Config.js"
   },
@@ -3140,8 +4204,52 @@
    "call": [],
    "from": "Character Managers/Warrior Manager/Warrior Combat.js",
    "load": [
+    "LOOT_GOLD_RESERVE",
+    "MERCHANT_SEND_RANGE",
+    "SAVED_BANK_KEY",
+    "_loot_last",
+    "_looting",
+    "_sending_to_merchant",
+    "_set_item_slots",
+    "equipment_set_item_slots",
+    "go_to_bank_floor",
+    "handle_looting",
+    "load_bank_from_local_storage",
+    "loose_loot",
+    "looting_blocked",
+    "refresh_bank_snapshot",
+    "reserved_gear_slots",
+    "send_to_merchant",
+    "shift_booster",
+    "still_loose",
+    "swap_in_flight",
+    "wait_for_bank",
+    "withdraw_item"
+   ],
+   "to": "Core Systems/Loot Management.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Combat.js",
+   "load": [
+    "_suppress_periodic_reset",
+    "set_suppress_reset"
+   ],
+   "to": "Core Systems/Maintenance.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Combat.js",
+   "load": [
+    "MOVE_NO_PATH",
+    "MOVE_TIMEOUT_REASON",
     "_travel",
+    "cancel_town_channel",
+    "is_teleporting",
     "is_travelling",
+    "smarter_move",
+    "stop_movement",
+    "town_channelling",
     "travel_is_active"
    ],
    "to": "Core Systems/Movement Manager.js"
@@ -3154,6 +4262,30 @@
     "panicking"
    ],
    "to": "Core Systems/Party Management.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Combat.js",
+   "load": [
+    "EXCHANGE_DEFAULTS",
+    "SETTING_KEY_PREFIX",
+    "_settings",
+    "_settings_index",
+    "craft_target_options",
+    "dungeon_options",
+    "exchangeables",
+    "item_options",
+    "monster_options",
+    "setting",
+    "setting_options",
+    "setting_value",
+    "settings_index",
+    "settings_list",
+    "settings_registry",
+    "settings_stamp",
+    "upgrade_target_options"
+   ],
+   "to": "Core Systems/Settings.js"
   },
   {
    "call": [
@@ -3170,12 +4302,79 @@
    ],
    "from": "Character Managers/Warrior Manager/Warrior Combat.js",
    "load": [
+    "BOSS_LOOT_LINGER_MS",
     "EVENT_SPOT_RADIUS",
+    "_boss_field",
     "at_event_spot",
+    "best_event_target",
+    "boss_field_draining",
+    "engage_hp_ok",
     "event_rule_here",
     "pursued_boss"
    ],
    "to": "Core Systems/World Events.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Combat.js",
+   "load": [
+    "DREAMS_CHECK_MS",
+    "_dreams_boss_waiting",
+    "_dreams_checking",
+    "_dreams_next_check",
+    "dreams_boss_engaged",
+    "dreams_boss_wait",
+    "dreams_due_visit",
+    "dreams_log",
+    "dreams_mode_on",
+    "dreams_reason",
+    "dreams_server",
+    "dreams_visit_usable"
+   ],
+   "to": "Dungeons/Dreams Cave.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Combat.js",
+   "load": [
+    "COLLECT_DRAIN_MS",
+    "COLLECT_EVERY_RUNS",
+    "COLLECT_IDLE_ROUNDS",
+    "COLLECT_POLL_MS",
+    "COLLECT_RANGE",
+    "COLLECT_RUNS_KEY",
+    "COLLECT_WAIT_MS",
+    "collection_due",
+    "dungeon_runs_done",
+    "record_dungeon_run",
+    "run_dungeon_collection"
+   ],
+   "to": "Dungeons/Dungeon Collection.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Combat.js",
+   "load": [
+    "DUNGEON_BUTTONS",
+    "choose_dungeon",
+    "dungeon_mode_enabled",
+    "dungeon_name_for",
+    "paint_dungeon_buttons",
+    "set_dungeon_mode",
+    "toggle_dungeon_mode"
+   ],
+   "to": "Dungeons/Dungeon Mode.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Combat.js",
+   "load": [
+    "_dungeon_kills",
+    "_dungeon_run_started",
+    "_dungeon_seen",
+    "reset_dungeon_progress"
+   ],
+   "to": "Dungeons/Dungeon Progress.js"
   },
   {
    "call": [
@@ -3186,12 +4385,68 @@
    ],
    "from": "Character Managers/Warrior Manager/Warrior Combat.js",
    "load": [
+    "DUNGEON_ABSENT_ROUNDS",
+    "DUNGEON_ASSEMBLE_RANGE",
+    "DUNGEON_ASSEMBLE_WAIT_MS",
+    "DUNGEON_ENTER_POLL_MS",
+    "DUNGEON_ENTER_SETTLE_MS",
+    "DUNGEON_ENTER_TIMEOUT_MS",
+    "DUNGEON_EXIT_POLL_MS",
+    "DUNGEON_EXIT_WAIT_MS",
+    "DUNGEON_LOG_COLOR",
+    "DUNGEON_LOOP_SETTLE_MS",
+    "DUNGEON_LOOT_IDLE_ROUNDS",
+    "DUNGEON_LOOT_MAX_MS",
+    "DUNGEON_LOOT_ROUND_MS",
     "DUNGEON_OVERRIDE_KEY",
+    "DUNGEON_PARTY_TIMEOUT_MS",
+    "DUNGEON_RESUME_KEY",
+    "DUNGEON_START_DELAY_MS",
+    "DUNGEON_WARN_COLOR",
     "_active_dungeon_cache",
+    "_dungeon_loop_running",
+    "_dungeon_moving",
     "_dungeon_override",
+    "_dungeon_reset_hold",
+    "_dungeon_running",
+    "_dungeon_stop_requested",
+    "_dungeon_travel_active",
+    "_dungeon_travel_depth",
     "active_dungeon",
+    "clear_dungeon_stop",
+    "count_dungeon_keys",
+    "dreams_handover",
+    "dungeon_choice",
     "dungeon_flag",
-    "dungeon_override"
+    "dungeon_keys_ready",
+    "dungeon_leave_runner",
+    "dungeon_log",
+    "dungeon_loop_running",
+    "dungeon_loot_everything",
+    "dungeon_override",
+    "dungeon_protected_keys",
+    "dungeon_resume",
+    "dungeon_route_runner",
+    "dungeon_stop_requested",
+    "dungeon_telemetry_event",
+    "dungeon_travel",
+    "followers_away_from_entrance",
+    "followers_still_inside",
+    "has_dungeon_key",
+    "hold_reset_for_mode",
+    "request_dungeon_stop",
+    "run_dungeon",
+    "run_dungeon_loop",
+    "set_dungeon_override",
+    "set_dungeon_resume",
+    "start_active_dungeon_when_ready",
+    "start_dungeon_loop",
+    "start_dungeon_when_ready",
+    "wait_for_death",
+    "wait_for_party_at_entrance",
+    "wait_for_party_in_instance",
+    "wait_for_party_out",
+    "wait_until_on_map"
    ],
    "to": "Dungeons/Dungeon Runner.js"
   },
@@ -3290,8 +4545,12 @@
    ],
    "from": "Character Managers/Warrior Manager/Warrior Combat.js",
    "load": [
+    "_listeners",
     "_topics",
     "bus_emit",
+    "guarded",
+    "off_socket",
+    "on_socket",
     "parent_slot"
    ],
    "to": "Kernel/Events.js"
@@ -3301,7 +4560,12 @@
     "every"
    ],
    "from": "Character Managers/Warrior Manager/Warrior Combat.js",
-   "load": [],
+   "load": [
+    "_loops",
+    "every",
+    "run_loop",
+    "stop_loop"
+   ],
    "to": "Kernel/Scheduler.js"
   },
   {
@@ -3309,7 +4573,10 @@
    "from": "Character Managers/Warrior Manager/Warrior Combat.js",
    "load": [
     "storage_raw_read",
-    "storage_read"
+    "storage_raw_write",
+    "storage_read",
+    "storage_remove",
+    "storage_write"
    ],
    "to": "Kernel/Storage.js"
   },
@@ -3370,6 +4637,16 @@
    "call": [],
    "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
    "load": [
+    "_cmListeners",
+    "add_cm_listener",
+    "remove_cm_listener"
+   ],
+   "to": "Core Systems/Character Messaging.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
+   "load": [
     "_current_goal",
     "current_goal",
     "current_goal_label"
@@ -3399,17 +4676,34 @@
    "to": "Core Systems/Combat Formulas.js"
   },
   {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
+   "load": [
+    "boss_engageable",
+    "boss_max_hp",
+    "get_num_chests"
+   ],
+   "to": "Core Systems/Combat Utilities.js"
+  },
+  {
    "call": [
     "preferred_orb"
    ],
    "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
    "load": [
+    "EQUIP_CLAIM_MAX_MS",
+    "EQUIP_PRIORITY",
     "MISSING_ITEM_WARN_INTERVAL",
+    "_equip_holder",
+    "_equip_sent",
     "_slot_flight",
     "_worn_level_warned",
+    "equip_pending",
+    "equip_transient",
     "is_set_equipped",
     "level_fits",
     "preferred_orb",
+    "replies_outstanding",
     "set_available",
     "slot_in_flight",
     "slot_intent",
@@ -3464,18 +4758,47 @@
    "call": [],
    "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
    "load": [
+    "COOLDOWN_SKILLS",
+    "GENERAL_ERROR",
+    "REJECTIONS",
+    "catcher",
+    "cooldown_summary",
+    "error_out",
+    "fmt_err"
+   ],
+   "to": "Core Systems/Error Handling.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
+   "load": [
     "ERRLOG_CONTEXT_MS",
     "ERRLOG_MAX_COUNTS",
     "ERRLOG_MAX_SAMPLES",
+    "ERRLOG_MAX_TIMELINE",
+    "ERRLOG_MSG_CAP",
+    "ERRLOG_TIMELINE_SIG_CAP",
+    "ERRLOG_TIME_BUCKETS",
     "ERRLOG_WINDOW_MS",
     "_errlog",
+    "_errlog_beats",
     "_errlog_build",
+    "_errlog_context",
     "_errlog_dirty",
+    "_errlog_fmt",
+    "_errlog_push_timeline",
     "_errlog_record_context",
     "_errlog_record_ctx",
     "_errlog_record_ctx_at",
+    "_errlog_recording",
+    "_errlog_signature",
+    "_errlog_store",
+    "_errlog_timeline_sig",
+    "errlog_beat",
     "errlog_count",
-    "errlog_sample"
+    "errlog_record",
+    "errlog_sample",
+    "errlog_time"
    ],
    "to": "Core Systems/Error Log.js"
   },
@@ -3496,21 +4819,95 @@
    ],
    "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
    "load": [
+    "AUTOMATION_KEY_PREFIX",
+    "AUTOMATION_POLL_MS",
     "CACHE_TTL",
     "CONFIG",
+    "COOLDOWNS",
+    "DEFAULT_FARM_TARGET",
     "DUNGEONS",
+    "DUNGEON_FOLLOWERS",
+    "DUNGEON_PARTY",
+    "EVENT_LOCATIONS",
+    "ITEMS_TO_KEEP",
+    "LOCATIONS",
+    "LOOT_THRESHOLD",
     "MOVEMENT_LEADER",
+    "RELOAD_BASE_MS",
+    "RELOAD_ORDER",
+    "RELOAD_STAGGER_MS",
     "STATE_CACHE_KEY_PREFIX",
     "STATE_CACHE_STALE_MS",
+    "SURVEY_FARM_TARGET",
+    "_automation",
+    "automation_enabled",
+    "automation_key",
+    "delay",
     "destination",
     "equipment_sets",
+    "errlog_beat",
     "errlog_count",
+    "errlog_record",
     "errlog_sample",
+    "errlog_time",
+    "farm_target_key",
     "home",
     "panicking",
-    "read_state_cache"
+    "read_state_cache",
+    "staggered_reload"
    ],
    "to": "Core Systems/Global Config.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
+   "load": [
+    "LOOT_GOLD_RESERVE",
+    "MERCHANT_SEND_RANGE",
+    "SAVED_BANK_KEY",
+    "_loot_last",
+    "_looting",
+    "_sending_to_merchant",
+    "_set_item_slots",
+    "equipment_set_item_slots",
+    "go_to_bank_floor",
+    "handle_looting",
+    "load_bank_from_local_storage",
+    "loose_loot",
+    "looting_blocked",
+    "refresh_bank_snapshot",
+    "reserved_gear_slots",
+    "send_to_merchant",
+    "shift_booster",
+    "still_loose",
+    "swap_in_flight",
+    "wait_for_bank",
+    "withdraw_item"
+   ],
+   "to": "Core Systems/Loot Management.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
+   "load": [
+    "_suppress_periodic_reset",
+    "set_suppress_reset"
+   ],
+   "to": "Core Systems/Maintenance.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
+   "load": [
+    "MOVE_NO_PATH",
+    "MOVE_TIMEOUT_REASON",
+    "cancel_town_channel",
+    "is_teleporting",
+    "smarter_move",
+    "stop_movement",
+    "town_channelling"
+   ],
+   "to": "Core Systems/Movement Manager.js"
   },
   {
    "call": [],
@@ -3541,12 +4938,166 @@
    "call": [],
    "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
    "load": [
+    "EXCHANGE_DEFAULTS",
+    "SETTING_KEY_PREFIX",
+    "_settings",
+    "_settings_index",
+    "craft_target_options",
+    "dungeon_options",
+    "exchangeables",
+    "item_options",
+    "monster_options",
+    "setting",
+    "setting_options",
+    "setting_value",
+    "settings_index",
+    "settings_list",
+    "settings_registry",
+    "settings_stamp",
+    "upgrade_target_options"
+   ],
+   "to": "Core Systems/Settings.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
+   "load": [
+    "BOSS_LOOT_LINGER_MS",
+    "_boss_field",
+    "best_event_target",
+    "boss_field_draining",
+    "engage_hp_ok"
+   ],
+   "to": "Core Systems/World Events.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
+   "load": [
+    "DREAMS_CHECK_MS",
+    "_dreams_boss_waiting",
+    "_dreams_checking",
+    "_dreams_next_check",
+    "dreams_boss_engaged",
+    "dreams_boss_wait",
+    "dreams_due_visit",
+    "dreams_log",
+    "dreams_mode_on",
+    "dreams_reason",
+    "dreams_server",
+    "dreams_visit_usable"
+   ],
+   "to": "Dungeons/Dreams Cave.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
+   "load": [
+    "COLLECT_DRAIN_MS",
+    "COLLECT_EVERY_RUNS",
+    "COLLECT_IDLE_ROUNDS",
+    "COLLECT_POLL_MS",
+    "COLLECT_RANGE",
+    "COLLECT_RUNS_KEY",
+    "COLLECT_WAIT_MS",
+    "collection_due",
+    "dungeon_runs_done",
+    "record_dungeon_run",
+    "run_dungeon_collection"
+   ],
+   "to": "Dungeons/Dungeon Collection.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
+   "load": [
+    "DUNGEON_BUTTONS",
+    "choose_dungeon",
+    "dungeon_mode_enabled",
+    "dungeon_name_for",
+    "paint_dungeon_buttons",
+    "set_dungeon_mode",
+    "toggle_dungeon_mode"
+   ],
+   "to": "Dungeons/Dungeon Mode.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
+   "load": [
+    "_dungeon_kills",
+    "_dungeon_run_started",
+    "_dungeon_seen",
+    "reset_dungeon_progress"
+   ],
+   "to": "Dungeons/Dungeon Progress.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
+   "load": [
+    "DUNGEON_ABSENT_ROUNDS",
+    "DUNGEON_ASSEMBLE_RANGE",
+    "DUNGEON_ASSEMBLE_WAIT_MS",
+    "DUNGEON_ENTER_POLL_MS",
+    "DUNGEON_ENTER_SETTLE_MS",
+    "DUNGEON_ENTER_TIMEOUT_MS",
+    "DUNGEON_EXIT_POLL_MS",
+    "DUNGEON_EXIT_WAIT_MS",
+    "DUNGEON_LOG_COLOR",
+    "DUNGEON_LOOP_SETTLE_MS",
+    "DUNGEON_LOOT_IDLE_ROUNDS",
+    "DUNGEON_LOOT_MAX_MS",
+    "DUNGEON_LOOT_ROUND_MS",
     "DUNGEON_OVERRIDE_KEY",
+    "DUNGEON_PARTY_TIMEOUT_MS",
+    "DUNGEON_RESUME_KEY",
+    "DUNGEON_START_DELAY_MS",
+    "DUNGEON_WARN_COLOR",
     "_active_dungeon_cache",
+    "_dungeon_loop_running",
+    "_dungeon_moving",
     "_dungeon_override",
+    "_dungeon_reset_hold",
+    "_dungeon_running",
+    "_dungeon_stop_requested",
+    "_dungeon_travel_active",
+    "_dungeon_travel_depth",
     "active_dungeon",
+    "clear_dungeon_stop",
+    "count_dungeon_keys",
+    "dreams_handover",
+    "dungeon_choice",
     "dungeon_flag",
-    "dungeon_override"
+    "dungeon_keys_ready",
+    "dungeon_leave_runner",
+    "dungeon_log",
+    "dungeon_loop_running",
+    "dungeon_loot_everything",
+    "dungeon_override",
+    "dungeon_protected_keys",
+    "dungeon_resume",
+    "dungeon_route_runner",
+    "dungeon_stop_requested",
+    "dungeon_telemetry_event",
+    "dungeon_travel",
+    "followers_away_from_entrance",
+    "followers_still_inside",
+    "has_dungeon_key",
+    "hold_reset_for_mode",
+    "request_dungeon_stop",
+    "run_dungeon",
+    "run_dungeon_loop",
+    "set_dungeon_override",
+    "set_dungeon_resume",
+    "start_active_dungeon_when_ready",
+    "start_dungeon_loop",
+    "start_dungeon_when_ready",
+    "wait_for_death",
+    "wait_for_party_at_entrance",
+    "wait_for_party_in_instance",
+    "wait_for_party_out",
+    "wait_until_on_map"
    ],
    "to": "Dungeons/Dungeon Runner.js"
   },
@@ -3580,8 +5131,27 @@
    "call": [],
    "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
    "load": [
+    "al_log_category",
+    "al_log_entry_node",
+    "al_log_filters",
+    "al_log_is_shown",
+    "al_log_push",
+    "al_log_stamp",
+    "al_log_state"
+   ],
+   "to": "Interface/Game Log.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
+   "load": [
+    "_listeners",
     "_topics",
-    "bus_emit"
+    "bus_emit",
+    "guarded",
+    "off_socket",
+    "on_socket",
+    "parent_slot"
    ],
    "to": "Kernel/Events.js"
   },
@@ -3589,8 +5159,22 @@
    "call": [],
    "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
    "load": [
+    "_loops",
+    "every",
+    "run_loop",
+    "stop_loop"
+   ],
+   "to": "Kernel/Scheduler.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
+   "load": [
     "storage_raw_read",
-    "storage_read"
+    "storage_raw_write",
+    "storage_read",
+    "storage_remove",
+    "storage_write"
    ],
    "to": "Kernel/Storage.js"
   },
@@ -4907,6 +6491,14 @@
   },
   {
    "call": [
+    "settings_stamp"
+   ],
+   "from": "Core Systems/Error Log.js",
+   "load": [],
+   "to": "Core Systems/Settings.js"
+  },
+  {
+   "call": [
     "active_dungeon"
    ],
    "from": "Core Systems/Error Log.js",
@@ -5136,6 +6728,14 @@
    "from": "Core Systems/Global Config.js",
    "load": [],
    "to": "Core Systems/Farm Survey.js"
+  },
+  {
+   "call": [
+    "setting"
+   ],
+   "from": "Core Systems/Global Config.js",
+   "load": [],
+   "to": "Core Systems/Settings.js"
   },
   {
    "call": [
@@ -5597,6 +7197,54 @@
   },
   {
    "call": [
+    "DEFAULT_FARM_TARGET",
+    "DUNGEONS",
+    "DUNGEON_PARTY",
+    "EVENT_LOCATIONS",
+    "LOCATIONS",
+    "SURVEY_FARM_TARGET",
+    "farm_target_key"
+   ],
+   "from": "Core Systems/Settings.js",
+   "load": [],
+   "to": "Core Systems/Global Config.js"
+  },
+  {
+   "call": [
+    "choose_dungeon"
+   ],
+   "from": "Core Systems/Settings.js",
+   "load": [],
+   "to": "Dungeons/Dungeon Mode.js"
+  },
+  {
+   "call": [
+    "dungeon_choice"
+   ],
+   "from": "Core Systems/Settings.js",
+   "load": [],
+   "to": "Dungeons/Dungeon Runner.js"
+  },
+  {
+   "call": [],
+   "from": "Core Systems/Settings.js",
+   "load": [
+    "_console_api",
+    "console_api"
+   ],
+   "to": "Kernel/Kernel.js"
+  },
+  {
+   "call": [
+    "storage_raw_read",
+    "storage_raw_write"
+   ],
+   "from": "Core Systems/Settings.js",
+   "load": [],
+   "to": "Kernel/Storage.js"
+  },
+  {
+   "call": [
     "should_pause_combat_loop"
    ],
    "from": "Core Systems/Skill Runner.js",
@@ -5760,6 +7408,14 @@
    "from": "Core Systems/World Events.js",
    "load": [],
    "to": "Core Systems/Party Management.js"
+  },
+  {
+   "call": [
+    "setting"
+   ],
+   "from": "Core Systems/World Events.js",
+   "load": [],
+   "to": "Core Systems/Settings.js"
   },
   {
    "call": [],
@@ -5926,6 +7582,8 @@
    "from": "Dungeons/Dreams Cave.js",
    "load": [
     "LETHAL_HIT_PCT",
+    "boss_engageable",
+    "boss_max_hp",
     "get_num_chests",
     "hit_too_big"
    ],
@@ -6020,11 +7678,15 @@
    ],
    "from": "Dungeons/Dreams Cave.js",
    "load": [
+    "AUTOMATION_KEY_PREFIX",
+    "AUTOMATION_POLL_MS",
     "CONFIG",
     "COOLDOWNS",
+    "DEFAULT_FARM_TARGET",
     "DUNGEONS",
     "DUNGEON_FOLLOWERS",
     "DUNGEON_PARTY",
+    "EVENT_LOCATIONS",
     "ITEMS_TO_KEEP",
     "LOCATIONS",
     "LOOT_THRESHOLD",
@@ -6034,6 +7696,10 @@
     "RELOAD_STAGGER_MS",
     "STATE_CACHE_KEY_PREFIX",
     "STATE_CACHE_STALE_MS",
+    "SURVEY_FARM_TARGET",
+    "_automation",
+    "automation_enabled",
+    "automation_key",
     "delay",
     "equipment_sets",
     "errlog_beat",
@@ -6041,6 +7707,7 @@
     "errlog_record",
     "errlog_sample",
     "errlog_time",
+    "farm_target_key",
     "home",
     "panicking",
     "read_state_cache",
@@ -6129,11 +7796,43 @@
   },
   {
    "call": [
+    "setting"
+   ],
+   "from": "Dungeons/Dreams Cave.js",
+   "load": [
+    "EXCHANGE_DEFAULTS",
+    "SETTING_KEY_PREFIX",
+    "_settings",
+    "_settings_index",
+    "craft_target_options",
+    "dungeon_options",
+    "exchangeables",
+    "item_options",
+    "monster_options",
+    "setting",
+    "setting_options",
+    "setting_value",
+    "settings_index",
+    "settings_list",
+    "settings_registry",
+    "settings_stamp",
+    "upgrade_target_options"
+   ],
+   "to": "Core Systems/Settings.js"
+  },
+  {
+   "call": [
     "best_event_target",
     "boss_field_draining"
    ],
    "from": "Dungeons/Dreams Cave.js",
-   "load": [],
+   "load": [
+    "BOSS_LOOT_LINGER_MS",
+    "_boss_field",
+    "best_event_target",
+    "boss_field_draining",
+    "engage_hp_ok"
+   ],
    "to": "Core Systems/World Events.js"
   },
   {
@@ -6161,10 +7860,12 @@
    "from": "Dungeons/Dreams Cave.js",
    "load": [
     "DUNGEON_BUTTONS",
+    "choose_dungeon",
     "dungeon_mode_enabled",
     "dungeon_name_for",
     "paint_dungeon_buttons",
-    "set_dungeon_mode"
+    "set_dungeon_mode",
+    "toggle_dungeon_mode"
    ],
    "to": "Dungeons/Dungeon Mode.js"
   },
@@ -6187,7 +7888,8 @@
     "dungeon_override",
     "dungeon_telemetry_event",
     "dungeon_travel",
-    "hold_reset_for_mode"
+    "hold_reset_for_mode",
+    "take_dungeon_resume"
    ],
    "from": "Dungeons/Dreams Cave.js",
    "load": [
@@ -6206,6 +7908,7 @@
     "DUNGEON_LOOT_ROUND_MS",
     "DUNGEON_OVERRIDE_KEY",
     "DUNGEON_PARTY_TIMEOUT_MS",
+    "DUNGEON_RESUME_KEY",
     "DUNGEON_START_DELAY_MS",
     "DUNGEON_WARN_COLOR",
     "_active_dungeon_cache",
@@ -6218,7 +7921,10 @@
     "_dungeon_travel_active",
     "_dungeon_travel_depth",
     "active_dungeon",
+    "clear_dungeon_stop",
     "count_dungeon_keys",
+    "dreams_handover",
+    "dungeon_choice",
     "dungeon_keys_ready",
     "dungeon_leave_runner",
     "dungeon_log",
@@ -6226,6 +7932,7 @@
     "dungeon_loot_everything",
     "dungeon_override",
     "dungeon_protected_keys",
+    "dungeon_resume",
     "dungeon_route_runner",
     "dungeon_stop_requested",
     "dungeon_telemetry_event",
@@ -6234,12 +7941,15 @@
     "followers_still_inside",
     "has_dungeon_key",
     "hold_reset_for_mode",
+    "request_dungeon_stop",
     "run_dungeon",
     "run_dungeon_loop",
     "set_dungeon_override",
+    "set_dungeon_resume",
     "start_active_dungeon_when_ready",
     "start_dungeon_loop",
     "start_dungeon_when_ready",
+    "take_dungeon_resume",
     "wait_for_death",
     "wait_for_party_at_entrance",
     "wait_for_party_in_instance",
@@ -6415,12 +8125,15 @@
     "DUNGEON_WARN_COLOR",
     "active_dungeon",
     "clear_dungeon_stop",
+    "dungeon_choice",
     "dungeon_loop_running",
     "dungeon_override",
+    "dungeon_resume",
     "dungeon_stop_requested",
     "hold_reset_for_mode",
     "request_dungeon_stop",
     "set_dungeon_override",
+    "set_dungeon_resume",
     "start_active_dungeon_when_ready"
    ],
    "from": "Dungeons/Dungeon Mode.js",
@@ -6545,6 +8258,9 @@
    "call": [
     "DREAMS_WATCH_MS",
     "cave_hostile",
+    "dreams_due_visit",
+    "dreams_log",
+    "dreams_mode_on",
     "dreams_watch"
    ],
    "from": "Dungeons/Dungeon Runner.js",
@@ -6572,6 +8288,7 @@
   {
    "call": [
     "dungeon_mode_enabled",
+    "dungeon_name_for",
     "set_dungeon_mode"
    ],
    "from": "Dungeons/Dungeon Runner.js",
@@ -7266,7 +8983,9 @@
    "to": "Core Systems/Error Handling.js"
   },
   {
-   "call": [],
+   "call": [
+    "errlog_count"
+   ],
    "from": "Interface/Game Log.js",
    "load": [
     "ERRLOG_MAX_COUNTS",
@@ -7294,7 +9013,9 @@
    "to": "Core Systems/Error Log.js"
   },
   {
-   "call": [],
+   "call": [
+    "errlog_count"
+   ],
    "from": "Interface/Game Log.js",
    "load": [
     "errlog_beat",
@@ -7659,12 +9380,56 @@
    "call": [],
    "from": "Interface/Settings Window.js",
    "load": [
+    "_cmListeners",
+    "add_cm_listener",
+    "remove_cm_listener"
+   ],
+   "to": "Core Systems/Character Messaging.js"
+  },
+  {
+   "call": [],
+   "from": "Interface/Settings Window.js",
+   "load": [
+    "_current_goal",
+    "current_goal_label"
+   ],
+   "to": "Core Systems/Character Runner.js"
+  },
+  {
+   "call": [],
+   "from": "Interface/Settings Window.js",
+   "load": [
+    "boss_engageable",
+    "boss_max_hp",
+    "get_num_chests"
+   ],
+   "to": "Core Systems/Combat Utilities.js"
+  },
+  {
+   "call": [],
+   "from": "Interface/Settings Window.js",
+   "load": [
+    "EQUIP_CLAIM_MAX_MS",
+    "EQUIP_PRIORITY",
+    "_equip_holder",
+    "_equip_sent",
+    "equip_pending",
+    "equip_transient",
+    "replies_outstanding"
+   ],
+   "to": "Core Systems/Equipment Manager.js"
+  },
+  {
+   "call": [],
+   "from": "Interface/Settings Window.js",
+   "load": [
     "COOLDOWN_SKILLS",
     "GENERAL_ERROR",
     "REJECTIONS",
     "catcher",
     "cooldown_summary",
-    "error_out"
+    "error_out",
+    "fmt_err"
    ],
    "to": "Core Systems/Error Handling.js"
   },
@@ -7672,7 +9437,9 @@
    "call": [],
    "from": "Interface/Settings Window.js",
    "load": [
+    "ERRLOG_CONTEXT_MS",
     "ERRLOG_MAX_COUNTS",
+    "ERRLOG_MAX_SAMPLES",
     "ERRLOG_MAX_TIMELINE",
     "ERRLOG_MSG_CAP",
     "ERRLOG_TIMELINE_SIG_CAP",
@@ -7685,6 +9452,9 @@
     "_errlog_dirty",
     "_errlog_fmt",
     "_errlog_push_timeline",
+    "_errlog_record_context",
+    "_errlog_record_ctx",
+    "_errlog_record_ctx_at",
     "_errlog_recording",
     "_errlog_signature",
     "_errlog_store",
@@ -7692,31 +9462,61 @@
     "errlog_beat",
     "errlog_count",
     "errlog_record",
+    "errlog_sample",
     "errlog_time"
    ],
    "to": "Core Systems/Error Log.js"
   },
   {
+   "call": [],
+   "from": "Interface/Settings Window.js",
+   "load": [
+    "EXPERIMENTS",
+    "EXPERIMENT_BLOCK_MIN",
+    "experiment_variant",
+    "experiment_variants"
+   ],
+   "to": "Core Systems/Experiments.js"
+  },
+  {
    "call": [
-    "DEFAULT_FARM_TARGET",
-    "LOCATIONS",
-    "SURVEY_FARM_TARGET",
-    "farm_target_key",
     "staggered_reload"
    ],
    "from": "Interface/Settings Window.js",
    "load": [
+    "AUTOMATION_KEY_PREFIX",
+    "AUTOMATION_POLL_MS",
+    "CONFIG",
+    "COOLDOWNS",
     "DEFAULT_FARM_TARGET",
+    "DUNGEONS",
+    "DUNGEON_FOLLOWERS",
+    "DUNGEON_PARTY",
+    "EVENT_LOCATIONS",
+    "ITEMS_TO_KEEP",
     "LOCATIONS",
+    "LOOT_THRESHOLD",
+    "MOVEMENT_LEADER",
     "RELOAD_BASE_MS",
     "RELOAD_ORDER",
     "RELOAD_STAGGER_MS",
+    "STATE_CACHE_KEY_PREFIX",
+    "STATE_CACHE_STALE_MS",
     "SURVEY_FARM_TARGET",
+    "_automation",
+    "automation_enabled",
+    "automation_key",
+    "delay",
+    "equipment_sets",
     "errlog_beat",
+    "errlog_count",
     "errlog_record",
+    "errlog_sample",
     "errlog_time",
     "farm_target_key",
+    "home",
     "panicking",
+    "read_state_cache",
     "staggered_reload"
    ],
    "to": "Core Systems/Global Config.js"
@@ -7725,9 +9525,243 @@
    "call": [],
    "from": "Interface/Settings Window.js",
    "load": [
+    "LOOT_GOLD_RESERVE",
+    "MERCHANT_SEND_RANGE",
+    "SAVED_BANK_KEY",
+    "_loot_last",
+    "_looting",
+    "_sending_to_merchant",
+    "_set_item_slots",
+    "equipment_set_item_slots",
+    "go_to_bank_floor",
+    "handle_looting",
+    "load_bank_from_local_storage",
+    "loose_loot",
+    "looting_blocked",
+    "refresh_bank_snapshot",
+    "reserved_gear_slots",
+    "send_to_merchant",
+    "shift_booster",
+    "still_loose",
+    "swap_in_flight",
+    "wait_for_bank",
+    "withdraw_item"
+   ],
+   "to": "Core Systems/Loot Management.js"
+  },
+  {
+   "call": [],
+   "from": "Interface/Settings Window.js",
+   "load": [
+    "_suppress_periodic_reset",
+    "set_suppress_reset"
+   ],
+   "to": "Core Systems/Maintenance.js"
+  },
+  {
+   "call": [],
+   "from": "Interface/Settings Window.js",
+   "load": [
+    "MOVE_NO_PATH",
+    "MOVE_TIMEOUT_REASON",
+    "cancel_town_channel",
+    "is_teleporting",
+    "smarter_move",
+    "stop_movement",
+    "town_channelling"
+   ],
+   "to": "Core Systems/Movement Manager.js"
+  },
+  {
+   "call": [],
+   "from": "Interface/Settings Window.js",
+   "load": [
     "panicking"
    ],
    "to": "Core Systems/Party Management.js"
+  },
+  {
+   "call": [
+    "save_setting",
+    "setting",
+    "setting_options",
+    "setting_shown",
+    "settings_list"
+   ],
+   "from": "Interface/Settings Window.js",
+   "load": [
+    "EXCHANGE_DEFAULTS",
+    "SETTING_KEY_PREFIX",
+    "_settings",
+    "_settings_index",
+    "craft_target_options",
+    "dungeon_options",
+    "exchangeables",
+    "item_options",
+    "monster_options",
+    "save_setting",
+    "setting",
+    "setting_options",
+    "setting_shown",
+    "setting_value",
+    "settings_index",
+    "settings_list",
+    "settings_registry",
+    "settings_stamp",
+    "upgrade_target_options"
+   ],
+   "to": "Core Systems/Settings.js"
+  },
+  {
+   "call": [],
+   "from": "Interface/Settings Window.js",
+   "load": [
+    "BOSS_LOOT_LINGER_MS",
+    "_boss_field",
+    "best_event_target",
+    "boss_field_draining",
+    "engage_hp_ok"
+   ],
+   "to": "Core Systems/World Events.js"
+  },
+  {
+   "call": [],
+   "from": "Interface/Settings Window.js",
+   "load": [
+    "DREAMS_CHECK_MS",
+    "_dreams_boss_waiting",
+    "_dreams_checking",
+    "_dreams_next_check",
+    "dreams_boss_engaged",
+    "dreams_boss_wait",
+    "dreams_due_visit",
+    "dreams_log",
+    "dreams_mode_on",
+    "dreams_reason",
+    "dreams_server",
+    "dreams_visit_usable"
+   ],
+   "to": "Dungeons/Dreams Cave.js"
+  },
+  {
+   "call": [],
+   "from": "Interface/Settings Window.js",
+   "load": [
+    "COLLECT_DRAIN_MS",
+    "COLLECT_EVERY_RUNS",
+    "COLLECT_IDLE_ROUNDS",
+    "COLLECT_POLL_MS",
+    "COLLECT_RANGE",
+    "COLLECT_RUNS_KEY",
+    "COLLECT_WAIT_MS",
+    "collection_due",
+    "dungeon_runs_done",
+    "record_dungeon_run",
+    "run_dungeon_collection"
+   ],
+   "to": "Dungeons/Dungeon Collection.js"
+  },
+  {
+   "call": [],
+   "from": "Interface/Settings Window.js",
+   "load": [
+    "DUNGEON_BUTTONS",
+    "choose_dungeon",
+    "dungeon_mode_enabled",
+    "dungeon_name_for",
+    "paint_dungeon_buttons",
+    "set_dungeon_mode",
+    "toggle_dungeon_mode"
+   ],
+   "to": "Dungeons/Dungeon Mode.js"
+  },
+  {
+   "call": [],
+   "from": "Interface/Settings Window.js",
+   "load": [
+    "_dungeon_kills",
+    "_dungeon_run_started",
+    "_dungeon_seen",
+    "reset_dungeon_progress"
+   ],
+   "to": "Dungeons/Dungeon Progress.js"
+  },
+  {
+   "call": [],
+   "from": "Interface/Settings Window.js",
+   "load": [
+    "DUNGEON_ABSENT_ROUNDS",
+    "DUNGEON_ASSEMBLE_RANGE",
+    "DUNGEON_ASSEMBLE_WAIT_MS",
+    "DUNGEON_ENTER_POLL_MS",
+    "DUNGEON_ENTER_SETTLE_MS",
+    "DUNGEON_ENTER_TIMEOUT_MS",
+    "DUNGEON_EXIT_POLL_MS",
+    "DUNGEON_EXIT_WAIT_MS",
+    "DUNGEON_LOG_COLOR",
+    "DUNGEON_LOOP_SETTLE_MS",
+    "DUNGEON_LOOT_IDLE_ROUNDS",
+    "DUNGEON_LOOT_MAX_MS",
+    "DUNGEON_LOOT_ROUND_MS",
+    "DUNGEON_OVERRIDE_KEY",
+    "DUNGEON_PARTY_TIMEOUT_MS",
+    "DUNGEON_RESUME_KEY",
+    "DUNGEON_START_DELAY_MS",
+    "DUNGEON_WARN_COLOR",
+    "_active_dungeon_cache",
+    "_dungeon_loop_running",
+    "_dungeon_moving",
+    "_dungeon_override",
+    "_dungeon_reset_hold",
+    "_dungeon_running",
+    "_dungeon_stop_requested",
+    "_dungeon_travel_active",
+    "_dungeon_travel_depth",
+    "active_dungeon",
+    "clear_dungeon_stop",
+    "count_dungeon_keys",
+    "dreams_handover",
+    "dungeon_choice",
+    "dungeon_keys_ready",
+    "dungeon_leave_runner",
+    "dungeon_log",
+    "dungeon_loop_running",
+    "dungeon_loot_everything",
+    "dungeon_override",
+    "dungeon_protected_keys",
+    "dungeon_resume",
+    "dungeon_route_runner",
+    "dungeon_stop_requested",
+    "dungeon_telemetry_event",
+    "dungeon_travel",
+    "followers_away_from_entrance",
+    "followers_still_inside",
+    "has_dungeon_key",
+    "hold_reset_for_mode",
+    "request_dungeon_stop",
+    "run_dungeon",
+    "run_dungeon_loop",
+    "set_dungeon_override",
+    "set_dungeon_resume",
+    "start_active_dungeon_when_ready",
+    "start_dungeon_loop",
+    "start_dungeon_when_ready",
+    "wait_for_death",
+    "wait_for_party_at_entrance",
+    "wait_for_party_in_instance",
+    "wait_for_party_out",
+    "wait_until_on_map"
+   ],
+   "to": "Dungeons/Dungeon Runner.js"
+  },
+  {
+   "call": [],
+   "from": "Interface/Settings Window.js",
+   "load": [
+    "_encounters_live",
+    "encounters_live_names"
+   ],
+   "to": "Encounters/Encounter Registry.js"
   },
   {
    "call": [],
@@ -7760,7 +9794,9 @@
    "load": [
     "_listeners",
     "guarded",
+    "off_socket",
     "on_dom",
+    "on_socket",
     "parent_slot"
    ],
    "to": "Kernel/Events.js"
@@ -7789,14 +9825,14 @@
    "to": "Kernel/Scheduler.js"
   },
   {
-   "call": [
-    "storage_raw_read",
-    "storage_raw_write"
-   ],
+   "call": [],
    "from": "Interface/Settings Window.js",
    "load": [
     "storage_raw_read",
-    "storage_raw_write"
+    "storage_raw_write",
+    "storage_read",
+    "storage_remove",
+    "storage_write"
    ],
    "to": "Kernel/Storage.js"
   },
@@ -8022,13 +10058,7 @@
    "statements": []
   },
   "Character Managers/Merchant Manager/Merchant Config.js": {
-   "call_initializers": [
-    {
-     "call": "local_bool",
-     "line": 20,
-     "name": "CONFIG"
-    }
-   ],
+   "call_initializers": [],
    "optional": false,
    "role": "Riff",
    "stage": "role",
@@ -8343,6 +10373,13 @@
    "statements": []
   },
   "Core Systems/Party Management.js": {
+   "call_initializers": [],
+   "optional": false,
+   "role": null,
+   "stage": "parallel",
+   "statements": []
+  },
+  "Core Systems/Settings.js": {
    "call_initializers": [],
    "optional": false,
    "role": null,
@@ -8701,6 +10738,7 @@
   "Core Systems/Danger Log.js",
   "Core Systems/Decision Log.js",
   "Core Systems/Experiments.js",
+  "Core Systems/Settings.js",
   "Core Systems/Error Handling.js",
   "Dungeons/Dungeon Runner.js",
   "Dungeons/Spider Dungeon.js",

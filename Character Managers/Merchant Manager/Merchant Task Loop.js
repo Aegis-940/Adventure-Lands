@@ -28,7 +28,7 @@ async function handle_dead_state() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function should_run_upgrade() {
-	return CONFIG.enabled.upgrading
+	return setting("merchant_upgrading")
 		&& merchant_task === "Idle"
 		&& !upgrade_run_blocked()
 		&& character.gold >= CONFIG.upgrade_gold_threshold
@@ -64,7 +64,7 @@ async function handle_lolipop_state() {
 }
 
 function should_run_craft() {
-	return CONFIG.enabled.crafting
+	return setting("merchant_crafting")
 		&& merchant_task === "Idle"
 		&& !craft_run_blocked()
 		&& has_enough_bank_space()

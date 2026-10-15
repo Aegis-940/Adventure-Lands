@@ -201,6 +201,7 @@ function _errlog_record_context() {
 			goal: current_goal_label(),
 			encounters: encounters_live_names().join(","),
 			variant: experiment_variants(),
+			settings: settings_stamp(),
 		};
 	} catch (e) {
 		_errlog_record_ctx = { build: _errlog_build() };

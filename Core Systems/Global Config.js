@@ -74,7 +74,7 @@ function farm_target_key(name) {
 }
 
 function farm_target_setting(name) {
-	return storage_raw_read(farm_target_key(name)) || DEFAULT_FARM_TARGET;
+	return setting("farm_" + name);
 }
 
 function farm_target_for(name) {

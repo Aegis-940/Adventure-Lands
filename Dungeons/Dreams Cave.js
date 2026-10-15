@@ -258,28 +258,42 @@ function dreams_boss_wait(engaged) {
 	return engaged;
 }
 
-async function dreams_daily_check() {
-	if (_dreams_checking || Date.now() < _dreams_next_check) return;
-	if (dungeon_override() || character.rip || panicking || !automation_enabled()) return;
-	if (G.events.dreams.disabled) return;
-	if (dreams_boss_wait(dreams_boss_engaged())) return;
+async function dreams_due_visit() {
+	if (!setting("dreams_daily")) return null;
+	if (_dreams_checking || Date.now() < _dreams_next_check) return null;
+	if (character.rip || panicking || !automation_enabled()) return null;
+	if (G.events.dreams.disabled) return null;
+	if (dreams_boss_wait(dreams_boss_engaged())) return null;
 
 	_dreams_checking = true;
 	_dreams_next_check = Date.now() + DREAMS_CHECK_MS;
 	try {
 		const visit = await cave_info();
-		if (!dreams_visit_usable(visit)) return;
+		if (!dreams_visit_usable(visit)) return null;
 		if (dreams_boss_wait(dreams_boss_engaged())) {
 			_dreams_next_check = 0;
-			return;
+			return null;
 		}
-		dreams_log(visit.resume ? "An unfinished visit is waiting — taking the party back" : "Today's visit is unused — taking the party in");
-		set_dungeon_mode("dreams");
+		return visit;
 	} catch (e) {
 		dreams_log(`Visit check failed: ${dreams_reason(e)}`, DUNGEON_WARN_COLOR);
+		return null;
 	} finally {
 		_dreams_checking = false;
 	}
+}
+
+async function dreams_daily_check() {
+	if (dungeon_override()) return;
+	const visit = await dreams_due_visit();
+	if (!visit || dungeon_override()) return;
+	dreams_log(visit.resume ? "An unfinished visit is waiting — taking the party back" : "Today's visit is unused — taking the party in");
+	set_dungeon_mode("dreams");
+}
+
+function dreams_resume_dungeon() {
+	if (dungeon_override() && !dreams_mode_on()) return;
+	set_dungeon_mode(take_dungeon_resume());
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -706,8 +720,8 @@ function start_dreams_run() {
 }
 
 async function run_dreams() {
-	if (_dreams_running || !dreams_mode_on()) return;
-	if (character.name !== MOVEMENT_LEADER) return;
+	if (_dreams_running || character.name !== MOVEMENT_LEADER) return;
+	if (!dreams_mode_on()) return dreams_resume_dungeon();
 
 	_dreams_running = true;
 	hold_reset_for_mode(true);
@@ -721,8 +735,8 @@ async function run_dreams() {
 		_dreams_running = false;
 		if (!entered) _dreams_next_check = Date.now() + DREAMS_RETRY_MS;
 		if (character.cave) await dreams_exit_all("mode switched off");
-		if (dreams_mode_on()) set_dungeon_mode(null);
 		dreams_log(entered ? "Run over" : "Could not get in — trying again later");
+		dreams_resume_dungeon();
 	}
 }
 

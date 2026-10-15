@@ -1,7 +1,4 @@
 {
- "call_initializers": {
-  "Character Managers/Merchant Manager/Merchant Config.js": 1
- },
  "emits": {
   "Character Managers/Healer Manager/Healer Combat.js": 2,
   "Character Managers/Healer Manager/Healer Skills.js": 8,

@@ -107,14 +107,14 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 }
 
 function should_run_fishing() {
-	return CONFIG.enabled.fishing
+	return setting("merchant_fishing")
 		&& merchant_task === "Idle"
 		&& has_enough_bank_space()
 		&& !is_on_cooldown("fishing");
 }
 
 function should_run_mining() {
-	return CONFIG.enabled.mining
+	return setting("merchant_mining")
 		&& merchant_task === "Idle"
 		&& has_enough_bank_space()
 		&& !is_on_cooldown("mining");

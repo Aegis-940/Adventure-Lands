@@ -602,7 +602,8 @@ async function run_tick(fixture, name) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const FIXTURE_STORAGE = ["AL_automation_paused_", "AL_target_", "AL_char_state_", "AL_set_profile2_", "AL_farm_focus",
-	"AL_survey", "AL_dungeon_mode", "AL_dungeon_runs", "AL_lolipop_push", "AL_merchant_", "AL_tracker_at_"];
+	"AL_survey", "AL_dungeon_mode", "AL_dungeon_resume", "AL_dungeon_runs", "AL_lolipop_push", "AL_merchant_", "AL_tracker_at_",
+	"AL_setting_"];
 
 const PRIVATE_KEYS = new Set(["owner", "ipass", "friends", "cash", "code", "cid", "auth", "secret", "email", "chat", "trade", "messages"]);
 

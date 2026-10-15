@@ -2,30 +2,16 @@
 // MERCHANT CONFIG — tunables, locations, and the task flag every other Merchant file reads
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function local_bool(key, fallback) {
-	const raw = storage_raw_read(key);
-	return raw === null ? fallback : raw === "true";
+function upgrade_target() {
+	return { name: setting("upgrade_target"), level: setting("upgrade_level"), count: setting("upgrade_count") };
 }
 
-function local_number(key, fallback) {
-	const raw = storage_raw_read(key);
-	return raw === null ? fallback : Number(raw);
-}
-
-function local_craft_targets() {
-	const name = storage_raw_read("AL_merchant_craft_target");
+function craft_targets() {
+	const name = setting("craft_target");
 	return name ? [{ name }] : [];
 }
 
 var CONFIG = {
-	enabled: {
-		upgrading:  local_bool("AL_merchant_enabled_upgrading", true),
-		crafting:   local_bool("AL_merchant_enabled_crafting", true),
-		exchanging: local_bool("AL_merchant_enabled_exchanging", true),
-		fishing:    local_bool("AL_merchant_enabled_fishing", false),
-		mining:     local_bool("AL_merchant_enabled_mining", false),
-	},
-
 	locations: {
 		HOME: { map: "main", x: -87, y: -96 },
 		BANK_LOCATION: { map: "bank", x: 0, y: -37 },
@@ -43,32 +29,9 @@ var CONFIG = {
 		gold_threshold: 20000000,
 	},
 	upgrade_gold_threshold: 100000000,
-	upgrade_target: {
-		name: storage_raw_read("AL_merchant_upgrade_target") || "",
-		level: local_number("AL_merchant_upgrade_level", 10),
-		count: local_number("AL_merchant_upgrade_count", 1),
-	},
 	potions: {
 		hp_threshold: 500,
 		mp_threshold: 500,
-	},
-	crafting: {
-		targets: local_craft_targets(),
-	},
-	exchange: {
-		targets: [
-			{ name: "anniversarygift",  min: 1 },
-			{ name: "gift0",  min: 1 },
-			{ name: "seashell",         min: 20 },
-			{ name: "brownenvelope",    min: 1 },
-			{ name: "goldenegg",    	min: 1 },
-			{ name: "basketofeggs", 	min: 1 },
-			{ name: "gem0",         	min: 1 },
-			{ name: "gem1",         	min: 1 },
-			{ name: "armorbox",     	min: 1 },
-			{ name: "weaponbox",    	min: 1 },
-			{ name: "candy1",   	 	min: 1 },
-		],
 	},
 	do_not_bank: ["tracker", "computer", "hpot1", "mpot1"],
 	min_bank_free_space: 10,

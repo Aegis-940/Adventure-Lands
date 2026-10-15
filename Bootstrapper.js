@@ -58,6 +58,7 @@
 		"Core Systems/Danger Log.js",
 		"Core Systems/Decision Log.js",
 		"Core Systems/Experiments.js",
+		"Core Systems/Settings.js",
 		"Core Systems/Error Handling.js",
 		"Dungeons/Dungeon Runner.js",
 		"Dungeons/Spider Dungeon.js",

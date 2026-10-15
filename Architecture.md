@@ -56,6 +56,7 @@ Core Systems/*.js                 ← loaded in parallel as real <script> tags
     ├── Farm Ledger.js            5-minute gold/XP/kill windows (at the spot vs away), daily tracker snapshot
     ├── Farm Survey.js            the *SURVEY* farm target: 60 min per spot, then bscorpion
     ├── Experiments.js            EXPERIMENTS + experiment_value(): variants alternated on the clock (none running)
+    ├── Settings.js               the ⚙️ settings registry, setting(name), settings_stamp()
     ├── Decision Log.js           decisions and outcomes per ledger window (decisions.jsonl); the last 10s on each danger record
     ├── Danger Log.js             deaths and close calls with killer, damage sources and context
     ├── Error Handling.js         catcher(), the shared error-triage/logging helper
@@ -130,7 +131,7 @@ Interface/*.js                    ← overlay panels (semi-independent)
     │                             tabs, resized #gamelog. Also first-stage, so al_log_push() is
     │                             always there for the error path
     ├── Pause Button.js           per-character pause/resume, leaves combat/panic/upkeep running
-    └── Settings Window.js        per-character target settings, persisted via localStorage
+    └── Settings Window.js        the ⚙️ window over Settings.js, persisted via localStorage
 
 Tools/                            ← dev scaffolding, not loaded by the bot
     ├── Error Sink.py             local HTTP sink for errlog_sample() pushes -> errors.json;
@@ -272,7 +273,7 @@ Count against git blobs rather than the working tree: the tree is CRLF while blo
 
 - Offline checks cover decisions, not play: `node Tests/Harness.js check` replays recorded game moments and `python Tools/Lint.py` guards structure, but whether a change farms better is still measured live, with `python "Tools/Data Store.py" compare`
 - The buttons/windows UI is still incomplete after `Buttons.js`/`Windows.js` were removed — reload, bank, settings, pause and the dungeon toggles were rebuilt in their own files, but the rest was not
-- `storage_read()`/`storage_write()` cover the JSON-backed values only. The bare-string stores (`automation_enabled()`, the dungeon override, Settings Window, `Error Log.js`'s key scan) still call `localStorage` directly, deliberately — `storage_read()` would `JSON.parse` a bare string and return null. Every one of those calls is inside a function and wrapped in try/catch, so a browser blocking site data degrades rather than breaking the load
+- `storage_read()`/`storage_write()` cover the JSON-backed values only. The bare-string stores (`automation_enabled()`, the dungeon override and resume, `Settings.js`, `Error Log.js`'s key scan) still call `localStorage` directly, deliberately — `storage_read()` would `JSON.parse` a bare string and return null. Every one of those calls is inside a function and wrapped in try/catch, so a browser blocking site data degrades rather than breaking the load
 
 ---
 

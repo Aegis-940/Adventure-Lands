@@ -330,6 +330,8 @@ A per-fight profile of every player on a cooperative boss (`is_coop_boss()`) in 
 
 Live boss and seasonal targets, and the goal that walks the party to them.
 
+**Toggles.** `best_event_target()` skips any boss whose ⚙️ Bosses & events box is off (`setting("boss_<name>")`). It is the only reader: the other `EVENT_LOCATIONS` lookups are fight rules and apply whenever the boss is near.
+
 **When the boss strays.** Pursuit stops when the boss strays from its spawn area (`boss_strayed()`), and the event goal falls back to the walk to its spawn point. That is a non-pursuit `disengage` goal, so the party waits there together under cohesion. It used to return `null`, which sent Myras `home` mid-fight while the followers pursued the boss on its return.
 
 **Pursuit.** Pursuit bypasses following and cohesion: each fighter closes to its own range. For an entry with a `spot` (franky: -19,36), every fighter first walks to within 50px of the spot while the boss is within 100px of it, then fights from there; Ulric's `engage_step` takes over inside that radius. The spot keeps the party together and away from the oneeye pen. `party_cohesion_hold(event)` does not hold for a follower whose goal is the same event.
@@ -446,6 +448,17 @@ A follower in turn does not pursue while she is live on his map, beyond the rang
 
 Overhaul 4.6, the bridge from data to changes. A setting under test is read through `experiment_value(name, fallback)`. With nothing in `EXPERIMENTS` (as shipped) it returns the fallback, exactly as before. An entry `{ variants: { label: value, ... }, block_min }` alternates its variants in blocks of the wall clock (30 minutes by default), so all three fighters run the same variant at the same time without coordinating. Alternating within one session cancels time-of-day and server-population drift, which comparing one build's day against another's cannot. Every record carries `variant` (`name=label`, through the record context). A ledger window also keeps `variant_start`, and `Data Store.py experiment NAME` counts only full windows at the spot that started and ended on the same variant, then judges the first two variants with `compare`'s bands. **Running one is a behaviour change at the farm, so it needs the user's go-ahead.**
 
+### `Settings.js`
+
+The registry behind the ⚙️ window: every setting's name, storage key, section, type and default, read through one `setting(name)`. It decides **what** the bot does (which farm, which bosses, which dungeon, whether to run the daily cave, what Riff does and exchanges). **How** it does it (thresholds, weights, timings, gear) stays in each file's `CONFIG`, where Design Notes can explain the numbers.
+
+- **Defaults are what the code did before.** A setting with no stored value reads its default, so moving a hard-coded choice into the registry is a pure move: all goldens held when the merchant toggles, upgrade and craft targets and exchange list moved (2026-10-15). The old storage keys were kept (`AL_target_<name>`, `AL_merchant_*`), so nothing migrated. New settings use `AL_setting_<name>`.
+- **Read live.** Every reader calls `setting()` at the decision, never at load, so **Save** applies at once on every window (localStorage is shared by all four). The exception is the farm targets: `home` is set when the role file boots, so they apply on the next reload, and their section says so.
+- **A stored value that no longer fits reads as the default.** A number outside its range or a select value missing from its options (a farm target dropped from `LOCATIONS`, a removed boss) falls back, so a stale key can't send anyone somewhere the code no longer knows.
+- **Stamped on every record.** `settings_stamp()` lists the settings that differ from their defaults (`boss_franky=0,dungeon=crypt`) and rides on every record through the Error Log's record context, next to `variant`. `Data Store.py` keeps it as a `settings` column, and `compare` warns when A and B ran with different settings, because a toggled boss or a dungeon changes the farm without a commit. Records from before 2026-10-15 have no stamp and are left out of that check.
+- **The sections.** Bosses & events is one checkbox per `EVENT_LOCATIONS` entry (on by default), read only by `best_event_target()`: a disabled boss is never walked to, but one that walks up is still fought, and its hazard rules (`avoid`, leash, kite) still apply. The commented-out entries (icegolem, crabxx, wabbit) aren't listed until they are uncommented. Dungeons is the dungeon choice (one of crypt or spider, as the buttons allow; switching straight from one to the other is refused, choose none first) and the daily-cave toggle (see `Dreams Cave.js`). Exchange lists every item the game marks exchangeable (`G.items[name].e`, which is also the count an exchange needs, so seashell's 20 comes from the game), the 11 previous targets first and on.
+- **Adding one:** an entry in `settings_registry()` with today's behaviour as the default, the reader at the decision, and nothing else. The window builds itself from the registry. `al_settings()` in the console lists every value and marks the ones that differ from the default.
+
 ### `Decision Log.js`
 
 Overhaul 4.3 and 4.4: what each fighter chose and what came of it, summed per ledger window and archived as one `decisions` record beside the ledger record. The ledger's `ledger_close()` emits `ledger_window` on the bus, and the decision window closes on it, so the two cover the same seconds. The recorders follow the `errlog_*` contract and never throw into their caller.
@@ -532,7 +545,11 @@ A `limitdcreport` from the server (sent just before it closes the socket for cal
 
 `DUNGEONS.dreams`, the daily Cave of Many Dreams. Mechanics are in [`Game API Reference.md`](Game%20API%20Reference.md).
 
-**Entry.** Myras checks `cave_info()` every 10 min and switches the mode on when the account's visit is unused and no boss is being engaged (`dreams_boss_engaged()`). Once it is on, the mode's `ignore_events` keeps `event_goal()` (boss walks and `join` teleports) from pulling anyone out until the run ends. The `party_only` flag makes Ulric kick Riff, since the cave holds 3.
+**Entry.** Myras checks `cave_info()` every 10 min (`dreams_due_visit()`) and switches the mode on when the account's visit is unused and no boss is being engaged (`dreams_boss_engaged()`). The ⚙️ **Daily Cave of Many Dreams** setting turns the automatic visit off; the 🌙 button still starts one by hand.
+
+**Between dungeon runs.** With crypt or spider on, the check runs only at a run boundary, on the leader (`dreams_handover()`): after each crypt lap (after the leave and the collection), and when the leader starts a dungeon, which for spider is the boot after the reload that ends every run. If the visit is due, the dungeon in progress is saved to `AL_dungeon_resume` and the mode switches to dreams. When the dreams run ends, by finishing, by failing to get in, or by the 🌙 button, `dreams_resume_dungeon()` switches back to it. The resume key is in storage because spider's reload and the x:55 reload both fall inside that cycle. While dreams runs, the crypt and spider buttons and the ⚙️ dungeon choice edit only what resumes afterwards. Nothing interrupts a run, because a mode switch while the crypt loop is mid-route would leave its route running under another dungeon's `active_dungeon()`.
+
+Once it is on, the mode's `ignore_events` keeps `event_goal()` (boss walks and `join` teleports) from pulling anyone out until the run ends. The `party_only` flag makes Ulric kick Riff, since the cave holds 3.
 
 **Getting there.** `dreams_goal()` is first in `movement_goal()`. The walk to Dorr is a `disengage` goal (stop attacking, jacko, scare); followers inherit it through the state cache. The wait at Dorr is a plain hold so they defend themselves. A follower inside whose leader is outside holds rather than path to her, because that path would leave through the exit door. Then `cave_enter()`, clear each floor's required objectives, take the stairs, and exit after floor 3.
 
@@ -729,14 +746,14 @@ Every `UPGRADE_PROFILE` uses scroll1 from +0 (`scroll0_until: 0`). The server tr
 
 ### `Merchant Upgrading.js` — upgrade target
 
-The settings window's Upgrading toggle carries a target: an item, a level m and a count n (`CONFIG.upgrade_target`, localStorage `AL_merchant_upgrade_target`/`_level`/`_count`). While fewer than n copies at +m or above are held (bag and bank, `upgrade_target_open()`), each upgrade run works the target before the `UPGRADE_PROFILE` items. The profile pass skips the target's name until it is met, then upgrades it as before if it has a profile.
+The settings window's Upgrading toggle carries a target: an item, a level m and a count n (`upgrade_target()`, localStorage `AL_merchant_upgrade_target`/`_level`/`_count`). While fewer than n copies at +m or above are held (bag and bank, `upgrade_target_open()`), each upgrade run works the target before the `UPGRADE_PROFILE` items. The profile pass skips the target's name until it is met, then upgrades it as before if it has a profile.
 
 - **Batched like everything else.** `upgrade_target_pass()` is `upgrade_pass()` over `target_plan()`: every copy goes +0→+1, then every copy +1→+2, up to +m, the same level-by-level batch as the profile items (`profile_plan()`). It can overshoot n, which is wanted: a spare at +m costs nothing. Withdrawal takes the highest copies first when the bag can't hold them all.
 - **Scrolls.** The item's `UPGRADE_PROFILE` decides scrolls and primlings, ignoring its `max_level`. An item without a profile gets `target_profile()`: a scroll one grade above the item (scroll1 below its first grade boundary, scroll2 after), no primlings. A target past the grade that scroll2 covers (grade 3, e.g. lolipops beyond +10) is refused by the server, and the copy is skipped as failed.
 - **Buying replaced the "Buy to upgrade" toggle and the hard-coded coat list.** With Upgrading on, Riff buys base copies of the target when an NPC sells it (`npc_sells()`, over `G.npcs[*].items`) and none below +m are left. A batch is capped by gold above `upgrade_gold_threshold`, free slots, and the copies the base odds say are still needed (`target_base_odds()`, the product of `G.upgrades` up to +m with no grace). So a coat +7 ×2 target buys ~50 at most, not a bag-full each run.
 - **Never vendored.** `sellable()` exempts the target's name, so junk-list items (helmet, shoes…) aren't sold out from under it.
 
-The Crafting toggle carries one craft target (`AL_merchant_craft_target`), which becomes `CONFIG.crafting.targets`. `try_craft()` crafts it as far as ingredients, free slots and gold allow. The settings window lists only recipes that produce an item (`makeawishjar` has none).
+The Crafting toggle carries one craft target (`AL_merchant_craft_target`), which `craft_targets()` returns. `try_craft()` crafts it as far as ingredients, free slots and gold allow. The settings window lists only recipes that produce an item (`makeawishjar` has none).
 
 **Craft, then upgrade.** After each craft batch, `upgrade_crafted()` upgrades what's in the bag (the target pass, then the profile pass) before the next batch, when Upgrading is on and the crafted item is the open upgrade target or has an `UPGRADE_PROFILE`. So a firestaff run alternates crafting and upgrading instead of banking a bag of +0s for a later upgrade run.
 
@@ -749,7 +766,7 @@ The Crafting toggle carries one craft target (`AL_merchant_craft_target`), which
 
 **The craft grid.** The server reads one grid cell per ingredient and takes the quantity from that stack's `q`, and an ingredient matches only at the recipe's level (`x[2]`, else +0: the server names an upgraded item `staff+2`). The old code put one cell per unit, so the 104 recipes with a quantity above 1 could never craft, and it accepted any level, so a stray +1 ingredient failed the craft.
 
-The settings window saves on **Reload All** (every character, staggered as before) or **Reload One** (this window's character only); **Close** discards. Merchant settings are read when Riff's files load, so they need a reload of Riff.
+The settings window saves on **Save** (applied at once, since every setting but the farm targets is read live; see `Settings.js`), **Reload All** (every character, staggered as before) or **Reload One** (this window's character only); **Close** discards.
 
 ### `Merchant Upgrading.js` — lolipop push
 

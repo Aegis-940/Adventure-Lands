@@ -4,7 +4,8 @@
 
 const STORAGE_KEYS = [
 	{ key: "AL_automation_paused_", kind: "raw", owner: "Global Config" },
-	{ key: "AL_target_", kind: "raw", owner: "Global Config" },
+	{ key: "AL_target_", kind: "raw", owner: "Settings" },
+	{ key: "AL_setting_", kind: "raw", owner: "Settings" },
 	{ key: "AL_char_state_", kind: "json", owner: "Character Messaging" },
 	{ key: "AL_errors_", kind: "json", owner: "Error Log" },
 	{ key: "AL_set_profile2_", kind: "json", owner: "Equipment Valuation" },
@@ -12,14 +13,15 @@ const STORAGE_KEYS = [
 	{ key: "AL_survey", kind: "json", owner: "Farm Survey" },
 	{ key: "AL_tracker_at_", kind: "json", owner: "Farm Ledger" },
 	{ key: "AL_dungeon_mode", kind: "raw", owner: "Dungeon Runner" },
+	{ key: "AL_dungeon_resume", kind: "raw", owner: "Dungeon Runner" },
 	{ key: "AL_dungeon_runs", kind: "raw", owner: "Dungeon Collection" },
 	{ key: "AL_upgrade_slot_rolls", kind: "json", owner: "Lucky Slot Tracker" },
 	{ key: "AL_lolipop_push", kind: "json", owner: "Merchant Upgrading" },
-	{ key: "AL_merchant_enabled_", kind: "raw", owner: "Merchant Config" },
-	{ key: "AL_merchant_craft_target", kind: "raw", owner: "Merchant Config" },
-	{ key: "AL_merchant_upgrade_target", kind: "raw", owner: "Merchant Config" },
-	{ key: "AL_merchant_upgrade_level", kind: "raw", owner: "Merchant Config" },
-	{ key: "AL_merchant_upgrade_count", kind: "raw", owner: "Merchant Config" },
+	{ key: "AL_merchant_enabled_", kind: "raw", owner: "Settings" },
+	{ key: "AL_merchant_craft_target", kind: "raw", owner: "Settings" },
+	{ key: "AL_merchant_upgrade_target", kind: "raw", owner: "Settings" },
+	{ key: "AL_merchant_upgrade_level", kind: "raw", owner: "Settings" },
+	{ key: "AL_merchant_upgrade_count", kind: "raw", owner: "Settings" },
 ];
 
 function storage_read(key) {

@@ -37,7 +37,7 @@ function set_dungeon_mode(key, broadcast = true) {
 
 	game_log(`⚰️ ${d.name} mode on — events, bosses and farming are ignored`, DUNGEON_LOG_COLOR);
 	hold_reset_for_mode(true);
-	if (character.name === MOVEMENT_LEADER && !was) start_active_dungeon_when_ready();
+	if (character.name === MOVEMENT_LEADER && was !== key) start_active_dungeon_when_ready();
 }
 
 function dungeon_name_for(key) {
@@ -48,8 +48,19 @@ function dungeon_name_for(key) {
 function toggle_dungeon_mode(key) {
 	const current = dungeon_override();
 
+	if (current === "dreams" && key !== "dreams") {
+		const resume = dungeon_resume() === key ? null : key;
+		set_dungeon_resume(resume);
+		paint_dungeon_buttons();
+		game_log(resume
+			? `${dungeon_name_for(key)} starts after the dreams visit`
+			: `${dungeon_name_for(key)} won't resume after the dreams visit`, DUNGEON_LOG_COLOR);
+		return;
+	}
+
 	if (!current) {
 		clear_dungeon_stop();
+		set_dungeon_resume(null);
 		return set_dungeon_mode(key);
 	}
 
@@ -68,6 +79,17 @@ function toggle_dungeon_mode(key) {
 	set_dungeon_mode(null);
 }
 
+function choose_dungeon(key) {
+	const choice = dungeon_choice();
+	if (key === choice) return;
+	if (dungeon_override() === "dreams") return toggle_dungeon_mode(key || choice);
+	if (!key) return toggle_dungeon_mode(choice);
+	if (choice) {
+		return game_log(`${dungeon_name_for(choice)} mode is on — choose none first, then ${dungeon_name_for(key)}`, DUNGEON_WARN_COLOR);
+	}
+	toggle_dungeon_mode(key);
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // BUTTONS
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -75,6 +97,7 @@ function toggle_dungeon_mode(key) {
 function paint_dungeon_buttons() {
 	const $ = parent.$;
 	const current = dungeon_override();
+	const resume = current === "dreams" ? dungeon_resume() : null;
 
 	for (const spec of DUNGEON_BUTTONS) {
 		const btn = $("#" + spec.id);
@@ -82,19 +105,25 @@ function paint_dungeon_buttons() {
 
 		const name = dungeon_name_for(spec.key);
 		const on = current === spec.key;
+		const queued = resume === spec.key;
 		const stopping = on && dungeon_stop_requested();
-		const blocked = !!current && !on;
+		const after_dreams = current === "dreams" && !on;
+		const blocked = !!current && !on && !after_dreams;
 
-		btn.html(stopping ? spec.stopping : (on ? spec.on : spec.off));
+		btn.html(stopping ? spec.stopping : (on || queued ? spec.on : spec.off));
 		btn.attr("title", stopping
 			? `${name} mode stops after this run — click again to stop now`
 			: (on
 				? `${name} mode ON for ${character.name} — click to turn off`
-				: (blocked
-					? `${dungeon_name_for(current)} mode is on — turn it off first`
-					: `Enter the ${name} with the party (ignores events, bosses and farming)`)));
-		btn.css("filter", on ? `drop-shadow(0 0 4px ${stopping ? "#FFCC00" : "#AA88FF"})` : "");
-		btn.css("opacity", blocked ? "0.4" : "");
+				: (queued
+					? `${name} resumes after the dreams visit — click to cancel`
+					: (after_dreams
+						? `Run the ${name} after the dreams visit`
+						: (blocked
+							? `${dungeon_name_for(current)} mode is on — turn it off first`
+							: `Enter the ${name} with the party (ignores events, bosses and farming)`)))));
+		btn.css("filter", on || queued ? `drop-shadow(0 0 4px ${stopping ? "#FFCC00" : "#AA88FF"})` : "");
+		btn.css("opacity", blocked ? "0.4" : (queued ? "0.7" : ""));
 	}
 }
 

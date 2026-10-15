@@ -3,7 +3,7 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function can_afford_any_craft() {
-	for (const target of CONFIG.crafting.targets) {
+	for (const target of craft_targets()) {
 		if (max_craftable_now(target) >= (target.min ?? 1)) return true;
 	}
 	return false;
@@ -336,8 +336,8 @@ function craft_run_blocked() {
 }
 
 function upgrades_crafted(item_name) {
-	return CONFIG.enabled.upgrading
-		&& ((item_name === CONFIG.upgrade_target.name && upgrade_target_open()) || !!UPGRADE_PROFILE[item_name]);
+	return setting("merchant_upgrading")
+		&& ((item_name === upgrade_target().name && upgrade_target_open()) || !!UPGRADE_PROFILE[item_name]);
 }
 
 async function upgrade_crafted(item_name, abandoned) {
@@ -351,7 +351,7 @@ async function upgrade_crafted(item_name, abandoned) {
 
 async function try_craft(abandoned) {
 	let any_crafted = false;
-	for (const target of CONFIG.crafting.targets) {
+	for (const target of craft_targets()) {
 		const craft_def = parent.G.craft[target.name];
 		if (craft_def == null) continue;
 

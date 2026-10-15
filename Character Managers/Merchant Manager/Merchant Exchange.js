@@ -4,11 +4,15 @@
 
 var exchange_items_running = false;
 
+function exchange_targets() {
+	return exchangeables().filter(name => setting("exchange_" + name)).map(name => ({ name, min: G.items[name].e }));
+}
+
 function has_bank_exchangeables() {
 	const bank_data = character.bank || load_bank_from_local_storage();
 	if (!bank_data) return false;
 
-	for (const target of CONFIG.exchange.targets) {
+	for (const target of exchange_targets()) {
 		let count = 0;
 		for (const pack in bank_data) {
 			if (!Array.isArray(bank_data[pack])) continue;
@@ -23,7 +27,7 @@ function has_bank_exchangeables() {
 }
 
 function find_bag_exchangeable() {
-	for (const config of CONFIG.exchange.targets) {
+	for (const config of exchange_targets()) {
 		const min_count = config.min ?? 1;
 		for (let i = 0; i < character.items.length; i++) {
 			const itm = character.items[i];
@@ -77,7 +81,7 @@ async function withdraw_exchangeables() {
 	await delay(500);
 	refresh_bank_snapshot();
 
-	for (const target of CONFIG.exchange.targets) {
+	for (const target of exchange_targets()) {
 		try {
 			await withdraw_item(target.name, null, 9999);
 		} catch (e) {
@@ -94,7 +98,7 @@ var EXCHANGE_RETRY_MS = 10 * 60 * 1000;
 var _exchange_retry_at = 0;
 
 function should_run_exchange() {
-	return CONFIG.enabled.exchanging
+	return setting("merchant_exchanging")
 		&& merchant_task === "Idle"
 		&& Date.now() >= _exchange_retry_at
 		&& has_enough_bank_space()

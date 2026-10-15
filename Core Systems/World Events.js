@@ -135,6 +135,7 @@ function kite_step(event_type) {
 
 function best_event_target() {
 	const alive_sorted = EVENT_LOCATIONS
+		.filter(e => setting("boss_" + e.name))
 		.map(e => ({ ...e, data: parent.S[e.name] }))
 		.filter(e => e.data?.live)
 		.filter(e => engage_hp_ok(e))

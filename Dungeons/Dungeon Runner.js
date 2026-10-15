@@ -38,6 +38,28 @@ function set_dungeon_override(key) {
 	else storage_remove(DUNGEON_OVERRIDE_KEY);
 }
 
+const DUNGEON_RESUME_KEY = "AL_dungeon_resume";
+
+function dungeon_resume() {
+	return storage_raw_read(DUNGEON_RESUME_KEY) || null;
+}
+
+function set_dungeon_resume(key) {
+	if (key) storage_raw_write(DUNGEON_RESUME_KEY, key);
+	else storage_remove(DUNGEON_RESUME_KEY);
+}
+
+function take_dungeon_resume() {
+	const key = dungeon_resume();
+	set_dungeon_resume(null);
+	return key;
+}
+
+function dungeon_choice() {
+	const current = dungeon_override();
+	return current === "dreams" ? dungeon_resume() : current;
+}
+
 function active_dungeon() {
 	if (_active_dungeon_cache !== undefined) return _active_dungeon_cache;
 
@@ -270,12 +292,26 @@ function dungeon_aggro_suppressed() {
 	return false;
 }
 
-function start_active_dungeon_when_ready() {
+async function start_active_dungeon_when_ready() {
 	const d = active_dungeon();
 	if (!d) return;
 	if (d.start) return d.start();
+	if (await dreams_handover()) return;
 	if (d.route) return start_dungeon_loop();
 	start_dungeon_when_ready(d);
+}
+
+async function dreams_handover() {
+	const current = dungeon_override();
+	if (!current || current === "dreams" || character.name !== MOVEMENT_LEADER) return false;
+
+	const visit = await dreams_due_visit();
+	if (!visit || dungeon_override() !== current) return false;
+
+	dreams_log(`${visit.resume ? "An unfinished visit is waiting" : "Today's visit is unused"} — ${dungeon_name_for(current)} resumes after it`);
+	set_dungeon_resume(current);
+	set_dungeon_mode("dreams");
+	return true;
 }
 
 function start_dungeon_loop() {
@@ -706,6 +742,8 @@ async function run_dungeon_loop() {
 				break;
 			}
 
+			if (await dreams_handover()) break;
+
 			await delay(DUNGEON_LOOP_SETTLE_MS);
 		}
 	} catch (e) {
@@ -716,7 +754,7 @@ async function run_dungeon_loop() {
 			_dungeon_stop_requested = false;
 			set_dungeon_mode(null);
 		}
-		hold_reset_for_mode(false);
+		if (!dreams_mode_on()) hold_reset_for_mode(false);
 		game_log("⚰️ Dungeon loop stopped", "#FFCC00");
 	}
 }

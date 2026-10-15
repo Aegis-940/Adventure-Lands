@@ -1,88 +1,52 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// SETTINGS WINDOW — per-character targets and merchant toggles, persisted in localStorage
+// SETTINGS WINDOW — the ⚙️ window over the settings registry, saved to localStorage
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function settings_descriptors() {
-	return [
-		{ label: "Warrior (Ulric)", storage_key: farm_target_key("Ulric"), type: "select", options: monster_options, default: DEFAULT_FARM_TARGET },
-		{ label: "Healer (Myras)",  storage_key: farm_target_key("Myras"), type: "select", options: monster_options, default: DEFAULT_FARM_TARGET },
-		{ label: "Ranger (Riva)",   storage_key: farm_target_key("Riva"),  type: "select", options: monster_options, default: DEFAULT_FARM_TARGET },
-		{ label: "Merchant: Upgrading",  storage_key: "AL_merchant_enabled_upgrading",  type: "checkbox", default: true },
-		{ label: "Target item",  storage_key: "AL_merchant_upgrade_target", type: "select", options: upgrade_target_options, default: "", indent: true },
-		{ label: "Target level", storage_key: "AL_merchant_upgrade_level",  type: "number", min: 1, max: 12,  default: 10, indent: true },
-		{ label: "Target count", storage_key: "AL_merchant_upgrade_count",  type: "number", min: 1, max: 999, default: 1,  indent: true },
-		{ label: "Merchant: Crafting",   storage_key: "AL_merchant_enabled_crafting",   type: "checkbox", default: true },
-		{ label: "Craft target", storage_key: "AL_merchant_craft_target",   type: "select", options: craft_target_options,   default: "", indent: true },
-		{ label: "Merchant: Exchanging", storage_key: "AL_merchant_enabled_exchanging", type: "checkbox", default: true },
-		{ label: "Merchant: Fishing",    storage_key: "AL_merchant_enabled_fishing",    type: "checkbox", default: false },
-		{ label: "Merchant: Mining",     storage_key: "AL_merchant_enabled_mining",     type: "checkbox", default: false },
-	];
-}
-
 const ALL_CHARACTERS = ["Ulric", "Myras", "Riva", "Riff"];
+const SETTINGS_GRID_SECTIONS = ["Bosses & events", "Exchange"];
 
-function monster_options() {
-	return [{ value: SURVEY_FARM_TARGET, text: SURVEY_FARM_TARGET }]
-		.concat(Object.keys(LOCATIONS).sort().map(name => ({ value: name, text: name })));
-}
+function settings_input(doc, s, value) {
+	const input = doc.createElement(s.type === "select" ? "select" : "input");
 
-function item_options(names) {
-	const options = names
-		.map(name => ({ value: name, text: `${G.items[name].name} (${name})` }))
-		.sort((a, b) => a.text.localeCompare(b.text));
-	return [{ value: "", text: "(none)" }].concat(options);
-}
-
-function upgrade_target_options() {
-	return item_options(Object.keys(G.items).filter(name => G.items[name].upgrade));
-}
-
-function craft_target_options() {
-	return item_options(Object.keys(G.craft).filter(name => G.items[name]));
-}
-
-function settings_input(doc, setting, stored) {
-	const input = doc.createElement(setting.type === "select" ? "select" : "input");
-
-	if (setting.type === "checkbox") {
+	if (s.type === "checkbox") {
 		input.type = "checkbox";
-		input.checked = stored === null ? setting.default : stored === "true";
+		input.checked = value;
 		return input;
 	}
 
-	if (setting.type === "number") {
+	if (s.type === "number") {
 		input.type = "number";
-		input.min = setting.min;
-		input.max = setting.max;
+		input.min = s.min;
+		input.max = s.max;
 		input.style.width = "70px";
-		input.value = stored === null ? setting.default : stored;
+		input.value = value;
 		return input;
 	}
 
 	input.style.width = "100%";
-	for (const { value, text } of setting.options()) {
+	for (const choice of setting_options(s)) {
 		const option = doc.createElement("option");
-		option.value = value;
-		option.textContent = text;
+		option.value = choice.value;
+		option.textContent = choice.text;
 		input.appendChild(option);
 	}
-	input.value = stored === null ? setting.default : stored;
+	input.value = value;
 	return input;
 }
 
-function settings_row(doc, setting, input) {
-	const row = doc.createElement(setting.type === "checkbox" ? "label" : "div");
+function settings_row(doc, s, input) {
+	const row = doc.createElement(s.type === "checkbox" ? "label" : "div");
 	row.style.display = "flex";
-	row.style.gap = setting.type === "select" ? "2px" : "6px";
-	row.style.flexDirection = setting.type === "select" ? "column" : "row";
-	row.style.alignItems = setting.type === "select" ? "stretch" : "center";
-	if (setting.type === "number") row.style.justifyContent = "space-between";
-	if (setting.type === "checkbox") row.style.cursor = "pointer";
-	if (setting.indent) row.style.marginLeft = "22px";
+	row.style.gap = s.type === "select" ? "2px" : "6px";
+	row.style.flexDirection = s.type === "select" ? "column" : "row";
+	row.style.alignItems = s.type === "select" ? "stretch" : "center";
+	if (s.type === "number") row.style.justifyContent = "space-between";
+	if (s.type === "checkbox") row.style.cursor = "pointer";
+	if (s.indent) row.style.marginLeft = "22px";
 
 	const label = doc.createElement("span");
-	label.textContent = setting.label;
-	if (setting.type === "checkbox") {
+	label.textContent = s.label;
+	if (s.type === "checkbox") {
 		row.appendChild(input);
 		row.appendChild(label);
 	} else {
@@ -92,11 +56,32 @@ function settings_row(doc, setting, input) {
 	return row;
 }
 
+function settings_section(doc, title) {
+	const header = doc.createElement("div");
+	header.textContent = title;
+	header.style.fontWeight = "bold";
+	header.style.borderBottom = "1px solid #666";
+	header.style.marginTop = "4px";
+
+	const rows = doc.createElement("div");
+	rows.style.display = "grid";
+	rows.style.gridTemplateColumns = SETTINGS_GRID_SECTIONS.includes(title) ? "1fr 1fr" : "1fr";
+	rows.style.gap = "6px";
+	return { header, rows };
+}
+
+function input_value(s, input) {
+	if (s.type === "checkbox") return input.checked;
+	if (s.type === "number") return Number(input.value);
+	return input.value;
+}
+
 function save_settings(inputs) {
-	for (const setting of settings_descriptors()) {
-		const input = inputs[setting.storage_key];
-		storage_raw_write(setting.storage_key, setting.type === "checkbox" ? input.checked : input.value);
+	let changed = 0;
+	for (const s of settings_list()) {
+		if (inputs[s.name] && save_setting(s.name, input_value(s, inputs[s.name]))) changed++;
 	}
+	return changed;
 }
 
 function open_settings_window() {
@@ -106,10 +91,10 @@ function open_settings_window() {
 	const div = doc.createElement("div");
 	div.id = "settings-window";
 	div.style.position = "absolute";
-	const WINDOW_WIDTH = 320;
-	const WINDOW_HEIGHT = 480;
+	const WINDOW_WIDTH = 360;
+	const BODY_HEIGHT = Math.min(600, parent.window.innerHeight - 120);
 	div.style.left = ((parent.window.innerWidth - WINDOW_WIDTH) / 2) + "px";
-	div.style.top = Math.max(0, (parent.window.innerHeight - WINDOW_HEIGHT) / 2) + "px";
+	div.style.top = Math.max(0, (parent.window.innerHeight - BODY_HEIGHT - 80) / 2) + "px";
 	div.style.width = WINDOW_WIDTH + "px";
 	div.style.background = "rgba(0,0,0,0.85)";
 	div.style.color = "#fff";
@@ -137,20 +122,34 @@ function open_settings_window() {
 	body.style.display = "flex";
 	body.style.flexDirection = "column";
 	body.style.gap = "8px";
+	body.style.maxHeight = BODY_HEIGHT + "px";
+	body.style.overflowY = "auto";
 
 	const inputs = {};
-	for (const setting of settings_descriptors()) {
-		const input = settings_input(doc, setting, storage_raw_read(setting.storage_key));
-		inputs[setting.storage_key] = input;
-		body.appendChild(settings_row(doc, setting, input));
+	let section = null;
+	for (const s of settings_list()) {
+		if (!setting_shown(s)) continue;
+		if (!section || section.title !== s.section) {
+			section = Object.assign(settings_section(doc, s.section), { title: s.section });
+			body.appendChild(section.header);
+			body.appendChild(section.rows);
+		}
+		const input = settings_input(doc, s, setting(s.name));
+		inputs[s.name] = input;
+		section.rows.appendChild(settings_row(doc, s, input));
 	}
 
 	const button_row = doc.createElement("div");
 	button_row.style.display = "flex";
 	button_row.style.gap = "8px";
-	button_row.style.marginTop = "6px";
+	button_row.style.padding = "0 10px 10px";
 
 	const buttons = [
+		["Save", () => {
+			const changed = save_settings(inputs);
+			game_log(`⚙️ ${changed} setting${changed === 1 ? "" : "s"} saved`, "#88CCFF");
+			div.remove();
+		}],
 		["Reload All", () => {
 			save_settings(inputs);
 			for (const name of ALL_CHARACTERS) {
@@ -172,9 +171,9 @@ function open_settings_window() {
 		button.onclick = onclick;
 		button_row.appendChild(button);
 	}
-	body.appendChild(button_row);
 
 	div.appendChild(body);
+	div.appendChild(button_row);
 	doc.body.appendChild(div);
 }
 

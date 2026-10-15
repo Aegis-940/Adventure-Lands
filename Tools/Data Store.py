@@ -61,13 +61,14 @@ CREATE INDEX IF NOT EXISTS ledger_home ON ledger (home, character);
 
 
 # Every archived record carries these from Overhaul 4.2 on (empty before): what the page was doing when it wrote it.
-CONTEXT_COLUMNS = ["home", "map", "goal", "encounters", "variant"]
+CONTEXT_COLUMNS = ["home", "map", "goal", "encounters", "variant", "settings"]
 
 # Columns added after a table was first created, so an existing database gains them on connect.
 ADDED_COLUMNS = {
-    "ledger": ["build", "goal", "encounters", "variant", "variant_start"],
+    "ledger": ["build", "goal", "encounters", "variant", "variant_start", "settings"],
     "survey": ["build"],
-    "danger": ["build", "encounters", "variant"],
+    "danger": ["build", "encounters", "variant", "settings"],
+    "decisions": ["settings"],
 }
 
 # Sample kinds the sink keeps (Overhaul 4.1): file, table, and the fields worth a column. Everything is also in raw.
@@ -80,6 +81,7 @@ SAMPLE_TABLES = [
                                                "best_value", "traded"]),
     ("cc_report.jsonl", "cc_reports", ["total", "climit", "by_method"]),
 ]
+ADDED_COLUMNS.update({table: ["settings"] for _, table, _ in SAMPLE_TABLES})
 
 
 def sample_schema():
@@ -816,6 +818,12 @@ def compare_windows(db, where, args, home, who):
         % where, args + (home, who)).fetchall()
 
 
+def compare_settings(db, where, args, home):
+    """The non-default ⚙️ settings the windows ran with; records from before settings were stamped are left out."""
+    return sorted(r[0] for r in db.execute("SELECT DISTINCT settings FROM ledger WHERE %s AND home = ?" % where,
+                                           args + (home,)) if r[0] is not None)
+
+
 def per_hour(rows, i):
     return [r[i] * 3600.0 / r[0] for r in rows if r[i] is not None]
 
@@ -855,6 +863,10 @@ def compare_report(arg_a, arg_b, home=None, tier="neutral"):
     need = COMPARE_MIN_WINDOWS[tier]
     print("compare at %s, %s tier (at least %d full windows at the spot per build)" % (home, tier, need))
     print("  A = %s    B = %s" % (label_a, label_b))
+    sa, sb = compare_settings(db, wa, xa, home), compare_settings(db, wb, xb, home)
+    if sa and sb and sa != sb:
+        print("  settings differ, so this compares more than the code: A %s    B %s" % (
+            " | ".join(x or "defaults" for x in sa), " | ".join(x or "defaults" for x in sb)))
     verdicts = []
     deaths_b = 0
     for who in COMPARE_FIGHTERS:

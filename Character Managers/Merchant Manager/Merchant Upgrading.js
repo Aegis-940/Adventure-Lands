@@ -214,7 +214,8 @@ var UPGRADE_SCROLLS = ["scroll0", "scroll1", "scroll2", "cscroll0", "cscroll1", 
 
 function upgrade_job_item(item) {
 	if (UPGRADE_SCROLLS.includes(item.name) || item.name === "offeringp") return true;
-	if (item.name === CONFIG.upgrade_target.name) return below_max_level(item, CONFIG.upgrade_target.level);
+	const target = upgrade_target();
+	if (item.name === target.name) return below_max_level(item, target.level);
 	const profile = UPGRADE_PROFILE[item.name] || COMBINE_PROFILE[item.name];
 	return !!profile && below_max_level(item, profile.max_level);
 }
@@ -244,7 +245,7 @@ function held_items(name) {
 }
 
 function upgrade_target_open() {
-	const target = CONFIG.upgrade_target;
+	const target = upgrade_target();
 	return !!target.name && held_items(target.name).filter(it => (it.level || 0) >= target.level).length < target.count;
 }
 
@@ -258,13 +259,13 @@ function npc_sells(name) {
 }
 
 function target_plan() {
-	const target = CONFIG.upgrade_target;
+	const target = upgrade_target();
 	const profile = target_profile(target.name);
 	return item => item.name === target.name && (item.level || 0) < target.level ? profile : null;
 }
 
 function profile_plan() {
-	const target = upgrade_target_open() ? CONFIG.upgrade_target.name : null;
+	const target = upgrade_target_open() ? upgrade_target().name : null;
 	return item => {
 		const profile = UPGRADE_PROFILE[item.name];
 		return profile && item.name !== target && (item.level || 0) < profile.max_level ? profile : null;
@@ -276,7 +277,7 @@ async function upgrade_target_pass(abandoned) {
 	const progressed = await upgrade_pass(abandoned, target_plan());
 
 	if (progressed && !upgrade_target_open()) {
-		const target = CONFIG.upgrade_target;
+		const target = upgrade_target();
 		game_log(`🎯 Upgrade target reached: ${target.count}x ${target.name} +${target.level}.`, "limegreen");
 	}
 	return progressed;
@@ -335,7 +336,7 @@ async function withdraw_upgradeable_items() {
 		return;
 	}
 
-	const target = upgrade_target_open() ? CONFIG.upgrade_target : null;
+	const target = upgrade_target_open() ? upgrade_target() : null;
 	if (target) {
 		const level_counts = bank_level_counts(bank_data, target.name, target.level);
 		for (const level of Object.keys(level_counts).map(Number).sort((a, b) => b - a)) {
@@ -369,7 +370,7 @@ async function withdraw_upgradeable_items() {
 }
 
 function has_upgradeable_items(packs) {
-	const target = CONFIG.upgrade_target;
+	const target = upgrade_target();
 	if (upgrade_target_open() && Object.keys(bank_level_counts(packs, target.name, target.level)).length) return true;
 
 	for (const item_name in UPGRADE_PROFILE) {
@@ -615,7 +616,7 @@ function target_base_odds(target) {
 }
 
 function upgrade_buy_count() {
-	const target = CONFIG.upgrade_target;
+	const target = upgrade_target();
 	if (!upgrade_target_open() || !npc_sells(target.name)) return 0;
 	const held = held_items(target.name);
 	if (held.some(it => (it.level || 0) < target.level)) return 0;
@@ -633,7 +634,7 @@ function can_buy_for_upgrade() {
 }
 
 async function buy_for_upgrade() {
-	const item_name = CONFIG.upgrade_target.name;
+	const item_name = upgrade_target().name;
 	const purchases = Array.from({ length: upgrade_buy_count() }, () =>
 		buy(item_name).then(() => true, e => {
 			catcher(e, "buy_for_upgrade: " + item_name);
