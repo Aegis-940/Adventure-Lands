@@ -89,6 +89,14 @@ Single ownership was the goal; the swap rate was not ours to trade away.
 transient skill procedures, which is what the arbiter is for. The zapper left that list on
 2026-10-07: it is worn for a whole scorpion fight, so it is a persistent `ring` rule on the healer.
 
+**The transient procedures share one shape (2026-10-15, Overhaul 3.1).** Scare, stomp, the
+temporal surge and the swing burst (cleave and sugar rush) each hand-rolled claim, plan, emit and
+release. They now call `equip_burst({ owner, priority, arm, between, then, hold, restore })`, so
+every claim, every equipment emit and the restore-after-the-skill rule live in Equipment Manager.
+Riff's broom/book and gathering tools went through raw `equip()`/`unequip()` by bag index; they
+are sets equipped through `equip_once()` now. Nothing outside Equipment Manager changes what is
+worn.
+
 ### Before
 
 Split nine ways
