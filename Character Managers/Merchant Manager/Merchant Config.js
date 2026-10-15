@@ -92,11 +92,20 @@ var PARTY = CONFIG.party.members;
 var merchant_task = "Idle";
 var merchant_task_generation = 0;
 
-function begin_task(label) {
+function set_task(label) {
 	merchant_task = label;
+}
+
+function begin_task(label) {
+	set_task(label);
 	return merchant_task_generation;
 }
 
 function end_task(generation) {
-	if (generation === merchant_task_generation) merchant_task = "Idle";
+	if (generation === merchant_task_generation) set_task("Idle");
+}
+
+function abandon_task() {
+	set_task("Idle");
+	merchant_task_generation++;
 }

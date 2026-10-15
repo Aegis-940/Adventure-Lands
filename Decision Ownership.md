@@ -242,9 +242,12 @@ The two suspected splits are neither, and this was checked rather than assumed:
 - **Dungeons short-circuit ahead of the arbiter.** `dungeon_moving()` is checked in `main_tick`
   before `travel_arbiter`, so dungeon routing and `movement_goal()` are mutually exclusive.
 
-Untidy but not a decision defect: `merchant_task` is written from six places across four files. It
-is a status label the watchdog reads, not the state machine's state — though the watchdog does act
-on it, so it is not purely cosmetic.
+`merchant_task` is a status label the watchdog reads, not the state machine's state, though the
+watchdog does act on it. It used to be written from six places across four files. Since Overhaul
+3.5 its one writer is `set_task()` in Merchant Config: a task takes it with `begin_task(label)`
+(which returns the generation) and gives it back with `end_task(generation)`, and the watchdog's
+forced reset is `abandon_task()`, which also bumps the generation so the stuck task sees it was
+abandoned.
 
 ---
 

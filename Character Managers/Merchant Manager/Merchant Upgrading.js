@@ -672,8 +672,7 @@ async function upgrade_pass(abandoned, plan) {
 
 async function auto_upgrade() {
 
-	merchant_task = "Upgrading";
-	const my_generation = merchant_task_generation;
+	const my_generation = begin_task("Upgrading");
 	const abandoned = () => my_generation !== merchant_task_generation;
 
 	try {
@@ -730,7 +729,7 @@ async function auto_upgrade() {
 	} catch (e) {
 		catcher(e, "auto_upgrade");
 	} finally {
-		if (!abandoned()) merchant_task = "Idle";
+		end_task(my_generation);
 	}
 }
 

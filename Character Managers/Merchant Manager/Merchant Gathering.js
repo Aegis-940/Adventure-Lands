@@ -8,8 +8,7 @@ var GATHERING_MAX_COOLDOWN_RETRIES = 15;
 
 async function handle_gathering_state(tool_name, skill_name, spot, tolerance, task_label) {
 	if (merchant_task !== "Idle") return;
-	merchant_task = task_label;
-	const my_generation = merchant_task_generation;
+	const my_generation = begin_task(task_label);
 	let cooldown_retries = 0;
 	try {
 		const tool_available = await ensure_tool_available(tool_name);
@@ -101,7 +100,7 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 			} catch (e) {
 				catcher(e, `handle_gathering_state(${skill_name}): equip_default_gear`);
 			}
-			merchant_task = "Idle";
+			set_task("Idle");
 			game_log(`🔁 ${task_label} cycle finished, back to Idle.`, "#888");
 		}
 	}
