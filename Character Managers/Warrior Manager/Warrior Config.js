@@ -150,7 +150,7 @@ var equipment_sets = {
 	],
 	panic: PANIC_ORB_SET,
 	orb_dps: [
-		{ item_name: "cave_loaded_die", slot: "orb", level: 1, l: "l" },
+		{ item_name: "cave_loaded_die", slot: "orb", level: 2, l: "l" },
 	],
 	orb_luck: [
 		{ item_name: "rabbitsfoot", slot: "orb", level: 2, l: "l" },
