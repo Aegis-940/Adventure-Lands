@@ -118,7 +118,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | File | Role |
 |------|------|
 | `Widget Helpers.js` | **First stage.** `register_widget()`, toprightcorner buttons, `CLASS_COLORS`, coop-share and rolling-window helpers, `make_draggable()` |
-| `Game Log.js` | **First stage.** The one log window; everything goes through `game_log()` |
+| `Game Log.js` | **First stage.** The one log window; everything goes through `game_log()`. `log_msg(level, msg)` gives the colour and prefix by level and counts warnings and errors |
 | `DPS Meter.js`, `Gold Meter.js`, `XP Meter.js`, `CC Meter.js` | Overlays |
 | `Boss Contribution.js` | Coop points and loot share of everyone on our boss |
 | `Kill Tracker.js` | kpm/kph/kpd from `kill_credit` |

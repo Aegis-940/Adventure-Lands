@@ -572,7 +572,9 @@ Loaded in the awaited first stage with `Global Config.js`, so everything else ma
 ### `Game Log.js`
 
 Loaded in the awaited first stage, so `al_log_push()` is guaranteed on the error path. It is the one log window: it wraps `parent.add_log`, adds timestamps, category filters (gold/kills/items/errors) and the Log/Filtered tabs, and resizes `#gamelog` 50% wider (leftward, over the canvas) and 25% taller. It self-starts at load. There is no `log()` any more; everything goes through `game_log()`.
+
 
+**Levels (Overhaul 4.7).** `log_msg(level, msg)` takes `debug`, `info`, `event`, `warn` or `error`, and writes through `game_log()` with that level's colour and prefix (`⚠️ ` for warn, `❌ ` for error). Warnings and errors are also counted by level (`log warn`, `log error`). It is not called `log` because the game's runner already defines `log(message, color)`. Call sites move to it when their file is touched for its own reason (D3) or in the 6.2 sweep. Until that sweep ends, Error Log keeps recording `game_log` lines by their emoji prefix as well.
 ### `Boss Contribution.js`
 
 Coop boss contribution overlay, after Crowns3bc's. It shows every visible player's `s.coop.p` on the same boss as us (`s.coop.id`), with the loot share the server will award: `p^0.65 / (0.1 + Σp^0.65)`, from `issue_monster_awards()`. A share at or under 0.25% earns no drop and shows in red. Hidden while no one in sight has coop points.

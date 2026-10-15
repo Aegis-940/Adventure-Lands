@@ -622,7 +622,7 @@ One normalised outcome handler: `hit`, `action` and `kill_credit` subscribed onc
 
 ### 4.7 Log levels
 
-`log(level, msg)` with `info`, `warn`, `error`, `event` and `debug`, with colour and prefix from the level. `game_log(msg, color)` stays as the underlying writer. `warn` and `error` are counted into the flight recorder by level, which replaces Error Log's emoji-prefix guessing. Call sites are converted per D3; the rest are swept in 6.2.
+`log_msg(level, msg)` (the runner already defines `log`) with `info`, `warn`, `error`, `event` and `debug`, with colour and prefix from the level. `game_log(msg, color)` stays as the underlying writer. `warn` and `error` are counted into the flight recorder by level, which replaces Error Log's emoji-prefix guessing. Call sites are converted per D3; the rest are swept in 6.2.
 
 ### Phase 4 checklist
 
@@ -632,7 +632,7 @@ One normalised outcome handler: `hit`, `action` and `kill_credit` subscribed onc
 - [x] 4.4 one outcome feed; damage and kills attributed to decisions (on `overhaul`: attributed per window by hit `source`, which is what question 1 needs; per-projectile linking was not needed. Combat Sampling keeps its own handlers, because the in-flight ledger must run first and exactly)
 - [x] 4.5 `decisions` table and the six question commands (on `overhaul`: `skills`, `weapons`, `pulls`, `time`, `before-danger`; `experiment` comes with 4.6. The status page shows skills and weapons. `weapons` gives damage per hit, not per second, because the damage windows aren't time worn)
 - [x] 4.6 experiment mechanism (none running) (on `overhaul`: `Core Systems/Experiments.js`, an `EXPERIMENTS` table rather than a registration call, so nothing runs at load; `Data Store.py experiment NAME`, checked on synthetic windows)
-- [ ] 4.7 `log(level, msg)`
+- [x] 4.7 `log_msg(level, msg)` (on `overhaul`, in Game Log; emoji-prefix recording stays until the 6.2 sweep converts the call sites)
 
 **Exit:** for any day since 4.5 shipped, the store alone answers questions 1–5 without the live game, and every lane is within its budget. Every harness pin is identical. A first experiment is proposed from the data, not run: the user decides.
 
@@ -726,7 +726,7 @@ Dropped from the first draft: re-ordering every file's sections to a standard sh
 | Config | role `CONFIG` local; defaults at the call site for encounter settings; shared defaults only for values identical across roles |
 | Monsters | named only in encounters and the allow-listed enumerations |
 | Server calls | only in actuators |
-| Logging | `log(level, msg)` for people (once Phase 4 exists), `errlog_*`/events for data |
+| Logging | `log_msg(level, msg)` for people, `errlog_*`/the decision log for data |
 | Comments | none; reasoning in Design Notes; commented-out code kept verbatim |
 | Syntax | no `??=`/`||=`/`&&=`; optional chaining is fine (already used) |
 
@@ -791,7 +791,7 @@ Reloads are the user's; a reload may carry any number of pushes. Live measuremen
 
 - **D1 Folder name: `Encounters/`.** It covers spawns, places and bosses, not only single monsters.
 - **D2 Dungeons stay a separate system.** Dungeon flags are not folded into encounters. Inside an active dungeon its flags win over encounter answers, and the resolvers are made consistent about that order (2.8.8).
-- **D3 Log levels: yes, converted gradually.** `log(level, msg)` arrives in Phase 4. Call sites are converted when their file is touched for a non-mechanical reason, and the remainder is swept in 6.2.
+- **D3 Log levels: yes, converted gradually.** `log_msg(level, msg)` arrived in Phase 4.7. Call sites are converted when their file is touched for a non-mechanical reason, and the remainder is swept in 6.2.
 - **D5 `Tests/` is committed; raw snapshots are not.**
   - The repo is public (jsDelivr serves it), so `snapshots.jsonl` stays machine-local and gitignored like the other archives.
   - `node Tests/Harness.js promote <id>` copies a chosen snapshot into `Tests/fixtures/`. On the way it replaces every non-party player name with a stable hash, drops chat and trade data, and keeps only the fields deciders read.

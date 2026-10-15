@@ -293,4 +293,22 @@ function start_game_log() {
 // BOOT
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// LOG LEVELS — log_msg(level, msg): colour and prefix come from the level, and warnings and errors are counted by level
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const LOG_LEVELS = {
+	debug: { color: "#888", prefix: "" },
+	info: { color: "#CCCCCC", prefix: "" },
+	event: { color: "#66ccff", prefix: "" },
+	warn: { color: "#FFA500", prefix: "⚠️ " },
+	error: { color: "#FF3333", prefix: "❌ " },
+};
+
+function log_msg(level, msg) {
+	const style = LOG_LEVELS[level];
+	if (level === "warn" || level === "error") errlog_count("log " + level);
+	game_log(style.prefix + msg, style.color);
+}
+
 on_boot("Game Log", start_game_log);
