@@ -227,4 +227,5 @@ Loader facts:
 - [`Design Notes.md`](Design%20Notes.md): why each system works the way it does
 - [`Game API Reference.md`](Game%20API%20Reference.md): game engine internals (API signatures and reject reasons, socket events, `character`/`G`/`S`, combat and movement internals). Check it before changing combat, movement or item code.
 - [`Architecture.md`](Architecture.md), [`Diagnostics.md`](Diagnostics.md) (reading `errors.json`), [`Decision Ownership.md`](Decision%20Ownership.md), [`Loop Cadence.md`](Loop%20Cadence.md)
+- [`Cleanup Plan.md`](Cleanup%20Plan.md): the current plan, removing dead code, guards and old docs and using the game's native functions. Check its status table before cleanup work, and update it in the same commit as each step
 - [`Overhaul Plan.md`](Overhaul%20Plan.md): the phased restructure (kernel, telemetry bus, world model, encounters, deciders/actuators). Check its status table before structural work, and update it in the same commit as each step
