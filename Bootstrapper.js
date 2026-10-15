@@ -27,6 +27,10 @@
 	const scripts = [
 		"Core Systems/Error Log.js",
 		"Core Systems/Movement Manager.js",
+		"Core Systems/Travel Arbiter.js",
+		"Core Systems/Town Shortcut.js",
+		"Core Systems/Stuck Escape.js",
+		"Core Systems/Movement Goal.js",
 		"Encounters/Bscorpion.js",
 		"Encounters/Rime Djinn.js",
 		"Core Systems/Combat Utilities.js",

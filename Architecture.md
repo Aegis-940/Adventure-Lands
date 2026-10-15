@@ -37,7 +37,11 @@ Core Systems/Global Config.js     ← awaited FIRST (with Widget Helpers + Game 
     └── Tick rates / cooldowns
 
 Core Systems/*.js                 ← loaded in parallel as real <script> tags
-    ├── Movement Manager.js       movement_goal() + movement_local(), smarter_move(), travel_arbiter(), stuck escape
+    ├── Movement Manager.js       smarter_move(), walk(), the town cast, the route resplice
+    ├── Travel Arbiter.js         travel_arbiter(): journeys, failures, escalation to town, parked routes
+    ├── Town Shortcut.js          town teleport while walking, follower copies and joins, landing splice
+    ├── Stuck Escape.js           last-resort town out of a pocket the pathfinder cannot leave
+    ├── Movement Goal.js          movement_goal() (where to go) + movement_local() (where to stand)
     ├── Combat Utilities.js       monster/entity queries, boss + party state predicates
     ├── Combat Formulas.js        damage/heal arithmetic (defense, burn, splash, heal pipeline)
     ├── Combat Sampling.js        hit/action socket samplers, damage + heal windows

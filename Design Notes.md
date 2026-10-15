@@ -223,9 +223,9 @@ Awaited first, together with `Widget Helpers.js` and `Game Log.js`, so everythin
 - the no-op `errlog_*` stubs, plus stubs for the one-role-only `request_delivery`, `model_prediction`, `get_character_state` and `upgrade_slot_for`
 - the `var` declarations of every cross-character symbol (`home`, `destination`, `CONFIG`, `cache`, `ITEMS_TO_KEEP`, `EQUIPMENT_RULES`, `PANIC_BROADCAST_TARGETS`, the panic flags), so no reader needs a `typeof` guard
 
-### `Movement Manager.js` — movement
+### Movement: `Movement Goal.js`, `Travel Arbiter.js`, `Movement Manager.js`, `Stuck Escape.js`
 
-The two movement owners are `movement_goal()` (where to go: the one priority list) and `movement_local()` (where to stand). The machinery they drive is `smarter_move()`, the travel arbiter (`travel_arbiter()`), `move_to_character()` and the stuck escape.
+The two movement owners are `movement_goal()` (where to go: the one priority list) and `movement_local()` (where to stand), in `Movement Goal.js`. The machinery they drive is the travel arbiter (`travel_arbiter()`, `Travel Arbiter.js`), `smarter_move()`, `walk()` and the route resplice (`Movement Manager.js`), and the stuck escape (`Stuck Escape.js`). One file was 934 lines until 10-16 (Overhaul 6.1); the split moved code without changing it, except that the town cast is one helper (`town_teleport()`) and the arbiter's counted failures are compared at the call, so no file reads another's constants at load.
 
 **Locals are looked up, not chained.** `movement_local()` finds the goal's `local` in `LOCAL_STEPS` (step, trail, passage, wait, evade, kite, event, loot, keep), then in the encounters' `steps` (`encounter_step()`), and otherwise falls back to the role's farm step. So an encounter brings its own positioning, as bscorpion brings `camp`, and core movement doesn't name it. `kite` stays in core: it's World Events' generic answer to any event with a `kite` ring in `EVENT_LOCATIONS`, of which crabxx is today's only one. A goal that's a fighting position says so with `fight: true`, which keeps combat running (`should_pause_combat_loop()`) and takes the party out of formation (`party_in_formation()`), as the camp check did by name.
 
@@ -249,7 +249,7 @@ The two movement owners are `movement_goal()` (where to go: the one priority lis
 
 Why the native town edge is not used is in [`Game API Reference.md`](Game%20API%20Reference.md).
 
-### `Movement Manager.js` — town shortcut
+### `Town Shortcut.js`
 
 `town_shortcut_check()` runs every main tick. It uses town for speed and never touches `smart.use_town`.
 

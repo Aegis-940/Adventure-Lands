@@ -60,7 +60,11 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | File | Role |
 |------|------|
 | `Global Config.js` | **First stage.** Constants, party constants, shared fighter defaults, `var` declarations of every cross-character symbol, and no-op stubs |
-| `Movement Manager.js` | `movement_goal()` (where to go) and `movement_local()` (where to stand), `smarter_move()`, the travel arbiter, parked routes, `walk()`, stuck escape, and the town shortcut |
+| `Movement Manager.js` | `smarter_move()`, `walk()`, `local_move()`, `town_teleport()` and the route resplice ahead of the game's `smart_move_logic` |
+| `Travel Arbiter.js` | `travel_arbiter()`, the one owner of long-range movement: journeys, failure counting, escalation to the town edge, parked routes |
+| `Town Shortcut.js` | `town_shortcut_check()`: the town teleport cast while walking, followers copying or joining the leader's, the landing splice |
+| `Stuck Escape.js` | `stuck_escape_check()`: town out of a pocket the pathfinder cannot leave |
+| `Movement Goal.js` | `movement_goal()` (where to go: the one priority list) and `movement_local()` (where to stand: `LOCAL_STEPS`, then the encounters' steps) |
 | `Movement Positioning.js` | `best_orbit_spot()`, `reposition_center()`, `orbit_reposition()`: scoring candidate spots around a centre. `orbit_away()`: the ring walk shared by the bscorpion camp and the crabxx kite |
 | `Party Cohesion.js` | `follow_goal()` with the leader's breadcrumb trail, `party_cohesion_hold()`, `leader_position()`. Consulted by `movement_goal()`; moves nothing itself |
 | `World Events.js` | Live boss/seasonal targets and the goal that walks the party to them |

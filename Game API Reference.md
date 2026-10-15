@@ -899,7 +899,7 @@ and `node/server.js`:
   the following `player` update clears it. It also calls `decay_s(player, 4000)` and adds 812ms of
   `penalty_cd`.
 
-So the bot never sets `smart.use_town` for speed. The town shortcut in `Movement Manager.js` keeps the
+So the bot never sets `smart.use_town` for speed. The town shortcut in `Town Shortcut.js` keeps the
 search walk-only, casts the channel *while the walk continues* when the route passes in sight of
 `spawns[0]` and the time saved exceeds the channel by 3s, and on landing splices the route to the
 best point reachable from the spawn. An interrupted channel costs nothing — the walk never stopped.
