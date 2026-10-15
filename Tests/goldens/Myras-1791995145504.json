@@ -86,6 +86,14 @@
    "result": 40,
    "sent": []
   },
+  "action_tick": {
+   "result": 40,
+   "sent": []
+  },
+  "action_tick ready": {
+   "result": 40,
+   "sent": []
+  },
   "local": {
    "result": null,
    "sent": [

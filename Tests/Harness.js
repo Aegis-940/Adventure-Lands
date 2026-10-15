@@ -522,9 +522,10 @@ async function run_local(fixture) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const TICKS = {
-	warrior: ["skill_tick", "skill_tick ready", "skill_tick ready calls"],
-	priest: ["skill_tick", "skill_tick ready", "skill_tick ready calls", "zap_tick", "zap_tick ready", "zap_tick ready calls"],
-	ranger: ["skill_tick", "skill_tick ready"],
+	warrior: ["skill_tick", "skill_tick ready", "skill_tick ready calls", "action_tick", "action_tick ready"],
+	priest: ["skill_tick", "skill_tick ready", "skill_tick ready calls", "zap_tick", "zap_tick ready", "zap_tick ready calls",
+		"action_tick", "action_tick ready"],
+	ranger: ["skill_tick", "skill_tick ready", "action_tick", "action_tick ready"],
 };
 
 const TICK_HANDLERS = {

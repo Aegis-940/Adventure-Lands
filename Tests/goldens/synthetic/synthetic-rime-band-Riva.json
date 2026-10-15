@@ -72,6 +72,30 @@
     }
    ]
   },
+  "action_tick": {
+   "result": 5,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "piercingshot",
+      "target": "j2"
+     }
+    }
+   ]
+  },
+  "action_tick ready": {
+   "result": 5,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "piercingshot",
+      "target": "j2"
+     }
+    }
+   ]
+  },
   "local": {
    "result": null,
    "sent": [

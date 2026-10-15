@@ -238,6 +238,14 @@
     }
    ]
   },
+  "action_tick": {
+   "result": 10,
+   "sent": []
+  },
+  "action_tick ready": {
+   "result": 10,
+   "sent": []
+  },
   "local": {
    "result": null,
    "sent": [

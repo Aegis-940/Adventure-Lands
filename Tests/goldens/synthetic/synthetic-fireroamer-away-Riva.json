@@ -43,6 +43,36 @@
    "result": 40,
    "sent": []
   },
+  "action_tick": {
+   "result": 5,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "3shot",
+      "target": [
+       "c2",
+       "c1"
+      ]
+     }
+    }
+   ]
+  },
+  "action_tick ready": {
+   "result": 5,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "3shot",
+      "target": [
+       "c2",
+       "c1"
+      ]
+     }
+    }
+   ]
+  },
   "local": {
    "result": null,
    "sent": [

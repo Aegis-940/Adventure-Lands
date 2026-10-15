@@ -238,6 +238,28 @@
     }
    ]
   },
+  "action_tick": {
+   "result": 10,
+   "sent": [
+    {
+     "event": "attack",
+     "payload": {
+      "target": "8159240"
+     }
+    }
+   ]
+  },
+  "action_tick ready": {
+   "result": 10,
+   "sent": [
+    {
+     "event": "attack",
+     "payload": {
+      "target": "8159240"
+     }
+    }
+   ]
+  },
   "local": {
    "result": null,
    "sent": []

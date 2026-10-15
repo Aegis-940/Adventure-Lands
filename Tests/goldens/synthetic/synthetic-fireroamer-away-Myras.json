@@ -114,6 +114,28 @@
     }
    ]
   },
+  "action_tick": {
+   "result": 10,
+   "sent": [
+    {
+     "event": "attack",
+     "payload": {
+      "target": "c1"
+     }
+    }
+   ]
+  },
+  "action_tick ready": {
+   "result": 10,
+   "sent": [
+    {
+     "event": "attack",
+     "payload": {
+      "target": "c1"
+     }
+    }
+   ]
+  },
   "local": {
    "result": null,
    "sent": [

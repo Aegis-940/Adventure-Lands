@@ -223,6 +223,34 @@
     }
    ]
   },
+  "action_tick": {
+   "result": 50,
+   "sent": []
+  },
+  "action_tick ready": {
+   "result": 10,
+   "sent": [
+    {
+     "event": "attack",
+     "payload": {
+      "target": "8130375"
+     }
+    },
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 38,
+       "slot": "mainhand"
+      },
+      {
+       "num": 39,
+       "slot": "offhand"
+      }
+     ]
+    }
+   ]
+  },
   "local": {
    "result": null,
    "sent": []

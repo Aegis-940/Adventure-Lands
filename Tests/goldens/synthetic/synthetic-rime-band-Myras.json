@@ -123,6 +123,28 @@
     }
    ]
   },
+  "action_tick": {
+   "result": 10,
+   "sent": [
+    {
+     "event": "attack",
+     "payload": {
+      "target": "j2"
+     }
+    }
+   ]
+  },
+  "action_tick ready": {
+   "result": 10,
+   "sent": [
+    {
+     "event": "attack",
+     "payload": {
+      "target": "j2"
+     }
+    }
+   ]
+  },
   "local": {
    "result": null,
    "sent": [

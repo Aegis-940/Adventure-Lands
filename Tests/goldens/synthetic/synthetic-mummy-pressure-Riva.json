@@ -47,6 +47,42 @@
    "result": 40,
    "sent": []
   },
+  "action_tick": {
+   "result": 5,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "5shot",
+      "target": [
+       "m1",
+       "m2",
+       "m3",
+       "m4",
+       "m5"
+      ]
+     }
+    }
+   ]
+  },
+  "action_tick ready": {
+   "result": 5,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "5shot",
+      "target": [
+       "m1",
+       "m2",
+       "m3",
+       "m4",
+       "m5"
+      ]
+     }
+    }
+   ]
+  },
   "local": {
    "result": null,
    "sent": [

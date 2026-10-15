@@ -55,6 +55,28 @@
     }
    ]
   },
+  "action_tick": {
+   "result": 5,
+   "sent": [
+    {
+     "event": "attack",
+     "payload": {
+      "target": "7819545"
+     }
+    }
+   ]
+  },
+  "action_tick ready": {
+   "result": 5,
+   "sent": [
+    {
+     "event": "attack",
+     "payload": {
+      "target": "7819545"
+     }
+    }
+   ]
+  },
   "local": {
    "result": 1,
    "sent": [

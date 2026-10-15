@@ -50,6 +50,21 @@
     }
    ]
   },
+  "action_tick": {
+   "result": 50,
+   "sent": []
+  },
+  "action_tick ready": {
+   "result": 5,
+   "sent": [
+    {
+     "event": "attack",
+     "payload": {
+      "target": "8101308"
+     }
+    }
+   ]
+  },
   "local": {
    "result": 1,
    "sent": [

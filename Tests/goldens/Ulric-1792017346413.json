@@ -238,6 +238,54 @@
     }
    ]
   },
+  "action_tick": {
+   "result": 10,
+   "sent": [
+    {
+     "event": "attack",
+     "payload": {
+      "target": "8101308"
+     }
+    },
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 11,
+       "slot": "mainhand"
+      },
+      {
+       "num": 37,
+       "slot": "offhand"
+      }
+     ]
+    }
+   ]
+  },
+  "action_tick ready": {
+   "result": 10,
+   "sent": [
+    {
+     "event": "attack",
+     "payload": {
+      "target": "8101308"
+     }
+    },
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 11,
+       "slot": "mainhand"
+      },
+      {
+       "num": 37,
+       "slot": "offhand"
+      }
+     ]
+    }
+   ]
+  },
   "local": {
    "result": 1,
    "sent": [

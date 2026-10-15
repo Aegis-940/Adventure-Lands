@@ -44,6 +44,38 @@
    "result": 40,
    "sent": []
   },
+  "action_tick": {
+   "result": 5,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "3shot",
+      "target": [
+       "p1",
+       "p2",
+       "p3"
+      ]
+     }
+    }
+   ]
+  },
+  "action_tick ready": {
+   "result": 5,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "3shot",
+      "target": [
+       "p1",
+       "p2",
+       "p3"
+      ]
+     }
+    }
+   ]
+  },
   "local": {
    "result": null,
    "sent": [

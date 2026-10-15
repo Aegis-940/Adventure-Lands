@@ -95,6 +95,28 @@
     }
    ]
   },
+  "action_tick": {
+   "result": 10,
+   "sent": [
+    {
+     "event": "heal",
+     "payload": {
+      "target": "Myras"
+     }
+    }
+   ]
+  },
+  "action_tick ready": {
+   "result": 10,
+   "sent": [
+    {
+     "event": "heal",
+     "payload": {
+      "target": "Myras"
+     }
+    }
+   ]
+  },
   "local": {
    "result": null,
    "sent": [

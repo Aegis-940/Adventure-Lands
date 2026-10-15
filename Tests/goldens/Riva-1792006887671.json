@@ -46,6 +46,28 @@
    "result": 40,
    "sent": []
   },
+  "action_tick": {
+   "result": 50,
+   "sent": []
+  },
+  "action_tick ready": {
+   "result": 5,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "5shot",
+      "target": [
+       "7948920",
+       "7948901",
+       "7948899",
+       "7948900",
+       "7948933"
+      ]
+     }
+    }
+   ]
+  },
   "local": {
    "result": null,
    "sent": [
