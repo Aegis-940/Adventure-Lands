@@ -82,6 +82,7 @@
 		"Interface/Boss Contribution.js",
 		"Interface/Kill Tracker.js",
 		"Interface/Lucky Slot Tracker.js",
+		"Interface/Session Metrics.js",
 		"Interface/Metrics Graphs.js",
 		"Interface/Bank Viewer.js",
 		"Interface/Party Frames.js",

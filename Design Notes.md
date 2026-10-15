@@ -641,9 +641,9 @@ kpm/kph/kpd top buttons. The session kill rate is counted from the server's `kil
 
 **Counting once.** `q_data` is sent at each roll digit and again for success/failure with the same four digits, so a roll counts once per slot until a new upgrade starts there (fewer than four digits).
 
-### `Metrics Graphs.js`
+### `Session Metrics.js` and `Metrics Graphs.js`
 
-📊 popout, after Crowns3bc's: session gold, XP (carried across level-ups), party DPS by damage type, kills per mob, loot per item, and boss contribution as the server's loot share. Gold and XP samples are taken every 5s in the background, so the line charts have history when it opens. The rest renders only while it is open.
+📊 popout, after Crowns3bc's: session gold, XP (carried across level-ups), party DPS by damage type, kills per mob, loot per item, and boss contribution as the server's loot share. Session Metrics collects the numbers and feeds the status page; Metrics Graphs draws them. Gold and XP samples are taken every 5s in the background, so the line charts have history when it opens. The rest renders only while it is open. They were one file until 10-16 (Overhaul 6.1). Metrics Graphs is optional and Session Metrics is not, so the status page's Session section keeps its feed if the popout fails to load.
 
 **Live feed.** Every second each character POSTs `metrics_snapshot()` to the sink's `/live`: the same session totals, damage rates per party member and type, the top 12 coop contributors with their loot share, the last 5 minutes of gold/XP samples, and live vitals (HP/MP, level progress, map, goal, target, panic, wallet). The sink keeps only the latest per character, in memory, for the status page's Session section. The goal comes from the character's own state cache, not `current_goal_label()`: that lives in `Character Runner.js`, in the same parallel batch, and the 1s interval could reach it before it loads. A failed post pauses the feed for 30s, and a post still in flight skips the next tick.
 

@@ -129,7 +129,8 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | `Boss Contribution.js` | Coop points and loot share of everyone on our boss |
 | `Kill Tracker.js` | kpm/kph/kpd from `kill_credit` |
 | `Lucky Slot Tracker.js` | Bayesian search for Riff's lucky upgrade slot (⚙️ → 🍀); `upgrade_slot_for()` |
-| `Metrics Graphs.js` | 📊 session graphs popout, and the once-a-second live feed of the same numbers to the status page |
+| `Session Metrics.js` | This session's gold, XP, kills, loot and per-member damage, and the once-a-second live feed of them to the status page. Required, so the feed survives the popout failing |
+| `Metrics Graphs.js` | 📊 session graphs popout over Session Metrics' numbers (optional) |
 | `Stats Window.js`, `Settings Window.js`, `Party Frames.js`, `Pause Button.js` | Stats/gold graph, the ⚙️ window over `Settings.js` (Save applies live), party HP, pause automation |
 | `Bank Viewer.js`, `Bank Sort Order.js` | Bank UI (plus the 🏧 and 🔄 toolbar buttons) and sort order |
 
