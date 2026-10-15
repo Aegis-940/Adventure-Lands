@@ -114,6 +114,7 @@ Character Managers/Merchant Manager/  ← Riff only; no combat files
     ├── Merchant Party.js         mluck, party membership, the delivery run
     ├── Merchant Upkeep.js        potions, loot collection and buffing, on their own 1Hz loop
     ├── Merchant Upgrading.js     item upgrade profiles and automation
+    ├── Merchant Lolipop Push.js  the on-demand ololipop +8 → +10 run
     ├── Merchant Crafting.js      crafting logic and batch orchestration
     ├── Merchant Task Loop.js     PRIORITY_CHECKS, set_state(), loop_controller()
     │                             — MUST load after every file it names

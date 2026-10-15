@@ -114,6 +114,7 @@
 		"Character Managers/Ranger Manager/Ranger.js"],
 
 		"Riff": ["Character Managers/Merchant Manager/Merchant Upgrading.js",
+		"Character Managers/Merchant Manager/Merchant Lolipop Push.js",
 		"Character Managers/Merchant Manager/Merchant Crafting.js",
 		"Character Managers/Merchant Manager/Merchant Config.js",
 		"Character Managers/Merchant Manager/Merchant Stand.js",

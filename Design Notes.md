@@ -791,7 +791,7 @@ The Crafting toggle carries one craft target (`AL_merchant_craft_target`), which
 
 The settings window saves on **Save** (applied at once, since every setting but the farm targets is read live; see `Settings.js`), **Reload All** (every character, staggered as before) or **Reload One** (this window's character only); **Close** discards.
 
-### `Merchant Upgrading.js` — lolipop push
+### `Merchant Lolipop Push.js`
 
 `lolipop_push()` in Riff's console runs every ololipop in stock from +8 to +10; `lolipop_push_stop()` ends it. The call only sets `lolipop_run.active` (localStorage `AL_lolipop_push`, so a reload resumes it). The `lolipops` priority, after banking and before upgrading, then runs one `lolipop_push_step()` per pass of the task loop, so deliveries still interleave. A step stocks the kit from the bank, walks HOME (the server refuses upgrades inside the bank), fails the glolipops that are due, graces the ololipop and rolls it.
 

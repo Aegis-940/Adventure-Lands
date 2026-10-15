@@ -680,7 +680,7 @@ Each `is_/has_/should_/can_` predicate either becomes a snapshot field, becomes 
 
 Each split is behaviour-neutral, one file per push, and only for files someone is about to work in again:
 
-- `Merchant Upgrading.js` (968): profiles, selection, execution, lolipop push
+- `Merchant Upgrading.js` (968): profiles, selection, execution, lolipop push. **Lolipop push done 2026-10-16** (`Merchant Lolipop Push.js`, 241; Upgrading 735). The rest stays one file until someone works in it
 - `Movement Manager.js` (928): goal, travel and arbiter, local dispatch, stuck escape, town shortcut. **Done 2026-10-16**: Movement Manager (219), Travel Arbiter (216), Town Shortcut (288), Stuck Escape (76), Movement Goal (133)
 - `Dreams Cave.js` (897): entry and voting, escorts, fighting, exit
 - `Metrics Graphs.js` (803): live feed vs dashboard UI
