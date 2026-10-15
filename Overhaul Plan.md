@@ -58,7 +58,7 @@ When this plan is done:
 
 - **The characters keep running.** The bot is live for the whole plan. The unit of live measurement is a reload, not a push (D6).
 - **`main` is live within hours.** The bot reloads itself at x:55 whenever `(hour + 1) % 4 === 0` (`Maintenance.js` `in_reset_window`: 3:55, 7:55, 11:55, 15:55, 19:55, 23:55), and the watchdog reloads silent windows. Whatever is on `main` then runs whether or not anyone is watching (D10).
-- **Stage on `overhaul`, merge while watched.** Any change to a file the bot loads goes to the `overhaul` branch. It reaches `main` only when the user is present to watch the next reload. The exceptions, which may go straight to `main`, are files the bot never loads (`Tools/`, `Tests/`, `.md`) and changes that only add telemetry and cannot throw into their callers (0.2, 0.5).
+- **Stage on `overhaul`, merge while watched.** *(Retired 2026-10-15: the branch was merged and deleted at the user's call, and work now happens on `main`.)* Any change to a file the bot loads goes to the `overhaul` branch. It reaches `main` only when the user is present to watch the next reload. The exceptions, which may go straight to `main`, are files the bot never loads (`Tools/`, `Tests/`, `.md`) and changes that only add telemetry and cannot throw into their callers (0.2, 0.5).
 - **Don't touch the current farm's behaviour.** While a spawn is the farm (bscorpion at desertland as of 2026-10-15; mummies at spookytown until then), the only step allowed to touch its code paths is a pure move with identical goldens recorded from live fixtures at that spawn. Anything that changes behaviour at the current farm waits until the farm moves, or ships only with the user's explicit go-ahead.
 - **One step per push.** A regression has exactly one suspect.
 - **Behaviour-neutral steps are proven neutral offline** by golden decisions (Phase 0) before the push, and watched live afterwards; the ledger confirms per reload or per phase, not per push (D4).
@@ -737,7 +737,7 @@ Dropped from the first draft: re-ordering every file's sections to a standard sh
 1. `python Tools/Lint.py` with no new problems, and the ratchet not increased (lower the baseline in the same commit if a count dropped).
 2. `node Tests/Harness.js load`: all four roles boot.
 3. `node Tests/Harness.js check`: goldens identical, or re-recorded with the reason in the commit message.
-4. Commit. A change to a file the bot loads is pushed to `overhaul`, not `main` (D10). A `main` push is purged and verified on jsDelivr as in `CLAUDE.md` (stop after one re-purge; the pinned `@sha` serves immediately).
+4. Commit on `main`, which is the deploy (see `CLAUDE.md`), and push it as the backup.
 5. Stop. `overhaul` is merged to `main` only with the user present, and the next reload, theirs or the x:55 one, is then watched. Several pushes may stack up before a merge; that is expected.
 6. After the next reload, watch `errors.json` for new buckets and `danger.jsonl` for close calls over the first hour. Any new error bucket or death that names a changed subsystem is treated as `worse` without waiting for the ledger.
 7. When the D4 sample for the tier has accrued at the current home: `python "Tools/Data Store.py" compare <old> <new>`. Record the verdict against every step that went live in that reload. `worse` means revert the whole reload's steps, push and purge, then bisect offline with the harness before putting any of them back. Don't fix forward on top of a regression.
