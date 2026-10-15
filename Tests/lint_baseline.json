@@ -30,8 +30,6 @@
   "Interface/Bank Sort Order.js": 2
  },
  "monster_literals": {
-  "Character Managers/Healer Manager/Healer Equipment.js": 1,
-  "Character Managers/Warrior Manager/Warrior Equipment.js": 1,
   "Character Managers/Warrior Manager/Warrior Skills.js": 1,
   "Core Systems/Loot Management.js": 1
  },

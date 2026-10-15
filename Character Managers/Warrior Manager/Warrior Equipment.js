@@ -72,11 +72,11 @@ function model_prediction() {
 
 function resolve_warrior_orb() {
 	if (panicking || disengaging()) return "panic";
-	return gear_override("orb") || preferred_orb("orb_dps");
+	return encounter_gear("orb") || preferred_orb("orb_dps");
 }
 
 function resolve_warrior_weapon() {
-	return gear_override("weapon")
+	return encounter_gear("weapon")
 		|| resolve_weapon_set({ pool: warrior_weapon_pool(), width: 1, context: weapon_choice_context() });
 }
 
@@ -85,8 +85,3 @@ var EQUIPMENT_RULES = {
 	orb:    { kind: "set", resolve: resolve_warrior_orb },
 };
 
-var MONSTER_GEAR_OVERRIDES = {
-	rimedjinn: { orb: "orb_dps" },
-};
-
-var RIME_HOLD_GEAR = { weapon: "single" };

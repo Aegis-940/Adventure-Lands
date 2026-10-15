@@ -493,18 +493,6 @@ async function apply_equipment_rule(token, group, resolved) {
 	await equip_apply(token, sets);
 }
 
-function gear_override(group) {
-	if (group in RIME_HOLD_GEAR && rime_hold_gear_wanted()) return RIME_HOLD_GEAR[group];
-
-	const encountered = encounter_gear(group);
-	if (encountered) return encountered;
-
-	const at_home = destination && character.map === destination.map;
-	if (!at_home) return null;
-	const overrides = MONSTER_GEAR_OVERRIDES[home] || {};
-	return group in overrides ? overrides[group] : null;
-}
-
 function resolve_equipment_bail_reason() {
 	if (CONFIG.equipment.auto_swap_sets === false) return "auto_swap_sets disabled";
 	if (character.cc > COOLDOWNS.cc) return "cc above threshold";

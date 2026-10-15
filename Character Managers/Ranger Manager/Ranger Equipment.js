@@ -23,7 +23,7 @@ function weapon_choice_context(pool, width) {
 }
 
 function resolve_ranger_weapon() {
-	const override = gear_override("weapon");
+	const override = encounter_gear("weapon");
 	if (override) return override;
 
 	const pool = cache.targets.in_range;
@@ -38,7 +38,7 @@ function resolve_ranger_weapon() {
 
 function resolve_ranger_orb() {
 	if (panicking || disengaging()) return "panic";
-	return gear_override("orb") || preferred_orb(null);
+	return encounter_gear("orb") || preferred_orb(null);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -122,7 +122,7 @@ function mana_chest_wanted() {
 function resolve_ranger_chest() {
 	if (CONFIG.equipment.chest_swap_enabled === false) return null;
 
-	const override = gear_override("chest");
+	const override = encounter_gear("chest");
 	if (override) return override;
 
 	const sets = CONFIG.equipment.chest_sets || {};
@@ -176,4 +176,3 @@ var EQUIPMENT_RULES = {
 	orb:    { kind: "set", resolve: resolve_ranger_orb },
 };
 
-var RIME_HOLD_GEAR = { weapon: "single" };

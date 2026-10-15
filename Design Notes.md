@@ -50,7 +50,7 @@ An encounter is everything one monster, spawn or boss changes about how the part
 
 There are two kinds of answer:
 
-- **Context answers** (`gear`, `settings`) come from the encounters live right now. Encounter gear sits inside `gear_override()`, below the rime hold (not an encounter yet) and above the remaining `MONSTER_GEAR_OVERRIDES`. Inside an active dungeon its settings come first: every resolver asks the dungeon (`dungeon_setting()`, `dungeon_loadout()`) before `gear_override()`, and a dungeon flag that vetoes an action is checked beside `encounter_allows()`, so either can veto. A `spawn` encounter is live when `home` is one of its `homes` and the character is on the destination map, which is the rule `gear_override()` used. A `hazard` or `situation` encounter is live while its own `active(ctx)` says so. The highest tier answers (situation, then hazard, then spawn); an answer of `null` passes to the next. Two live encounters of the same tier answering the same question is a configuration error, counted once in the flight recorder and settled by encounter name.
+- **Context answers** (`gear`, `settings`) come from the encounters live right now. Every gear resolver asks `encounter_gear(group)` directly; `gear_override()`, `MONSTER_GEAR_OVERRIDES`, `BOSS_GEAR_OVERRIDES` and `RIME_HOLD_GEAR` folded into encounters on 2026-10-15. Inside an active dungeon its settings come first: every resolver asks the dungeon (`dungeon_setting()`, `dungeon_loadout()`) before `gear_override()`, and a dungeon flag that vetoes an action is checked beside `encounter_allows()`, so either can veto. A `spawn` encounter is live when `home` is one of its `homes` and the character is on the destination map, which is the rule `gear_override()` used. A `hazard` or `situation` encounter is live while its own `active(ctx)` says so. The highest tier answers (situation, then hazard, then spawn); an answer of `null` passes to the next. Two live encounters of the same tier answering the same question is a configuration error, counted once in the flight recorder and settled by encounter name.
 - **Mob answers** (`allows`, `rank`, `traits`) apply to the encounter's `mtypes` wherever the mob is met, live or not, so a porcupine is protected at any spawn. Any veto wins; ranks add. An encounter with only mob answers needs no tier and is never live.
 
 `traits` are the positive facts `allows` cannot say: `encounter_trait("tank", mob)` (Myras tanks it), `taunt`, `cleave_alone` (one in reach is enough to cleave), `hold_cleave`, `attack_if_targeted`, `agitate_pack`. `encounter_mtypes("tank")` lists every monster type with a trait, for code that searches by type.
@@ -143,6 +143,49 @@ Positioning for the desertland bscorpion/primling camp. It owns no movement loop
 
 **Measurement.** Every kill interval goes to the timeline as `bscorpion_kill`, so a change can be measured against the last session instead of remembered.
 
+### `Rime Djinn.js`
+
+The Djinn's shell, moved on 2026-10-15 from Combat Utilities (the shell predicates), Warrior Skills (the shell windows, the band logger, the deadline stomp) and Ranger Combat (`shelled_first()` and the shell shot). It was a pure relocation: every function kept its name and text, so every caller and the deadline stomp's hot path behave as before. Generic stomp (`stomp_wanted()`, `stomp_blocked()`, `fire_stomp()`, `handle_stomp()`) stays in Warrior Skills.
+
+Two encounters close the file. The `rimedjinn` spawn carries Ulric's `orb_dps` and Myras's `single_target`, `orb_dps` and `dps_chest`. The `rime shell` situation carries the hold weapon (`single`) for Ulric and Riva, decided on every call by `rime_hold_gear_wanted()`; it is live whenever a Djinn is in the entity list. Like Bscorpion.js the file is required: `must_not_touch()`, every fighter's targeting and Ulric's stomp call into it.
+
+Still to do from the plan, once live Djinn fixtures exist: the stomp as an encounter `step`, and the shell windows on `enter`/`leave`.
+
+#### The shell
+
+Stomp's first job is the Rime Djinn's shell (`mob.s.rimeshell`). At half HP the Djinn casts for 3s. Unless it is stunned or takes 5% of its max HP (64k–112k; the party deals ~10–15k/s), it fires a 20,000 magical bolt at up to three contributors within 260. That one-shot all three fighters at once on 10-10.
+
+**Stomping at the deadline.** Stomp is held to the shell's deadline.
+- `rime_stomp_watcher()` reads each shell off the `entities` socket packet as it arrives. Its `s.rimeshell.ms` is the server's remaining time; the client applies entity updates only on its next draw frame and counts `ms` down locally.
+- `rime_deadline_stomp()` fires on a timer at `arrival + ms − rtt − 150ms` (`RIME_STOMP_MARGIN_MS`), ~2.75–2.85s into the 3s. It was 250 (~2.66s) until 10-10 22:12: of 21 stomped shells in the 20 minutes before, seven had landed 31–32k of the 32k — about 80–100ms short. `rime_rtt()` is the median of the last 10 pings + 100, never under 300. The highest of the 10 read 405–456 on every spike and landed stomps at 2.38–2.60s.
+- It does not fire if every due shell has since gone (a packet carrying `s` without `rimeshell`: broken by damage), which keeps stomp for the next Djinn.
+- A blocked stomp retries every 25ms while a send still lands in time (`seen + ms − rtt`), then reports unbroken. The timer is not trusted alone: every `entities` and `hit` packet, and the skill loop, run `rime_stomp_overdue_check()` and fire an overdue stomp themselves — at 22:04 on 10-10 the timer fired 1.45s late (4.1s into the shell; damage happened to break it), the signature of a frame the browser throttles while it is not on screen, and packets keep arriving at full rate while timers do not. A stomp more than 50ms late logs `deadline Nms late, fired by <timer|entities|hit|skill loop>, last packet Nms before`.
+
+**Mana.** A shell stomp needs only stomp's own 120 MP (`stomp_blocked(0)`). Keeping the scare reserve refused it at ~600 MP at 21:09 on 10-10, and the bolt killed all three. `stomp_ready_at` reads `null` below stomp + 300 MP (`RIME_STOMP_MP_BUFFER`), so no Djinn is let across half while he could not pay for it. That check is made only at the crossing, so while a shell is up or any Djinn within stomp range is above half, `stomp_mana_reserved()` also skips any swing that would leave him under stomp's cost: at 05:53 on 10-11 he crossed with 420+, swung himself to "Out of mana" inside the 2.5s, and the deadline stomp was refused for no mp.
+
+**Fallback without `ms`.** A shell whose packet carries no `ms` falls back to the 1s stomp in `handle_stomp()`, once the oldest shell within 400 has been up 1s (`RIME_SHELL_STOMP_DELAY_MS`). The delay means a second Djinn shelling just after the first is caught by the same stun; a stun applied before a shell starts does not break it, and six shells went unbroken that way. It fires regardless of Myras and writes the state cache at once. It is held while any Djinn in range is still above half (`rime_shell_pending_within()`), since its 24s cooldown would otherwise often be running when the shell comes. A shell it cannot stomp is logged once with the reason (`rime shell unbroken: …`).
+
+**One crossing at a time (`rime_shell_held()`).** One stomp breaks every shell within 400, but two Djinns crossing half within 24s of each other still wiped the party. So a Djinn within 12% of max HP above half is off-limits to every fighter unless:
+- it is the one closest to half (`rime_shell_next()`; only it takes damage, so it stays the closest),
+- no shell is up, and
+- his stomp is ready within 1.5s, with him within 400 of it.
+
+The band is measured by `remaining_hp()` less the burn still to tick (`pending_burn()`: intensity × ms left). The 18:58 wipe on 10-10 was a Djinn held at the old 6% band (38k) and carried across by 33k of Ulric's burn, which reaches ~9k/s for 5s. So the band must also cover a fresh burn from a hit already in flight. The hold sits inside `must_not_touch()`, so targeting, multishot, splash and the cleave/agitate blockers all respect it. His readiness reaches Riva and Myras as `stomp_ready_at` in the state cache (`null` without a basher).
+
+**Gear while held.** The Djinns stand bunched on Myras, so with splash gear on, `splash_would_touch()` made every Djinn beside a held one untouchable, and the party stopped attacking altogether. While a held Djinn is within 400, the `rime shell` encounter answers the weapon first (Ulric and Riva: `single`), so they keep hitting the Djinns near full HP and those already past half. The same answer holds while a shell is up within 400: burn counts toward the break (broken shells all total ≥32k with direct damage as low as 21k), and over 43 shells on 10-10 those with Ulric's fireblade burn broke 70% of the time against 45% in his burnless vhammer set, Riva's firebow 54% against 40% in boom gear.
+
+At the Djinns, Ulric wears `orb_dps` (he was in the XP skull every logged fight). Myras wears her `single_target` loadout (firestaff + mshield, so heals rise with attack and her armour is unchanged), `orb_dps` (loaded die +1) and `dps_chest` (coat +10, through a `chest` rule that only follows an override and stands down while the `fight` rule owns the slots). Weapons are left to the chooser so AoE stays on when they stack.
+
+**Targeting the shell.** While a shell is up it is every fighter's first target (`rime_shell_casting()` in each `find_best_target()`, and `shelled_first()` at the head of Riva's list, so it is mark's and supershot's target). Riva picks her shot by the damage landing on the shelled Djinn (`choose_shell_shot()`): the arrow aimed at it plus, with explosion worn, each other arrow's hit × explosion % × its armour when that arrow's target is within splash radius of it, with other targets taken nearest to it first. That gives a plain shot in single gear (a 3shot is 0.7× on it, and the hold puts her in single gear whenever another Djinn nearby is held), and a 3shot in boom gear once two Djinns stand within ~14px of it (~1.26×). Her total-damage chooser kept firing 3shots in single gear.
+
+**Telemetry (`rime_watch`).** Every shell, stomp and server refusal of a stomp goes to the timeline as `rime_watch` (`rime_shell_logger()`). Each shell's line names who damaged that Djinn inside the band while it should have been held (`ledger.held`, by attacker, burn separate). The hold still leaked on 10-10: wipes at 18:06 and 18:21 were each a second Djinn shelling during stomp's cooldown. Read those lines first after the next Djinn wipe.
+
+Each shell also gets two lines when it ends (`log_shell_window()`):
+- `shell … <outcome> Nms: total (direct + burn) of need, first hit, stack`
+- `shell … by <attacker:source>`
+
+The timeline caps a line at 160 chars. The window runs from the shell's first `entities` packet to the stomp, or to the packet that drops `rimeshell` (`plan.gone_at`). Measuring from the draw-frame sighting missed early hits and counted hits after the break, so stomped shells showed 32–34k and broken ones 26–30k. The outcome comes from that packet's conditions: `broken` (it carries `rimeexposed`), `stomped`, or `gone (…)` without `rimeexposed`, which is the bolt. Counters: `rime shell broken/stomped/gone`. Burn is split out because it is the prime suspect for damage the break does not count. The ability's live `G` entry is dumped once at load (`rimeshell ability …`).
+
 ### `Halloween Bosses.js`
 
 mrpumpkin and mrgreen share one encounter, because every rule is the same for both. While either is in sight Ulric wears `single` and `orb_dps` and Riva `single` and `dps_chest` (which also keeps her off cupid). Myras tanks them (`tank`: her fight rule and boss absorb, Healer Equipment and Skills), Ulric taunts them off other players (`taunt`, Warrior Skills) and cleaves with only the boss in reach (`cleave_alone`). Until 2026-10-15 this was `BOSS_GEAR_OVERRIDES` in two Equipment files plus `tank_bosses`, `taunt_bosses` and `cleave_lone_bosses`.
@@ -167,7 +210,7 @@ Awaited first, together with `Widget Helpers.js` and `Game Log.js`, so everythin
 - `farm_target_for()`
 - the `storage_read()`/`storage_write()` pair that every JSON-backed localStorage value goes through
 - the no-op `errlog_*` stubs, plus stubs for the one-role-only `request_delivery`, `model_prediction`, `get_character_state` and `upgrade_slot_for`
-- the `var` declarations of every cross-character symbol (`home`, `destination`, `CONFIG`, `cache`, `ITEMS_TO_KEEP`, `MONSTER_GEAR_OVERRIDES`, `RIME_HOLD_GEAR`, `EQUIPMENT_RULES`, `PANIC_BROADCAST_TARGETS`, the panic flags), so no reader needs a `typeof` guard
+- the `var` declarations of every cross-character symbol (`home`, `destination`, `CONFIG`, `cache`, `ITEMS_TO_KEEP`, `EQUIPMENT_RULES`, `PANIC_BROADCAST_TARGETS`, the panic flags), so no reader needs a `typeof` guard
 
 ### `Movement Manager.js` — movement
 
@@ -223,7 +266,7 @@ Why the native town edge is not used is in [`Game API Reference.md`](Game%20API%
 
 ### `Combat Utilities.js`
 
-Monster and entity queries (`monsters_matching()`, `get_num_targets()`, `get_num_chests()`), boss and party state predicates (`is_coop_boss()`, the Rime Djinn's shell predicates `rime_shell_casting()`, `rime_shell_pending_within()` and `rime_shell_held()`, plus `find_active_boss()`, `boss_engageable()`, `should_pause_combat_loop()`), and the lethal-monster rule.
+Monster and entity queries (`monsters_matching()`, `get_num_targets()`, `get_num_chests()`), boss and party state predicates (`is_coop_boss()`, `find_active_boss()`, `boss_engageable()`, `should_pause_combat_loop()`), and the lethal-monster rule.
 
 **Lethal monsters.** A monster with no target turns on whoever touches it first, with a hit or a splash. So `must_not_touch()`/`safe_to_touch()` keep every fighter's targeting, splash, cleave, agitate, stomp and Myras's absorb off any untargeted monster whose hit (`monster_hit_on()`) is half their max HP or more, or whose hits in one second (hit × `frequency`) reach their whole max HP. `lethal_pursuer()` drives the `evade` movement goal when one targets them anyway, at any distance: scare, then keep stepping directly away until it lets go (scare, or the server's ~608px chase leash). A fighter walking back to Myras with it in tow drags it across the map.
 
@@ -308,10 +351,7 @@ The one file that changes what is worn: equipment sets, the single `batch_equip(
 
 **Swap penalty.** Each item equipped adds 120ms of the server's `penalty_cd`, which is added to the next skill or attack's cooldown. So a swap belongs *after* the skill it serves.
 
-**Overrides.** `gear_override(group)` checks these in order:
-1. `RIME_HOLD_GEAR`, while a held Djinn or a shell is within 400 (`rime_hold_gear_wanted()`, see Warrior Skills)
-2. `encounter_gear(group)`: the live encounters, highest tier first. A boss in sight (situation), then a porcupine nearby (hazard), then the spawn of `home` (spawn)
-3. the `MONSTER_GEAR_OVERRIDES` of `home`, for spawns not yet moved to encounters
+**Overrides.** Every resolver asks `encounter_gear(group)` before its role default: the live encounters, highest tier first. The rime shell hold and a boss in sight (situation), then a porcupine nearby (hazard), then the spawn of `home` (spawn). Until 2026-10-15 this was `gear_override()` over `RIME_HOLD_GEAR`, `BOSS_GEAR_OVERRIDES` and `MONSTER_GEAR_OVERRIDES`.
 
 Ulric's porcupine weapon used to be checked before the rime hold and boss gear. Now it comes after them; a porcupine never meets either (desertland against winter_cove and the boss maps).
 
@@ -390,7 +430,7 @@ One `ledger` record per fighter every 5 minutes, through `errlog_archive()` to `
 
 The `*SURVEY*` farm target (`SURVEY_FARM_TARGET`). `farm_target_for()` resolves it to the survey's current spot, or to `DEFAULT_FARM_TARGET` once the survey is complete. Set it on all three fighters; Myras (`SURVEY_OWNER`) is the only writer of the state, in localStorage `AL_survey`, which every iframe shares.
 
-**Runtime spot changes, not reloads.** Every reader of `home` and `destination` looks them up when it runs (movement, the encounters, `MONSTER_GEAR_OVERRIDES`, the bscorpion branches), so `switch_home()` reassigns both and the next tick follows. The one cache is `active_dungeon()`, and no survey spot is a dungeon. The bscorpion kill logger now starts for Ulric whatever the home, since it parks itself away from the camp.
+**Runtime spot changes, not reloads.** Every reader of `home` and `destination` looks them up when it runs (movement, the encounters, the bscorpion camp), so `switch_home()` reassigns both and the next tick follows. The one cache is `active_dungeon()`, and no survey spot is a dungeon. The bscorpion kill logger now starts for Ulric whatever the home, since it parks itself away from the camp.
 
 **Visit rules**, all in `survey_owner_tick()` on Myras's 1s tick:
 
@@ -547,41 +587,6 @@ Agitate, warcry, stomp, and taunt; cleave fires here only when no swing is comin
 
 **Taunt** (`handle_taunt()`) pulls a boss with the `taunt` trait (mrpumpkin, mrgreen) onto him whenever it is on anyone but him, Myras or a `taunt_exempt` player (CrownTown, CrownsAnal, CrownPriest), provided she is within absorb range of him. The boss's `coop` makes every player fighting it friendly to the server's taunt check, so this steals it from other parties too.
 
-### `Warrior Skills.js` — the Rime Djinn's shell
-
-Stomp's first job is the Rime Djinn's shell (`mob.s.rimeshell`). At half HP the Djinn casts for 3s. Unless it is stunned or takes 5% of its max HP (64k–112k; the party deals ~10–15k/s), it fires a 20,000 magical bolt at up to three contributors within 260. That one-shot all three fighters at once on 10-10.
-
-**Stomping at the deadline.** Stomp is held to the shell's deadline.
-- `rime_stomp_watcher()` reads each shell off the `entities` socket packet as it arrives. Its `s.rimeshell.ms` is the server's remaining time; the client applies entity updates only on its next draw frame and counts `ms` down locally.
-- `rime_deadline_stomp()` fires on a timer at `arrival + ms − rtt − 150ms` (`RIME_STOMP_MARGIN_MS`), ~2.75–2.85s into the 3s. It was 250 (~2.66s) until 10-10 22:12: of 21 stomped shells in the 20 minutes before, seven had landed 31–32k of the 32k — about 80–100ms short. `rime_rtt()` is the median of the last 10 pings + 100, never under 300. The highest of the 10 read 405–456 on every spike and landed stomps at 2.38–2.60s.
-- It does not fire if every due shell has since gone (a packet carrying `s` without `rimeshell`: broken by damage), which keeps stomp for the next Djinn.
-- A blocked stomp retries every 25ms while a send still lands in time (`seen + ms − rtt`), then reports unbroken. The timer is not trusted alone: every `entities` and `hit` packet, and the skill loop, run `rime_stomp_overdue_check()` and fire an overdue stomp themselves — at 22:04 on 10-10 the timer fired 1.45s late (4.1s into the shell; damage happened to break it), the signature of a frame the browser throttles while it is not on screen, and packets keep arriving at full rate while timers do not. A stomp more than 50ms late logs `deadline Nms late, fired by <timer|entities|hit|skill loop>, last packet Nms before`.
-
-**Mana.** A shell stomp needs only stomp's own 120 MP (`stomp_blocked(0)`). Keeping the scare reserve refused it at ~600 MP at 21:09 on 10-10, and the bolt killed all three. `stomp_ready_at` reads `null` below stomp + 300 MP (`RIME_STOMP_MP_BUFFER`), so no Djinn is let across half while he could not pay for it. That check is made only at the crossing, so while a shell is up or any Djinn within stomp range is above half, `stomp_mana_reserved()` also skips any swing that would leave him under stomp's cost: at 05:53 on 10-11 he crossed with 420+, swung himself to "Out of mana" inside the 2.5s, and the deadline stomp was refused for no mp.
-
-**Fallback without `ms`.** A shell whose packet carries no `ms` falls back to the 1s stomp in `handle_stomp()`, once the oldest shell within 400 has been up 1s (`RIME_SHELL_STOMP_DELAY_MS`). The delay means a second Djinn shelling just after the first is caught by the same stun; a stun applied before a shell starts does not break it, and six shells went unbroken that way. It fires regardless of Myras and writes the state cache at once. It is held while any Djinn in range is still above half (`rime_shell_pending_within()`), since its 24s cooldown would otherwise often be running when the shell comes. A shell it cannot stomp is logged once with the reason (`rime shell unbroken: …`).
-
-**One crossing at a time (`rime_shell_held()`).** One stomp breaks every shell within 400, but two Djinns crossing half within 24s of each other still wiped the party. So a Djinn within 12% of max HP above half is off-limits to every fighter unless:
-- it is the one closest to half (`rime_shell_next()`; only it takes damage, so it stays the closest),
-- no shell is up, and
-- his stomp is ready within 1.5s, with him within 400 of it.
-
-The band is measured by `remaining_hp()` less the burn still to tick (`pending_burn()`: intensity × ms left). The 18:58 wipe on 10-10 was a Djinn held at the old 6% band (38k) and carried across by 33k of Ulric's burn, which reaches ~9k/s for 5s. So the band must also cover a fresh burn from a hit already in flight. The hold sits inside `must_not_touch()`, so targeting, multishot, splash and the cleave/agitate blockers all respect it. His readiness reaches Riva and Myras as `stomp_ready_at` in the state cache (`null` without a basher).
-
-**Gear while held.** The Djinns stand bunched on Myras, so with splash gear on, `splash_would_touch()` made every Djinn beside a held one untouchable, and the party stopped attacking altogether. While a held Djinn is within 400, `gear_override()` returns `RIME_HOLD_GEAR` first (Ulric and Riva: `single`, default `{}` in `Global Config.js`), so they keep hitting the Djinns near full HP and those already past half. The same override holds while a shell is up within 400: burn counts toward the break (broken shells all total ≥32k with direct damage as low as 21k), and over 43 shells on 10-10 those with Ulric's fireblade burn broke 70% of the time against 45% in his burnless vhammer set, Riva's firebow 54% against 40% in boom gear.
-
-At the Djinns, Ulric wears `orb_dps` (he was in the XP skull every logged fight). Myras wears her `single_target` loadout (firestaff + mshield, so heals rise with attack and her armour is unchanged), `orb_dps` (loaded die +1) and `dps_chest` (coat +10, through a `chest` rule that only follows an override and stands down while the `fight` rule owns the slots). Weapons are left to the chooser so AoE stays on when they stack.
-
-**Targeting the shell.** While a shell is up it is every fighter's first target (`rime_shell_casting()` in each `find_best_target()`, and `shelled_first()` at the head of Riva's list, so it is mark's and supershot's target). Riva picks her shot by the damage landing on the shelled Djinn (`choose_shell_shot()`): the arrow aimed at it plus, with explosion worn, each other arrow's hit × explosion % × its armour when that arrow's target is within splash radius of it, with other targets taken nearest to it first. That gives a plain shot in single gear (a 3shot is 0.7× on it, and the hold puts her in single gear whenever another Djinn nearby is held), and a 3shot in boom gear once two Djinns stand within ~14px of it (~1.26×). Her total-damage chooser kept firing 3shots in single gear.
-
-**Telemetry (`rime_watch`).** Every shell, stomp and server refusal of a stomp goes to the timeline as `rime_watch` (`rime_shell_logger()`). Each shell's line names who damaged that Djinn inside the band while it should have been held (`ledger.held`, by attacker, burn separate). The hold still leaked on 10-10: wipes at 18:06 and 18:21 were each a second Djinn shelling during stomp's cooldown. Read those lines first after the next Djinn wipe.
-
-Each shell also gets two lines when it ends (`log_shell_window()`):
-- `shell … <outcome> Nms: total (direct + burn) of need, first hit, stack`
-- `shell … by <attacker:source>`
-
-The timeline caps a line at 160 chars. The window runs from the shell's first `entities` packet to the stomp, or to the packet that drops `rimeshell` (`plan.gone_at`). Measuring from the draw-frame sighting missed early hits and counted hits after the break, so stomped shells showed 32–34k and broken ones 26–30k. The outcome comes from that packet's conditions: `broken` (it carries `rimeexposed`), `stomped`, or `gone (…)` without `rimeexposed`, which is the bolt. Counters: `rime shell broken/stomped/gone`. Burn is split out because it is the prime suspect for damage the break does not count. The ability's live `G` entry is dumped once at load (`rimeshell ability …`).
-
 ### `Warrior Movement.js`
 
 The reposition scorer and the farm step that keeps him engaged. He targets anything within `CONFIG.combat.engage_radius` that is attacking the party (or already in reach), walks to a 12px hitbox gap when it is out of reach, and steps back out to 12px once he is under 4px. That is `warrior_engage_step()`, which the runner also hands to `event_step()` as `engage_step`, so he holds the same gap on a boss instead of walking to `range × EVENT_REACH` and standing inside its hitbox. A moving target is re-closed as soon as the gap passes 20px (`WARRIOR_CHASE_GAP`), not when it leaves his range. Waiting for out-of-range left him a step behind a kited crabxx the whole fight. Every move is skipped while he is already heading there, since each `move` costs 2.5 call cost.
@@ -636,7 +641,7 @@ Target cache, `action_loop()`, `handle_attack()`.
 
 The exception is a boss that `takes_one_damage()` (crabxx behind its crabx): there the adds are the boss's shield, so the chooser sees the boss first and the adds after it. Every multishot then includes the boss, and a plain shot goes to the boss. Boss-only resumes the moment the flag drops.
 
-Shot choice on a shelled Djinn is under Warrior Skills → the Rime Djinn's shell.
+Shot choice on a shelled Djinn is under Encounters → `Rime Djinn.js`.
 
 **Free mana.** With the manasteal shirt in the bag (`mana_free()`), the chooser takes the biggest shot it can afford above the scare reserve alone. With two or more targets in range she should multishot all the time; a plain shot there means something is wrong. Until 10-11 the floor also held hunter's mark and supershot (640 MP), even at plantoid and fireroamer, where both skills are blacklisted. That is 47% of her 1,880 MP: a 5-shot needed 1,210 and a 3-shot 1,090, and she shot single targets anywhere between 250 and 1,090. Mark and supershot now fire only when the mana is there (their own check is the scare reserve).
 

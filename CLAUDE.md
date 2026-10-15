@@ -70,7 +70,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | `Targeting.js` | `score_targets()`/`select_target()`, the one target scorer |
 | `Boss Profiler.js` | Per-fight profile of every player on a coop boss, written to `boss_profiles.jsonl`. `al_boss_profiles()` reads it |
 | `Character Messaging.js` | CM handlers and the localStorage-backed state cache |
-| `Equipment Manager.js` | The only thing that changes what is worn: sets, `batch_equip()`, the planner over the sent view, slot intent, rules resolver, `gear_override()` |
+| `Equipment Manager.js` | The only thing that changes what is worn: sets, `batch_equip()`, the planner over the sent view, slot intent, rules resolver. Situational gear comes from `encounter_gear()` |
 | `Equipment Valuation.js` | Measured set profiles and the one weapon chooser (`resolve_weapon_set()`). Equips nothing |
 | `Party Management.js` | Panic (`set_panic()` is the only writer) and its broadcast, `scare_off()`, invites, home |
 | `Loot Management.js` | Keep/ship/vendor decisions, bank withdrawal, chest looting, `inventory_sorter()` |
@@ -89,6 +89,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | `Encounter Registry.js` | **First stage.** `encounter(name, spec)` registers at load. Shared and role code ask `encounter_gear(group)`, `encounter_setting(name, fallback)`, `encounter_allows(action, mob)`, `encounter_rank(mob)` and `encounter_trait(name, mob)`, plus `encounter_home_setting(name, fallback)` and `encounter_goal()` for answers that follow `home` onto any map; the role default stays at the call site. `why("gear.weapon")`, `encounters_active()` and `encounter_problems()` in the console |
 | `Porcupine.js` | Hazard: Ulric never attacks, cleaves or agitates near a porcupine and wears his single set within splash reach; Riva ranks them first. Optional: deleting its Bootstrapper line removes the behaviour |
 | `Bscorpion.js` | **The current farm. Required, not optional.** The desertland camp: positioning (`camp_step()`, Riva's rail), temporal surge on each kill, the kill logger, and the spec: goal, gear, Riva's panic limit (a `home_settings` answer, so it follows home onto boss trips) and her always-shoot trait |
+| `Rime Djinn.js` | **Required.** The shell: the predicates every fighter's targeting uses, Ulric's shell windows and deadline stomp (generic stomp stays in Warrior Skills), Riva's shell shot, the spawn gear and the hold weapon while a Djinn is held or shelled |
 | `Mummy.js` | Spawn: Myras wears her luck orb and the `zap_on` ring and zap-pulls fresh mummies, and doesn't curse them; Ulric doesn't agitate them; Riva spends no mark or supershot on them |
 | `Targetron-Sparkbot.js` | Spawn (the uhills targetrons and sparkbots): Myras's luck gear and no curse, the party's farm focus, Ulric agitates sparkbots |
 | `Dryad.js`, `Fireroamer.js` | Spawns: Myras's mdef or fire-resistance gear, fireroamer's skipped panic check and agitate conditions, no ranger skills |
@@ -127,7 +128,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 
 | Character | Notes |
 |-----------|-------|
-| Warrior — Ulric | `weapon_burst()` (the per-swing candy-cane swap) in Combat; cleave/agitate/stomp/taunt and the **Rime Djinn shell stomp** in Skills; `warrior_engage_step()` in Movement |
+| Warrior — Ulric | `weapon_burst()` (the per-swing candy-cane swap) in Combat; cleave/agitate/stomp/taunt in Skills (the **Rime Djinn shell stomp** is in `Encounters/Rime Djinn.js`); `warrior_engage_step()` in Movement |
 | Healer — Myras | **The tank.** Pull logic and `effective_aggro_cap()` in Combat; curse/absorb/zap in Skills; the `fight` rule (camp/boss loadouts, luck at the kill) in Equipment |
 | Ranger — Riva | Shot chooser (`shot_apiercing()`, `coop_boss_only()`) in Combat; mark/supershot in Skills |
 | Merchant — Riff | Split into Stand, Inventory, Exchange, Gear, Gathering, Party, Upkeep, Upgrading, Crafting. `Merchant Task Loop.js` **must load last**. `lolipop_push()` (Upgrading) is the on-demand ololipop +10 run |

@@ -54,7 +54,7 @@ function resolve_warrior_orb() {
 ```
 
 `resolve_equipment()` is now just "ask each group, apply the answer" — the override branch is gone,
-replaced by a shared `gear_override(group)` the resolvers call themselves. `panic_check()` became a
+replaced by a shared `gear_override(group)` the resolvers call themselves (since 2026-10-15, `encounter_gear(group)`: the overrides became encounters). `panic_check()` became a
 *consumer*: it waits for the orb it needs rather than equipping it.
 
 Deleted outright: `panic_equip_hold()`, `panic_equip_free()`, `_panic_equip_token`,

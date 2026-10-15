@@ -29,6 +29,7 @@
    "Dungeons/Dungeon Telemetry.js",
    "Encounters/Bscorpion.js",
    "Encounters/Encounter Registry.js",
+   "Encounters/Rime Djinn.js",
    "Interface/Bank Viewer.js",
    "Interface/Game Log.js",
    "Kernel/Events.js",
@@ -91,7 +92,6 @@
     "cave_paused",
     "get_party_members",
     "ms_to_next_skill",
-    "rime_shell_casting",
     "safe_to_touch",
     "should_pause_combat_loop"
    ],
@@ -190,6 +190,14 @@
    "from": "Character Managers/Healer Manager/Healer Combat.js",
    "load": [],
    "to": "Encounters/Encounter Registry.js"
+  },
+  {
+   "call": [
+    "rime_shell_casting"
+   ],
+   "from": "Character Managers/Healer Manager/Healer Combat.js",
+   "load": [],
+   "to": "Encounters/Rime Djinn.js"
   },
   {
    "call": [
@@ -305,7 +313,6 @@
    "from": "Character Managers/Healer Manager/Healer Equipment.js",
    "load": [
     "_inflight",
-    "pending_burn",
     "pending_damage",
     "remaining_hp"
    ],
@@ -315,26 +322,12 @@
    "call": [],
    "from": "Character Managers/Healer Manager/Healer Equipment.js",
    "load": [
-    "RIME_HOLD_GEAR_RANGE",
-    "RIME_SHELL_BREAKER",
-    "RIME_SHELL_HOLD_BAND",
-    "RIME_SHELL_STOMP_LEAD_MS",
-    "cave_paused",
-    "rime_hold_gear_wanted",
-    "rime_shell_ability",
-    "rime_shell_band_margin",
-    "rime_shell_casting",
-    "rime_shell_held",
-    "rime_shell_margin",
-    "rime_shell_next",
-    "rime_shell_stomp_covers",
-    "stomp_ready_at"
+    "cave_paused"
    ],
    "to": "Core Systems/Combat Utilities.js"
   },
   {
    "call": [
-    "gear_override",
     "is_set_equipped",
     "preferred_orb",
     "set_available",
@@ -345,7 +338,6 @@
     "MISSING_ITEM_WARN_INTERVAL",
     "_slot_flight",
     "_worn_level_warned",
-    "gear_override",
     "is_set_equipped",
     "level_fits",
     "preferred_orb",
@@ -415,9 +407,7 @@
     "CACHE_TTL",
     "CONFIG",
     "DUNGEONS",
-    "MONSTER_GEAR_OVERRIDES",
     "MOVEMENT_LEADER",
-    "RIME_HOLD_GEAR",
     "STATE_CACHE_KEY_PREFIX",
     "STATE_CACHE_STALE_MS",
     "destination",
@@ -507,7 +497,9 @@
    "to": "Encounters/Bscorpion.js"
   },
   {
-   "call": [],
+   "call": [
+    "encounter_gear"
+   ],
    "from": "Character Managers/Healer Manager/Healer Equipment.js",
    "load": [
     "ENCOUNTER_RADIUS",
@@ -1671,7 +1663,6 @@
    "call": [
     "burn_multiplier_at_dps",
     "defense_reduction",
-    "explosion_radius",
     "skill_mp_cost",
     "splash_bonus",
     "would_kill"
@@ -1694,7 +1685,6 @@
     "monsters_matching",
     "ms_to_next_skill",
     "panic_mp_reserve",
-    "rime_shell_casting",
     "safe_to_touch",
     "should_pause_combat_loop",
     "takes_one_damage",
@@ -1706,7 +1696,6 @@
   },
   {
    "call": [
-    "gear_override",
     "mainhand_intent",
     "set_available"
    ],
@@ -1779,12 +1768,23 @@
   {
    "call": [
     "encounter_allows",
+    "encounter_gear",
     "encounter_rank",
     "encounter_trait"
    ],
    "from": "Character Managers/Ranger Manager/Ranger Combat.js",
    "load": [],
    "to": "Encounters/Encounter Registry.js"
+  },
+  {
+   "call": [
+    "choose_shell_shot",
+    "rime_shell_casting",
+    "shelled_first"
+   ],
+   "from": "Character Managers/Ranger Manager/Ranger Combat.js",
+   "load": [],
+   "to": "Encounters/Rime Djinn.js"
   },
   {
    "call": [
@@ -1905,7 +1905,6 @@
    "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
    "load": [
     "_inflight",
-    "pending_burn",
     "pending_damage",
     "remaining_hp"
    ],
@@ -1917,26 +1916,12 @@
    ],
    "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
    "load": [
-    "RIME_HOLD_GEAR_RANGE",
-    "RIME_SHELL_BREAKER",
-    "RIME_SHELL_HOLD_BAND",
-    "RIME_SHELL_STOMP_LEAD_MS",
-    "panic_mp_reserve",
-    "rime_hold_gear_wanted",
-    "rime_shell_ability",
-    "rime_shell_band_margin",
-    "rime_shell_casting",
-    "rime_shell_held",
-    "rime_shell_margin",
-    "rime_shell_next",
-    "rime_shell_stomp_covers",
-    "stomp_ready_at"
+    "panic_mp_reserve"
    ],
    "to": "Core Systems/Combat Utilities.js"
   },
   {
    "call": [
-    "gear_override",
     "is_set_equipped",
     "preferred_orb",
     "set_available"
@@ -1946,7 +1931,6 @@
     "MISSING_ITEM_WARN_INTERVAL",
     "_slot_flight",
     "_worn_level_warned",
-    "gear_override",
     "is_set_equipped",
     "level_fits",
     "preferred_orb",
@@ -2022,9 +2006,7 @@
     "CACHE_TTL",
     "CONFIG",
     "DUNGEONS",
-    "MONSTER_GEAR_OVERRIDES",
     "MOVEMENT_LEADER",
-    "RIME_HOLD_GEAR",
     "STATE_CACHE_KEY_PREFIX",
     "STATE_CACHE_STALE_MS",
     "destination",
@@ -2078,7 +2060,9 @@
    "to": "Dungeons/Dungeon Runner.js"
   },
   {
-   "call": [],
+   "call": [
+    "encounter_gear"
+   ],
    "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
    "load": [
     "ENCOUNTER_RADIUS",
@@ -2373,8 +2357,7 @@
   {
    "call": [
     "cleave_ready",
-    "fire_cleave",
-    "stomp_mana_reserved"
+    "fire_cleave"
    ],
    "from": "Character Managers/Warrior Manager/Warrior Combat.js",
    "load": [],
@@ -2405,7 +2388,6 @@
     "get_party_members",
     "monsters_matching",
     "ms_to_next_skill",
-    "rime_shell_casting",
     "safe_to_touch",
     "should_pause_combat_loop",
     "travel_blocks_combat"
@@ -2508,6 +2490,15 @@
   },
   {
    "call": [
+    "rime_shell_casting",
+    "stomp_mana_reserved"
+   ],
+   "from": "Character Managers/Warrior Manager/Warrior Combat.js",
+   "load": [],
+   "to": "Encounters/Rime Djinn.js"
+  },
+  {
+   "call": [
     "on_socket"
    ],
    "from": "Character Managers/Warrior Manager/Warrior Combat.js",
@@ -2607,39 +2598,7 @@
    "to": "Core Systems/Combat Formulas.js"
   },
   {
-   "call": [],
-   "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
-   "load": [
-    "_inflight",
-    "pending_burn",
-    "pending_damage",
-    "remaining_hp"
-   ],
-   "to": "Core Systems/Combat Sampling.js"
-  },
-  {
-   "call": [],
-   "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
-   "load": [
-    "RIME_HOLD_GEAR_RANGE",
-    "RIME_SHELL_BREAKER",
-    "RIME_SHELL_HOLD_BAND",
-    "RIME_SHELL_STOMP_LEAD_MS",
-    "rime_hold_gear_wanted",
-    "rime_shell_ability",
-    "rime_shell_band_margin",
-    "rime_shell_casting",
-    "rime_shell_held",
-    "rime_shell_margin",
-    "rime_shell_next",
-    "rime_shell_stomp_covers",
-    "stomp_ready_at"
-   ],
-   "to": "Core Systems/Combat Utilities.js"
-  },
-  {
    "call": [
-    "gear_override",
     "preferred_orb"
    ],
    "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
@@ -2647,7 +2606,6 @@
     "MISSING_ITEM_WARN_INTERVAL",
     "_slot_flight",
     "_worn_level_warned",
-    "gear_override",
     "is_set_equipped",
     "level_fits",
     "preferred_orb",
@@ -2724,9 +2682,7 @@
     "CACHE_TTL",
     "CONFIG",
     "DUNGEONS",
-    "MONSTER_GEAR_OVERRIDES",
     "MOVEMENT_LEADER",
-    "RIME_HOLD_GEAR",
     "STATE_CACHE_KEY_PREFIX",
     "STATE_CACHE_STALE_MS",
     "destination",
@@ -2778,7 +2734,9 @@
    "to": "Dungeons/Dungeon Runner.js"
   },
   {
-   "call": [],
+   "call": [
+    "encounter_gear"
+   ],
    "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
    "load": [
     "ENCOUNTER_RADIUS",
@@ -2960,19 +2918,12 @@
   },
   {
    "call": [
-    "RIME_SHELL_HOLD_BAND",
-    "RIME_SHELL_STOMP_LEAD_MS",
     "boss_blocks_cleave",
     "kite_ring",
     "ms_to_next_skill",
     "must_not_touch",
     "panic_mp_reserve",
-    "rime_shell_ability",
-    "rime_shell_casting",
-    "rime_shell_next",
-    "rime_shell_pending_within",
-    "should_pause_combat_loop",
-    "stomp_ready_at"
+    "should_pause_combat_loop"
    ],
    "from": "Character Managers/Warrior Manager/Warrior Skills.js",
    "load": [],
@@ -3062,11 +3013,21 @@
   },
   {
    "call": [
-    "on_socket"
+    "RIME_SHELL_STOMP_DELAY_MS",
+    "close_shell_windows",
+    "log_new_shells",
+    "mark_shells_stomped",
+    "oldest_shell_age",
+    "publish_stomp_ready",
+    "report_unbroken_shell",
+    "rime_shell_casting",
+    "rime_shell_pending_within",
+    "rime_stomp_overdue_check",
+    "rime_stomp_planned"
    ],
    "from": "Character Managers/Warrior Manager/Warrior Skills.js",
    "load": [],
-   "to": "Kernel/Events.js"
+   "to": "Encounters/Rime Djinn.js"
   },
   {
    "call": [
@@ -3092,8 +3053,6 @@
   },
   {
    "call": [
-    "rime_shell_logger",
-    "rime_stomp_watcher",
     "skill_loop"
    ],
    "from": "Character Managers/Warrior Manager/Warrior.js",
@@ -3140,6 +3099,15 @@
    "from": "Character Managers/Warrior Manager/Warrior.js",
    "load": [],
    "to": "Dungeons/Dungeon Runner.js"
+  },
+  {
+   "call": [
+    "rime_shell_logger",
+    "rime_stomp_watcher"
+   ],
+   "from": "Character Managers/Warrior Manager/Warrior.js",
+   "load": [],
+   "to": "Encounters/Rime Djinn.js"
   },
   {
    "call": [],
@@ -3217,8 +3185,7 @@
   },
   {
    "call": [
-    "free_inventory_slots",
-    "stomp_ready_at"
+    "free_inventory_slots"
    ],
    "from": "Core Systems/Character Messaging.js",
    "load": [],
@@ -3340,6 +3307,14 @@
    "from": "Core Systems/Character Messaging.js",
    "load": [],
    "to": "Encounters/Bscorpion.js"
+  },
+  {
+   "call": [
+    "stomp_ready_at"
+   ],
+   "from": "Core Systems/Character Messaging.js",
+   "load": [],
+   "to": "Encounters/Rime Djinn.js"
   },
   {
    "call": [],
@@ -3631,23 +3606,13 @@
   },
   {
    "call": [
-    "pending_burn",
-    "remaining_hp"
-   ],
-   "from": "Core Systems/Combat Utilities.js",
-   "load": [],
-   "to": "Core Systems/Combat Sampling.js"
-  },
-  {
-   "call": [
     "ALL_BOSSES",
     "BOSS_KITER",
     "BOSS_NEARLY_DEAD_HP",
     "CONFIG",
     "EVENT_LOCATIONS",
     "MOVEMENT_LEADER",
-    "panicking",
-    "read_state_cache"
+    "panicking"
    ],
    "from": "Core Systems/Combat Utilities.js",
    "load": [],
@@ -3716,6 +3681,14 @@
   },
   {
    "call": [
+    "rime_shell_held"
+   ],
+   "from": "Core Systems/Combat Utilities.js",
+   "load": [],
+   "to": "Encounters/Rime Djinn.js"
+  },
+  {
+   "call": [
     "current_goal_label"
    ],
    "from": "Core Systems/Danger Log.js",
@@ -3781,14 +3754,6 @@
   },
   {
    "call": [
-    "rime_hold_gear_wanted"
-   ],
-   "from": "Core Systems/Equipment Manager.js",
-   "load": [],
-   "to": "Core Systems/Combat Utilities.js"
-  },
-  {
-   "call": [
     "catcher"
    ],
    "from": "Core Systems/Equipment Manager.js",
@@ -3809,15 +3774,11 @@
     "CONFIG",
     "COOLDOWNS",
     "EQUIPMENT_RULES",
-    "MONSTER_GEAR_OVERRIDES",
-    "RIME_HOLD_GEAR",
     "TICK_RATE",
     "delay",
-    "destination",
     "equipment_sets",
     "errlog_count",
     "errlog_record",
-    "home",
     "panicking"
    ],
    "from": "Core Systems/Equipment Manager.js",
@@ -3847,14 +3808,6 @@
    "from": "Core Systems/Equipment Manager.js",
    "load": [],
    "to": "Dungeons/Dungeon Escape.js"
-  },
-  {
-   "call": [
-    "encounter_gear"
-   ],
-   "from": "Core Systems/Equipment Manager.js",
-   "load": [],
-   "to": "Encounters/Encounter Registry.js"
   },
   {
    "call": [
@@ -5895,6 +5848,102 @@
    "to": "Encounters/Encounter Registry.js"
   },
   {
+   "call": [
+    "SHOT_PROFILES",
+    "armour_factor",
+    "fire_stomp",
+    "shot_apiercing",
+    "shot_mana",
+    "shot_usable",
+    "stomp_blocked",
+    "stomp_weapon_ready"
+   ],
+   "from": "Encounters/Rime Djinn.js",
+   "load": [],
+   "to": "(role files)"
+  },
+  {
+   "call": [
+    "write_state_cache"
+   ],
+   "from": "Encounters/Rime Djinn.js",
+   "load": [],
+   "to": "Core Systems/Character Messaging.js"
+  },
+  {
+   "call": [
+    "defense_reduction",
+    "explosion_radius",
+    "skill_mp_cost"
+   ],
+   "from": "Encounters/Rime Djinn.js",
+   "load": [],
+   "to": "Core Systems/Combat Formulas.js"
+  },
+  {
+   "call": [
+    "pending_burn",
+    "remaining_hp"
+   ],
+   "from": "Encounters/Rime Djinn.js",
+   "load": [],
+   "to": "Core Systems/Combat Sampling.js"
+  },
+  {
+   "call": [
+    "ms_to_next_skill",
+    "panic_mp_reserve"
+   ],
+   "from": "Encounters/Rime Djinn.js",
+   "load": [],
+   "to": "Core Systems/Combat Utilities.js"
+  },
+  {
+   "call": [
+    "catcher"
+   ],
+   "from": "Encounters/Rime Djinn.js",
+   "load": [],
+   "to": "Core Systems/Error Handling.js"
+  },
+  {
+   "call": [
+    "errlog_count",
+    "errlog_timeline"
+   ],
+   "from": "Encounters/Rime Djinn.js",
+   "load": [],
+   "to": "Core Systems/Error Log.js"
+  },
+  {
+   "call": [
+    "errlog_count",
+    "errlog_timeline",
+    "read_state_cache"
+   ],
+   "from": "Encounters/Rime Djinn.js",
+   "load": [],
+   "to": "Core Systems/Global Config.js"
+  },
+  {
+   "call": [],
+   "from": "Encounters/Rime Djinn.js",
+   "load": [
+    "_encounters",
+    "_encounters_by_mtype",
+    "encounter"
+   ],
+   "to": "Encounters/Encounter Registry.js"
+  },
+  {
+   "call": [
+    "on_socket"
+   ],
+   "from": "Encounters/Rime Djinn.js",
+   "load": [],
+   "to": "Kernel/Events.js"
+  },
+  {
    "call": [],
    "from": "Encounters/Targetron-Sparkbot.js",
    "load": [
@@ -7197,6 +7246,13 @@
    "stage": "parallel",
    "statements": []
   },
+  "Encounters/Rime Djinn.js": {
+   "call_initializers": [],
+   "optional": false,
+   "role": null,
+   "stage": "parallel",
+   "statements": []
+  },
   "Encounters/Targetron-Sparkbot.js": {
    "call_initializers": [],
    "optional": true,
@@ -7358,6 +7414,7 @@
   "Core Systems/Error Log.js",
   "Core Systems/Movement Manager.js",
   "Encounters/Bscorpion.js",
+  "Encounters/Rime Djinn.js",
   "Core Systems/Combat Utilities.js",
   "Core Systems/Combat Formulas.js",
   "Core Systems/Combat Sampling.js",

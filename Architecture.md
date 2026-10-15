@@ -62,6 +62,7 @@ Encounters/                          ← the registry in the first stage; one op
     ├── Encounter Registry.js     encounter(), the context, and the questions shared and role code ask
     ├── Porcupine.js              hazard: Ulric never touches one, Riva kills them first
     ├── Bscorpion.js              the current farm (required): camp positioning, temporal surge, kill logger, goal and gear
+    ├── Rime Djinn.js             the shell (required): predicates, Ulric's deadline stomp, Riva's shell shot, hold gear
     ├── Mummy.js                  spawn: zap pull, luck orb, no curse, no agitate, no ranger skills
     ├── Targetron-Sparkbot.js, Dryad.js, Fireroamer.js   spawns: Myras's gear, settings, ranger skills
     ├── Halloween Bosses.js       mrpumpkin and mrgreen: Myras tanks, Ulric taunts, single-target sets

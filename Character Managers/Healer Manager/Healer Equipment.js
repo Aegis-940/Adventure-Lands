@@ -98,7 +98,7 @@ function resolve_healer_loadout() {
 	const in_dungeon_loadout = dungeon_loadout();
 	if (in_dungeon_loadout) return in_dungeon_loadout;
 
-	const override = gear_override("loadout");
+	const override = encounter_gear("loadout");
 	if (override) return override;
 
 	if (cache.target && CONFIG.combat.all_bosses.includes(cache.target.mtype) && set_available("single_target")) {
@@ -112,7 +112,7 @@ function resolve_healer_loadout() {
 
 function resolve_healer_gloves() {
 	if (gold_gear_wanted()) return "gold";
-	return gear_override("gloves") || "gloves";
+	return encounter_gear("gloves") || "gloves";
 }
 
 function resolve_healer_orb() {
@@ -122,15 +122,15 @@ function resolve_healer_orb() {
 	if (dungeon_orb && set_available(dungeon_orb)) return dungeon_orb;
 
 	if (fight_gear_owned()) return null;
-	return gear_override("orb") || preferred_orb("orb_luck");
+	return encounter_gear("orb") || preferred_orb("orb_luck");
 }
 
 function resolve_healer_chest() {
-	return fight_gear_owned() ? null : gear_override("chest");
+	return fight_gear_owned() ? null : encounter_gear("chest");
 }
 
 function resolve_healer_amulet() {
-	return fight_gear_owned() ? null : gear_override("amulet");
+	return fight_gear_owned() ? null : encounter_gear("amulet");
 }
 
 function resolve_healer_ring() {
@@ -213,6 +213,3 @@ var EQUIPMENT_RULES = {
 	fight:   { kind: "set", resolve: resolve_healer_fight },
 };
 
-var MONSTER_GEAR_OVERRIDES = {
-	rimedjinn:  { loadout: "single_target", orb: "orb_dps", chest: "dps_chest" },
-};

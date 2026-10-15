@@ -30,6 +30,7 @@
 		"Core Systems/Error Log.js",
 		"Core Systems/Movement Manager.js",
 		"Encounters/Bscorpion.js",
+		"Encounters/Rime Djinn.js",
 		"Core Systems/Combat Utilities.js",
 		"Core Systems/Combat Formulas.js",
 		"Core Systems/Combat Sampling.js",

@@ -72,12 +72,6 @@ function update_target_cache() {
 	return { sorted_by_value, in_range };
 }
 
-function shelled_first(pool) {
-	const shelled = rime_shell_casting();
-	const i = shelled ? pool.indexOf(shelled) : -1;
-	if (i > 0) pool.unshift(pool.splice(i, 1)[0]);
-}
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MANA / DAMAGE EFFICIENCY
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -226,7 +220,7 @@ function choose_attack_option(primary) {
 var _cupid_engaged = false;
 
 function cupid_blocked() {
-	return !set_available("heal") || gear_override("weapon") !== null;
+	return !set_available("heal") || encounter_gear("weapon") !== null;
 }
 
 function find_cupid_target() {
@@ -307,39 +301,6 @@ async function action_loop() {
 		next_delay = TICK_RATE.retry;
 	}
 	setTimeout(action_loop, loop_next("action_loop", next_delay));
-}
-
-function shell_shot_damage(shelled, targets, profile) {
-	const apiercing = shot_apiercing(profile);
-	const explosion = character.explosion || 0;
-	const radius = explosion_radius(explosion);
-	let damage = 0;
-	for (const mob of targets) {
-		const hit = (character.attack || 0) * profile.multiplier * armour_factor(mob, apiercing);
-		if (mob === shelled) damage += hit;
-		else if (explosion && distance(mob, shelled) <= radius) damage += hit * (explosion / 100) * defense_reduction(shelled.armor || 0);
-	}
-	return damage;
-}
-
-function choose_shell_shot(shelled, in_range) {
-	const others = in_range.filter(e => e !== shelled).sort((a, b) => distance(a, shelled) - distance(b, shelled));
-	const primary = [shelled, ...others];
-	let best = null;
-
-	for (const profile of SHOT_PROFILES) {
-		if (!shot_usable(profile)) continue;
-		if (character.mp < shot_mana(profile) + panic_mp_reserve()) continue;
-		const targets = primary.slice(0, profile.single ? 1 : profile.count);
-		const damage = shell_shot_damage(shelled, targets, profile);
-		const total = targets.length * profile.multiplier;
-		if (!best || damage > best.damage || (damage === best.damage && total > best.total)) {
-			best = { name: profile.name, single: !!profile.single, targets, damage, total };
-		}
-	}
-
-	if (best) errlog_count(`shell shot ${best.name}${character.explosion ? " boom" : ""}`);
-	return best;
 }
 
 function coop_boss_only(in_range) {
