@@ -41,6 +41,10 @@
   "skill_tick ready": {
    "result": 100,
    "sent": []
+  },
+  "local": {
+   "result": null,
+   "sent": []
   }
  }
 }

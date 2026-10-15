@@ -49,6 +49,15 @@
      }
     }
    ]
+  },
+  "local": {
+   "result": 1,
+   "sent": [
+    {
+     "event": "engage_step",
+     "payload": "7811073"
+    }
+   ]
   }
  }
 }

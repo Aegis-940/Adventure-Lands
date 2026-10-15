@@ -141,6 +141,14 @@
      }
     }
    ]
+  },
+  "local": {
+   "result": null,
+   "sent": [
+    {
+     "event": "farm_step"
+    }
+   ]
   }
  }
 }

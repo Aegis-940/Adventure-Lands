@@ -39,6 +39,18 @@
   "skill_tick ready": {
    "result": 200,
    "sent": []
+  },
+  "local": {
+   "result": null,
+   "sent": [
+    {
+     "event": "move",
+     "payload": [
+      245,
+      -1413
+     ]
+    }
+   ]
   }
  }
 }

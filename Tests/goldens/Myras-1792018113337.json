@@ -85,6 +85,14 @@
   "zap_tick ready calls": {
    "result": 40,
    "sent": []
+  },
+  "local": {
+   "result": null,
+   "sent": [
+    {
+     "event": "farm_step"
+    }
+   ]
   }
  }
 }

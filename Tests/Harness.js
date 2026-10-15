@@ -490,7 +490,31 @@ async function bursts(fixture) {
 	const table = BURSTS[fixture.character.ctype] || {};
 	for (const name in table) out[name] = await fire_burst(fixture, table[name]);
 	for (const name of TICKS[fixture.character.ctype] || []) out[name] = await run_tick(fixture, name);
+	if (fixture.character.ctype !== "merchant") out.local = await run_local(fixture);
 	return out;
+}
+
+async function run_local(fixture) {
+	const { ctx, log } = await boot(fixture, { entry: false });
+	vm.runInContext(RESTORE, ctx)(fixture);
+	const sent = [];
+	ctx.parent.move = (x, y) => {
+		sent.push({ event: "move", payload: [Math.round(x), Math.round(y)] });
+		return new Promise(() => { });
+	};
+	const farm = () => sent.push({ event: "farm_step" });
+	const engage = mob => sent.push({ event: "engage_step", payload: mob && mob.id });
+	const calls = log.parent_calls.length;
+	let result;
+	try {
+		result = ctx.movement_local(ctx.movement_goal(), farm, engage);
+	} catch (e) {
+		result = "THREW: " + (e && e.message || e);
+	}
+	await new Promise(r => setImmediate(r));
+	for (const name of log.parent_calls.slice(calls)) sent.push({ event: "parent " + name });
+	sent.push(...log.emits.splice(0).map(e => ({ event: e.event })));
+	return { result: result instanceof Promise || result === undefined ? null : result, sent: JSON.parse(JSON.stringify(sent)) };
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

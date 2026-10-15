@@ -90,6 +90,10 @@
      }
     }
    ]
+  },
+  "local": {
+   "result": null,
+   "sent": []
   }
  }
 }

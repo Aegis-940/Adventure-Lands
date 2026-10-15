@@ -237,6 +237,10 @@
      }
     }
    ]
+  },
+  "local": {
+   "result": null,
+   "sent": []
   }
  }
 }

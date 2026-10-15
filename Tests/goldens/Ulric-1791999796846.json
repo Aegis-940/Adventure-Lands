@@ -194,6 +194,14 @@
   "skill_tick ready calls": {
    "result": 100,
    "sent": []
+  },
+  "local": {
+   "result": null,
+   "sent": [
+    {
+     "event": "farm_step"
+    }
+   ]
   }
  }
 }

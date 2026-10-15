@@ -73,6 +73,18 @@
      }
     }
    ]
+  },
+  "local": {
+   "result": null,
+   "sent": [
+    {
+     "event": "move",
+     "payload": [
+      -586,
+      -271
+     ]
+    }
+   ]
   }
  }
 }
