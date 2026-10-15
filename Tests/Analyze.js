@@ -19,6 +19,9 @@ const MONSTER_WORDS_EXCLUDED = new Set(["target"]);
 
 const EMIT_CALLS = new Set(["equip", "unequip", "use_skill", "attack", "heal", "move", "smart_move"]);
 
+const ACTUATOR_FILES = new Set(["Core Systems/Equipment Manager.js", "Core Systems/Skill Runner.js", "Core Systems/Character Runner.js",
+	"Core Systems/Movement Manager.js"]);
+
 const REGISTRATION_CALLS = new Set(["on_boot", "console_api", "encounter"]);
 
 const REGISTRY_OBJECTS = new Set(["DUNGEONS"]);
@@ -185,6 +188,7 @@ function analyze_file(parser, name, text, monsters) {
 	};
 
 	const site = (counter, node) => {
+		if (counter === "emits" && ACTUATOR_FILES.has(name)) return;
 		result.counters[counter]++;
 		if (!result.sites[counter]) result.sites[counter] = [];
 		result.sites[counter].push(node.loc.start.line);
