@@ -191,18 +191,9 @@ function swing_swaps(target) {
 	if (cleave || rush) weapon_burst(cleave, rush, target);
 }
 
-function restore_weapon_set(token, fallback) {
-	const back = equip_plan(chosen_weapon_set() || fallback);
-	emit_equip_ops(back.ops, back.shadow);
-	equip_release(token);
-}
-
 function weapon_burst(cleave, rush, swing_target) {
 	const restore = chosen_weapon_set();
-	if (!restore) return false;
-
-	const token = equip_claim("weapon-burst", EQUIP_PRIORITY.skill);
-	if (!token) return false;
+	if (!restore || !equip_claimable(EQUIP_PRIORITY.skill)) return false;
 
 	const axe = equip_plan(cleave ? CLEAVE_SET : []);
 	const shadow = axe.shadow;
@@ -217,24 +208,21 @@ function weapon_burst(cleave, rush, swing_target) {
 		? burst_hold(swing_target, will_cleave ? cache.monsters_in_cleave_range : null, cap)
 		: 0;
 
-	if ((!will_cleave && !hold) || !back.ops.length) {
-		equip_release(token);
-		return false;
-	}
+	if ((!will_cleave && !hold) || !back.ops.length) return false;
 
-	emit_equip_ops(axe.ops, shadow);
-	if (will_cleave) fire_cleave();
+	equip_burst({
+		owner: "weapon-burst",
+		arm: cleave ? CLEAVE_SET : [],
+		between: will_cleave ? fire_cleave : null,
+		then: hold ? SUGAR_RUSH.set : null,
+		hold,
+		restore: () => chosen_weapon_set() || restore,
+	});
+	if (!hold) return true;
 
-	if (!hold) {
-		restore_weapon_set(token, restore);
-		return true;
-	}
-
-	emit_equip_ops(candy.ops, shadow);
 	swap_trick_attempts++;
 	errlog_count("swap trick fired");
 	errlog_time("swap trick hold", hold);
-	setTimeout(() => restore_weapon_set(token, restore), hold);
 	return true;
 }
 

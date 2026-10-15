@@ -575,7 +575,7 @@ Targeting, `action_loop()`, and `weapon_burst()`. Sets `cache.tank_entity` to **
 
 **Farm focus at uhills** (`Targeting.js`, the targetron-sparkbot encounter's `farm_focus`). After the Rime shell, a pursued boss and any boss, he takes the party's farm focus when it is touchable within his engage radius; otherwise the normal scorer decides. At this spawn the monsters stand clumped on Myras, so his explosion reaches all of them whichever he hits, and the direct hit is best spent where it is amplified.
 
-**The swing burst.** `weapon_burst()` is the one weapon swap each swing makes: swing → bataxe → cleave (when ready) → candy canes, held until the flight of the swing and of every cleave hit has landed → the weapon chooser's current set.
+**The swing burst.** `weapon_burst()` is the one weapon swap each swing makes: swing → bataxe → cleave (when ready) → candy canes, held until the flight of the swing and of every cleave hit has landed → the weapon chooser's current set. It works out whether the burst is worth it and how long to hold; `equip_burst()` sends it.
 - Sugar rush is rolled per hit when it lands (a cleave rolls once per monster), while damage, burn and splash are fixed at launch.
 - The hold is capped where it starts to cost the next swing a penalty (`free_hold_ms()`). Each equip adds 120ms of `penalty_cd` the moment it is sent, so holding to `swing interval − restore penalty` is free: ~460ms, which covers most of cleave's 160px.
 - A hit on an overlapping hitbox resolves inside the attack handler and cannot roll, so `Warrior Movement.js` steps him out to a 12px gap once he is under 4px.
