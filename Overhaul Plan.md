@@ -14,8 +14,8 @@ Reviewed 2026-10-14 before execution. The review's changes are folded in and lis
 |---|---|---|---|
 | 0 | Safety net: harness, snapshots, golden decisions, ratchet lint, docs triage | none | **done** 2026-10-15 (live on `main`) |
 | 1 | Boot kernel: boot phase, scheduler, events, storage, console API | none | **done**: 1.1–1.7 live 2026-10-15 (`compare` at bscorpion: same); 1.2b live the same day (timing identical offline; 3 windows at bscorpion: kills, XP and potions within 2%, no deaths, close calls or loop errors, worst loop lag 11ms) |
-| 2 | Encounters (the monster behaviour redesign) | small, per encounter | everything but the rime Djinn live 2026-10-15; **2.8.6 rime Djinn built on `overhaul`** (a pure relocation, 77 fixtures). Deferred: the rime stomp as an encounter `step` once live Djinn fixtures exist |
-| 3 | Deciders and actuators | per decision | not started |
+| 2 | Encounters (the monster behaviour redesign) | small, per encounter | **done**: live 2026-10-15, monster literals outside encounters at 0. Deferred: the rime stomp as an encounter `step` once live Djinn fixtures exist |
+| 3 | Deciders and actuators | per decision | 3.1 built on `overhaul` 2026-10-15 (every burst pinned and identical; Riff's gear through the planner) |
 | 4 | Telemetry on the event bus | none | not started |
 | 5 | World model (optional) | small (timing) | not started |
 | 6 | File hygiene and docs (trimmed) | none | not started |
@@ -543,7 +543,7 @@ This is already the model (`Decision Ownership.md` §6). The three `action_loop`
 
 ### Phase 3 checklist
 
-- [ ] 3.1 `equip_burst`, the 4 bursts migrated (one per push), Merchant Gear through the planner
+- [x] 3.1 `equip_burst`, the 4 bursts migrated (one per push), Merchant Gear through the planner (on `overhaul`, 2026-10-15). The harness first gained a burst pin: each burst (cleave, sugar rush, both, stomp, temporal surge, scare) fires once in a fresh boot per fixture and its golden records every op sent, in order, including a restore left on a timer. All four migrations kept those goldens identical. Scare and stomp claim at panic priority: scare is the panic, and stomp never claimed before, so it must keep cutting through a pending sugar-rush hold. `weapon_burst()` keeps the decision and the hold, and checks `equip_claimable()` before working one out. The penalty rule stays there too, since only the hold uses it. Riff's broom/book and his rod/pickaxe are sets equipped through `equip_once()`, one batch instead of two equips 400ms apart
 - [ ] 3.2 skill runner: warrior, priest, ranger (one per push; priest's panic-heal golden unchanged)
 - [ ] 3.3 local-step registry
 - [ ] 3.4 shared action runner

@@ -73,11 +73,16 @@ var CONFIG = {
 	do_not_bank: ["tracker", "computer", "hpot1", "mpot1"],
 	min_bank_free_space: 10,
 	min_free_inventory_slots: 3,
-	default_gear: {
-		mainhand: { name: "broom", level: 9 },
-		offhand: { name: "wbookhs", level: 1 },
-	},
 	priorities: ["dead", "delivering", "banking", "lolipops", "upgrading", "fishing", "mining", "crafting", "exchanging"],
+};
+
+var equipment_sets = {
+	default: [
+		{ slot: "mainhand", item_name: "broom", level: 9 },
+		{ slot: "offhand", item_name: "wbookhs", level: 1 },
+	],
+	rod: [{ slot: "mainhand", item_name: "rod" }],
+	pickaxe: [{ slot: "mainhand", item_name: "pickaxe" }],
 };
 
 var HOME = CONFIG.locations.HOME;

@@ -675,7 +675,9 @@ In free-mana mode the shirt goes on `chest_engage_shots` (2) of the widest wante
 
 ### `Merchant Gear.js`
 
-`is_default_gear()` protects only the copy Riff wears: the default slot's name **and** level (`broom` +9, `wbookhs` +1). Matching by name alone kept every broom off the vendor list once `broom` was added to `SELLABLE_ITEMS`, because his mainhand is a broom.
+Riff's default gear and his gathering tools are equipment sets (`default`, `rod`, `pickaxe` in Merchant Config) equipped through `equip_once()`, so `best_copy()`, the sent view and the doublehand offhand clear protect him as they do the fighters. They used to be raw `equip()`/`unequip()` calls by bag index with 400ms waits between them.
+
+`is_default_gear()` protects only the copy Riff wears: the `default` set's name **and** level (`broom` +9, `wbookhs` +1). Matching by name alone kept every broom off the vendor list once `broom` was added to `SELLABLE_ITEMS`, because his mainhand is a broom.
 
 **Nothing upgraded is vendored.** `vendorable()` (`Loot Management.js`) is the one test both sellers use, the fighters' `remote_sell_items()` and Riff's `sellable()`: on `SELLABLE_ITEMS` *and* below +1. `SELLABLE_ITEMS` names junk drops, and a +1 or better copy is either something Riff paid scrolls for or a lucky drop, so it's banked instead.
 

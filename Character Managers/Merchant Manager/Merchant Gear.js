@@ -3,26 +3,11 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function is_default_gear(item) {
-	if (!item) return false;
-	for (const slot in CONFIG.default_gear) {
-		const g = CONFIG.default_gear[slot];
-		if (g && g.name === item.name && (item.level || 0) === g.level) return true;
-	}
-	return false;
+	return !!item && equipment_sets.default.some(entry => entry.item_name === item.name && (item.level || 0) === entry.level);
 }
 
 async function equip_default_gear() {
-	for (const slot of ["mainhand", "offhand"]) {
-		const gear = CONFIG.default_gear[slot];
-		const current = character.slots[slot];
-		if (current && current.name === gear.name && current.level === gear.level) continue;
-
-		const idx = character.items.findIndex(item => item && item.name === gear.name && item.level === gear.level);
-		if (idx === -1) continue;
-
-		await equip(idx, slot);
-		await delay(400);
-	}
+	await equip_once("default gear", EQUIP_PRIORITY.rules, "default");
 }
 
 async function ensure_tool_available(tool_name) {
@@ -56,17 +41,6 @@ async function ensure_tool_available(tool_name) {
 }
 
 async function equip_tool(tool_name) {
-	if (character.slots.mainhand && character.slots.mainhand.name === tool_name) return true;
-
-	const idx = character.items.findIndex(item => item && item.name === tool_name);
-	if (idx === -1) return false;
-
-	if (character.slots.offhand) {
-		await unequip("offhand");
-		await delay(400);
-	}
-
-	await equip(idx, "mainhand");
-	await delay(400);
+	await equip_once("tool", EQUIP_PRIORITY.rules, tool_name);
 	return character.slots.mainhand && character.slots.mainhand.name === tool_name;
 }
