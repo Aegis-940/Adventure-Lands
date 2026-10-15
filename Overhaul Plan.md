@@ -16,11 +16,11 @@ Reviewed 2026-10-14 before execution. The review's changes are folded in and lis
 | 1 | Boot kernel: boot phase, scheduler, events, storage, console API | none | **done**: 1.1–1.7 live 2026-10-15 (`compare` at bscorpion: same); 1.2b live the same day (timing identical offline; 3 windows at bscorpion: kills, XP and potions within 2%, no deaths, close calls or loop errors, worst loop lag 11ms) |
 | 2 | Encounters (the monster behaviour redesign) | small, per encounter | **done**: live 2026-10-15, monster literals outside encounters at 0. Deferred: the rime stomp as an encounter `step` once live Djinn fixtures exist |
 | 3 | Deciders and actuators | per decision | 3.1–3.5 built on `overhaul` 2026-10-15 (every burst, skill tick, action tick and local step pinned and identical; Riff's gear through the planner; `merchant_task` has one writer). 3.6: ratchet kept at 48, zero deferred. **Live 2026-10-15 on 0821e79: `compare` same** (12 windows at bscorpion, no deaths or close calls) |
-| 4 | Telemetry on the event bus | none | not started |
-| 5 | World model (optional) | small (timing) | not started |
+| 4 | Data for decisions (rewritten 2026-10-15) | none, except experiments the user approves | not started |
+| 5 | World model | — | **dropped** 2026-10-15 (D17) |
 | 6 | File hygiene and docs (trimmed) | none | not started |
 
-Phases 0–3 are the plan. Phases 4–6 are worth doing only if 0–3 leave an appetite for them; nothing in 0–3 depends on them.
+Phases 0–3 are done. Phase 4 was rewritten on 2026-10-15 to collect the data for data-based improvements, and comes before Phase 6, so the Phase 6 docs describe the final shape. Phase 5 is dropped (D17).
 
 Update this table and the step checklists in the same commit as the work.
 
@@ -36,7 +36,7 @@ When this plan is done:
 4. **Every decision has one owner that returns an intent**; only actuators talk to the server.
 5. **Decisions are testable offline** against snapshots recorded in the live game.
 6. **The structure enforces itself.** Lint counts every legacy pattern and fails a push that increases any count.
-7. **Telemetry is subscribed, not woven in** (Phase 4, optional).
+7. **Every decision and its outcome is kept, with context, so improvements are chosen from data** (Phase 4).
 8. **Each fact has one home in the docs.**
 
 "Every file is a module with declared dependencies" was a goal in the first draft. It is now a deferred option (Appendix D): it cost 15–17 pushes of mechanical wrapping, a bridge that had to be removed again, and an unplanned dependency inversion (Core reads role `CONFIG`), for a benefit the boot phase and lint deliver on their own.
@@ -94,8 +94,8 @@ When this plan is done:
 | Override systems | 5: `MONSTER_GEAR_OVERRIDES`, `BOSS_GEAR_OVERRIDES`, `RIME_HOLD_GEAR`, dungeon `flags` (31 keys), the `*_homes`/blacklist lists | Phase 2: the four non-dungeon systems become one; dungeon flags stay (D2) |
 | Hand-rolled equip bursts (`equip_plan` + `emit_equip_ops`) | 4 sites | Phase 3 |
 | Raw `equip()`/`unequip()` | 3 (Merchant Gear) | Phase 3 |
-| Logger loops started from Ulric's entry point | 5 of 12 | Phase 4 |
-| `game_log` / `errlog_count` call sites | 255 / 51 | Phase 4 |
+| Logger loops started from Ulric's entry point | 5 of 12 | stay; moved only when their file is touched (D17) |
+| `game_log` / `errlog_count` call sites | 255 / 51 | Phase 4.7 levels, swept in 6.2 |
 | Core files reading role-owned globals (`CONFIG`, `cache`, `state`, `EQUIPMENT_RULES`, `ITEMS_TO_KEEP`) | 16 of 24, plus Dungeon Runner | stays as is: globals with neutral defaults in `Global Config.js` (this is why modules are deferred, Appendix D) |
 | Tests | none | Phase 0 |
 
@@ -118,7 +118,7 @@ Drift found in the docs while measuring (fixed in step 0.7):
  Context       role defaults → spawn encounter → hazard encounter → situation encounter
  Deciders      context → intent   (attack · wear · go · stand · skill · heal · panic · merchant task)
  Actuators     intent → server  (equipment applier · movement · skill runner · attack runner)
- Telemetry     subscribers to events: ledger · danger · survey · meters · profilers · flight recorder   (Phase 4)
+ Telemetry     decisions + outcomes per window, with context → al_data.sqlite; ledger · danger · survey   (Phase 4)
  World model   one lazily built snapshot shared across loops                                             (Phase 5, optional)
  Interface     widgets and toolbar through registries
 ```
@@ -310,7 +310,7 @@ every("equipment", { ms: TICK_RATE.equipment, kind: "combat" }, resolve_equipmen
 - `on_character(event, key, fn)` does the same for `character.on`.
 - `on_dom(target, event, key, fn)` covers `addEventListener` (Error Log lifecycle, Widget Helpers drag, Game Log resize).
 - `wrap_parent(name, wrapper)` is the only way to override a `parent.*` function, and is restored on `pagehide`. This writes the lesson of the 2026-10-01 freeze (an unrestored `add_log` wrapper blocked the game's auto-reload) into the kernel. It covers `add_log` (Game Log), and the `heal` and `console.error` wraps (Error Log).
-- `emit(topic, data)` / `on(topic, key, fn)` is the internal bus. Phase 2 uses it for `encounter_enter`/`leave`; Phase 4 fills it.
+- `emit(topic, data)` / `on(topic, key, fn)` is the internal bus. Phase 2 uses it for `encounter_enter`/`leave`; Phase 4.4's outcome feed publishes on it.
 
 ### 1.4 Storage (`Kernel/Storage.js`)
 
@@ -554,59 +554,93 @@ This is already the model (`Decision Ownership.md` §6). The three `action_loop`
 
 ---
 
-## 10. Phase 4 — Telemetry on the event bus (optional)
+## 10. Phase 4 — Data for decisions
 
-**Goal:** behaviour code emits events and never logs, measures or archives inline. No behaviour change.
+**Goal:** every decision the bot makes, and what came of it, is kept for weeks in `al_data.sqlite` with the context to slice it. Improvements are then chosen from measurements rather than ideas. No behaviour change, except the experiments in 4.6, which run only with the user's go-ahead.
 
-### 4.1 Normalised game events
+Rewritten 2026-10-15 (D17). The first draft moved every socket handler onto a bus for tidiness. That kept nothing new, so it is dropped. This phase keeps the useful part of it, one outcome feed, and points it at the data the bot doesn't keep today.
 
-`Kernel/Events.js` subscribes once to each socket event and re-emits a normalised topic with the fields every current handler derives for itself:
+### What is kept today, and the gap
 
-| Topic | From | Adds |
+| Kept for good (`.jsonl` → `al_data.sqlite`) | Kept about 2 hours (`errors.json`, 250 per kind) | Never recorded |
 |---|---|---|
-| `hit` | socket `hit` | `mob`, `by_me`, `by_party`, `on_me`, `on_party`, `kill`, `damage_type` |
-| `kill` | socket `kill_credit` + `hit.kill` | `mtype`, `credit`, `at_spot` |
-| `action` | socket `action` | `skill`, `source`, `target`, in-flight id |
-| `equip_reply` | socket `game_response` (`place`) | `event`, `failed`, `slots` |
-| `loot` | `character.on("loot")` | gold, items |
-| `map` | `character.on("new_map")` | from, to |
+| 5-minute ledger windows, deaths and close calls, tracker, boss profiles, survey | `damage` and `heal` windows per weapon set, `weapon_choice`, `target_choice`, `heal_choice`, `burn_state`, `cc_report` | individual decisions (each cast, attack, swap, pull, goal change) and why each was taken |
 
-### 4.2 Bot events
+So the store answers "did build B farm better than build A" (`compare`), but not *which decision* made the difference, or whether a decision did what its own estimate said it would.
 
-These are emitted by the deciders and actuators that own them: `swap`, `skill_cast`, `shot`, `pull`, `panic`, `death`, `close_call`, `goal_change`, `encounter_enter`/`encounter_leave`, `dungeon_enter`/`dungeon_exit`.
+### Questions this phase must answer
 
-### 4.3 Subscribers
+Each recorder exists for one of these questions. A recorder that serves none isn't built.
 
-Each of these keeps its file and moves its handlers onto topics:
+1. **Is each skill worth its mana?** Per skill: casts, mana spent, the damage and kills it actually produced, and the value it was cast for (`skill_pays()`, `mark_value()`, `supershot_value()`): predicted against realised.
+2. **Which weapon set does better, and where?** Time worn and realised damage per set, per home and monster, against the measured profiles `resolve_weapon_set()` chooses from.
+3. **How big a pull is safe?** Myras's aggro count when she pulls, against the close calls and potions that follow (`effective_aggro_cap()`).
+4. **What leads to a death or close call?** The decisions in the 10s before each one, beside the damage sources the Danger Log already keeps.
+5. **Where does the time go?** Each window split by goal: at the spot, travelling, panicking, on a boss trip, looting.
+6. **Did a setting change help?** The same window measures split by experiment variant (4.6).
 
-- Farm Ledger (`kill`, `loot`, `death`), Danger Log (`hit`), Farm Survey, Boss Profiler (`action`, `hit`), Combat Sampling (`action`, `hit`: the in-flight ledger stays exact and first in order), Dungeon Progress (`hit`→`kill`), Dungeon Runner's kill wait (`kill`)
-- Meters: DPS (`hit`), Kill Tracker (`kill`), Gold Meter/Stats Window/Metrics Graphs (`loot`, `hit`, `kill`), Lucky Slot Tracker (`q_data` raw)
-- Error Log (`equip_reply`, `disconnect`, `limitdcreport`, lifecycle)
-- **Role loggers leave the entry points:** `cooperative_luck_logger`, `swap_penalty_logger`, `cc_report_logger` and `sugar_rush_roll_logger` become `telemetry`-kind subscribers in Warrior Combat. `rime_shell_logger` moves with the rime encounter.
+### Ground rules
 
-### 4.4 Logging levels
+- **Recording never changes play.** Recorders follow the `errlog_*` contract (they cannot throw into their caller), and every harness pin stays identical through 4.1–4.5 and 4.7.
+- **Roll up on the client.** Decisions and outcomes are summed per 5-minute window (aligned with the ledger window) and per decision kind, and archived as one record per character per window. Raw events are kept only next to rare moments: deaths, close calls, panics, bosses.
+- **A size budget, measured first.** 4.1 measures bytes per day per lane and sets the budget. No lane goes in without its daily size in the commit message.
+- **Archive lanes, not new plumbing.** Everything goes through `errlog_archive(kind, data)` → a `.jsonl` file in the sink → a table in `Data Store.py`. The 100-entry archive ring is resent on every push and de-duplicated by `t`. A lane that writes more than about one record per 3 seconds per character needs a bigger ring, so 4.1 checks that too.
 
-`log(level, msg)` with `info`, `warn`, `error`, `event` and `debug` levels, where colour and prefix come from the level. This is the same set `ERRLOG_GAMELOG_PREFIXES` already infers from emojis. `game_log(msg, color)` stays as the underlying writer. `warn` and `error` also count into the flight recorder by level, which replaces Error Log's emoji-prefix inference.
+### 4.1 Keep what is already measured
 
-Conversion (D3): a file's `game_log` calls are converted in the commit that changes that file for a non-mechanical reason. Whatever is left is swept file by file in 6.2.
+The `damage` and `heal` samples are already per-weapon rollups (Combat Sampling's 15s windows), and they answer question 2 in part. Archive them, plus `weapon_choice`, `target_choice` and `burn_state`, to their own `.jsonl` lanes with store tables. Retire any sample kind no question needs. Measure the daily size of each lane and record the budget here.
 
-### 4.5 Record context
+### 4.2 Context on every record
 
-Every archived record carries build, character, home and active encounters.
+Every archived record carries `build`, `character`, `home`, `survey_spot`, `map`, the active encounters (`encounters_active()`), the goal label, and `variant` (empty until 4.6). The ledger, danger, tracker and survey lanes gain the same fields. Their existing fields are unchanged, which is checked by diffing a window from each build.
+
+### 4.3 Decisions at the choke points
+
+Phase 3 routed every cast, attack and swap through a few runners. One recorder call in each records every decision, without touching the handlers:
+
+| Choke point | Records |
+|---|---|
+| `run_skills()` | entry name, target, mana, and the value it was cast for where the entry has one (`wanted` passes it back through context) |
+| `run_action()` / `run_basic_action()` | basic action and shot name, target count, whether the target was already on someone (a pull) |
+| `equip_burst()`, `resolve_equipment()` | burst owner and ops sent; rule group changed from → to |
+| `set_panic()`, `movement_goal()` changes | panic on/off with reason; goal label in → out, with how long it lasted |
+| `select_target()` | the chosen target's score against the runner-up (sampled, not every call) |
+
+Each is summed into the current window (counts, mana, predicted value). A ring of the last 50 decisions is attached to every danger record (question 4).
+
+### 4.4 Outcomes joined to decisions
+
+One normalised outcome handler: `hit`, `action` and `kill_credit` subscribed once, with `by_me`, `by_party`, `kill`, `source` and the projectile id worked out once. Combat Sampling already maps a projectile id to its weapon and keeps the in-flight ledger exactly. It becomes the first subscriber, unchanged in order, and also maps the id to the decision that fired it. Realised damage, kills and overkill are then summed into the same window rows as the decisions (question 1). The other `hit` handlers move onto the feed only when their file is touched for its own reason.
+
+### 4.5 The store and the questions
+
+`decisions.jsonl` → `decisions` table (character, window, kind, name, count, mana, predicted, realised, kills, plus the 4.2 context). `Data Store.py` gains one command per question, in the style of `compare`: `skills`, `weapons`, `pulls`, `before-danger`, `time`, `experiment`. The status page gets a section for the first two.
+
+### 4.6 Experiments (the bridge to data-based changes)
+
+`experiment(name, { variants, setting })` registers a setting under test. The code reads it through `experiment_value(name, fallback)`, so with no experiment running it is the fallback, exactly as today. A running experiment alternates its variants on a fixed schedule (for example, each 30-minute block), which cancels time-of-day and server-population drift better than comparing one build's day against another's. Every record carries the variant, and `Data Store.py experiment <name>` gives the verdict with `compare`'s bands. **Each experiment is a behaviour change at the farm and starts only with the user's go-ahead.** The mechanism itself ships with none running.
+
+### 4.7 Log levels
+
+`log(level, msg)` with `info`, `warn`, `error`, `event` and `debug`, with colour and prefix from the level. `game_log(msg, color)` stays as the underlying writer. `warn` and `error` are counted into the flight recorder by level, which replaces Error Log's emoji-prefix guessing. Call sites are converted per D3; the rest are swept in 6.2.
 
 ### Phase 4 checklist
 
-- [ ] 4.1 normalised topics
-- [ ] 4.2 bot events emitted at their owners
-- [ ] 4.3 subscribers moved; logger loops gone from the entry points
-- [ ] 4.4 `log(level, msg)` in place; call sites converted as files are touched (D3)
-- [ ] 4.5 record context
+- [ ] 4.1 existing samples archived, lane sizes measured, budget set
+- [ ] 4.2 context on every record
+- [ ] 4.3 decisions recorded at the choke points, rolled up per window; last 50 on each danger record
+- [ ] 4.4 one outcome feed; damage and kills attributed to decisions
+- [ ] 4.5 `decisions` table and the six question commands
+- [ ] 4.6 `experiment()` mechanism (none running)
+- [ ] 4.7 `log(level, msg)`
 
-**Exit:** no socket handler outside `Kernel/Events.js`. The entry points list only behaviour loops. Ledger, danger and survey `.jsonl` output is unchanged except for the added fields, checked by diffing a window from each build.
+**Exit:** for any day since 4.5 shipped, the store alone answers questions 1–5 without the live game, and every lane is within its budget. Every harness pin is identical. A first experiment is proposed from the data, not run: the user decides.
 
 ---
 
-## 11. Phase 5 — World model (optional)
+## 11. Phase 5 — World model (dropped)
+
+**Dropped 2026-10-15 (D17).** Kept below for the record. CPU has never been the bottleneck, the hot paths would have to stay live anyway, and the harness's recorded fixtures already give the testability it promised.
 
 **Goal:** every decider in a tick reads the same picture of the world. Small timing change, measured.
 
@@ -742,10 +776,10 @@ Rough count of pushes, each independently shippable:
 | 2 | 9–11, several of them waiting on the farm |
 | 3 | 9–11 |
 | **0–3** | **~33–39** |
-| 4 | 5–6 |
-| 5 | 4–6 |
+| 4 | 7–9 |
+| 5 | dropped |
 | 6 | 4–8 |
-| **All** | **~46–59** |
+| **All** | **~44–56** |
 
 Reloads are the user's; a reload may carry any number of pushes. Live measurement runs per reload at the current home (D4), so the calendar cost is set by how often the user reloads, not by the push count.
 
@@ -774,6 +808,7 @@ Reloads are the user's; a reload may carry any number of pushes. Live measuremen
 - **D6 The characters keep running, and the current farm is not a test bed.** The bot stays live throughout; fixtures and ledger windows come from wherever the party already is and whatever bosses and panics happen. Nothing in this plan relocates the party, starts the survey, or changes behaviour at the current farm. Encounter migration order follows the farm (2.8).
 - **D7 Phase 1 is a boot kernel, not a module registry.** `define()`/dependency wrapping of 80 files, the `expose` bridge and its removal are deferred (Appendix D). Reasons: 15–17 mechanical pushes for a benefit the boot phase and lint provide; an unplanned Core → role dependency inversion (16 Core files read role `CONFIG`/`cache`/`state`); and a bridge that would have to be removed again. Files stay classic scripts; the `var`/`const` eval rule stays and is documented.
 - **D8 Phase order is 0, 1, encounters, deciders/actuators, then the optional phases.** Encounters are the design change the overhaul is for and need only the boot kernel. The telemetry bus and world model are refactors with no behaviour payoff and go last, if at all. The world model, if built, is lazy per field and never a gate.
+- **D17 Phase 4 is data for decisions; Phase 5 is dropped (the user, 2026-10-15).** The goal is data-based improvement over the user's own ideas. The store kept outcomes (ledger windows, danger, tracker, boss profiles), but the per-decision samples lasted about 2 hours and individual decisions were never recorded, so it could compare builds but not explain them. Phase 3's runners make recording every decision a few lines at the choke points. The first draft's bus migration kept nothing new, so only its outcome feed survives (4.4). The world model offered no speed (CPU was never the limit) and little consistency (the hot paths must stay live), so it is dropped.
 - **D10 Stage on `overhaul`; `main` is what runs unattended.** The bot reloads itself every four hours at x:55 and the watchdog reloads silent windows, so "deploy and stop, the user reloads" doesn't hold: `main` goes live within hours whether or not anyone is watching. Changes to loaded files are staged on `overhaul` and merged with the user present. Only files the bot never loads, and the throw-proof telemetry of 0.2/0.5, go straight to `main`.
 - **D11 Rare fixtures gate only the step that needs them.** A panic or close-call fixture is required before 3.2, not to leave Phase 0.
 - **D12 Goldens are deterministic or they are noise.** The clock, the stored values and `Math.random` come from the fixture. Each fixture runs in a fresh context, and `check` runs every fixture twice.
