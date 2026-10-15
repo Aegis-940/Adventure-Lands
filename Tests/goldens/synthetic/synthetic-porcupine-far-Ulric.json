@@ -22,5 +22,27 @@
    "panic_external": false
   }
  },
- "emits": []
+ "emits": [],
+ "bursts": {
+  "cleave": {
+   "result": false,
+   "sent": []
+  },
+  "rush": {
+   "result": false,
+   "sent": []
+  },
+  "cleave_rush": {
+   "result": false,
+   "sent": []
+  },
+  "stomp": {
+   "result": false,
+   "sent": []
+  },
+  "scare": {
+   "result": false,
+   "sent": []
+  }
+ }
 }

@@ -22,5 +22,120 @@
    "panic_external": false
   }
  },
- "emits": []
+ "emits": [],
+ "bursts": {
+  "cleave": {
+   "result": true,
+   "sent": [
+    {
+     "event": "unequip",
+     "payload": {
+      "slot": "offhand"
+     }
+    },
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 37,
+       "slot": "mainhand"
+      }
+     ]
+    },
+    {
+     "event": "skill",
+     "payload": {
+      "name": "cleave"
+     }
+    },
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 37,
+       "slot": "mainhand"
+      }
+     ]
+    }
+   ]
+  },
+  "rush": {
+   "result": false,
+   "sent": []
+  },
+  "cleave_rush": {
+   "result": true,
+   "sent": [
+    {
+     "event": "unequip",
+     "payload": {
+      "slot": "offhand"
+     }
+    },
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 37,
+       "slot": "mainhand"
+      }
+     ]
+    },
+    {
+     "event": "skill",
+     "payload": {
+      "name": "cleave"
+     }
+    },
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 37,
+       "slot": "mainhand"
+      }
+     ]
+    }
+   ]
+  },
+  "stomp": {
+   "result": true,
+   "sent": [
+    {
+     "event": "unequip",
+     "payload": {
+      "slot": "offhand"
+     }
+    },
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 15,
+       "slot": "mainhand"
+      }
+     ]
+    },
+    {
+     "event": "skill",
+     "payload": {
+      "name": "stomp"
+     }
+    },
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 15,
+       "slot": "mainhand"
+      }
+     ]
+    }
+   ]
+  },
+  "scare": {
+   "result": false,
+   "sent": []
+  }
+ }
 }

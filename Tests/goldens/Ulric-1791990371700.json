@@ -22,5 +22,166 @@
    "panic_external": false
   }
  },
- "emits": []
+ "emits": [],
+ "bursts": {
+  "cleave": {
+   "result": true,
+   "sent": [
+    {
+     "event": "unequip",
+     "payload": {
+      "slot": "offhand"
+     }
+    },
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 40,
+       "slot": "mainhand"
+      }
+     ]
+    },
+    {
+     "event": "skill",
+     "payload": {
+      "name": "cleave"
+     }
+    },
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 40,
+       "slot": "mainhand"
+      }
+     ]
+    }
+   ]
+  },
+  "rush": {
+   "result": true,
+   "sent": [
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 14,
+       "slot": "mainhand"
+      },
+      {
+       "num": 38,
+       "slot": "offhand"
+      }
+     ]
+    },
+    {
+     "event": "after 149.5458612639277ms"
+    },
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 14,
+       "slot": "mainhand"
+      },
+      {
+       "num": 38,
+       "slot": "offhand"
+      }
+     ]
+    }
+   ]
+  },
+  "cleave_rush": {
+   "result": true,
+   "sent": [
+    {
+     "event": "unequip",
+     "payload": {
+      "slot": "offhand"
+     }
+    },
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 40,
+       "slot": "mainhand"
+      }
+     ]
+    },
+    {
+     "event": "skill",
+     "payload": {
+      "name": "cleave"
+     }
+    },
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 14,
+       "slot": "mainhand"
+      },
+      {
+       "num": 38,
+       "slot": "offhand"
+      }
+     ]
+    },
+    {
+     "event": "after 441.2472843331313ms"
+    },
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 40,
+       "slot": "mainhand"
+      }
+     ]
+    }
+   ]
+  },
+  "stomp": {
+   "result": true,
+   "sent": [
+    {
+     "event": "unequip",
+     "payload": {
+      "slot": "offhand"
+     }
+    },
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 15,
+       "slot": "mainhand"
+      }
+     ]
+    },
+    {
+     "event": "skill",
+     "payload": {
+      "name": "stomp"
+     }
+    },
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 15,
+       "slot": "mainhand"
+      }
+     ]
+    }
+   ]
+  },
+  "scare": {
+   "result": false,
+   "sent": []
+  }
+ }
 }

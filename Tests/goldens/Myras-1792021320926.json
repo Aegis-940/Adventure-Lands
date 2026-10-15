@@ -27,5 +27,58 @@
    "panic_external": false
   }
  },
- "emits": []
+ "emits": [],
+ "bursts": {
+  "temporal": {
+   "result": true,
+   "sent": [
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 8,
+       "slot": "orb"
+      }
+     ]
+    },
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "temporalsurge",
+      "target": null
+     }
+    },
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 8,
+       "slot": "orb"
+      }
+     ]
+    }
+   ]
+  },
+  "scare": {
+   "result": true,
+   "sent": [
+    {
+     "event": "equip_batch",
+     "payload": [
+      {
+       "num": 7,
+       "slot": "orb"
+      }
+     ]
+    },
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "scare",
+      "target": null
+     }
+    }
+   ]
+  }
+ }
 }

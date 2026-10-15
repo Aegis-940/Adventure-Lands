@@ -29,5 +29,15 @@
    "panic_external": false
   }
  },
- "emits": []
+ "emits": [],
+ "bursts": {
+  "temporal": {
+   "result": false,
+   "sent": []
+  },
+  "scare": {
+   "result": false,
+   "sent": []
+  }
+ }
 }

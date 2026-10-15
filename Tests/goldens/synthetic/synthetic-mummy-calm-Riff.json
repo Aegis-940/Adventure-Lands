@@ -8,5 +8,6 @@
    "panic_external": false
   }
  },
- "emits": []
+ "emits": [],
+ "bursts": {}
 }

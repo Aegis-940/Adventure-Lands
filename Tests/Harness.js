@@ -442,6 +442,57 @@ async function decide(fixture) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// BURSTS — every equipment burst fired once in a fresh boot: what it sends, in order, including a restore it leaves on a timer
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const SURGE_ON_DEATH = "(delete parent.next_skill.temporalsurge, surge_pending_respawn(), Object.keys(parent.entities).forEach(id => { if (parent.entities[id].mtype === \"bscorpion\") delete parent.entities[id]; }), camp_temporal_surge())";
+
+const BURSTS = {
+	warrior: {
+		cleave: "weapon_burst(true, false, null)",
+		rush: "weapon_burst(false, true, cache.target)",
+		cleave_rush: "weapon_burst(true, true, cache.target)",
+		stomp: "fire_stomp()",
+		scare: "scare_off()",
+	},
+	priest: { temporal: SURGE_ON_DEATH, scare: "scare_off()" },
+	ranger: { temporal: SURGE_ON_DEATH, scare: "scare_off()" },
+};
+
+async function fire_burst(fixture, call) {
+	const { ctx, log } = await boot(fixture, { entry: false });
+	vm.runInContext(RESTORE, ctx)(fixture);
+	vm.runInContext("typeof update_cache === \"function\" && update_cache()", ctx);
+	ctx.parent.use_skill = (name, target) => {
+		log.emits.push({ event: "use_skill", payload: { name, target: target && (target.id || target.name || target) } });
+		return new Promise(() => { });
+	};
+	const timers = log.timers.length;
+	log.emits.length = 0;
+	let result;
+	try {
+		result = vm.runInContext(call, ctx);
+	} catch (e) {
+		result = "THREW: " + (e && e.message || e);
+	}
+	const sent = log.emits.splice(0);
+	for (const t of log.timers.slice(timers).filter(t => t.kind === "timeout")) {
+		sent.push({ event: "after " + t.ms + "ms" });
+		t.fn();
+		sent.push(...log.emits.splice(0));
+	}
+	await new Promise(r => setImmediate(r));
+	return { result: result === undefined ? null : result, sent: JSON.parse(JSON.stringify(sent)) };
+}
+
+async function bursts(fixture) {
+	const out = {};
+	const table = BURSTS[fixture.character.ctype] || {};
+	for (const name in table) out[name] = await fire_burst(fixture, table[name]);
+	return out;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // PROMOTION — a live snapshot becomes a committed fixture, with every stranger's name replaced by a stable hash
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -626,10 +677,11 @@ async function command_golden(files) {
 	const list = files.length ? files : fixture_files();
 	for (const file of list) {
 		const key = fixture_key(file);
-		const result = await decide(load_fixture(file));
+		const fixture = load_fixture(file);
+		const result = await decide(fixture);
 		const out = path.join(GOLDENS, key + ".json");
 		fs.mkdirSync(path.dirname(out), { recursive: true });
-		fs.writeFileSync(out, JSON.stringify({ decisions: result.decisions, emits: result.emits }, null, 1) + "\n");
+		fs.writeFileSync(out, JSON.stringify({ decisions: result.decisions, emits: result.emits, bursts: await bursts(fixture) }, null, 1) + "\n");
 		console.log("golden " + key);
 	}
 	return 0;
@@ -667,6 +719,12 @@ async function command_check() {
 			if (g !== n) diffs.push(`   ${k}: ${g} -> ${n}`);
 		}
 		if (JSON.stringify(golden.emits) !== JSON.stringify(now.emits)) diffs.push(`   emits: ${JSON.stringify(golden.emits)} -> ${JSON.stringify(now.emits)}`);
+		const fired = await bursts(fixture);
+		for (const name of new Set([...Object.keys(golden.bursts || {}), ...Object.keys(fired)])) {
+			const g = JSON.stringify((golden.bursts || {})[name]);
+			const n = JSON.stringify(fired[name]);
+			if (g !== n) diffs.push(`   burst ${name}: ${g} -> ${n}`);
+		}
 		if (diffs.length) {
 			console.log(`DIFFERS ${key}`);
 			diffs.forEach(d => console.log(d));
