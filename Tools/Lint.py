@@ -11,6 +11,8 @@ Catches what a brace-balance pass cannot:
 
   * the ratchet: every legacy pattern the overhaul removes, counted per file
     against Tests/lint_baseline.json; a count may go down, never up
+  * CONFIG: every key of each role's CONFIG is read somewhere, and every key
+    read exists (Tests/Config Check.js, over each role booted in the harness)
 
 Options:
   --graph     write Tests/dependency_graph.json (load-time and call-time edges)
@@ -168,6 +170,13 @@ def analyze():
     return json.loads(out.stdout.decode("utf-8"))
 
 
+def config_check():
+    out = subprocess.run(["node", os.path.join("Tests", "Config Check.js")], capture_output=True)
+    if out.returncode:
+        sys.exit("Tests/Config Check.js failed:\n" + out.stderr.decode("utf-8", "replace"))
+    return json.loads(out.stdout.decode("utf-8"))
+
+
 def ratchet_counts(result):
     counts = {}
     for name, facts in result["files"].items():
@@ -191,6 +200,15 @@ counts = ratchet_counts(result)
 for v in result["stage_violations"]:
     print(f"STAGE {v['file']} calls {v['call']}() at load, but {', '.join(v['defined_in'])} "
           f"is not in an earlier stage: files within a stage run in arrival order")
+    problems += 1
+
+config = config_check()
+for m in config["missing"]:
+    lacking = "no role defines it" if m["roles"] == "any" else "missing for " + ", ".join(m["roles"])
+    print(f"CONFIG {m['file']}:{m['line']} reads CONFIG.{m['key']}: {lacking}")
+    problems += 1
+for u in config["unused"]:
+    print(f"CONFIG {u['role']}'s CONFIG.{u['key']} is never read")
     problems += 1
 
 if "--graph" in sys.argv:

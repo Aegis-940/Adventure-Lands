@@ -434,7 +434,7 @@ function build_graph(lists, files) {
 		while (queue.length) {
 			const [context, id] = queue.shift();
 			for (const target of resolve(context, id)) {
-				const key = target + " " + id;
+				const key = target + "\0" + id;
 				if (seen.has(key)) continue;
 				seen.add(key);
 				reached.push([target, id]);
