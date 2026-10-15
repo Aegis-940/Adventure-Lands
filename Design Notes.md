@@ -10,7 +10,9 @@ Dates are 2026, written `MM-DD`.
 
 ### `Code Loader.js`
 
-The one file that lives in a game code slot. It fetches and evals `Bootstrapper.js` from jsDelivr, falling back to `rawcdn.githack.com` at the same SHA (correct `application/javascript`, CORS `*`). On 10-07 jsDelivr's `/gh/` backend returned 503 for every uncached commit while npm and cached commits still served. Whichever base works becomes `window.__AL_BASE__`, and the Bootstrapper loads everything else from it.
+The one file that lives in a game code slot. Since 2026-10-15 it loads from this PC: it asks the error sink for `/code/main` (the commit `main` is on), sets `window.__AL_BASE__` to `http://127.0.0.1:8787/code/<sha>/` and evals `Bootstrapper.js` from there. The Bootstrapper loads everything else from the same base, so one load is one commit. The sink reads the files from git (one `ls-tree` and one `cat-file --batch` per commit, kept in memory for the last four), never the working tree.
+
+**Why not the CDN any more.** It used to resolve the commit through `api.github.com` (60 requests an hour), fetch from jsDelivr at that SHA, fall back to githack, and fall back again to jsDelivr `@main`, which is cached for 12 hours and whose purges are throttled. Each of those failed in practice: jsDelivr's `/gh/` backend returned 503 for uncached commits on 10-07 and again on 10-15, githack was slow until warmed, purges throttled and `@main` stayed stale. Every deploy needed a push, a purge and a minutes-long verify. Loading all 98 files took 5.5–6.5s from jsDelivr and about 1s locally, and the slow load is what let the party die in the mummy pack at a reload. GitHub is now only the backup. If the sink is down, the loader retries every 5s rather than falling back, because the sink's logon task restarts it within a minute.
 
 ---
 

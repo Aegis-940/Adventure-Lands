@@ -3,15 +3,12 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 (function () {
-	const REPO = "Aegis-940/Adventure-Lands";
-	const MAIN_BASE = `https://cdn.jsdelivr.net/gh/${REPO}@main/`;
-	const SHA_URL = `https://api.github.com/repos/${REPO}/commits/main`;
-	const TIMEOUT_MS = 8000;
-	const RETRIES = 2;
+	const CODE = "http://127.0.0.1:8787/code/";
+	const SINK_URL = "http://127.0.0.1:8787/errors";
+	const TIMEOUT_MS = 5000;
+	const RETRY_MS = 5000;
 
 	const ROOT = typeof globalThis !== "undefined" ? globalThis : this;
-
-	const SINK_URL = "http://127.0.0.1:8787/errors";
 
 	function beacon(msg) {
 		try {
@@ -53,67 +50,27 @@
 		return;
 	}
 
-	function get(url, mode, tries) {
-		tries = tries || 0;
+	function get(url) {
 		return Promise.race([
-			fetch(url, { cache: mode || "no-store" }),
+			fetch(url, { cache: "no-store" }),
 			new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), TIMEOUT_MS))
-		])
-			.then(res => {
-				if (!res.ok) throw new Error("HTTP " + res.status);
-				return res.text();
-			})
-			.catch(e => {
-				if (tries < RETRIES) return get(url, mode, tries + 1);
-				throw e;
-			});
+		]).then(res => {
+			if (!res.ok) throw new Error("HTTP " + res.status);
+			return res.text();
+		});
 	}
-
-	const SHA_BASES = [
-		sha => `https://cdn.jsdelivr.net/gh/${REPO}@${sha}/`,
-		sha => `https://rawcdn.githack.com/${REPO}/${sha}/`,
-	];
-
-	function resolve_sha() {
-		return get(SHA_URL + "?_=" + Date.now())
-			.then(text => {
-				const sha = JSON.parse(text).sha;
-				if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error("bad sha");
-				say("[AL] pinned to " + sha.slice(0, 7));
-				return sha;
-			})
-			.catch(e => {
-				say("⚠️ [AL] couldn't resolve the commit (" + e.message + ") — Bootstrapper from @main, which jsDelivr caches for 12h");
-				return null;
-			});
-	}
-
-	function fetch_pinned(sha, i) {
-		const base = SHA_BASES[i](sha);
-		return get(base + "Bootstrapper.js", "default")
-			.then(text => {
-				window.__AL_BASE__ = base;
-				window.__AL_BASE_SET_AT__ = Date.now();
-				if (i > 0) say("[AL] jsDelivr failed — loading from " + base);
-				return text;
-			})
-			.catch(e => {
-				if (i + 1 < SHA_BASES.length) return fetch_pinned(sha, i + 1);
-				throw e;
-			});
-	}
-
-	function fetch_bootstrapper() {
-		return resolve_sha().then(sha => sha ? fetch_pinned(sha, 0) : get(MAIN_BASE + "Bootstrapper.js", "no-store"));
-	}
-
-	const RETRY_STEP_MS = 5000;
-	const RETRY_MAX_MS = 60000;
 
 	function boot(attempt) {
-		fetch_bootstrapper()
+		get(CODE + "main")
+			.then(sha => {
+				const base = CODE + sha.trim() + "/";
+				return get(base + "Bootstrapper.js").then(text => ({ sha: sha.trim(), base, text }));
+			})
 			.then(
-				text => {
+				({ sha, base, text }) => {
+					window.__AL_BASE__ = base;
+					window.__AL_BASE_SET_AT__ = Date.now();
+					say("[AL] loading " + sha.slice(0, 7) + " from this PC");
 					beacon("bootstrapper fetched on attempt " + attempt + ", evaluating");
 					try {
 						(0, eval)(text);
@@ -123,10 +80,9 @@
 					}
 				},
 				e => {
-					const wait = Math.min(RETRY_MAX_MS, RETRY_STEP_MS * attempt);
-					say("❌ Bootstrapper fetch failed on attempt " + attempt + " (" + e.message
-						+ ") — retrying in " + Math.round(wait / 1000) + "s");
-					setTimeout(() => boot(attempt + 1), wait);
+					say("❌ The local code server isn't answering (" + e.message + ") — is the error sink running? Retrying in "
+						+ Math.round(RETRY_MS / 1000) + "s (attempt " + attempt + ")");
+					setTimeout(() => boot(attempt + 1), RETRY_MS);
 				}
 			);
 	}

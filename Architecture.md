@@ -21,7 +21,7 @@
 
 ```
 Code Loader.js                    ← the only file in a game code slot; fetches/evals Bootstrapper.js
-Bootstrapper.js                   ← loads everything else from CDN (jsdelivr), in order
+Bootstrapper.js                   ← loads everything else from this PC (the error sink's /code/<sha>/), in order
 
 Core Systems/Global Config.js     ← awaited FIRST (with Widget Helpers + Game Log); assume it exists
     ├── Location database     (monster spawn locations per map)
@@ -145,7 +145,7 @@ Tools/                            ← dev scaffolding, not loaded by the bot
 
 ## How Scripts Are Loaded
 
-The `Bootstrapper.js` detects which character is logged in by name, then fetches and evaluates the appropriate scripts from a CDN (jsdelivr):
+The `Bootstrapper.js` detects which character is logged in by name, then fetches and evaluates the appropriate scripts from the base the Code Loader set (the error sink's `/code/<sha>/` on this PC):
 
 1. **Kernel stage, awaited:** `Kernel/Kernel.js`, `Scheduler.js`, `Events.js`, `Storage.js`. Declarations only, so every later file may register (`on_boot`, `console_api`) at load.
 2. **First stage, awaited:** `Global Config.js`, `Interface/Widget Helpers.js` and `Interface/Game Log.js`. Everything loaded later may assume all three are present — that is what lets the meters build their widgets as they load, the error path call `al_log_push()` directly, and every reader of a cross-character symbol skip the `typeof` guard. A failure here aborts the load.
@@ -154,7 +154,7 @@ The `Bootstrapper.js` detects which character is logged in by name, then fetches
 
 **Files within a stage arrive in network-completion order, but nothing runs at load.** Every file only declares and registers (`on_boot`, `console_api`, `encounter`); once the role files are evaluated, `kernel_boot()` runs the boot steps in list order. A registration must name a function from an earlier stage, which is why `Kernel/` loads first and the encounter registry sits in the first stage. Lint fails a load-time call into the same or a later stage, and `node Tests/Harness.js load` boots every role a second time with each stage reversed.
 
-Each script is loaded with retry logic and exponential backoff. `Code Loader.js` — the only file pasted into each character's in-game code slot — resolves the commit through `api.github.com` (60 unauthenticated requests an hour per IP), fetches `Bootstrapper.js` from jsDelivr at that commit (githack at the same commit if jsDelivr fails) and sets `__AL_BASE__`. The Bootstrapper reuses that base while it is fresh and resolves the commit itself only when it isn't, so a normal load costs one lookup.
+Each script is loaded with retry logic and exponential backoff. `Code Loader.js` — the only file pasted into each character's in-game code slot — asks the local error sink which commit `main` is on, fetches `Bootstrapper.js` at that commit from `http://127.0.0.1:8787/code/<sha>/` and sets `__AL_BASE__`. The Bootstrapper loads every other file from that base.
 
 ---
 
@@ -279,5 +279,5 @@ Count against git blobs rather than the working tree: the tree is CRLF while blo
 ## External References
 
 - Game: [adventure.land](https://adventure.land)
-- CDN for script hosting: [jsdelivr.net](https://www.jsdelivr.com) (via GitHub raw)
+- Script hosting: the local error sink (`/code/`), reading the committed `main` from git; GitHub is the backup
 - GitHub repo: Aegis-940/Adventure-Lands

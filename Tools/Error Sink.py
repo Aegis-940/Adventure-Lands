@@ -26,6 +26,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.parse
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -336,10 +337,68 @@ _last_said = {}
 _posts = {}
 
 
+# The bot's code, served from this PC: the Code Loader's only source. /code/main is the commit main is on, and
+# /code/<sha>/<path> is a .js file as committed at that sha, so one load never mixes two commits. Files come from git,
+# never the working tree, so only what has been merged to main can run. GitHub is a backup, not a source.
+CODE_KEEP = 4
+CODE_LOCK = threading.Lock()
+_code_trees = {}
+
+
+def git(*args, stdin=None):
+    return subprocess.run(["git", "-C", REPO] + list(args), input=stdin, capture_output=True, check=True,
+                          creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).stdout
+
+
+def main_sha():
+    return git("rev-parse", "main").decode("ascii").strip()
+
+
+def code_tree(sha):
+    """Every .js file at sha, read with one ls-tree and one cat-file --batch, kept for the last CODE_KEEP commits."""
+    with CODE_LOCK:
+        if sha in _code_trees:
+            return _code_trees[sha]
+        entries = []
+        for item in git("ls-tree", "-r", "-z", sha).split(b"\0"):
+            if not item:
+                continue
+            meta, path = item.split(b"\t", 1)
+            mode, kind, blob = meta.split()
+            if kind == b"blob" and path.endswith(b".js"):
+                entries.append((path.decode("utf-8"), blob.decode("ascii")))
+        out = git("cat-file", "--batch", stdin="".join(blob + "\n" for _, blob in entries).encode("ascii"))
+        files, at = {}, 0
+        for path, blob in entries:
+            header_end = out.index(b"\n", at)
+            size = int(out[at:header_end].split()[2])
+            files[path] = out[header_end + 1:header_end + 1 + size]
+            at = header_end + 1 + size + 1
+        _code_trees[sha] = files
+        while len(_code_trees) > CODE_KEEP:
+            _code_trees.pop(next(iter(_code_trees)))
+        return files
+
+
+def code_response(route):
+    """(body, content type), or None for a 404."""
+    rest = urllib.parse.unquote(route[len("/code/"):])
+    if rest == "main":
+        return main_sha().encode("ascii"), "text/plain; charset=utf-8"
+    if rest == "ping.js":
+        return b"window.__al_code_ping = Date.now();", "application/javascript; charset=utf-8"
+    sha, _, path = rest.partition("/")
+    if len(sha) != 40 or any(c not in "0123456789abcdef" for c in sha):
+        return None
+    body = code_tree(sha).get(path)
+    return (body, "application/javascript; charset=utf-8") if body is not None else None
+
+
 class Handler(BaseHTTPRequestHandler):
     def _cors(self):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Headers", "content-type")
+        self.send_header("Access-Control-Allow-Private-Network", "true")
 
     def do_OPTIONS(self):
         self.send_response(204)
@@ -418,6 +477,14 @@ class Handler(BaseHTTPRequestHandler):
                     body, ctype = fh.read(), "text/html; charset=utf-8"
             elif route == "/api/status":
                 body, ctype = json.dumps(load_data_store().status()).encode("utf-8"), "application/json"
+            elif route.startswith("/code/"):
+                found = code_response(route)
+                if not found:
+                    self.send_response(404)
+                    self._cors()
+                    self.end_headers()
+                    return
+                body, ctype = found
             elif route == "/api/live":
                 with LIVE_LOCK:
                     body = json.dumps({"now": int(time.time() * 1000), "characters": LIVE}).encode("utf-8")
@@ -429,6 +496,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("content-type", ctype)
             self.send_header("cache-control", "no-store")
+            self._cors()
             self.end_headers()
             self.wfile.write(body)
         except Exception as exc:

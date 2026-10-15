@@ -43,7 +43,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 
 | File | Role |
 |------|------|
-| `Code Loader.js` | The only file in a game code slot (slot 1). Evals `Bootstrapper.js` from jsDelivr, falling back to githack at the same SHA, and sets `window.__AL_BASE__` |
+| `Code Loader.js` | The only file in a game code slot (slot 1). Asks the local sink for the commit `main` is on, sets `window.__AL_BASE__` to `http://127.0.0.1:8787/code/<sha>/` and evals `Bootstrapper.js` from it; retries every 5s while the sink is down |
 | `Bootstrapper.js` | Loads everything else from `__AL_BASE__`: the kernel stage and then the first stage, each awaited, then the parallel batch, then the role files, then `kernel_boot()` |
 
 **Kernel** (its own stage, awaited before the first stage; declarations only)
@@ -140,7 +140,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 
 | File | Role |
 |------|------|
-| `Error Sink.py` / `Install Error Sink.ps1` | Local HTTP sink for `errlog_sample()` pushes → `errors.json`, `errors_timeline.jsonl`, and the `errlog_archive()` lane → `ledger.jsonl`, `tracker.jsonl`, `survey.jsonl`; `/snapshot` → `snapshots.jsonl` (the harness's fixture source); logon-task installer |
+| `Error Sink.py` / `Install Error Sink.ps1` | **Serves the bot's code** (`/code/main`, `/code/<sha>/<path>`, read from git) and is the local HTTP sink for `errlog_sample()` pushes → `errors.json`, `errors_timeline.jsonl`, and the `errlog_archive()` lane → `ledger.jsonl`, `tracker.jsonl`, `survey.jsonl`; `/snapshot` → `snapshots.jsonl` (the harness's fixture source); logon-task installer |
 | `Data Store.py` | `al_data.sqlite`, rebuilt incrementally from the `.jsonl` archives (the sink runs `ingest` every 15 min). `python "Tools/Data Store.py" survey` prints the survey results; `status` is the status page's JSON; `compare A B` judges one build (or time range) against another at the same home; `skills`, `weapons`, `pulls`, `time` and `before-danger` answer Phase 4's questions from the decision log |
 | `Party Model.js` | Node, run outside the game: the server's stat pipeline for Ulric and Riva over the game's own `data.js` and `calculate_item_properties()`. `calibrate`, `mana`, `slots`, `upgrades`, `achievements`, `json` (→ `party_model.json`, refreshed by the sink every 15 min) |
 | `Status Page.html` | The status page, served by the sink at `http://127.0.0.1:8787/`: `/api/live` every 1s (the characters' 📊 snapshots, memory only), `/api/status` every 15s |
@@ -190,34 +190,19 @@ So survivability work (damage projection, panic, defensive gear, escape) belongs
 
 ---
 
-## Deploying (purge jsDelivr after every push)
+## Deploying (merge to local `main`; push is the backup)
 
-Characters load `cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@<sha>/`, with the SHA resolved through `api.github.com` (60 unauthenticated requests/hour per IP). On a 403 the loader falls back to `@main`, which jsDelivr caches for 12h; a query string does not purge it. A push made while rate-limited can therefore never reach the characters, and a mixed build makes fixed bugs look unfixed.
+The characters load their code from this PC. The error sink (`Tools/Error Sink.py`, a logon task that restarts itself) serves `/code/main`, the commit `main` is on, and `/code/<sha>/<path>`, any `.js` file as committed at that SHA. Files are read from git, never the working tree, so only what has been merged to `main` can run, and one load never mixes two commits. `Code Loader.js` in slot 1 asks for `main`, sets `__AL_BASE__` to that commit and evals Bootstrapper. If the sink isn't answering, it retries every 5s. GitHub is not read by the bot.
 
-**After every push, purge and verify.** Paths contain spaces, so iterate with `-z` and encode them as `%20`. Read the purge response: a throttled purge returns HTTP 200 and does nothing.
-
-```bash
-git ls-files -z '*.js' | while IFS= read -r -d '' f; do
-  u=${f// /%20}
-  r=$(curl -s "https://purge.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/$u")
-  case "$r" in *'"throttled": true'*) echo "THROTTLED $f";; esac
-done
-# verify against git blobs (LF), not the working tree (CRLF)
-git ls-files -z '*.js' | while IFS= read -r -d '' f; do
-  u=${f// /%20}
-  a=$(curl -s "https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/$u" | md5sum | cut -d' ' -f1)
-  b=$(git show "HEAD:$f" | md5sum | cut -d' ' -f1)
-  [ "$a" != "$b" ] && echo "STALE $f"
-done
-```
-
-- `"throttled": false` is not proof: an edge can refill from a lagging GitHub mirror. Only the verify loop is proof. For a rename or delete, grep the *served* file for something you changed.
-- Re-purge stale paths **once**. If a path is still stale, stop: retrying keeps it throttled (`throttlingReset`, up to ~50 min). The pinned `@<sha>` path serves new content immediately; confirm with `curl -s ".../Adventure-Lands@$(git rev-parse HEAD)/<path>" | md5sum` against `git show "HEAD:<path>" | md5sum`.
+- **Deploy = merge to local `main`:** `git checkout main && git merge --ff-only overhaul && git checkout overhaul`. It is live at the next reload: the user's, the x:55 self-reload, or a watchdog reload. So **a commit on local `main` ships whether or not it is pushed**. Loaded-file work stays on `overhaul` until the user is present (D10).
+- **Verify:** `curl -s http://127.0.0.1:8787/code/main` prints the same SHA as `git rev-parse main`. After a reload, each character's `__AL_BASE__` ends in that SHA.
+- **Backup = push.** Push `main` and `overhaul` to GitHub after committing. There is no purge or CDN verify any more.
+- A full load from local disk takes about 1s for all 98 files (5.5–6.5s from jsDelivr, measured 2026-10-15).
 
 Loader facts:
 
 - Paste `Code Loader.js` into slot 1 **once**, replacing the whole slot. Two copies load everything twice: the `Core Systems` files can't re-declare their `const`s and define nothing, while the first copy's loops run against a stale `character`.
-- The base must serve executable script. `raw.githubusercontent.com` sends `text/plain` + `nosniff`, so `getScript` refuses it.
+- The base must serve executable script with CORS. The sink sends `application/javascript`, `Access-Control-Allow-Origin: *` and `Access-Control-Allow-Private-Network: true`, and loading from `127.0.0.1` was tested in all four live pages (fetch, `<script>` and jQuery `dataType: "script"`).
 - `game_log()` writes to the **in-game** log, not the browser console. Ask for the in-game log when diagnosing.
 
 ---
