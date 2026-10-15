@@ -631,7 +631,7 @@ One normalised outcome handler: `hit`, `action` and `kill_credit` subscribed onc
 - [x] 4.3 decisions recorded at the choke points, rolled up per window; last 50 on each danger record (on `overhaul`: `Core Systems/Decision Log.js`. Casts are counted from the server's `skill_timeout`, which catches every path, raw emits included; target choice is already the archived `target_choice` sample)
 - [x] 4.4 one outcome feed; damage and kills attributed to decisions (on `overhaul`: attributed per window by hit `source`, which is what question 1 needs; per-projectile linking was not needed. Combat Sampling keeps its own handlers, because the in-flight ledger must run first and exactly)
 - [x] 4.5 `decisions` table and the six question commands (on `overhaul`: `skills`, `weapons`, `pulls`, `time`, `before-danger`; `experiment` comes with 4.6. The status page shows skills and weapons. `weapons` gives damage per hit, not per second, because the damage windows aren't time worn)
-- [ ] 4.6 `experiment()` mechanism (none running)
+- [x] 4.6 experiment mechanism (none running) (on `overhaul`: `Core Systems/Experiments.js`, an `EXPERIMENTS` table rather than a registration call, so nothing runs at load; `Data Store.py experiment NAME`, checked on synthetic windows)
 - [ ] 4.7 `log(level, msg)`
 
 **Exit:** for any day since 4.5 shipped, the store alone answers questions 1–5 without the live game, and every lane is within its budget. Every harness pin is identical. A first experiment is proposed from the data, not run: the user decides.

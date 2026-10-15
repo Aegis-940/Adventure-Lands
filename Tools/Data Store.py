@@ -13,6 +13,8 @@
                                             the questions of Overhaul Plan 4: is each skill worth its mana, which
                                             weapon pair does better, how big a pull is safe, where the time goes,
                                             and the decisions before each death or close call
+    python "Tools/Data Store.py" experiment NAME [--hours N | --build SHA | --range A..B]
+                                            an experiment's variants against each other (Overhaul 4.6)
 
 Also kept, one table each: damage.jsonl, heal.jsonl, target_choice.jsonl, cc_report.jsonl (Overhaul 4.1).
 
@@ -890,6 +892,74 @@ def compare_report(arg_a, arg_b, home=None, tier="neutral"):
     return verdict
 
 
+def variant_of(variants, name):
+    for part in (variants or "").split(","):
+        key, _, value = part.partition("=")
+        if key == name:
+            return value
+    return None
+
+
+def experiment_report(name, flags):
+    """An experiment's variants against each other, from full ledger windows at the spot that started and ended on the
+    same variant, at the home most of them were at. The first two variants (alphabetical) are A and B."""
+    ingest()
+    db = connect()
+    flags = dict(flags)
+    if not any(k in flags for k in ("--hours", "--build", "--range")):
+        flags["--hours"] = 24 * 30
+    where, args = period(flags)
+    rows = db.execute(
+        "SELECT character, home, variant_start, variant, window_s, spot_kills, spot_xp, spot_gold + spot_chest_gold, deaths, "
+        "hp_pots, mp_pots, t FROM ledger WHERE %s AND window_s BETWEEN 280 AND 320 AND at_spot_s >= window_s * 0.95" % where,
+        args).fetchall()
+    kept = [r for r in rows if variant_of(r[2], name) is not None and variant_of(r[2], name) == variant_of(r[3], name)]
+    if not kept:
+        print("experiment %s: no full windows at the spot with one variant throughout" % name)
+        db.close()
+        return "not enough data"
+    homes = {}
+    for r in kept:
+        homes[r[1]] = homes.get(r[1], 0) + 1
+    home = max(homes, key=homes.get)
+    kept = [r for r in kept if r[1] == home]
+    labels = sorted({variant_of(r[2], name) for r in kept})
+    print("experiment %s at %s: variants %s" % (name, home, ", ".join(labels)))
+    if len(labels) < 2:
+        print("verdict: not enough data (one variant seen)")
+        db.close()
+        return "not enough data"
+    a, b = labels[0], labels[1]
+    need = COMPARE_MIN_WINDOWS["behaviour"]
+    verdicts = []
+    for who in COMPARE_FIGHTERS:
+        ra = [r[4:11] for r in kept if r[0] == who and variant_of(r[2], name) == a]
+        rb = [r[4:11] for r in kept if r[0] == who and variant_of(r[2], name) == b]
+        print("  %s: %s %d / %s %d windows" % (who, a, len(ra), b, len(rb)))
+        metrics = [("xp/h", 2)]
+        if who == COMPARE_PARTY_PROXY:
+            metrics = [("kills/h", 1), ("xp/h", 2), ("gold/h", 3)]
+        for metric, i in metrics + [("mp pots/h", 6)]:
+            m = compare_metric(per_hour(ra, i), per_hour(rb, i))
+            v = metric_verdict(m) if len(ra) >= need and len(rb) >= need else "not enough data"
+            if m:
+                print("    %-10s %12.1f -> %12.1f  %+6.1f%%  (2 SE %4.1f%%)  %s" % (
+                    metric, m["a"], m["b"], 100 * m["change"], 200 * m["se"], v))
+            if metric in ("kills/h", "xp/h"):
+                verdicts.append(v)
+    for label in (a, b):
+        close = sum(1 for (variant,) in db.execute(
+            "SELECT variant FROM danger WHERE event = 'close_call' AND home = ? AND %s" % where, (home,) + args)
+            if variant_of(variant, name) == label)
+        deaths = sum(r[8] or 0 for r in kept if variant_of(r[2], name) == label)
+        print("  %s: %d deaths at the spot, %d close calls" % (label, deaths, close))
+    verdict = ("not enough data" if "not enough data" in verdicts else "worse" if "worse" in verdicts
+               else "better" if "better" in verdicts else "same")
+    print("verdict (%s against %s): %s" % (b, a, verdict))
+    db.close()
+    return verdict
+
+
 def main():
     command = sys.argv[1] if len(sys.argv) > 1 else "ingest"
     if command == "compare":
@@ -900,6 +970,10 @@ def main():
             print(__doc__)
             sys.exit(2)
         compare_report(plain[0], plain[1], flags.get("--home"), flags.get("--tier", "neutral"))
+        return
+    if command == "experiment" and len(sys.argv) > 2:
+        args = sys.argv[3:]
+        experiment_report(sys.argv[2], {args[i]: args[i + 1] for i in range(0, len(args) - 1, 2) if args[i].startswith("--")})
         return
     if command in ("skills", "weapons", "pulls", "time", "before-danger"):
         args = sys.argv[2:]

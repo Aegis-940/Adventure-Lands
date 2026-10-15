@@ -11,6 +11,7 @@
    "Core Systems/Equipment Manager.js",
    "Core Systems/Error Handling.js",
    "Core Systems/Error Log.js",
+   "Core Systems/Experiments.js",
    "Core Systems/Farm Ledger.js",
    "Core Systems/Farm Survey.js",
    "Core Systems/Global Config.js",
@@ -539,6 +540,17 @@
     "errlog_sample"
    ],
    "to": "Core Systems/Error Log.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Healer Manager/Healer Equipment.js",
+   "load": [
+    "EXPERIMENTS",
+    "EXPERIMENT_BLOCK_MIN",
+    "experiment_variant",
+    "experiment_variants"
+   ],
+   "to": "Core Systems/Experiments.js"
   },
   {
    "call": [
@@ -2376,6 +2388,17 @@
    "to": "Core Systems/Error Log.js"
   },
   {
+   "call": [],
+   "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
+   "load": [
+    "EXPERIMENTS",
+    "EXPERIMENT_BLOCK_MIN",
+    "experiment_variant",
+    "experiment_variants"
+   ],
+   "to": "Core Systems/Experiments.js"
+  },
+  {
    "call": [
     "panicking"
    ],
@@ -3073,6 +3096,17 @@
    "to": "Core Systems/Error Log.js"
   },
   {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Combat.js",
+   "load": [
+    "EXPERIMENTS",
+    "EXPERIMENT_BLOCK_MIN",
+    "experiment_variant",
+    "experiment_variants"
+   ],
+   "to": "Core Systems/Experiments.js"
+  },
+  {
    "call": [
     "DUNGEON_PARTY",
     "errlog_count",
@@ -3444,6 +3478,17 @@
     "errlog_sample"
    ],
    "to": "Core Systems/Error Log.js"
+  },
+  {
+   "call": [],
+   "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
+   "load": [
+    "EXPERIMENTS",
+    "EXPERIMENT_BLOCK_MIN",
+    "experiment_variant",
+    "experiment_variants"
+   ],
+   "to": "Core Systems/Experiments.js"
   },
   {
    "call": [
@@ -4822,6 +4867,14 @@
   },
   {
    "call": [
+    "experiment_variants"
+   ],
+   "from": "Core Systems/Error Log.js",
+   "load": [],
+   "to": "Core Systems/Experiments.js"
+  },
+  {
+   "call": [
     "CONFIG",
     "cache",
     "destination",
@@ -4906,6 +4959,15 @@
    "to": "Kernel/Storage.js"
   },
   {
+   "call": [],
+   "from": "Core Systems/Experiments.js",
+   "load": [
+    "_console_api",
+    "console_api"
+   ],
+   "to": "Kernel/Kernel.js"
+  },
+  {
    "call": [
     "current_goal_label"
    ],
@@ -4923,6 +4985,14 @@
    "from": "Core Systems/Farm Ledger.js",
    "load": [],
    "to": "Core Systems/Error Log.js"
+  },
+  {
+   "call": [
+    "experiment_variants"
+   ],
+   "from": "Core Systems/Farm Ledger.js",
+   "load": [],
+   "to": "Core Systems/Experiments.js"
   },
   {
    "call": [
@@ -5925,6 +5995,17 @@
     "errlog_time"
    ],
    "to": "Core Systems/Error Log.js"
+  },
+  {
+   "call": [],
+   "from": "Dungeons/Dreams Cave.js",
+   "load": [
+    "EXPERIMENTS",
+    "EXPERIMENT_BLOCK_MIN",
+    "experiment_variant",
+    "experiment_variants"
+   ],
+   "to": "Core Systems/Experiments.js"
   },
   {
    "call": [
@@ -8198,6 +8279,13 @@
    "stage": "parallel",
    "statements": []
   },
+  "Core Systems/Experiments.js": {
+   "call_initializers": [],
+   "optional": false,
+   "role": null,
+   "stage": "parallel",
+   "statements": []
+  },
   "Core Systems/Farm Ledger.js": {
    "call_initializers": [],
    "optional": false,
@@ -8612,6 +8700,7 @@
   "Core Systems/Farm Survey.js",
   "Core Systems/Danger Log.js",
   "Core Systems/Decision Log.js",
+  "Core Systems/Experiments.js",
   "Core Systems/Error Handling.js",
   "Dungeons/Dungeon Runner.js",
   "Dungeons/Spider Dungeon.js",
