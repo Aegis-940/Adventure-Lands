@@ -1,7 +1,6 @@
 # Loop Cadence
 
-A worklist. For each loop the bot runs: how often it ticks, and whether that rate matches how
-urgent its work actually is.
+For each loop the bot runs: how often it ticks, and why that rate matches how urgent its work is.
 
 **The principle.** A loop should tick as fast as its *decision* needs to be fresh, and no faster.
 Running faster than that does not make the bot better — it spends `character.cc`, which gates
@@ -16,23 +15,44 @@ across characters even though the raw counters are `max()`-merged peaks from dif
 
 ## Inventory
 
-| Loop | Cadence | Verdict |
-|---|---|---|
-| `action_loop` (Warrior, Healer) | 10ms, backs off via `next_action_delay()` | ok |
-| `action_loop` (Ranger) | **5ms** | asymmetric — see below |
-| `skill_loop` (Warrior, Healer) | `TICK_RATE.skill` 40ms | ok |
-| `zap_loop` (Healer) | `TICK_RATE.skill` 40ms, each cast awaited | ok: zap's own 200ms cooldown, off `skill_loop`'s awaits |
-| `skill_loop` (Ranger) | **5ms, no backoff on the hot path** | **fixed** |
-| `potion_loop` | **10ms** between drinks | **fixed** |
-| `equipment_manager_loop` | `TICK_RATE.equipment` 25ms | now justified — see below |
-| `main_tick` | `TICK_RATE.main` 100ms | ok |
-| `maintenance_loop` | 2000ms | ok |
-| `monitor_movement` | 200ms | ok |
-| `state_cache_loop` | 100ms | ok |
-| bscorpion kill logger (camp positioning is `camp_step()` inside `main_tick`) | 250ms | ok |
-| Merchant task loop / upkeep | 250 / 1000ms | ok |
-| Combat Sampling tickers | 250 / 1000 / 10000ms | ok |
-| Error Log vitals / lag probe | 1000 / 100ms | ok |
+Every loop the four characters run, from `al_loops()` on the live build 4327aae (2026-10-16). Every loop goes through the scheduler's `every()`, so `al_loops()` in the console is always the current list, with runs, last lag and last error for each; none had an error. Loops that exist only while something is in progress are not listed: `move monitor` (200ms, one per journey), `wait for death <mob>` (500ms, in a dungeon) and `metrics dashboard` (1000ms, while 📊 is open).
+
+| Loop | Kind | ms | Runs on | Note |
+|---|---|---|---|---|
+| `main_loop` | automation | 100 | fighters | the main tick |
+| `stand_loop` | automation | 100 | Riff | |
+| `loop_controller` | automation | 250 | Riff | the merchant task loop |
+| `state_cache_loop` | automation | 500 | all four | |
+| `dreams watch`, `dungeon entities`, `survey_tick` | automation | 1000 | fighters | |
+| `opportunistic_actions_loop` | automation | 1000 | Riff | |
+| `dungeon rejoin watch`, `remote_sell_items` | automation | 5000 | fighters | |
+| `send updates` | automation | 20000 | all four | |
+| `action_loop` | combat | 5 | Riva | §3 |
+| `action_loop` | combat | 10 | Ulric, Myras | backs off through `next_action_delay()` |
+| `equipment_manager_loop` | combat | 25 | fighters | §4 |
+| `skill_loop` | combat | 40 | fighters | §1 |
+| `zap_loop` | combat | 40 | Myras | zap's own 200ms cooldown |
+| `potion_loop` | safety | 50 | all four | §2 |
+| `maintenance_loop` | safety | 2000 | fighters | |
+| `periodic reset` | safety | 60000 | all four | the x:55 reload check |
+| `bscorpion_kill_logger_loop` | telemetry | 250 | Ulric | |
+| `damage windows` | telemetry | 250 | all four | |
+| `danger_tick` | telemetry | 250 | fighters | |
+| `errlog lag probe` | telemetry | 500 | all four | |
+| `boss profile`, `errlog vitals`, `flush damage windows`, `heal window`, `metrics live feed` | telemetry | 1000 | all four | |
+| `decision sample`, `ledger` | telemetry | 1000 | fighters | |
+| `dungeon telemetry` | telemetry | 2000 | fighters | |
+| `errlog flush` | telemetry | 5000 | all four | |
+| `prune pid weapons` | telemetry | 10000 | all four | |
+| `cc report` | telemetry | 20000 | Ulric | |
+| `errlog heartbeat` | telemetry | 60000 | all four | |
+| `widget ccmeter` | ui | 200 | all four | |
+| `party frames`, `widget bosscontribution`, `widget dpsmeter` | ui | 250 | all four | |
+| `pause button`, `widget goldtimer`, `widget xptimer` | ui | 500 | all four | |
+| `kill rates`, `prune dps events` | ui | 1000 | all four | |
+| `metrics sample` | ui | 5000 | all four | |
+
+The sections below record why the combat and safety rates are what they are.
 
 ---
 

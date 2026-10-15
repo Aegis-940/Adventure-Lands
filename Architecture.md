@@ -1,295 +1,222 @@
-# Architecture — Project Overview
+# Architecture
 
-## What This Project Is
+How the parts of the bot fit together. The file-by-file map is in [`CLAUDE.md`](CLAUDE.md), and the reasoning behind each system (mechanics, tuned numbers, past incidents) is in [`Design Notes.md`](Design%20Notes.md).
 
-**Adventure-Lands** is a full-party game automation bot for the browser-based MMO [AdventureLand](https://adventure.land). It controls 4 characters simultaneously using scripts injected directly into the game client. One user can run an entire party — Tank, Healer, Ranger, and Merchant — through fully automated behavior loops.
+## What this is
 
----
-
-## Characters
+**Adventure-Lands** drives a party of four characters in the browser MMO [AdventureLand](https://adventure.land) from scripts injected into the game client. There is no build step, no bundler and no module system: every file is a plain script that runs in the game's code iframe, and `parent.*` is the game's own window.
 
 | Character | Class | Role |
 |-----------|-------|------|
-| Ulric | Warrior | Party leader, melee DPS, cleave, feeds aggro to Myras |
-| Myras | Priest | The tank: pulls and holds aggro within an MP-scaled cap, heals the party |
-| Riva | Ranger | Ranged DPS, multi-shot (3-shot/5-shot) |
-| Riff | Merchant | Logistics — potions, loot, upgrades, crafting |
+| Ulric | Warrior | Party leader, melee damage, cleave; feeds aggro to Myras |
+| Myras | Priest | **The tank**: pulls and holds aggro within an MP-scaled cap, heals the party, leads movement |
+| Riva | Ranger | Ranged damage, multi-shot and supershot |
+| Riff | Merchant | Logistics: potions, loot collection, upgrades, crafting. Usually on another map |
 
 ---
 
-## Architecture Overview
+## How code reaches the game
 
 ```
-Code Loader.js                    ← the only file in a game code slot; fetches/evals Bootstrapper.js
-Bootstrapper.js                   ← loads everything else from this PC (the error sink's /code/<sha>/), in order
+game code slot 1 ── Code Loader.js ── GET http://127.0.0.1:8787/code/main ──► commit SHA of local main
+                                   └─ GET /code/<sha>/Bootstrapper.js, eval ──► Bootstrapper loads the rest from /code/<sha>/
+```
 
-Core Systems/Global Config.js     ← awaited FIRST (with Widget Helpers + Game Log); assume it exists
-    ├── Location database     (monster spawn locations per map)
-    ├── Party constants       (PARTY_LEADER, PARTY_MEMBERS, MOVEMENT_LEADER, DUNGEON_PARTY)
-    ├── Shared config defaults (LOOTING_/POTION_/EQUIPMENT_DEFAULTS, PANIC_ORB_SET)
-    ├── farm_target_for()/farm_target_key() — the per-character farm target
-    ├── storage_read()/storage_write() — the one JSON-backed localStorage seam
-    ├── Cross-character `var`s (home, destination, CONFIG, cache, ITEMS_TO_KEEP,
-    │                          MONSTER_GEAR_OVERRIDES, EQUIPMENT_RULES, panic flags)
-    │                          declared with neutral defaults so no reader guards on typeof
-    ├── No-op stubs           (errlog_*, and the one-role-only request_delivery,
-    │                          model_prediction, get_character_state)
-    └── Tick rates / cooldowns
+The error sink (`Tools/Error Sink.py`) serves the code from git, never from the working tree, so only what is committed on `main` can run, and one load never mixes two commits. A commit on local `main` goes live at the next reload. GitHub is only the backup. Deploying is described in `CLAUDE.md`.
 
-Core Systems/*.js                 ← loaded in parallel as real <script> tags
-    ├── Movement Manager.js       smarter_move(), walk(), the town cast, the route resplice
-    ├── Travel Arbiter.js         travel_arbiter(): journeys, failures, escalation to town, parked routes
-    ├── Town Shortcut.js          town teleport while walking, follower copies and joins, landing splice
-    ├── Stuck Escape.js           last-resort town out of a pocket the pathfinder cannot leave
-    ├── Movement Goal.js          movement_goal() (where to go) + movement_local() (where to stand)
-    ├── Combat Utilities.js       monster/entity queries, boss + party state predicates
-    ├── Combat Formulas.js        damage/heal arithmetic (defense, burn, splash, heal pipeline)
-    ├── Combat Sampling.js        hit/action socket samplers, damage + heal windows
-    ├── Movement Positioning.js   best_orbit_spot(), scorers, reposition_center(), orbit_reposition()
-    ├── Targeting.js              score_targets()/select_target() — one scorer for every character
-    ├── World Events.js           live boss/seasonal targets, the walk to them
-    ├── Character Messaging.js    CM handlers, localStorage-backed state cache
-    ├── Equipment Manager.js      equipment sets, batch_equip(), slot arbiter, rules resolver
-    ├── Equipment Valuation.js    ability procs, set profiles, damage maths, weapon choice
-    ├── Party Management.js       panic + its broadcast (set_panic()), party invites, home location
-    ├── Loot Management.js        loose_loot() (keep/ship/vendor), bank withdrawal, chest looting
-    ├── Maintenance.js            potion drinking/restocking, periodic tab reload
-    ├── Party Cohesion.js         follow_goal(), party_cohesion_hold(), leader_position(), behind_on_xp()
-    ├── Character Runner.js       run_character(), the shared main tick loop
-    ├── Skill Runner.js           run_skills(): one pass over a role's skill table
-    ├── Farm Ledger.js            5-minute gold/XP/kill windows (at the spot vs away), daily tracker snapshot
-    ├── Farm Survey.js            the *SURVEY* farm target: 60 min per spot, then bscorpion
-    ├── Experiments.js            EXPERIMENTS + experiment_value(): variants alternated on the clock (none running)
-    ├── Settings.js               the ⚙️ settings registry, setting(name), settings_stamp()
-    ├── Decision Log.js           decisions and outcomes per ledger window (decisions.jsonl); the last 10s on each danger record
-    ├── Danger Log.js             deaths and close calls with killer, damage sources and context
-    ├── Error Handling.js         catcher(), the shared error-triage/logging helper
-    └── Error Log.js              persistent cross-character flight recorder (al_errors(true))
+### Load stages
 
-Encounters/                          ← the registry in the first stage; one optional file per encounter
-    ├── Encounter Registry.js     encounter(), the context, and the questions shared and role code ask
-    ├── Porcupine.js              hazard: Ulric never touches one, Riva kills them first
-    ├── Bscorpion.js              the current farm (required): camp positioning, temporal surge, kill logger, goal and gear
-    ├── Rime Djinn.js             the shell (required): predicates, Ulric's deadline stomp, Riva's shell shot, hold gear
-    ├── Mummy.js                  spawn: zap pull, luck orb, no curse, no agitate, no ranger skills
-    ├── Targetron-Sparkbot.js, Dryad.js, Fireroamer.js   spawns: Myras's gear, settings, ranger skills
-    ├── Halloween Bosses.js       mrpumpkin and mrgreen: Myras tanks, Ulric taunts, single-target sets
-    ├── Crabxx.js                 the kited boss and its crabx adds
-    └── Monster Rules.js          single monster types with a rule or two each
+The Bootstrapper loads in four stages, and **nothing runs at load**: each file only declares functions and constants and registers itself (`on_boot`, `console_api`, `encounter`, `DUNGEONS.x = {...}`).
 
-Character Managers/[Role] Manager/   ← loaded sequentially via indirect eval, per character
-    ├── [Role] Config.js          tunables, gear sets, panic thresholds, state/cache
-    ├── [Role] Combat.js          target cache and action_loop()
-    ├── [Role] Skills.js          the skill loop
-    ├── [Role] Equipment.js       EQUIPMENT_RULES resolvers and monster gear overrides
-    ├── [Role] Movement.js        reposition scorer / movement hooks
-    └── [Role].js                 entry point — wires windows and calls run_character()
+1. **Kernel**, awaited: `Kernel.js` (boot phase, console API), `Scheduler.js` (`every()`, the only loop), `Events.js` (socket, character and DOM subscriptions, `wrap_parent`, the internal bus) and `Storage.js` (the only localStorage access).
+2. **First stage**, awaited: `Global Config.js`, `Widget Helpers.js`, `Game Log.js` and `Encounter Registry.js`. Every later file may assume these exist.
+3. **Parallel batch**: every other `Core Systems/`, `Encounters/`, `Dungeons/` and `Interface/` file as a real `<script>` tag, in network-completion order. A file in `OPTIONAL_SCRIPTS` may fail to load; any other failure aborts.
+4. **Role files**, in order, through indirect eval: the character's `Character Managers/` folder, entry point last.
 
-    Sibling files share state/cache/CONFIG as `var` globals, because a top-level
-    const/let is invisible across eval boundaries.
+Then `kernel_boot()` runs every registered boot step once, **in Bootstrapper list order**. Because the steps run in list order, the order in which scripts arrive doesn't matter. A boot step that throws is reported in the game log and in `al_boot()`, and the rest still run.
 
-Dungeons/                            ← loaded in parallel as script tags, every character
-    ├── Dungeon Runner.js         the active dungeon + flag accessors, scripted travel, run_dungeon(), the loop
-    ├── Dungeon Targeting.js      what a run may hit: whitelist, avoided/suppressed types, focus target
-    ├── Dungeon Entry.js          gathering, joining the instance, the rejoin watch
-    ├── Dungeon Mode.js           set_dungeon_mode() and choose_dungeon(), the ⚙️ dungeon choice
-    ├── Dungeon Progress.js       kills this run, and whether the quota is met
-    ├── Dungeon Escape.js         bail-out: scare, walk away, town back to the entrance
-    ├── Dungeon Telemetry.js      per-run flight recorder, pushed as errlog samples
-    ├── Dungeon Collection.js     every few runs, meet Riff outside and hand the haul over
-    ├── Spider Dungeon.js         DUNGEONS.spider definition and its run_/start_ wrappers
-    ├── Crypt Dungeon.js          DUNGEONS.crypt definition and its run_/start_ wrappers
-    ├── Crypt Route.js            the crypt's waypoint circuit and when to back out
-    └── Dreams Cave.js            DUNGEONS.dreams: daily Cave of Many Dreams run, votes, stairs, exit
+The two load mechanisms scope differently. Script tags share one global scope, so a top-level `const` in `Core Systems/` is visible everywhere. Indirect eval does not share `const`/`let`, so anything two files of one character share must be `var` or `function`.
 
-    A dungeon's `flags` are read through dungeon_flag()/dungeon_setting() at the
-    decision they affect. They are contextual overrides, not a second config:
-    most have no CONFIG counterpart, so they are deliberately NOT merged into it.
+---
 
-Character Managers/Merchant Manager/  ← Riff only; no combat files
-    ├── Merchant Config.js        tunables, locations, merchant_task
-    ├── Merchant Stand.js         the stall: open/close and the idle state
-    ├── Merchant Inventory.js     slot counting, vendoring SELLABLE_ITEMS, banking
-    ├── Merchant Exchange.js      bank fetch task plus idle exchanging
-    ├── Merchant Gear.js          default loadout and gathering-tool swaps
-    ├── Merchant Gathering.js     shared fishing/mining run
-    ├── Merchant Party.js         mluck, party membership, the delivery run
-    ├── Merchant Upkeep.js        potions, loot collection and buffing, on their own 1Hz loop
-    ├── Merchant Upgrading.js     item upgrade profiles and automation
-    ├── Merchant Lolipop Push.js  the on-demand ololipop +8 → +10 run
-    ├── Merchant Crafting.js      crafting logic and batch orchestration
-    ├── Merchant Task Loop.js     PRIORITY_CHECKS, set_state(), loop_controller()
-    │                             — MUST load after every file it names
-    └── Merchant.js               entry point
+## Folder layout
 
-Interface/*.js                    ← overlay panels (semi-independent)
-    ├── Widget Helpers.js         the panel theme + ui_style(), register_widget() for the meters,
-    │                             toolbar_button() for every bot button, commas()/prune_before()/
-    │                             window_sum(), start_drag()/make_draggable()
-    │                             — awaited in the first stage, not one of the parallel loads
-    ├── Layout.js                 the shared layout: which game/bot panels are hidden, which float
-    │                             and where; arrange mode (⚙️ → 🧩); one stylesheet, synced across windows
-    ├── DPS Meter.js
-    ├── Stats Window.js           Canvas-based gold graph
-    ├── Party Frames.js
-    ├── Bank Viewer.js            bank access UI plus the 🏧 and 🔄 toolbar buttons
-    ├── Bank Sort Order.js        bank sorting order/category definitions
-    ├── CC Meter.js
-    ├── Gold Meter.js
-    ├── XP Meter.js
-    ├── Game Log.js               the one log window — timestamps, category filters, Log/Filtered
-    │                             tabs, resized #gamelog. Also first-stage, so al_log_push() is
-    │                             always there for the error path
-    ├── Pause Button.js           per-character pause/resume, leaves combat/panic/upkeep running
-    └── Settings Window.js        the ⚙️ window over Settings.js, persisted via localStorage
+```
+Code Loader.js, Bootstrapper.js       the loader (slot 1) and the staged loader
 
-Tools/                            ← dev scaffolding, not loaded by the bot
-    ├── Error Sink.py             local HTTP sink for errlog_sample() pushes -> errors.json;
-    │                             archives ledger/tracker/survey records to .jsonl files
-    ├── Data Store.py             al_data.sqlite built from the .jsonl archives; the survey report; status JSON
-    ├── Party Model.js            offline stat/damage model: gear swaps, +1 upgrades, milestone ranking
-    ├── Status Page.html          the status page the sink serves at http://127.0.0.1:8787/
-    └── Crypt Probe.js            one-off probe for crypt geometry
+Kernel/                               stage 1: boot, scheduler, events, storage
+Core Systems/                         shared by all four characters
+    Global Config.js                  stage 2: party constants, LOCATIONS, shared CONFIG defaults, every
+                                      cross-character var with a neutral default, no-op stubs
+    Movement Manager.js               smarter_move(), walk(), town_teleport(), the route resplice
+    Travel Arbiter.js                 the one owner of long-range movement
+    Town Shortcut.js                  town teleport while walking; followers copy or join the leader's
+    Stuck Escape.js                   last-resort town out of a pocket
+    Movement Goal.js                  movement_goal() (where to go) and movement_local() (where to stand)
+    Movement Positioning.js           orbit scoring around a centre
+    Party Cohesion.js                 follow goal, breadcrumb trail, cohesion holds
+    World Events.js                   live bosses and seasonal events, the walk to them
+    Combat Utilities.js               entity and boss predicates, the combat pause, lethal monsters
+    Combat Formulas.js                the server's damage and heal arithmetic
+    Combat Sampling.js                hit and heal telemetry, the in-flight damage ledger
+    Targeting.js                      the one target scorer
+    Equipment Manager.js              the only writer of what is worn
+    Equipment Valuation.js            measured set profiles and the weapon chooser
+    Party Management.js               panic (set_panic() is its only writer) and its broadcast
+    Loot Management.js                keep/ship/vendor, bank withdrawal, chests
+    Maintenance.js                    potions and the periodic reload
+    Character Messaging.js            CM handlers and the party state cache
+    Character Runner.js               run_character(): the main tick and the shared action runner
+    Skill Runner.js                   run_skills(): one pass over a role's skill table
+    Settings.js                       the ⚙️ settings registry and setting(name)
+    Farm Ledger.js, Farm Survey.js    5-minute farming windows; the survey farm target
+    Danger Log.js, Decision Log.js    deaths and close calls; decisions and their outcomes
+    Experiments.js                    settings under test, alternated on the clock
+    Boss Profiler.js                  per-fight profile of every player on a coop boss
+    Error Handling.js, Error Log.js   catcher(); the cross-character flight recorder
+Encounters/                           everything specific to one monster, spawn or boss
+    Encounter Registry.js             stage 2: encounter(name, spec) and the questions code asks
+    Bscorpion.js, Rime Djinn.js       required: the current farm; the Rime Djinn shell
+    Porcupine.js, Mummy.js, Dryad.js, Fireroamer.js, Targetron-Sparkbot.js,
+    Halloween Bosses.js, Crabxx.js, Monster Rules.js        optional, one per encounter
+Dungeons/
+    Dungeon Runner.js                 the active dungeon and its flags, scripted travel, the run and the loop
+    Dungeon Targeting.js, Dungeon Entry.js                  what a run may hit; getting the party in
+    Dungeon Mode.js, Dungeon Progress.js, Dungeon Escape.js, Dungeon Telemetry.js, Dungeon Collection.js
+    Spider Dungeon.js, Crypt Dungeon.js, Crypt Route.js     dungeon definitions
+    Dreams Cave.js                    the daily Cave of Many Dreams
+Interface/
+    Widget Helpers.js, Game Log.js    stage 2: the panel theme, meters and toolbar; the one log window
+    Layout.js                         which panels are shown and where, synced across the four windows
+    Session Metrics.js                the session's numbers and the live feed to the status page
+    Metrics Graphs.js                 the 📊 popout over them
+    DPS, Gold, XP and CC Meters, Boss Contribution, Kill Tracker, Party Frames, Stats Window,
+    Lucky Slot Tracker, Bank Viewer, Bank Sort Order, Settings Window, Pause Button
+Character Managers/<Role> Manager/    per character, through eval
+    <Role> Config.js                  CONFIG, gear sets, state and cache
+    <Role> Combat.js, Skills.js, Equipment.js, Movement.js
+    <Role>.js                         entry point: wires the loops and calls run_character()
+    Merchant Manager/                 Riff: Stand, Inventory, Exchange, Gear, Gathering, Party, Upkeep,
+                                      Upgrading, Lolipop Push, Crafting, Task Loop (loads last)
+Tools/                                run outside the game: the sink, the data store, the status page,
+                                      the watchdog, lint, the party model, probes
+Tests/                                the offline harness, the parser-based analysis, the config check
 ```
 
 ---
 
-## How Scripts Are Loaded
+## At runtime
 
-The `Bootstrapper.js` detects which character is logged in by name, then fetches and evaluates the appropriate scripts from the base the Code Loader set (the error sink's `/code/<sha>/` on this PC):
+### Loops
 
-1. **Kernel stage, awaited:** `Kernel/Kernel.js`, `Scheduler.js`, `Events.js`, `Storage.js`. Declarations only, so every later file may register (`on_boot`, `console_api`) at load.
-2. **First stage, awaited:** `Global Config.js`, `Interface/Widget Helpers.js` and `Interface/Game Log.js`. Everything loaded later may assume all three are present — that is what lets the meters build their widgets as they load, the error path call `al_log_push()` directly, and every reader of a cross-character symbol skip the `typeof` guard. A failure here aborts the load.
-3. **Parallel stage:** every other Core Systems / Dungeons / Interface file, as real `<script>` tags. A failure in any file not named in `OPTIONAL_SCRIPTS` aborts; the optional ones are allowed to be missing.
-4. **Role stage, sequential:** that character's `Character Managers/` files via indirect eval, then its entry point — these call into the shared files immediately.
+Every loop is an `every(name, { ms, kind }, fn)` from the scheduler. The body returns its next delay, `false` to stop, or nothing to keep the rate. `kind` decides what pausing does:
 
-**Files within a stage arrive in network-completion order, but nothing runs at load.** Every file only declares and registers (`on_boot`, `console_api`, `encounter`); once the role files are evaluated, `kernel_boot()` runs the boot steps in list order. A registration must name a function from an earlier stage, which is why `Kernel/` loads first and the encounter registry sits in the first stage. Lint fails a load-time call into the same or a later stage, and `node Tests/Harness.js load` boots every role a second time with each stage reversed.
+| Kind | Paused (⏸️) | Dead | Examples |
+|------|-------------|------|----------|
+| `automation` | idles | idles | the main tick, dungeon watchers |
+| `combat` | runs | idles | action, skills, zap, equipment |
+| `safety` | runs | as usual | panic, potions, merchant upkeep |
+| `telemetry` | runs | runs | ledger, danger and decision logs, samplers |
+| `ui` | runs | runs | meters, frames, graphs |
 
-Each script is loaded with retry logic and exponential backoff. `Code Loader.js` — the only file pasted into each character's in-game code slot — asks the local error sink which commit `main` is on, fetches `Bootstrapper.js` at that commit from `http://127.0.0.1:8787/code/<sha>/` and sets `__AL_BASE__`. The Bootstrapper loads every other file from that base.
+`al_loops()` in the console lists every loop with its rate, run count, last lag and last error.
+
+### The main tick
+
+`run_character()` in `Character Runner.js` runs the main tick, and the order of its checks is the priority:
+
+1. Disabled (dead or stunned): the role's `on_disabled` hook, retry in 250ms.
+2. The role's `update_cache()`, then `panic_check()` unless the role skips it.
+3. Paused: drop the goal and release the travel arbiter.
+4. `stuck_escape_check()`, the channel walk and `town_shortcut_check()`, then the role's `pre_move()`.
+5. `movement_goal()`: where to go (lethal pursuer, dreams, events and bosses, cohesion, follow, encounters, home).
+6. A scripted dungeon walk owns movement this tick if one is running.
+7. `travel_arbiter(goal)` owns long-range movement. When it doesn't take the goal, the tick loots or calls `movement_local(goal)` for where to stand.
+
+Combat runs beside it, not inside it: each role starts its own action, skill and equipment loops from its entry point. The action loop is shared (`start_action_loop(ROLE_ACTION)`); the skill loops run the role's table through `run_skills()`.
+
+### One owner per decision
+
+Each decision has a single owner, which is what lets the harness pin it. The table is in [`Decision Ownership.md`](Decision%20Ownership.md).
+
+- **Gear**: only `Equipment Manager.js` changes what is worn. Rules resolve per slot group, and a burst (cleave, stomp, scare, the temporal surge) claims the slots through `equip_burst()`. Situational gear comes from `encounter_gear()`.
+- **Movement**: `movement_goal()` picks where to go, the arbiter owns the journey, and `movement_local()` places the character with a local step from `LOCAL_STEPS` or an encounter's `steps`.
+- **Panic**: `set_panic()` is the only writer, and the healer's broadcast reaches the others over CM.
+- **Targets**: `score_targets()`/`select_target()`, weighted per role by `CONFIG.combat.target_weights`.
+- **Monster specifics**: an encounter file answers questions asked by shared and role code (`encounter_gear`, `encounter_allows`, `encounter_rank`, `encounter_setting`, `encounter_goal`). Core code doesn't name monsters; lint counts monster names outside the allowed files.
+
+### Events and storage
+
+Socket, character and DOM subscriptions go through `on_socket`, `on_character` and `on_dom`, kept under a fixed key and replaced, never stacked, because the game window outlives the code iframe across reloads. Telemetry that several files want (a normalised `hit`, `ledger_window`) goes over the internal bus (`bus_on`/`bus_emit`). Only `Kernel/Storage.js` touches localStorage, and `STORAGE_KEYS` registers every key and its owner.
 
 ---
 
-## The Main Tick
+## Data
 
-There is no state-machine object. `run_character()` in `Core Systems/Character Runner.js` runs one
-`main_tick` and the order of its checks *is* the priority:
+```
+characters ──errlog_sample / errlog_archive / snapshots / live feed──► Error Sink (127.0.0.1:8787)
+    errors.json, errors_timeline.jsonl              the flight recorder (al_errors(true) reads it in game)
+    ledger, tracker, danger, decisions, damage, heal, target_choice, cc_report  .jsonl archives
+    snapshots.jsonl                                 live moments, the harness's fixture source
+         │
+         └─► Data Store.py ──► al_data.sqlite ──► Status Page, compare, the question reports
+```
 
-1. `is_disabled(character)` — dead or otherwise out of action; run the character's `on_disabled` hook and retry in 250ms
-2. the character's `update_cache()`, then `panic_check()` unless its `skip_panic_check()` says otherwise
-3. `automation_enabled()` — if paused, drop the goal, release the travel arbiter, and idle
-4. `stuck_escape_check()`, then the character's optional `pre_move()`
-5. `movement_goal()` — the one priority list for *where to go* (events, bosses, cohesion, home)
-6. `dungeon_moving()` — a scripted dungeon walk owns movement, so yield to it
-7. `travel_arbiter(goal)` — if it takes the goal, it owns movement this tick
-8. otherwise `should_loot()` → `handle_looting()`, else `movement_local(goal, farm_step)` for *where to stand*
-
-Panic lives in `Core Systems/Party Management.js` (`set_panic()` is its only writer) and is broadcast
-to the party over CM. Combat, skills, equipment and upkeep run as their own independent loops started
-from the entry point, not from this tick.
-
----
-
-## Key Systems
-
-### Movement (`smarter_move`)
-- Promise-based — awaitable, supports timeout and interruption
-- `smart._interrupt()` cancels in-flight movement
-- Circular kiting: characters orbit enemies at configurable radius/speed
-- Predictive movement: calculates where enemy will be, not where it is
-
-### Combat Loops
-- Each character starts its own `action_loop()`, `skill_loop()` and `equipment_manager_loop()` from its entry point; each is an `every()` loop whose body returns its next delay, independently of the main tick
-- The action loop is shared: `start_action_loop(ROLE_ACTION)` in Character Runner runs `run_action()` (pause gate, disabled, cache, the role's `before`, then its `act(ms)`), and the role supplies only its cadence, gate and choice of basic action. The skill loops run their role's table through `run_skills()`
-- There are no per-loop enable globals. Automation is paused per character through the ⏸️ button, which `automation_enabled()` reads from localStorage; panic and upkeep keep running
-- Targets come from one scorer for everyone — `score_targets()`/`select_target()` in `Core Systems/Targeting.js`, weighted per character by `CONFIG.combat.target_weights`
-
-### Equipment Auto-Swap
-- Multiple swap profiles: single-target, multi-target, boss, XP farm
-- No cooldown: swaps react in milliseconds. Slot intent and the sent view stop the rules loop re-sending from a stale inventory
-- Overrides by situation: the Rime Djinn hold, then the live encounters (a boss in sight, a porcupine nearby, the farm spot), then the remaining `MONSTER_GEAR_OVERRIDES`
-
-### Merchant Logistics
-- Periodically visits party members to collect loot
-- Delivers potions when members run low
-- Runs `Merchant Upgrading.js` profiles to improve party gear
-- Handles fishing and mining for resources
-
-### Guards
-
-There are 11 `typeof` checks left in the repo and each has a reason: `Code Loader.js` running standalone in a code slot before anything exists (3), the game's
-own optional `on_cm` and priest-only `heal`, four optional callback *parameters* (`on_done`,
-`farm_step`, `context`), and two lookups checking that a dungeon's named hook resolves to a function.
-
-Anything else is a symptom, not a fix. A symbol that several characters read belongs in
-`Global Config.js` with a default; an optional diagnostic belongs there as a no-op stub the real file
-overwrites; a DOM dependency belongs behind a poll-and-retry. A function in a file not in `OPTIONAL_SCRIPTS` cannot
-be absent at all, so guarding it is dead code.
-
-### UI Overlays
-- The meters (CC/Boss/DPS/Gold/XP) are each one `register_widget(id, { content, init, render, tick_ms })` call into `Widget Helpers.js`, which builds a themed `.al-panel.al-meter` in the bottom-right column, runs the render tick, and rebuilds the widget if the game UI drops it. They share `commas()`, `prune_before()` and `window_sum()` from the same file
-- Every bot button is one `toolbar_button(id, { label, order, title, on_click })` call in its file's boot step; Widget Helpers draws them in `order` as `#al-toolbar` under the game's menu. Ids are kept, so the paint loops (pause, dungeons, kill rates) still find their button by id
-- `Layout.js` decides what is shown and where, for game and bot panels alike, from one shared localStorage entry. See Design Notes
-- DPS Meter: per-member damage tracking, rolling event window
-- Stats Window: Canvas-based 30-minute rolling gold accumulation graph
-- Party Frames: real-time HP bars for all 4 members
-- CC Meter: tracks crowd control applications
+- **Farm Ledger** closes a 5-minute window per character (gold, XP, kills, deaths, potions, at the spot or away) and emits `ledger_window`; the **Decision Log** closes on it with what was chosen in the same seconds (casts confirmed by the server, actions and pulls, bursts, gear, panics, damage dealt and taken, time per weapon and goal).
+- **Danger Log** records every death and close call with the damage sources of the last 10s and the decisions taken in them.
+- Every record carries its context: build, home, map, goal, encounters, settings and experiment variant.
+- `python "Tools/Data Store.py"` rebuilds the store incrementally (the sink runs it every 15 minutes) and answers `compare A B` (one build or time range against another at the same home), `skills`, `weapons`, `pulls`, `time`, `before-danger` and `experiment NAME`.
+- **Experiments** alternate a setting's variants in 30-minute blocks of the wall clock. Each one changes behaviour, so each needs the user's go-ahead.
 
 ---
 
 ## Configuration
 
-Each character's `[Role] Config.js` owns its own `CONFIG` object — per-role isolation is deliberate,
-and most values live only there. The exception is the handful that were byte-identical in all three
-fighters: `Global Config.js` holds `LOOTING_DEFAULTS`, `POTION_DEFAULTS`, `EQUIPMENT_DEFAULTS` and
-`PANIC_ORB_SET`, which each config spreads and then overrides, so every tuned value is still visible
-where it is tuned:
+Each role's `<Role> Config.js` owns its own `CONFIG`. Only values that were identical in all three fighters live in `Global Config.js` (`LOOTING_DEFAULTS`, `POTION_DEFAULTS`, `EQUIPMENT_DEFAULTS`, `PANIC_ORB_SET`), spread and overridden per role, so every tuned value is visible where it is tuned. Runtime choices the user makes (farm target, boss toggles, dungeon, merchant tasks) are settings, read live through `setting(name)` from the ⚙️ window. Lint checks that every `CONFIG` key is read somewhere and every key read exists.
 
-```javascript
-var CONFIG = {
-    combat:    { target_priority: ["Myras"], target_weights: { damage: 1, protects: 1, close: 0.05 }, ... },
-    movement:  { enabled: true, reposition: true, circle_radius: 35, follow_distance: 15, ... },
-    equipment: { ...EQUIPMENT_DEFAULTS, weapon_sets: ["single", "aoe", "double_aoe"], ... },
-    looting:   { ...LOOTING_DEFAULTS },
-    potions:   { ...POTION_DEFAULTS },
-    skills:    { cleave_enabled: true, agitate_enabled: true, ... },
-};
-```
-
-Alongside `CONFIG`, each config file also declares `home`, `destination`, `PANIC_THRESHOLDS`,
-`equipment_sets`, `ITEMS_TO_KEEP`, `item_order`, and the mutable `state`/`cache` its siblings share.
-All of these are `var`, because a top-level `const`/`let` is invisible across the eval boundary
-between sibling character files.
-
-Read the real values from the config files — the snippet above is shape, not settings.
+A dungeon's `flags` are read through `dungeon_flag()` at the decision they affect. They are contextual overrides with no `CONFIG` counterpart, so they are deliberately not merged into it.
 
 ---
 
-## File Size Reference
+## Guards
 
-Deliberately not tabulated here — a snapshot of line counts went stale within one restructure and
-listed files that no longer existed. Get it from git instead:
+If the structure is right, code doesn't need `typeof` or existence checks. The legitimate kinds are:
+
+- `Code Loader.js`, which runs alone in a code slot before anything else exists.
+- The game's optional callbacks: `on_cm`, and `heal`, which only a priest has.
+- Optional callback parameters (`on_done`, `farm_step`, `context`) and a role's optional runner hooks (`on_disabled`, `pre_move`), which are an API contract.
+
+Anything else has a structural fix. A symbol several characters read is declared in `Global Config.js` with a default. A one-role function gets a no-op stub there that the real file overwrites. A DOM dependency waits with `when()`. A function in a file that isn't optional can't be absent, so guarding it is dead code.
+
+---
+
+## Testing
+
+- `node Tests/Harness.js load|check|smoke|golden` boots the bot in Node over the game's own `runner_functions.js` and `data.js`. `load` boots every role, then again with each stage reversed; `check` replays 77 fixtures (recorded live moments and synthetic scenes) and compares every decider, emit and burst with its golden; `smoke` fires every socket event and runs every loop.
+- `python Tools/Lint.py` checks cross-file global collisions, load-stage violations and every role's `CONFIG`, and runs the ratchet: a legacy-pattern count per file may go down, never up.
+- Whether a change farms better is measured live, with `compare`.
+
+---
+
+## Known gaps
+
+- The harness pins decisions, not play: positioning over time, pathing and server timing are only visible live.
+- `Dreams Cave.js` (911 lines) and `Merchant Upgrading.js` (735) are the largest files left. They stay whole until someone works in them.
+
+## File sizes
+
+Not tabulated, since a table goes stale within a restructure. From git:
 
 ```bash
 git ls-files -z '*.js' | while IFS= read -r -d '' f; do
-  printf "%6d  %s
-" "$(git show "HEAD:$f" | wc -l)" "$f"
+  printf '%6d  %s\n' "$(git show "HEAD:$f" | wc -l)" "$f"
 done | sort -rn
 ```
 
-Count against git blobs rather than the working tree: the tree is CRLF while blobs are LF.
+## References
 
----
-
-## Known Gaps / Ongoing Work
-
-- Offline checks cover decisions, not play: `node Tests/Harness.js check` replays recorded game moments and `python Tools/Lint.py` guards structure, but whether a change farms better is still measured live, with `python "Tools/Data Store.py" compare`
-- The buttons/windows UI is still incomplete after `Buttons.js`/`Windows.js` were removed — reload, bank, settings, pause and the dungeon toggles were rebuilt in their own files, but the rest was not
-- `storage_read()`/`storage_write()` cover the JSON-backed values only. The bare-string stores (`automation_enabled()`, the dungeon override and resume, `Settings.js`, `Error Log.js`'s key scan) still call `localStorage` directly, deliberately — `storage_read()` would `JSON.parse` a bare string and return null. Every one of those calls is inside a function and wrapped in try/catch, so a browser blocking site data degrades rather than breaking the load
-
----
-
-## External References
-
-- Game: [adventure.land](https://adventure.land)
-- Script hosting: the local error sink (`/code/`), reading the committed `main` from git; GitHub is the backup
-- GitHub repo: Aegis-940/Adventure-Lands
+- Game: [adventure.land](https://adventure.land); engine internals in [`Game API Reference.md`](Game%20API%20Reference.md)
+- Reading the flight recorder: [`Diagnostics.md`](Diagnostics.md)
+- Loop rates: `al_loops()` in the console; [`Loop Cadence.md`](Loop%20Cadence.md) explains the choices
+- The restructure: [`Overhaul Plan.md`](Overhaul%20Plan.md)
+- GitHub (backup): Aegis-940/Adventure-Lands

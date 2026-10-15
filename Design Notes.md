@@ -223,11 +223,13 @@ Awaited first, together with `Widget Helpers.js` and `Game Log.js`, so everythin
 - the no-op `errlog_*` stubs, plus stubs for the one-role-only `request_delivery`, `model_prediction`, `get_character_state` and `upgrade_slot_for`
 - the `var` declarations of every cross-character symbol (`home`, `destination`, `CONFIG`, `cache`, `ITEMS_TO_KEEP`, `EQUIPMENT_RULES`, `PANIC_BROADCAST_TARGETS`, the panic flags), so no reader needs a `typeof` guard
 
-### Movement: `Movement Goal.js`, `Travel Arbiter.js`, `Movement Manager.js`, `Stuck Escape.js`
+### `Movement Goal.js`
 
-The two movement owners are `movement_goal()` (where to go: the one priority list) and `movement_local()` (where to stand), in `Movement Goal.js`. The machinery they drive is the travel arbiter (`travel_arbiter()`, `Travel Arbiter.js`), `smarter_move()`, `walk()` and the route resplice (`Movement Manager.js`), and the stuck escape (`Stuck Escape.js`). One file was 934 lines until 10-16 (Overhaul 6.1); the split moved code without changing it, except that the town cast is one helper (`town_teleport()`) and the arbiter's counted failures are compared at the call, so no file reads another's constants at load.
+The two movement owners are `movement_goal()` (where to go: the one priority list) and `movement_local()` (where to stand). The machinery they drive is the travel arbiter (`Travel Arbiter.js`), `smarter_move()`, `walk()` and the route resplice (`Movement Manager.js`), the town shortcut (`Town Shortcut.js`) and the stuck escape (`Stuck Escape.js`). They were one 934-line file until 10-16 (Overhaul 6.1). The split moved code without changing it, except that the town cast became one helper (`town_teleport()`) and the arbiter compares its counted failures at the call, so no file reads another's constants at load.
 
 **Locals are looked up, not chained.** `movement_local()` finds the goal's `local` in `LOCAL_STEPS` (step, trail, passage, wait, evade, kite, event, loot, keep), then in the encounters' `steps` (`encounter_step()`), and otherwise falls back to the role's farm step. So an encounter brings its own positioning, as bscorpion brings `camp`, and core movement doesn't name it. `kite` stays in core: it's World Events' generic answer to any event with a `kite` ring in `EVENT_LOCATIONS`, of which crabxx is today's only one. A goal that's a fighting position says so with `fight: true`, which keeps combat running (`should_pause_combat_loop()`) and takes the party out of formation (`party_in_formation()`), as the camp check did by name.
+
+### `Travel Arbiter.js`
 
 **Escalating to the town edge.** The arbiter counts a goal's failures (no path, timeout, stall, a search over 60s). On the second failure, with nothing targeting us, it re-issues the journey with the pathfinder's town edge on. That is `smart.use_town`, set only for that journey and cleared when it ends; the BFS reads it at every node.
 
@@ -240,6 +242,8 @@ The two movement owners are `movement_goal()` (where to go: the one priority lis
 **Passive goals keep a search alive.** A search is not parkable, so a local goal that releases it throws the work away. A `passive` local goal (`boss-loot`, `await-town`) leaves an unfinished search of ours running instead; once found, the next tick parks it as usual. `boss-loot` coming and going with the chest count threw a 20s cross-map search home away four times in a row on 10-11 10:55. `movement_local()` stays silent for a passive goal while the search runs, and the runner still loots under it.
 
 **Journey cap.** `TRAVEL_JOURNEY_TIMEOUT_MS` is 300s. At 90s the walk home from halloween timed out twice on 10-11 with the followers in formation the whole way, and each timeout counted as a failure toward the town escalation.
+
+### `Movement Manager.js`
 
 **Native search failure.** A native search failure reaches `smarter_move` through `smart.on_done` and settles the journey as `no path` on the spot. It is told apart from the native `smart_move` re-entering (its own "Lost the path" recovery, or `stop()`) by state, not reason: `bfs()` clears `smart.moving` before calling `on_done`, the re-entry calls it while `smart.moving` is still set, and after one recovery the native closure drops the reason altogether — reading the reason produced the spurious `"home" failed (no path)` of 10-11 10:29. Settling on failure is the way out of walled pockets like the ice golem landing. The stuck escape behind it skips only real instances and the cave.
 

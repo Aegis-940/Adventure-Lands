@@ -1,29 +1,29 @@
 # Decision Ownership
 
-A worklist, not a reference. For each decision the bot makes, who decides it — and where that
-decision is split across several controllers that must then be coordinated.
+For each decision the bot makes, who decides it. Every decision listed here has one owner (closed out 2026-10-16, Overhaul Phase 6.4). The sections after the table record how each was consolidated, and they are history: line references in them are from the time.
 
-**The principle.** A decision has exactly one owner. Small decisions get small functions; the loops
-compose them. Multiple loops at different cadences are fine and correct. What is not fine is two
-loops deciding the same thing and needing a lock, a priority order or a rate limiter to stop them
-disagreeing.
+**The principle.** A decision has exactly one owner. Small decisions get small functions; the loops compose them. Multiple loops at different cadences are fine and correct. What is not fine is two loops deciding the same thing and needing a lock, a priority order or a rate limiter to stop them disagreeing.
 
-**A lock is not a decider.** It answers "who may write?", not "what should the answer be." Every
-coordination mechanism in this codebase exists because a decision has more than one owner. Remove
-the split and the mechanism has nothing left to do.
+**A lock is not a decider.** It answers "who may write?", not "what should the answer be." Every coordination mechanism exists because a decision has more than one owner. Remove the split and the mechanism has nothing left to do.
+
+The harness pins each of these deciders (`node Tests/Harness.js check`), so a change to one shows up as a golden diff.
 
 ---
 
-## Ranked
+## Owners
 
-| # | Decision | Owner | Other deciders | Coordination | Verdict |
-|---|---|---|---|---|---|
-| 1 | **What to wear** | `resolve_equipment()` | 8 | lock + 6 priorities + rate limiter | **split** |
-| 2 | **Where to stand** | `movement_local()` | 6 | ordering only — no arbiter | **split** |
-| 3 | **When to loot** | `handle_looting()` | none — 2 trigger kinds | shared `_looting`/`_loot_last` | **done** |
-| 4 | **Where to go** | `movement_goal()` | none — merchant/dungeons are modes | mutual exclusion | **confirmed** |
-| 5 | **Am I in danger** | `_panic_check_body()` | none — 5 signal sources | `set_panic()` sole writer | **confirmed** |
-| 6 | **What to attack** | `find_best_target()` | none | none needed | **the model** |
+| Decision | Owner | How others take part |
+|---|---|---|
+| **What to wear** | `Equipment Manager.js`: `resolve_equipment()` runs each `EQUIPMENT_RULES` group, and `apply_equipment_rule()` is the only path to the server | A burst (cleave, stomp, scare, the temporal surge, the candy-cane swing) claims slots through `equip_burst()` at a priority (`panic` 100, `skill` 80, `rules` 20, `resting` 10); situational gear is an answer from `encounter_gear()`. No other file sends an equip |
+| **Where to go** | `movement_goal()` (`Movement Goal.js`) | Events, cohesion, follow, encounters and home are inputs to its one priority list; the merchant and dungeons are modes |
+| **How to get there** | `travel_arbiter()` (`Travel Arbiter.js`) | A scripted dungeon walk stands it down (`dungeon_moving()`); the town shortcut and stuck escape act only on journeys it owns |
+| **Where to stand** | `movement_local()` (`Movement Goal.js`) | A goal names its local step (`LOCAL_STEPS`, or an encounter's `steps`, like bscorpion's `camp`); otherwise the role's farm step |
+| **Am I in danger** | `set_panic()` (`Party Management.js`), the only writer | Its own `panic_check()` and the healer's CM broadcast (two call sites each) |
+| **What to attack** | `select_target()`/`score_targets()` (`Targeting.js`), one writer of the target cache per character | `encounter_rank()` and dungeon targeting rules feed the scorer |
+| **Which skill to cast** | `run_skills(table, context)` (`Skill Runner.js`) over the role's table | Each entry's `gate`, `wanted` and `value`; encounters answer `encounter_allows()` |
+| **The basic action** | `run_action()` (`Character Runner.js`) over the role's `ROLE_ACTION` | The role supplies cadence, gate and `act(ms)` |
+| **When to loot** | `should_loot()` → `handle_looting()` | Dungeon callers go through `should_loot()` |
+| **The merchant's task** | `set_task()`/`begin_task()`/`end_task()`/`abandon_task()` (`Merchant Config.js`) | `PRIORITY_CHECKS` in the task loop picks; the watchdog abandons a stuck one |
 
 ---
 
@@ -284,16 +284,6 @@ Re-verified 2026-09-18: exactly one writer of the target cache per character —
 
 ---
 
-## Order of work
+## Order of work (done)
 
-1. **Where to stand** (#2) — worst coordination, confirmed in the healer deaths, and smaller than
-   equipment. Good first consolidation and it pays off immediately.
-2. **What to wear** (#1) — biggest win, biggest blast radius. Do it second, once the method is
-   proven on #2.
-3. **When to loot** (#3) — small; route the three dungeon callers through `should_loot()`.
-4. **The panic leak** (#5) — small.
-5. **Confirm #4** is genuinely separate rather than split.
-
-One change per deploy, so a regression has one suspect. A coordination mechanism comes out in the
-same change that removes the split it was compensating for — that is how we know the consolidation
-was real rather than cosmetic.
+The worklist this document began as (2026-09-18) is finished: where to stand and what to wear were consolidated first, then looting, the panic leak and the check that where-to-go was not split. Phase 3 of the overhaul (2026-10-15) added the skill runner, the action runner, `equip_burst()` and the merchant's task writer, so the rows below the first six follow the same shape.

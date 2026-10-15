@@ -18,9 +18,9 @@ Reviewed 2026-10-14 before execution. The review's changes are folded in and lis
 | 3 | Deciders and actuators | per decision | 3.1–3.5 built on `overhaul` 2026-10-15 (every burst, skill tick, action tick and local step pinned and identical; Riff's gear through the planner; `merchant_task` has one writer). 3.6: ratchet kept at 48, zero deferred. **Live 2026-10-15 on 0821e79: `compare` same** (12 windows at bscorpion, no deaths or close calls) |
 | 4 | Data for decisions (rewritten 2026-10-15) | none, except experiments the user approves | **done** 2026-10-16: live on `main` since 10-15, exit checked on 17 hours of decision data (623 windows, every question command answers; one counting fix, the server's attack-speed `skill_timeout`). Lanes about 21 MB/day against the 20 budget, damage the largest at about 17 |
 | 5 | World model | — | **dropped** 2026-10-15 (D17) |
-| 6 | File hygiene and docs (trimmed) | none | in progress: 6.1, 6.2 and 6.3 done 2026-10-16; 6.4 docs left |
+| 6 | File hygiene and docs (trimmed) | none | **done** 2026-10-16: splits, the log sweep, the config lint and the docs |
 
-Phases 0–3 are done. Phase 4 was rewritten on 2026-10-15 to collect the data for data-based improvements, and comes before Phase 6, so the Phase 6 docs describe the final shape. Phase 5 is dropped (D17).
+**The overhaul is complete (2026-10-16).** Phases 0–4 and 6 are done and Phase 5 is dropped (D17). Phase 4 was rewritten on 2026-10-15 to collect the data for data-based improvements; from here, changes to how the party plays are proposed from that data and measured with `compare` or an experiment.
 
 Update this table and the step checklists in the same commit as the work.
 
@@ -708,7 +708,7 @@ Dropped from the first draft: re-ordering every file's sections to a standard sh
 - [x] 6.1 splits (2026-10-16: Movement Manager into five, the lolipop push, Session Metrics, Dungeon Runner into three; Dreams Cave and the rest of Merchant Upgrading left whole until someone works in them)
 - [x] 6.2 `game_log` sweep (2026-10-16: 240 call sites to `log_msg`; only the loaders and `log_msg` call `game_log`. Error Log records by level, `event` and above, and wraps `game_log` only for the runner's pathfinder lines)
 - [x] 6.3 config lint (2026-10-16: `Tests/Config Check.js`, run by `Lint.py`; nothing missing or unused. Ulric's charge and hardshell keys count as read because the commented-out code that reads them is kept)
-- [ ] 6.4 docs
+- [x] 6.4 docs (2026-10-16: Architecture rewritten for the final structure, with the data pipeline; Design Notes one section per file, movement split to match; Loop Cadence's inventory is `al_loops()` output from the live build; Decision Ownership closed out as an owner table, the consolidation history kept below it)
 
 ---
 
