@@ -485,6 +485,8 @@ The status page lists them newest first; deaths from the timeline before the log
 
 Persistent cross-character flight recorder; hooks only, read with `al_errors(true)`. It defines the real `errlog_*` over `Global Config.js`'s stubs, so call sites never guard on it.
 
+**Every record says what the page was doing (Overhaul 4.2).** `errlog_sample()` and `errlog_archive()` add `build`, `home`, `map`, the goal label and the live encounters (`encounters_live_names()`, the list the registry last built, so recording never triggers a refresh) to each record. The record's own fields win, so a ledger window keeps the `home` it started with. The context is rebuilt at most once a second, because `target_choice` and `burn_state` sample several times a second. Samples had no build before this.
+
 **`game_response` replies are records only.** The `exception`/`cant`/`not_ready` replies still count in `records`, but no longer go to the timeline, so they no longer reach `errors_timeline.jsonl`. They were 63% of its bytes (50.6 of 81 MB by 10-11), mostly Myras's.
 
 **The archive lane.** `errlog_archive(kind, data)` keeps its own ring of 100 (`_errlog.archive`, about 8 hours of ledger windows), pushed with every payload. Records meant to be kept for good (`ledger`, `tracker`, `survey_spot`) go there instead of `samples`, where Myras's ~10 `target_choice` samples a second turn the 400-sample ring over in about 40s, close to the 30s push interval. The sink writes each kind to its own `.jsonl` once, by a per-kind high-water mark on `t`.

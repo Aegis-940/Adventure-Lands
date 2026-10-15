@@ -626,8 +626,8 @@ One normalised outcome handler: `hit`, `action` and `kill_credit` subscribed onc
 
 ### Phase 4 checklist
 
-- [ ] 4.1 existing samples archived, lane sizes measured, budget set
-- [ ] 4.2 context on every record
+- [x] 4.1 existing samples archived, lane sizes measured, budget set (live 2026-10-15: damage, heal, target_choice, cc_report; about 14 MB/day together; weapon_choice and burn_state not archived)
+- [x] 4.2 context on every record (on `overhaul`: build, home, map, goal, encounters; `variant` arrives with 4.6)
 - [ ] 4.3 decisions recorded at the choke points, rolled up per window; last 50 on each danger record
 - [ ] 4.4 one outcome feed; damage and kills attributed to decisions
 - [ ] 4.5 `decisions` table and the six question commands

@@ -216,6 +216,10 @@ function why(key) {
 	return key ? _encounter_why[key] || null : _encounter_why;
 }
 
+function encounters_live_names() {
+	return _encounters_live.map(enc => enc.name);
+}
+
 function encounters_active() {
 	encounter_context();
 	return _encounters_live.map(enc => `${enc.name} (${enc.tier})`);

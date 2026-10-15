@@ -184,10 +184,33 @@ function _errlog_store(ctx, raw_msg, on_timeline) {
 	}
 }
 
+const ERRLOG_CONTEXT_MS = 1000;
+
+let _errlog_record_ctx = null;
+let _errlog_record_ctx_at = 0;
+
+function _errlog_record_context() {
+	const now = Date.now();
+	if (_errlog_record_ctx && now - _errlog_record_ctx_at < ERRLOG_CONTEXT_MS) return _errlog_record_ctx;
+	_errlog_record_ctx_at = now;
+	try {
+		_errlog_record_ctx = {
+			build: _errlog_build(),
+			home,
+			map: character.map,
+			goal: current_goal_label(),
+			encounters: encounters_live_names().join(","),
+		};
+	} catch (e) {
+		_errlog_record_ctx = { build: _errlog_build() };
+	}
+	return _errlog_record_ctx;
+}
+
 function errlog_sample(kind, data) {
 	try {
 		if (!_errlog.samples) _errlog.samples = [];
-		_errlog.samples.push(Object.assign({ t: Date.now(), kind }, data));
+		_errlog.samples.push(Object.assign({ t: Date.now(), kind }, _errlog_record_context(), data));
 		if (_errlog.samples.length > ERRLOG_MAX_SAMPLES) _errlog.samples.shift();
 		_errlog_dirty = true;
 	} catch (e) { }
@@ -195,7 +218,7 @@ function errlog_sample(kind, data) {
 
 function errlog_archive(kind, data) {
 	try {
-		_errlog.archive.push(Object.assign({ t: Date.now(), kind, build: _errlog_build() }, data));
+		_errlog.archive.push(Object.assign({ t: Date.now(), kind }, _errlog_record_context(), data));
 		if (_errlog.archive.length > ERRLOG_MAX_ARCHIVE) _errlog.archive.shift();
 		_errlog_dirty = true;
 	} catch (e) { }
