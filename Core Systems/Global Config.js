@@ -179,6 +179,7 @@ var panic_since = 0;
 function request_delivery() { }
 function model_prediction() { return null; }
 function get_character_state() { return null; }
+function engage_point(target) { return standoff_point(target, character.range * EVENT_REACH); }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SECTION 2: CONSTANTS

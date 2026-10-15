@@ -82,7 +82,7 @@ function warrior_detour_point(goal) {
 	return best;
 }
 
-function warrior_engage_point(target) {
+function engage_point(target) {
 	const gap = Math.min(SWAP_TRICK_EDGE_GAP, character.range / 2);
 	const angle = Math.atan2(character.y - target.y, character.x - target.x);
 	const r = centre_distance_for_gap({ x: target.x, y: target.y, entity: target }, angle, gap);
@@ -94,7 +94,7 @@ function heading_to(goal) {
 }
 
 function warrior_close_in(target) {
-	const goal = warrior_engage_point(target);
+	const goal = engage_point(target);
 	if (heading_to(goal)) return;
 
 	if (local_move(goal.x, goal.y)) {
@@ -122,7 +122,7 @@ function warrior_clear_overlap(target) {
 	if (!CONFIG.combat.swap_trick_enabled || character.moving) return false;
 	if (distance(character, target) >= SWAP_TRICK_MIN_GAP) return false;
 
-	const goal = warrior_engage_point(target);
+	const goal = engage_point(target);
 	if (!local_move(goal.x, goal.y)) return false;
 
 	errlog_count("swap trick overlap cleared");
