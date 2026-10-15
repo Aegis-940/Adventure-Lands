@@ -341,6 +341,7 @@ _posts = {}
 # /code/<sha>/<path> is a .js file as committed at that sha, so one load never mixes two commits. Files come from git,
 # never the working tree, so only what has been merged to main can run. GitHub is a backup, not a source.
 CODE_KEEP = 4
+SLOW_REQUEST_S = 1.0
 CODE_LOCK = threading.Lock()
 _code_trees = {}
 
@@ -351,7 +352,16 @@ def git(*args, stdin=None):
 
 
 def main_sha():
-    return git("rev-parse", "main").decode("ascii").strip()
+    """Read from the ref file, not `git rev-parse`: a process start on Windows can stall for a second under antivirus."""
+    loose = os.path.join(REPO, ".git", "refs", "heads", "main")
+    if os.path.exists(loose):
+        with open(loose, encoding="ascii") as fh:
+            return fh.read().strip()
+    with open(os.path.join(REPO, ".git", "packed-refs"), encoding="ascii") as fh:
+        for line in fh:
+            if line.rstrip().endswith(" refs/heads/main"):
+                return line.split()[0]
+    raise OSError("no main ref")
 
 
 def code_tree(sha):
@@ -395,6 +405,14 @@ def code_response(route):
 
 
 class Handler(BaseHTTPRequestHandler):
+    def handle_one_request(self):
+        started = time.time()
+        super().handle_one_request()
+        took = time.time() - started
+        if took > SLOW_REQUEST_S:
+            print("%s  slow %s %s %.1fs" % (datetime.now().strftime("%H:%M:%S"), getattr(self, "command", "?"),
+                                           getattr(self, "path", "?").split("?")[0], took), flush=True)
+
     def _cors(self):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Headers", "content-type")
