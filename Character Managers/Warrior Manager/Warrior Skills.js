@@ -147,8 +147,7 @@ function handle_stomp(tank) {
 
 function fire_stomp() {
 	if (stomp_weapon_worn()) {
-		parent.socket.emit("skill", { name: "stomp" });
-		parent.next_skill.stomp = new Date(Date.now() + G.skills.stomp.cooldown);
+		send_stomp();
 		errlog_count("stomp fired");
 		return true;
 	}
@@ -157,17 +156,16 @@ function fire_stomp() {
 	if (!restore) return false;
 
 	const arm = equip_plan(STOMP_SET);
-	if (!arm.ops.length) return false;
+	if (!arm.ops.length || !equip_plan(restore, arm.shadow).ops.length) return false;
 
-	const back = equip_plan(restore, arm.shadow);
-	if (!back.ops.length) return false;
-
-	emit_equip_ops(arm.ops, back.shadow);
-	parent.socket.emit("skill", { name: "stomp" });
-	emit_equip_ops(back.ops, back.shadow);
-	parent.next_skill.stomp = new Date(Date.now() + G.skills.stomp.cooldown);
+	if (!equip_burst({ owner: "stomp", priority: EQUIP_PRIORITY.panic, arm: STOMP_SET, between: send_stomp, restore: chosen_weapon_set })) return false;
 	errlog_count("stomp swap fired");
 	return true;
+}
+
+function send_stomp() {
+	parent.socket.emit("skill", { name: "stomp" });
+	parent.next_skill.stomp = new Date(Date.now() + G.skills.stomp.cooldown);
 }
 
 function cleave_ready() {

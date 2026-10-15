@@ -593,7 +593,7 @@ Agitate, warcry, stomp, and taunt; cleave fires here only when no swing is comin
 
 **Agitate** donates aggro to the tank but stands down while she is `endangered()`, and never fires with a kited boss in range (World Events → kiting).
 
-**Stomp** stuns her attackers when she is below 35%. It does not use `endangered()`, which already fires below 60% whenever she is taking damage, so it saves the stun for real emergencies. It works only with a basher-type weapon worn or the `basher` set in the bag, swapped in and out in one burst like cleave.
+**Stomp** stuns her attackers when she is below 35%. It does not use `endangered()`, which already fires below 60% whenever she is taking damage, so it saves the stun for real emergencies. It works only with a basher-type weapon worn or the `basher` set in the bag, swapped in and out in one burst like cleave. The burst claims at panic priority, as it always ignored other claims: a sugar-rush hold still pending never delays the stun, and the hold's own restore then finds nothing left to swap.
 
 **Taunt** (`handle_taunt()`) pulls a boss with the `taunt` trait (mrpumpkin, mrgreen) onto him whenever it is on anyone but him, Myras or a `taunt_exempt` player (CrownTown, CrownsAnal, CrownPriest), provided she is within absorb range of him. The boss's `coop` makes every player fighting it friendly to the server's taunt check, so this steals it from other parties too.
 
