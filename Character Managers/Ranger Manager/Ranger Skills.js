@@ -58,6 +58,34 @@ function supershot_value(target) {
 
 var _last_sent_target = null;
 
+var RANGER_SKILLS = [
+	{ name: "huntersmark", gate: "combat", wanted: mark_wanted, cast: shot => shoot_skill("huntersmark", shot) },
+	{ name: "supershot", gate: "combat", wanted: supershot_wanted, cast: shot => shoot_skill("supershot", shot) },
+];
+
+function shot_affordable(shot, skill) {
+	return character.mp - shot.committed >= skill_mp_cost(skill) + panic_mp_reserve();
+}
+
+function mark_wanted(shot) {
+	return shot.allowed && CONFIG.combat.use_hunters_mark && shot.ms_hunter === 0
+		&& above_hp_pct(shot.target, CONFIG.combat.mark_min_hp_pct)
+		&& shot_affordable(shot, "huntersmark") && skill_pays(mark_value(shot.target), skill_mp_cost("huntersmark"), shot.target);
+}
+
+function supershot_wanted(shot) {
+	return shot.allowed && CONFIG.combat.use_supershot && shot.ms_super === 0
+		&& above_hp_pct(shot.target, supershot_min_hp_pct())
+		&& supershot_setup_ready(shot.target)
+		&& shot_affordable(shot, "supershot")
+		&& (ALL_BOSSES.includes(shot.target.mtype) || skill_pays(supershot_value(shot.target), skill_mp_cost("supershot"), shot.target));
+}
+
+function shoot_skill(skill, shot) {
+	shot.committed += skill_mp_cost(skill);
+	return use_skill(skill, shot.target);
+}
+
 function skill_loop() {
 	every("skill_loop", { ms: TICK_RATE.skill, kind: "combat", beat: true }, skill_tick);
 }
@@ -99,28 +127,7 @@ async function skill_tick() {
 				change_target(target);
 			}
 
-			const skill_allowed = encounter_allows("skills", target);
-
-			const hm_cost = skill_mp_cost("huntersmark");
-			const ss_cost = skill_mp_cost("supershot");
-			let committed = 0;
-			const affordable = (cost) => (character.mp - committed) >= cost + panic_mp_reserve();
-
-			if (skill_allowed && CONFIG.combat.use_hunters_mark && ms_hunter === 0
-				&& above_hp_pct(target, CONFIG.combat.mark_min_hp_pct)
-				&& affordable(hm_cost) && skill_pays(mark_value(target), hm_cost, target)) {
-				committed += hm_cost;
-				await use_skill("huntersmark", target);
-			}
-
-			if (skill_allowed && CONFIG.combat.use_supershot && ms_super === 0
-				&& above_hp_pct(target, supershot_min_hp_pct())
-				&& supershot_setup_ready(target)
-				&& affordable(ss_cost)
-				&& (ALL_BOSSES.includes(target.mtype) || skill_pays(supershot_value(target), ss_cost, target))) {
-				committed += ss_cost;
-				await use_skill("supershot", target);
-			}
+			await run_skills(RANGER_SKILLS, { target, allowed: encounter_allows("skills", target), ms_hunter, ms_super, committed: 0 });
 		} else {
 			next_delay = min_ms > 200 ? 100 : min_ms > 50 ? 20 : 5;
 		}

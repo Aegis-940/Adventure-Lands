@@ -15,7 +15,7 @@ Reviewed 2026-10-14 before execution. The review's changes are folded in and lis
 | 0 | Safety net: harness, snapshots, golden decisions, ratchet lint, docs triage | none | **done** 2026-10-15 (live on `main`) |
 | 1 | Boot kernel: boot phase, scheduler, events, storage, console API | none | **done**: 1.1–1.7 live 2026-10-15 (`compare` at bscorpion: same); 1.2b live the same day (timing identical offline; 3 windows at bscorpion: kills, XP and potions within 2%, no deaths, close calls or loop errors, worst loop lag 11ms) |
 | 2 | Encounters (the monster behaviour redesign) | small, per encounter | **done**: live 2026-10-15, monster literals outside encounters at 0. Deferred: the rime stomp as an encounter `step` once live Djinn fixtures exist |
-| 3 | Deciders and actuators | per decision | 3.1 built on `overhaul` 2026-10-15 (every burst pinned and identical; Riff's gear through the planner) |
+| 3 | Deciders and actuators | per decision | 3.1 and 3.2 built on `overhaul` 2026-10-15 (every burst and skill tick pinned and identical; Riff's gear through the planner) |
 | 4 | Telemetry on the event bus | none | not started |
 | 5 | World model (optional) | small (timing) | not started |
 | 6 | File hygiene and docs (trimmed) | none | not started |
@@ -544,7 +544,7 @@ This is already the model (`Decision Ownership.md` §6). The three `action_loop`
 ### Phase 3 checklist
 
 - [x] 3.1 `equip_burst`, the 4 bursts migrated (one per push), Merchant Gear through the planner (on `overhaul`, 2026-10-15). The harness first gained a burst pin: each burst (cleave, sugar rush, both, stomp, temporal surge, scare) fires once in a fresh boot per fixture and its golden records every op sent, in order, including a restore left on a timer. All four migrations kept those goldens identical. Scare and stomp claim at panic priority: scare is the panic, and stomp never claimed before, so it must keep cutting through a pending sugar-rush hold. `weapon_burst()` keeps the decision and the hold, and checks `equip_claimable()` before working one out. The penalty rule stays there too, since only the hold uses it. Riff's broom/book and his rod/pickaxe are sets equipped through `equip_once()`, one batch instead of two equips 400ms apart
-- [ ] 3.2 skill runner: warrior, priest, ranger (one per push; priest's panic-heal golden unchanged)
+- [x] 3.2 skill runner: warrior, priest, ranger (one per push; priest's panic-heal golden unchanged). On `overhaul`, 2026-10-15. The harness first pinned one tick of every skill loop three ways: as recorded, with every cooldown cleared, and with the action handlers replaced by recorders. All three migrations kept every pin identical. `run_skills(table, context)` lives in `Core Systems/Skill Runner.js`. It owns the gate, the per-entry `catcher` and the await; cooldown and mana checks stay in each `wanted`, since they differ on purpose (dark blessing keeps no reserve, the shell stomp spends it). Each tick keeps its preamble, so the paused/disabled delays are unchanged, and passes what it worked out once as context (Ulric's tank, Myras's swap penalty, Riva's target, cooldowns and committed mana). The commented-out charge/hardshell stay verbatim in Ulric's tick. One timing difference: Myras's mana-for-luxuries check is read when dark blessing is decided, not just after the heal
 - [ ] 3.3 local-step registry
 - [ ] 3.4 shared action runner
 - [ ] 3.5 merchant `set_task()`
