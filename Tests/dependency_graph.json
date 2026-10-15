@@ -9030,8 +9030,8 @@
   {
    "call": [
     "make_draggable",
+    "settings_action",
     "start_drag",
-    "toolbar_button",
     "toolbar_buttons",
     "ui_style"
    ],
@@ -9078,7 +9078,7 @@
   },
   {
    "call": [
-    "toolbar_button"
+    "settings_action"
    ],
    "from": "Interface/Lucky Slot Tracker.js",
    "load": [],
@@ -9748,14 +9748,17 @@
   },
   {
    "call": [
+    "settings_actions",
     "toolbar_button"
    ],
    "from": "Interface/Settings Window.js",
    "load": [
     "_drag",
+    "_settings_actions",
     "_toolbar",
     "make_draggable",
     "render_toolbar",
+    "settings_actions",
     "start_drag",
     "toolbar_button"
    ],

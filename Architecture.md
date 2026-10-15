@@ -121,7 +121,7 @@ Interface/*.js                    ← overlay panels (semi-independent)
     │                             window_sum(), start_drag()/make_draggable()
     │                             — awaited in the first stage, not one of the parallel loads
     ├── Layout.js                 the shared layout: which game/bot panels are hidden, which float
-    │                             and where; 🧩 arrange mode; one stylesheet, synced across windows
+    │                             and where; arrange mode (⚙️ → 🧩); one stylesheet, synced across windows
     ├── DPS Meter.js
     ├── Stats Window.js           Canvas-based gold graph
     ├── Party Frames.js

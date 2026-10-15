@@ -119,12 +119,12 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | File | Role |
 |------|------|
 | `Widget Helpers.js` | **First stage.** The panel theme (`.al-panel`, `.al-meter`, `.al-window`, `.al-panel-title`, `.al-button`) and `ui_style()`, `register_widget()` for the meters, `toolbar_button(id, { label, order, title, on_click })` for every bot button, `CLASS_COLORS`, coop-share and rolling-window helpers, `start_drag()`/`make_draggable()` |
-| `Layout.js` | The shared screen layout: `UI_PANELS` (every game and bot panel), hidden/floating state in `AL_ui_layout` (one layout for all four windows, synced live), applied as one generated stylesheet. 🧩 or `ui_arrange()` to drag/hide/show, `ui_layout_reset()`, `remember_window()` for the bot's windows |
+| `Layout.js` | The shared screen layout: `UI_PANELS` (every game and bot panel), hidden/floating state in `AL_ui_layout` (one layout for all four windows, synced live), applied as one generated stylesheet. ⚙️ → 🧩 or `ui_arrange()` to drag/hide/show, `ui_layout_reset()`, `remember_window()` for the bot's windows |
 | `Game Log.js` | **First stage.** The one log window; everything goes through `game_log()`. `log_msg(level, msg)` gives the colour and prefix by level and counts warnings and errors |
 | `DPS Meter.js`, `Gold Meter.js`, `XP Meter.js`, `CC Meter.js` | Overlays |
 | `Boss Contribution.js` | Coop points and loot share of everyone on our boss |
 | `Kill Tracker.js` | kpm/kph/kpd from `kill_credit` |
-| `Lucky Slot Tracker.js` | Bayesian search for Riff's lucky upgrade slot; `upgrade_slot_for()` |
+| `Lucky Slot Tracker.js` | Bayesian search for Riff's lucky upgrade slot (⚙️ → 🍀); `upgrade_slot_for()` |
 | `Metrics Graphs.js` | 📊 session graphs popout, and the once-a-second live feed of the same numbers to the status page |
 | `Stats Window.js`, `Settings Window.js`, `Party Frames.js`, `Pause Button.js` | Stats/gold graph, the ⚙️ window over `Settings.js` (Save applies live), party HP, pause automation |
 | `Bank Viewer.js`, `Bank Sort Order.js` | Bank UI (plus the 🏧 and 🔄 toolbar buttons) and sort order |

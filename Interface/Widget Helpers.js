@@ -144,6 +144,19 @@ function toolbar_buttons() {
 	return _toolbar.slice();
 }
 
+const _settings_actions = [];
+
+function settings_action(id, spec) {
+	const i = _settings_actions.findIndex(a => a.id === id);
+	if (i !== -1) _settings_actions.splice(i, 1);
+	_settings_actions.push({ id, ...spec });
+	_settings_actions.sort((a, b) => a.order - b.order);
+}
+
+function settings_actions() {
+	return _settings_actions.slice();
+}
+
 function render_toolbar() {
 	const $ = parent.$;
 	let bar = $("#al-toolbar");

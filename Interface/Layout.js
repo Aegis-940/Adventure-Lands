@@ -391,7 +391,7 @@ function on_layout_storage(e) {
 on_boot("Layout", () => {
 	apply_ui_layout();
 	on_dom(window, "storage", "ui_layout_sync", on_layout_storage);
-	toolbar_button("layout-btn", { label: "🧩", order: 35, title: "Arrange the screen", on_click: ui_arrange, keep: true });
+	settings_action("layout", { label: "🧩 Arrange the screen", order: 10, on_click: ui_arrange });
 });
 
 console_api({

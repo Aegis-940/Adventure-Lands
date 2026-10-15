@@ -113,6 +113,25 @@ function open_settings_window() {
 	body.style.maxHeight = BODY_HEIGHT + "px";
 	body.style.overflowY = "auto";
 
+	const actions = settings_actions();
+	if (actions.length) {
+		const tools = settings_section(doc, "Tools");
+		tools.rows.style.gridTemplateColumns = "1fr 1fr";
+		for (const action of actions) {
+			const button = doc.createElement("button");
+			button.className = "al-button";
+			button.textContent = action.label;
+			button.style.fontSize = "14px";
+			button.onclick = () => {
+				div.remove();
+				action.on_click();
+			};
+			tools.rows.appendChild(button);
+		}
+		body.appendChild(tools.header);
+		body.appendChild(tools.rows);
+	}
+
 	const inputs = {};
 	let section = null;
 	for (const s of settings_list()) {
@@ -167,7 +186,7 @@ function open_settings_window() {
 }
 
 function add_settings_button() {
-	toolbar_button("settings-btn", { label: "⚙️", order: 30, title: "Settings", on_click: open_settings_window });
+	toolbar_button("settings-btn", { label: "⚙️", order: 30, title: "Settings", on_click: open_settings_window, keep: true });
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
