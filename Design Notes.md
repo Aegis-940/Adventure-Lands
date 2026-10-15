@@ -36,7 +36,7 @@ A body that throws is caught here (`catcher(e, name)`, counted in `al_loops()`) 
 
 `beat: true` is what `loop_tick`/`loop_next` did for the combat loops: an `errlog_beat(name)` per run and `lag <name>`, the gap between when a run was due and when it started. The loop names are unchanged (`action_loop`, `skill_loop`, `zap_loop`), so the beats in death records and the watchdog read the same.
 
-`when(name, ready, fn, ms)` polls `ready()` and runs `fn` once: the toprightcorner button chain (each button waits for the one before it) and the game log waiting for `#gamelog`.
+`when(name, ready, fn, ms)` polls `ready()` and runs `fn` once: the game log waiting for `#gamelog`. (The toprightcorner button chain, each button waiting for the one before it, used it until the toolbar registry replaced it on 2026-10-15.)
 
 `kind` (`automation`, `combat`, `safety`, `telemetry`, `ui`) only labels a loop for now. Pause and death still work the way each body checks them.
 
@@ -583,16 +583,33 @@ Leaving the approach to the farm steps froze both side by side when a wall stood
 
 Loaded in the awaited first stage with `Global Config.js`, so everything else may assume it. It provides:
 
-- `register_widget()`: the one container and render tick that the Gold/XP/CC/DPS/Boss Contribution meters each make a single call into
-- `create_bottomrightcorner_widget()`, and `add_toprightcorner_button()`, which polls for the corner and replaces any button with the same id
+- the panel theme, one stylesheet (`al-theme-style`): `.al-panel` (the frame every bot panel shares: dark background, 4px #555 border, pixel font at 20px), `.al-meter` (a member of the 358px column), `.al-window`, `.al-panel-title` (a window's drag handle) and `.al-button`. A meter keeps only its own text colours and sizes. `ui_style(id, css)` writes a `<style>` once and replaces its text after, so a code-only restart picks up new CSS (Party Frames used to create its style only if it was missing, so a restart kept the old one)
+- `register_widget()`: the one container and render tick that the Gold/XP/CC/DPS/Boss Contribution meters each make a single call into. Every meter is a fixed `UI_METER_WIDTH` (358px, the column's width), not `100%`, so it keeps its size once Layout floats it out of the column
+- `toolbar_button(id, { label, order, title, on_click })`: every bot button registers in its file's boot step and the bar is redrawn in `order` (bank 10, reload 20, settings 30, 🧩 35, pause 40, dungeons 50–52, 📊 60, 🍀 70, kpm/kph/kpd 80–82). It replaced a chain where each button polled for the one before it (`when()` on `#reload-btn`, then `#settings-btn`, then `#pause-btn`), so one missing button stranded every button after it. Any element with the same id is removed first, so buttons an older iframe left directly in `#toprightcorner` don't double up. `#toprightcorner` and its `.game-controls` are the game's own DOM and exist before the code iframe runs, so the bar is placed without polling
 - `CLASS_COLORS`
 - the coop-point helpers `coop_contributors()`, `coop_share_weight()` and `coop_total_weight()` (the server's loot share)
 - the rolling-window helpers `commas()`, `prune_before()`, `window_sum()`
-- `make_draggable()` (used by `Settings Window.js` and `Stats Window.js`)
+- `start_drag(e, move, end)`, the one mouse-follow on the game window (`move(dx, dy)` per mousemove, `end()` on mouseup), and `make_draggable(el, handle, on_end)` on top of it for the windows
+
+### `Layout.js`
+
+What the player sees and where, for the game's panels and the bot's alike. One layout is shared by all four windows (the user's choice, 2026-10-15). It lives in localStorage `AL_ui_layout` as `{ panels: { id: { hidden, ax, x, ay, y, sw, sh, w } }, buttons: { id: true }, windows: { name: { left, top } } }`, and a `storage` event in another window re-reads it, so arranging one screen rearranges all four live.
+
+**Panels.** `UI_PANELS` names each one by selector: the game's character sheet, menu, party list, server info, inventory, chat, party chat, chat input, HP/MP bars, skill bar, code windows, level bar, tutorial and event announcements; the bot's toolbar, game log, party frames and the five meters. A panel nobody has touched stays exactly where the game or the bot draws it. Toolbar buttons hide individually.
+
+**One stylesheet.** The layout is applied as a generated `<style id="al-layout-style">` with `!important` rules, never as inline styles on elements. That is what makes it hold: the game re-renders and re-positions some of its panels (`#bottommid` sets its own `right` inline), `register_widget()` rebuilds a meter the game dropped, and Boss Contribution toggles itself with `.toggle()`. A rule matches whatever element carries the selector at the moment, and `!important` beats the game's inline values. No loop runs outside arrange mode.
+
+**Floating.** A dragged panel becomes `position: fixed` with `margin: 0` and `transform: none` (party frames centre themselves with `translateX(-50%)`; the log shifts left with a negative margin). It is anchored to the nearest screen edge on each axis and stored as the distance from that edge, so a bottom-right panel stays bottom-right in a smaller window, and a bottom-anchored meter that grows (DPS rows, boss contributors) grows upwards. The offset is clamped in CSS (`min(x, max(0, 100vw - width))`), so a smaller window never pushes a panel off screen. A panel whose own width is a percentage of its container would go viewport-wide once fixed, so `pin: true` (server info) stores and applies its measured width. Width is otherwise left alone, because a fixed element with `width: auto` shrinks to its content. ↺ puts a panel back where it started, still hidden if it was.
+
+**Arranging.** 🧩 (or `ui_arrange()`) draws a dashed outline over every visible panel, each with its name, ✕ to hide and ↺ to dock, plus the Layout window: a checkbox per panel and per toolbar button, Reset all, and Done. Smaller outlines stack above larger ones, so chat stays grabbable over the inventory. Neither the toolbar nor 🧩 can be hidden, so arrange mode is always reachable; `ui_layout_reset()` in the console is the last resort. The outlines follow their panels every 250ms through one `arrange` loop, stopped on Done.
+
+**Windows.** `remember_window(name, el, handle, left, top)` opens Settings, Stats and Layout where they were last dragged, clamped onto the screen.
+
+**Tested** (2026-10-15) in headless Edge over a snapshot of Ulric's live page (DOM and CSS, the game's pixel font): the default layout matches the live one, a drag lands exactly under the cursor, hide/show/↺/Reset all apply at once, the layout survives a reload, a change in one tab reaches another, and booting over a page an older iframe built leaves no duplicate ids.
 
 ### `Game Log.js`
 
-Loaded in the awaited first stage, so `al_log_push()` is guaranteed on the error path. It is the one log window: it wraps `parent.add_log`, adds timestamps, category filters (gold/kills/items/errors) and the Log/Filtered tabs, and resizes `#gamelog` 50% wider (leftward, over the canvas) and 25% taller. It self-starts at load. There is no `log()` any more; everything goes through `game_log()`.
+Loaded in the awaited first stage, so `al_log_push()` is guaranteed on the error path. It is the one log window: it wraps `parent.add_log`, adds timestamps, category filters (gold/kills/items/errors) and the Log/Filtered tabs, and resizes `#gamelog` 60% wider (leftward, over the canvas) and 37.5% taller. Tabs, filters and both logs sit in one `#al-log-panel`, so Layout moves them as one panel. The panel shifts left by its width less the 358px column, so it adds nothing to the column's width and its right edge meets the screen's. The game's `#gamelog` is moved into the panel, not recreated: the game finds it by id. (Until 2026-10-15 the four elements were sized separately and the log ran 30px wider than its tabs. The factors went from 1.5/1.25 to 1.6/1.375 when the log became border-box, so it is the same size on screen.) It self-starts at load. There is no `log()` any more; everything goes through `game_log()`.
 
 
 **Levels (Overhaul 4.7).** `log_msg(level, msg)` takes `debug`, `info`, `event`, `warn` or `error`, and writes through `game_log()` with that level's colour and prefix (`⚠️ ` for warn, `❌ ` for error). Warnings and errors are also counted by level (`log warn`, `log error`). It is not called `log` because the game's runner already defines `log(message, color)`. Call sites move to it when their file is touched for its own reason (D3) or in the 6.2 sweep. Until that sweep ends, Error Log keeps recording `game_log` lines by their emoji prefix as well.

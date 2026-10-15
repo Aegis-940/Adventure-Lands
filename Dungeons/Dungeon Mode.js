@@ -129,30 +129,10 @@ function paint_dungeon_buttons() {
 
 function add_dungeon_buttons() {
 	if (!DUNGEON_PARTY.includes(character.name)) return;
-	when("dungeon buttons", () => parent.$("#toprightcorner").length > 0 && parent.$("#pause-btn").length > 0, place_dungeon_buttons, 500);
-}
-
-function place_dungeon_buttons() {
-	const $ = parent.$;
-	const trc = $("#toprightcorner");
-	const pause_btn = $("#pause-btn");
-
-	let after = pause_btn;
-	for (const spec of DUNGEON_BUTTONS) {
-		$("#" + spec.id).remove();
-
-		const btn = $(`
-		<div id="${spec.id}" class="gamebutton" style="cursor: pointer;">
-			${spec.off}
-		</div>`);
-		btn.on("click", () => toggle_dungeon_mode(spec.key));
-
-		after.after(btn);
-		after = btn;
-	}
-
+	DUNGEON_BUTTONS.forEach((spec, i) => toolbar_button(spec.id, {
+		label: spec.off, order: 50 + i, title: `${dungeon_name_for(spec.key)} mode`, on_click: () => toggle_dungeon_mode(spec.key),
+	}));
 	paint_dungeon_buttons();
-
 	every("dungeon buttons", { ms: 500, kind: "ui", fixed: true }, paint_dungeon_buttons);
 }
 

@@ -232,40 +232,23 @@ function ui_window() {
 	win_el = create_element(doc, "div", {
 		id: "ui-statistics-window",
 		styles: {
-			position: "absolute",
-			top: "5px",
-			left: "5px",
 			width: "350px",
 			height: "220px",
-			border: "4px solid #888",
-			background: "rgba(34,34,34,0.66)",
-			color: "#fff",
 			zIndex: 10000,
-			fontFamily: "pixel",
-			fontSize: "18px",
 			display: "block",
 			resize: "both",
 			overflow: "auto",
-			boxSizing: "border-box",
 			userSelect: "none",
 		}
 	});
+	win_el.className = "al-panel al-window";
 
-	const title_bar = create_element(doc, "div", {
-		text: "Game Statistics",
-		styles: {
-			background: "#444",
-			padding: "8px",
-			cursor: "move",
-			fontWeight: "bold",
-			fontSize: "24px",
-			borderBottom: "2px solid #888",
-		}
-	});
+	const title_bar = create_element(doc, "div", { text: "Game Statistics" });
+	title_bar.className = "al-panel-title";
 
 	win_el.appendChild(title_bar);
 
-	make_draggable(win_el, title_bar);
+	remember_window("stats", win_el, title_bar, 5, 5);
 
 	const toggle_btn = create_element(doc, "button", {
 		text: "❌",

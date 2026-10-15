@@ -46,7 +46,7 @@ function xp_meter_lines() {
 	const color = get_xp_rate_color(per_second * 60, target_xp_rate);
 
 	return `Estimated time until level up:`
-		+ `<br><span style="font-size: 30px; color: #87CEEB">${format_remaining_time(Math.round(xp_remaining / per_second))}</span>`
+		+ `<br><span style="font-size: 26px; color: #87CEEB">${format_remaining_time(Math.round(xp_remaining / per_second))}</span>`
 		+ `<br><span style="color: ${color}">${commas(per_second * 60)} XP/min</span>`;
 }
 
@@ -57,14 +57,8 @@ function xp_meter_lines() {
 on_boot("XP Meter", () => {
 	register_widget("xptimer", {
 		tick_ms: 500,
-		container: {
-			background: "black", backgroundColor: "rgba(0, 0, 0, 0.6)",
-			border: "solid gray", borderWidth: "4px 4px",
-			width: "98%", height: "66px", fontSize: "25px", color: "#00FF00",
-			textAlign: "center", display: "table", overflow: "hidden", marginBottom: "-5px",
-		},
-		content: { display: "table-cell", verticalAlign: "middle" },
-		init: content => content.html('Estimated time until level up:<br><span style="font-size: 30px;">Loading...</span><br><span>(Kill something!)</span>'),
+		content: { color: "#00FF00", fontSize: "22px", lineHeight: "26px" },
+		init: content => content.html('Estimated time until level up:<br><span style="font-size: 26px;">Loading...</span><br><span>(Kill something!)</span>'),
 		render: () => xp_meter_lines(),
 	});
 });

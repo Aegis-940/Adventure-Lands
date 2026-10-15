@@ -797,5 +797,5 @@ on_boot("Metrics Graphs", () => {
 	every("metrics live feed", { ms: METRICS_LIVE_MS, kind: "telemetry", fixed: true }, metrics_publish);
 	parent.$("#metrics_dashboard, #metrics_backdrop, #metrics_dashboard_styles").remove();
 	parent.$(parent.document).off(".metrics_dashboard");
-	add_toprightcorner_button("metrics_button", "📊", toggle_metrics_dashboard);
+	toolbar_button("metrics_button", { label: "📊", order: 60, title: "Session graphs", on_click: toggle_metrics_dashboard });
 });

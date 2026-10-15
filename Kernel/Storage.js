@@ -16,6 +16,7 @@ const STORAGE_KEYS = [
 	{ key: "AL_dungeon_resume", kind: "raw", owner: "Dungeon Runner" },
 	{ key: "AL_dungeon_runs", kind: "raw", owner: "Dungeon Collection" },
 	{ key: "AL_upgrade_slot_rolls", kind: "json", owner: "Lucky Slot Tracker" },
+	{ key: "AL_ui_layout", kind: "json", owner: "Layout" },
 	{ key: "AL_lolipop_push", kind: "json", owner: "Merchant Upgrading" },
 	{ key: "AL_merchant_enabled_", kind: "raw", owner: "Settings" },
 	{ key: "AL_merchant_craft_target", kind: "raw", owner: "Settings" },

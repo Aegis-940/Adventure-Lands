@@ -86,7 +86,7 @@ Character Managers/[Role] Manager/   ← loaded sequentially via indirect eval, 
 
 Dungeons/                            ← loaded in parallel as script tags, every character
     ├── Dungeon Runner.js         party entry, run_dungeon(), the flag accessors, scripted travel
-    ├── Dungeon Mode.js           the on/off toggle and its toprightcorner buttons
+    ├── Dungeon Mode.js           the on/off toggle and its toolbar buttons
     ├── Dungeon Progress.js       kills this run, and whether the quota is met
     ├── Dungeon Escape.js         bail-out: scare, walk away, town back to the entrance
     ├── Dungeon Telemetry.js      per-run flight recorder, pushed as errlog samples
@@ -116,13 +116,16 @@ Character Managers/Merchant Manager/  ← Riff only; no combat files
     └── Merchant.js               entry point
 
 Interface/*.js                    ← overlay panels (semi-independent)
-    ├── Widget Helpers.js         register_widget() + create_bottomrightcorner_widget(),
-    │                             commas()/prune_before()/window_sum(), make_draggable()
+    ├── Widget Helpers.js         the panel theme + ui_style(), register_widget() for the meters,
+    │                             toolbar_button() for every bot button, commas()/prune_before()/
+    │                             window_sum(), start_drag()/make_draggable()
     │                             — awaited in the first stage, not one of the parallel loads
+    ├── Layout.js                 the shared layout: which game/bot panels are hidden, which float
+    │                             and where; 🧩 arrange mode; one stylesheet, synced across windows
     ├── DPS Meter.js
     ├── Stats Window.js           Canvas-based gold graph
     ├── Party Frames.js
-    ├── Bank Viewer.js            bank access UI plus the toprightcorner reload button
+    ├── Bank Viewer.js            bank access UI plus the 🏧 and 🔄 toolbar buttons
     ├── Bank Sort Order.js        bank sorting order/category definitions
     ├── CC Meter.js
     ├── Gold Meter.js
@@ -216,8 +219,9 @@ overwrites; a DOM dependency belongs behind a poll-and-retry. A function in a fi
 be absent at all, so guarding it is dead code.
 
 ### UI Overlays
-- Bottom-right-corner meters (Gold/XP/CC/DPS) are each one `register_widget(id, { container, content, init, render, tick_ms })` call into `Widget Helpers.js`, which builds the container, runs the render tick, and rebuilds the widget if the game UI drops it. They share `commas()`, `prune_before()` and `window_sum()` from the same file; Settings Window.js/Stats Window.js use its `make_draggable()`
-- Top-right-corner buttons (🔄 reload, 🏧 bank, ⚙️ settings, ⏸️ pause, ⚰️/🕷️ dungeon) were rebuilt piecemeal in their own files after `Buttons.js`/`Windows.js` were removed. Each attaches after the previous one's element and polls until it exists, so they chain safely regardless of load order
+- The meters (CC/Boss/DPS/Gold/XP) are each one `register_widget(id, { content, init, render, tick_ms })` call into `Widget Helpers.js`, which builds a themed `.al-panel.al-meter` in the bottom-right column, runs the render tick, and rebuilds the widget if the game UI drops it. They share `commas()`, `prune_before()` and `window_sum()` from the same file
+- Every bot button is one `toolbar_button(id, { label, order, title, on_click })` call in its file's boot step; Widget Helpers draws them in `order` as `#al-toolbar` under the game's menu. Ids are kept, so the paint loops (pause, dungeons, kill rates) still find their button by id
+- `Layout.js` decides what is shown and where, for game and bot panels alike, from one shared localStorage entry. See Design Notes
 - DPS Meter: per-member damage tracking, rolling event window
 - Stats Window: Canvas-based 30-minute rolling gold accumulation graph
 - Party Frames: real-time HP bars for all 4 members

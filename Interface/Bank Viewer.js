@@ -219,43 +219,11 @@ function render_bank_items() {
 }
 
 function add_bank_buttons() {
-	when("bank button", () => parent.$("#toprightcorner").length > 0, place_bank_button, 500);
-}
-
-function place_bank_button() {
-	const $ = parent.$;
-	const trc = $("#toprightcorner");
-
-	$("#bankbutton").remove();
-
-	const bank_btn = $(`
-	<div id="bankbutton" class="gamebutton"
-		 onclick="parent.$('#maincode')[0].contentWindow.render_bank_items()">
-		🏧
-	</div>`);
-
-	trc.children().first().after(bank_btn);
+	toolbar_button("bankbutton", { label: "🏧", order: 10, title: "Bank viewer", on_click: render_bank_items });
 }
 
 function add_reload_button() {
-	when("reload button", () => parent.$("#toprightcorner").length > 0, place_reload_button, 500);
-}
-
-function place_reload_button() {
-	const $ = parent.$;
-	const trc = $("#toprightcorner");
-
-	$("#reload-btn").remove();
-
-	const reload_btn = $(`
-	<div id="reload-btn" class="gamebutton" style="cursor: pointer;">
-		🔄
-	</div>`);
-	reload_btn.on("click", () => {
-		parent.window.location.reload();
-	});
-
-	trc.children().first().after(reload_btn);
+	toolbar_button("reload-btn", { label: "🔄", order: 20, title: "Reload this window", on_click: () => parent.window.location.reload() });
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

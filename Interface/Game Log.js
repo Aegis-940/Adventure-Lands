@@ -147,37 +147,31 @@ function al_log_apply_geometry() {
 		st.base_h = rect.height;
 	}
 
-	const width = Math.round(st.base_w * 1.5);
-	const height = Math.round(st.base_h * 1.25);
-	const shift = width - Math.round(st.base_w);
+	const width = Math.round(st.base_w * 1.6);
+	const height = Math.round(st.base_h * 1.375);
 
-	let style = doc.getElementById("al-log-style");
-	if (!style) {
-		style = doc.createElement("style");
-		style.id = "al-log-style";
-		doc.head.appendChild(style);
-	}
-
-	style.textContent = `
+	ui_style("al-log-style", `
+		#al-log-panel {
+			width: ${width}px;
+			margin-left: -${width - UI_METER_WIDTH}px;
+			position: relative;
+			z-index: 100;
+		}
 		#gamelog, #gamelog-filtered {
-			width: ${width}px !important;
+			width: 100% !important;
 			height: ${height}px !important;
-			margin-left: -${shift}px !important;
-			position: relative !important;
-			z-index: 100 !important;
+			box-sizing: border-box !important;
 			background: rgba(0,0,0,0.82) !important;
+			border-color: #555 !important;
 			overflow-y: auto !important;
 			overflow-x: hidden !important;
 		}
 		#al-log-tabs, #al-log-filters {
-			width: ${width}px !important;
-			margin-left: -${shift}px !important;
-			position: relative !important;
-			z-index: 100 !important;
 			display: flex !important;
 			font-family: pixel !important;
 			background: rgba(0,0,0,0.9) !important;
-			border-top: 2px solid #555 !important;
+			border: 4px solid #555 !important;
+			border-bottom: none !important;
 		}
 		#al-log-tabs > div, #al-log-filters > div {
 			flex: 1 !important;
@@ -195,7 +189,7 @@ function al_log_apply_geometry() {
 			line-height: 22px !important;
 			font-size: 16px !important;
 		}
-	`;
+	`);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -227,10 +221,26 @@ function al_log_paint_controls() {
 }
 
 function al_log_build_ui() {
-	const st = al_log_state();
 	const doc = parent.document;
 	const log = doc.getElementById("gamelog");
-	if (!log || doc.getElementById("al-log-tabs")) return;
+
+	let panel = doc.getElementById("al-log-panel");
+	if (!panel) {
+		panel = doc.createElement("div");
+		panel.id = "al-log-panel";
+		log.parentNode.insertBefore(panel, log);
+	}
+
+	if (!doc.getElementById("al-log-tabs")) al_log_build_controls(log);
+	for (const id of ["al-log-tabs", "al-log-filters", "gamelog", "gamelog-filtered"]) {
+		panel.appendChild(doc.getElementById(id));
+	}
+	al_log_paint_controls();
+}
+
+function al_log_build_controls(log) {
+	const st = al_log_state();
+	const doc = parent.document;
 
 	const filtered = doc.createElement("div");
 	filtered.id = "gamelog-filtered";
@@ -270,8 +280,6 @@ function al_log_build_ui() {
 		tab_bar.appendChild(btn);
 	}
 	log.parentNode.insertBefore(tab_bar, filter_bar);
-
-	al_log_paint_controls();
 }
 
 function enhance_game_log() {

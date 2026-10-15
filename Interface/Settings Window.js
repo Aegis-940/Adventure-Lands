@@ -90,34 +90,22 @@ function open_settings_window() {
 
 	const div = doc.createElement("div");
 	div.id = "settings-window";
-	div.style.position = "absolute";
+	div.className = "al-panel al-window";
 	const WINDOW_WIDTH = 360;
 	const BODY_HEIGHT = Math.min(600, parent.window.innerHeight - 120);
-	div.style.left = ((parent.window.innerWidth - WINDOW_WIDTH) / 2) + "px";
-	div.style.top = Math.max(0, (parent.window.innerHeight - BODY_HEIGHT - 80) / 2) + "px";
 	div.style.width = WINDOW_WIDTH + "px";
-	div.style.background = "rgba(0,0,0,0.85)";
-	div.style.color = "#fff";
-	div.style.zIndex = 9999;
-	div.style.fontSize = "14px";
-	div.style.fontFamily = "sans-serif";
-	div.style.border = "2px solid #888";
-	div.style.borderRadius = "4px";
-	div.style.overflow = "hidden";
 
 	const drag_handle = doc.createElement("div");
-	drag_handle.style.height = "24px";
-	drag_handle.style.background = "#444";
-	drag_handle.style.cursor = "move";
-	drag_handle.style.display = "flex";
-	drag_handle.style.alignItems = "center";
-	drag_handle.style.paddingLeft = "8px";
-	drag_handle.style.fontWeight = "bold";
+	drag_handle.className = "al-panel-title";
 	drag_handle.textContent = "⚙️ Settings";
-	make_draggable(div, drag_handle);
 	div.appendChild(drag_handle);
+	remember_window("settings", div, drag_handle,
+		(parent.window.innerWidth - WINDOW_WIDTH) / 2, (parent.window.innerHeight - BODY_HEIGHT - 80) / 2);
 
 	const body = doc.createElement("div");
+	body.style.fontSize = "14px";
+	body.style.lineHeight = "normal";
+	body.style.fontFamily = "sans-serif";
 	body.style.padding = "10px";
 	body.style.display = "flex";
 	body.style.flexDirection = "column";
@@ -165,9 +153,10 @@ function open_settings_window() {
 	];
 	for (const [text, onclick] of buttons) {
 		const button = doc.createElement("button");
+		button.className = "al-button";
 		button.textContent = text;
 		button.style.flex = "1";
-		button.style.cursor = "pointer";
+		button.style.fontSize = "14px";
 		button.onclick = onclick;
 		button_row.appendChild(button);
 	}
@@ -178,23 +167,7 @@ function open_settings_window() {
 }
 
 function add_settings_button() {
-	when("settings button", () => parent.$("#toprightcorner").length > 0 && parent.$("#reload-btn").length > 0, place_settings_button, 500);
-}
-
-function place_settings_button() {
-	const $ = parent.$;
-	const trc = $("#toprightcorner");
-	const reload_btn = $("#reload-btn");
-
-	$("#settings-btn").remove();
-
-	const settings_btn = $(`
-	<div id="settings-btn" class="gamebutton" style="cursor: pointer;">
-		⚙️
-	</div>`);
-	settings_btn.on("click", open_settings_window);
-
-	reload_btn.after(settings_btn);
+	toolbar_button("settings-btn", { label: "⚙️", order: 30, title: "Settings", on_click: open_settings_window });
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

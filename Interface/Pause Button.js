@@ -24,23 +24,7 @@ function toggle_automation() {
 }
 
 function add_pause_button() {
-	when("pause button", () => parent.$("#toprightcorner").length > 0 && parent.$("#settings-btn").length > 0, place_pause_button, 500);
-}
-
-function place_pause_button() {
-	const $ = parent.$;
-	const trc = $("#toprightcorner");
-	const settings_btn = $("#settings-btn");
-
-	$("#pause-btn").remove();
-
-	const pause_btn = $(`
-	<div id="pause-btn" class="gamebutton" style="cursor: pointer;">
-		⏸️
-	</div>`);
-	pause_btn.on("click", toggle_automation);
-
-	settings_btn.after(pause_btn);
+	toolbar_button("pause-btn", { label: "⏸️", order: 40, title: "Pause / resume automation", on_click: toggle_automation });
 	paint_pause_button();
 
 	every("pause button", { ms: 500, kind: "ui", fixed: true }, paint_pause_button);

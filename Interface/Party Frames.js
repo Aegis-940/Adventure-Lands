@@ -1,6 +1,6 @@
 
 const PARTY_ORDER = ["Ulric", "Myras", "Riva", "Riff"];
-const PARTY_FRAME_WIDTH = 100;
+const PARTY_FRAME_WIDTH = 124;
 const BAR_HEIGHT = 18;
 
 function inject_party_frames() {
@@ -17,11 +17,7 @@ function inject_party_frames() {
 	}
 	.simple-party-frame {
 		width: ${PARTY_FRAME_WIDTH}px;
-		background: rgba(34,34,34,0.75);
-		border: 1px solid #444;
 		padding: 6px 8px;
-		font-family: "pixel", monospace;
-		color: #fff;
 	}
 	.simple-party-bar {
 		height: ${BAR_HEIGHT}px;
@@ -54,12 +50,7 @@ function inject_party_frames() {
 		letter-spacing: 1px;
 	}
 	`;
-	if (!parent.document.getElementById("simple-party-ui-style")) {
-		const style = parent.document.createElement("style");
-		style.id = "simple-party-ui-style";
-		style.textContent = css;
-		parent.document.head.appendChild(style);
-	}
+	ui_style("simple-party-ui-style", css);
 }
 
 function get_party_member_info(name) {
@@ -112,7 +103,7 @@ function render_party_ui() {
 		const hp_pct = Math.max(0, Math.min(100, (hp / max_hp) * 100));
 		const mp_pct = Math.max(0, Math.min(100, (mp / max_mp) * 100));
 		const xp_pct = Math.max(0, Math.min(100, (xp / max_xp) * 100));
-		html += `<div class="simple-party-frame">
+		html += `<div class="simple-party-frame al-panel">
 			<div class="simple-party-name">${info.name ?? name}</div>
 			<div class="simple-party-bar">
 				<div class="simple-party-bar-inner bar-hp" style="width:${hp_pct}%;"></div>

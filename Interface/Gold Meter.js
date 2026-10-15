@@ -33,17 +33,7 @@ function set_gold_interval(new_interval) {
 on_boot("Gold Meter", () => {
 	register_widget("goldtimer", {
 		tick_ms: 500,
-		container: {
-			fontSize: "25px", color: "white", textAlign: "center", display: "table",
-			overflow: "hidden", marginBottom: "-5px", width: "100%",
-		},
-		content: {
-			display: "table-cell", verticalAlign: "middle",
-			background: "black", backgroundColor: "rgba(0, 0, 0, 0.6)",
-			border: "solid gray", borderWidth: "4px 4px",
-			height: "50px", lineHeight: "25px", fontSize: "25px",
-			color: "#FFD700", textAlign: "center",
-		},
+		content: { color: "#FFD700", fontSize: "24px", lineHeight: "26px" },
 		render: () => `
 			<div>${commas(calculate_average_gold())} Gold/${gold_interval.charAt(0).toUpperCase() + gold_interval.slice(1)}</div>
 			<div>${commas(largest_gold_drop)} Jackpot</div>

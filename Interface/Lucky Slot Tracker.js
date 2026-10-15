@@ -168,5 +168,5 @@ function show_slot_luck() {
 
 on_boot("Lucky Slot Tracker", () => {
 	on_socket("q_data", "slot_roll_handler", record_slot_roll);
-	add_toprightcorner_button("slot_luck_button", "🍀", show_slot_luck);
+	toolbar_button("slot_luck_button", { label: "🍀", order: 70, title: "Lucky slot search", on_click: show_slot_luck });
 });

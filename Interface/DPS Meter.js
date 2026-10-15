@@ -261,7 +261,7 @@ function dps_meter_html() {
 		+ "</tr>";
 
 	return `<div>👑 Elapsed Time: ${hrs}h ${mins}m 👑</div>`
-		+ '<table border="1" style="width:100%">'
+		+ '<table>'
 		+ `<tr><th></th>${headers}</tr>${body}${totals}</table>`;
 }
 
@@ -273,14 +273,6 @@ on_boot("DPS Meter", () => {
 	on_socket("hit", "dps_meter_hit_handler", dps_meter_hit);
 	register_widget("dpsmeter", {
 		tick_ms: 250,
-		container: {
-			fontSize: "20px", color: "white", textAlign: "center", display: "table",
-			overflow: "hidden", marginBottom: "-3px", width: "100%", backgroundColor: "rgba(0,0,0,0.6)",
-		},
-		content: {
-			display: "table-cell", verticalAlign: "middle", padding: "2px",
-			border: "4px solid grey",
-		},
 		render: () => dps_meter_html(),
 	});
 	every("prune dps events", { ms: 1000, kind: "ui", fixed: true }, prune_dps_events);

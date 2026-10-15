@@ -70,6 +70,7 @@
 		"Dungeons/Crypt Route.js",
 		"Dungeons/Dreams Cave.js",
 		"Dungeons/Dungeon Mode.js",
+		"Interface/Layout.js",
 		"Interface/Bank Sort Order.js",
 		"Interface/XP Meter.js",
 		"Interface/Gold Meter.js",

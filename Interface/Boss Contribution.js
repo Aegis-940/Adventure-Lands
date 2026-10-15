@@ -10,7 +10,7 @@ function coop_cell(entry, max_points, total_weight, width) {
 	const share = coop_share_weight(entry.points) / total_weight;
 	const share_colour = share > COOP_CREDIT_SHARE ? "#000" : "#A00";
 	const label = "position:absolute;top:0;color:#000;font-weight:bold;font-size:13px;line-height:14px";
-	return `<td style="color:${colour};width:${width}%;border:1px solid #444;padding:2px">${entry.name}`
+	return `<td style="color:${colour};width:${width}%;padding:2px">${entry.name}`
 		+ `<div style="width:100%;background:#555;border-radius:3px;position:relative;height:14px">`
 		+ `<div style="width:${bar_pct}%;background:${colour};height:100%"></div>`
 		+ `<span style="${label};left:4px">${commas(entry.points)}</span>`
@@ -39,7 +39,7 @@ function boss_contribution_html(content) {
 		body += "</tr>";
 	}
 
-	return `<div>👑 Boss Contribution 👑</div><table style="width:100%;border-collapse:collapse"><tbody>${body}</tbody></table>`;
+	return `<div>👑 Boss Contribution 👑</div><table><tbody>${body}</tbody></table>`;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -49,13 +49,6 @@ function boss_contribution_html(content) {
 on_boot("Boss Contribution", () => {
 	register_widget("bosscontribution", {
 		tick_ms: 250,
-		container: {
-			fontSize: "20px", color: "white", textAlign: "center", width: "100%",
-			backgroundColor: "rgba(0,0,0,0.7)", marginBottom: "-3px",
-		},
-		content: {
-			padding: "2px", border: "4px solid grey",
-		},
 		render: content => boss_contribution_html(content),
 	});
 });

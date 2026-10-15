@@ -8,8 +8,7 @@ const CC_WINDOW_MS = 60000;
 const CC_HISTORY = [];
 
 const CC_BAR_CSS = {
-	width: "100%", height: "28px", position: "relative",
-	background: "rgba(0,0,0,0.3)", border: "2px solid gray",
+	width: "100%", height: "26px", position: "relative", background: "rgba(255,255,255,0.08)",
 };
 
 const CC_MARK_CSS = {
@@ -63,11 +62,6 @@ function update_cc_bar() {
 on_boot("CC Meter", () => {
 	register_widget("ccmeter", {
 		tick_ms: 200,
-		container: {
-			width: "100%", marginTop: "4px", marginBottom: "-4px",
-			fontSize: "20px", color: "white", textAlign: "center", display: "table",
-		},
-		content: { display: "table-cell", verticalAlign: "middle", width: "100%" },
 		init: build_cc_bar,
 		render: update_cc_bar,
 	});

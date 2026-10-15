@@ -35,6 +35,7 @@
    "Encounters/Rime Djinn.js",
    "Interface/Bank Viewer.js",
    "Interface/Game Log.js",
+   "Interface/Widget Helpers.js",
    "Kernel/Events.js",
    "Kernel/Kernel.js",
    "Kernel/Scheduler.js"
@@ -8141,6 +8142,14 @@
    "to": "Dungeons/Dungeon Runner.js"
   },
   {
+   "call": [
+    "toolbar_button"
+   ],
+   "from": "Dungeons/Dungeon Mode.js",
+   "load": [],
+   "to": "Interface/Widget Helpers.js"
+  },
+  {
    "call": [],
    "from": "Dungeons/Dungeon Mode.js",
    "load": [
@@ -8151,8 +8160,7 @@
   },
   {
    "call": [
-    "every",
-    "when"
+    "every"
    ],
    "from": "Dungeons/Dungeon Mode.js",
    "load": [],
@@ -8762,58 +8770,6 @@
    "to": "Kernel/Kernel.js"
   },
   {
-   "call": [],
-   "from": "Interface/Bank Viewer.js",
-   "load": [
-    "COOLDOWN_SKILLS",
-    "GENERAL_ERROR",
-    "REJECTIONS",
-    "catcher",
-    "cooldown_summary",
-    "error_out"
-   ],
-   "to": "Core Systems/Error Handling.js"
-  },
-  {
-   "call": [],
-   "from": "Interface/Bank Viewer.js",
-   "load": [
-    "ERRLOG_MAX_COUNTS",
-    "ERRLOG_MAX_TIMELINE",
-    "ERRLOG_MSG_CAP",
-    "ERRLOG_TIMELINE_SIG_CAP",
-    "ERRLOG_TIME_BUCKETS",
-    "ERRLOG_WINDOW_MS",
-    "_errlog",
-    "_errlog_beats",
-    "_errlog_build",
-    "_errlog_context",
-    "_errlog_dirty",
-    "_errlog_fmt",
-    "_errlog_push_timeline",
-    "_errlog_recording",
-    "_errlog_signature",
-    "_errlog_store",
-    "_errlog_timeline_sig",
-    "errlog_beat",
-    "errlog_count",
-    "errlog_record",
-    "errlog_time"
-   ],
-   "to": "Core Systems/Error Log.js"
-  },
-  {
-   "call": [],
-   "from": "Interface/Bank Viewer.js",
-   "load": [
-    "errlog_beat",
-    "errlog_record",
-    "errlog_time",
-    "panicking"
-   ],
-   "to": "Core Systems/Global Config.js"
-  },
-  {
    "call": [
     "load_bank_from_local_storage",
     "refresh_bank_snapshot"
@@ -8823,34 +8779,16 @@
    "to": "Core Systems/Loot Management.js"
   },
   {
-   "call": [],
+   "call": [
+    "toolbar_button"
+   ],
    "from": "Interface/Bank Viewer.js",
    "load": [
-    "panicking"
+    "_toolbar",
+    "render_toolbar",
+    "toolbar_button"
    ],
-   "to": "Core Systems/Party Management.js"
-  },
-  {
-   "call": [],
-   "from": "Interface/Bank Viewer.js",
-   "load": [
-    "al_log_category",
-    "al_log_entry_node",
-    "al_log_filters",
-    "al_log_is_shown",
-    "al_log_push",
-    "al_log_stamp",
-    "al_log_state"
-   ],
-   "to": "Interface/Game Log.js"
-  },
-  {
-   "call": [],
-   "from": "Interface/Bank Viewer.js",
-   "load": [
-    "parent_slot"
-   ],
-   "to": "Kernel/Events.js"
+   "to": "Interface/Widget Helpers.js"
   },
   {
    "call": [],
@@ -8860,20 +8798,6 @@
     "on_boot"
    ],
    "to": "Kernel/Kernel.js"
-  },
-  {
-   "call": [
-    "when"
-   ],
-   "from": "Interface/Bank Viewer.js",
-   "load": [
-    "_loops",
-    "every",
-    "run_loop",
-    "stop_loop",
-    "when"
-   ],
-   "to": "Kernel/Scheduler.js"
   },
   {
    "call": [
@@ -9035,6 +8959,18 @@
   },
   {
    "call": [
+    "UI_METER_WIDTH",
+    "ui_style"
+   ],
+   "from": "Interface/Game Log.js",
+   "load": [
+    "UI_METER_WIDTH",
+    "ui_style"
+   ],
+   "to": "Interface/Widget Helpers.js"
+  },
+  {
+   "call": [
     "on_dom",
     "parent_slot",
     "wrap_parent"
@@ -9103,8 +9039,8 @@
   },
   {
    "call": [
-    "add_toprightcorner_button",
-    "commas"
+    "commas",
+    "toolbar_button"
    ],
    "from": "Interface/Kill Tracker.js",
    "load": [],
@@ -9137,7 +9073,56 @@
   },
   {
    "call": [
-    "add_toprightcorner_button"
+    "make_draggable",
+    "start_drag",
+    "toolbar_button",
+    "toolbar_buttons",
+    "ui_style"
+   ],
+   "from": "Interface/Layout.js",
+   "load": [],
+   "to": "Interface/Widget Helpers.js"
+  },
+  {
+   "call": [
+    "on_dom"
+   ],
+   "from": "Interface/Layout.js",
+   "load": [],
+   "to": "Kernel/Events.js"
+  },
+  {
+   "call": [],
+   "from": "Interface/Layout.js",
+   "load": [
+    "_boot_steps",
+    "_console_api",
+    "console_api",
+    "on_boot"
+   ],
+   "to": "Kernel/Kernel.js"
+  },
+  {
+   "call": [
+    "every",
+    "stop_loop"
+   ],
+   "from": "Interface/Layout.js",
+   "load": [],
+   "to": "Kernel/Scheduler.js"
+  },
+  {
+   "call": [
+    "storage_read",
+    "storage_write"
+   ],
+   "from": "Interface/Layout.js",
+   "load": [],
+   "to": "Kernel/Storage.js"
+  },
+  {
+   "call": [
+    "toolbar_button"
    ],
    "from": "Interface/Lucky Slot Tracker.js",
    "load": [],
@@ -9190,11 +9175,11 @@
    "call": [
     "CLASS_COLORS",
     "COOP_CREDIT_SHARE",
-    "add_toprightcorner_button",
     "commas",
     "coop_contributors",
     "coop_share_weight",
-    "coop_total_weight"
+    "coop_total_weight",
+    "toolbar_button"
    ],
    "from": "Interface/Metrics Graphs.js",
    "load": [],
@@ -9234,6 +9219,14 @@
    "from": "Interface/Party Frames.js",
    "load": [],
    "to": "Core Systems/Global Config.js"
+  },
+  {
+   "call": [
+    "ui_style"
+   ],
+   "from": "Interface/Party Frames.js",
+   "load": [],
+   "to": "Interface/Widget Helpers.js"
   },
   {
    "call": [],
@@ -9336,6 +9329,18 @@
    "to": "Interface/Game Log.js"
   },
   {
+   "call": [
+    "toolbar_button"
+   ],
+   "from": "Interface/Pause Button.js",
+   "load": [
+    "_toolbar",
+    "render_toolbar",
+    "toolbar_button"
+   ],
+   "to": "Interface/Widget Helpers.js"
+  },
+  {
    "call": [],
    "from": "Interface/Pause Button.js",
    "load": [
@@ -9354,16 +9359,14 @@
   },
   {
    "call": [
-    "every",
-    "when"
+    "every"
    ],
    "from": "Interface/Pause Button.js",
    "load": [
     "_loops",
     "every",
     "run_loop",
-    "stop_loop",
-    "when"
+    "stop_loop"
    ],
    "to": "Kernel/Scheduler.js"
   },
@@ -9779,12 +9782,29 @@
   },
   {
    "call": [
-    "make_draggable"
+    "remember_window"
+   ],
+   "from": "Interface/Settings Window.js",
+   "load": [
+    "UI_LAYOUT_KEY",
+    "_layout",
+    "remember_window",
+    "ui_layout"
+   ],
+   "to": "Interface/Layout.js"
+  },
+  {
+   "call": [
+    "toolbar_button"
    ],
    "from": "Interface/Settings Window.js",
    "load": [
     "_drag",
-    "make_draggable"
+    "_toolbar",
+    "make_draggable",
+    "render_toolbar",
+    "start_drag",
+    "toolbar_button"
    ],
    "to": "Interface/Widget Helpers.js"
   },
@@ -9811,16 +9831,13 @@
    "to": "Kernel/Kernel.js"
   },
   {
-   "call": [
-    "when"
-   ],
+   "call": [],
    "from": "Interface/Settings Window.js",
    "load": [
     "_loops",
     "every",
     "run_loop",
-    "stop_loop",
-    "when"
+    "stop_loop"
    ],
    "to": "Kernel/Scheduler.js"
   },
@@ -9880,11 +9897,11 @@
   },
   {
    "call": [
-    "make_draggable"
+    "remember_window"
    ],
    "from": "Interface/Stats Window.js",
    "load": [],
-   "to": "Interface/Widget Helpers.js"
+   "to": "Interface/Layout.js"
   },
   {
    "call": [
@@ -10610,6 +10627,13 @@
    "stage": "parallel",
    "statements": []
   },
+  "Interface/Layout.js": {
+   "call_initializers": [],
+   "optional": false,
+   "role": null,
+   "stage": "parallel",
+   "statements": []
+  },
   "Interface/Lucky Slot Tracker.js": {
    "call_initializers": [],
    "optional": true,
@@ -10750,6 +10774,7 @@
   "Dungeons/Crypt Route.js",
   "Dungeons/Dreams Cave.js",
   "Dungeons/Dungeon Mode.js",
+  "Interface/Layout.js",
   "Interface/Bank Sort Order.js",
   "Interface/XP Meter.js",
   "Interface/Gold Meter.js",

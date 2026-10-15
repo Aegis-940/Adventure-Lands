@@ -1,14 +1,97 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// WIDGETS — the bottom-right meter container (Gold/XP/CC/DPS/Boss Contribution), the render tick they share,
-// CLASS_COLORS, and make_draggable() (used by Interface/Settings Window.js and Interface/Stats Window.js).
+// WIDGETS — the panel theme, the meter column (Gold/XP/CC/DPS/Boss Contribution) and its render tick, the toolbar,
+// CLASS_COLORS, and the drag helpers (Interface/Layout.js, Settings Window.js and Stats Window.js).
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function create_bottomrightcorner_widget(id, css) {
+const UI_METER_WIDTH = 358;
+
+const UI_THEME_CSS = `
+	.al-panel {
+		background: rgba(0, 0, 0, 0.72);
+		border: 4px solid #555;
+		border-radius: 4px;
+		color: #fff;
+		font-family: pixel, monospace;
+		font-size: 20px;
+		line-height: 22px;
+		box-sizing: border-box;
+	}
+	.al-panel table {
+		width: 100%;
+		border-collapse: collapse;
+	}
+	.al-panel td, .al-panel th {
+		border: 1px solid #444;
+		padding: 1px 3px;
+	}
+	.al-meter {
+		width: ${UI_METER_WIDTH}px;
+		margin-bottom: 4px;
+		padding: 4px 6px;
+		text-align: center;
+	}
+	.al-panel-title {
+		background: #333;
+		border-bottom: 2px solid #555;
+		padding: 6px 10px;
+		font-size: 22px;
+		font-weight: bold;
+		text-align: left;
+		cursor: move;
+		user-select: none;
+	}
+	.al-window {
+		position: absolute;
+		z-index: 9999;
+		overflow: hidden;
+	}
+	.al-button {
+		background: #222;
+		color: #fff;
+		border: 2px solid #555;
+		border-radius: 3px;
+		font-family: inherit;
+		font-size: 18px;
+		padding: 4px 10px;
+		cursor: pointer;
+	}
+	.al-button:hover {
+		border-color: #999;
+	}
+	#al-toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+		width: max-content;
+		max-width: 100vw;
+		margin-left: auto;
+	}
+	#al-toolbar > .gamebutton {
+		cursor: pointer;
+	}
+`;
+
+function ui_style(id, css) {
+	const doc = parent.document;
+	let style = doc.getElementById(id);
+	if (!style) {
+		style = doc.createElement("style");
+		style.id = id;
+		doc.head.appendChild(style);
+	}
+	if (style.textContent !== css) style.textContent = css;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// METERS — each one a themed panel in the bottom-right column, free to float once Layout moves it
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function create_bottomrightcorner_widget(id) {
 	const $ = parent.$;
 	const brc = $("#bottomrightcorner");
 	brc.find("#" + id).remove();
 
-	const container = $(`<div id="${id}"></div>`).css(css || {});
+	const container = $(`<div id="${id}" class="al-panel al-meter"></div>`);
 	const first = brc.children().first();
 	if (first.length) first.after(container);
 	else brc.append(container);
@@ -19,7 +102,7 @@ function register_widget(id, opts) {
 	const $ = parent.$;
 
 	function build() {
-		const container = create_bottomrightcorner_widget(id, opts.container);
+		const container = create_bottomrightcorner_widget(id);
 		const content = $(`<div id="${id}content"></div>`).css(opts.content || {}).appendTo(container);
 		if (opts.init) opts.init(content);
 		return content;
@@ -43,16 +126,36 @@ const CLASS_COLORS = {
 	warrior: "#C69B6D"
 };
 
-function add_toprightcorner_button(id, label, on_click) {
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// TOOLBAR — every bot button, registered with an order and drawn as one bar under the game's menu
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const _toolbar = [];
+
+function toolbar_button(id, spec) {
+	const i = _toolbar.findIndex(b => b.id === id);
+	if (i !== -1) _toolbar.splice(i, 1);
+	_toolbar.push({ id, ...spec });
+	_toolbar.sort((a, b) => a.order - b.order);
+	render_toolbar();
+}
+
+function toolbar_buttons() {
+	return _toolbar.slice();
+}
+
+function render_toolbar() {
 	const $ = parent.$;
-	const trc = $("#toprightcorner");
-	if (!trc.length) return setTimeout(() => add_toprightcorner_button(id, label, on_click), 500);
+	let bar = $("#al-toolbar");
+	if (!bar.length) bar = $('<div id="al-toolbar"></div>').insertAfter($("#toprightcorner > .game-controls"));
 
-	$("#" + id).remove();
-
-	const button = $(`<div id="${id}" class="gamebutton" style="cursor: pointer;">${label}</div>`);
-	if (on_click) button.on("click", on_click);
-	trc.children().first().after(button);
+	for (const b of _toolbar) {
+		$("#" + b.id).remove();
+		const button = $(`<div id="${b.id}" class="gamebutton">${b.label}</div>`);
+		if (b.title) button.attr("title", b.title);
+		if (b.on_click) button.on("click", b.on_click);
+		bar.append(button);
+	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -103,33 +206,35 @@ function window_sum(events, cutoff) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// WINDOW DRAGGER
+// DRAGGING — start_drag(e, move, end) follows the mouse on the game window; make_draggable() moves a window by its handle
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 let _drag = null;
 
+function start_drag(e, move, end) {
+	_drag = { start_x: e.clientX, start_y: e.clientY, move, end };
+	e.preventDefault();
+}
+
 function drag_move(e) {
 	if (!_drag) return;
-	const dx = e.clientX - _drag.start_x;
-	const dy = e.clientY - _drag.start_y;
-	_drag.el.style.top  = `${_drag.start_top  + dy}px`;
-	_drag.el.style.left = `${_drag.start_left + dx}px`;
+	_drag.move(e.clientX - _drag.start_x, e.clientY - _drag.start_y);
 }
 
 function drag_end() {
+	const drag = _drag;
 	_drag = null;
+	if (drag && drag.end) drag.end();
 }
 
-function make_draggable(el, handle = el) {
+function make_draggable(el, handle = el, on_end) {
 	on_dom(handle, "mousedown", "drag_start", e => {
-	_drag = {
-		el,
-		start_x:    e.clientX,
-		start_y:    e.clientY,
-		start_top:  parseInt(el.style.top),
-		start_left: parseInt(el.style.left),
-	};
-	e.preventDefault();
+		const top = parseInt(el.style.top);
+		const left = parseInt(el.style.left);
+		start_drag(e, (dx, dy) => {
+			el.style.top = `${top + dy}px`;
+			el.style.left = `${left + dx}px`;
+		}, on_end);
 	});
 }
 
@@ -138,6 +243,7 @@ function make_draggable(el, handle = el) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 on_boot("Widget Helpers", () => {
+	ui_style("al-theme-style", UI_THEME_CSS);
 	on_dom(window.top, "mousemove", "drag_move", drag_move);
 	on_dom(window.top, "mouseup", "drag_end", drag_end);
 });
