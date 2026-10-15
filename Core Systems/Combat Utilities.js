@@ -247,7 +247,7 @@ function should_pause_combat_loop() {
 	const goal = current_goal();
 	if (goal && goal.chasing) return true;
 	if (goal && goal.pursuit) return false;
-	if (goal && goal.local === "camp") return false;
+	if (goal && goal.fight) return false;
 
 	if (dungeon_flag("combat_always_on")) return false;
 	if (character.name === MOVEMENT_LEADER) return false;

@@ -124,16 +124,17 @@ The spookytown spawn. It moved out of four role files on 2026-10-15: Myras's orb
 
 The desertland camp, the current farm since 2026-10-15. It moved from `Core Systems/Bscorpion Camp.js` the same day, and its spec took over the bscorpion lines from three `MONSTER_GEAR_OVERRIDES`, Riva's `always_attack` and `aggro_by_home`, and the `home === "bscorpion"` branch in `movement_goal()`:
 
-- `goal` (asked wherever the party is while bscorpion is home): the camp step at the camp, the walk to its centre otherwise.
+- `goal` (asked wherever the party is while bscorpion is home): the camp step at the camp (`{ local: "camp", fight: true }`), the walk to its centre otherwise.
+- `steps`: `camp`, which `movement_local()` finds through `encounter_step()`: `camp_step()`.
 - `gear`: Ulric `single` and `orb_dps`, Riva `single`, Myras `single_target` and `orb_luck`, while on the map.
 - `home_settings`: Riva's panic aggro limit is 99, while bscorpion is home, on any map, so a boss trip from the camp keeps it.
 - `traits`: Riva always shoots a bscorpion and ranks it with the bosses.
 
-Unlike the other encounter files this one is required, not optional: Movement Manager, Character Runner and every fighter's role files call its functions directly (`camp_step()`, `is_at_bscorpion_farm()`, `camp_temporal_surge()`, `bscorpion_worth_buffing()`). Myras's fight rule stays in Healer Equipment because the tanked bosses use it too.
+Unlike the other encounter files this one is required, not optional: every fighter's role files call its functions directly (`is_at_bscorpion_farm()`, `camp_temporal_surge()`, `bscorpion_worth_buffing()`). Myras's fight rule stays in Healer Equipment because the tanked bosses use it too.
 
 #### Positioning
 
-Positioning for the desertland bscorpion/primling camp. It owns no movement loop of its own: `movement_goal()` returns `{ local: "camp" }` while camped and `movement_local()` runs `camp_step()`. Myras orbits; Ulric and Riva hold station. The orbit itself is `orbit_away()` in `Movement Positioning.js` (a 105px ring around the camp centre, 10° steps toward whichever neighbour is further from the scorpion), shared with the crabxx kite.
+Positioning for the desertland bscorpion/primling camp. It owns no movement loop of its own: its encounter goal returns `{ local: "camp", fight: true }` while camped, and the spec's `steps.camp` is what `movement_local()` runs, `camp_step()`. Myras orbits; Ulric and Riva hold station. The orbit itself is `orbit_away()` in `Movement Positioning.js` (a 105px ring around the camp centre, 10° steps toward whichever neighbour is further from the scorpion), shared with the crabxx kite.
 
 **Riva's rail (`CAMP_RAIL`).** A wall-free line from (-390,-1250) running north-west (215°) for 360px through the open ground. A solid wall runs ~140px north of the camp centre, and pillars and walls sit to the south-west, so any position computed relative to the moving scorpion eventually landed behind one of them.
 - She stands at the rail point nearest the camp that is ≥130px (hitbox to hitbox) from the scorpion, clear of its `weakness_aura`. The aura is −10 dex/str and −30 speed for 20s, re-applied every 4s within 100px, with the first tick 0–4s after spawn. At her old 50px it cost her ~3.4%.
@@ -223,6 +224,8 @@ Awaited first, together with `Widget Helpers.js` and `Game Log.js`, so everythin
 ### `Movement Manager.js` — movement
 
 The two movement owners are `movement_goal()` (where to go: the one priority list) and `movement_local()` (where to stand). The machinery they drive is `smarter_move()`, the travel arbiter (`travel_arbiter()`), `move_to_character()` and the stuck escape.
+
+**Locals are looked up, not chained.** `movement_local()` finds the goal's `local` in `LOCAL_STEPS` (step, trail, passage, wait, evade, kite, event, loot, keep), then in the encounters' `steps` (`encounter_step()`), and otherwise falls back to the role's farm step. So an encounter brings its own positioning, as bscorpion brings `camp`, and core movement doesn't name it. `kite` stays in core: it's World Events' generic answer to any event with a `kite` ring in `EVENT_LOCATIONS`, of which crabxx is today's only one. A goal that's a fighting position says so with `fight: true`, which keeps combat running (`should_pause_combat_loop()`) and takes the party out of formation (`party_in_formation()`), as the camp check did by name.
 
 **Escalating to the town edge.** The arbiter counts a goal's failures (no path, timeout, stall, a search over 60s). On the second failure, with nothing targeting us, it re-issues the journey with the pathfinder's town edge on. That is `smart.use_town`, set only for that journey and cleared when it ends; the BFS reads it at every node.
 

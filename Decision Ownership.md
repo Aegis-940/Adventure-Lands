@@ -167,7 +167,8 @@ Two findings that changed the plan, both from reading rather than assuming:
   pulled the party away, `prim_farm_loop()` kept dragging Ulric and Riva back to the scorpion.
   The loops are gone: `movement_goal()` returns `{ local: "camp" }` when the party is camped and
   `movement_local()` dispatches it to `camp_step()`, so the camp positions only when nothing else
-  is the goal. The camp-only skill rules (no cleave, the blessing/warcry sync, the supershot setup
+  is the goal. (Since Overhaul 3.3 the step is the bscorpion encounter's `steps.camp`, found by
+  `encounter_step()`, and the goal's `fight: true` replaces the checks that named `camp`.) The camp-only skill rules (no cleave, the blessing/warcry sync, the supershot setup
   wait) also keyed on `home` and so applied at bosses too; they now key on `is_at_bscorpion_farm()`.
 - **`stuck_escape_check()` is not local positioning.** It returns early when
   `character.map === destination.map`, so it only acts while travelling. It belongs to "where to

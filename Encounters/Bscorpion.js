@@ -360,9 +360,12 @@ encounter("bscorpion", {
 	homes: ["bscorpion"],
 	mtypes: ["bscorpion"],
 	goal: () => {
-		if (is_at_bscorpion_farm()) return { local: "camp", label: "bscorpion-camp" };
+		if (is_at_bscorpion_farm()) return { local: "camp", fight: true, label: "bscorpion-camp" };
 		const loc = prim_farm_loc();
 		return { label: "bscorpion", map: loc.map, x: loc.x, y: loc.y, radius: PRIM_FARM_RADIUS };
+	},
+	steps: {
+		camp: () => camp_step(),
 	},
 	gear: {
 		warrior: { weapon: "single", orb: "orb_dps" },

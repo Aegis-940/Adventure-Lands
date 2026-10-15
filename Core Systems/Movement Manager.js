@@ -902,21 +902,25 @@ function movement_goal() {
 	return null;
 }
 
+const LOCAL_STEPS = {
+	step: goal => local_step(goal),
+	trail: goal => trail_step(goal),
+	passage: goal => passage_step(goal),
+	wait: () => local_wait(),
+	evade: goal => evade_step(goal.threat),
+	kite: goal => kite_step(goal.event),
+	event: (goal, engage_step) => event_step(goal.event, engage_step),
+	loot: () => loot_step(),
+	keep: () => { },
+};
+
 function movement_local(goal, farm_step, engage_step) {
 	if (smart.moving) {
 		if (!goal || !goal.passive) game_log("🧭 local movement skipped — a journey is still in flight", "#FFA500");
 		return;
 	}
-	if (goal && goal.local === "step") return local_step(goal);
-	if (goal && goal.local === "trail") return trail_step(goal);
-	if (goal && goal.local === "passage") return passage_step(goal);
-	if (goal && goal.local === "wait") return local_wait();
-	if (goal && goal.local === "evade") return evade_step(goal.threat);
-	if (goal && goal.local === "kite") return kite_step(goal.event);
-	if (goal && goal.local === "event") return event_step(goal.event, engage_step);
-	if (goal && goal.local === "loot") return loot_step();
-	if (goal && goal.local === "camp") return camp_step();
-	if (goal && goal.local === "keep") return;
+	const step = goal && (LOCAL_STEPS[goal.local] || encounter_step(goal.local));
+	if (step) return step(goal, engage_step);
 	if (goal && goal.disengage) return;
 	if (typeof farm_step === "function") farm_step();
 }

@@ -4,8 +4,8 @@
 
 const ENCOUNTER_TIERS = ["situation", "hazard", "spawn"];
 const ENCOUNTER_ROLES = ["warrior", "priest", "ranger", "merchant", "all"];
-const ENCOUNTER_KEYS = ["tier", "homes", "mtypes", "active", "goal", "gear", "settings", "home_settings", "allows", "rank", "traits",
-	"enter", "leave"];
+const ENCOUNTER_KEYS = ["tier", "homes", "mtypes", "active", "goal", "steps", "gear", "settings", "home_settings", "allows", "rank",
+	"traits", "enter", "leave"];
 const ENCOUNTER_RADIUS = 600;
 
 const _encounters = {};
@@ -158,6 +158,14 @@ function encounter_goal() {
 	return null;
 }
 
+function encounter_step(local) {
+	for (const name of Object.keys(_encounters).sort()) {
+		const steps = _encounters[name].steps;
+		if (steps && steps[local]) return steps[local];
+	}
+	return null;
+}
+
 function encounter_allows(action, mob) {
 	for (const enc of _encounters_by_mtype[mob.mtype] || []) {
 		for (const rules of encounter_answers(enc, "allows")) {
@@ -225,6 +233,7 @@ function encounter_problems() {
 		if (enc.tier === "spawn" && !Array.isArray(enc.homes)) say("a spawn encounter needs homes");
 		if ((enc.home_settings || enc.goal) && enc.tier !== "spawn") say("home_settings and goal belong to a spawn encounter");
 		if (enc.goal && typeof enc.goal !== "function") say("goal must be a function of ctx");
+		for (const local in enc.steps || {}) if (typeof enc.steps[local] !== "function") say(`steps.${local} must be a function of the goal`);
 		if (enc.tier && enc.tier !== "spawn" && typeof enc.active !== "function") say(`a ${enc.tier} encounter needs active(ctx)`);
 		if ((enc.allows || enc.rank || enc.traits) && !(enc.mtypes || []).length) say("allows, rank and traits need mtypes");
 		for (const section of ["gear", "settings", "home_settings", "allows", "rank", "traits"]) {
