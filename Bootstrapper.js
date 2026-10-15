@@ -65,6 +65,8 @@
 		"Core Systems/Settings.js",
 		"Core Systems/Error Handling.js",
 		"Dungeons/Dungeon Runner.js",
+		"Dungeons/Dungeon Targeting.js",
+		"Dungeons/Dungeon Entry.js",
 		"Dungeons/Spider Dungeon.js",
 		"Dungeons/Crypt Dungeon.js",
 		"Dungeons/Dungeon Progress.js",

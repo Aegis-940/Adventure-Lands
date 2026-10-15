@@ -89,7 +89,9 @@ Character Managers/[Role] Manager/   ← loaded sequentially via indirect eval, 
     const/let is invisible across eval boundaries.
 
 Dungeons/                            ← loaded in parallel as script tags, every character
-    ├── Dungeon Runner.js         party entry, run_dungeon(), the flag accessors, scripted travel
+    ├── Dungeon Runner.js         the active dungeon + flag accessors, scripted travel, run_dungeon(), the loop
+    ├── Dungeon Targeting.js      what a run may hit: whitelist, avoided/suppressed types, focus target
+    ├── Dungeon Entry.js          gathering, joining the instance, the rejoin watch
     ├── Dungeon Mode.js           set_dungeon_mode() and choose_dungeon(), the ⚙️ dungeon choice
     ├── Dungeon Progress.js       kills this run, and whether the quota is met
     ├── Dungeon Escape.js         bail-out: scare, walk away, town back to the entrance

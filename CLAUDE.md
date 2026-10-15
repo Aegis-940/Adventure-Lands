@@ -109,7 +109,9 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 
 | File | Role |
 |------|------|
-| `Dungeon Runner.js` | Shared machinery: party entry, `run_dungeon()`, `start_dungeon_when_ready()`, `dungeon_override` |
+| `Dungeon Runner.js` | Shared machinery: the active dungeon and its flags (`active_dungeon()`, `dungeon_flag()`, `dungeon_override`), scripted travel, the boss death wait, `run_dungeon()`, the loop, `start_dungeon_when_ready()` |
+| `Dungeon Targeting.js` | What a run may hit: the whitelist, avoided and suppressed types, the focus target, `dungeon_skip_target()` |
+| `Dungeon Entry.js` | Gathering at the entrance, `join_dungeon_instance()`, waiting for the party in and out, and the rejoin watch after an ejection |
 | `Dungeon Mode.js` | `set_dungeon_mode()` on every fighter and `choose_dungeon()`, the ⚙️ dungeon choice (the toolbar buttons are gone) |
 | `Dungeon Progress.js` | Kill quota tracking |
 | `Dungeon Escape.js` | Bail-out: scare, walk away, town back to the entrance |
