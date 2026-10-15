@@ -14,7 +14,6 @@ var CONFIG = {
 		cleave_min_mobs: 3,
 		cleave_min_mobs_held: 1,
 		agitate_min_mobs: 2,
-		taunt_ents: false,
 		taunt_exempt: ["CrownTown", "CrownsAnal", "CrownPriest"],
 		engage_radius: 150,
 		swap_trick_enabled: true,

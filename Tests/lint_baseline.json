@@ -29,10 +29,6 @@
   "Encounters/Bscorpion.js": 1,
   "Interface/Bank Sort Order.js": 2
  },
- "monster_literals": {
-  "Character Managers/Warrior Manager/Warrior Skills.js": 1,
-  "Core Systems/Loot Management.js": 1
- },
  "typeof_guard": {
   "Core Systems/Character Messaging.js": 1,
   "Core Systems/Error Log.js": 1

@@ -534,7 +534,7 @@ async function analyze() {
 	const vm = require("vm");
 	const game = vm.createContext({});
 	vm.runInContext(await source("data.js"), game);
-	const monsters = new Set(Object.keys(game.G.monsters).filter(m => !MONSTER_WORDS_EXCLUDED.has(m)));
+	const monsters = new Set(Object.keys(game.G.monsters).filter(m => !MONSTER_WORDS_EXCLUDED.has(m) && !game.G.items[m]));
 
 	const order = [...lists.kernel, ...lists.first, ...lists.parallel];
 	for (const role in lists.roles) lists.roles[role].forEach(f => { if (!order.includes(f)) order.push(f); });

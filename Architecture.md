@@ -149,9 +149,9 @@ The `Bootstrapper.js` detects which character is logged in by name, then fetches
 3. **Parallel stage:** every other Core Systems / Dungeons / Interface file, as real `<script>` tags. A failure in any file not named in `OPTIONAL_SCRIPTS` aborts; the optional ones are allowed to be missing.
 4. **Role stage, sequential:** that character's `Character Managers/` files via indirect eval, then its entry point — these call into the shared files immediately.
 
-**Second-stage files execute in network-completion order, not list order.** So nothing in stage 2 may depend on another stage-2 file *at load time* — only from functions and handlers invoked later. Two patterns exist for genuine load-time needs: move the dependency into stage 1 (which is why Widget Helpers is there — the meters build their widgets as they load), or poll for it and retry, as the toprightcorner button chain does for the DOM element it attaches to. Adding or removing a stage-2 file reshuffles the race and can expose a latent dependency that had been winning by luck.
+**Files within a stage arrive in network-completion order, but nothing runs at load.** Every file only declares and registers (`on_boot`, `console_api`, `encounter`); once the role files are evaluated, `kernel_boot()` runs the boot steps in list order. A registration must name a function from an earlier stage, which is why `Kernel/` loads first and the encounter registry sits in the first stage. Lint fails a load-time call into the same or a later stage, and `node Tests/Harness.js load` boots every role a second time with each stage reversed.
 
-Each script is loaded with retry logic and exponential backoff. `Code Loader.js` — the only file pasted into each character's in-game code slot — just fetches and evals `Bootstrapper.js`; it deliberately does not resolve a commit SHA itself, since `Bootstrapper.js` already resolves one per load and doing it in both places doubled the `api.github.com` request rate against its 60/hour limit.
+Each script is loaded with retry logic and exponential backoff. `Code Loader.js` — the only file pasted into each character's in-game code slot — resolves the commit through `api.github.com` (60 unauthenticated requests an hour per IP), fetches `Bootstrapper.js` from jsDelivr at that commit (githack at the same commit if jsDelivr fails) and sets `__AL_BASE__`. The Bootstrapper reuses that base while it is fresh and resolves the commit itself only when it isn't, so a normal load costs one lookup.
 
 ---
 
@@ -266,7 +266,7 @@ Count against git blobs rather than the working tree: the tree is CRLF while blo
 
 ## Known Gaps / Ongoing Work
 
-- No automated tests — all validation is done by running in the live game. Offline checks are `python Tools/Lint.py` (global collisions, the overhaul ratchet, `--graph` for load-time dependencies) and the harness in `Tests/` as it lands (see `Overhaul Plan.md`)
+- Offline checks cover decisions, not play: `node Tests/Harness.js check` replays recorded game moments and `python Tools/Lint.py` guards structure, but whether a change farms better is still measured live, with `python "Tools/Data Store.py" compare`
 - The buttons/windows UI is still incomplete after `Buttons.js`/`Windows.js` were removed — reload, bank, settings, pause and the dungeon toggles were rebuilt in their own files, but the rest was not
 - `storage_read()`/`storage_write()` cover the JSON-backed values only. The bare-string stores (`automation_enabled()`, the dungeon override, Settings Window, `Error Log.js`'s key scan) still call `localStorage` directly, deliberately — `storage_read()` would `JSON.parse` a bare string and return null. Every one of those calls is inside a function and wrapped in try/catch, so a browser blocking site data degrades rather than breaking the load
 

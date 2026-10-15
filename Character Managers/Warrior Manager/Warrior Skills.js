@@ -271,7 +271,6 @@ async function handle_agitate(tank) {
 }
 
 function taunt_wanted(e, tank) {
-	if (CONFIG.combat.taunt_ents && e.mtype === "ent") return e.target !== character.name;
 	if (!encounter_trait("taunt", e)) return false;
 	if (!e.target || CONFIG.combat.taunt_exempt.includes(e.target)) return false;
 	return e.target !== character.name && e.target !== tank.name;

@@ -221,7 +221,7 @@ Loader facts:
 
 ## Testing
 
-There is no test suite yet (the overhaul's `Tests/` harness is being built). Changes are tested by injecting into the live game client, so keep them minimal and easy to verify in-game. `python Tools/Lint.py` catches cross-file global collisions and runs the overhaul ratchet before a push: a legacy-pattern count per file may go down, never up (lower `Tests/lint_baseline.json` with `--baseline` in the commit that removes one). `--graph` rewrites `Tests/dependency_graph.json`, whose load-time edges are what can race in the parallel batch.
+`Tests/` holds an offline harness that boots the bot in Node over the game's own `runner_functions.js`, `runner_compat.js` and `data.js`. `node Tests/Harness.js load` boots all four roles (and again with each load stage reversed); `check` replays every fixture in `Tests/fixtures` (live moments recorded by the snapshot recorder, plus synthetic scenes) and compares each character's decisions with its golden; `smoke` fires every socket event and runs every loop for three rounds. Record a golden on the code before a change (`golden <fixture.json>`), then change the code and `check`: a pure move keeps every golden. Whether a change farms better is still measured live with `python "Tools/Data Store.py" compare`. `python Tools/Lint.py` catches cross-file global collisions and runs the overhaul ratchet before a push: a legacy-pattern count per file may go down, never up (lower `Tests/lint_baseline.json` with `--baseline` in the commit that removes one). `--graph` rewrites `Tests/dependency_graph.json`, whose load-time edges are what can race in the parallel batch.
 
 ---
 
