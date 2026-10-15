@@ -48,6 +48,75 @@
      }
     }
    ]
+  },
+  "skill_tick": {
+   "result": 40,
+   "sent": []
+  },
+  "skill_tick ready": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "darkblessing",
+      "target": null
+     }
+    }
+   ]
+  },
+  "skill_tick ready calls": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "call",
+     "payload": {
+      "name": "handle_party_heal",
+      "args": []
+     }
+    },
+    {
+     "event": "call",
+     "payload": {
+      "name": "handle_curse",
+      "args": []
+     }
+    },
+    {
+     "event": "call",
+     "payload": {
+      "name": "handle_absorb",
+      "args": []
+     }
+    },
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "darkblessing",
+      "target": null
+     }
+    }
+   ]
+  },
+  "zap_tick": {
+   "result": 40,
+   "sent": []
+  },
+  "zap_tick ready": {
+   "result": 40,
+   "sent": []
+  },
+  "zap_tick ready calls": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "call",
+     "payload": {
+      "name": "handle_zapper",
+      "args": []
+     }
+    }
+   ]
   }
  }
 }

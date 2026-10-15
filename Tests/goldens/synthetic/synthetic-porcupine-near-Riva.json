@@ -36,6 +36,30 @@
   "scare": {
    "result": false,
    "sent": []
+  },
+  "skill_tick": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "supershot",
+      "target": "q1"
+     }
+    }
+   ]
+  },
+  "skill_tick ready": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "supershot",
+      "target": "q1"
+     }
+    }
+   ]
   }
  }
 }

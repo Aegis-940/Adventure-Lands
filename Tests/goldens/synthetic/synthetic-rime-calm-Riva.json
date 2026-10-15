@@ -34,6 +34,44 @@
   "scare": {
    "result": false,
    "sent": []
+  },
+  "skill_tick": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "huntersmark",
+      "target": "j1"
+     }
+    },
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "supershot",
+      "target": "j1"
+     }
+    }
+   ]
+  },
+  "skill_tick ready": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "huntersmark",
+      "target": "j1"
+     }
+    },
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "supershot",
+      "target": "j1"
+     }
+    }
+   ]
   }
  }
 }

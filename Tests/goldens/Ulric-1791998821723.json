@@ -182,6 +182,61 @@
   "scare": {
    "result": false,
    "sent": []
+  },
+  "skill_tick": {
+   "result": 40,
+   "sent": []
+  },
+  "skill_tick ready": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "warcry",
+      "target": null
+     }
+    }
+   ]
+  },
+  "skill_tick ready calls": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "warcry",
+      "target": null
+     }
+    },
+    {
+     "event": "call",
+     "payload": {
+      "name": "handle_stomp",
+      "args": [
+       "Myras"
+      ]
+     }
+    },
+    {
+     "event": "call",
+     "payload": {
+      "name": "handle_agitate",
+      "args": [
+       "Myras"
+      ]
+     }
+    },
+    {
+     "event": "call",
+     "payload": {
+      "name": "handle_taunt",
+      "args": [
+       "Myras"
+      ]
+     }
+    }
+   ]
   }
  }
 }

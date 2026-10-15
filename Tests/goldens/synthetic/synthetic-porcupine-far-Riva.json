@@ -35,6 +35,14 @@
   "scare": {
    "result": false,
    "sent": []
+  },
+  "skill_tick": {
+   "result": 100,
+   "sent": []
+  },
+  "skill_tick ready": {
+   "result": 100,
+   "sent": []
   }
  }
 }

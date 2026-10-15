@@ -31,6 +31,69 @@
   "scare": {
    "result": false,
    "sent": []
+  },
+  "skill_tick": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "partyheal",
+      "target": null
+     }
+    }
+   ]
+  },
+  "skill_tick ready": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "partyheal",
+      "target": null
+     }
+    }
+   ]
+  },
+  "skill_tick ready calls": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "call",
+     "payload": {
+      "name": "handle_party_heal",
+      "args": []
+     }
+    },
+    {
+     "event": "call",
+     "payload": {
+      "name": "handle_absorb",
+      "args": []
+     }
+    }
+   ]
+  },
+  "zap_tick": {
+   "result": 40,
+   "sent": []
+  },
+  "zap_tick ready": {
+   "result": 40,
+   "sent": []
+  },
+  "zap_tick ready calls": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "call",
+     "payload": {
+      "name": "handle_zapper",
+      "args": []
+     }
+    }
+   ]
   }
  }
 }

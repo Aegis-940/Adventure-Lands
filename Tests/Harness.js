@@ -489,7 +489,53 @@ async function bursts(fixture) {
 	const out = {};
 	const table = BURSTS[fixture.character.ctype] || {};
 	for (const name in table) out[name] = await fire_burst(fixture, table[name]);
+	for (const name of TICKS[fixture.character.ctype] || []) out[name] = await run_tick(fixture, name);
 	return out;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// SKILL TICKS — one tick of each skill loop in a fresh boot: what it casts, sends and catches, and the delay it asks for next
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const TICKS = {
+	warrior: ["skill_tick", "skill_tick ready", "skill_tick ready calls"],
+	priest: ["skill_tick", "skill_tick ready", "skill_tick ready calls", "zap_tick", "zap_tick ready", "zap_tick ready calls"],
+	ranger: ["skill_tick", "skill_tick ready"],
+};
+
+const TICK_HANDLERS = {
+	warrior: ["handle_stomp", "weapon_burst", "handle_agitate", "handle_taunt"],
+	priest: ["handle_party_heal", "handle_curse", "handle_absorb", "handle_zapper"],
+};
+
+async function run_tick(fixture, name) {
+	const [tick, ready, calls] = name.split(" ");
+	const { ctx, log } = await boot(fixture, { entry: false });
+	vm.runInContext(RESTORE, ctx)(fixture);
+	if (ready) for (const skill in ctx.parent.next_skill) delete ctx.parent.next_skill[skill];
+	const sent = [];
+	const id_of = t => t && (t.id || t.name || t);
+	if (calls) for (const handler of TICK_HANDLERS[fixture.character.ctype]) {
+		ctx[handler] = (...args) => {
+			sent.push({ event: "call", payload: { name: handler, args: args.map(a => a && typeof a === "object" ? id_of(a) : a) } });
+			return Promise.resolve(false);
+		};
+	}
+	const answer = (event, payload) => {
+		sent.push(...log.emits.splice(0), { event, payload });
+		return Promise.resolve({ success: true });
+	};
+	ctx.parent.use_skill = (name, target) => answer("use_skill", { name, target: Array.isArray(target) ? target.map(id_of) : id_of(target) });
+	ctx.parent.player_heal = function () { return answer("heal", { target: this.id || this.name }); };
+	ctx.parent.monster_attack = function () { return answer("attack", { target: this.id }); };
+	ctx.parent.player_attack = function () { return answer("attack", { target: this.id || this.name }); };
+	ctx.catcher = (e, where) => { sent.push({ event: "caught", payload: { where, message: String(e && e.message || e).slice(0, 120) } }); };
+	log.emits.length = 0;
+	let result = "pending";
+	vm.runInContext(tick + "()", ctx).then(r => { result = r === undefined ? null : r; }, e => { result = "THREW: " + (e && e.message || e); });
+	for (let i = 0; i < 20; i++) await new Promise(r => setImmediate(r));
+	sent.push(...log.emits.splice(0));
+	return { result, sent: JSON.parse(JSON.stringify(sent)) };
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

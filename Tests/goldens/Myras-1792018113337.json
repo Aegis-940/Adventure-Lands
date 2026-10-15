@@ -53,6 +53,38 @@
      }
     }
    ]
+  },
+  "skill_tick": {
+   "result": 40,
+   "sent": []
+  },
+  "skill_tick ready": {
+   "result": 40,
+   "sent": []
+  },
+  "skill_tick ready calls": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "call",
+     "payload": {
+      "name": "handle_party_heal",
+      "args": []
+     }
+    }
+   ]
+  },
+  "zap_tick": {
+   "result": 40,
+   "sent": []
+  },
+  "zap_tick ready": {
+   "result": 40,
+   "sent": []
+  },
+  "zap_tick ready calls": {
+   "result": 40,
+   "sent": []
   }
  }
 }
