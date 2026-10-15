@@ -2,6 +2,19 @@
 // WARRIOR SKILLS — warcry, cleave, agitate; started by Warrior.js
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+var WARRIOR_SKILLS = [
+	{ name: "warcry", gate: "combat", wanted: warcry_wanted, cast: () => use_skill("warcry") },
+	{ name: "stomp", gate: "combat", wanted: () => CONFIG.skills.stomp_enabled, cast: tank => handle_stomp(tank) },
+	{ name: "cleave", gate: "combat", wanted: () => !swing_possible(cache.target) && cleave_ready(), cast: () => weapon_burst(true, sugar_rush_wanted(), null) },
+	{ name: "agitate", gate: "combat", wanted: tank => CONFIG.skills.agitate_enabled && !!tank && !dungeon_flag("no_agitate"), cast: tank => handle_agitate(tank) },
+	{ name: "taunt", gate: "combat", wanted: tank => CONFIG.skills.taunt_enabled && !!tank, cast: tank => handle_taunt(tank) },
+];
+
+function warcry_wanted() {
+	return CONFIG.skills.warcry_enabled && !is_on_cooldown("warcry") && !character.s.warcry
+		&& character.mp >= skill_mp_cost("warcry") + panic_mp_reserve() && bscorpion_worth_buffing();
+}
+
 function skill_loop() {
 	every("skill_loop", { ms: TICK_RATE.skill, kind: "combat", beat: true }, skill_tick);
 }
@@ -17,50 +30,7 @@ async function skill_tick() {
 
 		update_cache();
 
-		const tank = cache.tank_entity;
-
-		if (CONFIG.skills.warcry_enabled && !is_on_cooldown("warcry") && !character.s.warcry
-			&& character.mp >= skill_mp_cost("warcry") + panic_mp_reserve()) {
-			if (bscorpion_worth_buffing()) {
-				try {
-					await use_skill("warcry");
-				} catch (e) {
-					catcher(e, "warcry");
-				}
-			}
-		}
-
-		if (CONFIG.skills.stomp_enabled) {
-			try {
-				handle_stomp(tank);
-			} catch (e) {
-				catcher(e, "handle_stomp");
-			}
-		}
-
-		if (!swing_possible(cache.target)) {
-			try {
-				if (cleave_ready()) weapon_burst(true, sugar_rush_wanted(), null);
-			} catch (e) {
-				catcher(e, "cleave");
-			}
-		}
-
-		if (CONFIG.skills.agitate_enabled && tank && !dungeon_flag("no_agitate")) {
-			try {
-				await handle_agitate(tank);
-			} catch (e) {
-				catcher(e, "handle_agitate");
-			}
-		}
-
-		if (CONFIG.skills.taunt_enabled && tank) {
-			try {
-				await handle_taunt(tank);
-			} catch (e) {
-				catcher(e, "handle_taunt");
-			}
-		}
+		await run_skills(WARRIOR_SKILLS, cache.tank_entity);
 
 		// if (CONFIG.skills.charge_enabled && !is_on_cooldown("charge")) {
 		// 	await use_skill("charge");

@@ -423,6 +423,14 @@ What this replaced: every corner stopped the follower for a search and sent it o
 
 A follower in turn does not pursue while she is live on his map, beyond the range (`cohesion_closing()`, the follower's own 250/120 hysteresis) and not herself on the event (`follower_holds_back()`). So her cohesion hold pulls him back to her instead of leaving the tank behind.
 
+### `Skill Runner.js`
+
+`run_skills(table, context)` is one pass over a role's skill table (`WARRIOR_SKILLS`, `HEALER_SKILLS`, `RANGER_SKILLS`, each in that role's Skills file). Each entry is `{ name, gate, wanted, cast }`, taken in order: the gate, then `wanted(context)`, then `await cast(context)`, all inside the entry's own `catcher` under its name. One skill throwing no longer skips the skills after it.
+
+**The gate is per entry.** `combat` skips the entry while `should_pause_combat_loop()` holds (asked once per pass, at the first combat entry). `alive` is no gate beyond the tick's own preamble. Myras's party heal is `alive` on purpose: her heals are what the party survives panic on. The tick keeps its preamble (Ulric's and Riva's return 100ms while paused, every role 250ms while disabled), so the cadence is unchanged.
+
+**Context is what the tick worked out once.** Ulric's tick passes the tank. The old tick read `cache.tank_entity` once and used it across the awaited agitate and taunt, and the context keeps that. Cooldown and mana checks stay in each entry's `wanted`, because they differ on purpose: dark blessing keeps no panic reserve, and a stomp on a Rime shell spends it.
+
 ### `Farm Ledger.js`
 
 One `ledger` record per fighter every 5 minutes, through `errlog_archive()` to `ledger.jsonl`. Plan: [`Data and Farming Plan.md`](Data%20and%20Farming%20Plan.md).

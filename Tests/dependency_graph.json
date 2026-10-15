@@ -1033,7 +1033,7 @@
   {
    "call": [
     "BANK_LOCATION",
-    "CONFIG"
+    "equipment_sets"
    ],
    "from": "Character Managers/Merchant Manager/Merchant Gear.js",
    "load": [],
@@ -1046,6 +1046,15 @@
    "from": "Character Managers/Merchant Manager/Merchant Gear.js",
    "load": [],
    "to": "Character Managers/Merchant Manager/Merchant Crafting.js"
+  },
+  {
+   "call": [
+    "EQUIP_PRIORITY",
+    "equip_once"
+   ],
+   "from": "Character Managers/Merchant Manager/Merchant Gear.js",
+   "load": [],
+   "to": "Core Systems/Equipment Manager.js"
   },
   {
    "call": [
@@ -2429,10 +2438,9 @@
   {
    "call": [
     "EQUIP_PRIORITY",
-    "emit_equip_ops",
-    "equip_claim",
+    "equip_burst",
+    "equip_claimable",
     "equip_plan",
-    "equip_release",
     "ops_penalty",
     "penalty_left"
    ],
@@ -2917,7 +2925,9 @@
     "home"
    ],
    "from": "Character Managers/Warrior Manager/Warrior Skills.js",
-   "load": [],
+   "load": [
+    "CONFIG"
+   ],
    "to": "Character Managers/Warrior Manager/Warrior Config.js"
   },
   {
@@ -2934,7 +2944,9 @@
     "skill_mp_cost"
    ],
    "from": "Character Managers/Warrior Manager/Warrior Skills.js",
-   "load": [],
+   "load": [
+    "skill_mp_cost"
+   ],
    "to": "Core Systems/Combat Formulas.js"
   },
   {
@@ -2947,12 +2959,15 @@
     "should_pause_combat_loop"
    ],
    "from": "Character Managers/Warrior Manager/Warrior Skills.js",
-   "load": [],
+   "load": [
+    "panic_mp_reserve"
+   ],
    "to": "Core Systems/Combat Utilities.js"
   },
   {
    "call": [
-    "emit_equip_ops",
+    "EQUIP_PRIORITY",
+    "equip_burst",
     "equip_plan",
     "set_available"
    ],
@@ -2985,7 +3000,9 @@
     "errlog_timeline"
    ],
    "from": "Character Managers/Warrior Manager/Warrior Skills.js",
-   "load": [],
+   "load": [
+    "home"
+   ],
    "to": "Core Systems/Global Config.js"
   },
   {
@@ -2995,6 +3012,14 @@
    "from": "Character Managers/Warrior Manager/Warrior Skills.js",
    "load": [],
    "to": "Core Systems/Movement Manager.js"
+  },
+  {
+   "call": [
+    "run_skills"
+   ],
+   "from": "Character Managers/Warrior Manager/Warrior Skills.js",
+   "load": [],
+   "to": "Core Systems/Skill Runner.js"
   },
   {
    "call": [
@@ -3018,7 +3043,25 @@
     "is_at_bscorpion_farm"
    ],
    "from": "Character Managers/Warrior Manager/Warrior Skills.js",
-   "load": [],
+   "load": [
+    "CAMP_BUFF_MIN_HP",
+    "CAMP_HOLD_MARGIN",
+    "CAMP_RAIL",
+    "CAMP_RANGE_CAP",
+    "CAMP_STATION",
+    "PRIM_FARM_FALLBACK",
+    "PRIM_FARM_MAP",
+    "PRIM_FARM_RADIUS",
+    "_prim_farm_loc",
+    "at_bscorpion_farm",
+    "bscorpion_worth_buffing",
+    "camp_engage_distance",
+    "camp_hold_radius",
+    "find_nearest_bscorpion",
+    "is_at_bscorpion_farm",
+    "prim_farm_loc",
+    "rail_point"
+   ],
    "to": "Encounters/Bscorpion.js"
   },
   {
@@ -4555,8 +4598,8 @@
   },
   {
    "call": [
-    "emit_equip_ops",
-    "equip_plan",
+    "EQUIP_PRIORITY",
+    "equip_burst",
     "set_available"
    ],
    "from": "Core Systems/Party Management.js",
@@ -4632,6 +4675,22 @@
    "from": "Core Systems/Party Management.js",
    "load": [],
    "to": "Encounters/Encounter Registry.js"
+  },
+  {
+   "call": [
+    "should_pause_combat_loop"
+   ],
+   "from": "Core Systems/Skill Runner.js",
+   "load": [],
+   "to": "Core Systems/Combat Utilities.js"
+  },
+  {
+   "call": [
+    "catcher"
+   ],
+   "from": "Core Systems/Skill Runner.js",
+   "load": [],
+   "to": "Core Systems/Error Handling.js"
   },
   {
    "call": [
@@ -5697,11 +5756,7 @@
   },
   {
    "call": [
-    "EQUIP_PRIORITY",
-    "emit_equip_ops",
-    "equip_claim",
-    "equip_plan",
-    "equip_release",
+    "equip_burst",
     "rules_set_for_slot",
     "set_available"
    ],
@@ -7320,6 +7375,13 @@
    "stage": "parallel",
    "statements": []
   },
+  "Core Systems/Skill Runner.js": {
+   "call_initializers": [],
+   "optional": false,
+   "role": null,
+   "stage": "parallel",
+   "statements": []
+  },
   "Core Systems/Targeting.js": {
    "call_initializers": [],
    "optional": false,
@@ -7659,6 +7721,7 @@
   "Core Systems/Maintenance.js",
   "Core Systems/Party Cohesion.js",
   "Core Systems/Character Runner.js",
+  "Core Systems/Skill Runner.js",
   "Core Systems/Farm Ledger.js",
   "Core Systems/Farm Survey.js",
   "Core Systems/Danger Log.js",

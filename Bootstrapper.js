@@ -54,6 +54,7 @@
 		"Core Systems/Maintenance.js",
 		"Core Systems/Party Cohesion.js",
 		"Core Systems/Character Runner.js",
+		"Core Systems/Skill Runner.js",
 		"Core Systems/Farm Ledger.js",
 		"Core Systems/Farm Survey.js",
 		"Core Systems/Danger Log.js",

@@ -52,6 +52,7 @@ Core Systems/*.js                 ← loaded in parallel as real <script> tags
     ├── Maintenance.js            potion drinking/restocking, periodic tab reload
     ├── Party Cohesion.js         follow_goal(), party_cohesion_hold(), leader_position(), behind_on_xp()
     ├── Character Runner.js       run_character(), the shared main tick loop
+    ├── Skill Runner.js           run_skills(): one pass over a role's skill table
     ├── Farm Ledger.js            5-minute gold/XP/kill windows (at the spot vs away), daily tracker snapshot
     ├── Farm Survey.js            the *SURVEY* farm target: 60 min per spot, then bscorpion
     ├── Danger Log.js             deaths and close calls with killer, damage sources and context
