@@ -49,6 +49,9 @@
       "name": "scare",
       "target": null
      }
+    },
+    {
+     "event": "server replied"
     }
    ]
   },

@@ -155,6 +155,7 @@ function equip_reply_counter(data) {
 		const current = live_matches_sent("mainhand") && live_matches_sent("offhand");
 		errlog_count(current ? "equip reply: live current" : "equip reply: live behind");
 	}
+	if (event === "unequip" && !_equip_sent.due.unequip && _parked_restore) finish_parked_restore(_parked_restore);
 }
 
 function inventory_move(a, b) {
@@ -407,16 +408,16 @@ function shadow_unequip(shadow, slot) {
 	return num;
 }
 
-function plan_set_equip(shadow, set_name) {
+function plan_set_equip(plan, set_name) {
 	const set = equipment_sets[set_name];
-	if (!set || !set.length) return [];
+	if (!set || !set.length) return;
 
-	const ops = [];
+	const shadow = plan.shadow;
 	const mainhand = set.find(e => e.slot === "mainhand");
 	const keeps_offhand = set.some(e => e.slot === "offhand");
 
 	if (mainhand && !keeps_offhand && shadow.slots.offhand && is_doublehand(mainhand.item_name)) {
-		if (shadow_unequip(shadow, "offhand") !== -1) ops.push({ event: "unequip", payload: { slot: "offhand" } });
+		if (shadow_unequip(shadow, "offhand") !== -1) plan.ops.push({ event: "unequip", payload: { slot: "offhand" } });
 	}
 
 	const items = [];
@@ -426,7 +427,8 @@ function plan_set_equip(shadow, set_name) {
 
 		const num = shadow_find(shadow, entry.item_name, entry.level, entry.l);
 		if (num === -1) {
-			if (!copy_landing(shadow.items, entry.item_name)) warn_missing_item(entry.item_name, entry.level, entry.slot);
+			if (copy_landing(shadow.items, entry.item_name)) plan.landing = true;
+			else warn_missing_item(entry.item_name, entry.level, entry.slot);
 			continue;
 		}
 
@@ -434,8 +436,7 @@ function plan_set_equip(shadow, set_name) {
 		shadow_equip(shadow, num, entry.slot);
 	}
 
-	if (items.length) ops.push({ event: "equip_batch", payload: items });
-	return ops;
+	if (items.length) plan.ops.push({ event: "equip_batch", payload: items });
 }
 
 function rules_set_for_slot(slot) {
@@ -449,13 +450,11 @@ function rules_set_for_slot(slot) {
 }
 
 function equip_plan(set_names, shadow) {
-	const inventory = shadow || equip_view();
+	const plan = { ops: [], shadow: shadow || equip_view(), landing: false };
 	const names = Array.isArray(set_names) ? set_names : [set_names];
 
-	let ops = [];
-	for (const name of names) ops = ops.concat(plan_set_equip(inventory, name));
-
-	return { ops, shadow: inventory };
+	for (const name of names) plan_set_equip(plan, name);
+	return plan;
 }
 
 const EQUIP_PENALTY_MS = 120;
@@ -505,8 +504,27 @@ function equip_burst(burst) {
 	return armed;
 }
 
+var _parked_restore = null;
+
 function restore_burst(token, restore) {
 	const back = equip_plan(restore() || []);
+	if (back.landing && equip_holds(token)) {
+		const parked = { token, restore };
+		_parked_restore = parked;
+		setTimeout(() => finish_parked_restore(parked), SLOT_FLIGHT_MS);
+		errlog_count("burst restore waited on landing");
+		return;
+	}
+	send_restore(token, back);
+}
+
+function finish_parked_restore(parked) {
+	if (_parked_restore !== parked) return;
+	_parked_restore = null;
+	send_restore(parked.token, equip_plan(parked.restore() || []));
+}
+
+function send_restore(token, back) {
 	emit_equip_ops(back.ops, back.shadow);
 	equip_release(token);
 }

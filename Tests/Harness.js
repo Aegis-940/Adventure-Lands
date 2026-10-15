@@ -442,7 +442,7 @@ async function decide(fixture) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// BURSTS — every equipment burst fired once in a fresh boot: what it sends, in order, including a restore it leaves on a timer
+// BURSTS — every equipment burst fired once in a fresh boot: what it sends, in order, the server's replies, and a restore it leaves on a timer
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const SURGE_ON_DEATH = "(delete parent.next_skill.temporalsurge, surge_pending_respawn(), Object.keys(parent.entities).forEach(id => { if (parent.entities[id].mtype === \"bscorpion\") delete parent.entities[id]; }), camp_temporal_surge())";
@@ -475,14 +475,45 @@ async function fire_burst(fixture, call) {
 	} catch (e) {
 		result = "THREW: " + (e && e.message || e);
 	}
-	const sent = log.emits.splice(0);
-	for (const t of log.timers.slice(timers).filter(t => t.kind === "timeout")) {
+	const sent = [];
+	serve_equip_ops(ctx, log, sent);
+	const ran = new Set(log.timers.slice(0, timers));
+	let t;
+	while ((t = log.timers.find(x => x.kind === "timeout" && !ran.has(x)))) {
+		ran.add(t);
 		sent.push({ event: "after " + t.ms + "ms" });
 		t.fn();
-		sent.push(...log.emits.splice(0));
+		serve_equip_ops(ctx, log, sent);
 	}
 	await new Promise(r => setImmediate(r));
 	return { result: result === undefined ? null : result, sent: JSON.parse(JSON.stringify(sent)) };
+}
+
+function serve_equip_ops(ctx, log, sent) {
+	const me = ctx.parent.character;
+	let emitted;
+	while ((emitted = log.emits.splice(0)).length) {
+		sent.push(...emitted);
+		const replies = [];
+		for (const op of emitted) {
+			if (op.event === "equip_batch") {
+				for (const p of op.payload) {
+					const incoming = me.items[p.num];
+					me.items[p.num] = me.slots[p.slot] || null;
+					me.slots[p.slot] = incoming;
+				}
+			} else if (op.event === "unequip") {
+				me.items[me.items.findIndex(it => !it)] = me.slots[op.payload.slot];
+				me.slots[op.payload.slot] = null;
+			} else continue;
+			replies.push(op.event);
+		}
+		if (!replies.length) continue;
+		sent.push({ event: "server replied" });
+		for (const place of replies) {
+			for (const fn of (ctx.parent.socket.listeners.game_response || []).slice()) fn({ place });
+		}
+	}
 }
 
 async function bursts(fixture) {

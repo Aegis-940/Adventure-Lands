@@ -49,13 +49,26 @@
      }
     },
     {
+     "event": "server replied"
+    },
+    {
      "event": "equip_batch",
      "payload": [
       {
-       "num": 37,
+       "num": 14,
        "slot": "mainhand"
+      },
+      {
+       "num": 37,
+       "slot": "offhand"
       }
      ]
+    },
+    {
+     "event": "server replied"
+    },
+    {
+     "event": "after 1500ms"
     }
    ]
   },
@@ -88,13 +101,26 @@
      }
     },
     {
+     "event": "server replied"
+    },
+    {
      "event": "equip_batch",
      "payload": [
       {
-       "num": 37,
+       "num": 14,
        "slot": "mainhand"
+      },
+      {
+       "num": 37,
+       "slot": "offhand"
       }
      ]
+    },
+    {
+     "event": "server replied"
+    },
+    {
+     "event": "after 1500ms"
     }
    ]
   },
@@ -123,13 +149,26 @@
      }
     },
     {
+     "event": "server replied"
+    },
+    {
      "event": "equip_batch",
      "payload": [
       {
-       "num": 15,
+       "num": 14,
        "slot": "mainhand"
+      },
+      {
+       "num": 15,
+       "slot": "offhand"
       }
      ]
+    },
+    {
+     "event": "server replied"
+    },
+    {
+     "event": "after 1500ms"
     }
    ]
   },

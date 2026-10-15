@@ -49,13 +49,26 @@
      }
     },
     {
+     "event": "server replied"
+    },
+    {
      "event": "equip_batch",
      "payload": [
       {
        "num": 13,
        "slot": "mainhand"
+      },
+      {
+       "num": 16,
+       "slot": "offhand"
       }
      ]
+    },
+    {
+     "event": "server replied"
+    },
+    {
+     "event": "after 1500ms"
     }
    ]
   },
@@ -76,6 +89,9 @@
      ]
     },
     {
+     "event": "server replied"
+    },
+    {
      "event": "after 59.93133596482791ms"
     },
     {
@@ -90,6 +106,9 @@
        "slot": "offhand"
       }
      ]
+    },
+    {
+     "event": "server replied"
     }
    ]
   },
@@ -131,6 +150,9 @@
      ]
     },
     {
+     "event": "server replied"
+    },
+    {
      "event": "after 497.5640005784724ms"
     },
     {
@@ -139,8 +161,15 @@
       {
        "num": 13,
        "slot": "mainhand"
+      },
+      {
+       "num": 16,
+       "slot": "offhand"
       }
      ]
+    },
+    {
+     "event": "server replied"
     }
    ]
   },
@@ -169,13 +198,26 @@
      }
     },
     {
+     "event": "server replied"
+    },
+    {
      "event": "equip_batch",
      "payload": [
       {
        "num": 15,
        "slot": "mainhand"
+      },
+      {
+       "num": 16,
+       "slot": "offhand"
       }
      ]
+    },
+    {
+     "event": "server replied"
+    },
+    {
+     "event": "after 1500ms"
     }
    ]
   },
