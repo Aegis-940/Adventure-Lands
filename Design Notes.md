@@ -28,7 +28,15 @@ The four role entry points are boot steps too, so `run_character()` starts after
 
 ### `Scheduler.js`
 
-`every(name, { ms, kind, fixed }, fn)` is the only interval. Phase 1 converted only `setInterval` loops, all with `fixed: true` (plain `setInterval` timing), so nothing ticks differently. Callbacks that swallowed their own errors still do; the rest now reach `catcher(e, name)` instead of the window error handler. `kind` (`automation`, `combat`, `safety`, `telemetry`, `ui`) only labels a loop for now. The self-rescheduling `setTimeout` loops (`action_loop`, `skill_loop`, `potion_loop`, `main_tick`, …) and the `while (true)` loops are untouched, because moving them changes timing (step 1.2b, measured).
+`every(name, { ms, kind, beat, after, fixed }, fn)` is the only loop. Without `fixed` it runs the body at once (or `after` ms), awaits it, and schedules the next run after the delay the body returns: a number, `false` to stop and deregister, or nothing for `ms`. That is exactly what the hand-written loops did with `setTimeout(self, delay)` and `while (true) { …; await delay(ms) }`, so converting them (step 1.2b, 2026-10-15) left every delay unchanged: the harness boots each role on both builds, advances three rounds of timers, and the scheduled delays match one for one. `fixed: true` keeps plain `setInterval` timing for the loops that had it.
+
+A body that throws is caught here (`catcher(e, name)`, counted in `al_loops()`) and the loop goes on after `ms`. A hand-written loop that threw before its own `try` used to stop for good. Bodies that set their own retry delay in a `catch` (the combat loops' `TICK_RATE.retry`) keep it.
+
+`beat: true` is what `loop_tick`/`loop_next` did for the combat loops: an `errlog_beat(name)` per run and `lag <name>`, the gap between when a run was due and when it started. The loop names are unchanged (`action_loop`, `skill_loop`, `zap_loop`), so the beats in death records and the watchdog read the same.
+
+`when(name, ready, fn, ms)` polls `ready()` and runs `fn` once: the toprightcorner button chain (each button waits for the one before it) and the game log waiting for `#gamelog`.
+
+`kind` (`automation`, `combat`, `safety`, `telemetry`, `ui`) only labels a loop for now. Pause and death still work the way each body checks them.
 
 ### `Events.js`
 

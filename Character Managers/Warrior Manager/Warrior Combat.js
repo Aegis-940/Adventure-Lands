@@ -292,13 +292,16 @@ function record_swap_trick() {
 // ACTION LOOP
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function action_loop() {
-	loop_tick("action_loop");
-	if (should_pause_combat_loop()) return setTimeout(action_loop, loop_next("action_loop", 100));
+function action_loop() {
+	every("action_loop", { ms: 10, kind: "combat", beat: true }, action_tick);
+}
+
+async function action_tick() {
+	if (should_pause_combat_loop()) return 100;
 	let next_delay = 10;
 
 	try {
-		if (is_disabled(character)) return setTimeout(action_loop, loop_next("action_loop", 50));
+		if (is_disabled(character)) return 50;
 
 		update_cache();
 
@@ -319,5 +322,5 @@ async function action_loop() {
 		next_delay = TICK_RATE.retry;
 	}
 
-	setTimeout(action_loop, loop_next("action_loop", next_delay));
+	return next_delay;
 }

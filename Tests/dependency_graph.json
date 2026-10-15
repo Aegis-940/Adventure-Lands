@@ -59,8 +59,6 @@
   {
    "call": [
     "basic_action_busy",
-    "loop_next",
-    "loop_tick",
     "next_action_delay",
     "run_basic_action"
    ],
@@ -198,6 +196,14 @@
    "from": "Character Managers/Healer Manager/Healer Combat.js",
    "load": [],
    "to": "Encounters/Rime Djinn.js"
+  },
+  {
+   "call": [
+    "every"
+   ],
+   "from": "Character Managers/Healer Manager/Healer Combat.js",
+   "load": [],
+   "to": "Kernel/Scheduler.js"
   },
   {
    "call": [
@@ -620,15 +626,6 @@
   },
   {
    "call": [
-    "loop_next",
-    "loop_tick"
-   ],
-   "from": "Character Managers/Healer Manager/Healer Skills.js",
-   "load": [],
-   "to": "Core Systems/Character Runner.js"
-  },
-  {
-   "call": [
     "ENDANGER_FLOOR_PCT",
     "heal_useful",
     "monster_dps_on",
@@ -738,6 +735,14 @@
    "from": "Character Managers/Healer Manager/Healer Skills.js",
    "load": [],
    "to": "Encounters/Encounter Registry.js"
+  },
+  {
+   "call": [
+    "every"
+   ],
+   "from": "Character Managers/Healer Manager/Healer Skills.js",
+   "load": [],
+   "to": "Kernel/Scheduler.js"
   },
   {
    "call": [
@@ -1219,8 +1224,7 @@
   },
   {
    "call": [
-    "automation_enabled",
-    "delay"
+    "automation_enabled"
    ],
    "from": "Character Managers/Merchant Manager/Merchant Stand.js",
    "load": [],
@@ -1234,6 +1238,14 @@
    "from": "Character Managers/Merchant Manager/Merchant Stand.js",
    "load": [],
    "to": "Core Systems/Movement Manager.js"
+  },
+  {
+   "call": [
+    "every"
+   ],
+   "from": "Character Managers/Merchant Manager/Merchant Stand.js",
+   "load": [],
+   "to": "Kernel/Scheduler.js"
   },
   {
    "call": [
@@ -1391,8 +1403,7 @@
   {
    "call": [
     "TICK_RATE",
-    "automation_enabled",
-    "delay"
+    "automation_enabled"
    ],
    "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
    "load": [
@@ -1419,6 +1430,14 @@
    "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
    "load": [],
    "to": "Core Systems/Party Management.js"
+  },
+  {
+   "call": [
+    "every"
+   ],
+   "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
+   "load": [],
+   "to": "Kernel/Scheduler.js"
   },
   {
    "call": [],
@@ -1575,6 +1594,14 @@
   },
   {
    "call": [
+    "every"
+   ],
+   "from": "Character Managers/Merchant Manager/Merchant Upkeep.js",
+   "load": [],
+   "to": "Kernel/Scheduler.js"
+  },
+  {
+   "call": [
     "equip_default_gear"
    ],
    "from": "Character Managers/Merchant Manager/Merchant.js",
@@ -1650,8 +1677,6 @@
   {
    "call": [
     "basic_action_busy",
-    "loop_next",
-    "loop_tick",
     "next_action_delay",
     "run_basic_action"
    ],
@@ -1785,6 +1810,14 @@
    "from": "Character Managers/Ranger Manager/Ranger Combat.js",
    "load": [],
    "to": "Encounters/Rime Djinn.js"
+  },
+  {
+   "call": [
+    "every"
+   ],
+   "from": "Character Managers/Ranger Manager/Ranger Combat.js",
+   "load": [],
+   "to": "Kernel/Scheduler.js"
   },
   {
    "call": [
@@ -2167,15 +2200,6 @@
   },
   {
    "call": [
-    "loop_next",
-    "loop_tick"
-   ],
-   "from": "Character Managers/Ranger Manager/Ranger Skills.js",
-   "load": [],
-   "to": "Core Systems/Character Runner.js"
-  },
-  {
-   "call": [
     "skill_mp_cost",
     "time_to_kill_ms"
    ],
@@ -2258,6 +2282,14 @@
    "from": "Character Managers/Ranger Manager/Ranger Skills.js",
    "load": [],
    "to": "Encounters/Encounter Registry.js"
+  },
+  {
+   "call": [
+    "every"
+   ],
+   "from": "Character Managers/Ranger Manager/Ranger Skills.js",
+   "load": [],
+   "to": "Kernel/Scheduler.js"
   },
   {
    "call": [
@@ -2366,8 +2398,6 @@
   {
    "call": [
     "basic_action_busy",
-    "loop_next",
-    "loop_tick",
     "next_action_delay",
     "run_basic_action"
    ],
@@ -2900,15 +2930,6 @@
   },
   {
    "call": [
-    "loop_next",
-    "loop_tick"
-   ],
-   "from": "Character Managers/Warrior Manager/Warrior Skills.js",
-   "load": [],
-   "to": "Core Systems/Character Runner.js"
-  },
-  {
-   "call": [
     "endangered",
     "skill_mp_cost"
    ],
@@ -3028,6 +3049,14 @@
    "from": "Character Managers/Warrior Manager/Warrior Skills.js",
    "load": [],
    "to": "Encounters/Rime Djinn.js"
+  },
+  {
+   "call": [
+    "every"
+   ],
+   "from": "Character Managers/Warrior Manager/Warrior Skills.js",
+   "load": [],
+   "to": "Kernel/Scheduler.js"
   },
   {
    "call": [
@@ -3212,7 +3241,6 @@
     "STATE_CACHE_KEY_PREFIX",
     "STATE_CACHE_LOOP_ENABLED",
     "automation_enabled",
-    "delay",
     "errlog_time",
     "panicking",
     "request_delivery",
@@ -3754,14 +3782,6 @@
   },
   {
    "call": [
-    "catcher"
-   ],
-   "from": "Core Systems/Equipment Manager.js",
-   "load": [],
-   "to": "Core Systems/Error Handling.js"
-  },
-  {
-   "call": [
     "errlog_count",
     "errlog_record"
    ],
@@ -3825,6 +3845,14 @@
     "on_boot"
    ],
    "to": "Kernel/Kernel.js"
+  },
+  {
+   "call": [
+    "every"
+   ],
+   "from": "Core Systems/Equipment Manager.js",
+   "load": [],
+   "to": "Kernel/Scheduler.js"
   },
   {
    "call": [
@@ -4421,6 +4449,14 @@
   },
   {
    "call": [
+    "every"
+   ],
+   "from": "Core Systems/Movement Manager.js",
+   "load": [],
+   "to": "Kernel/Scheduler.js"
+  },
+  {
+   "call": [
     "state"
    ],
    "from": "Core Systems/Movement Positioning.js",
@@ -4940,8 +4976,10 @@
     "ERRLOG_MAX_TIMELINE",
     "ERRLOG_MSG_CAP",
     "ERRLOG_TIMELINE_SIG_CAP",
+    "ERRLOG_TIME_BUCKETS",
     "ERRLOG_WINDOW_MS",
     "_errlog",
+    "_errlog_beats",
     "_errlog_build",
     "_errlog_context",
     "_errlog_dirty",
@@ -4951,9 +4989,11 @@
     "_errlog_signature",
     "_errlog_store",
     "_errlog_timeline_sig",
+    "errlog_beat",
     "errlog_count",
     "errlog_record",
-    "errlog_sample"
+    "errlog_sample",
+    "errlog_time"
    ],
    "to": "Core Systems/Error Log.js"
   },
@@ -4986,9 +5026,11 @@
     "STATE_CACHE_STALE_MS",
     "delay",
     "equipment_sets",
+    "errlog_beat",
     "errlog_count",
     "errlog_record",
     "errlog_sample",
+    "errlog_time",
     "home",
     "panicking",
     "read_state_cache",
@@ -5228,6 +5270,7 @@
    "load": [
     "_loops",
     "every",
+    "run_loop",
     "stop_loop"
    ],
    "to": "Kernel/Scheduler.js"
@@ -5376,7 +5419,8 @@
   },
   {
    "call": [
-    "every"
+    "every",
+    "when"
    ],
    "from": "Dungeons/Dungeon Mode.js",
    "load": [],
@@ -5687,7 +5731,6 @@
     "CONFIG",
     "MOVEMENT_LEADER",
     "automation_enabled",
-    "delay",
     "errlog_count",
     "errlog_timeline",
     "home",
@@ -5731,6 +5774,14 @@
     "encounter"
    ],
    "to": "Encounters/Encounter Registry.js"
+  },
+  {
+   "call": [
+    "every"
+   ],
+   "from": "Encounters/Bscorpion.js",
+   "load": [],
+   "to": "Kernel/Scheduler.js"
   },
   {
    "call": [],
@@ -5979,6 +6030,58 @@
    "to": "Kernel/Kernel.js"
   },
   {
+   "call": [],
+   "from": "Interface/Bank Viewer.js",
+   "load": [
+    "COOLDOWN_SKILLS",
+    "GENERAL_ERROR",
+    "REJECTIONS",
+    "catcher",
+    "cooldown_summary",
+    "error_out"
+   ],
+   "to": "Core Systems/Error Handling.js"
+  },
+  {
+   "call": [],
+   "from": "Interface/Bank Viewer.js",
+   "load": [
+    "ERRLOG_MAX_COUNTS",
+    "ERRLOG_MAX_TIMELINE",
+    "ERRLOG_MSG_CAP",
+    "ERRLOG_TIMELINE_SIG_CAP",
+    "ERRLOG_TIME_BUCKETS",
+    "ERRLOG_WINDOW_MS",
+    "_errlog",
+    "_errlog_beats",
+    "_errlog_build",
+    "_errlog_context",
+    "_errlog_dirty",
+    "_errlog_fmt",
+    "_errlog_push_timeline",
+    "_errlog_recording",
+    "_errlog_signature",
+    "_errlog_store",
+    "_errlog_timeline_sig",
+    "errlog_beat",
+    "errlog_count",
+    "errlog_record",
+    "errlog_time"
+   ],
+   "to": "Core Systems/Error Log.js"
+  },
+  {
+   "call": [],
+   "from": "Interface/Bank Viewer.js",
+   "load": [
+    "errlog_beat",
+    "errlog_record",
+    "errlog_time",
+    "panicking"
+   ],
+   "to": "Core Systems/Global Config.js"
+  },
+  {
    "call": [
     "load_bank_from_local_storage",
     "refresh_bank_snapshot"
@@ -5991,10 +6094,54 @@
    "call": [],
    "from": "Interface/Bank Viewer.js",
    "load": [
+    "panicking"
+   ],
+   "to": "Core Systems/Party Management.js"
+  },
+  {
+   "call": [],
+   "from": "Interface/Bank Viewer.js",
+   "load": [
+    "al_log_category",
+    "al_log_entry_node",
+    "al_log_filters",
+    "al_log_is_shown",
+    "al_log_push",
+    "al_log_stamp",
+    "al_log_state"
+   ],
+   "to": "Interface/Game Log.js"
+  },
+  {
+   "call": [],
+   "from": "Interface/Bank Viewer.js",
+   "load": [
+    "parent_slot"
+   ],
+   "to": "Kernel/Events.js"
+  },
+  {
+   "call": [],
+   "from": "Interface/Bank Viewer.js",
+   "load": [
     "_boot_steps",
     "on_boot"
    ],
    "to": "Kernel/Kernel.js"
+  },
+  {
+   "call": [
+    "when"
+   ],
+   "from": "Interface/Bank Viewer.js",
+   "load": [
+    "_loops",
+    "every",
+    "run_loop",
+    "stop_loop",
+    "when"
+   ],
+   "to": "Kernel/Scheduler.js"
   },
   {
    "call": [
@@ -6107,11 +6254,14 @@
    "call": [],
    "from": "Interface/Game Log.js",
    "load": [
+    "ERRLOG_MAX_COUNTS",
     "ERRLOG_MAX_TIMELINE",
     "ERRLOG_MSG_CAP",
     "ERRLOG_TIMELINE_SIG_CAP",
+    "ERRLOG_TIME_BUCKETS",
     "ERRLOG_WINDOW_MS",
     "_errlog",
+    "_errlog_beats",
     "_errlog_build",
     "_errlog_context",
     "_errlog_dirty",
@@ -6121,7 +6271,10 @@
     "_errlog_signature",
     "_errlog_store",
     "_errlog_timeline_sig",
-    "errlog_record"
+    "errlog_beat",
+    "errlog_count",
+    "errlog_record",
+    "errlog_time"
    ],
    "to": "Core Systems/Error Log.js"
   },
@@ -6129,7 +6282,9 @@
    "call": [],
    "from": "Interface/Game Log.js",
    "load": [
+    "errlog_beat",
     "errlog_record",
+    "errlog_time",
     "panicking"
    ],
    "to": "Core Systems/Global Config.js"
@@ -6167,6 +6322,20 @@
     "on_boot"
    ],
    "to": "Kernel/Kernel.js"
+  },
+  {
+   "call": [
+    "when"
+   ],
+   "from": "Interface/Game Log.js",
+   "load": [
+    "_loops",
+    "every",
+    "run_loop",
+    "stop_loop",
+    "when"
+   ],
+   "to": "Kernel/Scheduler.js"
   },
   {
    "call": [
@@ -6364,11 +6533,14 @@
    "call": [],
    "from": "Interface/Pause Button.js",
    "load": [
+    "ERRLOG_MAX_COUNTS",
     "ERRLOG_MAX_TIMELINE",
     "ERRLOG_MSG_CAP",
     "ERRLOG_TIMELINE_SIG_CAP",
+    "ERRLOG_TIME_BUCKETS",
     "ERRLOG_WINDOW_MS",
     "_errlog",
+    "_errlog_beats",
     "_errlog_build",
     "_errlog_context",
     "_errlog_dirty",
@@ -6378,7 +6550,10 @@
     "_errlog_signature",
     "_errlog_store",
     "_errlog_timeline_sig",
-    "errlog_record"
+    "errlog_beat",
+    "errlog_count",
+    "errlog_record",
+    "errlog_time"
    ],
    "to": "Core Systems/Error Log.js"
   },
@@ -6394,7 +6569,9 @@
     "_automation",
     "automation_enabled",
     "automation_key",
+    "errlog_beat",
     "errlog_record",
+    "errlog_time",
     "panicking",
     "set_automation"
    ],
@@ -6441,12 +6618,16 @@
   },
   {
    "call": [
-    "every"
+    "every",
+    "when"
    ],
    "from": "Interface/Pause Button.js",
    "load": [
     "_loops",
-    "every"
+    "every",
+    "run_loop",
+    "stop_loop",
+    "when"
    ],
    "to": "Kernel/Scheduler.js"
   },
@@ -6476,11 +6657,14 @@
    "call": [],
    "from": "Interface/Settings Window.js",
    "load": [
+    "ERRLOG_MAX_COUNTS",
     "ERRLOG_MAX_TIMELINE",
     "ERRLOG_MSG_CAP",
     "ERRLOG_TIMELINE_SIG_CAP",
+    "ERRLOG_TIME_BUCKETS",
     "ERRLOG_WINDOW_MS",
     "_errlog",
+    "_errlog_beats",
     "_errlog_build",
     "_errlog_context",
     "_errlog_dirty",
@@ -6490,7 +6674,10 @@
     "_errlog_signature",
     "_errlog_store",
     "_errlog_timeline_sig",
-    "errlog_record"
+    "errlog_beat",
+    "errlog_count",
+    "errlog_record",
+    "errlog_time"
    ],
    "to": "Core Systems/Error Log.js"
   },
@@ -6510,7 +6697,9 @@
     "RELOAD_ORDER",
     "RELOAD_STAGGER_MS",
     "SURVEY_FARM_TARGET",
+    "errlog_beat",
     "errlog_record",
+    "errlog_time",
     "farm_target_key",
     "panicking",
     "staggered_reload"
@@ -6569,6 +6758,20 @@
     "on_boot"
    ],
    "to": "Kernel/Kernel.js"
+  },
+  {
+   "call": [
+    "when"
+   ],
+   "from": "Interface/Settings Window.js",
+   "load": [
+    "_loops",
+    "every",
+    "run_loop",
+    "stop_loop",
+    "when"
+   ],
+   "to": "Kernel/Scheduler.js"
   },
   {
    "call": [
@@ -6740,6 +6943,24 @@
    "from": "Kernel/Scheduler.js",
    "load": [],
    "to": "Core Systems/Error Handling.js"
+  },
+  {
+   "call": [
+    "errlog_beat",
+    "errlog_time"
+   ],
+   "from": "Kernel/Scheduler.js",
+   "load": [],
+   "to": "Core Systems/Error Log.js"
+  },
+  {
+   "call": [
+    "errlog_beat",
+    "errlog_time"
+   ],
+   "from": "Kernel/Scheduler.js",
+   "load": [],
+   "to": "Core Systems/Global Config.js"
   }
  ],
  "files": {

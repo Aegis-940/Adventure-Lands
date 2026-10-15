@@ -515,19 +515,12 @@ async function resolve_equipment() {
 	}
 }
 
-async function equipment_manager_loop() {
-	while (true) {
-		try {
-			if (dungeon_bailing()) {
-				await delay(250);
-				continue;
-			}
-			await resolve_equipment();
-		} catch (e) {
-			catcher(e, "equipment_manager_loop");
-		}
-		await delay(TICK_RATE.equipment);
-	}
+function equipment_manager_loop() {
+	every("equipment_manager_loop", { ms: TICK_RATE.equipment, kind: "combat" }, async () => {
+		if (dungeon_bailing()) return 250;
+		await resolve_equipment();
+		return TICK_RATE.equipment;
+	});
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

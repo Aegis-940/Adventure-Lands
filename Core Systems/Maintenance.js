@@ -10,9 +10,13 @@ const POTION_POLL_MS = 50;
 
 let potions_drunk = { hp: 0, mp: 0 };
 
-async function potion_loop() {
+function potion_loop() {
+	every("potion_loop", { ms: POTION_POLL_MS, kind: "safety" }, potion_tick);
+}
+
+async function potion_tick() {
 	if (character.c && (character.c.fishing || character.c.mining || character.c.town)) {
-		return setTimeout(potion_loop, 200);
+		return 200;
 	}
 
 	const HP_MISSING = character.max_hp - character.hp;
@@ -37,7 +41,7 @@ async function potion_loop() {
 
 	const used_potion = hp_first ? (drink_hp() || drink_mp()) : (drink_mp() || drink_hp());
 
-	setTimeout(potion_loop, used_potion ? 2050 : POTION_POLL_MS);
+	return used_potion ? 2050 : POTION_POLL_MS;
 }
 
 // function suicide() {

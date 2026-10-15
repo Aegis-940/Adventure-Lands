@@ -2,15 +2,18 @@
 // HEALER SKILLS — curse, absorb, party heal, dark blessing; started by Healer.js
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function skill_loop() {
-	loop_tick("skill_loop");
+function skill_loop() {
+	every("skill_loop", { ms: TICK_RATE.skill, kind: "combat", beat: true }, skill_tick);
+}
+
+async function skill_tick() {
 	// if (panicking) return setTimeout(skill_loop, 100);
-	if (dungeon_bailing() || cave_paused()) return setTimeout(skill_loop, loop_next("skill_loop", 100));
+	if (dungeon_bailing() || cave_paused()) return 100;
 	let next_delay = TICK_RATE.skill;
 
 	try {
 		if (is_disabled(character)) {
-			return setTimeout(skill_loop, loop_next("skill_loop", 250));
+			return 250;
 		}
 
 		update_cache();
@@ -63,11 +66,14 @@ async function skill_loop() {
 		next_delay = TICK_RATE.retry;
 	}
 
-	setTimeout(skill_loop, loop_next("skill_loop", next_delay));
+	return next_delay;
 }
 
-async function zap_loop() {
-	loop_tick("zap_loop");
+function zap_loop() {
+	every("zap_loop", { ms: TICK_RATE.skill, kind: "combat", beat: true }, zap_tick);
+}
+
+async function zap_tick() {
 	let next_delay = TICK_RATE.skill;
 
 	try {
@@ -79,7 +85,7 @@ async function zap_loop() {
 		next_delay = TICK_RATE.retry;
 	}
 
-	setTimeout(zap_loop, loop_next("zap_loop", next_delay));
+	return next_delay;
 }
 
 var DARK_BLESSING_SYNC_WAIT_MS = 8000;

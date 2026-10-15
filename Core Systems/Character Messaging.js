@@ -154,16 +154,13 @@ function write_state_cache() {
 	}
 }
 
-async function state_cache_loop() {
+function state_cache_loop() {
 	STATE_CACHE_LOOP_ENABLED = true;
-	while (true) {
-		if (!STATE_CACHE_LOOP_ENABLED) {
-			await delay(100);
-			continue;
-		}
+	every("state_cache_loop", { ms: STATE_CACHE_WRITE_MS, kind: "automation" }, () => {
+		if (!STATE_CACHE_LOOP_ENABLED) return 100;
 		write_state_cache();
-		await delay(STATE_CACHE_WRITE_MS);
-	}
+		return STATE_CACHE_WRITE_MS;
+	});
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

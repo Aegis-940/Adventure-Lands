@@ -73,14 +73,9 @@ async function decide_opportunistic_actions() {
 	if (should_buff_players()) await handle_buff_players();
 }
 
-async function opportunistic_actions_loop() {
-	while (true) {
+function opportunistic_actions_loop() {
+	every("opportunistic_actions_loop", { ms: 1000, kind: "automation" }, async () => {
 		main_beat();
-		try {
-			await decide_opportunistic_actions();
-		} catch (e) {
-			catcher(e, "opportunistic_actions_loop");
-		}
-		await delay(1000);
-	}
+		await decide_opportunistic_actions();
+	});
 }

@@ -27,19 +27,6 @@ function next_action_delay(ms) {
 	return ms > 200 ? 200 : ms > 50 ? 50 : 10;
 }
 
-const _loop_due = {};
-
-function loop_tick(name) {
-	errlog_beat(name);
-	const now = Date.now();
-	if (_loop_due[name]) errlog_time("lag " + name, now - _loop_due[name]);
-}
-
-function loop_next(name, ms) {
-	_loop_due[name] = Date.now() + ms;
-	return ms;
-}
-
 let _basic_action_until = 0;
 let _basic_action_count = 0;
 
@@ -93,7 +80,11 @@ function elixir_usage() {
 	}
 }
 
-async function maintenance_loop() {
+function maintenance_loop() {
+	every("maintenance_loop", { ms: TICK_RATE.maintenance, kind: "safety" }, maintenance_tick);
+}
+
+async function maintenance_tick() {
 	try {
 		if (CONFIG.potions.auto_buy) auto_buy_potions();
 		maintain_xp_booster();
@@ -108,7 +99,7 @@ async function maintenance_loop() {
 		catcher(e, "maintenance_loop");
 	}
 
-	setTimeout(maintenance_loop, TICK_RATE.maintenance);
+	return TICK_RATE.maintenance;
 }
 
 function run_character(spec) {
@@ -132,7 +123,7 @@ function run_character(spec) {
 		try {
 			if (is_disabled(character)) {
 				if (typeof s.on_disabled === "function") s.on_disabled();
-				return setTimeout(main_tick, 250);
+				return 250;
 			}
 
 			if (typeof s.update_cache === "function") s.update_cache();
@@ -141,7 +132,7 @@ function run_character(spec) {
 			if (!automation_enabled()) {
 				_current_goal = null;
 				travel_arbiter(null);
-				return setTimeout(main_tick, TICK_RATE.main);
+				return TICK_RATE.main;
 			}
 
 			stuck_escape_check();
@@ -154,7 +145,7 @@ function run_character(spec) {
 			_current_goal = goal;
 			convoy_pace(goal);
 			disengage_check();
-			if (dungeon_moving()) return setTimeout(main_tick, TICK_RATE.main);
+			if (dungeon_moving()) return TICK_RATE.main;
 
 			const travelling = travel_arbiter(goal);
 			if (!travelling || goal.hold || goal.passive) {
@@ -167,10 +158,10 @@ function run_character(spec) {
 		} catch (e) {
 			console.error("main_tick error:", e);
 		}
-		setTimeout(main_tick, TICK_RATE.main);
+		return TICK_RATE.main;
 	}
 
-	main_tick();
+	every("main_loop", { ms: TICK_RATE.main, kind: "automation" }, main_tick);
 
 	for (const fn of (s.loops || [])) {
 		try {

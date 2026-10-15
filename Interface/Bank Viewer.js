@@ -219,9 +219,12 @@ function render_bank_items() {
 }
 
 function add_bank_buttons() {
+	when("bank button", () => parent.$("#toprightcorner").length > 0, place_bank_button, 500);
+}
+
+function place_bank_button() {
 	const $ = parent.$;
 	const trc = $("#toprightcorner");
-	if (!trc.length) return setTimeout(add_bank_buttons, 500);
 
 	$("#bankbutton").remove();
 
@@ -235,9 +238,12 @@ function add_bank_buttons() {
 }
 
 function add_reload_button() {
+	when("reload button", () => parent.$("#toprightcorner").length > 0, place_reload_button, 500);
+}
+
+function place_reload_button() {
 	const $ = parent.$;
 	const trc = $("#toprightcorner");
-	if (!trc.length) return setTimeout(add_reload_button, 500);
 
 	$("#reload-btn").remove();
 

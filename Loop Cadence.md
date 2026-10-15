@@ -96,8 +96,8 @@ first, then judge the rate.
 
 ## Method
 
-1. Enumerate every loop: self-rescheduling `setTimeout`, `setInterval`, and `while (true)` with an
-   `await delay()`.
+1. Enumerate every loop: `al_loops()` in the console lists each one with its kind, rate, runs, last
+   lag and last error (since 2026-10-15 every loop goes through the scheduler's `every()`).
 2. For each, find its *default* delay — not the backoff branches. The default is what it does on
    the hot path, and the hot path is where the cost is.
 3. Normalise `lag <loop>` against `lag eventloop` to get a comparable rate per character.

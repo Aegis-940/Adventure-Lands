@@ -286,10 +286,7 @@ function enhance_game_log() {
 }
 
 function start_game_log() {
-	if (!parent.document.getElementById("gamelog")) {
-		return void setTimeout(start_game_log, 100);
-	}
-	enhance_game_log();
+	when("game log", () => !!parent.document.getElementById("gamelog"), enhance_game_log, 100);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

@@ -20,21 +20,16 @@ function stand_wanted() {
 	return automation_enabled() && Date.now() - _still_since >= STAND_SETTLE_MS;
 }
 
-async function stand_loop() {
-	while (true) {
-		try {
-			const want = stand_wanted();
-			if (want && !character.stand && Date.now() >= _stand_retry_at) {
-				_stand_retry_at = Date.now() + STAND_SETTLE_MS;
-				await open_stand();
-			} else if (!want && character.stand) {
-				await close_stand();
-			}
-		} catch (e) {
-			catcher(e, "stand_loop");
+function stand_loop() {
+	every("stand_loop", { ms: STAND_TICK_MS, kind: "automation" }, async () => {
+		const want = stand_wanted();
+		if (want && !character.stand && Date.now() >= _stand_retry_at) {
+			_stand_retry_at = Date.now() + STAND_SETTLE_MS;
+			await open_stand();
+		} else if (!want && character.stand) {
+			await close_stand();
 		}
-		await delay(STAND_TICK_MS);
-	}
+	});
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

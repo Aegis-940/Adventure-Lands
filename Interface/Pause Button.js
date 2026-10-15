@@ -24,10 +24,13 @@ function toggle_automation() {
 }
 
 function add_pause_button() {
+	when("pause button", () => parent.$("#toprightcorner").length > 0 && parent.$("#settings-btn").length > 0, place_pause_button, 500);
+}
+
+function place_pause_button() {
 	const $ = parent.$;
 	const trc = $("#toprightcorner");
 	const settings_btn = $("#settings-btn");
-	if (!trc.length || !settings_btn.length) return setTimeout(add_pause_button, 500);
 
 	$("#pause-btn").remove();
 

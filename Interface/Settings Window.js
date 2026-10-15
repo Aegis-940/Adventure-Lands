@@ -179,10 +179,13 @@ function open_settings_window() {
 }
 
 function add_settings_button() {
+	when("settings button", () => parent.$("#toprightcorner").length > 0 && parent.$("#reload-btn").length > 0, place_settings_button, 500);
+}
+
+function place_settings_button() {
 	const $ = parent.$;
 	const trc = $("#toprightcorner");
 	const reload_btn = $("#reload-btn");
-	if (!trc.length || !reload_btn.length) return setTimeout(add_settings_button, 500);
 
 	$("#settings-btn").remove();
 

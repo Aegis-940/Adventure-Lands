@@ -136,8 +136,8 @@ function task_heartbeat() {
 	watchdog_since = Date.now();
 }
 
-async function loop_controller() {
-	while (true) {
+function loop_controller() {
+	every("loop_controller", { ms: 250, kind: "automation" }, async () => {
 		try {
 			if (Date.now() - _party_manager_at >= TICK_RATE.maintenance) {
 				_party_manager_at = Date.now();
@@ -148,8 +148,7 @@ async function loop_controller() {
 				merchant_task = "Idle";
 				watchdog_task = "Idle";
 				watchdog_since = Date.now();
-				await delay(250);
-				continue;
+				return 250;
 			}
 
 			if (merchant_task !== watchdog_task) {
@@ -168,6 +167,6 @@ async function loop_controller() {
 		} catch (e) {
 			catcher(e, "loop_controller");
 		}
-		await delay(250);
-	}
+		return 250;
+	});
 }

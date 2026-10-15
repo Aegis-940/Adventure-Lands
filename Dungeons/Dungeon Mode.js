@@ -100,11 +100,13 @@ function paint_dungeon_buttons() {
 
 function add_dungeon_buttons() {
 	if (!DUNGEON_PARTY.includes(character.name)) return;
+	when("dungeon buttons", () => parent.$("#toprightcorner").length > 0 && parent.$("#pause-btn").length > 0, place_dungeon_buttons, 500);
+}
 
+function place_dungeon_buttons() {
 	const $ = parent.$;
 	const trc = $("#toprightcorner");
 	const pause_btn = $("#pause-btn");
-	if (!trc.length || !pause_btn.length) return setTimeout(add_dungeon_buttons, 500);
 
 	let after = pause_btn;
 	for (const spec of DUNGEON_BUTTONS) {

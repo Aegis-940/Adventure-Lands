@@ -146,29 +146,26 @@ function smarter_move(destination, on_done, options = {}) {
 	const arrive_radius = options.radius || 10;
 
 	function monitor_movement() {
-		if (interrupted) return;
+		if (interrupted) return false;
 
 		if (
 			character.map === target_map &&
 			Math.hypot(character.x - target_x, character.y - target_y) < arrive_radius
 		) {
 			complete(true);
-			return;
+			return false;
 		}
 
 		if (!smart.moving) {
-			if (is_teleporting()) {
-				setTimeout(monitor_movement, 200);
-				return;
-			}
+			if (is_teleporting()) return 200;
 			complete(false, "movement stopped");
-			return;
+			return false;
 		}
 
-		setTimeout(monitor_movement, 200);
+		return 200;
 	}
 
-	setTimeout(monitor_movement, 200);
+	every("move monitor", { ms: 200, kind: "automation", after: 200 }, monitor_movement);
 
 	timeout_id = setTimeout(() => {
 		smart._interrupt(MOVE_TIMEOUT_REASON);

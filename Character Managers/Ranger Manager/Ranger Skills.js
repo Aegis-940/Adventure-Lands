@@ -58,31 +58,34 @@ function supershot_value(target) {
 
 var _last_sent_target = null;
 
-async function skill_loop() {
-	loop_tick("skill_loop");
-	if (should_pause_combat_loop()) return setTimeout(skill_loop, loop_next("skill_loop", 100));
+function skill_loop() {
+	every("skill_loop", { ms: TICK_RATE.skill, kind: "combat", beat: true }, skill_tick);
+}
+
+async function skill_tick() {
+	if (should_pause_combat_loop()) return 100;
 	let next_delay = TICK_RATE.skill;
 	try {
 		if (!CONFIG.combat.use_hunters_mark && !CONFIG.combat.use_supershot) {
-			return setTimeout(skill_loop, loop_next("skill_loop", 1000));
+			return 1000;
 		}
-		if (is_disabled(character)) return setTimeout(skill_loop, loop_next("skill_loop", 250));
+		if (is_disabled(character)) return 250;
 
 		update_cache();
 
 		const { sorted_by_value, in_range } = cache.targets;
-		if (!sorted_by_value.length) return setTimeout(skill_loop, loop_next("skill_loop", 200));
+		if (!sorted_by_value.length) return 200;
 
 		const forced = dungeon_focus_target();
-		if (forced && !is_in_range(forced)) return setTimeout(skill_loop, loop_next("skill_loop", 100));
+		if (forced && !is_in_range(forced)) return 100;
 		const focus = farm_focus();
 		const target = forced
 			? forced
 			: focus && is_in_range(focus) ? focus
 			: (dungeon_flag("single_target") ? in_range[0] : sorted_by_value[0]);
-		if (!target || !is_in_range(target)) return setTimeout(skill_loop, loop_next("skill_loop", 100));
+		if (!target || !is_in_range(target)) return 100;
 
-		if (cache.heal_target || mainhand_intent() === "cupid") return setTimeout(skill_loop, loop_next("skill_loop", 100));
+		if (cache.heal_target || mainhand_intent() === "cupid") return 100;
 
 		const ms_hunter = ms_to_next_skill("huntersmark");
 		const ms_super = ms_to_next_skill("supershot");
@@ -125,5 +128,5 @@ async function skill_loop() {
 		catcher(e, "skill_loop");
 		next_delay = TICK_RATE.retry;
 	}
-	setTimeout(skill_loop, loop_next("skill_loop", next_delay));
+	return next_delay;
 }

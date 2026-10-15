@@ -13,7 +13,7 @@ Reviewed 2026-10-14 before execution. The review's changes are folded in and lis
 | Phase | Title | Behaviour change | Status |
 |---|---|---|---|
 | 0 | Safety net: harness, snapshots, golden decisions, ratchet lint, docs triage | none | **done** 2026-10-15 (live on `main`) |
-| 1 | Boot kernel: boot phase, scheduler, events, storage, console API | none | **1.1–1.7 live** 2026-10-15. `compare` at bscorpion against Oct 12–14: **same** (6 full windows; kills, XP, potions within 1.5%, no deaths or close calls). 1.2b (combat loops) not started |
+| 1 | Boot kernel: boot phase, scheduler, events, storage, console API | none | **done**: 1.1–1.7 live 2026-10-15 (`compare` at bscorpion: same); **1.2b built on `overhaul`** the same day, timing identical offline; to be measured live with `compare`, behaviour tier |
 | 2 | Encounters (the monster behaviour redesign) | small, per encounter | everything but the rime Djinn live 2026-10-15; **2.8.6 rime Djinn built on `overhaul`** (a pure relocation, 77 fixtures). Deferred: the rime stomp as an encounter `step` once live Djinn fixtures exist |
 | 3 | Deciders and actuators | per decision | not started |
 | 4 | Telemetry on the event bus | none | not started |
@@ -338,7 +338,7 @@ Six to seven pushes. The first reload after any of them is the live test for all
 
 - [x] 1.1 boot phase, named boot errors, `needs` (on `overhaul`)
 - [x] 1.2a scheduler for every `setInterval` loop, `fixed` timing, `al_loops()` (on `overhaul`, D13)
-- [ ] 1.2b the self-rescheduling `setTimeout` loops (41) and `while (true)` loops (8), the combat loops among them: a timing change, measured per D4
+- [x] 1.2b (on `overhaul`, 2026-10-15, at the user's request to finish Phase 1): every self-rescheduling `setTimeout` loop and endless `while (true)` loop runs on `every()`, whose body returns its next delay; `when()` for the DOM waits. The combat loops keep their names and beats (`beat: true` replaces `loop_tick`/`loop_next`). Proven offline: 77 goldens unchanged, and booting each role on both builds and advancing three rounds of timers schedules identical delays (48 for Riff, 57 per fighter). Two `while (true)` routines that return (`crypt_leg`, the merchant's gathering session) are control flow and stay; lint now counts only loops that cannot exit. The harness gained `runner_compat.js` (`use()`) and the code iframe's `is_game`/`is_code`, and its smoke command now advances timeouts and fails any loop with errors. Still to measure live: `compare` at bscorpion, behaviour tier
 - [x] 1.3 events with a per-subscriber catcher, legacy-keyed slots, `wrap_parent`, `off_socket` (on `overhaul`)
 - [x] 1.4 storage registry (on `overhaul`)
 - [x] 1.5 console API (on `overhaul`)

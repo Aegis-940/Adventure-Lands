@@ -245,16 +245,19 @@ function attack_wanted() {
 	return !!target && is_in_range(target);
 }
 
-async function action_loop() {
-	loop_tick("action_loop");
+function action_loop() {
+	every("action_loop", { ms: 10, kind: "combat", beat: true }, action_tick);
+}
+
+async function action_tick() {
 	let next_delay = 10;
 
 	try {
-		if (is_disabled(character)) return setTimeout(action_loop, loop_next("action_loop", 50));
+		if (is_disabled(character)) return 50;
 
 		update_cache();
 
-		if (camp_temporal_surge()) return setTimeout(action_loop, loop_next("action_loop", 100));
+		if (camp_temporal_surge()) return 100;
 
 		const ms = ms_to_next_skill("attack");
 
@@ -272,5 +275,5 @@ async function action_loop() {
 		next_delay = TICK_RATE.retry;
 	}
 
-	setTimeout(action_loop, loop_next("action_loop", next_delay));
+	return next_delay;
 }

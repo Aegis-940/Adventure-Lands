@@ -274,15 +274,18 @@ async function cupid_heal(target) {
 	}
 }
 
-async function action_loop() {
-	loop_tick("action_loop");
-	if (should_pause_combat_loop()) return setTimeout(action_loop, loop_next("action_loop", 100));
+function action_loop() {
+	every("action_loop", { ms: 5, kind: "combat", beat: true }, action_tick);
+}
+
+async function action_tick() {
+	if (should_pause_combat_loop()) return 100;
 	let next_delay = 5;
 	try {
-		if (is_disabled(character)) return setTimeout(action_loop, loop_next("action_loop", 50));
+		if (is_disabled(character)) return 50;
 
 		update_cache();
-		if (camp_temporal_surge()) return setTimeout(action_loop, loop_next("action_loop", 100));
+		if (camp_temporal_surge()) return 100;
 		const ms = ms_to_next_skill("attack");
 
 		const cupid_live = mainhand_intent() === "cupid";
@@ -300,7 +303,7 @@ async function action_loop() {
 		catcher(e, "action_loop");
 		next_delay = TICK_RATE.retry;
 	}
-	setTimeout(action_loop, loop_next("action_loop", next_delay));
+	return next_delay;
 }
 
 function coop_boss_only(in_range) {

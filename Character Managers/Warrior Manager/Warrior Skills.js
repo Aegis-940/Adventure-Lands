@@ -2,14 +2,17 @@
 // WARRIOR SKILLS — warcry, cleave, agitate; started by Warrior.js
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-async function skill_loop() {
-	loop_tick("skill_loop");
-	if (should_pause_combat_loop()) return setTimeout(skill_loop, loop_next("skill_loop", 100));
+function skill_loop() {
+	every("skill_loop", { ms: TICK_RATE.skill, kind: "combat", beat: true }, skill_tick);
+}
+
+async function skill_tick() {
+	if (should_pause_combat_loop()) return 100;
 	let next_delay = TICK_RATE.skill;
 
 	try {
 		if (is_disabled(character)) {
-			return setTimeout(skill_loop, loop_next("skill_loop", 250));
+			return 250;
 		}
 
 		update_cache();
@@ -72,7 +75,7 @@ async function skill_loop() {
 		next_delay = TICK_RATE.retry;
 	}
 
-	setTimeout(skill_loop, loop_next("skill_loop", next_delay));
+	return next_delay;
 }
 
 var STOMP_SET = "basher";

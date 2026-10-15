@@ -259,7 +259,7 @@ function _errlog_lag_probe() {
 		if (parent.pings && parent.pings.length) errlog_time("net ping", Math.min(...parent.pings));
 	} catch (e) { }
 	_errlog_lag_due = now + 500;
-	setTimeout(_errlog_lag_probe, 500);
+	return 500;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -726,7 +726,7 @@ on_boot("Error Log", () => {
 	on_socket("game_response", "errlog_game_response", _errlog_on_game_response);
 	on_socket("disconnect", "errlog_disconnect", () => errlog_record("disconnect", "socket disconnected"));
 	on_socket("limitdcreport", "errlog_limitdc", _errlog_on_limitdc);
-	setTimeout(_errlog_lag_probe, 500);
+	every("errlog lag probe", { ms: 500, kind: "telemetry", after: 500 }, _errlog_lag_probe);
 	every("errlog vitals", { ms: ERRLOG_VITALS_MS, kind: "telemetry", fixed: true }, _errlog_sample_vitals);
 	every("errlog heartbeat", { ms: ERRLOG_HEARTBEAT_MS, kind: "telemetry", fixed: true }, _errlog_heartbeat);
 	every("errlog flush", { ms: ERRLOG_FLUSH_MS, kind: "telemetry", fixed: true }, _errlog_flush_tick);

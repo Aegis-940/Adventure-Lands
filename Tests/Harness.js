@@ -211,6 +211,8 @@ function build_context(fixture, G, log) {
 		clearInterval() { },
 		requestAnimationFrame: capture("raf"),
 		is_server: false,
+		is_game: 0,
+		is_code: 1,
 		queueMicrotask,
 		Date: FrozenDate,
 		Math: math,
@@ -251,6 +253,7 @@ async function game_sources() {
 		G: holder.G,
 		common: await source("common_functions.js"),
 		runner: await source("runner_functions.js"),
+		compat: await source("runner_compat.js"),
 		lists: bootstrap_lists(await acorn()),
 	};
 	return _game;
@@ -275,6 +278,7 @@ async function boot(fixture, options) {
 	ctx.parent.distance = ctx.distance;
 	ctx.parent.is_disabled = ctx.is_disabled;
 	run_file(ctx, "runner_functions.js", game.runner, "script", log);
+	run_file(ctx, "runner_compat.js", game.compat, "script", log);
 	const game_errors = log.errors.length;
 
 	const name = fixture.character.name;
@@ -547,13 +551,27 @@ async function command_smoke(files) {
 				}
 			}
 		}
-		await new Promise(r => setImmediate(r));
+		const ran = new Set();
+		for (let round = 0; round < 3; round++) {
+			for (const t of log.timers.filter(t => t.kind === "timeout" && !ran.has(t))) {
+				ran.add(t);
+				try {
+					await t.fn();
+				} catch (e) {
+					throws.push(`timeout ${t.name}: ${error_text(e)}`);
+				}
+			}
+			await new Promise(r => setImmediate(r));
+		}
+		for (const loop of ctx.al_loops()) {
+			if (loop.errors) throws.push(`loop ${loop.name}: ${loop.errors} errors, last: ${loop.last_error}`);
+		}
 		const errors = log.console_errors.slice(before).concat(_unhandled.splice(0).map(e => "unhandled rejection: " + e));
 		const key = fixture_key(file);
 		const bad = throws.length + errors.length;
 		if (bad) failed++;
 		console.log(`${bad ? "ERRORS" : "ok    "} ${key}: ${Object.values(fired).reduce((a, b) => a + b, 0)} handler calls `
-			+ `over ${Object.keys(fired).length} events, ${intervals.length} intervals x3`);
+			+ `over ${Object.keys(fired).length} events, ${intervals.length} intervals x3, ${ran.size} timeouts, ${ctx.al_loops().length} loops`);
 		for (const t of throws) console.log("   " + t.slice(0, 300));
 		for (const e of errors) console.log("   " + e.slice(0, 300));
 	}

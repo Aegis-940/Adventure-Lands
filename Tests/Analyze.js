@@ -132,6 +132,27 @@ function is_registration(stmt) {
 		&& e.left.object.type === "Identifier" && REGISTRY_OBJECTS.has(e.left.object.name) && e.right.type === "ObjectExpression";
 }
 
+const NESTED_FUNCTIONS = new Set(["FunctionDeclaration", "FunctionExpression", "ArrowFunctionExpression"]);
+const BREAKABLES = new Set(["WhileStatement", "DoWhileStatement", "ForStatement", "ForInStatement", "ForOfStatement", "SwitchStatement"]);
+
+function loop_exits(body) {
+	let exits = false;
+	const walk = (node, nested) => {
+		if (exits || !node || typeof node.type !== "string" || NESTED_FUNCTIONS.has(node.type)) return;
+		if (node.type === "ReturnStatement" || node.type === "ThrowStatement") exits = true;
+		if (node.type === "BreakStatement" && (node.label || !nested)) exits = true;
+		const inner = nested || BREAKABLES.has(node.type);
+		for (const key in node) {
+			if (key === "loc" || key === "type") continue;
+			const child = node[key];
+			if (Array.isArray(child)) child.forEach(c => walk(c, inner));
+			else if (child && typeof child.type === "string") walk(child, inner);
+		}
+	};
+	walk(body, false);
+	return exits;
+}
+
 function analyze_file(parser, name, text, monsters) {
 	const ast = parser.parse(text, PARSE_OPTIONS);
 	const lines = text.split("\n");
@@ -231,8 +252,8 @@ function analyze_file(parser, name, text, monsters) {
 			if (root === "localStorage") return;
 		}
 		if (node.type === "MemberExpression" && node.object.type === "Identifier" && node.object.name === "localStorage") site("local_storage", node);
-		if (node.type === "WhileStatement" && node.test.type === "Literal" && node.test.value === true) site("while_true", node);
-		if (node.type === "ForStatement" && !node.test) site("while_true", node);
+		if (node.type === "WhileStatement" && node.test.type === "Literal" && node.test.value === true && !loop_exits(node.body)) site("while_true", node);
+		if (node.type === "ForStatement" && !node.test && !loop_exits(node.body)) site("while_true", node);
 		if (node.type === "AssignmentExpression" && node.left.type === "MemberExpression" && !node.left.computed
 			&& node.left.object.type === "Identifier" && node.left.object.name === "parent") site("parent_assign", node);
 		if (node.type === "BinaryExpression" && /^[!=]==?$/.test(node.operator)) {

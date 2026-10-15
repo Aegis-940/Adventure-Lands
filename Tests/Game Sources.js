@@ -15,6 +15,7 @@ const SOURCES = {
 	"data.js": "https://adventure.land/data.js",
 	"common_functions.js": "https://raw.githubusercontent.com/kaansoral/adventureland/master/js/common_functions.js",
 	"runner_functions.js": "https://raw.githubusercontent.com/kaansoral/adventureland/master/js/runner_functions.js",
+	"runner_compat.js": "https://raw.githubusercontent.com/kaansoral/adventureland/master/js/runner_compat.js",
 	"acorn.js": "https://cdn.jsdelivr.net/npm/acorn@8.12.1/dist/acorn.js",
 };
 
