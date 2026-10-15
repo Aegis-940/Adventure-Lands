@@ -217,6 +217,19 @@ details ul { margin: 6px 0 0; padding-left: 18px; }
 
 	<div class="section grid cols-2">
 		<section class="card">
+			<h2>Skills, last 24 hours</h2>
+			<div class="meta">Chosen and server-confirmed per hour (confirmed is per cooldown group, so 3shot and 5shot count under attack), damage, and for skills with an estimate the value they were cast for against what they did. From <code>Data Store.py skills</code>.</div>
+			<div class="scroll" id="skills"></div>
+		</section>
+		<section class="card">
+			<h2>Weapons, last 24 hours</h2>
+			<div class="meta">Share of time worn, and damage per hit with its splash and burn shares, from the per-weapon damage windows. From <code>Data Store.py weapons</code>.</div>
+			<div class="scroll" id="weapons"></div>
+		</section>
+	</div>
+
+	<div class="section grid cols-2">
+		<section class="card">
 			<h2>Next kill-score milestones</h2>
 			<div class="meta" id="ach-meta"></div>
 			<div class="scroll" id="achievements"></div>
@@ -618,6 +631,23 @@ function render_danger(d) {
 	if (more) more.onclick = () => { danger_all = !danger_all; render_danger(d); };
 }
 
+function render_decisions(d) {
+	if (!d) return;
+	const num = v => v === null || v === undefined ? "–" : compact(v);
+	$("skills").innerHTML = table(
+		[{ label: "Who" }, { label: "Skill" }, { label: "Chosen/h", n: 1 }, { label: "Confirmed/h", n: 1 }, { label: "MP/h", n: 1 },
+			{ label: "Damage/h", n: 1 }, { label: "Per use", n: 1 }, { label: "Kills/h", n: 1 }, { label: "Pulls/h", n: 1 },
+			{ label: "Predicted", n: 1 }, { label: "Actual ÷ predicted", n: 1 }],
+		d.skills.map(r => [esc(r.character), esc(r.skill), num(r.chosen_h), num(r.confirmed_h), num(r.mana_h), num(r.damage_h),
+			num(r.damage_per_use), num(r.kills_h), num(r.pulls_h), num(r.predicted_per_cast),
+			r.realised_vs_predicted === null ? "–" : r.realised_vs_predicted.toFixed(2)]));
+	$("weapons").innerHTML = table(
+		[{ label: "Who" }, { label: "Weapons" }, { label: "Worn", n: 1 }, { label: "Windows", n: 1 }, { label: "Per hit", n: 1 },
+			{ label: "Splash", n: 1 }, { label: "Burn", n: 1 }],
+		d.weapons.map(r => [esc(r.character), esc(r.weapon), r.worn_pct === null ? "–" : r.worn_pct + "%", r.windows, num(r.per_hit),
+			r.splash_pct === null ? "–" : r.splash_pct + "%", r.burn_pct === null ? "–" : r.burn_pct + "%"]));
+}
+
 function render_mana(measured, modelled) {
 	const by = Object.fromEntries((modelled || []).map(b => [b.character, b]));
 	const pct = r => {
@@ -708,6 +738,7 @@ async function refresh_status() {
 		render_survey(STATUS.survey);
 		render_trends(STATUS.trends);
 		render_danger(STATUS.danger);
+		render_decisions(STATUS.decisions);
 		render_mana(STATUS.mana, STATUS.model && STATUS.model.mana);
 		render_model(STATUS.model);
 	} catch (e) {

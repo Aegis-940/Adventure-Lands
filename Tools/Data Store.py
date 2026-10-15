@@ -8,6 +8,11 @@
     python "Tools/Data Store.py" compare A B [--home H] [--tier neutral|behaviour]
                                             two builds (7-char SHA) or time ranges (2026-10-14T21:00..2026-10-14T23:55)
                                             at the same home: per-window rates, change, and a verdict
+    python "Tools/Data Store.py" skills|weapons|pulls|time|before-danger [--hours N | --build SHA | --range A..B]
+                                            [--home H] [--who NAME] [--last N]
+                                            the questions of Overhaul Plan 4: is each skill worth its mana, which
+                                            weapon pair does better, how big a pull is safe, where the time goes,
+                                            and the decisions before each death or close call
 
 Also kept, one table each: damage.jsonl, heal.jsonl, target_choice.jsonl, cc_report.jsonl (Overhaul 4.1).
 
@@ -221,7 +226,7 @@ def ingest_file(db, name, add, tables):
 
 def connect():
     db = sqlite3.connect(DB, timeout=60)
-    db.executescript(SCHEMA + sample_schema())
+    db.executescript(SCHEMA + sample_schema() + DECISION_SCHEMA)
     for table, columns in ADDED_COLUMNS.items():
         have = [c[1] for c in db.execute("PRAGMA table_info(%s)" % table)]
         for column in columns:
@@ -521,9 +526,264 @@ def status():
         "danger": danger(db, now_ms),
         "mana": mana_measured(db, now_ms),
         "model": model(),
+        "decisions": decisions_status(db, now_ms),
     }
     db.close()
     return out
+
+
+# --------------------------------------------------------------------------------------------------------------------------------- #
+# DECISIONS — Overhaul 4.5: what each fighter chose and what came of it, per ledger window, and the questions asked of it
+# --------------------------------------------------------------------------------------------------------------------------------- #
+
+DECISION_FIELDS = ["casts", "values", "actions", "pulls", "bursts", "gear", "panics", "outcomes", "taken", "worn_s", "goal_s"]
+DECISION_SCHEMA = """
+CREATE TABLE IF NOT EXISTS decisions (character TEXT, t INTEGER, at TEXT, window_s INTEGER, panic_s REAL,
+    casts TEXT, cast_values TEXT, actions TEXT, pulls TEXT, bursts TEXT, gear TEXT, panics TEXT, outcomes TEXT,
+    taken TEXT, worn_s TEXT, goal_s TEXT, build TEXT, home TEXT, map TEXT, goal TEXT, encounters TEXT, variant TEXT);
+CREATE INDEX IF NOT EXISTS decisions_t ON decisions (character, t);
+"""
+PAIR_MS = 2000
+
+
+def add_decisions(db, r):
+    row = {"character": r.get("character"), "t": r.get("t"), "at": r.get("at"), "window_s": r.get("window_s"),
+           "panic_s": r.get("panic_s")}
+    for field in DECISION_FIELDS:
+        row["cast_values" if field == "values" else field] = r.get(field) or {}
+    row.update(context(r))
+    insert(db, "decisions", row)
+
+
+def period(flags):
+    """--build SHA, --range start..end (local time), or --hours N (default 24); optionally --home H and --who NAME."""
+    where, args = [], []
+    if flags.get("--build"):
+        where.append("build = ?")
+        args.append(flags["--build"][:7])
+    elif flags.get("--range"):
+        clause, values, _ = compare_selector(flags["--range"])
+        where.append(clause)
+        args.extend(values)
+    else:
+        where.append("t >= ?")
+        args.append(int(time.time() * 1000) - int(float(flags.get("--hours", 24)) * HOUR_MS))
+    if flags.get("--home"):
+        where.append("home = ?")
+        args.append(flags["--home"])
+    if flags.get("--who"):
+        where.append("character = ?")
+        args.append(flags["--who"])
+    return " AND ".join(where), tuple(args)
+
+
+def decision_rows(db, flags):
+    where, args = period(flags)
+    names = ["character", "t", "window_s", "panic_s", "cast_values"] + [f for f in DECISION_FIELDS if f != "values"]
+    out = []
+    for row in db.execute("SELECT %s FROM decisions WHERE %s ORDER BY t" % (", ".join(names), where), args):
+        r = dict(zip(names, row))
+        for f in names[4:]:
+            r[f] = json.loads(r[f] or "{}")
+        r["values"] = r.pop("cast_values")
+        out.append(r)
+    return out
+
+
+def by_character(rows):
+    out = {}
+    for r in rows:
+        out.setdefault(r["character"], []).append(r)
+    return out
+
+
+def hours(rows):
+    return sum(r["window_s"] or 0 for r in rows) / 3600.0 or None
+
+
+def skills_summary(rows):
+    """Per character and per skill or shot: how often it was chosen and confirmed, what it cost, what it did, and the
+    value it was cast for. Confirmed casts are per cooldown group (3shot and 5shot count under attack)."""
+    out = []
+    for who, mine in sorted(by_character(rows).items()):
+        h = hours(mine)
+        if not h:
+            continue
+        total = {}
+        for r in mine:
+            for section in ("casts", "values", "actions", "outcomes"):
+                for name, fields in r[section].items():
+                    slot = total.setdefault(name, {})
+                    for k, v in fields.items():
+                        slot[section + "." + k] = slot.get(section + "." + k, 0) + v
+        for name, t in sorted(total.items(), key=lambda kv: -kv[1].get("outcomes.damage", 0)):
+            uses = t.get("values.n") or t.get("actions.n") or t.get("casts.n") or 0
+            damage = t.get("outcomes.damage", 0)
+            predicted = t.get("values.predicted")
+            out.append({
+                "character": who, "skill": name, "hours": round(h, 2),
+                "chosen_h": round(t.get("actions.n", t.get("values.n", 0)) / h, 1),
+                "confirmed_h": round(t.get("casts.n", 0) / h, 1),
+                "mana_h": round(t.get("casts.mana", 0) / h),
+                "penalty_s_h": round(t.get("casts.penalty_ms", 0) / 1000.0 / h, 1),
+                "damage_h": round(damage / h),
+                "damage_per_use": round(damage / uses) if uses and damage else None,
+                "kills_h": round(t.get("outcomes.kills", 0) / h, 1),
+                "miss_pct": round(100.0 * t.get("outcomes.misses", 0) / t["outcomes.hits"], 1) if t.get("outcomes.hits") else None,
+                "pulls_h": round(t.get("actions.pulls", 0) / h, 1),
+                "predicted_per_cast": round(predicted / t["values.n"]) if predicted and t.get("values.n") else None,
+                "realised_vs_predicted": round(damage / predicted, 2) if predicted and damage else None,
+            })
+    return out
+
+
+def weapons_summary(db, rows, flags):
+    """Per character and weapon pair: share of time worn (decision windows), and realised damage per hit with its
+    splash and burn shares (Combat Sampling's per-weapon windows, which attribute each hit to the weapon that fired it).
+    Those windows run 15s from a weapon's first hit, not for as long as it is worn, so damage per second is not given."""
+    worn = {}
+    for r in rows:
+        for label, s in r["worn_s"].items():
+            worn[(r["character"], label)] = worn.get((r["character"], label), 0) + s
+    totals = {}
+    for (who, _), s in worn.items():
+        totals[who] = totals.get(who, 0) + s
+    where, args = period(flags)
+    measured = {}
+    for who, weapon, secs, direct, splash, burn, hits in db.execute(
+            "SELECT character, weapon, secs, direct, splash, burn, hits FROM damage_windows WHERE %s" % where, args):
+        m = measured.setdefault((who, weapon), [0, 0, 0, 0, 0, 0])
+        m[0] += secs or 0
+        m[1] += direct or 0
+        m[2] += splash or 0
+        m[3] += burn or 0
+        m[4] += hits or 0
+        m[5] += 1
+    out = []
+    for key in sorted(set(worn) | set(measured)):
+        who, weapon = key
+        m = measured.get(key)
+        out.append({
+            "character": who, "weapon": weapon,
+            "worn_pct": round(100.0 * worn.get(key, 0) / totals[who], 1) if totals.get(who) else None,
+            "windows": m[5] if m else 0,
+            "per_hit": round((m[1] + m[2] + m[3]) / m[4]) if m and m[4] else None,
+            "splash_pct": round(100.0 * m[2] / (m[1] + m[2] + m[3]), 1) if m and m[1] + m[2] + m[3] else None,
+            "burn_pct": round(100.0 * m[3] / (m[1] + m[2] + m[3]), 1) if m and m[1] + m[2] + m[3] else None,
+        })
+    return out
+
+
+def close_calls_near(db, who, start, end):
+    return db.execute("SELECT COUNT(*) FROM danger WHERE character = ? AND event = 'close_call' AND t > ? AND t <= ?",
+                      (who, start, end)).fetchone()[0]
+
+
+def pulls_summary(db, rows):
+    """Windows grouped by the most monsters already on the puller when she pulled: how many such windows, how many
+    pulls, and what followed (close calls in the window, damage taken and MP potions per hour)."""
+    groups = {}
+    for r in rows:
+        if not r["pulls"]:
+            continue
+        top = max(int(k) for k in r["pulls"])
+        g = groups.setdefault((r["character"], top), {"windows": 0, "pulls": 0, "secs": 0, "close": 0, "taken": 0, "mp_pots": 0})
+        g["windows"] += 1
+        g["pulls"] += sum(r["pulls"].values())
+        g["secs"] += r["window_s"] or 0
+        g["close"] += close_calls_near(db, r["character"], r["t"] - (r["window_s"] or 0) * 1000, r["t"])
+        g["taken"] += (r["taken"] or {}).get("damage", 0)
+        pots = db.execute("SELECT mp_pots FROM ledger WHERE character = ? AND ABS(t - ?) < ?",
+                          (r["character"], r["t"], PAIR_MS)).fetchone()
+        g["mp_pots"] += (pots[0] or 0) if pots else 0
+    out = []
+    for (who, top), g in sorted(groups.items()):
+        h = g["secs"] / 3600.0 or None
+        out.append({"character": who, "max_aggro_at_pull": "%d+" % top if top >= 10 else top, "windows": g["windows"],
+                    "pulls_h": round(g["pulls"] / h, 1) if h else None,
+                    "close_calls_per_window": round(g["close"] / g["windows"], 2),
+                    "taken_h": round(g["taken"] / h) if h else None,
+                    "mp_pots_h": round(g["mp_pots"] / h) if h else None})
+    return out
+
+
+def time_summary(rows):
+    out = []
+    for who, mine in sorted(by_character(rows).items()):
+        total = sum(sum(r["goal_s"].values()) for r in mine) or None
+        if not total:
+            continue
+        goals = {}
+        for r in mine:
+            for label, s in r["goal_s"].items():
+                goals[label] = goals.get(label, 0) + s
+        shares = sorted(((round(100.0 * s / total, 1), label) for label, s in goals.items()), reverse=True)
+        out.append({"character": who, "hours": round(total / 3600.0, 2),
+                    "panic_pct": round(100.0 * sum(r["panic_s"] or 0 for r in mine) / total, 1),
+                    "goals": [{"goal": label, "pct": pct} for pct, label in shares]})
+    return out
+
+
+def before_danger(db, flags, limit=10):
+    where, args = period(flags)
+    out = []
+    for raw, in db.execute("SELECT raw FROM danger WHERE %s ORDER BY t DESC LIMIT ?" % where, args + (limit,)):
+        r = json.loads(raw)
+        out.append({k: r.get(k) for k in ("at", "character", "event", "map", "goal", "min_hp_pct", "damage_10s",
+                                          "targeting", "killer", "decisions")})
+    return out
+
+
+def print_rows(rows, columns):
+    if not rows:
+        print("  no data for this period")
+        return
+    widths = [max(len(c), *(len(str(r.get(c) if r.get(c) is not None else "-")) for r in rows)) for c in columns]
+    print("  " + "  ".join(c.ljust(w) for c, w in zip(columns, widths)))
+    for r in rows:
+        print("  " + "  ".join(str(r.get(c) if r.get(c) is not None else "-").ljust(w) for c, w in zip(columns, widths)))
+
+
+def question_report(command, flags):
+    ingest()
+    db = connect()
+    rows = decision_rows(db, flags)
+    print("%s: %d decision windows (%s)" % (command, len(rows), ", ".join("%s %s" % kv for kv in flags.items()) or "last 24 h"))
+    if command == "skills":
+        print_rows(skills_summary(rows), ["character", "skill", "chosen_h", "confirmed_h", "mana_h", "penalty_s_h", "damage_h",
+                                          "damage_per_use", "kills_h", "miss_pct", "pulls_h", "predicted_per_cast",
+                                          "realised_vs_predicted"])
+    elif command == "weapons":
+        print_rows(weapons_summary(db, rows, flags), ["character", "weapon", "worn_pct", "windows", "per_hit", "splash_pct",
+                                                      "burn_pct"])
+    elif command == "pulls":
+        print_rows(pulls_summary(db, rows), ["character", "max_aggro_at_pull", "windows", "pulls_h", "close_calls_per_window",
+                                             "taken_h", "mp_pots_h"])
+    elif command == "time":
+        for t in time_summary(rows):
+            print("  %s  %.2f h, panicking %s%%" % (t["character"], t["hours"], t["panic_pct"]))
+            for g in t["goals"]:
+                print("      %5.1f%%  %s" % (g["pct"], g["goal"]))
+    elif command == "before-danger":
+        for e in before_danger(db, flags, int(flags.get("--last", 10))):
+            print("  %s %s %s at %s (%s), low %s%%, %s damage in 10s, %s on them%s" % (
+                e["at"], e["character"], e["event"], e["map"], e["goal"], e["min_hp_pct"], e["damage_10s"], e["targeting"],
+                ", killer " + e["killer"] if e.get("killer") else ""))
+            for d in e.get("decisions") or []:
+                extra = ", ".join("%s %s" % (k, v) for k, v in d.items() if k not in ("kind", "name", "ms_ago"))
+                print("      -%5.1fs  %-6s %s%s" % (d["ms_ago"] / 1000.0, d["kind"], d["name"], "  (" + extra + ")" if extra else ""))
+            if not e.get("decisions"):
+                print("      (no decisions recorded: before Overhaul 4.3)")
+    db.close()
+
+
+def decisions_status(db, now_ms):
+    flags = {"--hours": 24}
+    rows = decision_rows(db, flags)
+    return {"skills": skills_summary(rows), "weapons": weapons_summary(db, rows, flags)}
+
+
+SOURCES.append(("decisions.jsonl", add_decisions, ["decisions"]))
 
 
 # --------------------------------------------------------------------------------------------------------------------------------- #
@@ -640,6 +900,10 @@ def main():
             print(__doc__)
             sys.exit(2)
         compare_report(plain[0], plain[1], flags.get("--home"), flags.get("--tier", "neutral"))
+        return
+    if command in ("skills", "weapons", "pulls", "time", "before-danger"):
+        args = sys.argv[2:]
+        question_report(command, {args[i]: args[i + 1] for i in range(0, len(args) - 1, 2) if args[i].startswith("--")})
         return
     if command == "rebuild":
         if os.path.exists(DB):

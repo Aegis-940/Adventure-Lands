@@ -630,7 +630,7 @@ One normalised outcome handler: `hit`, `action` and `kill_credit` subscribed onc
 - [x] 4.2 context on every record (on `overhaul`: build, home, map, goal, encounters; `variant` arrives with 4.6)
 - [x] 4.3 decisions recorded at the choke points, rolled up per window; last 50 on each danger record (on `overhaul`: `Core Systems/Decision Log.js`. Casts are counted from the server's `skill_timeout`, which catches every path, raw emits included; target choice is already the archived `target_choice` sample)
 - [x] 4.4 one outcome feed; damage and kills attributed to decisions (on `overhaul`: attributed per window by hit `source`, which is what question 1 needs; per-projectile linking was not needed. Combat Sampling keeps its own handlers, because the in-flight ledger must run first and exactly)
-- [ ] 4.5 `decisions` table and the six question commands
+- [x] 4.5 `decisions` table and the six question commands (on `overhaul`: `skills`, `weapons`, `pulls`, `time`, `before-danger`; `experiment` comes with 4.6. The status page shows skills and weapons. `weapons` gives damage per hit, not per second, because the damage windows aren't time worn)
 - [ ] 4.6 `experiment()` mechanism (none running)
 - [ ] 4.7 `log(level, msg)`
 
