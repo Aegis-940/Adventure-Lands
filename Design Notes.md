@@ -429,7 +429,7 @@ A follower in turn does not pursue while she is live on his map, beyond the rang
 
 **The gate is per entry.** `combat` skips the entry while `should_pause_combat_loop()` holds (asked once per pass, at the first combat entry). `alive` is no gate beyond the tick's own preamble. Myras's party heal is `alive` on purpose: her heals are what the party survives panic on. The tick keeps its preamble (Ulric's and Riva's return 100ms while paused, every role 250ms while disabled), so the cadence is unchanged.
 
-**Context is what the tick worked out once.** Ulric's tick passes the tank. The old tick read `cache.tank_entity` once and used it across the awaited agitate and taunt, and the context keeps that. Cooldown and mana checks stay in each entry's `wanted`, because they differ on purpose: dark blessing keeps no panic reserve, and a stomp on a Rime shell spends it.
+**Context is what the tick worked out once.** Ulric's tick passes the tank. The old tick read `cache.tank_entity` once and used it across the awaited agitate and taunt, and the context keeps that. Myras's tick passes the swap penalty it read before the heal, which absorb is gated on, as before. Her mana-for-luxuries check is now read when dark blessing is decided, after curse and absorb, instead of straight after the heal: the one place a skill now sees fresher state than it used to. Cooldown and mana checks stay in each entry's `wanted`, because they differ on purpose: dark blessing keeps no panic reserve, and a stomp on a Rime shell spends it. The zap loop keeps its own cadence (Loop Cadence) and runs a one-entry table, `ZAP_SKILLS`.
 
 ### `Farm Ledger.js`
 

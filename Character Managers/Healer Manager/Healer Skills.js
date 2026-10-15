@@ -2,6 +2,23 @@
 // HEALER SKILLS — curse, absorb, party heal, dark blessing; started by Healer.js
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+var HEALER_SKILLS = [
+	{ name: "partyheal", gate: "alive", cast: () => handle_party_heal() },
+	{ name: "curse", gate: "combat", wanted: () => CONFIG.combat.enabled && character.mp >= skill_mp_cost("curse") + panic_mp_reserve(), cast: () => handle_curse() },
+	{ name: "absorb", gate: "combat", wanted: tick => CONFIG.healing.absorb_enabled && tick.penalty < 500, cast: () => handle_absorb() },
+	{ name: "darkblessing", gate: "combat", wanted: dark_blessing_wanted, cast: () => use_skill("darkblessing") },
+];
+
+var ZAP_SKILLS = [
+	{ name: "zapperzap", gate: "combat", wanted: () => !is_disabled(character) && !dungeon_bailing() && !cave_paused(), cast: () => handle_zapper() },
+];
+
+function dark_blessing_wanted() {
+	const mp_pct = character.max_mp ? character.mp / character.max_mp : 1;
+	return mp_pct >= CONFIG.healing.skill_min_mp_pct && CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
+		&& character.mp >= skill_mp_cost("darkblessing") && bscorpion_worth_buffing() && dark_blessing_synced();
+}
+
 function skill_loop() {
 	every("skill_loop", { ms: TICK_RATE.skill, kind: "combat", beat: true }, skill_tick);
 }
@@ -18,48 +35,9 @@ async function skill_tick() {
 
 		update_cache();
 
-		const penalty = character.s.penalty_cd?.ms || 0;
-
-		try {
-			await handle_party_heal();
-		} catch (e) {
-			catcher(e, "handle_party_heal");
-		}
-
-		const mp_pct = character.max_mp ? character.mp / character.max_mp : 1;
-		const mana_for_luxuries = mp_pct >= CONFIG.healing.skill_min_mp_pct;
-
-		const paused = should_pause_combat_loop();
-
-		if (!paused && CONFIG.combat.enabled
-			&& character.mp >= skill_mp_cost("curse") + panic_mp_reserve()) {
-			try {
-				await handle_curse();
-			} catch (e) {
-				catcher(e, "handle_curse");
-			}
-		}
-
-		if (!paused && CONFIG.healing.absorb_enabled && penalty < 500) {
-			try {
-				await handle_absorb();
-			} catch (e) {
-				catcher(e, "handle_absorb");
-			}
-		}
-
 		if (is_on_cooldown("darkblessing")) _dark_blessing_ready_since = 0;
 
-		if (!paused && mana_for_luxuries && CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
-			&& character.mp >= skill_mp_cost("darkblessing")) {
-			if (bscorpion_worth_buffing() && dark_blessing_synced()) {
-				try {
-					await use_skill("darkblessing");
-				} catch (e) {
-					catcher(e, "darkblessing");
-				}
-			}
-		}
+		await run_skills(HEALER_SKILLS, { penalty: character.s.penalty_cd?.ms || 0 });
 
 	} catch (e) {
 		catcher(e, "skill_loop");
@@ -77,9 +55,7 @@ async function zap_tick() {
 	let next_delay = TICK_RATE.skill;
 
 	try {
-		if (!is_disabled(character) && !dungeon_bailing() && !cave_paused() && !should_pause_combat_loop()) {
-			await handle_zapper();
-		}
+		await run_skills(ZAP_SKILLS);
 	} catch (e) {
 		catcher(e, "zap_loop");
 		next_delay = TICK_RATE.retry;
