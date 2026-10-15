@@ -123,13 +123,14 @@ function scare_off() {
 		return false;
 	}
 
-	const arm = equip_plan("panic");
-	emit_equip_ops(arm.ops, arm.shadow);
+	return !!equip_burst({ owner: "scare", priority: EQUIP_PRIORITY.panic, arm: "panic", between: fire_scare });
+}
+
+function fire_scare(armed) {
 	parent.next_skill.scare = new Date(Date.now() + G.skills.scare.cooldown);
-	errlog_count(arm.ops.length ? "scare fired with swap" : "scare fired");
+	errlog_count(armed.ops.length ? "scare fired with swap" : "scare fired");
 	game_log("Using Scare!", "#ffcc00");
 	use_skill("scare").catch(e => game_log(`[PANIC] Error using scare: ${fmt_err(e)}`, "#ff4444"));
-	return true;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

@@ -345,7 +345,7 @@ Live boss and seasonal targets, and the goal that walks the party to them.
 
 ### `Equipment Manager.js`
 
-The one file that changes what is worn: equipment sets, the single `batch_equip()` emitter, the slot arbiter, the shadow-inventory planner (`equip_plan()`/`emit_equip_ops()`) that resolves a chain of sets ahead of the server's acks, and the rules resolver.
+The one file that changes what is worn: equipment sets, the single `batch_equip()` emitter, the slot arbiter, the shadow-inventory planner (`equip_plan()`/`emit_equip_ops()`) that resolves a chain of sets ahead of the server's acks, `equip_burst()`, and the rules resolver.
 
 **Slot intent.** Every swap sent is recorded per slot for 1.5s (`slot_in_flight()`/`slot_intent()`), and `is_set_equipped()` reads that intent. So the rules loop never re-sends a swap from a stale inventory view; re-sending used stale indices and flipped the orb straight back.
 
@@ -356,6 +356,8 @@ The one file that changes what is worn: equipment sets, the single `batch_equip(
 **Unequip lands where the server says.** `equip_batch` swaps in place, but `unequip` puts the item in the server's first empty bag slot, and party chest loot fills that same slot at any time without the client knowing yet. The server equips whatever is at the index sent, and for `slot: "offhand"` it moves a non-weapon to its own slot (`can_equip_item()`). So restoring Ulric's offhand from a guessed index after a cleave or stomp (bataxe and wbasher are two-handed) once equipped a looted int amulet and a pumpkin helmet. His real ones, in no set, were then shipped to Riff. `shadow_unequip()` now marks the item `guess`. `best_copy()` will not pick it until the unequip reply (the `player` update arrives first) shows it at that index (`settle_landing()`). Until then the restore leaves that slot to the rules loop, which takes it once the view is live again. A miss is counted as `unequip landed elsewhere`.
 
 **Which copy.** `best_copy()` picks the bag copy for both planners: the set's exact level first, then its lock, and never a copy below the set's level (one above is equipped with a warning, the upgrade case). A set without a `level` takes the highest. It used to try level 0 first, so every sugar-rush burst put a freshly looted +0 candy cane in Ulric's hand. That copy was on `SELLABLE_ITEMS`, and the sale landed on the bag index the real weapon had just been swapped into.
+
+**Bursts.** A skill that needs other equipment borrows it through `equip_burst({ owner, priority, arm, between, then, hold, restore })`: claim the slots (skill priority unless given), send the `arm` swap, run `between` (the skill), send `then`, and send the `restore` swap either at once or after `hold` ms. `restore` is a function, called when the restore is sent and planned on the sent view at that moment, so it puts on whatever the chooser wants then rather than what it wanted before the skill. It returns the planned arm (its `ops` say whether anything was swapped), or null when the slots are held at equal or higher priority. The claim is what stops the rules loop from swapping back mid-burst. `equip_claimable()` lets a caller check before doing work the claim would waste.
 
 **Swap penalty.** Each item equipped adds 120ms of the server's `penalty_cd`, which is added to the next skill or attack's cooldown. So a swap belongs *after* the skill it serves.
 
@@ -373,7 +375,7 @@ Set profiles pause (they are not reset) while a skill claim is held or a swap is
 
 ### `Party Management.js`
 
-Panic and its broadcast (`set_panic()` is the only writer), party invites, and where home is. `scare_off()` sends the jacko swap and the scare in one burst (`equip_plan("panic")` → `emit_equip_ops()` → `use_skill("scare")`), the same pattern as cleave. It never waits for the rules loop to put the orb on first.
+Panic and its broadcast (`set_panic()` is the only writer), party invites, and where home is. `scare_off()` sends the jacko swap and the scare in one burst (`equip_burst()` arms `panic`, then `fire_scare()`), claimed at panic priority so nothing outranks it, the same pattern as cleave. It never waits for the rules loop to put the orb on first.
 
 ### `Loot Management.js`
 

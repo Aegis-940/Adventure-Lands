@@ -296,9 +296,13 @@ const EQUIP_CLAIM_MAX_MS = 5000;
 let _equip_holder = null;
 let _equip_seq = 0;
 
-function equip_claim(owner, priority) {
+function equip_claimable(priority) {
 	if (_equip_holder && Date.now() - _equip_holder.at > EQUIP_CLAIM_MAX_MS) _equip_holder = null;
-	if (_equip_holder && _equip_holder.priority >= priority) return null;
+	return !_equip_holder || _equip_holder.priority < priority;
+}
+
+function equip_claim(owner, priority) {
+	if (!equip_claimable(priority)) return null;
 	_equip_holder = { owner, priority, token: ++_equip_seq, at: Date.now() };
 	return _equip_holder.token;
 }
@@ -476,6 +480,34 @@ function emit_equip_ops(ops, shadow) {
 		const slots = op.event === "equip_batch" ? op.payload.map(p => p.slot) : [op.payload.slot];
 		for (const slot of slots) note_slot_flight(slot, shadow.slots[slot] ? shadow.slots[slot].name : null);
 	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BURSTS — arm, act, restore in one go: the only way a skill borrows equipment
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function equip_burst(burst) {
+	const token = equip_claim(burst.owner, burst.priority || EQUIP_PRIORITY.skill);
+	if (!token) return null;
+
+	const armed = equip_plan(burst.arm);
+	emit_equip_ops(armed.ops, armed.shadow);
+	if (burst.between) burst.between(armed);
+	if (burst.then) {
+		const then = equip_plan(burst.then, armed.shadow);
+		emit_equip_ops(then.ops, armed.shadow);
+	}
+
+	if (!burst.restore) equip_release(token);
+	else if (burst.hold) setTimeout(() => restore_burst(token, burst.restore), burst.hold);
+	else restore_burst(token, burst.restore);
+	return armed;
+}
+
+function restore_burst(token, restore) {
+	const back = equip_plan(restore() || []);
+	emit_equip_ops(back.ops, back.shadow);
+	equip_release(token);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
