@@ -57,21 +57,27 @@ function event_goal() {
 	}
 	if (seen && !boss_strayed(seen)) {
 		const stand = event_stand_point(target.name, seen);
+		const place = event_place(target, seen);
 		if (is_in_range(seen, "attack") || can_move_to(stand.x, stand.y)
-			|| Math.hypot(character.x - stand.x, character.y - stand.y) <= EVENT_STAND_ARRIVE) {
+			|| Math.hypot(character.x - stand.x, character.y - stand.y) <= EVENT_STAND_ARRIVE
+			|| Math.hypot(character.x - place.x, character.y - place.y) <= EVENT_PLACE_ARRIVE) {
 			return { local: "event", pursuit: true, label, event: target.name };
 		}
-		return { pursuit: true, label, event: target.name, map: character.map, x: seen.x, y: seen.y, radius: character.range * EVENT_REACH };
+		return { pursuit: true, label, event: target.name, map: character.map, x: place.x, y: place.y, radius: EVENT_PLACE_ARRIVE };
 	}
 
 	if (target.join) {
 		const area = boss_home_area(seen);
-		return { label, map: character.map, x: (area[0] + area[2]) / 2, y: (area[1] + area[3]) / 2, radius: 60, disengage: true };
+		return { label, map: character.map, x: (area[0] + area[2]) / 2, y: (area[1] + area[3]) / 2, radius: EVENT_PLACE_ARRIVE, disengage: true };
 	}
 
 	if (!target.map || !isFinite(target.x) || !isFinite(target.y)) return null;
 
-	return { label, map: target.map, x: target.x, y: target.y, radius: 60, disengage: true };
+	return { label, map: target.map, x: target.x, y: target.y, radius: EVENT_PLACE_ARRIVE, disengage: true };
+}
+
+function event_place(target, boss) {
+	return target.spot || (target.join ? boss : target);
 }
 
 const BOSS_WATCH_MS = 10000;
@@ -103,6 +109,7 @@ function event_step(event_type, engage_step) {
 const EVENT_SPOT_RADIUS = 50;
 const EVENT_SPOT_BOSS_REACH = 100;
 const EVENT_STAND_ARRIVE = 20;
+const EVENT_PLACE_ARRIVE = 60;
 
 function event_rule_here() {
 	return EVENT_LOCATIONS.find(e => e.avoid && parent.S[e.name]?.live && parent.S[e.name].map === character.map) || null;
