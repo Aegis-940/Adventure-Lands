@@ -10,8 +10,6 @@
 		return void game_log("❌ [Bootstrapper99] jQuery not found!");
 	}
 
-	let CACHE_OK = false;
-
 	const kernel_scripts = [
 		"Kernel/Kernel.js",
 		"Kernel/Scheduler.js",
@@ -165,7 +163,7 @@
 		const url = base + encodeURI(name);
 		return new Promise(resolve => {
 			function attempt(retries) {
-				p$.ajax({ url: url, dataType: "script", cache: CACHE_OK, timeout: REQUEST_TIMEOUT_MS })
+				p$.ajax({ url: url, dataType: "script", cache: true, timeout: REQUEST_TIMEOUT_MS })
 					.done(() => resolve(true))
 					.fail((_, s, e) => {
 						if (retries < MAX_RETRIES) {
@@ -197,7 +195,7 @@
 		const url = base + encodeURI(name);
 		return new Promise(resolve => {
 			function attempt(retries) {
-				p$.ajax({ url: url, dataType: "text", cache: CACHE_OK, timeout: REQUEST_TIMEOUT_MS })
+				p$.ajax({ url: url, dataType: "text", cache: true, timeout: REQUEST_TIMEOUT_MS })
 					.done(text => resolve(text))
 					.fail((_, s, e) => {
 						if (retries < MAX_RETRIES) {
@@ -268,29 +266,5 @@
 			});
 	}
 
-	const MAX_BASE_AGE_MS = 10 * 60 * 1000;
-
-	function resolve_and_load() {
-		p$.ajax({ url: "https://api.github.com/repos/Aegis-940/Adventure-Lands/commits/main?_=" + Date.now(), dataType: "json", timeout: REQUEST_TIMEOUT_MS })
-			.done(repo_data => {
-				const base = "https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@" + repo_data.sha + "/";
-				window.__AL_BASE__ = base;
-				window.__AL_BASE_SET_AT__ = Date.now();
-				CACHE_OK = true;
-				game_log("📦 Loading commit " + repo_data.sha.slice(0, 7));
-				start_loading(base);
-			})
-			.fail(() => {
-				CACHE_OK = false;
-				game_log("⚠️ Couldn't fetch SHA (GitHub rate limit?) — falling back to @main, which jsDelivr caches for 12h", "#FFA500");
-				start_loading("https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@main/");
-			});
-	}
-
-	if (window.__AL_BASE__ && window.__AL_BASE_SET_AT__ && (Date.now() - window.__AL_BASE_SET_AT__) < MAX_BASE_AGE_MS) {
-		CACHE_OK = true;
-		start_loading(window.__AL_BASE__);
-	} else {
-		resolve_and_load();
-	}
+	start_loading(window.__AL_BASE__);
 })();
