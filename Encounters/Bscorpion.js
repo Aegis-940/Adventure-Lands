@@ -17,13 +17,13 @@ function prim_farm_loc() {
 
 	if (!box || box.length < 4) {
 		_prim_farm_loc = PRIM_FARM_FALLBACK;
-		game_log(`Bscorpion camp: no spawn boundary in G.maps.${PRIM_FARM_MAP}, using ${PRIM_FARM_FALLBACK.x}, ${PRIM_FARM_FALLBACK.y}`, "#ffb347");
+		log_msg("info", `Bscorpion camp: no spawn boundary in G.maps.${PRIM_FARM_MAP}, using ${PRIM_FARM_FALLBACK.x}, ${PRIM_FARM_FALLBACK.y}`);
 		return _prim_farm_loc;
 	}
 
 	const [x1, y1, x2, y2] = box.length > 4 ? box.slice(1) : box;
 	_prim_farm_loc = { map: PRIM_FARM_MAP, x: (x1 + x2) / 2, y: (y1 + y2) / 2 };
-	game_log(`Bscorpion camp centre: ${Math.round(_prim_farm_loc.x)}, ${Math.round(_prim_farm_loc.y)}`, "#ffb347");
+	log_msg("info", `Bscorpion camp centre: ${Math.round(_prim_farm_loc.x)}, ${Math.round(_prim_farm_loc.y)}`);
 	return _prim_farm_loc;
 }
 
@@ -294,7 +294,7 @@ function camp_temporal_surge() {
 	surge_cast_at = Date.now();
 	_surge_watch = null;
 	errlog_count("temporal surge on respawn");
-	game_log("Temporal Surge on the bscorpion respawn", "#FFAA00");
+	log_msg("info", "Temporal Surge on the bscorpion respawn");
 	return true;
 }
 
@@ -316,7 +316,7 @@ function log_bscorpion_kill() {
 	bscorpion_kill_count++;
 
 	if (!previous) {
-		game_log(`Bscorpion kill #${bscorpion_kill_count} at ${new Date(now).toLocaleTimeString()} — timing from here`, "#ffb347");
+		log_msg("info", `Bscorpion kill #${bscorpion_kill_count} at ${new Date(now).toLocaleTimeString()} — timing from here`);
 		return;
 	}
 
@@ -326,8 +326,8 @@ function log_bscorpion_kill() {
 
 	const avg = bscorpion_kill_intervals.reduce((a, b) => a + b, 0) / bscorpion_kill_intervals.length;
 	errlog_timeline("bscorpion_kill", `${(interval / 1000).toFixed(1)}s avg ${(avg / 1000).toFixed(1)}s/${bscorpion_kill_intervals.length}`);
-	game_log(`Bscorpion kill #${bscorpion_kill_count}: ${(interval / 1000).toFixed(1)}s `
-		+ `(avg ${(avg / 1000).toFixed(1)}s over ${bscorpion_kill_intervals.length})`, "#ffb347");
+	log_msg("info", `Bscorpion kill #${bscorpion_kill_count}: ${(interval / 1000).toFixed(1)}s `
+		+ `(avg ${(avg / 1000).toFixed(1)}s over ${bscorpion_kill_intervals.length})`);
 }
 
 function bscorpion_kill_logger_loop() {

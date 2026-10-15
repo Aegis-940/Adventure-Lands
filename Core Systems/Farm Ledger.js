@@ -209,7 +209,7 @@ function tracker_snapshot_due(now) {
 	_tracker_asked_at = now;
 
 	if (!character.items.some(item => item && TRACKER_ITEMS.includes(item.name))) {
-		game_log("⚠️ Tracker snapshot skipped: no tracker in the bag", "#FFA500");
+		log_msg("warn", "Tracker snapshot skipped: no tracker in the bag");
 		errlog_count("tracker snapshot no tracker");
 		return;
 	}

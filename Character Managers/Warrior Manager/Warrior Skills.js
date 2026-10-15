@@ -109,9 +109,9 @@ function handle_stomp(tank) {
 		mark_shells_stomped();
 		errlog_count("stomp rime shell");
 		errlog_timeline("rime_watch", `stomp on shell ${shell.id}, ${Math.round(oldest_shell_age())}ms in`);
-		game_log(`Stomp — breaking Rime Shell on ${shell.name}`, "#FFA600");
+		log_msg("event", `Stomp — breaking Rime Shell on ${shell.name}`);
 	} else {
-		game_log(`Stomp — Myras at ${Math.round(100 * tank.hp / tank.max_hp)}%`, "#FFA600");
+		log_msg("event", `Stomp — Myras at ${Math.round(100 * tank.hp / tank.max_hp)}%`);
 	}
 }
 
@@ -256,7 +256,7 @@ async function handle_taunt(tank) {
 
 		await use_skill("taunt", e.id);
 		errlog_count(`taunt ${e.mtype}`);
-		game_log(`Taunting ${e.name} off ${e.target}`, "#FFA600");
+		log_msg("info", `Taunting ${e.name} off ${e.target}`);
 		return;
 	}
 }

@@ -129,8 +129,8 @@ let _dreams_escort = null;
 const _dreams_chests = {};
 const _dreams_skipped = {};
 
-function dreams_log(message, color) {
-	dungeon_log(DUNGEONS.dreams, message, color);
+function dreams_log(message, level) {
+	dungeon_log(DUNGEONS.dreams, message, level);
 }
 
 function dreams_mode_on() {
@@ -276,7 +276,7 @@ async function dreams_due_visit() {
 		}
 		return visit;
 	} catch (e) {
-		dreams_log(`Visit check failed: ${dreams_reason(e)}`, DUNGEON_WARN_COLOR);
+		dreams_log(`Visit check failed: ${dreams_reason(e)}`, "warn");
 		return null;
 	} finally {
 		_dreams_checking = false;
@@ -320,7 +320,7 @@ async function dreams_wait_for_entry_party() {
 	if (await dreams_until(() => dreams_entry_blocker() === null || !dreams_mode_on(), DREAMS_ASSEMBLE_MS)) {
 		return dreams_mode_on();
 	}
-	dreams_log(`Party never assembled: ${dreams_entry_blocker()}`, DUNGEON_WARN_COLOR);
+	dreams_log(`Party never assembled: ${dreams_entry_blocker()}`, "warn");
 	return false;
 }
 
@@ -329,7 +329,7 @@ async function dreams_enter() {
 	if (!dreams_visit_usable(visit)) {
 		dreams_log(visit.resume
 			? `Our visit is open on ${visit.resume.server} — it can only be resumed there`
-			: "Today's visit is already used", DUNGEON_WARN_COLOR);
+			: "Today's visit is already used", "warn");
 		return false;
 	}
 	const resume = !!visit.resume;
@@ -338,7 +338,7 @@ async function dreams_enter() {
 		if (!dreams_mode_on()) return false;
 		dreams_log(resume ? "Disengaging and walking to Dorr to return to our visit" : `Disengaging and gathering the party at Dorr (attempt ${attempt})`);
 		if (!await dreams_until(() => dreams_at_dorr() || !dreams_mode_on(), DREAMS_ASSEMBLE_MS)) {
-			dreams_log("Never reached Dorr", DUNGEON_WARN_COLOR);
+			dreams_log("Never reached Dorr", "warn");
 			continue;
 		}
 		if (!resume && !await dreams_wait_for_entry_party()) continue;
@@ -347,7 +347,7 @@ async function dreams_enter() {
 			await cave_enter();
 		} catch (e) {
 			const reason = dreams_reason(e);
-			dreams_log(`Entry refused: ${reason}`, DUNGEON_WARN_COLOR);
+			dreams_log(`Entry refused: ${reason}`, "warn");
 			dungeon_telemetry_event("dreams_entry_refused", { reason, attempt, resume });
 			if (reason === "daily_opening_used" || reason === "cant_reenter") return false;
 			await delay(DREAMS_ENTRY_RETRY_MS);
@@ -510,7 +510,7 @@ function dreams_poke(objective) {
 		const e = parent.entities[id];
 		if (!e.cave || e.cave.room !== objective.id || !cave_bystander(e)) continue;
 		dreams_log(`Nothing happening at ${dreams_label(objective)} — talking to ${e.name || e.mtype}`);
-		cave_talk(objective.id, e.id).catch(err => dreams_log(`Talk refused: ${dreams_reason(err)}`, DUNGEON_WARN_COLOR));
+		cave_talk(objective.id, e.id).catch(err => dreams_log(`Talk refused: ${dreams_reason(err)}`, "warn"));
 		return;
 	}
 }
@@ -527,7 +527,7 @@ async function dreams_descend(door) {
 	try {
 		await transport(door.to, dreams_door(character.map, door)[5]);
 	} catch (e) {
-		dreams_log(`Stairs refused: ${dreams_reason(e)}`, DUNGEON_WARN_COLOR);
+		dreams_log(`Stairs refused: ${dreams_reason(e)}`, "warn");
 		await delay(DREAMS_ENTRY_RETRY_MS);
 	}
 }
@@ -623,7 +623,7 @@ async function dreams_floors() {
 				if (lagging && smart.moving) stop_movement("dreams: waiting for the escort");
 				if (!idle_since) idle_since = Date.now();
 				if (Date.now() - idle_since > DREAMS_ROOM_IDLE_MS) {
-					dreams_log(`The escort is not finishing at the stairs — giving it up`, DUNGEON_WARN_COLOR);
+					dreams_log(`The escort is not finishing at the stairs — giving it up`, "warn");
 					dungeon_telemetry_event("dreams_escort_abandoned", { floor, id: escort.objective.id, lagging });
 					_dreams_escort = null;
 					idle_since = 0;
@@ -670,7 +670,7 @@ async function dreams_floors() {
 			const idle = Date.now() - idle_since;
 			if (idle > DREAMS_POKE_AFTER_MS) dreams_poke(goal);
 			if (idle > DREAMS_ROOM_IDLE_MS) {
-				dreams_log(`${dreams_label(goal)} is not progressing — trying another objective first`, DUNGEON_WARN_COLOR);
+				dreams_log(`${dreams_label(goal)} is not progressing — trying another objective first`, "warn");
 				dungeon_telemetry_event("dreams_objective_skipped", { floor, id: goal.id, kind: goal.kind });
 				_dreams_skipped[goal.id] = Date.now() + DREAMS_SKIP_MS;
 				goal = null;
@@ -690,7 +690,7 @@ async function dreams_floors() {
 
 function dreams_leave() {
 	if (!character.cave) return;
-	cave_exit().catch(e => dreams_log(`Exit refused: ${dreams_reason(e)}`, DUNGEON_WARN_COLOR));
+	cave_exit().catch(e => dreams_log(`Exit refused: ${dreams_reason(e)}`, "warn"));
 }
 
 function dreams_chests_near() {
@@ -815,7 +815,7 @@ function dreams_vote(cave) {
 	});
 	cave_reply(choice.id, option.id).catch(e => {
 		const reason = dreams_reason(e);
-		if (!DREAMS_VOTE_SETTLED.includes(reason)) dreams_log(`Vote refused: ${reason}`, DUNGEON_WARN_COLOR);
+		if (!DREAMS_VOTE_SETTLED.includes(reason)) dreams_log(`Vote refused: ${reason}`, "warn");
 		if (_dreams_voted === choice.id && DREAMS_VOTE_RETRY.includes(reason)) _dreams_voted = null;
 	});
 }
@@ -843,7 +843,7 @@ function dreams_buy(cave) {
 	_dreams_bought = choice.id;
 	dreams_log(`Buying ${G.items[shop.name].name} for ${shop.price} cave gold`);
 	dungeon_telemetry_event("dreams_buy", { item: shop.name, price: shop.price });
-	cave_buy(shop.room).catch(e => dreams_log(`Purchase refused: ${dreams_reason(e)}`, DUNGEON_WARN_COLOR));
+	cave_buy(shop.room).catch(e => dreams_log(`Purchase refused: ${dreams_reason(e)}`, "warn"));
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -859,11 +859,11 @@ async function dreams_follow_floor(cave) {
 
 	_dreams_returning = true;
 	try {
-		game_log("🌙 Following Myras down the stairs", DUNGEON_LOG_COLOR);
+		log_msg("event", "🌙 Following Myras down the stairs");
 		await dungeon_travel({ map: character.map, x: door.x, y: door.y }, { radius: DREAMS_DOOR_ARRIVE });
 		await transport(door.to, dreams_door(character.map, door)[5]);
 	} catch (e) {
-		game_log(`🌙 Could not follow down the stairs: ${dreams_reason(e)}`, DUNGEON_WARN_COLOR);
+		log_msg("warn", `Could not follow down the stairs: ${dreams_reason(e)}`);
 	} finally {
 		_dreams_returning = false;
 	}
@@ -879,10 +879,10 @@ async function dreams_follower_return() {
 	try {
 		const visit = await cave_info();
 		if (!visit.resume || visit.resume.server !== dreams_server()) return;
-		game_log("🌙 Back at Dorr — returning to the cave", DUNGEON_LOG_COLOR);
+		log_msg("event", "🌙 Back at Dorr — returning to the cave");
 		await cave_enter();
 	} catch (e) {
-		game_log(`🌙 Could not return to the cave: ${dreams_reason(e)}`, DUNGEON_WARN_COLOR);
+		log_msg("warn", `Could not return to the cave: ${dreams_reason(e)}`);
 	} finally {
 		_dreams_returning = false;
 	}

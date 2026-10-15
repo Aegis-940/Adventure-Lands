@@ -38,7 +38,7 @@ function should_run_upgrade() {
 async function handle_upgrading_state() {
 	if (merchant_task !== "Idle") return;
 	try {
-		game_log("Starting auto-upgrade process...");
+		log_msg("info", "Starting auto-upgrade process...");
 		await auto_upgrade();
 	} catch (e) {
 		catcher(e, "handle_upgrading_state");
@@ -155,7 +155,7 @@ function loop_controller() {
 				watchdog_task = merchant_task;
 				watchdog_since = Date.now();
 			} else if (merchant_task !== "Idle" && Date.now() - watchdog_since > MERCHANT_TASK_WATCHDOG_MS) {
-				game_log(`⚠️ Merchant stuck on "${merchant_task}" for over ${MERCHANT_TASK_WATCHDOG_MS / 60000} minutes — forcing back to Idle.`, "#FF3333");
+				log_msg("warn", `Merchant stuck on "${merchant_task}" for over ${MERCHANT_TASK_WATCHDOG_MS / 60000} minutes — forcing back to Idle.`);
 				abandon_task();
 				watchdog_task = "Idle";
 				watchdog_since = Date.now();

@@ -175,13 +175,13 @@ async function gather_ingredients_for_batch(craft_def, count) {
 		let cost = 0;
 		for (const need of to_buy) {
 			if (!basics.items.includes(need.name)) {
-				game_log(`❌ Missing ${need.amount}x ${need.name} for crafting — not in bank, not buyable.`);
+				log_msg("error", `Missing ${need.amount}x ${need.name} for crafting — not in bank, not buyable.`);
 				return false;
 			}
 			cost += (parent.G.items[need.name].g || 0) * need.amount;
 		}
 		if (character.gold < cost) {
-			game_log(`❌ Not enough gold to buy ${to_buy.map(need => `${need.amount}x ${need.name}`).join(", ")} for crafting.`);
+			log_msg("error", `Not enough gold to buy ${to_buy.map(need => `${need.amount}x ${need.name}`).join(", ")} for crafting.`);
 			return false;
 		}
 
@@ -344,7 +344,7 @@ async function upgrade_crafted(item_name, abandoned) {
 	if (!upgrades_crafted(item_name)) return;
 	if (has_computer()) await leave_bank();
 	else await smarter_move(HOME);
-	game_log(`⬆️ Upgrading the ${item_name} just crafted before crafting more.`);
+	log_msg("info", `⬆️ Upgrading the ${item_name} just crafted before crafting more.`);
 	await upgrade_target_pass(abandoned);
 	await upgrade_pass(abandoned, profile_plan());
 }
@@ -371,7 +371,7 @@ async function try_craft(abandoned) {
 			if (crafted <= 0) break;
 			any_crafted = true;
 
-			game_log(`✅ Crafted ${crafted}x ${target.name} (${total_crafted}${target_max === Infinity ? "" : "/" + target_max} this run).`);
+			log_msg("info", `✅ Crafted ${crafted}x ${target.name} (${total_crafted}${target_max === Infinity ? "" : "/" + target_max} this run).`);
 			task_heartbeat();
 
 			await upgrade_crafted(target.name, abandoned);
@@ -391,6 +391,6 @@ async function try_craft(abandoned) {
 
 	if (!any_crafted) {
 		_craft_retry_at = Date.now() + CRAFT_RETRY_MS;
-		game_log(`⚠️ Craft run made no progress — not retrying for ${CRAFT_RETRY_MS / 60000} min.`, "#FFA500");
+		log_msg("warn", `Craft run made no progress — not retrying for ${CRAFT_RETRY_MS / 60000} min.`);
 	}
 }

@@ -39,7 +39,7 @@ function dungeon_threats(radius = DUNGEON_THREAT_RADIUS) {
 
 async function dungeon_scare_off() {
 	if (!scare_off()) return false;
-	game_log("[BAIL] Scare", "#ffcc00");
+	log_msg("event", "[BAIL] Scare");
 	await delay(200);
 	return true;
 }
@@ -69,15 +69,14 @@ async function dungeon_bail_out(reason, broadcast = true, emergency = true) {
 
 	const d = active_dungeon();
 	if (!d) {
-		game_log(`Bail-out asked for (${reason}) but no dungeon is active — ignoring`, DUNGEON_WARN_COLOR);
+		log_msg("warn", `Bail-out asked for (${reason}) but no dungeon is active — ignoring`);
 		return false;
 	}
 
 	_dungeon_bailing = true;
 	if (emergency) _dungeon_bail_count++;
 	try {
-		game_log(emergency ? `🚨 ${d.name}: bailing out — ${reason}` : `${d.name}: towning back — ${reason}`,
-			emergency ? "#FF3333" : DUNGEON_LOG_COLOR);
+		log_msg(emergency ? "warn" : "event", emergency ? `${d.name}: bailing out — ${reason}` : `${d.name}: towning back — ${reason}`);
 		dungeon_telemetry_event("bail_start", {
 			reason,
 			emergency,
@@ -116,10 +115,9 @@ async function dungeon_bail_out(reason, broadcast = true, emergency = true) {
 		if (walking) stop_movement("dungeon bail-out: done");
 
 		const landed = dungeon_at_spawn(d) || character.map !== d.map;
-		game_log(landed
+		log_msg(landed ? "event" : "warn", landed
 			? `${d.name}: back at the entrance`
-			: `${d.name}: bail-out did not land — still out there`,
-			landed ? "#00FF00" : "#FF3333");
+			: `${d.name}: bail-out did not land — still out there`);
 		dungeon_telemetry_event("bail_end", { landed });
 		return landed;
 

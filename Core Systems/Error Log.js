@@ -333,8 +333,7 @@ function _errlog_lifecycle(event) {
 }
 
 
-const ERRLOG_GAMELOG_PREFIXES = ["⚠️", "❌", "🛑", "🎂", "🚨", "🧭", "🌀", "[", "🍭", "🎉", "✅ Ololipop",
-	"Searching for a path", "Path found", "Path not found", "Lost the path"];
+const ERRLOG_RUNNER_LINES = ["Searching for a path", "Path found", "Path not found", "Lost the path"];
 
 let _errlog_gamelog_wrapped = false;
 function _errlog_try_wrap_game_log() {
@@ -344,7 +343,7 @@ function _errlog_try_wrap_game_log() {
 	game_log = function (msg, color) {
 		try {
 			const text = String(msg);
-			if (ERRLOG_GAMELOG_PREFIXES.some(p => text.indexOf(p) === 0)) errlog_record("game_log", text);
+			if (ERRLOG_RUNNER_LINES.some(p => text.indexOf(p) === 0)) errlog_record("game_log", text);
 		} catch (e) { }
 		return original_game_log(msg, color);
 	};

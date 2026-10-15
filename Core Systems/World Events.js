@@ -4,7 +4,7 @@
 
 function announce_game_event(data) {
 	if (!data?.name) return;
-	game_log(`[Event] ${data.name} spawned`, "#FF8800");
+	log_msg("event", `[Event] ${data.name} spawned`);
 }
 
 const EVENT_JOIN_RETRY_MS = 5000;

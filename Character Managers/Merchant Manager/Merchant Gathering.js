@@ -13,7 +13,7 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 	try {
 		const tool_available = await ensure_tool_available(tool_name);
 		if (!tool_available) {
-			game_log(`❌ No ${tool_name} available (not in inventory, bank, or craftable).`);
+			log_msg("error", `No ${tool_name} available (not in inventory, bank, or craftable).`);
 			return;
 		}
 
@@ -23,33 +23,33 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 
 		const tool_equipped = await equip_tool(tool_name);
 		if (!tool_equipped) {
-			game_log(`❌ Could not equip ${tool_name} at the ${skill_name} spot.`);
+			log_msg("error", `Could not equip ${tool_name} at the ${skill_name} spot.`);
 			return;
 		}
 
 		while (true) {
 			if (my_generation !== merchant_task_generation) {
-				game_log(`⚠️ ${task_label} was force-reset by the watchdog — abandoning this run.`, "#FFA500");
+				log_msg("warn", `${task_label} was force-reset by the watchdog — abandoning this run.`);
 				return;
 			}
 			if (character.rip) {
-				game_log(`❌ Died while ${skill_name}, stopping.`);
+				log_msg("error", `Died while ${skill_name}, stopping.`);
 				break;
 			}
 			if (!character.slots.mainhand || character.slots.mainhand.name !== tool_name) {
-				game_log(`❌ ${tool_name} not equipped, stopping ${skill_name}.`);
+				log_msg("error", `${tool_name} not equipped, stopping ${skill_name}.`);
 				break;
 			}
 			if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > tolerance) {
-				game_log(`❌ Not at ${skill_name} spot, stopping.`);
+				log_msg("error", `Not at ${skill_name} spot, stopping.`);
 				break;
 			}
 			if (character.items.filter(Boolean).length >= character.items.length) {
-				game_log(`📦 Inventory full, stopping ${skill_name}.`);
+				log_msg("info", `📦 Inventory full, stopping ${skill_name}.`);
 				break;
 			}
 			if (is_on_cooldown(skill_name)) {
-				game_log(`✅ ${skill_name} succeeded — on cooldown now, moving on.`, "limegreen");
+				log_msg("info", `✅ ${skill_name} succeeded — on cooldown now, moving on.`);
 				break;
 			}
 
@@ -59,7 +59,7 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 			} catch (e) {
 				if (e?.reason === "cooldown") {
 					if (++cooldown_retries > GATHERING_MAX_COOLDOWN_RETRIES) {
-						game_log(`⚠️ ${skill_name}: use_skill kept reporting cooldown while is_on_cooldown() read false — giving up this run.`, "#FFA500");
+						log_msg("warn", `${skill_name}: use_skill kept reporting cooldown while is_on_cooldown() read false — giving up this run.`);
 						break;
 					}
 					await delay(2000);
@@ -75,7 +75,7 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 				await delay(200);
 				channel_wait_ms += 200;
 				if (channel_wait_ms >= 15000) {
-					game_log(`⚠️ ${skill_name}: still channeling after ${channel_wait_ms / 1000}s per character.c — giving up waiting.`, "#FFA500");
+					log_msg("warn", `${skill_name}: still channeling after ${channel_wait_ms / 1000}s per character.c — giving up waiting.`);
 					break;
 				}
 			}
@@ -87,10 +87,10 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 			catcher(e, `handle_gathering_state(${skill_name}): equip_default_gear`);
 		}
 
-		game_log(`🏁 ${skill_name} loop ended, selling/banking...`, "#888");
+		log_msg("debug", `🏁 ${skill_name} loop ended, selling/banking...`);
 		await sell_items();
 		await bank_items();
-		game_log(`✅ Selling/banking finished for ${skill_name}.`, "#888");
+		log_msg("debug", `✅ Selling/banking finished for ${skill_name}.`);
 	} catch (e) {
 		catcher(e, `handle_gathering_state(${skill_name})`);
 	} finally {
@@ -101,7 +101,7 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 				catcher(e, `handle_gathering_state(${skill_name}): equip_default_gear`);
 			}
 			set_task("Idle");
-			game_log(`🔁 ${task_label} cycle finished, back to Idle.`, "#888");
+			log_msg("debug", `🔁 ${task_label} cycle finished, back to Idle.`);
 		}
 	}
 }

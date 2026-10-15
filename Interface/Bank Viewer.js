@@ -21,7 +21,8 @@ function strip(num) {
 }
 
 function save_bank_local() {
-	game_log(refresh_bank_snapshot() ? "💾 Bank saved!" : "⚠️ No bank data found.");
+	if (refresh_bank_snapshot()) log_msg("info", "💾 Bank saved!");
+	else log_msg("warn", "No bank data found.");
 }
 
 function render_floor_categories(categories) {

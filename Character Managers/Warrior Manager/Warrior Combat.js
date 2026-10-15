@@ -43,7 +43,7 @@ function cooperative_luck_logger() {
 		const party_members = Object.keys(get_party() || {});
 		if (mob.target !== character.name && !party_members.includes(mob.target)) return;
 
-		game_log(`${mob.mtype} died with ${character.luckm} luck`, "#96a4ff");
+		log_msg("event", `${mob.mtype} died with ${character.luckm} luck`);
 	});
 }
 
@@ -113,7 +113,6 @@ var SUGAR_RUSH = {
 	status: "sugarrush",
 	set: "candycane",
 	label: "Sugar Rush",
-	color: "#ff69b4",
 };
 
 var CLEAVE_SET = "bataxe";
@@ -272,7 +271,7 @@ function record_swap_trick() {
 	swap_trick_history.push(swap_trick_attempts);
 	if (swap_trick_history.length > 30) swap_trick_history.shift();
 	const avg = swap_trick_history.reduce((a, b) => a + b, 0) / swap_trick_history.length;
-	game_log(`${SUGAR_RUSH.label} activated after ${swap_trick_attempts}! Avg attempts: ${avg.toFixed(1)}`, SUGAR_RUSH.color);
+	log_msg("info", `${SUGAR_RUSH.label} activated after ${swap_trick_attempts}! Avg attempts: ${avg.toFixed(1)}`);
 	swap_trick_attempts = 0;
 }
 

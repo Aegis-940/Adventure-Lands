@@ -26,8 +26,8 @@ function set_panic(on, reason, external) {
 		record_panic(reason);
 	}
 
-	game_log(on ? `⚠️ Panic: ${reason}` : `✅ Panic over: ${reason}`,
-		on ? "#ffcc00" : "#00ff00");
+	if (on) log_msg("warn", `Panic: ${reason}`);
+	else log_msg("event", `✅ Panic over: ${reason}`);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -132,8 +132,8 @@ function scare_off() {
 function fire_scare(armed) {
 	parent.next_skill.scare = new Date(Date.now() + G.skills.scare.cooldown);
 	errlog_count(armed.ops.length ? "scare fired with swap" : "scare fired");
-	game_log("Using Scare!", "#ffcc00");
-	use_skill("scare").catch(e => game_log(`[PANIC] Error using scare: ${fmt_err(e)}`, "#ff4444"));
+	log_msg("event", "Using Scare!");
+	use_skill("scare").catch(e => log_msg("error", `[PANIC] Error using scare: ${fmt_err(e)}`));
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

@@ -17,18 +17,18 @@ function set_dungeon_mode(key, broadcast = true) {
 
 	if (!key) {
 		if (was) {
-			game_log(dungeon_loop_running()
+			log_msg("event", dungeon_loop_running()
 				? "🪦 Dungeon mode off — finishing this run, then stopping"
-				: "🪦 Dungeon mode off — normal farming resumes", "#FFCC00");
+				: "🪦 Dungeon mode off — normal farming resumes");
 		}
 		if (!dungeon_loop_running()) hold_reset_for_mode(false);
 		return;
 	}
 
 	const d = active_dungeon();
-	if (!d) return game_log(`Dungeon mode: no dungeon named ${key}`, DUNGEON_WARN_COLOR);
+	if (!d) return log_msg("warn", `Dungeon mode: no dungeon named ${key}`);
 
-	game_log(`⚰️ ${d.name} mode on — events, bosses and farming are ignored`, DUNGEON_LOG_COLOR);
+	log_msg("event", `⚰️ ${d.name} mode on — events, bosses and farming are ignored`);
 	hold_reset_for_mode(true);
 	if (character.name === MOVEMENT_LEADER && was !== key) start_active_dungeon_when_ready();
 }
@@ -45,9 +45,9 @@ function choose_dungeon(key) {
 
 	if (current === "dreams") {
 		set_dungeon_resume(key);
-		game_log(key
+		log_msg("info", key
 			? `${dungeon_name_for(key)} starts after the dreams visit`
-			: `${dungeon_name_for(choice)} won't resume after the dreams visit`, DUNGEON_LOG_COLOR);
+			: `${dungeon_name_for(choice)} won't resume after the dreams visit`);
 		return;
 	}
 
@@ -58,12 +58,12 @@ function choose_dungeon(key) {
 	}
 
 	if (key) {
-		return game_log(`${dungeon_name_for(current)} mode is on — choose none first, then ${dungeon_name_for(key)}`, DUNGEON_WARN_COLOR);
+		return log_msg("warn", `${dungeon_name_for(current)} mode is on — choose none first, then ${dungeon_name_for(key)}`);
 	}
 
 	if (dungeon_loop_running() && !dungeon_stop_requested()) {
 		request_dungeon_stop();
-		game_log("🪦 Dungeon mode off after this run — choose none again to stop now", "#FFCC00");
+		log_msg("event", "🪦 Dungeon mode off after this run — choose none again to stop now");
 		return;
 	}
 

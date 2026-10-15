@@ -42,7 +42,7 @@ function sell_sellable_items(keep = keep_nothing) {
 		try {
 			const sale = sell(i, item.q || 1);
 			if (sale && typeof sale.catch === "function") sale.catch(e => catcher(e, "sell: " + item.name));
-			game_log(`💰 Sold ${item.name} x${item.q || 1}`);
+			log_msg("info", `💰 Sold ${item.name} x${item.q || 1}`);
 			sold_any = true;
 		} catch (e) {
 			catcher(e, "sell: " + item.name);
@@ -76,7 +76,7 @@ async function wait_for_movement_to_settle(caller_label) {
 		move_wait++;
 	}
 	if (character.moving) {
-		game_log(`⚠️ ${caller_label}: still moving after waiting, proceeding anyway.`);
+		log_msg("warn", `${caller_label}: still moving after waiting, proceeding anyway.`);
 	}
 }
 
@@ -85,7 +85,7 @@ var sell_items_running = false;
 async function sell_items(keep = keep_nothing) {
 	if (!has_sellable_items(keep)) return false;
 	if (sell_items_running) {
-		game_log("⚠️ sell_items already running, skipping duplicate call.");
+		log_msg("warn", "sell_items already running, skipping duplicate call.");
 		return false;
 	}
 
@@ -118,7 +118,7 @@ function plan_bank_stores(keep) {
 		const stack = packs.find(pack => character.bank[pack].some(it => parent.can_stack(it, item, null, { ignore_pvp: true })));
 		const pack = stack || packs.find(p => free[p] > 0);
 		if (!pack) {
-			game_log(`⚠️ No bank space on this floor for ${item.name}.`, "#FFA500");
+			log_msg("warn", `No bank space on this floor for ${item.name}.`);
 			return;
 		}
 		if (!stack) free[pack]--;
@@ -132,7 +132,7 @@ var bank_items_running = false;
 async function bank_items(keep = keep_nothing) {
 	if (!has_bankable_items(keep)) return false;
 	if (bank_items_running) {
-		game_log("⚠️ bank_items already running, skipping duplicate call.");
+		log_msg("warn", "bank_items already running, skipping duplicate call.");
 		return false;
 	}
 
@@ -152,7 +152,7 @@ async function bank_items(keep = keep_nothing) {
 				catcher(result.reason, "bank_items: bank_store " + item.name);
 				return;
 			}
-			game_log(`🏦 Deposited ${item.name} x${item.q || 1} to bank`);
+			log_msg("info", `🏦 Deposited ${item.name} x${item.q || 1} to bank`);
 			banked_any = true;
 		});
 
@@ -179,7 +179,7 @@ async function handle_banking_state() {
 	if (merchant_task !== "Idle") return;
 	const generation = begin_task("Banking");
 	try {
-		game_log(`🎒 Down to ${free_inventory_slots()} free slots — emptying the pack.`, "#888");
+		log_msg("debug", `🎒 Down to ${free_inventory_slots()} free slots — emptying the pack.`);
 		await sell_items();
 		const banked = await bank_items();
 		if (!banked) _bank_retry_at = Date.now() + BANKING_RETRY_MS;

@@ -97,7 +97,7 @@ function report_unbroken_shell(shell, reason) {
 	_rime_shell_reported[shell.id] = true;
 	errlog_count(`rime shell unbroken: ${reason}`);
 	errlog_timeline("rime_watch", `shell ${shell.id} unbroken: ${reason}`);
-	game_log(`Rime Shell on ${shell.name} — cannot stomp: ${reason}`, "#FF4444");
+	log_msg("warn", `Rime Shell on ${shell.name} — cannot stomp: ${reason}`);
 }
 
 var _rime_band_damage = {};
@@ -450,7 +450,7 @@ function rime_deadline_stomp(via) {
 		errlog_timeline("rime_watch",
 			`stomp on shell ${id} at deadline: ~${Math.round(into)}ms into the shell on arrival, ${now - plan.seen}ms after first update, `
 			+ `best update ${shift}ms earlier, rtt ${rime_rtt()}/${rtt}`);
-		game_log(`Stomp — breaking Rime Shell on ${shell.name} at the deadline`, "#FFA600");
+		log_msg("event", `Stomp — breaking Rime Shell on ${shell.name} at the deadline`);
 	} catch (e) {
 		catcher(e, "rime_deadline_stomp");
 	} finally {

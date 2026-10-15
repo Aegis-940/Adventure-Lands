@@ -103,8 +103,8 @@ function home_destination(type) {
 	const loc = (LOCATIONS[type] || [])[0] || {};
 	const map = loc.map || location_map_for(type, loc);
 	if (!map) {
-		game_log(`⚠️ LOCATIONS.${type} has no map and none could be derived — `
-			+ `travelling home is disabled for this target.`, "#FF3333");
+		log_msg("warn", `LOCATIONS.${type} has no map and none could be derived — `
+			+ `travelling home is disabled for this target.`);
 	}
 	return { map, x: loc.x, y: loc.y };
 }
@@ -213,7 +213,7 @@ const RELOAD_STAGGER_MS = 1500;
 
 function staggered_reload() {
 	const wait = RELOAD_BASE_MS + RELOAD_ORDER.indexOf(character.name) * RELOAD_STAGGER_MS;
-	game_log(`[reload] Restarting in ${Math.round(wait / 1000)}s`, "#FFAA00");
+	log_msg("event", `[reload] Restarting in ${Math.round(wait / 1000)}s`);
 	setTimeout(() => parent.window.location.reload(), wait);
 }
 

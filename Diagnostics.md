@@ -59,7 +59,9 @@ Ground truth beat the telemetry because the telemetry was read wrong.
 a `use_skill` wrapper that no longer exists in the source. Nothing ever decrements them, so they
 look like live telemetry. **Grep for the producer before trusting any counter.**
 
-**4. `game_log` is filtered by prefix.** The wrapper records a message only if it starts with
+**4. `game_log` was filtered by prefix (until 10-16; now by level).** Since the 6.2 sweep, `log_msg()` records every
+`event`, `warn` and `error` line and nothing at `info` or `debug`, so check the call's level before concluding that a
+line never fired. What follows is the history. The wrapper recorded a message only if it started with
 `⚠️`, `❌`, `🛑` or `[`. Anything else — `Using Scare!`, `✅ Panic over: …`, every informational
 line — is never recorded at all. The `[` case was added on 2026-09-18; before that, all five
 `[PANIC]` and `[BAIL]` diagnostics were silently dropped, which is what made a working panic system

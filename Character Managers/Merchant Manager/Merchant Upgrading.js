@@ -111,10 +111,10 @@ function use_mass_production(level) {
 async function buy_scrolls(scrollname, count, context) {
 	const n = Math.min(count, Math.floor(character.gold / G.items[scrollname].g));
 	if (n <= 0) {
-		game_log(`❌ Not enough gold to buy ${scrollname} for ${context}.`);
+		log_msg("error", `Not enough gold to buy ${scrollname} for ${context}.`);
 		return false;
 	}
-	game_log(`Buying ${n}x ${scrollname} for ${context}`);
+	log_msg("info", `Buying ${n}x ${scrollname} for ${context}`);
 	try {
 		await buy(scrollname, n);
 	} catch (e) {
@@ -144,14 +144,14 @@ async function add_grace_to_cap(item_slot) {
 	}
 
 	if (previous_grace >= GRACE_MAX) {
-		game_log(`✅ Grace already at ${previous_grace} (>= GRACE_MAX ${GRACE_MAX}) for slot ${item_slot} — skipping.`, "limegreen");
+		log_msg("info", `✅ Grace already at ${previous_grace} (>= GRACE_MAX ${GRACE_MAX}) for slot ${item_slot} — skipping.`);
 		return { grace: previous_grace, capped: true };
 	}
 
 	for (let attempt = 0; attempt < GRACE_MAX_OFFERINGS; attempt++) {
 		const offering_slot = inventory_slot("offeringp");
 		if (offering_slot === null) {
-			game_log(`⚠️ Ran out of offeringp before grace capped (at ${previous_grace}) for slot ${item_slot}.`, "#FFA500");
+			log_msg("warn", `Ran out of offeringp before grace capped (at ${previous_grace}) for slot ${item_slot}.`);
 			return { grace: previous_grace, capped: false };
 		}
 
@@ -166,25 +166,25 @@ async function add_grace_to_cap(item_slot) {
 
 		const current_grace = await check_grace(item_slot);
 		if (current_grace == null) {
-			game_log(`⚠️ Ran out of offeringp (or no grace field) re-checking grace (at ${previous_grace}) for slot ${item_slot}.`, "#FFA500");
+			log_msg("warn", `Ran out of offeringp (or no grace field) re-checking grace (at ${previous_grace}) for slot ${item_slot}.`);
 			return { grace: previous_grace, capped: false };
 		}
 
 		if (current_grace <= previous_grace) {
-			game_log(`✅ Grace capped at ${current_grace} for slot ${item_slot}.`, "limegreen");
+			log_msg("info", `✅ Grace capped at ${current_grace} for slot ${item_slot}.`);
 			return { grace: current_grace, capped: true };
 		}
 
-		game_log(`Grace: ${previous_grace} -> ${current_grace}`);
+		log_msg("info", `Grace: ${previous_grace} -> ${current_grace}`);
 		previous_grace = current_grace;
 
 		if (previous_grace >= GRACE_MAX) {
-			game_log(`✅ Grace reached ${previous_grace} (>= GRACE_MAX ${GRACE_MAX}) for slot ${item_slot} — stopping.`, "limegreen");
+			log_msg("info", `✅ Grace reached ${previous_grace} (>= GRACE_MAX ${GRACE_MAX}) for slot ${item_slot} — stopping.`);
 			return { grace: previous_grace, capped: true };
 		}
 	}
 
-	game_log(`⚠️ Grace still rising after ${GRACE_MAX_OFFERINGS} offerings (at ${previous_grace}) for slot ${item_slot} — stopping as a safety backstop.`, "#FFA500");
+	log_msg("warn", `Grace still rising after ${GRACE_MAX_OFFERINGS} offerings (at ${previous_grace}) for slot ${item_slot} — stopping as a safety backstop.`);
 	return { grace: previous_grace, capped: false };
 }
 
@@ -229,7 +229,7 @@ async function make_upgrade_room() {
 	}
 
 	if (!has_bankable_items(upgrade_job_item)) return;
-	game_log(`🎒 Down to ${free_inventory_slots()} free slots mid-upgrade — banking handed-over loot.`, "#888");
+	log_msg("debug", `🎒 Down to ${free_inventory_slots()} free slots mid-upgrade — banking handed-over loot.`);
 	await bank_items(upgrade_job_item);
 	await smarter_move(HOME);
 	task_heartbeat();
@@ -278,7 +278,7 @@ async function upgrade_target_pass(abandoned) {
 
 	if (progressed && !upgrade_target_open()) {
 		const target = upgrade_target();
-		game_log(`🎯 Upgrade target reached: ${target.count}x ${target.name} +${target.level}.`, "limegreen");
+		log_msg("event", `🎯 Upgrade target reached: ${target.count}x ${target.name} +${target.level}.`);
 	}
 	return progressed;
 }
@@ -293,7 +293,7 @@ async function withdraw_upgrade_scrolls() {
 
 	const empty_slots = free_inventory_slots();
 	if (empty_slots < 10) {
-		game_log(`❌ Not enough inventory space to withdraw scrolls. Need at least 10 free slots, have ${empty_slots}.`);
+		log_msg("error", `Not enough inventory space to withdraw scrolls. Need at least 10 free slots, have ${empty_slots}.`);
 		return;
 	}
 
@@ -305,12 +305,12 @@ async function withdraw_upgrade_scrolls() {
 		}
 	}
 
-	game_log("✅ Scroll withdrawal check complete.");
+	log_msg("info", "✅ Scroll withdrawal check complete.");
 }
 
 async function withdraw_offering() {
 
-	game_log("Withdrawing offeringp for upgrades that require it.");
+	log_msg("info", "Withdrawing offeringp for upgrades that require it.");
 
 	try {
 		await withdraw_item("offeringp");
@@ -327,12 +327,12 @@ async function withdraw_upgradeable_items() {
 
 	let bank_data = character.bank || load_bank_from_local_storage();
 	if (!bank_data) {
-		game_log("No bank data available. Please open the bank or save bank data first.");
+		log_msg("info", "No bank data available. Please open the bank or save bank data first.");
 		return;
 	}
 
 	if (free_inventory_slots() <= 3) {
-		game_log("❌ Not enough inventory space to withdraw upgrade items.");
+		log_msg("error", "Not enough inventory space to withdraw upgrade items.");
 		return;
 	}
 
@@ -366,7 +366,7 @@ async function withdraw_upgradeable_items() {
 		if (free_inventory_slots() <= 3) break;
 	}
 
-	game_log("✅ Finished withdrawing upgrade and compound items, leaving at least 3 inventory slots free.");
+	log_msg("info", "✅ Finished withdrawing upgrade and compound items, leaving at least 3 inventory slots free.");
 }
 
 function has_upgradeable_items(packs) {
@@ -412,14 +412,14 @@ async function upgrade_slot(i, profile, needed) {
 	}
 
 	if (profile.grace_from !== undefined && item.level >= profile.grace_from && !grace_capped_slots.has(i)) {
-		game_log(`${item.name} (level ${item.level}): proceeding with best-effort grace (not confirmed capped).`, "#FFA500");
+		log_msg("warn", `${item.name} (level ${item.level}): proceeding with best-effort grace (not confirmed capped).`);
 	}
 
 	let offering_slot = null;
 	if (profile.primling_from !== undefined && item.level >= profile.primling_from) {
 		offering_slot = inventory_slot("offeringp");
 		if (offering_slot === null) {
-			game_log(`Skipping ${item.name} (level ${item.level}): No offeringp found for upgrade requiring it.`);
+			log_msg("info", `Skipping ${item.name} (level ${item.level}): No offeringp found for upgrade requiring it.`);
 			return "skip";
 		}
 	}
@@ -453,7 +453,7 @@ async function upgrade_in_lucky_slot(i, scroll, offering) {
 	const lucky = upgrade_slot_for(i);
 	if (_lucky_parked && _lucky_parked.lucky !== lucky) await restore_lucky_slot();
 
-	game_log(`Upgrading ${item.name} (level ${item.level || 0}) in slot ${lucky}`);
+	log_msg("info", `Upgrading ${item.name} (level ${item.level || 0}) in slot ${lucky}`);
 	const moved = [];
 	if (i !== lucky) {
 		if (!_lucky_parked) _lucky_parked = { lucky, parked: i };
@@ -495,7 +495,7 @@ async function auto_upgrade_item(level, plan) {
 		if (result === "skip" || result === "failed") continue;
 		return result;
 	}
-	game_log("No valid items found for upgrade.");
+	log_msg("info", "No valid items found for upgrade.");
 	return "none";
 }
 
@@ -547,7 +547,7 @@ async function auto_combine_item(level) {
 		if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
 			const has_primling = character.items.some(inv_item => inv_item && inv_item.name === "offeringp");
 			if (!has_primling) {
-				game_log(`Skipping combine for ${item_name} (level ${lvl}): No offeringp found for combine requiring it.`);
+				log_msg("info", `Skipping combine for ${item_name} (level ${lvl}): No offeringp found for combine requiring it.`);
 				continue;
 			}
 		}
@@ -575,7 +575,7 @@ async function auto_combine_item(level) {
 		if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
 			const has_primling = character.items.some(inv_item => inv_item && inv_item.name === "offeringp");
 			if (!has_primling) {
-				game_log(`Skipping combine for ${item_name} (level ${lvl}): No offeringp found for combine requiring it.`);
+				log_msg("info", `Skipping combine for ${item_name} (level ${lvl}): No offeringp found for combine requiring it.`);
 				continue;
 			}
 		}
@@ -584,7 +584,7 @@ async function auto_combine_item(level) {
 		if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
 			offering_slot = inventory_slot("offeringp");
 			if (offering_slot === null) {
-				game_log("No offeringp found for combine requiring it.");
+				log_msg("info", "No offeringp found for combine requiring it.");
 				return "wait";
 			}
 		}
@@ -592,7 +592,7 @@ async function auto_combine_item(level) {
 		use_mass_production(lvl);
 
 		const picks = pick_three_slots(entries);
-		game_log(`Combining 3x ${item_name} (level ${lvl}) with ${scrollname}`);
+		log_msg("info", `Combining 3x ${item_name} (level ${lvl}) with ${scrollname}`);
 		try {
 			await compound(picks[0], picks[1], picks[2], scroll_slot, offering_slot);
 		} catch (e) {
@@ -602,7 +602,7 @@ async function auto_combine_item(level) {
 		}
 		return "done";
 	}
-	game_log("No valid items found for combine.");
+	log_msg("info", "No valid items found for combine.");
 	return "none";
 }
 
@@ -643,7 +643,7 @@ async function buy_for_upgrade() {
 	);
 	const bought = (await Promise.all(purchases)).filter(Boolean).length;
 	if (bought > 0) {
-		game_log(`🛒 Bought ${bought}x ${item_name} to upgrade.`);
+		log_msg("info", `🛒 Bought ${bought}x ${item_name} to upgrade.`);
 		task_heartbeat();
 	}
 }
@@ -661,7 +661,7 @@ async function upgrade_pass(abandoned, plan) {
 				task_heartbeat();
 			}
 			if (result === "end") {
-				game_log("❌ Ending auto-upgrade early due to insufficient gold or resources.");
+				log_msg("error", "Ending auto-upgrade early due to insufficient gold or resources.");
 			}
 			if (result !== "done" && result !== "wait") break;
 		}
@@ -708,23 +708,23 @@ async function auto_upgrade() {
 				const result = await auto_combine_item(level);
 				if (result === "done") progressed = true;
 				if (result === "end") {
-					game_log("❌ Ending auto-combine early due to insufficient gold or resources.");
+					log_msg("error", "Ending auto-combine early due to insufficient gold or resources.");
 				}
 				if (result !== "done" && result !== "wait") break;
 			}
 		}
 
 		if (abandoned()) {
-			game_log("⚠️ Upgrading was force-reset by the watchdog — abandoning this run.", "#FFA500");
+			log_msg("warn", "Upgrading was force-reset by the watchdog — abandoning this run.");
 			return;
 		}
 
 		if (!progressed) {
 			_upgrade_retry_at = Date.now() + UPGRADE_RETRY_MS;
-			game_log(`⚠️ Upgrade run made no progress — not retrying for ${UPGRADE_RETRY_MS / 60000} min.`, "#FFA500");
+			log_msg("warn", `Upgrade run made no progress — not retrying for ${UPGRADE_RETRY_MS / 60000} min.`);
 		}
 
-		game_log("✅ Auto upgrade and combine complete.");
+		log_msg("info", "✅ Auto upgrade and combine complete.");
 		await sell_items();
 		await bank_items();
 	} catch (e) {
@@ -763,13 +763,13 @@ function save_lolipop_run() {
 
 function lolipop_push() {
 	if (lolipop_run.active) {
-		game_log("🍭 Lolipop push is already running.", "#FF69B4");
+		log_msg("event", "🍭 Lolipop push is already running.");
 		return;
 	}
 	lolipop_run = { active: true, due: LOLIPOP_PUSH.sacrifices_per_reset, rolls: { 8: 0, 9: 0 }, wins: { 8: 0, 9: 0 }, sacrificed: 0, graced: 0 };
 	save_lolipop_run();
-	game_log(`🍭 Lolipop push started: ${stock_of(LOLIPOP_PUSH.target, 8)} ololipops at +8, ${stock_of(LOLIPOP_PUSH.target, 9)} at +9, `
-		+ `${stock_of(LOLIPOP_PUSH.sacrifice, 8)} glolipops at +8 to fail.`, "#FF69B4");
+	log_msg("event", `🍭 Lolipop push started: ${stock_of(LOLIPOP_PUSH.target, 8)} ololipops at +8, ${stock_of(LOLIPOP_PUSH.target, 9)} at +9, `
+		+ `${stock_of(LOLIPOP_PUSH.sacrifice, 8)} glolipops at +8 to fail.`);
 }
 
 function lolipop_push_stop() {
@@ -779,9 +779,9 @@ function lolipop_push_stop() {
 function stop_lolipop_push(reason) {
 	lolipop_run.active = false;
 	save_lolipop_run();
-	game_log(`🍭 Lolipop push ended (${reason}). +8 rolls: ${lolipop_run.rolls[8]} → ${lolipop_run.wins[8]} at +9. `
+	log_msg("event", `🍭 Lolipop push ended (${reason}). +8 rolls: ${lolipop_run.rolls[8]} → ${lolipop_run.wins[8]} at +9. `
 		+ `+9 rolls: ${lolipop_run.rolls[9]} → ${lolipop_run.wins[9]} at +10. `
-		+ `${lolipop_run.sacrificed} glolipops failed, ${lolipop_run.graced} primlings graced.`, "#FF69B4");
+		+ `${lolipop_run.sacrificed} glolipops failed, ${lolipop_run.graced} primlings graced.`);
 }
 
 function stock_of(name, level) {
@@ -921,11 +921,11 @@ async function lolipop_sacrifices() {
 
 		if (await scroll_roll(slot, scroll, null)) {
 			lolipop_run.due = LOLIPOP_PUSH.sacrifices_per_reset;
-			game_log(`🍭 A glolipop reached +9, which resets the stack — failing ${lolipop_run.due} more.`, "#FF69B4");
+			log_msg("event", `🍭 A glolipop reached +9, which resets the stack — failing ${lolipop_run.due} more.`);
 		} else {
 			lolipop_run.due--;
 			lolipop_run.sacrificed++;
-			game_log(`🍭 Glolipop failed (stack +1). ${lolipop_run.due} more before the next ololipop.`, "#FF69B4");
+			log_msg("event", `🍭 Glolipop failed (stack +1). ${lolipop_run.due} more before the next ololipop.`);
 		}
 		save_lolipop_run();
 	}
@@ -940,15 +940,15 @@ async function lolipop_roll(stage) {
 	const slot = upgrade_slot_for(home);
 	if (slot !== home) await swap(home, slot);
 
-	game_log(`🍭 Rolling ololipop +${stage} → +${stage + 1} at ${(chance * 100).toFixed(2)}% (grace ${(character.items[slot].grace || 0).toFixed(1)}).`, "#FF69B4");
+	log_msg("event", `🍭 Rolling ololipop +${stage} → +${stage + 1} at ${(chance * 100).toFixed(2)}% (grace ${(character.items[slot].grace || 0).toFixed(1)}).`);
 	const won = await scroll_roll(slot, inventory_slot(kit.scroll), inventory_slot(kit.offering));
 	lolipop_run.rolls[stage]++;
 	if (won) {
 		lolipop_run.wins[stage]++;
 		if (stage === 8) lolipop_run.due = LOLIPOP_PUSH.sacrifices_per_reset;
-		game_log(stage === 9 ? "🎉 OLOLIPOP +10!" : `✅ Ololipop +9 (${lolipop_run.wins[8]} so far).`, "limegreen");
+		log_msg("event", stage === 9 ? "🎉 OLOLIPOP +10!" : `✅ Ololipop +9 (${lolipop_run.wins[8]} so far).`);
 	} else {
-		game_log(`❌ Ololipop +${stage} lost.`, "#FFA500");
+		log_msg("event", `❌ Ololipop +${stage} lost.`);
 	}
 	save_lolipop_run();
 

@@ -17,13 +17,13 @@ function dungeon_runs_done() {
 function record_dungeon_run() {
 	const n = dungeon_runs_done() + 1;
 	storage_raw_write(COLLECT_RUNS_KEY, n);
-	game_log(`Dungeon run ${n} complete`, DUNGEON_LOG_COLOR);
+	log_msg("event", `Dungeon run ${n} complete`);
 	return n;
 }
 
 function reset_dungeon_runs() {
 	storage_remove(COLLECT_RUNS_KEY);
-	game_log("Dungeon run counter reset", DUNGEON_LOG_COLOR);
+	log_msg("info", "Dungeon run counter reset");
 }
 
 function collection_due() {
@@ -34,7 +34,7 @@ function collection_due() {
 async function run_dungeon_collection() {
 	if (character.name !== MOVEMENT_LEADER) return false;
 
-	game_log("📦 Collection: summoning Riff", DUNGEON_LOG_COLOR);
+	log_msg("event", "📦 Collection: summoning Riff");
 	dungeon_telemetry_event("collect_start", { runs: dungeon_runs_done() });
 	send_cm("Riff", { type: "collect_loot" });
 
@@ -50,12 +50,12 @@ async function run_dungeon_collection() {
 	}
 
 	if (!arrived) {
-		game_log("📦 Collection: Riff never arrived — carrying on", DUNGEON_WARN_COLOR);
+		log_msg("warn", "Collection: Riff never arrived — carrying on");
 		dungeon_telemetry_event("collect_end", { ok: false });
 		return false;
 	}
 
-	game_log("📦 Collection: Riff is here — handing over", DUNGEON_LOG_COLOR);
+	log_msg("event", "📦 Collection: Riff is here — handing over");
 	send_cm(DUNGEON_FOLLOWERS, { type: "send_loot" });
 	try {
 		await send_to_merchant();
@@ -72,7 +72,7 @@ async function run_dungeon_collection() {
 
 		if (left === last) {
 			if (++idle >= COLLECT_IDLE_ROUNDS) {
-				game_log(`📦 Collection: ${left} item(s) would not transfer — moving on`, DUNGEON_WARN_COLOR);
+				log_msg("warn", `Collection: ${left} item(s) would not transfer — moving on`);
 				break;
 			}
 		} else {
@@ -82,7 +82,7 @@ async function run_dungeon_collection() {
 		await delay(COLLECT_POLL_MS);
 	}
 
-	game_log("📦 Collection: done", "#00FF00");
+	log_msg("event", "📦 Collection: done");
 	dungeon_telemetry_event("collect_end", { ok: true });
 	return true;
 }

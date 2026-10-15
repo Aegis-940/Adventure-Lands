@@ -120,7 +120,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 |------|------|
 | `Widget Helpers.js` | **First stage.** The panel theme (`.al-panel`, `.al-meter`, `.al-window`, `.al-panel-title`, `.al-button`) and `ui_style()`, `register_widget()` for the meters, `toolbar_button(id, { label, order, title, on_click })` for every bot button, `CLASS_COLORS`, coop-share and rolling-window helpers, `start_drag()`/`make_draggable()` |
 | `Layout.js` | The shared screen layout: `UI_PANELS` (every game and bot panel), hidden/floating state in `AL_ui_layout` (one layout for all four windows, synced live), applied as one generated stylesheet. ⚙️ → 🧩 or `ui_arrange()` to drag/hide/show, `ui_layout_reset()`, `remember_window()` for the bot's windows |
-| `Game Log.js` | **First stage.** The one log window; everything goes through `game_log()`. `log_msg(level, msg)` gives the colour and prefix by level and counts warnings and errors |
+| `Game Log.js` | **First stage.** The one log window. The bot logs through `log_msg(level, msg)` (`debug`, `info`, `event`, `warn`, `error`): the level gives the colour and prefix, `event` and above go to the flight recorder, and warnings and errors are counted. Only the loaders call `game_log()` directly |
 | `DPS Meter.js`, `Gold Meter.js`, `XP Meter.js`, `CC Meter.js` | Overlays |
 | `Boss Contribution.js` | Coop points and loot share of everyone on our boss |
 | `Kill Tracker.js` | kpm/kph/kpd from `kill_credit` |
@@ -205,7 +205,7 @@ Loader facts:
 
 - Paste `Code Loader.js` into slot 1 **once**, replacing the whole slot. Two copies load everything twice: the `Core Systems` files can't re-declare their `const`s and define nothing, while the first copy's loops run against a stale `character`.
 - The base must serve executable script with CORS. The sink sends `application/javascript`, `Access-Control-Allow-Origin: *` and `Access-Control-Allow-Private-Network: true`, and loading from `127.0.0.1` was tested in all four live pages (fetch, `<script>` and jQuery `dataType: "script"`).
-- `game_log()` writes to the **in-game** log, not the browser console. Ask for the in-game log when diagnosing.
+- `log_msg()` and `game_log()` write to the **in-game** log, not the browser console. Ask for the in-game log when diagnosing.
 
 ---
 

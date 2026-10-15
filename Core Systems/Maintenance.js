@@ -47,7 +47,7 @@ async function potion_tick() {
 // function suicide() {
 // 	if (!character.rip && character.hp < 2000) {
 // 		parent.socket.emit("harakiri");
-// 		game_log("Harakiri");
+// 		log_msg("event", "Harakiri");
 // 	}
 
 // 	if (character.rip) {
@@ -104,14 +104,14 @@ function maintain_xp_booster() {
 
 	const slot = xp_booster_slot();
 	if (slot === null) {
-		game_log("🧪 No xp booster held — buying one", "#66ccff");
+		log_msg("event", "🧪 No xp booster held — buying one");
 		buy("xpbooster", 1);
 		return;
 	}
 
 	const item = character.items[slot];
 	if (item.name !== "xpbooster") {
-		game_log(`🧪 Shifting the spare booster in slot ${slot} to xp`, "#66ccff");
+		log_msg("event", `🧪 Shifting the spare booster in slot ${slot} to xp`);
 		shift(slot, "xpbooster");
 		return;
 	}
@@ -119,7 +119,7 @@ function maintain_xp_booster() {
 	_booster_next = now + BOOSTER_CHECK_MS;
 	if (booster_running(item)) return;
 
-	game_log(`🧪 Activating the xp booster in slot ${slot}`, "#66ccff");
+	log_msg("event", `🧪 Activating the xp booster in slot ${slot}`);
 	activate(slot);
 }
 
@@ -163,7 +163,7 @@ function schedule_periodic_reset() {
 		_last_reset_bucket = _reset_due_bucket;
 		_reset_due_bucket = null;
 
-		game_log(`[reset] Periodic reload at ${hour}:${String(now.getMinutes()).padStart(2, "0")}`, "#FFAA00");
+		log_msg("event", `[reset] Periodic reload at ${hour}:${String(now.getMinutes()).padStart(2, "0")}`);
 		staggered_reload();
 	});
 }

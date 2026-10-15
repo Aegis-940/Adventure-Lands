@@ -73,7 +73,7 @@ function send_updates() {
 
 function cm_handle(name, data) {
 	if (!["Ulric", "Riva", "Myras", "Riff"].includes(name)) {
-		game_log("❌ Unauthorized CM from " + name);
+		log_msg("warn", "Unauthorized CM from " + name);
 		return;
 	}
 

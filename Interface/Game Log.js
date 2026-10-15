@@ -100,7 +100,7 @@ function al_log_render_all() {
 
 function al_log_hook() {
 	if (typeof parent.add_log !== "function") {
-		return void game_log("⚠️ Game log: parent.add_log is missing — native lines stay untimestamped and unfilterable", "#FFA500");
+		return void log_msg("warn", "Game log: parent.add_log is missing — native lines stay untimestamped and unfilterable");
 	}
 
 	wrap_parent("add_log", () => function (message, color) {
@@ -306,17 +306,19 @@ function start_game_log() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const LOG_LEVELS = {
-	debug: { color: "#888", prefix: "" },
-	info: { color: "#CCCCCC", prefix: "" },
-	event: { color: "#66ccff", prefix: "" },
-	warn: { color: "#FFA500", prefix: "⚠️ " },
-	error: { color: "#FF3333", prefix: "❌ " },
+	debug: { color: "#888", prefix: "", recorded: false },
+	info: { color: "#CCCCCC", prefix: "", recorded: false },
+	event: { color: "#66ccff", prefix: "", recorded: true },
+	warn: { color: "#FFA500", prefix: "⚠️ ", recorded: true },
+	error: { color: "#FF3333", prefix: "❌ ", recorded: true },
 };
 
 function log_msg(level, msg) {
 	const style = LOG_LEVELS[level];
+	const text = style.prefix + msg;
+	if (style.recorded) errlog_record("game_log", text);
 	if (level === "warn" || level === "error") errlog_count("log " + level);
-	game_log(style.prefix + msg, style.color);
+	game_log(text, style.color);
 }
 
 on_boot("Game Log", start_game_log);

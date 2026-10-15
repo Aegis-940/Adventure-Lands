@@ -103,9 +103,9 @@ let _sending_to_merchant = false;
 async function send_to_merchant() {
 	if (_sending_to_merchant) return;
 	const merchant = get_player("Riff");
-	if (!merchant || merchant.rip) return game_log("❌ Merchant not found or dead");
+	if (!merchant || merchant.rip) return log_msg("error", "Merchant not found or dead");
 	if (merchant.map !== character.map || distance(character, merchant) > MERCHANT_SEND_RANGE) {
-		return game_log("❌ Merchant not nearby");
+		return log_msg("error", "Merchant not nearby");
 	}
 
 	_sending_to_merchant = true;
@@ -116,7 +116,7 @@ async function send_to_merchant() {
 			try {
 				await send_item("Riff", i, character.items[i].q || 1);
 			} catch (e) {
-				game_log(`⚠️ Could not send item in slot ${i}: ${item.name}`);
+				log_msg("warn", `Could not send item in slot ${i}: ${item.name}`);
 			}
 		}
 
@@ -126,7 +126,7 @@ async function send_to_merchant() {
 			try {
 				await send_gold("Riff", gold_to_send);
 			} catch (e) {
-				game_log("⚠️ Could not send gold");
+				log_msg("warn", "Could not send gold");
 			}
 		}
 	} finally {
@@ -268,10 +268,10 @@ async function go_to_bank_floor(map) {
 	const BANK_LOC2 = { map: "bank_b", x: -265, y: -344 };
 	if (character.map === map) return;
 	if (map === "bank") {
-		game_log("Moving to Bank");
+		log_msg("info", "Moving to Bank");
 		await smarter_move(BANK_LOC1);
 	} else if (map === "bank_b") {
-		game_log("Moving to Bank Basement");
+		log_msg("info", "Moving to Bank Basement");
 		await smarter_move(BANK_LOC1);
 		await smarter_move(BANK_LOC2);
 	}
@@ -283,7 +283,7 @@ async function withdraw_item(item_name, level = null, total = null) {
 	if (!bank_data || Object.keys(bank_data).length === 0) {
 		bank_data = load_bank_from_local_storage();
 		if (!bank_data) {
-			game_log("⚠️ No bank data available. Open your bank or save it first.");
+			log_msg("warn", "No bank data available. Open your bank or save it first.");
 			return;
 		}
 	}
@@ -302,7 +302,7 @@ async function withdraw_item(item_name, level = null, total = null) {
 	}
 
 	if (!Object.keys(floors).length) {
-		game_log(`⚠️ No "${item_name}"${level != null ? ` level ${level}` : ""} found in bank.`);
+		log_msg("warn", `No "${item_name}"${level != null ? ` level ${level}` : ""} found in bank.`);
 		return;
 	}
 
@@ -317,14 +317,14 @@ async function withdraw_item(item_name, level = null, total = null) {
 				return;
 			}
 			const e = result.reason;
-			game_log(`⚠️ withdraw_item: ${item_name} not in ${picks[k].pack_key} slot ${picks[k].slot} `
-				+ `(${(e && (e.reason || e.message)) || e})`, "#FFA500");
+			log_msg("warn", `withdraw_item: ${item_name} not in ${picks[k].pack_key} slot ${picks[k].slot} `
+				+ `(${(e && (e.reason || e.message)) || e})`);
 		});
 		refresh_bank_snapshot();
 	}
 
 	if (total != null && got < total) {
-		game_log(`⚠️ Only retrieved ${got}/${total} of ${item_name}.`);
+		log_msg("warn", `Only retrieved ${got}/${total} of ${item_name}.`);
 	}
 }
 

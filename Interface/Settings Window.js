@@ -154,7 +154,7 @@ function open_settings_window() {
 	const buttons = [
 		["Save", () => {
 			const changed = save_settings(inputs);
-			game_log(`⚙️ ${changed} setting${changed === 1 ? "" : "s"} saved`, "#88CCFF");
+			log_msg("event", `⚙️ ${changed} setting${changed === 1 ? "" : "s"} saved`);
 			div.remove();
 		}],
 		["Reload All", () => {

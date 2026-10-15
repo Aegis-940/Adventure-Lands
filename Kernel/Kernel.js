@@ -13,7 +13,7 @@ function on_boot(file, fn, options) {
 
 function boot_failure(file, reason, fatal) {
 	_boot_report.failed.push({ file, reason });
-	game_log(`${fatal ? "🛑" : "❌"} boot: ${file}: ${reason}`, fatal ? "#FF3333" : "#FF6666");
+	log_msg("error", `boot: ${file}: ${reason}${fatal ? " — this character cannot run" : ""}`);
 	errlog_record("boot", `${file}: ${reason}`);
 }
 
@@ -22,7 +22,7 @@ function run_boot_step(file, step, plan) {
 		if (plan.loaded.includes(need)) continue;
 		if (plan.optional.includes(need)) {
 			_boot_report.skipped.push({ file, need });
-			game_log(`⚠️ boot: ${file} skipped a step that needs ${need}, which did not load`, "#FFA500");
+			log_msg("warn", `boot: ${file} skipped a step that needs ${need}, which did not load`);
 			return;
 		}
 		return boot_failure(file, `needs ${need}, which did not load`, file === plan.entry);
@@ -38,7 +38,7 @@ function run_boot_step(file, step, plan) {
 
 function kernel_boot(plan) {
 	if (window.__al_booted) {
-		game_log("⚠️ kernel_boot called twice — ignoring the second. Reload the tab to restart.", "#FFA500");
+		log_msg("warn", "kernel_boot called twice — ignoring the second. Reload the tab to restart.");
 		return;
 	}
 	window.__al_booted = true;

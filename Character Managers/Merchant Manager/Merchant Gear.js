@@ -18,14 +18,14 @@ async function ensure_tool_available(tool_name) {
 	if (character.slots.mainhand && character.slots.mainhand.name === tool_name) return true;
 	if (find_in_inventory() !== -1) return true;
 
-	game_log(`🔎 No ${tool_name} in inventory, checking bank...`);
+	log_msg("info", `🔎 No ${tool_name} in inventory, checking bank...`);
 	await smarter_move(BANK_LOCATION);
 	await delay(500);
 	await withdraw_item(tool_name);
 	await delay(400);
 	if (find_in_inventory() !== -1) return true;
 
-	game_log(`🔨 No ${tool_name} in bank either, attempting to craft one...`);
+	log_msg("info", `🔨 No ${tool_name} in bank either, attempting to craft one...`);
 	for (let attempt = 0; attempt < 8; attempt++) {
 		const result = await craft_item(tool_name);
 		if (result === "crafted") break;
@@ -34,7 +34,7 @@ async function ensure_tool_available(tool_name) {
 	}
 
 	if (find_in_inventory() === -1) {
-		game_log(`❌ Could not obtain a ${tool_name} (not in inventory, bank, or craftable).`);
+		log_msg("error", `Could not obtain a ${tool_name} (not in inventory, bank, or craftable).`);
 		return false;
 	}
 	return true;

@@ -52,7 +52,7 @@ function survey_spot_now() {
 function switch_home(type) {
 	home = type;
 	destination = home_destination(type);
-	game_log(`🧭 Farm target: ${type}`, "#66ccff");
+	log_msg("event", `🧭 Farm target: ${type}`);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -69,7 +69,7 @@ function survey_begin_visit(spot) {
 	spot.occupancy_ms = 0;
 	spot.deaths = 0;
 	spot.visit_started = Date.now();
-	game_log(`🧭 Survey: heading to ${spot.type} (visit ${spot.visits})`, "#66ccff");
+	log_msg("event", `🧭 Survey: heading to ${spot.type} (visit ${spot.visits})`);
 }
 
 function survey_next_index(survey) {
@@ -90,7 +90,7 @@ function survey_reconcile(survey) {
 	const next = at !== -1 ? at : survey_next_index(survey);
 	survey.complete = next === -1;
 	if (next !== -1) survey.index = next;
-	game_log(`🧭 Survey: spot list changed${removed.length ? ", dropped " + removed.join(", ") : ""}`, "#66ccff");
+	log_msg("event", `🧭 Survey: spot list changed${removed.length ? ", dropped " + removed.join(", ") : ""}`);
 	return true;
 }
 
@@ -105,7 +105,7 @@ function survey_extend(survey) {
 		survey.complete = false;
 		survey.index = survey_next_index(survey);
 	}
-	game_log(`🧭 Survey: ${short.map(s => s.type).join(", ")} reopened for ${SURVEY_SPOT_MS / 60000} min at the spot`, "#66ccff");
+	log_msg("event", `🧭 Survey: ${short.map(s => s.type).join(", ")} reopened for ${SURVEY_SPOT_MS / 60000} min at the spot`);
 	return true;
 }
 
@@ -123,13 +123,13 @@ function survey_finish(survey, status) {
 		travel_s: Math.round(spot.travel_ms / 1000),
 		deaths: spot.deaths,
 	});
-	game_log(`🧭 Survey: ${spot.type} ${status} after ${Math.round(spot.at_spot_ms / 60000)} min at the spot`, "#66ccff");
+	log_msg("event", `🧭 Survey: ${spot.type} ${status} after ${Math.round(spot.at_spot_ms / 60000)} min at the spot`);
 
 	const next = survey_next_index(survey);
 	if (next === -1) {
 		survey.complete = true;
 		survey.completed = Date.now();
-		game_log(`🧭 Survey complete — farming ${DEFAULT_FARM_TARGET}`, "#66ccff");
+		log_msg("event", `🧭 Survey complete — farming ${DEFAULT_FARM_TARGET}`);
 		errlog_archive("survey_spot", { spot: null, status: "complete" });
 	} else {
 		survey.index = next;
@@ -142,7 +142,7 @@ function survey_count_deaths(spot) {
 		const rip = !!(s && s.rip);
 		if (rip && _survey_rip[name] === false && in_farm_area(s.map, s.x, s.y)) {
 			spot.deaths++;
-			game_log(`🧭 Survey: ${name} died at ${spot.type} (${spot.deaths}/${SURVEY_UNSAFE_DEATHS})`, "#FFA500");
+			log_msg("warn", `Survey: ${name} died at ${spot.type} (${spot.deaths}/${SURVEY_UNSAFE_DEATHS})`);
 		}
 		_survey_rip[name] = rip;
 	}

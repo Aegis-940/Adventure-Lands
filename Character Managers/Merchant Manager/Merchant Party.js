@@ -57,7 +57,7 @@ async function buff_nearby_players() {
 		}
 		await delay(200);
 	}
-	if (buffed.length) game_log(`Cast MLuck on ${buffed.join(", ")}.`, "limegreen");
+	if (buffed.length) log_msg("info", `Cast MLuck on ${buffed.join(", ")}.`);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -71,7 +71,7 @@ var _delivery_requested = false;
 function request_delivery(reason) {
 	if (_delivery_requested) return;
 	_delivery_requested = true;
-	game_log(`📦 Pickup requested — ${reason}`, "#88FF88");
+	log_msg("event", `📦 Pickup requested — ${reason}`);
 }
 
 function clear_delivery_request() {
@@ -95,7 +95,7 @@ async function handle_delivering_state() {
 	if (merchant_task !== "Idle") return;
 	const generation = begin_task("Delivering");
 	try {
-		game_log("Beginning delivery run...");
+		log_msg("info", "Beginning delivery run...");
 
 		const RETARGET_THRESHOLD = 160;
 		let last_target = null;
@@ -110,7 +110,7 @@ async function handle_delivering_state() {
 						|| Math.hypot(status.x - last_target.x, status.y - last_target.y) > RETARGET_THRESHOLD;
 
 					if (moved_enough) {
-						game_log(`🎯 Delivery: heading to ${name} @ ${status.map} (${Math.round(status.x)}, ${Math.round(status.y)})`, "#888");
+						log_msg("debug", `🎯 Delivery: heading to ${name} @ ${status.map} (${Math.round(status.x)}, ${Math.round(status.y)})`);
 
 						smarter_move({ map: status.map, x: status.x, y: status.y })
 							.catch(e => {
@@ -126,7 +126,7 @@ async function handle_delivering_state() {
 			attempts++;
 		}
 		if (attempts >= DELIVERY_WAIT_MAX_ATTEMPTS) {
-			game_log("⚠️ No party member came within range — heading home anyway.", "#FFA500");
+			log_msg("warn", "No party member came within range — heading home anyway.");
 		}
 
 		await buff_nearby_players();

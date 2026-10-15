@@ -23,7 +23,7 @@ function calculate_average_gold() {
 
 function set_gold_interval(new_interval) {
 	if (GOLD_UNIT_SECONDS[new_interval]) gold_interval = new_interval;
-	else game_log(`Invalid gold interval "${new_interval}" — use minute, hour or day`, "#FFA500");
+	else log_msg("warn", `Invalid gold interval "${new_interval}" — use minute, hour or day`);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

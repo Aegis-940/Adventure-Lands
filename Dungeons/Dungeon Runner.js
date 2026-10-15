@@ -7,14 +7,12 @@ const DUNGEON_PARTY_TIMEOUT_MS = 2 * 60 * 1000;
 const DUNGEON_JOIN_TIMEOUT_MS = 90000;
 const DUNGEON_JOIN_INTERVAL_MS = 400;
 const DUNGEON_ENTRANCE_RANGE = 150;
-const DUNGEON_LOG_COLOR = "#AA88FF";
-const DUNGEON_WARN_COLOR = "#FF8844";
 
 let _dungeon_running = false;
 let _dungeon_joining = false;
 
-function dungeon_log(dungeon, message, color = DUNGEON_LOG_COLOR) {
-	game_log(`[${dungeon.name}] ${message}`, color);
+function dungeon_log(dungeon, message, level = "event") {
+	log_msg(level, `[${dungeon.name}] ${message}`);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -125,7 +123,7 @@ async function dungeon_loot_everything() {
 
 		if (count === last) {
 			if (++idle >= DUNGEON_LOOT_IDLE_ROUNDS) {
-				game_log(`Looting: ${count} chest(s) out of reach — moving on`, DUNGEON_WARN_COLOR);
+				log_msg("warn", `Looting: ${count} chest(s) out of reach — moving on`);
 				break;
 			}
 		} else {
@@ -138,7 +136,7 @@ async function dungeon_loot_everything() {
 	}
 
 	const left = get_num_chests();
-	game_log(left ? `Looting: done, ${left} left behind` : "Looting: everything collected", DUNGEON_LOG_COLOR);
+	log_msg("info", left ? `Looting: done, ${left} left behind` : "Looting: everything collected");
 }
 
 function dungeon_telemetry_event(event, data) {
@@ -318,7 +316,7 @@ function start_dungeon_loop() {
 	if (character.name !== MOVEMENT_LEADER) return;
 	setTimeout(() => {
 		if (!active_dungeon() || _dungeon_loop_running) return;
-		if (character.rip) return game_log("Dungeon loop: dead on startup — not starting", DUNGEON_WARN_COLOR);
+		if (character.rip) return log_msg("warn", "Dungeon loop: dead on startup — not starting");
 		run_dungeon_loop();
 	}, DUNGEON_START_DELAY_MS);
 }
@@ -365,7 +363,7 @@ function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 			);
 
 			if (killed && !alive) {
-				game_log(`[Dungeon] ${mob_type} kill confirmed`, DUNGEON_LOG_COLOR);
+				log_msg("event", `[Dungeon] ${mob_type} kill confirmed`);
 				return settle(resolve);
 			}
 
@@ -377,9 +375,9 @@ function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 				consecutive_alive = 0;
 				consecutive_dead++;
 				if (consecutive_dead >= (confirmed_alive ? 3 : DUNGEON_ABSENT_ROUNDS)) {
-					game_log(confirmed_alive
+					log_msg("event", confirmed_alive
 						? `[Dungeon] ${mob_type} confirmed dead`
-						: `[Dungeon] ${mob_type} was not here — already dead`, DUNGEON_LOG_COLOR);
+						: `[Dungeon] ${mob_type} was not here — already dead`);
 					return settle(resolve);
 				}
 			} else {
@@ -410,7 +408,7 @@ async function join_dungeon_instance(data) {
 			const adrift = character.map !== entrance.map
 				|| Math.hypot(character.x - entrance.x, character.y - entrance.y) > DUNGEON_ENTRANCE_RANGE;
 			if (adrift) {
-				game_log("🚪 Behind the party — walking to the entrance", "#AA88FF");
+				log_msg("event", "🚪 Behind the party — walking to the entrance");
 				try { await smarter_move(entrance); } catch (e) { }
 			}
 		}
@@ -425,7 +423,7 @@ async function join_dungeon_instance(data) {
 			await delay(DUNGEON_JOIN_INTERVAL_MS);
 		}
 
-		game_log(`❌ Gave up entering the instance after ${DUNGEON_JOIN_TIMEOUT_MS / 1000}s`, "#FF3333");
+		log_msg("error", `Gave up entering the instance after ${DUNGEON_JOIN_TIMEOUT_MS / 1000}s`);
 	} finally {
 		_dungeon_joining = false;
 		_dungeon_moving = false;
@@ -476,7 +474,7 @@ function dungeon_rejoin_watch() {
 		const lead = read_state_cache(MOVEMENT_LEADER);
 		if (!lead || lead.rip || lead.map !== d.map || !lead.in) return;
 
-		game_log("🚪 Left behind — rejoining the instance", "#AA88FF");
+		log_msg("event", "🚪 Left behind — rejoining the instance");
 		join_dungeon_instance({ in: lead.in, map: d.map, entrance: d.entrance });
 	} catch (e) {
 		console.error("dungeon rejoin watch error", e);
@@ -517,7 +515,7 @@ async function wait_for_party_at_entrance(dungeon) {
 
 	dungeon_log(dungeon,
 		`${followers_away_from_entrance(dungeon).join(", ")} never reached the entrance — entering anyway`,
-		DUNGEON_WARN_COLOR);
+		"warn");
 	return false;
 }
 
@@ -535,7 +533,7 @@ async function wait_for_party_out(dungeon) {
 	}
 
 	dungeon_log(dungeon,
-		`${followers_still_inside(dungeon).join(", ")} never left — entering anyway`, DUNGEON_WARN_COLOR);
+		`${followers_still_inside(dungeon).join(", ")} never left — entering anyway`, "warn");
 	return false;
 }
 
@@ -567,7 +565,7 @@ function wait_for_party_in_instance(dungeon) {
 
 async function run_dungeon(dungeon) {
 	if (_dungeon_running) {
-		dungeon_log(dungeon, "Already running — ignoring duplicate start.", DUNGEON_WARN_COLOR);
+		dungeon_log(dungeon, "Already running — ignoring duplicate start.", "warn");
 		return false;
 	}
 	_dungeon_running = true;
@@ -579,7 +577,7 @@ async function run_dungeon(dungeon) {
 			dungeon_log(dungeon, `No ${dungeon.key} in hand — withdrawing every one from the bank...`);
 			await withdraw_item(dungeon.key, null, dungeon.key_count);
 			if (!has_dungeon_key(dungeon.key)) {
-				dungeon_log(dungeon, `No ${dungeon.key} in the bank either — aborting.`, DUNGEON_WARN_COLOR);
+				dungeon_log(dungeon, `No ${dungeon.key} in the bank either — aborting.`, "warn");
 				return false;
 			}
 		}
@@ -592,7 +590,7 @@ async function run_dungeon(dungeon) {
 		await delay(DUNGEON_ENTER_SETTLE_MS);
 		enter(dungeon.map);
 		if (!await wait_until_on_map(dungeon.map)) {
-			dungeon_log(dungeon, "enter() never landed — aborting", DUNGEON_WARN_COLOR);
+			dungeon_log(dungeon, "enter() never landed — aborting", "warn");
 			return false;
 		}
 
@@ -628,7 +626,7 @@ async function run_dungeon(dungeon) {
 		try {
 			await dungeon_travel(dungeon.exit || dungeon.entrance);
 		} catch (e) {
-			dungeon_log(dungeon, "Could not walk out — reloading from inside", DUNGEON_WARN_COLOR);
+			dungeon_log(dungeon, "Could not walk out — reloading from inside", "warn");
 		}
 
 		record_dungeon_run();
@@ -643,7 +641,7 @@ async function run_dungeon(dungeon) {
 
 	} catch (e) {
 		catcher(e, "run_dungeon");
-		dungeon_log(dungeon, "Entry aborted", DUNGEON_WARN_COLOR);
+		dungeon_log(dungeon, "Entry aborted", "warn");
 		return false;
 	} finally {
 		_dungeon_moving = false;
@@ -710,7 +708,7 @@ async function run_dungeon_loop() {
 	const route = dungeon_route_runner();
 	if (!route) {
 		const d = active_dungeon();
-		game_log(`Dungeon loop: ${d ? d.route || "no route" : "no dungeon"} is not a loaded function`, DUNGEON_WARN_COLOR);
+		log_msg("warn", `Dungeon loop: ${d ? d.route || "no route" : "no dungeon"} is not a loaded function`);
 		return;
 	}
 
@@ -724,7 +722,7 @@ async function run_dungeon_loop() {
 
 			if (character.map !== d.map) {
 				if (!await run_dungeon(d)) {
-					dungeon_log(d, "Could not get in — stopping the loop", DUNGEON_WARN_COLOR);
+					dungeon_log(d, "Could not get in — stopping the loop", "warn");
 					break;
 				}
 			}
@@ -755,7 +753,7 @@ async function run_dungeon_loop() {
 			set_dungeon_mode(null);
 		}
 		if (!dreams_mode_on()) hold_reset_for_mode(false);
-		game_log("⚰️ Dungeon loop stopped", "#FFCC00");
+		log_msg("event", "⚰️ Dungeon loop stopped");
 	}
 }
 
@@ -784,7 +782,7 @@ async function dungeon_keys_ready(dungeon) {
 	if (held >= dungeon.min_keys) return true;
 
 	dungeon_log(dungeon, `Only ${held} ${dungeon.key}(s) available, need ${dungeon.min_keys} — stopping the loop`,
-		DUNGEON_WARN_COLOR);
+		"warn");
 	return false;
 }
 
@@ -793,17 +791,17 @@ function start_dungeon_when_ready(dungeon) {
 	setTimeout(async () => {
 		if (_dungeon_running) return;
 		if (character.rip) {
-			dungeon_log(dungeon, "Character is dead on startup — not auto-starting.", DUNGEON_WARN_COLOR);
+			dungeon_log(dungeon, "Character is dead on startup — not auto-starting.", "warn");
 			return;
 		}
 		if (character.map === dungeon.map) {
-			dungeon_log(dungeon, "Detected startup inside instance — restarting from entrance.", "#FFAA44");
+			dungeon_log(dungeon, "Detected startup inside instance — restarting from entrance.");
 		}
 		dungeon_log(dungeon, "Auto-starting...");
 
 		const ok = await run_dungeon(dungeon);
 		if (!ok && dungeon_mode_enabled()) {
-			dungeon_log(dungeon, "Run could not start — turning the mode off", DUNGEON_WARN_COLOR);
+			dungeon_log(dungeon, "Run could not start — turning the mode off", "warn");
 			set_dungeon_mode(null);
 		}
 	}, DUNGEON_START_DELAY_MS);

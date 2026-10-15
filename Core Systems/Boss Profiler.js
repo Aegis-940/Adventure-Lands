@@ -322,7 +322,7 @@ function emit_boss_profile(fight) {
 		.sort((a, b) => players[b].boss_dps - players[a].boss_dps)
 		.slice(0, 5)
 		.map(n => `${n} ${commas(players[n].boss_dps)}`);
-	game_log(`📊 ${fight.mtype} boss dps: ${top.join(", ")}`, "#96a4ff");
+	log_msg("event", `📊 ${fight.mtype} boss dps: ${top.join(", ")}`);
 }
 
 function al_boss_profiles(name) {

@@ -140,11 +140,11 @@ function chest_report() {
 	const picked = pool.length ? choose_attack_option(pool) : null;
 	const { lo, hi } = lambda_bounds();
 
-	game_log(`[CHEST] ${pool.length} in range, mp ${Math.round(character.mp)}/${character.max_mp}`
-		+ `${shot ? "" : " (no mana pressure)"}`, "#66ccff");
-	game_log(`[CHEST] scorer fires ${picked ? picked.name : "nothing"}, widest would be ${widest ? widest.name : "nothing"}`
+	log_msg("debug", `[CHEST] ${pool.length} in range, mp ${Math.round(character.mp)}/${character.max_mp}`
+		+ `${shot ? "" : " (no mana pressure)"}`);
+	log_msg("debug", `[CHEST] scorer fires ${picked ? picked.name : "nothing"}, widest would be ${widest ? widest.name : "nothing"}`
 		+ `${picked && widest && picked.name === widest.name ? " — agree" : " — priced down"}, `
-		+ `lambda ${mana_price().toFixed(4)} in ${lo.toFixed(4)}-${hi.toFixed(4)}`, "#66ccff");
+		+ `lambda ${mana_price().toFixed(4)} in ${lo.toFixed(4)}-${hi.toFixed(4)}`);
 
 	if (widest) {
 		const hits = Math.min(widest.count, pool.length);
@@ -152,22 +152,22 @@ function chest_report() {
 		const gross = shot_mana(widest);
 		const per_point = shot_stealable_damage(pool, widest, hits, apiercing) / 100;
 		const rebate = manasteal_rebate(pool, widest, hits, apiercing);
-		game_log(`[CHEST] ${widest.name} costs ${Math.round(gross)} mp over ${hits} hits — `
-			+ `each 1% manasteal returns ${Math.round(per_point)} mp, worn now ${Math.round(rebate)}`, "#66ccff");
+		log_msg("debug", `[CHEST] ${widest.name} costs ${Math.round(gross)} mp over ${hits} hits — `
+			+ `each 1% manasteal returns ${Math.round(per_point)} mp, worn now ${Math.round(rebate)}`);
 	}
 	if (band.free) {
-		game_log(`[CHEST] free-mana mode — widest shot affordable down to ${Math.round(band.floor)} `
-			+ `(scare reserve ${panic_mp_reserve()} plus one ${widest ? widest.name : "shot"}), biggest affordable shot wins`, "#66ccff");
+		log_msg("debug", `[CHEST] free-mana mode — widest shot affordable down to ${Math.round(band.floor)} `
+			+ `(scare reserve ${panic_mp_reserve()} plus one ${widest ? widest.name : "shot"}), biggest affordable shot wins`);
 	} else {
-		game_log(`[CHEST] widest-shot crossover ${Math.round(band.crossover)} `
+		log_msg("debug", `[CHEST] widest-shot crossover ${Math.round(band.crossover)} `
 			+ `(${Math.round(100 * band.crossover / character.max_mp)}%), next rung ${Math.round(band.floor)} `
 			+ `(${Math.round(100 * band.floor / character.max_mp)}%) — `
-			+ `${band.chasing ? "chasing the widest" : "widest out of reach, defending the next rung"}`, "#66ccff");
+			+ `${band.chasing ? "chasing the widest" : "widest out of reach, defending the next rung"}`);
 	}
-	game_log(`[CHEST] engage below ${Math.round(band.engage)}, release above ${Math.round(band.release)} `
-		+ `— ${_mana_chest_engaged ? "engaged" : "idle"}`, "#66ccff");
-	game_log(`[CHEST] wearing ${is_set_equipped(sets.mana) ? sets.mana : is_set_equipped(sets.dps) ? sets.dps : "neither"}, `
-		+ `steal ${character.manasteal || 0}%`, "#66ccff");
+	log_msg("debug", `[CHEST] engage below ${Math.round(band.engage)}, release above ${Math.round(band.release)} `
+		+ `— ${_mana_chest_engaged ? "engaged" : "idle"}`);
+	log_msg("debug", `[CHEST] wearing ${is_set_equipped(sets.mana) ? sets.mana : is_set_equipped(sets.dps) ? sets.dps : "neither"}, `
+		+ `steal ${character.manasteal || 0}%`);
 }
 
 var EQUIPMENT_RULES = {

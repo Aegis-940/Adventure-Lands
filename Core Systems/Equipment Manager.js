@@ -10,7 +10,7 @@ function warn_missing_item(item_name, level, slot) {
 	const now = Date.now();
 	if (now - (_missing_item_warned[key] || 0) < MISSING_ITEM_WARN_INTERVAL) return;
 	_missing_item_warned[key] = now;
-	game_log(`⚠️ batch_equip: no ${item_name} (lvl ${level}) in inventory for ${slot}`, "#FFA500");
+	log_msg("warn", `batch_equip: no ${item_name} (lvl ${level}) in inventory for ${slot}`);
 }
 
 function level_fits(item_level, wanted) {
@@ -194,9 +194,8 @@ async function batch_equip(data, set_name) {
 			continue;
 		}
 		if (!level_fits(view.items[idx].level, level)) {
-			game_log(`⚠️ ${item_name} for ${slot}: set says lvl ${level}, bag has lvl `
-				+ `${view.items[idx].level ?? 0} — equipping it anyway. Fix the set definition.`,
-				"#FFA500");
+			log_msg("warn", `${item_name} for ${slot}: set says lvl ${level}, bag has lvl `
+				+ `${view.items[idx].level ?? 0} — equipping it anyway. Fix the set definition.`);
 		}
 
 		valid_items.push({ num: idx, slot: slot });
@@ -229,8 +228,8 @@ function warn_worn_level(set_name, item, worn) {
 	const now = Date.now();
 	if (now - (_worn_level_warned[key] || 0) < MISSING_ITEM_WARN_INTERVAL) return;
 	_worn_level_warned[key] = now;
-	game_log(`⚠️ set ${set_name}: ${item.item_name} in ${item.slot} is worn at lvl ${worn.level ?? 0}, `
-		+ `set says lvl ${item.level ?? 0} — treating it as equipped. Fix the set definition.`, "#FFA500");
+	log_msg("warn", `set ${set_name}: ${item.item_name} in ${item.slot} is worn at lvl ${worn.level ?? 0}, `
+		+ `set says lvl ${item.level ?? 0} — treating it as equipped. Fix the set definition.`);
 }
 
 function is_set_equipped(set_name) {

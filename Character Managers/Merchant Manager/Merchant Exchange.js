@@ -62,7 +62,7 @@ async function exchange_bag_items() {
 			const found = find_bag_exchangeable();
 			if (!found) break;
 
-			game_log(`🔁 Exchanging ${found.name} (slot ${found.slot})`);
+			log_msg("info", `🔁 Exchanging ${found.name} (slot ${found.slot})`);
 			const buff = begin_mass_exchange();
 			const started = Date.now();
 			await exchange(found.slot);
@@ -76,7 +76,7 @@ async function exchange_bag_items() {
 }
 
 async function withdraw_exchangeables() {
-	game_log("🏦 Fetching exchangeables from the bank...", "#888");
+	log_msg("debug", "🏦 Fetching exchangeables from the bank...");
 	await smarter_move(BANK_LOCATION);
 	await delay(500);
 	refresh_bank_snapshot();
@@ -90,7 +90,7 @@ async function withdraw_exchangeables() {
 		if (find_bag_exchangeable()) return true;
 	}
 
-	game_log("🏦 Nothing exchangeable came out of the bank.", "#FFA500");
+	log_msg("info", "🏦 Nothing exchangeable came out of the bank.");
 	return false;
 }
 
@@ -113,7 +113,7 @@ async function handle_exchanging_state() {
 		const fetched = await withdraw_exchangeables();
 		if (!fetched) {
 			_exchange_retry_at = Date.now() + EXCHANGE_RETRY_MS;
-			game_log(`⚠️ Exchange: bank fetch produced nothing — not retrying for ${EXCHANGE_RETRY_MS / 60000} min.`, "#FFA500");
+			log_msg("warn", `Exchange: bank fetch produced nothing — not retrying for ${EXCHANGE_RETRY_MS / 60000} min.`);
 		}
 	} catch (e) {
 		catcher(e, "handle_exchanging_state");

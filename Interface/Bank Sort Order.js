@@ -246,7 +246,7 @@ async function pull_bank_slot(entry) {
 	);
 
 	if (!ok) {
-		game_log(`⚠️ Could not withdraw ${entry.key.split("|")[0]} from ${entry.pack}:${entry.slot}`, "#FFA500");
+		log_msg("warn", `Could not withdraw ${entry.key.split("|")[0]} from ${entry.pack}:${entry.slot}`);
 		return -1;
 	}
 
@@ -264,7 +264,7 @@ async function split_off(inv_slot, key, amount) {
 	const ok = await bank_op(() => split(inv_slot, amount), () => find_piece() >= 0);
 	if (!ok) {
 		const held = inventory_slots_of(key).map((slot) => item_q(slot)).join("/");
-		game_log(`⚠️ Split of ${key.split("|")[0]} for ${amount} gave ${held || "nothing"}`, "#FFA500");
+		log_msg("warn", `Split of ${key.split("|")[0]} for ${amount} gave ${held || "nothing"}`);
 		return -1;
 	}
 
@@ -296,12 +296,12 @@ async function consolidate_stack_group(group, packs) {
 	const name = key.split("|")[0];
 
 	if (inventory_slots_of(key).length) {
-		game_log(`⏭️ Skipped ${name} — already in inventory`, "#999999");
+		log_msg("debug", `⏭️ Skipped ${name} — already in inventory`);
 		return 0;
 	}
 
 	if (empty_slot_indices().length < 3) {
-		game_log("⚠️ Bank consolidation needs 3 free inventory slots");
+		log_msg("warn", "Bank consolidation needs 3 free inventory slots");
 		return 0;
 	}
 
@@ -315,7 +315,7 @@ async function consolidate_stack_group(group, packs) {
 		const target = partials[0];
 		const donor = partials[partials.length - 1];
 		const need = cap - target.q;
-		game_log(`🧺 ${name} ${donor.pack}:${donor.slot} q${donor.q} → ${target.pack}:${target.slot} q${target.q}, need ${need}`, "#999999");
+		log_msg("debug", `🧺 ${name} ${donor.pack}:${donor.slot} q${donor.q} → ${target.pack}:${target.slot} q${target.q}, need ${need}`);
 
 		const pulled = await pull_bank_slot(donor);
 		if (pulled < 0) break;
@@ -344,7 +344,7 @@ async function consolidate_stack_group(group, packs) {
 
 		if (merged === undefined || merged < 0) {
 			bank_merge_disabled = true;
-			game_log(`⚠️ ${name} would not combine in inventory, consolidation stopped`, "#FFA500");
+			log_msg("warn", `${name} would not combine in inventory, consolidation stopped`);
 		} else {
 			topped++;
 		}
@@ -383,7 +383,7 @@ async function consolidate_bank_floor(packs) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function sort_all_bank() {
-	if (!character.bank) return game_log("Not inside the bank");
+	if (!character.bank) return log_msg("info", "Not inside the bank");
 
 	bank_merge_disabled = false;
 	const floors = bank_floors_with_items();
@@ -391,26 +391,26 @@ async function sort_all_bank() {
 	for (const map of floors) {
 		await goto_bank_floor(map);
 		if (character.map !== map) {
-			game_log(`⚠️ Could not reach ${map}, skipping`, "#FFA500");
+			log_msg("warn", `Could not reach ${map}, skipping`);
 			continue;
 		}
 
 		const packs = bank_packs_on_floor(map);
 		if (!packs.length) {
-			game_log(`⚠️ No bank packs readable on ${map}`, "#FFA500");
+			log_msg("warn", `No bank packs readable on ${map}`);
 			continue;
 		}
 
 		const merged = await consolidate_bank_floor(packs);
-		if (merged) game_log(`🧺 Combined ${merged} partial stacks on ${map}`);
+		if (merged) log_msg("info", `🧺 Combined ${merged} partial stacks on ${map}`);
 		await delay(200);
 		await sort_bank_floor(packs);
-		game_log(`🏧 Sorted ${map}`);
+		log_msg("info", `🏧 Sorted ${map}`);
 	}
 }
 
 function sort_bank_floor(packs_on_floor, inv_indices, sorted_bank, i_running) {
-	if (!character.bank) return game_log("Not inside the bank");
+	if (!character.bank) return log_msg("info", "Not inside the bank");
 
 	if (!inv_indices) {
 	inv_indices = [];
@@ -418,7 +418,7 @@ function sort_bank_floor(packs_on_floor, inv_indices, sorted_bank, i_running) {
 		if (!character.items[i]) inv_indices.push(i);
 	}
 	}
-	if (inv_indices.length == 0) return game_log("Make some space in inventory");
+	if (inv_indices.length == 0) return log_msg("info", "Make some space in inventory");
 	if (!sorted_bank) {
 	let bank_array = [];
 	for (let bank_pack of packs_on_floor) {
@@ -448,7 +448,7 @@ function sort_bank_floor(packs_on_floor, inv_indices, sorted_bank, i_running) {
 			sorted_bank[bank_pack][i]
 			)
 		) {
-			game_log("Swapping empty " + inv_pointer + " with " + i + bank_pack);
+			log_msg("info", "Swapping empty " + inv_pointer + " with " + i + bank_pack);
 			parent.socket.emit("bank", {
 			operation: "swap",
 			pack: bank_pack,
@@ -477,7 +477,7 @@ function sort_bank_floor(packs_on_floor, inv_indices, sorted_bank, i_running) {
 			sorted_bank[bank_pack][i]
 			)
 		) {
-			game_log({ operation: "swap", pack: bank_pack, str: i, inv: inv_pointer });
+			log_msg("debug", JSON.stringify({ operation: "swap", pack: bank_pack, str: i, inv: inv_pointer }));
 			parent.socket.emit("bank", {
 			operation: "swap",
 			inv: inv_pointer,

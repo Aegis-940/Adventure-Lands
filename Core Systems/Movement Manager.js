@@ -257,7 +257,7 @@ function travel_failed(label, reason) {
 	if (!_travel.fail_from) _travel.fail_from = { map: character.map, x: character.x, y: character.y };
 	_travel.failures++;
 	if (_travel.failures <= TRAVEL_TOWN_AFTER_FAILURES + 1 || _travel.failures % TRAVEL_FAILURE_LOG_EVERY === 0) {
-		game_log(`🚨 "${label}" failed (${reason}) — ${_travel.failures} in a row`, "#FFA500");
+		log_msg("warn", `"${label}" failed (${reason}) — ${_travel.failures} in a row`);
 	}
 }
 
@@ -322,7 +322,7 @@ function log_local_goal(label) {
 	const now = Date.now();
 	if (now - _local_label_at < 1500) return;
 	_local_label_at = now;
-	game_log(`🧭 ${label}`, "#8899aa");
+	log_msg("event", `🧭 ${label}`);
 }
 
 function travel_arbiter(goal) {
@@ -337,7 +337,7 @@ function travel_arbiter(goal) {
 	if (goal.hold) {
 		_travel.active = false;
 		travel_release();
-		if (_travel.label !== goal.label) game_log(`🧭 ${goal.label}`, "#8899aa");
+		if (_travel.label !== goal.label) log_msg("event", `🧭 ${goal.label}`);
 		_travel.label = goal.label;
 		return true;
 	}
@@ -406,12 +406,12 @@ function travel_arbiter(goal) {
 		if (smart.moving) stop_movement("arbiter: " + label);
 		_travel.at = now;
 		_travel.released = false;
-		if (_travel.label !== label) game_log(`🧭 ${label}`, "#8899aa");
+		if (_travel.label !== label) log_msg("event", `🧭 ${label}`);
 		_travel.label = label;
 		_travel.active = true;
 
 		const town = travel_town_allowed();
-		if (town && !_travel.town) game_log(`🚨 "${label}": no walking route — allowing the town teleport`, "#FFA500");
+		if (town && !_travel.town) log_msg("warn", `"${label}": no walking route — allowing the town teleport`);
 		_travel.town = town;
 
 		const plot = travel_parked_plot(label, map, goal.x, goal.y);
@@ -567,7 +567,7 @@ function town_cancel(ch, reason) {
 	ch.mine = false;
 	cancel_town_channel();
 	town_note("cancelled", ch);
-	game_log(`🌀 Town teleport cancelled — ${reason}`, "#8899aa");
+	log_msg("event", `🌀 Town teleport cancelled — ${reason}`);
 }
 
 function town_channel_watch(ch) {
@@ -626,7 +626,7 @@ function town_copy_leader() {
 	if (Date.now() - _town.cast_at < TOWN_RECHECK_MS) return true;
 	if (_town.logged !== mode) {
 		_town.logged = mode;
-		game_log(mode === "copy" ? `🌀 Following ${MOVEMENT_LEADER}'s town teleport` : `🌀 Teleporting to ${MOVEMENT_LEADER} at the spawn`, "#8899aa");
+		log_msg("event", mode === "copy" ? `🌀 Following ${MOVEMENT_LEADER}'s town teleport` : `🌀 Teleporting to ${MOVEMENT_LEADER} at the spawn`);
 	}
 	town_cast(null, mode, mode === "copy" ? { x: lead.x, y: lead.y } : null);
 	return true;
@@ -656,7 +656,7 @@ function town_shortcut_plan() {
 	errlog_count("town shortcut cast");
 	if (_town.logged !== goal.label) {
 		_town.logged = goal.label;
-		game_log(`🌀 Town shortcut on "${goal.label}" — saves ~${Math.round(saved_ms / 1000)}s`, "#8899aa");
+		log_msg("event", `🌀 Town shortcut on "${goal.label}" — saves ~${Math.round(saved_ms / 1000)}s`);
 	}
 	town_cast(goal.label, "own", null);
 }
@@ -741,13 +741,13 @@ function stuck_escape_settle(now) {
 	if (stuck_escape_landed()) {
 		_last_stuck_escape = now;
 		_stuck_escape = null;
-		game_log("🚨 Stuck escape landed", "#00FF00");
+		log_msg("event", "🚨 Stuck escape landed");
 		return;
 	}
 	if (now - _stuck_escape.at < STUCK_TOWN_WAIT_MS) return;
 	_stuck_escape = null;
 	_last_stuck_escape = now - STUCK_ESCAPE_COOLDOWN_MS + STUCK_RETRY_MS;
-	game_log(`🚨 Stuck escape did not land — retrying in ${STUCK_RETRY_MS / 1000}s`, "#FFA500");
+	log_msg("warn", `Stuck escape did not land — retrying in ${STUCK_RETRY_MS / 1000}s`);
 }
 
 function stuck_escape_check() {
@@ -787,7 +787,7 @@ function stuck_escape_check() {
 
 	_stuck_since = now;
 	_stuck_escape = { at: now, map: character.map };
-	game_log(`🚨 Stuck on ${character.map} for ${Math.round(stuck_ms / 1000)}s — using town to escape.`, "#FF3333");
+	log_msg("warn", `Stuck on ${character.map} for ${Math.round(stuck_ms / 1000)}s — using town to escape.`);
 	Promise.resolve(use_skill("use_town")).catch(() => { });
 }
 
@@ -916,7 +916,7 @@ const LOCAL_STEPS = {
 
 function movement_local(goal, farm_step, engage_step) {
 	if (smart.moving) {
-		if (!goal || !goal.passive) game_log("🧭 local movement skipped — a journey is still in flight", "#FFA500");
+		if (!goal || !goal.passive) log_msg("warn", "local movement skipped — a journey is still in flight");
 		return;
 	}
 	const step = goal && (LOCAL_STEPS[goal.local] || encounter_step(goal.local));
