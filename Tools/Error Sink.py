@@ -190,6 +190,27 @@ def archive_timeline(who, entries):
 
 BOSS_PROFILE_ARCHIVE = os.path.join(REPO, "boss_profiles.jsonl")
 
+# Sample kinds kept for good, one file each (Overhaul 4.1). The rest live only in errors.json, about two hours.
+# Measured 2026-10-15 from the live rings: damage about 4 MB/day per fighter, heal 1.2, cc_report 0.9 (Ulric),
+# target_choice 0.1. weapon_choice (~46 MB/day) and burn_state (~17) are rolled up per window instead.
+SAMPLE_ARCHIVES = {
+    "boss_profile": BOSS_PROFILE_ARCHIVE,
+    "damage": os.path.join(REPO, "damage.jsonl"),
+    "heal": os.path.join(REPO, "heal.jsonl"),
+    "target_choice": os.path.join(REPO, "target_choice.jsonl"),
+    "cc_report": os.path.join(REPO, "cc_report.jsonl"),
+}
+
+
+def archive_sample_kinds(bucket, who, samples):
+    """Each kind is written once: a per-kind high-water mark on t, as the page resends its whole ring every push."""
+    marks = bucket.setdefault("samples_archived", {"boss_profile": bucket.pop("profiles_archived_to", 0)})
+    for kind, path in SAMPLE_ARCHIVES.items():
+        fresh = [s for s in samples if s.get("kind") == kind and (s.get("t") or 0) > marks.get(kind, 0)]
+        if fresh:
+            archive_samples(path, who, fresh)
+            marks[kind] = max(s.get("t") or 0 for s in fresh)
+
 
 def archive_samples(path, who, samples):
     with open(path, "a", encoding="utf-8") as fh:
@@ -293,11 +314,7 @@ def merge(incoming):
         samples[(s.get("t"), s.get("kind"))] = s
     bucket["samples"] = prune_samples(samples.values())
 
-    profiles = [s for s in incoming.get("samples") or []
-                if s.get("kind") == "boss_profile" and (s.get("t") or 0) > bucket.get("profiles_archived_to", 0)]
-    if profiles:
-        archive_samples(BOSS_PROFILE_ARCHIVE, who, profiles)
-        bucket["profiles_archived_to"] = max(s.get("t") or 0 for s in profiles)
+    archive_sample_kinds(bucket, who, incoming.get("samples") or [])
 
     archive_lane(bucket, who, incoming.get("archive") or [])
 

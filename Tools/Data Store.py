@@ -9,6 +9,8 @@
                                             two builds (7-char SHA) or time ranges (2026-10-14T21:00..2026-10-14T23:55)
                                             at the same home: per-window rates, change, and a verdict
 
+Also kept, one table each: damage.jsonl, heal.jsonl, target_choice.jsonl, cc_report.jsonl (Overhaul 4.1).
+
 The .jsonl files are the record. The database is derived from them, so it can be deleted at any time.
 Ingest is incremental: each file's byte offset is remembered, and a file that shrank is re-read from
 the start.
@@ -51,6 +53,61 @@ CREATE INDEX IF NOT EXISTS ledger_home ON ledger (home, character);
 """
 
 
+# Every archived record carries these from Overhaul 4.2 on (empty before): what the page was doing when it wrote it.
+CONTEXT_COLUMNS = ["home", "map", "goal", "encounters", "variant"]
+
+# Columns added after a table was first created, so an existing database gains them on connect.
+ADDED_COLUMNS = {
+    "ledger": ["build", "goal", "encounters", "variant", "variant_start"],
+    "survey": ["build"],
+    "danger": ["build", "encounters", "variant"],
+}
+
+# Sample kinds the sink keeps (Overhaul 4.1): file, table, and the fields worth a column. Everything is also in raw.
+SAMPLE_TABLES = [
+    ("damage.jsonl", "damage_windows", ["weapon", "secs", "direct", "splash", "burn", "hits", "splashes", "ticks",
+                                        "attack", "crit", "buffs", "boss_pct", "off_home_pct"]),
+    ("heal.jsonl", "heal_windows", ["secs", "single_casts", "single_delivered", "single_predicted", "single_overheal",
+                                    "party_hits", "party_delivered", "party_predicted", "party_overheal", "mp_cost"]),
+    ("target_choice.jsonl", "target_choices", ["mob", "pool", "chosen_score", "runner_up_score", "chosen_value",
+                                               "best_value", "traded"]),
+    ("cc_report.jsonl", "cc_reports", ["total", "climit", "by_method"]),
+]
+
+
+def sample_schema():
+    out = []
+    for _, table, fields in SAMPLE_TABLES:
+        columns = ["character", "t INTEGER", "at"] + fields + ["build"] + CONTEXT_COLUMNS + ["raw"]
+        out.append("CREATE TABLE IF NOT EXISTS %s (%s);" % (table, ", ".join(columns)))
+        out.append("CREATE INDEX IF NOT EXISTS %s_t ON %s (character, t);" % (table, table))
+    return "\n".join(out)
+
+
+def cell(value):
+    return json.dumps(value) if isinstance(value, (dict, list)) else value
+
+
+def insert(db, table, row):
+    names = list(row)
+    db.execute("INSERT INTO %s (%s) VALUES (%s)" % (table, ", ".join(names), ", ".join("?" * len(names))),
+               [cell(row[n]) for n in names])
+
+
+def context(r):
+    return {name: r.get(name) for name in ["build"] + CONTEXT_COLUMNS}
+
+
+def sample_adder(table, fields):
+    def add(db, r):
+        row = {"character": r.get("character"), "t": r.get("t"), "at": r.get("at")}
+        row.update({f: r.get(f) for f in fields})
+        row.update(context(r))
+        row["raw"] = r
+        insert(db, table, row)
+    return add
+
+
 def count(kills):
     return sum((kills or {}).values())
 
@@ -58,13 +115,19 @@ def count(kills):
 def add_ledger(db, r):
     spot = r.get("spot") or {}
     potions = r.get("potions") or {}
-    db.execute("INSERT INTO ledger VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (
-        r.get("character"), r.get("t"), r.get("at"), r.get("window_s"), r.get("at_spot_s"), r.get("map"),
-        r.get("home"), r.get("survey_spot"), r.get("level"), r.get("gold"), r.get("chest_gold"), r.get("xp"),
-        count(r.get("kills")), spot.get("gold"), spot.get("chest_gold"), spot.get("xp"), count(spot.get("kills")),
-        r.get("deaths"), potions.get("hp"), potions.get("mp"), r.get("players_nearby"), r.get("goldm"),
-        r.get("xpm"), r.get("luckm"), json.dumps(r.get("kills") or {}), json.dumps(spot.get("kills") or {}),
-        json.dumps(r.get("party") or []), json.dumps(r.get("gear") or {}), r.get("build")))
+    row = {
+        "character": r.get("character"), "t": r.get("t"), "at": r.get("at"), "window_s": r.get("window_s"),
+        "at_spot_s": r.get("at_spot_s"), "survey_spot": r.get("survey_spot"), "level": r.get("level"),
+        "gold": r.get("gold"), "chest_gold": r.get("chest_gold"), "xp": r.get("xp"), "kills": count(r.get("kills")),
+        "spot_gold": spot.get("gold"), "spot_chest_gold": spot.get("chest_gold"), "spot_xp": spot.get("xp"),
+        "spot_kills": count(spot.get("kills")), "deaths": r.get("deaths"), "hp_pots": potions.get("hp"),
+        "mp_pots": potions.get("mp"), "players_nearby": r.get("players_nearby"), "goldm": r.get("goldm"),
+        "xpm": r.get("xpm"), "luckm": r.get("luckm"), "kills_by_type": r.get("kills") or {},
+        "spot_kills_by_type": spot.get("kills") or {}, "party": r.get("party") or [], "gear": r.get("gear") or {},
+        "variant_start": r.get("variant_start"),
+    }
+    row.update(context(r))
+    insert(db, "ledger", row)
 
 
 def add_survey(db, r):
@@ -89,10 +152,14 @@ def add_tracker(db, r):
 
 
 def add_danger(db, r):
-    db.execute("INSERT INTO danger VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (
-        r.get("character"), r.get("t"), r.get("at"), r.get("event"), r.get("map"), r.get("home"), r.get("goal"),
-        r.get("killer"), 0 if r.get("event") == "death" else r.get("min_hp_pct"), r.get("low_for_s"), r.get("damage_10s"),
-        r.get("targeting"), r.get("mp_pct"), 1 if r.get("panicking") else 0, json.dumps(r), r.get("build")))
+    row = {
+        "character": r.get("character"), "t": r.get("t"), "at": r.get("at"), "event": r.get("event"),
+        "killer": r.get("killer"), "min_hp_pct": 0 if r.get("event") == "death" else r.get("min_hp_pct"),
+        "low_for_s": r.get("low_for_s"), "damage_10s": r.get("damage_10s"), "targeting": r.get("targeting"),
+        "mp_pct": r.get("mp_pct"), "panicking": 1 if r.get("panicking") else 0, "raw": r,
+    }
+    row.update(context(r))
+    insert(db, "danger", row)
 
 
 def add_boss_profile(db, r):
@@ -122,7 +189,7 @@ SOURCES = [
     ("danger.jsonl", add_danger, ["danger"]),
     ("boss_profiles.jsonl", add_boss_profile, ["boss_profiles"]),
     ("errors_timeline.jsonl", add_timeline, ["deaths", "bscorpion_kills"]),
-]
+] + [(name, sample_adder(table, fields), [table]) for name, table, fields in SAMPLE_TABLES]
 
 
 def ingest_file(db, name, add, tables):
@@ -152,15 +219,14 @@ def ingest_file(db, name, add, tables):
     return added
 
 
-BUILD_COLUMN_TABLES = ("ledger", "survey", "danger")
-
-
 def connect():
     db = sqlite3.connect(DB, timeout=60)
-    db.executescript(SCHEMA)
-    for table in BUILD_COLUMN_TABLES:
-        if "build" not in [c[1] for c in db.execute("PRAGMA table_info(%s)" % table)]:
-            db.execute("ALTER TABLE %s ADD COLUMN build TEXT" % table)
+    db.executescript(SCHEMA + sample_schema())
+    for table, columns in ADDED_COLUMNS.items():
+        have = [c[1] for c in db.execute("PRAGMA table_info(%s)" % table)]
+        for column in columns:
+            if column not in have:
+                db.execute("ALTER TABLE %s ADD COLUMN %s" % (table, column))
     return db
 
 

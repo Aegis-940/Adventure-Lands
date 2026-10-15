@@ -10,6 +10,11 @@ ledger.jsonl
 tracker.jsonl
 survey.jsonl
 danger.jsonl
+damage.jsonl
+heal.jsonl
+target_choice.jsonl
+cc_report.jsonl
+decisions.jsonl
 al_data.sqlite
 al_data.sqlite-journal
 party_model.json
