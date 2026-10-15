@@ -152,6 +152,7 @@ function ledger_close(now) {
 	});
 	if (at_farm_spot()) errlog_snapshot("farm");
 	_ledger = ledger_window(now);
+	bus_emit("ledger_window", { now });
 }
 
 function ledger_tick() {

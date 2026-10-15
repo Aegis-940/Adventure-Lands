@@ -74,6 +74,7 @@ function danger_context() {
 		debuffs: Object.keys(character.s || {}).filter(k => G.conditions[k] && G.conditions[k].debuff),
 		party: danger_party(),
 		potions: { hp: quantity("hpot1"), mp: quantity("mpot1") },
+		decisions: recent_decisions(),
 	};
 }
 

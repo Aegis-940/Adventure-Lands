@@ -55,6 +55,7 @@ Core Systems/*.js                 ← loaded in parallel as real <script> tags
     ├── Skill Runner.js           run_skills(): one pass over a role's skill table
     ├── Farm Ledger.js            5-minute gold/XP/kill windows (at the spot vs away), daily tracker snapshot
     ├── Farm Survey.js            the *SURVEY* farm target: 60 min per spot, then bscorpion
+    ├── Decision Log.js           decisions and outcomes per ledger window (decisions.jsonl); the last 10s on each danger record
     ├── Danger Log.js             deaths and close calls with killer, damage sources and context
     ├── Error Handling.js         catcher(), the shared error-triage/logging helper
     └── Error Log.js              persistent cross-character flight recorder (al_errors(true))

@@ -254,7 +254,7 @@ function action_loop() {
 function healer_action(ms) {
 	if (ms !== 0) return next_action_delay(ms);
 	if (basic_action_busy()) return 40;
-	if (heal_wanted()) run_basic_action(heal(cache.heal_target), "heal");
-	else if (attack_wanted()) run_basic_action(attack(cache.target), "attack");
+	if (heal_wanted()) run_basic_action(heal(cache.heal_target), "heal", cache.heal_target);
+	else if (attack_wanted()) run_basic_action(attack(cache.target), "attack", cache.target);
 	else return 40;
 }

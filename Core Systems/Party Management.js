@@ -21,7 +21,10 @@ function set_panic(on, reason, external) {
 	panicking = !!on;
 	panic_external = ext;
 	panic_external_since = ext && on ? Date.now() : 0;
-	if (starting) setTimeout(() => errlog_snapshot("panic"));
+	if (starting) {
+		setTimeout(() => errlog_snapshot("panic"));
+		record_panic(reason);
+	}
 
 	game_log(on ? `⚠️ Panic: ${reason}` : `✅ Panic over: ${reason}`,
 		on ? "#ffcc00" : "#00ff00");

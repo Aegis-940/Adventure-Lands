@@ -492,6 +492,7 @@ function equip_burst(burst) {
 
 	const armed = equip_plan(burst.arm);
 	emit_equip_ops(armed.ops, armed.shadow);
+	record_burst(burst.owner, armed.ops.length);
 	if (burst.between) burst.between(armed);
 	if (burst.then) {
 		const then = equip_plan(burst.then, armed.shadow);
@@ -522,6 +523,7 @@ async function apply_equipment_rule(token, group, resolved) {
 		errlog_count(`equip unavailable ${group}`);
 		return;
 	}
+	record_gear(group, sets);
 	await equip_apply(token, sets);
 }
 

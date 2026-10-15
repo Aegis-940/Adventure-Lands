@@ -290,6 +290,6 @@ function warrior_action(ms) {
 	const target = cache.target;
 	if (ms !== 0 || !swing_possible(target) || stomp_mana_reserved()) return next_action_delay(ms);
 	if (basic_action_busy()) return;
-	run_basic_action(attack(target), "attack");
+	run_basic_action(attack(target), "attack", target);
 	swing_swaps(target);
 }

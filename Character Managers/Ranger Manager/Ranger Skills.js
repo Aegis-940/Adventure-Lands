@@ -59,8 +59,8 @@ function supershot_value(target) {
 var _last_sent_target = null;
 
 var RANGER_SKILLS = [
-	{ name: "huntersmark", gate: "combat", wanted: mark_wanted, cast: shot => shoot_skill("huntersmark", shot) },
-	{ name: "supershot", gate: "combat", wanted: supershot_wanted, cast: shot => shoot_skill("supershot", shot) },
+	{ name: "huntersmark", gate: "combat", wanted: mark_wanted, value: shot => mark_value(shot.target), cast: shot => shoot_skill("huntersmark", shot) },
+	{ name: "supershot", gate: "combat", wanted: supershot_wanted, value: shot => supershot_value(shot.target), cast: shot => shoot_skill("supershot", shot) },
 ];
 
 function shot_affordable(shot, skill) {

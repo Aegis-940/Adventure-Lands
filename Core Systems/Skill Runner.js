@@ -11,7 +11,10 @@ async function run_skills(table, context) {
 		}
 		try {
 			if (skill.wanted && !skill.wanted(context)) continue;
+			const value = skill.value && skill.value(context);
+			const before = parent.next_skill[skill.name];
 			await skill.cast(context);
+			if (skill.value && parent.next_skill[skill.name] !== before) record_cast_value(skill.name, value);
 		} catch (e) {
 			catcher(e, skill.name);
 		}

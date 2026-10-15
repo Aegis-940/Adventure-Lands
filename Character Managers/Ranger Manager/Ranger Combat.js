@@ -284,7 +284,7 @@ function ranger_action(ms) {
 	if (ms !== 0 || travel_blocks_combat() || basic_action_busy()) return next_action_delay(ms);
 	const cupid_live = mainhand_intent() === "cupid";
 	const want_heal = !!cache.heal_target;
-	if (want_heal && character.slots.mainhand?.name === "cupid" && cupid_live) run_basic_action(cupid_heal(cache.heal_target), "cupid");
+	if (want_heal && character.slots.mainhand?.name === "cupid" && cupid_live) run_basic_action(cupid_heal(cache.heal_target), "cupid", cache.heal_target);
 	else if (!want_heal && !cupid_live) handle_attack();
 	else return next_action_delay(ms);
 }
@@ -307,10 +307,10 @@ function handle_attack() {
 		const forced = dungeon_focus_target();
 		if (forced) {
 			if (!is_in_range(forced)) return;
-			return run_basic_action(attack(forced), "attack");
+			return run_basic_action(attack(forced), "attack", forced);
 		}
 		if (!in_range.length) return;
-		return run_basic_action(attack(in_range[0]), "attack");
+		return run_basic_action(attack(in_range[0]), "attack", in_range[0]);
 	}
 
 	const shelled = rime_shell_casting();
@@ -319,8 +319,8 @@ function handle_attack() {
 		: choose_attack_option(coop_boss_only(in_range));
 	if (!choice) return;
 
-	if (choice.name === "attack") return run_basic_action(attack(choice.targets[0]), "attack");
-	if (choice.single) return run_basic_action(use_skill(choice.name, choice.targets[0]), choice.name);
-	return run_basic_action(use_skill(choice.name, choice.targets.map(e => e.id)), choice.name);
+	if (choice.name === "attack") return run_basic_action(attack(choice.targets[0]), "attack", choice.targets[0]);
+	if (choice.single) return run_basic_action(use_skill(choice.name, choice.targets[0]), choice.name, choice.targets[0]);
+	return run_basic_action(use_skill(choice.name, choice.targets.map(e => e.id)), choice.name, choice.targets[0]);
 }
 

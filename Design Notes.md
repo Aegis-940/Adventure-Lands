@@ -438,6 +438,21 @@ A follower in turn does not pursue while she is live on his map, beyond the rang
 
 **Context is what the tick worked out once.** Ulric's tick passes the tank. The old tick read `cache.tank_entity` once and used it across the awaited agitate and taunt, and the context keeps that. Myras's tick passes the swap penalty it read before the heal, which absorb is gated on, as before. Her mana-for-luxuries check is now read when dark blessing is decided, after curse and absorb, instead of straight after the heal: the one place a skill now sees fresher state than it used to. Cooldown and mana checks stay in each entry's `wanted`, because they differ on purpose: dark blessing keeps no panic reserve, and a stomp on a Rime shell spends it. The zap loop keeps its own cadence (Loop Cadence) and runs a one-entry table, `ZAP_SKILLS`. Riva's tick picks the target and reads both cooldowns once, then passes `{ target, allowed, ms_hunter, ms_super, committed }`. Mark and supershot both count `committed` mana against her reserve, so a pass never spends past it.
 
+### `Decision Log.js`
+
+Overhaul 4.3 and 4.4: what each fighter chose and what came of it, summed per ledger window and archived as one `decisions` record beside the ledger record. The ledger's `ledger_close()` emits `ledger_window` on the bus, and the decision window closes on it, so the two cover the same seconds. The recorders follow the `errlog_*` contract and never throw into their caller.
+
+| Field | Source |
+|---|---|
+| `casts` | every `skill_timeout` the server sends (`consume_skill()`: one per cast that started a cooldown, named by its cooldown group, so 3shot and 5shot count as `attack`), with mana and the swap penalty the server added |
+| `values` | the skill runner, when an entry with a `value(context)` cast (its `next_skill` changed): the value it was cast for. Riva's mark (`mark_value()`) and supershot (`supershot_value()`) |
+| `actions`, `pulls` | `run_basic_action(p, label, target)`: each basic action by label. A pull is an action on a monster that had no target, and `pulls` counts them by how many monsters were already on the puller (`monsters_targeting_me()`, capped at 10) |
+| `bursts`, `gear`, `panics` | `equip_burst()` by owner and ops sent, `apply_equipment_rule()` by group and sets, `set_panic()` by reason |
+| `outcomes`, `taken` | every `hit`: by this character per `source` (damage, hits, kills, misses), and on it (damage, hits, biggest, by monster). The normalised hit is also published on the bus as `hit` |
+| `worn_s`, `goal_s`, `panic_s` | a 1s sample of the weapon pair worn, the goal label and panic |
+
+A ring of the last 50 decisions (casts other than `attack`, pulls, bursts, gear, panics, goal changes) is attached to every danger record as `decisions`, those within the last 10s, each with `ms_ago`. A window record is about 550 bytes, about 0.5 MB/day for the three fighters. Combat Sampling keeps its own `hit` and `action` handlers, because the in-flight ledger must run exactly and first. The other `hit` handlers move onto the bus topic only when their file is touched for its own reason.
+
 ### `Farm Ledger.js`
 
 One `ledger` record per fighter every 5 minutes, through `errlog_archive()` to `ledger.jsonl`. Plan: [`Data and Farming Plan.md`](Data%20and%20Farming%20Plan.md).

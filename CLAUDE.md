@@ -79,6 +79,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | `Skill Runner.js` | `run_skills(table, context)`: one pass over a role's skill table, each entry gated (`combat`/`alive`), asked, cast and caught on its own |
 | `Farm Ledger.js` | 5-minute ledger windows (gold, chest gold, XP, kills, deaths, potions; at the farm spot vs away) and the daily tracker snapshot, archived through `errlog_archive()` |
 | `Danger Log.js` | Every death and close call (HP under 30%): when, who, against what (killer, damage sources in the last 10s, biggest hit), and the state around it, archived to `danger.jsonl` |
+| `Decision Log.js` | What each fighter chose and what came of it, summed per ledger window and archived to `decisions.jsonl`: confirmed casts (from `skill_timeout`), basic actions and pulls, bursts, gear changes, panics, damage dealt and taken by source, and seconds per weapon, goal and panic. The last 10s of decisions ride on every danger record |
 | `Farm Survey.js` | The `*SURVEY*` farm target: 60 minutes at each spot in `SURVEY_SPOTS`, then `bscorpion`. Myras writes the state; every fighter switches `home` at runtime. `survey_status()`/`survey_retry(spot)`/`survey_move_on()`/`survey_reset()` in the console |
 | `Error Handling.js` | `catcher()` |
 | `Error Log.js` | Cross-character flight recorder; defines the real `errlog_*`. Read with `al_errors(true)` |

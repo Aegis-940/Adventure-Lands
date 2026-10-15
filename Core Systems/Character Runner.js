@@ -45,7 +45,8 @@ function basic_action_retry_at(e) {
 	return Date.now() + e.ms - min_ping();
 }
 
-function run_basic_action(p, label) {
+function run_basic_action(p, label, target) {
+	record_action(label, target);
 	_basic_action_count++;
 	const freq = character.frequency > 0 ? character.frequency : 1.1;
 	const until = Date.now() + 1000 / freq;
@@ -197,4 +198,5 @@ function run_character(spec) {
 	farm_ledger_start();
 	farm_survey_start();
 	danger_log_start();
+	decision_log_start();
 }
