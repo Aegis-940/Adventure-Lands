@@ -805,13 +805,10 @@
    "call": [],
    "from": "Character Managers/Healer Manager/Healer Equipment.js",
    "load": [
-    "DUNGEON_BUTTONS",
     "choose_dungeon",
     "dungeon_mode_enabled",
     "dungeon_name_for",
-    "paint_dungeon_buttons",
-    "set_dungeon_mode",
-    "toggle_dungeon_mode"
+    "set_dungeon_mode"
    ],
    "to": "Dungeons/Dungeon Mode.js"
   },
@@ -2207,13 +2204,10 @@
    "call": [],
    "from": "Character Managers/Merchant Manager/Merchant Task Loop.js",
    "load": [
-    "DUNGEON_BUTTONS",
     "choose_dungeon",
     "dungeon_mode_enabled",
     "dungeon_name_for",
-    "paint_dungeon_buttons",
-    "set_dungeon_mode",
-    "toggle_dungeon_mode"
+    "set_dungeon_mode"
    ],
    "to": "Dungeons/Dungeon Mode.js"
   },
@@ -3361,13 +3355,10 @@
    "call": [],
    "from": "Character Managers/Ranger Manager/Ranger Equipment.js",
    "load": [
-    "DUNGEON_BUTTONS",
     "choose_dungeon",
     "dungeon_mode_enabled",
     "dungeon_name_for",
-    "paint_dungeon_buttons",
-    "set_dungeon_mode",
-    "toggle_dungeon_mode"
+    "set_dungeon_mode"
    ],
    "to": "Dungeons/Dungeon Mode.js"
   },
@@ -4356,13 +4347,10 @@
    "call": [],
    "from": "Character Managers/Warrior Manager/Warrior Combat.js",
    "load": [
-    "DUNGEON_BUTTONS",
     "choose_dungeon",
     "dungeon_mode_enabled",
     "dungeon_name_for",
-    "paint_dungeon_buttons",
-    "set_dungeon_mode",
-    "toggle_dungeon_mode"
+    "set_dungeon_mode"
    ],
    "to": "Dungeons/Dungeon Mode.js"
   },
@@ -5012,13 +5000,10 @@
    "call": [],
    "from": "Character Managers/Warrior Manager/Warrior Equipment.js",
    "load": [
-    "DUNGEON_BUTTONS",
     "choose_dungeon",
     "dungeon_mode_enabled",
     "dungeon_name_for",
-    "paint_dungeon_buttons",
-    "set_dungeon_mode",
-    "toggle_dungeon_mode"
+    "set_dungeon_mode"
    ],
    "to": "Dungeons/Dungeon Mode.js"
   },
@@ -7860,13 +7845,10 @@
    ],
    "from": "Dungeons/Dreams Cave.js",
    "load": [
-    "DUNGEON_BUTTONS",
     "choose_dungeon",
     "dungeon_mode_enabled",
     "dungeon_name_for",
-    "paint_dungeon_buttons",
-    "set_dungeon_mode",
-    "toggle_dungeon_mode"
+    "set_dungeon_mode"
    ],
    "to": "Dungeons/Dungeon Mode.js"
   },
@@ -8129,7 +8111,6 @@
     "dungeon_choice",
     "dungeon_loop_running",
     "dungeon_override",
-    "dungeon_resume",
     "dungeon_stop_requested",
     "hold_reset_for_mode",
     "request_dungeon_stop",
@@ -8140,31 +8121,6 @@
    "from": "Dungeons/Dungeon Mode.js",
    "load": [],
    "to": "Dungeons/Dungeon Runner.js"
-  },
-  {
-   "call": [
-    "toolbar_button"
-   ],
-   "from": "Dungeons/Dungeon Mode.js",
-   "load": [],
-   "to": "Interface/Widget Helpers.js"
-  },
-  {
-   "call": [],
-   "from": "Dungeons/Dungeon Mode.js",
-   "load": [
-    "_boot_steps",
-    "on_boot"
-   ],
-   "to": "Kernel/Kernel.js"
-  },
-  {
-   "call": [
-    "every"
-   ],
-   "from": "Dungeons/Dungeon Mode.js",
-   "load": [],
-   "to": "Kernel/Scheduler.js"
   },
   {
    "call": [
@@ -9668,13 +9624,10 @@
    "call": [],
    "from": "Interface/Settings Window.js",
    "load": [
-    "DUNGEON_BUTTONS",
     "choose_dungeon",
     "dungeon_mode_enabled",
     "dungeon_name_for",
-    "paint_dungeon_buttons",
-    "set_dungeon_mode",
-    "toggle_dungeon_mode"
+    "set_dungeon_mode"
    ],
    "to": "Dungeons/Dungeon Mode.js"
   },
@@ -10461,7 +10414,7 @@
   },
   "Dungeons/Dungeon Mode.js": {
    "call_initializers": [],
-   "optional": true,
+   "optional": false,
    "role": null,
    "stage": "parallel",
    "statements": []

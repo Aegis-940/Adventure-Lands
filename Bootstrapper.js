@@ -145,7 +145,6 @@
 		"Dungeons/Crypt Dungeon.js",
 		"Dungeons/Dungeon Collection.js",
 		"Dungeons/Crypt Route.js",
-		"Dungeons/Dungeon Mode.js",
 		"Interface/Bank Sort Order.js",
 		"Interface/XP Meter.js",
 		"Interface/Gold Meter.js",

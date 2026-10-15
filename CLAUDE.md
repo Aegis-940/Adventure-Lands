@@ -106,7 +106,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | File | Role |
 |------|------|
 | `Dungeon Runner.js` | Shared machinery: party entry, `run_dungeon()`, `start_dungeon_when_ready()`, `dungeon_override` |
-| `Dungeon Mode.js` | The on/off toggle and its toolbar buttons |
+| `Dungeon Mode.js` | `set_dungeon_mode()` on every fighter and `choose_dungeon()`, the ⚙️ dungeon choice (the toolbar buttons are gone) |
 | `Dungeon Progress.js` | Kill quota tracking |
 | `Dungeon Escape.js` | Bail-out: scare, walk away, town back to the entrance |
 | `Dungeon Telemetry.js` | Dungeon flight recorder via `errlog_sample()` |

@@ -86,7 +86,7 @@ Character Managers/[Role] Manager/   ← loaded sequentially via indirect eval, 
 
 Dungeons/                            ← loaded in parallel as script tags, every character
     ├── Dungeon Runner.js         party entry, run_dungeon(), the flag accessors, scripted travel
-    ├── Dungeon Mode.js           the on/off toggle and its toolbar buttons
+    ├── Dungeon Mode.js           set_dungeon_mode() and choose_dungeon(), the ⚙️ dungeon choice
     ├── Dungeon Progress.js       kills this run, and whether the quota is met
     ├── Dungeon Escape.js         bail-out: scare, walk away, town back to the entrance
     ├── Dungeon Telemetry.js      per-run flight recorder, pushed as errlog samples
