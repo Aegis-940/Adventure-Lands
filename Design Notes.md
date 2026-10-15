@@ -469,7 +469,7 @@ Overhaul 4.3 and 4.4: what each fighter chose and what came of it, summed per le
 
 | Field | Source |
 |---|---|
-| `casts` | every `skill_timeout` the server sends (`consume_skill()`: one per cast that started a cooldown, named by its cooldown group, so 3shot and 5shot count as `attack`), with mana and the swap penalty the server added |
+| `casts` | every `skill_timeout` the server sends (`consume_skill()`: one per cast that started a cooldown, named by its cooldown group, so 3shot and 5shot count as `attack`), with mana and the swap penalty the server added (each item an `equip_batch` equips adds 120ms to `penalty_cd`, which the next cast pays, up to 10s). The server also sends `{name: "attack", reason: "attack_ms"}` whenever attack speed changes, which is on every weapon swap; it is not a cast and is skipped (before 10-16 it was counted, and Ulric's confirmed attacks read 2.7x his real ones) |
 | `values` | the skill runner, when an entry with a `value(context)` cast (its `next_skill` changed): the value it was cast for. Riva's mark (`mark_value()`) and supershot (`supershot_value()`) |
 | `actions`, `pulls` | `run_basic_action(p, label, target)`: each basic action by label. A pull is an action on a monster that had no target, and `pulls` counts them by how many monsters were already on the puller (`monsters_targeting_me()`, capped at 10) |
 | `bursts`, `gear`, `panics` | `equip_burst()` by owner and ops sent, `apply_equipment_rule()` by group and sets, `set_panic()` by reason |

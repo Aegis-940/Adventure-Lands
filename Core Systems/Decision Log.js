@@ -96,7 +96,7 @@ function record_panic(reason) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function decision_on_skill_timeout(data) {
-	if (!data || !data.name || !G.skills[data.name]) return;
+	if (!data || !data.name || data.reason === "attack_ms" || !G.skills[data.name]) return;
 	const entry = decision_add(_decisions.casts, data.name, "n", 1);
 	entry.mana = (entry.mana || 0) + skill_mp_cost(data.name);
 	entry.penalty_ms = (entry.penalty_ms || 0) + (data.penalty || 0);
