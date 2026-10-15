@@ -61,7 +61,7 @@ function event_goal() {
 			|| Math.hypot(character.x - stand.x, character.y - stand.y) <= EVENT_STAND_ARRIVE) {
 			return { local: "event", pursuit: true, label, event: target.name };
 		}
-		return { pursuit: true, label, event: target.name, map: character.map, x: stand.x, y: stand.y, radius: EVENT_STAND_ARRIVE };
+		return { pursuit: true, label, event: target.name, map: character.map, x: seen.x, y: seen.y, radius: character.range * EVENT_REACH };
 	}
 
 	if (target.join) {
