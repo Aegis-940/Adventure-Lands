@@ -170,7 +170,7 @@ function profile_apiercing(profile) {
 function hit_against(mob, attack, apiercing) {
 	if (!mob) return 0;
 	const piercing = apiercing === undefined ? (character.apiercing || 0) : apiercing;
-	return (attack || 0) * defense_reduction(pierced_defense(mob.armor, piercing));
+	return (attack || 0) * damage_multiplier(pierced_defense(mob.armor, piercing));
 }
 
 function mean_of_best(values, count) {
@@ -210,8 +210,6 @@ function set_damage_value(set_name, pool, width) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const WEAPON_PROBE_MS = 20000;
-const WEAPON_HYSTERESIS_MS = 3000;
-const WEAPON_SWITCH_MARGIN = 1.1;
 const WEAPON_SMOOTHING_MS = 300;
 
 var _weapon_choice = { worn: null, since: 0, probe: {}, probing: null, proposed: null, values: {} };
@@ -336,19 +334,9 @@ function resolve_weapon_by_value(value_of, context) {
 	}
 	if (!best) return null;
 
-	const hysteresis_ms = CONFIG.equipment.weapon_hysteresis_ms ?? WEAPON_HYSTERESIS_MS;
-	const margin = CONFIG.equipment.weapon_switch_margin ?? WEAPON_SWITCH_MARGIN;
-
 	if (worn && worn !== best && set_available(worn)) {
-		if (hysteresis_ms > 0 && now - _weapon_choice.since < hysteresis_ms) return worn;
-
 		const min_swap_ms = min_swap_interval_ms();
 		if (min_swap_ms > 0 && now - _weapon_choice.since < min_swap_ms) return worn;
-
-		if (margin > 1) {
-			const holding = valued[worn];
-			if (holding !== null && holding !== undefined && best_value < holding * margin) return worn;
-		}
 	}
 
 	if (best !== _weapon_choice.proposed) {

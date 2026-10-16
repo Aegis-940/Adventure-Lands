@@ -36,19 +36,9 @@ function monsters_matching(args = {}) {
 			}
 		}
 
-		if (args.min_level !== undefined && current.level < args.min_level) continue;
-		if (args.max_level !== undefined && current.level > args.max_level) continue;
 		if (args.target && !args.target.includes(current.target)) continue;
 		if (args.no_target && current.target) continue;
 
-		if (args.status_effects && !args.status_effects.every(effect => current.s[effect])) continue;
-
-		if (args.min_xp !== undefined && current.xp < args.min_xp) continue;
-		if (args.max_xp !== undefined && current.xp > args.max_xp) continue;
-
-		if (args.max_att !== undefined && current.attack > args.max_att) continue;
-
-		if (args.path_check && !can_move_to(current)) continue;
 		if (args.where && !args.where(current)) continue;
 
 		if (args.max_distance !== undefined && monster_distance_for(args, current) > args.max_distance) continue;

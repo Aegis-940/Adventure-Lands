@@ -41,7 +41,7 @@ on_boot("Gold Meter", () => {
 	});
 
 	on_character("loot", "gold_meter", (data) => {
-		if (typeof data.gold !== "number" || Number.isNaN(data.gold)) return;
+		if (!data.gold) return;
 
 		const party_share = parent.party[character.name]?.share || 1;
 		const chest_total = Math.round(data.gold / party_share);

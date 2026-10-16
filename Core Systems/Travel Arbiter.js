@@ -172,7 +172,7 @@ function travel_arbiter(goal) {
 	}
 	const search_overrun = _travel.search_since > 0 && now - _travel.search_since > TRAVEL_SEARCH_MAX_MS;
 
-	const teleporting = is_teleporting();
+	const teleporting = is_transporting(character);
 	const moved = !_travel.anchor
 		|| _travel.anchor.map !== character.map
 		|| Math.hypot(character.x - _travel.anchor.x, character.y - _travel.anchor.y) > TRAVEL_STALL_EPS;

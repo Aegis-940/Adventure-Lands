@@ -59,10 +59,6 @@ function dungeon_aggressed() {
 	return false;
 }
 
-function dungeon_channelling() {
-	return !!(character.c && character.c.town);
-}
-
 async function dungeon_bail_out(reason, broadcast = true, emergency = true) {
 	if (_dungeon_bailing) return;
 
@@ -104,7 +100,7 @@ async function dungeon_bail_out(reason, broadcast = true, emergency = true) {
 				walking = dungeon_travel(door).then(() => { walking = null; }, () => { walking = null; });
 			}
 
-			if (!dungeon_channelling()) {
+			if (!town_channelling()) {
 				try { await use_skill("use_town"); } catch (e) { }
 			}
 

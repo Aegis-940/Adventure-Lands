@@ -37,8 +37,6 @@ var CONFIG = {
 		...EQUIPMENT_DEFAULTS,
 
 		weapon_sets: ["single", "aoe", "double_aoe"],
-		weapon_hysteresis_ms: 0,
-		weapon_switch_margin: 1.0,
 		weapon_min_swap_attacks: 0.25,
 		weapon_smoothing_ms: 300,
 

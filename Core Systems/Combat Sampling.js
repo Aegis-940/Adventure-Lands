@@ -146,7 +146,7 @@ const INFLIGHT_GRACE_MS = 300;
 const _inflight = {};
 
 function inflight_defense(target, attacker) {
-	const shooter = attacker === character.name ? character : parent.entities[attacker];
+	const shooter = get_entity(attacker);
 	const magical = !!shooter && G.classes[shooter.ctype].damage_type === "magical";
 	return magical
 		? pierced_defense(target.resistance, shooter.rpiercing)
@@ -161,7 +161,7 @@ function inflight_tracker(data) {
 		if (!target || target.type !== "monster") return;
 		_inflight[data.pid] = {
 			target: target.id,
-			damage: data.damage * defense_reduction(inflight_defense(target, data.attacker)) * INFLIGHT_DISCOUNT,
+			damage: data.damage * damage_multiplier(inflight_defense(target, data.attacker)) * INFLIGHT_DISCOUNT,
 			until: Date.now() + (data.eta || 0) + INFLIGHT_GRACE_MS,
 		};
 	} catch (e) { }
@@ -196,13 +196,8 @@ function pending_burn(mob) {
 
 const _pid_heal = {};
 
-function heal_target_entity(id) {
-	if (id === character.id || id === character.name) return character;
-	return parent.entities[id] || null;
-}
-
 function record_pid_heal(data) {
-	const target = heal_target_entity(data.target);
+	const target = get_entity(data.target) || null;
 	const source = data.source === "partyheal" || data.source === "selfheal" ? "party" : "single";
 	const base = source === "party" ? partyheal_base() : (character.heal || 0);
 	_pid_heal[data.pid] = {

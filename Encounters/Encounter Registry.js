@@ -68,12 +68,10 @@ function encounters_refresh(ctx) {
 	for (const enc of live) {
 		if (_encounters_live.includes(enc)) continue;
 		if (enc.enter) enc.enter(ctx);
-		bus_emit("encounter_enter", enc.name);
 	}
 	for (const enc of _encounters_live) {
 		if (live.includes(enc)) continue;
 		if (enc.leave) enc.leave(ctx);
-		bus_emit("encounter_leave", enc.name);
 	}
 	_encounters_live = live;
 }

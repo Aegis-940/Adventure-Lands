@@ -123,7 +123,7 @@ function effective_aggro_cap() {
 function party_allies() {
 	const allies = [];
 	for (const name of cache.party_members) {
-		const ally = name === character.name ? character : get_player(name);
+		const ally = get_player(name);
 		if (ally && !ally.rip) allies.push(ally);
 	}
 	return allies;

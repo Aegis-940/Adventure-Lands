@@ -43,7 +43,7 @@ function splash_landed_on_neighbours(mob, explosion, hit_damage) {
 		if (e === mob || e.id === mob.id) continue;
 		if (distance(e, mob) > radius) continue;
 
-		const dealt = hit_damage * (explosion / 100) * defense_reduction(e.armor || 0);
+		const dealt = hit_damage * (explosion / 100) * damage_multiplier(e.armor || 0);
 		total += Math.min(dealt, e.hp || 0);
 	}
 	return total;

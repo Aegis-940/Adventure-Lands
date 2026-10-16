@@ -98,7 +98,7 @@ function shot_apiercing(profile) {
 }
 
 function armour_factor(mob, apiercing) {
-	return defense_reduction((mob.armor || 0) - apiercing);
+	return damage_multiplier((mob.armor || 0) - apiercing);
 }
 
 function burn_multiplier(mob, skill_multiplier) {

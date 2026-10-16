@@ -8,7 +8,7 @@ var _still_since = 0;
 var _stand_retry_at = 0;
 
 function standing_still() {
-	return !character.moving && !smart.moving && !is_teleporting() && !character.rip;
+	return !character.moving && !smart.moving && !is_transporting(character) && !character.rip;
 }
 
 function stand_wanted() {

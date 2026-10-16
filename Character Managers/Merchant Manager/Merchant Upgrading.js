@@ -572,20 +572,12 @@ async function auto_combine_item(level) {
 		if (scroll_slot === null) continue;
 		if (combine_failed_keys.has(key)) continue;
 
-		if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
-			const has_primling = character.items.some(inv_item => inv_item && inv_item.name === "offeringp");
-			if (!has_primling) {
-				log_msg("info", `Skipping combine for ${item_name} (level ${lvl}): No offeringp found for combine requiring it.`);
-				continue;
-			}
-		}
-
 		let offering_slot = null;
 		if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
 			offering_slot = inventory_slot("offeringp");
 			if (offering_slot === null) {
-				log_msg("info", "No offeringp found for combine requiring it.");
-				return "wait";
+				log_msg("info", `Skipping combine for ${item_name} (level ${lvl}): No offeringp found for combine requiring it.`);
+				continue;
 			}
 		}
 

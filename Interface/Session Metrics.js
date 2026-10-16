@@ -206,7 +206,7 @@ on_boot("Session Metrics", () => {
 	on_socket("hit", "metrics_hit_handler", metrics_record_hit);
 	on_socket("kill_credit", "metrics_kill_handler", metrics_record_kill);
 	on_character("loot", "metrics", data => {
-		if (typeof data.gold === "number" && !Number.isNaN(data.gold)) {
+		if (data.gold) {
 			const chest_total = Math.round(data.gold / (parent.party[character.name]?.share || 1));
 			metrics.gold += chest_total;
 			if (chest_total > metrics.largest_gold) metrics.largest_gold = chest_total;

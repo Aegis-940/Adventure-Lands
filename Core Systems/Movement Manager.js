@@ -12,10 +12,6 @@ function fire_and_forget_move(dest, on_done) {
 	} catch (e) { }
 }
 
-function is_teleporting() {
-	return is_transporting(character);
-}
-
 function walk(x, y) {
 	if (!can_walk(character)) return false;
 	move(x, y);
@@ -33,10 +29,8 @@ function standoff_point(target, reach) {
 }
 
 function stop_movement(reason = "interrupted") {
-	try {
-		if (typeof smart._interrupt === "function") smart._interrupt(reason);
-	} catch (e) { }
-	try { smart.moving = false; } catch (e) { }
+	smart._interrupt(reason);
+	smart.moving = false;
 }
 
 function town_channelling() {
@@ -64,33 +58,14 @@ const MOVE_NO_PATH = "no path";
 const MOVE_TIMEOUT_REASON = "timeout";
 
 function smarter_move(destination, on_done, options = {}) {
-	if (smart.moving && typeof smart._interrupt === "function") {
-		smart._interrupt("interrupted");
-	}
+	if (smart.moving) smart._interrupt("interrupted");
 
-	let interrupted = false;
-	let interrupt_reason = null;
 	let resolve_fn, reject_fn;
 	let timeout_id = null;
 	let settled = false;
 	const town_allowed = !!options.town;
 
-	const MOVE_TIMEOUT = options.timeout || 120000;
-
-	smart._interrupt = (reason = "interrupted") => {
-		if (settled) return;
-		settled = true;
-		interrupted = true;
-		interrupt_reason = reason;
-		smart.moving = false;
-		smart.use_town = false;
-		if (town_allowed) cancel_town_channel();
-		if (timeout_id) clearTimeout(timeout_id);
-		if (typeof on_done === "function") on_done(false, reason);
-		if (reject_fn) reject_fn({ success: false, reason });
-	};
-
-	function complete(success = true, reason = null) {
+	function complete(success, reason = null) {
 		if (settled) return;
 		settled = true;
 		smart.moving = false;
@@ -102,34 +77,10 @@ function smarter_move(destination, on_done, options = {}) {
 		else if (reject_fn) reject_fn({ success: false, reason });
 	}
 
-	let target = {};
-	if (typeof destination === "string") target = { to: destination };
-	else if (typeof destination === "number") target = { x: destination, y: on_done }, on_done = null;
-	else if (typeof destination === "object") target = { ...destination };
-	else return Promise.reject({ reason: "invalid destination" });
-
-	if ("x" in target) {
-		smart.map = target.map || character.map;
-		smart.x = target.x;
-		smart.y = target.y;
-	} else if ("to" in target || "map" in target) {
-		const dest_name = target.to || target.map;
-
-		if (LOCATIONS[dest_name]) {
-			const loc = LOCATIONS[dest_name][0];
-			smart.map = loc.map || character.map;
-			smart.x = loc.x;
-			smart.y = loc.y;
-		} else if (G.maps[dest_name]) {
-			smart.map = dest_name;
-			smart.x = G.maps[smart.map].spawns[0][0];
-			smart.y = G.maps[smart.map].spawns[0][1];
-		} else {
-			return Promise.reject({ reason: "invalid location" });
-		}
-	} else {
-		return Promise.reject({ reason: "invalid destination" });
-	}
+	smart._interrupt = (reason = "interrupted") => complete(false, reason);
+	smart.map = destination.map || character.map;
+	smart.x = destination.x;
+	smart.y = destination.y;
 
 	smart.use_town = !!options.town;
 	smart.moving = true;
@@ -150,7 +101,7 @@ function smarter_move(destination, on_done, options = {}) {
 	const arrive_radius = options.radius || 10;
 
 	function monitor_movement() {
-		if (interrupted) return false;
+		if (settled) return false;
 
 		if (
 			character.map === target_map &&
@@ -161,7 +112,7 @@ function smarter_move(destination, on_done, options = {}) {
 		}
 
 		if (!smart.moving) {
-			if (is_teleporting()) return 200;
+			if (is_transporting(character)) return 200;
 			complete(false, "movement stopped");
 			return false;
 		}
@@ -171,9 +122,7 @@ function smarter_move(destination, on_done, options = {}) {
 
 	every("move monitor", { ms: 200, kind: "automation", after: 200 }, monitor_movement);
 
-	timeout_id = setTimeout(() => {
-		smart._interrupt(MOVE_TIMEOUT_REASON);
-	}, MOVE_TIMEOUT);
+	timeout_id = setTimeout(() => complete(false, MOVE_TIMEOUT_REASON), options.timeout || 120000);
 
 	return new Promise((resolve, reject) => {
 		resolve_fn = resolve;
@@ -215,5 +164,6 @@ function routed_smart_move_logic() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 on_boot("Movement Manager", () => {
+	smart._interrupt = () => { };
 	smart_move_logic = routed_smart_move_logic;
 });

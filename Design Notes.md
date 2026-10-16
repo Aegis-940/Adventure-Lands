@@ -73,7 +73,7 @@ There are two kinds of answer:
 
 The actions `allows` can veto: `attack` (target it), `cleave` and `agitate` (fire the skill while it is within reach, through `blocker_within()`), and `pull` (count it as a reason for Ulric to agitate).
 
-`ctx` (`encounter_context()`) is rebuilt at most once per `CACHE_TTL`: the character, the visible monsters within 600 (`ctx.mobs.of(type)`), `home` and `destination`. Rebuilding it is also when activity changes, so `enter`/`leave` hooks and the `encounter_enter`/`encounter_leave` bus topics fire then.
+`ctx` (`encounter_context()`) is rebuilt at most once per `CACHE_TTL`: the character, the visible monsters within 600 (`ctx.mobs.of(type)`), `home` and `destination`. Rebuilding it is also when activity changes, so the `enter`/`leave` hooks fire then.
 
 Each answer records which encounter gave it: `why("gear.weapon")` in the console. `encounter_problems()` checks every spec (known keys, tiers and roles, `active` where needed, `mtypes` for mob answers, gear set names in the role's `equipment_sets`), and the harness `load` command fails on any problem.
 
@@ -310,7 +310,7 @@ Monster and entity queries (`monsters_matching()`, `get_num_targets()`, `get_num
 
 The server's damage and heal arithmetic. It computes values and acts on nothing:
 
-- `defense_reduction()`, `heal_delivered()`/`heal_useful()`/`partyheal_base()`, `burn_multiplier_at_dps()`, `splash_bonus()`, `time_to_kill_ms()`, `crit_multiplier()`
+- the game's own `damage_multiplier(defense)` (called directly since 10-16; the hand-ported copy behind it never ran in the client), `heal_delivered()`/`heal_useful()`/`partyheal_base()`, `burn_multiplier_at_dps()`, `splash_bonus()`, `time_to_kill_ms()`, `crit_multiplier()`
 - `skill_mp_cost()`: the server's `mp × (100 − mp_reduction)/100`. Never read `G.skills.X.mp` raw.
 - `incoming_dps()`/`projected_hp()`/`endangered()`: the game client's own estimate of what the monsters on someone deal
 

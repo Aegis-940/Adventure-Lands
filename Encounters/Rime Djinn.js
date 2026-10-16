@@ -476,7 +476,7 @@ function shell_shot_damage(shelled, targets, profile) {
 	for (const mob of targets) {
 		const hit = (character.attack || 0) * profile.multiplier * armour_factor(mob, apiercing);
 		if (mob === shelled) damage += hit;
-		else if (explosion && distance(mob, shelled) <= radius) damage += hit * (explosion / 100) * defense_reduction(shelled.armor || 0);
+		else if (explosion && distance(mob, shelled) <= radius) damage += hit * (explosion / 100) * damage_multiplier(shelled.armor || 0);
 	}
 	return damage;
 }

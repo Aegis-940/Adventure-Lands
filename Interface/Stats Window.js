@@ -73,7 +73,7 @@ function add_gold_graph(doc, content) {
 	}
 
 	on_character("loot", "stats_gold_graph", (data) => {
-		if (data.gold && typeof data.gold === "number" && !Number.isNaN(data.gold)) {
+		if (data.gold) {
 			add_gold_sample_on_loot();
 		}
 	});

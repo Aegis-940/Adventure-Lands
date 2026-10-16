@@ -2,32 +2,6 @@
 // COMBAT FORMULAS — the server's damage and heal arithmetic; computes values, acts on nothing
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-function defense_reduction(defense) {
-	if (typeof parent.damage_multiplier === "function") return parent.damage_multiplier(defense);
-
-	const d = defense || 0;
-	const band = (lo, hi, v) => Math.max(lo, Math.min(hi, v));
-
-	const reduction =
-		band(0, 100, d) * 0.00100 +
-		band(0, 100, d - 100) * 0.00100 +
-		band(0, 100, d - 200) * 0.00095 +
-		band(0, 100, d - 300) * 0.00090 +
-		band(0, 100, d - 400) * 0.00082 +
-		band(0, 100, d - 500) * 0.00070 +
-		band(0, 100, d - 600) * 0.00060 +
-		band(0, 100, d - 700) * 0.00050 +
-		Math.max(0, d - 800) * 0.00040;
-
-	const piercing =
-		band(0, 50, -d) * 0.00100 +
-		band(0, 50, -50 - d) * 0.00075 +
-		band(0, 50, -100 - d) * 0.00050 +
-		Math.max(0, -150 - d) * 0.00025;
-
-	return Math.min(1.32, Math.max(0.05, 1 - reduction + piercing));
-}
-
 function pierced_defense(defense, piercing) {
 	return (defense || 0) - 2 * (piercing || 0);
 }
@@ -51,7 +25,7 @@ function heal_entity(target) {
 function heal_reduction(target, rpiercing) {
 	if (is_self_target(target)) return 1;
 	const pierce = rpiercing === undefined ? (character.rpiercing || 0) : rpiercing;
-	return defense_reduction(((target.resistance || 0) - pierce) / HEAL_RESISTANCE_DIVISOR);
+	return damage_multiplier(((target.resistance || 0) - pierce) / HEAL_RESISTANCE_DIVISOR);
 }
 
 function heal_poison_factor(target) {
@@ -123,7 +97,7 @@ function monster_hit_on(m, target) {
 	const defense = kind === "physical"
 		? pierced_defense(target.armor, m.apiercing || def.apiercing)
 		: pierced_defense(target.resistance, m.rpiercing || def.rpiercing);
-	return m.attack * defense_reduction(defense);
+	return m.attack * damage_multiplier(defense);
 }
 
 function monster_dps_on(m, target) {
@@ -159,14 +133,14 @@ function crit_multiplier(crit, critdamage) {
 function estimate_my_damage(entity, multiplier) {
 	const info = (G.monsters && G.monsters[entity.mtype]) || {};
 	const armor = pierced_defense(entity.armor !== undefined ? entity.armor : info.armor, character.apiercing);
-	return (character.attack || 0) * defense_reduction(armor) * (multiplier === undefined ? 1 : multiplier);
+	return (character.attack || 0) * damage_multiplier(armor) * (multiplier === undefined ? 1 : multiplier);
 }
 
 function time_to_kill_ms(mob, hp, dps, party_factor, apiercing) {
 	if (!mob || !hp || dps <= 0) return Infinity;
 	const piercing = apiercing === undefined ? (character.apiercing || 0) : apiercing;
 	const armor = pierced_defense(mob.armor, piercing);
-	const effective = dps * defense_reduction(armor) * (party_factor || 1);
+	const effective = dps * damage_multiplier(armor) * (party_factor || 1);
 	return effective > 0 ? (hp / effective) * 1000 : Infinity;
 }
 
@@ -220,7 +194,7 @@ function splash_bonus(mob, explosion, hit_damage) {
 		if (e === mob || e.id === mob.id) continue;
 		if (distance(e, mob) > radius) continue;
 
-		const share = (explosion / 100) * defense_reduction(e.armor || 0);
+		const share = (explosion / 100) * damage_multiplier(e.armor || 0);
 		bonus += hit_damage > 0
 			? Math.min(share * hit_damage, e.hp || 0) / hit_damage
 			: share;
