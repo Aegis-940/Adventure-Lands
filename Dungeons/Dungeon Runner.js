@@ -142,8 +142,8 @@ function dungeon_telemetry_event(event, data) {
 
 function dungeon_protected_keys() {
 	const keys = [];
-	for (const name in DUNGEONS) {
-		if (DUNGEONS[name].key) keys.push(DUNGEONS[name].key);
+	for (const d of [active_dungeon(), DUNGEONS[dungeon_choice()]]) {
+		if (d && d.key) keys.push(d.key);
 	}
 	return keys;
 }
