@@ -404,87 +404,50 @@ async function sort_all_bank() {
 	}
 }
 
-function sort_bank_floor(packs_on_floor, inv_indices, sorted_bank, i_running) {
+async function sort_bank_floor(packs_on_floor) {
 	if (!character.bank) return log_msg("info", "Not inside the bank");
 
-	if (!inv_indices) {
-	inv_indices = [];
+	const packs = packs_on_floor.filter(pack => pack !== "gold");
+	const inv_indices = [];
 	for (let i = 0; i < 42; i++) {
 		if (!character.items[i]) inv_indices.push(i);
 	}
-	}
-	if (inv_indices.length == 0) return log_msg("info", "Make some space in inventory");
-	if (!sorted_bank) {
-	let bank_array = [];
-	for (let bank_pack of packs_on_floor) {
-		if (bank_pack == "gold") continue;
-		bank_array = bank_array.concat(character.bank[bank_pack]);
-	}
-	bank_array.sort(al_items.order.comparator);
-	sorted_bank = {};
-	for (let bank_pack of packs_on_floor) {
-		if (bank_pack == "gold") continue;
-		sorted_bank[bank_pack] = bank_array.slice(0, 42);
+	if (!inv_indices.length) return log_msg("info", "Make some space in inventory");
+
+	let bank_array = [].concat(...packs.map(pack => character.bank[pack])).sort(al_items.order.comparator);
+	const sorted_bank = {};
+	for (const pack of packs) {
+		sorted_bank[pack] = bank_array.slice(0, 42);
 		bank_array = bank_array.slice(42);
 	}
-	}
-	if (i_running == null) i_running = 0;
-	else i_running = (i_running + 1) % inv_indices.length;
-	const inv_pointer = inv_indices[i_running];
-	const inv_itm = character.items[inv_pointer];
-	if (!inv_itm) {
-	for (let bank_pack of packs_on_floor) {
-		if (bank_pack == "gold") continue;
-		for (let i = 0; i < 42; i++) {
-		if (
-			character.bank[bank_pack][i] &&
-			al_items.order.comparator(
-			character.bank[bank_pack][i],
-			sorted_bank[bank_pack][i]
-			)
-		) {
-			log_msg("info", "Swapping empty " + inv_pointer + " with " + i + bank_pack);
-			parent.socket.emit("bank", {
-			operation: "swap",
-			pack: bank_pack,
-			str: i,
-			inv: inv_pointer,
-			});
-			return sleep(150).then((x) =>
-			sort_bank_floor(packs_on_floor, inv_indices, sorted_bank, i_running)
-			);
-		}
-		}
-	}
-	inv_indices.splice(i_running, 1);
-	return sleep(150).then((x) =>
-		sort_bank_floor(packs_on_floor, inv_indices, sorted_bank, i_running)
-	);
 
-	} else {
-	for (let bank_pack of packs_on_floor) {
-		if (bank_pack == "gold") continue;
-		for (let i = 0; i < 42; i++) {
-		if (
-			!al_items.order.comparator(inv_itm, sorted_bank[bank_pack][i]) &&
-			al_items.order.comparator(
-			character.bank[bank_pack][i],
-			sorted_bank[bank_pack][i]
-			)
-		) {
-			log_msg("debug", JSON.stringify({ operation: "swap", pack: bank_pack, str: i, inv: inv_pointer }));
-			parent.socket.emit("bank", {
-			operation: "swap",
-			inv: inv_pointer,
-			pack: bank_pack,
-			str: i,
-			});
-			return sleep(150).then((x) =>
-			sort_bank_floor(packs_on_floor, inv_indices, sorted_bank, i_running)
-			);
+	const out_of_place = (pack, i) => al_items.order.comparator(character.bank[pack][i], sorted_bank[pack][i]);
+	function swap_for(held) {
+		for (const pack of packs) {
+			for (let i = 0; i < 42; i++) {
+				if (!out_of_place(pack, i)) continue;
+				if (held ? !al_items.order.comparator(held, sorted_bank[pack][i]) : character.bank[pack][i]) return { pack, i };
+			}
 		}
-		}
+		return null;
 	}
+
+	let i_running = -1;
+	while (inv_indices.length) {
+		i_running = (i_running + 1) % inv_indices.length;
+		const inv_pointer = inv_indices[i_running];
+		const held = character.items[inv_pointer];
+		const swap = swap_for(held);
+		if (swap) {
+			if (held) log_msg("debug", JSON.stringify({ operation: "swap", pack: swap.pack, str: swap.i, inv: inv_pointer }));
+			else log_msg("info", "Swapping empty " + inv_pointer + " with " + swap.i + swap.pack);
+			parent.socket.emit("bank", { operation: "swap", pack: swap.pack, str: swap.i, inv: inv_pointer });
+		} else if (held) {
+			break;
+		} else {
+			inv_indices.splice(i_running, 1);
+		}
+		await sleep(150);
 	}
 
 	return sorted_bank;
