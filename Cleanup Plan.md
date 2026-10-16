@@ -15,7 +15,7 @@ Every finding below comes from a read of the source on 2026-10-16 at `eb4ea67`, 
 | C4 | Guards and fallbacks | none | **done** 2026-10-16 |
 | C5 | Native game functions | a few items, each marked ⚠ | rows 1–8 **done** 2026-10-16; the ⚠ rows are queued |
 | C6 | Party state and the information the bot gathers | a few items, each marked ⚠ | C6.3–C6.6 **done** 2026-10-16; `party_state()` (⚠) queued |
-| C7 | Simplification | none | not started |
+| C7 | Simplification | none | **done** 2026-10-16 (two items judged not worth it, below) |
 | C8 | Close-out | none | not started |
 
 Update this table and the phase checklists in the same commit as the work.
@@ -404,16 +404,16 @@ Most of the longest functions are long for reasons Design Notes records, and the
 **Not in this plan:** merging the two equipment planners (`batch_equip` for the rules loop and the merchant, `plan_set_equip` with `emit_equip_ops` for bursts). They differ on the reply wait and the in-flight check, and it is the code with the most past incidents. Revisit only with a new burst golden for every path.
 
 **Checklist**
-- [ ] C7.1 `wait_until`
-- [ ] C7.2 `run_task`
-- [ ] C7.3 aggro count and census
-- [ ] C7.4 merchant at-spot
-- [ ] C7.5 combine and withdraw
-- [ ] C7.6 `smarter_move`
-- [ ] C7.7 `travel_arbiter` dedupe
-- [ ] C7.8 camp wait
-- [ ] C7.9 `sort_bank_floor`
-- [ ] C7.10 `dreams_floors`
+- [x] C7.1 `wait_until(done, ms, poll)` in the scheduler (twelve polls; the crypt's mana hold stays, its three exits log differently) and one `drain()`
+- [x] C7.2 `run_task(label, body, on_error)`: seven tasks; checked in a booted Riff
+- [x] C7.3 `monster_counts_near(radius)` for Danger Log and Error Log. The aggro count itself becomes `character.targets` with ⚠ row 9
+- [x] C7.4 merchant at-spot: `simple_distance()` (seven sites)
+- [x] C7.5 `auto_combine_item()` by item name, one primling check; `withdraw_levels()`; checked in a booted Riff
+- [x] C7.6 `smarter_move()` (done in C2.3)
+- [x] C7.7 `travel_release()` clears `active`; the goal distance computed once
+- [ ] C7.8 not done: the two camp waits live in different role files and each has its own reset; a shared helper would need keyed state and a reset call, more than the ten lines it saves
+- [x] C7.9 `sort_bank_floor()` as one async loop; identical swap sequences against the old version on four random banks
+- [ ] C7.10 not done: `dreams_floors()` runs once a day and can only be tested live; like Dreams Cave's split, it waits until someone works in it
 
 ---
 
