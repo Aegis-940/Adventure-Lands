@@ -152,7 +152,7 @@ function fight_gear_owned() {
 function camp_gear_held(entry) {
 	const worn = character.slots[entry.slot];
 	if (worn && worn.name === entry.item_name) return true;
-	return character.items.some(item => item && item.name === entry.item_name);
+	return locate_item(entry.item_name) !== -1;
 }
 
 function camp_gear_set(name, entries) {

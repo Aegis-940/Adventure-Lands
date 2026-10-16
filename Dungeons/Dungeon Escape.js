@@ -39,7 +39,7 @@ function dungeon_threats(radius = DUNGEON_THREAT_RADIUS) {
 async function dungeon_scare_off() {
 	if (!scare_off()) return false;
 	log_msg("event", "[BAIL] Scare");
-	await delay(200);
+	await sleep(200);
 	return true;
 }
 
@@ -104,7 +104,7 @@ async function dungeon_bail_out(reason, broadcast = true, emergency = true) {
 				try { await use_skill("use_town"); } catch (e) { }
 			}
 
-			await delay(DUNGEON_BAIL_POLL_MS);
+			await sleep(DUNGEON_BAIL_POLL_MS);
 		}
 
 		if (walking) stop_movement("dungeon bail-out: done");

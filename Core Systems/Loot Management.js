@@ -110,7 +110,7 @@ async function send_to_merchant() {
 	_sending_to_merchant = true;
 	try {
 		for (const { i, item } of loose_loot(LOOT_THRESHOLD)) {
-			await delay(150);
+			await sleep(150);
 			if (!still_loose(i, item)) continue;
 			try {
 				await send_item("Riff", i, character.items[i].q || 1);
@@ -121,7 +121,7 @@ async function send_to_merchant() {
 
 		const gold_to_send = character.gold - LOOT_GOLD_RESERVE;
 		if (gold_to_send > 0) {
-			await delay(10);
+			await sleep(10);
 			try {
 				await send_gold("Riff", gold_to_send);
 			} catch (e) {
@@ -258,7 +258,7 @@ function load_bank_from_local_storage() {
 
 async function wait_for_bank(map) {
 	for (let waited = 0; waited < 3000 && !(character.bank && character.map === map); waited += 50) {
-		await delay(50);
+		await sleep(50);
 	}
 }
 

@@ -44,7 +44,7 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 				log_msg("error", `Not at ${skill_name} spot, stopping.`);
 				break;
 			}
-			if (character.items.filter(Boolean).length >= character.items.length) {
+			if (character.esize <= 0) {
 				log_msg("info", `📦 Inventory full, stopping ${skill_name}.`);
 				break;
 			}
@@ -62,17 +62,17 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 						log_msg("warn", `${skill_name}: use_skill kept reporting cooldown while is_on_cooldown() read false — giving up this run.`);
 						break;
 					}
-					await delay(2000);
+					await sleep(2000);
 					continue;
 				}
 				catcher(e, `handle_gathering_state(${skill_name}): use_skill`);
 				break;
 			}
 
-			await delay(200);
+			await sleep(200);
 			let channel_wait_ms = 0;
 			while (!character.rip && character.c[skill_name]) {
-				await delay(200);
+				await sleep(200);
 				channel_wait_ms += 200;
 				if (channel_wait_ms >= 15000) {
 					log_msg("warn", `${skill_name}: still channeling after ${channel_wait_ms / 1000}s per character.c — giving up waiting.`);

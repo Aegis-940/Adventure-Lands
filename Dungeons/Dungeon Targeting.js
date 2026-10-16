@@ -34,11 +34,7 @@ let _dungeon_focus_cache = null;
 let _dungeon_focus_at = 0;
 
 function dungeon_type_alive(mtype) {
-	for (const id in parent.entities) {
-		const e = parent.entities[id];
-		if (e.type === "monster" && !e.dead && e.mtype === mtype) return true;
-	}
-	return false;
+	return !!get_nearest_monster({ type: mtype });
 }
 
 function dungeon_suppressed_types() {

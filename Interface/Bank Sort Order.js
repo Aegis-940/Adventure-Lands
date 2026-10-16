@@ -130,7 +130,7 @@ async function goto_bank_floor(map) {
 	if (x == null || y == null) return;
 
 	await smarter_move({ map, x, y });
-	await delay(300);
+	await sleep(300);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -224,7 +224,7 @@ async function bank_op(start, done) {
 
 	const until = Date.now() + BANK_OP_TIMEOUT;
 	while (Date.now() < until) {
-		await delay(100);
+		await sleep(100);
 		if (done()) return true;
 	}
 
@@ -403,7 +403,7 @@ async function sort_all_bank() {
 
 		const merged = await consolidate_bank_floor(packs);
 		if (merged) log_msg("info", `🧺 Combined ${merged} partial stacks on ${map}`);
-		await delay(200);
+		await sleep(200);
 		await sort_bank_floor(packs);
 		log_msg("info", `🏧 Sorted ${map}`);
 	}
@@ -455,14 +455,14 @@ function sort_bank_floor(packs_on_floor, inv_indices, sorted_bank, i_running) {
 			str: i,
 			inv: inv_pointer,
 			});
-			return delay(150).then((x) =>
+			return sleep(150).then((x) =>
 			sort_bank_floor(packs_on_floor, inv_indices, sorted_bank, i_running)
 			);
 		}
 		}
 	}
 	inv_indices.splice(i_running, 1);
-	return delay(150).then((x) =>
+	return sleep(150).then((x) =>
 		sort_bank_floor(packs_on_floor, inv_indices, sorted_bank, i_running)
 	);
 
@@ -484,7 +484,7 @@ function sort_bank_floor(packs_on_floor, inv_indices, sorted_bank, i_running) {
 			pack: bank_pack,
 			str: i,
 			});
-			return delay(150).then((x) =>
+			return sleep(150).then((x) =>
 			sort_bank_floor(packs_on_floor, inv_indices, sorted_bank, i_running)
 			);
 		}

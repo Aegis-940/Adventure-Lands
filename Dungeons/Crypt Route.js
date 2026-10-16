@@ -191,7 +191,7 @@ async function crypt_engage(wp, quarry) {
 			if (!target) {
 				if (!lost_since) lost_since = Date.now();
 				if (Date.now() - lost_since >= CRYPT_LOST_GRACE_MS) break;
-				await delay(CRYPT_ROUTE_POLL_MS);
+				await sleep(CRYPT_ROUTE_POLL_MS);
 				continue;
 			}
 			lost_since = 0;
@@ -204,7 +204,7 @@ async function crypt_engage(wp, quarry) {
 				stop_movement("crypt route: in range");
 			}
 
-			await delay(CRYPT_ROUTE_POLL_MS);
+			await sleep(CRYPT_ROUTE_POLL_MS);
 		}
 	} finally {
 		crypt_release_quarry();
@@ -222,7 +222,7 @@ async function crypt_engage(wp, quarry) {
 
 async function crypt_retreat(wp, reason) {
 	await dungeon_bail_out(reason || crypt_disengage_reason(wp));
-	await delay(CRYPT_RETREAT_SETTLE_MS);
+	await sleep(CRYPT_RETREAT_SETTLE_MS);
 }
 
 async function crypt_wait_for_mana(pct) {
@@ -243,7 +243,7 @@ async function crypt_wait_for_mana(pct) {
 			log_msg("info", `Crypt route: mana ready (${Math.round(100 * character.mp / character.max_mp)}%)`);
 			return true;
 		}
-		await delay(CRYPT_ROUTE_POLL_MS);
+		await sleep(CRYPT_ROUTE_POLL_MS);
 	}
 
 	log_msg("warn", "Crypt route: mana never reached target — carrying on");
@@ -254,7 +254,7 @@ async function crypt_wait_for_calm() {
 	const until = Date.now() + CRYPT_CALM_TIMEOUT_MS;
 	while (Date.now() < until) {
 		if (!panicking && !character.rip) return true;
-		await delay(CRYPT_ROUTE_POLL_MS);
+		await sleep(CRYPT_ROUTE_POLL_MS);
 	}
 	log_msg("warn", "Crypt route: panic never cleared");
 	return false;
@@ -290,7 +290,7 @@ async function crypt_advance(wp) {
 			return "interrupted";
 		}
 
-		await delay(CRYPT_ROUTE_POLL_MS);
+		await sleep(CRYPT_ROUTE_POLL_MS);
 	}
 
 	return reached ? "arrived" : "interrupted";

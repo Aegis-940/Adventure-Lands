@@ -87,7 +87,7 @@ async function stock_lolipop_kit(stage) {
 	if (in_bank.length) {
 		await bank_items(lolipop_kit_item);
 		for (const it of in_bank) {
-			await withdraw_item(it.name, it.level, it.fill ? Math.max(1, free_inventory_slots() - LOLIPOP_PUSH.free_slots) : it.total);
+			await withdraw_item(it.name, it.level, it.fill ? Math.max(1, character.esize - LOLIPOP_PUSH.free_slots) : it.total);
 		}
 		task_heartbeat();
 	}
@@ -114,14 +114,10 @@ async function stock_lolipop_kit(stage) {
 	return true;
 }
 
-function upgrade_grade(def, level) {
-	return def.grades.filter(g => level >= g).length;
-}
-
 function upgrade_chance_cap(item, kit) {
 	const def = G.items[item.name];
-	const grade = upgrade_grade(def, item.level);
-	const base = G.upgrades[upgrade_grade(def, 0)][item.level + 1];
+	const grade = calculate_item_grade(def, item);
+	const base = G.upgrades[calculate_item_grade(def, { level: 0 })][item.level + 1];
 	const high = G.items[kit.scroll].grade > grade || G.items[kit.offering].grade > grade;
 	return high ? Math.min(base + 0.36, base * 3) : Math.min(base + 0.24, base * 2);
 }
@@ -145,8 +141,7 @@ async function offer_grace(slot) {
 }
 
 function spare_primlings(kit) {
-	const held = character.items.filter(it => it && it.name === LOLIPOP_PUSH.grace).reduce((n, it) => n + (it.q || 1), 0);
-	return held - (kit.offering === LOLIPOP_PUSH.grace ? 1 : 0);
+	return quantity(LOLIPOP_PUSH.grace) - (kit.offering === LOLIPOP_PUSH.grace ? 1 : 0);
 }
 
 async function grace_to_cap(slot, kit) {

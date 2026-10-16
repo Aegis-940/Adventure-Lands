@@ -127,7 +127,7 @@ async function dungeon_loot_everything() {
 		last = count;
 
 		await handle_looting();
-		await delay(DUNGEON_LOOT_ROUND_MS);
+		await sleep(DUNGEON_LOOT_ROUND_MS);
 	}
 
 	const left = get_num_chests();
@@ -226,9 +226,7 @@ function wait_for_death(mob_type, spawn_x, spawn_y, spawn_radius = 250) {
 
 			const near_spawn = Math.hypot(character.x - spawn_x, character.y - spawn_y) < spawn_radius;
 
-			const alive = Object.values(parent.entities).some(
-				e => e.type === "monster" && e.mtype === mob_type && !e.dead
-			);
+			const alive = !!get_nearest_monster({ type: mob_type });
 
 			if (killed && !alive) {
 				log_msg("event", `[Dungeon] ${mob_type} kill confirmed`);
@@ -271,10 +269,10 @@ async function run_dungeon(dungeon) {
 	set_suppress_reset(true);
 	send_cm(DUNGEON_FOLLOWERS, { type: "suppress_reset" });
 	try {
-		if (dungeon.key && !has_dungeon_key(dungeon.key)) {
+		if (dungeon.key && locate_item(dungeon.key) === -1) {
 			dungeon_log(dungeon, `No ${dungeon.key} in hand — withdrawing every one from the bank...`);
 			await withdraw_item(dungeon.key, null, dungeon.key_count);
-			if (!has_dungeon_key(dungeon.key)) {
+			if (locate_item(dungeon.key) === -1) {
 				dungeon_log(dungeon, `No ${dungeon.key} in the bank either — aborting.`, "warn");
 				return false;
 			}
@@ -285,7 +283,7 @@ async function run_dungeon(dungeon) {
 		dungeon_log(dungeon, "At entrance — entering instance...");
 		await wait_for_party_out(dungeon);
 		await wait_for_party_at_entrance(dungeon);
-		await delay(DUNGEON_ENTER_SETTLE_MS);
+		await sleep(DUNGEON_ENTER_SETTLE_MS);
 		enter(dungeon.map);
 		if (!await wait_until_on_map(dungeon.map)) {
 			dungeon_log(dungeon, "enter() never landed — aborting", "warn");
@@ -314,7 +312,7 @@ async function run_dungeon(dungeon) {
 		for (const boss of dungeon.bosses) {
 			dungeon_log(dungeon, `Moving to ${boss.mtype}...`);
 			await dungeon_travel({ map: dungeon.map, x: boss.x, y: boss.y });
-			await delay(2000);
+			await sleep(2000);
 			await wait_for_death(boss.mtype, boss.x, boss.y);
 			dungeon_log(dungeon, `${boss.mtype} dead — looting`);
 			await dungeon_loot_everything();
@@ -333,7 +331,7 @@ async function run_dungeon(dungeon) {
 		dungeon_log(dungeon, "Complete — reloading party...");
 		send_cm(DUNGEON_FOLLOWERS, { type: "reload" });
 		staggered_reload();
-		await delay(RELOAD_BASE_MS + RELOAD_STAGGER_MS);
+		await sleep(RELOAD_BASE_MS + RELOAD_STAGGER_MS);
 
 		return true;
 
@@ -436,7 +434,7 @@ async function run_dungeon_loop() {
 
 			if (await dreams_handover()) break;
 
-			await delay(DUNGEON_LOOP_SETTLE_MS);
+			await sleep(DUNGEON_LOOP_SETTLE_MS);
 		}
 	} catch (e) {
 		catcher(e, "run_dungeon_loop");
@@ -451,28 +449,16 @@ async function run_dungeon_loop() {
 	}
 }
 
-function has_dungeon_key(key) {
-	return character.items.some(it => it && it.name === key);
-}
-
-function count_dungeon_keys(key) {
-	let held = 0;
-	for (const item of character.items) {
-		if (item && item.name === key) held += item.q || 1;
-	}
-	return held;
-}
-
 async function dungeon_keys_ready(dungeon) {
 	if (!dungeon.key || !dungeon.min_keys) return true;
 
-	let held = count_dungeon_keys(dungeon.key);
+	let held = quantity(dungeon.key);
 	if (held >= dungeon.min_keys) return true;
 
 	dungeon_log(dungeon, `${held} ${dungeon.key}(s) in hand — topping up from the bank...`);
 	await withdraw_item(dungeon.key, null, dungeon.key_count);
 
-	held = count_dungeon_keys(dungeon.key);
+	held = quantity(dungeon.key);
 	if (held >= dungeon.min_keys) return true;
 
 	dungeon_log(dungeon, `Only ${held} ${dungeon.key}(s) available, need ${dungeon.min_keys} — stopping the loop`,

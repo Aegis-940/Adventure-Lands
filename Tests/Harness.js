@@ -144,6 +144,8 @@ function server_shape(fixture_character) {
 	const c = JSON.parse(JSON.stringify(fixture_character));
 	for (const stat of SERVER_ZEROED_STATS) if (c[stat] === undefined) c[stat] = 0;
 	for (const key of ["s", "c", "q"]) if (!c[key]) c[key] = {};
+	if (c.isize === undefined) c.isize = c.items.length;
+	if (c.esize === undefined) c.esize = c.items.filter(item => !item).length;
 	return c;
 }
 

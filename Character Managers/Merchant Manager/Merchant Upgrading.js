@@ -64,7 +64,7 @@ var GRACE_MAX_OFFERINGS = 5;
 var GRACE_MAX = 5;
 
 function inventory_slot(item_name) {
-	const slot = character.items.findIndex(it => it && it.name === item_name);
+	const slot = locate_item(item_name);
 	return slot === -1 ? null : slot;
 }
 
@@ -220,7 +220,7 @@ function upgrade_job_item(item) {
 }
 
 async function make_upgrade_room() {
-	if (free_inventory_slots() > UPGRADE_BUY_RESERVE_SLOTS) return;
+	if (character.esize > UPGRADE_BUY_RESERVE_SLOTS) return;
 
 	if (has_sellable_items(upgrade_job_item)) {
 		sell_sellable_items(upgrade_job_item);
@@ -228,7 +228,7 @@ async function make_upgrade_room() {
 	}
 
 	if (!has_bankable_items(upgrade_job_item)) return;
-	log_msg("debug", `🎒 Down to ${free_inventory_slots()} free slots mid-upgrade — banking handed-over loot.`);
+	log_msg("debug", `🎒 Down to ${character.esize} free slots mid-upgrade — banking handed-over loot.`);
 	await bank_items(upgrade_job_item);
 	await smarter_move(HOME);
 	task_heartbeat();
@@ -290,7 +290,7 @@ async function withdraw_upgrade_scrolls() {
 
 	refresh_bank_snapshot();
 
-	const empty_slots = free_inventory_slots();
+	const empty_slots = character.esize;
 	if (empty_slots < 10) {
 		log_msg("error", `Not enough inventory space to withdraw scrolls. Need at least 10 free slots, have ${empty_slots}.`);
 		return;
@@ -321,7 +321,7 @@ async function withdraw_offering() {
 async function withdraw_upgradeable_items() {
 	if (character.map !== BANK_LOCATION.map || Math.hypot(character.x - BANK_LOCATION.x, character.y - BANK_LOCATION.y) > BANK_POSITION_TOLERANCE) {
 		await smarter_move(BANK_LOCATION, null, { radius: BANK_POSITION_TOLERANCE });
-		await delay(500);
+		await sleep(500);
 	}
 
 	let bank_data = character.bank || load_bank_from_local_storage();
@@ -330,7 +330,7 @@ async function withdraw_upgradeable_items() {
 		return;
 	}
 
-	if (free_inventory_slots() <= 3) {
+	if (character.esize <= 3) {
 		log_msg("error", "Not enough inventory space to withdraw upgrade items.");
 		return;
 	}
@@ -339,7 +339,7 @@ async function withdraw_upgradeable_items() {
 	if (target) {
 		const level_counts = bank_level_counts(bank_data, target.name, target.level);
 		for (const level of Object.keys(level_counts).map(Number).sort((a, b) => b - a)) {
-			const to_withdraw = Math.min(level_counts[level], free_inventory_slots() - 3);
+			const to_withdraw = Math.min(level_counts[level], character.esize - 3);
 			if (to_withdraw <= 0) break;
 			await withdraw_item(target.name, level, to_withdraw);
 		}
@@ -349,20 +349,20 @@ async function withdraw_upgradeable_items() {
 		if (target && item_name === target.name) continue;
 		const level_counts = bank_level_counts(bank_data, item_name, UPGRADE_PROFILE[item_name].max_level);
 		for (const level of Object.keys(level_counts).map(Number).sort((a, b) => a - b)) {
-			const to_withdraw = Math.min(level_counts[level], free_inventory_slots() - 3);
+			const to_withdraw = Math.min(level_counts[level], character.esize - 3);
 			if (to_withdraw <= 0) break;
 			await withdraw_item(item_name, level, to_withdraw);
 		}
-		if (free_inventory_slots() <= 3) break;
+		if (character.esize <= 3) break;
 	}
 
 	for (const item_name in COMBINE_PROFILE) {
 		const level_counts = bank_level_counts(bank_data, item_name, COMBINE_PROFILE[item_name].max_level);
 		for (const level of Object.keys(level_counts).map(Number).sort((a, b) => a - b)) {
-			const sets = Math.min(Math.floor(level_counts[level] / 3), Math.floor((free_inventory_slots() - 3) / 3));
+			const sets = Math.min(Math.floor(level_counts[level] / 3), Math.floor((character.esize - 3) / 3));
 			if (sets > 0) await withdraw_item(item_name, level, sets * 3);
 		}
-		if (free_inventory_slots() <= 3) break;
+		if (character.esize <= 3) break;
 	}
 
 	log_msg("info", "✅ Finished withdrawing upgrade and compound items, leaving at least 3 inventory slots free.");
@@ -435,7 +435,7 @@ async function upgrade_slot(i, profile, needed) {
 	}
 
 	while (character.q.upgrade) {
-		await delay(50);
+		await sleep(50);
 	}
 
 	return "done";
@@ -600,7 +600,7 @@ async function auto_combine_item(level) {
 var UPGRADE_BUY_RESERVE_SLOTS = 5;
 
 function target_base_odds(target) {
-	const igrade = upgrade_grade(G.items[target.name], 0);
+	const igrade = calculate_item_grade(G.items[target.name], { level: 0 });
 	let odds = 1;
 	for (let level = 1; level <= target.level; level++) odds *= G.upgrades[igrade][level];
 	return odds;
@@ -615,7 +615,7 @@ function upgrade_buy_count() {
 	const spare_gold = character.gold - CONFIG.upgrade_gold_threshold;
 	return Math.max(0, Math.min(
 		Math.ceil(missing / target_base_odds(target)),
-		free_inventory_slots() - UPGRADE_BUY_RESERVE_SLOTS,
+		character.esize - UPGRADE_BUY_RESERVE_SLOTS,
 		Math.floor(spare_gold / parent.G.items[target.name].g)
 	));
 }

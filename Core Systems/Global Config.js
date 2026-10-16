@@ -190,10 +190,6 @@ const COOLDOWNS = {
 
 const CACHE_TTL = 50;
 
-function delay(ms) {
-	return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SECTION 2a: RELOADS — a party-wide reload restarts one character at a time, never all four in the same second
 // --------------------------------------------------------------------------------------------------------------------------------- //

@@ -227,8 +227,7 @@ function passage_step(goal) {
 	const now = Date.now();
 	if (now - _passage_sent_at < PASSAGE_RETRY_MS) return;
 	_passage_sent_at = now;
-	parent.socket.emit("transport", { to: goal.passage.to, s: goal.passage.s });
-	Promise.resolve(parent.push_deferred("transport")).catch(() => { });
+	transport(goal.passage.to, goal.passage.s).catch(() => { });
 }
 
 function trail_step(goal) {

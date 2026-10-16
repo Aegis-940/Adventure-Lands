@@ -149,7 +149,7 @@ async function dreams_until(done, ms) {
 	const until = Date.now() + ms;
 	while (Date.now() < until) {
 		if (done()) return true;
-		await delay(DREAMS_POLL_MS);
+		await sleep(DREAMS_POLL_MS);
 	}
 	return done();
 }
@@ -350,7 +350,7 @@ async function dreams_enter() {
 			dreams_log(`Entry refused: ${reason}`, "warn");
 			dungeon_telemetry_event("dreams_entry_refused", { reason, attempt, resume });
 			if (reason === "daily_opening_used" || reason === "cant_reenter") return false;
-			await delay(DREAMS_ENTRY_RETRY_MS);
+			await sleep(DREAMS_ENTRY_RETRY_MS);
 			continue;
 		}
 
@@ -411,7 +411,7 @@ async function dreams_walk(spot, radius, stop_when) {
 			await journey;
 			return false;
 		}
-		await delay(DREAMS_POLL_MS);
+		await sleep(DREAMS_POLL_MS);
 	}
 	return true;
 }
@@ -528,7 +528,7 @@ async function dreams_descend(door) {
 		await transport(door.to, dreams_door(character.map, door)[5]);
 	} catch (e) {
 		dreams_log(`Stairs refused: ${dreams_reason(e)}`, "warn");
-		await delay(DREAMS_ENTRY_RETRY_MS);
+		await sleep(DREAMS_ENTRY_RETRY_MS);
 	}
 }
 
@@ -589,19 +589,19 @@ async function dreams_floors() {
 
 			if (cave.paused || character.rip) {
 				idle_since = 0;
-				await delay(DREAMS_POLL_MS);
+				await sleep(DREAMS_POLL_MS);
 				continue;
 			}
 
 			if (dreams_threats().length) {
 				idle_since = 0;
 				dreams_close_in();
-				await delay(DREAMS_POLL_MS);
+				await sleep(DREAMS_POLL_MS);
 				continue;
 			}
 
 			if (dreams_wait_for_party()) {
-				await delay(DREAMS_POLL_MS);
+				await sleep(DREAMS_POLL_MS);
 				continue;
 			}
 
@@ -628,7 +628,7 @@ async function dreams_floors() {
 					_dreams_escort = null;
 					idle_since = 0;
 				}
-				await delay(DREAMS_POLL_MS);
+				await sleep(DREAMS_POLL_MS);
 				continue;
 			}
 
@@ -648,7 +648,7 @@ async function dreams_floors() {
 					await dreams_exit_all("all three floors complete");
 					return;
 				}
-				await delay(DREAMS_POLL_MS);
+				await sleep(DREAMS_POLL_MS);
 				continue;
 			}
 
@@ -676,10 +676,10 @@ async function dreams_floors() {
 				goal = null;
 				idle_since = 0;
 			}
-			await delay(DREAMS_POLL_MS);
+			await sleep(DREAMS_POLL_MS);
 		} catch (e) {
 			catcher(e, "dreams_floors");
-			await delay(DREAMS_WATCH_MS);
+			await sleep(DREAMS_WATCH_MS);
 		}
 	}
 }

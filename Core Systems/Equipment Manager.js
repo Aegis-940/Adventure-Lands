@@ -207,7 +207,7 @@ async function batch_equip(data, set_name) {
 
 	const ack = parent.push_deferred("equip_batch").then(() => true, () => true);
 	parent.socket.emit("equip_batch", valid_items);
-	const acked = await Promise.race([ack, delay(EQUIP_ACK_TIMEOUT_MS).then(() => false)]);
+	const acked = await Promise.race([ack, sleep(EQUIP_ACK_TIMEOUT_MS).then(() => false)]);
 	if (!acked) errlog_count(`equip ack timeout ${set_name || "slots"}`);
 	return valid_items.length;
 }
@@ -253,7 +253,7 @@ function set_available(set_name) {
 	return set.every(i => {
 		const worn = character.slots[i.slot];
 		if (worn && worn.name === i.item_name) return true;
-		return character.items.some(it => it && it.name === i.item_name);
+		return locate_item(i.item_name) !== -1;
 	});
 }
 

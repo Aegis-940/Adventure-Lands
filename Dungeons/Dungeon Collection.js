@@ -46,7 +46,7 @@ async function run_dungeon_collection() {
 			arrived = true;
 			break;
 		}
-		await delay(COLLECT_POLL_MS);
+		await sleep(COLLECT_POLL_MS);
 	}
 
 	if (!arrived) {
@@ -79,7 +79,7 @@ async function run_dungeon_collection() {
 			idle = 0;
 		}
 		last = left;
-		await delay(COLLECT_POLL_MS);
+		await sleep(COLLECT_POLL_MS);
 	}
 
 	log_msg("event", "📦 Collection: done");

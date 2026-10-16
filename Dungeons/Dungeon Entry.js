@@ -36,7 +36,7 @@ async function join_dungeon_instance(data) {
 				return;
 			}
 			try { await enter(map, instance_id); } catch (e) { }
-			await delay(DUNGEON_JOIN_INTERVAL_MS);
+			await sleep(DUNGEON_JOIN_INTERVAL_MS);
 		}
 
 		log_msg("error", `Gave up entering the instance after ${DUNGEON_JOIN_TIMEOUT_MS / 1000}s`);
@@ -58,7 +58,7 @@ async function wait_until_on_map(map) {
 	const until = Date.now() + DUNGEON_ENTER_TIMEOUT_MS;
 	while (Date.now() < until) {
 		if (character.map === map) return true;
-		await delay(DUNGEON_ENTER_POLL_MS);
+		await sleep(DUNGEON_ENTER_POLL_MS);
 	}
 	return false;
 }
@@ -114,7 +114,7 @@ async function wait_for_party_at_entrance(dungeon) {
 			dungeon_log(dungeon, "Party assembled at the entrance");
 			return true;
 		}
-		await delay(DUNGEON_EXIT_POLL_MS);
+		await sleep(DUNGEON_EXIT_POLL_MS);
 	}
 
 	dungeon_log(dungeon,
@@ -133,7 +133,7 @@ async function wait_for_party_out(dungeon) {
 			dungeon_log(dungeon, "Party is clear");
 			return true;
 		}
-		await delay(DUNGEON_EXIT_POLL_MS);
+		await sleep(DUNGEON_EXIT_POLL_MS);
 	}
 
 	dungeon_log(dungeon,

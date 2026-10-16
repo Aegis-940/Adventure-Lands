@@ -57,7 +57,7 @@ async function exchange_bag_items() {
 	exchange_items_running = true;
 
 	try {
-		while (free_inventory_slots() > CONFIG.min_free_inventory_slots) {
+		while (character.esize > CONFIG.min_free_inventory_slots) {
 			sell_while_idle();
 			const found = find_bag_exchangeable();
 			if (!found) break;
@@ -78,7 +78,7 @@ async function exchange_bag_items() {
 async function withdraw_exchangeables() {
 	log_msg("debug", "🏦 Fetching exchangeables from the bank...");
 	await smarter_move(BANK_LOCATION);
-	await delay(500);
+	await sleep(500);
 	refresh_bank_snapshot();
 
 	for (const target of exchange_targets()) {

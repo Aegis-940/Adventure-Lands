@@ -71,7 +71,7 @@ function has_bankable_items(keep = keep_nothing) {
 async function wait_for_movement_to_settle(caller_label) {
 	let move_wait = 0;
 	while (character.moving && move_wait < 20) {
-		await delay(250);
+		await sleep(250);
 		move_wait++;
 	}
 	if (character.moving) {
@@ -94,7 +94,7 @@ async function sell_items(keep = keep_nothing) {
 	let sold_any = false;
 	try {
 		await smarter_move(HOME);
-		await delay(3000);
+		await sleep(3000);
 
 		sold_any = sell_sellable_items(keep);
 	} catch (e) {
@@ -170,7 +170,7 @@ var _bank_retry_at = 0;
 function should_run_banking() {
 	return merchant_task === "Idle"
 		&& Date.now() >= _bank_retry_at
-		&& free_inventory_slots() <= CONFIG.min_free_inventory_slots
+		&& character.esize <= CONFIG.min_free_inventory_slots
 		&& has_bankable_items();
 }
 
@@ -178,7 +178,7 @@ async function handle_banking_state() {
 	if (merchant_task !== "Idle") return;
 	const generation = begin_task("Banking");
 	try {
-		log_msg("debug", `🎒 Down to ${free_inventory_slots()} free slots — emptying the pack.`);
+		log_msg("debug", `🎒 Down to ${character.esize} free slots — emptying the pack.`);
 		await sell_items();
 		const banked = await bank_items();
 		if (!banked) _bank_retry_at = Date.now() + BANKING_RETRY_MS;

@@ -12,23 +12,19 @@ function can_afford_any_craft() {
 var CRAFT_LOCATION = { map: "main", x: 0, y: 492 };
 var CRAFT_POSITION_TOLERANCE = 5;
 
-function has_computer() {
-	return character.items.some(it => it && it.name === "computer");
-}
-
 async function leave_bank() {
 	if (character.map.startsWith("bank")) await smarter_move(HOME);
 }
 
 async function go_to_craftsman() {
-	if (has_computer()) return leave_bank();
+	if (locate_item("computer") !== -1) return leave_bank();
 	if (character.map !== CRAFT_LOCATION.map || Math.hypot(character.x - CRAFT_LOCATION.x, character.y - CRAFT_LOCATION.y) > CRAFT_POSITION_TOLERANCE) {
 		await smarter_move(CRAFT_LOCATION, null, { radius: CRAFT_POSITION_TOLERANCE });
 	}
 }
 
 async function go_to_basics() {
-	if (has_computer()) return leave_bank();
+	if (locate_item("computer") !== -1) return leave_bank();
 	await smart_move("basics");
 }
 
@@ -62,7 +58,7 @@ function find_recipe_slot(req, bag) {
 }
 
 function max_craftable_by_space(item_name) {
-	const free_slots = free_inventory_slots();
+	const free_slots = character.esize;
 	const usable_free_slots = Math.max(0, free_slots - CONFIG.min_free_inventory_slots);
 
 	const stack_size = parent.G.items[item_name]?.s;
@@ -342,7 +338,7 @@ function upgrades_crafted(item_name) {
 
 async function upgrade_crafted(item_name, abandoned) {
 	if (!upgrades_crafted(item_name)) return;
-	if (has_computer()) await leave_bank();
+	if (locate_item("computer") !== -1) await leave_bank();
 	else await smarter_move(HOME);
 	log_msg("info", `⬆️ Upgrading the ${item_name} just crafted before crafting more.`);
 	await upgrade_target_pass(abandoned);

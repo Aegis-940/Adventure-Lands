@@ -54,7 +54,7 @@ async function buff_nearby_players() {
 		} catch (e) {
 			catcher(e, "buff_nearby_players: " + player.name);
 		}
-		await delay(200);
+		await sleep(200);
 	}
 	if (buffed.length) log_msg("info", `Cast MLuck on ${buffed.join(", ")}.`);
 }
@@ -121,7 +121,7 @@ async function handle_delivering_state() {
 				}
 			}
 
-			await delay(3000);
+			await sleep(3000);
 			attempts++;
 		}
 		if (attempts >= DELIVERY_WAIT_MAX_ATTEMPTS) {

@@ -13,7 +13,7 @@ Every finding below comes from a read of the source on 2026-10-16 at `eb4ea67`, 
 | C2 | Dead code | none | **done** 2026-10-16 |
 | C3 | Error handling that hides errors | none (errors start reaching the log) | **done** 2026-10-16; the reload read is pending |
 | C4 | Guards and fallbacks | none | **done** 2026-10-16 |
-| C5 | Native game functions | a few items, each marked ⚠ | not started |
+| C5 | Native game functions | a few items, each marked ⚠ | rows 1–8 **done** 2026-10-16; the ⚠ rows are queued |
 | C6 | Party state and the information the bot gathers | a few items, each marked ⚠ | not started |
 | C7 | Simplification | none | not started |
 | C8 | Close-out | none | not started |
@@ -304,7 +304,7 @@ Ranked by value. "Same" means the two implementations were read side by side and
 - `send_cm`: it already sends over localStorage between local pages (`runner_functions.js:1066`).
 
 **Checklist**
-- [ ] C5 rows 1–8 (no behaviour change)
+- [x] C5 rows 1–8 (no behaviour change): `character.esize` for free slots (17 sites; the harness fills `esize`/`isize` as the server does), `damage_multiplier()` (C2.3), `quantity()` and `locate_item()` for nine hand loops (`inventory_slot()` stays as a thin adapter, because `upgrade()` wants `null`, not `-1`, for no offering), `calculate_item_grade()`, `get_nearest_monster()` for the dungeon alive checks, `transport()` in `passage_step`, and `sleep()` for the 54 `delay()` calls
 - [ ] C5 rows 9–13, each with the user's go-ahead and a `compare`
 
 ---

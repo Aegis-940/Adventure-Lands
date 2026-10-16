@@ -11,29 +11,25 @@ async function equip_default_gear() {
 }
 
 async function ensure_tool_available(tool_name) {
-	function find_in_inventory() {
-		return character.items.findIndex(item => item && item.name === tool_name);
-	}
-
 	if (character.slots.mainhand && character.slots.mainhand.name === tool_name) return true;
-	if (find_in_inventory() !== -1) return true;
+	if (locate_item(tool_name) !== -1) return true;
 
 	log_msg("info", `🔎 No ${tool_name} in inventory, checking bank...`);
 	await smarter_move(BANK_LOCATION);
-	await delay(500);
+	await sleep(500);
 	await withdraw_item(tool_name);
-	await delay(400);
-	if (find_in_inventory() !== -1) return true;
+	await sleep(400);
+	if (locate_item(tool_name) !== -1) return true;
 
 	log_msg("info", `🔨 No ${tool_name} in bank either, attempting to craft one...`);
 	for (let attempt = 0; attempt < 8; attempt++) {
 		const result = await craft_item(tool_name);
 		if (result === "crafted") break;
 		if (result !== "buying" && result !== "withdrawing") break;
-		await delay(400);
+		await sleep(400);
 	}
 
-	if (find_in_inventory() === -1) {
+	if (locate_item(tool_name) === -1) {
 		log_msg("error", `Could not obtain a ${tool_name} (not in inventory, bank, or craftable).`);
 		return false;
 	}

@@ -12,10 +12,7 @@ async function handle_buy_potions() {
 	const MIN_BUY = 100;
 	try {
 		for (const pot of ["mpot1", "hpot1"]) {
-			let total = 0;
-			for (const item of character.items) {
-				if (item && item.name === pot) total += item.q || 1;
-			}
+			const total = quantity(pot);
 			const to_buy = MAX_POTS - total;
 			if (to_buy > MIN_BUY) {
 				log_msg("info", `🧪 Buying ${to_buy} x ${pot} (you have ${total})`);
@@ -31,7 +28,7 @@ var LOOT_COLLECTION_COOLDOWN = 60000;
 var last_loot_time = 0;
 
 function should_collect_loot() {
-	if (free_inventory_slots() <= CONFIG.min_free_inventory_slots) return false;
+	if (character.esize <= CONFIG.min_free_inventory_slots) return false;
 	return Date.now() - last_loot_time >= LOOT_COLLECTION_COOLDOWN && any_party_within_range();
 }
 
@@ -46,7 +43,7 @@ async function handle_collect_loot() {
 				continue;
 			}
 			send_cm(name, { type: "send_loot" });
-			await delay(200);
+			await sleep(200);
 		}
 		log_msg("info", "Requested loot from nearby party members.");
 		last_loot_time = Date.now();
