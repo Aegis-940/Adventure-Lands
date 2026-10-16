@@ -23,8 +23,8 @@ function decision_window(now) {
 		panics: {},
 		outcomes: {},
 		taken: { damage: 0, hits: 0, biggest: 0, by_mtype: {} },
-		mana_in: { potions: 0, manasteal: 0 },
-		hp_in: { potions: 0 },
+		mana_in: { potions: 0, potion_waste: 0, manasteal: 0, mp_start: character.mp },
+		hp_in: { potions: 0, potion_waste: 0 },
 		attack: { samples: 0, frequency: 0, in_range_s: 0, ready_idle_s: 0 },
 		worn_s: {},
 		goal_s: {},
@@ -158,8 +158,10 @@ function decision_on_hit(data) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function decision_on_potion(potion) {
-	if (potion.kind === "mp") _decisions.mana_in.potions += potion.amount;
-	else _decisions.hp_in.potions += potion.amount;
+	const into = potion.kind === "mp" ? _decisions.mana_in : _decisions.hp_in;
+	const landed = Math.min(potion.amount, potion.room);
+	into.potions += landed;
+	into.potion_waste += potion.amount - landed;
 }
 
 function monster_in_attack_range() {
@@ -194,6 +196,7 @@ function decision_sample() {
 
 function decision_window_close(data) {
 	const w = _decisions;
+	w.mana_in.mp_end = character.mp;
 	_decisions = decision_window(data.now);
 	errlog_archive("decisions", Object.assign({}, w, { started: undefined, window_s: Math.round((data.now - w.started) / 1000) }));
 }

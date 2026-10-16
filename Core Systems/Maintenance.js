@@ -44,7 +44,7 @@ async function potion_tick() {
 
 	const drink = (kind, missing, threshold) => {
 		if (missing < threshold) return false;
-		_potion_sent = { kind, amount: potion_gives(kind) };
+		_potion_sent = { kind, amount: potion_gives(kind), room: missing };
 		use(kind);
 		return true;
 	};

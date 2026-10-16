@@ -657,10 +657,10 @@ function render_decisions(d) {
 			r.splash_pct === null ? "–" : r.splash_pct + "%", r.burn_pct === null ? "–" : r.burn_pct + "%"]));
 	const pct = v => v === null || v === undefined ? "–" : v + "%";
 	$("mana-budget").innerHTML = table(
-		[{ label: "Who" }, { label: "Hours", n: 1 }, { label: "In/h", n: 1 }, { label: "Potions/h", n: 1 }, { label: "Manasteal/h", n: 1 },
-			{ label: "Out/h", n: 1 }, { label: "Net/h", n: 1 }, { label: "Most spent on" }],
-		(d.mana_budget || []).map(r => [esc(r.character), r.hours, num(r.in_h), num(r.potions_h), num(r.manasteal_h), num(r.out_h),
-			num(r.net_h), esc(r.top_spend_h)]));
+		[{ label: "Who" }, { label: "Hours", n: 1 }, { label: "In/h", n: 1 }, { label: "Manasteal/h", n: 1 }, { label: "Potion waste/h", n: 1 },
+			{ label: "Out/h", n: 1 }, { label: "Skills/h", n: 1 }, { label: "Attacks/h", n: 1 }, { label: "Top skills" }],
+		(d.mana_budget || []).map(r => [esc(r.character), r.hours, num(r.in_h), num(r.manasteal_h), num(r.waste_h), num(r.out_h),
+			num(r.skills_h), num(r.attacks_h), esc(r.top_skills_h)]));
 	$("uptime").innerHTML = table(
 		[{ label: "Who" }, { label: "Hours", n: 1 }, { label: "Attacks/s", n: 1 }, { label: "Attacks/h", n: 1 }, { label: "Uptime", n: 1 },
 			{ label: "In range", n: 1 }, { label: "Uptime in range", n: 1 }, { label: "Ready, unused", n: 1 }, { label: "Down, min", n: 1 }],

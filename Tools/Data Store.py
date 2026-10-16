@@ -783,7 +783,8 @@ def question_report(command, flags):
         print_rows(pulls_summary(db, rows), ["character", "max_aggro_at_pull", "windows", "pulls_h", "close_calls_per_window",
                                              "taken_h", "mp_pots_h"])
     elif command == "mana":
-        print_rows(mana_summary(rows), ["character", "hours", "in_h", "potions_h", "manasteal_h", "out_h", "net_h", "top_spend_h"])
+        print_rows(mana_summary(rows), ["character", "hours", "in_h", "manasteal_h", "waste_h", "out_h", "skills_h", "attacks_h",
+                                        "top_skills_h"])
     elif command == "uptime":
         print_rows(uptime_summary(db, rows, flags), ["character", "hours", "freq", "attacks_h", "uptime_pct", "in_range_pct",
                                                      "uptime_in_range_pct", "ready_idle_pct", "down_min", "down_gaps"])
@@ -806,27 +807,33 @@ def question_report(command, flags):
 
 
 def mana_summary(rows):
-    """Per fighter: mana in (confirmed potions, manasteal) and out (every confirmed cast's cost) per hour, from the
-    decision windows that carry mana_in (10-16 on)."""
+    """Per fighter, per hour: mana in (the part of each confirmed potion that fit, and manasteal), potion mana wasted on
+    a nearly full pool, and mana out, measured as in minus the change in MP over the window (nothing else feeds MP, so
+    it is exact). Skills are the confirmed casts at their cost; attacks and multi-shots are the rest of out (they share
+    the attack cooldown group, so a cast can't be priced). From windows with mp_end (10-16 on)."""
     out = []
     for who, rs in sorted(by_character(rows).items()):
-        rs = [r for r in rs if r.get("mana_in")]
+        rs = [r for r in rs if "mp_end" in (r.get("mana_in") or {})]
         hours = sum(r["window_s"] for r in rs) / 3600.0
         if not hours:
             continue
-        potions = sum(r["mana_in"].get("potions", 0) for r in rs)
-        steal = sum(r["mana_in"].get("manasteal", 0) for r in rs)
-        spent = {}
+        m = [r["mana_in"] for r in rs]
+        potions = sum(x["potions"] for x in m)
+        steal = sum(x["manasteal"] for x in m)
+        waste = sum(x["potion_waste"] for x in m)
+        spent = potions + steal - sum(x["mp_end"] - x["mp_start"] for x in m)
+        skills = {}
         for r in rs:
             for skill, c in r["casts"].items():
-                spent[skill] = spent.get(skill, 0) + (c.get("mana") or 0)
-        total_out = sum(spent.values())
-        top = sorted(spent.items(), key=lambda kv: -kv[1])[:4]
+                if skill != "attack":
+                    skills[skill] = skills.get(skill, 0) + (c.get("mana") or 0)
+        top = sorted(skills.items(), key=lambda kv: -kv[1])[:4]
         out.append({
             "character": who, "hours": round(hours, 1),
-            "in_h": round((potions + steal) / hours), "potions_h": round(potions / hours), "manasteal_h": round(steal / hours),
-            "out_h": round(total_out / hours), "net_h": round((potions + steal - total_out) / hours),
-            "top_spend_h": ", ".join("%s %d" % (k, v / hours) for k, v in top),
+            "in_h": round((potions + steal) / hours), "manasteal_h": round(steal / hours), "waste_h": round(waste / hours),
+            "out_h": round(spent / hours), "skills_h": round(sum(skills.values()) / hours),
+            "attacks_h": round((spent - sum(skills.values())) / hours),
+            "top_skills_h": ", ".join("%s %d" % (k, v / hours) for k, v in top),
         })
     return out
 

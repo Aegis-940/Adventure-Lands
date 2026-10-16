@@ -225,5 +225,4 @@ done | sort -rn
 - Game: [adventure.land](https://adventure.land); engine internals in [`Game API Reference.md`](Game%20API%20Reference.md)
 - Reading the flight recorder: [`Diagnostics.md`](Diagnostics.md)
 - Loop rates: `al_loops()` in the console; Design Notes → `Scheduler.js` explains the choices
-- The current plan: [`Telemetry Plan.md`](Telemetry%20Plan.md)
 - GitHub (backup): Aegis-940/Adventure-Lands
