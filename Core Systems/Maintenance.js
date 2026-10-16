@@ -18,30 +18,24 @@ async function potion_tick() {
 	if (character.c.fishing || character.c.mining || character.c.town) {
 		return 200;
 	}
-
-	const HP_MISSING = character.max_hp - character.hp;
-	const MP_MISSING = character.max_mp - character.mp;
+	if (is_on_cooldown("use_hp") || is_on_cooldown("use_mp")) return POTION_POLL_MS;
 
 	const prefer_mp = CONFIG.potions.prefer_mp === true;
 	const scare_short = panicking && character.mp < skill_mp_cost("scare");
 	const hp_first = !prefer_mp && !scare_short && character.hp < character.max_hp * 0.5;
 
-	const drink_mp = () => {
-		if (MP_MISSING < CONFIG.potions.mp_threshold) return false;
-		use("mp");
-		potions_drunk.mp++;
+	const drink = (kind, missing, threshold) => {
+		if (missing < threshold) return false;
+		use_skill("use_" + kind).catch(() => { });
+		potions_drunk[kind]++;
 		return true;
 	};
-	const drink_hp = () => {
-		if (HP_MISSING < CONFIG.potions.hp_threshold) return false;
-		use("hp");
-		potions_drunk.hp++;
-		return true;
-	};
+	const drink_mp = () => drink("mp", character.max_mp - character.mp, CONFIG.potions.mp_threshold);
+	const drink_hp = () => drink("hp", character.max_hp - character.hp, CONFIG.potions.hp_threshold);
 
 	const used_potion = hp_first ? (drink_hp() || drink_mp()) : (drink_mp() || drink_hp());
 
-	return used_potion ? 2050 : POTION_POLL_MS;
+	return used_potion ? Math.max(POTION_POLL_MS, 2 * min_ping()) : POTION_POLL_MS;
 }
 
 function auto_buy_potions() {
