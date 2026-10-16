@@ -41,9 +41,19 @@ function monsters_targeting_me() {
 	return character.targets;
 }
 
+function panic_ignored_on_me() {
+	let ignored = 0;
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || e.dead || e.target !== character.name) continue;
+		if (encounter_trait("panic_ignore", e)) ignored++;
+	}
+	return ignored;
+}
+
 function panic_threat() {
 	const t = PANIC_THRESHOLDS;
-	const on_me = monsters_targeting_me();
+	const on_me = monsters_targeting_me() - panic_ignored_on_me();
 	const aggro_limit = encounter_home_setting("panic_aggro", null) || t.aggro;
 	const low_health = character.hp < character.max_hp * t.low_hp;
 	const low_mana = character.mp < character.max_mp * t.low_mp;

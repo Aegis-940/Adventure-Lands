@@ -271,6 +271,9 @@ encounter(PHOENIX, {
 	allows: {
 		warrior: { pull: false },
 	},
+	traits: {
+		all: { panic_ignore: true },
+	},
 	rank: {
 		ranger: 1,
 	},
