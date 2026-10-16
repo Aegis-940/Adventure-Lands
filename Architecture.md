@@ -77,6 +77,7 @@ Core Systems/                         shared by all four characters
 Encounters/                           everything specific to one monster, spawn or boss
     Encounter Registry.js             stage 2: encounter(name, spec) and the questions code asks
     Bscorpion.js, Rime Djinn.js       required: the current farm; the Rime Djinn shell
+    Phoenix.js                        required: the on-demand phoenix hunt, and the earrings kept for clover studs
     Porcupine.js, Mummy.js, Dryad.js, Fireroamer.js, Targetron-Sparkbot.js,
     Halloween Bosses.js, Crabxx.js, Monster Rules.js        optional, one per encounter
 Dungeons/
@@ -129,7 +130,7 @@ Every loop is an `every(name, { ms, kind }, fn)` from the scheduler. The body re
 2. The role's `update_cache()`, then `panic_check()` unless the role skips it.
 3. Paused: drop the goal and release the travel arbiter.
 4. `stuck_escape_check()`, the channel walk and `town_shortcut_check()`, then the role's `pre_move()`.
-5. `movement_goal()`: where to go (lethal pursuer, dreams, events and bosses, cohesion, follow, encounters, home).
+5. `movement_goal()`: where to go (lethal pursuer, dreams, events and bosses, cohesion, follow, encounters, home). A home's encounter can switch events and cohesion off (`home_settings`: the phoenix hunt does both), which leaves its own `goal` in charge.
 6. A scripted dungeon walk owns movement this tick if one is running.
 7. `travel_arbiter(goal)` owns long-range movement. When it doesn't take the goal, the tick loots or calls `movement_local(goal)` for where to stand.
 

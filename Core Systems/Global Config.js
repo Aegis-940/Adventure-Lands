@@ -42,6 +42,7 @@ const LOCATIONS = {
 	mole:       [{ map: "tunnel", x: 14, y: -1072 }],
 	mummy:      [{ map: "spookytown", x: 256, y: -1417 }],
 	odino:      [{ map: "mforest", x: -52, y: 756 }],
+	phoenix:    [{ map: "main", x: 1188, y: -193 }],
 	oneeye:     [{ map: "level2w", x: -255, y: 176 }],
 	pinkgoblin: [{ map: "level2e", x: 485, y: 157 }],
 	poisio:     [{ map: "main", x: -121, y: 1360 }],

@@ -176,6 +176,7 @@ function run_character(s) {
 	bscorpion_start();
 	farm_ledger_start();
 	farm_survey_start();
+	phoenix_hunt_start();
 	danger_log_start();
 	decision_log_start();
 }

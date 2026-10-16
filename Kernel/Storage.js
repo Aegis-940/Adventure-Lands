@@ -11,6 +11,8 @@ const STORAGE_KEYS = [
 	{ key: "AL_set_profile2_", kind: "json", owner: "Equipment Valuation" },
 	{ key: "AL_farm_focus", kind: "json", owner: "Targeting" },
 	{ key: "AL_survey", kind: "json", owner: "Farm Survey" },
+	{ key: "AL_phoenix_hunt", kind: "json", owner: "Phoenix" },
+	{ key: "AL_phoenix_watch_", kind: "json", owner: "Phoenix" },
 	{ key: "AL_tracker_at_", kind: "json", owner: "Farm Ledger" },
 	{ key: "AL_dungeon_mode", kind: "raw", owner: "Dungeon Runner" },
 	{ key: "AL_dungeon_resume", kind: "raw", owner: "Dungeon Runner" },

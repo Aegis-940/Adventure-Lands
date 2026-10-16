@@ -233,6 +233,7 @@ ARCHIVES = {
     "danger": os.path.join(REPO, "danger.jsonl"),
     "decisions": os.path.join(REPO, "decisions.jsonl"),
     "loot": os.path.join(REPO, "loot.jsonl"),
+    "phoenix": os.path.join(REPO, "phoenix.jsonl"),
 }
 
 

@@ -182,7 +182,7 @@ function gold_gear_wanted() {
 }
 
 function looting_blocked() {
-	if (!CONFIG.looting.enabled) return "disabled";
+	if (!encounter_home_setting("looting", CONFIG.looting.enabled)) return "disabled";
 	if (character.cc > COOLDOWNS.cc) return "cc";
 	if (character.s.penalty_cd?.ms > 0) return "penalty_cd";
 	return null;
@@ -196,7 +196,7 @@ function should_loot() {
 	const draining = boss_field_draining();
 
 	return (
-		stored_chest_count >= (draining ? 1 : CONFIG.looting.chest_threshold) &&
+		stored_chest_count >= (draining ? 1 : encounter_home_setting("chest_threshold", CONFIG.looting.chest_threshold)) &&
 		character.targets < CONFIG.looting.target_count &&
 		now - _loot_last > CONFIG.looting.loot_cooldown
 	);
@@ -349,7 +349,7 @@ const SELLABLE_ITEMS = [
 ];
 
 function vendorable(item) {
-	return SELLABLE_ITEMS.includes(item.name) && (item.level || 0) < 1;
+	return SELLABLE_ITEMS.includes(item.name) && (item.level || 0) < 1 && !phoenix_keeps(item.name);
 }
 
 function remote_sell_items() {

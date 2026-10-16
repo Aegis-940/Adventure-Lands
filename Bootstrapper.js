@@ -47,6 +47,7 @@
 		"Encounters/Targetron-Sparkbot.js",
 		"Encounters/Dryad.js",
 		"Encounters/Fireroamer.js",
+		"Encounters/Phoenix.js",
 		"Core Systems/World Events.js",
 		"Core Systems/Character Messaging.js",
 		"Core Systems/Equipment Manager.js",

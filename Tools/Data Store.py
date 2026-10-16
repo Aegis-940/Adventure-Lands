@@ -18,9 +18,10 @@
                                             per fighter: mana in (potions, manasteal) against mana out per skill;
                                             attack frequency, confirmed attacks against it, time in range with the
                                             attack ready, and downtime between ledger windows
-    python "Tools/Data Store.py" loot|heals|cc|targets [--hours N | --build SHA | --range A..B] [--who NAME]
+    python "Tools/Data Store.py" loot|heals|cc|targets|phoenix [--hours N | --build SHA | --range A..B] [--who NAME]
                                             drops per chest by monster and luck; Myras's heals against prediction
-                                            and overheal; call cost against the limit; the target scorer's trades
+                                            and overheal; call cost against the limit; the target scorer's trades;
+                                            phoenix kills an hour, search and kill times by spawn post
     python "Tools/Data Store.py" experiment NAME [--hours N | --build SHA | --range A..B]
                                             an experiment's variants against each other, by compare's rules
 
@@ -64,6 +65,8 @@ CREATE TABLE IF NOT EXISTS danger (character TEXT, t INTEGER, at TEXT, event TEX
 CREATE TABLE IF NOT EXISTS loot (character TEXT, t INTEGER, at TEXT, mtype TEXT, chest TEXT, map TEXT, luckm REAL,
     goldm REAL, gold INTEGER, opener TEXT, items TEXT, dry INTEGER, stale INTEGER, build TEXT);
 CREATE INDEX IF NOT EXISTS loot_t ON loot (t);
+CREATE TABLE IF NOT EXISTS phoenix (character TEXT, t INTEGER, at TEXT, id TEXT, post TEXT, found_s REAL, kill_s REAL,
+    build TEXT, home TEXT, map TEXT, goal TEXT, encounters TEXT, variant TEXT, settings TEXT);
 CREATE INDEX IF NOT EXISTS ledger_spot ON ledger (survey_spot, character);
 CREATE INDEX IF NOT EXISTS ledger_home ON ledger (home, character);
 """
@@ -191,6 +194,12 @@ def add_loot(db, r):
     insert(db, "loot", row)
 
 
+def add_phoenix(db, r):
+    row = {f: r.get(f) for f in ("character", "t", "at", "id", "post", "found_s", "kill_s")}
+    row.update(context(r))
+    insert(db, "phoenix", row)
+
+
 def add_boss_profile(db, r):
     db.execute("INSERT INTO boss_profiles VALUES (?,?,?,?,?,?)", (
         r.get("character"), r.get("t"), r.get("at"), r.get("boss"), 1 if r.get("killed") else 0, r.get("fight_secs")))
@@ -203,6 +212,7 @@ SOURCES = [
     ("danger.jsonl", add_danger, ["danger"]),
     ("boss_profiles.jsonl", add_boss_profile, ["boss_profiles"]),
     ("loot.jsonl", add_loot, ["loot"]),
+    ("phoenix.jsonl", add_phoenix, ["phoenix"]),
 ] + [(name, sample_adder(table, fields), [table]) for name, table, fields in SAMPLE_TABLES]
 
 
@@ -971,6 +981,35 @@ def targets_summary(db, flags):
     return out
 
 
+def phoenix_summary(db, flags):
+    """Per post the phoenix was found at, and all together: kills, the search time (found_s, from the earliest moment it
+    could respawn after the last kill a fighter saw; none when no kill was seen before it), the time from first sighting
+    to the kill, and how many fighters were there. Every fighter that sees a kill archives it, so the records per kill
+    count them. Hours hunting are Myras's ledger windows at home phoenix."""
+    where, args = period(flags)
+    kills = {}
+    for kid, post, found, kill in db.execute("SELECT id, post, found_s, kill_s FROM phoenix WHERE %s ORDER BY t" % where, args):
+        k = kills.setdefault(kid, {"post": post, "found_s": found, "kill_s": kill, "present": 0})
+        k["present"] += 1
+    hunt = dict(flags)
+    hunt.update({"--home": "phoenix", "--who": "Myras"})
+    hunt_where, hunt_args = period(hunt)
+    secs = db.execute("SELECT SUM(window_s) FROM ledger WHERE %s" % hunt_where, hunt_args).fetchone()[0] or 0
+    median = lambda xs: round(statistics.median(xs), 1) if xs else None
+    rows = []
+    for post in sorted({k["post"] or "" for k in kills.values()}) + [None]:
+        group = [k for k in kills.values() if post is None or (k["post"] or "") == post]
+        if not group:
+            continue
+        rows.append({
+            "post": "all" if post is None else post or "unknown", "kills": len(group),
+            "found_s": median([k["found_s"] for k in group if k["found_s"] is not None]),
+            "kill_s": median([k["kill_s"] for k in group if k["kill_s"] is not None]),
+            "fighters_there": round(sum(k["present"] for k in group) / float(len(group)), 1),
+        })
+    return {"hours": round(secs / 3600.0, 1), "kills_h": round(len(kills) / (secs / 3600.0), 1) if secs else None, "rows": rows}
+
+
 def lane_report(command, flags):
     ingest()
     db = connect()
@@ -988,6 +1027,10 @@ def lane_report(command, flags):
         print_rows(cc_summary(db, flags), ["character", "samples", "mean", "max", "climit", "over_80pct", "top_methods"])
     elif command == "targets":
         print_rows(targets_summary(db, flags), ["character", "picks", "traded_pct", "value_lost_when_traded_pct"])
+    elif command == "phoenix":
+        p = phoenix_summary(db, flags)
+        print("  %s h hunting, %s kills an hour" % (p["hours"], p["kills_h"] if p["kills_h"] is not None else "-"))
+        print_rows(p["rows"], ["post", "kills", "found_s", "kill_s", "fighters_there"])
     db.close()
 
 
@@ -1239,7 +1282,7 @@ def main():
         args = sys.argv[3:]
         experiment_report(sys.argv[2], {args[i]: args[i + 1] for i in range(0, len(args) - 1, 2) if args[i].startswith("--")})
         return
-    if command in ("loot", "heals", "cc", "targets"):
+    if command in ("loot", "heals", "cc", "targets", "phoenix"):
         args = sys.argv[2:]
         lane_report(command, {args[i]: args[i + 1] for i in range(0, len(args) - 1, 2) if args[i].startswith("--")})
         return

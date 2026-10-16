@@ -76,8 +76,12 @@ function party_in_formation() {
 	return !!g && !g.fight && g.local !== "farm" && g.local !== "event" && g.local !== "loot";
 }
 
+function cohesion_on() {
+	return encounter_home_setting("cohesion", true);
+}
+
 function leader_position() {
-	if (character.name === MOVEMENT_LEADER) return null;
+	if (character.name === MOVEMENT_LEADER || !cohesion_on()) return null;
 	const p = party_state(MOVEMENT_LEADER);
 	if (!p) return null;
 	return { map: p.map, x: p.x, y: p.y, going: p.going || null, speed: p.speed, town: !!p.town, rip: !!p.rip, formation: !!p.formation, disengaging: !!p.disengaging };
@@ -116,7 +120,7 @@ function follow_has_leader() {
 }
 
 function party_cohesion_hold(event) {
-	if (character.name !== MOVEMENT_LEADER) return false;
+	if (character.name !== MOVEMENT_LEADER || !cohesion_on()) return false;
 
 	const limit = (party_member_in_danger() || _cohesion_holding) ? cohesion_regroup() : cohesion_range();
 	const travelling = is_travelling();

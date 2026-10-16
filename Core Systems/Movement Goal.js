@@ -71,7 +71,7 @@ function movement_goal() {
 
 	const ignoring_events = dungeon_ignores_events();
 
-	const event = ignoring_events ? null : event_goal();
+	const event = ignoring_events || !encounter_home_setting("events", true) ? null : event_goal();
 	if (event && event.local === "kite") return event;
 	const scripted_camp = party_camped(event);
 	const cohesion_hold = !scripted_camp && party_cohesion_hold(event);

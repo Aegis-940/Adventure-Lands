@@ -16,6 +16,7 @@ target_choice.jsonl
 cc_report.jsonl
 decisions.jsonl
 loot.jsonl
+phoenix.jsonl
 al_data.sqlite
 al_data.sqlite-journal
 party_model.json

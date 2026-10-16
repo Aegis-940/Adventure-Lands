@@ -1,0 +1,134 @@
+{
+ "decisions": {
+  "update_cache": "ok",
+  "gear.loadout": null,
+  "gear.gloves": "gloves",
+  "gear.orb": null,
+  "gear.chest": null,
+  "gear.amulet": null,
+  "gear.ring": null,
+  "gear.fight": null,
+  "target": null,
+  "heal_target": "Myras",
+  "goal": {
+   "label": "phoenix-south",
+   "local": null,
+   "hold": false,
+   "passive": false
+  },
+  "pause_combat": false,
+  "farm_focus_here": false,
+  "skill.zap_pull_home": false,
+  "skill.aggro_cap": 0,
+  "skill.fight_gear_owned": false,
+  "skill.skip_panic": false,
+  "panic.state": {
+   "panicking": false,
+   "panic_external": false
+  }
+ },
+ "emits": [],
+ "bursts": {
+  "temporal": {
+   "result": false,
+   "sent": []
+  },
+  "scare": {
+   "result": false,
+   "sent": []
+  },
+  "skill_tick": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "darkblessing",
+      "target": null
+     }
+    }
+   ]
+  },
+  "skill_tick ready": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "darkblessing",
+      "target": null
+     }
+    }
+   ]
+  },
+  "skill_tick ready calls": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "call",
+     "payload": {
+      "name": "handle_party_heal",
+      "args": []
+     }
+    },
+    {
+     "event": "call",
+     "payload": {
+      "name": "handle_curse",
+      "args": []
+     }
+    },
+    {
+     "event": "call",
+     "payload": {
+      "name": "handle_absorb",
+      "args": []
+     }
+    },
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "darkblessing",
+      "target": null
+     }
+    }
+   ]
+  },
+  "zap_tick": {
+   "result": 40,
+   "sent": []
+  },
+  "zap_tick ready": {
+   "result": 40,
+   "sent": []
+  },
+  "zap_tick ready calls": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "call",
+     "payload": {
+      "name": "handle_zapper",
+      "args": []
+     }
+    }
+   ]
+  },
+  "action_tick": {
+   "result": 40,
+   "sent": []
+  },
+  "action_tick ready": {
+   "result": 40,
+   "sent": []
+  },
+  "local": {
+   "result": null,
+   "sent": [
+    {
+     "event": "farm_step"
+    }
+   ]
+  }
+ }
+}

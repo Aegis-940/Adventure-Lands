@@ -1,0 +1,60 @@
+{
+ "decisions": {
+  "update_cache": "ok",
+  "gear.weapon": null,
+  "gear.chest": null,
+  "gear.orb": null,
+  "targets.in_range": [],
+  "shot": null,
+  "heal_target": null,
+  "goal": {
+   "label": "phoenix-west_south",
+   "local": null,
+   "hold": false,
+   "passive": false
+  },
+  "pause_combat": true,
+  "farm_focus_here": false,
+  "skill.shot_width": 5,
+  "skill.mana_free": false,
+  "panic.state": {
+   "panicking": false,
+   "panic_external": false
+  }
+ },
+ "emits": [],
+ "bursts": {
+  "temporal": {
+   "result": false,
+   "sent": []
+  },
+  "scare": {
+   "result": false,
+   "sent": []
+  },
+  "skill_tick": {
+   "result": 100,
+   "sent": []
+  },
+  "skill_tick ready": {
+   "result": 100,
+   "sent": []
+  },
+  "action_tick": {
+   "result": 100,
+   "sent": []
+  },
+  "action_tick ready": {
+   "result": 100,
+   "sent": []
+  },
+  "local": {
+   "result": null,
+   "sent": [
+    {
+     "event": "farm_step"
+    }
+   ]
+  }
+ }
+}

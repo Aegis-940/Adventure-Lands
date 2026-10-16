@@ -76,47 +76,57 @@ function clear_delivery_request() {
 	_delivery_requested = false;
 }
 
+function delivery_wanted(status) {
+	return is_mluck_due(status)
+		|| (status.free_slots <= CONFIG.delivery.free_slots_threshold && status.loose_slots > 0)
+		|| status.gold - LOOT_GOLD_RESERVE >= CONFIG.delivery.gold_threshold;
+}
+
+function delivery_alive(name) {
+	const status = party_state(name);
+	return !!status && !status.rip;
+}
+
 function should_run_delivery() {
 	if (merchant_task !== "Idle") return false;
 	if (_delivery_requested) return true;
-	for (const name of PARTY) {
-		const status = party_state(name);
-		if (!status || status.rip) continue;
-		if (is_mluck_due(status)) return true;
-		if (status.free_slots <= CONFIG.delivery.free_slots_threshold && status.loose_slots > 0) return true;
-		if (status.gold - LOOT_GOLD_RESERVE >= CONFIG.delivery.gold_threshold) return true;
-	}
-	return false;
+	return PARTY.some(name => delivery_alive(name) && delivery_wanted(party_state(name)));
+}
+
+function delivery_target() {
+	const alive = PARTY.filter(delivery_alive);
+	return alive.find(name => delivery_wanted(party_state(name))) || alive[0] || null;
+}
+
+function member_within_range(name, range = CONFIG.party.nearby_trigger_range) {
+	const player = get_player(name);
+	return !!player && !player.rip && Math.hypot(character.x - player.x, character.y - player.y) <= range;
 }
 
 function handle_delivering_state() {
 	return run_task("Delivering", async () => {
 		try {
-			log_msg("info", "Beginning delivery run...");
+			const name = delivery_target();
+			log_msg("info", `Beginning delivery run${name ? " to " + name : ""}...`);
 
 			const RETARGET_THRESHOLD = 160;
 			let last_target = null;
 
 			let attempts = 0;
-			while (!any_party_within_range() && attempts < DELIVERY_WAIT_MAX_ATTEMPTS) {
-				for (const name of PARTY) {
-					const status = party_state(name);
-					if (status && !status.rip) {
-						const moved_enough = !last_target
-							|| last_target.map !== status.map
-							|| Math.hypot(status.x - last_target.x, status.y - last_target.y) > RETARGET_THRESHOLD;
+			while (name && delivery_alive(name) && !member_within_range(name) && attempts < DELIVERY_WAIT_MAX_ATTEMPTS) {
+				const status = party_state(name);
+				const moved_enough = !last_target
+					|| last_target.map !== status.map
+					|| Math.hypot(status.x - last_target.x, status.y - last_target.y) > RETARGET_THRESHOLD;
 
-						if (moved_enough) {
-							log_msg("debug", `🎯 Delivery: heading to ${name} @ ${status.map} (${Math.round(status.x)}, ${Math.round(status.y)})`);
+				if (moved_enough) {
+					log_msg("debug", `🎯 Delivery: heading to ${name} @ ${status.map} (${Math.round(status.x)}, ${Math.round(status.y)})`);
 
-							smarter_move({ map: status.map, x: status.x, y: status.y })
-								.catch(e => {
-									if (e?.reason !== "interrupted") catcher(e, "handle_delivering_state: smarter_move to " + name);
-								});
-							last_target = { map: status.map, x: status.x, y: status.y };
-						}
-						break;
-					}
+					smarter_move({ map: status.map, x: status.x, y: status.y })
+						.catch(e => {
+							if (e?.reason !== "interrupted") catcher(e, "handle_delivering_state: smarter_move to " + name);
+						});
+					last_target = { map: status.map, x: status.x, y: status.y };
 				}
 
 				await sleep(3000);

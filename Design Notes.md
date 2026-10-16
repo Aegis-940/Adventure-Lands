@@ -92,7 +92,7 @@ Monster types with a rule or two and no spawn of their own, kept in one file bec
 - **plantoid, mole:** Riva spends no skills on one (`skills: false`). The recorded reason is for moles: they die to AoE before mark and supershot pay for themselves, and the 640 MP is mana her scare needs. None was recorded for plantoids (or for the dryad and fireroamer entries that came from the same list).
 - **jr, greenjr, bigbird:** always a reason for Ulric to agitate (`pull: true`), on any map, beside the monsters of `home`.
 
-Phoenix was in Riva's `always_attack` list, at boss priority. It was taken out on 2026-10-15, as the party no longer meets them.
+Phoenix was in Riva's `always_attack` list, at boss priority. It was taken out on 2026-10-15, as the party no longer met them; since 10-16 its own encounter ranks it first for her (`Phoenix.js`).
 
 ### `Targetron-Sparkbot.js`
 
@@ -214,6 +214,41 @@ The kited boss (its event line is commented out, so the party ignores it today) 
 ### `Porcupine.js`
 
 Porcupines reflect damage. Ulric never targets one, his cleave and agitate refuse to fire with one within reach (`blocker_within()`, the same check as the other blockers), and he wears his single set while one is within his range + 40 (splash reach). Riva ranks them above everything else, bosses included, and shoots them whenever they are safe to touch, so they die before Ulric has to work around them. This was `Porcupine Guard.js`, a temporary file whose four call sites were `typeof`-guarded so deleting it removed the behaviour; as an encounter it is still removed by deleting its Bootstrapper line, with no guards.
+
+### `Phoenix.js`
+
+The on-demand phoenix hunt. `phoenix_hunt()`, in any character's console, sets the three fighters' farm targets to `phoenix` and remembers what they were (`AL_phoenix_hunt`). `phoenix_hunt_stop()` puts them back, or `bscorpion` for any that was already `phoenix`. `phoenix_status()` shows each fighter's map and goal, the last sighting and kill, and when each post was last checked. Picking `phoenix` as a farm target in ⚙️ does the same, without the restore. Each fighter's `phoenix_tick()` (250ms) switches `home` into and out of `phoenix` live with `switch_home()`, so neither direction waits for a reload. Every other farm target still changes on reload.
+
+**The spawn.** The phoenix is one `randomrespawn` monster (`G.maps.main.monsters`). At every respawn the server picks one of five boxes at random: three on main (east of town 708,−300 → 1668,−86; south 378,1686 → 904,1920; the west strip −1358,−118 → −1010,1680), halloween's minimush box (−166,453 → 182,808) and the cave's (−375,−1287 → 14,−1041). It comes back 32s after it dies, plus under 0.9s (`respawn` 32; the server's death path reads `respawn` ≤ 200 as seconds). It isn't in `S` and nothing announces it, so the only way to find it is to look. It is coop: each contributor rolls its own drop on `share × luck`, and a share is `points^0.65` of the total, so three fighters on it earn more than one. It has 160k HP and hits for 125 magical, so any fighter is safe alone with it. The cave box is also one of mvampire's two.
+
+**Posts and beats.** A client is sent the entities within ±700 × ±500 of it (`B.vision`). So a post in the middle of a box sees the whole box, except the 1,800px-tall west strip, which has two posts (`west_north` at y 320, `west_south` at y 1190). The doors pair the boxes: main east is 550px from the halloween door, main south 650px from the cave door, and the west strip stands alone. So each fighter owns a beat (`PHOENIX_BEATS`):
+- Ulric: east + halloween. He is the strongest alone, next to the xscorpions.
+- Myras: south + cave, where she can outheal mvampire.
+- Riva: the two west posts.
+
+Every post was checked as walkable against the game's geometry. Monster aggro reaches about 64px (a 32px spatial hash, then the monster's range), so a post beside a box isn't pulled into it. Mr. Pumpkin's box is 330px from the halloween post, and Ulric's taunt needs Myras within absorb range, so he never taunts it alone.
+
+**Shared watch.** Each fighter writes what it sees to `AL_phoenix_watch_<name>`: every 500ms, and at once on a kill. The record holds its sighting (id, map, position, when first seen), the last kill it saw, and when it last stood within 60px of each post without seeing the phoenix. It is reloaded from storage at boot, so a reload doesn't forget the last kill. `phoenix_view()` merges the three records, cached for 250ms. A sighting older than 4s, or of a phoenix someone saw die, is dropped. Each record has one writer, so the three iframes never race on a key. A kill is the socket `death` of the phoenix being watched, or a `kill_credit` for one.
+
+**The goal** (`phoenix_goal()`, the spawn encounter's `goal`):
+1. In sight: fight it, with `{ local: "phoenix", pursuit: true, event: "phoenix" }`. `pursued_boss()` hands it to Ulric's and Myras's targeting, the pursuit keeps combat running, and Riva ranks it first (`rank`). If no straight line reaches it, travel to it.
+2. Within 5s of a kill, with chests on the ground: `phoenix-loot`, a passive `loot` goal.
+3. A fresh sighting by anyone: `phoenix-gather`, travel to it. Each fighter takes its own route and town shortcut.
+4. Otherwise: the post of its beat checked longest ago, nearest first on a tie.
+
+A check only counts if it was made after the earliest respawn following the last kill anyone saw, plus a 2s margin. Right after a kill every check is stale, so each fighter goes to its nearest post and waits there for the respawn. Once the respawn is due, the post it stands on becomes fresh and it walks to the other one. So while nobody has the phoenix in sight, the beats patrol. With no kill seen (at the start of the hunt, or after someone else's kill), the oldest check still goes first, so the patrol covers every post.
+
+**What the hunt turns off** is answered through the `phoenix hunt` spawn encounter's `home_settings`, which follow `home` onto halloween and the cave, where a spawn encounter isn't live:
+- `cohesion: false`: `leader_position()` and `party_cohesion_hold()` stand down. Ulric and Riva stop trailing Myras and copying her town teleports, and plan their own town shortcuts.
+- `events: false`: no world-boss detours during the hunt.
+- `looting: true` and `chest_threshold: 1`: every fighter opens chests, not just Myras. A party chest only reaches members on the map where the monster died, so a kill made before she arrived would otherwise be lost.
+- Myras's `aggro_cap: 0`: she pulls nothing while standing watch. The south post is in the croc and armadillo boxes and the halloween post in the minimush box.
+
+The `phoenix` situation encounter is live while one is within 600. It puts Ulric and Riva in `single` and Myras in `luck` (lmace + mshield; her orb is already the rabbit's foot), stops Ulric agitating it, and ranks it first for Riva.
+
+**Earrings and clover studs.** While any fighter's farm target is `phoenix`, neither seller vendors `vitearring` (`phoenix_keeps()`, inside `vendorable()`). The fighters ship them to Riff, who banks them. `COMBINE_PROFILE.vitearring` compounds them to +2: cscroll0 at +0 (99%), then cscroll1 at +1 (75%, raised to 91% as a grade-above scroll). `craft_targets()` always lists `cloverstud` ahead of the ⚙️ craft target, and skips it while any ingredient is short. The recipe is vitearring+2, a verdantcore, 40 ashleaf, 40 spores, 5 gslime and 280k gold. On 10-16 the bank held 263 verdantcore, 20,554 ashleaf and about 1,250 spores, but no gslime. No NPC sells gslime, goos drop it at 1 in 1,000, and it is on `SELLABLE_ITEMS`, so no stud gets crafted until Slime Cores are bought in. After the hunt, the +0s already banked are still compounded, and the +2s wait for the craft.
+
+**Measured.** Each fighter that sees a kill archives a `phoenix` record to `phoenix.jsonl`: the id, the post, `found_s` (from the earliest respawn to the first sighting) and `kill_s` (from the first sighting to the death). `python "Tools/Data Store.py" phoenix` gives kills per hour of hunting (from Myras's ledger windows at home `phoenix`), and per post the median search and kill times and how many fighters were there. `loot` gives the phoenix's drops per chest. The ledger counts all five boxes as the farm spot (Farm Ledger → at the spot vs away).
 
 ---
 
@@ -406,7 +441,7 @@ Panic and its broadcast (`set_panic()` is the only writer), party invites, and w
 
 ### `Loot Management.js`
 
-`loose_loot()` (what we keep, ship to the merchant, or vendor), bank withdrawal, and chest looting (`should_loot()`/`handle_looting()`, driven by each character's `CONFIG.looting`). On a `kite` goal it runs alongside the orbit step instead of in place of it (World Events → kiting).
+`loose_loot()` (what we keep, ship to the merchant, or vendor), bank withdrawal, and chest looting (`should_loot()`/`handle_looting()`, driven by each character's `CONFIG.looting`, unless the home's encounter answers `looting` or `chest_threshold`: the phoenix hunt has every fighter loot from one chest). On a `kite` goal it runs alongside the orbit step instead of in place of it (World Events → kiting).
 
 **Reserved gear.** `reserved_gear_slots()` ranks every copy of a set item, worn and bagged (locked first, then level), and keeps the top N, where N is how many slots the sets wear it in. Bag copies in that top N are never shipped or sold. It used to count a slot as covered by any worn copy of the name, so a junk copy in the hand made the real one in the bag look spare.
 
@@ -425,6 +460,8 @@ Regen is never worth casting: it shares that cooldown, locks it for twice as lon
 ### `Party Cohesion.js`
 
 Cohesion only: `follow_goal()`, `party_cohesion_hold()`, `leader_position()`, `behind_on_xp()`. It is a service `movement_goal()` consults and decides no movement itself.
+
+**Off when home says so.** `cohesion_on()` is `encounter_home_setting("cohesion", true)`. When it is off, `leader_position()` returns nothing and `party_cohesion_hold()` never holds. Following, the town-teleport copy and join, the stuck-escape exemption and the follower's pursuit hold all read `leader_position()`, so the whole convoy stands down at once and each fighter moves on its own goal. The phoenix hunt is the one home that turns it off.
 
 **The breadcrumb trail.** Followers keep a trail of the leader's turning points (`record_leader_trail()`). A crumb is dropped each time her move target (`going_x`/`going_y`, which every player broadcasts) changes. The trail keeps the last 60 and is wiped on a map change or a jump over 120px (a teleport). Every crumb joins the next by a straight leg she actually walked, so a follower on her trail can always see the next one. Crumbs sampled every 25px did not work, because the chord between the samples either side of a corner cuts through the wall.
 
@@ -510,7 +547,7 @@ A ring of the last 50 decisions (casts other than `attack`, pulls, bursts, gear,
 
 One `ledger` record per fighter every 5 minutes, through `errlog_archive()` to `ledger.jsonl`.
 
-- **At the spot vs away.** Each 1s tick decides `at_farm_spot()`: alive, inside the farm target's spawn boxes on the destination map widened by 200px, enough to take in the far end of Riva's bscorpion rail (a 400px circle round the destination when the target has no spawn box), and no event goal (`event-*`, `boss-loot`, `holiday-tree`) on this character or on Myras. Gold, XP and kills land in `total` always and in `spot` only while at the spot, so a spot's rate is `spot` over `at_spot_s`, with travel and boss detours excluded.
+- **At the spot vs away.** Each 1s tick decides `at_farm_spot()`: alive, inside the farm target's spawn boxes on the map the character is on (a `randomrespawn` lists boxes on several maps: the phoenix's are on main, halloween and the cave; until the phoenix hunt only the destination map counted) widened by 200px, enough to take in the far end of Riva's bscorpion rail (a 400px circle round the destination when the target has no spawn box), and no event goal (`event-*`, `boss-loot`, `holiday-tree`) on this character or on Myras. Gold, XP and kills land in `total` always and in `spot` only while at the spot, so a spot's rate is `spot` over `at_spot_s`, with travel and boss detours excluded.
 - **Gold comes from chests, not the wallet.** The fighters send gold to Riff, so a wallet delta undercounts. Every party member gets its own `chest_opened` with its share of each chest (server `open_chest`), so `gold` is this character's share and `chest_gold` (`gold / share`, the Gold Meter's formula) is the whole chest. Party gold/hr is one character's `chest_gold`, never a sum across characters.
 - **XP** is the `character.xp` delta carried across level-ups with `G.levels`. It is net, so XP lost on a death shows.
 - **A window closes early when `home` changes**, and carries the `home` and `survey_spot` it started with. A window straddling a spot change would otherwise credit the old spot's minutes to the new one.
@@ -795,6 +832,10 @@ In free-mana mode the shirt goes on `chest_engage_shots` (2) of the widest wante
 
 `mluck_wanted()`: no buff, cast. Riff's own buff, top it up under 50 minutes. Someone else's buff, take it over whatever its time left, unless it is `strong`. The server lets a cast replace another caster's mluck only when it isn't `strong`, and a buff is `strong` when the caster's owner is the target's, so another merchant's buff on his own characters can't be taken and a cast would spend 10 MP for nothing. For the same reason no one can take Riff's buff off the party, but anyone can take it off a stranger. A takeover of the same player is allowed once a minute (`_mluck_takeover_at`): if another bot also retakes on sight, the two would otherwise trade the buff every second. Casts are 200ms apart (cooldown 100ms) and stop when MP runs short.
 
+### `Merchant Party.js` — delivery
+
+`delivery_target()` is the first live fighter who wants a pickup (mluck due, a full pack with loose loot, or gold over the threshold), else the first live one. The run walks to that fighter and ends within 200px of them. Before the phoenix hunt it walked to the first live party member and ended when any was in range. With the party spread over three maps, that sent Riff to Ulric on every run while Myras or Riva filled up.
+
 ### `Merchant Gear.js`
 
 Riff's default gear and his gathering tools are equipment sets (`default`, `rod`, `pickaxe` in Merchant Config) equipped through `equip_once()`, so `best_copy()`, the sent view and the doublehand offhand clear protect him as they do the fighters. They used to be raw `equip()`/`unequip()` calls by bag index with 400ms waits between them.
@@ -860,7 +901,7 @@ Serves the bot's code from git and receives everything the pages send. What it k
 | File | Kept | Why |
 |---|---|---|
 | `errors.json` | the store: records 12h and 2 builds, samples 2h and 250 per kind, 1.5 MB ceiling | what's happening now; held in memory, written every 5s |
-| `ledger`, `decisions`, `danger`, `tracker`, `survey`, `damage`, `heal`, `target_choice`, `cc_report`, `boss_profiles` `.jsonl` | whole | the history every report reads |
+| `ledger`, `decisions`, `danger`, `tracker`, `survey`, `loot`, `phoenix`, `damage`, `heal`, `target_choice`, `cc_report`, `boss_profiles` `.jsonl` | whole | the history every report reads |
 | `errors_timeline.jsonl` | 7 days | what happened lately, read by people; nothing ingests it |
 | `snapshots.jsonl` | 7 days (the user's call, 10-16) | the harness's fixture source; ~100 MB a day |
 | `errors.log` | 1 MB, then one `.old` | the sink's own log, rotated on the 15-minute timer as well as at start |
@@ -889,6 +930,7 @@ And one per kept lane, with the same `--hours`/`--build`/`--range` flags:
 - `heals`: Myras's single and party heals per hour, HP delivered, delivered against predicted, and overheal.
 - `cc`: call cost per sample against the server's limit, the share of samples over 80% of it, and the methods that spend most (Ulric only: the cc report is his).
 - `targets`: how often the scorer's pick traded the best value for something else, and how much value it gave up.
+- `phoenix`: kills per hour of hunting, and per post the kills, median search time (`found_s`), median time from first sighting to the kill (`kill_s`) and fighters there, with each kill counted once (every fighter that saw it archives it).
 
 The status page shows `skills`, `weapons`, `mana` and `uptime` for the last 24 hours.
 

@@ -8,7 +8,8 @@ function upgrade_target() {
 
 function craft_targets() {
 	const name = setting("craft_target");
-	return name ? [{ name }] : [];
+	const targets = [{ name: PHOENIX_CRAFT }];
+	return name && name !== PHOENIX_CRAFT ? targets.concat({ name }) : targets;
 }
 
 var CONFIG = {

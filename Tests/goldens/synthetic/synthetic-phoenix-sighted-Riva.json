@@ -1,0 +1,63 @@
+{
+ "decisions": {
+  "update_cache": "ok",
+  "gear.weapon": "single",
+  "gear.chest": null,
+  "gear.orb": null,
+  "targets.in_range": [
+   "p1"
+  ],
+  "shot": "attack",
+  "heal_target": null,
+  "goal": {
+   "label": "phoenix-fight",
+   "local": "phoenix",
+   "hold": false,
+   "passive": false
+  },
+  "pause_combat": true,
+  "farm_focus_here": false,
+  "skill.shot_width": 5,
+  "skill.mana_free": false,
+  "panic.state": {
+   "panicking": false,
+   "panic_external": false
+  }
+ },
+ "emits": [],
+ "bursts": {
+  "temporal": {
+   "result": false,
+   "sent": []
+  },
+  "scare": {
+   "result": false,
+   "sent": []
+  },
+  "skill_tick": {
+   "result": 100,
+   "sent": []
+  },
+  "skill_tick ready": {
+   "result": 100,
+   "sent": []
+  },
+  "action_tick": {
+   "result": 100,
+   "sent": []
+  },
+  "action_tick ready": {
+   "result": 100,
+   "sent": []
+  },
+  "local": {
+   "result": 1,
+   "sent": [
+    {
+     "event": "engage_step",
+     "payload": "p1"
+    }
+   ]
+  }
+ }
+}

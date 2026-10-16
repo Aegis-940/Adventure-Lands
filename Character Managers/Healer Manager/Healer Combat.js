@@ -108,7 +108,7 @@ function effective_aggro_cap() {
 
 	const mp_pct = character.max_mp > 0 ? character.mp / character.max_mp : 0;
 	const scaled = Math.max(0, Math.min(1, (mp_pct - 0.2) / 0.6));
-	return Math.floor(dungeon_setting("aggro_cap", CONFIG.combat.aggro_cap) * scaled);
+	return Math.floor(encounter_home_setting("aggro_cap", dungeon_setting("aggro_cap", CONFIG.combat.aggro_cap)) * scaled);
 }
 
 function party_allies() {

@@ -1,0 +1,127 @@
+{
+ "decisions": {
+  "update_cache": "ok",
+  "gear.weapon": null,
+  "gear.orb": null,
+  "target": null,
+  "tank": "Myras",
+  "goal": {
+   "label": "phoenix-east",
+   "local": null,
+   "hold": false,
+   "passive": false
+  },
+  "pause_combat": false,
+  "farm_focus_here": false,
+  "skill.cleave_ready": false,
+  "skill.sugar_rush_wanted": true,
+  "skill.stomp_weapon_ready": false,
+  "skill.bscorpion_worth_buffing": true,
+  "panic.state": {
+   "panicking": false,
+   "panic_external": false
+  }
+ },
+ "emits": [],
+ "bursts": {
+  "cleave": {
+   "result": false,
+   "sent": []
+  },
+  "rush": {
+   "result": false,
+   "sent": []
+  },
+  "cleave_rush": {
+   "result": false,
+   "sent": []
+  },
+  "stomp": {
+   "result": false,
+   "sent": []
+  },
+  "scare": {
+   "result": false,
+   "sent": []
+  },
+  "skill_tick": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "warcry",
+      "target": null
+     }
+    }
+   ]
+  },
+  "skill_tick ready": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "warcry",
+      "target": null
+     }
+    }
+   ]
+  },
+  "skill_tick ready calls": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "warcry",
+      "target": null
+     }
+    },
+    {
+     "event": "call",
+     "payload": {
+      "name": "handle_stomp",
+      "args": [
+       "Myras"
+      ]
+     }
+    },
+    {
+     "event": "call",
+     "payload": {
+      "name": "handle_agitate",
+      "args": [
+       "Myras"
+      ]
+     }
+    },
+    {
+     "event": "call",
+     "payload": {
+      "name": "handle_taunt",
+      "args": [
+       "Myras"
+      ]
+     }
+    }
+   ]
+  },
+  "action_tick": {
+   "result": 10,
+   "sent": []
+  },
+  "action_tick ready": {
+   "result": 10,
+   "sent": []
+  },
+  "local": {
+   "result": null,
+   "sent": [
+    {
+     "event": "farm_step"
+    }
+   ]
+  }
+ }
+}

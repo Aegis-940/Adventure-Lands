@@ -20,11 +20,13 @@ function farm_area_boxes(type, map) {
 	if (_farm_area_boxes[key]) return _farm_area_boxes[key];
 
 	const boxes = [];
-	for (const spawn of G.maps[map].monsters || []) {
-		if (spawn.type !== type) continue;
-		if (spawn.boundary) boxes.push(spawn.boundary);
-		for (const b of spawn.boundaries || []) {
-			if (b[0] === map) boxes.push(b.slice(1));
+	for (const name in G.maps) {
+		for (const spawn of G.maps[name].monsters || []) {
+			if (spawn.type !== type) continue;
+			if (spawn.boundary && name === map) boxes.push(spawn.boundary);
+			for (const b of spawn.boundaries || []) {
+				if (b[0] === map) boxes.push(b.slice(1));
+			}
 		}
 	}
 	_farm_area_boxes[key] = boxes;
@@ -32,9 +34,9 @@ function farm_area_boxes(type, map) {
 }
 
 function in_farm_area(map, x, y, margin = FARM_AREA_MARGIN) {
-	if (!destination || !destination.map || map !== destination.map) return false;
-	const boxes = farm_area_boxes(home, destination.map);
-	if (!boxes.length) return Math.hypot(x - destination.x, y - destination.y) <= FARM_AREA_FALLBACK_RADIUS;
+	if (!destination || !destination.map) return false;
+	const boxes = farm_area_boxes(home, map);
+	if (!boxes.length) return map === destination.map && Math.hypot(x - destination.x, y - destination.y) <= FARM_AREA_FALLBACK_RADIUS;
 	return boxes.some(b => x >= b[0] - margin && x <= b[2] + margin && y >= b[1] - margin && y <= b[3] + margin);
 }
 
