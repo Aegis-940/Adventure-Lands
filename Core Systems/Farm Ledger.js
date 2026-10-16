@@ -71,6 +71,7 @@ let _ledger_spot = false;
 let _ledger_tick_at = 0;
 let _ledger_xp = null;
 let _ledger_rip = false;
+let _ledger_recovering = false;
 
 function ledger_window(now) {
 	return {
@@ -79,6 +80,7 @@ function ledger_window(now) {
 		survey_spot: survey_spot_now() === home ? home : null,
 		variant_start: experiment_variants(),
 		at_spot_ms: 0,
+		death_ms: 0,
 		total: { gold: 0, chest_gold: 0, xp: 0, kills: {} },
 		spot: { gold: 0, chest_gold: 0, xp: 0, kills: {} },
 		deaths: 0,
@@ -132,6 +134,7 @@ function ledger_close(now) {
 	errlog_archive("ledger", {
 		window_s: Math.round((now - w.started) / 1000),
 		at_spot_s: Math.round(w.at_spot_ms / 1000),
+		death_s: Math.round(w.death_ms / 1000),
 		map: character.map,
 		home: w.home,
 		survey_spot: w.survey_spot,
@@ -161,8 +164,15 @@ function ledger_tick() {
 	const dt = _ledger_tick_at ? now - _ledger_tick_at : 0;
 	_ledger_tick_at = now;
 
-	if (home !== _ledger.home) ledger_close(now);
+	if (home !== _ledger.home) {
+		ledger_close(now);
+		_ledger_recovering = false;
+	}
+	const was_spot = _ledger_spot;
 	_ledger_spot = at_farm_spot();
+	if (character.rip && was_spot) _ledger_recovering = true;
+	if (_ledger_spot || party_on_event()) _ledger_recovering = false;
+	if (_ledger_recovering) _ledger.death_ms += dt;
 	if (_ledger_spot) {
 		_ledger.at_spot_ms += dt;
 		_ledger.players_nearby = Math.max(_ledger.players_nearby, foreign_players_in_farm_area());

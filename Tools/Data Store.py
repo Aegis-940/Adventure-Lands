@@ -5,18 +5,19 @@
     python "Tools/Data Store.py" rebuild    delete the database and ingest everything again
     python "Tools/Data Store.py" survey     survey results, one row per spot
     python "Tools/Data Store.py" status     the status page's JSON
-    python "Tools/Data Store.py" compare A B [--home H] [--tier neutral|behaviour]
+    python "Tools/Data Store.py" compare A B [--home H] [--tier behaviour|neutral]
                                             two builds (7-char SHA) or time ranges (2026-10-14T21:00..2026-10-14T23:55)
-                                            at the same home: per-window rates, change, and a verdict
+                                            at the same home: party XP/h, kills/h and deaths/h with the change each
+                                            can detect, and a verdict
     python "Tools/Data Store.py" skills|weapons|pulls|time|before-danger [--hours N | --build SHA | --range A..B]
                                             [--home H] [--who NAME] [--last N]
-                                            the questions of Overhaul Plan 4: is each skill worth its mana, which
-                                            weapon pair does better, how big a pull is safe, where the time goes,
-                                            and the decisions before each death or close call
+                                            from the decision log: is each skill worth its mana, which weapon pair
+                                            does better, how big a pull is safe, where the time goes, and the
+                                            decisions before each death or close call
     python "Tools/Data Store.py" experiment NAME [--hours N | --build SHA | --range A..B]
-                                            an experiment's variants against each other (Overhaul 4.6)
+                                            an experiment's variants against each other, by compare's rules
 
-Also kept, one table each: damage.jsonl, heal.jsonl, target_choice.jsonl, cc_report.jsonl (Overhaul 4.1).
+Also kept, one table each: damage.jsonl, heal.jsonl, target_choice.jsonl, cc_report.jsonl.
 
 The .jsonl files are the record. The database is derived from them, so it can be deleted at any time.
 Ingest is incremental: each file's byte offset is remembered, and a file that shrank is re-read from
@@ -49,7 +50,7 @@ CREATE TABLE IF NOT EXISTS tracker (character TEXT, t INTEGER, at TEXT, level IN
 CREATE TABLE IF NOT EXISTS tracker_monsters (character TEXT, t INTEGER, mtype TEXT, kills INTEGER, score REAL,
     account_score REAL, account_holder TEXT);
 CREATE TABLE IF NOT EXISTS boss_profiles (character TEXT, t INTEGER, at TEXT, boss TEXT, killed INTEGER,
-    fight_secs REAL, raw TEXT);
+    fight_secs REAL);
 CREATE TABLE IF NOT EXISTS deaths (character TEXT, t INTEGER, at TEXT, msg TEXT);
 CREATE TABLE IF NOT EXISTS danger (character TEXT, t INTEGER, at TEXT, event TEXT, map TEXT, home TEXT, goal TEXT,
     killer TEXT, min_hp_pct INTEGER, low_for_s INTEGER, damage_10s INTEGER, targeting INTEGER, mp_pct INTEGER,
@@ -60,18 +61,20 @@ CREATE INDEX IF NOT EXISTS ledger_home ON ledger (home, character);
 """
 
 
-# Every archived record carries these from Overhaul 4.2 on (empty before): what the page was doing when it wrote it.
+# Every archived record carries these from 10-14 on (empty before): what the page was doing when it wrote it.
 CONTEXT_COLUMNS = ["home", "map", "goal", "encounters", "variant", "settings"]
 
 # Columns added after a table was first created, so an existing database gains them on connect.
 ADDED_COLUMNS = {
-    "ledger": ["build", "goal", "encounters", "variant", "variant_start", "settings"],
+    "ingested": ["head"],
+    "ledger": ["build", "goal", "encounters", "variant", "variant_start", "settings", "death_s"],
     "survey": ["build"],
     "danger": ["build", "encounters", "variant", "settings"],
     "decisions": ["settings"],
 }
 
-# Sample kinds the sink keeps (Overhaul 4.1): file, table, and the fields worth a column. Everything is also in raw.
+# Sample kinds the sink keeps: file, table, and the fields worth a column. The .jsonl holds the whole record, so the
+# table doesn't keep a second copy of it.
 SAMPLE_TABLES = [
     ("damage.jsonl", "damage_windows", ["weapon", "secs", "worn_s", "direct", "splash", "burn", "hits", "splashes", "ticks",
                                         "attack", "crit", "buffs", "boss_pct", "off_home_pct"]),
@@ -88,7 +91,7 @@ ADDED_COLUMNS["damage_windows"] = ["settings", "worn_s"]
 def sample_schema():
     out = []
     for _, table, fields in SAMPLE_TABLES:
-        columns = ["character", "t INTEGER", "at"] + fields + ["build"] + CONTEXT_COLUMNS + ["raw"]
+        columns = ["character", "t INTEGER", "at"] + fields + ["build"] + CONTEXT_COLUMNS
         out.append("CREATE TABLE IF NOT EXISTS %s (%s);" % (table, ", ".join(columns)))
         out.append("CREATE INDEX IF NOT EXISTS %s_t ON %s (character, t);" % (table, table))
     return "\n".join(out)
@@ -113,7 +116,6 @@ def sample_adder(table, fields):
         row = {"character": r.get("character"), "t": r.get("t"), "at": r.get("at")}
         row.update({f: r.get(f) for f in fields})
         row.update(context(r))
-        row["raw"] = r
         insert(db, table, row)
     return add
 
@@ -127,7 +129,8 @@ def add_ledger(db, r):
     potions = r.get("potions") or {}
     row = {
         "character": r.get("character"), "t": r.get("t"), "at": r.get("at"), "window_s": r.get("window_s"),
-        "at_spot_s": r.get("at_spot_s"), "survey_spot": r.get("survey_spot"), "level": r.get("level"),
+        "at_spot_s": r.get("at_spot_s"), "death_s": r.get("death_s"), "survey_spot": r.get("survey_spot"),
+        "level": r.get("level"),
         "gold": r.get("gold"), "chest_gold": r.get("chest_gold"), "xp": r.get("xp"), "kills": count(r.get("kills")),
         "spot_gold": spot.get("gold"), "spot_chest_gold": spot.get("chest_gold"), "spot_xp": spot.get("xp"),
         "spot_kills": count(spot.get("kills")), "deaths": r.get("deaths"), "hp_pots": potions.get("hp"),
@@ -173,9 +176,8 @@ def add_danger(db, r):
 
 
 def add_boss_profile(db, r):
-    db.execute("INSERT INTO boss_profiles VALUES (?,?,?,?,?,?,?)", (
-        r.get("character"), r.get("t"), r.get("at"), r.get("boss"), 1 if r.get("killed") else 0,
-        r.get("fight_secs"), json.dumps(r)))
+    db.execute("INSERT INTO boss_profiles VALUES (?,?,?,?,?,?)", (
+        r.get("character"), r.get("t"), r.get("at"), r.get("boss"), 1 if r.get("killed") else 0, r.get("fight_secs")))
 
 
 KILL_LINE = re.compile(r"([\d.]+)s avg ([\d.]+)s")
@@ -202,13 +204,24 @@ SOURCES = [
 ] + [(name, sample_adder(table, fields), [table]) for name, table, fields in SAMPLE_TABLES]
 
 
+HEAD_BYTES = 256
+
+
+def file_head(path):
+    with open(path, "rb") as fh:
+        return fh.read(HEAD_BYTES).hex()
+
+
 def ingest_file(db, name, add, tables):
+    """A file whose first bytes changed (trimmed or rotated) or that shrank is re-read from the start, its tables
+    emptied first; otherwise only the lines after the remembered offset are read."""
     path = os.path.join(REPO, name)
     if not os.path.exists(path):
         return 0
-    row = db.execute("SELECT offset FROM ingested WHERE file = ?", (name,)).fetchone()
-    offset = row[0] if row else 0
-    if os.path.getsize(path) < offset:
+    row = db.execute("SELECT offset, head FROM ingested WHERE file = ?", (name,)).fetchone()
+    offset, head = row if row else (0, None)
+    now_head = file_head(path)
+    if os.path.getsize(path) < offset or (head is not None and head != now_head):
         for table in tables:
             db.execute("DELETE FROM %s" % table)
         offset = 0
@@ -225,7 +238,7 @@ def ingest_file(db, name, add, tables):
                 added += 1
             except ValueError:
                 continue
-    db.execute("INSERT OR REPLACE INTO ingested VALUES (?, ?)", (name, offset))
+    db.execute("INSERT OR REPLACE INTO ingested (file, offset, head) VALUES (?, ?, ?)", (name, offset, now_head))
     return added
 
 
@@ -244,9 +257,18 @@ def ingest():
     """Takes the write lock before reading any offset, so two ingests at once (the sink's sweep and a status
     request) run one after the other instead of both inserting the same lines."""
     db = connect()
+    added = {}
     with db:
         db.execute("BEGIN IMMEDIATE")
-        added = {name: ingest_file(db, name, add, tables) for name, add, tables in SOURCES}
+        for name, add, tables in SOURCES:
+            db.execute("SAVEPOINT one_file")
+            try:
+                added[name] = ingest_file(db, name, add, tables)
+                db.execute("RELEASE one_file")
+            except sqlite3.Error as exc:
+                db.execute("ROLLBACK TO one_file")
+                db.execute("RELEASE one_file")
+                print("ingest of %s failed, the rest go on: %s" % (name, exc), file=sys.stderr)
     db.close()
     return added
 
@@ -517,7 +539,6 @@ def model():
 
 
 def status():
-    ingest()
     now_ms = int(time.time() * 1000)
     errors = read_json(ERRORS)
     db = connect()
@@ -538,7 +559,7 @@ def status():
 
 
 # --------------------------------------------------------------------------------------------------------------------------------- #
-# DECISIONS — Overhaul 4.5: what each fighter chose and what came of it, per ledger window, and the questions asked of it
+# DECISIONS — what each fighter chose and what came of it, per ledger window, and the questions asked of it
 # --------------------------------------------------------------------------------------------------------------------------------- #
 
 DECISION_FIELDS = ["casts", "values", "actions", "pulls", "bursts", "gear", "panics", "outcomes", "taken", "worn_s", "goal_s"]
@@ -781,7 +802,7 @@ def question_report(command, flags):
                 extra = ", ".join("%s %s" % (k, v) for k, v in d.items() if k not in ("kind", "name", "ms_ago"))
                 print("      -%5.1fs  %-6s %s%s" % (d["ms_ago"] / 1000.0, d["kind"], d["name"], "  (" + extra + ")" if extra else ""))
             if not e.get("decisions"):
-                print("      (no decisions recorded: before Overhaul 4.3)")
+                print("      (no decisions recorded: before the decision log, 10-15)")
     db.close()
 
 
@@ -795,7 +816,7 @@ SOURCES.append(("decisions.jsonl", add_decisions, ["decisions"]))
 
 
 # --------------------------------------------------------------------------------------------------------------------------------- #
-# BUILD COMPARISON — the overhaul's live check: one build against another at the same home, full windows at the spot only
+# BUILD COMPARISON — one build against another at the same home, full windows at the spot only
 # --------------------------------------------------------------------------------------------------------------------------------- #
 
 COMPARE_MIN_WINDOWS = {"neutral": 6, "behaviour": 12}
@@ -815,21 +836,50 @@ def compare_selector(arg):
     return "t >= ? AND t < ?", (lo, hi), arg
 
 
-def compare_windows(db, where, args, home, who):
-    return db.execute(
-        "SELECT window_s, spot_kills, spot_xp, spot_gold + spot_chest_gold, deaths, hp_pots, mp_pots FROM ledger "
-        "WHERE %s AND home = ? AND character = ? AND window_s BETWEEN 280 AND 320 AND at_spot_s >= window_s * 0.95"
-        % where, args + (home, who)).fetchall()
+# A full window at the spot: about 5 minutes long, and at the spot for 95% of it. Time dead after dying at the spot, and
+# walking back from it, counts as spot time (death_s, since 10-16), so a window with a death is kept: dropping it would
+# remove a build's worst windows before its rates were computed.
+FULL_WINDOW = "window_s BETWEEN 280 AND 320 AND at_spot_s + COALESCE(death_s, 0) >= window_s * 0.95"
+WINDOW_COLUMNS = "character, t, window_s, spot_kills, spot_xp, spot_chest_gold, deaths, hp_pots, mp_pots, variant_start, variant"
+PAIR_MS = 60000
+
+# Settings no fighter reads: a difference in them doesn't make two builds' fighters incomparable.
+MERCHANT_SETTINGS = ("merchant_", "upgrade_", "craft_", "exchange_")
+
+
+def full_windows(db, where, args, home):
+    rows = db.execute("SELECT %s FROM ledger WHERE %s AND home = ? AND %s ORDER BY t" % (WINDOW_COLUMNS, where, FULL_WINDOW),
+                      args + (home,)).fetchall()
+    keys = WINDOW_COLUMNS.split(", ")
+    return [dict(zip(keys, r)) for r in rows]
+
+
+def party_windows(windows):
+    """The three fighters' windows that closed together (within a minute), as one party window."""
+    by = {who: [w for w in windows if w["character"] == who] for who in COMPARE_FIGHTERS}
+    out = []
+    for lead in by[COMPARE_FIGHTERS[0]]:
+        group = [lead]
+        for who in COMPARE_FIGHTERS[1:]:
+            match = min(by[who], key=lambda w: abs(w["t"] - lead["t"]), default=None)
+            if match is None or abs(match["t"] - lead["t"]) > PAIR_MS:
+                break
+            group.append(match)
+        if len(group) == len(COMPARE_FIGHTERS):
+            out.append(group)
+    return out
 
 
 def compare_settings(db, where, args, home):
-    """The non-default ⚙️ settings the windows ran with; records from before settings were stamped are left out."""
-    return sorted(r[0] for r in db.execute("SELECT DISTINCT settings FROM ledger WHERE %s AND home = ?" % where,
-                                           args + (home,)) if r[0] is not None)
-
-
-def per_hour(rows, i):
-    return [r[i] * 3600.0 / r[0] for r in rows if r[i] is not None]
+    """The non-default settings a fighter reads that the windows ran with; records from before settings were stamped
+    are left out."""
+    seen = set()
+    for (stamp,) in db.execute("SELECT DISTINCT settings FROM ledger WHERE %s AND home = ? AND %s" % (where, FULL_WINDOW),
+                               args + (home,)):
+        if stamp is None:
+            continue
+        seen.add(",".join(p for p in stamp.split(",") if p and not p.startswith(MERCHANT_SETTINGS)))
+    return sorted(seen)
 
 
 def compare_metric(a, b):
@@ -851,7 +901,72 @@ def metric_verdict(m):
     return "better" if m["change"] > 0 else "worse"
 
 
-def compare_report(arg_a, arg_b, home=None, tier="neutral"):
+def deaths_verdict(a_deaths, a_hours, b_deaths, b_hours):
+    """Deaths are rare, so they're compared as counts: the difference in rate against its Poisson standard error."""
+    ra, rb = a_deaths / a_hours, b_deaths / b_hours
+    se = (a_deaths / a_hours ** 2 + b_deaths / b_hours ** 2) ** 0.5
+    if not se or abs(rb - ra) <= 2 * se:
+        return ra, rb, se, "same"
+    return ra, rb, se, "worse" if rb > ra else "better"
+
+
+def side_summary(party, windows):
+    return {
+        "hours": sum(g[0]["window_s"] for g in party) / 3600.0,
+        "party_xp": [sum(w["spot_xp"] or 0 for w in g) * 3600.0 / g[0]["window_s"] for g in party],
+        "kills": [w["spot_kills"] * 3600.0 / w["window_s"] for w in windows if w["character"] == COMPARE_PARTY_PROXY],
+        "gold": [(w["spot_chest_gold"] or 0) * 3600.0 / w["window_s"] for w in windows
+                 if w["character"] == COMPARE_PARTY_PROXY],
+        "deaths": sum(w["deaths"] or 0 for g in party for w in g),
+        "pots": {who: [(w["mp_pots"] or 0) * 3600.0 / w["window_s"] for w in windows if w["character"] == who]
+                 for who in COMPARE_FIGHTERS},
+    }
+
+
+def print_metric(name, m, verdict):
+    if m:
+        print("    %-15s %12.1f -> %12.1f  %+6.1f%%  (sees %4.1f%%)  %s" % (
+            name, m["a"], m["b"], 100 * m["change"], 100 * max(2 * m["se"], COMPARE_MIN_CHANGE), verdict))
+
+
+def compare_verdict(A, B, need, label_a, label_b):
+    """The verdict on B against A: party XP/h, Myras's kills/h (the party's kill credit) and party deaths/h. Gold and
+    potions are shown, not judged. 'sees' is the smallest change each metric can tell from noise at these sample sizes."""
+    enough = len(A["party_xp"]) >= need and len(B["party_xp"]) >= need
+    verdicts = []
+    print("  party windows: %s %d, %s %d (%.1fh / %.1fh)" % (label_a, len(A["party_xp"]), label_b, len(B["party_xp"]),
+                                                           A["hours"], B["hours"]))
+    for name, key, judged in (("party xp/h", "party_xp", True), ("kills/h", "kills", True),
+                              ("chest gold/h", "gold", False)):
+        m = compare_metric(A[key], B[key])
+        v = metric_verdict(m) if enough else "not enough data"
+        print_metric(name, m, v if judged else "(shown)")
+        if judged:
+            verdicts.append(v)
+    if A["hours"] and B["hours"]:
+        ra, rb, se, v = deaths_verdict(A["deaths"], A["hours"], B["deaths"], B["hours"])
+        v = v if enough else "not enough data"
+        print("    %-15s %12.2f -> %12.2f  (%d -> %d deaths, 2 SE %.2f/h)  %s" % (
+            "deaths/h", ra, rb, A["deaths"], B["deaths"], 2 * se, v))
+        verdicts.append(v)
+    for who in COMPARE_FIGHTERS:
+        print_metric("%s mp pots/h" % who, compare_metric(A["pots"][who], B["pots"][who]), "(shown)")
+    if "not enough data" in verdicts:
+        return "not enough data"
+    if "worse" in verdicts:
+        return "worse"
+    if "better" in verdicts:
+        return "better"
+    return "same"
+
+
+def danger_line(db, label, where, args, home):
+    counts = dict(db.execute("SELECT event, COUNT(*) FROM danger WHERE %s AND home = ? GROUP BY event" % where,
+                             args + (home,)).fetchall())
+    print("  %s: %d deaths, %d close calls in danger.jsonl" % (label, counts.get("death", 0), counts.get("close_call", 0)))
+
+
+def compare_report(arg_a, arg_b, home=None, tier="behaviour"):
     ingest()
     db = connect()
     wa, xa, label_a = compare_selector(arg_a)
@@ -865,44 +980,17 @@ def compare_report(arg_a, arg_b, home=None, tier="neutral"):
         return "not enough data"
 
     need = COMPARE_MIN_WINDOWS[tier]
-    print("compare at %s, %s tier (at least %d full windows at the spot per build)" % (home, tier, need))
+    print("compare at %s, %s tier (at least %d party windows at the spot per side)" % (home, tier, need))
     print("  A = %s    B = %s" % (label_a, label_b))
     sa, sb = compare_settings(db, wa, xa, home), compare_settings(db, wb, xb, home)
     if sa and sb and sa != sb:
         print("  settings differ, so this compares more than the code: A %s    B %s" % (
             " | ".join(x or "defaults" for x in sa), " | ".join(x or "defaults" for x in sb)))
-    verdicts = []
-    deaths_b = 0
-    for who in COMPARE_FIGHTERS:
-        ra, rb = compare_windows(db, wa, xa, home, who), compare_windows(db, wb, xb, home, who)
-        deaths_b += sum(r[4] or 0 for r in rb)
-        print("  %s: %d / %d windows" % (who, len(ra), len(rb)))
-        metrics = [("xp/h", 2)]
-        if who == COMPARE_PARTY_PROXY:
-            metrics = [("kills/h", 1), ("xp/h", 2), ("gold/h", 3)]
-        for name, i in metrics + [("mp pots/h", 6)]:
-            m = compare_metric(per_hour(ra, i), per_hour(rb, i))
-            v = metric_verdict(m) if len(ra) >= need and len(rb) >= need else "not enough data"
-            if m:
-                print("    %-10s %12.1f -> %12.1f  %+6.1f%%  (2 SE %4.1f%%)  %s" % (
-                    name, m["a"], m["b"], 100 * m["change"], 200 * m["se"], v))
-            if name in ("kills/h", "xp/h"):
-                verdicts.append(v)
-
-    close = db.execute("SELECT COUNT(*) FROM danger WHERE %s AND home = ? AND event = 'close_call'" % wb,
-                       xb + (home,)).fetchone()[0]
-    print("  B: %d deaths at the spot, %d close calls" % (deaths_b, close))
-
-    if "not enough data" in verdicts:
-        verdict = "not enough data"
-    elif "worse" in verdicts:
-        verdict = "worse"
-    elif deaths_b:
-        verdict = "read danger.jsonl before calling it"
-    elif "better" in verdicts:
-        verdict = "better"
-    else:
-        verdict = "same"
+    windows_a, windows_b = full_windows(db, wa, xa, home), full_windows(db, wb, xb, home)
+    verdict = compare_verdict(side_summary(party_windows(windows_a), windows_a), side_summary(party_windows(windows_b), windows_b),
+                    need, "A", "B")
+    danger_line(db, "A", wa, xa, home)
+    danger_line(db, "B", wb, xb, home)
     print("verdict: %s" % verdict)
     db.close()
     return verdict
@@ -917,7 +1005,7 @@ def variant_of(variants, name):
 
 
 def experiment_report(name, flags):
-    """An experiment's variants against each other, from full ledger windows at the spot that started and ended on the
+    """An experiment's variants against each other, from full party windows at the spot that started and ended on the
     same variant, at the home most of them were at. The first two variants (alphabetical) are A and B."""
     ingest()
     db = connect()
@@ -925,52 +1013,26 @@ def experiment_report(name, flags):
     if not any(k in flags for k in ("--hours", "--build", "--range")):
         flags["--hours"] = 24 * 30
     where, args = period(flags)
-    rows = db.execute(
-        "SELECT character, home, variant_start, variant, window_s, spot_kills, spot_xp, spot_gold + spot_chest_gold, deaths, "
-        "hp_pots, mp_pots, t FROM ledger WHERE %s AND window_s BETWEEN 280 AND 320 AND at_spot_s >= window_s * 0.95" % where,
-        args).fetchall()
-    kept = [r for r in rows if variant_of(r[2], name) is not None and variant_of(r[2], name) == variant_of(r[3], name)]
-    if not kept:
-        print("experiment %s: no full windows at the spot with one variant throughout" % name)
+    homes = dict(db.execute("SELECT home, COUNT(*) FROM ledger WHERE %s AND %s GROUP BY home" % (where, FULL_WINDOW),
+                            args).fetchall())
+    if not homes:
+        print("experiment %s: no full windows at the spot" % name)
         db.close()
         return "not enough data"
-    homes = {}
-    for r in kept:
-        homes[r[1]] = homes.get(r[1], 0) + 1
     home = max(homes, key=homes.get)
-    kept = [r for r in kept if r[1] == home]
-    labels = sorted({variant_of(r[2], name) for r in kept})
-    print("experiment %s at %s: variants %s" % (name, home, ", ".join(labels)))
+    windows = [w for w in full_windows(db, where, args, home)
+               if variant_of(w["variant_start"], name) is not None
+               and variant_of(w["variant_start"], name) == variant_of(w["variant"], name)]
+    labels = sorted({variant_of(w["variant_start"], name) for w in windows})
+    print("experiment %s at %s: variants %s" % (name, home, ", ".join(labels) or "none"))
     if len(labels) < 2:
-        print("verdict: not enough data (one variant seen)")
+        print("verdict: not enough data (fewer than two variants seen)")
         db.close()
         return "not enough data"
     a, b = labels[0], labels[1]
-    need = COMPARE_MIN_WINDOWS["behaviour"]
-    verdicts = []
-    for who in COMPARE_FIGHTERS:
-        ra = [r[4:11] for r in kept if r[0] == who and variant_of(r[2], name) == a]
-        rb = [r[4:11] for r in kept if r[0] == who and variant_of(r[2], name) == b]
-        print("  %s: %s %d / %s %d windows" % (who, a, len(ra), b, len(rb)))
-        metrics = [("xp/h", 2)]
-        if who == COMPARE_PARTY_PROXY:
-            metrics = [("kills/h", 1), ("xp/h", 2), ("gold/h", 3)]
-        for metric, i in metrics + [("mp pots/h", 6)]:
-            m = compare_metric(per_hour(ra, i), per_hour(rb, i))
-            v = metric_verdict(m) if len(ra) >= need and len(rb) >= need else "not enough data"
-            if m:
-                print("    %-10s %12.1f -> %12.1f  %+6.1f%%  (2 SE %4.1f%%)  %s" % (
-                    metric, m["a"], m["b"], 100 * m["change"], 200 * m["se"], v))
-            if metric in ("kills/h", "xp/h"):
-                verdicts.append(v)
-    for label in (a, b):
-        close = sum(1 for (variant,) in db.execute(
-            "SELECT variant FROM danger WHERE event = 'close_call' AND home = ? AND %s" % where, (home,) + args)
-            if variant_of(variant, name) == label)
-        deaths = sum(r[8] or 0 for r in kept if variant_of(r[2], name) == label)
-        print("  %s: %d deaths at the spot, %d close calls" % (label, deaths, close))
-    verdict = ("not enough data" if "not enough data" in verdicts else "worse" if "worse" in verdicts
-               else "better" if "better" in verdicts else "same")
+    side = lambda label: [w for w in windows if variant_of(w["variant_start"], name) == label]
+    verdict = compare_verdict(side_summary(party_windows(side(a)), side(a)), side_summary(party_windows(side(b)), side(b)),
+                    COMPARE_MIN_WINDOWS["behaviour"], a, b)
     print("verdict (%s against %s): %s" % (b, a, verdict))
     db.close()
     return verdict
@@ -985,7 +1047,7 @@ def main():
         if len(plain) != 2:
             print(__doc__)
             sys.exit(2)
-        compare_report(plain[0], plain[1], flags.get("--home"), flags.get("--tier", "neutral"))
+        compare_report(plain[0], plain[1], flags.get("--home"), flags.get("--tier", "behaviour"))
         return
     if command == "experiment" and len(sys.argv) > 2:
         args = sys.argv[3:]

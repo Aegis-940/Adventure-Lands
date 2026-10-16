@@ -80,7 +80,7 @@ STORE_WRITE_S = 5
 LIVE = {}
 LIVE_LOCK = threading.Lock()
 
-# The overhaul's decision fixtures (Tests/Harness.js promote reads them). Posted by errlog_snapshot(),
+# The harness's decision fixtures (Tests/Harness.js promote reads them). Posted by errlog_snapshot(),
 # appended here and nowhere else: they never touch the page's localStorage.
 SNAPSHOT_ARCHIVE = os.path.join(REPO, "snapshots.jsonl")
 SNAPSHOT_MAX_BYTES = 200 * 1024 * 1024
@@ -195,7 +195,7 @@ def archive_timeline(who, entries):
 
 BOSS_PROFILE_ARCHIVE = os.path.join(REPO, "boss_profiles.jsonl")
 
-# Sample kinds kept for good, one file each (Overhaul 4.1). The rest live only in errors.json, about two hours.
+# Sample kinds kept for good, one file each. The rest live only in errors.json, about two hours.
 # Measured 2026-10-15 from the live rings: damage about 4 MB/day per fighter, heal 1.2, cc_report 0.9 (Ulric),
 # target_choice 0.1. weapon_choice (~46 MB/day) and burn_state (~17) are rolled up per window instead.
 SAMPLE_ARCHIVES = {

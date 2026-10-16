@@ -9,7 +9,7 @@ This plan comes from a four-part audit on 10-16 (the sink and its readers, the i
 | Phase | Title | Changes how the party plays | Status |
 |-------|-------|------------------------------|--------|
 | T0 | Data being lost or corrupted now | none | **done** 2026-10-16 |
-| T1 | `compare` and the Data Store | none | not started |
+| T1 | `compare` and the Data Store | none | **done** 2026-10-16 |
 | T2 | The error log and how records reach the sink | none | **done** 2026-10-16 |
 | T3 | Removing the watchdog | none | **done** 2026-10-16 |
 | T4 | Sizes and retention | none | not started |
