@@ -93,6 +93,7 @@ function travel_parked_plot(label, map, x, y) {
 }
 
 function travel_release() {
+	_travel.active = false;
 	if (smart.moving) {
 		travel_park();
 		stop_movement("arbiter: released");
@@ -118,14 +119,12 @@ function log_local_goal(label) {
 function travel_arbiter(goal) {
 	if (!goal || goal.local) {
 		if (goal && goal.passive && travel_ours() && travel_searching()) return true;
-		_travel.active = false;
 		travel_release();
 		log_local_goal(goal ? goal.label : "idle");
 		return false;
 	}
 
 	if (goal.hold) {
-		_travel.active = false;
 		travel_release();
 		if (_travel.label !== goal.label) log_msg("event", `🧭 ${goal.label}`);
 		_travel.label = goal.label;
@@ -151,15 +150,14 @@ function travel_arbiter(goal) {
 	if (label_changed) travel_reset_failures();
 	else travel_progress_check();
 
-	if (character.map === map && Math.hypot(character.x - goal.x, character.y - goal.y) <= radius) {
-		_travel.active = false;
+	const remaining = map === character.map ? Math.hypot(character.x - goal.x, character.y - goal.y) : Infinity;
+	if (remaining <= radius) {
 		travel_reset_failures();
 		travel_release();
 		return false;
 	}
 
 	const foreign = smart.moving && !travel_ours();
-	const remaining = map === character.map ? Math.hypot(character.x - goal.x, character.y - goal.y) : Infinity;
 	const drifted = !smart.moving
 		|| smart.map !== map
 		|| Math.hypot(smart.x - goal.x, smart.y - goal.y) > Math.max(TRAVEL_DRIFT, remaining * TRAVEL_DRIFT_FRACTION);
