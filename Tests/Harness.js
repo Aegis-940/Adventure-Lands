@@ -706,6 +706,7 @@ function smoke_payloads(ctx) {
 		q_data: [{ q: {}, num: 0, p: {} }],
 		disconnect: [undefined],
 		limitdcreport: [{ calls: { attack: 10 }, climit: 200 }],
+		eval: [{ code: "pot_timeout(2000)" }],
 	};
 }
 

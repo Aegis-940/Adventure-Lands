@@ -10,8 +10,16 @@ const POTION_POLL_MS = 50;
 const POTION_MARGIN_MS = 50;
 
 let potions_drunk = { hp: 0, mp: 0 };
+let _potion_sent = null;
+
+function potion_confirmed(data) {
+	if (!_potion_sent || !data.code.startsWith("pot_timeout")) return;
+	potions_drunk[_potion_sent]++;
+	_potion_sent = null;
+}
 
 function potion_loop() {
+	on_socket("eval", "potion_confirmed", potion_confirmed);
 	every("potion_loop", { ms: POTION_POLL_MS, kind: "safety" }, potion_tick);
 }
 
@@ -27,7 +35,7 @@ async function potion_tick() {
 	const drink = (kind, missing, threshold) => {
 		if (missing < threshold) return false;
 		use(kind);
-		potions_drunk[kind]++;
+		_potion_sent = kind;
 		return true;
 	};
 	const drink_mp = () => drink("mp", character.max_mp - character.mp, CONFIG.potions.mp_threshold);
