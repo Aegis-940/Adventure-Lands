@@ -400,6 +400,8 @@ Set profiles pause (they are not reset) while a skill claim is held or a swap is
 
 Panic and its broadcast (`set_panic()` is the only writer), party invites, and where home is. `scare_off()` sends the jacko swap and the scare in one burst (`equip_burst()` arms `panic`, then `fire_scare()`), claimed at panic priority so nothing outranks it, the same pattern as cleave. It never waits for the rules loop to put the orb on first.
 
+**Monsters on us.** `monsters_targeting_me()` is the server's `character.targets` (since 10-16; before, a scan of `parent.entities`). The server counts every monster targeting the character, including ones out of view, so panic, Myras's pull cap, the town shortcut, the stuck escape and the travel arbiter's town escalation all see a chaser the client hasn't drawn yet. On the 25 live fixtures the two counts were identical, so the difference is only ever off-screen pursuers. It is a behaviour change, measured with `compare` after the reload that ships it.
+
 ### `Loot Management.js`
 
 `loose_loot()` (what we keep, ship to the merchant, or vendor), bank withdrawal, and chest looting (`should_loot()`/`handle_looting()`, driven by each character's `CONFIG.looting`). On a `kite` goal it runs alongside the orbit step instead of in place of it (World Events → kiting).

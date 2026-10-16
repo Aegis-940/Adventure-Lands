@@ -62,7 +62,7 @@ function find_best_target() {
 		return best_target({ target: [character.name], max_distance: max_dist }, { close: 1 }, context);
 	}
 
-	if (CONFIG.combat.aggro && count_my_aggro() < effective_aggro_cap()) {
+	if (CONFIG.combat.aggro && monsters_targeting_me() < effective_aggro_cap()) {
 		const untargeted = best_target(
 			{ no_target: true, max_distance: character.range, where: m => touchable(m) && tank_can_take(monster_dps_on(m, character)) },
 			dungeon_target_weights(), context
@@ -79,15 +79,6 @@ function find_best_target() {
 	}
 
 	return best_target({ max_distance: character.range, where: touchable }, dungeon_target_weights(), context);
-}
-
-function count_my_aggro() {
-	let count = 0;
-	for (const id in parent.entities) {
-		const e = parent.entities[id];
-		if (e.type === "monster" && !e.dead && e.target === character.name) count++;
-	}
-	return count;
 }
 
 function self_heal_rate() {

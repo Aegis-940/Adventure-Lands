@@ -210,6 +210,10 @@ function build_context(fixture, G, log) {
 			return new Promise(() => { });
 		};
 	}
+	if (parent.character.targets === undefined) {
+		parent.character.targets = Object.values(parent.entities)
+			.filter(e => e.type === "monster" && !e.dead && e.target === parent.character.name).length;
+	}
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
 		if (e.x === undefined && e.real_x !== undefined) e.x = e.real_x;

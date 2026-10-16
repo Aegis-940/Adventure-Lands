@@ -42,15 +42,12 @@ function telemetry_nearby() {
 }
 
 function telemetry_aggro() {
-	let on_me = 0;
 	let on_party = 0;
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
-		if (e.type !== "monster" || e.dead || !e.target) continue;
-		if (e.target === character.name) on_me++;
-		else if (DUNGEON_PARTY.includes(e.target)) on_party++;
+		if (e.type === "monster" && !e.dead && e.target !== character.name && DUNGEON_PARTY.includes(e.target)) on_party++;
 	}
-	return { on_me, on_party };
+	return { on_me: monsters_targeting_me(), on_party };
 }
 
 function dungeon_telemetry_tick() {

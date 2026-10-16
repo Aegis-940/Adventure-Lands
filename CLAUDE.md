@@ -178,7 +178,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 This is the most commonly mis-assumed thing about the party.
 
 - `Warrior Combat.js` sets `cache.tank_entity = get_entity("Myras")`; warrior skill and equipment decisions read that, not `character`.
-- Myras deliberately pulls untargeted monsters while `count_my_aggro() < effective_aggro_cap()`, a cap that scales with MP. Aggro is a resource she spends mana on.
+- Myras deliberately pulls untargeted monsters while `monsters_targeting_me() < effective_aggro_cap()`, a cap that scales with MP. The count is the server's `character.targets`: every monster on her, off-screen ones included (since 10-16). Aggro is a resource she spends mana on.
 - Ulric's `agitate` feeds her (it refuses when she is dead/missing or more than 100 away), his stomp protects *her*, and his `hardshell`/`charge` are commented out. Low-HP checks like `tank.hp < tank.max_hp * 0.6` mean *her* HP.
 - Target priority: Warrior `["Myras"]` (kill what she holds); Healer `["Ulric", "Myras"]` (pull what hits him, then hold it).
 - Her absorb and pulls are gated by `tank_can_take()`: nothing is taken on if she would drop below 30% within 2s, net of healing. She pulls nothing while Ulric or Riva is dead or off her map.

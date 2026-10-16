@@ -305,7 +305,7 @@ Ranked by value. "Same" means the two implementations were read side by side and
 
 **Checklist**
 - [x] C5 rows 1–8 (no behaviour change): `character.esize` for free slots (17 sites; the harness fills `esize`/`isize` as the server does), `damage_multiplier()` (C2.3), `quantity()` and `locate_item()` for nine hand loops (`inventory_slot()` stays as a thin adapter, because `upgrade()` wants `null`, not `-1`, for no offering), `calculate_item_grade()`, `get_nearest_monster()` for the dungeon alive checks, `transport()` in `passage_step`, and `sleep()` for the 54 `delay()` calls
-- [ ] C5 rows 9–13, each with the user's go-ahead and a `compare`
+- [ ] C5 rows 9–13, each with the user's go-ahead and a `compare`. Row 9 (`character.targets`) is on `main` (2026-10-16) and goes live at the next reload; measure it before moving the next one from `cleanup-queue`
 
 ---
 

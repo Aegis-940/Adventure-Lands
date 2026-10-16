@@ -38,12 +38,7 @@ const EXTERNAL_PANIC_MAX_MS = 60000;
 const SELF_PANIC_MAX_MS = 60000;
 
 function monsters_targeting_me() {
-	let count = 0;
-	for (const id in parent.entities) {
-		const e = parent.entities[id];
-		if (e.type === "monster" && e.target === character.name && !e.dead) count++;
-	}
-	return count;
+	return character.targets;
 }
 
 function panic_threat() {
