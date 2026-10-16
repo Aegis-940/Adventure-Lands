@@ -136,13 +136,24 @@ function next_skill_dates(map, FrozenDate) {
 	return out;
 }
 
+const SERVER_ZEROED_STATS = ["a_mp_cost", "a_attack", "stones", "lifesteal", "manasteal", "incdmgamp", "mp_reduction", "stun", "blast",
+	"explosion", "cuteness", "bling", "speed", "attack", "frequency", "mp_cost", "armor", "resistance", "apiercing", "rpiercing", "evasion",
+	"miss", "reflection", "crit", "critdamage", "dreturn", "xxp", "xluck", "xgold", "output", "courage", "mcourage", "pcourage"];
+
+function server_shape(fixture_character) {
+	const c = JSON.parse(JSON.stringify(fixture_character));
+	for (const stat of SERVER_ZEROED_STATS) if (c[stat] === undefined) c[stat] = 0;
+	for (const key of ["s", "c", "q"]) if (!c[key]) c[key] = {};
+	return c;
+}
+
 function build_context(fixture, G, log) {
 	const now = fixture.t;
 	const FrozenDate = frozen_date(now);
 	const perf_offset = (fixture.perf || 0) - now;
 
 	const parent = {
-		character: JSON.parse(JSON.stringify(fixture.character)),
+		character: server_shape(fixture.character),
 		entities: JSON.parse(JSON.stringify(fixture.entities || {})),
 		chests: JSON.parse(JSON.stringify(fixture.chests || {})),
 		G,
@@ -190,6 +201,8 @@ function build_context(fixture, G, log) {
 		if (e.y === undefined && e.real_y !== undefined) e.y = e.real_y;
 		if (e.real_x === undefined) e.real_x = e.x;
 		if (e.real_y === undefined) e.real_y = e.y;
+		if (!e.s) e.s = {};
+		if (!e.c) e.c = {};
 	}
 
 	const timers = log.timers;
@@ -229,7 +242,7 @@ function build_context(fixture, G, log) {
 		location: { reload() { log.reloads++; }, href: "https://adventure.land/runner" },
 		addEventListener() { },
 		removeEventListener() { },
-		__AL_BASE__: "https://cdn.jsdelivr.net/gh/Aegis-940/Adventure-Lands@" + (fixture.build_sha || "0".repeat(40)) + "/",
+		__AL_BASE__: "http://127.0.0.1:8787/code/" + (fixture.build_sha || "0".repeat(40)) + "/",
 	};
 	ctx.window = ctx;
 	ctx.self = ctx;
@@ -277,6 +290,7 @@ async function boot(fixture, options) {
 	run_file(ctx, "common_functions.js", game.common, "script", log);
 	ctx.parent.distance = ctx.distance;
 	ctx.parent.is_disabled = ctx.is_disabled;
+	ctx.parent.damage_multiplier = ctx.damage_multiplier;
 	run_file(ctx, "runner_functions.js", game.runner, "script", log);
 	run_file(ctx, "runner_compat.js", game.compat, "script", log);
 	const game_errors = log.errors.length;

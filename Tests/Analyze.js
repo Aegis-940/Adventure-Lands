@@ -180,7 +180,12 @@ function analyze_file(parser, name, text, monsters) {
 			typeof_guard: 0,
 			monster_literals: 0,
 			emits: 0,
+			empty_catch: 0,
+			console_error: 0,
+			unreferenced: 0,
 		},
+		words: new Set(),
+		console_names: [],
 		monsters: [],
 		sites: {},
 		function_refs: {},
@@ -193,6 +198,8 @@ function analyze_file(parser, name, text, monsters) {
 		if (!result.sites[counter]) result.sites[counter] = [];
 		result.sites[counter].push(node.loc.start.line);
 	};
+
+	const string_words = text => { for (const m of text.matchAll(/[A-Za-z_][A-Za-z0-9_]*/g)) result.words.add(m[0]); };
 
 	const scopes = [];
 	const fn_names = [];
@@ -253,9 +260,13 @@ function analyze_file(parser, name, text, monsters) {
 				if (prop === "emit" && (object === "parent.socket" || object === "socket")) site("emits", node);
 			}
 			if (node.callee.type === "Identifier" && EMIT_CALLS.has(node.callee.name) && !is_local(node.callee.name)) site("emits", node);
+			if (path === "console.error") site("console_error", node);
 			if (root === "localStorage") return;
 		}
 		if (node.type === "MemberExpression" && node.object.type === "Identifier" && node.object.name === "localStorage") site("local_storage", node);
+		if (node.type === "CatchClause" && !node.body.body.length) site("empty_catch", node);
+		if (node.type === "Literal" && typeof node.value === "string") string_words(node.value);
+		if (node.type === "TemplateElement") string_words(node.value.raw);
 		if (node.type === "WhileStatement" && node.test.type === "Literal" && node.test.value === true && !loop_exits(node.body)) site("while_true", node);
 		if (node.type === "ForStatement" && !node.test && !loop_exits(node.body)) site("while_true", node);
 		if (node.type === "AssignmentExpression" && node.left.type === "MemberExpression" && !node.left.computed
@@ -375,6 +386,10 @@ function analyze_file(parser, name, text, monsters) {
 		if (stmt.type === "EmptyStatement") continue;
 		if (is_registration(stmt)) {
 			result.registrations.push({ line, text: lines[line - 1].trim().slice(0, 100) });
+			const call = stmt.expression;
+			if (call.type === "CallExpression" && call.callee.name === "console_api" && call.arguments[0] && call.arguments[0].type === "ObjectExpression") {
+				for (const prop of call.arguments[0].properties) result.console_names.push(prop.key.name || prop.key.value);
+			}
 			visit(stmt, 0);
 			continue;
 		}
@@ -387,6 +402,7 @@ function analyze_file(parser, name, text, monsters) {
 		visit(stmt, 0);
 	}
 
+	result.words = [...result.words].sort();
 	result.refs_load = [...result.refs_load].sort();
 	result.calls_load = [...result.calls_load].sort();
 	result.refs_call = [...result.refs_call].sort();
@@ -528,6 +544,29 @@ function stage_violations(lists, files) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// UNREFERENCED — a global nothing names: no identifier, no console_api key, no string (route names, onclick handlers), no loader
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const GAME_CALLBACK = /^on_/;
+const KEPT_HOOKS = new Set(["experiment_value"]);
+
+function mark_unreferenced(files, parser) {
+	const used = new Set();
+	for (const name in files) {
+		const f = files[name];
+		[...f.refs_load, ...f.refs_call, ...f.words, ...f.console_names].forEach(id => used.add(id));
+	}
+	for (const loader of ["Bootstrapper.js", "Code Loader.js"]) {
+		for (const m of read_repo_file(loader).matchAll(/[A-Za-z_][A-Za-z0-9_]*/g)) used.add(m[0]);
+	}
+	for (const name in files) {
+		const f = files[name];
+		f.unreferenced = Object.keys(f.defines).filter(id => !used.has(id) && !GAME_CALLBACK.test(id) && !KEPT_HOOKS.has(id)).sort();
+		f.counters.unreferenced = f.unreferenced.length;
+	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // ENTRY
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -551,6 +590,8 @@ async function analyze() {
 		files[name].role = role_of(lists, name);
 		files[name].optional = lists.optional.includes(name);
 	}
+
+	mark_unreferenced(files, parser);
 
 	const edges = build_graph(lists, files);
 	const shared = order.filter(n => !role_of(lists, n));

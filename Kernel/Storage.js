@@ -69,6 +69,10 @@ function storage_remove(key) {
 	}
 }
 
+function al_storage_keys() {
+	return STORAGE_KEYS;
+}
+
 function storage_keys() {
 	try {
 		const keys = [];

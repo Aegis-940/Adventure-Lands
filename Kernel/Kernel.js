@@ -90,4 +90,5 @@ console_api({
 	al_help: "this list",
 	al_boot: "what the boot phase ran, skipped and failed",
 	al_loops: "every kernel loop: kind, rate, runs, last error",
+	al_storage_keys: "every localStorage key prefix, its kind and the file that owns it",
 });

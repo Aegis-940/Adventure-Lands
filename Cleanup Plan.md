@@ -8,7 +8,7 @@ Every finding below comes from a read of the source on 2026-10-16 at `eb4ea67`, 
 
 | Phase | Title | Changes how the party plays | Status |
 |---|---|---|---|
-| C0 | Safety net for subtraction | none | not started |
+| C0 | Safety net for subtraction | none | **done** 2026-10-16 |
 | C1 | Docs | none | not started |
 | C2 | Dead code | none | not started |
 | C3 | Error handling that hides errors | none (errors start reaching the log) | not started |
@@ -72,10 +72,10 @@ Update this table and the phase checklists in the same commit as the work.
 - **C0.4 Lint counts for swallowed errors.** Add ratchet counters for empty catches and for `console.error` outside `Kernel/` and `Error Log.js`. They go down in C3.
 
 **Checklist**
-- [ ] C0.1 fixture fields
-- [ ] C0.2 harness damage_multiplier
-- [ ] C0.3 unreferenced-global counter
-- [ ] C0.4 swallowed-error counters
+- [x] C0.1 fixture fields (`server_shape()` in the harness fills every stat the server zeroes, and `s`/`c`/`q`; entities get `s`/`c`. No golden moved)
+- [x] C0.2 harness damage_multiplier (no golden moved)
+- [x] C0.3 unreferenced-global counter (`unreferenced`, baseline 27: the unregistered console commands and the dead code of C2. `experiment_value` is exempt as the experiment hook; `STORAGE_KEYS` is listed by the new `al_storage_keys()`)
+- [x] C0.4 swallowed-error counters (`empty_catch` 43, `console_error` 11)
 
 ---
 
@@ -442,6 +442,9 @@ C0 → C1 → C2 → C3, with a reload read after C3 → C4 → C5 rows 1–8 �
 | C7 | 10 | low–medium (unpinned paths go in small steps) |
 
 ## Decisions the user owns
+
+**Decided 2026-10-16:** every ⚠ item is approved (rolled out one at a time: `character.targets`, then the potion gate, then `party_state()`, then the four smaller items together, each measured before the next; the queued ones wait on the `cleanup-queue` branch). The `*_enabled` switches are removed. Commented-out code: keep the icegolem, crabxx and wabbit event entries; remove the rest, with charge and hardshell's config keys. Looting stays as it is. The survey tooling stays.
+
 
 1. The ⚠ items: `character.targets`, the potion cooldown gate, the mluck range, picking bscorpions with the native function, the native `join` and bank calls, and `party_state()`.
 2. The 21 `*_enabled` knobs (§C2.5): keep or remove, one decision.
