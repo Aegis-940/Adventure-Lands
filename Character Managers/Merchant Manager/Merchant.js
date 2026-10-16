@@ -3,9 +3,6 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 on_boot("Merchant", () => {
-	if (window.__al_runner_started) throw new Error("Merchant.js loaded twice — reload the tab to restart");
-	window.__al_runner_started = true;
-
 	performance_trick();
 
 	add_bank_buttons();

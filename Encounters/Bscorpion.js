@@ -3,7 +3,6 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const PRIM_FARM_MAP = "desertland";
-const PRIM_FARM_FALLBACK = { map: PRIM_FARM_MAP, x: -409, y: -1236 };
 const PRIM_FARM_RADIUS = 105;
 const SAFETY_DISTANCE = 100;
 
@@ -12,15 +11,7 @@ let _prim_farm_loc = null;
 function prim_farm_loc() {
 	if (_prim_farm_loc) return _prim_farm_loc;
 
-	const spawn = (G.maps[PRIM_FARM_MAP]?.monsters || []).find(m => m.type === "bscorpion");
-	const box = spawn?.boundary || (spawn?.boundaries || [])[0];
-
-	if (!box || box.length < 4) {
-		_prim_farm_loc = PRIM_FARM_FALLBACK;
-		log_msg("info", `Bscorpion camp: no spawn boundary in G.maps.${PRIM_FARM_MAP}, using ${PRIM_FARM_FALLBACK.x}, ${PRIM_FARM_FALLBACK.y}`);
-		return _prim_farm_loc;
-	}
-
+	const box = G.maps[PRIM_FARM_MAP].monsters.find(m => m.type === "bscorpion").boundary;
 	const [x1, y1, x2, y2] = box.length > 4 ? box.slice(1) : box;
 	_prim_farm_loc = { map: PRIM_FARM_MAP, x: (x1 + x2) / 2, y: (y1 + y2) / 2 };
 	log_msg("info", `Bscorpion camp centre: ${Math.round(_prim_farm_loc.x)}, ${Math.round(_prim_farm_loc.y)}`);

@@ -65,10 +65,6 @@ function slot_intent(slot) {
 	return character.slots[slot] ? character.slots[slot].name : null;
 }
 
-function mainhand_in_flight() {
-	return slot_in_flight("mainhand") || null;
-}
-
 function mainhand_intent() {
 	return slot_intent("mainhand");
 }

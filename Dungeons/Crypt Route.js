@@ -35,18 +35,10 @@ const CRYPT_TARGET_RULES = {
 let _crypt_route_running = false;
 let _crypt_route_abort = false;
 
-function crypt_route_running() {
-	return _crypt_route_running;
-}
-
 function stop_crypt_route() {
 	if (!_crypt_route_running) return;
 	_crypt_route_abort = true;
 	log_msg("info", "Crypt route: stopping after this step");
-}
-
-function crypt_waypoint(n) {
-	return CRYPT_ROUTE.find(w => w.n === n) || null;
 }
 
 function crypt_visible(mtypes, radius = CRYPT_ROUTE_SIGHT) {
@@ -412,3 +404,7 @@ async function run_crypt_route() {
 		crypt_release_quarry();
 	}
 }
+
+console_api({
+	stop_crypt_route: "stop the crypt route after its current step",
+});

@@ -35,11 +35,3 @@ DUNGEONS.spider = {
 		{ mtype: "spiderbl", x: -188, y: -1515 }
 	]
 };
-
-function run_spider_dungeon() {
-	return run_dungeon(DUNGEONS.spider);
-}
-
-function start_spider_dungeon_when_ready() {
-	start_dungeon_when_ready(DUNGEONS.spider);
-}

@@ -176,3 +176,6 @@ var EQUIPMENT_RULES = {
 	orb:    { kind: "set", resolve: resolve_ranger_orb },
 };
 
+console_api({
+	chest_report: "Riva's mana chest decision: shots, crossover, engage and release bands, in the game log",
+});

@@ -86,3 +86,7 @@ async function run_dungeon_collection() {
 	dungeon_telemetry_event("collect_end", { ok: true });
 	return true;
 }
+
+console_api({
+	reset_dungeon_runs: "reset the dungeon run counter that decides when Riff collects",
+});

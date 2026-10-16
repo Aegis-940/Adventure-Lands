@@ -2,7 +2,6 @@
 // DUNGEON ESCAPE — scare the pursuit off, walk away, and town back to the instance entrance
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const DUNGEON_TOWN_CHANNEL_MS = 3000;
 const DUNGEON_BAIL_POLL_MS = 250;
 const DUNGEON_SPAWN_ARRIVED = 120;
 const DUNGEON_THREAT_RADIUS = 400;

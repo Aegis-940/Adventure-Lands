@@ -194,7 +194,6 @@ function add_loop_toggles(doc, content) {
 			return name.padEnd(width, " ");
 		}
 		return [
-			[pad_name("STATE"), STATE_CACHE_LOOP_ENABLED],
 			[pad_name("PANIC"), panicking],
 			[pad_name("TRAVEL"), is_travelling()],
 			[pad_name("GOAL"), current_goal_label() || "-"],
@@ -286,3 +285,6 @@ function ui_window() {
 	doc.body.appendChild(win_el);
 }
 
+console_api({
+	ui_window: "open or close the stats window: the gold graph and the runner state",
+});

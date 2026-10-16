@@ -50,3 +50,7 @@ on_boot("Gold Meter", () => {
 		if (chest_total > largest_gold_drop) largest_gold_drop = chest_total;
 	});
 });
+
+console_api({
+	set_gold_interval: "set_gold_interval(\"minute\"|\"hour\"|\"day\"): the gold meter's rate unit",
+});

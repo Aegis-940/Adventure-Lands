@@ -271,3 +271,10 @@ function survey_reset() {
 	errlog_archive("survey_spot", { spot: null, status: "reset" });
 	return "survey reset — the next tick starts again at " + SURVEY_SPOTS[0];
 }
+
+console_api({
+	survey_status: "each survey spot's status, minutes and visits",
+	survey_retry: "survey_retry(spot): put a finished spot back to pending",
+	survey_move_on: "end the current survey spot and move to the next pending one",
+	survey_reset: "forget the survey; the next tick starts again at the first spot",
+});

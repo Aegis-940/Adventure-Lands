@@ -213,3 +213,6 @@ var EQUIPMENT_RULES = {
 	fight:   { kind: "set", resolve: resolve_healer_fight },
 };
 
+console_api({
+	heal_report: "Myras's heal power identity, per-ally delivered heals and marginals, and each set's hp/sec, in the game log",
+});

@@ -239,3 +239,8 @@ async function lolipop_push_step() {
 on_boot("Merchant Lolipop Push", () => {
 	lolipop_run = storage_read(LOLIPOP_RUN_KEY) || { active: false };
 });
+
+console_api({
+	lolipop_push: "run every ololipop in stock from +8 to +10",
+	lolipop_push_stop: "stop the lolipop push after the current roll",
+});

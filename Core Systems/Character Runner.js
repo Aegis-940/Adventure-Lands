@@ -122,11 +122,6 @@ async function maintenance_tick() {
 }
 
 function run_character(spec) {
-	if (window.__al_runner_started) {
-		log_msg("warn", "run_character called twice — ignoring the second start. Reload the tab to restart.");
-		return;
-	}
-	window.__al_runner_started = true;
 	const s = spec || {};
 
 	cruise(500).catch(() => { });

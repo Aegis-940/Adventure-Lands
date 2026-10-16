@@ -339,3 +339,7 @@ on_boot("Boss Profiler", () => {
 	on_socket("hit", "boss_profile_hit", data => { try { profile_hit(data); } catch (e) { } });
 	every("boss profile", { ms: BOSS_PROFILE_TICK_MS, kind: "telemetry", fixed: true }, () => { try { boss_profile_tick(); } catch (e) { } });
 });
+
+console_api({
+	al_boss_profiles: "the coop boss fights profiled this session; al_boss_profiles(name) for one player",
+});

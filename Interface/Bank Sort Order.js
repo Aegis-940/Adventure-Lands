@@ -502,3 +502,7 @@ function sort_bank_floor(packs_on_floor, inv_indices, sorted_bank, i_running) {
 on_boot("Bank Sort Order", () => {
 	al_items.order = build_bank_order();
 });
+
+console_api({
+	sort_all_bank: "sort every bank floor (inside the bank)",
+});

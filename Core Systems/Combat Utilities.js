@@ -60,18 +60,6 @@ function monsters_matching(args = {}) {
 }
 
 
-function get_num_targets(player_name) {
-	if (!player_name) return 0;
-	let count = 0;
-	for (const id in parent.entities) {
-		const entity = parent.entities[id];
-		if (entity.type === "monster" && entity.target === player_name) {
-			count++;
-		}
-	}
-	return count;
-}
-
 function free_inventory_slots() {
 	return character.items.filter(it => !it).length;
 }

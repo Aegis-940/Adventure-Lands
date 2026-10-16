@@ -755,3 +755,8 @@ on_boot("Error Log", () => {
 	every("errlog heartbeat", { ms: ERRLOG_HEARTBEAT_MS, kind: "telemetry", fixed: true }, _errlog_heartbeat);
 	every("errlog flush", { ms: ERRLOG_FLUSH_MS, kind: "telemetry", fixed: true }, _errlog_flush_tick);
 });
+
+console_api({
+	al_errors: "the flight recorder for this character, or for all four with al_errors(true)",
+	al_errors_clear: "clear this character's flight recorder, or all four with al_errors_clear(true)",
+});

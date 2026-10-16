@@ -51,14 +51,6 @@ DUNGEONS.crypt = {
 	},
 };
 
-function run_crypt_dungeon() {
-	return run_dungeon(DUNGEONS.crypt);
-}
-
-function start_crypt_dungeon_when_ready() {
-	start_dungeon_when_ready(DUNGEONS.crypt);
-}
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // WAYPOINTS — the healer is driven by hand, these are the spots worth returning to
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -113,3 +105,9 @@ function crypt_threat_report() {
 		log_msg("info", `Crypt: ${name} (${e.mtype}) at ${Math.round(distance(character, e))}${avoided}`);
 	}
 }
+
+console_api({
+	crypt_go: "crypt_go(waypoint): walk Myras to a crypt waypoint while she is driven by hand",
+	crypt_camp: "walk Myras to the crypt camp",
+	crypt_threat_report: "the crypt bosses in view and how far each is, in the game log",
+});
