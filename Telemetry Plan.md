@@ -10,7 +10,7 @@ This plan comes from a four-part audit on 10-16 (the sink and its readers, the i
 |-------|-------|------------------------------|--------|
 | T0 | Data being lost or corrupted now | none | **done** 2026-10-16 |
 | T1 | `compare` and the Data Store | none | not started |
-| T2 | The error log and how records reach the sink | none | T2.6 **done** 2026-10-16 |
+| T2 | The error log and how records reach the sink | none | **done** 2026-10-16 |
 | T3 | Removing the watchdog | none | **done** 2026-10-16 |
 | T4 | Sizes and retention | none | not started |
 | T5 | What isn't recorded yet | none | not started |
@@ -81,7 +81,7 @@ What checked out: the ledger's three fighters' windows line up (within 3s), `che
 6. **Heartbeats are half of `errors.json`** (`alive`, ~760 KB). Once the watchdog goes (T3), keep only the last beat.
 7. **Code that never runs.** The `disconnect` capture has never been recorded once (the iframe dies before it can save), and 15 of Error Log's 21 empty catches sit inside code that already catches (`every()`, `guarded()`, `storage_raw_write`) or around bodies that can't throw. Remove them and lower the baseline.
 8. **Diagnostics.md is wrong in four places**: the push interval (30s, not 5s), the event-loop probe rate (2Hz, not 10Hz, so `delta/10` undercounts by 5×), and the bucket and eviction lists, which leave out `alive` and `archive`.
-9. **A real error to confirm gone.** `socket hit rime_band_logger: Cannot read properties of undefined (reading 'abilities')` fired 620 times, last at 10-15 09:19.
+9. **A real error to confirm gone.** `socket hit rime_band_logger: Cannot read properties of undefined (reading 'abilities')` fired 620 times, last at 10-15 09:19. Checked 10-16: not in `errors.json` on any build since.
 
 ## T3. Removing the watchdog
 

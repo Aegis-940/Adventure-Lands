@@ -11,9 +11,11 @@ what it silently drops. The `.jsonl` archives and `al_data.sqlite` are described
 
 ## Reading `errors.json`
 
-`Core Systems/Error Log.js` records in the browser and flushes every 5s to `Tools/Error Sink.py`,
-which merges each character's payload into `errors.json` at the repo root. Both ends prune, and
-they prune differently. **Absence of evidence in this file is almost never evidence of absence.**
+`Core Systems/Error Log.js` records in the browser, saves to localStorage every 5s, and pushes to
+`Tools/Error Sink.py` every 30s. A push carries only what the sink hasn't confirmed: once a push is
+answered, its samples and archive entries leave the page, and its timeline entries and deaths are
+not sent again. The sink merges each payload into a store held in memory and writes `errors.json`
+at the repo root at most every 5s. Both ends prune, and they prune differently. **Absence of evidence in this file is almost never evidence of absence.**
 
 ### The buckets
 
@@ -23,7 +25,9 @@ they prune differently. **Absence of evidence in this file is almost never evide
 | `counts` | Named counters, rolling 24h window (`counts_since`) | **400 keys**, then `counts overflow` | `max()` merge, replaced when `counts_since` advances |
 | `timeline` | Ordered `{t, ctx, msg}` events | 80 | last **100**, keyed `(t, msg)` |
 | `deaths` | Death snapshots + 10s of vitals + last 15 heals | 6 | last **20**, keyed `t` |
-| `samples` | Structured observations by kind | 400 | **250 per kind**, last **2h** |
+| `samples` | Structured observations by kind | 400 not yet delivered | **250 per kind**, last **2h** |
+| `archive` | Ledger, decision, danger, tracker and survey records | 100 not yet delivered | written once to its `.jsonl`, not kept |
+| `alive` | The last heartbeat (map, HP/MP, goal, travel state) | 1 | 1 |
 
 A record's signature is `ctx + "|" + message with every digit replaced by #`, truncated to 200
 chars. Two messages differing only in numbers share one record.
@@ -47,7 +51,8 @@ than one session.
 
 **To get a rate you must take a delta between two readings**, and divide by the *elapsed* time
 between them, not by the current session. `lag eventloop` is the usable clock: its probe ticks at
-10Hz, so `delta(lag eventloop) / 10` is seconds of actual running time, gaps and reloads excluded.
+2Hz (every 500ms), so `delta(lag eventloop) / 2` is seconds of actual running time, gaps and reloads
+excluded. (Until 10-16 this said 10Hz and `/ 10`, which undercounted running time fivefold.)
 
 This trap was walked into twice in one session, the second time within minutes of correcting the
 first: 190 scare gate evaluations were divided by a 65-minute session and reported as "a panic
@@ -70,11 +75,13 @@ count is in the thousands has one context snapshot, from whenever it first fired
 
 **6. `game_response` is filtered too.** Only `exception`, `cant` and `not_ready` responses are
 recorded. Every other server rejection is invisible. Since 2026-10-11 even those are `records` only:
-they never reach the timeline, so `errors_timeline.jsonl` holds them only up to that date.
+they never reach the timeline, so `errors_timeline.jsonl` holds them only up to that date. The same
+holds for `quiet` refusals (attack on cooldown, monster already dead) since 10-16: counted in
+`records`, never on the timeline.
 
 **7. Truncation and eviction.** Record messages cap at 400 chars, timeline messages at 160. Over
 1.5MB the sink repeatedly drops the oldest quarter of the longest list, in the order
-`samples` → `timeline` → `deaths`. A gap in the timeline may be eviction rather than quiet.
+`samples` → `alive` → `timeline` → `deaths`. A gap in the timeline may be eviction rather than quiet.
 
 ### Every capture is capped
 
@@ -86,7 +93,9 @@ No dataset here may grow without a ceiling. Audited 2026-09-18:
 | `counts` | 400 keys, then everything lands in `counts overflow`; values roll at 24h |
 | `timeline` | 80 entries, no signature above a quarter of them |
 | `deaths` | 6 client / 20 store, rolling — deliberately no age limit |
-| `samples` | 400 client / 250 per kind / 2h |
+| `samples` | 400 undelivered client / 250 per kind / 2h |
+| `archive` | 100 undelivered client; the sink keeps none |
+| `alive` | the last beat |
 | whole file | 1.5MB, oldest quarter of the longest list dropped |
 | DPS meter events | 5-minute window |
 | `swap_trick_history` | 30 per monster type |
@@ -102,7 +111,7 @@ When adding a counter, the name must come from a fixed set, a bucketed number, o
   `records`, and only within the build window.
 - **"In what order?"** — `timeline`. It accumulates across reloads in the store, unlike the
   browser's own ring.
-- **"How often?"** — a *delta* between two `counts` readings over `delta(lag eventloop)/10`
+- **"How often?"** — a *delta* between two `counts` readings over `delta(lag eventloop)/2`
   seconds. Never a raw `counts` value over a session length. For a message rather than a counter,
   `records[].count` over `first`..`last` is a real rate over a real window.
 - **"What was the state?"** — `deaths[].leading_up_to_it` (1Hz vitals), `deaths[].recent_heals`,

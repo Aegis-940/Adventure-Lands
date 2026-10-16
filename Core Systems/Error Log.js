@@ -99,21 +99,18 @@ function _errlog_flush() {
 	if (!_errlog_dirty) return;
 	_errlog_dirty = false;
 	const t0 = Date.now();
-	try {
-		const keys = Object.keys(_errlog.records);
-		if (keys.length > ERRLOG_MAX_RECORDS) {
-			keys.sort((a, b) => _errlog.records[a].last - _errlog.records[b].last)
-				.slice(0, keys.length - ERRLOG_MAX_RECORDS)
-				.forEach(k => delete _errlog.records[k]);
-		}
-		const blob = JSON.stringify(_errlog);
-		errlog_time("io flush stringify", Date.now() - t0);
-		const t1 = Date.now();
-		storage_raw_write(_errlog_key(), blob);
-		errlog_time("io flush setItem", Date.now() - t1);
-		errlog_size("io flush kb", Math.round(blob.length / 1024));
-	} catch (e) {
+	const keys = Object.keys(_errlog.records);
+	if (keys.length > ERRLOG_MAX_RECORDS) {
+		keys.sort((a, b) => _errlog.records[a].last - _errlog.records[b].last)
+			.slice(0, keys.length - ERRLOG_MAX_RECORDS)
+			.forEach(k => delete _errlog.records[k]);
 	}
+	const blob = JSON.stringify(_errlog);
+	errlog_time("io flush stringify", Date.now() - t0);
+	const t1 = Date.now();
+	if (!storage_raw_write(_errlog_key(), blob)) errlog_count("io flush failed");
+	errlog_time("io flush setItem", Date.now() - t1);
+	errlog_size("io flush kb", Math.round(blob.length / 1024));
 }
 
 function _errlog_timeline_sig(ctx, msg) {
@@ -138,6 +135,10 @@ function _errlog_push_timeline(ctx, msg, now) {
 
 function errlog_record(ctx, raw_msg) {
 	_errlog_store(ctx, raw_msg, true);
+}
+
+function errlog_tally(ctx, raw_msg) {
+	_errlog_store(ctx, raw_msg, false);
 }
 
 function _errlog_store(ctx, raw_msg, on_timeline) {
@@ -201,69 +202,57 @@ function _errlog_record_context() {
 }
 
 function errlog_sample(kind, data) {
-	try {
-		if (!_errlog.samples) _errlog.samples = [];
-		_errlog.samples.push(Object.assign({ t: Date.now(), kind }, _errlog_record_context(), data));
-		if (_errlog.samples.length > ERRLOG_MAX_SAMPLES) _errlog.samples.shift();
-		_errlog_dirty = true;
-	} catch (e) { }
+	if (!_errlog.samples) _errlog.samples = [];
+	_errlog.samples.push(Object.assign({ t: Date.now(), kind }, _errlog_record_context(), data));
+	if (_errlog.samples.length > ERRLOG_MAX_SAMPLES) _errlog.samples.shift();
+	_errlog_dirty = true;
 }
 
 function errlog_archive(kind, data) {
-	try {
-		_errlog.archive.push(Object.assign({ t: Date.now(), kind }, _errlog_record_context(), data));
-		if (_errlog.archive.length > ERRLOG_MAX_ARCHIVE) _errlog.archive.shift();
-		_errlog_dirty = true;
-	} catch (e) { }
+	_errlog.archive.push(Object.assign({ t: Date.now(), kind }, _errlog_record_context(), data));
+	if (_errlog.archive.length > ERRLOG_MAX_ARCHIVE) _errlog.archive.shift();
+	_errlog_dirty = true;
 }
 
 function errlog_timeline(ctx, msg) {
-	try {
-		_errlog_push_timeline(ctx, String(msg).slice(0, 160), Date.now());
-		_errlog_dirty = true;
-	} catch (e) { }
+	_errlog_push_timeline(ctx, String(msg).slice(0, 160), Date.now());
+	_errlog_dirty = true;
 }
 
 function errlog_count(bucket) {
-	try {
-		const now = Date.now();
-		if (!_errlog.counts_since) _errlog.counts_since = now;
-		if (now - _errlog.counts_since > ERRLOG_WINDOW_MS) {
-			_errlog.counts = {};
-			_errlog.counts_since = now;
-		}
-		let key = bucket;
-		if (_errlog.counts[key] === undefined
-			&& Object.keys(_errlog.counts).length >= ERRLOG_MAX_COUNTS) key = "counts overflow";
-		_errlog.counts[key] = (_errlog.counts[key] || 0) + 1;
-	} catch (e) { }
+	const now = Date.now();
+	if (!_errlog.counts_since) _errlog.counts_since = now;
+	if (now - _errlog.counts_since > ERRLOG_WINDOW_MS) {
+		_errlog.counts = {};
+		_errlog.counts_since = now;
+	}
+	let key = bucket;
+	if (_errlog.counts[key] === undefined
+		&& Object.keys(_errlog.counts).length >= ERRLOG_MAX_COUNTS) key = "counts overflow";
+	_errlog.counts[key] = (_errlog.counts[key] || 0) + 1;
 }
 
 function errlog_beat(name) {
-	try { _errlog_beats[name] = (_errlog_beats[name] || 0) + 1; } catch (e) { }
+	_errlog_beats[name] = (_errlog_beats[name] || 0) + 1;
 }
 
 const ERRLOG_TIME_BUCKETS = [5, 20, 50, 100, 250, 500, 1000];
 const ERRLOG_SIZE_BUCKETS = [16, 32, 64, 128, 256, 512, 1024];
 
 function errlog_size(bucket, kb) {
-	try {
-		let label = "1024+";
-		for (const b of ERRLOG_SIZE_BUCKETS) {
-			if (kb < b) { label = "<" + b; break; }
-		}
-		errlog_count(bucket + " " + label);
-	} catch (e) { }
+	let label = "1024+";
+	for (const b of ERRLOG_SIZE_BUCKETS) {
+		if (kb < b) { label = "<" + b; break; }
+	}
+	errlog_count(bucket + " " + label);
 }
 
 function errlog_time(bucket, ms) {
-	try {
-		let label = "1000+";
-		for (const b of ERRLOG_TIME_BUCKETS) {
-			if (ms < b) { label = "<" + b; break; }
-		}
-		errlog_count(bucket + " " + label);
-	} catch (e) { }
+	let label = "1000+";
+	for (const b of ERRLOG_TIME_BUCKETS) {
+		if (ms < b) { label = "<" + b; break; }
+	}
+	errlog_count(bucket + " " + label);
 }
 
 let _errlog_lag_due = 0;
@@ -271,9 +260,7 @@ let _errlog_lag_due = 0;
 function _errlog_lag_probe() {
 	const now = Date.now();
 	if (_errlog_lag_due) errlog_time("lag eventloop", now - _errlog_lag_due);
-	try {
-		if (parent.pings.length) errlog_time("net ping", Math.min(...parent.pings));
-	} catch (e) { }
+	if (parent.pings.length) errlog_time("net ping", Math.min(...parent.pings));
 	_errlog_lag_due = now + 500;
 	return 500;
 }
@@ -314,13 +301,11 @@ function _errlog_wrap_console_error() {
 function _errlog_lifecycle(event) {
 	const msg = `${event} visibility=${document.visibilityState}`;
 	errlog_record("lifecycle", msg);
-	try {
-		navigator.sendBeacon(ERRLOG_SINK_URL, JSON.stringify({
-			character: character.name,
-			build: _errlog_build(),
-			lifecycle: { t: Date.now(), msg }
-		}));
-	} catch (e) { }
+	navigator.sendBeacon(ERRLOG_SINK_URL, JSON.stringify({
+		character: character.name,
+		build: _errlog_build(),
+		lifecycle: { t: Date.now(), msg }
+	}));
 }
 
 
@@ -332,22 +317,18 @@ function _errlog_try_wrap_game_log() {
 	_errlog_gamelog_wrapped = true;
 	const original_game_log = game_log;
 	game_log = function (msg, color) {
-		try {
-			const text = String(msg);
-			if (ERRLOG_RUNNER_LINES.some(p => text.indexOf(p) === 0)) errlog_record("game_log", text);
-		} catch (e) { }
+		const text = String(msg);
+		if (ERRLOG_RUNNER_LINES.some(p => text.indexOf(p) === 0)) errlog_record("game_log", text);
 		return original_game_log(msg, color);
 	};
 }
 
 function _errlog_heal_outcome(snap, outcome) {
-	try {
-		snap.outcome = outcome;
-		snap.ms = Date.now() - snap.t;
-		_errlog_heals.push(snap);
-		if (_errlog_heals.length > ERRLOG_MAX_HEALS) _errlog_heals.shift();
-		errlog_count("heal:" + _errlog_outcome_key(outcome) + (snap.self ? ":self" : ":ally"));
-	} catch (e) { }
+	snap.outcome = outcome;
+	snap.ms = Date.now() - snap.t;
+	_errlog_heals.push(snap);
+	if (_errlog_heals.length > ERRLOG_MAX_HEALS) _errlog_heals.shift();
+	errlog_count("heal:" + _errlog_outcome_key(outcome) + (snap.self ? ":self" : ":ally"));
 }
 
 function _errlog_outcome_key(outcome) {
@@ -363,43 +344,39 @@ function _errlog_reason(e) {
 let _errlog_heal_wrapped = false;
 function _errlog_try_wrap_heal() {
 	if (_errlog_heal_wrapped || typeof heal !== "function") return;
-	try {
-		const original_heal = heal;
-		heal = function (target) {
-			let snap;
-			try {
-				snap = {
-					t: Date.now(),
-					target: (target && target.name) || "?",
-					self: !!(target && character && target.name === character.name),
-					tgt_hp: target && target.hp, tgt_max: target && target.max_hp,
-					my_hp: character.hp, my_mp: character.mp
-				};
-			} catch (e) { snap = { t: Date.now(), target: "?" }; }
+	const original_heal = heal;
+	heal = function (target) {
+		let snap;
+		try {
+			snap = {
+				t: Date.now(),
+				target: (target && target.name) || "?",
+				self: !!(target && character && target.name === character.name),
+				tgt_hp: target && target.hp, tgt_max: target && target.max_hp,
+				my_hp: character.hp, my_mp: character.mp
+			};
+		} catch (e) { snap = { t: Date.now(), target: "?" }; }
 
-			let p;
-			try {
-				p = original_heal(target);
-			} catch (e) {
-				_errlog_heal_outcome(snap, "threw:" + _errlog_reason(e));
-				throw e;
-			}
-			return Promise.resolve(p).then(
-				r => { _errlog_heal_outcome(snap, "ok"); return r; },
-				e => { _errlog_heal_outcome(snap, _errlog_reason(e)); throw e; }
-			);
-		};
-		_errlog_heal_wrapped = true;
-	} catch (e) { }
+		let p;
+		try {
+			p = original_heal(target);
+		} catch (e) {
+			_errlog_heal_outcome(snap, "threw:" + _errlog_reason(e));
+			throw e;
+		}
+		return Promise.resolve(p).then(
+			r => { _errlog_heal_outcome(snap, "ok"); return r; },
+			e => { _errlog_heal_outcome(snap, _errlog_reason(e)); throw e; }
+		);
+	};
+	_errlog_heal_wrapped = true;
 }
 
 function _errlog_on_game_response(data) {
-	try {
-		const r = (data && (data.response || data)) || "";
-		if (r === "exception" || r === "cant" || r === "not_ready") {
-			_errlog_store("game_response", _errlog_fmt(data), false);
-		}
-	} catch (e) { }
+	const r = (data && (data.response || data)) || "";
+	if (r === "exception" || r === "cant" || r === "not_ready") {
+		_errlog_store("game_response", _errlog_fmt(data), false);
+	}
 }
 
 function _errlog_on_limitdc(data) {
@@ -416,33 +393,27 @@ function _errlog_sample_vitals() {
 	if (!v) return;
 	v.t = Date.now();
 
-	try {
-		const beats = {};
-		for (const k in _errlog_beats) {
-			beats[k] = _errlog_beats[k] - (_errlog_beats_last[k] || 0);
-			_errlog_beats_last[k] = _errlog_beats[k];
-		}
-		v.beats = beats;
-	} catch (e) { }
+	const beats = {};
+	for (const k in _errlog_beats) {
+		beats[k] = _errlog_beats[k] - (_errlog_beats_last[k] || 0);
+		_errlog_beats_last[k] = _errlog_beats[k];
+	}
+	v.beats = beats;
 
-	try {
-		if (cache.heal_target) {
-			const ht = cache.heal_target;
-			v.heal_stat = character.heal;
-			v.heal_target = ht.name;
-			v.heal_thr = Math.round(Math.max(ht.max_hp * 0.5, ht.max_hp - character.heal / 1.33));
-			v.heal_tgt_hp = ht.hp;
-			v.mp_cost = character.mp_cost;
-			try {
-				const thr = CONFIG.healing
-					? CONFIG.healing.party_heal_threshold : 0.4;
-				v.hurt = (cache.party_members || []).filter(n => {
-					const a = get_player(n);
-					return a && !a.rip && a.hp < a.max_hp * thr;
-				}).length;
-			} catch (e) { }
-		}
-	} catch (e) { }
+	if (cache.heal_target) {
+		const ht = cache.heal_target;
+		v.heal_stat = character.heal;
+		v.heal_target = ht.name;
+		v.heal_thr = Math.round(Math.max(ht.max_hp * 0.5, ht.max_hp - character.heal / 1.33));
+		v.heal_tgt_hp = ht.hp;
+		v.mp_cost = character.mp_cost;
+		const thr = CONFIG.healing
+			? CONFIG.healing.party_heal_threshold : 0.4;
+		v.hurt = (cache.party_members || []).filter(n => {
+			const a = get_player(n);
+			return a && !a.rip && a.hp < a.max_hp * thr;
+		}).length;
+	}
 	_errlog_vitals.push(v);
 	if (_errlog_vitals.length > ERRLOG_VITALS_SAMPLES) _errlog_vitals.shift();
 
@@ -465,27 +436,25 @@ function _errlog_sample_vitals() {
 
 
 function _errlog_heartbeat() {
-	try {
-		if (!_errlog.alive) _errlog.alive = [];
-		_errlog.alive.push({
-			t: Date.now(),
-			map: character.map,
-			hp: character.max_hp ? Math.round(100 * character.hp / character.max_hp) : 0,
-			mp: character.max_mp ? Math.round(100 * character.mp / character.max_mp) : 0,
-			rip: !!character.rip,
-			panicking: !!panicking,
-			held: panic_since
-				? Math.round((Date.now() - panic_since) / 1000) : 0,
-			goal: current_goal_label(),
-			x: Math.round(character.x),
-			y: Math.round(character.y),
-			smart: smart.moving ? (smart.found ? "walking" : (smart.searching ? "searching" : "starting")) : null,
-			plot: smart.plot ? smart.plot.length : 0,
-			fails: travel_failures(),
-		});
-		while (_errlog.alive.length > ERRLOG_MAX_ALIVE) _errlog.alive.shift();
-		_errlog_dirty = true;
-	} catch (e) { }
+	if (!_errlog.alive) _errlog.alive = [];
+	_errlog.alive.push({
+		t: Date.now(),
+		map: character.map,
+		hp: character.max_hp ? Math.round(100 * character.hp / character.max_hp) : 0,
+		mp: character.max_mp ? Math.round(100 * character.mp / character.max_mp) : 0,
+		rip: !!character.rip,
+		panicking: !!panicking,
+		held: panic_since
+			? Math.round((Date.now() - panic_since) / 1000) : 0,
+		goal: current_goal_label(),
+		x: Math.round(character.x),
+		y: Math.round(character.y),
+		smart: smart.moving ? (smart.found ? "walking" : (smart.searching ? "searching" : "starting")) : null,
+		plot: smart.plot ? smart.plot.length : 0,
+		fails: travel_failures(),
+	});
+	while (_errlog.alive.length > ERRLOG_MAX_ALIVE) _errlog.alive.shift();
+	_errlog_dirty = true;
 }
 
 
@@ -499,46 +468,59 @@ const ERRLOG_PUSH_BACKOFF_MS = 300000;
 
 let _errlog_last_push = 0;
 let _errlog_push_fails = 0;
+const _errlog_delivered = new WeakSet();
+
+function _errlog_undelivered(list) {
+	return list.filter(e => !_errlog_delivered.has(e));
+}
+
+function _errlog_delivered_ok(sent) {
+	_errlog_push_fails = 0;
+	sent.timeline.concat(sent.deaths).forEach(e => _errlog_delivered.add(e));
+	const gone = new Set(sent.samples.concat(sent.archive));
+	_errlog.samples = _errlog.samples.filter(e => !gone.has(e));
+	_errlog.archive = _errlog.archive.filter(e => !gone.has(e));
+	_errlog_dirty = true;
+}
 
 function _errlog_push() {
 	const wait = _errlog_push_fails >= 3 ? ERRLOG_PUSH_BACKOFF_MS : ERRLOG_PUSH_MS;
 	if (Date.now() - _errlog_last_push < wait) return;
 	_errlog_last_push = Date.now();
 
-	try {
-		const _tp = Date.now();
-		const _body = JSON.stringify({
-				character: character.name,
-				build: _errlog_build(),
-				session: _errlog.session,
-				records: _errlog.records,
-				counts: _errlog.counts,
-				timeline: _errlog.timeline,
-				deaths: _errlog.deaths,
-				samples: _errlog.samples,
-				alive: _errlog.alive,
-				archive: _errlog.archive
-		});
-		errlog_time("io push stringify", Date.now() - _tp);
-		fetch(ERRLOG_SINK_URL, {
-			method: "POST",
-			headers: { "content-type": "application/json" },
-			body: _body
-		}).then(() => { _errlog_push_fails = 0; }, () => { _errlog_push_fails++; });
-	} catch (e) {
-		_errlog_push_fails++;
-	}
+	const sent = {
+		timeline: _errlog_undelivered(_errlog.timeline),
+		deaths: _errlog_undelivered(_errlog.deaths),
+		samples: _errlog.samples.slice(),
+		archive: _errlog.archive.slice(),
+	};
+	const started = Date.now();
+	const body = JSON.stringify(Object.assign({
+		character: character.name,
+		build: _errlog_build(),
+		session: _errlog.session,
+		records: _errlog.records,
+		counts: _errlog.counts,
+		counts_since: _errlog.counts_since,
+		alive: _errlog.alive,
+	}, sent));
+	errlog_time("io push stringify", Date.now() - started);
+	errlog_size("io push kb", Math.round(body.length / 1024));
+	fetch(ERRLOG_SINK_URL, { method: "POST", headers: { "content-type": "application/json" }, body })
+		.then(res => {
+			if (!res.ok) throw new Error("HTTP " + res.status);
+			_errlog_delivered_ok(sent);
+		})
+		.catch(() => { _errlog_push_fails++; });
 }
 
 function errlog_send_archive() {
-	try {
-		navigator.sendBeacon(ERRLOG_SINK_URL, JSON.stringify({
-			character: character.name,
-			build: _errlog_build(),
-			session: _errlog.session,
-			archive: _errlog.archive.filter(e => e.t >= _errlog_last_push)
-		}));
-	} catch (e) { }
+	navigator.sendBeacon(ERRLOG_SINK_URL, JSON.stringify({
+		character: character.name,
+		build: _errlog_build(),
+		session: _errlog.session,
+		archive: _errlog.archive,
+	}));
 }
 
 function _errlog_flush_tick() {
@@ -740,7 +722,6 @@ on_boot("Error Log", () => {
 	on_dom(window, "pagehide", "errlog_pagehide", () => _errlog_lifecycle("pagehide"));
 	on_dom(window, "pageshow", "errlog_pageshow", () => _errlog_lifecycle("pageshow"));
 	on_socket("game_response", "errlog_game_response", _errlog_on_game_response);
-	on_socket("disconnect", "errlog_disconnect", () => errlog_record("disconnect", "socket disconnected"));
 	on_socket("limitdcreport", "errlog_limitdc", _errlog_on_limitdc);
 	every("errlog lag probe", { ms: 500, kind: "telemetry", after: 500 }, _errlog_lag_probe);
 	every("errlog vitals", { ms: ERRLOG_VITALS_MS, kind: "telemetry", fixed: true }, _errlog_sample_vitals);

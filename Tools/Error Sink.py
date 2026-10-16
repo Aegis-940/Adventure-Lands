@@ -69,9 +69,13 @@ TRIMMABLE = ("samples", "alive", "timeline", "deaths")
 
 BUCKET_FIELDS = ("records", "samples", "deaths", "timeline", "counts", "alive")
 
-# The maintenance sweep and a POST both rewrite the whole store, and the server is single-threaded
-# only with respect to requests.
+# The store lives in memory and is written to errors.json at most every STORE_WRITE_S. Reading and
+# rewriting the whole 1.5 MB file on every POST (about 8 a minute) cost ~1.7 GB of writes a day, and a
+# reader holding the file open on Windows (WinError 5) threw away the whole POST's merge.
 STORE_LOCK = threading.RLock()
+STORE = {}
+STORE_DIRTY = threading.Event()
+STORE_WRITE_S = 5
 
 LIVE = {}
 LIVE_LOCK = threading.Lock()
@@ -243,7 +247,7 @@ def archive_lane(bucket, who, entries):
 def merge_lifecycle(incoming):
     """A sendBeacon from the page as it is hidden, frozen or resumed. It carries one entry and
     arrives when the page may be about to stop running, so it goes straight to the archive."""
-    store = load_store()
+    store = STORE
     who = incoming.get("character", "unknown")
     entry = {"t": incoming["lifecycle"].get("t"), "ctx": "lifecycle", "msg": incoming["lifecycle"].get("msg")}
     bucket = store.setdefault(who, {})
@@ -251,7 +255,7 @@ def merge_lifecycle(incoming):
     timeline.append(entry)
     bucket["timeline"] = sorted(timeline, key=lambda x: x.get("t") or 0)[-MAX_TIMELINE:]
     archive_timeline(who, [entry])
-    write_store(store)
+    STORE_DIRTY.set()
     return len(store)
 
 
@@ -259,7 +263,7 @@ def merge(incoming):
     """Merge one character's payload into errors.json."""
     if "lifecycle" in incoming:
         return merge_lifecycle(incoming)
-    store = load_store()
+    store = STORE
 
     who = incoming.get("character", "unknown")
     bucket = store.setdefault(who, {})
@@ -270,8 +274,9 @@ def merge(incoming):
     recs = bucket.setdefault("records", {})
     for sig, rec in (incoming.get("records") or {}).items():
         prev = recs.get(sig)
-        # The browser holds the authoritative count; for a signature it only ever grows.
-        if not prev or rec.get("count", 0) >= prev.get("count", 0):
+        # The browser holds the authoritative count. It only grows within a 24h window, and a newer
+        # first means the page started a new window, so its lower count replaces the old one.
+        if not prev or rec.get("count", 0) >= prev.get("count", 0) or (rec.get("first") or 0) > (prev.get("first") or 0):
             recs[sig] = rec
     bucket["records"] = prune_records(recs, keep_builds)
 
@@ -328,7 +333,7 @@ def merge(incoming):
     bucket["alive"] = [beats[k] for k in sorted(beats, key=lambda x: x or 0)][-MAX_ALIVE:]
 
     store["_updated"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    write_store(store)
+    STORE_DIRTY.set()
     return sum(len(v.get("records", {})) for k, v in store.items() if k != "_updated")
 
 
@@ -537,13 +542,11 @@ def sweep(label):
     weeks cannot do that only at startup, so the maintenance thread calls this on a timer too.
     """
     with STORE_LOCK:
-        if not os.path.exists(OUT):
-            return
-        store = load_store()
+        store = STORE
         if not store:
             return
 
-        before = os.path.getsize(OUT)
+        before = os.path.getsize(OUT) if os.path.exists(OUT) else 0
         for bucket in store.values():
             if not isinstance(bucket, dict):
                 continue
@@ -559,6 +562,7 @@ def sweep(label):
             del store[who]
 
         blob = write_store(store)
+        STORE_DIRTY.clear()
 
     print("%s  %s: %.2f MB -> %.2f MB" %
           (datetime.now().strftime("%H:%M:%S"), label, before / 1048576, len(blob) / 1048576),
@@ -593,6 +597,24 @@ def refresh_data_store():
         run_tool("party model", [node, PARTY_MODEL, "json"])
     else:
         print("  ! node not found on PATH; party_model.json is not refreshed", file=sys.stderr, flush=True)
+
+
+def store_writer():
+    while True:
+        time.sleep(STORE_WRITE_S)
+        flush_store()
+
+
+def flush_store():
+    if not STORE_DIRTY.is_set():
+        return
+    try:
+        with STORE_LOCK:
+            STORE_DIRTY.clear()
+            write_store(STORE)
+    except Exception as exc:
+        STORE_DIRTY.set()
+        print("  ! errors.json write failed, retrying: %s" % exc, file=sys.stderr, flush=True)
 
 
 def maintenance_loop():
@@ -688,7 +710,9 @@ def detach_logging():
 if __name__ == "__main__":
     detach_logging()
     print("error sink -> %s" % OUT)
+    STORE.update(load_store())
     sweep("swept on start")
+    threading.Thread(target=store_writer, daemon=True).start()
     threading.Thread(target=maintenance_loop, daemon=True).start()
     httpd = bind_server()
     if httpd is None:
@@ -699,6 +723,7 @@ if __name__ == "__main__":
     print("listening on http://127.0.0.1:%d  (ctrl-c to stop)" % PORT, flush=True)
     httpd.serve_forever()
     httpd.server_close()
+    flush_store()
     if RESTART.is_set():
         # Not os.execv: on Windows it does not quote, so a path with a space in it -- which this
         # one has -- is split and the replacement process dies on a truncated filename.

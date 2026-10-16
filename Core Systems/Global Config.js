@@ -223,6 +223,7 @@ function read_state_cache(name) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function errlog_record() { }
+function errlog_tally() { }
 function errlog_sample() { }
 function errlog_count() { }
 function errlog_beat() { }

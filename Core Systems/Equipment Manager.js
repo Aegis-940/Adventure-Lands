@@ -264,10 +264,6 @@ async function equip_set_raw(set_name) {
 		return;
 	}
 
-	if (set.some(i => i.slot === "orb")) {
-		errlog_record("orb_equip", `${set_name} -> orb (panicking=${panicking})`);
-	}
-
 	return batch_equip(set, set_name);
 }
 

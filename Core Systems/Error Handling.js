@@ -50,7 +50,7 @@ function catcher(e, context = "Error") {
 
 	function report(text, quiet) {
 		if (!quiet) return error_out(`${text} (${context})`, GENERAL_ERROR);
-		errlog_record("quiet", `${text} (${context})`);
+		errlog_tally("quiet", `${text} (${context})`);
 	}
 
 	const cd = cooldown_summary(msg || "");
