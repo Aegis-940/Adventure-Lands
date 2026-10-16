@@ -452,7 +452,11 @@ Panic and its broadcast (`set_panic()` is the only writer), party invites, and w
 
 ### `Loot Management.js`
 
-`loose_loot()` (what we keep, ship to the merchant, or vendor), bank withdrawal, and chest looting (`should_loot()`/`handle_looting()`, driven by each character's `CONFIG.looting`, unless the home's encounter answers `looting` or `chest_threshold`: the phoenix hunt has every fighter loot from one chest). On a `kite` goal it runs alongside the orbit step instead of in place of it (World Events → kiting).
+`loose_loot()` (what we keep, ship to the merchant, or vendor), bank withdrawal, and chest looting (`should_loot()`/`handle_looting()`, driven by each character's `CONFIG.looting`, unless the home's encounter answers `looting` or `chest_threshold`: the phoenix hunt has every fighter loot from one chest).
+
+**Chests per pass.** A pass opens every chest on the ground up to `max_chests` (50), and never more than the call-cost headroom below `COOLDOWNS.cc`: `(160 − character.cc) / 1.2`. Each `open_chest` costs the server 1 call plus 0.1 for each of the two player resends it triggers (`server.js`: `call_modifier` 0.1), against a limit of 200 per 4s that disconnects with `limitdc`. `character.cc` is only refreshed by the server's player data, so it doesn't rise during the burst: the cap has to be counted before the loop, not checked inside it. Until 10-16 the cap was `chest_threshold × 5` (15). At 50 chests a burst is about 60 call cost, and Myras ran at 50–76 when measured, so normally the full 50 fit; started near the 160 gate, an uncapped 50 would have reached about 220.
+
+On a `kite` goal it runs alongside the orbit step instead of in place of it (World Events → kiting).
 
 **Reserved gear.** `reserved_gear_slots()` ranks every copy of a set item, worn and bagged (locked first, then level), and keeps the top N, where N is how many slots the sets wear it in. Bag copies in that top N are never shipped or sold. It used to count a slot as covered by any worn copy of the name, so a junk copy in the hand made the real one in the bag look spare.
 

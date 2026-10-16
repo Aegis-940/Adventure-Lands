@@ -129,6 +129,7 @@ const BOSS_NEARLY_DEAD_HP = 0.05;
 const LOOTING_DEFAULTS = {
 	enabled: false,
 	chest_threshold: 3,
+	max_chests: 50,
 	target_count: 99,
 	equip_gold_gear: false,
 	loot_cooldown: 3000,

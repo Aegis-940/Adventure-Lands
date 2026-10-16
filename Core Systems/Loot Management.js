@@ -160,6 +160,8 @@ async function shift_booster(slot, target) {
 	}
 }
 
+const OPEN_CHEST_CALL_COST = 1.2;
+
 async function handle_looting() {
 	const blocked = looting_blocked();
 	if (blocked) {
@@ -179,7 +181,7 @@ async function handle_looting() {
 		}
 
 		let looted = 0;
-		const max_loots = CONFIG.looting.chest_threshold * 5;
+		const max_loots = Math.min(CONFIG.looting.max_chests, Math.floor((COOLDOWNS.cc - character.cc) / OPEN_CHEST_CALL_COST));
 
 		const stored_chests = get_chests();
 		for (const chest_id in stored_chests) {
