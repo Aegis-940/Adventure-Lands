@@ -319,7 +319,7 @@ async function withdraw_offering() {
 }
 
 async function withdraw_upgradeable_items() {
-	if (character.map !== BANK_LOCATION.map || Math.hypot(character.x - BANK_LOCATION.x, character.y - BANK_LOCATION.y) > BANK_POSITION_TOLERANCE) {
+	if (simple_distance(character, BANK_LOCATION) > BANK_POSITION_TOLERANCE) {
 		await smarter_move(BANK_LOCATION, null, { radius: BANK_POSITION_TOLERANCE });
 		await sleep(500);
 	}

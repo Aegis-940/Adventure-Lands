@@ -37,7 +37,7 @@ function stand_loop() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 async function handle_idle_state() {
-	if (character.map === HOME.map && Math.hypot(character.x - HOME.x, character.y - HOME.y) <= 10) {
+	if (simple_distance(character, HOME) <= 10) {
 		sell_while_idle();
 		if (setting("merchant_exchanging")) await exchange_bag_items();
 		return;

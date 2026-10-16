@@ -18,7 +18,7 @@ async function leave_bank() {
 
 async function go_to_craftsman() {
 	if (locate_item("computer") !== -1) return leave_bank();
-	if (character.map !== CRAFT_LOCATION.map || Math.hypot(character.x - CRAFT_LOCATION.x, character.y - CRAFT_LOCATION.y) > CRAFT_POSITION_TOLERANCE) {
+	if (simple_distance(character, CRAFT_LOCATION) > CRAFT_POSITION_TOLERANCE) {
 		await smarter_move(CRAFT_LOCATION, null, { radius: CRAFT_POSITION_TOLERANCE });
 	}
 }

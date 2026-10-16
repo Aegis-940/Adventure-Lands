@@ -16,7 +16,7 @@ function handle_gathering_state(tool_name, skill_name, spot, tolerance, task_lab
 				return;
 			}
 
-			if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > tolerance) {
+			if (simple_distance(character, spot) > tolerance) {
 				await smarter_move(spot, null, { radius: tolerance });
 			}
 
@@ -39,7 +39,7 @@ function handle_gathering_state(tool_name, skill_name, spot, tolerance, task_lab
 					log_msg("error", `${tool_name} not equipped, stopping ${skill_name}.`);
 					break;
 				}
-				if (character.map !== spot.map || Math.hypot(character.x - spot.x, character.y - spot.y) > tolerance) {
+				if (simple_distance(character, spot) > tolerance) {
 					log_msg("error", `Not at ${skill_name} spot, stopping.`);
 					break;
 				}

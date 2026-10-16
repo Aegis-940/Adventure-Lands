@@ -92,7 +92,7 @@ async function stock_lolipop_kit(stage) {
 		task_heartbeat();
 	}
 
-	if (character.map !== HOME.map || Math.hypot(character.x - HOME.x, character.y - HOME.y) > 10) {
+	if (simple_distance(character, HOME) > 10) {
 		await smarter_move(HOME);
 	}
 

@@ -4,7 +4,7 @@
 
 function should_buy_potions() {
 	const shop = CONFIG.locations.POTION_SHOP;
-	return character.map === shop.map && Math.hypot(character.x - shop.x, character.y - shop.y) < 300;
+	return simple_distance(character, shop) < 300;
 }
 
 async function handle_buy_potions() {
