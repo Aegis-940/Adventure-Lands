@@ -880,8 +880,17 @@ The 7-day trim runs once a day from the maintenance loop (and when the sink star
 - `pulls`: windows grouped by the most monsters already on the puller when she pulled, against the close calls in those windows, damage taken and MP potions per hour (the ledger window closed in the same 2s).
 - `time`: share of seconds per goal label and in panic.
 - `before-danger`: the last deaths and close calls, each with the decisions of the 10s before it.
+- `mana`: per fighter, mana in per hour (confirmed potions, manasteal) against mana out (every confirmed cast's cost, `casts.mana`), the net, and the four skills that spend most. From the windows with `mana_in` (10-16 on).
+- `uptime`: per fighter, the mean attack frequency, confirmed attacks per hour, uptime (confirmed attacks against frequency × time, over all the time and over the time a monster was in range), the share of in-range time the attack sat ready, and downtime: minutes between consecutive ledger windows past 10s, which since reloads keep their window is time the page wasn't running.
 
-The status page shows `skills` and `weapons` for the last 24 hours.
+And one per kept lane, with the same `--hours`/`--build`/`--range` flags:
+
+- `loot`: per monster, chests, party gold a chest and mean luck, then each item per 100 chests, split at the median luck (`per_100_low_luck`, `per_100_high_luck`) so luck's effect shows once there are enough chests.
+- `heals`: Myras's single and party heals per hour, HP delivered, delivered against predicted, and overheal.
+- `cc`: call cost per sample against the server's limit, the share of samples over 80% of it, and the methods that spend most (Ulric only: the cc report is his).
+- `targets`: how often the scorer's pick traded the best value for something else, and how much value it gave up.
+
+The status page shows `skills`, `weapons`, `mana` and `uptime` for the last 24 hours.
 
 **`compare A B`** judges one build or time range against another at one home (`--home`, default B's commonest; `--tier behaviour`, 12 windows a side, is the default, `neutral` needs 6). It reads **full windows**: 280–320s long and at the spot for 95% of it, where time dead after dying at the spot and walking back counts as spot time (`death_s`, from 10-16). Before that a death took the fighter off the spot, so every window with a death was dropped and a build that got people killed lost its worst windows before its rates were computed; windows from before 10-16 still lack `death_s`. The three fighters' windows that closed within a minute of each other form one **party window**.
 

@@ -14,6 +14,13 @@
                                             from the decision log: is each skill worth its mana, which weapon pair
                                             does better, how big a pull is safe, where the time goes, and the
                                             decisions before each death or close call
+    python "Tools/Data Store.py" mana|uptime [same flags]
+                                            per fighter: mana in (potions, manasteal) against mana out per skill;
+                                            attack frequency, confirmed attacks against it, time in range with the
+                                            attack ready, and downtime between ledger windows
+    python "Tools/Data Store.py" loot|heals|cc|targets [--hours N | --build SHA | --range A..B] [--who NAME]
+                                            drops per chest by monster and luck; Myras's heals against prediction
+                                            and overheal; call cost against the limit; the target scorer's trades
     python "Tools/Data Store.py" experiment NAME [--hours N | --build SHA | --range A..B]
                                             an experiment's variants against each other, by compare's rules
 
@@ -54,6 +61,9 @@ CREATE TABLE IF NOT EXISTS boss_profiles (character TEXT, t INTEGER, at TEXT, bo
 CREATE TABLE IF NOT EXISTS danger (character TEXT, t INTEGER, at TEXT, event TEXT, map TEXT, home TEXT, goal TEXT,
     killer TEXT, min_hp_pct INTEGER, low_for_s INTEGER, damage_10s INTEGER, targeting INTEGER, mp_pct INTEGER,
     panicking INTEGER, raw TEXT, build TEXT);
+CREATE TABLE IF NOT EXISTS loot (character TEXT, t INTEGER, at TEXT, mtype TEXT, chest TEXT, map TEXT, luckm REAL,
+    goldm REAL, gold INTEGER, opener TEXT, items TEXT, dry INTEGER, stale INTEGER, build TEXT);
+CREATE INDEX IF NOT EXISTS loot_t ON loot (t);
 CREATE INDEX IF NOT EXISTS ledger_spot ON ledger (survey_spot, character);
 CREATE INDEX IF NOT EXISTS ledger_home ON ledger (home, character);
 """
@@ -64,6 +74,7 @@ CONTEXT_COLUMNS = ["home", "map", "goal", "encounters", "variant", "settings"]
 
 # Columns added after a table was first created, so an existing database gains them on connect.
 ADDED_COLUMNS = {
+    "loot": CONTEXT_COLUMNS,
     "ingested": ["head"],
     "ledger": ["build", "goal", "encounters", "variant", "variant_start", "settings", "death_s"],
     "survey": ["build"],
@@ -173,6 +184,13 @@ def add_danger(db, r):
     insert(db, "danger", row)
 
 
+def add_loot(db, r):
+    row = {f: r.get(f) for f in ("character", "t", "at", "mtype", "chest", "map", "luckm", "goldm", "gold", "opener")}
+    row.update({"items": r.get("items") or [], "dry": 1 if r.get("dry") else 0, "stale": 1 if r.get("stale") else 0})
+    row.update(context(r))
+    insert(db, "loot", row)
+
+
 def add_boss_profile(db, r):
     db.execute("INSERT INTO boss_profiles VALUES (?,?,?,?,?,?)", (
         r.get("character"), r.get("t"), r.get("at"), r.get("boss"), 1 if r.get("killed") else 0, r.get("fight_secs")))
@@ -184,6 +202,7 @@ SOURCES = [
     ("tracker.jsonl", add_tracker, ["tracker", "tracker_monsters"]),
     ("danger.jsonl", add_danger, ["danger"]),
     ("boss_profiles.jsonl", add_boss_profile, ["boss_profiles"]),
+    ("loot.jsonl", add_loot, ["loot"]),
 ] + [(name, sample_adder(table, fields), [table]) for name, table, fields in SAMPLE_TABLES]
 
 
@@ -763,6 +782,11 @@ def question_report(command, flags):
     elif command == "pulls":
         print_rows(pulls_summary(db, rows), ["character", "max_aggro_at_pull", "windows", "pulls_h", "close_calls_per_window",
                                              "taken_h", "mp_pots_h"])
+    elif command == "mana":
+        print_rows(mana_summary(rows), ["character", "hours", "in_h", "potions_h", "manasteal_h", "out_h", "net_h", "top_spend_h"])
+    elif command == "uptime":
+        print_rows(uptime_summary(db, rows, flags), ["character", "hours", "freq", "attacks_h", "uptime_pct", "in_range_pct",
+                                                     "uptime_in_range_pct", "ready_idle_pct", "down_min", "down_gaps"])
     elif command == "time":
         for t in time_summary(rows):
             print("  %s  %.2f h, panicking %s%%" % (t["character"], t["hours"], t["panic_pct"]))
@@ -781,10 +805,190 @@ def question_report(command, flags):
     db.close()
 
 
+def mana_summary(rows):
+    """Per fighter: mana in (confirmed potions, manasteal) and out (every confirmed cast's cost) per hour, from the
+    decision windows that carry mana_in (10-16 on)."""
+    out = []
+    for who, rs in sorted(by_character(rows).items()):
+        rs = [r for r in rs if r.get("mana_in")]
+        hours = sum(r["window_s"] for r in rs) / 3600.0
+        if not hours:
+            continue
+        potions = sum(r["mana_in"].get("potions", 0) for r in rs)
+        steal = sum(r["mana_in"].get("manasteal", 0) for r in rs)
+        spent = {}
+        for r in rs:
+            for skill, c in r["casts"].items():
+                spent[skill] = spent.get(skill, 0) + (c.get("mana") or 0)
+        total_out = sum(spent.values())
+        top = sorted(spent.items(), key=lambda kv: -kv[1])[:4]
+        out.append({
+            "character": who, "hours": round(hours, 1),
+            "in_h": round((potions + steal) / hours), "potions_h": round(potions / hours), "manasteal_h": round(steal / hours),
+            "out_h": round(total_out / hours), "net_h": round((potions + steal - total_out) / hours),
+            "top_spend_h": ", ".join("%s %d" % (k, v / hours) for k, v in top),
+        })
+    return out
+
+
+DOWNTIME_GAP_MS = 10000
+
+
+def ledger_downtime(db, flags):
+    """Per fighter: minutes between consecutive ledger windows beyond a few seconds, which since 10-16 (reloads keep
+    their window) is time the character's page wasn't running."""
+    where, args = period(flags)
+    out = {}
+    last = {}
+    for who, t, window_s in db.execute("SELECT character, t, window_s FROM ledger WHERE %s ORDER BY t" % where, args):
+        start = t - (window_s or 0) * 1000
+        if who in last and start - last[who] > DOWNTIME_GAP_MS:
+            d = out.setdefault(who, {"gaps": 0, "ms": 0})
+            d["gaps"] += 1
+            d["ms"] += start - last[who]
+        last[who] = t
+    return out
+
+
+def uptime_summary(db, rows, flags):
+    """Per fighter: mean attack frequency, confirmed attacks against what that frequency allows (over the whole window
+    and over the time a monster was in range), the share of in-range time the attack sat ready, and downtime."""
+    down = ledger_downtime(db, flags)
+    out = []
+    for who, rs in sorted(by_character(rows).items()):
+        rs = [r for r in rs if r.get("attack") and r["attack"].get("samples")]
+        if not rs:
+            continue
+        samples = sum(r["attack"]["samples"] for r in rs)
+        freq = sum(r["attack"]["frequency"] for r in rs) / samples
+        seconds = sum(r["window_s"] for r in rs)
+        in_range = sum(r["attack"]["in_range_s"] for r in rs)
+        idle = sum(r["attack"]["ready_idle_s"] for r in rs)
+        attacks = sum((r["casts"].get("attack") or {}).get("n", 0) for r in rs)
+        d = down.get(who, {"gaps": 0, "ms": 0})
+        out.append({
+            "character": who, "hours": round(seconds / 3600.0, 1), "freq": round(freq, 2),
+            "attacks_h": round(attacks * 3600.0 / seconds),
+            "uptime_pct": round(100.0 * attacks / (freq * seconds), 1) if freq else None,
+            "in_range_pct": round(100.0 * in_range / seconds, 1),
+            "uptime_in_range_pct": round(100.0 * attacks / (freq * in_range), 1) if freq and in_range else None,
+            "ready_idle_pct": round(100.0 * idle / in_range, 1) if in_range else None,
+            "down_min": round(d["ms"] / 60000.0, 1), "down_gaps": d["gaps"],
+        })
+    return out
+
+
+def loot_summary(db, flags):
+    """Per monster: chests, party gold per chest and mean luck; then each item's rate per chest, split at the median
+    luck so luck's effect shows (needs enough chests on both sides)."""
+    where, args = period(flags)
+    chests = [dict(zip(("mtype", "luckm", "gold", "items"), r)) for r in db.execute(
+        "SELECT mtype, luckm, gold, items FROM loot WHERE %s" % where, args)]
+    out = []
+    for mtype in sorted({c["mtype"] for c in chests}, key=lambda m: m or ""):
+        group = [c for c in chests if c["mtype"] == mtype]
+        lucks = sorted(c["luckm"] for c in group if c["luckm"] is not None)
+        median = lucks[len(lucks) // 2] if lucks else None
+        low = [c for c in group if median is not None and c["luckm"] is not None and c["luckm"] < median]
+        high = [c for c in group if median is not None and c["luckm"] is not None and c["luckm"] >= median]
+        out.append({"mtype": mtype, "chests": len(group), "gold_per_chest": round(sum(c["gold"] or 0 for c in group) / len(group)),
+                    "luckm": round(sum(lucks) / len(lucks), 2) if lucks else None, "items": []})
+        counts = {}
+        for c in group:
+            for item in json.loads(c["items"] or "[]"):
+                counts[item["name"]] = counts.get(item["name"], 0) + (item.get("q") or 1)
+        rate = lambda cs, name: sum(i.get("q") or 1 for c in cs for i in json.loads(c["items"] or "[]") if i["name"] == name)
+        for name, n in sorted(counts.items(), key=lambda kv: -kv[1]):
+            out[-1]["items"].append({
+                "item": name, "n": n, "per_100": round(100.0 * n / len(group), 2),
+                "per_100_low_luck": round(100.0 * rate(low, name) / len(low), 2) if low else None,
+                "per_100_high_luck": round(100.0 * rate(high, name) / len(high), 2) if high else None,
+            })
+    return out
+
+
+def heals_summary(db, flags):
+    where, args = period(flags)
+    out = []
+    for row in db.execute(
+            "SELECT character, COUNT(*), SUM(secs), SUM(single_casts), SUM(single_delivered), SUM(single_predicted), "
+            "SUM(single_overheal), SUM(party_hits), SUM(party_delivered), SUM(party_predicted), SUM(party_overheal) "
+            "FROM heal_windows WHERE %s GROUP BY character" % where, args):
+        who, n, secs, sc, sd, sp, so, ph, pd, pp, po = [x or 0 for x in row]
+        hours = secs / 3600.0
+        if not hours:
+            continue
+        out.append({
+            "character": who, "windows": n, "hours": round(hours, 1),
+            "single_h": round(sc / hours), "single_hp_h": round(sd / hours),
+            "single_accuracy": round(sd / sp, 2) if sp else None, "single_overheal_pct": round(100.0 * so / sd, 1) if sd else None,
+            "party_hits_h": round(ph / hours), "party_hp_h": round(pd / hours),
+            "party_accuracy": round(pd / pp, 2) if pp else None, "party_overheal_pct": round(100.0 * po / pd, 1) if pd else None,
+        })
+    return out
+
+
+def cc_summary(db, flags):
+    """Per character: the server's call cost (cc) per sample against the limit that disconnects (climit), and the
+    methods that spend most of it."""
+    where, args = period(flags)
+    out = []
+    for who in [r[0] for r in db.execute("SELECT DISTINCT character FROM cc_reports WHERE %s" % where, args)]:
+        rows = db.execute("SELECT total, climit, by_method FROM cc_reports WHERE %s AND character = ?" % where,
+                          args + (who,)).fetchall()
+        totals = [r[0] or 0 for r in rows]
+        climit = max(r[1] or 0 for r in rows)
+        methods = {}
+        for _, _, by in rows:
+            for k, v in json.loads(by or "{}").items():
+                methods[k] = methods.get(k, 0) + (v or 0)
+        top = sorted(methods.items(), key=lambda kv: -kv[1])[:5]
+        out.append({
+            "character": who, "samples": len(rows), "mean": round(statistics.mean(totals), 1), "max": round(max(totals), 1),
+            "climit": climit, "over_80pct": round(100.0 * sum(1 for t in totals if climit and t > 0.8 * climit) / len(totals), 1),
+            "top_methods": ", ".join("%s %.1f" % (k, v / len(rows)) for k, v in top),
+        })
+    return out
+
+
+def targets_summary(db, flags):
+    """How often the target scorer's pick traded value for something else (cover, distance, focus), and how much."""
+    where, args = period(flags)
+    out = []
+    for who, n, traded, lost in db.execute(
+            "SELECT character, COUNT(*), SUM(CASE WHEN traded THEN 1 ELSE 0 END), "
+            "AVG(CASE WHEN traded AND best_value > 0 THEN (best_value - chosen_value) / best_value END) "
+            "FROM target_choices WHERE %s GROUP BY character" % where, args):
+        out.append({"character": who, "picks": n, "traded_pct": round(100.0 * (traded or 0) / n, 1),
+                    "value_lost_when_traded_pct": round(100.0 * lost, 1) if lost is not None else None})
+    return out
+
+
+def lane_report(command, flags):
+    ingest()
+    db = connect()
+    print("%s (%s)" % (command, ", ".join("%s %s" % kv for kv in flags.items()) or "last 24 h"))
+    if command == "loot":
+        for m in loot_summary(db, flags):
+            print("  %s: %d chests, %s gold a chest, luck %s" % (m["mtype"] or "unknown monster", m["chests"],
+                                                                "{:,}".format(m["gold_per_chest"]), m["luckm"]))
+            print_rows(m["items"][:12], ["item", "n", "per_100", "per_100_low_luck", "per_100_high_luck"])
+    elif command == "heals":
+        print_rows(heals_summary(db, flags), ["character", "windows", "hours", "single_h", "single_hp_h", "single_accuracy",
+                                              "single_overheal_pct", "party_hits_h", "party_hp_h", "party_accuracy",
+                                              "party_overheal_pct"])
+    elif command == "cc":
+        print_rows(cc_summary(db, flags), ["character", "samples", "mean", "max", "climit", "over_80pct", "top_methods"])
+    elif command == "targets":
+        print_rows(targets_summary(db, flags), ["character", "picks", "traded_pct", "value_lost_when_traded_pct"])
+    db.close()
+
+
 def decisions_status(db, now_ms):
     flags = {"--hours": 24}
     rows = decision_rows(db, flags)
-    return {"skills": skills_summary(rows), "weapons": weapons_summary(db, rows, flags)}
+    return {"skills": skills_summary(rows), "weapons": weapons_summary(db, rows, flags), "mana_budget": mana_summary(rows),
+            "uptime": uptime_summary(db, rows, flags)}
 
 
 SOURCES.append(("decisions.jsonl", add_decisions, ["decisions"]))
@@ -1028,7 +1232,11 @@ def main():
         args = sys.argv[3:]
         experiment_report(sys.argv[2], {args[i]: args[i + 1] for i in range(0, len(args) - 1, 2) if args[i].startswith("--")})
         return
-    if command in ("skills", "weapons", "pulls", "time", "before-danger"):
+    if command in ("loot", "heals", "cc", "targets"):
+        args = sys.argv[2:]
+        lane_report(command, {args[i]: args[i + 1] for i in range(0, len(args) - 1, 2) if args[i].startswith("--")})
+        return
+    if command in ("skills", "weapons", "pulls", "time", "before-danger", "mana", "uptime"):
         args = sys.argv[2:]
         question_report(command, {args[i]: args[i + 1] for i in range(0, len(args) - 1, 2) if args[i].startswith("--")})
         return

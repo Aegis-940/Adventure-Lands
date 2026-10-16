@@ -14,7 +14,7 @@ This plan comes from a four-part audit on 10-16 (the sink and its readers, the i
 | T3 | Removing the watchdog | none | **done** 2026-10-16 |
 | T4 | Sizes and retention | none | **done** 2026-10-16 |
 | T5 | What isn't recorded yet | none | loot, mana budget, attack uptime **done** 2026-10-16; T5.5 is a T6 report; T5.6, T5.7 not asked for |
-| T6 | Reports: making the data answer questions | none | not started |
+| T6 | Reports: making the data answer questions | none | T6.1–T6.5 **done** 2026-10-16; T6.6 waits for a day of the new data |
 | T7 | Close-out | none | not started |
 
 Nothing here changes a decision the bot makes, so no phase needs a `compare`. Each fix is instead checked against a second source (listed with it), and each commit runs lint, `load` and `check` as usual. The hit handlers are on the hot path, so any change there is also checked in `cc_report` for call cost.

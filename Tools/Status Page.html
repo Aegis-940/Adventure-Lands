@@ -230,6 +230,19 @@ details ul { margin: 6px 0 0; padding-left: 18px; }
 
 	<div class="section grid cols-2">
 		<section class="card">
+			<h2>Mana budget, last 24 hours</h2>
+			<div class="meta">Mana in from confirmed potions and manasteal against the mana every confirmed cast cost, per hour, and where most of it went. From <code>Data Store.py mana</code>.</div>
+			<div class="scroll" id="mana-budget"></div>
+		</section>
+		<section class="card">
+			<h2>Attack uptime, last 24 hours</h2>
+			<div class="meta">Confirmed attacks against what the attack speed allows, over all the time and over the time a monster was in range; the share of in-range time the attack sat ready; and minutes the page was down. From <code>Data Store.py uptime</code>.</div>
+			<div class="scroll" id="uptime"></div>
+		</section>
+	</div>
+
+	<div class="section grid cols-2">
+		<section class="card">
 			<h2>Next kill-score milestones</h2>
 			<div class="meta" id="ach-meta"></div>
 			<div class="scroll" id="achievements"></div>
@@ -642,6 +655,17 @@ function render_decisions(d) {
 			{ label: "Per second worn", n: 1 }, { label: "Splash", n: 1 }, { label: "Burn", n: 1 }],
 		d.weapons.map(r => [esc(r.character), esc(r.weapon), r.worn_pct === null ? "–" : r.worn_pct + "%", r.windows, num(r.per_hit), num(r.per_s_worn),
 			r.splash_pct === null ? "–" : r.splash_pct + "%", r.burn_pct === null ? "–" : r.burn_pct + "%"]));
+	const pct = v => v === null || v === undefined ? "–" : v + "%";
+	$("mana-budget").innerHTML = table(
+		[{ label: "Who" }, { label: "Hours", n: 1 }, { label: "In/h", n: 1 }, { label: "Potions/h", n: 1 }, { label: "Manasteal/h", n: 1 },
+			{ label: "Out/h", n: 1 }, { label: "Net/h", n: 1 }, { label: "Most spent on" }],
+		(d.mana_budget || []).map(r => [esc(r.character), r.hours, num(r.in_h), num(r.potions_h), num(r.manasteal_h), num(r.out_h),
+			num(r.net_h), esc(r.top_spend_h)]));
+	$("uptime").innerHTML = table(
+		[{ label: "Who" }, { label: "Hours", n: 1 }, { label: "Attacks/s", n: 1 }, { label: "Attacks/h", n: 1 }, { label: "Uptime", n: 1 },
+			{ label: "In range", n: 1 }, { label: "Uptime in range", n: 1 }, { label: "Ready, unused", n: 1 }, { label: "Down, min", n: 1 }],
+		(d.uptime || []).map(r => [esc(r.character), r.hours, r.freq, num(r.attacks_h), pct(r.uptime_pct), pct(r.in_range_pct),
+			pct(r.uptime_in_range_pct), pct(r.ready_idle_pct), r.down_min]));
 }
 
 function render_mana(measured, modelled) {
