@@ -35,6 +35,7 @@ const LOCATIONS = {
 	fireroamer: [{ map: "desertland", x: 260, y: -800 }],
 	frog:       [{ map: "main", x: -1125, y: 1118 }],
 	ghost:      [{ map: "halloween", x: -405, y: -1642 }],
+	goo:        [{ map: "main", x: -32, y: 787 }],
 	gscorpion:  [{ map: "desertland", x: 390, y: -1422 }],
 	harpy:      [{ map: "winter_cove", x: 135, y: -311 }],
 	iceroamer:  [{ map: "winterland", x: 823, y: -45 }],
