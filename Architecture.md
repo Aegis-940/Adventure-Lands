@@ -99,7 +99,7 @@ Character Managers/<Role> Manager/    per character, through eval
     Merchant Manager/                 Riff: Stand, Inventory, Exchange, Gear, Gathering, Party, Upkeep,
                                       Upgrading, Lolipop Push, Crafting, Task Loop (loads last)
 Tools/                                run outside the game: the sink, the data store, the status page,
-                                      the watchdog, lint, the party model
+                                      the live probe, lint, the party model
 Tests/                                the offline harness, the parser-based analysis, the config check
 ```
 

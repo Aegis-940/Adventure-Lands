@@ -72,7 +72,6 @@ async function decide_opportunistic_actions() {
 
 function opportunistic_actions_loop() {
 	every("opportunistic_actions_loop", { ms: 1000, kind: "automation" }, async () => {
-		main_beat();
 		await decide_opportunistic_actions();
 	});
 }

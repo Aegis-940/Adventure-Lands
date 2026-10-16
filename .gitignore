@@ -20,12 +20,6 @@ al_data.sqlite-journal
 party_model.json
 Tools/.cache/
 
-# Runtime data written by Tools/Watchdog.py.
-watchdog.json
-watchdog.json.tmp
-watchdog.jsonl
-watchdog.log*
-watchdog.pause
 
 snapshots.jsonl
 snapshots.jsonl.old

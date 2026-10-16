@@ -10,8 +10,8 @@ This plan comes from a four-part audit on 10-16 (the sink and its readers, the i
 |-------|-------|------------------------------|--------|
 | T0 | Data being lost or corrupted now | none | **done** 2026-10-16 |
 | T1 | `compare` and the Data Store | none | not started |
-| T2 | The error log and how records reach the sink | none | not started |
-| T3 | Removing the watchdog | none | not started |
+| T2 | The error log and how records reach the sink | none | T2.6 **done** 2026-10-16 |
+| T3 | Removing the watchdog | none | **done** 2026-10-16 (T3.3, the two unrecovered reloads, still to read) |
 | T4 | Sizes and retention | none | not started |
 | T5 | What isn't recorded yet | none | not started |
 | T6 | Reports: making the data answer questions | none | not started |

@@ -44,9 +44,9 @@ MAX_TIMELINE = 100
 # and left 29 of her cluster samples alive. Capping per kind makes the window depend on the
 # sampling rate of that kind alone.
 MAX_SAMPLES_PER_KIND = 250
-# One beat a minute, so this is about sixteen hours of uptime evidence per character -- enough for
-# an overnight stall to still be legible when it is read the next morning.
-MAX_ALIVE = 1000
+# Only the last beat: the status page reads it when the live feed is stale. Downtime is read from the
+# gaps between ledger windows.
+MAX_ALIVE = 1
 
 # A record names a line of code. Once that line has been edited the record describes something that
 # no longer exists, so records are kept only for the build that produced them and the one before it

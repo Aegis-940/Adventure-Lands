@@ -153,7 +153,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | `Data Store.py` | `al_data.sqlite`, rebuilt incrementally from the `.jsonl` archives (the sink runs `ingest` every 15 min). `python "Tools/Data Store.py" survey` prints the survey results; `status` is the status page's JSON; `compare A B` judges one build (or time range) against another at the same home; `skills`, `weapons`, `pulls`, `time` and `before-danger` answer Phase 4's questions from the decision log |
 | `Party Model.js` | Node, run outside the game: the server's stat pipeline for Ulric and Riva over the game's own `data.js` and `calculate_item_properties()`. `calibrate`, `mana`, `slots`, `upgrades`, `achievements`, `json` (→ `party_model.json`, refreshed by the sink every 15 min) |
 | `Status Page.html` | The status page, served by the sink at `http://127.0.0.1:8787/`: `/api/live` every 1s (the characters' 📊 snapshots, memory only), `/api/status` every 15s |
-| `Watchdog.py` / `Install Watchdog.ps1` | DevTools-port watchdog: logs navigations and network outages, reloads silent windows. **Read `watchdog.jsonl` first after a dead character** |
+| `Probe.py` | `python Tools/Probe.py "<expression>"`: evaluates an expression in each character's bot frame over the client's DevTools port (read-only checks without a reload). The port and the anti-throttling flags are the client's WebView2 arguments in the registry (Design Notes → the client flags) |
 | `Lint.py` | `python Tools/Lint.py`: duplicate globals, orphaned ternaries, constant conditions |
 
 ---

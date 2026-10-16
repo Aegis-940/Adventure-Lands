@@ -123,7 +123,6 @@ function run_character(s) {
 
 	async function main_tick() {
 		errlog_beat("main_loop");
-		main_beat();
 		if (is_disabled(character)) {
 			if (typeof s.on_disabled === "function") s.on_disabled();
 			return 250;

@@ -889,18 +889,15 @@ Served by the sink: `/` is the page, `/api/status` its history and model data (b
 
 The page polls `/api/live` every second (character cards and the Session section, one tab per character, mirroring the 📊 popout) and `/api/status` every 15s. A poll still in flight skips the next tick. The sink is a `ThreadingHTTPServer`, so a 1.5 MB `errors.json` merge (still serialised by `STORE_LOCK`) never delays the live feed. A chart under the pointer is not redrawn, so its tooltip survives the 1s refresh. One series hue, status colours only with an icon and a label, light and dark themes from the dataviz reference palette. The kill-time line breaks across gaps over 90 minutes rather than drawing a line through hours with no kills.
 
-### `Watchdog.py`
+### `Probe.py`
 
-An outside-the-page watchdog over the client's DevTools port (9222). **Read `watchdog.jsonl` first after the next dead character.**
+`python Tools/Probe.py "<expression>" [--name Myras] [--file probe.js]` evaluates an expression in each character's bot frame over the client's DevTools port (9222) and prints the result. The expression sees the frame's globals directly (`character`, `al_boot()`, `al_loops()`); a Promise is awaited. It is how the bot is checked live without a reload, and it is read-only by intent.
 
-- Logs every navigation, document request/failure, crash and dialog per window to `watchdog.jsonl` (script-initiated reloads carry the calling function and line), and mirrors them into the sink's timeline.
-- Reloads a window whose main-loop heartbeat has been silent 5 min. The heartbeat is `main_beat_at`, stamped by the fighters' `main_tick` and Riff's upkeep loop (the `_errlog` heartbeat for a tab still on older code). It reloads only after it has seen that window alive, and at most 4 times an hour.
-- Live state is in `watchdog.json`. Create `watchdog.pause` in the repo root to observe without reloading.
-- Pings four layers every second: `router` (LAN), `isp` (the NordVPN server, sourced from the Ethernet address so it bypasses the tunnel; the kill switch blocks every other outside host), `tunnel` (1.1.1.1) and `game` (`de.adventure.land`). Each outage of 2+ misses is logged as `net_outage` with the other layers that were down at the time.
+### The client flags
 
-### `Install Watchdog.ps1`
+The client's WebView2 arguments live in `HKCU\Software\Policies\Microsoft\Edge\WebView2\AdditionalBrowserArguments`, value `Adventure Land.exe`: `--disable-backgrounding-occluded-windows --disable-background-timer-throttling --disable-renderer-backgrounding --disable-features=IntensiveWakeUpThrottling --remote-debugging-port=9222`. The first four stop a hidden window's timers being throttled; the port is what `Probe.py` uses. They take effect only after Steam **and** the client are fully restarted. A user-wide `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` would override them and open the port in every WebView2 app, so it must stay unset.
 
-Registers the watchdog as a logon task and sets the client's WebView2 flags (anti-throttling + `--remote-debugging-port=9222`) in `HKCU\Software\Policies\Microsoft\Edge\WebView2\AdditionalBrowserArguments` under `Adventure Land.exe`. It deletes the user-wide `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS`, which would override it and leak the port to every WebView2 app. Takes effect only after Steam **and** the client are fully restarted.
+**The watchdog is gone (10-16).** `Watchdog.py` reloaded a window whose main loop had been silent 5 minutes and logged every navigation and network outage. In 52 reloads it rescued a window at most once: 50 were on 10-08, every ~5 minutes for 12 hours, because Riff's window was showing a docs page. The game's own reload on disconnect works (28 of 30 single-character reloads from 10-11 were running again in 4–18s), and the freeze it was built for was fixed in 5aaa328. Its logon task was removed with the flags left as they were.
 
 ---
 

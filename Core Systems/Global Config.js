@@ -222,12 +222,6 @@ function read_state_cache(name) {
 // SECTION 2c: FLIGHT RECORDER STUBS — Error Log.js replaces these when it loads; absent, every call is a no-op
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-var main_beat_at = 0;
-
-function main_beat() {
-	main_beat_at = Date.now();
-}
-
 function errlog_record() { }
 function errlog_sample() { }
 function errlog_count() { }
