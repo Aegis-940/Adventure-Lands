@@ -71,7 +71,7 @@ function curse_expiring(e) {
 }
 
 function curse_mp_floor() {
-	return Math.max(character.max_mp * CURSE_MP_FLOOR_PCT, 2 * (character.mp_cost || 0) + skill_mp_cost("partyheal"));
+	return Math.max(character.max_mp * CURSE_MP_FLOOR_PCT, 2 * character.mp_cost + skill_mp_cost("partyheal"));
 }
 
 function party_focus_ids() {
@@ -223,7 +223,7 @@ function sample_heal_choice(fired, party_value, single_value, critical) {
 		party_value: Math.round(party_value),
 		single_value: Math.round(single_value),
 		party_cost: skill_mp_cost("partyheal"),
-		single_cost: Math.round(character.mp_cost || 0),
+		single_cost: Math.round(character.mp_cost),
 		mp_pct: +(character.mp / character.max_mp).toFixed(2),
 		target: cache.heal_target ? cache.heal_target.name : null
 	});

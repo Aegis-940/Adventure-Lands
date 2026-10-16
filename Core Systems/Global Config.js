@@ -254,7 +254,7 @@ const AUTOMATION_POLL_MS = 250;
 let _automation = { at: 0, on: true };
 
 function automation_key() {
-	return AUTOMATION_KEY_PREFIX + ((character && character.name) || "unknown");
+	return AUTOMATION_KEY_PREFIX + character.name;
 }
 
 function automation_enabled() {

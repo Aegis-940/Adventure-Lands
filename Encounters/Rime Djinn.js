@@ -470,11 +470,11 @@ function shelled_first(pool) {
 
 function shell_shot_damage(shelled, targets, profile) {
 	const apiercing = shot_apiercing(profile);
-	const explosion = character.explosion || 0;
+	const explosion = character.explosion;
 	const radius = explosion_radius(explosion);
 	let damage = 0;
 	for (const mob of targets) {
-		const hit = (character.attack || 0) * profile.multiplier * armour_factor(mob, apiercing);
+		const hit = character.attack * profile.multiplier * armour_factor(mob, apiercing);
 		if (mob === shelled) damage += hit;
 		else if (explosion && distance(mob, shelled) <= radius) damage += hit * (explosion / 100) * damage_multiplier(shelled.armor || 0);
 	}

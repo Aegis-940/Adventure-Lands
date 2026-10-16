@@ -59,7 +59,7 @@ function get_num_chests() {
 }
 
 function get_party_members() {
-	return Object.keys(get_party() || {});
+	return Object.keys(get_party());
 }
 
 function panic_mp_reserve() {

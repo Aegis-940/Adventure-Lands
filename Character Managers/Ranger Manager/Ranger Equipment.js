@@ -166,7 +166,7 @@ function chest_report() {
 	log_msg("debug", `[CHEST] engage below ${Math.round(band.engage)}, release above ${Math.round(band.release)} `
 		+ `— ${_mana_chest_engaged ? "engaged" : "idle"}`);
 	log_msg("debug", `[CHEST] wearing ${is_set_equipped(sets.mana) ? sets.mana : is_set_equipped(sets.dps) ? sets.dps : "neither"}, `
-		+ `steal ${character.manasteal || 0}%`);
+		+ `steal ${character.manasteal}%`);
 }
 
 var EQUIPMENT_RULES = {

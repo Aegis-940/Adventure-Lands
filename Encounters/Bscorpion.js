@@ -85,7 +85,7 @@ const CAMP_AURA_CLEARANCE = 130;
 function camp_engage_distance() {
 	const preferred = CAMP_STATION[character.name];
 	if (!preferred) return 0;
-	return Math.min(preferred, (character.range || 0) * CAMP_RANGE_CAP);
+	return Math.min(preferred, character.range * CAMP_RANGE_CAP);
 }
 
 function camp_hold_radius() {

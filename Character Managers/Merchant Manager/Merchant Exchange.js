@@ -43,7 +43,7 @@ var EXCHANGE_SKILLS = ["massexchangepp", "massexchange"];
 
 function begin_mass_exchange() {
 	for (const name of EXCHANGE_SKILLS) {
-		if (character.s?.[name]) return name;
+		if (character.s[name]) return name;
 		if (!can_use(name)) continue;
 		if (character.mp < (G.skills[name]?.mp ?? Infinity)) continue;
 		use_skill(name).catch(e => catcher(e, "begin_mass_exchange: " + name));

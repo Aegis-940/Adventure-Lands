@@ -64,7 +64,7 @@ function stuck_escape_check() {
 
 	const stuck_ms = now - _stuck_since;
 	if (stuck_ms < STUCK_REQUIRED_MS) return;
-	if (character.c?.town) return;
+	if (character.c.town) return;
 	if (now - _last_stuck_escape < STUCK_ESCAPE_COOLDOWN_MS) return;
 
 	if (monsters_targeting_me() > 0) return;

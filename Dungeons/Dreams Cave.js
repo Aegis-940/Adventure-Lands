@@ -301,7 +301,7 @@ function dreams_resume_dungeon() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function dreams_entry_blocker() {
-	const party = Object.keys(get_party() || {});
+	const party = Object.keys(get_party());
 	if (party.length !== DUNGEON_PARTY.length || !DUNGEON_PARTY.every(n => party.includes(n))) {
 		return `party is ${party.join(", ") || "empty"}`;
 	}

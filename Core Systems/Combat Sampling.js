@@ -10,18 +10,18 @@ const BUFFS_WORTH_LOGGING = ["warcry", "darkblessing", "mluck", "mcourage", "pow
 const _damage_windows = {};
 
 function weapon_label() {
-	const mainhand = character.slots?.mainhand?.name || "none";
-	const offhand = character.slots?.offhand?.name || "none";
+	const mainhand = character.slots.mainhand?.name || "none";
+	const offhand = character.slots.offhand?.name || "none";
 	return `${mainhand}/${offhand}`;
 }
 
 function firing_stats() {
 	return {
-		explosion: character.explosion || 0,
-		crit: character.crit || 0,
-		critdamage: character.critdamage || 0,
-		apiercing: character.apiercing || 0,
-		attack: Math.round(character.attack || 0)
+		explosion: character.explosion,
+		crit: character.crit,
+		critdamage: character.critdamage,
+		apiercing: character.apiercing,
+		attack: Math.round(character.attack)
 	};
 }
 
@@ -37,7 +37,7 @@ function damage_window_for(weapon, stats) {
 			critdamage: s.critdamage,
 			apiercing: s.apiercing,
 			attack: s.attack,
-			buffs: Object.keys(character.s || {}).filter(s => BUFFS_WORTH_LOGGING.includes(s)).join("+"),
+			buffs: Object.keys(character.s).filter(s => BUFFS_WORTH_LOGGING.includes(s)).join("+"),
 			direct: 0, splash: 0, burn: 0,
 			hits: 0, splashes: 0, ticks: 0,
 			splash_armor: 0, direct_armor: 0,
@@ -232,7 +232,7 @@ function tick_heal_window() {
 	if (!sample_hits_enabled() || !character.heal) return;
 	const w = heal_window();
 	w.ticks++;
-	if (character.s && character.s.poisoned) w.poisoned_ticks++;
+	if (character.s.poisoned) w.poisoned_ticks++;
 	if (character.max_mp && character.mp / character.max_mp < 0.25) w.mp_low_ticks++;
 }
 
@@ -247,8 +247,8 @@ function flush_heal_window() {
 	errlog_sample("heal", {
 		secs: +((Date.now() - w.at) / 1000).toFixed(1),
 		heal: Math.round(character.heal || 0),
-		mp_cost: Math.round(character.mp_cost || 0),
-		rpiercing: character.rpiercing || 0,
+		mp_cost: Math.round(character.mp_cost),
+		rpiercing: character.rpiercing,
 		single_casts: w.single_casts,
 		single_delivered: Math.round(w.single_delivered),
 		single_predicted: Math.round(w.single_predicted),

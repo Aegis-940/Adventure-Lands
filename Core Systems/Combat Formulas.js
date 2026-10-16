@@ -24,7 +24,7 @@ function heal_entity(target) {
 
 function heal_reduction(target, rpiercing) {
 	if (is_self_target(target)) return 1;
-	const pierce = rpiercing === undefined ? (character.rpiercing || 0) : rpiercing;
+	const pierce = rpiercing === undefined ? character.rpiercing : rpiercing;
 	return damage_multiplier(((target.resistance || 0) - pierce) / HEAL_RESISTANCE_DIVISOR);
 }
 
@@ -45,7 +45,7 @@ function heal_useful(target, base, rpiercing) {
 }
 
 function partyheal_base(level) {
-	const lvl = level === undefined ? (character.level || 0) : level;
+	const lvl = level === undefined ? character.level : level;
 	for (const [floor, base] of PARTYHEAL_LEVEL_LADDER) if (lvl >= floor) return base;
 	return 400;
 }
@@ -64,11 +64,11 @@ function heal_power_identity() {
 	const implied = Math.round((character.heal || 0) * output / 100 * fear_attack_factor(fear));
 	return {
 		heal: character.heal || 0,
-		attack: character.attack || 0,
+		attack: character.attack,
 		output,
 		fear,
 		implied,
-		agrees: Math.abs(implied - (character.attack || 0)) <= 2
+		agrees: Math.abs(implied - character.attack) <= 2
 	};
 }
 
@@ -77,7 +77,7 @@ function heal_power_identity() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function skill_mp_cost(name) {
-	return (G.skills[name].mp || 0) * (100 - (character.mp_reduction || 0)) / 100;
+	return (G.skills[name].mp || 0) * (100 - character.mp_reduction) / 100;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -131,14 +131,14 @@ function crit_multiplier(crit, critdamage) {
 }
 
 function estimate_my_damage(entity, multiplier) {
-	const info = (G.monsters && G.monsters[entity.mtype]) || {};
+	const info = G.monsters[entity.mtype] || {};
 	const armor = pierced_defense(entity.armor !== undefined ? entity.armor : info.armor, character.apiercing);
-	return (character.attack || 0) * damage_multiplier(armor) * (multiplier === undefined ? 1 : multiplier);
+	return character.attack * damage_multiplier(armor) * (multiplier === undefined ? 1 : multiplier);
 }
 
 function time_to_kill_ms(mob, hp, dps, party_factor, apiercing) {
 	if (!mob || !hp || dps <= 0) return Infinity;
-	const piercing = apiercing === undefined ? (character.apiercing || 0) : apiercing;
+	const piercing = apiercing === undefined ? character.apiercing : apiercing;
 	const armor = pierced_defense(mob.armor, piercing);
 	const effective = dps * damage_multiplier(armor) * (party_factor || 1);
 	return effective > 0 ? (hp / effective) * 1000 : Infinity;
@@ -151,11 +151,11 @@ const BURN_TICK_DIVISOR = 5;
 function burn_multiplier_at_dps(mob, chance, dps, party_factor, options) {
 	if (!chance) return 1;
 
-	const def = G.conditions?.burned;
+	const def = G.conditions.burned;
 	if (!def || !def.interval) return 1;
 
 	const opts = options || {};
-	const rate = opts.frequency || character.frequency || 1;
+	const rate = opts.frequency || character.frequency;
 	if (rate <= 0) return 1;
 
 	const hp = opts.hp === undefined ? (mob && mob.max_hp) : opts.hp;
@@ -178,7 +178,7 @@ function would_kill(entity, multiplier) {
 const EXPLOSION_RADIUS_DIVISOR = 3.6;
 
 function explosion_radius(explosion) {
-	const intensity = explosion === undefined ? (character.explosion || 0) : explosion;
+	const intensity = explosion === undefined ? character.explosion : explosion;
 	return intensity / EXPLOSION_RADIUS_DIVISOR;
 }
 

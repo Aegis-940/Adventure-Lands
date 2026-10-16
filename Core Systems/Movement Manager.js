@@ -32,7 +32,7 @@ function stop_movement(reason = "interrupted") {
 }
 
 function town_channelling() {
-	return !!(character.c && character.c.town);
+	return !!character.c.town;
 }
 
 function cancel_town_channel() {

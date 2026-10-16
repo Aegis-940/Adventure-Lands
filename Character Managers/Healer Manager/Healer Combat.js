@@ -27,14 +27,14 @@ function update_cache() {
 	broadcast_target(cache.target);
 	cache.party_members = get_party_members();
 	cache.heal_target = find_heal_target();
-	cache.farm_focus = choose_farm_focus(m => is_in_range(m, "curse") && safe_to_touch(m, character.explosion || 0));
+	cache.farm_focus = choose_farm_focus(m => is_in_range(m, "curse") && safe_to_touch(m, character.explosion));
 	sample_set_profiles(HEALER_PROFILE_SETS);
 	cache.last_update = performance.now();
 }
 
 function healer_target_context() {
 	return {
-		explosion: character.explosion || 0,
+		explosion: character.explosion,
 		party_factor: CONFIG.combat.party_dps_factor,
 		protect: CONFIG.combat.target_priority
 	};
@@ -44,7 +44,7 @@ function find_best_target() {
 	const forced = dungeon_focus_target();
 	if (forced) return forced;
 
-	const touchable = m => safe_to_touch(m, character.explosion || 0);
+	const touchable = m => safe_to_touch(m, character.explosion);
 
 	const shelled = rime_shell_casting();
 	if (shelled && touchable(shelled) && is_in_range(shelled)) return shelled;
@@ -91,7 +91,7 @@ function count_my_aggro() {
 }
 
 function self_heal_rate() {
-	return heal_delivered(character, character.heal) * (character.frequency || 0);
+	return heal_delivered(character, character.heal) * character.frequency;
 }
 
 function tank_can_take(added_dps) {
@@ -212,7 +212,7 @@ function zap_pull_target() {
 		type: home,
 		no_target: true,
 		max_distance: G.skills.zapperzap.range,
-		where: m => safe_to_touch(m, character.explosion || 0) && tank_can_take(monster_dps_on(m, character))
+		where: m => safe_to_touch(m, character.explosion) && tank_can_take(monster_dps_on(m, character))
 	}, { close: 1 }, healer_target_context());
 }
 

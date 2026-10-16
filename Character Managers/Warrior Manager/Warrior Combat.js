@@ -30,7 +30,7 @@ function sample_burn_state(target) {
 		attack: character.attack,
 		marked: !!(target.s && target.s.marked),
 		cursed: !!(target.s && target.s.cursed),
-		buffs: Object.keys(character.s || {}).filter(b => BUFFS_WORTH_LOGGING.includes(b)).join("+")
+		buffs: Object.keys(character.s).filter(b => BUFFS_WORTH_LOGGING.includes(b)).join("+")
 	});
 }
 
@@ -39,7 +39,7 @@ function cooperative_luck_logger() {
 		const mob = parent.entities[data.id];
 		if (!mob || !mob.cooperative) return;
 
-		const party_members = Object.keys(get_party() || {});
+		const party_members = Object.keys(get_party());
 		if (mob.target !== character.name && !party_members.includes(mob.target)) return;
 
 		log_msg("event", `${mob.mtype} died with ${character.luckm} luck`);
@@ -51,7 +51,7 @@ function find_best_target() {
 	if (forced) return forced;
 
 	const gear = swing_gear();
-	const explosion = gear ? gear.explosion : (character.explosion || 0);
+	const explosion = gear ? gear.explosion : character.explosion;
 	const touchable = mob => warrior_may_engage(mob) && safe_to_touch(mob, explosion);
 	const max_dist = dungeon_setting("melee_engage_radius", dungeon_engage_radius(CONFIG.combat.engage_radius));
 

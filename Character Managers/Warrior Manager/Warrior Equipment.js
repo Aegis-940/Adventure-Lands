@@ -8,7 +8,7 @@
 
 function cleave_period() {
 	const cooldown = (G.skills.cleave.cooldown || 1200) / 1000;
-	const spare = Math.max(0, CONFIG.equipment.mana_income_per_sec - character.mp_cost * (character.frequency || 1));
+	const spare = Math.max(0, CONFIG.equipment.mana_income_per_sec - character.mp_cost * character.frequency);
 	const budget = spare * (1 - CONFIG.equipment.skill_mana_reserve);
 	if (budget <= 0) return Infinity;
 	return Math.max(cooldown, skill_mp_cost("cleave") / budget);
@@ -58,8 +58,8 @@ function model_prediction() {
 	const target = cache.target;
 	if (!target) return null;
 
-	const explosion = character.explosion || 0;
-	const raw_dps = (character.attack || 0) * (character.frequency || 1);
+	const explosion = character.explosion;
+	const raw_dps = character.attack * character.frequency;
 
 	return {
 		splash: explosion > 0 ? splash_bonus(target, explosion, 0) : 0,

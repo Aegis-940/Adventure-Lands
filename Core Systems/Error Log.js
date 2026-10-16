@@ -32,7 +32,7 @@ const _errlog_beats = {};
 const _errlog_beats_last = {};
 
 function _errlog_key() {
-	return ERRLOG_KEY + ((character && character.name) || "unknown");
+	return ERRLOG_KEY + character.name;
 }
 
 function _errlog_fmt(e) {
@@ -60,9 +60,9 @@ function _errlog_context() {
 			x: Math.round(character.x), y: Math.round(character.y),
 			hp: character.hp, max_hp: character.max_hp,
 			mp: character.mp, max_mp: character.max_mp,
-			cc: Math.round(character.cc || 0),
+			cc: Math.round(character.cc),
 			rip: !!character.rip,
-			ping: (parent.pings && parent.pings.length) ? Math.round(Math.min(...parent.pings)) : null,
+			ping: parent.pings.length ? Math.round(Math.min(...parent.pings)) : null,
 			panicking: !!panicking
 		};
 	} catch (e) { return null; }
@@ -281,7 +281,7 @@ function _errlog_lag_probe() {
 	const now = Date.now();
 	if (_errlog_lag_due) errlog_time("lag eventloop", now - _errlog_lag_due);
 	try {
-		if (parent.pings && parent.pings.length) errlog_time("net ping", Math.min(...parent.pings));
+		if (parent.pings.length) errlog_time("net ping", Math.min(...parent.pings));
 	} catch (e) { }
 	_errlog_lag_due = now + 500;
 	return 500;
@@ -296,7 +296,7 @@ function _errlog_start_session() {
 	_errlog.session = {
 		started: Date.now(),
 		build: _errlog_build(),
-		character: (character && character.name) || "unknown"
+		character: character.name
 	};
 	_errlog_dirty = true;
 }
@@ -461,7 +461,7 @@ function _errlog_sample_vitals() {
 			t: v.t,
 			build: _errlog_build(),
 			threat: _errlog_threat(),
-			status: (() => { try { return Object.keys(character.s || {}); } catch (e) { return null; } })(),
+			status: Object.keys(character.s),
 			leading_up_to_it: _errlog_vitals.slice(),
 			recent_heals: _errlog_heals.slice()
 		});
@@ -517,7 +517,7 @@ function _errlog_push() {
 	try {
 		const _tp = Date.now();
 		const _body = JSON.stringify({
-				character: (character && character.name) || "unknown",
+				character: character.name,
 				build: _errlog_build(),
 				session: _errlog.session,
 				records: _errlog.records,

@@ -10,12 +10,12 @@ var HEALER_PROFILE_SETS = ["luck", "single_target", "fireres"];
 
 function live_heal_profile() {
 	return {
-		heal: character.heal || 0,
-		attack: character.attack || 0,
-		frequency: character.frequency || 1,
-		rpiercing: character.rpiercing || 0,
+		heal: character.heal,
+		attack: character.attack,
+		frequency: character.frequency,
+		rpiercing: character.rpiercing,
 		int: character.int || 0,
-		mp_cost: character.mp_cost || 0
+		mp_cost: character.mp_cost
 	};
 }
 
@@ -31,8 +31,8 @@ function healer_set_value(set_name, target) {
 }
 
 function heal_marginals() {
-	const base = character.heal || 0;
-	const pierce = character.rpiercing || 0;
+	const base = character.heal;
+	const pierce = character.rpiercing;
 	const allies = party_allies().filter(ally => ally !== character);
 
 	let best_rpiercing = 0;
@@ -58,7 +58,7 @@ function heal_marginals() {
 
 function heal_report() {
 	const id = heal_power_identity();
-	log_msg("debug", `[HEAL] power=${Math.round(id.heal)} attack=${Math.round(id.attack)} output=${id.output} int=${character.int} rpierce=${character.rpiercing || 0}`);
+	log_msg("debug", `[HEAL] power=${Math.round(id.heal)} attack=${Math.round(id.attack)} output=${id.output} int=${character.int} rpierce=${character.rpiercing}`);
 	log_msg(id.agrees ? "debug" : "error", `[HEAL] heal x output/100 = ${Math.round(id.implied)} vs attack ${Math.round(id.attack)} — ${id.agrees ? "identity holds" : "IDENTITY BROKEN"}`);
 
 	for (const name of cache.party_members || []) {

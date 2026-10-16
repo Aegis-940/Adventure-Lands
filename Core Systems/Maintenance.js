@@ -15,7 +15,7 @@ function potion_loop() {
 }
 
 async function potion_tick() {
-	if (character.c && (character.c.fishing || character.c.mining || character.c.town)) {
+	if (character.c.fishing || character.c.mining || character.c.town) {
 		return 200;
 	}
 
@@ -68,7 +68,7 @@ function booster_running(item) {
 }
 
 function fortune_booster_slot() {
-	if (!CONFIG.looting || !CONFIG.looting.equip_gold_gear) return null;
+	if (!CONFIG.looting.equip_gold_gear) return null;
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
 		if (item && FORTUNE_BOOSTERS.includes(item.name)) return i;

@@ -15,10 +15,10 @@ function incoming_damage_amp(mob) {
 
 function live_gear(explosion) {
 	return {
-		attack: character.attack || 0,
-		frequency: character.frequency || 1,
-		explosion: explosion === undefined ? (character.explosion || 0) : explosion,
-		apiercing: character.apiercing || 0,
+		attack: character.attack,
+		frequency: character.frequency,
+		explosion: explosion === undefined ? character.explosion : explosion,
+		apiercing: character.apiercing,
 		burn_chance: worn_ability_chance("burn"),
 	};
 }

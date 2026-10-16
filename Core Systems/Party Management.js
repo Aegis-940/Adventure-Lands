@@ -156,7 +156,7 @@ function disengage_check() {
 function party_manager() {
 	const am_leader = character.name === PARTY_LEADER;
 	const am_member = PARTY_MEMBERS.includes(character.name);
-	const current_party = Object.keys(parent.party || {});
+	const current_party = Object.keys(parent.party);
 
 	if (am_leader) {
 		current_party.filter(party_excluded).forEach(kick_party_member);

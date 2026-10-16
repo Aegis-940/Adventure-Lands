@@ -71,7 +71,7 @@ function danger_context() {
 		biggest: biggest && { from: biggest.from, damage: biggest.damage, source: biggest.source, crit: biggest.crit },
 		last_hit: last && { from: last.from, damage: last.damage, source: last.source, ms_ago: now - last.t },
 		targeting, nearby,
-		debuffs: Object.keys(character.s || {}).filter(k => G.conditions[k] && G.conditions[k].debuff),
+		debuffs: Object.keys(character.s).filter(k => G.conditions[k] && G.conditions[k].debuff),
 		party: danger_party(),
 		potions: { hp: quantity("hpot1"), mp: quantity("mpot1") },
 		decisions: recent_decisions(),

@@ -114,7 +114,7 @@ function dungeon_telemetry_tick() {
 		smart_moving: !!smart.moving,
 		goal: current_goal_label(),
 		bailing: dungeon_bailing(),
-		channelling: !!(character.c && character.c.town),
+		channelling: town_channelling(),
 		kills: Object.assign({}, _dungeon_kills),
 	});
 

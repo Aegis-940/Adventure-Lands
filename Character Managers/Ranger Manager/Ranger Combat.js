@@ -6,7 +6,7 @@ function should_attack_mob(mob) {
 	if (!mob || mob.dead) return false;
 
 	if (!encounter_allows("attack", mob)) return false;
-	if (!safe_to_touch(mob, character.explosion || 0)) return false;
+	if (!safe_to_touch(mob, character.explosion)) return false;
 
 	if (encounter_rank(mob) > 0) return true;
 
@@ -38,7 +38,7 @@ function update_target_cache() {
 	const pool = monsters_matching({ where: should_attack_mob });
 
 	const context = {
-		explosion: character.explosion || 0,
+		explosion: character.explosion,
 		party_factor: CONFIG.combat.party_dps_factor
 	};
 
@@ -92,7 +92,7 @@ function shot_usable(profile) {
 }
 
 function shot_apiercing(profile) {
-	const base = 2 * (character.apiercing || 0);
+	const base = 2 * character.apiercing;
 	if (!profile.pierces) return base;
 	return base + (G.skills[profile.name].apiercing || 0);
 }
@@ -104,15 +104,15 @@ function armour_factor(mob, apiercing) {
 function burn_multiplier(mob, skill_multiplier) {
 	if (would_kill(mob, skill_multiplier)) return 1;
 
-	const dps = (character.attack || 0) * (character.frequency || 1);
+	const dps = character.attack * character.frequency;
 	return burn_multiplier_at_dps(mob, worn_ability_chance("burn"), dps, CONFIG.combat.party_dps_factor, { hp: remaining_hp(mob) });
 }
 
 function target_modifier(mob, skill_multiplier, apiercing) {
 	const pierce = apiercing === undefined ? shot_apiercing(SHOT_PROFILES[0]) : apiercing;
-	const explosion = character.explosion || 0;
+	const explosion = character.explosion;
 	if (explosion > 0) {
-		const hit = (character.attack || 0) * skill_multiplier * armour_factor(mob, pierce);
+		const hit = character.attack * skill_multiplier * armour_factor(mob, pierce);
 		return 1 + splash_bonus(mob, explosion, hit);
 	}
 	return burn_multiplier(mob, skill_multiplier);
@@ -122,7 +122,7 @@ function model_prediction() {
 	const target = cache.targets && cache.targets.in_range && cache.targets.in_range[0];
 	if (!target) return null;
 
-	const explosion = character.explosion || 0;
+	const explosion = character.explosion;
 
 	return {
 		splash: explosion > 0 ? splash_bonus(target, explosion, 0) : 0,
@@ -159,17 +159,17 @@ function mana_price() {
 }
 
 function shot_stealable_damage(mobs, profile, hits, apiercing) {
-	const explosion = character.explosion || 0;
+	const explosion = character.explosion;
 	let total = 0;
 	for (let i = 0; i < hits; i++) {
-		const hit = (character.attack || 0) * profile.multiplier * armour_factor(mobs[i], apiercing);
+		const hit = character.attack * profile.multiplier * armour_factor(mobs[i], apiercing);
 		total += explosion > 0 ? hit * (1 + splash_bonus(mobs[i], explosion, hit)) : hit;
 	}
 	return total;
 }
 
 function manasteal_rebate(mobs, profile, hits, apiercing) {
-	const steal = (character.manasteal || 0) / 100;
+	const steal = character.manasteal / 100;
 	if (steal <= 0) return 0;
 	return steal * shot_stealable_damage(mobs, profile, hits, apiercing);
 }
@@ -240,7 +240,7 @@ function find_cupid_target() {
 		? CONFIG.combat.cupid_engage_pct
 		: CONFIG.combat.cupid_engage_pct_no_healer;
 	const release = Math.min(1, engage + CONFIG.combat.cupid_release_margin);
-	const party = Object.keys(get_party() || {});
+	const party = Object.keys(get_party());
 
 	let target = null, min_pct = 1;
 

@@ -127,7 +127,7 @@ function get_full_character_state() {
 		stomp_ready_at: stomp_ready_at,
 		free_slots: free_inventory_slots(),
 		loose_slots: loose_loot(0).length,
-		conditions: character.s || {},
+		conditions: character.s,
 		last_seen: Date.now(),
 	};
 }

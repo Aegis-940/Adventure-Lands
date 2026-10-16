@@ -71,7 +71,7 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 
 			await delay(200);
 			let channel_wait_ms = 0;
-			while (!character.rip && character.c && character.c[skill_name]) {
+			while (!character.rip && character.c[skill_name]) {
 				await delay(200);
 				channel_wait_ms += 200;
 				if (channel_wait_ms >= 15000) {

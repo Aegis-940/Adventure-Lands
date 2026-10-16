@@ -173,7 +173,7 @@ function metrics_snapshot() {
 			ctype: character.ctype, level: character.level, xp: character.xp, max_xp: parent.G.levels[character.level],
 			hp: character.hp, max_hp: character.max_hp, mp: character.mp, max_mp: character.max_mp,
 			map: character.map, x: Math.round(character.x), y: Math.round(character.y), rip: !!character.rip,
-			goal: own_state ? own_state.goal : null, panicking: !!panicking, wallet: character.gold, cc: Math.round(character.cc || 0),
+			goal: own_state ? own_state.goal : null, panicking: !!panicking, wallet: character.gold, cc: Math.round(character.cc),
 			target: target ? (target.mtype || target.name) : null,
 		},
 		gold: { total: metrics.gold, largest: metrics.largest_gold },

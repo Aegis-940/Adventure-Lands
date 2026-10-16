@@ -34,7 +34,7 @@ function skill_pays(value, mana, target) {
 	if (value <= 0 || mana <= 0) return false;
 	if (mana_free()) return true;
 	const reference = target_modifier(target, 1) || 1;
-	const lambda = mana_price() * (character.attack || 0) * reference;
+	const lambda = mana_price() * character.attack * reference;
 	return value > lambda * mana;
 }
 
@@ -43,7 +43,7 @@ function mark_value(target) {
 	if (!cond.incdmgamp) return 0;
 	if (target.s?.marked) return 0;
 
-	const own_dps = (character.attack || 0) * (character.frequency || 1);
+	const own_dps = character.attack * character.frequency;
 	const ttk = time_to_kill_ms(target, remaining_hp(target), own_dps, CONFIG.combat.party_dps_factor);
 	const seconds = Math.min(cond.duration || 0, ttk) / 1000;
 
@@ -53,7 +53,7 @@ function mark_value(target) {
 
 function supershot_value(target) {
 	const multiplier = G.skills.supershot.damage_multiplier;
-	return Math.min(multiplier * (character.attack || 0) * (target_modifier(target, multiplier) || 1), remaining_hp(target));
+	return Math.min(multiplier * character.attack * (target_modifier(target, multiplier) || 1), remaining_hp(target));
 }
 
 var _last_sent_target = null;

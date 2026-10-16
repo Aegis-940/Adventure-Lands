@@ -98,7 +98,7 @@ function profile_materially_differs(previous, profile) {
 
 function profile_conditions_ok() {
 	if (character.fear) return false;
-	const active = character.s || {};
+	const active = character.s;
 	return !PROFILE_EXCLUDED_BUFFS.some(buff => active[buff]);
 }
 
@@ -164,12 +164,12 @@ function set_dps(profile) {
 }
 
 function profile_apiercing(profile) {
-	return profile.apiercing === undefined ? (character.apiercing || 0) : profile.apiercing;
+	return profile.apiercing === undefined ? character.apiercing : profile.apiercing;
 }
 
 function hit_against(mob, attack, apiercing) {
 	if (!mob) return 0;
-	const piercing = apiercing === undefined ? (character.apiercing || 0) : apiercing;
+	const piercing = apiercing === undefined ? character.apiercing : apiercing;
 	return (attack || 0) * damage_multiplier(pierced_defense(mob.armor, piercing));
 }
 
@@ -191,7 +191,7 @@ function set_damage_value(set_name, pool, width) {
 	const dps = set_dps(profile);
 	const chance = set_ability_chance(set_name, "burn");
 	const piercing = profile_apiercing(profile);
-	const party_factor = (CONFIG.combat && CONFIG.combat.party_dps_factor) || 1;
+	const party_factor = CONFIG.combat.party_dps_factor;
 
 	const each = pool.map(mob => {
 		const burn = burn_multiplier_at_dps(mob, chance, dps, party_factor,
@@ -286,7 +286,7 @@ function smoothed_set_value(set_name, raw, now) {
 function min_swap_interval_ms() {
 	const attacks = CONFIG.equipment.weapon_min_swap_attacks ?? 0;
 	if (!attacks) return 0;
-	return (attacks * 1000) / (character.frequency || 1);
+	return (attacks * 1000) / character.frequency;
 }
 
 function sample_weapon_choice(sets, value_of, valued, from, to, now, context) {

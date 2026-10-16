@@ -18,7 +18,7 @@ function engage_hp_ok(e) {
 let _holiday_tried = false;
 
 function event_goal() {
-	if (parent?.S?.holidayseason && !character?.s?.holidayspirit && !_holiday_tried) {
+	if (parent.S.holidayseason && !character.s.holidayspirit && !_holiday_tried) {
 		return {
 			label: "holiday-tree",
 			to: "town",
@@ -29,7 +29,7 @@ function event_goal() {
 			},
 		};
 	}
-	if (character?.s?.holidayspirit) _holiday_tried = false;
+	if (character.s.holidayspirit) _holiday_tried = false;
 
 	const target = best_event_target();
 	boss_field_watch(target);

@@ -174,13 +174,13 @@ let _loot_last = 0;
 let _looting = false;
 
 function gold_gear_wanted() {
-	return !!CONFIG.looting?.equip_gold_gear && _looting;
+	return CONFIG.looting.equip_gold_gear && _looting;
 }
 
 function looting_blocked() {
-	if (!CONFIG.looting?.enabled) return "disabled";
+	if (!CONFIG.looting.enabled) return "disabled";
 	if (character.cc > COOLDOWNS.cc) return "cc";
-	if ((character.s?.penalty_cd?.ms || 0) > 0) return "penalty_cd";
+	if (character.s.penalty_cd?.ms > 0) return "penalty_cd";
 	return null;
 }
 

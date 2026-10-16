@@ -7,7 +7,7 @@ const PORCUPINE_SPLASH_MARGIN = 40;
 function porcupines_in_splash() {
 	return monsters_matching({
 		type: "porcupine",
-		max_distance: (character.range || 0) + PORCUPINE_SPLASH_MARGIN,
+		max_distance: character.range + PORCUPINE_SPLASH_MARGIN,
 		point_for_distance_check: [character.x, character.y]
 	}).length > 0;
 }
