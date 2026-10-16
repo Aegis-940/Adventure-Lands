@@ -30,7 +30,7 @@ The four role entry points are boot steps too, so `run_character()` starts after
 
 ### `Scheduler.js`
 
-`every(name, { ms, kind, beat, after, fixed }, fn)` is the only loop. Without `fixed` it runs the body at once (or `after` ms), awaits it, and schedules the next run after the delay the body returns: a number, `false` to stop and deregister, or nothing for `ms`. That is exactly what the hand-written loops did with `setTimeout(self, delay)` and `while (true) { …; await delay(ms) }`, so converting them (step 1.2b, 2026-10-15) left every delay unchanged: the harness boots each role on both builds, advances three rounds of timers, and the scheduled delays match one for one. `fixed: true` keeps plain `setInterval` timing for the loops that had it.
+`every(name, { ms, kind, beat, after, fixed, retry }, fn)` is the only loop. Without `fixed` it runs the body at once (or `after` ms), awaits it, and schedules the next run after the delay the body returns: a number, `false` to stop and deregister, or nothing for `ms`. That is exactly what the hand-written loops did with `setTimeout(self, delay)` and `while (true) { …; await delay(ms) }`, so converting them (step 1.2b, 2026-10-15) left every delay unchanged: the harness boots each role on both builds, advances three rounds of timers, and the scheduled delays match one for one. `fixed: true` keeps plain `setInterval` timing for the loops that had it.
 
 A body that throws is caught here (`catcher(e, name)`, counted in `al_loops()`) and the loop goes on after `retry` if it has one, else `ms`. The action and skill loops use `retry: TICK_RATE.retry` (10ms), which their bodies used to get by wrapping themselves in a try/catch; since 10-16 no loop body or socket handler catches its own errors, so every one reaches `catcher` and `errors.json`. A hand-written loop that threw before its own `try` used to stop for good. Bodies that set their own retry delay in a `catch` (the combat loops' `TICK_RATE.retry`) keep it.
 
@@ -289,7 +289,7 @@ Why the native town edge is not used is in [`Game API Reference.md`](Game%20API%
 
 ### `Combat Utilities.js`
 
-Monster and entity queries (`monsters_matching()`, `get_num_targets()`, `get_num_chests()`), boss and party state predicates (`is_coop_boss()`, `find_active_boss()`, `boss_engageable()`, `should_pause_combat_loop()`), and the lethal-monster rule.
+Monster and entity queries (`monsters_matching()`, `monster_counts_near()`, `get_num_chests()`), boss and party state predicates (`is_coop_boss()`, `find_active_boss()`, `boss_engageable()`, `should_pause_combat_loop()`), and the lethal-monster rule.
 
 **Lethal monsters.** A monster with no target turns on whoever touches it first, with a hit or a splash. So `must_not_touch()`/`safe_to_touch()` keep every fighter's targeting, splash, cleave, agitate, stomp and Myras's absorb off any untargeted monster whose hit (`monster_hit_on()`) is half their max HP or more, or whose hits in one second (hit × `frequency`) reach their whole max HP. `lethal_pursuer()` drives the `evade` movement goal when one targets them anyway, at any distance: scare, then keep stepping directly away until it lets go (scare, or the server's ~608px chase leash). A fighter walking back to Myras with it in tow drags it across the map.
 
@@ -458,7 +458,7 @@ A follower in turn does not pursue while she is live on his map, beyond the rang
 
 ### `Character Runner.js` (the action runner)
 
-`run_action(action)` is one pass of a role's action loop, started by `start_action_loop(action)`. The preamble is shared: the gate (`combat` returns 100ms while paused, `alive` doesn't stop, as Myras heals through panic), 50ms while disabled, `update_cache()`, the role's `before` (Myras's and Riva's temporal surge, 100ms when it fires), and a caught error retries at `TICK_RATE.retry`. The role's `act(ms)` gets the attack cooldown and chooses one basic action through `run_basic_action()`; it returns a delay, or nothing for the role's cadence (`WARRIOR_ACTION` and `HEALER_ACTION` 10ms, `RANGER_ACTION` 5ms, Loop Cadence §3).
+`run_action(action)` is one pass of a role's action loop, started by `start_action_loop(action)`. The preamble is shared: the gate (`combat` returns 100ms while paused, `alive` doesn't stop, as Myras heals through panic), 50ms while disabled, `update_cache()`, the role's `before` (Myras's and Riva's temporal surge, 100ms when it fires), and a caught error retries at `TICK_RATE.retry`. The role's `act(ms)` gets the attack cooldown and chooses one basic action through `run_basic_action()`; it returns a delay, or nothing for the role's cadence (`WARRIOR_ACTION` and `HEALER_ACTION` 10ms, `RANGER_ACTION` 5ms; why, in `Scheduler.js`, loop rates).
 
 ### `Skill Runner.js`
 

@@ -16,7 +16,7 @@ Every finding below comes from a read of the source on 2026-10-16 at `eb4ea67`, 
 | C5 | Native game functions | a few items, each marked ⚠ | rows 1–8 **done** 2026-10-16; the ⚠ rows are queued |
 | C6 | Party state and the information the bot gathers | a few items, each marked ⚠ | C6.3–C6.6 **done** 2026-10-16; `party_state()` (⚠) queued |
 | C7 | Simplification | none | **done** 2026-10-16 (two items judged not worth it, below) |
-| C8 | Close-out | none | not started |
+| C8 | Close-out | none | counters and docs done 2026-10-16; the plan stays until the queued behaviour changes are live and measured |
 
 Update this table and the phase checklists in the same commit as the work.
 
@@ -305,7 +305,13 @@ Ranked by value. "Same" means the two implementations were read side by side and
 
 **Checklist**
 - [x] C5 rows 1–8 (no behaviour change): `character.esize` for free slots (17 sites; the harness fills `esize`/`isize` as the server does), `damage_multiplier()` (C2.3), `quantity()` and `locate_item()` for nine hand loops (`inventory_slot()` stays as a thin adapter, because `upgrade()` wants `null`, not `-1`, for no offering), `calculate_item_grade()`, `get_nearest_monster()` for the dungeon alive checks, `transport()` in `passage_step`, and `sleep()` for the 54 `delay()` calls
-- [ ] C5 rows 9–13, each with the user's go-ahead and a `compare`. Row 9 (`character.targets`) is on `main` (2026-10-16) and goes live at the next reload; measure it before moving the next one from `cleanup-queue`
+- [ ] C5 rows 9–13 and C6.2, each with the user's go-ahead (given 2026-10-16) and a `compare` before the next:
+  1. Row 9 `character.targets`: **on `main`**, live at the next reload
+  2. Row 10 potions on the real cooldown: on `cleanup-queue` (commits 510d6e3 and e47c023, moved together)
+  3. C6.2 `party_state()`: on `cleanup-queue` (81bb3c3)
+  4. Rows 11–13 together: mluck range by `is_in_range()`, bscorpions picked by `get_nearest_monster()`, the event `join()`: on `cleanup-queue` (671a2b8). The bank sort keeps its raw swap: it is exactly `bank_retrieve()`'s payload, and the wrapper refuses a swap onto an empty bank slot, which the sort needs
+
+  To move one: `git cherry-pick <sha>` onto `main`, run the every-commit checks, push, and wait for the reload and its `compare` before the next.
 
 ---
 
@@ -423,6 +429,8 @@ Most of the longest functions are long for reasons Design Notes records, and the
 - CLAUDE.md, Architecture and Design Notes describe the code as it is. Design Notes has no section for deleted code.
 - The ⚠ items each have a recorded verdict, or are recorded as declined.
 - This plan is deleted. Anything left undone moves to Design Notes' "Ideas not yet measured".
+
+**Where it stands (2026-10-16).** Unreferenced globals 27 → 0; empty catches 43 → 30 (the recorders' never-throw contract and catches that absorb a normal refusal from the game); `console.error` 11 → 1 (Kernel's boot failure). All three are on the ratchet. CLAUDE.md, Architecture and Design Notes describe the code as it is. What's left is the rollout of the queued behaviour changes in C5, then this plan is deleted and the two items judged not worth it (C7.8, C7.10) stay recorded in Design Notes' Ideas if still wanted.
 
 ---
 
