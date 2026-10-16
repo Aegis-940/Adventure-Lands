@@ -800,8 +800,8 @@ Curse, absorb, party heal, dark blessing, zap.
 `EQUIPMENT_RULES` resolvers and the booster swap.
 
 **One rule owns the fight.** At the bscorpion camp, and while a boss with her `tank` trait is in sight (`tank_boss_nearby()`), one rule, `fight`, owns every swapped slot. The loadout/orb/ring rules stand down while `fight_gear_owned()`; panic still takes the orb. So each switch is a single `equip_batch`:
-- `camp_fight` (firestaff, exoarm, loaded die, zapper, coat+10, plus the amulet she wore, remembered and kept off the loot list) while `bscorpion_damage_window()` holds
-- `camp_luck` (lmace, mshield, rabbit's foot, ring of luck, Lucky cdragon, spookyamulet+2; `camp_gear_set()` keeps only the pieces she holds, and she holds no ring of luck) only from then until the kill (`luck_window()`, over `luck_kill_target()`: the scorpion at the camp, the boss elsewhere, where `camp_fight` goes on without the zapper since the fight rule only zaps at the camp)
+- `camp_fight` (firestaff, exoarm, loaded die, zapper, coat+10, two cearring+3, plus the amulet she wore, remembered and kept off the loot list) while `bscorpion_damage_window()` holds
+- `camp_luck` (lmace, mshield, rabbit's foot, ring of luck, Lucky cdragon, spookyamulet+2, two cloverstud+0 (6 luck each, from 10-16); `camp_gear_set()` keeps only the pieces she holds, and she holds no ring of luck) only from then until the kill (`luck_window()`, over `luck_kill_target()`: the scorpion at the camp, the boss elsewhere, where `camp_fight` goes on without the zapper since the fight rule only zaps at the camp)
 
 The moment the target dies she goes straight back to `camp_fight`, so that swap's penalty lands in the respawn, not the next pull.
 

@@ -113,6 +113,8 @@ var equipment_sets = {
 		{ item_name: "cave_loaded_die", slot: "orb", level: 1, l: "l" },
 		{ item_name: "zapper", slot: "ring2", level: 0, l: "u" },
 		{ item_name: "coat", slot: "chest", level: 10, l: "l" },
+		{ item_name: "cearring", slot: "earring1", level: 3, l: "" },
+		{ item_name: "cearring", slot: "earring2", level: 3, l: "" },
 	],
 	camp_luck: [
 		{ item_name: "lmace", slot: "mainhand", level: 8, l: "" },
@@ -121,6 +123,8 @@ var equipment_sets = {
 		{ item_name: "ringofluck", slot: "ring2", level: 2, l: "l" },
 		{ item_name: "cdragon", slot: "chest", level: 0, l: "l" },
 		{ item_name: "spookyamulet", slot: "amulet", level: 2, l: "l" },
+		{ item_name: "cloverstud", slot: "earring1", level: 0, l: "" },
+		{ item_name: "cloverstud", slot: "earring2", level: 0, l: "" },
 	],
 	panic: PANIC_ORB_SET,
 	orb_luck: [
