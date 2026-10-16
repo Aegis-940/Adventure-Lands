@@ -77,7 +77,7 @@ Core Systems/                         shared by all four characters
 Encounters/                           everything specific to one monster, spawn or boss
     Encounter Registry.js             stage 2: encounter(name, spec) and the questions code asks
     Bscorpion.js, Rime Djinn.js       required: the current farm; the Rime Djinn shell
-    Phoenix.js                        required: the on-demand phoenix hunt, and the earrings kept for clover studs
+    Phoenix.js                        required: the on-demand phoenix hunt (solo kills on three beats), and the earrings kept for clover studs
     Porcupine.js, Mummy.js, Dryad.js, Fireroamer.js, Targetron-Sparkbot.js,
     Halloween Bosses.js, Crabxx.js, Monster Rules.js        optional, one per encounter
 Dungeons/

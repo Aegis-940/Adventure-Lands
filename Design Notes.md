@@ -228,15 +228,26 @@ The on-demand phoenix hunt. `phoenix_hunt()`, in any character's console, sets t
 
 Every post was checked as walkable against the game's geometry. Monster aggro reaches about 64px (a 32px spatial hash, then the monster's range), so a post beside a box isn't pulled into it. Mr. Pumpkin's box is 330px from the halloween post, and Ulric's taunt needs Myras within absorb range, so he never taunts it alone.
 
-**Shared watch.** Each fighter writes what it sees to `AL_phoenix_watch_<name>`: every 500ms, and at once on a kill. The record holds its sighting (id, map, position, when first seen), the last kill it saw, and when it last stood within 60px of each post without seeing the phoenix. It is reloaded from storage at boot, so a reload doesn't forget the last kill. `phoenix_view()` merges the three records, cached for 250ms. A sighting older than 4s, or of a phoenix someone saw die, is dropped. Each record has one writer, so the three iframes never race on a key. A kill is the socket `death` of the phoenix being watched, or a `kill_credit` for one.
+**Shared watch.** Each fighter writes what it sees to `AL_phoenix_watch_<name>`: every 500ms, and at once on a kill. The record holds its sighting (id, map, position, when first seen), the last kill it saw, and when it last stood within 60px of each post without seeing the phoenix. It is reloaded from storage at boot, so a reload doesn't forget the last kill. `phoenix_view()` merges the three records, cached for 250ms. A sighting older than 4s, or of a phoenix someone saw die, is dropped. Each record has one writer, so the three iframes never race on a key. A kill is the socket `death` of the phoenix being watched. The death carries every player's coop points, from which the kill record takes the party's share. `kill_credit` isn't used: on a coop kill it arrives before the death and has no points.
 
 **The goal** (`phoenix_goal()`, the spawn encounter's `goal`):
 1. In sight: fight it, with `{ local: "phoenix", pursuit: true, event: "phoenix" }`. `pursued_boss()` hands it to Ulric's and Myras's targeting, the pursuit keeps combat running, and Riva ranks it first (`rank`). If no straight line reaches it, travel to it.
 2. Within 5s of a kill, with chests on the ground: `phoenix-loot`, a passive `loot` goal.
-3. A fresh sighting by anyone: `phoenix-gather`, travel to it. Each fighter takes its own route and town shortcut.
-4. Otherwise: the post of its beat checked longest ago, nearest first on a tie.
+3. Otherwise: the post of its beat checked longest ago, nearest first on a tie.
 
-A check only counts if it was made after the earliest respawn following the last kill anyone saw, plus a 2s margin. Right after a kill every check is stale, so each fighter goes to its nearest post and waits there for the respawn. Once the respawn is due, the post it stands on becomes fresh and it walks to the other one. So while nobody has the phoenix in sight, the beats patrol. With no kill seen (at the start of the hunt, or after someone else's kill), the oldest check still goes first, so the patrol covers every post.
+A check only counts if it was made after the earliest respawn following the last kill anyone saw, plus a 2s margin, and no check counts while someone has the phoenix in sight. Right after a kill, or while another fighter is killing it, every check is stale, so each fighter goes to its nearest post and waits there for the respawn. Once the respawn is due, the post it stands on becomes fresh and it walks to the other one. So while nobody has the phoenix in sight, the beats patrol. With no kill seen (at the start of the hunt, or after someone else's kill), the oldest check still goes first, so the patrol covers every post.
+
+**The finder kills it alone (10-16).** The first build gathered all three on every sighting. That was dropped the same day because a coop kill pays out about the same total however many of ours are on it. Each contributor's roll is `rate × share × luck`, and the shares sum to 1, so three rolls split one pool three ways. Gold and XP scale with share too. Per kill, what changes the pool is whose share it is: Myras's luck is 1.82 against Ulric's and Riva's 1.19, and her `luck` set (lmace+8, 4,764 attack) is also her strongest against the phoenix (resistance 160). Estimated from the set profiles, with Riva alone = 1.00:
+
+| Who kills it | Kill time | Loot a kill |
+|---|---|---|
+| Ulric alone | ~47s | 1.01 |
+| Riva alone | ~35s | 1.00 |
+| Myras alone | ~30s | 1.54 |
+| Riva, Myras joining for the last 30% | ~30s | 1.14 |
+| All three from the start | ~12s | 1.21 |
+
+Gathering helped only when it was Myras who arrived. Even then it took her off two of the five boxes for the next respawn, which costs a 20–30s patrol leg 40% of the time: about what her late share adds. Ulric and Riva joining each other add no loot. The case that could reverse this is other players on the phoenix: shares are `points^0.65`, so three of ours weigh about 1.5× one against strangers. Each kill record carries `party_share` (our weight over everyone's, with the server's 0.1 floor) and `players` to show it.
 
 **What the hunt turns off** is answered through the `phoenix hunt` spawn encounter's `home_settings`, which follow `home` onto halloween and the cave, where a spawn encounter isn't live:
 - `cohesion: false`: `leader_position()` and `party_cohesion_hold()` stand down. Ulric and Riva stop trailing Myras and copying her town teleports, and plan their own town shortcuts.
@@ -248,7 +259,7 @@ The `phoenix` situation encounter is live while one is within 600. It puts Ulric
 
 **Earrings and clover studs.** While any fighter's farm target is `phoenix`, neither seller vendors `vitearring` (`phoenix_keeps()`, inside `vendorable()`). The fighters ship them to Riff, who banks them. `COMBINE_PROFILE.vitearring` compounds them to +2: cscroll0 at +0 (99%), then cscroll1 at +1 (75%, raised to 91% as a grade-above scroll). `craft_targets()` always lists `cloverstud` ahead of the ⚙️ craft target, and skips it while any ingredient is short. The recipe is vitearring+2, a verdantcore, 40 ashleaf, 40 spores, 5 gslime and 280k gold. On 10-16 the bank held 263 verdantcore, 20,554 ashleaf and about 1,250 spores, but no gslime. No NPC sells gslime, goos drop it at 1 in 1,000, and it is on `SELLABLE_ITEMS`, so no stud gets crafted until Slime Cores are bought in. After the hunt, the +0s already banked are still compounded, and the +2s wait for the craft.
 
-**Measured.** Each fighter that sees a kill archives a `phoenix` record to `phoenix.jsonl`: the id, the post, `found_s` (from the earliest respawn to the first sighting) and `kill_s` (from the first sighting to the death). `python "Tools/Data Store.py" phoenix` gives kills per hour of hunting (from Myras's ledger windows at home `phoenix`), and per post the median search and kill times and how many fighters were there. `loot` gives the phoenix's drops per chest. The ledger counts all five boxes as the farm spot (Farm Ledger → at the spot vs away).
+**Measured.** Each fighter that sees a kill archives a `phoenix` record to `phoenix.jsonl`: the id, the post, `found_s` (from the earliest respawn to the first sighting), `kill_s` (from the first sighting to the death), `party_share` and `players`. The first 7 minutes live (gathering build, 10-16 16:33) made 7 kills, a median 9s search and 27s from sighting to kill. Myras panicked five times on the way to gathers ("8 on us while travelling"), which the solo rule takes away. `python "Tools/Data Store.py" phoenix` gives kills per hour of hunting (from Myras's ledger windows at home `phoenix`), and per post the median search and kill times and how many fighters were there. `loot` gives the phoenix's drops per chest. The ledger counts all five boxes as the farm spot (Farm Ledger → at the spot vs away).
 
 ---
 
@@ -930,7 +941,7 @@ And one per kept lane, with the same `--hours`/`--build`/`--range` flags:
 - `heals`: Myras's single and party heals per hour, HP delivered, delivered against predicted, and overheal.
 - `cc`: call cost per sample against the server's limit, the share of samples over 80% of it, and the methods that spend most (Ulric only: the cc report is his).
 - `targets`: how often the scorer's pick traded the best value for something else, and how much value it gave up.
-- `phoenix`: kills per hour of hunting, and per post the kills, median search time (`found_s`), median time from first sighting to the kill (`kill_s`) and fighters there, with each kill counted once (every fighter that saw it archives it).
+- `phoenix`: kills per hour of hunting, and per post the kills, median search time (`found_s`), median time from first sighting to the kill (`kill_s`), fighters there and the mean `party_share`, with each kill counted once (every fighter that saw it archives it).
 
 The status page shows `skills`, `weapons`, `mana` and `uptime` for the last 24 hours.
 

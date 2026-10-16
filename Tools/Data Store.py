@@ -21,7 +21,8 @@
     python "Tools/Data Store.py" loot|heals|cc|targets|phoenix [--hours N | --build SHA | --range A..B] [--who NAME]
                                             drops per chest by monster and luck; Myras's heals against prediction
                                             and overheal; call cost against the limit; the target scorer's trades;
-                                            phoenix kills an hour, search and kill times by spawn post
+                                            phoenix kills an hour, search and kill times and the party's share
+                                            against other players, by spawn post
     python "Tools/Data Store.py" experiment NAME [--hours N | --build SHA | --range A..B]
                                             an experiment's variants against each other, by compare's rules
 
@@ -66,7 +67,7 @@ CREATE TABLE IF NOT EXISTS loot (character TEXT, t INTEGER, at TEXT, mtype TEXT,
     goldm REAL, gold INTEGER, opener TEXT, items TEXT, dry INTEGER, stale INTEGER, build TEXT);
 CREATE INDEX IF NOT EXISTS loot_t ON loot (t);
 CREATE TABLE IF NOT EXISTS phoenix (character TEXT, t INTEGER, at TEXT, id TEXT, post TEXT, found_s REAL, kill_s REAL,
-    build TEXT, home TEXT, map TEXT, goal TEXT, encounters TEXT, variant TEXT, settings TEXT);
+    party_share REAL, players INTEGER, build TEXT, home TEXT, map TEXT, goal TEXT, encounters TEXT, variant TEXT, settings TEXT);
 CREATE INDEX IF NOT EXISTS ledger_spot ON ledger (survey_spot, character);
 CREATE INDEX IF NOT EXISTS ledger_home ON ledger (home, character);
 """
@@ -83,6 +84,7 @@ ADDED_COLUMNS = {
     "survey": ["build"],
     "danger": ["build", "encounters", "variant", "settings"],
     "decisions": ["settings", "mana_in", "hp_in", "attack"],
+    "phoenix": ["party_share", "players"],
 }
 
 # Sample kinds the sink keeps: file, table, and the fields worth a column. The .jsonl holds the whole record, so the
@@ -195,7 +197,7 @@ def add_loot(db, r):
 
 
 def add_phoenix(db, r):
-    row = {f: r.get(f) for f in ("character", "t", "at", "id", "post", "found_s", "kill_s")}
+    row = {f: r.get(f) for f in ("character", "t", "at", "id", "post", "found_s", "kill_s", "party_share", "players")}
     row.update(context(r))
     insert(db, "phoenix", row)
 
@@ -984,18 +986,21 @@ def targets_summary(db, flags):
 def phoenix_summary(db, flags):
     """Per post the phoenix was found at, and all together: kills, the search time (found_s, from the earliest moment it
     could respawn after the last kill a fighter saw; none when no kill was seen before it), the time from first sighting
-    to the kill, and how many fighters were there. Every fighter that sees a kill archives it, so the records per kill
-    count them. Hours hunting are Myras's ledger windows at home phoenix."""
+    to the kill, how many fighters were there, and the party's share of the drops against other players (the server's
+    points^0.65 split; below 1 means strangers were on it). Every fighter that sees a kill archives it, so the records
+    per kill count them. Hours hunting are Myras's ledger windows at home phoenix."""
     where, args = period(flags)
     kills = {}
-    for kid, post, found, kill in db.execute("SELECT id, post, found_s, kill_s FROM phoenix WHERE %s ORDER BY t" % where, args):
-        k = kills.setdefault(kid, {"post": post, "found_s": found, "kill_s": kill, "present": 0})
+    for kid, post, found, kill, share in db.execute(
+            "SELECT id, post, found_s, kill_s, party_share FROM phoenix WHERE %s ORDER BY t" % where, args):
+        k = kills.setdefault(kid, {"post": post, "found_s": found, "kill_s": kill, "share": share, "present": 0})
         k["present"] += 1
     hunt = dict(flags)
     hunt.update({"--home": "phoenix", "--who": "Myras"})
     hunt_where, hunt_args = period(hunt)
     secs = db.execute("SELECT SUM(window_s) FROM ledger WHERE %s" % hunt_where, hunt_args).fetchone()[0] or 0
     median = lambda xs: round(statistics.median(xs), 1) if xs else None
+    mean = lambda xs: round(statistics.mean(xs), 2) if xs else None
     rows = []
     for post in sorted({k["post"] or "" for k in kills.values()}) + [None]:
         group = [k for k in kills.values() if post is None or (k["post"] or "") == post]
@@ -1006,6 +1011,7 @@ def phoenix_summary(db, flags):
             "found_s": median([k["found_s"] for k in group if k["found_s"] is not None]),
             "kill_s": median([k["kill_s"] for k in group if k["kill_s"] is not None]),
             "fighters_there": round(sum(k["present"] for k in group) / float(len(group)), 1),
+            "party_share": mean([k["share"] for k in group if k["share"] is not None]),
         })
     return {"hours": round(secs / 3600.0, 1), "kills_h": round(len(kills) / (secs / 3600.0), 1) if secs else None, "rows": rows}
 
@@ -1030,7 +1036,7 @@ def lane_report(command, flags):
     elif command == "phoenix":
         p = phoenix_summary(db, flags)
         print("  %s h hunting, %s kills an hour" % (p["hours"], p["kills_h"] if p["kills_h"] is not None else "-"))
-        print_rows(p["rows"], ["post", "kills", "found_s", "kill_s", "fighters_there"])
+        print_rows(p["rows"], ["post", "kills", "found_s", "kill_s", "fighters_there", "party_share"])
     db.close()
 
 

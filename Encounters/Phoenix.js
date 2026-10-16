@@ -1,6 +1,6 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// PHOENIX — the on-demand hunt: each fighter watches its own beat of the five spawn boxes, the party gathers on a sighting and splits
-// again after the kill; while it runs the vitality earrings are kept for Riff to compound and craft into clover studs
+// PHOENIX — the on-demand hunt: each fighter watches its own beat of the five spawn boxes and kills what it finds alone, while the others
+// hold their beats for the respawn; while it runs the vitality earrings are kept for Riff to compound and craft into clover studs
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const PHOENIX = "phoenix";
@@ -31,8 +31,10 @@ const PHOENIX_SIGHTING_MS = 4000;
 const PHOENIX_RESPAWN_MARGIN_MS = 2000;
 const PHOENIX_LOOT_MS = 5000;
 const PHOENIX_POST_REACH = 60;
-const PHOENIX_GATHER_REACH = 100;
+const PHOENIX_CHASE_REACH = 100;
 const PHOENIX_OTHER_MAP = 1e6;
+const PHOENIX_SHARE_EXPONENT = 0.65;
+const PHOENIX_SHARE_FLOOR = 0.1;
 
 let _phoenix_mine = { seen: null, dead: null, checked: {} };
 let _phoenix_view = null;
@@ -145,13 +147,29 @@ function phoenix_view() {
 	return _phoenix_view;
 }
 
-function phoenix_died(id) {
+function phoenix_party_share(points) {
+	const party = [PARTY_LEADER].concat(PARTY_MEMBERS);
+	let ours = 0;
+	let total = PHOENIX_SHARE_FLOOR;
+	for (const name in points) {
+		const weight = Math.pow(Math.max(0, points[name]), PHOENIX_SHARE_EXPONENT);
+		total += weight;
+		if (party.includes(name)) ours += weight;
+	}
+	return Math.round((1000 * ours) / total) / 1000;
+}
+
+function phoenix_died(id, points) {
 	const seen = _phoenix_mine.seen;
 	if (!seen || seen.id !== id) return;
 	const now = Date.now();
 	const first = Math.min(phoenix_view().first[id] || Infinity, seen.first);
 	const kill_s = Math.round((now - first) / 100) / 10;
-	errlog_archive("phoenix", { id, post: phoenix_post_of(seen), found_s: seen.found_s, kill_s });
+	errlog_archive("phoenix", {
+		id, post: phoenix_post_of(seen), found_s: seen.found_s, kill_s,
+		party_share: points ? phoenix_party_share(points) : null,
+		players: points ? Object.keys(points).length : null,
+	});
 	log_msg("event", `🔥 Phoenix down at ${phoenix_post_of(seen)} after ${kill_s}s${seen.found_s === null ? "" : `, found ${seen.found_s}s after it could respawn`}`);
 	_phoenix_mine.dead = { id, at: now };
 	_phoenix_mine.seen = null;
@@ -170,15 +188,12 @@ function phoenix_tick() {
 
 function phoenix_hunt_start() {
 	_phoenix_mine = storage_read(PHOENIX_WATCH_PREFIX + character.name) || _phoenix_mine;
-	on_socket("death", "phoenix_death", data => phoenix_died(data.id));
-	on_socket("kill_credit", "phoenix_credit", data => {
-		if (data.mtype === PHOENIX && _phoenix_mine.seen) phoenix_died(_phoenix_mine.seen.id);
-	});
+	on_socket("death", "phoenix_death", data => phoenix_died(data.id, data.points));
 	every("phoenix_tick", { ms: PHOENIX_TICK_MS, kind: "automation", fixed: true }, phoenix_tick);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// GOAL — fight it in sight, loot the kill, gather on a sighting, otherwise walk the beat to the post checked longest ago
+// GOAL — fight it in sight, loot the kill, otherwise walk the beat to the post checked longest ago, or wait at the nearest while it lives
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function phoenix_post_away(name) {
@@ -187,7 +202,7 @@ function phoenix_post_away(name) {
 }
 
 function phoenix_next_post(view) {
-	const spawn = view.dead_at ? view.dead_at + phoenix_respawn_ms() + PHOENIX_RESPAWN_MARGIN_MS : 0;
+	const spawn = view.seen ? Infinity : view.dead_at ? view.dead_at + phoenix_respawn_ms() + PHOENIX_RESPAWN_MARGIN_MS : 0;
 	const checked = name => (view.checked[name] || 0) >= spawn ? view.checked[name] || 0 : 0;
 	return PHOENIX_BEATS[character.name].slice()
 		.sort((a, b) => checked(a) - checked(b) || phoenix_post_away(a) - phoenix_post_away(b))[0];
@@ -203,7 +218,7 @@ function phoenix_fight_goal(bird) {
 	if (is_in_range(bird, "attack") || can_move_to(stand.x, stand.y)) {
 		return { local: PHOENIX, pursuit: true, event: PHOENIX, label: "phoenix-fight" };
 	}
-	return { pursuit: true, event: PHOENIX, label: "phoenix-fight", map: character.map, x: bird.x, y: bird.y, radius: PHOENIX_GATHER_REACH / 2 };
+	return { pursuit: true, event: PHOENIX, label: "phoenix-fight", map: character.map, x: bird.x, y: bird.y, radius: PHOENIX_CHASE_REACH / 2 };
 }
 
 function phoenix_goal() {
@@ -214,8 +229,6 @@ function phoenix_goal() {
 	if (get_num_chests() > 0 && Date.now() - view.dead_at < PHOENIX_LOOT_MS) {
 		return { local: "loot", label: "phoenix-loot", passive: true };
 	}
-	if (view.seen) return phoenix_trip("phoenix-gather", view.seen, PHOENIX_GATHER_REACH);
-
 	const post = phoenix_next_post(view);
 	return phoenix_trip("phoenix-" + post, PHOENIX_POSTS[post], PHOENIX_POST_REACH);
 }
@@ -309,7 +322,7 @@ function phoenix_status() {
 }
 
 console_api({
-	phoenix_hunt: "send Ulric, Myras and Riva to hunt the phoenix: each watches its own spawn boxes, all gather on a sighting",
+	phoenix_hunt: "send Ulric, Myras and Riva to hunt the phoenix: each watches its own spawn boxes and kills what it finds alone",
 	phoenix_hunt_stop: "end the phoenix hunt and put each fighter's farm target back",
 	phoenix_status: "the phoenix hunt: who is where, the last sighting and kill, and when each post was last checked",
 });

@@ -11,8 +11,8 @@
   "target": null,
   "heal_target": "Myras",
   "goal": {
-   "label": "phoenix-gather",
-   "local": null,
+   "label": "phoenix-south",
+   "local": "keep",
    "hold": false,
    "passive": false
   },
@@ -124,11 +124,7 @@
   },
   "local": {
    "result": null,
-   "sent": [
-    {
-     "event": "farm_step"
-    }
-   ]
+   "sent": []
   }
  }
 }

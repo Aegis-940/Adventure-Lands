@@ -6,8 +6,8 @@
   "target": null,
   "tank": null,
   "goal": {
-   "label": "phoenix-gather",
-   "local": null,
+   "label": "phoenix-east",
+   "local": "keep",
    "hold": false,
    "passive": false
   },
@@ -66,11 +66,7 @@
   },
   "local": {
    "result": null,
-   "sent": [
-    {
-     "event": "farm_step"
-    }
-   ]
+   "sent": []
   }
  }
 }
