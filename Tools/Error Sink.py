@@ -83,7 +83,6 @@ LIVE_LOCK = threading.Lock()
 # The harness's decision fixtures (Tests/Harness.js promote reads them). Posted by errlog_snapshot(),
 # appended here and nowhere else: they never touch the page's localStorage.
 SNAPSHOT_ARCHIVE = os.path.join(REPO, "snapshots.jsonl")
-SNAPSHOT_MAX_BYTES = 200 * 1024 * 1024
 SNAPSHOT_LOCK = threading.Lock()
 
 
@@ -185,8 +184,9 @@ TIMELINE_ARCHIVE = os.path.join(REPO, "errors_timeline.jsonl")
 
 
 def archive_timeline(who, entries):
-    """Append-only: the store trims its timeline to MAX_TIMELINE, and a freeze's last minutes were
-    pushed out by the next morning's traffic before anyone read them. Nothing trims this file."""
+    """Append-only, trimmed to the last week once a day (trim_archives): the store keeps only the last
+    MAX_TIMELINE entries, and a freeze's last minutes were pushed out by the next morning's traffic
+    before anyone read them."""
     with open(TIMELINE_ARCHIVE, "a", encoding="utf-8") as fh:
         for e in sorted(entries, key=lambda x: x.get("t") or 0):
             stamp = datetime.fromtimestamp((e.get("t") or 0) / 1000).strftime("%Y-%m-%d %H:%M:%S")
@@ -479,8 +479,6 @@ class Handler(BaseHTTPRequestHandler):
             payload = json.loads(self.rfile.read(n).decode("utf-8"))
             stamp = datetime.fromtimestamp((payload.get("t") or 0) / 1000).strftime("%Y-%m-%d %H:%M:%S")
             with SNAPSHOT_LOCK:
-                if os.path.exists(SNAPSHOT_ARCHIVE) and os.path.getsize(SNAPSHOT_ARCHIVE) > SNAPSHOT_MAX_BYTES:
-                    os.replace(SNAPSHOT_ARCHIVE, SNAPSHOT_ARCHIVE + ".old")
                 with open(SNAPSHOT_ARCHIVE, "a", encoding="utf-8") as fh:
                     fh.write(json.dumps({"at": stamp, **payload}, ensure_ascii=False) + "\n")
             self.send_response(204)
@@ -599,6 +597,50 @@ def refresh_data_store():
         print("  ! node not found on PATH; party_model.json is not refreshed", file=sys.stderr, flush=True)
 
 
+# Archives that only answer "what happened lately" keep a week, trimmed once a day. The others (the ledger,
+# decisions, danger, damage, heal, boss profilesâ€¦) are kept whole: they are the history the reports read.
+TRIM_DAYS = 7
+TRIM_EVERY_S = 24 * 3600
+TRIMMED = ((TIMELINE_ARCHIVE, STORE_LOCK), (SNAPSHOT_ARCHIVE, SNAPSHOT_LOCK))
+_last_trim = 0
+
+
+def trim_archive(path, lock, days):
+    """Keeps the lines stamped in the last `days` days. Every archive line starts {"at": "YYYY-MM-DD HH:MM:SS", so the
+    stamp is read without parsing the line. A leftover .old (the snapshot rotation before 10-16) is folded in first."""
+    cutoff = datetime.fromtimestamp(time.time() - days * 86400).strftime("%Y-%m-%d %H:%M:%S")
+    sources = [f for f in (path + ".old", path) if os.path.exists(f)]
+    if not sources:
+        return
+    with lock:
+        before = sum(os.path.getsize(f) for f in sources)
+        tmp = path + ".trim"
+        with open(tmp, "w", encoding="utf-8") as out:
+            for source in sources:
+                with open(source, encoding="utf-8") as fh:
+                    for line in fh:
+                        if line[8:27] >= cutoff:
+                            out.write(line)
+        os.replace(tmp, path)
+        if path + ".old" in sources:
+            os.remove(path + ".old")
+    print("%s  trimmed %s to %d days: %.0f MB -> %.0f MB" % (datetime.now().strftime("%H:%M:%S"), os.path.basename(path),
+                                                            days, before / 1048576, os.path.getsize(path) / 1048576),
+          flush=True)
+
+
+def trim_archives():
+    global _last_trim
+    if time.time() - _last_trim < TRIM_EVERY_S:
+        return
+    _last_trim = time.time()
+    for path, lock in TRIMMED:
+        try:
+            trim_archive(path, lock, TRIM_DAYS)
+        except Exception as exc:
+            print("  ! trim of %s failed: %s" % (os.path.basename(path), exc), file=sys.stderr, flush=True)
+
+
 def store_writer():
     while True:
         time.sleep(STORE_WRITE_S)
@@ -619,6 +661,8 @@ def flush_store():
 
 def maintenance_loop():
     while True:
+        trim_archives()
+        rotate_log()
         try:
             refresh_data_store()
         except Exception as exc:
@@ -690,17 +734,34 @@ def restart_watch(server, known):
         return
 
 
+LOG_FILE = None
+
+
+def open_log():
+    global LOG_FILE
+    if os.path.exists(LOG) and os.path.getsize(LOG) > LOG_MAX_BYTES:
+        os.replace(LOG, LOG + ".old")
+    LOG_FILE = open(LOG, "a", encoding="utf-8", buffering=1)
+    sys.stdout = LOG_FILE
+    sys.stderr = LOG_FILE
+
+
+def rotate_log():
+    """The log grows while the sink runs for weeks, so it rotates at LOG_MAX_BYTES on the maintenance timer too, not
+    only at start. The file is closed first: Windows won't rename a file that is open."""
+    if LOG_FILE is None or os.path.getsize(LOG) <= LOG_MAX_BYTES:
+        return
+    LOG_FILE.close()
+    open_log()
+
+
 def detach_logging():
     """Under pythonw.exe -- how the logon task runs it -- there is no console and sys.stdout is
     None, which turns the first print() into an AttributeError. Send the log to a file instead."""
     if sys.stdout is not None and sys.stderr is not None:
         return
     try:
-        if os.path.exists(LOG) and os.path.getsize(LOG) > LOG_MAX_BYTES:
-            os.replace(LOG, LOG + ".old")
-        fh = open(LOG, "a", encoding="utf-8", buffering=1)
-        sys.stdout = fh
-        sys.stderr = fh
+        open_log()
     except Exception:
         devnull = open(os.devnull, "w")
         sys.stdout = devnull

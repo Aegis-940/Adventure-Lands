@@ -72,6 +72,7 @@ let _ledger_tick_at = 0;
 let _ledger_xp = null;
 let _ledger_rip = false;
 let _ledger_recovering = false;
+let _ledger_gear = "";
 
 function ledger_window(now) {
 	return {
@@ -129,6 +130,13 @@ function fighters_here() {
 	});
 }
 
+function ledger_gear_change() {
+	const gear = JSON.stringify(gear_signature());
+	if (gear === _ledger_gear) return undefined;
+	_ledger_gear = gear;
+	return JSON.parse(gear);
+}
+
 function ledger_close(now) {
 	const w = _ledger;
 	errlog_archive("ledger", {
@@ -152,7 +160,7 @@ function ledger_close(now) {
 		goldm: character.goldm,
 		xpm: character.xpm,
 		luckm: character.luckm,
-		gear: gear_signature(),
+		gear: ledger_gear_change(),
 	});
 	if (at_farm_spot()) errlog_snapshot("farm");
 	_ledger = ledger_window(now);

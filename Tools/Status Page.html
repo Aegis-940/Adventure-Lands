@@ -603,10 +603,6 @@ function render_danger(d) {
 			{ label: "Low HP", n: 1 }, { label: "On them", n: 1 }, { label: "MP", n: 1 }, { label: "Context" }],
 		shown.map(e => {
 			const kind = e.event === "death" ? chip("var(--critical)", "✕", "death") : chip("var(--warning)", "!", "close call");
-			if (e.detail === false) {
-				return [`<span title="${esc(e.at)}">${esc(clock_time(e.t))}</span>`, esc(e.character), kind, esc((e.note || "").replace(/^died on /, "").split(" ")[0]),
-					'<span class="meta">no detail (before the danger log)</span>', "–", "–", "–", "–", ""];
-			}
 			const top = (e.sources || [])[0];
 			const against = e.event === "death" ? (e.killer || (top && top.name)) : (top && top.name);
 			const against_title = (e.sources || []).map(s => `${s.name}: ${s.damage.toLocaleString()} in ${s.hits} hits`).join("\n")

@@ -51,11 +51,9 @@ CREATE TABLE IF NOT EXISTS tracker_monsters (character TEXT, t INTEGER, mtype TE
     account_score REAL, account_holder TEXT);
 CREATE TABLE IF NOT EXISTS boss_profiles (character TEXT, t INTEGER, at TEXT, boss TEXT, killed INTEGER,
     fight_secs REAL);
-CREATE TABLE IF NOT EXISTS deaths (character TEXT, t INTEGER, at TEXT, msg TEXT);
 CREATE TABLE IF NOT EXISTS danger (character TEXT, t INTEGER, at TEXT, event TEXT, map TEXT, home TEXT, goal TEXT,
     killer TEXT, min_hp_pct INTEGER, low_for_s INTEGER, damage_10s INTEGER, targeting INTEGER, mp_pct INTEGER,
     panicking INTEGER, raw TEXT, build TEXT);
-CREATE TABLE IF NOT EXISTS bscorpion_kills (character TEXT, t INTEGER, at TEXT, secs REAL, avg_secs REAL);
 CREATE INDEX IF NOT EXISTS ledger_spot ON ledger (survey_spot, character);
 CREATE INDEX IF NOT EXISTS ledger_home ON ledger (home, character);
 """
@@ -180,27 +178,12 @@ def add_boss_profile(db, r):
         r.get("character"), r.get("t"), r.get("at"), r.get("boss"), 1 if r.get("killed") else 0, r.get("fight_secs")))
 
 
-KILL_LINE = re.compile(r"([\d.]+)s avg ([\d.]+)s")
-
-
-def add_timeline(db, r):
-    ctx = r.get("ctx")
-    if ctx == "death":
-        db.execute("INSERT INTO deaths VALUES (?,?,?,?)", (r.get("character"), r.get("t"), r.get("at"), r.get("msg")))
-    elif ctx == "bscorpion_kill":
-        m = KILL_LINE.match(r.get("msg") or "")
-        if m:
-            db.execute("INSERT INTO bscorpion_kills VALUES (?,?,?,?,?)",
-                       (r.get("character"), r.get("t"), r.get("at"), float(m.group(1)), float(m.group(2))))
-
-
 SOURCES = [
     ("ledger.jsonl", add_ledger, ["ledger"]),
     ("survey.jsonl", add_survey, ["survey"]),
     ("tracker.jsonl", add_tracker, ["tracker", "tracker_monsters"]),
     ("danger.jsonl", add_danger, ["danger"]),
     ("boss_profiles.jsonl", add_boss_profile, ["boss_profiles"]),
-    ("errors_timeline.jsonl", add_timeline, ["deaths", "bscorpion_kills"]),
 ] + [(name, sample_adder(table, fields), [table]) for name, table, fields in SAMPLE_TABLES]
 
 
@@ -463,43 +446,34 @@ def survey_state(errors):
     return samples[-1] if samples else None
 
 
+TREND_WHO = "Myras"
+TREND_HOME = "bscorpion"
+
+
 def trends(db, now_ms):
-    kills = [{"t": int(t), "avg_secs": round(a, 1), "n": n} for t, a, n in db.execute(
-        "SELECT (t / ?) * ?, AVG(secs), COUNT(*) FROM bscorpion_kills WHERE t >= ? AND secs < 120 "
-        "GROUP BY t / ? ORDER BY 1", (HOUR_MS, HOUR_MS, now_ms - 72 * HOUR_MS, HOUR_MS))]
+    """Seconds per kill at the bscorpion camp per hour over 3 days, from the ledger's spot kills and spot time (kill
+    credit is party-wide, so one fighter's windows are the party's), and deaths per day over 14 days from danger.jsonl."""
+    kills = [{"t": int(t), "avg_secs": round(secs / n, 1), "n": n} for t, secs, n in db.execute(
+        "SELECT (t / ?) * ?, SUM(at_spot_s), SUM(spot_kills) FROM ledger WHERE character = ? AND home = ? AND t >= ? "
+        "AND at_spot_s > 0 GROUP BY t / ? HAVING SUM(spot_kills) > 0 ORDER BY 1",
+        (HOUR_MS, HOUR_MS, TREND_WHO, TREND_HOME, now_ms - 72 * HOUR_MS, HOUR_MS))]
     deaths = [{"day": d, "n": n} for d, n in db.execute(
-        "SELECT substr(at, 1, 10), COUNT(*) FROM deaths WHERE t >= ? GROUP BY 1 ORDER BY 1", (now_ms - 14 * 24 * HOUR_MS,))]
+        "SELECT substr(at, 1, 10), COUNT(*) FROM danger WHERE event = 'death' AND t >= ? GROUP BY 1 ORDER BY 1",
+        (now_ms - 14 * 24 * HOUR_MS,))]
     return {"bscorpion_kill_secs": kills, "deaths_per_day": deaths}
 
 
 DANGER_EVENTS = 60
-DANGER_MATCH_MS = 15000
 
 
 def danger(db, now_ms):
-    """Deaths and close calls, newest first. Deaths from the timeline before the danger log existed (or from a
-    character not running it) appear without detail, unless a detailed death of the same character is within 15s."""
-    events = []
-    detailed = []
-    for raw, t, who in db.execute("SELECT raw, t, character FROM danger ORDER BY t DESC LIMIT ?", (DANGER_EVENTS,)):
-        r = json.loads(raw)
-        events.append(r)
-        if r.get("event") == "death":
-            detailed.append((who, t))
-    for who, t, at, msg in db.execute("SELECT character, t, at, msg FROM deaths ORDER BY t DESC LIMIT ?", (DANGER_EVENTS,)):
-        if any(w == who and abs(t - dt) < DANGER_MATCH_MS for w, dt in detailed):
-            continue
-        events.append({"event": "death", "character": who, "t": t, "at": at, "note": msg, "detail": False})
-    events.sort(key=lambda e: -(e.get("t") or 0))
+    """Deaths and close calls from danger.jsonl, newest first, with the counts for the last day and week."""
+    events = [json.loads(raw) for (raw,) in db.execute("SELECT raw FROM danger ORDER BY t DESC LIMIT ?", (DANGER_EVENTS,))]
     counts = {}
     for label, since in (("day", now_ms - 24 * HOUR_MS), ("week", now_ms - 7 * 24 * HOUR_MS)):
-        logged = db.execute("SELECT character, t FROM deaths WHERE t >= ?", (since,)).fetchall()
-        extra = [(w, t) for w, t in db.execute("SELECT character, t FROM danger WHERE event = 'death' AND t >= ?", (since,))
-                 if not any(lw == w and abs(lt - t) < DANGER_MATCH_MS for lw, lt in logged)]
-        deaths = len(logged) + len(extra)
-        close = db.execute("SELECT COUNT(*) FROM danger WHERE event = 'close_call' AND t >= ?", (since,)).fetchone()[0]
-        counts[label] = {"deaths": deaths, "close_calls": close}
-    return {"events": events[:DANGER_EVENTS], "counts": counts}
+        found = dict(db.execute("SELECT event, COUNT(*) FROM danger WHERE t >= ? GROUP BY event", (since,)).fetchall())
+        counts[label] = {"deaths": found.get("death", 0), "close_calls": found.get("close_call", 0)}
+    return {"events": events, "counts": counts}
 
 
 POTION_CD_S = 2.05
