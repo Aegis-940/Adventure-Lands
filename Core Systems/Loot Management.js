@@ -338,7 +338,7 @@ const SELLABLE_ITEMS = [
 	"cclaw", "crabclaw", "slimestaff", "stinger", "pstem", "gslime", "coat1", "helmet1",
 	"gloves1", "pants1", "shoes1", "wbreeches", "vitring", "helmet", "shoes", "gloves",
 	"pmace", "throwingstars", "t2bow", "spear", "dagger", "rapier", "sword", "mushroomstaff",
-	"rfangs", "gphelmet", "phelmet", "vitearring", "vitscroll", "hhelmet", "harmor", "hpants",
+	"rfangs", "gphelmet", "phelmet", "vitscroll", "hhelmet", "harmor", "hpants",
 	"hgloves", "hboots", "strring", "dexring", "intring", "strearring", "dexearring", "intearring",
 	"warmscarf", "snowball", "santasbelt", "pclaw", "broom", "skullamulet",
 	"iceskates", "carrot", "xmace", "candycanesword", "pmaceofthedead", "ornamentstaff",
