@@ -112,8 +112,7 @@ async function maintenance_tick() {
 	return TICK_RATE.maintenance;
 }
 
-function run_character(spec) {
-	const s = spec || {};
+function run_character(s) {
 
 	cruise(500).catch(() => { });
 	performance_trick();
@@ -130,7 +129,6 @@ function run_character(spec) {
 			return 250;
 		}
 
-		if (typeof s.update_cache === "function") s.update_cache();
 		if (typeof s.skip_panic_check !== "function" || !s.skip_panic_check()) panic_check();
 
 		if (!automation_enabled()) {
@@ -164,7 +162,7 @@ function run_character(spec) {
 
 	every("main_loop", { ms: TICK_RATE.main, kind: "automation" }, main_tick);
 
-	for (const fn of (s.loops || [])) {
+	for (const fn of s.loops) {
 		try {
 			fn();
 		} catch (e) {
@@ -172,7 +170,7 @@ function run_character(spec) {
 		}
 	}
 
-	for (const entry of (s.intervals || [])) {
+	for (const entry of s.intervals) {
 		every(entry[0].name, { ms: entry[1], kind: "automation", fixed: true }, entry[0]);
 	}
 

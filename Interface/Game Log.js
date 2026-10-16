@@ -99,10 +99,6 @@ function al_log_render_all() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function al_log_hook() {
-	if (typeof parent.add_log !== "function") {
-		return void log_msg("warn", "Game log: parent.add_log is missing — native lines stay untimestamped and unfilterable");
-	}
-
 	wrap_parent("add_log", () => function (message, color) {
 		if (parent.mode && parent.mode.dom_tests) return;
 		if (parent.inside === "payments") return;

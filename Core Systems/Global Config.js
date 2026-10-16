@@ -142,6 +142,7 @@ const POTION_DEFAULTS = {
 
 const EQUIPMENT_DEFAULTS = {
 	auto_swap_sets: true,
+	weapon_min_swap_attacks: 0,
 };
 
 const PANIC_ORB_SET = [
@@ -155,7 +156,7 @@ const PANIC_ORB_SET = [
 var home = null;
 var destination = null;
 var CONFIG = {};
-var cache = null;
+var cache = {};
 
 var equipment_sets = {};
 var ITEMS_TO_KEEP = [];

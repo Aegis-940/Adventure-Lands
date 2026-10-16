@@ -68,7 +68,7 @@ function heal_report() {
 			continue;
 		}
 		const self = name === character.name;
-		const poisoned = ally.s && ally.s.poisoned ? " POISONED" : "";
+		const poisoned = ally.s.poisoned ? " POISONED" : "";
 		log_msg("debug", `[HEAL] ${name}: res=${ally.resistance || 0} heal→${Math.round(heal_delivered(ally, character.heal))} partyheal→${Math.round(heal_delivered(ally, partyheal_base()))}${self ? " (self, no resistance)" : ""}${poisoned}`);
 	}
 

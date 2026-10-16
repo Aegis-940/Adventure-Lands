@@ -186,7 +186,7 @@ function remaining_hp(mob) {
 }
 
 function pending_burn(mob) {
-	const burn = mob.s && mob.s.burned;
+	const burn = mob.s.burned;
 	return burn ? burn.intensity * burn.ms / 1000 : 0;
 }
 

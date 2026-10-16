@@ -24,7 +24,7 @@ function supershot_setup_ready(target) {
 	const now = Date.now();
 	if (!_supershot_ready_since) _supershot_ready_since = now;
 
-	const s = target.s || {};
+	const s = target.s;
 	if (s.marked && s.cursed) return true;
 
 	return now - _supershot_ready_since >= SUPERSHOT_SETUP_WAIT_MS;
@@ -41,7 +41,7 @@ function skill_pays(value, mana, target) {
 function mark_value(target) {
 	const cond = G.conditions.marked;
 	if (!cond.incdmgamp) return 0;
-	if (target.s?.marked) return 0;
+	if (target.s.marked) return 0;
 
 	const own_dps = character.attack * character.frequency;
 	const ttk = time_to_kill_ms(target, remaining_hp(target), own_dps, CONFIG.combat.party_dps_factor);

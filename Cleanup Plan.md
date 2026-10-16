@@ -12,7 +12,7 @@ Every finding below comes from a read of the source on 2026-10-16 at `eb4ea67`, 
 | C1 | Docs | none | **done** 2026-10-16 |
 | C2 | Dead code | none | **done** 2026-10-16 |
 | C3 | Error handling that hides errors | none (errors start reaching the log) | **done** 2026-10-16; the reload read is pending |
-| C4 | Guards and fallbacks | none | not started |
+| C4 | Guards and fallbacks | none | **done** 2026-10-16 |
 | C5 | Native game functions | a few items, each marked ⚠ | not started |
 | C6 | Party state and the information the bot gathers | a few items, each marked ⚠ | not started |
 | C7 | Simplification | none | not started |
@@ -265,12 +265,12 @@ Work file by file, worst first: Combat Sampling (about 22), Combat Formulas (19)
 - The legitimate guard kinds in CLAUDE.md.
 
 **Checklist**
-- [ ] C4.1 fallbacks, file by file
-- [ ] C4.2 optional chaining
-- [ ] C4.3 impossible states
-- [ ] C4.4 double checks
-- [ ] C4.5 structural fixes
-- [ ] Architecture.md and CLAUDE.md guard sections still true
+- [x] C4.1 fallbacks: the 62 stat fallbacks on our character, `character.s/c/slots`, `get_party()`, entity `s` objects, the config sections only fighters read
+- [x] C4.2 optional chaining on `parent.S`, `character.s`, `G.conditions`, entity `s`, the looting config
+- [x] C4.3 impossible states: `character && character.name` in the storage keys, `parent.pings &&`, Error Log's try around `Object.keys(character.s)`. The `!data` checks on socket payloads stay: the harness's smoke payloads include empty ones, and the checks cost nothing
+- [x] C4.4 double checks: `handle_agitate`'s `!tank`, the merchant's map checks after `get_player()` (the client sets `map` on every entity). Warrior's skill-tick pause stays: it also skips `update_cache` while paused
+- [x] C4.5 structural: `smart._interrupt` no-op at boot (in C2.3); the crypt's route attached by Crypt Route's boot step with `needs: ["Crypt Dungeon"]`, so the runner takes functions, not names; `weapon_min_swap_attacks: 0` in `EQUIPMENT_DEFAULTS`; `var cache = {}` once in Global Config; `run_character()` takes its spec plainly (no role passed `update_cache`, so that call was dead); `parent.add_log` and `sell()` used without `typeof`
+- [x] Architecture.md and CLAUDE.md guard sections still true
 
 ---
 

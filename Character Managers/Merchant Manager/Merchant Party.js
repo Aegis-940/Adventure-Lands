@@ -35,7 +35,6 @@ function any_party_within_range(range = CONFIG.party.nearby_trigger_range) {
 		if (
 			player &&
 			!player.rip &&
-			player.map === character.map &&
 			Math.hypot(character.x - player.x, character.y - player.y) <= range
 		) {
 			return true;

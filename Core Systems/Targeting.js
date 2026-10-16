@@ -6,7 +6,7 @@ function incoming_damage_amp(mob) {
 	if (mob.incdmgamp !== undefined) return 1 + mob.incdmgamp / 100;
 
 	let amp = 0;
-	for (const name in (mob.s || {})) {
+	for (const name in mob.s) {
 		const def = G.conditions[name];
 		if (def && def.incdmgamp) amp += def.incdmgamp;
 	}

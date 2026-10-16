@@ -185,7 +185,7 @@ function agitate_conditions_met(cond, nearby_mobs) {
 }
 
 async function handle_agitate(tank) {
-	if (is_on_cooldown("agitate") || !tank || tank.rip) return;
+	if (is_on_cooldown("agitate") || tank.rip) return;
 	if (endangered(tank)) return;
 	if (character.mp < skill_mp_cost("agitate") + panic_mp_reserve()) return;
 	if (blocker_within(G.skills.agitate.range, e => !encounter_allows("agitate", e) || must_not_touch(e) || kite_ring(e))) return;

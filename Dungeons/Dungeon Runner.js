@@ -387,16 +387,12 @@ function clear_dungeon_stop() {
 
 function dungeon_route_runner() {
 	const d = active_dungeon();
-	if (!d || !d.route) return null;
-	const fn = window[d.route];
-	return typeof fn === "function" ? fn : null;
+	return (d && d.route) || null;
 }
 
 function dungeon_leave_runner() {
 	const d = active_dungeon();
-	if (!d || !d.leave) return null;
-	const fn = window[d.leave];
-	return typeof fn === "function" ? fn : null;
+	return (d && d.leave) || null;
 }
 
 async function run_dungeon_loop() {
@@ -406,7 +402,7 @@ async function run_dungeon_loop() {
 	const route = dungeon_route_runner();
 	if (!route) {
 		const d = active_dungeon();
-		log_msg("warn", `Dungeon loop: ${d ? d.route || "no route" : "no dungeon"} is not a loaded function`);
+		log_msg("warn", `Dungeon loop: ${d ? d.name + " has no route loaded" : "no dungeon"}`);
 		return;
 	}
 

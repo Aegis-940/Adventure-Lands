@@ -51,7 +51,7 @@ function dark_blessing_synced() {
 	if (!_dark_blessing_ready_since) _dark_blessing_ready_since = now;
 
 	const warrior = get_entity("Ulric");
-	if (warrior && warrior.s && warrior.s.warcry) return true;
+	if (warrior && warrior.s.warcry) return true;
 
 	return now - _dark_blessing_ready_since >= DARK_BLESSING_SYNC_WAIT_MS;
 }
@@ -66,7 +66,7 @@ function curse_flight_ms(target) {
 }
 
 function curse_expiring(e) {
-	const cursed = e.s && e.s.cursed;
+	const cursed = e.s.cursed;
 	return !cursed || cursed.ms <= curse_flight_ms(e) + min_ping() + CURSE_RECAST_MARGIN_MS;
 }
 

@@ -182,7 +182,7 @@ function coop_contributors() {
 	const coop_id = character.s.coop?.id;
 	const players = [character, ...Object.values(parent.entities).filter(e => e.type === "character")];
 	return players
-		.filter(p => p.s?.coop?.p && (!coop_id || p.s.coop.id === coop_id))
+		.filter(p => p.s.coop?.p && (!coop_id || p.s.coop.id === coop_id))
 		.map(p => ({ name: p.name, ctype: p.ctype, points: p.s.coop.p }))
 		.sort((a, b) => b.points - a.points);
 }

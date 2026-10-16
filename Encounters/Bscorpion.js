@@ -325,7 +325,7 @@ function bscorpion_kill_logger_loop() {
 			const alive = new Set();
 			for (const id in parent.entities) {
 				const e = parent.entities[id];
-				if (e?.type === "monster" && e.mtype === "bscorpion" && !e.dead) alive.add(e.id);
+				if (e.type === "monster" && e.mtype === "bscorpion" && !e.dead) alive.add(e.id);
 			}
 
 			for (const id of live_bscorpion_ids) {

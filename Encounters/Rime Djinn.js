@@ -11,7 +11,7 @@ function rime_shell_casting() {
 	let nearest = null;
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
-		if (e.type !== "monster" || e.dead || !e.s?.rimeshell) continue;
+		if (e.type !== "monster" || e.dead || !e.s.rimeshell) continue;
 		if (!nearest || distance(character, e) < distance(character, nearest)) nearest = e;
 	}
 	return nearest;
@@ -71,7 +71,7 @@ function rime_hold_gear_wanted() {
 		const e = parent.entities[id];
 		if (e.type !== "monster" || e.dead || !rime_shell_ability(e)) continue;
 		if (distance(character, e) > RIME_HOLD_GEAR_RANGE) continue;
-		if (e.s?.rimeshell || rime_shell_held(e)) return true;
+		if (e.s.rimeshell || rime_shell_held(e)) return true;
 	}
 	return false;
 }
@@ -172,7 +172,7 @@ function shell_window(mob, start) {
 
 function shell_open(id, e) {
 	const plan = _rime_stomp_plans[id];
-	if (!plan) return !!e?.s?.rimeshell;
+	if (!plan) return !!e?.s.rimeshell;
 	return !plan.gone && Date.now() < plan.best_at + plan.best_ms + RIME_SHELL_OVERRUN_MS;
 }
 
@@ -195,7 +195,7 @@ function shell_outcome(w, mob, plan) {
 	if (w.stomped_at) return "stomped";
 	if (!mob) return "out of sight";
 	if (mob.dead) return "died";
-	const conditions = plan && plan.gone_s ? plan.gone_s : Object.keys(mob.s || {});
+	const conditions = plan && plan.gone_s ? plan.gone_s : Object.keys(mob.s);
 	return conditions.includes("rimeexposed") ? "broken" : `gone (${conditions.join("+") || "no conditions"})`;
 }
 
@@ -231,7 +231,7 @@ function close_shell_windows() {
 function log_new_shells() {
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
-		if (e.type !== "monster" || e.dead || !e.s?.rimeshell || _rime_shell_logged[id]) continue;
+		if (e.type !== "monster" || e.dead || !e.s.rimeshell || _rime_shell_logged[id]) continue;
 		_rime_shell_logged[id] = true;
 		shell_window(e);
 
@@ -268,7 +268,7 @@ function mark_shells_stomped() {
 	}
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
-		if (e.type !== "monster" || !e.s?.rimeshell) continue;
+		if (e.type !== "monster" || !e.s.rimeshell) continue;
 		if (distance(character, e) > G.skills.stomp.range) continue;
 		_rime_shell_reported[id] = true;
 		if (_rime_stomp_plans[id]) _rime_stomp_plans[id].done = true;
@@ -285,7 +285,7 @@ function oldest_shell_age() {
 	let oldest = 0;
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
-		if (e.type !== "monster" || e.dead || !e.s?.rimeshell) continue;
+		if (e.type !== "monster" || e.dead || !e.s.rimeshell) continue;
 		if (distance(character, e) > G.skills.stomp.range) continue;
 		if (!_rime_shell_seen[id]) _rime_shell_seen[id] = now;
 		oldest = Math.max(oldest, now - _rime_shell_seen[id]);

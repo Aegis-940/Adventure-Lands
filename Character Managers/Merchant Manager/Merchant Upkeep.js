@@ -40,7 +40,7 @@ async function handle_collect_loot() {
 		for (const name of PARTY) {
 			const player = get_player(name);
 			if (
-				!player || player.rip || character.map !== player.map ||
+				!player || player.rip ||
 				Math.hypot(character.x - player.x, character.y - player.y) > CONFIG.party.action_range
 			) {
 				continue;

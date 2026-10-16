@@ -50,7 +50,7 @@ function best_orbit_spot(center, radius, score, options) {
 }
 
 function make_distance_from_monsters_scorer() {
-	const monsters = Object.values(parent.entities).filter(e => e?.type === "monster" && !e.dead);
+	const monsters = Object.values(parent.entities).filter(e => e.type === "monster" && !e.dead);
 	if (!monsters.length) return null;
 
 	return (x, y) => {

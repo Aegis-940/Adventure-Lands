@@ -405,6 +405,14 @@ async function run_crypt_route() {
 	}
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// BOOT
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+on_boot("Crypt Route", () => {
+	DUNGEONS.crypt.route = run_crypt_route;
+}, { needs: ["Crypt Dungeon"] });
+
 console_api({
 	stop_crypt_route: "stop the crypt route after its current step",
 });

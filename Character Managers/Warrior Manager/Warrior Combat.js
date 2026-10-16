@@ -23,13 +23,13 @@ function sample_burn_state(target) {
 	if (now - _burn_probe_at < BURN_PROBE_MS) return;
 	_burn_probe_at = now;
 
-	const burned = target.s && target.s.burned;
+	const burned = target.s.burned;
 	errlog_sample("burn_state", {
 		hp_pct: +(target.hp / target.max_hp).toFixed(3),
 		burned: burned ? Object.assign({}, burned) : null,
 		attack: character.attack,
-		marked: !!(target.s && target.s.marked),
-		cursed: !!(target.s && target.s.cursed),
+		marked: !!target.s.marked,
+		cursed: !!target.s.cursed,
 		buffs: Object.keys(character.s).filter(b => BUFFS_WORTH_LOGGING.includes(b)).join("+")
 	});
 }

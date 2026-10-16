@@ -435,7 +435,7 @@ function _errlog_sample_vitals() {
 	} catch (e) { }
 
 	try {
-		if (cache && cache.heal_target) {
+		if (cache.heal_target) {
 			const ht = cache.heal_target;
 			v.heal_stat = character.heal;
 			v.heal_target = ht.name;

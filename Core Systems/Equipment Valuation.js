@@ -284,7 +284,7 @@ function smoothed_set_value(set_name, raw, now) {
 }
 
 function min_swap_interval_ms() {
-	const attacks = CONFIG.equipment.weapon_min_swap_attacks ?? 0;
+	const attacks = CONFIG.equipment.weapon_min_swap_attacks;
 	if (!attacks) return 0;
 	return (attacks * 1000) / character.frequency;
 }

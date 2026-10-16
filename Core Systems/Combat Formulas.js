@@ -30,7 +30,7 @@ function heal_reduction(target, rpiercing) {
 
 function heal_poison_factor(target) {
 	const entity = heal_entity(target);
-	return entity && entity.s && entity.s.poisoned ? HEAL_POISON_FACTOR : 1;
+	return entity && entity.s.poisoned ? HEAL_POISON_FACTOR : 1;
 }
 
 function heal_delivered(target, base, rpiercing) {
@@ -101,7 +101,7 @@ function monster_hit_on(m, target) {
 }
 
 function monster_dps_on(m, target) {
-	const cursed = m.s && m.s.cursed ? CURSED_OUTPUT_FACTOR : 1;
+	const cursed = m.s.cursed ? CURSED_OUTPUT_FACTOR : 1;
 	return monster_hit_on(m, target) * (m.frequency || 0) * cursed * INCOMING_MARGIN;
 }
 
@@ -190,7 +190,7 @@ function splash_bonus(mob, explosion, hit_damage) {
 
 	for (const id in parent.entities) {
 		const e = parent.entities[id];
-		if (e?.type !== "monster" || e.dead) continue;
+		if (e.type !== "monster" || e.dead) continue;
 		if (e === mob || e.id === mob.id) continue;
 		if (distance(e, mob) > radius) continue;
 

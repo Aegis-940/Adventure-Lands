@@ -164,7 +164,7 @@ function gear_snapshot(slots) {
 }
 
 function sample_fight_player(fight, boss, pl) {
-	const coop = pl.s && pl.s.coop;
+	const coop = pl.s.coop;
 	const on_boss = coop && coop.id === fight.id;
 	if (!on_boss && !fight.players[pl.name]) return;
 
@@ -178,7 +178,7 @@ function sample_fight_player(fight, boss, pl) {
 	p.freq_sum += pl.frequency || 0;
 	p.pdps_sum += pl.pdps || 0;
 
-	for (const key in pl.s || {}) {
+	for (const key in pl.s) {
 		if (key !== "coop") p.buffs[key] = (p.buffs[key] || 0) + 1;
 	}
 
@@ -214,7 +214,7 @@ function boss_profile_tick() {
 		fight.last_seen = now;
 		fight.hp_last = boss.hp;
 		fight.ticks++;
-		for (const key in boss.s || {}) fight.conditions[key] = (fight.conditions[key] || 0) + 1;
+		for (const key in boss.s) fight.conditions[key] = (fight.conditions[key] || 0) + 1;
 		for (const pl of players) sample_fight_player(fight, boss, pl);
 	}
 

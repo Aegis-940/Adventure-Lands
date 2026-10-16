@@ -40,8 +40,7 @@ function sell_sellable_items(keep = keep_nothing) {
 		const item = character.items[i];
 		if (!sellable(item, keep)) continue;
 		try {
-			const sale = sell(i, item.q || 1);
-			if (sale && typeof sale.catch === "function") sale.catch(e => catcher(e, "sell: " + item.name));
+			sell(i, item.q || 1).catch(e => catcher(e, "sell: " + item.name));
 			log_msg("info", `💰 Sold ${item.name} x${item.q || 1}`);
 			sold_any = true;
 		} catch (e) {
