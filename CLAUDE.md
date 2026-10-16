@@ -77,7 +77,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | `Equipment Manager.js` | The only thing that changes what is worn: sets, `batch_equip()`, the planner over the sent view, slot intent, rules resolver. Situational gear comes from `encounter_gear()` |
 | `Equipment Valuation.js` | Measured set profiles and the one weapon chooser (`resolve_weapon_set()`). Equips nothing |
 | `Party Management.js` | Panic (`set_panic()` is the only writer) and its broadcast, `scare_off()`, invites, home |
-| `Loot Management.js` | Keep/ship/vendor decisions, bank withdrawal, chest looting, `inventory_sorter()` |
+| `Loot Management.js` | Keep/ship/vendor decisions, the hand-off loop (vendors approved items and ships loot and gold to a nearby Riff every 100ms, per bag index, through swaps), bank withdrawal, chest looting, `inventory_sorter()` |
 | `Maintenance.js` | Potions (one per tick, shared cooldown) and the periodic tab reload |
 | `Character Runner.js` | `run_character()`, the shared main tick |
 | `Skill Runner.js` | `run_skills(table, context)`: one pass over a role's skill table, each entry gated (`combat`/`alive`), asked, cast and caught on its own |

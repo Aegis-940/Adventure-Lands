@@ -119,6 +119,7 @@ function get_full_character_state() {
 		stomp_ready_at: stomp_ready_at,
 		free_slots: character.esize,
 		loose_slots: loose_loot(0).length,
+		ship_slots: shippable_loot().length,
 		mluck_until: character.s.mluck ? Date.now() + character.s.mluck.ms : 0,
 		last_seen: Date.now(),
 	};

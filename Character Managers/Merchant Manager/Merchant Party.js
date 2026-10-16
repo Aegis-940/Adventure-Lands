@@ -63,6 +63,7 @@ async function buff_nearby_players() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 var DELIVERY_WAIT_MAX_ATTEMPTS = 40;
+var HANDOFF_WAIT_MS = 15000;
 
 var _delivery_requested = false;
 
@@ -103,6 +104,15 @@ function member_within_range(name, range = CONFIG.party.nearby_trigger_range) {
 	return !!player && !player.rip && Math.hypot(character.x - player.x, character.y - player.y) <= range;
 }
 
+function handoff_pending() {
+	return PARTY.some(name => member_within_range(name) && party_state(name).ship_slots > 0);
+}
+
+async function wait_for_handoff() {
+	if (await wait_until(() => !character.esize || !handoff_pending(), HANDOFF_WAIT_MS, 250)) return;
+	log_msg("warn", `Hand-off still going after ${HANDOFF_WAIT_MS / 1000}s — leaving anyway.`);
+}
+
 function handle_delivering_state() {
 	return run_task("Delivering", async () => {
 		try {
@@ -137,6 +147,7 @@ function handle_delivering_state() {
 			}
 
 			await buff_nearby_players();
+			await wait_for_handoff();
 			await sell_items();
 			await bank_items();
 		} finally {

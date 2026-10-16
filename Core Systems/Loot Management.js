@@ -87,59 +87,8 @@ function swap_in_flight() {
 	return equip_transient() || equip_pending();
 }
 
-function still_loose(i, item) {
-	if (swap_in_flight()) return false;
-	const now = character.items[i];
-	if (!now || now.name !== item.name || (now.level || 0) !== (item.level || 0)) return false;
-	return loose_loot(i).some(entry => entry.i === i);
-}
-
-const MERCHANT_SEND_RANGE = 400;
-const MERCHANT_AUTO_SEND_RANGE = 250;
-
-let _sending_to_merchant = false;
-
-async function send_to_merchant() {
-	if (_sending_to_merchant) return;
-	const merchant = get_player("Riff");
-	if (!merchant || merchant.rip) return log_msg("error", "Merchant not found or dead");
-	if (merchant.map !== character.map || distance(character, merchant) > MERCHANT_SEND_RANGE) {
-		return log_msg("error", "Merchant not nearby");
-	}
-
-	_sending_to_merchant = true;
-	try {
-		for (const { i, item } of loose_loot(LOOT_THRESHOLD)) {
-			await sleep(150);
-			if (!still_loose(i, item)) continue;
-			try {
-				await send_item("Riff", i, character.items[i].q || 1);
-			} catch (e) {
-				log_msg("warn", `Could not send item in slot ${i}: ${item.name}`);
-			}
-		}
-
-		const gold_to_send = character.gold - LOOT_GOLD_RESERVE;
-		if (gold_to_send > 0) {
-			await sleep(10);
-			try {
-				await send_gold("Riff", gold_to_send);
-			} catch (e) {
-				log_msg("warn", "Could not send gold");
-			}
-		}
-	} finally {
-		_sending_to_merchant = false;
-	}
-}
-
-function clear_inventory() {
-	if (_sending_to_merchant) return;
-	const mule = get_player("Riff");
-	if (!mule || mule.rip || distance(character, mule) >= MERCHANT_AUTO_SEND_RANGE) return;
-	if (character.gold <= LOOT_GOLD_RESERVE && !loose_loot(LOOT_THRESHOLD).length) return;
-
-	send_to_merchant().catch(e => catcher(e, "clear_inventory"));
+function same_item(a, b) {
+	return !!a && !!b && a.name === b.name && (a.level || 0) === (b.level || 0);
 }
 
 function inventory_sorter() {
@@ -330,7 +279,7 @@ async function withdraw_item(item_name, level = null, total = null) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// REMOTE SELLING (background auto-sell loop each fighter runs via setInterval(remote_sell_items, ...))
+// HAND-OFF — vendor what is approved and ship the rest to Riff, from any bag index no swap in flight touches
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const SELLABLE_ITEMS = [
@@ -352,9 +301,78 @@ function vendorable(item) {
 	return SELLABLE_ITEMS.includes(item.name) && (item.level || 0) < 1 && !phoenix_keeps(item.name);
 }
 
-function remote_sell_items() {
-	if (swap_in_flight()) return;
-	for (const { i, item } of loose_loot(0)) {
-		if (vendorable(item)) sell(i, item.q || 1);
+const HANDOFF_MS = 100;
+const HANDOFF_BURST = 4;
+const HANDOFF_RETRY_MS = 2000;
+const MERCHANT_FULL_MS = 5000;
+const MERCHANT_SEND_RANGE = 400;
+const MERCHANT_AUTO_SEND_RANGE = 250;
+const SEND_WINDOW_MS = 15000;
+
+let _handoff_sent = {};
+let _gold_sent_until = 0;
+let _merchant_full_until = 0;
+let _send_range_until = 0;
+
+function shippable_loot() {
+	return loose_loot(LOOT_THRESHOLD).filter(({ item }) => !vendorable(item));
+}
+
+function merchant_in_reach(range) {
+	const merchant = get_player("Riff");
+	if (!merchant || merchant.rip || merchant.map !== character.map) return null;
+	return distance(character, merchant) <= range ? merchant : null;
+}
+
+function handoff_waiting(i, item) {
+	const sent = _handoff_sent[i];
+	if (sent && Date.now() < sent.until && same_item(sent, item)) return true;
+	delete _handoff_sent[i];
+	return false;
+}
+
+function handoff_failed(e) {
+	const reason = (e && (e.reason || e.response)) || "unknown";
+	if (reason === "send_no_space") _merchant_full_until = Date.now() + MERCHANT_FULL_MS;
+	errlog_count(`hand-off failed: ${reason}`);
+}
+
+function hand_off(i, item, send) {
+	_handoff_sent[i] = { name: item.name, level: item.level, until: Date.now() + HANDOFF_RETRY_MS };
+	send().catch(handoff_failed);
+}
+
+function handoff_tick() {
+	const now = Date.now();
+	const merchant = merchant_in_reach(now < _send_range_until ? MERCHANT_SEND_RANGE : MERCHANT_AUTO_SEND_RANGE);
+	const can_ship = !!merchant && now >= _merchant_full_until;
+
+	if (merchant && character.gold > LOOT_GOLD_RESERVE && now >= _gold_sent_until && character.cc < COOLDOWNS.cc) {
+		_gold_sent_until = now + HANDOFF_RETRY_MS;
+		send_gold("Riff", character.gold - LOOT_GOLD_RESERVE).catch(handoff_failed);
 	}
+
+	const view = equip_view().items;
+	let burst = HANDOFF_BURST;
+	for (const { i, item } of loose_loot(0)) {
+		if (!burst || character.cc >= COOLDOWNS.cc) return;
+		if (!same_item(view[i], item) || handoff_waiting(i, item)) continue;
+		if (vendorable(item)) hand_off(i, item, () => sell(i, item.q || 1));
+		else if (can_ship && i >= LOOT_THRESHOLD) hand_off(i, item, () => send_item("Riff", i, item.q || 1));
+		else continue;
+		burst--;
+	}
+}
+
+function handoff_loop() {
+	every("handoff_loop", { ms: HANDOFF_MS, kind: "automation" }, handoff_tick);
+}
+
+async function send_to_merchant() {
+	const merchant = get_player("Riff");
+	if (!merchant || merchant.rip) return log_msg("error", "Merchant not found or dead");
+	if (!merchant_in_reach(MERCHANT_SEND_RANGE)) return log_msg("error", "Merchant not nearby");
+
+	_send_range_until = Date.now() + SEND_WINDOW_MS;
+	await wait_until(() => !shippable_loot().length, SEND_WINDOW_MS, HANDOFF_MS);
 }

@@ -103,7 +103,6 @@ async function maintenance_tick() {
 	maintain_xp_booster();
 	if (CONFIG.party.auto_manage) party_manager();
 
-	clear_inventory();
 	inventory_sorter();
 	elixir_usage();
 
@@ -169,10 +168,7 @@ function run_character(s) {
 		}
 	}
 
-	for (const entry of s.intervals) {
-		every(entry[0].name, { ms: entry[1], kind: "automation", fixed: true }, entry[0]);
-	}
-
+	handoff_loop();
 	bscorpion_start();
 	farm_ledger_start();
 	farm_survey_start();
