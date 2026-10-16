@@ -7,12 +7,19 @@ const DAMAGE_WINDOW_MS = 15000;
 const DAMAGE_PREDICTION_STEP_MS = 250;
 const BUFFS_WORTH_LOGGING = ["warcry", "darkblessing", "mluck", "mcourage", "power", "xpower", "holidayspirit", "newcomersblessing", "energized", "patronsgrace", "weakness"];
 
+const BURN_SOURCE_MS = 10000;
+
 const _damage_windows = {};
+const _burn_source = {};
 
 function weapon_label() {
 	const mainhand = character.slots.mainhand?.name || "none";
 	const offhand = character.slots.offhand?.name || "none";
 	return `${mainhand}/${offhand}`;
+}
+
+function worn_burns() {
+	return ["mainhand", "offhand"].some(slot => character.slots[slot] && G.items[character.slots[slot].name].ability === "burn");
 }
 
 function firing_stats() {
@@ -43,6 +50,7 @@ function damage_window_for(weapon, stats) {
 			splash_armor: 0, direct_armor: 0,
 			tagged: 0, untagged: 0,
 			pred_splash: 0, pred_burn: 0, pred_ticks: 0,
+			worn_ms: 0,
 			off_home: 0, boss_seen: 0, context_ticks: 0
 		};
 	}
@@ -67,6 +75,7 @@ function tick_damage_windows() {
 	if (!sample_hits_enabled()) return;
 
 	const worn = weapon_label();
+	damage_window_for(worn).worn_ms += DAMAGE_PREDICTION_STEP_MS;
 	const at_home = destination && character.map === destination.map;
 	const boss = !!find_active_boss();
 	const prediction = model_prediction();
@@ -86,29 +95,30 @@ function tick_damage_windows() {
 }
 
 function emit_damage_window(w) {
-	if (w.direct > 0) {
+	if (w.direct > 0 || w.burn > 0) {
 		errlog_sample("damage", {
 			weapon: w.weapon,
 			explosion: w.explosion, crit: w.crit, critdamage: w.critdamage,
 			apiercing: w.apiercing, attack: w.attack, buffs: w.buffs,
 			secs: +((Date.now() - w.at) / 1000).toFixed(1),
+			worn_s: +(w.worn_ms / 1000).toFixed(1),
 			direct: Math.round(w.direct),
 			splash: Math.round(w.splash),
 			burn: Math.round(w.burn),
-			burn_mult: +(1 + w.burn / w.direct).toFixed(3),
-			splash_mult: +(1 + w.splash / w.direct).toFixed(3),
+			burn_mult: w.direct ? +(1 + w.burn / w.direct).toFixed(3) : null,
+			splash_mult: w.direct ? +(1 + w.splash / w.direct).toFixed(3) : null,
 			hits: w.hits, splashes: w.splashes, ticks: w.ticks,
 			tagged: w.tagged, untagged: w.untagged,
 			splash_armor: w.splashes ? Math.round(w.splash_armor / w.splashes) : 0,
 			direct_armor: w.hits ? Math.round(w.direct_armor / w.hits) : 0,
-			per_splash: w.splashes ? +(w.splash / w.splashes / (w.direct / w.hits)).toFixed(3) : 0,
+			per_splash: w.splashes && w.hits ? +(w.splash / w.splashes / (w.direct / w.hits)).toFixed(3) : 0,
 
 			pred_ticks: w.pred_ticks,
 			predicted_splash_mult: w.pred_ticks ? +(1 + w.pred_splash / w.pred_ticks).toFixed(3) : null,
 			predicted_burn_mult: w.pred_ticks ? +(w.pred_burn / w.pred_ticks).toFixed(3) : null,
-			splash_accuracy: w.pred_ticks && w.pred_splash > 0
+			splash_accuracy: w.direct && w.pred_ticks && w.pred_splash > 0
 				? +((1 + w.splash / w.direct) / (1 + w.pred_splash / w.pred_ticks)).toFixed(3) : null,
-			burn_accuracy: w.pred_ticks && w.pred_burn / w.pred_ticks > 1.001
+			burn_accuracy: w.direct && w.pred_ticks && w.pred_burn / w.pred_ticks > 1.001
 				? +((1 + w.burn / w.direct) / (w.pred_burn / w.pred_ticks)).toFixed(3) : null,
 
 			off_home_pct: w.context_ticks ? +(w.off_home / w.context_ticks).toFixed(2) : 0,
@@ -135,7 +145,7 @@ function action_sampler(data) {
 		record_pid_heal(data);
 		return;
 	}
-	_pid_weapon[data.pid] = Object.assign({ weapon: weapon_label(), at: Date.now() }, firing_stats());
+	_pid_weapon[data.pid] = Object.assign({ weapon: weapon_label(), burns: worn_burns(), at: Date.now() }, firing_stats());
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -216,6 +226,9 @@ function prune_pid_weapons() {
 	for (const pid in _pid_heal) {
 		if (_pid_heal[pid].at < cutoff) delete _pid_heal[pid];
 	}
+	for (const id in _burn_source) {
+		if (_burn_source[id].at < Date.now() - BURN_SOURCE_MS) delete _burn_source[id];
+	}
 }
 
 let _heal_window = null;
@@ -286,14 +299,29 @@ function damage_sampler(data) {
 
 	if (!data.damage) return;
 
+	if (data.source === "burn") {
+		const burner = _burn_source[data.id];
+		if (!burner) {
+			errlog_count("damage burn tick with no known burner");
+			return;
+		}
+		burner.at = Date.now();
+		const w = damage_window_for(burner.weapon, burner.stats);
+		w.burn += data.damage;
+		w.ticks++;
+		return;
+	}
+
 	const fired = data.pid && _pid_weapon[data.pid];
-	const w = damage_window_for(fired ? fired.weapon : weapon_label(), fired);
+	const weapon = fired ? fired.weapon : weapon_label();
+	const w = damage_window_for(weapon, fired);
 	const hit = parent.entities[data.id];
 	const armor = hit ? (hit.armor || 0) : 0;
 	if (fired) w.tagged++; else w.untagged++;
+	if (fired ? fired.burns : worn_burns()) _burn_source[data.id] = { weapon, stats: fired, at: Date.now() };
+	if (data.kill) delete _burn_source[data.id];
 
-	if (data.source === "burn") { w.burn += data.damage; w.ticks++; }
-	else if (data.splash) { w.splash += data.damage; w.splashes++; w.splash_armor += armor; }
+	if (data.splash) { w.splash += data.damage; w.splashes++; w.splash_armor += armor; }
 	else { w.direct += data.damage; w.hits++; w.direct_armor += armor; }
 }
 

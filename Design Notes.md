@@ -318,6 +318,8 @@ The server's damage and heal arithmetic. It computes values and acts on nothing:
 
 Hit and heal telemetry, self-starting at load: the `hit`/`action` socket samplers and the damage/heal windows they feed.
 
+**Each damage window belongs to one weapon pair.** A hit goes to the pair that fired it (by `pid`), or the pair worn when it landed. A burn tick carries no `pid` and lands seconds after the hit, so it goes to the burn-capable pair (an item with `ability: "burn"`) that last hit that target, kept for 10s after its last tick; a tick with no known burner is counted, not credited. `worn_s` is the time the pair was actually worn in the window, sampled every 250ms; `secs` is the window's wall time. Before 10-16 every tick went to whatever was worn when it landed (a mace with no fire showed burn/direct 0.70, `burn_mult` reached 8033), windows with only burn were dropped, and two pairs swapped within 15s both claimed the whole window, so the `weapons` report reads only records with `worn_s`.
+
 It also keeps the party's in-flight damage ledger. Every fighter's `action` is recorded by `pid` (after the target's armour, or resistance for Myras, × 0.9) until its `hit` lands or its `eta` passes. `remaining_hp(mob)` is what targeting, `would_kill()` and Riva's skills read instead of `mob.hp`.
 
 ### `Boss Profiler.js`

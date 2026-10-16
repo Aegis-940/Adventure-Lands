@@ -643,8 +643,8 @@ function render_decisions(d) {
 			r.realised_vs_predicted === null ? "–" : r.realised_vs_predicted.toFixed(2)]));
 	$("weapons").innerHTML = table(
 		[{ label: "Who" }, { label: "Weapons" }, { label: "Worn", n: 1 }, { label: "Windows", n: 1 }, { label: "Per hit", n: 1 },
-			{ label: "Splash", n: 1 }, { label: "Burn", n: 1 }],
-		d.weapons.map(r => [esc(r.character), esc(r.weapon), r.worn_pct === null ? "–" : r.worn_pct + "%", r.windows, num(r.per_hit),
+			{ label: "Per second worn", n: 1 }, { label: "Splash", n: 1 }, { label: "Burn", n: 1 }],
+		d.weapons.map(r => [esc(r.character), esc(r.weapon), r.worn_pct === null ? "–" : r.worn_pct + "%", r.windows, num(r.per_hit), num(r.per_s_worn),
 			r.splash_pct === null ? "–" : r.splash_pct + "%", r.burn_pct === null ? "–" : r.burn_pct + "%"]));
 }
 

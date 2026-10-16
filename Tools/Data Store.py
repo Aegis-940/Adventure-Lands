@@ -73,7 +73,7 @@ ADDED_COLUMNS = {
 
 # Sample kinds the sink keeps (Overhaul 4.1): file, table, and the fields worth a column. Everything is also in raw.
 SAMPLE_TABLES = [
-    ("damage.jsonl", "damage_windows", ["weapon", "secs", "direct", "splash", "burn", "hits", "splashes", "ticks",
+    ("damage.jsonl", "damage_windows", ["weapon", "secs", "worn_s", "direct", "splash", "burn", "hits", "splashes", "ticks",
                                         "attack", "crit", "buffs", "boss_pct", "off_home_pct"]),
     ("heal.jsonl", "heal_windows", ["secs", "single_casts", "single_delivered", "single_predicted", "single_overheal",
                                     "party_hits", "party_delivered", "party_predicted", "party_overheal", "mp_cost"]),
@@ -82,6 +82,7 @@ SAMPLE_TABLES = [
     ("cc_report.jsonl", "cc_reports", ["total", "climit", "by_method"]),
 ]
 ADDED_COLUMNS.update({table: ["settings"] for _, table, _ in SAMPLE_TABLES})
+ADDED_COLUMNS["damage_windows"] = ["settings", "worn_s"]
 
 
 def sample_schema():
@@ -642,9 +643,10 @@ def skills_summary(rows):
 
 
 def weapons_summary(db, rows, flags):
-    """Per character and weapon pair: share of time worn (decision windows), and realised damage per hit with its
-    splash and burn shares (Combat Sampling's per-weapon windows, which attribute each hit to the weapon that fired it).
-    Those windows run 15s from a weapon's first hit, not for as long as it is worn, so damage per second is not given."""
+    """Per character and weapon pair: share of time worn (decision windows), and realised damage per hit and per second
+    worn with its splash and burn shares (Combat Sampling's per-weapon windows: each hit goes to the weapon that fired it,
+    each burn tick to the weapon that set the burn). Only windows with worn_s count: before it (10-16), burn went to
+    whatever was worn when the tick landed, and a window's seconds were wall time, not time worn."""
     worn = {}
     for r in rows:
         for label, s in r["worn_s"].items():
@@ -655,7 +657,8 @@ def weapons_summary(db, rows, flags):
     where, args = period(flags)
     measured = {}
     for who, weapon, secs, direct, splash, burn, hits in db.execute(
-            "SELECT character, weapon, secs, direct, splash, burn, hits FROM damage_windows WHERE %s" % where, args):
+            "SELECT character, weapon, worn_s, direct, splash, burn, hits FROM damage_windows "
+            "WHERE worn_s IS NOT NULL AND %s" % where, args):
         m = measured.setdefault((who, weapon), [0, 0, 0, 0, 0, 0])
         m[0] += secs or 0
         m[1] += direct or 0
@@ -672,6 +675,7 @@ def weapons_summary(db, rows, flags):
             "worn_pct": round(100.0 * worn.get(key, 0) / totals[who], 1) if totals.get(who) else None,
             "windows": m[5] if m else 0,
             "per_hit": round((m[1] + m[2] + m[3]) / m[4]) if m and m[4] else None,
+            "per_s_worn": round((m[1] + m[2] + m[3]) / m[0]) if m and m[0] else None,
             "splash_pct": round(100.0 * m[2] / (m[1] + m[2] + m[3]), 1) if m and m[1] + m[2] + m[3] else None,
             "burn_pct": round(100.0 * m[3] / (m[1] + m[2] + m[3]), 1) if m and m[1] + m[2] + m[3] else None,
         })
@@ -758,8 +762,8 @@ def question_report(command, flags):
                                           "damage_per_use", "kills_h", "miss_pct", "pulls_h", "predicted_per_cast",
                                           "realised_vs_predicted"])
     elif command == "weapons":
-        print_rows(weapons_summary(db, rows, flags), ["character", "weapon", "worn_pct", "windows", "per_hit", "splash_pct",
-                                                      "burn_pct"])
+        print_rows(weapons_summary(db, rows, flags), ["character", "weapon", "worn_pct", "windows", "per_hit", "per_s_worn",
+                                                      "splash_pct", "burn_pct"])
     elif command == "pulls":
         print_rows(pulls_summary(db, rows), ["character", "max_aggro_at_pull", "windows", "pulls_h", "close_calls_per_window",
                                              "taken_h", "mp_pots_h"])
