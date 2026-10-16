@@ -108,22 +108,18 @@ function get_character_state() {
 }
 
 async function set_state(state) {
-	try {
-		switch (state) {
-			case MERCHANT_STATES.DEAD:       await handle_dead_state(); break;
-			case MERCHANT_STATES.DELIVERING: await handle_delivering_state(); break;
-			case MERCHANT_STATES.BANKING:    await handle_banking_state(); break;
-			case MERCHANT_STATES.LOLIPOPS:   await handle_lolipop_state(); break;
-			case MERCHANT_STATES.UPGRADING:  await handle_upgrading_state(); break;
-			case MERCHANT_STATES.CRAFTING:   await handle_crafting_state(); break;
-			case MERCHANT_STATES.EXCHANGING: await handle_exchanging_state(); break;
-			case MERCHANT_STATES.FISHING:    await handle_fishing_state(); break;
-			case MERCHANT_STATES.MINING:     await handle_mining_state(); break;
-			case MERCHANT_STATES.IDLE: await handle_idle_state(); break;
-			default: break;
-		}
-	} catch (e) {
-		catcher(e, "set_state: unhandled error");
+	switch (state) {
+		case MERCHANT_STATES.DEAD:       await handle_dead_state(); break;
+		case MERCHANT_STATES.DELIVERING: await handle_delivering_state(); break;
+		case MERCHANT_STATES.BANKING:    await handle_banking_state(); break;
+		case MERCHANT_STATES.LOLIPOPS:   await handle_lolipop_state(); break;
+		case MERCHANT_STATES.UPGRADING:  await handle_upgrading_state(); break;
+		case MERCHANT_STATES.CRAFTING:   await handle_crafting_state(); break;
+		case MERCHANT_STATES.EXCHANGING: await handle_exchanging_state(); break;
+		case MERCHANT_STATES.FISHING:    await handle_fishing_state(); break;
+		case MERCHANT_STATES.MINING:     await handle_mining_state(); break;
+		case MERCHANT_STATES.IDLE: await handle_idle_state(); break;
+		default: break;
 	}
 }
 
@@ -138,34 +134,30 @@ function task_heartbeat() {
 
 function loop_controller() {
 	every("loop_controller", { ms: 250, kind: "automation" }, async () => {
-		try {
-			if (Date.now() - _party_manager_at >= TICK_RATE.maintenance) {
-				_party_manager_at = Date.now();
-				party_manager();
-			}
-
-			if (!automation_enabled()) {
-				set_task("Idle");
-				watchdog_task = "Idle";
-				watchdog_since = Date.now();
-				return 250;
-			}
-
-			if (merchant_task !== watchdog_task) {
-				watchdog_task = merchant_task;
-				watchdog_since = Date.now();
-			} else if (merchant_task !== "Idle" && Date.now() - watchdog_since > MERCHANT_TASK_WATCHDOG_MS) {
-				log_msg("warn", `Merchant stuck on "${merchant_task}" for over ${MERCHANT_TASK_WATCHDOG_MS / 60000} minutes — forcing back to Idle.`);
-				abandon_task();
-				watchdog_task = "Idle";
-				watchdog_since = Date.now();
-			}
-
-			const next_state = get_character_state();
-			await set_state(next_state);
-		} catch (e) {
-			catcher(e, "loop_controller");
+		if (Date.now() - _party_manager_at >= TICK_RATE.maintenance) {
+			_party_manager_at = Date.now();
+			party_manager();
 		}
+
+		if (!automation_enabled()) {
+			set_task("Idle");
+			watchdog_task = "Idle";
+			watchdog_since = Date.now();
+			return 250;
+		}
+
+		if (merchant_task !== watchdog_task) {
+			watchdog_task = merchant_task;
+			watchdog_since = Date.now();
+		} else if (merchant_task !== "Idle" && Date.now() - watchdog_since > MERCHANT_TASK_WATCHDOG_MS) {
+			log_msg("warn", `Merchant stuck on "${merchant_task}" for over ${MERCHANT_TASK_WATCHDOG_MS / 60000} minutes — forcing back to Idle.`);
+			abandon_task();
+			watchdog_task = "Idle";
+			watchdog_since = Date.now();
+		}
+
+		const next_state = get_character_state();
+		await set_state(next_state);
 		return 250;
 	});
 }

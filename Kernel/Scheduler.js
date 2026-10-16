@@ -9,6 +9,7 @@ function every(name, options, fn) {
 		name,
 		kind: options.kind || "automation",
 		ms: options.ms,
+		retry: options.retry,
 		fixed: !!options.fixed,
 		beat: !!options.beat,
 		runs: 0,
@@ -59,7 +60,7 @@ async function run_loop(loop, fn) {
 		loop.errors++;
 		loop.last_error = (e && e.message) || String(e);
 		catcher(e, loop.name);
-		return loop.ms;
+		return loop.retry === undefined ? loop.ms : loop.retry;
 	}
 }
 

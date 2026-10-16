@@ -77,24 +77,20 @@ function followers_still_inside(dungeon) {
 const DUNGEON_REJOIN_WATCH_MS = 5000;
 
 function dungeon_rejoin_watch() {
-	try {
-		if (character.name === MOVEMENT_LEADER) return;
-		if (!DUNGEON_FOLLOWERS.includes(character.name)) return;
-		if (_dungeon_joining || character.rip) return;
-		if (!dungeon_override()) return;
-		if (dungeon_bailing()) return;
+	if (character.name === MOVEMENT_LEADER) return;
+	if (!DUNGEON_FOLLOWERS.includes(character.name)) return;
+	if (_dungeon_joining || character.rip) return;
+	if (!dungeon_override()) return;
+	if (dungeon_bailing()) return;
 
-		const d = active_dungeon();
-		if (!d || character.map === d.map) return;
+	const d = active_dungeon();
+	if (!d || character.map === d.map) return;
 
-		const lead = read_state_cache(MOVEMENT_LEADER);
-		if (!lead || lead.rip || lead.map !== d.map || !lead.in) return;
+	const lead = read_state_cache(MOVEMENT_LEADER);
+	if (!lead || lead.rip || lead.map !== d.map || !lead.in) return;
 
-		log_msg("event", "🚪 Left behind — rejoining the instance");
-		join_dungeon_instance({ in: lead.in, map: d.map, entrance: d.entrance });
-	} catch (e) {
-		console.error("dungeon rejoin watch error", e);
-	}
+	log_msg("event", "🚪 Left behind — rejoining the instance");
+	join_dungeon_instance({ in: lead.in, map: d.map, entrance: d.entrance });
 }
 
 function followers_away_from_entrance(dungeon) {

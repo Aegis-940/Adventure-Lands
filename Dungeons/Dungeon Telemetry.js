@@ -54,73 +54,69 @@ function telemetry_aggro() {
 }
 
 function dungeon_telemetry_tick() {
-	try {
-		if (!dungeon_telemetry_on()) {
-			_telemetry_last = null;
-			return;
-		}
+	if (!dungeon_telemetry_on()) {
+		_telemetry_last = null;
+		return;
+	}
 
-		const d = active_dungeon();
-		const near = telemetry_nearby();
-		const aggro = telemetry_aggro();
-		const focus = dungeon_focus_target();
+	const d = active_dungeon();
+	const near = telemetry_nearby();
+	const aggro = telemetry_aggro();
+	const focus = dungeon_focus_target();
 
-		const moved = _telemetry_last
-			? Math.round(Math.hypot(character.x - _telemetry_last.x, character.y - _telemetry_last.y))
-			: 0;
+	const moved = _telemetry_last
+		? Math.round(Math.hypot(character.x - _telemetry_last.x, character.y - _telemetry_last.y))
+		: 0;
 
-		const now = Date.now();
-		if (moved > TELEMETRY_STUCK_EPS) _telemetry_still_since = now;
-		else if (!_telemetry_still_since) _telemetry_still_since = now;
+	const now = Date.now();
+	if (moved > TELEMETRY_STUCK_EPS) _telemetry_still_since = now;
+	else if (!_telemetry_still_since) _telemetry_still_since = now;
 
-		const engaged = near.nearest_d !== null && near.nearest_d <= TELEMETRY_ENGAGED_RADIUS;
-		if (moved > TELEMETRY_STUCK_EPS || engaged) _telemetry_free_since = now;
-		else if (!_telemetry_free_since) _telemetry_free_since = now;
+	const engaged = near.nearest_d !== null && near.nearest_d <= TELEMETRY_ENGAGED_RADIUS;
+	if (moved > TELEMETRY_STUCK_EPS || engaged) _telemetry_free_since = now;
+	else if (!_telemetry_free_since) _telemetry_free_since = now;
 
-		if (character.rip && !_telemetry_was_rip) {
-			dungeon_telemetry_event("death", {
-				nearest: near.nearest,
-				nearest_d: near.nearest_d,
-				aggro_on_me: aggro.on_me,
-				counts: near.counts,
-			});
-		}
-		_telemetry_was_rip = !!character.rip;
-
-		errlog_sample("dungeon", {
-			dungeon: d.name,
-			map: character.map,
-			x: Math.round(character.x),
-			y: Math.round(character.y),
-			moved,
-			still_ms: now - _telemetry_still_since,
-			stuck_ms: now - _telemetry_free_since,
-			gold: character.gold,
-			esize: character.esize,
-			chests: get_num_chests(),
-			hp_pct: character.max_hp ? +(character.hp / character.max_hp).toFixed(2) : 0,
-			mp_pct: character.max_mp ? +(character.mp / character.max_mp).toFixed(2) : 0,
-			rip: !!character.rip,
-			target: character.target || null,
-			aggro_on_me: aggro.on_me,
-			aggro_on_party: aggro.on_party,
-			actions: take_basic_action_count(),
-			focus: focus ? focus.mtype : null,
-			focus_hp: focus ? focus.hp : null,
-			focus_d: focus ? Math.round(Math.hypot(character.x - focus.x, character.y - focus.y)) : null,
+	if (character.rip && !_telemetry_was_rip) {
+		dungeon_telemetry_event("death", {
 			nearest: near.nearest,
 			nearest_d: near.nearest_d,
-			nearest_target: near.nearest_target,
+			aggro_on_me: aggro.on_me,
 			counts: near.counts,
-			smart_moving: !!smart.moving,
-			goal: current_goal_label(),
-			bailing: dungeon_bailing(),
-			channelling: !!(character.c && character.c.town),
-			kills: Object.assign({}, _dungeon_kills),
 		});
-
-		_telemetry_last = { x: character.x, y: character.y };
-	} catch (e) {
-		console.error("dungeon telemetry error", e);
 	}
+	_telemetry_was_rip = !!character.rip;
+
+	errlog_sample("dungeon", {
+		dungeon: d.name,
+		map: character.map,
+		x: Math.round(character.x),
+		y: Math.round(character.y),
+		moved,
+		still_ms: now - _telemetry_still_since,
+		stuck_ms: now - _telemetry_free_since,
+		gold: character.gold,
+		esize: character.esize,
+		chests: get_num_chests(),
+		hp_pct: character.max_hp ? +(character.hp / character.max_hp).toFixed(2) : 0,
+		mp_pct: character.max_mp ? +(character.mp / character.max_mp).toFixed(2) : 0,
+		rip: !!character.rip,
+		target: character.target || null,
+		aggro_on_me: aggro.on_me,
+		aggro_on_party: aggro.on_party,
+		actions: take_basic_action_count(),
+		focus: focus ? focus.mtype : null,
+		focus_hp: focus ? focus.hp : null,
+		focus_d: focus ? Math.round(Math.hypot(character.x - focus.x, character.y - focus.y)) : null,
+		nearest: near.nearest,
+		nearest_d: near.nearest_d,
+		nearest_target: near.nearest_target,
+		counts: near.counts,
+		smart_moving: !!smart.moving,
+		goal: current_goal_label(),
+		bailing: dungeon_bailing(),
+		channelling: !!(character.c && character.c.town),
+		kills: Object.assign({}, _dungeon_kills),
+	});
+
+	_telemetry_last = { x: character.x, y: character.y };
 }

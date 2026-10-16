@@ -82,15 +82,11 @@ function dungeon_mtype_for(id) {
 
 function track_dungeon_kills() {
 	on_socket("hit", "dungeon_kill_handler", data => {
-		try {
-			if (!data || !data.kill || !data.id) return;
-			if (!active_dungeon()) return;
-			const mtype = dungeon_mtype_for(data.id);
-			if (!mtype) return;
-			_dungeon_seen.delete(data.id);
-			record_dungeon_kill(mtype);
-		} catch (e) {
-			console.error("dungeon kill handler error", e);
-		}
+		if (!data || !data.kill || !data.id) return;
+		if (!active_dungeon()) return;
+		const mtype = dungeon_mtype_for(data.id);
+		if (!mtype) return;
+		_dungeon_seen.delete(data.id);
+		record_dungeon_kill(mtype);
 	});
 }

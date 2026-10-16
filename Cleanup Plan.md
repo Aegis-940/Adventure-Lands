@@ -11,7 +11,7 @@ Every finding below comes from a read of the source on 2026-10-16 at `eb4ea67`, 
 | C0 | Safety net for subtraction | none | **done** 2026-10-16 |
 | C1 | Docs | none | **done** 2026-10-16 |
 | C2 | Dead code | none | **done** 2026-10-16 |
-| C3 | Error handling that hides errors | none (errors start reaching the log) | not started |
+| C3 | Error handling that hides errors | none (errors start reaching the log) | **done** 2026-10-16; the reload read is pending |
 | C4 | Guards and fallbacks | none | not started |
 | C5 | Native game functions | a few items, each marked ⚠ | not started |
 | C6 | Party state and the information the bot gathers | a few items, each marked ⚠ | not started |
@@ -207,9 +207,9 @@ The kernel already isolates and reports. `every()` runs each body through `run_l
 - the 27 fire-and-forget `.catch(() => {})`.
 
 **Checklist**
-- [ ] C3.1 empty catches (counter down)
-- [ ] C3.2 console.error catches (counter down)
-- [ ] C3.3 `every()` retry option, wrappers removed
+- [x] C3.1 empty catches (43 → 32: what is left is the recorders' never-throw contract in Error Log and Decision Log, and catches that absorb a normal refusal from the game: `enter()`, the town cast, a superseded journey)
+- [x] C3.2 console.error catches (11 → 1: Kernel's boot failure, which records first and prints the stack). The CM dispatcher keeps its per-handler isolation, reporting to `catcher`
+- [x] C3.3 `every()` retry option, eight wrappers removed. The harness's smoke run now fails on anything reported to `catcher` (socket handlers report there, not to smoke), and stubs `parent.monster_attack`/`player_attack`, which hid the action loops' only smoke errors
 - [ ] reload read: new error buckets triaged
 
 ---

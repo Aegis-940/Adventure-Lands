@@ -16,28 +16,15 @@ function warcry_wanted() {
 }
 
 function skill_loop() {
-	every("skill_loop", { ms: TICK_RATE.skill, kind: "combat", beat: true }, skill_tick);
+	every("skill_loop", { ms: TICK_RATE.skill, kind: "combat", beat: true, retry: TICK_RATE.retry }, skill_tick);
 }
 
 async function skill_tick() {
 	if (should_pause_combat_loop()) return 100;
-	let next_delay = TICK_RATE.skill;
-
-	try {
-		if (is_disabled(character)) {
-			return 250;
-		}
-
-		update_cache();
-
-		await run_skills(WARRIOR_SKILLS, cache.tank_entity);
-
-	} catch (e) {
-		catcher(e, "skill_loop");
-		next_delay = TICK_RATE.retry;
-	}
-
-	return next_delay;
+	if (is_disabled(character)) return 250;
+	update_cache();
+	await run_skills(WARRIOR_SKILLS, cache.tank_entity);
+	return TICK_RATE.skill;
 }
 
 var STOMP_SET = "basher";

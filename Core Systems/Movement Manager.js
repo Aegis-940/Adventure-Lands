@@ -7,9 +7,7 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function fire_and_forget_move(dest, on_done) {
-	try {
-		Promise.resolve(smart_move(dest, on_done)).catch(() => { });
-	} catch (e) { }
+	Promise.resolve(smart_move(dest, on_done)).catch(() => { });
 }
 
 function walk(x, y) {

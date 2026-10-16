@@ -205,15 +205,10 @@ async function batch_equip(data, set_name) {
 	for (const v of valid_items) note_slot_flight(v.slot, view.items[v.num].name);
 	note_sent("equip_batch", valid_items);
 
-	try {
-		const ack = parent.push_deferred("equip_batch").then(() => true, () => true);
-		parent.socket.emit("equip_batch", valid_items);
-		const acked = await Promise.race([ack, delay(EQUIP_ACK_TIMEOUT_MS).then(() => false)]);
-		if (!acked) errlog_count(`equip ack timeout ${set_name || "slots"}`);
-	} catch (error) {
-		console.error("batch_equip error:", error);
-		return Promise.reject({ reason: "invalid", message: "Failed to equip" });
-	}
+	const ack = parent.push_deferred("equip_batch").then(() => true, () => true);
+	parent.socket.emit("equip_batch", valid_items);
+	const acked = await Promise.race([ack, delay(EQUIP_ACK_TIMEOUT_MS).then(() => false)]);
+	if (!acked) errlog_count(`equip ack timeout ${set_name || "slots"}`);
 	return valid_items.length;
 }
 
@@ -265,7 +260,7 @@ function set_available(set_name) {
 async function equip_set_raw(set_name) {
 	const set = equipment_sets[set_name];
 	if (!set) {
-		console.error(`Set "${set_name}" not found.`);
+		log_msg("error", `Set "${set_name}" not found.`);
 		return;
 	}
 

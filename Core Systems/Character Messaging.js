@@ -24,7 +24,7 @@ function cm_dispatch(name, data) {
 		try {
 			fn(name, data);
 		} catch (e) {
-			console.error("CM listener error:", e);
+			catcher(e, "cm listener");
 		}
 	});
 	original_on_cm(name, data);
@@ -80,12 +80,12 @@ function cm_handle(name, data) {
 	const handler = CM_HANDLERS[data.type];
 	if (handler) {
 		if (handler.constructor.name === "AsyncFunction") {
-			handler(name, data).catch(e => console.error("CM async handler error:", e));
+			handler(name, data).catch(e => catcher(e, "cm " + data.type));
 		} else {
 			try {
 				handler(name, data);
 			} catch (e) {
-				console.error("CM handler error:", e);
+				catcher(e, "cm " + data.type);
 			}
 		}
 	}
@@ -136,22 +136,18 @@ let _state_cache_sig = "";
 let _state_cache_wrote = 0;
 
 function write_state_cache() {
-	try {
-		const state = get_full_character_state();
-		const now = state.last_seen;
-		state.last_seen = 0;
-		const sig = JSON.stringify(state);
-		if (sig === _state_cache_sig && now - _state_cache_wrote < STATE_CACHE_HEARTBEAT_MS) return;
-		_state_cache_sig = sig;
-		_state_cache_wrote = now;
-		state.last_seen = now;
+	const state = get_full_character_state();
+	const now = state.last_seen;
+	state.last_seen = 0;
+	const sig = JSON.stringify(state);
+	if (sig === _state_cache_sig && now - _state_cache_wrote < STATE_CACHE_HEARTBEAT_MS) return;
+	_state_cache_sig = sig;
+	_state_cache_wrote = now;
+	state.last_seen = now;
 
-		const t0 = Date.now();
-		storage_write(STATE_CACHE_KEY_PREFIX + character.name, state);
-		errlog_time("io state setItem", Date.now() - t0);
-	} catch (e) {
-		catcher(e, "write_state_cache");
-	}
+	const t0 = Date.now();
+	storage_write(STATE_CACHE_KEY_PREFIX + character.name, state);
+	errlog_time("io state setItem", Date.now() - t0);
 }
 
 function state_cache_loop() {

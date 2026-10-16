@@ -125,15 +125,13 @@ function _is_my_hit(data) {
 const _pid_weapon = {};
 
 function action_sampler(data) {
-	try {
-		if (!sample_hits_enabled() || !data || !data.pid) return;
-		if (data.attacker !== character.id && data.attacker !== character.name) return;
-		if (data.heal) {
-			record_pid_heal(data);
-			return;
-		}
-		_pid_weapon[data.pid] = Object.assign({ weapon: weapon_label(), at: Date.now() }, firing_stats());
-	} catch (e) { }
+	if (!sample_hits_enabled() || !data || !data.pid) return;
+	if (data.attacker !== character.id && data.attacker !== character.name) return;
+	if (data.heal) {
+		record_pid_heal(data);
+		return;
+	}
+	_pid_weapon[data.pid] = Object.assign({ weapon: weapon_label(), at: Date.now() }, firing_stats());
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -154,17 +152,15 @@ function inflight_defense(target, attacker) {
 }
 
 function inflight_tracker(data) {
-	try {
-		if (!data || !data.pid || !data.damage || data.heal) return;
-		if (!DUNGEON_PARTY.includes(data.attacker)) return;
-		const target = parent.entities[data.target];
-		if (!target || target.type !== "monster") return;
-		_inflight[data.pid] = {
-			target: target.id,
-			damage: data.damage * damage_multiplier(inflight_defense(target, data.attacker)) * INFLIGHT_DISCOUNT,
-			until: Date.now() + (data.eta || 0) + INFLIGHT_GRACE_MS,
-		};
-	} catch (e) { }
+	if (!data || !data.pid || !data.damage || data.heal) return;
+	if (!DUNGEON_PARTY.includes(data.attacker)) return;
+	const target = parent.entities[data.target];
+	if (!target || target.type !== "monster") return;
+	_inflight[data.pid] = {
+		target: target.id,
+		damage: data.damage * damage_multiplier(inflight_defense(target, data.attacker)) * INFLIGHT_DISCOUNT,
+		until: Date.now() + (data.eta || 0) + INFLIGHT_GRACE_MS,
+	};
 }
 
 function inflight_landed(data) {
@@ -270,33 +266,31 @@ function flush_heal_window() {
 }
 
 function damage_sampler(data) {
-	try {
-		if (!sample_hits_enabled() || !_is_my_hit(data)) return;
+	if (!sample_hits_enabled() || !_is_my_hit(data)) return;
 
-		if (data.heal) {
-			const w = heal_window();
-			const cast = data.pid && _pid_heal[data.pid];
-			const kind = cast ? cast.source : "single";
-			if (!cast) w.untagged++;
-			if (kind === "party") w.party_hits++; else w.single_casts++;
-			w[kind + "_delivered"] += data.heal;
-			w[kind + "_predicted"] += cast ? cast.predicted : 0;
-			w[kind + "_overheal"] += cast ? Math.max(0, data.heal - cast.deficit) : 0;
-			return;
-		}
+	if (data.heal) {
+		const w = heal_window();
+		const cast = data.pid && _pid_heal[data.pid];
+		const kind = cast ? cast.source : "single";
+		if (!cast) w.untagged++;
+		if (kind === "party") w.party_hits++; else w.single_casts++;
+		w[kind + "_delivered"] += data.heal;
+		w[kind + "_predicted"] += cast ? cast.predicted : 0;
+		w[kind + "_overheal"] += cast ? Math.max(0, data.heal - cast.deficit) : 0;
+		return;
+	}
 
-		if (!data.damage) return;
+	if (!data.damage) return;
 
-		const fired = data.pid && _pid_weapon[data.pid];
-		const w = damage_window_for(fired ? fired.weapon : weapon_label(), fired);
-		const hit = parent.entities[data.id];
-		const armor = hit ? (hit.armor || 0) : 0;
-		if (fired) w.tagged++; else w.untagged++;
+	const fired = data.pid && _pid_weapon[data.pid];
+	const w = damage_window_for(fired ? fired.weapon : weapon_label(), fired);
+	const hit = parent.entities[data.id];
+	const armor = hit ? (hit.armor || 0) : 0;
+	if (fired) w.tagged++; else w.untagged++;
 
-		if (data.source === "burn") { w.burn += data.damage; w.ticks++; }
-		else if (data.splash) { w.splash += data.damage; w.splashes++; w.splash_armor += armor; }
-		else { w.direct += data.damage; w.hits++; w.direct_armor += armor; }
-	} catch (e) { }
+	if (data.source === "burn") { w.burn += data.damage; w.ticks++; }
+	else if (data.splash) { w.splash += data.damage; w.splashes++; w.splash_armor += armor; }
+	else { w.direct += data.damage; w.hits++; w.direct_armor += armor; }
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -309,7 +303,7 @@ on_boot("Combat Sampling", () => {
 	on_socket("hit", "inflight_landed", inflight_landed);
 	on_socket("hit", "damage_sampler", damage_sampler);
 	every("prune pid weapons", { ms: 10000, kind: "telemetry", fixed: true }, prune_pid_weapons);
-	every("damage windows", { ms: DAMAGE_PREDICTION_STEP_MS, kind: "telemetry", fixed: true }, () => { try { tick_damage_windows(); } catch (e) { } });
+	every("damage windows", { ms: DAMAGE_PREDICTION_STEP_MS, kind: "telemetry", fixed: true }, tick_damage_windows);
 	every("flush damage windows", { ms: 1000, kind: "telemetry", fixed: true }, flush_damage_windows);
-	every("heal window", { ms: 1000, kind: "telemetry", fixed: true }, () => { try { tick_heal_window(); flush_heal_window(); } catch (e) { } });
+	every("heal window", { ms: 1000, kind: "telemetry", fixed: true }, () => { tick_heal_window(); flush_heal_window(); });
 });

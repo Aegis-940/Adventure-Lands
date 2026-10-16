@@ -335,9 +335,9 @@ function al_boss_profiles(name) {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 on_boot("Boss Profiler", () => {
-	on_socket("action", "boss_profile_action", data => { try { profile_action(data); } catch (e) { } });
-	on_socket("hit", "boss_profile_hit", data => { try { profile_hit(data); } catch (e) { } });
-	every("boss profile", { ms: BOSS_PROFILE_TICK_MS, kind: "telemetry", fixed: true }, () => { try { boss_profile_tick(); } catch (e) { } });
+	on_socket("action", "boss_profile_action", profile_action);
+	on_socket("hit", "boss_profile_hit", profile_hit);
+	every("boss profile", { ms: BOSS_PROFILE_TICK_MS, kind: "telemetry", fixed: true }, boss_profile_tick);
 });
 
 console_api({

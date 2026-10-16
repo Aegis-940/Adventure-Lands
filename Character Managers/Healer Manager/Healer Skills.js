@@ -20,47 +20,25 @@ function dark_blessing_wanted() {
 }
 
 function skill_loop() {
-	every("skill_loop", { ms: TICK_RATE.skill, kind: "combat", beat: true }, skill_tick);
+	every("skill_loop", { ms: TICK_RATE.skill, kind: "combat", beat: true, retry: TICK_RATE.retry }, skill_tick);
 }
 
 async function skill_tick() {
 	if (dungeon_bailing() || cave_paused()) return 100;
-	let next_delay = TICK_RATE.skill;
-
-	try {
-		if (is_disabled(character)) {
-			return 250;
-		}
-
-		update_cache();
-
-		if (is_on_cooldown("darkblessing")) _dark_blessing_ready_since = 0;
-
-		await run_skills(HEALER_SKILLS, { penalty: character.s.penalty_cd?.ms || 0 });
-
-	} catch (e) {
-		catcher(e, "skill_loop");
-		next_delay = TICK_RATE.retry;
-	}
-
-	return next_delay;
+	if (is_disabled(character)) return 250;
+	update_cache();
+	if (is_on_cooldown("darkblessing")) _dark_blessing_ready_since = 0;
+	await run_skills(HEALER_SKILLS, { penalty: character.s.penalty_cd?.ms || 0 });
+	return TICK_RATE.skill;
 }
 
 function zap_loop() {
-	every("zap_loop", { ms: TICK_RATE.skill, kind: "combat", beat: true }, zap_tick);
+	every("zap_loop", { ms: TICK_RATE.skill, kind: "combat", beat: true, retry: TICK_RATE.retry }, zap_tick);
 }
 
 async function zap_tick() {
-	let next_delay = TICK_RATE.skill;
-
-	try {
-		await run_skills(ZAP_SKILLS);
-	} catch (e) {
-		catcher(e, "zap_loop");
-		next_delay = TICK_RATE.retry;
-	}
-
-	return next_delay;
+	await run_skills(ZAP_SKILLS);
+	return TICK_RATE.skill;
 }
 
 var DARK_BLESSING_SYNC_WAIT_MS = 8000;

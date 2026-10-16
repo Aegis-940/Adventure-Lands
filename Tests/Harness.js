@@ -29,8 +29,8 @@ const ENTRY_POINTS = new Set(["Warrior.js", "Healer.js", "Ranger.js", "Merchant.
 const PARENT_CALLS = ["activate", "api_call", "auto_craft", "buy", "buy_with_gold", "buy_with_shells", "character_code_eval",
 	"close_merchant", "compound", "craft", "d_text", "dismantle", "exchange", "exchange_buy", "game_stringify",
 	"get_active_characters", "get_code_file", "get_settings", "giveaway", "is_hidden", "join", "join_giveaway", "json_to_html",
-	"lock_item", "map_keys_and_skills", "move", "open_chest", "open_merchant", "party_say", "pause", "performance_trick", "poof",
-	"private_say", "remove_chat", "render_item", "render_skills", "say", "seal_item", "sell", "send_code_message",
+	"lock_item", "map_keys_and_skills", "monster_attack", "move", "open_chest", "open_merchant", "party_say", "pause", "performance_trick", "poof",
+	"player_attack", "private_say", "remove_chat", "render_item", "render_skills", "say", "seal_item", "sell", "send_code_message",
 	"send_target_logic", "set_setting", "set_status", "shift", "show_json", "show_modal", "skill_timeout", "split",
 	"stop_character_runner", "storage_get", "storage_set", "trade", "trade_buy", "trade_sell", "unlock_item", "upgrade",
 	"use_skill", "wishlist"];
@@ -698,6 +698,7 @@ async function command_smoke(files) {
 		const { ctx, log } = await boot(fixture, { entry: true });
 		const before = log.console_errors.length;
 		const throws = [];
+		ctx.catcher = (e, label) => { throws.push(`caught by catcher (${label}): ${error_text(e)}`); };
 		const payloads = smoke_payloads(ctx);
 		const fired = {};
 		for (const event in ctx.parent.socket.listeners) {

@@ -62,21 +62,16 @@ function run_basic_action(p, label, target) {
 }
 
 function start_action_loop(action) {
-	every("action_loop", { ms: action.ms, kind: "combat", beat: true }, () => run_action(action));
+	every("action_loop", { ms: action.ms, kind: "combat", beat: true, retry: TICK_RATE.retry }, () => run_action(action));
 }
 
 async function run_action(action) {
 	if (action.gate === "combat" && should_pause_combat_loop()) return 100;
-	try {
-		if (is_disabled(character)) return 50;
-		update_cache();
-		if (action.before && action.before()) return 100;
-		const next = action.act(ms_to_next_skill("attack"));
-		return next === undefined ? action.ms : next;
-	} catch (e) {
-		catcher(e, "action_loop");
-		return TICK_RATE.retry;
-	}
+	if (is_disabled(character)) return 50;
+	update_cache();
+	if (action.before && action.before()) return 100;
+	const next = action.act(ms_to_next_skill("attack"));
+	return next === undefined ? action.ms : next;
 }
 
 function default_farm_step() {
@@ -104,19 +99,15 @@ function maintenance_loop() {
 }
 
 async function maintenance_tick() {
-	try {
-		if (CONFIG.potions.auto_buy) auto_buy_potions();
-		maintain_xp_booster();
-		if (CONFIG.party.auto_manage) party_manager();
+	if (CONFIG.potions.auto_buy) auto_buy_potions();
+	maintain_xp_booster();
+	if (CONFIG.party.auto_manage) party_manager();
 
-		clear_inventory();
-		inventory_sorter();
-		elixir_usage();
+	clear_inventory();
+	inventory_sorter();
+	elixir_usage();
 
-		if (character.rip) respawn();
-	} catch (e) {
-		catcher(e, "maintenance_loop");
-	}
+	if (character.rip) respawn();
 
 	return TICK_RATE.maintenance;
 }
@@ -134,43 +125,39 @@ function run_character(spec) {
 	async function main_tick() {
 		errlog_beat("main_loop");
 		main_beat();
-		try {
-			if (is_disabled(character)) {
-				if (typeof s.on_disabled === "function") s.on_disabled();
-				return 250;
-			}
+		if (is_disabled(character)) {
+			if (typeof s.on_disabled === "function") s.on_disabled();
+			return 250;
+		}
 
-			if (typeof s.update_cache === "function") s.update_cache();
-			if (typeof s.skip_panic_check !== "function" || !s.skip_panic_check()) panic_check();
+		if (typeof s.update_cache === "function") s.update_cache();
+		if (typeof s.skip_panic_check !== "function" || !s.skip_panic_check()) panic_check();
 
-			if (!automation_enabled()) {
-				_current_goal = null;
-				travel_arbiter(null);
-				return TICK_RATE.main;
-			}
+		if (!automation_enabled()) {
+			_current_goal = null;
+			travel_arbiter(null);
+			return TICK_RATE.main;
+		}
 
-			stuck_escape_check();
-			channel_walk();
-			town_shortcut_check();
+		stuck_escape_check();
+		channel_walk();
+		town_shortcut_check();
 
-			if (typeof s.pre_move === "function") await s.pre_move();
+		if (typeof s.pre_move === "function") await s.pre_move();
 
-			const goal = movement_goal();
-			_current_goal = goal;
-			convoy_pace(goal);
-			disengage_check();
-			if (dungeon_moving()) return TICK_RATE.main;
+		const goal = movement_goal();
+		_current_goal = goal;
+		convoy_pace(goal);
+		disengage_check();
+		if (dungeon_moving()) return TICK_RATE.main;
 
-			const travelling = travel_arbiter(goal);
-			if (!travelling || goal.hold || goal.passive) {
-				if (goal && goal.local === "kite") {
-					if (should_loot()) handle_looting();
-					movement_local(goal, s.farm_step, s.engage_step);
-				} else if (should_loot()) await handle_looting();
-				else movement_local(goal, s.farm_step, s.engage_step);
-			}
-		} catch (e) {
-			console.error("main_tick error:", e);
+		const travelling = travel_arbiter(goal);
+		if (!travelling || goal.hold || goal.passive) {
+			if (goal && goal.local === "kite") {
+				if (should_loot()) handle_looting();
+				movement_local(goal, s.farm_step, s.engage_step);
+			} else if (should_loot()) await handle_looting();
+			else movement_local(goal, s.farm_step, s.engage_step);
 		}
 		return TICK_RATE.main;
 	}
@@ -181,7 +168,7 @@ function run_character(spec) {
 		try {
 			fn();
 		} catch (e) {
-			try { catcher(e, "run_character: " + (fn.name || "loop")); } catch (x) { }
+			catcher(e, "run_character: " + (fn.name || "loop"));
 		}
 	}
 

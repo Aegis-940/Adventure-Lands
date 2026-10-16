@@ -87,53 +87,48 @@ function shoot_skill(skill, shot) {
 }
 
 function skill_loop() {
-	every("skill_loop", { ms: TICK_RATE.skill, kind: "combat", beat: true }, skill_tick);
+	every("skill_loop", { ms: TICK_RATE.skill, kind: "combat", beat: true, retry: TICK_RATE.retry }, skill_tick);
 }
 
 async function skill_tick() {
 	if (should_pause_combat_loop()) return 100;
 	let next_delay = TICK_RATE.skill;
-	try {
-		if (!CONFIG.combat.use_hunters_mark && !CONFIG.combat.use_supershot) {
-			return 1000;
+	if (!CONFIG.combat.use_hunters_mark && !CONFIG.combat.use_supershot) {
+		return 1000;
+	}
+	if (is_disabled(character)) return 250;
+
+	update_cache();
+
+	const { sorted_by_value, in_range } = cache.targets;
+	if (!sorted_by_value.length) return 200;
+
+	const forced = dungeon_focus_target();
+	if (forced && !is_in_range(forced)) return 100;
+	const focus = farm_focus();
+	const target = forced
+		? forced
+		: focus && is_in_range(focus) ? focus
+		: (dungeon_flag("single_target") ? in_range[0] : sorted_by_value[0]);
+	if (!target || !is_in_range(target)) return 100;
+
+	if (cache.heal_target || mainhand_intent() === "cupid") return 100;
+
+	const ms_hunter = ms_to_next_skill("huntersmark");
+	const ms_super = ms_to_next_skill("supershot");
+	const min_ms = Math.min(ms_hunter, ms_super);
+
+	if (ms_super !== 0) _supershot_ready_since = 0;
+
+	if (min_ms === 0) {
+		if (_last_sent_target !== target.id) {
+			_last_sent_target = target.id;
+			change_target(target);
 		}
-		if (is_disabled(character)) return 250;
 
-		update_cache();
-
-		const { sorted_by_value, in_range } = cache.targets;
-		if (!sorted_by_value.length) return 200;
-
-		const forced = dungeon_focus_target();
-		if (forced && !is_in_range(forced)) return 100;
-		const focus = farm_focus();
-		const target = forced
-			? forced
-			: focus && is_in_range(focus) ? focus
-			: (dungeon_flag("single_target") ? in_range[0] : sorted_by_value[0]);
-		if (!target || !is_in_range(target)) return 100;
-
-		if (cache.heal_target || mainhand_intent() === "cupid") return 100;
-
-		const ms_hunter = ms_to_next_skill("huntersmark");
-		const ms_super = ms_to_next_skill("supershot");
-		const min_ms = Math.min(ms_hunter, ms_super);
-
-		if (ms_super !== 0) _supershot_ready_since = 0;
-
-		if (min_ms === 0) {
-			if (_last_sent_target !== target.id) {
-				_last_sent_target = target.id;
-				change_target(target);
-			}
-
-			await run_skills(RANGER_SKILLS, { target, allowed: encounter_allows("skills", target), ms_hunter, ms_super, committed: 0 });
-		} else {
-			next_delay = min_ms > 200 ? 100 : min_ms > 50 ? 20 : 5;
-		}
-	} catch (e) {
-		catcher(e, "skill_loop");
-		next_delay = TICK_RATE.retry;
+		await run_skills(RANGER_SKILLS, { target, allowed: encounter_allows("skills", target), ms_hunter, ms_super, committed: 0 });
+	} else {
+		next_delay = min_ms > 200 ? 100 : min_ms > 50 ? 20 : 5;
 	}
 	return next_delay;
 }
