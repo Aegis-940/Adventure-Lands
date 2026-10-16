@@ -12,6 +12,8 @@ function should_attack_mob(mob) {
 
 	if (CONFIG.combat.always_attack.includes(mob.mtype) || encounter_trait("always_attack", mob)) return true;
 
+	if (sure_kill(mob)) return true;
+
 	const aggroed = !CONFIG.combat.engage_aggroed_only || !!mob.target;
 
 	if (encounter_trait("attack_if_targeted", mob)) return aggroed;

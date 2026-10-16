@@ -819,6 +819,8 @@ Runner hooks (`healer_local`, panic skip) and the circle walk. `walk_in_circle()
 
 Target cache, `action_loop()`, `handle_attack()`.
 
+**Sure kills.** Riva normally shoots only what is already on Ulric or Myras (`engage_aggroed_only`, `target_priority`), so she can't pull aggro onto herself. A mob her plain shot kills even on the lowest damage roll (`sure_kill()`: `would_kill()` at ×0.9, the server's `0.9 + random * 0.2` floor, over `remaining_hp()`) is exempt: it dies before it can target her. Without it she stood idle at the goo spawn, where nothing is ever targeted. The exemption sits below the encounter checks (`encounter_allows`, `safe_to_touch`), so a lethal or forbidden mob is still never shot.
+
 **Armour piercing.** `shot_apiercing()` counts her own armour piercing twice, as the server does: it adds the attacker's piercing into the hit's and then subtracts both. At 226 piercing a plain shot (×0.952 vs the bscorpion's 500 armour) beats piercing shot (0.75 × 1.188), which the single count had backwards.
 
 **Boss only.** With a cooperative boss in range the shot chooser sees only the boss (`coop_boss_only()`, over `is_coop_boss()`: cooperative *and* in `ALL_BOSSES`). The Rime Djinn is cooperative but a farm mob, and reading it as a boss left its adds unshot. The chooser scores total damage over its targets, so with two adds beside mrpumpkin a 3-shot (0.7× each) beat a plain shot. On 10-10 she fired ~336 of them: 2.26M into adds, which earn no coop points, her 200 MP each starving her into skipped shots, and her boss DPS down from ~9,500 to 7,513.

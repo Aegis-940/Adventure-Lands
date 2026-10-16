@@ -175,6 +175,12 @@ function would_kill(entity, multiplier) {
 	return estimate_my_damage(entity, multiplier) >= remaining_hp(entity);
 }
 
+const MIN_DAMAGE_ROLL = 0.9;
+
+function sure_kill(entity) {
+	return would_kill(entity, MIN_DAMAGE_ROLL);
+}
+
 const EXPLOSION_RADIUS_DIVISOR = 3.6;
 
 function explosion_radius(explosion) {
