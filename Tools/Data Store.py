@@ -68,7 +68,7 @@ ADDED_COLUMNS = {
     "ledger": ["build", "goal", "encounters", "variant", "variant_start", "settings", "death_s"],
     "survey": ["build"],
     "danger": ["build", "encounters", "variant", "settings"],
-    "decisions": ["settings"],
+    "decisions": ["settings", "mana_in", "hp_in", "attack"],
 }
 
 # Sample kinds the sink keeps: file, table, and the fields worth a column. The .jsonl holds the whole record, so the
@@ -536,7 +536,8 @@ def status():
 # DECISIONS — what each fighter chose and what came of it, per ledger window, and the questions asked of it
 # --------------------------------------------------------------------------------------------------------------------------------- #
 
-DECISION_FIELDS = ["casts", "values", "actions", "pulls", "bursts", "gear", "panics", "outcomes", "taken", "worn_s", "goal_s"]
+DECISION_FIELDS = ["casts", "values", "actions", "pulls", "bursts", "gear", "panics", "outcomes", "taken", "worn_s", "goal_s",
+                   "mana_in", "hp_in", "attack"]
 DECISION_SCHEMA = """
 CREATE TABLE IF NOT EXISTS decisions (character TEXT, t INTEGER, at TEXT, window_s INTEGER, panic_s REAL,
     casts TEXT, cast_values TEXT, actions TEXT, pulls TEXT, bursts TEXT, gear TEXT, panics TEXT, outcomes TEXT,
@@ -815,7 +816,7 @@ def compare_selector(arg):
 # remove a build's worst windows before its rates were computed.
 FULL_WINDOW = "window_s BETWEEN 280 AND 320 AND at_spot_s + COALESCE(death_s, 0) >= window_s * 0.95"
 WINDOW_COLUMNS = "character, t, window_s, spot_kills, spot_xp, spot_chest_gold, deaths, hp_pots, mp_pots, variant_start, variant"
-PAIR_MS = 60000
+PARTY_PAIR_MS = 60000
 
 # Settings no fighter reads: a difference in them doesn't make two builds' fighters incomparable.
 MERCHANT_SETTINGS = ("merchant_", "upgrade_", "craft_", "exchange_")
@@ -836,7 +837,7 @@ def party_windows(windows):
         group = [lead]
         for who in COMPARE_FIGHTERS[1:]:
             match = min(by[who], key=lambda w: abs(w["t"] - lead["t"]), default=None)
-            if match is None or abs(match["t"] - lead["t"]) > PAIR_MS:
+            if match is None or abs(match["t"] - lead["t"]) > PARTY_PAIR_MS:
                 break
             group.append(match)
         if len(group) == len(COMPARE_FIGHTERS):

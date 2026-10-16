@@ -12,9 +12,19 @@ const POTION_MARGIN_MS = 50;
 let potions_drunk = { hp: 0, mp: 0 };
 let _potion_sent = null;
 
+function potion_gives(kind) {
+	for (let i = character.items.length - 1; i >= 0; i--) {
+		const item = character.items[i];
+		const gives = item && (G.items[item.name].gives || []).find(g => g[0] === kind);
+		if (gives) return gives[1];
+	}
+	return 0;
+}
+
 function potion_confirmed(data) {
 	if (!_potion_sent || !data.code.startsWith("pot_timeout")) return;
-	potions_drunk[_potion_sent]++;
+	potions_drunk[_potion_sent.kind]++;
+	bus_emit("potion", _potion_sent);
 	_potion_sent = null;
 }
 
@@ -34,8 +44,8 @@ async function potion_tick() {
 
 	const drink = (kind, missing, threshold) => {
 		if (missing < threshold) return false;
+		_potion_sent = { kind, amount: potion_gives(kind) };
 		use(kind);
-		_potion_sent = kind;
 		return true;
 	};
 	const drink_mp = () => drink("mp", character.max_mp - character.mp, CONFIG.potions.mp_threshold);

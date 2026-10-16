@@ -1,5 +1,5 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// FARM LEDGER — gold, XP and kills per 5 minutes, split into time at the farm spot and time away; the daily tracker snapshot
+// FARM LEDGER — gold, XP and kills per 5 minutes, split into time at the farm spot and time away; every chest; the daily tracker snapshot
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const LEDGER_WINDOW_MS = 5 * 60 * 1000;
@@ -203,6 +203,67 @@ function ledger_flush() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// LOOT — one record per party chest: the monster, what was in it, and the luck it was rolled on
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+const LOOT_RECORDER = "Myras";
+const LOOT_MATCH_MS = 500;
+const LOOT_KEPT_MS = 60000;
+const LOOT_KILLS_KEPT = 50;
+
+const _loot_kills = [];
+const _loot_drops = {};
+
+function loot_on_kill(data) {
+	_loot_kills.push({ t: Date.now(), mtype: data.mtype });
+	if (_loot_kills.length > LOOT_KILLS_KEPT) _loot_kills.shift();
+}
+
+function loot_on_drop(data) {
+	_loot_drops[data.id] = { t: Date.now(), map: data.map, chest: data.chest, items: data.items, luckm: character.luckm };
+}
+
+function loot_mtype(drop) {
+	let best = null;
+	for (const kill of _loot_kills) {
+		const gap = Math.abs(kill.t - drop.t);
+		if (gap <= LOOT_MATCH_MS && (!best || gap < best.gap)) best = { gap, mtype: kill.mtype };
+	}
+	return best ? best.mtype : null;
+}
+
+function loot_on_open(data) {
+	if (data.gone) return;
+	const drop = _loot_drops[data.id];
+	delete _loot_drops[data.id];
+	errlog_archive("loot", {
+		mtype: drop ? loot_mtype(drop) : null,
+		chest: drop ? drop.chest : null,
+		map: drop ? drop.map : character.map,
+		luckm: drop ? drop.luckm : null,
+		opener: data.opener,
+		goldm: data.goldm,
+		gold: chest_gold(data),
+		items: (data.items || []).map(i => ({ name: i.name, q: i.q || 1, level: i.level || 0, p: i.p, looter: i.looter })),
+		dry: !!data.dry,
+		stale: !!data.stale,
+	});
+}
+
+function prune_loot_drops() {
+	for (const id in _loot_drops) {
+		if (Date.now() - _loot_drops[id].t > LOOT_KEPT_MS) delete _loot_drops[id];
+	}
+}
+
+function loot_log_start() {
+	on_socket("kill_credit", "loot_kill", loot_on_kill);
+	on_socket("drop", "loot_drop", loot_on_drop);
+	on_character("loot", "loot_log", loot_on_open);
+	every("loot drops", { ms: LOOT_KEPT_MS, kind: "telemetry", fixed: true }, prune_loot_drops);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // TRACKER SNAPSHOT — once a day, the server's per-monster kill counts and the account's max stats
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -252,4 +313,5 @@ function farm_ledger_start() {
 	on_socket("tracker", "ledger_tracker_handler", tracker_reply);
 	every("ledger", { ms: LEDGER_TICK_MS, kind: "telemetry", fixed: true }, ledger_tick);
 	on_dom(window, "pagehide", "ledger_flush", ledger_flush);
+	if (character.name === LOOT_RECORDER) loot_log_start();
 }

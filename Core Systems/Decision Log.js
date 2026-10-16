@@ -23,6 +23,9 @@ function decision_window(now) {
 		panics: {},
 		outcomes: {},
 		taken: { damage: 0, hits: 0, biggest: 0, by_mtype: {} },
+		mana_in: { potions: 0, manasteal: 0 },
+		hp_in: { potions: 0 },
+		attack: { samples: 0, frequency: 0, in_range_s: 0, ready_idle_s: 0 },
 		worn_s: {},
 		goal_s: {},
 		panic_s: 0,
@@ -120,6 +123,7 @@ function normalise_hit(data) {
 		source: data.source || "attack",
 		damage: data.damage || 0,
 		returned: by_me ? data.dreturn || 0 : 0,
+		manasteal: by_me ? data.manasteal || 0 : 0,
 		kill: !!data.kill,
 		miss: !!(data.miss || data.evade || data.avoid),
 		from: hit_party(data.hid),
@@ -144,6 +148,7 @@ function decision_on_hit(data) {
 		if (hit.kill) entry.kills = (entry.kills || 0) + 1;
 		if (hit.miss) entry.misses = (entry.misses || 0) + 1;
 	}
+	if (hit.manasteal) _decisions.mana_in.manasteal += hit.manasteal;
 	if (hit.on_me && hit.damage) decision_take(hit.damage, hit.from);
 	if (hit.returned) decision_take(hit.returned, hit.to);
 }
@@ -152,9 +157,32 @@ function decision_on_hit(data) {
 // TIME — where each second went: the weapon worn, the goal, panic
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
+function decision_on_potion(potion) {
+	if (potion.kind === "mp") _decisions.mana_in.potions += potion.amount;
+	else _decisions.hp_in.potions += potion.amount;
+}
+
+function monster_in_attack_range() {
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type === "monster" && !e.dead && is_in_range(e, "attack")) return true;
+	}
+	return false;
+}
+
+function decision_sample_attack(seconds) {
+	const a = _decisions.attack;
+	a.samples++;
+	a.frequency += character.frequency;
+	if (character.rip || !monster_in_attack_range()) return;
+	a.in_range_s += seconds;
+	if (!is_on_cooldown("attack")) a.ready_idle_s += seconds;
+}
+
 function decision_sample() {
 	const seconds = DECISION_SAMPLE_MS / 1000;
 	const goal = current_goal_label() || "none";
+	decision_sample_attack(seconds);
 	decision_add(_decisions, "worn_s", weapon_label(), seconds);
 	decision_add(_decisions, "goal_s", goal, seconds);
 	if (panicking) _decisions.panic_s += seconds;
@@ -175,5 +203,6 @@ function decision_log_start() {
 	on_socket("skill_timeout", "decision_casts", decision_on_skill_timeout);
 	on_socket("hit", "decision_outcomes", decision_on_hit);
 	bus_on("ledger_window", "decision_window", decision_window_close);
+	bus_on("potion", "decision_potion", decision_on_potion);
 	every("decision sample", { ms: DECISION_SAMPLE_MS, kind: "telemetry", fixed: true }, decision_sample);
 }

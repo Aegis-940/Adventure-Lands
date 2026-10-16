@@ -232,6 +232,7 @@ ARCHIVES = {
     "survey_spot": os.path.join(REPO, "survey.jsonl"),
     "danger": os.path.join(REPO, "danger.jsonl"),
     "decisions": os.path.join(REPO, "decisions.jsonl"),
+    "loot": os.path.join(REPO, "loot.jsonl"),
 }
 
 

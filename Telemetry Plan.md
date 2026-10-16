@@ -13,7 +13,7 @@ This plan comes from a four-part audit on 10-16 (the sink and its readers, the i
 | T2 | The error log and how records reach the sink | none | **done** 2026-10-16 |
 | T3 | Removing the watchdog | none | **done** 2026-10-16 |
 | T4 | Sizes and retention | none | **done** 2026-10-16 |
-| T5 | What isn't recorded yet | none | not started |
+| T5 | What isn't recorded yet | none | loot, mana budget, attack uptime **done** 2026-10-16; T5.5 is a T6 report; T5.6, T5.7 not asked for |
 | T6 | Reports: making the data answer questions | none | not started |
 | T7 | Close-out | none | not started |
 
