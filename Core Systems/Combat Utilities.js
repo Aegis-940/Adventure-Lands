@@ -50,6 +50,16 @@ function monsters_matching(args = {}) {
 }
 
 
+function monster_counts_near(radius) {
+	const counts = {};
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || e.dead || distance(character, e) > radius) continue;
+		counts[e.mtype] = (counts[e.mtype] || 0) + 1;
+	}
+	return counts;
+}
+
 function get_num_chests() {
 	return Object.keys(get_chests()).length;
 }

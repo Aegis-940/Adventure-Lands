@@ -70,16 +70,7 @@ function _errlog_context() {
 
 function _errlog_threat() {
 	try {
-		const near = {};
-		let targeting = 0;
-		for (const id in parent.entities) {
-			const e = parent.entities[id];
-			if (!e || e.type !== "monster" || e.dead) continue;
-			if (distance(character, e) > 300) continue;
-			near[e.mtype] = (near[e.mtype] || 0) + 1;
-			if (e.target === character.name) targeting++;
-		}
-		return { near, targeting };
+		return { near: monster_counts_near(300), targeting: monsters_targeting_me() };
 	} catch (e) { return null; }
 }
 

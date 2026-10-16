@@ -52,14 +52,8 @@ function danger_context() {
 	const biggest = recent.reduce((top, h) => (!top || h.damage > top.damage ? h : top), null);
 	const last = recent[recent.length - 1] || null;
 
-	let targeting = 0;
-	const nearby = {};
-	for (const id in parent.entities) {
-		const e = parent.entities[id];
-		if (e.type !== "monster" || e.dead) continue;
-		if (e.target === character.name) targeting++;
-		if (distance(character, e) <= DANGER_NEARBY_PX) nearby[e.mtype] = (nearby[e.mtype] || 0) + 1;
-	}
+	const targeting = monsters_targeting_me();
+	const nearby = monster_counts_near(DANGER_NEARBY_PX);
 
 	return {
 		map: character.map, x: Math.round(character.x), y: Math.round(character.y),
