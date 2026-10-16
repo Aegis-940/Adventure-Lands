@@ -93,7 +93,7 @@ function tank_can_take(added_dps) {
 
 function fighter_down() {
 	return COHESION_FOLLOWERS.some(name => {
-		const s = read_state_cache(name);
+		const s = party_state(name);
 		if (!s || automation_paused(name)) return false;
 		return s.rip || (s.map !== character.map && !is_travelling());
 	});

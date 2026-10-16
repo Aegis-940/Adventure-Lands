@@ -122,7 +122,7 @@ function gear_signature() {
 function fighters_here() {
 	return COHESION_FOLLOWERS.concat([MOVEMENT_LEADER]).filter(name => {
 		if (name === character.name) return true;
-		const s = read_state_cache(name);
+		const s = party_state(name);
 		return !!s && !s.rip && s.map === character.map;
 	});
 }

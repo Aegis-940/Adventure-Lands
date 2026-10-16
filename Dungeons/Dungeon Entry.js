@@ -60,7 +60,7 @@ function wait_until_on_map(map) {
 
 function followers_still_inside(dungeon) {
 	return DUNGEON_FOLLOWERS.filter(name => {
-		const s = read_state_cache(name);
+		const s = party_state(name);
 		return s && s.map === dungeon.map;
 	});
 }
@@ -91,7 +91,7 @@ function dungeon_rejoin_watch() {
 function followers_away_from_entrance(dungeon) {
 	const e = dungeon.entrance;
 	return DUNGEON_FOLLOWERS.filter(name => {
-		const s = read_state_cache(name);
+		const s = party_state(name);
 		if (!s || s.rip) return false;
 		if (s.map !== e.map) return true;
 		return Math.hypot(s.x - e.x, s.y - e.y) > DUNGEON_ASSEMBLE_RANGE;

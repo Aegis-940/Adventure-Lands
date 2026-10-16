@@ -142,6 +142,28 @@ function write_state_cache() {
 	errlog_time("io state setItem", Date.now() - t0);
 }
 
+function party_state(name) {
+	const cached = read_state_cache(name);
+	const live = get_player(name);
+	if (!live) return cached;
+	return Object.assign({}, cached, {
+		live: true,
+		map: character.map,
+		x: live.x,
+		y: live.y,
+		rip: !!live.rip,
+		hp: live.hp,
+		max_hp: live.max_hp,
+		mp: live.mp,
+		max_mp: live.max_mp,
+		level: live.level,
+		xp: live.xp,
+		speed: live.speed,
+		going: live.moving ? { x: live.going_x, y: live.going_y } : null,
+		town: !!live.c.town,
+	});
+}
+
 function state_cache_loop() {
 	every("state_cache_loop", { ms: STATE_CACHE_WRITE_MS, kind: "automation" }, () => {
 		write_state_cache();

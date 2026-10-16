@@ -138,7 +138,7 @@ function survey_finish(survey, status) {
 
 function survey_count_deaths(spot) {
 	for (const name of COHESION_FOLLOWERS.concat([MOVEMENT_LEADER])) {
-		const s = name === character.name ? character : read_state_cache(name);
+		const s = party_state(name);
 		const rip = !!(s && s.rip);
 		if (rip && _survey_rip[name] === false && in_farm_area(s.map, s.x, s.y)) {
 			spot.deaths++;

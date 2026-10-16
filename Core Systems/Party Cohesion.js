@@ -35,7 +35,7 @@ function behind_on_xp() {
 	let best = mine;
 	for (const name of COHESION_FOLLOWERS.concat([MOVEMENT_LEADER])) {
 		if (name === character.name) continue;
-		const theirs = xp_progress(read_state_cache(name));
+		const theirs = xp_progress(party_state(name));
 		if (theirs !== null && theirs > best) best = theirs;
 	}
 
@@ -49,7 +49,7 @@ function party_member_in_danger() {
 
 	for (const name of COHESION_FOLLOWERS.concat([MOVEMENT_LEADER])) {
 		if (name === character.name) continue;
-		const s = read_state_cache(name);
+		const s = party_state(name);
 		if (!s || s.rip || automation_paused(name)) continue;
 		if (s.hp / s.max_hp <= COHESION_DANGER_HP) return name;
 	}
@@ -78,14 +78,9 @@ function party_in_formation() {
 
 function leader_position() {
 	if (character.name === MOVEMENT_LEADER) return null;
-	const c = read_state_cache(MOVEMENT_LEADER);
-	const live = get_player(MOVEMENT_LEADER);
-	const disengaging = !!(c && c.disengaging);
-	if (live) {
-		const going = live.moving ? { x: live.going_x, y: live.going_y } : null;
-		return { map: character.map, x: live.x, y: live.y, going, speed: live.speed, town: !!live.c.town, rip: !!live.rip, formation: !!(c && c.formation), disengaging };
-	}
-	return c ? { map: c.map, x: c.x, y: c.y, going: null, town: !!c.town, rip: !!c.rip, formation: !!c.formation, disengaging } : null;
+	const p = party_state(MOVEMENT_LEADER);
+	if (!p) return null;
+	return { map: p.map, x: p.x, y: p.y, going: p.going || null, speed: p.speed, town: !!p.town, rip: !!p.rip, formation: !!p.formation, disengaging: !!p.disengaging };
 }
 
 const PACE_MATCH_PX = 25;
@@ -126,7 +121,7 @@ function party_cohesion_hold(event) {
 	const limit = (party_member_in_danger() || _cohesion_holding) ? cohesion_regroup() : cohesion_range();
 	const travelling = is_travelling();
 	_cohesion_holding = COHESION_FOLLOWERS.some(name => {
-		const s = read_state_cache(name);
+		const s = party_state(name);
 		if (!s || s.rip || automation_paused(name)) return false;
 		if (event && s.goal === event.label) return false;
 		if (s.map !== character.map) return !travelling;

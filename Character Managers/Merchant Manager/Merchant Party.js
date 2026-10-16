@@ -80,7 +80,7 @@ function should_run_delivery() {
 	if (merchant_task !== "Idle") return false;
 	if (_delivery_requested) return true;
 	for (const name of PARTY) {
-		const status = read_state_cache(name);
+		const status = party_state(name);
 		if (!status || status.rip) continue;
 		if (is_mluck_due(status)) return true;
 		if (status.free_slots <= CONFIG.delivery.free_slots_threshold && status.loose_slots > 0) return true;
@@ -100,7 +100,7 @@ function handle_delivering_state() {
 			let attempts = 0;
 			while (!any_party_within_range() && attempts < DELIVERY_WAIT_MAX_ATTEMPTS) {
 				for (const name of PARTY) {
-					const status = read_state_cache(name);
+					const status = party_state(name);
 					if (status && !status.rip) {
 						const moved_enough = !last_target
 							|| last_target.map !== status.map

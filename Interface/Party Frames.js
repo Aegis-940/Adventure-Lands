@@ -66,7 +66,7 @@ function get_party_member_info(name) {
 		};
 	}
 
-	const cached = read_state_cache(name);
+	const cached = party_state(name);
 	if (cached) {
 		return {
 			name,

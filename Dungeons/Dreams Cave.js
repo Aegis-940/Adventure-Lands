@@ -297,7 +297,7 @@ function dreams_entry_blocker() {
 		return `party is ${party.join(", ") || "empty"}`;
 	}
 	for (const name of DUNGEON_FOLLOWERS) {
-		const s = read_state_cache(name);
+		const s = party_state(name);
 		if (!s || s.rip) return `${name} is not ready`;
 		if (s.map !== DREAMS_DORR.map || Math.hypot(s.x - DREAMS_DORR.x, s.y - DREAMS_DORR.y) > DREAMS_DORR_RANGE) {
 			return `${name} is not at Dorr`;
@@ -359,9 +359,7 @@ async function dreams_enter() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function dreams_member(name) {
-	const live = get_player(name);
-	if (live) return { map: character.map, x: live.x, y: live.y, rip: live.rip };
-	return read_state_cache(name);
+	return party_state(name);
 }
 
 function dreams_party_lagging() {

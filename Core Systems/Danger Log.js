@@ -34,7 +34,7 @@ function danger_party() {
 	const out = {};
 	for (const name of COHESION_FOLLOWERS.concat([MOVEMENT_LEADER])) {
 		if (name === character.name) continue;
-		const s = read_state_cache(name);
+		const s = party_state(name);
 		out[name] = s ? (s.rip ? "dead" : Math.round(100 * s.hp / s.max_hp)) : null;
 	}
 	return out;
