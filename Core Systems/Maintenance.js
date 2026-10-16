@@ -7,6 +7,7 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const POTION_POLL_MS = 50;
+const POTION_MARGIN_MS = 50;
 
 let potions_drunk = { hp: 0, mp: 0 };
 
@@ -18,7 +19,6 @@ async function potion_tick() {
 	if (character.c.fishing || character.c.mining || character.c.town) {
 		return 200;
 	}
-	if (is_on_cooldown("use_hp") || is_on_cooldown("use_mp")) return POTION_POLL_MS;
 
 	const prefer_mp = CONFIG.potions.prefer_mp === true;
 	const scare_short = panicking && character.mp < skill_mp_cost("scare");
@@ -35,7 +35,7 @@ async function potion_tick() {
 
 	const used_potion = hp_first ? (drink_hp() || drink_mp()) : (drink_mp() || drink_hp());
 
-	return used_potion ? Math.max(POTION_POLL_MS, 2 * min_ping()) : POTION_POLL_MS;
+	return used_potion ? G.skills.use_hp.cooldown + POTION_MARGIN_MS : POTION_POLL_MS;
 }
 
 function auto_buy_potions() {
