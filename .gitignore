@@ -28,3 +28,4 @@ watchdog.log*
 watchdog.pause
 
 snapshots.jsonl
+snapshots.jsonl.old

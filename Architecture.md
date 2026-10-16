@@ -99,7 +99,7 @@ Character Managers/<Role> Manager/    per character, through eval
     Merchant Manager/                 Riff: Stand, Inventory, Exchange, Gear, Gathering, Party, Upkeep,
                                       Upgrading, Lolipop Push, Crafting, Task Loop (loads last)
 Tools/                                run outside the game: the sink, the data store, the status page,
-                                      the watchdog, lint, the party model, probes
+                                      the watchdog, lint, the party model
 Tests/                                the offline harness, the parser-based analysis, the config check
 ```
 
@@ -137,13 +137,20 @@ Combat runs beside it, not inside it: each role starts its own action, skill and
 
 ### One owner per decision
 
-Each decision has a single owner, which is what lets the harness pin it. The table is in [`Decision Ownership.md`](Decision%20Ownership.md).
+Each decision has a single owner, which is what lets the harness pin it (`node Tests/Harness.js check`), so a change to one shows as a golden diff. A decision with two owners needs a lock, a priority order or a rate limiter to stop them disagreeing; removing the split leaves that mechanism nothing to do. Monster specifics are answers an encounter file gives to questions shared and role code ask (`encounter_gear`, `encounter_allows`, `encounter_rank`, `encounter_setting`, `encounter_goal`); core code doesn't name monsters, and lint counts monster names outside the allowed files.
 
-- **Gear**: only `Equipment Manager.js` changes what is worn. Rules resolve per slot group, and a burst (cleave, stomp, scare, the temporal surge) claims the slots through `equip_burst()`. Situational gear comes from `encounter_gear()`.
-- **Movement**: `movement_goal()` picks where to go, the arbiter owns the journey, and `movement_local()` places the character with a local step from `LOCAL_STEPS` or an encounter's `steps`.
-- **Panic**: `set_panic()` is the only writer, and the healer's broadcast reaches the others over CM.
-- **Targets**: `score_targets()`/`select_target()`, weighted per role by `CONFIG.combat.target_weights`.
-- **Monster specifics**: an encounter file answers questions asked by shared and role code (`encounter_gear`, `encounter_allows`, `encounter_rank`, `encounter_setting`, `encounter_goal`). Core code doesn't name monsters; lint counts monster names outside the allowed files.
+| Decision | Owner | How others take part |
+|---|---|---|
+| **What to wear** | `Equipment Manager.js`: `resolve_equipment()` runs each `EQUIPMENT_RULES` group, and `apply_equipment_rule()` is the only path to the server | A burst (cleave, stomp, scare, the temporal surge, the candy-cane swing) claims slots through `equip_burst()` at a priority (`panic` 100, `skill` 80, `rules` 20, `resting` 10); situational gear is an answer from `encounter_gear()`. No other file sends an equip |
+| **Where to go** | `movement_goal()` (`Movement Goal.js`) | Events, cohesion, follow, encounters and home are inputs to its one priority list; the merchant and dungeons are modes |
+| **How to get there** | `travel_arbiter()` (`Travel Arbiter.js`) | A scripted dungeon walk stands it down (`dungeon_moving()`); the town shortcut and stuck escape act only on journeys it owns |
+| **Where to stand** | `movement_local()` (`Movement Goal.js`) | A goal names its local step (`LOCAL_STEPS`, or an encounter's `steps`, like bscorpion's `camp`); otherwise the role's farm step |
+| **Am I in danger** | `set_panic()` (`Party Management.js`), the only writer | Its own `panic_check()` and the healer's CM broadcast (two call sites each) |
+| **What to attack** | `select_target()`/`score_targets()` (`Targeting.js`), one writer of the target cache per character | `encounter_rank()` and dungeon targeting rules feed the scorer |
+| **Which skill to cast** | `run_skills(table, context)` (`Skill Runner.js`) over the role's table | Each entry's `gate`, `wanted` and `value`; encounters answer `encounter_allows()` |
+| **The basic action** | `run_action()` (`Character Runner.js`) over the role's `ROLE_ACTION` | The role supplies cadence, gate and `act(ms)` |
+| **When to loot** | `should_loot()` → `handle_looting()` | Dungeon callers go through `should_loot()` |
+| **The merchant's task** | `set_task()`/`begin_task()`/`end_task()`/`abandon_task()` (`Merchant Config.js`) | `PRIORITY_CHECKS` in the task loop picks; the watchdog abandons a stuck one |
 
 ### Events and storage
 
@@ -217,6 +224,6 @@ done | sort -rn
 
 - Game: [adventure.land](https://adventure.land); engine internals in [`Game API Reference.md`](Game%20API%20Reference.md)
 - Reading the flight recorder: [`Diagnostics.md`](Diagnostics.md)
-- Loop rates: `al_loops()` in the console; [`Loop Cadence.md`](Loop%20Cadence.md) explains the choices
-- The restructure: [`Overhaul Plan.md`](Overhaul%20Plan.md)
+- Loop rates: `al_loops()` in the console; Design Notes → `Scheduler.js` explains the choices
+- The current plan: [`Cleanup Plan.md`](Cleanup%20Plan.md)
 - GitHub (backup): Aegis-940/Adventure-Lands

@@ -90,7 +90,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | `Error Handling.js` | `catcher()` |
 | `Error Log.js` | Cross-character flight recorder; defines the real `errlog_*`. Read with `al_errors(true)` |
 
-**Encounters** (everything specific to one monster, spawn or boss; see Phase 2 of `Overhaul Plan.md`)
+**Encounters** (everything specific to one monster, spawn or boss)
 
 | File | Role |
 |------|------|
@@ -155,7 +155,6 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | `Status Page.html` | The status page, served by the sink at `http://127.0.0.1:8787/`: `/api/live` every 1s (the characters' 📊 snapshots, memory only), `/api/status` every 15s |
 | `Watchdog.py` / `Install Watchdog.ps1` | DevTools-port watchdog: logs navigations and network outages, reloads silent windows. **Read `watchdog.jsonl` first after a dead character** |
 | `Lint.py` | `python Tools/Lint.py`: duplicate globals, orphaned ternaries, constant conditions |
-| `Crypt Probe.js`, `Drag Probe.js` | One-off dev probes, not loaded |
 
 ---
 
@@ -218,7 +217,15 @@ Loader facts:
 
 ## Testing
 
-`Tests/` holds an offline harness that boots the bot in Node over the game's own `runner_functions.js`, `runner_compat.js` and `data.js`. `node Tests/Harness.js load` boots all four roles (and again with each load stage reversed); `check` replays every fixture in `Tests/fixtures` (live moments recorded by the snapshot recorder, plus synthetic scenes) and compares each character's decisions with its golden; `smoke` fires every socket event and runs every loop for three rounds. Record a golden on the code before a change (`golden <fixture.json>`), then change the code and `check`: a pure move keeps every golden. Whether a change farms better is still measured live with `python "Tools/Data Store.py" compare`. `python Tools/Lint.py` catches cross-file global collisions, checks every role's `CONFIG` (each key is read somewhere, each key read exists: `Tests/Config Check.js`, over the role booted in the harness, commented-out code counting as a read) and runs the overhaul ratchet before a push: a legacy-pattern count per file may go down, never up (among them `unreferenced` globals, `empty_catch` and `console_error`) (lower `Tests/lint_baseline.json` with `--baseline` in the commit that removes one). `--graph` rewrites `Tests/dependency_graph.json`, whose load-time edges are what can race in the parallel batch.
+`Tests/` holds an offline harness that boots the bot in Node over the game's own `runner_functions.js`, `runner_compat.js` and `data.js`. `node Tests/Harness.js load` boots all four roles (and again with each load stage reversed); `check` replays every fixture in `Tests/fixtures` (live moments recorded by the snapshot recorder, plus synthetic scenes) and compares each character's decisions with its golden; `smoke` fires every socket event and runs every loop for three rounds. Record a golden on the code before a change (`golden <fixture.json>`), then change the code and `check`: a pure move keeps every golden. Whether a change farms better is still measured live with `python "Tools/Data Store.py" compare`. `python Tools/Lint.py` catches cross-file global collisions, checks every role's `CONFIG` (each key is read somewhere, each key read exists: `Tests/Config Check.js`, over the role booted in the harness, commented-out code counting as a read) and runs the ratchet before a push: a legacy-pattern count per file may go down, never up (among them `unreferenced` globals, `empty_catch` and `console_error`) (lower `Tests/lint_baseline.json` with `--baseline` in the commit that removes one).
+
+**Every commit:**
+1. `python Tools/Lint.py` with no new problems, and no ratchet count raised. If a count dropped, lower the baseline in the same commit.
+2. `node Tests/Harness.js load`: all four roles boot.
+3. `node Tests/Harness.js check`: goldens identical, or re-recorded with the reason in the commit message.
+4. Commit on `main`, which is the deploy, and push it as the backup.
+5. After the next reload, read `errors.json` for new buckets and `danger.jsonl` for close calls over the first hour. A new bucket or a death that names a changed subsystem means the change is worse, without waiting for the ledger.
+6. A change to how the party plays waits for the user's go-ahead, goes live alone, and gets `python "Tools/Data Store.py" compare <old> <new> --home <home> --tier behaviour` (12 windows each side) before the next one. `worse` means revert it; don't fix forward on top of a regression.
 
 ---
 
@@ -226,6 +233,5 @@ Loader facts:
 
 - [`Design Notes.md`](Design%20Notes.md): why each system works the way it does
 - [`Game API Reference.md`](Game%20API%20Reference.md): game engine internals (API signatures and reject reasons, socket events, `character`/`G`/`S`, combat and movement internals). Check it before changing combat, movement or item code.
-- [`Architecture.md`](Architecture.md), [`Diagnostics.md`](Diagnostics.md) (reading `errors.json`), [`Decision Ownership.md`](Decision%20Ownership.md), [`Loop Cadence.md`](Loop%20Cadence.md)
+- [`Architecture.md`](Architecture.md) (how the parts fit, and who owns each decision), [`Diagnostics.md`](Diagnostics.md) (reading `errors.json`)
 - [`Cleanup Plan.md`](Cleanup%20Plan.md): the current plan, removing dead code, guards and old docs and using the game's native functions. Check its status table before cleanup work, and update it in the same commit as each step
-- [`Overhaul Plan.md`](Overhaul%20Plan.md): the phased restructure (kernel, telemetry bus, world model, encounters, deciders/actuators). Check its status table before structural work, and update it in the same commit as each step

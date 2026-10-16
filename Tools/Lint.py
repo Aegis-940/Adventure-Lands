@@ -15,7 +15,6 @@ Catches what a brace-balance pass cannot:
     read exists (Tests/Config Check.js, over each role booted in the harness)
 
 Options:
-  --graph     write Tests/dependency_graph.json (load-time and call-time edges)
   --baseline  rewrite Tests/lint_baseline.json from the current counts
 
 Exit code is non-zero when anything is found.
@@ -160,7 +159,6 @@ RATCHET_ALLOWED = {
     "call_initializers": ("Kernel/",),
 }
 BASELINE = os.path.join("Tests", "lint_baseline.json")
-GRAPH = os.path.join("Tests", "dependency_graph.json")
 
 
 def analyze():
@@ -210,19 +208,6 @@ for m in config["missing"]:
 for u in config["unused"]:
     print(f"CONFIG {u['role']}'s CONFIG.{u['key']} is never read")
     problems += 1
-
-if "--graph" in sys.argv:
-    graph = {
-        "order": result["order"],
-        "files": {n: {k: f[k] for k in ("stage", "role", "optional", "statements", "call_initializers")}
-                  for n, f in result["files"].items()},
-        "edges": result["edges"],
-        "cycles": result["cycles"],
-        "load_cycles": result["load_cycles"],
-    }
-    write_json(GRAPH, graph)
-    print(f"wrote {GRAPH}: {len(graph['edges'])} edges, {len(graph['cycles'])} call cycles, "
-          f"{len(graph['load_cycles'])} load cycles")
 
 if "--baseline" in sys.argv:
     write_json(BASELINE, counts)

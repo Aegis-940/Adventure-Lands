@@ -40,6 +40,12 @@ A body that throws is caught here (`catcher(e, name)`, counted in `al_loops()`) 
 
 `kind` (`automation`, `combat`, `safety`, `telemetry`, `ui`) only labels a loop for now. Pause and death still work the way each body checks them.
 
+**Loop rates.** A loop ticks as fast as its decision must be fresh, and no faster: a faster loop spends `character.cc` (looting and gear resolution stop at 125) and wins races against slower loops that matter more. `al_loops()` lists every loop with its rate. Four rates have a history:
+- **The skill loops run at `TICK_RATE.skill` (40ms).** Riva's defaulted to 5ms until 2026-09-18, re-pricing mark and supershot 200 times a second whenever one was ready but not worth casting, and calling `change_target()`, which goes to the server, as often. It now sends `change_target` only when the target changes.
+- **The potion loop polls at 50ms** (`POTION_POLL_MS`), not 10ms. HP and MP change on server ticks, and against a ~225ms ping the slower poll adds under 40ms to the reaction. If survival ever looks worse, this is one constant to put back.
+- **Riva's action loop stays at 5ms** against 10ms for the others. There's no clear reason for the gap; aligning it would halve the rate of her damage loop for a 5ms change, so it is left alone.
+- **The equipment loop runs at 25ms**, and that is now what lands the panic orb in a median 31ms. Before panic moved into the resolver, the same rate made it win every race against `panic_check` (the orb ping-pong). A rate is only wrong relative to what the loop decides.
+
 ### `Events.js`
 
 `parent.socket` and the game window outlive the code iframe, and the iframe can die without `pagehide` (the 2026-10-01 freeze removed it on a disconnect). So every socket handler is kept under a fixed slot on `parent.socket`, and the previous one is removed before the new one goes on. The slots keep the names the hand-written handlers used (`_equip_reply_counter`, `_damage_sampler`, …), so the first kernel boot after a pre-kernel iframe still removes that iframe's handlers. DOM listeners and `wrap_parent` work the same way on their targets. Each handler runs inside `catcher`, so one throwing handler no longer stops the rest for that event. The first live boot surfaced one that had always thrown: Ulric's rime band logger looked up `G.monsters` for every `hit`, players included, and a player has no `mtype`. Before the kernel the exception escaped into the game window's socket code, unrecorded, and skipped every `hit` handler subscribed after it.
@@ -450,7 +456,7 @@ A follower in turn does not pursue while she is live on his map, beyond the rang
 
 **The gate is per entry.** `combat` skips the entry while `should_pause_combat_loop()` holds (asked once per pass, at the first combat entry). `alive` is no gate beyond the tick's own preamble. Myras's party heal is `alive` on purpose: her heals are what the party survives panic on. The tick keeps its preamble (Ulric's and Riva's return 100ms while paused, every role 250ms while disabled), so the cadence is unchanged.
 
-**Context is what the tick worked out once.** Ulric's tick passes the tank. The old tick read `cache.tank_entity` once and used it across the awaited agitate and taunt, and the context keeps that. Myras's tick passes the swap penalty it read before the heal, which absorb is gated on, as before. Her mana-for-luxuries check is now read when dark blessing is decided, after curse and absorb, instead of straight after the heal: the one place a skill now sees fresher state than it used to. Cooldown and mana checks stay in each entry's `wanted`, because they differ on purpose: dark blessing keeps no panic reserve, and a stomp on a Rime shell spends it. The zap loop keeps its own cadence (Loop Cadence) and runs a one-entry table, `ZAP_SKILLS`. Riva's tick picks the target and reads both cooldowns once, then passes `{ target, allowed, ms_hunter, ms_super, committed }`. Mark and supershot both count `committed` mana against her reserve, so a pass never spends past it.
+**Context is what the tick worked out once.** Ulric's tick passes the tank. The old tick read `cache.tank_entity` once and used it across the awaited agitate and taunt, and the context keeps that. Myras's tick passes the swap penalty it read before the heal, which absorb is gated on, as before. Her mana-for-luxuries check is now read when dark blessing is decided, after curse and absorb, instead of straight after the heal: the one place a skill now sees fresher state than it used to. Cooldown and mana checks stay in each entry's `wanted`, because they differ on purpose: dark blessing keeps no panic reserve, and a stomp on a Rime shell spends it. The zap loop keeps its own cadence (`Scheduler.js`, loop rates) and runs a one-entry table, `ZAP_SKILLS`. Riva's tick picks the target and reads both cooldowns once, then passes `{ target, allowed, ms_hunter, ms_super, committed }`. Mark and supershot both count `committed` mana against her reserve, so a pass never spends past it.
 
 ### `Experiments.js`
 
@@ -484,7 +490,7 @@ A ring of the last 50 decisions (casts other than `attack`, pulls, bursts, gear,
 
 ### `Farm Ledger.js`
 
-One `ledger` record per fighter every 5 minutes, through `errlog_archive()` to `ledger.jsonl`. Plan: [`Data and Farming Plan.md`](Data%20and%20Farming%20Plan.md).
+One `ledger` record per fighter every 5 minutes, through `errlog_archive()` to `ledger.jsonl`.
 
 - **At the spot vs away.** Each 1s tick decides `at_farm_spot()`: alive, inside the farm target's spawn boxes on the destination map widened by 200px, enough to take in the far end of Riva's bscorpion rail (a 400px circle round the destination when the target has no spawn box), and no event goal (`event-*`, `boss-loot`, `holiday-tree`) on this character or on Myras. Gold, XP and kills land in `total` always and in `spot` only while at the spot, so a spot's rate is `spot` over `at_spot_s`, with travel and boss detours excluded.
 - **Gold comes from chests, not the wallet.** The fighters send gold to Riff, so a wallet delta undercounts. Every party member gets its own `chest_opened` with its share of each chest (server `open_chest`), so `gold` is this character's share and `chest_gold` (`gold / share`, the Gold Meter's formula) is the whole chest. Party gold/hr is one character's `chest_gold`, never a sum across characters.
@@ -687,6 +693,8 @@ Agitate, warcry, stomp, and taunt; cleave fires here only when no swing is comin
 
 The reposition scorer and the farm step that keeps him engaged. He targets anything within `CONFIG.combat.engage_radius` that is attacking the party (or already in reach), walks to a 12px hitbox gap when it is out of reach, and steps back out to 12px once he is under 4px. That is `warrior_engage_step()`, which the runner also hands to `event_step()` as `engage_step`, so he holds the same gap on a boss instead of walking to `range × EVENT_REACH` and standing inside its hitbox. The gap point is his `engage_point()`, which overrides Global Config's default, so the boss pursuit goal decides between a step and a journey by that same point (World Events → one stand point). A moving target is re-closed as soon as the gap passes 20px (`WARRIOR_CHASE_GAP`), not when it leaves his range. Waiting for out-of-range left him a step behind a kited crabxx the whole fight. Every move is skipped while he is already heading there, since each `move` costs 2.5 call cost.
 
+**Position is not a lever at a clustered spawn (measured 2026-09).** Across three scorer and orbit settings his bataxe and aoe hit rates were flat to three significant figures, because the best reachable spot covered one more monster than where he stood in 71 of 74 samples (radius 35) and 56 of 56 (radius 60). The monsters cluster on Myras and cleave's reach is wide against that cluster. The scorer stays because it does no harm and should matter at a spread-out spawn. Before revisiting positioning, check whether any spawn ever offers more than +1.
+
 ---
 
 ## Healer (Myras)
@@ -720,6 +728,8 @@ The moment the target dies she goes straight back to `camp_fight`, so that swap'
 ### `Healer Movement.js`
 
 Runner hooks (`healer_local`, panic skip) and the circle walk. `walk_in_circle()` aims half a radian ahead on the circle (`CIRCLE_LEAD`) through `local_step()`, so she keeps walking instead of being issued a ~5px move each time she stops.
+
+**Why a circle, and why this one (measured 2026-09).** Moving packs monsters tighter than standing still: neighbours within 12px averaged 1.67 at 1.8 rad/s against 1.33 at rest, matched at 4 engaged monsters, about 26% tighter. A still target is ringed with opposite sides two attack ranges apart; a moving one drags a trailing arc, and only the arc puts pairs inside splash reach. Within motion, geometry does nothing: a radius sweep of 30/20/12 over 5.5 hours (1,099 windows) measured 1.36/1.37/1.32 with standard error 0.024, so turn rate is a threshold, not a gradient. The reason is the monster AI's approach constant: between attacks every general monster closes to within **12px** of its target whatever its attack range, pathing to the midpoint each tick (`node_server.js` L12245). Two ideas were tried and rejected. A radius of 10, just inside 12, looked bad in game and was reverted the same session. Centring the circle on the engaged monsters' centroid made a pursuit spiral, because they chase her and their centroid is a lagged copy of her own position. `circle_radius: 30` and `circle_speed: 1.8` are the settled answer; untested is re-centring on monsters *not* already on her.
 
 **The circle's pace follows her speed** (`CIRCLE_PACE`): the angle advances at the lower of `circle_speed` (1.8 rad/s) and 90% of her speed over the radius, so the point she chases never outruns her and the circle keeps its 30px. Fear slows her hard: the server's fear is the count of physical (or magical) attackers over her courage (or mcourage), and each level takes 20/40/70/80/90/100 off her speed. She has physical courage 2 (a priest's base; STR adds none for her), so four targetrons at uhills are fear 2 and her speed falls from 72 to 32, three more levels to ~5. At a fixed 1.8 rad/s the point ran at 54 px/s, she cut inside it, and the orbit shrank to ~18px when feared (measured 10-12). Fear costs her speed and attack only; `fear_affects_heal` is off on the server.
 
@@ -875,3 +885,50 @@ An outside-the-page watchdog over the client's DevTools port (9222). **Read `wat
 ### `Install Watchdog.ps1`
 
 Registers the watchdog as a logon task and sets the client's WebView2 flags (anti-throttling + `--remote-debugging-port=9222`) in `HKCU\Software\Policies\Microsoft\Edge\WebView2\AdditionalBrowserArguments` under `Adventure Land.exe`. It deletes the user-wide `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS`, which would override it and leak the port to every WebView2 app. Takes effect only after Steam **and** the client are fully restarted.
+
+---
+
+## Decisions
+
+Standing decisions from the overhaul (2026-10-14 to 10-16), kept here when the plan was deleted. The numbers are the plan's.
+
+- **D2 Dungeons stay a separate system.** Dungeon flags are not folded into encounters. Inside an active dungeon its flags win over encounter answers.
+- **D5, D15 Fixtures are committed; snapshots are private.** The repo is public, so `snapshots.jsonl` stays machine-local and gitignored. `node Tests/Harness.js promote <id>` copies a snapshot into `Tests/fixtures/` and strips it on the way: the account id (`owner`), `ipass`, friends, shells, code slots, PIXI internals and every underscore-prefixed key at every depth, the role cache, any storage the deciders don't read, and strangers' names (hashed).
+- **D9 Gates belong to the loop or the skill entry, never to a shared runner.** The Pause Button leaves combat running and Myras heals while panicking. Both are deliberate, and both would break under one gate for every role.
+- **D12 Goldens are deterministic or they are noise.** The clock, the stored values and `Math.random` come from the fixture; each fixture runs in a fresh context, and `check` runs every fixture twice.
+- **D14 Snapshots are throttled per trigger.** Riva's panic trigger is one mob on her, and one night it snapshotted 903 times (about 102MB). Panics snapshot at most once per 5 minutes and close calls once a minute; farm windows, deaths and bosses are unthrottled.
+- **D17 Changes are proposed from the data.** The point of the decision log, the store and the experiments is improvement measured from data, over ideas. Each behaviour change is the user's call, and is measured with `compare` or an experiment.
+- **The reload deaths stay as they are (the user, 2026-10-15).** At the 23:55 self-reload the party once died mid-pull at mummies: a character stands inactive in a hostile pack for as long as its code takes to load. Faster loading was the only real fix. Loading from this PC now takes about 1s (5.5–6.5s from jsDelivr), so the exposure is much smaller than when this was decided.
+
+## Measured constants
+
+From 2026-09 measurement; re-derive only if gear or levels change a lot.
+
+| Quantity | Value | Source |
+|---|---|---|
+| Myras heal power | about 3,023 (varies with buffs) | live |
+| Myras `mp_cost` | 61 | sampled |
+| Myras sustained healing ceiling | about 4,230 HP/s (`heal × 1.46/s`) | sampled |
+| `partyheal` base | a flat 800 at level 80+, ignores heal power | server |
+| Incoming at fireroamer ×10 | about 5,000 HP/s | death timeline |
+| Heal model accuracy | 0.9966 over 437 casts | sampled |
+| Cleave reach | about 160px, `attack × (0.1 + rand × 0.8)` per target | server |
+| Splash reach | `explosion / 3.6`: 11.7px for Ulric's aoe set, 14.2px for Riva's pouchbow | server |
+| Monster approach | every general monster closes to within 12px between attacks | server monster AI |
+
+## Considered and rejected
+
+- **`rpiercing` as a gear direction for Myras.** The measured marginal is about 0 at her 183: she has already all but erased Ulric's and Riva's resistance.
+- **Chasing the poison quarter.** The ×0.25 on a poisoned target is real, but poisoned targets measured 0.00 at both gscorpion and fireroamer.
+- **Loosening the overheal threshold.** Overheal is 17% at rest but 1.6% under real load, so the `/1.33` allowance corrects itself where it matters.
+
+## Ideas not yet measured
+
+Each is an idea with its evidence, to be weighed against the data like any other proposal.
+
+- **Ulric's burn term is about 1.39× too generous**, and the error is sub-linear in proc chance, the signature of burn refreshing rather than stacking. An uptime term would replace the linear one. It touches code Riva shares, so both need re-measuring (`Equipment Valuation.js`, `Combat Formulas.js`).
+- **Myras can't out-heal fireroamer ×10**: about 4,230 HP/s against about 5,000 incoming. Only reducing incoming changes that.
+- **`skill_min_mp_pct: 0.40` cuts dark blessing during a long crisis**, and dark blessing feeds attack, which feeds heal: a self-reinforcing dip. Observed once, survived (`Healer Skills.js`).
+- **Curse pricing.** `curse` casts on the highest-HP mob with no mana price or time-to-kill check, while Riva's mark is priced by `mark_value()`. Curse's amp is inherited by splash and burn (both are applied after the amp), so it wants a short time-to-kill, clustered target. A `curse_value()` modelled on `mark_value()` would price it, and keep Riva and Myras from debuffing the same mob (`Healer Skills.js`).
+- **Fear-aware aggro.** The pull cap knows mana and projected HP (`tank_can_take()`) but not fear. `character.targets_p`/`targets_m` against `courage`/`mcourage` say exactly when one more physical or magical mob costs her 40% of her damage, and her physical courage is only about 8 (Game API Reference → Courage and fear) (`Healer Combat.js`).
+- **Re-centre Myras's circle on monsters not already on her** (untargeted, or on Ulric or Riva). Unlike her own pack, their positions don't follow hers (`Healer Movement.js`).

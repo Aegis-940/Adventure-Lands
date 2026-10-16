@@ -383,6 +383,28 @@ blast, explosion, stun
 mp_cost, mp_reduction
 ```
 
+The server initialises every one of these to a number for every character (`calculate_player_stats`, `server.js:1073-1110`), so none is ever `undefined`.
+
+**Sent only to the character itself** (`player_to_client`, `server.js:674-720`): `max_xp`, `map`, `in`, `gold`, `isize`, `esize` (free bag slots, kept up to date on every inventory change), `targets` (every monster targeting you, off-screen ones included, kept by `increase_targets`/`reduce_targets`, `server.js:11586`) and `targets_p`/`targets_m`/`targets_u` (the same, split by the monster's damage type). Teammates never see these.
+
+### Courage and fear
+
+```js
+player.fear = max(0, targets_p - courage, targets_m - mcourage, targets_u - pcourage);
+const sredux = [0, 20, 40, 70, 80, 90, 100];
+player.speed -= sredux[min(6, player.fear)];
+if (fear > 2)      player.attack *= 0.2;
+else if (fear > 1) player.attack *= 0.4;
+else if (fear)     player.attack *= 0.6;
+```
+
+- `targets_p`/`targets_m`/`targets_u` count monsters targeting you by the *monster's* `damage_type` (physical, magical, pure). Each is checked against its own courage stat, and `fear` is the worst of the three.
+- `courage += str/30` for warriors, `mcourage += int/30` for priests, `pcourage` for paladins.
+- The speed penalty is a flat subtraction, not a multiplier.
+- The attack penalty applies *after* `player.heal = player.attack` is taken, so a feared priest loses up to 80% of her damage and none of her healing.
+- `character.fear`, `courage`, `mcourage` and `pcourage` are all sent to the client.
+- Myras's int buys about 12 magical courage and almost no physical. Measured from her deaths (2026-09): attack stepped ×0.6 then ×0.4 at about 10 fireroamers, which deal physical damage, so her physical courage is about 8. She tanks magical monsters well and physical ones badly.
+
 ### Equipment (`character.slots`)
 ```
 mainhand, offhand, helmet, chest, pants, shoes, gloves, cape
@@ -428,9 +450,13 @@ upgrade, compound, exchange  // present during those operations
 ### Party
 ```
 character.party              // party name
-parent.party                 // {memberName: {share, ...}}
+parent.party                 // {memberName: {skin, level, type, x, y, in, map, share, pdps, rip, ...}}
 parent.party_list            // array of member names
 ```
+
+`parent.party` comes from `party_update` (`party_to_client`, `server.js:867-938`). The server sends it every 60s (`server.js:13498-13506`) and at once on a death, respawn, revival, join or leave, but **not on a map change**: `map`, `x`, `y` and `in` can be a minute old, and only `rip` is prompt. It carries no HP or MP. A teammate in view on our map is live in `parent.entities` (`get_player(name)`): hp, max_hp, mp, max_mp, xp, level, speed, rip, target, s, c, x, y, moving, going_x/y, slots, ctype (`player_to_client(player, stranger)`, `server.js:596-646`). So a teammate on another map has no live native source, which is why the bot keeps its own state cache (Design Notes → `Character Messaging.js`).
+
+`send_cm()` already goes over localStorage when the receiver's page runs in the same browser (`is_character_local()`, a heartbeat under 2.88s old; `runner_functions.js:1066-1084`), and over the server (with call cost) only otherwise.
 
 ---
 
