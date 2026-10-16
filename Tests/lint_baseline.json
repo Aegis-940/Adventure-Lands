@@ -6,7 +6,6 @@
   "Dungeons/Dungeon Entry.js": 1,
   "Dungeons/Dungeon Progress.js": 1,
   "Dungeons/Dungeon Telemetry.js": 1,
-  "Interface/DPS Meter.js": 1,
   "Kernel/Kernel.js": 1
  },
  "emits": {
