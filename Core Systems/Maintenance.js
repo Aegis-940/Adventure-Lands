@@ -26,7 +26,7 @@ async function potion_tick() {
 
 	const drink = (kind, missing, threshold) => {
 		if (missing < threshold) return false;
-		use_skill("use_" + kind).catch(() => { });
+		use(kind);
 		potions_drunk[kind]++;
 		return true;
 	};
