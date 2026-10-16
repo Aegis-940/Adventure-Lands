@@ -22,21 +22,25 @@ function push_damage(entry, type, value) {
 	entry[type].push({ t: performance.now(), v: value });
 }
 
+function damage_dealt(data) {
+	const target = parent.entities[data.id];
+	return data.kill && target ? Math.min(data.damage, target.hp) : data.damage;
+}
+
 function dps_meter_hit(data) {
 	if (!parent.party_list.includes(data.hid) && !parent.party_list.includes(data.id)) return;
-	const attacker = get_player(data.hid);
+	const attacker = parent.party_list.includes(data.hid) && get_player(data.hid);
 	const victim = get_player(data.id);
 
-	if (victim && !attacker) {
-		for (const returned of [data.dreturn, data.reflect]) if (returned) push_damage(get_player_entry(data.id), "DPS", returned);
-	}
+	if (victim && !attacker && data.dreturn) push_damage(get_player_entry(data.id), "DPS", data.dreturn);
 	if (victim && data.damage) get_player_entry(data.id);
 	if (!attacker) return;
 	if (data.damage || data.dreturn || data.reflect || data.heal || data.lifesteal || data.manasteal) get_player_entry(data.hid);
 	if (!data.damage) return;
 	const entry = get_player_entry(data.hid);
-	push_damage(entry, { burn: "Burn", splash: "Blast" }[hit_kind(data)] || "Base", data.damage);
-	push_damage(entry, "DPS", data.damage);
+	const dealt = damage_dealt(data);
+	push_damage(entry, { burn: "Burn", splash: "Blast" }[hit_kind(data)] || "Base", dealt);
+	push_damage(entry, "DPS", dealt);
 }
 
 function prune_dps_events() {
