@@ -40,22 +40,9 @@ function party_camped(event) {
 }
 
 function find_nearest_bscorpion() {
-	let nearest = null;
-	let min_dist = Infinity;
-
-	for (const id in parent.entities) {
-		const ent = parent.entities[id];
-		if (ent && ent.type === "monster" && ent.mtype === "bscorpion" && !ent.dead) {
-			const dist = Math.hypot(ent.x - character.x, ent.y - character.y);
-			if (dist < min_dist) {
-				min_dist = dist;
-				nearest = ent;
-			}
-		}
-	}
-
+	const nearest = get_nearest_monster({ type: "bscorpion" });
 	if (!nearest) return null;
-	return { entity: nearest, distance: min_dist, x: nearest.x, y: nearest.y };
+	return { entity: nearest, distance: Math.hypot(nearest.x - character.x, nearest.y - character.y), x: nearest.x, y: nearest.y };
 }
 
 const CAMP_BUFF_MIN_HP = 0.25;

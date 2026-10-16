@@ -23,7 +23,7 @@ function mluck_wanted(player) {
 function players_wanting_mluck() {
 	return Object.values(parent.entities).filter(e =>
 		e.type === "character" && !e.npc && !e.rip &&
-		Math.hypot(character.x - e.x, character.y - e.y) <= G.skills.mluck.range &&
+		is_in_range(e, "mluck") &&
 		mluck_wanted(e)
 	);
 }

@@ -44,7 +44,7 @@ function event_goal() {
 	if (target.join === true && !get_nearest_monster({ type: target.name })) {
 		if (Date.now() - _last_event_join > EVENT_JOIN_RETRY_MS) {
 			_last_event_join = Date.now();
-			parent.socket.emit("join", { name: target.name });
+			join(target.name).catch(() => { });
 		}
 		return null;
 	}
