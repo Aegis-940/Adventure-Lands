@@ -318,6 +318,15 @@ async function withdraw_offering() {
 	}
 }
 
+async function withdraw_levels(bank_data, name, max_level, highest_first, batch) {
+	const counts = bank_level_counts(bank_data, name, max_level);
+	const levels = Object.keys(counts).map(Number).sort((a, b) => highest_first ? b - a : a - b);
+	for (const level of levels) {
+		const n = Math.floor(Math.min(counts[level], character.esize - 3) / batch) * batch;
+		if (n > 0) await withdraw_item(name, level, n);
+	}
+}
+
 async function withdraw_upgradeable_items() {
 	if (simple_distance(character, BANK_LOCATION) > BANK_POSITION_TOLERANCE) {
 		await smarter_move(BANK_LOCATION, null, { radius: BANK_POSITION_TOLERANCE });
@@ -336,32 +345,16 @@ async function withdraw_upgradeable_items() {
 	}
 
 	const target = upgrade_target_open() ? upgrade_target() : null;
-	if (target) {
-		const level_counts = bank_level_counts(bank_data, target.name, target.level);
-		for (const level of Object.keys(level_counts).map(Number).sort((a, b) => b - a)) {
-			const to_withdraw = Math.min(level_counts[level], character.esize - 3);
-			if (to_withdraw <= 0) break;
-			await withdraw_item(target.name, level, to_withdraw);
-		}
-	}
+	if (target) await withdraw_levels(bank_data, target.name, target.level, true, 1);
 
 	for (const item_name in UPGRADE_PROFILE) {
 		if (target && item_name === target.name) continue;
-		const level_counts = bank_level_counts(bank_data, item_name, UPGRADE_PROFILE[item_name].max_level);
-		for (const level of Object.keys(level_counts).map(Number).sort((a, b) => a - b)) {
-			const to_withdraw = Math.min(level_counts[level], character.esize - 3);
-			if (to_withdraw <= 0) break;
-			await withdraw_item(item_name, level, to_withdraw);
-		}
+		await withdraw_levels(bank_data, item_name, UPGRADE_PROFILE[item_name].max_level, false, 1);
 		if (character.esize <= 3) break;
 	}
 
 	for (const item_name in COMBINE_PROFILE) {
-		const level_counts = bank_level_counts(bank_data, item_name, COMBINE_PROFILE[item_name].max_level);
-		for (const level of Object.keys(level_counts).map(Number).sort((a, b) => a - b)) {
-			const sets = Math.min(Math.floor(level_counts[level] / 3), Math.floor((character.esize - 3) / 3));
-			if (sets > 0) await withdraw_item(item_name, level, sets * 3);
-		}
+		await withdraw_levels(bank_data, item_name, COMBINE_PROFILE[item_name].max_level, false, 3);
 		if (character.esize <= 3) break;
 	}
 
@@ -499,95 +492,53 @@ async function auto_upgrade_item(level, plan) {
 }
 
 async function auto_combine_item(level) {
-	const buckets = new Map();
-
+	const groups = new Map();
 	for (let i = 0; i < character.items.length; i++) {
 		const item = character.items[i];
-		if (!item) continue;
-
-		const profile = COMBINE_PROFILE[item.name];
-		if (!profile) continue;
-		if (typeof item.level !== "number" || item.level !== level || item.level >= profile.max_level) continue;
-
-		const key = `${item.name}:${item.level}`;
-		const entry = { slot: i, qty: item.q || 1 };
-		if (!buckets.has(key)) {
-			buckets.set(key, [item.level, [entry]]);
-		} else {
-			buckets.get(key)[1].push(entry);
-		}
+		const profile = item && COMBINE_PROFILE[item.name];
+		if (!profile || item.level !== level || level >= profile.max_level) continue;
+		if (!groups.has(item.name)) groups.set(item.name, []);
+		groups.get(item.name).push({ slot: i, qty: item.q || 1 });
 	}
 
-	function total_qty(entries) {
-		return entries.reduce((sum, e) => sum + e.qty, 0);
-	}
+	const total_qty = entries => entries.reduce((sum, e) => sum + e.qty, 0);
+	const ready = [...groups].filter(([, entries]) => total_qty(entries) >= 3);
+	const scroll_of = name => scroll_for(COMBINE_PROFILE[name], level, "cscroll");
+	const needs_primling = name => COMBINE_PROFILE[name].primling_from !== undefined && level >= COMBINE_PROFILE[name].primling_from;
+	const skip_without_primling = name => log_msg("info", `Skipping combine for ${name} (level ${level}): No offeringp found for combine requiring it.`);
 
-	function pick_three_slots(entries) {
-		const picks = [];
-		for (const entry of entries) {
-			let remaining = entry.qty;
-			while (remaining > 0 && picks.length < 3) {
-				picks.push(entry.slot);
-				remaining--;
-			}
-			if (picks.length >= 3) break;
-		}
-		return picks;
-	}
-
-	for (const [key, [lvl, entries]] of buckets) {
-		if (total_qty(entries) < 3) continue;
-
-		const item_name = key.split(":")[0];
-		const profile = COMBINE_PROFILE[item_name];
-		const scrollname = scroll_for(profile, lvl, "cscroll");
+	for (const [item_name] of ready) {
+		const scrollname = scroll_of(item_name);
 		if (inventory_slot(scrollname) !== null) continue;
-
-		if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
-			const has_primling = character.items.some(inv_item => inv_item && inv_item.name === "offeringp");
-			if (!has_primling) {
-				log_msg("info", `Skipping combine for ${item_name} (level ${lvl}): No offeringp found for combine requiring it.`);
-				continue;
-			}
+		if (needs_primling(item_name) && inventory_slot("offeringp") === null) {
+			skip_without_primling(item_name);
+			continue;
 		}
-
-		let needed = 0;
-		for (const [other_key, [, other_entries]] of buckets) {
-			if (scroll_for(COMBINE_PROFILE[other_key.split(":")[0]], lvl, "cscroll") === scrollname) {
-				needed += Math.floor(total_qty(other_entries) / 3);
-			}
-		}
-		return await buy_scrolls(scrollname, needed, `combining ${item_name} (level ${lvl})`) ? "wait" : "end";
+		const needed = ready
+			.filter(([name]) => scroll_of(name) === scrollname)
+			.reduce((sum, [, entries]) => sum + Math.floor(total_qty(entries) / 3), 0);
+		return await buy_scrolls(scrollname, needed, `combining ${item_name} (level ${level})`) ? "wait" : "end";
 	}
 
-	for (const [key, [lvl, entries]] of buckets) {
-		if (total_qty(entries) < 3) continue;
-
-		const item_name = key.split(":")[0];
-		const profile = COMBINE_PROFILE[item_name];
-
-		const scrollname = scroll_for(profile, lvl, "cscroll");
+	for (const [item_name, entries] of ready) {
+		const key = `${item_name}:${level}`;
+		const scrollname = scroll_of(item_name);
 		const scroll_slot = inventory_slot(scrollname);
-		if (scroll_slot === null) continue;
-		if (combine_failed_keys.has(key)) continue;
+		if (scroll_slot === null || combine_failed_keys.has(key)) continue;
 
-		let offering_slot = null;
-		if (profile.primling_from !== undefined && lvl >= profile.primling_from) {
-			offering_slot = inventory_slot("offeringp");
-			if (offering_slot === null) {
-				log_msg("info", `Skipping combine for ${item_name} (level ${lvl}): No offeringp found for combine requiring it.`);
-				continue;
-			}
+		const offering_slot = needs_primling(item_name) ? inventory_slot("offeringp") : null;
+		if (needs_primling(item_name) && offering_slot === null) {
+			skip_without_primling(item_name);
+			continue;
 		}
 
-		use_mass_production(lvl);
-
-		const picks = pick_three_slots(entries);
-		log_msg("info", `Combining 3x ${item_name} (level ${lvl}) with ${scrollname}`);
+		use_mass_production(level);
+		const picks = entries.flatMap(e => Array(e.qty).fill(e.slot)).slice(0, 3);
+		log_msg("info", `Combining 3x ${item_name} (level ${level}) with ${scrollname}`);
 		try {
 			await compound(picks[0], picks[1], picks[2], scroll_slot, offering_slot);
 		} catch (e) {
-			catcher(e, `auto_combine_item: ${item_name} (level ${lvl})`);
+			catcher(e, `auto_combine_item: ${item_name} (level ${level})`);
 			combine_failed_keys.add(key);
 			continue;
 		}
