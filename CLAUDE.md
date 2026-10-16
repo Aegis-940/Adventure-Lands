@@ -51,7 +51,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | File | Role |
 |------|------|
 | `Kernel.js` | `on_boot()`/`kernel_boot()`: the boot phase. `al_boot()` reports what ran, skipped and failed. `console_api()`/`al_help()` list the console entry points |
-| `Scheduler.js` | `every()`, the only loop; `when()` for waiting on DOM; `stop_loop()`; `al_loops()` lists every loop with its kind, rate, runs, last lag and last error |
+| `Scheduler.js` | `every()`, the only loop; `when()` for waiting on DOM; `wait_until(done, ms, poll)` for an awaited condition with a deadline; `stop_loop()`; `al_loops()` lists every loop with its kind, rate, runs, last lag and last error |
 | `Events.js` | `on_socket`/`off_socket`, `on_character`, `on_dom`, `wrap_parent`, `parent_slot`, and the internal bus `bus_on`/`bus_emit` |
 | `Storage.js` | The only code that touches localStorage (`storage_read/write`, `storage_raw_read/write`, `storage_remove`, `storage_keys`), and `STORAGE_KEYS`, the register of every key prefix |
 

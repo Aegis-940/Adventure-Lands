@@ -251,11 +251,7 @@ async function crypt_wait_for_mana(pct) {
 }
 
 async function crypt_wait_for_calm() {
-	const until = Date.now() + CRYPT_CALM_TIMEOUT_MS;
-	while (Date.now() < until) {
-		if (!panicking && !character.rip) return true;
-		await sleep(CRYPT_ROUTE_POLL_MS);
-	}
+	if (await wait_until(() => !panicking && !character.rip, CRYPT_CALM_TIMEOUT_MS, CRYPT_ROUTE_POLL_MS)) return true;
 	log_msg("warn", "Crypt route: panic never cleared");
 	return false;
 }

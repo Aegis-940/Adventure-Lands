@@ -222,13 +222,8 @@ async function bank_op(start, done) {
 		return false;
 	}
 
-	const until = Date.now() + BANK_OP_TIMEOUT;
-	while (Date.now() < until) {
-		await sleep(100);
-		if (done()) return true;
-	}
-
-	return false;
+	await sleep(100);
+	return wait_until(done, BANK_OP_TIMEOUT - 100, 100);
 }
 
 function inventory_total(key) {

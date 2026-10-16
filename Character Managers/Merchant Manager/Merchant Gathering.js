@@ -70,14 +70,8 @@ async function handle_gathering_state(tool_name, skill_name, spot, tolerance, ta
 			}
 
 			await sleep(200);
-			let channel_wait_ms = 0;
-			while (!character.rip && character.c[skill_name]) {
-				await sleep(200);
-				channel_wait_ms += 200;
-				if (channel_wait_ms >= 15000) {
-					log_msg("warn", `${skill_name}: still channeling after ${channel_wait_ms / 1000}s per character.c — giving up waiting.`);
-					break;
-				}
+			if (!await wait_until(() => character.rip || !character.c[skill_name], 15000, 200)) {
+				log_msg("warn", `${skill_name}: still channeling after 15s per character.c — giving up waiting.`);
 			}
 		}
 

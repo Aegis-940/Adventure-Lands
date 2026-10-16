@@ -38,16 +38,10 @@ async function run_dungeon_collection() {
 	dungeon_telemetry_event("collect_start", { runs: dungeon_runs_done() });
 	send_cm("Riff", { type: "collect_loot" });
 
-	const until = Date.now() + COLLECT_WAIT_MS;
-	let arrived = false;
-	while (Date.now() < until) {
+	const arrived = await wait_until(() => {
 		const riff = get_player("Riff");
-		if (riff && !riff.rip && distance(character, riff) <= COLLECT_RANGE) {
-			arrived = true;
-			break;
-		}
-		await sleep(COLLECT_POLL_MS);
-	}
+		return !!riff && !riff.rip && distance(character, riff) <= COLLECT_RANGE;
+	}, COLLECT_WAIT_MS, COLLECT_POLL_MS);
 
 	if (!arrived) {
 		log_msg("warn", "Collection: Riff never arrived — carrying on");
@@ -63,24 +57,8 @@ async function run_dungeon_collection() {
 		catcher(e, "run_dungeon_collection");
 	}
 
-	const drain = Date.now() + COLLECT_DRAIN_MS;
-	let last = -1;
-	let idle = 0;
-	while (Date.now() < drain) {
-		const left = loose_loot(LOOT_THRESHOLD).length;
-		if (!left) break;
-
-		if (left === last) {
-			if (++idle >= COLLECT_IDLE_ROUNDS) {
-				log_msg("warn", `Collection: ${left} item(s) would not transfer — moving on`);
-				break;
-			}
-		} else {
-			idle = 0;
-		}
-		last = left;
-		await sleep(COLLECT_POLL_MS);
-	}
+	const stuck = await drain(() => loose_loot(LOOT_THRESHOLD).length, () => { }, COLLECT_DRAIN_MS, COLLECT_IDLE_ROUNDS, COLLECT_POLL_MS);
+	if (stuck) log_msg("warn", `Collection: ${stuck} item(s) would not transfer — moving on`);
 
 	log_msg("event", "📦 Collection: done");
 	dungeon_telemetry_event("collect_end", { ok: true });

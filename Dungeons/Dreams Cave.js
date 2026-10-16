@@ -145,15 +145,6 @@ function dreams_reason(e) {
 	return (e && e.reason) || fmt_err(e);
 }
 
-async function dreams_until(done, ms) {
-	const until = Date.now() + ms;
-	while (Date.now() < until) {
-		if (done()) return true;
-		await sleep(DREAMS_POLL_MS);
-	}
-	return done();
-}
-
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // WHO IS AN ENEMY — cave travelers, victims and allies are monsters too, and only some sides may be hit
 // --------------------------------------------------------------------------------------------------------------------------------- //
@@ -317,7 +308,7 @@ function dreams_entry_blocker() {
 }
 
 async function dreams_wait_for_entry_party() {
-	if (await dreams_until(() => dreams_entry_blocker() === null || !dreams_mode_on(), DREAMS_ASSEMBLE_MS)) {
+	if (await wait_until(() => dreams_entry_blocker() === null || !dreams_mode_on(), DREAMS_ASSEMBLE_MS, DREAMS_POLL_MS)) {
 		return dreams_mode_on();
 	}
 	dreams_log(`Party never assembled: ${dreams_entry_blocker()}`, "warn");
@@ -337,7 +328,7 @@ async function dreams_enter() {
 	for (let attempt = 1; attempt <= DREAMS_ENTRY_ATTEMPTS; attempt++) {
 		if (!dreams_mode_on()) return false;
 		dreams_log(resume ? "Disengaging and walking to Dorr to return to our visit" : `Disengaging and gathering the party at Dorr (attempt ${attempt})`);
-		if (!await dreams_until(() => dreams_at_dorr() || !dreams_mode_on(), DREAMS_ASSEMBLE_MS)) {
+		if (!await wait_until(() => dreams_at_dorr() || !dreams_mode_on(), DREAMS_ASSEMBLE_MS, DREAMS_POLL_MS)) {
 			dreams_log("Never reached Dorr", "warn");
 			continue;
 		}
@@ -354,7 +345,7 @@ async function dreams_enter() {
 			continue;
 		}
 
-		if (await dreams_until(() => !!character.cave, DREAMS_ENTER_WAIT_MS)) {
+		if (await wait_until(() => !!character.cave, DREAMS_ENTER_WAIT_MS, DREAMS_POLL_MS)) {
 			dreams_log(resume ? "Back inside" : "Inside — floor 1");
 			dungeon_telemetry_event("dreams_entered", { resume, run: character.cave.run });
 			return true;
@@ -563,7 +554,7 @@ function dreams_escort_lagging(escort) {
 
 async function dreams_still_inside() {
 	if (character.cave) return true;
-	return dreams_until(() => !!character.cave, DREAMS_LEFT_GRACE_MS);
+	return wait_until(() => !!character.cave, DREAMS_LEFT_GRACE_MS, DREAMS_POLL_MS);
 }
 
 async function dreams_floors() {
@@ -705,10 +696,10 @@ function dreams_chests_near() {
 async function dreams_exit_all(reason) {
 	dreams_log(`Leaving the cave — ${reason}`);
 	dungeon_telemetry_event("dreams_exit", { reason, floor: character.cave ? character.cave.floor : null });
-	await dreams_until(() => !dreams_chests_near().length, DREAMS_EXIT_LOOT_MS);
+	await wait_until(() => !dreams_chests_near().length, DREAMS_EXIT_LOOT_MS, DREAMS_POLL_MS);
 	send_cm(DUNGEON_FOLLOWERS, { type: "dreams_exit" });
 	dreams_leave();
-	await dreams_until(() => !character.cave, DREAMS_ENTER_WAIT_MS);
+	await wait_until(() => !character.cave, DREAMS_ENTER_WAIT_MS, DREAMS_POLL_MS);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

@@ -69,12 +69,7 @@ function has_bankable_items(keep = keep_nothing) {
 }
 
 async function wait_for_movement_to_settle(caller_label) {
-	let move_wait = 0;
-	while (character.moving && move_wait < 20) {
-		await sleep(250);
-		move_wait++;
-	}
-	if (character.moving) {
+	if (!await wait_until(() => !character.moving, 5000, 250)) {
 		log_msg("warn", `${caller_label}: still moving after waiting, proceeding anyway.`);
 	}
 }

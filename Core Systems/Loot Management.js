@@ -260,10 +260,8 @@ function load_bank_from_local_storage() {
 	return storage_read(SAVED_BANK_KEY);
 }
 
-async function wait_for_bank(map) {
-	for (let waited = 0; waited < 3000 && !(character.bank && character.map === map); waited += 50) {
-		await sleep(50);
-	}
+function wait_for_bank(map) {
+	return wait_until(() => character.bank && character.map === map, 3000, 50);
 }
 
 async function go_to_bank_floor(map) {

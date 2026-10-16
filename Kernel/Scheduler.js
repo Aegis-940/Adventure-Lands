@@ -64,6 +64,15 @@ async function run_loop(loop, fn) {
 	}
 }
 
+async function wait_until(done, ms, poll) {
+	const until = Date.now() + ms;
+	while (Date.now() < until) {
+		if (done()) return true;
+		await sleep(poll);
+	}
+	return done();
+}
+
 function when(name, ready, fn, ms) {
 	return every(name, { ms, kind: "ui" }, () => {
 		if (!ready()) return ms;

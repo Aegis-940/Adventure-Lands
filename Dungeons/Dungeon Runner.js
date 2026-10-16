@@ -107,28 +107,25 @@ const DUNGEON_LOOT_MAX_MS = 30000;
 const DUNGEON_LOOT_IDLE_ROUNDS = 3;
 const DUNGEON_LOOT_ROUND_MS = 400;
 
-async function dungeon_loot_everything() {
-	const until = Date.now() + DUNGEON_LOOT_MAX_MS;
+async function drain(count, step, ms, idle_rounds, poll) {
+	const until = Date.now() + ms;
 	let idle = 0;
 	let last = -1;
-
 	while (Date.now() < until) {
-		const count = get_num_chests();
-		if (!count) break;
-
-		if (count === last) {
-			if (++idle >= DUNGEON_LOOT_IDLE_ROUNDS) {
-				log_msg("warn", `Looting: ${count} chest(s) out of reach — moving on`);
-				break;
-			}
-		} else {
-			idle = 0;
-		}
-		last = count;
-
-		await handle_looting();
-		await sleep(DUNGEON_LOOT_ROUND_MS);
+		const left = count();
+		if (!left) return 0;
+		if (left !== last) idle = 0;
+		else if (++idle >= idle_rounds) return left;
+		last = left;
+		await step();
+		await sleep(poll);
 	}
+	return 0;
+}
+
+async function dungeon_loot_everything() {
+	const stuck = await drain(get_num_chests, handle_looting, DUNGEON_LOOT_MAX_MS, DUNGEON_LOOT_IDLE_ROUNDS, DUNGEON_LOOT_ROUND_MS);
+	if (stuck) log_msg("warn", `Looting: ${stuck} chest(s) out of reach — moving on`);
 
 	const left = get_num_chests();
 	log_msg("info", left ? `Looting: done, ${left} left behind` : "Looting: everything collected");

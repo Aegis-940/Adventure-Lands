@@ -36,7 +36,7 @@ A body that throws is caught here (`catcher(e, name)`, counted in `al_loops()`) 
 
 `beat: true` is what `loop_tick`/`loop_next` did for the combat loops: an `errlog_beat(name)` per run and `lag <name>`, the gap between when a run was due and when it started. The loop names are unchanged (`action_loop`, `skill_loop`, `zap_loop`), so the beats in death records and the watchdog read the same.
 
-`when(name, ready, fn, ms)` polls `ready()` and runs `fn` once: the game log waiting for `#gamelog`. (The toprightcorner button chain, each button waiting for the one before it, used it until the toolbar registry replaced it on 2026-10-15.)
+`wait_until(done, ms, poll)` is the one awaited wait: it resolves `true` as soon as `done()` holds, or `done()`'s answer at the deadline. It replaced twelve hand-written polls in 10-16 (bank, movement settling, dungeon entry and assembly, the crypt's calm hold, Riff's arrival, the bank sort, the gathering channel, and Dreams' own `dreams_until`); the crypt's mana hold stays hand-written, because each of its three exits logs differently. `when(name, ready, fn, ms)` polls `ready()` and runs `fn` once: the game log waiting for `#gamelog`. (The toprightcorner button chain, each button waiting for the one before it, used it until the toolbar registry replaced it on 2026-10-15.)
 
 `kind` (`automation`, `combat`, `safety`, `telemetry`, `ui`) only labels a loop for now. Pause and death still work the way each body checks them.
 

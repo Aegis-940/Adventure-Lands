@@ -54,13 +54,8 @@ const DUNGEON_ENTER_SETTLE_MS = 3000;
 const DUNGEON_ENTER_TIMEOUT_MS = 20000;
 const DUNGEON_ENTER_POLL_MS = 250;
 
-async function wait_until_on_map(map) {
-	const until = Date.now() + DUNGEON_ENTER_TIMEOUT_MS;
-	while (Date.now() < until) {
-		if (character.map === map) return true;
-		await sleep(DUNGEON_ENTER_POLL_MS);
-	}
-	return false;
+function wait_until_on_map(map) {
+	return wait_until(() => character.map === map, DUNGEON_ENTER_TIMEOUT_MS, DUNGEON_ENTER_POLL_MS);
 }
 
 function followers_still_inside(dungeon) {
@@ -107,14 +102,9 @@ async function wait_for_party_at_entrance(dungeon) {
 	if (!followers_away_from_entrance(dungeon).length) return true;
 
 	dungeon_log(dungeon, "Waiting for the party to reach the entrance...");
-	const until = Date.now() + DUNGEON_ASSEMBLE_WAIT_MS;
-	while (Date.now() < until) {
-		const adrift = followers_away_from_entrance(dungeon);
-		if (!adrift.length) {
-			dungeon_log(dungeon, "Party assembled at the entrance");
-			return true;
-		}
-		await sleep(DUNGEON_EXIT_POLL_MS);
+	if (await wait_until(() => !followers_away_from_entrance(dungeon).length, DUNGEON_ASSEMBLE_WAIT_MS, DUNGEON_EXIT_POLL_MS)) {
+		dungeon_log(dungeon, "Party assembled at the entrance");
+		return true;
 	}
 
 	dungeon_log(dungeon,
@@ -127,13 +117,9 @@ async function wait_for_party_out(dungeon) {
 	if (!followers_still_inside(dungeon).length) return true;
 
 	dungeon_log(dungeon, "Waiting for the party to clear the old instance...");
-	const until = Date.now() + DUNGEON_EXIT_WAIT_MS;
-	while (Date.now() < until) {
-		if (!followers_still_inside(dungeon).length) {
-			dungeon_log(dungeon, "Party is clear");
-			return true;
-		}
-		await sleep(DUNGEON_EXIT_POLL_MS);
+	if (await wait_until(() => !followers_still_inside(dungeon).length, DUNGEON_EXIT_WAIT_MS, DUNGEON_EXIT_POLL_MS)) {
+		dungeon_log(dungeon, "Party is clear");
+		return true;
 	}
 
 	dungeon_log(dungeon,
