@@ -5,7 +5,8 @@
     python Tools/Probe.py "al_loops().filter(l => l.error)" --name Myras
     python Tools/Probe.py --file probe.js
 
-The expression sees the bot frame as `w` and its globals directly (`character`, `al_boot()`, …); a Promise is awaited.
+The expression is evaluated by the bot frame's own eval, so it sees every global, `let`/`const` ones included
+(`character`, `_errlog`, `al_boot()`, …); a Promise is awaited.
 Read-only by intent: it is how the bot is checked live without a reload. The port is opened by the client flags in the
 registry (Design Notes → Tools → the client flags)."""
 
@@ -117,10 +118,10 @@ def wrap(body):
             "\tfor (const f of document.querySelectorAll('iframe')) {\n"
             "\t\tconst w = f.contentWindow;\n"
             "\t\tif (!w || !w.al_boot) continue;\n"
-            "\t\twith (w) { return await (%s); }\n"
+            "\t\treturn await w.eval(%s);\n"
             "\t}\n"
             "\treturn 'no bot frame';\n"
-            "})()") % body
+            "})()") % json.dumps("(" + body + ")")
 
 
 def character_pages():
@@ -159,6 +160,7 @@ def main():
     parser.add_argument("--file")
     parser.add_argument("--name", action="append", help="only this character (repeatable)")
     args = parser.parse_args()
+    sys.stdout.reconfigure(encoding="utf-8")
     body = open(args.file, encoding="utf-8").read() if args.file else args.expression
     if not body:
         parser.error("an expression or --file is required")

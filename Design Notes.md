@@ -928,7 +928,7 @@ The page polls `/api/live` every second (character cards and the Session section
 
 ### `Probe.py`
 
-`python Tools/Probe.py "<expression>" [--name Myras] [--file probe.js]` evaluates an expression in each character's bot frame over the client's DevTools port (9222) and prints the result. The expression sees the frame's globals directly (`character`, `al_boot()`, `al_loops()`); a Promise is awaited. It is how the bot is checked live without a reload, and it is read-only by intent.
+`python Tools/Probe.py "<expression>" [--name Myras] [--file probe.js]` evaluates an expression in each character's bot frame over the client's DevTools port (9222) and prints the result. The expression is evaluated by the frame's own eval, so it sees every global, `let`/`const` ones included (`character`, `_errlog`, `al_boot()`); a Promise is awaited. It is how the bot is checked live without a reload, and it is read-only by intent.
 
 ### The client flags
 

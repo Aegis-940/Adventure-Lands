@@ -22,7 +22,7 @@ function potion_gives(kind) {
 }
 
 function potion_confirmed(data) {
-	if (!_potion_sent || !data.code.startsWith("pot_timeout")) return;
+	if (!_potion_sent || !String(data.code || data).startsWith("pot_timeout")) return;
 	potions_drunk[_potion_sent.kind]++;
 	bus_emit("potion", _potion_sent);
 	_potion_sent = null;
