@@ -107,17 +107,32 @@ function is_me(id) {
 	return id === character.id || id === character.name;
 }
 
+function hit_party(id) {
+	const e = parent.entities[id];
+	return e ? e.mtype || e.name : id;
+}
+
 function normalise_hit(data) {
-	const attacker = parent.entities[data.hid];
+	const by_me = is_me(data.hid);
 	return {
-		by_me: is_me(data.hid),
+		by_me,
 		on_me: is_me(data.id),
 		source: data.source || "attack",
 		damage: data.damage || 0,
+		returned: by_me ? data.dreturn || 0 : 0,
 		kill: !!data.kill,
-		miss: !!(data.miss || data.evade),
-		from: attacker ? attacker.mtype || attacker.name : data.hid,
+		miss: !!(data.miss || data.evade || data.avoid),
+		from: hit_party(data.hid),
+		to: hit_party(data.id),
 	};
+}
+
+function decision_take(damage, from) {
+	const taken = _decisions.taken;
+	taken.damage += damage;
+	taken.hits++;
+	taken.biggest = Math.max(taken.biggest, damage);
+	taken.by_mtype[from] = (taken.by_mtype[from] || 0) + damage;
 }
 
 function decision_on_hit(data) {
@@ -129,13 +144,8 @@ function decision_on_hit(data) {
 		if (hit.kill) entry.kills = (entry.kills || 0) + 1;
 		if (hit.miss) entry.misses = (entry.misses || 0) + 1;
 	}
-	if (hit.on_me && hit.damage) {
-		const taken = _decisions.taken;
-		taken.damage += hit.damage;
-		taken.hits++;
-		taken.biggest = Math.max(taken.biggest, hit.damage);
-		taken.by_mtype[hit.from] = (taken.by_mtype[hit.from] || 0) + hit.damage;
-	}
+	if (hit.on_me && hit.damage) decision_take(hit.damage, hit.from);
+	if (hit.returned) decision_take(hit.returned, hit.to);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

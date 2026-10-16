@@ -8,7 +8,7 @@ This plan comes from a four-part audit on 10-16 (the sink and its readers, the i
 
 | Phase | Title | Changes how the party plays | Status |
 |-------|-------|------------------------------|--------|
-| T0 | Data being lost or corrupted now | none | T0.1–T0.7 **done** 2026-10-16 |
+| T0 | Data being lost or corrupted now | none | **done** 2026-10-16 |
 | T1 | `compare` and the Data Store | none | not started |
 | T2 | The error log and how records reach the sink | none | not started |
 | T3 | Removing the watchdog | none | not started |
@@ -55,9 +55,9 @@ What checked out: the ledger's three fighters' windows line up (within 3s), `che
 5. **✔ Boss profiles carry the game server as `home`.** `home: character.home` (`Boss Profiler.js:312`) is the game's home server (`USIV`, `ASIAII`), and it overwrites the farm home the record stamp sets. **Fix:** drop the field so the stamp's `home` stands (the server is already in `server`).
 6. **✔ Snapshots have no build.** The `build_sha` regex looks for the old jsDelivr `@sha/` URL (`Error Log.js:640`), so it has been null since local serving and the harness falls back to all zeros. **Fix:** read the SHA from `/code/<sha>/`, as `_errlog_build()` does.
 7. **Potions are counted as sent, not drunk** (`Maintenance.js:30`). **Fix:** count on the server's confirmation (`pot_timeout` in the reply, or the potion stack going down). Check: drinks per 5 minutes ≤ 147.
-8. **Damage we take from our own hits is missed.** Decision Log and Danger Log count a hit only when `id === me`, so damage from a monster's `dreturn` or reflection never shows. **Fix:** count those fields on our own hits as damage taken, by source. `avoid` also counts as a miss, as Boss Profiler already does.
+8. **Damage we take from our own hits is missed.** Decision Log and Danger Log count a hit only when `id === me`, so damage from a monster's `dreturn` never shows (a reflected shot is re-fired at us and already lands as a hit on us). **Fix:** count `dreturn` on our own hits as damage taken from that monster. `avoid` also counts as a miss, as Boss Profiler already does.
 9. **The bscorpion kill logger counts despawns.** Any scorpion that leaves `parent.entities` counts as a kill, including one that walks out of view (`Bscorpion.js:306`). **Fix:** count on `kill_credit` or a killing `hit`. Check: against ledger kills per hour.
-10. **`players_nearby` has been 0 in every window since 10-14.** The farm has been empty, or the count is broken; check `foreign_players_in_farm_area()` against a live look at the spot before relying on it.
+10. **`players_nearby` has been 0 in every window since 10-14.** Checked live on 10-16: the count is right (it sees the party and excludes it), and no stranger has been at the bscorpion box. Nothing to fix.
 
 ## T1. `compare` and the Data Store
 
@@ -90,7 +90,8 @@ The watchdog has reloaded a window 52 times: 50 on 10-08, every ~5 minutes for 1
 1. **Uninstall the logon task** with `Install Watchdog.ps1 -Uninstall`, which drops the DevTools port but **keeps the anti-throttling flags** (timers in hidden windows need them). Then delete `Watchdog.py` and `Install Watchdog.ps1`, keeping the flags' setup where the sink installer or a note in Design Notes records it.
 2. **Remove what only served it:** `main_beat()`/`main_beat_at` (Global Config, Character Runner, Merchant Upkeep), the `alive` heartbeats (to the last beat only, T2.6), and the `network` pseudo-character in `errors.json`. `Code Loader.js`'s beacons stay (changing it means re-pasting all four slots), and so does the sink's lifecycle merge that receives them.
 3. **The two reloads nothing recovered.** Ulric stayed down 95 minutes after the game's reload at 10-13 10:20 and 42 minutes after 10-14 04:09. The watchdog didn't catch either, so removing it loses nothing, but they're a real downtime cost: read what the loader logged both times before closing this.
-4. **Docs and memory:** CLAUDE.md, Architecture, Design Notes and Diagnostics drop the watchdog; the memory notes that say "read watchdog.jsonl first" are rewritten.
+4. **Keep the live probe.** The DevTools port stays open (the anti-throttling flags and the port are set together), and my read-only probes borrow `Watchdog.py`'s WebSocket client. A small `Tools/Probe.py` (evaluate an expression in every character page and print the result) replaces it.
+5. **Docs and memory:** CLAUDE.md, Architecture, Design Notes and Diagnostics drop the watchdog; the memory notes that say "read watchdog.jsonl first" are rewritten.
 
 ## T4. Sizes and retention
 

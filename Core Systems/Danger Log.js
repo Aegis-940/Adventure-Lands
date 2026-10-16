@@ -23,11 +23,15 @@ function danger_source(id) {
 	return e.type === "monster" ? { name: e.mtype, kind: "monster" } : { name: e.name, kind: "player" };
 }
 
-function danger_on_hit(data) {
-	if (data.id !== character.id || !data.damage) return;
-	const from = danger_source(data.hid);
-	_danger_hits.push({ t: Date.now(), from: from.name, kind: from.kind, damage: data.damage, source: data.source || null, crit: !!data.crit });
+function danger_hit(id, damage, source, crit) {
+	const from = danger_source(id);
+	_danger_hits.push({ t: Date.now(), from: from.name, kind: from.kind, damage, source, crit });
 	if (_danger_hits.length > DANGER_HITS_KEPT) _danger_hits.shift();
+}
+
+function danger_on_hit(data) {
+	if (is_me(data.id) && data.damage) danger_hit(data.hid, data.damage, data.source || null, !!data.crit);
+	if (is_me(data.hid) && data.dreturn) danger_hit(data.id, data.dreturn, "dreturn", false);
 }
 
 function danger_party() {

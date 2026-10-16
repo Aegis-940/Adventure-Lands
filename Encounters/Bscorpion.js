@@ -277,7 +277,6 @@ function camp_temporal_surge() {
 
 const KILL_INTERVAL_SAMPLES = 50;
 
-let live_bscorpion_ids = new Set();
 let bscorpion_kill_count = 0;
 let bscorpion_kill_intervals = [];
 let last_bscorpion_kill_at = 0;
@@ -304,23 +303,11 @@ function log_bscorpion_kill() {
 }
 
 function bscorpion_kill_logger_loop() {
-	every("bscorpion_kill_logger_loop", { ms: 250, kind: "telemetry" }, () => {
-		if (camp_loop_parked()) {
-			live_bscorpion_ids = new Set();
-			last_bscorpion_kill_at = 0;
-		} else {
-			const alive = new Set();
-			for (const id in parent.entities) {
-				const e = parent.entities[id];
-				if (e.type === "monster" && e.mtype === "bscorpion" && !e.dead) alive.add(e.id);
-			}
-
-			for (const id of live_bscorpion_ids) {
-				if (!alive.has(id)) log_bscorpion_kill();
-			}
-
-			live_bscorpion_ids = alive;
-		}
+	on_socket("kill_credit", "bscorpion_kill_logger", data => {
+		if (data.mtype === "bscorpion" && !camp_loop_parked()) log_bscorpion_kill();
+	});
+	every("bscorpion kill timing", { ms: 1000, kind: "telemetry" }, () => {
+		if (camp_loop_parked()) last_bscorpion_kill_at = 0;
 	});
 }
 
