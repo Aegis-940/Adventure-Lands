@@ -11,7 +11,7 @@ This plan comes from a four-part audit on 10-16 (the sink and its readers, the i
 | T0 | Data being lost or corrupted now | none | **done** 2026-10-16 |
 | T1 | `compare` and the Data Store | none | not started |
 | T2 | The error log and how records reach the sink | none | T2.6 **done** 2026-10-16 |
-| T3 | Removing the watchdog | none | **done** 2026-10-16 (T3.3, the two unrecovered reloads, still to read) |
+| T3 | Removing the watchdog | none | **done** 2026-10-16 |
 | T4 | Sizes and retention | none | not started |
 | T5 | What isn't recorded yet | none | not started |
 | T6 | Reports: making the data answer questions | none | not started |
@@ -89,7 +89,7 @@ The watchdog has reloaded a window 52 times: 50 on 10-08, every ~5 minutes for 1
 
 1. **Uninstall the logon task** with `Install Watchdog.ps1 -Uninstall`, which drops the DevTools port but **keeps the anti-throttling flags** (timers in hidden windows need them). Then delete `Watchdog.py` and `Install Watchdog.ps1`, keeping the flags' setup where the sink installer or a note in Design Notes records it.
 2. **Remove what only served it:** `main_beat()`/`main_beat_at` (Global Config, Character Runner, Merchant Upkeep), the `alive` heartbeats (to the last beat only, T2.6), and the `network` pseudo-character in `errors.json`. `Code Loader.js`'s beacons stay (changing it means re-pasting all four slots), and so does the sink's lifecycle merge that receives them.
-3. **The two reloads nothing recovered.** Ulric stayed down 95 minutes after the game's reload at 10-13 10:20 and 42 minutes after 10-14 04:09. The watchdog didn't catch either, so removing it loses nothing, but they're a real downtime cost: read what the loader logged both times before closing this.
+3. **The two reloads nothing recovered** (read 10-16). 10-13 10:20 wasn't one: the loader evaluated and Ulric was alive 23s after the reload. 10-14 04:09 was the old loader, which logged `started` and never resolved the commit from GitHub for 42 minutes. Since 10-15 it reads `/code/main` from this PC with a 5s timeout, retries forever and beacons every failure, so that hang can't recur silently.
 4. **Keep the live probe.** The DevTools port stays open (the anti-throttling flags and the port are set together), and my read-only probes borrow `Watchdog.py`'s WebSocket client. A small `Tools/Probe.py` (evaluate an expression in every character page and print the result) replaces it.
 5. **Docs and memory:** CLAUDE.md, Architecture, Design Notes and Diagnostics drop the watchdog; the memory notes that say "read watchdog.jsonl first" are rewritten.
 
