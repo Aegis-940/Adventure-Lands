@@ -43,8 +43,7 @@ on_boot("Gold Meter", () => {
 	on_character("loot", "gold_meter", (data) => {
 		if (!data.gold) return;
 
-		const party_share = parent.party[character.name]?.share || 1;
-		const chest_total = Math.round(data.gold / party_share);
+		const chest_total = chest_gold(data);
 
 		gold_events.push({ t: Date.now(), v: chest_total });
 		if (chest_total > largest_gold_drop) largest_gold_drop = chest_total;

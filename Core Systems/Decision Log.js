@@ -123,7 +123,6 @@ function normalise_hit(data) {
 function decision_on_hit(data) {
 	if (!data || data.heal) return;
 	const hit = normalise_hit(data);
-	bus_emit("hit", hit);
 	if (hit.by_me) {
 		const entry = decision_add(_decisions.outcomes, hit.source, "hits", 1);
 		entry.damage = (entry.damage || 0) + hit.damage;

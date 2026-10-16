@@ -14,7 +14,7 @@ Every finding below comes from a read of the source on 2026-10-16 at `eb4ea67`, 
 | C3 | Error handling that hides errors | none (errors start reaching the log) | **done** 2026-10-16; the reload read is pending |
 | C4 | Guards and fallbacks | none | **done** 2026-10-16 |
 | C5 | Native game functions | a few items, each marked ⚠ | rows 1–8 **done** 2026-10-16; the ⚠ rows are queued |
-| C6 | Party state and the information the bot gathers | a few items, each marked ⚠ | not started |
+| C6 | Party state and the information the bot gathers | a few items, each marked ⚠ | C6.3–C6.6 **done** 2026-10-16; `party_state()` (⚠) queued |
 | C7 | Simplification | none | not started |
 | C8 | Close-out | none | not started |
 
@@ -364,10 +364,10 @@ Move the meters and loggers onto `bus_on("hit")`, adding `kind` and party member
 
 **Checklist**
 - [ ] C6.2 `party_state()` ⚠
-- [ ] C6.3 cache shrunk, `paused` and `mluck_until`, Session Metrics goal
-- [ ] C6.4 meters share one count each
-- [ ] C6.5 hit consumers on the bus
-- [ ] C6.6 `on_cm` default and `send updates` checked
+- [x] C6.3 cache shrunk (`name`, `moving`, `speed`, `max_xp`, `paused`, `conditions` out; `mluck_until` in; `automation_paused(name)`), Session Metrics reads `current_goal_label()`. The harness brings old cached records into the new shape
+- [x] C6.4 Kill Tracker reads Session Metrics' kill count; one `chest_gold(data)`; Session Metrics uses the ledger's `xp_gained()`. The XP Meter's rolling window and the DPS Meter's per-member damage stay separate: they answer different windows
+- [x] C6.5 judged not worth it: every `hit` handler needs raw fields a normalised record would have to carry. Instead the four copies of the kind test share `hit_kind(data)`, and the unheard `hit` bus topic is gone
+- [x] C6.6 checked live 10-16: the default `on_cm` did write "Received a code message from: X" for every CM; the hand-off is gone. `send updates` resyncs entity positions; kept, and now documented
 
 ---
 

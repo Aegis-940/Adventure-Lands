@@ -35,7 +35,7 @@ function dps_meter_hit(data) {
 	if (data.damage || data.dreturn || data.reflect || data.heal || data.lifesteal || data.manasteal) get_player_entry(data.hid);
 	if (!data.damage) return;
 	const entry = get_player_entry(data.hid);
-	push_damage(entry, data.source === "burn" ? "Burn" : data.splash ? "Blast" : "Base", data.damage);
+	push_damage(entry, { burn: "Burn", splash: "Blast" }[hit_kind(data)] || "Base", data.damage);
 	push_damage(entry, "DPS", data.damage);
 }
 

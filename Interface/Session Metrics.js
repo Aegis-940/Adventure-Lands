@@ -56,11 +56,10 @@ function metrics_damage_rate(id, type) {
 	return elapsed > 0 ? Math.floor(entry[type] * 1000 / elapsed) : 0;
 }
 
+const METRICS_KIND_LABELS = { burn: "Burn", splash: "Blast", cleave: "Cleave" };
+
 function metrics_damage_kind(data) {
-	if (data.source === "burn") return "Burn";
-	if (data.splash) return "Blast";
-	if (data.source === "cleave") return "Cleave";
-	return "Base";
+	return METRICS_KIND_LABELS[hit_kind(data)] || "Base";
 }
 
 function metrics_record_hit(data) {
@@ -100,11 +99,7 @@ function metrics_record_hit(data) {
 }
 
 function metrics_track_xp() {
-	if (character.level !== metrics.xp_level) {
-		metrics.xp += parent.G.levels[metrics.xp_level] - metrics.xp_last + character.xp;
-	} else {
-		metrics.xp += character.xp - metrics.xp_last;
-	}
+	metrics.xp += xp_gained({ level: metrics.xp_level, xp: metrics.xp_last }, character);
 	metrics.xp_level = character.level;
 	metrics.xp_last = character.xp;
 }
@@ -164,7 +159,6 @@ function metrics_coop_snapshot() {
 function metrics_snapshot() {
 	metrics_track_xp();
 	const target = parent.entities[character.target];
-	const own_state = read_state_cache(character.name);
 	return {
 		character: character.name,
 		t: Date.now(),
@@ -173,7 +167,7 @@ function metrics_snapshot() {
 			ctype: character.ctype, level: character.level, xp: character.xp, max_xp: parent.G.levels[character.level],
 			hp: character.hp, max_hp: character.max_hp, mp: character.mp, max_mp: character.max_mp,
 			map: character.map, x: Math.round(character.x), y: Math.round(character.y), rip: !!character.rip,
-			goal: own_state ? own_state.goal : null, panicking: !!panicking, wallet: character.gold, cc: Math.round(character.cc),
+			goal: current_goal_label(), panicking: !!panicking, wallet: character.gold, cc: Math.round(character.cc),
 			target: target ? (target.mtype || target.name) : null,
 		},
 		gold: { total: metrics.gold, largest: metrics.largest_gold },
@@ -207,7 +201,7 @@ on_boot("Session Metrics", () => {
 	on_socket("kill_credit", "metrics_kill_handler", metrics_record_kill);
 	on_character("loot", "metrics", data => {
 		if (data.gold) {
-			const chest_total = Math.round(data.gold / (parent.party[character.name]?.share || 1));
+			const chest_total = chest_gold(data);
 			metrics.gold += chest_total;
 			if (chest_total > metrics.largest_gold) metrics.largest_gold = chest_total;
 		}

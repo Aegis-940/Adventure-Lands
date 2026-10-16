@@ -124,6 +124,10 @@ function _is_my_hit(data) {
 
 const _pid_weapon = {};
 
+function hit_kind(data) {
+	return data.source === "burn" ? "burn" : data.splash ? "splash" : data.source || "attack";
+}
+
 function action_sampler(data) {
 	if (!sample_hits_enabled() || !data || !data.pid) return;
 	if (data.attacker !== character.id && data.attacker !== character.name) return;

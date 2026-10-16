@@ -183,7 +183,7 @@ function shell_hit_counts(mob) {
 function record_shell_hit(mob, data) {
 	const w = shell_window(mob);
 	if (w.stomped_at) return;
-	const source = data.source === "burn" ? "burn" : data.splash ? "splash" : (data.source || "attack");
+	const source = hit_kind(data);
 	const who = `${data.hid}:${source}`;
 	if (!w.first_hit) w.first_hit = Date.now();
 	w.total += data.damage;

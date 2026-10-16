@@ -69,13 +69,13 @@ function get_party_member_info(name) {
 	const cached = read_state_cache(name);
 	if (cached) {
 		return {
-			name: cached.name,
+			name,
 			hp: cached.hp,
 			max_hp: cached.max_hp,
 			mp: cached.mp,
 			max_mp: cached.max_mp,
 			xp: cached.xp,
-			max_xp: cached.max_xp,
+			max_xp: G.levels[cached.level],
 		};
 	}
 

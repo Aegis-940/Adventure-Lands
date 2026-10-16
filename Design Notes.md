@@ -446,6 +446,14 @@ What this replaced: every corner stopped the follower for a search and sent it o
 
 A follower in turn does not pursue while she is live on his map, beyond the range (`cohesion_closing()`, the follower's own 250/120 hysteresis) and not herself on the event (`follower_holds_back()`). So her cohesion hold pulls him back to her instead of leaving the tank behind.
 
+### `Character Messaging.js`
+
+**The party state cache.** Each character writes a small record to localStorage every 500ms (`AL_char_state_<name>`; skipped when nothing changed, and rewritten at least every 5s), and `read_state_cache(name)` reads a teammate's, treating it as gone after 15s. All four pages run in one browser, so this is instant and free. It exists because the game tells a character little about its teammates: a teammate in view on our map is live in `parent.entities`, but `parent.party` has no HP and refreshes positions only every 60s (not on a map change), and nothing native carries bot state (Game API Reference → Party). The record holds what readers need from a teammate out of view (map, `in`, x, y, rip, hp, mp, level, xp, gold, cave run, town channel) and the bot state no native source has: goal, formation, disengaging, surge and stomp timing, free and loose slots, and `mluck_until`, an absolute time, so a reader doesn't depend on the record's age. It dropped `name`, `moving`, `speed`, `max_xp` (it is `G.levels[level]`), `paused` (read the `AL_automation_paused_<name>` key with `automation_paused(name)`) and the whole of `character.s` on 10-16.
+
+**Messages between characters.** `send_cm()` already goes over localStorage between pages in the same browser (`is_character_local()`), and over the server only when the receiver's page has stalled. `cm_dispatch()` is the game's `on_cm`: it runs every listener and the `CM_HANDLERS` entry for the message type, each isolated through `catcher`, because the game calls it outside the kernel. It no longer passes the message on to the runner's default `on_cm`, which only wrote "Received a code message from: X" to the game log (seen live on 10-16).
+
+**`send updates`.** Every 20s each character asks the server to resend every entity's position (`send_updates` → `send_all_xy`, 12 call cost), which corrects drift in the client's copy of monster and player positions that targeting and movement read. It has been there since 2025-07 with no recorded reason; it is cheap, so it stays.
+
 ### `Character Runner.js` (the action runner)
 
 `run_action(action)` is one pass of a role's action loop, started by `start_action_loop(action)`. The preamble is shared: the gate (`combat` returns 100ms while paused, `alive` doesn't stop, as Myras heals through panic), 50ms while disabled, `update_cache()`, the role's `before` (Myras's and Riva's temporal surge, 100ms when it fires), and a caught error retries at `TICK_RATE.retry`. The role's `act(ms)` gets the attack cooldown and chooses one basic action through `run_basic_action()`; it returns a delay, or nothing for the role's cadence (`WARRIOR_ACTION` and `HEALER_ACTION` 10ms, `RANGER_ACTION` 5ms, Loop Cadence §3).
@@ -483,10 +491,10 @@ Overhaul 4.3 and 4.4: what each fighter chose and what came of it, summed per le
 | `values` | the skill runner, when an entry with a `value(context)` cast (its `next_skill` changed): the value it was cast for. Riva's mark (`mark_value()`) and supershot (`supershot_value()`) |
 | `actions`, `pulls` | `run_basic_action(p, label, target)`: each basic action by label. A pull is an action on a monster that had no target, and `pulls` counts them by how many monsters were already on the puller (`monsters_targeting_me()`, capped at 10) |
 | `bursts`, `gear`, `panics` | `equip_burst()` by owner and ops sent, `apply_equipment_rule()` by group and sets, `set_panic()` by reason |
-| `outcomes`, `taken` | every `hit`: by this character per `source` (damage, hits, kills, misses), and on it (damage, hits, biggest, by monster). The normalised hit is also published on the bus as `hit` |
+| `outcomes`, `taken` | every `hit`: by this character per `source` (damage, hits, kills, misses), and on it (damage, hits, biggest, by monster). |
 | `worn_s`, `goal_s`, `panic_s` | a 1s sample of the weapon pair worn, the goal label and panic |
 
-A ring of the last 50 decisions (casts other than `attack`, pulls, bursts, gear, panics, goal changes) is attached to every danger record as `decisions`, those within the last 10s, each with `ms_ago`. A window record is about 550 bytes, about 0.5 MB/day for the three fighters. Combat Sampling keeps its own `hit` and `action` handlers, because the in-flight ledger must run exactly and first. The other `hit` handlers move onto the bus topic only when their file is touched for its own reason.
+A ring of the last 50 decisions (casts other than `attack`, pulls, bursts, gear, panics, goal changes) is attached to every danger record as `decisions`, those within the last 10s, each with `ms_ago`. A window record is about 550 bytes, about 0.5 MB/day for the three fighters. Combat Sampling keeps its own `hit` and `action` handlers, because the in-flight ledger must run exactly and first. Every `hit` handler subscribes to the socket itself; a normalised hit on the bus was tried and dropped (10-16), because each handler needs raw fields (`hid`, `pid`, `dreturn`, `heal`) a normalised record would have to carry anyway. What they share is `hit_kind(data)` in Combat Sampling: burn, splash, or the hit's source.
 
 ### `Farm Ledger.js`
 

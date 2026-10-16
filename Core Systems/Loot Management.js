@@ -173,6 +173,10 @@ function inventory_sorter() {
 let _loot_last = 0;
 let _looting = false;
 
+function chest_gold(data) {
+	return Math.round(data.gold / (parent.party[character.name]?.share || 1));
+}
+
 function gold_gear_wanted() {
 	return CONFIG.looting.equip_gold_gear && _looting;
 }

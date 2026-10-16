@@ -262,6 +262,10 @@ function automation_enabled() {
 	return _automation.on;
 }
 
+function automation_paused(name) {
+	return storage_raw_read(AUTOMATION_KEY_PREFIX + name) === "1";
+}
+
 function set_automation(on) {
 	storage_raw_write(automation_key(), on ? "0" : "1");
 	_automation.at = 0;

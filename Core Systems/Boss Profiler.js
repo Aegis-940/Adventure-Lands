@@ -120,7 +120,7 @@ function profile_hit(data) {
 		return;
 	}
 
-	const key = data.source === "burn" ? "burn" : data.splash ? "splash" : (data.source || "?");
+	const key = hit_kind(data);
 	const h = profile_bucket(p.hits, key, { n: 0, dmg: 0, boss_dmg: 0, crits: 0, crit_mult: 0, miss: 0 });
 	if (data.miss || data.evade || data.avoid) {
 		h.miss++;

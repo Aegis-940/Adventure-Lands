@@ -149,6 +149,19 @@ function server_shape(fixture_character) {
 	return c;
 }
 
+function current_state_cache(storage, now) {
+	const out = Object.assign({}, storage);
+	for (const key in out) {
+		if (key.indexOf("AL_char_state_") !== 0) continue;
+		const state = JSON.parse(out[key]);
+		if (!state || !state.conditions || state.mluck_until !== undefined) continue;
+		state.mluck_until = state.conditions.mluck ? now + state.conditions.mluck.ms : 0;
+		delete state.conditions;
+		out[key] = JSON.stringify(state);
+	}
+	return out;
+}
+
 function build_context(fixture, G, log) {
 	const now = fixture.t;
 	const FrozenDate = frozen_date(now);
@@ -232,7 +245,7 @@ function build_context(fixture, G, log) {
 		Date: FrozenDate,
 		Math: math,
 		performance: { now: () => now + perf_offset },
-		localStorage: new Storage(fixture.storage),
+		localStorage: new Storage(current_state_cache(fixture.storage || {}, fixture.t)),
 		sessionStorage: new Storage({}),
 		fetch: () => new Promise(() => { }),
 		navigator: { sendBeacon: () => true, userAgent: "harness" },

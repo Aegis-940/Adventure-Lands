@@ -99,9 +99,8 @@ function ledger_add_kill(mtype) {
 
 function ledger_on_loot(data) {
 	if (!data.gold) return;
-	const share = parent.party[character.name]?.share || 1;
 	ledger_add("gold", data.gold);
-	ledger_add("chest_gold", Math.round(data.gold / share));
+	ledger_add("chest_gold", chest_gold(data));
 }
 
 function xp_gained(before, after) {

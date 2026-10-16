@@ -25,8 +25,7 @@ function cohesion_regroup() {
 
 function xp_progress(state) {
 	if (!state || !state.level) return null;
-	const max_xp = state.max_xp || 0;
-	return state.level + (max_xp > 0 ? (state.xp || 0) / max_xp : 0);
+	return state.level + state.xp / G.levels[state.level];
 }
 
 function behind_on_xp() {
@@ -51,7 +50,7 @@ function party_member_in_danger() {
 	for (const name of COHESION_FOLLOWERS.concat([MOVEMENT_LEADER])) {
 		if (name === character.name) continue;
 		const s = read_state_cache(name);
-		if (!s || s.rip || s.paused || !s.max_hp) continue;
+		if (!s || s.rip || automation_paused(name)) continue;
 		if (s.hp / s.max_hp <= COHESION_DANGER_HP) return name;
 	}
 	return null;
@@ -86,7 +85,7 @@ function leader_position() {
 		const going = live.moving ? { x: live.going_x, y: live.going_y } : null;
 		return { map: character.map, x: live.x, y: live.y, going, speed: live.speed, town: !!live.c.town, rip: !!live.rip, formation: !!(c && c.formation), disengaging };
 	}
-	return c ? { map: c.map, x: c.x, y: c.y, going: null, speed: c.speed, town: !!c.town, rip: !!c.rip, formation: !!c.formation, disengaging } : null;
+	return c ? { map: c.map, x: c.x, y: c.y, going: null, town: !!c.town, rip: !!c.rip, formation: !!c.formation, disengaging } : null;
 }
 
 const PACE_MATCH_PX = 25;
@@ -128,7 +127,7 @@ function party_cohesion_hold(event) {
 	const travelling = is_travelling();
 	_cohesion_holding = COHESION_FOLLOWERS.some(name => {
 		const s = read_state_cache(name);
-		if (!s || s.rip || s.paused) return false;
+		if (!s || s.rip || automation_paused(name)) return false;
 		if (event && s.goal === event.label) return false;
 		if (s.map !== character.map) return !travelling;
 		return Math.hypot(s.x - character.x, s.y - character.y) > limit;

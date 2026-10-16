@@ -17,8 +17,6 @@ function remove_cm_listener(fn) {
 	if (index !== -1) _cmListeners.splice(index, 1);
 }
 
-const original_on_cm = typeof on_cm === "function" ? on_cm : () => {};
-
 function cm_dispatch(name, data) {
 	_cmListeners.forEach(fn => {
 		try {
@@ -27,7 +25,6 @@ function cm_dispatch(name, data) {
 			catcher(e, "cm listener");
 		}
 	});
-	original_on_cm(name, data);
 }
 
 const CM_HANDLERS = {
@@ -101,14 +98,12 @@ const STATE_CACHE_HEARTBEAT_MS = 5000;
 
 function get_full_character_state() {
 	return {
-		name: character.name,
 		hp: character.hp,
 		max_hp: character.max_hp,
 		mp: character.mp,
 		max_mp: character.max_mp,
 		level: character.level,
 		xp: character.xp,
-		max_xp: character.max_xp,
 		gold: character.gold,
 		map: character.map,
 		in: character.in,
@@ -116,18 +111,15 @@ function get_full_character_state() {
 		x: character.x,
 		y: character.y,
 		rip: character.rip,
-		moving: character.moving,
-		speed: character.speed,
 		town: town_channelling(),
 		formation: party_in_formation(),
 		disengaging: disengaging(),
-		paused: !automation_enabled(),
 		goal: current_goal_label(),
 		surge_at: surge_cast_at,
 		stomp_ready_at: stomp_ready_at,
 		free_slots: character.esize,
 		loose_slots: loose_loot(0).length,
-		conditions: character.s,
+		mluck_until: character.s.mluck ? Date.now() + character.s.mluck.ms : 0,
 		last_seen: Date.now(),
 	};
 }

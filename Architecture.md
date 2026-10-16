@@ -154,7 +154,7 @@ Each decision has a single owner, which is what lets the harness pin it (`node T
 
 ### Events and storage
 
-Socket, character and DOM subscriptions go through `on_socket`, `on_character` and `on_dom`, kept under a fixed key and replaced, never stacked, because the game window outlives the code iframe across reloads. Telemetry that several files want (a normalised `hit`, `ledger_window`) goes over the internal bus (`bus_on`/`bus_emit`). Only `Kernel/Storage.js` touches localStorage, and `STORAGE_KEYS` registers every key and its owner.
+Socket, character and DOM subscriptions go through `on_socket`, `on_character` and `on_dom`, kept under a fixed key and replaced, never stacked, because the game window outlives the code iframe across reloads. Telemetry that several files want (`ledger_window`) goes over the internal bus (`bus_on`/`bus_emit`); the `hit` handlers subscribe to the socket themselves and share `hit_kind()`. Only `Kernel/Storage.js` touches localStorage, and `STORAGE_KEYS` registers every key and its owner.
 
 ---
 

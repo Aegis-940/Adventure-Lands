@@ -9,8 +9,7 @@ var MLUCK_TAKEOVER_COOLDOWN_MS = 60 * 1000;
 var _mluck_takeover_at = {};
 
 function is_mluck_due(status) {
-	const remaining = status.conditions?.mluck?.ms;
-	return remaining == null || remaining < MLUCK_REFRESH_THRESHOLD_MS;
+	return status.mluck_until - Date.now() < MLUCK_REFRESH_THRESHOLD_MS;
 }
 
 function mluck_wanted(player) {
