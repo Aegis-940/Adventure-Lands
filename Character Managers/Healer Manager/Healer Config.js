@@ -115,6 +115,7 @@ var equipment_sets = {
 		{ item_name: "coat", slot: "chest", level: 10, l: "l" },
 		{ item_name: "cearring", slot: "earring1", level: 3, l: "" },
 		{ item_name: "cearring", slot: "earring2", level: 3, l: "" },
+		{ item_name: "intamulet", slot: "amulet", level: 4, l: "" },
 	],
 	camp_luck: [
 		{ item_name: "lmace", slot: "mainhand", level: 8, l: "" },
