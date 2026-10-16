@@ -61,8 +61,6 @@ function evade_step(threat) {
 }
 
 function movement_goal() {
-	if (!CONFIG.movement.enabled) return null;
-
 	const threat = lethal_pursuer();
 	if (threat) return { local: "evade", label: "evade-" + threat.mtype, threat };
 

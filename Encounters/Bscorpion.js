@@ -258,7 +258,7 @@ function surge_left_to_another(pending) {
 }
 
 function camp_temporal_surge() {
-	if (!CONFIG.equipment.temporal_surge_enabled || !is_at_bscorpion_farm()) {
+	if (!is_at_bscorpion_farm()) {
 		_surge_watch = null;
 		return false;
 	}
@@ -269,11 +269,6 @@ function camp_temporal_surge() {
 	if (distance(character, pending.entity) >= SURGE_REACH_PX) return false;
 	if (!set_available("temporal")) return false;
 	if (surge_left_to_another(pending)) return false;
-
-	// const nearby = Object.values(parent.entities).some(
-	// 	e => e.type === "monster" && !e.dead
-	// );
-	// if (nearby) return false;
 
 	if (!equip_burst({
 		owner: "temporal",

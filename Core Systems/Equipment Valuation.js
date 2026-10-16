@@ -290,7 +290,7 @@ function min_swap_interval_ms() {
 }
 
 function sample_weapon_choice(sets, value_of, valued, from, to, now, context) {
-	if (!CONFIG.combat || !CONFIG.combat.sample_hits) return;
+	if (!sample_hits_enabled()) return;
 
 	const values = {};
 	const raw = {};
@@ -355,7 +355,6 @@ function resolve_weapon_set(args) {
 	const a = args || {};
 	const sets = CONFIG.equipment.weapon_sets;
 
-	if (CONFIG.equipment.weapon_swap_enabled === false) return null;
 	if (a.forced) return a.forced;
 	if (dungeon_flag("single_weapon")) return sets[0];
 

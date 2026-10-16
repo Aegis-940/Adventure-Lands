@@ -41,11 +41,9 @@ function warrior_reposition_scorer() {
 
 	return (x, y) => {
 		if (Math.hypot(primary.x - x, primary.y - y) > reach) return null;
-		if (CONFIG.combat.swap_trick_enabled) {
-			probe.x = x;
-			probe.y = y;
-			if (distance(probe, primary) < SWAP_TRICK_MIN_GAP) return null;
-		}
+		probe.x = x;
+		probe.y = y;
+		if (distance(probe, primary) < SWAP_TRICK_MIN_GAP) return null;
 
 		const targets = cleave_targets_at(x, y);
 		const cleave = cleave_contribution(set_name, targets);
@@ -119,7 +117,7 @@ function warrior_close_in(target) {
 }
 
 function warrior_clear_overlap(target) {
-	if (!CONFIG.combat.swap_trick_enabled || character.moving) return false;
+	if (character.moving) return false;
 	if (distance(character, target) >= SWAP_TRICK_MIN_GAP) return false;
 
 	const goal = engage_point(target);

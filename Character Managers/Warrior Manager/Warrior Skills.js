@@ -4,14 +4,14 @@
 
 var WARRIOR_SKILLS = [
 	{ name: "warcry", gate: "combat", wanted: warcry_wanted, cast: () => use_skill("warcry") },
-	{ name: "stomp", gate: "combat", wanted: () => CONFIG.skills.stomp_enabled, cast: tank => handle_stomp(tank) },
+	{ name: "stomp", gate: "combat", cast: tank => handle_stomp(tank) },
 	{ name: "cleave", gate: "combat", wanted: () => !swing_possible(cache.target) && cleave_ready(), cast: () => weapon_burst(true, sugar_rush_wanted(), null) },
-	{ name: "agitate", gate: "combat", wanted: tank => CONFIG.skills.agitate_enabled && !!tank && !dungeon_flag("no_agitate"), cast: tank => handle_agitate(tank) },
-	{ name: "taunt", gate: "combat", wanted: tank => CONFIG.skills.taunt_enabled && !!tank, cast: tank => handle_taunt(tank) },
+	{ name: "agitate", gate: "combat", wanted: tank => !!tank && !dungeon_flag("no_agitate"), cast: tank => handle_agitate(tank) },
+	{ name: "taunt", gate: "combat", wanted: tank => !!tank, cast: tank => handle_taunt(tank) },
 ];
 
 function warcry_wanted() {
-	return CONFIG.skills.warcry_enabled && !is_on_cooldown("warcry") && !character.s.warcry
+	return !is_on_cooldown("warcry") && !character.s.warcry
 		&& character.mp >= skill_mp_cost("warcry") + panic_mp_reserve() && bscorpion_worth_buffing();
 }
 
@@ -31,14 +31,6 @@ async function skill_tick() {
 		update_cache();
 
 		await run_skills(WARRIOR_SKILLS, cache.tank_entity);
-
-		// if (CONFIG.skills.charge_enabled && !is_on_cooldown("charge")) {
-		// 	await use_skill("charge");
-		// }
-
-		// if (CONFIG.skills.hardshell_enabled && !is_on_cooldown("hardshell") && character.hp < CONFIG.skills.hardshell_hp_threshold) {
-		// 	await use_skill("hardshell");
-		// }
 
 	} catch (e) {
 		catcher(e, "skill_loop");
@@ -139,7 +131,7 @@ function send_stomp() {
 }
 
 function cleave_ready() {
-	if (!CONFIG.skills.cleave_enabled || dungeon_flag("no_cleave")) return false;
+	if (dungeon_flag("no_cleave")) return false;
 	if (is_at_bscorpion_farm() && character.s[SUGAR_RUSH.status]) return false;
 	return ms_to_next_skill("cleave") === 0 && can_cleave();
 }

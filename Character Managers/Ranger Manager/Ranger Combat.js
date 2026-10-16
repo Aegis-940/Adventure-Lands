@@ -102,7 +102,6 @@ function armour_factor(mob, apiercing) {
 }
 
 function burn_multiplier(mob, skill_multiplier) {
-	if (!CONFIG.combat.burn_enabled) return 1;
 	if (would_kill(mob, skill_multiplier)) return 1;
 
 	const dps = (character.attack || 0) * (character.frequency || 1);

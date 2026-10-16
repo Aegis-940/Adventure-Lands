@@ -17,7 +17,6 @@ var BURN_PROBE_MS = 1000;
 var _burn_probe_at = 0;
 
 function sample_burn_state(target) {
-	if (!CONFIG.combat.sample_hits) return;
 	if (!target || target.mtype !== home) return;
 
 	const now = Date.now();
@@ -135,7 +134,6 @@ function chosen_weapon_set() {
 }
 
 function sugar_rush_wanted() {
-	if (!CONFIG.combat.swap_trick_enabled) return false;
 	if (character.s[SUGAR_RUSH.status] === undefined) return true;
 	if (swap_trick_attempts) record_swap_trick();
 	return false;

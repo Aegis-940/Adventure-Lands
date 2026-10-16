@@ -16,15 +16,12 @@ var CONFIG = {
 		agitate_min_mobs: 2,
 		taunt_exempt: ["CrownTown", "CrownsAnal", "CrownPriest"],
 		engage_radius: 150,
-		swap_trick_enabled: true,
 		swing_trick_cc_budget: 160,
 
-		sample_hits: true,
 		sample_targets: true,
 	},
 
 	movement: {
-		enabled: true,
 		reposition: true,
 		circle_radius: 35,
 		move_threshold: 10,
@@ -54,17 +51,6 @@ var CONFIG = {
 
 	party: {
 		auto_manage: true,
-	},
-
-	skills: {
-		stomp_enabled: true,
-		cleave_enabled: true,
-		agitate_enabled: true,
-		taunt_enabled: true,
-		charge_enabled: true,
-		hardshell_enabled: true,
-		hardshell_hp_threshold: 12000,
-		warcry_enabled: true,
 	},
 };
 
@@ -110,41 +96,6 @@ var equipment_sets = {
 	candycane: [
 		{ item_name: "candycanesword", slot: "mainhand" },
 		{ item_name: "candycanesword", slot: "offhand" },
-	],
-	dps: [
-		// { item_name: "cearring", slot: "earring1", level: 5, l: "l" },
-		// { item_name: "cearring", slot: "earring2", level: 5, l: "u" },
-		// { item_name: "coat", slot: "chest", level: 13, l: "l" },
-		// { item_name: "suckerpunch", slot: "ring1", level: 2, l: "l" },
-		// { item_name: "suckerpunch", slot: "ring2", level: 2, l: "u" },
-		// { item_name: "fireblade", slot: "mainhand", level: 13, l: "s" },
-		// { item_name: "candycanesword", slot: "offhand", level: 13, l: "s" },
-	],
-	luck: [
-		// { item_name: "mearring", slot: "earring1", level: 0, l: "l" },
-		// { item_name: "mearring", slot: "earring2", level: 0, l: "u" },
-		// { item_name: "ringofluck", slot: "ring2", level: 0, l: "u" },
-		// { item_name: "ringofluck", slot: "ring1", level: 0, l: "l" },
-		// { item_name: "mshield", slot: "offhand", level: 9, l: "l" },
-		// { item_name: "tshirt88", slot: "chest", level: 0, l: "l" }
-	],
-	stealth: [
-		// { item_name: "stealthcape", slot: "cape", level: 0, l: "l" },
-	],
-	cape: [
-		// { item_name: "vcape", slot: "cape", level: 6, l: "l" },
-	],
-	mana: [
-		// { item_name: "tshirt9", slot: "chest", level: 6, l: "l" }
-	],
-	stat: [
-		// { item_name: "coat", slot: "chest", level: 13, l: "l" }
-	],
-	dps_accessories: [
-		// { item_name: "cearring", slot: "earring1", level: 5, l: "l" },
-		// { item_name: "cearring", slot: "earring2", level: 5, l: "u" },
-		// { item_name: "suckerpunch", slot: "ring1", level: 2, l: "l" },
-		// { item_name: "suckerpunch", slot: "ring2", level: 2, l: "u" },
 	],
 	panic: PANIC_ORB_SET,
 	orb_dps: [

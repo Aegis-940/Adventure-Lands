@@ -202,7 +202,7 @@ function bscorpion_damage_window() {
 }
 
 function zap_pull_home() {
-	return CONFIG.combat.zapper_enabled && encounter_setting("zap_pull", false);
+	return encounter_setting("zap_pull", false);
 }
 
 function zap_pull_target() {
@@ -217,7 +217,6 @@ function zap_pull_target() {
 }
 
 function zap_target() {
-	if (!CONFIG.combat.zapper_enabled) return null;
 	return bscorpion_damage_window() || zap_pull_target();
 }
 

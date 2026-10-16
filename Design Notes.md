@@ -225,9 +225,9 @@ Awaited first, together with `Widget Helpers.js` and `Game Log.js`, so everythin
 
 - core config and constants, party constants (including `DUNGEON_PARTY`), and the shared fighter config defaults
 - `farm_target_for()`
-- the `storage_read()`/`storage_write()` pair that every JSON-backed localStorage value goes through
+- the party state cache reader (`read_state_cache()`), over `Kernel/Storage.js`
 - the no-op `errlog_*` stubs, plus stubs for the one-role-only `request_delivery`, `model_prediction`, `get_character_state` and `upgrade_slot_for`
-- the `var` declarations of every cross-character symbol (`home`, `destination`, `CONFIG`, `cache`, `ITEMS_TO_KEEP`, `EQUIPMENT_RULES`, `PANIC_BROADCAST_TARGETS`, the panic flags), so no reader needs a `typeof` guard
+- the `var` declarations of every cross-character symbol (`home`, `destination`, `CONFIG`, `cache`, `ITEMS_TO_KEEP`, `EQUIPMENT_RULES`, `PANIC_BROADCAST_TARGETS`, the panic flags), so no reader needs a `typeof` guard. Several are filled in only by the fighters, and the merchant keeps the defaults. They are `var` because the role files re-declare the same names through indirect eval, which a lexical declaration here would collide with. Declaring them here changes no ownership: `Party Management.js` is still the only writer of the panic state, and each role's config of its own.
 
 ### `Movement Goal.js`
 

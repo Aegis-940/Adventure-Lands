@@ -10,7 +10,7 @@ Every finding below comes from a read of the source on 2026-10-16 at `eb4ea67`, 
 |---|---|---|---|
 | C0 | Safety net for subtraction | none | **done** 2026-10-16 |
 | C1 | Docs | none | **done** 2026-10-16 |
-| C2 | Dead code | none | not started |
+| C2 | Dead code | none | **done** 2026-10-16 |
 | C3 | Error handling that hides errors | none (errors start reaching the log) | not started |
 | C4 | Guards and fallbacks | none | not started |
 | C5 | Native game functions | a few items, each marked ⚠ | not started |
@@ -173,12 +173,12 @@ There are 21 `*_enabled: true` keys in the role configs that nothing ever turns 
 Global Config.js:36 (fireroamer location) and :117-119 (icegolem, crabxx, wabbit events) · Maintenance.js:47-56 (`suicide()`) · Bscorpion.js:282-285 · Healer Skills.js:27 · Warrior Skills.js:35-41 (charge, hardshell; their config keys stay while this does) · Warrior Config.js:117-149 (about 20 gear entries) · Merchant Upgrading.js:29 (frankypants profile).
 
 **Checklist**
-- [ ] C2.1 console commands registered
-- [ ] C2.2 unreferenced globals removed (counter at 0)
-- [ ] C2.3 dead branches: damage formula, filters, weapon hold/margin, `smarter_move`, combine check, DPS Meter, bus, cache fields
-- [ ] C2.4 copies collapsed
-- [ ] C2.5 knobs (user's decision recorded)
-- [ ] C2.6 commented-out code (user's decision per item)
+- [x] C2.1 console commands registered (17, plus `crypt_go`/`crypt_camp`, which drive Myras by hand in the crypt and so were not dead)
+- [x] C2.2 unreferenced globals removed (counter at 0)
+- [x] C2.3 dead branches: damage formula, filters, weapon hold/margin, `smarter_move`, combine check, DPS Meter (279 → 111 lines), the encounter bus topics. The cache fields move with C6.3, and `hit` on the bus with C6.5
+- [x] C2.4 copies collapsed
+- [x] C2.5 switches removed (all 16 `*_enabled` and `enabled` keys that were always true; `LOOTING_DEFAULTS.enabled` stays, because it is `false` for Ulric and Riva and is the rule that only Myras loots). `sample_hits` became `sample_hits_enabled()`, a role check
+- [x] C2.6 commented-out code: the icegolem, crabxx and wabbit event entries kept; the rest removed, with charge and hardshell's keys. The explanatory comment in Global Config moved to Design Notes
 
 ---
 

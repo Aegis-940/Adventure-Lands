@@ -33,7 +33,6 @@ const LOCATIONS = {
 	dryad:      [{ map: "mforest", x: 403, y: -347 }],
 	ent:        [{ map: "desertland", x: -420, y: -1960 }],
 	fireroamer: [{ map: "desertland", x: 260, y: -800 }],
-	// fireroamer: [{ map: "desertland", x: 113, y: -412 }],
 	frog:       [{ map: "main", x: -1125, y: 1118 }],
 	ghost:      [{ map: "halloween", x: -405, y: -1642 }],
 	gscorpion:  [{ map: "desertland", x: 390, y: -1422 }],
@@ -143,7 +142,6 @@ const POTION_DEFAULTS = {
 
 const EQUIPMENT_DEFAULTS = {
 	auto_swap_sets: true,
-	weapon_swap_enabled: true,
 };
 
 const PANIC_ORB_SET = [
@@ -152,14 +150,6 @@ const PANIC_ORB_SET = [
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // SECTION 1c: CROSS-CHARACTER SYMBOLS — declared here so every reader can assume they exist
-//
-// Core Systems is shared by all four characters, but several of these are only filled in by the
-// fighters; the merchant leaves them at the defaults below. Declaring them once here is what lets
-// every call site read them directly instead of guarding on typeof.
-//
-// `var`, not const/let: the character files re-declare the same names through indirect eval, and a
-// lexical declaration here would collide with that. Ownership is unchanged — `Party Management.js`
-// is still the only writer of the panic state, each `[Role] Config.js` of its own config.
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 var home = null;

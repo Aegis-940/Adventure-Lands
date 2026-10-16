@@ -6,7 +6,6 @@ var home = null;
 
 var CONFIG = {
 	combat: {
-		enabled: true,
 		all_bosses: ALL_BOSSES,
 		target_priority: ["Ulric", "Myras"],
 		target_weights: { damage: 1, close: 0.05 },
@@ -16,15 +15,12 @@ var CONFIG = {
 		aggro: true,
 		aggro_cap: 5,
 		curse_min_hp_pct: 0.03,
-		zapper_enabled: true,
 		zapper_min_mp_pct: 0.60,
 
-		sample_hits: true,
 		sample_targets: true,
 	},
 
 	movement: {
-		enabled: true,
 		circle_walk: true,
 		circle_speed: 1.8,
 		circle_radius: 30,
@@ -38,14 +34,11 @@ var CONFIG = {
 		party_heal_critical_pct: 0.35,
 		party_heal_critical_count: 2,
 		party_heal_self_pct: 0.50,
-		absorb_enabled: true,
-		dark_blessing_enabled: true,
 		skill_min_mp_pct: 0.40,
 	},
 
 	equipment: {
 		...EQUIPMENT_DEFAULTS,
-		temporal_surge_enabled: true,
 		luck_lead_ms: 600,
 		luck_burst_hp: 15000,
 

@@ -93,7 +93,6 @@ function dungeon_loadout() {
 }
 
 function resolve_healer_loadout() {
-	if (CONFIG.equipment.weapon_swap_enabled === false) return null;
 	if (fight_gear_owned()) return null;
 	const in_dungeon_loadout = dungeon_loadout();
 	if (in_dungeon_loadout) return in_dungeon_loadout;
@@ -147,7 +146,7 @@ var _kill_watch = null;
 
 function fight_gear_owned() {
 	if (!is_at_bscorpion_farm() && !tank_boss_nearby()) return false;
-	return !panicking && !disengaging() && CONFIG.equipment.weapon_swap_enabled !== false;
+	return !panicking && !disengaging();
 }
 
 function camp_gear_held(entry) {
@@ -198,7 +197,7 @@ function resolve_healer_fight() {
 	if (luck_window()) return camp_gear_set("camp_luck_live", equipment_sets.camp_luck);
 
 	remember_fight_amulet();
-	const zapping = at_camp && CONFIG.combat.zapper_enabled;
+	const zapping = at_camp;
 	const fight = equipment_sets.camp_fight.filter(entry => zapping || entry.item_name !== "zapper");
 	return camp_gear_set("camp_fight_live", _camp_fight_amulet ? fight.concat(_camp_fight_amulet) : fight);
 }

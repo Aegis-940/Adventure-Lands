@@ -50,7 +50,7 @@ function damage_window_for(weapon, stats) {
 }
 
 function sample_hits_enabled() {
-	return CONFIG.combat && CONFIG.combat.sample_hits;
+	return character.ctype !== "merchant";
 }
 
 function flush_damage_windows() {

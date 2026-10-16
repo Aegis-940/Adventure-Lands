@@ -16,7 +16,6 @@ var CONFIG = {
 		mark_min_hp_pct: 0.03,
 		supershot_min_hp_pct: 0.10,
 		camp_supershot_min_hp_pct: 0.85,
-		burn_enabled: true,
 		lambda_headroom_low: 0.6,
 		lambda_headroom_high: 1.5,
 		cupid_engage_pct: 0.66,
@@ -25,11 +24,9 @@ var CONFIG = {
 		cupid_release_margin: 0.14,
 		mana_is_free: true,
 
-		sample_hits: true,
 	},
 
 	movement: {
-		enabled: true,
 		reposition: true,
 		circle_radius: 75,
 		move_threshold: 10,
@@ -39,12 +36,10 @@ var CONFIG = {
 	equipment: {
 		...EQUIPMENT_DEFAULTS,
 		use_licence: false,
-		temporal_surge_enabled: true,
 
 		weapon_sets: ["single", "boom"],
 		weapon_min_swap_attacks: 1,
 
-		chest_swap_enabled: true,
 		chest_sets: { dps: "dps_chest", mana: "mana_chest" },
 		chest_release_pct: 0.90,
 		chest_engage_shots: 2,

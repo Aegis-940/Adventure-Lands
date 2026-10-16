@@ -120,7 +120,6 @@ function mana_chest_wanted() {
 }
 
 function resolve_ranger_chest() {
-	if (CONFIG.equipment.chest_swap_enabled === false) return null;
 
 	const override = encounter_gear("chest");
 	if (override) return override;

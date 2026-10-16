@@ -4,8 +4,8 @@
 
 var HEALER_SKILLS = [
 	{ name: "partyheal", gate: "alive", cast: () => handle_party_heal() },
-	{ name: "curse", gate: "combat", wanted: () => CONFIG.combat.enabled && character.mp >= skill_mp_cost("curse") + panic_mp_reserve(), cast: () => handle_curse() },
-	{ name: "absorb", gate: "combat", wanted: tick => CONFIG.healing.absorb_enabled && tick.penalty < 500, cast: () => handle_absorb() },
+	{ name: "curse", gate: "combat", wanted: () => character.mp >= skill_mp_cost("curse") + panic_mp_reserve(), cast: () => handle_curse() },
+	{ name: "absorb", gate: "combat", wanted: tick => tick.penalty < 500, cast: () => handle_absorb() },
 	{ name: "darkblessing", gate: "combat", wanted: dark_blessing_wanted, cast: () => use_skill("darkblessing") },
 ];
 
@@ -15,7 +15,7 @@ var ZAP_SKILLS = [
 
 function dark_blessing_wanted() {
 	const mp_pct = character.max_mp ? character.mp / character.max_mp : 1;
-	return mp_pct >= CONFIG.healing.skill_min_mp_pct && CONFIG.healing.dark_blessing_enabled && !is_on_cooldown("darkblessing")
+	return mp_pct >= CONFIG.healing.skill_min_mp_pct && !is_on_cooldown("darkblessing")
 		&& character.mp >= skill_mp_cost("darkblessing") && bscorpion_worth_buffing() && dark_blessing_synced();
 }
 
@@ -24,7 +24,6 @@ function skill_loop() {
 }
 
 async function skill_tick() {
-	// if (panicking) return setTimeout(skill_loop, 100);
 	if (dungeon_bailing() || cave_paused()) return 100;
 	let next_delay = TICK_RATE.skill;
 
@@ -238,7 +237,6 @@ function party_heal_critical_count() {
 var _last_heal_choice = 0;
 
 function sample_heal_choice(fired, party_value, single_value, critical) {
-	if (!CONFIG.combat.sample_hits) return;
 	if (Date.now() - _last_heal_choice < 1000) return;
 	_last_heal_choice = Date.now();
 	errlog_sample("heal_choice", {
