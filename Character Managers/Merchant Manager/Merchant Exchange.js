@@ -106,18 +106,12 @@ function should_run_exchange() {
 		&& has_bank_exchangeables();
 }
 
-async function handle_exchanging_state() {
-	if (merchant_task !== "Idle") return;
-	const generation = begin_task("Exchanging");
-	try {
+function handle_exchanging_state() {
+	return run_task("Exchanging", async () => {
 		const fetched = await withdraw_exchangeables();
 		if (!fetched) {
 			_exchange_retry_at = Date.now() + EXCHANGE_RETRY_MS;
 			log_msg("warn", `Exchange: bank fetch produced nothing — not retrying for ${EXCHANGE_RETRY_MS / 60000} min.`);
 		}
-	} catch (e) {
-		catcher(e, "handle_exchanging_state");
-	} finally {
-		end_task(generation);
-	}
+	});
 }

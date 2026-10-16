@@ -662,65 +662,56 @@ async function upgrade_pass(abandoned, plan) {
 	return progressed;
 }
 
-async function auto_upgrade() {
-
-	const my_generation = begin_task("Upgrading");
-	const abandoned = () => my_generation !== merchant_task_generation;
-
-	try {
-		await sell_items(upgrade_job_item);
-		await bank_items(upgrade_job_item);
-		if (character.map !== "bank") {
-			await smarter_move(BANK_LOCATION);
-		}
-
-		await withdraw_upgrade_scrolls();
-		await withdraw_offering();
-		await withdraw_upgradeable_items();
-
-		await smarter_move(HOME);
-
-		await auto_grace_pass();
-
-		combine_failed_keys.clear();
-		let progressed = false;
-		let pass_progressed = false;
-
-		do {
-			await buy_for_upgrade();
-			const target_progressed = await upgrade_target_pass(abandoned);
-			pass_progressed = await upgrade_pass(abandoned, profile_plan()) || target_progressed;
-			if (pass_progressed) progressed = true;
-		} while (pass_progressed && !abandoned());
-
-		for (let level = 0; level <= 5 && !abandoned(); level++) {
-			while (!abandoned()) {
-				await make_upgrade_room();
-				const result = await auto_combine_item(level);
-				if (result === "done") progressed = true;
-				if (result === "end") {
-					log_msg("error", "Ending auto-combine early due to insufficient gold or resources.");
-				}
-				if (result !== "done" && result !== "wait") break;
-			}
-		}
-
-		if (abandoned()) {
-			log_msg("warn", "Upgrading was force-reset by the watchdog — abandoning this run.");
-			return;
-		}
-
-		if (!progressed) {
-			_upgrade_retry_at = Date.now() + UPGRADE_RETRY_MS;
-			log_msg("warn", `Upgrade run made no progress — not retrying for ${UPGRADE_RETRY_MS / 60000} min.`);
-		}
-
-		log_msg("info", "✅ Auto upgrade and combine complete.");
-		await sell_items();
-		await bank_items();
-	} catch (e) {
-		catcher(e, "auto_upgrade");
-	} finally {
-		end_task(my_generation);
+async function auto_upgrade(abandoned) {
+	log_msg("info", "Starting auto-upgrade process...");
+	await sell_items(upgrade_job_item);
+	await bank_items(upgrade_job_item);
+	if (character.map !== "bank") {
+		await smarter_move(BANK_LOCATION);
 	}
+
+	await withdraw_upgrade_scrolls();
+	await withdraw_offering();
+	await withdraw_upgradeable_items();
+
+	await smarter_move(HOME);
+
+	await auto_grace_pass();
+
+	combine_failed_keys.clear();
+	let progressed = false;
+	let pass_progressed = false;
+
+	do {
+		await buy_for_upgrade();
+		const target_progressed = await upgrade_target_pass(abandoned);
+		pass_progressed = await upgrade_pass(abandoned, profile_plan()) || target_progressed;
+		if (pass_progressed) progressed = true;
+	} while (pass_progressed && !abandoned());
+
+	for (let level = 0; level <= 5 && !abandoned(); level++) {
+		while (!abandoned()) {
+			await make_upgrade_room();
+			const result = await auto_combine_item(level);
+			if (result === "done") progressed = true;
+			if (result === "end") {
+				log_msg("error", "Ending auto-combine early due to insufficient gold or resources.");
+			}
+			if (result !== "done" && result !== "wait") break;
+		}
+	}
+
+	if (abandoned()) {
+		log_msg("warn", "Upgrading was force-reset by the watchdog — abandoning this run.");
+		return;
+	}
+
+	if (!progressed) {
+		_upgrade_retry_at = Date.now() + UPGRADE_RETRY_MS;
+		log_msg("warn", `Upgrade run made no progress — not retrying for ${UPGRADE_RETRY_MS / 60000} min.`);
+	}
+
+	log_msg("info", "✅ Auto upgrade and combine complete.");
+	await sell_items();
+	await bank_items();
 }

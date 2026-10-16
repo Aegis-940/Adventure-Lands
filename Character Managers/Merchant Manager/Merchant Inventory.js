@@ -169,17 +169,11 @@ function should_run_banking() {
 		&& has_bankable_items();
 }
 
-async function handle_banking_state() {
-	if (merchant_task !== "Idle") return;
-	const generation = begin_task("Banking");
-	try {
+function handle_banking_state() {
+	return run_task("Banking", async () => {
 		log_msg("debug", `🎒 Down to ${character.esize} free slots — emptying the pack.`);
 		await sell_items();
 		const banked = await bank_items();
 		if (!banked) _bank_retry_at = Date.now() + BANKING_RETRY_MS;
-	} catch (e) {
-		catcher(e, "handle_banking_state");
-	} finally {
-		end_task(generation);
-	}
+	});
 }

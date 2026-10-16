@@ -68,6 +68,19 @@ function end_task(generation) {
 	if (generation === merchant_task_generation) set_task("Idle");
 }
 
+async function run_task(label, body, on_error) {
+	if (merchant_task !== "Idle") return;
+	const generation = begin_task(label);
+	try {
+		await body(() => generation !== merchant_task_generation);
+	} catch (e) {
+		catcher(e, "task " + label);
+		if (on_error) on_error(e);
+	} finally {
+		end_task(generation);
+	}
+}
+
 function abandon_task() {
 	set_task("Idle");
 	merchant_task_generation++;

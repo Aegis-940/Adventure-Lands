@@ -150,7 +150,7 @@ Each decision has a single owner, which is what lets the harness pin it (`node T
 | **Which skill to cast** | `run_skills(table, context)` (`Skill Runner.js`) over the role's table | Each entry's `gate`, `wanted` and `value`; encounters answer `encounter_allows()` |
 | **The basic action** | `run_action()` (`Character Runner.js`) over the role's `ROLE_ACTION` | The role supplies cadence, gate and `act(ms)` |
 | **When to loot** | `should_loot()` → `handle_looting()` | Dungeon callers go through `should_loot()` |
-| **The merchant's task** | `set_task()`/`begin_task()`/`end_task()`/`abandon_task()` (`Merchant Config.js`) | `PRIORITY_CHECKS` in the task loop picks; the watchdog abandons a stuck one |
+| **The merchant's task** | `run_task(label, body, on_error)` (`Merchant Config.js`): every task starts only from Idle, gets an `abandoned()` test, reports errors and returns to Idle; `abandon_task()` for the watchdog | `PRIORITY_CHECKS` in the task loop picks; the watchdog abandons a stuck one |
 
 ### Events and storage
 

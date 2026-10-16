@@ -89,51 +89,48 @@ function should_run_delivery() {
 	return false;
 }
 
-async function handle_delivering_state() {
-	if (merchant_task !== "Idle") return;
-	const generation = begin_task("Delivering");
-	try {
-		log_msg("info", "Beginning delivery run...");
+function handle_delivering_state() {
+	return run_task("Delivering", async () => {
+		try {
+			log_msg("info", "Beginning delivery run...");
 
-		const RETARGET_THRESHOLD = 160;
-		let last_target = null;
+			const RETARGET_THRESHOLD = 160;
+			let last_target = null;
 
-		let attempts = 0;
-		while (!any_party_within_range() && attempts < DELIVERY_WAIT_MAX_ATTEMPTS) {
-			for (const name of PARTY) {
-				const status = read_state_cache(name);
-				if (status && !status.rip) {
-					const moved_enough = !last_target
-						|| last_target.map !== status.map
-						|| Math.hypot(status.x - last_target.x, status.y - last_target.y) > RETARGET_THRESHOLD;
+			let attempts = 0;
+			while (!any_party_within_range() && attempts < DELIVERY_WAIT_MAX_ATTEMPTS) {
+				for (const name of PARTY) {
+					const status = read_state_cache(name);
+					if (status && !status.rip) {
+						const moved_enough = !last_target
+							|| last_target.map !== status.map
+							|| Math.hypot(status.x - last_target.x, status.y - last_target.y) > RETARGET_THRESHOLD;
 
-					if (moved_enough) {
-						log_msg("debug", `🎯 Delivery: heading to ${name} @ ${status.map} (${Math.round(status.x)}, ${Math.round(status.y)})`);
+						if (moved_enough) {
+							log_msg("debug", `🎯 Delivery: heading to ${name} @ ${status.map} (${Math.round(status.x)}, ${Math.round(status.y)})`);
 
-						smarter_move({ map: status.map, x: status.x, y: status.y })
-							.catch(e => {
-								if (e?.reason !== "interrupted") catcher(e, "handle_delivering_state: smarter_move to " + name);
-							});
-						last_target = { map: status.map, x: status.x, y: status.y };
+							smarter_move({ map: status.map, x: status.x, y: status.y })
+								.catch(e => {
+									if (e?.reason !== "interrupted") catcher(e, "handle_delivering_state: smarter_move to " + name);
+								});
+							last_target = { map: status.map, x: status.x, y: status.y };
+						}
+						break;
 					}
-					break;
 				}
+
+				await sleep(3000);
+				attempts++;
+			}
+			if (attempts >= DELIVERY_WAIT_MAX_ATTEMPTS) {
+				log_msg("warn", "No party member came within range — heading home anyway.");
 			}
 
-			await sleep(3000);
-			attempts++;
+			await buff_nearby_players();
+			await sell_items();
+			await bank_items();
+		} finally {
+			clear_delivery_request();
 		}
-		if (attempts >= DELIVERY_WAIT_MAX_ATTEMPTS) {
-			log_msg("warn", "No party member came within range — heading home anyway.");
-		}
-
-		await buff_nearby_players();
-		await sell_items();
-		await bank_items();
-	} catch (e) {
-		catcher(e, "handle_delivering_state");
-	} finally {
-		clear_delivery_request();
-		end_task(generation);
-	}
+	});
 }

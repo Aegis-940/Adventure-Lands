@@ -35,32 +35,16 @@ function should_run_upgrade() {
 		&& (inventory_has_upgradeable_items() || bank_has_upgradeable_items() || can_buy_for_upgrade());
 }
 
-async function handle_upgrading_state() {
-	if (merchant_task !== "Idle") return;
-	try {
-		log_msg("info", "Starting auto-upgrade process...");
-		await auto_upgrade();
-	} catch (e) {
-		catcher(e, "handle_upgrading_state");
-		set_task("Idle");
-	}
+function handle_upgrading_state() {
+	return run_task("Upgrading", auto_upgrade);
 }
 
 function should_run_lolipop_push() {
 	return lolipop_run.active && merchant_task === "Idle";
 }
 
-async function handle_lolipop_state() {
-	if (merchant_task !== "Idle") return;
-	const generation = begin_task("Lolipops");
-	try {
-		await lolipop_push_step();
-	} catch (e) {
-		catcher(e, "lolipop_push_step");
-		stop_lolipop_push("an upgrade call failed, see the error above");
-	} finally {
-		end_task(generation);
-	}
+function handle_lolipop_state() {
+	return run_task("Lolipops", lolipop_push_step, () => stop_lolipop_push("an upgrade call failed, see the error above"));
 }
 
 function should_run_craft() {
@@ -71,16 +55,8 @@ function should_run_craft() {
 		&& can_afford_any_craft();
 }
 
-async function handle_crafting_state() {
-	if (merchant_task !== "Idle") return;
-	const generation = begin_task("Crafting");
-	try {
-		await try_craft(() => generation !== merchant_task_generation);
-	} catch (e) {
-		catcher(e, "handle_crafting_state");
-	} finally {
-		end_task(generation);
-	}
+function handle_crafting_state() {
+	return run_task("Crafting", try_craft);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
