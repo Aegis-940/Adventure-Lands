@@ -355,6 +355,6 @@ function vendorable(item) {
 function remote_sell_items() {
 	if (swap_in_flight()) return;
 	for (const { i, item } of loose_loot(0)) {
-		if (item.p === undefined && vendorable(item)) sell(i, item.q || 1);
+		if (vendorable(item)) sell(i, item.q || 1);
 	}
 }

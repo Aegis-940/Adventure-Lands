@@ -789,7 +789,7 @@ Riff's default gear and his gathering tools are equipment sets (`default`, `rod`
 
 `is_default_gear()` protects only the copy Riff wears: the `default` set's name **and** level (`broom` +9, `wbookhs` +1). Matching by name alone kept every broom off the vendor list once `broom` was added to `SELLABLE_ITEMS`, because his mainhand is a broom.
 
-**Nothing upgraded is vendored.** `vendorable()` (`Loot Management.js`) is the one test both sellers use, the fighters' `remote_sell_items()` and Riff's `sellable()`: on `SELLABLE_ITEMS` *and* below +1. `SELLABLE_ITEMS` names junk drops, and a +1 or better copy is either something Riff paid scrolls for or a lucky drop, so it's banked instead.
+**Nothing upgraded is vendored.** `vendorable()` (`Loot Management.js`) is the one test both sellers use, the fighters' `remote_sell_items()` and Riff's `sellable()`: on `SELLABLE_ITEMS` *and* below +1. `SELLABLE_ITEMS` names junk drops, and a +1 or better copy is either something Riff paid scrolls for or a lucky drop, so it's banked instead. A special property (`item.p`: shiny, glitched) doesn't exempt anything: both sellers sell it like any other copy (10-16, the user's call).
 
 ### `Merchant Upgrading.js` — scroll a grade above
 
@@ -955,7 +955,6 @@ Each is an idea with its evidence, to be weighed against the data like any other
 - **Walk, don't re-join, on the event's map.** `event_goal()` sends `join` every 5s whenever the boss isn't visible, even on the event's own map, and the server teleports anyone more than 200px (franky, crabxx) or 100px (icegolem) from the entry back to it (`World Events.js`).
 - **Monster Hunt quests.** Take and hand in through `interact("monsterhunt")` (progress is in `character.s.monsterhunt`). Refill only when every quest has 25+ minutes left, skip a monster after a death, stop after two deaths. A new file plus a goal.
 - **Compound at the item's own scroll grade.** A higher-grade compound scroll only gives ×1.1 + 0.001, which the 10-05 estimate put at −7.2M to −8.7M gold per attempt for belts at +2/+3 with `cscroll2`, and −6.8M to −7.4M for cring and cearring at +2. The 10-13 upgrade simulation that chose "a grade above" never covered compounds (`COMBINE_PROFILE`, `Merchant Upgrading.js`). Undecided alongside it: +0 rings, earrings and amulets are both on the vendor list and in `COMBINE_PROFILE`.
-- **Riff never vendors shiny items.** The fighters skip shiny and glitched items and ship them to Riff, but his `sellable()` has no `!item.p` check, so he sells them by name (`Merchant Inventory.js`).
 - **Use the bank basement.** On "No bank space on this floor", deposit to `bank_b`; count free space only on floors Riff deposits to; merge stacks with `bank_swap` rather than through the inventory. There were 168 `bank_full` lines before per-floor planning (last on 10-11) (`Merchant Inventory.js`, `Bank Sort Order.js`).
 - **Giveaways.** Scan visible stands for giveaway slots and `join_giveaway`; the server allows one entry per account, same map, in range (`Merchant Upkeep.js`).
 - **One camp-wait helper.** Two roles each wait at the camp with their own reset; a shared helper would need keyed state and a reset call, more than the ten lines it saves. Worth it only if a third wait appears.
