@@ -9,7 +9,7 @@ Every finding below comes from a read of the source on 2026-10-16 at `eb4ea67`, 
 | Phase | Title | Changes how the party plays | Status |
 |---|---|---|---|
 | C0 | Safety net for subtraction | none | **done** 2026-10-16 |
-| C1 | Docs | none | not started |
+| C1 | Docs | none | **done** 2026-10-16 |
 | C2 | Dead code | none | not started |
 | C3 | Error handling that hides errors | none (errors start reaching the log) | not started |
 | C4 | Guards and fallbacks | none | not started |
@@ -110,14 +110,14 @@ Today's docs: `CLAUDE.md` (230 lines), `Architecture.md` (222), `Design Notes.md
 - `snapshots.jsonl.old` (untracked): it is the sink's rotation, so add it to `.gitignore`.
 
 **Checklist**
-- [ ] C1.1 Overhaul Plan → Design Notes Decisions, CLAUDE.md; deleted
-- [ ] C1.1 Combat Plan → Design Notes; deleted
-- [ ] C1.1 Data and Farming Plan confirmed covered; deleted
-- [ ] C1.1 Party Console Review triaged; deleted
-- [ ] C1.1 Decision Ownership → Architecture; deleted
-- [ ] C1.1 Loop Cadence → Design Notes; deleted
-- [ ] C1.2 Diagnostics pruned, links fixed (docs and memory)
-- [ ] C1.3 probes, dependency graph, `.gitignore`
+- [x] C1.1 Overhaul Plan → Design Notes Decisions, CLAUDE.md (every-commit checklist); deleted
+- [x] C1.1 Combat Plan → Design Notes (Measured constants, Considered and rejected, Ideas; the packing and positioning results in Healer and Warrior Movement), Game API Reference (courage and fear); deleted
+- [x] C1.1 Data and Farming Plan confirmed covered (Data Store bands and score); deleted
+- [x] C1.1 Party Console Review triaged (4 done, 4 moot, 15 open into Ideas not yet measured; it also found the dead `tracktrix` keep entry, removed); deleted
+- [x] C1.1 Decision Ownership → Architecture; deleted
+- [x] C1.1 Loop Cadence → Design Notes (`Scheduler.js`, loop rates); deleted
+- [x] C1.2 Diagnostics pruned to the reading guide and the lessons; links fixed; memory updated (the overhaul review memory retired, the load-race memory rewritten)
+- [x] C1.3 probes, dependency graph and `--graph`, `.gitignore`
 
 ---
 

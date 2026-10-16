@@ -9,11 +9,10 @@
 const LOOT_GOLD_RESERVE = 100000000;
 
 const ITEMS_TO_KEEP_BASE = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster",
-	"pumpkinspice", "xptome", "tracker", "tracktrix", "jacko", "talkingskull", "computer"];
+	"pumpkinspice", "xptome", "tracker", "jacko", "talkingskull", "computer"];
 
 const ITEM_ORDER_BASE = {
 	tracker: 0,
-	tracktrix: 0,
 	computer: 1,
 	hpot1: 2,
 	mpot1: 3,
