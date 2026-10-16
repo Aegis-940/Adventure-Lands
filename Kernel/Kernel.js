@@ -42,7 +42,6 @@ function kernel_boot(plan) {
 		return;
 	}
 	window.__al_booted = true;
-	window.addEventListener("pagehide", kernel_teardown);
 	_boot_report.started = Date.now();
 
 	for (const file in _boot_steps) {
@@ -52,6 +51,7 @@ function kernel_boot(plan) {
 		if (!plan.loaded.includes(file)) continue;
 		for (const step of _boot_steps[file] || []) run_boot_step(file, step, plan);
 	}
+	window.addEventListener("pagehide", kernel_teardown);
 	_boot_report.finished = Date.now();
 }
 

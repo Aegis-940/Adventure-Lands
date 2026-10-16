@@ -637,7 +637,7 @@ function errlog_snapshot(label) {
 		if (t - (_snapshot_last[kind] || 0) < (SNAPSHOT_MIN_MS[kind] || 0)) return;
 		_snapshot_last[kind] = t;
 		const dungeon = active_dungeon();
-		const sha = (window.__AL_BASE__ || "").match(/@([0-9a-f]{40})\//);
+		const sha = (window.__AL_BASE__ || "").match(/[@/]([0-9a-f]{40})\//);
 		const snapshot = {
 			id: character.name + "-" + t,
 			label,
@@ -717,7 +717,7 @@ function al_errors_clear(all) {
 		_errlog = { session: _errlog.session, schema: ERRLOG_SCHEMA, records: {}, timeline: [], deaths: [], counts: {}, counts_since: Date.now(), samples: [], alive: [], archive: [] };
 		_errlog_heals = [];
 		_errlog_vitals = [];
-		_errlog_was_rip = false;
+		_errlog_was_rip = !!character.rip;
 		for (const k in _errlog_beats) delete _errlog_beats[k];
 		for (const k in _errlog_beats_last) delete _errlog_beats_last[k];
 		return "cleared " + doomed.length + " key(s)";
@@ -730,6 +730,7 @@ function al_errors_clear(all) {
 
 on_boot("Error Log", () => {
 	_errlog_start_session();
+	_errlog_was_rip = !!character.rip;
 	_errlog_wrap_console_error();
 	on_dom(window, "error", "errlog_error", _errlog_on_error);
 	on_dom(window, "unhandledrejection", "errlog_rejection", _errlog_on_rejection);

@@ -309,7 +309,6 @@ function emit_boss_profile(fight) {
 		boss_conditions: conditions,
 		observer: character.name,
 		server: parent.server_region + parent.server_identifier,
-		home: character.home || null,
 		players
 	};
 

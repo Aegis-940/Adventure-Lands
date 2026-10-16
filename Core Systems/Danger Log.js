@@ -129,6 +129,7 @@ function boss_snapshot_check(now) {
 }
 
 function danger_log_start() {
+	_danger_rip = !!character.rip;
 	on_socket("hit", "danger_hit_handler", danger_on_hit);
 	every("danger_tick", { ms: DANGER_TICK_MS, kind: "telemetry", fixed: true }, danger_tick);
 }

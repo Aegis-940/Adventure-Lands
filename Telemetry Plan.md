@@ -8,7 +8,7 @@ This plan comes from a four-part audit on 10-16 (the sink and its readers, the i
 
 | Phase | Title | Changes how the party plays | Status |
 |-------|-------|------------------------------|--------|
-| T0 | Data being lost or corrupted now | none | not started |
+| T0 | Data being lost or corrupted now | none | T0.1, T0.2, T0.5, T0.6 **done** 2026-10-16 |
 | T1 | `compare` and the Data Store | none | not started |
 | T2 | The error log and how records reach the sink | none | not started |
 | T3 | Removing the watchdog | none | not started |
@@ -96,9 +96,9 @@ The watchdog has reloaded a window 52 times: 50 on 10-08, every ~5 minutes for 1
 
 Each file gets a budget. The targets below assume the fixes above.
 
-1. **Snapshots, ~100 MB/day → under 10 MB/day.** 55% of a snapshot is `entities` (mostly other players' full objects and renderer fields) and 29% is `storage`, every `AL_*` key, of which `promote` keeps only the ones the deciders read (the snapshot carries 3.4 MB of `AL_diag_Ulric` and 1.6 MB of `AL_survey`). **Fix:** record only the storage keys the fixtures use, and only the entity fields the harness reads. Take a farm snapshot once an hour per fighter rather than every ledger window, and one per boss fight rather than every 60s on three characters. Keep every panic, close call and death snapshot. The rotation keeps one `.old` of the same size, so cap the pair.
-2. **Boss profiles, 28 MB in 6 days → about 2 MB.** Each fight is written by every observer (3–4 copies, Riff included), and each player's gear is the full item objects (~920 B a player). **Fix:** one observer writes the fight (the first fighter to see it, never Riff), and gear is name and level.
-3. **The timeline: rotate it.** Move `death` (already in `danger.jsonl`) and the kill times (to their own lane, after T0.9) out of the timeline first, then rotate it on the sink to the last 7 days. Doing this the other way round would wipe the status page's death and kill-time history.
+1. **Snapshots: kept as they are, trimmed to 7 days** (the user's call, 10-16). The triggers and contents stay; the sink drops records older than 7 days instead of rotating at 200 MB into a `.old` it overwrites. At ~100 MB a day that holds about 700 MB.
+2. **Boss profiles: the three fighters each record** (the user's call, 10-16). Riff stops writing them (he is never on the boss), which removes the fourth copy. Gear stays as it is.
+3. **The timeline: trim it to 7 days.** Move `death` (already in `danger.jsonl`) and the kill times (to their own lane, after T0.9) out of the timeline first, then trim it on the sink to the last 7 days. Doing this the other way round would wipe the status page's death and kill-time history.
 4. **damage.jsonl, ~17 MB/day.** About 30% of each line is the record stamp (settings, build, home, map, goal, encounters). **Fix:** a 60s window instead of 15s, with the stamp kept; measure how far that cuts it before going further.
 5. **SQLite:** drop the duplicated `raw` (T1.7), and drop or use the tables nothing queries (`boss_profiles`, `tracker`, `tracker_monsters`, `heal_windows`, `target_choices`, `cc_reports`) as T6 decides.
 6. **`errors.log`** rotates only when the sink starts. Rotate it while running. The ~400 "slow POST" lines an hour should mostly go once pushes are incremental (T2.1); if they don't, find where the 4.6s is spent.
@@ -109,7 +109,7 @@ Each file gets a budget. The targets below assume the fixes above.
 These are the numbers the min/maxing needs that no recorder captures. Each one gets a lane and a report (T6).
 
 1. **Loot.** No drop is recorded per chest, monster or luck level; items live only in Session Metrics, in memory. Myras's luck gear can't be valued without it. **Add:** a loot lane, one row per chest (monster, items with quantities, gold, the looter's `luckm` and `goldm`).
-2. **The economy.** Riff has no ledger: sales income, and spending on upgrades, compounds, scrolls, exchanges and potions, aren't recorded, and the fighters' ~140 MP potions per 5 minutes are counted but never priced. So net gold per hour is unknown. **Add:** a merchant ledger window (gold in and out by category), and potion cost in the fighters' windows.
+2. ~~The economy~~ (not pursued, the user's call, 10-16).
 3. **Mana budget.** Only cast spend is recorded. **Add:** per window, mana in (potions, manasteal) and out (attacks, each skill), so a fighter's spare mana is a measured number.
 4. **Attack uptime.** Neither `character.frequency` nor time with a target in range but no attack is recorded. **Add:** both to the decision window, so confirmed attacks against possible attacks measures how much DPS is lost to movement, refusals and gaps.
 5. **Downtime.** Once T0.1 is fixed, a gap between windows means a character was down. **Add:** a report per character per day of downtime and its cause (reload, death, disconnect).
@@ -123,7 +123,7 @@ Data nobody reads is only worth keeping if a question needs it. Each lane gets a
 1. **`heals`** from `heal.jsonl`: Myras's heal delivered, predicted and overheal by kind.
 2. **`cc`** from `cc_report.jsonl`: call cost by type per fighter, against the `limitdc` line.
 3. **`targets`** from `target_choice.jsonl`: how often the scorer's pick traded against the alternatives. If no question needs it once the report exists, stop recording it.
-4. **`loot`, `economy`, `mana`, `uptime`** from T5.
+4. **`loot`, `mana`, `uptime`** from T5.
 5. **`compare`** reads the corrected numbers (T1) and shows each side's deaths, close calls, downtime and the change it can detect.
 6. **Track 3 review.** With the new numbers, re-read Design Notes' Ideas: skipping overkilled targets (Myras logs about four times Ulric's "Monster already dead" refusals), Riva's panic step-away, walking rather than re-joining on an event's map, contested spawns, and the merchant ideas. Each becomes a measured proposal or goes to Considered and rejected.
 
@@ -137,11 +137,11 @@ Diagnostics.md, Design Notes (Error Log, Combat Sampling, Farm Ledger, Data Stor
 
 T0 first, since every hour without it loses data, then T2 and T3 (the transport, which T4 and T5 build on), then T1, T4, T5 and T6. T0.1, T0.2, T0.5 and T0.6 are a few lines each and could go in one commit today.
 
-## Decisions for the user
+## Decided (10-16)
 
-1. **The watchdog (T3):** uninstall and delete it, keeping the anti-throttling flags. *Recommended.*
-2. **Snapshots (T4.1):** farm once an hour per fighter, one per boss fight, every panic, close call and death. Enough fixtures for the harness at a tenth of the size.
-3. **Boss profiles (T4.2):** one observer per fight, gear as name and level.
-4. **Retention:** the timeline keeps 7 days; the other archives stay whole once T4 has shrunk them (a year of the slimmed files is under 2 GB).
-5. **T5 priorities:** loot, the economy, the mana budget and attack uptime are the four with the most min/max value. Which order?
-6. **`compare` and deaths (T1.1):** count time dead at the spot as spot time, and make deaths per hour part of the verdict.
+1. The watchdog is uninstalled and deleted, keeping the anti-throttling flags (T3).
+2. Snapshots are kept as they are, and the sink trims them to the last 7 days (T4.1).
+3. Boss profiles: the three fighters each record; Riff doesn't (T4.2).
+4. Retention: the timeline keeps 7 days; the other archives stay whole.
+5. T5 in this order: loot, the mana budget, attack uptime. The economy is not pursued.
+6. `compare` counts time dead at the spot as spot time, and deaths per hour are part of the verdict (T1.1).

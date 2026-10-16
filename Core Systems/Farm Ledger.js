@@ -228,6 +228,7 @@ function tracker_reply(data) {
 
 function farm_ledger_start() {
 	_ledger = ledger_window(Date.now());
+	_ledger_rip = !!character.rip;
 	on_character("loot", "ledger_loot", ledger_on_loot);
 	on_socket("kill_credit", "ledger_kill_handler", data => ledger_add_kill(data.mtype));
 	on_socket("tracker", "ledger_tracker_handler", tracker_reply);
