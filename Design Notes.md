@@ -879,6 +879,22 @@ Riff's default gear and his gathering tools are equipment sets (`default`, `rod`
 
 Every `UPGRADE_PROFILE` uses scroll1 from +0 (`scroll0_until: 0`). The server treats a scroll of higher grade than the item as "high": the chance becomes `p×1.2 + 0.01`, the cap rises to `min(p0+0.36, 3×p0)`, and the item gains 0.4 grace, which it carries to every later level. Scroll0 on a grade-0 item gets none of that, and how far above the item the scroll is makes no difference: scroll2 at +0 scored the same as scroll1. Simulated over the profiles (2026-10-13), scroll1 from +0 instead of scroll0 raised yield 24% for pouchbow and wingedboots to +9, ~50% for coat and pants to +8, 17% for hbow and quiver, 8–9% for broom and cave_mothsteps. The reverse doesn't pay: scroll1 instead of scroll2 at pouchbow's +8 (grade 1) dropped +10s from 4.9 to 3.3 per 10k.
 
+### `Merchant Upgrading.js` — ololipops when primlings are short
+
+During the Halloween event (from 10-17) Riff buys ~150–200 ololipops a day and the party farms ~250 primlings, so primlings bind, not ololipops. The profile is `primling_from: 6, max_level: 9`: the upgrader does the +8→+9 roll itself (scroll2, one primling, the lucky slot, no grace top-up) and leaves +9s alone, and `lolipop_push()` isn't run during the event.
+
+**Why +6 and not +5.** Simulated over 14 days of 175 ololipops a day (scratch `lolipolicy.js`, the server's formula with the `ugrace`/`ograce` stacks), per +0 ololipop:
+
+| Primling on rolls from | +9s | Primlings |
+|---|---|---|
+| +7 | 0.011 | 0.19 |
+| +6 | 0.021 | 0.73 |
+| +5 | 0.035 | 1.79 |
+| +4 | 0.045 | 3.14 |
+| none | 0.003 | 0 |
+
+The extra +9 per extra primling falls with each level down (0.037 for +7, 0.019 for +6, 0.013 for +5, 0.008 for +4), and grace to the cap at +8 earns only ~0.007, which is why the push's `grace_to_cap()` is the wrong spend here. From +5 the demand is ~310 a day against 250, and `upgrade_pass()` goes level by level upward, so the +5 rolls take the primlings first and the +6–+8 copies, where a primling is worth most, are the ones skipped. From +6 the demand is ~130–145 a day and never runs out. The surplus is spent by switching to `primling_from: 5` by hand while Riff holds more than ~500 primlings, and back to 6 at ~100: about two thirds of the +5 rolls then get one, the optimum for 1.4 primlings per ololipop (~70–78 +9s over the event, against ~52 from +6 throughout).
+
 ### `Merchant Upgrading.js` — upgrade target
 
 The settings window's Upgrading toggle carries a target: an item, a level m and a count n (`upgrade_target()`, localStorage `AL_merchant_upgrade_target`/`_level`/`_count`). While fewer than n copies at +m or above are held (bag and bank, `upgrade_target_open()`), each upgrade run works the target before the `UPGRADE_PROFILE` items. The profile pass skips the target's name until it is met, then upgrades it as before if it has a profile.
