@@ -14,6 +14,10 @@ The one file that lives in a game code slot. Since 2026-10-15 it loads from this
 
 **Why not the CDN any more.** It used to resolve the commit through `api.github.com` (60 requests an hour), fetch from jsDelivr at that SHA, fall back to githack, and fall back again to jsDelivr `@main`, which is cached for 12 hours and whose purges are throttled. Each of those failed in practice: jsDelivr's `/gh/` backend returned 503 for uncached commits on 10-07 and again on 10-15, githack was slow until warmed, purges throttled and `@main` stayed stale. Every deploy needed a push, a purge and a minutes-long verify. Loading all 98 files took 5.5–6.5s from jsDelivr and about 1s locally, and the slow load is what let the party die in the mummy pack at a reload. GitHub is now only the backup. If the sink is down, the loader retries every 5s rather than falling back, because the sink's logon task restarts it within a minute.
 
+### `Bootstrapper.js`
+
+Every script that isn't in `OPTIONAL_SCRIPTS` is required, the role files included: if one fails to fetch after its retries, or a role file throws while it is evaluated, the load aborts with a 🛑 line and `kernel_boot()` never runs. Until 2026-10-19 a role file that failed was skipped and the rest booted. That morning a game disconnect auto-reloaded all four pages in the same second. The sink, still on Python's default listen backlog of 5, reset the overflow connections, and four of Riva's six role files failed to fetch, her entry point among them. She booted with every shared loop and none of her own, and `al_boot()` reported nothing wrong, because kernel only runs the steps of files that loaded. Riff lost `Merchant Party.js`, so `Merchant Task Loop.js` threw building `PRIORITY_CHECKS` and was dropped too. Both ran half-built until a reload. A clean abort is louder than a half-built character and does the same amount of farming. Each script gets 5 retries (0.5s to 2.5s apart, about 7.5s in all), which rides out a burst.
+
 ---
 
 ## Kernel
@@ -943,7 +947,7 @@ The settings window saves on **Save** (applied at once, since every setting but 
 
 ### `Error Sink.py`
 
-Serves the bot's code from git and receives everything the pages send. What it keeps, and for how long:
+Serves the bot's code from git and receives everything the pages send. Its listen backlog is 1024 (`request_queue_size`): one page's load opens about 85 connections at once, the server's default of 5 reset 34 of 120 simultaneous connections in a test on 10-19, and that day's synchronised reload of all four pages lost role files to it (see `Bootstrapper.js`). What it keeps, and for how long:
 
 | File | Kept | Why |
 |---|---|---|

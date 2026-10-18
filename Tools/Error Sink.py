@@ -688,6 +688,8 @@ class Sink(ThreadingHTTPServer):
     # Threaded so the once-a-second live posts and page polls never queue behind an errors.json merge;
     # STORE_LOCK still serialises the merges themselves.
     daemon_threads = True
+    # The default backlog of 5 reset a third of 120 simultaneous connections; four pages loading at once open ~340.
+    request_queue_size = 1024
 
 
 def bind_server(attempts=20, wait=0.5):

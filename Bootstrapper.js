@@ -136,7 +136,7 @@
 		game_log("⚠️ No role script for " + character.name);
 	}
 
-	const MAX_RETRIES = 3;
+	const MAX_RETRIES = 5;
 	const REQUEST_TIMEOUT_MS = 10000;
 
 	const OPTIONAL_SCRIPTS = new Set([
@@ -195,10 +195,14 @@
 			.then(results => {
 				const failed = results.filter(r => !r.ok).map(r => r.name);
 				if (!failed.length) return true;
-				game_log("🛑 CRITICAL: failed to load " + failed.join(", ") + " after retries — aborting, bot cannot function. Reload to retry.");
-				console.error("[BS] Critical script failed to load, aborting:", failed);
+				abort(failed);
 				return false;
 			});
+	}
+
+	function abort(names) {
+		game_log("🛑 CRITICAL: failed to load " + names.join(", ") + " — aborting, bot cannot function. Reload to retry.");
+		console.error("[BS] Critical script(s) failed to load, aborting:", names);
 	}
 
 	function fetch_role_file(base, name) {
@@ -261,15 +265,14 @@
 			.then(results => {
 				if (!results) return;
 				const failed_critical = results.filter(r => !r.ok && !OPTIONAL_SCRIPTS.has(r.name));
-				if (failed_critical.length > 0) {
-					const names = failed_critical.map(r => r.name).join(", ");
-					game_log("🛑 CRITICAL: failed to load " + names + " after retries — aborting, bot cannot function. Reload to retry.");
-					console.error("[BS] Critical script(s) failed to load, aborting role-file load:", names);
-					return;
-				}
+				if (failed_critical.length > 0) return abort(failed_critical.map(r => r.name));
 				return role_texts
 					.then(texts => {
+						const unfetched = role_file.filter((name, i) => texts[i] === null);
+						if (unfetched.length > 0) return abort(unfetched);
 						const role_results = role_file.map((name, i) => ({ name, ok: eval_role_file(name, texts[i]) }));
+						const unevaluated = role_results.filter(r => !r.ok).map(r => r.name);
+						if (unevaluated.length > 0) return abort(unevaluated);
 						game_log("✅ All scripts loaded.");
 						boot(results, role_results);
 					});
