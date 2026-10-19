@@ -47,7 +47,7 @@ var CONFIG = {
 
 	looting: { ...LOOTING_DEFAULTS, enabled: true, equip_gold_gear: true },
 
-	potions: { ...POTION_DEFAULTS, prefer_mp: true },
+	potions: { ...POTION_DEFAULTS, prefer_mp: true, hp_threshold: Infinity },
 
 	elixir: { name: "elixirluck", min_stock: 2 },
 

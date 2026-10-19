@@ -254,13 +254,17 @@ function party_heal_outvalues_single(lowest) {
 	return wins;
 }
 
+function party_heal_on_spare_mana() {
+	return character.max_mp - character.mp < CONFIG.potions.mp_threshold && party_heal_useful_total() >= partyheal_base();
+}
+
 async function handle_party_heal() {
 	if (character.mp < character.max_mp * CONFIG.healing.party_heal_min_mp_pct) return;
 	if (is_on_cooldown("partyheal")) return;
 
-	const emergency = party_heal_emergency();
+	const reason = party_heal_emergency() || (party_heal_on_spare_mana() ? "spare" : null);
 
-	if (!emergency) {
+	if (!reason) {
 		let threshold = CONFIG.healing.party_heal_threshold;
 		if (character.map !== destination.map) {
 			threshold = 0.75;
@@ -272,7 +276,7 @@ async function handle_party_heal() {
 	} else {
 		const lowest = cache.heal_target;
 		sample_heal_choice(
-			emergency,
+			reason,
 			party_heal_useful_total(),
 			lowest ? heal_useful(lowest, character.heal) : 0,
 			party_heal_critical_count()

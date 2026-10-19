@@ -59,11 +59,26 @@
   },
   "skill_tick": {
    "result": 40,
-   "sent": []
+   "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "partyheal",
+      "target": null
+     }
+    }
+   ]
   },
   "skill_tick ready": {
    "result": 40,
    "sent": [
+    {
+     "event": "use_skill",
+     "payload": {
+      "name": "partyheal",
+      "target": null
+     }
+    },
     {
      "event": "use_skill",
      "payload": {
