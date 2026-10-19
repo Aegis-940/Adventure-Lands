@@ -81,9 +81,9 @@ var equipment_sets = {
 		{ item_name: "lmace", slot: "mainhand", level: 8, l: "" },
 		{ item_name: "mshield", slot: "offhand", level: 8, l: "l" },
 	],
-	luck_exoarm: [
+	luck_lantern: [
 		{ item_name: "lmace", slot: "mainhand", level: 8, l: "" },
-		{ item_name: "exoarm", slot: "offhand", level: 1, l: "l" },
+		{ item_name: "lantern", slot: "offhand", level: 3, l: "l" },
 	],
 	uhills_orb: [
 		{ item_name: "stillwaterlens", slot: "orb", level: 1, l: "l" },
