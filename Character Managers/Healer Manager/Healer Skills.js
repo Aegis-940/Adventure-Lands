@@ -255,7 +255,7 @@ function party_heal_outvalues_single(lowest) {
 }
 
 async function handle_party_heal() {
-	if (character.mp <= CONFIG.healing.party_heal_min_mp) return;
+	if (character.mp < character.max_mp * CONFIG.healing.party_heal_min_mp_pct) return;
 	if (is_on_cooldown("partyheal")) return;
 
 	const emergency = party_heal_emergency();
