@@ -224,6 +224,11 @@ function cupid_blocked() {
 	return !set_available("heal") || encounter_gear("weapon") !== null;
 }
 
+function healer_wants_help(healer) {
+	const state = read_state_cache(healer.name);
+	return !!state && state.help_until > Date.now();
+}
+
 function find_cupid_target() {
 	if (cupid_blocked()) {
 		_cupid_engaged = false;
@@ -231,16 +236,12 @@ function find_cupid_target() {
 	}
 
 	const healer = get_entity("Myras");
-	const healer_up = healer && !healer.rip;
-
-	if (healer_up && healer.mp / healer.max_mp >= CONFIG.combat.cupid_healer_mp_pct) {
+	if (healer && !healer.rip) {
 		_cupid_engaged = false;
-		return null;
+		return healer_wants_help(healer) && is_in_range(healer) ? healer : null;
 	}
 
-	const engage = healer_up
-		? CONFIG.combat.cupid_engage_pct
-		: CONFIG.combat.cupid_engage_pct_no_healer;
+	const engage = CONFIG.combat.cupid_engage_pct_no_healer;
 	const release = Math.min(1, engage + CONFIG.combat.cupid_release_margin);
 	const party = Object.keys(get_party());
 
@@ -275,7 +276,7 @@ async function cupid_heal(target) {
 	}
 }
 
-var RANGER_ACTION = { ms: 5, gate: "combat", before: () => camp_temporal_surge(), act: ranger_action };
+var RANGER_ACTION = { ms: 5, gate: "alive", before: () => !should_pause_combat_loop() && camp_temporal_surge(), act: ranger_action };
 
 function action_loop() {
 	start_action_loop(RANGER_ACTION);
@@ -286,7 +287,7 @@ function ranger_action(ms) {
 	const cupid_live = mainhand_intent() === "cupid";
 	const want_heal = !!cache.heal_target;
 	if (want_heal && character.slots.mainhand?.name === "cupid" && cupid_live) run_basic_action(cupid_heal(cache.heal_target), "cupid", cache.heal_target);
-	else if (!want_heal && !cupid_live) handle_attack();
+	else if (!want_heal && !cupid_live && !should_pause_combat_loop()) handle_attack();
 	else return next_action_delay(ms);
 }
 

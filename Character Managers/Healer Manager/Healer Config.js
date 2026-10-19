@@ -35,6 +35,7 @@ var CONFIG = {
 		party_heal_critical_count: 2,
 		party_heal_self_pct: 0.50,
 		skill_min_mp_pct: 0.40,
+		help_deficit: 500,
 	},
 
 	equipment: {

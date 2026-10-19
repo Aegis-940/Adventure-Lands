@@ -169,6 +169,7 @@ var PANIC_BROADCAST_TARGETS = [];
 var panicking = false;
 var panic_external = false;
 var panic_since = 0;
+var healer_help_until = 0;
 
 function request_delivery() { }
 function model_prediction() { return null; }

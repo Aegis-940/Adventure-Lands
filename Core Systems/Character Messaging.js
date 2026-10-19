@@ -117,6 +117,7 @@ function get_full_character_state() {
 		goal: current_goal_label(),
 		surge_at: surge_cast_at,
 		stomp_ready_at: stomp_ready_at,
+		help_until: healer_help_until,
 		free_slots: character.esize,
 		loose_slots: loose_loot(0).length,
 		ship_slots: shippable_loot().length,

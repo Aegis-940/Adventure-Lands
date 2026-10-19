@@ -85,6 +85,54 @@ function self_heal_rate() {
 	return heal_delivered(character, character.heal) * character.frequency;
 }
 
+var HELP_TICK_MS = 100;
+var HELP_HOLD_MS = 1000;
+
+var _help_since = 0;
+
+function evaded_incoming_dps() {
+	let total = 0;
+	for (const id in parent.entities) {
+		const e = parent.entities[id];
+		if (e.type !== "monster" || e.dead || e.target !== character.name) continue;
+		const physical = (e.damage_type || G.monsters[e.mtype].damage_type) === "physical";
+		total += monster_dps_on(e, character) * (physical ? 1 - character.evasion / 100 : 1);
+	}
+	return total;
+}
+
+function help_sample(state, extra) {
+	errlog_sample("help", {
+		state,
+		...extra,
+		on_me: character.targets,
+		hp_pct: +(character.hp / character.max_hp).toFixed(2),
+		mp_pct: +(character.mp / character.max_mp).toFixed(2),
+	});
+}
+
+function update_help_request() {
+	const now = Date.now();
+	const incoming = evaded_incoming_dps();
+	const capacity = self_heal_rate();
+	if (!character.rip && incoming - capacity > CONFIG.healing.help_deficit) {
+		const raised = healer_help_until <= now;
+		healer_help_until = now + HELP_HOLD_MS;
+		if (raised) {
+			_help_since = now;
+			write_state_cache();
+			help_sample("raised", { incoming: Math.round(incoming), capacity: Math.round(capacity) });
+		}
+	} else if (_help_since && healer_help_until <= now) {
+		help_sample("dropped", { secs: +((now - _help_since) / 1000).toFixed(1) });
+		_help_since = 0;
+	}
+}
+
+function help_loop() {
+	every("help_loop", { ms: HELP_TICK_MS, kind: "combat", beat: true, retry: TICK_RATE.retry }, update_help_request);
+}
+
 function tank_can_take(added_dps) {
 	const kited = kited_boss();
 	const outrun = kited ? monster_dps_on(kited, character) : 0;
