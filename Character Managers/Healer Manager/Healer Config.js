@@ -59,7 +59,7 @@ var CONFIG = {
 
 var destination = null;
 
-var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE, "mshield", "lmace", "elixirluck", "orboftemporal", "orboffire"];
+var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE, "mshield", "lmace", "elixirluck", "orboftemporal", "orboffire", "stillwaterlens", "xgloves", "t2intamulet"];
 
 var item_order = { ...ITEM_ORDER_BASE };
 
@@ -86,17 +86,11 @@ var equipment_sets = {
 		{ item_name: "lmace", slot: "mainhand", level: 8, l: "" },
 		{ item_name: "lantern", slot: "offhand", level: 3, l: "l" },
 	],
-	uhills_orb: [
-		{ item_name: "stillwaterlens", slot: "orb", level: 1, l: "l" },
-	],
-	uhills_gloves: [
-		{ item_name: "xgloves", slot: "gloves", level: 6, l: "l" },
-	],
 	uhills_chest: [
 		{ item_name: "xarmor", slot: "chest", level: 5, l: "l" },
 	],
 	uhills_amulet: [
-		{ item_name: "t2intamulet", slot: "amulet", level: 1, l: "l" },
+		{ item_name: "spookyamulet", slot: "amulet", level: 2, l: "l" },
 	],
 	gold: [
 		{ item_name: "handofmidas", slot: "gloves", level: 4, l: "l" },

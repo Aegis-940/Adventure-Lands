@@ -2,8 +2,8 @@
  "decisions": {
   "update_cache": "ok",
   "gear.loadout": "luck_lantern",
-  "gear.gloves": "uhills_gloves",
-  "gear.orb": "uhills_orb",
+  "gear.gloves": "gloves",
+  "gear.orb": "orb_exp",
   "gear.chest": "uhills_chest",
   "gear.amulet": "uhills_amulet",
   "gear.ring": null,
