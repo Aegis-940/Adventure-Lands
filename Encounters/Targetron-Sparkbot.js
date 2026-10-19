@@ -8,7 +8,7 @@ encounter("targetron-sparkbot", {
 	homes: ["sparkbot", "targetron"],
 	mtypes: ["sparkbot"],
 	gear: {
-		priest: { loadout: "luck_lantern", orb: "orb_exp", chest: "uhills_chest", amulet: "uhills_amulet" },
+		priest: { loadout: "luck_lantern", orb: "uhills_orb", chest: "uhills_chest", amulet: "uhills_amulet" },
 	},
 	settings: {
 		priest: { curse: false },
