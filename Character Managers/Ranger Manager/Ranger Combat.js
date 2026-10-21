@@ -294,7 +294,7 @@ function ranger_action(ms) {
 function coop_boss_only(in_range) {
 	const boss = in_range.find(is_coop_boss);
 	if (!boss) return in_range;
-	if (!takes_one_damage(boss)) return [boss];
+	if (!takes_one_damage(boss) && !encounter_trait("multishot_with_boss", boss)) return [boss];
 	return [boss, ...in_range.filter(m => m !== boss)];
 }
 
