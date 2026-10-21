@@ -50,6 +50,7 @@
 		"Encounters/Phoenix.js",
 		"Core Systems/World Events.js",
 		"Core Systems/Trick or Treat.js",
+		"Encounters/Cipher Gathering.js",
 		"Core Systems/Character Messaging.js",
 		"Core Systems/Equipment Manager.js",
 		"Core Systems/Equipment Valuation.js",

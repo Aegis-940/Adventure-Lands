@@ -79,6 +79,7 @@ function clear_delivery_request() {
 
 function delivery_wanted(status) {
 	return is_mluck_due(status)
+		|| cipher_pickup_due(status)
 		|| (status.free_slots <= CONFIG.delivery.free_slots_threshold && status.loose_slots > 0)
 		|| status.gold - LOOT_GOLD_RESERVE >= CONFIG.delivery.gold_threshold;
 }

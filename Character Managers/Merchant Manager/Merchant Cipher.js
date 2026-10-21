@@ -12,10 +12,6 @@ var CIPHER_BOARD_WAIT_MS = 5000;
 
 var _cipher_retry_at = 0;
 
-function cipher_ingredients() {
-	return G.events.witchcipher.ingredients.map(entry => entry[0]);
-}
-
 function cipher_round() {
 	const cipher = parent.S.witchcipher;
 	return cipher && cipher.live ? cipher : null;
@@ -32,12 +28,6 @@ function cipher_recipe(n) {
 
 function cipher_fits(cipher, n) {
 	return (parseInt(cipher.fit[n >> 2], 16) >> (n & 3)) & 1;
-}
-
-function cipher_stock() {
-	const have = {};
-	for (const name of cipher_ingredients()) have[name] = quantity(name);
-	return have;
 }
 
 function cipher_affordable(mix, have) {
@@ -79,7 +69,13 @@ function cipher_time_to_brew(cipher) {
 function should_run_cipher() {
 	if (!setting("merchant_cipher") || merchant_task !== "Idle" || Date.now() < _cipher_retry_at) return false;
 	const cipher = cipher_round();
-	return !!cipher && cipher_time_to_brew(cipher) && cipher_mixes_left() > 0 && !!cipher_choice(cipher, cipher_stock());
+	return !!cipher && cipher_time_to_brew(cipher) && cipher_mixes_left() > 0 && !!cipher_choice(cipher, cipher_bag());
+}
+
+function cipher_pickup_due(status) {
+	const cipher = cipher_round();
+	return setting("merchant_cipher") && !!cipher && cipher.phase === "brewing" && cipher_mixes_left() > 0
+		&& !!status.cipher_bag && cipher_held(status.cipher_bag) > 0;
 }
 
 async function brew_one(choice) {
@@ -106,14 +102,15 @@ function handle_cipher_state() {
 		await smarter_move(CIPHER_WITCH, null, { radius: CIPHER_REACH });
 		while (!abandoned() && cipher_mixes_left() > 0) {
 			const cipher = cipher_round();
-			const choice = cipher && cipher_choice(cipher, cipher_stock());
+			const choice = cipher && cipher_choice(cipher, cipher_bag());
 			if (!choice || !await brew_one(choice)) return;
 		}
 	});
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// INGREDIENTS — kept in the bag (CONFIG.do_not_bank); bought from stands in view while idle at home, one listing at a time
+// INGREDIENTS — kept in the bag (CONFIG.do_not_bank); collected from the fighters when the brewing phase opens (cipher_pickup_due(),
+// a delivery reason), and bought from stands in view while idle at home, one listing at a time
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 var CIPHER_BUY_MAX_PRICE = 25000;

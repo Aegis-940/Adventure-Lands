@@ -20,6 +20,7 @@ function settings_registry() {
 			section: "Bosses & events", name: "boss_" + e.name, key: SETTING_KEY_PREFIX + "boss_" + e.name,
 			label: e.mtypes ? G.events[e.name].name : G.monsters[e.name].name, type: "checkbox", default: true,
 		})),
+		{ section: "Bosses & events", name: "cipher_gathering", key: SETTING_KEY_PREFIX + "cipher_gathering", label: "Witch's Cipher gathering (the fighters)", type: "checkbox", default: true },
 		{ section: "Bosses & events", name: "trick_or_treat", key: SETTING_KEY_PREFIX + "trick_or_treat", label: "Trick or Treat (Riff, and Riva after an event)", type: "checkbox", default: true },
 
 		{ section: "Dungeons", name: "dungeon", label: "Dungeon", type: "select", options: dungeon_options, default: "",
