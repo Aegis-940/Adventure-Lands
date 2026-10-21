@@ -74,8 +74,8 @@ function movement_goal() {
 	const event = ignoring_events || !encounter_home_setting("events", true) ? null : event_goal();
 	if (event && event.local === "kite") return event;
 	if (!event && !ignoring_events) {
-		const knock = trick_or_treat_goal();
-		if (knock) return knock;
+		const errand = cipher_meet_goal() || trick_or_treat_goal();
+		if (errand) return errand;
 	}
 	const scripted_camp = party_camped(event);
 	const cohesion_hold = !scripted_camp && party_cohesion_hold(event);

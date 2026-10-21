@@ -72,10 +72,16 @@ function should_run_cipher() {
 	return !!cipher && cipher_time_to_brew(cipher) && cipher_mixes_left() > 0 && !!cipher_choice(cipher, cipher_bag());
 }
 
-function cipher_pickup_due(status) {
-	const cipher = cipher_round();
-	return setting("merchant_cipher") && !!cipher && cipher.phase === "brewing" && cipher_mixes_left() > 0
-		&& !!status.cipher_bag && cipher_held(status.cipher_bag) > 0;
+function should_run_cipher_meet() {
+	return setting("merchant_cipher") && merchant_task === "Idle" && cipher_meet_pending();
+}
+
+function handle_cipher_meet_state() {
+	return run_task("Cipher meet", async abandoned => {
+		log_msg("info", "🧪 Waiting at home for the party's Cipher ingredients");
+		if (simple_distance(character, HOME) > 10) await smarter_move(HOME);
+		await wait_until(() => abandoned() || !cipher_meet_pending(), CIPHER_MEET_WAIT_MS * 2, 500);
+	});
 }
 
 async function brew_one(choice) {
@@ -109,8 +115,8 @@ function handle_cipher_state() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// INGREDIENTS — kept in the bag (CONFIG.do_not_bank); collected from the fighters when the brewing phase opens (cipher_pickup_due(),
-// a delivery reason), and bought from stands in view while idle at home, one listing at a time
+// INGREDIENTS — kept in the bag (CONFIG.do_not_bank); handed over by the fighters at home after the gathering (Cipher Gathering.js),
+// and bought from stands in view while idle at home, one listing at a time
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 var CIPHER_BUY_MAX_PRICE = 25000;

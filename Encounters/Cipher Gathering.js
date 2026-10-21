@@ -1,6 +1,6 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // CIPHER GATHERING — the first 20 minutes of a Witch's Cipher round: the fighters leave their farm for the ingredient spots, the type
-// the account holds least of first, five of each before moving on, and go back when the window closes. Myras owns the plan
+// the account holds least of first, five of each before moving on, then meet Riff in town to hand them over. Myras owns the plan
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const CIPHER_SPOTS = { verdantspore: "spider", frostscale: "wolfie", embercoal: "plantoid", gloomfeather: "ghost" };
@@ -11,8 +11,13 @@ const CIPHER_HOLDERS = ["Ulric", "Myras", "Riva", "Riff"];
 const CIPHER_GATHER_QUOTA = 5;
 const CIPHER_GATHER_SPOT_MS = 8 * 60 * 1000;
 const CIPHER_GATHER_TICK_MS = 1000;
+const CIPHER_MEET = { map: "main", x: -87, y: -96 };
+const CIPHER_MEET_LABEL = "cipher-meet";
+const CIPHER_MEET_ARRIVE = 100;
+const CIPHER_MEET_WAIT_MS = 90 * 1000;
 
 let _cipher_gathering = false;
+let _cipher_meet = { round: null, arrived_at: 0, gave_up: false };
 
 function cipher_ingredients() {
 	return G.events.witchcipher.ingredients.map(entry => entry[0]);
@@ -22,10 +27,6 @@ function cipher_bag() {
 	const bag = {};
 	for (const name of cipher_ingredients()) bag[name] = quantity(name);
 	return bag;
-}
-
-function cipher_held(bag) {
-	return Object.values(bag).reduce((sum, q) => sum + q, 0);
 }
 
 function cipher_account_stock() {
@@ -107,6 +108,51 @@ function cipher_gather_tick() {
 	if (spot && spot !== home) switch_home(spot);
 	if (!spot && _cipher_gathering) switch_home(farm_target_for(character.name));
 	_cipher_gathering = !!spot;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// THE MEET — once this round's gathering is over, a fighter with ingredients to ship walks to Riff's stand in town and holds there
+// while the hand-off ships them; Riff waits at home while anyone is on the way (Merchant Cipher.js)
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+function cipher_to_ship() {
+	const names = cipher_ingredients();
+	return shippable_loot().filter(({ item }) => names.includes(item.name)).length;
+}
+
+function cipher_gathering_over(cipher) {
+	if (cipher.phase !== "gathering") return true;
+	const plan = storage_read(CIPHER_GATHER_KEY);
+	return !!plan && plan.round === cipher.id && plan.done;
+}
+
+function cipher_meet_goal() {
+	const cipher = parent.S.witchcipher;
+	if (!cipher || !cipher.live || !character.witchcipher || character.witchcipher.mixes_left <= 0) return null;
+	if (!CIPHER_GATHERERS.includes(character.name) || character.rip || panicking) return null;
+	if (!setting("cipher_gathering") || !cipher_gathering_over(cipher) || !cipher_to_ship()) return null;
+
+	if (_cipher_meet.round !== cipher.id) _cipher_meet = { round: cipher.id, arrived_at: 0, gave_up: false };
+	if (_cipher_meet.gave_up) return null;
+	const at_meet = character.map === CIPHER_MEET.map
+		&& Math.hypot(character.x - CIPHER_MEET.x, character.y - CIPHER_MEET.y) <= CIPHER_MEET_ARRIVE;
+	if (at_meet || merchant_in_reach(MERCHANT_AUTO_SEND_RANGE)) {
+		if (!_cipher_meet.arrived_at) _cipher_meet.arrived_at = Date.now();
+		if (Date.now() - _cipher_meet.arrived_at > CIPHER_MEET_WAIT_MS) {
+			_cipher_meet.gave_up = true;
+			log_msg("warn", `🧪 Riff didn't come for the Cipher ingredients in ${CIPHER_MEET_WAIT_MS / 1000}s; they go at his next visit`);
+			return null;
+		}
+		return { local: "keep", label: CIPHER_MEET_LABEL, disengage: true };
+	}
+	return { label: CIPHER_MEET_LABEL, ...CIPHER_MEET, radius: CIPHER_MEET_ARRIVE / 2, disengage: true };
+}
+
+function cipher_meet_pending() {
+	return CIPHER_GATHERERS.some(name => {
+		const state = read_state_cache(name);
+		return !!state && state.goal === CIPHER_MEET_LABEL;
+	});
 }
 
 function cipher_gather_start() {
