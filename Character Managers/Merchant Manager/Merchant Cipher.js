@@ -1,6 +1,7 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // MERCHANT CIPHER — the Witch's Cipher: Riff brews, late in each round, the recipe that still fits every clue on the realm's board
-// and has the most slots likely right, from the ingredients in his bag
+// and has the most slots likely right, from the ingredients in his bag; in the UTC day's last round, once none of those can be made,
+// the new mix with the most slots likely right that he can make, so no mix of the day goes unbrewed
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 var CIPHER_WITCH = { map: "halloween", x: 858, y: -120 };
@@ -9,6 +10,7 @@ var CIPHER_RECIPES = 1024;
 var CIPHER_EARLY_POSSIBLE = 3;
 var CIPHER_RETRY_MS = 5 * 60 * 1000;
 var CIPHER_BOARD_WAIT_MS = 5000;
+var CIPHER_DAY_MS = 24 * 60 * 60 * 1000;
 
 var _cipher_retry_at = 0;
 
@@ -34,28 +36,48 @@ function cipher_affordable(mix, have) {
 	return cipher_ingredients().every(name => mix.filter(m => m === name).length <= have[name]);
 }
 
-function cipher_choice(cipher, have) {
-	const candidates = [];
+function cipher_spare(mix, have) {
+	return Math.min(...cipher_ingredients().map(name => have[name] - mix.filter(m => m === name).length));
+}
+
+function cipher_best(mixes, have, share) {
+	let best = null;
+	for (const mix of mixes) {
+		if (!cipher_affordable(mix, have)) continue;
+		const option = { mix, score: mix.reduce((sum, name, slot) => sum + share[slot][name], 0), spare: cipher_spare(mix, have) };
+		if (!best || option.score > best.score || (option.score === best.score && option.spare > best.spare)) best = option;
+	}
+	return best;
+}
+
+function cipher_choice(cipher, have, ruled_out_ok) {
+	const fitting = [];
+	const ruled_out = [];
+	const tried = new Set(cipher.board.map(entry => entry.mix.join()));
 	for (let n = 0; n < CIPHER_RECIPES; n++) {
-		if (cipher_fits(cipher, n)) candidates.push(cipher_recipe(n));
+		const mix = cipher_recipe(n);
+		if (cipher_fits(cipher, n)) fitting.push(mix);
+		else if (!tried.has(mix.join())) ruled_out.push(mix);
 	}
 
 	const share = [0, 1, 2, 3, 4].map(() => ({}));
-	for (const mix of candidates) {
+	for (const mix of fitting) {
 		mix.forEach((name, slot) => { share[slot][name] = (share[slot][name] || 0) + 1; });
 	}
+	for (const counts of share) for (const name of cipher_ingredients()) counts[name] = counts[name] || 0;
 
-	let best = null;
-	let best_score = -1;
-	for (const mix of candidates) {
-		if (!cipher_affordable(mix, have)) continue;
-		const score = mix.reduce((sum, name, slot) => sum + share[slot][name], 0);
-		if (score > best_score) {
-			best = mix;
-			best_score = score;
-		}
+	let best = cipher_best(fitting, have, share);
+	let fits = true;
+	if (!best && ruled_out_ok) {
+		best = cipher_best(ruled_out, have, share);
+		fits = false;
 	}
-	return best && { mix: best, expected: best_score / candidates.length, possible: candidates.length };
+	return best && { mix: best.mix, expected: best.score / fitting.length, possible: fitting.length, fits };
+}
+
+function cipher_last_round_today() {
+	const midnight = (Math.floor(Date.now() / CIPHER_DAY_MS) + 1) * CIPHER_DAY_MS;
+	return !parent.S.schedule.events.some(e => e.event === "witchcipher" && e.status === "scheduled" && e.at < midnight);
 }
 
 function cipher_time_to_brew(cipher) {
@@ -69,7 +91,8 @@ function cipher_time_to_brew(cipher) {
 function should_run_cipher() {
 	if (!setting("merchant_cipher") || merchant_task !== "Idle" || Date.now() < _cipher_retry_at) return false;
 	const cipher = cipher_round();
-	return !!cipher && cipher_time_to_brew(cipher) && cipher_mixes_left() > 0 && !!cipher_choice(cipher, cipher_bag());
+	return !!cipher && cipher_time_to_brew(cipher) && cipher_mixes_left() > 0
+		&& !!cipher_choice(cipher, cipher_bag(), cipher.phase === "brewing" && cipher_last_round_today());
 }
 
 function should_run_cipher_meet() {
@@ -89,9 +112,10 @@ async function brew_one(choice) {
 	try {
 		const reply = await brew(choice.mix);
 		log_msg("event", `🧪 Brewed ${choice.mix.join(", ")}: ${reply.right} right${reply.cracked ? ", cracked it" : ""}, `
-			+ `+${reply.parcels} Witch's Parcels, ${reply.mixes_left} mixes left (1 of ${choice.possible} recipes)`);
+			+ `+${reply.parcels} Witch's Parcels, ${reply.mixes_left} mixes left`
+			+ (choice.fits ? ` (1 of ${choice.possible} recipes)` : ` (ruled out by the board, ${choice.possible} recipes fit)`));
 		errlog_sample("witch_cipher", { mix: choice.mix, right: reply.right, cracked: !!reply.cracked, parcels: reply.parcels,
-			possible: choice.possible, expected: choice.expected, phase: before.phase });
+			fits: choice.fits, server_fits: reply.fits, possible: choice.possible, expected: choice.expected, phase: before.phase });
 	} catch (e) {
 		log_msg("warn", `🧪 The Witch refused the mix: ${e.reason}${e.item ? " (" + e.item + ")" : ""}`);
 		return false;
@@ -108,7 +132,7 @@ function handle_cipher_state() {
 		await smarter_move(CIPHER_WITCH, null, { radius: CIPHER_REACH });
 		while (!abandoned() && cipher_mixes_left() > 0) {
 			const cipher = cipher_round();
-			const choice = cipher && cipher_choice(cipher, cipher_bag());
+			const choice = cipher && cipher_choice(cipher, cipher_bag(), cipher.phase === "brewing" && cipher_last_round_today());
 			if (!choice || !await brew_one(choice)) return;
 		}
 	});
