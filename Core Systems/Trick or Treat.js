@@ -4,6 +4,7 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 const TRICK_OR_TREAT_FIGHTER = "Riva";
+const KNOCK_LABEL = "knock";
 const KNOCK_STAND_OFFSET = 24;
 const KNOCK_REACH = 30;
 const KNOCK_RETRY_MS = 5000;
@@ -71,9 +72,9 @@ function trick_or_treat_goal() {
 
 	if (gap(stand) <= KNOCK_REACH) {
 		if (!_knock_in_flight && Date.now() - _knock_at > KNOCK_RETRY_MS) knock_door(i);
-		return { local: "keep", label: "knock", disengage: true };
+		return { local: "keep", label: KNOCK_LABEL, disengage: true };
 	}
-	return { label: "knock", map: stand.map, x: stand.x, y: stand.y, radius: KNOCK_REACH / 2, disengage: true };
+	return { label: KNOCK_LABEL, map: stand.map, x: stand.x, y: stand.y, radius: KNOCK_REACH / 2, disengage: true };
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
