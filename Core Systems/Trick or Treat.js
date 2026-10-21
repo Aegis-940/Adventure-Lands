@@ -1,9 +1,9 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// TRICK OR TREAT — seven doors, one knock each per character per UTC day and 14 per account: Riff walks to every door, and Riva
-// knocks the doors on whichever Halloween map an event leaves her on
+// TRICK OR TREAT — seven doors, one knock each per character per UTC day and 14 per account: Riff walks to every door, and Myras
+// leads the party past the doors on whichever Halloween map an event leaves them on
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
-const TRICK_OR_TREAT_FIGHTER = "Riva";
+const TRICK_OR_TREAT_FIGHTER = MOVEMENT_LEADER;
 const KNOCK_LABEL = "knock";
 const KNOCK_STAND_OFFSET = 24;
 const KNOCK_REACH = 30;
@@ -59,11 +59,12 @@ async function knock_door(i) {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// RIVA — the nearest unknocked door on her map, while no event wants her and nothing is on her
+// THE LEADER — the nearest unknocked door on her map, with the party together, no event live and nothing on her; the others follow
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function trick_or_treat_goal() {
 	if (character.name !== TRICK_OR_TREAT_FIGHTER || character.rip || panicking || monsters_targeting_me() > 0) return null;
+	if (best_event_target()) return null;
 	const doors = doors_to_knock(character.map);
 	if (!doors.length) return null;
 

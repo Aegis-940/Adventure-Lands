@@ -73,10 +73,6 @@ function movement_goal() {
 
 	const event = ignoring_events || !encounter_home_setting("events", true) ? null : event_goal();
 	if (event && event.local === "kite") return event;
-	if (!event && !ignoring_events) {
-		const errand = cipher_meet_goal() || trick_or_treat_goal();
-		if (errand) return errand;
-	}
 	const scripted_camp = party_camped(event);
 	const cohesion_hold = !scripted_camp && party_cohesion_hold(event);
 
@@ -94,6 +90,9 @@ function movement_goal() {
 	if (event) return event;
 
 	if (ignoring_events) return null;
+
+	const errand = cipher_meet_goal() || trick_or_treat_goal();
+	if (errand) return errand;
 
 	const spawn_goal = encounter_goal();
 	if (spawn_goal) return spawn_goal;

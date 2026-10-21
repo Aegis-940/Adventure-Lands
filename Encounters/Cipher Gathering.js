@@ -111,8 +111,8 @@ function cipher_gather_tick() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
-// THE MEET — once this round's gathering is over, a fighter with ingredients to ship walks to Riff's stand in town and holds there
-// while the hand-off ships them; Riff waits at home while anyone is on the way (Merchant Cipher.js)
+// THE MEET — once this round's gathering is over and anyone has ingredients to ship, Myras leads the party to Riff's stand in town and
+// holds there while the hand-off ships them; Riff waits at home while she is on the way (Merchant Cipher.js)
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 function cipher_to_ship() {
@@ -126,11 +126,19 @@ function cipher_gathering_over(cipher) {
 	return !!plan && plan.round === cipher.id && plan.done;
 }
 
+function cipher_party_to_ship() {
+	return CIPHER_GATHERERS.some(name => {
+		if (name === character.name) return cipher_to_ship() > 0;
+		const state = read_state_cache(name);
+		return !!state && state.cipher_ship > 0;
+	});
+}
+
 function cipher_meet_goal() {
 	const cipher = parent.S.witchcipher;
 	if (!cipher || !cipher.live || !character.witchcipher || character.witchcipher.mixes_left <= 0) return null;
-	if (!CIPHER_GATHERERS.includes(character.name) || character.rip || panicking) return null;
-	if (!setting("cipher_gathering") || !cipher_gathering_over(cipher) || !cipher_to_ship()) return null;
+	if (character.name !== MOVEMENT_LEADER || character.rip || panicking || best_event_target()) return null;
+	if (!setting("cipher_gathering") || !cipher_gathering_over(cipher) || !cipher_party_to_ship()) return null;
 
 	if (_cipher_meet.round !== cipher.id) _cipher_meet = { round: cipher.id, arrived_at: 0, gave_up: false };
 	if (_cipher_meet.gave_up) return null;
@@ -140,7 +148,7 @@ function cipher_meet_goal() {
 		if (!_cipher_meet.arrived_at) _cipher_meet.arrived_at = Date.now();
 		if (Date.now() - _cipher_meet.arrived_at > CIPHER_MEET_WAIT_MS) {
 			_cipher_meet.gave_up = true;
-			log_msg("warn", `🧪 Riff didn't come for the Cipher ingredients in ${CIPHER_MEET_WAIT_MS / 1000}s; they go at his next visit`);
+			log_msg("warn", `🧪 The Cipher ingredients didn't all reach Riff in ${CIPHER_MEET_WAIT_MS / 1000}s; the rest go at his next visit`);
 			return null;
 		}
 		return { local: "keep", label: CIPHER_MEET_LABEL, disengage: true };
@@ -149,10 +157,8 @@ function cipher_meet_goal() {
 }
 
 function cipher_meet_pending() {
-	return CIPHER_GATHERERS.some(name => {
-		const state = read_state_cache(name);
-		return !!state && state.goal === CIPHER_MEET_LABEL;
-	});
+	const state = read_state_cache(MOVEMENT_LEADER);
+	return !!state && state.goal === CIPHER_MEET_LABEL;
 }
 
 function cipher_gather_start() {

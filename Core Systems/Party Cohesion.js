@@ -119,10 +119,6 @@ function follow_has_leader() {
 	return !!pos && !pos.rip;
 }
 
-function on_errand(label) {
-	return label === KNOCK_LABEL || label === CIPHER_MEET_LABEL;
-}
-
 function party_cohesion_hold(event) {
 	if (character.name !== MOVEMENT_LEADER || !cohesion_on()) return false;
 
@@ -132,7 +128,6 @@ function party_cohesion_hold(event) {
 		const s = party_state(name);
 		if (!s || s.rip || automation_paused(name)) return false;
 		if (event && s.goal === event.label) return false;
-		if (on_errand(s.goal)) return false;
 		if (s.map !== character.map) return !travelling;
 		return Math.hypot(s.x - character.x, s.y - character.y) > limit;
 	});
