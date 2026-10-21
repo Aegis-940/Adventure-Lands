@@ -17,6 +17,7 @@ const CIPHER_MEET = { map: "main", x: -87, y: -96 };
 const CIPHER_MEET_LABEL = "cipher-meet";
 const CIPHER_MEET_ARRIVE = 100;
 const CIPHER_MEET_WAIT_MS = 90 * 1000;
+const CIPHER_MEET_SKIP_EACH = 10;
 
 let _cipher_gathering = false;
 let _cipher_meet = { round: null, arrived_at: 0, gave_up: false };
@@ -166,11 +167,16 @@ function cipher_party_to_ship() {
 	});
 }
 
+function cipher_riff_stocked() {
+	const state = read_state_cache("Riff");
+	return !!state && !!state.cipher_bag && cipher_ingredients().every(name => (state.cipher_bag[name] || 0) >= CIPHER_MEET_SKIP_EACH);
+}
+
 function cipher_meet_goal() {
 	const cipher = parent.S.witchcipher;
 	if (!cipher || !cipher.live || !character.witchcipher || character.witchcipher.mixes_left <= 0) return null;
 	if (character.name !== MOVEMENT_LEADER || character.rip || panicking || best_event_target()) return null;
-	if (!setting("cipher_gathering") || !cipher_gathering_over(cipher) || !cipher_party_to_ship()) return null;
+	if (!setting("cipher_gathering") || !cipher_gathering_over(cipher) || !cipher_party_to_ship() || cipher_riff_stocked()) return null;
 
 	if (_cipher_meet.round !== cipher.id) _cipher_meet = { round: cipher.id, arrived_at: 0, gave_up: false };
 	if (_cipher_meet.gave_up) return null;
