@@ -41,7 +41,11 @@ function event_goal() {
 		return null;
 	}
 
-	if (target.join === true && !get_nearest_monster({ type: target.name })) {
+	const label = "event-" + target.name;
+	const seen = event_monster(target.name);
+
+	if (target.join === true && !seen) {
+		if (target.wait && character.map === target.data.map) return event_wait_goal(target, label);
 		if (Date.now() - _last_event_join > EVENT_JOIN_RETRY_MS) {
 			_last_event_join = Date.now();
 			join(target.name).catch(() => { });
@@ -49,8 +53,6 @@ function event_goal() {
 		return null;
 	}
 
-	const label = "event-" + target.name;
-	const seen = get_nearest_monster({ type: target.name });
 	if (seen) boss_watch(seen);
 	if (seen && seen.target === character.name && kite_ring(seen)) {
 		return { local: "kite", pursuit: true, label, event: target.name };
@@ -76,6 +78,11 @@ function event_goal() {
 	return { label, map: target.map, x: target.x, y: target.y, radius: EVENT_PLACE_ARRIVE, disengage: true };
 }
 
+function event_wait_goal(target, label) {
+	if (Math.hypot(character.x - target.wait.x, character.y - target.wait.y) <= EVENT_PLACE_ARRIVE) return { local: "keep", label };
+	return { label, map: character.map, x: target.wait.x, y: target.wait.y, radius: EVENT_PLACE_ARRIVE };
+}
+
 function event_place(target, boss) {
 	return target.spot || (target.join ? boss : target);
 }
@@ -97,7 +104,7 @@ function boss_watch(boss) {
 }
 
 function event_step(event_type, engage_step) {
-	const boss = get_nearest_monster({ type: event_type });
+	const boss = event_monster(event_type);
 	if (!boss) return;
 	if (event_spot_step(event_type, boss)) return;
 	if (engage_step) return engage_step(boss);
@@ -138,16 +145,16 @@ function event_spot_step(event_type, boss) {
 
 function pursued_boss() {
 	const g = current_goal();
-	return g && g.pursuit ? get_nearest_monster({ type: g.event }) : null;
+	return g && g.pursuit ? event_monster(g.event) : null;
 }
 
 function kited_boss() {
 	const g = current_goal();
-	return g && g.local === "kite" ? get_nearest_monster({ type: g.event }) : null;
+	return g && g.local === "kite" ? event_monster(g.event) : null;
 }
 
 function kite_step(event_type) {
-	const boss = get_nearest_monster({ type: event_type });
+	const boss = event_monster(event_type);
 	if (boss) orbit_away(kite_ring(boss), boss);
 }
 
@@ -157,10 +164,14 @@ function best_event_target() {
 		.map(e => ({ ...e, data: parent.S[e.name] }))
 		.filter(e => e.data?.live)
 		.filter(e => engage_hp_ok(e))
-		.map(e => ({ ...e, seen: !!get_nearest_monster({ type: e.name }) }))
-		.sort((a, b) => (b.seen - a.seen) || (a.data.hp / a.data.max_hp) - (b.data.hp / b.data.max_hp));
+		.map(e => ({ ...e, seen: !!event_monster(e.name) }))
+		.sort((a, b) => (b.seen - a.seen) || event_hp_fraction(a.data) - event_hp_fraction(b.data));
 
 	return alive_sorted.length ? alive_sorted[0] : null;
+}
+
+function event_hp_fraction(data) {
+	return data.max_hp ? data.hp / data.max_hp : 1;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

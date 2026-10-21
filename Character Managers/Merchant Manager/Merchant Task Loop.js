@@ -6,6 +6,8 @@ var MERCHANT_STATES = {
 	DEAD: "dead",
 	DELIVERING: "delivering",
 	BANKING: "banking",
+	CIPHER: "cipher",
+	TRICK_OR_TREAT: "trick_or_treat",
 	LOLIPOPS: "lolipops",
 	UPGRADING: "upgrading",
 	CRAFTING: "crafting",
@@ -60,6 +62,26 @@ function handle_crafting_state() {
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------- //
+// TRICK OR TREAT — a thin wrapper over Core Systems/Trick or Treat.js; a round that leaves doors unknocked waits before the next
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+var TRICK_OR_TREAT_RETRY_MS = 30 * 60 * 1000;
+var _trick_or_treat_retry_at = 0;
+
+function should_run_trick_or_treat() {
+	return merchant_task === "Idle"
+		&& Date.now() >= _trick_or_treat_retry_at
+		&& doors_to_knock().length > 0;
+}
+
+function handle_trick_or_treat_state() {
+	return run_task("Trick or Treat", async abandoned => {
+		_trick_or_treat_retry_at = Date.now() + TRICK_OR_TREAT_RETRY_MS;
+		await trick_or_treat_round(abandoned);
+	});
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
 // PRIORITY LIST — first match in CONFIG.priorities wins
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
@@ -67,6 +89,8 @@ var PRIORITY_CHECKS = {
 	dead:        { state: MERCHANT_STATES.DEAD,       should_run: () => character.rip },
 	delivering:  { state: MERCHANT_STATES.DELIVERING, should_run: should_run_delivery },
 	banking:     { state: MERCHANT_STATES.BANKING,    should_run: should_run_banking },
+	cipher:      { state: MERCHANT_STATES.CIPHER,     should_run: should_run_cipher },
+	trick_or_treat: { state: MERCHANT_STATES.TRICK_OR_TREAT, should_run: should_run_trick_or_treat },
 	lolipops:    { state: MERCHANT_STATES.LOLIPOPS,   should_run: should_run_lolipop_push },
 	upgrading:   { state: MERCHANT_STATES.UPGRADING,  should_run: should_run_upgrade },
 	crafting:    { state: MERCHANT_STATES.CRAFTING,   should_run: should_run_craft },
@@ -88,6 +112,8 @@ async function set_state(state) {
 		case MERCHANT_STATES.DEAD:       await handle_dead_state(); break;
 		case MERCHANT_STATES.DELIVERING: await handle_delivering_state(); break;
 		case MERCHANT_STATES.BANKING:    await handle_banking_state(); break;
+		case MERCHANT_STATES.CIPHER:     await handle_cipher_state(); break;
+		case MERCHANT_STATES.TRICK_OR_TREAT: await handle_trick_or_treat_state(); break;
 		case MERCHANT_STATES.LOLIPOPS:   await handle_lolipop_state(); break;
 		case MERCHANT_STATES.UPGRADING:  await handle_upgrading_state(); break;
 		case MERCHANT_STATES.CRAFTING:   await handle_crafting_state(); break;

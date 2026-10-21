@@ -17,7 +17,8 @@ const DUNGEON_FOLLOWERS           = ["Ulric", "Riva"];
 
 const LOOT_THRESHOLD = 6;
 
-const ALL_BOSSES = ["grinch", "icegolem", "dragold", "mrgreen", "mrpumpkin", "greenjr", "jr", "franky", "rgoo", "bgoo", "crabxx"];
+const ALL_BOSSES = ["grinch", "icegolem", "dragold", "mrgreen", "mrpumpkin", "greenjr", "jr", "franky", "rgoo", "bgoo", "crabxx",
+	"horseman", "gargoyle"];
 
 const LOCATIONS = {
 	bat:        [{ map: "cave", x: 1200, y: -782 }],
@@ -115,6 +116,8 @@ const EVENT_LOCATIONS = [
 	{ name: "mrgreen", map: "spookytown", x: 605, y: 1000, leash: false },
 	{ name: "dragold", map: "cave", x: 873, y: -727 },
 	{ name: "franky", join: true, engage_below: 0.95, leash: false, spot: { x: -19, y: 36 }, avoid: ["oneeye"] },
+	{ name: "horseman", join: true, leash: false },
+	{ name: "graveyard", join: true, leash: false, mtypes: ["gargoyle", "ghoul", "zombie"], wait: { x: 255, y: -1430 } },
 	// { name: "icegolem", join: true, engage_below: 0.95 },
 	// { name: "crabxx", join: true, kite: { x: -1000, y: 1700, radius: 105 } },
 	// { name: "wabbit", dynamic: true },

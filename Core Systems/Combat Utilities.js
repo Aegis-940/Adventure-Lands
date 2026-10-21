@@ -77,9 +77,26 @@ function panic_mp_reserve() {
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 
+function event_mtypes(entry) {
+	return entry.mtypes || [entry.name];
+}
+
+function event_entry_of(mtype) {
+	return EVENT_LOCATIONS.find(e => event_mtypes(e).includes(mtype));
+}
+
+function event_monster(name) {
+	const entry = EVENT_LOCATIONS.find(e => e.name === name);
+	for (const type of event_mtypes(entry)) {
+		const mob = get_nearest_monster({ type });
+		if (mob) return mob;
+	}
+	return null;
+}
+
 function boss_is_present(entry) {
 	if (entry.data.map && entry.data.map === character.map) return true;
-	return !!get_nearest_monster({ type: entry.name });
+	return !!event_monster(entry.name);
 }
 
 function find_active_boss() {
@@ -127,7 +144,7 @@ function off_limits(mob) {
 }
 
 function kite_ring(mob) {
-	const event = EVENT_LOCATIONS.find(e => e.name === mob.mtype);
+	const event = event_entry_of(mob.mtype);
 	return event && event.kite ? event.kite : null;
 }
 
@@ -183,7 +200,7 @@ const BOSS_RETURN_MARGIN = 150;
 const _boss_strayed = {};
 
 function boss_home_area(mob) {
-	const event = EVENT_LOCATIONS.find(e => e.name === mob.mtype);
+	const event = event_entry_of(mob.mtype);
 	if (event && event.leash === false) return null;
 	const spawns = (G.maps[mob.map || character.map] || {}).monsters || [];
 	const entry = spawns.find(s => s.type === mob.mtype && s.boundary && !s.roam);

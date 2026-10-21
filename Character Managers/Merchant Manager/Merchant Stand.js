@@ -39,6 +39,7 @@ function stand_loop() {
 async function handle_idle_state() {
 	if (simple_distance(character, HOME) <= 10) {
 		sell_while_idle();
+		buy_cipher_ingredients();
 		if (setting("merchant_exchanging")) await exchange_bag_items();
 		return;
 	}

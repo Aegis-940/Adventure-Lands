@@ -49,6 +49,7 @@
 		"Encounters/Fireroamer.js",
 		"Encounters/Phoenix.js",
 		"Core Systems/World Events.js",
+		"Core Systems/Trick or Treat.js",
 		"Core Systems/Character Messaging.js",
 		"Core Systems/Equipment Manager.js",
 		"Core Systems/Equipment Valuation.js",
@@ -128,6 +129,7 @@
 		"Character Managers/Merchant Manager/Merchant Gathering.js",
 		"Character Managers/Merchant Manager/Merchant Party.js",
 		"Character Managers/Merchant Manager/Merchant Upkeep.js",
+		"Character Managers/Merchant Manager/Merchant Cipher.js",
 		"Character Managers/Merchant Manager/Merchant Task Loop.js",
 		"Character Managers/Merchant Manager/Merchant.js"]
 	};

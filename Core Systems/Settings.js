@@ -18,8 +18,9 @@ function settings_registry() {
 
 		...EVENT_LOCATIONS.map(e => ({
 			section: "Bosses & events", name: "boss_" + e.name, key: SETTING_KEY_PREFIX + "boss_" + e.name,
-			label: G.monsters[e.name].name, type: "checkbox", default: true,
+			label: e.mtypes ? G.events[e.name].name : G.monsters[e.name].name, type: "checkbox", default: true,
 		})),
+		{ section: "Bosses & events", name: "trick_or_treat", key: SETTING_KEY_PREFIX + "trick_or_treat", label: "Trick or Treat (Riff, and Riva after an event)", type: "checkbox", default: true },
 
 		{ section: "Dungeons", name: "dungeon", label: "Dungeon", type: "select", options: dungeon_options, default: "",
 			read: () => dungeon_choice() || "", write: value => choose_dungeon(value || null), only: DUNGEON_PARTY },
@@ -32,6 +33,7 @@ function settings_registry() {
 		{ section: "Merchant", name: "merchant_crafting", key: "AL_merchant_enabled_crafting", label: "Crafting", type: "checkbox", default: true },
 		{ section: "Merchant", name: "craft_target", key: "AL_merchant_craft_target", label: "Craft target", type: "select", options: craft_target_options, default: "", indent: true },
 		{ section: "Merchant", name: "merchant_exchanging", key: "AL_merchant_enabled_exchanging", label: "Exchanging", type: "checkbox", default: true },
+		{ section: "Merchant", name: "merchant_cipher", key: "AL_merchant_enabled_cipher", label: "Witch's Cipher", type: "checkbox", default: true },
 		{ section: "Merchant", name: "merchant_fishing", key: "AL_merchant_enabled_fishing", label: "Fishing", type: "checkbox", default: false },
 		{ section: "Merchant", name: "merchant_mining",  key: "AL_merchant_enabled_mining",  label: "Mining",  type: "checkbox", default: false },
 

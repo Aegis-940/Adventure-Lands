@@ -34,10 +34,10 @@ var CONFIG = {
 		hp_threshold: 500,
 		mp_threshold: 500,
 	},
-	do_not_bank: ["tracker", "computer", "hpot1", "mpot1"],
+	do_not_bank: ["tracker", "computer", "hpot1", "mpot1", "verdantspore", "frostscale", "embercoal", "gloomfeather"],
 	min_bank_free_space: 10,
 	min_free_inventory_slots: 3,
-	priorities: ["dead", "delivering", "banking", "lolipops", "upgrading", "fishing", "mining", "crafting", "exchanging"],
+	priorities: ["dead", "delivering", "banking", "cipher", "trick_or_treat", "lolipops", "upgrading", "fishing", "mining", "crafting", "exchanging"],
 };
 
 var equipment_sets = {

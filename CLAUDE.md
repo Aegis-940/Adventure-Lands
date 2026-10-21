@@ -67,7 +67,8 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | `Movement Goal.js` | `movement_goal()` (where to go: the one priority list) and `movement_local()` (where to stand: `LOCAL_STEPS`, then the encounters' steps) |
 | `Movement Positioning.js` | `best_orbit_spot()`, `reposition_center()`, `orbit_reposition()`: scoring candidate spots around a centre. `orbit_away()`: the ring walk shared by the bscorpion camp and the crabxx kite |
 | `Party Cohesion.js` | `follow_goal()` with the leader's breadcrumb trail, `party_cohesion_hold()`, `leader_position()`. Consulted by `movement_goal()`; moves nothing itself |
-| `World Events.js` | Live boss/seasonal targets and the goal that walks the party to them |
+| `World Events.js` | Live boss/seasonal targets and the goal that walks the party to them. An entry's `mtypes` lists its monsters when the event isn't one (Graveyard Rising), and `wait` is where to stand between its waves |
+| `Trick or Treat.js` | The Halloween doors: Riff walks all of his, Riva knocks the ones on the map an event leaves her on (`trick_or_treat_goal()`, right after the event in `movement_goal()`) |
 | `Combat Utilities.js` | Entity queries, boss/party predicates, the Rime shell predicates, `should_pause_combat_loop()`, the lethal-monster rule (`must_not_touch()`) and the boss leash (`boss_strayed()`) |
 | `Combat Formulas.js` | The server's damage/heal arithmetic, `skill_mp_cost()`, `incoming_dps()`/`endangered()`. Computes, never acts |
 | `Combat Sampling.js` | Hit/heal telemetry and the in-flight damage ledger behind `remaining_hp(mob)` |
@@ -101,7 +102,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | `Mummy.js` | Spawn: Myras wears her luck orb and the `zap_on` ring and zap-pulls fresh mummies, and doesn't curse them; Ulric doesn't agitate them; Riva spends no mark or supershot on them |
 | `Targetron-Sparkbot.js` | Spawn (the uhills targetrons and sparkbots): Myras's luck gear and no curse, the party's farm focus, Ulric agitates sparkbots |
 | `Dryad.js`, `Fireroamer.js` | Spawns: Myras's mdef or fire-resistance gear, fireroamer's skipped panic check and agitate conditions, no ranger skills |
-| `Halloween Bosses.js` | mrpumpkin and mrgreen: Myras tanks, Ulric taunts them onto himself and cleaves with one in reach, single-target sets for Ulric and Riva |
+| `Halloween Bosses.js` | mrpumpkin, mrgreen, the Headless Horseman (nightly, `join`) and the Graveyard Rising Gargoyle: Myras tanks, Ulric taunts them onto himself and cleaves with one in reach, single-target sets for Ulric and Riva |
 | `Crabxx.js` | The kited boss (event off today) and its crabx adds: AOE sets, Myras tanks, Riva shoots adds only once targeted, Ulric agitates a pack of five |
 | `Phoenix.js` | **Required.** The on-demand phoenix hunt: `phoenix_hunt()`/`phoenix_hunt_stop()`/`phoenix_status()` in the console (or the farm target `phoenix`). Each fighter watches its own beat of the five spawn boxes (`PHOENIX_BEATS`), shares what it sees through `AL_phoenix_watch_<name>`, and kills what it finds alone while the others hold their beats (gathering adds no loot: Design Notes → Phoenix). Its `home_settings` turn cohesion and events off and looting on for every fighter. While it runs `vitearring` isn't vendored; Riff compounds them to +2 and crafts `cloverstud` |
 | `Monster Rules.js` | Single monster types with a rule or two and no spawn of their own: pppompom (no cleave near one, not a reason to agitate), redfairy (no agitate near one), nerfedmummy (Riva never shoots one), franky and icegolem (Ulric holds his cleave near one), plantoid and mole (no ranger skills), jr, greenjr and bigbird (always a reason to agitate) |
@@ -144,7 +145,7 @@ Detail for every non-trivial file is in [`Design Notes.md`](Design%20Notes.md). 
 | Warrior — Ulric | `weapon_burst()` (the per-swing candy-cane swap) in Combat; cleave/agitate/stomp/taunt in Skills (the **Rime Djinn shell stomp** is in `Encounters/Rime Djinn.js`); `warrior_engage_step()` in Movement |
 | Healer — Myras | **The tank.** Pull logic and `effective_aggro_cap()` in Combat; curse/absorb/zap in Skills; the `fight` rule (camp/boss loadouts, luck at the kill) in Equipment |
 | Ranger — Riva | Shot chooser (`shot_apiercing()`, `coop_boss_only()`) in Combat; mark/supershot in Skills |
-| Merchant — Riff | Split into Stand, Inventory, Exchange, Gear, Gathering, Party, Upkeep, Upgrading, Lolipop Push, Crafting. `Merchant Task Loop.js` **must load last**. `lolipop_push()` (Lolipop Push) is the on-demand ololipop +10 run |
+| Merchant — Riff | Split into Stand, Inventory, Exchange, Gear, Gathering, Party, Upkeep, Upgrading, Lolipop Push, Crafting, Cipher (the Witch's Cipher: solver, brewing, ingredient buying). `Merchant Task Loop.js` **must load last**. `lolipop_push()` (Lolipop Push) is the on-demand ololipop +10 run |
 
 **Tools** (run outside the game)
 
