@@ -91,8 +91,8 @@ function movement_goal() {
 
 	if (ignoring_events) return null;
 
-	const errand = cipher_meet_goal() || trick_or_treat_goal();
-	if (errand) return errand;
+	const knock = trick_or_treat_goal();
+	if (knock) return knock;
 
 	const spawn_goal = encounter_goal();
 	if (spawn_goal) return spawn_goal;

@@ -122,7 +122,6 @@ function get_full_character_state() {
 		loose_slots: loose_loot(0).length,
 		ship_slots: shippable_loot().length,
 		cipher_bag: cipher_bag(),
-		cipher_ship: cipher_to_ship(),
 		mluck_until: character.s.mluck ? Date.now() + character.s.mluck.ms : 0,
 		last_seen: Date.now(),
 	};

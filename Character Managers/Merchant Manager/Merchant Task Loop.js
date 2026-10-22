@@ -6,7 +6,6 @@ var MERCHANT_STATES = {
 	DEAD: "dead",
 	DELIVERING: "delivering",
 	BANKING: "banking",
-	CIPHER_MEET: "cipher_meet",
 	CIPHER: "cipher",
 	TRICK_OR_TREAT: "trick_or_treat",
 	LOLIPOPS: "lolipops",
@@ -90,7 +89,6 @@ var PRIORITY_CHECKS = {
 	dead:        { state: MERCHANT_STATES.DEAD,       should_run: () => character.rip },
 	delivering:  { state: MERCHANT_STATES.DELIVERING, should_run: should_run_delivery },
 	banking:     { state: MERCHANT_STATES.BANKING,    should_run: should_run_banking },
-	cipher_meet: { state: MERCHANT_STATES.CIPHER_MEET, should_run: should_run_cipher_meet },
 	cipher:      { state: MERCHANT_STATES.CIPHER,     should_run: should_run_cipher },
 	trick_or_treat: { state: MERCHANT_STATES.TRICK_OR_TREAT, should_run: should_run_trick_or_treat },
 	lolipops:    { state: MERCHANT_STATES.LOLIPOPS,   should_run: should_run_lolipop_push },
@@ -114,7 +112,6 @@ async function set_state(state) {
 		case MERCHANT_STATES.DEAD:       await handle_dead_state(); break;
 		case MERCHANT_STATES.DELIVERING: await handle_delivering_state(); break;
 		case MERCHANT_STATES.BANKING:    await handle_banking_state(); break;
-		case MERCHANT_STATES.CIPHER_MEET: await handle_cipher_meet_state(); break;
 		case MERCHANT_STATES.CIPHER:     await handle_cipher_state(); break;
 		case MERCHANT_STATES.TRICK_OR_TREAT: await handle_trick_or_treat_state(); break;
 		case MERCHANT_STATES.LOLIPOPS:   await handle_lolipop_state(); break;
