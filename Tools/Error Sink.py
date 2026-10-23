@@ -204,6 +204,9 @@ SAMPLE_ARCHIVES = {
     "heal": os.path.join(REPO, "heal.jsonl"),
     "target_choice": os.path.join(REPO, "target_choice.jsonl"),
     "cc_report": os.path.join(REPO, "cc_report.jsonl"),
+    "witch_cipher": os.path.join(REPO, "cipher.jsonl"),
+    "witch_crack": os.path.join(REPO, "cipher.jsonl"),
+    "cipher_gather": os.path.join(REPO, "cipher.jsonl"),
 }
 
 
