@@ -122,8 +122,8 @@ var equipment_sets = {
 		{ item_name: "ringofluck", slot: "ring2", level: 2, l: "l" },
 		{ item_name: "cdragon", slot: "chest", level: 0, l: "l" },
 		{ item_name: "spookyamulet", slot: "amulet", level: 2, l: "l" },
-		{ item_name: "cloverstud", slot: "earring1", level: 0, l: "" },
-		{ item_name: "cloverstud", slot: "earring2", level: 0, l: "" },
+		{ item_name: "cloverstud", slot: "earring1", level: 1, l: "" },
+		{ item_name: "cloverstud", slot: "earring2", level: 1, l: "" },
 	],
 	panic: PANIC_ORB_SET,
 	orb_luck: [
