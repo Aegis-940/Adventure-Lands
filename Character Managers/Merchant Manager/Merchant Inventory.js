@@ -61,7 +61,32 @@ function sell_while_idle() {
 }
 
 function bankable(item, keep) {
-	return item && !CONFIG.do_not_bank.includes(item.name) && !keep(item);
+	return item && !CONFIG.do_not_bank.includes(item.name) && !dismantle_due(item) && !keep(item);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+// DISMANTLING — the "of the Dead" weapons become Bones instead of going to the bank; only +0, unlocked copies
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+var DISMANTLE_INTO = "mbones";
+var DISMANTLE_EVERY_MS = 1000;
+var _dismantle_at = 0;
+
+function dismantle_due(item) {
+	const recipe = G.dismantle[item.name];
+	return !!recipe && recipe.items.some(entry => entry[1] === DISMANTLE_INTO) && !item.level && !item.l && !item.b;
+}
+
+function dismantle_bone_weapons() {
+	if (Date.now() - _dismantle_at < DISMANTLE_EVERY_MS) return;
+	const slot = character.items.findIndex(item => item && dismantle_due(item));
+	if (slot === -1) return;
+	const name = character.items[slot].name;
+	if (character.gold < G.dismantle[name].cost) return;
+	_dismantle_at = Date.now();
+	dismantle(slot)
+		.then(() => log_msg("info", `🦴 Dismantled ${G.items[name].name} into Bones`))
+		.catch(e => catcher(e, "dismantle " + name));
 }
 
 function has_bankable_items(keep = keep_nothing) {

@@ -292,7 +292,7 @@ const SELLABLE_ITEMS = [
 	"rfangs", "gphelmet", "phelmet", "vitscroll", "hhelmet", "harmor", "hpants",
 	"hgloves", "hboots", "strring", "dexring", "intring", "strearring", "dexearring", "intearring",
 	"warmscarf", "snowball", "santasbelt", "pclaw", "broom", "skullamulet",
-	"iceskates", "carrot", "xmace", "candycanesword", "pmaceofthedead", "ornamentstaff",
+	"iceskates", "carrot", "xmace", "candycanesword", "ornamentstaff",
 	"merry", "rednose", "xmashat", "xmasshoes", "xmassweater", "xmaspants", "mittens",
 	"angelwings", "snowflakes", "epyjamas", "ecape", "eears", "eslippers", "carrotsword",
 	"pinkie", "oozingterror", "quiver", "fieldgen0", "confetti", "cake", "partyhat", "poker", "ftrinket",
