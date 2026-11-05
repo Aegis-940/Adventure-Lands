@@ -29,6 +29,11 @@ var UPGRADE_PROFILE = {
 	djinncrown:   { scroll0_until: 0, scroll1_until: 2, scroll2_until: 10, primling_from: 4, max_level: 7 },
 	covemantle:   { scroll0_until: 0, scroll1_until: 2, scroll2_until: 10, primling_from: 4, max_level: 4 },
 	cave_mothsteps: { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 4, max_level: 6 },
+	xhelmet:      { scroll0_until: 0, scroll1_until: 0, scroll2_until: 8, primling_from: 3, max_level: 7 },
+	xarmor:       { scroll0_until: 0, scroll1_until: 0, scroll2_until: 8, primling_from: 3, max_level: 7 },
+	xpants:       { scroll0_until: 0, scroll1_until: 0, scroll2_until: 8, primling_from: 3, max_level: 7 },
+	xboots:       { scroll0_until: 0, scroll1_until: 0, scroll2_until: 8, primling_from: 3, max_level: 7 },
+	xgloves:      { scroll0_until: 0, scroll1_until: 0, scroll2_until: 8, primling_from: 3, max_level: 7 },
 };
 
 var COMBINE_PROFILE = {
