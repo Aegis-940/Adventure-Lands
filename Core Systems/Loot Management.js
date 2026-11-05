@@ -296,7 +296,7 @@ const SELLABLE_ITEMS = [
 	"merry", "rednose", "xmashat", "xmasshoes", "xmassweater", "xmaspants", "mittens",
 	"angelwings", "snowflakes", "epyjamas", "ecape", "eears", "eslippers", "carrotsword",
 	"pinkie", "oozingterror", "quiver", "fieldgen0", "confetti", "cake", "partyhat", "poker", "ftrinket",
-	"intamulet", "dexamulet", "stramulet", "strbelt", "dexbelt", "intbelt", "glolipop", "broom", "frankypants"
+	"intamulet", "dexamulet", "stramulet", "strbelt", "dexbelt", "intbelt", "glolipop", "broom", "frankypants", "jacko"
 ];
 
 function vendorable(item) {
