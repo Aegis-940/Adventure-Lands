@@ -13,6 +13,7 @@ on_boot("Merchant", () => {
 	potion_loop();
 	state_cache_loop();
 	stand_loop();
+	dismantle_loop();
 
 	loop_controller();
 });

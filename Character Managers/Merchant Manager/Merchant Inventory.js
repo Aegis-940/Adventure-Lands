@@ -70,7 +70,6 @@ function bankable(item, keep) {
 
 var DISMANTLE_INTO = "mbones";
 var DISMANTLE_EVERY_MS = 1000;
-var _dismantle_at = 0;
 
 function dismantle_due(item) {
 	const recipe = G.dismantle[item.name];
@@ -78,15 +77,19 @@ function dismantle_due(item) {
 }
 
 function dismantle_bone_weapons() {
-	if (Date.now() - _dismantle_at < DISMANTLE_EVERY_MS) return;
 	const slot = character.items.findIndex(item => item && dismantle_due(item));
 	if (slot === -1) return;
 	const name = character.items[slot].name;
 	if (character.gold < G.dismantle[name].cost) return;
-	_dismantle_at = Date.now();
 	dismantle(slot)
 		.then(() => log_msg("info", `🦴 Dismantled ${G.items[name].name} into Bones`))
 		.catch(e => catcher(e, "dismantle " + name));
+}
+
+function dismantle_loop() {
+	every("dismantle_loop", { ms: DISMANTLE_EVERY_MS, kind: "automation" }, () => {
+		if (automation_enabled() && merchant_task === "Idle" && simple_distance(character, HOME) <= 10) dismantle_bone_weapons();
+	});
 }
 
 function has_bankable_items(keep = keep_nothing) {
