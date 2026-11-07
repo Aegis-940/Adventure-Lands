@@ -115,7 +115,8 @@ function update_help_request() {
 	const now = Date.now();
 	const incoming = evaded_incoming_dps();
 	const capacity = self_heal_rate();
-	if (!character.rip && incoming - capacity > CONFIG.healing.help_deficit) {
+	const hurt = character.hp < character.max_hp * CONFIG.healing.help_hp_pct;
+	if (!character.rip && hurt && incoming - capacity > CONFIG.healing.help_deficit) {
 		const raised = healer_help_until <= now;
 		healer_help_until = now + HELP_HOLD_MS;
 		if (raised) {
