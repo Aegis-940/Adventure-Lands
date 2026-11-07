@@ -87,7 +87,7 @@ var equipment_sets = {
 		{ item_name: "lantern", slot: "offhand", level: 3, l: "l" },
 	],
 	uhills_orb: [
-		{ item_name: "stillwaterlens", slot: "orb", level: 1, l: "l" },
+		{ item_name: "talkingskull", slot: "orb", level: 4, l: "l" },
 	],
 	uhills_chest: [
 		{ item_name: "xarmor", slot: "chest", level: 7, l: "l" },
