@@ -85,7 +85,7 @@ var equipment_sets = {
 		{ item_name: "t2quiver", slot: "offhand", level: 7, l: "l" },
 	],
 	dps_chest: [
-		{ item_name: "coat", slot: "chest", level: 9, l: "l" },
+		{ item_name: "coat", slot: "chest", level: 10, l: "l" },
 	],
 	mana_chest: [
 		{ item_name: "tshirt9", slot: "chest", level: 5, l: "l" },

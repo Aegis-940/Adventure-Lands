@@ -56,7 +56,7 @@ var CONFIG = {
 
 var destination = null;
 
-var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE, "talkingskull"];
+var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE];
 
 var item_order = {
 	...ITEM_ORDER_BASE,
@@ -105,10 +105,10 @@ var equipment_sets = {
 		{ item_name: "rabbitsfoot", slot: "orb", level: 2, l: "l" },
 	],
 	orb_exp: [
-		{ item_name: "talkingskull", slot: "orb", level: 3, l: "l" },
+		{ item_name: "talkingskull", slot: "orb", level: 4, l: "l" },
 	],
 	orb: [
-		{ item_name: "talkingskull", slot: "orb", level: 3, l: "l" },
+		{ item_name: "talkingskull", slot: "orb", level: 4, l: "l" },
 	],
 };
 
