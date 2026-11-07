@@ -9,7 +9,7 @@
 const LOOT_GOLD_RESERVE = 100000000;
 
 const ITEMS_TO_KEEP_BASE = ["hpot1", "mpot1", "luckbooster", "goldbooster", "xpbooster",
-	"pumpkinspice", "xptome", "tracker", "jacko", "talkingskull", "computer"];
+	"pumpkinspice", "xptome", "tracker", "jacko", "computer"];
 
 const ITEM_ORDER_BASE = {
 	tracker: 0,
@@ -60,7 +60,7 @@ function reserved_gear_slots() {
 
 	const reserved = new Set();
 	for (const name in copies) {
-		copies[name].sort((a, b) => (b.locked - a.locked) || (b.level - a.level));
+		copies[name].sort((a, b) => (b.level - a.level) || (b.locked - a.locked));
 		for (const entry of copies[name].slice(0, set_slots[name].size)) {
 			if (entry.i !== -1) reserved.add(entry.i);
 		}

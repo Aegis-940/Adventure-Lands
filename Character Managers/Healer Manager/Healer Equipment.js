@@ -165,7 +165,7 @@ function remember_fight_amulet() {
 	const worn = character.slots.amulet;
 	if (!worn) return;
 	const luck_piece = equipment_sets.camp_luck.some(entry =>
-		entry.slot === "amulet" && entry.item_name === worn.name && entry.level === (worn.level || 0));
+		entry.slot === "amulet" && entry.item_name === worn.name);
 	if (luck_piece) return;
 	_camp_fight_amulet = { item_name: worn.name, slot: "amulet", level: worn.level || 0, l: worn.l };
 	if (!ITEMS_TO_KEEP.includes(worn.name)) ITEMS_TO_KEEP.push(worn.name);

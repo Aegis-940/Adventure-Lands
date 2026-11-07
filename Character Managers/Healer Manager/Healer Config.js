@@ -59,7 +59,7 @@ var CONFIG = {
 
 var destination = null;
 
-var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE, "mshield", "lmace", "elixirluck", "orboftemporal", "orboffire", "xgloves"];
+var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE, "mshield", "lmace", "elixirluck", "orboftemporal", "orboffire", "xgloves", "xpants", "xboots"];
 
 var item_order = { ...ITEM_ORDER_BASE };
 
@@ -90,10 +90,10 @@ var equipment_sets = {
 		{ item_name: "stillwaterlens", slot: "orb", level: 1, l: "l" },
 	],
 	uhills_chest: [
-		{ item_name: "xarmor", slot: "chest", level: 5, l: "l" },
+		{ item_name: "xarmor", slot: "chest", level: 7, l: "l" },
 	],
 	uhills_amulet: [
-		{ item_name: "spookyamulet", slot: "amulet", level: 2, l: "l" },
+		{ item_name: "spookyamulet", slot: "amulet", level: 3, l: "l" },
 	],
 	gold: [
 		{ item_name: "handofmidas", slot: "gloves", level: 4, l: "l" },
@@ -121,9 +121,9 @@ var equipment_sets = {
 		{ item_name: "rabbitsfoot", slot: "orb", level: 1, l: "l" },
 		{ item_name: "ringofluck", slot: "ring2", level: 2, l: "l" },
 		{ item_name: "cdragon", slot: "chest", level: 0, l: "l" },
-		{ item_name: "spookyamulet", slot: "amulet", level: 2, l: "l" },
-		{ item_name: "cloverstud", slot: "earring1", level: 1, l: "" },
-		{ item_name: "cloverstud", slot: "earring2", level: 1, l: "" },
+		{ item_name: "spookyamulet", slot: "amulet", level: 3, l: "l" },
+		{ item_name: "cloverstud", slot: "earring1", level: 2, l: "" },
+		{ item_name: "cloverstud", slot: "earring2", level: 2, l: "" },
 	],
 	panic: PANIC_ORB_SET,
 	orb_luck: [
@@ -133,7 +133,7 @@ var equipment_sets = {
 		{ item_name: "orboffire", slot: "orb", level: 3, l: "l" },
 	],
 	orb_exp: [
-		{ item_name: "talkingskull", slot: "orb", level: 3, l: "l" },
+		{ item_name: "talkingskull", slot: "orb", level: 4, l: "l" },
 	],
 	orb_dps: [
 		{ item_name: "cave_loaded_die", slot: "orb", level: 1, l: "l" },
@@ -142,7 +142,7 @@ var equipment_sets = {
 		{ item_name: "coat", slot: "chest", level: 10, l: "l" },
 	],
 	orb: [
-		{ item_name: "talkingskull", slot: "orb", level: 3, l: "l" },
+		{ item_name: "talkingskull", slot: "orb", level: 4, l: "l" },
 	],
 	mdef: [
 		{ item_name: "wbookhs", slot: "offhand", level: 2, l: "l" },

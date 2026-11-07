@@ -56,7 +56,7 @@ var CONFIG = {
 
 var destination = null;
 
-var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE];
+var ITEMS_TO_KEEP = [...ITEMS_TO_KEEP_BASE, "talkingskull"];
 
 var item_order = {
 	...ITEM_ORDER_BASE,
