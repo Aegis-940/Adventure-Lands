@@ -154,6 +154,12 @@ var equipment_sets = {
 	fireres: [
 		{ item_name: "wbookhs", slot: "offhand", level: 2, l: "l" },
 	],
+	dungeon_fight: [
+		{ item_name: "xarmor", slot: "chest", level: 7, l: "l" },
+		{ item_name: "cearring", slot: "earring1", level: 3, l: "" },
+		{ item_name: "cearring", slot: "earring2", level: 3, l: "" },
+		{ item_name: "spookyamulet", slot: "amulet", level: 3, l: "l" },
+	],
 };
 
 // --------------------------------------------------------------------------------------------------------------------------------- //

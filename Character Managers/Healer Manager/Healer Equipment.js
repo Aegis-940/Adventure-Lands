@@ -86,6 +86,7 @@ function dungeon_loadout() {
 	const attack_set = dungeon_setting("attack_loadout", null);
 	const heal_set = dungeon_setting("heal_loadout", null);
 	if (!attack_set || !heal_set) return null;
+	if (dungeon_flag("kill_luck") && luck_window()) return null;
 
 	const wanted = heal_wanted() ? heal_set : attack_set;
 
@@ -188,7 +189,14 @@ function log_camp_kill() {
 	_kill_watch = null;
 }
 
+function dungeon_kill_luck() {
+	if (panicking || disengaging()) return null;
+	const name = luck_window() ? "camp_luck" : "dungeon_fight";
+	return camp_gear_set(name + "_live", equipment_sets[name]);
+}
+
 function resolve_healer_fight() {
+	if (dungeon_flag("kill_luck")) return dungeon_kill_luck();
 	const at_camp = is_at_bscorpion_farm();
 	if (at_camp) log_camp_kill();
 	else _kill_watch = null;

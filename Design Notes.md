@@ -677,6 +677,12 @@ A `limitdcreport` from the server (sent just before it closes the socket for cal
 
 ## Dungeons
 
+### `Spider Dungeon.js`
+
+`DUNGEONS.spider`, three Spider Queens in `spider_instance`, one key a run. Each Queen has 4.5M HP, stands still, hits from 640 and shares one rage box (−320,−1700 → 320,−1150), so walking to the first pulls all three: Red 10,000 physical every 2.5s (it hit Riva for 8,872 on 11-08, her max is 10,297), Brown 840 twice a second, Black 1,200 at 1.1/s. `engage_radius: 50` keeps every fighter on the Queen they stand on, so the order in `bosses` is the kill order. The run on 11-08 took 16 minutes (Brown 4:41, Red 4:01, Black 7:14), and Riva panicked on aggro every 5–10s while the other two picked her.
+
+**Luck at the kill** (`kill_luck`, from 11-08, the user's call). A Queen's drop rolls on its target's luck, so when the Queen she stands on targets Myras and is about to die (`luck_due()`, as at the camp), she wears `camp_luck` (the rabbit's foot is already her dungeon orb). The rest of the time the fight rule holds `dungeon_fight` (xarmor+7, cearring+3 ×2, spookyamulet+3), so the window's chest, earrings and weapons come back, and the loadout rule stands down during the window so the two don't trade the mainhand. Most of a Queen's table is certain (cocoon, two spider silk, poison); the luck pays on the 1-in-3 troll and the global drops. A Queen on Ulric or Riva at the kill gets no window, since their luck rolls it.
+
 ### `Dreams Cave.js`
 
 `DUNGEONS.dreams`, the daily Cave of Many Dreams. Mechanics are in [`Game API Reference.md`](Game%20API%20Reference.md).

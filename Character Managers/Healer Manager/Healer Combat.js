@@ -218,7 +218,17 @@ function tank_boss_nearby() {
 	return null;
 }
 
+function dungeon_luck_target() {
+	let nearest = null;
+	for (const boss of active_dungeon().bosses) {
+		const mob = get_nearest_monster({ type: boss.mtype });
+		if (mob && (!nearest || distance(character, mob) < distance(character, nearest))) nearest = mob;
+	}
+	return nearest && nearest.target === character.name ? nearest : null;
+}
+
 function luck_kill_target() {
+	if (dungeon_flag("kill_luck")) return dungeon_luck_target();
 	if (!is_at_bscorpion_farm()) return tank_boss_nearby();
 	const info = find_nearest_bscorpion();
 	return info ? info.entity : null;
