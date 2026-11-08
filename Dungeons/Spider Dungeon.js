@@ -29,6 +29,8 @@ DUNGEONS.spider = {
 		heal_loadout: "luck",
 		kill_luck: true,
 		engage_radius: 50,
+		cohesion_range: 50,
+		cohesion_regroup: 30,
 	},
 	bosses: [
 		{ mtype: "spiderr", x: 0, y: -1515 },
