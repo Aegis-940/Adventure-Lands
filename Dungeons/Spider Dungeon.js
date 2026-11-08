@@ -31,8 +31,8 @@ DUNGEONS.spider = {
 		engage_radius: 50,
 	},
 	bosses: [
-		{ mtype: "spiderbr", x: 192, y: -1533 },
 		{ mtype: "spiderr", x: 0, y: -1515 },
+		{ mtype: "spiderbr", x: 192, y: -1533 },
 		{ mtype: "spiderbl", x: -188, y: -1515 }
 	]
 };

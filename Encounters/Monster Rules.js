@@ -64,3 +64,10 @@ encounter("bigbird", {
 		warrior: { pull: true },
 	},
 });
+
+encounter("spider queens", {
+	mtypes: ["spiderbr", "spiderbl"],
+	traits: {
+		ranger: { panic_ignore: true },
+	},
+});

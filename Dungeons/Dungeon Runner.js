@@ -266,36 +266,39 @@ async function run_dungeon(dungeon) {
 	set_suppress_reset(true);
 	send_cm(DUNGEON_FOLLOWERS, { type: "suppress_reset" });
 	try {
-		if (dungeon.key && locate_item(dungeon.key) === -1) {
-			dungeon_log(dungeon, `No ${dungeon.key} in hand — withdrawing every one from the bank...`);
-			await withdraw_item(dungeon.key, null, dungeon.key_count);
-			if (locate_item(dungeon.key) === -1) {
-				dungeon_log(dungeon, `No ${dungeon.key} in the bank either — aborting.`, "warn");
+		const resumed = character.map === dungeon.map && await resume_in_instance(dungeon);
+		if (!resumed) {
+			if (dungeon.key && locate_item(dungeon.key) === -1) {
+				dungeon_log(dungeon, `No ${dungeon.key} in hand — withdrawing every one from the bank...`);
+				await withdraw_item(dungeon.key, null, dungeon.key_count);
+				if (locate_item(dungeon.key) === -1) {
+					dungeon_log(dungeon, `No ${dungeon.key} in the bank either — aborting.`, "warn");
+					return false;
+				}
+			}
+
+			dungeon_log(dungeon, "Moving to entrance...");
+			await smarter_move(dungeon.entrance);
+			dungeon_log(dungeon, "At entrance — entering instance...");
+			await wait_for_party_out(dungeon);
+			await wait_for_party_at_entrance(dungeon);
+			await sleep(DUNGEON_ENTER_SETTLE_MS);
+			enter(dungeon.map);
+			if (!await wait_until_on_map(dungeon.map)) {
+				dungeon_log(dungeon, "enter() never landed — aborting", "warn");
 				return false;
 			}
+
+			dungeon_log(dungeon, "Signalling party to enter instance...");
+			send_cm(DUNGEON_FOLLOWERS, {
+				type: "enter_instance",
+				in: character.in,
+				map: dungeon.map,
+				entrance: dungeon.entrance,
+			});
+
+			await wait_for_party_in_instance(dungeon);
 		}
-
-		dungeon_log(dungeon, "Moving to entrance...");
-		await smarter_move(dungeon.entrance);
-		dungeon_log(dungeon, "At entrance — entering instance...");
-		await wait_for_party_out(dungeon);
-		await wait_for_party_at_entrance(dungeon);
-		await sleep(DUNGEON_ENTER_SETTLE_MS);
-		enter(dungeon.map);
-		if (!await wait_until_on_map(dungeon.map)) {
-			dungeon_log(dungeon, "enter() never landed — aborting", "warn");
-			return false;
-		}
-
-		dungeon_log(dungeon, "Signalling party to enter instance...");
-		send_cm(DUNGEON_FOLLOWERS, {
-			type: "enter_instance",
-			in: character.in,
-			map: dungeon.map,
-			entrance: dungeon.entrance,
-		});
-
-		await wait_for_party_in_instance(dungeon);
 
 		_dungeon_moving = false;
 		reset_dungeon_progress();
@@ -470,9 +473,6 @@ function start_dungeon_when_ready(dungeon) {
 		if (character.rip) {
 			dungeon_log(dungeon, "Character is dead on startup — not auto-starting.", "warn");
 			return;
-		}
-		if (character.map === dungeon.map) {
-			dungeon_log(dungeon, "Detected startup inside instance — restarting from entrance.");
 		}
 		dungeon_log(dungeon, "Auto-starting...");
 

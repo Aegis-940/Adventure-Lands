@@ -65,6 +65,17 @@ function followers_still_inside(dungeon) {
 	});
 }
 
+async function resume_in_instance(dungeon) {
+	dungeon_log(dungeon, "Started inside the instance — waiting for the party to rejoin...");
+	const all_in = () => followers_still_inside(dungeon).length === DUNGEON_FOLLOWERS.length;
+	if (await wait_until(all_in, DUNGEON_JOIN_TIMEOUT_MS, DUNGEON_EXIT_POLL_MS)) {
+		dungeon_log(dungeon, "Party back in the instance — resuming the run");
+		return true;
+	}
+	dungeon_log(dungeon, "Party never rejoined — starting a fresh run", "warn");
+	return false;
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------- //
 // REJOIN WATCH — a follower who died and was ejected has to get back in, not stand outside following a leader it cannot reach
 // --------------------------------------------------------------------------------------------------------------------------------- //

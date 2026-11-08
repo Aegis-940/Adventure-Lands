@@ -135,9 +135,9 @@ async function handle_absorb() {
 	if (!character.party) return;
 	if (character.mp - skill_mp_cost("absorb") < character.mp_cost) return;
 
-	const camp_ally = camp_absorb_target();
-	if (camp_ally) {
-		await use_skill("absorb", camp_ally);
+	const held_ally = kill_luck_absorb_target() || camp_absorb_target();
+	if (held_ally) {
+		await use_skill("absorb", held_ally);
 		return;
 	}
 
@@ -176,6 +176,17 @@ async function handle_absorb() {
 		await use_skill("absorb", ally.name);
 		return;
 	}
+}
+
+function kill_luck_absorb_target() {
+	if (!dungeon_flag("kill_luck")) return null;
+	const boss = dungeon_nearest_boss();
+	if (!boss || !boss.target || boss.target === character.name || !get_party()[boss.target]) return null;
+	if (!luck_due(boss)) return null;
+
+	const ally = get_player(boss.target);
+	if (!ally || ally.rip || !is_in_range(ally, "absorb")) return null;
+	return hit_too_big(boss, character) ? null : ally.name;
 }
 
 function boss_absorb_target() {

@@ -218,13 +218,18 @@ function tank_boss_nearby() {
 	return null;
 }
 
-function dungeon_luck_target() {
+function dungeon_nearest_boss() {
 	let nearest = null;
 	for (const boss of active_dungeon().bosses) {
 		const mob = get_nearest_monster({ type: boss.mtype });
 		if (mob && (!nearest || distance(character, mob) < distance(character, nearest))) nearest = mob;
 	}
-	return nearest && nearest.target === character.name ? nearest : null;
+	return nearest;
+}
+
+function dungeon_luck_target() {
+	const boss = dungeon_nearest_boss();
+	return boss && boss.target === character.name ? boss : null;
 }
 
 function luck_kill_target() {
