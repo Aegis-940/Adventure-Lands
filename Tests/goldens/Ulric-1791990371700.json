@@ -57,10 +57,6 @@
       {
        "num": 40,
        "slot": "mainhand"
-      },
-      {
-       "num": 16,
-       "slot": "offhand"
       }
      ]
     },
@@ -100,10 +96,6 @@
       {
        "num": 14,
        "slot": "mainhand"
-      },
-      {
-       "num": 38,
-       "slot": "offhand"
       }
      ]
     },
@@ -161,10 +153,6 @@
       {
        "num": 40,
        "slot": "mainhand"
-      },
-      {
-       "num": 16,
-       "slot": "offhand"
       }
      ]
     },
@@ -206,10 +194,6 @@
       {
        "num": 15,
        "slot": "mainhand"
-      },
-      {
-       "num": 16,
-       "slot": "offhand"
       }
      ]
     },

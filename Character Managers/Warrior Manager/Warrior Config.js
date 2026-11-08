@@ -81,11 +81,11 @@ var equipment_sets = {
 	],
 	aoe: [
 		{ item_name: "fireblade", slot: "mainhand", level: 9, l: "l" },
-		{ item_name: "ololipop", slot: "offhand", level: 9, l: "l" },
+		{ item_name: "ololipop", slot: "offhand", level: 10, l: "l" },
 	],
 	double_aoe: [
 		{ item_name: "vhammer", slot: "mainhand", level: 8, l: "l" },
-		{ item_name: "ololipop", slot: "offhand", level: 9, l: "l" },
+		{ item_name: "ololipop", slot: "offhand", level: 10, l: "l" },
 	],
 	basher: [
 		{ item_name: "wbasher", slot: "mainhand", level: 0 }

@@ -1,7 +1,7 @@
 {
  "decisions": {
   "update_cache": "ok",
-  "gear.weapon": "single",
+  "gear.weapon": "aoe",
   "gear.orb": "orb_exp",
   "target": "7948968",
   "tank": "Myras",
@@ -49,26 +49,16 @@
      }
     },
     {
-     "event": "server replied"
-    },
-    {
      "event": "equip_batch",
      "payload": [
       {
-       "num": 9,
-       "slot": "mainhand"
-      },
-      {
        "num": 37,
-       "slot": "offhand"
+       "slot": "mainhand"
       }
      ]
     },
     {
      "event": "server replied"
-    },
-    {
-     "event": "after 1500ms"
     }
    ]
   },
@@ -100,10 +90,6 @@
       {
        "num": 38,
        "slot": "mainhand"
-      },
-      {
-       "num": 39,
-       "slot": "offhand"
       }
      ]
     },
@@ -161,10 +147,6 @@
       {
        "num": 9,
        "slot": "mainhand"
-      },
-      {
-       "num": 37,
-       "slot": "offhand"
       }
      ]
     },
@@ -198,26 +180,16 @@
      }
     },
     {
-     "event": "server replied"
-    },
-    {
      "event": "equip_batch",
      "payload": [
       {
-       "num": 9,
-       "slot": "mainhand"
-      },
-      {
        "num": 15,
-       "slot": "offhand"
+       "slot": "mainhand"
       }
      ]
     },
     {
      "event": "server replied"
-    },
-    {
-     "event": "after 1500ms"
     }
    ]
   },
