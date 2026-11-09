@@ -128,6 +128,16 @@ async function sell_items(keep = keep_nothing) {
 	return sold_any;
 }
 
+var BANK_MAIN_FLOOR_TYPES = [
+	"helmet", "chest", "pants", "gloves", "shoes", "cape", "ring", "earring", "amulet", "belt", "orb",
+	"weapon", "shield", "offhand", "source", "quiver", "misc_offhand",
+	"elixir", "pot", "scroll", "cscroll", "uscroll", "pscroll", "offering", "material",
+];
+
+function bank_floor_for(item) {
+	return BANK_MAIN_FLOOR_TYPES.includes(G.items[item.name].type) ? "bank" : "bank_b";
+}
+
 function plan_bank_stores(keep) {
 	const packs = Object.keys(character.bank)
 		.filter(pack => pack.startsWith("items") && Array.isArray(character.bank[pack]) && parent.bank_packs[pack][0] === character.map);
@@ -136,7 +146,7 @@ function plan_bank_stores(keep) {
 
 	const stores = [];
 	character.items.forEach((item, slot) => {
-		if (!bankable(item, keep)) return;
+		if (!bankable(item, keep) || bank_floor_for(item) !== character.map) return;
 		const stack = packs.find(pack => character.bank[pack].some(it => parent.can_stack(it, item, null, { ignore_pvp: true })));
 		const pack = stack || packs.find(p => free[p] > 0);
 		if (!pack) {
@@ -163,20 +173,22 @@ async function bank_items(keep = keep_nothing) {
 	bank_items_running = true;
 	let banked_any = false;
 	try {
-		await smarter_move(BANK_LOCATION);
-		await wait_for_bank(BANK_LOCATION.map);
+		for (const floor of ["bank", "bank_b"]) {
+			if (!character.items.some(item => bankable(item, keep) && bank_floor_for(item) === floor)) continue;
+			await go_to_bank_floor(floor);
 
-		const stores = plan_bank_stores(keep);
-		const results = await Promise.allSettled(stores.map(store => bank_store(store.slot, store.pack)));
-		results.forEach((result, k) => {
-			const item = stores[k].item;
-			if (result.status === "rejected") {
-				catcher(result.reason, "bank_items: bank_store " + item.name);
-				return;
-			}
-			log_msg("info", `🏦 Deposited ${item.name} x${item.q || 1} to bank`);
-			banked_any = true;
-		});
+			const stores = plan_bank_stores(keep);
+			const results = await Promise.allSettled(stores.map(store => bank_store(store.slot, store.pack)));
+			results.forEach((result, k) => {
+				const item = stores[k].item;
+				if (result.status === "rejected") {
+					catcher(result.reason, "bank_items: bank_store " + item.name);
+					return;
+				}
+				log_msg("info", `🏦 Deposited ${item.name} x${item.q || 1} to ${floor === "bank" ? "bank" : "the basement"}`);
+				banked_any = true;
+			});
+		}
 
 		if (banked_any) refresh_bank_snapshot();
 	} catch (e) {
