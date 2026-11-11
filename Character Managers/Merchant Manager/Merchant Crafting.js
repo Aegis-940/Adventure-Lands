@@ -338,6 +338,7 @@ function upgrades_crafted(item_name) {
 
 async function upgrade_crafted(item_name, abandoned) {
 	if (!upgrades_crafted(item_name)) return;
+	if (target_profile(item_name).primling_from !== undefined && inventory_slot("offeringp") === null) await withdraw_offering();
 	if (locate_item("computer") !== -1) await leave_bank();
 	else await smarter_move(HOME);
 	log_msg("info", `⬆️ Upgrading the ${item_name} just crafted before crafting more.`);
