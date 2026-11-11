@@ -587,7 +587,7 @@ async function run_local(fixture) {
 
 const TICKS = {
 	warrior: ["skill_tick", "skill_tick ready", "skill_tick ready calls", "action_tick", "action_tick ready"],
-	priest: ["skill_tick", "skill_tick ready", "skill_tick ready calls", "zap_tick", "zap_tick ready", "zap_tick ready calls",
+	priest: ["skill_tick", "skill_tick ready", "skill_tick ready calls", "party_heal_tick", "party_heal_tick ready", "party_heal_tick ready calls", "zap_tick", "zap_tick ready", "zap_tick ready calls",
 		"action_tick", "action_tick ready"],
 	ranger: ["skill_tick", "skill_tick ready", "action_tick", "action_tick ready"],
 };

@@ -62,13 +62,6 @@
     {
      "event": "call",
      "payload": {
-      "name": "handle_party_heal",
-      "args": []
-     }
-    },
-    {
-     "event": "call",
-     "payload": {
       "name": "handle_curse",
       "args": []
      }
@@ -85,6 +78,26 @@
      "payload": {
       "name": "darkblessing",
       "target": null
+     }
+    }
+   ]
+  },
+  "party_heal_tick": {
+   "result": 40,
+   "sent": []
+  },
+  "party_heal_tick ready": {
+   "result": 40,
+   "sent": []
+  },
+  "party_heal_tick ready calls": {
+   "result": 40,
+   "sent": [
+    {
+     "event": "call",
+     "payload": {
+      "name": "handle_party_heal",
+      "args": []
      }
     }
    ]

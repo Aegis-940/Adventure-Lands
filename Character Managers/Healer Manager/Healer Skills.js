@@ -3,10 +3,13 @@
 // --------------------------------------------------------------------------------------------------------------------------------- //
 
 var HEALER_SKILLS = [
-	{ name: "partyheal", gate: "alive", cast: () => handle_party_heal() },
 	{ name: "curse", gate: "combat", wanted: () => character.mp >= skill_mp_cost("curse") + panic_mp_reserve(), cast: () => handle_curse() },
 	{ name: "absorb", gate: "combat", wanted: tick => tick.penalty < 500, cast: () => handle_absorb() },
 	{ name: "darkblessing", gate: "combat", wanted: dark_blessing_wanted, cast: () => use_skill("darkblessing") },
+];
+
+var PARTY_HEAL_SKILLS = [
+	{ name: "partyheal", gate: "alive", cast: () => handle_party_heal() },
 ];
 
 var ZAP_SKILLS = [
@@ -29,6 +32,17 @@ async function skill_tick() {
 	update_cache();
 	if (is_on_cooldown("darkblessing")) _dark_blessing_ready_since = 0;
 	await run_skills(HEALER_SKILLS, { penalty: character.s.penalty_cd?.ms || 0 });
+	return TICK_RATE.skill;
+}
+
+function party_heal_loop() {
+	every("party_heal_loop", { ms: TICK_RATE.skill, kind: "combat", beat: true, retry: TICK_RATE.retry }, party_heal_tick);
+}
+
+async function party_heal_tick() {
+	if (dungeon_bailing() || cave_paused()) return 100;
+	if (is_disabled(character)) return 250;
+	await run_skills(PARTY_HEAL_SKILLS);
 	return TICK_RATE.skill;
 }
 
