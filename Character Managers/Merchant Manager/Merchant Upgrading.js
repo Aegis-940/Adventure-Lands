@@ -7,7 +7,7 @@ var BANK_POSITION_TOLERANCE = 10;
 
 var UPGRADE_PROFILE = {
 	pouchbow:     { scroll0_until: 0, scroll1_until: 8, scroll2_until: 9, primling_from: 6, max_level: 9 },
-	fireblade:    { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 6, grace_from: 8, max_level: 9 },
+	fireblade:    { scroll0_until: 0, scroll1_until: 7, scroll2_until: 10, primling_from: 6, grace_from: 8, max_level: 9 },
 	firebow:      { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 6, max_level: 8 },
 	firestaff:    { scroll0_until: 0, scroll1_until: 6, scroll2_until: 10, primling_from: 7, max_level: 8 },
 	hbow:         { scroll0_until: 0, scroll1_until: 6, scroll2_until: 8, primling_from: 7, max_level: 7 },
