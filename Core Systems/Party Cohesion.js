@@ -128,10 +128,50 @@ function party_cohesion_hold(event) {
 		const s = party_state(name);
 		if (!s || s.rip || automation_paused(name)) return false;
 		if (event && s.goal === event.label) return false;
-		if (s.map !== character.map) return !travelling;
-		return Math.hypot(s.x - character.x, s.y - character.y) > limit;
+		const far = s.map !== character.map ? !travelling : Math.hypot(s.x - character.x, s.y - character.y) > limit;
+		if (!far) {
+			delete _cohesion_desync[name];
+			return false;
+		}
+		return !cohesion_desync(name, s);
 	});
 	return _cohesion_holding;
+}
+
+const COHESION_DESYNC_MS = 5000;
+const COHESION_DESYNC_STILL = 10;
+let _cohesion_desync = {};
+
+function follower_following(goal) {
+	return goal === "with-leader" || goal === "await-town" || /^follow/.test(goal);
+}
+
+function cohesion_desync(name, s) {
+	const told = read_state_cache(name);
+	if (!told || !follower_following(told.goal)) {
+		delete _cohesion_desync[name];
+		return false;
+	}
+	const now = Date.now();
+	const d = _cohesion_desync[name];
+	if (!d || d.map !== told.map || Math.hypot(told.x - d.x, told.y - d.y) > COHESION_DESYNC_STILL) {
+		_cohesion_desync[name] = { map: told.map, x: told.x, y: told.y, since: now, logged: false };
+		return false;
+	}
+	if (now - d.since < COHESION_DESYNC_MS) return false;
+	if (!d.logged) {
+		d.logged = true;
+		errlog_count("cohesion desync " + name);
+		errlog_sample("cohesion_desync", {
+			follower: name,
+			follower_goal: told.goal,
+			me: { map: character.map, x: Math.round(character.x), y: Math.round(character.y) },
+			seen: s.live ? { map: s.map, x: Math.round(s.x), y: Math.round(s.y) } : null,
+			told: { map: told.map, x: Math.round(told.x), y: Math.round(told.y), age: now - told.last_seen },
+		});
+		log_msg("warn", `🧭 ${name} is following me but standing still where I can't see it: not waiting for it`);
+	}
+	return true;
 }
 
 function cohesion_closing(d) {
